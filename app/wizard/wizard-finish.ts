@@ -140,9 +140,11 @@ function wizardRemoval(wizard: WizardRef, indexPath: string): WizardMutation[] {
 
 // WizardFinishPlan is a prepared Finish: the writes that create the target,
 // and the target itself. Everything the writes need is read before the plan
-// is built. targetMade says the target exists apart from the list, such as a
-// device paired before Finish: a list refused because the wizard is gone
-// then still ends done and opens the target, since the target is real.
+// is built. Non-empty creates make the object at target.openKey, a key that
+// was free when the plan was prepared. targetMade says the target exists
+// apart from the list, such as a device paired before Finish: a list refused
+// because the wizard is gone then still ends done and opens the target, since
+// the target is real.
 export interface WizardFinishPlan {
   creates: WizardMutation[]
   target: WizardFinishTarget
@@ -199,12 +201,23 @@ export async function cancelWizard(
 // failed and offers Retry, which prepares and applies the whole list again;
 // done means this press removed the wizard and its target opens; gone means
 // another writer removed the wizard, so the only way out is to close.
+//
+// A failed list may have committed with its reply lost, so failed keeps the
+// plan it applied. Once the wizard is gone, the control checks that plan's
+// target, shown as finishing meanwhile: the list landed when the target
+// exists, and the control ends done.
 export type WizardFinishState =
   | { status: 'idle'; message?: string }
   | { status: 'finishing' }
-  | { status: 'failed'; error: string }
+  | { status: 'failed'; error: string; applied?: WizardFinished }
   | { status: 'done' }
   | { status: 'gone' }
+
+// WizardFinished is a plan a failed press applied and the onDone it ends in.
+export interface WizardFinished {
+  plan: WizardFinishPlan
+  onDone: (target: WizardFinishTarget) => void
+}
 
 // WizardFinishEvent moves the Finish control between its states.
 type WizardFinishEvent =
@@ -230,20 +243,52 @@ export function wizardFinishReducer(
 // wizardFinishView is the state a wizard shows: the control's own state, or
 // gone once the watched wizard object is removed by another writer. A press
 // that is finishing or done removes the wizard itself, so the watch seeing it
-// gone then is not a deletion to show.
+// gone then is not a deletion to show; nor is a failed press whose own list
+// may have removed it, which shows finishing until its target is checked.
 export function wizardFinishView(
   state: WizardFinishState,
   wizardGone: boolean,
 ): WizardFinishState {
   if (!wizardGone) return state
   if (state.status === 'finishing' || state.status === 'done') return state
+  if (state.status === 'failed' && mayHaveLanded(state.applied)) {
+    return { status: 'finishing' }
+  }
   return { status: 'gone' }
+}
+
+// mayHaveLanded reports whether an applied plan creates its target, so its
+// target existing shows the list committed. A plan that creates nothing
+// leaves no trace of its own to check.
+function mayHaveLanded(applied?: WizardFinished): applied is WizardFinished {
+  return !!applied && applied.plan.creates.length > 0
+}
+
+// finishLanded reports whether a plan's list committed though its reply was
+// lost: the wizard is gone and the plan's target exists. The target's key was
+// free when the plan was prepared, so only a list made from this wizard's
+// input, this one or another tab's alike, can have made it.
+async function finishLanded(
+  wizard: WizardRef,
+  applied: WizardFinished,
+): Promise<boolean> {
+  if (!mayHaveLanded(applied)) return false
+  const world = wizard.spaceWorld
+  {
+    using left = await world.getObject(wizard.objectKey)
+    if (left) return false
+  }
+  using made = await world.getObject(applied.plan.target.openKey)
+  return !!made
 }
 
 // refusedFinishState is the state a press that threw ends in: idle with the
 // message for an input the person can fix, gone for a wizard another writer
-// removed, and failed with Retry for anything else.
-function refusedFinishState(err: unknown): WizardFinishState {
+// removed, and failed with Retry for anything else, keeping the plan applied.
+function refusedFinishState(
+  err: unknown,
+  applied?: WizardFinished,
+): WizardFinishState {
   if (err instanceof WizardInputError) {
     return { status: 'idle', message: err.message }
   }
@@ -251,6 +296,7 @@ function refusedFinishState(err: unknown): WizardFinishState {
   return {
     status: 'failed',
     error: err instanceof Error ? err.message : String(err),
+    applied,
   }
 }
 
@@ -292,6 +338,7 @@ export function useWizardFinish(
   }, [])
 
   // finish runs one press through prepare, the list and onDone.
+  const earlier = state.status === 'failed' ? state.applied : undefined
   const finish = useCallback(
     async (
       prepare: () => Promise<WizardFinishPlan>,
@@ -302,28 +349,62 @@ export function useWizardFinish(
       runningRef.current = true
       dispatch({ type: 'start' })
       let plan: WizardFinishPlan | undefined
-      const done = (target: WizardFinishTarget): WizardFinishState => {
+      const done = ({ plan, onDone }: WizardFinished): WizardFinishState => {
         dispatch({ type: 'finish' })
-        if (mountedRef.current) onDone(target)
+        if (mountedRef.current) onDone(plan.target)
         return { status: 'done' }
       }
       try {
         plan = await prepare()
         await finishWizard(wizard, plan)
-        return done(plan.target)
+        return done({ plan, onDone })
       } catch (err) {
         if (err instanceof WizardGoneError && plan?.targetMade) {
-          return done(plan.target)
+          return done({ plan, onDone })
         }
-        const next = refusedFinishState(err)
+
+        // This list, or the failed one before it, may have committed with
+        // its reply lost; Retry then finds the wizard gone.
+        const applied = plan && { plan, onDone }
+        if (!(err instanceof WizardInputError)) {
+          for (const tried of [applied, earlier]) {
+            if (tried && (await finishLanded(wizard, tried))) {
+              return done(tried)
+            }
+          }
+        }
+        const next = refusedFinishState(err, applied ?? earlier)
         dispatch({ type: 'refuse', state: next })
         return next
       } finally {
         runningRef.current = false
       }
     },
-    [wizard],
+    [earlier, wizard],
   )
 
-  return { state: wizardFinishView(state, !!wizard.wizardGone), finish }
+  // A failed list whose reply was lost removed the wizard: once the watch
+  // shows it gone, its target decides between done and gone.
+  const wizardGone = !!wizard.wizardGone
+  const checking = wizardGone && mayHaveLanded(earlier) ? earlier : undefined
+  useEffect(() => {
+    if (!checking) return
+    let cancelled = false
+    const check = async () => {
+      const landed = await finishLanded(wizard, checking).catch(() => false)
+      if (cancelled || runningRef.current) return
+      if (!landed) {
+        dispatch({ type: 'refuse', state: { status: 'gone' } })
+        return
+      }
+      dispatch({ type: 'finish' })
+      if (mountedRef.current) checking.onDone(checking.plan.target)
+    }
+    void check()
+    return () => {
+      cancelled = true
+    }
+  }, [checking, wizard])
+
+  return { state: wizardFinishView(state, wizardGone), finish }
 }

@@ -32,6 +32,8 @@ const createdKeys: Record<string, (opData: Uint8Array) => string> = {
     ForgeJobCreateOp.fromBinary(d).jobKey ?? '',
   'spacewave/forge/task/create': (d) =>
     ForgeTaskCreateOp.fromBinary(d).taskKey ?? '',
+  // A test create names its key as text, or creates no object when empty.
+  'test/create': (d) => new TextDecoder().decode(d),
 }
 
 // applyCreate stages the object a create op writes. Like the World, it
@@ -58,7 +60,8 @@ function applyCreate(
 // wins. failOn names the one call that throws: an op id, 'delete' or
 // 'commit'. timeoutOn names an op id the World answers as a plugin timeout,
 // discarding the batch. A batch waits for commitGate, once its mutations
-// applied, when one is set.
+// applied, when one is set. loseReply makes the next batch that lands throw
+// to its caller, as a reply lost after the commit does.
 export interface WizardTestWorld {
   world: EngineWorldState
   state: WizardWorldState
@@ -68,6 +71,7 @@ export interface WizardTestWorld {
   failOn?: string
   timeoutOn?: string
   commitGate?: Promise<void>
+  loseReply?: boolean
 }
 
 // wizardTestWorld builds a test World holding the objects and index given.
@@ -158,6 +162,10 @@ export function wizardTestWorld(
     await t.commitGate
     fail('commit')
     t.state = staged
+    if (t.loseReply) {
+      t.loseReply = false
+      throw new Error('reply lost')
+    }
     return { seqno: 1n }
   }
 

@@ -34,6 +34,20 @@ const plan = {
   target: { openKey: 'obj/one', indexPath: 'obj/one' },
 }
 
+// madePlan is a Finish that creates the object at key.
+function madePlan(key: string) {
+  return {
+    creates: [
+      {
+        kind: 'op' as const,
+        opId: createOpId,
+        opData: new TextEncoder().encode(key),
+      },
+    ],
+    target: { openKey: key, indexPath: key },
+  }
+}
+
 describe('finishWizard', () => {
   it('creates, moves the index and deletes the wizard in one commit', async () => {
     const t = wizardTestWorld(['wizard/one'], 'wizard/one')
@@ -210,6 +224,69 @@ describe('useWizardFinish', () => {
     expect(result.current.state).toEqual({ status: 'done' })
     expect(onDone).toHaveBeenCalledWith(intro.target)
     expect(t.calls).not.toContain('commit')
+  })
+
+  it('ends done when Retry finds the wizard removed by its own lost reply', async () => {
+    // The list commits but its reply is lost, so the press shows failed.
+    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
+    const made = madePlan('obj/one')
+    t.loseReply = true
+    const onDone = vi.fn()
+    const { result } = renderHook(() => useWizardFinish(wizardIn(t)))
+    await act(() => result.current.finish(() => Promise.resolve(made), onDone))
+    expect(result.current.state).toEqual({ status: 'done' })
+    expect(onDone).toHaveBeenCalledWith(made.target)
+    expect(t.state.objects).toEqual(new Set(['obj/one']))
+  })
+
+  it('ends done when the watch shows the wizard its failed list removed', async () => {
+    // The list commits, the reply is lost, and the first check still sees
+    // the wizard because the read raced the commit.
+    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
+    const world = t.world as unknown as { getObject: unknown }
+    world.getObject = vi
+      .fn()
+      .mockResolvedValueOnce({ [Symbol.dispose]: () => {} })
+      .mockImplementation(t.world.getObject.bind(t.world))
+    t.loseReply = true
+    const onDone = vi.fn()
+    const made = madePlan('obj/one')
+    const { result, rerender } = renderHook(
+      ({ gone }) => useWizardFinish({ ...wizardIn(t), wizardGone: gone }),
+      { initialProps: { gone: false } },
+    )
+    await act(() => result.current.finish(() => Promise.resolve(made), onDone))
+    expect(result.current.state.status).toBe('failed')
+
+    // The watch sees the wizard gone: the control checks its target and
+    // ends done rather than showing the wizard deleted.
+    rerender({ gone: true })
+    expect(result.current.state).toEqual({ status: 'finishing' })
+    await vi.waitFor(() =>
+      expect(result.current.state).toEqual({ status: 'done' }),
+    )
+    expect(onDone).toHaveBeenCalledWith(made.target)
+  })
+
+  it('shows gone when another tab removed the wizard after a failed press', async () => {
+    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
+    t.failOn = 'commit'
+    const onDone = vi.fn()
+    const { result, rerender } = renderHook(
+      ({ gone }) => useWizardFinish({ ...wizardIn(t), wizardGone: gone }),
+      { initialProps: { gone: false } },
+    )
+    await act(() =>
+      result.current.finish(() => Promise.resolve(madePlan('obj/one')), onDone),
+    )
+
+    // Another tab cancels: no target, so the wizard was removed elsewhere.
+    t.state.objects.delete('wizard/one')
+    rerender({ gone: true })
+    await vi.waitFor(() =>
+      expect(result.current.state).toEqual({ status: 'gone' }),
+    )
+    expect(onDone).not.toHaveBeenCalled()
   })
 
   it('commits but does not navigate once the wizard unmounted', async () => {
