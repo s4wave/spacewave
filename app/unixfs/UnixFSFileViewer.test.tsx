@@ -101,6 +101,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('renders an image tag for image mime types when an inline raw url is provided', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/logo.png"
         stat={{
           info: { isDir: false, name: 'logo.png' },
@@ -121,6 +122,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('shows a failed image as a notice with Retry and Download', () => {
     const viewer = (inlineFileURL: string) => (
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/logo.png"
         stat={{
           info: { isDir: false, name: 'logo.png' },
@@ -159,6 +161,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('keeps the binary placeholder when no inline raw url is available', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/logo.png"
         stat={{
           info: { isDir: false, name: 'logo.png' },
@@ -176,6 +179,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('keeps the binary placeholder for non-image files', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/archive.bin"
         stat={{
           info: { isDir: false, name: 'archive.bin' },
@@ -193,6 +197,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('renders symlink metadata from the UnixFS file kind primitive', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/link"
         stat={{
           info: { isDir: false, name: 'link' },
@@ -213,6 +218,7 @@ describe('UnixFSFileViewer image preview', () => {
       h.symlinkTarget = target
       render(
         <UnixFSFileViewer
+          objectKey="files"
           path="/nested/link"
           stat={{
             info: { isDir: false, name: 'link' },
@@ -236,6 +242,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('renders a pdf viewer for pdf mime types when an inline raw url is provided', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/guide.pdf"
         stat={{
           info: { isDir: false, name: 'guide.pdf' },
@@ -257,6 +264,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('keeps the binary placeholder for pdf files when no inline raw url is available', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/guide.pdf"
         stat={{
           info: { isDir: false, name: 'guide.pdf' },
@@ -274,6 +282,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('renders an audio element for audio mime types when an inline raw url is provided', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/song.mp3"
         stat={{
           info: { isDir: false, name: 'song.mp3' },
@@ -295,6 +304,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('renders an audio element for opus files when an inline raw url is provided', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/song.opus"
         stat={{
           info: { isDir: false, name: 'song.opus' },
@@ -316,6 +326,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('renders an audio element for webm files when the mime type is audio/webm', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/song.webm"
         stat={{
           info: { isDir: false, name: 'song.webm' },
@@ -337,6 +348,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('keeps the binary placeholder for audio files when no inline raw url is available', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/song.mp3"
         stat={{
           info: { isDir: false, name: 'song.mp3' },
@@ -354,6 +366,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('renders a video element for video mime types when an inline raw url is provided', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/demo.mp4"
         stat={{
           info: { isDir: false, name: 'demo.mp4' },
@@ -375,6 +388,7 @@ describe('UnixFSFileViewer image preview', () => {
   it('keeps the binary placeholder for video files when no inline raw url is available', () => {
     render(
       <UnixFSFileViewer
+        objectKey="files"
         path="/nested/demo.mp4"
         stat={{
           info: { isDir: false, name: 'demo.mp4' },

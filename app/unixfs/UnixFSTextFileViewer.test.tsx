@@ -11,7 +11,7 @@ import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { UnixFSTextFileViewer } from './UnixFSTextFileViewer.js'
 
 // handles.file is the file handle the mocked hook returns; replacing it makes
-// the viewer read the file again, as a changed file does.
+// the viewer read the file again, as a new handle does.
 const handles = vi.hoisted(() => ({
   file: {
     readAt: (() => {}) as (...args: unknown[]) => unknown,
@@ -37,6 +37,22 @@ function readsText(text: string, eof = true) {
       .mockResolvedValue({ data: new TextEncoder().encode(text), eof }),
     getInfo: () => ({ mode: 0o644 }),
   }
+}
+
+// diskHolds makes the same file handle read text from now on, as the disk
+// does after a commit no watch has reported yet.
+function diskHolds(text: string) {
+  handles.file.readAt = vi
+    .fn()
+    .mockResolvedValue({ data: new TextEncoder().encode(text), eof: true })
+}
+
+// diskLost makes the same file handle fail its reads as a removed file
+// does: Go's fs.ErrNotExist arrives as its message.
+function diskLost() {
+  handles.file.readAt = vi
+    .fn()
+    .mockRejectedValue(new Error('file does not exist'))
 }
 
 // readFails makes the next read of the file fail.
@@ -86,6 +102,7 @@ describe('UnixFS text editing', () => {
     typeInto('accepted')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByText('accepted')
+    diskHolds('accepted')
 
     // A failed save keeps the draft; Discard edits shows the landed text.
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
@@ -202,5 +219,89 @@ describe('UnixFS text editing', () => {
     // Save over theirs writes the draft.
     fireEvent.click(screen.getByRole('button', { name: 'Save over theirs' }))
     await waitFor(() => expect(upload).toHaveBeenCalledTimes(1))
+  })
+
+  it('stops a plain Save that finds another writer saved', async () => {
+    // Open a dirty draft; another writer commits and no read has run yet.
+    readsText('original')
+    const upload = vi.fn().mockResolvedValue(undefined)
+    render(
+      <UnixFSTextFileViewer
+        rootHandle={rootResource(upload)}
+        path="/notes.md"
+      />,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    typeInto('mine')
+    diskHolds('theirs')
+
+    // The read at the press finds their version: nothing is written, and
+    // the draft shows the change with Save over theirs.
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByRole('button', { name: 'Save over theirs' })
+    expect(upload).not.toHaveBeenCalled()
+    expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(
+      'mine',
+    )
+  })
+
+  it('recreates a file removed before a plain Save', async () => {
+    // Open a dirty draft; the file is removed elsewhere.
+    readsText('original')
+    const upload = vi.fn().mockResolvedValue(undefined)
+    render(
+      <UnixFSTextFileViewer
+        rootHandle={rootResource(upload)}
+        path="/notes.md"
+      />,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    typeInto('mine')
+    diskLost()
+
+    // The read at the press finds nothing, so the draft is written.
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText('mine')
+    expect(upload).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the draft with Retry when the read at Save fails', async () => {
+    // Open a dirty draft; the next read fails for another reason.
+    readsText('original')
+    const upload = vi.fn().mockResolvedValue(undefined)
+    render(
+      <UnixFSTextFileViewer
+        rootHandle={rootResource(upload)}
+        path="/notes.md"
+      />,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    typeInto('mine')
+    handles.file.readAt = vi.fn().mockRejectedValue(new Error('offline'))
+
+    // The save fails unwritten and the draft stays.
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('offline')
+    expect(upload).not.toHaveBeenCalled()
+    expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(
+      'mine',
+    )
+  })
+
+  it('offers no Edit on a file that is not UTF-8', async () => {
+    // A whole file with an invalid byte is a preview.
+    handles.file = {
+      readAt: vi
+        .fn()
+        .mockResolvedValue({ data: new Uint8Array([0x61, 0xff]), eof: true }),
+      getInfo: () => ({ mode: 0o644 }),
+    }
+    render(<UnixFSTextFileViewer rootHandle={rootResource()} path="/a.bin" />)
+
+    // It offers no Edit and says why.
+    await screen.findByText(
+      'This file is not UTF-8 text, so it cannot be edited here.',
+    )
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
   })
 })

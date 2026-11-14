@@ -24,10 +24,12 @@ import {
   deriveTextFileView,
   initialTextFileState,
   reduceTextFile,
+  theirText,
   type TextContent,
   type TextFileEvent,
   type TextFilePress,
   type TextFileView,
+  type TextPreview,
 } from './text-file.js'
 
 export interface UnixFSTextFileViewerProps {
@@ -63,6 +65,44 @@ function baseName(path: string): string {
   return path.split('/').filter(Boolean).pop() ?? path
 }
 
+/**
+ * readTextContent reads the file as text, up to the read limit. A file cut at
+ * the limit, or a whole file that is not valid UTF-8, is a preview decoded
+ * with replacements.
+ */
+export async function readTextContent(
+  handle: FSHandle,
+  signal: AbortSignal,
+): Promise<TextContent> {
+  // Read one byte past the limit to know whether the file is whole.
+  const max = unixFSHandleTextContentMaxBytes
+  const result = await handle.readAt(0n, BigInt(max + 1), signal)
+  const data = result.eof ? result.data : result.data.subarray(0, max)
+  if (!result.eof || result.data.length > max) {
+    return { text: new TextDecoder().decode(data), preview: 'large' }
+  }
+
+  // A whole file that fails a strict decode is shown with replacements.
+  try {
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(data)
+    return { text, preview: null }
+  } catch {
+    return { text: new TextDecoder().decode(data), preview: 'encoding' }
+  }
+}
+
+// notExist reports a read that failed because the file is gone: Go's
+// fs.ErrNotExist crosses the RPC as its message.
+function notExist(err: unknown): boolean {
+  return err instanceof Error && err.message.includes('file does not exist')
+}
+
+// previewNote says why a preview offers no Edit.
+const previewNote: Record<TextPreview, string> = {
+  large: 'This preview is too large to edit here.',
+  encoding: 'This file is not UTF-8 text, so it cannot be edited here.',
+}
+
 /** TextFilePresses draws the viewer's presses inside another component's bar. */
 function TextFilePresses({ actions }: { actions: ViewerBarAction[] }) {
   if (actions.length === 0) return null
@@ -95,8 +135,9 @@ function TextFilePresses({ actions }: { actions: ViewerBarAction[] }) {
 
 /**
  * UnixFSTextFileViewer shows a text file and edits it in a draft saved
- * through one atomic World upload. text-file.ts derives what it shows; the
- * draft lives in this viewer, keyed by the Space and path, and only Discard
+ * through one atomic World upload. text-file.ts derives what it shows. The
+ * draft lives in this viewer's state, so it lasts while the viewer stays
+ * mounted; UnixFSFileViewer keys it by the Space id and path. Only Discard
  * edits or a landed save end it.
  */
 export function UnixFSTextFileViewer({
@@ -106,24 +147,12 @@ export function UnixFSTextFileViewer({
   description,
   renderBar,
 }: UnixFSTextFileViewerProps) {
-  // Read the file whole, or up to the limit as a preview.
+  // Read the file once per handle; Retry or a new handle reads it again.
   const file = useUnixFSHandle(rootHandle, path)
   const content = useResource(
     file,
-    async (handle, signal): Promise<TextContent | null> => {
-      if (!handle) return null
-      const result = await handle.readAt(
-        0n,
-        BigInt(unixFSHandleTextContentMaxBytes + 1),
-        signal,
-      )
-      const complete =
-        result.eof && result.data.length <= unixFSHandleTextContentMaxBytes
-      return {
-        text: new TextDecoder('utf-8', { fatal: complete }).decode(result.data),
-        complete,
-      }
-    },
+    async (handle, signal): Promise<TextContent | null> =>
+      handle ? readTextContent(handle, signal) : null,
     [],
   )
   const [state, dispatch] = useReducer(reduceTextFile, initialTextFileState)
@@ -142,11 +171,30 @@ export function UnixFSTextFileViewer({
   async function save(over: boolean) {
     // Take the draft's text once; typing after the press is not saved.
     const root = rootHandle.value
+    const handle = file.value
     const draft = state.draft
-    if (!root || !draft || draft.saving || signal.aborted) return
+    if (!root || !handle || !draft || draft.saving || signal.aborted) return
     const text = draft.text
     dispatch({ type: 'save', over })
     try {
+      // A plain Save first reads the file: another writer's version stops
+      // the save and shows the change, with Save over theirs. A file removed
+      // since has nothing to compare, so the draft recreates it.
+      if (!over) {
+        const latest = await readTextContent(handle, signal).catch(
+          (err: unknown) => {
+            if (notExist(err)) return null
+            throw err
+          },
+        )
+        if (signal.aborted) return
+        if (latest && theirText(draft, latest) !== null) {
+          dispatch({ type: 'refused', content: latest })
+          return
+        }
+      }
+
+      // Write the draft as the file.
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
       await root.uploadTree(
         [
@@ -155,7 +203,7 @@ export function UnixFSTextFileViewer({
             path: normalizeUnixFSLookupPath(path),
             totalSize: BigInt(blob.size),
             stream: blob.stream(),
-            mode: file.value?.getInfo().mode ?? 0o644,
+            mode: handle.getInfo().mode ?? 0o644,
           },
         ],
         undefined,
@@ -326,7 +374,7 @@ function ReadBody({
       />
     )
   }
-  if (view.complete && view.text === '') {
+  if (!view.preview && view.text === '') {
     return (
       <ViewerStatus
         state="empty"
@@ -339,12 +387,12 @@ function ReadBody({
   }
   return (
     <>
-      {!view.complete && (
+      {view.preview && (
         <p className={cn(rowClass, 'text-foreground-alt')}>
-          This preview is too large to edit here.
+          {previewNote[view.preview]}
         </p>
       )}
-      {view.complete && view.rereading && (
+      {!view.preview && view.rereading && (
         <p role="status" className={cn(rowClass, 'text-foreground-alt')}>
           Reading the file again
         </p>

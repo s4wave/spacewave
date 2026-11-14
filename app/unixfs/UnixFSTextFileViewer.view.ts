@@ -20,7 +20,7 @@ export const state = (v: TextFile) => {
     if (v.read === 'waiting') return 'Reading the file'
     if (v.read === 'failed') return 'Read failed, Retry shown'
     if (!v.writable) return 'Shown, read-only'
-    if (!v.whole) return 'Preview, too large to edit'
+    if (!v.whole) return 'Preview, cannot be edited'
     return 'Shown, Edit offered'
   }
 
@@ -53,6 +53,7 @@ export const step = (action: string, from: TextFile, to: TextFile) => {
     Edit: 'presses Edit',
     Type: 'types',
     Save: 'presses Save',
+    Check: 'the read at Save finds their version',
     SaveOver: 'presses Save over theirs',
     Discard: 'presses Discard edits',
     ShowTheirs: 'presses Show theirs',

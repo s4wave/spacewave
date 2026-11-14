@@ -498,6 +498,7 @@ function WorktreeSourceStatus({
           path={source.path}
           stat={stat}
           rootHandle={source.handle}
+          objectKey={controller.objectKey}
           inlineFileURL={source.inlineFileURL}
           readOnly={route.mode === 'workdir' ? undefined : commitReadOnly}
         />

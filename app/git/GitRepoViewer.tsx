@@ -309,6 +309,7 @@ function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
           path={displayPath}
           stat={statResource.value}
           rootHandle={rootHandleResource}
+          objectKey={controller.objectKey}
           inlineFileURL={inlineFileURL}
           readOnly={commitReadOnly}
         />

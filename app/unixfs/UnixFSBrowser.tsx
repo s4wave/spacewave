@@ -599,6 +599,7 @@ export function UnixFSBrowser(props: UnixFSBrowserProps) {
           mimeType: mimeTypeOverride || statResource.value.mimeType,
         }}
         rootHandle={rootHandle}
+        objectKey={unixfsId}
         inlineFileURL={model.inlineFileURL}
       />
     )

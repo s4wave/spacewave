@@ -20,18 +20,14 @@
     "expect": "DraftNeverDropped"
   },
   {
-    "name": "plain Save writes over another writer's version",
+    "name": "Save shows over another writer's version",
     "replace": [
       [
         "    \\cup (IF Editing /\\ dirty /\\ ~Changed THEN {\"save\"} ELSE {})",
         "    \\cup (IF Editing /\\ dirty THEN {\"save\"} ELSE {})"
-      ],
-      [
-        "  \\/ b = \"save\" /\\ Editing /\\ dirty /\\ seen = base",
-        "  \\/ b = \"save\" /\\ Editing /\\ dirty"
       ]
     ],
-    "expect": "NoBlindOverwrite"
+    "expect": "EveryShownActionWorks"
   },
   {
     "name": "Edit shows on a read-only file",
@@ -52,5 +48,27 @@
       ]
     ],
     "expect": "NobodyIsStuck"
+  },
+  {
+    "name": "the reducer accepts a plain Save over another writer's version",
+    "replace": [
+      [
+        "SaveAccepted == Editing /\\ dirty /\\ seen = base",
+        "SaveAccepted == Editing /\\ dirty"
+      ]
+    ],
+    "expect": "NoBlindOverwrite"
+  },
+  {
+    "name": "a plain Save writes without reading the file at the press",
+    "replace": [["  /\\ IF disk \\in {base, \"gone\"}\n", "  /\\ IF TRUE\n"]],
+    "expect": "NoWriteOverTheirs"
+  },
+  {
+    "name": "a removed file stops a plain Save as another writer's version",
+    "replace": [
+      ["  /\\ IF disk \\in {base, \"gone\"}\n", "  /\\ IF disk = base\n"]
+    ],
+    "expect": "TypeOK"
   }
 ]

@@ -23,6 +23,7 @@ import {
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { getUnixFSFileInfoKind } from '@s4wave/sdk/unixfs/file-kind.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
+import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import {
   localNavigation,
   useHistory,
@@ -49,6 +50,9 @@ export interface UnixFSFileViewerProps {
   stat: StatResult
   // rootHandle is the root FSHandle resource for reading file content.
   rootHandle: Resource<FSHandle>
+  // objectKey is the World object holding the file, such as the UnixFS or
+  // Git worktree object.
+  objectKey: string
   // hideToolbar suppresses the built-in toolbar when an outer component
   // (e.g. GitToolbar) already provides navigation.
   hideToolbar?: boolean
@@ -445,12 +449,16 @@ export function UnixFSFileViewer({
   path,
   stat,
   rootHandle,
+  objectKey,
   hideToolbar,
   inlineFileURL,
   readOnly,
 }: UnixFSFileViewerProps) {
   // A text file puts its presses in the navigator, the pane's one bar, or
-  // draws its own bar where an outer component owns navigation.
+  // draws its own bar where an outer component owns navigation. The key ends
+  // the viewer and its draft when the Space, object or path changes, so a
+  // draft never moves to another file; an unmount by a parent ends it too.
+  const spaceId = SpaceContainerContext.useContextSafe()?.spaceId
   const body = fileBodyKindFor(stat, inlineFileURL)
   if (body.kind === 'text') {
     const renderToolbar = (presses: ReactNode) => (
@@ -462,7 +470,7 @@ export function UnixFSFileViewer({
         className="bg-file-back flex h-full w-full flex-col overflow-hidden"
       >
         <UnixFSTextFileViewer
-          key={`${rootHandle.value?.id}/${path}`}
+          key={`${spaceId ?? ''}/${objectKey}/${path}`}
           rootHandle={rootHandle}
           path={path}
           readOnly={readOnly}

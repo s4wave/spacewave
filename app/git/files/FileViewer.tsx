@@ -8,6 +8,8 @@ export interface FileViewerProps {
   path: string
   stat: StatResult
   rootHandle: Resource<FSHandle>
+  // objectKey is the Git object holding the file.
+  objectKey: string
   inlineFileURL?: string
   // readOnly says why the file cannot be written, such as a commit's files.
   readOnly?: string
@@ -22,6 +24,7 @@ export function FileViewer({
   path,
   stat,
   rootHandle,
+  objectKey,
   inlineFileURL,
   readOnly,
 }: FileViewerProps) {
@@ -30,6 +33,7 @@ export function FileViewer({
       path={path}
       stat={stat}
       rootHandle={rootHandle}
+      objectKey={objectKey}
       hideToolbar
       inlineFileURL={inlineFileURL}
       readOnly={readOnly}

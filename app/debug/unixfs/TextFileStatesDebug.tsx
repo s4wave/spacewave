@@ -17,7 +17,7 @@ import {
 const noop = () => {}
 
 const notes: TextContent = {
-  complete: true,
+  preview: null,
   text: Array.from(
     { length: 40 },
     (_, i) =>
@@ -25,7 +25,7 @@ const notes: TextContent = {
   ).join('\n'),
 }
 const theirs: TextContent = {
-  complete: true,
+  preview: null,
   text: notes.text.replace('ridge 1 ', 'the first ridge '),
 }
 const mine = notes.text + '\n41. Mine: a draft line not yet saved.'
@@ -61,8 +61,13 @@ const fixtures: Record<string, Fixture> = {
   waiting: { reads: [waiting] },
   failed: { reads: [failed('stream closed')] },
   shown: { reads: [shown(notes)] },
-  preview: { reads: [shown({ ...notes, complete: false })] },
-  empty: { reads: [shown({ text: '', complete: true })] },
+  preview: { reads: [shown({ ...notes, preview: 'large' })] },
+  encoding: {
+    reads: [
+      shown({ text: 'Rover log \uFFFD\uFFFD 0x7f', preview: 'encoding' }),
+    ],
+  },
+  empty: { reads: [shown({ text: '', preview: null })] },
   readonly: {
     reads: [shown(notes)],
     readOnly: 'Read-only: a file in a commit',
@@ -81,6 +86,15 @@ const fixtures: Record<string, Fixture> = {
       type,
       { type: 'save', over: false },
       { type: 'save-failed', error: 'the Space refused the write' },
+    ],
+  },
+  'just-saved': {
+    reads: [shown(notes)],
+    events: [
+      edit,
+      type,
+      { type: 'save', over: false },
+      { type: 'saved', text: mine },
     ],
   },
   'read-failed': {
@@ -131,10 +145,11 @@ function renderNavigator(presses: ReactNode) {
 /**
  * TextFileStatesDebug renders the text file viewer in one fixture state, with
  * the viewport as the pane, for the viewer sweep. Each state is built through
- * the viewer's reducer and derivation: waiting, failed, shown, preview, empty,
- * readonly, rereading, editing, dirty, saving, save-failed, read-failed,
- * changed and theirs; nav and nav-dirty draw the presses in the file
- * browser's navigator. An unknown or missing state shows shown.
+ * the viewer's reducer and derivation: waiting, failed, shown, preview,
+ * encoding, empty, readonly, rereading, editing, dirty, saving, save-failed,
+ * just-saved, read-failed, changed and theirs; nav and nav-dirty draw the
+ * presses in the file browser's navigator. An unknown or missing state shows
+ * shown.
  */
 export function TextFileStatesDebug() {
   // Read the fixture state from the route.
