@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { throwOperationError, WorldOperationRejection } from './errors.js'
+import {
+  PluginOpTimeoutError,
+  throwOperationError,
+  WorldOperationRejection,
+} from './errors.js'
 import { WorldErrorCode } from './world.pb.js'
 
 describe('throwOperationError', () => {
@@ -27,6 +31,14 @@ describe('throwOperationError', () => {
         errorCode: WorldErrorCode.UNHANDLED_OP,
       }),
     ).toThrow('remote world operation unhandled')
+  })
+
+  it('restores a plugin op timeout that wrote nothing', () => {
+    expect(() =>
+      throwOperationError({
+        errorCode: WorldErrorCode.PLUGIN_OP_TIMEOUT,
+      }),
+    ).toThrow(PluginOpTimeoutError)
   })
 
   it('accepts a successful response', () => {

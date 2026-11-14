@@ -5,6 +5,8 @@ import {
   NotebookSource,
 } from './proto/notebook.pb.js'
 import { NotebookEditOutcome } from './sdk/notebook.pb.js'
+import { PluginOpTimeoutError } from '@s4wave/sdk/world/errors.js'
+import { WorldErrorCode } from '@s4wave/sdk/world/world.pb.js'
 
 // Mock cursor returned by objectState.accessWorldState().
 function createMockCursor(blockData?: Uint8Array) {
@@ -89,6 +91,7 @@ function createMockEngine(snapshots: MockSnapshot[] = []) {
           sysErr?: boolean
           rejectionCode?: string
           rejectionMessage?: string
+          errorCode?: WorldErrorCode
         }>({ seqno: 2n }),
     ),
     watchWorldState: vi.fn(async function* (signal?: AbortSignal) {
@@ -365,6 +368,20 @@ describe('NotebookResource', () => {
       await expect(resource.AddSource({ source: undefined })).rejects.toThrow(
         'source ref is required',
       )
+    })
+
+    it('ReorderSources reports a plugin op timeout as nothing changed', async () => {
+      mockEngineInstance = createMockEngine()
+      mockEngineInstance.executeWorldOp.mockResolvedValueOnce({
+        errorCode: WorldErrorCode.PLUGIN_OP_TIMEOUT,
+      })
+      const resource = new NotebookResource(
+        'key',
+        createMockEngineRef() as never,
+      )
+      await expect(
+        resource.ReorderSources({ order: [1, 0], sources: [] }),
+      ).rejects.toThrow(PluginOpTimeoutError)
     })
 
     it('RemoveSource carries the source the caller saw', async () => {

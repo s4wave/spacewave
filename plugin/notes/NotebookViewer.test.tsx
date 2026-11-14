@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { StateNamespaceProvider, atom } from '@s4wave/web/state/index.js'
+import { PluginOpTimeoutError } from '@s4wave/sdk/world/errors.js'
 
 const mockUseWorldObjectMessageState = vi.hoisted(() => vi.fn())
 
@@ -487,10 +488,10 @@ describe('NotebookViewer', () => {
   it('shows a plugin op timeout as a failed edit that changed nothing, and resends it', async () => {
     const notebook = fakeNotebook([A, B])
     watchSources([A, B])
-    // The bridge's PluginOpTimeoutError reaches TS only as the text of
-    // starpc's RemoteRPCError, which starpc does not export.
-    const timeout =
-      'plugin spacewave-notes did not apply operation notes/notebook/edit within 10s'
+    // The plugin's NotebookResource throws PluginOpTimeoutError for the
+    // host's code; it reaches the viewer as the text of starpc's
+    // RemoteRPCError, which starpc does not export.
+    const timeout = new PluginOpTimeoutError().message
     notebook.reorderSources.mockRejectedValueOnce(
       Object.assign(new Error(timeout), {
         name: 'RemoteRPCError',

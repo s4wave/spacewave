@@ -322,6 +322,14 @@ async function acceptAppOperation(
         'The exact application executable is unavailable',
       )
     }
+    // The host discarded the timed out transaction, so nothing was accepted
+    // and the request is not left uncertain.
+    if (response.errorCode === WorldErrorCode.PLUGIN_OP_TIMEOUT) {
+      throw new SyncError(
+        'UNAVAILABLE',
+        'The application did not finish in time; nothing was changed',
+      )
+    }
     if (response.rejectionCode) {
       throw new SyncError(
         response.rejectionCode as SyncErrorCode,
