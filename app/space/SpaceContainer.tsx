@@ -87,6 +87,7 @@ import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.j
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import { downloadURL } from '@s4wave/web/download.js'
 import { canDeleteSpaceObject, canRenameSpace } from './permissions.js'
+import { SpaceCreatesContext, useSpaceCreates } from './useSpaceCreates.js'
 import {
   useSpaceContentsMount,
   useSpaceMount,
@@ -242,6 +243,15 @@ function useSpaceContainerController() {
       navigate({ path: buildObjectRoutePath(parentPaths, objectKeys[0]) })
     },
     [navigate, parentPaths],
+  )
+
+  // Creates live as long as the Space is open, above the guard that unmounts
+  // the body while the world reloads, so a create that fails in a reload
+  // still reports.
+  const spaceCreates = useSpaceCreates(
+    sharedObjectId,
+    spaceWorld ?? null,
+    navigateToObjects,
   )
 
   const navigateToSubPath = useCallback(
@@ -476,6 +486,7 @@ function useSpaceContainerController() {
     sharedObjectId,
     sharingOpen,
     space,
+    spaceCreates,
     spaceContentsResource,
     spaceNamespace,
     spaceName,
@@ -531,6 +542,7 @@ export function SpaceContainer() {
     sharedObjectId,
     sharingOpen,
     space,
+    spaceCreates,
     spaceContentsResource,
     spaceNamespace,
     spaceName,
@@ -584,76 +596,78 @@ export function SpaceContainer() {
     <StateNamespaceProvider namespace={spaceNamespace}>
       <SpaceContext.Provider resource={spaceResource}>
         <SpaceContentsContext.Provider resource={spaceContentsResource}>
-          {ready && routeSpaceState && spaceWorld ? (
-            <SpaceContainerContext.Provider
-              spaceId={sharedObjectId}
-              spaceName={titleSpaceName}
-              spaceWorldResource={spaceWorldResource}
-              spaceWorld={spaceWorld}
-              spaceObjectTargets={spaceObjectTargets}
-              navigateToRoot={navigateToRoot}
-              navigateToObjects={navigateToObjects}
-              switchObjectAtCurrentPosition={switchObjectAtCurrentPosition}
-              spaceState={routeSpaceState}
-              spaceSharingState={spaceSharingState}
-              orgState={spaceOrgState}
-              canDeleteObjects={canDeleteObjects}
-              buildObjectUrls={buildObjectUrls}
-              buildExportUrl={buildExportUrl}
-              objectKey={objectKey}
-              objectPath={objectPath || undefined}
-              navigateToSubPath={navigateToSubPath}
-            >
-              {renderLevel(
-                <SpaceDetails
-                  spaceName={spaceName}
-                  canRename={canRename}
-                  canShare={canManageSharing}
-                  orgId={spaceOrgId}
-                  onClose={handleCloseDetails}
-                  onSharing={handleSharingClick}
-                  onExport={handleExportClick}
-                  onDelete={handleDeleteClick}
-                  onRename={handleRenameStart}
-                  onCreateObject={handleCreateObject}
-                  onOrgClick={() =>
-                    navigate({ path: `../../org/${spaceOrgId}` })
-                  }
-                />,
-                <>
-                  <SpaceCommands
+          <SpaceCreatesContext.Provider value={spaceCreates}>
+            {ready && routeSpaceState && spaceWorld ? (
+              <SpaceContainerContext.Provider
+                spaceId={sharedObjectId}
+                spaceName={titleSpaceName}
+                spaceWorldResource={spaceWorldResource}
+                spaceWorld={spaceWorld}
+                spaceObjectTargets={spaceObjectTargets}
+                navigateToRoot={navigateToRoot}
+                navigateToObjects={navigateToObjects}
+                switchObjectAtCurrentPosition={switchObjectAtCurrentPosition}
+                spaceState={routeSpaceState}
+                spaceSharingState={spaceSharingState}
+                orgState={spaceOrgState}
+                canDeleteObjects={canDeleteObjects}
+                buildObjectUrls={buildObjectUrls}
+                buildExportUrl={buildExportUrl}
+                objectKey={objectKey}
+                objectPath={objectPath || undefined}
+                navigateToSubPath={navigateToSubPath}
+              >
+                {renderLevel(
+                  <SpaceDetails
+                    spaceName={spaceName}
                     canRename={canRename}
                     canShare={canManageSharing}
-                    onRenameSpace={handleRenameStart}
-                    onShareSpace={handleSharingClick}
-                  />
-                  <CreateObjectButton />
-                  <SpaceTabContextProvider parentPaths={parentPaths}>
-                    <SpaceBody />
-                  </SpaceTabContextProvider>
-                </>,
-              )}
-            </SpaceContainerContext.Provider>
-          ) : (
-            renderLevel(
-              undefined,
-              <SpaceMountingScreen
-                stage={spaceMountStageFromWorld(
-                  !!root,
-                  !!space,
-                  !!spaceWorld,
-                  !!spaceState?.ready,
+                    orgId={spaceOrgId}
+                    onClose={handleCloseDetails}
+                    onSharing={handleSharingClick}
+                    onExport={handleExportClick}
+                    onDelete={handleDeleteClick}
+                    onRename={handleRenameStart}
+                    onCreateObject={handleCreateObject}
+                    onOrgClick={() =>
+                      navigate({ path: `../../org/${spaceOrgId}` })
+                    }
+                  />,
+                  <>
+                    <SpaceCommands
+                      canRename={canRename}
+                      canShare={canManageSharing}
+                      onRenameSpace={handleRenameStart}
+                      onShareSpace={handleSharingClick}
+                    />
+                    <CreateObjectButton />
+                    <SpaceTabContextProvider parentPaths={parentPaths}>
+                      <SpaceBody />
+                    </SpaceTabContextProvider>
+                  </>,
                 )}
-                detail={spaceMountDetailFromWorld(
-                  !!root,
-                  !!space,
-                  !!spaceWorld,
-                  !!spaceState?.ready,
-                )}
-                onBack={() => navigate({ path: '../' })}
-              />,
-            )
-          )}
+              </SpaceContainerContext.Provider>
+            ) : (
+              renderLevel(
+                undefined,
+                <SpaceMountingScreen
+                  stage={spaceMountStageFromWorld(
+                    !!root,
+                    !!space,
+                    !!spaceWorld,
+                    !!spaceState?.ready,
+                  )}
+                  detail={spaceMountDetailFromWorld(
+                    !!root,
+                    !!space,
+                    !!spaceWorld,
+                    !!spaceState?.ready,
+                  )}
+                  onBack={() => navigate({ path: '../' })}
+                />,
+              )
+            )}
+          </SpaceCreatesContext.Provider>
         </SpaceContentsContext.Provider>
       </SpaceContext.Provider>
       <AddUserDialog
