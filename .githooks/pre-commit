@@ -23,6 +23,13 @@ git() {
 	GIT_INDEX_FILE=$index_file command git "$@"
 }
 
+# A source an embedded file imports must be embedded too. The check reads the
+# worktree, takes well under a second and needs no Go build, so it runs on every
+# commit that adds, changes or removes a source or a dist.go.
+if git diff --cached --name-only --diff-filter=ACMRD | grep -Eq '\.(ts|tsx|css)$|(^|/)dist\.go$'; then
+	bun .githooks/check-dist-closure.ts
+fi
+
 files=$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n')
 if [ -z "$files" ]; then
 	exit 0
