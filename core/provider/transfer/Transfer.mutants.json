@@ -27,8 +27,8 @@
     "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
-        "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\" /\\ t = Src(o.h)",
-        "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\""
+        "Rewritable(t, o) == o.ph = \"written\" /\\ t = Src(o.h)",
+        "Rewritable(t, o) == o.ph = \"written\""
       ]
     ],
     "expect": "NoEditOverwritten"
@@ -38,8 +38,8 @@
     "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
-        "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\" /\\ t = Src(o.h)",
-        "Rewritable(t, o) == ~cloudTgt /\\ ((o.ph = \"written\" /\\ t = Src(o.h)) \\/ o = NoOrigin)"
+        "Rewritable(t, o) == o.ph = \"written\" /\\ t = Src(o.h)",
+        "Rewritable(t, o) == (o.ph = \"written\" /\\ t = Src(o.h)) \\/ o = NoOrigin"
       ]
     ],
     "expect": "NoEditOverwritten"
@@ -103,8 +103,8 @@
         "               /\\ IF t = Member\n"
       ],
       [
-        "  IF s \\in shared THEN tc[s] = Member /\\ ~cloudSrc ELSE",
-        "  IF s \\in shared THEN tc[s] = Member ELSE"
+        "  IF s \\in shared THEN tc[s] = Member /\\ ~cloudSrc\n",
+        "  IF s \\in shared THEN tc[s] = Member\n"
       ]
     ],
     "expect": "MembersKeepShared"
@@ -143,9 +143,14 @@
     "expect": "NotMovedJustified"
   },
   {
-    "name": "the cloud limit leaves a local target's Space not moved",
-    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
-    "replace": [["          [] cloudTgt ->\n", "          [] TRUE ->\n"]],
+    "name": "the cloud target ignores a stored origin",
+    "config": "Transfer-tgt-cloud-src-local-shared-none.cfg",
+    "replace": [
+      [
+        "          [] cloudTgt /\\ o = NoOrigin ->\n",
+        "          [] cloudTgt ->\n"
+      ]
+    ],
     "expect": "NotMovedJustified"
   },
   {
@@ -153,8 +158,8 @@
     "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
-        "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\" /\\ t = Src(o.h)",
-        "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\" /\\ t.k = \"src\" /\\ t.v = o.h /\\ t.e = 0"
+        "Rewritable(t, o) == o.ph = \"written\" /\\ t = Src(o.h)",
+        "Rewritable(t, o) == o.ph = \"written\" /\\ t.k = \"src\" /\\ t.v = o.h /\\ t.e = 0"
       ]
     ],
     "expect": "NoEditOverwritten"

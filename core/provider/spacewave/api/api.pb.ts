@@ -833,12 +833,62 @@ export interface PostCheckpointRequest {
    * Checkpoint is the owner-signed checkpoint that follows the held one.
    */
   checkpoint?: SOCheckpoint
+  /**
+   * ExpectedWrittenHead, when set, makes the post a transfer's re-sync: the
+   * server takes the checkpoint only when the object is unchanged since the
+   * transfer's last write, which it reports as 409 otherwise, and stores
+   * TransferOrigin with the new written head in the same transaction. It
+   * needs the manage_config verb. Read it from GetTransferOriginResponse.
+   */
+  expectedWrittenHead?: Uint8Array
+  /**
+   * TransferOrigin is the transfer's record of the source, opaque to the
+   * server. Set only with ExpectedWrittenHead.
+   */
+  transferOrigin?: Uint8Array
 }
 
 export const PostCheckpointRequest: MessageType<PostCheckpointRequest> =
   /* @__PURE__ */ createMessageType<PostCheckpointRequest>(
     'provider.spacewave.api.PostCheckpointRequest',
-    () => [[1, 'checkpoint', 11, 0, SOCheckpoint.codec]],
+    () => [
+      [1, 'checkpoint', 11, 0, SOCheckpoint.codec],
+      [2, 'expected_written_head', 12],
+      [3, 'transfer_origin', 12],
+    ],
+  )
+
+/**
+ * GetTransferOriginResponse is the response body for
+ * GET /sobject/:id/transfer-origin, served to the object's managers.
+ *
+ * @generated from message provider.spacewave.api.GetTransferOriginResponse
+ */
+export interface GetTransferOriginResponse {
+  /**
+   * TransferOrigin is the origin the last transfer write stored, or empty
+   * when no transfer wrote the object.
+   */
+  transferOrigin?: Uint8Array
+  /**
+   * WrittenHead is the object's head after that write.
+   */
+  writtenHead?: Uint8Array
+  /**
+   * Unchanged reports that the object's head is still WrittenHead: no
+   * writer changed the object since the transfer wrote it.
+   */
+  unchanged?: boolean
+}
+
+export const GetTransferOriginResponse: MessageType<GetTransferOriginResponse> =
+  /* @__PURE__ */ createMessageType<GetTransferOriginResponse>(
+    'provider.spacewave.api.GetTransferOriginResponse',
+    () => [
+      [1, 'transfer_origin', 12],
+      [2, 'written_head', 12],
+      [3, 'unchanged', 8],
+    ],
   )
 
 /**
@@ -7599,6 +7649,12 @@ export interface CreateWithStateRequest {
    * later than genesis. The authenticated account must own that config.
    */
   configHistory?: Uint8Array
+  /**
+   * TransferOrigin is a transfer's record of where the state came from,
+   * opaque to the server. The server stores it with the object's head after
+   * the create, and serves both on GET /sobject/:id/transfer-origin.
+   */
+  transferOrigin?: Uint8Array
 }
 
 export const CreateWithStateRequest: MessageType<CreateWithStateRequest> =
@@ -7613,5 +7669,6 @@ export const CreateWithStateRequest: MessageType<CreateWithStateRequest> =
       [6, 'config_state', 12],
       [7, 'checkpoint_state', 12],
       [8, 'config_history', 12],
+      [9, 'transfer_origin', 12],
     ],
   )
