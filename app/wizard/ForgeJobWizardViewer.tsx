@@ -98,6 +98,7 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
       onUpdateName={ws.handleUpdateName}
       onBack={() => void ws.handleBack()}
       onCancel={handleCancel}
+      cancel={ws.cancel}
       nameLabel="Job Name"
       namePlaceholder="Enter job name..."
       nameHelp="This display name is separate from the stable Job object key."

@@ -145,6 +145,7 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
       onUpdateName={ws.handleUpdateName}
       onBack={() => void ws.handleBack()}
       onCancel={() => void ws.handleCancel()}
+      cancel={ws.cancel}
       nameLabel="VM name"
       finish={finish.state}
       onFinalize={() => void handleFinalize()}

@@ -51,6 +51,7 @@ vi.mock('./useWizardState.js', () => ({
     handleConfigDataChange: vi.fn(),
     handleUpdateName: h.handleUpdateName,
     handleBack: h.handleBack,
+    cancel: { status: 'idle' },
     handleCancel: h.handleCancel,
   }),
 }))
@@ -102,7 +103,7 @@ describe('ForgeTaskWizardViewer', () => {
 
     // The task, the index move and the wizard delete committed together.
     expect(h.t.state).toEqual({
-      objects: new Set(),
+      objects: new Set([decoded.taskKey]),
       indexPath: decoded.taskKey,
       creates: ['spacewave/forge/task/create'],
     })

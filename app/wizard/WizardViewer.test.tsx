@@ -351,6 +351,21 @@ describe('WizardViewer', () => {
     expect(mocks.navigateToObjects).not.toHaveBeenCalled()
   })
 
+  it('shows a failed Cancel beneath the bar and keeps the wizard', async () => {
+    const user = userEvent.setup()
+    mocks.t.failOn = 'commit'
+    renderViewer()
+
+    await user.click(screen.getByRole('button', { name: /delete wizard/i }))
+
+    expect(
+      await screen.findByText('Could not delete the wizard: commit failed'),
+    ).toBeTruthy()
+    expect(mocks.t.state.objects.has('wizard/test-canvas')).toBe(true)
+    expect(mocks.closeShellTab).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /create/i })).toBeTruthy()
+  })
+
   it('shows a deleted state with a close-tab action once the watched object is gone', async () => {
     const user = userEvent.setup()
     watchedObject = { value: null, loading: false, error: null }

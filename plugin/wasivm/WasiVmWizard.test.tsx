@@ -32,6 +32,7 @@ vi.mock('@s4wave/app/wizard/useWizardState.js', () => ({
     persistDraftState: vi.fn().mockResolvedValue(undefined),
     handleUpdateName: vi.fn(),
     handleBack: vi.fn(),
+    cancel: { status: 'idle' },
     handleCancel: vi.fn(),
   }),
 }))
@@ -81,7 +82,7 @@ describe('WasiVmWizard', () => {
       expect(h.navigateToObjects).toHaveBeenCalledWith(['vm/wasivm/shell']),
     )
     expect(h.t.state).toEqual({
-      objects: new Set(),
+      objects: new Set(['vm/wasivm/shell']),
       indexPath: 'vm/wasivm/shell',
       creates: [CREATE_WASIVM_OP_ID],
     })

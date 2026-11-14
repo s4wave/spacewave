@@ -10,6 +10,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { WizardField } from './WizardField.js'
 import { WizardGone } from './WizardGone.js'
 import type { WizardFinishState } from './wizard-finish.js'
+import type { WizardCancelState } from './useWizardState.js'
 
 export interface WizardShellProps {
   // icon marks the kind of object the wizard creates.
@@ -22,7 +23,10 @@ export interface WizardShellProps {
   onUpdateName: (name: string) => void
   onBack: () => void
   canBack?: boolean
+  // Delete wizard in the bar runs onCancel; cancel is its state, busy while
+  // the delete runs and with the reason beneath the bar once it failed.
   onCancel: () => void
+  cancel: WizardCancelState
   // Content slot rendered between header and buttons.
   children?: ReactNode
   // Name input configuration.
@@ -230,6 +234,7 @@ export function WizardShell({
   totalSteps,
   stepName,
   onCancel,
+  cancel,
   children,
   nameStep = 0,
   width = 'default',
@@ -251,14 +256,24 @@ export function WizardShell({
         actions={[
           {
             id: 'delete',
-            label: 'Delete wizard',
+            label:
+              cancel.status === 'cancelling'
+                ? 'Deleting wizard…'
+                : 'Delete wizard',
             icon: <LuTrash2 />,
             iconOnly: true,
             variant: 'destructive',
+            disabled: cancel.status === 'cancelling',
             onClick: onCancel,
           },
         ]}
       />
+      {cancel.status === 'failed' && (
+        <ViewerStatus
+          state="failed"
+          message={`Could not delete the wizard: ${cancel.error}`}
+        />
+      )}
       <div className="very-short:py-2 flex min-h-0 w-full flex-1 items-start justify-center px-4 py-10">
         <div
           className={cn(

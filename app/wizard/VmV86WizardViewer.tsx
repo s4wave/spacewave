@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react'
 import { LuMonitor } from 'react-icons/lu'
 
 import {
   useResource,
   useResourceValue,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { Root } from '@s4wave/sdk/root/root.js'
 import type { V86Image } from '@s4wave/sdk/vm/v86.pb.js'
 import {
@@ -21,14 +27,14 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { markQuickstartStartupBoundary } from '../quickstart/startup-boundary.js'
 import {
   buildVmCreationRequest,
-  creationRefusedAsGone,
+  createVm,
   finalizeBlocker,
   listExistingVms,
-  runVmCreation,
+  vmCreationReducer,
   type ExistingVm,
-  type VmCreationProgress,
   type VmCreationRequest,
   type VmCreationStage,
+  type VmCreationState,
 } from '../vm/v86-creation.js'
 import {
   listV86Images,
@@ -66,7 +72,6 @@ type WizardResource = WizardState['wizardResource']
 type SpaceWorldResource = ReturnType<
   typeof SpaceContainerContext.useContext
 >['spaceWorldResource']
-type VmCreationResource = ReturnType<typeof useVmCreation>['creationResource']
 
 /**
  * useV86WizardStartupMarks records the quickstart startup boundaries the
@@ -131,38 +136,47 @@ function useV86WorldListings(spaceWorldResource: SpaceWorldResource) {
 }
 
 /**
- * useVmCreation runs the creation stream for the request started by the
- * wizard and navigates to the new VM once it is ready.
+ * useVmCreation holds the VM creation the wizard started. Each press runs
+ * the creation once on the Space World; nothing reruns it on its own, and
+ * once its commit lands the state is done for good, so the VM opens.
  */
 function useVmCreation() {
-  const { spaceWorldResource, navigateToObjects } =
-    SpaceContainerContext.useContext()
-  const [creationRequest, setCreationRequest] =
-    useState<VmCreationRequest | null>(null)
+  const { spaceWorld, navigateToObjects } = SpaceContainerContext.useContext()
+  const [creation, dispatch] = useReducer(vmCreationReducer, {
+    status: 'idle',
+  })
 
-  const creationResource = useStreamingResource(
-    spaceWorldResource,
-    async function* (world: EngineWorldState, signal: AbortSignal) {
-      if (!creationRequest) return
-      yield* runVmCreation(world, creationRequest, signal)
+  // A running creation stops when the view unmounts.
+  const abortRef = useRef<AbortController | null>(null)
+  useEffect(() => () => abortRef.current?.abort(), [])
+
+  // start runs one creation of request, from idle or after a failure.
+  const runningRef = useRef(false)
+  const start = useCallback(
+    (request: VmCreationRequest) => {
+      if (runningRef.current) return
+      runningRef.current = true
+      const ctrl = new AbortController()
+      abortRef.current = ctrl
+      dispatch({ type: 'start', request })
+      void createVm(spaceWorld, request, dispatch, ctrl.signal).finally(() => {
+        runningRef.current = false
+      })
     },
-    [creationRequest],
+    [spaceWorld],
   )
 
-  const completedCreationRef = useRef<VmCreationRequest | null>(null)
+  // Open the VM once the creation is done, once per creation.
+  const openedRef = useRef<VmCreationRequest | null>(null)
   useEffect(() => {
-    if (creationResource.value?.stage !== 'ready' || !creationRequest) return
-    if (completedCreationRef.current === creationRequest) return
-    completedCreationRef.current = creationRequest
-    toast.success(`Created ${creationRequest.vmName}`)
-    navigateToObjects([creationRequest.vmKey])
-  }, [creationRequest, creationResource.value, navigateToObjects])
+    if (creation.status !== 'done') return
+    if (openedRef.current === creation.request) return
+    openedRef.current = creation.request
+    toast.success(`Created ${creation.request.vmName}`)
+    navigateToObjects([creation.request.vmKey])
+  }, [creation, navigateToObjects])
 
-  return {
-    creationRequest,
-    creationResource,
-    startCreation: setCreationRequest,
-  }
+  return { creation, startCreation: start }
 }
 
 /**
@@ -478,28 +492,24 @@ function creationFailureMessage(stage: VmCreationStage): string {
 }
 
 interface VmCreationScreenProps {
-  request: VmCreationRequest
-  resource: VmCreationResource
+  creation: Exclude<VmCreationState, { status: 'idle' | 'gone' }>
+  onRetry: (request: VmCreationRequest) => void
 }
 
-/** VmCreationScreen shows the progress of the running VM creation. */
-function VmCreationScreen({ request, resource }: VmCreationScreenProps) {
-  const progress =
-    resource.value ??
-    ({
-      stage: request.linkCdnImage ? 'linking' : 'creating',
-    } satisfies VmCreationProgress)
-  const error = resource.error
-    ? creationFailureMessage(progress.stage)
-    : undefined
+/** VmCreationScreen shows the VM creation's progress, failure or result. */
+function VmCreationScreen({ creation, onRetry }: VmCreationScreenProps) {
+  const { request } = creation
+  const failed = creation.status === 'failed'
+  const stage = creation.status === 'done' ? 'ready' : creation.stage
+  const handleRetry = useCallback(() => onRetry(request), [onRetry, request])
 
   return (
     <VmCreationProgressScreen
-      progress={progress}
+      progress={{ stage }}
       vmName={request.vmName}
       includesCdnLink={request.linkCdnImage}
-      error={error}
-      onRetry={error ? resource.retry : undefined}
+      error={failed ? creationFailureMessage(stage) : undefined}
+      onRetry={failed ? handleRetry : undefined}
     />
   )
 }
@@ -531,6 +541,7 @@ export function VmV86WizardViewer({
   const rootResource = useRootResource()
 
   const {
+    cancel,
     configData,
     handleConfigDataChange,
     handleBack,
@@ -550,7 +561,7 @@ export function VmV86WizardViewer({
   useV86WizardStartupMarks(objectKey, !!wizardResource.value, state?.step)
   const { inSpaceImages, existingDefault, pending } =
     useV86WorldListings(spaceWorldResource)
-  const { creationRequest, creationResource, startCreation } = useVmCreation()
+  const { creation, startCreation } = useVmCreation()
   const { updateConfigDraft, persistConfig } = useV86ConfigWriter(
     wizardResource,
     handleConfigDataChange,
@@ -594,16 +605,17 @@ export function VmV86WizardViewer({
     void handleCancel()
   }, [handleCancel])
 
-  if (creationRequest) {
-    // A creation that ended without landing shows gone once the wizard is
-    // gone; while it runs or after it lands, the wizard's absence is its own
-    // delete.
-    if (creationRefusedAsGone(creationResource.error, wizardGone)) {
-      return <WizardGone />
-    }
-    return (
-      <VmCreationScreen request={creationRequest} resource={creationResource} />
-    )
+  // A creation refused because the wizard is gone, or one that failed once
+  // another writer removed it, can only be closed. While it runs or once it
+  // lands, the wizard's absence is its own delete.
+  if (
+    creation.status === 'gone' ||
+    (creation.status === 'failed' && wizardGone)
+  ) {
+    return <WizardGone />
+  }
+  if (creation.status !== 'idle') {
+    return <VmCreationScreen creation={creation} onRetry={startCreation} />
   }
   if (!state) {
     return (
@@ -627,6 +639,7 @@ export function VmV86WizardViewer({
         onUpdateName={handleUpdateName}
         onBack={() => void handleBack()}
         onCancel={handleCancelClick}
+        cancel={cancel}
         nameLabel="VM name"
         namePlaceholder="e.g. debian-lab"
         nameStep={1}

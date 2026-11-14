@@ -271,6 +271,7 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
       onBack={() => void ws.handleBack()}
       canBack={!cloning}
       onCancel={handleCancel}
+      cancel={ws.cancel}
       nameLabel="Repository Name"
       namePlaceholder="Enter repository name..."
       nameStep={1}

@@ -46,6 +46,7 @@ vi.mock('./useWizardState.js', () => ({
     handleConfigDataChange: vi.fn(),
     handleUpdateName: vi.fn(),
     handleBack: vi.fn(),
+    cancel: { status: 'idle' },
     handleCancel: h.handleCancel,
   }),
 }))

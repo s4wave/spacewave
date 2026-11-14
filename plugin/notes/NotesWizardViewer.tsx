@@ -133,6 +133,7 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
       onUpdateName={ws.handleUpdateName}
       onBack={() => void ws.handleBack()}
       onCancel={handleCancel}
+      cancel={ws.cancel}
       finish={finish.state}
       onFinalize={handleFinalizeClick}
       canFinalize={isNotesTargetTypeId(targetTypeId)}

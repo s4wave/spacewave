@@ -18,6 +18,15 @@ import type { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 import { useShellTabsIfPresent, useTabId } from '../ShellTabContext.js'
 import { cancelWizard } from './wizard-finish.js'
 
+// WizardCancelState is the Cancel control's state. cancelling deletes the
+// wizard; cancelled means the delete landed and the view is leaving; failed
+// keeps the wizard and says why, and a new press tries again.
+export type WizardCancelState =
+  | { status: 'idle' }
+  | { status: 'cancelling' }
+  | { status: 'cancelled' }
+  | { status: 'failed'; error: string }
+
 // UseWizardStateResult is the return type of useWizardState.
 export interface UseWizardStateResult {
   objectKey: string
@@ -40,11 +49,14 @@ export interface UseWizardStateResult {
   handleConfigDataChange: (data: Uint8Array) => void
   handleUpdateName: (name: string) => void
   handleBack: () => Promise<void>
+  // cancel is the Cancel control's state, which WizardShell shows.
+  cancel: WizardCancelState
   // handleCancel deletes the wizard in one write transaction. A Space index
   // that names the wizard moves to indexPath, or is cleared when indexPath is
   // omitted. Once the delete commits it leaves the view as a Finish does: it
   // closes the shell tab, or opens the Space root when there is no tab, and
-  // the unmount releases the wizard resource and stops its work.
+  // the unmount releases the wizard resource and stops its work. It never
+  // rejects: a failed delete ends in cancel's failed state.
   handleCancel: (indexPath?: string) => Promise<void>
 }
 
@@ -140,19 +152,19 @@ export function useWizardState(
   }, [persistDraftState, wizardResource, state])
 
   const spaceSettings = spaceState.settings
-  // cancelled is set while this view's own Cancel runs and after it lands,
-  // so its own delete never shows as a wizard removed elsewhere.
-  const [cancelled, setCancelled] = useState(false)
+  const [cancel, setCancel] = useState<WizardCancelState>({ status: 'idle' })
   const closeShellTab = shellTabs?.closeShellTab
   const handleCancel = useCallback(
     async (indexPath = '') => {
-      setCancelled(true)
+      setCancel({ status: 'cancelling' })
       try {
         await cancelWizard({ objectKey, spaceWorld, sessionPeerId }, indexPath)
       } catch (err) {
-        setCancelled(false)
-        throw err
+        const error = err instanceof Error ? err.message : String(err)
+        setCancel({ status: 'failed', error })
+        return
       }
+      setCancel({ status: 'cancelled' })
       if (tabId && closeShellTab) {
         closeShellTab(tabId)
         return
@@ -169,10 +181,13 @@ export function useWizardState(
     ],
   )
 
-  // The watch reports null once the wizard object is gone.
+  // The watch reports null once the wizard object is gone. This view's own
+  // Cancel, running or landed, never shows as a removal elsewhere.
   const watched = useObjectQuery(worldState, objectKey, objectExists)
+  const cancelling =
+    cancel.status === 'cancelling' || cancel.status === 'cancelled'
   const wizardGone =
-    !cancelled && !watched.loading && !watched.error && watched.value === null
+    !cancelling && !watched.loading && !watched.error && watched.value === null
 
   return {
     objectKey,
@@ -190,6 +205,7 @@ export function useWizardState(
     handleConfigDataChange,
     handleUpdateName,
     handleBack,
+    cancel,
     handleCancel,
   }
 }

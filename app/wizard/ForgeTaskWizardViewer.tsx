@@ -100,6 +100,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
       onUpdateName={ws.handleUpdateName}
       onBack={() => void ws.handleBack()}
       onCancel={handleCancel}
+      cancel={ws.cancel}
       nameLabel="Task Name"
       namePlaceholder="Enter task name (DNS label)..."
       nameHelp="Must be a valid DNS label (lowercase alphanumeric and hyphens)."

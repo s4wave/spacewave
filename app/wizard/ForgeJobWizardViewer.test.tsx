@@ -52,6 +52,7 @@ vi.mock('./useWizardState.js', () => ({
     handleConfigDataChange: vi.fn(),
     handleUpdateName: h.handleUpdateName,
     handleBack: h.handleBack,
+    cancel: { status: 'idle' },
     handleCancel: h.handleCancel,
   }),
 }))
@@ -123,7 +124,7 @@ describe('ForgeJobWizardViewer', () => {
 
     // The job, the index move and the wizard delete committed together.
     expect(h.t.state).toEqual({
-      objects: new Set(),
+      objects: new Set([decoded.jobKey]),
       indexPath: decoded.jobKey,
       creates: ['spacewave/forge/job/create'],
     })

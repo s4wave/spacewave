@@ -21,6 +21,7 @@ const base: WizardShellProps = {
   onUpdateName: noop,
   onBack: noop,
   onCancel: noop,
+  cancel: { status: 'idle' },
   finish: { status: 'idle' },
   onFinalize: noop,
   finalizeStep: 1,

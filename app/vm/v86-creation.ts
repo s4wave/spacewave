@@ -242,8 +242,8 @@ async function linkCdnV86Image(
 // runVmCreation links the CDN image when requested, then creates the VM and
 // removes the wizard as one list, moving a Space index that names the wizard
 // to the VM. The link runs first, outside the list, since it reads the CDN and
-// reuses an image already linked. A failed create writes nothing, so a retry
-// runs the stream again with the same key. It yields each stage as it starts.
+// reuses an image already linked. A failed create writes nothing, so Retry
+// runs it again with the same key. It yields each stage as it starts.
 export async function* runVmCreation(
   world: EngineWorldState,
   request: VmCreationRequest,
@@ -269,44 +269,116 @@ export async function* runVmCreation(
       mounts: [],
     },
   }
-  try {
-    await finishWizard(
-      {
-        spaceWorld: world,
-        objectKey: request.wizardObjectKey,
-        sessionPeerId: request.sessionPeerId,
-      },
-      {
-        creates: [
-          {
-            kind: 'op',
-            opId: CREATE_VM_V86_OP_ID,
-            opData: CreateVmV86Op.toBinary(op),
-          },
-        ],
-        target: { openKey: request.vmKey, indexPath: request.vmKey },
-      },
-      signal,
-    )
-  } catch (err) {
-    // A rerun after this request's own commit landed finds the wizard gone
-    // and the VM at its key: the creation is done, not refused.
-    if (!(err instanceof WizardGoneError)) throw err
-    using vm = await world.getObject(request.vmKey, signal)
-    if (!vm) throw err
-  }
+  await finishWizard(
+    {
+      spaceWorld: world,
+      objectKey: request.wizardObjectKey,
+      sessionPeerId: request.sessionPeerId,
+    },
+    {
+      creates: [
+        {
+          kind: 'op',
+          opId: CREATE_VM_V86_OP_ID,
+          opData: CreateVmV86Op.toBinary(op),
+        },
+      ],
+      target: { openKey: request.vmKey, indexPath: request.vmKey },
+    },
+    signal,
+  )
   yield { stage: 'ready' }
 }
 
-/**
- * creationRefusedAsGone reports whether a creation that failed did so because
- * the wizard is gone: refused as gone, or failed while another writer removed
- * it, so Retry could never succeed.
- */
-export function creationRefusedAsGone(
-  error: Error | null | undefined,
-  wizardGone: boolean,
-): boolean {
-  if (!error) return false
-  return wizardGone || error instanceof WizardGoneError
+// VmCreationState is a VM creation's state. running applies the request and
+// names the stage it is in; failed names the stage that failed and offers
+// Retry, which starts the same request again; done means this run's commit
+// landed; gone means the wizard was removed, so no run can create from it.
+// done and gone are terminal: nothing reruns the creation from them.
+export type VmCreationState =
+  | { status: 'idle' }
+  | { status: 'running'; request: VmCreationRequest; stage: VmCreationStage }
+  | {
+      status: 'failed'
+      request: VmCreationRequest
+      stage: VmCreationStage
+      error: string
+    }
+  | { status: 'done'; request: VmCreationRequest }
+  | { status: 'gone' }
+
+// VmCreationEvent moves a VM creation between its states. start begins a run
+// from idle or failed; the rest report the running run's progress and end.
+export type VmCreationEvent =
+  | { type: 'start'; request: VmCreationRequest }
+  | { type: 'stage'; stage: VmCreationStage }
+  | { type: 'land' }
+  | { type: 'fail'; error: string }
+  | { type: 'refuse' }
+
+// vmCreationReducer applies an event to a VM creation's state. An event a
+// state does not expect leaves it as it is.
+export function vmCreationReducer(
+  state: VmCreationState,
+  event: VmCreationEvent,
+): VmCreationState {
+  if (event.type === 'start') {
+    if (state.status !== 'idle' && state.status !== 'failed') return state
+    const stage = event.request.linkCdnImage ? 'linking' : 'creating'
+    return { status: 'running', request: event.request, stage }
+  }
+  if (state.status !== 'running') return state
+  switch (event.type) {
+    case 'stage':
+      return { ...state, stage: event.stage }
+    case 'land':
+      return { status: 'done', request: state.request }
+    case 'fail':
+      return { ...state, status: 'failed', error: event.error }
+    case 'refuse':
+      return { status: 'gone' }
+  }
+}
+
+// createVm runs one creation of request and reports it to dispatch, ending
+// in land, refuse or fail. land is sent once the commit returns, before
+// anything else can run, so the state is done as soon as the VM exists.
+export async function createVm(
+  world: EngineWorldState,
+  request: VmCreationRequest,
+  dispatch: (event: VmCreationEvent) => void,
+  signal: AbortSignal,
+) {
+  try {
+    for await (const p of runVmCreation(world, request, signal)) {
+      dispatch(
+        p.stage === 'ready'
+          ? { type: 'land' }
+          : { type: 'stage', stage: p.stage },
+      )
+    }
+  } catch (err) {
+    dispatch(await creationFailure(world, request, err, signal))
+  }
+}
+
+// creationFailure is the event a failed run ends in. It reads the wizard
+// rather than trusting the wizard watch, which may have failed: a run that
+// failed while the wizard is gone is refused, since Retry could never
+// succeed, and any other failure offers Retry.
+async function creationFailure(
+  world: EngineWorldState,
+  request: VmCreationRequest,
+  err: unknown,
+  signal: AbortSignal,
+): Promise<VmCreationEvent> {
+  if (err instanceof WizardGoneError) return { type: 'refuse' }
+  const error = err instanceof Error ? err.message : String(err)
+  try {
+    using wizard = await world.getObject(request.wizardObjectKey, signal)
+    if (!wizard) return { type: 'refuse' }
+  } catch {
+    // An unreadable wizard leaves the failure as it was, with Retry.
+  }
+  return { type: 'fail', error }
 }

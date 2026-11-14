@@ -48,6 +48,7 @@ vi.mock('@s4wave/app/wizard/useWizardState.js', () => ({
     persistDraftState: h.persistDraftState,
     handleUpdateName: h.handleUpdateName,
     handleBack: h.handleBack,
+    cancel: { status: 'idle' },
     handleCancel: h.handleCancel,
   }),
 }))

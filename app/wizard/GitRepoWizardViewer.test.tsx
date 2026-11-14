@@ -86,6 +86,7 @@ vi.mock('./useWizardState.js', () => ({
     handleConfigDataChange: vi.fn(),
     handleUpdateName: h.handleUpdateName,
     handleBack: h.handleBack,
+    cancel: { status: 'idle' },
     handleCancel: h.handleCancel,
   }),
 }))
@@ -275,7 +276,7 @@ describe('GitRepoWizardViewer', () => {
       expect(h.navigateToObjects).toHaveBeenCalledWith(['cli-1']),
     )
     expect(h.t.state).toEqual({
-      objects: new Set(),
+      objects: new Set(['cli-1']),
       indexPath: 'cli-1',
       creates: ['spacewave/git/repo/create'],
     })
@@ -311,7 +312,7 @@ describe('GitRepoWizardViewer', () => {
       expect(h.navigateToObjects).toHaveBeenCalledWith(['cli-1']),
     )
     expect(h.t.state).toEqual({
-      objects: new Set(),
+      objects: new Set(['cli-1']),
       indexPath: 'canvas/main',
       creates: ['spacewave/git/repo/create'],
     })

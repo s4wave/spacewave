@@ -514,12 +514,8 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   // Cancel stays available while the computers read is unknown: it then clears
   // a Space index that names the wizard instead of waiting for the dashboard,
   // since an empty index opens the object list and never names a deleted object.
-  const handleCancel = useCallback(async () => {
-    try {
-      await ws.handleCancel(dashboardKey)
-    } catch {
-      setOperationError('Device setup could not be deleted. Try again.')
-    }
+  const handleCancel = useCallback(() => {
+    void ws.handleCancel(dashboardKey)
   }, [dashboardKey, ws])
 
   return {
@@ -853,6 +849,7 @@ function AddDeviceWizardContent({
         void ws.handleBack()
       }}
       onCancel={handleCancel}
+      cancel={ws.cancel}
       nameLabel={copy.nameLabel}
       namePlaceholder="Build server"
       nameStep={0}

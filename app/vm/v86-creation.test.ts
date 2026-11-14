@@ -4,11 +4,13 @@ import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-spa
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/vmv86.js'
 
 import { wizardTestWorld } from '../wizard/wizard-test-world.js'
-import { WizardGoneError } from '../wizard/wizard-finish.js'
 import {
-  creationRefusedAsGone,
+  createVm,
   runVmCreation,
+  vmCreationReducer,
+  type VmCreationEvent,
   type VmCreationRequest,
+  type VmCreationState,
 } from './v86-creation.js'
 
 const request: VmCreationRequest = {
@@ -25,18 +27,6 @@ const request: VmCreationRequest = {
   wizardObjectKey: 'wizard/vm-1',
 }
 
-// vmLookup is a World read that finds the VM once its create committed.
-function vmLookup(t: () => ReturnType<typeof wizardTestWorld>) {
-  return {
-    getObject: (key: string) =>
-      Promise.resolve(
-        key === request.vmKey && t().state.creates.includes(CREATE_VM_V86_OP_ID)
-          ? { [Symbol.dispose]: () => {} }
-          : null,
-      ),
-  } as never
-}
-
 // drain runs the creation stream to its end and returns the stages.
 async function drain(t: ReturnType<typeof wizardTestWorld>) {
   const stages: string[] = []
@@ -45,6 +35,20 @@ async function drain(t: ReturnType<typeof wizardTestWorld>) {
     stages.push(p.stage)
   }
   return stages
+}
+
+// run starts the creation from state and runs it to its end through the
+// reducer, as the viewer does, and returns the state it ends in.
+async function run(
+  t: ReturnType<typeof wizardTestWorld>,
+  state: VmCreationState = { status: 'idle' },
+) {
+  let creation = vmCreationReducer(state, { type: 'start', request })
+  const dispatch = (event: VmCreationEvent) => {
+    creation = vmCreationReducer(creation, event)
+  }
+  await createVm(t.world, request, dispatch, new AbortController().signal)
+  return creation
 }
 
 describe('runVmCreation', () => {
@@ -62,7 +66,7 @@ describe('runVmCreation', () => {
       'release',
     ])
     expect(t.state).toEqual({
-      objects: new Set(),
+      objects: new Set(['vm/v86/debian']),
       indexPath: 'vm/v86/debian',
       creates: [CREATE_VM_V86_OP_ID],
     })
@@ -87,38 +91,62 @@ describe('runVmCreation', () => {
     expect(t.state.creates).toEqual([CREATE_VM_V86_OP_ID])
   })
 
-  it('shows done for a rerun after its own commit landed', async () => {
-    // The stream restarts after the commit, as a new World value does.
-    const t: ReturnType<typeof wizardTestWorld> = wizardTestWorld(
-      ['wizard/vm-1'],
-      'wizard/vm-1',
-      vmLookup(() => t),
-    )
-    expect(await drain(t)).toEqual(['creating', 'ready'])
-    expect(await drain(t)).toEqual(['creating', 'ready'])
+  it('ends the run as done, and done is terminal', async () => {
+    const t = wizardTestWorld(['wizard/vm-1'], 'wizard/vm-1')
+    const creation = await run(t)
+    expect(creation).toEqual({ status: 'done', request })
 
-    // The rerun wrote nothing: one VM, and the index names it.
-    expect(t.state).toEqual({
-      objects: new Set(),
-      indexPath: 'vm/v86/debian',
-      creates: [CREATE_VM_V86_OP_ID],
-    })
+    // No event reruns the creation or moves it out of done.
+    for (const event of [
+      { type: 'start', request },
+      { type: 'stage', stage: 'creating' },
+      { type: 'fail', error: 'object already exists' },
+      { type: 'refuse' },
+    ] satisfies VmCreationEvent[]) {
+      expect(vmCreationReducer(creation, event)).toBe(creation)
+    }
+    expect(t.state.creates).toEqual([CREATE_VM_V86_OP_ID])
   })
 
   it('refuses as gone when another writer removed the wizard', async () => {
-    const t: ReturnType<typeof wizardTestWorld> = wizardTestWorld(
-      [],
-      '',
-      vmLookup(() => t),
-    )
-    const err = await drain(t).catch((e: unknown) => e)
-    expect(err).toBeInstanceOf(WizardGoneError)
+    const t = wizardTestWorld([], '')
+    expect(await run(t)).toEqual({ status: 'gone' })
     expect(t.state.creates).toEqual([])
+  })
 
-    // The viewer shows gone, not Retry, for this failure.
-    expect(creationRefusedAsGone(err as Error, false)).toBe(true)
-    expect(creationRefusedAsGone(new Error('link failed'), true)).toBe(true)
-    expect(creationRefusedAsGone(new Error('link failed'), false)).toBe(false)
-    expect(creationRefusedAsGone(null, true)).toBe(false)
+  it('refuses as gone when a rerun after a landed commit hits the existing VM', async () => {
+    // The commit landed but its caller saw a failure, so Retry runs again:
+    // the World refuses the VM create before the wizard delete runs.
+    const t = wizardTestWorld(['vm/v86/debian'], 'vm/v86/debian')
+    const failed: VmCreationState = {
+      status: 'failed',
+      request,
+      stage: 'creating',
+      error: 'commit failed',
+    }
+    expect(await run(t, failed)).toEqual({ status: 'gone' })
+    expect(t.state.creates).toEqual([])
+  })
+
+  it('offers Retry for a failure while the wizard is still there', async () => {
+    const t = wizardTestWorld(['wizard/vm-1'], 'wizard/vm-1')
+    t.failOn = 'commit'
+    expect(await run(t)).toEqual({
+      status: 'failed',
+      request,
+      stage: 'creating',
+      error: 'commit failed',
+    })
+
+    // Retry starts the same request again and lands.
+    t.failOn = undefined
+    expect(
+      await run(t, {
+        status: 'failed',
+        request,
+        stage: 'creating',
+        error: 'commit failed',
+      }),
+    ).toEqual({ status: 'done', request })
   })
 })

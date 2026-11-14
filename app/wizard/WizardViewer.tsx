@@ -122,6 +122,7 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
       nameError={nameError}
       onBack={() => void ws.handleBack()}
       onCancel={handleCancel}
+      cancel={ws.cancel}
       finish={finish.state}
       onFinalize={handleFinalizeClick}
       canFinalize={!nameError}
