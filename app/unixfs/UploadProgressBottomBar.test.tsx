@@ -311,6 +311,43 @@ describe('UploadProgressBottomBar', () => {
     expect(retryUpload).toHaveBeenCalledWith('upload-folder')
   })
 
+  it('says a folder is being created while its files wait', () => {
+    const folder: UploadItem = {
+      ...uploadingItem(),
+      id: 'upload-folder',
+      kind: 'directory',
+      name: 'photos',
+      path: 'photos',
+      totalSize: 0,
+      bytesWritten: 0,
+      step: 'open',
+    }
+    const inside: UploadItem = {
+      ...uploadingItem(),
+      id: 'upload-inside',
+      name: 'a.jpg',
+      path: 'photos/a.jpg',
+      bytesWritten: 0,
+      status: 'waiting',
+    }
+    render(
+      <BottomBarRoot openMenu="upload-progress" setOpenMenu={() => {}}>
+        <UploadProgressBottomBar
+          uploadManager={buildUploadManager({
+            activeCount: 2,
+            items: [folder, inside],
+          })}
+        />
+        <ViewerFrame>
+          <div>Browser</div>
+        </ViewerFrame>
+      </BottomBarRoot>,
+    )
+
+    expect(screen.getByText('Creating the folder')).toBeTruthy()
+    expect(screen.getByText('Waiting for its folder')).toBeTruthy()
+  })
+
   it('replaces a quota error chain with actionable storage guidance', () => {
     const uploadManager = buildUploadManager({
       items: [

@@ -18,8 +18,8 @@ import {
 // that started it (see SessionUploadManagerContext).
 
 // UploadStatus represents the state of a single upload item. waiting is an
-// item inside a dropped folder that has not opened it yet, such as one that
-// asks or failed; checking lists the item's folder before any byte is sent;
+// item inside a dropped folder that has not opened it yet: one being created,
+// asking or failed; checking lists the item's folder before any byte is sent;
 // asking waits for the person to answer the item's conflict; skipped is an
 // item the person chose not to send; error is a failed listing or send, which
 // Retry runs again.
@@ -52,9 +52,10 @@ export type UploadAnswer = 'replace' | 'merge' | 'keep' | 'skip'
 
 // UploadStep is the step an item last ran, which Retry runs again after it
 // failed: check lists the item's folder and asks or sends, keep lists it and
-// picks a free name, and send commits with what the item expects. A failed
+// picks a free name, send commits with what the item expects, and open
+// commits a folder and then sends what was dropped inside it. A failed
 // listing never leads to a send.
-export type UploadStep = 'check' | 'keep' | 'send'
+export type UploadStep = 'check' | 'keep' | 'send' | 'open'
 
 // UploadQuestion is the conflict on screen: the first asking item of the
 // oldest drop with one, and the other items of that drop still asking.
@@ -153,13 +154,6 @@ export function answersFor(item: UploadItem): UploadAnswer[] {
 function splitPath(path: string): [string, string] {
   const cut = path.lastIndexOf('/')
   return cut < 0 ? ['', path] : [path.slice(0, cut), path.slice(cut + 1)]
-}
-
-// within reports whether item is inside the dropped folder.
-function within(item: UploadItem, folder: UploadItem): boolean {
-  return (
-    item.groupId === folder.groupId && item.path.startsWith(folder.path + '/')
-  )
 }
 
 // holderOf names what a listing entry is.
@@ -279,6 +273,9 @@ function questionOf(items: UploadItem[]): UploadQuestion | null {
 }
 
 const missing: TreeUploadExpect = { kind: 'missing' }
+// overwrite sends a file over whatever holds its name; a folder sent so
+// merges into the folder of its name.
+const overwrite: TreeUploadExpect = { kind: 'overwrite' }
 
 // UploadGroup is what the manager holds for one drop: the handle it was
 // dropped on, its clone of it, each folder's listing, read once and reused by
@@ -349,8 +346,10 @@ function release(group: UploadGroup, claims: Claims) {
 // A dropped file is sent only where its name is free, or over the version a
 // Replace answer named; a dropped folder merges into one of its name only on
 // a Merge answer. The drop lists its folder first and asks about each taken
-// name before sending its bytes, and the store refuses at commit a file name
-// another writer took meanwhile, which asks the same question.
+// name before sending its bytes, and the store refuses at commit a name
+// another writer took meanwhile, which asks the same question. A new folder
+// is sent alone, and what was dropped inside it only once it commits, so no
+// file of the drop creates it first.
 export function useUploadManager(): UploadManager {
   const [items, setItems] = useState<UploadItem[]>([])
   const [lastEvent, setLastEvent] = useState<UploadEvent | null>(null)
@@ -554,7 +553,8 @@ export function useUploadManager(): UploadManager {
     const childrenOf = (folder: UploadItem): UploadItem[] =>
       groups.get(folder.groupId)?.children.get(folder.id) ?? []
 
-    // below returns every item dropped inside the folder.
+    // below returns every item dropped inside the folder, from the drop's
+    // tree of item ids, whatever path a Keep both gave the folder.
     const below = (folder: UploadItem): UploadItem[] => {
       const found: UploadItem[] = []
       const walk = (at: UploadItem) => {
@@ -605,14 +605,22 @@ export function useUploadManager(): UploadManager {
       update(item.id, { status: 'asking', conflict, bytesWritten: 0 })
     }
 
-    // send queues one commit of the item at its path. A file expects expect;
-    // a folder merges into whatever folder holds its path.
-    const send = async (item: UploadItem, expect: TreeUploadExpect) => {
+    // send commits the item at its path expecting expect, recording step for
+    // Retry, and returns whether it committed. A folder expecting missing is
+    // created only where nothing holds its path; any other folder merges into
+    // the folder there. A refusal or failure settles the item before send
+    // returns false, as does a cancel.
+    const send = async (
+      item: UploadItem,
+      expect: TreeUploadExpect,
+      step: UploadStep = 'send',
+    ): Promise<boolean> => {
       const { id, file } = item
-      if (item.abortController.signal.aborted) return
+      const signal = item.abortController.signal
+      if (signal.aborted) return false
       update(id, {
         status: 'queued',
-        step: 'send',
+        step,
         path: item.path,
         name: item.name,
         expect,
@@ -626,7 +634,7 @@ export function useUploadManager(): UploadManager {
         handle = await handleOf(item)
       } catch (err) {
         fail(id, err)
-        return
+        return false
       }
       const entry: TreeUploadEntry = file
         ? {
@@ -638,20 +646,41 @@ export function useUploadManager(): UploadManager {
             onProgress: (bytesWritten) =>
               update(id, { bytesWritten: Number(bytesWritten) }),
           }
-        : { kind: 'directory', path: item.path }
+        : {
+            kind: 'directory',
+            path: item.path,
+            expectMissing: expect.kind === 'missing',
+          }
       const sent = { ...item, expect }
-      pool.add(
-        handle,
-        entry,
-        {
-          onStart: () => update(id, { status: 'uploading' }),
-          onComplete: () =>
-            update(id, { status: 'done', bytesWritten: item.totalSize }),
-          onConflict: (conflict) => void refused(sent, conflict),
-          onError: (err) => fail(id, err),
-        },
-        item.abortController.signal,
-      )
+      return new Promise<boolean>((resolve) => {
+        // The pool drops a cancelled entry without a callback.
+        const cancelled = () => resolve(false)
+        const settle = (committed: boolean) => {
+          signal.removeEventListener('abort', cancelled)
+          resolve(committed)
+        }
+        signal.addEventListener('abort', cancelled, { once: true })
+        pool.add(
+          handle,
+          entry,
+          {
+            onStart: () => update(id, { status: 'uploading' }),
+            onComplete: () => {
+              update(id, { status: 'done', bytesWritten: item.totalSize })
+              settle(true)
+            },
+            onConflict: (conflict) => {
+              settle(false)
+              void refused(sent, conflict)
+            },
+            onError: (err) => {
+              fail(id, err)
+              settle(false)
+            },
+          },
+          signal,
+        )
+      })
     }
 
     // place checks one file against its folder's listing: a free name is
@@ -669,21 +698,44 @@ export function useUploadManager(): UploadManager {
       ask(item, await conflictOf(item, entry))
     }
 
-    // open sends a dropped folder, then what was dropped directly inside it
-    // and, through each subfolder, below; each item's path is its name in
-    // the folder's path. Into a new folder each item is sent as missing, and
-    // the store refuses a file another writer placed first; into a folder
-    // that held the name, each is placed against its folder's listing.
+    // inside returns the items dropped directly inside the folder, each at
+    // its name in the folder's path.
+    const inside = (folder: UploadItem): UploadItem[] =>
+      childrenOf(folder).map((child) => ({
+        ...child,
+        path: `${folder.path}/${child.name}`,
+      }))
+
+    // open sends a dropped folder alone and, once it commits, what was
+    // dropped inside it, which waits until then. A new folder expects
+    // nothing at its path, so one another writer created after the listing
+    // is refused and asks; everything below it then goes at once, files as
+    // missing, so the store refuses a name another writer placed inside it
+    // first, and folders merging, since the drop created the folder they
+    // sit in: a subfolder another writer makes there after the folder
+    // commits is merged into without asking. A folder merging into the folder of its name places what is
+    // inside it against its folder's listing.
     const open = async (folder: UploadItem, fresh: boolean) => {
-      await send(folder, missing)
+      if (!(await send(folder, fresh ? missing : overwrite, 'open'))) return
+      if (fresh) {
+        await fill(folder)
+        return
+      }
       await Promise.all(
-        childrenOf(folder).map((child) => {
-          const item = { ...child, path: `${folder.path}/${child.name}` }
-          if (item.kind === 'file') {
-            return fresh ? send(item, missing) : place(item)
-          }
-          return fresh ? open(item, true) : enter(item, true)
-        }),
+        inside(folder).map((item) =>
+          item.kind === 'file' ? place(item) : enter(item, true),
+        ),
+      )
+    }
+
+    // fill sends everything dropped inside a folder the drop created.
+    const fill = async (folder: UploadItem): Promise<void> => {
+      await Promise.all(
+        inside(folder).map((item) =>
+          item.kind === 'file'
+            ? send(item, missing)
+            : Promise.all([send(item, overwrite), fill(item)]),
+        ),
       )
     }
 
@@ -716,33 +768,36 @@ export function useUploadManager(): UploadManager {
     // keep sends the item under the first free "name (n).ext" in its folder.
     // Names in the folder's listing and names any drop claims there are
     // taken; a refused name moves the next pick past its number, so a
-    // listing that misses a taken name never picks it again. A folder's send
-    // expects nothing, so a kept folder lists its parent fresh and takes
-    // what was dropped inside it along to the new name.
+    // listing that misses a taken name never picks it again. A kept folder
+    // takes what was dropped inside it along to the new name.
     const keep = async (item: UploadItem, fresh = false) => {
       const signal = item.abortController.signal
       const from = item.kept?.from ?? item.path
       const [parent, original] = splitPath(from)
       update(item.id, { status: 'checking', conflict: null, error: undefined })
-      const directory = item.kind === 'directory'
-      const entries = await listed(item, parent, 'keep', fresh || directory)
+      const entries = await listed(item, parent, 'keep', fresh)
       if (!entries || signal.aborted) return
       const taken = new Set([...entries.keys(), ...claimed(item, parent)])
       const [name, n] = freeName(original, taken, item.kept?.next)
       claim(item, parent, name)
       const path = parent ? `${parent}/${name}` : name
       const kept = { ...item, name, path, kept: { from, next: n + 1 } }
-      if (directory) await open(kept, true)
+      if (item.kind === 'directory') await open(kept, true)
       else await send(kept, missing)
     }
 
-    // refused handles the store's refusal of a file's send: Keep both takes
-    // the next free name, a refusal with a version asks showing it, a
-    // Replace whose file is gone sends as missing, and any other refusal
-    // lists the folder again to ask with what holds the name.
+    // refused handles the store's refusal of a send: Keep both takes the
+    // next free name, a new folder lists its parent again and asks, never
+    // merging unasked, a refusal with a version asks showing it, a Replace
+    // whose file is gone sends as missing, and any other refusal lists the
+    // folder again to ask with what holds the name.
     const refused = async (item: UploadItem, conflict: TreeUploadConflict) => {
       if (item.kept) {
         await keep(item, true)
+        return
+      }
+      if (item.kind === 'directory') {
+        await enter(item, false, true)
         return
       }
       if (conflict.version) {
@@ -790,6 +845,8 @@ export function useUploadManager(): UploadManager {
     // resume runs a failed item's step again, reading any listing again. A
     // folder below the top of the drop is only ever checked inside a merge.
     const resume = async (item: UploadItem) => {
+      if (item.step === 'open')
+        return open(item, item.expect.kind === 'missing')
       if (item.step === 'send') return send(item, item.expect)
       if (item.step === 'keep') return keep(item, true)
       if (item.kind === 'file') return place(item, true)
@@ -814,9 +871,9 @@ export function useUploadManager(): UploadManager {
       }
     }
 
-    return { check, settle, retry, fail }
+    return { check, settle, retry, fail, below }
   }, [pool, update])
-  const { check, settle, retry, fail } = flow
+  const { check, settle, retry, fail, below } = flow
 
   const addFiles = useCallback(
     (
@@ -970,8 +1027,8 @@ export function useUploadManager(): UploadManager {
       const prev = itemsRef.current
       const item = prev.find((current) => current.id === id)
       if (!item) return
-      const gone = (current: UploadItem) =>
-        current === item || (item.kind === 'directory' && within(current, item))
+      const ids = new Set([item, ...below(item)].map((one) => one.id))
+      const gone = (current: UploadItem) => ids.has(current.id)
       for (const current of prev) {
         if (gone(current) && !finished(current)) {
           current.abortController.abort()
@@ -979,7 +1036,7 @@ export function useUploadManager(): UploadManager {
       }
       publish(prev.filter((current) => !gone(current)))
     },
-    [flush, publish],
+    [below, flush, publish],
   )
 
   const cancelAll = useCallback(() => {

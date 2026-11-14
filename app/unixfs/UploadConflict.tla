@@ -12,14 +12,19 @@
 \* way a file streams before it asks.
 \*
 \* A dropped folder whose name holds a folder asks once whether to merge
-\* into it; what the drop holds inside it waits on that answer, and its
-\* files then ask as files do. Contents are the files dropped inside a
-\* config's one folder: they wait while it asks, arrive as files once it is
-\* answered, and end with it on Skip. Cancelling a folder's row cancels it
-\* and everything inside it, whatever state each is in.
+\* into it; its files then ask as files do. A folder is sent alone, and what
+\* the drop holds inside it waits until the folder commits: while it asks,
+\* while it is created, and while its send has failed. Contents are the
+\* files dropped inside a config's one folder: they arrive once it lands, as
+\* missing in a folder the drop created and from the listing in one it
+\* merged into, and end with it on Skip. Cancelling a folder's row cancels it
+\* and everything inside it, whatever state each is in; a folder that
+\* already landed stays, with whatever of its contents landed.
 \* A dropped folder whose name holds a file or link offers only Keep both
-\* and Skip; one sent as missing that another writer's file beat fails at
-\* the store, which refuses a folder over a file, and offers Retry.
+\* and Skip. A new folder is sent expecting nothing at its name, so the
+\* store refuses it when another writer took that name since the listing,
+\* and it asks like a file. Merge sends a folder with no expectation; the
+\* store refuses a folder over a file as an error, which offers Retry.
 \*
 \* The question names one item and its folder. Replace resends a file
 \* expecting the version shown; Merge sends a folder into the folder of its
@@ -61,8 +66,8 @@ Buttons == Answers \cup {AllOf[a] : a \in Answers}
 
 VARIABLES
   disk,     \* what each name holds in the folder
-  item,     \* each name's upload: out, waiting, sending, asking, failed, done,
-            \* skipped, cancelled
+  item,     \* each name's upload: out, waiting (a content whose folder has
+            \* not landed), sending, asking, failed, done, skipped, cancelled
   expect,   \* what a send expects the name to hold: missing, a version,
             \* merge into a folder, or keep
   shown,    \* the version a question shows, or "dir" for a folder or link
@@ -125,10 +130,16 @@ Hint(p) ==
 Arrive(n) ==
   IF disk[n] = "none" THEN <<"sending", "missing", "none">>
   ELSE <<"asking", "none", IF disk[n] \in Files THEN disk[n] ELSE "dir">>
-\* A content waits while its folder asks, and otherwise arrives with it.
+\* A content waits until its folder lands.
 Start(n) ==
-  IF n \in Contents /\ Arrive(Top)[1] = "asking" THEN <<"waiting", "none", "none">>
+  IF n \in Contents THEN <<"waiting", "none", "none">>
   ELSE Arrive(n)
+\* A content arrives when its folder f lands: as missing in a folder the drop
+\* created, and from the listing in a folder it merged into.
+Opened(f, n) == n \in Contents /\ f \in Folders /\ f = Top /\ item[n] = "waiting"
+Into(f, n) == IF expect[f] = "merge" THEN Arrive(n) ELSE <<"sending", "missing", "none">>
+\* A Keep both folder is new, so nothing is inside it yet.
+Fresh(f) == IF f \in Folders /\ expect[f] = "keep" THEN Inside(f) ELSE {}
 
 Drop(d) ==
   /\ d # {}
@@ -139,39 +150,47 @@ Drop(d) ==
   /\ shown' = [n \in Names |-> IF n \in d THEN Start(n)[3] ELSE shown[n]]
   /\ UNCHANGED <<disk, answer, raced, clobbered, merged, wasted>>
 
-\* Another writer creates, changes, replaces or removes a name.
+\* Another writer creates, changes, replaces or removes a name; a folder
+\* that stops being one takes what it held with it.
+Emptied(n, h) == IF n \in Folders /\ h # "dir" THEN Inside(n) ELSE {}
 OtherWrite(n) ==
-  /\ \E h \in Writes \ {disk[n]} : disk' = [disk EXCEPT ![n] = h]
+  /\ \E h \in Writes \ {disk[n]} :
+       disk' = [m \in Names |-> IF m = n THEN h
+                 ELSE IF m \in Emptied(n, h) THEN "none" ELSE disk[m]]
   /\ raced' = [raced EXCEPT ![n] = TRUE]
   /\ UNCHANGED <<item, expect, shown, answer, clobbered, merged, wasted>>
 
-\* The store's check inside the commit. A folder is created, or merges into
-\* the folder of its name, and never lands on a file.
+\* The store's check inside the commit. A folder sent as missing is created
+\* only where nothing is; one sent to merge is created, or merges into the
+\* folder of its name; neither lands on a file.
 Accepts(n) ==
   \/ expect[n] = "keep"
   \/ expect[n] = "missing" /\ disk[n] = "none"
   \/ expect[n] \in Files /\ disk[n] = expect[n]
-  \/ n \in Folders /\ expect[n] \in {"missing", "merge"}
-     /\ disk[n] \in {"none", "dir"}
+  \/ n \in Folders /\ expect[n] = "merge" /\ disk[n] \in {"none", "dir"}
 
 Land(n) ==
   /\ item[n] = "sending"
   /\ Accepts(n)
   /\ clobbered' = (clobbered \/ (expect[n] # "keep" /\ disk[n] \in Files
                                  /\ answer[n] # disk[n]))
-  /\ merged' = (merged \/ (n \in Folders /\ disk[n] = "dir" /\ ~raced[n]
+  /\ merged' = (merged \/ (n \in Folders /\ disk[n] = "dir"
                            /\ answer[n] # "merge" /\ expect[n] # "keep"))
-  /\ disk' = CASE expect[n] = "keep" -> disk
+  /\ disk' = CASE expect[n] = "keep" ->
+                [m \in Names |-> IF m \in Fresh(n) THEN "none" ELSE disk[m]]
               [] n \in Folders -> [disk EXCEPT ![n] = "dir"]
               [] OTHER -> [disk EXCEPT ![n] = "m"]
-  /\ item' = [item EXCEPT ![n] = "done"]
-  /\ expect' = [expect EXCEPT ![n] = "none"]
-  /\ UNCHANGED <<shown, answer, raced, wasted>>
+  /\ item' = [m \in Names |-> IF m = n THEN "done"
+                ELSE IF Opened(n, m) THEN Into(n, m)[1] ELSE item[m]]
+  /\ expect' = [m \in Names |-> IF m = n THEN "none"
+                  ELSE IF Opened(n, m) THEN Into(n, m)[2] ELSE expect[m]]
+  /\ shown' = [m \in Names |-> IF Opened(n, m) THEN Into(n, m)[3] ELSE shown[m]]
+  /\ UNCHANGED <<answer, raced, wasted>>
 
-\* The store refuses a folder over a file as an error.
+\* The store refuses a folder sent to merge over a file as an error.
 Refuse(n) ==
   /\ item[n] = "sending"
-  /\ n \notin Folders
+  /\ n \notin Folders \/ expect[n] = "missing"
   /\ ~Accepts(n)
   /\ wasted' = (wasted \/ (expect[n] = "missing" /\ ~raced[n]))
   /\ IF disk[n] \in Files \/ expect[n] = "missing"
@@ -196,26 +215,24 @@ Retry(p) ==
        /\ item' = [item EXCEPT ![n] = "sending"]
   /\ UNCHANGED <<disk, expect, shown, answer, raced, clobbered, merged, wasted>>
 
-\* An answer to the asking names ns. What waits inside an answered folder
-\* arrives as files do, or is skipped with it.
-Freed(ns, n) == n \in Contents /\ item[n] = "waiting" /\ Top \in ns
+\* An answer to the asking names ns. What waits inside a skipped folder is
+\* skipped with it; inside any other answered folder it waits on the send.
+Dropped(ns, a, n) ==
+  a = "skip" /\ n \in Contents /\ item[n] = "waiting" /\ Top \in ns
 Answer(ns, a) ==
   /\ item' = [n \in Names |->
-               IF Freed(ns, n) THEN (IF a = "skip" THEN "skipped" ELSE Arrive(n)[1])
+               IF Dropped(ns, a, n) THEN "skipped"
                ELSE IF n \notin ns THEN item[n]
                ELSE IF a = "skip" THEN "skipped" ELSE "sending"]
   /\ expect' = [n \in Names |->
-                 IF Freed(ns, n) THEN (IF a = "skip" THEN "none" ELSE Arrive(n)[2])
-                 ELSE IF n \notin ns THEN expect[n]
+                 IF n \notin ns THEN expect[n]
                  ELSE IF a = "replace" THEN shown[n]
                  ELSE IF a \in {"keep", "merge"} THEN a ELSE "none"]
   /\ answer' = [n \in Names |->
-                 IF Freed(ns, n) THEN (IF a = "skip" THEN "skip" ELSE answer[n])
+                 IF Dropped(ns, a, n) THEN "skip"
                  ELSE IF n \notin ns THEN answer[n]
                  ELSE IF a = "replace" THEN shown[n] ELSE a]
-  /\ shown' = [n \in Names |->
-                 IF Freed(ns, n) THEN (IF a = "skip" THEN "none" ELSE Arrive(n)[3])
-                 ELSE IF n \in ns THEN "none" ELSE shown[n]]
+  /\ shown' = [n \in Names |-> IF n \in ns THEN "none" ELSE shown[n]]
   /\ UNCHANGED <<disk, raced, clobbered, merged, wasted>>
 
 Press(p, b) ==
@@ -231,7 +248,10 @@ CancelAll(p) ==
   /\ shown' = [n \in Names |-> IF n \in Busy THEN "none" ELSE shown[n]]
   /\ UNCHANGED <<disk, answer, raced, clobbered, merged, wasted>>
 
-\* Cancelling a folder's row cancels it and everything inside it.
+\* Cancelling a folder's row cancels it and everything inside it, found
+\* from the drop's tree rather than by path: a Keep both folder (answer
+\* "keep") is sent under its new name while what waits inside it still
+\* carries the dropped one until the folder lands.
 CancelFolder(p) ==
   /\ "cancelfolder" \in Shown(p)
   /\ \E f \in Folders \cap Busy :
@@ -272,12 +292,21 @@ NoReplaceWithoutAnswer == ~clobbered
 NothingDiscarded == \A n \in Names : item[n] = "skipped" => answer[n] = "skip"
 \* A name taken at the drop asks before any byte is sent.
 AskBeforeSending == ~wasted
-\* No dropped folder merges into a folder its name held at the drop unless
-\* the person pressed Merge.
+\* No dropped folder merges into a folder at its name unless the person
+\* pressed Merge, including one another writer made after the listing. The
+\* spec models one level of folders: a subfolder another writer makes
+\* inside a folder this drop created, after that folder commits, is merged
+\* into without asking, by design, since the drop's subfolders are sent with
+\* no expectation.
 NoMergeWithoutAnswer == ~merged
-\* What a folder holds waits only while the folder asks.
+\* What a folder holds waits only while the folder asks, is sent, or failed.
 NothingWaitsOnAnEndedFolder ==
-  \A n \in Contents : item[n] = "waiting" => item[Top] = "asking"
+  \A n \in Contents :
+    item[n] = "waiting" => item[Top] \in {"asking", "sending", "failed"}
+\* Nothing inside a folder is sent before the folder lands.
+NothingSentBeforeItsFolder ==
+  \A n \in Contents :
+    item[n] \in {"sending", "asking", "failed", "done"} => item[Top] = "done"
 
 TypeOK ==
   /\ disk \in [Names -> Holds]

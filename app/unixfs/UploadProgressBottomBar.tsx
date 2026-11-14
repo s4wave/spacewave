@@ -178,11 +178,14 @@ function SummaryCell({ label, value }: { label: string; value: string }) {
   )
 }
 
-/** uploadStatusLabel returns the status text of an upload item. */
+/**
+ * uploadStatusLabel returns the status text of an upload item. A folder being
+ * sent is being created, and what was dropped inside it waits on that.
+ */
 function uploadStatusLabel(item: UploadItem): string {
   switch (item.status) {
     case 'uploading':
-      return 'Uploading'
+      return item.kind === 'directory' ? 'Creating the folder' : 'Uploading'
     case 'queued':
       return 'Queued'
     case 'done':

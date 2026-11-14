@@ -23,8 +23,8 @@
     "name": "Replace expects the live version, not the one shown",
     "replace": [
       [
-        "                 ELSE IF n \\notin ns THEN expect[n]\n                 ELSE IF a = \"replace\" THEN shown[n]",
-        "                 ELSE IF n \\notin ns THEN expect[n]\n                 ELSE IF a = \"replace\" THEN (IF disk[n] \\in Files THEN disk[n] ELSE shown[n])"
+        "                 IF n \\notin ns THEN expect[n]\n                 ELSE IF a = \"replace\" THEN shown[n]",
+        "                 IF n \\notin ns THEN expect[n]\n                 ELSE IF a = \"replace\" THEN (IF disk[n] \\in Files THEN disk[n] ELSE shown[n])"
       ]
     ],
     "expect": "NoReplaceWithoutAnswer"
@@ -60,12 +60,12 @@
     "expect": "NothingDiscarded"
   },
   {
-    "name": "the drop sends a taken folder at once",
+    "name": "the drop merges a taken folder at once",
     "config": "UploadConflictRaces-folders.cfg",
     "replace": [
       [
         "  IF disk[n] = \"none\" THEN <<\"sending\", \"missing\", \"none\">>",
-        "  IF disk[n] = \"none\" \\/ (n \\in Folders /\\ disk[n] = \"dir\")\n    THEN <<\"sending\", \"missing\", \"none\">>"
+        "  IF n \\in Folders /\\ disk[n] = \"dir\" THEN <<\"sending\", \"merge\", \"none\">>\n  ELSE IF disk[n] = \"none\" THEN <<\"sending\", \"missing\", \"none\">>"
       ]
     ],
     "expect": "NoMergeWithoutAnswer"
@@ -86,6 +86,39 @@
     "config": "UploadConflictRaces-folders.cfg",
     "replace": [
       ["LET gone == ({f} \\cup Inside(f)) \\cap Busy", "LET gone == {f}"]
+    ],
+    "expect": "NothingWaitsOnAnEndedFolder"
+  },
+  {
+    "name": "a new folder is sent with no expectation",
+    "config": "UploadConflictRaces-folders.cfg",
+    "replace": [
+      [
+        "  \\/ n \\in Folders /\\ expect[n] = \"merge\" /\\ disk[n] \\in {\"none\", \"dir\"}",
+        "  \\/ n \\in Folders /\\ expect[n] \\in {\"missing\", \"merge\"}\n     /\\ disk[n] \\in {\"none\", \"dir\"}"
+      ]
+    ],
+    "expect": "NoMergeWithoutAnswer"
+  },
+  {
+    "name": "what a folder holds is sent before the folder commits",
+    "config": "UploadConflictRaces-folders.cfg",
+    "replace": [
+      [
+        "  IF n \\in Contents THEN <<\"waiting\", \"none\", \"none\">>",
+        "  IF n \\in Contents /\\ Arrive(Top)[1] = \"asking\" THEN <<\"waiting\", \"none\", \"none\">>"
+      ]
+    ],
+    "expect": "NothingSentBeforeItsFolder"
+  },
+  {
+    "name": "cancelling a kept folder finds what it holds by path",
+    "config": "UploadConflictRaces-folders.cfg",
+    "replace": [
+      [
+        "LET gone == ({f} \\cup Inside(f)) \\cap Busy",
+        "LET gone == ({f} \\cup {c \\in Inside(f) :\n                     answer[f] # \"keep\" \\/ item[c] # \"waiting\"}) \\cap Busy"
+      ]
     ],
     "expect": "NothingWaitsOnAnEndedFolder"
   }
