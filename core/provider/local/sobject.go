@@ -655,6 +655,11 @@ func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id strin
 		return nil, err
 	}
 
+	// Refuse while a transfer moves the account's Spaces.
+	if err := a.refuseFenced(); err != nil {
+		return nil, err
+	}
+
 	// Get the current object list.
 	sharedObjectList := a.soListCtr.GetValue().CloneVT()
 	if sharedObjectList == nil {

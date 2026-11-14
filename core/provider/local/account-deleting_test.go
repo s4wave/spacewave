@@ -4,11 +4,13 @@ package provider_local
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/util/ulid"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
@@ -48,5 +50,37 @@ func TestMountRefusesDeletingAccount(t *testing.T) {
 	}
 	if found {
 		t.Fatal("the mount wrote a new key under the deleting mark")
+	}
+}
+
+// TestFenceRefusesSharedObjectCreate checks that a create on a fenced account
+// is refused and lists nothing, since a transfer's delete would take a Space
+// its list missed with the volume, and that the account creates again once
+// the fence is released.
+func TestFenceRefusesSharedObjectCreate(t *testing.T) {
+	// Open an account and fence it.
+	ctx := context.Background()
+	a, _, release := openRehearsalAccount(ctx, t, t.TempDir(), nil)
+	defer release()
+	before := len(a.soListCtr.GetValue().GetSharedObjects())
+	unfence := a.FenceSharedObjects()
+
+	// A create under the fence is refused and lists nothing.
+	meta := &sobject.SharedObjectMeta{BodyType: "space"}
+	if _, err := a.CreateSharedObject(ctx, ulid.NewULID(), meta, "", ""); !errors.Is(err, ErrSharedObjectsFenced) {
+		unfence()
+		t.Fatalf("expected ErrSharedObjectsFenced, got %v", err)
+	}
+	if n := len(a.soListCtr.GetValue().GetSharedObjects()); n != before {
+		unfence()
+		t.Fatalf("the fenced create listed a shared object: %d, was %d", n, before)
+	}
+
+	// Released twice, as the transfer's exit and cancel paths may, the fence
+	// lets creates through.
+	unfence()
+	unfence()
+	if _, err := a.CreateSharedObject(ctx, ulid.NewULID(), meta, "", ""); err != nil {
+		t.Fatal(err)
 	}
 }
