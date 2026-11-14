@@ -2,6 +2,7 @@ package kvtx
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -157,6 +158,65 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 	for _, w := range want {
 		if !strings.Contains(logged[w.Path], "_test.go") {
 			t.Fatalf("path %s caller = %q; want the test's stack", w.Path, logged[w.Path])
+		}
+	}
+}
+
+// TestSetBucketRootsRefusesDuplicateName moves 3 and 30,000 roots in one
+// change, with one name repeated at the first, middle or last position. Each
+// change is refused whole with the duplicate's error and lands no root; the
+// same roots without the duplicate all land.
+func TestSetBucketRootsRefusesDuplicateName(t *testing.T) {
+	// Every root holds one leaf block, carried by each change.
+	ctx := t.Context()
+	v, _ := newTestVolume(t)
+	data := []byte("duplicate root leaf")
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}
+	roots := func(prefix string, n int) []block.NamedRoot {
+		out := make([]block.NamedRoot, n)
+		for i := range out {
+			out[i] = block.NamedRoot{Name: prefix + strconv.Itoa(i), Ref: ref}
+		}
+		return out
+	}
+	count := func(prefix string) int {
+		var n int
+		if err := v.ListBucketRoots(ctx, "bucket", prefix, func(block.NamedRoot) error {
+			n++
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+
+	for _, n := range []int{3, 30000} {
+		for _, pos := range []int{1, n / 2, n - 1} {
+			// Repeat the first root's name at pos; the change is refused.
+			prefix := "dup-" + strconv.Itoa(n) + "-" + strconv.Itoa(pos) + "/"
+			change := roots(prefix, n)
+			change[pos].Name = change[0].Name
+			err := v.SetBucketRoots(ctx, "bucket", entries, change)
+			want := "root \"" + change[0].Name + "\" moves twice in one change"
+			if err == nil || err.Error() != want {
+				t.Fatalf("%d roots, duplicate at %d: got %v, want %q", n, pos, err, want)
+			}
+			if got := count(prefix); got != 0 {
+				t.Fatalf("%d roots, duplicate at %d: a refused change landed %d roots", n, pos, got)
+			}
+		}
+
+		// Without the duplicate every root lands.
+		prefix := "ok-" + strconv.Itoa(n) + "/"
+		if err := v.SetBucketRoots(ctx, "bucket", entries, roots(prefix, n)); err != nil {
+			t.Fatalf("%d roots: %v", n, err)
+		}
+		if got := count(prefix); got != n {
+			t.Fatalf("%d roots: %d landed", n, got)
 		}
 	}
 }
