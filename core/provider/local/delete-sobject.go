@@ -524,27 +524,60 @@ func (a *ProviderAccount) clearStaleSOKeys(ctx context.Context, id string) error
 	})
 }
 
-// clearAbandonedSOKeys deletes every key under the prefix of an id that is
-// neither listed nor being enrolled, for a create. Such state is abandoned:
-// it was left by a delete that kept state (released versions, or
-// DeleteStateEnv off) or by an enrollment that returned without listing the
-// id. Each batch holds mtx and fails with sobject.ErrSharedObjectExists or
-// errSOEnrolling once the id is listed or an enrollment registers. An
-// enrollment registers under mtx before its first write, and writes its
-// placeholder and installs under mtx, so a batch either runs before the
-// registration, when the enrollment has written nothing, or sees it and
-// stops. After a restart no enrollment is registered, and one that starts
-// again writes its own placeholder after registering.
+// clearAbandonedSOKeys releases the roots in the bucket of an id that is
+// neither listed nor being enrolled, then deletes every key under its prefix,
+// for a create. Such state is abandoned: it was left by a delete that kept
+// state (released versions, or DeleteStateEnv off) or by an enrollment that
+// returned without listing the id, such as an interrupted import whose hold
+// still names the copied World. The release and each batch hold mtx and fail
+// with sobject.ErrSharedObjectExists or errSOEnrolling once the id is listed
+// or an enrollment registers. An enrollment registers under mtx before its
+// first write, and writes its placeholder, holds and installs after, so the
+// release and each batch either run before the registration, when the
+// enrollment has written nothing, or see it and stop. After a restart no
+// enrollment is registered, and one that starts again writes its own
+// placeholder and holds after registering. With DeleteStateEnv off it does
+// nothing.
 func (a *ProviderAccount) clearAbandonedSOKeys(ctx context.Context, id string) error {
+	// Keep every root and key in the old behavior.
+	if deleteStateOff {
+		return nil
+	}
+
+	// Release the bucket's roots, so the new lifetime does not adopt them.
+	relMtx, err := a.mtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	err = a.checkAbandonedLocked(id)
+	if err == nil {
+		providerID := a.t.accountInfo.GetProviderId()
+		accountID := a.t.accountInfo.GetProviderAccountId()
+		bucketID := BlockStoreBucketID(providerID, accountID, SobjectBlockStoreID(id))
+		err = errors.Wrap(a.releaseBucketRoots(ctx, bucketID), "release abandoned roots")
+	}
+	relMtx()
+	if err != nil {
+		return err
+	}
+
+	// Delete the keys.
 	return a.clearSOKeys(ctx, id, true, func(context.Context, kvtx.Tx) (bool, error) {
-		if a.listedSharedObjectEntry(id) != nil {
-			return false, sobject.ErrSharedObjectExists
-		}
-		if a.enrolling[id] != 0 {
-			return false, errors.Wrapf(errSOEnrolling, "shared object %s", id)
-		}
-		return false, nil
+		return false, a.checkAbandonedLocked(id)
 	})
+}
+
+// checkAbandonedLocked fails with sobject.ErrSharedObjectExists if id is
+// listed, or errSOEnrolling if an enrollment of id is registered. Assumes mtx
+// is locked.
+func (a *ProviderAccount) checkAbandonedLocked(id string) error {
+	if a.listedSharedObjectEntry(id) != nil {
+		return sobject.ErrSharedObjectExists
+	}
+	if a.enrolling[id] != 0 {
+		return errors.Wrapf(errSOEnrolling, "shared object %s", id)
+	}
+	return nil
 }
 
 // clearSOKeys deletes the keys under id's prefix in write transactions of at
