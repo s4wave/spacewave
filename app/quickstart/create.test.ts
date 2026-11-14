@@ -8,7 +8,10 @@ import {
   SET_SPACE_SETTINGS_OP_ID,
 } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import type { WorldMutation } from '@s4wave/sdk/world/world.pb.js'
-import { SPACE_SETTINGS_BLOCK_TYPE } from '@s4wave/core/space/world/world.js'
+import {
+  SPACE_SETTINGS_BLOCK_TYPE,
+  SPACE_SETTINGS_OBJECT_KEY,
+} from '@s4wave/core/space/world/world.js'
 import { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 import {
   INIT_UNIXFS_OP_ID,
@@ -249,6 +252,34 @@ function buildQuickstartWorld(
     createObject,
     setGraphQuad,
   }
+}
+
+// storeObjects makes the world hold objectKeys, and the Space settings when
+// settings is given, as a Space a seed already wrote.
+function storeObjects(
+  world: { getObject: ReturnType<typeof vi.fn> },
+  objectKeys: string[],
+  settings?: SpaceSettings,
+) {
+  world.getObject.mockImplementation((objectKey: string) => {
+    if (objectKey === SPACE_SETTINGS_OBJECT_KEY && settings) {
+      const cursor = {
+        unmarshal: vi.fn().mockResolvedValue({
+          found: true,
+          data: SpaceSettings.toBinary(settings),
+        }),
+        [Symbol.dispose]: vi.fn(),
+      }
+      return Promise.resolve({
+        accessWorldState: vi.fn().mockResolvedValue(cursor),
+        release: vi.fn(),
+      })
+    }
+    if (objectKeys.includes(objectKey)) {
+      return Promise.resolve({ release: vi.fn() })
+    }
+    return Promise.resolve(null)
+  })
 }
 
 // batchThrough mocks executeWorldBatch by applying each op through applyWorldOp,
@@ -899,6 +930,7 @@ describe('quickstart create', () => {
       sysErr: false,
     })
     const { world } = buildQuickstartWorld()
+    storeObjects(world, [], { indexPath: 'seeded', pluginIds: [] })
     const root = {
       listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
       lookupProvider: vi.fn().mockResolvedValue({
@@ -981,6 +1013,7 @@ describe('quickstart create', () => {
     })
     const applyWorldOp = vi.fn<ApplyWorldOp>()
     const { world } = buildQuickstartWorld()
+    storeObjects(world, [], { indexPath: 'seeded', pluginIds: [] })
     const root = {
       listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
       lookupProvider: vi.fn().mockResolvedValue({
@@ -1031,6 +1064,85 @@ describe('quickstart create', () => {
     expect(createSpace).not.toHaveBeenCalled()
     expect(quickstartRegistryMocks.ExecuteQuickstart).not.toHaveBeenCalled()
     expect(applyWorldOp).not.toHaveBeenCalled()
+  })
+
+  it('seeds again a quickstart Space whose seed failed part way', async () => {
+    const cleanup: RegisterCleanup = (value) => value
+    localProviderMocks.createAccount.mockResolvedValue({
+      sessionListEntry: {
+        sessionIndex: 3,
+        sessionRef: { providerResourceRef: { providerId: 'local' } },
+      },
+    })
+    const createSpace = vi.fn().mockResolvedValue({
+      sharedObjectRef: { providerResourceRef: { id: 'space-kv' } },
+    })
+    const { world, applyWorldOp, createObject } = buildQuickstartWorld({
+      'kv/store': { resourceId: 201, typeId: 'kv/store' },
+    })
+    const spacesList: unknown[] = []
+    const root = {
+      listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+      lookupProvider: vi.fn().mockResolvedValue({
+        resourceRef: { providerId: 'local' },
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+      mountSession: vi.fn().mockResolvedValue({
+        createSpace,
+        watchResourcesList: vi.fn(() =>
+          asyncValues({ spacesList: [...spacesList] }),
+        ),
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    }
+    spaceMocks.mountSpace.mockResolvedValue({
+      accessWorldState: vi.fn().mockResolvedValue(world),
+      mountSpaceContents: vi.fn().mockResolvedValue({
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    })
+
+    // The first attempt creates the Space and its store, then fails at the
+    // settings write that indexes the store.
+    applyWorldOp.mockRejectedValueOnce(new Error('settings write failed'))
+    await expect(
+      createQuickstartSetup(
+        root as never,
+        'kv',
+        new AbortController().signal,
+        cleanup,
+      ),
+    ).rejects.toThrow('settings write failed')
+    expect(createObject.mock.calls.map((call) => call[0])).toContain('kv/store')
+
+    // The retry finds the created but unseeded Space and seeds it again,
+    // skipping the store that landed.
+    spacesList.push({
+      entry: {
+        ref: { providerResourceRef: { providerId: 'local', id: 'space-kv' } },
+        source: 'created',
+      },
+      spaceMeta: { name: 'My Key-Value Store' },
+    })
+    storeObjects(world, ['kv/store'])
+    createObject.mockClear()
+    applyWorldOp.mockClear()
+
+    await createQuickstartSetup(
+      root as never,
+      'kv',
+      new AbortController().signal,
+      cleanup,
+    )
+
+    expect(createSpace).toHaveBeenCalledTimes(1)
+    expect(createObject.mock.calls.map((call) => call[0])).not.toContain(
+      'kv/store',
+    )
+    expect(getSettingsIndexPath(applyWorldOp)).toBe('kv/store')
   })
 
   it('creates a new quickstart space when no matching space exists', async () => {
@@ -1772,11 +1884,10 @@ to try first.
       undefined,
     )
 
-    // Each op goes as its own one-op batch; no client transaction is opened.
-    expect(executeWorldBatch).toHaveBeenCalledTimes(3)
-    for (const [mutations] of executeWorldBatch.mock.calls) {
-      expect(mutations).toHaveLength(1)
-    }
+    // The ops and the settings land as one batch; no client transaction is
+    // opened.
+    expect(executeWorldBatch).toHaveBeenCalledTimes(1)
+    expect(executeWorldBatch.mock.calls[0]?.[0]).toHaveLength(3)
     expect(applyWorldOp).toHaveBeenCalledTimes(3)
     const dashboardCall = applyWorldOp.mock.calls[0]
     if (!dashboardCall) {
