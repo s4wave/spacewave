@@ -4456,7 +4456,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/world/wizard": {
-      "hash": "5f7166b7e1b33039f37de6268f63fa114774d934fd875642f9f97efc8e84e876",
+      "hash": "4dadbf087836442f17f4ec37bd08b984399c89bfbc982ed46a684a29ca4ffcaa",
       "generatedFiles": [
         "sdk/world/wizard/wizard.pb.go",
         "sdk/world/wizard/wizard.pb.ts",

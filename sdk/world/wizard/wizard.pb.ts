@@ -45,6 +45,46 @@ export const GitCloneProgressState_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * GitCloneFailure is the cause of a failed wizard Git clone.
+ *
+ * @generated from enum s4wave.wizard.GitCloneFailure
+ */
+export enum GitCloneFailure {
+  /**
+   * GIT_CLONE_FAILURE_UNKNOWN means the clone has not failed.
+   */
+  UNKNOWN = 0,
+
+  /**
+   * GIT_CLONE_FAILURE_OTHER means the clone or its publish failed, and a new
+   * clone may succeed.
+   */
+  OTHER = 1,
+
+  /**
+   * GIT_CLONE_FAILURE_WIZARD_GONE means the wizard was removed elsewhere, so
+   * nothing was published and no clone can succeed from it.
+   */
+  WIZARD_GONE = 2,
+
+  /**
+   * GIT_CLONE_FAILURE_KEY_TAKEN means another object holds the repository
+   * key, so a clone under a new name may succeed.
+   */
+  KEY_TAKEN = 3,
+}
+
+export const GitCloneFailure_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.wizard.GitCloneFailure',
+  [
+    [0, 'GIT_CLONE_FAILURE_UNKNOWN'],
+    [1, 'GIT_CLONE_FAILURE_OTHER'],
+    [2, 'GIT_CLONE_FAILURE_WIZARD_GONE'],
+    [3, 'GIT_CLONE_FAILURE_KEY_TAKEN'],
+  ],
+)
+
+/**
  * IntroWizardRegion is a region of the object viewer frame an intro callout
  * points at.
  *
@@ -278,6 +318,11 @@ export interface GitCloneProgress {
    * ObjectKey is the created git/repo object key when known.
    */
   objectKey?: string
+  /**
+   * Failure is the cause of a FAILED clone, so a viewer offers the way out
+   * that cause allows.
+   */
+  failure?: GitCloneFailure
 }
 
 export const GitCloneProgress: MessageType<GitCloneProgress> =
@@ -288,6 +333,7 @@ export const GitCloneProgress: MessageType<GitCloneProgress> =
       [2, 'message', 9],
       [3, 'error', 9],
       [4, 'object_key', 9],
+      [5, 'failure', 14, 0, GitCloneFailure_Enum],
     ],
   )
 

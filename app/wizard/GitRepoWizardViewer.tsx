@@ -8,13 +8,18 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
 import {
+  GitCloneFailure,
   GitCloneProgressState,
   type GitCloneProgress,
 } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from './useWizardState.js'
-import { useWizardFinish, WizardInputError } from './wizard-finish.js'
+import {
+  useWizardFinish,
+  WizardInputError,
+  type WizardFinishState,
+} from './wizard-finish.js'
 import { WizardLoading } from './WizardLoading.js'
 import { WizardShell } from './WizardShell.js'
 
@@ -184,6 +189,27 @@ function gitRepoFinalizeStep(failed: boolean, step: number): number {
   return failed && step === 2 ? 2 : 1
 }
 
+/**
+ * gitRepoFinishState returns the Finish control's state: finishing while a
+ * clone starts or runs, gone once a clone was refused because the wizard was
+ * removed elsewhere, and the shared Finish state otherwise. A clone refused
+ * for a taken key stays failed, so Clone again sits beside its message.
+ */
+function gitRepoFinishState(
+  busy: boolean,
+  progress: GitCloneProgress | undefined,
+  finish: WizardFinishState,
+): WizardFinishState {
+  if (busy) return { status: 'finishing' }
+  if (
+    progress?.state === GitCloneProgressState.FAILED &&
+    progress.failure === GitCloneFailure.WIZARD_GONE
+  ) {
+    return { status: 'gone' }
+  }
+  return finish
+}
+
 /** cloneUrlErrorFor returns the browser-only error for a clone URL, or an empty string. */
 function cloneUrlErrorFor(isClone: boolean, url: string): string {
   return isClone && !isDesktop && isGithubCloneUrl(url)
@@ -249,9 +275,11 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
       namePlaceholder="Enter repository name..."
       nameStep={1}
       selectNameOnFocus
-      finish={
-        cloning || finalize.starting ? { status: 'finishing' } : finalize.finish
-      }
+      finish={gitRepoFinishState(
+        cloning || finalize.starting,
+        progress,
+        finalize.finish,
+      )}
       createLabel={isClone ? 'Clone' : 'Create'}
       creatingLabel={isClone ? 'Cloning...' : 'Creating...'}
       onFinalize={finalize.click}

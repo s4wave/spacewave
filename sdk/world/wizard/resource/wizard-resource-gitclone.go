@@ -20,19 +20,34 @@ import (
 // errGitCloneRequired reports a clone config that did not request a clone.
 var errGitCloneRequired = errors.New("clone must be true")
 
-// failGitClone reports a failed clone with the given user-facing message and
-// optional error detail.
+// failGitClone reports a failed clone. A refusal carries its cause as the
+// failure and its whole explanation as the message: a gone wizard, or a key
+// another object took. Any other error fails with message and the error as
+// detail, and a new clone may succeed.
 func (r *WizardResource) failGitClone(objectKey, message string, err error) {
-	errMsg := ""
-	if err != nil {
-		errMsg = err.Error()
-	}
-	r.setGitCloneProgress(&wizard.GitCloneProgress{
+	// Start from a failure a new clone may fix.
+	progress := &wizard.GitCloneProgress{
 		State:     wizard.GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_FAILED,
+		Failure:   wizard.GitCloneFailure_GIT_CLONE_FAILURE_OTHER,
 		Message:   message,
-		Error:     errMsg,
 		ObjectKey: objectKey,
-	})
+	}
+	// Name a refusal's cause, or carry any other error as the detail.
+	var taken *GitRepoKeyTakenError
+	switch {
+	case errors.Is(err, ErrWizardGone):
+		progress.Failure = wizard.GitCloneFailure_GIT_CLONE_FAILURE_WIZARD_GONE
+		progress.Message = "This wizard no longer exists."
+	case errors.As(err, &taken):
+		progress.Failure = wizard.GitCloneFailure_GIT_CLONE_FAILURE_KEY_TAKEN
+		progress.Message = "A repository already exists at " + taken.Key +
+			". Clone again to use a new name."
+	case err != nil:
+		progress.Error = err.Error()
+	}
+
+	// Publish the failure to clone watchers.
+	r.setGitCloneProgress(progress)
 }
 
 // runGitClone clones the requested repository into a stage, then publishes it
@@ -90,8 +105,7 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 
 	// Publish the staged clone and retire the wizard together.
 	if err := r.publishGitClone(ctx, req.GetObjectKey(), repoRef, ts, sender); err != nil {
-		message, detail := gitClonePublishFailure(err)
-		r.failGitClone(req.GetObjectKey(), message, detail)
+		r.failGitClone(req.GetObjectKey(), "Repository was cloned, but publish failed.", err)
 		return
 	}
 
@@ -103,27 +117,13 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 	})
 }
 
-// gitClonePublishFailure returns the clone failure message and detail for a
-// publish error. A refusal carries its whole cause in the message.
-func gitClonePublishFailure(err error) (string, error) {
-	var taken *GitRepoKeyTakenError
-	switch {
-	case errors.Is(err, ErrWizardGone):
-		return "This wizard was already finished or deleted elsewhere.", nil
-	case errors.As(err, &taken):
-		return "A repository already exists at " + taken.Key + ". Clone again to use a new name.", nil
-	default:
-		return "Repository was cloned, but publish failed.", err
-	}
-}
-
 // publishGitClone creates the repository object at objectKey from the staged
 // clone at repoRef, points the Space index at it while the index names this
 // wizard, and deletes the wizard, all in one World transaction.
 //
-// Returns ErrWizardGone, before the repository is created, when the wizard was finished or
-// deleted elsewhere, and a GitRepoKeyTakenError when another object holds
-// objectKey or a key under it.
+// Returns ErrWizardGone, before the repository is created, when the wizard
+// was finished or deleted elsewhere, and a GitRepoKeyTakenError when another
+// object holds objectKey.
 //
 // Invariant: the repository object, the index change and the wizard deletion
 // commit together or not at all. A failure leaves no repository object and
