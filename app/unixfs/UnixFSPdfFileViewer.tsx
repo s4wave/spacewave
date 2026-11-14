@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Document, Page, pdfjs } from 'react-pdf'
-import { LuChevronLeft, LuChevronRight, LuTriangleAlert } from 'react-icons/lu'
+import { Document, type DocumentProps, Page, pdfjs } from 'react-pdf'
+import { LuChevronLeft, LuChevronRight, LuDownload } from 'react-icons/lu'
 
 import {
   ViewerFloat,
+  ViewerFloatLink,
   ViewerFloatPress,
   ViewerStage,
 } from '@s4wave/web/object/ViewerFloat.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -22,10 +23,20 @@ export interface UnixFSPdfFileViewerProps {
   inlineFileURL: string
 }
 
+// PdfFailure is why the document did not load and whether reading it again
+// can succeed.
+interface PdfFailure {
+  message: string
+  retryable: boolean
+}
+
+// PdfPreviewState is the frame's size, the document's load, and the page
+// shown. attempt counts loads, so a Retry mounts a fresh Document.
 interface PdfPreviewState {
+  attempt: number
   containerHeight: number
   containerWidth: number
-  error?: string
+  error?: PdfFailure
   numPages?: number
   pageHeight?: number
   pageNumber: number
@@ -33,13 +44,47 @@ interface PdfPreviewState {
 }
 
 const initialPdfPreviewState: PdfPreviewState = {
+  attempt: 0,
   containerHeight: 0,
   containerWidth: 0,
   pageNumber: 1,
 }
 
-function buildPdfErrorMessage(error: Error): string {
-  return error.message || 'This PDF file could not be loaded.'
+// pdfFailure says what a PDF.js load error means for the person. A file PDF.js
+// cannot parse or unlock fails the same way on every read, so it points at
+// Download; any other failure, such as a stopped fetch, can succeed again.
+function pdfFailure(error: Error): PdfFailure {
+  if (error.name === 'InvalidPDFException') {
+    return {
+      message:
+        'This file is not a valid PDF. Download it to open it elsewhere.',
+      retryable: false,
+    }
+  }
+  if (error.name === 'PasswordException') {
+    return {
+      message:
+        'This PDF is protected by a password. Download it to open it elsewhere.',
+      retryable: false,
+    }
+  }
+  return {
+    message: `Could not read the PDF: ${error.message || 'the read failed.'}`,
+    retryable: true,
+  }
+}
+
+// declinePassword answers pdf.js's password request with an Error, which
+// pdf.js takes as a refusal: the load then fails with its PasswordException.
+// react-pdf's default prompts with window.prompt, and its null answer on
+// Cancel makes pdf.js ask again, forever. react-pdf types the callback as
+// taking only a password, though pdf.js accepts an Error too.
+const declinePassword: NonNullable<DocumentProps['onPassword']> = (
+  callback,
+) => {
+  ;(callback as unknown as (refusal: Error) => void)(
+    new Error('password required'),
+  )
 }
 
 function clampPage(pageNumber: number, numPages?: number): number {
@@ -82,15 +127,19 @@ function UnixFSPdfViewerSurface({
   title,
   inlineFileURL,
 }: UnixFSPdfFileViewerProps) {
+  // The frame the page fits, and the preview's state.
   const frameRef = useRef<HTMLDivElement | null>(null)
   const [state, setState] = useState<PdfPreviewState>(initialPdfPreviewState)
 
+  // Follow the frame's size, so the page fits it.
   useEffect(() => {
+    // The frame mounts with the surface.
     const frame = frameRef.current
     if (!frame) {
       return
     }
 
+    // updateWidth keeps the frame's inner size, at least 240px each way.
     const updateWidth = (width: number) => {
       const nextWidth = Math.max(Math.floor(width) - 32, 240)
       const nextHeight = Math.max(Math.floor(frame.clientHeight) - 32, 240)
@@ -109,12 +158,11 @@ function UnixFSPdfViewerSurface({
       })
     }
 
+    // Read the size now, then on each resize where the browser can watch it.
     updateWidth(frame.clientWidth)
-
     if (typeof ResizeObserver === 'undefined') {
       return
     }
-
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0]
       if (!entry) {
@@ -128,6 +176,7 @@ function UnixFSPdfViewerSurface({
     }
   }, [])
 
+  // handleDocumentLoadSuccess shows the first page of the loaded document.
   const handleDocumentLoadSuccess = useCallback(
     ({ numPages }: { numPages: number }) => {
       setState((prev) => ({
@@ -140,13 +189,26 @@ function UnixFSPdfViewerSurface({
     [],
   )
 
+  // handleDocumentLoadError shows what the load failure means.
   const handleDocumentLoadError = useCallback((error: Error) => {
     setState((prev) => ({
       ...prev,
-      error: buildPdfErrorMessage(error),
+      error: pdfFailure(error),
     }))
   }, [])
 
+  // handleRetry mounts a fresh Document, which reads the file again.
+  const handleRetry = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      attempt: prev.attempt + 1,
+      error: undefined,
+      numPages: undefined,
+      pageNumber: 1,
+    }))
+  }, [])
+
+  // handleChangePage moves by offset pages, within the document.
   const handleChangePage = useCallback((offset: number) => {
     setState((prev) => ({
       ...prev,
@@ -154,6 +216,7 @@ function UnixFSPdfViewerSurface({
     }))
   }, [])
 
+  // handlePageLoadSuccess keeps the page's size, to fit it to the frame.
   const handlePageLoadSuccess = useCallback(
     (page: { originalHeight: number; originalWidth: number }) => {
       setState((prev) => {
@@ -173,6 +236,7 @@ function UnixFSPdfViewerSurface({
     [],
   )
 
+  // The page moves the person can make, and the width that fits the page.
   const canGoPrev = state.pageNumber > 1
   const canGoNext = !!state.numPages && state.pageNumber < state.numPages
   const fittedPageWidth = fitPageWidth({
@@ -183,87 +247,87 @@ function UnixFSPdfViewerSurface({
   })
 
   return (
-    <ViewerStage media={state.error ? 'failed' : 'still'}>
-      <div
-        ref={frameRef}
-        aria-label={`PDF preview: ${title}`}
-        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4"
-      >
-        <Document
-          file={inlineFileURL}
-          loading={
-            <div
-              data-testid="unixfs-pdf-loading"
-              className="flex min-h-60 items-center justify-center p-6"
-            >
-              <div className="w-full max-w-sm">
-                <LoadingCard
-                  view={{
-                    state: 'active',
-                    title: 'Loading preview',
-                    detail: 'Waiting for PDF metadata.',
-                  }}
-                />
-              </div>
-            </div>
-          }
-          onLoadError={handleDocumentLoadError}
-          onLoadSuccess={handleDocumentLoadSuccess}
+    <>
+      {state.error ? (
+        <ViewerStatus
+          state="failed"
+          message={state.error.message}
+          retry={state.error.retryable ? handleRetry : undefined}
+        />
+      ) : (
+        !state.numPages && (
+          <ViewerStatus state="waiting" what="the PDF" rows={0} />
+        )
+      )}
+      <ViewerStage media={state.error ? 'failed' : 'still'}>
+        <div
+          ref={frameRef}
+          aria-label={`PDF preview: ${title}`}
+          className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4"
         >
-          <Page
-            className="max-h-full max-w-full"
-            onLoadSuccess={handlePageLoadSuccess}
-            pageNumber={state.pageNumber}
-            renderAnnotationLayer={false}
-            renderTextLayer={false}
-            width={fittedPageWidth}
-          />
-        </Document>
-      </div>
+          {!state.error && (
+            <Document
+              key={state.attempt}
+              file={inlineFileURL}
+              suspense={false}
+              loading={null}
+              error={null}
+              onLoadError={handleDocumentLoadError}
+              onPassword={declinePassword}
+              onSourceError={handleDocumentLoadError}
+              onLoadSuccess={handleDocumentLoadSuccess}
+            >
+              <Page
+                className="max-h-full max-w-full"
+                loading={null}
+                onLoadSuccess={handlePageLoadSuccess}
+                pageNumber={state.pageNumber}
+                renderAnnotationLayer={false}
+                renderTextLayer={false}
+                width={fittedPageWidth}
+              />
+            </Document>
+          )}
+        </div>
 
-      {!!state.numPages && (
-        <ViewerFloat at="bc" label="Pages">
-          <ViewerFloatPress
-            label="Previous page"
-            icon={<LuChevronLeft aria-hidden />}
+        <ViewerFloat at="tl" label="PDF">
+          <ViewerFloatLink
+            label="Download"
+            icon={<LuDownload aria-hidden />}
             essential
-            disabled={!canGoPrev}
-            onClick={() => handleChangePage(-1)}
-          />
-          <span className="text-foreground-alt px-1 text-xs tabular-nums">
-            Page {state.pageNumber || 1} of {state.numPages}
-          </span>
-          <ViewerFloatPress
-            label="Next page"
-            icon={<LuChevronRight aria-hidden />}
-            essential
-            disabled={!canGoNext}
-            onClick={() => handleChangePage(1)}
+            href={inlineFileURL}
+            download={title}
           />
         </ViewerFloat>
-      )}
 
-      {state.error && (
-        <div
-          data-testid="unixfs-pdf-error"
-          className="bg-background/82 absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
-        >
-          <div className="bg-destructive/10 text-destructive flex size-10 items-center justify-center rounded-full">
-            <LuTriangleAlert className="size-5" />
-          </div>
-          <div className="text-foreground text-sm font-semibold">
-            PDF preview unavailable
-          </div>
-          <div className="text-foreground-alt max-w-md text-xs">
-            {state.error}
-          </div>
-        </div>
-      )}
-    </ViewerStage>
+        {!!state.numPages && (
+          <ViewerFloat at="bc" label="Pages">
+            <ViewerFloatPress
+              label="Previous page"
+              icon={<LuChevronLeft aria-hidden />}
+              essential
+              disabled={!canGoPrev}
+              onClick={() => handleChangePage(-1)}
+            />
+            <span className="text-foreground-alt px-1 text-xs tabular-nums">
+              Page {state.pageNumber || 1} of {state.numPages}
+            </span>
+            <ViewerFloatPress
+              label="Next page"
+              icon={<LuChevronRight aria-hidden />}
+              essential
+              disabled={!canGoNext}
+              onClick={() => handleChangePage(1)}
+            />
+          </ViewerFloat>
+        )}
+      </ViewerStage>
+    </>
   )
 }
 
-// UnixFSPdfFileViewer renders a dedicated inline preview surface for PDF files.
+// UnixFSPdfFileViewer renders a dedicated inline preview surface for PDF
+// files: one page on a stage, with its waiting or failed state in a row above.
 export function UnixFSPdfFileViewer(props: UnixFSPdfFileViewerProps) {
   return <UnixFSPdfViewerSurface key={props.inlineFileURL} {...props} />
 }

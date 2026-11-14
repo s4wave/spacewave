@@ -118,6 +118,44 @@ describe('UnixFSFileViewer image preview', () => {
     )
   })
 
+  it('shows a failed image as a notice with Retry and Download', () => {
+    const viewer = (inlineFileURL: string) => (
+      <UnixFSFileViewer
+        path="/nested/logo.png"
+        stat={{
+          info: { isDir: false, name: 'logo.png' },
+          mimeType: 'image/png',
+        }}
+        rootHandle={buildResource(null)}
+        hideToolbar
+        inlineFileURL={inlineFileURL}
+      />
+    )
+    const { rerender } = render(viewer('/logo.png?inline=1'))
+    fireEvent.error(screen.getByRole('img', { name: 'logo.png' }))
+
+    // The notice replaces the image and keeps Download and Retry.
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Could not show the image',
+    )
+    expect(screen.queryByRole('img', { name: 'logo.png' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Actual size' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Download' })).toBeDefined()
+
+    // Retry reads the image again.
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    fireEvent.error(screen.getByRole('img', { name: 'logo.png' }))
+    expect(screen.getByRole('alert')).toBeDefined()
+
+    // Another image and back loads the first afresh.
+    rerender(viewer('/other.png?inline=1'))
+    expect(screen.queryByRole('alert')).toBeNull()
+    rerender(viewer('/logo.png?inline=1'))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByRole('img', { name: 'logo.png' })).toBeDefined()
+  })
+
   it('keeps the binary placeholder when no inline raw url is available', () => {
     render(
       <UnixFSFileViewer

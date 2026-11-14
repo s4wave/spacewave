@@ -11,7 +11,9 @@ import { FactList, factGrid } from '@s4wave/web/ui/FactList.js'
  * object:
  *
  * - waiting: nothing has arrived yet; what names the record, such as "the
- *   notebook".
+ *   notebook". rows is how many skeleton rows fill the body under that line;
+ *   with rows 0 the line alone is drawn, one row tall, for a viewer that
+ *   draws its stage under it.
  * - failed: the read failed; message says what went wrong. retry is set only
  *   when reading again can succeed, and the notice offers it. The notice is
  *   one row, so a viewer whose record arrived earlier draws it above the
@@ -85,10 +87,18 @@ const valueWidths = ['w-2/5', 'w-3/5', 'w-1/2', 'w-4/5', 'w-2/3']
  * rows keep the fact row's height and the pane's padding, and the skeleton
  * rows sit in a FactList, so their label column is the one the viewer's facts
  * take at the same width. Waiting draws skeleton rows under a line naming
- * what is read; failed is a notice row with Retry when a read can run again;
+ * what is read, or the line alone; failed is a notice row with Retry when a read can run again;
  * empty is one muted row.
  */
 export function ViewerStatus(props: ViewerStatusProps) {
+  if (props.state === 'waiting' && props.rows === 0) {
+    return (
+      <p role="status" className={cn(rowClass, 'text-foreground-alt shrink-0')}>
+        Loading {props.what}
+      </p>
+    )
+  }
+
   if (props.state === 'waiting') {
     return (
       <div

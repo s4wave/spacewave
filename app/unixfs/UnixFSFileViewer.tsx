@@ -34,6 +34,7 @@ import {
   ViewerFloatPress,
   ViewerStage,
 } from '@s4wave/web/object/ViewerFloat.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { UnixFSAudioFileViewer } from './UnixFSAudioFileViewer.js'
 import { UnixFSPdfFileViewer } from './UnixFSPdfFileViewer.js'
@@ -110,6 +111,19 @@ function BinaryFileViewer({ mimeType }: { mimeType: string }) {
   )
 }
 
+// ImageLoad is one load of an image: the address read, the attempt (a Retry
+// mounts a fresh img), and whether the browser failed to load or decode it.
+interface ImageLoad {
+  url?: string
+  attempt: number
+  failed: boolean
+}
+
+// freshImage is the first load of an address.
+function freshImage(url?: string): ImageLoad {
+  return { url, attempt: 0, failed: false }
+}
+
 // ImageFileViewer fills the pane with the image, fitted to it or at its own
 // size, with the size press and Download floating over it.
 function ImageFileViewer({
@@ -119,44 +133,84 @@ function ImageFileViewer({
   alt: string
   inlineFileURL?: string
 }) {
+  // actual draws the image at its own size rather than fitted to the pane.
   const [actual, setActual] = useState(false)
+
+  // image is the load the img shows: its address, its attempt, and whether
+  // it failed. Another address starts a fresh load, so an image that failed
+  // before loads again when the person comes back to it.
+  const [image, setImage] = useState<ImageLoad>(() => freshImage(inlineFileURL))
+  if (image.url !== inlineFileURL) {
+    setImage(freshImage(inlineFileURL))
+  }
+  const failed = image.url === inlineFileURL && image.failed
+
+  // handleError fails the load of the address the img still shows.
+  const handleError = useCallback(() => {
+    setImage((prev) =>
+      prev.url === inlineFileURL ? { ...prev, failed: true } : prev,
+    )
+  }, [inlineFileURL])
+
+  // handleRetry mounts a fresh img, which reads the image again. The browser
+  // does not say whether the read or the decode failed, so Retry shows for
+  // both; a decode failure fails again and still offers Download.
+  const handleRetry = useCallback(() => {
+    setImage((prev) => ({ ...prev, attempt: prev.attempt + 1, failed: false }))
+  }, [])
+
   return (
-    <ViewerStage media="still">
-      <div
-        className={cn(
-          'flex min-h-0 flex-1 overflow-auto',
-          !actual && 'items-center justify-center p-4',
-        )}
-      >
-        <img
-          alt={alt}
+    <>
+      {failed && (
+        <ViewerStatus
+          state="failed"
+          message="Could not show the image: this browser could not load or decode it. Download it to open it elsewhere."
+          retry={handleRetry}
+        />
+      )}
+      <ViewerStage media={failed ? 'failed' : 'still'}>
+        <div
           className={cn(
-            'shrink-0',
-            actual
-              ? 'm-auto max-w-none'
-              : 'max-h-full max-w-full object-contain',
+            'flex min-h-0 flex-1 overflow-auto',
+            !actual && 'items-center justify-center p-4',
           )}
-          src={inlineFileURL}
-        />
-      </div>
-      <ViewerFloat at="tr" label="Image">
-        <ViewerFloatPress
-          label="Actual size"
-          icon={<LuScan aria-hidden />}
-          aria-pressed={actual}
-          onClick={() => setActual((v) => !v)}
-        />
-        {inlineFileURL && (
-          <ViewerFloatLink
-            label="Download"
-            icon={<LuDownload aria-hidden />}
-            essential
-            href={inlineFileURL}
-            download={alt}
-          />
-        )}
-      </ViewerFloat>
-    </ViewerStage>
+        >
+          {!failed && (
+            <img
+              key={image.attempt}
+              alt={alt}
+              className={cn(
+                'shrink-0',
+                actual
+                  ? 'm-auto max-w-none'
+                  : 'max-h-full max-w-full object-contain',
+              )}
+              src={inlineFileURL}
+              onError={handleError}
+            />
+          )}
+        </div>
+        <ViewerFloat at="tr" label="Image">
+          {!failed && (
+            <ViewerFloatPress
+              label="Actual size"
+              icon={<LuScan aria-hidden />}
+              aria-pressed={actual}
+              onClick={() => setActual((v) => !v)}
+            />
+          )}
+          {inlineFileURL && (
+            <ViewerFloatLink
+              label="Download"
+              icon={<LuDownload aria-hidden />}
+              essential
+              href={inlineFileURL}
+              download={alt}
+            />
+          )}
+        </ViewerFloat>
+      </ViewerStage>
+    </>
   )
 }
 

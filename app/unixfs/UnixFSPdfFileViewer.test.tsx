@@ -147,7 +147,15 @@ describe('UnixFSPdfFileViewer', () => {
       <UnixFSPdfFileViewer title="broken.pdf" inlineFileURL="/broken.pdf" />,
     )
 
-    expect(screen.getByTestId('unixfs-pdf-error')).toBeDefined()
-    expect(screen.getByText('broken pdf')).toBeDefined()
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Could not read the PDF: broken pdf',
+    )
+    expect(screen.getByRole('link', { name: 'Download' })).toBeDefined()
+
+    h.triggerError = false
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('Page 1 of 3')).toBeDefined()
   })
 })

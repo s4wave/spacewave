@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { LuDownload, LuTriangleAlert } from 'react-icons/lu'
+import { LuDownload } from 'react-icons/lu'
 import { createPlayer } from '@videojs/react'
 import { Video, videoFeatures, VideoSkin } from '@videojs/react/video'
 import '@videojs/react/video/skin.css'
@@ -16,8 +16,8 @@ import {
   ViewerFloatLink,
   ViewerStage,
 } from '@s4wave/web/object/ViewerFloat.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
 // UnixFSVideoFileViewerProps are the props passed to the UnixFSVideoFileViewer.
@@ -33,62 +33,48 @@ const Player = createPlayer({
   features: videoFeatures,
 })
 
-const mediaErrAborted = 1
-const mediaErrNetwork = 2
 const mediaErrDecode = 3
 const mediaErrSrcNotSupported = 4
 const mediaHaveMetadata = 1
 
-interface VideoPreviewState {
-  status: 'loading' | 'ready' | 'error'
-  buffering: boolean
-  message?: string
-  unsupported?: boolean
-}
+// VideoPreviewState is what the video shows: loading until its metadata
+// arrives, ready (buffering while a seek or stall waits for data), or failed
+// with what went wrong and whether loading again can succeed.
+type VideoPreviewState =
+  | { status: 'loading' }
+  | { status: 'ready'; buffering: boolean }
+  | { status: 'failed'; message: string; retryable: boolean }
 
-const initialVideoPreviewState: VideoPreviewState = {
-  status: 'loading',
-  buffering: false,
-}
+const loadingState: VideoPreviewState = { status: 'loading' }
 
 const videoSkinStyle: CSSProperties = {
   '--media-border-radius': '0px',
 }
 
-function buildVideoErrorState(error: MediaError | null): VideoPreviewState {
+// videoFailure says what a media error means for the person. A file this
+// browser cannot decode or play fails the same way on every load, so it points
+// at Download; a stopped or aborted load can succeed when loaded again.
+function videoFailure(error: MediaError | null): VideoPreviewState {
   if (error?.code === mediaErrSrcNotSupported) {
     return {
-      status: 'error',
-      buffering: false,
-      unsupported: true,
-      message: 'This browser cannot play this video file.',
+      status: 'failed',
+      message:
+        'This browser cannot play this video format. Download it to open it elsewhere.',
+      retryable: false,
     }
   }
   if (error?.code === mediaErrDecode) {
     return {
-      status: 'error',
-      buffering: false,
-      message: 'This video file could not be decoded.',
-    }
-  }
-  if (error?.code === mediaErrNetwork) {
-    return {
-      status: 'error',
-      buffering: false,
-      message: 'This video file stopped loading unexpectedly.',
-    }
-  }
-  if (error?.code === mediaErrAborted) {
-    return {
-      status: 'error',
-      buffering: false,
-      message: 'Video playback was aborted before the preview became ready.',
+      status: 'failed',
+      message:
+        'This video could not be decoded. Download it to open it elsewhere.',
+      retryable: false,
     }
   }
   return {
-    status: 'error',
-    buffering: false,
-    message: 'This video file failed before playback could start.',
+    status: 'failed',
+    message: 'The video stopped loading.',
+    retryable: true,
   }
 }
 
@@ -96,58 +82,71 @@ function UnixFSVideoPlayerSurface({
   title,
   inlineFileURL,
 }: UnixFSVideoFileViewerProps) {
+  // The video element, and what it shows.
   const mediaRef = useRef<HTMLVideoElement | null>(null)
-  const [state, setState] = useState<VideoPreviewState>(
-    initialVideoPreviewState,
-  )
+  const [state, setState] = useState<VideoPreviewState>(loadingState)
+
+  // resumeAt is where play stood when the video failed; a Retry's load starts
+  // at 0, so the metadata seeks back here once.
+  const resumeAt = useRef(0)
 
   // playing moves the stage's media, so the floats leave while the video
   // plays and the pointer is still, as the video's own controls do.
   const [playing, setPlaying] = useState(false)
 
+  // handleReady marks the video ready once its metadata or data arrives.
   const handleReady = useCallback(() => {
-    setState((prev) => {
-      if (prev.status === 'ready' && !prev.buffering) {
-        return prev
-      }
-      return {
-        status: 'ready',
-        buffering: false,
-      }
-    })
+    setState((prev) =>
+      prev.status === 'ready' && !prev.buffering
+        ? prev
+        : { status: 'ready', buffering: false },
+    )
   }, [])
 
+  // handleLoadStart returns to loading when the element loads its source.
   const handleLoadStart = useCallback(() => {
-    setState((prev) => {
-      if (prev.status === 'loading' && !prev.buffering) {
-        return prev
-      }
-      return initialVideoPreviewState
-    })
+    setState((prev) => (prev.status === 'loading' ? prev : loadingState))
   }, [])
 
+  // handleBuffering marks a ready video waiting for data; before the metadata
+  // arrives the loading state already says so.
   const handleBuffering = useCallback(() => {
-    setState((prev) => {
-      if (prev.status === 'error') {
-        return prev
-      }
-      if (prev.status !== 'ready') {
-        return prev
-      }
-      if (prev.buffering) {
-        return prev
-      }
-      return {
-        status: 'ready',
-        buffering: true,
-      }
-    })
+    setState((prev) =>
+      prev.status === 'ready' && !prev.buffering
+        ? { status: 'ready', buffering: true }
+        : prev,
+    )
   }, [])
 
+  // handleError stops play and shows what the element's error means.
   const handleError = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    setState(buildVideoErrorState(event.currentTarget.error))
+    const node = event.currentTarget
+    resumeAt.current = node.currentTime || resumeAt.current
+    setPlaying(false)
+    setState(videoFailure(node.error))
   }, [])
 
+  // handleLoadedMetadata seeks back to where a failed play stood, then marks
+  // the video ready.
+  const handleLoadedMetadata = useCallback(
+    (event: SyntheticEvent<HTMLVideoElement>) => {
+      if (resumeAt.current > 0) {
+        event.currentTarget.currentTime = resumeAt.current
+        resumeAt.current = 0
+      }
+      handleReady()
+    },
+    [handleReady],
+  )
+
+  // handleRetry loads the source again; the element fires loadstart and then
+  // the metadata or another error, as on the first load.
+  const handleRetry = useCallback(() => {
+    setState(loadingState)
+    mediaRef.current?.load()
+  }, [])
+
+  // handleVideoRef keeps the element, ready at once if it has metadata.
   const handleVideoRef = useCallback(
     (node: HTMLVideoElement | null) => {
       mediaRef.current = node
@@ -158,6 +157,7 @@ function UnixFSVideoPlayerSurface({
     [handleReady],
   )
 
+  // Mark a video whose metadata arrived before the handlers ready.
   useEffect(() => {
     const node = mediaRef.current
     if (node && node.readyState >= mediaHaveMetadata) {
@@ -165,106 +165,83 @@ function UnixFSVideoPlayerSurface({
     }
   }, [handleReady, inlineFileURL])
 
-  const showLoading = state.status === 'loading'
-  const showBuffering = state.status === 'ready' && state.buffering
+  // failed hides the player and keeps the stage for its floats.
+  const failed = state.status === 'failed'
 
   return (
-    <ViewerStage
-      media={state.status === 'error' ? 'failed' : playing ? 'moving' : 'still'}
-      className="items-center justify-center bg-black/80"
-    >
-      {showLoading && (
-        <div
-          data-testid="unixfs-video-loading"
-          className="bg-background/72 absolute inset-0 z-20 flex items-center justify-center p-6 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-sm">
-            <LoadingCard
-              view={{
-                state: 'active',
-                title: 'Loading preview',
-                detail: 'Waiting for video metadata.',
-              }}
-            />
-          </div>
-        </div>
+    <>
+      {state.status === 'loading' && (
+        <ViewerStatus state="waiting" what="the video" rows={0} />
       )}
-
-      {state.status === 'error' && (
-        <div
-          data-testid="unixfs-video-error"
-          className="bg-background/82 absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
-        >
-          <div className="bg-destructive/10 text-destructive flex size-10 items-center justify-center rounded-full">
-            <LuTriangleAlert className="size-5" />
-          </div>
-          <div className="text-foreground text-sm font-semibold">
-            {state.unsupported
-              ? 'Video preview unavailable'
-              : 'Video playback failed'}
-          </div>
-          <div className="text-foreground-alt max-w-md text-xs">
-            {state.message}
-          </div>
-        </div>
-      )}
-
-      {showBuffering && (
-        <div className="border-foreground/10 bg-background/78 absolute top-4 right-4 z-20 flex items-center rounded-full border px-3 py-1.5 backdrop-blur-sm">
-          <LoadingInline label="Buffering preview" tone="muted" size="sm" />
-        </div>
-      )}
-
-      <Player.Player>
-        <VideoSkin
-          className="flex h-full min-h-0 w-full items-center justify-center rounded-none"
-          style={videoSkinStyle}
-        >
-          <Video
-            aria-label={title}
-            className={cn(
-              'h-full max-h-full w-full max-w-full bg-black object-contain',
-              state.status === 'error' && 'opacity-20',
-            )}
-            data-testid="unixfs-video-element"
-            onCanPlay={handleReady}
-            onError={handleError}
-            onLoadedMetadata={handleReady}
-            onLoadStart={handleLoadStart}
-            onEnded={() => setPlaying(false)}
-            onPause={() => setPlaying(false)}
-            onPlay={() => setPlaying(true)}
-            onPlaying={handleReady}
-            onSeeked={handleReady}
-            onSeeking={handleBuffering}
-            onWaiting={handleBuffering}
-            playsInline
-            preload="metadata"
-            ref={handleVideoRef}
-            src={inlineFileURL}
-          />
-        </VideoSkin>
-      </Player.Player>
-
-      <ViewerFloat at="tl" label="Video">
-        <ViewerFloatLink
-          label="Download"
-          icon={<LuDownload aria-hidden />}
-          essential
-          href={inlineFileURL}
-          download={title}
+      {state.status === 'failed' && (
+        <ViewerStatus
+          state="failed"
+          message={state.message}
+          retry={state.retryable ? handleRetry : undefined}
         />
-      </ViewerFloat>
-    </ViewerStage>
+      )}
+      <ViewerStage
+        media={failed ? 'failed' : playing ? 'moving' : 'still'}
+        className="items-center justify-center bg-black/80"
+      >
+        {state.status === 'ready' && state.buffering && (
+          <div className="border-foreground/10 bg-background/78 absolute top-4 right-4 z-20 flex items-center rounded-full border px-3 py-1.5 backdrop-blur-sm">
+            <LoadingInline label="Buffering preview" tone="muted" size="sm" />
+          </div>
+        )}
+
+        <Player.Player>
+          <VideoSkin
+            className={cn(
+              'flex h-full min-h-0 w-full items-center justify-center rounded-none',
+              failed && 'invisible',
+            )}
+            style={videoSkinStyle}
+          >
+            <Video
+              aria-label={title}
+              className="h-full max-h-full w-full max-w-full bg-black object-contain"
+              data-testid="unixfs-video-element"
+              onCanPlay={handleReady}
+              onError={handleError}
+              onLoadedMetadata={handleLoadedMetadata}
+              onLoadStart={handleLoadStart}
+              onEnded={() => setPlaying(false)}
+              onPause={() => setPlaying(false)}
+              onPlay={() => setPlaying(true)}
+              onPlaying={handleReady}
+              onSeeked={handleReady}
+              onSeeking={handleBuffering}
+              onWaiting={handleBuffering}
+              playsInline
+              preload="metadata"
+              ref={handleVideoRef}
+              src={inlineFileURL}
+            />
+          </VideoSkin>
+        </Player.Player>
+
+        <ViewerFloat at="tl" label="Video">
+          <ViewerFloatLink
+            label="Download"
+            icon={<LuDownload aria-hidden />}
+            essential
+            href={inlineFileURL}
+            download={title}
+          />
+        </ViewerFloat>
+      </ViewerStage>
+    </>
   )
 }
 
-// UnixFSVideoFileViewer renders a dedicated inline preview surface for video files.
+// UnixFSVideoFileViewer renders a dedicated inline preview surface for video
+// files: the video on a stage, with its waiting or failed state in a row above.
 export function UnixFSVideoFileViewer(props: UnixFSVideoFileViewerProps) {
   return (
     <div
       data-testid="unixfs-video-viewer"
-      className="flex min-h-0 flex-1 overflow-hidden"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
     >
       <UnixFSVideoPlayerSurface key={props.inlineFileURL} {...props} />
     </div>

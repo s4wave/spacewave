@@ -47,12 +47,12 @@ describe('UnixFSVideoFileViewer', () => {
       />,
     )
 
-    expect(screen.getByText('Loading preview')).toBeDefined()
+    expect(screen.getByText('Loading the video')).toBeDefined()
 
     const video = screen.getByTestId('unixfs-video-element')
     fireEvent(video, new Event('loadedmetadata'))
 
-    expect(screen.queryByText('Loading preview')).toBeNull()
+    expect(screen.queryByText('Loading the video')).toBeNull()
   })
 
   it('treats restored video metadata as ready on mount', () => {
@@ -65,7 +65,7 @@ describe('UnixFSVideoFileViewer', () => {
       />,
     )
 
-    expect(screen.queryByText('Loading preview')).toBeNull()
+    expect(screen.queryByText('Loading the video')).toBeNull()
   })
 
   it('returns to loading when the browser starts loading the media again', () => {
@@ -78,13 +78,13 @@ describe('UnixFSVideoFileViewer', () => {
 
     const video = screen.getByTestId('unixfs-video-element')
     fireEvent(video, new Event('loadedmetadata'))
-    expect(screen.queryByText('Loading preview')).toBeNull()
+    expect(screen.queryByText('Loading the video')).toBeNull()
 
     fireEvent(video, new Event('loadstart'))
-    expect(screen.getByText('Loading preview')).toBeDefined()
+    expect(screen.getByText('Loading the video')).toBeDefined()
 
     fireEvent(video, new Event('loadedmetadata'))
-    expect(screen.queryByText('Loading preview')).toBeNull()
+    expect(screen.queryByText('Loading the video')).toBeNull()
   })
 
   it('shows an unsupported state when the browser rejects the video source', () => {
@@ -102,10 +102,46 @@ describe('UnixFSVideoFileViewer', () => {
     })
     fireEvent(video, new Event('error'))
 
-    expect(screen.getByText('Video preview unavailable')).toBeDefined()
     expect(
-      screen.getByText('This browser cannot play this video file.'),
+      screen.getByText(
+        'This browser cannot play this video format. Download it to open it elsewhere.',
+      ),
     ).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Download' })).toBeDefined()
+  })
+
+  it('loads the video again at its position when a stopped load is retried', () => {
+    render(
+      <UnixFSVideoFileViewer
+        title="demo.webm"
+        inlineFileURL="/p/spacewave-core/fs/u/1/so/space-test/-/docs/demo/-/nested/demo.webm?inline=1"
+      />,
+    )
+
+    const video = screen.getByTestId('unixfs-video-element') as HTMLVideoElement
+    const load = vi.fn()
+    video.load = load
+    Object.defineProperty(video, 'error', {
+      configurable: true,
+      value: { code: 2 },
+    })
+    video.currentTime = 42
+    fireEvent(video, new Event('error'))
+
+    expect(screen.getByRole('alert').textContent).toContain(
+      'The video stopped loading.',
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    expect(load).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('Loading the video')).toBeDefined()
+
+    // The new load starts at 0; its metadata seeks back to where play stood.
+    video.currentTime = 0
+    fireEvent(video, new Event('loadedmetadata'))
+    expect(video.currentTime).toBe(42)
   })
 
   it('resets player chrome without replacing the viewer shell when the projected file url changes', () => {
@@ -119,7 +155,7 @@ describe('UnixFSVideoFileViewer', () => {
     const shell = screen.getByTestId('unixfs-video-viewer')
     const firstVideo = screen.getByTestId('unixfs-video-element')
     fireEvent(firstVideo, new Event('loadedmetadata'))
-    expect(screen.queryByText('Loading preview')).toBeNull()
+    expect(screen.queryByText('Loading the video')).toBeNull()
 
     rerender(
       <UnixFSVideoFileViewer
@@ -128,7 +164,7 @@ describe('UnixFSVideoFileViewer', () => {
       />,
     )
 
-    expect(screen.getByText('Loading preview')).toBeDefined()
+    expect(screen.getByText('Loading the video')).toBeDefined()
     expect(screen.getByTestId('unixfs-video-viewer')).toBe(shell)
     const secondVideo = screen.getByTestId('unixfs-video-element')
     expect(secondVideo).not.toBe(firstVideo)
