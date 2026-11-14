@@ -9998,6 +9998,60 @@ func (x *CreateWithStateRequest) GetTransferOrigin() []byte {
 	return nil
 }
 
+// SeedStateRequest is the request body for POST /sobject/:id/seed-state. It
+// writes the genesis config and checkpoint of an object that exists with no
+// config yet, as create-with-state writes a new object's, in one write.
+type SeedStateRequest struct {
+	unknownFields []byte
+	// ConfigState is the signed genesis config state payload.
+	ConfigState []byte `protobuf:"bytes,1,opt,name=config_state,json=configState,proto3" json:"configState,omitempty"`
+	// CheckpointState is the PostCheckpointRequest carrying the owner-signed
+	// initial checkpoint.
+	CheckpointState []byte `protobuf:"bytes,2,opt,name=checkpoint_state,json=checkpointState,proto3" json:"checkpointState,omitempty"`
+	// TransferOrigin is a transfer's record of where the state came from,
+	// opaque to the server, stored with the object's head as create-with-state
+	// stores it.
+	TransferOrigin []byte `protobuf:"bytes,3,opt,name=transfer_origin,json=transferOrigin,proto3" json:"transferOrigin,omitempty"`
+}
+
+func (x *SeedStateRequest) Reset() {
+	*x = SeedStateRequest{}
+}
+
+func (*SeedStateRequest) ProtoMessage() {}
+
+func (x *SeedStateRequest) GetConfigState() []byte {
+	if x != nil {
+		return x.ConfigState
+	}
+	return nil
+}
+
+func (x *SeedStateRequest) GetCheckpointState() []byte {
+	if x != nil {
+		return x.CheckpointState
+	}
+	return nil
+}
+
+func (x *SeedStateRequest) GetTransferOrigin() []byte {
+	if x != nil {
+		return x.TransferOrigin
+	}
+	return nil
+}
+
+// SeedStateResponse is the response body for POST /sobject/:id/seed-state.
+type SeedStateResponse struct {
+	unknownFields []byte
+}
+
+func (x *SeedStateResponse) Reset() {
+	*x = SeedStateResponse{}
+}
+
+func (*SeedStateResponse) ProtoMessage() {}
+
 func (m *RegisterAccountRequest) CloneVT() *RegisterAccountRequest {
 	if m == nil {
 		return (*RegisterAccountRequest)(nil)
@@ -15016,6 +15070,39 @@ func (m *CreateWithStateRequest) CloneVT() *CreateWithStateRequest {
 }
 
 func (m *CreateWithStateRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SeedStateRequest) CloneVT() *SeedStateRequest {
+	if m == nil {
+		return (*SeedStateRequest)(nil)
+	}
+	r := new(SeedStateRequest)
+	r.ConfigState = protobuf_go_lite.CloneBytes(m.ConfigState)
+	r.CheckpointState = protobuf_go_lite.CloneBytes(m.CheckpointState)
+	r.TransferOrigin = protobuf_go_lite.CloneBytes(m.TransferOrigin)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SeedStateRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SeedStateResponse) CloneVT() *SeedStateResponse {
+	if m == nil {
+		return (*SeedStateResponse)(nil)
+	}
+	r := new(SeedStateResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SeedStateResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -22086,6 +22173,49 @@ func (this *CreateWithStateRequest) EqualVT(that *CreateWithStateRequest) bool {
 
 func (this *CreateWithStateRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CreateWithStateRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SeedStateRequest) EqualVT(that *SeedStateRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ConfigState, that.ConfigState) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.CheckpointState, that.CheckpointState) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.TransferOrigin, that.TransferOrigin) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SeedStateRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SeedStateRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SeedStateResponse) EqualVT(that *SeedStateResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SeedStateResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SeedStateResponse)
 	if !ok {
 		return false
 	}
@@ -37793,6 +37923,94 @@ func (x *CreateWithStateRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SeedStateRequest message to JSON.
+func (x *SeedStateRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.ConfigState) > 0 || s.HasField("configState") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configState")
+		s.WriteBytes(x.ConfigState)
+	}
+	if len(x.CheckpointState) > 0 || s.HasField("checkpointState") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkpointState")
+		s.WriteBytes(x.CheckpointState)
+	}
+	if len(x.TransferOrigin) > 0 || s.HasField("transferOrigin") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transferOrigin")
+		s.WriteBytes(x.TransferOrigin)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SeedStateRequest to JSON.
+func (x *SeedStateRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SeedStateRequest message from JSON.
+func (x *SeedStateRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "config_state", "configState":
+			s.AddField("config_state")
+			x.ConfigState = s.ReadBytes()
+		case "checkpoint_state", "checkpointState":
+			s.AddField("checkpoint_state")
+			x.CheckpointState = s.ReadBytes()
+		case "transfer_origin", "transferOrigin":
+			s.AddField("transfer_origin")
+			x.TransferOrigin = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SeedStateRequest from JSON.
+func (x *SeedStateRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SeedStateResponse message to JSON.
+func (x *SeedStateResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SeedStateResponse to JSON.
+func (x *SeedStateResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SeedStateResponse message from JSON.
+func (x *SeedStateResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SeedStateResponse from JSON.
+func (x *SeedStateResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *RegisterAccountRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -50823,6 +51041,85 @@ func (m *CreateWithStateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
+func (m *SeedStateRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SeedStateRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SeedStateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.TransferOrigin) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.TransferOrigin)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.CheckpointState) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CheckpointState)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ConfigState) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ConfigState)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SeedStateResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SeedStateResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SeedStateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *RegisterAccountRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -54852,6 +55149,29 @@ func (m *CreateWithStateRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CheckpointState)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigHistory)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.TransferOrigin)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SeedStateRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigState)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CheckpointState)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.TransferOrigin)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SeedStateResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -60698,6 +61018,38 @@ func (x *CreateWithStateRequest) MarshalProtoText() string {
 }
 
 func (x *CreateWithStateRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SeedStateRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SeedStateRequest")
+	if len(x.ConfigState) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_state")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ConfigState)
+	}
+	if len(x.CheckpointState) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_state")
+		protobuf_go_lite.TextWriteBytes(&sb, x.CheckpointState)
+	}
+	if len(x.TransferOrigin) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transfer_origin")
+		protobuf_go_lite.TextWriteBytes(&sb, x.TransferOrigin)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SeedStateRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SeedStateResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SeedStateResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SeedStateResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -79396,6 +79748,116 @@ func (m *CreateWithStateRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SeedStateRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SeedStateRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SeedStateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigState", wireType)
+			}
+			m.ConfigState, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ConfigState, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointState", wireType)
+			}
+			m.CheckpointState, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CheckpointState, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TransferOrigin", wireType)
+			}
+			m.TransferOrigin, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.TransferOrigin, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SeedStateResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SeedStateResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SeedStateResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

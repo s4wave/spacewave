@@ -2774,3 +2774,21 @@ message CreateWithStateRequest {
   // the create, and serves both on GET /sobject/:id/transfer-origin.
   bytes transfer_origin = 9;
 }
+
+// SeedStateRequest is the request body for POST /sobject/:id/seed-state. It
+// writes the genesis config and checkpoint of an object that exists with no
+// config yet, as create-with-state writes a new object's, in one write.
+message SeedStateRequest {
+  // ConfigState is the signed genesis config state payload.
+  bytes config_state = 1;
+  // CheckpointState is the PostCheckpointRequest carrying the owner-signed
+  // initial checkpoint.
+  bytes checkpoint_state = 2;
+  // TransferOrigin is a transfer's record of where the state came from,
+  // opaque to the server, stored with the object's head as create-with-state
+  // stores it.
+  bytes transfer_origin = 3;
+}
+
+// SeedStateResponse is the response body for POST /sobject/:id/seed-state.
+message SeedStateResponse {}

@@ -14,8 +14,10 @@ import (
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
+	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -104,13 +106,31 @@ func TestCloudTransferSourceEmptyList(t *testing.T) {
 	}
 }
 
-// serveTestAccountState answers the account state request the cloud target
-// reads its owner's username from, and reports whether r was that request.
-func serveTestAccountState(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
-	if r.URL.Path != "/api/account/state" {
+// serveTestAccount answers the account requests the cloud target makes before
+// it writes: the account state it reads its owner's username from and the
+// account keypairs it seals recovery envelopes to. It reports whether r was
+// one of them.
+func serveTestAccount(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
+	var msg interface{ MarshalVT() ([]byte, error) }
+	switch r.URL.Path {
+	case "/api/account/state":
+		msg = &api.AccountStateResponse{AccountId: "test-account", EntityId: "alice"}
+	case "/api/account/keypairs":
+		priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			t.Error(err)
+			return true
+		}
+		pid, err := peer.IDFromPrivateKey(priv)
+		if err != nil {
+			t.Error(err)
+			return true
+		}
+		msg = &api.ListKeypairsResponse{Keypairs: []*session.EntityKeypair{{PeerId: pid.String()}}}
+	default:
 		return false
 	}
-	data, err := (&api.AccountStateResponse{AccountId: "test-account", EntityId: "alice"}).MarshalVT()
+	data, err := msg.MarshalVT()
 	if err != nil {
 		t.Error(err)
 	}
@@ -134,7 +154,7 @@ func TestCloudTransferTarget(t *testing.T) {
 	var paths []string
 	var created []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if serveTestAccountState(t, w, r) {
+		if serveTestAccount(t, w, r) {
 			return
 		}
 		paths = append(paths, r.URL.Path)
@@ -222,7 +242,7 @@ func TestCloudTransferTarget(t *testing.T) {
 func TestCloudTransferTargetRefusesListedSpace(t *testing.T) {
 	// Answer every create with a conflict.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if serveTestAccountState(t, w, r) {
+		if serveTestAccount(t, w, r) {
 			return
 		}
 		if !strings.HasSuffix(r.URL.Path, "/create-with-state") {

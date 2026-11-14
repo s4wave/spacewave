@@ -351,6 +351,15 @@ func (c *SessionClient) CreateSharedObjectWithState(ctx context.Context, soID st
 	return errors.Wrap(err, "create shared object with state")
 }
 
+// SeedSharedObjectState writes the genesis config and checkpoint of a shared
+// object that exists with no config, and the transfer origin with them, in
+// one request. The cloud answers 409 when the object already has a config.
+func (c *SessionClient) SeedSharedObjectState(ctx context.Context, soID string, req *api.SeedStateRequest) error {
+	var resp api.SeedStateResponse
+	err := c.postMessage(ctx, path.Join("/api/sobject", soID, "seed-state"), req, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "seed shared object state")
+}
+
 // GetTransferOrigin reads the transfer origin the cloud stores with a shared
 // object and whether the object is unchanged since that transfer wrote it.
 // Only the object's managers read it.
