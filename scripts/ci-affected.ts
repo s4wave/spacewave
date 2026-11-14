@@ -6,7 +6,9 @@
 // with a base commit: it tests the changed Go packages and every package whose
 // tests depend on one, lints the changed Go packages, and runs the JavaScript
 // checks when a JavaScript or TypeScript input changed. A job with no selected
-// step passes after setup.
+// step passes after setup. The TLA+ spec jobs are the exception: a delta run
+// lists only the spec jobs whose models changed, and the workflow skips the
+// spec matrix when it lists none.
 //
 // Usage: bun scripts/ci-affected.ts full
 //        bun scripts/ci-affected.ts delta <base-commit>
@@ -14,8 +16,8 @@
 // Outside GitHub Actions the outputs print to stdout.
 
 import { spawnSync } from 'node:child_process'
-import { appendFileSync, readFileSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { appendFileSync, existsSync, readFileSync } from 'node:fs'
+import { basename, dirname, join } from 'node:path'
 
 // fullRunPaths select the full suite when changed: they define the jobs, the
 // toolchain, or the lint rules, so no package graph bounds their effect.
@@ -164,12 +166,85 @@ const dbChecks: DbEntry = {
 }
 const dbTests: DbEntry = { ...dbChecks, name: 'tests' }
 
+// SpecEntry is one TLA+ spec job matrix entry: the configs it checks, with
+// workers checker threads, within timeout minutes.
+interface SpecEntry {
+  name: string
+  configs: string
+  workers: number
+  timeout: number
+}
+
+// ownSpecJobs are the models that take minutes, each checked in its own job so
+// no job nears its timeout; every other config, including a new one, checks
+// in the models job. A model that needs longer than 25 minutes sets its own
+// timeout, and one that needs hours checks with the runner's four cores.
+// Journal.cfg, which composes every rule with concurrent writers, reaches 17.5
+// million states in 4.8 hours on one core.
+const ownSpecJobs: SpecEntry[] = [
+  {
+    name: 'Journal',
+    configs: 'db/block/gc/Journal.cfg',
+    workers: 4,
+    timeout: 240,
+  },
+  {
+    name: 'Journal-adopt',
+    configs: 'db/block/gc/Journal-adopt.cfg',
+    workers: 1,
+    timeout: 25,
+  },
+  {
+    name: 'Journal-adopt-cut',
+    configs: 'db/block/gc/Journal-adopt-cut.cfg',
+    workers: 1,
+    timeout: 25,
+  },
+  {
+    name: 'Journal-hole',
+    configs: 'db/block/gc/Journal-hole.cfg',
+    workers: 1,
+    timeout: 25,
+  },
+  {
+    name: 'Journal-lease',
+    configs: 'db/block/gc/Journal-lease.cfg',
+    workers: 1,
+    timeout: 45,
+  },
+  {
+    name: 'Journal-stage',
+    configs: 'db/block/gc/Journal-stage.cfg',
+    workers: 1,
+    timeout: 60,
+  },
+  {
+    name: 'Journal-fill-staged',
+    configs: 'db/block/gc/Journal-fill-staged.cfg',
+    workers: 1,
+    timeout: 60,
+  },
+  {
+    name: 'Journal-fill-writers',
+    configs: 'db/block/gc/Journal-fill-writers.cfg',
+    workers: 1,
+    timeout: 60,
+  },
+  {
+    name: 'Journal-writers-staged',
+    configs: 'db/block/gc/Journal-writers-staged.cfg',
+    workers: 1,
+    timeout: 25,
+  },
+]
+
 // Selection is the work one run performs.
 interface Selection {
   mode: 'full' | 'delta'
   members: MemberEntry[]
   alpha: AlphaEntry[]
   db: DbEntry[]
+  specs: SpecEntry[]
 }
 
 // Graph is the module's package graph from go list.
@@ -365,10 +440,105 @@ function goscriptPackages(graph: Graph): Set<string> {
   return out
 }
 
+// specConfigs returns every model config the spec jobs check: the tracked
+// .cfg files outside testdata.
+function specConfigs(): string[] {
+  return run('git', ['ls-files', '*.cfg', ':!:**/testdata/**'])
+    .split('\n')
+    .filter((file) => file !== '')
+}
+
+// specEntries returns the spec jobs that check a config selected allows: each
+// own job whose config it allows, and a models job of the other configs it
+// allows.
+function specEntries(selected: (config: string) => boolean): SpecEntry[] {
+  const own = new Set(ownSpecJobs.map((job) => job.configs))
+  const models = specConfigs().filter((cfg) => !own.has(cfg) && selected(cfg))
+  const entries = ownSpecJobs.filter((job) => selected(job.configs))
+  if (models.length > 0) {
+    entries.unshift({
+      name: 'models',
+      configs: models.join(' '),
+      workers: 1,
+      timeout: 25,
+    })
+  }
+  return entries
+}
+
+// specOf returns the spec the checker pairs config with: the .tla in its
+// directory with the longest stem that is the config's name or a dash
+// separated prefix of it, or undefined when none is, which the checker skips.
+function specOf(config: string, tlaFiles: Set<string>): string | undefined {
+  const dir = dirname(config)
+  const name = basename(config, '.cfg')
+  let best: string | undefined
+  for (const file of tlaFiles) {
+    if (dirname(file) !== dir) {
+      continue
+    }
+    const stem = basename(file, '.tla')
+    if (
+      (name === stem || name.startsWith(stem + '-')) &&
+      (!best || stem.length > basename(best, '.tla').length)
+    ) {
+      best = file
+    }
+  }
+  return best
+}
+
+// specModules returns spec and every module of its directory it EXTENDS or
+// INSTANCEs, directly or through another. The checker reads the remaining
+// modules from its own package, which bun.lock pins.
+function specModules(spec: string): Set<string> {
+  const dir = dirname(spec)
+  const seen = new Set<string>()
+  const queue = [spec]
+  for (let file = queue.pop(); file !== undefined; file = queue.pop()) {
+    if (seen.has(file) || !existsSync(file)) {
+      continue
+    }
+    seen.add(file)
+    const text = readFileSync(file, 'utf8')
+    for (const [, list] of text.matchAll(/\bEXTENDS\s+(\w+(?:\s*,\s*\w+)*)/g)) {
+      list
+        .split(',')
+        .forEach((name) => queue.push(join(dir, name.trim() + '.tla')))
+    }
+    for (const [, name] of text.matchAll(/\bINSTANCE\s+(\w+)/g)) {
+      queue.push(join(dir, name + '.tla'))
+    }
+  }
+  return seen
+}
+
+// changedSpec reports whether a model config is affected by files: the
+// config, its spec or a module the spec reads changed.
+function changedSpec(files: string[]): (config: string) => boolean {
+  const changed = new Set(files)
+  const tlaFiles = new Set(
+    run('git', ['ls-files', '*.tla', ':!:**/testdata/**'])
+      .split('\n')
+      .filter((file) => file !== ''),
+  )
+  return (config) => {
+    if (changed.has(config)) {
+      return true
+    }
+    const spec = specOf(config, tlaFiles)
+    return (
+      spec !== undefined &&
+      [...specModules(spec)].some((file) => changed.has(file))
+    )
+  }
+}
+
 // fullSelection selects every job with each script's default packages.
 function fullSelection(): Selection {
   return {
     mode: 'full',
+    specs: specEntries(() => true),
     members: members.map(({ roots: _, ...member }) => ({
       ...member,
       go_packages: '',
@@ -529,8 +699,13 @@ function deltaSelection(base: string): Selection {
     },
   ]
 
+  // Check the models whose config, spec or spec modules changed.
+  const specs = specEntries(changedSpec(files))
+  console.error(`ci-affected: ${specs.length} spec jobs selected`)
+
   return {
     mode: 'delta',
+    specs,
     members: memberEntries,
     alpha,
     db,
@@ -546,6 +721,7 @@ function writeOutputs(selection: Selection) {
     members: matrix(selection.members),
     alpha: matrix(selection.alpha),
     db: matrix(selection.db),
+    specs: matrix(selection.specs),
   }
   const text = Object.entries(outputs)
     .map(([key, value]) => `${key}=${value}\n`)
