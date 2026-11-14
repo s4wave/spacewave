@@ -43,8 +43,8 @@
     "name": "Replace shows over a folder",
     "replace": [
       [
-        "    \\cup (IF Asked /\\ Versioned(Current) THEN {\"replace\"} ELSE {})",
-        "    \\cup (IF Asked THEN {\"replace\"} ELSE {})"
+        "    \\cup (IF n \\notin Folders /\\ shown[n] \\in Files THEN {\"replace\"} ELSE {})",
+        "    \\cup (IF n \\notin Folders THEN {\"replace\"} ELSE {})"
       ]
     ],
     "expect": "EveryShownActionWorks"
@@ -58,5 +58,27 @@
       ]
     ],
     "expect": "NothingDiscarded"
+  },
+  {
+    "name": "the drop sends a taken folder at once",
+    "config": "UploadConflictRaces-folders.cfg",
+    "replace": [
+      [
+        "  IF disk[n] = \"none\" THEN <<\"sending\", \"missing\", \"none\">>",
+        "  IF disk[n] = \"none\" \\/ (n \\in Folders /\\ disk[n] = \"dir\")\n    THEN <<\"sending\", \"missing\", \"none\">>"
+      ]
+    ],
+    "expect": "NoMergeWithoutAnswer"
+  },
+  {
+    "name": "Merge shows over a file",
+    "config": "UploadConflictRaces-folders.cfg",
+    "replace": [
+      [
+        "    \\cup (IF n \\in Folders /\\ shown[n] = \"dir\" THEN {\"merge\"} ELSE {})",
+        "    \\cup (IF n \\in Folders THEN {\"merge\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
   }
 ]

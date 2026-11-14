@@ -15,17 +15,19 @@ import type {
 
 import {
   TreeUploadPool,
+  treeUploadConcurrency,
   type TreeUploadConflict,
 } from '@s4wave/sdk/unixfs/upload-pool.js'
 
 // UploadStatus, UploadItem, UploadEvent, and UploadManager form the durable
-// contract this hook owns. The manager holds no viewer or route identity: each
-// upload group captures its own target handle at addFiles time, so the manager
-// can outlive the folder view that started it (see SessionUploadManagerContext).
+// contract this hook owns. Each drop holds its own handle on its destination
+// folder, cloned at addFiles time, so the manager can outlive the folder view
+// that started it (see SessionUploadManagerContext).
 
 // UploadStatus represents the state of a single upload item. checking lists
-// the destination before any byte is sent; asking waits for the person to
-// answer the item's conflict; skipped is a file the person chose not to send.
+// the destination, or waits on the answer for the dropped folder the item is
+// in, before any byte is sent; asking waits for the person to answer the
+// item's conflict; skipped is an item the person chose not to send.
 export type UploadStatus =
   | 'checking'
   | 'queued'
@@ -35,16 +37,22 @@ export type UploadStatus =
   | 'skipped'
   | 'error'
 
-// UploadConflict is what holds an asking item's name: a file at version, or,
-// with version null, a folder or link the file cannot replace.
+// UploadHolder is what already holds a dropped name, as the folder listing
+// names it.
+export type UploadHolder = 'file' | 'folder' | 'link'
+
+// UploadConflict is what holds an asking item's name, and for a file the
+// version a read returned, which Replace expects.
 export interface UploadConflict {
+  holds: UploadHolder
   version: Uint8Array | null
 }
 
-// UploadAnswer is the person's answer to a conflict. replace sends the file
-// expecting the version the question showed; keep sends it under the first
-// free "name (n).ext"; skip leaves the name alone.
-export type UploadAnswer = 'replace' | 'keep' | 'skip'
+// UploadAnswer is the person's answer to a conflict. replace sends a file
+// expecting the version the question showed; merge sends a dropped folder
+// into the folder of its name, its files asking as files do; keep sends the
+// item under the first free "name (n).ext"; skip leaves the name alone.
+export type UploadAnswer = 'replace' | 'merge' | 'keep' | 'skip'
 
 // UploadQuestion is the conflict on screen: the first asking item of the
 // oldest drop with one, and the other items of that drop still asking.
@@ -53,7 +61,7 @@ export interface UploadQuestion {
   others: UploadItem[]
 }
 
-// UploadItem tracks the state of a single file upload.
+// UploadItem tracks the state of a single file or folder upload.
 export interface UploadItem {
   id: string
   groupId: string
@@ -66,8 +74,7 @@ export interface UploadItem {
   status: UploadStatus
   error?: string
   abortController: AbortController
-  // handle is the folder the drop targets, and place its display path.
-  handle: FSHandle
+  // place is the display path of the folder the drop targets.
   place: string
   // expect is what the item's last send expected, which Retry sends again.
   expect: TreeUploadExpect
@@ -103,10 +110,11 @@ export interface UploadManager {
   // question is the conflict waiting for an answer, or null.
   question: UploadQuestion | null
   // addFiles enqueues a batch against handle, whose display path is place.
-  // The handle is captured into the batch here, not held by the manager, so
-  // navigating away from the folder that started the upload neither aborts
-  // the write nor drops the feedback. A file whose name the folder already
-  // holds asks before any of its bytes are sent.
+  // The manager clones handle for the batch and releases the clone once no
+  // item of the batch can send or retry, so navigating away from the folder
+  // neither aborts the write nor breaks an answer given later. A file or
+  // top-level folder whose name the folder already holds asks before any of
+  // its bytes are sent.
   addFiles: (
     handle: FSHandle,
     files: File[],
@@ -114,8 +122,7 @@ export interface UploadManager {
     place?: string,
   ) => void
   // answer answers the asking item id, and with all every other item of its
-  // drop that is asking; replace applies only to items whose name holds a
-  // file.
+  // drop asking the same question, as UploadQuestion.others lists.
   answer: (id: string, choice: UploadAnswer, all: boolean) => void
   // retryUpload sends a failed item again with what it last expected.
   retryUpload: (id: string) => void
@@ -124,11 +131,38 @@ export interface UploadManager {
   clearDone: () => void
 }
 
+// answersFor returns the answers a conflict offers: Replace for a file over
+// a file, Merge for a folder over a folder, and always Keep both and Skip.
+export function answersFor(item: UploadItem): UploadAnswer[] {
+  const holds = item.conflict?.holds
+  if (item.kind === 'file' && holds === 'file') {
+    return ['replace', 'keep', 'skip']
+  }
+  if (item.kind === 'directory' && holds === 'folder') {
+    return ['merge', 'keep', 'skip']
+  }
+  return ['keep', 'skip']
+}
+
 // splitPath splits a path relative to the drop's folder into its parent
 // folder and name.
 function splitPath(path: string): [string, string] {
   const cut = path.lastIndexOf('/')
   return cut < 0 ? ['', path] : [path.slice(0, cut), path.slice(cut + 1)]
+}
+
+// topOf returns the top-level dropped folder a path is inside, or null for a
+// path at the top of the drop.
+function topOf(path: string): string | null {
+  const cut = path.indexOf('/')
+  return cut < 0 ? null : path.slice(0, cut)
+}
+
+// holderOf names what a listing entry is.
+function holderOf(entry: DirEntry): UploadHolder {
+  if (entry.isDir) return 'folder'
+  if (entry.isSymlink) return 'link'
+  return 'file'
 }
 
 // listFolder returns the entries of the folder at path below handle by name,
@@ -178,19 +212,41 @@ async function readVersion(
   }
 }
 
-// freeName returns the first "name (n).ext", and its n, from n = from that
-// taken lacks.
+// freeName returns the first "name (n).ext", and its n, that taken lacks,
+// from n = from, or from one past the number name already carries.
 export function freeName(
   name: string,
   taken: Set<string>,
   from = 2,
 ): [string, number] {
   const dot = name.lastIndexOf('.')
-  const [stem, ext] =
-    dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, '']
+  let [stem, ext] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, '']
+  const numbered = /^(.+) \((\d+)\)$/.exec(stem)
+  if (numbered) {
+    stem = numbered[1]
+    from = Math.max(from, Number(numbered[2]) + 1)
+  }
   for (let n = from; ; n++) {
     const next = `${stem} (${n})${ext}`
     if (!taken.has(next)) return [next, n]
+  }
+}
+
+// gate returns a function that runs at most limit of its calls at once.
+function gate(limit: number) {
+  let active = 0
+  const waiting: (() => void)[] = []
+  return async <T>(run: () => Promise<T>): Promise<T> => {
+    if (active >= limit) {
+      await new Promise<void>((resolve) => waiting.push(resolve))
+    }
+    active++
+    try {
+      return await run()
+    } finally {
+      active--
+      waiting.shift()?.()
+    }
   }
 }
 
@@ -203,28 +259,46 @@ function finished(item: UploadItem): boolean {
   )
 }
 
+// alike returns the items of item's drop asking the same question as it:
+// the same answers, so one answer can apply to all of them.
+function alike(items: UploadItem[], item: UploadItem): UploadItem[] {
+  const answers = answersFor(item).join()
+  return items.filter(
+    (current) =>
+      current.groupId === item.groupId &&
+      current.status === 'asking' &&
+      answersFor(current).join() === answers,
+  )
+}
+
 // questionOf returns the first asking item of the oldest drop with one.
 function questionOf(items: UploadItem[]): UploadQuestion | null {
   const item = items.find((current) => current.status === 'asking')
   if (!item) return null
-  const others = items.filter(
-    (current) =>
-      current !== item &&
-      current.groupId === item.groupId &&
-      current.status === 'asking',
-  )
+  const others = alike(items, item).filter((current) => current !== item)
   return { item, others }
 }
 
 const missing: TreeUploadExpect = { kind: 'missing' }
 
+// UploadGroup is what the manager holds for one drop: its clone of the
+// destination handle, each folder's listing, read once and reused by every
+// question of the drop, and the names the drop claims in each folder.
+interface UploadGroup {
+  held: Promise<FSHandle>
+  listings: Map<string, Promise<Map<string, DirEntry>>>
+  claims: Map<string, Set<string>>
+  // seen is set once the group's items are on the list, after which an
+  // empty list releases it.
+  seen: boolean
+}
+
 // useUploadManager projects the session-owned SDK upload pool into React state.
-// Each addFiles call captures its target handle, so uploads can outlive the
-// folder view that started them. A dropped file is sent only where its name
-// is free, or over the version a Replace answer named: the drop lists its
-// folder first and asks about each taken name before sending its bytes, and
-// the store refuses at commit a name another writer took meanwhile, which
-// asks the same question.
+// A dropped file is sent only where its name is free, or over the version a
+// Replace answer named; a dropped folder merges into one of its name only on
+// a Merge answer. The drop lists its folder first and asks about each taken
+// name before sending its bytes, and the store refuses at commit a file name
+// another writer took meanwhile, which asks the same question.
 export function useUploadManager(): UploadManager {
   const [items, setItems] = useState<UploadItem[]>([])
   const [lastEvent, setLastEvent] = useState<UploadEvent | null>(null)
@@ -241,6 +315,7 @@ export function useUploadManager(): UploadManager {
   const poolRef = useRef<TreeUploadPool | null>(null)
   if (!poolRef.current) poolRef.current = new TreeUploadPool()
   const pool = poolRef.current
+  const groupsRef = useRef(new Map<string, UploadGroup>())
 
   const activeCount = useMemo(
     () => items.filter((item) => item.status === 'uploading').length,
@@ -283,6 +358,37 @@ export function useUploadManager(): UploadManager {
     return () => clearTimeout(timer)
   }, [items])
 
+  // Release each drop's handle once none of its items can send or retry: an
+  // item done, skipped or removed from the list never sends again.
+  useEffect(() => {
+    for (const [id, group] of groupsRef.current) {
+      const live = items.some(
+        (item) =>
+          item.groupId === id &&
+          item.status !== 'done' &&
+          item.status !== 'skipped',
+      )
+      if (live) {
+        group.seen = true
+        continue
+      }
+      if (!group.seen) continue
+      groupsRef.current.delete(id)
+      void group.held.then((handle) => handle.release()).catch(() => {})
+    }
+  }, [items])
+
+  // Release every held handle when the manager goes away.
+  useEffect(() => {
+    const groups = groupsRef.current
+    return () => {
+      for (const group of groups.values()) {
+        void group.held.then((handle) => handle.release()).catch(() => {})
+      }
+      groups.clear()
+    }
+  }, [])
+
   // update merges patch into the item id.
   const update = useCallback((id: string, patch: Partial<UploadItem>) => {
     setItems((cur) =>
@@ -292,25 +398,84 @@ export function useUploadManager(): UploadManager {
     )
   }, [])
 
-  // flow holds the steps a file takes from its drop to its commit. They call
+  // flow holds the steps an item takes from its drop to its commit. They call
   // each other, since a refusal asks or sends again, and depend only on the
-  // pool and update, so they are built once.
+  // pool, update and the held groups, so they are built once.
   const flow = useMemo(() => {
-    // ask puts the item in front of the person with what holds its name.
-    const ask = (item: UploadItem, version: Uint8Array | null) => {
-      if (item.abortController.signal.aborted) return
-      update(item.id, {
-        status: 'asking',
-        conflict: { version },
-        bytesWritten: 0,
+    const groups = groupsRef.current
+    // reads bounds the listing and version reads to the pool's limit.
+    const reads = gate(treeUploadConcurrency)
+
+    // fail shows err on the item.
+    const fail = (id: string, err: unknown) =>
+      update(id, {
+        status: 'error',
+        error: err instanceof Error ? err.message : 'Upload failed',
       })
+
+    // handleOf returns the item's drop's held handle.
+    const handleOf = (item: UploadItem): Promise<FSHandle> => {
+      const group = groups.get(item.groupId)
+      if (!group) return Promise.reject(new Error('Upload was cancelled'))
+      return group.held
     }
 
-    // send queues one commit of the item's file at its path, expecting expect.
-    const send = (item: UploadItem, expect: TreeUploadExpect) => {
+    // listing returns the drop's listing of parent, read once per drop; a
+    // fresh listing reads it again.
+    const listing = async (
+      item: UploadItem,
+      parent: string,
+      fresh = false,
+    ): Promise<Map<string, DirEntry>> => {
+      const group = groups.get(item.groupId)
+      if (!group) return new Map()
+      let listed = fresh ? undefined : group.listings.get(parent)
+      if (!listed) {
+        // Cache the promise before any await, so the drop's other items
+        // reuse this read rather than start their own.
+        const signal = item.abortController.signal
+        listed = group.held.then((handle) =>
+          reads(() => listFolder(handle, parent, signal)),
+        )
+        group.listings.set(parent, listed)
+      }
+      return listed
+    }
+
+    // claim records that the drop sends name into parent.
+    const claim = (item: UploadItem, parent: string, name: string) => {
+      const claims = groups.get(item.groupId)?.claims
+      if (!claims) return
+      let names = claims.get(parent)
+      if (!names) claims.set(parent, (names = new Set()))
+      names.add(name)
+    }
+
+    // conflictOf returns what holds a taken name: its kind from the listing,
+    // and for a file the version a one byte read returns.
+    const conflictOf = async (
+      item: UploadItem,
+      entry: DirEntry,
+    ): Promise<UploadConflict> => {
+      const holds = holderOf(entry)
+      if (holds !== 'file') return { holds, version: null }
+      const handle = await handleOf(item)
+      const signal = item.abortController.signal
+      const version = await reads(() => readVersion(handle, item.path, signal))
+      return { holds, version }
+    }
+
+    // ask puts the item in front of the person with what holds its name.
+    const ask = (item: UploadItem, conflict: UploadConflict) => {
+      if (item.abortController.signal.aborted) return
+      update(item.id, { status: 'asking', conflict, bytesWritten: 0 })
+    }
+
+    // send queues one commit of the item at its path. A file expects expect;
+    // a folder merges into whatever folder holds its path.
+    const send = async (item: UploadItem, expect: TreeUploadExpect) => {
       const { id, file } = item
-      if (!file || item.abortController.signal.aborted) return
-      const sent = { ...item, expect }
+      if (item.abortController.signal.aborted) return
       update(id, {
         status: 'queued',
         path: item.path,
@@ -321,113 +486,187 @@ export function useUploadManager(): UploadManager {
         bytesWritten: 0,
         error: undefined,
       })
-      const entry: TreeUploadEntry = {
-        kind: 'file',
-        path: item.path,
-        expect,
-        totalSize: BigInt(item.totalSize),
-        stream: file.stream(),
-        onProgress: (bytesWritten) =>
-          update(id, { bytesWritten: Number(bytesWritten) }),
+      let handle: FSHandle
+      try {
+        handle = await handleOf(item)
+      } catch (err) {
+        fail(id, err)
+        return
       }
+      const entry: TreeUploadEntry = file
+        ? {
+            kind: 'file',
+            path: item.path,
+            expect,
+            totalSize: BigInt(item.totalSize),
+            stream: file.stream(),
+            onProgress: (bytesWritten) =>
+              update(id, { bytesWritten: Number(bytesWritten) }),
+          }
+        : { kind: 'directory', path: item.path }
+      const sent = { ...item, expect }
       pool.add(
-        item.handle,
+        handle,
         entry,
         {
           onStart: () => update(id, { status: 'uploading' }),
           onComplete: () =>
             update(id, { status: 'done', bytesWritten: item.totalSize }),
-          onConflict: (conflict) => refused(sent, conflict),
-          onError: (err) =>
-            update(id, {
-              status: 'error',
-              error: err instanceof Error ? err.message : 'Upload failed',
-            }),
+          onConflict: (conflict) => void refused(sent, conflict),
+          onError: (err) => fail(id, err),
         },
         item.abortController.signal,
       )
     }
 
-    // keep sends the item under the first free "name (n).ext" in its
-    // folder. A refused name moves the next pick past its number, so a
-    // listing that misses a taken name never picks it again.
-    const keep = async (item: UploadItem) => {
+    // place checks one file against its folder's listing: a free name is
+    // sent as missing and a taken one asks.
+    const place = async (item: UploadItem) => {
+      const [parent, name] = splitPath(item.path)
+      const entry = (await listing(item, parent)).get(name)
+      if (!entry) {
+        await send(item, missing)
+        return
+      }
+      ask(item, await conflictOf(item, entry))
+    }
+
+    // inside returns the drop's waiting items inside the top-level folder.
+    const inside = (top: UploadItem): UploadItem[] =>
+      itemsRef.current.filter(
+        (item) =>
+          item.groupId === top.groupId &&
+          item.status === 'checking' &&
+          item !== top &&
+          topOf(item.path) === top.path,
+      )
+
+    // open sends a top-level folder and what was dropped inside it. Into a
+    // folder that held the name, each file is placed against its folder's
+    // listing; into a new folder, each is sent as missing, and the store
+    // refuses one another writer placed first.
+    const open = async (
+      top: UploadItem,
+      into: UploadItem[],
+      fresh: boolean,
+    ) => {
+      await send(top, missing)
+      await Promise.all(
+        into.map((item) =>
+          item.kind === 'directory'
+            ? send(item, missing)
+            : fresh
+              ? send(item, missing)
+              : place(item),
+        ),
+      )
+    }
+
+    // keep sends the item under the first free "name (n).ext" in its folder.
+    // Names in the folder's listing and names the drop claims are taken; a
+    // refused name moves the next pick past its number, so a listing that
+    // misses a taken name never picks it again. A kept folder takes what
+    // was dropped inside it along to the new name.
+    const keep = async (item: UploadItem, fresh = false) => {
       const signal = item.abortController.signal
       const from = item.kept?.from ?? item.path
       const [parent, original] = splitPath(from)
       update(item.id, { status: 'checking', conflict: null })
-      const taken = new Set(
-        (await listFolder(item.handle, parent, signal)).keys(),
-      )
+      const into = item.kind === 'directory' ? inside(item) : []
+      const listed = await listing(item, parent, fresh)
       if (signal.aborted) return
+      const claimed = groups.get(item.groupId)?.claims.get(parent)
+      const taken = new Set([...listed.keys(), ...(claimed ?? [])])
       const [name, n] = freeName(original, taken, item.kept?.next)
+      claim(item, parent, name)
       const path = parent ? `${parent}/${name}` : name
-      send({ ...item, name, path, kept: { from, next: n + 1 } }, missing)
+      const kept = { ...item, name, path, kept: { from, next: n + 1 } }
+      if (item.kind === 'file') {
+        await send(kept, missing)
+        return
+      }
+      const moved = into.map((child) => {
+        const childPath = path + child.path.slice(item.path.length)
+        update(child.id, { path: childPath })
+        return { ...child, path: childPath }
+      })
+      await open(kept, moved, true)
     }
 
-    // refused handles the store's refusal of a send: a taken name asks, a
-    // Replace whose file is gone sends as missing, and Keep both takes the
-    // next free name.
-    const refused = (item: UploadItem, conflict: TreeUploadConflict) => {
+    // refused handles the store's refusal of a file's send: Keep both takes
+    // the next free name, a refusal with a version asks showing it, a
+    // Replace whose file is gone sends as missing, and any other refusal
+    // lists the folder again to ask with what holds the name.
+    const refused = async (item: UploadItem, conflict: TreeUploadConflict) => {
       if (item.kept) {
-        void keep(item)
+        await keep(item, true)
         return
       }
       if (conflict.version) {
-        ask(item, conflict.version)
+        ask(item, { holds: 'file', version: conflict.version })
         return
       }
       if (item.expect.kind === 'version') {
-        send(item, missing)
+        await send(item, missing)
         return
       }
-      ask(item, null)
+      const [parent, name] = splitPath(item.path)
+      const entry = (await listing(item, parent, true)).get(name)
+      if (!entry) {
+        await send(item, missing)
+        return
+      }
+      ask(item, await conflictOf(item, entry))
     }
 
-    // check lists the folders of a drop's files and asks about each taken
-    // name; every other file is sent as missing. The listings stop only
-    // once every file of the drop is cancelled.
-    const check = async (handle: FSHandle, files: UploadItem[]) => {
-      const listings = new Map<string, Promise<Map<string, DirEntry>>>()
-      const stop = new AbortController()
-      const signals = files.map((item) => item.abortController.signal)
-      for (const signal of signals) {
-        signal.addEventListener(
-          'abort',
-          () => {
-            if (signals.every((current) => current.aborted)) stop.abort()
-          },
-          { once: true },
-        )
-      }
+    // check places a drop's top-level items against the destination's
+    // listing. A top-level folder whose name is free opens at once; a taken
+    // one asks, and what was dropped inside it waits on the answer.
+    const check = async (dropped: UploadItem[]) => {
+      const tops = dropped.filter((item) => topOf(item.path) === null)
       await Promise.all(
-        files.map(async (item) => {
-          const [parent, name] = splitPath(item.path)
-          let listing = listings.get(parent)
-          if (!listing) {
-            listing = listFolder(handle, parent, stop.signal)
-            listings.set(parent, listing)
+        tops.map(async (item) => {
+          if (item.kind === 'file') {
+            await place(item)
+            return
           }
-          const entry = (await listing).get(name)
+          const entry = (await listing(item, '')).get(item.path)
+          const into = dropped.filter(
+            (child) => child !== item && topOf(child.path) === item.path,
+          )
           if (!entry) {
-            send(item, missing)
+            await open(item, into, true)
             return
           }
-          if (entry.isDir || entry.isSymlink) {
-            ask(item, null)
-            return
-          }
-          const signal = item.abortController.signal
-          const version = await readVersion(handle, item.path, signal)
-          if (version) ask(item, version)
-          else send(item, missing)
+          ask(item, await conflictOf(item, entry))
         }),
       )
     }
 
-    return { send, keep, check }
+    // settle applies one answer to an asking item.
+    const settle = async (item: UploadItem, choice: UploadAnswer) => {
+      const into = item.kind === 'directory' ? inside(item) : []
+      if (choice === 'skip') {
+        for (const one of [item, ...into]) {
+          update(one.id, { status: 'skipped', conflict: null })
+        }
+        return
+      }
+      if (choice === 'keep') {
+        await keep(item)
+        return
+      }
+      if (choice === 'merge') {
+        await open(item, into, false)
+        return
+      }
+      const version = item.conflict?.version
+      await send(item, version ? { kind: 'version', version } : missing)
+    }
+
+    return { check, settle, send, fail }
   }, [pool, update])
-  const { send, keep, check } = flow
+  const { check, settle, send, fail } = flow
 
   const addFiles = useCallback(
     (
@@ -440,11 +679,11 @@ export function useUploadManager(): UploadManager {
       const base = {
         groupId,
         bytesWritten: 0,
-        handle,
         place: place ?? '',
         expect: missing,
         kept: null,
         conflict: null,
+        status: 'checking' as const,
       }
       const fileItems: UploadItem[] = files.map((file) => ({
         ...base,
@@ -456,10 +695,16 @@ export function useUploadManager(): UploadManager {
           (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
           file.name,
         totalSize: file.size,
-        status: 'checking',
         abortController: new AbortController(),
       }))
-      const dirItems: UploadItem[] = (directories ?? []).map((directory) => ({
+      // Every top-level folder of the drop gets an item to ask about, even
+      // when only the files inside it were picked.
+      const folders = new Set(directories ?? [])
+      for (const item of fileItems) {
+        const top = topOf(item.path)
+        if (top) folders.add(top)
+      }
+      const dirItems: UploadItem[] = [...folders].map((directory) => ({
         ...base,
         id: `upload-${++nextIdRef.current}`,
         kind: 'directory',
@@ -467,12 +712,30 @@ export function useUploadManager(): UploadManager {
         name: directory.split('/').at(-1) ?? directory,
         path: directory,
         totalSize: 0,
-        status: 'queued',
         abortController: new AbortController(),
       }))
       const newItems = [...fileItems, ...dirItems]
       if (newItems.length === 0) return
 
+      // The drop holds its own handle on the destination until its last
+      // item ends; the browsing handle goes when the person navigates.
+      const held = handle.clone()
+      held.catch(() => {})
+      const claims = new Map<string, Set<string>>()
+      for (const item of newItems) {
+        const [parent, name] = splitPath(item.path)
+        let names = claims.get(parent)
+        if (!names) claims.set(parent, (names = new Set()))
+        names.add(name)
+      }
+      groupsRef.current.set(groupId, {
+        held,
+        listings: new Map(),
+        claims,
+        seen: false,
+      })
+
+      itemsRef.current = [...itemsRef.current, ...newItems]
       setItems((prev) => [...prev, ...newItems])
       const fileCount = files.length || (directories?.length ?? 0)
       setLastEvent({
@@ -482,26 +745,11 @@ export function useUploadManager(): UploadManager {
         errorCount: 0,
       })
 
-      // A folder merges into one of the same name, so it is sent at once.
-      for (const item of dirItems) {
-        pool.add(
-          handle,
-          { kind: 'directory', path: item.path },
-          {
-            onStart: () => update(item.id, { status: 'uploading' }),
-            onComplete: () => update(item.id, { status: 'done' }),
-            onError: (err) =>
-              update(item.id, {
-                status: 'error',
-                error: err instanceof Error ? err.message : 'Upload failed',
-              }),
-          },
-          item.abortController.signal,
-        )
-      }
-      if (fileItems.length) void check(handle, fileItems)
+      void check(newItems).catch((err: unknown) => {
+        for (const item of newItems) fail(item.id, err)
+      })
     },
-    [check, pool, update],
+    [check, fail],
   )
 
   const answer = useCallback(
@@ -510,36 +758,21 @@ export function useUploadManager(): UploadManager {
       const target = cur.find(
         (item) => item.id === id && item.status === 'asking',
       )
-      if (!target) return
-      if (choice === 'replace' && !target.conflict?.version) return
-      const answered = all
-        ? cur.filter(
-            (item) =>
-              item.groupId === target.groupId && item.status === 'asking',
-          )
-        : [target]
+      if (!target || !answersFor(target).includes(choice)) return
+      const answered = all ? alike(cur, target) : [target]
       for (const item of answered) {
-        if (choice === 'skip') {
-          update(item.id, { status: 'skipped', conflict: null })
-        } else if (choice === 'keep') {
-          void keep(item)
-        } else if (item.conflict?.version) {
-          send(item, { kind: 'version', version: item.conflict.version })
-        }
+        void settle(item, choice).catch((err: unknown) => fail(item.id, err))
       }
     },
-    [keep, send, update],
+    [fail, settle],
   )
 
   const retryUpload = useCallback(
     (id: string) => {
       const item = itemsRef.current.find(
-        (current) =>
-          current.id === id &&
-          current.status === 'error' &&
-          current.kind === 'file',
+        (current) => current.id === id && current.status === 'error',
       )
-      if (item) send(item, item.expect)
+      if (item) void send(item, item.expect)
     },
     [send],
   )

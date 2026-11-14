@@ -21,13 +21,17 @@ interface TreeUploadTask {
   signal?: AbortSignal
 }
 
+// treeUploadConcurrency is how many UnixFS uploads a TreeUploadPool runs at
+// once by default; a consumer bounds the reads it makes beside them to it.
+export const treeUploadConcurrency = 3
+
 // TreeUploadPool limits concurrent UnixFS uploads and commits each entry through
 // its own UploadTree call, so one completion or failure never gates another.
 export class TreeUploadPool {
   private readonly queue: TreeUploadTask[] = []
   private active = 0
 
-  public constructor(private readonly concurrency = 3) {
+  public constructor(private readonly concurrency = treeUploadConcurrency) {
     if (!Number.isInteger(concurrency) || concurrency < 1) {
       throw new RangeError('upload concurrency must be a positive integer')
     }

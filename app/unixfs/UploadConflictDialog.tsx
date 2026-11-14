@@ -10,7 +10,7 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 
 import {
-  freeName,
+  answersFor,
   type UploadAnswer,
   type UploadManager,
   type UploadQuestion,
@@ -26,9 +26,9 @@ function folderOf(question: UploadQuestion): string {
   return `${place}/${sub}`
 }
 
-// UploadConflictDialog asks what to do with a dropped file whose name its
-// folder already holds. It stays open until answered: closing it would leave
-// the file neither sent nor skipped.
+// UploadConflictDialog asks what to do with a dropped file or folder whose
+// name its folder already holds. It stays open until answered: closing it
+// would leave the item neither sent nor skipped.
 export function UploadConflictDialog({
   uploadManager,
 }: {
@@ -48,6 +48,13 @@ export function UploadConflictDialog({
   )
 }
 
+const answerLabels: Record<UploadAnswer, string> = {
+  skip: 'Skip',
+  keep: 'Keep both',
+  merge: 'Merge',
+  replace: 'Replace',
+}
+
 function UploadConflictQuestion({
   question,
   onAnswer,
@@ -57,14 +64,24 @@ function UploadConflictQuestion({
 }) {
   const [all, setAll] = useState(false)
   const { item, others } = question
-  const file = item.conflict?.version != null
+  const answers = answersFor(item)
+  const holds = item.conflict?.holds ?? 'file'
   const folder = folderOf(question)
-  const [kept] = freeName(item.name, new Set())
   const press = (choice: UploadAnswer) => onAnswer(item.id, choice, all)
   const button =
     'text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors'
   const primary =
     'border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150'
+
+  let title = `${item.name} is taken`
+  let description = `${folder} already has a ${holds} named ${item.name}. Keep both or skip yours.`
+  if (answers.includes('replace')) {
+    title = `Replace ${item.name}?`
+    description = `${folder} already has ${item.name}. Replace it, keep both, or skip yours.`
+  } else if (answers.includes('merge')) {
+    title = `Merge ${item.name}?`
+    description = `${folder} already has a folder named ${item.name}. Merge into it, keep both, or skip yours.`
+  }
 
   return (
     <DialogContent
@@ -73,16 +90,8 @@ function UploadConflictQuestion({
       onInteractOutside={(event) => event.preventDefault()}
     >
       <DialogHeader>
-        <DialogTitle>
-          {file
-            ? `Replace ${item.name}?`
-            : `${item.name} cannot replace a folder`}
-        </DialogTitle>
-        <DialogDescription>
-          {file
-            ? `${folder} already has a file named ${item.name}. Replace it with the one you dropped, keep both with yours numbered like ${kept}, or skip this file.`
-            : `${folder} has a folder or link named ${item.name}. Keep both saves yours numbered like ${kept}, or skip it.`}
-        </DialogDescription>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       {others.length > 0 && (
         <label className="border-foreground/6 bg-background/20 hover:border-foreground/12 hover:bg-background/30 flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition duration-150">
@@ -97,25 +106,16 @@ function UploadConflictQuestion({
         </label>
       )}
       <DialogFooter>
-        <button type="button" className={button} onClick={() => press('skip')}>
-          Skip
-        </button>
-        <button
-          type="button"
-          className={file ? button : primary}
-          onClick={() => press('keep')}
-        >
-          Keep both
-        </button>
-        {file && (
+        {[...answers].reverse().map((choice, index, shown) => (
           <button
+            key={choice}
             type="button"
-            className={primary}
-            onClick={() => press('replace')}
+            className={index === shown.length - 1 ? primary : button}
+            onClick={() => press(choice)}
           >
-            Replace
+            {answerLabels[choice]}
           </button>
-        )}
+        ))}
       </DialogFooter>
     </DialogContent>
   )

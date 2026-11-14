@@ -4,13 +4,11 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 import { ViewerFrame } from '@s4wave/web/frame/ViewerFrame.js'
-import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import type { UploadItem, UploadManager } from './useUploadManager.js'
 import { UploadProgressBottomBar } from './UploadProgressBottomBar.js'
 
 // uploadFields are the fields of an item that sends no file.
 const uploadFields = {
-  handle: {} as FSHandle,
   place: '/docs',
   expect: { kind: 'missing' } as const,
   kept: null,
