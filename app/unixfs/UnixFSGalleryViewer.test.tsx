@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -22,6 +28,12 @@ const h = vi.hoisted(() => ({
     visible: boolean
   },
   routerPath: '',
+  spaceId: 'space-test' as string | null,
+  // realStream runs the real useStreamingResource over streamIndex.
+  realStream: false,
+  streamIndex: null as
+    | null
+    | ((path: string, signal: AbortSignal) => AsyncIterable<unknown>),
   rootHandle: {
     value: {},
     loading: false,
@@ -55,9 +67,33 @@ function buildResource<T>(value: T) {
   }
 }
 
-vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
-  useStreamingResource: () => h.galleryState,
-}))
+vi.mock(
+  '@aptre/bldr-sdk/hooks/useStreamingResource.js',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@aptre/bldr-sdk/hooks/useStreamingResource.js')
+      >()
+    return {
+      useStreamingResource: (
+        ...args: Parameters<typeof actual.useStreamingResource>
+      ) =>
+        h.realStream ? actual.useStreamingResource(...args) : h.galleryState,
+    }
+  },
+)
+
+vi.mock('./gallery.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./gallery.js')>()
+  return {
+    ...actual,
+    streamUnixFSGalleryCandidates: (
+      _handle: unknown,
+      path: string,
+      signal: AbortSignal,
+    ) => h.streamIndex!(path, signal),
+  }
+})
 
 vi.mock('@s4wave/web/router/router.js', () => ({
   usePath: () => h.routerPath,
@@ -107,7 +143,7 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 
 vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   SpaceContainerContext: {
-    useContextSafe: () => ({ spaceId: 'space-test' }),
+    useContextSafe: () => (h.spaceId ? { spaceId: h.spaceId } : null),
   },
 }))
 
@@ -157,6 +193,9 @@ describe('UnixFSGalleryViewer', () => {
     h.downloadURL.mockClear()
     h.photoSliderProps = null
     h.routerPath = ''
+    h.spaceId = 'space-test'
+    h.realStream = false
+    h.streamIndex = null
     h.galleryState = buildGalleryState()
   })
 
@@ -477,5 +516,88 @@ describe('UnixFSGalleryViewer', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(retry).toHaveBeenCalledOnce()
+  })
+
+  it('names the missing Space and keeps tiles unpressable without previews', () => {
+    h.spaceId = null
+    h.galleryState = buildGalleryState({
+      scopePath: '/gallery',
+      items: buildItems(2),
+      errors: [],
+      truncated: false,
+    })
+
+    render(
+      <UnixFSGalleryViewer
+        objectInfo={{
+          info: {
+            case: 'unixfsObjectInfo',
+            value: { unixfsId: 'files', path: '/gallery' },
+          },
+        }}
+        worldState={buildResource(null)}
+      />,
+    )
+
+    expect(
+      screen.getByText(
+        'Previews need a session; open this folder from a Space to see them.',
+      ),
+    ).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Open 1.png' })).toBeNull()
+    expect(h.buildInlineURL).not.toHaveBeenCalled()
+  })
+
+  it("starts a new folder from waiting, never with the last folder's tiles", async () => {
+    h.realStream = true
+    // The first folder yields its index; the second never answers.
+    h.streamIndex = (path, signal) =>
+      (async function* () {
+        if (path === '/a') {
+          yield {
+            scopePath: '/a',
+            items: [
+              {
+                path: '/a/x.png',
+                name: 'x.png',
+                label: 'x.png',
+                mimeType: 'image/png',
+              },
+            ],
+            errors: [],
+            truncated: false,
+          }
+        }
+        await new Promise((resolve) =>
+          signal.addEventListener('abort', resolve),
+        )
+      })()
+    const objectInfo = (path: string) => ({
+      info: {
+        case: 'unixfsObjectInfo' as const,
+        value: { unixfsId: 'files', path },
+      },
+    })
+
+    const view = render(
+      <UnixFSGalleryViewer
+        objectInfo={objectInfo('/a')}
+        worldState={buildResource(null)}
+      />,
+    )
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Open x.png' })).toBeDefined(),
+    )
+
+    view.rerender(
+      <UnixFSGalleryViewer
+        objectInfo={objectInfo('/b')}
+        worldState={buildResource(null)}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: 'Open x.png' })).toBeNull()
+    expect(screen.getByRole('status').textContent).toBe(
+      'Loading the images under /b',
+    )
   })
 })

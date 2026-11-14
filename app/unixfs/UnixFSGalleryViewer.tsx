@@ -45,7 +45,7 @@ const galleryGap = 12
 // preview, in pixels. It matches the h-14 class of the caption.
 const galleryCaptionHeight = 56
 
-interface GalleryPreviewItem {
+export interface GalleryPreviewItem {
   path: string
   name: string
   label: string
@@ -74,7 +74,7 @@ function GalleryTile({
           />
         ) : (
           <div className="text-foreground-alt/40 flex h-full w-full items-center justify-center">
-            <LuImage className="size-8" />
+            <LuImage aria-hidden className="size-8" />
           </div>
         )}
       </div>
@@ -85,7 +85,7 @@ function GalleryTile({
         >
           {item.label}
         </div>
-        <div className="text-foreground-alt/50 truncate text-xs">
+        <div className="text-foreground-alt truncate text-xs">
           {item.mimeType}
         </div>
       </div>
@@ -102,12 +102,17 @@ function GalleryTile({
     )
   }
 
+  // The focus ring sits inside the tile: the list's scroll box clips
+  // anything outside the first row and column.
   return (
     <button
       data-testid="unixfs-gallery-item"
       type="button"
       aria-label={`Open ${item.label}`}
-      className={cn(className, 'focus-ring cursor-zoom-in text-left')}
+      className={cn(
+        className,
+        'focus-ring cursor-zoom-in text-left focus-visible:-outline-offset-2',
+      )}
       onClick={onClick}
     >
       {body}
@@ -122,7 +127,7 @@ const lightboxButtonClassName = cn(
   'w-viewer-press px-0 text-white hover:bg-white/15 pointer-coarse:min-w-11',
 )
 
-interface LightboxSource {
+export interface LightboxSource {
   spaceId: string | null
   sessionIndex: number | null
   unixfsId: string
@@ -199,6 +204,33 @@ function lightboxToolbarRender(
   }
 }
 
+/**
+ * galleryPreviewItems maps the index's images to tiles, each with an inline
+ * preview URL when the pane has a session and Space to read it through.
+ * Session indexes start at 1, so 0 is the context's "no session".
+ */
+export function galleryPreviewItems(
+  items: UnixFSGalleryCandidate[],
+  { spaceId, sessionIndex, unixfsId, httpPathPrefix }: LightboxSource,
+): GalleryPreviewItem[] {
+  return items.map((item) => ({
+    path: item.path,
+    name: item.name,
+    label: item.label,
+    mimeType: item.mimeType,
+    previewURL:
+      !sessionIndex || !spaceId
+        ? undefined
+        : buildUnixFSFileInlineURL(
+            sessionIndex,
+            spaceId,
+            unixfsId,
+            item.path,
+            httpPathPrefix,
+          ),
+  }))
+}
+
 // galleryWatchOptions reopens the index watch after a failure and keeps the
 // last index, so the tiles found stay pressable while it reads again.
 const galleryWatchOptions = { reconnect: true }
@@ -240,22 +272,12 @@ function useGalleryScan(
   const galleryItems = galleryState.value?.items ?? emptyGalleryItems
   const previewItems: GalleryPreviewItem[] = useMemo(
     () =>
-      galleryItems.map((item) => ({
-        path: item.path,
-        name: item.name,
-        label: item.label,
-        mimeType: item.mimeType,
-        previewURL:
-          !sessionIndex || !spaceId
-            ? undefined
-            : buildUnixFSFileInlineURL(
-                sessionIndex,
-                spaceId,
-                unixfsId,
-                item.path,
-                httpPathPrefix,
-              ),
-      })),
+      galleryPreviewItems(galleryItems, {
+        spaceId,
+        sessionIndex,
+        unixfsId,
+        httpPathPrefix,
+      }),
     [galleryItems, sessionIndex, spaceId, unixfsId, httpPathPrefix],
   )
   const lightboxItems = useMemo(
@@ -276,7 +298,7 @@ function useGalleryScan(
 
 // galleryNoteClass is a muted note row above the tiles, padded as the bar.
 const galleryNoteClass =
-  'min-h-viewer-fact-row text-foreground-alt/70 ps-viewer-pad pe-viewer-pad @pane-roomy:ps-viewer-pad-roomy @pane-roomy:pe-viewer-pad-roomy flex shrink-0 items-center text-xs'
+  'min-h-viewer-fact-row text-foreground-alt/70 viewer-inset-x flex shrink-0 items-center text-xs'
 
 interface GalleryRowProps {
   items: GalleryPreviewItem[]
@@ -354,11 +376,10 @@ function GalleryGrid({
   )
 }
 
-interface GalleryBodyProps {
+export interface GalleryBodyProps {
   galleryState: Resource<UnixFSGalleryDiscoveryState>
   items: GalleryPreviewItem[]
   scopePath: string
-  hasSession: boolean
   onOpen: (path: string) => void
 }
 
@@ -367,13 +388,13 @@ interface GalleryBodyProps {
  * failure until the first index, then the tiles, or a row saying the index
  * holds no image. An index once arrived stays while the watch reads again,
  * so the tiles found stay pressable; notes above them say the index stopped
- * at its limit, some folders could not be read, or previews need a session.
+ * at its limit, some folders could not be read, or previews need a session
+ * and a Space: a tile opens only with a preview to show.
  */
-function GalleryBody({
+export function GalleryBody({
   galleryState,
   items,
   scopePath,
-  hasSession,
   onOpen,
 }: GalleryBodyProps) {
   const index = galleryState.value
@@ -424,7 +445,7 @@ function GalleryBody({
           Some folders could not be read; the images found are shown.
         </p>
       )}
-      {items.length > 0 && !hasSession && (
+      {items.some((item) => !item.previewURL) && (
         <p className={galleryNoteClass}>
           Previews need a session; open this folder from a Space to see them.
         </p>
@@ -436,7 +457,7 @@ function GalleryBody({
           message="No images under this path."
         />
       ) : (
-        <div className="ps-viewer-pad pe-viewer-pad @pane-roomy:ps-viewer-pad-roomy @pane-roomy:pe-viewer-pad-roomy min-h-0 flex-1 pt-1">
+        <div className="viewer-inset-x min-h-0 flex-1 pt-1">
           <GalleryGrid items={items} onOpen={onOpen} />
         </div>
       )}
@@ -445,10 +466,19 @@ function GalleryBody({
 }
 
 /**
- * UnixFSGalleryBody shows the image index of the current path as a gallery
- * grid, and opens a lightbox over the images with a preview.
+ * UnixFSGalleryBody gives each path its own gallery, so a new path starts
+ * from waiting rather than drawing the last path's tiles, and its first
+ * failure is reported rather than retried as a reconnect.
  */
-function UnixFSGalleryBody({
+function UnixFSGalleryBody(props: UnixFSBrowserBodyProps) {
+  return <UnixFSGalleryScope key={props.currentPath} {...props} />
+}
+
+/**
+ * UnixFSGalleryScope shows the image index of one path as a gallery grid,
+ * and opens a lightbox over the images with a preview.
+ */
+function UnixFSGalleryScope({
   rootHandle,
   currentPath,
   unixfsId,
@@ -495,7 +525,6 @@ function UnixFSGalleryBody({
       galleryState={galleryState}
       items={previewItems}
       scopePath={scan.scopePath}
-      hasSession={!!sessionIndex}
       onOpen={setLightboxPath}
     />
   )

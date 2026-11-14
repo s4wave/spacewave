@@ -3,18 +3,18 @@
     "name": "a failure after an index drops the tiles",
     "replace": [
       [
-        "  CASE kept /\\ found -> \"tiles\"\n    [] kept -> \"empty\"\n    [] watch = \"failed\" -> \"failed\"",
-        "  CASE watch \\in {\"failed\", \"reconnecting\"} -> \"failed\"\n    [] kept /\\ found -> \"tiles\"\n    [] kept -> \"empty\""
+        "  CASE Kept /\\ found -> \"tiles\"\n    [] Kept -> \"empty\"\n    [] watch = \"failed\" -> \"failed\"",
+        "  CASE watch \\in {\"failed\", \"reconnecting\"} -> \"failed\"\n    [] Kept /\\ found -> \"tiles\"\n    [] Kept -> \"empty\""
       ]
     ],
     "expect": "EveryShownActionWorks"
   },
   {
-    "name": "a tile opens without a session",
+    "name": "a tile opens without a Space",
     "replace": [
       [
-        "  (IF Body = \"tiles\" /\\ session THEN {\"open\"} ELSE {})",
-        "  (IF Body = \"tiles\" THEN {\"open\"} ELSE {})"
+        "  (IF Body = \"tiles\" /\\ Previews THEN {\"open\"} ELSE {})",
+        "  (IF Body = \"tiles\" /\\ session THEN {\"open\"} ELSE {})"
       ]
     ],
     "expect": "EveryShownActionWorks"
@@ -28,5 +28,15 @@
       ]
     ],
     "expect": "NobodyIsStuck"
+  },
+  {
+    "name": "a new folder keeps the last folder's tiles",
+    "replace": [
+      [
+        "  /\\ indexPath' = \"none\"\n  /\\ found' = FALSE\n  /\\ truncated' = FALSE\n  /\\ issues' = FALSE\n  /\\ UNCHANGED <<session, space>>",
+        "  /\\ UNCHANGED <<indexPath, found, truncated, issues, session, space>>"
+      ]
+    ],
+    "expect": "TilesOfCurrentPath"
   }
 ]
