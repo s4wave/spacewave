@@ -18,11 +18,6 @@ export const title = 'Text file: reading, editing and saving'
 export const state = (v: TextFile) => {
   // With no draft the read decides what shows.
   if (v.mode === 'reading') {
-    if (v.seen === 'pending') {
-      return v.read === 'failed'
-        ? 'Saved, version unread, Read again shown'
-        : 'Saved, reading its version'
-    }
     if (v.read === 'waiting') return 'Reading the file'
     if (v.read === 'failed') return 'Read failed, Retry shown'
     if (!v.writable) return 'Shown, read-only'
@@ -31,8 +26,7 @@ export const state = (v: TextFile) => {
   }
 
   // With a draft, a running save, then a refusal not yet read, then a failed
-  // read, then another writer's version, then a save whose version is unread,
-  // then a failed save decide it.
+  // read, then another writer's version, then a failed save decide it.
   if (v.mode === 'saving') return 'Saving'
   if (v.refused && v.seen === v.base) {
     return v.read === 'failed'
@@ -45,7 +39,6 @@ export const state = (v: TextFile) => {
       ? 'Changed by another writer, theirs shown'
       : 'Changed by another writer'
   }
-  if (v.base === 'pending') return 'Editing a save, Save waits for its version'
   if (v.saveFailed) return 'Save failed, draft kept'
   return v.dirty ? 'Editing, not saved' : 'Editing, no changes'
 }

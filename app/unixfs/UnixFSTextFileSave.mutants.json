@@ -21,12 +21,7 @@
   },
   {
     "name": "a read at a version the save replaced is taken",
-    "replace": [
-      [
-        "  \\/ (seen = \"pending\" \\/ base = \"pending\") /\\ v \\in replaced\n",
-        ""
-      ]
-    ],
+    "replace": [["  \\/ v \\in replaced\n", ""]],
     "expect": "SavedNeverReverts"
   },
   {

@@ -24,9 +24,9 @@
 \* changed state, with Save over theirs offered while the viewer reads their
 \* version back; a file removed since is recreated from the draft only while
 \* nothing holds the path. A save that fails keeps the draft and offers the
-\* save again. A landed save carries no version: the viewer shows the saved
-\* text and reads it back, and a plain Save waits until a read shows the new
-\* version. When the read after a save fails, Read again runs it once more.
+\* save again. A landed save returns the version it wrote: the viewer shows the
+\* saved text at that version, and the next plain Save expects it. When the
+\* read after a refusal fails, Read again runs it once more.
 \* UnixFSTextFileSave.tla models these saves with versions, text, previews
 \* and the stale handle in more detail than a chart holds.
 
@@ -63,25 +63,21 @@ Drafted == mode \in {"editing", "saving"}
 ChangedRead == Drafted /\ seen \in Versions /\ seen # base
 \* Another writer's version is under the draft: read, or only refused.
 Changed == ChangedRead \/ (Drafted /\ refused)
-\* The viewer waits for a read: a landed save's version, or theirs.
-Awaiting ==
-  \/ ~Drafted /\ seen = "pending"
-  \/ Drafted /\ base = "pending" /\ ~Changed
-  \/ Drafted /\ refused /\ ~ChangedRead
+\* The viewer waits for a read of the version that refused a plain save.
+Awaiting == Drafted /\ refused /\ ~ChangedRead
 
 \* SaveAccepted is the reducer's guard on a plain save.
-SaveAccepted == Editing /\ dirty /\ ~Changed /\ base # "pending"
+SaveAccepted == Editing /\ dirty /\ ~Changed
 
-\* Land takes a read of the version in storage. The first read after a landed
-\* save moves a draft of it onto the version read; this chart draws that read
-\* as the save's, and UnixFSTextFileSave.tla decides by the text whether it is
-\* the save's or another writer's. A read of the base the store refused is
-\* from before the refusal and changes nothing.
+\* Land takes a read of the version in storage. A read of the base the store
+\* refused is from before the refusal and changes nothing; this chart draws
+\* any other version as another writer's, and UnixFSTextFileSave.tla decides
+\* by the text whether it is.
 Land ==
   IF Drafted /\ refused /\ disk = base
     THEN UNCHANGED <<seen, base, refused>>
     ELSE /\ seen' = disk
-         /\ base' = IF Editing /\ base = "pending" THEN disk ELSE base
+         /\ UNCHANGED base
          /\ refused' = (refused /\ disk # base)
 
 \* Keep records a draft that ends by any step but Discard or a landed save.
@@ -89,11 +85,8 @@ Keep ==
   /\ dropped' = (dropped \/ (Drafted /\ mode' = "reading"))
   /\ UNCHANGED <<blind, clobbered>>
 
-\* Edit opens a draft of a whole read, or of a landed save while its version
-\* is read; Save then waits for that read.
-CanEdit ==
-  /\ mode = "reading" /\ writable /\ whole
-  /\ read = "shown" \/ seen = "pending"
+\* Edit opens a draft of a whole read, or of a landed save.
+CanEdit == mode = "reading" /\ writable /\ whole /\ read = "shown"
 
 Shown(p) ==
   (IF CanEdit THEN {"edit"} ELSE {})
@@ -117,7 +110,7 @@ Allowed(p, b) ==
 Hint(p) ==
   CASE read = "waiting" /\ ~Drafted -> "Names the file it is reading"
     [] mode = "saving" -> "Saving"
-    [] Awaiting /\ read = "waiting" -> "Says what the read after the save is for"
+    [] Awaiting /\ read = "waiting" -> "Says it is reading their version"
     [] mode = "reading" /\ read = "shown" /\ ~writable -> "Says why it is read-only"
     [] mode = "reading" /\ read = "shown" /\ ~whole -> "Says why it cannot be edited"
     [] OTHER -> ""
@@ -214,22 +207,21 @@ SaveOver(p) ==
   /\ Keep
 \* The store commits the save in one step with its check: Save over theirs
 \* always, a plain save only over its base or, recreating the file, over
-\* nothing. The viewer shows the saved text and reads its version back; that
-\* read, and its Read again, are drawn as the viewer's read.
+\* nothing. The viewer shows the saved text at the version the commit
+\* returns.
 SaveDone ==
   /\ mode = "saving"
   /\ overwrite \/ disk \in {base, "gone"}
   /\ clobbered' = (clobbered \/ (~overwrite /\ disk \notin {base, "gone"}))
   /\ disk' \in Versions \ {disk}
-  /\ seen' = "pending"
-  /\ read' = "waiting"
+  /\ seen' = disk'
   /\ mode' = "reading"
   /\ base' = "none"
   /\ dirty' = FALSE
   /\ refused' = FALSE
   /\ overwrite' = FALSE
   /\ saveFailed' = FALSE
-  /\ UNCHANGED <<theirs, writable, whole, blind, dropped>>
+  /\ UNCHANGED <<read, theirs, writable, whole, blind, dropped>>
 \* The store refuses a plain save over another writer's version; nothing is
 \* written, Save over theirs is offered, and the viewer reads theirs back.
 Refused ==
@@ -313,9 +305,9 @@ EditOnlyWhereWritable == "edit" \in Shown("person") => writable /\ whole
 TypeOK ==
   /\ read \in {"waiting", "failed", "shown"}
   /\ disk \in Versions \cup {"gone"}
-  /\ seen \in Versions \cup {"none", "pending"}
+  /\ seen \in Versions \cup {"none"}
   /\ mode \in {"reading", "editing", "saving"}
-  /\ base \in Versions \cup {"none", "pending"}
+  /\ base \in Versions \cup {"none"}
   /\ dirty \in BOOLEAN
   /\ saveFailed \in BOOLEAN
   /\ theirs \in BOOLEAN

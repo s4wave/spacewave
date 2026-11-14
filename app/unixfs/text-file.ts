@@ -60,33 +60,10 @@ export function encodeText(
 ): Uint8Array<ArrayBuffer> {
   return new TextEncoder().encode(crlf ? text.replaceAll('\n', '\r\n') : text)
 }
-/**
- * SavedText is a save that landed before any read showed its version. The
- * upload result carries no version, so the viewer shows the text it wrote and
- * waits for a read; a read at a version the save replaced comes from before
- * the save and is not that read.
- */
-export interface SavedText {
-  text: string
-  crlf: boolean
-  preview: null
-  version: null
-  // replaced lists the versions the viewer knew before the save.
-  replaced: Uint8Array[]
-}
-
-/** TextBase is what the viewer knows is on disk: a read, or a landed save. */
-export type TextBase = TextContent | SavedText
 
 // sameVersion reports whether two versions are equal.
 function sameVersion(x: Uint8Array, y: Uint8Array): boolean {
   return x.length === y.length && x.every((byte, i) => byte === y[i])
-}
-
-// versionsOf lists the versions a base stands for.
-function versionsOf(base: TextBase | null | undefined): Uint8Array[] {
-  if (!base) return []
-  return base.version ? [base.version] : base.replaced
 }
 
 /**
@@ -104,11 +81,10 @@ export interface TextChange {
  */
 export function changeOf(
   draft: TextDraft,
-  seen: TextBase | null,
+  seen: TextContent | null,
 ): TextChange | null {
-  if (seen?.version) {
-    const from = draft.from.version
-    if (!from || !sameVersion(seen.version, from)) return { text: seen.text }
+  if (seen && !sameVersion(seen.version, draft.from.version)) {
+    return { text: seen.text }
   }
   return draft.refused ? { text: null } : null
 }
@@ -120,9 +96,8 @@ export function changeOf(
  */
 export interface TextDraft {
   text: string
-  // from is what the draft started from; a plain Save expects its version,
-  // and waits for a read when it is a save whose version no read showed.
-  from: TextBase
+  // from is what the draft started from; a plain Save expects its version.
+  from: TextContent
   // saving is the save in flight: a plain save, or Save over theirs.
   saving: 'save' | 'over' | null
   // error is the last save's failure.
@@ -131,11 +106,15 @@ export interface TextDraft {
   theirs: boolean
   // refused is set when the store refused a plain save on from's version.
   refused: boolean
+  // retouched is set when a read after a refusal showed the draft's own text
+  // at another version: another writer changed the file, such as its
+  // permissions, but not its text, so a plain Save writes again.
+  retouched: boolean
 }
 
 /**
- * BackRead is the viewer's read after a save: it learns a landed save's
- * version or what refused a plain save. Read again runs it once more.
+ * BackRead is the viewer's read after the store refused a plain save: it
+ * learns what refused it. Read again runs it once more.
  */
 export type BackRead =
   | { state: 'idle' }
@@ -148,7 +127,11 @@ export interface TextFileState {
   // seen is the latest the viewer knows: a read, or a landed save. It is
   // kept through a failed read, so a draft still knows whether another writer
   // saved.
-  seen: TextBase | null
+  seen: TextContent | null
+  // replaced lists the versions the last landed save replaced, until a read
+  // is taken. The file's own handle can still read them; such a read is from
+  // before the save.
+  replaced: Uint8Array[]
   back: BackRead
 }
 
@@ -157,7 +140,7 @@ export type TextFileEvent =
   | { type: 'edit' }
   | { type: 'type'; text: string }
   | { type: 'save'; over: boolean }
-  | { type: 'saved'; text: string; crlf: boolean }
+  | { type: 'saved'; text: string; crlf: boolean; version: Uint8Array }
   | { type: 'save-failed'; error: string }
   | { type: 'refused' }
   | { type: 'back-reading' }
@@ -169,6 +152,7 @@ export type TextFileEvent =
 export const initialTextFileState: TextFileState = {
   draft: null,
   seen: null,
+  replaced: [],
   back: { state: 'idle' },
 }
 
@@ -176,10 +160,7 @@ export const initialTextFileState: TextFileState = {
 // version a landed save replaced, or at the version the store refused.
 function stale(state: TextFileState, content: TextContent): boolean {
   const { draft } = state
-  const before = (base: TextBase | null | undefined) =>
-    base?.version === null &&
-    base.replaced.some((v) => sameVersion(v, content.version))
-  if (before(state.seen) || before(draft?.from)) return true
+  if (state.replaced.some((v) => sameVersion(v, content.version))) return true
   const refused = draft?.refused ? draft.from.version : null
   return !!refused && sameVersion(refused, content.version)
 }
@@ -188,12 +169,21 @@ function stale(state: TextFileState, content: TextContent): boolean {
 // started from changes nothing the draft holds, so the draft moves onto it and
 // takes the read's line endings, which the draft's LF text does not carry; a
 // preview's text is not the file's, so it never moves a draft. A save in
-// flight keeps the version it expected, so a refusal names that version.
-function land(state: TextFileState, content: TextContent): TextFileState {
+// flight keeps the version it expected, so a refusal names that version. A
+// draft the store refused that moves so was refused for a change that left
+// its text alone. A read taken is past the last save, so the versions that
+// save replaced stop being stale; another writer may bring one back.
+function land(prev: TextFileState, content: TextContent): TextFileState {
+  const state = { ...prev, replaced: [] }
   const { draft } = state
   const same = !content.preview && content.text === draft?.from.text
   if (draft && !draft.saving && same) {
-    const moved = { ...draft, from: content, refused: false }
+    const moved = {
+      ...draft,
+      from: content,
+      refused: false,
+      retouched: draft.refused || draft.retouched,
+    }
     return { ...state, seen: content, draft: moved }
   }
   return { ...state, seen: content }
@@ -221,18 +211,16 @@ export function reduceTextFile(
           error: '',
           theirs: false,
           refused: false,
+          retouched: false,
         },
       }
     case 'type':
       if (!draft || draft.saving || draft.theirs) return state
       return { ...state, draft: { ...draft, text: event.text } }
     case 'save':
-      // A plain Save never writes over a version another writer saved, and
-      // waits for the version of a save no read has shown.
+      // A plain Save never writes over a version another writer saved.
       if (!draft || draft.saving) return state
-      if (!event.over) {
-        if (changeOf(draft, state.seen) || !draft.from.version) return state
-      }
+      if (!event.over && changeOf(draft, state.seen)) return state
       return {
         ...state,
         draft: {
@@ -240,21 +228,21 @@ export function reduceTextFile(
           saving: event.over ? 'over' : 'save',
           error: '',
           theirs: false,
+          retouched: false,
         },
       }
     case 'saved': {
-      // The file holds the saved text at a version no read showed yet; the
-      // viewer reads it back.
+      // The file holds the saved text at the version the upload returned.
       if (!draft?.saving) return state
-      const replaced = [...versionsOf(state.seen), ...versionsOf(draft.from)]
-      const seen: SavedText = {
+      const replaced = [draft.from.version]
+      if (state.seen) replaced.push(state.seen.version)
+      const seen: TextContent = {
         text: event.text,
         crlf: event.crlf,
         preview: null,
-        version: null,
-        replaced,
+        version: event.version,
       }
-      return { draft: null, seen, back: { state: 'reading' } }
+      return { draft: null, seen, replaced, back: { state: 'idle' } }
     }
     case 'save-failed':
       if (!draft?.saving) return state
@@ -271,9 +259,10 @@ export function reduceTextFile(
     case 'back-reading':
       return { ...state, back: { state: 'reading' } }
     case 'back-read':
-      // A read from before the save is not the read the viewer waits for.
+      // A read at the version the store refused is not the read the viewer
+      // waits for.
       if (stale(state, event.content)) {
-        const error = 'the file still reads as it was before the save'
+        const error = 'the file still reads as the version your save expected'
         return { ...state, back: { state: 'failed', error } }
       }
       return { ...land(state, event.content), back: { state: 'idle' } }
@@ -292,7 +281,6 @@ export function reduceTextFile(
 export type TextFilePress =
   | 'edit'
   | 'save'
-  | 'savewait'
   | 'saveover'
   | 'saving'
   | 'discard'
@@ -304,15 +292,6 @@ export interface TextFileRead {
   value: TextContent | null
   loading: boolean
   error: Error | null
-}
-
-/**
- * TextFileAwait is a read the view waits for: the version of a landed save,
- * or the other writer's version the store refused a plain save on.
- */
-export interface TextFileAwait {
-  what: 'saved' | 'theirs'
-  back: BackRead
 }
 
 /**
@@ -328,7 +307,6 @@ export type TextFileView =
       text: string
       preview: TextPreview | null
       rereading: boolean
-      awaits: TextFileAwait | null
       presses: TextFilePress[]
     }
   | {
@@ -337,7 +315,9 @@ export type TextFileView =
       // changed is another writer's version under the draft.
       changed: TextChange | null
       readError: Error | null
-      awaits: TextFileAwait | null
+      // theirsRead is the read of the version the store refused a plain save
+      // on, while no read has shown it.
+      theirsRead: BackRead | null
       presses: TextFilePress[]
     }
 
@@ -356,15 +336,12 @@ export function deriveTextFileView(
   const { draft, back } = state
   if (draft) {
     const changed = changeOf(draft, state.seen)
-    let awaits: TextFileAwait | null = null
-    if (changed && changed.text === null) awaits = { what: 'theirs', back }
-    if (!changed && !draft.from.version) awaits = { what: 'saved', back }
     return {
       state: 'editing',
       draft,
       changed,
       readError: read.error,
-      awaits,
+      theirsRead: changed && changed.text === null ? back : null,
       presses: draftPresses(draft, changed),
     }
   }
@@ -383,7 +360,6 @@ export function deriveTextFileView(
     text: shown.text,
     preview: shown.preview,
     rereading,
-    awaits: shown.version ? null : { what: 'saved', back },
     presses: editable ? ['edit'] : [],
   }
 }
@@ -397,14 +373,11 @@ function draftPresses(
   // A running save holds its press alone.
   if (draft.saving) return ['saving']
 
-  // Otherwise a save when dirty: over theirs when changed, waiting while the
-  // saved version is unread, else Save. Then the theirs toggle once their
-  // text is read, and Discard edits.
+  // Otherwise a save when dirty: over theirs when changed, else Save. Then
+  // the theirs toggle once their text is read, and Discard edits.
   const presses: TextFilePress[] = []
-  if (draft.text !== draft.from.text) {
-    if (changed) presses.push('saveover')
-    else presses.push(draft.from.version ? 'save' : 'savewait')
-  }
+  if (draft.text !== draft.from.text)
+    presses.push(changed ? 'saveover' : 'save')
   if (changed?.text != null) presses.push(draft.theirs ? 'mine' : 'theirs')
   presses.push('discard')
   return presses

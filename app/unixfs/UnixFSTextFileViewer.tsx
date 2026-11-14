@@ -31,7 +31,7 @@ import {
   initialTextFileState,
   reduceTextFile,
   type TextContent,
-  type TextFileAwait,
+  type BackRead,
   type TextFileEvent,
   type TextFilePress,
   type TextFileView,
@@ -89,9 +89,9 @@ export async function readTextContent(
 }
 
 /**
- * readFresh reads the file at path through a new lookup under root. After an
- * upload through root, the lookup stands on the committed root, while a
- * handle opened before it can still read the earlier version.
+ * readFresh reads the file at path through a new lookup under root. After the
+ * store refuses an upload through root, the lookup stands on the version that
+ * refused it, while a handle opened before can still read the earlier one.
  */
 async function readFresh(
   root: FSHandle,
@@ -110,15 +110,15 @@ async function readFresh(
 
 /**
  * writeText writes text as the file at path under root while the file still
- * meets expect. A plain save that finds the file removed recreates it only
- * while nothing holds the path, so a removal never reads as another writer's
- * version.
+ * meets expect, and asks for the version it writes. A plain save that finds
+ * the file removed recreates it only while nothing holds the path, so a
+ * removal never reads as another writer's version. It sends no mode: a mode
+ * never changes a file that exists.
  */
 async function writeText(
   root: FSHandle,
   path: string,
   data: Uint8Array<ArrayBuffer>,
-  mode: number,
   expect: TreeUploadExpect,
   signal: AbortSignal,
 ): Promise<TreeUploadResult> {
@@ -132,7 +132,7 @@ async function writeText(
           expect,
           totalSize: BigInt(blob.size),
           stream: blob.stream(),
-          mode,
+          wantVersion: true,
         },
       ],
       undefined,
@@ -219,29 +219,24 @@ export function UnixFSTextFileViewer({
   async function save(over: boolean) {
     // Take the draft's text once; typing after the press is not saved.
     const root = rootHandle.value
-    const handle = file.value
     const draft = state.draft
-    if (!root || !handle || !draft || draft.saving || signal.aborted) return
+    if (!root || !draft || draft.saving || signal.aborted) return
 
     // A plain Save expects the version the draft started from, and the store
-    // refuses it inside the commit when another writer saved since. It waits
-    // while that version is a save no read has shown.
-    let expect: TreeUploadExpect = { kind: 'overwrite' }
-    if (!over) {
-      if (!draft.from.version) return
-      expect = { kind: 'version', version: draft.from.version }
-    }
+    // refuses it inside the commit when another writer saved since.
+    const expect: TreeUploadExpect = over
+      ? { kind: 'overwrite' }
+      : { kind: 'version', version: draft.from.version }
     dispatch({ type: 'save', over })
 
     // Write the draft in the file's line endings, LF for a file that had no
     // line break, and remember the save as a read of those bytes decodes it,
-    // so the read back compares equal.
+    // so a later read of the saved version compares equal.
     const data = encodeText(draft.text, draft.from.crlf)
     const { text, crlf } = decodeText(data, false)
     let result: TreeUploadResult
     try {
-      const mode = handle.getInfo().mode ?? 0o644
-      result = await writeText(root, path, data, mode, expect, signal)
+      result = await writeText(root, path, data, expect, signal)
     } catch (cause) {
       if (!signal.aborted) {
         dispatch({ type: 'save-failed', error: errorText(cause) })
@@ -250,18 +245,24 @@ export function UnixFSTextFileViewer({
     }
     if (signal.aborted) return
 
-    // A landed save shows its text and reads its version back; a refused one
+    // A landed save shows its text at the version it wrote; a refused one
     // offers Save over theirs and reads their version back.
     if (result.kind === 'written') {
-      dispatch({ type: 'saved', text, crlf })
-    } else {
-      dispatch({ type: 'refused' })
+      const version = result.versions[0]?.version
+      if (!version) {
+        dispatch({ type: 'save-failed', error: 'the save returned no version' })
+        return
+      }
+      dispatch({ type: 'saved', text, crlf, version })
+      return
     }
+    dispatch({ type: 'refused' })
     await readBack()
   }
 
-  // readBack reads the file through the root the upload committed on, since
-  // the file's own handle may still show the version before the save.
+  // readBack reads the version that refused a save through the root the
+  // upload checked against, since the file's own handle may still show the
+  // version before it.
   async function readBack() {
     const root = rootHandle.value
     if (!root || signal.aborted) return
@@ -335,14 +336,6 @@ export function TextFileFrame({
       icon: <LuSave />,
       variant: 'primary',
       onClick: () => onSave(false),
-    },
-    savewait: {
-      id: 'save',
-      label: 'Save',
-      icon: <LuSave />,
-      variant: 'primary',
-      disabled: true,
-      onClick: () => {},
     },
     saveover: {
       id: 'save',
@@ -420,33 +413,22 @@ interface TextFileBodyProps {
 const textClass =
   'text-foreground viewer-inset min-h-0 min-w-0 flex-1 overflow-auto font-mono text-xs whitespace-pre-wrap max-sm:text-sm max-sm:leading-6 max-sm:break-words'
 
-// awaitNote says what the read after a save is for, while it runs and after
-// it failed.
-const awaitNote: Record<TextFileAwait['what'], [string, string]> = {
-  saved: [
-    'Saved. Reading its new version before the next Save.',
-    'Saved, but its new version could not be read',
-  ],
-  theirs: ['Reading their version.', 'Could not read their version'],
-}
-
 /**
- * AwaitRow tells the person what the read after a save is for. When it failed
- * or still read as before the save, Read again runs it once more.
+ * TheirsRow tells the person the viewer is reading the version that refused
+ * their save. When that read failed or still showed the version the save
+ * expected, Read again runs it once more.
  */
-function AwaitRow({
-  awaits,
+function TheirsRow({
+  back,
   readBack,
 }: {
-  awaits: TextFileAwait
+  back: BackRead
   readBack: () => void
 }) {
-  const [reading, failed] = awaitNote[awaits.what]
-  const { back } = awaits
   if (back.state === 'reading') {
     return (
       <p role="status" className={cn(rowClass, 'text-foreground-alt')}>
-        {reading}
+        Reading their version.
       </p>
     )
   }
@@ -454,7 +436,7 @@ function AwaitRow({
   return (
     <ViewerStatus
       state="failed"
-      message={`${failed}${error}.`}
+      message={`Could not read their version${error}.`}
       retry={readBack}
       retryLabel="Read again"
     />
@@ -472,7 +454,6 @@ function ReadBody({
   view,
   readOnly,
   retryRead,
-  readBack,
 }: Omit<TextFileBodyProps, 'view'> & {
   view: Exclude<TextFileView, { state: 'editing' }>
 }) {
@@ -501,7 +482,6 @@ function ReadBody({
   }
   return (
     <>
-      {view.awaits && <AwaitRow awaits={view.awaits} readBack={readBack} />}
       {view.preview && (
         <p className={cn(rowClass, 'text-foreground-alt')}>
           {previewNote[view.preview]}
@@ -533,7 +513,7 @@ function DraftBody({
 }: Omit<TextFileBodyProps, 'view'> & {
   view: Extract<TextFileView, { state: 'editing' }>
 }) {
-  const { draft, changed, readError, awaits } = view
+  const { draft, changed, readError, theirsRead } = view
   const over = changed !== null
   const theirText = changed?.text ?? null
   const showTheirs = draft.theirs && theirText !== null
@@ -554,7 +534,13 @@ function DraftBody({
           retryLabel={over ? 'Save over theirs' : 'Retry'}
         />
       )}
-      {awaits && <AwaitRow awaits={awaits} readBack={readBack} />}
+      {theirsRead && <TheirsRow back={theirsRead} readBack={readBack} />}
+      {draft.retouched && !over && (
+        <p role="status" className={cn(rowClass, 'text-foreground-alt')}>
+          Another writer changed this file, but not its text, so your edits were
+          not saved. Save again to write them.
+        </p>
+      )}
       {over && (
         <div
           role="alert"

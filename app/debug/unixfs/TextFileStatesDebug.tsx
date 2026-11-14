@@ -102,25 +102,7 @@ const fixtures: Record<string, Fixture> = {
       edit,
       type,
       { type: 'save', over: false },
-      { type: 'saved', text: mine, crlf: false },
-      {
-        type: 'back-read',
-        content: {
-          text: mine,
-          crlf: false,
-          preview: null,
-          version: new Uint8Array([3]),
-        },
-      },
-    ],
-  },
-  confirming: {
-    reads: [shown(notes)],
-    events: [
-      edit,
-      type,
-      { type: 'save', over: false },
-      { type: 'saved', text: mine, crlf: false },
+      { type: 'saved', text: mine, crlf: false, version: new Uint8Array([3]) },
     ],
   },
   refused: {
@@ -131,6 +113,19 @@ const fixtures: Record<string, Fixture> = {
       { type: 'save', over: false },
       { type: 'refused' },
       { type: 'back-failed', error: 'stream closed' },
+    ],
+  },
+  retouched: {
+    reads: [shown(notes)],
+    events: [
+      edit,
+      type,
+      { type: 'save', over: false },
+      { type: 'refused' },
+      {
+        type: 'back-read',
+        content: { ...notes, version: new Uint8Array([4]) },
+      },
     ],
   },
   'read-failed': {
@@ -183,9 +178,9 @@ function renderNavigator(presses: ReactNode) {
  * the viewport as the pane, for the viewer sweep. Each state is built through
  * the viewer's reducer and derivation: waiting, failed, shown, preview,
  * encoding, empty, readonly, rereading, editing, dirty, saving, save-failed,
- * just-saved, confirming, refused, read-failed, changed and theirs; nav and nav-dirty draw the
- * presses in the file browser's navigator. An unknown or missing state shows
- * shown.
+ * just-saved, refused, retouched, read-failed, changed and theirs; nav and
+ * nav-dirty draw the presses in the file browser's navigator. An unknown or
+ * missing state shows shown.
  */
 export function TextFileStatesDebug() {
   // Read the fixture state from the route.

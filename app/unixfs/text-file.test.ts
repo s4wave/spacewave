@@ -11,6 +11,9 @@ import {
   type TextFileState,
 } from './text-file.js'
 
+// v is the version numbered n.
+const v = (n: number) => new Uint8Array([n])
+
 // read is a whole text read at version v.
 function read(text: string, v: number): TextContent {
   return { text, crlf: false, preview: null, version: new Uint8Array([v]) }
@@ -103,62 +106,39 @@ describe('reduceTextFile', () => {
     expect(state.draft?.from).toBe(same)
   })
 
-  it('starts the next draft from the version a save read back', () => {
-    // A save lands; the read after it brings the new version.
-    const after = read('mine', 3)
+  it('starts the next draft from the version a save wrote', () => {
     const state = replay(
       ...drafted,
       { type: 'save', over: false },
-      { type: 'saved', text: 'mine', crlf: false },
-      { type: 'back-read', content: after },
+      { type: 'saved', text: 'mine', crlf: false, version: v(3) },
     )
 
     // The saved text shows, and the next draft expects its version.
     const view = viewOf(state)
     expect(view.state === 'shown' && view.text).toBe('mine')
     const next = reduceTextFile(state, { type: 'edit' })
-    expect(next.draft?.from).toBe(after)
+    expect(next.draft?.from.version).toEqual(v(3))
   })
 
-  it('shows a landed save until a read shows its version', () => {
-    // A save lands; the file's own handle still reads the version it replaced.
-    const saved = replay(
+  it('keeps a landed save over a read of the version it replaced', () => {
+    // The file's own handle still reads the version the save replaced.
+    const saved: TextFileEvent[] = [
       ...drafted,
       { type: 'save', over: false },
-      { type: 'saved', text: 'mine', crlf: false },
+      { type: 'saved', text: 'mine', crlf: false, version: v(3) },
       { type: 'read', content: original },
-    )
-
-    // The saved text shows, and a draft of it waits to save.
-    const view = viewOf(saved)
+    ]
+    const view = viewOf(replay(...saved))
     expect(view.state === 'shown' && view.text).toBe('mine')
-    const next = reduceTextFile(reduceTextFile(saved, { type: 'edit' }), {
-      type: 'type',
-      text: 'more',
-    })
-    expect(reduceTextFile(next, { type: 'save', over: false })).toBe(next)
-    const waiting = viewOf(next)
-    expect(waiting.state === 'editing' && waiting.presses).toContain('savewait')
 
-    // The first read at another version with the saved text is its version.
-    const after = read('mine', 3)
-    const landed = reduceTextFile(next, { type: 'read', content: after })
-    expect(landed.draft?.from).toBe(after)
-  })
-
-  it('leaves Read again when the read after a save shows the old version', () => {
-    // A save lands; the read back still shows the version it replaced.
-    const state = replay(
-      ...drafted,
-      { type: 'save', over: false },
-      { type: 'saved', text: 'mine', crlf: false },
-      { type: 'back-read', content: original },
+    // A draft of the saved text offers a plain Save at once.
+    const next = viewOf(
+      replay(...saved, { type: 'edit' }, { type: 'type', text: 'more' }),
     )
-
-    // The view keeps the saved text and offers the read again.
-    const view = viewOf(state)
-    expect(view.state === 'shown' && view.text).toBe('mine')
-    expect(view.state === 'shown' && view.awaits?.back.state).toBe('failed')
+    expect(next.state === 'editing' && next.presses).toEqual([
+      'save',
+      'discard',
+    ])
   })
 
   it("takes another writer's text read after a landed save as theirs", () => {
@@ -166,7 +146,7 @@ describe('reduceTextFile', () => {
     const state = replay(
       ...drafted,
       { type: 'save', over: false },
-      { type: 'saved', text: 'mine', crlf: false },
+      { type: 'saved', text: 'mine', crlf: false, version: v(3) },
       { type: 'edit' },
       { type: 'type', text: 'more' },
       { type: 'read', content: theirs },
@@ -191,7 +171,7 @@ describe('reduceTextFile', () => {
     // even after a read that still shows the refused version.
     const view = viewOf(state)
     expect(view.state === 'editing' && view.presses).toContain('saveover')
-    expect(view.state === 'editing' && view.awaits?.what).toBe('theirs')
+    expect(view.state === 'editing' && view.theirsRead?.state).toBe('failed')
     const reread = reduceTextFile(state, { type: 'read', content: original })
     expect(reduceTextFile(reread, { type: 'save', over: false })).toBe(reread)
   })
@@ -240,24 +220,25 @@ describe('reduceTextFile', () => {
     expect(state.draft?.from).toBe(crlf)
   })
 
-  it('moves the next draft onto the read back of a save that lost its line breaks', () => {
-    // A CRLF file is edited down to one line and saved; its bytes hold no
-    // line break, so the read back decodes without CRLF.
-    const after = read('ab', 3)
+  it('says the text did not change when a refusal read back shows the same text', () => {
+    // Another writer changes only the file's permissions: a new version with
+    // the draft's text refuses the save.
+    const chmod = read('original', 4)
     const state = replay(
-      { type: 'read', content: { ...read('a\nb\n', 1), crlf: true } },
-      { type: 'edit' },
-      { type: 'type', text: 'ab' },
+      ...drafted,
       { type: 'save', over: false },
-      { type: 'saved', text: 'ab', crlf: true },
-      { type: 'edit' },
-      { type: 'back-read', content: after },
+      { type: 'refused' },
+      { type: 'back-read', content: chmod },
     )
 
-    // The draft moves onto the saved version, so plain Save expects it.
-    expect(state.draft?.from).toBe(after)
+    // No change is claimed; plain Save writes again over the new version.
     const view = viewOf(state)
     expect(view.state === 'editing' && view.changed).toBeNull()
+    expect(view.state === 'editing' && view.presses).toContain('save')
+    expect(state.draft).toMatchObject({ from: chmod, retouched: true })
+    expect(
+      reduceTextFile(state, { type: 'save', over: false }).draft?.retouched,
+    ).toBe(false)
   })
 })
 

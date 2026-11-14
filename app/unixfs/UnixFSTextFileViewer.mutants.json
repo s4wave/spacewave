@@ -33,8 +33,8 @@
     "name": "Edit shows on a read-only file",
     "replace": [
       [
-        "  /\\ mode = \"reading\" /\\ writable /\\ whole\n",
-        "  /\\ mode = \"reading\" /\\ whole\n"
+        "CanEdit == mode = \"reading\" /\\ writable /\\ whole",
+        "CanEdit == mode = \"reading\" /\\ whole"
       ]
     ],
     "expect": "EditOnlyWhereWritable"
@@ -53,8 +53,8 @@
     "name": "the reducer accepts a plain Save over another writer's version",
     "replace": [
       [
-        "SaveAccepted == Editing /\\ dirty /\\ ~Changed /\\ base # \"pending\"",
-        "SaveAccepted == Editing /\\ dirty /\\ base # \"pending\""
+        "SaveAccepted == Editing /\\ dirty /\\ ~Changed",
+        "SaveAccepted == Editing /\\ dirty"
       ]
     ],
     "expect": "NoBlindOverwrite"
