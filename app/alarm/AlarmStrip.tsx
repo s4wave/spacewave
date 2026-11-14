@@ -5,6 +5,7 @@ import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { useClock } from '@s4wave/web/hooks/useClock.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import { loadDashboardAlarms, type KeyedAlarm } from './alarm-query.js'
@@ -14,7 +15,8 @@ import { alarmStatus, chipText } from './alarm-view.js'
 const clockPeriodMs = 15_000
 
 // AlarmStrip shows a chip for each sounding Alarm linked to the Dashboard key,
-// firing first. It takes no space while none sounds.
+// firing first. It takes no space while none sounds. A failed read shows its
+// notice above the chips it last read, never an empty strip.
 export function AlarmStrip({
   worldState,
   dashboardKey,
@@ -24,17 +26,31 @@ export function AlarmStrip({
   dashboardKey: string
   onOpen: (key: string) => void
 }) {
-  const alarms = resourceContent(
-    useWorldQuery(
-      worldState,
-      (world, signal) => loadDashboardAlarms(world, dashboardKey, signal),
-      [dashboardKey],
-      { key: `dashboard-alarms:${dashboardKey}` },
-    ),
+  // Read the sounding Alarms and age their chips.
+  const alarmsResource = useWorldQuery(
+    worldState,
+    (world, signal) => loadDashboardAlarms(world, dashboardKey, signal),
+    [dashboardKey],
+    { key: `dashboard-alarms:${dashboardKey}` },
   )
+  const alarms = resourceContent(alarmsResource)
   const nowMs = useClock(clockPeriodMs)
-  if (!alarms?.length) return null
-  return <AlarmChips alarms={alarms} nowMs={nowMs} onOpen={onOpen} />
+
+  // Draw the chips, under the failure's notice when the read failed.
+  const chips = alarms?.length ? (
+    <AlarmChips alarms={alarms} nowMs={nowMs} onOpen={onOpen} />
+  ) : null
+  if (!alarmsResource.error) return chips
+  return (
+    <>
+      <ViewerStatus
+        state="failed"
+        message={`Could not read the Alarms: ${alarmsResource.error.message}`}
+        retry={alarmsResource.retry}
+      />
+      {chips}
+    </>
+  )
 }
 
 // AlarmChips draws one chip per Alarm.

@@ -44,6 +44,7 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import type { LoadingState } from '@s4wave/web/ui/loading/types.js'
 import { ObjectViewer } from '@s4wave/web/object/ObjectViewer.js'
 import { ObjectViewerNotFoundState } from '@s4wave/web/object/ObjectViewerNotFoundState.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
 
 interface DisplayStatusCardProps {
@@ -651,7 +652,7 @@ function DisplayContent({ controller }: { controller: DisplayController }) {
   }
 
   // A failed read claims nothing about the object; the kept entry, if any,
-  // still opens it.
+  // still opens it under the failure's notice.
   if (objectEntryResource.error && !objectEntry) {
     return (
       <DisplayStatusCard
@@ -671,7 +672,21 @@ function DisplayContent({ controller }: { controller: DisplayController }) {
     )
   }
 
-  return <DisplayViewer controller={controller} spaceState={spaceState} />
+  // Open the kept entry under the failure's notice when its read failed.
+  const viewer = (
+    <DisplayViewer controller={controller} spaceState={spaceState} />
+  )
+  if (!objectEntryResource.error) return viewer
+  return (
+    <div className="flex h-full w-full flex-col">
+      <ViewerStatus
+        state="failed"
+        message={`Could not read the object: ${objectEntryResource.error.message}`}
+        retry={objectEntryResource.retry}
+      />
+      <div className="min-h-0 flex-1">{viewer}</div>
+    </div>
+  )
 }
 
 // DisplayContainer renders the kiosk display route outside the session tree.

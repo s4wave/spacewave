@@ -16,6 +16,7 @@ import {
   SpaceLinkCompletionMode,
 } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import {
   SessionContext,
   SharedObjectContext,
@@ -157,19 +158,18 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   const completeCommand = completion
     ? `spacewave device complete --completion ${quoteShellArg(completion)}`
     : 'spacewave device complete --completion <completion>'
-  const computers = resourceContent(
-    useWorldQuery(
-      spaceWorldResource,
-      async (world, signal) => {
-        const [devices, dashboards] = await Promise.all([
-          world.listObjectsWithType(DeviceTypeID, signal),
-          world.listObjectsWithType(ComputersDashboardTypeID, signal),
-        ])
-        return { devices, dashboards }
-      },
-      [],
-    ),
+  const computersResource = useWorldQuery(
+    spaceWorldResource,
+    async (world, signal) => {
+      const [devices, dashboards] = await Promise.all([
+        world.listObjectsWithType(DeviceTypeID, signal),
+        world.listObjectsWithType(ComputersDashboardTypeID, signal),
+      ])
+      return { devices, dashboards }
+    },
+    [],
   )
+  const computers = resourceContent(computersResource)
   const deviceKeys = computers?.devices ?? noKeys
   const dashboardKey = computers?.dashboards[0] ?? ''
 
@@ -403,6 +403,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     busy,
     completeCommand,
     completion,
+    computersResource,
     config,
     currentStep,
     deviceKeys,
@@ -452,6 +453,7 @@ function AddDeviceWizardSteps({
     approvalError,
     busy,
     completeCommand,
+    computersResource,
     config,
     currentStep,
     deviceKeys,
@@ -567,6 +569,13 @@ function AddDeviceWizardSteps({
             command={completeCommand}
             icon={<LuTerminal className="size-3.5" />}
           />
+          {computersResource.error && (
+            <ViewerStatus
+              state="failed"
+              message={`Could not read the Device objects: ${computersResource.error.message}`}
+              retry={computersResource.retry}
+            />
+          )}
           {deviceKeys.length > 0 && (
             <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
               <div className="text-foreground text-xs font-medium">

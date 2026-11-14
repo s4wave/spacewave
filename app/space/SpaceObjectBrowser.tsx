@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@s4wave/web/ui/DropdownMenu.js'
 import { DropdownMenuGhostAnchor } from '@s4wave/web/ui/DropdownMenuGhostAnchor.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { Input } from '@s4wave/web/ui/input.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
@@ -335,15 +336,17 @@ function useSpaceObjectBrowserController() {
     setMenuState,
     setRenameValue,
     treeNodes,
+    treeError: tree.error,
     treePlaceholder: objectTreePlaceholder(tree),
+    treeRetry: tree.retry,
     treeState,
   }
 }
 
 // objectTreePlaceholder is what an object tree with no nodes shows: it claims
-// no objects only once the tree read settled.
+// no objects only once the tree read settled. A failed read shows its notice
+// in place of the tree instead.
 function objectTreePlaceholder(tree: ObjectTree): string {
-  if (tree.error) return 'Objects could not load'
   if (tree.loading) return 'Loading objects'
   return 'No objects'
 }
@@ -351,6 +354,45 @@ function objectTreePlaceholder(tree: ObjectTree): string {
 type SpaceObjectBrowserController = ReturnType<
   typeof useSpaceObjectBrowserController
 >
+
+// ObjectTreeCard shows the object tree, and a failed read's notice above the
+// objects it last read, or alone when it kept none.
+function ObjectTreeCard({
+  controller,
+}: {
+  controller: SpaceObjectBrowserController
+}) {
+  const {
+    handleContextMenu,
+    handleOpen,
+    treeError,
+    treeNodes,
+    treePlaceholder,
+    treeRetry,
+    treeState,
+  } = controller
+  return (
+    <InfoCard>
+      {treeError && (
+        <ViewerStatus
+          state="failed"
+          message={`Could not read the objects: ${treeError.message}`}
+          retry={treeRetry}
+        />
+      )}
+      {(!treeError || treeNodes.length > 0) && (
+        <Tree
+          nodes={treeNodes}
+          onRowDefaultAction={handleOpen}
+          onRowContextMenu={handleContextMenu}
+          state={treeState}
+          placeholder={treePlaceholder}
+          className="max-h-75"
+        />
+      )}
+    </InfoCard>
+  )
+}
 
 // SpaceObjectBrowserView renders the tree and its context-menu states.
 function SpaceObjectBrowserView({
@@ -362,14 +404,12 @@ function SpaceObjectBrowserView({
 }) {
   const {
     canDeleteObjects,
-    handleContextMenu,
     handleCopyKey,
     handleCreateObject,
     handleDeleteClick,
     handleDeleteConfirmClick,
     handleIndexConfirmClick,
     handleMenuOpen,
-    handleOpen,
     handleOpenChange,
     handleRenameCancel,
     handleRenameClick,
@@ -387,23 +427,9 @@ function SpaceObjectBrowserView({
     renameValue,
     setMenuState,
     setRenameValue,
-    treeNodes,
-    treePlaceholder,
-    treeState,
   } = controller
 
-  const treeCard = (
-    <InfoCard>
-      <Tree
-        nodes={treeNodes}
-        onRowDefaultAction={handleOpen}
-        onRowContextMenu={handleContextMenu}
-        state={treeState}
-        placeholder={treePlaceholder}
-        className="max-h-75"
-      />
-    </InfoCard>
-  )
+  const treeCard = <ObjectTreeCard controller={controller} />
   const menu = (
     <DropdownMenu open={menuState !== null} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>

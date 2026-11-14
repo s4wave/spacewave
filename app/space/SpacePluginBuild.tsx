@@ -10,6 +10,7 @@ import {
   SpaceContainerContext,
   type SpaceContainerContextValue,
 } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { Input } from '@s4wave/web/ui/input.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
@@ -51,25 +52,32 @@ interface BuildSelections {
   manifestId: string
 }
 
-/** useBuildChoices lists the Space's source folders and build devices. */
+/**
+ * useBuildChoices lists the Space's source folders and build devices. A failed
+ * read keeps the lists it last read and returns its failure beside them.
+ */
 function useBuildChoices(
   spaceWorldResource: SpaceContainerContextValue['spaceWorldResource'],
 ) {
-  const choices = resourceContent(
-    useWorldQuery(
-      spaceWorldResource,
-      async (world, signal) => {
-        const [sources, devices] = await Promise.all([
-          world.listObjectsWithType('unixfs/fs-node', signal),
-          world.listObjectsWithType(DeviceTypeID, signal),
-        ])
-        return { sources, devices }
-      },
-      [],
-    ),
+  const choicesResource = useWorldQuery(
+    spaceWorldResource,
+    async (world, signal) => {
+      const [sources, devices] = await Promise.all([
+        world.listObjectsWithType('unixfs/fs-node', signal),
+        world.listObjectsWithType(DeviceTypeID, signal),
+      ])
+      return { sources, devices }
+    },
+    [],
   )
+  const choices = resourceContent(choicesResource)
 
-  return { sources: choices?.sources ?? [], devices: choices?.devices ?? [] }
+  return {
+    sources: choices?.sources ?? [],
+    devices: choices?.devices ?? [],
+    choicesError: choicesResource.error,
+    choicesRetry: choicesResource.retry,
+  }
 }
 
 /**
@@ -250,10 +258,13 @@ function BuildPanel({
   space: Space
   context: SpaceContainerContextValue
 }) {
-  const id = useId()
   // Selections remain personal; source and build state come from the open World.
+  const id = useId()
   const { spaceWorldResource, navigateToObjects } = context
-  const { sources, devices } = useBuildChoices(spaceWorldResource)
+  const { sources, devices, choicesError, choicesRetry } =
+    useBuildChoices(spaceWorldResource)
+
+  // Hold the person's selections and queue their build.
   const [sourceKey, setSourceKey] = useState('')
   const [deviceKey, setDeviceKey] = useState('')
   const [manifestId, setManifestId] = useState('')
@@ -286,12 +297,19 @@ function BuildPanel({
           Choose a source folder with bldr.yaml and a registered build device. A
           completed build installs into this Space.
         </p>
+        {choicesError && (
+          <ViewerStatus
+            state="failed"
+            message={`Could not read the source folders and build devices: ${choicesError.message}`}
+            retry={choicesRetry}
+          />
+        )}
         <BuildSelect
           label="Source folder"
           value={sourceKey}
           options={sources}
           placeholder={
-            sources.length
+            sources.length || choicesError
               ? 'Choose a source folder'
               : 'Add a source folder to this Space'
           }
@@ -314,7 +332,7 @@ function BuildPanel({
           value={deviceKey}
           options={devices}
           placeholder={
-            devices.length
+            devices.length || choicesError
               ? 'Choose a build device'
               : 'Register a device in Computers first'
           }

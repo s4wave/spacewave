@@ -11,7 +11,11 @@ import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import type { WorldQuery } from '@s4wave/sdk/world/world-query.js'
 import type { TypedObject } from '@s4wave/web/test/world-query.js'
 
-const h = vi.hoisted(() => ({ objects: [] as TypedObject[] }))
+const h = vi.hoisted(() => ({
+  objects: [] as TypedObject[],
+  error: null as Error | null,
+  retry: (() => {}) as () => void,
+}))
 
 const mockRootResource = vi.hoisted(() => ({ value: null }))
 
@@ -50,7 +54,17 @@ vi.mock('@s4wave/web/hooks/useWorldQuery.js', async () => {
       _world: unknown,
       query: WorldQuery<T>,
       deps: DependencyList,
-    ) => useFakeWorldQuery(world, query, deps),
+    ) => {
+      const read = useFakeWorldQuery(world, query, deps)
+      if (!h.error) return read
+      return {
+        value: null,
+        loading: false,
+        error: h.error,
+        last: null,
+        retry: h.retry,
+      }
+    },
   }
 })
 
@@ -60,6 +74,7 @@ describe('SpaceIndex', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+    h.error = null
   })
 
   it('redirects to the configured index path through the space navigator', async () => {
@@ -165,6 +180,27 @@ describe('SpaceIndex', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add an object' }))
     expect(mockOpenCommand).toHaveBeenCalledWith('spacewave.create-object')
+  })
+
+  it('shows the failed read with Retry instead of an empty claim', async () => {
+    h.objects = []
+    h.error = new Error('world closed')
+    h.retry = vi.fn()
+    mockUseSpaceContainer.mockReturnValue({
+      spaceWorldResource: {},
+      spaceState: { settings: {} },
+      spaceWorld: { applyWorldOp: vi.fn() },
+      navigateToSubPath: vi.fn(),
+    })
+
+    render(<SpaceIndex />)
+
+    expect(screen.getByRole('alert').textContent).toContain(
+      "Could not read the Space's objects: world closed",
+    )
+    expect(screen.queryByText('Empty Space')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(h.retry).toHaveBeenCalledTimes(1)
   })
 
   it('renders the empty state without repair when a stale index has no visible replacement', async () => {

@@ -11,6 +11,10 @@ import { useObjectMetadata } from '@s4wave/web/hooks/useObjectMetadata.js'
 import { ViewerRegistryProvider } from '@s4wave/web/hooks/useViewerRegistry.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import { ObjectViewer } from '@s4wave/web/object/ObjectViewer.js'
+import {
+  resourceStatus,
+  ViewerStatus,
+} from '@s4wave/web/object/ViewerStatus.js'
 import type {
   ObjectViewerComponent,
   ObjectViewerComponentProps,
@@ -65,22 +69,33 @@ export function SpacePluginWorkbench({
   const [sourcePath, setSourcePath] = useState('/')
   const [entry, setEntry] = useState('')
   const [objectKey, setObjectKey] = useState('')
-  const objectKeys = resourceContent(
-    useWorldQuery(
-      spaceWorldResource,
-      async (world, signal) => {
-        const page = await world.listObjects(
-          { limit: previewObjectLimit },
-          signal,
-        )
-        return (page.objects ?? []).map((object) => object.objectKey ?? '')
-      },
-      [],
-    ),
+
+  // List the preview objects and read the selected one's type.
+  const objectKeysResource = useWorldQuery(
+    spaceWorldResource,
+    async (world, signal) => {
+      const page = await world.listObjects(
+        { limit: previewObjectLimit },
+        signal,
+      )
+      return (page.objects ?? []).map((object) => object.objectKey ?? '')
+    },
+    [],
   )
-  const selectedType = resourceContent(
-    useObjectMetadata(spaceWorldResource, objectKey),
-  )?.typeId
+  const objectKeys = resourceContent(objectKeysResource)
+  const selectedResource = useObjectMetadata(spaceWorldResource, objectKey)
+  const selectedType = resourceContent(selectedResource)?.typeId
+
+  // A failed read of the preview objects shows its notice over what it kept.
+  const previewStatus = resourceStatus(
+    'the preview objects',
+    objectKeysResource,
+    selectedResource,
+  )
+  const previewFailure =
+    previewStatus?.state === 'failed' ? previewStatus : null
+
+  // Preview through the chosen frontend module, or the first one.
   const entrypoints = frontend.value?.session.entrypoints ?? []
   const entrypoint = entrypoints.includes(entry) ? entry : entrypoints[0]
 
@@ -211,6 +226,7 @@ export function SpacePluginWorkbench({
               )}
             </select>
           </div>
+          {previewFailure && <ViewerStatus {...previewFailure} />}
           <div className="min-h-0 flex-1">
             {viewers.length > 0 ? (
               <ViewerRegistryProvider staticViewers={viewers}>
@@ -225,10 +241,12 @@ export function SpacePluginWorkbench({
                 />
               </ViewerRegistryProvider>
             ) : (
-              <p className="text-foreground-alt/70 p-4 text-sm">
-                Build and install the plugin, create one of its objects, then
-                select it here.
-              </p>
+              !previewFailure && (
+                <p className="text-foreground-alt/70 p-4 text-sm">
+                  Build and install the plugin, create one of its objects, then
+                  select it here.
+                </p>
+              )
             )}
           </div>
         </section>

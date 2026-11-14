@@ -157,11 +157,15 @@ function useVmV86(
   // Default every field that has not loaded yet.
   const vm = vmResource.value ?? VmV86.create()
   useObjectName(vm.name)
+
   // Hold the view while the edges for this VM first load, so no default
-  // image stands in for them; a reconnect keeps the edges it had.
+  // image stands in for them; a reconnect keeps the edges it had, and a
+  // failed read keeps them under its notice.
   const edges = resourceContent(edgesResource)
   return {
     loaded: !!vmResource.value && (edges !== null || !edgesResource.loading),
+    edgesError: edgesResource.error,
+    edgesRetry: edgesResource.retry,
     loadError: vmResource.error,
     name: vm.name || objectKey,
     state: vm.observedState ?? VmState.VmState_STOPPED,
@@ -189,7 +193,7 @@ export default function VmV86Viewer({
   const contextContentsResource = SpaceContentsContext.useContext()
   const contents = useResourceValue(spaceContents ?? contextContentsResource)
   const world = worldState.value
-  const vm = useVmV86(worldState, objectKey)
+  const { edgesError, edgesRetry, ...vm } = useVmV86(worldState, objectKey)
   const [operationError, request] = useVmRequest()
 
   // setVmState requests a target state from the view.
@@ -232,6 +236,13 @@ export default function VmV86Viewer({
       ) : (
         <>
           <VmHeader state={vm.state} />
+          {edgesError && (
+            <ViewerStatus
+              state="failed"
+              message={`Could not read the virtual machine's images: ${edgesError.message}`}
+              retry={edgesRetry}
+            />
+          )}
           <VmMachineCard
             {...vm}
             operationError={operationError}

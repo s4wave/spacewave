@@ -32,7 +32,9 @@ const h = vi.hoisted<{
   navigateToObjects: ReturnType<typeof vi.fn<(objectKeys: string[]) => void>>
   visibleWizardTypes: Set<string>
   objects: Array<{ objectKey: string; objectType: string }>
+  error: Error | null
 }>(() => ({
+  error: null,
   applyWorldOp: vi
     .fn<ApplyWorldOp>()
     .mockResolvedValue({ seqno: 1n, sysErr: false }),
@@ -66,7 +68,17 @@ vi.mock('@s4wave/web/hooks/useWorldQuery.js', async () => {
       _world: unknown,
       query: WorldQuery<T>,
       deps: DependencyList,
-    ) => useFakeWorldQuery(world, query, deps),
+    ) => {
+      const read = useFakeWorldQuery(world, query, deps)
+      if (!h.error) return read
+      return {
+        value: null,
+        loading: false,
+        error: h.error,
+        last: null,
+        retry: () => {},
+      }
+    },
   }
 })
 
@@ -88,6 +100,7 @@ describe('ComputersDashboardViewer', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+    h.error = null
   })
 
   function getHeaderAddDeviceButton() {
@@ -113,6 +126,28 @@ describe('ComputersDashboardViewer', () => {
     expect(await screen.findByText('devices/build-host')).toBeTruthy()
     expect(screen.getByText('hosts/prod')).toBeTruthy()
     expect(screen.getAllByText('1')).toHaveLength(2)
+  })
+
+  it('shows a failed read alone, with no counts or empty inventory', () => {
+    h.error = new Error('world closed')
+    render(
+      <ComputersDashboardViewer
+        objectInfo={{}}
+        worldState={{
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Could not read the computers: world closed',
+    )
+    expect(screen.queryByText('SSH hosts')).toBeNull()
+    expect(screen.queryByText('No computers added')).toBeNull()
+    expect(screen.queryByRole('button', { name: /add device/i })).toBeNull()
   })
 
   it('opens the seeded Add Device wizard instead of creating another one', async () => {

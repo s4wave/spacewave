@@ -14,6 +14,7 @@ import {
   isHiddenSpaceObject,
   OBJECT_KEY_DELIMITER,
 } from '@s4wave/web/space/object-tree.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
@@ -137,13 +138,12 @@ export function SpaceIndex() {
   const repairedIndexPathRef = useRef<string | null>(null)
 
   const indexPath = spaceState.settings?.indexPath
-  const indexResolution = resourceContent(
-    useWorldQuery(
-      spaceWorldResource,
-      (world, signal) => resolveSpaceIndex(world, indexPath, signal),
-      [indexPath],
-    ),
+  const indexResource = useWorldQuery(
+    spaceWorldResource,
+    (world, signal) => resolveSpaceIndex(world, indexPath, signal),
+    [indexPath],
   )
+  const indexResolution = resourceContent(indexResource)
   const redirectPath =
     indexResolution?.path && indexResolution.path !== '/'
       ? indexResolution.path
@@ -186,13 +186,30 @@ export function SpaceIndex() {
     )
   }, [stale, redirectPath, spaceWorld, indexPath])
 
-  if (!indexResolution || redirectPath) {
+  if (redirectPath) {
+    return null
+  }
+
+  // A failed read claims nothing about the Space: its notice stands alone
+  // unless the objects it last read are kept beneath it.
+  const failure = indexResource.error && (
+    <ViewerStatus
+      state="failed"
+      message={`Could not read the Space's objects: ${indexResource.error.message}`}
+      retry={indexResource.retry}
+    />
+  )
+  if (failure && !indexResolution?.hasVisibleObjects) {
+    return <div className="flex min-h-0 flex-1 flex-col">{failure}</div>
+  }
+  if (!indexResolution) {
     return null
   }
 
   if (indexResolution.hasVisibleObjects) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
+        {failure}
         <EmptyState
           className="shrink-0"
           icon={<LuBox className="text-foreground-alt size-7" />}

@@ -18,6 +18,7 @@ import {
 import { pluginPathPrefix } from '@s4wave/app/urls.js'
 import { ObjectViewer } from '@s4wave/web/object/ObjectViewer.js'
 import { ObjectViewerLoadingState } from '@s4wave/web/object/ObjectViewerLoadingState.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
 import { getQuickstartInitialObjectHandoff } from '@s4wave/app/quickstart/session-handoff.js'
 import { useObjectMetadata } from '@s4wave/web/hooks/useObjectMetadata.js'
@@ -244,7 +245,7 @@ export function SpaceObjectContainer() {
   }
 
   // Show the selected Space object.
-  return (
+  const viewer = (
     <ObjectViewer
       objectInfo={objectInfo}
       worldState={spaceWorldResource}
@@ -255,5 +256,21 @@ export function SpaceObjectContainer() {
       onBreadcrumbClick={navigateToRoot}
       stateNamespace={['objectViewer', objectKey ?? 'none']}
     />
+  )
+  if (!metadata.error) {
+    return viewer
+  }
+
+  // A failed type read shows its notice, above the viewer only when a type
+  // is still known; with none it opens no viewer that would guess one.
+  return (
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <ViewerStatus
+        state="failed"
+        message={`Could not read the object: ${metadata.error.message}`}
+        retry={metadata.retry}
+      />
+      {objectType && <div className="min-h-0 flex-1">{viewer}</div>}
+    </div>
   )
 }

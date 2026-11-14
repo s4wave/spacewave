@@ -27,6 +27,8 @@ export interface ObjectTree {
   loading: boolean
   // error is the failure of the levels' watch, or null.
   error: Error | null
+  // retry reads the levels again after a failure.
+  retry: () => void
   // loadMore reads one more page of the level under prefix.
   loadMore: (prefix: string) => void
 }
@@ -91,6 +93,7 @@ export function useObjectTree(
     nodes,
     loading: levelsResource.loading,
     error: levelsResource.error,
+    retry: levelsResource.retry,
     loadMore,
   }
 }

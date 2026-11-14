@@ -22,6 +22,7 @@ import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { DeviceHandle, DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { DeviceAvailabilityState } from '@s4wave/sdk/device/device.pb.js'
 import { SshHostHandle, SshHostTypeID } from '@s4wave/sdk/sshhost/sshhost.js'
@@ -45,23 +46,26 @@ const noKeys: string[] = []
 export function ComputersDashboardViewer({
   worldState,
 }: ObjectViewerComponentProps) {
+  // Read the Space's Devices, SSH Hosts and Add Device wizards.
   const { navigateToObjects, spaceWorld, spaceWorldResource } =
     SpaceContainerContext.useContext()
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
-  const computers = resourceContent(
-    useWorldQuery(
-      spaceWorldResource,
-      async (world, signal) => {
-        const [devices, hosts, wizards] = await Promise.all([
-          world.listObjectsWithType(DeviceTypeID, signal),
-          world.listObjectsWithType(SshHostTypeID, signal),
-          world.listObjectsWithType(AddDeviceWizardTypeID, signal),
-        ])
-        return { devices, hosts, wizards }
-      },
-      [],
-    ),
+  const computersResource = useWorldQuery(
+    spaceWorldResource,
+    async (world, signal) => {
+      const [devices, hosts, wizards] = await Promise.all([
+        world.listObjectsWithType(DeviceTypeID, signal),
+        world.listObjectsWithType(SshHostTypeID, signal),
+        world.listObjectsWithType(AddDeviceWizardTypeID, signal),
+      ])
+      return { devices, hosts, wizards }
+    },
+    [],
   )
+
+  // A failed read keeps the inventory it last read under its notice; with
+  // none kept the notice alone claims nothing about the Space's computers.
+  const computers = resourceContent(computersResource)
   const devices = computers?.devices ?? noKeys
   const hosts = computers?.hosts ?? noKeys
   const seededAddDeviceWizardKey = computers?.wizards[0] ?? ''
@@ -164,73 +168,82 @@ export function ComputersDashboardViewer({
             : []
         }
       />
-      <div className="viewer-inset min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-          {openingError && (
-            <div
-              className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
-              role="alert"
-            >
-              {openingError}
-            </div>
-          )}
-          <FigureStrip
-            figures={[
-              { label: 'Devices', value: devices.length },
-              { label: 'SSH hosts', value: hosts.length },
-              { label: 'Online', value: online, unit: `of ${total}` },
-            ]}
-          />
+      {computersResource.error && (
+        <ViewerStatus
+          state="failed"
+          message={`Could not read the computers: ${computersResource.error.message}`}
+          retry={computersResource.retry}
+        />
+      )}
+      {(computers || !computersResource.error) && (
+        <div className="viewer-inset min-h-0 flex-1 overflow-auto">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+            {openingError && (
+              <div
+                className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
+                role="alert"
+              >
+                {openingError}
+              </div>
+            )}
+            <FigureStrip
+              figures={[
+                { label: 'Devices', value: devices.length },
+                { label: 'SSH hosts', value: hosts.length },
+                { label: 'Online', value: online, unit: `of ${total}` },
+              ]}
+            />
 
-          {computers && devices.length + hosts.length === 0 ? (
-            <InfoCard
-              icon={<LuMonitor className="text-foreground-alt/60 size-3.5" />}
-              title="No computers added"
-            >
-              <div className="flex flex-col items-start gap-3">
-                <p className="text-foreground-alt/70 text-xs leading-relaxed">
-                  Add a managed Device for persistent capabilities, or add an
-                  SSH Host for on-demand terminal access.
-                </p>
-              </div>
-            </InfoCard>
-          ) : (
-            <section className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-foreground text-xs font-medium select-none">
-                  Inventory
-                </h3>
-                <div className="flex items-center gap-1" role="tablist">
-                  <FilterButton
-                    active={filter === 'all'}
-                    onClick={() => setFilter('all')}
-                  >
-                    All
-                  </FilterButton>
-                  <FilterButton
-                    active={filter === 'devices'}
-                    onClick={() => setFilter('devices')}
-                  >
-                    Devices
-                  </FilterButton>
-                  <FilterButton
-                    active={filter === 'hosts'}
-                    onClick={() => setFilter('hosts')}
-                  >
-                    SSH Hosts
-                  </FilterButton>
+            {computers && devices.length + hosts.length === 0 ? (
+              <InfoCard
+                icon={<LuMonitor className="text-foreground-alt/60 size-3.5" />}
+                title="No computers added"
+              >
+                <div className="flex flex-col items-start gap-3">
+                  <p className="text-foreground-alt/70 text-xs leading-relaxed">
+                    Add a managed Device for persistent capabilities, or add an
+                    SSH Host for on-demand terminal access.
+                  </p>
                 </div>
-              </div>
-              <InventoryPanel
-                entries={inventory}
-                worldState={worldState}
-                onOnline={handleOnline}
-                onOpen={(objectKey) => navigateToObjects([objectKey])}
-              />
-            </section>
-          )}
+              </InfoCard>
+            ) : (
+              <section className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-foreground text-xs font-medium select-none">
+                    Inventory
+                  </h3>
+                  <div className="flex items-center gap-1" role="tablist">
+                    <FilterButton
+                      active={filter === 'all'}
+                      onClick={() => setFilter('all')}
+                    >
+                      All
+                    </FilterButton>
+                    <FilterButton
+                      active={filter === 'devices'}
+                      onClick={() => setFilter('devices')}
+                    >
+                      Devices
+                    </FilterButton>
+                    <FilterButton
+                      active={filter === 'hosts'}
+                      onClick={() => setFilter('hosts')}
+                    >
+                      SSH Hosts
+                    </FilterButton>
+                  </div>
+                </div>
+                <InventoryPanel
+                  entries={inventory}
+                  worldState={worldState}
+                  onOnline={handleOnline}
+                  onOpen={(objectKey) => navigateToObjects([objectKey])}
+                />
+              </section>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
