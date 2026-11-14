@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
+import { PanelKind, ResultType } from '@s4wave/sdk/prom/prom.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { PromDashboardViewer } from './PromDashboardViewer.js'
@@ -16,6 +17,7 @@ const { reads } = vi.hoisted(() => ({
     dash: null as unknown as Resource<unknown>,
     targets: null as unknown as Resource<unknown>,
     handle: null as unknown as Resource<unknown>,
+    path: '/',
   },
 }))
 
@@ -43,7 +45,7 @@ vi.mock('@s4wave/app/alarm/AlarmStrip.js', () => ({
 }))
 
 vi.mock('@s4wave/web/router/router.js', () => ({
-  usePath: () => '/',
+  usePath: () => reads.path,
   useNavigate: () => vi.fn(),
 }))
 
@@ -90,6 +92,7 @@ function renderViewer() {
 describe('PromDashboardViewer', () => {
   beforeEach(() => {
     reads.calls = 0
+    reads.path = '/'
     reads.handle = resource({ state: 'ready', handle: {} })
   })
   afterEach(cleanup)
@@ -182,6 +185,8 @@ describe('PromDashboardViewer', () => {
     reads.dash = resource({ panels: [] })
     reads.targets = resource(new Map([['target/forge', {}]]))
     const view = renderViewer()
+
+    // The writer types a title; count the suggestion queries so far.
     fireEvent.click(screen.getByRole('button', { name: 'Add panel' }))
     fireEvent.change(screen.getByLabelText('Title'), {
       target: { value: 'Load' },
@@ -228,6 +233,73 @@ describe('PromDashboardViewer', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDefined()
     expect(next.labelValues).toHaveBeenCalled()
     container.canDeleteObjects = false
+  })
+
+  it('withholds Save while the handle watch waits to reconnect over its released handle', () => {
+    // A writer opens the new panel editor on the live handle and types.
+    container.canDeleteObjects = true
+    const first = { ...promHandle(), released: false }
+    reads.handle = resource({ state: 'ready', handle: first })
+    reads.dash = resource({ panels: [] })
+    reads.targets = resource(new Map([['target/forge', {}]]))
+    const view = renderViewer()
+
+    // The writer types a title, and Save is offered on the live handle.
+    fireEvent.click(screen.getByRole('button', { name: 'Add panel' }))
+    fireEvent.change(screen.getByLabelText('Title'), {
+      target: { value: 'Load' },
+    })
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDefined()
+
+    // The watch's stream fails before its backoff cap: it released the
+    // handle and waits to reconnect, still reporting the ready state.
+    first.released = true
+    reads.handle = resource({ state: 'ready', handle: first }, null, true)
+    view.rerender(viewerElement())
+
+    // The draft stays and Save is withheld until the next handle arrives.
+    expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe(
+      'Load',
+    )
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    container.canDeleteObjects = false
+  })
+
+  it('keeps a panel answer when the range changes under a lost handle', async () => {
+    // A value panel answers on the live handle.
+    const handle = {
+      ...promHandle(),
+      query: vi.fn(async () => ({
+        resultType: ResultType.VECTOR,
+        series: [{ labels: {}, samples: [{ timeMs: 1n, value: 42 }] }],
+      })),
+    }
+    const panels = [
+      { id: 'p1', title: 'Load', expr: 'up', kind: PanelKind.VALUE },
+    ]
+    reads.handle = resource({ state: 'ready', handle })
+    reads.dash = resource({ panels })
+    reads.targets = resource(new Map([['target/forge', {}]]))
+    const view = renderViewer()
+
+    // The answer arrives and is drawn.
+    await act(async () => {})
+    expect(screen.getByText('42')).toBeDefined()
+    const queries = handle.query.mock.calls.length
+
+    // The handle watch fails over its last records, and the reader picks
+    // another range while it is lost.
+    const lost = new Error('plugin stream closed')
+    reads.handle = resource(null, lost)
+    reads.dash = resource(null, lost, false, { panels })
+    reads.targets = resource(null, lost, false, new Map([['target/forge', {}]]))
+    reads.path = '/6h'
+    view.rerender(viewerElement())
+    await act(async () => {})
+
+    // The answer stays drawn under the failure and no query ran.
+    expect(screen.getByText('42')).toBeDefined()
+    expect(handle.query.mock.calls.length).toBe(queries)
   })
 
   it('waits while either record has not arrived', () => {

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
+import { isReleasedHandle } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import type { Resource as SDKResource } from '@aptre/bldr-sdk/resource/resource.js'
@@ -47,9 +48,11 @@ export function useWatchTypedHandle<T extends SDKResource>(
 /** HeldTypedHandle is the handle a viewer draws its body on. */
 export type HeldTypedHandle<T> = {
   handle: T
-  // live is set while handle is the watch's ready handle. Otherwise it is
-  // the last ready handle, already released: the body reads it only through
-  // watches that report the loss, runs no query on it, and offers no write.
+  // live is set while handle is the watch's ready handle and not released.
+  // Otherwise it is the last ready handle, already released, as it is while
+  // the watch fails, reloads, or waits to reconnect still showing its ready
+  // state: the body reads it only through watches that report the loss, runs
+  // no query on it, and offers no write.
   live: boolean
 }
 
@@ -65,6 +68,8 @@ export function useHeldTypedHandle<T>(
   handle: Resource<TypedHandle<T>>,
   objectKey: string,
 ): HeldTypedHandle<T> | null {
+  // Take the watch's ready handle, else the last one held for objectKey
+  // while the watch fails or reloads.
   const value = handle.value
   const ready = value?.state === 'ready' ? value.handle : null
   const [last, setLast] = useState<{ key: string; handle: T } | null>(null)
@@ -75,10 +80,16 @@ export function useHeldTypedHandle<T>(
       ? last.handle
       : null
   const held = ready ?? kept
+
+  // Remember the held handle for the next render.
   if (held !== (last?.handle ?? null) || (held && last?.key !== objectKey)) {
     setLast(held ? { key: objectKey, handle: held } : null)
   }
-  return held ? { handle: held, live: held === ready } : null
+
+  // A released handle is held but never live.
+  return held
+    ? { handle: held, live: held === ready && !isReleasedHandle(held) }
+    : null
 }
 
 /**
