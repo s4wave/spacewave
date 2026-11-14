@@ -7672,3 +7672,51 @@ export const CreateWithStateRequest: MessageType<CreateWithStateRequest> =
       [9, 'transfer_origin', 12],
     ],
   )
+
+/**
+ * SeedStateRequest is the request body for POST /sobject/:id/seed-state. It
+ * writes the genesis config and checkpoint of an object that exists with no
+ * config yet, as create-with-state writes a new object's, in one write.
+ *
+ * @generated from message provider.spacewave.api.SeedStateRequest
+ */
+export interface SeedStateRequest {
+  /**
+   * ConfigState is the signed genesis config state payload.
+   */
+  configState?: Uint8Array
+  /**
+   * CheckpointState is the PostCheckpointRequest carrying the owner-signed
+   * initial checkpoint.
+   */
+  checkpointState?: Uint8Array
+  /**
+   * TransferOrigin is a transfer's record of where the state came from,
+   * opaque to the server, stored with the object's head as create-with-state
+   * stores it.
+   */
+  transferOrigin?: Uint8Array
+}
+
+export const SeedStateRequest: MessageType<SeedStateRequest> =
+  /* @__PURE__ */ createMessageType<SeedStateRequest>(
+    'provider.spacewave.api.SeedStateRequest',
+    () => [
+      [1, 'config_state', 12],
+      [2, 'checkpoint_state', 12],
+      [3, 'transfer_origin', 12],
+    ],
+  )
+
+/**
+ * SeedStateResponse is the response body for POST /sobject/:id/seed-state.
+ *
+ * @generated from message provider.spacewave.api.SeedStateResponse
+ */
+export interface SeedStateResponse {}
+
+export const SeedStateResponse: MessageType<SeedStateResponse> =
+  /* @__PURE__ */ createMessageType<SeedStateResponse>(
+    'provider.spacewave.api.SeedStateResponse',
+    () => [],
+  )

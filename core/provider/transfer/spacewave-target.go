@@ -84,8 +84,8 @@ type cloudResync struct {
 }
 
 // cloudGenesis is the write a listed Space with no origin and no config
-// takes: its genesis config, which the cloud refuses on a configured Space,
-// then its checkpoint.
+// takes: its genesis config, checkpoint and origin in one seed, which the
+// cloud refuses on a configured Space.
 type cloudGenesis struct{}
 
 // ReadSharedObject reads what the cloud holds under sharedObjectID. The cloud
@@ -242,7 +242,7 @@ func (t *SpacewaveTransferTarget) WriteSharedObjectState(ctx context.Context, le
 	case cloudResync:
 		err = t.resync(ctx, le, sharedObjectID, stateData, origin, exp.head)
 	case cloudGenesis:
-		err = t.writeGenesis(ctx, le, sharedObjectID, stateData)
+		err = t.writeGenesis(ctx, le, sharedObjectID, stateData, origin)
 	default:
 		return ErrTargetChanged
 	}
@@ -255,49 +255,58 @@ func (t *SpacewaveTransferTarget) WriteSharedObjectState(ctx context.Context, le
 // create creates the Space with a genesis holding stateData and the
 // transfer's origin, in one request.
 func (t *SpacewaveTransferTarget) create(ctx context.Context, le *logrus.Entry, sharedObjectID string, stateData []byte, origin *TransferOrigin, meta *sobject.SharedObjectMeta) error {
-	// Build the genesis naming the account's session as owner.
-	owner, entityID, username, err := t.account.GetSpaceOwner(ctx)
+	seed, err := t.buildSeed(ctx, le, sharedObjectID, stateData, origin)
 	if err != nil {
 		return err
 	}
-	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, entityID, username, stateData)
-	if err != nil {
-		return err
-	}
-	genesisData, err := genesis.MarshalVT()
-	if err != nil {
-		return err
-	}
-	envelopes, err := t.account.GenesisRecoveryEnvelopes(ctx, sharedObjectID, owner, state)
-	if err != nil {
-		return err
-	}
-
-	// Encode the config, checkpoint and origin the request carries.
-	config, err := (&api.PostConfigStateRequest{ConfigChange: genesisData, KeyEpoch: state.CurrentKeyEpoch(), RecoveryEnvelopes: envelopes}).MarshalVT()
-	if err != nil {
-		return err
-	}
-	checkpoint, err := (&api.PostCheckpointRequest{Checkpoint: state.GetCheckpoint()}).MarshalVT()
-	if err != nil {
-		return err
-	}
-	src, err := origin.MarshalVT()
-	if err != nil {
-		return err
-	}
-
-	// Create the Space with them.
 	return t.account.GetSessionClient().CreateSharedObjectWithState(ctx, sharedObjectID, &api.CreateWithStateRequest{
 		DisplayName:     space.SharedObjectName(meta),
 		ObjectType:      meta.GetBodyType(),
 		OwnerType:       "account",
 		OwnerId:         t.accountID,
 		AccountPrivate:  meta.GetAccountPrivate(),
-		ConfigState:     config,
-		CheckpointState: checkpoint,
-		TransferOrigin:  src,
+		ConfigState:     seed.GetConfigState(),
+		CheckpointState: seed.GetCheckpointState(),
+		TransferOrigin:  seed.GetTransferOrigin(),
 	})
+}
+
+// buildSeed builds the genesis config holding stateData that names the
+// account's session as owner, its checkpoint, and the encoded origin, as the
+// cloud takes them on a create or a seed.
+func (t *SpacewaveTransferTarget) buildSeed(ctx context.Context, le *logrus.Entry, sharedObjectID string, stateData []byte, origin *TransferOrigin) (*api.SeedStateRequest, error) {
+	// Build the genesis naming the account's session as owner.
+	owner, entityID, username, err := t.account.GetSpaceOwner(ctx)
+	if err != nil {
+		return nil, err
+	}
+	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, entityID, username, stateData)
+	if err != nil {
+		return nil, err
+	}
+	genesisData, err := genesis.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	envelopes, err := t.account.GenesisRecoveryEnvelopes(ctx, sharedObjectID, owner, state)
+	if err != nil {
+		return nil, err
+	}
+
+	// Encode the config, checkpoint and origin.
+	config, err := (&api.PostConfigStateRequest{ConfigChange: genesisData, KeyEpoch: state.CurrentKeyEpoch(), RecoveryEnvelopes: envelopes}).MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	checkpoint, err := (&api.PostCheckpointRequest{Checkpoint: state.GetCheckpoint()}).MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	src, err := origin.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	return &api.SeedStateRequest{ConfigState: config, CheckpointState: checkpoint, TransferOrigin: src}, nil
 }
 
 // resync posts a checkpoint holding stateData over the transfer's own write,
@@ -352,35 +361,15 @@ func (t *SpacewaveTransferTarget) resync(ctx context.Context, le *logrus.Entry, 
 	return cli.PostTransferCheckpoint(ctx, sharedObjectID, checkpoint, head, src)
 }
 
-// writeGenesis writes the genesis config holding stateData to a listed Space
-// with no config, then its checkpoint. The cloud refuses a genesis config on
-// a configured Space.
-func (t *SpacewaveTransferTarget) writeGenesis(ctx context.Context, le *logrus.Entry, sharedObjectID string, stateData []byte) error {
-	// Build the genesis naming the account's session as owner.
-	owner, entityID, username, err := t.account.GetSpaceOwner(ctx)
+// writeGenesis writes the genesis config holding stateData, its checkpoint
+// and the transfer's origin to a listed Space with no config, in one request
+// the cloud refuses once the Space has a config.
+func (t *SpacewaveTransferTarget) writeGenesis(ctx context.Context, le *logrus.Entry, sharedObjectID string, stateData []byte, origin *TransferOrigin) error {
+	seed, err := t.buildSeed(ctx, le, sharedObjectID, stateData, origin)
 	if err != nil {
 		return err
 	}
-	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, entityID, username, stateData)
-	if err != nil {
-		return err
-	}
-	genesisData, err := genesis.MarshalVT()
-	if err != nil {
-		return err
-	}
-	envelopes, err := t.account.GenesisRecoveryEnvelopes(ctx, sharedObjectID, owner, state)
-	if err != nil {
-		return err
-	}
-
-	// Post its config, which the cloud refuses on a configured Space, then
-	// its checkpoint.
-	cli := t.account.GetSessionClient()
-	if err := cli.PostConfigState(ctx, sharedObjectID, genesisData, nil, state.CurrentKeyEpoch(), envelopes); err != nil {
-		return err
-	}
-	return cli.PostCheckpoint(ctx, sharedObjectID, state.GetCheckpoint())
+	return t.account.GetSessionClient().SeedSharedObjectState(ctx, sharedObjectID, seed)
 }
 
 // _ is a type assertion
