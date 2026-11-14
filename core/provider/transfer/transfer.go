@@ -290,7 +290,9 @@ func (t *Transfer) finish(ctx context.Context, phase TransferPhase) error {
 // on the source.
 //
 // A write to the source between the head check and the delete is lost with
-// the source; the source has no delete conditioned on its head yet.
+// the source; the source has no delete conditioned on its head yet. Likewise
+// a target write between the target check and the delete can still leave the
+// target without the source's World.
 func (t *Transfer) cleanupSpace(ctx context.Context, idx int, entry *sobject.SharedObjectListEntry, head []byte) (string, error) {
 	// Name the Space for the checks and the log.
 	soRef := entry.GetRef()
@@ -319,7 +321,25 @@ func (t *Transfer) cleanupSpace(ctx context.Context, idx int, entry *sobject.Sha
 			}
 			t.setSpacePhase(idx, TransferPhase_TransferPhase_COMPLETE)
 		}
+
+		// Invariant: the source is deleted only while the target reports it
+		// holds the Space as written at the source's current head. A target
+		// writer may have committed after the state this run wrote, such as
+		// a mounted Space putting back an older World with its edit, so the
+		// target is asked again here rather than trusted from the move.
+		at := t.source.GetOrigin().CloneVT()
+		at.SourceHead = head
+		tgt, err := t.target.ReadSharedObject(ctx, le, soID, at)
+		if err != nil {
+			return "", errors.Wrap(err, "read the target's space")
+		}
+		if tgt.Holds != TargetHoldsWritten || !bytes.Equal(tgt.Head, head) {
+			le.Info("target no longer holds the space at the source's head, keeping the source")
+			return reasonTargetChanged, nil
+		}
 	}
+
+	// Delete the Space from the source.
 	if err := t.cleanup.DeleteSharedObject(ctx, soID); err != nil {
 		le.WithError(err).Warn("failed to delete source SO")
 	}

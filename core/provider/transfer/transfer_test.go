@@ -765,6 +765,66 @@ func TestLocalMergeCleanup(t *testing.T) {
 	if !ids["merge-space"] || !ids["kept-space"] {
 		t.Fatalf("expected both Spaces on target, got %v", ids)
 	}
+
+	// A Merge whose target World changes after the move and before cleanup
+	// keeps the source Space, as a mounted target writer may put an older
+	// World back after the transfer's write.
+	racedAcc, _, racedRel := createAccount(ctx, t, prov)
+	defer racedRel()
+	racedTgtAcc, racedTgtAccountID, racedTgtRel := createAccount(ctx, t, prov)
+	defer racedTgtRel()
+	createTestSpace(ctx, t, racedAcc, "raced-space")
+	racedSrc := provider_transfer.NewLocalTransferSource(racedAcc, tb.Bus)
+	racedTgt := &changingTarget{TransferTarget: provider_transfer.NewLocalTransferTarget(racedTgtAcc, providerID, racedTgtAccountID, tb.Bus)}
+	racedTgt.change = func() {
+		// Write a World object to the target's copy of the Space.
+		list, err := provider_transfer.NewLocalTransferSource(racedTgtAcc, tb.Bus).GetSharedObjectList(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, entry := range list.GetSharedObjects() {
+			if entry.GetRef().GetProviderResourceRef().GetId() == "raced-space" {
+				writeSourceObject(ctx, t, tb, racedTgtAcc, entry.GetRef(), "target edit")
+				return
+			}
+		}
+		t.Fatal("target does not list raced-space")
+	}
+	raced := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, racedSrc, racedTgt, ownerKey(ctx, t, racedTgtAcc), 1, 2, &provider_transfer.TransferOptions{Cleanup: racedSrc})
+	if err := raced.Execute(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if phase := raced.GetState().GetPhase(); phase != provider_transfer.TransferPhase_TransferPhase_NOT_MOVED {
+		t.Fatalf("merge after a target change = %s; want NOT_MOVED", phase)
+	}
+	if racedTgt.reads < 2 {
+		t.Fatalf("target read %d times; want the move's read and the cleanup's", racedTgt.reads)
+	}
+	racedList, err := racedSrc.GetSharedObjectList(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(racedList.GetSharedObjects()); got != 2 {
+		t.Fatalf("expected the source to keep raced-space and account-settings, got %d SOs", got)
+	}
+}
+
+// changingTarget is a transfer target that runs change before its second
+// ReadSharedObject, which for a one Space Merge is the cleanup's check.
+type changingTarget struct {
+	provider_transfer.TransferTarget
+	change func()
+	reads  int
+}
+
+// ReadSharedObject runs change before the second read, then reads the target.
+func (c *changingTarget) ReadSharedObject(ctx context.Context, le *logrus.Entry, id string, origin *provider_transfer.TransferOrigin) (*provider_transfer.TargetSpace, error) {
+	// Change the target just before the cleanup's read.
+	c.reads++
+	if c.reads == 2 {
+		c.change()
+	}
+	return c.TransferTarget.ReadSharedObject(ctx, le, id, origin)
 }
 
 // buildTestObjectStore builds an object store for testing checkpoint persistence.

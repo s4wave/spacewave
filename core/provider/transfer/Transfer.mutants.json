@@ -92,8 +92,8 @@
         "               /\\ IF t = Member\n"
       ],
       [
-        "  IF s \\in shared THEN tc[s] = Member /\\ ~cloudSrc ELSE",
-        "  IF s \\in shared THEN tc[s] = Member ELSE"
+        "  IF s \\in shared THEN tc[s] = Member /\\ ~cloudSrc\n",
+        "  IF s \\in shared THEN tc[s] = Member\n"
       ]
     ],
     "expect": "MembersKeepShared"
@@ -147,5 +147,15 @@
       ]
     ],
     "expect": "NotMovedKeepsSource"
+  },
+  {
+    "name": "cleanup deletes a source Space without asking the target again",
+    "replace": [
+      [
+        "  ELSE origin[s] = Written(ver[s]) /\\ TargetAtHead(s)\n",
+        "  ELSE origin[s] = Written(ver[s])\n"
+      ]
+    ],
+    "expect": "CleanupAtHead"
   }
 ]

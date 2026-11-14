@@ -307,14 +307,21 @@ CopyKey ==
 \* The target holds the Space as written from its current source head, or is
 \* a member of the shared object a local source holds.
 AtHead(s) ==
-  IF s \in shared THEN tc[s] = Member /\ ~cloudSrc ELSE origin[s] = Written(ver[s])
+  IF s \in shared THEN tc[s] = Member /\ ~cloudSrc
+  ELSE origin[s] = Written(ver[s]) /\ TargetAtHead(s)
+
+\* The target reports the Space written at the source's head: cleanupSpace
+\* reads the target again just before the delete, since a target writer may
+\* have changed the World after the run wrote it.
+TargetAtHead(s) == tc[s].k = "src" /\ tc[s].v = ver[s] /\ tc[s].e = 0
 
 \* Cleanup checks each Space just before deleting it from the source.
 DeleteSpace(s) ==
   /\ pc = "cleanup" /\ s \in entries \cap src /\ AtHead(s)
   /\ src' = src \ {s}
   /\ delOk' = [delOk EXCEPT ![s] =
-       IF s \in shared THEN tc[s] = Member ELSE tc[s].k = "src" /\ tc[s].v = ver[s]]
+       IF s \in shared THEN tc[s] = Member
+       ELSE tc[s].k = "src" /\ tc[s].v = ver[s] /\ tc[s].e = 0]
   /\ alive' = IF s \in shared /\ cloudSrc THEN alive \ {s} ELSE alive
   /\ UNCHANGED <<mode, picked, run, target, ver, vol, session, key, runs, faults, shared, cloudSrc, keyLost>>
 
@@ -442,7 +449,8 @@ Spec == Init /\ [][Next]_vars /\ WF_vars(Progress)
 \* write.
 NoEditOverwritten == ~lost
 \* Cleanup deletes a source Space only when the target's state of it was
-\* written from that source Space at the head it had when deleted.
+\* written from that source Space at the head it had when deleted, with no
+\* target edit since.
 CleanupAtHead == \A s \in Spaces \ src : delOk[s]
 \* An arriving Space holds the empty genesis until the transfer writes it.
 ArrivingUntouched == \A s \in Spaces : origin[s] = Added => tc[s] = Empty
