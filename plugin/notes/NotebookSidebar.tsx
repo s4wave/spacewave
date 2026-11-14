@@ -1,7 +1,10 @@
 import { useCallback, type ReactNode } from 'react'
 
 import type { NotebookSource } from './proto/notebook.pb.js'
-import type { SourceEditState } from './useNotebookViewerState.js'
+import {
+  sourceEditProblem,
+  type SourceEditState,
+} from './useNotebookViewerState.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useStateAtom, type StateNamespace } from '@s4wave/web/state/index.js'
 import {
@@ -57,6 +60,7 @@ function NotebookSidebar({
 
   // A refused edit and a failed Reorder show by the list; a failed Add or
   // Remove shows in its own dialog.
+  const reorderProblem = sourceEditProblem(sourceEdit, 'reorder')
   let editNotice: ReactNode = null
   if (sourceEdit.status === 'changed') {
     editNotice = (
@@ -67,17 +71,14 @@ function NotebookSidebar({
         The sources changed before this edit, so it was not applied.
       </div>
     )
-  } else if (
-    sourceEdit.status === 'failed' &&
-    sourceEdit.edit.kind === 'reorder'
-  ) {
+  } else if (reorderProblem !== undefined) {
     editNotice = (
       <div
         role="alert"
         className="text-destructive border-border flex items-center justify-between gap-2 border-b px-3 py-1.5 text-xs"
       >
         <span className="min-w-0">
-          Could not move the source: {sourceEdit.error}
+          Could not move the source: {reorderProblem}
         </span>
         <button
           type="button"

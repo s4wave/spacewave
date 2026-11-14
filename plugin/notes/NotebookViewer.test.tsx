@@ -7,7 +7,6 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { StateNamespaceProvider, atom } from '@s4wave/web/state/index.js'
-import { PluginOpTimeoutError } from '@s4wave/sdk/world/errors.js'
 
 const mockUseWorldObjectMessageState = vi.hoisted(() => vi.fn())
 
@@ -106,9 +105,12 @@ function fakeNotebook(stored: NotebookSource[]) {
     !!a && !!b && a.name === b.name && a.ref === b.ref
   const handle = {
     stored,
-    addSource: vi.fn(async (source: NotebookSource) => {
-      handle.stored = [...handle.stored, source]
-    }),
+    addSource: vi.fn(
+      async (source: NotebookSource): Promise<NotebookEditOutcome> => {
+        handle.stored = [...handle.stored, source]
+        return NotebookEditOutcome.APPLIED
+      },
+    ),
     removeSource: vi.fn(
       async (
         index: number,
@@ -249,7 +251,7 @@ describe('NotebookViewer', () => {
   })
 
   it('adds a source from the in-app dialog', async () => {
-    const addSource = vi.fn(() => Promise.resolve())
+    const addSource = vi.fn(() => Promise.resolve(NotebookEditOutcome.APPLIED))
     vi.mocked(useAccessTypedHandle).mockReturnValue({
       value: { addSource },
       loading: false,
@@ -400,6 +402,30 @@ describe('NotebookViewer', () => {
     expect(screen.queryByText('Remove “B” from the notebook?')).toBeNull()
   })
 
+  it('keeps a Remove the plugin could not take open, says nothing was sent, and resends it', async () => {
+    const notebook = fakeNotebook([A, B])
+    watchSources([A, B])
+    notebook.removeSource.mockResolvedValueOnce(
+      NotebookEditOutcome.PLUGIN_UNAVAILABLE,
+    )
+    renderViewer()
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove source' })[1])
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    expect(
+      await screen.findByText(
+        'Could not remove “B”: the notes plugin could not be reached, so nothing was sent',
+      ),
+    ).toBeDefined()
+    expect(notebook.stored).toEqual([A, B])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => {
+      expect(notebook.stored).toEqual([A])
+    })
+    expect(notebook.removeSource).toHaveBeenNthCalledWith(2, 1, B)
+  })
+
   it('disables the Remove confirm while it sends, and offers it again after a failure', async () => {
     const notebook = fakeNotebook([A, B])
     watchSources([A, B])
@@ -464,6 +490,64 @@ describe('NotebookViewer', () => {
     })
   })
 
+  it('keeps an Add with no reported outcome open as failed, claiming nothing', async () => {
+    const notebook = fakeNotebook([])
+    watchSources([])
+    notebook.addSource.mockResolvedValueOnce(NotebookEditOutcome.UNKNOWN)
+    renderViewer()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
+    fireEvent.change(screen.getByLabelText('Source name'), {
+      target: { value: 'Docs' },
+    })
+    fireEvent.change(screen.getByLabelText('Source ref'), {
+      target: { value: 'key/-/docs' },
+    })
+    const addButtons = screen.getAllByRole('button', { name: 'Add source' })
+    fireEvent.click(addButtons[addButtons.length - 1])
+
+    expect(
+      await screen.findByText(
+        'Could not add the source: the notes plugin did not say whether it was saved; check the sources before trying again',
+      ),
+    ).toBeDefined()
+    expect(
+      (screen.getByLabelText('Source ref') as HTMLInputElement).value,
+    ).toBe('key/-/docs')
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeDefined()
+  })
+
+  it('keeps a timed out Add open as not applied and resends it', async () => {
+    const notebook = fakeNotebook([])
+    watchSources([])
+    notebook.addSource.mockResolvedValueOnce(NotebookEditOutcome.TIMED_OUT)
+    renderViewer()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
+    fireEvent.change(screen.getByLabelText('Source name'), {
+      target: { value: 'Docs' },
+    })
+    fireEvent.change(screen.getByLabelText('Source ref'), {
+      target: { value: 'key/-/docs' },
+    })
+    const addButtons = screen.getAllByRole('button', { name: 'Add source' })
+    fireEvent.click(addButtons[addButtons.length - 1])
+
+    expect(
+      await screen.findByText(
+        'Could not add the source: the notes plugin did not finish in time, so nothing was changed',
+      ),
+    ).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => {
+      expect(notebook.stored).toEqual([{ name: 'Docs', ref: 'key/-/docs' }])
+    })
+    expect(notebook.addSource).toHaveBeenCalledTimes(2)
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Source ref')).toBeNull()
+    })
+  })
+
   it('shows a failed Reorder by the list and resends the same order', async () => {
     const notebook = fakeNotebook([A, B])
     watchSources([A, B])
@@ -485,28 +569,19 @@ describe('NotebookViewer', () => {
       screen.queryByText('Could not move the source: stream closed'),
     ).toBeNull()
   })
-  it('shows a plugin op timeout as a failed edit that changed nothing, and resends it', async () => {
+  it('shows a timed out Reorder as not applied, and resends it', async () => {
     const notebook = fakeNotebook([A, B])
     watchSources([A, B])
-    // The plugin's NotebookResource throws PluginOpTimeoutError for the
-    // host's code; it reaches the viewer as the text of starpc's
-    // RemoteRPCError, which starpc does not export.
-    const timeout = new PluginOpTimeoutError().message
-    notebook.reorderSources.mockRejectedValueOnce(
-      Object.assign(new Error(timeout), {
-        name: 'RemoteRPCError',
-        rpcService: 's4wave.world.EngineResourceService',
-        rpcMethod: 'ExecuteWorldOp',
-        rpcError: timeout,
-      }),
-    )
+    notebook.reorderSources.mockResolvedValueOnce(NotebookEditOutcome.TIMED_OUT)
     renderViewer()
 
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Move source down' })[0],
     )
     expect(
-      await screen.findByText(`Could not move the source: ${timeout}`),
+      await screen.findByText(
+        'Could not move the source: the notes plugin did not finish in time, so nothing was changed',
+      ),
     ).toBeDefined()
     expect(notebook.stored).toEqual([A, B])
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))

@@ -15,8 +15,7 @@ import (
 	proto "github.com/s4wave/spacewave/plugin/notes/proto"
 )
 
-// NotebookEditOutcome is what became of a Notebook edit that carried the
-// sources its caller saw.
+// NotebookEditOutcome is what became of a Notebook source edit.
 type NotebookEditOutcome int32
 
 const (
@@ -28,6 +27,14 @@ const (
 	// the caller saw, so nothing was written; the caller refreshes instead of
 	// resending.
 	NotebookEditOutcome_NOTEBOOK_EDIT_OUTCOME_CHANGED NotebookEditOutcome = 2
+	// NOTEBOOK_EDIT_OUTCOME_TIMED_OUT means the plugin did not finish the edit in
+	// time and the host discarded its transaction, so nothing was written and
+	// sending the same edit again is safe.
+	NotebookEditOutcome_NOTEBOOK_EDIT_OUTCOME_TIMED_OUT NotebookEditOutcome = 3
+	// NOTEBOOK_EDIT_OUTCOME_PLUGIN_UNAVAILABLE means the host could not reach the
+	// plugin that applies the edit, so nothing was sent to apply and sending the
+	// same edit again is safe.
+	NotebookEditOutcome_NOTEBOOK_EDIT_OUTCOME_PLUGIN_UNAVAILABLE NotebookEditOutcome = 4
 )
 
 // Enum value maps for NotebookEditOutcome.
@@ -36,11 +43,15 @@ var (
 		0: "NOTEBOOK_EDIT_OUTCOME_UNKNOWN",
 		1: "NOTEBOOK_EDIT_OUTCOME_APPLIED",
 		2: "NOTEBOOK_EDIT_OUTCOME_CHANGED",
+		3: "NOTEBOOK_EDIT_OUTCOME_TIMED_OUT",
+		4: "NOTEBOOK_EDIT_OUTCOME_PLUGIN_UNAVAILABLE",
 	}
 	NotebookEditOutcome_value = map[string]int32{
-		"NOTEBOOK_EDIT_OUTCOME_UNKNOWN": 0,
-		"NOTEBOOK_EDIT_OUTCOME_APPLIED": 1,
-		"NOTEBOOK_EDIT_OUTCOME_CHANGED": 2,
+		"NOTEBOOK_EDIT_OUTCOME_UNKNOWN":            0,
+		"NOTEBOOK_EDIT_OUTCOME_APPLIED":            1,
+		"NOTEBOOK_EDIT_OUTCOME_CHANGED":            2,
+		"NOTEBOOK_EDIT_OUTCOME_TIMED_OUT":          3,
+		"NOTEBOOK_EDIT_OUTCOME_PLUGIN_UNAVAILABLE": 4,
 	}
 )
 
@@ -112,6 +123,8 @@ func (x *AddSourceRequest) GetSource() *proto.NotebookSource {
 // AddSourceResponse is the response for AddSource.
 type AddSourceResponse struct {
 	unknownFields []byte
+	// Outcome is what became of the edit; an add never reports changed.
+	Outcome NotebookEditOutcome `protobuf:"varint,1,opt,name=outcome,proto3" json:"outcome,omitempty"`
 }
 
 func (x *AddSourceResponse) Reset() {
@@ -119,6 +132,13 @@ func (x *AddSourceResponse) Reset() {
 }
 
 func (*AddSourceResponse) ProtoMessage() {}
+
+func (x *AddSourceResponse) GetOutcome() NotebookEditOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return NotebookEditOutcome_NOTEBOOK_EDIT_OUTCOME_UNKNOWN
+}
 
 // RemoveSourceRequest is the request for RemoveSource.
 type RemoveSourceRequest struct {
@@ -322,6 +342,7 @@ func (m *AddSourceResponse) CloneVT() *AddSourceResponse {
 		return (*AddSourceResponse)(nil)
 	}
 	r := new(AddSourceResponse)
+	r.Outcome = m.Outcome
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -492,6 +513,9 @@ func (this *AddSourceResponse) EqualVT(that *AddSourceResponse) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Outcome != that.Outcome {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -803,6 +827,12 @@ func (x *AddSourceResponse) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.Outcome != 0 || s.HasField("outcome") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcome")
+		x.Outcome.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -817,7 +847,13 @@ func (x *AddSourceResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "outcome":
+			s.AddField("outcome")
+			x.Outcome.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -1272,6 +1308,11 @@ func (m *AddSourceResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Outcome != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Outcome))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -1568,6 +1609,7 @@ func (m *AddSourceResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Outcome)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1691,7 +1733,11 @@ func (x *AddSourceRequest) String() string {
 
 func (x *AddSourceResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "AddSourceResponse")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AddSourceResponse")
+	if x.Outcome != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcome")
+		protobuf_go_lite.TextWriteStringer(&sb, NotebookEditOutcome(x.Outcome))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1986,6 +2032,17 @@ func (m *AddSourceResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: AddSourceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcome", wireType)
+			}
+			m.Outcome = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Outcome = NotebookEditOutcome(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -18,19 +18,34 @@ export type SourceEdit =
 // time: idle offers every edit; sending disables every control that starts
 // an edit and keeps the sending edit's dialog open to show its result;
 // changed means the edit was refused because another writer changed the
-// sources first, and the watch already shows their list; failed holds the
-// request and what failed, and offers the same request again. changed and failed last until the next edit
-// starts, or until the person closes the dialog that shows them.
+// sources first, and the watch already shows their list; not-applied means
+// the host wrote nothing, for the reason in cause, and offers the same request
+// again; failed holds the request and what failed, which may or may not have
+// been written, and offers the same request again. changed, not-applied and
+// failed last until the next edit starts, or until the person closes the
+// dialog that shows them.
 export type SourceEditState =
   | { status: 'idle' }
   | { status: 'sending'; edit: SourceEdit }
   | { status: 'changed'; edit: SourceEdit }
+  | { status: 'not-applied'; edit: SourceEdit; cause: NotAppliedOutcome }
   | { status: 'failed'; edit: SourceEdit; error: string }
+
+// UNKNOWN_OUTCOME_ERROR describes an edit whose outcome the notes plugin did
+// not report, which may or may not have been written.
+const UNKNOWN_OUTCOME_ERROR =
+  'the notes plugin did not say whether it was saved; check the sources before trying again'
+
+// NotAppliedOutcome is an edit outcome that wrote nothing and may be resent.
+export type NotAppliedOutcome =
+  | NotebookEditOutcome.TIMED_OUT
+  | NotebookEditOutcome.PLUGIN_UNAVAILABLE
 
 type SourceEditEvent =
   | { type: 'send'; edit: SourceEdit }
   | { type: 'applied' }
   | { type: 'changed' }
+  | { type: 'not-applied'; cause: NotAppliedOutcome }
   | { type: 'failed'; error: string }
   | { type: 'dismiss' }
 
@@ -50,6 +65,10 @@ function sourceEditReducer(
     case 'changed':
       return state.status === 'sending'
         ? { status: 'changed', edit: state.edit }
+        : state
+    case 'not-applied':
+      return state.status === 'sending'
+        ? { status: 'not-applied', edit: state.edit, cause: event.cause }
         : state
     case 'failed':
       return state.status === 'sending'
@@ -192,12 +211,27 @@ export function useNotebookViewerState({
         dispatchSourceEdit({ type: 'failed', error })
         return 'failed'
       }
-      if (outcome === NotebookEditOutcome.CHANGED) {
-        dispatchSourceEdit({ type: 'changed' })
-        return 'changed'
+      // Only APPLIED is a success. An unset or unknown outcome says nothing
+      // about whether the edit was written, so it fails without a claim.
+      switch (outcome) {
+        case NotebookEditOutcome.APPLIED:
+          dispatchSourceEdit({ type: 'applied' })
+          return 'idle'
+        case NotebookEditOutcome.CHANGED:
+          dispatchSourceEdit({ type: 'changed' })
+          return 'changed'
+        case NotebookEditOutcome.TIMED_OUT:
+        case NotebookEditOutcome.PLUGIN_UNAVAILABLE:
+          dispatchSourceEdit({ type: 'not-applied', cause: outcome })
+          return 'not-applied'
+        case NotebookEditOutcome.UNKNOWN:
+          break
+        default:
+          // A new outcome fails to compile here until it is handled above.
+          outcome satisfies never
       }
-      dispatchSourceEdit({ type: 'applied' })
-      return 'idle'
+      dispatchSourceEdit({ type: 'failed', error: UNKNOWN_OUTCOME_ERROR })
+      return 'failed'
     },
     [notebookHandle, dispatchSourceEdit],
   )
@@ -280,9 +314,11 @@ export function useNotebookViewerState({
   const handleConfirmRemoveSource = useCallback(async () => {
     if (!removeTarget) return
     const { index, source } = removeTarget
-    // A failed Remove keeps its dialog open, so its confirm tries again.
+    // A Remove that failed or was not applied keeps its dialog open, so its
+    // confirm tries again.
     const result = await sendSourceEdit({ kind: 'remove', index, source })
-    if (result === 'failed' || result === 'busy') return
+    if (result === 'failed' || result === 'not-applied' || result === 'busy')
+      return
     setRemoveTarget(null)
     if (result !== 'idle') return
     setSelectedSource((prev) => {
@@ -325,11 +361,13 @@ export function useNotebookViewerState({
     [reorder, sources],
   )
 
-  // handleRetryReorder resends a failed Reorder as the person first asked it;
-  // Add and Remove retry from their dialog's confirm.
+  // handleRetryReorder resends a Reorder that failed or was not applied as
+  // the person first asked it; Add and Remove retry from their dialog's
+  // confirm.
   const handleRetryReorder = useCallback(() => {
-    if (sourceEdit.status !== 'failed' || sourceEdit.edit.kind !== 'reorder')
+    if (sourceEdit.status !== 'failed' && sourceEdit.status !== 'not-applied')
       return
+    if (sourceEdit.edit.kind !== 'reorder') return
     void reorder(sourceEdit.edit)
   }, [sourceEdit, reorder])
 
@@ -417,16 +455,33 @@ function getParentPath(path: string): string {
   return parts.join('/')
 }
 
-// applySourceEdit sends one source edit; Add has no list guard, so it is
-// either applied or throws.
+// sourceEditProblem says why the last edit of kind was not done, when it
+// failed or was not applied; the person may send it again.
+export function sourceEditProblem(
+  state: SourceEditState,
+  kind: SourceEdit['kind'],
+): string | undefined {
+  if (state.status === 'idle' || state.edit.kind !== kind) return undefined
+  switch (state.status) {
+    case 'failed':
+      return state.error
+    case 'not-applied':
+      return state.cause === NotebookEditOutcome.TIMED_OUT
+        ? 'the notes plugin did not finish in time, so nothing was changed'
+        : 'the notes plugin could not be reached, so nothing was sent'
+  }
+  return undefined
+}
+
+// applySourceEdit sends one source edit and returns its outcome; Add has no
+// list guard, so it is never changed.
 async function applySourceEdit(
   handle: NotebookHandle,
   edit: SourceEdit,
 ): Promise<NotebookEditOutcome> {
   switch (edit.kind) {
     case 'add':
-      await handle.addSource(edit.source)
-      return NotebookEditOutcome.APPLIED
+      return handle.addSource(edit.source)
     case 'remove':
       return handle.removeSource(edit.index, edit.source)
     case 'reorder':
