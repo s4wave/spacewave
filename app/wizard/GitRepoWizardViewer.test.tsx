@@ -390,4 +390,32 @@ describe('GitRepoWizardViewer', () => {
     expect(screen.getByText('This wizard no longer exists.')).toBeTruthy()
     expect(screen.queryByText('Loading wizard')).toBeNull()
   })
+
+  it('offers Clone beside a refused clone that names the taken key', () => {
+    currentStep = 2
+    localName = 'cli'
+    currentProgress = {
+      state: GitCloneProgressState.FAILED,
+      message:
+        'A repository already exists at git/repo/cli. Clone again to use a new name.',
+      objectKey: 'git/repo/cli',
+    }
+
+    render(
+      <GitRepoWizardViewer
+        objectInfo={{}}
+        worldState={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(
+      screen.getByText(/A repository already exists at git\/repo\/cli/),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: /clone/i })).toBeTruthy()
+  })
 })

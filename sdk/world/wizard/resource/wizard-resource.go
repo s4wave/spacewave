@@ -13,7 +13,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
-	space_uri "github.com/s4wave/spacewave/sdk/space"
 	wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 )
 
@@ -272,6 +271,11 @@ func (r *WizardResource) StartGitClone(ctx context.Context, req *wizard.StartGit
 		return nil, errors.New("config_data is required")
 	}
 
+	// Refuse before any network clone when the wizard is already gone.
+	if err := r.requireWizard(ctx); err != nil {
+		return nil, err
+	}
+
 	// Reserve the wizard clone and publish its initial progress.
 	var progress *wizard.GitCloneProgress
 	var cloneReq *wizard.StartGitCloneRequest
@@ -304,6 +308,28 @@ func (r *WizardResource) StartGitClone(ctx context.Context, req *wizard.StartGit
 	return &wizard.StartGitCloneResponse{Progress: progress}, nil
 }
 
+// requireWizard returns ErrWizardGone when the wizard object no longer
+// exists. It reads through a short read transaction, so it never waits on or
+// holds the World writer.
+func (r *WizardResource) requireWizard(ctx context.Context) error {
+	// Open a read transaction, discarded on return.
+	rtx, err := r.engine.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer rtx.Discard()
+
+	// Look up the wizard object.
+	found, err := rtx.HasObject(ctx, r.objKey)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return ErrWizardGone
+	}
+	return nil
+}
+
 // WatchGitCloneProgress streams Git clone progress for this wizard resource.
 func (r *WizardResource) WatchGitCloneProgress(_ *wizard.WatchGitCloneProgressRequest, strm wizard.SRPCWizardResourceService_WatchGitCloneProgressStream) error {
 	err := broadcast.WatchBroadcastVT(
@@ -331,6 +357,8 @@ func (r *WizardResource) WatchGitCloneProgress(_ *wizard.WatchGitCloneProgressRe
 	return err
 }
 
+// replaceSpaceIndexIfWizardIsCurrent points the Space index at objectKey when
+// the index names exactly this wizard, writing through ws.
 func (r *WizardResource) replaceSpaceIndexIfWizardIsCurrent(
 	ctx context.Context,
 	ws world.WorldState,
@@ -348,8 +376,9 @@ func (r *WizardResource) replaceSpaceIndexIfWizardIsCurrent(
 		settings = &space_world.SpaceSettings{}
 	}
 
-	// Replace the Space index only while it points to this wizard.
-	if space_uri.ParseObjectURI(settings.GetIndexPath()).ObjectKey != r.objKey {
+	// Replace the Space index only while it names exactly this wizard; an
+	// index at a path under the wizard stays, as the TypeScript finish does.
+	if settings.GetIndexPath() != r.objKey {
 		return nil
 	}
 
