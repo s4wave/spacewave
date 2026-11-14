@@ -53,7 +53,7 @@ export const step = (action: string, from: TextFile, to: TextFile) => {
     Edit: 'presses Edit',
     Type: 'types',
     Save: 'presses Save',
-    Check: 'the read at Save finds their version',
+    Refused: 'the store refuses the save',
     SaveOver: 'presses Save over theirs',
     Discard: 'presses Discard edits',
     ShowTheirs: 'presses Show theirs',

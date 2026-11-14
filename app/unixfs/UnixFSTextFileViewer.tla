@@ -3,7 +3,8 @@
 \*
 \* The read is a one-shot read of the file, run again by Retry or a new file
 \* handle; it is waiting, failed or shown. Nothing watches the file, so another
-\* writer's commit shows at such a read or at a Save press. A failed read drops
+\* writer's commit shows at such a read or when the store refuses a Save. A
+\* failed read drops
 \* what it read, so with no draft the failure takes the body and Retry reads
 \* again.
 \*
@@ -17,11 +18,12 @@
 \* different version, another writer saved while the person was editing: plain
 \* Save leaves, and the person picks Save over theirs, Show theirs or Discard
 \* edits, which takes their text. The viewer's reducer refuses a plain save in
-\* that state whatever is pressed. A plain save first reads the file again; a
-\* version other than the draft's base stops it unwritten and lands as a read,
-\* in the same changed state; a file removed since is recreated from the
-\* draft. A save that fails keeps the draft and offers the
-\* save again; a landed save shows its text at once.
+\* that state whatever is pressed. A plain save expects the draft's base, and
+\* the store checks it inside the commit: a version other than the base stops
+\* it unwritten, and the read after the refusal lands as a read, in the same
+\* changed state; a file removed since is recreated from the draft only while
+\* nothing holds the path. A save that fails keeps the draft and offers the
+\* save again; a landed save reads the file back and shows its text.
 
 People == {"person"}
 
@@ -42,13 +44,12 @@ VARIABLES
   theirs,    \* the body shows the other writer's text in place of the draft
   overwrite, \* the save in flight was Save over theirs
   over,      \* the version seen when the save in flight was pressed
-  checked,   \* the plain save in flight read the file and may write
-  found,     \* the version the read at the press found
   writable,  \* the person may write the file
   whole,     \* the read holds the whole file, not a preview
-  dropped    \* history: a draft ended other than by Discard or a landed save
+  dropped,   \* history: a draft ended other than by Discard or a landed save
+  clobbered  \* history: a plain save replaced a version other than its base
 vars == <<read, disk, seen, mode, base, dirty, saveFailed, theirs, overwrite,
-          over, checked, found, writable, whole, dropped>>
+          over, writable, whole, dropped, clobbered>>
 
 Editing == mode = "editing"
 Drafted == mode \in {"editing", "saving"}
@@ -59,7 +60,9 @@ Changed == Drafted /\ seen # base
 SaveAccepted == Editing /\ dirty /\ seen = base
 
 \* Keep records a draft that ends by any step but Discard or a landed save.
-Keep == dropped' = (dropped \/ (Drafted /\ mode' = "reading"))
+Keep ==
+  /\ dropped' = (dropped \/ (Drafted /\ mode' = "reading"))
+  /\ UNCHANGED clobbered
 
 Shown(p) ==
   (IF mode = "reading" /\ read = "shown" /\ writable /\ whole
@@ -99,11 +102,10 @@ Init ==
   /\ theirs = FALSE
   /\ overwrite = FALSE
   /\ over = "none"
-  /\ checked = FALSE
-  /\ found = "none"
   /\ writable \in BOOLEAN
   /\ whole \in BOOLEAN
   /\ dropped = FALSE
+  /\ clobbered = FALSE
 
 \* The read lands with the version in storage; a removed file only fails.
 Arrive ==
@@ -112,33 +114,33 @@ Arrive ==
   /\ read' = "shown"
   /\ seen' = disk
   /\ UNCHANGED <<disk, mode, base, dirty, saveFailed, theirs, overwrite, over,
-                 checked, found, writable, whole>>
+                 writable, whole>>
   /\ Keep
 \* The read fails; a draft stays as it was.
 Fail ==
   /\ read = "waiting"
   /\ read' = "failed"
   /\ UNCHANGED <<disk, seen, mode, base, dirty, saveFailed, theirs, overwrite,
-                 over, checked, found, writable, whole>>
+                 over, writable, whole>>
   /\ Keep
 \* Retry or a new file handle reads the file again.
 Reread ==
   /\ read = "shown"
   /\ read' = "waiting"
   /\ UNCHANGED <<disk, seen, mode, base, dirty, saveFailed, theirs, overwrite,
-                 over, checked, found, writable, whole>>
+                 over, writable, whole>>
   /\ Keep
 \* Another writer saves or removes the file.
 OtherWrite ==
   /\ disk' \in (Versions \cup {"gone"}) \ {disk}
   /\ UNCHANGED <<read, seen, mode, base, dirty, saveFailed, theirs, overwrite,
-                 over, checked, found, writable, whole>>
+                 over, writable, whole>>
   /\ Keep
 Retry(p) ==
   /\ "retry" \in Shown(p)
   /\ read' = "waiting"
   /\ UNCHANGED <<disk, seen, mode, base, dirty, saveFailed, theirs, overwrite,
-                 over, checked, found, writable, whole>>
+                 over, writable, whole>>
   /\ Keep
 Edit(p) ==
   /\ "edit" \in Shown(p)
@@ -146,42 +148,25 @@ Edit(p) ==
   /\ base' = seen
   /\ dirty' = FALSE
   /\ UNCHANGED <<read, disk, seen, saveFailed, theirs, overwrite, over,
-                 checked, found, writable, whole>>
+                 writable, whole>>
   /\ Keep
 Type(p) ==
   /\ Editing
   /\ ~theirs
   /\ dirty' = TRUE
   /\ UNCHANGED <<read, disk, seen, mode, base, saveFailed, theirs, overwrite,
-                 over, checked, found, writable, whole>>
+                 over, writable, whole>>
   /\ Keep
-\* A plain save is any dispatch the reducer accepts, shown or not.
+\* A plain save is any dispatch the reducer accepts, shown or not. It expects
+\* the draft's base.
 Save(p) ==
   /\ SaveAccepted
   /\ mode' = "saving"
   /\ overwrite' = FALSE
   /\ over' = seen
-  /\ checked' = FALSE
   /\ saveFailed' = FALSE
   /\ theirs' = FALSE
-  /\ UNCHANGED <<read, disk, seen, base, dirty, found, writable, whole>>
-  /\ Keep
-\* The plain save reads the file. Its base, or no file at all, lets the write
-\* go; another version stops it unwritten and lands as a read.
-Check ==
-  /\ mode = "saving"
-  /\ ~overwrite
-  /\ ~checked
-  /\ IF disk \in {base, "gone"}
-       THEN /\ checked' = TRUE
-            /\ found' = disk
-            /\ UNCHANGED <<mode, seen, over>>
-       ELSE /\ mode' = "editing"
-            /\ seen' = disk
-            /\ over' = "none"
-            /\ UNCHANGED <<checked, found>>
-  /\ UNCHANGED <<read, disk, base, dirty, saveFailed, theirs, overwrite,
-                 writable, whole>>
+  /\ UNCHANGED <<read, disk, seen, base, dirty, writable, whole>>
   /\ Keep
 SaveOver(p) ==
   /\ "saveover" \in Shown(p)
@@ -190,13 +175,15 @@ SaveOver(p) ==
   /\ over' = seen
   /\ saveFailed' = FALSE
   /\ theirs' = FALSE
-  /\ UNCHANGED <<read, disk, seen, base, dirty, checked, found, writable,
-                 whole>>
+  /\ UNCHANGED <<read, disk, seen, base, dirty, writable, whole>>
   /\ Keep
-\* The save lands as a new version and shows at once.
+\* The store commits the save in one step with its check: Save over theirs
+\* always, a plain save only over its base or, recreating the file, over
+\* nothing. The read back shows the new version.
 SaveDone ==
   /\ mode = "saving"
-  /\ overwrite \/ checked
+  /\ overwrite \/ disk \in {base, "gone"}
+  /\ clobbered' = (clobbered \/ (~overwrite /\ disk \notin {base, "gone"}))
   /\ disk' \in Versions \ {disk}
   /\ seen' = disk'
   /\ mode' = "reading"
@@ -204,9 +191,19 @@ SaveDone ==
   /\ dirty' = FALSE
   /\ overwrite' = FALSE
   /\ over' = "none"
-  /\ checked' = FALSE
-  /\ found' = "none"
   /\ UNCHANGED <<read, saveFailed, theirs, writable, whole, dropped>>
+\* The store refuses a plain save over another writer's version; nothing is
+\* written, and the read after it lands as a read.
+Refused ==
+  /\ mode = "saving"
+  /\ ~overwrite
+  /\ disk \notin {base, "gone"}
+  /\ mode' = "editing"
+  /\ seen' = disk
+  /\ over' = "none"
+  /\ UNCHANGED <<read, disk, base, dirty, saveFailed, theirs, overwrite,
+                 writable, whole>>
+  /\ Keep
 \* The save fails; the draft stays and Save is offered again.
 SaveFail ==
   /\ mode = "saving"
@@ -214,8 +211,6 @@ SaveFail ==
   /\ saveFailed' = TRUE
   /\ overwrite' = FALSE
   /\ over' = "none"
-  /\ checked' = FALSE
-  /\ found' = "none"
   /\ UNCHANGED <<read, disk, seen, base, dirty, theirs, writable, whole>>
   /\ Keep
 \* Discard edits ends the draft; the body shows the file as last read.
@@ -226,19 +221,19 @@ Discard(p) ==
   /\ dirty' = FALSE
   /\ saveFailed' = FALSE
   /\ theirs' = FALSE
-  /\ UNCHANGED <<read, disk, seen, overwrite, over, checked, found, writable,
-                 whole, dropped>>
+  /\ UNCHANGED <<read, disk, seen, overwrite, over, writable, whole, dropped,
+                 clobbered>>
 ShowTheirs(p) ==
   /\ "theirs" \in Shown(p)
   /\ theirs' = TRUE
   /\ UNCHANGED <<read, disk, seen, mode, base, dirty, saveFailed, overwrite,
-                 over, checked, found, writable, whole>>
+                 over, writable, whole>>
   /\ Keep
 BackToMine(p) ==
   /\ "mine" \in Shown(p)
   /\ theirs' = FALSE
   /\ UNCHANGED <<read, disk, seen, mode, base, dirty, saveFailed, overwrite,
-                 over, checked, found, writable, whole>>
+                 over, writable, whole>>
   /\ Keep
 
 Next ==
@@ -246,8 +241,8 @@ Next ==
   \/ Fail
   \/ Reread
   \/ OtherWrite
-  \/ Check
   \/ SaveDone
+  \/ Refused
   \/ SaveFail
   \/ \E p \in People :
        Retry(p) \/ Edit(p) \/ Type(p) \/ Save(p) \/ SaveOver(p) \/ Discard(p)
@@ -262,15 +257,13 @@ DraftNeverDropped == ~dropped
 \* No save writes over a version the draft did not start from unless the
 \* person pressed Save over theirs.
 NoBlindOverwrite == mode = "saving" /\ ~overwrite => over = base
-\* A draft over a removed file can save: the read at the press never takes
-\* the removal for another writer's version, which would leave only Save over
+\* A draft over a removed file can save: the store's refusal never takes the
+\* removal for another writer's version, which would leave only Save over
 \* theirs or Discard edits.
 RemovedFileSaves == Drafted => seen # "gone"
-\* A plain save writes only after its read at the press found the draft's
-\* base. Another writer between that read and the write is the storage
-\* layer's to refuse.
-NoWriteOverTheirs ==
-  mode = "saving" /\ checked /\ ~overwrite => found \in {base, "gone"}
+\* A plain save replaces only the draft's base, or nothing; the store checks
+\* that inside the commit, so no write lands between a check and the write.
+NoWriteOverTheirs == ~clobbered
 \* Edit shows only where the draft could be saved.
 EditOnlyWhereWritable == "edit" \in Shown("person") => writable /\ whole
 TypeOK ==
@@ -284,11 +277,10 @@ TypeOK ==
   /\ theirs \in BOOLEAN
   /\ overwrite \in BOOLEAN
   /\ over \in Versions \cup {"none"}
-  /\ checked \in BOOLEAN
-  /\ found \in Versions \cup {"none", "gone"}
   /\ writable \in BOOLEAN
   /\ whole \in BOOLEAN
   /\ dropped \in BOOLEAN
+  /\ clobbered \in BOOLEAN
 \* Only a draft carries a base.
 BaseOnlyDrafted == (base # "none") <=> Drafted
 ====

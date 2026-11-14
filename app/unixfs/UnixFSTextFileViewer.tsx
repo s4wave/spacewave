@@ -6,7 +6,11 @@ import {
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 
-import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+import type {
+  FSHandle,
+  TreeUploadExpect,
+  TreeUploadResult,
+} from '@s4wave/sdk/unixfs/handle.js'
 import { normalizeUnixFSLookupPath } from '@s4wave/sdk/unixfs/path.js'
 import {
   useUnixFSHandle,
@@ -24,7 +28,6 @@ import {
   deriveTextFileView,
   initialTextFileState,
   reduceTextFile,
-  theirText,
   type TextContent,
   type TextFileEvent,
   type TextFilePress,
@@ -78,23 +81,55 @@ export async function readTextContent(
   const max = unixFSHandleTextContentMaxBytes
   const result = await handle.readAt(0n, BigInt(max + 1), signal)
   const data = result.eof ? result.data : result.data.subarray(0, max)
+  const version = result.version
   if (!result.eof || result.data.length > max) {
-    return { text: new TextDecoder().decode(data), preview: 'large' }
+    return { text: new TextDecoder().decode(data), preview: 'large', version }
   }
 
   // A whole file that fails a strict decode is shown with replacements.
   try {
     const text = new TextDecoder('utf-8', { fatal: true }).decode(data)
-    return { text, preview: null }
+    return { text, preview: null, version }
   } catch {
-    return { text: new TextDecoder().decode(data), preview: 'encoding' }
+    const text = new TextDecoder().decode(data)
+    return { text, preview: 'encoding', version }
   }
 }
 
-// notExist reports a read that failed because the file is gone: Go's
-// fs.ErrNotExist crosses the RPC as its message.
-function notExist(err: unknown): boolean {
-  return err instanceof Error && err.message.includes('file does not exist')
+/**
+ * writeText writes text as the file at path under root while the file still
+ * meets expect. A plain save that finds the file removed recreates it only
+ * while nothing holds the path, so a removal never reads as another writer's
+ * version.
+ */
+async function writeText(
+  root: FSHandle,
+  path: string,
+  text: string,
+  mode: number,
+  expect: TreeUploadExpect,
+  signal: AbortSignal,
+): Promise<TreeUploadResult> {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const upload = (expect: TreeUploadExpect) =>
+    root.uploadTree(
+      [
+        {
+          kind: 'file',
+          path: normalizeUnixFSLookupPath(path),
+          expect,
+          totalSize: BigInt(blob.size),
+          stream: blob.stream(),
+          mode,
+        },
+      ],
+      undefined,
+      signal,
+    )
+  const result = await upload(expect)
+  const removed = result.kind === 'conflict' && !result.version
+  if (!removed || expect.kind !== 'version' || signal.aborted) return result
+  return upload({ kind: 'missing' })
 }
 
 // previewNote says why a preview offers no Edit.
@@ -174,48 +209,45 @@ export function UnixFSTextFileViewer({
     const handle = file.value
     const draft = state.draft
     if (!root || !handle || !draft || draft.saving || signal.aborted) return
-    const text = draft.text
     dispatch({ type: 'save', over })
-    try {
-      // A plain Save first reads the file: another writer's version stops
-      // the save and shows the change, with Save over theirs. A file removed
-      // since has nothing to compare, so the draft recreates it.
-      if (!over) {
-        const latest = await readTextContent(handle, signal).catch(
-          (err: unknown) => {
-            if (notExist(err)) return null
-            throw err
-          },
-        )
-        if (signal.aborted) return
-        if (latest && theirText(draft, latest) !== null) {
-          dispatch({ type: 'refused', content: latest })
-          return
-        }
-      }
 
-      // Write the draft as the file.
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
-      await root.uploadTree(
-        [
-          {
-            kind: 'file',
-            path: normalizeUnixFSLookupPath(path),
-            expect: { kind: 'overwrite' },
-            totalSize: BigInt(blob.size),
-            stream: blob.stream(),
-            mode: handle.getInfo().mode ?? 0o644,
-          },
-        ],
-        undefined,
-        signal,
-      )
-      if (!signal.aborted) dispatch({ type: 'saved', text })
+    // A plain Save expects the version the draft started from, and the store
+    // refuses it inside the commit when another writer saved since.
+    let result: TreeUploadResult
+    try {
+      const expect: TreeUploadExpect = over
+        ? { kind: 'overwrite' }
+        : { kind: 'version', version: draft.from.version }
+      const mode = handle.getInfo().mode ?? 0o644
+      result = await writeText(root, path, draft.text, mode, expect, signal)
     } catch (cause) {
       if (!signal.aborted) {
         dispatch({ type: 'save-failed', error: errorText(cause) })
       }
+      return
     }
+    if (signal.aborted) return
+
+    // Read the file back: a landed save learns its new version, and a
+    // refused one shows the other writer's text with Save over theirs.
+    let latest: TextContent
+    try {
+      latest = await readTextContent(handle, signal)
+    } catch (cause) {
+      if (signal.aborted) return
+      if (result.kind === 'written') {
+        // The write landed; the viewer's own read brings its version.
+        dispatch({ type: 'saved', content: null })
+        content.retry()
+        return
+      }
+      const error = `another writer saved the file, and reading it failed: ${errorText(cause)}`
+      dispatch({ type: 'save-failed', error })
+      return
+    }
+    if (signal.aborted) return
+    const type = result.kind === 'written' ? 'saved' : 'refused'
+    dispatch({ type, content: latest })
   }
 
   return (
@@ -258,15 +290,15 @@ export function TextFileFrame({
   retryRead,
 }: TextFileFrameProps) {
   // Map each press the view offers to its bar action.
-  const dirty = view.state === 'editing' && view.draft.text !== view.draft.base
+  const dirty =
+    view.state === 'editing' && view.draft.text !== view.draft.from.text
   const pressAction: Record<TextFilePress, ViewerBarAction | null> = {
     edit: {
       id: 'edit',
       label: 'Edit',
       icon: <LuPencil />,
       variant: 'primary',
-      onClick: () =>
-        view.state === 'shown' && dispatch({ type: 'edit', text: view.text }),
+      onClick: () => view.state === 'shown' && dispatch({ type: 'edit' }),
     },
     save: {
       id: 'save',

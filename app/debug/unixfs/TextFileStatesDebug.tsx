@@ -18,6 +18,7 @@ const noop = () => {}
 
 const notes: TextContent = {
   preview: null,
+  version: new Uint8Array([1]),
   text: Array.from(
     { length: 40 },
     (_, i) =>
@@ -26,6 +27,7 @@ const notes: TextContent = {
 }
 const theirs: TextContent = {
   preview: null,
+  version: new Uint8Array([2]),
   text: notes.text.replace('ridge 1 ', 'the first ridge '),
 }
 const mine = notes.text + '\n41. Mine: a draft line not yet saved.'
@@ -53,7 +55,7 @@ interface Fixture {
   nav?: boolean
 }
 
-const edit: TextFileEvent = { type: 'edit', text: notes.text }
+const edit: TextFileEvent = { type: 'edit' }
 const type: TextFileEvent = { type: 'type', text: mine }
 
 // fixtures are every state the viewer derives, built from its own events.
@@ -64,10 +66,14 @@ const fixtures: Record<string, Fixture> = {
   preview: { reads: [shown({ ...notes, preview: 'large' })] },
   encoding: {
     reads: [
-      shown({ text: 'Rover log \uFFFD\uFFFD 0x7f', preview: 'encoding' }),
+      shown({
+        ...notes,
+        text: 'Rover log \uFFFD\uFFFD 0x7f',
+        preview: 'encoding',
+      }),
     ],
   },
-  empty: { reads: [shown({ text: '', preview: null })] },
+  empty: { reads: [shown({ ...notes, text: '' })] },
   readonly: {
     reads: [shown(notes)],
     readOnly: 'Read-only: a file in a commit',
@@ -94,7 +100,10 @@ const fixtures: Record<string, Fixture> = {
       edit,
       type,
       { type: 'save', over: false },
-      { type: 'saved', text: mine },
+      {
+        type: 'saved',
+        content: { text: mine, preview: null, version: new Uint8Array([3]) },
+      },
     ],
   },
   'read-failed': {

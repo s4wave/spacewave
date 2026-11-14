@@ -60,14 +60,19 @@
     "expect": "NoBlindOverwrite"
   },
   {
-    "name": "a plain Save writes without reading the file at the press",
-    "replace": [["  /\\ IF disk \\in {base, \"gone\"}\n", "  /\\ IF TRUE\n"]],
+    "name": "a plain Save lands without the store's check",
+    "replace": [
+      ["  /\\ overwrite \\/ disk \\in {base, \"gone\"}\n", "  /\\ TRUE\n"]
+    ],
     "expect": "NoWriteOverTheirs"
   },
   {
-    "name": "a removed file stops a plain Save as another writer's version",
+    "name": "a removed file refuses a plain Save as another writer's version",
     "replace": [
-      ["  /\\ IF disk \\in {base, \"gone\"}\n", "  /\\ IF disk = base\n"]
+      [
+        "  /\\ disk \\notin {base, \"gone\"}\n  /\\ mode' = \"editing\"",
+        "  /\\ disk # base\n  /\\ mode' = \"editing\""
+      ]
     ],
     "expect": "RemovedFileSaves"
   }
