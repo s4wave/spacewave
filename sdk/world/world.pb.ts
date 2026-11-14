@@ -1971,6 +1971,12 @@ export interface WorldMutation {
     | { value: SetGraphQuadRequest; case: 'setGraphQuad' }
     | { value: DeleteObjectRequest; case: 'deleteObject' }
     | { value: SetObjectTypeMutation; case: 'setObjectType' }
+    | { value: RenameObjectRequest; case: 'renameObject' }
+    | { value: DeleteGraphQuadRequest; case: 'deleteGraphQuad' }
+    | { value: DeleteGraphObjectRequest; case: 'deleteGraphObject' }
+    | { value: SetRootRefMutation; case: 'setRootRef' }
+    | { value: ApplyObjectOpMutation; case: 'applyObjectOp' }
+    | { value: IncrementRevMutation; case: 'incrementRev' }
 }
 
 export const WorldMutation: MessageType<WorldMutation> =
@@ -1982,6 +1988,19 @@ export const WorldMutation: MessageType<WorldMutation> =
       [3, 'set_graph_quad', 11, 0, SetGraphQuadRequest.codec, 'mutation'],
       [4, 'delete_object', 11, 0, DeleteObjectRequest.codec, 'mutation'],
       [5, 'set_object_type', 11, 0, SetObjectTypeMutation.codec, 'mutation'],
+      [6, 'rename_object', 11, 0, RenameObjectRequest.codec, 'mutation'],
+      [7, 'delete_graph_quad', 11, 0, DeleteGraphQuadRequest.codec, 'mutation'],
+      [
+        8,
+        'delete_graph_object',
+        11,
+        0,
+        DeleteGraphObjectRequest.codec,
+        'mutation',
+      ],
+      [9, 'set_root_ref', 11, 0, SetRootRefMutation.codec, 'mutation'],
+      [10, 'apply_object_op', 11, 0, ApplyObjectOpMutation.codec, 'mutation'],
+      [11, 'increment_rev', 11, 0, IncrementRevMutation.codec, 'mutation'],
     ],
   )
 
@@ -2008,6 +2027,103 @@ export const SetObjectTypeMutation: MessageType<SetObjectTypeMutation> =
       [1, 'object_key', 9],
       [2, 'type_id', 9],
     ],
+  )
+
+/**
+ * SetRootRefMutation sets the root of an object in a World batch.
+ *
+ * @generated from message s4wave.world.SetRootRefMutation
+ */
+export interface SetRootRefMutation {
+  /**
+   * ObjectKey is the object to update.
+   */
+  objectKey?: string
+  /**
+   * RootRef is the object's new root.
+   */
+  rootRef?: ObjectRef
+}
+
+export const SetRootRefMutation: MessageType<SetRootRefMutation> =
+  /* @__PURE__ */ createMessageType<SetRootRefMutation>(
+    's4wave.world.SetRootRefMutation',
+    () => [
+      [1, 'object_key', 9],
+      [2, 'root_ref', 11, 0, ObjectRef.codec],
+    ],
+  )
+
+/**
+ * ApplyObjectOpMutation applies an object operation in a World batch.
+ *
+ * @generated from message s4wave.world.ApplyObjectOpMutation
+ */
+export interface ApplyObjectOpMutation {
+  /**
+   * ObjectKey is the object the operation applies to.
+   */
+  objectKey?: string
+  /**
+   * OpTypeId is the operation type identifier.
+   */
+  opTypeId?: string
+  /**
+   * OpData is the encoded operation body.
+   */
+  opData?: Uint8Array
+  /**
+   * OpSender is the peer ID of the sender applying the operation.
+   */
+  opSender?: string
+}
+
+export const ApplyObjectOpMutation: MessageType<ApplyObjectOpMutation> =
+  /* @__PURE__ */ createMessageType<ApplyObjectOpMutation>(
+    's4wave.world.ApplyObjectOpMutation',
+    () => [
+      [1, 'object_key', 9],
+      [2, 'op_type_id', 9],
+      [3, 'op_data', 12],
+      [4, 'op_sender', 9],
+    ],
+  )
+
+/**
+ * IncrementRevMutation increments an object's revision in a World batch.
+ *
+ * @generated from message s4wave.world.IncrementRevMutation
+ */
+export interface IncrementRevMutation {
+  /**
+   * ObjectKey is the object to update.
+   */
+  objectKey?: string
+}
+
+export const IncrementRevMutation: MessageType<IncrementRevMutation> =
+  /* @__PURE__ */ createMessageType<IncrementRevMutation>(
+    's4wave.world.IncrementRevMutation',
+    () => [[1, 'object_key', 9]],
+  )
+
+/**
+ * WorldMutationResult is the result of one applied mutation of a batch.
+ *
+ * @generated from message s4wave.world.WorldMutationResult
+ */
+export interface WorldMutationResult {
+  /**
+   * Rev is the object's revision after a set_root_ref, apply_object_op or
+   * increment_rev mutation, and zero for the other kinds.
+   */
+  rev?: bigint
+}
+
+export const WorldMutationResult: MessageType<WorldMutationResult> =
+  /* @__PURE__ */ createMessageType<WorldMutationResult>(
+    's4wave.world.WorldMutationResult',
+    () => [[1, 'rev', 4]],
   )
 
 /**
@@ -2056,6 +2172,12 @@ export interface ExecuteWorldBatchResponse {
    * RejectionMessage is the safe explanation of a rejected op.
    */
   rejectionMessage?: string
+  /**
+   * Results holds one entry per mutation of an applied batch, in request
+   * order: set_root_ref, apply_object_op and increment_rev fill rev, and the
+   * other kinds leave it zero. A refused batch carries no results.
+   */
+  results?: WorldMutationResult[]
 }
 
 export const ExecuteWorldBatchResponse: MessageType<ExecuteWorldBatchResponse> =
@@ -2067,6 +2189,7 @@ export const ExecuteWorldBatchResponse: MessageType<ExecuteWorldBatchResponse> =
       [3, 'error_code', 14, 0, WorldErrorCode_Enum],
       [4, 'rejection_code', 9],
       [5, 'rejection_message', 9],
+      [6, 'results', 11, 1, WorldMutationResult.codec],
     ],
   )
 

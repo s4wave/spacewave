@@ -828,6 +828,24 @@ message WorldMutation {
     // SetObjectType sets an object's one type, creating the type's object
     // when it is absent and removing any other type the object had.
     SetObjectTypeMutation set_object_type = 5;
+    // RenameObject renames an object that must exist, and its graph quads:
+    // an absent object refuses the batch with
+    // WORLD_ERROR_CODE_OBJECT_NOT_FOUND.
+    RenameObjectRequest rename_object = 6;
+    // DeleteGraphQuad deletes a graph quad.
+    DeleteGraphQuadRequest delete_graph_quad = 7;
+    // DeleteGraphObject deletes every graph quad naming the object.
+    DeleteGraphObjectRequest delete_graph_object = 8;
+    // SetRootRef sets the root of an object that must exist. Its result
+    // carries the object's new revision.
+    SetRootRefMutation set_root_ref = 9;
+    // ApplyObjectOp applies an object operation to an object that must exist;
+    // the authenticated Resource sender overrides op_sender. Its result
+    // carries the object's new revision.
+    ApplyObjectOpMutation apply_object_op = 10;
+    // IncrementRev increments the revision of an object that must exist. Its
+    // result carries the object's new revision.
+    IncrementRevMutation increment_rev = 11;
   }
 }
 
@@ -837,6 +855,39 @@ message SetObjectTypeMutation {
   string object_key = 1;
   // TypeId is the type to give it.
   string type_id = 2;
+}
+
+// SetRootRefMutation sets the root of an object in a World batch.
+message SetRootRefMutation {
+  // ObjectKey is the object to update.
+  string object_key = 1;
+  // RootRef is the object's new root.
+  .bucket.ObjectRef root_ref = 2;
+}
+
+// ApplyObjectOpMutation applies an object operation in a World batch.
+message ApplyObjectOpMutation {
+  // ObjectKey is the object the operation applies to.
+  string object_key = 1;
+  // OpTypeId is the operation type identifier.
+  string op_type_id = 2;
+  // OpData is the encoded operation body.
+  bytes op_data = 3;
+  // OpSender is the peer ID of the sender applying the operation.
+  string op_sender = 4;
+}
+
+// IncrementRevMutation increments an object's revision in a World batch.
+message IncrementRevMutation {
+  // ObjectKey is the object to update.
+  string object_key = 1;
+}
+
+// WorldMutationResult is the result of one applied mutation of a batch.
+message WorldMutationResult {
+  // Rev is the object's revision after a set_root_ref, apply_object_op or
+  // increment_rev mutation, and zero for the other kinds.
+  uint64 rev = 1;
 }
 
 // ExecuteWorldBatchRequest is the request type for ExecuteWorldBatch.
@@ -859,6 +910,10 @@ message ExecuteWorldBatchResponse {
   string rejection_code = 4;
   // RejectionMessage is the safe explanation of a rejected op.
   string rejection_message = 5;
+  // Results holds one entry per mutation of an applied batch, in request
+  // order: set_root_ref, apply_object_op and increment_rev fill rev, and the
+  // other kinds leave it zero. A refused batch carries no results.
+  repeated WorldMutationResult results = 6;
 }
 
 // WatchWorldStateRequest is the request type for WatchWorldState.

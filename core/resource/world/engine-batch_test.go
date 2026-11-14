@@ -226,13 +226,28 @@ func (o *batchTestOp) ApplyWorldOp(ctx context.Context, le *logrus.Entry, ws wor
 	return false, world.ErrUnhandledOp
 }
 
+// ApplyWorldObjectOp rejects for "reject" and otherwise increments the
+// object's revision.
+func (o *batchTestOp) ApplyWorldObjectOp(ctx context.Context, le *logrus.Entry, obj world.ObjectState, sender peer.ID) (bool, error) {
+	if o.action == "reject" {
+		return false, &world.OperationRejection{Code: "test/refused", Message: "refused by the test op"}
+	}
+	_, err := obj.IncrementRev(ctx)
+	return false, err
+}
+
 // _ is a type assertion.
-var _ world.PreparedOperation = (*batchTestOp)(nil)
+var (
+	_ world.PreparedOperation = (*batchTestOp)(nil)
+	_ world.ObjectOperation   = (*batchTestOp)(nil)
+)
 
 // TestExecuteWorldBatchOps checks op entries: a rejection, a plugin timeout
-// or an unavailable plugin discards the batch and names its index and code, an op is applied as the
-// sender ExecuteWorldOp binds, and a plugin load before the transaction holds
-// no writer and ends with the caller's context error.
+// or an unavailable plugin discards the batch and names its index and code,
+// an op is applied as the sender ExecuteWorldOp binds, and a plugin load
+// before the transaction holds no writer and ends with the caller's context
+// error. It then checks that object entries report revisions at their
+// indexes and refuse on an absent object.
 func TestExecuteWorldBatchOps(t *testing.T) {
 	ctx := t.Context()
 	tb, cleanup := setupWorldTestbed(ctx, t)
@@ -376,5 +391,74 @@ func TestExecuteWorldBatchOps(t *testing.T) {
 	}
 	if exists("abandoned") {
 		t.Fatal("abandoned batch created its object")
+	}
+	hooks.gate = nil
+
+	// Object entries return the object's revision at their own index, and
+	// zero at the other kinds' indexes.
+	objOp := func(key, action string) *s4wave_world.WorldMutation {
+		return &s4wave_world.WorldMutation{Mutation: &s4wave_world.WorldMutation_ApplyObjectOp{
+			ApplyObjectOp: &s4wave_world.ApplyObjectOpMutation{ObjectKey: key, OpTypeId: batchTestOpID, OpData: []byte(action)},
+		}}
+	}
+	setRoot := &s4wave_world.WorldMutation{Mutation: &s4wave_world.WorldMutation_SetRootRef{
+		SetRootRef: &s4wave_world.SetRootRefMutation{ObjectKey: "revs", RootRef: &bucket.ObjectRef{}},
+	}}
+	incRev := func(key string) *s4wave_world.WorldMutation {
+		return &s4wave_world.WorldMutation{Mutation: &s4wave_world.WorldMutation_IncrementRev{
+			IncrementRev: &s4wave_world.IncrementRevMutation{ObjectKey: key},
+		}}
+	}
+	dropGraph := &s4wave_world.WorldMutation{Mutation: &s4wave_world.WorldMutation_DeleteGraphObject{
+		DeleteGraphObject: &s4wave_world.DeleteGraphObjectRequest{ObjectKey: "revs"},
+	}}
+	resp, err = batch(ctx, create("revs"), setRoot, objOp("revs", "bump"), dropGraph, incRev("revs"))
+	if err != nil || resp.GetErrorCode() != 0 || resp.GetRejectionCode() != "" {
+		t.Fatalf("object batch: %v %v", resp, err)
+	}
+	revs := make([]uint64, len(resp.GetResults()))
+	for i, res := range resp.GetResults() {
+		revs[i] = res.GetRev()
+	}
+	if len(revs) != 5 || revs[0] != 0 || revs[3] != 0 || revs[1] == 0 || revs[2] <= revs[1] || revs[4] <= revs[2] {
+		t.Fatalf("object batch revs: %v", revs)
+	}
+	obj, found, err := ws.GetObject(ctx, "revs")
+	if err != nil || !found {
+		t.Fatalf("object batch lost its object: %v", err)
+	}
+	_, rev, err := obj.GetRootRef(ctx)
+	world.ReleaseObjectState(obj)
+	if err != nil || rev != revs[4] {
+		t.Fatalf("object rev %d, last result %d: %v", rev, revs[4], err)
+	}
+
+	// An object entry on an absent object, a rejected object op, an object op
+	// whose plugin is unavailable, and a rename of an absent object each
+	// refuse the batch with no results.
+	rename := &s4wave_world.WorldMutation{Mutation: &s4wave_world.WorldMutation_RenameObject{
+		RenameObject: &s4wave_world.RenameObjectRequest{OldObjectKey: "absent", NewObjectKey: "renamed"},
+	}}
+	for _, refused := range []struct {
+		m    *s4wave_world.WorldMutation
+		code s4wave_world.WorldErrorCode
+		rej  string
+	}{
+		{incRev("absent"), s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_OBJECT_NOT_FOUND, ""},
+		{objOp("revs", "reject"), 0, "test/refused"},
+		{objOp("revs", "unavailable"), s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE, ""},
+		{rename, s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_OBJECT_NOT_FOUND, ""},
+	} {
+		resp, err = batch(ctx, create("refused-obj"), refused.m)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if resp.GetFailedIndex() != 1 || resp.GetErrorCode() != refused.code ||
+			resp.GetRejectionCode() != refused.rej || len(resp.GetResults()) != 0 {
+			t.Fatalf("refused object batch: %v", resp)
+		}
+		if exists("refused-obj") {
+			t.Fatal("refused object batch created its object")
+		}
 	}
 }

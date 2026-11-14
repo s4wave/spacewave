@@ -2275,6 +2275,12 @@ type WorldMutation struct {
 	//	*WorldMutation_SetGraphQuad
 	//	*WorldMutation_DeleteObject
 	//	*WorldMutation_SetObjectType
+	//	*WorldMutation_RenameObject
+	//	*WorldMutation_DeleteGraphQuad
+	//	*WorldMutation_DeleteGraphObject
+	//	*WorldMutation_SetRootRef
+	//	*WorldMutation_ApplyObjectOp
+	//	*WorldMutation_IncrementRev
 	Mutation isWorldMutation_Mutation `protobuf_oneof:"mutation"`
 }
 
@@ -2326,6 +2332,48 @@ func (x *WorldMutation) GetSetObjectType() *SetObjectTypeMutation {
 	return nil
 }
 
+func (x *WorldMutation) GetRenameObject() *RenameObjectRequest {
+	if x, ok := x.GetMutation().(*WorldMutation_RenameObject); ok {
+		return x.RenameObject
+	}
+	return nil
+}
+
+func (x *WorldMutation) GetDeleteGraphQuad() *DeleteGraphQuadRequest {
+	if x, ok := x.GetMutation().(*WorldMutation_DeleteGraphQuad); ok {
+		return x.DeleteGraphQuad
+	}
+	return nil
+}
+
+func (x *WorldMutation) GetDeleteGraphObject() *DeleteGraphObjectRequest {
+	if x, ok := x.GetMutation().(*WorldMutation_DeleteGraphObject); ok {
+		return x.DeleteGraphObject
+	}
+	return nil
+}
+
+func (x *WorldMutation) GetSetRootRef() *SetRootRefMutation {
+	if x, ok := x.GetMutation().(*WorldMutation_SetRootRef); ok {
+		return x.SetRootRef
+	}
+	return nil
+}
+
+func (x *WorldMutation) GetApplyObjectOp() *ApplyObjectOpMutation {
+	if x, ok := x.GetMutation().(*WorldMutation_ApplyObjectOp); ok {
+		return x.ApplyObjectOp
+	}
+	return nil
+}
+
+func (x *WorldMutation) GetIncrementRev() *IncrementRevMutation {
+	if x, ok := x.GetMutation().(*WorldMutation_IncrementRev); ok {
+		return x.IncrementRev
+	}
+	return nil
+}
+
 type isWorldMutation_Mutation interface {
 	isWorldMutation_Mutation()
 }
@@ -2359,6 +2407,42 @@ type WorldMutation_SetObjectType struct {
 	SetObjectType *SetObjectTypeMutation `protobuf:"bytes,5,opt,name=set_object_type,json=setObjectType,proto3,oneof"`
 }
 
+type WorldMutation_RenameObject struct {
+	// RenameObject renames an object that must exist, and its graph quads:
+	// an absent object refuses the batch with
+	// WORLD_ERROR_CODE_OBJECT_NOT_FOUND.
+	RenameObject *RenameObjectRequest `protobuf:"bytes,6,opt,name=rename_object,json=renameObject,proto3,oneof"`
+}
+
+type WorldMutation_DeleteGraphQuad struct {
+	// DeleteGraphQuad deletes a graph quad.
+	DeleteGraphQuad *DeleteGraphQuadRequest `protobuf:"bytes,7,opt,name=delete_graph_quad,json=deleteGraphQuad,proto3,oneof"`
+}
+
+type WorldMutation_DeleteGraphObject struct {
+	// DeleteGraphObject deletes every graph quad naming the object.
+	DeleteGraphObject *DeleteGraphObjectRequest `protobuf:"bytes,8,opt,name=delete_graph_object,json=deleteGraphObject,proto3,oneof"`
+}
+
+type WorldMutation_SetRootRef struct {
+	// SetRootRef sets the root of an object that must exist. Its result
+	// carries the object's new revision.
+	SetRootRef *SetRootRefMutation `protobuf:"bytes,9,opt,name=set_root_ref,json=setRootRef,proto3,oneof"`
+}
+
+type WorldMutation_ApplyObjectOp struct {
+	// ApplyObjectOp applies an object operation to an object that must exist;
+	// the authenticated Resource sender overrides op_sender. Its result
+	// carries the object's new revision.
+	ApplyObjectOp *ApplyObjectOpMutation `protobuf:"bytes,10,opt,name=apply_object_op,json=applyObjectOp,proto3,oneof"`
+}
+
+type WorldMutation_IncrementRev struct {
+	// IncrementRev increments the revision of an object that must exist. Its
+	// result carries the object's new revision.
+	IncrementRev *IncrementRevMutation `protobuf:"bytes,11,opt,name=increment_rev,json=incrementRev,proto3,oneof"`
+}
+
 func (*WorldMutation_Op) isWorldMutation_Mutation() {}
 
 func (*WorldMutation_CreateObject) isWorldMutation_Mutation() {}
@@ -2368,6 +2452,18 @@ func (*WorldMutation_SetGraphQuad) isWorldMutation_Mutation() {}
 func (*WorldMutation_DeleteObject) isWorldMutation_Mutation() {}
 
 func (*WorldMutation_SetObjectType) isWorldMutation_Mutation() {}
+
+func (*WorldMutation_RenameObject) isWorldMutation_Mutation() {}
+
+func (*WorldMutation_DeleteGraphQuad) isWorldMutation_Mutation() {}
+
+func (*WorldMutation_DeleteGraphObject) isWorldMutation_Mutation() {}
+
+func (*WorldMutation_SetRootRef) isWorldMutation_Mutation() {}
+
+func (*WorldMutation_ApplyObjectOp) isWorldMutation_Mutation() {}
+
+func (*WorldMutation_IncrementRev) isWorldMutation_Mutation() {}
 
 // SetObjectTypeMutation sets the type of an object in a World batch.
 type SetObjectTypeMutation struct {
@@ -2396,6 +2492,123 @@ func (x *SetObjectTypeMutation) GetTypeId() string {
 		return x.TypeId
 	}
 	return ""
+}
+
+// SetRootRefMutation sets the root of an object in a World batch.
+type SetRootRefMutation struct {
+	unknownFields []byte
+	// ObjectKey is the object to update.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// RootRef is the object's new root.
+	RootRef *bucket.ObjectRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+}
+
+func (x *SetRootRefMutation) Reset() {
+	*x = SetRootRefMutation{}
+}
+
+func (*SetRootRefMutation) ProtoMessage() {}
+
+func (x *SetRootRefMutation) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *SetRootRefMutation) GetRootRef() *bucket.ObjectRef {
+	if x != nil {
+		return x.RootRef
+	}
+	return nil
+}
+
+// ApplyObjectOpMutation applies an object operation in a World batch.
+type ApplyObjectOpMutation struct {
+	unknownFields []byte
+	// ObjectKey is the object the operation applies to.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// OpTypeId is the operation type identifier.
+	OpTypeId string `protobuf:"bytes,2,opt,name=op_type_id,json=opTypeId,proto3" json:"opTypeId,omitempty"`
+	// OpData is the encoded operation body.
+	OpData []byte `protobuf:"bytes,3,opt,name=op_data,json=opData,proto3" json:"opData,omitempty"`
+	// OpSender is the peer ID of the sender applying the operation.
+	OpSender string `protobuf:"bytes,4,opt,name=op_sender,json=opSender,proto3" json:"opSender,omitempty"`
+}
+
+func (x *ApplyObjectOpMutation) Reset() {
+	*x = ApplyObjectOpMutation{}
+}
+
+func (*ApplyObjectOpMutation) ProtoMessage() {}
+
+func (x *ApplyObjectOpMutation) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *ApplyObjectOpMutation) GetOpTypeId() string {
+	if x != nil {
+		return x.OpTypeId
+	}
+	return ""
+}
+
+func (x *ApplyObjectOpMutation) GetOpData() []byte {
+	if x != nil {
+		return x.OpData
+	}
+	return nil
+}
+
+func (x *ApplyObjectOpMutation) GetOpSender() string {
+	if x != nil {
+		return x.OpSender
+	}
+	return ""
+}
+
+// IncrementRevMutation increments an object's revision in a World batch.
+type IncrementRevMutation struct {
+	unknownFields []byte
+	// ObjectKey is the object to update.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+}
+
+func (x *IncrementRevMutation) Reset() {
+	*x = IncrementRevMutation{}
+}
+
+func (*IncrementRevMutation) ProtoMessage() {}
+
+func (x *IncrementRevMutation) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+// WorldMutationResult is the result of one applied mutation of a batch.
+type WorldMutationResult struct {
+	unknownFields []byte
+	// Rev is the object's revision after a set_root_ref, apply_object_op or
+	// increment_rev mutation, and zero for the other kinds.
+	Rev uint64 `protobuf:"varint,1,opt,name=rev,proto3" json:"rev,omitempty"`
+}
+
+func (x *WorldMutationResult) Reset() {
+	*x = WorldMutationResult{}
+}
+
+func (*WorldMutationResult) ProtoMessage() {}
+
+func (x *WorldMutationResult) GetRev() uint64 {
+	if x != nil {
+		return x.Rev
+	}
+	return 0
 }
 
 // ExecuteWorldBatchRequest is the request type for ExecuteWorldBatch.
@@ -2433,6 +2646,10 @@ type ExecuteWorldBatchResponse struct {
 	RejectionCode string `protobuf:"bytes,4,opt,name=rejection_code,json=rejectionCode,proto3" json:"rejectionCode,omitempty"`
 	// RejectionMessage is the safe explanation of a rejected op.
 	RejectionMessage string `protobuf:"bytes,5,opt,name=rejection_message,json=rejectionMessage,proto3" json:"rejectionMessage,omitempty"`
+	// Results holds one entry per mutation of an applied batch, in request
+	// order: set_root_ref, apply_object_op and increment_rev fill rev, and the
+	// other kinds leave it zero. A refused batch carries no results.
+	Results []*WorldMutationResult `protobuf:"bytes,6,rep,name=results,proto3" json:"results,omitempty"`
 }
 
 func (x *ExecuteWorldBatchResponse) Reset() {
@@ -2474,6 +2691,13 @@ func (x *ExecuteWorldBatchResponse) GetRejectionMessage() string {
 		return x.RejectionMessage
 	}
 	return ""
+}
+
+func (x *ExecuteWorldBatchResponse) GetResults() []*WorldMutationResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
 }
 
 // WatchWorldStateRequest is the request type for WatchWorldState.
@@ -4741,6 +4965,84 @@ func (m *WorldMutation_SetObjectType) CloneOneofVT() isWorldMutation_Mutation {
 	return m.CloneVT()
 }
 
+func (m *WorldMutation_RenameObject) CloneVT() *WorldMutation_RenameObject {
+	if m == nil {
+		return (*WorldMutation_RenameObject)(nil)
+	}
+	r := new(WorldMutation_RenameObject)
+	r.RenameObject = protobuf_go_lite.CloneVTValue(m.RenameObject)
+	return r
+}
+
+func (m *WorldMutation_RenameObject) CloneOneofVT() isWorldMutation_Mutation {
+	return m.CloneVT()
+}
+
+func (m *WorldMutation_DeleteGraphQuad) CloneVT() *WorldMutation_DeleteGraphQuad {
+	if m == nil {
+		return (*WorldMutation_DeleteGraphQuad)(nil)
+	}
+	r := new(WorldMutation_DeleteGraphQuad)
+	r.DeleteGraphQuad = protobuf_go_lite.CloneVTValue(m.DeleteGraphQuad)
+	return r
+}
+
+func (m *WorldMutation_DeleteGraphQuad) CloneOneofVT() isWorldMutation_Mutation {
+	return m.CloneVT()
+}
+
+func (m *WorldMutation_DeleteGraphObject) CloneVT() *WorldMutation_DeleteGraphObject {
+	if m == nil {
+		return (*WorldMutation_DeleteGraphObject)(nil)
+	}
+	r := new(WorldMutation_DeleteGraphObject)
+	r.DeleteGraphObject = protobuf_go_lite.CloneVTValue(m.DeleteGraphObject)
+	return r
+}
+
+func (m *WorldMutation_DeleteGraphObject) CloneOneofVT() isWorldMutation_Mutation {
+	return m.CloneVT()
+}
+
+func (m *WorldMutation_SetRootRef) CloneVT() *WorldMutation_SetRootRef {
+	if m == nil {
+		return (*WorldMutation_SetRootRef)(nil)
+	}
+	r := new(WorldMutation_SetRootRef)
+	r.SetRootRef = protobuf_go_lite.CloneVTValue(m.SetRootRef)
+	return r
+}
+
+func (m *WorldMutation_SetRootRef) CloneOneofVT() isWorldMutation_Mutation {
+	return m.CloneVT()
+}
+
+func (m *WorldMutation_ApplyObjectOp) CloneVT() *WorldMutation_ApplyObjectOp {
+	if m == nil {
+		return (*WorldMutation_ApplyObjectOp)(nil)
+	}
+	r := new(WorldMutation_ApplyObjectOp)
+	r.ApplyObjectOp = protobuf_go_lite.CloneVTValue(m.ApplyObjectOp)
+	return r
+}
+
+func (m *WorldMutation_ApplyObjectOp) CloneOneofVT() isWorldMutation_Mutation {
+	return m.CloneVT()
+}
+
+func (m *WorldMutation_IncrementRev) CloneVT() *WorldMutation_IncrementRev {
+	if m == nil {
+		return (*WorldMutation_IncrementRev)(nil)
+	}
+	r := new(WorldMutation_IncrementRev)
+	r.IncrementRev = protobuf_go_lite.CloneVTValue(m.IncrementRev)
+	return r
+}
+
+func (m *WorldMutation_IncrementRev) CloneOneofVT() isWorldMutation_Mutation {
+	return m.CloneVT()
+}
+
 func (m *SetObjectTypeMutation) CloneVT() *SetObjectTypeMutation {
 	if m == nil {
 		return (*SetObjectTypeMutation)(nil)
@@ -4755,6 +5057,74 @@ func (m *SetObjectTypeMutation) CloneVT() *SetObjectTypeMutation {
 }
 
 func (m *SetObjectTypeMutation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetRootRefMutation) CloneVT() *SetRootRefMutation {
+	if m == nil {
+		return (*SetRootRefMutation)(nil)
+	}
+	r := new(SetRootRefMutation)
+	r.ObjectKey = m.ObjectKey
+	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetRootRefMutation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ApplyObjectOpMutation) CloneVT() *ApplyObjectOpMutation {
+	if m == nil {
+		return (*ApplyObjectOpMutation)(nil)
+	}
+	r := new(ApplyObjectOpMutation)
+	r.ObjectKey = m.ObjectKey
+	r.OpTypeId = m.OpTypeId
+	r.OpSender = m.OpSender
+	r.OpData = protobuf_go_lite.CloneBytes(m.OpData)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ApplyObjectOpMutation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *IncrementRevMutation) CloneVT() *IncrementRevMutation {
+	if m == nil {
+		return (*IncrementRevMutation)(nil)
+	}
+	r := new(IncrementRevMutation)
+	r.ObjectKey = m.ObjectKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *IncrementRevMutation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WorldMutationResult) CloneVT() *WorldMutationResult {
+	if m == nil {
+		return (*WorldMutationResult)(nil)
+	}
+	r := new(WorldMutationResult)
+	r.Rev = m.Rev
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WorldMutationResult) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4784,6 +5154,7 @@ func (m *ExecuteWorldBatchResponse) CloneVT() *ExecuteWorldBatchResponse {
 	r.ErrorCode = m.ErrorCode
 	r.RejectionCode = m.RejectionCode
 	r.RejectionMessage = m.RejectionMessage
+	r.Results = protobuf_go_lite.CloneVTSlice(m.Results)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -7327,6 +7698,108 @@ func (this *WorldMutation_SetObjectType) EqualVT(thatIface isWorldMutation_Mutat
 	return true
 }
 
+func (this *WorldMutation_RenameObject) EqualVT(thatIface isWorldMutation_Mutation) bool {
+	that, ok := thatIface.(*WorldMutation_RenameObject)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.RenameObject, that.RenameObject, func() *RenameObjectRequest { return &RenameObjectRequest{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldMutation_DeleteGraphQuad) EqualVT(thatIface isWorldMutation_Mutation) bool {
+	that, ok := thatIface.(*WorldMutation_DeleteGraphQuad)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.DeleteGraphQuad, that.DeleteGraphQuad, func() *DeleteGraphQuadRequest { return &DeleteGraphQuadRequest{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldMutation_DeleteGraphObject) EqualVT(thatIface isWorldMutation_Mutation) bool {
+	that, ok := thatIface.(*WorldMutation_DeleteGraphObject)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.DeleteGraphObject, that.DeleteGraphObject, func() *DeleteGraphObjectRequest { return &DeleteGraphObjectRequest{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldMutation_SetRootRef) EqualVT(thatIface isWorldMutation_Mutation) bool {
+	that, ok := thatIface.(*WorldMutation_SetRootRef)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.SetRootRef, that.SetRootRef, func() *SetRootRefMutation { return &SetRootRefMutation{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldMutation_ApplyObjectOp) EqualVT(thatIface isWorldMutation_Mutation) bool {
+	that, ok := thatIface.(*WorldMutation_ApplyObjectOp)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.ApplyObjectOp, that.ApplyObjectOp, func() *ApplyObjectOpMutation { return &ApplyObjectOpMutation{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldMutation_IncrementRev) EqualVT(thatIface isWorldMutation_Mutation) bool {
+	that, ok := thatIface.(*WorldMutation_IncrementRev)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.IncrementRev, that.IncrementRev, func() *IncrementRevMutation { return &IncrementRevMutation{} }) {
+		return false
+	}
+	return true
+}
+
 func (this *SetObjectTypeMutation) EqualVT(that *SetObjectTypeMutation) bool {
 	if this == that {
 		return true
@@ -7344,6 +7817,98 @@ func (this *SetObjectTypeMutation) EqualVT(that *SetObjectTypeMutation) bool {
 
 func (this *SetObjectTypeMutation) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetObjectTypeMutation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetRootRefMutation) EqualVT(that *SetRootRefMutation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetRootRefMutation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetRootRefMutation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ApplyObjectOpMutation) EqualVT(that *ApplyObjectOpMutation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.OpTypeId != that.OpTypeId {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.OpData, that.OpData) {
+		return false
+	}
+	if this.OpSender != that.OpSender {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ApplyObjectOpMutation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ApplyObjectOpMutation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *IncrementRevMutation) EqualVT(that *IncrementRevMutation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *IncrementRevMutation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*IncrementRevMutation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WorldMutationResult) EqualVT(that *WorldMutationResult) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Rev != that.Rev {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WorldMutationResult) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WorldMutationResult)
 	if !ok {
 		return false
 	}
@@ -7389,6 +7954,9 @@ func (this *ExecuteWorldBatchResponse) EqualVT(that *ExecuteWorldBatchResponse) 
 		return false
 	}
 	if this.RejectionMessage != that.RejectionMessage {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Results, that.Results, func() *WorldMutationResult { return &WorldMutationResult{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -12465,6 +13033,30 @@ func (x *WorldMutation) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("setObjectType")
 			ov.SetObjectType.MarshalProtoJSON(s.WithField("setObjectType"))
+		case *WorldMutation_RenameObject:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("renameObject")
+			ov.RenameObject.MarshalProtoJSON(s.WithField("renameObject"))
+		case *WorldMutation_DeleteGraphQuad:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("deleteGraphQuad")
+			ov.DeleteGraphQuad.MarshalProtoJSON(s.WithField("deleteGraphQuad"))
+		case *WorldMutation_DeleteGraphObject:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("deleteGraphObject")
+			ov.DeleteGraphObject.MarshalProtoJSON(s.WithField("deleteGraphObject"))
+		case *WorldMutation_SetRootRef:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("setRootRef")
+			ov.SetRootRef.MarshalProtoJSON(s.WithField("setRootRef"))
+		case *WorldMutation_ApplyObjectOp:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("applyObjectOp")
+			ov.ApplyObjectOp.MarshalProtoJSON(s.WithField("applyObjectOp"))
+		case *WorldMutation_IncrementRev:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("incrementRev")
+			ov.IncrementRev.MarshalProtoJSON(s.WithField("incrementRev"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -12529,6 +13121,60 @@ func (x *WorldMutation) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.SetObjectType = &SetObjectTypeMutation{}
 			ov.SetObjectType.UnmarshalProtoJSON(s.WithField("set_object_type", true))
+		case "rename_object", "renameObject":
+			ov := &WorldMutation_RenameObject{}
+			x.Mutation = ov
+			if s.ReadNil() {
+				ov.RenameObject = nil
+				return
+			}
+			ov.RenameObject = &RenameObjectRequest{}
+			ov.RenameObject.UnmarshalProtoJSON(s.WithField("rename_object", true))
+		case "delete_graph_quad", "deleteGraphQuad":
+			ov := &WorldMutation_DeleteGraphQuad{}
+			x.Mutation = ov
+			if s.ReadNil() {
+				ov.DeleteGraphQuad = nil
+				return
+			}
+			ov.DeleteGraphQuad = &DeleteGraphQuadRequest{}
+			ov.DeleteGraphQuad.UnmarshalProtoJSON(s.WithField("delete_graph_quad", true))
+		case "delete_graph_object", "deleteGraphObject":
+			ov := &WorldMutation_DeleteGraphObject{}
+			x.Mutation = ov
+			if s.ReadNil() {
+				ov.DeleteGraphObject = nil
+				return
+			}
+			ov.DeleteGraphObject = &DeleteGraphObjectRequest{}
+			ov.DeleteGraphObject.UnmarshalProtoJSON(s.WithField("delete_graph_object", true))
+		case "set_root_ref", "setRootRef":
+			ov := &WorldMutation_SetRootRef{}
+			x.Mutation = ov
+			if s.ReadNil() {
+				ov.SetRootRef = nil
+				return
+			}
+			ov.SetRootRef = &SetRootRefMutation{}
+			ov.SetRootRef.UnmarshalProtoJSON(s.WithField("set_root_ref", true))
+		case "apply_object_op", "applyObjectOp":
+			ov := &WorldMutation_ApplyObjectOp{}
+			x.Mutation = ov
+			if s.ReadNil() {
+				ov.ApplyObjectOp = nil
+				return
+			}
+			ov.ApplyObjectOp = &ApplyObjectOpMutation{}
+			ov.ApplyObjectOp.UnmarshalProtoJSON(s.WithField("apply_object_op", true))
+		case "increment_rev", "incrementRev":
+			ov := &WorldMutation_IncrementRev{}
+			x.Mutation = ov
+			if s.ReadNil() {
+				ov.IncrementRev = nil
+				return
+			}
+			ov.IncrementRev = &IncrementRevMutation{}
+			ov.IncrementRev.UnmarshalProtoJSON(s.WithField("increment_rev", true))
 		}
 	})
 }
@@ -12585,6 +13231,210 @@ func (x *SetObjectTypeMutation) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SetObjectTypeMutation from JSON.
 func (x *SetObjectTypeMutation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetRootRefMutation message to JSON.
+func (x *SetRootRefMutation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.RootRef != nil || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetRootRefMutation to JSON.
+func (x *SetRootRefMutation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetRootRefMutation message from JSON.
+func (x *SetRootRefMutation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "root_ref", "rootRef":
+			if s.ReadNil() {
+				x.RootRef = nil
+				return
+			}
+			x.RootRef = &bucket.ObjectRef{}
+			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetRootRefMutation from JSON.
+func (x *SetRootRefMutation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ApplyObjectOpMutation message to JSON.
+func (x *ApplyObjectOpMutation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.OpTypeId != "" || s.HasField("opTypeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opTypeId")
+		s.WriteString(x.OpTypeId)
+	}
+	if len(x.OpData) > 0 || s.HasField("opData") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opData")
+		s.WriteBytes(x.OpData)
+	}
+	if x.OpSender != "" || s.HasField("opSender") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opSender")
+		s.WriteString(x.OpSender)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ApplyObjectOpMutation to JSON.
+func (x *ApplyObjectOpMutation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ApplyObjectOpMutation message from JSON.
+func (x *ApplyObjectOpMutation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "op_type_id", "opTypeId":
+			s.AddField("op_type_id")
+			x.OpTypeId = s.ReadString()
+		case "op_data", "opData":
+			s.AddField("op_data")
+			x.OpData = s.ReadBytes()
+		case "op_sender", "opSender":
+			s.AddField("op_sender")
+			x.OpSender = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ApplyObjectOpMutation from JSON.
+func (x *ApplyObjectOpMutation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the IncrementRevMutation message to JSON.
+func (x *IncrementRevMutation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the IncrementRevMutation to JSON.
+func (x *IncrementRevMutation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the IncrementRevMutation message from JSON.
+func (x *IncrementRevMutation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the IncrementRevMutation from JSON.
+func (x *IncrementRevMutation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WorldMutationResult message to JSON.
+func (x *WorldMutationResult) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Rev != 0 || s.HasField("rev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rev")
+		s.WriteUint64(x.Rev)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WorldMutationResult to JSON.
+func (x *WorldMutationResult) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WorldMutationResult message from JSON.
+func (x *WorldMutationResult) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "rev":
+			s.AddField("rev")
+			x.Rev = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WorldMutationResult from JSON.
+func (x *WorldMutationResult) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -12684,6 +13534,17 @@ func (x *ExecuteWorldBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rejectionMessage")
 		s.WriteString(x.RejectionMessage)
 	}
+	if len(x.Results) > 0 || s.HasField("results") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("results")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Results {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("results"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -12716,6 +13577,24 @@ func (x *ExecuteWorldBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "rejection_message", "rejectionMessage":
 			s.AddField("rejection_message")
 			x.RejectionMessage = s.ReadString()
+		case "results":
+			s.AddField("results")
+			if s.ReadNil() {
+				x.Results = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Results = append(x.Results, nil)
+					return
+				}
+				v := &WorldMutationResult{}
+				v.UnmarshalProtoJSON(s.WithField("results", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Results = append(x.Results, v)
+			})
 		}
 	})
 }
@@ -18030,6 +18909,150 @@ func (m *WorldMutation_SetObjectType) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *WorldMutation_RenameObject) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldMutation_RenameObject) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.RenameObject != nil {
+		size, err := m.RenameObject.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x32
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldMutation_DeleteGraphQuad) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldMutation_DeleteGraphQuad) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.DeleteGraphQuad != nil {
+		size, err := m.DeleteGraphQuad.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x3a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldMutation_DeleteGraphObject) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldMutation_DeleteGraphObject) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.DeleteGraphObject != nil {
+		size, err := m.DeleteGraphObject.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x42
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldMutation_SetRootRef) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldMutation_SetRootRef) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.SetRootRef != nil {
+		size, err := m.SetRootRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x4a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldMutation_ApplyObjectOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldMutation_ApplyObjectOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.ApplyObjectOp != nil {
+		size, err := m.ApplyObjectOp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x52
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldMutation_IncrementRev) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldMutation_IncrementRev) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.IncrementRev != nil {
+		size, err := m.IncrementRev.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x5a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x5a
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SetObjectTypeMutation) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -18068,6 +19091,179 @@ func (m *SetObjectTypeMutation) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetRootRefMutation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetRootRefMutation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetRootRefMutation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RootRef != nil {
+		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ApplyObjectOpMutation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ApplyObjectOpMutation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ApplyObjectOpMutation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.OpSender) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.OpSender)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.OpData) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.OpData)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.OpTypeId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.OpTypeId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *IncrementRevMutation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *IncrementRevMutation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *IncrementRevMutation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldMutationResult) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WorldMutationResult) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldMutationResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Rev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -18144,6 +19340,18 @@ func (m *ExecuteWorldBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Results) > 0 {
+		for iNdEx := len(m.Results) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Results[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
 	}
 	if len(m.RejectionMessage) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.RejectionMessage)
@@ -20809,6 +22017,96 @@ func (m *WorldMutation_SetObjectType) SizeVT() (n int) {
 	return n
 }
 
+func (m *WorldMutation_RenameObject) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RenameObject != nil {
+		l = m.RenameObject.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldMutation_DeleteGraphQuad) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.DeleteGraphQuad != nil {
+		l = m.DeleteGraphQuad.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldMutation_DeleteGraphObject) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.DeleteGraphObject != nil {
+		l = m.DeleteGraphObject.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldMutation_SetRootRef) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SetRootRef != nil {
+		l = m.SetRootRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldMutation_ApplyObjectOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ApplyObjectOp != nil {
+		l = m.ApplyObjectOp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldMutation_IncrementRev) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.IncrementRev != nil {
+		l = m.IncrementRev.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
 func (m *SetObjectTypeMutation) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -20817,6 +22115,57 @@ func (m *SetObjectTypeMutation) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TypeId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetRootRefMutation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	if m.RootRef != nil {
+		l = m.RootRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ApplyObjectOpMutation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpTypeId)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OpData)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpSender)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *IncrementRevMutation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WorldMutationResult) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Rev)
 	n += len(m.unknownFields)
 	return n
 }
@@ -20846,6 +22195,10 @@ func (m *ExecuteWorldBatchResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RejectionCode)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RejectionMessage)
+	for _, e := range m.Results {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -22836,6 +24189,48 @@ func (x *WorldMutation) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.SetObjectType)
 		}
+	case *WorldMutation_RenameObject:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rename_object")
+		if body.RenameObject == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &RenameObjectRequest{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.RenameObject)
+		}
+	case *WorldMutation_DeleteGraphQuad:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "delete_graph_quad")
+		if body.DeleteGraphQuad == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &DeleteGraphQuadRequest{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.DeleteGraphQuad)
+		}
+	case *WorldMutation_DeleteGraphObject:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "delete_graph_object")
+		if body.DeleteGraphObject == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &DeleteGraphObjectRequest{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.DeleteGraphObject)
+		}
+	case *WorldMutation_SetRootRef:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "set_root_ref")
+		if body.SetRootRef == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SetRootRefMutation{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.SetRootRef)
+		}
+	case *WorldMutation_ApplyObjectOp:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "apply_object_op")
+		if body.ApplyObjectOp == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ApplyObjectOpMutation{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.ApplyObjectOp)
+		}
+	case *WorldMutation_IncrementRev:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "increment_rev")
+		if body.IncrementRev == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &IncrementRevMutation{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.IncrementRev)
+		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -22859,6 +24254,78 @@ func (x *SetObjectTypeMutation) MarshalProtoText() string {
 }
 
 func (x *SetObjectTypeMutation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetRootRefMutation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetRootRefMutation")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.RootRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetRootRefMutation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ApplyObjectOpMutation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ApplyObjectOpMutation")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.OpTypeId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_type_id")
+		protobuf_go_lite.TextWriteString(&sb, x.OpTypeId)
+	}
+	if len(x.OpData) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_data")
+		protobuf_go_lite.TextWriteBytes(&sb, x.OpData)
+	}
+	if x.OpSender != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_sender")
+		protobuf_go_lite.TextWriteString(&sb, x.OpSender)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ApplyObjectOpMutation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *IncrementRevMutation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "IncrementRevMutation")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *IncrementRevMutation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WorldMutationResult) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WorldMutationResult")
+	if x.Rev != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rev")
+		protobuf_go_lite.TextWriteUint(&sb, x.Rev)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WorldMutationResult) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -22906,6 +24373,18 @@ func (x *ExecuteWorldBatchResponse) MarshalProtoText() string {
 	if x.RejectionMessage != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rejection_message")
 		protobuf_go_lite.TextWriteString(&sb, x.RejectionMessage)
+	}
+	if len(x.Results) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "results")
+		for i, v := range x.Results {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &WorldMutationResult{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -28499,6 +29978,126 @@ func (m *WorldMutation) UnmarshalVT(dAtA []byte) error {
 				m.Mutation = &WorldMutation_SetObjectType{SetObjectType: v}
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RenameObject", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Mutation.(*WorldMutation_RenameObject); ok {
+				if err := oneof.RenameObject.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &RenameObjectRequest{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Mutation = &WorldMutation_RenameObject{RenameObject: v}
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeleteGraphQuad", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Mutation.(*WorldMutation_DeleteGraphQuad); ok {
+				if err := oneof.DeleteGraphQuad.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &DeleteGraphQuadRequest{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Mutation = &WorldMutation_DeleteGraphQuad{DeleteGraphQuad: v}
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeleteGraphObject", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Mutation.(*WorldMutation_DeleteGraphObject); ok {
+				if err := oneof.DeleteGraphObject.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &DeleteGraphObjectRequest{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Mutation = &WorldMutation_DeleteGraphObject{DeleteGraphObject: v}
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SetRootRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Mutation.(*WorldMutation_SetRootRef); ok {
+				if err := oneof.SetRootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SetRootRefMutation{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Mutation = &WorldMutation_SetRootRef{SetRootRef: v}
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApplyObjectOp", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Mutation.(*WorldMutation_ApplyObjectOp); ok {
+				if err := oneof.ApplyObjectOp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ApplyObjectOpMutation{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Mutation = &WorldMutation_ApplyObjectOp{ApplyObjectOp: v}
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IncrementRev", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Mutation.(*WorldMutation_IncrementRev); ok {
+				if err := oneof.IncrementRev.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &IncrementRevMutation{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Mutation = &WorldMutation_IncrementRev{IncrementRev: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -28562,6 +30161,260 @@ func (m *SetObjectTypeMutation) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.TypeId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetRootRefMutation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetRootRefMutation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetRootRefMutation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.RootRef == nil {
+				m.RootRef = &bucket.ObjectRef{}
+			}
+			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ApplyObjectOpMutation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ApplyObjectOpMutation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ApplyObjectOpMutation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpTypeId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OpTypeId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpData", wireType)
+			}
+			m.OpData, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.OpData, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpSender", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OpSender = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *IncrementRevMutation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: IncrementRevMutation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: IncrementRevMutation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WorldMutationResult) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WorldMutationResult: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WorldMutationResult: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rev", wireType)
+			}
+			m.Rev = 0
+			m.Rev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -28710,6 +30563,19 @@ func (m *ExecuteWorldBatchResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RejectionMessage = v
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Results", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Results = append(m.Results, &WorldMutationResult{})
+			if err := m.Results[len(m.Results)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

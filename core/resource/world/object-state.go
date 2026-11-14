@@ -141,33 +141,15 @@ func (r *ObjectStateResource) ApplyObjectOp(ctx context.Context, req *s4wave_wor
 	// plugin, which was never sent the operation.
 	rev, sysErr, err := r.obj.ApplyObjectOp(ctx, op, opSender)
 	if err != nil {
-		var rejection *world.OperationRejection
-		if errors.As(err, &rejection) {
-			return &s4wave_world.ApplyObjectOpResponse{
-				RejectionCode: rejection.Code, RejectionMessage: rejection.Message,
-			}, nil
+		code, rejection, ok := opErrorRefusal(err, world.AppliesAtomically(r.obj))
+		if !ok {
+			return nil, err
 		}
-
-		var unavailable *world.PluginUnavailableError
-		if errors.As(err, &unavailable) {
-			return &s4wave_world.ApplyObjectOpResponse{
-				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE,
-			}, nil
+		resp := &s4wave_world.ApplyObjectOpResponse{ErrorCode: code}
+		if rejection != nil {
+			resp.RejectionCode, resp.RejectionMessage = rejection.Code, rejection.Message
 		}
-
-		var timeout *world.PluginOpTimeoutError
-		if errors.As(err, &timeout) && world.AppliesAtomically(r.obj) {
-			return &s4wave_world.ApplyObjectOpResponse{
-				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT,
-			}, nil
-		}
-
-		if errors.Is(err, world.ErrUnhandledOp) {
-			return &s4wave_world.ApplyObjectOpResponse{
-				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
-			}, nil
-		}
-		return nil, err
+		return resp, nil
 	}
 
 	return &s4wave_world.ApplyObjectOpResponse{Rev: rev, SysErr: sysErr}, nil

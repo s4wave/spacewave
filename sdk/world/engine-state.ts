@@ -14,38 +14,33 @@ import {
 import { ObjectIterator } from './object_iterator.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import type { WorldStage } from './stage.js'
-import type {
-  GetRootRefResponse,
-  ListGraphEdgeBucketsResponse,
-  ListObjectsRequest,
-  ListObjectsResponse,
-  ObjectBody,
-  ObjectMetadata,
-  SetRootRefResponse,
-  ApplyObjectOpResponse,
-  IncrementRevResponse,
-  WaitRevResponse,
+import { throwBatchError } from './errors.js'
+import {
+  WorldErrorCode,
+  type ExecuteWorldBatchResponse,
+  type WorldMutation,
+  type GetRootRefResponse,
+  type ListGraphEdgeBucketsResponse,
+  type ListObjectsRequest,
+  type ListObjectsResponse,
+  type ObjectBody,
+  type ObjectMetadata,
+  type SetRootRefResponse,
+  type ApplyObjectOpResponse,
+  type IncrementRevResponse,
+  type WaitRevResponse,
 } from './world.pb.js'
 
-// runEngineOp performs an operation with a short-lived transaction on the
-// engine owned by state.
-async function runEngineOp<T>(
+// runReadOp performs a read with a short-lived read transaction on the engine
+// owned by state.
+async function runReadOp<T>(
   state: EngineWorldState,
-  write: boolean,
   abortSignal: AbortSignal | undefined,
   cb: (tx: Tx) => Promise<T>,
 ): Promise<T> {
-  if (!state.canWrite() && write) {
-    throw new Error('EngineWorldState is read-only')
-  }
-
-  const tx = await state.getEngine().newTransaction(write, abortSignal)
+  const tx = await state.getEngine().newTransaction(false, abortSignal)
   try {
-    const result = await cb(tx)
-    if (write) {
-      await tx.commit(abortSignal)
-    }
-    return result
+    return await cb(tx)
   } finally {
     // Cleanup outlives caller cancellation and releases the pinned snapshot.
     try {
@@ -56,8 +51,45 @@ async function runEngineOp<T>(
   }
 }
 
-// EngineWorldState implements IWorldState on top of an Engine.
-// Short-lived transactions are created for each operation.
+// sendMutation applies one mutation as an ExecuteWorldBatch of its own, whose
+// write transaction lives only inside the call, and returns the response,
+// refused or not.
+async function sendMutation(
+  state: EngineWorldState,
+  mutation: WorldMutation['mutation'],
+  abortSignal: AbortSignal | undefined,
+): Promise<ExecuteWorldBatchResponse> {
+  if (!state.canWrite()) {
+    throw new Error('EngineWorldState is read-only')
+  }
+  return state.getEngine().executeWorldBatch([{ mutation }], abortSignal)
+}
+
+// applyMutation applies one mutation and throws the refusal of a refused one.
+async function applyMutation(
+  state: EngineWorldState,
+  mutation: WorldMutation['mutation'],
+  abortSignal: AbortSignal | undefined,
+): Promise<ExecuteWorldBatchResponse> {
+  const response = await sendMutation(state, mutation, abortSignal)
+  throwBatchError(response)
+  return response
+}
+
+// applyObjectMutation applies one object mutation and returns the object's
+// revision after it.
+async function applyObjectMutation(
+  state: EngineWorldState,
+  mutation: WorldMutation['mutation'],
+  abortSignal: AbortSignal | undefined,
+): Promise<{ rev: bigint }> {
+  const response = await applyMutation(state, mutation, abortSignal)
+  return { rev: response.results?.[0]?.rev ?? 0n }
+}
+
+// EngineWorldState implements IWorldState on top of an Engine. Each write is
+// one ExecuteWorldBatch round trip, and each read a short-lived read
+// transaction; no write transaction is held across a round trip.
 export class EngineWorldState implements IWorldState {
   private engine: Engine
   private write: boolean
@@ -122,7 +154,7 @@ export class EngineWorldState implements IWorldState {
     objectKey: string,
     abortSignal?: AbortSignal,
   ): Promise<IWorldState & Disposable> {
-    return this.performOp(false, abortSignal, (tx) =>
+    return this.performRead(abortSignal, (tx) =>
       tx.openNestedWorld(objectKey, abortSignal),
     )
   }
@@ -131,9 +163,7 @@ export class EngineWorldState implements IWorldState {
   public async openOuterWorld(
     abortSignal?: AbortSignal,
   ): Promise<IWorldState & Disposable> {
-    return this.performOp(false, abortSignal, (tx) =>
-      tx.openOuterWorld(abortSignal),
-    )
+    return this.performRead(abortSignal, (tx) => tx.openOuterWorld(abortSignal))
   }
 
   // applyWorldOp applies a batch operation at the world level
@@ -143,15 +173,13 @@ export class EngineWorldState implements IWorldState {
     opSender: string,
     abortSignal?: AbortSignal,
   ): Promise<{ seqno: bigint; sysErr: boolean }> {
-    return this.performOp(true, abortSignal, async (tx) => {
-      const response = await tx.applyWorldOp(
-        opTypeId,
-        opData,
-        opSender,
-        abortSignal,
-      )
-      return { seqno: response.seqno ?? 0n, sysErr: response.sysErr ?? false }
-    })
+    // A system error throws, so an applied op never reports sysErr.
+    const response = await applyMutation(
+      this,
+      { case: 'op', value: { opTypeId, opData, opSender } },
+      abortSignal,
+    )
+    return { seqno: response.seqno ?? 0n, sysErr: false }
   }
 
   // createObject creates an object with a key and initial root ref
@@ -160,10 +188,11 @@ export class EngineWorldState implements IWorldState {
     rootRef: ObjectRef,
     abortSignal?: AbortSignal,
   ): Promise<IObjectState> {
-    await this.performOp(true, abortSignal, async (tx) => {
-      const obj = await tx.createObject(key, rootRef, abortSignal)
-      obj.release()
-    })
+    await applyMutation(
+      this,
+      { case: 'createObject', value: { objectKey: key, rootRef } },
+      abortSignal,
+    )
     // Return a new EngineWorldStateObject that wraps this engine + key
     return new EngineWorldStateObject(this, key)
   }
@@ -173,7 +202,7 @@ export class EngineWorldState implements IWorldState {
     key: string,
     abortSignal?: AbortSignal,
   ): Promise<IObjectState | null> {
-    const found = await this.performOp(false, abortSignal, async (tx) => {
+    const found = await this.performRead(abortSignal, async (tx) => {
       using obj = await tx.getObject(key, abortSignal)
       return obj !== null
     })
@@ -207,10 +236,18 @@ export class EngineWorldState implements IWorldState {
     newKey: string,
     options?: RenameObjectOptions,
   ): Promise<IObjectState> {
-    await this.performOp(true, options?.abortSignal, async (tx) => {
-      const obj = await tx.renameObject(oldKey, newKey, options)
-      obj.release()
-    })
+    await applyMutation(
+      this,
+      {
+        case: 'renameObject',
+        value: {
+          oldObjectKey: oldKey,
+          newObjectKey: newKey,
+          descendants: options?.descendants,
+        },
+      },
+      options?.abortSignal,
+    )
     return new EngineWorldStateObject(this, newKey)
   }
 
@@ -219,11 +256,16 @@ export class EngineWorldState implements IWorldState {
     key: string,
     abortSignal?: AbortSignal,
   ): Promise<{ deleted: boolean }> {
-    const deleted = await this.performOp(true, abortSignal, async (tx) => {
-      const response = await tx.deleteObject(key, abortSignal)
-      return response.deleted ?? false
-    })
-    return { deleted }
+    const response = await sendMutation(
+      this,
+      { case: 'deleteObject', value: { objectKey: key } },
+      abortSignal,
+    )
+    if (response.errorCode === WorldErrorCode.OBJECT_NOT_FOUND) {
+      return { deleted: false }
+    }
+    throwBatchError(response)
+    return { deleted: true }
   }
 
   // setGraphQuad sets a quad in the graph store
@@ -234,9 +276,14 @@ export class EngineWorldState implements IWorldState {
     label?: string,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await this.performOp(true, abortSignal, async (tx) => {
-      await tx.setGraphQuad(subject, predicate, obj, label, abortSignal)
-    })
+    await applyMutation(
+      this,
+      {
+        case: 'setGraphQuad',
+        value: { quad: { subject, predicate, obj, label } },
+      },
+      abortSignal,
+    )
   }
 
   // deleteGraphQuad deletes a quad from the graph store
@@ -247,9 +294,14 @@ export class EngineWorldState implements IWorldState {
     label?: string,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await this.performOp(true, abortSignal, async (tx) => {
-      await tx.deleteGraphQuad(subject, predicate, obj, label, abortSignal)
-    })
+    await applyMutation(
+      this,
+      {
+        case: 'deleteGraphQuad',
+        value: { quad: { subject, predicate, obj, label } },
+      },
+      abortSignal,
+    )
   }
 
   // lookupGraphQuads searches for graph quads in the store
@@ -261,7 +313,7 @@ export class EngineWorldState implements IWorldState {
     limit?: number,
     abortSignal?: AbortSignal,
   ) {
-    return this.performOp(false, abortSignal, async (tx) => {
+    return this.performRead(abortSignal, async (tx) => {
       return await tx.lookupGraphQuads(
         subject,
         predicate,
@@ -279,7 +331,7 @@ export class EngineWorldState implements IWorldState {
     limitPerOrigin: number,
     options: ListGraphEdgeBucketsOptions = {},
   ): Promise<ListGraphEdgeBucketsResponse> {
-    return this.performOp(false, options.abortSignal, async (tx) => {
+    return this.performRead(options.abortSignal, async (tx) => {
       return await tx.listGraphEdgeBuckets(
         originObjectKeys,
         limitPerOrigin,
@@ -293,7 +345,7 @@ export class EngineWorldState implements IWorldState {
     objectKeys: string[],
     abortSignal?: AbortSignal,
   ): Promise<ObjectBody[]> {
-    return this.performOp(false, abortSignal, async (tx) => {
+    return this.performRead(abortSignal, async (tx) => {
       return await tx.getObjectBodies(objectKeys, abortSignal)
     })
   }
@@ -304,7 +356,7 @@ export class EngineWorldState implements IWorldState {
     abortSignal?: AbortSignal,
     limit?: number,
   ): Promise<string[]> {
-    return this.performOp(false, abortSignal, async (tx) => {
+    return this.performRead(abortSignal, async (tx) => {
       return await tx.listObjectsWithType(typeID, abortSignal, limit)
     })
   }
@@ -314,7 +366,7 @@ export class EngineWorldState implements IWorldState {
     request: ListObjectsRequest,
     abortSignal?: AbortSignal,
   ): Promise<ListObjectsResponse> {
-    return this.performOp(false, abortSignal, async (tx) => {
+    return this.performRead(abortSignal, async (tx) => {
       return await tx.listObjects(request, abortSignal)
     })
   }
@@ -324,7 +376,7 @@ export class EngineWorldState implements IWorldState {
     objectKeys: string[],
     abortSignal?: AbortSignal,
   ): Promise<ObjectMetadata[]> {
-    return this.performOp(false, abortSignal, async (tx) => {
+    return this.performRead(abortSignal, async (tx) => {
       return await tx.getObjectMetadataBatch(objectKeys, abortSignal)
     })
   }
@@ -334,9 +386,11 @@ export class EngineWorldState implements IWorldState {
     objectKey: string,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await this.performOp(true, abortSignal, async (tx) => {
-      await tx.deleteGraphObject(objectKey, abortSignal)
-    })
+    await applyMutation(
+      this,
+      { case: 'deleteGraphObject', value: { objectKey } },
+      abortSignal,
+    )
   }
 
   // accessTypedObject looks up an object, determines its type via graph quad,
@@ -350,13 +404,12 @@ export class EngineWorldState implements IWorldState {
     return this.engine.accessTypedObject(objectKey, abortSignal)
   }
 
-  // performOp performs an operation with a short-lived transaction
-  private performOp<T>(
-    write: boolean,
+  // performRead performs a read with a short-lived read transaction.
+  private performRead<T>(
     abortSignal: AbortSignal | undefined,
     cb: (tx: Tx) => Promise<T>,
   ): Promise<T> {
-    return runEngineOp(this, write, abortSignal, cb)
+    return runReadOp(this, abortSignal, cb)
   }
 
   // canWrite reports whether this wrapper allows write operations.
@@ -404,7 +457,7 @@ class EngineWorldStateObject implements IObjectState {
   public async getRootRef(
     abortSignal?: AbortSignal,
   ): Promise<GetRootRefResponse> {
-    return runEngineOp(this.engineState, false, abortSignal, async (tx) => {
+    return runReadOp(this.engineState, abortSignal, async (tx) => {
       using obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
@@ -417,13 +470,11 @@ class EngineWorldStateObject implements IObjectState {
     rootRef: ObjectRef,
     abortSignal?: AbortSignal,
   ): Promise<SetRootRefResponse> {
-    return runEngineOp(this.engineState, true, abortSignal, async (tx) => {
-      using obj = await tx.getObject(this.objectKey, abortSignal)
-      if (!obj) {
-        throw new Error(`Object not found: ${this.objectKey}`)
-      }
-      return await obj.setRootRef(rootRef, abortSignal)
-    })
+    return applyObjectMutation(
+      this.engineState,
+      { case: 'setRootRef', value: { objectKey: this.objectKey, rootRef } },
+      abortSignal,
+    )
   }
 
   public async accessWorldState(
@@ -457,25 +508,24 @@ class EngineWorldStateObject implements IObjectState {
     opSender: string,
     abortSignal?: AbortSignal,
   ): Promise<ApplyObjectOpResponse> {
-    return runEngineOp(this.engineState, true, abortSignal, async (tx) => {
-      using obj = await tx.getObject(this.objectKey, abortSignal)
-      if (!obj) {
-        throw new Error(`Object not found: ${this.objectKey}`)
-      }
-      return await obj.applyObjectOp(opTypeId, opData, opSender, abortSignal)
-    })
+    return applyObjectMutation(
+      this.engineState,
+      {
+        case: 'applyObjectOp',
+        value: { objectKey: this.objectKey, opTypeId, opData, opSender },
+      },
+      abortSignal,
+    )
   }
 
   public async incrementRev(
     abortSignal?: AbortSignal,
   ): Promise<IncrementRevResponse> {
-    return runEngineOp(this.engineState, true, abortSignal, async (tx) => {
-      using obj = await tx.getObject(this.objectKey, abortSignal)
-      if (!obj) {
-        throw new Error(`Object not found: ${this.objectKey}`)
-      }
-      return await obj.incrementRev(abortSignal)
-    })
+    return applyObjectMutation(
+      this.engineState,
+      { case: 'incrementRev', value: { objectKey: this.objectKey } },
+      abortSignal,
+    )
   }
 
   public async waitRev(

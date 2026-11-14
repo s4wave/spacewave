@@ -1071,36 +1071,42 @@ func applyResolvedWorldOp(
 ) (*s4wave_world.ApplyWorldOpResponse, error) {
 	seqno, sysErr, err := ws.ApplyWorldOp(ctx, op, opSender)
 	if err != nil {
-		var rejection *world.OperationRejection
-		if errors.As(err, &rejection) {
-			return &s4wave_world.ApplyWorldOpResponse{
-				RejectionCode: rejection.Code, RejectionMessage: rejection.Message,
-			}, nil
+		code, rejection, ok := opErrorRefusal(err, atomic)
+		if !ok {
+			return nil, err
 		}
-
-		var unavailable *world.PluginUnavailableError
-		if errors.As(err, &unavailable) {
-			return &s4wave_world.ApplyWorldOpResponse{
-				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE,
-			}, nil
+		resp := &s4wave_world.ApplyWorldOpResponse{ErrorCode: code}
+		if rejection != nil {
+			resp.RejectionCode, resp.RejectionMessage = rejection.Code, rejection.Message
 		}
-
-		var timeout *world.PluginOpTimeoutError
-		if errors.As(err, &timeout) && atomic {
-			return &s4wave_world.ApplyWorldOpResponse{
-				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT,
-			}, nil
-		}
-
-		if errors.Is(err, world.ErrUnhandledOp) {
-			return &s4wave_world.ApplyWorldOpResponse{
-				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
-			}, nil
-		}
-		return nil, err
+		return resp, nil
 	}
 
 	return &s4wave_world.ApplyWorldOpResponse{Seqno: seqno, SysErr: sysErr}, nil
+}
+
+// opErrorRefusal classifies the error of an applied operation as a refusal:
+// a domain rejection, an unhandled operation, an unavailable plugin, which
+// was never sent the operation, or a plugin timeout when atomic reports that
+// the failed operation's transaction is discarded, so the code means nothing
+// was written. ok is false for any other error.
+func opErrorRefusal(err error, atomic bool) (code s4wave_world.WorldErrorCode, rejection *world.OperationRejection, ok bool) {
+	// Match each typed refusal in turn.
+	if errors.As(err, &rejection) {
+		return 0, rejection, true
+	}
+	var unavailable *world.PluginUnavailableError
+	if errors.As(err, &unavailable) {
+		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE, nil, true
+	}
+	var timeout *world.PluginOpTimeoutError
+	if errors.As(err, &timeout) && atomic {
+		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT, nil, true
+	}
+	if errors.Is(err, world.ErrUnhandledOp) {
+		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP, nil, true
+	}
+	return 0, nil, false
 }
 
 // graphQuadsToProto converts graph quads to protobuf quads.

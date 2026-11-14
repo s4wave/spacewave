@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
@@ -46,8 +47,9 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 	var resp *s4wave_world.ExecuteWorldBatchResponse
 	err = world.ExecTransaction(ctx, r.engine, true, func(ctx context.Context, wtx world.WorldState) error {
 		// Name the failed index on a refusal and discard the transaction.
+		results := make([]*s4wave_world.WorldMutationResult, len(mutations))
 		for i, m := range mutations {
-			refusal, err := applyWorldMutation(ctx, wtx, m, ops[i])
+			rev, refusal, err := applyWorldMutation(ctx, wtx, m, ops[i])
 			if err != nil {
 				return errors.Wrapf(err, "mutations[%d]", i)
 			}
@@ -56,6 +58,7 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 				resp = refusal
 				return errBatchRefused
 			}
+			results[i] = &s4wave_world.WorldMutationResult{Rev: rev}
 		}
 
 		// Report the sequence number the commit publishes.
@@ -63,7 +66,7 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 		if err != nil {
 			return err
 		}
-		resp = &s4wave_world.ExecuteWorldBatchResponse{Seqno: seqno}
+		resp = &s4wave_world.ExecuteWorldBatchResponse{Seqno: seqno, Results: results}
 		return nil
 	})
 	if err != nil && !errors.Is(err, errBatchRefused) {
@@ -72,12 +75,13 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 	return resp, nil
 }
 
-// prepareBatchOps resolves, decodes and prepares the op entries of mutations
-// in order, outside any transaction. ops is indexed like mutations and holds
-// nil for entries that are not ops. The first op the mount cannot resolve, or
-// whose plugin is unavailable, stops the walk and is returned as the refusal
-// at its index, and the batch then opens no transaction. release frees every prepared op and must be
-// called once the transaction has ended.
+// prepareBatchOps resolves, decodes and prepares the World and object op
+// entries of mutations in order, outside any transaction. ops is indexed like
+// mutations and holds nil for entries that are not ops. The first op the
+// mount cannot resolve, or whose plugin is unavailable, stops the walk and is
+// returned as the refusal at its index, and the batch then opens no
+// transaction. release frees every prepared op and must be called once the
+// transaction has ended.
 func (r *EngineResource) prepareBatchOps(
 	ctx context.Context,
 	mutations []*s4wave_world.WorldMutation,
@@ -96,6 +100,11 @@ func (r *EngineResource) prepareBatchOps(
 	ops = make([]*batchOp, len(mutations))
 	for i, m := range mutations {
 		opReq := m.GetOp()
+		if objOp := m.GetApplyObjectOp(); objOp != nil {
+			opReq = &s4wave_world.ApplyWorldOpRequest{
+				OpTypeId: objOp.GetOpTypeId(), OpData: objOp.GetOpData(), OpSender: objOp.GetOpSender(),
+			}
+		}
 		if opReq == nil {
 			continue
 		}
@@ -127,51 +136,129 @@ func (r *EngineResource) prepareBatchOps(
 }
 
 // applyWorldMutation applies one mutation to ws, with op holding the prepared
-// operation of an op entry. It returns the refusal for a mutation the World
-// refused, or nil once applied.
+// operation of an op entry. It returns the object revision an object mutation
+// leaves, and the refusal for a mutation the World refused, or nil once
+// applied.
 func applyWorldMutation(
 	ctx context.Context,
 	ws world.WorldState,
 	m *s4wave_world.WorldMutation,
 	op *batchOp,
-) (*s4wave_world.ExecuteWorldBatchResponse, error) {
+) (uint64, *s4wave_world.ExecuteWorldBatchResponse, error) {
 	switch m := m.GetMutation().(type) {
 	case *s4wave_world.WorldMutation_Op:
 		// The batch discards its transaction on any refusal, so a plugin
 		// timeout here kept nothing and is reported as a code.
-		resp, err := applyResolvedWorldOp(ctx, ws, op.op, op.sender, true)
-		if err != nil {
-			return nil, err
-		}
-		if resp.GetErrorCode() == 0 && resp.GetRejectionCode() == "" {
-			return nil, nil
-		}
-		return &s4wave_world.ExecuteWorldBatchResponse{
-			ErrorCode:        resp.GetErrorCode(),
-			RejectionCode:    resp.GetRejectionCode(),
-			RejectionMessage: resp.GetRejectionMessage(),
-		}, nil
+		_, _, err := ws.ApplyWorldOp(ctx, op.op, op.sender)
+		refusal, err := batchOpRefusal(err)
+		return 0, refusal, err
 	case *s4wave_world.WorldMutation_CreateObject:
 		obj, err := ws.CreateObject(ctx, m.CreateObject.GetObjectKey(), m.CreateObject.GetRootRef())
 		world.ReleaseObjectState(obj)
-		return nil, err
-	case *s4wave_world.WorldMutation_SetGraphQuad:
-		q := m.SetGraphQuad.GetQuad()
-		if q == nil {
-			return nil, errors.New("no graph quad")
+		return 0, nil, err
+	case *s4wave_world.WorldMutation_RenameObject:
+		req := m.RenameObject
+		obj, err := ws.RenameObject(ctx, req.GetOldObjectKey(), req.GetNewObjectKey(), req.GetDescendants())
+		world.ReleaseObjectState(obj)
+		if errors.Is(err, world.ErrObjectNotFound) {
+			return 0, objectNotFound(), nil
 		}
-		return nil, ws.SetGraphQuad(ctx, world.NewGraphQuad(q.GetSubject(), q.GetPredicate(), q.GetObj(), q.GetLabel()))
+		return 0, nil, err
+	case *s4wave_world.WorldMutation_SetGraphQuad:
+		q, err := batchGraphQuad(m.SetGraphQuad.GetQuad())
+		if err != nil {
+			return 0, nil, err
+		}
+		return 0, nil, ws.SetGraphQuad(ctx, q)
+	case *s4wave_world.WorldMutation_DeleteGraphQuad:
+		q, err := batchGraphQuad(m.DeleteGraphQuad.GetQuad())
+		if err != nil {
+			return 0, nil, err
+		}
+		return 0, nil, ws.DeleteGraphQuad(ctx, q)
+	case *s4wave_world.WorldMutation_DeleteGraphObject:
+		return 0, nil, ws.DeleteGraphObject(ctx, m.DeleteGraphObject.GetObjectKey())
 	case *s4wave_world.WorldMutation_SetObjectType:
-		return nil, world_types.SetObjectType(ctx, ws, m.SetObjectType.GetObjectKey(), m.SetObjectType.GetTypeId())
+		return 0, nil, world_types.SetObjectType(ctx, ws, m.SetObjectType.GetObjectKey(), m.SetObjectType.GetTypeId())
 	case *s4wave_world.WorldMutation_DeleteObject:
 		deleted, err := ws.DeleteObject(ctx, m.DeleteObject.GetObjectKey())
 		if err != nil || deleted {
-			return nil, err
+			return 0, nil, err
 		}
-		return &s4wave_world.ExecuteWorldBatchResponse{
-			ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_OBJECT_NOT_FOUND,
-		}, nil
+		return 0, objectNotFound(), nil
+	case *s4wave_world.WorldMutation_SetRootRef:
+		return applyObjectMutation(ctx, ws, m.SetRootRef.GetObjectKey(), func(obj world.ObjectState) (uint64, error) {
+			return obj.SetRootRef(ctx, m.SetRootRef.GetRootRef())
+		})
+	case *s4wave_world.WorldMutation_ApplyObjectOp:
+		rev, refusal, err := applyObjectMutation(ctx, ws, m.ApplyObjectOp.GetObjectKey(), func(obj world.ObjectState) (uint64, error) {
+			rev, _, err := obj.ApplyObjectOp(ctx, op.op, op.sender)
+			return rev, err
+		})
+		if err != nil {
+			refusal, err = batchOpRefusal(err)
+		}
+		return rev, refusal, err
+	case *s4wave_world.WorldMutation_IncrementRev:
+		return applyObjectMutation(ctx, ws, m.IncrementRev.GetObjectKey(), func(obj world.ObjectState) (uint64, error) {
+			return obj.IncrementRev(ctx)
+		})
 	default:
-		return nil, errors.New("empty mutation")
+		return 0, nil, errors.New("empty mutation")
+	}
+}
+
+// applyObjectMutation calls apply with the object at key and returns the
+// revision it leaves. An absent object refuses the batch.
+func applyObjectMutation(
+	ctx context.Context,
+	ws world.WorldState,
+	key string,
+	apply func(obj world.ObjectState) (uint64, error),
+) (uint64, *s4wave_world.ExecuteWorldBatchResponse, error) {
+	// Acquire the object, refusing the batch when it is absent.
+	obj, found, err := ws.GetObject(ctx, key)
+	if err != nil {
+		return 0, nil, err
+	}
+	if !found {
+		return 0, objectNotFound(), nil
+	}
+	defer world.ReleaseObjectState(obj)
+	rev, err := apply(obj)
+	return rev, nil, err
+}
+
+// batchOpRefusal returns the refusal an op entry's error carries, or the error
+// when it carries none. The batch discards its transaction on any refusal, so
+// a plugin timeout is a refusal: nothing was kept.
+func batchOpRefusal(err error) (*s4wave_world.ExecuteWorldBatchResponse, error) {
+	// Classify the error, passing on one that carries no refusal.
+	if err == nil {
+		return nil, nil
+	}
+	code, rejection, ok := opErrorRefusal(err, true)
+	if !ok {
+		return nil, err
+	}
+	refusal := &s4wave_world.ExecuteWorldBatchResponse{ErrorCode: code}
+	if rejection != nil {
+		refusal.RejectionCode, refusal.RejectionMessage = rejection.Code, rejection.Message
+	}
+	return refusal, nil
+}
+
+// batchGraphQuad converts the quad of a graph quad entry.
+func batchGraphQuad(q *quad.Quad) (world.GraphQuad, error) {
+	if q == nil {
+		return nil, errors.New("no graph quad")
+	}
+	return world.NewGraphQuad(q.GetSubject(), q.GetPredicate(), q.GetObj(), q.GetLabel()), nil
+}
+
+// objectNotFound is the refusal of an entry whose object is absent.
+func objectNotFound() *s4wave_world.ExecuteWorldBatchResponse {
+	return &s4wave_world.ExecuteWorldBatchResponse{
+		ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_OBJECT_NOT_FOUND,
 	}
 }
