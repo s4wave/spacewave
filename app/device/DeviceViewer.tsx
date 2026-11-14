@@ -6,10 +6,14 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
+import { ViewerRailGlyph, ViewerSide } from '@s4wave/web/object/ViewerSide.js'
+import { FactRow } from '@s4wave/web/ui/FactList.js'
 import { useCallback } from 'react'
-import { LuTerminal } from 'react-icons/lu'
+import { LuServer, LuTerminal, LuTriangleAlert } from 'react-icons/lu'
 
 import {
+  type Device,
+  type DeviceCapability,
   DeviceCapabilityState,
   DeviceAvailabilityState,
   DeviceSetupState,
@@ -72,10 +76,27 @@ export function DeviceViewer({
     }
   }
 
+  // The device's facts, listed by the side column and the Details popover.
+  const platform = [state?.platform?.os, state?.platform?.arch]
+    .filter(Boolean)
+    .join(', ')
+  const updateFailed = state?.updateState === DeviceUpdateState.FAILED
+  const statusError = state?.lastStatus?.error
+  const facts = state ? (
+    <DeviceFacts
+      device={state}
+      liveness={stateResource.value?.state}
+      platform={platform}
+    />
+  ) : null
+
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <ViewerBar
-        title="Device"
+        icon={<LuServer />}
+        title={state?.label || 'Device'}
+        description={platform || undefined}
+        details={facts ? { label: 'Device', facts, narrow: true } : undefined}
         actions={
           terminalCapability
             ? [
@@ -89,8 +110,17 @@ export function DeviceViewer({
             : []
         }
       />
-      <div className="min-h-0 flex-1 overflow-auto p-4">
-        {stateResource.loading && !state && (
+      {statusError ? (
+        <div
+          role="alert"
+          className="border-foreground/8 text-destructive flex shrink-0 items-center gap-2 border-b px-2 py-1 text-xs [&_svg]:size-3.5"
+        >
+          <LuTriangleAlert aria-hidden className="shrink-0" />
+          <span className="min-w-0">{statusError}</span>
+        </div>
+      ) : null}
+      {stateResource.loading && !state && (
+        <div className="p-viewer-pad">
           <LoadingCard
             view={{
               state: 'active',
@@ -98,111 +128,122 @@ export function DeviceViewer({
               detail: 'Reading the device state stream.',
             }}
           />
-        )}
-        {state && (
-          <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
-            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <DeviceField label="Name" value={state.label || 'Device'} />
-              <DeviceField
-                label="Liveness"
-                value={formatLiveness(stateResource.value?.state)}
+        </div>
+      )}
+      {state && (
+        <ViewerSide
+          label="Device"
+          facts={facts}
+          rail={
+            updateFailed ? (
+              <ViewerRailGlyph
+                label="Update failed"
+                icon={<LuTriangleAlert className="text-destructive" />}
               />
-              <DeviceField
-                label="Setup"
-                value={formatSetupState(state.setupState)}
-              />
-              <DeviceField
-                label="Update"
-                value={formatUpdateState(state.updateState)}
-              />
-            </section>
-
-            <section className="grid gap-3 lg:grid-cols-2">
-              <div className="border-foreground/10 bg-background-secondary rounded-md border p-3">
-                <div className="text-muted-foreground text-xs font-medium uppercase">
-                  Identity
-                </div>
-                <div className="text-foreground mt-2 font-mono text-xs break-all">
-                  {state.peerId || 'unknown'}
-                </div>
-                <div className="text-muted-foreground mt-3 text-sm">
-                  {[state.platform?.os, state.platform?.arch]
-                    .filter(Boolean)
-                    .join(' / ') || 'unknown platform'}
-                </div>
-                {state.daemonVersion && (
-                  <div className="text-muted-foreground mt-1 text-sm">
-                    {state.daemonVersion}
-                  </div>
-                )}
-              </div>
-
-              <div className="border-foreground/10 bg-background-secondary rounded-md border p-3">
-                <div className="text-muted-foreground text-xs font-medium uppercase">
-                  Last Status
-                </div>
-                <div className="text-foreground mt-2 text-sm">
-                  {state.lastStatus?.message || 'No status reported'}
-                </div>
-                {state.lastStatus?.error && (
-                  <div className="text-destructive mt-2 text-sm">
-                    {state.lastStatus.error}
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <section>
-              <div className="text-muted-foreground mb-2 text-xs font-medium uppercase">
-                Capabilities
-              </div>
-              {capabilities.length === 0 ? (
-                <div className="border-foreground/10 text-muted-foreground rounded-md border px-3 py-2 text-sm">
-                  No capabilities declared
-                </div>
-              ) : (
-                <div className="divide-foreground/8 border-foreground/10 overflow-hidden rounded-md border">
-                  {capabilities.map((capability) => (
-                    <div
-                      key={capability.id}
-                      className="bg-background-secondary sm:grid-cols-auto grid gap-2 p-3"
-                    >
-                      <div>
-                        <div className="text-foreground text-sm font-medium">
-                          {capability.label || capability.id}
-                        </div>
-                        <div className="text-muted-foreground mt-1 text-xs">
-                          {capability.kind || capability.id}
-                        </div>
-                      </div>
-                      <div className="text-muted-foreground text-sm">
-                        {formatCapabilityState(capability.state)}
-                      </div>
-                      {capability.detail && (
-                        <div className="text-muted-foreground text-sm sm:col-span-2">
-                          {capability.detail}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
-        )}
-      </div>
+            ) : null
+          }
+        >
+          <DeviceCapabilities capabilities={capabilities} />
+        </ViewerSide>
+      )}
     </div>
   )
 }
 
-function DeviceField({ label, value }: { label: string; value: string }) {
+// DeviceFacts lists a device's facts as FactRows, for the side column and
+// the Details popover. A missing value shows as a text placeholder.
+function DeviceFacts({
+  device,
+  liveness,
+  platform,
+}: {
+  device: Device
+  liveness?: DeviceAvailabilityState
+  platform: string
+}) {
   return (
-    <div className="border-foreground/10 bg-background-secondary rounded-md border p-3">
-      <div className="text-muted-foreground text-xs font-medium uppercase">
-        {label}
+    <>
+      <FactRow
+        label="Liveness"
+        value={formatLiveness(liveness)}
+        kind="text"
+        control={null}
+      />
+      <FactRow
+        label="Setup"
+        value={formatSetupState(device.setupState)}
+        kind="text"
+        control={null}
+      />
+      <FactRow
+        label="Update"
+        value={formatUpdateState(device.updateState)}
+        kind="text"
+        control={null}
+      />
+      {device.peerId ? (
+        <FactRow label="Peer ID" value={device.peerId} />
+      ) : (
+        <FactRow label="Peer ID" value="Unknown" kind="text" control={null} />
+      )}
+      <FactRow
+        label="Platform"
+        value={platform || 'Unknown'}
+        kind="text"
+        control={null}
+      />
+      {device.daemonVersion ? (
+        <FactRow label="Version" value={device.daemonVersion} kind="text" />
+      ) : null}
+      <FactRow
+        label="Status"
+        value={device.lastStatus?.message || 'No status reported'}
+        kind="text"
+        control={null}
+      />
+    </>
+  )
+}
+
+// DeviceCapabilities lists a device's capabilities as viewer rows: the name,
+// its detail while room remains, and its state.
+function DeviceCapabilities({
+  capabilities,
+}: {
+  capabilities: DeviceCapability[]
+}) {
+  return (
+    <>
+      <div className="h-viewer-row text-foreground-alt flex shrink-0 items-center gap-2 px-2 text-xs font-medium select-none">
+        Capabilities
+        <span className="text-foreground-alt/70 font-normal">
+          {capabilities.length}
+        </span>
       </div>
-      <div className="text-foreground mt-2 text-sm font-medium">{value}</div>
-    </div>
+      {capabilities.length === 0 ? (
+        <div className="text-foreground-alt px-2 text-xs">
+          No capabilities declared
+        </div>
+      ) : (
+        capabilities.map((capability) => (
+          <div
+            key={capability.id}
+            className="h-viewer-row flex shrink-0 items-center gap-2 px-2 text-xs"
+            title={capability.detail || undefined}
+          >
+            <span className="text-foreground max-w-1/2 min-w-0 shrink-0 truncate">
+              {capability.label || capability.id}
+            </span>
+            <span className="text-foreground-alt min-w-0 flex-1 truncate">
+              {capability.detail}
+            </span>
+            <span className="text-foreground-alt shrink-0">
+              {formatCapabilityState(capability.state)}
+            </span>
+          </div>
+        ))
+      )}
+    </>
   )
 }
 

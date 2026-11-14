@@ -1,17 +1,17 @@
 import type { ReactNode } from 'react'
 import { LuActivity } from 'react-icons/lu'
 
-import type { TargetInfo, TargetStatus } from '@s4wave/sdk/prom/prom.pb.js'
+import type {
+  Label,
+  TargetInfo,
+  TargetStatus,
+} from '@s4wave/sdk/prom/prom.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
-import {
-  formatAgo,
-  formatClock,
-  formatLabels,
-  targetName,
-} from './prom-view.js'
+import { formatAgo, formatClock, targetName } from './prom-view.js'
 import type { TargetAction, TargetState } from './target-state.js'
 
 // actionLabels are the approval buttons' labels.
@@ -82,21 +82,51 @@ export function PromTargetView({
 
         {chart}
 
-        <dl className="grid max-w-md grid-cols-2 gap-x-6 gap-y-1 text-xs">
-          <Field label="URL" mono>
-            {scrape?.url || 'none: stores only samples written to it'}
-          </Field>
-          <Field label="Every">{intervalMs / 1000} s</Field>
-          <Field label="Labels" mono>
-            {formatLabels(info?.meta?.labels)}
-          </Field>
-          <Field label="Keeps">
-            {Math.round(retentionMs / 86_400_000)} days
-          </Field>
-        </dl>
+        <FactList className="max-w-md">
+          {scrape?.url ? (
+            <FactRow label="URL" value={scrape.url} />
+          ) : (
+            <FactRow
+              label="URL"
+              value="None: stores only samples written to it"
+              kind="text"
+              control={null}
+            />
+          )}
+          <FactRow
+            label="Every"
+            value={`${intervalMs / 1000} s`}
+            kind="text"
+            control={null}
+          />
+          <TargetLabels labels={info?.meta?.labels?.labels ?? []} />
+          <FactRow
+            label="Keeps"
+            value={`${Math.round(retentionMs / 86_400_000)} days`}
+            kind="text"
+            control={null}
+          />
+        </FactList>
       </div>
     </div>
   )
+}
+
+// TargetLabels lists a target's labels one per row, the name as the row's
+// label and the value copyable, so a long set never hides a label behind a
+// cut. A target with no labels shows None.
+function TargetLabels({ labels }: { labels: readonly Label[] }) {
+  if (labels.length === 0) {
+    return <FactRow label="Labels" value="None" kind="text" control={null} />
+  }
+  return labels.map((l) => (
+    <FactRow
+      key={l.name}
+      label={l.name ?? ''}
+      value={l.value ?? ''}
+      kind="text"
+    />
+  ))
 }
 
 // describeState writes the sentence for the target's state.
@@ -159,14 +189,32 @@ function ScrapeFields({
   deviceName: (peerId: string) => string
 }) {
   return (
-    <dl className="grid max-w-md grid-cols-2 gap-x-6 gap-y-1 text-xs">
-      <Field label="Device">{deviceName(status.devicePeerId ?? '')}</Field>
-      <Field label="Last scrape">
-        {formatClock(Number(status.lastScrapeMs ?? 0n))}
-      </Field>
-      <Field label="Duration">{status.lastDurationMs ?? 0} ms</Field>
-      <Field label="Series">{String(status.series ?? 0n)}</Field>
-    </dl>
+    <FactList className="max-w-md">
+      <FactRow
+        label="Device"
+        value={deviceName(status.devicePeerId ?? '')}
+        kind="text"
+        control={null}
+      />
+      <FactRow
+        label="Last scrape"
+        value={formatClock(Number(status.lastScrapeMs ?? 0n))}
+        kind="text"
+        control={null}
+      />
+      <FactRow
+        label="Duration"
+        value={`${status.lastDurationMs ?? 0} ms`}
+        kind="text"
+        control={null}
+      />
+      <FactRow
+        label="Series"
+        value={String(status.series ?? 0n)}
+        kind="text"
+        control={null}
+      />
+    </FactList>
   )
 }
 
@@ -193,25 +241,5 @@ function StateBadge({ state }: { state: TargetState }) {
     >
       {labels[state.state]}
     </span>
-  )
-}
-
-// Field is one term and its value.
-function Field({
-  label,
-  mono,
-  children,
-}: {
-  label: string
-  mono?: boolean
-  children: ReactNode
-}) {
-  return (
-    <>
-      <dt className="text-foreground-alt">{label}</dt>
-      <dd className={cn('text-foreground break-all', mono && 'font-mono')}>
-        {children}
-      </dd>
-    </>
   )
 }

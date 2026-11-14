@@ -1,0 +1,22 @@
+[
+  {
+    "name": "an open popover stays open when the pane widens",
+    "replace": [
+      [
+        "            THEN /\\ pop' = \"closed\"",
+        "            THEN /\\ pop' = \"open\""
+      ]
+    ],
+    "expect": "PopoverOnlyNarrow"
+  },
+  {
+    "name": "a popover closed by widening returns focus to the hidden Details",
+    "replace": [
+      [
+        "                 /\\ focus' = SidePress(side)",
+        "                 /\\ focus' = \"details\""
+      ]
+    ],
+    "expect": "FocusShown"
+  }
+]

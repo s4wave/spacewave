@@ -671,7 +671,7 @@ larger type or taller rows. Every size below is a `--spacing-viewer-*` token in
 | `viewer-row` | 24px, 44px coarse | List and table rows; a coarse pointer raises it |
 | `viewer-fact-row` | 28px | A one-fact row in the body; a side column or dock packs facts in `viewer-row` |
 | `viewer-fact-label` | 4.5rem | A fact's label; also in a side column or dock |
-| `viewer-fact-label-roomy` | 6rem | A body fact's label from `@pane-roomy` |
+| `viewer-fact-label-roomy` | 6rem | A fact's label from 28rem of its list's own width |
 | `viewer-name` | 7.5rem | Least width a list row's name keeps, about 16 characters |
 | `viewer-side` | `clamp(14rem, 28cqw, 24rem)` | Side column at the pane's left edge |
 | `viewer-outline` | `clamp(10rem, 18cqw, 16rem)` | Outline side column |
@@ -704,8 +704,9 @@ More, so each stays reachable. The frame's bottom bar carries the viewer
 selector, so the bar never repeats it.
 
 The fold points keep the title's floor only within a budget: below `@pane-xs`
-the bar holds only More; from `@pane-xs` at most three icon presses sit in the
-bar, and a fourth folds at `md`; from `@pane-md` the labeled presses together
+the bar holds the title, Details where the viewer has one, and More; from
+`@pane-xs` at most three icon presses sit in the bar, Details counting as one
+since it never folds into More, and a fourth folds at `md`; from `@pane-md` the labeled presses together
 stay under 16rem, and a press that would pass it folds at `md` or `menu`. A
 disabled press is one whose action is running, and its label says so, such as
 "Opening Add Device…"; it stays focusable and ignores presses. A press that cannot work in the object's state is left
@@ -725,10 +726,10 @@ emits them in this order, so where two match, the lower row wins:
 
 | Variant | Pane | Changes |
 |---|---|---|
-| below `@pane-xs` | width < 20rem | Only the title and More remain in the bar |
+| below `@pane-xs` | width < 20rem | The title, Details where the viewer has one, and More remain in the bar |
 | `@pane-xs` | width >= 20rem | Pager and presses return to the bar |
 | `@pane-md` | width >= 28rem | The bar's muted line shows; presses unfold from More |
-| `@pane-roomy` | width >= 28rem and height >= 20rem | Inset steps from `viewer-pad` to `viewer-pad-roomy`; body fact labels widen |
+| `@pane-roomy` | width >= 28rem and height >= 20rem | Inset steps from `viewer-pad` to `viewer-pad-roomy` |
 | `@pane-xl` | width >= 36rem | Views inside the object become tabs in the bar |
 | `@pane-2xl` | width >= 42rem | Side column and docked selection details; below it, Details opens them |
 | `@pane-low` | height < 12rem | The selection details sheet hides |

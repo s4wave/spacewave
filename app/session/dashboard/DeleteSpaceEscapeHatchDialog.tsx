@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { MiddleEllipsis } from '@s4wave/web/ui/MiddleEllipsis.js'
 
 import { TypedConfirmField } from './TypedConfirmField.js'
 
@@ -554,8 +555,8 @@ function SpaceSelectList({
               <div className="text-foreground truncate text-xs font-medium select-none">
                 {choice.hasName ? choice.name : 'Unnamed space'}
               </div>
-              <div className="text-foreground-alt/70 micro-label truncate font-mono break-all select-text">
-                {choice.id}
+              <div className="text-foreground-alt/70 micro-label flex min-w-0 select-text">
+                <MiddleEllipsis value={choice.id} />
               </div>
             </div>
           </button>
@@ -580,8 +581,8 @@ function SelectedSpaceSummary({ space, health }: SelectedSpaceSummaryProps) {
       <div className="text-foreground mt-0.5 truncate text-sm font-medium">
         {space.hasName ? space.name : 'Unnamed space'}
       </div>
-      <div className="text-foreground-alt/70 mt-0.5 font-mono text-xs break-all select-text">
-        {space.id}
+      <div className="text-foreground-alt/70 mt-0.5 flex min-w-0 text-xs select-text">
+        <MiddleEllipsis value={space.id} />
       </div>
       <HealthBadge health={health} />
     </div>

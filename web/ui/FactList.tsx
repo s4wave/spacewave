@@ -44,10 +44,10 @@ export interface FactRowProps {
 }
 
 // labelWidth is the label column: viewer-fact-label, widening to
-// viewer-fact-label-roomy in a roomy viewer pane. Outside a viewer pane the
-// pane variant never matches and the narrow label stays.
+// viewer-fact-label-roomy from 28rem of the list's own width, so a list in a
+// side column or popover keeps the narrow label in a wide pane.
 const labelWidth =
-  '[--fact-label:var(--spacing-viewer-fact-label)] @pane-roomy:[--fact-label:var(--spacing-viewer-fact-label-roomy)]'
+  '[--fact-label:var(--spacing-viewer-fact-label)] @min-[28rem]/facts:[--fact-label:var(--spacing-viewer-fact-label-roomy)]'
 
 // stacked moves a cell to the layout under 13rem of the list's width, where
 // the label sits over the value and the control stays beside the value.

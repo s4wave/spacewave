@@ -45,6 +45,10 @@ vi.mock('@s4wave/web/debug/FactListDebug.js', () => ({
   FactListDebug: () => <div data-testid="fact-list-debug" />,
 }))
 
+vi.mock('@s4wave/web/debug/ViewerSideDebug.js', () => ({
+  ViewerSideDebug: () => <div data-testid="viewer-side-debug" />,
+}))
+
 vi.mock('@s4wave/web/debug/FileListDebug.js', () => ({
   FileListDebug: () => <div data-testid="file-list-debug" />,
 }))
@@ -69,6 +73,7 @@ const debugChildRoutes = [
   { path: '/debug/ui/unixfs-browser', testId: 'unixfs-browser-debug' },
   { path: '/debug/ui/file-list', testId: 'file-list-debug' },
   { path: '/debug/ui/facts', testId: 'fact-list-debug' },
+  { path: '/debug/ui/side', testId: 'viewer-side-debug' },
 ]
 
 function renderDebugRoute(path: string) {
@@ -107,6 +112,12 @@ describe('DebugRoutes', () => {
     renderDebugRoute('/debug/ui/facts/two-fact')
 
     expect(screen.getByTestId('fact-list-debug')).toBeDefined()
+  })
+
+  it('resolves a side column fixture state to the side column debug page', () => {
+    renderDebugRoute('/debug/ui/side/rail')
+
+    expect(screen.getByTestId('viewer-side-debug')).toBeDefined()
   })
 
   it.each(debugChildRoutes)(

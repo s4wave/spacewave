@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react'
+import { LuArrowRight } from 'react-icons/lu'
 
 import type { GitRepoHandle } from '@s4wave/sdk/git/repo.js'
 import type { CommitInfo } from '@s4wave/sdk/git/repo.pb.js'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 
 import { formatRelativeTime } from '../util.js'
 import { GitDiffPatchFiles } from './GitDiffPatch.js'
@@ -15,21 +16,6 @@ export interface CommitDetailProps {
   onNavigateCommit?: (hash: string) => void
 }
 
-interface CommitFieldProps {
-  label: string
-  children: ReactNode
-}
-
-/** CommitField renders one labeled row of commit metadata. */
-function CommitField({ label, children }: CommitFieldProps) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-foreground-alt w-16 shrink-0">{label}</span>
-      {children}
-    </div>
-  )
-}
-
 interface CommitHeaderProps {
   commit: CommitInfo
   onNavigateCommit?: (hash: string) => void
@@ -37,11 +23,18 @@ interface CommitHeaderProps {
 
 /** CommitHeader renders the commit message and its hash, parent, author, and date. */
 function CommitHeader({ commit, onNavigateCommit }: CommitHeaderProps) {
+  // Split the message into its subject and body, and gather the facts.
   const message = commit.message ?? ''
   const subject = message.split('\n')[0]
   const body = message.split('\n').slice(1).join('\n').trim()
   const parentHashes = commit.parentHashes ?? []
   const authorTimestamp = commit.authorTimestamp
+  const author = [
+    commit.authorName,
+    commit.authorEmail ? `<${commit.authorEmail}>` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
   const authorDate = authorTimestamp
     ? new Date(Number(authorTimestamp) * 1000)
     : null
@@ -54,49 +47,39 @@ function CommitHeader({ commit, onNavigateCommit }: CommitHeaderProps) {
           {body}
         </pre>
       )}
-      <div className="flex flex-col gap-1 text-xs">
-        <CommitField label="Commit">
-          <span className="text-foreground font-mono">{commit.hash ?? ''}</span>
-        </CommitField>
-        {parentHashes.length > 0 && (
-          <CommitField label={parentHashes.length > 1 ? 'Parents' : 'Parent'}>
-            <span className="flex gap-1.5">
-              {parentHashes.map((ph) => (
+      <FactList>
+        <FactRow label="Commit" value={commit.hash ?? ''} />
+        {parentHashes.map((ph, i) => (
+          <FactRow
+            key={ph}
+            label={parentHashes.length > 1 ? `Parent ${i + 1}` : 'Parent'}
+            value={ph}
+            control={
+              onNavigateCommit ? (
                 <button
                   type="button"
-                  key={ph}
-                  className="text-brand font-mono hover:underline"
-                  onClick={() => onNavigateCommit?.(ph)}
+                  aria-label={`Open parent ${ph.slice(0, 7)}`}
+                  title="Open parent"
+                  className="focus-ring text-foreground-alt hover:bg-foreground/5 hover:text-foreground flex size-6 items-center justify-center rounded [&_svg]:size-3.5"
+                  onClick={() => onNavigateCommit(ph)}
                 >
-                  {ph.slice(0, 7)}
+                  <LuArrowRight aria-hidden />
                 </button>
-              ))}
-            </span>
-          </CommitField>
-        )}
-        <CommitField label="Author">
-          <span className="text-foreground">
-            {commit.authorName}
-            {commit.authorEmail && (
-              <span className="text-foreground-alt ml-1">
-                {'<'}
-                {commit.authorEmail}
-                {'>'}
-              </span>
-            )}
-          </span>
-        </CommitField>
+              ) : undefined
+            }
+          />
+        ))}
+        <FactRow label="Author" value={author} kind="text" />
         {authorDate && (
-          <CommitField label="Date">
-            <span className="text-foreground">
-              {authorDate.toLocaleString()}
-            </span>
-            <span className="text-foreground-alt/70">
-              ({formatRelativeTime(authorTimestamp)})
-            </span>
-          </CommitField>
+          <FactRow
+            label="Date"
+            value={authorDate.toLocaleString()}
+            sub={formatRelativeTime(authorTimestamp)}
+            kind="text"
+            control={null}
+          />
         )}
-      </div>
+      </FactList>
     </div>
   )
 }
@@ -107,6 +90,7 @@ export function CommitDetail({
   commitHash,
   onNavigateCommit,
 }: CommitDetailProps) {
+  // Read the commit.
   const commitResource = useResource(
     { value: handle, loading: false, error: null, retry: () => {} },
     async (h) => {
@@ -116,6 +100,7 @@ export function CommitDetail({
     [commitHash],
   )
 
+  // Read the changed files and their line counts.
   const diffStatResource = useResource(
     { value: handle, loading: false, error: null, retry: () => {} },
     async (h) => {
@@ -125,6 +110,7 @@ export function CommitDetail({
     [commitHash],
   )
 
+  // Read the patch.
   const diffPatchResource = useResource(
     { value: handle, loading: false, error: null, retry: () => {} },
     async (h) => {
@@ -134,8 +120,10 @@ export function CommitDetail({
     [commitHash],
   )
 
+  // Show the commit once it loads.
   const commit = commitResource.value
 
+  // Show the load while it runs.
   if (commitResource.loading) {
     return (
       <div className="px-3 py-4">
@@ -144,6 +132,7 @@ export function CommitDetail({
     )
   }
 
+  // Show a failed load.
   if (commitResource.error) {
     return (
       <div className="px-3 py-4">
@@ -154,6 +143,7 @@ export function CommitDetail({
     )
   }
 
+  // Show a hash that names no commit.
   if (!commit) {
     return (
       <div className="px-3 py-4">

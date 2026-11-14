@@ -1,0 +1,24 @@
+---
+title: "Side column and Details: the facts by pane width"
+---
+stateDiagram-v2
+  state "Column none" as s0 {
+    s1: Details Details press
+    s2: Details popover with facts
+  }
+  state "Column facts, Collapse" as s3 {
+    s4: Details none
+  }
+  state "Column rail, Expand" as s5 {
+    s6: Details none
+  }
+  [*] --> s1
+  [*] --> s4
+  s1 --> s2: presses Details
+  s4 --> s1: the pane is resized
+  s4 --> s6: presses Collapse
+  s2 --> s1: presses Escape
+  s6 --> s4: presses Expand
+  s6 --> s1: the pane is resized
+  s0 --> s4: the pane is resized
+  s0 --> s6: the pane is resized

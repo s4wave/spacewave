@@ -133,7 +133,10 @@ describe('DeviceViewer', () => {
     expect(screen.getByText('Offline')).toBeTruthy()
     expect(screen.getAllByText('Ready')).toHaveLength(2)
     expect(screen.getByText('network limited')).toBeTruthy()
-    expect(screen.getByText('12D3KooWDevice')).toBeTruthy()
+    expect(screen.getByTitle('12D3KooWDevice').textContent).toBe(
+      '12D3KooWDevice',
+    )
+    expect(screen.getByRole('button', { name: 'Copy Peer ID' })).toBeTruthy()
     expect(screen.getByText('Files')).toBeTruthy()
     expect(screen.getByText('Available')).toBeTruthy()
     expect(screen.getByText('Terminal')).toBeTruthy()

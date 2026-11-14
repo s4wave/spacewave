@@ -14,6 +14,7 @@ import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 
 import { SessionsSection } from '../dashboard/SessionsSection.js'
 import { PairingVerificationStep } from '../setup/PairingVerificationStep.js'
@@ -149,9 +150,9 @@ function SocketBody({
         Your agent connects through this app's command-line socket. No approval
         is needed.
       </p>
-      <div className="bg-foreground/5 text-foreground-alt rounded-md px-2 py-1.5 font-mono text-xs break-all">
-        {socketPath}
-      </div>
+      <FactList>
+        <FactRow label="Socket" value={socketPath} />
+      </FactList>
       <div className="text-foreground-alt/60 text-xs">
         {connectedClients === 1
           ? '1 command-line client connected'

@@ -6,7 +6,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
-import { LuEllipsis } from 'react-icons/lu'
+import { LuEllipsis, LuInfo } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import {
@@ -17,6 +17,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@s4wave/web/ui/DropdownMenu.js'
+import { FactList } from '@s4wave/web/ui/FactList.js'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@s4wave/web/ui/Popover.js'
 
 /**
  * ViewerBarFold is where a press leaves the bar for More: "xs" below a 20rem
@@ -58,7 +64,27 @@ interface ViewerBarProps {
   // below that More shows it above the folded presses.
   description?: ReactNode
   actions?: ViewerBarAction[]
+  // details puts a Details press before More that opens the object's facts.
+  details?: ViewerBarDetails
   className?: string
+}
+
+/**
+ * ViewerBarDetails is the bar's Details press and the facts its popover
+ * lists. The press never folds into More, since a menu cannot hold the
+ * popover's copy presses.
+ */
+export interface ViewerBarDetails {
+  // label heads the popover and names it, such as "Device".
+  label: string
+  // facts are the FactRows the popover lists.
+  facts: ReactNode
+  // narrow keeps the press to panes below 42rem, where the side column that
+  // holds the same facts is gone. A popover open when the pane widens past
+  // 42rem closes.
+  narrow?: boolean
+  // defaultOpen opens the popover on mount, for a fixture that shows it.
+  defaultOpen?: boolean
 }
 
 const foldClass: Record<ViewerBarFold, string> = {
@@ -90,6 +116,7 @@ function moreClass(
   actions: ViewerBarAction[],
   described: boolean,
 ): string | null {
+  // Collect the fold points of every press and the folded description.
   const folds = new Set(actions.map((a) => a.fold ?? 'xs'))
   if (described) folds.add('md')
   if (folds.has('menu')) return 'inline-flex'
@@ -118,6 +145,17 @@ function focusBar(header: HTMLElement | null) {
   ;(first ?? header).focus()
 }
 
+// focusSide moves focus to the side column's Collapse or Expand press beside
+// the bar, marked data-viewer-side-press, or to the bar when the pane shows
+// none, so a popover closed by a widening pane never drops focus to the page.
+function focusSide(header: HTMLElement | null) {
+  const press = header?.parentElement?.querySelector<HTMLElement>(
+    '[data-viewer-side-press]',
+  )
+  if (press && !isHidden(press)) press.focus()
+  else focusBar(header)
+}
+
 /**
  * ViewerBar is the one-line bar over an object viewer: the object's icon,
  * title, state and a muted line of what it is, then its presses and More. It
@@ -141,13 +179,16 @@ export function ViewerBar({
   state,
   description,
   actions = [],
+  details,
   className,
 }: ViewerBarProps) {
+  // Hold the bar, its description and each press, to read what the pane folds.
   const headerRef = useRef<HTMLElement>(null)
   const noteRef = useRef<HTMLParagraphElement>(null)
   const pressRefs = useRef(new Map<string, HTMLButtonElement>())
   const more = moreClass(actions, !!description)
 
+  // readFolded lists the presses and description the pane hides now.
   const readFolded = (): MoreList => ({
     ids: actions
       .filter((a) => isHidden(pressRefs.current.get(a.id)))
@@ -194,7 +235,7 @@ export function ViewerBar({
           </p>
         ) : null}
       </div>
-      {actions.length > 0 || more ? (
+      {actions.length > 0 || more || details ? (
         <div className="flex shrink-0 items-center gap-1">
           {actions.map((action) => (
             <ViewerBarPress
@@ -206,6 +247,9 @@ export function ViewerBar({
               }}
             />
           ))}
+          {details ? (
+            <ViewerBarDetailsPress headerRef={headerRef} {...details} />
+          ) : null}
           {more ? (
             <ViewerBarMore
               className={more}
@@ -231,6 +275,7 @@ function ViewerBarPress({
   action: ViewerBarAction
   pressRef: (el: HTMLButtonElement | null) => void
 }) {
+  // Decide whether the label shows, folds below 28rem, or never shows.
   const hasIcon = !!action.icon
   const iconOnly = hasIcon && !!action.iconOnly
   const labelFolds = hasIcon && !action.iconOnly
@@ -281,10 +326,12 @@ function ViewerBarMore({
   description?: ReactNode
   readFolded: () => MoreList
 }) {
+  // Hold the More press and what its open menu lists; null is closed.
   const moreRef = useRef<HTMLButtonElement>(null)
   const [listed, setListed] = useState<MoreList | null>(null)
   const open = listed !== null
 
+  // read lists what is folded, or null while More itself is hidden.
   const read = (): MoreList | null => {
     if (isHidden(moreRef.current)) return null
     const next = readFolded()
@@ -296,6 +343,7 @@ function ViewerBarMore({
   // or changes its fold class. The menu renders in a portal, so its own
   // updates do not touch the bar.
   useEffect(() => {
+    // Watch the bar only while the menu is open.
     const header = headerRef.current
     if (!open || !header) return
     const resize = new ResizeObserver(() => onReread())
@@ -312,6 +360,7 @@ function ViewerBarMore({
     }
   }, [open, headerRef])
 
+  // Look up the listed presses by id, in the bar's order.
   const byId = new Map(actions.map((a) => [a.id, a]))
   const items = (listed?.ids ?? []).flatMap((id) => byId.get(id) ?? [])
 
@@ -367,5 +416,75 @@ function ViewerBarMore({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+// ViewerBarDetailsPress is the Details press and its popover of facts. The
+// popover is the Popover primitive's: opening moves focus into it, Escape or
+// a click away closes it and returns focus to the press. While open it
+// watches the bar and closes once the press leaves it, as a narrow press
+// does from a 42rem pane, where the side column shows the facts; focus then
+// goes to the column's press, or the bar.
+function ViewerBarDetailsPress({
+  headerRef,
+  label,
+  facts,
+  narrow,
+  defaultOpen = false,
+}: ViewerBarDetails & { headerRef: RefObject<HTMLElement | null> }) {
+  // Hold the press, to see when it leaves the bar, and whether it is open.
+  const pressRef = useRef<HTMLButtonElement>(null)
+  const [open, setOpen] = useState(defaultOpen)
+  const onResize = useEffectEvent(() => {
+    if (isHidden(pressRef.current)) setOpen(false)
+  })
+
+  // Close the popover once the pane folds its press out of the bar.
+  useEffect(() => {
+    // Watch the bar only while the popover is open.
+    const header = headerRef.current
+    if (!open || !header) return
+    onResize()
+    const observer = new ResizeObserver(() => onResize())
+    observer.observe(header)
+    return () => observer.disconnect()
+  }, [open, headerRef])
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          ref={pressRef}
+          type="button"
+          aria-label="Details"
+          title="Details"
+          className={cn(
+            pressClass,
+            pressTone.default,
+            iconPressClass,
+            narrow ? 'inline-flex @pane-2xl:hidden' : 'inline-flex',
+          )}
+        >
+          <LuInfo aria-hidden />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        variant="status"
+        aria-label={label}
+        onCloseAutoFocus={(e) => {
+          if (!isHidden(pressRef.current)) return
+          e.preventDefault()
+          focusSide(headerRef.current)
+        }}
+      >
+        <div className="pb-1">
+          <div className="h-viewer-row text-foreground-alt flex items-center px-3 text-xs font-medium select-none">
+            {label}
+          </div>
+          <FactList className="ms-3 me-2">{facts}</FactList>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }

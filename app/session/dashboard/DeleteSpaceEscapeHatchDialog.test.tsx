@@ -125,8 +125,8 @@ describe('DeleteSpaceEscapeHatchDialog', () => {
 
     expect(screen.getAllByText('Broken Space').length).toBeGreaterThan(0)
     expect(screen.getByText('Unnamed space')).toBeDefined()
-    expect(screen.getByText('space-1')).toBeDefined()
-    expect(screen.getByText('space-2')).toBeDefined()
+    expect(screen.getByTitle('space-1').textContent).toBe('space-1')
+    expect(screen.getByTitle('space-2').textContent).toBe('space-2')
   })
 
   it('gates deletion behind selection, acknowledgment, and typed confirmation', () => {

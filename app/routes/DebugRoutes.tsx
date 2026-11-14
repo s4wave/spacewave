@@ -5,6 +5,7 @@ import { PromViewerDebug } from '@s4wave/app/debug/prom/PromViewerDebug.js'
 import { CanvasGraphLinksDebug } from '@s4wave/web/debug/CanvasGraphLinksDebug.js'
 import { DebugDbBench } from '@s4wave/web/debug/DebugDbBench.js'
 import { FactListDebug } from '@s4wave/web/debug/FactListDebug.js'
+import { ViewerSideDebug } from '@s4wave/web/debug/ViewerSideDebug.js'
 import { FileListDebug } from '@s4wave/web/debug/FileListDebug.js'
 import { ForgeViewerDebug } from '@s4wave/web/debug/ForgeViewerDebug.js'
 import { HDRDebug } from '@s4wave/web/debug/HDRDebug.js'
@@ -109,6 +110,12 @@ const debugRouteEntries = [
     description: 'Open fact rows in one state; add /text, /two-fact.',
     element: <FactListDebug />,
   },
+  {
+    path: '/debug/ui/side',
+    title: 'Side column',
+    description: 'Open the side column in one state; add /rail, /details.',
+    element: <ViewerSideDebug />,
+  },
 ]
 
 // DebugRoutes contains routes for debug/development tools.
@@ -127,6 +134,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/facts/:state">
       <FactListDebug />
+    </Route>
+    <Route path="/debug/ui/side/:state">
+      <ViewerSideDebug />
     </Route>
   </>
 )
