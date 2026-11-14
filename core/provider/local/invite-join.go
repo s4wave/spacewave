@@ -295,10 +295,15 @@ func (a *ProviderAccount) mountInvitedSO(
 // enrollment decided between merge and install. A create, delete or other
 // enrollment of the id in between fails the enrollment before it writes, so
 // it never writes one lifetime's state into another. The placeholder and the
-// mount precede the lock: an enrollment that fails leaves the id unlisted
-// and a retry reuses the placeholder. A create or delete of the id replaces
-// or removes the placeholder and restarts the mount, so no handle builds on
-// it afterwards.
+// mount precede that lock: an enrollment that fails leaves the id unlisted
+// and a retry reuses the placeholder. The placeholder write finishes, under
+// the lock, any release a delete of an earlier lifetime left pending, so the
+// mount never adopts that lifetime's roots. The enrollment is registered from
+// that decision until it returns, and a create of the id fails while it is,
+// so no create clears the placeholder or the installed state. Once it
+// returns unlisted, the placeholder is abandoned: a create clears it, and a
+// retry of the enrollment writes a new one. A delete of the still unlisted
+// id returns ErrSharedObjectNotFound and leaves it.
 func (a *ProviderAccount) mountEnrolledSO(
 	ctx context.Context,
 	soID string,
@@ -318,13 +323,16 @@ func (a *ProviderAccount) mountEnrolledSO(
 	}
 
 	// Decide under the account lock whether the state merges into a listed
-	// object or installs a new one.
+	// object or installs a new one, and register the enrollment until it
+	// returns, so a create does not clear the state it writes.
 	relMtx, err := a.mtx.Lock(ctx)
 	if err != nil {
 		return "", errors.Wrap(err, "lock account mutex")
 	}
 	listed := a.listedSharedObjectEntry(soID).CloneVT()
+	endEnrollment := a.beginEnrollmentLocked(soID)
 	relMtx()
+	defer endEnrollment()
 	if listed != nil && generation != nil && listed.GetGeneration() != *generation {
 		a.le.WithField("sobject-id", soID).Warn("keeping local shared object of another generation than the enrolled one")
 		return listed.GetGeneration(), nil
@@ -350,6 +358,9 @@ func (a *ProviderAccount) mountEnrolledSO(
 
 	// Hold the account lock from the check through the list write, so no
 	// create, delete or other enrollment of the id runs in between.
+	if testHookEnrollmentMounted != nil {
+		testHookEnrollmentMounted(soID)
+	}
 	relMtx, err = a.mtx.Lock(ctx)
 	if err != nil {
 		return "", errors.Wrap(err, "lock account mutex")
@@ -394,10 +405,13 @@ func (a *ProviderAccount) writeEnrolledSO(
 	// Install the invited state and lineage, whose grant lets the invitee
 	// decrypt the SO data. A listed object of the same lifetime holds it, so
 	// the state merges into the held one. Otherwise it replaces the
-	// placeholder.
+	// placeholder, after finishing any release a delete of an earlier
+	// lifetime left pending, as createSharedObjectLocked does.
 	install := localSO.soHost.InstallInviteSnapshot
 	if listed != nil {
 		install = localSO.soHost.MergeInviteSnapshot
+	} else if err := a.finishPendingReleaseLocked(ctx, soID); err != nil {
+		return "", err
 	}
 	if err := install(ctx, state, lineage); err != nil {
 		return "", errors.Wrap(err, "install owner shared object state")

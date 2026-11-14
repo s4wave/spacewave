@@ -61,6 +61,9 @@ type ProviderAccount struct {
 	mtx csync.Mutex
 	// replicaAuth serializes local account enrollment, checkpoint grants, and revocation.
 	replicaAuth csync.Mutex
+	// enrolling counts, per shared object id, the enrollments writing its
+	// state before they list it; see beginEnrollmentLocked. Guarded by mtx.
+	enrolling map[string]int
 	// soListCtr is the list of shared objects.
 	soListCtr *ccontainer.CContainer[*sobject.SharedObjectList]
 	// p2pSyncBcast guards p2pSync lifecycle and wakes status watchers.
@@ -97,6 +100,9 @@ type ProviderAccount struct {
 	placedUploads *routine.RoutineContainer
 	// gcCleanup runs block GC cleanup after foreground delete paths unroot data.
 	gcCleanup *routine.RoutineContainer
+	// deleteResume finishes, once per start, the shared object deletes a
+	// crash left unfinished.
+	deleteResume *routine.RoutineContainer
 	// gcCleanupRunner serializes provider-account cleanup sweeps.
 	gcCleanupRunner *provider_gccleanup.Runner
 	// gcCleanupCollect overrides cleanup collection in tests.
@@ -261,8 +267,16 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	providerAcc.gcCleanup.SetRoutine(providerAcc.runGCCleanup)
+	providerAcc.deleteResume = routine.NewRoutineContainerWithLogger(
+		le.WithField("routine", "sobject-delete-resume"),
+		routine.WithRetry(providerBackoff),
+	)
+	if !deleteStateOff {
+		providerAcc.deleteResume.SetRoutine(providerAcc.resumeSharedObjectDeletes)
+	}
 
-	// initialize the shared object list
+	// initialize the shared object list and the enrollments in flight
+	providerAcc.enrolling = make(map[string]int)
 	providerAcc.soListCtr = ccontainer.NewCContainer[*sobject.SharedObjectList](nil)
 
 	// Load the shared object soList
@@ -306,13 +320,16 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	providerAcc.accountSettingsCloudSync.SetContext(ctx, true)
 	defer providerAcc.accountSettingsCloudSync.ClearContext()
 
-	// Start the envelope rewrap, placed upload and GC cleanup routines.
+	// Start the envelope rewrap, placed upload, GC cleanup and delete resume
+	// routines.
 	providerAcc.envelopeRewrapWatcher.SetContext(ctx, true)
 	defer providerAcc.envelopeRewrapWatcher.ClearContext()
 	providerAcc.placedUploads.SetContext(ctx, true)
 	defer providerAcc.placedUploads.ClearContext()
 	providerAcc.gcCleanup.SetContext(ctx, true)
 	defer providerAcc.gcCleanup.ClearContext()
+	providerAcc.deleteResume.SetContext(ctx, true)
+	defer providerAcc.deleteResume.ClearContext()
 
 	// Run until the account stops.
 	<-ctx.Done()

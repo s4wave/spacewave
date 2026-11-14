@@ -26,6 +26,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -97,9 +98,43 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 	if err := pairing.ValidateIdentity(other, identity, sourceSession.GetPeerId(), receiverSession.GetPeerId()); err == nil {
 		t.Fatal("accepted a proof for another account")
 	}
+
+	// Leave a pending release under the offered settings and Space ids, as a
+	// delete of an earlier lifetime would, after the start's resume.
+	spaceID := spaceRef.GetProviderResourceRef().GetId()
+	waitDeleteResume(ctx, t, replica, true)
+	err = replica.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		for _, id := range []string{offer.GetSettingsId(), spaceID} {
+			if err := tx.Set(ctx, SobjectReleaseMarkKey(id), []byte(SobjectBlockStoreID(id))); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Binding the settings finishes their pending release.
 	if err := replica.bindPairingSettings(ctx, offer); err != nil {
 		t.Fatal(err)
 	}
+	requireNoReleaseMark(ctx, t, replica, offer.GetSettingsId())
+
+	// A create of the Space id, as a transfer or org makes with a fixed id,
+	// runs while the enrollment holds its unlisted placeholder mounted, and
+	// the enrollment waits until the create returns. The create must fail
+	// and leave the placeholder for the enrollment to install into.
+	var createErr error
+	var placeholderKeys, keysAfterCreate int
+	testHookEnrollmentMounted = func(id string) {
+		if id == spaceID && placeholderKeys == 0 {
+			placeholderKeys = countTestKeys(ctx, t, replica, SobjectObjectStorePrefix(spaceID))
+			_, createErr = replica.CreateSharedObject(ctx, spaceID, &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
+			keysAfterCreate = countTestKeys(ctx, t, replica, SobjectObjectStorePrefix(spaceID))
+		}
+	}
+	defer func() { testHookEnrollmentMounted = nil }()
 
 	// Only the storage signer owns the Space before pairing starts sync.
 	initial := getSOState(ctx, t, source, spaceRef, spaceRef.GetProviderResourceRef().GetId())
@@ -154,6 +189,21 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 	if err := <-finished; err != nil {
 		t.Fatal(err)
 	}
+	testHookEnrollmentMounted = nil
+
+	// The racing create was refused and kept the placeholder, and installing
+	// the Space finished its pending release. The checkpoint read below
+	// shows the installed state survived.
+	if placeholderKeys == 0 {
+		t.Fatal("no create raced the enrollment")
+	}
+	if !errors.Is(createErr, errSOEnrolling) {
+		t.Fatalf("a create racing the enrollment returned %v", createErr)
+	}
+	if keysAfterCreate != placeholderKeys {
+		t.Fatalf("the refused create left %d of %d placeholder keys", keysAfterCreate, placeholderKeys)
+	}
+	requireNoReleaseMark(ctx, t, replica, spaceID)
 
 	// The replica binds the canonical settings and lists both objects.
 	bound, err := replica.GetAccountSettingsRef(ctx)

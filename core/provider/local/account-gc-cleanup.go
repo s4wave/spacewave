@@ -6,7 +6,6 @@ import (
 	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume"
-	"github.com/sirupsen/logrus"
 )
 
 func (a *ProviderAccount) newGCCleanupRunner() *provider_gccleanup.Runner {
@@ -53,19 +52,21 @@ func (a *ProviderAccount) collectGCRootlessBlocks(ctx context.Context) (block_gc
 	return collector.Collect(ctx)
 }
 
-// removeSharedObjectGCRefs releases every named root of a deleted shared
-// object's bucket, so the collector frees what only they reached.
-func (a *ProviderAccount) removeSharedObjectGCRefs(
-	ctx context.Context,
-	_ string,
-	bucketID string,
-	le *logrus.Entry,
-) {
+// releaseBucketRoots releases every named root of a deleted shared object's
+// bucket, so the collector frees what only they reached. It does nothing on a
+// volume that cannot release a bucket.
+func (a *ProviderAccount) releaseBucketRoots(ctx context.Context, bucketID string) error {
+	// Let a test fail the release.
+	if testHookReleaseBucket != nil {
+		if err := testHookReleaseBucket(bucketID); err != nil {
+			return err
+		}
+	}
+
+	// Release through the volume when it releases.
 	releaser, ok := a.vol.(volume.BucketReleaser)
 	if !ok {
-		return
+		return nil
 	}
-	if err := releaser.ReleaseBucket(ctx, bucketID); err != nil {
-		le.WithError(err).Warn("failed to release the deleted shared object's roots")
-	}
+	return releaser.ReleaseBucket(ctx, bucketID)
 }

@@ -530,41 +530,175 @@ func TestDeleteStateOffKeepsOldBehavior(t *testing.T) {
 	rel()
 }
 
-// TestCreateSharedObjectClearsStaleKeys creates an object over state an old
-// delete kept and a stray local-state key, and checks that it starts with
-// only its genesis.
-func TestCreateSharedObjectClearsStaleKeys(t *testing.T) {
+// TestCreateSharedObjectStaleKeys checks what a create clears under an
+// unlisted id: state no enrollment is writing, left by an old delete, an off
+// mode delete or an abandoned enrollment, goes, and the new lifetime reads
+// only its genesis; state an enrollment is writing stays and fails the
+// create.
+func TestCreateSharedObjectStaleKeys(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
-
-	// Leave state and a local-state key under an unlisted id, as the old
-	// delete did.
-	setTestDeleteStateOff(t, true)
-	ref := createTestSharedObject(ctx, t, a, "stale")
-	so, rel := mountTestSharedObject(ctx, t, a, ref)
-	writeTestStateData(ctx, t, so, []byte("fake-stale"))
-	if err := tryWriteTestLocalKeys(ctx, so, 1); err != nil {
-		t.Fatal(err)
-	}
-	rel()
-	if err := a.DeleteSharedObject(ctx, "stale"); err != nil {
-		t.Fatal(err)
-	}
-	setTestDeleteStateOff(t, false)
-
-	// Create it again beside a fresh object: both hold only a genesis.
-	ref = createTestSharedObject(ctx, t, a, "stale")
 	createTestSharedObject(ctx, t, a, "fresh")
 	want := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("fresh"))
-	if n := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("stale")); n != want {
-		t.Fatalf("the recreated object holds %d keys, want %d", n, want)
+
+	// expectFresh creates id and checks it holds and reads only a genesis.
+	expectFresh := func(t *testing.T, id string) {
+		ref := createTestSharedObject(ctx, t, a, id)
+		if n := countTestKeys(ctx, t, a, SobjectObjectStorePrefix(id)); n != want {
+			t.Fatalf("the created object holds %d keys, want %d", n, want)
+		}
+		so, rel := mountTestSharedObject(ctx, t, a, ref)
+		defer rel()
+		if got := readTestStateData(ctx, t, so); len(got) != 0 {
+			t.Fatalf("the created object reads %q", got)
+		}
 	}
-	so, rel = mountTestSharedObject(ctx, t, a, ref)
-	defer rel()
-	if got := readTestStateData(ctx, t, so); len(got) != 0 {
-		t.Fatalf("the recreated object reads %q", got)
+
+	// leaveState writes state and n local-state keys under id, then deletes
+	// it with the state delete off, which keeps them, as released versions
+	// did.
+	leaveState := func(t *testing.T, id string, n int) {
+		setTestDeleteStateOff(t, true)
+		defer setTestDeleteStateOff(t, false)
+		ref := createTestSharedObject(ctx, t, a, id)
+		so, rel := mountTestSharedObject(ctx, t, a, ref)
+		writeTestStateData(ctx, t, so, []byte("fake-stale"))
+		if err := tryWriteTestLocalKeys(ctx, so, n); err != nil {
+			t.Fatal(err)
+		}
+		rel()
+		if err := a.DeleteSharedObject(ctx, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Run("old-version-leftover", func(t *testing.T) {
+		// More keys than one batch, as a long lived object leaves.
+		leaveState(t, "old", deleteBatchSize+10)
+		expectFresh(t, "old")
+	})
+
+	t.Run("off-mode-leftover", func(t *testing.T) {
+		leaveState(t, "stale", 1)
+		expectFresh(t, "stale")
+	})
+
+	t.Run("abandoned-placeholder", func(t *testing.T) {
+		// An enrollment that returned without listing the id left it.
+		if err := a.writeGenesisSOState(ctx, "abandoned"); err != nil {
+			t.Fatal(err)
+		}
+		expectFresh(t, "abandoned")
+	})
+
+	t.Run("enrollment-in-flight", func(t *testing.T) {
+		// A registered enrollment's placeholder stays and fails the create.
+		relMtx, err := a.mtx.Lock(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		end := a.beginEnrollmentLocked("enrolling")
+		relMtx()
+		if err := a.writeGenesisSOState(ctx, "enrolling"); err != nil {
+			t.Fatal(err)
+		}
+		_, err = a.CreateSharedObject(ctx, "enrolling", &sobject.SharedObjectMeta{BodyType: "test"}, "", "")
+		if !errors.Is(err, errSOEnrolling) {
+			t.Fatalf("a create during an enrollment returned %v", err)
+		}
+		if n := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("enrolling")); n != want {
+			t.Fatalf("the refused create left %d keys, want %d", n, want)
+		}
+		if testListed(a, "enrolling") {
+			t.Fatal("the refused create listed the id")
+		}
+
+		// Once the enrollment returns unlisted, the placeholder is
+		// abandoned.
+		end()
+		expectFresh(t, "enrolling")
+	})
+
+	t.Run("no-state", func(t *testing.T) {
+		// Keys with no state beside them belong to no object: the mount
+		// path's clear removes them.
+		putTestStrayKey(ctx, t, a, "stray")
+		if err := a.clearStaleSOKeys(ctx, "stray"); err != nil {
+			t.Fatal(err)
+		}
+		if n := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("stray")); n != 0 {
+			t.Fatalf("the clear left %d keys", n)
+		}
+		putTestStrayKey(ctx, t, a, "stray")
+		expectFresh(t, "stray")
+	})
+
+	t.Run("state-kept-on-mount-path", func(t *testing.T) {
+		// The mount path's clear keeps keys beside stored state.
+		leaveState(t, "kept", 1)
+		n := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("kept"))
+		if err := a.clearStaleSOKeys(ctx, "kept"); err != nil {
+			t.Fatal(err)
+		}
+		if got := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("kept")); got != n {
+			t.Fatalf("the clear left %d of %d keys", got, n)
+		}
+	})
+
+	t.Run("keys-reappear", func(t *testing.T) {
+		// Keys that appear between the clear and the write are cleared and
+		// the write retried once; keys that keep appearing fail it.
+		for _, always := range []bool{false, true} {
+			var calls int
+			err := a.withClearedSOKeys(ctx, "reappear", a.clearStaleSOKeys, func() error {
+				calls++
+				if calls == 1 || always {
+					putTestStrayKey(ctx, t, a, "reappear")
+				}
+				return a.runSoObjectStoreTx(ctx, false, refuseStaleSOKeys("reappear"))
+			})
+			if calls != 2 {
+				t.Fatalf("the write ran %d times, want 2", calls)
+			}
+			if always != errors.Is(err, errStaleSOKeys) {
+				t.Fatalf("with keys always appearing %v, the write returned %v", always, err)
+			}
+		}
+	})
+}
+
+// listTestSharedObjectWithoutState lists id with a block store and no stored
+// state, as a create before creates stored a genesis did, without flipping
+// DeleteStateEnv, which background mounts read.
+func listTestSharedObjectWithoutState(ctx context.Context, t *testing.T, a *ProviderAccount, id string) *sobject.SharedObjectRef {
+	relMtx, err := a.mtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer relMtx()
+	ref := sobject.NewSharedObjectRef(a.t.accountInfo.GetProviderId(), a.t.accountInfo.GetProviderAccountId(), id, SobjectBlockStoreID(id))
+	if _, err := a.createBlockStoreLocked(ctx, SobjectBlockStoreID(id)); err != nil {
+		t.Fatal(err)
+	}
+	list := a.soListCtr.GetValue().CloneVT()
+	insertListEntry(list, newListEntry(ref, &sobject.SharedObjectMeta{BodyType: "test"}, "", nil))
+	if err := a.writeSharedObjectList(ctx, list); err != nil {
+		t.Fatal(err)
+	}
+	a.soListCtr.SetValue(list)
+	return ref
+}
+
+// putTestStrayKey stores a local-state key under id with no state beside it.
+func putTestStrayKey(ctx context.Context, t *testing.T, a *ProviderAccount, id string) {
+	key := append(SobjectObjectStorePrefix(id), "ls/fake-store/fake-key"...)
+	err := a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.Set(ctx, key, []byte("fake-value"))
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -577,24 +711,10 @@ func TestMountListedObjectWithoutState(t *testing.T) {
 	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
 
-	// List the object as the old create did, and leave a stray key.
-	setTestDeleteStateOff(t, true)
-	ref := createTestSharedObject(ctx, t, a, "legacy")
-	setTestDeleteStateOff(t, false)
-	store, relStore, err := a.buildSoObjectStore(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer relStore()
-	stray := append(SobjectObjectStorePrefix("legacy"), "ls/fake-store/fake-key"...)
-	err = kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
-		return store.NewTransaction(ctx, true)
-	}, func(ctx context.Context, tx kvtx.Tx) error {
-		return tx.Set(ctx, stray, []byte("fake-value"))
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Leave a stray key, then list the object as the old create did. The
+	// account's P2P sync may mount it as soon as it is listed.
+	putTestStrayKey(ctx, t, a, "legacy")
+	ref := listTestSharedObjectWithoutState(ctx, t, a, "legacy")
 
 	// The listed object mounts with an empty genesis and no stray key.
 	createTestSharedObject(ctx, t, a, "fresh")
@@ -614,10 +734,8 @@ func TestMountListedObjectWithoutState(t *testing.T) {
 	expectTestMountNotFound(ctx, t, a, sobject.NewSharedObjectRef(providerID, accountID, "unlisted", SobjectBlockStoreID("unlisted")))
 
 	// An object unlisted between the mount's read and its genesis write is
-	// refused by the write's reread of the list, and gets no state.
-	setTestDeleteStateOff(t, true)
-	ref = createTestSharedObject(ctx, t, a, "unlisting")
-	setTestDeleteStateOff(t, false)
+	// refused by the write's reread of the list, and gets no state. The hook
+	// is set before the listing, so it catches whichever mount comes first.
 	testHookStateListed = func(id string) {
 		if id != "unlisting" {
 			return
@@ -632,6 +750,7 @@ func TestMountListedObjectWithoutState(t *testing.T) {
 		a.soListCtr.SetValue(list)
 	}
 	t.Cleanup(func() { testHookStateListed = nil })
+	ref = listTestSharedObjectWithoutState(ctx, t, a, "unlisting")
 	expectTestMountNotFound(ctx, t, a, ref)
 	if n := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("unlisting")); n != 0 {
 		t.Fatalf("the object unlisted before its genesis write holds %d keys", n)
@@ -902,9 +1021,7 @@ func TestDeleteSharedObjectKeepsRecreatedObject(t *testing.T) {
 	}
 	fresh, releaseFresh := mountTestSharedObject(ctx, t, a, ref)
 	defer releaseFresh()
-	if got := readTestStateData(ctx, t, fresh); !bytes.Equal(got, []byte("fake-new")) {
-		t.Fatalf("the recreated object reads %q after the delete", got)
-	}
+	waitTestStateData(ctx, t, fresh, []byte("fake-new"))
 }
 
 // createTestSharedObject creates a space object with id.
@@ -943,12 +1060,20 @@ func expectTestMountNotFound(ctx context.Context, t *testing.T, a *ProviderAccou
 }
 
 // writeTestStateData adopts a checkpoint holding data and waits until the
-// handle's snapshot, which the host publishes after the commit, holds it.
+// handle's snapshot holds it.
 func writeTestStateData(ctx context.Context, t *testing.T, so *SharedObject, data []byte) {
 	t.Helper()
 	if err := tryWriteTestStateData(ctx, so, data); err != nil {
 		t.Fatal(err)
 	}
+	waitTestStateData(ctx, t, so, data)
+}
+
+// waitTestStateData waits until the handle's snapshot holds data. The host
+// publishes the snapshot from its watch of the committed state, after the
+// commit, so a read right after a write can still see the state before it.
+func waitTestStateData(ctx context.Context, t *testing.T, so *SharedObject, data []byte) {
+	t.Helper()
 	wctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	_, err := so.lsoHost.stateSnapCtr.WaitValueWithValidator(wctx, func(snap sobject.SharedObjectStateSnapshot) (bool, error) {

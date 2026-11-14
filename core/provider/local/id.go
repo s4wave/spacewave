@@ -112,6 +112,22 @@ func SobjectObjectStoreListKey() []byte {
 	return []byte("so-list")
 }
 
+// SobjectReleaseMarkPrefix returns the object store prefix of the release
+// marks. A delete writes its mark in the transaction that unlists the object
+// and removes it once the object's block roots are released, so a mark names
+// a delete whose release has not finished. It is outside every so/<id>/
+// prefix, so the delete of an object's state keeps it.
+func SobjectReleaseMarkPrefix() []byte {
+	return []byte("so-release/")
+}
+
+// SobjectReleaseMarkKey returns the object store key of the release mark of
+// the shared object with the given id. Its value is the block store id whose
+// bucket the release frees.
+func SobjectReleaseMarkKey(sharedObjectID string) []byte {
+	return append(SobjectReleaseMarkPrefix(), sharedObjectID...)
+}
+
 // SobjectBindingKey returns the object store key for a shared object binding purpose.
 func SobjectBindingKey(purpose string) []byte {
 	return []byte(strings.Join([]string{
