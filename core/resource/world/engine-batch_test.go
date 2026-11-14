@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -26,7 +27,8 @@ func TestExecuteWorldBatch(t *testing.T) {
 	ctx := t.Context()
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
-	engineResource := resource_world.NewEngineResource(logrus.NewEntry(logrus.New()), tb.Bus, tb.Engine, nil, nil)
+	eng := &writeCountingEngine{Engine: tb.Engine}
+	engineResource := resource_world.NewEngineResource(logrus.NewEntry(logrus.New()), tb.Bus, eng, nil, nil)
 	defer engineResource.Close()
 	ws := world.NewEngineWorldState(tb.Engine, true)
 
@@ -70,7 +72,12 @@ func TestExecuteWorldBatch(t *testing.T) {
 		t.Fatal("refused batch created its object")
 	}
 
-	// An op the mount cannot resolve refuses the batch as unhandled.
+	// An op the mount cannot resolve refuses the batch as unhandled before
+	// any write transaction opens.
+	opened := eng.writes.Load()
+	if opened == 0 {
+		t.Fatal("the refused batch opened no counted write transaction")
+	}
 	resp, err = engineResource.ExecuteWorldBatch(ctx, &s4wave_world.ExecuteWorldBatchRequest{
 		Mutations: []*s4wave_world.WorldMutation{create("unhandled"), {Mutation: &s4wave_world.WorldMutation_Op{
 			Op: &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/unknown"},
@@ -84,6 +91,9 @@ func TestExecuteWorldBatch(t *testing.T) {
 	}
 	if exists("unhandled") {
 		t.Fatal("unhandled batch created its object")
+	}
+	if n := eng.writes.Load() - opened; n != 0 {
+		t.Fatalf("unhandled batch opened %d write transactions", n)
 	}
 
 	// An applied batch commits every entry, including a delete of an object an
@@ -125,6 +135,21 @@ func TestExecuteWorldBatch(t *testing.T) {
 	if typeID != "test/batch-type" || !exists(world_types.BuildTypeObjectKey("test/batch-type")) {
 		t.Fatalf("typed batch set type %q", typeID)
 	}
+}
+
+// writeCountingEngine counts the write transactions opened on its Engine.
+type writeCountingEngine struct {
+	world.Engine
+	// writes counts NewTransaction calls with write set.
+	writes atomic.Int32
+}
+
+// NewTransaction counts a write transaction and opens it on the Engine.
+func (e *writeCountingEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	if write {
+		e.writes.Add(1)
+	}
+	return e.Engine.NewTransaction(ctx, write)
 }
 
 // batchTestOpID is the type of batchTestOp.

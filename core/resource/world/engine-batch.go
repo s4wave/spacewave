@@ -28,24 +28,22 @@ type batchOp struct {
 //
 // Every op entry is resolved and prepared before the transaction takes the
 // engine's writer, so a cold plugin load costs this caller time while other
-// writers proceed, and ends with the caller's context error. Because a refused
+// writers proceed, and ends with the caller's context error. An op the mount
+// cannot resolve refuses the batch before any transaction opens, whatever
+// entries precede it. Because a refused
 // batch discards its transaction, a plugin that times out inside it is
 // reported as WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT: nothing was written.
 func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_world.ExecuteWorldBatchRequest) (*s4wave_world.ExecuteWorldBatchResponse, error) {
 	mutations := req.GetMutations()
 	ops, refused, release, err := r.prepareBatchOps(ctx, mutations)
 	defer release()
-	if err != nil {
-		return nil, err
+	if err != nil || refused != nil {
+		return refused, err
 	}
 
 	var resp *s4wave_world.ExecuteWorldBatchResponse
 	err = world.ExecTransaction(ctx, r.engine, true, func(ctx context.Context, wtx world.WorldState) error {
 		for i, m := range mutations {
-			if refused != nil && int(refused.GetFailedIndex()) == i {
-				resp = refused
-				return errBatchRefused
-			}
 			refusal, err := applyWorldMutation(ctx, wtx, m, ops[i])
 			if err != nil {
 				return errors.Wrapf(err, "mutations[%d]", i)
@@ -74,8 +72,9 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 // prepareBatchOps resolves, decodes and prepares the op entries of mutations
 // in order, outside any transaction. ops is indexed like mutations and holds
 // nil for entries that are not ops. The first op the mount cannot resolve
-// stops the walk and is returned as the refusal at its index. release frees
-// every prepared op and must be called once the transaction has ended.
+// stops the walk and is returned as the refusal at its index, and the batch
+// then opens no transaction. release frees every prepared op and must be
+// called once the transaction has ended.
 func (r *EngineResource) prepareBatchOps(
 	ctx context.Context,
 	mutations []*s4wave_world.WorldMutation,
