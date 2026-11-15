@@ -5,6 +5,7 @@ import (
 	"errors"
 	"slices"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -591,6 +592,54 @@ func checkQuads(t *testing.T, got []world.GraphQuad, want ...world.GraphQuad) {
 	}
 }
 
+// TestCloseEndsFollowerMissingBlockRead checks that Close returns while the
+// head follower waits for a block only an absent peer could serve.
+func TestCloseEndsFollowerMissingBlockRead(t *testing.T) {
+	// Commit twice, so the first head's root is no longer the published one.
+	f := newVolumeFixture(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	w := fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "hole/first", "hole/first")
+	if err := w.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	first := f.engine.GetRootRef().GetRootRef().Clone()
+	w = fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "hole/second", "hole/second")
+	if err := w.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Report the first root as a newer head with it only on an absent peer.
+	report := world.Head{Root: first, Seqno: headSeqno(t, ctx, f.engine) + 1, Durable: true}
+	armed, waiting := setPeerOnlyBlock(f.engine, first)
+	armed.Store(true)
+	followed := make(chan struct{})
+	go func() {
+		defer close(followed)
+		f.engine.followHead(report)
+	}()
+	select {
+	case <-waiting:
+	case <-ctx.Done():
+		t.Fatal("follower never read the missing root")
+	}
+
+	// Close must end the follower's read.
+	closed := make(chan error, 1)
+	go func() { closed <- f.engine.Close() }()
+	select {
+	case err := <-closed:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-ctx.Done():
+		t.Fatal("Close waited for the follower's missing block read")
+	}
+	<-followed
+}
+
 // getFuncStore reads blocks with get and passes everything else to the store.
 type getFuncStore struct {
 	block.StoreOps
@@ -621,7 +670,7 @@ func TestWatchChangesMissingBlockNoPeer(t *testing.T) {
 	base := f.engine.GetRootRef().GetRootRef()
 
 	// Leave the watched head's root only on an absent peer once armed.
-	armed := setPeerOnlyBlock(f.engine, base)
+	armed, _ := setPeerOnlyBlock(f.engine, base)
 
 	// Subscribe from the head, then commit past it with the root missing.
 	after := headSeqno(t, ctx, f.engine)
@@ -664,7 +713,7 @@ func TestWatchChangesCatchUpMissingBlockNoPeer(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := headSeqno(t, ctx, f.engine)
-	armed := setPeerOnlyBlock(f.engine, f.engine.GetRootRef().GetRootRef())
+	armed, _ := setPeerOnlyBlock(f.engine, f.engine.GetRootRef().GetRootRef())
 
 	// Commit past it and start the watch there, so it records no span from
 	// the first head.
@@ -692,10 +741,13 @@ func TestWatchChangesCatchUpMissingBlockNoPeer(t *testing.T) {
 
 // setPeerOnlyBlock replaces the engine's write store so that, once armed,
 // ref is held only by an absent peer: a read that may wait for the peer
-// blocks, and one that may not reports ErrUnavailable.
-func setPeerOnlyBlock(e *Engine, ref *block.BlockRef) *atomic.Bool {
+// blocks until its context ends, and one that may not reports ErrUnavailable.
+// waiting closes when the first read starts blocking.
+func setPeerOnlyBlock(e *Engine, ref *block.BlockRef) (armed *atomic.Bool, waiting <-chan struct{}) {
 	// Read ref as an absent peer would serve it once armed.
-	armed := &atomic.Bool{}
+	armed = &atomic.Bool{}
+	blocked := make(chan struct{})
+	var blockedOnce sync.Once
 	store := e.writeBlockStore
 	get := func(ctx context.Context, got *block.BlockRef) ([]byte, bool, error) {
 		// Read every other block, and ref until armed, from the store.
@@ -707,6 +759,7 @@ func setPeerOnlyBlock(e *Engine, ref *block.BlockRef) *atomic.Bool {
 		if block.GetPeerWait(ctx) != nil {
 			return nil, false, block.ErrUnavailable
 		}
+		blockedOnce.Do(func() { close(blocked) })
 		<-ctx.Done()
 		return nil, false, context.Cause(ctx)
 	}
@@ -718,5 +771,5 @@ func setPeerOnlyBlock(e *Engine, ref *block.BlockRef) *atomic.Bool {
 	proofs, _ := store.(block.RootProofs)
 	e.writeBlockStore = &getFuncStore{StoreOps: store, LeasedRoots: leases, RootProofs: proofs, get: get}
 	locked.Unlock()
-	return armed
+	return armed, blocked
 }
