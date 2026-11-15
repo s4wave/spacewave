@@ -11,32 +11,6 @@ import (
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 )
 
-// StartPluginScheduler starts the plugin host scheduler on the controller bus.
-func StartPluginScheduler(
-	ctx context.Context,
-	b bus.Bus,
-	instanceKey,
-	engineID,
-	pluginHostObjectKey,
-	volID,
-	peerID string,
-	watchFetchManifest,
-	disableStoreManifest,
-	disableCopyManifest bool,
-) (sched *plugin_host_scheduler.Controller, rel func(), err error) {
-	schedConf := NewSchedulerConfig(
-		instanceKey,
-		engineID,
-		pluginHostObjectKey,
-		volID,
-		peerID,
-		watchFetchManifest,
-		disableStoreManifest,
-		disableCopyManifest,
-	)
-	return StartPluginSchedulerWithConfig(ctx, b, schedConf)
-}
-
 // StartPluginSchedulerWithConfig starts the scheduler with an explicit runtime binding.
 func StartPluginSchedulerWithConfig(
 	ctx context.Context,
