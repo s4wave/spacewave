@@ -38,6 +38,7 @@ Run package scripts with `bun run` from the repository root. `package.json` defi
 - `bun run typecheck` checks TypeScript; `bun run check` also lints.
 - `bun run test` runs the standard JavaScript, browser and Go suites. `bun run test:go` runs the Go tests with the repository's exclusions and timeout.
 - `go test ./path/to/pkg` checks one Go package.
+- `.githooks/check-worktree` runs every pre-commit check over what `git commit -a` would record, without committing, and reports all findings at once.
 - `bun run test:go:e2e:wasm:goscript` runs the GoScript browser harness.
 - `bun run test:go:e2e:release-wasm:goscript` runs the GoScript release harness.
 - `bun run test:release:web` exercises the static release output.

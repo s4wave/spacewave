@@ -1,0 +1,18 @@
+#!/bin/sh
+# check-worktree runs the pre-commit hook over what git commit -a would record,
+# without committing, and exits 1 if any check fails. The hook runs every check
+# and reports every finding, so one run shows them all.
+#
+# It copies the index, adds the tracked files' worktree edits to the copy, and
+# runs the hook through git hook run with that copy as the commit's index; the
+# repository index is left as it was. New files count only once staged. Like a
+# commit, the hook formats the files it checks in place.
+#
+# Run it from anywhere in the checkout: .githooks/check-worktree
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+index=$(mktemp "${TMPDIR:-/tmp}/check-worktree-index.XXXXXX")
+trap 'rm -f "$index" "$index.lock"' EXIT HUP INT TERM
+cp "$(git rev-parse --path-format=absolute --git-path index)" "$index"
+GIT_INDEX_FILE=$index git add -u
+GIT_INDEX_FILE=$index git hook run pre-commit

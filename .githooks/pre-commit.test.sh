@@ -46,17 +46,10 @@ new_repo() {
 	git -C "$test_dir/repo" config user.name "Hook Test"
 	git -C "$test_dir/repo" config core.hooksPath .git/hooks
 
-	# Formatter stubs. bun records its arguments and, when
-	# HOOKTEST_REWRITE_TARGETS is set, rewrites those files during
-	# `bun run format` to simulate a formatter that would change the tree.
+	# Tool stubs. bun records its arguments.
 	cat >"$test_dir/bun" <<'STUB'
 #!/bin/sh
 printf 'bun %s\n' "$*" >>"${HOOKTEST_LOG:?}"
-if [ "${1:-}" = run ] && [ "${2:-}" = format ]; then
-	for target in ${HOOKTEST_REWRITE_TARGETS:-}; do
-		printf 'formatted by bun run format\n' >>"$target"
-	done
-fi
 exit 0
 STUB
 
@@ -65,6 +58,7 @@ STUB
 printf 'go %s\n' "$*" >>"${HOOKTEST_LOG:?}"
 printf 'go GIT_DIR=%s\n' "${GIT_DIR:-}" >>"$HOOKTEST_LOG"
 printf 'go GIT_INDEX_FILE=%s\n' "${GIT_INDEX_FILE:-}" >>"$HOOKTEST_LOG"
+printf 'go GO_PARAGRAPHS_INDEX=%s\n' "${GO_PARAGRAPHS_INDEX:-}" >>"$HOOKTEST_LOG"
 if [ "${1:-}" = run ] && [ "${2:-}" = ./.githooks/go-paragraphs ] && [ -n "${HOOKTEST_PARAGRAPHS_FAIL:-}" ]; then
 	exit 1
 fi
@@ -165,11 +159,9 @@ test_rename_dirty_destination() {
 	printf 'let old = 1;\n \n' >"$test_dir/repo/web/new.ts"
 	printf 'doc\n' >"$test_dir/repo/README.md"
 	git -C "$test_dir/repo" add README.md
-	HOOKTEST_REWRITE_TARGETS=web/new.ts
-	export HOOKTEST_REWRITE_TARGETS
 	try_commit fail &&
-		log_has 'bun run format'
-	unset HOOKTEST_REWRITE_TARGETS
+		log_has 'oxfmt 1 --stdin-filepath=web/new.ts' &&
+		grep -Fqx 'web/new.ts' "$test_dir/commit.out"
 	note_result $? "$label"
 	cleanup
 }
@@ -277,7 +269,7 @@ test_vendor_dirty_not_candidate() {
 }
 
 test_go_paragraphs_gate() {
-	label='paragraphs: staged Go runs the paragraph check and its failure fails the commit'
+	label='paragraphs: a paragraph failure fails the commit after the lint still runs'
 	new_repo
 	printf 'package a\n' >"$test_dir/repo/a.go"
 	seed_commit
@@ -286,9 +278,12 @@ test_go_paragraphs_gate() {
 	HOOKTEST_PARAGRAPHS_FAIL=1
 	export HOOKTEST_PARAGRAPHS_FAIL
 	try_commit fail &&
-		log_has 'go run ./.githooks/go-paragraphs'
+		log_has 'go run ./.githooks/go-paragraphs' &&
+		log_has 'bun run go:aptre -- lint ./.' &&
+		grep -Fq 'pre-commit: go-paragraphs failed' "$test_dir/commit.out"
+	rc=$?
 	unset HOOKTEST_PARAGRAPHS_FAIL
-	note_result $? "$label"
+	note_result "$rc" "$label"
 	cleanup
 }
 
@@ -353,7 +348,8 @@ test_commit_all_reads_temporary_index() {
 	(cd "$test_dir/repo" && PATH="$test_dir:$PATH" HOOKTEST_LOG="$log" \
 		git commit -qam "test commit" >"$test_dir/commit.out" 2>&1) &&
 		log_has 'go list ./.' &&
-		! grep -q '^go GIT_INDEX_FILE=.' "$log"
+		! grep -q '^go GIT_INDEX_FILE=.' "$log" &&
+		grep '^go GO_PARAGRAPHS_INDEX=.' "$log" | grep -Fvq "=$test_dir/repo/.git/index"
 	note_result $? "$label"
 	cleanup
 }

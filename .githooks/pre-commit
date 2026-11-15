@@ -23,15 +23,32 @@ git() {
 	GIT_INDEX_FILE=$index_file command git "$@"
 }
 
+# Every check runs even after one fails, so a commit reports all of its
+# findings at once and the hook exits 1 at the end. A later check reads the
+# same files and never depends on an earlier one passing. Setup steps, such as
+# vendoring, still stop the hook at once.
+failed=
+
+# check runs one check, named by $1, and records its failure.
+check() {
+	name=$1
+	shift
+	if ! "$@"; then
+		printf 'pre-commit: %s failed\n' "$name" >&2
+		failed=1
+	fi
+}
+
 # A source an embedded file imports must be embedded too. The check reads the
 # worktree, takes well under a second and needs no Go build, so it runs on every
 # commit that adds, changes or removes a source or a dist.go.
 if git diff --cached --name-only --diff-filter=ACMRD | grep -Eq '\.(ts|tsx|css)$|(^|/)dist\.go$'; then
-	bun .githooks/check-dist-closure.ts
+	check dist-closure bun .githooks/check-dist-closure.ts
 fi
 
 files=$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n')
 if [ -z "$files" ]; then
+	[ -z "$failed" ] || exit 1
 	exit 0
 fi
 
@@ -67,9 +84,9 @@ whole_files() {
 	printf "%s\n" "$1" | grep -Fxv -f "$unstaged_list" || true
 }
 
-# check_partial_files fails the commit when the staged blob of a listed file
-# with unstaged edits differs from the output of the formatter command "$2",
-# which reads the blob on stdin and receives the path as its last argument.
+# check_partial_files fails when the staged blob of a listed file with unstaged
+# edits differs from the output of the formatter command "$2", which reads the
+# blob on stdin and receives the path as its last argument.
 check_partial_files() {
 	unformatted=
 	while IFS= read -r f; do
@@ -85,7 +102,7 @@ $(printf "%s\n" "$1" | grep -Fx -f "$unstaged_list" || true)
 PARTIAL_FILES
 	if [ -n "$unformatted" ]; then
 		printf 'staged content needs formatting; format and restage these partially staged files:\n%s' "$unformatted" >&2
-		exit 1
+		return 1
 	fi
 }
 
@@ -106,12 +123,12 @@ if [ -n "$format_files" ]; then
 		printf "%s\n" "$format_whole" | tr '\n' '\0' | xargs -0 "$node_bin/oxfmt"
 		printf "%s\n" "$format_whole" | tr '\n' '\0' | xargs -0 env GIT_INDEX_FILE="$index_file" git add
 	fi
-	check_partial_files "$format_files" oxfmt_stdin
+	check format check_partial_files "$format_files" oxfmt_stdin
 fi
 
 js_files=$(printf "%s\n" "$files" | grep -E '\.(js|mjs|ts|tsx)$' || true)
 if [ -n "$js_files" ]; then
-	printf "%s\n" "$js_files" | tr '\n' '\0' | xargs -0 "$node_bin/oxlint" --no-error-on-unmatched-pattern
+	check oxlint sh -c 'printf "%s\n" "$1" | tr "\n" "\0" | xargs -0 "$2" --no-error-on-unmatched-pattern' oxlint "$js_files" "$node_bin/oxlint"
 fi
 
 go_files=$(printf "%s\n" "$files" | grep -E '\.go$' || true)
@@ -121,10 +138,12 @@ if [ -n "$go_files" ]; then
 		printf "%s\n" "$go_whole" | tr '\n' '\0' | xargs -0 gofmt -w
 		printf "%s\n" "$go_whole" | tr '\n' '\0' | xargs -0 env GIT_INDEX_FILE="$index_file" git add
 	fi
-	check_partial_files "$go_files" gofmt_stdin
+	check gofmt check_partial_files "$go_files" gofmt_stdin
 
-	# Functions this commit changes must be written as code paragraphs.
-	go run ./.githooks/go-paragraphs
+	# Functions this commit changes must be written as code paragraphs. The
+	# checker reads the index this commit records through its own variable,
+	# since GIT_INDEX_FILE would reach the git that go run may start.
+	check go-paragraphs env GO_PARAGRAPHS_INDEX="$index_file" go run ./.githooks/go-paragraphs
 
 	go_pkg_dirs=$(printf "%s\n" "$go_files" | tr '\n' '\0' | xargs -0 -n1 dirname | sort -u | sed 's#^\.$#.#; s#^\./##; s#^#./#')
 
@@ -146,7 +165,7 @@ if [ -n "$go_files" ]; then
 		# go vet type-checks the package with its tests without linking them.
 		module_file=$(cd "$go_pkg_dir" && go env GOMOD)
 		if [ "$module_file" != "$(pwd)/go.mod" ]; then
-			(cd "$go_pkg_dir" && go vet .)
+			check "go vet $go_pkg_dir" sh -c 'cd "$1" && go vet .' go-vet "$go_pkg_dir"
 			continue
 		fi
 		# Keep stderr only from a failed listing; a successful one may still
@@ -161,8 +180,8 @@ $go_pkg_dirs
 GO_PKG_DIRS
 	if grep -v 'build constraints exclude all Go files' "$list_err" | grep -q .; then
 		cat "$list_err" >&2
-		rm -f "$list_err"
-		exit 1
+		printf 'pre-commit: go list failed\n' >&2
+		failed=1
 	fi
 	rm -f "$list_err"
 fi
@@ -181,7 +200,7 @@ if [ "$#" -gt 0 ]; then
 	if [ ! -d vendor ]; then
 		go mod vendor
 	fi
-	bun run go:aptre -- lint "$@"
+	check "aptre lint" bun run go:aptre -- lint "$@"
 fi
 
 # Check the staged go.mod. The check runs go, so it reads the file instead of
@@ -189,8 +208,8 @@ fi
 if printf "%s\n" "$files" | grep -Eq '^go\.mod$'; then
 	staged_go_mod=$(mktemp)
 	git show :go.mod >"$staged_go_mod"
-	pins_rc=0
-	GO_MOD_REF_PINS_FILE=$staged_go_mod .githooks/check-go-mod-ref-pins || pins_rc=$?
+	check go.mod-pins env GO_MOD_REF_PINS_FILE="$staged_go_mod" .githooks/check-go-mod-ref-pins
 	rm -f "$staged_go_mod"
-	exit "$pins_rc"
 fi
+
+[ -z "$failed" ] || exit 1
