@@ -10,25 +10,23 @@ export const SpaceReplayContext = createContext<{
   replay: SOReplayState | undefined
 } | null>(null)
 
-// useSaveHold returns why a write to the mounted Space waits, or null when the
-// Space takes writes. A Space takes writes only once replay is caught up, so a
-// Space whose health has not arrived yet waits as one that is opening.
+// useSaveHold returns why the mounted Space takes no save now, or null when
+// it takes one. A save while the Space opens, or before its health arrives,
+// waits in the Space's gate and lands once replay catches up, so only a wait
+// holds it.
 export function useSaveHold(): string | null {
   const space = useContext(SpaceReplayContext)
   if (!space) return null
   return describeSaveHold(space.replay)
 }
 
-// describeSaveHold maps a replay state to the reason saving waits.
+// describeSaveHold maps a replay state to the reason saving waits, or null
+// when a save is taken.
 export function describeSaveHold(
   replay: SOReplayState | undefined,
 ): string | null {
-  switch (replay?.state?.case) {
-    case 'caughtUp':
-      return null
-    case 'waiting':
-      return 'Saving waits until this Space catches up'
-    default:
-      return 'Saving waits until this Space opens'
+  if (replay?.state?.case === 'waiting') {
+    return 'Saving waits until this Space catches up'
   }
+  return null
 }
