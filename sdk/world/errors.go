@@ -11,6 +11,9 @@ var (
 	// ErrTypedObjectGrantRetired identifies acquisition prevented by retirement of
 	// its exact granting World mount, independent of local Resource controls.
 	ErrTypedObjectGrantRetired = errors.New("typed object granting World mount retired")
+	// ErrRemotePluginUnavailable is the cause a PluginUnavailableError restored
+	// from a World RPC code carries, since the wire does not carry the cause.
+	ErrRemotePluginUnavailable = errors.New("remote plugin unavailable")
 )
 
 // GetError restores the typed rejection or sentinel from a World operation response.
@@ -31,18 +34,40 @@ func operationError(code WorldErrorCode, rejectionCode, message string) error {
 	return ErrorFromCode(code)
 }
 
-// ErrorFromCode restores the sentinel error represented by a World RPC code.
+// ErrorFromCode restores the typed error a World RPC code stands for. It
+// returns nil only for WORLD_ERROR_CODE_UNSPECIFIED, so a refused or failed
+// operation never reads as success: every other code, including one this
+// build does not know, returns an error.
+//
+// The wire carries only the code, so the plugin errors come back with their
+// identifying fields empty; callers classify them by type.
 func ErrorFromCode(code WorldErrorCode) error {
 	switch code {
+	case WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED:
+		return nil
 	case WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP:
 		return errors.Wrap(world.ErrUnhandledOp, "remote world operation unhandled")
 	case WorldErrorCode_WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED:
 		return ErrTypedObjectGrantRetired
 	case WorldErrorCode_WORLD_ERROR_CODE_OBJECT_NOT_FOUND:
 		return world.ErrObjectNotFound
-	default:
-		return nil
+	case WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT:
+		return &world.PluginOpTimeoutError{}
+	case WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE:
+		// The code means nothing was written, not that the plugin was never
+		// sent the operation, so the restored error says it was sent: a
+		// server passing it on then reports it as writing nothing only when
+		// its own transaction is atomic.
+		return &world.PluginUnavailableError{Sent: true, Err: ErrRemotePluginUnavailable}
+	case WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING:
+		return &world.PluginExecutableMissingError{}
 	}
+	for _, c := range commitRefusals {
+		if c.code == code {
+			return &CommitRefusal{Code: code, sentinel: c.sentinel}
+		}
+	}
+	return &UnknownErrorCodeError{Code: code}
 }
 
 // ObjectBodiesBatchRevisionError reports that paginated reads crossed World
