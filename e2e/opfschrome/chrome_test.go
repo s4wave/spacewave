@@ -16,6 +16,7 @@ import (
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
 // Browser probe settings and watchdog deadlines.
@@ -1470,7 +1471,7 @@ func buildWasm(out string) error {
 	// Resolve the module root within the worker compiler deadline.
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
-	root, err := repoRoot()
+	root, err := reporoot.Find()
 	if err != nil {
 		return err
 	}
@@ -1737,24 +1738,6 @@ func wasmExecPath() (string, error) {
 	}
 
 	return filepath.Join(goroot, "lib", "wasm", "wasm_exec.js"), nil
-}
-
-// repoRoot finds the module root used for worker builds.
-func repoRoot() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, nil
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", errors.New("go.mod not found")
-		}
-		dir = parent
-	}
 }
 
 // copyFile copies one generated asset into the test server directory.

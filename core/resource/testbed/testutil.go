@@ -38,6 +38,7 @@ import (
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 	"github.com/sirupsen/logrus"
 )
 
@@ -130,23 +131,23 @@ func SetupTestbedWithClient(ctx context.Context, t testing.TB) (*world_testbed.T
 
 // TestbedWithQuickJS wraps a bldr testbed with QuickJS plugin host and resource server setup.
 type TestbedWithQuickJS struct {
-	// Testbed is the underlying bldr testbed
+	// Testbed is the underlying bldr testbed.
 	Testbed *testbed.Testbed
-	// Bus is the controller bus
+	// Bus is the controller bus.
 	Bus bus.Bus
-	// ResourceServer is the testbed resource server
+	// ResourceServer is the testbed resource server.
 	ResourceServer *TestbedResourceServer
-	// VolumeID is the volume ID used for world engines
+	// VolumeID is the volume ID used for world engines.
 	VolumeID string
-	// BucketID is the bucket ID used for world engines
+	// BucketID is the bucket ID used for world engines.
 	BucketID string
-	// Logger is the logger entry
+	// Logger is the logger entry.
 	Logger *logrus.Entry
-	// QuickJSHost is the QuickJS plugin host controller
+	// QuickJSHost is the QuickJS plugin host controller.
 	QuickJSHost *plugin_host_wazero_quickjs.Controller
-	// QuickJSHostRef is the reference to release
+	// QuickJSHostRef is the reference to release.
 	QuickJSHostRef directive.Reference
-	// ObjectTypeCtrlRelease releases the ObjectType controller
+	// ObjectTypeCtrlRelease releases the ObjectType controller.
 	ObjectTypeCtrlRelease func()
 }
 
@@ -354,6 +355,8 @@ type pluginRelease struct {
 	doneCh    <-chan error
 }
 
+// Release cancels the plugin, releases its dist and assets handles, and waits
+// for it to exit.
 func (p *pluginRelease) Release() {
 	p.cancel()
 	p.distRef.Release()
@@ -362,6 +365,7 @@ func (p *pluginRelease) Release() {
 }
 
 // RunTypeScriptTest builds a wrapper around a TypeScript test file and runs it in QuickJS.
+//
 // The test file should export a default async function with signature:
 //
 //	export default async function main(
@@ -457,7 +461,7 @@ func RunTypeScriptTest(
 	// Determine the repo root for resolving vendor paths.
 	// The test CWD is typically the package directory (e.g. sdk/world/types/).
 	// Walk up until we find vendor/ or go.mod.
-	repoRoot, err := findRepoRoot()
+	repoRoot, err := reporoot.Find()
 	if err != nil {
 		return false, "", fmt.Errorf("failed to find repo root: %w", err)
 	}
@@ -540,28 +544,4 @@ func RunTypeScriptTest(
 	}
 
 	return success, errorMsg, nil
-}
-
-// findRepoRoot walks up from the current directory to find the repo root
-// (identified by the presence of go.mod).
-func findRepoRoot() (string, error) {
-	// Start the module search from the test working directory.
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	// Locate the module root among the working directory ancestors.
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, nil
-		}
-
-		// Continue the module search in the parent directory.
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", fmt.Errorf("could not find go.mod in any parent directory")
-		}
-		dir = parent
-	}
 }

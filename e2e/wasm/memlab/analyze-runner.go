@@ -6,53 +6,74 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
 // AnalysisResult is the JSON output from analyze.js.
 type AnalysisResult struct {
-	Snapshots   []SnapshotAnalysis `json:"snapshots"`
-	Deltas      ObjectCounts       `json:"deltas"`
+	// Snapshots holds the analysis of each snapshot in argument order.
+	Snapshots []SnapshotAnalysis `json:"snapshots"`
+	// Deltas is the change in object counts from the first snapshot to the last.
+	Deltas ObjectCounts `json:"deltas"`
+	// TopRetained lists the most retained service and method pairs.
 	TopRetained []RetainedRpcEntry `json:"topRetained"`
-	PairDeltas  []RetainedRpcDelta `json:"pairDeltas"`
+	// PairDeltas lists the retained count change of each service and method pair.
+	PairDeltas []RetainedRpcDelta `json:"pairDeltas"`
 }
 
 // SnapshotAnalysis is per-snapshot analysis output.
 type SnapshotAnalysis struct {
-	Label       string             `json:"label"`
-	Path        string             `json:"path"`
-	Counts      ObjectCounts       `json:"counts"`
+	// Label is the snapshot label given on the command line.
+	Label string `json:"label"`
+	// Path is the heap snapshot file.
+	Path string `json:"path"`
+	// Counts holds the leak-target object counts in this snapshot.
+	Counts ObjectCounts `json:"counts"`
+	// TopRetained lists the most retained service and method pairs in this snapshot.
 	TopRetained []RetainedRpcEntry `json:"topRetained"`
 }
 
 // ObjectCounts holds counts of leak-target objects.
 type ObjectCounts struct {
-	ClientRpc     int `json:"clientRpc"`
+	// ClientRpc counts retained client RPC objects.
+	ClientRpc int `json:"clientRpc"`
+	// ChannelStream counts retained channel streams.
 	ChannelStream int `json:"channelStream"`
-	Promise       int `json:"promise"`
-	Generator     int `json:"generator"`
-	OnNext        int `json:"onNext"`
+	// Promise counts retained promises.
+	Promise int `json:"promise"`
+	// Generator counts retained generators.
+	Generator int `json:"generator"`
+	// OnNext counts retained onNext callbacks.
+	OnNext int `json:"onNext"`
 }
 
 // RetainedRpcEntry is a service/method pair with count.
 type RetainedRpcEntry struct {
+	// Service is the RPC service name.
 	Service string `json:"service"`
-	Method  string `json:"method"`
-	Count   int    `json:"count"`
+	// Method is the RPC method name.
+	Method string `json:"method"`
+	// Count is the number of retained calls.
+	Count int `json:"count"`
 }
 
 // RetainedRpcDelta is a per-pair retained count delta between first and last snapshots.
 type RetainedRpcDelta struct {
-	Service       string `json:"service"`
-	Method        string `json:"method"`
-	BaselineCount int    `json:"baselineCount"`
-	FinalCount    int    `json:"finalCount"`
-	Delta         int    `json:"delta"`
+	// Service is the RPC service name.
+	Service string `json:"service"`
+	// Method is the RPC method name.
+	Method string `json:"method"`
+	// BaselineCount is the retained count in the first snapshot.
+	BaselineCount int `json:"baselineCount"`
+	// FinalCount is the retained count in the last snapshot.
+	FinalCount int `json:"finalCount"`
+	// Delta is FinalCount minus BaselineCount.
+	Delta int `json:"delta"`
 }
 
 // BuildSnapshotArg builds the ordered label=path argument for analyze.js.
@@ -90,20 +111,29 @@ func SortPairDeltas(pairDeltas []RetainedRpcDelta) {
 	})
 }
 
-// scriptDir returns the directory containing this Go source file,
-// which is also where analyze.js lives.
-func scriptDir() string {
-	_, file, _, _ := runtime.Caller(0)
-	return filepath.Dir(file)
+// scriptDir returns this package's directory, where analyze.js lives:
+// e2e/wasm/memlab under the module root above the working directory.
+func scriptDir() (string, error) {
+	root, err := reporoot.Find()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, "e2e", "wasm", "memlab"), nil
 }
 
 // EnsureDeps runs bun install in the memlab dir if node_modules is missing.
 // Returns an error if installation fails.
 func EnsureDeps() error {
-	dir := scriptDir()
+	// Skip the install when the memlab dir already has its node_modules.
+	dir, err := scriptDir()
+	if err != nil {
+		return err
+	}
 	if _, err := os.Stat(filepath.Join(dir, "node_modules")); err == nil {
 		return nil
 	}
+
+	// Install the dependencies with bun.
 	cmd := exec.Command("bun", "install")
 	cmd.Dir = dir
 	cmd.Stdout = os.Stdout
@@ -117,14 +147,20 @@ func EnsureDeps() error {
 // RunAnalysis invokes analyze.js with the given snapshot set and returns
 // the parsed result.
 func RunAnalysis(snapshots *SnapshotSet) (*AnalysisResult, error) {
-	dir := scriptDir()
+	// Locate analyze.js in the memlab dir.
+	dir, err := scriptDir()
+	if err != nil {
+		return nil, err
+	}
 	script := filepath.Join(dir, "analyze.js")
 
+	// Encode the snapshot set as the script's argument.
 	arg, err := BuildSnapshotArg(snapshots)
 	if err != nil {
 		return nil, err
 	}
 
+	// Run analyze.js and keep its stdout, reporting stderr on failure.
 	cmd := exec.Command("node", script, "--snapshots", arg)
 	cmd.Dir = dir
 	out, err := cmd.Output()
@@ -136,6 +172,7 @@ func RunAnalysis(snapshots *SnapshotSet) (*AnalysisResult, error) {
 		return nil, errors.Wrap(err, "run analyze.js")
 	}
 
+	// Parse the result and sort its pair deltas.
 	result, err := parseAnalysisResult(out)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse analyze.js output")
@@ -145,12 +182,14 @@ func RunAnalysis(snapshots *SnapshotSet) (*AnalysisResult, error) {
 }
 
 func parseAnalysisResult(dat []byte) (*AnalysisResult, error) {
+	// Parse the whole document once; the fields below read from it.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(dat)
 	if err != nil {
 		return nil, err
 	}
 
+	// Decode the totals, then each snapshot in order.
 	result := &AnalysisResult{
 		Deltas:      parseObjectCountsValue(v.Get("deltas")),
 		TopRetained: parseRetainedRpcEntries(v.GetArray("topRetained")),

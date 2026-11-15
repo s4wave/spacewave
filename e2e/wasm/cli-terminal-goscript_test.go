@@ -170,7 +170,11 @@ func cliTerminalGoScriptHarness(t testing.TB) *Harness {
 	if err := h.LaunchBrowser(); err != nil {
 		t.Fatalf("launch CLI terminal GoScript browser: %v", err)
 	}
-	if err := h.CompileScripts(ScriptDir()); err != nil {
+	scriptDir, err := ScriptDir()
+	if err != nil {
+		t.Fatalf("find CLI terminal e2e scripts: %v", err)
+	}
+	if err := h.CompileScripts(scriptDir); err != nil {
 		t.Fatalf("compile CLI terminal e2e scripts: %v", err)
 	}
 	return h

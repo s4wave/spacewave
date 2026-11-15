@@ -7,11 +7,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
 )
@@ -21,7 +21,7 @@ func TestGenerateModuleWritesReadonlyBuildableHiddenModule(t *testing.T) {
 	ctx := context.Background()
 	tempDir := t.TempDir()
 	sourceDir := filepath.Join(tempDir, "openmind")
-	spacewaveRoot := testSpacewaveRoot(t)
+	spacewaveRoot := reporoot.Must(t)
 	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -180,20 +180,4 @@ func rootRequireVersion(t *testing.T, modFile *modfile.File, modulePath string) 
 	}
 	t.Fatalf("repo go.mod missing required fixture module %s", modulePath)
 	return ""
-}
-
-func testSpacewaveRoot(t *testing.T) string {
-	// Mark the helper and resolve the repository root.
-	t.Helper()
-
-	// Resolve the repository root from this file's path.
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed")
-	}
-	root, err := filepath.Abs(filepath.Join(filepath.Dir(file), "../../../.."))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return root
 }

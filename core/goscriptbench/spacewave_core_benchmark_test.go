@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
 const profileHarnessTest = `package profile
@@ -90,7 +91,7 @@ const (
 )
 
 func TestSpacewaveCoreGoScriptProfileHarness(t *testing.T) {
-	root := mustRepoRoot(t)
+	root := reporoot.Must(t)
 	profileDir := filepath.Join(root, ".tmp", "goscript-profile-bench", "test")
 	if err := os.RemoveAll(profileDir); err != nil {
 		t.Fatal(err)
@@ -212,7 +213,7 @@ func writeOutputFile(tb testing.TB, root string, rel string, content string) {
 }
 
 func BenchmarkSpacewaveCoreGoScriptCompile(b *testing.B) {
-	root := mustRepoRoot(b)
+	root := reporoot.Must(b)
 	profileRoot := filepath.Join(root, ".tmp", "goscript-profile-bench")
 	if err := os.MkdirAll(profileRoot, 0o755); err != nil {
 		b.Fatal(err)
@@ -333,24 +334,6 @@ func goTestArgs(profileDir string, mode runMode) ([]string, error) {
 		return nil, errors.Errorf("unknown run mode: %d", mode)
 	}
 	return append(args, "."), nil
-}
-
-func mustRepoRoot(tb testing.TB) string {
-	tb.Helper()
-	dir, err := os.Getwd()
-	if err != nil {
-		tb.Fatal(err)
-	}
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir
-		}
-		next := filepath.Dir(dir)
-		if next == dir {
-			tb.Fatal("could not find repository root")
-		}
-		dir = next
-	}
 }
 
 func outputStats(root string) (int, int64, string, error) {

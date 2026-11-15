@@ -10,13 +10,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/fastjson"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
 const enableCLITestscriptEnv = "SPACEWAVE_CLI_TESTSCRIPT"
@@ -42,7 +42,7 @@ func TestSpacewaveCLITrajectoryScripts(t *testing.T) {
 	}
 
 	// Build the CLI binary used by every trajectory script.
-	repoRoot := repoRoot(t)
+	repoRoot := reporoot.Must(t)
 	bin := filepath.Join(t.TempDir(), "spacewave")
 	build := exec.Command("go", "build", "-tags", "skip_e2e", "-o", bin, "./cmd/spacewave")
 	build.Dir = repoRoot
@@ -509,18 +509,4 @@ func normalizeSnapshotOutput(got string, st scriptState) string {
 		got = repl.re.ReplaceAllString(got, repl.with)
 	}
 	return got
-}
-
-func repoRoot(t *testing.T) string {
-	// Locate the trajectory repository from this source file.
-	t.Helper()
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("resolve caller")
-	}
-	root := filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", ".."))
-	if _, err := os.Stat(filepath.Join(root, "go.mod")); err != nil {
-		t.Fatalf("resolve repo root: %v", err)
-	}
-	return root
 }

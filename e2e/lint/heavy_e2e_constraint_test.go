@@ -10,9 +10,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
 // TIER: pr
@@ -70,12 +71,8 @@ var skipDirs = map[string]bool{
 // invariant: no per-suite copies. It catches the regression that silently
 // re-admits a heavy suite (e.g. comms) into the skip_e2e sweep.
 func TestHeavyE2EFilesNegateSkipE2E(t *testing.T) {
-	root := repoRoot(t)
-
-	_, selfFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed to report the lint source path")
-	}
+	root := reporoot.Must(t)
+	selfFile := filepath.Join(root, "e2e", "lint", "heavy_e2e_constraint_test.go")
 
 	seenAllowlisted := make(map[string]bool, len(lightAllowlist))
 
@@ -225,25 +222,6 @@ func TestExcludedUnderSkipE2EConstraints(t *testing.T) {
 				t.Fatalf("excludedUnderSkipE2E() = %t, want %t", got, test.want)
 			}
 		})
-	}
-}
-
-func repoRoot(t *testing.T) string {
-	t.Helper()
-	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed to report the lint source path")
-	}
-	dir := filepath.Dir(thisFile)
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			t.Fatalf("could not locate repo root (go.mod) above %s", thisFile)
-		}
-		dir = parent
 	}
 }
 
