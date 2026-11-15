@@ -70,11 +70,13 @@ type GuardedWrite struct {
 	Unscoped bool
 }
 
-// IsGuardSysErr reports whether err, returned by a WriteGuard, is a system
-// error rather than a refusal: only an *OperationRejection is final.
+// IsGuardSysErr reports whether err, returned by a WriteGuard or recorded in
+// a guarded apply, is a system error rather than a refusal: only an
+// *OperationRejection and ErrEngineUnguardedOp, which a retry meets again,
+// are final.
 func IsGuardSysErr(err error) bool {
 	var rejection *OperationRejection
-	return err != nil && !errors.As(err, &rejection)
+	return err != nil && !errors.As(err, &rejection) && !errors.Is(err, ErrEngineUnguardedOp)
 }
 
 // WorldStateGetter is an ObjectState that returns the WorldState holding it,
@@ -94,8 +96,27 @@ type opApplyKey struct{}
 
 // opApply is one op applied through a guarded state, carried on the context
 // to the engine that applies it.
+//
+// Invariant: an op applied through guarded layers stacked on one engine
+// state, such as a component's guard over the handle an engine gave an op,
+// creates exactly one opApply, and the engine takes it. The layers fold: each
+// checks the op's type, then hands its guard to the layer it wraps, and only
+// the innermost, which wraps the engine's state, creates the apply with every
+// layer's guard. So each write the op makes is checked by every layer's
+// guard, and an apply no engine takes is an engine that does not guard, never
+// a layer directly above another layer.
+//
+// A layer over a state that is not a guarded layer, such as an engine's state
+// over a guarded engine, does not fold: it creates its own apply, and a
+// guarded layer the state applies the op through creates another, nested in
+// it, which the engine takes. The nested apply checks the outer guards too,
+// but the outer apply is never taken, so the op fails closed with
+// ErrEngineUnguardedOp, recorded in the op tree so an op that swallows it
+// fails too. GuardWorldState adds no layer where the guard already guards, so
+// a mount's state over its own guarded engine stays one layer.
 type opApply struct {
-	// guards are the guards the op's writes are checked by, outermost first.
+	// guards are the guards the op's writes are checked by, each once, in no
+	// promised order.
 	guards []WriteGuard
 	// taken is set when an engine wraps its state for the guards.
 	taken atomic.Bool
@@ -109,18 +130,45 @@ type opRefusal struct {
 	err error
 }
 
-// newOpApply returns the apply of an op through a state guarded by guard, as
+// newOpApply returns the apply of an op through states stacked with guards, as
 // a nested op of parent when parent is set: it keeps the parent's guards and
 // shares its refusal, so an outer op that swallows a nested refusal fails too.
-func newOpApply(parent *opApply, guard WriteGuard) *opApply {
-	if parent == nil {
-		return &opApply{guards: []WriteGuard{guard}, refusal: &opRefusal{}}
+func newOpApply(parent *opApply, guards []WriteGuard) *opApply {
+	// Start from the parent's guards and refusal, or a refusal of its own.
+	apply := &opApply{refusal: &opRefusal{}}
+	if parent != nil {
+		apply.guards, apply.refusal = slices.Clip(parent.guards), parent.refusal
 	}
-	guards := parent.guards
-	if !slices.Contains(guards, guard) {
-		guards = append(slices.Clip(guards), guard)
+
+	// Add each guard the apply does not hold yet.
+	held := make(map[WriteGuard]struct{}, len(apply.guards)+len(guards))
+	for _, guard := range apply.guards {
+		held[guard] = struct{}{}
 	}
-	return &opApply{guards: guards, refusal: parent.refusal}
+	for _, guard := range guards {
+		if _, ok := held[guard]; !ok {
+			held[guard] = struct{}{}
+			apply.guards = append(apply.guards, guard)
+		}
+	}
+	return apply
+}
+
+// nestIn returns the parent and guards of the apply the innermost layer
+// creates under ctx, given the op whose handle a layer is as parent and the
+// layers' guards: nested in the op of ctx when no layer is a handle. When a
+// layer is a handle and ctx carries the apply of another op, a guarded layer
+// above a state the fold does not see through, the apply keeps that op's
+// guards too, so every guard above still checks each write.
+func nestIn(ctx context.Context, parent *opApply, guards []WriteGuard) (*opApply, []WriteGuard) {
+	outer := getOpApply(ctx)
+	switch {
+	case parent == nil:
+		return outer, guards
+	case outer != nil && outer != parent:
+		return parent, append(guards, outer.guards...)
+	}
+	return parent, guards
 }
 
 // getOpApply returns the apply ctx carries, or nil.
@@ -169,7 +217,7 @@ func (a *opApply) finish(seqno uint64, sysErr bool, err error, discard func()) (
 	case gerr != nil:
 		err, sysErr = gerr, IsGuardSysErr(gerr)
 	case err == nil && !a.taken.Load():
-		err, sysErr = ErrEngineUnguardedOp, false
+		err, sysErr = a.record(ErrEngineUnguardedOp), false
 	case err == nil:
 		return seqno, sysErr, nil
 	}
@@ -234,22 +282,33 @@ func GuardOpObjectState(ctx context.Context, obj ObjectState, ws WorldState) Obj
 }
 
 // GuardWorldState returns ws with every write checked by guard first.
-// A nil guard returns ws.
+// A nil guard returns ws, and so does a ws guard already guards: a guarded
+// state, or an engine's state whose engine guard guards, which makes each
+// write in a transaction the guard checks.
 func GuardWorldState(ws WorldState, guard WriteGuard) WorldState {
-	if guard == nil || ws == nil {
+	if guard == nil || ws == nil || guardedBy(ws) == guard {
 		return ws
 	}
+	return &guardedWorldState{ws: ws, guard: guard}
+}
+
+// guardedBy returns the guard that checks every write made through ws, or nil
+// when ws is not guarded as a whole.
+func guardedBy(ws WorldState) WriteGuard {
 	switch g := ws.(type) {
 	case *guardedWorldState:
-		if g.guard == guard {
-			return ws
-		}
+		return g.guard
 	case *guardedTx:
-		if g.guard == guard {
-			return ws
+		return g.guard
+	case *engineWorldState:
+		if e, ok := g.e.(*guardedEngine); ok {
+			return e.guard
+		}
+		if e, ok := g.e.(*guardedRehearsalEngine); ok {
+			return e.guard
 		}
 	}
-	return &guardedWorldState{ws: ws, guard: guard}
+	return nil
 }
 
 // GuardObjectState returns obj, held by the unguarded ws, with every write
@@ -670,23 +729,52 @@ func (s *guardedWorldState) DeleteGraphObject(ctx context.Context, value string)
 // describes. A guard that fails to decide returns a system error, so the op
 // is retried rather than rejected.
 func (s *guardedWorldState) ApplyWorldOp(ctx context.Context, op Operation, opSender peer.ID) (uint64, bool, error) {
-	// Check the op's type.
 	if op == nil {
 		return 0, false, ErrEmptyOp
 	}
+	return s.applyWorldOp(ctx, op, opSender, nil, nil, nil)
+}
+
+// applyWorldOp applies op through this layer under the guarded layers stacked
+// above it, which pass their guards as above, the op whose handle the nearest
+// of them is as parent, and the discard of the transaction they write into.
+// It folds as opApply describes. The layers wrap one transaction, so a failed
+// op discards it once, through the innermost layer that can.
+func (s *guardedWorldState) applyWorldOp(ctx context.Context, op Operation, opSender peer.ID, parent *opApply, above []WriteGuard, discard func()) (uint64, bool, error) {
+	// Check the op's type.
 	if err := s.check(ctx, &GuardedWrite{OpTypeID: op.TypeID()}); err != nil {
 		return 0, IsGuardSysErr(err), err
 	}
 
-	// Apply it with each of its writes guarded, nested in the op whose handle
-	// this is or in the op of ctx.
-	parent := s.apply
-	if parent == nil {
-		parent = getOpApply(ctx)
+	// Hand the guard to a guarded layer below, nested in the op whose handle
+	// the innermost layer is.
+	if s.apply != nil {
+		parent = s.apply
 	}
-	apply := newOpApply(parent, s.guard)
+	if s.opFailed != nil {
+		discard = s.opFailed
+	}
+	guards := append(slices.Clip(above), s.guard)
+	if inner := guardedLayer(s.ws); inner != nil {
+		return inner.applyWorldOp(ctx, op, opSender, parent, guards, discard)
+	}
+
+	// Over the engine's state, apply it with each of its writes checked by
+	// every layer's guard, nested in the op of ctx when no layer is a handle.
+	apply := newOpApply(nestIn(ctx, parent, guards))
 	seqno, sysErr, err := s.ws.ApplyWorldOp(context.WithValue(ctx, opApplyKey{}, apply), op, opSender)
-	return apply.finish(seqno, sysErr, err, s.opFailed)
+	return apply.finish(seqno, sysErr, err, discard)
+}
+
+// guardedLayer returns ws as a guarded layer, or nil when it is not one.
+func guardedLayer(ws WorldState) *guardedWorldState {
+	switch g := ws.(type) {
+	case *guardedWorldState:
+		return g
+	case *guardedTx:
+		return g.guardedWorldState
+	}
+	return nil
 }
 
 // GetSeqno returns the wrapped state's seqno.
@@ -799,22 +887,36 @@ func (o *guardedObjectState) SetRootRef(ctx context.Context, nref *bucket.Object
 // fails to decide returns a system error, so the op is retried rather than
 // rejected.
 func (o *guardedObjectState) ApplyObjectOp(ctx context.Context, op Operation, opSender peer.ID) (uint64, bool, error) {
-	// Check the op's type and the object.
 	if op == nil {
 		return 0, false, ErrEmptyOp
 	}
+	return o.applyObjectOp(ctx, op, opSender, nil, nil, nil)
+}
+
+// applyObjectOp applies op through this layer under the guarded layers stacked
+// above it, folding and discarding as guardedWorldState.applyWorldOp does.
+func (o *guardedObjectState) applyObjectOp(ctx context.Context, op Operation, opSender peer.ID, parent *opApply, above []WriteGuard, discard func()) (uint64, bool, error) {
+	// Check the op's type and the object.
 	if err := o.check(ctx, op.TypeID()); err != nil {
 		return 0, IsGuardSysErr(err), err
 	}
 
-	// Apply it with each of its writes guarded, as ApplyWorldOp does.
-	parent := o.apply
-	if parent == nil {
-		parent = getOpApply(ctx)
+	// Hand the guard to a guarded layer below.
+	if o.apply != nil {
+		parent = o.apply
 	}
-	apply := newOpApply(parent, o.guard)
+	if o.opFailed != nil {
+		discard = o.opFailed
+	}
+	guards := append(slices.Clip(above), o.guard)
+	if inner, ok := o.obj.(*guardedObjectState); ok {
+		return inner.applyObjectOp(ctx, op, opSender, parent, guards, discard)
+	}
+
+	// Over the engine's object, apply it with every layer's guard.
+	apply := newOpApply(nestIn(ctx, parent, guards))
 	rev, sysErr, err := o.obj.ApplyObjectOp(context.WithValue(ctx, opApplyKey{}, apply), op, opSender)
-	return apply.finish(rev, sysErr, err, o.opFailed)
+	return apply.finish(rev, sysErr, err, discard)
 }
 
 // GetWorldState returns the World that holds the object, guarded as the object

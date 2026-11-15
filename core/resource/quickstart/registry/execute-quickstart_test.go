@@ -13,6 +13,7 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
+	resource_worldop_registry "github.com/s4wave/spacewave/core/resource/worldop/registry"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_core "github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -23,6 +24,7 @@ import (
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
+	s4wave_worldop_registry "github.com/s4wave/spacewave/sdk/worldop/registry"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,6 +45,9 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 		bucketID: tb.EngineBucketID,
 		sender:   tb.Volume.GetPeerID().String(),
 	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(pluginRoot, testSeedOpHandler{}); err != nil {
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
@@ -82,6 +87,21 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 		values: map[uint32]any{spaceResourceID: spaceResource},
 	}
 
+	// Register the plugin's World op and bridge it onto the bus, so the seed
+	// can apply it through the guarded engine.
+	worldOps := resource_worldop_registry.NewWorldOpRegistryResource(nil)
+	if _, err := worldOps.RegisterWorldOp(
+		resource_server.WithResourceClientContext(ctx, resourceCtx),
+		&s4wave_worldop_registry.RegisterWorldOpRequest{OperationTypeId: testSeedOpTypeID, PluginId: "test-plugin"},
+	); err != nil {
+		t.Fatalf("RegisterWorldOp: %v", err)
+	}
+	relOps, err := tb.Bus.AddController(ctx, resource_worldop_registry.NewWorldOpRegistryBridgeController(le, tb.Bus, worldOps), nil)
+	if err != nil {
+		t.Fatalf("AddController bridge: %v", err)
+	}
+	defer relOps()
+
 	// Execute the registered Quickstart against the mounted Space.
 	resp, err := registry.ExecuteQuickstart(
 		resource_server.WithResourceClientContext(ctx, resourceCtx),
@@ -119,13 +139,16 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 		}
 	}
 
-	// Verify the recursive built-in op committed its filesystem and the
-	// refused settings op left no settings object.
+	// Verify the recursive built-in op and the plugin op's nested built-in op
+	// committed their filesystems and the refused settings op left no
+	// settings object.
 	{
-		objectState, err := world.MustGetObject(ctx, readTx, "quickstart/files")
-		world.ReleaseObjectState(objectState)
-		if err != nil {
-			t.Fatalf("recursive built-in world op did not commit its filesystem: %v", err)
+		for _, key := range []string{"quickstart/files", testSeedOpObjectKey} {
+			objectState, err := world.MustGetObject(ctx, readTx, key)
+			world.ReleaseObjectState(objectState)
+			if err != nil {
+				t.Fatalf("world op did not commit filesystem %s: %v", key, err)
+			}
 		}
 		settings, found, err := readTx.GetObject(ctx, space_world.SpaceSettingsObjectKey)
 		world.ReleaseObjectState(settings)
@@ -250,6 +273,20 @@ func (h *testQuickstartHandler) SeedQuickstart(
 		return nil, errors.Errorf("init-unixfs op response %v", fsResp)
 	}
 
+	// The plugin's own op applies through the guarded engine, and the
+	// built-in op it applies in turn writes as the plugin too.
+	pluginResp, err := worldState.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{
+		OpTypeId: testSeedOpTypeID,
+		OpData:   []byte("seed"),
+		OpSender: h.sender,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !appliedOK(pluginResp) {
+		return nil, errors.Errorf("plugin op response %v", pluginResp)
+	}
+
 	// Commit the seeded World objects before returning the plugin result.
 	tx := s4wave_world.NewSRPCTxResourceServiceClient(txClient)
 	if err := s4wave_world.CommitRemote(ctx, tx); err != nil {
@@ -309,6 +346,72 @@ func (h *testQuickstartHandler) seedPartial(
 		return errors.New("transaction committed after a refused op")
 	}
 	return nil
+}
+
+// appliedOK reports whether resp is an op that applied.
+func appliedOK(resp *s4wave_world.ApplyWorldOpResponse) bool {
+	return !resp.GetSysErr() && resp.GetRejectionCode() == "" &&
+		resp.GetErrorCode() == s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
+const (
+	// testSeedOpTypeID is the Quickstart plugin's own World op.
+	testSeedOpTypeID = "test/seed-op"
+	// testSeedOpObjectKey is the filesystem the plugin op's nested op creates.
+	testSeedOpObjectKey = "quickstart/plugin-files"
+)
+
+// testSeedOpHandler is the Quickstart plugin's World op handler. Its op
+// applies init-unixfs through the World state the host hands it, a nested
+// write through the plugin's guard stacked on the op's guarded handle.
+type testSeedOpHandler struct{}
+
+func (testSeedOpHandler) ApplyWorldOp(
+	ctx context.Context,
+	req *s4wave_worldop_registry.ApplyWorldOpRequest,
+) (*s4wave_worldop_registry.ApplyWorldOpResponse, error) {
+	// Require the seed op and the attached World state.
+	if req.GetOperationTypeId() != testSeedOpTypeID || req.GetAttachedWorldStateResourceId() == 0 {
+		return nil, resource.ErrInvalidResourceID
+	}
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	wsClient, err := resourceCtx.GetAttachedResource(req.GetAttachedWorldStateResourceId())
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply the nested built-in op and require that it applied.
+	op := space_world_ops.NewInitUnixFSOp(testSeedOpObjectKey, time.Unix(1, 0))
+	data, err := op.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	ws := s4wave_world.NewSRPCWorldStateResourceServiceClient(wsClient)
+	resp, err := ws.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: op.TypeID(), OpData: data, OpSender: req.GetSender()})
+	if err != nil {
+		return nil, err
+	}
+	if !appliedOK(resp) {
+		return nil, errors.Errorf("nested init-unixfs response %v", resp)
+	}
+	return &s4wave_worldop_registry.ApplyWorldOpResponse{}, nil
+}
+
+func (testSeedOpHandler) ApplyWorldObjectOp(
+	context.Context,
+	*s4wave_worldop_registry.ApplyWorldObjectOpRequest,
+) (*s4wave_worldop_registry.ApplyWorldObjectOpResponse, error) {
+	return nil, resource.ErrInvalidResourceID
+}
+
+func (testSeedOpHandler) ValidateOp(
+	context.Context,
+	*s4wave_worldop_registry.ValidateOpRequest,
+) (*s4wave_worldop_registry.ValidateOpResponse, error) {
+	return &s4wave_worldop_registry.ValidateOpResponse{}, nil
 }
 
 type testQuickstartPluginLoadController struct {
