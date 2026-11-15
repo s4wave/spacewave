@@ -13,17 +13,42 @@
   {
     "name": "replay steps while a writer holds the lock",
     "replace": [
-      ["Step == /\\ holder = \"free\" /\\ StepReady", "Step == /\\ StepReady"]
+      [
+        "Step == /\\ holder = \"free\" /\\ StepReady",
+        "Step == /\\ StepReady"
+      ]
     ],
     "expect": "NoWriteWhileWaiting",
     "config": "ReplayWriteGate.cfg"
   },
   {
-    "name": "a failure of unknown kind drops its op",
+    "name": "a step that fails outside an apply refuses its op",
     "replace": [
       [
         "                       /\\ replay' = \"waitRetry\" /\\ failed' = TRUE\n                       /\\ UNCHANGED <<todo, applied, refused>>",
         "                       /\\ refused' = refused \\cup {op} /\\ todo' = Tail(todo)\n                       /\\ UNCHANGED <<replay, failed, applied>>"
+      ]
+    ],
+    "expect": "OpsKept",
+    "config": "ReplayWriteGate.cfg"
+  },
+  {
+    "name": "an apply error of unknown kind waits to retry",
+    "replace": [
+      [
+        "                  [] op = \"bad\" ->\n                       /\\ refused' = refused \\cup {op} /\\ todo' = Tail(todo)\n                       /\\ replay' = Next1\n                       /\\ UNCHANGED <<failed, applied>>",
+        "                  [] op = \"bad\" ->\n                       /\\ replay' = \"waitRetry\"\n                       /\\ UNCHANGED <<todo, failed, applied, refused>>"
+      ]
+    ],
+    "expect": "RetryOnlyOutsideApply",
+    "config": "ReplayWriteGate.cfg"
+  },
+  {
+    "name": "an apply error of unknown kind drops its op unrecorded",
+    "replace": [
+      [
+        "                  [] op = \"bad\" ->\n                       /\\ refused' = refused \\cup {op} /\\ todo' = Tail(todo)\n                       /\\ replay' = Next1\n                       /\\ UNCHANGED <<failed, applied>>",
+        "                  [] op = \"bad\" ->\n                       /\\ todo' = Tail(todo)\n                       /\\ replay' = Next1\n                       /\\ UNCHANGED <<failed, applied, refused>>"
       ]
     ],
     "expect": "OpsKept",
@@ -53,7 +78,12 @@
   },
   {
     "name": "a handler wait is never resumed",
-    "replace": [["             \\/ replay = \"waitHandler\" /\\ Seen\n", ""]],
+    "replace": [
+      [
+        "             \\/ replay = \"waitHandler\" /\\ Seen\n",
+        ""
+      ]
+    ],
     "expect": "deadlock",
     "config": "ReplayWriteGate.cfg"
   },
@@ -66,7 +96,7 @@
       ]
     ],
     "expect": "WritesAdmitted",
-    "config": "ReplayWriteGateOneDevice.cfg"
+    "config": "ReplayWriteGate-OneDevice.cfg"
   },
   {
     "name": "a waiting write is refused when replay catches up",
@@ -88,7 +118,7 @@
       ]
     ],
     "expect": "WaitingWriteDecided",
-    "config": "ReplayWriteGateOneDevice.cfg"
+    "config": "ReplayWriteGate-OneDevice.cfg"
   },
   {
     "name": "an opening with nothing left to apply stays opening",
@@ -99,7 +129,7 @@
       ]
     ],
     "expect": "OpeningExits",
-    "config": "ReplayWriteGateOneDevice.cfg"
+    "config": "ReplayWriteGate-OneDevice.cfg"
   },
   {
     "name": "a restart forgets the ops it applied",
