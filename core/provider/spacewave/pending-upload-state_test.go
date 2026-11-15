@@ -98,7 +98,7 @@ func TestPendingUploadCutoff(t *testing.T) {
 	}
 	seen := make(map[uint64]bool, count)
 	chunks := 0
-	err := syncer.prepareChunks(ctx, count, false, func(chunk *preparedSyncChunk) error {
+	_, err := syncer.prepareChunks(ctx, count, false, func(chunk *preparedSyncChunk) error {
 		assertClosed()
 		chunks++
 		for _, queued := range chunk.blocks {
@@ -137,7 +137,7 @@ func TestPendingUploadPagesFillPacks(t *testing.T) {
 
 	// The second pack spans the first page boundary, so no pack may end there.
 	var sizes []int
-	err := syncer.prepareChunks(ctx, uint64(len(marks)), false, func(chunk *preparedSyncChunk) error {
+	_, err := syncer.prepareChunks(ctx, uint64(len(marks)), false, func(chunk *preparedSyncChunk) error {
 		sizes = append(sizes, len(chunk.blocks))
 		return nil
 	})
