@@ -1874,6 +1874,103 @@ func TestSyncControllerHeldWaitIgnoresFlushBroadcast(t *testing.T) {
 	}
 }
 
+// pausingReadStore pauses its pauseAt-th read transaction until release
+// closes, so a test can act between two reads of one flush.
+type pausingReadStore struct {
+	kvtx.Store
+	reads   atomic.Int64
+	pauseAt atomic.Int64
+	paused  chan struct{}
+	release chan struct{}
+}
+
+// NewTransaction pauses the armed read transaction.
+func (s *pausingReadStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if !write {
+		if n := s.reads.Add(1); n == s.pauseAt.Load() {
+			close(s.paused)
+			<-s.release
+		}
+	}
+	return s.Store.NewTransaction(ctx, write)
+}
+
+// TestSyncControllerHeldWriteDuringFlushRereads writes a held hash, after the
+// block was removed and written again, while a flush is paused past its copy
+// of the known set. That flush read nothing and holds the block, but the next
+// flush must read it, upload it and clear it, not wait for the recheck
+// deadline.
+func TestSyncControllerHeldWriteDuringFlushRereads(t *testing.T) {
+	// Accept every push.
+	var uploads atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sync/push") {
+			uploads.Add(1)
+		}
+		w.Header().Set("Content-Type", "application/protobuf")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, server.URL, DefaultSigningEnvPrefix, priv, pid.String())
+
+	// Hold the only dirty block as corrupt.
+	s := newDirtySyncExecuteTestController(t, cli, nil)
+	good := s.upper
+	ref, err := block.BuildBlockRef([]byte("dirty block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.upper = &corruptUpperStore{StoreOps: good, bad: ref.GetHash()}
+	store := &pausingReadStore{Store: s.store, paused: make(chan struct{}), release: make(chan struct{})}
+	s.store = store
+	var held *heldError
+	if err := s.FlushNow(t.Context()); !errors.As(err, &held) {
+		t.Fatalf("first flush = %v; want held", err)
+	}
+
+	// Pause the next flush at its first page read, after its copy of the
+	// known set, and rewrite the block meanwhile.
+	store.pauseAt.Store(store.reads.Load() + 2)
+	flushed := make(chan error, 1)
+	go func() { flushed <- s.FlushNow(t.Context()) }()
+	select {
+	case <-store.paused:
+	case err := <-flushed:
+		t.Fatalf("flush ended before its pause: %v", err)
+	case <-time.After(10 * time.Second):
+		t.Fatal("flush never reached its pause")
+	}
+	if err := good.RmBlock(t.Context(), ref); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := good.PutBlock(t.Context(), []byte("dirty block"), nil); err != nil {
+		t.Fatal(err)
+	}
+	s.upper = good
+	if err := s.MarkDirty(t.Context(), []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: int64(len("dirty block"))}}); err != nil {
+		t.Fatal(err)
+	}
+	close(store.release)
+	if err := <-flushed; !errors.As(err, &held) {
+		t.Fatalf("paused flush = %v; want held from its copy", err)
+	}
+	if uploads.Load() != 0 {
+		t.Fatalf("uploads before the rewrite was read = %d, want 0", uploads.Load())
+	}
+
+	// The next flush reads the rewritten block, uploads it and clears it.
+	if err := s.FlushNow(t.Context()); err != nil {
+		t.Fatalf("flush after the write = %v; want the block read and uploaded", err)
+	}
+	if uploads.Load() == 0 {
+		t.Fatal("the rewritten block was not uploaded")
+	}
+	if pending, err := s.scanDirtyCandidates(t.Context()); err != nil || len(pending) != 0 {
+		t.Fatalf("dirty after the flush = %d blocks, %v; want none", len(pending), err)
+	}
+}
+
 // TestSyncReclaimWalkFailsOnMissingOrCorrupt checks that the reclaim walk
 // fails on a root it cannot read, missing everywhere or corrupt in the cache,
 // rather than judging the blocks under it dead.

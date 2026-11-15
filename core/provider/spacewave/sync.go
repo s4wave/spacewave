@@ -108,7 +108,8 @@ type syncController struct {
 	compactWaitPull atomic.Bool
 	// corruptKnown holds the dirty blocks the last flush found corrupt, keyed
 	// by hash, under bcast. A flush skips and counts them without reading
-	// them until corruptRecheck is set. The map is replaced, never changed.
+	// them until corruptRecheck is set or a write of the hash removes it.
+	// The map is replaced, never changed.
 	corruptKnown map[string]struct{}
 	// heldSince is when the flush first held a corrupt block back, zero while
 	// none is held, under bcast.
@@ -116,7 +117,9 @@ type syncController struct {
 	// writes counts MarkDirty calls under bcast, so a held store waits for a
 	// new write rather than for any broadcast.
 	writes uint64
-	// corruptRecheck makes the next flush read the known corrupt blocks again.
+	// corruptRecheck makes the next flush read the known corrupt blocks
+	// again. It is set by the recheck deadline and by a flush that a write
+	// overlapped.
 	corruptRecheck atomic.Bool
 }
 
@@ -320,7 +323,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 	// corruptDelay is the wait before a flush reads the known corrupt dirty
 	// blocks again, zero while none are known. It doubles from the checkpoint
 	// interval to dirtyCorruptRetryMax, since rereading the blocks fails the
-	// same way until something repairs them. recheckAt is when that read is
+	// same way until something removes them. recheckAt is when that read is
 	// due, and rechecked reports that the last flush was that read.
 	var corruptDelay time.Duration
 	var recheckAt time.Time
@@ -667,7 +670,9 @@ func (s *syncController) MarkDirty(ctx context.Context, marks []block_store_writ
 	}
 
 	// Count the write for a held store's wait. A write of a held block's hash
-	// may repair it, so it leaves the known set and the next flush reads it.
+	// takes it out of the known set, so the next flush reads it again. The
+	// read finds sound bytes only when the block was removed before the
+	// write: a put of a hash the store holds keeps the stored bytes.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.writes++
 		s.corruptKnown = withoutMarks(s.corruptKnown, marks)
@@ -1002,7 +1007,8 @@ func (s *syncController) prepareChunks(
 	// is due, the blocks the last pass found corrupt are held without a read.
 	corrupt := make(map[string]struct{})
 	var known map[string]struct{}
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known = s.corruptKnown })
+	var writes uint64
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known, writes = s.corruptKnown, s.writes })
 	if s.corruptRecheck.Swap(false) {
 		known = nil
 	}
@@ -1082,20 +1088,30 @@ func (s *syncController) prepareChunks(
 	}
 
 	// Keep and report the corrupt blocks the pass left queued.
-	s.setCorruptKnown(corrupt)
+	s.setCorruptKnown(corrupt, writes)
 	return len(corrupt), nil
 }
 
 // setCorruptKnown records the corrupt dirty blocks the last flush held back
 // and shows the held state. The count follows the markers: a marker cleared,
 // as a duplicate or by a successful read, leaves the set at the next flush,
-// and a flush with nothing pending clears it. A write of a held hash leaves
-// the set at once, in MarkDirty. The caller holds flushMtx.
-func (s *syncController) setCorruptKnown(corrupt map[string]struct{}) {
+// and a flush with nothing pending clears it. writes is the write count the
+// flush read with its copy of the known set.
+//
+// Invariant: a write of a held hash always makes a later flush read the
+// block. MarkDirty removes the hash from the set at once, but this
+// replacement would put back a hash the flush read before that write landed.
+// The flush cannot tell which hashes a write touched, so when any write
+// landed since its copy it makes the next flush read every held block. The
+// caller holds flushMtx.
+func (s *syncController) setCorruptKnown(corrupt map[string]struct{}, writes uint64) {
 	// Start the held time on the first hold and clear it with the last.
 	var since time.Time
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		s.corruptKnown = corrupt
+		if len(corrupt) != 0 && s.writes != writes {
+			s.corruptRecheck.Store(true)
+		}
 		switch {
 		case len(corrupt) == 0:
 			s.heldSince = time.Time{}
@@ -1278,7 +1294,7 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) (int, erro
 		return 0, err
 	}
 	if state.GetCount() == 0 {
-		s.setCorruptKnown(nil)
+		s.setCorruptKnown(nil, 0)
 		return 0, nil
 	}
 

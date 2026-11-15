@@ -133,24 +133,9 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 		return err
 	}
 
-	// Copy the World and payloads of a Space, then post its checkpoint again,
-	// which the cloud takes as a repeat once the copy is durable.
+	// Copy the World and payloads of a Space.
 	if space {
-		store, release, err := a.MountBlockStore(ctx, NewBlockStoreRef(a.GetProviderID(), a.accountID, id), nil)
-		if err != nil {
-			return err
-		}
-		defer release()
-		// The cloud store holds no roots, so the copy returns no stage and
-		// nothing holds the copy until the Space's Adapter does. Pack reclaim,
-		// off by default, is what keeps a pass from trashing it meanwhile.
-		if _, err := provider_migration.CopyRoots(ctx, object.GetBlockStore(), roots, store, nil); err != nil {
-			return err
-		}
-		if err := store.(*BlockStore).ForceSync(ctx); err != nil {
-			return err
-		}
-		if err := client.PostCheckpoint(ctx, id, state.GetCheckpoint()); err != nil {
+		if err := a.copyMigrationSpace(ctx, client, id, object.GetBlockStore(), roots, state.GetCheckpoint()); err != nil {
 			return err
 		}
 	}
@@ -163,6 +148,31 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 	}
 	a.BumpLocalEpoch()
 	return nil
+}
+
+// copyMigrationSpace copies the blocks under roots from src into the cloud
+// store of resource id, flushes it, then posts checkpoint again, which the
+// cloud takes as a repeat once the copy is durable. A flush that holds a
+// corrupt block back fails, so the checkpoint is never posted over a block
+// the cloud lacks.
+func (a *ProviderAccount) copyMigrationSpace(ctx context.Context, client *SessionClient, id string, src block.StoreOps, roots []*block.BlockRef, checkpoint *sobject.SOCheckpoint) error {
+	// Mount the destination store.
+	store, release, err := a.MountBlockStore(ctx, NewBlockStoreRef(a.GetProviderID(), a.accountID, id), nil)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	// The cloud store holds no roots, so the copy returns no stage and
+	// nothing holds the copy until the Space's Adapter does. Pack reclaim,
+	// off by default, is what keeps a pass from trashing it meanwhile.
+	if _, err := provider_migration.CopyRoots(ctx, src, roots, store, nil); err != nil {
+		return err
+	}
+	if err := store.(*BlockStore).ForceSync(ctx); err != nil {
+		return err
+	}
+	return client.PostCheckpoint(ctx, id, checkpoint)
 }
 
 // migrationRecoveryEnvelopes gives the destination entity its ordinary recovery

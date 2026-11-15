@@ -245,7 +245,7 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 	// Publish each host's checkpoint after its blocks are durable.
 	// Invariant: a checkpoint is published only when every block it reaches
 	// is on the remote; a store that holds a corrupt dirty block publishes
-	// nothing new until that block is repaired or removed, and says so.
+	// nothing new while it holds that block, and says so.
 	if held != 0 {
 		return s.held(held)
 	}
@@ -362,8 +362,8 @@ func dropCoveredOperations(sharedObjectID string, pending *api.PendingSOPublicat
 // change. The caller holds writeMu.
 func (h *cloudSOHost) publishConfigChange(ctx context.Context, prev, next *sobject.SOState, entry *sobject.SOConfigChange) error {
 	// Settle accepted local work so the cloud holds the locked state. A
-	// held store fails here, so the change waits with the store's other
-	// publications until the held block is repaired.
+	// held store fails here and the change is refused, as every other
+	// publication of the store is while it holds a corrupt block.
 	if h.syncer != nil {
 		if err := h.syncer.FlushNow(ctx); err != nil {
 			return errors.Wrap(err, "flush pending publication")

@@ -946,6 +946,12 @@ export interface SyncBlockStoreStatus {
    * SharedObjectId identifies the SharedObject that supplied AcceptedCheckpointHeight.
    */
   sharedObjectId?: string
+  /**
+   * Held is set while the store holds back dirty blocks whose bytes on this
+   * device fail their hash, and unset otherwise. While it is set the store
+   * publishes nothing, whatever LastError says.
+   */
+  held?: SyncHeldState
 }
 
 export const SyncBlockStoreStatus: MessageType<SyncBlockStoreStatus> =
@@ -960,6 +966,34 @@ export const SyncBlockStoreStatus: MessageType<SyncBlockStoreStatus> =
       [6, 'accepted_checkpoint_height', 4],
       [7, 'cloud_remote_sequence', 4],
       [8, 'shared_object_id', 9],
+      [9, 'held', 11, 0, SyncHeldState.codec],
+    ],
+  )
+
+/**
+ * SyncHeldState describes a block store that publishes nothing because dirty
+ * blocks on this device fail their hash.
+ *
+ * @generated from message s4wave.session.SyncHeldState
+ */
+export interface SyncHeldState {
+  /**
+   * DamagedBlockCount is the number of dirty blocks held back.
+   */
+  damagedBlockCount?: number
+  /**
+   * HeldAt is when the store first held a block back. Nothing has been
+   * published from the store since.
+   */
+  heldAt?: Date
+}
+
+export const SyncHeldState: MessageType<SyncHeldState> =
+  /* @__PURE__ */ createMessageType<SyncHeldState>(
+    's4wave.session.SyncHeldState',
+    () => [
+      [1, 'damaged_block_count', 13],
+      [2, 'held_at', 11, 0, Timestamp.codec],
     ],
   )
 
