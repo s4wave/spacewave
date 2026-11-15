@@ -375,8 +375,11 @@ func (s *guardedWorldState) StageWorldState(ctx context.Context) (WorldStage, er
 // GetObject returns a guarded object state.
 func (s *guardedWorldState) GetObject(ctx context.Context, key string) (ObjectState, bool, error) {
 	obj, found, err := s.ws.GetObject(ctx, key)
-	obj, err = s.object(obj, err)
-	return obj, found, err
+	if err != nil || !found {
+		ReleaseObjectState(obj)
+		return nil, found, err
+	}
+	return &guardedObjectState{obj: obj, ws: s.ws, guard: s.guard}, true, nil
 }
 
 // IterateObjects iterates keys through the wrapped state; it yields no
