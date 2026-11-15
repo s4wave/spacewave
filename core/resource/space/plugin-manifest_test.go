@@ -4,7 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_trust "github.com/s4wave/spacewave/bldr/manifest/trust"
+	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/testbed"
 )
@@ -43,4 +46,14 @@ func createSpacePluginManifest(t *testing.T, ctx context.Context, tb *testbed.Te
 		t.Fatal(err)
 	}
 	return manifestRef
+}
+
+// admitSpacePluginManifest admits the manifest of plugin id at ref on b until
+// the test ends, as the release or the device's person does. The Space loads a
+// World manifest only once AdmitPluginRoot admits its root.
+func admitSpacePluginManifest(t *testing.T, b bus.Bus, id string, ref *bucket.ObjectRef) {
+	t.Helper()
+	trusted := bldr_manifest_trust.NewSet()
+	trusted.Add(bldr_manifest_trust.Root{PluginID: id, ManifestRoot: ref.GetRootRef().GetHash().MarshalString()})
+	addSpaceRuntimeController(t, b, bldr_manifest_trust.NewController(trusted))
 }
