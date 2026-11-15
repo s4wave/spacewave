@@ -14,7 +14,7 @@ const HostServiceIDPrefix = "plugin-host/"
 const HostServerIDPrefix = "plugin-host/"
 
 // HostServerID constructs a server id for a component on the plugin host.
-// remoteServerID can be empty
+// remoteServerID can be empty.
 func HostServerID(remoteServerID string) string {
 	var id string
 	if remoteServerID != "" {
@@ -26,11 +26,11 @@ func HostServerID(remoteServerID string) string {
 }
 
 // PluginServerIDPrefix is the server id prefix for plugins.
-// Incoming RPC calls from other plugins will have ServerID=PluginServerIDPrefix+RemotePluginID
+// Incoming RPC calls from other plugins will have ServerID=PluginServerIDPrefix+RemotePluginID.
 const PluginServerIDPrefix = "plugin/"
 
 // PluginServerID constructs a server id for a component on a plugin.
-// remoteServerID can be empty
+// remoteServerID can be empty.
 func PluginServerID(pluginID, remoteServerID string) string {
 	id := PluginServerIDPrefix + pluginID
 	if remoteServerID != "" {
@@ -51,6 +51,22 @@ const PluginServiceIDPrefix = "plugin/"
 // PluginServiceID constructs a service id for routing to a service on a plugin.
 func PluginServiceID(pluginID, serviceID string) string {
 	return PluginServiceIDPrefix + pluginID + "/" + serviceID
+}
+
+// ParsePluginServiceID splits a service ID built by PluginServiceID into the
+// plugin ID and the plugin's own service ID. It reports false unless both are
+// present and the plugin ID is valid.
+func ParsePluginServiceID(serviceID string) (pluginID, remoteServiceID string, ok bool) {
+	// Cut the prefix, then the plugin ID at the next slash.
+	rest, ok := strings.CutPrefix(serviceID, PluginServiceIDPrefix)
+	if !ok {
+		return "", "", false
+	}
+	pluginID, remoteServiceID, ok = strings.Cut(rest, "/")
+	if !ok || remoteServiceID == "" || ValidatePluginID(pluginID, false) != nil {
+		return "", "", false
+	}
+	return pluginID, remoteServiceID, true
 }
 
 // HostVolumeServiceIDPrefix is the service ID prefix for the host ProxyVolume.
@@ -89,23 +105,23 @@ func PluginDistFsId(pluginID string) string {
 }
 
 // BldrHttpPrefix is the route prefix for bldr-controlled URL space.
-// /b/
+// The route is /b/.
 const BldrHttpPrefix = "/b/"
 
 // PluginDistHttpPrefix is the route prefix to use for plugin dist.
-// /b/pd/{plugin-id}
+// The route is /b/pd/{plugin-id}.
 const PluginDistHttpPrefix = BldrHttpPrefix + "pd/"
 
 // PluginAssetsHttpPrefix is the route prefix to use for plugin assets.
-// /b/pa/{plugin-id}
+// The route is /b/pa/{plugin-id}.
 const PluginAssetsHttpPrefix = BldrHttpPrefix + "pa/"
 
 // PluginWebPkgHttpPrefix is the public URL path prefix for web packages.
-// /b/pkg/
+// The route is /b/pkg/.
 const PluginWebPkgHttpPrefix = BldrHttpPrefix + "pkg/"
 
 // PluginHttpPrefix is the route prefix for plugin-controlled URL space.
-// /p/{pluginId}/
+// The route is /p/{pluginId}/.
 const PluginHttpPrefix = "/p/"
 
 // PluginAssetsWebPkgsDir is the directory within assets fs for web pkgs.

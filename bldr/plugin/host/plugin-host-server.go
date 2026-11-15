@@ -3,6 +3,7 @@ package plugin_host
 import (
 	"context"
 	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
@@ -12,9 +13,11 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
+	bldr_frontend "github.com/s4wave/spacewave/bldr/frontend"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/volume"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -279,6 +282,50 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 			return mux, pluginRef.Release, nil
 		},
 	)
+}
+
+// HostBusInvoker returns the invoker for the calls the plugin makes to
+// services its mux does not register. allowedServiceIDs are host bus service
+// IDs a plugin outside the host set may also call, matched exactly.
+//
+// Invariant: a plugin outside the host's set can call only the services the
+// host registered for it and other plugins' services under its own binding
+// key; no other service on the host bus is reachable from it.
+func (s *PluginHostServer) HostBusInvoker(allowedServiceIDs []string) srpc.Invoker {
+	serverID := bldr_plugin.PluginServerID(s.pluginID, "")
+	return srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		// A host plugin reaches the whole bus. Retained frontend grants exist
+		// before their URLs are published and must fail after release, so
+		// only those calls skip waiting for the service.
+		if s.callerIsHostPlugin() {
+			wait := !strings.HasPrefix(serviceID, bldr_frontend.AttachedServicePrefix)
+			return bifrost_rpc.NewInvoker(s.b, serverID, wait).InvokeMethod(serviceID, methodID, strm)
+		}
+
+		// Any other plugin reaches the services allowed by exact ID.
+		if slices.Contains(allowedServiceIDs, serviceID) {
+			return bifrost_rpc.NewInvoker(s.b, serverID, true).InvokeMethod(serviceID, methodID, strm)
+		}
+
+		// Beyond those it reaches only other plugins' services.
+		pluginID, remoteServiceID, ok := bldr_plugin.ParsePluginServiceID(serviceID)
+		if !ok {
+			s.le.Debugf("refused host bus service %q to plugin %q", serviceID, s.pluginID)
+			return false, nil
+		}
+
+		// Load the target at the instance key this plugin may load it at.
+		instanceKey, err := s.loadInstanceKey(pluginID, "")
+		if err != nil {
+			return true, err
+		}
+		client, ref, err := bldr_plugin.ExPluginLoadInstancedWaitClient(strm.Context(), s.b, pluginID, instanceKey, nil)
+		if err != nil {
+			return true, err
+		}
+		defer ref.Release()
+		return srpc.NewClientInvoker(client).InvokeMethod(remoteServiceID, methodID, strm)
+	})
 }
 
 // callerIsHostPlugin reports whether this server's plugin is one the host
