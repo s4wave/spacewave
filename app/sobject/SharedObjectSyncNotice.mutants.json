@@ -13,7 +13,7 @@
     "name": "the opening says nothing",
     "replace": [
       [
-        "    [] phase = \"opening\" -> \"Says the Space is opening, and is read only until then\"",
+        "    [] phase = \"opening\" -> \"Says the Space is opening, and edits made now are saved once it opens\"",
         "    [] phase = \"opening\" -> \"\""
       ]
     ],
@@ -28,5 +28,35 @@
       ]
     ],
     "expect": "NoticeMatchesWrites"
+  },
+  {
+    "name": "closing the editor drops its save",
+    "replace": [
+      [
+        "  /\\ UNCHANGED <<phase, save, sent>>",
+        "  /\\ save' = \"none\"\n  /\\ UNCHANGED <<phase, sent>>"
+      ]
+    ],
+    "expect": "PressedSaveKept"
+  },
+  {
+    "name": "a wait leaves a held save waiting",
+    "replace": [
+      [
+        "  /\\ save' = IF save = \"held\" THEN \"refused\" ELSE save",
+        "  /\\ save' = save"
+      ]
+    ],
+    "expect": "HeldOnlyWhileOpening"
+  },
+  {
+    "name": "the editor offers Save while the Space waits",
+    "replace": [
+      [
+        "SaveOffered == open /\\ phase \\in {\"opening\", \"caughtUp\"} /\\ save # \"held\"",
+        "SaveOffered == open /\\ save # \"held\""
+      ]
+    ],
+    "expect": "HeldOnlyWhileOpening"
   }
 ]

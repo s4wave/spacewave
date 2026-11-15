@@ -712,6 +712,17 @@ export class FSHandle extends Resource implements IFSHandle {
     }
   }
 
+  // hold returns a handle on a new reference to this handle's resource, so a
+  // call through it outlives this handle's release. The resource lives while
+  // either reference does and its parent resources live. The caller releases
+  // the hold once its calls settle.
+  public hold(): FSHandle {
+    return this.resourceRef.createResource(this.id, FSHandle, {
+      info: this._info,
+      path: this._path,
+    })
+  }
+
   // clone creates a copy of this handle pointing to the same location.
   public async clone(abortSignal?: AbortSignal): Promise<FSHandle> {
     const resp = await this.service.Clone({}, abortSignal)

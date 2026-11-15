@@ -1,5 +1,5 @@
 /* eslint-disable react-doctor/no-giant-component */
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import Markdown from 'markdown-to-jsx'
 import {
   LuBookOpen,
@@ -11,6 +11,7 @@ import {
   LuX,
 } from 'react-icons/lu'
 
+import { useAbortSignal } from '@aptre/bldr-react'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import '@s4wave/app/docs/docs-prose.css'
 import {
@@ -117,7 +118,7 @@ async function createUntitledPage(
  * useDocPage tracks the selected page and its edit session. The selected page
  * and editing mode persist in the viewer's state namespace.
  */
-function useDocPage(
+export function useDocPage(
   ns: ReturnType<typeof useStateNamespace>,
   rootHandle: ReturnType<typeof useUnixFSRootHandle>,
 ) {
@@ -131,6 +132,10 @@ function useDocPage(
   const fileHandle = useUnixFSHandle(rootHandle, selectedPage)
   const textResource = useUnixFSHandleTextContent(fileHandle)
   const saveHold = useSaveHold()
+  // closed is aborted once the viewer unmounts; saving is set while a save is
+  // in flight, so a second press sends no second write for the same draft.
+  const closed = useAbortSignal([])
+  const saving = useRef(false)
 
   const selectPage = useCallback(
     (name: string) => {
@@ -154,16 +159,32 @@ function useDocPage(
     }
     // Save on exit from edit mode, and keep editing if the save fails: the
     // Space's replay may enter a wait between this check and the commit.
+    // Hold the file and the root above it until the Space decides the save,
+    // which waits while the Space opens, so closing the viewer neither drops
+    // it nor releases its handles; a closed viewer shows a failure in a toast.
+    const root = rootHandle.value
     const handle = fileHandle.value
-    if (editContent !== null && handle) {
+    if (editContent !== null && root && handle) {
+      if (saving.current || root.released || handle.released) return
+      saving.current = true
+      const heldRoot = root.hold()
+      const held = handle.hold()
       const encoded = new TextEncoder().encode(editContent)
       try {
-        await handle.writeAt(0n, encoded)
-        await handle.truncate(BigInt(encoded.byteLength))
-        await handle.sync()
+        await held.writeAt(0n, encoded)
+        await held.truncate(BigInt(encoded.byteLength))
+        await held.sync()
       } catch {
-        toast.error('Not saved. Your edits are still here.')
+        toast.error(
+          closed.aborted
+            ? `Your edits to ${selectedPage} were not saved.`
+            : 'Not saved. Your edits are still here.',
+        )
         return
+      } finally {
+        held.release()
+        heldRoot.release()
+        saving.current = false
       }
     }
     setEditContent(null)
@@ -172,6 +193,9 @@ function useDocPage(
     editing,
     editContent,
     saveHold,
+    closed,
+    selectedPage,
+    rootHandle.value,
     fileHandle.value,
     textResource.value,
     setEditing,

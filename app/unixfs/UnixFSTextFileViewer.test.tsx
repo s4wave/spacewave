@@ -8,7 +8,12 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 import { UnixFSTextFileViewer } from './UnixFSTextFileViewer.js'
+
+vi.mock('@s4wave/web/ui/toaster.js', () => ({
+  toast: { error: vi.fn(), info: vi.fn() },
+}))
 
 // handles.file is the file handle the mocked hook returns; replacing it makes
 // the viewer read the file again, as a new handle does. handles.disk is what a
@@ -106,11 +111,18 @@ function lookupPath() {
   return Promise.resolve({ handle: { readAt, release: () => {} } })
 }
 
+// rootOf is a root handle with fields; a hold of it is the handle itself,
+// whose release counts the holds released.
+function rootOf(fields: Record<string, unknown>): FSHandle {
+  const root = { ...fields, released: false, release: vi.fn() }
+  return { ...root, hold: () => root } as unknown as FSHandle
+}
+
 function rootResource(
   uploadTree = vi.fn().mockResolvedValue(writtenAt('saved')),
 ) {
   return {
-    value: { uploadTree, lookupPath } as unknown as FSHandle,
+    value: rootOf({ uploadTree, lookupPath }),
     loading: false,
     error: null,
     retry: vi.fn(),
@@ -132,6 +144,52 @@ afterEach(() => {
 })
 
 describe('UnixFS text editing', () => {
+  it('decides a save sent before the viewer closed, holding its root until then', async () => {
+    for (const outcome of ['written', 'refused'] as const) {
+      // Send a save the Space holds while it opens, then close the viewer.
+      readsText('original')
+      let decide: (result: Promise<unknown>) => void = () => {}
+      const upload = vi.fn(() => new Promise((resolve) => (decide = resolve)))
+      const root = rootResource(upload)
+      const view = render(
+        <UnixFSTextFileViewer rootHandle={root} path="/notes.md" />,
+      )
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+      typeInto('held')
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      await waitFor(() => expect(upload).toHaveBeenCalledTimes(1))
+      view.unmount()
+
+      // The save still runs on the held root, which is released only once
+      // the Space decides it.
+      const release = root.value.release as ReturnType<typeof vi.fn>
+      expect(release).not.toHaveBeenCalled()
+      decide(
+        outcome === 'written'
+          ? Promise.resolve(writtenAt('held'))
+          : Promise.reject(
+              new Error(
+                'the Space is catching up and is read only until it does',
+              ),
+            ),
+      )
+      await waitFor(() => expect(release).toHaveBeenCalledTimes(1))
+
+      // A refusal the closed viewer missed shows in a toast; a landed save
+      // shows nothing.
+      if (outcome === 'written') {
+        expect(toast.error).not.toHaveBeenCalled()
+      } else {
+        expect(toast.error).toHaveBeenCalledWith(
+          'Your edits to notes.md were not saved.',
+        )
+      }
+      expect(upload).toHaveBeenCalledTimes(1)
+      cleanup()
+      vi.clearAllMocks()
+    }
+  })
+
   it('shows a landed save, keeps the draft through a failed save, and never resaves on reconnect', async () => {
     // The first save lands; the second fails.
     readsText('original')
@@ -483,7 +541,7 @@ describe('UnixFS text editing', () => {
     let backSignal: AbortSignal | undefined
     let land: (value: unknown) => void = () => {}
     const root = rootResource(upload)
-    root.value = {
+    root.value = rootOf({
       uploadTree: upload,
       lookupPath: (_path: unknown, signal: AbortSignal) => {
         backSignal = signal
@@ -494,7 +552,7 @@ describe('UnixFS text editing', () => {
           },
         })
       },
-    } as unknown as FSHandle
+    })
     render(<UnixFSTextFileViewer rootHandle={root} path="/notes.md" />)
     fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
     typeInto('mine')
