@@ -3,6 +3,7 @@ package plugin_space
 import (
 	"context"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -185,13 +186,13 @@ func TestHostedSpaceLoadsOnlyAdmittedRoots(t *testing.T) {
 	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
 }
 
-// TestHostedSpaceReplayLoadAwaitsAdmission checks that a plugin only a
-// waiting replay asks for, whose World root the device has not allowed,
-// reaches the host only as a load naming that root and the session peer: the
-// host's admission holds it, the Space reads the host's awaiting-approval
-// state, and allowing the root starts it and clears that state. Ending the
-// watch releases the scheduler lookup.
-func TestHostedSpaceReplayLoadAwaitsAdmission(t *testing.T) {
+// TestHostedSpaceReplayFallsBackUntilRootAllowed checks that a hosted Space,
+// for a plugin only a waiting replay asks for, asks admission for the World
+// root it selected before it sends the plain load it falls back to while the
+// device declines that root, and never starts the declined root. Allowing the
+// root starts it for the session peer with nothing left awaiting approval.
+// Ending the watch releases the scheduler lookup.
+func TestHostedSpaceReplayFallsBackUntilRootAllowed(t *testing.T) {
 	// Start a hosted Space whose replay asks for the readiness plugin, which
 	// it does not list, on a host that admits roots through the approvals.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -207,7 +208,8 @@ func TestHostedSpaceReplayLoadAwaitsAdmission(t *testing.T) {
 	ref := h.storeManifest(ctx, t, "test/manifests/first", 1)
 	keys := artifactKeys([]*bldr_manifest.ManifestRef{ref})
 
-	// Replay asks for the plugin once its World manifest is stored.
+	// The device's person declines the root, then replay asks for the plugin.
+	h.setApproval(ctx, t, ref, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_DECLINED)
 	mtx.Lock()
 	asked = replayIDs
 	mtx.Unlock()
@@ -245,21 +247,32 @@ func TestHostedSpaceReplayLoadAwaitsAdmission(t *testing.T) {
 		}
 	}
 
-	// Unapproved, the load names the root and the session peer, awaits
-	// admission, and never starts.
-	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, keys)
+	// The plugin's World manifest is stored before replay asks, so the
+	// Space's admission gate asks AdmitPluginRoot for its root the first time
+	// a pass selects it. When that ask adds a new directive, the bus calls
+	// the recorder's handler before AddDirective returns; when it joins an
+	// equivalent directive already on the bus, the handler is not called
+	// again, but it was called when that earlier directive was added. Either
+	// way the recorded ask precedes the pass's load, so a root the Space never
+	// selected, such as after a failed read of its hosted manifests, shows as
+	// no ask before the plain load.
+	h.loads.waitStarts(ctx, t, pluginReadinessPluginID, nil, 1)
+	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
+	askedAt, askedOk, startedAt, _ := h.loads.getOrder(pluginReadinessPluginID, manifestRoot(ref), nil)
+	if !askedOk || askedAt > startedAt {
+		t.Fatalf("plain load started at %d before the root was asked (asked %v at %d)", startedAt, askedOk, askedAt)
+	}
+	if starts := h.loads.getStartsOf(pluginReadinessPluginID, keys); starts != 0 {
+		t.Fatalf("declined replay root started %d times", starts)
+	}
+
+	// Allowing the root starts it for the session peer and clears the
+	// awaiting state.
+	h.setApproval(ctx, t, ref, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED)
+	h.loads.waitStarts(ctx, t, pluginReadinessPluginID, keys, 1)
 	if peer := h.loads.getPeer(pluginReadinessPluginID); peer != h.tb.Volume.GetPeerID().String() {
 		t.Fatalf("replay load peer = %q, want the session peer", peer)
 	}
-	waitAwaiting(replayIDs)
-	h.loads.wait(ctx, t, []string{"absent"})
-	<-time.After(200 * time.Millisecond)
-	if starts := h.loads.getStarts(pluginReadinessPluginID); starts != 0 {
-		t.Fatalf("unapproved replay plugin started %d times", starts)
-	}
-
-	// Allowing the root starts it and clears the awaiting state.
-	h.setApproval(ctx, t, ref, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED)
 	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
 	waitAwaiting(nil)
 
@@ -384,18 +397,30 @@ func (h *hostedSpace) setApproval(ctx context.Context, t *testing.T, ref *bldr_m
 // loadRecorder resolves every LoadPlugin directive and records which plugins
 // have a live load. With admit set it also stands in for a host scheduler: a
 // load naming roots waits for AdmitPluginRoot on admit before it goes live,
-// and its status shows PluginSwapAwaitingApproval meanwhile.
+// and its status shows PluginSwapAwaitingApproval meanwhile, and it then
+// runs only the admitted ones. It also records the order in which each
+// AdmitPluginRoot is asked and each load starts.
 type loadRecorder struct {
 	// admit is the bus answering AdmitPluginRoot, or nil to admit every load.
 	admit bus.Bus
 	// status is the stand-in scheduler's plugin status.
 	status *ccontainer.CContainer[*bldr_plugin.PluginStatusSnapshot]
-	// bcast guards live, starts, manifests, peers, awaiting and lookups.
+	// bcast guards seq, asked, firstStart, live, starts, startsOf,
+	// manifests, peers, awaiting and lookups.
 	bcast broadcast.Broadcast
+	// seq numbers the asks and starts in the order the recorder sees them.
+	seq int
+	// asked is the seq of the first AdmitPluginRoot asked, by rootKey.
+	asked map[string]int
+	// firstStart is the seq of the first start, by loadKey.
+	firstStart map[string]int
 	// live counts the live loads by plugin ID.
 	live map[string]int
 	// starts counts the loads started by plugin ID.
 	starts map[string]int
+	// startsOf counts the loads started by loadKey of plugin ID and the
+	// artifact keys the load runs.
+	startsOf map[string]int
 	// manifests is the artifact keys the last started load of each plugin ID
 	// names.
 	manifests map[string][]string
@@ -410,12 +435,15 @@ type loadRecorder struct {
 // newLoadRecorder constructs a loadRecorder.
 func newLoadRecorder() *loadRecorder {
 	return &loadRecorder{
-		live:      make(map[string]int),
-		starts:    make(map[string]int),
-		manifests: make(map[string][]string),
-		peers:     make(map[string]string),
-		awaiting:  make(map[string]string),
-		status:    ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
+		asked:      make(map[string]int),
+		firstStart: make(map[string]int),
+		live:       make(map[string]int),
+		starts:     make(map[string]int),
+		startsOf:   make(map[string]int),
+		manifests:  make(map[string][]string),
+		peers:      make(map[string]string),
+		awaiting:   make(map[string]string),
+		status:     ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 	}
 }
 
@@ -520,6 +548,57 @@ func (r *loadRecorder) getStarts(pluginID string) int {
 	return n
 }
 
+// loadKey identifies a load by plugin ID and the artifact keys it runs.
+func loadKey(pluginID string, keys []string) string {
+	return pluginID + "\x00" + strings.Join(keys, "\x00")
+}
+
+// rootKey identifies an admission ask by plugin ID and manifest root.
+func rootKey(pluginID, root string) string {
+	return pluginID + "\x00" + root
+}
+
+// getOrder returns the seq of the first AdmitPluginRoot asked for root of
+// pluginID and of the first start of the load of pluginID running keys, each
+// with whether it happened.
+func (r *loadRecorder) getOrder(pluginID, root string, keys []string) (asked int, askedOk bool, started int, startedOk bool) {
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		asked, askedOk = r.asked[rootKey(pluginID, root)]
+		started, startedOk = r.firstStart[loadKey(pluginID, keys)]
+	})
+	return asked, askedOk, started, startedOk
+}
+
+// getStartsOf returns how many loads of pluginID running exactly keys started.
+func (r *loadRecorder) getStartsOf(pluginID string, keys []string) int {
+	var n int
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		n = r.startsOf[loadKey(pluginID, keys)]
+	})
+	return n
+}
+
+// waitStarts waits until at least want loads of pluginID running exactly keys
+// started.
+func (r *loadRecorder) waitStarts(ctx context.Context, t *testing.T, pluginID string, keys []string, want int) {
+	t.Helper()
+	for {
+		var got int
+		var ch <-chan struct{}
+		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			got, ch = r.startsOf[loadKey(pluginID, keys)], getWaitCh()
+		})
+		if got >= want {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("%s loads of %v started = %d, want %d", pluginID, keys, got, want)
+		case <-ch:
+		}
+	}
+}
+
 // waitManifests waits until the last load of pluginID names exactly want.
 func (r *loadRecorder) waitManifests(ctx context.Context, t *testing.T, pluginID string, want []string) {
 	t.Helper()
@@ -589,39 +668,62 @@ func (r *loadRecorder) HandleDirective(
 			return nil
 		}), nil)
 	}
+	// Record each admission ask. The bus calls every handler before
+	// AddDirective returns when it adds a new directive, so an ask is recorded
+	// before its asker goes on. An ask equivalent to a directive already on
+	// the bus only references it and calls no handler; its first ask was
+	// recorded when that directive was added.
+	if admit, ok := inst.GetDirective().(bldr_plugin.AdmitPluginRoot); ok {
+		key := rootKey(admit.AdmitPluginRootPluginID(), admit.AdmitPluginRootManifestRoot())
+		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if _, ok := r.asked[key]; !ok {
+				r.seq++
+				r.asked[key] = r.seq
+				broadcast()
+			}
+		})
+		return nil, nil
+	}
 	load, ok := inst.GetDirective().(bldr_plugin.LoadPlugin)
 	if !ok {
 		return nil, nil
 	}
 	pluginID := load.LoadPluginID()
-	refs := load.LoadPluginManifests()
-	var keys []string
-	for _, ref := range refs {
-		keys = append(keys, bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef()))
-	}
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, _ directive.ResolverHandler) error {
-		// Hold a load naming roots until one is admitted for its peer.
+		// Hold a load naming roots until one is admitted for its peer, then
+		// run only the admitted ones.
+		refs, peerID := load.LoadPluginManifests(), load.LoadPluginPeerID()
 		if r.admit != nil && len(refs) != 0 {
-			peerID := load.LoadPluginPeerID()
 			r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				r.manifests[pluginID] = keys
+				r.manifests[pluginID] = artifactKeys(refs)
 				r.peers[pluginID] = peerID
 				broadcast()
 			})
 			r.setAwaiting(pluginID, load.LoadPluginInstanceKey(), peerID, true)
-			_, err := bldr_plugin.WaitPluginRootAdmitted(ctx, r.admit, peerID, pluginID, manifestRoot(refs[0]))
+			admitted, err := r.awaitAdmitted(ctx, peerID, pluginID, refs)
 			r.setAwaiting(pluginID, load.LoadPluginInstanceKey(), peerID, false)
 			if err != nil {
-				return nil
+				if ctx.Err() != nil {
+					return nil
+				}
+				return err
 			}
+			refs = admitted
 		}
+		keys := artifactKeys(refs)
 
 		// Mark the load live until the directive is released.
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			key := loadKey(pluginID, keys)
+			if _, ok := r.firstStart[key]; !ok {
+				r.seq++
+				r.firstStart[key] = r.seq
+			}
 			r.live[pluginID]++
 			r.starts[pluginID]++
+			r.startsOf[key]++
 			r.manifests[pluginID] = keys
-			r.peers[pluginID] = load.LoadPluginPeerID()
+			r.peers[pluginID] = peerID
 			broadcast()
 		})
 		<-ctx.Done()
@@ -631,6 +733,48 @@ func (r *loadRecorder) HandleDirective(
 		})
 		return nil
 	}), nil)
+}
+
+// awaitAdmitted returns the refs whose roots AdmitPluginRoot on r.admit admits
+// for peerID, waiting until at least one is.
+func (r *loadRecorder) awaitAdmitted(ctx context.Context, peerID, pluginID string, refs []*bldr_manifest.ManifestRef) ([]*bldr_manifest.ManifestRef, error) {
+	for {
+		// Read each root's admission once its resolvers have answered.
+		var admitted []*bldr_manifest.ManifestRef
+		for _, ref := range refs {
+			vals, _, valsRef, err := bus.ExecCollectValues[bldr_plugin.AdmitPluginRootValue](
+				ctx, r.admit, bldr_plugin.NewAdmitPluginRoot(peerID, pluginID, manifestRoot(ref)), false, nil,
+			)
+			if err != nil {
+				return nil, err
+			}
+			valsRef.Release()
+			if len(vals) != 0 {
+				admitted = append(admitted, ref)
+			}
+		}
+		if len(admitted) != 0 {
+			return admitted, nil
+		}
+
+		// Wait until any root is admitted, then read them all again.
+		waitCtx, cancel := context.WithCancel(ctx)
+		done := make(chan struct{}, len(refs))
+		for _, ref := range refs {
+			go func() {
+				if _, err := bldr_plugin.WaitPluginRootAdmitted(waitCtx, r.admit, peerID, pluginID, manifestRoot(ref)); err == nil {
+					done <- struct{}{}
+				}
+			}()
+		}
+		select {
+		case <-ctx.Done():
+			cancel()
+			return nil, context.Cause(ctx)
+		case <-done:
+		}
+		cancel()
+	}
 }
 
 // _ is a type assertion
