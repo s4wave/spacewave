@@ -84,8 +84,8 @@ func holdsRef(t reflect.Type, visiting []reflect.Type) bool {
 	case reflect.Pointer, reflect.Slice, reflect.Array, reflect.Map:
 		return holdsRef(t.Elem(), visiting)
 	case reflect.Struct:
-		for i := range t.NumField() {
-			if f := t.Field(i); f.IsExported() && holdsRef(f.Type, visiting) {
+		for f := range t.Fields() {
+			if f.IsExported() && holdsRef(f.Type, visiting) {
 				return true
 			}
 		}
