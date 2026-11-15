@@ -19,6 +19,7 @@ import (
 	plugin_entrypoint "github.com/s4wave/spacewave/bldr/plugin/entrypoint"
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_forward_rpc_service "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
+	bldr_web_plugin_controller "github.com/s4wave/spacewave/bldr/web/plugin/controller"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -320,9 +321,11 @@ func accessClient(client srpc.Client, accessServiceID, serviceID, serverID strin
 // TestHostBusFallbackHostPluginRelaysNothing checks a plugin outside the host
 // set cannot use another plugin as a relay. A call it sends to spacewave-core
 // is refused at once and reaches no host bus service and loads no plugin as
-// core, while a service core itself serves still answers. A "web-view/" server
-// ID it names through the web plugin's forwarder reaches nothing on core, while
-// the web plugin's own web view still reaches core. Core and the web plugin
+// core, while a service core itself serves still answers. The web plugin's
+// forwarder carries the old unanchored "web-view/.*" pattern a target built
+// before the anchored one sends; a "web-view/" server ID another plugin or the
+// host names through it is refused at once, while the web plugin's own web
+// view still reaches core. Core and the web plugin
 // run in process with the real entrypoint controller and root mux, each on its
 // own bus, with its host client bound to the scheduler's mux for it.
 func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
@@ -335,17 +338,17 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 	defer tb.Release()
 
 	// The app bus serves a host-only probe; core's bus serves its own. The web
-	// plugin forwards its web views' calls to core, as the Go compiler's
-	// handle-rpc config asks it to.
+	// plugin forwards its web views' calls to core, as HandleRpcViaPlugin does
+	// for the Go compiler's handle-rpc config.
 	const corePluginID, webPluginID = "spacewave-core", "web"
 	hostSvc, coreSvc := "probe.HostService", "probe.CoreService"
 	sched := NewController(le, tb.Bus, &Config{HostExportPluginIds: []string{corePluginID, webPluginID}})
 	bed := &fallbackBed{sched: sched, loads: make(chan string, 8)}
 	_, coreRoot := inProcessPlugin(ctx, t, le, sched, corePluginID, &probeServices{bus: "core", ids: []string{coreSvc}})
 	webBus, webRoot := inProcessPlugin(ctx, t, le, sched, webPluginID)
-	addControllers(ctx, t, webBus, plugin_forward_rpc_service.NewController(le, webBus, &plugin_forward_rpc_service.Config{
+	addControllers(ctx, t, webBus, bldr_web_plugin_controller.NewRpcForwarder(le, webBus, &plugin_forward_rpc_service.Config{
 		PluginId:   corePluginID,
-		ServerIdRe: "^web-view/",
+		ServerIdRe: "web-view/.*",
 	}))
 	addControllers(ctx, t, tb.Bus,
 		&relayLoads{
@@ -367,7 +370,7 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 			return accessClient(client, via(pluginID, bifrost_rpc_access.SRPCAccessRpcServiceServiceID), serviceID, serverID)
 		}
 	}
-	const relayed, shipped, nothing = "relayed", "shipped", "nothing"
+	const relayed, shipped = "relayed", "shipped"
 	hostCall := bldr_plugin.HostServiceIDPrefix + hostSvc
 	cases := []struct {
 		name, serviceID string
@@ -378,7 +381,7 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 		{"another plugin through core", "", nil, relayed},
 		{"AccessRpcService body, empty server", hostCall, accessVia(corePluginID, hostCall, ""), relayed},
 		{"AccessRpcService body, default server", hostCall, accessVia(corePluginID, hostCall, "default"), relayed},
-		{"web view server through the web plugin", coreSvc, accessVia(webPluginID, coreSvc, "web-view/x"), nothing},
+		{"web view server through the web plugin", coreSvc, accessVia(webPluginID, coreSvc, "web-view/x"), relayed},
 		{"core's own service", via(corePluginID, coreSvc), nil, shipped},
 	}
 	for i, caller := range []struct{ name, binding string }{
@@ -403,11 +406,14 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 	}
 
 	// The host's own calls: a web view of the web plugin still reaches core,
-	// and core's root mux names a "web-view/" server ID as the host's.
+	// and a root mux names a "web-view/" server ID as the host's, so neither
+	// core nor the web plugin's forwarder relays it.
 	webView := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux(bifrost_rpc.NewInvoker(webBus, web_view.WebViewServerID("1"), true)))))
 	bed.expect(t, "web plugin's own web view", bed.timedExec(ctx, webView, coreSvc), shipped)
 	rootBody := accessClient(coreRoot, bifrost_rpc_access.SRPCAccessRpcServiceServiceID, hostCall, "web-view/x")
 	bed.expect(t, "root AccessRpcService body, web view server", bed.timedExec(ctx, rootBody, hostCall), relayed)
+	webRootBody := accessClient(webRoot, bifrost_rpc_access.SRPCAccessRpcServiceServiceID, coreSvc, "web-view/x")
+	bed.expect(t, "web plugin root AccessRpcService body, web view server", bed.timedExec(ctx, webRootBody, coreSvc), relayed)
 }
 
 // timedResult is one call's outcome, as exec reports it, and how long it took.
@@ -424,23 +430,17 @@ func (bed *fallbackBed) timedExec(ctx context.Context, client srpc.Client, servi
 }
 
 // expect checks one relay test outcome. A relayed call must be refused with
-// ErrRelayRefused well before exec's deadline; a shipped call must reach core;
-// a call that should reach nothing must neither reach a probe nor load.
+// ErrRelayRefused well before exec's deadline; a shipped call must reach core.
 func (bed *fallbackBed) expect(t *testing.T, name string, r timedResult, want string) {
 	t.Logf("%s: %s (%s)", name, r.got, r.took.Round(time.Millisecond))
-	escaped := strings.HasPrefix(r.got, "reached on") || strings.HasPrefix(r.got, "loaded at")
 	switch want {
 	case "shipped":
 		if r.got != "reached on core" {
 			t.Errorf("%s: shipped flow broke: %s", name, r.got)
 		}
 	case "relayed":
-		if !strings.Contains(r.got, plugin_entrypoint_controller.ErrRelayRefused.Error()) || r.took > 500*time.Millisecond {
+		if !strings.Contains(r.got, bldr_plugin.ErrRelayRefused.Error()) || r.took > 500*time.Millisecond {
 			t.Errorf("%s: want a refusal at once, got %s after %s", name, r.got, r.took)
-		}
-	case "nothing":
-		if escaped {
-			t.Errorf("%s: escaped: %s", name, r.got)
 		}
 	}
 }

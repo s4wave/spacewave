@@ -311,7 +311,7 @@ func (c *Controller) HandleRpcViaPlugin(
 
 	// Construct the RPC forwarding controller for the stream lifetime.
 	ctx := strm.Context()
-	ctrl := plugin_forward_rpc_service.NewController(c.le, c.bus, conf)
+	ctrl := NewRpcForwarder(c.le, c.bus, conf)
 
 	// Acknowledge the routing controller and keep it attached until the stream ends.
 	sendReady := func() error {
