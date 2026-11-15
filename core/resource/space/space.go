@@ -646,7 +646,7 @@ func (r *SpaceResource) MountSpaceContents(
 
 	// Serve the contents resource, which holds the runtime until released.
 	contentsResource := NewSpaceContentsResource(
-		r.le,
+		r.le.WithField("space-id", r.space.GetSharedObjectRef().GetProviderResourceRef().GetId()),
 		r.b,
 		r.space.GetWorldEngine(),
 		conf.GetSpaceId(),
@@ -661,7 +661,7 @@ func (r *SpaceResource) MountSpaceContents(
 		return nil, err
 	}
 	r.le.
-		WithField("space-id", conf.GetSpaceId()).
+		WithField("space-id", r.space.GetSharedObjectRef().GetProviderResourceRef().GetId()).
 		WithField("resource-id", id).
 		Debug("mounted space contents")
 	return &s4wave_space.MountSpaceContentsResponse{ResourceId: id}, nil
