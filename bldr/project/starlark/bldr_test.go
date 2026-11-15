@@ -4,6 +4,7 @@ package bldr_project_starlark
 
 import (
 	"os"
+	"slices"
 	"testing"
 
 	bldr_dist_compiler "github.com/s4wave/spacewave/bldr/dist/compiler"
@@ -29,13 +30,14 @@ func TestEvaluateBldr(t *testing.T) {
 		t.Fatalf("project id: got %q, want %q", conf.GetId(), "bldr-demo")
 	}
 
-	// Verify the Bldr startup plugin configuration.
+	// Verify the Bldr startup plugin configuration: the browser host serves
+	// only host plugins, so the demo starts the web plugin too.
 	start := conf.GetStart()
 	if start == nil {
 		t.Fatal("missing start config")
 	}
-	if got := start.GetPlugins(); len(got) != 1 || got[0] != "bldr-demo" {
-		t.Fatalf("start plugins: got %v", got)
+	if got := start.GetPlugins(); !slices.Equal(got, []string{"web", "bldr-demo"}) {
+		t.Fatalf("start plugins: got %v, want [web bldr-demo]", got)
 	}
 
 	// Verify the Bldr project declares each expected manifest.

@@ -81,6 +81,26 @@ type Testbed struct {
 // testbed has created its engine and volume.
 type SchedulerConfigBuilder func(engineID, objectKey, volumeID, peerID string) *plugin_host_scheduler.Config
 
+// NewSchedulerConfig returns the testbed's default scheduler configuration: it
+// watches the World for manifests and starts no plugin as a host plugin, so
+// every plugin a test loads reaches only the host bus services its config
+// allows, which is none.
+func NewSchedulerConfig(engineID, objectKey, volumeID, peerID string) *plugin_host_scheduler.Config {
+	return plugin_host_scheduler.NewConfig("", engineID, objectKey, volumeID, peerID, true, false, false)
+}
+
+// AllowHostServices returns a builder for the default scheduler configuration
+// that also lets every plugin call the listed host bus service IDs. The plugins
+// stay outside the host set: they run no controllers on the host bus and reach
+// no other host service.
+func AllowHostServices(serviceIDs ...string) SchedulerConfigBuilder {
+	return func(engineID, objectKey, volumeID, peerID string) *plugin_host_scheduler.Config {
+		conf := NewSchedulerConfig(engineID, objectKey, volumeID, peerID)
+		conf.AllowedHostServiceIds = serviceIDs
+		return conf
+	}
+}
+
 // BuildTestbed builds the testbed constructing an in-memory volume and plugin host.
 // Returns a set of functions to call to release the controllers.
 func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
@@ -231,24 +251,15 @@ func BuildTestbedWithSchedulerConfig(
 	}
 
 	// load the plugin scheduler
-	schedConf := plugin_host_scheduler.NewConfig(
-		"",
+	if buildSchedulerConfig == nil {
+		buildSchedulerConfig = NewSchedulerConfig
+	}
+	schedConf := buildSchedulerConfig(
 		engineID,
 		pluginHostObjKey,
 		vol.GetID(),
 		vol.GetPeerID().String(),
-		true,
-		false,
-		false,
 	)
-	if buildSchedulerConfig != nil {
-		schedConf = buildSchedulerConfig(
-			engineID,
-			pluginHostObjKey,
-			vol.GetID(),
-			vol.GetPeerID().String(),
-		)
-	}
 	sched, _, schedRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_scheduler.Controller](
 		ctx,
 		b,
