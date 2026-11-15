@@ -13,8 +13,10 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	s4wave_plugin_approval "github.com/s4wave/spacewave/sdk/plugin/approval"
 	"github.com/s4wave/spacewave/testbed"
 )
 
@@ -118,19 +120,91 @@ func TestPluginDemandLoadsOnlyDemandedPlugins(t *testing.T) {
 
 // TestHostedSpaceLoadsWorldManifests checks that a Space hosted in a plugin,
 // whose loads go to a host that cannot read its World, names the World's
-// manifest in each unpinned load, replaces the load when a new manifest
-// arrives, and sends a plain load for a plugin with no manifest there.
+// admitted manifest in each unpinned load, keeps it while a newer manifest
+// waits for approval, replaces it once the newer one is allowed, and sends a
+// plain load for a plugin with no manifest there.
 func TestHostedSpaceLoadsWorldManifests(t *testing.T) {
-	// Bound the test and build the testbed.
+	// Bound the test and start the hosted Space with the device's approvals.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
+	h := startHostedSpace(ctx, t)
+
+	// Each plugin loads: the readiness plugin from the World's manifest.
+	first := h.storeManifest(ctx, t, "test/manifests/first", 1)
+	h.setApproval(ctx, t, first, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED)
+	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
+	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, artifactKeys([]*bldr_manifest.ManifestRef{first}))
+	h.loads.waitManifests(ctx, t, "absent", nil)
+
+	// A newer revision waiting for approval leaves the admitted load running.
+	starts := h.loads.getStarts(pluginReadinessPluginID)
+	second := h.storeManifest(ctx, t, "test/manifests/second", 2)
+	<-time.After(200 * time.Millisecond)
+	if got := h.loads.getStarts(pluginReadinessPluginID); got != starts {
+		t.Fatalf("an unapproved revision started %d loads", got-starts)
+	}
+	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, artifactKeys([]*bldr_manifest.ManifestRef{first}))
+
+	// Allowing the newer revision replaces the load.
+	h.setApproval(ctx, t, second, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED)
+	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, artifactKeys([]*bldr_manifest.ManifestRef{second}))
+	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
+	if starts := h.loads.getStarts("absent"); starts != 1 {
+		t.Fatalf("absent loads started = %d, want 1", starts)
+	}
+}
+
+// TestHostedSpaceLoadsOnlyAdmittedRoots checks that a hosted Space, whose
+// host runs every root it is sent, never sends a World root the device has
+// not allowed: the plugin loads without it until the device's person allows
+// the root, and loses it again when they decline.
+func TestHostedSpaceLoadsOnlyAdmittedRoots(t *testing.T) {
+	// Bound the test and start the hosted Space with the device's approvals.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	h := startHostedSpace(ctx, t)
+	ref := h.storeManifest(ctx, t, "test/manifests/first", 1)
+	keys := artifactKeys([]*bldr_manifest.ManifestRef{ref})
+
+	// With no approval, the load reaching the host names no World root.
+	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
+	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, nil)
+	if starts := h.loads.getStarts(pluginReadinessPluginID); starts != 1 {
+		t.Fatalf("unapproved: readiness loads started = %d, want 1", starts)
+	}
+
+	// Allowing the root sends a load that names it.
+	h.setApproval(ctx, t, ref, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED)
+	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, keys)
+
+	// Declining it withdraws that load.
+	h.setApproval(ctx, t, ref, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_DECLINED)
+	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, nil)
+	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
+}
+
+// hostedSpace is a Space hosted on the testbed bus, recording the loads it
+// sends there.
+type hostedSpace struct {
+	// tb is the testbed whose bus hosts the Space.
+	tb *testbed.Testbed
+	// approvals is the device's approval store answering admission.
+	approvals *plugin_approval.Approvals
+	// loads records the loads the Space sends to the host.
+	loads *loadRecorder
+}
+
+// startHostedSpace starts a Space hosted on a testbed bus that holds the
+// device's approvals, listing the readiness plugin and one with no manifest.
+func startHostedSpace(ctx context.Context, t *testing.T) *hostedSpace {
+	t.Helper()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
 
-	// List the readiness plugin and one with no manifest.
+	// List the plugins and create the manifest store.
 	if _, _, err := space_world_ops.SetSpaceSettings(
 		ctx,
 		tb.WorldState,
@@ -142,31 +216,23 @@ func TestHostedSpaceLoadsWorldManifests(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-
-	// Store the readiness manifest in a manifest store.
-	const storeKey = "test/plugin-manifests"
-	if _, err := bldr_manifest_world.CreateManifestStore(ctx, tb.WorldState, storeKey); err != nil {
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, tb.WorldState, hostedManifestStore); err != nil {
 		t.Fatal(err)
 	}
-	storeManifest := func(objKey string, rev uint64) string {
-		t.Helper()
-		ref := createReadinessManifestRev(t, ctx, tb, rev)
-		if err := bldr_manifest_world.ExStoreManifestOp(
-			ctx, tb.WorldState, tb.Volume.GetPeerID(), objKey, []string{storeKey}, ref,
-		); err != nil {
-			t.Fatal(err)
-		}
-		return bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef())
-	}
-	first := storeManifest("test/manifests/first", 1)
 
-	// Record the loads the hosted Space sends to its host.
+	// Answer admission from the device's approvals and record the loads.
+	approvals := plugin_approval.NewApprovals(tb.Bus, tb.EngineVolumeID, "test-plugin-approvals")
+	releaseApprovals, err := tb.Bus.AddController(ctx, plugin_approval.NewController(tb.Logger, approvals), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseApprovals)
 	loads := newLoadRecorder()
 	releaseLoads, err := tb.Bus.AddController(ctx, loads, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer releaseLoads()
+	t.Cleanup(releaseLoads)
 
 	// Start the Space hosted on the testbed bus.
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus, WithLoadTarget(tb.Bus)))
@@ -180,19 +246,34 @@ func TestHostedSpaceLoadsWorldManifests(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer spaceRef.Release()
+	t.Cleanup(spaceRef.Release)
+	return &hostedSpace{tb: tb, approvals: approvals, loads: loads}
+}
 
-	// Each plugin loads: the readiness plugin from the World's manifest.
-	loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
-	loads.waitManifests(ctx, t, pluginReadinessPluginID, []string{first})
-	loads.waitManifests(ctx, t, "absent", nil)
+// hostedManifestStore is the manifest store the hosted Space lists.
+const hostedManifestStore = "test/plugin-manifests"
 
-	// A newer revision replaces the load.
-	second := storeManifest("test/manifests/second", 2)
-	loads.waitManifests(ctx, t, pluginReadinessPluginID, []string{second})
-	loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
-	if starts := loads.getStarts("absent"); starts != 1 {
-		t.Fatalf("absent loads started = %d, want 1", starts)
+// storeManifest stores a readiness manifest revision in the World.
+func (h *hostedSpace) storeManifest(ctx context.Context, t *testing.T, objKey string, rev uint64) *bldr_manifest.ManifestRef {
+	t.Helper()
+	ref := createReadinessManifestRev(t, ctx, h.tb, rev)
+	if err := bldr_manifest_world.ExStoreManifestOp(
+		ctx, h.tb.WorldState, h.tb.Volume.GetPeerID(), objKey, []string{hostedManifestStore}, ref,
+	); err != nil {
+		t.Fatal(err)
+	}
+	return ref
+}
+
+// setApproval records the device's decision on ref's root.
+func (h *hostedSpace) setApproval(ctx context.Context, t *testing.T, ref *bldr_manifest.ManifestRef, state s4wave_plugin_approval.PluginApprovalState) {
+	t.Helper()
+	if err := h.approvals.Set(ctx, h.tb.Volume.GetPeerID().String(), &s4wave_plugin_approval.PluginApproval{
+		PluginId:     pluginReadinessPluginID,
+		ManifestRoot: manifestRoot(ref),
+		State:        state,
+	}); err != nil {
+		t.Fatal(err)
 	}
 }
 

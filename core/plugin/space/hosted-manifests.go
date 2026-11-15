@@ -2,7 +2,6 @@ package plugin_space
 
 import (
 	"context"
-	"slices"
 
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -22,17 +21,9 @@ type hostedManifests struct {
 	// roots is the manifest objects and roots the selection was read from, or
 	// nil before the first read.
 	roots []*world.ObjectRootRef
-	// byPlugin is the selection for each manifest ID with a manifest.
-	byPlugin map[string]hostedSelection
-}
-
-// hostedSelection is the manifests one plugin loads from.
-type hostedSelection struct {
-	// keys identifies the selection by each manifest's artifact key, so a new
-	// manifest replaces the load.
-	keys []string
-	// refs is the manifests to load.
-	refs []*manifest.ManifestRef
+	// byPlugin is the latest manifest per platform of each manifest ID with a
+	// manifest.
+	byPlugin map[string][]*manifest.ManifestRef
 }
 
 // refresh rereads the selection when the reachable manifests changed. It keeps
@@ -61,21 +52,19 @@ func (h *hostedManifests) refresh(ctx context.Context, c *Controller, ws world.W
 	}
 
 	// Select the latest revision per platform of each manifest ID.
-	byPlugin := make(map[string]hostedSelection, len(collected))
+	byPlugin := make(map[string][]*manifest.ManifestRef, len(collected))
 	for pid, manifests := range collected {
-		var sel hostedSelection
+		var refs []*manifest.ManifestRef
 		for _, m := range bldr_manifest_world.FilterCollectedManifestsByLatestRev(manifests) {
 			ref, err := space_world.NewSpaceManifestRef(ctx, ws, m.Manifest.GetMeta(), m.ManifestRef)
 			if err != nil {
 				warnOnErrorUnlessCanceled(ctx, le, err, "failed to resolve plugin manifest")
 				continue
 			}
-			sel.keys = append(sel.keys, manifest.NewManifestArtifactKey(ref.GetManifestRef()))
-			sel.refs = append(sel.refs, ref)
+			refs = append(refs, ref)
 		}
-		if len(sel.refs) != 0 {
-			slices.Sort(sel.keys)
-			byPlugin[pid] = sel
+		if len(refs) != 0 {
+			byPlugin[pid] = refs
 		}
 	}
 	h.roots, h.byPlugin = roots, byPlugin

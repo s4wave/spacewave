@@ -196,11 +196,12 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 
 	// Inherit read-only manifest lookup and host execution capabilities. Space
 	// plugins load on the parent's plugin host and register with the parent's
-	// shared registries. Mutable storage, Sessions, and resource services
-	// resolve exclusively on the child.
+	// shared registries, once the device's approvals or trusted roots on the
+	// parent admit their World manifests. Mutable storage, Sessions, and
+	// resource services resolve exclusively on the child.
 	bridge := bus_bridge.NewBusBridge(c.GetBus(), func(di directive.Instance) (bool, error) {
 		switch di.GetDirective().(type) {
-		case bldr_manifest.FetchManifest, bldr_plugin.LoadPlugin, plugin_host.LookupPluginHost, plugin_host_root.LookupRoot:
+		case bldr_manifest.FetchManifest, bldr_plugin.LoadPlugin, bldr_plugin.AdmitPluginRoot, plugin_host.LookupPluginHost, plugin_host_root.LookupRoot:
 			return true, nil
 		default:
 			return false, nil
