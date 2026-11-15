@@ -186,7 +186,8 @@ func TestBodyDriverCutsSkippedAppliedOperation(t *testing.T) {
 
 // TestSkippedOperationsPruneAndMerge checks that a config change drops only
 // the skips the checkpoint covers, and that a merge joins two owners'
-// concurrent skips by op hash and drops one a branch pruned.
+// concurrent skips by op hash, past one owner's cap too, drops one a branch
+// pruned, and fails rather than drop skips past the merged bound.
 func TestSkippedOperationsPruneAndMerge(t *testing.T) {
 	peers := createMockPeers(t, 2)
 	a, b := peers[0].GetPeerID().String(), peers[1].GetPeerID().String()
@@ -219,6 +220,32 @@ func TestSkippedOperationsPruneAndMerge(t *testing.T) {
 	merged = applyConfigDelta(mine, parent, pruned)
 	if len(merged.GetSkippedOperations()) != 2 || merged.SkipsOperation(covered.GetPosition().GetOpHash(), &SOOperationInner{PeerId: a, Nonce: 2}) {
 		t.Fatalf("merged skips %v; want above and other", merged.GetSkippedOperations())
+	}
+
+	// Two owners each skip MaxLiveSkips operations on concurrent branches: the
+	// signed merge keeps all of them.
+	c := newMergeChain(t)
+	skipBranch := func(i int, seed, n int) (*SOConfigChange, *SharedObjectConfig) {
+		next := c.root.CloneVT()
+		for j := range n {
+			next.SkippedOperations = append(next.SkippedOperations, &SOSkippedOperation{Position: testPosition(c.ids[i], uint64(j+1), byte(seed+j))}) //nolint:gosec // a small test count.
+		}
+		sortSkippedOperations(next.SkippedOperations)
+		entry := c.sign(c.root, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION, i)
+		return entry, c.apply(c.root, entry)
+	}
+	mineEntry, _ := skipBranch(0, 0, MaxLiveSkips)
+	_, theirsHead := skipBranch(1, 100, MaxLiveSkips)
+	if _, merged := c.merge(theirsHead, c.genesis, []*SOConfigChange{mineEntry}, 1); len(merged.GetSkippedOperations()) != 2*MaxLiveSkips {
+		t.Fatalf("merge of two owners' skips holds %d; want %d", len(merged.GetSkippedOperations()), 2*MaxLiveSkips)
+	}
+
+	// A union past MaxSkippedOperations fails the merge instead of dropping a
+	// branch's skips.
+	bigEntry, _ := skipBranch(0, 0, MaxSkippedOperations/2+1)
+	_, bigHead := skipBranch(1, 100, MaxSkippedOperations/2+1)
+	if _, err := BuildSOConfigMerge(mockSharedObjectID, bigHead, c.genesis, []*SOConfigChange{bigEntry}, c.keys[1]); err == nil {
+		t.Fatal("a merge past the bound dropped a branch's skips without an error")
 	}
 }
 
@@ -275,24 +302,25 @@ func TestSkipSOOperationIsFinal(t *testing.T) {
 	}
 }
 
-// TestStaleCheckpointKeepsSkip checks that a checkpoint an owner signs under a
-// config older than a skip cannot cover the skipped operation with its effect.
-// Owner B, still under the config before owner A's skip, checkpoints a state
-// that applied the operation; a replica holding the skip must refuse that
-// checkpoint or hold a state without the operation.
-func TestStaleCheckpointKeepsSkip(t *testing.T) {
+// TestStaleCheckpointAppliesSkippedOp checks the race of a skip with a
+// checkpoint another owner signs under the config before it. The checkpoint
+// covers the skipped operation with its effect, and the owner holding the skip
+// adopts it: both owners hold the same checkpoint at the same height, the
+// operation stays applied, and no outcome remains to call it skipped.
+func TestStaleCheckpointAppliesSkippedOp(t *testing.T) {
 	// Two owners and a writer; the writer writes the operation A skips.
 	peers := createMockPeers(t, 3)
 	keys := mustPrivKeys(t, peers)
 	owner := SOParticipantRole_SOParticipantRole_OWNER
 	state, _ := newTestSOState(t, peers, owner, owner, SOParticipantRole_SOParticipantRole_WRITER)
-	skipped := writeTestOp(t, state, keys[2], "skipped")
+	op := writeTestOp(t, state, keys[2], "skipped")
 
 	// B keeps the config before the skip; A's replica takes the skip.
 	stale := state.CloneVT()
-	applyTestSkip(t, state, keys[0], testSkip(t, state, skipped, ""))
+	skip := testSkip(t, state, op, "")
+	applyTestSkip(t, state, keys[0], skip)
 
-	// B checkpoints a state that applied the operation.
+	// B checkpoints a state that applied the operation, and adopts it.
 	xfrm, err := testHandle(t, stale, keys[1]).GetTransformer(t.Context())
 	if err != nil {
 		t.Fatal(err)
@@ -305,10 +333,16 @@ func TestStaleCheckpointKeepsSkip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := stale.AdoptCheckpoint(mockSharedObjectID, checkpoint); err != nil {
+		t.Fatal(err)
+	}
 
-	// The replica refuses it, or holds a state without the operation.
+	// A adopts it: both owners hold it, at the same height.
 	if err := state.AdoptCheckpoint(mockSharedObjectID, checkpoint); err != nil {
-		return
+		t.Fatalf("the owner holding the skip refused the covering checkpoint: %v", err)
+	}
+	if !state.GetCheckpoint().EqualVT(stale.GetCheckpoint()) {
+		t.Fatal("the owners hold different checkpoints")
 	}
 	inner, err := state.GetCheckpoint().UnmarshalInner()
 	if err != nil {
@@ -318,7 +352,20 @@ func TestStaleCheckpointKeepsSkip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(data), "skipped") {
-		t.Fatalf("adopted a checkpoint signed under the config before the skip, with state %q holding the skipped operation", data)
+	if string(data) != "skipped" {
+		t.Fatalf("checkpoint state %q; want the applied operation", data)
+	}
+
+	// The operation left both sets, so no replay gives it an outcome, and the
+	// checkpoint covers the skip, so the entry decides nothing more.
+	pos := skip.GetPosition()
+	for _, s := range []*SOState{state, stale} {
+		set, err := s.OperationSet(mockSharedObjectID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if set.Get(pos.GetOpHash()) != nil || !set.Covers(pos.GetPeerId(), pos.GetNonce()) {
+			t.Fatal("the skipped operation is still held above the checkpoint")
+		}
 	}
 }

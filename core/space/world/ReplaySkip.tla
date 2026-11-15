@@ -11,8 +11,12 @@
 \* cuts its kept prefix, as an order change does, so replay re-runs from
 \* there and refuses it.
 \*
-\* The config holds at most MaxLive skips. A config change prunes the skips
-\* the held checkpoint covers, and the state that carries a config carries
+\* An owner's builder leaves at most MaxLive live skips in the config it
+\* writes. With a second owner, a skip built on a config behind the latest
+\* forks the chain, and the merge keeps the live skips of both branches, so a
+\* merged config holds up to MaxMerged; a union past that fails the merge,
+\* which writes nothing. A config change prunes the skips the held checkpoint
+\* covers, and the state that carries a config carries
 \* the checkpoint it was pruned against, so no device holds a config without
 \* a skip and a prefix below that skip's op.
 \* The spec models the owner's builder and no verifier: only Skip writes a
@@ -71,10 +75,10 @@ Next0(d) == order[Kept(d) + 1]
 Waiting(d) == /\ Kept(d) = Len(done[d]) /\ Len(done[d]) < Len(order)
               /\ Next0(d) \notin Skipped(seen[d]) /\ ~Can(d, Next0(d))
 
-\* Settled is whether device d holds the latest config and has decided
-\* every op in the order.
+\* Settled is whether device d holds the latest config and checkpoint and has
+\* decided every op in the order.
 Settled(d) == /\ seen[d] = Len(cfgs) /\ Kept(d) = Len(done[d])
-              /\ Len(done[d]) = Len(order)
+              /\ Len(done[d]) = Len(order) /\ HasPrefix(done[d], ck.outs)
 
 Init == /\ order = <<"a", "p", "b", "q">>
         /\ done = [d \in Devices |-> <<>>]
@@ -101,19 +105,35 @@ Step(d) ==
 \* checkpoint does not cover.
 Live == IF cfgs = <<>> THEN {} ELSE {e \in cfgs[Len(cfgs)].skips : e.op \notin Covered}
 
-\* Skip is the owner's config change naming the op its replay waits at, while
-\* fewer than MaxLive skips are live. The entry records the position too,
-\* which only the position mutant reads.
-Skip == /\ Waiting("owner")
-        /\ Cardinality(Live) < MaxLive
-        /\ cfgs' = Append(cfgs, [skips |-> Live \cup {[op |-> Next0("owner"), at |-> Kept("owner") + 1]},
-                                 base |-> ck.outs])
-        /\ seen' = [seen EXCEPT !["owner"] = Len(cfgs) + 1]
-        /\ UNCHANGED <<order, done, registered, ck, reordered, ck2>>
+\* Held is the set of live skip entries of the config device d holds: the
+\* ones its builder counts against the cap.
+Held(d) == IF seen[d] = 0 THEN {} ELSE {e \in cfgs[seen[d]].skips : e.op \notin Covered}
+
+\* MaxMerged is the most skips a config holds: a merge of two owners'
+\* concurrent branches, each built under the cap.
+MaxMerged == 2 * MaxLive
+
+\* Skippers are the owners: the member is one with SecondOwner.
+Skippers == IF SecondOwner THEN Devices ELSE {"owner"}
+
+\* Skip is owner d's config change naming the op its replay waits at, while
+\* fewer than MaxLive skips are live in the config d holds. On a config
+\* behind the latest it merges with the latest, keeping both branches' live
+\* skips. The entry records the position too, which only the position mutant
+\* reads.
+Skip(d) == /\ d \in Skippers /\ Waiting(d) /\ HasPrefix(done[d], ck.outs)
+           /\ Cardinality(Held(d)) < MaxLive
+           /\ LET skips == Live \cup Held(d) \cup {[op |-> Next0(d), at |-> Kept(d) + 1]}
+              IN /\ Cardinality(skips) <= MaxMerged
+                 /\ cfgs' = Append(cfgs, [skips |-> skips, base |-> ck.outs,
+                                          built |-> Cardinality(Held(d)) + 1])
+           /\ seen' = [seen EXCEPT ![d] = Len(cfgs) + 1]
+           /\ UNCHANGED <<order, done, registered, ck, reordered, ck2>>
 
 \* The member receives the latest config with the next snapshot, which also
 \* carries the checkpoint the config was pruned against.
-SeeConfig(d) == /\ d # "owner" /\ seen[d] < Len(cfgs)
+SeeConfig(d) == /\ d # "owner" \/ SecondOwner
+                /\ seen[d] < Len(cfgs)
                 /\ seen' = [seen EXCEPT ![d] = Len(cfgs)]
                 /\ done' = IF HasPrefix(done[d], Base(Len(cfgs))) THEN done
                            ELSE [done EXCEPT ![d] = Base(Len(cfgs))]
@@ -128,9 +148,11 @@ Checkpoint == /\ Kept("owner") > Len(ck.outs)
               /\ ck' = [outs |-> SubSeq(done["owner"], 1, Kept("owner")), cfg |-> seen["owner"]]
               /\ UNCHANGED <<order, done, cfgs, seen, registered, reordered, ck2>>
 
-\* A late op sorts into the order above the checkpoint.
+\* A late op sorts into the order above every signed checkpoint, the second
+\* owner's not yet adopted one included.
 Reorder == /\ ~reordered
-           /\ \E i \in (Len(ck.outs) + 1)..(Len(order) + 1) :
+           /\ \E i \in (IF Len(ck2.outs) > Len(ck.outs) THEN Len(ck2.outs) ELSE Len(ck.outs)) + 1
+                      ..(Len(order) + 1) :
                 order' = SubSeq(order, 1, i - 1) \o <<"late">> \o SubSeq(order, i, Len(order))
            /\ reordered' = TRUE
            /\ UNCHANGED <<done, cfgs, seen, registered, ck, ck2>>
@@ -157,17 +179,18 @@ AdoptStale == /\ ck2.outs # <<>> /\ seen["owner"] >= ck2.cfg
               /\ done' = [done EXCEPT !["owner"] = ck2.outs]
               /\ UNCHANGED <<order, cfgs, seen, registered, reordered>>
 
-Next == \/ \E d \in Devices : Step(d) \/ SeeConfig(d) \/ Install(d)
-        \/ Skip \/ Register \/ Checkpoint \/ Reorder
+Next == \/ \E d \in Devices : Step(d) \/ SeeConfig(d) \/ Install(d) \/ Skip(d)
+        \/ Register \/ Checkpoint \/ Reorder
         \/ StaleCheckpoint \/ AdoptStale
 
 Spec == Init /\ [][Next]_vars
-FairSpec == /\ Spec /\ WF_vars(Skip) /\ WF_vars(Register) /\ WF_vars(Checkpoint)
-            /\ \A d \in Devices : WF_vars(Step(d)) /\ WF_vars(SeeConfig(d))
+FairSpec == /\ Spec /\ WF_vars(Register) /\ WF_vars(Checkpoint)
+            /\ \A d \in Devices : WF_vars(Step(d)) /\ WF_vars(SeeConfig(d)) /\ WF_vars(Install(d))
+                                   /\ WF_vars(Skip(d))
 
 Records == [op : Ops, out : Outs]
 TypeOK == /\ order \in Seq(Ops) /\ done \in [Devices -> Seq(Records)]
-          /\ \A v \in 1..Len(cfgs) : cfgs[v].skips \subseteq [op : Ops, at : Nat]
+          /\ \A v \in 1..Len(cfgs) : cfgs[v].skips \subseteq [op : Ops, at : Nat] /\ cfgs[v].built \in Nat
           /\ seen \in [Devices -> 0..Len(cfgs)]
           /\ ck.outs \in Seq(Records) /\ ck.cfg \in 0..Len(cfgs)
           /\ ck2.outs \in Seq(Records) /\ ck2.cfg \in 0..Len(cfgs)
@@ -187,13 +210,20 @@ NoMismatch == \A d \in Devices : \A i \in 1..Len(done[d]) :
 CheckpointHoldsSkips == \A i \in 1..Len(ck.outs) :
                           ck.outs[i].out = "skipped" => ck.outs[i].op \in EverSkipped(ck.cfg)
 
-\* No device keeps as applied an op the config it holds skips: a written
-\* skip is never overridden.
+\* A device keeps as applied an op the config it holds skips only below the
+\* checkpoint: a checkpoint signed under a config before the skip, whose state
+\* applied the op, is final, and the op stays applied for every device.
 SkipHonored == \A d \in Devices : \A i \in 1..Kept(d) :
-                 ~(done[d][i].out = "applied" /\ done[d][i].op \in Skipped(seen[d]))
+                 done[d][i].out = "applied" /\ done[d][i].op \in Skipped(seen[d])
+                   => i <= Len(ck.outs) /\ HasPrefix(done[d], ck.outs)
 
-\* The config holds at most MaxLive skips.
-LiveCapped == \A v \in 1..Len(cfgs) : Cardinality(cfgs[v].skips) <= MaxLive
+\* Each owner's builder leaves at most MaxLive live skips in the config it
+\* writes.
+LiveCapped == \A v \in 1..Len(cfgs) : cfgs[v].built <= MaxLive
+
+\* A config, a merge of two owners' concurrent skips included, holds at most
+\* MaxMerged skips: a merge keeps every written skip.
+MergeBounded == \A v \in 1..Len(cfgs) : Cardinality(cfgs[v].skips) <= MaxMerged
 
 \* Two settled devices hold the same outcomes, the one that applied an op
 \* before its skip included.
