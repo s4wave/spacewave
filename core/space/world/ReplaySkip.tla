@@ -1,30 +1,50 @@
 ---- MODULE ReplaySkip ----
-\* An owner's skip across two devices. The owner has no handler for the
-\* plugin op p, so its replay waits there; the member gains a handler at
-\* any time, so it may apply p before the skip, wait at p when the skip
-\* arrives, or reach p after it.
+\* An owner's skips across two devices. The owner has no handler for the
+\* plugin ops p and q, so its replay waits at each; the member gains a
+\* handler at any time, so it may apply an op before its skip, wait at it
+\* when the skip arrives, or reach it after.
 \*
-\* The skip is a config entry, signed by an owner, that names the op by its
+\* A skip is a config entry, signed by an owner, that names the op by its
 \* hash. Each device reads the config from the same snapshot as the order,
 \* so it decides the op by the config it holds: an op the config skips is
 \* refused as skipped, and an op it had applied and the config now skips
 \* cuts its kept prefix, as an order change does, so replay re-runs from
 \* there and refuses it.
 \*
+\* The config holds at most MaxLive skips. A config change prunes the skips
+\* the held checkpoint covers, and the state that carries a config carries
+\* the checkpoint it was pruned against, so no device holds a config without
+\* a skip and a prefix below that skip's op.
+\*
 \* The order above the checkpoint may change: a late op can sort before p.
 \* The checkpoint covers the owner's kept prefix and names the config it was
 \* signed under; a device installs it only once it holds that config.
-EXTENDS Naturals, Sequences
+EXTENDS Naturals, Sequences, FiniteSets
+
+CONSTANT MaxLive
 
 Devices == {"owner", "member"}
-Ops == {"a", "p", "b", "late"}
+Plugin == {"p", "q"}
+Ops == {"a", "b", "late"} \cup Plugin
 Outs == {"applied", "skipped"}
 
 VARIABLES order, done, cfgs, seen, registered, ck, reordered
 vars == <<order, done, cfgs, seen, registered, ck, reordered>>
 
-\* Skipped is the set of ops the first v config entries skip, by hash.
-Skipped(v) == {cfgs[j].op : j \in 1..v}
+\* Skipped is the set of ops config v skips, by hash; config 0 is genesis.
+Skipped(v) == IF v = 0 THEN {} ELSE {e.op : e \in cfgs[v].skips}
+
+\* EverSkipped is every op a config up to v skipped, pruned ones included.
+EverSkipped(v) == UNION {Skipped(j) : j \in 0..v}
+
+\* Base is the checkpoint prefix config v was pruned against.
+Base(v) == IF v = 0 THEN <<>> ELSE cfgs[v].base
+
+\* Covered is the set of ops the checkpoint covers.
+Covered == {ck.outs[i].op : i \in 1..Len(ck.outs)}
+
+\* HasPrefix is whether s starts with t.
+HasPrefix(s, t) == Len(s) >= Len(t) /\ SubSeq(s, 1, Len(t)) = t
 
 \* Keep is the prefix of s replay keeps under config v: the ops that match
 \* the order, up to the first applied op the config now skips.
@@ -33,7 +53,7 @@ Ok(s, v, k) == \A i \in 1..k : /\ i <= Len(order) /\ s[i].op = order[i]
 Keep(s, v) == CHOOSE k \in 0..Len(s) : Ok(s, v, k) /\ (k = Len(s) \/ ~Ok(s, v, k + 1))
 
 \* Can is whether device d has a handler for op o.
-Can(d, o) == o # "p" \/ (d = "member" /\ registered)
+Can(d, o) == o \notin Plugin \/ (d = "member" /\ registered)
 
 \* Next0 is the op after device d's kept prefix.
 Kept(d) == Keep(done[d], seen[d])
@@ -48,7 +68,7 @@ Waiting(d) == /\ Kept(d) = Len(done[d]) /\ Len(done[d]) < Len(order)
 Settled(d) == /\ seen[d] = Len(cfgs) /\ Kept(d) = Len(done[d])
               /\ Len(done[d]) = Len(order)
 
-Init == /\ order = <<"a", "p", "b">>
+Init == /\ order = <<"a", "p", "b", "q">>
         /\ done = [d \in Devices |-> <<>>]
         /\ cfgs = <<>> /\ seen = [d \in Devices |-> 0]
         /\ registered = FALSE
@@ -68,17 +88,27 @@ Step(d) ==
                     /\ done' = [done EXCEPT ![d] = Append(done[d], [op |-> o, out |-> "applied"])]
     /\ UNCHANGED <<order, cfgs, seen, registered, ck, reordered>>
 
-\* Skip is the owner's config change naming the op its replay waits at.
-\* The entry records the position too, which only the index mutant reads.
+\* Live is the set of skip entries the next config change keeps: those the
+\* checkpoint does not cover.
+Live == IF cfgs = <<>> THEN {} ELSE {e \in cfgs[Len(cfgs)].skips : e.op \notin Covered}
+
+\* Skip is the owner's config change naming the op its replay waits at, while
+\* fewer than MaxLive skips are live. The entry records the position too,
+\* which only the position mutant reads.
 Skip == /\ Waiting("owner")
-        /\ cfgs' = Append(cfgs, [op |-> Next0("owner"), at |-> Kept("owner") + 1])
+        /\ Cardinality(Live) < MaxLive
+        /\ cfgs' = Append(cfgs, [skips |-> Live \cup {[op |-> Next0("owner"), at |-> Kept("owner") + 1]},
+                                 base |-> ck.outs])
         /\ seen' = [seen EXCEPT !["owner"] = Len(cfgs) + 1]
         /\ UNCHANGED <<order, done, registered, ck, reordered>>
 
-\* The member receives the latest config with the next snapshot.
+\* The member receives the latest config with the next snapshot, which also
+\* carries the checkpoint the config was pruned against.
 SeeConfig(d) == /\ d # "owner" /\ seen[d] < Len(cfgs)
                 /\ seen' = [seen EXCEPT ![d] = Len(cfgs)]
-                /\ UNCHANGED <<order, done, cfgs, registered, ck, reordered>>
+                /\ done' = IF HasPrefix(done[d], Base(Len(cfgs))) THEN done
+                           ELSE [done EXCEPT ![d] = Base(Len(cfgs))]
+                /\ UNCHANGED <<order, cfgs, registered, ck, reordered>>
 
 \* The member's plugin registers its handler.
 Register == /\ ~registered /\ registered' = TRUE
@@ -98,7 +128,7 @@ Reorder == /\ ~reordered
 
 \* The member installs the checkpoint once it holds the checkpoint's config.
 Install(d) == /\ d # "owner" /\ seen[d] >= ck.cfg
-              /\ ~(Len(done[d]) >= Len(ck.outs) /\ SubSeq(done[d], 1, Len(ck.outs)) = ck.outs)
+              /\ ~HasPrefix(done[d], ck.outs)
               /\ done' = [done EXCEPT ![d] = ck.outs]
               /\ UNCHANGED <<order, cfgs, seen, registered, ck, reordered>>
 
@@ -106,31 +136,37 @@ Next == \/ \E d \in Devices : Step(d) \/ SeeConfig(d) \/ Install(d)
         \/ Skip \/ Register \/ Checkpoint \/ Reorder
 
 Spec == Init /\ [][Next]_vars
-FairSpec == /\ Spec /\ WF_vars(Skip) /\ WF_vars(Register)
+FairSpec == /\ Spec /\ WF_vars(Skip) /\ WF_vars(Register) /\ WF_vars(Checkpoint)
             /\ \A d \in Devices : WF_vars(Step(d)) /\ WF_vars(SeeConfig(d))
 
 Records == [op : Ops, out : Outs]
 TypeOK == /\ order \in Seq(Ops) /\ done \in [Devices -> Seq(Records)]
-          /\ cfgs \in Seq([op : Ops, at : Nat]) /\ seen \in [Devices -> 0..Len(cfgs)]
+          /\ \A v \in 1..Len(cfgs) : cfgs[v].skips \subseteq [op : Ops, at : Nat]
+          /\ seen \in [Devices -> 0..Len(cfgs)]
           /\ ck.outs \in Seq(Records) /\ ck.cfg \in 0..Len(cfgs)
 
-\* Only the op the owner waited at is ever refused as skipped, on any
-\* device, a reordered log included.
+\* Only an op an owner waited at is ever refused as skipped, on any device,
+\* a reordered log included.
 SkipHitsOnlyStalledOp == \A d \in Devices : \A i \in 1..Len(done[d]) :
-                           done[d][i].out = "skipped" => done[d][i].op = "p"
+                           done[d][i].out = "skipped" => done[d][i].op \in Plugin
 
-\* A device refuses an op as skipped only under a config it holds.
+\* A device refuses an op as skipped only under a config it holds, or one
+\* before it that skipped the op before a checkpoint covered it.
 NoMismatch == \A d \in Devices : \A i \in 1..Len(done[d]) :
-                done[d][i].out = "skipped" => done[d][i].op \in Skipped(seen[d])
+                done[d][i].out = "skipped" => done[d][i].op \in EverSkipped(seen[d])
 
-\* A checkpoint that covers a skipped op names a config holding the skip.
+\* A checkpoint that covers a skipped op names a config that skipped it, or
+\* one after it that pruned the skip.
 CheckpointHoldsSkips == \A i \in 1..Len(ck.outs) :
-                          ck.outs[i].out = "skipped" => ck.outs[i].op \in Skipped(ck.cfg)
+                          ck.outs[i].out = "skipped" => ck.outs[i].op \in EverSkipped(ck.cfg)
 
-\* Two settled devices hold the same outcomes, the one that applied p
-\* before the skip included.
+\* The config holds at most MaxLive skips.
+LiveCapped == \A v \in 1..Len(cfgs) : Cardinality(cfgs[v].skips) <= MaxLive
+
+\* Two settled devices hold the same outcomes, the one that applied an op
+\* before its skip included.
 Agree == \A d1, d2 \in Devices : Settled(d1) /\ Settled(d2) => done[d1] = done[d2]
 
-\* The owner's skip ends the stall: every device settles.
+\* The owner's skips end every stall, at the cap too: every device settles.
 StallExits == <>[](\A d \in Devices : Settled(d))
 ====
