@@ -930,4 +930,87 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		stop()
 		<-done
 	})
+	// released selects args from the catalog, publishes a swap with stale,
+	// releases the catalog selection, and asserts the swap is gone.
+	released := func(t *testing.T, rev uint64, worker bool, stale func(*pluginInstance, *executePluginArgs)) {
+		t.Helper()
+		c, instance := newInstance(&Config{PeerId: "root"})
+		args, _ := candidate(rev, false, "")
+		instance.pluginUpdateMtx.Lock()
+		instance.executePluginRoutine.SetState(args)
+		if worker {
+			instance.activeArgs = args
+			instance.activeExecution = &pluginInstance{pluginLoadStateCtr: ccontainer.NewCContainer(
+				plugin.NewPluginLoadState(nil, plugin.InitialCapabilityRegistrationPending),
+			)}
+		}
+		instance.pluginUpdateMtx.Unlock()
+		stale(instance, args)
+		if swapOf(c) == nil {
+			t.Fatal("stale swap was not published")
+		}
+		instance.releaseCatalogExecution()
+		if swap := swapOf(c); swap != nil {
+			t.Fatalf("swap = %s after release, want none", swap.MarshalProtoText())
+		}
+	}
+	t.Run("release clears awaiting approval", func(t *testing.T) {
+		released(t, 20, false, func(instance *pluginInstance, args *executePluginArgs) {
+			instance.setSwapAwaitingApproval(ctx, newSwapCandidate(args), "peer")
+		})
+	})
+	t.Run("release clears failed", func(t *testing.T) {
+		released(t, 21, false, func(instance *pluginInstance, args *executePluginArgs) {
+			instance.setSwapFailed(ctx, newSwapCandidate(args), "prepare plugin: test")
+		})
+	})
+	t.Run("release clears settled once nothing runs", func(t *testing.T) {
+		released(t, 22, true, func(instance *pluginInstance, _ *executePluginArgs) {
+			instance.setSwapSettled(ctx, time.Now())
+		})
+	})
+	t.Run("installation release clears awaiting approval", func(t *testing.T) {
+		// The installation's candidate waits for approval with no worker, so
+		// releasing the installation leaves nothing selected.
+		c, instance := newInstance(&Config{PeerId: "root"})
+		args, _ := candidate(23, true, "peer")
+		instance.pluginUpdateMtx.Lock()
+		instance.executePluginRoutine.SetState(args)
+		instance.pluginUpdateMtx.Unlock()
+		instance.setSwapAwaitingApproval(ctx, newSwapCandidate(args), "peer")
+		if swapOf(c) == nil {
+			t.Fatal("stale swap was not published")
+		}
+		instance.pluginUpdateMtx.Lock()
+		stop := instance.releaseInstallationLocked()
+		instance.pluginUpdateMtx.Unlock()
+		if stop != nil {
+			t.Fatal("release stopped a worker, want none")
+		}
+		if swap := swapOf(c); swap != nil {
+			t.Fatalf("swap = %s after release, want none", swap.MarshalProtoText())
+		}
+	})
+	t.Run("cleared worker keeps the selected pass's swap", func(t *testing.T) {
+		// The worker exits while the routine still selects a candidate, so
+		// the pass still owns the swap state and it stays.
+		c, instance := newInstance(&Config{PeerId: "root"})
+		args, _ := candidate(24, false, "")
+		worker := &pluginInstance{pluginLoadStateCtr: ccontainer.NewCContainer(
+			plugin.NewPluginLoadState(nil, plugin.InitialCapabilityRegistrationPending),
+		)}
+		instance.pluginUpdateMtx.Lock()
+		instance.executePluginRoutine.SetState(args)
+		instance.activeArgs, instance.activeExecution = args, worker
+		instance.pluginUpdateMtx.Unlock()
+		instance.setSwapAwaitingApproval(ctx, newSwapCandidate(args), "peer")
+		want := swapOf(c)
+		if want == nil {
+			t.Fatal("swap was not published")
+		}
+		instance.clearExecution(worker)
+		if !swapOf(c).EqualVT(want) {
+			t.Fatalf("swap = %s after the worker cleared, want the pass's state kept", swapOf(c).MarshalProtoText())
+		}
+	})
 }

@@ -99,8 +99,11 @@ func (t *pluginInstance) setSwapSettled(ctx context.Context, admittedAt time.Tim
 }
 
 // setSwapRetry records when the execute routine retries a failed candidate.
-// The routine draws delay only after the candidate's attempt returned an
-// error, so the failed state is already published.
+// It takes no pass context and needs none: the routine draws delay, and calls
+// this, under its own lock and only while the failed pass's context is still
+// the routine's context and the pass is still its current routine. SetState
+// stops the old pass and starts the next under the same lock, so once a newer
+// pass has started the draw is skipped and this never runs for the old pass.
 func (t *pluginInstance) setSwapRetry(delay time.Duration) {
 	if delay == cbackoff.Stop {
 		return
@@ -110,6 +113,23 @@ func (t *pluginInstance) setSwapRetry(delay time.Duration) {
 		if failed := status.GetSwap().GetFailed(); failed != nil {
 			failed.RetryAt = retryAt
 		}
+	})
+}
+
+// clearReleasedSwapLocked clears the swap state once the binding selects
+// nothing and no worker is admitted. Releasing the selection cancels its pass
+// with no successor, so nothing else replaces the state that pass last wrote:
+// awaiting approval or failed for a candidate no longer selected, or settled
+// for a worker since cleared. The caller holds pluginUpdateMtx, under which
+// the selection and the admitted worker change, so no pass starts between the
+// check and the write; the canceled pass's own late writes are dropped by
+// setSwap.
+func (t *pluginInstance) clearReleasedSwapLocked() {
+	if t.executePluginRoutine.GetState() != nil || t.activeExecution != nil {
+		return
+	}
+	t.c.updatePluginExecutionStatus(t.pluginID, t.instanceKey, func(status *bldr_plugin.PluginExecutionStatus) {
+		status.Swap = nil
 	})
 }
 

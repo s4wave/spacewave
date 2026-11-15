@@ -73,6 +73,7 @@ func (t *pluginInstance) releaseCatalogExecution() bool {
 		return false
 	}
 	changed := t.setExecutePluginStateLocked(nil)
+	t.clearReleasedSwapLocked()
 	var worker *pluginInstance
 	if t.activeArgs != nil && t.activeArgs.installation == nil {
 		worker = t.activeExecution
