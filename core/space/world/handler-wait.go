@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/sirupsen/logrus"
 )
 
 // handlerLookupRetry is how long a handler watch waits after a failed lookup
@@ -53,7 +54,7 @@ func (a *Adapter) waitForHandler(u *unresolvedOpError) *sobject.BodyWait {
 		a.handlerWait = w
 		a.le.WithField("op-type", u.opTypeID).WithField("reason", "no-handler").Debug("replay waits at an operation")
 		if !a.opts.DisableLookup && a.opts.Bus != nil {
-			go w.watch(ctx, a.opts.Bus, a.opts.EngineID)
+			go w.watch(ctx, a.le, a.opts.Bus, a.opts.EngineID)
 		}
 	}
 
@@ -102,8 +103,9 @@ func (a *Adapter) endHandlerWait() {
 // fails or ctx ends. It then marks the wait done and wakes the driver, which
 // applies the operation or starts a new wait. After a failed lookup it first
 // waits handlerLookupRetry, so a resolver that fails at once costs one lookup
-// per interval rather than a spin of watches.
-func (w *handlerWait) watch(ctx context.Context, b bus.Bus, engineID string) {
+// per interval rather than a spin of watches. It logs how the wait ended once
+// per watch.
+func (w *handlerWait) watch(ctx context.Context, le *logrus.Entry, b bus.Bus, engineID string) {
 	// Ask for the plugins, following which await approval.
 	if len(w.pluginIDs) != 0 {
 		di, ref, err := b.AddDirective(ctx, NewLoadOpPlugins(engineID, w.pluginIDs), nil)
@@ -142,6 +144,14 @@ func (w *handlerWait) watch(ctx context.Context, b bus.Bus, engineID string) {
 			return op != nil && err == nil, nil
 		},
 	)
+	reason := "resolved"
+	if err != nil {
+		reason = "lookup-failed"
+		if ctx.Err() != nil {
+			reason = "canceled"
+		}
+	}
+	le.WithField("op-type", w.opTypeID).WithField("reason", reason).Debug("replay handler wait ended")
 	if err == nil {
 		ref.Release()
 	} else {

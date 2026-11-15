@@ -25,6 +25,9 @@ func (r *SpaceResource) HoldNodeTypePlugins(
 	var releaseRuntime func()
 	defer func() {
 		if demand != nil {
+			r.le.WithField("holder", "node-type-hold").
+				WithField("space-id", r.space.GetSharedObjectRef().GetProviderResourceRef().GetId()).
+				Debug("released Space plugin demand")
 			demand.Release()
 			releaseRuntime()
 		}

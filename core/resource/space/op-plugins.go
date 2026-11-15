@@ -212,7 +212,12 @@ func (l *opPluginLoader) run(ctx context.Context) {
 
 	// Demand the requested plugins and follow later requests.
 	demand := runtime.DemandReplayPlugins(ids)
-	defer demand.Release()
+	defer func() {
+		l.r.le.WithField("holder", "op-loader").
+			WithField("space-id", l.r.space.GetSharedObjectRef().GetProviderResourceRef().GetId()).
+			Debug("released Space plugin demand")
+		demand.Release()
+	}()
 	for {
 		l.r.le.WithField("plugin-ids", ids).Debug("running operation plugins")
 		select {

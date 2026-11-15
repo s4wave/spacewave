@@ -1223,7 +1223,13 @@ export function SessionSharedObjectContainer() {
       }),
     )
   } else if (shouldRedirectMissingSpace) {
-    queueMicrotask(() => navigateSession({ path: '', replace: true }))
+    queueMicrotask(() => {
+      console.warn(
+        'mounted shared object missing from resources list, redirecting to session',
+        sharedObjectId,
+      )
+      navigateSession({ path: '', replace: true })
+    })
   }
 
   // Remount the shared object, which remounts its body, unless only the body
