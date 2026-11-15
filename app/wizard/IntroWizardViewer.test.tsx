@@ -17,6 +17,59 @@ const h = vi.hoisted(() => ({
   spaceSettingsIndexPath: 'wizard/welcome-1',
   handleCancel: vi.fn(),
   toastError: vi.fn(),
+  space: undefined as
+    | undefined
+    | {
+        spaceWorldResource: {
+          value: unknown
+          loading: boolean
+          error: null
+          retry: () => void
+        }
+        navigateToObjects: unknown
+        navigateToRoot: unknown
+      },
+}))
+
+// The test World has no watchable Engine, so the ending watch reads it once.
+vi.mock('@s4wave/web/hooks/useWorldQuery.js', async () => {
+  const { useStreamingResource } =
+    await import('@aptre/bldr-sdk/hooks/useStreamingResource.js')
+  return {
+    useWorldQuery: (
+      world: Parameters<typeof useStreamingResource>[0],
+      query: (state: unknown, signal: AbortSignal) => Promise<unknown>,
+      deps: unknown[],
+    ) =>
+      useStreamingResource(
+        world,
+        async function* (state, signal) {
+          yield await query(state, signal)
+        },
+        deps,
+      ),
+  }
+})
+
+// WizardGone reads the Space's World and navigation from the Space container.
+vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
+  SpaceContainerContext: {
+    useContext: () => {
+      if (h.space?.spaceWorldResource.value !== h.t.world) {
+        h.space = {
+          spaceWorldResource: {
+            value: h.t.world,
+            loading: false,
+            error: null,
+            retry: vi.fn(),
+          },
+          navigateToObjects: h.navigateToObjects,
+          navigateToRoot: vi.fn(),
+        }
+      }
+      return h.space
+    },
+  },
 }))
 
 vi.mock('./useWizardState.js', () => ({
@@ -92,6 +145,7 @@ async function expectFinished() {
     objects: new Set(['files']),
     indexPath: 'files',
     creates: [],
+    endings: new Map([['wizard/welcome-1', 'files']]),
   })
 }
 

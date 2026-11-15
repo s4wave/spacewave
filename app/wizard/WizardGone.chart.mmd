@@ -1,0 +1,14 @@
+---
+title: "Removed wizard: how it ended"
+---
+stateDiagram-v2
+  s0: Checking how it ended, Close tab
+  s1: Check failed, Retry and Close tab
+  s2: Deleted, Open Space and Close tab
+  s3: Finished, Open and Close tab
+  [*] --> s0
+  s0 --> s1: the first read fails
+  s0 --> s2: the watch reads the ending
+  s0 --> s3: the watch reads the ending
+  s1 --> s0: presses Retry
+  s3 --> s2: the watch reads the ending

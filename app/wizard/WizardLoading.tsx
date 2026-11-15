@@ -4,6 +4,8 @@ import { WizardGone } from './WizardGone.js'
 
 /** WizardLoadingProps names the wait a wizard shows before its state arrives. */
 export interface WizardLoadingProps {
+  // wizardKey is the wizard object's key.
+  wizardKey: string
   // wizardGone is the useWizardState watch on the wizard object.
   wizardGone: boolean
   title?: string
@@ -16,11 +18,12 @@ export interface WizardLoadingProps {
  * removed, since a removed wizard never streams a state.
  */
 export function WizardLoading({
+  wizardKey,
   wizardGone,
   title = 'Loading wizard',
   detail,
 }: WizardLoadingProps) {
-  if (wizardGone) return <WizardGone />
+  if (wizardGone) return <WizardGone wizardKey={wizardKey} />
   return (
     <div className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm">

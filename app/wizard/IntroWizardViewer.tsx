@@ -63,12 +63,15 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
   }, [finish, state, ws, targetObjectKey])
 
   // A wizard removed elsewhere can only be closed, even before it loads.
-  if (finish.state.status === 'gone') return <WizardGone />
+  if (finish.state.status === 'gone') {
+    return <WizardGone wizardKey={ws.objectKey} />
+  }
 
   // The overlay waits for the wizard state.
   if (!state) {
     return (
       <WizardLoading
+        wizardKey={ws.objectKey}
         wizardGone={ws.wizardGone}
         title="Loading"
         detail="Preparing your introduction."

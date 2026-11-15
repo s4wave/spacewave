@@ -22,6 +22,7 @@ import {
 import { iriToKey, keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
+import { lookupWizardEnding } from '@s4wave/sdk/world/wizard/wizard-ending.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { buildObjectKey } from '../space/create-op-builders.js'
@@ -362,16 +363,24 @@ export async function createVm(
   }
 }
 
-// creationFailure is the event a failed run ends in. It reads the wizard
-// rather than trusting the wizard watch, which may have failed: a run that
-// failed while the wizard is gone is refused, since Retry could never
-// succeed, and any other failure offers Retry.
+// creationFailure is the event a failed run ends in. A run whose commit
+// landed though its reply was lost, or a Retry of one, finds the World
+// recording the wizard as finished as this VM, and lands. Otherwise it reads
+// the wizard rather than trusting the wizard watch, which may have failed: a
+// run that failed while the wizard is gone is refused, since Retry could
+// never succeed, and any other failure offers Retry.
 async function creationFailure(
   world: EngineWorldState,
   request: VmCreationRequest,
   err: unknown,
   signal: AbortSignal,
 ): Promise<VmCreationEvent> {
+  const ending = await lookupWizardEnding(
+    world,
+    request.wizardObjectKey,
+    signal,
+  ).catch(() => undefined)
+  if (ending === request.vmKey) return { type: 'land' }
   if (err instanceof WizardGoneError) return { type: 'refuse' }
   const error = err instanceof Error ? err.message : String(err)
   try {

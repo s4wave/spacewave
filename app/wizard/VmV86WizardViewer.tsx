@@ -612,7 +612,7 @@ export function VmV86WizardViewer({
     creation.status === 'gone' ||
     (creation.status === 'failed' && wizardGone)
   ) {
-    return <WizardGone />
+    return <WizardGone wizardKey={objectKey} />
   }
   if (creation.status !== 'idle') {
     return <VmCreationScreen creation={creation} onRetry={startCreation} />
@@ -620,6 +620,7 @@ export function VmV86WizardViewer({
   if (!state) {
     return (
       <WizardLoading
+        wizardKey={objectKey}
         wizardGone={wizardGone}
         detail="Preparing the VM creation workflow."
       />
@@ -630,6 +631,7 @@ export function VmV86WizardViewer({
   return (
     <>
       <WizardShell
+        wizardKey={objectKey}
         icon={<LuMonitor />}
         title="New virtual machine"
         step={step}

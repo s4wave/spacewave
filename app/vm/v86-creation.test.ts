@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/vmv86.js'
+import { RecordWizardEndingOpTypeID } from '@s4wave/sdk/world/wizard/wizard_typeid.pb.js'
 
 import { wizardTestWorld } from '../wizard/wizard-test-world.js'
 import {
@@ -60,6 +61,7 @@ describe('runVmCreation', () => {
     expect(t.calls).toEqual([
       'batch',
       CREATE_VM_V86_OP_ID,
+      RecordWizardEndingOpTypeID,
       SET_SPACE_INDEX_PATH_OP_ID,
       'delete',
       'commit',
@@ -68,6 +70,7 @@ describe('runVmCreation', () => {
       objects: new Set(['vm/v86/debian']),
       indexPath: 'vm/v86/debian',
       creates: [CREATE_VM_V86_OP_ID],
+      endings: new Map([['wizard/vm-1', 'vm/v86/debian']]),
     })
   })
 
@@ -82,6 +85,7 @@ describe('runVmCreation', () => {
       objects: new Set(['wizard/vm-1']),
       indexPath: 'wizard/vm-1',
       creates: [],
+      endings: new Map(),
     })
 
     // The retry reruns the stream with the same request and creates one VM.
@@ -113,17 +117,26 @@ describe('runVmCreation', () => {
     expect(t.state.creates).toEqual([])
   })
 
-  it('refuses as gone when a rerun after a landed commit hits the existing VM', async () => {
+  it('ends done when its commit landed but the reply was lost', async () => {
+    // The World records the wizard as finished as this VM.
+    const t = wizardTestWorld(['wizard/vm-1'], 'wizard/vm-1')
+    t.loseReply = true
+    expect(await run(t)).toEqual({ status: 'done', request })
+    expect(t.state.creates).toEqual([CREATE_VM_V86_OP_ID])
+  })
+
+  it('ends done when Retry after a landed commit hits the existing VM', async () => {
     // The commit landed but its caller saw a failure, so Retry runs again:
-    // the World refuses the VM create before the wizard delete runs.
+    // the World refuses the VM create, and its ending names this VM.
     const t = wizardTestWorld(['vm/v86/debian'], 'vm/v86/debian')
+    t.state.endings.set('wizard/vm-1', 'vm/v86/debian')
     const failed: VmCreationState = {
       status: 'failed',
       request,
       stage: 'creating',
       error: 'commit failed',
     }
-    expect(await run(t, failed)).toEqual({ status: 'gone' })
+    expect(await run(t, failed)).toEqual({ status: 'done', request })
     expect(t.state.creates).toEqual([])
   })
 

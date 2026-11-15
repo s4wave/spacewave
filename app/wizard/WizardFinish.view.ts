@@ -28,6 +28,7 @@ export const step = (action: string, from: Finish, to: Finish) => {
   if (action === 'Press') return 'presses Finish or Retry'
   if (action === 'Commit') return 'list commits, or is refused as gone'
   if (action === 'Discard') return 'a write fails, list discarded'
+  if (action === 'LostReply') return 'reply lost, ending read'
   if (action === 'Reload') return 'tab reloads'
   if (action === 'OrphanEnds') return 'a list from before a reload ends'
   if (action === 'MoveIndex') return 'another writer moves the index'

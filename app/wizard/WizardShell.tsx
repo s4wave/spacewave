@@ -13,6 +13,8 @@ import type { WizardFinishState } from './wizard-finish.js'
 import type { WizardCancelState } from './useWizardState.js'
 
 export interface WizardShellProps {
+  // wizardKey is the wizard object's key, whose ending the gone state reads.
+  wizardKey: string
   // icon marks the kind of object the wizard creates.
   icon?: ReactNode
   title: string
@@ -241,7 +243,9 @@ export function WizardShell({
   ...rest
 }: WizardShellProps) {
   // A wizard removed elsewhere can only be closed.
-  if (rest.finish.status === 'gone') return <WizardGone />
+  if (rest.finish.status === 'gone') {
+    return <WizardGone wizardKey={rest.wizardKey} />
+  }
 
   // Delete is offered only while this view's own Finish is not removing the
   // wizard; a Finish in another tab makes the delete refuse as gone.

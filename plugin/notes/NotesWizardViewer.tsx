@@ -123,6 +123,7 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
   if (!state) {
     return (
       <WizardLoading
+        wizardKey={ws.objectKey}
         wizardGone={ws.wizardGone}
         detail="Preparing the configuration workflow."
       />
@@ -131,6 +132,7 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
+      wizardKey={ws.objectKey}
       title={`New ${displayName}`}
       step={state.step ?? 0}
       localName={ws.localName}

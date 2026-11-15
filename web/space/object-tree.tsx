@@ -33,6 +33,7 @@ import {
 import type { TreeNode } from '@s4wave/web/ui/tree/TreeNode.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { ObjectMetadata } from '@s4wave/sdk/world/world.pb.js'
+import { WIZARD_ENDINGS_TYPE_ID } from '@s4wave/sdk/world/wizard/wizard-ending.js'
 import {
   ObjectTypeVisibility,
   type ObjectTypeMetadata,
@@ -68,8 +69,12 @@ export interface SpaceObjectTargets {
 
 export type ObjectTypeMetadataById = ReadonlyMap<string, ObjectTypeMetadata>
 
-// HIDDEN_OBJECT_TYPES is the set of object types hidden from the tree.
-export const HIDDEN_OBJECT_TYPES = new Set([SPACE_SETTINGS_BLOCK_TYPE])
+// HIDDEN_OBJECT_TYPES is the set of object types hidden from the tree: Space
+// bookkeeping a person did not make.
+export const HIDDEN_OBJECT_TYPES = new Set([
+  SPACE_SETTINGS_BLOCK_TYPE,
+  WIZARD_ENDINGS_TYPE_ID,
+])
 
 // isHiddenSpaceObject returns whether an object should be hidden from space
 // object browsers and pickers.

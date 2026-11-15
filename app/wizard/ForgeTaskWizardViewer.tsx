@@ -84,6 +84,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
   if (!state) {
     return (
       <WizardLoading
+        wizardKey={ws.objectKey}
         wizardGone={ws.wizardGone}
         detail="Initializing Forge task configuration."
       />
@@ -92,6 +93,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
+      wizardKey={ws.objectKey}
       icon={<LuListTodo />}
       title="New Forge Task"
       step={state.step ?? 0}

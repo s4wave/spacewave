@@ -62,8 +62,14 @@ func (o *CreateWizardObjectOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// Create the World object with the initial wizard step and target configuration.
+	// A wizard reusing a key starts with no ending: the ending an earlier
+	// wizard at this key recorded would read as this one's.
 	objKey := o.GetObjectKey()
+	if err := clearWizardEnding(ctx, worldHandle, objKey); err != nil {
+		return false, err
+	}
+
+	// Create the World object with the initial wizard step and target configuration.
 	state := &WizardState{
 		Step:            o.GetInitialStep(),
 		TargetTypeId:    o.GetTargetTypeId(),

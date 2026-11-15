@@ -149,11 +149,14 @@ describe('NotesWizardViewer', () => {
       name: 'Notebook',
       timestamp: expect.any(Date),
     })
-    // The create, the index move and the wizard delete commit together.
+    // The create, the index move and the wizard delete commit together. The
+    // test World does not make the plugin's notebook, so it records no
+    // ending for it.
     expect(h.t.state).toEqual({
       objects: new Set(),
       indexPath: 'notebook-1',
       creates: [INIT_NOTEBOOK_OP_ID],
+      endings: new Map(),
     })
     expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
     expect(h.toastSuccess).toHaveBeenCalledWith('Created Notebook')
@@ -222,6 +225,7 @@ describe('NotesWizardViewer', () => {
       objects: new Set(['wizard/notes/test']),
       indexPath: 'wizard/notes/test',
       creates: [],
+      endings: new Map(),
     })
     expect(h.navigateToObjects).not.toHaveBeenCalled()
 

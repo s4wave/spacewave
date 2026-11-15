@@ -625,6 +625,33 @@ export const CreateWizardObjectOp: MessageType<CreateWizardObjectOp> =
   )
 
 /**
+ * RecordWizardEndingOp records the object a wizard's Finish made or opened,
+ * in the transaction that removes the wizard, so any view of the wizard's key
+ * tells a finished wizard from a deleted one after it is gone.
+ *
+ * @generated from message s4wave.wizard.RecordWizardEndingOp
+ */
+export interface RecordWizardEndingOp {
+  /**
+   * WizardKey is the object key of the wizard that finished.
+   */
+  wizardKey?: string
+  /**
+   * TargetKey is the object key the Finish opens.
+   */
+  targetKey?: string
+}
+
+export const RecordWizardEndingOp: MessageType<RecordWizardEndingOp> =
+  /* @__PURE__ */ createMessageType<RecordWizardEndingOp>(
+    's4wave.wizard.RecordWizardEndingOp',
+    () => [
+      [1, 'wizard_key', 9],
+      [2, 'target_key', 9],
+    ],
+  )
+
+/**
  * IntroWizardConfig is the config_data payload for a wizard/intro object. It
  * supplies the per-quickstart new-user introduction drawn around the target
  * object frame, so one intro viewer parameterizes over every quickstart.

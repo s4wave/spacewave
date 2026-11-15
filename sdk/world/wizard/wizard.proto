@@ -221,6 +221,18 @@ message CreateWizardObjectOp {
   bytes initial_config_data = 8;
 }
 
+// RecordWizardEndingOp records the object a wizard's Finish made or opened,
+// in the transaction that removes the wizard, so any view of the wizard's key
+// tells a finished wizard from a deleted one after it is gone.
+message RecordWizardEndingOp {
+  option (typeid.id) = "spacewave/wizard/record-ending";
+
+  // WizardKey is the object key of the wizard that finished.
+  string wizard_key = 1;
+  // TargetKey is the object key the Finish opens.
+  string target_key = 2;
+}
+
 // IntroWizardConfig is the config_data payload for a wizard/intro object. It
 // supplies the per-quickstart new-user introduction drawn around the target
 // object frame, so one intro viewer parameterizes over every quickstart.

@@ -26,6 +26,49 @@ const h = vi.hoisted(() => ({
   handleCancel: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
+  space: undefined as
+    | undefined
+    | {
+        spaceWorldResource: {
+          value: unknown
+          loading: boolean
+          error: null
+          retry: () => void
+        }
+        navigateToObjects: unknown
+        navigateToRoot: unknown
+      },
+}))
+
+// The ending watch reports the test World's recorded ending at once.
+vi.mock('@s4wave/web/hooks/useWorldQuery.js', () => ({
+  useWorldQuery: () => ({
+    value: h.t.state.endings.get('wizard/git/repo/test'),
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  }),
+}))
+
+// WizardGone reads the Space's World and navigation from the Space container.
+vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
+  SpaceContainerContext: {
+    useContext: () => {
+      if (h.space?.spaceWorldResource.value !== h.t.world) {
+        h.space = {
+          spaceWorldResource: {
+            value: h.t.world,
+            loading: false,
+            error: null,
+            retry: vi.fn(),
+          },
+          navigateToObjects: h.navigateToObjects,
+          navigateToRoot: vi.fn(),
+        }
+      }
+      return h.space
+    },
+  },
 }))
 
 let currentStep = 0
@@ -279,6 +322,7 @@ describe('GitRepoWizardViewer', () => {
       objects: new Set(['cli-1']),
       indexPath: 'cli-1',
       creates: ['spacewave/git/repo/create'],
+      endings: new Map([['wizard/git/repo/test', 'cli-1']]),
     })
   })
 
@@ -315,6 +359,7 @@ describe('GitRepoWizardViewer', () => {
       objects: new Set(['cli-1']),
       indexPath: 'canvas/main',
       creates: ['spacewave/git/repo/create'],
+      endings: new Map([['wizard/git/repo/test', 'cli-1']]),
     })
   })
 

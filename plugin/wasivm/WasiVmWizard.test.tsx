@@ -85,6 +85,7 @@ describe('WasiVmWizard', () => {
       objects: new Set(['vm/wasivm/shell']),
       indexPath: 'vm/wasivm/shell',
       creates: [CREATE_WASIVM_OP_ID],
+      endings: new Map([['wizard/wasivm-1', 'vm/wasivm/shell']]),
     })
   })
 })

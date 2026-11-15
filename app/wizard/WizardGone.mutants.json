@@ -1,0 +1,34 @@
+[
+  {
+    "name": "the screen keeps showing finished after the object is deleted",
+    "replace": [
+      [
+        "  /\\ fresh' = FALSE\n  /\\ UNCHANGED view",
+        "  /\\ UNCHANGED <<view, fresh>>"
+      ]
+    ],
+    "expect": "FreshViewIsTrue"
+  },
+  {
+    "name": "any recorded Finish reads as finished",
+    "replace": [["  /\\ view' = ending\n", "  /\\ view' = \"finished\"\n"]],
+    "expect": "FreshViewIsTrue"
+  },
+  {
+    "name": "a deleted wizard offers Open",
+    "replace": [
+      [
+        "IF view = \"finished\" THEN {\"open\"}",
+        "IF view \\in {\"finished\", \"deleted\"} THEN {\"open\"}"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a failed read shows the wizard deleted",
+    "replace": [
+      ["  /\\ view' = \"unreadable\"\n", "  /\\ view' = \"deleted\"\n"]
+    ],
+    "expect": "DeletedIsTrue"
+  }
+]
