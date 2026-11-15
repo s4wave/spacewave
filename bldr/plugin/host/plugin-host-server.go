@@ -164,11 +164,11 @@ func (s *PluginHostServer) LoadPlugin(
 //
 //   - A host-export caller may name any key; an empty key selects the
 //     scheduler's.
-//   - An empty-key load of a host-export plugin runs on the scheduler's key.
-//     These are the app's own trusted plugins, so no caller's code gains a
-//     wider view, and a Space's plugins reach spacewave-core this way.
 //   - Any other load inherits the caller's own binding key: an empty key or
 //     the caller's own selects it, and any other key is refused.
+//
+// A load of a host-export plugin under any key runs the scheduler's own
+// instance of it; the scheduler decides that, for every source of loads.
 func (s *PluginHostServer) loadInstanceKey(pluginID, instanceKey string) (string, error) {
 	switch {
 	case s.callerIsHostPlugin():
@@ -176,8 +176,6 @@ func (s *PluginHostServer) loadInstanceKey(pluginID, instanceKey string) (string
 			return s.instanceKey, nil
 		}
 		return instanceKey, nil
-	case instanceKey == "" && slices.Contains(s.hostExportPluginIDs, pluginID):
-		return s.instanceKey, nil
 	case instanceKey == "" || instanceKey == s.registrationInstanceKey:
 		return s.registrationInstanceKey, nil
 	}

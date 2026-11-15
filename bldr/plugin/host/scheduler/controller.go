@@ -392,7 +392,34 @@ func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Re
 	if !c.conf.SchedulesPlugin(dir.LoadPluginID()) {
 		return nil, nil
 	}
-	return bldr_plugin_host.NewLoadPluginResolver(c, dir, c.bindingKey(dir.LoadPluginInstanceKey())), nil
+	bindingKey, err := c.loadBindingKey(dir)
+	if err != nil {
+		return nil, err
+	}
+	return bldr_plugin_host.NewLoadPluginResolver(c, dir, bindingKey), nil
+}
+
+// loadBindingKey returns the logical instance dir runs on this scheduler.
+//
+// Invariant: a host plugin (HostExportPluginIds) runs only as this
+// scheduler's own instance, which holds the whole host bus and volume. A load
+// of one under another key, such as a Space's, binds to that instance, so no
+// key starts a second copy with host powers. Such a load may not select its
+// build: one naming manifests or a manifest root is refused, so a Space's
+// admitted manifest never replaces the host's build.
+func (c *Controller) loadBindingKey(dir bldr_plugin.LoadPlugin) (string, error) {
+	// Any plugin outside the host set, or any load at the own key, keeps its key.
+	pluginID := dir.LoadPluginID()
+	bindingKey, ownKey := c.bindingKey(dir.LoadPluginInstanceKey()), c.bindingKey("")
+	if bindingKey == ownKey || !slices.Contains(c.conf.GetHostExportPluginIds(), pluginID) {
+		return bindingKey, nil
+	}
+
+	// A host plugin under a foreign key joins the own instance, unpinned.
+	if len(dir.LoadPluginManifests()) != 0 || dir.LoadPluginManifestRoot() != "" {
+		return "", errors.Errorf("host plugin %s cannot select a build at instance %q", pluginID, bindingKey)
+	}
+	return ownKey, nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
