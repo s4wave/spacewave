@@ -16,10 +16,12 @@ const (
 	// MaxOperations is the maximum number of operations above the checkpoint.
 	MaxOperations = 65536
 
-	// MaxStateDataSize is the maximum size in bytes for state data.
-	MaxStateDataSize = 10 * 1024 * 1024 // 10 MB
-
 	// MaxSyncStateSize is the largest encoded state, in bytes, that one sync
 	// frame carries. A peer can neither send nor import a larger state.
+	//
+	// It is also the one size limit of a checkpoint: Verify refuses a
+	// checkpoint whose encoding, signatures or commit included, exceeds it,
+	// and CoSign refuses to sign one, so every checkpoint a writer builds also
+	// loads. Its state data, and a config, are bounded by the same number.
 	MaxSyncStateSize = 10 * 1024 * 1024 // 10 MB
 )

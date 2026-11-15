@@ -2,6 +2,7 @@ package sobject
 
 import (
 	"bytes"
+	"errors"
 	"slices"
 	"testing"
 
@@ -243,6 +244,41 @@ func TestValidateRejectsMalformedState(t *testing.T) {
 				t.Fatal("validated a malformed state")
 			}
 		})
+	}
+}
+
+// TestCheckpointSizeBound checks that every checkpoint a writer can build
+// loads: one at MaxSyncStateSize passes Verify, and a byte more of state data
+// is refused when it is signed rather than when it is loaded.
+func TestCheckpointSizeBound(t *testing.T) {
+	// Measure the encoding around the state data near the limit.
+	peers := createMockPeers(t, 1)
+	owner := mustPrivKeys(t, peers)[0]
+	configHash := bytes.Repeat([]byte{1}, 32)
+	build := func(n int) (*SOCheckpoint, error) {
+		return BuildGenesisSOCheckpoint(owner, mockSharedObjectID, configHash, make([]byte, n))
+	}
+	probe, err := build(MaxSyncStateSize - 1024)
+	if err != nil {
+		t.Fatal(err)
+	}
+	largest := MaxSyncStateSize - 1024 + MaxSyncStateSize - probe.SizeVT()
+
+	// The largest checkpoint fills the limit exactly and loads.
+	cp, err := build(largest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cp.SizeVT() != MaxSyncStateSize {
+		t.Fatalf("largest checkpoint is %d bytes, want %d", cp.SizeVT(), MaxSyncStateSize)
+	}
+	if _, _, err := cp.Verify(mockSharedObjectID); err != nil {
+		t.Fatal(err)
+	}
+
+	// One byte more is refused by the writer.
+	if _, err := build(largest + 1); !errors.Is(err, ErrMaxSizeExceeded) {
+		t.Fatalf("one byte over: got %v, want ErrMaxSizeExceeded", err)
 	}
 }
 
