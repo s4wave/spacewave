@@ -16,12 +16,16 @@ import (
 )
 
 func TestPluginHostServerResolvesCallerInstance(t *testing.T) {
-	s := &PluginHostServer{instanceKey: "space-a"}
-	if got := s.resolveInstanceKey(""); got != "space-a" {
-		t.Fatalf("unqualified instance = %q, want space-a", got)
+	s := &PluginHostServer{pluginID: "core", instanceKey: "space-a", registrationInstanceKey: "space-a", hostExportPluginIDs: []string{"core"}}
+	if got, err := s.loadInstanceKey("p", ""); err != nil || got != "space-a" {
+		t.Fatalf("unqualified instance = %q, %v, want space-a", got, err)
 	}
-	if got := s.resolveInstanceKey("vm-1"); got != "vm-1" {
-		t.Fatalf("qualified instance = %q, want vm-1", got)
+	if got, err := s.loadInstanceKey("p", "vm-1"); err != nil || got != "vm-1" {
+		t.Fatalf("qualified instance = %q, %v, want vm-1", got, err)
+	}
+	s.pluginID = "p"
+	if _, err := s.loadInstanceKey("p", "vm-1"); err == nil {
+		t.Fatal("a plugin outside the host exports named another instance")
 	}
 }
 
@@ -43,7 +47,7 @@ func TestPluginRpcMissingManifestFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	mux := srpc.NewMux()
-	if err := plugin.SRPCRegisterPluginHost(mux, &PluginHostServer{b: b, le: le, pluginID: "caller"}); err != nil {
+	if err := plugin.SRPCRegisterPluginHost(mux, &PluginHostServer{b: b, le: le, pluginID: "caller", hostExportPluginIDs: []string{"caller"}}); err != nil {
 		t.Fatal(err)
 	}
 

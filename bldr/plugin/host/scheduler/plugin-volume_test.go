@@ -6,8 +6,13 @@ import (
 	"errors"
 	"slices"
 	"testing"
+	"time"
 
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
 	"github.com/s4wave/spacewave/db/block"
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
@@ -359,5 +364,117 @@ func TestKeyedInstanceCannotForgeApproval(t *testing.T) {
 	forgeApproval(ctx, t, servePluginVolume(ctx, t, app, tb.Volume, "plugin"), storeID, peerID, "victim", "root-app")
 	if !admits("victim", "root-app") {
 		t.Fatal("an unkeyed app plugin lost the host volume")
+	}
+}
+
+// loadSpy stands in for the app's scheduler: it reports the binding key each
+// LoadPlugin directive on the host bus would run under.
+type loadSpy struct {
+	sched *Controller
+	loads chan string
+}
+
+func (s *loadSpy) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/load-spy", controller.MustParseVersion("0.0.1"), "")
+}
+
+func (s *loadSpy) Execute(context.Context) error {
+	return nil
+}
+
+func (s *loadSpy) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	d, ok := di.GetDirective().(bldr_plugin.LoadPlugin)
+	if !ok {
+		return nil, nil
+	}
+	return directive.R(directive.NewFuncResolver(func(ctx context.Context, _ directive.ResolverHandler) error {
+		select {
+		case s.loads <- s.sched.bindingKey(d.LoadPluginInstanceKey()):
+		case <-ctx.Done():
+		}
+		<-ctx.Done()
+		return nil
+	}), nil)
+}
+
+func (s *loadSpy) Close() error {
+	return nil
+}
+
+// loadThroughHost asks host to load pluginID at instanceKey and returns the
+// binding key the load reached the scheduler with, or false if refused.
+func loadThroughHost(ctx context.Context, host bldr_plugin.SRPCPluginHostClient, loads <-chan string, pluginID, instanceKey string) (string, bool) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	strm, err := host.LoadPlugin(ctx, &bldr_plugin.LoadPluginRequest{PluginId: pluginID, InstanceKey: instanceKey})
+	if err != nil {
+		return "", false
+	}
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := strm.Recv()
+		errCh <- err
+	}()
+	select {
+	case key := <-loads:
+		return key, true
+	case <-errCh:
+		return "", false
+	case <-ctx.Done():
+		return "", false
+	}
+}
+
+// TestKeyedCallerLoadStaysInScope checks a plugin running on a Space's key on
+// the app's scheduler cannot load an instance, of itself or another plugin,
+// on the unscoped view or another Space's view through the host's LoadPlugin.
+func TestKeyedCallerLoadStaysInScope(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+	app := &Controller{conf: &Config{}}
+	spy := &loadSpy{sched: app, loads: make(chan string, 1)}
+	rel, err := tb.Bus.AddController(ctx, spy, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rel()
+
+	// Serve the host to the attacker as execute-plugin does for its instance.
+	srv := bldr_plugin_host.NewPluginHostServer(ctx, tb.Bus, le, "attacker", app.conf.GetInstanceKey(), nil, nil, "", false)
+	srv.SetRegistrationInstanceKey(app.bindingKey("space-a"))
+	srv.SetHostExportPluginIDs([]string{"spacewave-core"})
+	mux := srpc.NewMux()
+	if err := bldr_plugin.SRPCRegisterPluginHost(mux, srv); err != nil {
+		t.Fatal(err.Error())
+	}
+	host := bldr_plugin.NewSRPCPluginHostClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
+
+	// want is the binding key the load must reach the scheduler with; empty
+	// with refused set means the host refuses it.
+	for _, tc := range []struct {
+		name, pluginID, key, want string
+		refused                   bool
+	}{
+		{"empty key, itself", "attacker", "", "space-a", false},
+		{"empty key, another plugin", "other", "", "space-a", false},
+		{"another key, itself", "attacker", "space-b", "", true},
+		{"another key, another plugin", "other", "space-b", "", true},
+		{"own key", "attacker", "space-a", "space-a", false},
+		{"empty key, host-export core", "spacewave-core", "", "", false},
+	} {
+		key, ran := loadThroughHost(ctx, host, spy.loads, tc.pluginID, tc.key)
+		if !ran {
+			t.Logf("%s: refused", tc.name)
+		} else {
+			t.Logf("%s: bound to %q", tc.name, key)
+		}
+		if ran == tc.refused || key != tc.want {
+			t.Fatalf("%s: ran=%v bound to %q, want refused=%v bound to %q", tc.name, ran, key, tc.refused, tc.want)
+		}
 	}
 }

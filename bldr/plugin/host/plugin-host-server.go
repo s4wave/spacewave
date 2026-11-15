@@ -2,6 +2,7 @@ package plugin_host
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
@@ -17,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PluginHostServer implements the PluginHost rpc service
+// PluginHostServer implements the PluginHost rpc service.
 type PluginHostServer struct {
 	// b is the bus
 	b bus.Bus
@@ -41,6 +42,9 @@ type PluginHostServer struct {
 	// instance allocates named volumes through. Empty selects the host
 	// default storage.
 	hostStorageID string
+	// hostExportPluginIDs are the scheduler's trusted plugins: they may name
+	// any instance, and the others reach them on the scheduler's key.
+	hostExportPluginIDs []string
 	// scheduler is the host scheduler running this plugin, if any.
 	scheduler bldr_plugin.PluginScheduler
 	// pluginFsTracker tracks loaded plugin FSCursor servers
@@ -92,6 +96,12 @@ func (s *PluginHostServer) SetRegistrationInstanceKey(instanceKey string) {
 	s.registrationInstanceKey = instanceKey
 }
 
+// SetHostExportPluginIDs sets the scheduler's trusted plugins (see
+// loadInstanceKey). Set it before exposing this server to its plugin.
+func (s *PluginHostServer) SetHostExportPluginIDs(pluginIDs []string) {
+	s.hostExportPluginIDs = pluginIDs
+}
+
 // SetPluginScheduler sets the host scheduler whose status WatchPluginStatus
 // streams. Set it before exposing this server to its plugin.
 func (s *PluginHostServer) SetPluginScheduler(scheduler bldr_plugin.PluginScheduler) {
@@ -127,9 +137,12 @@ func (s *PluginHostServer) LoadPlugin(
 		return err
 	}
 
-	// Resolve the instance key into the request.
+	// Resolve the instance key the caller may load into the request.
 	pluginID := req.GetPluginId()
-	instanceKey := s.resolveInstanceKey(req.GetInstanceKey())
+	instanceKey, err := s.loadInstanceKey(pluginID, req.GetInstanceKey())
+	if err != nil {
+		return err
+	}
 	if instanceKey != req.GetInstanceKey() {
 		req = req.CloneVT()
 		req.InstanceKey = instanceKey
@@ -140,13 +153,32 @@ func (s *PluginHostServer) LoadPlugin(
 	return HandleLoadPluginRpc(s.b, req, strm)
 }
 
-// resolveInstanceKey returns the instance key a request addresses, defaulting
-// an empty key to the scheduler's instance.
-func (s *PluginHostServer) resolveInstanceKey(instanceKey string) string {
-	if instanceKey == "" {
-		return s.instanceKey
+// loadInstanceKey returns the instance key a load of pluginID by this server's
+// plugin runs under, given the key the request names, which may be empty.
+//
+// Invariant: a plugin cannot obtain an instance, of itself or of another
+// plugin, on a wider volume view than its own. The rules:
+//
+//   - A host-export caller may name any key; an empty key selects the
+//     scheduler's.
+//   - An empty-key load of a host-export plugin runs on the scheduler's key.
+//     These are the app's own trusted plugins, so no caller's code gains a
+//     wider view, and a Space's plugins reach spacewave-core this way.
+//   - Any other load inherits the caller's own binding key: an empty key or
+//     the caller's own selects it, and any other key is refused.
+func (s *PluginHostServer) loadInstanceKey(pluginID, instanceKey string) (string, error) {
+	switch {
+	case slices.Contains(s.hostExportPluginIDs, s.pluginID):
+		if instanceKey == "" {
+			return s.instanceKey, nil
+		}
+		return instanceKey, nil
+	case instanceKey == "" && slices.Contains(s.hostExportPluginIDs, pluginID):
+		return s.instanceKey, nil
+	case instanceKey == "" || instanceKey == s.registrationInstanceKey:
+		return s.registrationInstanceKey, nil
 	}
-	return instanceKey
+	return "", errors.Errorf("plugin %s may not load %s at instance %q", s.pluginID, pluginID, instanceKey)
 }
 
 // PluginRpc forwards an RPC call to a remote plugin.
@@ -169,7 +201,10 @@ func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcSt
 			}
 
 			// Build the load directive for the target plugin.
-			instanceKey = s.resolveInstanceKey(instanceKey)
+			instanceKey, err = s.loadInstanceKey(pluginID, instanceKey)
+			if err != nil {
+				return nil, "", nil, err
+			}
 			dir := bldr_plugin.NewLoadPluginInstanced(pluginID, instanceKey)
 			if manifestRoot != "" {
 				dir = bldr_plugin.NewLoadPluginAtManifest(pluginID, instanceKey, manifestRoot)
@@ -193,7 +228,7 @@ func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcSt
 
 // PluginFsRpc accesses a FSCursorService to access the plugin assets or dist filesystems.
 // The plugin will remain loaded as long as the RPC is active.
-// Component ID: plugin-assets or plugin-dist
+// Component ID: plugin-assets or plugin-dist.
 func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_PluginFsRpcStream) error {
 	return rpcstream.HandleRpcStream(
 		rpcStream,
