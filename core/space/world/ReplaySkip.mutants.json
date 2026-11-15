@@ -14,11 +14,11 @@
     "name": "an applied op the config now skips keeps its place",
     "replace": [
       [
-        "                               /\\ ~(s[i].out = \"applied\" /\\ s[i].op \\in Skipped(v))",
-        "                               /\\ TRUE"
+        "                                  \\/ ~(s[i].out = \"applied\" /\\ s[i].op \\in Skipped(v))",
+        "                                  \\/ TRUE"
       ]
     ],
-    "expect": "Agree",
+    "expect": "SkipHonored",
     "config": "ReplaySkip.cfg"
   },
   {

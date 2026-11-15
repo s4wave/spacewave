@@ -274,3 +274,51 @@ func TestSkipSOOperationIsFinal(t *testing.T) {
 		}
 	}
 }
+
+// TestStaleCheckpointKeepsSkip checks that a checkpoint an owner signs under a
+// config older than a skip cannot cover the skipped operation with its effect.
+// Owner B, still under the config before owner A's skip, checkpoints a state
+// that applied the operation; a replica holding the skip must refuse that
+// checkpoint or hold a state without the operation.
+func TestStaleCheckpointKeepsSkip(t *testing.T) {
+	// Two owners and a writer; the writer writes the operation A skips.
+	peers := createMockPeers(t, 3)
+	keys := mustPrivKeys(t, peers)
+	owner := SOParticipantRole_SOParticipantRole_OWNER
+	state, _ := newTestSOState(t, peers, owner, owner, SOParticipantRole_SOParticipantRole_WRITER)
+	skipped := writeTestOp(t, state, keys[2], "skipped")
+
+	// B keeps the config before the skip; A's replica takes the skip.
+	stale := state.CloneVT()
+	applyTestSkip(t, state, keys[0], testSkip(t, state, skipped, ""))
+
+	// B checkpoints a state that applied the operation.
+	xfrm, err := testHandle(t, stale, keys[1]).GetTransformer(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	enc, err := xfrm.EncodeBlock([]byte("skipped"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkpoint, err := stale.BuildNextCheckpoint(mockSharedObjectID, keys[1], enc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The replica refuses it, or holds a state without the operation.
+	if err := state.AdoptCheckpoint(mockSharedObjectID, checkpoint); err != nil {
+		return
+	}
+	inner, err := state.GetCheckpoint().UnmarshalInner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := xfrm.DecodeBlock(inner.GetStateData())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "skipped") {
+		t.Fatalf("adopted a checkpoint signed under the config before the skip, with state %q holding the skipped operation", data)
+	}
+}
