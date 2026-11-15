@@ -154,6 +154,7 @@ func (a *DevtoolArgs) executeWebProject(ctx context.Context, compilerName, goPlu
 		a.WebListenAddr,
 		appID,
 		startupPlugins,
+		startConf.GetAdmissionPluginId(),
 		startupManifestPreflights,
 		webStartupSrcPath,
 		false,
@@ -178,12 +179,13 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	listenAddr string,
 	appID string,
 	startPlugins []string,
+	admissionPluginID string,
 	startupManifestPreflights []StartupManifestPreflight,
 	webStartupSrcPath string,
 	forceDedicatedWorkers bool,
 	frontendService *bldr_project_controller.FrontendService,
 ) error {
-	return d.executeWebWasm(ctx, repoRoot, minifyEntrypoint, devMode, listenAddr, appID, startPlugins, startupManifestPreflights, webStartupSrcPath, forceDedicatedWorkers, frontendService, nil)
+	return d.executeWebWasm(ctx, repoRoot, minifyEntrypoint, devMode, listenAddr, appID, startPlugins, admissionPluginID, startupManifestPreflights, webStartupSrcPath, forceDedicatedWorkers, frontendService, nil)
 }
 
 // executeWebWasm builds the wasm web entrypoint and serves it over HTTP
@@ -196,6 +198,7 @@ func (d *DevtoolBus) executeWebWasm(
 	listenAddr string,
 	appID string,
 	startPlugins []string,
+	admissionPluginID string,
 	startupManifestPreflights []StartupManifestPreflight,
 	webStartupSrcPath string,
 	forceDedicatedWorkers bool,
@@ -424,6 +427,7 @@ func (d *DevtoolBus) executeWebWasm(
 		StartPlugins:              startPlugins,
 		ForceDedicatedWorkers:     forceDedicatedWorkers,
 		PlatformSelectionPolicies: startupManifestPlatformSelectionPolicies(startupManifestPreflights),
+		AdmissionPluginId:         admissionPluginID,
 	}
 	if err := browserInit.Validate(); err != nil {
 		return err

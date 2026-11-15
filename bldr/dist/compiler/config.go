@@ -154,9 +154,13 @@ func (c *Config) Merge(o *Config) {
 	// Merge controller configuration through its existing override rules.
 	configset_proto.MergeConfigSetMaps(c.HostConfigSet, o.GetHostConfigSet())
 
-	// Override project identity only when explicitly configured.
+	// Override project identity and the admission owner only when explicitly
+	// configured.
 	if cproj := o.GetProjectId(); cproj != "" {
 		c.ProjectId = cproj
+	}
+	if owner := o.GetAdmissionPluginId(); owner != "" {
+		c.AdmissionPluginId = owner
 	}
 
 	// Preserve unspecified compiler options and apply explicit selections.

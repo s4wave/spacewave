@@ -155,6 +155,12 @@ export interface StartConfig {
    * The contents will be used for the children of BldrRoot.
    */
   loadWebStartup?: string
+  /**
+   * AdmissionPluginId names the plugin that owns this device's plugin
+   * approvals. The host builds its root admission controller asking that
+   * plugin in code at startup; empty leaves admission to the trusted roots.
+   */
+  admissionPluginId?: string
 }
 
 export const StartConfig: MessageType<StartConfig> =
@@ -164,6 +170,7 @@ export const StartConfig: MessageType<StartConfig> =
       [1, 'plugins', 9, 1],
       [2, 'disable_build', 8],
       [3, 'load_web_startup', 9],
+      [4, 'admission_plugin_id', 9],
     ],
   )
 

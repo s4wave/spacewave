@@ -174,6 +174,12 @@ export interface Config {
    */
   updateGuardPluginIds?: string[]
   /**
+   * AdmissionPluginId names the plugin that owns this device's plugin
+   * approvals. The host builds its root admission controller asking that
+   * plugin in code at startup; empty leaves admission to the trusted roots.
+   */
+  admissionPluginId?: string
+  /**
    * GoscriptDeferredFunctions lists exported package/path.Function boundaries
    * whose modules initialize on first invocation in a GoScript dist build.
    */
@@ -213,6 +219,7 @@ export const Config: MessageType<Config> =
     [16, 'goscript_deferred_functions', 9, 1],
     [17, 'native_runner_package', 9],
     [18, 'compose_package', 9],
+    [19, 'admission_plugin_id', 9],
   ])
 
 /**

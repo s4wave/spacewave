@@ -41,6 +41,12 @@ export interface DevtoolInitBrowser {
    * platform selected by the active development compiler.
    */
   platformSelectionPolicies?: PlatformSelectionPolicy[]
+  /**
+   * AdmissionPluginId names the plugin that owns this device's plugin
+   * approvals. The host builds its root admission controller asking that
+   * plugin in code at startup; empty leaves admission to the trusted roots.
+   */
+  admissionPluginId?: string
 }
 
 export const DevtoolInitBrowser: MessageType<DevtoolInitBrowser> =
@@ -53,5 +59,6 @@ export const DevtoolInitBrowser: MessageType<DevtoolInitBrowser> =
       [4, 'start_plugins', 9, 1],
       [5, 'force_dedicated_workers', 8],
       [6, 'platform_selection_policies', 11, 1, PlatformSelectionPolicy.codec],
+      [7, 'admission_plugin_id', 9],
     ],
   )

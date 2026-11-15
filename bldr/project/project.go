@@ -67,6 +67,9 @@ func MergeProjectConfigs(dest, src *ProjectConfig) error {
 	if ws := srcStart.GetLoadWebStartup(); ws != "" {
 		dest.Start.LoadWebStartup = ws
 	}
+	if owner := srcStart.GetAdmissionPluginId(); owner != "" {
+		dest.Start.AdmissionPluginId = owner
+	}
 
 	// Merge the manifest configs by id.
 	if dest.Manifests == nil {

@@ -326,7 +326,7 @@ func testReleasedInstallationKeepsCatalogWorker(t *testing.T, serveAssets bool) 
 	// worker also registers, an asset worker only holds its files.
 	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "js"}}}
 	c := &Controller{
-		le: le, bus: tb.Bus, conf: &Config{PeerId: "root"},
+		le: le, bus: tb.Bus, conf: &Config{PeerId: "root", AdmissionPluginId: "owner"},
 		pluginHostsCtr:  ccontainer.NewCContainer(hosts),
 		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
 		pluginStatus:    make(map[string]*plugin.PluginStatus),
@@ -414,7 +414,7 @@ func TestReleasedInstallationLeavesGuardedWorker(t *testing.T) {
 	defer cancel()
 	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "js"}}}
 	c := &Controller{
-		le: logrus.NewEntry(logrus.New()), conf: &Config{PeerId: "root", UpdateGuardPluginIds: []string{"colors"}},
+		le: logrus.NewEntry(logrus.New()), conf: &Config{PeerId: "root", AdmissionPluginId: "owner", UpdateGuardPluginIds: []string{"colors"}},
 		pluginHostsCtr: ccontainer.NewCContainer(hosts),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
@@ -750,7 +750,7 @@ func newInstallationHarness(t *testing.T) *installationHarness {
 	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&startedPluginHost{testPluginHost: testPluginHost{id: "js"}, started: started}}}
 	var wsv world.WorldState = ws
 	c := &Controller{
-		le: le, bus: tb.Bus, conf: &Config{PeerId: "root", WatchFetchManifest: true}, objKey: installationHostKey,
+		le: le, bus: tb.Bus, conf: &Config{PeerId: "root", AdmissionPluginId: "owner", WatchFetchManifest: true}, objKey: installationHostKey,
 		worldStateCtr: ccontainer.NewCContainer(wsv),
 		hostVolumeCtr: ccontainer.NewCContainer(&hostVol{
 			vol:  tb.Volume,

@@ -372,6 +372,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 			addr,
 			appID,
 			startPlugins,
+			projConfig.GetStart().GetAdmissionPluginId(),
 			startupManifestPreflights,
 			webStartupSrcPath,
 			workerMode == WorkerModeDedicated,

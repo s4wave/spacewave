@@ -92,6 +92,12 @@ func dictToStartConfig(val starlark.Value) (*bldr_project.StartConfig, error) {
 				return nil, errExpectedString("start", "loadWebStartup")
 			}
 			conf.LoadWebStartup = string(s)
+		case "admissionPluginId", "admission_plugin_id":
+			s, ok := item[1].(starlark.String)
+			if !ok {
+				return nil, errExpectedString("start", "admissionPluginId")
+			}
+			conf.AdmissionPluginId = string(s)
 		default:
 			return nil, errUnknownField("start", string(key))
 		}
