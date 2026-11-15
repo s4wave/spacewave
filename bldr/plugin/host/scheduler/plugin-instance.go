@@ -170,10 +170,7 @@ func (c *Controller) newPluginInstance(key pluginReference) (keyed.Routine, *plu
 
 	// Construct the shared state and resolve the binding key.
 	tr := newPluginState(c, le, pluginID, instanceKey, key.manifestRoot)
-	tr.bindingKey = key.instanceKey
-	if tr.bindingKey == "" {
-		tr.bindingKey = c.conf.GetInstanceKey()
-	}
+	tr.bindingKey = c.bindingKey(key.instanceKey)
 	tr.executions = keyed.NewKeyedRefCountWithLogger(tr.newExecution, le)
 
 	// Build the retry backoff policies from the config.
