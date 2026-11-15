@@ -19,8 +19,9 @@ export default async function main(
     backendAPI.protos.GetPluginInfoResponse.toJsonString(pluginInfo),
   )
 
-  // testbed service is registered directly on testbed mux, reachable via bus
-  // fallback (hostMux -> LookupRpcService -> testbed RpcServiceController)
+  // The testbed service is registered on the testbed mux. This plugin is
+  // outside the host set, so the host lets it reach that service only by the
+  // service's ID, which the native testbed allows for it.
   const testbedService = new TestbedResourceServiceClient(backendAPI.client)
 
   try {
