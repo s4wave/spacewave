@@ -1,7 +1,9 @@
 ---- MODULE ReplayWriteGate ----
 \* The adapter's write gate on one device. Replay is opening, caught up, or
 \* waiting at an operation it cannot apply yet: for a handler, for data a gap
-\* names, or to retry after a step failure of a kind no typed source names.
+\* names, or to retry after a step fails outside the operation's apply. The
+\* driver retries such a step after 250 ms, doubling the wait up to 30 s, with
+\* no end: a step that keeps failing keeps replay in that wait.
 \* The driver moves the replay state, and a writer checks it and admits,
 \* under the one lock, the adapter's bcast, so no move falls between a
 \* writer's check and its admission.
@@ -15,9 +17,10 @@
 \*
 \* Ops: a writer's admitted op is its own; Peers are another peer's ops. The
 \* peer op plugin needs a handler, which registers when HandlerArrives and
-\* which replay sees only when lookup is enabled; flaky fails its first step
-\* with an error of unknown kind; gap waits until data it names arrives; bad
-\* is refused by a typed source. The seed is a plugin op submitted by the
+\* which replay sees only when lookup is enabled; flaky's first step fails
+\* outside its apply, such as on a store read; gap waits until data it names
+\* arrives; bad's apply fails with an error of unknown kind, which refuses it
+\* as any failed apply is refused. The seed is a plugin op submitted by the
 \* plugin that handles it, so its writer begins only once its handler
 \* resolves. The nested writer begins once the seed's op is admitted, as a
 \* seed op's own plugin writes on a one-device Space.
@@ -75,11 +78,11 @@ Fill == /\ "gap" \in arrived /\ ~filled /\ filled' = TRUE
         /\ UNCHANGED <<replay, todo, arrived, registered, failed, holder, wstate,
                        applied, refused, badAdmit, badRefuse, restarted>>
 
-\* Step is one driver step under the lock. It applies the next op, refuses a
-\* bad one, or stops at it and waits; with nothing left it is caught up.
-\* Opening and caught up step at once; a handler wait steps when the watch
-\* sees the handler, a gap when its data arrives, an unknown failure after
-\* its backoff.
+\* Step is one driver step under the lock. It applies the next op, refuses
+\* one whose apply fails with an error of unknown kind, or stops at it and
+\* waits; with nothing left it is caught up. Opening and caught up step at
+\* once; a handler wait steps when the watch sees the handler, a gap when its
+\* data arrives, a failed step after its backoff.
 StepReady == \/ replay \in {"opening", "caughtUp"}
              \/ replay = "waitHandler" /\ Seen
              \/ replay = "waitGap" /\ filled
@@ -208,11 +211,19 @@ NoWriteWhileWaiting == ~badAdmit
 \* cancelled by its caller.
 RefusedOnlyInWait == ~badRefuse
 
-\* An op leaves the order only applied, or refused by a typed source: a
-\* failure of unknown kind waits and keeps it, and a restart re-runs it.
+\* An op leaves the order only applied, or refused when its apply fails with
+\* an error of unknown kind: a step that fails outside the apply waits and
+\* keeps it, and a restart re-runs it.
 OpsKept == /\ refused \subseteq {"bad"}
            /\ \A op \in arrived \cup {w \in Writers : wstate[w] = "admitted"} :
                 op \in applied \cup refused \/ \E i \in 1..Len(todo) : todo[i] = op
+
+\* Replay waits to retry only at a step that failed outside an apply: an
+\* apply's own error of unknown kind refuses its op instead, as on a build
+\* before the wait. In the apply only a gap waits: a missing handler, an
+\* unavailable plugin, a missing plugin build, an unavailable or released
+\* block, or a cancelled or expired context.
+RetryOnlyOutsideApply == replay = "waitRetry" => Head(todo) = "flaky"
 
 \* On a one-device Space, replay never waits once it opened, except at its
 \* own seed op after a restart, until the seed's plugin registers again.
