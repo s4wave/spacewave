@@ -9,7 +9,6 @@ import (
 	"net"
 	"path"
 	"slices"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1241,33 +1240,28 @@ func TestFSHandleResourceUploadTreeReplayWaits(t *testing.T) {
 
 // TestFSHandleResourceWritesReplayWaits checks the handle writes the
 // documentation viewer sends, from a caller that skips the app's save hold
-// while replay waits: Mknod and Truncate fail the call, and a WriteAt, which
-// answers once buffered, has its commit refused and reported by the next
-// Sync. The World holds nothing of them.
+// while replay waits, on the resources the RPC serves: Mknod fails the call,
+// a Truncate after a WriteAt with no Sync between them fails the call, and a
+// WriteAt, which answers once buffered, has its commit refused and reported
+// by the next Sync. Each refusal is the typed replay wait, and the World
+// holds nothing of them.
 func TestFSHandleResourceWritesReplayWaits(t *testing.T) {
 	gate := &replayGateEngine{}
-	ctx, resClient, _, _, cleanup := setupFSHandleResourceClientOn(t, func(eng world.Engine) world.Engine {
+	ctx, _, rootHandle, rootRes, cleanup := setupFSHandleResourceClientOn(t, func(eng world.Engine) world.Engine {
 		gate.Engine = eng
 		return gate
 	})
 	defer cleanup()
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
 	refused := func(what string, err error) {
 		t.Helper()
-		if err == nil || !strings.Contains(err.Error(), sobject.ErrReplayWaits.Error()) {
+		if !errors.Is(err, sobject.ErrReplayWaits) {
 			t.Fatalf("%s while replay waits: %v, want the replay wait", what, err)
 		}
 	}
 
 	// Write kept.txt while caught up.
 	mknod := func(name string) error {
-		_, err := rootSvc.Mknod(ctx, &s4wave_unixfs.HandleMknodRequest{
+		_, err := rootRes.Mknod(ctx, &s4wave_unixfs.HandleMknodRequest{
 			Names:    []string{name},
 			NodeType: s4wave_unixfs.MknodType_MKNOD_TYPE_FILE,
 			Mode:     0o644,
@@ -1277,41 +1271,40 @@ func TestFSHandleResourceWritesReplayWaits(t *testing.T) {
 	if err := mknod("kept.txt"); err != nil {
 		t.Fatal(err)
 	}
-	fileResp, err := rootSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "kept.txt"})
+	fileHandle, err := rootHandle.Lookup(ctx, "kept.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
-	fileRef := resClient.CreateResourceReference(fileResp.GetResourceId())
-	defer fileRef.Release()
-	fileClient, err := fileRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
+	defer fileHandle.Release()
+	fileRes := rootRes.newChildResource(fileHandle, []string{"kept.txt"})
+	write := func(data string) {
+		t.Helper()
+		if _, err := fileRes.WriteAt(ctx, &s4wave_unixfs.HandleWriteAtRequest{Data: []byte(data)}); err != nil {
+			t.Fatalf("buffered write: %v", err)
+		}
 	}
-	fileSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
-	if _, err := fileSvc.WriteAt(ctx, &s4wave_unixfs.HandleWriteAtRequest{Data: []byte("hello")}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := fileSvc.Sync(ctx, &s4wave_unixfs.HandleSyncRequest{}); err != nil {
+	write("hello")
+	if _, err := fileRes.Sync(ctx, &s4wave_unixfs.HandleSyncRequest{}); err != nil {
 		t.Fatal(err)
 	}
 
 	// While replay waits, each write is refused.
 	gate.waits.Store(true)
 	refused("mknod", mknod("waits.txt"))
-	if _, err := fileSvc.WriteAt(ctx, &s4wave_unixfs.HandleWriteAtRequest{Data: []byte("HELLO, WORLD")}); err != nil {
-		t.Fatalf("buffered write while replay waits: %v", err)
-	}
-	_, err = fileSvc.Sync(ctx, &s4wave_unixfs.HandleSyncRequest{})
+	write("HELLO, WORLD")
+	_, err = fileRes.Truncate(ctx, &s4wave_unixfs.HandleTruncateRequest{Size: 2})
+	refused("truncate after a buffered write", err)
+	write("HELLO, WORLD")
+	_, err = fileRes.Sync(ctx, &s4wave_unixfs.HandleSyncRequest{})
 	refused("sync of a buffered write", err)
-	_, err = fileSvc.Truncate(ctx, &s4wave_unixfs.HandleTruncateRequest{Size: 2})
-	refused("truncate", err)
 
 	// Once replay catches up, the World holds only what was written before.
 	gate.waits.Store(false)
-	if _, err := rootSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "waits.txt"}); err == nil {
+	if waits, err := rootHandle.Lookup(ctx, "waits.txt"); err == nil {
+		waits.Release()
 		t.Fatal("refused mknod created its file")
 	}
-	readResp, err := fileSvc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{Length: 64})
+	readResp, err := fileRes.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{Length: 64})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -354,7 +354,7 @@ func runPluginOpWaitingWrite(t *testing.T) {
 	go func() { committed <- world.ExecTransaction(ctx, eng, true, setRoot) }()
 
 	// The write returns the typed wait at once and reaches no order.
-	var wait *sobject.BodyWait
+	var wait *sobject.WriteWait
 	select {
 	case err := <-committed:
 		if !errors.As(err, &wait) || !errors.Is(err, sobject.ErrReplayWaits) {

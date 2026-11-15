@@ -29,6 +29,8 @@ type testBody struct {
 	installs []int
 	// missing makes Apply fail the "missing" operation.
 	missing bool
+	// gap makes the failure of "missing" a gap wait with no Wake.
+	gap bool
 	// storeGate, when set, holds each store Root returns until it closes.
 	storeGate chan struct{}
 }
@@ -74,6 +76,9 @@ func (b *testBody) Apply(_ context.Context, index int, op *OrderedOperation) (st
 	data := string(op.Data)
 	reason := op.Refused
 	switch {
+	case data == "missing" && b.missing && b.gap:
+		gap := &SOReplayWait{State: &SOReplayWait_Gap{Gap: &SOReplayWaitGap{}}}
+		return "", &BodyWait{Wait: gap, Err: errTestBodyBlock}
 	case data == "missing" && b.missing:
 		return "", errTestBodyBlock
 	case data == "solo" && prev != b.base:
@@ -230,19 +235,41 @@ func TestBodyDriverRunThrough(t *testing.T) {
 		t.Fatalf("solo lost to %v; want the late writer", last.RejectedEdits[0].GetLostToPeerIds())
 	}
 
-	// A body error stops the step at its operation, and the next step
-	// resumes there.
+	// A body error stops the step at its operation, and replay waits to
+	// retry at the deadline of the first backoff.
 	body.missing = true
 	writeTestOp(t, state, keys[2], "missing")
 	snap := testHandle(t, state, keys[0])
+	before := time.Now()
 	if err := d.Step(t.Context(), snap); !errors.Is(err, errTestBodyBlock) {
 		t.Fatalf("step error %v; want the missing block", err)
 	}
-	body.missing = false
+	deadline := time.UnixMilli(int64(d.replay.GetWaiting().GetRetry().GetDeadlineUnixMs())) //nolint:gosec // a time after the epoch.
+	if d.backoff != bodyRetryMin || deadline.Before(before.Add(bodyRetryMin).Truncate(time.Millisecond)) || deadline.After(time.Now().Add(bodyRetryMin)) {
+		t.Fatalf("replay %v backoff %v; want a retry at now+%v", d.replay, d.backoff, bodyRetryMin)
+	}
+
+	// A gap waits with no Wake: replay shows the gap, and the backoff
+	// grows, as only a retry can tell when the block arrives.
+	body.gap = true
+	var wait *BodyWait
+	if err := d.Step(t.Context(), snap); !errors.As(err, &wait) || wait.Wake != nil || !errors.Is(err, errTestBodyBlock) {
+		t.Fatalf("step error %v; want a gap wait over the missing block", err)
+	}
+	if d.replay.GetWaiting().GetGap() == nil || d.backoff != 2*bodyRetryMin {
+		t.Fatalf("replay %v backoff %v; want the gap and %v", d.replay, d.backoff, 2*bodyRetryMin)
+	}
+
+	// The next step resumes at the operation, catches up, and resets the
+	// backoff.
+	body.missing, body.gap = false, false
 	body.applies = nil
 	ev := step()
 	if !slices.Equal(body.applies, []int{len(ev.Order) - 1}) {
 		t.Fatalf("resumed at %v; want [%d]", body.applies, len(ev.Order)-1)
+	}
+	if d.replay.GetCaughtUp() == nil || d.backoff != 0 {
+		t.Fatalf("replay %v backoff %v; want caught up and no backoff", d.replay, d.backoff)
 	}
 
 	// A checkpoint over the first two operations with the state the body

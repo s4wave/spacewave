@@ -195,8 +195,9 @@ func (a *Adapter) participant(ctx context.Context) (*sobject.SOParticipantConfig
 }
 
 // writeOp queues op after this device's admitted operations and waits for
-// replay to decide it. Like Admit, it returns replay's wait while replay is
-// not caught up, since its caller chose op from the installed head.
+// replay to decide it. Like Admit, it waits while replay opens and returns
+// replay's wait while replay waits, since its caller chose op from the
+// installed head.
 func (a *Adapter) writeOp(ctx context.Context, op *WorldOp) error {
 	// Queue it unless replay is not caught up.
 	data, err := op.MarshalVT()
@@ -204,7 +205,7 @@ func (a *Adapter) writeOp(ctx context.Context, op *WorldOp) error {
 		return err
 	}
 	adm := a.newAdmission(world.Candidate{}, data, nil, nil)
-	if err := a.admitWrite(adm); err != nil {
+	if err := a.admitWrite(ctx, adm); err != nil {
 		return err
 	}
 	a.queue.push(adm)
