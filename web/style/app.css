@@ -80,8 +80,8 @@
 }
 
 /* Table variants read the nearest table container, the one Table in
-   web/ui/table makes, at DESIGN.md's table steps: a further column shows from
-   the step that holds it with the columns before it. */
+   web/ui/table makes or FileList's, at DESIGN.md's table steps: a further
+   column shows from the step that holds it with the columns before it. */
 @custom-variant @table-16 (@container table (width >= 16rem));
 @custom-variant @table-22 (@container table (width >= 22rem));
 @custom-variant @table-28 (@container table (width >= 28rem));

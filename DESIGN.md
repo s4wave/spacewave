@@ -756,15 +756,15 @@ In a `@pane-cramped` pane only presses marked essential stay. The states are
 in `web/object/ViewerFloat.tla`.
 
 A list, table or fact list sheds by its own width, through its own
-inline-size container, since it may sit beside a side column. `FileList` is the
-container `file-list` and sheds as below; a sort by a column it hid reads "by
-date" or "by size" beside Name. More stays at every width, since it is the only
-menu press on a touch screen:
+inline-size container, since it may sit beside a side column. `FileList` is a
+`table` container and sheds at the Table's first two steps, through the same
+variants; a sort by a column it hid reads "by date" or "by size" beside Name.
+More stays at every width, since it is the only menu press on a touch screen:
 
 | Part | Own width | Changes |
 |---|---|---|
-| List rows | < 24rem | The date column leaves with its header |
-| List rows | < 15.5rem | The size column leaves, so the name keeps `viewer-name` |
+| List rows | < 22rem | The date column leaves with its header |
+| List rows | < 16rem | The size column leaves, so the name keeps `viewer-name` |
 | Fact rows | < 13rem | The label sits over its value |
 | Table | 16, 22, 28, 40rem | Further columns appear in the order the reader needs them; a state column is a glyph until 22rem |
 

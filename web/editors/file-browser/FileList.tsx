@@ -244,8 +244,8 @@ export function FileList({
               <span
                 className={cn(
                   'text-foreground-alt flex items-center gap-1',
-                  sortKey === 'date' && '@min-[24rem]/file-list:hidden',
-                  sortKey === 'size' && '@min-[15.5rem]/file-list:hidden',
+                  sortKey === 'date' && '@table-22:hidden',
+                  sortKey === 'size' && '@table-16:hidden',
                 )}
               >
                 by {sortKey === 'date' ? 'date' : 'size'}
@@ -258,7 +258,7 @@ export function FileList({
               <button
                 type="button"
                 className={cn(
-                  'hidden w-35 min-w-25 shrink cursor-pointer items-center gap-1 bg-transparent px-0 py-1.5 text-left text-xs @min-[24rem]/file-list:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
+                  'hidden w-35 min-w-25 shrink cursor-pointer items-center gap-1 bg-transparent px-0 py-1.5 text-left text-xs @table-22:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
                   sortKey === 'date' && 'text-foreground',
                 )}
                 onClick={() => handleSort('date')}
@@ -271,7 +271,7 @@ export function FileList({
               <button
                 type="button"
                 className={cn(
-                  'hidden w-17.5 min-w-12.5 shrink cursor-pointer items-center justify-end gap-1 bg-transparent px-0 py-1.5 text-left text-xs @min-[15.5rem]/file-list:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
+                  'hidden w-17.5 min-w-12.5 shrink cursor-pointer items-center justify-end gap-1 bg-transparent px-0 py-1.5 text-left text-xs @table-16:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
                   sortKey === 'size' && 'text-foreground',
                 )}
                 onClick={() => handleSort('size')}
@@ -293,7 +293,7 @@ export function FileList({
   return (
     <FileListRowConfigContext.Provider value={rowConfig}>
       <List
-        className="@container/file-list"
+        className="@container/table"
         items={items}
         rowHeight={effectiveRowHeight}
         rowComponent={FileListRow}

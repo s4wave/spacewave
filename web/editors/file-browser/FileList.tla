@@ -4,11 +4,13 @@ EXTENDS Naturals
 \* the pointer or the keyboard. The list reads its own width, not the window's,
 \* because it sits in a pane the person resizes. Its columns follow that width:
 \*
-\*   wide    (24rem and wider):      Name, Date Modified, Size
-\*   medium  (15.5rem up to 24rem):  Name, Size
-\*   narrow  (under 15.5rem):        Name
+\*   wide    (22rem and wider):    Name, Date Modified, Size
+\*   medium  (16rem up to 22rem):  Name, Size
+\*   narrow  (under 16rem):        Name
 \*
-\* Date leaves first, then Size, so the name is the last thing to lose width.
+\* These are the Table's first two steps: the list is a table container and
+\* reads the same width variants. Date leaves first, then Size, so the name
+\* is the last thing to lose width.
 \* A list whose caller gives no entry details, such as a Git tree, has only
 \* Name at every width, and sorts by name whatever sort the shared file
 \* browser state holds.
@@ -48,7 +50,7 @@ Sorted == IF details THEN sort ELSE "name"
 
 \* Label is the "by date" or "by size" beside Name, read the way the header
 \* draws it: shown for a date or size sort and hidden from the width where
-\* that column's own header shows (24rem for Date, 15.5rem for Size).
+\* that column's own header shows (22rem for Date, 16rem for Size).
 Label ==
   CASE Sorted = "date" /\ width # "wide" -> "date"
     [] Sorted = "size" /\ width = "narrow" -> "size"
