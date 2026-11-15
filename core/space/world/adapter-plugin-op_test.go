@@ -335,7 +335,7 @@ func runPluginOpWaitingWrite(t *testing.T) {
 
 	// Set plugin-object's root on the waiting engine, whose World is the one
 	// before the operation.
-	staleHash, err := hash.Sum(hash.HashType_HashType_BLAKE3, []byte("root set while waiting"))
+	staleHash, err := hash.Sum(block.DefaultHashType, []byte("root set while waiting"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -489,7 +489,7 @@ func runPluginOpLateWait(t *testing.T) {
 
 	// A root set on the World before the operation is refused.
 	before := orderLen(ctx, t, so)
-	staleHash, err := hash.Sum(hash.HashType_HashType_BLAKE3, []byte("root set after catch up"))
+	staleHash, err := hash.Sum(block.DefaultHashType, []byte("root set after catch up"))
 	if err != nil {
 		t.Fatal(err)
 	}
