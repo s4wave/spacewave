@@ -24,6 +24,15 @@ type WorldStage interface {
 	// WorldStorage builds cursors whose writes the stage owns.
 	WorldStorage
 
+	// StoreRoots makes the trees under roots built through the stage durable
+	// in the store now, held by the stage until Release. A builder calls it
+	// when a build finishes, outside any World writer, so the transaction
+	// that adopts the roots stores none of their blocks under the writer.
+	// Skipping it costs only that: the adopting commit stores what the stage
+	// still keeps before its operation, either way. It only puts blocks and
+	// names, pins and completes no root.
+	StoreRoots(ctx context.Context, roots []*block.BlockRef) error
+
 	// ReleaseRoots drops the stage's ownership of roots built through it. Call
 	// it once the transaction that references them has returned. Each root
 	// then survives only through a committed parent. The stage stays open.
@@ -111,6 +120,11 @@ func (passthroughStage) ReleaseRoots(context.Context, []*block.BlockRef) error {
 	return nil
 }
 
+// StoreRoots does nothing: the wrapped storage owns its writes.
+func (passthroughStage) StoreRoots(context.Context, []*block.BlockRef) error {
+	return nil
+}
+
 // Release does nothing: the wrapped storage owns its writes.
 func (passthroughStage) Release() {}
 
@@ -172,6 +186,23 @@ func (s *storageStage) ReleaseRoots(ctx context.Context, roots []*block.BlockRef
 	// Release the roots in each stage.
 	for _, store := range stores {
 		if err := block.ReleaseRoots(ctx, store, roots); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// StoreRoots stores the kept trees under roots in every volume stage the scope
+// opened. A stage that keeps none of them stores nothing.
+func (s *storageStage) StoreRoots(ctx context.Context, roots []*block.BlockRef) error {
+	// Take the open stages; a released scope owns nothing.
+	s.mtx.Lock()
+	stores := s.stores
+	s.mtx.Unlock()
+
+	// Store the kept trees through each stage.
+	for _, store := range stores {
+		if err := block.StoreRoots(ctx, store, roots); err != nil {
 			return err
 		}
 	}

@@ -540,6 +540,7 @@ func (s *PendingStore) OpenStage(ctx context.Context) (StoreOps, func(), error) 
 	}
 	ps := &pendingStage{PendingStore: s, stage: stage, hold: newPendingHold()}
 	return ps, func() {
+		ps.endFlushes()
 		s.release(ps.hold)
 		release()
 	}, nil

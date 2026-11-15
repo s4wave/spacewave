@@ -151,6 +151,13 @@ func (s *guardedStore) OpenStage(ctx context.Context) (block.StoreOps, func(), e
 	return &guardedStore{store: store, check: s.check}, release, nil
 }
 
+// StoreRoots stores the wrapped stage's kept trees. It needs no check: by
+// the block.RootStorer contract it only puts blocks, as PutBlock does, and
+// names, pins and completes no root.
+func (s *guardedStore) StoreRoots(ctx context.Context, roots []*block.BlockRef) error {
+	return block.StoreRoots(ctx, s.store, roots)
+}
+
 // ReleaseRoots drops this stage's own holds, which keep nothing a committed
 // World object names alive.
 func (s *guardedStore) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {

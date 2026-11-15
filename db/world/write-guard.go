@@ -313,6 +313,12 @@ func (s *guardedStage) ReleaseRoots(ctx context.Context, roots []*block.BlockRef
 	return s.stage.ReleaseRoots(ctx, roots)
 }
 
+// StoreRoots stores the wrapped stage's kept trees. It needs no check: by
+// the block.RootStorer contract it only puts blocks and names no root.
+func (s *guardedStage) StoreRoots(ctx context.Context, roots []*block.BlockRef) error {
+	return s.stage.StoreRoots(ctx, roots)
+}
+
 // Release ends the wrapped stage.
 func (s *guardedStage) Release() {
 	s.stage.Release()

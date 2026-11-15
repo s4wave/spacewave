@@ -83,6 +83,12 @@ func (s *sdkStage) ReleaseRoots(ctx context.Context, roots []*block.BlockRef) er
 	return err
 }
 
+// StoreRoots does nothing here: the remote stage holds its puts, and the
+// transaction that adopts them stores what it still keeps.
+func (s *sdkStage) StoreRoots(context.Context, []*block.BlockRef) error {
+	return nil
+}
+
 // Release releases the stage resource.
 func (s *sdkStage) Release() {
 	s.ref.Release()

@@ -53,5 +53,13 @@ func (b *bucketRW) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([
 	return block.RootsComplete(ctx, b.store, refs)
 }
 
+// StoreRoots forwards the store of kept trees to the underlying stage.
+func (b *bucketRW) StoreRoots(ctx context.Context, roots []*block.BlockRef) error {
+	return block.StoreRoots(ctx, b.store, roots)
+}
+
 // _ is a type assertion
-var _ block.LeasedRoots = (*bucketRW)(nil)
+var (
+	_ block.LeasedRoots = (*bucketRW)(nil)
+	_ block.RootStorer  = (*bucketRW)(nil)
+)

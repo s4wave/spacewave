@@ -614,9 +614,13 @@ func (b *BatchFSWriter) CommitStaged(ctx context.Context, ts time.Time) (*bucket
 		}
 	}
 
-	// Write the tree into the stage, which holds it from here.
+	// Write the tree into the stage, which holds it from here, and store it
+	// now, so the transaction that adopts it writes none of it.
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
+		return nil, err
+	}
+	if err := b.stage.StoreRoots(ctx, []*block.BlockRef{rootRef}); err != nil {
 		return nil, err
 	}
 	out := b.storage.GetRef().Clone()

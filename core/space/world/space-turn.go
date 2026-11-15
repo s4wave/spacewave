@@ -63,12 +63,18 @@ func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 		return nil, err
 	}
 
-	// Hold what the queued operation needs durably before queueing it: its
-	// payloads, which name every object root its apply set (Tx.PayloadRefs).
-	// The hold stores each kept page a root reaches, nested refs included, in
-	// one transaction with the root's move, so an appended operation never
-	// names a block the store may drop. A crash after the hold and before the
-	// append leaves only the hold, which the next resetPayloads drops.
+	// Invariant: when the commit of an operation returns, every block under
+	// the roots it names is durable in the Space's block store on this
+	// device; a crash at any point leaves either no operation, or the
+	// operation with all its blocks. Order: blocks durable first, then the
+	// operation. The roots include a World stage's build, which its stage
+	// may still keep in memory: hold the payloads, which name every object
+	// root the apply set (Tx.PayloadRefs), before queueing the operation. The
+	// hold stores each kept page a root reaches, nested refs included, in
+	// one transaction with the root's move; a builder that called
+	// WorldStage.StoreRoots left none to store here. A crash after the hold
+	// and before the append leaves only the hold, which the next
+	// resetPayloads drops.
 	if err := a.holdAdmitted(ctx, adm); err != nil {
 		a.fail(adm, err)
 		return nil, err

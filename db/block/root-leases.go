@@ -49,6 +49,27 @@ func OpenStage(ctx context.Context, store StoreOps) (StoreOps, func(), error) {
 	return store.(LeasedRoots).OpenStage(ctx)
 }
 
+// RootStorer is a stage that keeps its puts in memory, such as one a
+// PendingStore opened, and can store them before a root names them.
+type RootStorer interface {
+	// StoreRoots stores the trees the roots reach that the stage keeps in
+	// memory, holding them until the stage is released, so the move that
+	// later names a root writes none of them. It only puts blocks: it sets,
+	// moves, pins and completes no root, so a write guard need not check it.
+	StoreRoots(ctx context.Context, roots []*BlockRef) error
+}
+
+// StoreRoots stores the kept trees under roots through a stage OpenStage
+// returned, when it keeps puts in memory. Any other stage holds its puts in
+// its store already.
+func StoreRoots(ctx context.Context, store StoreOps, roots []*BlockRef) error {
+	s, ok := store.(RootStorer)
+	if !ok || len(roots) == 0 {
+		return nil
+	}
+	return s.StoreRoots(ctx, roots)
+}
+
 // ReleaseRoots drops the stage's holds on roots the caller wrote through a
 // store OpenStage returned. Each root then survives only through another
 // block's reference, a named root, or a pin.

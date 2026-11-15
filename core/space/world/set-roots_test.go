@@ -79,9 +79,18 @@ func storedTxs(ctx context.Context, t *testing.T, so sobject.SharedObject) []*wo
 	if err != nil {
 		t.Fatal(err)
 	}
-	set, err := snap.GetOperationSet(ctx)
+	txs, err := snapshotTxs(ctx, snap)
 	if err != nil {
 		t.Fatal(err)
+	}
+	return txs
+}
+
+// snapshotTxs returns the World transactions of the operations snap orders.
+func snapshotTxs(ctx context.Context, snap sobject.SharedObjectStateSnapshot) ([]*world_block_tx.Tx, error) {
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		return nil, err
 	}
 	var txs []*world_block_tx.Tx
 	for _, h := range set.Order() {
@@ -99,7 +108,48 @@ func storedTxs(ctx context.Context, t *testing.T, so sobject.SharedObject) []*wo
 		}
 		txs = append(txs, op.GetApplyTxOp().GetTx())
 	}
-	return txs
+	return txs, nil
+}
+
+// txSetRoots returns the set roots tx's applied operations record, through
+// every batched transaction.
+func txSetRoots(tx *world_block_tx.Tx) []*block.BlockRef {
+	roots := slices.Clone(tx.GetTxApplyWorldOp().GetSetRoots())
+	roots = append(roots, tx.GetTxApplyObjectOp().GetSetRoots()...)
+	for _, btx := range tx.GetTxBatch().GetTxs() {
+		roots = append(roots, txSetRoots(btx)...)
+	}
+	return roots
+}
+
+// waitSetRoots waits until the operations so orders name at least n set
+// roots, and returns them.
+func waitSetRoots(ctx context.Context, t *testing.T, so sobject.SharedObject, n int) []*block.BlockRef {
+	t.Helper()
+	ctr, rel, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel()
+	var roots []*block.BlockRef
+	_, err = ctr.WaitValueWithValidator(ctx, func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
+		if snap == nil {
+			return false, nil
+		}
+		txs, err := snapshotTxs(ctx, snap)
+		if err != nil {
+			return false, err
+		}
+		roots = roots[:0]
+		for _, tx := range txs {
+			roots = append(roots, txSetRoots(tx)...)
+		}
+		return len(roots) >= n, nil
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return roots
 }
 
 // requireDurableSetRoots fails unless every root that a stored World
@@ -111,7 +161,7 @@ func requireDurableSetRoots(ctx context.Context, t *testing.T, so sobject.Shared
 	store := so.GetBlockStore()
 	named := 0
 	for i, tx := range storedTxs(ctx, t, so) {
-		named += len(tx.GetTxApplyWorldOp().GetSetRoots()) + len(tx.GetTxApplyObjectOp().GetSetRoots())
+		named += len(txSetRoots(tx))
 		refs, err := tx.PayloadRefs(ctx, lookup)
 		if err != nil {
 			t.Fatalf("operation %d: payload refs: %v", i, err)
@@ -533,6 +583,27 @@ func stageTree(ctx context.Context, t *testing.T, stage world.WorldStage, files 
 	return root
 }
 
+// timedStage times its StoreRoots calls, or skips them as a builder that
+// never stores its build ahead of the commit does.
+type timedStage struct {
+	world.WorldStage
+	// skip drops StoreRoots calls.
+	skip bool
+	// took is the time StoreRoots took.
+	took time.Duration
+}
+
+// StoreRoots stores the roots through the wrapped stage unless skip is set.
+func (s *timedStage) StoreRoots(ctx context.Context, roots []*block.BlockRef) error {
+	if s.skip {
+		return nil
+	}
+	began := time.Now()
+	err := s.WorldStage.StoreRoots(ctx, roots)
+	s.took += time.Since(began)
+	return err
+}
+
 // stageStore returns the block store the stage's cursors write through,
 // which serves the stage's buffered writes before they reach the Volume.
 func stageStore(ctx context.Context, t *testing.T, stage world.WorldStage) block.StoreOps {
@@ -594,6 +665,74 @@ func requireBlocks(ctx context.Context, t *testing.T, phase string, store block.
 	}
 }
 
+// stagePlainBlock writes data as one block through a plain cursor of stage
+// and returns the object root naming it.
+func stagePlainBlock(ctx context.Context, t *testing.T, stage world.WorldStage, data []byte) *bucket.ObjectRef {
+	t.Helper()
+	cursor, err := stage.BuildStorageCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cursor.Release()
+	ref, _, err := cursor.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := cursor.GetRef().Clone()
+	root.RootRef = ref
+	return root
+}
+
+// unstoredBlocks counts the blocks of blocks store lacks, and their bytes as
+// src reads them.
+func unstoredBlocks(ctx context.Context, t *testing.T, store, src block.StoreOps, blocks map[string]*block.BlockRef) (n, size int) {
+	t.Helper()
+	for _, ref := range blocks {
+		found, err := store.GetBlockExists(ctx, ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if found {
+			continue
+		}
+		data, found, err := src.GetBlock(ctx, ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found {
+			t.Fatal("the stage lost a staged block")
+		}
+		n, size = n+1, size+len(data)
+	}
+	return n, size
+}
+
+// requireRootBlock reads the root block of the object at key through eng and
+// fails unless it holds data.
+func requireRootBlock(ctx context.Context, t *testing.T, phase string, eng world.Engine, key string, data []byte) {
+	t.Helper()
+	err := world.ExecTransaction(ctx, eng, false, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := world.MustGetObject(ctx, ws, key)
+		if err != nil {
+			return err
+		}
+		defer world.ReleaseObjectState(obj)
+		return obj.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+			got, found, err := cursor.GetBlock(ctx, cursor.GetRef().GetRootRef())
+			if err != nil {
+				return err
+			}
+			if !found || !bytes.Equal(got, data) {
+				return errors.Errorf("root block found=%v holds %q, want %q", found, got, data)
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		t.Fatalf("%s: read %s: %v", phase, key, err)
+	}
+}
+
 // requireStagedFiles reads every file of files from the UnixFS object at key
 // through eng and fails unless each holds its bytes.
 func requireStagedFiles(ctx context.Context, t *testing.T, phase string, eng world.Engine, key string, files map[string][]byte) {
@@ -635,8 +774,10 @@ func requireStagedFiles(ctx context.Context, t *testing.T, phase string, eng wor
 }
 
 // TestStagedTreeReplays builds a UnixFS tree in a World stage, as a Notes
-// staged create's sender does, adopts its root in a World operation, then
-// releases the stage and collects. Every file must read whole on the writer;
+// staged create's sender does, and stores it with StoreRoots; builds a second
+// tree in the same stage without StoreRoots; adopts each in its own World
+// operation, measuring what each commit stores under the writer; then crashes,
+// releases the stages and collects. Every file must read whole on the writer;
 // after a restart that replays the operation above the replay cursor; and
 // after a replay from nothing, with no saved cursor and no payload hold, as a
 // member that never applied the operation replays it, with a collection after
@@ -658,15 +799,18 @@ func TestStagedTreeReplays(t *testing.T) {
 	store := so.GetBlockStore()
 
 	// Stage a small file the node embeds and a large one built as a blob,
-	// and in a second stage a tree no operation will adopt.
+	// stored ahead of the commit; in the same stage a tree whose builder
+	// skips StoreRoots; and in a second stage a tree no operation will adopt.
 	large := make([]byte, 3<<20)
+	attach := make([]byte, 1<<20)
 	draft := make([]byte, 1<<20)
-	for _, buf := range [][]byte{large, draft} {
+	for _, buf := range [][]byte{large, attach, draft} {
 		if _, err := rand.Read(buf); err != nil {
 			t.Fatal(err)
 		}
 	}
 	files := map[string][]byte{"welcome.md": []byte("# Welcome\n"), "large.bin": large}
+	bareFiles := map[string][]byte{"notes.md": []byte("# Notes\n"), "attach.bin": attach}
 	stage, err := eng.StageWorldState(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -675,68 +819,99 @@ func TestStagedTreeReplays(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	root := stageTree(ctx, t, stage, files)
+	timed := &timedStage{WorldStage: stage}
+	root := stageTree(ctx, t, timed, files)
+	bare := stageTree(ctx, t, &timedStage{WorldStage: stage, skip: true}, bareFiles)
 	dropped := stageTree(ctx, t, abandon, map[string][]byte{"draft.bin": draft})
 	stagedStore, abandonStore := stageStore(ctx, t, stage), stageStore(ctx, t, abandon)
 	staged := walkBlocks(ctx, t, stagedStore, []*block.BlockRef{root.GetRootRef()})
+	bareBlocks := walkBlocks(ctx, t, stagedStore, []*block.BlockRef{bare.GetRootRef()})
 	unadopted := walkBlocks(ctx, t, abandonStore, []*block.BlockRef{dropped.GetRootRef()})
 	for key := range staged {
+		delete(bareBlocks, key)
 		delete(unadopted, key)
 	}
-	t.Logf("staged %d blocks, %d more unadopted", len(staged), len(unadopted))
+	for key := range bareBlocks {
+		delete(unadopted, key)
+	}
+	t.Logf("staged %d blocks, StoreRoots took %v; %d more without StoreRoots, %d more unadopted", len(staged), timed.took, len(bareBlocks), len(unadopted))
 
-	// A collection between the build and the operation keeps both trees.
+	// StoreRoots put both stored trees in the Volume; the bare tree is still
+	// only in the stage's memory.
+	if n, size := unstoredBlocks(ctx, t, store, stagedStore, staged); n != 0 {
+		t.Fatalf("the builder left %d staged blocks, %d bytes, for the commit to store", n, size)
+	}
+	if n, _ := unstoredBlocks(ctx, t, store, abandonStore, unadopted); n != 0 {
+		t.Fatalf("the builder left %d unadopted blocks unstored", n)
+	}
+	bareN, bareBytes := unstoredBlocks(ctx, t, store, stagedStore, bareBlocks)
+	if bareN != len(bareBlocks) {
+		t.Fatalf("%d of %d blocks built without StoreRoots are unstored, want all", bareN, len(bareBlocks))
+	}
+
+	// A collection between the build and the operation keeps the stored
+	// trees in the Volume: the stages' StoreRoots holds keep them.
 	f.collect(t)
-	requireBlocks(ctx, t, "collected before the operation", stagedStore, staged, true)
-	requireBlocks(ctx, t, "collected before the operation, unadopted", abandonStore, unadopted, true)
+	requireBlocks(ctx, t, "collected before the operation", store, staged, true)
+	requireBlocks(ctx, t, "collected before the operation, unadopted", store, unadopted, true)
+	requireBlocks(ctx, t, "collected before the operation, bare", stagedStore, bareBlocks, true)
 
-	// Count what the commit's fence stores under the writer: the staged
-	// blocks the Volume lacks before the operation.
-	var fencedBlocks, fencedBytes int
-	for _, ref := range staged {
-		found, err := store.GetBlockExists(ctx, ref)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if found {
-			continue
-		}
-		data, found, err := stagedStore.GetBlock(ctx, ref)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !found {
-			t.Fatal("the stage lost a staged block before the operation")
-		}
-		fencedBlocks++
-		fencedBytes += len(data)
+	// Write a block through the stage's plain cursor, which no builder
+	// stores ahead of the commit, so the commit's fence must.
+	plainData := []byte("plain staged block")
+	plain := stagePlainBlock(ctx, t, stage, plainData)
+	plainBlocks := map[string]*block.BlockRef{plain.GetRootRef().MarshalString(): plain.GetRootRef()}
+	if n, _ := unstoredBlocks(ctx, t, store, stagedStore, plainBlocks); n != 1 {
+		t.Fatalf("%d plain staged blocks are unstored before the commit, want 1", n)
 	}
 
-	// Adopt the root. When the commit returns every staged block is in the
-	// Volume, though the stage is still held and was never synced.
-	op := &adoptStagedOp{MockWorldOp: world_mock.NewMockWorldOp("files", root.MarshalString())}
-	began := time.Now()
-	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
-		_, _, err := ws.ApplyWorldOp(ctx, op, "")
-		return err
-	}); err != nil {
-		t.Fatal(err)
+	// Adopt the stored tree. The commit stores none of it.
+	adopt := func(ops ...world.Operation) time.Duration {
+		t.Helper()
+		began := time.Now()
+		if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+			for _, op := range ops {
+				if _, _, err := ws.ApplyWorldOp(ctx, op, ""); err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return time.Since(began)
 	}
-	t.Logf("the commit stored %d staged blocks, %d bytes, in %v", fencedBlocks, fencedBytes, time.Since(began))
-	requireBlocks(ctx, t, "after the commit", store, staged, true)
+	took := adopt(&adoptStagedOp{MockWorldOp: world_mock.NewMockWorldOp("files", root.MarshalString())})
+	t.Logf("the commit adopting the stored tree stored 0 staged blocks, 0 bytes, in %v", took)
+
+	// Adopt the bare tree and the plain block in one commit, which the Space
+	// stores as a TxBatch. The commit's fence stores them: when it returns
+	// every staged block is in the Volume, though the stage is still held and
+	// was never synced.
+	took = adopt(
+		&adoptStagedOp{MockWorldOp: world_mock.NewMockWorldOp("bare", bare.MarshalString())},
+		&adoptStagedOp{MockWorldOp: world_mock.NewMockWorldOp("plain", plain.MarshalString())},
+	)
+	t.Logf("the batched commit adopting the bare tree stored %d staged blocks, %d bytes, and the plain block, in %v", bareN, bareBytes, took)
+	adopted := make(map[string]*block.BlockRef, len(staged)+len(bareBlocks)+1)
+	for _, blocks := range []map[string]*block.BlockRef{staged, bareBlocks, plainBlocks} {
+		for key, ref := range blocks {
+			adopted[key] = ref
+		}
+	}
+	requireBlocks(ctx, t, "after the commits", store, adopted, true)
 	requireStagedFiles(ctx, t, "after the commit", eng, "files", files)
+	requireStagedFiles(ctx, t, "after the commit", eng, "bare", bareFiles)
 
-	// Every staged block is reachable from the stored operation's set roots
-	// through a store holding only the staged blocks.
-	var setRoots []*block.BlockRef
-	for _, tx := range storedTxs(ctx, t, so) {
-		setRoots = append(setRoots, tx.GetTxApplyWorldOp().GetSetRoots()...)
+	// Every adopted block is reachable from the stored operations' set roots
+	// through a store holding only the adopted blocks. The three roots reach
+	// the Space's order after the commits return.
+	setRoots := waitSetRoots(ctx, t, so, 3)
+	reached := walkBlocks(ctx, t, onlyBlocks{StoreOps: stagedStore, keep: adopted}, setRoots)
+	if len(reached) != len(adopted) {
+		t.Fatalf("the operations' %d set roots reach %d of %d adopted blocks", len(setRoots), len(reached), len(adopted))
 	}
-	reached := walkBlocks(ctx, t, onlyBlocks{StoreOps: stagedStore, keep: staged}, setRoots)
-	if len(reached) != len(staged) {
-		t.Fatalf("the operation's %d set roots reach %d of %d staged blocks", len(setRoots), len(reached), len(staged))
-	}
-	t.Logf("%d set roots reach all %d staged blocks", len(setRoots), len(reached))
+	t.Logf("%d set roots reach all %d adopted blocks", len(setRoots), len(reached))
 
 	// Crash: drop the engine and its memory with both stages held and
 	// neither synced. The stages are released only once the engine is gone.
@@ -744,16 +919,18 @@ func TestStagedTreeReplays(t *testing.T) {
 		stage.Release()
 		abandon.Release()
 	})
-	waitObjects(ctx, t, eng, "files")
+	waitObjects(ctx, t, eng, "files", "bare", "plain")
 	requireStagedFiles(ctx, t, "after a crash", eng, "files", files)
+	requireStagedFiles(ctx, t, "after a crash", eng, "bare", bareFiles)
+	requireRootBlock(ctx, t, "after a crash", eng, "plain", plainData)
 
 	// The adopted tree survives a collection; the tree no operation adopted
 	// was never named by one and is freed.
 	f.collect(t)
-	requireBlocks(ctx, t, "collected after a crash", store, staged, true)
+	requireBlocks(ctx, t, "collected after a crash", store, adopted, true)
 	requireBlocks(ctx, t, "collected after a crash, unadopted", store, unadopted, false)
 	for _, tx := range storedTxs(ctx, t, so) {
-		for _, ref := range tx.GetTxApplyWorldOp().GetSetRoots() {
+		for _, ref := range txSetRoots(tx) {
 			if ref.EqualsRef(dropped.GetRootRef()) {
 				t.Fatal("a stored operation names the unadopted root")
 			}
@@ -763,6 +940,8 @@ func TestStagedTreeReplays(t *testing.T) {
 		t.Fatal("the stored operation names no set root")
 	}
 	requireStagedFiles(ctx, t, "collected after a crash", eng, "files", files)
+	requireStagedFiles(ctx, t, "collected after a crash", eng, "bare", bareFiles)
+	requireRootBlock(ctx, t, "collected after a crash", eng, "plain", plainData)
 	if h := checkpointHeight(ctx, t, so); h != 0 {
 		t.Fatalf("checkpoint at %d covers the operation; the test needs it above", h)
 	}

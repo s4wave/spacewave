@@ -35,17 +35,25 @@ const (
 // Cost: one inner put per slice of the kept trees, and one existence read and
 // pin per unkept root, all before the caller's lock.
 func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release func(), err error) {
+	return s.flush(ctx, roots, true)
+}
+
+// flush is Flush, pinning the unkept roots only when pin is set. Without pin
+// it only puts kept blocks, so a caller that may not hold roots can use it.
+func (s *PendingStore) flush(ctx context.Context, roots []*BlockRef, pin bool) (release func(), err error) {
 	// Gather the kept trees no open flush stored, and the roots kept nowhere
 	// here.
 	tree, keys, stopped := s.reachSliced(roots, true)
-	s.mtx.Lock()
 	var unkept []*BlockRef
-	for _, root := range roots {
-		if !root.GetEmpty() && s.kept[pendingKey(root)] == nil {
-			unkept = append(unkept, root)
+	if pin {
+		s.mtx.Lock()
+		for _, root := range roots {
+			if !root.GetEmpty() && s.kept[pendingKey(root)] == nil {
+				unkept = append(unkept, root)
+			}
 		}
+		s.mtx.Unlock()
 	}
-	s.mtx.Unlock()
 
 	// Open the stage that holds them until the swap.
 	stage, releaseStage, err := OpenStage(ctx, s.StoreOps)

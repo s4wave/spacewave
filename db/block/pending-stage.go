@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 )
 
@@ -20,6 +21,49 @@ type pendingStage struct {
 	// stored records that a put went to stage, including one that failed
 	// there.
 	stored atomic.Bool
+
+	// flushMtx guards flushes and ended.
+	flushMtx sync.Mutex
+	// flushes are the releases of the Flushes StoreRoots opened.
+	flushes []func()
+	// ended is set once the stage is released.
+	ended bool
+}
+
+// StoreRoots stores the kept trees the roots reach under a stage of the inner
+// store, as PendingStore.Flush does, and holds them there until this stage is
+// released. It only puts blocks: unlike Flush it pins no root it does not
+// keep, and it names no root, so a guarded caller may use it freely. A
+// SetRoots that names a root before the release, such as the one that adopts
+// a build, puts none of them again, so a builder that calls it when its build
+// finishes moves the build's writes out of the writer that adopts it; that
+// SetRoots still stores any block the roots reach that is not stored. Cost:
+// one inner put per Flush slice of the kept trees, made here.
+func (p *pendingStage) StoreRoots(ctx context.Context, roots []*BlockRef) error {
+	release, err := p.flush(ctx, roots, false)
+	if err != nil {
+		return err
+	}
+	p.flushMtx.Lock()
+	if p.ended {
+		p.flushMtx.Unlock()
+		release()
+		return ErrStageReleased
+	}
+	p.flushes = append(p.flushes, release)
+	p.flushMtx.Unlock()
+	return nil
+}
+
+// endFlushes releases the Flushes StoreRoots opened and refuses new ones.
+func (p *pendingStage) endFlushes() {
+	p.flushMtx.Lock()
+	flushes := p.flushes
+	p.flushes, p.ended = nil, true
+	p.flushMtx.Unlock()
+	for _, release := range flushes {
+		release()
+	}
 }
 
 // PutBlock keeps a block whose refs are known while the bound allows, and
@@ -81,6 +125,7 @@ func (s *OverflowStage) Stored() bool {
 // Release ends the stage. A block only it held is then freed once the grace
 // period passes.
 func (s *OverflowStage) Release() {
+	s.endFlushes()
 	s.release()
 }
 

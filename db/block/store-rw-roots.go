@@ -25,6 +25,11 @@ func (b *StoreRW) OpenStage(ctx context.Context) (StoreOps, func(), error) {
 	return &staged, release, nil
 }
 
+// StoreRoots forwards the store of kept trees to the write handle.
+func (b *StoreRW) StoreRoots(ctx context.Context, roots []*BlockRef) error {
+	return StoreRoots(ctx, b.StoreOps, roots)
+}
+
 // ReleaseRoots forwards staging release to the underlying store.
 func (b *StoreRW) ReleaseRoots(ctx context.Context, refs []*BlockRef) error {
 	return ReleaseRoots(ctx, b.StoreOps, refs)
