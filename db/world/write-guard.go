@@ -3,6 +3,9 @@ package world
 import (
 	"context"
 	"errors"
+	"slices"
+	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -21,8 +24,27 @@ import (
 // or an op. Removing a block, moving a named root and recording a completion
 // proof through a guarded cursor are unscoped writes.
 //
+// An op applied through a guarded state is guarded inside the engine: the
+// guarded state checks the op's type, then applies it with the guard on the
+// context, and the engine hands the op its own state wrapped by
+// GuardOpWorldState or GuardOpObjectState. Invariant: every write an op makes
+// while applied through a guarded state, including object and graph writes,
+// type writes, nested ops and object ops, is checked by the guard against the
+// key it actually writes. An apply with no guard on its context hands the op
+// the engine's state unchanged.
+//
+// A guarded apply fails closed. When the guard refused or failed to decide any
+// write in the op's tree of nested ops, the apply returns that error, even
+// when the op swallowed it and returned success: the op did not do what it
+// believes it did. An apply whose engine never wrapped its state for the
+// guard returns ErrEngineUnguardedOp. A guarded transaction discards itself
+// when an op applied in it fails, as guardedTx describes.
+//
 // The guarded types spell out every method of the interfaces they implement,
 // so a method added to an interface fails to compile until it is guarded.
+//
+// A WriteGuard must be comparable, such as a pointer: guarded states compare
+// guards to avoid checking a write twice.
 type WriteGuard interface {
 	// CheckWrite returns nil when w may be made on ws, or the refusal. ws is
 	// the unguarded state the write would change, for the guard's reads. A
@@ -38,12 +60,13 @@ type GuardedWrite struct {
 	OpTypeID string
 	// ObjectKeys are the objects the write creates, changes or deletes.
 	ObjectKeys []string
+	// Create marks a write that only creates the objects ObjectKeys names.
+	Create bool
 	// Quad is the graph quad the write sets or deletes, or nil.
 	Quad GraphQuad
 	// Unscoped marks a write that can change objects ObjectKeys does not
-	// name: a World op that is not a WriteKeysOperation, a writable graph
-	// handle, a rename of an object's descendants, and a block removal, root
-	// move or completion proof through a guarded cursor.
+	// name: a writable graph handle, a rename of an object's descendants, and
+	// a block removal, root move or completion proof through a guarded cursor.
 	Unscoped bool
 }
 
@@ -57,8 +80,157 @@ func IsGuardSysErr(err error) bool {
 // WorldStateGetter is an ObjectState that returns the WorldState holding it,
 // so a component that receives only the object can guard writes through it.
 type WorldStateGetter interface {
-	// GetWorldState returns the unguarded WorldState that holds the object.
+	// GetWorldState returns the WorldState that holds the object, guarded as
+	// the object is.
 	GetWorldState() WorldState
+}
+
+// ErrEngineUnguardedOp is returned by a guarded apply whose engine applied the
+// op without wrapping its state by GuardOpWorldState or GuardOpObjectState.
+var ErrEngineUnguardedOp = errors.New("world: engine does not guard the writes of ops it applies")
+
+// opApplyKey is the context key of the opApply an engine guards an op under.
+type opApplyKey struct{}
+
+// opApply is one op applied through a guarded state, carried on the context
+// to the engine that applies it.
+type opApply struct {
+	// guards are the guards the op's writes are checked by, outermost first.
+	guards []WriteGuard
+	// taken is set when an engine wraps its state for the guards.
+	taken atomic.Bool
+	// refusal holds the first guard error in the op's tree of nested ops.
+	refusal *opRefusal
+}
+
+// opRefusal holds the first error a guard returned during an op tree.
+type opRefusal struct {
+	mtx sync.Mutex
+	err error
+}
+
+// newOpApply returns the apply of an op through a state guarded by guard, as
+// a nested op of parent when parent is set: it keeps the parent's guards and
+// shares its refusal, so an outer op that swallows a nested refusal fails too.
+func newOpApply(parent *opApply, guard WriteGuard) *opApply {
+	if parent == nil {
+		return &opApply{guards: []WriteGuard{guard}, refusal: &opRefusal{}}
+	}
+	guards := parent.guards
+	if !slices.Contains(guards, guard) {
+		guards = append(slices.Clip(guards), guard)
+	}
+	return &opApply{guards: guards, refusal: parent.refusal}
+}
+
+// getOpApply returns the apply ctx carries, or nil.
+func getOpApply(ctx context.Context) *opApply {
+	apply, _ := ctx.Value(opApplyKey{}).(*opApply)
+	return apply
+}
+
+// record keeps err, a guard's error for a write made during the apply, and
+// returns it. A nil apply, a write outside any op, records nothing.
+func (a *opApply) record(err error) error {
+	// A write outside any op, or one the guard allows, records nothing.
+	if a == nil || err == nil {
+		return err
+	}
+
+	// Keep the first error of the op tree.
+	a.refusal.mtx.Lock()
+	if a.refusal.err == nil {
+		a.refusal.err = err
+	}
+	a.refusal.mtx.Unlock()
+	return err
+}
+
+// guardErr returns the first guard error recorded in the op tree of a, or nil
+// when a is nil or none was recorded.
+func (a *opApply) guardErr() error {
+	if a == nil {
+		return nil
+	}
+	a.refusal.mtx.Lock()
+	defer a.refusal.mtx.Unlock()
+	return a.refusal.err
+}
+
+// finish returns the result of an apply that returned seqno, sysErr and err,
+// failing it closed: a guard error recorded in the op tree, even one the op
+// swallowed, is returned in place of the op's result, and a success no engine
+// guarded returns ErrEngineUnguardedOp. A guard that failed to decide stays a
+// system error, retried rather than rejected. Any failure calls discard.
+func (a *opApply) finish(seqno uint64, sysErr bool, err error, discard func()) (uint64, bool, error) {
+	// Fail with a recorded guard error, or a success no engine guarded.
+	gerr := a.guardErr()
+	switch {
+	case gerr != nil:
+		err, sysErr = gerr, IsGuardSysErr(gerr)
+	case err == nil && !a.taken.Load():
+		err, sysErr = ErrEngineUnguardedOp, false
+	case err == nil:
+		return seqno, sysErr, nil
+	}
+
+	// Discard the transaction the failed op wrote into.
+	if discard != nil {
+		discard()
+	}
+	return 0, sysErr, err
+}
+
+// GuardOpWorldState returns the handle an engine gives an op it applies to its
+// state ws under ctx: ws guarded by every guard of the apply ctx carries, or
+// ws when ctx carries none. An engine calls it where it hands its own state to
+// an op; a guarded apply whose engine does not fails.
+func GuardOpWorldState(ctx context.Context, ws WorldState) WorldState {
+	// Outside a guarded apply, hand the op ws unchanged.
+	apply := getOpApply(ctx)
+	if apply == nil {
+		return ws
+	}
+
+	// Mark the apply guarded, then wrap ws in each guard.
+	apply.taken.Store(true)
+	for _, guard := range apply.guards {
+		ws = &guardedWorldState{ws: ws, guard: guard, apply: apply}
+	}
+	return ws
+}
+
+// GuardOpResult returns the result an engine reports for an op it applied
+// under ctx, through GuardOpWorldState or GuardOpObjectState, that returned
+// sysErr and err: a success becomes the first guard error recorded in the
+// op's tree, even one the op swallowed. An engine calls it before its
+// transaction can commit, so no engine path commits a refused op.
+func GuardOpResult(ctx context.Context, sysErr bool, err error) (bool, error) {
+	if err != nil {
+		return sysErr, err
+	}
+	if gerr := getOpApply(ctx).guardErr(); gerr != nil {
+		return IsGuardSysErr(gerr), gerr
+	}
+	return sysErr, nil
+}
+
+// GuardOpObjectState returns the handle an engine gives an object op it
+// applies to obj, held by ws, under ctx, as GuardOpWorldState does. Each
+// layer wraps the one before it, so releasing the result releases obj.
+func GuardOpObjectState(ctx context.Context, obj ObjectState, ws WorldState) ObjectState {
+	// Outside a guarded apply, hand the op obj unchanged.
+	apply := getOpApply(ctx)
+	if apply == nil {
+		return obj
+	}
+
+	// Mark the apply guarded, then wrap obj in each guard.
+	apply.taken.Store(true)
+	for _, guard := range apply.guards {
+		obj = &guardedObjectState{obj: obj, ws: ws, guard: guard, apply: apply}
+	}
+	return obj
 }
 
 // GuardWorldState returns ws with every write checked by guard first.
@@ -194,7 +366,7 @@ func (e *guardedEngine) NewTransaction(ctx context.Context, write bool) (Tx, err
 
 // guardTx returns t with its writes checked by the guard.
 func (e *guardedEngine) guardTx(t Tx) Tx {
-	return &guardedTx{guardedWorldState: &guardedWorldState{ws: t, guard: e.guard}, tx: t}
+	return &guardedTx{guardedWorldState: &guardedWorldState{ws: t, guard: e.guard, opFailed: t.Discard}, tx: t}
 }
 
 // Sync fences the wrapped engine's blocks and head; it writes no object.
@@ -263,7 +435,10 @@ func (e *guardedRehearsalEngine) NewRehearsalTransaction(ctx context.Context) (T
 	return e.guardTx(t), nil
 }
 
-// guardedTx is a transaction whose writes the guard checks.
+// guardedTx is a transaction whose writes the guard checks. An op that fails
+// in it, World or object op, discards it. The op log records only an op that
+// succeeds, so a failed op's earlier writes, left in the transaction, would
+// commit a World that no replay of the log rebuilds.
 type guardedTx struct {
 	*guardedWorldState
 	// tx supplies Commit and Discard.
@@ -325,11 +500,24 @@ type guardedWorldState struct {
 	ws WorldState
 	// guard checks each write.
 	guard WriteGuard
+	// opFailed, when set, discards the transaction an op applied through the
+	// state or its objects failed closed in.
+	opFailed func()
+	// apply is the op whose handle the state is, set by GuardOpWorldState, or
+	// nil for a state handed to a component directly.
+	apply *opApply
 }
 
-// check describes w to the guard.
+// check describes w to the guard and records its error in the op.
 func (s *guardedWorldState) check(ctx context.Context, w *GuardedWrite) error {
-	return s.guard.CheckWrite(ctx, s.ws, w)
+	return s.apply.record(s.guard.CheckWrite(ctx, s.ws, w))
+}
+
+// unscoped returns the check a guarded cursor makes before an unscoped write.
+func (s *guardedWorldState) unscoped() func(context.Context) error {
+	return func(ctx context.Context) error {
+		return s.check(ctx, &GuardedWrite{Unscoped: true})
+	}
 }
 
 // object wraps an object state returned by the wrapped state.
@@ -337,7 +525,7 @@ func (s *guardedWorldState) object(obj ObjectState, err error) (ObjectState, err
 	if obj == nil {
 		return obj, err
 	}
-	return &guardedObjectState{obj: obj, ws: s.ws, guard: s.guard}, err
+	return &guardedObjectState{obj: obj, ws: s.ws, guard: s.guard, opFailed: s.opFailed, apply: s.apply}, err
 }
 
 // GetReadOnly returns whether the wrapped state is read-only.
@@ -357,29 +545,29 @@ func (s *guardedWorldState) ListObjectsWithType(ctx context.Context, typeID, sta
 
 // BuildStorageCursor builds a guarded cursor on the wrapped state's storage.
 func (s *guardedWorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
-	return guardedStorageCursor(ctx, unscopedCheck(s.ws, s.guard), s.ws.BuildStorageCursor)
+	return guardedStorageCursor(ctx, s.unscoped(), s.ws.BuildStorageCursor)
 }
 
 // AccessWorldState calls cb with a guarded cursor on the wrapped state's
 // storage.
 func (s *guardedWorldState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
-	return guardedAccess(ctx, ref, cb, unscopedCheck(s.ws, s.guard), s.ws.AccessWorldState)
+	return guardedAccess(ctx, ref, cb, s.unscoped(), s.ws.AccessWorldState)
 }
 
 // StageWorldState opens a guarded stage on the wrapped state.
 func (s *guardedWorldState) StageWorldState(ctx context.Context) (WorldStage, error) {
 	stage, err := s.ws.StageWorldState(ctx)
-	return guardStage(stage, err, unscopedCheck(s.ws, s.guard))
+	return guardStage(stage, err, s.unscoped())
 }
 
 // GetObject returns a guarded object state.
 func (s *guardedWorldState) GetObject(ctx context.Context, key string) (ObjectState, bool, error) {
 	obj, found, err := s.ws.GetObject(ctx, key)
-	if err != nil || !found {
+	if err != nil || !found || obj == nil {
 		ReleaseObjectState(obj)
 		return nil, found, err
 	}
-	return &guardedObjectState{obj: obj, ws: s.ws, guard: s.guard}, true, nil
+	return &guardedObjectState{obj: obj, ws: s.ws, guard: s.guard, opFailed: s.opFailed, apply: s.apply}, true, nil
 }
 
 // IterateObjects iterates keys through the wrapped state; it yields no
@@ -390,7 +578,7 @@ func (s *guardedWorldState) IterateObjects(ctx context.Context, prefix string, r
 
 // CreateObject checks the new key.
 func (s *guardedWorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (ObjectState, error) {
-	if err := s.check(ctx, &GuardedWrite{ObjectKeys: []string{key}}); err != nil {
+	if err := s.check(ctx, &GuardedWrite{ObjectKeys: []string{key}, Create: true}); err != nil {
 		return nil, err
 	}
 	return s.object(s.ws.CreateObject(ctx, key, rootRef))
@@ -476,26 +664,29 @@ func (s *guardedWorldState) DeleteGraphObject(ctx context.Context, value string)
 	return s.ws.DeleteGraphObject(ctx, value)
 }
 
-// ApplyWorldOp checks the op's type and the keys it names. An op that does not
-// name its keys is an unscoped write. A guard that fails to decide returns a
-// system error, so the op is retried rather than rejected.
+// ApplyWorldOp checks the op's type, then applies it with the guard on the
+// context, so the engine guards the handle it gives the op and the guard
+// checks each write the op makes. The apply fails closed as WriteGuard
+// describes. A guard that fails to decide returns a system error, so the op
+// is retried rather than rejected.
 func (s *guardedWorldState) ApplyWorldOp(ctx context.Context, op Operation, opSender peer.ID) (uint64, bool, error) {
-	// Describe the op by its type and the keys it names.
+	// Check the op's type.
 	if op == nil {
 		return 0, false, ErrEmptyOp
 	}
-	w := &GuardedWrite{OpTypeID: op.TypeID()}
-	if keyed, ok := op.(WriteKeysOperation); ok {
-		w.ObjectKeys = keyed.WriteObjectKeys()
-	} else {
-		w.Unscoped = true
-	}
-
-	// Apply the op once the guard allows it.
-	if err := s.check(ctx, w); err != nil {
+	if err := s.check(ctx, &GuardedWrite{OpTypeID: op.TypeID()}); err != nil {
 		return 0, IsGuardSysErr(err), err
 	}
-	return s.ws.ApplyWorldOp(ctx, op, opSender)
+
+	// Apply it with each of its writes guarded, nested in the op whose handle
+	// this is or in the op of ctx.
+	parent := s.apply
+	if parent == nil {
+		parent = getOpApply(ctx)
+	}
+	apply := newOpApply(parent, s.guard)
+	seqno, sysErr, err := s.ws.ApplyWorldOp(context.WithValue(ctx, opApplyKey{}, apply), op, opSender)
+	return apply.finish(seqno, sysErr, err, s.opFailed)
 }
 
 // GetSeqno returns the wrapped state's seqno.
@@ -563,12 +754,18 @@ type guardedObjectState struct {
 	ws WorldState
 	// guard checks each write.
 	guard WriteGuard
+	// opFailed, when set, discards the transaction an op applied to the
+	// object failed closed in.
+	opFailed func()
+	// apply is the op whose handle the object is, or nil.
+	apply *opApply
 }
 
-// check describes a write to this object to the guard.
+// check describes a write to this object to the guard and records its error
+// in the op.
 func (o *guardedObjectState) check(ctx context.Context, opTypeID string) error {
 	w := &GuardedWrite{OpTypeID: opTypeID, ObjectKeys: []string{o.obj.GetKey()}}
-	return o.guard.CheckWrite(ctx, o.ws, w)
+	return o.apply.record(o.guard.CheckWrite(ctx, o.ws, w))
 }
 
 // GetKey returns the object's key.
@@ -583,7 +780,10 @@ func (o *guardedObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef,
 
 // AccessWorldState calls cb with a guarded cursor at ref or the object's root.
 func (o *guardedObjectState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
-	return guardedAccess(ctx, ref, cb, unscopedCheck(o.ws, o.guard), o.obj.AccessWorldState)
+	unscoped := func(ctx context.Context) error {
+		return o.apply.record(o.guard.CheckWrite(ctx, o.ws, &GuardedWrite{Unscoped: true}))
+	}
+	return guardedAccess(ctx, ref, cb, unscoped, o.obj.AccessWorldState)
 }
 
 // SetRootRef checks the object.
@@ -594,17 +794,37 @@ func (o *guardedObjectState) SetRootRef(ctx context.Context, nref *bucket.Object
 	return o.obj.SetRootRef(ctx, nref)
 }
 
-// ApplyObjectOp checks the op's type and the object. An object op writes only
-// the object it applies to. A guard that fails to decide returns a system
-// error, so the op is retried rather than rejected.
+// ApplyObjectOp checks the op's type and the object, then applies it with the
+// guard on the context, as guardedWorldState.ApplyWorldOp does. A guard that
+// fails to decide returns a system error, so the op is retried rather than
+// rejected.
 func (o *guardedObjectState) ApplyObjectOp(ctx context.Context, op Operation, opSender peer.ID) (uint64, bool, error) {
+	// Check the op's type and the object.
 	if op == nil {
 		return 0, false, ErrEmptyOp
 	}
 	if err := o.check(ctx, op.TypeID()); err != nil {
 		return 0, IsGuardSysErr(err), err
 	}
-	return o.obj.ApplyObjectOp(ctx, op, opSender)
+
+	// Apply it with each of its writes guarded, as ApplyWorldOp does.
+	parent := o.apply
+	if parent == nil {
+		parent = getOpApply(ctx)
+	}
+	apply := newOpApply(parent, o.guard)
+	rev, sysErr, err := o.obj.ApplyObjectOp(context.WithValue(ctx, opApplyKey{}, apply), op, opSender)
+	return apply.finish(rev, sysErr, err, o.opFailed)
+}
+
+// GetWorldState returns the World that holds the object, guarded as the object
+// is.
+func (o *guardedObjectState) GetWorldState() WorldState {
+	ws := o.ws
+	if holder, ok := o.obj.(WorldStateGetter); ok {
+		ws = holder.GetWorldState()
+	}
+	return &guardedWorldState{ws: ws, guard: o.guard, opFailed: o.opFailed, apply: o.apply}
 }
 
 // IncrementRev checks the object.
@@ -641,6 +861,7 @@ var (
 	_ ObjectRevWaiter            = (*guardedWorldState)(nil)
 	_ IndexedChangeWatcher       = (*guardedWorldState)(nil)
 	_ ObjectState                = (*guardedObjectState)(nil)
+	_ WorldStateGetter           = (*guardedObjectState)(nil)
 	_ WorldStage                 = (*guardedStage)(nil)
 	_ Engine                     = (*guardedEngine)(nil)
 	_ IndexedChangeWatcher       = (*guardedEngine)(nil)

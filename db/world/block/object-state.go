@@ -146,9 +146,12 @@ func (o *ObjectState) ApplyObjectOp(
 	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
 
-	// Apply the object operation within the write's budget.
+	// Apply the object operation within the write's budget, through a handle
+	// that carries the guards of the guarded states the op came through, and
+	// fail it with any guard error its tree recorded, so no commit keeps it.
 	ctx = world.WithWriteBudget(ctx, o.w.budget)
-	sysErr, err := world.ApplyWorldObjectOp(ctx, o.w.le, op, o, opSender)
+	sysErr, err := world.ApplyWorldObjectOp(ctx, o.w.le, op, world.GuardOpObjectState(ctx, o, o.w), opSender)
+	sysErr, err = world.GuardOpResult(ctx, sysErr, err)
 	if err != nil {
 		return 0, sysErr, err
 	}

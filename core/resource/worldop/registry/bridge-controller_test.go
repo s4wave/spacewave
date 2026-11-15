@@ -33,7 +33,6 @@ import (
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
-	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
@@ -630,6 +629,19 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Give the settings and the manifest store a filesystem holding file a, so
+	// an fs op aimed inside either reads its source and reaches its write.
+	for _, key := range []string{settingsKey, storeKey} {
+		seedTs := time.Unix(1, 0)
+		if _, _, err := ws.ApplyWorldOp(ctx, unixfs_world.NewFsInitOp(key, unixfs_world.FSType_FSType_FS_NODE, nil, true, seedTs), sender); err != nil {
+			t.Fatal(err)
+		}
+		w := unixfs_world.NewFSWriter(ws, key, unixfs_world.FSType_FSType_FS_NODE, sender)
+		if err := w.Mknod(ctx, [][]string{{"a"}}, unixfs.NewFSCursorNodeType_File(), 0o644, seedTs); err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	// Give the plugin a guarded handle that counts the guard's lookups, and
 	// create a plain object through it to aim the raw writes from.
 	guard := &lookupCountingGuard{guard: space_world_optypes.NewPluginWriteGuard("test-plugin")}
@@ -639,7 +651,8 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	if err != nil {
 		t.Fatalf("plugin CreateObject(%q): %v", plainKey, err)
 	}
-	before := snapshotProtectedObjects(ctx, t, ws, settingsKey, storeKey, manifestKey, plainKey)
+	manifestTypeKey := world_types.BuildTypeObjectKey(bldr_manifest_world.ManifestTypeID)
+	before := snapshotProtectedObjects(ctx, t, ws, settingsKey, storeKey, manifestKey, plainKey, manifestTypeKey)
 
 	// objectWrite applies write to the object at key through the plugin handle.
 	objectWrite := func(key string, write func(world.ObjectState) error) error {
@@ -657,6 +670,39 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	fsPath := func(name string) *unixfs_block.FSPath { return unixfs_block.NewFSPath([]string{name}, false) }
 	ts := time.Unix(1, 0)
 	settingsOp := space_world_ops.NewSetSpaceSettingsOp(settingsKey, &space_world.SpaceSettings{IndexPath: "/evil"}, true, ts)
+
+	// bumpRev bumps the revision of the object at key through ws.
+	bumpRev := func(key string) func(context.Context, world.WorldState) error {
+		return func(ctx context.Context, ws world.WorldState) error {
+			obj, err := world.MustGetObject(ctx, ws, key)
+			if err != nil {
+				return err
+			}
+			defer world.ReleaseObjectState(obj)
+			_, err = obj.IncrementRev(ctx)
+			return err
+		}
+	}
+	// innerOp returns an op whose fields name no protected object: its apply
+	// creates createKey, when set, then makes write through its handle.
+	const partialKey = "test/partial-created"
+	innerOp := func(createKey string, write func(context.Context, world.WorldState) error) *innerWriteOp {
+		return &innerWriteOp{MockWorldOp: world_mock.NewMockWorldOp(plainKey, "inner"), createKey: createKey, write: write}
+	}
+	nestedOp := func(op world.Operation) func(context.Context, world.WorldState) error {
+		return func(ctx context.Context, ws world.WorldState) error {
+			_, _, err := ws.ApplyWorldOp(ctx, op, sender)
+			return err
+		}
+	}
+	objectOp := func(op world.Operation) func() error {
+		return func() error {
+			return objectWrite(plainKey, func(obj world.ObjectState) error {
+				_, _, err := obj.ApplyObjectOp(ctx, op, sender)
+				return err
+			})
+		}
+	}
 
 	// tombstone removes a block through a cursor; removal is an unscoped write.
 	tombstoneRef, err := block.BuildBlockRef([]byte("plugin tombstone target"), nil)
@@ -713,9 +759,26 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 		{"fs-copy inside manifest store", func() error {
 			return applyOp(unixfs_world.NewFsCopyOp(storeKey, unixfs_world.FSType_FSType_FS_NODE, fsPath("a"), fsPath("b"), ts))
 		}},
-		{"kv set-root on the manifest store", func() error {
-			return applyOp(&s4wave_kv_world.KvSetRootOp{ObjectKey: storeKey})
+		{"op writes settings inside its apply", func() error { return applyOp(innerOp(partialKey, bumpRev(settingsKey))) }},
+		{"op writes the manifest store inside its apply", func() error { return applyOp(innerOp(partialKey, bumpRev(storeKey))) }},
+		{"nested op writes settings", func() error {
+			return applyOp(innerOp(partialKey, nestedOp(innerOp("", bumpRev(settingsKey)))))
 		}},
+		{"nested op writes the manifest store", func() error {
+			return applyOp(innerOp(partialKey, nestedOp(innerOp("", bumpRev(storeKey)))))
+		}},
+		{"op types a plain object as a manifest", func() error {
+			return applyOp(innerOp(partialKey, func(ctx context.Context, ws world.WorldState) error {
+				return world_types.SetObjectType(ctx, ws, plainKey, bldr_manifest_world.ManifestTypeID)
+			}))
+		}},
+		{"op sets a manifest edge", func() error {
+			return applyOp(innerOp(partialKey, func(ctx context.Context, ws world.WorldState) error {
+				return ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(storeKey, bldr_manifest_world.PredManifest.String(), plainKey, ""))
+			}))
+		}},
+		{"object op writes settings through its World", objectOp(innerOp("", bumpRev(settingsKey)))},
+		{"object op writes the manifest store through its World", objectOp(innerOp("", bumpRev(storeKey)))},
 		{"create settings", func() error {
 			obj, err := pws.CreateObject(ctx, settingsKey, nil)
 			world.ReleaseObjectState(obj)
@@ -782,6 +845,39 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 		}},
 		{"delete manifest edge", func() error { return pws.DeleteGraphQuad(ctx, manifestEdge) }},
 		{"delete manifest store graph", func() error { return pws.DeleteGraphObject(ctx, storeKey) }},
+		{"delete the manifest type object", func() error { _, err := pws.DeleteObject(ctx, manifestTypeKey); return err }},
+		{"purge the manifest type object", func() error { _, err := world.PurgeObject(ctx, pws, manifestTypeKey); return err }},
+		{"delete the manifest type object's graph", func() error { return pws.DeleteGraphObject(ctx, manifestTypeKey) }},
+		{"rename the manifest type object away", func() error {
+			obj, err := pws.RenameObject(ctx, manifestTypeKey, "test/moved", false)
+			world.ReleaseObjectState(obj)
+			return err
+		}},
+		{"rename onto a type object", func() error {
+			obj, err := pws.RenameObject(ctx, plainKey, world_types.BuildTypeObjectKey("test/renamed-type"), false)
+			world.ReleaseObjectState(obj)
+			return err
+		}},
+		{"set root of the manifest type object", func() error {
+			return objectWrite(manifestTypeKey, func(obj world.ObjectState) error {
+				_, err := obj.SetRootRef(ctx, &bucket.ObjectRef{})
+				return err
+			})
+		}},
+		{"edge from the manifest type object", func() error {
+			return pws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(manifestTypeKey, "<test/link>", plainKey, ""))
+		}},
+		{"edge to a type object that is not a type edge", func() error {
+			return pws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(plainKey, "<test/link>", manifestTypeKey, ""))
+		}},
+		{"type edge from a type object to itself", func() error {
+			loopKey := world_types.BuildTypeObjectKey("test/any-type")
+			return pws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(loopKey, world_types.TypePred.String(), loopKey, ""))
+		}},
+		{"delete a type edge from a type object to itself", func() error {
+			loopKey := world_types.BuildTypeObjectKey("test/any-type")
+			return pws.DeleteGraphQuad(ctx, world.NewGraphQuadWithKeys(loopKey, world_types.TypePred.String(), loopKey, ""))
+		}},
 		{"writable graph handle", func() error {
 			return pws.AccessCayleyGraph(ctx, true, func(context.Context, world.CayleyHandle) error {
 				t.Error("writable graph handle opened for a plugin")
@@ -814,6 +910,22 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 		}
 		t.Logf("refused %s: %d guard checks, %d guard lookups", c.name, guard.checks, guard.lookups)
 	}
+
+	// The manifest keeps its type, so a write to it after the refused type
+	// object writes is still refused.
+	if typeID, err := world_types.GetObjectType(ctx, ws, manifestKey); err != nil || typeID != bldr_manifest_world.ManifestTypeID {
+		t.Fatalf("manifest type after refused type object writes: %q, %v", typeID, err)
+	}
+	if err := objectWrite(manifestKey, func(obj world.ObjectState) error {
+		_, err := obj.IncrementRev(ctx)
+		return err
+	}); err == nil {
+		t.Fatal("manifest revision bump allowed after refused type object writes")
+	}
+
+	// Each op refused after creating partialKey kept nothing: its engine
+	// transaction was discarded.
+	assertWorldObjectMissing(t, ctx, tb.Engine, partialKey)
 
 	// A batch through a guarded engine handle refuses each raw write kind at the
 	// protected entry and keeps none of its earlier entries.
@@ -891,6 +1003,34 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	if !errors.As(err, &engineRejection) || engineRejection.Code != space_world_optypes.PluginWriteRefusedCode {
 		t.Errorf("engine storage cursor tombstone: error = %v, want rejection %q", err, space_world_optypes.PluginWriteRefusedCode)
 	}
+
+	// In a guarded transaction, an op refused after an allowed write discards
+	// the transaction, so the plugin cannot commit the op's earlier write.
+	etx, err = engineRes.GetEngine().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = etx.ApplyWorldOp(ctx, innerOp(partialKey, bumpRev(settingsKey)), sender)
+	if !errors.As(err, &engineRejection) || engineRejection.Code != space_world_optypes.PluginWriteRefusedCode {
+		t.Errorf("guarded transaction op writing settings: error = %v, want rejection %q", err, space_world_optypes.PluginWriteRefusedCode)
+	}
+	if err := etx.Commit(ctx); err == nil {
+		t.Error("guarded transaction committed after a refused op")
+	}
+	etx.Discard()
+	assertWorldObjectMissing(t, ctx, tb.Engine, partialKey)
+
+	// The host's own transaction applies the same op with no guard.
+	func() {
+		htx, err := tb.Engine.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer htx.Discard()
+		if _, _, err := htx.ApplyWorldOp(ctx, innerOp(partialKey, bumpRev(settingsKey)), sender); err != nil {
+			t.Fatalf("host apply of the op writing settings: %v", err)
+		}
+	}()
 
 	// A plugin op handler refused mid-apply, which swallows the refusal and
 	// reports success, still fails its op and leaves none of its writes.
@@ -1039,7 +1179,7 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 
 	// The settings object, the manifest store, the manifest and their edges are
 	// unchanged.
-	after := snapshotProtectedObjects(ctx, t, ws, settingsKey, storeKey, manifestKey, plainKey)
+	after := snapshotProtectedObjects(ctx, t, ws, settingsKey, storeKey, manifestKey, plainKey, manifestTypeKey)
 	if before != after {
 		t.Fatalf("protected objects changed:\nbefore %s\nafter  %s", before, after)
 	}
@@ -1061,6 +1201,9 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 				_, err := obj.SetRootRef(ctx, &bucket.ObjectRef{})
 				return err
 			})
+		}},
+		{"type an own object with a new type", 1, func() error {
+			return world_types.SetObjectType(ctx, pws, "test/plugin-ok", "test/plugin-new-type")
 		}},
 		{"graph edge", 2, func() error {
 			return pws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(plainKey, "<test/link>", "test/plugin-ok", ""))
@@ -1094,6 +1237,36 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 		}
 		t.Logf("allowed %s: %d guard checks, %d guard lookups", c.name, guard.checks, guard.lookups)
 	}
+}
+
+// innerWriteOp is a test op whose fields name no protected object. As a World
+// op it creates createKey, when set, then calls write with its handle; as an
+// object op it calls write with the World its object reports.
+type innerWriteOp struct {
+	*world_mock.MockWorldOp
+	createKey string
+	write     func(context.Context, world.WorldState) error
+}
+
+// ApplyWorldOp creates createKey, then makes the write.
+func (o *innerWriteOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws world.WorldState, _ peer.ID) (bool, error) {
+	if o.createKey != "" {
+		obj, err := ws.CreateObject(ctx, o.createKey, nil)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			return false, err
+		}
+	}
+	return false, o.write(ctx, ws)
+}
+
+// ApplyWorldObjectOp makes the write through the World the object reports.
+func (o *innerWriteOp) ApplyWorldObjectOp(ctx context.Context, _ *logrus.Entry, os world.ObjectState, _ peer.ID) (bool, error) {
+	holder, ok := os.(world.WorldStateGetter)
+	if !ok {
+		return false, errors.New("object state reports no World")
+	}
+	return false, o.write(ctx, holder.GetWorldState())
 }
 
 // snapshotProtectedObjects describes the root, revision and outgoing edges of

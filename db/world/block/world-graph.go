@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/graph/iterator"
+	"github.com/aperturerobotics/cayley/graph/refs"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -27,7 +29,76 @@ type graphPathReadOperation struct {
 	graphHd world.CayleyHandle
 }
 
-// accessCayleyGraph lends the current handle for the callback's lifetime.
+// readGraphHandle is a graph handle lent for reading. It forwards each read
+// to the lender's handle, held unexported so a borrower cannot reach it, and
+// refuses each write with tx.ErrNotWrite, so a caller that asked for a read
+// handle cannot write the graph past the World's changelog and guards.
+type readGraphHandle struct {
+	hd world.CayleyHandle
+}
+
+// ValueOf forwards the read.
+func (h readGraphHandle) ValueOf(ctx context.Context, v quad.Value) (graph.Ref, error) {
+	return h.hd.ValueOf(ctx, v)
+}
+
+// NameOf forwards the read.
+func (h readGraphHandle) NameOf(ctx context.Context, ref graph.Ref) (quad.Value, error) {
+	return h.hd.NameOf(ctx, ref)
+}
+
+// Quad forwards the read.
+func (h readGraphHandle) Quad(ctx context.Context, ref graph.Ref) (quad.Quad, error) {
+	return h.hd.Quad(ctx, ref)
+}
+
+// QuadIterator forwards the read.
+func (h readGraphHandle) QuadIterator(ctx context.Context, d quad.Direction, ref graph.Ref) iterator.Shape {
+	return h.hd.QuadIterator(ctx, d, ref)
+}
+
+// QuadIteratorSize forwards the read.
+func (h readGraphHandle) QuadIteratorSize(ctx context.Context, d quad.Direction, ref graph.Ref) (refs.Size, error) {
+	return h.hd.QuadIteratorSize(ctx, d, ref)
+}
+
+// QuadDirection forwards the read.
+func (h readGraphHandle) QuadDirection(ctx context.Context, id graph.Ref, d quad.Direction) (graph.Ref, error) {
+	return h.hd.QuadDirection(ctx, id, d)
+}
+
+// Stats forwards the read.
+func (h readGraphHandle) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
+	return h.hd.Stats(ctx, exact)
+}
+
+// NodesAllIterator forwards the read.
+func (h readGraphHandle) NodesAllIterator(ctx context.Context) iterator.Shape {
+	return h.hd.NodesAllIterator(ctx)
+}
+
+// QuadsAllIterator forwards the read.
+func (h readGraphHandle) QuadsAllIterator(ctx context.Context) iterator.Shape {
+	return h.hd.QuadsAllIterator(ctx)
+}
+
+// ApplyDeltas refuses the write.
+func (readGraphHandle) ApplyDeltas(context.Context, []graph.Delta, graph.IgnoreOpts) error {
+	return tx.ErrNotWrite
+}
+
+// NewQuadWriter refuses the writer.
+func (readGraphHandle) NewQuadWriter(context.Context) (quad.WriteCloser, error) {
+	return nil, tx.ErrNotWrite
+}
+
+// Close does nothing: the lender owns the handle and closes it.
+func (readGraphHandle) Close() error {
+	return nil
+}
+
+// accessCayleyGraph lends the current handle for the callback's lifetime,
+// refusing its writes unless write is set.
 func (t *WorldState) accessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
 	// Reject access after the World state has been discarded.
 	if err := t.discardErr(); err != nil {
@@ -43,6 +114,9 @@ func (t *WorldState) accessCayleyGraph(ctx context.Context, write bool, cb func(
 	graphHd, err := t.graph(ctx)
 	if err != nil {
 		return err
+	}
+	if !write {
+		return cb(ctx, readGraphHandle{hd: graphHd})
 	}
 	return cb(ctx, graphHd)
 }
@@ -170,7 +244,7 @@ func (g *graphPathReadOperation) AccessCayleyGraph(ctx context.Context, write bo
 	if write {
 		return g.WorldState.AccessCayleyGraph(ctx, write, cb)
 	}
-	return cb(ctx, g.graphHd)
+	return cb(ctx, readGraphHandle{hd: g.graphHd})
 }
 
 // LookupGraphQuads resolves one filter using the scoped handle.

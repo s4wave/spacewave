@@ -4,6 +4,7 @@ package plugin_space_runtime
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -13,6 +14,9 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -72,6 +76,28 @@ func TestWorldServicePluginLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// An op writing the Space settings is refused as it writes, and its
+	// refusal discards the transaction holding an earlier write.
+	tx2, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	obj, err = tx2.CreateObject(ctx, "plugin/partial", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	world.ReleaseObjectState(obj)
+	op := unixfs_world.NewFsInitOp(space_world.SpaceSettingsObjectKey, unixfs_world.FSType_FSType_FS_NODE, nil, true, time.Unix(1, 0))
+	_, _, err = tx2.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID())
+	var rejection *world.OperationRejection
+	if !errors.As(err, &rejection) || rejection.Code != space_world_optypes.PluginWriteRefusedCode {
+		t.Fatalf("fs-init of settings: error = %v, want rejection %q", err, space_world_optypes.PluginWriteRefusedCode)
+	}
+	if err := tx2.Commit(ctx); err == nil {
+		t.Fatal("transaction committed after a refused op")
+	}
+	tx2.Discard()
+
 	// The parent's engine sees the write.
 	read, err := tb.Engine.NewTransaction(ctx, false)
 	if err != nil {
@@ -82,6 +108,11 @@ func TestWorldServicePluginLookup(t *testing.T) {
 	world.ReleaseObjectState(written)
 	if err != nil || !found {
 		t.Fatalf("parent World lacks the plugin's object: found=%v err=%v", found, err)
+	}
+	partial, found, err := read.GetObject(ctx, "plugin/partial")
+	world.ReleaseObjectState(partial)
+	if err != nil || found {
+		t.Fatalf("parent World kept the refused transaction's write: found=%v err=%v", found, err)
 	}
 
 	// A lookup of another engine stays unresolved.
