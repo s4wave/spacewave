@@ -245,6 +245,7 @@ function useUnixFSBrowserModel({
   })
   const rename = useUnixFSBrowserRename({
     pathHandle,
+    saveHold,
     renamingEntry,
     renameRef,
     dispatch,
@@ -252,6 +253,7 @@ function useUnixFSBrowserModel({
   const edits = useUnixFSBrowserEdits({
     rootHandle,
     pathHandle,
+    saveHold,
     displayPath,
     state,
     dispatch,
