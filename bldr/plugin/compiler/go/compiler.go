@@ -1662,6 +1662,20 @@ func buildEsbuildGoVariableDefs(
 	esbuildBundleVarMeta []*EsbuildBundleVarMeta,
 	esbuildOutputMeta []*bldr_web_bundler_esbuild.EsbuildOutputMeta,
 ) ([]*vardef.PluginVar, error) {
+	// Index the script outputs by entrypoint ID, first output winning; the
+	// script, not the css bundle, is the entrypoint a variable names.
+	// TODO: is there a better way to determine the "actual" entrypoint (not the css bundle)?
+	outputsByEntrypointID := make(map[string]*bldr_web_bundler_esbuild.EsbuildOutputMeta, len(esbuildOutputMeta))
+	for _, output := range esbuildOutputMeta {
+		entrypointPath := output.GetPath()
+		if !strings.HasSuffix(entrypointPath, ".mjs") && !strings.HasSuffix(entrypointPath, ".js") {
+			continue
+		}
+		if _, ok := outputsByEntrypointID[output.GetEntrypointId()]; !ok {
+			outputsByEntrypointID[output.GetEntrypointId()] = output
+		}
+	}
+
 	// Match every bundle variable against the esbuild outputs.
 	var goVariableDefs []*vardef.PluginVar
 	for _, bundleVarDef := range esbuildBundleVarMeta {
@@ -1670,20 +1684,10 @@ func buildEsbuildGoVariableDefs(
 			entrypointVarEsbuildEntrypointID := entrypointVar.ToEsbuildEntrypointId(bundleVarDef.GetId())
 
 			// locate the esbuild output corresponding to this variable
-			outputEntrypointIdx := slices.IndexFunc(esbuildOutputMeta, func(output *bldr_web_bundler_esbuild.EsbuildOutputMeta) bool {
-				entrypointPath := output.GetPath()
-				// TODO: is there a better way to determine the "actual" entrypoint (not the css bundle)?
-				if !strings.HasSuffix(entrypointPath, ".mjs") && !strings.HasSuffix(entrypointPath, ".js") {
-					return false
-				}
-
-				// match entrypoint id
-				return output.GetEntrypointId() == entrypointVarEsbuildEntrypointID
-			})
-			if outputEntrypointIdx == -1 {
+			outputEntrypoint, ok := outputsByEntrypointID[entrypointVarEsbuildEntrypointID]
+			if !ok {
 				return nil, errors.Errorf("could not find esbuild entrypoint corresponding to: %v", entrypointVarEsbuildEntrypointID)
 			}
-			outputEntrypoint := esbuildOutputMeta[outputEntrypointIdx]
 
 			var outpEntrypointPath string
 			if outpPath := outputEntrypoint.GetPath(); outpPath != "" {
