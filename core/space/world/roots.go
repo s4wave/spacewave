@@ -3,6 +3,7 @@ package space_world
 import (
 	"context"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -44,16 +45,66 @@ const (
 	RootBackfill = "backfill"
 )
 
+// RootKind is what the block a Space's named root holds names, which tells a
+// reader outside the Adapter, such as a child list repair, how to decode it
+// and the roots below it. Each holder block is a raw protobuf with no
+// transform; the World roots and payloads it names use the Space's World
+// transform.
+type RootKind int
+
+const (
+	// RootKindWorld holds one World root block.
+	RootKindWorld RootKind = iota + 1
+	// RootKindRetained holds a RetainedRootSet block naming World roots.
+	RootKindRetained
+	// RootKindWorlds holds a HeldRoots chain of World root blocks.
+	RootKindWorlds
+	// RootKindPayloads holds a HeldRoots chain of operation payload roots,
+	// each a blob.
+	RootKindPayloads
+	// RootKindMixed holds a HeldRoots chain of roots of several types, World
+	// roots and payloads, with nothing recording which is which.
+	RootKindMixed
+)
+
+// heldRoots lists every root an Adapter reads at open with its kind. A new
+// root name goes here with its kind, so no reader of the kinds skips it.
+var heldRoots = []struct {
+	name string
+	kind RootKind
+}{
+	{RootReplayBase, RootKindWorld},
+	{RootCheckpoint, RootKindWorlds},
+	{RootImport, RootKindMixed},
+	{RootReplayCursor, RootKindWorlds},
+	{RootReplayPayloads, RootKindPayloads},
+	{RootRetained, RootKindRetained},
+	{RootPending, RootKindWorlds},
+	{RootBackfill, RootKindWorlds},
+}
+
 // heldRootNames are the roots an Adapter reads at open.
-var heldRootNames = []string{
-	RootReplayBase,
-	RootCheckpoint,
-	RootImport,
-	RootReplayCursor,
-	RootReplayPayloads,
-	RootRetained,
-	RootPending,
-	RootBackfill,
+var heldRootNames = func() []string {
+	names := make([]string, len(heldRoots))
+	for i, root := range heldRoots {
+		names[i] = root.name
+	}
+	return names
+}()
+
+// HeldRootKind returns the kind of the Space's named root name, and false for
+// a name no Adapter writes. A fence root, fence:<pass>, holds a pass's live
+// roots of any type.
+func HeldRootKind(name string) (RootKind, bool) {
+	for _, root := range heldRoots {
+		if root.name == name {
+			return root.kind, true
+		}
+	}
+	if pass, ok := strings.CutPrefix(name, fenceRootPrefix); ok && pass != "" {
+		return RootKindMixed, true
+	}
+	return 0, false
 }
 
 // HoldImport holds roots, which a writer outside an Adapter stored for the

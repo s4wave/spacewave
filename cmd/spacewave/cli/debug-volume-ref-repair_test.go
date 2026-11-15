@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -20,6 +21,7 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/block/byteslice"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -37,18 +39,29 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/db/world/refwalk"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
 // untrackedCopyBucket copies each block written to the wrapped bucket into a
 // volume's store without its child list, as a volume written before puts
-// carried child lists holds it.
+// carried child lists holds it, and records the refs each write declared.
 type untrackedCopyBucket struct {
 	// BucketOps writes the testbed's tracked blocks.
 	bucket.BucketOps
 	// vol receives the copies.
 	vol *volume_s4db.Volume
+	// refs holds the refs each write declared complete, by block ref string:
+	// the list a correct repair writes for it.
+	refs map[string][]*block.BlockRef
+}
+
+// record keeps the refs a write declared complete.
+func (b *untrackedCopyBucket) record(ref *block.BlockRef, refs []*block.BlockRef, known bool) {
+	if known {
+		b.refs[ref.MarshalString()] = refs
+	}
 }
 
 // PutBlock writes the block and copies it.
@@ -58,6 +71,7 @@ func (b *untrackedCopyBucket) PutBlock(ctx context.Context, data []byte, opts *b
 	if err != nil {
 		return nil, exists, err
 	}
+	b.record(ref, opts.GetRefs(), opts.GetRefsKnown())
 	_, _, err = b.vol.Store.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref})
 	return ref, exists, err
 }
@@ -75,6 +89,7 @@ func (b *untrackedCopyBucket) PutBlockBatch(ctx context.Context, entries []*bloc
 		if e.Tombstone {
 			continue
 		}
+		b.record(e.Ref, e.Refs, e.RefsKnown)
 		if _, _, err := b.vol.Store.PutBlock(ctx, e.Data, &block.PutOpts{ForceBlockRef: e.Ref}); err != nil {
 			return nil, err
 		}
@@ -107,7 +122,8 @@ func TestDebugRefRepair(t *testing.T) {
 	})
 
 	// Write a World whose blocks the volume stores without their lists.
-	root, xfrmConf := buildUntrackedWorld(t, le, vol, nil)
+	built := buildUntrackedWorld(t, le, vol, nil, nil)
+	root, xfrmConf := built.root, built.xfrmConf
 
 	// Store a replay cursor pointing to the World.
 	state := &space_world.InnerState{HeadRef: &bucket.ObjectRef{
@@ -413,12 +429,19 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 }
 
-// TestDebugRefRepairWorldRoot checks that the repair of a volume with no
-// replay cursor walks the World its entrypoint engine's head root holds, and
-// that it neither decodes a root it cannot type nor invents a list: a head
-// root name in a bucket that is not its engine's, and a leaked list naming a
-// block without one, stay as they were, and the dry run predicts them as the
-// holders that refuse the adoption.
+// TestDebugRefRepairWorldRoot checks that the repair walks the World its
+// entrypoint engine's head root holds beside a Space's World, and that it
+// neither decodes a root it cannot type nor invents a list: a head root name
+// in a bucket that is not its engine's, and a leaked list naming a block
+// without one, stay as they were, and the dry run predicts them as the holders
+// that refuse the adoption. The Space's World holds an object under the same
+// key as the entrypoint World's filesystem with a type that holds no refs, and
+// the repair types each from its own World, so every list it writes equals the
+// refs its writer declared. The Space's named roots are walked by their kind:
+// a World only its checkpoint's two-block chain holds and a payload only its
+// replay payloads root holds get lists, while its import root, which holds
+// roots of several types, is counted unwalked and keeps the mark until it is
+// released.
 func TestDebugRefRepairWorldRoot(t *testing.T) {
 	// Open a volume unadopted with its lists unverified.
 	ctx := t.Context()
@@ -440,9 +463,99 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	root, _ := buildUntrackedWorld(t, le, vol, worldRef.GetTransformConf())
+	built := buildUntrackedWorld(t, le, vol, worldRef.GetTransformConf(), nil)
 	rootName := world_block.WorldRootName(engineID)
-	if err := vol.SetBucketRoots(ctx, engineID, nil, []block.NamedRoot{{Name: rootName, Ref: root}}); err != nil {
+	if err := vol.SetBucketRoots(ctx, engineID, nil, []block.NamedRoot{{Name: rootName, Ref: built.root}}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Write a Space's World whose object at the filesystem's key has a type
+	// that holds no refs, walked first from its replay cursor, and hold it
+	// under its replay base.
+	if _, _, _, err := vol.ApplyBucketConfig(ctx, &bucket.Config{Id: restoreTestBucket, Rev: 1}); err != nil {
+		t.Fatal(err)
+	}
+	leaf, _, err := vol.Store.PutBlock(ctx, []byte("a leaf object root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	space := buildUntrackedWorld(t, le, vol, nil, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, worldRootTestKey, &bucket.ObjectRef{RootRef: leaf})
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			return err
+		}
+		return world_types.SetObjectType(ctx, ws, worldRootTestKey, worldRootLeafType)
+	})
+	spaceState := &space_world.InnerState{HeadRef: &bucket.ObjectRef{RootRef: space.root, TransformConf: space.xfrmConf}}
+	cursorData, err := (&space_world.ReplayCursor{Base: spaceState, Head: spaceState}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	kv := kvkey.DefaultConfig()
+	cursorKey := slices.Concat(kv.GetPrefix(), kv.GetObjectStorePrefix(), []byte("account/so/"+restoreTestSpace+"/ls/space-world-replay/cursor"))
+	if err := putKey(ctx, vol, cursorKey, cursorData); err != nil {
+		t.Fatal(err)
+	}
+
+	// Hold an older World of the Space only under a checkpoint chain of two
+	// HeldRoots blocks, and a payload blob only under the replay payloads
+	// root, all without lists. Hold a raw block under the import root, whose
+	// HeldRoots block and its root have lists.
+	olderLeaf, _, err := vol.Store.PutBlock(ctx, []byte("an older leaf object root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	older := buildUntrackedWorld(t, le, vol, space.xfrmConf, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, worldRootTestKey, &bucket.ObjectRef{RootRef: olderLeaf})
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			return err
+		}
+		return world_types.SetObjectType(ctx, ws, worldRootTestKey, worldRootLeafType)
+	})
+	putRaw := func(data []byte) *block.BlockRef {
+		t.Helper()
+		ref, _, err := vol.Store.PutBlock(ctx, data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	putHeld := func(held *space_world.HeldRoots) *block.BlockRef {
+		t.Helper()
+		data, err := held.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return putRaw(data)
+	}
+	checkpointLink := putHeld(&space_world.HeldRoots{Roots: []*block.BlockRef{older.root}})
+	checkpoint := putHeld(&space_world.HeldRoots{Roots: []*block.BlockRef{space.root}, Prev: checkpointLink})
+	payloadData, err := (&blob.Blob{BlobType: blob.BlobType_BlobType_RAW, TotalSize: 9, RawData: []byte("a payload")}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	xfrmWalker := refwalk.NewWalker(le, nil, nil)
+	spaceXfrm, err := xfrmWalker.Transformer(space.xfrmConf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if payloadData, err = spaceXfrm.EncodeBlock(payloadData); err != nil {
+		t.Fatal(err)
+	}
+	xfrmWalker.Close()
+	payload := putRaw(payloadData)
+	payloads := putHeld(&space_world.HeldRoots{Roots: []*block.BlockRef{payload}})
+	imported := putRaw([]byte("held by an import"))
+	importHeld := putHeld(&space_world.HeldRoots{Roots: []*block.BlockRef{imported}})
+	spaceRoots := []block.NamedRoot{
+		{Name: space_world.RootReplayBase, Ref: space.root},
+		{Name: space_world.RootCheckpoint, Ref: checkpoint},
+		{Name: space_world.RootReplayPayloads, Ref: payloads},
+		{Name: space_world.RootImport, Ref: importHeld},
+	}
+	if err := vol.SetBucketRoots(ctx, restoreTestBucket, nil, spaceRoots); err != nil {
 		t.Fatal(err)
 	}
 
@@ -459,21 +572,41 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 	if err := vol.SetBucketRoots(ctx, "other-bucket", nil, []block.NamedRoot{{Name: rootName, Ref: wrongRoot}}); err != nil {
 		t.Fatal(err)
 	}
+	// Plant an empty list on the entrypoint filesystem's root, as a walk that
+	// typed it as the Space's leaf object would have written it.
 	writeRecords(t, vol, func(rec *block_gc.Records) error {
+		if err := rec.PutChildren(ctx, importHeld, []*block.BlockRef{imported}); err != nil {
+			return err
+		}
+		if err := rec.PutChildren(ctx, imported, nil); err != nil {
+			return err
+		}
+		if err := rec.PutChildren(ctx, built.fsRoot, nil); err != nil {
+			return err
+		}
 		return rec.PutChildren(ctx, lister, []*block.BlockRef{leakedChild})
 	})
 	if err := vol.Close(); err != nil {
 		t.Fatal(err)
 	}
 
-	// The dry run walks the World from its head root alone, counts the other
-	// root unwalked, and predicts the two holders adoption would refuse.
-	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType)
+	// The dry run walks the Space from its cursor and its typed roots and the
+	// World from its head root, counts the import root and the root of the
+	// wrong bucket unwalked, and predicts the two holders adoption would
+	// refuse.
+	lookup := func(ctx context.Context, typeID string) (blocktype.BlockType, error) {
+		if typeID == worldRootLeafType {
+			return blocktype.New[byteslice.ByteSlice](typeID), nil
+		}
+		return space_world_optypes.LookupBlockType(ctx, typeID)
+	}
+	dry, err := repairVolumeRefs(ctx, le, path, "", true, lookup)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("dry run: %+v", dry)
-	if dry.spaces != 0 || dry.roots != 2 || dry.typedRoots != 1 || dry.unwalkedRoots["world:"].count != 1 || dry.lacking == 0 || dry.rebuild.Verified != 0 {
+	if dry.spaces != 1 || dry.roots != 6 || dry.spaceRoots != 3 || dry.typedRoots != 1 || dry.unwalkedRoots["world:"].count != 1 ||
+		dry.unwalkedRoots[space_world.RootImport].count != 1 || len(dry.unwalkedRoots) != 2 || dry.lacking == 0 || dry.rebuild.Verified != 0 {
 		t.Fatalf("dry run: %+v", dry)
 	}
 	if dry.absent != 0 || dry.undecodable != 0 || len(dry.untyped) != 0 {
@@ -487,12 +620,18 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 		}
 	}
 	wantHolders("dry-run", dry.holders)
+
+	// The dry run reports the planted empty list, and no other mismatch.
+	if dry.lists[block_gc.ListEmpty] != 1 || len(dry.listSample) != 1 || !dry.listSample[0].ref.EqualVT(built.fsRoot) ||
+		dry.lists[block_gc.ListShort] != 0 || dry.lists[block_gc.ListLong] != 0 || dry.lists[block_gc.ListDiffers] != 0 {
+		t.Fatalf("dry-run list comparison: %v, sample %+v", dry.lists, dry.listSample)
+	}
 	var report bytes.Buffer
 	writeFields(&report, refRepairFields(path, true, dry))
 	t.Logf("dry-run table:\n%s", report.String())
 
 	// A second dry run finds the same: the first wrote nothing.
-	again, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType)
+	again, err := repairVolumeRefs(ctx, le, path, "", true, lookup)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -500,23 +639,89 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 		t.Fatalf("dry run wrote child lists: %+v then %+v", dry, again)
 	}
 
-	// Applying verifies every walked list, refuses none, clears the mark, and
-	// leaves the holders the dry run predicted.
-	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType)
+	// Applying verifies every walked list and refuses none, but keeps the
+	// mark: the import root holds a listed block no run verified, the cost of
+	// a root counted unwalked.
+	applied, err := repairVolumeRefs(ctx, le, path, "", false, lookup)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if applied.rebuild.Rewritten < dry.lacking || applied.rebuild.Verified != dry.blocks || applied.rebuild.Dropped != 0 || applied.rebuild.Unverified != 0 || !applied.rebuild.Cleared {
-		t.Fatalf("applied rebuild %+v, expected at least %d written of %d verified and the mark cleared", applied.rebuild, dry.lacking, dry.blocks)
+	if applied.rebuild.Rewritten < dry.lacking || applied.rebuild.Verified != dry.blocks || applied.rebuild.Dropped != 0 ||
+		applied.rebuild.Unverified != 1 || !slices.ContainsFunc(applied.rebuild.UnverifiedSample, importHeld.EqualVT) || applied.rebuild.Cleared {
+		t.Fatalf("applied rebuild %+v, expected at least %d written of %d verified and the import's list unverified", applied.rebuild, dry.lacking, dry.blocks)
 	}
 	wantHolders("applied", applied.holders)
 
-	// The repair invented no list: the blocks it could not type have none, and
-	// the leaked list names what it named.
+	// With the import root released, as the Adapter's trim releases it, a
+	// second run finds every reached list verified by the first and clears
+	// the mark.
+	rootVol, err := openStoppedVolume(ctx, le, path, volumeWritable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = rootVol.SetBucketRoots(ctx, restoreTestBucket, nil, []block.NamedRoot{{Name: space_world.RootImport, Previous: importHeld}})
+	if cerr := rootVol.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleared, err := repairVolumeRefs(ctx, le, path, "", false, lookup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cleared.rebuild.Rewritten != 0 || cleared.rebuild.Dropped != 0 || cleared.rebuild.Unverified != 0 || !cleared.rebuild.Cleared {
+		t.Fatalf("second rebuild %+v, expected nothing written and the mark cleared", cleared.rebuild)
+	}
+
+	// Every list the repair wrote equals the refs its writer declared, the
+	// entrypoint filesystem's root included, which the Space's object of the
+	// same key must not type, and the leaf's list is empty.
 	checkVol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if want := built.refs[built.fsRoot.MarshalString()]; len(want) == 0 {
+		t.Fatalf("the writer declared no refs of the filesystem root %s", built.fsRoot.MarshalString())
+	}
+	written := map[string][]*block.BlockRef{
+		leaf.MarshalString():           nil,
+		olderLeaf.MarshalString():      nil,
+		payload.MarshalString():        nil,
+		checkpointLink.MarshalString(): {older.root},
+		checkpoint.MarshalString():     {space.root, checkpointLink},
+		payloads.MarshalString():       {payload},
+	}
+	maps.Copy(written, built.refs)
+	maps.Copy(written, space.refs)
+	maps.Copy(written, older.refs)
+	var listed int
+	for key, want := range written {
+		ref, err := block.UnmarshalBlockRefB58(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		children, found, err := checkVol.GetChildren(ctx, ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found {
+			continue
+		}
+		listed++
+		if !sameRefs(children, want) {
+			t.Fatalf("list of %s: %d children, its writer declared %d", key, len(children), len(want))
+		}
+	}
+	for _, ref := range []*block.BlockRef{built.fsRoot, older.root, checkpointLink, checkpoint, payloads, payload} {
+		if _, found, err := checkVol.GetChildren(ctx, ref); err != nil || !found {
+			t.Fatalf("list of %s: found %v, %v", ref.MarshalString(), found, err)
+		}
+	}
+	t.Logf("%d listed blocks of %d written match their writers' refs", listed, len(written))
+
+	// The repair invented no list: the blocks it could not type have none, and
+	// the leaked list names what it named.
 	for _, ref := range []*block.BlockRef{wrongRoot, leakedChild} {
 		if _, found, err := checkVol.GetChildren(ctx, ref); err != nil || found {
 			t.Fatalf("list of %s: found %v, %v", ref.MarshalString(), found, err)
@@ -531,11 +736,11 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 	}
 
 	// Nothing walked is missing afterward.
-	after, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType)
+	after, err := repairVolumeRefs(ctx, le, path, "", true, lookup)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if after.lacking != 0 || after.blocks != dry.blocks {
+	if after.lacking != 0 || after.blocks != dry.blocks || len(after.listSample) != 0 || after.lists[block_gc.ListEqual] != after.blocks {
 		t.Fatalf("after repair: %+v", after)
 	}
 	wantHolders("after", after.holders)
@@ -547,7 +752,7 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 		t.Fatalf("adopt: %+v, %v; predicted %+v", refused, err, dry.holders)
 	}
 
-	// The audit reaches the World and the root of the wrong bucket, which it
+	// The audit reaches both Worlds and the root of the wrong bucket, which it
 	// finds stored without a list.
 	audit, err := auditVolume(ctx, le, path)
 	if err != nil {
@@ -558,12 +763,47 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 	}
 }
 
-// buildUntrackedWorld writes a UnixFS World holding a chunked file through a
-// storage testbed, copying each block into vol without its child list, as a
-// volume written before puts carried child lists holds it. It encodes the
-// blocks with xfrmConf, or the testbed's transform when nil, and returns the
-// World's root and the transform config.
-func buildUntrackedWorld(t *testing.T, le *logrus.Entry, vol *volume_s4db.Volume, xfrmConf *block_transform.Config) (*block.BlockRef, *block_transform.Config) {
+const (
+	// worldRootTestKey is the object key both Worlds of
+	// TestDebugRefRepairWorldRoot hold, as two Spaces may.
+	worldRootTestKey = "fs"
+	// worldRootLeafType is the type of the Space's object at that key, which
+	// holds no refs.
+	worldRootLeafType = "test/leaf"
+)
+
+// sameRefs reports whether a and b name the same refs.
+func sameRefs(a, b []*block.BlockRef) bool {
+	key := func(refs []*block.BlockRef) []string {
+		out := make([]string, len(refs))
+		for i, ref := range refs {
+			out[i] = ref.MarshalString()
+		}
+		slices.Sort(out)
+		return slices.Compact(out)
+	}
+	return slices.Equal(key(a), key(b))
+}
+
+// untrackedWorld is a World buildUntrackedWorld wrote.
+type untrackedWorld struct {
+	// root is the World's root.
+	root *block.BlockRef
+	// xfrmConf is the transform its blocks are encoded with.
+	xfrmConf *block_transform.Config
+	// fsRoot is the root of its object at worldRootTestKey.
+	fsRoot *block.BlockRef
+	// refs holds the refs each block's write declared, by ref string.
+	refs map[string][]*block.BlockRef
+}
+
+// buildUntrackedWorld writes a World through a storage testbed, copying each
+// block into vol without its child list, as a volume written before puts
+// carried child lists holds it. objects writes its objects, which must include
+// one at worldRootTestKey; when nil the World holds a UnixFS filesystem there
+// with a chunked file. It encodes the blocks with xfrmConf, or the testbed's
+// transform when nil.
+func buildUntrackedWorld(t *testing.T, le *logrus.Entry, vol *volume_s4db.Volume, xfrmConf *block_transform.Config, objects func(ctx context.Context, ws world.WorldState) error) untrackedWorld {
 	// Start a storage testbed whose blocks are copied into the volume
 	// untracked.
 	ctx := t.Context()
@@ -591,12 +831,13 @@ func buildUntrackedWorld(t *testing.T, le *logrus.Entry, vol *volume_s4db.Volume
 	}
 
 	// Start the World engine on a cursor over the copying bucket.
+	copier := &untrackedCopyBucket{BucketOps: base.GetBucket(), vol: vol, refs: make(map[string][]*block.BlockRef)}
 	cursor := bucket_lookup.NewCursor(
 		ctx,
 		htb.Bus,
 		le,
 		htb.StepFactorySet,
-		&untrackedCopyBucket{BucketOps: base.GetBucket(), vol: vol},
+		copier,
 		xfrm,
 		base.GetRef(),
 		base.GetOpArgs(),
@@ -610,8 +851,15 @@ func buildUntrackedWorld(t *testing.T, le *logrus.Entry, vol *volume_s4db.Volume
 	defer eng.Close()
 	ws := world.NewEngineWorldState(eng, true)
 
-	// Initialize the filesystem.
-	const objKey = "fs"
+	// Write the given objects, or initialize the filesystem.
+	out := untrackedWorld{xfrmConf: xfrmConf, refs: copier.refs}
+	if objects != nil {
+		if err := objects(ctx, ws); err != nil {
+			t.Fatal(err)
+		}
+		return out.done(ctx, t, eng, ws)
+	}
+	const objKey = worldRootTestKey
 	now := time.Now()
 	sender := htb.Volume.GetPeerID()
 	fsType := unixfs_world.FSType_FSType_FS_NODE
@@ -632,7 +880,23 @@ func buildUntrackedWorld(t *testing.T, le *logrus.Entry, vol *volume_s4db.Volume
 	if err := bw.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
-	return eng.GetRootRef().GetRootRef(), xfrmConf
+	return out.done(ctx, t, eng, ws)
+}
+
+// done fills in the World's root and the root of its object at
+// worldRootTestKey.
+func (w untrackedWorld) done(ctx context.Context, t *testing.T, eng *world_block.Engine, ws world.WorldState) untrackedWorld {
+	obj, found, err := ws.GetObject(ctx, worldRootTestKey)
+	defer world.ReleaseObjectState(obj)
+	if err != nil || !found {
+		t.Fatalf("object %s: found %v, %v", worldRootTestKey, found, err)
+	}
+	root, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.root, w.fsRoot = eng.GetRootRef().GetRootRef(), root.GetRootRef()
+	return w
 }
 
 // writeRecords runs fn over the liveness records of vol in one committed

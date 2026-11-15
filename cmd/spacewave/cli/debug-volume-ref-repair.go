@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world/refwalk"
@@ -69,13 +70,18 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Dry run", strconv.FormatBool(dryRun)},
 		{"Spaces", strconv.Itoa(res.spaces)},
 		{"Named roots", strconv.FormatUint(res.roots, 10)},
-		{"Named roots in walked Spaces' buckets", strconv.FormatUint(res.spaceRoots, 10)},
+		{"Named roots of walked Spaces typed by kind", strconv.FormatUint(res.spaceRoots, 10)},
 		{"Named roots walked by type", strconv.FormatUint(res.typedRoots, 10)},
 		{"Blocks walked", strconv.FormatUint(res.blocks, 10)},
 		{"Blocks absent", strconv.FormatUint(res.absent, 10)},
 		{"Blocks undecodable", strconv.FormatUint(res.undecodable, 10)},
 		{"Blocks without a child list", strconv.FormatUint(res.lacking, 10)},
 		{"Children they name", strconv.FormatUint(res.edges, 10)},
+		{"Stored lists equal to the decoded refs", strconv.FormatUint(res.lists[block_gc.ListEqual], 10)},
+		{"Stored lists empty, decoded refs not", strconv.FormatUint(res.lists[block_gc.ListEmpty], 10)},
+		{"Stored lists shorter than the decoded refs", strconv.FormatUint(res.lists[block_gc.ListShort], 10)},
+		{"Stored lists longer than the decoded refs", strconv.FormatUint(res.lists[block_gc.ListLong], 10)},
+		{"Stored lists differing both ways", strconv.FormatUint(res.lists[block_gc.ListDiffers], 10)},
 		{"Child lists verified", strconv.FormatUint(res.rebuild.Verified, 10)},
 		{"Child lists written", strconv.FormatUint(res.rebuild.Rewritten, 10)},
 		{"Decoded lists refused for dropping a stored child", strconv.FormatUint(res.rebuild.Dropped, 10)},
@@ -86,6 +92,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Stored blocks without a child list", strconv.FormatUint(res.untracked, 10)},
 		{"Their bytes", strconv.FormatUint(res.untrackedBytes, 10)},
 		{"Holders of listless blocks after the run", strconv.FormatUint(res.holders.total(), 10)},
+		{"Holders counted", res.holders.basis},
 		{"Held by named roots", strconv.FormatUint(res.holders.roots, 10)},
 		{"Held by reached child lists", strconv.FormatUint(res.holders.reached, 10)},
 		{"Held by leaked child lists", strconv.FormatUint(res.holders.leaked, 10)},
@@ -110,6 +117,9 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 	}
 	for _, ref := range res.rebuild.DroppedSample {
 		fields = append(fields, [2]string{"Refused sample", ref.MarshalString()})
+	}
+	for _, l := range res.listSample {
+		fields = append(fields, [2]string{"Mismatched list sample", l.ref.MarshalString() + " (" + l.diff.String() + ")"})
 	}
 
 	// Name the roots not walked by kind, the blocks left listless that an
@@ -181,6 +191,10 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 			return refRepairResult{}, errors.Wrap(err, "walk the named roots")
 		}
 	}
+	var walked func(*block.BlockRef) bool
+	if dryRun {
+		walked = rr.walked()
+	}
 	rr.close()
 
 	// Measure the whole volume before applying any of the planned repairs.
@@ -199,7 +213,7 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 	}
 
 	// Split the holders an adoption would refuse.
-	if err := rr.splitHolders(ctx, dryRun); err != nil {
+	if err := rr.splitHolders(ctx, walked); err != nil {
 		return refRepairResult{}, errors.Wrap(err, "split the holders of listless blocks")
 	}
 	return rr.res, nil
@@ -224,7 +238,11 @@ func newDebugRefRepairCommand() *cli.Command {
 			"Also counts plugin object-store keys by volume prefix and measures all stored blocks without a child list. " +
 			"These counts cover the whole volume even with --space, and describe it before repair. The scan does not decode those blocks. " +
 			"Last it counts the holders an adoption would refuse, the named roots and child lists naming a block left stored without a list, " +
-			"splitting the lists a named root reaches from leaked ones; a dry run predicts them as a real run would leave the volume. " +
+			"splitting the lists a named root reaches from leaked ones; a dry run predicts them as a real run would leave the volume, " +
+			"and on a volume whose lists are verified, where a real run writes no list, it counts them as they are. " +
+			"A walked Space's named roots are typed by the kind the Space gives each name; an import or fence root, which holds roots of several types, is counted unwalked and keeps the mark. " +
+			"It compares each walked block's stored list with its decoded refs before writing, counting equal, empty, shorter, longer and differing lists with a sample, " +
+			"since a wrong list the volume marked verified is never rewritten; a dry run compares the same way and writes nothing. " +
 			"Run it only on a stopped volume, with --dry-run first.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
