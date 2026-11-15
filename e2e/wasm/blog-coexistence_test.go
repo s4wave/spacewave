@@ -60,10 +60,12 @@ func waitForBlogReady(t testing.TB, page playwright.Page, title string) {
 	// Format the object route hash for the scenario.
 	t.Helper()
 
-	// Wait for the reading view's mode press, which offers editing.
+	// Wait for the mode press in either mode. The viewer persists its mode,
+	// so a blog left in editing mode reopens offering "Read posts".
 	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
-	if err := page.Locator("button[title='Edit posts']").First().WaitFor(wait); err != nil {
-		t.Fatalf("wait for blog edit posts button: %v", err)
+	modePress := "button[title='Edit posts'], button[title='Read posts']"
+	if err := page.Locator(modePress).First().WaitFor(wait); err != nil {
+		t.Fatalf("wait for blog mode button: %v", err)
 	}
 	if title == "" {
 		return
