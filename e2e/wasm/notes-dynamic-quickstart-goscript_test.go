@@ -87,7 +87,7 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 
 		// Switch the blog to editing mode and open the starter post.
 		waitForBlogReady(t, page, "Hello World")
-		if err := page.Locator("button[title='Editing mode']").First().Click(); err != nil {
+		if err := page.Locator("button[title='Edit posts']").First().Click(); err != nil {
 			t.Fatalf("switch blog to editing mode: %v", err)
 		}
 		openNotebookNote(t, page, "Hello World")
@@ -200,7 +200,7 @@ func waitForNotesQuickstartSpaceRoute(t testing.TB, page playwright.Page, quicks
 			return false
 		}
 		if (quickstartID === 'blog') {
-			return document.querySelector("button[title='Reading mode']") !== null
+			return document.querySelector("button[title='Edit posts']") !== null
 		}
 		return document.querySelector("input[placeholder='Search notes…']") !== null
 	}`, []any{quickstartID}, playwright.PageWaitForFunctionOptions{
