@@ -27,7 +27,7 @@ type HTTPBlockServer struct {
 	forceHashType hash.HashType
 }
 
-// NewHTTPBlockServer builds a new block store server on top of a block store.
+// NewHTTPBlock builds a new block store server on top of a block store.
 //
 // if write=false, supports read operations only.
 // pathPrefix is the URL path prefix for block store ops.

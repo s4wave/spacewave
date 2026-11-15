@@ -171,12 +171,8 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 	if pending.GetCheckpoint().EqualVT(sent.GetCheckpoint()) {
 		pending.Checkpoint = nil
 	}
-	pending.Operations = slices.DeleteFunc(pending.Operations, func(op *sobject.SOOperation) bool {
-		return slices.ContainsFunc(sent.Operations, op.EqualVT)
-	})
-	pending.Control = slices.DeleteFunc(pending.Control, func(msg *sobject.SOControlMessage) bool {
-		return slices.ContainsFunc(sent.Control, msg.EqualVT)
-	})
+	pending.Operations = deleteSent(pending.Operations, sent.Operations)
+	pending.Control = deleteSent(pending.Control, sent.Control)
 	if pending.GetCheckpoint() == nil && len(pending.Operations) == 0 && len(pending.Control) == 0 {
 		pending = nil
 	}
@@ -194,6 +190,26 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 		h.syncer.setPublication(h, pending)
 	}
 	return nil
+}
+
+// deleteSent removes from pending each message that sent holds, comparing
+// their encodings in one pass over each slice. A message that does not encode
+// stays pending: equal encodings imply equal messages, so the comparison never
+// drops a message that was not sent.
+func deleteSent[T interface{ MarshalVT() ([]byte, error) }](pending, sent []T) []T {
+	// Index the sent encodings.
+	sentKeys := make(map[string]struct{}, len(sent))
+	for _, msg := range sent {
+		if b, err := msg.MarshalVT(); err == nil {
+			sentKeys[string(b)] = struct{}{}
+		}
+	}
+
+	// Drop each pending message whose encoding was sent.
+	return slices.DeleteFunc(pending, func(msg T) bool {
+		b, err := msg.MarshalVT()
+		return err == nil && hasKey(sentKeys, string(b))
+	})
 }
 
 // setPublication projects durable obligations into the existing sync scheduler.

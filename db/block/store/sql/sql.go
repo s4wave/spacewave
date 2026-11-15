@@ -43,30 +43,6 @@ const minPacketBytes = 1 << 20
 // data and refs: the placeholders and the encoded store id and hash.
 const rowOverhead = 512
 
-// Config locates the database and the table the store writes.
-type Config struct {
-	// Host is the database host.
-	Host string
-	// Port is the database port, zero for 3306.
-	Port uint32
-	// Database is the database name.
-	Database string
-	// User is the database user.
-	User string
-	// Password authenticates User to the database.
-	Password string
-	// Table is the blocks table.
-	Table string
-	// TLS connects with TLS.
-	TLS bool
-	// TLSCertSHA256 is the hex SHA-256 of the server's certificate. Set, TLS
-	// trusts exactly that certificate in place of a CA and the host name.
-	TLSCertSHA256 string
-	// MaxConns bounds the pool's open connections; zero uses
-	// DefaultMaxConns. Each block read holds one for a round trip.
-	MaxConns int
-}
-
 // DefaultMaxConns is the pool size when the config sets none.
 const DefaultMaxConns = 16
 
@@ -565,9 +541,6 @@ func quoteName(name string) string {
 	return "`" + strings.ReplaceAll(name, "`", "``") + "`"
 }
 
-// _ is a type assertion
-var _ block.StoreOps = (*Store)(nil)
-
 // pinnedTLS returns a TLS config that trusts only the certificate whose
 // SHA-256 is pin, such as a server's self-signed one.
 func pinnedTLS(host, pin string) *tls.Config {
@@ -589,3 +562,6 @@ func pinnedTLS(host, pin string) *tls.Config {
 		},
 	}
 }
+
+// _ is a type assertion
+var _ block.StoreOps = (*Store)(nil)

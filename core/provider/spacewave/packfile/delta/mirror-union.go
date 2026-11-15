@@ -146,6 +146,7 @@ func (m *MirrorUnion) PackCount() int {
 
 // Close releases every open pack file.
 func (m *MirrorUnion) Close() error {
+	// Close every file, keeping the first error.
 	var firstErr error
 	for _, f := range m.files {
 		if err := f.Close(); err != nil && firstErr == nil {
@@ -172,6 +173,7 @@ func OpenMirrorUnion(
 	le *logrus.Entry,
 	mirrorDir, spaceID string,
 ) (*MirrorUnion, error) {
+	// A missing space directory is a fresh Space.
 	spaceDir := filepath.Join(mirrorDir, spaceID)
 	info, err := os.Stat(spaceDir)
 	if err != nil {
@@ -184,10 +186,12 @@ func OpenMirrorUnion(
 		return nil, errors.Errorf("mirror space path %q is not a directory", spaceDir)
 	}
 
+	// Refuse a mirror whose root pointer names another Space.
 	if err := verifyMirrorRootPointer(spaceDir, spaceID); err != nil {
 		return nil, err
 	}
 
+	// A missing packs directory is a fresh Space.
 	packsDir := filepath.Join(spaceDir, "packs")
 	if _, err := os.Stat(packsDir); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -196,6 +200,7 @@ func OpenMirrorUnion(
 		return nil, errors.Wrap(err, "stat mirror packs dir")
 	}
 
+	// Close whatever opened if the open fails.
 	u := &MirrorUnion{}
 	success := false
 	defer func() {
@@ -204,16 +209,17 @@ func OpenMirrorUnion(
 		}
 	}()
 
+	// Open a reader over each kvfile pack under the packs directory.
 	walkErr := filepath.WalkDir(packsDir, func(p string, d fs.DirEntry, werr error) error {
+		// Skip directories and files that are not packs.
 		if werr != nil {
 			return werr
 		}
-		if d.IsDir() {
+		if d.IsDir() || !strings.HasSuffix(d.Name(), ".kvf") {
 			return nil
 		}
-		if !strings.HasSuffix(d.Name(), ".kvf") {
-			return nil
-		}
+
+		// Open the pack and index it.
 		// #nosec G122 -- p is the walked pack file path under the caller-selected packsDir.
 		f, openErr := os.Open(p)
 		if openErr != nil {
@@ -224,6 +230,8 @@ func OpenMirrorUnion(
 			_ = f.Close()
 			return errors.Wrapf(buildErr, "build reader for %s", p)
 		}
+
+		// Add it to the union.
 		u.stores = append(u.stores, rdr)
 		u.files = append(u.files, f)
 		u.blocks += rdr.Size()
@@ -233,10 +241,12 @@ func OpenMirrorUnion(
 		return nil, errors.Wrap(walkErr, "walk mirror packs")
 	}
 
+	// No packs is a fresh Space.
 	if len(u.stores) == 0 {
 		return nil, nil
 	}
 
+	// Log the opened union and keep it open.
 	if le != nil {
 		le.WithField("pack-files", len(u.stores)).
 			WithField("mirror-blocks", u.blocks).
@@ -249,6 +259,7 @@ func OpenMirrorUnion(
 // getMirrorBlock reads and verifies one block from a pack. Returns nil when
 // the pack does not hold it.
 func getMirrorBlock(ctx context.Context, rdr *kvfile.Reader, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Stop on a cancelled context or a ref with no hash.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -256,6 +267,8 @@ func getMirrorBlock(ctx context.Context, rdr *kvfile.Reader, ref *block.BlockRef
 	if key == nil {
 		return nil, nil
 	}
+
+	// Read and decode the block.
 	value, found, err := rdr.Get(key)
 	if err != nil || !found {
 		return nil, err
@@ -287,6 +300,7 @@ func mirrorBlockKey(ref *block.BlockRef) []byte {
 // mirror subdir names the same space as =spaceID=. A missing file is fine
 // (fresh mirror or packs-only case).
 func verifyMirrorRootPointer(spaceDir, spaceID string) error {
+	// Read the pointer; a missing one is fine.
 	pmsgPath := filepath.Join(spaceDir, "root.packedmsg")
 	body, err := os.ReadFile(pmsgPath)
 	if err != nil {
@@ -295,6 +309,8 @@ func verifyMirrorRootPointer(spaceDir, spaceID string) error {
 		}
 		return errors.Wrap(err, "read mirror root.packedmsg")
 	}
+
+	// Decode it.
 	raw, ok := packedmsg.DecodePackedMessage(string(body))
 	if !ok {
 		return errors.New("decode mirror root.packedmsg: checksum mismatch or invalid base64")
@@ -303,6 +319,8 @@ func verifyMirrorRootPointer(spaceDir, spaceID string) error {
 	if err := ptr.UnmarshalVT(raw); err != nil {
 		return errors.Wrap(err, "unmarshal mirror CdnRootPointer")
 	}
+
+	// Refuse another Space's pointer.
 	if ptr.GetSpaceId() != spaceID {
 		return errors.Errorf(
 			"mirror root.packedmsg space_id %q does not match expected space id %q",

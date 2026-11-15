@@ -7,7 +7,6 @@ import (
 	"cmp"
 	"context"
 	"io"
-	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -21,7 +20,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
@@ -191,72 +189,6 @@ var compactBackoff = &backoff.Backoff{
 	},
 }
 
-// PackStoreOptions configures a PackStore.
-type PackStoreOptions struct {
-	// Pricing is the price list of the service holding the bucket; nil uses
-	// PricingForEndpoint for a *Client and the Amazon S3 prices otherwise.
-	Pricing *Pricing
-	// KeepPacks stops compaction and reclaim, so the store only ever adds
-	// packfiles.
-	KeepPacks bool
-	// RefreshInterval is the time between two listings of the packfile
-	// entries, which find the packfiles other writers added. Zero uses
-	// DefaultRefreshInterval.
-	RefreshInterval time.Duration
-	// Index is a local KV store for the entry cache and the block location
-	// index; nil keeps neither. The store owns every key in it, so pass a
-	// prefixed view.
-	//
-	// With it, a start reads the index's pack table and the entries of its
-	// unindexed packs, and lists the bucket in the background, unless
-	// SoleWriter is set, reading only the entries the table does not name. A
-	// lookup reads the entry of the pack the
-	// index places its block in from the index, so a start never reads every
-	// entry. A background routine indexes the listed packs: one read of the end
-	// of each pack and a few short write transactions, with a pause between
-	// them. It takes no lock a read waits on. Until a pack is indexed, lookups
-	// test its bloom filter as without the index.
-	Index kvtx.Store
-	// ExactReads makes a block miss fetch only the block's bytes from its
-	// pack. False uses the pack reader's adaptive window, which suits HTTP
-	// range requests.
-	ExactReads bool
-	// Linger is how long a short upload batch of settled blocks waits for more
-	// blocks before it is written anyway. Zero uses packLinger.
-	Linger time.Duration
-	// MergeTailBytes merges a batch, when not zero, into the newest packfile
-	// smaller than this many bytes while the merged packfile fits one upload
-	// batch, and deletes the packfile it replaces, even with KeepPacks set.
-	MergeTailBytes int64
-	// MaxPackBytes bounds one packfile a batch writes; zero uses
-	// writer.DefaultMaxPackBytes. A batch's block bytes are bounded by half of
-	// it and its block count in proportion to it, as for the default. Larger
-	// packs mean fewer objects and index rows, and each upload holds about
-	// three copies of its blocks in memory. Readers take a pack of any size.
-	MaxPackBytes int64
-	// ReadCache serves block extents before the bucket. Nil reads the bucket.
-	ReadCache RangeCache
-	// SoleWriter says no other writer adds packfiles under the prefix, so the
-	// store lists the bucket only for its first load, and not even then when
-	// the index's table holds a pack: the store's own writes keep its entries
-	// and index current. RefreshInterval is then unused.
-	SoleWriter bool
-	// IndexOnly makes the index the whole record of the store's packs: the
-	// store never lists the bucket, not at a start with an empty table nor
-	// after a read that finds a pack gone, so a block the index does not place
-	// costs no request. Packs under the prefix that another writer left stay
-	// invisible. It implies SoleWriter and needs Index; without Index it is
-	// ignored.
-	IndexOnly bool
-	// ReadOnlyIndex makes the store write nothing to Index: a listing
-	// publishes the packs it finds in memory only, a removed pack leaves its
-	// rows, an index tail a read fetched is not kept, and no routine indexes
-	// the listed packs. Lookups still read the index and test the bloom filter
-	// of every pack it does not place. It is for a store that only serves
-	// reads, beside a disk that must not grow.
-	ReadOnlyIndex bool
-}
-
 // NewPackStore builds a packfile block store on the bucket. opts may be nil.
 // Close stops its compaction routine.
 func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, opts *PackStoreOptions) *PackStore {
@@ -335,6 +267,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 // Close stops compaction and the refresh and releases the open packfile
 // readers.
 func (s *PackStore) Close() {
+	// Stop the background routines, then release the readers.
 	s.compactor.ClearContext()
 	s.refresher.ClearContext()
 	if s.indexer != nil {
@@ -430,6 +363,7 @@ func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEn
 		return nil, err
 	}
 
+	// List the written pack and wake its watchers.
 	s.published(entry)
 	return make([]bool, len(batch)), nil
 }
@@ -623,21 +557,6 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 	return stored, err
 }
 
-// ReadCounts counts a PackStore's block reads by where their bytes came from.
-// Concurrent reads of one block that share a read count once.
-type ReadCounts struct {
-	// Cached counts the blocks the read cache served, which held their hash.
-	Cached uint64
-	// CacheRejected counts the read cache's answers whose bytes failed the
-	// block's hash; the bucket served each of them instead.
-	CacheRejected uint64
-	// Bucket counts the blocks read from the bucket with one range read.
-	Bucket uint64
-	// Packs counts the blocks read through the pack readers, from the bucket
-	// or the readers' own memory.
-	Packs uint64
-}
-
 // readCounters are the running counts of ReadCounts.
 type readCounters struct {
 	// cached counts the read cache's verified answers.
@@ -758,6 +677,7 @@ func (s *PackStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 func (s *PackStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	var exists []bool
 	err := s.lookup(ctx, refs, func(placed []bool) (bool, error) {
+		// Probe the packs; retry once a placed block is not found.
 		var err error
 		exists, err = s.packs.GetBlockExistsBatch(ctx, refs)
 		if err != nil {
@@ -866,10 +786,13 @@ func (s *PackStore) publishPlaced(ctx context.Context, refs []*block.BlockRef) (
 	// Read and publish the located packs entries lacks.
 	var missing []string
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
+		seen := make(map[string]struct{}, len(ids))
 		for _, id := range ids {
-			if id != "" && s.entries[id] == nil && !slices.Contains(missing, id) {
-				missing = append(missing, id)
+			if _, dup := seen[id]; id == "" || dup || s.entries[id] != nil {
+				continue
 			}
+			seen[id] = struct{}{}
+			missing = append(missing, id)
 		}
 	})
 	if len(missing) == 0 {
@@ -901,7 +824,7 @@ func (s *PackStore) loadAll(ctx context.Context) error {
 		return nil
 	}
 
-	// Publish the entries not yet published, a chunk at a time.
+	// Note the entries already published.
 	start := time.Now()
 	var known map[string]bool
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
@@ -910,6 +833,8 @@ func (s *PackStore) loadAll(ctx context.Context) error {
 			known[id] = true
 		}
 	})
+
+	// Publish the others, a chunk at a time.
 	var read int
 	err = s.index.readAll(ctx, func(id string) bool { return known[id] }, func(entries []*packfile.PackfileEntry) {
 		read += len(entries)
@@ -918,6 +843,8 @@ func (s *PackStore) loadAll(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Mark the store full and log the load.
 	s.full.Store(true)
 	s.le.WithFields(logrus.Fields{
 		"entries": read,
@@ -1079,8 +1006,7 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 		}
 	}
 
-	// Index and publish the new entries the last listing holds, and drop the
-	// known entries it no longer holds.
+	// Index the new entries the last listing holds.
 	var entries []*packfile.PackfileEntry
 	for id, entry := range read {
 		if !ids[id] {
@@ -1098,6 +1024,8 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// Publish them and drop the known entries the listing no longer holds.
 	var removed []string
 	for id := range known {
 		if !ids[id] {
@@ -1105,6 +1033,8 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 		}
 	}
 	s.updateEntries(entries, removed)
+
+	// Mark the entries loaded, and full after the first listing.
 	if first {
 		s.full.Store(true)
 	}

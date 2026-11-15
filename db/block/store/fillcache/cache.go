@@ -33,17 +33,6 @@ const DefaultLimitBytes = 20 << 30
 // set no bound.
 const DefaultQueueBytes = 128 << 20
 
-// Options configures a Cache.
-type Options struct {
-	// LimitBytes bounds the bytes of the cache's rows; past it, eviction
-	// deletes rows down to 90% of it. Zero uses DefaultLimitBytes.
-	LimitBytes int64
-	// QueueBytes bounds the block bytes awaiting their write. A fill past it is
-	// dropped, and the next read of the block queues it again. Zero uses
-	// DefaultQueueBytes.
-	QueueBytes int64
-}
-
 // Cache is a SQLite file of copies of blocks that a durable store holds.
 //
 // Invariant: the cache holds only copies of blocks that the durable store

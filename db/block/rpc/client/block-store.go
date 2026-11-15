@@ -327,9 +327,6 @@ func (v *BlockStore) Sync(ctx context.Context) (bool, error) {
 	return resp.GetFenced(), nil
 }
 
-// _ verifies the remote store contract.
-var _ block.StoreOps = (*BlockStore)(nil)
-
 // readFailure returns the error of a block read response with the type the
 // serving store returned: a CorruptError for a corrupt read, so the read-through
 // and fallback layers above take their corrupt branch for a remote store too.
@@ -343,3 +340,6 @@ func readFailure(ref *block.BlockRef, resp *block_rpc.GetBlockResponse) error {
 	}
 	return errors.New(errStr)
 }
+
+// _ verifies the remote store contract.
+var _ block.StoreOps = (*BlockStore)(nil)
