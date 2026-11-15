@@ -73,7 +73,7 @@ func newTestUnixFSStore(t *testing.T) (*UnixFSStore, *resource_server.ResourceSe
 	t.Cleanup(rootHandle.Release)
 
 	// Serve the root handle resource over an in-memory connection.
-	rootResource := resource_unixfs.NewFSHandleObjectResource(le, rootHandle, nil, ws, "test-fs", fsType, nil)
+	rootResource := resource_unixfs.NewFSHandleObjectResource(le, rootHandle, rootCursor, nil, ws, "test-fs", fsType, nil)
 	resourceSrv := resource_server.NewResourceServer(rootResource.GetMux())
 	serverMux := srpc.NewMux()
 	if err := resourceSrv.Register(serverMux); err != nil {
