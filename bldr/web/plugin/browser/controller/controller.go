@@ -99,31 +99,21 @@ func (c *Controller) HandleDirective(
 	case bifrost_rpc.LookupRpcService:
 		serviceID := d.LookupRpcServiceID()
 		if serviceID == c.GetServiceID() || serviceID == web_view.SRPCAccessWebViewsServiceID {
-			return directive.R(c.resolveHostService(d.LookupRpcServerID()), nil)
+			// A worker's own plugin mux serves AccessWebViews under its
+			// worker ID; a refusal here would fail that lookup too.
+			res := bifrost_rpc.NewLookupRpcServiceResolver(c)
+			serverID := d.LookupRpcServerID()
+			if serviceID == web_view.SRPCAccessWebViewsServiceID && bldr_plugin.IsWebWorkerServerID(serverID) {
+				return directive.R(res, nil)
+			}
+
+			// PluginRpc invokes on the host bus as "plugin/<component ID>"
+			// with a component ID the calling plugin sent, so these services
+			// carry the host's powers only for the host's set.
+			return directive.R(bldr_plugin.NewHostRootResolver(c.bus, serverID, res), nil)
 		}
 	}
 	return nil, nil
-}
-
-// resolveHostService answers a lookup of the browser host's services once the
-// root host scheduler is on the bus.
-//
-// PluginRpc invokes on the host bus as "plugin/<component ID>" with a
-// component ID the calling plugin sent, so these services carry the host's
-// powers and are subject to bldr_plugin.MayReachPluginRoot: a call from a
-// plugin outside the host's set is refused at once, never relayed.
-func (c *Controller) resolveHostService(serverID string) directive.Resolver {
-	return directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
-		// Wait for the host set, then refuse a server ID outside it.
-		scheduler, err := bldr_plugin.WaitHostPluginScheduler(ctx, c.bus)
-		if err != nil {
-			return err
-		}
-		if !bldr_plugin.MayReachPluginRoot(serverID, scheduler.GetHostPluginIds()) {
-			return bldr_plugin.NewRelayRefusedResolver(serverID).Resolve(ctx, handler)
-		}
-		return bifrost_rpc.NewLookupRpcServiceResolver(c).Resolve(ctx, handler)
-	})
 }
 
 // InvokeMethod invokes the method matching the service & method ID.

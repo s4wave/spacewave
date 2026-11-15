@@ -194,7 +194,7 @@ func newSharedElectronDaemon(t *testing.T, app sharedElectronApp, opts sharedEle
 		bifrost_rpc.NewRpcServiceBuilder(resources), nil, false, nil,
 		[]string{resource.SRPCResourceServiceServiceID}, regexp.MustCompile("^$")))
 	if opts.shape == "distribution-core" {
-		coreController = newNativeCorePlugin(resources)
+		coreController = newNativeCorePlugin(b, resources)
 	}
 	releaseCore, err := b.AddController(ctx, coreController, nil)
 	if err != nil {

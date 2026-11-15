@@ -6,6 +6,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/rpcstream"
@@ -22,7 +23,13 @@ const nativeCorePluginID = "spacewave-core"
 // Dist mode. It resolves loads of the current core, from any plugin instance,
 // and plugin/spacewave-core/ service lookups. Its lifetime is the serving
 // daemon.
+//
+// A lookup hands out core's root client, so it applies
+// bldr_plugin.MayReachPluginRoot against the host set of the root scheduler on
+// b, as every other holder of a plugin root does.
 type nativeCorePlugin struct {
+	// b is the daemon bus the lookups arrive on.
+	b bus.Bus
 	// invoker serves the native core services.
 	invoker srpc.Invoker
 	// client reaches the core services and the Plugin service.
@@ -30,9 +37,9 @@ type nativeCorePlugin struct {
 }
 
 // newNativeCorePlugin constructs the core plugin over the native invoker.
-func newNativeCorePlugin(invoker srpc.Invoker) *nativeCorePlugin {
+func newNativeCorePlugin(b bus.Bus, invoker srpc.Invoker) *nativeCorePlugin {
 	// Register the native core plugin and build its client.
-	p := &nativeCorePlugin{invoker: invoker}
+	p := &nativeCorePlugin{b: b, invoker: invoker}
 	mux := srpc.NewMux(invoker)
 	_ = bldr_plugin.SRPCRegisterPlugin(mux, p)
 	p.client = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
@@ -64,7 +71,11 @@ func (p *nativeCorePlugin) HandleDirective(ctx context.Context, inst directive.I
 		if !strings.HasPrefix(d.LookupRpcServiceID(), bldr_plugin.PluginServiceID(nativeCorePluginID, "")) {
 			return nil, nil
 		}
-		return directive.R(bldr_plugin.ResolveLookupRpcService(ctx, d, p))
+		res, err := bldr_plugin.ResolveLookupRpcService(ctx, d, p)
+		if res == nil || err != nil {
+			return directive.R(res, err)
+		}
+		return directive.R(bldr_plugin.NewHostRootResolver(p.b, d.LookupRpcServerID(), res), nil)
 	}
 	return nil, nil
 }

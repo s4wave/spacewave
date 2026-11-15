@@ -435,7 +435,7 @@ func (c *Controller) HandleDirective(
 	case bldr_plugin.LoadPlugin:
 		return directive.R(c.resolveLoadPlugin(d))
 	case bifrost_rpc.LookupRpcClient:
-		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, d, c))
+		return directive.R(c.resolveLookupRpcClient(ctx, d))
 	case bifrost_rpc.LookupRpcService:
 		return directive.R(c.resolveLookupRpcService(ctx, d))
 	case bldr_plugin.LookupPluginScheduler:
@@ -464,6 +464,23 @@ func (c *Controller) resolveLookupRpcService(ctx context.Context, d bifrost_rpc.
 	serverID := d.LookupRpcServerID()
 	if !bldr_plugin.MayReachPluginRoot(serverID, c.conf.GetHostExportPluginIds()) {
 		return bldr_plugin.NewRelayRefusedResolver(serverID), nil
+	}
+	return res, nil
+}
+
+// resolveLookupRpcClient resolves a lookup of a plugin's or the host's client,
+// as resolveLookupRpcService does a service, keyed on the caller's client ID.
+func (c *Controller) resolveLookupRpcClient(ctx context.Context, d bifrost_rpc.LookupRpcClient) (directive.Resolver, error) {
+	// Leave lookups of clients that no plugin root serves to other resolvers.
+	res, err := bldr_plugin.ResolveLookupRpcClient(ctx, d, c)
+	if res == nil || err != nil {
+		return res, err
+	}
+
+	// Refuse a client ID the host did not give a host plugin.
+	clientID := d.LookupRpcClientID()
+	if !bldr_plugin.MayReachPluginRoot(clientID, c.conf.GetHostExportPluginIds()) {
+		return bldr_plugin.NewRelayRefusedResolver(clientID), nil
 	}
 	return res, nil
 }

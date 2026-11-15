@@ -84,11 +84,13 @@ func (s *schedulerLookups) Execute(context.Context) error {
 }
 
 func (s *schedulerLookups) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
-	d, ok := di.GetDirective().(bifrost_rpc.LookupRpcService)
-	if !ok {
-		return nil, nil
+	switch d := di.GetDirective().(type) {
+	case bifrost_rpc.LookupRpcService:
+		return directive.R(s.resolveLookupRpcService(ctx, d))
+	case bifrost_rpc.LookupRpcClient:
+		return directive.R(s.resolveLookupRpcClient(ctx, d))
 	}
-	return directive.R(s.resolveLookupRpcService(ctx, d))
+	return nil, nil
 }
 
 func (s *schedulerLookups) Close() error {
@@ -610,4 +612,81 @@ func (bed *fallbackBed) expect(t *testing.T, name string, r timedResult, want st
 			t.Errorf("%s: want a refusal at once, got %s after %s", name, r.got, r.took)
 		}
 	}
+}
+
+// TestHostBusWebWorkerRelaysNothing checks a plugin outside the host set cannot
+// reach spacewave-core's root mux from its web worker, which looks up services
+// on the host bus as "web-worker/plugin/<X>[/<key>]". A lookup of core's
+// service under the attacker's worker ID, or under a worker ID that names no
+// plugin, is refused at once; a host plugin's worker and a web view still
+// reach core.
+func TestHostBusWebWorkerRelaysNothing(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	const corePluginID = "spacewave-core"
+	coreSvc := "probe.CoreService"
+	sched := NewController(le, tb.Bus, &Config{HostExportPluginIds: []string{corePluginID, "web"}})
+	bed := &fallbackBed{sched: sched, loads: make(chan string, 8)}
+	_, coreRoot := inProcessPlugin(ctx, t, le, sched, corePluginID, &serverProbe{bus: "core", id: coreSvc})
+	addControllers(ctx, t, tb.Bus,
+		&relayLoads{
+			loadSpy: loadSpy{sched: sched, loads: bed.loads},
+			plugins: map[string]bldr_plugin.RunningPlugin{corePluginID: bldr_plugin.NewRunningPlugin(coreRoot)},
+		},
+		&schedulerLookups{sched},
+	)
+
+	// lookupAs looks up core's service on the host bus under serverID, as the
+	// web runtime does for a worker or view.
+	coreCall := bldr_plugin.PluginServiceID(corePluginID, coreSvc)
+	lookupAs := func(serverID string) timedResult {
+		client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux(bifrost_rpc.NewInvoker(tb.Bus, serverID, true)))))
+		return bed.timedExec(ctx, client, coreCall)
+	}
+	for _, serverID := range []string{
+		"web-worker/plugin/attacker",
+		"web-worker/plugin/attacker/space-a",
+		"web-worker/plugin/",
+		"web-worker/unparsed",
+	} {
+		bed.expectNotHost(t, "lookup as "+strconv.Quote(serverID), lookupAs(serverID))
+	}
+
+	// A host plugin's worker still reaches core, and so does a web view: a
+	// view carries no owning plugin, and the app's own views call core.
+	for _, serverID := range []string{
+		"web-worker/plugin/" + corePluginID,
+		"web-worker/plugin/" + corePluginID + "/exec-1",
+		web_view.WebViewServerID("app-view"),
+	} {
+		if got, want := lookupAs(serverID).got, "reached on core as plugin-host/default"; got != want {
+			t.Errorf("lookup as %q: got %s, want %s", serverID, got, want)
+		}
+	}
+
+	// A client lookup follows the same rule, keyed on the client ID.
+	for _, clientID := range []string{"plugin/attacker", "web-worker/plugin/attacker"} {
+		_, _, ref, err := bifrost_rpc.ExLookupRpcClient(ctx, tb.Bus, coreCall, clientID, true, nil)
+		if ref != nil {
+			ref.Release()
+		}
+		if !errors.Is(err, bldr_plugin.ErrRelayRefused) {
+			t.Errorf("client lookup as %q: want a refusal, got %v", clientID, err)
+		}
+	}
+
+	// The host's own client lookup still gets core's client.
+	hostCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	clients, _, ref, err := bifrost_rpc.ExLookupRpcClient(hostCtx, tb.Bus, coreCall, "", true, nil)
+	if err != nil || len(clients) == 0 {
+		t.Fatalf("host client lookup: %d clients, %v", len(clients), err)
+	}
+	ref.Release()
 }
