@@ -16,6 +16,14 @@ type Node struct {
 	// World is the World whose objects the block belongs to, read for their
 	// types. It is nil above any World.
 	World *bucket.ObjectRef
+	// Origin is the caller's index of the root the walk entered from, which
+	// every block below the root carries.
+	Origin int
+	// Parent is the ref string of the decoded block that named this one,
+	// empty for a root.
+	Parent string
+	// ParentType is that block's Go type.
+	ParentType string
 	// values constructs the values of the tree the block belongs to, nil when
 	// the block is not a tree node or the tree's values are untyped.
 	values block.Ctor

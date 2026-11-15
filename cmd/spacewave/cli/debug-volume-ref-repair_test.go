@@ -236,7 +236,7 @@ func TestDebugRefRepair(t *testing.T) {
 	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.rebuild.Verified != 0 {
 		t.Fatalf("dry run: %+v", dry)
 	}
-	if dry.absent != 0 || dry.undecodable != 0 || len(dry.untyped) != 0 {
+	if dry.absentHolders+dry.absentWalked != 0 || dry.undecodable != 0 || len(dry.untyped) != 0 {
 		t.Fatalf("dry run did not walk the whole filesystem: %+v", dry)
 	}
 
@@ -649,7 +649,7 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 	if dry.opPayloads != 2 || !slices.ContainsFunc(dry.opPayloadSample, gitRoot.EqualVT) || !slices.ContainsFunc(dry.opPayloadSample, manifestRoot.EqualVT) {
 		t.Fatalf("dry run counted %d payloads, sample %v", dry.opPayloads, dry.opPayloadSample)
 	}
-	if dry.absent != 0 || dry.undecodable != 0 || len(dry.untyped) != 0 {
+	if dry.absentHolders+dry.absentWalked != 0 || dry.undecodable != 0 || len(dry.untyped) != 0 {
 		t.Fatalf("dry run did not walk the whole World: %+v", dry)
 	}
 	wantHolders := func(name string, h refRepairHolders) {

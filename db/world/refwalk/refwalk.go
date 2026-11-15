@@ -184,9 +184,14 @@ func (w *Walker) Walk(ctx context.Context, root Node, visit func(ctx context.Con
 			if reads[i].blk == nil {
 				continue
 			}
-			children, err := w.children(ctx, reads[i].blk, reads[i].Node, reads[i].Node.values)
+			n := reads[i].Node
+			children, err := w.children(ctx, reads[i].blk, n, n.values)
 			if err != nil {
 				return err
+			}
+			parent, parentType := n.Ref.MarshalString(), reflect.TypeOf(reads[i].blk).String()
+			for j := range children {
+				children[j].Origin, children[j].Parent, children[j].ParentType = n.Origin, parent, parentType
 			}
 			stack = append(stack, children...)
 		}
@@ -207,21 +212,23 @@ func (w *Walker) Close() {
 // read reads, decodes and extracts the refs of one block. It touches no walk
 // state, so reads run concurrently.
 func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
-	// Check only the presence of a block whose type holds no refs.
-	rd := Visit{Node: n}
-	if !holdsRefs(n.Ctor()) {
-		var err error
-		rd.Leaf = true
-		rd.Found, err = w.store.GetBlockExists(ctx, n.Ref)
-		return rd, err
-	}
-
-	// Read and decode the stored bytes.
+	// Read the stored bytes, verifying a leaf's too.
+	rd := Visit{Node: n, Leaf: !holdsRefs(n.Ctor())}
 	data, found, err := w.store.GetBlock(ctx, n.Ref)
+	rd.Size = uint64(len(data))
+	if errors.Is(err, block.ErrBlockCorrupt) {
+		rd.Corrupt = true
+		return rd, nil
+	}
 	if err != nil || !found {
 		return rd, err
 	}
 	rd.Found = true
+	if rd.Leaf {
+		return rd, nil
+	}
+
+	// Decode the stored bytes.
 	if n.Xfrm != nil {
 		data, rd.DecodeErr = n.Xfrm.DecodeBlock(data)
 	}

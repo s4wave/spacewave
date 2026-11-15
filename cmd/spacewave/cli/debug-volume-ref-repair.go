@@ -73,8 +73,20 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Named roots of walked Spaces typed by kind", strconv.FormatUint(res.spaceRoots, 10)},
 		{"Named roots walked by type", strconv.FormatUint(res.typedRoots, 10)},
 		{"Blocks walked", strconv.FormatUint(res.blocks, 10)},
-		{"Blocks absent", strconv.FormatUint(res.absent, 10)},
+		{"Blocks absent", strconv.FormatUint(res.absentHolders+res.absentWalked, 10)},
+		{"Blocks absent: Space root holders", strconv.FormatUint(res.absentHolders, 10)},
+		{"Blocks absent: walked nodes", strconv.FormatUint(res.absentWalked, 10)},
+		{"Blocks absent under the current head World", strconv.FormatUint(res.absentHead, 10)},
+		{"Blocks absent only under other roots", strconv.FormatUint(res.absentOther, 10)},
+		{"Blocks absent: distinct parents", strconv.FormatUint(res.absentParents, 10)},
+		{"Blocks absent: most under one parent", strconv.FormatUint(res.absentMaxPerParent, 10)},
 		{"Blocks undecodable", strconv.FormatUint(res.undecodable, 10)},
+		{"Reads ErrBlockCorrupt", strconv.FormatUint(res.corrupt, 10)},
+		{"Distinct corrupt refs", strconv.FormatUint(res.corruptRefs, 10)},
+		{"Leaves read", strconv.FormatUint(res.leafReads, 10)},
+		{"Leaf reads ErrBlockCorrupt", strconv.FormatUint(res.leafCorrupt, 10)},
+		{"Distinct corrupt leaf refs", strconv.FormatUint(res.leafCorruptRefs, 10)},
+		{"Bytes read", strconv.FormatUint(res.bytesRead, 10)},
 		{"Blocks without a child list", strconv.FormatUint(res.lacking, 10)},
 		{"Children they name", strconv.FormatUint(res.edges, 10)},
 		{"Stored lists equal to the decoded refs", strconv.FormatUint(res.lists[block_gc.ListEqual], 10)},
@@ -86,6 +98,8 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Child lists written", strconv.FormatUint(res.rebuild.Rewritten, 10)},
 		{"Decoded lists refused for dropping a stored child", strconv.FormatUint(res.rebuild.Dropped, 10)},
 		{"Operation payloads not walked", strconv.FormatUint(res.opPayloads, 10)},
+		{"Distinct operation payloads", strconv.FormatUint(res.opPayloadsDistinct, 10)},
+		{"Distinct operation payloads reached through another root", strconv.FormatUint(res.opPayloadsReached, 10)},
 		{"Reached blocks without a verified list", strconv.FormatUint(res.rebuild.Unverified, 10)},
 		{"Lists verified", strconv.FormatBool(res.verified || res.rebuild.Cleared)},
 		{"Returned to unadopted for a recount", strconv.FormatBool(res.rebuild.Unadopted)},
@@ -139,6 +153,17 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		fields = append(fields, [2]string{"Leaked lister sample", ref.MarshalString()})
 	}
 
+	// Split the absent blocks by Space, root kind and parent type.
+	for _, space := range slices.Sorted(maps.Keys(res.absentBySpace)) {
+		fields = append(fields, [2]string{"Blocks absent in Space " + strconv.Itoa(space), strconv.FormatUint(res.absentBySpace[space], 10)})
+	}
+	for _, kind := range slices.Sorted(maps.Keys(res.absentByKind)) {
+		fields = append(fields, [2]string{"Blocks absent from root kind: " + kind, strconv.FormatUint(res.absentByKind[kind], 10)})
+	}
+	for _, typ := range slices.Sorted(maps.Keys(res.absentByParentType)) {
+		fields = append(fields, [2]string{"Blocks absent under parent type: " + typ, strconv.FormatUint(res.absentByParentType[typ], 10)})
+	}
+
 	// Retain the walk's reasons for stopping at an untyped ref, with a sample
 	// ref of each.
 	for _, reason := range slices.Sorted(maps.Keys(res.untyped)) {
@@ -174,8 +199,7 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 		return refRepairResult{}, errors.Errorf("no replay cursor found for space %s", spaceID)
 	}
 
-	// Start the list rebuild unless this is a dry run, then walk each Space
-	// and, for the whole volume, the named roots, and release the walker.
+	// Start the list rebuild unless this is a dry run.
 	rr := newRefRepair(le, vol, lookup)
 	defer rr.close()
 	if !dryRun {
@@ -185,6 +209,9 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 			return refRepairResult{}, err
 		}
 	}
+
+	// Walk each Space and, for the whole volume, the named roots, count the
+	// payloads the walk reached anyway, and release the walker.
 	for _, sc := range cursors {
 		if err := rr.walkSpace(ctx, sc); err != nil {
 			return refRepairResult{}, errors.Wrapf(err, "walk space %s", sc.spaceID)
@@ -195,6 +222,7 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 			return refRepairResult{}, errors.Wrap(err, "walk the named roots")
 		}
 	}
+	rr.countReachedPayloads(rr.walked())
 	var walked func(*block.BlockRef) bool
 	if dryRun {
 		walked = rr.walked()

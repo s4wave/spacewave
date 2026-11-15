@@ -55,11 +55,47 @@ type refRepairResult struct {
 	spaces int
 	// blocks is the number of distinct blocks walked.
 	blocks uint64
-	// absent is the number of referenced blocks the volume lacks.
-	absent uint64
+	// absentHolders is the number of Space root blocks readHolder found the
+	// volume lacks: replay spans, retained sets and held root chains.
+	absentHolders uint64
+	// absentWalked is the number of blocks below the roots the walker found
+	// the volume lacks.
+	absentWalked uint64
+	// absentBySpace splits absentWalked by the Space whose root the walk
+	// entered from, numbered from 1 in walk order, 0 for a named root outside
+	// the Spaces. A block reached from several roots counts under the first.
+	absentBySpace map[int]uint64
+	// absentByKind splits absentWalked by the kind of that root.
+	absentByKind map[string]uint64
+	// absentByParentType splits absentWalked by the decoded type of the block
+	// naming the absent one, refRepairRootParent for an absent root.
+	absentByParentType map[string]uint64
+	// absentParents is the number of distinct blocks naming an absent block.
+	absentParents uint64
+	// absentMaxPerParent is the most absent blocks one of them names.
+	absentMaxPerParent uint64
+	// absentHead is the number of absent blocks below the current head World
+	// of a Space's cursor, which the walk enters first in each Space.
+	absentHead uint64
+	// absentOther is the number of the rest, reached only from older,
+	// retained or other roots.
+	absentOther uint64
 	// undecodable is the number of blocks that failed to decode as their type.
 	// A block whose type holds no refs is only checked for presence.
 	undecodable uint64
+	// corrupt is the number of reads that failed with block.ErrBlockCorrupt.
+	corrupt uint64
+	// corruptRefs is the number of distinct refs among those reads.
+	corruptRefs uint64
+	// leafReads is the number of leaf blocks read for their bytes.
+	leafReads uint64
+	// leafCorrupt is the number of leaf reads that failed with
+	// block.ErrBlockCorrupt.
+	leafCorrupt uint64
+	// leafCorruptRefs is the number of distinct refs among those reads.
+	leafCorruptRefs uint64
+	// bytesRead is the number of block bytes the walk read.
+	bytesRead uint64
 	// lacking is the number of walked blocks stored without a child list.
 	lacking uint64
 	// edges is the number of children those lists name.
@@ -110,10 +146,29 @@ type refRepairResult struct {
 	opPayloads uint64
 	// opPayloadSample holds up to refRepairSample of them.
 	opPayloadSample []*block.BlockRef
+	// opPayloadsDistinct is the number of distinct refs among them.
+	opPayloadsDistinct uint64
+	// opPayloadsReached is the number of those the run walked anyway, through
+	// a root other than the operation that carried it.
+	opPayloadsReached uint64
 	// holders splits the holders an adoption counts of the blocks the run
 	// leaves stored without a child list.
 	holders refRepairHolders
 }
+
+// refRepairOrigin describes a root the walk enters from.
+type refRepairOrigin struct {
+	// space is the Space's number in walk order, 0 outside the Spaces.
+	space int
+	// kind names what holds the root.
+	kind string
+}
+
+// refRepairHeadKind is the kind of a Space cursor's current head World.
+const refRepairHeadKind = "cursor head World"
+
+// refRepairRootParent is the parent type of an absent root.
+const refRepairRootParent = "(a root)"
 
 // refRepairRoots counts the named roots of one kind.
 type refRepairRoots struct {
@@ -198,6 +253,10 @@ type refRepair struct {
 	// holders holds the Space root blocks readHolder decoded outside the
 	// walker, by ref string: a few per Space.
 	holders map[string]struct{}
+	// corrupt holds the refs whose reads failed with block.ErrBlockCorrupt.
+	corrupt map[string]struct{}
+	// corruptLeaves holds the leaf refs whose reads failed so.
+	corruptLeaves map[string]struct{}
 	// unlistedPayloads holds, on a dry run, each payload entry of a holder
 	// block the volume has no list for: one ref per operation payload a
 	// Space's chains hold above its checkpoint, at most the count the report
@@ -207,6 +266,15 @@ type refRepair struct {
 	// operation. splitHolders cannot take them as a stream, because whether
 	// one stays listless depends on the finished walk.
 	unlistedPayloads []*block.BlockRef
+	// origins describes each root the walk enters from, by Node.Origin. Entry
+	// 0 is a root no caller tagged.
+	origins []refRepairOrigin
+	// absentPerParent counts the absent blocks each parent names, by ref
+	// string.
+	absentPerParent map[string]uint64
+	// payloads holds each distinct operation payload root countPayloads
+	// counted, by ref string: one per operation the walked Spaces name.
+	payloads map[string]*block.BlockRef
 	// res counts the findings.
 	res refRepairResult
 }
@@ -215,16 +283,24 @@ type refRepair struct {
 // roots with lookup.
 func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume, lookup refwalk.LookupBlockType) *refRepair {
 	return &refRepair{
-		le:           le,
-		vol:          vol,
-		buckets:      vol,
-		walker:       refwalk.NewWalker(le, vol, lookup),
-		spaceBuckets: make(map[string]struct{}),
-		undecodable:  make(map[string]struct{}),
-		holders:      make(map[string]struct{}),
+		le:              le,
+		vol:             vol,
+		buckets:         vol,
+		walker:          refwalk.NewWalker(le, vol, lookup),
+		spaceBuckets:    make(map[string]struct{}),
+		undecodable:     make(map[string]struct{}),
+		holders:         make(map[string]struct{}),
+		corrupt:         make(map[string]struct{}),
+		corruptLeaves:   make(map[string]struct{}),
+		payloads:        make(map[string]*block.BlockRef),
+		origins:         []refRepairOrigin{{kind: "untagged"}},
+		absentPerParent: make(map[string]uint64),
 		res: refRepairResult{
-			unwalkedRoots: make(map[string]refRepairRoots),
-			lists:         make(map[block_gc.ListDiff]uint64),
+			unwalkedRoots:      make(map[string]refRepairRoots),
+			lists:              make(map[block_gc.ListDiff]uint64),
+			absentBySpace:      make(map[int]uint64),
+			absentByKind:       make(map[string]uint64),
+			absentByParentType: make(map[string]uint64),
 		},
 	}
 }
@@ -259,7 +335,7 @@ func (r *refRepair) walkNamedRoots(ctx context.Context) error {
 		}
 		r.res.typedRoots++
 		r.le.Infof("walking the World root %s of bucket %s", name, bucketID)
-		return r.walker.Walk(ctx, node, r.visit)
+		return r.walker.Walk(ctx, r.tag([]refwalk.Node{node}, 0, "entrypoint World root")[0], r.visit)
 	})
 }
 
@@ -515,9 +591,10 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 
 	// Collect what each of the bucket's named roots holds.
 	var roots []refwalk.Node
+	space := r.res.spaces
 	err = r.vol.ListBucketRoots(ctx, bucketID, "", func(root block.NamedRoot) error {
 		nodes, err := r.spaceRootNodes(ctx, spaceWorld, root.Name, root.Ref)
-		roots = append(roots, nodes...)
+		roots = append(roots, r.tag(nodes, space, "named root "+refRepairRootKind(root.Name))...)
 		return err
 	})
 	if err != nil {
@@ -525,20 +602,28 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 	}
 
 	// Collect the cursor's Worlds with their retained roots and the World of
-	// each outcome, and count each outcome's payloads.
-	for _, state := range []*space_world.InnerState{sc.cursor.GetBase(), sc.cursor.GetHead()} {
+	// each outcome, and count each outcome's payloads. The current head World
+	// walks first, so a block below it counts under it however many other
+	// roots of the Space also reach it.
+	for i, state := range []*space_world.InnerState{sc.cursor.GetHead(), sc.cursor.GetBase()} {
 		head := state.GetHeadRef()
 		if head == nil {
 			continue
 		}
-		refs := []*block.BlockRef{head.GetRootRef()}
-		for _, retained := range state.GetRetainedRoots() {
-			refs = append(refs, retained.GetRootRef())
-		}
-		for _, ref := range refs {
+		name := [...]string{"cursor head", "cursor base"}[i]
+		for j, ref := range slices.Concat([]*block.BlockRef{head.GetRootRef()}, retainedRefs(state)) {
 			node, err := r.walker.WorldNode(head, ref)
 			if err != nil {
 				return err
+			}
+			kind := name + " retained"
+			if j == 0 {
+				kind = name + " World"
+			}
+			node = r.tag([]refwalk.Node{node}, space, kind)[0]
+			if kind == refRepairHeadKind {
+				roots = append([]refwalk.Node{node}, roots...)
+				continue
 			}
 			roots = append(roots, node)
 		}
@@ -548,7 +633,7 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 		if err != nil {
 			return err
 		}
-		roots = append(roots, node)
+		roots = append(roots, r.tag([]refwalk.Node{node}, space, "outcome World")[0])
 		if err := r.countPayloads(ctx, nil, outcome.GetPayloads()); err != nil {
 			return err
 		}
@@ -562,6 +647,52 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 		}
 	}
 	return nil
+}
+
+// retainedRefs returns the retained World roots of state.
+func retainedRefs(state *space_world.InnerState) []*block.BlockRef {
+	refs := make([]*block.BlockRef, 0, len(state.GetRetainedRoots()))
+	for _, retained := range state.GetRetainedRoots() {
+		refs = append(refs, retained.GetRootRef())
+	}
+	return refs
+}
+
+// tag records an origin of space and kind and marks nodes with it.
+func (r *refRepair) tag(nodes []refwalk.Node, space int, kind string) []refwalk.Node {
+	r.origins = append(r.origins, refRepairOrigin{space: space, kind: kind})
+	for i := range nodes {
+		nodes[i].Origin = len(r.origins) - 1
+	}
+	return nodes
+}
+
+// countAbsent counts a block below a root that the volume lacks, by where the
+// walk reached it from.
+func (r *refRepair) countAbsent(n refwalk.Node) {
+	// Count it under the root it was reached from.
+	r.res.absentWalked++
+	origin := r.origins[n.Origin]
+	r.res.absentBySpace[origin.space]++
+	r.res.absentByKind[origin.kind]++
+	if origin.kind == refRepairHeadKind {
+		r.res.absentHead++
+	} else {
+		r.res.absentOther++
+	}
+
+	// Count it under the block that names it.
+	if n.Parent == "" {
+		r.res.absentByParentType[refRepairRootParent]++
+		return
+	}
+	r.res.absentByParentType[n.ParentType]++
+	r.absentPerParent[n.Parent]++
+	c := r.absentPerParent[n.Parent]
+	if c == 1 {
+		r.res.absentParents++
+	}
+	r.res.absentMaxPerParent = max(r.res.absentMaxPerParent, c)
 }
 
 // legacyReplaySpanRootName names the root a Space engine before the adapter
@@ -689,9 +820,14 @@ func (r *refRepair) readHolder(ctx context.Context, ref *block.BlockRef, msg int
 		return false, nil
 	}
 	data, found, err := r.vol.GetBlock(ctx, ref)
+	r.res.bytesRead += uint64(len(data))
+	if errors.Is(err, block.ErrBlockCorrupt) {
+		r.countCorrupt(key, false)
+		return false, nil
+	}
 	if err != nil || !found {
 		if err == nil {
-			r.res.absent++
+			r.res.absentHolders++
 		}
 		return false, err
 	}
@@ -716,6 +852,17 @@ func (r *refRepair) walked() func(*block.BlockRef) bool {
 	return func(ref *block.BlockRef) bool {
 		_, ok := holders[ref.MarshalString()]
 		return ok || visited(ref)
+	}
+}
+
+// countReachedPayloads counts the distinct operation payload roots, and those
+// walked reports the run reached through another root.
+func (r *refRepair) countReachedPayloads(walked func(*block.BlockRef) bool) {
+	r.res.opPayloadsDistinct = uint64(len(r.payloads))
+	for _, ref := range r.payloads {
+		if walked(ref) {
+			r.res.opPayloadsReached++
+		}
 	}
 }
 
@@ -754,6 +901,7 @@ func (r *refRepair) countPayloads(ctx context.Context, lister *block.BlockRef, p
 		}
 		r.res.opPayloads++
 		r.res.opPayloadSample = sampleRef(r.res.opPayloadSample, ref)
+		r.payloads[ref.MarshalString()] = ref
 		if keep {
 			r.unlistedPayloads = append(r.unlistedPayloads, ref)
 		}
@@ -764,9 +912,18 @@ func (r *refRepair) countPayloads(ctx context.Context, lister *block.BlockRef, p
 // visit counts a batch of reads and verifies each decoded block's list.
 func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 	for _, rd := range batch {
-		// Count a block the volume lacks, a leaf, and an undecodable block.
+		// Count a corrupt read, a block the volume lacks, a leaf, and an
+		// undecodable block.
+		r.res.bytesRead += rd.Size
+		if rd.Leaf {
+			r.res.leafReads++
+		}
+		if rd.Corrupt {
+			r.countCorrupt(rd.Node.Ref.MarshalString(), rd.Leaf)
+			continue
+		}
 		if !rd.Found {
-			r.res.absent++
+			r.countAbsent(rd.Node)
 			continue
 		}
 		if rd.DecodeErr != nil {
@@ -808,6 +965,24 @@ func (r *refRepair) visitDecoded(ctx context.Context, ref *block.BlockRef, refs 
 		r.res.listSample = append(r.res.listSample, refRepairList{ref: ref, diff: diff})
 	}
 	return r.verify(ctx, ref, refs)
+}
+
+// countCorrupt counts one read that failed with block.ErrBlockCorrupt, and
+// its ref the first time it is seen, a leaf apart from a decoded block.
+func (r *refRepair) countCorrupt(key string, leaf bool) {
+	if leaf {
+		r.res.leafCorrupt++
+		if _, ok := r.corruptLeaves[key]; !ok {
+			r.corruptLeaves[key] = struct{}{}
+			r.res.leafCorruptRefs++
+		}
+		return
+	}
+	r.res.corrupt++
+	if _, ok := r.corrupt[key]; !ok {
+		r.corrupt[key] = struct{}{}
+		r.res.corruptRefs++
+	}
 }
 
 // countBlock counts one walked block that the volume stores.

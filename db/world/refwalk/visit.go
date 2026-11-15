@@ -8,6 +8,11 @@ type Visit struct {
 	Node Node
 	// Found is false when the store lacks the block.
 	Found bool
+	// Corrupt is true when the stored bytes did not match the ref, a read that
+	// failed with block.ErrBlockCorrupt. Found is false then.
+	Corrupt bool
+	// Size is the number of bytes the read returned.
+	Size uint64
 	// Leaf is true when the block's type holds no refs, so only its presence
 	// was read.
 	Leaf bool
