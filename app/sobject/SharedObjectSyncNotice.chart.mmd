@@ -1,0 +1,23 @@
+---
+title: "Space replay and the sync notice"
+---
+stateDiagram-v2
+  s0: Opening, read only
+  s1: Caught up
+  s2: Waiting for an app, read only
+  s3: Waiting for approval, read only
+  s4: Catching up, read only
+  [*] --> s0
+  s0 --> s1: replay catches up
+  s0 --> s2: reaches an unknown change
+  s1 --> s0: app restarts
+  s1 --> s4: another device's change arrives
+  s2 --> s0: app restarts
+  s2 --> s1: handler arrives
+  s2 --> s3: plugin not approved
+  s3 --> s0: app restarts
+  s3 --> s1: handler arrives
+  s3 --> s2: person approves
+  s4 --> s0: app restarts
+  s4 --> s1: replay applies it
+  s4 --> s2: reaches an unknown change

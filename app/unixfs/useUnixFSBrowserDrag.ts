@@ -20,6 +20,8 @@ interface UnixFSBrowserDragOptions {
   rootHandle: FSHandle | null | undefined
   sourceParentHandle: FSHandle | null | undefined
   uploadManager: UploadManager | null
+  // saveHold is why writes to the Space wait, from useSaveHold, or null.
+  saveHold: string | null
   folderDropEntryId: string | null
   setDragging: (dragging: boolean) => void
   setFolderDropEntryId: (id: string | null) => void
@@ -31,6 +33,7 @@ export function useUnixFSBrowserDrag({
   rootHandle,
   sourceParentHandle,
   uploadManager,
+  saveHold,
   folderDropEntryId,
   setDragging,
   setFolderDropEntryId,
@@ -67,6 +70,10 @@ export function useUnixFSBrowserDrag({
       event.preventDefault()
       event.stopPropagation()
       setDragging(false)
+      if (saveHold) {
+        toast.info(saveHold)
+        return
+      }
       const selection = await extractNativeUploadSelection(event.dataTransfer)
       if (selection.files.length === 0 && selection.directories.length === 0) {
         return
@@ -80,7 +87,7 @@ export function useUnixFSBrowserDrag({
         )
       }
     },
-    [displayPath, setDragging, sourceParentHandle, uploadManager],
+    [displayPath, saveHold, setDragging, sourceParentHandle, uploadManager],
   )
 
   const getAcceptedPathMove = useCallback(

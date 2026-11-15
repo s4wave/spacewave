@@ -9,7 +9,7 @@ import {
   WatchWorldStateResourceServiceClient,
   TypedObjectResourceServiceClient,
 } from './world_srpc.pb.js'
-import type { WorldMutation } from './world.pb.js'
+import { WorldErrorCode, type WorldMutation } from './world.pb.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import { WorldStage } from './stage.js'
 import {
@@ -18,6 +18,8 @@ import {
   type ChangeNames,
 } from './change-feed.js'
 import { throwTypedObjectError } from './typed-object-grant-retired-error.js'
+import { typedError } from './errors.js'
+import { KNOWN_ERROR_CODE } from './known-error-code.js'
 import {
   Tx,
   WorldStateResource,
@@ -81,7 +83,18 @@ export class Engine extends Resource {
     write: boolean,
     abortSignal?: AbortSignal,
   ): Promise<Tx> {
-    const response = await this.service.NewTransaction({ write }, abortSignal)
+    const response = await this.service.NewTransaction(
+      { write, knownErrorCode: KNOWN_ERROR_CODE },
+      abortSignal,
+    )
+    if (response.errorCode) {
+      throw (
+        typedError(response.errorCode) ??
+        new Error(
+          `new transaction refused: ${WorldErrorCode[response.errorCode]}`,
+        )
+      )
+    }
     return this.resourceRef.createResource(response.resourceId ?? 0, Tx, {
       readOnly: response.readOnly,
     })
@@ -93,7 +106,10 @@ export class Engine extends Resource {
     opData: Uint8Array,
     abortSignal?: AbortSignal,
   ) {
-    return this.service.ExecuteWorldOp({ opTypeId, opData }, abortSignal)
+    return this.service.ExecuteWorldOp(
+      { opTypeId, opData, knownErrorCode: KNOWN_ERROR_CODE },
+      abortSignal,
+    )
   }
 
   /**

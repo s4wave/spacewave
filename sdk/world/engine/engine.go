@@ -60,8 +60,14 @@ func (e *SDKEngine) Release() {
 // Note: Engine might return a read-only transaction even if write=true.
 func (e *SDKEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
 	// Open a transaction against the remote World.
-	resp, err := e.service.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: write})
+	resp, err := e.service.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{
+		Write:          write,
+		KnownErrorCode: s4wave_world.KnownErrorCode,
+	})
 	if err != nil {
+		return nil, err
+	}
+	if err := s4wave_world.ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return nil, err
 	}
 

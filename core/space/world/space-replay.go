@@ -233,6 +233,9 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	// Refuse an acknowledgment's absence of data or a refusal outright.
 	pos.op, pos.reason = op, op.Refused
 	if op.Refused != "" || op.Data == nil {
+		if op.Refused != "" {
+			r.a.le.WithField("reason", reasonCode(op.Refused)).Debug("replay refuses an operation")
+		}
 		return pos, nil
 	}
 
@@ -240,6 +243,7 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	wop := &WorldOp{}
 	if err := wop.UnmarshalVT(op.Data); err != nil {
 		pos.reason = "invalid operation data: " + err.Error()
+		r.a.le.WithField("reason", reasonCode(pos.reason)).Debug("replay refuses an operation")
 		return pos, nil
 	}
 	peerID, err := op.Inner.ParsePeerID()
@@ -282,6 +286,7 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	// Record the outcome, and the seqno of a changed World.
 	if reason != "" {
 		pos.reason = reason
+		r.a.le.WithField("op-type", opTypeOf(wop)).WithField("reason", reasonCode(reason)).Debug("replay refuses an operation")
 		return pos, nil
 	}
 	pos.state = next
@@ -339,7 +344,7 @@ func (r *spaceReplay) applyTx(ctx context.Context, txOp *ApplyTxOp, prev *InnerS
 		if err != nil {
 			return false, err
 		}
-		_, err = ttx.ExecuteTx(ctx, peerID, declaredLookup(r.a.lookupOp, r.a.opts.OpTypes.Declared, btx), btx)
+		_, err = ttx.ExecuteTx(ctx, peerID, waitingLookup(r.a.lookupOp, btx), btx)
 		return err == nil, err
 	})
 }
@@ -366,7 +371,7 @@ func (r *spaceReplay) applyGraphSettingsStep(ctx context.Context, stepOp *GraphS
 // World prev and commits it when change reports a change. It returns the World
 // after the commit, or prev when nothing changed. A failure of change refuses
 // the operation with a reason that starts with failed, but a canceled read, a
-// missing block or a pending handler stops replay instead: none is a property
+// missing block or a missing handler stops replay instead: none is a property
 // of the operation, so refusing it would split replicas.
 func (r *spaceReplay) commitOn(ctx context.Context, prev *InnerState, failed string, change func(*world_block.EngineTx) (bool, error)) (*InnerState, string, error) {
 	// A change needs a World.
@@ -592,4 +597,49 @@ func operationPerson(participant *sobject.SOParticipantConfig) string {
 		return person
 	}
 	return participant.GetPeerId()
+}
+
+// opTypeOf returns the operation type of wop a log line names: the World or
+// object operation type of a transaction that applies one, the transaction
+// type of another transaction, or the kind of World operation.
+func opTypeOf(wop *WorldOp) string {
+	switch tx := wop.GetApplyTxOp().GetTx(); {
+	case tx.GetTxApplyWorldOp() != nil:
+		return tx.GetTxApplyWorldOp().GetOperationTypeId()
+	case tx.GetTxApplyObjectOp() != nil:
+		return tx.GetTxApplyObjectOp().GetOperationTypeId()
+	case tx != nil:
+		return tx.GetTxType().String()
+	}
+	switch wop.GetBody().(type) {
+	case *WorldOp_InitWorld:
+		return "init-world"
+	case *WorldOp_SetRetainedRoot:
+		return "set-retained-root"
+	case *WorldOp_SetTransformConf:
+		return "set-transform-conf"
+	case *WorldOp_GraphSettingsStep:
+		return "graph-settings-step"
+	}
+	return "unknown"
+}
+
+// reasonCode returns the fixed phrase a refusal reason of replay starts with,
+// or "other" for any other reason, such as a validation error or a refusal
+// another device recorded. A log line never carries the reason's text past
+// the phrase, which may quote operation data.
+func reasonCode(reason string) string {
+	code, _, _ := strings.Cut(reason, ": ")
+	switch code {
+	case "world is already initialized",
+		"invalid world init",
+		"world is not initialized",
+		"transaction apply failed",
+		"graph settings step failed",
+		"invalid operation data",
+		"unknown operation type",
+		"too many retained roots":
+		return code
+	}
+	return "other"
 }

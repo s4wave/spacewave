@@ -4,6 +4,7 @@ import {
   PluginExecutableMissingError,
   PluginOpTimeoutError,
   PluginUnavailableError,
+  ReplayWaitError,
   throwBatchError,
   throwCommitError,
   throwOperationError,
@@ -31,6 +32,7 @@ const errorFor: Record<
   [WorldErrorCode.SUPERSEDED]: WorldCommitError,
   [WorldErrorCode.STALE_GENERATION]: WorldCommitError,
   [WorldErrorCode.ROOT_NOT_HELD]: WorldCommitError,
+  [WorldErrorCode.REPLAY_WAITS]: ReplayWaitError,
 }
 
 // replyWith returns a World state and an object state whose services answer
@@ -53,9 +55,11 @@ describe('operation replies', () => {
   )
 
   it('maps every enum code', () => {
-    expect(Object.keys(errorFor).map(Number).sort()).toEqual(
-      [...codes].sort((a, b) => a - b),
-    )
+    expect(
+      Object.keys(errorFor)
+        .map(Number)
+        .sort((a, b) => a - b),
+    ).toEqual([...codes].sort((a, b) => a - b))
   })
 
   it.each(codes.filter((c) => c !== WorldErrorCode.UNSPECIFIED))(

@@ -14,6 +14,9 @@ type PluginDemand struct {
 	c *Controller
 	// all selects every plugin the Space lists.
 	all bool
+	// replay selects its plugins even when the Space no longer lists them,
+	// for a replay that waits at an operation they handle.
+	replay bool
 	// pluginIDs is the sorted selection when all is false. Guarded by c.bcast.
 	pluginIDs []string
 }
@@ -30,6 +33,18 @@ func (c *Controller) DemandAllPlugins() *PluginDemand {
 // DemandPlugins demands the listed plugins until Release.
 func (c *Controller) DemandPlugins(pluginIDs []string) *PluginDemand {
 	d := &PluginDemand{c: c, pluginIDs: canonicalPluginIDs(pluginIDs)}
+	c.updateDemands(func() {
+		c.demands[d] = struct{}{}
+	})
+	return d
+}
+
+// DemandReplayPlugins demands the listed plugins until Release, including
+// ones the Space no longer lists: the plugins a World before an operation
+// that replay waits at lists. Each still starts only once the host's
+// scheduler admits its manifest root.
+func (c *Controller) DemandReplayPlugins(pluginIDs []string) *PluginDemand {
+	d := &PluginDemand{c: c, replay: true, pluginIDs: canonicalPluginIDs(pluginIDs)}
 	c.updateDemands(func() {
 		c.demands[d] = struct{}{}
 	})
@@ -64,6 +79,20 @@ func (c *Controller) IsPluginDemanded(pluginID string) bool {
 		}
 	})
 	return demanded
+}
+
+// GetReplayPluginIDs returns the sorted plugins replay demands, which load
+// even when the Space no longer lists them.
+func (c *Controller) GetReplayPluginIDs() []string {
+	var ids []string
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for d := range c.demands {
+			if d.replay {
+				ids = append(ids, d.pluginIDs...)
+			}
+		}
+	})
+	return canonicalPluginIDs(ids)
 }
 
 // updateDemands applies change under the lock and wakes the running

@@ -258,9 +258,15 @@ func (r *EngineResource) NewTransaction(ctx context.Context, req *s4wave_world.N
 	}
 
 	// Acquire the transaction and transfer its release to the Resource client.
+	// A write the World refuses before its turn opens returns as its code to
+	// a client that decodes it, and as the call's error otherwise.
 	wtx, err := r.engine.NewTransaction(ctx, req.GetWrite())
+	code, err := replayWaitCode(req.GetKnownErrorCode(), err)
 	if err != nil {
 		return nil, err
+	}
+	if code != 0 {
+		return &s4wave_world.NewTransactionResponse{ErrorCode: code}, nil
 	}
 
 	// Register the transaction resource with its release hook.

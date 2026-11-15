@@ -10,7 +10,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/world"
-	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/sirupsen/logrus"
 )
@@ -101,17 +100,18 @@ var ErrUnresolvedOp = errors.New("an operation's type does not resolve")
 // checkpoint, and decides one the cursor has not reached at the World before
 // it: the World after the cursor's last matching outcome, or the checkpoint's
 // World without one, kept across the operations so decided, which leave it.
-// There replay refuses an operation whose transaction runs it first, before
-// anything changes that World, when no plugin the World installs declares
-// its type (OpTypes.Declared). A refused operation still names every payload
-// it can, at the cost of bytes the target may not read. Invariant: an
-// operation gets no payloads only when every replay of this state would refuse
-// it whatever its handlers, or its payloads cannot be named.
+// There replay refuses a transaction only on a World that is not initialized,
+// when the type of the operation it runs first resolves nowhere: a missing
+// handler is a fact about a device, which replay waits out, never a refusal.
+// A failed lookup of that type fails ImportRoots with its error, on a World
+// that is not initialized and on one that is. A refused operation still names
+// every payload it can, at the cost of bytes the target may not read. Invariant: an operation gets no
+// payloads only when every replay of this state would refuse it whatever its
+// handlers, or its payloads cannot be named.
 func ImportRoots(
 	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
-	sfs *block_transform.StepFactorySet,
 	so sobject.SharedObject,
 	engineID string,
 	opTypes OpTypes,
@@ -147,9 +147,8 @@ func ImportRoots(
 
 	// Name each operation's payloads, following the saved outcomes while they
 	// record the same operations. prev is the World before the operation
-	// while it is known; declared holds each World's declarations read so far.
+	// while it is known.
 	prev := base
-	declared := make(map[declaredKey][]string)
 	for i, h := range set.Order() {
 		// Take a saved outcome. A refusal may only mean the source lacked a
 		// handler another device has, so a refused operation still names
@@ -188,112 +187,26 @@ func ImportRoots(
 			continue
 		}
 
-		// Decide whether replay refuses one whose type does not resolve, at
-		// the World before it.
-		refused, err := refusedAt(ctx, le, b, sfs, so, opTypes, lookupOp, declared, prev, tx)
+		// Look up the type of the operation it runs first at a known World,
+		// failing with the lookup's own error. Replay refuses the
+		// transaction only on a World that is not initialized, when that
+		// type resolves nowhere; anywhere else it waits for a handler.
+		if prev == nil {
+			return nil, ErrUnresolvedOp
+		}
+		opTypeID := firstOpType(tx)
+		if opTypeID == "" {
+			return nil, ErrUnresolvedOp
+		}
+		op, err := lookupOp(ctx, opTypeID)
 		if err != nil {
 			return nil, err
 		}
-		if !refused {
+		if op != nil || !prev.GetHeadRef().GetEmpty() {
 			return nil, ErrUnresolvedOp
 		}
 	}
 	return roots, nil
-}
-
-// refusedAt reports whether replay refuses tx at the World prev of so, for
-// the type of the operation tx runs first: when the type resolves nowhere and
-// no plugin prev installs declares it. A nil prev, an unknown World, decides
-// nothing. A failure to read prev decides nothing either, as replay would stop
-// there rather than refuse. declared holds the declarations read so far, so
-// each World and type is read once.
-func refusedAt(
-	ctx context.Context,
-	le *logrus.Entry,
-	b bus.Bus,
-	sfs *block_transform.StepFactorySet,
-	so sobject.SharedObject,
-	opTypes OpTypes,
-	lookupOp world.LookupOp,
-	declared map[declaredKey][]string,
-	prev *InnerState,
-	tx *world_block_tx.Tx,
-) (bool, error) {
-	// Find the type of the operation the transaction runs first.
-	if prev == nil {
-		return false, nil
-	}
-	opTypeID := firstOpType(tx)
-	if opTypeID == "" {
-		return false, nil
-	}
-	if op, err := lookupOp(ctx, opTypeID); op != nil || err != nil {
-		return false, err
-	}
-
-	// Replay refuses every transaction on no World, and an undeclared type
-	// on any World.
-	if prev.GetHeadRef().GetEmpty() || opTypes.Declared == nil {
-		return true, nil
-	}
-	key := declaredKey{root: prev.GetHeadRef().GetRootRef().MarshalString(), opTypeID: opTypeID}
-	pluginIDs, ok := declared[key]
-	if !ok {
-		var err error
-		pluginIDs, err = declaredAt(ctx, le, b, sfs, so, opTypes, lookupOp, prev, opTypeID)
-		if err != nil {
-			if ctx.Err() != nil {
-				return false, context.Cause(ctx)
-			}
-			return false, nil
-		}
-		declared[key] = pluginIDs
-	}
-	return len(pluginIDs) == 0, nil
-}
-
-// declaredKey names the declarations of one operation type at the World with
-// one root. It holds the root ref alone: the World's head ref also carries its
-// transform config, which holds the Space's block key.
-type declaredKey struct {
-	root, opTypeID string
-}
-
-// declaredAt returns the plugins the World state of so, read from its block
-// store, declares handle opTypeID.
-func declaredAt(
-	ctx context.Context,
-	le *logrus.Entry,
-	b bus.Bus,
-	sfs *block_transform.StepFactorySet,
-	so sobject.SharedObject,
-	opTypes OpTypes,
-	lookupOp world.LookupOp,
-	state *InnerState,
-	opTypeID string,
-) ([]string, error) {
-	// Open a cursor at the World in the block store of so.
-	store := so.GetBlockStore()
-	cursor, err := newWorldCursor(ctx, le, b, sfs, store, store.GetID(), store.GetDecodedBlockCache(), state.GetHeadRef())
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Release()
-
-	// Read it through a read-only engine.
-	engine, err := world_block.NewEngine(ctx, le, cursor, lookupOp, nil, false)
-	if err != nil {
-		return nil, err
-	}
-	defer engine.Close()
-	ws, err := engine.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer ws.Discard()
-
-	// Read its declarations.
-	return opTypes.Declared(ctx, ws, opTypeID)
 }
 
 // firstOpType returns the type of the applied operation tx runs first, or ""
