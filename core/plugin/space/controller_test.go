@@ -2,10 +2,13 @@ package plugin_space
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/callback"
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -19,8 +22,10 @@ import (
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/byteslice"
+	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/hash"
 	s4wave_plugin_approval "github.com/s4wave/spacewave/sdk/plugin/approval"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	"github.com/s4wave/spacewave/testbed"
@@ -452,4 +457,314 @@ func TestSharedSpaceApprovalObjectChangesNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitCount(1)
+}
+
+// TestAdmissionGatePendingUntilAnswered checks that the gate reports a root
+// pending until its admission directive answers, so the first pass does not
+// load a fallback it would swap out a moment later.
+func TestAdmissionGatePendingUntilAnswered(t *testing.T) {
+	// Answer admission for the slow root only once answer is closed.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+	b, _, err := controllerbus_core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	slow, unknown := testRootRef(t, "slow"), testRootRef(t, "unknown")
+	answer := make(chan struct{})
+	approver := callback.NewCallbackController(
+		controller.NewInfo("test/slow-approvals", controller.MustParseVersion("0.0.1"), ""),
+		nil,
+		func(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+			d, ok := inst.GetDirective().(bldr_plugin.AdmitPluginRoot)
+			if !ok || d.AdmitPluginRootManifestRoot() != manifestRoot(slow) {
+				return nil, nil
+			}
+			return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+				select {
+				case <-answer:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				_, _ = handler.AddValue(bldr_plugin.AdmitSourceApproved)
+				return nil
+			}), nil)
+		},
+		nil,
+	)
+	release, err := b.AddController(ctx, approver, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	woken := make(chan struct{}, 16)
+	gate := newAdmissionGate(b, "peer", func() { woken <- struct{}{} })
+	defer gate.release()
+
+	// waitFor wakes until the gate's verdict on refs matches.
+	waitFor := func(refs []*bldr_manifest.ManifestRef, wantAdmitted int, wantPending bool) {
+		t.Helper()
+		for {
+			admitted, open := gate.admitted(ctx, "colors", refs)
+			if len(admitted) == wantAdmitted && (len(open) != len(admitted)) == wantPending {
+				return
+			}
+			select {
+			case <-woken:
+			case <-ctx.Done():
+				t.Fatalf("gate never reported %d admitted, pending %v", wantAdmitted, wantPending)
+			}
+		}
+	}
+
+	// A root no resolver answers settles as refused; the slow one stays
+	// pending until its resolver answers, then reads as admitted.
+	waitFor([]*bldr_manifest.ManifestRef{unknown}, 0, false)
+	if admitted, open := gate.admitted(ctx, "colors", []*bldr_manifest.ManifestRef{slow}); len(admitted) != 0 || len(open) != 1 {
+		t.Fatalf("unanswered root: %d admitted, %d open, want pending", len(admitted), len(open))
+	}
+	close(answer)
+	waitFor([]*bldr_manifest.ManifestRef{slow}, 1, false)
+}
+
+// testRootRef returns a manifest ref whose root is the hash of name.
+func testRootRef(t *testing.T, name string) *bldr_manifest.ManifestRef {
+	t.Helper()
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte(name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &bldr_manifest.ManifestRef{ManifestRef: &bucket.ObjectRef{RootRef: &block.BlockRef{Hash: h}}}
+}
+
+// testRunningPlugin is a running plugin with no RPC client.
+type testRunningPlugin struct{}
+
+// GetRpcClient returns nil.
+func (testRunningPlugin) GetRpcClient() srpc.Client { return nil }
+
+// TestRevokeWhilePendingNamesTheAwaitedRoot checks that a plugin whose running
+// root loses its admission while a newer root's admission has not answered
+// stops reading as running and is loaded naming the newer root, so the host
+// says which root awaits approval instead of the Space showing the stopped
+// load.
+func TestRevokeWhilePendingNamesTheAwaitedRoot(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	const pluginID = "colors"
+	oldRef, newRef := testRootRef(t, "old"), testRootRef(t, "new")
+
+	// Approvals admit the old root until revoke closes and never answer for
+	// the new one. A load that names only the old root runs; any other load
+	// waits, as a host awaiting approval does.
+	revoke := make(chan struct{})
+	resolver := func(fn func(context.Context, directive.ResolverHandler) error) ([]directive.Resolver, error) {
+		return directive.R(directive.NewFuncResolver(fn), nil)
+	}
+	hold := func(ctx context.Context, _ directive.ResolverHandler) error {
+		<-ctx.Done()
+		return ctx.Err()
+	}
+	host := callback.NewCallbackController(
+		controller.NewInfo("test/approvals-and-host", controller.MustParseVersion("0.0.1"), ""),
+		nil,
+		func(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+			switch d := inst.GetDirective().(type) {
+			case bldr_plugin.AdmitPluginRoot:
+				if d.AdmitPluginRootManifestRoot() != manifestRoot(oldRef) {
+					return resolver(hold)
+				}
+				return resolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+					id, _ := handler.AddValue(bldr_plugin.AdmitSourceApproved)
+					select {
+					case <-revoke:
+						handler.RemoveValue(id)
+						return nil
+					case <-ctx.Done():
+						return ctx.Err()
+					}
+				})
+			case bldr_plugin.LoadPlugin:
+				refs := d.LoadPluginManifests()
+				if len(refs) != 1 || manifestRoot(refs[0]) != manifestRoot(oldRef) {
+					return resolver(hold)
+				}
+				return resolver(func(_ context.Context, handler directive.ResolverHandler) error {
+					_, _ = handler.AddValue(bldr_plugin.RunningPlugin(testRunningPlugin{}))
+					return nil
+				})
+			}
+			return nil, nil
+		},
+		nil,
+	)
+	releaseHost, err := tb.Bus.AddController(ctx, host, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseHost()
+
+	// The Space pins the plugin to an installation the test resolves.
+	if _, _, err := space_world_ops.SetSpaceSettings(
+		ctx,
+		tb.WorldState,
+		"",
+		space_world_ops.DefaultSpaceSettingsObjectKey,
+		&space_world.SpaceSettings{
+			PluginIds:           []string{pluginID},
+			PluginInstallations: map[string]*space_world.SpacePluginInstallation{pluginID: {ManifestKeys: []string{"install"}}},
+		},
+		true,
+		time.Now(),
+	); err != nil {
+		t.Fatal(err)
+	}
+	c := &Controller{BusController: bus.NewBusController(tb.Logger, tb.Bus, &Config{
+		SpaceId:       "space-test",
+		SessionPeerId: "peer",
+	}, ControllerID, Version, controllerDescrip)}
+	woken := make(chan struct{}, 64)
+	loads := &pluginLoads{
+		refs:   make(map[string]pluginReference),
+		pinned: make(map[string]pinnedManifests),
+		gate:   newAdmissionGate(tb.Bus, "peer", func() { woken <- struct{}{} }),
+	}
+	defer loads.gate.release()
+	pin := func(refs ...*bldr_manifest.ManifestRef) {
+		loads.pinned[pluginID] = pinnedManifests{keys: []string{"install"}, refs: refs}
+	}
+
+	// settle reconciles on each wake until done reports true.
+	settle := func(what string, done func() bool) {
+		t.Helper()
+		for {
+			c.reconcilePlugins(ctx, tb.WorldState, loads)
+			_, loadedCh := c.loadedPlugins.GetAndWaitCh()
+			if done() {
+				return
+			}
+			select {
+			case <-woken:
+			case <-loadedCh:
+			case <-ctx.Done():
+				t.Fatalf("never reached: %s", what)
+			}
+		}
+	}
+	running := func() bool {
+		ids, _ := c.loadedPlugins.GetAndWaitCh()
+		return slices.Contains(ids, pluginID)
+	}
+	names := func(want *bldr_manifest.ManifestRef) bool {
+		ms := loads.refs[pluginID].manifests
+		return len(ms) == 1 && manifestRoot(ms[0]) == manifestRoot(want)
+	}
+
+	// The old root runs; a newer root whose admission has not answered
+	// leaves it running.
+	pin(oldRef)
+	settle("old root running", func() bool { return running() && names(oldRef) })
+	pin(newRef, oldRef)
+	c.reconcilePlugins(ctx, tb.WorldState, loads)
+	if !running() || !names(oldRef) {
+		t.Fatalf("pending newer root: running %v, load names old %v", running(), names(oldRef))
+	}
+
+	// Revoking the old root stops it reading as running, and the load names
+	// the root that awaits approval.
+	close(revoke)
+	settle("load naming the awaited root", func() bool { return names(newRef) })
+	if running() {
+		t.Fatal("revoked plugin still reads as running")
+	}
+	if pending, _ := c.loadedPlugins.HasPendingAndWaitCh(); !pending {
+		t.Fatal("plugin awaiting approval reads as settled")
+	}
+}
+
+// TestPendingRootLoadNamesPeer checks that a Space with no session peer never
+// sends a load naming a root whose admission has not answered: such a load is
+// only sent to a host that asks for each root, so it must name the peer.
+func TestPendingRootLoadNamesPeer(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	const pluginID = "colors"
+	ref := testRootRef(t, "pending")
+
+	// Approvals never answer; record each load that names a root.
+	hold := func(ctx context.Context, _ directive.ResolverHandler) error {
+		<-ctx.Done()
+		return ctx.Err()
+	}
+	sent := make(chan string, 16)
+	host := callback.NewCallbackController(
+		controller.NewInfo("test/pending-approvals", controller.MustParseVersion("0.0.1"), ""),
+		nil,
+		func(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+			switch d := inst.GetDirective().(type) {
+			case bldr_plugin.AdmitPluginRoot:
+				return directive.R(directive.NewFuncResolver(hold), nil)
+			case bldr_plugin.LoadPlugin:
+				if len(d.LoadPluginManifests()) != 0 {
+					sent <- d.LoadPluginPeerID()
+				}
+				return directive.R(directive.NewFuncResolver(hold), nil)
+			}
+			return nil, nil
+		},
+		nil,
+	)
+	releaseHost, err := tb.Bus.AddController(ctx, host, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseHost()
+
+	// The Space pins the plugin to a root, with no session peer.
+	if _, _, err := space_world_ops.SetSpaceSettings(
+		ctx,
+		tb.WorldState,
+		"",
+		space_world_ops.DefaultSpaceSettingsObjectKey,
+		&space_world.SpaceSettings{
+			PluginIds:           []string{pluginID},
+			PluginInstallations: map[string]*space_world.SpacePluginInstallation{pluginID: {ManifestKeys: []string{"install"}}},
+		},
+		true,
+		time.Now(),
+	); err != nil {
+		t.Fatal(err)
+	}
+	c := &Controller{BusController: bus.NewBusController(tb.Logger, tb.Bus, &Config{
+		SpaceId: "space-test",
+	}, ControllerID, Version, controllerDescrip)}
+	loads := &pluginLoads{
+		refs:   make(map[string]pluginReference),
+		pinned: map[string]pinnedManifests{pluginID: {keys: []string{"install"}, refs: []*bldr_manifest.ManifestRef{ref}}},
+		gate:   newAdmissionGate(tb.Bus, c.GetConfig().GetSessionPeerId(), func() {}),
+	}
+	defer loads.gate.release()
+
+	// With no peer the root is refused at once: the pinned plugin is withdrawn
+	// and no load names the root.
+	c.reconcilePlugins(ctx, tb.WorldState, loads)
+	if _, ok := loads.refs[pluginID]; ok {
+		t.Fatal("Space with no peer loaded a pinned root")
+	}
+	select {
+	case peerID := <-sent:
+		t.Fatalf("Space sent a load naming a root, peer %q", peerID)
+	default:
+	}
 }

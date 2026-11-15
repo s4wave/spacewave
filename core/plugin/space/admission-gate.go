@@ -23,8 +23,11 @@ import (
 // given only unadmitted manifests can do: it can only wait.
 //
 // A root with no value is refused: no resolver, no record and no peer all
-// refuse. The watch loop goroutine owns it; a watch's callback only flips its
-// admitted flag and wakes the loop.
+// refuse. A root is pending until its directive first goes idle or admits it,
+// so a pass neither falls back, withdraws nor releases on a watch that has not
+// answered yet. The watch
+// loop goroutine owns the gate; a watch's callback only flips its flags and
+// wakes the loop.
 type admissionGate struct {
 	// b is the bus the admission directives are added on.
 	b bus.Bus
@@ -38,10 +41,12 @@ type admissionGate struct {
 
 // admissionWatch holds one AdmitPluginRoot directive.
 type admissionWatch struct {
-	// mtx guards admitted.
+	// mtx guards admitted and decided.
 	mtx sync.Mutex
 	// admitted is set while the directive has a value.
 	admitted bool
+	// decided is set once the directive went idle or had a value.
+	decided bool
 	// used is set when the current pass asked for the root.
 	used bool
 	// release releases the directive and its callback.
@@ -53,21 +58,25 @@ func newAdmissionGate(b bus.Bus, peerID string, wake func()) *admissionGate {
 	return &admissionGate{b: b, peerID: peerID, wake: wake, watches: make(map[sourceRoot]*admissionWatch)}
 }
 
-// admitted returns the refs whose roots are admitted for pluginID, keeping
-// their order, and starts watching each root not yet watched.
-func (g *admissionGate) admitted(ctx context.Context, pluginID string, refs []*manifest.ManifestRef) []*manifest.ManifestRef {
-	var out []*manifest.ManifestRef
+// admitted returns, keeping their order, the refs whose roots are admitted
+// for pluginID and the refs not refused: those admitted and those whose
+// admission has not answered yet. A root is pending when open holds more refs
+// than admitted. It starts watching each root not yet watched.
+func (g *admissionGate) admitted(ctx context.Context, pluginID string, refs []*manifest.ManifestRef) (admitted, open []*manifest.ManifestRef) {
 	for _, ref := range refs {
 		w := g.watch(ctx, sourceRoot{pluginID: pluginID, root: manifestRoot(ref)})
 		w.used = true
 		w.mtx.Lock()
-		ok := w.admitted
+		ok, decided := w.admitted, w.decided
 		w.mtx.Unlock()
 		if ok {
-			out = append(out, ref)
+			admitted = append(admitted, ref)
+		}
+		if ok || !decided {
+			open = append(open, ref)
 		}
 	}
-	return out
+	return admitted, open
 }
 
 // watch returns the watch of key, adding its directive on first use. A root
@@ -77,7 +86,7 @@ func (g *admissionGate) watch(ctx context.Context, key sourceRoot) *admissionWat
 	if w := g.watches[key]; w != nil {
 		return w
 	}
-	w := &admissionWatch{release: func() {}}
+	w := &admissionWatch{release: func() {}, decided: true}
 	g.watches[key] = w
 	if g.peerID == "" || key.root == "" {
 		return w
@@ -89,12 +98,16 @@ func (g *admissionGate) watch(ctx context.Context, key sourceRoot) *admissionWat
 		return w
 	}
 
-	// Record each flip of admission and wake the loop to resend its loads.
-	releaseState := di.AddStateCallback(func(_ bool, _ []error, vals []directive.AttachedValue) {
+	// Record the first answer and each flip of admission, and wake the loop
+	// to resend its loads.
+	w.decided = false
+	releaseState := di.AddStateCallback(func(idle bool, _ []error, vals []directive.AttachedValue) {
 		// Store the new admission and wake only on a change.
+		admitted := len(vals) != 0
 		w.mtx.Lock()
-		changed := w.admitted != (len(vals) != 0)
-		w.admitted = len(vals) != 0
+		changed := w.admitted != admitted || (!w.decided && (idle || admitted))
+		w.admitted = admitted
+		w.decided = w.decided || idle || admitted
 		w.mtx.Unlock()
 		if changed {
 			g.wake()
@@ -107,9 +120,11 @@ func (g *admissionGate) watch(ctx context.Context, key sourceRoot) *admissionWat
 	return w
 }
 
-// allAdmitted reports whether every root of refs is admitted for pluginID.
-func (g *admissionGate) allAdmitted(ctx context.Context, pluginID string, refs []*manifest.ManifestRef) bool {
-	return len(g.admitted(ctx, pluginID, refs)) == len(refs)
+// refused reports whether any root of refs answered that it is not admitted
+// for pluginID. A root still pending is not refused.
+func (g *admissionGate) refused(ctx context.Context, pluginID string, refs []*manifest.ManifestRef) bool {
+	_, open := g.admitted(ctx, pluginID, refs)
+	return len(open) != len(refs)
 }
 
 // prune releases the watches the pass did not ask about and clears the marks
