@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -291,4 +293,67 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 		}
 	}
 	check("", "")
+}
+
+// TestPrepareRefusesForeignBinding prepares generations through PluginRpc as a
+// stamped plugin would. Naming another plugin's ID or another binding key is
+// refused; the caller's own binding is prepared.
+func TestPrepareRefusesForeignBinding(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	// Serve preparation on a Resource root reached through a stamped PluginRpc.
+	root := srpc.NewMux()
+	if err := registration.NewRegistry().Register(root); err != nil {
+		t.Fatal(err)
+	}
+	coreMux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(root).Register(coreMux); err != nil {
+		t.Fatal(err)
+	}
+	pluginMux := srpc.NewMux()
+	if err := bldr_plugin.SRPCRegisterPlugin(pluginMux, stampedPlugin{inv: coreMux}); err != nil {
+		t.Fatal(err)
+	}
+	pluginClient := bldr_plugin.NewSRPCPluginClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginMux))))
+	caller := &bldr_plugin.PluginCaller{PluginId: "colors", BindingKey: "space-a"}
+	conn := rpcstream.NewRpcStreamClient(pluginClient.PluginRpc, caller.ComponentID(), true)
+	client, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(conn))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Release()
+	rootRef := client.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	prepare := plugin_registration.NewSRPCRegistrationServiceClient(rootClient)
+
+	// Another plugin's ID or another binding key is refused.
+	for _, req := range []*plugin_registration.PrepareRequest{
+		{PluginId: "shapes", InstanceKey: "space-a", ManifestRoot: "m"},
+		{PluginId: "colors", InstanceKey: "space-b", ManifestRoot: "m"},
+		{PluginId: "colors", ManifestRoot: "m"},
+	} {
+		if _, err := prepare.Prepare(ctx, req); err == nil {
+			t.Fatalf("prepared %q binding %q as %q binding %q", req.GetPluginId(), req.GetInstanceKey(), caller.GetPluginId(), caller.GetBindingKey())
+		}
+	}
+
+	// The caller's own binding is prepared.
+	if _, err := prepare.Prepare(ctx, &plugin_registration.PrepareRequest{PluginId: "colors", InstanceKey: "space-a", ManifestRoot: "m"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// stampedPlugin serves PluginRpc calls with inv, as a plugin's server does.
+type stampedPlugin struct {
+	inv srpc.Invoker
+}
+
+// PluginRpc serves the stamped stream with inv.
+func (p stampedPlugin) PluginRpc(strm bldr_plugin.SRPCPlugin_PluginRpcStream) error {
+	return bldr_plugin.ServePluginRpc(strm, func(*bldr_plugin.PluginCaller) srpc.Invoker { return p.inv })
 }

@@ -476,6 +476,38 @@ export const PluginStatusSnapshot: MessageType<PluginStatusSnapshot> =
   )
 
 /**
+ * PluginCaller identifies the plugin making a call that another plugin serves.
+ * The host writes it as the PluginRpc component ID from the identity it bound
+ * when it built the caller's host services; the caller never supplies it.
+ *
+ * @generated from message bldr.plugin.PluginCaller
+ */
+export interface PluginCaller {
+  /**
+   * PluginId is the calling plugin's ID.
+   */
+  pluginId?: string
+  /**
+   * BindingKey is the installation the caller's registrations bind to.
+   */
+  bindingKey?: string
+  /**
+   * HostSet is true when the host itself starts the caller.
+   */
+  hostSet?: boolean
+}
+
+export const PluginCaller: MessageType<PluginCaller> =
+  /* @__PURE__ */ createMessageType<PluginCaller>(
+    'bldr.plugin.PluginCaller',
+    () => [
+      [1, 'plugin_id', 9],
+      [2, 'binding_key', 9],
+      [3, 'host_set', 8],
+    ],
+  )
+
+/**
  * CheckActivationRequest queries the running generation's replacement contract.
  *
  * @generated from message bldr.plugin.CheckActivationRequest

@@ -31,7 +31,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "resource/root"
 
-// Version is the component version
+// Version is the component version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -122,9 +122,10 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 				c.approvals = plugin_approval.NewApprovals(b, bldr_plugin.PluginVolumeID, process_binding.DefaultObjectStoreID)
 			}
 
-			// create the resource server
+			// create the resource server, refusing protected methods to plugins
+			// outside the host set
 			c.rootResourceMux = srpc.NewMux()
-			c.server = resource_server.NewResourceServer(c.rootResourceMux)
+			c.server = resource_server.NewFilteredResourceServer(c.rootResourceMux, resource_root.NewPluginCallerFilter(base.GetLogger()))
 			c.server.SetOriginController(ControllerID)
 
 			// register the resource server to the mux

@@ -218,8 +218,20 @@ service PluginHost {
 // Plugin is the service exposed by the plugin.
 service Plugin {
   // PluginRpc handles an RPC call from a remote plugin.
-  // Component ID: remote plugin id
+  // Component ID: the caller's PluginCaller, encoded by the host.
   rpc PluginRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}
+
+// PluginCaller identifies the plugin making a call that another plugin serves.
+// The host writes it as the PluginRpc component ID from the identity it bound
+// when it built the caller's host services; the caller never supplies it.
+message PluginCaller {
+  // PluginId is the calling plugin's ID.
+  string plugin_id = 1;
+  // BindingKey is the installation the caller's registrations bind to.
+  string binding_key = 2;
+  // HostSet is true when the host itself starts the caller.
+  bool host_set = 3;
 }
 
 // UpdateGuard is implemented by plugins whose owned work must quiesce before

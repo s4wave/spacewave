@@ -424,9 +424,11 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 }
 
 // serverProbe answers LookupRpcService for one service ID with an error that
-// names its bus and the server ID the lookup came under.
+// names its bus and the server ID the lookup came under. When callers is set,
+// it also sends the PluginCaller each call arrives with, nil for none.
 type serverProbe struct {
 	bus, id string
+	callers chan<- *bldr_plugin.PluginCaller
 }
 
 func (p *serverProbe) GetControllerInfo() *controller.Info {
@@ -443,7 +445,13 @@ func (p *serverProbe) HandleDirective(_ context.Context, di directive.Instance) 
 		return nil, nil
 	}
 	reached := probeReached + p.bus + " as " + d.LookupRpcServerID()
-	inv := srpc.InvokerFunc(func(string, string, srpc.Stream) (bool, error) {
+	inv := srpc.InvokerFunc(func(_, _ string, strm srpc.Stream) (bool, error) {
+		if p.callers != nil {
+			select {
+			case p.callers <- bldr_plugin.PluginCallerFromContext(strm.Context()):
+			default:
+			}
+		}
 		return true, errors.New(reached)
 	})
 	return directive.R(directive.NewValueResolver([]bifrost_rpc.LookupRpcServiceValue{inv}), nil)
@@ -497,7 +505,12 @@ func (p *browserWebPlugin) PluginRpc(strm bldr_plugin.SRPCPlugin_PluginRpcStream
 // browser, where the web plugin passes each incoming PluginRpc stream to the
 // browser controller on the host bus. A call it sends through the web plugin
 // to spacewave-core, directly or inside a second PluginRpc it opens with a
-// component ID it wrote, never reaches core as the host.
+// component ID it wrote, never reaches core as the host. Its direct call
+// reaches core stamped as itself, outside the host set: the stamp for which
+// core refuses SetPluginApproval (TestPluginCallerFilterNestedSession) and a
+// Prepare under another binding (TestPrepareRefusesForeignBinding). A
+// component ID the caller wrote is never what core sees: those calls are
+// refused before they reach it.
 func TestHostBusWebPluginRelaysNothing(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -511,7 +524,19 @@ func TestHostBusWebPluginRelaysNothing(t *testing.T) {
 	coreSvc := "probe.CoreService"
 	sched := NewController(le, tb.Bus, &Config{HostExportPluginIds: []string{corePluginID, webPluginID}})
 	bed := &fallbackBed{sched: sched, loads: make(chan string, 8)}
-	_, coreRoot := inProcessPlugin(ctx, t, le, sched, corePluginID, &serverProbe{bus: "core", id: coreSvc})
+	callers := make(chan *bldr_plugin.PluginCaller, 8)
+	_, coreRoot := inProcessPlugin(ctx, t, le, sched, corePluginID, &serverProbe{bus: "core", id: coreSvc, callers: callers})
+	// stampAtCore returns the PluginCaller of the oldest call to reach core
+	// not yet checked, so a refused call that reached core fails the next check.
+	stampAtCore := func() *bldr_plugin.PluginCaller {
+		select {
+		case c := <-callers:
+			return c
+		default:
+			t.Fatal("no call reached core")
+			return nil
+		}
+	}
 
 	// The web plugin's host client is the scheduler's mux for it.
 	webMux, webRel := sched.buildPluginMux(ctx, webPluginID, nil, nil, nil, nil, nil, nil, nil, false, false, "")
@@ -549,6 +574,10 @@ func TestHostBusWebPluginRelaysNothing(t *testing.T) {
 		if want := "reached on core as plugin/attacker"; reached != want {
 			t.Errorf("%s, core directly: got %s, want %s", caller.name, reached, want)
 		}
+		stamp := &bldr_plugin.PluginCaller{PluginId: "attacker", BindingKey: sched.bindingKey(caller.binding)}
+		if got := stampAtCore(); !got.EqualVT(stamp) {
+			t.Errorf("%s, core directly: stamped %v, want %v", caller.name, got, stamp)
+		}
 		loaded := bed.exec(ctx, client, via("other", "probe.Svc"))
 		if want := "loaded at " + strconv.Quote(sched.bindingKey(caller.binding)); loaded != want {
 			t.Errorf("%s, another plugin directly: got %s, want %s", caller.name, loaded, want)
@@ -568,12 +597,15 @@ func TestHostBusWebPluginRelaysNothing(t *testing.T) {
 	}
 
 	// The web plugin, a host plugin, still reaches core through its browser
-	// host as itself.
+	// host as itself. The stream carries the stamp the host writes, as the
+	// streams the web plugin passes on do.
 	webBrowserHost := bldr_web_plugin_browser.NewSRPCWebPluginBrowserHostClient(webHost)
-	webNested := rpcstream.NewRpcStreamClient(webBrowserHost.PluginRpc, webPluginID, true)
+	webStamp := (&bldr_plugin.PluginCaller{PluginId: webPluginID, HostSet: true}).ComponentID()
+	webNested := rpcstream.NewRpcStreamClient(webBrowserHost.PluginRpc, webStamp, true)
 	if got, want := bed.exec(ctx, webNested, coreCall), "reached on core as plugin-host/default"; got != want {
 		t.Errorf("web plugin through its browser host: got %s, want %s", got, want)
 	}
+	t.Logf("web plugin through its browser host: stamped %v", stampAtCore())
 }
 
 // expectNotHost checks one call did not reach core as the host: it must be

@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	sdk_registration "github.com/s4wave/spacewave/sdk/plugin/registration"
 )
@@ -170,6 +171,9 @@ func (s *registrationService) Prepare(ctx context.Context, req *sdk_registration
 	if req.GetPluginId() == "" || req.GetManifestRoot() == "" {
 		return nil, errors.New("plugin generation requires a family and immutable manifest")
 	}
+	if err := checkPrepareCaller(ctx, req); err != nil {
+		return nil, err
+	}
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -192,4 +196,25 @@ func (s *registrationService) Prepare(ctx context.Context, req *sdk_registration
 		return nil, err
 	}
 	return &sdk_registration.PrepareResponse{ResourceId: id}, nil
+}
+
+// checkPrepareCaller refuses a Prepare from a plugin that names a binding other
+// than its own. The host stamps each plugin's calls with the plugin ID and
+// binding key it bound when it started the plugin, and the registration SDK
+// sends exactly those, so a mismatch is a forged or broken request. Refusing
+// it, rather than registering under the stamped binding, keeps a plugin from
+// silently publishing into a scope it did not ask for. A call with no stamp
+// comes from the host itself, which may name any binding.
+func checkPrepareCaller(ctx context.Context, req *sdk_registration.PrepareRequest) error {
+	caller := bldr_plugin.PluginCallerFromContext(ctx)
+	if caller == nil {
+		return nil
+	}
+	if req.GetPluginId() != caller.GetPluginId() || req.GetInstanceKey() != caller.GetBindingKey() {
+		return errors.Errorf(
+			"plugin %q may not prepare a generation for plugin %q binding %q",
+			caller.GetPluginId(), req.GetPluginId(), req.GetInstanceKey(),
+		)
+	}
+	return nil
 }

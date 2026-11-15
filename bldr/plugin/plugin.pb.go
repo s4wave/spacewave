@@ -706,6 +706,46 @@ func (x *PluginStatusSnapshot) GetExecutions() []*PluginExecutionStatus {
 	return nil
 }
 
+// PluginCaller identifies the plugin making a call that another plugin serves.
+// The host writes it as the PluginRpc component ID from the identity it bound
+// when it built the caller's host services; the caller never supplies it.
+type PluginCaller struct {
+	unknownFields []byte
+	// PluginId is the calling plugin's ID.
+	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// BindingKey is the installation the caller's registrations bind to.
+	BindingKey string `protobuf:"bytes,2,opt,name=binding_key,json=bindingKey,proto3" json:"bindingKey,omitempty"`
+	// HostSet is true when the host itself starts the caller.
+	HostSet bool `protobuf:"varint,3,opt,name=host_set,json=hostSet,proto3" json:"hostSet,omitempty"`
+}
+
+func (x *PluginCaller) Reset() {
+	*x = PluginCaller{}
+}
+
+func (*PluginCaller) ProtoMessage() {}
+
+func (x *PluginCaller) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *PluginCaller) GetBindingKey() string {
+	if x != nil {
+		return x.BindingKey
+	}
+	return ""
+}
+
+func (x *PluginCaller) GetHostSet() bool {
+	if x != nil {
+		return x.HostSet
+	}
+	return false
+}
+
 // CheckActivationRequest queries the running generation's replacement contract.
 type CheckActivationRequest struct {
 	unknownFields []byte
@@ -1424,6 +1464,24 @@ func (m *PluginStatusSnapshot) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *PluginCaller) CloneVT() *PluginCaller {
+	if m == nil {
+		return (*PluginCaller)(nil)
+	}
+	r := new(PluginCaller)
+	r.PluginId = m.PluginId
+	r.BindingKey = m.BindingKey
+	r.HostSet = m.HostSet
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginCaller) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *CheckActivationRequest) CloneVT() *CheckActivationRequest {
 	if m == nil {
 		return (*CheckActivationRequest)(nil)
@@ -2104,6 +2162,32 @@ func (this *PluginStatusSnapshot) EqualVT(that *PluginStatusSnapshot) bool {
 
 func (this *PluginStatusSnapshot) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PluginStatusSnapshot)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PluginCaller) EqualVT(that *PluginCaller) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PluginId != that.PluginId {
+		return false
+	}
+	if this.BindingKey != that.BindingKey {
+		return false
+	}
+	if this.HostSet != that.HostSet {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginCaller) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginCaller)
 	if !ok {
 		return false
 	}
@@ -3398,6 +3482,64 @@ func (x *PluginStatusSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the PluginStatusSnapshot from JSON.
 func (x *PluginStatusSnapshot) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PluginCaller message to JSON.
+func (x *PluginCaller) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
+	if x.BindingKey != "" || s.HasField("bindingKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bindingKey")
+		s.WriteString(x.BindingKey)
+	}
+	if x.HostSet || s.HasField("hostSet") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hostSet")
+		s.WriteBool(x.HostSet)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginCaller to JSON.
+func (x *PluginCaller) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginCaller message from JSON.
+func (x *PluginCaller) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
+		case "binding_key", "bindingKey":
+			s.AddField("binding_key")
+			x.BindingKey = s.ReadString()
+		case "host_set", "hostSet":
+			s.AddField("host_set")
+			x.HostSet = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginCaller from JSON.
+func (x *PluginCaller) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -4932,6 +5074,53 @@ func (m *PluginStatusSnapshot) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
+func (m *PluginCaller) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginCaller) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginCaller) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.HostSet {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.HostSet)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.BindingKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.BindingKey)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *CheckActivationRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -5863,6 +6052,19 @@ func (m *PluginStatusSnapshot) SizeVT() (n int) {
 	return n
 }
 
+func (m *PluginCaller) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BindingKey)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.HostSet)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *CheckActivationRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -6417,6 +6619,28 @@ func (x *PluginStatusSnapshot) MarshalProtoText() string {
 }
 
 func (x *PluginStatusSnapshot) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PluginCaller) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PluginCaller")
+	if x.PluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PluginId)
+	}
+	if x.BindingKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "binding_key")
+		protobuf_go_lite.TextWriteString(&sb, x.BindingKey)
+	}
+	if x.HostSet != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "host_set")
+		protobuf_go_lite.TextWriteBool(&sb, x.HostSet)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PluginCaller) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -7751,6 +7975,79 @@ func (m *PluginStatusSnapshot) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PluginCaller) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginCaller: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginCaller: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BindingKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BindingKey = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HostSet", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.HostSet = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
