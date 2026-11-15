@@ -19,11 +19,14 @@ import { spawnSync } from 'node:child_process'
 import { appendFileSync, existsSync, readFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 
+import { goscriptShards } from './goscript-test.js'
+
 // fullRunPaths select the full suite when changed: they define the jobs, the
 // toolchain, or the lint rules, so no package graph bounds their effect.
 const fullRunPaths = [
   /^\.github\/workflows\//,
   /^scripts\/ci-affected\.ts$/,
+  /^scripts\/goscript-test\.ts$/,
   /^package\.json$/,
   /^bun\.lock$/,
   /^patches\//,
@@ -108,15 +111,16 @@ const members: Member[] = [
     test_go_script: 'test:go:bldr',
     test_js_script: '',
   },
-  {
-    name: 'goscript',
+  // Each GoScript shard runs its test:go:goscript:<shard> script.
+  ...Object.keys(goscriptShards).map((shard) => ({
+    name: `goscript-${shard}`,
     roots: [],
     build_script: '',
     lint_go_script: '',
     lint_js_script: '',
-    test_go_script: 'test:go:goscript',
+    test_go_script: `test:go:goscript:${shard}`,
     test_js_script: '',
-  },
+  })),
 ]
 
 const alphaRoots = ['cmd', 'core', 'plugin', 'sdk']
@@ -425,17 +429,12 @@ function packageDirs(
   return out.sort()
 }
 
-// goscriptPackages returns the import paths the GoScript test script names.
+// goscriptPackages returns the import paths of the packages the GoScript
+// shards test.
 function goscriptPackages(graph: Graph): Set<string> {
-  const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
-  const script: string = pkg.scripts['test:go:goscript']
   const out = new Set<string>()
-  for (const token of script.split(/\s+/)) {
-    if (token.startsWith('./')) {
-      out.add(graph.module + '/' + token.slice(2))
-    } else if (token.startsWith(graph.module + '/')) {
-      out.add(token)
-    }
+  for (const pkg of Object.values(goscriptShards).flat()) {
+    out.add(pkg.startsWith('./') ? graph.module + '/' + pkg.slice(2) : pkg)
   }
   return out
 }
@@ -635,7 +634,7 @@ function deltaSelection(base: string): Selection {
     if (member.name === 'e2e') {
       testGo = sliceCoverage ? member.test_go_script : ''
     }
-    if (member.name === 'goscript') {
+    if (member.name.startsWith('goscript-')) {
       testGo = goscriptSelected ? member.test_go_script : ''
     }
     memberEntries.push({
