@@ -371,6 +371,25 @@
 \*              unadopted. testdata/Journal-adopt-cut-norecount.cfg fails
 \*              NoFreedRead as above. With both, the next adoption counts
 \*              C's whole list before anything older frees.
+\*   HoldToFree TRUE is the proposed rule: a stored block holds its children
+\*              until the block itself is freed. Netting a block to zero
+\*              starts no cascade and rel stays empty, so there are no Dead,
+\*              Holding or re-hold states, and Revive reads nothing. Delete
+\*              frees a block at zero and starts its children's release,
+\*              which Release finishes one child at a time before the next
+\*              Delete. A block at zero that gains a holder is Live again
+\*              at once. FALSE is the collector as it stands.
+\*              testdata/Journal-revive.cfg: with FALSE, R1 dies under
+\*              main's move to R2, its release frees C before R1, a root
+\*              moves back onto R1 without a put, and the re-hold leaves R1
+\*              Live over the freed C (NoLiveListsFreed).
+\*   ChildRipe  TRUE, with HoldToFree, lets a child that a free's release
+\*              takes to zero be freed at once, at its parent's ripe point,
+\*              instead of taking the journal's end as its own.
+\*              testdata/Journal-lease-childripe.cfg: a stage root moves
+\*              onto C while R1, its only other holder, is at zero; R1 is
+\*              freed, its release takes C to zero, and C is freed under the
+\*              stage before that move's record nets (NoFreedRead).
 \*
 \* Left out: a fill of a recorded hole, which LandFill stores as a refill,
 \* journaling nothing; the format 7 upgrade (an unadopted Volume here holds
@@ -392,7 +411,7 @@ CONSTANTS Writers, MaxTxns, Grace, Window, Lease, MaxHoles,
           Stage, Rehold, StageCAS,
           Sessions, SessionGrace, Skips, BornDown, Staged, ReleaseUnlisted,
           FillBlocks, FillUps, Holds, FillBorn, FillEager, CutList, Gen,
-          RewriteFlag, Recount
+          RewriteFlag, Recount, HoldToFree, ChildRipe
 
 None == "none"
 Unmoved == "unmoved"
@@ -494,8 +513,9 @@ VARIABLES
              \* lacks, so a block put again is never young, as Land marks
              \* no landed block whose bytes were stored
   unverified, \* the Volume's unverified lists mark
-  rewritten  \* a list rebuild rewrote a list no adoption has counted since
-gcVars == <<cnt, zero, rel, ripe, under, pend, pdir>>
+  rewritten, \* a list rebuild rewrote a list no adoption has counted since
+  revived    \* history: stored blocks that left zero by gaining a holder
+gcVars == <<cnt, zero, rel, ripe, under, pend, pdir, revived>>
 jrVars == <<jr, hseq>>
 fillVars == <<fj, freedLive>>
 genVars == <<cut, young, unverified, rewritten>>
@@ -507,7 +527,7 @@ vars == <<root, left, stored, lost, cnt, zero, rel, ripe, jr, hseq, under,
           obs, seen, seenAge, txns, holes, adoption, owner, pc, pos, born,
           moved, opens, stage, stall, tgt, sessionAge, wrote, skipped, sheld,
           freed, fj, freedLive, pend, pdir, cut, young, unverified,
-          rewritten>>
+          rewritten, revived>>
 
 Init ==
   /\ root = [n \in Names |->
@@ -551,6 +571,7 @@ Init ==
   /\ young = {}
   /\ unverified = CutList
   /\ rewritten = FALSE
+  /\ revived = {}
 
 \* The children b's stored child list names: all of Kids(b) but for a cut
 \* list, which lacks F. Counts, cascades and the adoption read the lists;
@@ -563,7 +584,7 @@ Holders(b) == IF b \in zero THEN 0 ELSE cnt[b] + 1
 \* A cascade is due for a stored block whose children's holders disagree with
 \* its own: a Dying block, at zero with children that hold it, and a Holding
 \* one, with holders and children that do not.
-Due == {b \in stored : (b \in zero) # (b \in rel)}
+Due == IF HoldToFree THEN {} ELSE {b \in stored : (b \in zero) # (b \in rel)}
 
 \* Settled: no cascade is due or running. Then every block below a block
 \* with holders has holders too, since a block's children count it.
@@ -982,6 +1003,7 @@ Net(k) ==
         /\ ripe' = [b \in Blocks |-> Past(s.ripe[b], k)]
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
+        /\ revived' = revived \cup (zero \ s.zero)
   /\ jr' = SubSeq(jr, k + 1, Len(jr))
   /\ hseq' = Past(hseq, k)
   /\ UNCHANGED <<root, left, stored, lost, obs, seen, seenAge, txns, holes,
@@ -1003,8 +1025,8 @@ Cascade(b) ==
   /\ rel' = IF b \in zero THEN rel \cup {b} ELSE rel \ {b}
   /\ pend' = Decrement(b)
   /\ pdir' = IF Decrement(b) = {} THEN 0 ELSE IF b \in zero THEN -1 ELSE 1
-  /\ UNCHANGED <<root, left, stored, lost, cnt, zero, ripe, under, jrVars,
-                 obs, seen, seenAge, txns, holes, landVars, adoptVars,
+  /\ UNCHANGED <<root, left, stored, lost, cnt, zero, ripe, under, revived,
+                 jrVars, obs, seen, seenAge, txns, holes, landVars, adoptVars,
                  stageVars, writerVars>>
 
 \* Release moves child c's holders by the cascade's direction, which may take
@@ -1022,9 +1044,12 @@ Release(c) ==
          s == Step(IF ReleaseUnlisted THEN Blocks \ lost ELSE stored, d, {})
      IN /\ cnt' = s.cnt
         /\ zero' = s.zero
-        /\ ripe' = s.ripe
+        /\ ripe' = IF HoldToFree /\ ChildRipe
+                   THEN [x \in Blocks |-> IF x = c THEN 0 ELSE s.ripe[x]]
+                   ELSE s.ripe
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
+        /\ revived' = revived \cup (zero \ s.zero)
   /\ pend' = pend \ {c}
   /\ pdir' = IF pend' = {} THEN 0 ELSE pdir
   /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
@@ -1039,7 +1064,7 @@ Release(c) ==
 \* hold index does.
 Delete(b) ==
   /\ adoption = "adopted"
-  /\ b \in zero \cap rel /\ Settled
+  /\ b \in zero /\ (HoldToFree \/ b \in rel) /\ Settled
   /\ Ripe => ripe[b] = 0
   /\ HoldMark => hseq = 0
   /\ IF FillEager THEN Unapplied = {} ELSE FUps(b) = 0
@@ -1054,9 +1079,15 @@ Delete(b) ==
   /\ ripe' = [ripe EXCEPT ![b] = 0]
   /\ freed' = freed \cup {b}
   /\ freedLive' = (freedLive \/ b \in StoredLive \ ToPutNow)
+  /\ revived' = revived \ {b}
+  \* With HoldToFree the free gives each child its down, through Release.
+  /\ IF HoldToFree
+     THEN /\ pend' = Decrement(b)
+          /\ pdir' = IF Decrement(b) = {} THEN 0 ELSE -1
+     ELSE UNCHANGED <<pend, pdir>>
   /\ UNCHANGED <<root, left, lost, jrVars, under, obs, seen, seenAge,
                  txns, holes, born, moved, sheld, fj, adoptVars, stageVars,
-                 writerVars, pend, pdir>>
+                 writerVars>>
 
 \* Fill stores b, a block a peer holds, with its child list, and writes its
 \* record: an up pair for each child, with FillUps, and a down pair for its
@@ -1100,6 +1131,7 @@ ApplyFill(r) ==
         /\ ripe' = s.ripe
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
+        /\ revived' = revived \cup (zero \ s.zero)
   /\ fj' = (fj \ {r}) \cup {[r EXCEPT !.applied = TRUE]}
   /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
                  txns, holes, born, moved, sheld, genVars, freed, freedLive, adoptVars,
@@ -1118,6 +1150,7 @@ NetFill(r) ==
         /\ ripe' = s.ripe
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
+        /\ revived' = revived \cup (zero \ s.zero)
   /\ fj' = fj \ {r}
   /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
                  txns, holes, born, moved, sheld, genVars, freed, freedLive, adoptVars,
@@ -1151,7 +1184,7 @@ Go(r, step) ==
                  stageVars, writerVars>>
 
 AdoptUnchanged ==
-  UNCHANGED <<root, left, stored, lost, rel, under, jrVars, obs, seen,
+  UNCHANGED <<root, left, stored, lost, rel, under, revived, jrVars, obs, seen,
               seenAge, txns, holes, opens, sheld, freed, genVars, fillVars,
               stageVars, writerVars, pend, pdir>>
 
@@ -1185,6 +1218,7 @@ AdoptClear(r) ==
           /\ rewritten' = FALSE
           /\ pend' = {}
           /\ pdir' = 0
+          /\ revived' = {}
           /\ pc' = [pc EXCEPT ![r] = "mark"]
           /\ UNCHANGED <<adoption, owner, pos>>
           /\ UNCHANGED <<root, left, stored, lost, under, jrVars, obs, seen,
@@ -1206,7 +1240,7 @@ AdoptMark(r) ==
           /\ hseq' = 0
           /\ pc' = [pc EXCEPT ![r] = "roots"]
           /\ pos' = [pos EXCEPT ![r] = 0]
-          /\ UNCHANGED <<cnt, zero, rel, under, pend, pdir, landVars, root,
+          /\ UNCHANGED <<cnt, zero, rel, under, pend, pdir, revived, landVars, root,
                          left, stored, lost, obs, seen, seenAge, txns, holes,
                          opens, stageVars, writerVars>>
 
@@ -1343,6 +1377,7 @@ Punch(b) ==
   /\ cnt' = [cnt EXCEPT ![b] = 0] /\ zero' = zero \ {b}
   /\ ripe' = [ripe EXCEPT ![b] = 0]
   /\ holes' = holes + 1
+  /\ revived' = revived \ {b}
   /\ UNCHANGED <<root, left, jrVars, under, obs, seen, seenAge, txns,
                  landVars, adoptVars, stageVars, writerVars, rel, pend, pdir>>
 
@@ -1470,6 +1505,14 @@ CountsExact ==
     \A b \in stored :
       JournalHolders(b) =
         RootHolders(b) + Cardinality({p \in stored \ rel : b \in ListKids(p)}) + Owed(b)
+
+\* No Live block lists a freed child after any revive: a block that left
+\* zero by gaining a holder, and whose children hold it again, names no
+\* block the collector freed. Today's rule frees a child of a Dead parent
+\* first, so a root that moves onto the parent without a put revives it
+\* over the hole; HoldToFree keeps every child while its parent is stored.
+NoLiveListsFreed ==
+  \A b \in revived \cap (stored \ (zero \cup rel)) : ListKids(b) \cap freed = {}
 
 \* A lost block's children stay stored: the cascade stopped at the hole.
 HoleKeeps == \A h \in lost : Kids(h) \subseteq stored \cup lost
