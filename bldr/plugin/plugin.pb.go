@@ -303,6 +303,7 @@ type PluginSwap struct {
 	//	*PluginSwap_Preparing
 	//	*PluginSwap_Waiting
 	//	*PluginSwap_Failed
+	//	*PluginSwap_AwaitingApproval
 	State isPluginSwap_State `protobuf_oneof:"state"`
 }
 
@@ -347,6 +348,13 @@ func (x *PluginSwap) GetFailed() *PluginSwapFailed {
 	return nil
 }
 
+func (x *PluginSwap) GetAwaitingApproval() *PluginSwapAwaitingApproval {
+	if x, ok := x.GetState().(*PluginSwap_AwaitingApproval); ok {
+		return x.AwaitingApproval
+	}
+	return nil
+}
+
 type isPluginSwap_State interface {
 	isPluginSwap_State()
 }
@@ -373,6 +381,12 @@ type PluginSwap_Failed struct {
 	Failed *PluginSwapFailed `protobuf:"bytes,4,opt,name=failed,proto3,oneof"`
 }
 
+type PluginSwap_AwaitingApproval struct {
+	// AwaitingApproval means no candidate root is admitted for the peer yet,
+	// so nothing new starts until the peer's device approves one.
+	AwaitingApproval *PluginSwapAwaitingApproval `protobuf:"bytes,5,opt,name=awaiting_approval,json=awaitingApproval,proto3,oneof"`
+}
+
 func (*PluginSwap_Settled) isPluginSwap_State() {}
 
 func (*PluginSwap_Preparing) isPluginSwap_State() {}
@@ -380,6 +394,8 @@ func (*PluginSwap_Preparing) isPluginSwap_State() {}
 func (*PluginSwap_Waiting) isPluginSwap_State() {}
 
 func (*PluginSwap_Failed) isPluginSwap_State() {}
+
+func (*PluginSwap_AwaitingApproval) isPluginSwap_State() {}
 
 // PluginSwapSettled is the swap state with no candidate in flight.
 type PluginSwapSettled struct {
@@ -473,6 +489,54 @@ func (x *PluginSwapWaiting) GetCandidateManifestRev() uint64 {
 }
 
 func (x *PluginSwapWaiting) GetSinceAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SinceAt
+	}
+	return nil
+}
+
+// PluginSwapAwaitingApproval is the swap state while no candidate root is
+// admitted for the peer. The running execution, if any, is kept.
+type PluginSwapAwaitingApproval struct {
+	unknownFields []byte
+	// CandidateManifestRef is the ref of the preferred manifest awaiting approval.
+	CandidateManifestRef string `protobuf:"bytes,1,opt,name=candidate_manifest_ref,json=candidateManifestRef,proto3" json:"candidateManifestRef,omitempty"`
+	// CandidateManifestRev is the build rev of that manifest.
+	CandidateManifestRev uint64 `protobuf:"varint,2,opt,name=candidate_manifest_rev,json=candidateManifestRev,proto3" json:"candidateManifestRev,omitempty"`
+	// PeerId is the peer whose approval the root waits for.
+	PeerId string `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// SinceAt is when the scheduler began waiting.
+	SinceAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=since_at,json=sinceAt,proto3" json:"sinceAt,omitempty"`
+}
+
+func (x *PluginSwapAwaitingApproval) Reset() {
+	*x = PluginSwapAwaitingApproval{}
+}
+
+func (*PluginSwapAwaitingApproval) ProtoMessage() {}
+
+func (x *PluginSwapAwaitingApproval) GetCandidateManifestRef() string {
+	if x != nil {
+		return x.CandidateManifestRef
+	}
+	return ""
+}
+
+func (x *PluginSwapAwaitingApproval) GetCandidateManifestRev() uint64 {
+	if x != nil {
+		return x.CandidateManifestRev
+	}
+	return 0
+}
+
+func (x *PluginSwapAwaitingApproval) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+func (x *PluginSwapAwaitingApproval) GetSinceAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.SinceAt
 	}
@@ -797,6 +861,9 @@ type LoadPluginRequest struct {
 	Manifests []*manifest.ManifestRef `protobuf:"bytes,3,rep,name=manifests,proto3" json:"manifests,omitempty"`
 	// ManifestRoot loads an exact historical executable without current registrations.
 	ManifestRoot string `protobuf:"bytes,4,opt,name=manifest_root,json=manifestRoot,proto3" json:"manifestRoot,omitempty"`
+	// PeerId is the peer whose approvals decide the roots Manifests names. A
+	// host that serves one peer ignores it.
+	PeerId string `protobuf:"bytes,5,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
 }
 
 func (x *LoadPluginRequest) Reset() {
@@ -829,6 +896,13 @@ func (x *LoadPluginRequest) GetManifests() []*manifest.ManifestRef {
 func (x *LoadPluginRequest) GetManifestRoot() string {
 	if x != nil {
 		return x.ManifestRoot
+	}
+	return ""
+}
+
+func (x *LoadPluginRequest) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
 	}
 	return ""
 }
@@ -1131,6 +1205,19 @@ func (m *PluginSwap_Failed) CloneOneofVT() isPluginSwap_State {
 	return m.CloneVT()
 }
 
+func (m *PluginSwap_AwaitingApproval) CloneVT() *PluginSwap_AwaitingApproval {
+	if m == nil {
+		return (*PluginSwap_AwaitingApproval)(nil)
+	}
+	r := new(PluginSwap_AwaitingApproval)
+	r.AwaitingApproval = protobuf_go_lite.CloneVTValue(m.AwaitingApproval)
+	return r
+}
+
+func (m *PluginSwap_AwaitingApproval) CloneOneofVT() isPluginSwap_State {
+	return m.CloneVT()
+}
+
 func (m *PluginSwapSettled) CloneVT() *PluginSwapSettled {
 	if m == nil {
 		return (*PluginSwapSettled)(nil)
@@ -1180,6 +1267,25 @@ func (m *PluginSwapWaiting) CloneVT() *PluginSwapWaiting {
 }
 
 func (m *PluginSwapWaiting) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PluginSwapAwaitingApproval) CloneVT() *PluginSwapAwaitingApproval {
+	if m == nil {
+		return (*PluginSwapAwaitingApproval)(nil)
+	}
+	r := new(PluginSwapAwaitingApproval)
+	r.CandidateManifestRef = m.CandidateManifestRef
+	r.CandidateManifestRev = m.CandidateManifestRev
+	r.PeerId = m.PeerId
+	r.SinceAt = protobuf_go_lite.CloneVTValue(m.SinceAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginSwapAwaitingApproval) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1389,6 +1495,7 @@ func (m *LoadPluginRequest) CloneVT() *LoadPluginRequest {
 	r.PluginId = m.PluginId
 	r.InstanceKey = m.InstanceKey
 	r.ManifestRoot = m.ManifestRoot
+	r.PeerId = m.PeerId
 	r.Manifests = protobuf_go_lite.CloneVTSlice(m.Manifests)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1684,6 +1791,23 @@ func (this *PluginSwap_Failed) EqualVT(thatIface isPluginSwap_State) bool {
 	return true
 }
 
+func (this *PluginSwap_AwaitingApproval) EqualVT(thatIface isPluginSwap_State) bool {
+	that, ok := thatIface.(*PluginSwap_AwaitingApproval)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.AwaitingApproval, that.AwaitingApproval, func() *PluginSwapAwaitingApproval { return &PluginSwapAwaitingApproval{} }) {
+		return false
+	}
+	return true
+}
+
 func (this *PluginSwapSettled) EqualVT(that *PluginSwapSettled) bool {
 	if this == that {
 		return true
@@ -1750,6 +1874,35 @@ func (this *PluginSwapWaiting) EqualVT(that *PluginSwapWaiting) bool {
 
 func (this *PluginSwapWaiting) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PluginSwapWaiting)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PluginSwapAwaitingApproval) EqualVT(that *PluginSwapAwaitingApproval) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CandidateManifestRef != that.CandidateManifestRef {
+		return false
+	}
+	if this.CandidateManifestRev != that.CandidateManifestRev {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.SinceAt, that.SinceAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginSwapAwaitingApproval) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginSwapAwaitingApproval)
 	if !ok {
 		return false
 	}
@@ -2030,6 +2183,9 @@ func (this *LoadPluginRequest) EqualVT(that *LoadPluginRequest) bool {
 		return false
 	}
 	if this.ManifestRoot != that.ManifestRoot {
+		return false
+	}
+	if this.PeerId != that.PeerId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2499,6 +2655,10 @@ func (x *PluginSwap) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("failed")
 			ov.Failed.MarshalProtoJSON(s.WithField("failed"))
+		case *PluginSwap_AwaitingApproval:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("awaitingApproval")
+			ov.AwaitingApproval.MarshalProtoJSON(s.WithField("awaitingApproval"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -2554,6 +2714,15 @@ func (x *PluginSwap) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.Failed = &PluginSwapFailed{}
 			ov.Failed.UnmarshalProtoJSON(s.WithField("failed", true))
+		case "awaiting_approval", "awaitingApproval":
+			ov := &PluginSwap_AwaitingApproval{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.AwaitingApproval = nil
+				return
+			}
+			ov.AwaitingApproval = &PluginSwapAwaitingApproval{}
+			ov.AwaitingApproval.UnmarshalProtoJSON(s.WithField("awaiting_approval", true))
 		}
 	})
 }
@@ -2730,6 +2899,76 @@ func (x *PluginSwapWaiting) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the PluginSwapWaiting from JSON.
 func (x *PluginSwapWaiting) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PluginSwapAwaitingApproval message to JSON.
+func (x *PluginSwapAwaitingApproval) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CandidateManifestRef != "" || s.HasField("candidateManifestRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("candidateManifestRef")
+		s.WriteString(x.CandidateManifestRef)
+	}
+	if x.CandidateManifestRev != 0 || s.HasField("candidateManifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("candidateManifestRev")
+		s.WriteUint64(x.CandidateManifestRev)
+	}
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	if x.SinceAt != nil || s.HasField("sinceAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sinceAt")
+		x.SinceAt.MarshalProtoJSON(s.WithField("sinceAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginSwapAwaitingApproval to JSON.
+func (x *PluginSwapAwaitingApproval) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginSwapAwaitingApproval message from JSON.
+func (x *PluginSwapAwaitingApproval) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "candidate_manifest_ref", "candidateManifestRef":
+			s.AddField("candidate_manifest_ref")
+			x.CandidateManifestRef = s.ReadString()
+		case "candidate_manifest_rev", "candidateManifestRev":
+			s.AddField("candidate_manifest_rev")
+			x.CandidateManifestRev = s.ReadUint64()
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		case "since_at", "sinceAt":
+			if s.ReadNil() {
+				x.SinceAt = nil
+				return
+			}
+			x.SinceAt = &timestamppb.Timestamp{}
+			x.SinceAt.UnmarshalProtoJSON(s.WithField("since_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginSwapAwaitingApproval from JSON.
+func (x *PluginSwapAwaitingApproval) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3370,6 +3609,11 @@ func (x *LoadPluginRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("manifestRoot")
 		s.WriteString(x.ManifestRoot)
 	}
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3414,6 +3658,9 @@ func (x *LoadPluginRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "manifest_root", "manifestRoot":
 			s.AddField("manifest_root")
 			x.ManifestRoot = s.ReadString()
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
 		}
 	})
 }
@@ -4016,6 +4263,30 @@ func (m *PluginSwap_Failed) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PluginSwap_AwaitingApproval) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwap_AwaitingApproval) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.AwaitingApproval != nil {
+		size, err := m.AwaitingApproval.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x2a
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PluginSwapSettled) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4146,6 +4417,63 @@ func (m *PluginSwapWaiting) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		}
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.CandidateManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CandidateManifestRev))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.CandidateManifestRef) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CandidateManifestRef)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginSwapAwaitingApproval) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginSwapAwaitingApproval) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwapAwaitingApproval) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.SinceAt != nil {
+		size, err := m.SinceAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -4711,6 +5039,11 @@ func (m *LoadPluginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if len(m.ManifestRoot) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ManifestRoot)
 		i--
@@ -5070,6 +5403,21 @@ func (m *PluginSwap_Failed) SizeVT() (n int) {
 	return n
 }
 
+func (m *PluginSwap_AwaitingApproval) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.AwaitingApproval != nil {
+		l = m.AwaitingApproval.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
 func (m *PluginSwapSettled) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5108,6 +5456,23 @@ func (m *PluginSwapWaiting) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CandidateManifestRef)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CandidateManifestRev)
+	if m.SinceAt != nil {
+		l = m.SinceAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PluginSwapAwaitingApproval) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CandidateManifestRef)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CandidateManifestRev)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	if m.SinceAt != nil {
 		l = m.SinceAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
@@ -5291,6 +5656,7 @@ func (m *LoadPluginRequest) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestRoot)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5507,6 +5873,13 @@ func (x *PluginSwap) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Failed)
 		}
+	case *PluginSwap_AwaitingApproval:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "awaiting_approval")
+		if body.AwaitingApproval == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &PluginSwapAwaitingApproval{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.AwaitingApproval)
+		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5570,6 +5943,32 @@ func (x *PluginSwapWaiting) MarshalProtoText() string {
 }
 
 func (x *PluginSwapWaiting) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PluginSwapAwaitingApproval) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PluginSwapAwaitingApproval")
+	if x.CandidateManifestRef != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "candidate_manifest_ref")
+		protobuf_go_lite.TextWriteString(&sb, x.CandidateManifestRef)
+	}
+	if x.CandidateManifestRev != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "candidate_manifest_rev")
+		protobuf_go_lite.TextWriteUint(&sb, x.CandidateManifestRev)
+	}
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if x.SinceAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "since_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SinceAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PluginSwapAwaitingApproval) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5815,6 +6214,10 @@ func (x *LoadPluginRequest) MarshalProtoText() string {
 	if x.ManifestRoot != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "manifest_root")
 		protobuf_go_lite.TextWriteString(&sb, x.ManifestRoot)
+	}
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -6366,6 +6769,26 @@ func (m *PluginSwap) UnmarshalVT(dAtA []byte) error {
 				m.State = &PluginSwap_Failed{Failed: v}
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AwaitingApproval", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*PluginSwap_AwaitingApproval); ok {
+				if err := oneof.AwaitingApproval.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &PluginSwapAwaitingApproval{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &PluginSwap_AwaitingApproval{AwaitingApproval: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -6564,6 +6987,93 @@ func (m *PluginSwapWaiting) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SinceAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.SinceAt == nil {
+				m.SinceAt = &timestamppb.Timestamp{}
+			}
+			if err := m.SinceAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PluginSwapAwaitingApproval) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginSwapAwaitingApproval: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginSwapAwaitingApproval: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CandidateManifestRef", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CandidateManifestRef = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CandidateManifestRev", wireType)
+			}
+			m.CandidateManifestRev = 0
+			m.CandidateManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SinceAt", wireType)
 			}
@@ -7393,6 +7903,16 @@ func (m *LoadPluginRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ManifestRoot = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

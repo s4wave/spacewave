@@ -52,7 +52,7 @@ func TestHostChangesPreserveUnaffectedExecution(t *testing.T) {
 
 	// Start the execution on the first native host.
 	publish(nil, first)
-	release := instance.addManifestSelection(ref)
+	release := instance.addManifestSelection("peer", ref)
 	defer release()
 	running := selected()
 	if running.pluginHost != first {

@@ -447,9 +447,10 @@ func (c *Controller) AddPinnedPluginReference(pluginID, instanceKey, manifestRoo
 
 // AddSelectedPluginReference retains a desired artifact without replacing the binding.
 // The newest retained selection wins; removing it restores the preceding demand.
-func (c *Controller) AddSelectedPluginReference(pluginID, instanceKey string, selected ...*bldr_manifest.ManifestRef) (bldr_plugin.RunningPluginRef, func()) {
+// Each root runs only once AdmitPluginRoot admits it for peerID.
+func (c *Controller) AddSelectedPluginReference(pluginID, instanceKey, peerID string, selected ...*bldr_manifest.ManifestRef) (bldr_plugin.RunningPluginRef, func()) {
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginReference{pluginID: pluginID, instanceKey: instanceKey})
-	releaseSelection := plg.addManifestSelection(selected...)
+	releaseSelection := plg.addManifestSelection(peerID, selected...)
 	plg.start.SetValue(true)
 	return plg, sync.OnceFunc(func() {
 		releaseSelection()

@@ -618,7 +618,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		}
 		demand := bldr_plugin.NewLoadPluginInstanced(pid, conf.GetSpaceId())
 		if len(admitted) != 0 {
-			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), admitted...)
+			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), conf.GetSessionPeerId(), admitted...)
 		}
 
 		// Add the LoadPlugin directive to the plugin bus.

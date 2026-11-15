@@ -34,9 +34,9 @@ func TestInstalledManifestSelection(t *testing.T) {
 	}
 
 	// Install the old artifact on the first binding and the newer on the second.
-	firstRelease := first.addManifestSelection(old)
+	firstRelease := first.addManifestSelection("peer", old)
 	defer firstRelease()
-	secondRelease := second.addManifestSelection(newer)
+	secondRelease := second.addManifestSelection("peer", newer)
 	defer secondRelease()
 
 	// assertSelection fails when the instance's execution state differs.
@@ -59,7 +59,7 @@ func TestInstalledManifestSelection(t *testing.T) {
 	assertSelection(first, old)
 
 	// A new retained demand may deliberately select an older numeric revision.
-	releaseReplacement := second.addManifestSelection(old)
+	releaseReplacement := second.addManifestSelection("peer", old)
 	assertSelection(second, old)
 	assertSelection(first, old)
 	if second.acceptsManifest(&executePluginArgs{manifestSnapshot: &manifest.ManifestSnapshot{ManifestRef: newer.GetManifestRef()}}) {
@@ -101,7 +101,7 @@ func TestInstalledManifestSkipsForeignPlatforms(t *testing.T) {
 		c := NewController(logrus.NewEntry(logrus.New()), nil, &Config{})
 		c.pluginHostsCtr = ccontainer.NewCContainer(hosts)
 		_, instance := c.newPluginInstance(pluginReference{pluginID: "core", instanceKey: "space"})
-		release := instance.addManifestSelection(installation...)
+		release := instance.addManifestSelection("peer", installation...)
 
 		// Check the selected artifact and its fallbacks.
 		state := instance.executePluginRoutine.GetState()
@@ -129,7 +129,7 @@ func TestInstalledManifestServesAssets(t *testing.T) {
 	c := NewController(le, nil, &Config{})
 	c.pluginHostsCtr = ccontainer.NewCContainer(hosts)
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "app"})
-	release := instance.addManifestSelection(newTestManifestRef("app", "js", 1, "app"))
+	release := instance.addManifestSelection("peer", newTestManifestRef("app", "js", 1, "app"))
 	defer release()
 
 	// serving reports whether the selection serves the artifact's files.
@@ -184,7 +184,7 @@ func TestInstalledManifestPrefersNative(t *testing.T) {
 	c := NewController(logrus.NewEntry(logrus.New()), nil, &Config{})
 	c.pluginHostsCtr = ccontainer.NewCContainer(hosts)
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "core", instanceKey: "space"})
-	release := instance.addManifestSelection(installation...)
+	release := instance.addManifestSelection("peer", installation...)
 	defer release()
 
 	// The native artifact runs, with only the older native artifact behind it.

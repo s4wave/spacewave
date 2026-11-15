@@ -21,7 +21,7 @@ func HandleLoadPluginRpc(
 	instanceKey := req.GetInstanceKey()
 	var dir bldr_plugin.LoadPlugin
 	if len(req.GetManifests()) != 0 {
-		dir = bldr_plugin.NewLoadPluginWithManifests(pluginID, instanceKey, req.GetManifests()...)
+		dir = bldr_plugin.NewLoadPluginWithManifests(pluginID, instanceKey, req.GetPeerId(), req.GetManifests()...)
 	} else if req.GetManifestRoot() != "" {
 		dir = bldr_plugin.NewLoadPluginAtManifest(pluginID, instanceKey, req.GetManifestRoot())
 	} else if instanceKey != "" {

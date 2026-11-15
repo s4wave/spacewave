@@ -22,6 +22,7 @@ func (c *Controller) resolveLoadPlugin(
 		instanceKey:      dir.LoadPluginInstanceKey(),
 		manifestRoot:     dir.LoadPluginManifestRoot(),
 		manifests:        dir.LoadPluginManifests(),
+		peerID:           dir.LoadPluginPeerID(),
 		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
 		pluginLoadStateCtr: ccontainer.NewCContainer[bldr_plugin.PluginLoadState](
 			bldr_plugin.NewPluginLoadState(
@@ -45,6 +46,8 @@ type loadPluginResolver struct {
 	manifestRoot string
 	// manifests selects the installation and recovery artifacts for this binding.
 	manifests []*manifest.ManifestRef
+	// peerID is the peer whose approvals decide the manifests.
+	peerID string
 	// runningPluginCtr contains the running plugin when the plugin is running
 	// nil otherwise
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
@@ -79,6 +82,7 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 			InstanceKey:  r.instanceKey,
 			ManifestRoot: r.manifestRoot,
 			Manifests:    r.manifests,
+			PeerId:       r.peerID,
 		})
 		if err != nil {
 			return err

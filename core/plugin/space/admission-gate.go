@@ -12,11 +12,15 @@ import (
 )
 
 // admissionGate admits the World manifests a Space names in its loads. A
-// Space lists plugins any member can name, and a Space hosted in a plugin
-// sends its loads to a host whose scheduler runs every root it is given, so
-// the Space sends a World root only while an AdmitPluginRoot for the session
-// peer has a value: the release, the development build or the device's person
-// admitted it.
+// Space lists plugins any member can name, so the Space sends a World root
+// only while an AdmitPluginRoot for the session peer has a value: the release,
+// the development build or the device's person admitted it.
+//
+// The host scheduler also refuses an unadmitted root, and that is the
+// enforcement; this gate decides what to request. It falls back to the
+// release's plain load when no World root is admitted, withdraws a pinned
+// plugin, and releases a load whose root lost admission, none of which a host
+// given only unadmitted manifests can do: it can only wait.
 //
 // A root with no value is refused: no resolver, no record and no peer all
 // refuse. The watch loop goroutine owns it; a watch's callback only flips its

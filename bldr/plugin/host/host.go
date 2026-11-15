@@ -72,8 +72,9 @@ type PluginHostScheduler interface {
 	// AddPinnedPluginReference retains an exact executable without following replacement.
 	AddPinnedPluginReference(pluginID, instanceKey, manifestRoot string) (bldr_plugin.RunningPluginRef, func())
 
-	// AddSelectedPluginReference selects an installed artifact for a logical binding.
-	AddSelectedPluginReference(pluginID, instanceKey string, refs ...*manifest.ManifestRef) (bldr_plugin.RunningPluginRef, func())
+	// AddSelectedPluginReference selects an installed artifact for a logical
+	// binding. Each root runs only once AdmitPluginRoot admits it for peerID.
+	AddSelectedPluginReference(pluginID, instanceKey, peerID string, refs ...*manifest.ManifestRef) (bldr_plugin.RunningPluginRef, func())
 
 	// AddAssetsPluginReference retains a plugin whose files the caller serves
 	// to a browser, mounting a browser manifest when no host can run it.
