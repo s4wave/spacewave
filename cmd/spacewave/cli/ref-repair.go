@@ -27,7 +27,19 @@ const (
 	refRepairProgress = 100_000
 	// refRepairSample limits the listless blocks printed in the report.
 	refRepairSample = 10
+	// refRepairListSample limits the mismatched stored lists printed in the
+	// report.
+	refRepairListSample = 20
 )
+
+// refRepairList names a walked block whose stored list differs from its
+// decoded refs.
+type refRepairList struct {
+	// ref is the block.
+	ref *block.BlockRef
+	// diff is how its stored list differs.
+	diff block_gc.ListDiff
+}
 
 // refRepairStoredBlock describes a listless block without decoding its type.
 type refRepairStoredBlock struct {
@@ -52,6 +64,14 @@ type refRepairResult struct {
 	lacking uint64
 	// edges is the number of children those lists name.
 	edges uint64
+	// lists counts the walked blocks stored with a list, by how the list
+	// compares with the decoded refs, read before the run writes. A wrong
+	// list the volume marked verified is never rewritten, so this is how one
+	// is found.
+	lists map[block_gc.ListDiff]uint64
+	// listSample holds up to refRepairListSample of the blocks whose stored
+	// list differs, in walk order.
+	listSample []refRepairList
 	// rebuild is what the list rebuild verified and wrote, empty on a dry run
 	// and on a volume whose lists were verified already.
 	rebuild block_gc.ListRebuildResult
@@ -74,7 +94,9 @@ type refRepairResult struct {
 	// roots counts the named roots of the volume, zero with --space.
 	roots uint64
 	// spaceRoots counts those in the bucket of a Space the run walked from its
-	// replay cursor, which types them.
+	// replay cursor whose kind names the types they hold, which walkSpace
+	// walked. The others in such a bucket, an import or fence root holding
+	// roots of several types, count as unwalked.
 	spaceRoots uint64
 	// typedRoots counts those outside them that refRepair.rootNode types and
 	// the run walked.
@@ -112,6 +134,9 @@ type refRepairHolders struct {
 	heldSample []*block.BlockRef
 	// leakedSample holds up to refRepairSample of the leaked listers.
 	leakedSample []*block.BlockRef
+	// basis says whether the counts were measured or predicted, and what a
+	// prediction assumed.
+	basis string
 }
 
 // total returns the holders an adoption counts as unknown.
@@ -131,8 +156,10 @@ func (h refRepairHolders) total() uint64 {
 //     block_gc.ListRebuild, and deletes nothing. A dry run opens no rebuild
 //     and writes nothing.
 //   - A list comes only from the bytes of a block decoded as the type its
-//     root names: a Space's roots typed by its replay cursor, which holds the
-//     Space's transform, or a named root rootNode types by its writer's rule.
+//     root names: a Space's named roots typed by the kind
+//     space_world.HeldRootKind gives each name, read with the transform of
+//     the Space's replay cursor, or a named root rootNode types by its
+//     writer's rule.
 //   - It types a named root only by that rule, so a World head root is
 //     walked only in its own engine's bucket, with the transform that engine
 //     writes. Every other named root is counted and never decoded, so the
@@ -157,6 +184,9 @@ type refRepair struct {
 	// undecodable holds the walked blocks that failed to decode, which get no
 	// list, by ref string.
 	undecodable map[string]struct{}
+	// holders holds the Space root blocks readHolder decoded outside the
+	// walker, by ref string: a few per Space.
+	holders map[string]struct{}
 	// res counts the findings.
 	res refRepairResult
 }
@@ -171,42 +201,59 @@ func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume, lookup refwalk.Look
 		walker:       refwalk.NewWalker(le, vol, lookup),
 		spaceBuckets: make(map[string]struct{}),
 		undecodable:  make(map[string]struct{}),
-		res:          refRepairResult{unwalkedRoots: make(map[string]refRepairRoots)},
+		holders:      make(map[string]struct{}),
+		res: refRepairResult{
+			unwalkedRoots: make(map[string]refRepairRoots),
+			lists:         make(map[block_gc.ListDiff]uint64),
+		},
 	}
 }
 
 // walkNamedRoots streams every named root of the volume and walks each that
-// rootNode types, outside the buckets of the walked Spaces, whose replay
-// cursors typed their roots. It counts the rest by kind and decodes none of
-// them.
+// rootNode types, outside the buckets of the walked Spaces. walkSpace walked
+// the roots of such a bucket whose kind spaceRootTyped types. It counts the
+// rest by kind and decodes none of them.
 func (r *refRepair) walkNamedRoots(ctx context.Context) error {
 	return r.vol.EachRoot(ctx, func(bucketID, name string, ref *block.BlockRef) error {
-		// Leave a walked Space's roots to its cursor.
+		// Count a walked Space's typed roots, which walkSpace walked.
 		r.res.roots++
-		if _, ok := r.spaceBuckets[bucketID]; ok {
+		_, inSpace := r.spaceBuckets[bucketID]
+		if inSpace && spaceRootTyped(name) {
 			r.res.spaceRoots++
 			return nil
 		}
 
 		// Walk a typed root, and count the others.
-		node, ok, err := r.rootNode(bucketID, name, ref)
-		if err != nil {
-			return err
+		var node refwalk.Node
+		ok := false
+		if !inSpace {
+			var err error
+			node, ok, err = r.rootNode(bucketID, name, ref)
+			if err != nil {
+				return err
+			}
 		}
 		if !ok {
-			kind := refRepairRootKind(name)
-			roots := r.res.unwalkedRoots[kind]
-			if roots.count == 0 {
-				roots.sample = bucketID + " " + name
-			}
-			roots.count++
-			r.res.unwalkedRoots[kind] = roots
+			r.countUnwalked(bucketID, name)
 			return nil
 		}
 		r.res.typedRoots++
 		r.le.Infof("walking the World root %s of bucket %s", name, bucketID)
 		return r.walker.Walk(ctx, node, r.visit)
 	})
+}
+
+// countUnwalked counts the named root name of bucketID, which the run did not
+// walk, by its kind.
+func (r *refRepair) countUnwalked(bucketID, name string) {
+	// Count the root under its kind, sampling the first of each kind.
+	kind := refRepairRootKind(name)
+	roots := r.res.unwalkedRoots[kind]
+	if roots.count == 0 {
+		roots.sample = bucketID + " " + name
+	}
+	roots.count++
+	r.res.unwalkedRoots[kind] = roots
 }
 
 // rootNode types the named root name of bucketID, holding ref, by the rule of
@@ -244,9 +291,12 @@ func refRepairRootKind(name string) string {
 // run leaves stored without a child list, by kind, as refRepairHolders
 // describes. It reads one snapshot and walks the volume's lists from its
 // named roots in memory, one key per reached block, as the audit does, then
-// streams every root and child list past it. After a real run it measures;
-// on a dry run, predict is set and it predicts.
-func (r *refRepair) splitHolders(ctx context.Context, predict bool) error {
+// streams every root and child list past it. After a real run walked is nil
+// and it measures. On a dry run walked reports the blocks the walk reached,
+// and it predicts: a real run lists each one it decoded or found stored as a
+// leaf, unless the volume's lists are verified or an adoption is counting, in
+// which case a real run writes no list and it counts the volume as it is.
+func (r *refRepair) splitHolders(ctx context.Context, walked func(*block.BlockRef) bool) error {
 	// Read one snapshot, and walk it from the roots through lists.
 	tx, err := r.vol.GetKvtxStore().NewTransaction(ctx, false)
 	if err != nil {
@@ -259,10 +309,25 @@ func (r *refRepair) splitHolders(ctx context.Context, predict bool) error {
 		return err
 	}
 
+	// Decide which walked blocks a real run would list.
+	h := &r.res.holders
+	h.basis = "measured after the run"
+	if walked != nil {
+		state, err := rec.GetState(ctx)
+		if err != nil {
+			return err
+		}
+		h.basis = "predicted for a real run"
+		if !state.GetUnverifiedLists() || state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTING {
+			h.basis = "predicted for a real run, which writes no list: the volume's lists are verified or an adoption is counting"
+			walked = nil
+		}
+	}
+
 	// left reports whether ref stays stored without a list after the run.
 	listedByRun := func(ref *block.BlockRef) bool {
 		_, bad := r.undecodable[ref.MarshalString()]
-		return predict && r.walker.Visited(ref) && !bad
+		return walked != nil && walked(ref) && !bad
 	}
 	left := func(ref *block.BlockRef) (bool, error) {
 		listed, err := rec.HasChildren(ctx, ref)
@@ -273,7 +338,6 @@ func (r *refRepair) splitHolders(ctx context.Context, predict bool) error {
 	}
 
 	// Count the roots holding one.
-	h := &r.res.holders
 	err = rec.ScanRoots(ctx, func(_, _ string, entry *block_gc.RootEntry) error {
 		// Count and sample a root whose block stays listless.
 		ref, _, err := block_gc.ParseBlockKey(entry.GetRef())
@@ -397,9 +461,12 @@ func (r *refRepair) measureUntracked(ctx context.Context, vol *volume_s4db.Volum
 	return it.Err()
 }
 
-// walkSpace walks the roots of one Space's replay: the replay span its bucket
-// holds, the base and head Worlds of the cursor with their retained roots, and
-// the World and payloads of each outcome. A root nothing else holds is then given to the Space's bucket.
+// walkSpace walks the roots of one Space: what each named root of its bucket
+// holds, by the kind space_world.HeldRootKind gives the root's name, the
+// replay span an engine before the adapter held, the base and head Worlds of
+// the cursor with their retained roots, and the World and payloads of each
+// outcome. A mixed root records no types, so walkNamedRoots counts it
+// unwalked and its blocks keep their lists.
 func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 	// Find the bucket that owns the Space's blocks.
 	bucketID, err := findSpaceBucket(ctx, r.buckets, sc.spaceID)
@@ -410,18 +477,16 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 	r.res.spaces++
 	r.spaceBuckets[bucketID] = struct{}{}
 
-	// Collect the Worlds and payloads of the replay span the bucket holds as
-	// a named root.
+	// Collect what each of the bucket's named roots holds.
 	var roots []refwalk.Node
-	span, err := r.vol.GetBucketRoot(ctx, bucketID, legacyReplaySpanRootName)
+	err = r.vol.ListBucketRoots(ctx, bucketID, "", func(root block.NamedRoot) error {
+		nodes, err := r.spaceRootNodes(ctx, spaceWorld, root.Name, root.Ref)
+		roots = append(roots, nodes...)
+		return err
+	})
 	if err != nil {
 		return err
 	}
-	spanRoots, err := r.spanRoots(ctx, spaceWorld, span)
-	if err != nil {
-		return err
-	}
-	roots = append(roots, spanRoots...)
 
 	// Collect the cursor's Worlds with their retained roots, and the World and
 	// payloads of each outcome.
@@ -471,46 +536,160 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 // held its replay span under.
 const legacyReplaySpanRootName = "replay-span"
 
-// spanRoots reads the replay span at ref, a raw protobuf block, verifies its
-// list, and returns its Worlds and payload blobs, which the Space's World
-// transform encodes. An empty ref has none.
-func (r *refRepair) spanRoots(ctx context.Context, spaceWorld *bucket.ObjectRef, ref *block.BlockRef) ([]refwalk.Node, error) {
-	// Read and decode the span.
-	if ref.GetEmpty() {
-		return nil, nil
+// spaceRootTyped reports whether spaceRootNodes types the Space's named root
+// name: the replay span, or a root whose kind names the types it holds.
+func spaceRootTyped(name string) bool {
+	kind, _ := space_world.HeldRootKind(name)
+	return name == legacyReplaySpanRootName || (kind != 0 && kind != space_world.RootKindMixed)
+}
+
+// spaceRootNodes reads the block the Space's named root name holds at ref by
+// the root's kind, verifies the list of each holder block it decodes, and
+// returns the World roots and payload blobs below them, which the Space's
+// World transform encodes. A root spaceRootTyped does not type returns none.
+func (r *refRepair) spaceRootNodes(ctx context.Context, spaceWorld *bucket.ObjectRef, name string, ref *block.BlockRef) ([]refwalk.Node, error) {
+	// Type a single World root, and read a span.
+	if name == legacyReplaySpanRootName {
+		return r.spanRoots(ctx, spaceWorld, ref)
 	}
-	data, found, err := r.vol.GetBlock(ctx, ref)
-	if err != nil {
+	kind, _ := space_world.HeldRootKind(name)
+	switch kind {
+	case space_world.RootKindWorld:
+		return r.rootNodes(spaceWorld, []*block.BlockRef{ref}, nil)
+	case space_world.RootKindRetained:
+		return r.retainedRoots(ctx, spaceWorld, ref)
+	case space_world.RootKindWorlds:
+		return r.heldRoots(ctx, spaceWorld, ref, r.walker.WorldNode)
+	case space_world.RootKindPayloads:
+		return r.heldRoots(ctx, spaceWorld, ref, r.walker.BlobNode)
+	}
+	return nil, nil
+}
+
+// heldRoots reads the HeldRoots chain at ref, verifies the list of each of
+// its blocks, the block's roots and its Prev, and returns a node of each
+// root built by node.
+func (r *refRepair) heldRoots(ctx context.Context, spaceWorld *bucket.ObjectRef, ref *block.BlockRef, node func(*bucket.ObjectRef, *block.BlockRef) (refwalk.Node, error)) ([]refwalk.Node, error) {
+	var out []refwalk.Node
+	for !ref.GetEmpty() {
+		// Read one block of the chain.
+		held := &space_world.HeldRoots{}
+		ok, err := r.readHolder(ctx, ref, held)
+		if err != nil || !ok {
+			return out, err
+		}
+
+		// Verify its list and take its roots.
+		refs := held.GetRoots()
+		if prev := held.GetPrev(); !prev.GetEmpty() {
+			refs = append(slices.Clone(refs), prev)
+		}
+		if err := r.visitDecoded(ctx, ref, refs); err != nil {
+			return nil, err
+		}
+		for _, root := range held.GetRoots() {
+			n, err := node(spaceWorld, root)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, n)
+		}
+		ref = held.GetPrev()
+	}
+	return out, nil
+}
+
+// retainedRoots reads the RetainedRootSet at ref, verifies its list, and
+// returns its World roots.
+func (r *refRepair) retainedRoots(ctx context.Context, spaceWorld *bucket.ObjectRef, ref *block.BlockRef) ([]refwalk.Node, error) {
+	// Read the set.
+	set := &space_world.RetainedRootSet{}
+	ok, err := r.readHolder(ctx, ref, set)
+	if err != nil || !ok {
 		return nil, err
 	}
-	if !found {
-		r.res.absent++
-		return nil, nil
-	}
-	span := &space_world.ReplaySpan{}
-	if err := span.UnmarshalVT(data); err != nil {
-		r.le.WithError(err).Warnf("cannot decode replay span %s", ref.MarshalString())
-		r.res.undecodable++
-		r.undecodable[ref.MarshalString()] = struct{}{}
-		return nil, nil
-	}
 
-	// Count and verify the span's list.
-	refs := slices.Concat(span.GetWorlds(), span.GetPayloads())
+	// Verify its list and return its Worlds.
+	refs := make([]*block.BlockRef, 0, len(set.GetRoots()))
+	for _, root := range set.GetRoots() {
+		refs = append(refs, root.GetRootRef())
+	}
 	if err := r.visitDecoded(ctx, ref, refs); err != nil {
 		return nil, err
 	}
+	return r.rootNodes(spaceWorld, refs, nil)
+}
 
-	// Return each World and payload blob of the span.
-	out := make([]refwalk.Node, 0, len(refs))
-	for _, ref := range span.GetWorlds() {
+// spanRoots reads the replay span at ref, verifies its list, and returns its
+// Worlds and payload blobs.
+func (r *refRepair) spanRoots(ctx context.Context, spaceWorld *bucket.ObjectRef, ref *block.BlockRef) ([]refwalk.Node, error) {
+	// Read the span.
+	span := &space_world.ReplaySpan{}
+	ok, err := r.readHolder(ctx, ref, span)
+	if err != nil || !ok {
+		return nil, err
+	}
+
+	// Verify its list and return its Worlds and payloads.
+	if err := r.visitDecoded(ctx, ref, slices.Concat(span.GetWorlds(), span.GetPayloads())); err != nil {
+		return nil, err
+	}
+	return r.rootNodes(spaceWorld, span.GetWorlds(), span.GetPayloads())
+}
+
+// readHolder reads the raw protobuf block at ref into msg, counting it absent
+// or undecodable when it cannot, and reports whether it decoded. An empty ref
+// holds nothing, and a block it decoded before was walked already, with what
+// it names.
+func (r *refRepair) readHolder(ctx context.Context, ref *block.BlockRef, msg interface{ UnmarshalVT([]byte) error }) (bool, error) {
+	// Read the block once.
+	key := ref.MarshalString()
+	if _, ok := r.holders[key]; ok || ref.GetEmpty() {
+		return false, nil
+	}
+	data, found, err := r.vol.GetBlock(ctx, ref)
+	if err != nil || !found {
+		if err == nil {
+			r.res.absent++
+		}
+		return false, err
+	}
+
+	// Decode it, counting a block that does not decode.
+	if err := msg.UnmarshalVT(data); err != nil {
+		r.le.WithError(err).Warnf("cannot decode root block %s", ref.MarshalString())
+		r.countBlock()
+		r.res.undecodable++
+		r.undecodable[key] = struct{}{}
+		return false, nil
+	}
+	r.holders[key] = struct{}{}
+	return true, nil
+}
+
+// walked returns a report of whether the run decoded a block or found it
+// stored as a leaf, through the walker or as a Space's root block. It stays
+// valid after close.
+func (r *refRepair) walked() func(*block.BlockRef) bool {
+	visited, holders := r.walker.Visited, r.holders
+	return func(ref *block.BlockRef) bool {
+		_, ok := holders[ref.MarshalString()]
+		return ok || visited(ref)
+	}
+}
+
+// rootNodes returns a World node of each of worlds and a blob node of each
+// of payloads, read with spaceWorld's transform.
+func (r *refRepair) rootNodes(spaceWorld *bucket.ObjectRef, worlds, payloads []*block.BlockRef) ([]refwalk.Node, error) {
+	out := make([]refwalk.Node, 0, len(worlds)+len(payloads))
+	for _, ref := range worlds {
 		node, err := r.walker.WorldNode(spaceWorld, ref)
 		if err != nil {
 			return nil, err
 		}
 		out = append(out, node)
 	}
-	for _, ref := range span.GetPayloads() {
+	for _, ref := range payloads {
 		node, err := r.walker.BlobNode(spaceWorld, ref)
 		if err != nil {
 			return nil, err
@@ -544,18 +723,27 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 	return nil
 }
 
-// visitDecoded counts a decoded block, and its list when the volume lacks
-// one, and verifies the list.
+// visitDecoded counts a decoded block, its refs when the volume lacks its
+// list, and how its stored list compares with them otherwise, then verifies
+// the list.
 func (r *refRepair) visitDecoded(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef) error {
 	// Count the block, and its refs when the volume lacks its list.
 	r.countBlock()
-	listed, err := r.vol.HasChildLists(ctx, []*block.BlockRef{ref})
+	stored, listed, err := r.vol.GetChildren(ctx, ref)
 	if err != nil {
 		return err
 	}
-	if !listed[0] {
+	if !listed {
 		r.res.lacking++
 		r.res.edges += uint64(len(refs))
+		return r.verify(ctx, ref, refs)
+	}
+
+	// Compare the stored list with the decoded refs, and sample a mismatch.
+	diff := block_gc.CompareChildren(stored, refs)
+	r.res.lists[diff]++
+	if diff != block_gc.ListEqual && len(r.res.listSample) < refRepairListSample {
+		r.res.listSample = append(r.res.listSample, refRepairList{ref: ref, diff: diff})
 	}
 	return r.verify(ctx, ref, refs)
 }
@@ -577,8 +765,13 @@ func (r *refRepair) verify(ctx context.Context, ref *block.BlockRef, refs []*blo
 	return r.rebuild.Verify(ctx, ref, refs)
 }
 
-// close releases the walker and keeps what it could not type.
+// close keeps what the walker could not type and releases it, with the set of
+// blocks it walked unless a caller kept its Visited for a prediction.
 func (r *refRepair) close() {
+	if r.walker == nil {
+		return
+	}
 	r.res.untyped = r.walker.Untyped()
 	r.walker.Close()
+	r.walker = nil
 }
