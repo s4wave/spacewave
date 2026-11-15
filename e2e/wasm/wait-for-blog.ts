@@ -1,5 +1,5 @@
 // Polls until the blog quickstart finishes navigation to a space route and the
-// reading-mode viewer controls are visible.
+// reading view's Edit posts press is visible.
 export default async function (args: { deadlineMs: number }): Promise<null> {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + args.deadlineMs
@@ -8,10 +8,7 @@ export default async function (args: { deadlineMs: number }): Promise<null> {
       if (!hash.includes('/u/') || !hash.includes('/so/')) {
         return false
       }
-      return (
-        document.querySelector("button[title='Reading mode']") !== null &&
-        document.querySelector("button[title='Editing mode']") !== null
-      )
+      return document.querySelector("button[title='Edit posts']") !== null
     }
     const tick = () => {
       if (ready()) {
