@@ -4,6 +4,7 @@ id: bldr-demo
 
 start:
   plugins:
+    - web
     - bldr-demo
 
 build:
@@ -136,7 +137,10 @@ manifests:
         embedManifests:
           - { manifestId: web,       platformId: js }
           - { manifestId: bldr-demo, platformId: desktop/darwin/arm64 }
+        # The web plugin is a host plugin: its browser host serves only the
+        # plugins the distribution starts itself.
         loadPlugins:
+          - web
           - bldr-demo
         loadWebStartup: bldr/example/startup.tsx
         # enableCompression: ENABLE

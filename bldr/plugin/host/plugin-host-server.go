@@ -142,7 +142,8 @@ func (s *PluginHostServer) LoadPlugin(
 
 	// Resolve the instance key the caller may load into the request.
 	pluginID := req.GetPluginId()
-	instanceKey, err := s.loadInstanceKey(pluginID, req.GetInstanceKey())
+	selectsBuild := len(req.GetManifests()) != 0 || req.GetManifestRoot() != ""
+	instanceKey, err := s.loadInstanceKey(pluginID, req.GetInstanceKey(), selectsBuild)
 	if err != nil {
 		return err
 	}
@@ -169,8 +170,15 @@ func (s *PluginHostServer) LoadPlugin(
 //
 // A load of a host-export plugin under any key runs the scheduler's own
 // instance of it; the scheduler decides that, for every source of loads.
-func (s *PluginHostServer) loadInstanceKey(pluginID, instanceKey string) (string, error) {
+//
+// Invariant: only the host's own start path pins a build of a host-export
+// plugin. A load that selects a build, by manifests or a manifest root, of a
+// host-export plugin is refused whatever the key and whoever asks, so no
+// plugin starts a second build of one with the host's powers on this volume.
+func (s *PluginHostServer) loadInstanceKey(pluginID, instanceKey string, selectsBuild bool) (string, error) {
 	switch {
+	case selectsBuild && slices.Contains(s.hostExportPluginIDs, pluginID):
+		return "", errors.Errorf("plugin %s may not select a build of host plugin %s", s.pluginID, pluginID)
 	case s.callerIsHostPlugin():
 		if instanceKey == "" {
 			return s.instanceKey, nil
@@ -222,7 +230,7 @@ func (s *PluginHostServer) openPluginRpc(
 	}
 
 	// Build the load directive for the target plugin.
-	instanceKey, err := s.loadInstanceKey(pluginID, instanceKey)
+	instanceKey, err := s.loadInstanceKey(pluginID, instanceKey, manifestRoot != "")
 	if err != nil {
 		return nil, nil, err
 	}
