@@ -168,7 +168,7 @@ func (s *PluginHostServer) LoadPlugin(
 //     the caller's own selects it, and any other key is refused.
 func (s *PluginHostServer) loadInstanceKey(pluginID, instanceKey string) (string, error) {
 	switch {
-	case slices.Contains(s.hostExportPluginIDs, s.pluginID):
+	case s.callerIsHostPlugin():
 		if instanceKey == "" {
 			return s.instanceKey, nil
 		}
@@ -281,16 +281,31 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 	)
 }
 
+// callerIsHostPlugin reports whether this server's plugin is one the host
+// itself starts: a member of the scheduler's host export list.
+func (s *PluginHostServer) callerIsHostPlugin() bool {
+	return slices.Contains(s.hostExportPluginIDs, s.pluginID)
+}
+
 // ExecController executes a config set on the host bus.
+//
+// Invariant: only plugins the host itself starts may run controllers on the
+// host bus; a plugin loaded for a Space or approved by a person runs nothing
+// there. Any other caller gets ErrNotHostPlugin before a config is resolved.
 func (s *PluginHostServer) ExecController(
 	req *controller_exec.ExecControllerRequest,
 	strm bldr_plugin.SRPCPluginHost_ExecControllerStream,
 ) error {
+	// Refuse a plugin the host did not start.
+	if !s.callerIsHostPlugin() {
+		s.le.Warnf("refused configset from plugin %q: %v", s.pluginID, bldr_plugin.ErrNotHostPlugin)
+		return bldr_plugin.ErrNotHostPlugin
+	}
+
+	// Run the set on the host bus until the caller ends the stream.
 	s.le.Debugf("plugin %q is applying a configset", s.pluginID)
 	defer s.le.Debugf("plugin %q exited applying a configset", s.pluginID)
-
-	ctx := strm.Context()
-	return req.Execute(ctx, s.b, true, strm.Send)
+	return req.Execute(strm.Context(), s.b, true, strm.Send)
 }
 
 // WatchPluginStatus streams the host scheduler's plugin status.
