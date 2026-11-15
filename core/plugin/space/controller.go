@@ -223,10 +223,10 @@ func WithAccountPlugins(accountPlugins func() []string) FactoryOption {
 
 // WithReplayPlugins loads the plugins replayPlugins returns even when the
 // Space no longer lists them, for a replay that waits at an operation they
-// handle. Each load names every World manifest of the plugin with the
-// session peer, so the host's scheduler starts only a root AdmitPluginRoot
-// admits and otherwise shows PluginSwapAwaitingApproval until one is. Call
-// NotifyChanged after the list changes.
+// handle. They load as listed plugins do: each starts on this device only from
+// a root the device's person allowed, or from the signed release's or
+// development build's own build. A Space root the device has not allowed
+// never starts. Call NotifyChanged after the list changes.
 func WithReplayPlugins(replayPlugins func() []string) FactoryOption {
 	return func(conf *factoryConfig) { conf.replayPlugins = replayPlugins }
 }
@@ -518,8 +518,8 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 // LoadPlugin directives for the demanded plugin_ids of the Space and the
 // account. A plugin on both lists keeps the Space's installation pin. A Space
 // hosted in a plugin loads an unpinned plugin from the manifests hosted selects.
-// A load names only World manifests the gate admits, except a plugin only
-// replay asks for, whose roots the host's scheduler admits.
+// A load names only World manifests the gate has admitted or not yet answered
+// for, and a plugin only replay asks for loads like a listed one.
 func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, loads *pluginLoads) {
 	// Read SpaceSettings from the World state.
 	le := c.GetLogger()
@@ -588,10 +588,15 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	// retains the admitted worker while preparing this exact installation target.
 	for _, pid := range ids {
 		// Name the World manifests the gate admits: a pinned plugin's
-		// installation, or the hosted selection of an unpinned one. A plugin
-		// only a waiting replay asks for names every candidate: no release
-		// load stands in for it, so its host's scheduler asks AdmitPluginRoot
-		// for the session peer and waits, showing PluginSwapAwaitingApproval.
+		// installation, or the hosted selection of an unpinned one, including
+		// a plugin only a waiting replay asks for. While the gate has not
+		// answered for a root, a new load names every candidate not refused,
+		// admitted and pending alike, and an existing load is kept. With none
+		// admitted and none pending, an existing load on roots outside the
+		// selection that were never refused keeps running; otherwise an
+		// unpinned plugin gets a plain load, from which the host starts only
+		// the release's or development build's own build, or a root the
+		// device's person allowed. A refused Space root never starts.
 		installKeys := installs[pid].GetManifestKeys()
 		var candidates []*manifest.ManifestRef
 		switch {
