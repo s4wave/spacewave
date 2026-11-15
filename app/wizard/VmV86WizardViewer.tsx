@@ -18,9 +18,9 @@ import {
   V86WizardConfig,
   V86WizardConfig_Source,
 } from '@s4wave/sdk/vm/v86-wizard.pb.js'
-import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
@@ -106,22 +106,22 @@ function useV86WizardStartupMarks(
  * resolves the newest VM that has an image, which new VMs inherit from.
  */
 function useV86WorldListings(spaceWorldResource: SpaceWorldResource) {
-  const inSpaceImagesResource = useResource(
+  const inSpaceImagesResource = useWorldQuery(
     spaceWorldResource,
-    (world: EngineWorldState, signal: AbortSignal) =>
-      listV86Images(world, signal),
+    (world, signal) => listV86Images(world, signal),
     [],
+    { share: true },
   )
   const inSpaceImages = useMemo(
     () => inSpaceImagesResource.value ?? [],
     [inSpaceImagesResource.value],
   )
 
-  const existingVmsResource = useResource(
+  const existingVmsResource = useWorldQuery(
     spaceWorldResource,
-    (world: EngineWorldState, signal: AbortSignal) =>
-      listExistingVms(world, signal),
+    (world, signal) => listExistingVms(world, signal),
     [],
+    { share: true },
   )
   const existingDefault = useMemo(
     () => existingVmsResource.value?.find((vm) => vm.imageKey),

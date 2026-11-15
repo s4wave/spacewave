@@ -1,10 +1,14 @@
 import { Engine } from './engine.js'
 import type { IWorldState } from './world-state.js'
 
-/** WorldQuery reads one bounded answer from an immutable World snapshot. */
+/**
+ * WorldQuery reads one bounded answer from an immutable World snapshot. signal
+ * aborts the read when its watch ends; a watch without one passes a signal
+ * that never aborts.
+ */
 export type WorldQuery<T> = (
   world: IWorldState,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ) => Promise<T>
 
 /** WorldQuerySnapshot binds a query result to the World revision it read. */
@@ -39,6 +43,9 @@ export function watchWorldQuery<T>(
   )
 }
 
+// unbounded is the signal a query reads with when its watch has none.
+const unbounded = new AbortController().signal
+
 // runWorldQuery runs one watch of query on its own Engine reference.
 async function* runWorldQuery<T>(
   owner: Engine,
@@ -51,7 +58,7 @@ async function* runWorldQuery<T>(
     let snapshot: WorldQuerySnapshot<T>
     try {
       const { seqno } = await world.getSeqno(signal)
-      snapshot = { seqno, value: await query(world, signal) }
+      snapshot = { seqno, value: await query(world, signal ?? unbounded) }
     } finally {
       world[Symbol.dispose]()
     }

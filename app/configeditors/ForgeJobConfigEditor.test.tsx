@@ -21,8 +21,8 @@ const clusterResource: {
   retry: vi.fn(),
 }
 
-vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
-  useResource: () => clusterResource,
+vi.mock('@s4wave/web/hooks/useWorldQuery.js', () => ({
+  useWorldQuery: () => clusterResource,
 }))
 
 vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({

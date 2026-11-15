@@ -1,12 +1,10 @@
 import { useMemo } from 'react'
 
-import {
-  useResource,
-  type Resource,
-} from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Message, MessageType } from '@aptre/protobuf-es-lite'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { ForgeLinkedEntity } from '@s4wave/web/forge/useForgeLinkedEntities.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 
 export interface ForgeDecodedLinkedEntity<T extends Message<T>> {
   entity: ForgeLinkedEntity
@@ -18,11 +16,9 @@ export function useForgeDecodedLinkedEntities<T extends Message<T>>(
   entities: ForgeLinkedEntity[],
   messageType: MessageType<T>,
 ): { items: ForgeDecodedLinkedEntity<T>[]; loading: boolean } {
-  const resource = useResource(
+  const resource = useWorldQuery(
     worldState,
     async (world, signal) => {
-      if (!world) return []
-
       const items = await Promise.all(
         entities.map(async (entity) => {
           using objectState = await world.getObject(entity.objectKey, signal)
@@ -45,6 +41,7 @@ export function useForgeDecodedLinkedEntities<T extends Message<T>>(
       )
     },
     [entities, messageType],
+    { share: true },
   )
 
   return useMemo(

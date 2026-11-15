@@ -3,7 +3,6 @@ import { LuCheck, LuPlus, LuServer, LuTrash } from 'react-icons/lu'
 
 import type { ConfigEditorProps } from '@s4wave/web/configtype/configtype.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { Input } from '@s4wave/web/ui/input.js'
@@ -12,6 +11,7 @@ import type { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { Cluster } from '@go/github.com/s4wave/spacewave/forge/cluster/cluster.pb.js'
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 
 export interface ForgeClusterOption {
   key: string
@@ -65,11 +65,11 @@ export function ForgeJobConfigEditor({
 }: ConfigEditorProps<ForgeJobCreateOp>) {
   const { spaceWorldResource } = SpaceContainerContext.useContext()
 
-  const clustersResource = useResource(
+  const clustersResource = useWorldQuery(
     spaceWorldResource,
-    (world: IWorldState, signal: AbortSignal) =>
-      loadForgeClusterOptions(world, signal),
+    (world, signal) => loadForgeClusterOptions(world, signal),
     [],
+    { share: true },
   )
   const clusters = useMemo(
     () => clustersResource.value ?? [],

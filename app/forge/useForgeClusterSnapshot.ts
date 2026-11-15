@@ -1,9 +1,6 @@
 import { useMemo } from 'react'
 
-import {
-  useResource,
-  type Resource,
-} from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { Execution } from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
 import { Job } from '@go/github.com/s4wave/spacewave/forge/job/job.pb.js'
 import { Pass } from '@go/github.com/s4wave/spacewave/forge/pass/pass.pb.js'
@@ -21,6 +18,7 @@ import {
   PRED_PASS_TO_EXECUTION,
   PRED_TASK_TO_PASS,
 } from '@s4wave/web/forge/predicates.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 
 interface ForgeClusterSnapshotNode<T> {
   objectKey: string
@@ -356,17 +354,18 @@ export function useForgeClusterSnapshot(
   const clusterKeySignature = JSON.stringify([
     ...new Set(clusterKeys.filter(Boolean)),
   ])
-  const resource = useResource(
+  const resource = useWorldQuery(
     worldState,
     async (world, signal) => {
       const stableClusterKeys = JSON.parse(clusterKeySignature) as string[]
-      if (!world || stableClusterKeys.length === 0) {
+      if (stableClusterKeys.length === 0) {
         return emptyForgeClusterSnapshot()
       }
 
       return buildForgeClusterSnapshot(world, stableClusterKeys, signal)
     },
     [clusterKeySignature],
+    { share: true },
   )
 
   return useMemo(

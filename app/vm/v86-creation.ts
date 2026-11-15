@@ -68,7 +68,7 @@ export interface VmCreationRequest {
 
 // listExistingVms reads the VMs in world with their image, newest first.
 export async function listExistingVms(
-  world: EngineWorldState,
+  world: IWorldState,
   signal: AbortSignal,
 ): Promise<ExistingVm[]> {
   const keys = await listObjectsWithType(world, VmV86TypeID, signal)
@@ -85,7 +85,7 @@ export async function listExistingVms(
 // readExistingVm reads the VM at objectKey, or undefined when it is missing
 // or its record does not decode.
 async function readExistingVm(
-  world: EngineWorldState,
+  world: IWorldState,
   objectKey: string,
   signal: AbortSignal,
 ): Promise<ExistingVm | undefined> {

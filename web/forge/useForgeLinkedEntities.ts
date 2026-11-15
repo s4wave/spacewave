@@ -1,11 +1,9 @@
 import { useMemo } from 'react'
-import {
-  useResource,
-  type Resource,
-} from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { iriToKey } from '@s4wave/sdk/world/graph-utils.js'
 import { GraphEdgeBucketDirection } from '@s4wave/sdk/world/world.pb.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 
 // ForgeLinkedEntity represents a linked entity discovered via graph quads.
 export interface ForgeLinkedEntity {
@@ -71,27 +69,20 @@ export async function loadForgeLinkedEntities(
 
 // useForgeLinkedEntities queries graph quads to find entities linked to the
 // given object key via the specified predicate. Returns entity keys with their
-// types. Direction controls traversal: 'out' follows subject->object edges,
-// 'in' follows object->subject edges.
+// types, and follows them as the World changes. Direction controls traversal:
+// 'out' follows subject->object edges, 'in' follows object->subject edges.
 export function useForgeLinkedEntities(
   worldState: Resource<IWorldState>,
   objectKey: string,
   predicate: string,
   direction: 'out' | 'in' = 'out',
 ): { entities: ForgeLinkedEntity[]; loading: boolean } {
-  const resource = useResource(
+  const resource = useWorldQuery(
     worldState,
-    async (world: IWorldState, signal: AbortSignal) => {
-      if (!world || !objectKey) return []
-      return loadForgeLinkedEntities(
-        world,
-        objectKey,
-        predicate,
-        direction,
-        signal,
-      )
-    },
+    (world, signal) =>
+      loadForgeLinkedEntities(world, objectKey, predicate, direction, signal),
     [objectKey, predicate, direction],
+    { share: true },
   )
 
   return useMemo(

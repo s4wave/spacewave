@@ -1,9 +1,6 @@
 import { useMemo } from 'react'
 
-import {
-  useResource,
-  type Resource,
-} from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { Execution } from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
 import { Job } from '@go/github.com/s4wave/spacewave/forge/job/job.pb.js'
 import { Pass } from '@go/github.com/s4wave/spacewave/forge/pass/pass.pb.js'
@@ -11,6 +8,7 @@ import { Task } from '@go/github.com/s4wave/spacewave/forge/task/task.pb.js'
 import { ForgeDashboard } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { ForgeLinkedEntity } from '@s4wave/web/forge/useForgeLinkedEntities.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 
 const entityTypeLabels: Record<string, string> = {
   'forge/task': 'Task',
@@ -213,18 +211,12 @@ export function useForgeDashboardActivity(
   dashboard: ForgeDashboard | undefined,
   entities: ForgeLinkedEntity[],
 ): { entries: ForgeDashboardActivityEntry[]; loading: boolean } {
-  const resource = useResource(
+  const resource = useWorldQuery(
     worldState,
-    async (world, signal) => {
-      if (!world) return []
-      return loadForgeDashboardActivityEntries(
-        world,
-        dashboard,
-        entities,
-        signal,
-      )
-    },
+    (world, signal) =>
+      loadForgeDashboardActivityEntries(world, dashboard, entities, signal),
     [dashboard?.createdAt?.toISOString(), dashboard?.name, entities],
+    { share: true },
   )
 
   return useMemo(
