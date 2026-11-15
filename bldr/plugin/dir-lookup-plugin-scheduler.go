@@ -1,6 +1,9 @@
 package bldr_plugin
 
 import (
+	"context"
+
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
 )
@@ -12,6 +15,32 @@ type PluginScheduler interface {
 	GetInstanceKey() string
 	// GetPluginStatusCtr returns the scheduler's live plugin-status snapshot.
 	GetPluginStatusCtr() ccontainer.Watchable[*PluginStatusSnapshot]
+}
+
+// HostPluginScheduler is a PluginScheduler that runs host plugins: the plugins
+// it starts itself, which may reach the whole host bus.
+type HostPluginScheduler interface {
+	PluginScheduler
+	// GetHostPluginIds returns the IDs of the host plugins.
+	GetHostPluginIds() []string
+}
+
+// WaitHostPluginScheduler waits for the root host scheduler, the one with
+// instance key "", to be added to b itself. Schedulers that a runtime forwards
+// from a child bus never count: their host set is not the host bus's.
+func WaitHostPluginScheduler(ctx context.Context, b bus.Bus) (HostPluginScheduler, error) {
+	var scheduler HostPluginScheduler
+	err := b.GetControllersBroadcast().Wait(ctx, func(func(), func() <-chan struct{}) (bool, error) {
+		for _, ctrl := range b.GetControllers() {
+			s, ok := ctrl.(HostPluginScheduler)
+			if ok && s.GetInstanceKey() == "" {
+				scheduler = s
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	return scheduler, err
 }
 
 // LookupPluginScheduler is a directive to look up the plugin host schedulers
