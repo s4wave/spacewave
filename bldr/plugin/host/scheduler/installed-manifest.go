@@ -103,6 +103,7 @@ func (t *pluginInstance) releaseInstallationLocked() (stop *pluginInstance) {
 	if current := t.executePluginRoutine.GetState(); current != nil && current.installation != nil {
 		t.executePluginRoutine.SetState(restore)
 	}
+	t.clearReleasedSwapLocked()
 	return stop
 }
 

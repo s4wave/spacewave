@@ -434,6 +434,7 @@ func (t *pluginInstance) clearExecution(expected *pluginInstance) {
 
 	// Publish that nothing runs before another admission can take the lock.
 	t.setRunningManifest(nil)
+	t.clearReleasedSwapLocked()
 	t.pluginUpdateMtx.Unlock()
 
 	// Release the replaced worker outside the update lock.
