@@ -76,12 +76,18 @@ func main() {
 	}
 }
 
-// git runs a git command and returns its standard output.
+// git runs a git command and returns its standard output. GO_PARAGRAPHS_INDEX,
+// when set, names the index it reads, such as the temporary one git commit -a
+// records; the hook passes it under its own name so that GIT_INDEX_FILE never
+// reaches a git that go run starts in another repository.
 func git(args ...string) (string, error) {
 	// Run git with its output captured.
 	var stdout, stderr bytes.Buffer
 	cmd := exec.Command("git", args...)
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if index := os.Getenv("GO_PARAGRAPHS_INDEX"); index != "" {
+		cmd.Env = append(os.Environ(), "GIT_INDEX_FILE="+index)
+	}
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, stderr.String())
 	}
