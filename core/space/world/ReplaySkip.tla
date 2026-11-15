@@ -15,6 +15,8 @@
 \* the held checkpoint covers, and the state that carries a config carries
 \* the checkpoint it was pruned against, so no device holds a config without
 \* a skip and a prefix below that skip's op.
+\* The spec models the owner's builder and no verifier: only Skip writes a
+\* config, so no config drops an uncovered skip.
 \*
 \* The order above the checkpoint may change: a late op can sort before p.
 \* The checkpoint covers the owner's kept prefix and names the config it was
