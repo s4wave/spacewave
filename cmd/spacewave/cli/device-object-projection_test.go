@@ -58,7 +58,7 @@ func TestDeviceObjectProjectionReappliesStaleWrite(t *testing.T) {
 	tb := world_testbed.MustDefault(t, ctx)
 	engine := &staleDeviceEngine{Engine: tb.Engine}
 	record := &deviceSetupRecord{
-		PeerID:     "device-peer",
+		PeerID:     testDevicePeerID,
 		Label:      "forge",
 		SetupState: deviceSetupStateSessionReady,
 	}
@@ -71,8 +71,8 @@ func TestDeviceObjectProjectionReappliesStaleWrite(t *testing.T) {
 	if engine.attempts != 2 {
 		t.Fatalf("write attempts = %d, want 2", engine.attempts)
 	}
-	if key != deviceObjectKey(record.PeerID) {
-		t.Fatalf("object key = %q, want %q", key, deviceObjectKey(record.PeerID))
+	if want := mustDeviceObjectKey(t, record.PeerID); key != want {
+		t.Fatalf("object key = %q, want %q", key, want)
 	}
 	requireCommittedDevice(t, ctx, tb.Engine, key, record)
 }
@@ -104,7 +104,7 @@ func TestDeviceObjectProjectionWaitsForWorld(t *testing.T) {
 	engine := &blockedDeviceEngine{Engine: tb.Engine}
 	engine.blocked.Store(true)
 	record := &deviceSetupRecord{
-		PeerID:     "device-peer",
+		PeerID:     testDevicePeerID,
 		Label:      "forge",
 		SetupState: deviceSetupStateSessionReady,
 	}
@@ -196,3 +196,6 @@ var (
 	_ world.Engine = (*blockedDeviceEngine)(nil)
 	_ world.Tx     = (*staleDeviceTx)(nil)
 )
+
+// testDevicePeerID is a printable peer ID for a Device in these tests.
+const testDevicePeerID = "12D3KooWRBy97UB99e3J6hiPesre1MZeuNQvfan4gBziswrRJsNK"

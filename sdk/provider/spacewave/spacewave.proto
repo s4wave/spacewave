@@ -2392,6 +2392,9 @@ message ApproveSpaceLinkResponse {
   SpaceLinkCompletionMode completion_mode = 6;
   // Completion is the generic callback/completion payload.
   SpaceLinkCallback completion = 7;
+  // DeviceObjectKey is the World key the linked device's Device object takes
+  // once it enrolls, derived from its peer ID.
+  string device_object_key = 8;
 }
 
 // SpaceLinkCallback is the generic approval result payload. Browser callback

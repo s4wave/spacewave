@@ -28,9 +28,6 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
-import { Device } from '@s4wave/sdk/device/device.pb.js'
-import { base58Encode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
 import {
   SecretKindSSHPassword,
   SecretKindSSHPrivateKey,
@@ -88,10 +85,13 @@ import { WizardLoading } from '@s4wave/app/wizard/WizardLoading.js'
 const DEFAULT_SSH_PORT = 22
 const DEVICE_APPROVAL_CLOUD_REQUIRED =
   'Device linking requires a Spacewave Cloud session. Sign in or create an account to continue.'
+// DEVICE_KEY_MISSING refuses an approval from a responder too old to report
+// the key the approved Device takes.
+const DEVICE_KEY_MISSING =
+  'This Spacewave version did not report the Device key. Update Spacewave and approve the ticket again.'
 const INSTALL_AGENT_UNAVAILABLE =
   'Install Agent is unavailable until secure bootstrap is configured.'
 
-const noKeys: string[] = []
 const noSshHostsMade: SshHostMade[] = []
 
 type AddDeviceWizardMode = 'spacelink' | 'ssh'
@@ -119,6 +119,9 @@ interface AddDeviceWizardConfig {
   mode?: AddDeviceWizardMode
   ticket?: string
   completion?: string
+  // deviceKey is the World key the approved device's Device object takes once
+  // it joins, as the approval reported it.
+  deviceKey?: string
   preview?: {
     label?: string
     agentPeerId?: string
@@ -215,12 +218,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   const isSshInstallMode = mode === 'ssh' && sshSetupMode === 'install-agent'
   const ticket = config.ticket ?? ''
   const completion = config.completion ?? ''
-  // pairedPeerId is the printable peer ID of the device the approved ticket
-  // came from, the peer ID its Device object records.
-  const pairedPeerId = useMemo(() => {
-    const raw = config.preview?.agentPeerId
-    return raw ? base58Encode(base64ToBytes(raw)) : ''
-  }, [config.preview?.agentPeerId])
+  const deviceKey = config.deviceKey ?? ''
   const { setupCommand, installSetupCommand, completeCommand } = deviceCommands(
     ws.localName || 'Device',
     sharedObjectId,
@@ -229,17 +227,19 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   const computersResource = useWorldQuery(
     spaceWorldResource,
     async (world, signal) => {
-      const [devices, dashboards] = await Promise.all([
-        world.listObjectsWithType(DeviceTypeID, signal),
-        world.listObjectsWithType(ComputersDashboardTypeID, signal),
-      ])
-      return { devices, dashboards }
+      const dashboards = await world.listObjectsWithType(
+        ComputersDashboardTypeID,
+        signal,
+      )
+      if (!deviceKey) return { dashboards, deviceJoined: false }
+      using device = await world.getObject(deviceKey, signal)
+      return { dashboards, deviceJoined: !!device }
     },
-    [],
+    [deviceKey],
   )
   const computers = resourceContent(computersResource)
-  const deviceKeys = computers?.devices ?? noKeys
   const dashboardKey = computers?.dashboards[0] ?? ''
+  const deviceJoin = deviceJoinState(deviceKey, computers?.deviceJoined)
 
   // Finish moves the Space index off the wizard before deleting it, so it
   // waits until the World has said which Computers dashboard takes its place.
@@ -334,17 +334,12 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
       async () => {
         await ws.persistDraftState()
         // The device was paired before Finish, so it opens even when the
-        // wizard is already gone. Until the paired device has enrolled, the
-        // Computers dashboard opens in its place.
-        const deviceKey = await findPairedDevice(
-          ws.spaceWorld,
-          deviceKeys,
-          pairedPeerId,
-        )
+        // wizard is already gone. Until it joins, the Computers dashboard
+        // opens in its place, and lists it once it does.
         return {
           creates: [],
           target: {
-            openKey: deviceKey || dashboardKey,
+            openKey: deviceJoin === 'joined' ? deviceKey : dashboardKey,
             indexPath: dashboardKey,
           },
           targetMade: true,
@@ -354,15 +349,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         if (target.openKey) ws.navigateToObjects([target.openKey])
       },
     )
-  }, [
-    computersKnown,
-    dashboardKey,
-    deviceKeys,
-    finish,
-    pairedPeerId,
-    state,
-    ws,
-  ])
+  }, [computersKnown, dashboardKey, deviceJoin, deviceKey, finish, state, ws])
 
   // readSshHostMade reads the SSH Host this wizard made for the label and
   // endpoint, with its terminal, or undefined when none landed.
@@ -599,7 +586,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     computersResource,
     config,
     currentStep,
-    deviceKeys,
+    deviceJoin,
     finish: finish.state,
     handleCancel,
     handleConfigUpdate,
@@ -650,7 +637,7 @@ function AddDeviceWizardSteps({
     completeCommand,
     config,
     currentStep,
-    deviceKeys,
+    deviceJoin,
     handleConfigUpdate,
     handleModeChange,
     handleSignIn,
@@ -751,38 +738,23 @@ function AddDeviceWizardSteps({
       {mode === 'spacelink' && currentStep === 2 && (
         <section className="space-y-3">
           <div className="border-brand/20 bg-brand/5 rounded-lg border p-3.5">
-            <div className="text-foreground flex items-center gap-2 text-sm font-medium">
+            <div
+              className="text-foreground flex items-center gap-2 text-sm font-medium"
+              role="status"
+            >
               <LuCircleCheck className="size-4" />
-              Approval ready
+              {deviceJoinCopy(deviceJoin, config.preview?.label).title}
             </div>
             <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
-              Import the completion on the Device daemon, then open the Device
-              object after it appears.
+              {deviceJoinCopy(deviceJoin, config.preview?.label).detail}
             </p>
           </div>
-          <CommandPanel
-            title="Complete setup"
-            command={completeCommand}
-            icon={<LuTerminal className="size-3.5" />}
-          />
-          {deviceKeys.length > 0 && (
-            <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-              <div className="text-foreground text-xs font-medium">
-                Device Objects
-              </div>
-              <div className="mt-2 space-y-1">
-                {deviceKeys.map((deviceKey) => (
-                  <button
-                    key={deviceKey}
-                    type="button"
-                    onClick={() => ws.navigateToObjects([deviceKey])}
-                    className="hover:bg-foreground/5 text-foreground flex w-full min-w-0 rounded px-2 py-1 text-left text-xs"
-                  >
-                    <span className="truncate">{deviceKey}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+          {deviceJoin !== 'joined' && (
+            <CommandPanel
+              title="Complete setup"
+              command={completeCommand}
+              icon={<LuTerminal className="size-3.5" />}
+            />
           )}
         </section>
       )}
@@ -805,6 +777,38 @@ function AddDeviceWizardSteps({
   )
 }
 
+// DeviceJoinState is where the approved device stands on the Finish step:
+// approved before approvals reported its key (unknown), approved and not yet
+// enrolled in this Space (waiting), or enrolled (joined).
+type DeviceJoinState = 'unknown' | 'waiting' | 'joined'
+
+// deviceJoinState derives the join state from the approved key and whether the
+// World holds an object at it.
+function deviceJoinState(
+  deviceKey: string,
+  joined: boolean | undefined,
+): DeviceJoinState {
+  if (!deviceKey) return 'unknown'
+  return joined ? 'joined' : 'waiting'
+}
+
+// deviceJoinCopy returns what the Finish step says in each join state, with
+// the next step for the person.
+function deviceJoinCopy(
+  join: DeviceJoinState,
+  label: string | undefined,
+): { title: string; detail: string } {
+  const name = label || 'the Device'
+  if (join === 'joined') {
+    return { title: `${name} joined`, detail: 'Finish opens it.' }
+  }
+  const detail = `Run this command on ${name}. Finish opens Computers, which lists ${name} once it joins.`
+  if (join === 'waiting') {
+    return { title: `Waiting for ${name} to join`, detail }
+  }
+  return { title: 'Approval ready', detail }
+}
+
 interface WizardCopy {
   totalSteps: number
   stepName: string
@@ -819,6 +823,7 @@ function wizardCopy(
   mode: AddDeviceWizardMode,
   currentStep: number,
   isSshInstallMode: boolean,
+  deviceJoin: DeviceJoinState,
 ): WizardCopy {
   if (mode === 'ssh') {
     return {
@@ -839,14 +844,15 @@ function wizardCopy(
     totalSteps: 3,
     stepName: stepNames[Math.min(currentStep, 2)] ?? 'Finish',
     nameLabel: 'Device Name',
-    createLabel: 'Open Device',
-    creatingLabel: 'Opening Device…',
+    createLabel: deviceJoin === 'joined' ? 'Open Device' : 'Open Computers',
+    creatingLabel:
+      deviceJoin === 'joined' ? 'Opening Device…' : 'Opening Computers…',
     nextBusyLabel: 'Preparing Device setup…',
   }
 }
 
 // ComputersReadStatus tells the finishing step what Finish waits on: the read
-// of the Space's Devices and Computers dashboard, or its failure with Retry.
+// of the Space's Computers dashboard and the approved Device, or its failure with Retry.
 // It shows only on the finishing step, and nothing once the read is known.
 function ComputersReadStatus({
   controller,
@@ -883,6 +889,7 @@ function AddDeviceWizardContent({
     completion,
     computersKnown,
     currentStep,
+    deviceJoin,
     finish,
     handleCancel,
     handleFinalize,
@@ -909,7 +916,7 @@ function AddDeviceWizardContent({
     )
   }
 
-  const copy = wizardCopy(mode, currentStep, isSshInstallMode)
+  const copy = wizardCopy(mode, currentStep, isSshInstallMode, deviceJoin)
   return (
     <WizardShell
       icon={<LuHardDrive />}
@@ -1575,6 +1582,9 @@ async function approveTicket({
     if (!approval.completion) {
       throw new Error('SpaceLink approval did not return completion data')
     }
+    if (!approval.deviceObjectKey) {
+      throw new Error(DEVICE_KEY_MISSING)
+    }
     if (
       approval.completionMode !==
       SpaceLinkCompletionMode.SpaceLinkCompletionMode_CLI
@@ -1588,6 +1598,7 @@ async function approveTicket({
         completion: bytesToBase64(
           SpaceLinkCallback.toBinary(approval.completion),
         ),
+        deviceKey: approval.deviceObjectKey,
         preview: {
           label: preview.label,
           agentPeerId: bytesToDisplay(preview.agentPeerId),
@@ -1614,6 +1625,9 @@ async function approveTicket({
 export function getApprovalErrorMessage(error: unknown): string {
   if (isUnimplementedRpcError(error)) {
     return DEVICE_APPROVAL_CLOUD_REQUIRED
+  }
+  if (error instanceof Error && error.message === DEVICE_KEY_MISSING) {
+    return DEVICE_KEY_MISSING
   }
   return 'Check the ticket and try again.'
 }
@@ -1861,23 +1875,6 @@ function buildDeviceSetupArgs(label: string, sharedObjectId: string): string {
 function quoteShellArg(value: string): string {
   if (/^[a-zA-Z0-9_./:@%+=,-]+$/.test(value)) return value
   return `'${value.replaceAll("'", "'\"'\"'")}'`
-}
-
-// findPairedDevice returns the key of the Device among keys whose peer ID is
-// peerId, or '' when none has enrolled with it.
-async function findPairedDevice(
-  world: IWorldState,
-  keys: string[],
-  peerId: string,
-): Promise<string> {
-  if (!peerId || keys.length === 0) return ''
-  const bodies = await world.getObjectBodies(keys)
-  const paired = bodies.find(
-    (body) =>
-      body.exists &&
-      Device.fromBinary(body.body ?? new Uint8Array()).peerId === peerId,
-  )
-  return paired?.objectKey ?? ''
 }
 
 function base64ToBytes(value: string): Uint8Array {

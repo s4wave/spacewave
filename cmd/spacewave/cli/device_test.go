@@ -556,7 +556,7 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 		if upsertErr != nil {
 			return "", upsertErr
 		}
-		return deviceObjectKey(record.PeerID), nil
+		return deviceObjectKey(record.PeerID)
 	})
 
 	// Build the approval completion and run device complete.
@@ -603,7 +603,7 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 		onBlocked func(error),
 	) (string, error) {
 		upserted = record
-		return deviceObjectKey(record.PeerID), nil
+		return deviceObjectKey(record.PeerID)
 	})
 
 	// Run device complete and check the recorded output.
@@ -626,8 +626,8 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 	if record.SetupState != deviceSetupStateSessionReady {
 		t.Fatalf("recovered setup state = %q, want session ready", record.SetupState)
 	}
-	if record.DeviceObjectKey != deviceObjectKey(setup.PeerID) {
-		t.Fatalf("recovered Device object key = %q, want %q", record.DeviceObjectKey, deviceObjectKey(setup.PeerID))
+	if want := mustDeviceObjectKey(t, setup.PeerID); record.DeviceObjectKey != want {
+		t.Fatalf("recovered Device object key = %q, want %q", record.DeviceObjectKey, want)
 	}
 }
 
@@ -1240,4 +1240,14 @@ func TestOpenLocalDeviceSessionProjectsReadyDevice(t *testing.T) {
 			t.Fatalf("ready activation = %+v", r)
 		}
 	}
+}
+
+// mustDeviceObjectKey returns the Device object key for peerID.
+func mustDeviceObjectKey(t *testing.T, peerID string) string {
+	t.Helper()
+	key, err := deviceObjectKey(peerID)
+	if err != nil {
+		t.Fatalf("device object key: %v", err)
+	}
+	return key
 }

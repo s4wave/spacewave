@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
@@ -277,13 +278,14 @@ func approveVerifiedSpaceLink(
 		SessionPeerId: payload.GetAgentPeerId(),
 	}
 	return &s4wave_provider_spacewave.ApproveSpaceLinkResponse{
-		AccountId:      registerResp.GetAccountId(),
-		ResourceId:     resourceID,
-		SessionPeerId:  payload.GetAgentPeerId(),
-		Nonce:          payload.GetNonce(),
-		CallbackUrl:    payload.GetCallbackUrl(),
-		CompletionMode: payload.GetCompletionMode(),
-		Completion:     completion,
+		AccountId:       registerResp.GetAccountId(),
+		ResourceId:      resourceID,
+		SessionPeerId:   payload.GetAgentPeerId(),
+		Nonce:           payload.GetNonce(),
+		CallbackUrl:     payload.GetCallbackUrl(),
+		CompletionMode:  payload.GetCompletionMode(),
+		Completion:      completion,
+		DeviceObjectKey: s4wave_device_world.EnrolledDeviceObjectKey(verified.agentPeerID),
 	}, nil
 }
 

@@ -8510,6 +8510,9 @@ type ApproveSpaceLinkResponse struct {
 	CompletionMode SpaceLinkCompletionMode `protobuf:"varint,6,opt,name=completion_mode,json=completionMode,proto3" json:"completionMode,omitempty"`
 	// Completion is the generic callback/completion payload.
 	Completion *SpaceLinkCallback `protobuf:"bytes,7,opt,name=completion,proto3" json:"completion,omitempty"`
+	// DeviceObjectKey is the World key the linked device's Device object takes
+	// once it enrolls, derived from its peer ID.
+	DeviceObjectKey string `protobuf:"bytes,8,opt,name=device_object_key,json=deviceObjectKey,proto3" json:"deviceObjectKey,omitempty"`
 }
 
 func (x *ApproveSpaceLinkResponse) Reset() {
@@ -8565,6 +8568,13 @@ func (x *ApproveSpaceLinkResponse) GetCompletion() *SpaceLinkCallback {
 		return x.Completion
 	}
 	return nil
+}
+
+func (x *ApproveSpaceLinkResponse) GetDeviceObjectKey() string {
+	if x != nil {
+		return x.DeviceObjectKey
+	}
+	return ""
 }
 
 // SpaceLinkCallback is the generic approval result payload. Browser callback
@@ -13089,6 +13099,7 @@ func (m *ApproveSpaceLinkResponse) CloneVT() *ApproveSpaceLinkResponse {
 	r.AccountId = m.AccountId
 	r.CallbackUrl = m.CallbackUrl
 	r.CompletionMode = m.CompletionMode
+	r.DeviceObjectKey = m.DeviceObjectKey
 	r.ResourceId = protobuf_go_lite.CloneBytes(m.ResourceId)
 	r.SessionPeerId = protobuf_go_lite.CloneBytes(m.SessionPeerId)
 	r.Nonce = protobuf_go_lite.CloneBytes(m.Nonce)
@@ -19282,6 +19293,9 @@ func (this *ApproveSpaceLinkResponse) EqualVT(that *ApproveSpaceLinkResponse) bo
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Completion, that.Completion) {
+		return false
+	}
+	if this.DeviceObjectKey != that.DeviceObjectKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -32956,6 +32970,11 @@ func (x *ApproveSpaceLinkResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("completion")
 		x.Completion.MarshalProtoJSON(s.WithField("completion"))
 	}
+	if x.DeviceObjectKey != "" || s.HasField("deviceObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deviceObjectKey")
+		s.WriteString(x.DeviceObjectKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -32998,6 +33017,9 @@ func (x *ApproveSpaceLinkResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Completion = &SpaceLinkCallback{}
 			x.Completion.UnmarshalProtoJSON(s.WithField("completion", true))
+		case "device_object_key", "deviceObjectKey":
+			s.AddField("device_object_key")
+			x.DeviceObjectKey = s.ReadString()
 		}
 	})
 }
@@ -44407,6 +44429,11 @@ func (m *ApproveSpaceLinkResponse) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.DeviceObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DeviceObjectKey)
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.Completion != nil {
 		size, err := m.Completion.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -47938,6 +47965,7 @@ func (m *ApproveSpaceLinkResponse) SizeVT() (n int) {
 		l = m.Completion.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DeviceObjectKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -52891,6 +52919,10 @@ func (x *ApproveSpaceLinkResponse) MarshalProtoText() string {
 	if x.Completion != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "completion")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Completion)
+	}
+	if x.DeviceObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "device_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.DeviceObjectKey)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -69382,6 +69414,16 @@ func (m *ApproveSpaceLinkResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeviceObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DeviceObjectKey = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
