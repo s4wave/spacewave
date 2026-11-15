@@ -73,6 +73,47 @@ export class PluginUnavailableError extends Error {
   }
 }
 
+// PluginExecutableMissingError reports that the plugin build an operation is
+// pinned to has no executable for this device's platform. The host never sent
+// the operation or opened a transaction, so nothing was written. Sending it
+// again on this device fails the same way; a device the build supports can
+// apply it.
+const pluginExecutableMissingBrand = Symbol.for(
+  'spacewave.PluginExecutableMissingError',
+)
+
+export class PluginExecutableMissingError extends Error {
+  override readonly name = 'PluginExecutableMissingError'
+  readonly [pluginExecutableMissingBrand] = true
+
+  // Client and plugin builds recognize the same public error across bundles.
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return (
+      value instanceof Error &&
+      pluginExecutableMissingBrand in value &&
+      value[pluginExecutableMissingBrand] === true
+    )
+  }
+
+  constructor() {
+    super('the plugin has no build for this device, so nothing was changed')
+  }
+}
+
+// pluginError returns the typed error for a plugin's built-in code, or
+// undefined for any other code.
+function pluginError(code: WorldErrorCode | undefined): Error | undefined {
+  switch (code) {
+    case WorldErrorCode.PLUGIN_OP_TIMEOUT:
+      return new PluginOpTimeoutError()
+    case WorldErrorCode.PLUGIN_UNAVAILABLE:
+      return new PluginUnavailableError()
+    case WorldErrorCode.PLUGIN_EXECUTABLE_MISSING:
+      return new PluginExecutableMissingError()
+  }
+  return undefined
+}
+
 // OperationResponse is the error part of a World or object operation response.
 export interface OperationResponse {
   errorCode?: WorldErrorCode
@@ -90,10 +131,8 @@ export function throwOperationError(response: OperationResponse): void {
     )
   if (response.errorCode === WorldErrorCode.UNHANDLED_OP)
     throw new Error('remote world operation unhandled')
-  if (response.errorCode === WorldErrorCode.PLUGIN_OP_TIMEOUT)
-    throw new PluginOpTimeoutError()
-  if (response.errorCode === WorldErrorCode.PLUGIN_UNAVAILABLE)
-    throw new PluginUnavailableError()
+  const err = pluginError(response.errorCode)
+  if (err) throw err
 }
 
 // WorldBatchRefusal refuses a World batch with a built-in code, such as an
@@ -117,15 +156,12 @@ export interface BatchResponse extends OperationResponse {
 }
 
 // throwBatchError throws the refusal a batch response carries: an op's
-// rejection as WorldOperationRejection, a plugin timeout as
-// PluginOpTimeoutError, an unavailable plugin as PluginUnavailableError, and
-// another built-in code as WorldBatchRefusal.
+// rejection as WorldOperationRejection, a plugin's code as its typed error,
+// and another built-in code as WorldBatchRefusal.
 export function throwBatchError(response: BatchResponse): void {
   if (response.rejectionCode) throwOperationError(response)
-  if (response.errorCode === WorldErrorCode.PLUGIN_OP_TIMEOUT)
-    throw new PluginOpTimeoutError()
-  if (response.errorCode === WorldErrorCode.PLUGIN_UNAVAILABLE)
-    throw new PluginUnavailableError()
+  const err = pluginError(response.errorCode)
+  if (err) throw err
   if (response.errorCode)
     throw new WorldBatchRefusal(response.failedIndex ?? 0, response.errorCode)
 }

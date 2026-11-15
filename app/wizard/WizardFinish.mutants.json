@@ -47,8 +47,8 @@
     "name": "a discard keeps what the list staged",
     "replace": [
       [
-        "  /\\ live' = [live EXCEPT ![t] = FALSE]\n  /\\ UNCHANGED <<seen, orphan, wizard, objects, index, moved>>",
-        "  /\\ live' = [live EXCEPT ![t] = FALSE]\n  /\\ objects' = objects + 1\n  /\\ UNCHANGED <<seen, orphan, wizard, index, moved>>"
+        "  /\\ live' = [live EXCEPT ![t] = FALSE]\n  /\\ UNCHANGED <<seen, orphan, wizard, objects, index, moved>>\n  /\\ ReadEnding(t, \"failed\")",
+        "  /\\ live' = [live EXCEPT ![t] = FALSE]\n  /\\ objects' = objects + 1\n  /\\ UNCHANGED <<seen, orphan, wizard, index, moved>>\n  /\\ ReadEnding(t, \"failed\")"
       ]
     ],
     "expect": "WizardXorObject"
@@ -92,6 +92,56 @@
     "name": "a press the tab could not see land reports done without reading the ending",
     "replace": [
       ["IF read /\\ ~wizard' THEN \"done\"", "IF TRUE THEN \"done\""]
+    ],
+    "expect": "DoneMeansMade"
+  },
+  {
+    "name": "a missing build offers Retry",
+    "config": "WizardFinish-unbuilt.cfg",
+    "replace": [
+      [
+        "    \\cup (IF control[t] = \"failed\" /\\ wizard THEN {\"retry\"} ELSE {})",
+        "    \\cup (IF control[t] \\in {\"failed\", \"unsupported\"} /\\ wizard THEN {\"retry\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a missing build says nothing",
+    "config": "WizardFinish-unbuilt.cfg",
+    "replace": [
+      [
+        "    [] control[t] = \"unsupported\" /\\ wizard ->\n         \"Says the plugin has no build for this device\"\n",
+        ""
+      ]
+    ],
+    "expect": "NobodyIsStuck"
+  },
+  {
+    "name": "an operation's refusal keeps what the list staged",
+    "replace": [
+      [
+        "  /\\ UNCHANGED <<seen, orphan, wizard, objects, index, moved>>\n  /\\ ReadEnding(t, \"idle\")",
+        "  /\\ objects' = objects + 1\n  /\\ UNCHANGED <<seen, orphan, wizard, index, moved>>\n  /\\ ReadEnding(t, \"idle\")"
+      ]
+    ],
+    "expect": "WizardXorObject"
+  },
+  {
+    "name": "an operation's refusal shows done without reading the ending",
+    "replace": [
+      ["ReadEnding(t, \"idle\")", "control' = [control EXCEPT ![t] = \"done\"]"]
+    ],
+    "expect": "DoneMeansMade"
+  },
+  {
+    "name": "a missing build shows done without reading the ending",
+    "config": "WizardFinish-unbuilt.cfg",
+    "replace": [
+      [
+        "ReadEnding(t, \"unsupported\")",
+        "control' = [control EXCEPT ![t] = \"done\"]"
+      ]
     ],
     "expect": "DoneMeansMade"
   }

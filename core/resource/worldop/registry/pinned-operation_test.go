@@ -37,25 +37,41 @@ func TestPinnedOperationReplay(t *testing.T) {
 
 	// The current runtime implements different behavior; replay must never call it.
 	client := func(key string) srpc.Client {
-		// Expose the pinned handler behind a resource server mux.
-		root := srpc.NewMux()
-		if err := registry.SRPCRegisterWorldOpHandlerService(root, &pinnedTestHandler{key: key}); err != nil {
-			t.Fatal(err)
-		}
+		return handlerClient(t, &pinnedTestHandler{key: key})
+	}
 
-		// Wrap the handler mux with the resource server and a client pipe.
-		mux := srpc.NewMux()
-		if err := resource_server.NewResourceServer(root).Register(mux); err != nil {
-			t.Fatal(err)
-		}
-		return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
+	// Hash an executable identity whose root the host proved has no build here.
+	foreignHash, err := hash.Sum(hash.RecommendedHashType, []byte("foreign executable"))
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// Register a plugin loader whose latest and historical clients differ.
 	load := &testWorldOpPluginLoadController{
 		client:    client("replay/latest"),
 		manifests: map[string]srpc.Client{oldHash.MarshalString(): client("replay/original")},
+		missing:   map[string]bool{foreignHash.MarshalString(): true},
 	}
+
+	// Pin a root whose worker fails its connection only as the deadline ends.
+	hangHash, err := hash.Sum(hash.RecommendedHashType, []byte("hanging executable"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	load.manifests[hangHash.MarshalString()] = deadlineFailClient{}
+
+	// Pin a root whose worker fails the apply call at once, as one that
+	// crashes mid-call does, and one whose worker refuses every attach.
+	crashHash, err := hash.Sum(hash.RecommendedHashType, []byte("crashing executable"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	load.manifests[crashHash.MarshalString()] = handlerClient(t, &pinnedTestHandler{key: "replay/crash", applyErr: "worker crashed"})
+	attachHash, err := hash.Sum(hash.RecommendedHashType, []byte("attach failing executable"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	load.manifests[attachHash.MarshalString()] = attachFailClient{Client: client("replay/attach")}
 
 	// Add the plugin load controller to the testbed bus.
 	release, err := tb.Bus.AddController(ctx, load, nil)
@@ -131,17 +147,120 @@ func TestPinnedOperationReplay(t *testing.T) {
 	missing.manifestRoot = missingHash.MarshalString()
 	missing.handlerID = "colors/like"
 
-	// Apply the operation and expect an explicit UNAVAILABLE rejection.
+	// An executable that never loads is not proven missing: the apply may pass later.
 	_, err = missing.ApplyWorldOp(ctx, le, read, tb.Volume.GetPeerID())
-	var rejection *world.OperationRejection
-	if !errors.As(err, &rejection) || rejection.Code != "UNAVAILABLE" {
-		t.Fatalf("missing executable error = %v, expected UNAVAILABLE", err)
+	var unavailable *world.PluginUnavailableError
+	if !errors.As(err, &unavailable) {
+		t.Fatalf("unloaded executable error = %v, expected PluginUnavailableError", err)
 	}
+
+	// A proven missing build is final for this device and names the pinned root.
+	foreign := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
+	foreign.manifestRoot = foreignHash.MarshalString()
+	foreign.handlerID = "colors/like"
+	_, err = foreign.ApplyWorldOp(ctx, le, read, tb.Volume.GetPeerID())
+	var executableMissing *world.PluginExecutableMissingError
+	if !errors.As(err, &executableMissing) || executableMissing.ManifestRoot != foreign.manifestRoot {
+		t.Fatalf("foreign executable error = %v, expected PluginExecutableMissingError", err)
+	}
+	var rejection *world.OperationRejection
+	if errors.As(err, &rejection) {
+		t.Fatalf("missing executable became a stored rejection: %v", err)
+	}
+
+	// A connect error that arrives at the operation's deadline is a wait that
+	// replay retries, not a failure it records on this replica.
+	hang := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
+	hang.manifestRoot = hangHash.MarshalString()
+	hang.handlerID = "colors/like"
+	opCtx, opCancel := context.WithTimeout(ctx, 200*time.Millisecond)
+	defer opCancel()
+	_, err = hang.ApplyWorldOp(opCtx, le, read, tb.Volume.GetPeerID())
+	if !errors.As(err, &unavailable) {
+		t.Fatalf("connect error at the deadline = %v, expected PluginUnavailableError", err)
+	}
+
+	// So is a handler error the worker returns as the deadline ends: the call
+	// loses its type, and the deadline decides.
+	<-opCtx.Done()
+	if err := hang.callErr(opCtx, errors.New("handler failed"), true); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("handler error at the deadline = %v, expected a deadline", err)
+	}
+
+	// A handler that fails its call long before the deadline gave no verdict,
+	// so replay waits at it as at an unreachable plugin: the error is the type
+	// replay counts as a gap, marked sent, and never a stored rejection.
+	crash := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
+	crash.manifestRoot = crashHash.MarshalString()
+	crash.handlerID = "colors/like"
+	liveCtx, liveCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer liveCancel()
+	_, err = crash.ApplyWorldOp(liveCtx, le, read, tb.Volume.GetPeerID())
+	if !errors.As(err, &unavailable) || !unavailable.Sent || errors.As(err, &rejection) || liveCtx.Err() != nil {
+		t.Fatalf("handler failure before the deadline = %v, expected a sent PluginUnavailableError", err)
+	}
+
+	// So is an attach the worker refuses, before the handler was asked.
+	attach := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
+	attach.manifestRoot = attachHash.MarshalString()
+	attach.handlerID = "colors/like"
+	_, err = attach.ApplyWorldOp(liveCtx, le, read, tb.Volume.GetPeerID())
+	if !errors.As(err, &unavailable) || unavailable.Sent || errors.As(err, &rejection) || liveCtx.Err() != nil {
+		t.Fatalf("attach failure = %v, expected an unsent PluginUnavailableError", err)
+	}
+}
+
+// handlerClient serves handler behind a resource server over a client pipe.
+func handlerClient(t *testing.T, handler registry.SRPCWorldOpHandlerServiceServer) srpc.Client {
+	// Expose the handler behind a resource server mux.
+	root := srpc.NewMux()
+	if err := registry.SRPCRegisterWorldOpHandlerService(root, handler); err != nil {
+		t.Fatal(err)
+	}
+
+	// Wrap the handler mux with the resource server and a client pipe.
+	mux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(root).Register(mux); err != nil {
+		t.Fatal(err)
+	}
+	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
+}
+
+// attachFailClient is a worker connection that refuses every resource attach
+// with a plain error and serves every other call.
+type attachFailClient struct {
+	srpc.Client
+}
+
+// NewStream fails a resource attach and passes every other stream on.
+func (c attachFailClient) NewStream(ctx context.Context, service, method string, first srpc.Message) (srpc.Stream, error) {
+	if method == "ResourceAttach" {
+		return nil, errors.New("attach refused")
+	}
+	return c.Client.NewStream(ctx, service, method, first)
+}
+
+// deadlineFailClient is a worker connection that answers nothing and fails
+// with a plain error once its call's context ends, as a dropped transport does.
+type deadlineFailClient struct{}
+
+// ExecCall fails with a plain error once ctx ends.
+func (deadlineFailClient) ExecCall(ctx context.Context, _, _ string, _, _ srpc.Message) error {
+	<-ctx.Done()
+	return errors.New("worker connection reset")
+}
+
+// NewStream fails with a plain error once ctx ends.
+func (deadlineFailClient) NewStream(ctx context.Context, _, _ string, _ srpc.Message) (srpc.Stream, error) {
+	<-ctx.Done()
+	return nil, errors.New("worker connection reset")
 }
 
 // pinnedTestHandler gives each executable a distinguishable observable effect.
 type pinnedTestHandler struct {
 	key string
+	// applyErr, when set, fails every apply with this plain error.
+	applyErr string
 }
 
 func (h *pinnedTestHandler) ValidateOp(_ context.Context, req *registry.ValidateOpRequest) (*registry.ValidateOpResponse, error) {
@@ -152,6 +271,11 @@ func (h *pinnedTestHandler) ValidateOp(_ context.Context, req *registry.Validate
 }
 
 func (h *pinnedTestHandler) ApplyWorldOp(ctx context.Context, req *registry.ApplyWorldOpRequest) (*registry.ApplyWorldOpResponse, error) {
+	// Fail as a crashing worker does, when told to.
+	if h.applyErr != "" {
+		return nil, errors.New(h.applyErr)
+	}
+
 	// Get the resource client context carrying the attached resource client.
 	call, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {

@@ -122,11 +122,21 @@ export enum WorldErrorCode {
 
   /**
    * WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE indicates that the plugin handling the
-   * operation could not be reached: its load failed or did not finish within
-   * its deadline. The operation was never sent to apply and no transaction was
-   * opened, so nothing was written and the operation is safe to resend.
+   * operation could not be reached or did not answer: its load failed or did
+   * not finish within its deadline, or reaching or calling its handler failed.
+   * Nothing was changed: the operation was never sent, or its transaction was
+   * discarded. A failure where that is not certain returns as an error
+   * instead. The operation is safe to resend.
    */
   PLUGIN_UNAVAILABLE = 5,
+
+  /**
+   * WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING indicates that the plugin build
+   * the operation is pinned to has no executable for any platform this device
+   * runs. It is final on this device: sending the operation again here meets
+   * it again. The operation was never sent to apply, so nothing was written.
+   */
+  PLUGIN_EXECUTABLE_MISSING = 6,
 }
 
 export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
@@ -138,6 +148,7 @@ export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
     [3, 'WORLD_ERROR_CODE_OBJECT_NOT_FOUND'],
     [4, 'WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT'],
     [5, 'WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE'],
+    [6, 'WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING'],
   ],
 )
 

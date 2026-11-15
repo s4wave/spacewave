@@ -468,7 +468,7 @@ export function sourceEditProblem(
     case 'not-applied':
       return state.cause === NotebookEditOutcome.TIMED_OUT
         ? 'the notes plugin did not finish in time, so nothing was changed'
-        : 'the notes plugin could not be reached, so nothing was sent'
+        : 'the notes plugin could not be reached, so nothing was changed'
   }
   return undefined
 }

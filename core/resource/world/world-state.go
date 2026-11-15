@@ -1060,10 +1060,10 @@ func (r *WorldStateResource) resolveWorldOp(
 }
 
 // applyResolvedWorldOp applies op to ws and encodes the refusals
-// opErrorRefusal classifies as a response. An unavailable plugin was never
-// sent the operation, so nothing was written. A plugin timeout is encoded only
-// when atomic reports that the failed operation's transaction is discarded, so
-// the code means nothing was written; otherwise it returns as an error.
+// opErrorRefusal classifies as a response. A plugin that failed after it was
+// sent the operation, by a timeout or as unavailable, is encoded only when
+// atomic reports that the failed operation's transaction is discarded, so the
+// code means nothing was written; otherwise it returns as an error.
 func applyResolvedWorldOp(
 	ctx context.Context,
 	ws world.WorldState,
@@ -1088,20 +1088,28 @@ func applyResolvedWorldOp(
 }
 
 // opErrorRefusal classifies the error of an applied operation as a refusal:
-// a domain rejection, an unhandled operation, an unavailable plugin, which
-// was never sent the operation, a plugin timeout when atomic reports that the
-// failed operation's transaction is discarded, so the code means nothing was
-// written, or a spent write budget, which ends a write only after discarding
-// its last attempt and reads as a plugin timeout. ok is false for any other
-// error.
+// a domain rejection, an unhandled operation, a pinned plugin with no build
+// for this device, which was never sent the operation, an unavailable plugin
+// that was never sent it or failed it when atomic reports that the failed
+// operation's transaction is discarded, a plugin timeout under the same
+// condition, so each code means nothing was written, or a spent write budget,
+// which ends a write only after discarding its last attempt and reads as a
+// plugin timeout. ok is false for any other error.
 func opErrorRefusal(err error, atomic bool) (code s4wave_world.WorldErrorCode, rejection *world.OperationRejection, ok bool) {
-	// Match a rejection and a plugin that was never sent the operation.
+	// Match the operation's own rejection.
 	if errors.As(err, &rejection) {
 		return 0, rejection, true
 	}
+
+	// Match a plugin whose failure kept nothing: one never sent the operation,
+	// or one that failed it in an atomic transaction.
 	var unavailable *world.PluginUnavailableError
-	if errors.As(err, &unavailable) {
+	if errors.As(err, &unavailable) && (!unavailable.Sent || atomic) {
 		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE, nil, true
+	}
+	var missing *world.PluginExecutableMissingError
+	if errors.As(err, &missing) {
+		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING, nil, true
 	}
 
 	// Match a timeout that kept nothing: an atomic one, or a spent budget.

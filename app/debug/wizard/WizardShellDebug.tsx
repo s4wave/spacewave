@@ -48,6 +48,12 @@ const fixtures: Record<string, Partial<WizardShellProps>> = {
     canBack: true,
     finish: { status: 'failed', error: 'the repository name is taken' },
   },
+  unsupported: {
+    step: 1,
+    stepName: 'Review',
+    canBack: true,
+    finish: { status: 'unsupported' },
+  },
 }
 
 // WizardShellDebug renders WizardShell in one fixture state, with the viewport

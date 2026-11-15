@@ -66,6 +66,11 @@ func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 		}
 		if next.GetInitialCapabilityRegistrationState() == bldr_plugin.InitialCapabilityRegistrationFailed {
 			if manifestRoot != "" {
+				// Pass a proven missing build on by type; anything else may pass.
+				var missing *bldr_plugin.PinnedManifestMissingError
+				if errors.As(next.GetStartupError(), &missing) {
+					return missing
+				}
 				return errors.Errorf("plugin %s: exact manifest %s is unavailable", pluginID, manifestRoot)
 			}
 			handler.MarkIdle(true)

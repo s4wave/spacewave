@@ -1,0 +1,24 @@
+---
+title: "Wizard Finish: one atomic list"
+---
+stateDiagram-v2
+  s0: Finish shown
+  s1: Finishing
+  s2: Failed, says why, Retry shown
+  s3: Wizard gone, Close tab shown
+  s4: No build for this device, says where to finish
+  s5: Done, object opens
+  [*] --> s0
+  s0 --> s1: presses Finish or Retry
+  s1 --> s0: tab reloads
+  s1 --> s2: a write fails, list discarded
+  s1 --> s4: the plugin has no build for this device
+  s0 --> s3: list commits, or is refused as gone or reply lost, ending read or a list from before a reload ends
+  s2 --> s0: tab reloads
+  s2 --> s1: presses Finish or Retry
+  s4 --> s0: tab reloads
+  s2 --> s3: list commits, or is refused as gone or reply lost, ending read or a list from before a reload ends
+  s1 --> s3: tab reloads or a write fails, list discarded or the plugin has no build for this device
+  s1 --> s5: list refused, ending names the object
+  s4 --> s3: list commits, or is refused as gone or reply lost, ending read or a list from before a reload ends
+  s5 --> s3: tab reloads

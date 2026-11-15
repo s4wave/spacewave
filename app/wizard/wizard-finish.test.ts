@@ -3,6 +3,8 @@ import { act, renderHook } from '@testing-library/react'
 
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { RecordWizardEndingOpTypeID } from '@s4wave/sdk/world/wizard/wizard_typeid.pb.js'
+import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
+import { WorldErrorCode } from '@s4wave/sdk/world/world.pb.js'
 
 import {
   applyWizardMutations,
@@ -219,6 +221,38 @@ describe('useWizardFinish', () => {
       message: 'Enter a name',
     })
     expect(t.calls).toEqual([])
+  })
+
+  it('returns to idle with the reason when the operation rejects the input', async () => {
+    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
+    const { result } = renderHook(() => useWizardFinish(wizardIn(t)))
+
+    // The same list fails the same way, so the press offers Finish, not Retry.
+    await act(() =>
+      result.current.finish(() => {
+        throw new WorldOperationRejection('test/taken', 'The name is taken')
+      }, vi.fn()),
+    )
+    expect(result.current.state).toEqual({
+      status: 'idle',
+      message: 'The name is taken',
+    })
+  })
+
+  it('ends unsupported when the plugin has no build for this device', async () => {
+    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
+    t.refuseOn = {
+      opId: createOpId,
+      code: WorldErrorCode.PLUGIN_EXECUTABLE_MISSING,
+    }
+    const onDone = vi.fn()
+    const { result } = renderHook(() => useWizardFinish(wizardIn(t)))
+    await act(() =>
+      result.current.finish(() => Promise.resolve(madePlan('obj/one')), onDone),
+    )
+    expect(result.current.state).toEqual({ status: 'unsupported' })
+    expect(onDone).not.toHaveBeenCalled()
+    expect(t.state.objects).toEqual(new Set(['wizard/one']))
   })
 
   it('shows gone for a refused Finish, but done for a target made before it', async () => {

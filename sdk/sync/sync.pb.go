@@ -42,6 +42,10 @@ const (
 	ErrorCode_STORAGE ErrorCode = 10
 	// CLOSED identifies a released handle or stopped server.
 	ErrorCode_CLOSED ErrorCode = 11
+	// EXECUTABLE_MISSING identifies an application build with no executable for
+	// this device. Nothing was changed, and retrying on this device fails the
+	// same way.
+	ErrorCode_EXECUTABLE_MISSING ErrorCode = 12
 )
 
 // Enum value maps for ErrorCode.
@@ -59,6 +63,7 @@ var (
 		9:  "UNCERTAIN",
 		10: "STORAGE",
 		11: "CLOSED",
+		12: "EXECUTABLE_MISSING",
 	}
 	ErrorCode_value = map[string]int32{
 		"ERROR_CODE_UNSPECIFIED": 0,
@@ -73,6 +78,7 @@ var (
 		"UNCERTAIN":              9,
 		"STORAGE":                10,
 		"CLOSED":                 11,
+		"EXECUTABLE_MISSING":     12,
 	}
 )
 

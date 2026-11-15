@@ -10,6 +10,7 @@ export type SyncErrorCode =
   | 'UNCERTAIN'
   | 'STORAGE'
   | 'CLOSED'
+  | 'EXECUTABLE_MISSING'
 
 // SyncError carries a stable code and the recovery identity of an uncertain write.
 const errorBrand = Symbol.for('spacewave.SyncError')

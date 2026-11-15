@@ -71,6 +71,13 @@ export enum ErrorCode {
    * CLOSED identifies a released handle or stopped server.
    */
   CLOSED = 11,
+
+  /**
+   * EXECUTABLE_MISSING identifies an application build with no executable for
+   * this device. Nothing was changed, and retrying on this device fails the
+   * same way.
+   */
+  EXECUTABLE_MISSING = 12,
 }
 
 export const ErrorCode_Enum = /* @__PURE__ */ createEnumType(
@@ -88,6 +95,7 @@ export const ErrorCode_Enum = /* @__PURE__ */ createEnumType(
     [9, 'UNCERTAIN'],
     [10, 'STORAGE'],
     [11, 'CLOSED'],
+    [12, 'EXECUTABLE_MISSING'],
   ],
 )
 

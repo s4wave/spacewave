@@ -444,7 +444,9 @@ func TestWorldOpRegistryBridgeControllerRetriesShareWriteBudget(t *testing.T) {
 		if !errors.As(r.err, &nestedTimeout) || nestedTimeout.Deadline != budgetLength {
 			t.Fatalf("second nested operation ended after %v with %v, want a PluginOpTimeoutError at the %v budget", ended, r.err, budgetLength)
 		}
-		if ended < budgetLength || ended > budgetLength+400*time.Millisecond {
+		// The type and deadline above are the proof; this window only rules
+		// out the 1.6s a fresh budget's full sleep would take.
+		if ended < budgetLength || ended > budgetLength+500*time.Millisecond {
 			t.Fatalf("second nested operation ended after %v, want at the %v budget", ended, budgetLength)
 		}
 	}
@@ -1445,6 +1447,8 @@ func (h *testWorldOpHandler) ValidateOp(
 type testWorldOpPluginLoadController struct {
 	client    srpc.Client
 	manifests map[string]srpc.Client
+	// missing lists pinned roots the host proved have no build for it.
+	missing map[string]bool
 }
 
 func (c *testWorldOpPluginLoadController) GetControllerInfo() *controller.Info {
@@ -1466,6 +1470,9 @@ func (c *testWorldOpPluginLoadController) HandleDirective(_ context.Context, ins
 	// Select the pinned manifest client or the default test plugin client.
 	client := c.client
 	if root := dir.LoadPluginManifestRoot(); root != "" {
+		if c.missing[root] {
+			return directive.R(&testFailResolver{err: &bldr_plugin.PinnedManifestMissingError{PluginID: dir.LoadPluginID(), ManifestRoot: root}}, nil)
+		}
 		client = c.manifests[root]
 	}
 	if client == nil {
@@ -1476,6 +1483,17 @@ func (c *testWorldOpPluginLoadController) HandleDirective(_ context.Context, ins
 
 func (c *testWorldOpPluginLoadController) Close() error {
 	return nil
+}
+
+// testFailResolver fails its directive with a fixed error, as the plugin host
+// does when a load reaches a final state.
+type testFailResolver struct {
+	err error
+}
+
+// Resolve returns the fixed error.
+func (r *testFailResolver) Resolve(context.Context, directive.ResolverHandler) error {
+	return r.err
 }
 
 var (

@@ -41,7 +41,8 @@ export interface WizardShellProps {
   // Selects the existing default name when the name input receives focus.
   selectNameOnFocus?: boolean
   // Primary action button, derived from the Finish control's state: Finish
-  // while idle, busy while finishing or done, Retry once failed.
+  // while idle, busy while finishing or done, Retry once failed, and absent
+  // once unsupported.
   finish: WizardFinishState
   createLabel?: string
   creatingLabel?: string
@@ -122,9 +123,18 @@ function WizardNameField({
 /**
  * WizardFinishNotice says why the last Finish press did not finish. An input
  * the person can fix shows beside Finish; a failure keeps the wizard and the
- * input as they were, and Retry runs the Finish again.
+ * input as they were, and Retry runs the Finish again; a plugin with no build
+ * for this device says where the wizard can finish instead.
  */
 function WizardFinishNotice({ finish }: { finish: WizardFinishState }) {
+  if (finish.status === 'unsupported') {
+    return (
+      <ViewerStatus
+        state="failed"
+        message="This wizard's plugin has no build for this device, so it cannot finish here. Open the Space on a device the plugin supports, or delete this wizard."
+      />
+    )
+  }
   if (finish.status === 'idle' && finish.message) {
     return (
       <p role="alert" className="text-destructive text-xs">
@@ -139,6 +149,28 @@ function WizardFinishNotice({ finish }: { finish: WizardFinishState }) {
       message={`Could not finish: ${finish.error}`}
     />
   )
+}
+
+// finalizeButton derives the Finish button from the finish state. busy holds
+// Back and Finish while a Finish runs; Retry runs the whole Finish again on
+// the kept input, so it needs the same valid draft as Finish. finalizeLabel is
+// null when no press on this device can finish.
+function finalizeButton(
+  finish: WizardFinishState,
+  createLabel: string,
+  creatingLabel: string,
+): { busy: boolean; finalizeLabel: string | null } {
+  switch (finish.status) {
+    case 'finishing':
+    case 'done':
+      return { busy: true, finalizeLabel: creatingLabel }
+    case 'failed':
+      return { busy: false, finalizeLabel: 'Retry' }
+    case 'unsupported':
+      return { busy: false, finalizeLabel: null }
+    default:
+      return { busy: false, finalizeLabel: createLabel }
+  }
 }
 
 type WizardFooterProps = Pick<
@@ -177,14 +209,16 @@ function WizardFooter({
   finalizeStep,
   canSubmit,
 }: WizardFooterProps) {
-  // Finish shows on its step, or on every step when none is named.
-  const showFinalize = finalizeStep === undefined || step === finalizeStep
-
-  // Retry runs the whole Finish again on the kept input, so it needs the
-  // same valid draft as Finish; Back waits while a Finish runs.
-  const busy = finish.status === 'finishing' || finish.status === 'done'
-  const retry = finish.status === 'failed'
-  const finalizeLabel = busy ? creatingLabel : retry ? 'Retry' : createLabel
+  const { busy, finalizeLabel } = finalizeButton(
+    finish,
+    createLabel,
+    creatingLabel,
+  )
+  // Finish shows on its step, or on every step when none is named, unless
+  // no press on this device can finish.
+  const showFinalize =
+    (finalizeStep === undefined || step === finalizeStep) &&
+    finalizeLabel !== null
 
   return (
     <div className="border-foreground/8 flex items-center justify-between gap-2 border-t px-4 py-3">

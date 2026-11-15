@@ -26,6 +26,7 @@ import {
   AddDeviceWizardTypeID,
 } from '../device/add-device-wizard.js'
 import {
+  PluginExecutableMissingError,
   PluginOpTimeoutError,
   PluginUnavailableError,
   WorldOperationRejection,
@@ -528,13 +529,22 @@ describe('SpaceCommands', () => {
     ]
   }
 
-  it('shows a refused create with its reason and offers the same create again', async () => {
-    h.applyWorldOp.mockRejectedValueOnce(
+  it.each([
+    [
+      'a rejected create with its reason',
       new WorldOperationRejection(
         'space/layout/exists',
         'A layout with this name already exists.',
       ),
-    )
+      'A layout with this name already exists.',
+    ],
+    [
+      'a create whose plugin has no build for this device',
+      new PluginExecutableMissingError(),
+      'The plugin that makes this has no build for this device. Open the Space on a device the plugin supports, or remove the plugin from the Space.',
+    ],
+  ])('shows %s, offering only Dismiss', async (_, err, description) => {
+    h.applyWorldOp.mockRejectedValueOnce(err)
     renderCommands()
 
     const { handler } = getCreateObjectCommandHandlers()
@@ -545,20 +555,11 @@ describe('SpaceCommands', () => {
     })
     const [title, options] = failedCreateToast()
     expect(title).toBe('Could not create Layout')
-    expect(options.description).toBe('A layout with this name already exists.')
+    expect(options.description).toBe(description)
     expect(options.duration).toBe(Infinity)
-    expect(options.action?.label).toBe('Try again')
+    expect(options.action).toBeUndefined()
     expect(h.navigateToObjects).not.toHaveBeenCalled()
-
-    options.action?.onClick()
-    await waitFor(() => {
-      expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
-    })
-    expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
-    const [first, second] = h.applyWorldOp.mock.calls
-    expect(second[0]).toBe(first[0])
-    expect(second[1]).toEqual(first[1])
-    expect(h.toast.success).toHaveBeenCalledWith('Created Layout')
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
   })
 
   it.each([
@@ -599,11 +600,10 @@ describe('SpaceCommands', () => {
   )
 
   it('keeps one toast per create across failed retries', async () => {
-    const refusal = new WorldOperationRejection(
-      'space/layout/exists',
-      'A layout with this name already exists.',
-    )
-    h.applyWorldOp.mockRejectedValueOnce(refusal).mockRejectedValueOnce(refusal)
+    const unreachable = new PluginUnavailableError()
+    h.applyWorldOp
+      .mockRejectedValueOnce(unreachable)
+      .mockRejectedValueOnce(unreachable)
     renderCommands()
 
     getCreateObjectCommandHandlers().handler({
@@ -683,7 +683,7 @@ describe('SpaceCommands', () => {
     [
       'an unavailable plugin was sent nothing',
       new PluginUnavailableError(),
-      'The plugin could not be reached, so nothing was sent.',
+      'The plugin could not be reached, so nothing was changed.',
     ],
   ])(
     'says %s and resends it without reading its key',

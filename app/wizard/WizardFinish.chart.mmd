@@ -10,10 +10,10 @@ stateDiagram-v2
   [*] --> s0
   s0 --> s1: presses Finish or Retry
   s0 --> s2: list commits, or is refused as gone or reply lost, ending read or a list from before a reload ends
-  s1 --> s3: list commits, or is refused as gone or reply lost, ending read or a write fails, list discarded
-  s1 --> s2: reply lost, ending read or a write fails, list discarded or list commits, or is refused as gone or tab reloads
+  s1 --> s0: the operation refuses the list, says why or tab reloads
+  s1 --> s3: list commits, or is refused as gone or reply lost, ending read or list refused, ending names the object
+  s1 --> s2: reply lost, ending read or the operation refuses the list, says why or a write fails, list discarded or list commits, or is refused as gone or tab reloads
   s1 --> s4: a write fails, list discarded
-  s1 --> s0: tab reloads
   s3 --> s2: tab reloads
   s4 --> s0: tab reloads
   s4 --> s1: presses Finish or Retry

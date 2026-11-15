@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { CanvasInitOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { ClusterCreateOp } from '@go/github.com/s4wave/spacewave/forge/cluster/cluster.pb.js'
 import type { ObjectWizard } from '@s4wave/sdk/world/wizard/wizard.pb.js'
+import { WorldErrorCode } from '@s4wave/sdk/world/world.pb.js'
 import { SpaceContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
@@ -489,7 +490,10 @@ describe('WizardViewer', () => {
 
   it('says nothing changed and shows Retry when a plugin times out', async () => {
     const user = userEvent.setup()
-    mocks.t.timeoutOn = 'space/world/init-canvas'
+    mocks.t.refuseOn = {
+      opId: 'space/world/init-canvas',
+      code: WorldErrorCode.PLUGIN_OP_TIMEOUT,
+    }
     renderViewer()
 
     await user.click(screen.getByRole('button', { name: /create/i }))
@@ -501,6 +505,25 @@ describe('WizardViewer', () => {
     expect(mocks.t.state.creates).toEqual([])
     expect(mocks.t.state.objects.has('wizard/test-canvas')).toBe(true)
     expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy()
+  })
+
+  it('says where to finish, with no Retry, when the plugin has no build for this device', async () => {
+    const user = userEvent.setup()
+    mocks.t.refuseOn = {
+      opId: 'space/world/init-canvas',
+      code: WorldErrorCode.PLUGIN_EXECUTABLE_MISSING,
+    }
+    renderViewer()
+
+    await user.click(screen.getByRole('button', { name: /create/i }))
+    expect(
+      await screen.findByText(
+        "This wizard's plugin has no build for this device, so it cannot finish here. Open the Space on a device the plugin supports, or delete this wizard.",
+      ),
+    ).toBeTruthy()
+    expect(mocks.t.state.objects.has('wizard/test-canvas')).toBe(true)
+    expect(screen.queryByRole('button', { name: /retry|create/i })).toBeNull()
+    expect(screen.getByRole('button', { name: /delete wizard/i })).toBeTruthy()
   })
 
   it('shows the gone state, with no Retry, when another tab removed the wizard', async () => {

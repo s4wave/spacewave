@@ -87,10 +87,11 @@ function applyCreate(
 // lands.
 // opData and senders hold each op's data and sender by op id, last write
 // wins. failOn names the one call that throws: an op id, 'delete' or
-// 'commit'. timeoutOn names an op id the World answers as a plugin timeout,
-// discarding the batch. A batch waits for commitGate, once its mutations
-// applied, when one is set. loseReply makes the next batch that lands throw
-// to its caller, as a reply lost after the commit does.
+// 'commit'. refuseOn names an op id the World answers with a built-in code,
+// such as a plugin timeout, discarding the batch. A batch waits for
+// commitGate, once its mutations applied, when one is set. loseReply makes
+// the next batch that lands throw to its caller, as a reply lost after the
+// commit does.
 export interface WizardTestWorld {
   world: EngineWorldState
   state: WizardWorldState
@@ -98,7 +99,7 @@ export interface WizardTestWorld {
   opData: Map<string, Uint8Array>
   senders: Map<string, string>
   failOn?: string
-  timeoutOn?: string
+  refuseOn?: { opId: string; code: WorldErrorCode }
   commitGate?: Promise<void>
   loseReply?: boolean
 }
@@ -142,7 +143,7 @@ export function wizardTestWorld(
           opSender = '',
         } = m.mutation.value
         fail(opTypeId)
-        if (t.timeoutOn === opTypeId) return WorldErrorCode.PLUGIN_OP_TIMEOUT
+        if (t.refuseOn?.opId === opTypeId) return t.refuseOn.code
         t.opData.set(opTypeId, opData)
         t.senders.set(opTypeId, opSender)
         if (opTypeId === RecordWizardEndingOpTypeID) {

@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -193,7 +194,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 	}
 	if len(manifests) == 0 {
 		if t.manifestRoot != "" {
-			t.finishInitialCapabilityRegistration(false)
+			t.failPinnedSelection(hosts, platformIDs, candidateEligibility)
 		}
 		t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
 		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, 0, nil, candidateEligibility)
@@ -249,6 +250,13 @@ func (t *pluginInstance) processManifestWorldStateCore(
 			var downloadManifest, executeManifest *bldr_manifest.ManifestSnapshot
 			var downloadManifestHost, executeManifestHost plugin_host.PluginHost
 
+			// Configured no-copy buckets remain authoritative without a local
+			// DAG copy and are therefore execute-eligible.
+			noCopyBucketIDs := make(map[string]struct{}, len(t.c.conf.GetNoCopyBucketIds()))
+			for _, bucketID := range t.c.conf.GetNoCopyBucketIds() {
+				noCopyBucketIDs[bucketID] = struct{}{}
+			}
+
 			// Prefer candidates in sorted order, but keep looking past external
 			// copy candidates for an execute-eligible manifest.
 			for _, manifest := range manifests {
@@ -268,9 +276,8 @@ func (t *pluginInstance) processManifestWorldStateCore(
 					manifest.ManifestRef.BucketId = worldBucketID
 				}
 
-				// Configured no-copy buckets remain authoritative without a
-				// local DAG copy and are therefore execute-eligible.
-				noCopy := slices.Contains(t.c.conf.GetNoCopyBucketIds(), manifestBucketID)
+				// Execute in place when local or in a no-copy bucket.
+				_, noCopy := noCopyBucketIDs[manifestBucketID]
 				needsDownload := manifestBucketID != worldBucketID
 
 				// Keep the reference and metadata together through admission.
@@ -568,4 +575,48 @@ func addManifestSelectionFields(
 		return
 	}
 	fields[prefix+"-manifest-rev"] = manifest.GetManifest().GetMeta().GetRev()
+}
+
+// failPinnedSelection fails a pinned load that found no manifest to run. It
+// fails with PinnedManifestMissingError only when the pinned root is proven to
+// hold no build for this host; any other cause, such as no candidate at the
+// root yet or blocks that could not be read, fails registration without a
+// cause, and the load waits for the World, the storage or the hosts to change.
+func (t *pluginInstance) failPinnedSelection(
+	hosts *pluginHostSet,
+	platformIDs []string,
+	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
+) {
+	// The proof needs a complete host set and one manifest at the root that
+	// was read whole and names a platform no host runs.
+	//
+	// Complete means the host lookup was idle with no resolver error when the
+	// set was taken: every resolver running then had reported its hosts. It
+	// does not cover a host kind that registers later, such as a web runtime
+	// opened afterwards; that host publishes a new set and reruns selection.
+	// A set taken while the lookup is busy or failing proves nothing, so a
+	// build for a host still starting stays a wait, not a refusal. A manifest
+	// of the root is content addressed, so one readable copy decides for every
+	// candidate at the root.
+	runs := make(map[string]struct{}, len(platformIDs))
+	for _, id := range platformIDs {
+		runs[id] = struct{}{}
+	}
+	complete := hosts != nil && hosts.settled && hosts.err == nil && len(runs) != 0
+	proven := complete && slices.ContainsFunc(candidates, func(c *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
+		_, ok := runs[c.PlatformID]
+		return c.Manifest != nil &&
+			c.Eligibility == bldr_manifest_world.StartupManifestEligibilityIgnored &&
+			!ok
+	})
+	if !proven {
+		t.finishInitialCapabilityRegistration(false)
+		return
+	}
+
+	// Record the proven missing build as the load's cause.
+	t.finishExecution(&bldr_plugin.PinnedManifestMissingError{
+		PluginID:     t.pluginID,
+		ManifestRoot: t.manifestRoot,
+	})
 }

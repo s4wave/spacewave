@@ -65,3 +65,17 @@ func TestWriteBudgetSpentRefusal(t *testing.T) {
 		t.Fatalf("batch refusal = %v %v, want PLUGIN_OP_TIMEOUT", refusal, err)
 	}
 }
+
+func TestUnavailableRefusal(t *testing.T) {
+	// An unavailable plugin reads as a refusal only when it kept nothing: it
+	// was never sent the operation, or the transaction it failed is discarded.
+	for _, c := range []struct {
+		sent, atomic, ok bool
+	}{{false, false, true}, {false, true, true}, {true, true, true}, {true, false, false}} {
+		err := &world.PluginUnavailableError{PluginID: "p", OperationTypeID: "op", Sent: c.sent, Err: errors.New("worker crashed")}
+		code, _, ok := opErrorRefusal(err, c.atomic)
+		if ok != c.ok || (ok && code != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE) {
+			t.Fatalf("sent %v atomic %v: refusal = %v %v, want ok %v", c.sent, c.atomic, code, ok, c.ok)
+		}
+	}
+}

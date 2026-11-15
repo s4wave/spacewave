@@ -112,14 +112,19 @@ func (e *pendingOpError) Error() string {
 
 // isReplayGap reports whether err stops replay at its operation instead of
 // deciding the operation: a block that is not available, a canceled read, a
-// put through a replay stage that was released or lost, or an operation whose
-// declared handler has not resolved. None is a property of the operation, so
-// refusing it would split replicas.
+// put through a replay stage that was released or lost, an operation whose
+// declared handler has not resolved, or a plugin this device could not reach
+// or has no build of. None is a property of the operation, so refusing it
+// would split replicas.
 func isReplayGap(err error) bool {
 	var pending *pendingOpError
+	var unavailable *world.PluginUnavailableError
+	var missing *world.PluginExecutableMissingError
 	return block.IsNotAvailable(err) ||
 		errors.Is(err, block.ErrStageReleased) ||
 		errors.As(err, &pending) ||
+		errors.As(err, &unavailable) ||
+		errors.As(err, &missing) ||
 		errors.Is(err, context.Canceled) ||
 		errors.Is(err, context.DeadlineExceeded)
 }

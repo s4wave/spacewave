@@ -2,6 +2,7 @@ package resource_worldop_registry
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -9,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
@@ -310,7 +312,7 @@ func (o *bridgeOperation) applyWorldOp(
 	resources, release, err := o.acquirePlugin(ctx)
 	if err != nil {
 		return true, errors.Wrapf(
-			callErr(ctx, err),
+			o.callErr(ctx, err, false),
 			"apply world op plugin_id=%s capability=world_state path=ApplyWorldOp operation_type_id=%s",
 			o.reg.GetPluginId(),
 			o.opTypeID,
@@ -322,7 +324,7 @@ func (o *bridgeOperation) applyWorldOp(
 	svc, cleanup, err := o.getHandlerService(resources)
 	if err != nil {
 		return true, errors.Wrapf(
-			err,
+			o.callErr(ctx, err, false),
 			"apply world op plugin_id=%s capability=world_state path=ApplyWorldOp operation_type_id=%s",
 			o.reg.GetPluginId(),
 			o.opTypeID,
@@ -332,7 +334,7 @@ func (o *bridgeOperation) applyWorldOp(
 
 	// Validate the encoded World operation before exposing mutable state.
 	if sysErr, err := o.validateWithService(ctx, svc); err != nil {
-		return sysErr, callErr(ctx, err)
+		return sysErr, err
 	}
 
 	// Attach a WorldStateResource so the TS handler can mutate world state.
@@ -357,7 +359,7 @@ func (o *bridgeOperation) applyWorldOp(
 	// Attach the operation-scoped World services and detach them after the call.
 	worldStateResourceID, err := resources.Client.AttachResource(ctx, "world-state", stateMux)
 	if err != nil {
-		return true, callErr(ctx, errors.Wrap(err, "attach world state resource"))
+		return true, o.callErr(ctx, errors.Wrap(err, "attach world state resource"), false)
 	}
 	defer func() {
 		_ = resources.Client.DetachResource(ctx, worldStateResourceID)
@@ -377,7 +379,7 @@ func (o *bridgeOperation) applyWorldOp(
 		return sysErr, gerr
 	}
 	if err != nil {
-		return true, callErr(ctx, err)
+		return true, o.callErr(ctx, err, true)
 	}
 
 	// Translate the plugin rejection into a World operation rejection.
@@ -426,20 +428,20 @@ func (o *bridgeOperation) applyWorldObjectOp(
 	// Use the prepared plugin connection, or connect.
 	resources, release, err := o.acquirePlugin(ctx)
 	if err != nil {
-		return true, callErr(ctx, err)
+		return true, o.callErr(ctx, err, false)
 	}
 	defer release()
 
 	// Acquire the plugin handler service for the duration of the call.
 	svc, cleanup, err := o.getHandlerService(resources)
 	if err != nil {
-		return true, err
+		return true, o.callErr(ctx, err, false)
 	}
 	defer cleanup()
 
 	// Validate the encoded object operation before exposing mutable state.
 	if sysErr, err := o.validateWithService(ctx, svc); err != nil {
-		return sysErr, callErr(ctx, err)
+		return sysErr, err
 	}
 
 	// Attach an ObjectStateResource so the TS handler can mutate the object and
@@ -449,7 +451,7 @@ func (o *bridgeOperation) applyWorldObjectOp(
 	objResource := resource_world.NewObjectStateResource(o.le, o.b, os, lookupOp, resource_world.WithSessionPeerID(sender))
 	objectStateResourceID, err := resources.Client.AttachResource(ctx, "object-state", objResource.GetMux())
 	if err != nil {
-		return true, callErr(ctx, errors.Wrap(err, "attach object state resource"))
+		return true, o.callErr(ctx, errors.Wrap(err, "attach object state resource"), false)
 	}
 	defer func() {
 		_ = resources.Client.DetachResource(ctx, objectStateResourceID)
@@ -470,7 +472,7 @@ func (o *bridgeOperation) applyWorldObjectOp(
 		return sysErr, gerr
 	}
 	if err != nil {
-		return true, callErr(ctx, err)
+		return true, o.callErr(ctx, err, true)
 	}
 
 	// Translate the plugin rejection into a World operation rejection.
@@ -483,10 +485,11 @@ func (o *bridgeOperation) applyWorldObjectOp(
 // PrepareApply connects to the plugin before the engine takes its writer, so a
 // cold plugin load costs the caller time while other writers proceed. The load
 // must finish within loadDeadline, and the connection lives on ctx until
-// release. A load that fails or misses the deadline, while ctx is live, returns
-// a world.PluginUnavailableError: no transaction is open yet, so nothing was
-// sent to apply. A rejection from the load, such as a pinned executable that
-// does not exist, returns as is, since a retry would meet it again.
+// release. A load that misses the deadline, while ctx is live, returns a
+// world.PluginUnavailableError, and so does a load that fails; a pinned build
+// proven to have no executable for this device returns a
+// world.PluginExecutableMissingError. No transaction is open yet, so nothing
+// was sent to apply.
 func (o *bridgeOperation) PrepareApply(ctx context.Context) (func(), error) {
 	// Connect on a context the deadline cancels only while the load runs.
 	loadCtx, cancel := context.WithCancelCause(ctx)
@@ -499,22 +502,13 @@ func (o *bridgeOperation) PrepareApply(ctx context.Context) (func(), error) {
 		err = errLoadDeadline
 	}
 	if err != nil {
-		// The deadline decides first: a pinned load turns any failure into a
-		// rejection, including the one the deadline caused.
+		// The deadline decides first, then the caller's own cancellation.
 		timedOut := errors.Is(context.Cause(loadCtx), errLoadDeadline)
 		cancel(nil)
-		var rejection *world.OperationRejection
-		switch {
-		case timedOut:
-			err = errLoadDeadline
-		case ctx.Err() != nil || errors.As(err, &rejection):
-			return nil, err
+		if timedOut {
+			return nil, o.unavailable(errLoadDeadline)
 		}
-		return nil, &world.PluginUnavailableError{
-			PluginID:        o.reg.GetPluginId(),
-			OperationTypeID: o.opTypeID,
-			Err:             err,
-		}
+		return nil, err
 	}
 	o.prepared = resources
 	return func() {
@@ -557,14 +551,45 @@ func (o *bridgeOperation) withDeadline(ctx context.Context) (context.Context, co
 	return context.WithTimeoutCause(ctx, pluginOpDeadline, timeout)
 }
 
-// callErr returns the world.PluginOpTimeoutError when the deadline from
-// withDeadline ended the failed call, and err otherwise.
-func callErr(ctx context.Context, err error) error {
-	var timeout *world.PluginOpTimeoutError
-	if err != nil && errors.As(context.Cause(ctx), &timeout) {
-		return timeout
+// callErr classifies an error from reaching, attaching to or calling the
+// plugin's handler; sent reports that the handler was already asked to apply.
+//
+// A refusal comes only from the handler's typed reply or the guard; any other
+// failure to reach or run the handler is a wait, so every replica decides a
+// position alike. A call into a worker loses its error's type, so an error
+// that arrives as ctx ends counts as the ending's: the
+// world.PluginOpTimeoutError when the deadline from withDeadline ended it,
+// and err wrapping ctx's error otherwise. While ctx is live, a cancellation or
+// a typed load error from connectPlugin returns as is, and every other error
+// returns as a world.PluginUnavailableError.
+func (o *bridgeOperation) callErr(ctx context.Context, err error, sent bool) error {
+	// Nothing failed.
+	if err == nil {
+		return nil
 	}
-	return err
+
+	// Count an error that arrives as ctx ends as the ending's.
+	if ctx.Err() != nil {
+		var timeout *world.PluginOpTimeoutError
+		if errors.As(context.Cause(ctx), &timeout) {
+			return timeout
+		}
+		return fmt.Errorf("%w: %w", err, ctx.Err())
+	}
+
+	// Keep a typed load error or a cancellation; anything else is a wait.
+	var unavailable *world.PluginUnavailableError
+	var missing *world.PluginExecutableMissingError
+	if errors.As(err, &unavailable) || errors.As(err, &missing) ||
+		errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	return &world.PluginUnavailableError{
+		PluginID:        o.reg.GetPluginId(),
+		OperationTypeID: o.opTypeID,
+		Sent:            sent,
+		Err:             err,
+	}
 }
 
 func (o *bridgeOperation) validateWithService(
@@ -576,7 +601,7 @@ func (o *bridgeOperation) validateWithService(
 		OpData:          o.opData,
 	})
 	if err != nil {
-		return true, err
+		return true, o.callErr(ctx, err, false)
 	}
 	if msg := resp.GetError(); msg != "" {
 		return false, errors.New(msg)
@@ -584,33 +609,56 @@ func (o *bridgeOperation) validateWithService(
 	return false, nil
 }
 
-// connectPlugin connects to the TS plugin's resource service.
+// connectPlugin connects to the plugin: to the registering instance, or to
+// the executable at the pinned manifest root. A pinned build proven to have no
+// executable for this device returns a world.PluginExecutableMissingError,
+// which is final here. Any other failure while ctx is live returns a
+// world.PluginUnavailableError, which may pass; a failure after ctx ended
+// returns as is.
 func (o *bridgeOperation) connectPlugin(ctx context.Context) (*s4wave_plugin.PluginResources, error) {
-	// Connect to the registering instance when no executable is pinned.
-	if o.manifestRoot == "" {
-		resources, err := s4wave_plugin.ConnectPluginInstanceResources(ctx, o.b, o.reg.GetPluginId(), o.instanceKey)
-		if err != nil {
-			return nil, errors.Wrap(err, "connect to plugin")
-		}
+	// Connect to the pinned executable, or to the registering instance.
+	var resources *s4wave_plugin.PluginResources
+	var err error
+	if o.manifestRoot != "" {
+		resources, err = s4wave_plugin.ConnectPluginResourcesAtManifest(ctx, o.b, o.reg.GetPluginId(), o.manifestRoot)
+	} else {
+		resources, err = s4wave_plugin.ConnectPluginInstanceResources(ctx, o.b, o.reg.GetPluginId(), o.instanceKey)
+	}
+	if err == nil {
 		return resources, nil
 	}
 
-	// Reject the operation when its pinned executable is unavailable. The
-	// rejection is shown to people, so it names the plugin and operation, and
-	// the manifest ref goes to the log.
-	resources, err := s4wave_plugin.ConnectPluginResourcesAtManifest(ctx, o.b, o.reg.GetPluginId(), o.manifestRoot)
-	if err != nil {
+	// Report a proven missing build as final, naming the root in the log.
+	var missing *bldr_plugin.PinnedManifestMissingError
+	if errors.As(err, &missing) {
 		o.le.WithError(err).
 			WithField("plugin-id", o.reg.GetPluginId()).
 			WithField("operation-type-id", o.opTypeID).
 			WithField("manifest-root", o.manifestRoot).
-			Warn("pinned plugin executable unavailable")
-		return nil, &world.OperationRejection{
-			Code:    "UNAVAILABLE",
-			Message: "The application " + o.reg.GetPluginId() + " that applies " + o.opTypeID + " is unavailable.",
+			Warn("pinned plugin has no executable for this device")
+		return nil, &world.PluginExecutableMissingError{
+			PluginID:        o.reg.GetPluginId(),
+			OperationTypeID: o.opTypeID,
+			ManifestRoot:    o.manifestRoot,
 		}
 	}
-	return resources, nil
+
+	// Pass a cancellation through as itself; report any other failure, even
+	// one that arrives as ctx ends, as one that may pass, so a replay waits
+	// instead of recording it.
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return nil, err
+	}
+	return nil, o.unavailable(err)
+}
+
+// unavailable returns the world.PluginUnavailableError for a load failure.
+func (o *bridgeOperation) unavailable(err error) error {
+	return &world.PluginUnavailableError{
+		PluginID:        o.reg.GetPluginId(),
+		OperationTypeID: o.opTypeID,
+		Err:             err,
+	}
 }
 
 // getHandlerService returns the WorldOpHandlerService client from the plugin root resource.

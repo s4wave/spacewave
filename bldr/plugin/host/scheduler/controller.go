@@ -114,6 +114,11 @@ type pluginHostSet struct {
 	pluginHosts []bldr_plugin_host.PluginHost
 	// err reports lookup failures without withdrawing unrelated live hosts.
 	err error
+	// settled reports that the lookup was idle when this set was taken: every
+	// resolver running at that moment had reported its hosts. A host that
+	// registers later, such as a web runtime opened afterwards, publishes a
+	// new set.
+	settled bool
 }
 
 // toPlatformIDsMap converts the host set to a map of platform ids to plugin hosts.
@@ -157,7 +162,7 @@ func pluginHostSetEqual(a, b *pluginHostSet) bool {
 	}
 
 	// Different errors or lengths are unequal.
-	if a.err != b.err || len(a.pluginHosts) != len(b.pluginHosts) {
+	if a.err != b.err || a.settled != b.settled || len(a.pluginHosts) != len(b.pluginHosts) {
 		return false
 	}
 
@@ -334,37 +339,50 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 		defer matRef.Release()
 	}
 
-	// watch list of plugin hosts
-	errCh := make(chan error, 1)
-	_, hostsRel, err := bus.ExecCollectValuesWatch(
-		ctx,
-		c.hostBus,
-		bldr_plugin_host.NewLookupPluginHost(nil),
-		// true: wait for directive to be idle before emitting initial set of values.
-		true,
-		func(resErr []error, vals []bldr_plugin_host.PluginHost) error {
-			c.publishHosts(resErr, vals)
-			return nil
-		},
-		func(err error) {
-			select {
-			case errCh <- err:
-			case <-ctx.Done():
-			}
-		},
-	)
+	// Watch the plugin host lookup. The state callback delivers the values,
+	// resolver errors and idle flag as one snapshot in the order the lookup
+	// changed, so a set marked settled holds every host reported before idle.
+	// The first set is published once the lookup has gone idle.
+	lookup, lookupRef, err := c.hostBus.AddDirective(ctx, bldr_plugin_host.NewLookupPluginHost(nil), nil)
 	if err != nil {
 		return err
 	}
-	defer hostsRel()
+	defer lookupRef.Release()
 
-	// wait for context cancel or terminal error to cleanup
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case err := <-errCh:
-		return err
-	}
+	// Publish each snapshot from the first idle one on. seenIdle is touched
+	// only by the state callback, which the instance calls one at a time.
+	var seenIdle bool
+	relState := lookup.AddStateCallback(func(idle bool, resErr []error, vals []directive.AttachedValue) {
+		// Hold back the partial sets the lookup reports before it first idles.
+		seenIdle = seenIdle || idle
+		if !seenIdle {
+			return
+		}
+
+		// Publish the hosts among the values with the snapshot's idle flag.
+		hosts := make([]bldr_plugin_host.PluginHost, 0, len(vals))
+		for _, v := range vals {
+			if host, ok := v.GetValue().(bldr_plugin_host.PluginHost); ok {
+				hosts = append(hosts, host)
+			}
+		}
+		c.publishHosts(resErr, hosts, idle)
+	})
+	defer relState()
+
+	// Report a disposed lookup as an unsettled error beside the last hosts.
+	relDispose := lookup.AddDisposeCallback(func() {
+		var hosts []bldr_plugin_host.PluginHost
+		if prev := c.pluginHostsCtr.GetValue(); prev != nil {
+			hosts = prev.pluginHosts
+		}
+		c.publishHosts([]error{directive.ErrDirectiveDisposed}, hosts, false)
+	})
+	defer relDispose()
+
+	// Keep the watch until the scheduler stops.
+	<-ctx.Done()
+	return context.Canceled
 }
 
 // resolveLoadPlugin resolves a LoadPlugin directive.

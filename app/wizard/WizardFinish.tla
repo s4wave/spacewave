@@ -8,9 +8,11 @@ EXTENDS Naturals
 \* every write or discards them all. The list carries everything prepared, so
 \* no entry waits on the network or the person while the writer is held.
 \*
-\* idle offers Finish; finishing waits on the list; failed says what failed
-\* and offers Retry, which prepares and applies the whole list again; done
-\* opens the object; gone says the wizard was finished or cancelled elsewhere
+\* idle offers Finish, with the operation's message after it refused the
+\* list; finishing waits on the list; failed says what failed and offers Retry, which prepares and applies the whole list again; done
+\* opens the object; unsupported says the plugin has no build for this
+\* device, so Finish cannot succeed here, and offers no press until the
+\* wizard is gone; gone says the wizard was finished or cancelled elsewhere
 \* and offers to close the tab. A list refused because the wizard is gone
 \* goes to gone directly, and a tab that sees the wizard gone shows gone.
 \* WizardGone.tla models what the gone screen shows.
@@ -33,11 +35,16 @@ EXTENDS Naturals
 Tabs == {"a", "b"}
 People == Tabs
 
+\* Unbuilt are the tabs on a device the plugin has no build for: their list
+\* never applies there, and Finish ends unsupported instead of committing.
+CONSTANT Unbuilt
+ASSUME Unbuilt \subseteq Tabs
+
 \* finish starts the first press; retry presses again after a failure;
 \* close closes a tab whose wizard is gone.
 Buttons == {"finish", "retry", "close"}
 
-Controls == {"idle", "finishing", "failed", "done", "gone"}
+Controls == {"idle", "finishing", "failed", "unsupported", "done", "gone"}
 
 \* The Space index names the wizard, the object Finish made, or something
 \* another writer chose.
@@ -60,7 +67,7 @@ vars == <<control, live, seen, orphan, wizard, objects, index, moved>>
 
 Gone(t) ==
   \/ control[t] = "gone"
-  \/ ~wizard /\ control[t] \in {"idle", "failed"}
+  \/ ~wizard /\ control[t] \in {"idle", "failed", "unsupported"}
 
 Shown(t) ==
   (IF control[t] = "idle" /\ wizard THEN {"finish"} ELSE {})
@@ -78,6 +85,8 @@ Hint(t) ==
   CASE control[t] = "finishing" -> "Says it is finishing"
     [] control[t] = "done" -> "Opens the object"
     [] control[t] = "failed" /\ wizard -> "Says what failed"
+    [] control[t] = "unsupported" /\ wizard ->
+         "Says the plugin has no build for this device"
     [] OTHER -> ""
 
 Init ==
@@ -121,17 +130,19 @@ Apply(r) ==
 \* the control shows which.
 Commit(t) ==
   /\ live[t]
+  /\ t \notin Unbuilt
   /\ Apply(seen)
   /\ control' = [control EXCEPT ![t] = IF wizard THEN "done" ELSE "gone"]
   /\ live' = [live EXCEPT ![t] = FALSE]
   /\ UNCHANGED <<seen, orphan, moved>>
 
-\* ReadEnding ends a press the tab could not see land: it reads the ending
-\* and shows done when the ending names the object, and failed when it names
+\* ReadEnding ends a press that did not end in a commit the tab saw: it reads
+\* the ending and shows done when the ending names the object, since a list
+\* an earlier press sent may have landed, and refused when the ending names
 \* none or the read fails. It follows the step's write of wizard.
-ReadEnding(t) ==
+ReadEnding(t, refused) ==
   \E read \in BOOLEAN :
-    control' = [control EXCEPT ![t] = IF read /\ ~wizard' THEN "done" ELSE "failed"]
+    control' = [control EXCEPT ![t] = IF read /\ ~wizard' THEN "done" ELSE refused]
 
 \* A write in the list throws, or the tab closes, and the executor discards
 \* the list: nothing it staged lands.
@@ -139,22 +150,44 @@ Discard(t) ==
   /\ live[t]
   /\ live' = [live EXCEPT ![t] = FALSE]
   /\ UNCHANGED <<seen, orphan, wizard, objects, index, moved>>
-  /\ ReadEnding(t)
+  /\ ReadEnding(t, "failed")
 
-\* The list commits, or is refused, but its reply is lost.
+\* The list commits, or is refused, but its reply is lost. A device with no
+\* build never applies the list, so it has no reply to lose.
 LostReply(t) ==
   /\ live[t]
+  /\ t \notin Unbuilt
   /\ Apply(seen)
-  /\ ReadEnding(t)
+  /\ ReadEnding(t, "failed")
   /\ live' = [live EXCEPT ![t] = FALSE]
   /\ UNCHANGED <<seen, orphan, moved>>
 
-\* The tab reloads; a list in flight carries on without it.
+\* The operation refuses the list, so the executor discards it and the tab
+\* returns to Finish with the operation's message: the same list would fail
+\* the same way, so it offers no Retry.
+Reject(t) ==
+  /\ live[t]
+  /\ t \notin Unbuilt
+  /\ live' = [live EXCEPT ![t] = FALSE]
+  /\ UNCHANGED <<seen, orphan, wizard, objects, index, moved>>
+  /\ ReadEnding(t, "idle")
+
+\* The plugin has no build for this device, so the executor discards the
+\* list and the tab says where Finish can succeed instead of offering Retry.
+Unsupported(t) ==
+  /\ live[t]
+  /\ t \in Unbuilt
+  /\ live' = [live EXCEPT ![t] = FALSE]
+  /\ UNCHANGED <<seen, orphan, wizard, objects, index, moved>>
+  /\ ReadEnding(t, "unsupported")
+
+\* The tab reloads; a list in flight carries on without it, unless the
+\* device has no build, where it can only end unapplied.
 Reload(t) ==
   /\ control' = [control EXCEPT ![t] = "idle"]
   /\ live' = [live EXCEPT ![t] = FALSE]
   /\ ~(live[t] /\ orphan)
-  /\ orphan' = (orphan \/ live[t])
+  /\ orphan' = (orphan \/ (live[t] /\ t \notin Unbuilt))
   /\ UNCHANGED <<seen, wizard, objects, index, moved>>
 
 \* A list whose tab reloaded commits, is refused or discards on the server,
@@ -180,7 +213,7 @@ Close(t) ==
 
 Next ==
   \/ \E t \in Tabs : Press(t) \/ Commit(t) \/ Discard(t) \/ LostReply(t)
-  \/ \E t \in Tabs : Reload(t)
+  \/ \E t \in Tabs : Reject(t) \/ Unsupported(t) \/ Reload(t)
   \/ \E t \in Tabs : Close(t)
   \/ Watch
   \/ OrphanEnds
