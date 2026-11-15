@@ -67,9 +67,9 @@ func sortedPlatformIDs(platforms map[string]plugin_host.PluginHost) []string {
 // serveAssets mounts a browser manifest's files through an admitted worker
 // that runs nothing. Like a running worker, it outlives this selection
 // attempt, so a candidate that waits for approval leaves the files served.
-// The next admission, the release of the installation that admitted it, or
-// the binding's close releases it; a catalog that drops the plugin does not,
-// as for a running worker.
+// The next admission, the release of the installation that admitted it, a
+// catalog left with no manifest of the plugin, or the binding's close releases
+// it, as for a running worker.
 func (t *pluginInstance) serveAssets(ctx context.Context, args *executePluginArgs) error {
 	// Admit a worker for the files unless this candidate's worker serves them.
 	// Another admitted worker can only remain here after its host left.
@@ -77,7 +77,7 @@ func (t *pluginInstance) serveAssets(ctx context.Context, args *executePluginArg
 	if worker == nil {
 		t.clearExecution(nil)
 		ref, next, _ := t.executions.AddKeyRef(executionReference{args: args})
-		if !t.admitExecution(next, ref.Release, args) {
+		if !t.admitExecution(ctx, next, ref.Release, args) {
 			ref.Release()
 			return context.Canceled
 		}

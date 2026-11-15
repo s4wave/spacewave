@@ -200,10 +200,11 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, 0, nil, candidateEligibility)
 		// When store is disabled, the fetch handler may drive
 		// execute/download directly from fetched ManifestRefs.
-		// Don't clear states that the fetch handler set.
+		// Don't clear states that the fetch handler set. A host loss keeps
+		// the admitted worker; only a plugin with no manifest releases it.
 		if t.manifestRoot != "" || !t.c.conf.GetDisableStoreManifest() {
 			_, changed1, _, _ := t.downloadManifestRoutine.SetState(nil)
-			changed2 := t.setExecutePluginState(nil)
+			changed2 := !linksManifest(candidateEligibility) && t.releaseCatalogExecution()
 			if changed1 || changed2 || !t.loggedNotFound.Swap(true) {
 				le.Debugf("no manifests for plugin found in world")
 			}
@@ -372,21 +373,17 @@ func (t *pluginInstance) processManifestWorldStateCore(
 				trace.Log(ctx, "download-manifest-copy-class", string(t.classifyManifestCopy(downloadManifest)))
 			}
 
-			// Apply the execute routine state for the selected manifest.
+			// Apply the execute routine state for the selected manifest. The
+			// routine container owns generation replacement and cancellation.
+			// With no manifest on a present host, the admitted worker stays.
 			var anyChanged bool
-
-			// The routine container owns generation replacement and cancellation.
 			if executeManifest != nil {
-				changed := t.setExecutePluginState(&executePluginArgs{
+				anyChanged = t.setExecutePluginState(&executePluginArgs{
 					manifestSnapshot: executeManifest,
 					rev:              executeManifest.GetManifest().GetMeta().GetRev(),
 					pluginHost:       executeManifestHost,
 					serveAssets:      executeManifestHost == nil,
 				})
-				anyChanged = anyChanged || changed
-			} else {
-				changed := t.setExecutePluginState(nil)
-				anyChanged = anyChanged || changed
 			}
 
 			// Schedule the full-DAG local copy after the execute path so startup
@@ -408,6 +405,17 @@ func (t *pluginInstance) processManifestWorldStateCore(
 			return nil
 		},
 	)
+}
+
+// linksManifest reports whether the World links the plugin to a manifest on
+// any platform: a candidate that is neither a store or bundle leading to
+// manifests nor a manifest of another plugin. An unreadable candidate counts,
+// since its storage may only be unmounted; candidates whose blocks are gone
+// were set aside before this is asked.
+func linksManifest(candidates []*bldr_manifest_world.StartupManifestCandidateEligibility) bool {
+	return slices.ContainsFunc(candidates, func(c *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
+		return c != nil && !c.Intermediate && c.Eligibility != bldr_manifest_world.StartupManifestEligibilityQuarantined
+	})
 }
 
 // manifestSelectionInput is the fingerprinted selection state used to

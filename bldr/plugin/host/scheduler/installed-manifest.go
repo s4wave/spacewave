@@ -39,14 +39,16 @@ func (t *pluginInstance) addManifestSelection(peerID string, refs ...*manifest.M
 		// Drop the selection and take the installation's work out of the routines.
 		t.pluginUpdateMtx.Lock()
 		delete(t.selections, id)
-		released, stop := t.updateManifestSelectionLocked()
+		catalog, stop := t.updateManifestSelectionLocked()
 		t.pluginUpdateMtx.Unlock()
-		if !released {
+		if !catalog {
 			return
 		}
 
 		// Stop a worker started for the installation, unless a newer admission
-		// replaced it, and select from the catalog again.
+		// replaced it, and select from the catalog again: a catalog pass that
+		// ran while the installation was selected decided nothing, even when the
+		// installation never placed a candidate.
 		if stop != nil {
 			t.clearExecution(stop)
 		}
@@ -55,8 +57,9 @@ func (t *pluginInstance) addManifestSelection(peerID string, refs ...*manifest.M
 }
 
 // updateManifestSelectionLocked projects the newest retained installation
-// demand. With none left, it calls releaseInstallationLocked.
-func (t *pluginInstance) updateManifestSelectionLocked() (released bool, stop *pluginInstance) {
+// demand. With none left, it calls releaseInstallationLocked and reports that
+// the binding is back on its catalog demand, with the worker to stop.
+func (t *pluginInstance) updateManifestSelectionLocked() (catalog bool, stop *pluginInstance) {
 	// Find the selection with the highest sequence number.
 	var latest uint64
 	var selected *installedManifests
@@ -72,7 +75,7 @@ func (t *pluginInstance) updateManifestSelectionLocked() (released bool, stop *p
 		t.selectInstalledManifestLocked(t.c.pluginHostsCtr.GetValue())
 		return false, nil
 	}
-	return t.releaseInstallationLocked()
+	return true, t.releaseInstallationLocked()
 }
 
 // releaseInstallationLocked removes released installation work while nothing
@@ -80,14 +83,13 @@ func (t *pluginInstance) updateManifestSelectionLocked() (released bool, stop *p
 // routine, so the running worker is not asked to quiesce for it. Leaving the
 // execute routine cancels any wait for the candidate's admission: the routine
 // returns to the admitted worker's own candidate, which it adopts without a
-// restart, or to nothing when that worker ran the installation. It reports
-// whether anything was released, and the worker the caller must stop.
-func (t *pluginInstance) releaseInstallationLocked() (released bool, stop *pluginInstance) {
+// restart, or to nothing when that worker ran the installation. It returns
+// the worker the caller must stop.
+func (t *pluginInstance) releaseInstallationLocked() (stop *pluginInstance) {
 	// Drop a guarded replacement waiting to quiesce the running worker.
 	if t.updatePluginRoutine != nil {
 		if pending := t.updatePluginRoutine.GetState(); pending != nil && pending.installation != nil {
 			t.updatePluginRoutine.SetState(nil)
-			released = true
 		}
 	}
 
@@ -95,15 +97,13 @@ func (t *pluginInstance) releaseInstallationLocked() (released bool, stop *plugi
 	restore := t.activeArgs
 	if restore != nil && restore.installation != nil {
 		restore, stop = nil, t.activeExecution
-		released = true
 	}
 
 	// Return the execute routine from the installation's candidate.
 	if current := t.executePluginRoutine.GetState(); current != nil && current.installation != nil {
 		t.executePluginRoutine.SetState(restore)
-		released = true
 	}
-	return released, stop
+	return stop
 }
 
 // selectInstalledManifestLocked sends the selected artifact through the normal

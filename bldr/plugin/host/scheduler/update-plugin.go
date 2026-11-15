@@ -8,7 +8,9 @@ import (
 )
 
 // setExecutePluginState keeps guarded plugins running until they relinquish
-// their work. Initial starts and unguarded replacements apply immediately.
+// their work. Initial starts and unguarded replacements apply immediately. A
+// nil state cancels the candidate but leaves the admitted worker; see
+// releaseCatalogExecution.
 func (t *pluginInstance) setExecutePluginState(args *executePluginArgs) bool {
 	t.pluginUpdateMtx.Lock()
 	defer t.pluginUpdateMtx.Unlock()
@@ -50,6 +52,38 @@ func (t *pluginInstance) setExecutePluginStateLocked(args *executePluginArgs) bo
 
 	// Route the guarded replacement through the update routine.
 	_, changed, _, _ := t.updatePluginRoutine.SetState(args)
+	return changed
+}
+
+// releaseCatalogExecution ends the catalog's selection once the catalog links
+// no manifest the binding may run, on any platform: none of the plugin, or for
+// a binding pinned to a manifest root, none at that root, whatever else the
+// plugin has. It clears the candidate and releases the worker the catalog
+// admitted, running or serving files. A catalog worker is released exactly
+// then, never on a host change, which keeps it as an installation's worker is
+// kept; while an installation is selected the catalog releases nothing. One
+// binding never releases: with the store disabled and no root, the direct
+// fetch selects, and its empty result cannot tell a gap from a removal. It
+// reports whether the selection or the admitted worker changed.
+func (t *pluginInstance) releaseCatalogExecution() bool {
+	// Clear the catalog candidate and take the catalog's worker, if admitted.
+	t.pluginUpdateMtx.Lock()
+	if !t.acceptsManifest(nil) {
+		t.pluginUpdateMtx.Unlock()
+		return false
+	}
+	changed := t.setExecutePluginStateLocked(nil)
+	var worker *pluginInstance
+	if t.activeArgs != nil && t.activeArgs.installation == nil {
+		worker = t.activeExecution
+	}
+	t.pluginUpdateMtx.Unlock()
+
+	// Release it unless another admission replaced it meanwhile.
+	if worker != nil {
+		t.clearExecution(worker)
+		changed = true
+	}
 	return changed
 }
 

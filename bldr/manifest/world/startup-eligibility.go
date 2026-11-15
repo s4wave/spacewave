@@ -40,6 +40,9 @@ type StartupManifestCandidateEligibility struct {
 	Eligibility StartupManifestEligibility
 	// Reason is a compact diagnostic reason.
 	Reason string
+	// Intermediate reports that the candidate is a manifest store or bundle
+	// that leads to manifests, not a manifest itself.
+	Intermediate bool
 	// Missing reports that the candidate's manifest blocks are gone from
 	// storage, so the candidate can never start.
 	Missing bool
@@ -255,6 +258,7 @@ func classifyStartupManifestCandidateEligibilityCore(
 	case ManifestStoreTypeID, ManifestBundleTypeID:
 		candidate.Eligibility = StartupManifestEligibilityIgnored
 		candidate.Reason = "intermediate:" + objType
+		candidate.Intermediate = true
 		return candidate, nil
 	case ManifestTypeID:
 		return classifyDirectStartupManifestEligibility(ctx, ws, candidate, expectedManifestID, filterPlatformIDs)
@@ -390,6 +394,7 @@ func classifyUnknownTypedStartupCandidate(
 	if _, _, bundleErr := LookupManifestBundle(ctx, ws, candidate.ObjectKey); bundleErr == nil {
 		candidate.Eligibility = StartupManifestEligibilityIgnored
 		candidate.Reason = "intermediate:" + ManifestBundleTypeID
+		candidate.Intermediate = true
 		return candidate, nil
 	}
 	candidate.Eligibility = StartupManifestEligibilityUnsafe

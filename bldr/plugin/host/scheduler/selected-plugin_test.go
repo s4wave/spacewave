@@ -324,7 +324,7 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	if len(instance.executions.GetKeys()) != 0 {
 		t.Fatal("released binding retained worker references")
 	}
-	if instance.admitExecution(last.worker, func() {}, nil) {
+	if instance.admitExecution(t.Context(), last.worker, func() {}, nil) {
 		t.Fatal("closed binding admitted a late candidate")
 	}
 }

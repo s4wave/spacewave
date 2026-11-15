@@ -493,6 +493,185 @@ func waitSwap(t *testing.T, ctx context.Context, c *Controller, ok func(*plugin.
 	}
 }
 
+// TestCatalogRemovalReleasesWorker checks that unlinking the last catalog
+// manifest the binding may run releases the worker the catalog admitted:
+// whether it runs the plugin or only serves its files, when the catalog keeps
+// a manifest only quarantined for the plugin, and for a binding pinned to the
+// removed root while the plugin keeps another.
+func TestCatalogRemovalReleasesWorker(t *testing.T) {
+	for _, mode := range []string{"runs", "serves-assets", "quarantined", "pinned"} {
+		t.Run(mode, func(t *testing.T) {
+			// The catalog's manifest runs, or serves its files, as W0.
+			h := newInstallationHarness(t)
+			load := h.instance
+			ref := h.manifest(t, 1)
+			h.catalog(t, ref)
+			switch mode {
+			case "serves-assets":
+				h.hosts = &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "desktop/darwin/arm64"}}}
+				defer h.instance.addAssetsDemand()()
+			case "quarantined":
+				// A shapes manifest linked as colors reads as quarantined.
+				other := h.manifestOf(t, "shapes", 1)
+				key := manifest.NewManifestKey(installationHostKey, other.GetMeta())
+				if err := manifest_world.ExStoreManifestOp(h.ctx, h.ws, "", key, []string{installationHostKey}, other); err != nil {
+					t.Fatal(err)
+				}
+				if err := h.ws.SetGraphQuad(h.ctx, manifest_world.NewManifestQuad(installationHostKey, key, "colors")); err != nil {
+					t.Fatal(err)
+				}
+			case "pinned":
+				h.catalog(t, h.manifest(t, 2))
+				load = h.pinned(t, manifestRootKey(ref.GetManifestRef()))
+			}
+			h.run(t, load)
+			h.selectCatalog(t, load)
+			h.awaitAdmitted(t, load)
+
+			// Unlinking it leaves no manifest the binding may run, which
+			// releases W0 and publishes that nothing runs.
+			key := manifest.NewManifestKey(installationHostKey, ref.GetMeta())
+			if err := manifest_world.UnlinkManifest(h.ctx, h.ws, key, installationHostKey); err != nil {
+				t.Fatal(err)
+			}
+			h.selectCatalog(t, load)
+			if load.executePluginRoutine.GetState() != nil || admitted(load) != nil {
+				t.Fatal("catalog removal kept the catalog worker")
+			}
+			if h.runningRef(load) != "" {
+				t.Fatal("catalog removal kept the running manifest")
+			}
+		})
+	}
+}
+
+// TestCatalogHostLossKeepsWorker checks that losing the host of the running
+// manifest keeps the catalog worker, both when another host remains and when
+// none does, and that the host's return restarts nothing.
+func TestCatalogHostLossKeepsWorker(t *testing.T) {
+	// The catalog manifest runs on the js host as W0.
+	h := newInstallationHarness(t)
+	h.catalog(t, h.manifest(t, 1))
+	h.run(t, h.instance)
+	h.selectCatalog(t, h.instance)
+	h.nextStart(t)
+	w0 := h.awaitAdmitted(t, h.instance)
+	state := h.instance.executePluginRoutine.GetState()
+
+	// Each flap leaves the manifest with no present host, then restores it.
+	up := h.hosts
+	for _, flap := range []*pluginHostSet{
+		{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "desktop/darwin/arm64"}}},
+		{},
+	} {
+		h.hosts = flap
+		h.selectCatalog(t, h.instance)
+		h.hosts = up
+		h.selectCatalog(t, h.instance)
+		if h.instance.executePluginRoutine.GetState() != state || admitted(h.instance) != w0 {
+			t.Fatalf("host flap to %d hosts replaced the catalog worker", len(flap.pluginHosts))
+		}
+	}
+	h.noStart(t, "host return")
+}
+
+// TestInstallationWorkerSurvivesEmptyCatalog checks that a catalog holding no
+// manifest of the plugin leaves an installation's worker alone.
+func TestInstallationWorkerSurvivesEmptyCatalog(t *testing.T) {
+	// Peer P's installation of R runs as W.
+	h := newInstallationHarness(t)
+	root := h.manifest(t, 1)
+	h.trusted.Add(bldr_manifest_trust.Root{PluginID: "colors", ManifestRoot: manifestRootKey(root.GetManifestRef())})
+	release := h.instance.addManifestSelection("peer-p", root)
+	defer release()
+	h.run(t, h.instance)
+	h.nextStart(t)
+	w := h.awaitAdmitted(t, h.instance)
+	state := h.instance.executePluginRoutine.GetState()
+
+	// Selecting from the empty catalog changes nothing.
+	h.selectCatalog(t, h.instance)
+	if h.instance.executePluginRoutine.GetState() != state || admitted(h.instance) != w {
+		t.Fatal("empty catalog released the installation's worker")
+	}
+	h.noStart(t, "empty catalog")
+}
+
+// TestReleasedEmptyInstallationReselectsCatalog checks that releasing the last
+// installation returns the binding to its catalog even when the installation
+// never placed a candidate: an empty catalog pass during it released nothing,
+// and the release must not leave the catalog worker on that pass's decision.
+func TestReleasedEmptyInstallationReselectsCatalog(t *testing.T) {
+	// The catalog manifest runs as W0.
+	h := newInstallationHarness(t)
+	ref := h.manifest(t, 1)
+	h.catalog(t, ref)
+	h.run(t, h.instance)
+	h.selectCatalog(t, h.instance)
+	h.awaitAdmitted(t, h.instance)
+
+	// An installation with no artifacts places no candidate, and the empty
+	// catalog pass it overlaps releases nothing.
+	release := h.instance.addManifestSelection("peer-p")
+	key := manifest.NewManifestKey(installationHostKey, ref.GetMeta())
+	if err := manifest_world.UnlinkManifest(h.ctx, h.ws, key, installationHostKey); err != nil {
+		t.Fatal(err)
+	}
+	h.selectCatalog(t, h.instance)
+	if admitted(h.instance) == nil {
+		t.Fatal("the catalog released its worker while an installation was selected")
+	}
+
+	// Releasing the installation reruns the catalog pass, which releases W0.
+	release()
+	h.selectCatalog(t, h.instance)
+	if h.instance.executePluginRoutine.GetState() != nil || admitted(h.instance) != nil {
+		t.Fatal("released installation left the catalog worker of an empty catalog")
+	}
+}
+
+// awaitAdmitted waits until load publishes a running manifest, which it does
+// in the critical section that admits a worker, and returns that worker.
+func (h *installationHarness) awaitAdmitted(t *testing.T, load *pluginInstance) *pluginInstance {
+	t.Helper()
+	_, err := h.c.pluginStatusCtr.WaitValueWithValidator(h.ctx, func(*plugin.PluginStatusSnapshot) (bool, error) {
+		return h.runningRef(load) != "", nil
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return admitted(load)
+}
+
+// runningRef returns the running manifest load last published.
+func (h *installationHarness) runningRef(load *pluginInstance) string {
+	for _, status := range h.c.pluginStatusCtr.GetValue().GetExecutions() {
+		if status.GetPluginId() == load.pluginID && status.GetInstanceKey() == load.instanceKey {
+			return status.GetRunningManifestRef()
+		}
+	}
+	return ""
+}
+
+// admitted returns the worker load admitted.
+func admitted(load *pluginInstance) *pluginInstance {
+	load.pluginUpdateMtx.Lock()
+	defer load.pluginUpdateMtx.Unlock()
+	return load.activeExecution
+}
+
+// pinned adds a colors binding pinned to root and readies its executions.
+func (h *installationHarness) pinned(t *testing.T, root string) *pluginInstance {
+	t.Helper()
+	key := pluginReference{pluginID: "colors", manifestRoot: root}
+	_, load := h.c.newPluginInstance(key)
+	h.c.setPluginStatus("colors", key.executionKey(), plugin.PluginState_PluginState_REQUESTED)
+	load.executions.SetContext(h.ctx, true)
+	t.Cleanup(func() { load.executions.ClearContext() })
+	t.Cleanup(func() { load.clearExecution(nil) })
+	return load
+}
+
 // installationHarness runs one colors binding on a root host scheduler: an
 // installation asks AdmitPluginRoot for its own peer, a catalog load does not.
 type installationHarness struct {
@@ -595,13 +774,20 @@ func newInstallationHarness(t *testing.T) *installationHarness {
 // manifest writes a runnable colors manifest at rev into the World, outside
 // any catalog, and returns its reference.
 func (h *installationHarness) manifest(t *testing.T, rev uint64) *manifest.ManifestRef {
+	t.Helper()
+	return h.manifestOf(t, "colors", rev)
+}
+
+// manifestOf writes a runnable js manifest of id at rev into the World,
+// outside any catalog, and returns its reference.
+func (h *installationHarness) manifestOf(t *testing.T, id string, rev uint64) *manifest.ManifestRef {
 	// Write the dist and the manifest blocks.
 	t.Helper()
 	distFS := memfs.New()
 	if err := billy_util.WriteFile(distFS, "colors.js", []byte("export {}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	m := manifest.NewManifest(manifest.NewManifestMeta("colors", manifest.BuildType_RELEASE, "js", rev), "colors.js")
+	m := manifest.NewManifest(manifest.NewManifestMeta(id, manifest.BuildType_RELEASE, "js", rev), "colors.js")
 	ref, err := world.AccessObject(h.ctx, h.ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		return manifest.CreateManifestWithBilly(h.ctx, bcs, m, distFS, nil, timestamppb.Now())
 	})

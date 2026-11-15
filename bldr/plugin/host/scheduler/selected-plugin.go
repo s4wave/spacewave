@@ -159,11 +159,7 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 		return context.Canceled
 	}
 
-	// An explicit removal releases the binding; candidate cancellation does not.
-	if args == nil || args.manifestSnapshot == nil {
-		t.clearExecution(nil)
-		return nil
-	}
+	// Record the attempt's failure unless it was canceled.
 	defer func() {
 		if rerr != nil && ctx.Err() == nil {
 			t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "prepare plugin", rerr)
@@ -239,7 +235,7 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 		}
 	}()
 	if !prepared {
-		admitted = t.admitExecution(worker, ref.Release, args)
+		admitted = t.admitExecution(ctx, worker, ref.Release, args)
 		if !admitted {
 			return context.Canceled
 		}
@@ -264,7 +260,7 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 		if _, err := activation.Activate(ctx, &plugin.ActivatePluginRequest{}); err != nil {
 			return err
 		}
-		admitted = t.admitExecution(worker, ref.Release, args)
+		admitted = t.admitExecution(ctx, worker, ref.Release, args)
 		if !admitted {
 			return context.Canceled
 		}
@@ -355,16 +351,19 @@ func (t *pluginInstance) superviseExecution(ctx context.Context, worker *pluginI
 
 // admitExecution switches the family alias and filesystem access to a worker.
 // Its load-state lock precedes pluginUpdateMtx, matching the worker callback;
-// the scheduler's status mutex comes after both.
-func (t *pluginInstance) admitExecution(worker *pluginInstance, release func(), args *executePluginArgs) bool {
+// the scheduler's status mutex comes after both. ctx is the selection
+// attempt's: a superseded or released candidate is canceled under
+// pluginUpdateMtx, so its attempt admits nothing afterwards.
+func (t *pluginInstance) admitExecution(ctx context.Context, worker *pluginInstance, release func(), args *executePluginArgs) bool {
 	// Swap the admitted worker under the load-state lock.
 	var previous func()
 	var admitted bool
 	worker.pluginLoadStateCtr.SwapValue(func(state plugin.PluginLoadState) plugin.PluginLoadState {
-		// Admit the worker only while the binding is open and accepts the manifest.
+		// Admit the worker only while the binding is open, the attempt is
+		// current and the binding accepts the manifest.
 		t.pluginUpdateMtx.Lock()
 		defer t.pluginUpdateMtx.Unlock()
-		if t.executionsClosed || !t.acceptsManifest(args) {
+		if t.executionsClosed || ctx.Err() != nil || !t.acceptsManifest(args) {
 			return state
 		}
 		admitted = true

@@ -2,7 +2,6 @@ package plugin_host_scheduler
 
 import (
 	"context"
-	"slices"
 	"strings"
 	"sync"
 
@@ -201,11 +200,12 @@ func (t *pluginInstance) awaitingFetch(candidates []*bldr_manifest_world.Startup
 	}
 
 	// Wait until every announced manifest is linked, then stop gating.
+	linked := make(map[string]struct{}, len(candidates))
+	for _, c := range candidates {
+		linked[c.ObjectKey] = struct{}{}
+	}
 	for _, key := range *announced {
-		linked := slices.ContainsFunc(candidates, func(c *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
-			return c.ObjectKey == key
-		})
-		if !linked {
+		if _, ok := linked[key]; !ok {
 			return true
 		}
 	}
@@ -317,10 +317,9 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 
 	// Re-select the best compatible manifest candidate from all fetched refs.
 	selectBest := func() {
-		// Start with no best, current, or rejected candidates.
+		// Start with no best or current candidate.
 		var best *manifestCandidate
 		var current *manifestCandidate
-		var rejected bool
 
 		// Score every fetched reference against the hosts and the running
 		// plugin state.
@@ -333,7 +332,6 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 					continue
 				}
 				if t.incompatibleManifest(ref.GetManifestRef()) {
-					rejected = true
 					continue
 				}
 				candidate := &manifestCandidate{
@@ -371,17 +369,14 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 			return
 		}
 
-		// Preserve the current target when no compatible ref was fetched but
-		// a plugin is already running or downloading.
-		if (len(allRefs) == 0 || rejected) &&
-			(t.executePluginRoutine.GetState() != nil || t.downloadManifestRoutine.GetState() != nil) {
+		// The fetch never says the plugin has no manifest: each value names
+		// the builder's latest manifest, and a gap between values is a rebuild.
+		// With no ref for a present host, the current target and its admitted
+		// worker stay, as for a host loss.
+		if t.executePluginRoutine.GetState() != nil || t.downloadManifestRoutine.GetState() != nil {
 			t.le.Debug("preserving current plugin target without a compatible fetched manifest ref")
 			return
 		}
-
-		// Clear the execute and download targets.
-		t.setExecutePluginState(nil)
-		t.setDownloadManifestState(ctx, nil, t.c.conf.GetEngineId())
 		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, 0, nil, nil)
 	}
 
