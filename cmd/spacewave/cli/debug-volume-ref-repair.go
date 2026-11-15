@@ -123,7 +123,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 // that sets the mark again, and none exists yet.
 func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID string, dryRun bool, lookup refwalk.LookupBlockType) (refRepairResult, error) {
 	// Open the stopped volume.
-	vol, err := openStoppedVolume(ctx, le, path)
+	vol, err := openStoppedVolume(ctx, le, path, dryRun)
 	if err != nil {
 		return refRepairResult{}, err
 	}

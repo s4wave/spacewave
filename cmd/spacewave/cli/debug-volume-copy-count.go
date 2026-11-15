@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"slices"
 	"time"
 
@@ -38,16 +37,14 @@ const (
 // without writing anything, and prints to out the keys and bytes it would
 // keep and drop by key family. Progress goes to w.
 func countVolumeDrop(ctx context.Context, src string, drop *sqlDrop, out, w io.Writer) error {
-	// Open the source, refusing a missing file, which the open would create,
-	// and a file a daemon has open.
-	if _, err := os.Stat(src); err != nil {
-		return err
-	}
-	sdb, err := s4db.Open(src, s4db.Options{})
+	// Open the source read-only, refusing a file a daemon has open.
+	sdb, err := s4db.Open(src, s4db.Options{ReadOnly: true})
 	if err != nil {
 		return err
 	}
 	defer sdb.Close()
+
+	// Refuse a file another process has open.
 	shared, err := sdb.Shared()
 	if err != nil {
 		return err
@@ -55,6 +52,8 @@ func countVolumeDrop(ctx context.Context, src string, drop *sqlDrop, out, w io.W
 	if shared {
 		return fmt.Errorf("%s is open in another process; stop the daemon first", src)
 	}
+
+	// Open the drop source against the volume's keys.
 	keys := store_kvkey.NewDefaultKVKey()
 	if err := drop.open(ctx, sdb, keys, w); err != nil {
 		return err
@@ -143,8 +142,7 @@ func countVolumeDrop(ctx context.Context, src string, drop *sqlDrop, out, w io.W
 		return err
 	}
 
-	// Sum what the copy keeps and drops, then print the families largest
-	// first, folding the smallest into one line.
+	// Sum what the copy keeps and drops.
 	var kept, dropped volumeKeyClass
 	ranked := make([]*volumeKeyClass, 0, len(classes))
 	for _, kc := range classes {
@@ -157,9 +155,13 @@ func countVolumeDrop(ctx context.Context, src string, drop *sqlDrop, out, w io.W
 		sum.valueBytes += kc.valueBytes
 		ranked = append(ranked, kc)
 	}
+
+	// Rank the families largest first.
 	slices.SortFunc(ranked, func(a, b *volumeKeyClass) int {
 		return cmp.Or(cmp.Compare(b.keyBytes+b.valueBytes, a.keyBytes+a.valueBytes), cmp.Compare(a.class, b.class))
 	})
+
+	// Print the totals, then the families, folding the smallest into one line.
 	fmt.Fprintf(out, "walked %d keys of %s in %s\n", walked, src, time.Since(start).Round(time.Second))
 	fmt.Fprintf(out, "keep: %d keys, %s\n", kept.keys, humanize.IBytes(kept.keyBytes+kept.valueBytes))
 	fmt.Fprintf(out, "drop: %d keys, %s\n", dropped.keys, humanize.IBytes(dropped.keyBytes+dropped.valueBytes))

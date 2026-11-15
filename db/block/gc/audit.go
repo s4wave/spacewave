@@ -57,8 +57,10 @@ type AuditResult struct {
 // then records each hole it reached that no record names yet, restoring its
 // count from the holders the snapshot gave it, so a later put of the hole
 // counts it as stored, as Land describes. It keeps the reached set and a
-// holder count per named block in memory, so it suits a copy host.
-func Audit(ctx context.Context, store AdoptStore) (AuditResult, error) {
+// holder count per named block in memory, so it suits a copy host. With
+// record unset it writes nothing, for a store opened read-only, and Holes
+// stays zero.
+func Audit(ctx context.Context, store AdoptStore, record bool) (AuditResult, error) {
 	// Read the snapshot: the walk, the holders, the stored blocks and what
 	// each hole's count lacks.
 	var res AuditResult
@@ -127,10 +129,14 @@ func Audit(ctx context.Context, store AdoptStore) (AuditResult, error) {
 		return res, err
 	}
 
-	// Count the unreached bytes stored without a list, then record the
-	// holes under a live root.
+	// Count the unreached bytes stored without a list.
 	if err := res.countUnlisted(ctx, store); err != nil {
 		return res, err
+	}
+
+	// Record the holes under a live root.
+	if !record || len(holes) == 0 {
+		return res, nil
 	}
 	return res, recordHoles(ctx, store, holes, &res)
 }

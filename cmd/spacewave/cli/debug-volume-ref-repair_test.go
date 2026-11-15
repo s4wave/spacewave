@@ -5,6 +5,8 @@ package spacewave_cli
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -22,6 +24,7 @@ import (
 	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/s4db"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -247,6 +250,16 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Hash the file before the read-only phases.
+	sum := func() [sha256.Size]byte {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return sha256.Sum256(data)
+	}
+	before := sum()
+
 	// A dry run counts the missing edges and writes none.
 	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType)
 	if err != nil {
@@ -316,6 +329,30 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("dry run wrote child lists: %+v then %+v", dry, again)
 	}
 
+	// An audit opens the file read-only too, and a write through a read-only
+	// open fails, so the read-only phases left every byte of the file as it
+	// was.
+	if _, err := auditVolume(ctx, le, path); err != nil {
+		t.Fatal(err)
+	}
+	roVol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wtx, werr := volume_s4db.GetDB(roVol).NewTransaction(ctx, true)
+	if werr == nil {
+		wtx.Discard()
+	}
+	if cerr := roVol.Close(); cerr != nil {
+		t.Fatal(cerr)
+	}
+	if !errors.Is(werr, s4db.ErrReadOnly) {
+		t.Fatalf("write transaction on a read-only open: %v, want %v", werr, s4db.ErrReadOnly)
+	}
+	if sum() != before {
+		t.Fatal("a read-only phase changed the volume file")
+	}
+
 	// Applying writes every missing child list, those of the leaves the dry
 	// run only checks for presence too, verifies every walked block's list,
 	// and clears the volume's unverified lists mark.
@@ -332,7 +369,7 @@ func TestDebugRefRepair(t *testing.T) {
 	// registered type that decodes without refs. The rebuild refuses the
 	// shortened root list, which the held World reaches, and keeps the mark;
 	// a correct rebuild after it finds every list whole and clears the mark.
-	markVol, err := openStoppedVolume(ctx, le, path)
+	markVol, err := openStoppedVolume(ctx, le, path, volumeWritable)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -382,7 +419,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// Give that block its list, then adopt; a second adoption changes nothing.
-	fixVol, err := openStoppedVolume(ctx, le, path)
+	fixVol, err := openStoppedVolume(ctx, le, path, volumeWritable)
 	if err != nil {
 		t.Fatal(err)
 	}

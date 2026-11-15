@@ -38,7 +38,9 @@ var ErrMigrateShared = errors.New("volume format migration waits for other proce
 type Volume = volume_kvtx.Volume
 
 // NewVolume opens the database file named by conf, creating it when absent
-// and converting a bolt Volume file in place.
+// and converting a bolt Volume file in place. With ReadOnly set it opens an
+// existing file read-only, writes nothing, and refuses a file that needs a
+// conversion or a format upgrade with volume.ErrReadOnlyUpgrade.
 func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, err error) {
 	// Check the config.
 	if err := conf.Validate(); err != nil {
@@ -49,10 +51,21 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, 
 		return nil, err
 	}
 
-	// Convert a bolt Volume file.
-	path := conf.GetPath()
-	if err := convertBolt(ctx, le, path); err != nil {
-		return nil, err
+	// Convert a bolt Volume file, which a read-only open refuses.
+	path, readOnly := conf.GetPath(), conf.GetReadOnly()
+	if readOnly {
+		isBolt, err := isBoltFile(path)
+		if err != nil {
+			return nil, err
+		}
+		if isBolt {
+			return nil, volume.Permanent(volume.ErrReadOnlyUpgrade)
+		}
+	}
+	if !readOnly {
+		if err := convertBolt(ctx, le, path); err != nil {
+			return nil, err
+		}
 	}
 
 	// Open the database, counting the values of each of the Volume's key
@@ -65,6 +78,7 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, 
 	opts := s4db.Options{
 		CacheBytes: int(conf.GetCacheBytes()),
 		Families:   prefixes,
+		ReadOnly:   readOnly,
 	}
 
 	// Open it, converting a file the previous engine wrote in place first,
@@ -83,9 +97,10 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, 
 	}
 
 	// A migration rewrites keys that another process may still read in the
-	// old layout, so it waits until this process holds the file alone.
+	// old layout, so it waits until this process holds the file alone. A
+	// read-only open makes none, and the Volume refuses a stale store.
 	stale, err := volume_kvtx.NeedsFormatUpgrade(ctx, db, keys)
-	if err == nil && stale {
+	if err == nil && stale && !readOnly {
 		var shared bool
 		shared, err = db.Shared()
 		if err == nil && shared {

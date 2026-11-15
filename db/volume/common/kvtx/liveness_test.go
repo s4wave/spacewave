@@ -2415,7 +2415,7 @@ func TestLivenessAdversarial(t *testing.T) {
 					collectAll(t, v)
 				}
 			}
-			if res, err := block_gc.Audit(ctx, probe); err != nil || res.Holes != 1 {
+			if res, err := block_gc.Audit(ctx, probe, true); err != nil || res.Holes != 1 {
 				t.Fatalf("audit recorded %d holes err %v, want 1", res.Holes, err)
 			}
 

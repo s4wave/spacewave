@@ -134,13 +134,14 @@ func (v *Volume) wakeAdopt() {
 
 // Audit walks from the Volume's named roots in one snapshot and compares the
 // walk with the counts and the free queue, as block_gc.Audit describes,
-// reporting the mark phase while it runs. It frees nothing.
+// reporting the mark phase while it runs. It frees nothing, and a read-only
+// Volume's audit records no holes.
 func (v *Volume) Audit(ctx context.Context) (block_gc.AuditResult, error) {
 	if !v.HoldsRoots() {
 		return block_gc.AuditResult{}, block.ErrAtomicCommitUnsupported
 	}
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
-	return block_gc.Audit(backgroundPass(ctx), collectorStore{v: v})
+	return block_gc.Audit(backgroundPass(ctx), collectorStore{v: v}, !v.readOnly)
 }
 
 // collectorPhase reports a collection step in the Volume's health.

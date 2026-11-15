@@ -185,7 +185,7 @@ func newDebugPayloadRestoreCommand() *cli.Command {
 // count, and the number of blocks written.
 func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string, data, want []byte) (*block.BlockRef, int, int, error) {
 	// Open the stopped volume with the World transform and owning bucket.
-	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID)
+	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID, volumeWritable)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -263,7 +263,7 @@ type sourceTreeResult struct {
 // Space's bucket. A dry run only counts the missing blocks.
 func restoreSourceTree(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID, root string, dryRun bool) (*sourceTreeResult, error) {
 	// Open the stopped volume with the World transform and owning bucket.
-	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID)
+	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID, dryRun)
 	if err != nil {
 		return nil, err
 	}
@@ -361,12 +361,13 @@ type restoreVolume struct {
 	bucketID string
 }
 
-// openRestoreVolume opens the stopped volume at path and resolves the World
-// transform and owning bucket of spaceID. An empty bucketID selects
-// the one bucket named for the Space. The caller closes the volume.
-func openRestoreVolume(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string) (*restoreVolume, error) {
+// openRestoreVolume opens the stopped volume at path, read-only for a dry
+// run, and resolves the World transform and owning bucket of spaceID. An
+// empty bucketID selects the one bucket named for the Space. The caller
+// closes the volume.
+func openRestoreVolume(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string, readOnly bool) (*restoreVolume, error) {
 	// Open the stopped volume.
-	vol, err := openStoppedVolume(ctx, le, path)
+	vol, err := openStoppedVolume(ctx, le, path, readOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +382,8 @@ func openRestoreVolume(ctx context.Context, le *logrus.Entry, path, spaceID, buc
 
 	// Record the holes a live root reaches before writing, so a restored
 	// block those roots name counts as stored rather than as a new block
-	// the collector frees once its put ages past the grace period.
+	// the collector frees once its put ages past the grace period. A dry
+	// run's read-only audit records none.
 	if _, err := vol.Audit(ctx); err != nil {
 		vol.Close()
 		return nil, errors.Wrap(err, "record the holes to restore")

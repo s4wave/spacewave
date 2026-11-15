@@ -194,3 +194,13 @@ type WriterQueueStore interface {
 	// WritersWaiting reports whether a write transaction waits to begin.
 	WritersWaiting() bool
 }
+
+// ReadOnlyStore is a store that can be opened read-only. A read-only store
+// refuses every write transaction, so a component that writes on its own,
+// such as an upgrade at open or a background pass, skips that work rather
+// than failing on it. Wrappers forward the capability.
+type ReadOnlyStore interface {
+	Store
+	// ReadOnly reports whether the store refuses every write transaction.
+	ReadOnly() bool
+}

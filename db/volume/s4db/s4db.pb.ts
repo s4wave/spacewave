@@ -55,6 +55,13 @@ export interface Config {
    * collection needs before it frees any; a negative value keeps no reserve.
    */
   reserveBytes?: bigint
+  /**
+   * ReadOnly opens an existing file without the writer lock: every write
+   * transaction fails, the volume writes no peer key, no format upgrade and
+   * no liveness record, and an audit records no holes. A file that needs a
+   * conversion or a format upgrade fails to open.
+   */
+  readOnly?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -68,4 +75,5 @@ export const Config: MessageType<Config> =
     [7, 'store_config', 11, 0, Config$3.codec],
     [8, 'cache_bytes', 3],
     [11, 'reserve_bytes', 3],
+    [12, 'read_only', 8],
   ])

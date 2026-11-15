@@ -54,5 +54,14 @@ func (l *VLoggerStore) WritersWaiting() bool {
 	return ok && s.WritersWaiting()
 }
 
+// ReadOnly reports whether the wrapped store refuses every write.
+func (l *VLoggerStore) ReadOnly() bool {
+	s, ok := l.Store.(kvtx.ReadOnlyStore)
+	return ok && s.ReadOnly()
+}
+
 // _ is a type assertion
-var _ kvtx.WriterQueueStore = (*VLoggerStore)(nil)
+var (
+	_ kvtx.WriterQueueStore = (*VLoggerStore)(nil)
+	_ kvtx.ReadOnlyStore    = (*VLoggerStore)(nil)
+)

@@ -110,8 +110,8 @@ func runDebugVolumeUsage(
 	}
 	fileBytes := uint64(fi.Size()) //nolint:gosec // Stat sizes are never negative.
 
-	// Open the file beside any daemon that has it open.
-	db, err := s4db.Open(path, s4db.Options{})
+	// Open the file read-only, beside any daemon that has it open.
+	db, err := s4db.Open(path, s4db.Options{ReadOnly: true})
 	if err != nil {
 		return errors.Wrap(err, "open volume")
 	}
@@ -377,17 +377,34 @@ func volumeKeyClassOf(key, separator []byte, depth, width int) string {
 	return string(class)
 }
 
+// Modes of openStoppedVolume.
+const (
+	// volumeReadOnly opens a stopped volume for a command that only reads it.
+	volumeReadOnly = true
+	// volumeWritable opens a stopped volume for a command that writes it.
+	volumeWritable = false
+)
+
 // openStoppedVolume opens the volume file at path without creating or
 // rewriting its peer key, and refuses it while another process has it open.
 // A daemon started meanwhile shares the file, so stop it for the whole run.
 // The caller closes the volume.
-func openStoppedVolume(ctx context.Context, le *logrus.Entry, path string) (*volume_s4db.Volume, error) {
-	return openStoppedVolumeStore(ctx, le, path, nil)
+//
+// Invariant: a command that only reads the volume opens it with readOnly set,
+// and then nothing it does can change the file's bytes. The database takes
+// no writer lock, every write transaction fails with s4db.ErrReadOnly, Close
+// appends no closing mark, and the volume skips its peer key, format upgrade,
+// adoption reset, background passes and an audit's hole records. Only the
+// reader slot on the slot page changes while the volume is open, and Close
+// clears it. A file that needs a conversion or a format upgrade fails to open
+// with volume.ErrReadOnlyUpgrade.
+func openStoppedVolume(ctx context.Context, le *logrus.Entry, path string, readOnly bool) (*volume_s4db.Volume, error) {
+	return openStoppedVolumeStore(ctx, le, path, readOnly, nil)
 }
 
 // openStoppedVolumeStore is openStoppedVolume with the store configuration
 // storeConf, nil for the default.
-func openStoppedVolumeStore(ctx context.Context, le *logrus.Entry, path string, storeConf *store_kvtx.Config) (*volume_s4db.Volume, error) {
+func openStoppedVolumeStore(ctx context.Context, le *logrus.Entry, path string, readOnly bool, storeConf *store_kvtx.Config) (*volume_s4db.Volume, error) {
 	// Refuse a missing file, which the open would create.
 	if _, err := os.Stat(path); err != nil {
 		return nil, err
@@ -397,6 +414,7 @@ func openStoppedVolumeStore(ctx context.Context, le *logrus.Entry, path string, 
 		NoGenerateKey: true,
 		NoWriteKey:    true,
 		StoreConfig:   storeConf,
+		ReadOnly:      readOnly,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "open volume")
