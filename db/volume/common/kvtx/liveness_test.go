@@ -1763,7 +1763,7 @@ func testLivenessAdversarial(t *testing.T) {
 			t.Fatal(err)
 		}
 		f := tr.add(t, "F", "C")
-		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+		probe := &adoptProbe{AdoptStore: collectorStore{v: v}, at: map[int]func(){
 			adoptSettle: func() {
 				if _, _, err := v.PrepareOwnedBlock(ctx, "", tr["F"].Data, &block.PutOpts{Refs: tr["F"].Refs, RefsKnown: true, CacheFill: true}); err != nil {
 					t.Error(err)
@@ -1819,7 +1819,7 @@ func testLivenessAdversarial(t *testing.T) {
 			}
 
 			// Adopt, filling B at the point.
-			probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+			probe := &adoptProbe{AdoptStore: collectorStore{v: v}, at: map[int]func(){
 				at.pos: func() {
 					if got := livenessAdoption(t, v); got != at.state {
 						t.Errorf("adoption at position %d is %v, want %v", at.pos, got, at.state)
@@ -1968,7 +1968,7 @@ func testLivenessAdversarial(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
 			t.Fatal(err)
 		}
-		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+		probe := &adoptProbe{AdoptStore: collectorStore{v: v}, at: map[int]func(){
 			adoptSettle: func() {
 				err := v.withDirectFill(ctx, func(px *physicalTx) error {
 					_, err := block_gc.LandFill(ctx, px.rec, px.blocks, v.now(), tr.entries("B"))
@@ -3613,7 +3613,7 @@ func testLivenessAdversarial(t *testing.T) {
 		// moving onto a new R3 naming E while it counts, leaves the Volume
 		// unadopted.
 		r3 := tr.add(t, "R3", "E")
-		probe := &adoptProbe{Store: collectorStore{v: v}}
+		probe := &adoptProbe{AdoptStore: collectorStore{v: v}}
 		probeCtx, cancel := context.WithCancel(ctx)
 		probe.at = map[int]func(){
 			adoptCountRoots: func() {
@@ -3640,7 +3640,7 @@ func testLivenessAdversarial(t *testing.T) {
 		// which Pk named before it began.
 		r4 := tr.add(t, "R4", "E")
 		y := tr.add(t, "Y")
-		probe = &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+		probe = &adoptProbe{AdoptStore: collectorStore{v: v}, at: map[int]func(){
 			adoptCountRoots: func() {
 				if err := v.SetBucketRoots(ctx, "b", tr.entries("R4"), []block.NamedRoot{{Name: "main", Ref: r4, Previous: r3}}); err != nil {
 					t.Error(err)
@@ -3800,7 +3800,7 @@ func testLivenessAdversarial(t *testing.T) {
 		// is interrupted after its first pass marked what it reached. The
 		// Volume stays adopted with the mark standing, so nothing frees.
 		probeCtx, cancel := context.WithCancel(ctx)
-		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){rebuildSecondPass: cancel}}
+		probe := &adoptProbe{AdoptStore: collectorStore{v: v}, at: map[int]func(){rebuildSecondPass: cancel}}
 		rb, err := block_gc.OpenListRebuild(probeCtx, probe, nil)
 		if err != nil {
 			t.Fatal(err)
@@ -3902,7 +3902,7 @@ func testLivenessAdversarial(t *testing.T) {
 		// rebuild reports U until a full batch flushes, which rewrites U's
 		// list and must leave the recount record.
 		var marked, flushed bool
-		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+		probe := &walkProbe{AdoptStore: collectorStore{v: v}, before: func() {
 			n := countPrefix(t, store, kind('K'))
 			marked = marked || n != 0
 			if !marked || n != 0 || flushed {
@@ -4057,7 +4057,7 @@ func testLivenessAdversarial(t *testing.T) {
 		defer releaseB()
 		bCtx, bCancel := context.WithCancel(ctx)
 		defer bCancel()
-		probeB := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+		probeB := &adoptProbe{AdoptStore: collectorStore{v: v}, at: map[int]func(){
 			adoptClearCounts: func() { close(claimed); <-release },
 			adoptMark:        bCancel,
 		}}
@@ -4067,7 +4067,7 @@ func testLivenessAdversarial(t *testing.T) {
 		}()
 
 		// A starts B before its mark and lets B clear before it settles.
-		probeA := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+		probeA := &adoptProbe{AdoptStore: collectorStore{v: v}, at: map[int]func(){
 			adoptMark: func() { <-claimed },
 			adoptSettle: func() {
 				releaseB()
@@ -4109,7 +4109,7 @@ func testLivenessAdversarial(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "R"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
 			t.Fatal(err)
 		}
-		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+		probe := &adoptProbe{AdoptStore: collectorStore{v: v}, at: map[int]func(){
 			adoptSettle: func() {
 				if _, err := block_gc.Adopt(ctx, collectorStore{v: v}, testRule()); err != nil {
 					t.Error(err)
@@ -4172,7 +4172,7 @@ func (p *auditProbe) ScanBlocks(ctx context.Context, fn func(refs []*block.Block
 // adoptProbe runs an adoption's transactions, calling the func at a
 // transaction's position, counted from one, before it runs.
 type adoptProbe struct {
-	block_gc.Store
+	block_gc.AdoptStore
 	// at maps a transaction's position to the func called before it.
 	at map[int]func()
 	// n counts the transactions.
@@ -4186,7 +4186,7 @@ func (p *adoptProbe) Update(ctx context.Context, fn func(rec *block_gc.Records, 
 		delete(p.at, p.n)
 		f()
 	}
-	return p.Store.Update(ctx, fn)
+	return p.AdoptStore.Update(ctx, fn)
 }
 
 // waitAdopted waits for the background adoption of v to mark it adopted.
@@ -4255,7 +4255,7 @@ func markUnadopted(t *testing.T, v *Volume) {
 
 // walkProbe calls before ahead of each of a store's write transactions.
 type walkProbe struct {
-	block_gc.Store
+	block_gc.AdoptStore
 	// before runs ahead of each transaction.
 	before func()
 }
@@ -4263,7 +4263,7 @@ type walkProbe struct {
 // Update calls before, then runs the transaction.
 func (p *walkProbe) Update(ctx context.Context, fn func(rec *block_gc.Records, blocks block.StoreOps) error) error {
 	p.before()
-	return p.Store.Update(ctx, fn)
+	return p.AdoptStore.Update(ctx, fn)
 }
 
 // livenessRecords returns the liveness records of the kinds in store, by key.

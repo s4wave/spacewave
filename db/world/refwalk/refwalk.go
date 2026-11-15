@@ -136,15 +136,6 @@ func (w *Walker) WorldNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, 
 	return Node{Ref: ref, Ctor: world_block.NewWorldBlock, Xfrm: xfrm, World: at}, nil
 }
 
-// BlobNode returns the node of a blob encoded with world's transform.
-func (w *Walker) BlobNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, error) {
-	xfrm, err := w.Transformer(world.GetTransformConf())
-	if err != nil {
-		return Node{}, err
-	}
-	return Node{Ref: ref, Ctor: blob.NewBlobBlock, Xfrm: xfrm}, nil
-}
-
 // Walk visits the blocks below root not visited yet, depth first, so the
 // objects of one World resolve their types in one snapshot. It reads a batch
 // from the top of the stack concurrently, then passes the batch to visit in

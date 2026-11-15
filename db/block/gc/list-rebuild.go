@@ -41,9 +41,11 @@ func rebuildable(state *LivenessState) error {
 // it verified, in bounded transactions that yield to writers. The marks
 // persist, so a walk that stops and runs again rewrites nothing it verified.
 // Finish then walks from every named root through the lists and clears the
-// Volume's mark only when every listed block a root reaches is verified: a
-// block the walker could not decode keeps its list unverified, and the
-// collector keeps freeing only blocks Land gave birth to since the upgrade.
+// Volume's mark only when every stored block a root reaches has a verified
+// list: a block the walker could not decode, or did not reach, keeps its list
+// unverified or has none, and the collector keeps freeing only blocks Land
+// gave birth to since the upgrade. A block a root names whose bytes the Volume
+// lacks has no children to miss, so it holds nothing back.
 // A block no root reaches needs no verified list: a list can only miss
 // children, so an unreached block's list only undercounts holders it never
 // releases.
@@ -60,7 +62,7 @@ func rebuildable(state *LivenessState) error {
 // and the block stays unverified.
 type ListRebuild struct {
 	// store is the Volume.
-	store Store
+	store AdoptStore
 	// unadopted is called after Finish returns the Volume to unadopted, nil
 	// when nothing waits on it.
 	unadopted func()
@@ -75,7 +77,7 @@ type ListRebuild struct {
 // verified with ErrListsVerified. Finish calls unadopted, unless it is nil,
 // once it has returned the Volume to unadopted, so the owner of the Volume's
 // adoption can start the recount.
-func OpenListRebuild(ctx context.Context, store Store, unadopted func()) (*ListRebuild, error) {
+func OpenListRebuild(ctx context.Context, store AdoptStore, unadopted func()) (*ListRebuild, error) {
 	err := store.View(ctx, func(rec *Records) error {
 		state, err := rec.GetState(ctx)
 		if err != nil {
@@ -205,13 +207,13 @@ func (r *ListRebuild) verifyOne(ctx context.Context, rec *Records, entry *block.
 
 // Finish writes the pending lists, walks from every named root through the
 // lists, and clears the Volume's unverified lists mark and the rebuild's
-// marks when every listed block a root reaches is verified. The walk marks
-// what it reaches on disk and keeps only its frontier in memory, yielding to
-// writers between slices, so it runs on a live Volume; an interrupted walk
-// starts over on the next Finish. A list Land writes while the mark stands is
-// verified as it is written, by its landed mark, so the World's commits during the walk add no
-// unverified list; a cache fill's list is not, and a rerun of the typed walk
-// verifies it.
+// marks when every stored block a root reaches has a verified list. The walk
+// marks what it reaches on disk and keeps only its frontier in memory,
+// yielding to writers between slices, so it runs on a live Volume; an
+// interrupted walk starts over on the next Finish. A list Land writes while
+// the mark stands is verified as it is written, by its landed mark, so the
+// World's commits during the walk add no unverified list; a cache fill's list
+// is not, and a rerun of the typed walk verifies it.
 //
 // Known hole, so frees stay off after a Finish: a listed block no root
 // reaches keeps its unverified list past the clear, and a later put of it
@@ -269,20 +271,27 @@ func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 	return r.res, err
 }
 
-// visitReached counts a listed block a root reaches without a verified list,
-// descending no further below it, and descends into a verified one.
+// visitReached counts a stored block a root reaches without a verified list,
+// descending no further below it, and descends into a verified one. A block
+// whose bytes the Volume lacks is stepped over: it has no children to miss.
+// A stored block with no list counts: no typed walk decoded it, so the
+// children it names are unknown.
 func (r *ListRebuild) visitReached(ctx context.Context, rec *Records, ref *block.BlockRef) ([]*block.BlockRef, error) {
-	// Step over a block without a list.
+	// Step over a block the Volume does not store, and count a listless one.
 	children, listed, err := rec.GetChildren(ctx, ref)
-	if err != nil || !listed {
+	if err != nil {
+		return nil, err
+	}
+	if listed {
+		verified, err := rec.listVerified(ctx, BlockKey(ref))
+		if err != nil || verified {
+			return children, err
+		}
+	} else if stored, err := r.store.BlockStored(ctx, ref); err != nil || !stored {
 		return nil, err
 	}
 
-	// Count an unverified list, and follow a verified one.
-	verified, err := rec.listVerified(ctx, BlockKey(ref))
-	if err != nil || verified {
-		return children, err
-	}
+	// Count the stored block without a verified list.
 	r.res.Unverified++
 	r.res.UnverifiedSample = sample(r.res.UnverifiedSample, ref)
 	return nil, nil
