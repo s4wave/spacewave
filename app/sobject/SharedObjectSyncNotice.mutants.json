@@ -28,25 +28,5 @@
       ]
     ],
     "expect": "NoticeMatchesWrites"
-  },
-  {
-    "name": "the Space takes writes while it catches up",
-    "replace": [
-      [
-        "Writable == phase = \"caughtUp\"",
-        "Writable == phase \\in {\"caughtUp\", \"catchingUp\"}"
-      ]
-    ],
-    "expect": "NoticeMatchesWrites"
-  },
-  {
-    "name": "catching up says nothing",
-    "replace": [
-      [
-        "    [] phase = \"catchingUp\" -> \"Says the Space is catching up with another device, and is read only until then\"",
-        "    [] phase = \"catchingUp\" -> \"\""
-      ]
-    ],
-    "expect": "NobodyIsStuck"
   }
 ]

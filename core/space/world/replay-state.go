@@ -9,17 +9,12 @@ import (
 // writer, through ObserveReplay; serve reads it to publish the engine, and
 // Admit and writeOp to refuse a write. The adapter's bcast guards it.
 //
-// Invariant, kept under bcast: a write is admitted only while the highest
-// position of another peer's operation this device holds is at or below the
-// position the body applied, this device's own operations aside. The driver
-// moves the state to catching up when a state holding such an operation
-// arrives, before the step that applies it can start, and to caught up only
-// when that step reaches the end of the order; admitWrite reads the state in
-// the same hold of bcast that admits. So while replay opens, catches up, or
-// waits at any position, the Space is read only on this device. A turn builds
-// on the installed head, which lacks every operation not yet applied, and a
-// recorded write applied after them would replace what they wrote, such as an
-// object root, with nothing to detect it.
+// Invariant: a write is admitted only on a World that applied every operation
+// ordered before it that this device has seen; while replay opens or waits at
+// any position, the Space is read only on this device. A turn builds on the
+// installed head, which lacks the operation replay waits at and every one
+// after it, and a recorded write applied after them would replace what they
+// wrote, such as an object root, with nothing to detect it.
 type replayGate struct {
 	// state is the driver's last replay state, nil before its first step.
 	state *sobject.SOReplayState

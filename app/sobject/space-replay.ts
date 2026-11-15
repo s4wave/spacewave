@@ -27,7 +27,6 @@ export function describeSaveHold(
     case 'caughtUp':
       return null
     case 'waiting':
-    case 'catchingUp':
       return 'Saving waits until this Space catches up'
     default:
       return 'Saving waits until this Space opens'
