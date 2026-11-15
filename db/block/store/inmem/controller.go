@@ -45,7 +45,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller
 
 		// Wrap the in-memory transaction store with the configured block store.
 		st := store_kvtx_inmem.NewStore()
-		storeOps := NewInmemBlock(kvk, st, conf.GetForceHashType(), conf.GetHashGet())
+		storeOps := NewInmemBlock(kvk, st, conf.GetForceHashType())
 		store := block_store.NewStore(conf.GetBlockStoreId(), storeOps)
 		return store, nil, nil
 	}

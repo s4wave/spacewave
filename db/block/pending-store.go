@@ -146,15 +146,35 @@ func (s *PendingStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 // allows, and puts the rest to the inner store. A kept entry reports whether
 // it was kept already.
 func (s *PendingStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
+	if err := verifyKeepable(entries); err != nil {
+		return nil, err
+	}
 	existed, _, err := s.put(ctx, s.StoreOps, nil, entries)
 	return existed, err
+}
+
+// verifyKeepable hashes each entry put may keep, refusing one whose bytes do
+// not match its ref with ErrBlockRefMismatch. The rest go to a store that
+// hashes them itself.
+func verifyKeepable(entries []*PutBatchEntry) error {
+	for _, e := range entries {
+		if !e.RefsKnown || e.Tombstone {
+			continue
+		}
+		if err := VerifyPut(e.Ref, e.Data); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // put keeps the entries it can and puts the rest to dst, reporting whether
 // it put any. Each entry kept through hold, when set, is held until the hold
 // is released. The kept blocks an entry past the bound names are stored with
 // it and stay kept, so the Worlds that name them still find them here.
-// Tombstones are refused: a kept block may be reached by any kept World.
+// Tombstones are refused: a kept block may be reached by any kept World. The
+// caller has hashed each entry put may keep: PutBlock builds its ref from the
+// bytes, and a batch passes verifyKeepable.
 func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold, entries []*PutBatchEntry) ([]bool, bool, error) {
 	// Refuse tombstones before keeping anything.
 	for _, e := range entries {

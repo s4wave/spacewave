@@ -262,7 +262,7 @@ func TestCommandRunThrough(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer writer.Close()
-	volume := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), writer, 0, false)
+	volume := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), writer, 0)
 	leafRef, _, err := volume.PutBlock(ctx, []byte("leaf"), &block.PutOpts{})
 	if err != nil {
 		t.Fatal(err)

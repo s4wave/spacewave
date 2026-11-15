@@ -367,7 +367,7 @@ func TestTransferRejectsUnknownRefs(t *testing.T) {
 	// Serve a block from a store that retains only its bytes.
 	ctx := context.Background()
 	newStore := func() block.StoreOps {
-		return block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)
+		return block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)
 	}
 	source := newStore()
 	ref, _, err := source.PutBlock(ctx, []byte("untracked"), nil)

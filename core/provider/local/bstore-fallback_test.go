@@ -41,7 +41,7 @@ func (l *leafStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 
 // newLeafStore returns an empty in-memory store of known leaves.
 func newLeafStore() block.StoreOps {
-	return &leafStore{StoreOps: block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)}
+	return &leafStore{StoreOps: block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)}
 }
 
 // ownedStore writes through a Volume under the ownership of a bucket, as the
@@ -86,7 +86,8 @@ type countingStore struct {
 	block.StoreOps
 	// reads counts the block reads and existence checks.
 	reads atomic.Int64
-	// corrupt serves every block with its first byte flipped.
+	// corrupt flips each block's first byte, which the SQL store's own check
+	// reports as ErrBlockCorrupt.
 	corrupt atomic.Bool
 }
 
@@ -107,7 +108,10 @@ func (c *countingStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	c.reads.Add(1)
 	stored, err := c.StoreOps.GetStoredBlock(ctx, ref)
 	if stored != nil && c.corrupt.Load() {
-		stored.Data = append([]byte{stored.Data[0] ^ 0xff}, stored.Data[1:]...)
+		flipped := append([]byte{stored.Data[0] ^ 0xff}, stored.Data[1:]...)
+		if err := block.VerifyRead(ref, flipped, "sql"); err != nil {
+			return nil, err
+		}
 	}
 	return stored, err
 }

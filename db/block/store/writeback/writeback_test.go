@@ -152,7 +152,7 @@ func newInmemBlockStore() block.StoreOps {
 
 // newUntrackedBlockStore returns a store that holds bytes without refs.
 func newUntrackedBlockStore() block.StoreOps {
-	return block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)
+	return block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)
 }
 
 // drain uploads the Store's queue to remote and returns once nothing is

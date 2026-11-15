@@ -20,7 +20,6 @@ func newReadThroughTestBlockStore() *block_store_kvtx.KVTxBlock {
 		store_kvkey.NewDefaultKVKey(),
 		hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]()),
 		hash.HashType_HashType_BLAKE3,
-		false,
 	)
 }
 

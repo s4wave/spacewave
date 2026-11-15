@@ -62,7 +62,7 @@ func TestReadPackBlocksRejectsCorruptedBlock(t *testing.T) {
 
 	// Verify the whole-pack read rejects the corrupted block reference.
 	_, err := store.ReadPackBlocks(t.Context(), "pack", int64(len(packBytes)))
-	if !errors.Is(err, block.ErrBlockRefMismatch) {
-		t.Fatalf("err=%v, want ErrBlockRefMismatch", err)
+	if !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("err=%v, want ErrBlockCorrupt", err)
 	}
 }

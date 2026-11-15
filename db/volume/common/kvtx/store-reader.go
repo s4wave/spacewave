@@ -56,14 +56,21 @@ func (r storeReader) readGen() uint64 {
 	return block.DurableReadGeneration()
 }
 
-// GetBlock reads the store and marks a found block durable.
+// GetBlock reads the store and marks a found block durable. A corrupt read
+// names the volume and counts in its health.
 func (r storeReader) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Read the block, counting a corrupt read in the health.
 	gen := r.readGen()
 	data, found, err := r.StoreOps.GetBlock(ctx, ref)
-	if err == nil && found {
+	if err != nil {
+		return nil, false, r.volume.noteCorrupt(err)
+	}
+
+	// Mark a found block durable.
+	if found {
 		block.MarkDurableRead(ctx, ref, gen)
 	}
-	return data, found, err
+	return data, found, nil
 }
 
 // GetStoredBlock reads a block with its child list: a store that knows its
@@ -73,8 +80,11 @@ func (r storeReader) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	// Read the block and mark it durable.
 	gen := r.readGen()
 	stored, err := r.StoreOps.GetStoredBlock(ctx, ref)
-	if err != nil || stored == nil {
-		return stored, err
+	if err != nil {
+		return nil, r.volume.noteCorrupt(err)
+	}
+	if stored == nil {
+		return nil, nil
 	}
 	block.MarkDurableRead(ctx, ref, gen)
 

@@ -33,7 +33,7 @@ func TestPeerReadsWaitAcrossRestart(t *testing.T) {
 		}
 
 		// A peer store holds the block.
-		peers := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)
+		peers := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)
 		ref, _, err := peers.PutBlock(ctx, []byte("peer block"), nil)
 		if err != nil {
 			t.Fatal(err)

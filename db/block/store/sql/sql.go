@@ -45,13 +45,16 @@ const rowOverhead = 512
 
 // Config locates the database and the table the store writes.
 type Config struct {
-	// Host is the database host and Port its port, zero for 3306.
+	// Host is the database host.
 	Host string
+	// Port is the database port, zero for 3306.
 	Port uint32
 	// Database is the database name.
 	Database string
-	// User and Password authenticate to the database.
-	User, Password string
+	// User is the database user.
+	User string
+	// Password authenticates User to the database.
+	Password string
 	// Table is the blocks table.
 	Table string
 	// TLS connects with TLS.
@@ -284,8 +287,8 @@ func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool
 	return stored.GetData(), stored != nil, err
 }
 
-// GetStoredBlock returns the block with its refs. Returns nil if the block is
-// not found. A found block is committed and the store never removes one, so
+// GetStoredBlock returns the block with its refs, verified against ref, or
+// ErrBlockCorrupt. Returns nil if the block is not found. A found block is committed and the store never removes one, so
 // the read is marked durable and the decoded block may enter the shared pool.
 func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Read the block's row, taking the removal generation before the query.
@@ -301,6 +304,11 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "read block")
+	}
+
+	// Verify the bytes; a mismatch leaves the row as stored.
+	if err := block.VerifyRead(ref, data, string(s.storeID)); err != nil {
+		return nil, err
 	}
 
 	// Decode its refs; a NULL column means they are unknown.

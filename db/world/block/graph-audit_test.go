@@ -22,7 +22,7 @@ import (
 func TestAuditGraphLogFindsLostRecords(t *testing.T) {
 	// Open a World with three objects and two edges.
 	ctx := t.Context()
-	store := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)
+	store := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)
 	btx, bcs := block.NewTransaction(store, nil, nil, nil)
 	ws, err := NewWorldState(ctx, logrus.NewEntry(logrus.New()), true, btx, bcs, store, nil, world_mock.LookupMockOp, false)
 	if err != nil {

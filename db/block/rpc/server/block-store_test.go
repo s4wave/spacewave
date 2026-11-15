@@ -61,7 +61,7 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 	// Prepare the batch store and its block references.
 	store := &testStore{}
 	server := NewBlockStore(store)
-	ref := &block.BlockRef{}
+	ref := mustBlockRef(t, []byte("hello"))
 	outRef := &block.BlockRef{}
 
 	// Send a batch containing block data and outgoing references.
@@ -86,6 +86,42 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 	if got := store.batchEntries[0].Refs; len(got) != 1 || got[0] != outRef {
 		t.Fatalf("expected refs to forward through batch request")
 	}
+}
+
+// TestBlockStorePutBlockBatchRefusesWrongBytes checks that a batch entry whose
+// bytes do not hash to its ref is refused with ErrBlockRefMismatch and that
+// the store takes nothing of the batch.
+func TestBlockStorePutBlockBatchRefusesWrongBytes(t *testing.T) {
+	// Send a good entry, then one whose bytes do not match its ref.
+	store := &testStore{}
+	server := NewBlockStore(store)
+	resp, err := server.PutBlockBatch(context.Background(), &block_rpc.PutBlockBatchRequest{
+		Entries: []*block_rpc.PutBlockBatchEntry{
+			{Ref: mustBlockRef(t, []byte("good")), Data: []byte("good")},
+			{Ref: mustBlockRef(t, []byte("named")), Data: []byte("other")},
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// The batch is refused before the store sees any entry.
+	if got := resp.GetError(); got != block.ErrBlockRefMismatch.Error() {
+		t.Fatalf("error = %q, want %q", got, block.ErrBlockRefMismatch.Error())
+	}
+	if store.batchEntries != nil {
+		t.Fatalf("store took %d entries of a refused batch", len(store.batchEntries))
+	}
+}
+
+// mustBlockRef returns the ref of data.
+func mustBlockRef(t *testing.T, data []byte) *block.BlockRef {
+	t.Helper()
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ref
 }
 
 func TestBlockStoreSyncForwards(t *testing.T) {

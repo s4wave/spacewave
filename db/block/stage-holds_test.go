@@ -46,7 +46,7 @@ func TestStageWrappersHoldCompleteRoots(t *testing.T) {
 func TestBufferedStoreHoldDoesNotFlushPendingWrites(t *testing.T) {
 	// Buffer an unrelated block above a stage that already proves a root.
 	ctx := t.Context()
-	physical := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)
+	physical := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)
 	inner := &block_store_test.HoldingStage{StoreOps: physical}
 	buffered := block.NewBufferedStore(ctx, inner)
 	pending, _, err := buffered.PutBlock(ctx, []byte("pending write"), nil)

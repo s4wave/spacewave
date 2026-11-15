@@ -151,6 +151,16 @@ export interface VolumeHealth {
    * such moves landed over while the volume observed, since it opened.
    */
   notHeldChildBlocks?: bigint
+  /**
+   * CorruptReads counts the reads since the volume opened whose stored bytes
+   * did not hash to the block's ref. The bytes stay stored.
+   */
+  corruptReads?: bigint
+  /**
+   * CorruptRefs lists the first blocks those reads found, at most 16, as block
+   * ref strings.
+   */
+  corruptRefs?: string[]
 }
 
 export const VolumeHealth: MessageType<VolumeHealth> =
@@ -167,4 +177,6 @@ export const VolumeHealth: MessageType<VolumeHealth> =
     [12, 'reserve_bytes', 4],
     [13, 'not_held_root_blocks', 4],
     [14, 'not_held_child_blocks', 4],
+    [15, 'corrupt_reads', 4],
+    [16, 'corrupt_refs', 9, 1],
   ])

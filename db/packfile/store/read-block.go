@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
 
@@ -79,8 +78,8 @@ func decodeVerifiedBlock(ref *block.BlockRef, value []byte) (*block.StoredBlock,
 	if err != nil {
 		return nil, err
 	}
-	if err := ref.VerifyData(stored.Data, false); err != nil {
-		return nil, errors.Wrapf(block.ErrBlockRefMismatch, "packfile block %s", ref.MarshalString())
+	if err := block.VerifyRead(ref, stored.Data, ""); err != nil {
+		return nil, err
 	}
 	return stored, nil
 }
