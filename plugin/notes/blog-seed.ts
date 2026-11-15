@@ -75,15 +75,24 @@ export async function seedBlog(
         ],
         timestamp,
       ),
-      seedTypedObject(
-        'create companion notebook object',
-        blogObjectKey + '-notebook',
-        Notebook.toBinary({
-          name: blogName + ' Notes',
-          sources: [{ name: 'Posts', ref: unixfsKey + '/-/' }],
-        }),
-        'notes/notebook',
-      ),
+      // A blog op stored before applySeed decided seeds replays through
+      // this handler, since stored op logs replay through the current
+      // handler of an unpinned op id. The earlier handler kept any object
+      // already at the companion notebook key, whatever its type, and wrote
+      // the blog and its UnixFS root, so this seed keeps it too and the
+      // replay reaches the same World.
+      {
+        ...seedTypedObject(
+          'create companion notebook object',
+          blogObjectKey + '-notebook',
+          Notebook.toBinary({
+            name: blogName + ' Notes',
+            sources: [{ name: 'Posts', ref: unixfsKey + '/-/' }],
+          }),
+          'notes/notebook',
+        ),
+        keepFound: true,
+      },
     ],
     abortSignal,
   )

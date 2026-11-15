@@ -790,6 +790,55 @@ describe('notes quickstart seed', () => {
     )
   }
 
+  // applyBatchesThroughOpHandler makes the host apply each seed batch's one
+  // op through the plugin's op handler, writing nothing when the op fails or
+  // is rejected.
+  function applyBatchesThroughOpHandler() {
+    const created = h.createdHandlers.find(
+      (c) => c.definition === WorldOpHandlerServiceDefinition,
+    )
+    const opHandler = created?.handler as {
+      ApplyWorldOp(
+        request: Record<string, unknown>,
+        abortSignal: AbortSignal,
+        context: unknown,
+      ): Promise<{ rejectionCode?: string; rejectionMessage?: string }>
+    }
+    h.executeWorldBatch.mockImplementation(
+      async (
+        mutations: Array<{ mutation: { value: Record<string, unknown> } }>,
+      ) => {
+        const before = new Map(h.world)
+        const restore = () => {
+          h.world.clear()
+          for (const [key, typeId] of before) h.world.set(key, typeId)
+        }
+        const op = mutations[0]?.mutation.value ?? {}
+        const signal = new AbortController().signal
+        let resp: { rejectionCode?: string; rejectionMessage?: string }
+        try {
+          resp = await opHandler.ApplyWorldOp(
+            {
+              operationTypeId: op.opTypeId,
+              opData: op.opData,
+              attachedWorldStateResourceId: 1,
+            },
+            signal,
+            { signal },
+          )
+        } catch (err) {
+          restore()
+          throw err
+        }
+        if (resp.rejectionCode) {
+          restore()
+          return { ...resp, failedIndex: 0 }
+        }
+        return { seqno: 1n }
+      },
+    )
+  }
+
   beforeEach(() => {
     h.executeWorldBatch.mockReset()
     h.engineRelease.mockReset()
@@ -848,51 +897,7 @@ describe('notes quickstart seed', () => {
 
   it('seeds again over its own earlier seed, writing each object once, and rejects a key it cannot keep', async () => {
     const handler = await startSeedHandler()
-    const created = h.createdHandlers.find(
-      (c) => c.definition === WorldOpHandlerServiceDefinition,
-    )
-    const opHandler = created?.handler as {
-      ApplyWorldOp(
-        request: Record<string, unknown>,
-        abortSignal: AbortSignal,
-        context: unknown,
-      ): Promise<{ rejectionCode?: string; rejectionMessage?: string }>
-    }
-    // The host applies the batch's one op through the plugin's op handler
-    // and writes nothing when it fails or is rejected.
-    h.executeWorldBatch.mockImplementation(
-      async (
-        mutations: Array<{ mutation: { value: Record<string, unknown> } }>,
-      ) => {
-        const before = new Map(h.world)
-        const restore = () => {
-          h.world.clear()
-          for (const [key, typeId] of before) h.world.set(key, typeId)
-        }
-        const op = mutations[0]?.mutation.value ?? {}
-        const signal = new AbortController().signal
-        let resp: { rejectionCode?: string; rejectionMessage?: string }
-        try {
-          resp = await opHandler.ApplyWorldOp(
-            {
-              operationTypeId: op.opTypeId,
-              opData: op.opData,
-              attachedWorldStateResourceId: 1,
-            },
-            signal,
-            { signal },
-          )
-        } catch (err) {
-          restore()
-          throw err
-        }
-        if (resp.rejectionCode) {
-          restore()
-          return { ...resp, failedIndex: 0 }
-        }
-        return { seqno: 1n }
-      },
-    )
+    applyBatchesThroughOpHandler()
 
     for (const [id, indexPath, typeId, writes] of [
       [
@@ -983,6 +988,54 @@ describe('notes quickstart seed', () => {
       )
       expect((rejection as WorldOperationRejection).message).toBe(message)
       expect([...h.world]).toEqual([[key, foundType]])
+      expect(h.seedWrites).toEqual([])
+    }
+  })
+
+  it('keeps an object left at a new blog companion notebook key, and refuses every other taken companion key', async () => {
+    const handler = await startSeedHandler()
+    applyBatchesThroughOpHandler()
+
+    // A blog op stored before applySeed decided seeds succeeded over any
+    // object at its companion notebook key and kept it; its replay must too.
+    for (const foundType of ['notes/notebook', 'notes/docs', '']) {
+      h.world.clear()
+      h.seedWrites.length = 0
+      h.world.set('blog/site-notebook', foundType)
+      await expect(seed(handler, 'blog')).resolves.toEqual({
+        indexPath: 'blog/site',
+        pluginIds: ['spacewave-notes'],
+      })
+      expect(h.seedWrites).toEqual([
+        'init fs/blog/site',
+        'upload fs/blog/site',
+        'create blog/site',
+        'type blog/site',
+      ])
+      expect([...h.world].sort()).toEqual([
+        ['blog/site', 'notes/blog'],
+        ['blog/site-notebook', foundType],
+        ['fs/blog/site', 'unixfs/fs-node'],
+      ])
+    }
+
+    // The UnixFS root of every seed, and the docs rules, are unchanged: a
+    // free primary whose UnixFS key is taken rejects the op.
+    for (const [id, key, primary] of [
+      ['blog', 'fs/blog/site', 'notes/blog blog/site'],
+      ['docs', 'documentation-fs', 'notes/docs documentation'],
+    ]) {
+      h.world.clear()
+      h.seedWrites.length = 0
+      h.world.set(key, 'unixfs/fs-node')
+      const rejection = await seed(handler, id).catch((err: unknown) => err)
+      expect((rejection as WorldOperationRejection).code).toBe(
+        SEED_KEY_TAKEN_CODE,
+      )
+      expect((rejection as WorldOperationRejection).message).toBe(
+        `The object ${key} was left by an earlier object, so the new ${primary} cannot use it. Delete or rename ${key}, then try again.`,
+      )
+      expect([...h.world]).toEqual([[key, 'unixfs/fs-node']])
       expect(h.seedWrites).toEqual([])
     }
   })
