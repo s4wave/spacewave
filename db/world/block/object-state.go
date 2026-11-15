@@ -146,7 +146,8 @@ func (o *ObjectState) ApplyObjectOp(
 	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
 
-	// Apply the object operation.
+	// Apply the object operation within the write's budget.
+	ctx = world.WithWriteBudget(ctx, o.w.budget)
 	sysErr, err := world.ApplyWorldObjectOp(ctx, o.w.le, op, o, opSender)
 	if err != nil {
 		return 0, sysErr, err

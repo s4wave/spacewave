@@ -1059,12 +1059,11 @@ func (r *WorldStateResource) resolveWorldOp(
 	return op, opSender, nil, nil
 }
 
-// applyResolvedWorldOp applies op to ws and encodes a domain rejection, an
-// unavailable plugin or an unhandled operation as a response. An unavailable
-// plugin was never sent the operation, so nothing was written. A plugin
-// timeout is encoded only when atomic reports that the failed operation's
-// transaction is discarded, so the code means nothing was written; otherwise
-// it returns as an error.
+// applyResolvedWorldOp applies op to ws and encodes the refusals
+// opErrorRefusal classifies as a response. An unavailable plugin was never
+// sent the operation, so nothing was written. A plugin timeout is encoded only
+// when atomic reports that the failed operation's transaction is discarded, so
+// the code means nothing was written; otherwise it returns as an error.
 func applyResolvedWorldOp(
 	ctx context.Context,
 	ws world.WorldState,
@@ -1090,11 +1089,13 @@ func applyResolvedWorldOp(
 
 // opErrorRefusal classifies the error of an applied operation as a refusal:
 // a domain rejection, an unhandled operation, an unavailable plugin, which
-// was never sent the operation, or a plugin timeout when atomic reports that
-// the failed operation's transaction is discarded, so the code means nothing
-// was written. ok is false for any other error.
+// was never sent the operation, a plugin timeout when atomic reports that the
+// failed operation's transaction is discarded, so the code means nothing was
+// written, or a spent write budget, which ends a write only after discarding
+// its last attempt and reads as a plugin timeout. ok is false for any other
+// error.
 func opErrorRefusal(err error, atomic bool) (code s4wave_world.WorldErrorCode, rejection *world.OperationRejection, ok bool) {
-	// Match each typed refusal in turn.
+	// Match a rejection and a plugin that was never sent the operation.
 	if errors.As(err, &rejection) {
 		return 0, rejection, true
 	}
@@ -1102,10 +1103,18 @@ func opErrorRefusal(err error, atomic bool) (code s4wave_world.WorldErrorCode, r
 	if errors.As(err, &unavailable) {
 		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE, nil, true
 	}
+
+	// Match a timeout that kept nothing: an atomic one, or a spent budget.
 	var timeout *world.PluginOpTimeoutError
 	if errors.As(err, &timeout) && atomic {
 		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT, nil, true
 	}
+	var spent *world.WriteBudgetSpentError
+	if errors.As(err, &spent) {
+		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT, nil, true
+	}
+
+	// Match an operation no handler resolved.
 	if errors.Is(err, world.ErrUnhandledOp) {
 		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP, nil, true
 	}

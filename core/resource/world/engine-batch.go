@@ -34,7 +34,8 @@ type batchOp struct {
 // the batch before any transaction opens, whatever entries precede it.
 // Because a refused batch discards its transaction, a plugin that times out
 // inside it is reported as WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT: nothing was
-// written.
+// written. So is a batch whose replays spent the write budget; that refusal
+// names no entry, and its failed index is zero.
 func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_world.ExecuteWorldBatchRequest) (*s4wave_world.ExecuteWorldBatchResponse, error) {
 	// Resolve and prepare every op before the transaction takes the writer.
 	mutations := req.GetMutations()
@@ -77,7 +78,7 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 		return nil
 	})
 	if err != nil && !errors.Is(err, errBatchRefused) {
-		return nil, err
+		return batchOpRefusal(err)
 	}
 	return resp, nil
 }

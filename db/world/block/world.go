@@ -75,6 +75,13 @@ type WorldState struct {
 
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
+	// budget is the WriteBudget of the engine write this state serves, nil
+	// otherwise. The state holds it because every operation of the write,
+	// including a nested one a plugin applies over RPC with a context of its
+	// own, is applied to this state, its objects or a Fork, which copies it.
+	// ApplyWorldOp and ApplyObjectOp put it on the operation's context, so
+	// the nested operation spends the budget of the write holding the writer.
+	budget *world.WriteBudget
 	// localBucketID marks same-bucket object roots as local DAG edges.
 	localBucketID string
 
@@ -394,7 +401,8 @@ func (t *WorldState) ApplyWorldOp(
 	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
 
-	// Apply the world operation.
+	// Apply the world operation within the write's budget.
+	ctx = world.WithWriteBudget(ctx, t.budget)
 	sysErr, err := op.ApplyWorldOp(ctx, t.le, t, opSender)
 	if err != nil {
 		return 0, sysErr, err
@@ -462,6 +470,7 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 	}
 	ows.readRelease = release
 	ows.localBucketID = t.localBucketID
+	ows.budget = t.budget
 	return ows, nil
 }
 

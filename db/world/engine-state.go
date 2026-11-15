@@ -306,6 +306,31 @@ func retryWorldOp(err error) bool {
 	return IsSuperseded(err) || kvtx.RetryInvalidSnapshot(err)
 }
 
+// replayWorldOp reports whether a failed attempt of a World operation replays:
+// retryWorldOp permits it and no plugin call spent the operation's budget. It
+// returns the error the operation ends with when it does not.
+func replayWorldOp(budget *WriteBudget, err error) (bool, error) {
+	if !retryWorldOp(err) {
+		return false, err
+	}
+	if budget.Spent() {
+		return false, &WriteBudgetSpentError{Length: budget.GetLength(), Err: err}
+	}
+	return true, err
+}
+
+// withWrite returns ctx carrying a WriteBudget for a write, keeping a budget
+// ctx already carries. The engine starts it when the write acquires the
+// writer.
+func withWrite(ctx context.Context, write bool) (context.Context, *WriteBudget) {
+	budget := GetWriteBudget(ctx)
+	if write && budget == nil {
+		budget = NewWriteBudget(WriteBudgetLength)
+		ctx = context.WithValue(ctx, writeBudgetKey{}, budget)
+	}
+	return ctx, budget
+}
+
 // AppliesAtomically reports whether ApplyWorldOp or ApplyObjectOp on ws runs
 // each operation in a transaction of its own and discards that transaction
 // when the operation fails, so a failed operation kept nothing it wrote. It
@@ -325,19 +350,25 @@ func AppliesAtomically(ws any) bool {
 
 // performOp replays a complete operation in a fresh transaction after either a
 // coordinated head change or an invalid storage snapshot. Each failed attempt
-// is discarded before the next transaction opens.
+// is discarded before the next transaction opens. Every attempt of a write
+// spends one WriteBudget.
 func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx Tx) error) error {
+	// Refuse a write on a read-only state.
 	if !e.write && write {
 		return tx.ErrNotWrite
 	}
 
+	// Spend one budget across every attempt of a write.
+	ctx, budget := withWrite(ctx, write)
+
+	// Replay the operation while the failure and the budget permit it.
 	var err error
 	for tries := 0; tries <= maxEngineWorldStateTries; tries++ {
 		if err = ctx.Err(); err != nil {
 			return err
 		}
-		err = e.performOpOnce(ctx, write, cb)
-		if !retryWorldOp(err) {
+		var retry bool
+		if retry, err = replayWorldOp(budget, e.performOpOnce(ctx, write, cb)); !retry {
 			return err
 		}
 	}

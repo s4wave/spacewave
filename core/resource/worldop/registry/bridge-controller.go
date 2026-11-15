@@ -22,19 +22,18 @@ import (
 )
 
 // pluginOpDeadline bounds the calls into a plugin's worker for one World
-// operation: validate, attach, apply and detach. The operation runs inside a
-// write transaction that holds the World engine's writer, so a worker that
-// stalls but stays alive would otherwise block every write to the Space until
-// the caller gives up. The slowest plugin handlers today, such as
-// notes/blog/create with its seed, make a few dozen in-process calls on the
-// attached World state and none over the network, so ten seconds is far above
-// what a working handler needs and short enough that a stall ends.
+// operation, validate, attach, apply and detach, when the operation runs with
+// no started world.WriteBudget, such as on a rehearsal or a fork. An operation
+// applied in an engine write that holds the World engine's writer instead ends
+// its calls at the write's budget deadline, which every attempt and nested
+// operation of the write shares, so a worker that stalls but stays alive does
+// not block every write to the Space until the caller gives up.
 //
 // An operation applied through an engine World state connects to its plugin
 // before the writer, in PrepareApply, under pluginLoadDeadline instead. One
 // that was not prepared, in a replay or inside a caller's transaction,
-// connects under this deadline too, so a cold load that hangs ends with it.
-const pluginOpDeadline = 10 * time.Second
+// connects under the same deadline, so a cold load that hangs ends with it.
+const pluginOpDeadline = world.WriteBudgetLength
 
 // pluginLoadDeadline bounds the plugin load PrepareApply waits on before the
 // writer. A cold load fetches and starts the plugin's executable, which can
@@ -540,14 +539,22 @@ func (o *bridgeOperation) acquirePlugin(ctx context.Context) (*s4wave_plugin.Plu
 	return resources, resources.Release, nil
 }
 
-// withDeadline returns ctx bounded by pluginOpDeadline, with a
+// withDeadline returns ctx bounded by the deadline of the started
+// world.WriteBudget ctx carries, or by pluginOpDeadline without one, with a
 // world.PluginOpTimeoutError for this operation as the cause when it expires.
 func (o *bridgeOperation) withDeadline(ctx context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeoutCause(ctx, pluginOpDeadline, &world.PluginOpTimeoutError{
+	timeout := &world.PluginOpTimeoutError{
 		PluginID:        o.reg.GetPluginId(),
 		OperationTypeID: o.opTypeID,
 		Deadline:        pluginOpDeadline,
-	})
+	}
+	if budget := world.GetWriteBudget(ctx); budget != nil {
+		if deadline, ok := budget.Deadline(); ok {
+			timeout.Deadline = budget.GetLength()
+			return context.WithDeadlineCause(ctx, deadline, timeout)
+		}
+	}
+	return context.WithTimeoutCause(ctx, pluginOpDeadline, timeout)
 }
 
 // callErr returns the world.PluginOpTimeoutError when the deadline from

@@ -46,3 +46,22 @@ func TestTxResourceFailedCommitReleasesWriter(t *testing.T) {
 	}
 	next.Discard()
 }
+
+func TestWriteBudgetSpentRefusal(t *testing.T) {
+	// A write whose replays spent the budget reads as a plugin timeout, on
+	// the operation and batch paths alike, and never as a superseded write.
+	spent := &world.WriteBudgetSpentError{Length: time.Second, Err: world.ErrSuperseded}
+	if world.IsSuperseded(spent) {
+		t.Fatal("spent budget reads as superseded")
+	}
+	for _, atomic := range []bool{true, false} {
+		code, rejection, ok := opErrorRefusal(spent, atomic)
+		if !ok || rejection != nil || code != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT {
+			t.Fatalf("atomic %v: refusal = %v %v %v, want PLUGIN_OP_TIMEOUT", atomic, code, rejection, ok)
+		}
+	}
+	refusal, err := batchOpRefusal(spent)
+	if err != nil || refusal.GetErrorCode() != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT {
+		t.Fatalf("batch refusal = %v %v, want PLUGIN_OP_TIMEOUT", refusal, err)
+	}
+}
