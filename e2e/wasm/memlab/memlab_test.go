@@ -82,7 +82,11 @@ func TestMain(m *testing.M) {
 		le.WithError(err).Fatal("launch browser")
 	}
 
-	if err := h.CompileScripts(wasm.ScriptDir()); err != nil {
+	scriptDir, err := wasm.ScriptDir()
+	if err == nil {
+		err = h.CompileScripts(scriptDir)
+	}
+	if err != nil {
 		h.Release()
 		le.WithError(err).Fatal("compile test scripts")
 	}
@@ -102,7 +106,11 @@ func TestMain(m *testing.M) {
 
 // snapshotDir returns a per-test snapshot directory under testdata/.
 func snapshotDir(t *testing.T) string {
-	dir := filepath.Join(scriptDir(), "testdata", t.Name())
+	memlabDir, err := scriptDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(memlabDir, "testdata", t.Name())
 	os.MkdirAll(dir, 0o755)
 	return dir
 }

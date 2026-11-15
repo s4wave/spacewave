@@ -5,6 +5,7 @@ package bldr_plugin_compiler_go
 import (
 	"testing"
 
+	"github.com/s4wave/spacewave/testbed/reporoot"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +17,7 @@ func TestDiscoveryWorkerFactory(t *testing.T) {
 	an, err := AnalyzePackages(
 		t.Context(),
 		logrus.NewEntry(logrus.New()),
-		testSpacewaveRoot(t),
+		reporoot.Must(t),
 		[]string{"./forge/lib/docker"},
 		nil,
 		"linux",

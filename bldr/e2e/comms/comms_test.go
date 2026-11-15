@@ -63,9 +63,13 @@ var (
 // TestMain builds the fixture bundles, starts playwright, and starts the
 // HTTP test server. All tests share the same server and playwright instance.
 func TestMain(m *testing.M) {
-	// Find the repo root (e2e/comms/ is two levels deep).
-	_, thisFile, _, _ := runtime.Caller(0)
-	commsDir = filepath.Dir(thisFile)
+	// Find the bldr root from the package directory, two levels below it.
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "find comms directory: %v\n", err)
+		os.Exit(1)
+	}
+	commsDir = wd
 	repoRoot = filepath.Join(commsDir, "..", "..")
 	distDir = filepath.Join(commsDir, "dist")
 

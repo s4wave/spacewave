@@ -7,13 +7,13 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"slices"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/ghodss/yaml"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
 // workflow is a GitHub Actions workflow. Jobs stay raw because other jobs may
@@ -104,7 +104,7 @@ var notEnrolledInAnySlice = []string{
 // not deliberately left out.
 func TestAllWasmTestsAreEnrolled(t *testing.T) {
 	// Workflows and tests are read relative to the repository root.
-	repoRoot := testRepoRoot(t)
+	repoRoot := reporoot.Must(t)
 
 	// A test is enrolled when any slice in the hourly tier (e2e.yml e2e-wasm) or
 	// the nightly tier (e2e-nightly.yml e2e-wasm-nightly) selects it.
@@ -173,15 +173,6 @@ func TestAllWasmTestsAreEnrolled(t *testing.T) {
 	if len(unenrolled) != 0 {
 		t.Errorf("these e2e/wasm tests are not selected by any slice; enroll each test in a slice, or deliberately add its name to notEnrolledInAnySlice after review:\n%s", strings.Join(unenrolled, "\n"))
 	}
-}
-
-func testRepoRoot(t *testing.T) string {
-	t.Helper()
-	_, testFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("find coverage test file")
-	}
-	return filepath.Join(filepath.Dir(testFile), "..", "..", "..")
 }
 
 func compileSliceRegexp(t *testing.T, slice wasmSlice) (compiled *regexp.Regexp) {

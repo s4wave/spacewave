@@ -7,9 +7,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
 func TestCommitMsgHookAcceptsSignedOffMessage(t *testing.T) {
@@ -231,13 +232,8 @@ func git(t *testing.T, dir string, args ...string) {
 func commitMsgHookPath(t *testing.T) string {
 	// Register this path resolver as a test helper.
 	t.Helper()
-	_, currentFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("resolve current test file")
-	}
-
 	// Resolve and verify the repository commit-msg hook.
-	path := filepath.Join(filepath.Dir(currentFile), "..", "..", ".githooks", "commit-msg")
+	path := filepath.Join(reporoot.Must(t), ".githooks", "commit-msg")
 	if _, err := os.Stat(path); err != nil {
 		t.Fatal(err)
 	}

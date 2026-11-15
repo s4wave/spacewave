@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"net/url"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
 	wasm "github.com/s4wave/spacewave/e2e/wasm"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
 const (
@@ -94,11 +94,11 @@ func (p *ProjectedImage) Setup(ctx context.Context) (RunMetadata, error) {
 	if err != nil {
 		return RunMetadata{}, err
 	}
-	_, sourceFile, _, ok := runtime.Caller(0)
-	if !ok {
-		return RunMetadata{}, errors.New("locate projected-image package")
+	root, err := reporoot.Find()
+	if err != nil {
+		return RunMetadata{}, errors.Wrap(err, "locate projected-image package")
 	}
-	if err := p.harness.CompileScripts(filepath.Dir(sourceFile)); err != nil {
+	if err := p.harness.CompileScripts(filepath.Join(root, "e2e", "goscriptbench")); err != nil {
 		return RunMetadata{}, errors.Wrap(err, "compile projected-image browser scripts")
 	}
 

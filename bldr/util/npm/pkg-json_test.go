@@ -2,21 +2,16 @@ package npm
 
 import (
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
 // TestLoadPackageVersion tests loading a package version from package.json.
 func TestLoadPackageVersion(t *testing.T) {
-	// Locate the package manifest relative to the test source.
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("failed to locate test file")
-	}
-
-	// Load the React dependency version from package.json.
-	ver, err := LoadPackageVersion(filepath.Clean(filepath.Join(filepath.Dir(file), "../../../package.json")), "react")
+	// Load the React dependency version from the repository's package.json.
+	ver, err := LoadPackageVersion(filepath.Join(reporoot.Must(t), "package.json"), "react")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

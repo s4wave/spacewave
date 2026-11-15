@@ -174,7 +174,11 @@ func bootSharedHarness() (*Harness, error) {
 	}
 
 	// Compile the e2e test scripts, releasing the harness on failure.
-	if err := h.CompileScripts(ScriptDir()); err != nil {
+	scriptDir, err := ScriptDir()
+	if err == nil {
+		err = h.CompileScripts(scriptDir)
+	}
+	if err != nil {
 		h.Release()
 		return nil, errors.Wrap(err, "compile test scripts")
 	}

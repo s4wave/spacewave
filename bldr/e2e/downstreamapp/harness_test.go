@@ -16,6 +16,7 @@ import (
 
 	"github.com/aperturerobotics/fastjson"
 	playwright "github.com/mxschmitt/playwright-go"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 	"github.com/sirupsen/logrus"
 )
 
@@ -133,7 +134,7 @@ func TestRecordBrowserConsoleMessage(t *testing.T) {
 func TestFixtureProjectConfig(t *testing.T) {
 	// Load the fixture project config from the module that contains this test.
 	// CI checkouts have no Git metadata, so the module file is the root.
-	repoRoot, err := moduleRoot()
+	repoRoot, err := reporoot.Find()
 	if err != nil {
 		t.Fatalf("find module root: %v", err)
 	}
@@ -157,27 +158,6 @@ func TestFixtureProjectConfig(t *testing.T) {
 		if conf.GetManifests()[forbidden] != nil {
 			t.Fatalf("fixture unexpectedly includes product manifest %q", forbidden)
 		}
-	}
-}
-
-// moduleRoot walks up from the working directory to the module file.
-func moduleRoot() (string, error) {
-	// Start at the test process directory, which is the package directory.
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	// Stop at the first ancestor that contains go.mod.
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, nil
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", errors.New("go.mod not found")
-		}
-		dir = parent
 	}
 }
 

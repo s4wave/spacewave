@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"runtime/debug"
 	"slices"
 	"strconv"
@@ -39,6 +38,7 @@ import (
 	web_plugin_compiler "github.com/s4wave/spacewave/bldr/web/plugin/compiler"
 	e2eharness "github.com/s4wave/spacewave/e2e/harness"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/sys/unix"
@@ -399,10 +399,13 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 }
 
 // ScriptDir returns the directory holding this package's browser test
-// scripts, independent of the working directory.
-func ScriptDir() string {
-	_, file, _, _ := runtime.Caller(0)
-	return filepath.Dir(file)
+// scripts, e2e/wasm under the module root above the working directory.
+func ScriptDir() (string, error) {
+	root, err := reporoot.Find()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, "e2e", "wasm"), nil
 }
 
 // CompileScripts discovers and compiles *.ts files in the given directory
