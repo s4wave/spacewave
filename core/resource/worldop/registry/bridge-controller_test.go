@@ -1095,6 +1095,90 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	}
 }
 
+// stagedAdoptTypeID is the notes type the staged adopt case types its object.
+const stagedAdoptTypeID = "notes/notebook"
+
+// TestWorldOpRegistryBridgeControllerPluginStagedAdopt applies, through the
+// bridge and the plugin write guard on a fresh World, a plugin op that adopts
+// a root its sender staged through its own guarded handle, as a notes seed
+// does: the guard allows each write, and the object reads at its root with
+// its type.
+func TestWorldOpRegistryBridgeControllerPluginStagedAdopt(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	sender := tb.Volume.GetPeerID()
+	ws := world.NewEngineWorldState(tb.Engine, true)
+
+	// Stage the root block through the plugin's guarded handle, holding the
+	// stage until the op returns.
+	pws := world.GuardWorldState(ws, space_world_optypes.NewPluginWriteGuard("test-plugin"))
+	stage, err := pws.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stage.Release()
+	cursor, err := stage.BuildStorageCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref, _, err := cursor.PutBlock(ctx, []byte("staged notebook"), &block.PutOpts{RefsKnown: true})
+	root := cursor.GetRef().Clone()
+	cursor.Release()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root.RootRef = ref
+
+	// Apply the op through the bridge, which guards the plugin's handler.
+	pluginRoot := srpc.NewMux()
+	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(pluginRoot, &testWorldOpHandler{
+		sender:     sender,
+		stagedRoot: root,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	pluginResourceMux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+		t.Fatal(err)
+	}
+	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
+	rel, err := tb.Bus.AddController(ctx, &testWorldOpPluginLoadController{client: pluginClient}, nil)
+	if err != nil {
+		t.Fatalf("AddController plugin load: %v", err)
+	}
+	defer rel()
+	res := resource_world.NewWorldStateResource(le, tb.Bus, ws, lookupPluginOp(ctx, t, tb, le), resource_world.WithSessionPeerID(sender))
+	resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data")})
+	if err != nil {
+		t.Fatalf("ApplyWorldOp: %v", err)
+	}
+	if code := resp.GetRejectionCode(); code != "" || resp.GetSysErr() || resp.GetErrorCode() != 0 {
+		t.Fatalf("staged adopt = code %q sysErr %v error code %v, want success", code, resp.GetSysErr(), resp.GetErrorCode())
+	}
+
+	// The object holds the staged root and the notes type.
+	obj, err := world.MustGetObject(ctx, ws, "test/world-op-created")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _, err := obj.GetRootRef(ctx)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.GetRootRef().EqualsRef(ref) {
+		t.Fatalf("object root = %v, want the staged %v", got.GetRootRef(), ref)
+	}
+	if typeID, err := world_types.GetObjectType(ctx, ws, "test/world-op-created"); err != nil || typeID != stagedAdoptTypeID {
+		t.Fatalf("object type = %q, %v; want %q", typeID, err, stagedAdoptTypeID)
+	}
+}
+
 // snapshotProtectedObjects describes the root, revision and outgoing edges of
 // each object at keys.
 func snapshotProtectedObjects(ctx context.Context, t *testing.T, ws world.WorldState, keys ...string) string {
@@ -1273,6 +1357,9 @@ type testWorldOpHandler struct {
 	// objectKey, when set, makes ApplyWorldObjectOp expect that object, bump
 	// its revision, ignore any refusal and report success.
 	objectKey string
+	// stagedRoot, when set, makes ApplyWorldOp adopt it as a notes seed does:
+	// create its object at that root, then type it as a notebook.
+	stagedRoot *bucket.ObjectRef
 }
 
 func (h *testWorldOpHandler) ApplyWorldOp(
@@ -1300,6 +1387,9 @@ func (h *testWorldOpHandler) ApplyWorldOp(
 		return nil, err
 	}
 	worldState := s4wave_world.NewSRPCWorldStateResourceServiceClient(worldClient)
+	if h.stagedRoot != nil {
+		return h.adoptStaged(ctx, resourceCtx, worldState)
+	}
 
 	// Create the test object through the attached World state.
 	objResp, err := worldState.CreateObject(ctx, &s4wave_world.CreateObjectRequest{
@@ -1341,6 +1431,35 @@ func (h *testWorldOpHandler) ApplyWorldOp(
 	typed := s4wave_world.NewSRPCTypedObjectResourceServiceClient(worldClient)
 	if _, err := typed.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
 		ObjectKey: "test/world-op-created",
+	}); err != nil {
+		return nil, err
+	}
+	return &s4wave_worldop_registry.ApplyWorldOpResponse{}, nil
+}
+
+// adoptStaged creates the test object at the staged root, then the notebook
+// type's object and the type edge, as the notes seed's writes reach the World.
+func (h *testWorldOpHandler) adoptStaged(
+	ctx context.Context,
+	resourceCtx resource_server.ResourceClientContext,
+	worldState s4wave_world.SRPCWorldStateResourceServiceClient,
+) (*s4wave_worldop_registry.ApplyWorldOpResponse, error) {
+	for _, req := range []*s4wave_world.CreateObjectRequest{
+		{ObjectKey: "test/world-op-created", RootRef: h.stagedRoot},
+		{ObjectKey: world_types.BuildTypeObjectKey(stagedAdoptTypeID)},
+	} {
+		resp, err := worldState.CreateObject(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		if id := resp.GetResourceId(); id != 0 {
+			resourceCtx.ReleaseResource(id)
+		}
+	}
+	if _, err := worldState.SetGraphQuad(ctx, &s4wave_world.SetGraphQuadRequest{
+		Quad: world.GraphQuadToQuad(world.NewGraphQuadWithKeys(
+			"test/world-op-created", world_types.TypePred.String(), world_types.BuildTypeObjectKey(stagedAdoptTypeID), "",
+		)),
 	}); err != nil {
 		return nil, err
 	}
