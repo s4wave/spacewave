@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef } from 'react'
 
 import { toast } from '@s4wave/web/ui/toaster.js'
 import {
+  PluginExecutableMissingError,
   PluginOpTimeoutError,
   PluginUnavailableError,
   WorldOperationRejection,
@@ -53,8 +54,9 @@ interface OpenSpace {
 
 // CreateState is one create's state. running sends the create, after a
 // failure if failure is set; waiting holds a pressed Try again until the
-// Space's world returns; failed offers Try again; refused means another
-// object holds the planned key, so trying again cannot help; done and closed
+// Space's world returns; failed offers Try again; refused means trying again
+// cannot help, because another object holds the planned key, the operation
+// rejected the create, or its plugin has no build for this device; done and closed
 // are final; joined is final for a create whose planned key another create
 // in this Space already holds, which reports the one outcome. failure is the
 // last failure's description, which a cancelled wait shows again.
@@ -210,7 +212,9 @@ function createFailure(err: unknown): string {
   if (err instanceof PluginOpTimeoutError)
     return 'The plugin did not finish in time, so nothing was changed.'
   if (err instanceof PluginUnavailableError)
-    return 'The plugin could not be reached, so nothing was sent.'
+    return 'The plugin could not be reached, so nothing was changed.'
+  if (err instanceof PluginExecutableMissingError)
+    return 'The plugin that makes this has no build for this device. Open the Space on a device the plugin supports, or remove the plugin from the Space.'
   return 'The Space could not finish the change.'
 }
 
@@ -367,19 +371,23 @@ export function useSpaceCreates(
         const start = () => {
           run().catch((err: unknown) => {
             console.error('failed to create object', err)
-            // The host discarded a timed out op and never sent one whose
-            // plugin it could not load, so either wrote nothing, and the read
-            // before this send already settled any earlier one: a retry sends
-            // without reading the key first.
+            // The host reports a timed out or unavailable plugin only when it
+            // never sent the op or discarded its transaction, so either wrote
+            // nothing, and the read before this send already settled any
+            // earlier one: a retry sends without reading the key first.
             if (
               err instanceof PluginOpTimeoutError ||
               err instanceof PluginUnavailableError
             )
               job.sent = false
+            // A rejection or a missing build fails the same way again.
             dispatch({
               type: 'fail',
               failure: createFailure(err),
-              retry: true,
+              retry: !(
+                err instanceof WorldOperationRejection ||
+                err instanceof PluginExecutableMissingError
+              ),
             })
           })
         }

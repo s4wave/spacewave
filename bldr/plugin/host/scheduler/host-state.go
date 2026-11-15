@@ -24,8 +24,9 @@ func (c *Controller) GetHostState() ([]plugin_host.PluginHost, func(context.Cont
 }
 
 // publishHosts publishes one plugin host lookup result. Resolver errors are
-// reported without withdrawing the live hosts they accompany.
-func (c *Controller) publishHosts(resErr []error, hosts []plugin_host.PluginHost) {
+// reported without withdrawing the live hosts they accompany. settled reports
+// that the lookup was idle when it produced hosts.
+func (c *Controller) publishHosts(resErr []error, hosts []plugin_host.PluginHost, settled bool) {
 	// Report resolver errors without dropping the host set.
 	if len(resErr) != 0 {
 		c.le.WithField("resolver-errs", resErr).Warn("one or more plugin hosts are erroring")
@@ -35,6 +36,7 @@ func (c *Controller) publishHosts(resErr []error, hosts []plugin_host.PluginHost
 	hostSet := &pluginHostSet{
 		pluginHosts: orderHosts(c.pluginHostsCtr.GetValue(), hosts),
 		err:         errors.Join(resErr...),
+		settled:     settled,
 	}
 	ids := make([]string, 0, len(hostSet.pluginHosts))
 	for _, host := range hostSet.pluginHosts {

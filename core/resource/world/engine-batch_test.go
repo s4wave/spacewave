@@ -191,11 +191,11 @@ func (o *batchTestOp) UnmarshalVT(data []byte) error {
 // TypeID returns batchTestOpID.
 func (o *batchTestOp) TypeID() string { return batchTestOpID }
 
-// errMissingExecutable is the rejection a pinned executable that does not
-// exist meets, whether its load runs in PrepareApply or in the apply.
-var errMissingExecutable = &world.OperationRejection{Code: "UNAVAILABLE", Message: "pinned executable not found"}
+// errMissingExecutable is the error a pinned executable with no build for
+// this device meets, whether its load runs in PrepareApply or in the apply.
+var errMissingExecutable = &world.PluginExecutableMissingError{PluginID: "test", OperationTypeID: batchTestOpID, ManifestRoot: "root"}
 
-// PrepareApply fails as an unavailable plugin for "unavailable", rejects a
+// PrepareApply fails as an unavailable plugin for "unavailable", fails a
 // missing executable for "missing", and otherwise waits on the hooks' gate
 // when one is set.
 func (o *batchTestOp) PrepareApply(ctx context.Context) (func(), error) {
@@ -463,8 +463,8 @@ func TestExecuteWorldBatchOps(t *testing.T) {
 		{incRev("absent"), s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_OBJECT_NOT_FOUND, ""},
 		{objOp("revs", "reject"), 0, "test/refused"},
 		{objOp("revs", "unavailable"), s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE, ""},
-		{objOp("revs", "missing"), 0, "UNAVAILABLE"},
-		{op("missing"), 0, "UNAVAILABLE"},
+		{objOp("revs", "missing"), s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING, ""},
+		{op("missing"), s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING, ""},
 		{rename, s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_OBJECT_NOT_FOUND, ""},
 	} {
 		resp, err = batch(ctx, create("refused-obj"), refused.m)
@@ -479,10 +479,10 @@ func TestExecuteWorldBatchOps(t *testing.T) {
 			t.Fatal("refused object batch created its object")
 		}
 	}
-	// A missing pinned executable is a rejection, not code 5, through the
-	// single op and the object op as well as the batch above.
+	// A missing pinned executable is its own code, not a rejection, through
+	// the single op and the object op as well as the batch above.
 	opResp, err := engineResource.ExecuteWorldOp(ctx, opReq("missing"))
-	if err != nil || opResp.GetErrorCode() != 0 || opResp.GetRejectionCode() != "UNAVAILABLE" {
+	if err != nil || opResp.GetErrorCode() != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING || opResp.GetRejectionCode() != "" {
 		t.Fatalf("missing executable op: %v %v", opResp, err)
 	}
 	obj, found, err = ws.GetObject(ctx, "revs")
@@ -492,7 +492,7 @@ func TestExecuteWorldBatchOps(t *testing.T) {
 	defer world.ReleaseObjectState(obj)
 	objResource := resource_world.NewObjectStateResource(logrus.NewEntry(logrus.New()), tb.Bus, obj, lookupOp)
 	objResp, err := objResource.ApplyObjectOp(ctx, &s4wave_world.ApplyObjectOpRequest{OpTypeId: batchTestOpID, OpData: []byte("missing")})
-	if err != nil || objResp.GetErrorCode() != 0 || objResp.GetRejectionCode() != "UNAVAILABLE" {
+	if err != nil || objResp.GetErrorCode() != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING || objResp.GetRejectionCode() != "" {
 		t.Fatalf("missing executable object op: %v %v", objResp, err)
 	}
 }

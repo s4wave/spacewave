@@ -414,7 +414,7 @@ describe('NotebookViewer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
     expect(
       await screen.findByText(
-        'Could not remove “B”: the notes plugin could not be reached, so nothing was sent',
+        'Could not remove “B”: the notes plugin could not be reached, so nothing was changed',
       ),
     ).toBeDefined()
     expect(notebook.stored).toEqual([A, B])

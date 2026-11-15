@@ -28,7 +28,7 @@ func TestHostChangesPreserveUnaffectedExecution(t *testing.T) {
 	publish := func(resErr []error, hosts ...plugin_host.PluginHost) {
 		// Publish the snapshot, then run the instance's selection on it.
 		t.Helper()
-		c.publishHosts(resErr, hosts)
+		c.publishHosts(resErr, hosts, true)
 		instance.pluginUpdateMtx.Lock()
 		instance.selectInstalledManifestLocked(c.pluginHostsCtr.GetValue())
 		instance.pluginUpdateMtx.Unlock()
@@ -107,7 +107,7 @@ func TestHostStateReportsResolverErrors(t *testing.T) {
 	c := NewController(logrus.NewEntry(logrus.New()), nil, &Config{})
 	host := &testPluginHost{id: "js"}
 	resolverErr := errors.New("resolver failed")
-	c.publishHosts([]error{resolverErr}, []plugin_host.PluginHost{host})
+	c.publishHosts([]error{resolverErr}, []plugin_host.PluginHost{host}, true)
 
 	// The state carries both the host and the error.
 	hosts, _, err := c.GetHostState()
@@ -119,7 +119,7 @@ func TestHostStateReportsResolverErrors(t *testing.T) {
 	}
 
 	// The next error-free lookup clears the error.
-	c.publishHosts(nil, []plugin_host.PluginHost{host})
+	c.publishHosts(nil, []plugin_host.PluginHost{host}, true)
 	if _, _, err := c.GetHostState(); err != nil {
 		t.Fatalf("recovered lookup kept the error: %v", err)
 	}

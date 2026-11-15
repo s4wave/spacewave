@@ -330,11 +330,19 @@ async function acceptAppOperation(
         'The application did not finish in time; nothing was changed',
       )
     }
-    // The host could not reach the application and never sent the request.
+    // The host could not reach or run the application and kept nothing.
     if (response.errorCode === WorldErrorCode.PLUGIN_UNAVAILABLE) {
       throw new SyncError(
         'UNAVAILABLE',
         'The application could not be reached; nothing was changed',
+      )
+    }
+    // The application's build has no executable for this device, so the
+    // host never sent the request, and sending it here again fails the same way.
+    if (response.errorCode === WorldErrorCode.PLUGIN_EXECUTABLE_MISSING) {
+      throw new SyncError(
+        'EXECUTABLE_MISSING',
+        'The application has no build for this device; nothing was changed',
       )
     }
     if (response.rejectionCode) {

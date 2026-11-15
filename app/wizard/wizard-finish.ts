@@ -3,7 +3,11 @@ import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
-import { throwBatchError } from '@s4wave/sdk/world/errors.js'
+import {
+  PluginExecutableMissingError,
+  throwBatchError,
+  WorldOperationRejection,
+} from '@s4wave/sdk/world/errors.js'
 import { keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import { RecordWizardEndingOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { lookupWizardEnding } from '@s4wave/sdk/world/wizard/wizard-ending.js'
@@ -236,12 +240,15 @@ export async function cancelWizard(
 }
 
 // WizardFinishState is the Finish control's state, from WizardFinish.tla.
-// idle offers Finish, with the message of a press whose input was refused
-// before anything was written; finishing applies the list; failed says what
-// failed and offers Retry, which prepares and applies the whole list again;
-// done means this press removed the wizard and its target opens; gone means
-// the wizard was removed outside this press, and WizardGone reads from the
-// World whether it finished, and as what, or was deleted.
+// idle offers Finish, with the message of a press whose input was refused,
+// before anything was written or by the operation itself; finishing applies
+// the list; failed says what failed and offers Retry, which prepares and
+// applies the whole list again; unsupported means the plugin behind the list
+// has no build for this device, so no press here can finish and the wizard
+// offers only its delete and Back; done means this press removed the wizard
+// and its target opens; gone means the wizard was removed outside this press,
+// and WizardGone reads from the World whether it finished, and as what, or
+// was deleted.
 //
 // A failed list may have committed with its reply lost. The press checks the
 // recorded ending before it shows failed, and a later Retry is refused as gone
@@ -251,6 +258,7 @@ export type WizardFinishState =
   | { status: 'idle'; message?: string }
   | { status: 'finishing' }
   | { status: 'failed'; error: string }
+  | { status: 'unsupported' }
   | { status: 'done' }
   | { status: 'gone' }
 
@@ -289,13 +297,21 @@ export function wizardFinishView(
 }
 
 // refusedFinishState is the state a press that threw ends in: idle with the
-// message for an input the person can fix, gone for a wizard removed outside
-// this press, and failed with Retry for anything else.
+// message for an input the person can fix, which the operation's own
+// rejection is too, since the same list fails the same way; gone for a wizard
+// removed outside this press; unsupported for a plugin with no build for this
+// device; and failed with Retry for anything else.
 function refusedFinishState(err: unknown): WizardFinishState {
-  if (err instanceof WizardInputError) {
+  if (
+    err instanceof WizardInputError ||
+    err instanceof WorldOperationRejection
+  ) {
     return { status: 'idle', message: err.message }
   }
   if (err instanceof WizardGoneError) return { status: 'gone' }
+  if (err instanceof PluginExecutableMissingError) {
+    return { status: 'unsupported' }
+  }
   return {
     status: 'failed',
     error: err instanceof Error ? err.message : String(err),

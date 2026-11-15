@@ -55,6 +55,10 @@ enum ErrorCode {
   STORAGE = 10;
   // CLOSED identifies a released handle or stopped server.
   CLOSED = 11;
+  // EXECUTABLE_MISSING identifies an application build with no executable for
+  // this device. Nothing was changed, and retrying on this device fails the
+  // same way.
+  EXECUTABLE_MISSING = 12;
 }
 
 // Failure contains only safe application details and an optional recovery ID.

@@ -280,6 +280,7 @@ try {
 | `UNCERTAIN` | A write's acceptance could not be confirmed. Retry the same request ID and input. |
 | `STORAGE` | Durable storage failed. |
 | `CLOSED` | The client or server is closed. |
+| `EXECUTABLE_MISSING` | The application's build has no executable for this device. Nothing changed; retrying here fails the same way. |
 
 ## React
 

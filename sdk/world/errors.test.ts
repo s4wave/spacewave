@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  PluginExecutableMissingError,
   PluginOpTimeoutError,
   PluginUnavailableError,
   throwBatchError,
@@ -51,6 +52,14 @@ describe('throwOperationError', () => {
     ).toThrow(PluginUnavailableError)
   })
 
+  it('restores a plugin with no build for this device', () => {
+    expect(() =>
+      throwOperationError({
+        errorCode: WorldErrorCode.PLUGIN_EXECUTABLE_MISSING,
+      }),
+    ).toThrow(PluginExecutableMissingError)
+  })
+
   it('accepts a successful response', () => {
     expect(() => throwOperationError({})).not.toThrow()
   })
@@ -73,5 +82,13 @@ describe('throwBatchError', () => {
         errorCode: WorldErrorCode.PLUGIN_UNAVAILABLE,
       }),
     ).toThrow(PluginUnavailableError)
+  })
+  it('restores a plugin with no build for this device', () => {
+    expect(() =>
+      throwBatchError({
+        failedIndex: 1,
+        errorCode: WorldErrorCode.PLUGIN_EXECUTABLE_MISSING,
+      }),
+    ).toThrow(PluginExecutableMissingError)
   })
 })
