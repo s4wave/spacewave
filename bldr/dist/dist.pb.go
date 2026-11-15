@@ -41,6 +41,10 @@ type DistMeta struct {
 	ManifestRev uint64 `protobuf:"varint,9,opt,name=manifest_rev,json=manifestRev,proto3" json:"manifestRev,omitempty"`
 	// UpdateGuardPluginIds name plugins that quiesce owned work before replacement.
 	UpdateGuardPluginIds []string `protobuf:"bytes,10,rep,name=update_guard_plugin_ids,json=updateGuardPluginIds,proto3" json:"updateGuardPluginIds,omitempty"`
+	// AdmissionPluginId names the plugin that owns this device's plugin
+	// approvals. The host builds its root admission controller asking that
+	// plugin in code at startup; empty leaves admission to the trusted roots.
+	AdmissionPluginId string `protobuf:"bytes,11,opt,name=admission_plugin_id,json=admissionPluginId,proto3" json:"admissionPluginId,omitempty"`
 }
 
 func (x *DistMeta) Reset() {
@@ -119,6 +123,13 @@ func (x *DistMeta) GetUpdateGuardPluginIds() []string {
 	return nil
 }
 
+func (x *DistMeta) GetAdmissionPluginId() string {
+	if x != nil {
+		return x.AdmissionPluginId
+	}
+	return ""
+}
+
 func (m *DistMeta) CloneVT() *DistMeta {
 	if m == nil {
 		return (*DistMeta)(nil)
@@ -131,6 +142,7 @@ func (m *DistMeta) CloneVT() *DistMeta {
 	r.ChannelKey = m.ChannelKey
 	r.ManifestId = m.ManifestId
 	r.ManifestRev = m.ManifestRev
+	r.AdmissionPluginId = m.AdmissionPluginId
 	r.StartupPlugins = protobuf_go_lite.CloneSlice(m.StartupPlugins)
 	r.DistWorldRef = protobuf_go_lite.CloneVTValue(m.DistWorldRef)
 	r.UpdateGuardPluginIds = protobuf_go_lite.CloneSlice(m.UpdateGuardPluginIds)
@@ -178,6 +190,9 @@ func (this *DistMeta) EqualVT(that *DistMeta) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.UpdateGuardPluginIds, that.UpdateGuardPluginIds) {
+		return false
+	}
+	if this.AdmissionPluginId != that.AdmissionPluginId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -249,6 +264,11 @@ func (x *DistMeta) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("updateGuardPluginIds")
 		s.WriteStringArray(x.UpdateGuardPluginIds)
 	}
+	if x.AdmissionPluginId != "" || s.HasField("admissionPluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("admissionPluginId")
+		s.WriteString(x.AdmissionPluginId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -308,6 +328,9 @@ func (x *DistMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.UpdateGuardPluginIds = s.ReadStringArray()
+		case "admission_plugin_id", "admissionPluginId":
+			s.AddField("admission_plugin_id")
+			x.AdmissionPluginId = s.ReadString()
 		}
 	})
 }
@@ -345,6 +368,11 @@ func (m *DistMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.AdmissionPluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.AdmissionPluginId)
+		i--
+		dAtA[i] = 0x5a
 	}
 	if len(m.UpdateGuardPluginIds) > 0 {
 		for iNdEx := len(m.UpdateGuardPluginIds) - 1; iNdEx >= 0; iNdEx-- {
@@ -427,6 +455,7 @@ func (m *DistMeta) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ManifestRev)
 	n += protobuf_go_lite.SizeStringSlice(1, m.UpdateGuardPluginIds)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AdmissionPluginId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -481,6 +510,10 @@ func (x *DistMeta) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.AdmissionPluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "admission_plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.AdmissionPluginId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -613,6 +646,16 @@ func (m *DistMeta) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.UpdateGuardPluginIds = append(m.UpdateGuardPluginIds, v)
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdmissionPluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AdmissionPluginId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

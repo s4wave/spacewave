@@ -17,7 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PluginHostServer implements the PluginHost rpc service
+// PluginHostServer implements the PluginHost rpc service.
 type PluginHostServer struct {
 	// b is the bus
 	b bus.Bus
@@ -33,6 +33,9 @@ type PluginHostServer struct {
 	historical bool
 	// prepared delays publication until the scheduler admits this candidate.
 	prepared bool
+	// namesPeers permits LoadPlugin requests that name the peer whose
+	// approvals decide their roots.
+	namesPeers bool
 	// registrationInstanceKey identifies the logical installation, independent of RPC routing.
 	registrationInstanceKey string
 	// hostVolumeInfo is the host volume information
@@ -86,6 +89,16 @@ func (s *PluginHostServer) SetPrepared(prepared bool) {
 	s.prepared = prepared
 }
 
+// SetNamesPeers permits this plugin's LoadPlugin requests to name the peer
+// whose approvals decide their roots. Grant it only to plugins trusted to run
+// plugins on the host, such as one that forwards a session's Space loads; a
+// request from any other plugin that names a peer is refused, so a plugin
+// cannot borrow another peer's approvals. Set it before exposing this server
+// to its plugin.
+func (s *PluginHostServer) SetNamesPeers(namesPeers bool) {
+	s.namesPeers = namesPeers
+}
+
 // SetRegistrationInstanceKey binds registrations to the logical installation.
 // Set it before exposing this server to its plugin.
 func (s *PluginHostServer) SetRegistrationInstanceKey(instanceKey string) {
@@ -126,6 +139,9 @@ func (s *PluginHostServer) LoadPlugin(
 	if err := req.Validate(); err != nil {
 		return err
 	}
+	if err := s.refuseLoad(req); err != nil {
+		return err
+	}
 
 	// Resolve the instance key into the request.
 	pluginID := req.GetPluginId()
@@ -138,6 +154,17 @@ func (s *PluginHostServer) LoadPlugin(
 	// Handle the load request through the bus.
 	s.le.Debugf("plugin %q is loading plugin %q via rpc request", s.pluginID, pluginID)
 	return HandleLoadPluginRpc(s.b, req, strm)
+}
+
+// refuseLoad returns why this server's plugin may not send req, or nil. It
+// holds every rule about what a request may name beyond the caller's own
+// scope: a peer whose approvals decide the roots is named only by a plugin
+// granted SetNamesPeers.
+func (s *PluginHostServer) refuseLoad(req *bldr_plugin.LoadPluginRequest) error {
+	if req.GetPeerId() != "" && !s.namesPeers {
+		return errors.Errorf("plugin %q may not name the approving peer of a load", s.pluginID)
+	}
+	return nil
 }
 
 // resolveInstanceKey returns the instance key a request addresses, defaulting
@@ -193,7 +220,7 @@ func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcSt
 
 // PluginFsRpc accesses a FSCursorService to access the plugin assets or dist filesystems.
 // The plugin will remain loaded as long as the RPC is active.
-// Component ID: plugin-assets or plugin-dist
+// Component ID: plugin-assets or plugin-dist.
 func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_PluginFsRpcStream) error {
 	return rpcstream.HandleRpcStream(
 		rpcStream,

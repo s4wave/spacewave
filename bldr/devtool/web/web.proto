@@ -22,4 +22,8 @@ message DevtoolInitBrowser {
   // PlatformSelectionPolicies bind project-owned startup plugins to the
   // platform selected by the active development compiler.
   repeated .plugin.host.scheduler.PlatformSelectionPolicy platform_selection_policies = 6;
+  // AdmissionPluginId names the plugin that owns this device's plugin
+  // approvals. The host builds its root admission controller asking that
+  // plugin in code at startup; empty leaves admission to the trusted roots.
+  string admission_plugin_id = 7;
 }

@@ -90,7 +90,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/devtool/web": {
-      "hash": "3eadfd64c28a8a38a0b797af2818e5a3f463252276597bf3bd906c6a67cdec30",
+      "hash": "8c6f5c7f961184a0f28d47ef46665857e6eb95de60a56ce9e28595e1cbd1e139",
       "generatedFiles": [
         "bldr/devtool/web/web.pb.go",
         "bldr/devtool/web/web.pb.ts"
@@ -100,7 +100,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/dist": {
-      "hash": "53ff5251bde914796acc1a6f808d2cf284d4045fbcbb3d7a72fc896cdf933222",
+      "hash": "66e68066ad792803563c48842dcd67084f34939b0675d412017bb461d3875bdf",
       "generatedFiles": [
         "bldr/dist/dist.pb.go",
         "bldr/dist/dist.pb.ts"
@@ -110,7 +110,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/dist/compiler": {
-      "hash": "9d59028f20ea8a4e72be8661571f1b44c262a375dbc571ec9646d47818962cc0",
+      "hash": "8fc40866a660ca72925cfcb18fdc4d2b816dc6b131ffb58242a871350344e593",
       "generatedFiles": [
         "bldr/dist/compiler/config.pb.go",
         "bldr/dist/compiler/config.pb.ts"
@@ -264,6 +264,18 @@
       ],
       "protoFiles": [
         "bldr/plugin/plugin.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/bldr/plugin/admit": {
+      "hash": "f40fbf2f301b66efd6b78f565298b1b2f4dfb2adc94869fcd65e2168375e6492",
+      "generatedFiles": [
+        "bldr/plugin/admit/admit.pb.go",
+        "bldr/plugin/admit/admit.pb.ts",
+        "bldr/plugin/admit/admit_srpc.pb.go",
+        "bldr/plugin/admit/admit_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/plugin/admit/admit.proto"
       ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/assets/http": {
@@ -429,7 +441,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/project": {
-      "hash": "cf10cc6dac9fa8dc4316ae01cfda75fbd1da00d1f8ea9ff644b820613ce78262",
+      "hash": "3df73183e1be916ab63727f28690685eb49830b5731afd7582e9e413dec809b6",
       "generatedFiles": [
         "bldr/project/project.pb.go",
         "bldr/project/project.pb.ts"

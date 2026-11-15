@@ -26,6 +26,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_plugin_admit "github.com/s4wave/spacewave/bldr/plugin/admit"
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
@@ -347,6 +348,16 @@ func BuildDistBus(
 	if err := addEmbeddedTrustedRoots(ctx, b, distWorldEngineID, distBundleObjKey, trustedRoots); err != nil {
 		rel()
 		return nil, errors.Wrap(err, "read embedded manifest roots")
+	}
+
+	// Ask the distribution's approvals owner about every other root.
+	if owner := distMeta.GetAdmissionPluginId(); owner != "" {
+		relAdmit, err := b.AddController(ctx, bldr_plugin_admit.NewController(le, b, owner), nil)
+		if err != nil {
+			rel()
+			return nil, errors.Wrap(err, "start root admission")
+		}
+		rels.add(relAdmit)
 	}
 
 	// start the node controller.

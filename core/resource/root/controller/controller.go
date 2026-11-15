@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_plugin_admit "github.com/s4wave/spacewave/bldr/plugin/admit"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
@@ -31,7 +32,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "resource/root"
 
-// Version is the component version
+// Version is the component version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -199,6 +200,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 	releases = append(releases, approvalsRel)
+
+	// Answer the plugin host's admission asks from those approvals.
+	admitRel, err := b.AddController(ctx, bldr_plugin_admit.NewViaBusController(le, b), nil)
+	if err != nil {
+		releaseAll()
+		return err
+	}
+	releases = append(releases, admitRel)
 
 	// Register the object type controller.
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)

@@ -18,9 +18,12 @@ import (
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_trust "github.com/s4wave/spacewave/bldr/manifest/trust"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_plugin_admit "github.com/s4wave/spacewave/bldr/plugin/admit"
+	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/net/hash"
+	s4wave_plugin_approval "github.com/s4wave/spacewave/sdk/plugin/approval"
 	"github.com/sirupsen/logrus"
 )
 
@@ -1011,6 +1014,181 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		instance.clearExecution(worker)
 		if !swapOf(c).EqualVT(want) {
 			t.Fatalf("swap = %s after the worker cleared, want the pass's state kept", swapOf(c).MarshalProtoText())
+		}
+	})
+}
+
+// ownerPlugin is the approvals owner's running plugin, reached through client.
+type ownerPlugin struct{ client srpc.Client }
+
+// GetRpcClient returns the owner's client.
+func (p ownerPlugin) GetRpcClient() srpc.Client { return p.client }
+
+// TestReleaseHostAsksApprovalsOwner checks that a release host scheduler runs a
+// root its trust set does not admit only once the device's approvals, asked
+// through the plugin that owns them, admit it for the installation peer.
+func TestReleaseHostAsksApprovalsOwner(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+	const peerID, ownerID = "session-peer", "spacewave-core"
+
+	// The owner's bus holds the device's approvals, as the root resource
+	// controller adds them on the spacewave-core plugin bus.
+	core, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer core.Release()
+	approvals := plugin_approval.NewApprovals(core.Bus, core.Volume.GetID(), "test-approvals")
+	relApprovals, err := core.Bus.AddController(ctx, plugin_approval.NewController(le, approvals), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer relApprovals()
+	mux := srpc.NewMux()
+	if err := bldr_plugin_admit.SRPCRegisterPluginRootAdmission(mux, bldr_plugin_admit.NewViaBus(core.Bus)); err != nil {
+		t.Fatal(err)
+	}
+	owner := ownerPlugin{srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))}
+
+	// newHost builds a release host scheduler with an empty trust set and the
+	// admit controller, running the owner when ownerRuns is set.
+	newHost := func(ownerRuns bool) (*Controller, *pluginInstance) {
+		t.Helper()
+		host, err := testbed.NewTestbed(ctx, le)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(host.Release)
+		ctrls := []controller.Controller{
+			bldr_manifest_trust.NewController(bldr_manifest_trust.NewSet()),
+			bldr_plugin_admit.NewController(le, host.Bus, ownerID),
+		}
+		if ownerRuns {
+			ctrls = append(ctrls, callback.NewCallbackController(
+				controller.NewInfo("test/owner", controller.MustParseVersion("0.0.1"), ""),
+				nil,
+				func(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+					d, ok := inst.GetDirective().(plugin.LoadPlugin)
+					if !ok || d.LoadPluginID() != ownerID {
+						return nil, nil
+					}
+					return directive.R(directive.NewValueResolver([]plugin.RunningPlugin{owner}), nil)
+				},
+				nil,
+			))
+		}
+		for _, ctrl := range ctrls {
+			rel, err := host.Bus.AddController(ctx, ctrl, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(rel)
+		}
+		c := &Controller{
+			le: le, bus: host.Bus, conf: &Config{PeerId: "host-peer"},
+			pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
+			pluginStatus:    make(map[string]*plugin.PluginStatus),
+		}
+		_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
+		c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
+		return c, instance
+	}
+	// candidate is the Space's load of rev for the session peer.
+	candidate := func(rev uint64) (*executePluginArgs, string) {
+		h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte{0xa1, byte(rev)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ref := newTestManifestRef("colors", "js", rev, "candidate").GetManifestRef()
+		ref.RootRef = &block.BlockRef{Hash: h}
+		return &executePluginArgs{
+			pluginHost:       &testPluginHost{id: "test"},
+			rev:              rev,
+			manifestSnapshot: &manifest.ManifestSnapshot{ManifestRef: ref},
+			installation:     &installedManifests{peerID: peerID},
+		}, manifestRootKey(ref)
+	}
+	approve := func(root string) {
+		t.Helper()
+		if err := approvals.Set(ctx, peerID, &s4wave_plugin_approval.PluginApproval{
+			PluginId: "colors", ManifestRoot: root,
+			State: s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	swapOf := func(c *Controller) *plugin.PluginSwap {
+		for _, st := range c.pluginStatusCtr.GetValue().GetExecutions() {
+			return st.GetSwap()
+		}
+		return nil
+	}
+	// pass runs one admission pass that gives up after a moment.
+	pass := func(instance *pluginInstance, args *executePluginArgs) int {
+		t.Helper()
+		passCtx, stop := context.WithTimeout(ctx, 500*time.Millisecond)
+		defer stop()
+		got, _ := instance.admittedCandidates(passCtx, []*executePluginArgs{args})
+		return len(got)
+	}
+
+	t.Run("approved root starts", func(t *testing.T) {
+		_, instance := newHost(true)
+		args, root := candidate(1)
+		approve(root)
+		if got := pass(instance, args); got != 1 {
+			t.Fatalf("approved root: %d candidates admitted, want 1", got)
+		}
+		t.Log("started: the approvals owner admitted the root")
+	})
+	t.Run("approval granted after the ask began admits", func(t *testing.T) {
+		c, instance := newHost(true)
+		args, root := candidate(2)
+		done := make(chan error, 1)
+		go func() { done <- instance.awaitAdmission(ctx, args) }()
+		waitCtx, stop := context.WithTimeout(ctx, 5*time.Second)
+		defer stop()
+		if _, err := c.pluginStatusCtr.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+			for _, st := range snap.GetExecutions() {
+				return st.GetSwap().GetAwaitingApproval().GetCandidateManifestRev() == args.rev, nil
+			}
+			return false, nil
+		}, nil); err != nil {
+			t.Fatalf("swap = %s, want awaiting approval", swapOf(c).MarshalProtoText())
+		}
+		approve(root)
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatalf("wait ended with %v, want admitted", err)
+			}
+		case <-waitCtx.Done():
+			t.Fatal("approval granted during the wait never admitted the root")
+		}
+	})
+	t.Run("owner not running shows checking approval", func(t *testing.T) {
+		c, instance := newHost(false)
+		args, root := candidate(3)
+		approve(root)
+		if got := pass(instance, args); got != 0 {
+			t.Fatalf("owner not running: %d candidates admitted, want 0", got)
+		}
+		checking := swapOf(c).GetCheckingApproval()
+		if checking.GetCandidateManifestRev() != args.rev || checking.GetPeerId() != peerID {
+			t.Fatalf("swap = %s, want checking approval for %q", swapOf(c).MarshalProtoText(), peerID)
+		}
+	})
+	t.Run("root neither trusted nor approved awaits approval", func(t *testing.T) {
+		c, instance := newHost(true)
+		args, _ := candidate(4)
+		if got := pass(instance, args); got != 0 {
+			t.Fatalf("unapproved root: %d candidates admitted, want 0", got)
+		}
+		waiting := swapOf(c).GetAwaitingApproval()
+		if waiting.GetCandidateManifestRev() != args.rev || waiting.GetPeerId() != peerID {
+			t.Fatalf("swap = %s, want awaiting approval for %q", swapOf(c).MarshalProtoText(), peerID)
 		}
 	})
 }

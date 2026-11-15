@@ -56,6 +56,12 @@ export interface DistMeta {
    * UpdateGuardPluginIds name plugins that quiesce owned work before replacement.
    */
   updateGuardPluginIds?: string[]
+  /**
+   * AdmissionPluginId names the plugin that owns this device's plugin
+   * approvals. The host builds its root admission controller asking that
+   * plugin in code at startup; empty leaves admission to the trusted roots.
+   */
+  admissionPluginId?: string
 }
 
 export const DistMeta: MessageType<DistMeta> =
@@ -70,4 +76,5 @@ export const DistMeta: MessageType<DistMeta> =
     [8, 'manifest_id', 9],
     [9, 'manifest_rev', 4],
     [10, 'update_guard_plugin_ids', 9, 1],
+    [11, 'admission_plugin_id', 9],
   ])

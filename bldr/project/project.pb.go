@@ -203,6 +203,10 @@ type StartConfig struct {
 	// The component should contain a <WebView /> from @aptre/bldr-react.
 	// The contents will be used for the children of BldrRoot.
 	LoadWebStartup string `protobuf:"bytes,3,opt,name=load_web_startup,json=loadWebStartup,proto3" json:"loadWebStartup,omitempty"`
+	// AdmissionPluginId names the plugin that owns this device's plugin
+	// approvals. The host builds its root admission controller asking that
+	// plugin in code at startup; empty leaves admission to the trusted roots.
+	AdmissionPluginId string `protobuf:"bytes,4,opt,name=admission_plugin_id,json=admissionPluginId,proto3" json:"admissionPluginId,omitempty"`
 }
 
 func (x *StartConfig) Reset() {
@@ -228,6 +232,13 @@ func (x *StartConfig) GetDisableBuild() bool {
 func (x *StartConfig) GetLoadWebStartup() string {
 	if x != nil {
 		return x.LoadWebStartup
+	}
+	return ""
+}
+
+func (x *StartConfig) GetAdmissionPluginId() string {
+	if x != nil {
+		return x.AdmissionPluginId
 	}
 	return ""
 }
@@ -742,6 +753,7 @@ func (m *StartConfig) CloneVT() *StartConfig {
 	r := new(StartConfig)
 	r.DisableBuild = m.DisableBuild
 	r.LoadWebStartup = m.LoadWebStartup
+	r.AdmissionPluginId = m.AdmissionPluginId
 	r.Plugins = protobuf_go_lite.CloneSlice(m.Plugins)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -923,6 +935,9 @@ func (this *StartConfig) EqualVT(that *StartConfig) bool {
 		return false
 	}
 	if this.LoadWebStartup != that.LoadWebStartup {
+		return false
+	}
+	if this.AdmissionPluginId != that.AdmissionPluginId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1578,6 +1593,11 @@ func (x *StartConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("loadWebStartup")
 		s.WriteString(x.LoadWebStartup)
 	}
+	if x.AdmissionPluginId != "" || s.HasField("admissionPluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("admissionPluginId")
+		s.WriteString(x.AdmissionPluginId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1608,6 +1628,9 @@ func (x *StartConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "load_web_startup", "loadWebStartup":
 			s.AddField("load_web_startup")
 			x.LoadWebStartup = s.ReadString()
+		case "admission_plugin_id", "admissionPluginId":
+			s.AddField("admission_plugin_id")
+			x.AdmissionPluginId = s.ReadString()
 		}
 	})
 }
@@ -2427,6 +2450,11 @@ func (m *StartConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.AdmissionPluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.AdmissionPluginId)
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.LoadWebStartup) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.LoadWebStartup)
 		i--
@@ -2851,6 +2879,7 @@ func (m *StartConfig) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(1, m.Plugins)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableBuild)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LoadWebStartup)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AdmissionPluginId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3184,6 +3213,10 @@ func (x *StartConfig) MarshalProtoText() string {
 	if x.LoadWebStartup != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "load_web_startup")
 		protobuf_go_lite.TextWriteString(&sb, x.LoadWebStartup)
+	}
+	if x.AdmissionPluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "admission_plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.AdmissionPluginId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3868,6 +3901,16 @@ func (m *StartConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.LoadWebStartup = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdmissionPluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AdmissionPluginId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

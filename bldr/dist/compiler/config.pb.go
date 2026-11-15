@@ -159,6 +159,10 @@ type Config struct {
 	// UpdateGuardPluginIds require the running plugin's UpdateGuard service to
 	// authorize hot replacement. Initial startup does not require approval.
 	UpdateGuardPluginIds []string `protobuf:"bytes,15,rep,name=update_guard_plugin_ids,json=updateGuardPluginIds,proto3" json:"updateGuardPluginIds,omitempty"`
+	// AdmissionPluginId names the plugin that owns this device's plugin
+	// approvals. The host builds its root admission controller asking that
+	// plugin in code at startup; empty leaves admission to the trusted roots.
+	AdmissionPluginId string `protobuf:"bytes,19,opt,name=admission_plugin_id,json=admissionPluginId,proto3" json:"admissionPluginId,omitempty"`
 	// GoscriptDeferredFunctions lists exported package/path.Function boundaries
 	// whose modules initialize on first invocation in a GoScript dist build.
 	GoscriptDeferredFunctions []string `protobuf:"bytes,16,rep,name=goscript_deferred_functions,json=goscriptDeferredFunctions,proto3" json:"goscriptDeferredFunctions,omitempty"`
@@ -284,6 +288,13 @@ func (x *Config) GetUpdateGuardPluginIds() []string {
 	return nil
 }
 
+func (x *Config) GetAdmissionPluginId() string {
+	if x != nil {
+		return x.AdmissionPluginId
+	}
+	return ""
+}
+
 func (x *Config) GetGoscriptDeferredFunctions() []string {
 	if x != nil {
 		return x.GoscriptDeferredFunctions
@@ -401,6 +412,7 @@ func (m *Config) CloneVT() *Config {
 	r.EnableCompression = m.EnableCompression
 	r.BrowserIceServersEndpoint = m.BrowserIceServersEndpoint
 	r.EmbedNativeVolume = m.EmbedNativeVolume
+	r.AdmissionPluginId = m.AdmissionPluginId
 	r.NativeRunnerPackage = m.NativeRunnerPackage
 	r.ComposePackage = m.ComposePackage
 	r.EmbedManifests = protobuf_go_lite.CloneVTSlice(m.EmbedManifests)
@@ -543,6 +555,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.ComposePackage != that.ComposePackage {
+		return false
+	}
+	if this.AdmissionPluginId != that.AdmissionPluginId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -860,6 +875,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("composePackage")
 		s.WriteString(x.ComposePackage)
 	}
+	if x.AdmissionPluginId != "" || s.HasField("admissionPluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("admissionPluginId")
+		s.WriteString(x.AdmissionPluginId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -986,6 +1006,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "compose_package", "composePackage":
 			s.AddField("compose_package")
 			x.ComposePackage = s.ReadString()
+		case "admission_plugin_id", "admissionPluginId":
+			s.AddField("admission_plugin_id")
+			x.AdmissionPluginId = s.ReadString()
 		}
 	})
 }
@@ -1160,6 +1183,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.AdmissionPluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.AdmissionPluginId)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9a
 	}
 	if len(m.ComposePackage) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ComposePackage)
@@ -1403,6 +1433,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(2, m.GoscriptDeferredFunctions)
 	n += protobuf_go_lite.SizeStringNonEmpty(2, m.NativeRunnerPackage)
 	n += protobuf_go_lite.SizeStringNonEmpty(2, m.ComposePackage)
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.AdmissionPluginId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1600,6 +1631,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.ComposePackage != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "compose_package")
 		protobuf_go_lite.TextWriteString(&sb, x.ComposePackage)
+	}
+	if x.AdmissionPluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "admission_plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.AdmissionPluginId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2005,6 +2040,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ComposePackage = v
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdmissionPluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AdmissionPluginId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
