@@ -7,7 +7,6 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
-	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -48,12 +47,6 @@ func (o *InitUnixFSOp) Validate() error {
 	return nil
 }
 
-// WriteObjectKeys returns the filesystem object and the FS node type object
-// that ApplyWorldOp creates when the World lacks it.
-func (o *InitUnixFSOp) WriteObjectKeys() []string {
-	return []string{o.GetObjectKey(), world_types.BuildTypeObjectKey(unixfs_world.FSNodeTypeID)}
-}
-
 // ApplyWorldOp applies the operation as a world operation.
 func (o *InitUnixFSOp) ApplyWorldOp(
 	ctx context.Context,
@@ -86,6 +79,3 @@ func (o *InitUnixFSOp) ApplyWorldOp(
 
 	return false, nil
 }
-
-// _ is a type assertion
-var _ world.WriteKeysOperation = (*InitUnixFSOp)(nil)

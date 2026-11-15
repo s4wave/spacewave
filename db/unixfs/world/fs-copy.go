@@ -78,12 +78,6 @@ func (o *FsCopyOp) Validate() error {
 	return nil
 }
 
-// WriteObjectKeys returns the filesystem object: the op copies from one path
-// to another inside it, and writes no other object.
-func (o *FsCopyOp) WriteObjectKeys() []string {
-	return []string{o.GetObjectKey()}
-}
-
 // ApplyWorldOp applies the operation as a world operation.
 func (o *FsCopyOp) ApplyWorldOp(
 	ctx context.Context,
@@ -138,6 +132,3 @@ func (o *FsCopyOp) ApplyWorldObjectOp(
 	})
 	return false, err
 }
-
-// _ is a type assertion
-var _ world.WriteKeysOperation = (*FsCopyOp)(nil)

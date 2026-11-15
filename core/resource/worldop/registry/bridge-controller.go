@@ -241,12 +241,6 @@ func (o *bridgeOperation) TypeID() string {
 	return o.opTypeID
 }
 
-// WriteObjectKeys returns no keys: the op writes only through the World handle
-// its handler plugin receives, which guards each write as that plugin's.
-func (o *bridgeOperation) WriteObjectKeys() []string {
-	return nil
-}
-
 func bridgeOperationEngineID(op world.Operation) (string, bool) {
 	bridgeOp, ok := op.(*bridgeOperation)
 	if !ok {
@@ -680,10 +674,7 @@ func (o *bridgeOperation) getHandlerService(resources *s4wave_plugin.PluginResou
 }
 
 // _ is a type assertion
-var (
-	_ world.PreparedOperation  = (*bridgeOperation)(nil)
-	_ world.WriteKeysOperation = (*bridgeOperation)(nil)
-)
+var _ world.PreparedOperation = (*bridgeOperation)(nil)
 
 // _ is a type assertion
 var _ controller.Controller = (*WorldOpRegistryBridgeController)(nil)

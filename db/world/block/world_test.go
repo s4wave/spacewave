@@ -3,6 +3,7 @@ package world_block_test
 import (
 	"bytes"
 	"context"
+	"reflect"
 	"slices"
 	"strconv"
 	"sync"
@@ -1049,6 +1050,61 @@ func TestWorldState_DeleteObjectRemovesLiteralPredicateQuads(t *testing.T) {
 	}
 	if len(quads) != 0 {
 		t.Fatalf("expected no outgoing quads for deleted image, got %d", len(quads))
+	}
+}
+
+// TestWorldState_ReadGraphHandleRefusesWrites verifies that a graph handle lent
+// for reading by a writable World refuses every write.
+func TestWorldState_ReadGraphHandleRefusesWrites(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	q := quad.Quad{Subject: world.KeyToGraphValue("a"), Predicate: quad.IRI("link"), Object: world.KeyToGraphValue("b")}
+	err = ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
+		if err := h.ApplyDeltas(ctx, []graph.Delta{{Quad: q, Action: graph.Add}}, graph.IgnoreOpts{}); !errors.Is(err, tx.ErrNotWrite) {
+			t.Errorf("ApplyDeltas on a read handle: %v, want %v", err, tx.ErrNotWrite)
+		}
+		if _, err := h.NewQuadWriter(ctx); !errors.Is(err, tx.ErrNotWrite) {
+			t.Errorf("NewQuadWriter on a read handle: %v, want %v", err, tx.ErrNotWrite)
+		}
+		if _, ok := h.(graph.QuadWriter); ok {
+			t.Error("a read handle is a graph.QuadWriter")
+		}
+		// No field of the handle hands a borrower the lender's handle.
+		hv := reflect.Indirect(reflect.ValueOf(h))
+		for i := range hv.NumField() {
+			if hv.Field(i).CanInterface() {
+				t.Errorf("read handle field %s is reachable", hv.Type().Field(i).Name)
+			}
+		}
+		// Closing the borrowed handle leaves the lender's open.
+		if err := h.Close(); err != nil {
+			t.Errorf("Close on a read handle: %v", err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("a", "", "", ""), 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(quads) != 0 {
+		t.Fatalf("read handle wrote %d quads", len(quads))
 	}
 }
 

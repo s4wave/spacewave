@@ -18,6 +18,7 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
@@ -131,6 +132,11 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 		if err != nil || found {
 			t.Fatalf("refused settings op left settings: found=%v err=%v", found, err)
 		}
+		partial, found, err := readTx.GetObject(ctx, "quickstart/partial")
+		world.ReleaseObjectState(partial)
+		if err != nil || found {
+			t.Fatalf("transaction with a refused op kept its write: found=%v err=%v", found, err)
+		}
 	}
 }
 
@@ -235,7 +241,7 @@ func (h *testQuickstartHandler) SeedQuickstart(
 		return nil, errors.Errorf("settings op response %v, want refusal %s", settingsResp, space_world_optypes.PluginWriteRefusedCode)
 	}
 
-	// A built-in op that names the objects it writes applies.
+	// A built-in op that writes no protected object applies.
 	fsResp, err := applyOp(space_world_ops.NewInitUnixFSOp("quickstart/files", time.Unix(1, 0)))
 	if err != nil {
 		return nil, err
@@ -249,10 +255,60 @@ func (h *testQuickstartHandler) SeedQuickstart(
 	if err := s4wave_world.CommitRemote(ctx, tx); err != nil {
 		return nil, err
 	}
+
+	// An op whose type is allowed but which writes the settings is refused
+	// as it writes, and discards the transaction holding an earlier write.
+	if err := h.seedPartial(ctx, resourceCtx, engine); err != nil {
+		return nil, err
+	}
 	return &s4wave_quickstart_registry.SeedQuickstartResponse{
 		IndexPath: "/seeded/index",
 		PluginIds: []string{"plugin-result"},
 	}, nil
+}
+
+// seedPartial writes an object in a new transaction, applies an op that writes
+// the Space settings, and requires the refusal to leave nothing to commit.
+func (h *testQuickstartHandler) seedPartial(
+	ctx context.Context,
+	resourceCtx resource_server.ResourceClientContext,
+	engine s4wave_world.SRPCEngineResourceServiceClient,
+) error {
+	txResp, err := engine.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true})
+	if err != nil {
+		return err
+	}
+	txID := txResp.GetResourceId()
+	defer resourceCtx.ReleaseResource(txID)
+	txClient, err := resourceCtx.GetAttachedResource(txID)
+	if err != nil {
+		return err
+	}
+	worldState := s4wave_world.NewSRPCWorldStateResourceServiceClient(txClient)
+	objResp, err := worldState.CreateObject(ctx, &s4wave_world.CreateObjectRequest{ObjectKey: "quickstart/partial"})
+	if err != nil {
+		return err
+	}
+	if objID := objResp.GetResourceId(); objID != 0 {
+		defer resourceCtx.ReleaseResource(objID)
+	}
+	op := unixfs_world.NewFsInitOp(space_world.SpaceSettingsObjectKey, unixfs_world.FSType_FSType_FS_NODE, nil, true, time.Unix(1, 0))
+	data, err := op.MarshalVT()
+	if err != nil {
+		return err
+	}
+	resp, err := worldState.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: op.TypeID(), OpData: data, OpSender: h.sender})
+	if err != nil {
+		return err
+	}
+	if resp.GetRejectionCode() != space_world_optypes.PluginWriteRefusedCode {
+		return errors.Errorf("fs-init of settings response %v, want refusal %s", resp, space_world_optypes.PluginWriteRefusedCode)
+	}
+	tx := s4wave_world.NewSRPCTxResourceServiceClient(txClient)
+	if err := s4wave_world.CommitRemote(ctx, tx); err == nil {
+		return errors.New("transaction committed after a refused op")
+	}
+	return nil
 }
 
 type testQuickstartPluginLoadController struct {
