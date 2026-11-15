@@ -166,6 +166,7 @@ func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
 	// A Space-stored installation crosses the parent RPC with its exact artifact,
 	// even when that artifact is absent from the parent's application catalog.
 	selected := createSpacePluginManifest(t, ctx, tb, spaceRuntimeManifestID, "js", 7)
+	admitSpacePluginManifest(t, tb.Bus, spaceRuntimeManifestID, selected.GetManifestRef())
 	key := bldr_manifest.NewManifestArtifactKey(selected.GetManifestRef())
 	if _, _, err := manifest_world.SetManifest(ctx, tb.WorldState, "", key, selected.GetManifestRef()); err != nil {
 		t.Fatal(err)

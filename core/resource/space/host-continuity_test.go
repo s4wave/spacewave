@@ -206,7 +206,8 @@ func (f *continuityFixture) install(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Register the artifact in the World.
+	// Admit the artifact on this device and register it in the World.
+	admitSpacePluginManifest(t, f.tb.Bus, spaceRuntimeManifestID, objectRef)
 	key := bldr_manifest.NewManifestArtifactKey(objectRef)
 	if _, _, err := manifest_world.SetManifest(f.ctx, f.tb.WorldState, "", key, objectRef); err != nil {
 		t.Fatal(err)

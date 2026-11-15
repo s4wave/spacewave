@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -16,6 +17,7 @@ import (
 	space_core "github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
@@ -116,18 +118,19 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 		}
 	}
 
-	// Verify the recursive World operation committed the Space settings.
-	settings, objectState2, err := world.LookupObject[space_world.SpaceSettings](
-		ctx,
-		readTx,
-		"quickstart/settings",
-	)
-	world.ReleaseObjectState(objectState2)
-	if err != nil {
-		t.Fatalf("recursive built-in world op did not commit settings: %v", err)
-	}
-	if got := settings.GetIndexPath(); got != "/quickstart-recursive" {
-		t.Fatalf("settings index path = %q, want /quickstart-recursive", got)
+	// Verify the recursive built-in op committed its filesystem and the
+	// refused settings op left no settings object.
+	{
+		objectState, err := world.MustGetObject(ctx, readTx, "quickstart/files")
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatalf("recursive built-in world op did not commit its filesystem: %v", err)
+		}
+		settings, found, err := readTx.GetObject(ctx, space_world.SpaceSettingsObjectKey)
+		world.ReleaseObjectState(settings)
+		if err != nil || found {
+			t.Fatalf("refused settings op left settings: found=%v err=%v", found, err)
+		}
 	}
 }
 
@@ -205,29 +208,40 @@ func (h *testQuickstartHandler) SeedQuickstart(
 		defer resourceCtx.ReleaseResource(objID)
 	}
 
-	// Encode the recursive Space settings operation.
-	settingsOp := space_world_ops.NewSetSpaceSettingsOp(
-		"quickstart/settings",
+	// applyOp applies a built-in World op to the attached transaction.
+	applyOp := func(op world.Operation) (*s4wave_world.ApplyWorldOpResponse, error) {
+		data, err := op.MarshalVT()
+		if err != nil {
+			return nil, err
+		}
+		return worldState.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{
+			OpTypeId: op.TypeID(),
+			OpData:   data,
+			OpSender: h.sender,
+		})
+	}
+
+	// The engine writes as this plugin, so the Space settings stay refused.
+	settingsResp, err := applyOp(space_world_ops.NewSetSpaceSettingsOp(
+		space_world.SpaceSettingsObjectKey,
 		&space_world.SpaceSettings{IndexPath: "/quickstart-recursive"},
 		true,
 		time.Unix(1, 0),
-	)
-	settingsData, err := settingsOp.MarshalVT()
+	))
 	if err != nil {
 		return nil, err
+	}
+	if settingsResp.GetRejectionCode() != space_world_optypes.PluginWriteRefusedCode {
+		return nil, errors.Errorf("settings op response %v, want refusal %s", settingsResp, space_world_optypes.PluginWriteRefusedCode)
 	}
 
-	// Apply the settings operation to the attached World transaction.
-	applyResp, err := worldState.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{
-		OpTypeId: settingsOp.TypeID(),
-		OpData:   settingsData,
-		OpSender: h.sender,
-	})
+	// A built-in op that names the objects it writes applies.
+	fsResp, err := applyOp(space_world_ops.NewInitUnixFSOp("quickstart/files", time.Unix(1, 0)))
 	if err != nil {
 		return nil, err
 	}
-	if applyResp.GetSeqno() == 0 || applyResp.GetSysErr() {
-		return nil, resource.ErrInvalidResourceID
+	if fsResp.GetSeqno() == 0 || fsResp.GetSysErr() {
+		return nil, errors.Errorf("init-unixfs op response %v", fsResp)
 	}
 
 	// Commit the seeded World objects before returning the plugin result.

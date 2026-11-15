@@ -40,12 +40,13 @@ func TestWorldServicePluginLookup(t *testing.T) {
 	addTestController(t, child, bus_bridge.NewBusBridge(tb.Bus, bridgeFilter(&plugin_space.Config{EngineId: tb.EngineID}, nil)))
 	addTestController(t, child, newWorldService(tb.Logger, child, tb.EngineID, ""))
 
-	// Connect a plugin bus to the generation as the plugin host does.
+	// Connect a plugin bus to the generation as the plugin host does, naming
+	// the plugin in the server ID: the service serves no unnamed lookup.
 	pluginBus, _, err := controllerbus_core.NewCoreBus(ctx, tb.Logger)
 	if err != nil {
 		t.Fatal(err)
 	}
-	host := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux(bifrost_rpc.NewInvoker(child, "", true)))))
+	host := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux(bifrost_rpc.NewInvoker(child, bldr_plugin.PluginServerID("test-plugin", ""), true)))))
 	info := controller.NewInfo("test/plugin-host", controller.MustParseVersion("0.0.1"), "")
 	addTestController(t, pluginBus, bifrost_rpc.NewClientController(tb.Logger, pluginBus, info, host, []string{bldr_plugin.HostServiceIDPrefix}))
 	addTestController(t, pluginBus, sdk_world_engine.NewSpaceWorldController(pluginBus))
