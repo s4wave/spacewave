@@ -232,7 +232,7 @@ func ExecutePluginEntrypoint(
 	rels = append(rels, csetRel)
 
 	// Serve the plugin RPC mux and start initial capability registration.
-	rpcMux := newPluginRpcMux(le, b)
+	rpcMux := NewPluginRpcMux(le, b)
 	srv := srpc.NewServer(rpcMux)
 	err = startInitialCapabilityRegistration(
 		ctx,
@@ -289,9 +289,9 @@ func ExecutePluginEntrypoint(
 	}
 }
 
-// newPluginRpcMux serves the plugin host's calls into this plugin. Unknown
+// NewPluginRpcMux serves the plugin host's calls into this plugin. Unknown
 // services wait on the plugin bus for a LookupRpcService resolver.
-func newPluginRpcMux(le *logrus.Entry, b bus.Bus) srpc.Mux {
+func NewPluginRpcMux(le *logrus.Entry, b bus.Bus) srpc.Mux {
 	// Build the mux around the bus-backed RPC invoker.
 	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, bldr_plugin.HostServerIDPrefix+"default", true))
 
