@@ -19,6 +19,7 @@ import type {
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
 import type { ListStateHandle } from '@s4wave/web/ui/list'
 
+import { toast } from '@s4wave/web/ui/toaster.js'
 import { UnixFSBrowser, type UnixFSBrowserBodyProps } from './UnixFSBrowser.js'
 import { buildUnixFSEntryAppDragEnvelope } from './unixfs-app-drag.js'
 import type { UnixFSMoveItem } from './move.js'
@@ -972,6 +973,7 @@ describe('UnixFSBrowser drag gating', () => {
           expect.objectContaining({ name: 'hello.txt' }),
         ]),
         [],
+        '/',
       )
     })
   })
@@ -992,6 +994,7 @@ describe('UnixFSBrowser drag gating', () => {
         expect.anything(),
         expect.any(Array),
         ['nested', 'nested/empty'],
+        '/',
       )
     })
   })
@@ -1053,6 +1056,32 @@ describe('UnixFSBrowser drag gating', () => {
     await waitFor(() => {
       expect(h.mockRename).toHaveBeenCalledWith('file.txt', 'confirmed.txt')
     })
+  })
+
+  it('keeps an inline rename the Space refuses, and says so', async () => {
+    // The Space refuses the rename while its replay waits.
+    const user = userEvent.setup()
+    const error = vi.spyOn(toast, 'error').mockImplementation(() => '')
+    h.mockRename.mockRejectedValueOnce(
+      new Error('the Space is catching up and is read only until it does'),
+    )
+    renderBrowser()
+    select(['file'])
+    act(() => {
+      triggerRenameCommand()
+    })
+
+    // Confirming says nothing was renamed and keeps the new name to retry.
+    const input = screen.getByDisplayValue('file.txt')
+    await user.clear(input)
+    await user.type(input, 'refused.txt{Enter}')
+    await waitFor(() => {
+      expect(error).toHaveBeenCalledWith('Not renamed.', {
+        description: 'the Space is catching up and is read only until it does',
+      })
+    })
+    expect(screen.getByDisplayValue('refused.txt')).toBeDefined()
+    error.mockRestore()
   })
 
   it('keeps the toolbar visible during loading transitions without reusable entries', () => {
