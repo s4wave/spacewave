@@ -813,6 +813,7 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	}
 	r.positions = append(r.positions, pos)
 	delete(a.missing, string(op.Hash))
+	a.le.Infof("parity-probe: world apply index=%d seqno=%d refused=%t adopted=%t missing=%d", index, pos.seqno, pos.reason != "", adopt != nil, len(a.missing))
 
 	// Hold the payloads of another device's operation, as its writer did
 	// before queueing it, so the device that later owns the Space holds every
@@ -911,6 +912,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		broadcast()
 	})
 	a.sweep()
+	a.le.Infof("parity-probe: world install checkpoint-height=%d base-seqno=%d covered=%d kept=%t positions=%d missing=%d", checkpoint.GetHeight(), seqno, covered, kept, len(r.positions), len(a.missing))
 	if len(a.missing) == 0 {
 		if err := a.installHead(ctx); err != nil {
 			return false, err
@@ -1358,6 +1360,7 @@ func (a *Adapter) installHead(ctx context.Context) error {
 	// Install the head and collect the placed candidates.
 	state, seqno := a.replay.head()
 	height, positions := a.replay.height, len(a.replay.positions)
+	a.le.Infof("parity-probe: world head installed checkpoint-height=%d positions=%d seqno=%d", height, positions, seqno)
 	head := world.Head{Root: state.GetHeadRef().GetRootRef().Clone(), Seqno: seqno, Durable: true}
 	var placed []*spaceAdmission
 	var watchers []*headWatch

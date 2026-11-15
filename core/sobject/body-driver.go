@@ -177,10 +177,12 @@ func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) e
 	// Hold what the operations read, then install the checkpoint when it
 	// moved.
 	if err := d.body.Hold(ctx, ev); err != nil {
+		d.le.Infof("parity-probe: body step hold failed order=%d class=%s", len(ev.Order), parityProbeErrClass(err))
 		return err
 	}
 	if !ev.Checkpoint.EqualVT(d.installed) {
 		if err := d.install(ctx, ev); err != nil {
+			d.le.Infof("parity-probe: body step install failed checkpoint-height=%d class=%s", ev.Checkpoint.GetHeight(), parityProbeErrClass(err))
 			return err
 		}
 	}
@@ -191,6 +193,7 @@ func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) e
 		return err
 	}
 	if follows {
+		d.le.Infof("parity-probe: body step follows checkpoint-height=%d order=%d", ev.Checkpoint.GetHeight(), len(ev.Order))
 		return d.follow(ctx, ev)
 	}
 
@@ -201,9 +204,11 @@ func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) e
 	d.set = ev.Set
 	for i := keep; i < len(ev.Order); i++ {
 		if err := d.apply(ctx, ev, i); err != nil {
+			d.le.Infof("parity-probe: body step stopped checkpoint-height=%d order=%d stable=%d kept=%d at=%d class=%s", ev.Checkpoint.GetHeight(), len(ev.Order), ev.Stable, keep, i, parityProbeErrClass(err))
 			return err
 		}
 	}
+	d.le.Infof("parity-probe: body step done checkpoint-height=%d order=%d stable=%d kept=%d applied=%d", ev.Checkpoint.GetHeight(), len(ev.Order), ev.Stable, keep, len(ev.Order)-keep)
 
 	// Sign the checkpoint this device owes.
 	return d.checkpoint(ctx, ev)

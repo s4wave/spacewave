@@ -191,6 +191,7 @@ func (a *Adapter) loadCursor(ctx context.Context) error {
 	// Require the cursor root to hold its head.
 	head := cursor.GetHead()
 	if !a.cursorWorlds.holds(head.GetHeadRef().GetRootRef()) {
+		a.le.Infof("parity-probe: world cursor ignored unheld outcomes=%d", len(cursor.GetOutcomes()))
 		return nil
 	}
 
@@ -218,6 +219,7 @@ func (a *Adapter) loadCursor(ctx context.Context) error {
 	}
 	a.replay.restored = positions
 	a.replay.restoredFrom = cursor.GetBase()
+	a.le.Infof("parity-probe: world cursor restored=%d", len(positions))
 	return nil
 }
 

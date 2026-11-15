@@ -23,36 +23,10 @@ type notesDynamicQuickstartScenario struct {
 // TestGoScriptNotesDynamicQuickstartsParity proves the notebook, docs, and
 // blog dynamic quickstarts persist edits across route reloads under GoScript.
 func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
-	// Run the notebook quickstart and verify its edits survive a reload.
-	t.Run("notebook", func(t *testing.T) {
-		// Open a fresh session and run the notebook quickstart.
-		sess := harness(t).NewCleanPageSession(t)
-		page := sess.Page()
-		scenario := createNotesDynamicQuickstartScenario(t, harness(t), page, "notebook")
-
-		// Write a proof note through the notebook editor.
-		waitForNotebookReady(t, page, "welcome")
-		openNotebookNote(t, page, "welcome")
-		writeSourceNote(t, page, strings.Join([]string{
-			"---",
-			"title: GoScript Notebook Proof",
-			"tags: [goscript]",
-			"---",
-			"",
-			"# GoScript Notebook Proof",
-			"",
-			"Notebook dynamic quickstart edits persist.",
-			"",
-		}, "\n"))
-		assertNoteText(t, page, "Notebook dynamic quickstart edits persist.")
-
-		// Reload and reopen the notebook note from the persisted object.
-		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("notebook"), "notebook", "input[placeholder='Search notes…']", func() {
-			waitForNotebookReady(t, page, "GoScript Notebook Proof")
-			openNotebookNote(t, page, "GoScript Notebook Proof")
-			assertNoteText(t, page, "Notebook dynamic quickstart edits persist.")
-		})
-	})
+	// Run the notebook quickstart and verify its edits survive a reload, and
+	// in a second run a normal page close and a new page in the same context.
+	t.Run("notebook", func(t *testing.T) { runNotebookParity(t, "reload") })
+	t.Run("notebook-close", func(t *testing.T) { runNotebookParity(t, "close") })
 
 	// Run the docs quickstart and verify its edits survive a reload.
 	t.Run("docs", func(t *testing.T) {
@@ -72,7 +46,7 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 		assertNoteText(t, page, "Docs dynamic quickstart edits persist.")
 
 		// Reload and reopen the docs page from the persisted object.
-		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("documentation"), "documentation", "[data-testid='notes-content-view']", func() {
+		assertNotesRouteReloadAndReopen(t, harness(t), sess, "reload", scenario.objectHash("documentation"), "documentation", "[data-testid='notes-content-view']", func() {
 			waitForDocsReady(t, page, "index")
 			assertNoteText(t, page, "Docs dynamic quickstart edits persist.")
 		})
@@ -118,13 +92,47 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 		assertNoteText(t, page, "Blog dynamic quickstart edits persist.")
 
 		// Reload and reopen the edited blog post from the persisted object.
-		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("blog/site"), "blog/site", "button[title='Edit posts']", func() {
+		assertNotesRouteReloadAndReopen(t, harness(t), sess, "reload", scenario.objectHash("blog/site"), "blog/site", "button[title='Edit posts']", func() {
 			waitForBlogReady(t, page, "GoScript Blog Proof")
 			if err := page.Locator("text=GoScript Blog Proof").First().Click(); err != nil {
 				t.Fatalf("reopen edited blog post: %v", err)
 			}
 			assertNoteText(t, page, "Blog dynamic quickstart edits persist.")
 		})
+	})
+}
+
+// runNotebookParity runs the notebook quickstart, writes a proof note, and
+// checks that it renders after the page reopens: by a reload when mode is
+// "reload", or by closing the page and opening a new one in the same
+// BrowserContext when mode is "close".
+func runNotebookParity(t *testing.T, mode string) {
+	// Open a fresh session and run the notebook quickstart.
+	sess := harness(t).NewCleanPageSession(t)
+	page := sess.Page()
+	scenario := createNotesDynamicQuickstartScenario(t, harness(t), page, "notebook")
+
+	// Write a proof note through the notebook editor.
+	waitForNotebookReady(t, page, "welcome")
+	openNotebookNote(t, page, "welcome")
+	writeSourceNote(t, page, strings.Join([]string{
+		"---",
+		"title: GoScript Notebook Proof",
+		"tags: [goscript]",
+		"---",
+		"",
+		"# GoScript Notebook Proof",
+		"",
+		"Notebook dynamic quickstart edits persist.",
+		"",
+	}, "\n"))
+	assertNoteText(t, page, "Notebook dynamic quickstart edits persist.")
+
+	// Reopen the notebook note from the persisted object.
+	assertNotesRouteReloadAndReopen(t, harness(t), sess, mode, scenario.objectHash("notebook"), "notebook", "input[placeholder='Search notes…']", func() {
+		waitForNotebookReady(t, sess.Page(), "GoScript Notebook Proof")
+		openNotebookNote(t, sess.Page(), "GoScript Notebook Proof")
+		assertNoteText(t, sess.Page(), "Notebook dynamic quickstart edits persist.")
 	})
 }
 
@@ -246,9 +254,11 @@ func assertNoteText(t testing.TB, page playwright.Page, text string) {
 	}
 }
 
-// assertNotesRouteReloadAndReopen reloads the route and reopens it from the
-// app root, asserting readiness each time. Before asserting, it logs a
-// "parity-probe:" line for what renders first after the reload, the ready
+// assertNotesRouteReloadAndReopen reopens sess's route, by a reload when mode
+// is "reload" or by closing the page and opening the route in a new page of
+// the same BrowserContext when mode is "close", then reopens it from the app
+// root, asserting readiness each time. Before asserting, it logs a
+// "parity-probe:" line for what renders first after the reopen, the ready
 // control or the viewer's not-found state, and the World seqno and object
 // presence on a fresh read; when the object is not found it reopens the route
 // from the app root and again after 30 seconds and logs each result. A
@@ -256,7 +266,8 @@ func assertNoteText(t testing.TB, page playwright.Page, text string) {
 func assertNotesRouteReloadAndReopen(
 	t testing.TB,
 	h *Harness,
-	page playwright.Page,
+	sess *TestSession,
+	mode string,
 	hash string,
 	objectKey string,
 	readySelector string,
@@ -265,17 +276,32 @@ func assertNotesRouteReloadAndReopen(
 	// Mark the reload helper as a test helper.
 	t.Helper()
 
-	// Record the World as the page saw it before the reload.
-	logNotesParityWorld(t, page, hash, objectKey, "before-reload")
+	// Record the World as the page saw it before the reopen.
+	page := sess.Page()
+	logNotesParityWorld(t, page, hash, objectKey, "before-"+mode)
 
-	// Reload the page and record what renders first.
-	if _, err := page.Reload(); err != nil {
-		t.Fatalf("reload notes route: %v", err)
+	// Reload the page, or close it and open the route in a new page of the
+	// same BrowserContext, and record what renders first.
+	switch mode {
+	case "reload":
+		if _, err := page.Reload(); err != nil {
+			t.Fatalf("reload notes route: %v", err)
+		}
+	case "close":
+		if err := sess.ReplacePageInCurrentContext(); err != nil {
+			t.Fatalf("replace notes page: %v", err)
+		}
+		page = sess.Page()
+		if err := h.loadAppPageURL(sess, h.baseURL+"/"+hash); err != nil {
+			t.Fatalf("open notes route in a new page: %v", err)
+		}
+	default:
+		t.Fatalf("unknown reopen mode %q", mode)
 	}
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
-	first := probeNotesParityRender(t, page, objectKey, readySelector, "after-reload")
-	logNotesParityWorld(t, page, hash, objectKey, "after-reload")
+	first := probeNotesParityRender(t, page, objectKey, readySelector, "after-"+mode)
+	logNotesParityWorld(t, page, hash, objectKey, "after-"+mode)
 	if first != "ready" {
 		// Reopen from the app root, then once more after 30 seconds.
 		NavigateHash(t, h, page, "#/")
@@ -289,7 +315,7 @@ func assertNotesRouteReloadAndReopen(
 			probeNotesParityRender(t, page, objectKey, readySelector, "reopen-30s")
 			logNotesParityWorld(t, page, hash, objectKey, "reopen-30s")
 		}
-		t.Fatalf("parity-probe: %s rendered %s first after reload\ndebug: %v", objectKey, first, collectNotesDynamicQuickstartDebug(page))
+		t.Fatalf("parity-probe: %s rendered %s first after %s\ndebug: %v", objectKey, first, mode, collectNotesDynamicQuickstartDebug(page))
 	}
 	assertReady()
 
