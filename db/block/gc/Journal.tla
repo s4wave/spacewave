@@ -379,17 +379,17 @@
 \*              which Release finishes one child at a time before the next
 \*              Delete. A block at zero that gains a holder is Live again
 \*              at once. FALSE is the collector as it stands.
-\*              testdata/Journal-revive.cfg: with FALSE, R1 dies under
-\*              main's move to R2, its release frees C before R1, a root
-\*              moves back onto R1 without a put, and the re-hold leaves R1
-\*              Live over the freed C (NoLiveListsFreed).
+\*              testdata/Journal-revive.cfg: with FALSE, R2 dies under
+\*              main's move back to R1, its release frees C2 before R2, main
+\*              moves onto R2 without a put, and the re-hold leaves R2 Live
+\*              over the freed C2 (NoLiveListsFreed).
 \*   ChildRipe  TRUE, with HoldToFree, lets a child that a free's release
 \*              takes to zero be freed at once, at its parent's ripe point,
 \*              instead of taking the journal's end as its own.
-\*              testdata/Journal-lease-childripe.cfg: a stage root moves
-\*              onto C while R1, its only other holder, is at zero; R1 is
-\*              freed, its release takes C to zero, and C is freed under the
-\*              stage before that move's record nets (NoFreedRead).
+\*              testdata/Journal-lease-childripe.cfg: main moves onto R3
+\*              over C while R1, C's only other holder, is at zero; R1 is
+\*              freed, its release takes C to zero, and C is freed under main
+\*              before that move's record nets (NoFreedRead).
 \*
 \* Left out: a fill of a recorded hole, which LandFill stores as a refill,
 \* journaling nothing; the format 7 upgrade (an unadopted Volume here holds
