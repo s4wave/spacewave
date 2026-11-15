@@ -47,7 +47,7 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 		assertNoteText(t, page, "Notebook dynamic quickstart edits persist.")
 
 		// Reload and reopen the notebook note from the persisted object.
-		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("notebook"), func() {
+		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("notebook"), "notebook", "input[placeholder='Search notes…']", func() {
 			waitForNotebookReady(t, page, "GoScript Notebook Proof")
 			openNotebookNote(t, page, "GoScript Notebook Proof")
 			assertNoteText(t, page, "Notebook dynamic quickstart edits persist.")
@@ -72,7 +72,7 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 		assertNoteText(t, page, "Docs dynamic quickstart edits persist.")
 
 		// Reload and reopen the docs page from the persisted object.
-		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("documentation"), func() {
+		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("documentation"), "documentation", "[data-testid='notes-content-view']", func() {
 			waitForDocsReady(t, page, "index")
 			assertNoteText(t, page, "Docs dynamic quickstart edits persist.")
 		})
@@ -118,7 +118,7 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 		assertNoteText(t, page, "Blog dynamic quickstart edits persist.")
 
 		// Reload and reopen the edited blog post from the persisted object.
-		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("blog/site"), func() {
+		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("blog/site"), "blog/site", "button[title='Edit posts']", func() {
 			waitForBlogReady(t, page, "GoScript Blog Proof")
 			if err := page.Locator("text=GoScript Blog Proof").First().Click(); err != nil {
 				t.Fatalf("reopen edited blog post: %v", err)
@@ -247,28 +247,148 @@ func assertNoteText(t testing.TB, page playwright.Page, text string) {
 }
 
 // assertNotesRouteReloadAndReopen reloads the route and reopens it from the
-// app root, asserting readiness each time.
+// app root, asserting readiness each time. Before asserting, it logs a
+// "parity-probe:" line for what renders first after the reload, the ready
+// control or the viewer's not-found state, and the World seqno and object
+// presence on a fresh read; when the object is not found it reopens the route
+// from the app root and again after 30 seconds and logs each result. A
+// not-found first render still fails the test.
 func assertNotesRouteReloadAndReopen(
 	t testing.TB,
 	h *Harness,
 	page playwright.Page,
 	hash string,
+	objectKey string,
+	readySelector string,
 	assertReady func(),
 ) {
 	// Mark the reload helper as a test helper.
 	t.Helper()
 
-	// Reload the page and assert the route rehydrates.
+	// Record the World as the page saw it before the reload.
+	logNotesParityWorld(t, page, hash, objectKey, "before-reload")
+
+	// Reload the page and record what renders first.
 	if _, err := page.Reload(); err != nil {
 		t.Fatalf("reload notes route: %v", err)
 	}
 	WaitForApp(t, page)
+	EnableQuickstartTimingLogs(t, page)
+	first := probeNotesParityRender(t, page, objectKey, readySelector, "after-reload")
+	logNotesParityWorld(t, page, hash, objectKey, "after-reload")
+	if first != "ready" {
+		// Reopen from the app root, then once more after 30 seconds.
+		NavigateHash(t, h, page, "#/")
+		NavigateHash(t, h, page, hash)
+		state := probeNotesParityRender(t, page, objectKey, readySelector, "reopen")
+		logNotesParityWorld(t, page, hash, objectKey, "reopen")
+		if state != "ready" {
+			page.WaitForTimeout(30000)
+			NavigateHash(t, h, page, "#/")
+			NavigateHash(t, h, page, hash)
+			probeNotesParityRender(t, page, objectKey, readySelector, "reopen-30s")
+			logNotesParityWorld(t, page, hash, objectKey, "reopen-30s")
+		}
+		t.Fatalf("parity-probe: %s rendered %s first after reload\ndebug: %v", objectKey, first, collectNotesDynamicQuickstartDebug(page))
+	}
 	assertReady()
 
 	// Navigate away and back to prove the route reopens from the root.
 	NavigateHash(t, h, page, "#/")
 	NavigateHash(t, h, page, hash)
 	assertReady()
+}
+
+// notesParityProbeWaitMS bounds how long a render probe waits for either the
+// ready control or the not-found state.
+const notesParityProbeWaitMS = 240000
+
+// probeNotesParityRender waits until the route shows the ready control or the
+// viewer's not-found state, logs which came first with the elapsed time, and
+// returns "ready", "not-found" or "neither".
+func probeNotesParityRender(t testing.TB, page playwright.Page, objectKey, readySelector, phase string) string {
+	t.Helper()
+	result, err := page.Evaluate(`async ({ readySelector, deadlineMs }) => {
+		const start = performance.now()
+		const deadline = start + deadlineMs
+		for (;;) {
+			const text = document.querySelector('#bldr-root')?.textContent ?? ''
+			let state = ''
+			if (document.querySelector(readySelector) !== null) state = 'ready'
+			else if (text.includes('Object not found')) state = 'not-found'
+			if (state || performance.now() > deadline) {
+				return { state: state || 'neither', ms: Math.round(performance.now() - start) }
+			}
+			await new Promise((resolve) => setTimeout(resolve, 50))
+		}
+	}`, map[string]any{"readySelector": readySelector, "deadlineMs": notesParityProbeWaitMS})
+	if err != nil {
+		t.Logf("parity-probe: %s %s render probe failed: %v", objectKey, phase, err)
+		return "neither"
+	}
+	fields, _ := result.(map[string]any)
+	state, _ := fields["state"].(string)
+	t.Logf("parity-probe: %s %s first=%s ms=%v", objectKey, phase, state, fields["ms"])
+	return state
+}
+
+// logNotesParityWorld mounts the route's Space through the page's debug
+// helpers, reads the World on a fresh transaction, and logs its seqno and
+// whether the object exists. The World head reference itself is not exposed
+// to the page, so the seqno stands in for it.
+func logNotesParityWorld(t testing.TB, page playwright.Page, hash, objectKey, phase string) {
+	t.Helper()
+	result, err := page.Evaluate(`async ({ hash, objectKey }) => {
+		const match = hash.match(/^#\/u\/([0-9]+)\/so\/([^/]+)/)
+		const debug = globalThis.__s4wave_debug
+		if (!match || !debug?.root || !debug?.mountSpace) {
+			return { step: 'debug-context', error: 'missing route or debug helpers' }
+		}
+		const cleanups = []
+		const cleanup = (value) => {
+			if (value?.release) cleanups.push(() => value.release())
+			return value
+		}
+		let step = 'mountSessionByIdx'
+		try {
+			const abort = AbortSignal.timeout(15000)
+			const mounted = await debug.root.mountSessionByIdx({ sessionIdx: Number(match[1]) }, abort)
+			const session = cleanup(mounted?.session ?? null)
+			if (!session) return { step, error: 'missing session' }
+			step = 'mountSpace'
+			const space = await debug.mountSpace({
+				session,
+				spaceResp: { sharedObjectRef: { providerResourceRef: { id: decodeURIComponent(match[2]) } } },
+				abortSignal: abort,
+				cleanup,
+			})
+			step = 'accessWorldState'
+			const world = cleanup(await space.accessWorldState(false, abort))
+			step = 'getSeqno'
+			const { seqno } = await world.getSeqno(abort)
+			step = 'getObject'
+			const found = (await world.getObject(objectKey, abort)) !== null
+			return { step: 'done', seqno: String(seqno), found }
+		} catch (err) {
+			return { step, error: String(err?.message ?? err) }
+		} finally {
+			for (let i = cleanups.length - 1; i >= 0; i--) {
+				try {
+					cleanups[i]()
+				} catch {}
+			}
+		}
+	}`, map[string]any{"hash": hash, "objectKey": objectKey})
+	if err != nil {
+		t.Logf("parity-probe: %s %s world probe failed: %v", objectKey, phase, err)
+		return
+	}
+	fields, _ := result.(map[string]any)
+	if msg, ok := fields["error"]; ok {
+		t.Logf("parity-probe: %s %s world step=%v error=%v", objectKey, phase, fields["step"], msg)
+		return
+	}
+	t.Logf("parity-probe: %s %s world seqno=%v found=%v", objectKey, phase, fields["seqno"], fields["found"])
 }
 
 // collectNotesDynamicQuickstartDebug gathers page state for failure messages.
