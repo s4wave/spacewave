@@ -53,7 +53,7 @@ func CheckJobHasTask(ctx context.Context, w world.WorldState, jobKey, taskKey st
 func EnsureJobHasTask(ctx context.Context, w world.WorldState, jobKey, taskKey string) error {
 	hasTask, err := CheckJobHasTask(ctx, w, jobKey, taskKey)
 	if err == nil && !hasTask {
-		err = errors.Errorf("job %s does not have task %s", jobKey, taskKey)
+		err = world.NewOpRefusedError(errors.Errorf("job %s does not have task %s", jobKey, taskKey))
 	}
 	return err
 }

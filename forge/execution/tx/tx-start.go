@@ -7,6 +7,7 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/world"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
@@ -73,22 +74,22 @@ func (t *TxStart) ExecuteTx(
 		return err
 	}
 	if len(txPeerID) == 0 {
-		return peer.ErrEmptyPeerID
+		return world.NewOpRefusedError(peer.ErrEmptyPeerID)
 	}
 	if len(sender) != 0 && sender != txPeerID {
-		return errors.Errorf(
+		return world.NewOpRefusedError(errors.Errorf(
 			"tx body peer id %s must match sender %s",
 			txPeerID.String(), sender.String(),
-		)
+		))
 	}
 	if err := root.CheckPeerID(txPeerID); err != nil {
 		return err
 	}
 	if placement := root.GetPlacement(); placement != nil && placement.GetPeerId() != txPeerID.String() {
-		return errors.Errorf("execution peer %s does not match placement peer %s", txPeerID, placement.GetPeerId())
+		return world.NewOpRefusedError(errors.Errorf("execution peer %s does not match placement peer %s", txPeerID, placement.GetPeerId()))
 	}
 	if t.GetClaimId() == "" {
-		return errors.New("claim_id cannot be empty")
+		return world.NewOpRefusedError(errors.New("claim_id cannot be empty"))
 	}
 
 	// Determine whether the execution can adopt or create this claim.
@@ -117,7 +118,7 @@ func (t *TxStart) ExecuteTx(
 	// Create the next execution claim and persist its running state.
 	claimEpoch := root.GetClaim().GetEpoch() + 1
 	if claimEpoch == 0 {
-		return errors.New("execution claim epoch overflow")
+		return world.NewOpRefusedError(errors.New("execution claim epoch overflow"))
 	}
 	root.Claim = &forge_execution.Claim{
 		ClaimId:        t.GetClaimId(),

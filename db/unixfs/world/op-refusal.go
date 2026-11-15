@@ -11,17 +11,20 @@ import (
 // not fit the tree it applies to. Only the unixfs tree code returns them, from
 // the tree's decoded nodes, so each is a decision of the operation and its
 // base, never a failure to read the base.
-//
-// ErrExist and ErrNotExist are missing on purpose: they are fs.ErrExist and
-// fs.ErrNotExist, which a disk-backed block store can also return when it
-// fails to read, so they wait until the tree returns its own sentinel.
+// ErrExist and ErrNotExist are unixfs values distinct from fs.ErrExist and
+// fs.ErrNotExist, so an OS error a disk-backed store returns never matches
+// them.
 var fsRefusals = []error{
+	unixfs_errors.ErrExist,
+	unixfs_errors.ErrNotExist,
 	unixfs_errors.ErrNotDirectory,
 	unixfs_errors.ErrNotFile,
 	unixfs_errors.ErrNotSymlink,
 	unixfs_errors.ErrEmptyPath,
 	unixfs_errors.ErrAbsolutePath,
 	unixfs_errors.ErrMoveToSelf,
+	unixfs_errors.ErrNegativeOffset,
+	unixfs_errors.ErrEmptyBlob,
 }
 
 // fsRefusal returns err as a *world.OpRefusedError when it is one of

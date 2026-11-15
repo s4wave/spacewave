@@ -155,13 +155,13 @@ func (t *TxReclaim) ExecuteTx(
 		return err
 	}
 	if len(txPeerID) == 0 {
-		return peer.ErrEmptyPeerID
+		return world.NewOpRefusedError(peer.ErrEmptyPeerID)
 	}
 	if len(sender) != 0 && sender != txPeerID {
-		return errors.Errorf(
+		return world.NewOpRefusedError(errors.Errorf(
 			"tx body peer id %s must match sender %s",
 			txPeerID.String(), sender.String(),
-		)
+		))
 	}
 
 	// Require an active Execution and the exact claim being replaced. The new
@@ -187,13 +187,13 @@ func (t *TxReclaim) ExecuteTx(
 
 	// Preserve placed custody by requiring a linked replacement Worker.
 	if root.GetPlacement() != nil && t.GetPlacement() == nil {
-		return errors.New("reclaim of a placed execution requires placement")
+		return world.NewOpRefusedError(errors.New("reclaim of a placed execution requires placement"))
 	}
 
 	// Replace the executor, placement, claim, and waiting plugin in one root.
 	claimEpoch := root.GetClaim().GetEpoch() + 1
 	if claimEpoch == 0 {
-		return errors.New("execution claim epoch overflow")
+		return world.NewOpRefusedError(errors.New("execution claim epoch overflow"))
 	}
 	root.Claim = &forge_execution.Claim{
 		ClaimId:        t.GetClaimId(),

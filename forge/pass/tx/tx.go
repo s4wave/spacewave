@@ -147,7 +147,7 @@ func (t *Tx) ApplyWorldOp(
 		// Execute the pass transaction and validate the resulting state.
 		err = ttx.ExecuteTx(ctx, worldHandle, sender, objKey, bcs, ps)
 		if err == nil {
-			err = ps.Validate(true)
+			err = world.NewOpRefusedError(ps.Validate(true))
 		}
 
 		return err

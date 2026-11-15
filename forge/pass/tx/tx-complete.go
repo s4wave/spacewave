@@ -59,10 +59,10 @@ func (t *TxComplete) ExecuteTx(
 	}
 	for _, execution := range executions {
 		if !execution.IsComplete() {
-			return errors.Errorf(
+			return world.NewOpRefusedError(errors.Errorf(
 				"cannot complete pass while execution is %s",
 				execution.GetExecutionState().String(),
-			)
+			))
 		}
 	}
 
@@ -80,16 +80,16 @@ func (t *TxComplete) ExecuteTx(
 	}
 	if result.GetCanceled() {
 		if passState != forge_pass.State_PassState_CANCELING {
-			return errors.Errorf(
+			return world.NewOpRefusedError(errors.Errorf(
 				"%s: canceled completion requires CANCELING state",
 				passState.String(),
-			)
+			))
 		}
 	} else if passState != forge_pass.State_PassState_CHECKING {
-		return errors.Errorf(
+		return world.NewOpRefusedError(errors.Errorf(
 			"%s: non-canceled completion requires CHECKING state",
 			passState.String(),
-		)
+		))
 	}
 
 	// Publish target outputs from the successful execution states.

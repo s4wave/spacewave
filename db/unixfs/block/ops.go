@@ -2,7 +2,6 @@ package unixfs_block
 
 import (
 	"context"
-	"errors"
 	"io"
 	"io/fs"
 
@@ -160,7 +159,7 @@ func WriteBlob(
 		return unixfs_errors.ErrEmptyPath
 	}
 	if offset < 0 {
-		return errors.New("negative offset not supported")
+		return unixfs_errors.ErrNegativeOffset
 	}
 
 	// Resolve the destination file in the filesystem tree.
@@ -184,7 +183,7 @@ func WriteBlob(
 	// Require blob contents before writing a file range.
 	totalSize := bl.GetTotalSize()
 	if totalSize == 0 {
-		return errors.New("empty blob")
+		return unixfs_errors.ErrEmptyBlob
 	}
 
 	// Open the destination file handle for the blob write.

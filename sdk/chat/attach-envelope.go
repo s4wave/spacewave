@@ -46,7 +46,7 @@ func (o *AttachChatEnvelopeOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry
 	// The envelope's ID must not name a message stored under its envelope key.
 	envelopeKey, err := EnvelopeMessageKey(o.GetObjectKey(), o.GetEnvelope().GetId())
 	if err != nil {
-		return false, err
+		return false, world.NewOpRefusedError(err)
 	}
 	object, found, err := ws.GetObject(ctx, envelopeKey)
 	world.ReleaseObjectState(object)

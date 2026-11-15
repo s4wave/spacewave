@@ -61,7 +61,7 @@ func (t *TxUpdateInputs) ExecuteTx(
 ) error {
 	// Require the Task record before applying its input update.
 	if root == nil {
-		return errors.New("unexpected empty root task object")
+		return world.NewOpRefusedError(errors.New("unexpected empty root task object"))
 	}
 
 	// if nothing changed we will exit without writing anything

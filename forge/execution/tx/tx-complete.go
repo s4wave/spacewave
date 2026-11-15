@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/world"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
@@ -77,17 +78,17 @@ func (t *TxComplete) ExecuteTx(
 	switch execState {
 	case forge_execution.State_ExecutionState_RUNNING:
 		if result.GetCanceled() {
-			return errors.New("canceled completion requires CANCELING state")
+			return world.NewOpRefusedError(errors.New("canceled completion requires CANCELING state"))
 		}
 	case forge_execution.State_ExecutionState_CANCELING:
 		if !result.GetCanceled() {
-			return errors.New("CANCELING execution requires a canceled result")
+			return world.NewOpRefusedError(errors.New("CANCELING execution requires a canceled result"))
 		}
 	default:
-		return errors.Errorf(
+		return world.NewOpRefusedError(errors.Errorf(
 			"cannot complete execution in state: %s",
 			execState.String(),
-		)
+		))
 	}
 
 	// Fill the completion result with its failure details.

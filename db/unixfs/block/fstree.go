@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/file"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
@@ -230,7 +229,7 @@ func (f *FSTree) Symlink(
 // Returns nil if there are no directory entries.
 func (f *FSTree) Readdir() (*DirStream, error) {
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
-		return nil, errors.New("inode is not a directory")
+		return nil, unixfs_errors.ErrNotDirectory
 	}
 	if len(f.node.GetDirectoryEntry()) == 0 {
 		return nil, nil
@@ -299,7 +298,7 @@ func (f *FSTree) LookupFollowDirentAsCursor(name string) (*block.Cursor, *Dirent
 func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs ...string) (map[string]*FSTree, error) {
 	// Require a directory and prepare cursors for the requested children.
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
-		return nil, errors.New("inode is not a directory")
+		return nil, unixfs_errors.ErrNotDirectory
 	}
 	outputCursors := make(map[string]*FSTree, len(dirs))
 	if len(dirs) == 0 {
