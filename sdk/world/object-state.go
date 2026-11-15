@@ -85,8 +85,11 @@ func (os *ObjectState) GetModSeqno(ctx context.Context) (uint64, error) {
 // Increments the revision of the object if changed.
 // Returns revision just after the change was applied.
 func (os *ObjectState) SetRootRef(ctx context.Context, rootRef *bucket.ObjectRef) (uint64, error) {
-	resp, err := os.service.SetRootRef(ctx, &SetRootRefRequest{RootRef: rootRef})
+	resp, err := os.service.SetRootRef(ctx, &SetRootRefRequest{RootRef: rootRef, KnownErrorCode: KnownErrorCode})
 	if err != nil {
+		return 0, err
+	}
+	if err := ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return 0, err
 	}
 	return resp.Rev, nil
@@ -119,9 +122,10 @@ func (os *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, se
 
 	// Apply the operation over RPC and check for system errors.
 	resp, err := os.service.ApplyObjectOp(ctx, &ApplyObjectOpRequest{
-		OpTypeId: op.TypeID(),
-		OpData:   opData,
-		OpSender: sender.String(),
+		OpTypeId:       op.TypeID(),
+		OpData:         opData,
+		OpSender:       sender.String(),
+		KnownErrorCode: KnownErrorCode,
 	})
 	if err != nil {
 		return 0, false, err
@@ -136,8 +140,11 @@ func (os *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, se
 // IncrementRev increments the revision of the object.
 // Returns revision just after the change was applied.
 func (os *ObjectState) IncrementRev(ctx context.Context) (uint64, error) {
-	resp, err := os.service.IncrementRev(ctx, &IncrementRevRequest{})
+	resp, err := os.service.IncrementRev(ctx, &IncrementRevRequest{KnownErrorCode: KnownErrorCode})
 	if err != nil {
+		return 0, err
+	}
+	if err := ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return 0, err
 	}
 	return resp.Rev, nil

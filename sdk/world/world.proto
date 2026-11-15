@@ -166,6 +166,11 @@ message SetRetainedRootResponse {}
 message NewTransactionRequest {
   // Write indicates whether this transaction will perform write operations.
   bool write = 1;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 2;
 }
 
 // NewTransactionResponse is the response type for NewTransaction.
@@ -174,6 +179,9 @@ message NewTransactionResponse {
   uint32 resource_id = 1;
   // ReadOnly indicates whether the transaction is read-only.
   bool read_only = 2;
+  // ErrorCode identifies a built-in World refusal to open a write
+  // transaction, such as REPLAY_WAITS. No transaction was opened.
+  WorldErrorCode error_code = 3;
 }
 
 // GetSeqnoRequest is the request type for GetSeqno.
@@ -456,6 +464,11 @@ message CreateObjectRequest {
   string object_key = 1;
   // RootRef is the initial reference to the object's root data.
   .bucket.ObjectRef root_ref = 2;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 3;
 }
 
 // CreateObjectResponse is the response type for CreateObject.
@@ -464,6 +477,9 @@ message CreateObjectResponse {
   uint32 resource_id = 1;
   // ObjectKey is the unique identifier of the created object.
   string object_key = 2;
+  // ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+  // Nothing was written.
+  WorldErrorCode error_code = 3;
 }
 
 // GetObjectRequest is the request type for GetObject.
@@ -490,6 +506,11 @@ message RenameObjectRequest {
   string new_object_key = 2;
   // Descendants renames objects under old_object_key + "/" to the new prefix.
   bool descendants = 3;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 4;
 }
 
 // RenameObjectResponse is the response type for RenameObject.
@@ -498,18 +519,29 @@ message RenameObjectResponse {
   uint32 resource_id = 1;
   // ObjectKey is the unique identifier of the renamed object.
   string object_key = 2;
+  // ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+  // Nothing was written.
+  WorldErrorCode error_code = 3;
 }
 
 // DeleteObjectRequest is the request type for DeleteObject.
 message DeleteObjectRequest {
   // ObjectKey is the unique identifier of the object to delete.
   string object_key = 1;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 2;
 }
 
 // DeleteObjectResponse is the response type for DeleteObject.
 message DeleteObjectResponse {
   // Deleted indicates whether the object was found and successfully deleted.
   bool deleted = 1;
+  // ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+  // Nothing was written.
+  WorldErrorCode error_code = 2;
 }
 
 // IterateObjectsRequest is the request type for IterateObjects.
@@ -563,19 +595,37 @@ message ListObjectsResponse {
 message SetGraphQuadRequest {
   // Quad is the graph quad to add or update in the store.
   .quad.Quad quad = 1;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 2;
 }
 
 // SetGraphQuadResponse is the response type for SetGraphQuad.
-message SetGraphQuadResponse {}
+message SetGraphQuadResponse {
+  // ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+  // Nothing was written.
+  WorldErrorCode error_code = 1;
+}
 
 // DeleteGraphQuadRequest is the request type for DeleteGraphQuad.
 message DeleteGraphQuadRequest {
   // Quad is the graph quad to remove from the store.
   .quad.Quad quad = 1;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 2;
 }
 
 // DeleteGraphQuadResponse is the response type for DeleteGraphQuad.
-message DeleteGraphQuadResponse {}
+message DeleteGraphQuadResponse {
+  // ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+  // Nothing was written.
+  WorldErrorCode error_code = 1;
+}
 
 // LookupGraphQuadsRequest is the request type for LookupGraphQuads.
 message LookupGraphQuadsRequest {
@@ -828,10 +878,19 @@ message QueryGraphPathResponse {
 message DeleteGraphObjectRequest {
   // ObjectKey is the key of the object whose graph references should be deleted.
   string object_key = 1;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 2;
 }
 
 // DeleteGraphObjectResponse is the response type for DeleteGraphObject.
-message DeleteGraphObjectResponse {}
+message DeleteGraphObjectResponse {
+  // ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+  // Nothing was written.
+  WorldErrorCode error_code = 1;
+}
 
 // ApplyWorldOpRequest is the request type for ApplyWorldOp.
 message ApplyWorldOpRequest {
@@ -841,6 +900,11 @@ message ApplyWorldOpRequest {
   bytes op_data = 2;
   // OpSender is the peer ID of the sender applying the operation.
   string op_sender = 3;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 4;
 }
 
 // WorldErrorCode identifies a typed error returned in a World RPC response.
@@ -885,6 +949,13 @@ enum WorldErrorCode {
   // a block the Volume does not hold, so the Volume refused the root and
   // nothing was committed.
   WORLD_ERROR_CODE_ROOT_NOT_HELD = 9;
+  // WORLD_ERROR_CODE_REPLAY_WAITS indicates that the World takes no writes
+  // because its replay is not caught up: it is opening, or waits at an
+  // operation, such as for a handler this device lacks or the approval of a
+  // plugin. Nothing was written. Reads go on. The Space's health shows the
+  // replay state in SharedObjectHealth.replay; the caller may write again
+  // once it is caught_up.
+  WORLD_ERROR_CODE_REPLAY_WAITS = 10;
 }
 
 // ApplyWorldOpResponse is the response type for ApplyWorldOp.
@@ -1164,12 +1235,20 @@ message GetModSeqnoResponse {
 message SetRootRefRequest {
   // RootRef is the new reference to set as the object's root data.
   .bucket.ObjectRef root_ref = 1;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 2;
 }
 
 // SetRootRefResponse is the response type for SetRootRef.
 message SetRootRefResponse {
   // Rev is the revision number after the update.
   uint64 rev = 1;
+  // ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+  // Nothing was written.
+  WorldErrorCode error_code = 2;
 }
 
 // ApplyObjectOpRequest is the request type for ApplyObjectOp.
@@ -1180,6 +1259,11 @@ message ApplyObjectOpRequest {
   bytes op_data = 2;
   // OpSender is the peer ID of the sender applying the operation.
   string op_sender = 3;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 4;
 }
 
 // ApplyObjectOpResponse is the response type for ApplyObjectOp.
@@ -1197,12 +1281,21 @@ message ApplyObjectOpResponse {
 }
 
 // IncrementRevRequest is the request type for IncrementRev.
-message IncrementRevRequest {}
+message IncrementRevRequest {
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+  // RPC error, so a client built before that code existed fails the call
+  // instead of reading the reply as success.
+  WorldErrorCode known_error_code = 1;
+}
 
 // IncrementRevResponse is the response type for IncrementRev.
 message IncrementRevResponse {
   // Rev is the revision number after the increment.
   uint64 rev = 1;
+  // ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+  // Nothing was written.
+  WorldErrorCode error_code = 2;
 }
 
 // WaitRevRequest is the request type for WaitRev.

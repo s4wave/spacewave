@@ -150,21 +150,29 @@ const (
 	// a block the Volume does not hold, so the Volume refused the root and
 	// nothing was committed.
 	WorldErrorCode_WORLD_ERROR_CODE_ROOT_NOT_HELD WorldErrorCode = 9
+	// WORLD_ERROR_CODE_REPLAY_WAITS indicates that the World takes no writes
+	// because its replay is not caught up: it is opening, or waits at an
+	// operation, such as for a handler this device lacks or the approval of a
+	// plugin. Nothing was written. Reads go on. The Space's health shows the
+	// replay state in SharedObjectHealth.replay; the caller may write again
+	// once it is caught_up.
+	WorldErrorCode_WORLD_ERROR_CODE_REPLAY_WAITS WorldErrorCode = 10
 )
 
 // Enum value maps for WorldErrorCode.
 var (
 	WorldErrorCode_name = map[int32]string{
-		0: "WORLD_ERROR_CODE_UNSPECIFIED",
-		1: "WORLD_ERROR_CODE_UNHANDLED_OP",
-		2: "WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED",
-		3: "WORLD_ERROR_CODE_OBJECT_NOT_FOUND",
-		4: "WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT",
-		5: "WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE",
-		6: "WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING",
-		7: "WORLD_ERROR_CODE_SUPERSEDED",
-		8: "WORLD_ERROR_CODE_STALE_GENERATION",
-		9: "WORLD_ERROR_CODE_ROOT_NOT_HELD",
+		0:  "WORLD_ERROR_CODE_UNSPECIFIED",
+		1:  "WORLD_ERROR_CODE_UNHANDLED_OP",
+		2:  "WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED",
+		3:  "WORLD_ERROR_CODE_OBJECT_NOT_FOUND",
+		4:  "WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT",
+		5:  "WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE",
+		6:  "WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING",
+		7:  "WORLD_ERROR_CODE_SUPERSEDED",
+		8:  "WORLD_ERROR_CODE_STALE_GENERATION",
+		9:  "WORLD_ERROR_CODE_ROOT_NOT_HELD",
+		10: "WORLD_ERROR_CODE_REPLAY_WAITS",
 	}
 	WorldErrorCode_value = map[string]int32{
 		"WORLD_ERROR_CODE_UNSPECIFIED":                0,
@@ -177,6 +185,7 @@ var (
 		"WORLD_ERROR_CODE_SUPERSEDED":                 7,
 		"WORLD_ERROR_CODE_STALE_GENERATION":           8,
 		"WORLD_ERROR_CODE_ROOT_NOT_HELD":              9,
+		"WORLD_ERROR_CODE_REPLAY_WAITS":               10,
 	}
 )
 
@@ -521,6 +530,11 @@ type NewTransactionRequest struct {
 	unknownFields []byte
 	// Write indicates whether this transaction will perform write operations.
 	Write bool `protobuf:"varint,1,opt,name=write,proto3" json:"write,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,2,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *NewTransactionRequest) Reset() {
@@ -536,6 +550,13 @@ func (x *NewTransactionRequest) GetWrite() bool {
 	return false
 }
 
+func (x *NewTransactionRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // NewTransactionResponse is the response type for NewTransaction.
 type NewTransactionResponse struct {
 	unknownFields []byte
@@ -543,6 +564,9 @@ type NewTransactionResponse struct {
 	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 	// ReadOnly indicates whether the transaction is read-only.
 	ReadOnly bool `protobuf:"varint,2,opt,name=read_only,json=readOnly,proto3" json:"readOnly,omitempty"`
+	// ErrorCode identifies a built-in World refusal to open a write
+	// transaction, such as REPLAY_WAITS. No transaction was opened.
+	ErrorCode WorldErrorCode `protobuf:"varint,3,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
 }
 
 func (x *NewTransactionResponse) Reset() {
@@ -563,6 +587,13 @@ func (x *NewTransactionResponse) GetReadOnly() bool {
 		return x.ReadOnly
 	}
 	return false
+}
+
+func (x *NewTransactionResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
 }
 
 // GetSeqnoRequest is the request type for GetSeqno.
@@ -1193,6 +1224,11 @@ type CreateObjectRequest struct {
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
 	// RootRef is the initial reference to the object's root data.
 	RootRef *bucket.ObjectRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,3,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *CreateObjectRequest) Reset() {
@@ -1215,6 +1251,13 @@ func (x *CreateObjectRequest) GetRootRef() *bucket.ObjectRef {
 	return nil
 }
 
+func (x *CreateObjectRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // CreateObjectResponse is the response type for CreateObject.
 type CreateObjectResponse struct {
 	unknownFields []byte
@@ -1222,6 +1265,9 @@ type CreateObjectResponse struct {
 	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 	// ObjectKey is the unique identifier of the created object.
 	ObjectKey string `protobuf:"bytes,2,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+	// Nothing was written.
+	ErrorCode WorldErrorCode `protobuf:"varint,3,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
 }
 
 func (x *CreateObjectResponse) Reset() {
@@ -1242,6 +1288,13 @@ func (x *CreateObjectResponse) GetObjectKey() string {
 		return x.ObjectKey
 	}
 	return ""
+}
+
+func (x *CreateObjectResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
 }
 
 // GetObjectRequest is the request type for GetObject.
@@ -1311,6 +1364,11 @@ type RenameObjectRequest struct {
 	NewObjectKey string `protobuf:"bytes,2,opt,name=new_object_key,json=newObjectKey,proto3" json:"newObjectKey,omitempty"`
 	// Descendants renames objects under old_object_key + "/" to the new prefix.
 	Descendants bool `protobuf:"varint,3,opt,name=descendants,proto3" json:"descendants,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,4,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *RenameObjectRequest) Reset() {
@@ -1340,6 +1398,13 @@ func (x *RenameObjectRequest) GetDescendants() bool {
 	return false
 }
 
+func (x *RenameObjectRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // RenameObjectResponse is the response type for RenameObject.
 type RenameObjectResponse struct {
 	unknownFields []byte
@@ -1347,6 +1412,9 @@ type RenameObjectResponse struct {
 	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 	// ObjectKey is the unique identifier of the renamed object.
 	ObjectKey string `protobuf:"bytes,2,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+	// Nothing was written.
+	ErrorCode WorldErrorCode `protobuf:"varint,3,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
 }
 
 func (x *RenameObjectResponse) Reset() {
@@ -1369,11 +1437,23 @@ func (x *RenameObjectResponse) GetObjectKey() string {
 	return ""
 }
 
+func (x *RenameObjectResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // DeleteObjectRequest is the request type for DeleteObject.
 type DeleteObjectRequest struct {
 	unknownFields []byte
 	// ObjectKey is the unique identifier of the object to delete.
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,2,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *DeleteObjectRequest) Reset() {
@@ -1389,11 +1469,21 @@ func (x *DeleteObjectRequest) GetObjectKey() string {
 	return ""
 }
 
+func (x *DeleteObjectRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // DeleteObjectResponse is the response type for DeleteObject.
 type DeleteObjectResponse struct {
 	unknownFields []byte
 	// Deleted indicates whether the object was found and successfully deleted.
 	Deleted bool `protobuf:"varint,1,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	// ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+	// Nothing was written.
+	ErrorCode WorldErrorCode `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
 }
 
 func (x *DeleteObjectResponse) Reset() {
@@ -1407,6 +1497,13 @@ func (x *DeleteObjectResponse) GetDeleted() bool {
 		return x.Deleted
 	}
 	return false
+}
+
+func (x *DeleteObjectResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
 }
 
 // IterateObjectsRequest is the request type for IterateObjects.
@@ -1559,6 +1656,11 @@ type SetGraphQuadRequest struct {
 	unknownFields []byte
 	// Quad is the graph quad to add or update in the store.
 	Quad *quad.Quad `protobuf:"bytes,1,opt,name=quad,proto3" json:"quad,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,2,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *SetGraphQuadRequest) Reset() {
@@ -1574,9 +1676,19 @@ func (x *SetGraphQuadRequest) GetQuad() *quad.Quad {
 	return nil
 }
 
+func (x *SetGraphQuadRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // SetGraphQuadResponse is the response type for SetGraphQuad.
 type SetGraphQuadResponse struct {
 	unknownFields []byte
+	// ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+	// Nothing was written.
+	ErrorCode WorldErrorCode `protobuf:"varint,1,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
 }
 
 func (x *SetGraphQuadResponse) Reset() {
@@ -1585,11 +1697,23 @@ func (x *SetGraphQuadResponse) Reset() {
 
 func (*SetGraphQuadResponse) ProtoMessage() {}
 
+func (x *SetGraphQuadResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // DeleteGraphQuadRequest is the request type for DeleteGraphQuad.
 type DeleteGraphQuadRequest struct {
 	unknownFields []byte
 	// Quad is the graph quad to remove from the store.
 	Quad *quad.Quad `protobuf:"bytes,1,opt,name=quad,proto3" json:"quad,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,2,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *DeleteGraphQuadRequest) Reset() {
@@ -1605,9 +1729,19 @@ func (x *DeleteGraphQuadRequest) GetQuad() *quad.Quad {
 	return nil
 }
 
+func (x *DeleteGraphQuadRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // DeleteGraphQuadResponse is the response type for DeleteGraphQuad.
 type DeleteGraphQuadResponse struct {
 	unknownFields []byte
+	// ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+	// Nothing was written.
+	ErrorCode WorldErrorCode `protobuf:"varint,1,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
 }
 
 func (x *DeleteGraphQuadResponse) Reset() {
@@ -1615,6 +1749,13 @@ func (x *DeleteGraphQuadResponse) Reset() {
 }
 
 func (*DeleteGraphQuadResponse) ProtoMessage() {}
+
+func (x *DeleteGraphQuadResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
 
 // LookupGraphQuadsRequest is the request type for LookupGraphQuads.
 type LookupGraphQuadsRequest struct {
@@ -2368,6 +2509,11 @@ type DeleteGraphObjectRequest struct {
 	unknownFields []byte
 	// ObjectKey is the key of the object whose graph references should be deleted.
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,2,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *DeleteGraphObjectRequest) Reset() {
@@ -2383,9 +2529,19 @@ func (x *DeleteGraphObjectRequest) GetObjectKey() string {
 	return ""
 }
 
+func (x *DeleteGraphObjectRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // DeleteGraphObjectResponse is the response type for DeleteGraphObject.
 type DeleteGraphObjectResponse struct {
 	unknownFields []byte
+	// ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+	// Nothing was written.
+	ErrorCode WorldErrorCode `protobuf:"varint,1,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
 }
 
 func (x *DeleteGraphObjectResponse) Reset() {
@@ -2393,6 +2549,13 @@ func (x *DeleteGraphObjectResponse) Reset() {
 }
 
 func (*DeleteGraphObjectResponse) ProtoMessage() {}
+
+func (x *DeleteGraphObjectResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
 
 // ApplyWorldOpRequest is the request type for ApplyWorldOp.
 type ApplyWorldOpRequest struct {
@@ -2403,6 +2566,11 @@ type ApplyWorldOpRequest struct {
 	OpData []byte `protobuf:"bytes,2,opt,name=op_data,json=opData,proto3" json:"opData,omitempty"`
 	// OpSender is the peer ID of the sender applying the operation.
 	OpSender string `protobuf:"bytes,3,opt,name=op_sender,json=opSender,proto3" json:"opSender,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,4,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *ApplyWorldOpRequest) Reset() {
@@ -2430,6 +2598,13 @@ func (x *ApplyWorldOpRequest) GetOpSender() string {
 		return x.OpSender
 	}
 	return ""
+}
+
+func (x *ApplyWorldOpRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
 }
 
 // ApplyWorldOpResponse is the response type for ApplyWorldOp.
@@ -3314,6 +3489,11 @@ type SetRootRefRequest struct {
 	unknownFields []byte
 	// RootRef is the new reference to set as the object's root data.
 	RootRef *bucket.ObjectRef `protobuf:"bytes,1,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,2,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *SetRootRefRequest) Reset() {
@@ -3329,11 +3509,21 @@ func (x *SetRootRefRequest) GetRootRef() *bucket.ObjectRef {
 	return nil
 }
 
+func (x *SetRootRefRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // SetRootRefResponse is the response type for SetRootRef.
 type SetRootRefResponse struct {
 	unknownFields []byte
 	// Rev is the revision number after the update.
 	Rev uint64 `protobuf:"varint,1,opt,name=rev,proto3" json:"rev,omitempty"`
+	// ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+	// Nothing was written.
+	ErrorCode WorldErrorCode `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
 }
 
 func (x *SetRootRefResponse) Reset() {
@@ -3349,6 +3539,13 @@ func (x *SetRootRefResponse) GetRev() uint64 {
 	return 0
 }
 
+func (x *SetRootRefResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // ApplyObjectOpRequest is the request type for ApplyObjectOp.
 type ApplyObjectOpRequest struct {
 	unknownFields []byte
@@ -3358,6 +3555,11 @@ type ApplyObjectOpRequest struct {
 	OpData []byte `protobuf:"bytes,2,opt,name=op_data,json=opData,proto3" json:"opData,omitempty"`
 	// OpSender is the peer ID of the sender applying the operation.
 	OpSender string `protobuf:"bytes,3,opt,name=op_sender,json=opSender,proto3" json:"opSender,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,4,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *ApplyObjectOpRequest) Reset() {
@@ -3385,6 +3587,13 @@ func (x *ApplyObjectOpRequest) GetOpSender() string {
 		return x.OpSender
 	}
 	return ""
+}
+
+func (x *ApplyObjectOpRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
 }
 
 // ApplyObjectOpResponse is the response type for ApplyObjectOp.
@@ -3446,6 +3655,11 @@ func (x *ApplyObjectOpResponse) GetRejectionMessage() string {
 // IncrementRevRequest is the request type for IncrementRev.
 type IncrementRevRequest struct {
 	unknownFields []byte
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+	// RPC error, so a client built before that code existed fails the call
+	// instead of reading the reply as success.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,1,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *IncrementRevRequest) Reset() {
@@ -3454,11 +3668,21 @@ func (x *IncrementRevRequest) Reset() {
 
 func (*IncrementRevRequest) ProtoMessage() {}
 
+func (x *IncrementRevRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // IncrementRevResponse is the response type for IncrementRev.
 type IncrementRevResponse struct {
 	unknownFields []byte
 	// Rev is the revision number after the increment.
 	Rev uint64 `protobuf:"varint,1,opt,name=rev,proto3" json:"rev,omitempty"`
+	// ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+	// Nothing was written.
+	ErrorCode WorldErrorCode `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
 }
 
 func (x *IncrementRevResponse) Reset() {
@@ -3472,6 +3696,13 @@ func (x *IncrementRevResponse) GetRev() uint64 {
 		return x.Rev
 	}
 	return 0
+}
+
+func (x *IncrementRevResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
 }
 
 // WaitRevRequest is the request type for WaitRev.
@@ -4006,6 +4237,7 @@ func (m *NewTransactionRequest) CloneVT() *NewTransactionRequest {
 	}
 	r := new(NewTransactionRequest)
 	r.Write = m.Write
+	r.KnownErrorCode = m.KnownErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4023,6 +4255,7 @@ func (m *NewTransactionResponse) CloneVT() *NewTransactionResponse {
 	r := new(NewTransactionResponse)
 	r.ResourceId = m.ResourceId
 	r.ReadOnly = m.ReadOnly
+	r.ErrorCode = m.ErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4475,6 +4708,7 @@ func (m *CreateObjectRequest) CloneVT() *CreateObjectRequest {
 	}
 	r := new(CreateObjectRequest)
 	r.ObjectKey = m.ObjectKey
+	r.KnownErrorCode = m.KnownErrorCode
 	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -4493,6 +4727,7 @@ func (m *CreateObjectResponse) CloneVT() *CreateObjectResponse {
 	r := new(CreateObjectResponse)
 	r.ResourceId = m.ResourceId
 	r.ObjectKey = m.ObjectKey
+	r.ErrorCode = m.ErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4545,6 +4780,7 @@ func (m *RenameObjectRequest) CloneVT() *RenameObjectRequest {
 	r.OldObjectKey = m.OldObjectKey
 	r.NewObjectKey = m.NewObjectKey
 	r.Descendants = m.Descendants
+	r.KnownErrorCode = m.KnownErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4562,6 +4798,7 @@ func (m *RenameObjectResponse) CloneVT() *RenameObjectResponse {
 	r := new(RenameObjectResponse)
 	r.ResourceId = m.ResourceId
 	r.ObjectKey = m.ObjectKey
+	r.ErrorCode = m.ErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4578,6 +4815,7 @@ func (m *DeleteObjectRequest) CloneVT() *DeleteObjectRequest {
 	}
 	r := new(DeleteObjectRequest)
 	r.ObjectKey = m.ObjectKey
+	r.KnownErrorCode = m.KnownErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4594,6 +4832,7 @@ func (m *DeleteObjectResponse) CloneVT() *DeleteObjectResponse {
 	}
 	r := new(DeleteObjectResponse)
 	r.Deleted = m.Deleted
+	r.ErrorCode = m.ErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4679,6 +4918,7 @@ func (m *SetGraphQuadRequest) CloneVT() *SetGraphQuadRequest {
 		return (*SetGraphQuadRequest)(nil)
 	}
 	r := new(SetGraphQuadRequest)
+	r.KnownErrorCode = m.KnownErrorCode
 	r.Quad = protobuf_go_lite.CloneVTValue(m.Quad)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -4695,6 +4935,7 @@ func (m *SetGraphQuadResponse) CloneVT() *SetGraphQuadResponse {
 		return (*SetGraphQuadResponse)(nil)
 	}
 	r := new(SetGraphQuadResponse)
+	r.ErrorCode = m.ErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4710,6 +4951,7 @@ func (m *DeleteGraphQuadRequest) CloneVT() *DeleteGraphQuadRequest {
 		return (*DeleteGraphQuadRequest)(nil)
 	}
 	r := new(DeleteGraphQuadRequest)
+	r.KnownErrorCode = m.KnownErrorCode
 	r.Quad = protobuf_go_lite.CloneVTValue(m.Quad)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -4726,6 +4968,7 @@ func (m *DeleteGraphQuadResponse) CloneVT() *DeleteGraphQuadResponse {
 		return (*DeleteGraphQuadResponse)(nil)
 	}
 	r := new(DeleteGraphQuadResponse)
+	r.ErrorCode = m.ErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5125,6 +5368,7 @@ func (m *DeleteGraphObjectRequest) CloneVT() *DeleteGraphObjectRequest {
 	}
 	r := new(DeleteGraphObjectRequest)
 	r.ObjectKey = m.ObjectKey
+	r.KnownErrorCode = m.KnownErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5140,6 +5384,7 @@ func (m *DeleteGraphObjectResponse) CloneVT() *DeleteGraphObjectResponse {
 		return (*DeleteGraphObjectResponse)(nil)
 	}
 	r := new(DeleteGraphObjectResponse)
+	r.ErrorCode = m.ErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5157,6 +5402,7 @@ func (m *ApplyWorldOpRequest) CloneVT() *ApplyWorldOpRequest {
 	r := new(ApplyWorldOpRequest)
 	r.OpTypeId = m.OpTypeId
 	r.OpSender = m.OpSender
+	r.KnownErrorCode = m.KnownErrorCode
 	r.OpData = protobuf_go_lite.CloneBytes(m.OpData)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -5851,6 +6097,7 @@ func (m *SetRootRefRequest) CloneVT() *SetRootRefRequest {
 		return (*SetRootRefRequest)(nil)
 	}
 	r := new(SetRootRefRequest)
+	r.KnownErrorCode = m.KnownErrorCode
 	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -5868,6 +6115,7 @@ func (m *SetRootRefResponse) CloneVT() *SetRootRefResponse {
 	}
 	r := new(SetRootRefResponse)
 	r.Rev = m.Rev
+	r.ErrorCode = m.ErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5885,6 +6133,7 @@ func (m *ApplyObjectOpRequest) CloneVT() *ApplyObjectOpRequest {
 	r := new(ApplyObjectOpRequest)
 	r.OpTypeId = m.OpTypeId
 	r.OpSender = m.OpSender
+	r.KnownErrorCode = m.KnownErrorCode
 	r.OpData = protobuf_go_lite.CloneBytes(m.OpData)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -5921,6 +6170,7 @@ func (m *IncrementRevRequest) CloneVT() *IncrementRevRequest {
 		return (*IncrementRevRequest)(nil)
 	}
 	r := new(IncrementRevRequest)
+	r.KnownErrorCode = m.KnownErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5937,6 +6187,7 @@ func (m *IncrementRevResponse) CloneVT() *IncrementRevResponse {
 	}
 	r := new(IncrementRevResponse)
 	r.Rev = m.Rev
+	r.ErrorCode = m.ErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -6443,6 +6694,9 @@ func (this *NewTransactionRequest) EqualVT(that *NewTransactionRequest) bool {
 	if this.Write != that.Write {
 		return false
 	}
+	if this.KnownErrorCode != that.KnownErrorCode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -6464,6 +6718,9 @@ func (this *NewTransactionResponse) EqualVT(that *NewTransactionResponse) bool {
 		return false
 	}
 	if this.ReadOnly != that.ReadOnly {
+		return false
+	}
+	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7050,6 +7307,9 @@ func (this *CreateObjectRequest) EqualVT(that *CreateObjectRequest) bool {
 	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
 		return false
 	}
+	if this.KnownErrorCode != that.KnownErrorCode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -7071,6 +7331,9 @@ func (this *CreateObjectResponse) EqualVT(that *CreateObjectResponse) bool {
 		return false
 	}
 	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7145,6 +7408,9 @@ func (this *RenameObjectRequest) EqualVT(that *RenameObjectRequest) bool {
 	if this.Descendants != that.Descendants {
 		return false
 	}
+	if this.KnownErrorCode != that.KnownErrorCode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -7168,6 +7434,9 @@ func (this *RenameObjectResponse) EqualVT(that *RenameObjectResponse) bool {
 	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
+	if this.ErrorCode != that.ErrorCode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -7188,6 +7457,9 @@ func (this *DeleteObjectRequest) EqualVT(that *DeleteObjectRequest) bool {
 	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
+	if this.KnownErrorCode != that.KnownErrorCode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -7206,6 +7478,9 @@ func (this *DeleteObjectResponse) EqualVT(that *DeleteObjectResponse) bool {
 		return false
 	}
 	if this.Deleted != that.Deleted {
+		return false
+	}
+	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7326,6 +7601,9 @@ func (this *SetGraphQuadRequest) EqualVT(that *SetGraphQuadRequest) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Quad, that.Quad) {
 		return false
 	}
+	if this.KnownErrorCode != that.KnownErrorCode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -7341,6 +7619,9 @@ func (this *SetGraphQuadResponse) EqualVT(that *SetGraphQuadResponse) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7363,6 +7644,9 @@ func (this *DeleteGraphQuadRequest) EqualVT(that *DeleteGraphQuadRequest) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Quad, that.Quad) {
 		return false
 	}
+	if this.KnownErrorCode != that.KnownErrorCode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -7378,6 +7662,9 @@ func (this *DeleteGraphQuadResponse) EqualVT(that *DeleteGraphQuadResponse) bool
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7933,6 +8220,9 @@ func (this *DeleteGraphObjectRequest) EqualVT(that *DeleteGraphObjectRequest) bo
 	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
+	if this.KnownErrorCode != that.KnownErrorCode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -7948,6 +8238,9 @@ func (this *DeleteGraphObjectResponse) EqualVT(that *DeleteGraphObjectResponse) 
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7974,6 +8267,9 @@ func (this *ApplyWorldOpRequest) EqualVT(that *ApplyWorldOpRequest) bool {
 		return false
 	}
 	if this.OpSender != that.OpSender {
+		return false
+	}
+	if this.KnownErrorCode != that.KnownErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8861,6 +9157,9 @@ func (this *SetRootRefRequest) EqualVT(that *SetRootRefRequest) bool {
 	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
 		return false
 	}
+	if this.KnownErrorCode != that.KnownErrorCode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -8879,6 +9178,9 @@ func (this *SetRootRefResponse) EqualVT(that *SetRootRefResponse) bool {
 		return false
 	}
 	if this.Rev != that.Rev {
+		return false
+	}
+	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8905,6 +9207,9 @@ func (this *ApplyObjectOpRequest) EqualVT(that *ApplyObjectOpRequest) bool {
 		return false
 	}
 	if this.OpSender != that.OpSender {
+		return false
+	}
+	if this.KnownErrorCode != that.KnownErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8956,6 +9261,9 @@ func (this *IncrementRevRequest) EqualVT(that *IncrementRevRequest) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
+	if this.KnownErrorCode != that.KnownErrorCode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -8974,6 +9282,9 @@ func (this *IncrementRevResponse) EqualVT(that *IncrementRevResponse) bool {
 		return false
 	}
 	if this.Rev != that.Rev {
+		return false
+	}
+	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10026,6 +10337,11 @@ func (x *NewTransactionRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("write")
 		s.WriteBool(x.Write)
 	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10046,6 +10362,9 @@ func (x *NewTransactionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "write":
 			s.AddField("write")
 			x.Write = s.ReadBool()
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -10073,6 +10392,11 @@ func (x *NewTransactionResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("readOnly")
 		s.WriteBool(x.ReadOnly)
 	}
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10096,6 +10420,9 @@ func (x *NewTransactionResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "read_only", "readOnly":
 			s.AddField("read_only")
 			x.ReadOnly = s.ReadBool()
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -11298,6 +11625,11 @@ func (x *CreateObjectRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rootRef")
 		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
 	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11325,6 +11657,9 @@ func (x *CreateObjectRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.RootRef = &bucket.ObjectRef{}
 			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -11352,6 +11687,11 @@ func (x *CreateObjectResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectKey")
 		s.WriteString(x.ObjectKey)
 	}
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11375,6 +11715,9 @@ func (x *CreateObjectResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_key", "objectKey":
 			s.AddField("object_key")
 			x.ObjectKey = s.ReadString()
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -11507,6 +11850,11 @@ func (x *RenameObjectRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("descendants")
 		s.WriteBool(x.Descendants)
 	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11533,6 +11881,9 @@ func (x *RenameObjectRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "descendants":
 			s.AddField("descendants")
 			x.Descendants = s.ReadBool()
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -11560,6 +11911,11 @@ func (x *RenameObjectResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectKey")
 		s.WriteString(x.ObjectKey)
 	}
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11583,6 +11939,9 @@ func (x *RenameObjectResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_key", "objectKey":
 			s.AddField("object_key")
 			x.ObjectKey = s.ReadString()
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -11605,6 +11964,11 @@ func (x *DeleteObjectRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectKey")
 		s.WriteString(x.ObjectKey)
 	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11625,6 +11989,9 @@ func (x *DeleteObjectRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_key", "objectKey":
 			s.AddField("object_key")
 			x.ObjectKey = s.ReadString()
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -11647,6 +12014,11 @@ func (x *DeleteObjectResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("deleted")
 		s.WriteBool(x.Deleted)
 	}
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11667,6 +12039,9 @@ func (x *DeleteObjectResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "deleted":
 			s.AddField("deleted")
 			x.Deleted = s.ReadBool()
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -11930,6 +12305,11 @@ func (x *SetGraphQuadRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("quad")
 		x.Quad.MarshalProtoJSON(s.WithField("quad"))
 	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11954,6 +12334,9 @@ func (x *SetGraphQuadRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Quad = &quad.Quad{}
 			x.Quad.UnmarshalProtoJSON(s.WithField("quad", true))
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -11970,6 +12353,12 @@ func (x *SetGraphQuadResponse) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11984,7 +12373,13 @@ func (x *SetGraphQuadResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -12005,6 +12400,11 @@ func (x *DeleteGraphQuadRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("quad")
 		x.Quad.MarshalProtoJSON(s.WithField("quad"))
+	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
 	}
 	s.WriteObjectEnd()
 }
@@ -12030,6 +12430,9 @@ func (x *DeleteGraphQuadRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Quad = &quad.Quad{}
 			x.Quad.UnmarshalProtoJSON(s.WithField("quad", true))
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -12046,6 +12449,12 @@ func (x *DeleteGraphQuadResponse) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -12060,7 +12469,13 @@ func (x *DeleteGraphQuadResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -13517,6 +13932,11 @@ func (x *DeleteGraphObjectRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectKey")
 		s.WriteString(x.ObjectKey)
 	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -13537,6 +13957,9 @@ func (x *DeleteGraphObjectRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_key", "objectKey":
 			s.AddField("object_key")
 			x.ObjectKey = s.ReadString()
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -13553,6 +13976,12 @@ func (x *DeleteGraphObjectResponse) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -13567,7 +13996,13 @@ func (x *DeleteGraphObjectResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -13599,6 +14034,11 @@ func (x *ApplyWorldOpRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("opSender")
 		s.WriteString(x.OpSender)
 	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -13625,6 +14065,9 @@ func (x *ApplyWorldOpRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "op_sender", "opSender":
 			s.AddField("op_sender")
 			x.OpSender = s.ReadString()
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -15215,6 +15658,11 @@ func (x *SetRootRefRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rootRef")
 		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
 	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -15239,6 +15687,9 @@ func (x *SetRootRefRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.RootRef = &bucket.ObjectRef{}
 			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -15261,6 +15712,11 @@ func (x *SetRootRefResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rev")
 		s.WriteUint64(x.Rev)
 	}
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -15281,6 +15737,9 @@ func (x *SetRootRefResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "rev":
 			s.AddField("rev")
 			x.Rev = s.ReadUint64()
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -15313,6 +15772,11 @@ func (x *ApplyObjectOpRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("opSender")
 		s.WriteString(x.OpSender)
 	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -15339,6 +15803,9 @@ func (x *ApplyObjectOpRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "op_sender", "opSender":
 			s.AddField("op_sender")
 			x.OpSender = s.ReadString()
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -15429,6 +15896,12 @@ func (x *IncrementRevRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -15443,7 +15916,13 @@ func (x *IncrementRevRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -15465,6 +15944,11 @@ func (x *IncrementRevResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rev")
 		s.WriteUint64(x.Rev)
 	}
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -15485,6 +15969,9 @@ func (x *IncrementRevResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "rev":
 			s.AddField("rev")
 			x.Rev = s.ReadUint64()
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -16673,6 +17160,11 @@ func (m *NewTransactionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x10
+	}
 	if m.Write {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Write)
 		i--
@@ -16709,6 +17201,11 @@ func (m *NewTransactionResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x18
 	}
 	if m.ReadOnly {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ReadOnly)
@@ -17796,6 +18293,11 @@ func (m *CreateObjectRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.RootRef != nil {
 		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -17842,6 +18344,11 @@ func (m *CreateObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x18
 	}
 	if len(m.ObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
@@ -17969,6 +18476,11 @@ func (m *RenameObjectRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.Descendants {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Descendants)
 		i--
@@ -18016,6 +18528,11 @@ func (m *RenameObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.ObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
 		i--
@@ -18058,6 +18575,11 @@ func (m *DeleteObjectRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.ObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
 		i--
@@ -18094,6 +18616,11 @@ func (m *DeleteObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x10
 	}
 	if m.Deleted {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Deleted)
@@ -18319,6 +18846,11 @@ func (m *SetGraphQuadRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x10
+	}
 	if m.Quad != nil {
 		size, err := m.Quad.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -18361,6 +18893,11 @@ func (m *SetGraphQuadResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -18392,6 +18929,11 @@ func (m *DeleteGraphQuadRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x10
 	}
 	if m.Quad != nil {
 		size, err := m.Quad.MarshalToSizedBufferVT(dAtA[:i])
@@ -18434,6 +18976,11 @@ func (m *DeleteGraphQuadResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -19535,6 +20082,11 @@ func (m *DeleteGraphObjectRequest) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.ObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
 		i--
@@ -19572,6 +20124,11 @@ func (m *DeleteGraphObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -19603,6 +20160,11 @@ func (m *ApplyWorldOpRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x20
 	}
 	if len(m.OpSender) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.OpSender)
@@ -21188,6 +21750,11 @@ func (m *SetRootRefRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x10
+	}
 	if m.RootRef != nil {
 		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -21230,6 +21797,11 @@ func (m *SetRootRefResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x10
+	}
 	if m.Rev != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
 		i--
@@ -21266,6 +21838,11 @@ func (m *ApplyObjectOpRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x20
 	}
 	if len(m.OpSender) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.OpSender)
@@ -21371,6 +21948,11 @@ func (m *IncrementRevRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -21402,6 +21984,11 @@ func (m *IncrementRevResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x10
 	}
 	if m.Rev != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
@@ -22038,6 +22625,7 @@ func (m *NewTransactionRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Write)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22050,6 +22638,7 @@ func (m *NewTransactionResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.ReadOnly)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22393,6 +22982,7 @@ func (m *CreateObjectRequest) SizeVT() (n int) {
 		l = m.RootRef.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22405,6 +22995,7 @@ func (m *CreateObjectResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22442,6 +23033,7 @@ func (m *RenameObjectRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OldObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NewObjectKey)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Descendants)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22454,6 +23046,7 @@ func (m *RenameObjectResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22465,6 +23058,7 @@ func (m *DeleteObjectRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22476,6 +23070,7 @@ func (m *DeleteObjectResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Deleted)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22543,6 +23138,7 @@ func (m *SetGraphQuadRequest) SizeVT() (n int) {
 		l = m.Quad.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22553,6 +23149,7 @@ func (m *SetGraphQuadResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22567,6 +23164,7 @@ func (m *DeleteGraphQuadRequest) SizeVT() (n int) {
 		l = m.Quad.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22577,6 +23175,7 @@ func (m *DeleteGraphQuadResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22900,6 +23499,7 @@ func (m *DeleteGraphObjectRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22910,6 +23510,7 @@ func (m *DeleteGraphObjectResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22923,6 +23524,7 @@ func (m *ApplyWorldOpRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpTypeId)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OpData)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpSender)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23485,6 +24087,7 @@ func (m *SetRootRefRequest) SizeVT() (n int) {
 		l = m.RootRef.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23496,6 +24099,7 @@ func (m *SetRootRefResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Rev)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23509,6 +24113,7 @@ func (m *ApplyObjectOpRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpTypeId)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OpData)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpSender)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23534,6 +24139,7 @@ func (m *IncrementRevRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23545,6 +24151,7 @@ func (m *IncrementRevResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Rev)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23926,6 +24533,10 @@ func (x *NewTransactionRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "write")
 		protobuf_go_lite.TextWriteBool(&sb, x.Write)
 	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -23943,6 +24554,10 @@ func (x *NewTransactionResponse) MarshalProtoText() string {
 	if x.ReadOnly != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "read_only")
 		protobuf_go_lite.TextWriteBool(&sb, x.ReadOnly)
+	}
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -24384,6 +24999,10 @@ func (x *CreateObjectRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
 	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -24401,6 +25020,10 @@ func (x *CreateObjectResponse) MarshalProtoText() string {
 	if x.ObjectKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
 		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -24460,6 +25083,10 @@ func (x *RenameObjectRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "descendants")
 		protobuf_go_lite.TextWriteBool(&sb, x.Descendants)
 	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -24478,6 +25105,10 @@ func (x *RenameObjectResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
 		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
 	}
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -24492,6 +25123,10 @@ func (x *DeleteObjectRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
 		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
 	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -24505,6 +25140,10 @@ func (x *DeleteObjectResponse) MarshalProtoText() string {
 	if x.Deleted != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "deleted")
 		protobuf_go_lite.TextWriteBool(&sb, x.Deleted)
+	}
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -24612,6 +25251,10 @@ func (x *SetGraphQuadRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "quad")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Quad)
 	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -24621,7 +25264,11 @@ func (x *SetGraphQuadRequest) String() string {
 
 func (x *SetGraphQuadResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "SetGraphQuadResponse")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetGraphQuadResponse")
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -24636,6 +25283,10 @@ func (x *DeleteGraphQuadRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "quad")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Quad)
 	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -24645,7 +25296,11 @@ func (x *DeleteGraphQuadRequest) String() string {
 
 func (x *DeleteGraphQuadResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "DeleteGraphQuadResponse")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DeleteGraphQuadResponse")
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -25204,6 +25859,10 @@ func (x *DeleteGraphObjectRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
 		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
 	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -25213,7 +25872,11 @@ func (x *DeleteGraphObjectRequest) String() string {
 
 func (x *DeleteGraphObjectResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "DeleteGraphObjectResponse")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DeleteGraphObjectResponse")
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -25235,6 +25898,10 @@ func (x *ApplyWorldOpRequest) MarshalProtoText() string {
 	if x.OpSender != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_sender")
 		protobuf_go_lite.TextWriteString(&sb, x.OpSender)
+	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -25827,6 +26494,10 @@ func (x *SetRootRefRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
 	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -25840,6 +26511,10 @@ func (x *SetRootRefResponse) MarshalProtoText() string {
 	if x.Rev != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rev")
 		protobuf_go_lite.TextWriteUint(&sb, x.Rev)
+	}
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -25862,6 +26537,10 @@ func (x *ApplyObjectOpRequest) MarshalProtoText() string {
 	if x.OpSender != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_sender")
 		protobuf_go_lite.TextWriteString(&sb, x.OpSender)
+	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -25902,7 +26581,11 @@ func (x *ApplyObjectOpResponse) String() string {
 
 func (x *IncrementRevRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "IncrementRevRequest")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "IncrementRevRequest")
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -25916,6 +26599,10 @@ func (x *IncrementRevResponse) MarshalProtoText() string {
 	if x.Rev != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rev")
 		protobuf_go_lite.TextWriteUint(&sb, x.Rev)
+	}
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -27014,6 +27701,17 @@ func (m *NewTransactionRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Write = bool(v)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -27076,6 +27774,17 @@ func (m *NewTransactionResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ReadOnly = bool(v)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -28566,6 +29275,17 @@ func (m *CreateObjectRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -28628,6 +29348,17 @@ func (m *CreateObjectResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ObjectKey = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -28826,6 +29557,17 @@ func (m *RenameObjectRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Descendants = bool(v)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -28888,6 +29630,17 @@ func (m *RenameObjectResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ObjectKey = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -28941,6 +29694,17 @@ func (m *DeleteObjectRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ObjectKey = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -28994,6 +29758,17 @@ func (m *DeleteObjectResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Deleted = bool(v)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -29325,6 +30100,17 @@ func (m *SetGraphQuadRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -29368,6 +30154,17 @@ func (m *SetGraphQuadResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: SetGraphQuadResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -29426,6 +30223,17 @@ func (m *DeleteGraphQuadRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -29469,6 +30277,17 @@ func (m *DeleteGraphQuadResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: DeleteGraphQuadResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -31029,6 +31848,17 @@ func (m *DeleteGraphObjectRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ObjectKey = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -31072,6 +31902,17 @@ func (m *DeleteGraphObjectResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: DeleteGraphObjectResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -31143,6 +31984,17 @@ func (m *ApplyWorldOpRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.OpSender = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -33202,6 +34054,17 @@ func (m *SetRootRefRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -33251,6 +34114,17 @@ func (m *SetRootRefResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Rev = 0
 			m.Rev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
 			if err != nil {
 				return err
 			}
@@ -33325,6 +34199,17 @@ func (m *ApplyObjectOpRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.OpSender = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -33461,6 +34346,17 @@ func (m *IncrementRevRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: IncrementRevRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -33510,6 +34406,17 @@ func (m *IncrementRevResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Rev = 0
 			m.Rev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
 			if err != nil {
 				return err
 			}

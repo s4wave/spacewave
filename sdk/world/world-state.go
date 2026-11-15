@@ -138,10 +138,14 @@ func (ws *WorldState) OpenOuterWorld(ctx context.Context) (*Engine, error) {
 func (ws *WorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	// Create the World object with its initial root reference.
 	resp, err := ws.service.CreateObject(ctx, &CreateObjectRequest{
-		ObjectKey: key,
-		RootRef:   rootRef,
+		ObjectKey:      key,
+		RootRef:        rootRef,
+		KnownErrorCode: KnownErrorCode,
 	})
 	if err != nil {
+		return nil, err
+	}
+	if err := ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return nil, err
 	}
 
@@ -198,11 +202,15 @@ func (ws *WorldState) IterateObjects(ctx context.Context, prefix string, reverse
 func (ws *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
 	// Rename the World object and its associated graph quads.
 	resp, err := ws.service.RenameObject(ctx, &RenameObjectRequest{
-		OldObjectKey: oldKey,
-		NewObjectKey: newKey,
-		Descendants:  descendants,
+		OldObjectKey:   oldKey,
+		NewObjectKey:   newKey,
+		Descendants:    descendants,
+		KnownErrorCode: KnownErrorCode,
 	})
 	if err != nil {
+		return nil, err
+	}
+	if err := ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return nil, err
 	}
 
@@ -220,8 +228,11 @@ func (ws *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, d
 // Calls DeleteGraphObject internally.
 // Returns (deleted, error). deleted=false if not found.
 func (ws *WorldState) DeleteObject(ctx context.Context, key string) (bool, error) {
-	resp, err := ws.service.DeleteObject(ctx, &DeleteObjectRequest{ObjectKey: key})
+	resp, err := ws.service.DeleteObject(ctx, &DeleteObjectRequest{ObjectKey: key, KnownErrorCode: KnownErrorCode})
 	if err != nil {
+		return false, err
+	}
+	if err := ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return false, err
 	}
 	return resp.Deleted, nil
@@ -239,8 +250,11 @@ func (ws *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error
 		Obj:       q.GetObj(),
 		Label:     q.GetLabel(),
 	}
-	_, err := ws.service.SetGraphQuad(ctx, &SetGraphQuadRequest{Quad: protoQuad})
-	return err
+	resp, err := ws.service.SetGraphQuad(ctx, &SetGraphQuadRequest{Quad: protoQuad, KnownErrorCode: KnownErrorCode})
+	if err != nil {
+		return err
+	}
+	return ErrorFromCode(resp.GetErrorCode())
 }
 
 // DeleteGraphQuad removes a specific quad from the graph store.
@@ -252,8 +266,11 @@ func (ws *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) er
 		Obj:       q.GetObj(),
 		Label:     q.GetLabel(),
 	}
-	_, err := ws.service.DeleteGraphQuad(ctx, &DeleteGraphQuadRequest{Quad: protoQuad})
-	return err
+	resp, err := ws.service.DeleteGraphQuad(ctx, &DeleteGraphQuadRequest{Quad: protoQuad, KnownErrorCode: KnownErrorCode})
+	if err != nil {
+		return err
+	}
+	return ErrorFromCode(resp.GetErrorCode())
 }
 
 // LookupGraphQuads searches for graph quads matching the specified filter criteria.
@@ -479,8 +496,11 @@ func (ws *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPath
 // DeleteGraphObject removes all graph quads that reference the specified object key.
 // Note: objectKey should be the object key, NOT the object key <iri> format.
 func (ws *WorldState) DeleteGraphObject(ctx context.Context, objectKey string) error {
-	_, err := ws.service.DeleteGraphObject(ctx, &DeleteGraphObjectRequest{ObjectKey: objectKey})
-	return err
+	resp, err := ws.service.DeleteGraphObject(ctx, &DeleteGraphObjectRequest{ObjectKey: objectKey, KnownErrorCode: KnownErrorCode})
+	if err != nil {
+		return err
+	}
+	return ErrorFromCode(resp.GetErrorCode())
 }
 
 // ApplyWorldOp applies a batch operation at the world level.
@@ -490,9 +510,10 @@ func (ws *WorldState) DeleteGraphObject(ctx context.Context, objectKey string) e
 // If sysErr is set, the error is treated as a transient system error.
 func (ws *WorldState) ApplyWorldOp(ctx context.Context, opTypeID string, opData []byte, opSender string) (uint64, bool, error) {
 	resp, err := ws.service.ApplyWorldOp(ctx, &ApplyWorldOpRequest{
-		OpTypeId: opTypeID,
-		OpData:   opData,
-		OpSender: opSender,
+		OpTypeId:       opTypeID,
+		OpData:         opData,
+		OpSender:       opSender,
+		KnownErrorCode: KnownErrorCode,
 	})
 	if err != nil {
 		return 0, false, err

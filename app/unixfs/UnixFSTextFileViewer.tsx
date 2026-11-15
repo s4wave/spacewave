@@ -23,6 +23,7 @@ import {
   type ViewerBarAction,
 } from '@s4wave/web/object/ViewerBar.js'
 import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
+import { useSaveHold } from '@s4wave/app/sobject/space-replay.js'
 
 import {
   decodeText,
@@ -215,8 +216,10 @@ export function UnixFSTextFileViewer({
     if (content.value) dispatch({ type: 'read', content: content.value })
   }, [content.value])
 
-  // Derive what the viewer draws from the read and the draft.
+  // Derive what the viewer draws from the read and the draft, and whether the
+  // Space takes a save now from its watched replay state.
   const view = deriveTextFileView(content, state, !readOnly)
+  const saveHold = useSaveHold()
 
   // Submit only on a press; reconnecting a Resource must not replay a save.
   async function save(over: boolean) {
@@ -288,6 +291,7 @@ export function UnixFSTextFileViewer({
       view={view}
       path={path}
       readOnly={readOnly}
+      saveHold={saveHold}
       description={description}
       renderBar={renderBar}
       dispatch={dispatch}
@@ -305,6 +309,8 @@ export interface TextFileFrameProps {
   view: TextFileView
   path: string
   readOnly?: string
+  // saveHold says why the Space takes no save now; Save waits, the draft stays.
+  saveHold?: string | null
   description?: string
   renderBar?: (presses: ReactNode) => ReactNode
   dispatch: (event: TextFileEvent) => void
@@ -321,6 +327,7 @@ export function TextFileFrame({
   view,
   path,
   readOnly,
+  saveHold,
   description,
   renderBar,
   dispatch,
@@ -344,6 +351,7 @@ export function TextFileFrame({
       label: 'Save',
       icon: <LuSave />,
       variant: 'primary',
+      disabled: !!saveHold,
       onClick: () => onSave(false),
     },
     saveover: {
@@ -351,6 +359,7 @@ export function TextFileFrame({
       label: 'Save over theirs',
       icon: <LuSave />,
       variant: 'primary',
+      disabled: !!saveHold,
       onClick: () => onSave(true),
     },
     saving: {
@@ -377,11 +386,12 @@ export function TextFileFrame({
     .map((p) => pressAction[p])
     .filter((a): a is ViewerBarAction => a !== null)
 
-  // Pick the bar's line: the dirty mark, else why it is read-only, else what
-  // the file is.
+  // Pick the bar's line: why a draft cannot save yet, else the dirty mark,
+  // else why it is read-only, else what the file is.
   let note = description
   if (readOnly) note = readOnly
   if (dirty) note = 'Edited, not saved'
+  if (saveHold && view.state === 'editing') note = saveHold
   const head = renderBar ? (
     renderBar(<TextFilePresses actions={actions} />)
   ) : (
@@ -402,6 +412,7 @@ export function TextFileFrame({
         retryRead={retryRead}
         readBack={readBack}
         onType={(text) => dispatch({ type: 'type', text })}
+        saveHold={saveHold}
         onSave={onSave}
         onTheirs={(show) => dispatch({ type: 'theirs', show })}
       />
@@ -415,6 +426,7 @@ interface TextFileBodyProps {
   retryRead: () => void
   readBack: () => void
   onType: (text: string) => void
+  saveHold?: string | null
   onSave: (over: boolean) => void
   onTheirs: (show: boolean) => void
 }
@@ -516,6 +528,7 @@ function DraftBody({
   view,
   retryRead,
   readBack,
+  saveHold,
   onSave,
   onTheirs,
   onType,
@@ -539,7 +552,7 @@ function DraftBody({
         <ViewerStatus
           state="failed"
           message={`Not saved: ${draft.error}. Your edits are still here.`}
-          retry={() => onSave(over)}
+          retry={saveHold ? undefined : () => onSave(over)}
           retryLabel={over ? 'Save over theirs' : 'Retry'}
         />
       )}

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -480,11 +481,13 @@ func readImportRoots(ctx context.Context, t *testing.T, store block.StoreOps) []
 	return worlds
 }
 
-// TestAccountMergeRefusedOpAboveCheckpoint migrates a Space whose first
-// operation above its checkpoint has a type nothing resolves or declares,
-// followed by a create. The export copies the create's payload, and the target
-// replays past the refused operation to the create.
-func TestAccountMergeRefusedOpAboveCheckpoint(t *testing.T) {
+// TestAccountMergeUnresolvedOpWaitsForHandler migrates a Space whose first
+// operation above its initialized checkpoint has a type nothing resolves,
+// followed by a create. Replay would wait at the operation for a handler, so
+// the merge fails with ErrUnresolvedOp and leaves the source as it was. Once
+// the handler runs on both accounts, the merge again copies the Space and the
+// target replays the operation and the create.
+func TestAccountMergeUnresolvedOpWaitsForHandler(t *testing.T) {
 	// Start a source and a target account running no plugin.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
@@ -502,17 +505,202 @@ func TestAccountMergeRefusedOpAboveCheckpoint(t *testing.T) {
 	after := putPayload(ctx, t, so, "after")
 	queueTxs(ctx, t, so, applyWorldOpTx(t, so, missing), createTx(t, "after", after.ref))
 
-	// The merge copies the Space past the refused operation.
+	// The merge fails naming the unresolved operation.
+	_, err = source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef())
+	if !errors.Is(err, space_world.ErrUnresolvedOp) {
+		t.Fatalf("merge without the handler = %v, want %v", err, space_world.ErrUnresolvedOp)
+	}
+
+	// The source still holds both operations and the create's payload, and
+	// its account has not moved.
+	states, releaseStates, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseStates()
+	snap, err := states.WaitValue(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if set.Len() != 2 {
+		t.Fatalf("source holds %d operations above its checkpoint, want 2", set.Len())
+	}
+	data, found, err := so.GetBlockStore().GetBlock(ctx, after.ref)
+	if err != nil || !found || !bytes.Equal(data, after.data) {
+		t.Fatalf("failed merge lost the source's create payload: found=%v err=%v", found, err)
+	}
+	settings, err := source.readAccountSettings(ctx)
+	if err != nil || settings.GetTransition() != nil {
+		t.Fatalf("failed migration redirected the source: %v, %v", settings.GetTransition(), err)
+	}
+
+	// With the handler running on both accounts, the merge succeeds.
+	defer startPluginOp(ctx, t, sourceTB.Bus)()
+	defer startPluginOp(ctx, t, target.t.p.b)()
 	if _, err := source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef()); err != nil {
 		t.Fatal(err)
 	}
 
-	// The target replays past the refused operation to the create.
-	store, _ := openMigratedSpace(ctx, t, target, ref, "after")
-	data, found, err := store.store.GetBlock(ctx, after.ref)
+	// The target applies the operation and replays to the create.
+	store, eng := openMigratedSpace(ctx, t, target, ref, "after")
+	data, found, err = store.store.GetBlock(ctx, after.ref)
 	if err != nil || !found || !bytes.Equal(data, after.data) {
 		t.Fatalf("migration lost the create's payload: found=%v err=%v", found, err)
 	}
+	tx, err := eng.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	quads, err := tx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("base", pluginOpTypeID, "base", ""), 1)
+	if err != nil || len(quads) == 0 {
+		t.Fatalf("the target did not apply the operation: %v", err)
+	}
+}
+
+// TestAccountMergeOpsOnNoWorld migrates Spaces whose operations sit above no
+// World, where replay refuses an operation whose type resolves nowhere. One
+// whose type the bus resolves to a handler naming payload roots fails the
+// merge with that lookup's ErrBusPayloadOperation, before any listing; one
+// whose type resolves nowhere is copied with the create after it.
+func TestAccountMergeOpsOnNoWorld(t *testing.T) {
+	t.Run("bus payload op", func(t *testing.T) {
+		mergeOpOnNoWorld(t, true)
+	})
+	t.Run("unresolved op", func(t *testing.T) {
+		mergeOpOnNoWorld(t, false)
+	})
+}
+
+// mergeOpOnNoWorld merges a Space holding, above no World, an operation and
+// then a create. With busPayload the source's bus resolves the operation to a
+// busPayloadOp and the merge must fail with ErrBusPayloadOperation; otherwise
+// its type resolves nowhere and the merge must list the Space at the target,
+// holding the create's payload.
+func mergeOpOnNoWorld(t *testing.T, busPayload bool) {
+	// Start a source and a target account.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+	network := inproc.NewNetwork()
+	sourceTB, source, sourceSession, _ := setupMigrationTestbed(ctx, t, network)
+	target, targetSession, _ := setupMigrationClient(ctx, t, network)
+	if busPayload {
+		defer startOpHandler(ctx, t, sourceTB.Bus, func() world.Operation { return &busPayloadOp{} })()
+	}
+
+	// Hold the Space as its sequencer with a body that applies nothing, so
+	// no checkpoint carries a World, and write the operation and the create.
+	ref, err := source.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mounted, releaseSO, err := source.MountSharedObject(ctx, ref, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseSO)
+	so := mounted.(*SharedObject)
+	if _, err := so.SetSequencer(ctx, so.GetPeerID().String()); err != nil {
+		t.Fatal(err)
+	}
+	releaseBody, err := so.SetBody(ctx, pausedBody{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseBody)
+	var op world.Operation = newPluginOp("base")
+	if busPayload {
+		op = &busPayloadOp{pluginOp: *newPluginOp("base")}
+	}
+	after := putPayload(ctx, t, so, "after")
+	queueTxs(ctx, t, so, applyWorldOpTx(t, so, op), createTx(t, "after", after.ref))
+
+	// Merge.
+	_, err = source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef())
+	listed := target.listedSharedObjectEntry(ref.GetProviderResourceRef().GetId())
+	if !busPayload {
+		if err != nil || listed == nil {
+			t.Fatalf("merge of an unresolved operation on no World = %v, listed %v", err, listed)
+		}
+
+		// The target holds the create's payload.
+		id := ref.GetProviderResourceRef().GetId()
+		copied, releaseCopied, err := target.MountSharedObject(ctx, sobject.NewSharedObjectRef(target.GetProviderID(), target.GetAccountID(), id, SobjectBlockStoreID(id)), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer releaseCopied()
+		data, found, err := copied.GetBlockStore().GetBlock(ctx, after.ref)
+		if err != nil || !found || !bytes.Equal(data, after.data) {
+			t.Fatalf("migration lost the create's payload: found=%v err=%v", found, err)
+		}
+		return
+	}
+	if !errors.Is(err, space_world.ErrBusPayloadOperation) {
+		t.Fatalf("merge of a bus payload operation = %v, want %v", err, space_world.ErrBusPayloadOperation)
+	}
+	if listed != nil {
+		t.Fatalf("target listed the Space it could not copy: %v", listed)
+	}
+}
+
+// TestAccountMergeBusPayloadOpAboveCheckpoint migrates a Space whose operation
+// above its initialized checkpoint resolves on the bus to a handler naming
+// payload roots. The merge fails with that lookup's ErrBusPayloadOperation,
+// not ErrUnresolvedOp, and lists nothing at the target.
+func TestAccountMergeBusPayloadOpAboveCheckpoint(t *testing.T) {
+	// Start a source resolving the operation on its bus, and a target.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+	network := inproc.NewNetwork()
+	sourceTB, source, sourceSession, _ := setupMigrationTestbed(ctx, t, network)
+	target, targetSession, _ := setupMigrationClient(ctx, t, network)
+	defer startOpHandler(ctx, t, sourceTB.Bus, func() world.Operation { return &busPayloadOp{} })()
+
+	// Write the operation above the checkpoint.
+	ref, err := source.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	so := pauseAboveCheckpoint(ctx, t, sourceTB, source, ref, nil)
+	queueTxs(ctx, t, so, applyWorldOpTx(t, so, &busPayloadOp{pluginOp: *newPluginOp("base")}))
+
+	// The merge fails with the lookup's own error.
+	_, err = source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef())
+	if !errors.Is(err, space_world.ErrBusPayloadOperation) {
+		t.Fatalf("merge of a bus payload operation = %v, want %v", err, space_world.ErrBusPayloadOperation)
+	}
+	if listed := target.listedSharedObjectEntry(ref.GetProviderResourceRef().GetId()); listed != nil {
+		t.Fatalf("target listed the Space it could not copy: %v", listed)
+	}
+}
+
+// busPayloadOpTypeID is the type of busPayloadOp.
+const busPayloadOpTypeID = "test/migration-bus-payload-op"
+
+// busPayloadOp is a pluginOp whose bus handler names payload roots, which no
+// handler the bus resolves may.
+type busPayloadOp struct {
+	pluginOp
+}
+
+// TypeID returns the operation type identifier.
+func (*busPayloadOp) TypeID() string {
+	return busPayloadOpTypeID
+}
+
+// GetPayloadRefs names no roots.
+func (*busPayloadOp) GetPayloadRefs() []*block.BlockRef {
+	return nil
+}
+
+// PayloadRefsVersion returns 1.
+func (*busPayloadOp) PayloadRefsVersion() uint32 {
+	return 1
 }
 
 // TestAccountMergeOpsAboveCheckpoint migrates a Space whose operations above
@@ -669,12 +857,14 @@ func TestAccountMergeUnloadedOpPlugin(t *testing.T) {
 	}
 }
 
-// TestAccountMergeSavedRefusal migrates a Space whose source replay saved a
-// cursor recording a create and then a refused operation of a type nothing
-// resolves or declares, batched with a create whose root the source holds. The
-// export follows the cursor past the create, copies the refused transaction's
-// object root, and the target replays it as refused.
-func TestAccountMergeSavedRefusal(t *testing.T) {
+// TestAccountMergeSavedRefusalWaitsForHandler migrates a Space whose source
+// replay saved a cursor recording a create and then an operation refused for
+// want of a handler, batched with a create whose root the source holds. The
+// export follows the cursor past the create and copies the refused
+// transaction's object root. The target, which has no saved cursor, waits at
+// the operation for its handler, and once the handler registers there it
+// applies the operation and replays to the last create.
+func TestAccountMergeSavedRefusalWaitsForHandler(t *testing.T) {
 	// Start a source and a target account running no plugin.
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	t.Cleanup(cancel)
@@ -698,15 +888,46 @@ func TestAccountMergeSavedRefusal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The target replays past the refused operation without applying it, and
-	// holds the refused transaction's object root.
-	store, eng := openMigratedSpace(ctx, t, target, ref, refusalFillerKey(refusalFillers-1))
-	if replayedTo(ctx, t, eng, "") || replayedTo(ctx, t, eng, "y") {
-		t.Fatal("the target applied the refused operation")
-	}
+	// The target replays the create, holds the refused transaction's object
+	// root, and waits at the operation for its handler.
+	store, eng := openMigratedSpace(ctx, t, target, ref, "z")
 	data, found, err := store.store.GetBlock(ctx, root.ref)
 	if err != nil || !found || !bytes.Equal(data, root.data) {
 		t.Fatalf("migration lost the refused transaction's object root: found=%v err=%v", found, err)
+	}
+	id := ref.GetProviderResourceRef().GetId()
+	copied, releaseCopied, err := target.MountSharedObject(ctx, sobject.NewSharedObjectRef(target.GetProviderID(), target.GetAccountID(), id, SobjectBlockStoreID(id)), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseCopied()
+	healths, releaseHealth, err := copied.(*SharedObject).AccessSharedObjectHealth(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseHealth()
+	if _, err := healths.WaitValueWithValidator(ctx, func(h *sobject.SharedObjectHealth) (bool, error) {
+		wait := h.GetReplay().GetWaiting()
+		return wait.GetHandler() != nil && wait.GetOpTypeId() == pluginOpTypeID, nil
+	}, nil); err != nil {
+		t.Fatalf("the target did not wait for the operation's handler: %v", err)
+	}
+	if replayedTo(ctx, t, eng, "") || replayedTo(ctx, t, eng, "y") || replayedTo(ctx, t, eng, refusalFillerKey(0)) {
+		t.Fatal("the target replayed past the operation without its handler")
+	}
+
+	// Once the handler registers on the target, replay applies the operation
+	// and reaches the last create.
+	defer startPluginOp(ctx, t, target.t.p.b)()
+	for !replayedTo(ctx, t, eng, refusalFillerKey(refusalFillers-1)) {
+		select {
+		case <-ctx.Done():
+			t.Fatalf("target replay did not reach the last create: %v", context.Cause(ctx))
+		case <-time.After(20 * time.Millisecond):
+		}
+	}
+	if !replayedTo(ctx, t, eng, "") || !replayedTo(ctx, t, eng, "y") {
+		t.Fatal("the target replayed past the operation without its write")
 	}
 }
 
@@ -789,13 +1010,18 @@ func refusalFillerKey(i int) string {
 	return "filler-" + strconv.Itoa(i)
 }
 
-// saveRefusalCursor runs a Space world Adapter on the Space at ref with
-// account's owner as its sequencer until its World is checkpointed, then holds
-// every later checkpoint and writes a create of the object "z", a pluginOp on
-// it whose type nothing resolves or declares, batched with a create of the
-// object "y" whose root is stored, and refusalFillers creates. It waits for the
-// Adapter to save a replay cursor recording the first two transactions, stops
-// the Adapter, and returns the cursor and the root of "y".
+// saveRefusalCursor saves for the Space at ref the replay cursor a device
+// running a replay that refused a missing handler saved: a create of the
+// object "z", a pluginOp on it refused for want of a handler, batched with a
+// create of the object "y" whose root is stored, and refusalFillers creates.
+// Replay now waits for a missing handler, so the Adapter records the pluginOp
+// refused by a handler that fails it instead, and the refusal's reason is
+// rewritten to the missing handler's; a refused transaction's outcome is the
+// same either way. It runs a Space world Adapter on the Space with account's
+// owner as its sequencer until its World is checkpointed, then holds every
+// later checkpoint, writes the operations, waits for the Adapter to save a
+// replay cursor recording the first two, stops the Adapter, and returns the
+// rewritten cursor and the root of "y".
 func saveRefusalCursor(ctx context.Context, t *testing.T, account *ProviderAccount, ref *sobject.SharedObjectRef) (*space_world.ReplayCursor, seededPayload) {
 	// Hold the Space as its sequencer and run the Adapter as the Space
 	// controller does.
@@ -823,10 +1049,11 @@ func saveRefusalCursor(ctx context.Context, t *testing.T, account *ProviderAccou
 	done := make(chan error, 1)
 	go func() { done <- a.Execute(runCtx) }()
 	go func() { _ = sobject.Sequence(runCtx, so, so.SequenceOperations) }()
-	defer func() {
+	halt := sync.OnceFunc(func() {
 		stop()
 		<-done
-	}()
+	})
+	defer halt()
 
 	// Wait for the checkpoint over the initialized World, then hold the
 	// rest.
@@ -853,7 +1080,9 @@ func saveRefusalCursor(ctx context.Context, t *testing.T, account *ProviderAccou
 	}
 	held.Store(true)
 
-	// Write the create, the refused operation and the creates after it.
+	// Write the create, the refused operation and the creates after it, while
+	// a handler failing the operation runs.
+	defer startOpHandler(ctx, t, account.t.p.b, func() world.Operation { return &failingPluginOp{} })()
 	z := putPayload(ctx, t, so, "z")
 	filler := putPayload(ctx, t, so, "filler")
 	refused := newPluginOp("z")
@@ -869,18 +1098,30 @@ func saveRefusalCursor(ctx context.Context, t *testing.T, account *ProviderAccou
 	queueTxs(ctx, t, so, txs...)
 
 	// Wait for the saved cursor recording the first two.
-	for {
-		cursor := readSavedCursor(ctx, t, so)
-		if len(cursor.GetOutcomes()) >= 2 {
-			return cursor, root
-		}
+	var cursor *space_world.ReplayCursor
+	for len(cursor.GetOutcomes()) < 2 {
 		select {
 		case <-ctx.Done():
 			t.Fatalf("the source saved no replay cursor: %v", context.Cause(ctx))
 		case <-time.After(20 * time.Millisecond):
 		}
+		cursor = readSavedCursor(ctx, t, so)
 	}
+
+	// Stop the Adapter, then record the refusal as the missing handler's.
+	halt()
+	if cursor.GetOutcomes()[1].GetReason() == "" {
+		t.Fatalf("saved outcome %v, want the operation refused", cursor.GetOutcomes()[1])
+	}
+	cursor.GetOutcomes()[1].Reason = missingHandlerReason
+	writeSavedCursor(ctx, t, account, ref, cursor)
+	return cursor, root
 }
+
+// missingHandlerReason is the reason a replay that refused a missing handler
+// recorded for the batch saveRefusalCursor writes: the apply failure of its
+// first transaction, the pluginOp, whose type resolved nowhere.
+var missingHandlerReason = "transaction apply failed: tx_batch[0]: " + pluginOpTypeID + ": " + world.ErrUnhandledOp.Error()
 
 // heldRootSO is a SharedObject whose bodies return no checkpoint state while
 // held is set, so the sequencer signs no checkpoint then.
@@ -1234,17 +1475,36 @@ func newPluginOp(key string) *pluginOp {
 	return &pluginOp{MockWorldOp: world_mock.MockWorldOp{ObjectKey: key, NextMsg: "plugin"}}
 }
 
+// failingPluginOp is a pluginOp whose handler fails every apply with an error
+// of no kind replay waits out, so replay refuses it.
+type failingPluginOp struct {
+	pluginOp
+}
+
+// ApplyWorldOp fails.
+func (*failingPluginOp) ApplyWorldOp(context.Context, *logrus.Entry, world.WorldState, peer.ID) (bool, error) {
+	return false, errors.New("the plugin refuses the operation")
+}
+
 // startPluginOp registers pluginOp's handler on b for every engine, as its
 // plugin does while it runs, and returns the release that stops it.
 func startPluginOp(ctx context.Context, t *testing.T, b bus.Bus) func() {
 	t.Helper()
+	return startOpHandler(ctx, t, b, func() world.Operation { return &pluginOp{} })
+}
+
+// startOpHandler registers newOp as the handler of the type of its operations
+// on b for every engine, and returns the release that stops it.
+func startOpHandler(ctx context.Context, t *testing.T, b bus.Bus, newOp func() world.Operation) func() {
+	t.Helper()
+	typeID := newOp().TypeID()
 	lookup := func(_ context.Context, opTypeID string) (world.Operation, error) {
-		if opTypeID != pluginOpTypeID {
+		if opTypeID != typeID {
 			return nil, nil
 		}
-		return &pluginOp{}, nil
+		return newOp(), nil
 	}
-	release, err := b.AddController(ctx, world.NewLookupOpController("test-plugin-op", "", lookup), nil)
+	release, err := b.AddController(ctx, world.NewLookupOpController("test-op-"+typeID, "", lookup), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

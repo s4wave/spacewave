@@ -10,6 +10,7 @@ import {
 } from './world_srpc.pb.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import { throwOperationError } from './errors.js'
+import { KNOWN_ERROR_CODE } from './known-error-code.js'
 import type {
   GetRootRefResponse,
   SetRootRefResponse,
@@ -117,7 +118,12 @@ export class ObjectState extends Resource implements IObjectState {
   // Increments the revision of the object if changed.
   // Returns revision just after the change was applied.
   public async setRootRef(rootRef: ObjectRef, abortSignal?: AbortSignal) {
-    return await this.service.SetRootRef({ rootRef }, abortSignal)
+    const response = await this.service.SetRootRef(
+      { rootRef, knownErrorCode: KNOWN_ERROR_CODE },
+      abortSignal,
+    )
+    throwOperationError(response)
+    return response
   }
 
   // AccessWorldState builds a bucket lookup cursor with an optional ref.
@@ -147,7 +153,7 @@ export class ObjectState extends Resource implements IObjectState {
     abortSignal?: AbortSignal,
   ): Promise<ApplyObjectOpResponse> {
     const response = await this.service.ApplyObjectOp(
-      { opTypeId, opData, opSender },
+      { opTypeId, opData, opSender, knownErrorCode: KNOWN_ERROR_CODE },
       abortSignal,
     )
     throwOperationError(response)
@@ -157,7 +163,12 @@ export class ObjectState extends Resource implements IObjectState {
   // IncrementRev increments the revision of the object.
   // Returns revision just after the change was applied.
   public async incrementRev(abortSignal?: AbortSignal) {
-    return await this.service.IncrementRev({}, abortSignal)
+    const response = await this.service.IncrementRev(
+      { knownErrorCode: KNOWN_ERROR_CODE },
+      abortSignal,
+    )
+    throwOperationError(response)
+    return response
   }
 
   // WaitRev waits until the object rev is >= the specified.

@@ -12,6 +12,7 @@ import {
   TxResourceServiceClient,
 } from './world_srpc.pb.js'
 import { throwCommitError, throwOperationError } from './errors.js'
+import { KNOWN_ERROR_CODE } from './known-error-code.js'
 import { throwTypedObjectError } from './typed-object-grant-retired-error.js'
 import { ObjectState, type IObjectState } from './object-state.js'
 import { ObjectIterator } from './object_iterator.js'
@@ -424,9 +425,10 @@ export class WorldStateResource extends Resource implements IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<ObjectState> {
     const response = await this.service.CreateObject(
-      { objectKey: key, rootRef },
+      { objectKey: key, rootRef, knownErrorCode: KNOWN_ERROR_CODE },
       abortSignal,
     )
+    throwOperationError(response)
     return this.resourceRef.createResource(
       response.resourceId ?? 0,
       ObjectState,
@@ -490,9 +492,11 @@ export class WorldStateResource extends Resource implements IWorldState {
         oldObjectKey: oldKey,
         newObjectKey: newKey,
         descendants: options?.descendants,
+        knownErrorCode: KNOWN_ERROR_CODE,
       },
       options?.abortSignal,
     )
+    throwOperationError(response)
     return this.resourceRef.createResource(
       response.resourceId ?? 0,
       ObjectState,
@@ -508,9 +512,10 @@ export class WorldStateResource extends Resource implements IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<{ deleted: boolean }> {
     const response = await this.service.DeleteObject(
-      { objectKey: key },
+      { objectKey: key, knownErrorCode: KNOWN_ERROR_CODE },
       abortSignal,
     )
+    throwOperationError(response)
     return { deleted: response.deleted ?? false }
   }
 
@@ -528,12 +533,14 @@ export class WorldStateResource extends Resource implements IWorldState {
     label?: string,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await this.service.SetGraphQuad(
+    const response = await this.service.SetGraphQuad(
       {
         quad: { subject, predicate, obj, label },
+        knownErrorCode: KNOWN_ERROR_CODE,
       },
       abortSignal,
     )
+    throwOperationError(response)
   }
 
   // DeleteGraphQuad removes a specific quad from the graph store.
@@ -545,12 +552,14 @@ export class WorldStateResource extends Resource implements IWorldState {
     label?: string,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await this.service.DeleteGraphQuad(
+    const response = await this.service.DeleteGraphQuad(
       {
         quad: { subject, predicate, obj, label },
+        knownErrorCode: KNOWN_ERROR_CODE,
       },
       abortSignal,
     )
+    throwOperationError(response)
   }
 
   // LookupGraphQuads searches for graph quads matching the specified filter criteria.
@@ -693,7 +702,11 @@ export class WorldStateResource extends Resource implements IWorldState {
     objectKey: string,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await this.service.DeleteGraphObject({ objectKey }, abortSignal)
+    const response = await this.service.DeleteGraphObject(
+      { objectKey, knownErrorCode: KNOWN_ERROR_CODE },
+      abortSignal,
+    )
+    throwOperationError(response)
   }
 
   // WorldStateOp implementation
@@ -711,7 +724,7 @@ export class WorldStateResource extends Resource implements IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<{ seqno: bigint; sysErr: boolean }> {
     const response = await this.service.ApplyWorldOp(
-      { opTypeId, opData, opSender },
+      { opTypeId, opData, opSender, knownErrorCode: KNOWN_ERROR_CODE },
       abortSignal,
     )
     throwOperationError(response)

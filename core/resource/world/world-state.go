@@ -311,7 +311,11 @@ func (r *WorldStateResource) CreateObject(ctx context.Context, req *s4wave_world
 	obj, err := r.ws.CreateObject(ctx, req.GetObjectKey(), req.GetRootRef())
 	if err != nil {
 		world.ReleaseObjectState(obj)
-		return nil, err
+		code, err := replayWaitCode(req.GetKnownErrorCode(), err)
+		if err != nil {
+			return nil, err
+		}
+		return &s4wave_world.CreateObjectResponse{ErrorCode: code}, nil
 	}
 
 	// Transfer the created object state to the Resource client.
@@ -518,7 +522,11 @@ func (r *WorldStateResource) RenameObject(ctx context.Context, req *s4wave_world
 	obj, err := r.ws.RenameObject(ctx, req.GetOldObjectKey(), req.GetNewObjectKey(), req.GetDescendants())
 	if err != nil {
 		world.ReleaseObjectState(obj)
-		return nil, err
+		code, err := replayWaitCode(req.GetKnownErrorCode(), err)
+		if err != nil {
+			return nil, err
+		}
+		return &s4wave_world.RenameObjectResponse{ErrorCode: code}, nil
 	}
 
 	// Transfer the renamed object state to the Resource client.
@@ -536,10 +544,11 @@ func (r *WorldStateResource) RenameObject(ctx context.Context, req *s4wave_world
 // DeleteObject deletes an object and associated graph quads by ID.
 func (r *WorldStateResource) DeleteObject(ctx context.Context, req *s4wave_world.DeleteObjectRequest) (*s4wave_world.DeleteObjectResponse, error) {
 	deleted, err := r.ws.DeleteObject(ctx, req.GetObjectKey())
+	code, err := replayWaitCode(req.GetKnownErrorCode(), err)
 	if err != nil {
 		return nil, err
 	}
-	return &s4wave_world.DeleteObjectResponse{Deleted: deleted}, nil
+	return &s4wave_world.DeleteObjectResponse{Deleted: deleted && code == 0, ErrorCode: code}, nil
 }
 
 // SetGraphQuad sets a quad in the graph store.
@@ -547,11 +556,11 @@ func (r *WorldStateResource) SetGraphQuad(ctx context.Context, req *s4wave_world
 	// Apply the requested quad to the mounted World graph.
 	q := req.GetQuad()
 	gq := world.NewGraphQuad(q.GetSubject(), q.GetPredicate(), q.GetObj(), q.GetLabel())
-	err := r.ws.SetGraphQuad(ctx, gq)
+	code, err := replayWaitCode(req.GetKnownErrorCode(), r.ws.SetGraphQuad(ctx, gq))
 	if err != nil {
 		return nil, err
 	}
-	return &s4wave_world.SetGraphQuadResponse{}, nil
+	return &s4wave_world.SetGraphQuadResponse{ErrorCode: code}, nil
 }
 
 // DeleteGraphQuad deletes a quad from the graph store.
@@ -559,11 +568,11 @@ func (r *WorldStateResource) DeleteGraphQuad(ctx context.Context, req *s4wave_wo
 	// Remove the requested quad from the mounted World graph.
 	q := req.GetQuad()
 	gq := world.NewGraphQuad(q.GetSubject(), q.GetPredicate(), q.GetObj(), q.GetLabel())
-	err := r.ws.DeleteGraphQuad(ctx, gq)
+	code, err := replayWaitCode(req.GetKnownErrorCode(), r.ws.DeleteGraphQuad(ctx, gq))
 	if err != nil {
 		return nil, err
 	}
-	return &s4wave_world.DeleteGraphQuadResponse{}, nil
+	return &s4wave_world.DeleteGraphQuadResponse{ErrorCode: code}, nil
 }
 
 // LookupGraphQuads searches for graph quads in the store.
@@ -1000,15 +1009,28 @@ func (r *WorldStateResource) QueryGraphPath(ctx context.Context, req *s4wave_wor
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 func (r *WorldStateResource) DeleteGraphObject(ctx context.Context, req *s4wave_world.DeleteGraphObjectRequest) (*s4wave_world.DeleteGraphObjectResponse, error) {
-	err := r.ws.DeleteGraphObject(ctx, req.GetObjectKey())
+	code, err := replayWaitCode(req.GetKnownErrorCode(), r.ws.DeleteGraphObject(ctx, req.GetObjectKey()))
 	if err != nil {
 		return nil, err
 	}
-	return &s4wave_world.DeleteGraphObjectResponse{}, nil
+	return &s4wave_world.DeleteGraphObjectResponse{ErrorCode: code}, nil
 }
 
 // ApplyWorldOp applies a batch operation at the world level.
+// A refusal whose code the client does not decode returns as the call's error.
 func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world.ApplyWorldOpRequest) (*s4wave_world.ApplyWorldOpResponse, error) {
+	resp, err := r.applyWorldOp(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if err := undecodedRefusal(req.GetKnownErrorCode(), resp.GetErrorCode()); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// applyWorldOp resolves and applies the operation req names.
+func (r *WorldStateResource) applyWorldOp(ctx context.Context, req *s4wave_world.ApplyWorldOpRequest) (*s4wave_world.ApplyWorldOpResponse, error) {
 	op, opSender, refused, err := r.resolveWorldOp(ctx, req)
 	if err != nil || refused != nil {
 		return refused, err
@@ -1125,6 +1147,11 @@ func opErrorRefusal(err error, atomic bool) (code s4wave_world.WorldErrorCode, r
 	// Match an operation no handler resolved.
 	if errors.Is(err, world.ErrUnhandledOp) {
 		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP, nil, true
+	}
+
+	// Match a write the World refused before its turn opened.
+	if errors.Is(err, sobject.ErrReplayWaits) {
+		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_REPLAY_WAITS, nil, true
 	}
 	return 0, nil, false
 }

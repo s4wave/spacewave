@@ -186,6 +186,84 @@ message SharedObjectHealth {
   // SyncPeers lists this device's sync stream with each participant it has
   // authenticated since the object mounted, sorted by peer ID.
   repeated SOSyncPeer sync_peers = 12;
+
+  // Replay is where this device's replay stands, as the body driver steps
+  // it. The body takes writes only while it is caught_up. Unset when no body
+  // driver runs on the object.
+  SOReplayState replay = 13;
+}
+
+// SOReplayState is where this device's replay stands. The body driver sets it
+// after each step and when a state arrives; the body refuses writes in every state but caught_up, so
+// what the health shows and what a write meets never disagree.
+message SOReplayState {
+  oneof state {
+    // Opening is replay before its first step reached the end of the order:
+    // the body serves no World yet, or one behind what the Space holds.
+    SOReplayOpening opening = 1;
+
+    // Waiting is replay stopped at an operation it cannot apply yet. The body
+    // serves the World before it, read only, until the wait ends.
+    SOReplayWait waiting = 2;
+
+    // CaughtUp is replay at the end of the order its last step read.
+    SOReplayCaughtUp caught_up = 3;
+
+    // CatchingUp is replay that reached the end of its last order while this
+    // device holds a newer one with another peer's operation the body has not
+    // applied. It is entered when that state arrives, before the step that
+    // applies the operation, and left when that step reaches the end.
+    SOReplayCatchingUp catching_up = 4;
+  }
+}
+
+// SOReplayOpening is replay before its first step reached the end of the
+// order.
+message SOReplayOpening {}
+
+// SOReplayCaughtUp is replay at the end of the order its last step read.
+message SOReplayCaughtUp {}
+
+// SOReplayCatchingUp is replay with another peer's operation held and not yet
+// applied.
+message SOReplayCatchingUp {}
+
+// SOReplayWait is the operation this device's replay waits at. A missing
+// handler is a fact about this device and its release, not about the
+// operation, so replay waits for one instead of refusing the operation.
+message SOReplayWait {
+  // CheckpointHeight is the height of the checkpoint the operation is above.
+  uint64 checkpoint_height = 1;
+
+  // Position is the operation's index in the order above that checkpoint.
+  uint32 position = 2;
+
+  // OpTypeId is the operation type no handler on this device resolves.
+  string op_type_id = 3;
+
+  // PluginId is the plugin a pinned operation type names, or empty for an
+  // unpinned type.
+  string plugin_id = 4;
+
+  // State is what the wait needs before replay can resume.
+  oneof state {
+    // Handler waits for a plugin on this device to register a handler.
+    SOReplayWaitHandler handler = 5;
+
+    // Approval waits for this device's person to approve a plugin.
+    SOReplayWaitApproval approval = 6;
+  }
+}
+
+// SOReplayWaitHandler waits for a plugin on this device to register a handler
+// for the operation type.
+message SOReplayWaitHandler {}
+
+// SOReplayWaitApproval waits for this device's person to approve the plugins
+// that could handle the operation type.
+message SOReplayWaitApproval {
+  // PluginIds lists the plugins awaiting approval on this device, sorted.
+  repeated string plugin_ids = 1;
 }
 
 // SOSyncPeer is this device's sync stream with one authenticated participant.

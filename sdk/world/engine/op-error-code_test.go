@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/world"
@@ -92,6 +93,9 @@ func TestApplyOpErrorCodes(t *testing.T) {
 		},
 		s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_ROOT_NOT_HELD: func(err error) bool {
 			return errors.Is(err, block.ErrRootNotHeld)
+		},
+		s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_REPLAY_WAITS: func(err error) bool {
+			return errors.Is(err, sobject.ErrReplayWaits)
 		},
 	}
 

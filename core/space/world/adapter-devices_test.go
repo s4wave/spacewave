@@ -318,14 +318,28 @@ func runFollowsDevices(t *testing.T, f *adapterFixture) {
 	defer cancel()
 	eng, engRef := f.start(t)
 	busEngine := world.NewBusEngine(ctx, f.tb.Bus, f.engineID)
+	// create commits key, sending it again after each replay wait ends, as
+	// a client does while another device's operation is being applied.
 	create := func(key string) {
 		t.Helper()
-		if err := world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
-			obj, err := ws.CreateObject(ctx, key, nil)
-			world.ReleaseObjectState(obj)
-			return err
-		}); err != nil {
-			t.Fatal(err)
+		for {
+			err := world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
+				obj, err := ws.CreateObject(ctx, key, nil)
+				world.ReleaseObjectState(obj)
+				return err
+			})
+			var wait *sobject.BodyWait
+			if !errors.As(err, &wait) || !errors.Is(err, sobject.ErrReplayWaits) {
+				if err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			select {
+			case <-wait.Wake:
+			case <-ctx.Done():
+				t.Fatalf("write %s: the replay wait never ended", key)
+			}
 		}
 	}
 
@@ -404,8 +418,8 @@ func runFollowsDevices(t *testing.T, f *adapterFixture) {
 	requireComplete(ctx, t, so, space_world.RootReplayBase)
 
 	// A late operation of a device that joined after the checkpoint sorts
-	// ahead of every position and replays the World while a local write
-	// commits.
+	// ahead of every position and replays the World, and a local write sent
+	// meanwhile commits once the replay applied it.
 	later := addDevice(t, so)
 	later.write(t, so, createOp(t, "late-0"), true, true)
 	create("local-during")
