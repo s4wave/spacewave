@@ -22,7 +22,7 @@
     "config": "ReplayWriteGate.cfg"
   },
   {
-    "name": "a step that fails outside an apply refuses its op",
+    "name": "a failure the operation did not decide refuses its op",
     "replace": [
       [
         "                       /\\ replay' = \"waitRetry\" /\\ failed' = TRUE\n                       /\\ UNCHANGED <<todo, applied, refused>>",
@@ -33,18 +33,18 @@
     "config": "ReplayWriteGate.cfg"
   },
   {
-    "name": "an apply error of unknown kind waits to retry",
+    "name": "a refusal the operation decides waits to retry",
     "replace": [
       [
         "                  [] op = \"bad\" ->\n                       /\\ refused' = refused \\cup {op} /\\ todo' = Tail(todo)\n                       /\\ replay' = Next1\n                       /\\ UNCHANGED <<failed, applied>>",
         "                  [] op = \"bad\" ->\n                       /\\ replay' = \"waitRetry\"\n                       /\\ UNCHANGED <<todo, failed, applied, refused>>"
       ]
     ],
-    "expect": "RetryOnlyOutsideApply",
+    "expect": "RetryOnlyUndecided",
     "config": "ReplayWriteGate.cfg"
   },
   {
-    "name": "an apply error of unknown kind drops its op unrecorded",
+    "name": "a refusal the operation decides drops its op unrecorded",
     "replace": [
       [
         "                  [] op = \"bad\" ->\n                       /\\ refused' = refused \\cup {op} /\\ todo' = Tail(todo)\n                       /\\ replay' = Next1\n                       /\\ UNCHANGED <<failed, applied>>",
