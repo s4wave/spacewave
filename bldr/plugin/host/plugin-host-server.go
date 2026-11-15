@@ -191,42 +191,60 @@ func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcSt
 	return rpcstream.HandleProxyRpcStream(
 		strm,
 		func(ctx context.Context, componentID string) (rpcstream.RpcStreamCaller[bldr_plugin.SRPCPlugin_PluginRpcClient], string, func(), error) {
-			// Parse the component id and reject self-calls.
+			// Parse the component id.
 			pluginID, instanceKey, manifestRoot, err := bldr_plugin.ParsePluginRpcComponentID(componentID)
 			if err != nil {
 				return nil, "", nil, err
 			}
-			if pluginID == "" {
-				return nil, "", nil, bldr_plugin.ErrEmptyPluginID
-			}
-			if pluginID == s.pluginID && instanceKey == "" {
-				return nil, "", nil, errors.Errorf("plugin cannot send rpc to itself: %s", pluginID)
-			}
 
-			// Build the load directive for the target plugin.
-			instanceKey, err = s.loadInstanceKey(pluginID, instanceKey)
+			// Open the target's PluginRpc under this plugin's ID.
+			caller, release, err := s.openPluginRpc(ctx, pluginID, instanceKey, manifestRoot)
 			if err != nil {
 				return nil, "", nil, err
 			}
-			dir := bldr_plugin.NewLoadPluginInstanced(pluginID, instanceKey)
-			if manifestRoot != "" {
-				dir = bldr_plugin.NewLoadPluginAtManifest(pluginID, instanceKey, manifestRoot)
-			}
-
-			// Wait for the plugin to run and return its RPC client.
-			running, _, clientRef, err := bus.ExecWaitValue[bldr_plugin.RunningPlugin](
-				ctx, s.b, dir, bus.ReturnIfIdle(manifestRoot != ""), nil, nil,
-			)
-			if err != nil {
-				return nil, "", nil, err
-			}
-			if running == nil {
-				return nil, "", nil, errors.Errorf("plugin %s: exact manifest %s is unavailable", pluginID, manifestRoot)
-			}
-			srv := bldr_plugin.NewSRPCPluginClient(running.GetRpcClient())
-			return srv.PluginRpc, s.pluginID, clientRef.Release, nil
+			return caller, s.pluginID, release, nil
 		},
 	)
+}
+
+// openPluginRpc loads pluginID at the instance this server's plugin may reach
+// and returns the target's PluginRpc caller and a release function. The caller
+// opens the stream with this server's plugin ID as the component ID, so the
+// target serves the call under "plugin/<caller>" and never on its root mux.
+func (s *PluginHostServer) openPluginRpc(
+	ctx context.Context,
+	pluginID, instanceKey, manifestRoot string,
+) (rpcstream.RpcStreamCaller[bldr_plugin.SRPCPlugin_PluginRpcClient], func(), error) {
+	// Reject an empty target and self-calls.
+	if pluginID == "" {
+		return nil, nil, bldr_plugin.ErrEmptyPluginID
+	}
+	if pluginID == s.pluginID && instanceKey == "" {
+		return nil, nil, errors.Errorf("plugin cannot send rpc to itself: %s", pluginID)
+	}
+
+	// Build the load directive for the target plugin.
+	instanceKey, err := s.loadInstanceKey(pluginID, instanceKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	dir := bldr_plugin.NewLoadPluginInstanced(pluginID, instanceKey)
+	if manifestRoot != "" {
+		dir = bldr_plugin.NewLoadPluginAtManifest(pluginID, instanceKey, manifestRoot)
+	}
+
+	// Wait for the plugin to run and return its PluginRpc caller.
+	running, _, clientRef, err := bus.ExecWaitValue[bldr_plugin.RunningPlugin](
+		ctx, s.b, dir, bus.ReturnIfIdle(manifestRoot != ""), nil, nil,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	if running == nil {
+		return nil, nil, errors.Errorf("plugin %s: exact manifest %s is unavailable", pluginID, manifestRoot)
+	}
+	srv := bldr_plugin.NewSRPCPluginClient(running.GetRpcClient())
+	return srv.PluginRpc, clientRef.Release, nil
 }
 
 // PluginFsRpc accesses a FSCursorService to access the plugin assets or dist filesystems.
@@ -314,16 +332,14 @@ func (s *PluginHostServer) HostBusInvoker(allowedServiceIDs []string) srpc.Invok
 			return false, nil
 		}
 
-		// Load the target at the instance key this plugin may load it at.
-		instanceKey, err := s.loadInstanceKey(pluginID, "")
+		// Deliver the call through the target's PluginRpc, as PluginRpc
+		// does, so it arrives under "plugin/<caller>".
+		caller, release, err := s.openPluginRpc(strm.Context(), pluginID, "", "")
 		if err != nil {
 			return true, err
 		}
-		client, ref, err := bldr_plugin.ExPluginLoadInstancedWaitClient(strm.Context(), s.b, pluginID, instanceKey, nil)
-		if err != nil {
-			return true, err
-		}
-		defer ref.Release()
+		defer release()
+		client := rpcstream.NewRpcStreamClient(caller, s.pluginID, false)
 		return srpc.NewClientInvoker(client).InvokeMethod(remoteServiceID, methodID, strm)
 	})
 }
