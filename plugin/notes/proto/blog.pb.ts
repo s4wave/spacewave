@@ -6,6 +6,7 @@ import { NotebookSource } from './notebook.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 
 /**
  * Blog is a world object that presents markdown files from UnixFS
@@ -78,3 +79,47 @@ export const CreateBlogOp: MessageType<CreateBlogOp> =
     [4, 'author_registry_path', 9],
     [5, 'timestamp', 11, 0, Timestamp.codec],
   ])
+
+/**
+ * CreateBlogStagedOp creates a Blog with a UnixFS source and initial post,
+ * and the companion notebook that edits its posts, from content the sender
+ * staged. It replaces CreateBlogOp for new creates.
+ *
+ * The sender builds every object's content in a World stage before it sends
+ * the op, and holds the stage until the op's transaction returns. Under the
+ * World writer the op only reads the keys and adopts the staged roots, so the
+ * writer waits on no content build. An op missing a staged root is rejected.
+ *
+ * @generated from message notes.CreateBlogStagedOp
+ */
+export interface CreateBlogStagedOp {
+  /**
+   * ObjectKey is the world object key for the blog.
+   */
+  objectKey?: string
+  /**
+   * BlogRoot is the staged Blog block, the blog object's root.
+   */
+  blogRoot?: ObjectRef
+  /**
+   * UnixfsRoot is the staged UnixFS tree of the first post, the UnixFS
+   * object's root.
+   */
+  unixfsRoot?: ObjectRef
+  /**
+   * NotebookRoot is the staged Notebook block, the companion notebook
+   * object's root.
+   */
+  notebookRoot?: ObjectRef
+}
+
+export const CreateBlogStagedOp: MessageType<CreateBlogStagedOp> =
+  /* @__PURE__ */ createMessageType<CreateBlogStagedOp>(
+    'notes.CreateBlogStagedOp',
+    () => [
+      [1, 'object_key', 9],
+      [2, 'blog_root', 11, 0, ObjectRef.codec],
+      [3, 'unixfs_root', 11, 0, ObjectRef.codec],
+      [4, 'notebook_root', 11, 0, ObjectRef.codec],
+    ],
+  )

@@ -1,0 +1,32 @@
+syntax = "proto3";
+package s4wave.unixfs.world;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/sdk/unixfs/handle.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/unixfs/world;s4wave_unixfs_world";
+
+// UnixFSStageResourceService builds UnixFS trees in a World stage, served on
+// the stage resource beside WorldStageResourceService, so only the holder of
+// a stage it opened can build into it.
+service UnixFSStageResourceService {
+  // BuildTree builds a new UnixFS filesystem node tree in the stage from an
+  // UploadTree entry stream, with paths relative to the new root, and returns
+  // its root once the stream ends. Entries go to the stage's block store as
+  // they arrive. The tree starts empty: an entry's default expectation, or
+  // expect_missing, always holds, and a file version expectation fails the
+  // call. ordered_commit and want_version have no effect.
+  //
+  // The stage holds the tree. Hold the stage until the World transaction that
+  // adopts the root, such as by creating an object with it, returns. Once the
+  // stage is released, or drops the root with ReleaseRoots, blocks no
+  // committed object names can be collected.
+  rpc BuildTree(stream s4wave.unixfs.HandleUploadTreeRequest) returns (BuildTreeResponse);
+}
+
+// BuildTreeResponse is the response for BuildTree.
+message BuildTreeResponse {
+  // RootRef is the staged filesystem root, the root of a unixfs/fs-node
+  // typed object.
+  bucket.ObjectRef root_ref = 1;
+}

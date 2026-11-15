@@ -1,3 +1,4 @@
+import type { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
 import { getObjectType, setObjectType } from '@s4wave/sdk/world/types/types.js'
@@ -10,6 +11,10 @@ import { uploadSeedTree, type SeedFile } from './unixfs-seed.js'
 // SEED_KEY_TAKEN_CODE rejects a seed that finds a key it would write already
 // holding an object it cannot keep.
 export const SEED_KEY_TAKEN_CODE = 'notes/seed/key-taken'
+
+// SEED_UNSTAGED_CODE rejects a staged seed op missing the staged root of an
+// object it writes.
+export const SEED_UNSTAGED_CODE = 'notes/seed/unstaged'
 
 // SeedObject is one object a seed op writes: its key, the type it gives the
 // object, and the step that writes it. keepFound marks a companion that a
@@ -125,6 +130,35 @@ export function seedTypedObject(
     label,
     async write(worldState, abortSignal) {
       await createObjectWithBlockData(worldState, key, data, abortSignal)
+      await setObjectType(worldState, key, typeId, abortSignal)
+    },
+  }
+}
+
+// seedStagedObject is the seed step that creates the object at key with
+// root, content its sender built in a World stage, and typeId as its type.
+// Under the World writer it only adopts the root. A missing root rejects the
+// op, since the op cannot build content itself.
+export function seedStagedObject(
+  label: string,
+  key: string,
+  typeId: string,
+  root: ObjectRef | undefined,
+): SeedObject {
+  if (!root?.rootRef) {
+    throw new WorldOperationRejection(
+      SEED_UNSTAGED_CODE,
+      `The ${typeId} ${key} has no staged content, so it cannot be created.`,
+    )
+  }
+  return {
+    key,
+    typeId,
+    label,
+    async write(worldState, abortSignal) {
+      // The created object handle is local to this call; the World owns its
+      // root.
+      using _created = await worldState.createObject(key, root, abortSignal)
       await setObjectType(worldState, key, typeId, abortSignal)
     },
   }

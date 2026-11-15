@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"io"
 	"slices"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
@@ -16,6 +18,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -474,4 +477,278 @@ func TestPayloadBuiltInTx(t *testing.T) {
 	}
 	f.collect(t)
 	requireDurableSetRoots(ctx, t, so, optypes.LookupWorldOp)
+}
+
+// adoptStagedOpTypeID is the type ID of adoptStagedOp.
+const adoptStagedOpTypeID = "test/space-world/adopt-staged"
+
+// adoptStagedOp creates its object with a root its sender built in a World
+// stage, carried as the object ref string in next_msg. It stands in for a
+// plugin op, such as a Notes staged create, whose handler under the World
+// writer only adopts roots its sender staged.
+type adoptStagedOp struct {
+	*world_mock.MockWorldOp
+}
+
+// TypeID returns the operation type identifier.
+func (o *adoptStagedOp) TypeID() string {
+	return adoptStagedOpTypeID
+}
+
+// ApplyWorldOp creates the object with the staged root.
+func (o *adoptStagedOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws world.WorldState, _ peer.ID) (bool, error) {
+	root, err := bucket.ParseObjectRef(o.GetNextMsg())
+	if err != nil {
+		return false, err
+	}
+	obj, err := ws.CreateObject(ctx, o.GetObjectKey(), root)
+	world.ReleaseObjectState(obj)
+	return false, err
+}
+
+// lookupAdoptStagedOp resolves adoptStagedOp, and the Space's own operations.
+func lookupAdoptStagedOp(ctx context.Context, opTypeID string) (world.Operation, error) {
+	if opTypeID == adoptStagedOpTypeID {
+		return &adoptStagedOp{MockWorldOp: &world_mock.MockWorldOp{}}, nil
+	}
+	return optypes.LookupWorldOp(ctx, opTypeID)
+}
+
+// stageTree builds files into a UnixFS tree through stage and returns its
+// root.
+func stageTree(ctx context.Context, t *testing.T, stage world.WorldStage, files map[string][]byte) *bucket.ObjectRef {
+	t.Helper()
+	ts := time.Now()
+	w := unixfs_world.NewStagedBatchFSWriter(stage, unixfs_world.FSType_FSType_FS_NODE)
+	defer w.Release()
+	for name, data := range files {
+		if err := w.AddFile(ctx, nil, name, unixfs.NewFSCursorNodeType_File(), int64(len(data)), bytes.NewReader(data), 0o644, ts); err != nil {
+			t.Fatal(err)
+		}
+	}
+	root, err := w.CommitStaged(ctx, ts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+// stageStore returns the block store the stage's cursors write through,
+// which serves the stage's buffered writes before they reach the Volume.
+func stageStore(ctx context.Context, t *testing.T, stage world.WorldStage) block.StoreOps {
+	t.Helper()
+	cursor, err := stage.BuildStorageCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cursor.Release)
+	return cursor.GetBlockStore()
+}
+
+// walkBlocks returns every block under roots in store, by key.
+func walkBlocks(ctx context.Context, t *testing.T, store block.StoreOps, roots []*block.BlockRef) map[string]*block.BlockRef {
+	t.Helper()
+	out := make(map[string]*block.BlockRef)
+	if err := block.WalkGraph(ctx, store, roots, 0, func(ref *block.BlockRef, _ *block.StoredBlock) error {
+		out[ref.MarshalString()] = ref
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// onlyBlocks serves only the blocks in keep from its store, so a walk
+// through it fails on any block outside them, as a member that holds only
+// those blocks would.
+type onlyBlocks struct {
+	block.StoreOps
+	keep map[string]*block.BlockRef
+}
+
+// GetStoredBlock reads ref when keep holds it, and reports any other block
+// missing.
+func (s onlyBlocks) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	if _, ok := s.keep[ref.MarshalString()]; !ok {
+		return nil, block.NotFoundError(ref)
+	}
+	return s.StoreOps.GetStoredBlock(ctx, ref)
+}
+
+// requireBlocks fails unless every block of blocks is stored, when stored is
+// set, or none is.
+func requireBlocks(ctx context.Context, t *testing.T, phase string, store block.StoreOps, blocks map[string]*block.BlockRef, stored bool) {
+	t.Helper()
+	wrong := 0
+	for _, ref := range blocks {
+		found, err := store.GetBlockExists(ctx, ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if found != stored {
+			wrong++
+		}
+	}
+	if wrong != 0 {
+		t.Fatalf("%s: %d of %d blocks have stored=%v, want %v", phase, wrong, len(blocks), !stored, stored)
+	}
+}
+
+// requireStagedFiles reads every file of files from the UnixFS object at key
+// through eng and fails unless each holds its bytes.
+func requireStagedFiles(ctx context.Context, t *testing.T, phase string, eng world.Engine, key string, files map[string][]byte) {
+	t.Helper()
+	rctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	err := world.ExecTransaction(rctx, eng, false, func(ctx context.Context, ws world.WorldState) error {
+		ref := &unixfs_world.UnixfsRef{ObjectKey: key, FsType: unixfs_world.FSType_FSType_FS_NODE}
+		cursor, err := unixfs_world.FollowUnixfsRef(ctx, logrus.NewEntry(logrus.New()), ws, ref, "", false)
+		if err != nil {
+			return err
+		}
+		root, err := unixfs.NewFSHandle(cursor)
+		if err != nil {
+			cursor.Release()
+			return err
+		}
+		defer root.Release()
+		for name, want := range files {
+			h, _, err := root.LookupPath(ctx, name)
+			if err != nil {
+				return errors.Wrap(err, name)
+			}
+			got := make([]byte, len(want)+1)
+			n, err := h.ReadAt(ctx, 0, got)
+			h.Release()
+			if err != nil && !errors.Is(err, io.EOF) {
+				return errors.Wrap(err, name)
+			}
+			if !bytes.Equal(got[:n], want) {
+				return errors.Errorf("%s read %d bytes, want %d", name, n, len(want))
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("%s: %v", phase, err)
+	}
+}
+
+// TestStagedTreeReplays builds a UnixFS tree in a World stage, as a Notes
+// staged create's sender does, adopts its root in a World operation, then
+// releases the stage and collects. Every file must read whole on the writer;
+// after a restart that replays the operation above the replay cursor; and
+// after a replay from nothing, with no saved cursor and no payload hold, as a
+// member that never applied the operation replays it, with a collection after
+// each.
+//
+// The Space has one block store, so the reads hold whatever the operation
+// records. Two checks cover a member that holds only what the operation
+// names: every block of the staged tree is reachable from the set roots the
+// stored operation records, through a store that serves no other block; and
+// a collection while the stage is held, with and without the operation
+// applied, and after its release, keeps every staged block, while a tree
+// staged with no operation to adopt it is freed whole.
+func TestStagedTreeReplays(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
+	defer cancel()
+	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, opTypes: &space_world.OpTypes{Lookup: lookupAdoptStagedOp}})
+	eng, engRef := f.start(t)
+	so := f.space(t)
+	store := so.GetBlockStore()
+
+	// Stage a small file the node embeds and a large one built as a blob,
+	// and in a second stage a tree no operation will adopt.
+	large := make([]byte, 3<<20)
+	draft := make([]byte, 1<<20)
+	for _, buf := range [][]byte{large, draft} {
+		if _, err := rand.Read(buf); err != nil {
+			t.Fatal(err)
+		}
+	}
+	files := map[string][]byte{"welcome.md": []byte("# Welcome\n"), "large.bin": large}
+	stage, err := eng.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	abandon, err := eng.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := stageTree(ctx, t, stage, files)
+	dropped := stageTree(ctx, t, abandon, map[string][]byte{"draft.bin": draft})
+	stagedStore, abandonStore := stageStore(ctx, t, stage), stageStore(ctx, t, abandon)
+	staged := walkBlocks(ctx, t, stagedStore, []*block.BlockRef{root.GetRootRef()})
+	unadopted := walkBlocks(ctx, t, abandonStore, []*block.BlockRef{dropped.GetRootRef()})
+	for key := range staged {
+		delete(unadopted, key)
+	}
+	t.Logf("staged %d blocks, %d more unadopted", len(staged), len(unadopted))
+
+	// A collection between the build and the operation keeps both trees.
+	f.collect(t)
+	requireBlocks(ctx, t, "collected before the operation", stagedStore, staged, true)
+	requireBlocks(ctx, t, "collected before the operation, unadopted", abandonStore, unadopted, true)
+
+	// Adopt the root and collect with the stage still held.
+	op := &adoptStagedOp{MockWorldOp: world_mock.NewMockWorldOp("files", root.MarshalString())}
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		_, _, err := ws.ApplyWorldOp(ctx, op, "")
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	requireBlocks(ctx, t, "collected after the operation", stagedStore, staged, true)
+
+	// Every staged block is reachable from the stored operation's set roots
+	// through a store holding only the staged blocks.
+	var setRoots []*block.BlockRef
+	for _, tx := range storedTxs(ctx, t, so) {
+		setRoots = append(setRoots, tx.GetTxApplyWorldOp().GetSetRoots()...)
+	}
+	reached := walkBlocks(ctx, t, onlyBlocks{StoreOps: stagedStore, keep: staged}, setRoots)
+	if len(reached) != len(staged) {
+		t.Fatalf("the operation's %d set roots reach %d of %d staged blocks", len(setRoots), len(reached), len(staged))
+	}
+	t.Logf("%d set roots reach all %d staged blocks", len(setRoots), len(reached))
+
+	// Release both stages: the adopted tree stays, the unadopted one is freed.
+	stage.Release()
+	abandon.Release()
+	f.collect(t)
+	requireBlocks(ctx, t, "collected after the stage released", store, staged, true)
+	requireBlocks(ctx, t, "collected after the stage released, unadopted", store, unadopted, false)
+	if named := requireDurableSetRoots(ctx, t, so, lookupAdoptStagedOp); named == 0 {
+		t.Fatal("the stored operation names no set root")
+	}
+	requireStagedFiles(ctx, t, "after the stage released", eng, "files", files)
+	if h := checkpointHeight(ctx, t, so); h != 0 {
+		t.Fatalf("checkpoint at %d covers the operation; the test needs it above", h)
+	}
+
+	// A restart replays the operation above the replay cursor.
+	eng, engRef = f.remount(ctx, t, eng, engRef)
+	waitObjects(ctx, t, eng, "files")
+	f.collect(t)
+	requireStagedFiles(ctx, t, "after a restart", eng, "files", files)
+
+	// A replay from nothing rebuilds the payload hold from the operation.
+	eng, engRef = f.remountWith(ctx, t, eng, engRef, func() {
+		held, err := store.GetRoot(ctx, space_world.RootReplayPayloads)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := store.SetRoots(ctx, nil, []block.NamedRoot{{Name: space_world.RootReplayPayloads, Previous: held}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := space_world.DeleteSavedCursor(ctx, so); err != nil {
+			t.Fatal(err)
+		}
+	})
+	defer engRef.Release()
+	waitObjects(ctx, t, eng, "files")
+	f.collect(t)
+	requireBlocks(ctx, t, "collected after a replay from nothing", store, staged, true)
+	requireStagedFiles(ctx, t, "after a replay from nothing", eng, "files", files)
 }

@@ -102,8 +102,12 @@ type BatchFSWriter struct {
 	root *bucket.ObjectRef
 
 	// stage owns the blob blocks the buffer drains before Commit publishes
-	// them, opened with storage and released by Commit or Release.
+	// them, opened with storage and released by Commit or Release. A staged
+	// writer borrows it from its caller instead and never releases it.
 	stage world.WorldStage
+	// staged is set for a writer that builds a new tree in a borrowed stage,
+	// which CommitStaged writes, instead of merging into a World object.
+	staged bool
 	// storage is the staged world storage cursor blobs are built against,
 	// opened by the first AddFile with data and released by Commit or Release.
 	storage *bucket_lookup.Cursor
@@ -129,6 +133,21 @@ func NewBatchFSWriter(
 		objKey:  objKey,
 		fsType:  fsType,
 		sender:  sender,
+		pending: make(map[string]*pendingDir),
+	}
+}
+
+// NewStagedBatchFSWriter constructs a BatchFSWriter that builds a new
+// filesystem of fsType in stage, which CommitStaged writes, instead of merging
+// into a World object. The writer borrows stage and never releases it: every
+// block the writer builds stays held by the stage until the caller releases
+// it, or drops the root CommitStaged returned with ReleaseRoots. The caller
+// is responsible for invoking either CommitStaged or Release.
+func NewStagedBatchFSWriter(stage world.WorldStage, fsType FSType) *BatchFSWriter {
+	return &BatchFSWriter{
+		fsType:  fsType,
+		stage:   stage,
+		staged:  true,
 		pending: make(map[string]*pendingDir),
 	}
 }
@@ -212,20 +231,9 @@ func (b *BatchFSWriter) AddFile(
 // buildBlob writes a blob of dataLen bytes from rdr into the blob buffer and
 // returns its root reference.
 func (b *BatchFSWriter) buildBlob(ctx context.Context, dataLen int64, rdr io.Reader) (*block.BlockRef, error) {
-	// Open the staged World storage cursor and its shared blob buffer on
-	// first use.
-	if b.storage == nil {
-		stage, err := b.ws.StageWorldState(ctx)
-		if err != nil {
-			return nil, err
-		}
-		storage, err := stage.BuildStorageCursor(ctx)
-		if err != nil {
-			stage.Release()
-			return nil, err
-		}
-		b.stage, b.storage = stage, storage
-		b.blobs = block.NewBufferedStore(ctx, storage.GetBlockStore())
+	// Open the storage the blob writes through.
+	if err := b.openStorage(ctx); err != nil {
+		return nil, err
 	}
 
 	// The borrowed write buffer keeps the blob's root write from draining.
@@ -237,6 +245,32 @@ func (b *BatchFSWriter) buildBlob(ctx context.Context, dataLen int64, rdr io.Rea
 	}
 	ref, _, err := btx.Write(ctx, true)
 	return ref, err
+}
+
+// openStorage opens the staged World storage cursor and its shared blob
+// buffer on first use, opening the writer's own stage unless it borrows one.
+func (b *BatchFSWriter) openStorage(ctx context.Context) error {
+	// Reuse storage already open.
+	if b.storage != nil {
+		return nil
+	}
+	stage := b.stage
+	if stage == nil {
+		var err error
+		if stage, err = b.ws.StageWorldState(ctx); err != nil {
+			return err
+		}
+	}
+	storage, err := stage.BuildStorageCursor(ctx)
+	if err != nil {
+		if !b.staged {
+			stage.Release()
+		}
+		return err
+	}
+	b.stage, b.storage = stage, storage
+	b.blobs = block.NewBufferedStore(ctx, storage.GetBlockStore())
+	return nil
 }
 
 // ExpectFile makes Commit refuse the whole batch with a *FileConflictError
@@ -420,6 +454,9 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 	if b.committed {
 		return errors.New("batch writer already committed")
 	}
+	if b.staged {
+		return errors.New("staged batch writer commits with CommitStaged")
+	}
 	b.committed = true
 	defer b.releaseStorage()
 
@@ -520,6 +557,71 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 		})
 	}
 	return err
+}
+
+// CommitStaged writes every accumulated entry into a new filesystem in the
+// borrowed stage, with its root directory stamped ts, and returns the
+// reference to the root. A World transaction adopts the tree by naming the
+// root, such as with CreateObject. The stage holds the tree until it is
+// released or drops the root with ReleaseRoots, so the caller holds the stage
+// until the adopting transaction returns.
+//
+// The tree starts empty, so an ExpectMissing always holds and an ExpectFile
+// refuses the batch with a *FileConflictError.
+func (b *BatchFSWriter) CommitStaged(ctx context.Context, ts time.Time) (*bucket.ObjectRef, error) {
+	// Claim the staged commit and release its cursor when it finishes.
+	if !b.staged {
+		return nil, errors.New("batch writer is not staged")
+	}
+	if err := b.checkOpen(); err != nil {
+		return nil, err
+	}
+	b.committed = true
+	defer b.releaseStorage()
+
+	// Write the buffered blobs into the stage before the tree names them.
+	if err := b.openStorage(ctx); err != nil {
+		return nil, err
+	}
+	if err := b.blobs.Flush(ctx); err != nil {
+		return nil, err
+	}
+
+	// Build the empty root, as Commit merges onto an existing root.
+	nroot, _, err := NewFSRootWithType(b.fsType, unixfs.NewFSCursorNodeType_Dir(), unixfs_block.ToTimestamp(ts, true))
+	if err != nil {
+		return nil, err
+	}
+	btx, bcs := b.storage.BuildTransaction(nil)
+	bcs.SetBlock(nroot, true)
+	root, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check the expected files against the empty root.
+	for _, e := range b.expects {
+		if err := checkFileExpect(root, e); err != nil {
+			return nil, err
+		}
+	}
+
+	// Merge the pending directories parent first.
+	resolvedDirs := map[string]*unixfs_block.FSTree{joinPathKey(nil): root}
+	for _, pd := range b.sortedPendingDirs() {
+		if err := b.mergePendingDir(ctx, root, resolvedDirs, pd); err != nil {
+			return nil, err
+		}
+	}
+
+	// Write the tree into the stage, which holds it from here.
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	out := b.storage.GetRef().Clone()
+	out.RootRef = rootRef
+	return out, nil
 }
 
 // sortedPendingDirs returns pendingDirs ordered by ascending parent-path
@@ -806,13 +908,13 @@ func (b *BatchFSWriter) Release() {
 }
 
 // releaseStorage drops the blob buffer and releases the storage cursor and
-// its stage.
+// the stage the writer opened. A borrowed stage stays open.
 func (b *BatchFSWriter) releaseStorage() {
 	if b.storage != nil {
 		b.storage.Release()
 		b.storage = nil
 	}
-	if b.stage != nil {
+	if b.stage != nil && !b.staged {
 		b.stage.Release()
 		b.stage = nil
 	}

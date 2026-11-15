@@ -2,6 +2,7 @@ syntax = "proto3";
 package notes;
 
 import "google/protobuf/timestamp.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "github.com/s4wave/spacewave/plugin/notes/proto/notebook.proto";
 
 // Documentation is a world object that presents markdown files from UnixFS
@@ -27,4 +28,23 @@ message CreateDocumentationOp {
   string description = 3;
   // Timestamp is the creation timestamp.
   google.protobuf.Timestamp timestamp = 4;
+}
+
+// CreateDocumentationStagedOp creates a Documentation with a UnixFS source
+// and initial page from content the sender staged. It replaces
+// CreateDocumentationOp for new creates.
+//
+// The sender builds every object's content in a World stage before it sends
+// the op, and holds the stage until the op's transaction returns. Under the
+// World writer the op only reads the keys and adopts the staged roots, so the
+// writer waits on no content build. An op missing a staged root is rejected.
+message CreateDocumentationStagedOp {
+  // ObjectKey is the world object key for the documentation.
+  string object_key = 1;
+  // DocsRoot is the staged Documentation block, the documentation object's
+  // root.
+  bucket.ObjectRef docs_root = 2;
+  // UnixfsRoot is the staged UnixFS tree of the index page, the UnixFS
+  // object's root.
+  bucket.ObjectRef unixfs_root = 3;
 }

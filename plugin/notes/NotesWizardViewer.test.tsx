@@ -22,7 +22,27 @@ const h = vi.hoisted(() => ({
   },
   localName: 'Notebook',
   worldKeys: [] as string[],
+  stageCreate: vi.fn(),
 }))
+
+// The stage builders return a staged op naming their arguments, so a test
+// sees which content each Finish staged and which op it sent.
+vi.mock('./staged-seed.js', () => {
+  const staged =
+    (opTypeId: string) =>
+    (_stage: unknown, ...args: unknown[]) => {
+      h.stageCreate(opTypeId, ...args)
+      return Promise.resolve({
+        opTypeId,
+        opData: new TextEncoder().encode(String(args[0])),
+      })
+    }
+  return {
+    stageNotebookCreate: staged('notes/notebook/init-staged'),
+    stageDocsCreate: staged('notes/docs/create-staged'),
+    stageBlogCreate: staged('notes/blog/create-staged'),
+  }
+})
 
 vi.mock('@s4wave/app/wizard/useWizardState.js', () => ({
   useWizardState: () => ({
@@ -86,12 +106,10 @@ import {
   type WizardTestWorld,
 } from '@s4wave/app/wizard/wizard-test-world.js'
 import { NotesWizardViewer } from './NotesWizardViewer.js'
-import { CREATE_BLOG_OP_ID } from './proto/create-blog.js'
-import { CREATE_DOCS_OP_ID } from './proto/create-docs.js'
-import { INIT_NOTEBOOK_OP_ID } from './proto/init-notebook.js'
-import { CreateBlogOp } from './proto/blog.pb.js'
-import { CreateDocumentationOp } from './proto/docs.pb.js'
-import { InitNotebookOp } from './proto/notebook.pb.js'
+import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { CREATE_BLOG_STAGED_OP_ID } from './proto/create-blog.js'
+import { CREATE_DOCS_STAGED_OP_ID } from './proto/create-docs.js'
+import { INIT_NOTEBOOK_STAGED_OP_ID } from './proto/init-notebook.js'
 
 describe('NotesWizardViewer', () => {
   beforeEach(() => {
@@ -105,6 +123,14 @@ describe('NotesWizardViewer', () => {
     h.worldKeys = []
     h.t = wizardTestWorld(['wizard/notes/test'], 'wizard/notes/test', {
       ...keysWorld(() => h.worldKeys),
+      // Each Finish opens a stage; releasing it records 'release stage'.
+      stageWorldState: () => {
+        const stage = {
+          release: () => h.t.calls.push('release stage'),
+          [Symbol.dispose]: () => stage.release(),
+        }
+        return Promise.resolve(stage as never)
+      },
     })
   })
 
@@ -113,11 +139,11 @@ describe('NotesWizardViewer', () => {
     vi.clearAllMocks()
   })
 
-  // opData returns the data of the op the Finish applied, by op id.
-  function opData(opId: string) {
+  // opKey returns the key the staged op the Finish applied names, by op id.
+  function opKey(opId: string) {
     const data = h.t.opData.get(opId)
     if (!data) throw new Error('expected op ' + opId)
-    return data
+    return new TextDecoder().decode(data)
   }
 
   function renderViewer() {
@@ -134,7 +160,7 @@ describe('NotesWizardViewer', () => {
     )
   }
 
-  it('finalizes a notebook through the plugin-owned create op', async () => {
+  it('finalizes a notebook through the plugin-owned staged create op', async () => {
     const user = userEvent.setup()
     renderViewer()
 
@@ -143,18 +169,28 @@ describe('NotesWizardViewer', () => {
     await waitFor(() => {
       expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
     })
-    expect(InitNotebookOp.fromBinary(opData(INIT_NOTEBOOK_OP_ID))).toEqual({
-      notebookObjectKey: 'notebook-1',
-      unixfsObjectKey: 'notebook-1-fs',
-      name: 'Notebook',
-      timestamp: expect.any(Date),
-    })
-    // The create, the index move and the wizard delete commit together.
+    expect(h.stageCreate).toHaveBeenCalledWith(
+      INIT_NOTEBOOK_STAGED_OP_ID,
+      'notebook-1',
+      'notebook-1-fs',
+      'Notebook',
+    )
+    expect(opKey(INIT_NOTEBOOK_STAGED_OP_ID)).toBe('notebook-1')
+    // The create, the index move and the wizard delete commit together, and
+    // the stage holding the content is released only once they have.
     expect(h.t.state).toEqual({
       objects: new Set(),
       indexPath: 'notebook-1',
-      creates: [INIT_NOTEBOOK_OP_ID],
+      creates: [INIT_NOTEBOOK_STAGED_OP_ID],
     })
+    expect(h.t.calls).toEqual([
+      'batch',
+      INIT_NOTEBOOK_STAGED_OP_ID,
+      SET_SPACE_INDEX_PATH_OP_ID,
+      'delete',
+      'commit',
+      'release stage',
+    ])
     expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
     expect(h.toastSuccess).toHaveBeenCalledWith('Created Notebook')
   })
@@ -176,13 +212,13 @@ describe('NotesWizardViewer', () => {
     await waitFor(() => {
       expect(h.navigateToObjects).toHaveBeenCalledWith(['documentation-2'])
     })
-    expect(CreateDocumentationOp.fromBinary(opData(CREATE_DOCS_OP_ID))).toEqual(
-      {
-        objectKey: 'documentation-2',
-        name: 'Documentation',
-        timestamp: expect.any(Date),
-      },
+    expect(h.stageCreate).toHaveBeenCalledWith(
+      CREATE_DOCS_STAGED_OP_ID,
+      'documentation-2',
+      'Documentation',
+      expect.any(Date),
     )
+    expect(opKey(CREATE_DOCS_STAGED_OP_ID)).toBe('documentation-2')
     expect(h.t.state.indexPath).toBe('documentation-2')
   })
 
@@ -202,11 +238,13 @@ describe('NotesWizardViewer', () => {
     await waitFor(() => {
       expect(h.navigateToObjects).toHaveBeenCalledWith(['blog-1'])
     })
-    expect(CreateBlogOp.fromBinary(opData(CREATE_BLOG_OP_ID))).toEqual({
-      objectKey: 'blog-1',
-      name: 'Blog',
-      timestamp: expect.any(Date),
-    })
+    expect(h.stageCreate).toHaveBeenCalledWith(
+      CREATE_BLOG_STAGED_OP_ID,
+      'blog-1',
+      'Blog',
+      expect.any(Date),
+    )
+    expect(opKey(CREATE_BLOG_STAGED_OP_ID)).toBe('blog-1')
     expect(h.t.state.indexPath).toBe('blog-1')
   })
 
@@ -224,6 +262,8 @@ describe('NotesWizardViewer', () => {
       creates: [],
     })
     expect(h.navigateToObjects).not.toHaveBeenCalled()
+    // The failed list released its stage; Retry stages again.
+    expect(h.t.calls.at(-1)).toBe('release stage')
 
     // Retry runs the whole Finish again and creates one notebook.
     h.t.failOn = undefined
@@ -231,7 +271,8 @@ describe('NotesWizardViewer', () => {
     await waitFor(() => {
       expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
     })
-    expect(h.t.state.creates).toEqual([INIT_NOTEBOOK_OP_ID])
+    expect(h.t.state.creates).toEqual([INIT_NOTEBOOK_STAGED_OP_ID])
+    expect(h.stageCreate).toHaveBeenCalledTimes(2)
   })
 
   it('does not finalize unknown notes wizard targets', async () => {

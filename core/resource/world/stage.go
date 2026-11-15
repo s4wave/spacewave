@@ -9,11 +9,13 @@ import (
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
 )
 
-// WorldStageResource serves cursors whose writes a World stage owns.
+// WorldStageResource serves cursors whose writes a World stage owns, and
+// builds UnixFS trees in it.
 // Releasing the resource releases the stage.
 type WorldStageResource struct {
 	// le logs cursor resource failures.
@@ -30,7 +32,10 @@ type WorldStageResource struct {
 func NewWorldStageResource(le *logrus.Entry, b bus.Bus, stage world.WorldStage) *WorldStageResource {
 	r := &WorldStageResource{le: le, b: b, stage: stage}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
-		return s4wave_world.SRPCRegisterWorldStageResourceService(mux, r)
+		if err := s4wave_world.SRPCRegisterWorldStageResourceService(mux, r); err != nil {
+			return err
+		}
+		return s4wave_unixfs_world.SRPCRegisterUnixFSStageResourceService(mux, r)
 	})
 	return r
 }
