@@ -12,6 +12,11 @@ import {
 import type { WorldMutation } from './world.pb.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import { WorldStage } from './stage.js'
+import {
+  ChangeFeed,
+  type ChangeFeedSubscription,
+  type ChangeNames,
+} from './change-feed.js'
 import { throwTypedObjectError } from './typed-object-grant-retired-error.js'
 import {
   Tx,
@@ -33,6 +38,10 @@ export class Engine extends Resource {
   private watchService: WatchWorldStateResourceService
   // streams multicasts the keyed watches derived from this Engine.
   private readonly streams = new SharedStreams()
+  // changes shares one WatchChanges stream among this Engine's subscribers.
+  private readonly changes = new ChangeFeed((requests, signal) =>
+    this.service.WatchChanges(requests, signal),
+  )
 
   constructor(resourceRef: ClientResourceRef) {
     super(resourceRef)
@@ -190,6 +199,18 @@ export class Engine extends Resource {
         WorldStateResource,
       )
     }
+  }
+
+  // watchChanges follows the changes naming names after afterSeqno, over the
+  // one change stream this Engine shares among its subscribers. The stream
+  // sends only the changes naming a subscriber's names, so a commit naming
+  // none of them costs this client nothing.
+  public watchChanges(
+    afterSeqno: bigint,
+    names: ChangeNames,
+    abortSignal?: AbortSignal,
+  ): ChangeFeedSubscription {
+    return this.changes.subscribe(afterSeqno, names, abortSignal)
   }
 
   // watchShared subscribes to the stream at key, opening it with open when no
