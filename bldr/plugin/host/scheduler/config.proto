@@ -90,6 +90,11 @@ message Config {
   // Requires WatchFetchManifest and FetchManifest resolvers that mark idle,
   // including while their source is unreachable.
   bool await_fetch_manifest = 22;
+  // RequireAdmission runs a plugin manifest root only while an
+  // AdmitPluginRoot directive for this scheduler's peer, the plugin and the
+  // root has a value. With no resolver the root waits: admission fails closed.
+  // The previously admitted root keeps running while a new root waits.
+  bool require_admission = 23;
 }
 
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.

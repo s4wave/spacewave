@@ -8,6 +8,7 @@ from core.sobject import sobject_pb2 as _sobject_pb2
 from core.space import space_pb2 as _space_pb2
 from db.block.store.s3 import s3_pb2 as _s3_pb2
 from net.hash import hash_pb2 as _hash_pb2
+from sdk.plugin.approval import approval_pb2 as _approval_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -1009,6 +1010,36 @@ class SetAccountPluginRequest(_message.Message):
 class SetAccountPluginResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class SetPluginApprovalRequest(_message.Message):
+    __slots__ = ("plugin_id", "manifest_root", "state", "name", "version")
+    PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
+    MANIFEST_ROOT_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    plugin_id: str
+    manifest_root: str
+    state: _approval_pb2.PluginApprovalState
+    name: str
+    version: str
+    def __init__(self, plugin_id: _Optional[str] = ..., manifest_root: _Optional[str] = ..., state: _Optional[_Union[_approval_pb2.PluginApprovalState, str]] = ..., name: _Optional[str] = ..., version: _Optional[str] = ...) -> None: ...
+
+class SetPluginApprovalResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class WatchPluginApprovalsRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class WatchPluginApprovalsResponse(_message.Message):
+    __slots__ = ("snapshot", "approvals")
+    SNAPSHOT_FIELD_NUMBER: _ClassVar[int]
+    APPROVALS_FIELD_NUMBER: _ClassVar[int]
+    snapshot: bool
+    approvals: _containers.RepeatedCompositeFieldContainer[_approval_pb2.PluginApproval]
+    def __init__(self, snapshot: _Optional[bool] = ..., approvals: _Optional[_Iterable[_Union[_approval_pb2.PluginApproval, _Mapping]]] = ...) -> None: ...
 
 class WatchStorageBackendsRequest(_message.Message):
     __slots__ = ()

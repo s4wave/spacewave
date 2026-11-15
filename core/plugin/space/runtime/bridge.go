@@ -34,8 +34,9 @@ func bridgeFilter(conf *plugin_space.Config, appPluginIDs []string) func(directi
 // bridgeDirective reports whether dir resolves on the parent bus. World engine
 // and operation lookups forward only for engineID, so a Space plugin cannot
 // reach another Space's World; an empty engine ID would match any engine and
-// stays inside. Volume lookups forward only for volumeIDs. Space plugin loads,
-// manifests, and RPC services stay inside the generation.
+// stays inside. Volume lookups forward only for volumeIDs. Plugin root
+// admission forwards, since the device's approvals are on the parent. Space
+// plugin loads, manifests, and RPC services stay inside the generation.
 func bridgeDirective(dir directive.Directive, engineID string, volumeIDs, appPluginIDs []string) bool {
 	switch d := dir.(type) {
 	case bldr_plugin.LoadPlugin:
@@ -49,6 +50,9 @@ func bridgeDirective(dir directive.Directive, engineID string, volumeIDs, appPlu
 	case volume.BuildObjectStoreAPI:
 		return slices.Contains(volumeIDs, d.BuildObjectStoreAPIVolumeID())
 	case objecttype.LookupObjectType, plugin_host_root.LookupRoot:
+		return true
+	case bldr_plugin.AdmitPluginRoot:
+		// The device's approvals live on the parent, keyed by the asking peer.
 		return true
 	default:
 		return false

@@ -41,6 +41,11 @@ import {
   S3Location,
   StorageBackend,
 } from '../../core/account/settings/settings.pb.js'
+import type { PluginApprovalState } from '../plugin/approval/approval.pb.js'
+import {
+  PluginApproval,
+  PluginApprovalState_Enum,
+} from '../plugin/approval/approval.pb.js'
 import {
   CheckResult,
   Credentials,
@@ -2985,6 +2990,100 @@ export const SetAccountPluginResponse: MessageType<SetAccountPluginResponse> =
   /* @__PURE__ */ createMessageType<SetAccountPluginResponse>(
     's4wave.session.SetAccountPluginResponse',
     () => [],
+  )
+
+/**
+ * SetPluginApprovalRequest is the request for SetPluginApproval.
+ *
+ * @generated from message s4wave.session.SetPluginApprovalRequest
+ */
+export interface SetPluginApprovalRequest {
+  /**
+   * PluginId is the manifest ID of the plugin.
+   */
+  pluginId?: string
+  /**
+   * ManifestRoot is the b58 hash of the manifest root block decided about.
+   */
+  manifestRoot?: string
+  /**
+   * State is the decision. UNKNOWN is refused.
+   */
+  state?: PluginApprovalState
+  /**
+   * Name is the plugin's display name at the time of the decision.
+   */
+  name?: string
+  /**
+   * Version is the plugin's version at the time of the decision.
+   */
+  version?: string
+}
+
+export const SetPluginApprovalRequest: MessageType<SetPluginApprovalRequest> =
+  /* @__PURE__ */ createMessageType<SetPluginApprovalRequest>(
+    's4wave.session.SetPluginApprovalRequest',
+    () => [
+      [1, 'plugin_id', 9],
+      [2, 'manifest_root', 9],
+      [3, 'state', 14, 0, PluginApprovalState_Enum],
+      [4, 'name', 9],
+      [5, 'version', 9],
+    ],
+  )
+
+/**
+ * SetPluginApprovalResponse is the response for SetPluginApproval.
+ *
+ * @generated from message s4wave.session.SetPluginApprovalResponse
+ */
+export interface SetPluginApprovalResponse {}
+
+export const SetPluginApprovalResponse: MessageType<SetPluginApprovalResponse> =
+  /* @__PURE__ */ createMessageType<SetPluginApprovalResponse>(
+    's4wave.session.SetPluginApprovalResponse',
+    () => [],
+  )
+
+/**
+ * WatchPluginApprovalsRequest is the request for WatchPluginApprovals.
+ *
+ * @generated from message s4wave.session.WatchPluginApprovalsRequest
+ */
+export interface WatchPluginApprovalsRequest {}
+
+export const WatchPluginApprovalsRequest: MessageType<WatchPluginApprovalsRequest> =
+  /* @__PURE__ */ createMessageType<WatchPluginApprovalsRequest>(
+    's4wave.session.WatchPluginApprovalsRequest',
+    () => [],
+  )
+
+/**
+ * WatchPluginApprovalsResponse carries plugin decisions. Decisions are
+ * replaced, never removed, so a change is always an upsert.
+ *
+ * @generated from message s4wave.session.WatchPluginApprovalsResponse
+ */
+export interface WatchPluginApprovalsResponse {
+  /**
+   * Snapshot is set on the first message: approvals holds every decision and
+   * replaces what the receiver had.
+   */
+  snapshot?: boolean
+  /**
+   * Approvals holds every decision when snapshot is set, and otherwise the
+   * decisions added or changed since the previous message.
+   */
+  approvals?: PluginApproval[]
+}
+
+export const WatchPluginApprovalsResponse: MessageType<WatchPluginApprovalsResponse> =
+  /* @__PURE__ */ createMessageType<WatchPluginApprovalsResponse>(
+    's4wave.session.WatchPluginApprovalsResponse',
+    () => [
+      [1, 'snapshot', 8],
+      [2, 'approvals', 11, 1, PluginApproval.codec],
+    ],
   )
 
 /**

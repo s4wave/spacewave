@@ -250,6 +250,18 @@ class SessionResourceServiceClient:
     ) -> (
         _github_com_s4wave_spacewave_sdk_session_session_pb2.SetAccountPluginResponse
     ): ...
+    async def set_plugin_approval(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalResponse
+    ): ...
+    def watch_plugin_approvals(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsResponse
+    ]: ...
     def watch_storage_backends(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
@@ -532,6 +544,18 @@ class SessionResourceServiceServer(Protocol):
     ) -> (
         _github_com_s4wave_spacewave_sdk_session_session_pb2.SetAccountPluginResponse
     ): ...
+    async def set_plugin_approval(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalResponse
+    ): ...
+    def watch_plugin_approvals(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsResponse
+    ]: ...
     def watch_storage_backends(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,

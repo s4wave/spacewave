@@ -81,6 +81,8 @@ import {
   SetDirectP2PEnabledResponse,
   SetLockModeRequest,
   SetLockModeResponse,
+  SetPluginApprovalRequest,
+  SetPluginApprovalResponse,
   SetStorageBackendPricingRequest,
   SetStorageBackendPricingResponse,
   StartTransferRequest,
@@ -95,6 +97,8 @@ import {
   WatchPairedDevicesResponse,
   WatchPairingStatusRequest,
   WatchPairingStatusResponse,
+  WatchPluginApprovalsRequest,
+  WatchPluginApprovalsResponse,
   WatchResourcesListRequest,
   WatchResourcesListResponse,
   WatchSessionStateAtomsRequest,
@@ -566,6 +570,31 @@ export const SessionResourceServiceDefinition = {
       I: SetAccountPluginRequest,
       O: SetAccountPluginResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * SetPluginApproval records this device's decision about one plugin
+     * manifest root for the session. The decision is kept on the device, never
+     * in a Space or the account.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.SetPluginApproval
+     */
+    SetPluginApproval: {
+      name: 'SetPluginApproval',
+      I: SetPluginApprovalRequest,
+      O: SetPluginApprovalResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * WatchPluginApprovals streams the session's plugin decisions on this
+     * device: all of them first, then each decision written after.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.WatchPluginApprovals
+     */
+    WatchPluginApprovals: {
+      name: 'WatchPluginApprovals',
+      I: WatchPluginApprovalsRequest,
+      O: WatchPluginApprovalsResponse,
+      kind: MethodKind.ServerStreaming,
     },
     /**
      * WatchStorageBackends streams the account's storage backends and the
@@ -1060,6 +1089,29 @@ export interface SessionResourceService {
     request: SetAccountPluginRequest,
     abortSignal?: AbortSignal,
   ): Promise<SetAccountPluginResponse>
+
+  /**
+   * SetPluginApproval records this device's decision about one plugin
+   * manifest root for the session. The decision is kept on the device, never
+   * in a Space or the account.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetPluginApproval
+   */
+  SetPluginApproval(
+    request: SetPluginApprovalRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetPluginApprovalResponse>
+
+  /**
+   * WatchPluginApprovals streams the session's plugin decisions on this
+   * device: all of them first, then each decision written after.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchPluginApprovals
+   */
+  WatchPluginApprovals(
+    request: WatchPluginApprovalsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchPluginApprovalsResponse>
 
   /**
    * WatchStorageBackends streams the account's storage backends and the
@@ -1593,6 +1645,31 @@ export interface SessionResourceServiceHandler {
   ): Promise<SetAccountPluginResponse>
 
   /**
+   * SetPluginApproval records this device's decision about one plugin
+   * manifest root for the session. The decision is kept on the device, never
+   * in a Space or the account.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetPluginApproval
+   */
+  SetPluginApproval(
+    request: SetPluginApprovalRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetPluginApprovalResponse>
+
+  /**
+   * WatchPluginApprovals streams the session's plugin decisions on this
+   * device: all of them first, then each decision written after.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchPluginApprovals
+   */
+  WatchPluginApprovals(
+    request: WatchPluginApprovalsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchPluginApprovalsResponse>
+
+  /**
    * WatchStorageBackends streams the account's storage backends and the
    * Spaces placed on each.
    *
@@ -1744,6 +1821,8 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.AcceptLocalPairingAnswer = this.AcceptLocalPairingAnswer.bind(this)
     this.EnsureDeveloperSpace = this.EnsureDeveloperSpace.bind(this)
     this.SetAccountPlugin = this.SetAccountPlugin.bind(this)
+    this.SetPluginApproval = this.SetPluginApproval.bind(this)
+    this.WatchPluginApprovals = this.WatchPluginApprovals.bind(this)
     this.WatchStorageBackends = this.WatchStorageBackends.bind(this)
     this.CheckStorageBackend = this.CheckStorageBackend.bind(this)
     this.AddStorageBackend = this.AddStorageBackend.bind(this)
@@ -2566,6 +2645,47 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return SetAccountPluginResponse.fromBinary(result)
+  }
+
+  /**
+   * SetPluginApproval records this device's decision about one plugin
+   * manifest root for the session. The decision is kept on the device, never
+   * in a Space or the account.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetPluginApproval
+   */
+  async SetPluginApproval(
+    request: SetPluginApprovalRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetPluginApprovalResponse> {
+    const requestMsg = SetPluginApprovalRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.SetPluginApproval.name,
+      SetPluginApprovalRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetPluginApprovalResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchPluginApprovals streams the session's plugin decisions on this
+   * device: all of them first, then each decision written after.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchPluginApprovals
+   */
+  WatchPluginApprovals(
+    request: WatchPluginApprovalsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchPluginApprovalsResponse> {
+    const requestMsg = WatchPluginApprovalsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SessionResourceServiceDefinition.methods.WatchPluginApprovals.name,
+      WatchPluginApprovalsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchPluginApprovalsResponse)(result)
   }
 
   /**

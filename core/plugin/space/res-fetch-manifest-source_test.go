@@ -62,7 +62,7 @@ func (c *sourceManifestController) HandleDirective(
 	}), nil)
 }
 
-func TestFetchManifestSourceRequiresSpaceApproval(t *testing.T) {
+func TestFetchManifestSourceRequiresSpaceListing(t *testing.T) {
 	// Bound the test and build the parent bus with the source controller.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
@@ -117,14 +117,14 @@ func TestFetchManifestSourceRequiresSpaceApproval(t *testing.T) {
 	}
 	defer release()
 
-	// Assert the unapproved manifest did not demand the parent source.
+	// Assert the unlisted manifest did not demand the parent source.
 	select {
 	case <-source.started:
-		t.Fatal("unapproved manifest fetched from parent")
+		t.Fatal("unlisted manifest fetched from parent")
 	default:
 	}
 
-	// Approve the manifest and wait for it to resolve from the parent.
+	// List the manifest and wait for it to resolve from the parent.
 	setSourcePluginIDs(ctrl, []string{sourceManifestID})
 	for {
 		select {
@@ -133,7 +133,7 @@ func TestFetchManifestSourceRequiresSpaceApproval(t *testing.T) {
 				goto resolved
 			}
 		case <-ctx.Done():
-			t.Fatal("approved manifest did not resolve from parent")
+			t.Fatal("listed manifest did not resolve from parent")
 		}
 	}
 
@@ -142,15 +142,15 @@ resolved:
 	select {
 	case <-source.started:
 	case <-ctx.Done():
-		t.Fatal("approved manifest did not demand the parent source")
+		t.Fatal("listed manifest did not demand the parent source")
 	}
 
-	// Remove the approval and assert the parent demand releases.
+	// Remove the listing and assert the parent demand releases.
 	setSourcePluginIDs(ctrl, nil)
 	select {
 	case <-source.released:
 	case <-ctx.Done():
-		t.Fatal("removing approval did not release parent manifest demand")
+		t.Fatal("removing the listing did not release parent manifest demand")
 	}
 }
 

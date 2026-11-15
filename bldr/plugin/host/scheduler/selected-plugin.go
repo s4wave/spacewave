@@ -161,6 +161,13 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 			t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "prepare plugin", rerr)
 		}
 	}()
+
+	// Wait for the root's admission before any host starts or file is served.
+	// A running worker is left alone, so an admitted root keeps running while
+	// a new root waits.
+	if err := t.awaitAdmission(ctx, args); err != nil {
+		return err
+	}
 	if args.serveAssets {
 		return t.serveAssets(ctx, args)
 	}
@@ -357,4 +364,28 @@ func (t *pluginInstance) clearExecution(expected *pluginInstance) {
 	if release != nil {
 		release()
 	}
+}
+
+// awaitAdmission blocks until the bus admits the candidate's manifest root for
+// this scheduler's peer, when the scheduler requires admission. A root no
+// resolver admits waits until ctx ends: admission fails closed.
+func (t *pluginInstance) awaitAdmission(ctx context.Context, args *executePluginArgs) error {
+	// Skip a scheduler that runs every root it selects.
+	if !t.c.conf.GetRequireAdmission() {
+		return nil
+	}
+
+	// Wait for a resolver to admit the root.
+	root := manifestRootKey(args.manifestSnapshot.GetManifestRef())
+	le := t.le.WithFields(logrus.Fields{
+		"plugin-id":     t.pluginID,
+		"manifest-root": root,
+	})
+	le.Debug("waiting for plugin root admission")
+	src, err := plugin.WaitPluginRootAdmitted(ctx, t.c.bus, t.c.conf.GetPeerId(), t.pluginID, root)
+	if err != nil {
+		return err
+	}
+	le.WithField("admit-source", src).Debug("plugin root admitted")
+	return nil
 }

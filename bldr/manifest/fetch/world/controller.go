@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/promise"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_trust "github.com/s4wave/spacewave/bldr/manifest/trust"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -268,6 +269,25 @@ func (k manifestCollectionKey) equal(other manifestCollectionKey) bool {
 	return k.seqno == other.seqno &&
 		slices.Equal(k.objectKeys, other.objectKeys) &&
 		slices.Equal(k.manifestIDs, other.manifestIDs)
+}
+
+// addTrustedRoot adds root to the host's trusted root set. A host that keeps
+// no set, such as a development build, skips it.
+func (c *Controller) addTrustedRoot(ctx context.Context, root bldr_manifest_trust.Root) error {
+	// Look up the host's set without waiting for one.
+	set, ref, err := bldr_manifest_trust.ExLookupTrustedRoots(ctx, c.bus, true)
+	if err != nil {
+		return err
+	}
+	if ref != nil {
+		defer ref.Release()
+	}
+
+	// Add the root when the host keeps a set.
+	if set != nil {
+		set.Add(root)
+	}
+	return nil
 }
 
 // Close releases any resources used by the controller.
