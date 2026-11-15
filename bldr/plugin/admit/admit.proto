@@ -1,0 +1,34 @@
+syntax = "proto3";
+package bldr.plugin.admit;
+
+// Config configures the controller that answers AdmitPluginRoot on a plugin
+// host by asking the plugin that owns the device's plugin approvals.
+message Config {
+  // PluginId is the plugin that owns the approvals and serves
+  // PluginRootAdmission. Its own roots are never asked about.
+  string plugin_id = 1;
+}
+
+// PluginRootAdmission answers whether a plugin manifest root may run for a
+// peer, from the approvals the serving plugin owns.
+service PluginRootAdmission {
+  // WatchPluginRootAdmitted streams the answer for one root: a first message
+  // once the approvals have answered, then one on each change.
+  rpc WatchPluginRootAdmitted(WatchPluginRootAdmittedRequest) returns (stream WatchPluginRootAdmittedResponse);
+}
+
+// WatchPluginRootAdmittedRequest names the root to watch.
+message WatchPluginRootAdmittedRequest {
+  // PeerId is the b58 peer whose approvals decide the root.
+  string peer_id = 1;
+  // PluginId is the plugin the root implements.
+  string plugin_id = 2;
+  // ManifestRoot is the b58 manifest root block hash.
+  string manifest_root = 3;
+}
+
+// WatchPluginRootAdmittedResponse is one answer for the watched root.
+message WatchPluginRootAdmittedResponse {
+  // Admitted is set while the approvals admit the root.
+  bool admitted = 1;
+}

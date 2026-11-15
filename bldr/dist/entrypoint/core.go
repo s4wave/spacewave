@@ -8,6 +8,7 @@ import (
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	manifest_fetch_viaplugin "github.com/s4wave/spacewave/bldr/manifest/fetch/plugin"
 	manifest_fetch_viaworld "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
+	plugin_admit_viaplugin "github.com/s4wave/spacewave/bldr/plugin/admit"
 	handle_rpc_viaplugin "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
@@ -74,6 +75,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 
 	// Discover manifests from plugins and the published Release World.
 	sr.AddFactory(manifest_fetch_viaplugin.NewFactory(b))
+	sr.AddFactory(plugin_admit_viaplugin.NewFactory(b))
 	sr.AddFactory(manifest_fetch_viaworld.NewFactory(b))
 
 	// Resolve local and remote block-store transports.

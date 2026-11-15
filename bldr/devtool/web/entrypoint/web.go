@@ -18,6 +18,7 @@ import (
 	devtool_web_entrypoint_controller "github.com/s4wave/spacewave/bldr/devtool/web/entrypoint/controller"
 	manifest_fetch_plugin "github.com/s4wave/spacewave/bldr/manifest/fetch/plugin"
 	manifest_fetch_rpc "github.com/s4wave/spacewave/bldr/manifest/fetch/rpc"
+	bldr_plugin_admit "github.com/s4wave/spacewave/bldr/plugin/admit"
 	plugin_host_web "github.com/s4wave/spacewave/bldr/plugin/host/web"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	web_entrypoint_browser "github.com/s4wave/spacewave/bldr/web/entrypoint/browser"
@@ -68,6 +69,7 @@ func main() {
 
 	// get the info from the devtool info endpoint
 	err = retry.Retry(ctx, le, func(ctx context.Context, success func()) error {
+		// Fetch the devtool info for this browser.
 		resp, err := http.Get(infoUrl)
 		if err != nil {
 			return err
@@ -83,27 +85,34 @@ func main() {
 		}
 		success()
 
+		// Build the core bus.
 		b, sr, err := core.NewCoreBus(ctx, le)
 		if err != nil {
 			le.Fatal(err.Error())
 		}
 
+		// Add the plugin, manifest and web factories.
 		sr.AddFactory(manifest_fetch_plugin.NewFactory(b))
+		sr.AddFactory(bldr_plugin_admit.NewFactory(b))
 		sr.AddFactory(manifest_fetch_rpc.NewFactory(b))
 		sr.AddFactory(plugin_host_web.NewFactory(b))
 		sr.AddFactory(web_entrypoint_browser.NewFactory(b))
 		sr.AddFactory(bldr_web_plugin_browser_controller.NewFactory(b))
 		sr.AddFactory(world_block_engine.NewFactory(b))
 
+		// Add the RPC client and volume server factories.
 		sr.AddFactory(stream_srpc_client_controller.NewFactory(b))
 		sr.AddFactory(volume_rpc_server.NewFactory(b))
 
+		// Add the transport and link factories.
 		sr.AddFactory(websocket.NewFactory(b))
 		sr.AddFactory(link_establish_controller.NewFactory(b))
 		sr.AddFactory(link_holdopen_controller.NewFactory(b))
 
+		// Add the bucket setup factory.
 		sr.AddFactory(bucket_setup.NewFactory(b))
 
+		// Attach the node controller.
 		nodeCtrl := node_controller.NewController(&node_controller.Config{}, le, b)
 		relNodeCtrl, err := b.AddController(ctx, nodeCtrl, nil)
 		if err != nil {
@@ -133,6 +142,7 @@ func main() {
 			st.AddFactories(b, sr)
 		}
 
+		// Run the devtool controller until it fails.
 		ctrl := devtool_web_entrypoint_controller.NewController(
 			le,
 			b,

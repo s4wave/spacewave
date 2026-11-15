@@ -266,6 +266,18 @@
         "bldr/plugin/plugin.proto"
       ]
     },
+    "github.com/s4wave/spacewave/bldr/plugin/admit": {
+      "hash": "9f98c39d42f0b13ed7655e19bd7467a44dce61a03681ebb952f75547c0e41de8",
+      "generatedFiles": [
+        "bldr/plugin/admit/admit.pb.go",
+        "bldr/plugin/admit/admit.pb.ts",
+        "bldr/plugin/admit/admit_srpc.pb.go",
+        "bldr/plugin/admit/admit_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/plugin/admit/admit.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/bldr/plugin/assets/http": {
       "hash": "75bcb9120da6b47bf8694ad9ae54824bebe75534b3ffc378797232c986f99a25",
       "generatedFiles": [

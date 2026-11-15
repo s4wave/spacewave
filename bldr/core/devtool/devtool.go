@@ -4,6 +4,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	manifest_fetch_plugin "github.com/s4wave/spacewave/bldr/manifest/fetch/plugin"
+	bldr_plugin_admit "github.com/s4wave/spacewave/bldr/plugin/admit"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
@@ -29,6 +30,9 @@ func addCommonFactories(b bus.Bus, sr *static.Resolver) {
 
 	// manifest fetch via plugin
 	sr.AddFactory(manifest_fetch_plugin.NewFactory(b))
+
+	// root admission via plugin
+	sr.AddFactory(bldr_plugin_admit.NewFactory(b))
 
 	// volume rpc server
 	sr.AddFactory(volume_rpc_server.NewFactory(b))

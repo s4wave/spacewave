@@ -14,6 +14,7 @@ import (
 	manifest_fetch_plugin "github.com/s4wave/spacewave/bldr/manifest/fetch/plugin"
 	manifest_fetch_world "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
 	bldr_manifest_materializer "github.com/s4wave/spacewave/bldr/manifest/materializer"
+	bldr_plugin_admit "github.com/s4wave/spacewave/bldr/plugin/admit"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_plugin_compiler_js "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
 	bldr_plugin_forward_rpc_service "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
@@ -118,6 +119,8 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{bldr_plugin_compiler_go.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{bldr_plugin_compiler_js.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{bldr_plugin_admit.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{bldr_plugin_forward_rpc_service.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {

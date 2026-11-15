@@ -6,6 +6,7 @@ import (
 	"context"
 
 	manifest_fetch_plugin "github.com/s4wave/spacewave/bldr/manifest/fetch/plugin"
+	bldr_plugin_admit "github.com/s4wave/spacewave/bldr/plugin/admit"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	"github.com/s4wave/spacewave/bldr/testbed"
@@ -33,5 +34,6 @@ func NewNativeTestbed(ctx context.Context, le *logrus.Entry) (*testbed.Testbed, 
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
 	sr.AddFactory(web_plugin_compiler.NewFactory(b))
 	sr.AddFactory(manifest_fetch_plugin.NewFactory(b))
+	sr.AddFactory(bldr_plugin_admit.NewFactory(b))
 	return tb, nil
 }

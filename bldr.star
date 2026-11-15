@@ -171,6 +171,10 @@ def spacewave_core_config(
                 "bldr/manifest/fetch/plugin", 1,
                 {"pluginId": "spacewave-core"},
             ),
+            "admit-plugin-root-via-spacewave-core": config_entry(
+                "bldr/plugin/admit", 1,
+                {"pluginId": "spacewave-core"},
+            ),
         },
     }
 
