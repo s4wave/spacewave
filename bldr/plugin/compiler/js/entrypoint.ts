@@ -71,6 +71,17 @@ export function isEntrypointLifecycleRetry(error: unknown): boolean {
   return error.name === 'StreamResetError' || error.message === 'stream reset'
 }
 
+// notHostPluginMessage is the message of bldr_plugin.ErrNotHostPlugin, the
+// host's final refusal to run controllers for a plugin it did not start.
+const notHostPluginMessage =
+  'only plugins the host starts may run controllers on the host bus'
+
+// isNotHostPluginError reports whether error is the host's refusal to run
+// controllers for this plugin.
+export function isNotHostPluginError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes(notHostPluginMessage)
+}
+
 export function entrypointRetryOpts(message: string) {
   return {
     errorCb(error: unknown): void {
@@ -735,17 +746,31 @@ async function startPluginEntrypoint(
   // Start the controllers assigned to the plugin host.
   const hostConfigSet = config.hostConfigSet
   if (hostConfigSet != null && Object.keys(hostConfigSet).length !== 0) {
-    retryWithAbort(
+    void retryWithAbort(
       abortSignal,
       async (abortSignal) => {
         console.debug(
           'starting host config set:',
           JSON.stringify(hostConfigSet),
         )
-        backendAPI.pluginHost.ExecController(
-          { configSet: { configs: hostConfigSet } },
-          abortSignal,
-        )
+        try {
+          const status = backendAPI.pluginHost.ExecController(
+            { configSet: { configs: hostConfigSet } },
+            abortSignal,
+          )
+          for await (const resp of status) {
+            if (resp.errorInfo) throw new Error(resp.errorInfo)
+          }
+        } catch (err) {
+          // A host that did not start this plugin refuses for good: report
+          // the refusal as the plugin's failure rather than retrying.
+          if (isNotHostPluginError(err)) {
+            logError('host refused the host config set', err)
+            onFailure(err)
+            return
+          }
+          throw err
+        }
       },
       entrypointRetryOpts('error starting host config set'),
     )

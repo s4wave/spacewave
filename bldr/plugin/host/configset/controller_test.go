@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
@@ -17,7 +18,10 @@ import (
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	bldr_plugin_load "github.com/s4wave/spacewave/bldr/plugin/load"
+	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
+	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
@@ -94,7 +98,7 @@ func TestControllerReturnsConfigSetMemberError(t *testing.T) {
 	// Serve the plugin host over an in-memory pipe.
 	serverExited := make(chan error, 1)
 	server := &observingPluginHostServer{
-		SRPCPluginHostServer: bldr_plugin_host.NewPluginHostServer(ctx, hostBus, le, "spacewave-launcher", "", nil, nil, "", false),
+		SRPCPluginHostServer: newHostServer(ctx, hostBus, le, "spacewave-core", ""),
 		exited:               serverExited,
 	}
 	mux := srpc.NewMux()
@@ -171,7 +175,7 @@ func TestPluginHostExecControllerReportsMemberError(t *testing.T) {
 	mux := srpc.NewMux()
 	if err := bldr_plugin.SRPCRegisterPluginHost(
 		mux,
-		bldr_plugin_host.NewPluginHostServer(ctx, hostBus, le, "spacewave-launcher", "", nil, nil, "", false),
+		newHostServer(ctx, hostBus, le, "spacewave-core", ""),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -200,6 +204,157 @@ func TestPluginHostExecControllerReportsMemberError(t *testing.T) {
 		}
 		break
 	}
+}
+
+// testHostExports is the host's own plugin set in these tests.
+var testHostExports = []string{"spacewave-core"}
+
+// newHostServer serves pluginID, bound to binding, on a host whose own plugin
+// set is testHostExports.
+func newHostServer(ctx context.Context, hostBus bus.Bus, le *logrus.Entry, pluginID, binding string) *bldr_plugin_host.PluginHostServer {
+	server := bldr_plugin_host.NewPluginHostServer(ctx, hostBus, le, pluginID, "", nil, nil, "", false)
+	server.SetRegistrationInstanceKey(binding)
+	server.SetHostExportPluginIDs(testHostExports)
+	return server
+}
+
+// TestExecControllerRefusesNonHostPlugin runs the config sets that escaped a
+// plugin's scope through the host's ExecController: every one is refused for
+// a plugin the host did not start, keyed or not, and the host's own plugin
+// still runs them.
+func TestExecControllerRefusesNonHostPlugin(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+
+	// The host bus can run each escaping config.
+	hostBus, staticResolver, err := controllerbus_core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	staticResolver.AddFactory(volume_rpc_server.NewFactory(hostBus))
+	configSetController, err := configset_controller.NewController(le, hostBus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	releaseConfigSet, err := hostBus.AddController(ctx, configSetController, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseConfigSet()
+
+	// exec runs one config as pluginID bound to binding and returns the first
+	// error the stream reports, or nil once the config reports a status.
+	exec := func(pluginID, binding, id, conf string) error {
+		mux := srpc.NewMux()
+		if err := bldr_plugin.SRPCRegisterPluginHost(mux, newHostServer(ctx, hostBus, le, pluginID, binding)); err != nil {
+			t.Fatal(err)
+		}
+		client := bldr_plugin.NewSRPCPluginHostClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
+		status, err := client.ExecController(ctx, &controller_exec.ExecControllerRequest{ConfigSet: &configset_proto.ConfigSet{
+			Configs: map[string]*configset_proto.ControllerConfig{"escape": {Id: id, Rev: 1, Config: []byte(conf)}},
+		}})
+		if err != nil {
+			return err
+		}
+		defer status.Close()
+		resp, err := status.Recv()
+		if err != nil {
+			return err
+		}
+		return resp.GetError()
+	}
+
+	escapes := []struct{ name, id, conf string }{
+		{"every host volume with its private key", volume_rpc_server.ConfigID, `{"serviceId":"evil/rpc.volume.AccessVolumes","volumeIdRe":".*","exposePrivateKey":true}`},
+		{"the approvals volume", volume_rpc_server.ConfigID, `{"serviceId":"evil2/rpc.volume.AccessVolumes","volumeIdList":["platform-account"],"exposePrivateKey":true}`},
+		{"an unkeyed instance of itself", bldr_plugin_load.ConfigID, `{"pluginId":"attacker"}`},
+		{"another plugin's storage volume", storage_volume.ConfigID, `{"storageId":"default","storageVolumeId":"other-plugin/state"}`},
+	}
+	callers := []struct{ name, pluginID, binding string }{
+		{"Space-keyed plugin", "attacker", "space-a"},
+		{"unkeyed plugin outside the host set", "attacker", ""},
+	}
+	for _, caller := range callers {
+		for _, escape := range escapes {
+			err := exec(caller.pluginID, caller.binding, escape.id, escape.conf)
+			if !bldr_plugin.IsNotHostPlugin(err) {
+				t.Fatalf("%s, %s: escaped (err = %v)", caller.name, escape.name, err)
+			}
+			t.Logf("%s, %s: refused", caller.name, escape.name)
+		}
+	}
+
+	// The host's own plugin still runs a host config.
+	if err := exec("spacewave-core", "", volume_rpc_server.ConfigID, `{"serviceId":"core/rpc.volume.AccessVolumes","volumeIdList":["none"]}`); err != nil {
+		t.Fatalf("spacewave-core host config: %v", err)
+	}
+	t.Log("spacewave-core host config: applied")
+}
+
+// TestControllerRefusesSpacePluginHostConfigSet runs a Space-keyed plugin's
+// hostConfigSet: the controller ends at once with the typed refusal, which the
+// plugin entrypoint reports as the plugin's failure, and no member runs.
+func TestControllerRefusesSpacePluginHostConfigSet(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+
+	// The host could run the member if it were asked to.
+	hostBus, staticResolver, err := controllerbus_core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	staticResolver.AddFactory(&failingFactory{})
+	configSetController, err := configset_controller.NewController(le, hostBus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	releaseConfigSet, err := hostBus.AddController(ctx, configSetController, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseConfigSet()
+
+	// Bridge the Space plugin's bus to the host.
+	mux := srpc.NewMux()
+	if err := bldr_plugin.SRPCRegisterPluginHost(mux, newHostServer(ctx, hostBus, le, "space-plugin", "space-a")); err != nil {
+		t.Fatal(err)
+	}
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
+	pluginBus, _, err := controllerbus_core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clientController := bifrost_rpc.NewClientController(
+		le,
+		pluginBus,
+		controller.NewInfo("test/plugin-host-client", controller.MustParseVersion("0.0.1"), ""),
+		client,
+		[]string{bldr_plugin.HostServiceIDPrefix},
+	)
+	releaseClient, err := pluginBus.AddController(ctx, clientController, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseClient()
+
+	// The plugin's hostConfigSet is refused with the typed reason.
+	conf := &Config{ConfigSet: map[string]*configset_proto.ControllerConfig{
+		"release-world-fetch": {Id: (&config.Placeholder{}).GetConfigID(), Rev: 1},
+	}}
+	loaded, err := NewFactory(pluginBus).Construct(ctx, conf, controller.ConstructOpts{Logger: le})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := loaded.(*Controller).Execute(ctx)
+	if !bldr_plugin.IsNotHostPlugin(got) {
+		t.Fatalf("Execute error = %v, want %v", got, bldr_plugin.ErrNotHostPlugin)
+	}
+	if err := loaded.(*Controller).WaitAccepted(ctx); !bldr_plugin.IsNotHostPlugin(err) {
+		t.Fatalf("WaitAccepted = %v, want %v", err, bldr_plugin.ErrNotHostPlugin)
+	}
+	t.Logf("Space-keyed plugin hostConfigSet: refused: %v", got)
 }
 
 func TestIsWebRuntimeClientClosed(t *testing.T) {

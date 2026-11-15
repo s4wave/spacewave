@@ -61,7 +61,7 @@ func TestSelectedHostStorage(t *testing.T) {
 	}
 
 	// Give each plugin its own bus and the ordinary host RPC transport.
-	mount := func(storageID string) (volume.Controller, error) {
+	mount := func(storageID, storageVolumeID string, hostExports ...string) (volume.Controller, error) {
 		// Mark the helper and mount the storage provider.
 		t.Helper()
 
@@ -86,6 +86,7 @@ func TestSelectedHostStorage(t *testing.T) {
 		// Bridge the plugin bus to the host through the plugin host RPC.
 		mux := srpc.NewMux(bifrost_rpc.NewInvoker(hostBus, "", true))
 		server := plugin_host.NewPluginHostServer(ctx, hostBus, le, "test-plugin", storageID, nil, nil, storageID, false)
+		server.SetHostExportPluginIDs(hostExports)
 		if err := bldr_plugin.SRPCRegisterPluginHost(mux, server); err != nil {
 			return nil, err
 		}
@@ -100,7 +101,7 @@ func TestSelectedHostStorage(t *testing.T) {
 		// Mount the shared volume name through the selected provider.
 		vol, ref, err := storage_volume.ExecVolumeController(ctx, pluginBus, &storage_volume.Config{
 			StorageId:       "default",
-			StorageVolumeId: "same/account",
+			StorageVolumeId: storageVolumeID,
 			VolumeConfig:    &volume_controller.Config{GcIntervalDur: "0"},
 		})
 		if err != nil {
@@ -113,7 +114,7 @@ func TestSelectedHostStorage(t *testing.T) {
 	// Equal names in different selected providers have separate identities and data.
 	volumes := make([]volume.Volume, 0, 3)
 	for _, id := range []string{"", "left/app", "right/app"} {
-		ctrl, err := mount(id)
+		ctrl, err := mount(id, "same/account", "test-plugin")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -141,7 +142,7 @@ func TestSelectedHostStorage(t *testing.T) {
 	}
 
 	// An unknown explicit provider stays pending and observes cancellation.
-	missing, err := mount("missing")
+	missing, err := mount("missing", "same/account", "test-plugin")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,4 +151,14 @@ func TestSelectedHostStorage(t *testing.T) {
 	if vol, err := missing.GetVolume(waitCtx); err == nil || vol != nil {
 		t.Fatalf("missing provider returned volume %v, error %v", vol, err)
 	}
+
+	// A plugin the host did not start gets the typed refusal, not a volume.
+	refused, err := mount("", "other/account", "spacewave-core")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vol, err := refused.GetVolume(ctx); !bldr_plugin.IsNotHostPlugin(err) || vol != nil {
+		t.Fatalf("plugin outside the host set: volume %v, error %v, want %v", vol, err, bldr_plugin.ErrNotHostPlugin)
+	}
+	t.Log("plugin outside the host set opening a host storage volume: refused")
 }
