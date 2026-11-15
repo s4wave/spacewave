@@ -34,7 +34,6 @@ func NewKVTx(
 			kvkey,
 			store,
 			conf.ResolveHashType(),
-			!conf.GetDisableHashGet(),
 		),
 		store: store,
 	}

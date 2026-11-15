@@ -20,12 +20,6 @@ type Config struct {
 	// HashType is the hash type to use for block refs.
 	// If unset (0 value) will use the Spacewave default (SHA256).
 	HashType hash.HashType `protobuf:"varint,2,opt,name=hash_type,json=hashType,proto3" json:"hashType,omitempty"`
-	// DisableHashGet disables hashing values for Get requests.
-	// This improves performance if the underlying store is trusted & consistent.
-	//
-	// If the store may return invalid data or mismatch the requested block ref,
-	// do not enable this option. It is important to hash the data for each read.
-	DisableHashGet bool `protobuf:"varint,3,opt,name=disable_hash_get,json=disableHashGet,proto3" json:"disableHashGet,omitempty"`
 	// CollectorFrees turns on the Volume collector's frees. Off, the collector
 	// still releases lapsed leases and nets the journal, so its counts stay
 	// current, and frees nothing. Turning it on also adopts an unadopted
@@ -56,13 +50,6 @@ func (x *Config) GetHashType() hash.HashType {
 	return hash.HashType(0)
 }
 
-func (x *Config) GetDisableHashGet() bool {
-	if x != nil {
-		return x.DisableHashGet
-	}
-	return false
-}
-
 func (x *Config) GetCollectorFrees() bool {
 	if x != nil {
 		return x.CollectorFrees
@@ -83,7 +70,6 @@ func (m *Config) CloneVT() *Config {
 	}
 	r := new(Config)
 	r.HashType = m.HashType
-	r.DisableHashGet = m.DisableHashGet
 	r.CollectorFrees = m.CollectorFrees
 	r.CollectorGraceDur = m.CollectorGraceDur
 	if len(m.unknownFields) > 0 {
@@ -103,9 +89,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.HashType != that.HashType {
-		return false
-	}
-	if this.DisableHashGet != that.DisableHashGet {
 		return false
 	}
 	if this.CollectorFrees != that.CollectorFrees {
@@ -138,11 +121,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("hashType")
 		x.HashType.MarshalProtoJSON(s)
 	}
-	if x.DisableHashGet || s.HasField("disableHashGet") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("disableHashGet")
-		s.WriteBool(x.DisableHashGet)
-	}
 	if x.CollectorFrees || s.HasField("collectorFrees") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("collectorFrees")
@@ -173,9 +151,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "hash_type", "hashType":
 			s.AddField("hash_type")
 			x.HashType.UnmarshalProtoJSON(s)
-		case "disable_hash_get", "disableHashGet":
-			s.AddField("disable_hash_get")
-			x.DisableHashGet = s.ReadBool()
 		case "collector_frees", "collectorFrees":
 			s.AddField("collector_frees")
 			x.CollectorFrees = s.ReadBool()
@@ -230,11 +205,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x38
 	}
-	if m.DisableHashGet {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisableHashGet)
-		i--
-		dAtA[i] = 0x18
-	}
 	if m.HashType != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.HashType))
 		i--
@@ -250,7 +220,6 @@ func (m *Config) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HashType)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableHashGet)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.CollectorFrees)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CollectorGraceDur)
 	n += len(m.unknownFields)
@@ -263,10 +232,6 @@ func (x *Config) MarshalProtoText() string {
 	if x.HashType != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash_type")
 		protobuf_go_lite.TextWriteStringer(&sb, hash.HashType(x.HashType))
-	}
-	if x.DisableHashGet != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_hash_get")
-		protobuf_go_lite.TextWriteBool(&sb, x.DisableHashGet)
 	}
 	if x.CollectorFrees != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "collector_frees")
@@ -314,16 +279,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableHashGet", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.DisableHashGet = bool(v)
 		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CollectorFrees", wireType)

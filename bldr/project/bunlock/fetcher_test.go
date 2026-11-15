@@ -35,7 +35,7 @@ func TestFetchRefusesIntegrityBeforeStorage(t *testing.T) {
 
 	// Pin different bytes and fetch into an empty, real block-backed tree.
 	storage := store_kvtx_inmem.NewStore()
-	store := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), storage, 0, true)
+	store := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), storage, 0)
 	dependencies, _ := fixtureDependencies(t, store, nil)
 	lock := fixtureLock([]Package{{Key: "bad", Name: "bad", Version: "1.0.0", Integrity: fixtureIntegrity([]byte("different"))}})
 	if _, err := fetcher.Fetch(t.Context(), lock, dependencies); !errors.Is(err, ErrIntegrity) {
@@ -89,7 +89,7 @@ func TestFetchRebuildUsesStoredPins(t *testing.T) {
 
 	// Fetch the first build's tarballs through the normal KVTX and block APIs.
 	storage := store_kvtx_inmem.NewStore()
-	store := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), storage, 0, true)
+	store := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), storage, 0)
 	dependencies, root := fixtureDependencies(t, store, nil)
 	got, err := fixtureFetcher(t, registry).Fetch(t.Context(), fixtureLock(packages), dependencies)
 	if err != nil {

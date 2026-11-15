@@ -175,6 +175,5 @@ func newSelectorOkraStore() block.StoreOps {
 		store_kvkey.NewDefaultKVKey(),
 		store_kvtx_inmem.NewStore(),
 		hash.HashType_HashType_BLAKE3,
-		false,
 	)
 }

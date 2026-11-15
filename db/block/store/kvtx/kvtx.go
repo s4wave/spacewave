@@ -20,8 +20,6 @@ type KVTxBlock struct {
 	store kvtx.Store
 	// hashType is the preferred block hash type.
 	hashType hash.HashType
-	// hashGet hashes Get responses for integrity.
-	hashGet bool
 	// durable marks found reads durable for the decoded-block cache and
 	// reports removals to it. Set only when store holds committed data and
 	// every removal of its blocks goes through this KVTxBlock.
@@ -31,18 +29,15 @@ type KVTxBlock struct {
 // NewKVTxBlock constructs a new block store on top of a kvtx store.
 //
 // hashType can be 0 to use a default value.
-// hashGet hashes Get requests for integrity, use if the storage is unreliable or untrusted.
 func NewKVTxBlock(
 	kvkey *store_kvkey.KVKey,
 	store kvtx.Store,
 	hashType hash.HashType,
-	hashGet bool,
 ) *KVTxBlock {
 	return &KVTxBlock{
 		kvkey:    kvkey,
 		store:    store,
 		hashType: hashType,
-		hashGet:  hashGet,
 	}
 }
 
@@ -55,9 +50,8 @@ func NewDurableKVTxBlock(
 	kvkey *store_kvkey.KVKey,
 	store kvtx.Store,
 	hashType hash.HashType,
-	hashGet bool,
 ) *KVTxBlock {
-	k := NewKVTxBlock(kvkey, store, hashType, hashGet)
+	k := NewKVTxBlock(kvkey, store, hashType)
 	k.durable = true
 	return k
 }
@@ -262,8 +256,8 @@ func (k *KVTxBlock) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 	return block.GetBlockWithoutRefs(ctx, k, ref)
 }
 
-// getBlock reads a block through the given tx ops, verifying the hash
-// when hashGet is set.
+// getBlock reads a block through the given tx ops and verifies it against
+// ref. A mismatch is ErrBlockCorrupt, and the stored value stays as it is.
 func (k *KVTxBlock) getBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) ([]byte, bool, error) {
 	// Validate the block reference before reading stored bytes.
 	if err := ref.Validate(false); err != nil {
@@ -282,20 +276,11 @@ func (k *KVTxBlock) getBlock(ctx context.Context, tx kvtx.TxOps, ref *block.Bloc
 		return nil, found, err
 	}
 
-	// Re-hash the block reference if configured.
-	// This significantly reduces performance but improves security.
-	// Otherwise, an attacker could place any data at /h/b/{block-ref}.
-	if !k.hashGet {
-		return data, found, nil
-	}
-
 	// Verify the stored bytes against the requested block reference.
-	err = ref.VerifyData(data, true)
-
-	// Return the data and the error with the hash mismatch.
-	// All callers to GetBlock should check the error return value.
-	// We return the data here for cases where we want to report the invalid data.
-	return data, found, err
+	if err := block.VerifyRead(ref, data, ""); err != nil {
+		return nil, false, err
+	}
+	return data, true, nil
 }
 
 type readOperation struct {

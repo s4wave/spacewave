@@ -54,7 +54,6 @@ func BenchmarkPackfileStoreColdPackRead(b *testing.B) {
 				store_kvkey.NewDefaultKVKey(),
 				store_kvtx_inmem.NewStore(),
 				hash.RecommendedHashType,
-				false,
 			),
 			want: blockCount,
 			done: make(chan struct{}),

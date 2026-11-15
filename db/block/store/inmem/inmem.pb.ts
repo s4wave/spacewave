@@ -29,12 +29,6 @@ export interface Config {
    */
   forceHashType?: HashType
   /**
-   * HashGet enables hashing values for Get requests.
-   * This reduces performance but ensures data integrity.
-   * As inmem is an in-memory cache, it shouldn't be necessary to use this.
-   */
-  hashGet?: boolean
-  /**
    * BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
    */
   bucketIds?: string[]
@@ -53,7 +47,6 @@ export const Config: MessageType<Config> =
     [1, 'block_store_id', 9],
     [2, 'kv_key_opts', 11, 0, Config$1.codec],
     [3, 'force_hash_type', 14, 0, HashType_Enum],
-    [4, 'hash_get', 8],
     [5, 'bucket_ids', 9, 1],
     [6, 'skip_not_found', 8],
     [7, 'verbose', 8],

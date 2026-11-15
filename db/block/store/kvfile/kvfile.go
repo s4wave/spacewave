@@ -92,16 +92,26 @@ func (k *KvfileBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBat
 	return nil, nil
 }
 
-// GetBlock looks up a block in the store.
-// Returns data, found, and any unexpected error.
+// GetBlock looks up a block in the store and verifies it against ref.
+// Returns data, found, and any unexpected error; ErrBlockCorrupt when the
+// stored bytes do not hash to ref.
 func (k *KvfileBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Build the block's key.
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return nil, false, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
 
-	return k.store.Get(key)
+	// Read the stored bytes and verify them.
+	data, found, err := k.store.Get(key)
+	if err != nil || !found {
+		return nil, false, err
+	}
+	if err := block.VerifyRead(ref, data, ""); err != nil {
+		return nil, false, err
+	}
+	return data, true, nil
 }
 
 // GetStoredBlock serves the block without refs because this store keeps

@@ -137,6 +137,12 @@ type VolumeHealth struct {
 	// ReserveBytes is the free disk below which the volume refuses new writes,
 	// as of SizesAt. Zero when the volume keeps no reserve.
 	ReserveBytes uint64 `protobuf:"varint,12,opt,name=reserve_bytes,json=reserveBytes,proto3" json:"reserveBytes,omitempty"`
+	// CorruptReads counts the reads since the volume opened whose stored bytes
+	// did not hash to the block's ref. The bytes stay stored.
+	CorruptReads uint64 `protobuf:"varint,13,opt,name=corrupt_reads,json=corruptReads,proto3" json:"corruptReads,omitempty"`
+	// CorruptRefs lists the first blocks those reads found, at most 16, as block
+	// ref strings.
+	CorruptRefs []string `protobuf:"bytes,14,rep,name=corrupt_refs,json=corruptRefs,proto3" json:"corruptRefs,omitempty"`
 }
 
 func (x *VolumeHealth) Reset() {
@@ -215,6 +221,20 @@ func (x *VolumeHealth) GetReserveBytes() uint64 {
 	return 0
 }
 
+func (x *VolumeHealth) GetCorruptReads() uint64 {
+	if x != nil {
+		return x.CorruptReads
+	}
+	return 0
+}
+
+func (x *VolumeHealth) GetCorruptRefs() []string {
+	if x != nil {
+		return x.CorruptRefs
+	}
+	return nil
+}
+
 func (m *VolumeHealth) CloneVT() *VolumeHealth {
 	if m == nil {
 		return (*VolumeHealth)(nil)
@@ -228,8 +248,10 @@ func (m *VolumeHealth) CloneVT() *VolumeHealth {
 	r.SizesKnown = m.SizesKnown
 	r.WriteState = m.WriteState
 	r.ReserveBytes = m.ReserveBytes
+	r.CorruptReads = m.CorruptReads
 	r.GcPhaseStart = protobuf_go_lite.CloneVTValue(m.GcPhaseStart)
 	r.SizesAt = protobuf_go_lite.CloneVTValue(m.SizesAt)
+	r.CorruptRefs = protobuf_go_lite.CloneSlice(m.CorruptRefs)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -274,6 +296,12 @@ func (this *VolumeHealth) EqualVT(that *VolumeHealth) bool {
 		return false
 	}
 	if this.ReserveBytes != that.ReserveBytes {
+		return false
+	}
+	if this.CorruptReads != that.CorruptReads {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.CorruptRefs, that.CorruptRefs) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -425,6 +453,16 @@ func (x *VolumeHealth) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("reserveBytes")
 		s.WriteUint64(x.ReserveBytes)
 	}
+	if x.CorruptReads != 0 || s.HasField("corruptReads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("corruptReads")
+		s.WriteUint64(x.CorruptReads)
+	}
+	if len(x.CorruptRefs) > 0 || s.HasField("corruptRefs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("corruptRefs")
+		s.WriteStringArray(x.CorruptRefs)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -480,6 +518,16 @@ func (x *VolumeHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "reserve_bytes", "reserveBytes":
 			s.AddField("reserve_bytes")
 			x.ReserveBytes = s.ReadUint64()
+		case "corrupt_reads", "corruptReads":
+			s.AddField("corrupt_reads")
+			x.CorruptReads = s.ReadUint64()
+		case "corrupt_refs", "corruptRefs":
+			s.AddField("corrupt_refs")
+			if s.ReadNil() {
+				x.CorruptRefs = nil
+				return
+			}
+			x.CorruptRefs = s.ReadStringArray()
 		}
 	})
 }
@@ -517,6 +565,18 @@ func (m *VolumeHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.CorruptRefs) > 0 {
+		for iNdEx := len(m.CorruptRefs) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.CorruptRefs[iNdEx])
+			i--
+			dAtA[i] = 0x72
+		}
+	}
+	if m.CorruptReads != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CorruptReads))
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.ReserveBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ReserveBytes))
@@ -603,6 +663,8 @@ func (m *VolumeHealth) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WriteState)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReserveBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CorruptReads)
+	n += protobuf_go_lite.SizeStringSlice(1, m.CorruptRefs)
 	n += len(m.unknownFields)
 	return n
 }
@@ -657,6 +719,18 @@ func (x *VolumeHealth) MarshalProtoText() string {
 	if x.ReserveBytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reserve_bytes")
 		protobuf_go_lite.TextWriteUint(&sb, x.ReserveBytes)
+	}
+	if x.CorruptReads != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "corrupt_reads")
+		protobuf_go_lite.TextWriteUint(&sb, x.CorruptReads)
+	}
+	if len(x.CorruptRefs) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "corrupt_refs")
+		for i, v := range x.CorruptRefs {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -793,6 +867,25 @@ func (m *VolumeHealth) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CorruptReads", wireType)
+			}
+			m.CorruptReads = 0
+			m.CorruptReads, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CorruptRefs", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CorruptRefs = append(m.CorruptRefs, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

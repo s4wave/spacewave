@@ -140,6 +140,16 @@ export interface VolumeHealth {
    * as of SizesAt. Zero when the volume keeps no reserve.
    */
   reserveBytes?: bigint
+  /**
+   * CorruptReads counts the reads since the volume opened whose stored bytes
+   * did not hash to the block's ref. The bytes stay stored.
+   */
+  corruptReads?: bigint
+  /**
+   * CorruptRefs lists the first blocks those reads found, at most 16, as block
+   * ref strings.
+   */
+  corruptRefs?: string[]
 }
 
 export const VolumeHealth: MessageType<VolumeHealth> =
@@ -154,4 +164,6 @@ export const VolumeHealth: MessageType<VolumeHealth> =
     [8, 'sizes_at', 11, 0, Timestamp.codec],
     [11, 'write_state', 14, 0, VolumeWriteState_Enum],
     [12, 'reserve_bytes', 4],
+    [13, 'corrupt_reads', 4],
+    [14, 'corrupt_refs', 9, 1],
   ])

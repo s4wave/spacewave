@@ -1071,7 +1071,6 @@ func newWritebackReadStore() *writebackReadStore {
 			store_kvkey.NewDefaultKVKey(),
 			store_kvtx_inmem.NewStore(),
 			hash.HashType_HashType_SHA256,
-			false,
 		),
 		putCh: make(chan struct{}, 1),
 	}

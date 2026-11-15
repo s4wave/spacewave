@@ -19,7 +19,7 @@ func TestPeerBlockWithoutRefsKeptOnDecode(t *testing.T) {
 	// Rebuild the reads with a peer that serves no refs, and peer fills that
 	// upload.
 	f := newFallbackTest(t)
-	peer := &refsUnknownStore{StoreOps: block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)}
+	peer := &refsUnknownStore{StoreOps: block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)}
 	f.p.peerUpload = true
 	recorded := &readRecorder{StoreOps: f.local, reads: &f.p.reads}
 	f.reads, f.copies = f.p.readChains(

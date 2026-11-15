@@ -241,24 +241,32 @@ func (b *blockStore) locate(ctx context.Context, refs []*block.BlockRef) ([]*loc
 	return locs, err
 }
 
-// GetBlock reads a block's payload. A read that fails while maintenance
-// moves the block retries at its new location.
+// GetBlock reads a block's payload and verifies it against ref. A read that
+// fails or does not verify while maintenance moves the block retries at its
+// new location; at an unchanged location a mismatch is ErrBlockCorrupt, and
+// the payload stays in its segment.
 func (b *blockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	refs := []*block.BlockRef{ref}
 	locs, err := b.locate(ctx, refs)
 	for err == nil && locs[0] != nil {
-		// Read the payload from the segment.
+		// Read the payload from the segment and verify it.
 		loc := locs[0]
 		data := make([]byte, loc.length)
 		read := []device.Read{{Name: segmentName(loc.segment), Offset: loc.offset, Data: data}}
 		readErr := b.s.dev.Read(ctx, read)
 		if readErr == nil {
-			return data, true, nil
+			readErr = block.VerifyRead(ref, data, "")
+			if readErr == nil {
+				return data, true, nil
+			}
 		}
 
 		// Retry if the block moved or was removed meanwhile.
 		locs, err = b.locate(ctx, refs)
 		if err == nil && locs[0] != nil && *locs[0] == *loc {
+			if errors.Is(readErr, block.ErrBlockCorrupt) {
+				return nil, false, readErr
+			}
 			return nil, false, errors.Wrap(readErr, "read block")
 		}
 	}

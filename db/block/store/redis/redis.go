@@ -9,20 +9,18 @@ import (
 )
 
 // RedisBlock is a block store on top of a Redis database.
-// Stores blocks at {objectPrefix}/{block ref}
+// Stores blocks at {objectPrefix}/{block ref}.
 type RedisBlock = block_store_kvtx.KVTxBlock
 
 // NewRedisBlock builds a new block store on top of a redis db.
 //
 // forceHashType can be 0 to use the default hash type.
-// hashGet hashes Get requests for integrity, use if the storage is unreliable or untrusted.
 func NewRedisBlock(
 	kvk *kvkey.KVKey,
 	st *store_kvtx_redis.Store,
 	forceHashType hash.HashType,
-	hashGet bool,
 ) *RedisBlock {
-	return block_store_kvtx.NewKVTxBlock(kvk, st, forceHashType, hashGet)
+	return block_store_kvtx.NewKVTxBlock(kvk, st, forceHashType)
 }
 
 // _ is a type assertion

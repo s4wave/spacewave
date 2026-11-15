@@ -69,9 +69,6 @@ type Volume struct {
 	// ordered flushes direct atomic writes committed with write ordering, may
 	// be nil.
 	ordered kvtx.OrderedCommitStore
-	// atomicHashGet records whether hash verification reads are enabled for
-	// atomic publication block construction.
-	atomicHashGet bool
 	// readOnly is set when the store refuses every write transaction: the
 	// Volume then writes nothing on its own, neither at open nor in the
 	// background, and its audit records no holes.
@@ -228,7 +225,6 @@ func NewVolume(
 
 	// Keep liveness, roots, pins and stages on a store that commits atomically.
 	if atomicStore, ok := store.(kvtx.AtomicCommitStore); ok && atomicStore.SupportsAtomicCommit() {
-		v.atomicHashGet = !conf.GetDisableHashGet()
 		v.atomic = true
 		if orderedStore, ok := store.(kvtx.OrderedCommitStore); ok {
 			v.ordered = orderedStore

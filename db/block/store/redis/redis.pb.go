@@ -29,12 +29,6 @@ type Config struct {
 	// ForceHashType forces writing the given hash type to the store.
 	// If unset, accepts any hash type.
 	ForceHashType hash.HashType `protobuf:"varint,4,opt,name=force_hash_type,json=forceHashType,proto3" json:"forceHashType,omitempty"`
-	// DisableHashGet disables hashing values for Get requests.
-	// This improves performance if the underlying store is trusted & consistent.
-	//
-	// If the store may return invalid data or mismatch the requested block ref,
-	// do not enable this option. It is important to hash the data for each read.
-	DisableHashGet bool `protobuf:"varint,8,opt,name=disable_hash_get,json=disableHashGet,proto3" json:"disableHashGet,omitempty"`
 	// BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
 	BucketIds []string `protobuf:"bytes,5,rep,name=bucket_ids,json=bucketIds,proto3" json:"bucketIds,omitempty"`
 	// SkipNotFound skips returning a value if the block was not found.
@@ -77,13 +71,6 @@ func (x *Config) GetForceHashType() hash.HashType {
 	return hash.HashType(0)
 }
 
-func (x *Config) GetDisableHashGet() bool {
-	if x != nil {
-		return x.DisableHashGet
-	}
-	return false
-}
-
 func (x *Config) GetBucketIds() []string {
 	if x != nil {
 		return x.BucketIds
@@ -112,7 +99,6 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.BlockStoreId = m.BlockStoreId
 	r.ForceHashType = m.ForceHashType
-	r.DisableHashGet = m.DisableHashGet
 	r.SkipNotFound = m.SkipNotFound
 	r.Verbose = m.Verbose
 	r.Client = protobuf_go_lite.CloneVTValue(m.Client)
@@ -153,9 +139,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.Verbose != that.Verbose {
-		return false
-	}
-	if this.DisableHashGet != that.DisableHashGet {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -212,11 +195,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("verbose")
 		s.WriteBool(x.Verbose)
 	}
-	if x.DisableHashGet || s.HasField("disableHashGet") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("disableHashGet")
-		s.WriteBool(x.DisableHashGet)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -267,9 +245,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "verbose":
 			s.AddField("verbose")
 			x.Verbose = s.ReadBool()
-		case "disable_hash_get", "disableHashGet":
-			s.AddField("disable_hash_get")
-			x.DisableHashGet = s.ReadBool()
 		}
 	})
 }
@@ -307,11 +282,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.DisableHashGet {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisableHashGet)
-		i--
-		dAtA[i] = 0x40
 	}
 	if m.Verbose {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Verbose)
@@ -382,7 +352,6 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(1, m.BucketIds)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.SkipNotFound)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Verbose)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableHashGet)
 	n += len(m.unknownFields)
 	return n
 }
@@ -421,10 +390,6 @@ func (x *Config) MarshalProtoText() string {
 	if x.Verbose != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "verbose")
 		protobuf_go_lite.TextWriteBool(&sb, x.Verbose)
-	}
-	if x.DisableHashGet != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_hash_get")
-		protobuf_go_lite.TextWriteBool(&sb, x.DisableHashGet)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -534,16 +499,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Verbose = bool(v)
-		case 8:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableHashGet", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.DisableHashGet = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

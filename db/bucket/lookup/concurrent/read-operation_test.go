@@ -17,7 +17,7 @@ func TestReadOperationReleasesLocalTransaction(t *testing.T) {
 	ctx := t.Context()
 	blocks := block_store_kvtx.NewKVTxBlock(
 		store_kvkey.NewDefaultKVKey(),
-		hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]()), 0, false,
+		hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]()), 0,
 	)
 	ref, _, err := blocks.PutBlock(ctx, []byte("retained"), nil)
 	if err != nil {

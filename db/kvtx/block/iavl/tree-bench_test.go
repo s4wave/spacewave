@@ -96,7 +96,6 @@ func newBenchS4dbBlockStore(tb testing.TB) *benchBlockStore {
 		store_kvkey.NewDefaultKVKey(),
 		kv,
 		0,
-		false,
 	))
 }
 

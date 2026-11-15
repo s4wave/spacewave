@@ -2,6 +2,8 @@ package kvtx
 
 import (
 	"context"
+	"errors"
+	"slices"
 	"time"
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -47,7 +49,16 @@ type healthState struct {
 	// reserve records that free disk fell below the reserve and has not
 	// passed the reserve and its margin since.
 	reserve bool
+	// corruptReads counts the reads whose stored bytes did not hash to their
+	// ref.
+	corruptReads uint64
+	// corruptRefs holds the first corruptRefsMax distinct refs those reads
+	// found.
+	corruptRefs []string
 }
+
+// corruptRefsMax bounds the corrupt refs the health snapshot lists.
+const corruptRefsMax = 16
 
 // SetHealthSizes starts measuring the storage with fn, which the health
 // snapshot reports. It measures once at once, then when the volume's written
@@ -88,6 +99,8 @@ func (v *Volume) GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struc
 	if st.reserve {
 		h.WriteState = volume.VolumeWriteState_VOLUME_WRITE_STATE_RESERVE
 	}
+	h.CorruptReads = st.corruptReads
+	h.CorruptRefs = slices.Clone(st.corruptRefs)
 	if !st.sizesAt.IsZero() {
 		h.SizesKnown = true
 		h.SizesAt = timestamppb.New(st.sizesAt)
@@ -95,6 +108,30 @@ func (v *Volume) GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struc
 		h.FreeDiskBytes, h.ReserveBytes = st.sizes.FreeDiskBytes, st.sizes.ReserveBytes
 	}
 	return h, waitCh
+}
+
+// noteCorrupt names this volume in a read's corrupt error and counts the read
+// in the health snapshot, returning err. The stored bytes are left as they are.
+func (v *Volume) noteCorrupt(err error) error {
+	// Name the volume in the error.
+	var corrupt *block.CorruptError
+	if !errors.As(err, &corrupt) {
+		return err
+	}
+	if corrupt.StoreID == "" {
+		corrupt.StoreID = v.GetID()
+	}
+
+	// Count the read and list its ref while there is room.
+	ref := corrupt.Ref.MarshalString()
+	v.healthBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		v.health.corruptReads++
+		if len(v.health.corruptRefs) < corruptRefsMax && !slices.Contains(v.health.corruptRefs, ref) {
+			v.health.corruptRefs = append(v.health.corruptRefs, ref)
+		}
+		broadcast()
+	})
+	return err
 }
 
 // enterGCPhase moves the volume to phase and returns the function that moves

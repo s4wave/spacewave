@@ -20,7 +20,7 @@ import (
 func TestMergeLayers(t *testing.T) {
 	// Open a cursor over an in-memory store.
 	ctx := context.Background()
-	store := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)
+	store := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)
 	le := logrus.NewEntry(logrus.New())
 	bls := bucket_lookup.NewCursor(ctx, nil, le, nil, store, nil, &bucket.ObjectRef{}, nil, nil)
 	defer bls.Release()

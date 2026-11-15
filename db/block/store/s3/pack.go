@@ -676,7 +676,7 @@ func verifiedBlock(ref *block.BlockRef, data []byte) (*block.StoredBlock, error)
 	if err != nil {
 		return nil, err
 	}
-	if err := ref.VerifyData(stored.Data, false); err != nil {
+	if err := block.VerifyRead(ref, stored.Data, ""); err != nil {
 		return nil, err
 	}
 	return stored, nil

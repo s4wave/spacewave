@@ -45,7 +45,6 @@ func TestStoreReadThroughScopesLowerWhenPrimaryUnavailable(t *testing.T) {
 		store_kvkey.NewDefaultKVKey(),
 		store_kvtx_inmem.NewStore(),
 		hash.HashType_HashType_BLAKE3,
-		false,
 	)
 	beginCalls := &atomic.Int32{}
 	scopedCalls := &atomic.Int32{}
@@ -105,7 +104,6 @@ func newWrapperBatchTestStore() *wrapperBatchTestStore {
 			store_kvkey.NewDefaultKVKey(),
 			store_kvtx_inmem.NewStore(),
 			hash.HashType_HashType_BLAKE3,
-			false,
 		),
 	}
 }

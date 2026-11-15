@@ -109,7 +109,6 @@ func TestPluginWorldRetention(t *testing.T) {
 		store_kvkey.NewDefaultKVKey(),
 		store_kvtx_inmem.NewStore(),
 		hash.RecommendedHashType,
-		false,
 	)
 	err = block.CopyGraph(ctx, cursor.GetBucket(), dst, ws.GetRootRef(), &block.GraphCopyOptions{
 		Visited: func(ref *block.BlockRef, _ []byte) {

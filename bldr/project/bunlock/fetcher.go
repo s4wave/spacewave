@@ -34,7 +34,8 @@ func NewFetcher(client *http.Client, registry string, maxTarballSize int64) (*Fe
 	if client == nil {
 		return nil, errors.New("npm fetcher requires an HTTP client")
 	}
-	if maxTarballSize <= 0 || maxTarballSize >= math.MaxInt64 {
+	// The bound leaves room for the one extra byte read to detect overflow.
+	if maxTarballSize <= 0 || maxTarballSize == math.MaxInt64 {
 		return nil, errors.New("npm fetcher requires a positive tarball size bound")
 	}
 	if err := checkURL(registry); err != nil {

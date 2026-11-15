@@ -59,7 +59,6 @@ func TestEngineCreateObjectCommitReplaysIdentically(t *testing.T) {
 			store_kvkey.NewDefaultKVKey(),
 			commitStore,
 			0,
-			false,
 		)
 
 		// Open the World state on the block store.

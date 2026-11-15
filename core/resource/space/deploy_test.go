@@ -2,6 +2,7 @@ package resource_space
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -13,6 +14,8 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/s4wave/spacewave/net/hash"
+	s4wave_deploy "github.com/s4wave/spacewave/sdk/deploy"
+	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
 )
 
@@ -221,5 +224,39 @@ func TestValidateCopiedManifestRejectsMetadataMismatchAndCancellation(t *testing
 	cancel()
 	if err := validateCopiedManifest(cancelled, dest, ref, meta, nil); err == nil {
 		t.Fatal("cancelled copied-manifest validation succeeded")
+	}
+}
+
+// deployTestStream answers every block request with fixed bytes.
+type deployTestStream struct {
+	s4wave_space.SRPCSpaceResourceService_DeployManifestsStream
+	// data is the bytes each response carries.
+	data []byte
+	// ref is the last requested ref.
+	ref *block.BlockRef
+}
+
+func (s *deployTestStream) Send(msg *s4wave_deploy.DeployManifestsMessage) error {
+	s.ref = msg.GetBlockRequest().GetRef()
+	return nil
+}
+
+func (s *deployTestStream) Recv() (*s4wave_deploy.DeployManifestsMessage, error) {
+	return &s4wave_deploy.DeployManifestsMessage{
+		Body: &s4wave_deploy.DeployManifestsMessage_BlockResponse{
+			BlockResponse: &s4wave_deploy.BlockResponse{Ref: s.ref, Data: s.data},
+		},
+	}, nil
+}
+
+func TestStreamStoreRejectsWrongBytes(t *testing.T) {
+	// The deploying client answers with bytes that do not hash to the ref.
+	ref, err := block.BuildBlockRef([]byte("manifest"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := &streamStoreOps{strm: &deployTestStream{data: []byte("other")}}
+	if _, _, err := src.GetBlock(context.Background(), ref); !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("stream read of wrong bytes: %v, want ErrBlockCorrupt", err)
 	}
 }

@@ -365,6 +365,7 @@ func copyBlockWithTransform(
 	}
 
 	// Read the manifest block bytes from the destination or stream source.
+	// Each store checks the bytes it returns against ref.
 	var data []byte
 	if exists {
 		var found bool
@@ -374,13 +375,6 @@ func copyBlockWithTransform(
 		}
 		if !found {
 			return errors.Wrapf(block.ErrNotFound, "existing block: %s", refStr)
-		}
-		actual, err := block.BuildBlockRef(data, &block.PutOpts{HashType: ref.GetHash().GetHashType()})
-		if err != nil {
-			return errors.Wrapf(err, "hash existing block: %s", refStr)
-		}
-		if !actual.EqualsRef(ref) {
-			return errors.Errorf("existing block ref mismatch: got %s, want %s", actual.MarshalString(), refStr)
 		}
 	} else {
 		var found bool
@@ -492,7 +486,9 @@ func (s *streamStoreOps) GetSupportedFeatures() block.StoreFeature {
 	return 0
 }
 
-// GetBlock requests a block from the client over the stream.
+// GetBlock requests a block from the client over the stream. The bytes come
+// from the deploying client, so it checks them against ref and returns
+// ErrBlockCorrupt on a mismatch.
 func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Request the manifest block while the deployment stream is active.
 	if err := ctx.Err(); err != nil {
@@ -509,7 +505,7 @@ func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 		return nil, false, errors.Wrap(err, "send block request")
 	}
 
-	// Validate the deployment response before returning its block bytes.
+	// Receive the deployment response.
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}
@@ -517,6 +513,8 @@ func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 	if err != nil {
 		return nil, false, errors.Wrap(err, "recv block response")
 	}
+
+	// Validate the response before returning its block bytes.
 	resp := msg.GetBlockResponse()
 	if resp == nil {
 		return nil, false, errors.New("expected BlockResponse")
@@ -526,6 +524,9 @@ func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 	}
 	if resp.GetNotFound() {
 		return nil, false, nil
+	}
+	if err := block.VerifyRead(ref, resp.GetData(), ""); err != nil {
+		return nil, false, err
 	}
 	return resp.GetData(), true, nil
 }
