@@ -25,7 +25,7 @@ func TestCrashRecovery(t *testing.T) {
 		}
 		return &crashTarget{
 			Store:     kvtx_prefixer.NewPrefixer(db, []byte("k/")),
-			KVTxBlock: block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), db, 0, true),
+			KVTxBlock: block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), db, 0),
 			db:        db,
 		}, nil
 	})

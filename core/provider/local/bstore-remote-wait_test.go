@@ -57,7 +57,7 @@ func TestRemoteReadsWaitForOpen(t *testing.T) {
 		}
 
 		// Arm several readers, including one with an acquired read scope.
-		store := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)
+		store := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)
 		ref, _, err := store.PutBlock(ctx, []byte("evicted"), nil)
 		if err != nil {
 			t.Fatal(err)

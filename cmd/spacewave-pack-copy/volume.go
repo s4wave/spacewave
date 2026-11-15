@@ -72,7 +72,7 @@ func (a *volumeArgs) open(ctx context.Context) ([]packcopy.Source, func(), error
 			return nil, nil, errors.Wrapf(err, "--volume %s", path)
 		}
 		closers = append(closers, closeStore)
-		blocks := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0, false)
+		blocks := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0)
 		sources = append(sources, &volumeSource{blocks: blocks, store: store})
 	}
 	return sources, closeAll, nil

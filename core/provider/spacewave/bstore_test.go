@@ -53,7 +53,6 @@ func newProviderSpacewaveTestBlockStore(hashType hash.HashType) block.StoreOps {
 		store_kvkey.NewDefaultKVKey(),
 		store_kvtx_inmem.NewStore(),
 		hashType,
-		false,
 	)
 }
 

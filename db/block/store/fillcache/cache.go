@@ -98,7 +98,7 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 		le:     le,
 		warn:   rateLog{le: le},
 		store:  store,
-		blocks: block_store_kvtx.NewKVTxBlock(keys, store, 0, true),
+		blocks: block_store_kvtx.NewKVTxBlock(keys, store, 0),
 		exited: make(chan struct{}),
 	}
 	c.view = &view{StoreOps: block.NewReadOnlyStore(c.blocks), cache: c}

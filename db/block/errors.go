@@ -3,6 +3,8 @@ package block
 import (
 	"errors"
 	"fmt"
+
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 var (
@@ -43,8 +45,12 @@ var (
 	ErrReferenceCycle = errors.New("block: reference cycle")
 	// ErrNotClonable is returned if a block could not be cloned.
 	ErrNotClonable = errors.New("block: unable to clone")
-	// ErrBlockRefMismatch is returned if the data does not match the expected ref.
+	// ErrBlockRefMismatch is returned if the data to write does not match the
+	// expected ref.
 	ErrBlockRefMismatch = errors.New("block: block ref hash mismatch")
+	// ErrBlockCorrupt is returned by a read whose stored bytes do not hash to
+	// the ref read. errors.As with *CorruptError gives the ref and the store.
+	ErrBlockCorrupt = errors.New("block: stored bytes do not match their ref")
 	// ErrBufferedStoreFull is returned when a buffered store reaches its memory limits.
 	ErrBufferedStoreFull = errors.New("block: buffered store is full")
 	// ErrAtomicCommitUnsupported is returned before any I/O, with no side
@@ -71,4 +77,62 @@ func IsNotAvailable(err error) bool {
 // which block is missing. errors.Is still matches ErrNotFound.
 func NotFoundError(ref *BlockRef) error {
 	return fmt.Errorf("%w: %s", ErrNotFound, ref.MarshalString())
+}
+
+// CorruptError reports a read whose stored bytes do not hash to the ref read.
+// It matches ErrBlockCorrupt with errors.Is.
+//
+// A store that returns it keeps the bytes: they are evidence, and the only copy
+// a repair can compare against. Nothing deletes or overwrites them on a read.
+type CorruptError struct {
+	// Ref is the block read.
+	Ref *BlockRef
+	// StoreID names the store that served the bytes, such as a Volume ID or a
+	// remote's address. A store that does not know its name leaves it empty for
+	// the layer above that does.
+	StoreID string
+}
+
+// Error describes the corrupt read.
+func (e *CorruptError) Error() string {
+	msg := ErrBlockCorrupt.Error() + ": " + e.Ref.MarshalString()
+	if e.StoreID != "" {
+		msg += " in " + e.StoreID
+	}
+	return msg
+}
+
+// Unwrap returns ErrBlockCorrupt.
+func (e *CorruptError) Unwrap() error {
+	return ErrBlockCorrupt
+}
+
+// VerifyRead checks the bytes a store read for ref, returning a CorruptError
+// naming storeID when they do not hash to ref.
+func VerifyRead(ref *BlockRef, data []byte, storeID string) error {
+	if err := ref.Validate(false); err != nil {
+		return err
+	}
+	if _, err := ref.GetHash().VerifyData(data); err != nil {
+		if errors.Is(err, hash.ErrHashMismatch) {
+			return &CorruptError{Ref: ref, StoreID: storeID}
+		}
+		return err
+	}
+	return nil
+}
+
+// VerifyPut checks the bytes a caller hands a store under ref, returning
+// ErrBlockRefMismatch when they do not hash to ref.
+func VerifyPut(ref *BlockRef, data []byte) error {
+	if err := ref.Validate(false); err != nil {
+		return err
+	}
+	if _, err := ref.GetHash().VerifyData(data); err != nil {
+		if errors.Is(err, hash.ErrHashMismatch) {
+			return ErrBlockRefMismatch
+		}
+		return err
+	}
+	return nil
 }

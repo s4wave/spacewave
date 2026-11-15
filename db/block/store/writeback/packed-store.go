@@ -246,8 +246,8 @@ func (s *PackedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 			if err != nil {
 				return nil, errors.Wrap(err, ref.MarshalString())
 			}
-			if err := ref.VerifyData(stored.Data, false); err != nil {
-				return nil, errors.Wrap(err, ref.MarshalString())
+			if err := block.VerifyRead(ref, stored.Data, ""); err != nil {
+				return nil, err
 			}
 			if durable {
 				block.MarkDurableRead(ctx, ref, gen)

@@ -26,7 +26,7 @@ type packs struct {
 
 // newPacks returns an empty durable store stand-in.
 func newPacks() *packs {
-	return &packs{StoreOps: block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)}
+	return &packs{StoreOps: block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)}
 }
 
 // GetStoredBlock counts the read and serves the block as a leaf with known refs.

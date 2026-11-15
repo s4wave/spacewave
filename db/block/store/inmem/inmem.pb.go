@@ -26,10 +26,6 @@ type Config struct {
 	// ForceHashType forces writing the given hash type to the store.
 	// If unset, accepts any hash type.
 	ForceHashType hash.HashType `protobuf:"varint,3,opt,name=force_hash_type,json=forceHashType,proto3" json:"forceHashType,omitempty"`
-	// HashGet enables hashing values for Get requests.
-	// This reduces performance but ensures data integrity.
-	// As inmem is an in-memory cache, it shouldn't be necessary to use this.
-	HashGet bool `protobuf:"varint,4,opt,name=hash_get,json=hashGet,proto3" json:"hashGet,omitempty"`
 	// BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
 	BucketIds []string `protobuf:"bytes,5,rep,name=bucket_ids,json=bucketIds,proto3" json:"bucketIds,omitempty"`
 	// SkipNotFound skips returning a value if the block was not found.
@@ -65,13 +61,6 @@ func (x *Config) GetForceHashType() hash.HashType {
 	return hash.HashType(0)
 }
 
-func (x *Config) GetHashGet() bool {
-	if x != nil {
-		return x.HashGet
-	}
-	return false
-}
-
 func (x *Config) GetBucketIds() []string {
 	if x != nil {
 		return x.BucketIds
@@ -100,7 +89,6 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.BlockStoreId = m.BlockStoreId
 	r.ForceHashType = m.ForceHashType
-	r.HashGet = m.HashGet
 	r.SkipNotFound = m.SkipNotFound
 	r.Verbose = m.Verbose
 	r.KvKeyOpts = protobuf_go_lite.CloneVTValue(m.KvKeyOpts)
@@ -128,9 +116,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.ForceHashType != that.ForceHashType {
-		return false
-	}
-	if this.HashGet != that.HashGet {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.BucketIds, that.BucketIds) {
@@ -175,11 +160,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("forceHashType")
 		x.ForceHashType.MarshalProtoJSON(s)
-	}
-	if x.HashGet || s.HasField("hashGet") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("hashGet")
-		s.WriteBool(x.HashGet)
 	}
 	if len(x.BucketIds) > 0 || s.HasField("bucketIds") {
 		s.WriteMoreIf(&wroteField)
@@ -226,9 +206,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "force_hash_type", "forceHashType":
 			s.AddField("force_hash_type")
 			x.ForceHashType.UnmarshalProtoJSON(s)
-		case "hash_get", "hashGet":
-			s.AddField("hash_get")
-			x.HashGet = s.ReadBool()
 		case "bucket_ids", "bucketIds":
 			s.AddField("bucket_ids")
 			if s.ReadNil() {
@@ -297,11 +274,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x2a
 		}
 	}
-	if m.HashGet {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.HashGet)
-		i--
-		dAtA[i] = 0x20
-	}
 	if m.ForceHashType != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ForceHashType))
 		i--
@@ -337,7 +309,6 @@ func (m *Config) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ForceHashType)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.HashGet)
 	n += protobuf_go_lite.SizeStringSlice(1, m.BucketIds)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.SkipNotFound)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Verbose)
@@ -359,10 +330,6 @@ func (x *Config) MarshalProtoText() string {
 	if x.ForceHashType != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "force_hash_type")
 		protobuf_go_lite.TextWriteStringer(&sb, hash.HashType(x.ForceHashType))
-	}
-	if x.HashGet != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash_get")
-		protobuf_go_lite.TextWriteBool(&sb, x.HashGet)
 	}
 	if len(x.BucketIds) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "bucket_ids")
@@ -443,16 +410,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HashGet", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.HashGet = bool(v)
 		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BucketIds", wireType)

@@ -186,7 +186,10 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
+// The bytes come from another process, so it checks them against ref and
+// returns ErrBlockCorrupt on a mismatch.
 func (v *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Fetch the block from the remote store.
 	resp, err := v.client.GetBlock(ctx, &block_rpc.GetBlockRequest{
 		Ref:        ref.Clone(),
 		Background: block.IsBackground(ctx),
@@ -197,7 +200,15 @@ func (v *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 	if errStr := resp.GetError(); errStr != "" {
 		return nil, false, errors.New(errStr)
 	}
-	return resp.GetData(), resp.GetExists(), nil
+	if !resp.GetExists() {
+		return nil, false, nil
+	}
+
+	// Check the remote bytes against ref before returning them.
+	if err := block.VerifyRead(ref, resp.GetData(), ""); err != nil {
+		return nil, false, err
+	}
+	return resp.GetData(), true, nil
 }
 
 // GetStoredBlock gets a block and its outgoing refs.
@@ -218,6 +229,9 @@ func (v *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	}
 	if !resp.GetExists() {
 		return nil, nil
+	}
+	if err := block.VerifyRead(ref, resp.GetData(), ""); err != nil {
+		return nil, err
 	}
 
 	return &block.StoredBlock{

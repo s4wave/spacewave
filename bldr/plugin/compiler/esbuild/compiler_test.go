@@ -85,7 +85,7 @@ func TestBuildManifestFromPersistedBlocks(t *testing.T) {
 	lockData := []byte(strings.ReplaceAll(lock.String(), "http://registry.test", registry.URL))
 
 	// Open a writable dependency index backed by the in-memory block store.
-	store := block_store.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_inmem.NewStore(), 0, true)
+	store := block_store.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_inmem.NewStore(), 0)
 	_, root := block.NewTransaction(store, nil, nil, nil)
 	root.SetBlock(kvtx_block.NewKeyValueStore(0), true)
 	dependencies, err := kvtx_block.BuildKvTransaction(t.Context(), root, true)

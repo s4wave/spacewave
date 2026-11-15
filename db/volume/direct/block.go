@@ -186,10 +186,14 @@ func (s *Store) lookup(ctx context.Context, refs []*block.BlockRef, read bool) (
 	return data, found, nil
 }
 
-// GetBlock reads a block's payload.
+// GetBlock reads a block's payload and verifies it against ref. A mismatch is
+// ErrBlockCorrupt, and the record stays as stored.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	data, found, err := s.lookup(ctx, []*block.BlockRef{ref}, true)
 	if err != nil || !found[0] {
+		return nil, false, err
+	}
+	if err := block.VerifyRead(ref, data[0], ""); err != nil {
 		return nil, false, err
 	}
 	return data[0], true, nil

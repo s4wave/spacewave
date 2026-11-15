@@ -27,7 +27,7 @@ func TestVLogger(t *testing.T) {
 	}
 
 	// Verify the block store contract through the verbose logger.
-	blockStoreOps := block_store_kvtx.NewKVTxBlock(kvk, st, 0, true)
+	blockStoreOps := block_store_kvtx.NewKVTxBlock(kvk, st, 0)
 	blockStore := block_store.NewStore("test/store", blockStoreOps)
 	client := NewVLoggerStore(le, blockStore)
 	if err := block_store_test.TestAll(ctx, client, 0); err != nil {

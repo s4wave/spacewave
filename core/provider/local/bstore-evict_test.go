@@ -62,7 +62,7 @@ func TestReadSetKeepsRecentReads(t *testing.T) {
 func TestReadSetKeepsReadsAcrossRestart(t *testing.T) {
 	// Open a writeback store to save the reads to.
 	ctx := t.Context()
-	local := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)
+	local := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)
 	wb, err := block_store_writeback.NewStore(ctx, local, local, store_kvtx_inmem.NewStore(), "test/markers", true)
 	if err != nil {
 		t.Fatal(err)
