@@ -51,9 +51,10 @@ func (t *TxSetGraphQuad) Clone() *TxSetGraphQuad {
 
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
+// An empty quad is a *world.OpRefusedError.
 func (t *TxSetGraphQuad) Validate() error {
 	if t.GetQuad().IsEmpty() {
-		return errors.New("cannot set empty graph quad")
+		return world.NewOpRefusedError(errors.New("cannot set empty graph quad"))
 	}
 	return nil
 }

@@ -808,14 +808,15 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 
 	// Decode the fetched bytes and retain cacheable block data.
 	if datFound {
-		// Decode the fetched bytes into the requested block type.
+		// Decode the fetched bytes into the requested block type. The store
+		// checked them against the ref, so a failure here is a *DecodeError.
 		recordDecodedBlockUnmarshal(ctx, len(dat))
 		if err := unmarshalDecodedBlock(b, dat); err != nil {
-			return nil, err
+			return nil, &DecodeError{Err: err}
 		}
 		if v, ok := b.(DecodedBlockValidator); ok {
 			if err := v.ValidateDecodedBlock(); err != nil {
-				return nil, err
+				return nil, &DecodeError{Err: err}
 			}
 		}
 

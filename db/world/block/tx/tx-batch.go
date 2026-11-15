@@ -51,7 +51,8 @@ func (t *TxBatch) GetEmpty() bool {
 	return false
 }
 
-// Validate checks the execution tx type is in range.
+// Validate checks each transaction in the batch. An empty transaction is a
+// *world.OpRefusedError; an unknown transaction type is returned as is.
 func (t *TxBatch) Validate() error {
 	for i, tx := range t.GetTxs() {
 		err := func() error {
@@ -61,7 +62,7 @@ func (t *TxBatch) Validate() error {
 				return err
 			}
 			if empty {
-				return errors.New("empty transaction")
+				return world.NewOpRefusedError(errors.New("empty transaction"))
 			}
 
 			// Validate the nonempty transaction before batch execution.

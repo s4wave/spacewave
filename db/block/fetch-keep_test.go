@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -55,5 +56,37 @@ func TestFetchKeepsRefsUnknownBlocks(t *testing.T) {
 	keep(ctx, nil)
 	if store.kept != 3 {
 		t.Fatalf("FetchWithKeep keep: kept %d", store.kept)
+	}
+}
+
+// TestUnmarshalDecodeError checks that Unmarshal types only a decode failure:
+// stored bytes that do not decode are a *DecodeError, the same on every reader,
+// and a block the store lacks is a failed read that is not one.
+func TestUnmarshalDecodeError(t *testing.T) {
+	ctx := context.Background()
+	store := block_mock.NewMockStore(0)
+	ctor := func() block.Block { return &block_mock.Example{} }
+
+	// 0xff is a field tag with wire type 7, which no message decodes.
+	bad, _, err := store.PutBlock(ctx, []byte{0xff}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, c := block.NewTransaction(store, nil, bad, nil)
+	_, err = c.Unmarshal(ctx, ctor)
+	var decodeErr *block.DecodeError
+	if !errors.As(err, &decodeErr) {
+		t.Fatalf("undecodable block: got %v, want a *block.DecodeError", err)
+	}
+
+	// A block the store lacks fails the read, not the decode.
+	missing, err := block.BuildBlockRef([]byte("missing"), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, c = block.NewTransaction(store, nil, missing, nil)
+	_, err = c.Unmarshal(ctx, ctor)
+	if err == nil || errors.As(err, &decodeErr) {
+		t.Fatalf("missing block: got %v, want a read error", err)
 	}
 }

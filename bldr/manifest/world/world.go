@@ -556,6 +556,10 @@ func LookupManifestRef(ctx context.Context, ws world.WorldState, objKey string) 
 }
 
 // readManifestRefObject reads the ManifestRef stored as the root of objKey.
+//
+// A stored root that does not decode as a ManifestRef is a
+// *world.OpRefusedError: the World's answer, the same on every replica. A
+// failed read is returned as is.
 func readManifestRefObject(ctx context.Context, ws world.WorldState, objKey string) (*bldr_manifest.ManifestRef, *bucket.ObjectRef, error) {
 	// Fetch the object and unmarshal its manifest ref block.
 	obj, err := world.MustGetObject(ctx, ws, objKey)
@@ -569,6 +573,12 @@ func readManifestRefObject(ctx context.Context, ws world.WorldState, objKey stri
 		manifestRef, err = bldr_manifest.UnmarshalManifestRef(ctx, bcs)
 		return err
 	})
+
+	// Refuse a stored root that does not decode; a failed read waits.
+	var decodeErr *block.DecodeError
+	if stderrors.As(err, &decodeErr) {
+		err = world.NewOpRefusedError(err)
+	}
 	return manifestRef, ref, err
 }
 
