@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -71,6 +72,10 @@ type Volume struct {
 	// atomicHashGet records whether hash verification reads are enabled for
 	// atomic publication block construction.
 	atomicHashGet bool
+	// readOnly is set when the store refuses every write transaction: the
+	// Volume then writes nothing on its own, neither at open nor in the
+	// background, and its audit records no holes.
+	readOnly bool
 	// closeBcast guards the closing, closed, and closeErr state below.
 	closeBcast broadcast.Broadcast
 	// closing records that Close has started and direct writes must stop.
@@ -208,6 +213,9 @@ func NewVolume(
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
 	}
+	if ro, ok := store.(kvtx.ReadOnlyStore); ok {
+		v.readOnly = ro.ReadOnly()
+	}
 
 	// Load or claim the Volume identity and initialize its storage.
 	v, err = initVolume(ctx, v, storeID, noGenerateKey, noWriteKey)
@@ -281,7 +289,8 @@ func parseGrace(dur string) (time.Duration, error) {
 
 // startLiveness starts the renewal of this process's leased roots, returns a
 // Volume an adoption left adopting to unadopted and, when the format 7
-// upgrade left an old graph's records, starts their background sweep.
+// upgrade left an old graph's records, starts their background sweep. A
+// read-only Volume only reads the liveness state.
 func (v *Volume) startLiveness(ctx context.Context) error {
 	// Read the liveness state, and return a Volume an adoption that died with
 	// its process left adopting to unadopted.
@@ -293,6 +302,12 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	// A read-only Volume reads its liveness state as it stands and starts
+	// no background writer.
+	if v.readOnly {
+		return nil
 	}
 	if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTING {
 		if err := block_gc.ResetAdoption(ctx, collectorStore{v: v}); err != nil {
@@ -332,7 +347,8 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 }
 
 // initVolume brings the store to the current format and loads or claims the
-// Volume identity.
+// Volume identity. A read-only Volume refuses a store that needs an upgrade
+// with volume.ErrReadOnlyUpgrade and never writes a generated identity.
 func initVolume(
 	ctx context.Context,
 	v *Volume,
@@ -340,9 +356,24 @@ func initVolume(
 	noGenerateKey,
 	noWriteKey bool,
 ) (*Volume, error) {
-	// Bring the store to the current format before any read.
-	if _, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey); err != nil {
-		return nil, err
+	// Require a read-only store at the current format, and keep a generated
+	// identity out of it.
+	if v.readOnly {
+		version, err := readFormatVersion(ctx, v.kvtxStore, v.kvKey)
+		if err != nil {
+			return nil, err
+		}
+		if version != store_kvkey.FormatVersion {
+			return nil, volume.Permanent(errors.Join(volume.ErrReadOnlyUpgrade, errors.New("store format version "+strconv.FormatUint(version, 10))))
+		}
+		noWriteKey = true
+	}
+
+	// Bring a writable store to the current format before any read.
+	if !v.readOnly {
+		if _, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey); err != nil {
+			return nil, err
+		}
 	}
 
 	// Load the stored identity.

@@ -42,6 +42,11 @@ type Config struct {
 	// while reads, collection and deletes continue. Zero selects the disk one
 	// collection needs before it frees any; a negative value keeps no reserve.
 	ReserveBytes int64 `protobuf:"varint,11,opt,name=reserve_bytes,json=reserveBytes,proto3" json:"reserveBytes,omitempty"`
+	// ReadOnly opens an existing file without the writer lock: every write
+	// transaction fails, the volume writes no peer key, no format upgrade and
+	// no liveness record, and an audit records no holes. A file that needs a
+	// conversion or a format upgrade fails to open.
+	ReadOnly bool `protobuf:"varint,12,opt,name=read_only,json=readOnly,proto3" json:"readOnly,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -113,6 +118,13 @@ func (x *Config) GetReserveBytes() int64 {
 	return 0
 }
 
+func (x *Config) GetReadOnly() bool {
+	if x != nil {
+		return x.ReadOnly
+	}
+	return false
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -124,6 +136,7 @@ func (m *Config) CloneVT() *Config {
 	r.Verbose = m.Verbose
 	r.CacheBytes = m.CacheBytes
 	r.ReserveBytes = m.ReserveBytes
+	r.ReadOnly = m.ReadOnly
 	r.KvKeyOpts = protobuf_go_lite.CloneVTValue(m.KvKeyOpts)
 	r.VolumeConfig = protobuf_go_lite.CloneVTValue(m.VolumeConfig)
 	r.StoreConfig = protobuf_go_lite.CloneVTValue(m.StoreConfig)
@@ -168,6 +181,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.ReserveBytes != that.ReserveBytes {
+		return false
+	}
+	if this.ReadOnly != that.ReadOnly {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -234,6 +250,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("reserveBytes")
 		s.WriteInt64(x.ReserveBytes)
 	}
+	if x.ReadOnly || s.HasField("readOnly") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("readOnly")
+		s.WriteBool(x.ReadOnly)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -290,6 +311,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "reserve_bytes", "reserveBytes":
 			s.AddField("reserve_bytes")
 			x.ReserveBytes = s.ReadInt64()
+		case "read_only", "readOnly":
+			s.AddField("read_only")
+			x.ReadOnly = s.ReadBool()
 		}
 	})
 }
@@ -327,6 +351,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ReadOnly {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ReadOnly)
+		i--
+		dAtA[i] = 0x60
 	}
 	if m.ReserveBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ReserveBytes))
@@ -415,6 +444,7 @@ func (m *Config) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CacheBytes)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReserveBytes)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ReadOnly)
 	n += len(m.unknownFields)
 	return n
 }
@@ -457,6 +487,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.ReserveBytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reserve_bytes")
 		protobuf_go_lite.TextWriteInt(&sb, x.ReserveBytes)
+	}
+	if x.ReadOnly != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "read_only")
+		protobuf_go_lite.TextWriteBool(&sb, x.ReadOnly)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -588,6 +622,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReadOnly", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ReadOnly = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

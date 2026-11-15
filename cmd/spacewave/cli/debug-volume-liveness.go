@@ -42,7 +42,7 @@ func (a *debugVolumeAuditArgs) Run(c *cli.Context) error {
 // auditVolume audits the stopped volume at path.
 func auditVolume(ctx context.Context, le *logrus.Entry, path string) (block_gc.AuditResult, error) {
 	// Open the stopped volume and audit it.
-	vol, err := openStoppedVolume(ctx, le, path)
+	vol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
 	if err != nil {
 		return block_gc.AuditResult{}, err
 	}
@@ -106,7 +106,7 @@ func (a *debugVolumeAdoptArgs) Run(c *cli.Context) error {
 // the adoption reached with its error.
 func adoptVolume(ctx context.Context, le *logrus.Entry, path string) (block_gc.AdoptResult, error) {
 	// Open the stopped volume and adopt it.
-	vol, err := openStoppedVolume(ctx, le, path)
+	vol, err := openStoppedVolume(ctx, le, path, volumeWritable)
 	if err != nil {
 		return block_gc.AdoptResult{}, err
 	}

@@ -65,7 +65,7 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *store_kvtx.Config) (block_gc.CollectResult, int, error) {
 	// Open the stopped volume with the collector's configuration.
 	var sum block_gc.CollectResult
-	vol, err := openStoppedVolumeStore(ctx, le, path, conf)
+	vol, err := openStoppedVolumeStore(ctx, le, path, volumeWritable, conf)
 	if err != nil {
 		return sum, 0, err
 	}

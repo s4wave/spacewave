@@ -15,4 +15,8 @@ var (
 	ErrReserve = errors.New("volume is below its disk reserve")
 	// ErrVolumeClosed is returned by a write to a Volume that closed.
 	ErrVolumeClosed = errors.New("volume is closed")
+	// ErrReadOnlyUpgrade is returned by a read-only open of a volume whose
+	// storage needs a conversion or a format upgrade, which only a writable
+	// open makes.
+	ErrReadOnlyUpgrade = errors.New("volume needs a format upgrade, which a read-only open cannot write")
 )

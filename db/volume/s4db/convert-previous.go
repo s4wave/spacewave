@@ -39,11 +39,18 @@ const convertProgressInterval = 10 * time.Second
 // Open opens the s4db file at path with opts, first converting in place a file
 // the previous engine wrote, as convertPrevious describes. Every caller that
 // opens a file a previous release may have written opens it here, so upgrading
-// a host needs no manual step.
+// a host needs no manual step. A read-only open of such a file fails with
+// volume.ErrReadOnlyUpgrade instead.
 func Open(ctx context.Context, le *logrus.Entry, path string, opts s4db.Options) (*s4db.DB, error) {
+	// Open the file as it is.
 	db, err := s4db.Open(path, opts)
 	if !errors.Is(err, s4db.ErrPreviousFormat) {
 		return db, err
+	}
+
+	// Convert a previous-format file, which a read-only open cannot write.
+	if opts.ReadOnly {
+		return nil, volume.Permanent(volume.ErrReadOnlyUpgrade)
 	}
 	if err := convertPrevious(ctx, le, path); err != nil {
 		return nil, err

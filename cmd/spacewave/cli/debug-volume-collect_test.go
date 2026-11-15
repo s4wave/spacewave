@@ -41,7 +41,7 @@ func TestDebugVolumeCollect(t *testing.T) {
 
 	// stored reports which of the two heads the stopped volume holds.
 	stored := func() (bool, bool) {
-		vol, err := openStoppedVolume(ctx, le, path)
+		vol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
 		if err != nil {
 			t.Fatal(err)
 		}

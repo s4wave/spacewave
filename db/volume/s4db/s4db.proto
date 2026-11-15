@@ -30,4 +30,9 @@ message Config {
   // while reads, collection and deletes continue. Zero selects the disk one
   // collection needs before it frees any; a negative value keeps no reserve.
   int64 reserve_bytes = 11;
+  // ReadOnly opens an existing file without the writer lock: every write
+  // transaction fails, the volume writes no peer key, no format upgrade and
+  // no liveness record, and an audit records no holes. A file that needs a
+  // conversion or a format upgrade fails to open.
+  bool read_only = 12;
 }

@@ -682,6 +682,12 @@ func (db *DB) SupportsAtomicCommit() bool {
 	return true
 }
 
+// ReadOnly reports whether the handle was opened with Options.ReadOnly, so
+// every write transaction fails with ErrReadOnly.
+func (db *DB) ReadOnly() bool {
+	return db.opts.ReadOnly
+}
+
 // Seq returns the last record of the published state.
 func (db *DB) Seq() uint64 {
 	return db.cur.Load().seq
@@ -779,4 +785,5 @@ var (
 	_ kvtx.OrderedCommitStore = (*DB)(nil)
 	_ kvtx.AtomicCommitStore  = (*DB)(nil)
 	_ kvtx.WriterQueueStore   = (*DB)(nil)
+	_ kvtx.ReadOnlyStore      = (*DB)(nil)
 )
