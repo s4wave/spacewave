@@ -24,6 +24,7 @@ import {
 } from '@s4wave/web/object/ViewerBar.js'
 import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { useSaveHold } from '@s4wave/app/sobject/space-replay.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 
 import {
   decodeText,
@@ -114,35 +115,37 @@ async function readFresh(
  * meets expect, and asks for the version it writes. A plain save that finds
  * the file removed recreates it only while nothing holds the path, so a
  * removal never reads as another writer's version. It sends no mode: a mode
- * never changes a file that exists.
+ * never changes a file that exists. It takes no abort: a save once sent runs
+ * until the Space decides it.
  */
 async function writeText(
   root: FSHandle,
   path: string,
   data: Uint8Array<ArrayBuffer>,
   expect: TreeUploadExpect,
-  signal: AbortSignal,
 ): Promise<TreeUploadResult> {
   const blob = new Blob([data], { type: 'text/plain;charset=utf-8' })
   const upload = (expect: TreeUploadExpect) =>
-    root.uploadTree(
-      [
-        {
-          kind: 'file',
-          path: normalizeUnixFSLookupPath(path),
-          expect,
-          totalSize: BigInt(blob.size),
-          stream: blob.stream(),
-          wantVersion: true,
-        },
-      ],
-      undefined,
-      signal,
-    )
+    root.uploadTree([
+      {
+        kind: 'file',
+        path: normalizeUnixFSLookupPath(path),
+        expect,
+        totalSize: BigInt(blob.size),
+        stream: blob.stream(),
+        wantVersion: true,
+      },
+    ])
   const result = await upload(expect)
   const removed = result.kind === 'conflict' && !result.version
-  if (!removed || expect.kind !== 'version' || signal.aborted) return result
+  if (!removed || expect.kind !== 'version') return result
   return upload({ kind: 'missing' })
+}
+
+// notSavedNote is the toast for a save the Space did not take after its
+// viewer closed.
+function notSavedNote(path: string): string {
+  return `Your edits to ${path.split('/').pop() || path} were not saved.`
 }
 
 // previewNote says why a preview offers no Edit.
@@ -226,7 +229,9 @@ export function UnixFSTextFileViewer({
     // Take the draft's text once; typing after the press is not saved.
     const root = rootHandle.value
     const draft = state.draft
-    if (!root || !draft || draft.saving || signal.aborted) return
+    if (!root || root.released || !draft || draft.saving || signal.aborted) {
+      return
+    }
 
     // A plain Save expects the version the draft started from, and the store
     // refuses it inside the commit when another writer saved since.
@@ -240,16 +245,25 @@ export function UnixFSTextFileViewer({
     // so a later read of the saved version compares equal.
     const data = encodeText(draft.text, draft.from.crlf)
     const { text, crlf } = decodeText(data, false)
+
+    // Hold the root until the Space decides the save, which waits while the
+    // Space opens: closing the viewer neither aborts it nor releases the
+    // handle it runs on. A closed viewer shows a save it missed in a toast.
+    const held = root.hold()
     let result: TreeUploadResult
     try {
-      result = await writeText(root, path, data, expect, signal)
+      result = await writeText(held, path, data, expect)
     } catch (cause) {
-      if (!signal.aborted) {
-        dispatch({ type: 'save-failed', error: errorText(cause) })
-      }
+      if (signal.aborted) toast.error(notSavedNote(path))
+      else dispatch({ type: 'save-failed', error: errorText(cause) })
+      return
+    } finally {
+      held.release()
+    }
+    if (signal.aborted) {
+      if (result.kind !== 'written') toast.error(notSavedNote(path))
       return
     }
-    if (signal.aborted) return
 
     // A landed save shows its text at the version it wrote; a refused one
     // offers Save over theirs and reads their version back.

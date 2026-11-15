@@ -2,18 +2,28 @@
 title: "Space replay and the sync notice"
 ---
 stateDiagram-v2
-  s0: Opening, read only
+  s0: Opening, saves wait
   s1: Caught up
-  s2: Waiting for an app, read only
-  s3: Waiting for approval, read only
+  s2: Waiting for data, read only
+  s3: Waiting for an app, read only
+  s4: Retrying a change, read only
+  s5: Waiting for approval, read only
   [*] --> s0
   s0 --> s1: replay catches up
-  s0 --> s2: reaches an unknown change
+  s0 --> s2: stops at a change
+  s0 --> s3: stops at a change
+  s0 --> s4: stops at a change
   s1 --> s0: app restarts
-  s1 --> s2: reaches an unknown change
+  s1 --> s2: stops at a change
+  s1 --> s3: stops at a change
+  s1 --> s4: stops at a change
   s2 --> s0: app restarts
-  s2 --> s1: handler arrives
-  s2 --> s3: plugin not approved
+  s2 --> s1: passes the change
   s3 --> s0: app restarts
-  s3 --> s1: handler arrives
-  s3 --> s2: person approves
+  s3 --> s1: passes the change
+  s3 --> s5: plugin not approved
+  s4 --> s0: app restarts
+  s4 --> s1: passes the change
+  s5 --> s0: app restarts
+  s5 --> s1: passes the change
+  s5 --> s3: person approves
