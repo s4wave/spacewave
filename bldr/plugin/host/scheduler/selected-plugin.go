@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
@@ -49,7 +50,10 @@ func (t *pluginInstance) execSelectedPlugin(ctx context.Context, args *executePl
 	if args != nil {
 		candidates = append(candidates, args.fallbacks...)
 	}
-	var err error
+	candidates, err := t.admittedCandidates(ctx, candidates)
+	if err != nil {
+		return err
+	}
 	var protocolErr *plugin_host.StartupProtocolError
 	for i, candidate := range candidates {
 		if i != 0 && (err == nil || ctx.Err() != nil || t.runningPluginCtr.GetValue() != nil) {
@@ -363,6 +367,80 @@ func (t *pluginInstance) clearExecution(expected *pluginInstance) {
 	// Release the replaced worker outside the update lock.
 	if release != nil {
 		release()
+	}
+}
+
+// admittedCandidates returns the candidates whose manifest roots are admitted,
+// keeping their order, when the scheduler requires admission. With none
+// admitted it waits until one is, so an unadmitted preferred candidate never
+// holds back an admitted fallback. A removal, with no manifest, passes.
+func (t *pluginInstance) admittedCandidates(ctx context.Context, candidates []*executePluginArgs) ([]*executePluginArgs, error) {
+	// Pass every candidate through a scheduler that runs every root.
+	if !t.c.conf.GetRequireAdmission() || candidates[0] == nil || candidates[0].manifestSnapshot == nil {
+		return candidates, nil
+	}
+	for {
+		// Keep the candidates admitted now, in order.
+		var admitted []*executePluginArgs
+		for _, candidate := range candidates {
+			ok, err := t.rootAdmitted(ctx, candidate)
+			if err != nil {
+				return nil, err
+			}
+			if ok {
+				admitted = append(admitted, candidate)
+			}
+		}
+		if len(admitted) != 0 {
+			return admitted, nil
+		}
+
+		// Wait until any root is admitted, then check the order again.
+		if err := t.awaitAnyAdmission(ctx, candidates); err != nil {
+			return nil, err
+		}
+	}
+}
+
+// rootAdmitted reports whether the candidate's root is admitted once every
+// admission resolver has answered.
+func (t *pluginInstance) rootAdmitted(ctx context.Context, args *executePluginArgs) (bool, error) {
+	// Ask once, returning when the resolvers go idle with or without a value.
+	root := manifestRootKey(args.manifestSnapshot.GetManifestRef())
+	_, _, ref, err := bus.ExecWaitValue[plugin.AdmitPluginRootValue](
+		ctx,
+		t.c.bus,
+		plugin.NewAdmitPluginRoot(t.c.conf.GetPeerId(), t.pluginID, root),
+		bus.ReturnIfIdle(true),
+		nil,
+		nil,
+	)
+	if err != nil || ref == nil {
+		return false, err
+	}
+	ref.Release()
+	return true, nil
+}
+
+// awaitAnyAdmission waits until any candidate's root is admitted.
+func (t *pluginInstance) awaitAnyAdmission(ctx context.Context, candidates []*executePluginArgs) error {
+	// Wait on every root at once; the first admission cancels the rest.
+	waitCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	admitted := make(chan struct{}, len(candidates))
+	for _, candidate := range candidates {
+		root := manifestRootKey(candidate.manifestSnapshot.GetManifestRef())
+		go func() {
+			if _, err := plugin.WaitPluginRootAdmitted(waitCtx, t.c.bus, t.c.conf.GetPeerId(), t.pluginID, root); err == nil {
+				admitted <- struct{}{}
+			}
+		}()
+	}
+	select {
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	case <-admitted:
+		return nil
 	}
 }
 

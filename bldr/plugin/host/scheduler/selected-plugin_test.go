@@ -537,5 +537,35 @@ func TestSelectedPluginAwaitsAdmission(t *testing.T) {
 	}
 	stopNext()
 	<-doneNext
+
+	// An unadmitted preferred root does not hold back an admitted fallback.
+	got, err := instance.admittedCandidates(ctx, []*executePluginArgs{candidate(3), candidate(1)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].rev != 1 {
+		t.Fatalf("admitted candidates = %d, want only rev 1", len(got))
+	}
+
+	// With none admitted, admitting any root ends the wait.
+	waited := make(chan []*executePluginArgs, 1)
+	go func() {
+		got, _ := instance.admittedCandidates(ctx, []*executePluginArgs{candidate(4), candidate(5)})
+		waited <- got
+	}()
+	select {
+	case <-waited:
+		t.Fatal("no candidate is admitted, yet the wait ended")
+	case <-time.After(200 * time.Millisecond):
+	}
+	admit(5)
+	select {
+	case got := <-waited:
+		if len(got) != 1 || got[0].rev != 5 {
+			t.Fatalf("admitted candidates = %d, want only rev 5", len(got))
+		}
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
 	instance.closeExecutions()
 }
