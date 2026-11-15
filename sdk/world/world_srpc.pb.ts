@@ -111,17 +111,18 @@ import {
   WaitSeqnoRequest,
   WaitSeqnoResponse,
   WatchChangesRequest,
+  WatchChangesResponse,
   WatchTypedObjectRequest,
   WatchTypedObjectResponse,
   WatchWorldRootSnapshotsRequest,
   WatchWorldStateRequest,
   WatchWorldStateResponse,
-  WorldChange,
   WorldRootSnapshot,
 } from './world.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
+  buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
   ServerContext,
@@ -249,15 +250,17 @@ export const EngineResourceServiceDefinition = {
     },
     /**
      * WatchChanges streams each later World revision with the objects and graph
-     * quads it changed since the previous message.
+     * quads it changed since the previous message. The first request opens the
+     * stream; a stream opened with an interest takes later requests that change
+     * it, each acknowledged in order among the changes.
      *
      * @generated from rpc s4wave.world.EngineResourceService.WatchChanges
      */
     WatchChanges: {
       name: 'WatchChanges',
       I: WatchChangesRequest,
-      O: WorldChange,
-      kind: MethodKind.ServerStreaming,
+      O: WatchChangesResponse,
+      kind: MethodKind.BiDiStreaming,
     },
     /**
      * WaitObjectRev waits until an object reaches a revision through the
@@ -411,14 +414,16 @@ export interface EngineResourceService {
 
   /**
    * WatchChanges streams each later World revision with the objects and graph
-   * quads it changed since the previous message.
+   * quads it changed since the previous message. The first request opens the
+   * stream; a stream opened with an interest takes later requests that change
+   * it, each acknowledged in order among the changes.
    *
    * @generated from rpc s4wave.world.EngineResourceService.WatchChanges
    */
   WatchChanges(
-    request: WatchChangesRequest,
+    request: MessageStream<WatchChangesRequest>,
     abortSignal?: AbortSignal,
-  ): MessageStream<WorldChange>
+  ): MessageStream<WatchChangesResponse>
 
   /**
    * WaitObjectRev waits until an object reaches a revision through the
@@ -580,15 +585,17 @@ export interface EngineResourceServiceHandler {
 
   /**
    * WatchChanges streams each later World revision with the objects and graph
-   * quads it changed since the previous message.
+   * quads it changed since the previous message. The first request opens the
+   * stream; a stream opened with an interest takes later requests that change
+   * it, each acknowledged in order among the changes.
    *
    * @generated from rpc s4wave.world.EngineResourceService.WatchChanges
    */
   WatchChanges(
-    request: WatchChangesRequest,
+    request: MessageStream<WatchChangesRequest>,
     abortSignal: AbortSignal,
     context: ServerContext,
-  ): MessageStream<WorldChange>
+  ): MessageStream<WatchChangesResponse>
 
   /**
    * WaitObjectRev waits until an object reaches a revision through the
@@ -864,22 +871,23 @@ export class EngineResourceServiceClient implements EngineResourceService {
 
   /**
    * WatchChanges streams each later World revision with the objects and graph
-   * quads it changed since the previous message.
+   * quads it changed since the previous message. The first request opens the
+   * stream; a stream opened with an interest takes later requests that change
+   * it, each acknowledged in order among the changes.
    *
    * @generated from rpc s4wave.world.EngineResourceService.WatchChanges
    */
   WatchChanges(
-    request: WatchChangesRequest,
+    request: MessageStream<WatchChangesRequest>,
     abortSignal?: AbortSignal,
-  ): MessageStream<WorldChange> {
-    const requestMsg = WatchChangesRequest.create(request)
-    const result = this.rpc.serverStreamingRequest(
+  ): MessageStream<WatchChangesResponse> {
+    const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       EngineResourceServiceDefinition.methods.WatchChanges.name,
-      WatchChangesRequest.toBinary(requestMsg),
+      buildEncodeMessageTransform(WatchChangesRequest)(request),
       abortSignal || undefined,
     )
-    return buildDecodeMessageTransform(WorldChange)(result)
+    return buildDecodeMessageTransform(WatchChangesResponse)(result)
   }
 
   /**

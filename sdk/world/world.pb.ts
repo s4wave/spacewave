@@ -586,21 +586,135 @@ export const WaitSeqnoResponse: MessageType<WaitSeqnoResponse> =
   )
 
 /**
- * WatchChangesRequest is the request type for WatchChanges.
+ * WatchChangesRequest is one request on a WatchChanges stream.
  *
  * @generated from message s4wave.world.WatchChangesRequest
  */
 export interface WatchChangesRequest {
   /**
-   * AfterSeqno is the revision the stream starts after.
+   * AfterSeqno is the revision the stream starts after. Only the first request
+   * sets it.
    */
   afterSeqno?: bigint
+  /**
+   * Interest names the changes the stream sends. On the first request, an
+   * unset interest sends every change, and a set one, even empty, starts a
+   * named interest from nothing and applies it. Each later request must set
+   * it, on a stream opened with one, and changes the interest by it. Closing
+   * the request side ends only the deltas; the changes keep coming.
+   */
+  interest?: ChangeInterestDelta
 }
 
 export const WatchChangesRequest: MessageType<WatchChangesRequest> =
   /* @__PURE__ */ createMessageType<WatchChangesRequest>(
     's4wave.world.WatchChangesRequest',
-    () => [[1, 'after_seqno', 4]],
+    () => [
+      [1, 'after_seqno', 4],
+      [2, 'interest', 11, 0, ChangeInterestDelta.codec],
+    ],
+  )
+
+/**
+ * ChangeInterestDelta changes a named interest. A change reaches the stream
+ * when it changes one of the interest's object keys, or sets or deletes a
+ * graph quad matching one of its patterns. The stream may also send other
+ * changes; a client filters what it receives.
+ *
+ * @generated from message s4wave.world.ChangeInterestDelta
+ */
+export interface ChangeInterestDelta {
+  /**
+   * Version numbers the delta. The interest sent with the first request is
+   * version 1, and each later delta's version is one more than the one
+   * before; the stream fails on any other. The ack that applies a delta
+   * carries its version.
+   */
+  version?: bigint
+  /**
+   * AddKeys are object keys to add.
+   */
+  addKeys?: string[]
+  /**
+   * RemoveKeys are object keys to remove.
+   */
+  removeKeys?: string[]
+  /**
+   * AddPatterns are graph quad patterns to add. An empty field matches any
+   * value; a pattern must set at least one field.
+   */
+  addPatterns?: Quad[]
+  /**
+   * RemovePatterns are graph quad patterns to remove, spelled as added.
+   */
+  removePatterns?: Quad[]
+}
+
+export const ChangeInterestDelta: MessageType<ChangeInterestDelta> =
+  /* @__PURE__ */ createMessageType<ChangeInterestDelta>(
+    's4wave.world.ChangeInterestDelta',
+    () => [
+      [1, 'version', 4],
+      [2, 'add_keys', 9, 1],
+      [3, 'remove_keys', 9, 1],
+      [4, 'add_patterns', 11, 1, Quad.codec],
+      [5, 'remove_patterns', 11, 1, Quad.codec],
+    ],
+  )
+
+/**
+ * WatchChangesResponse is one message on a WatchChanges stream.
+ *
+ * @generated from message s4wave.world.WatchChangesResponse
+ */
+export interface WatchChangesResponse {
+  /**
+   * @generated from oneof s4wave.world.WatchChangesResponse.body
+   */
+  body?:
+    | { value?: undefined; case: undefined }
+    | { value: WorldChange; case: 'change' }
+    | { value: InterestAck; case: 'interestAck' }
+}
+
+export const WatchChangesResponse: MessageType<WatchChangesResponse> =
+  /* @__PURE__ */ createMessageType<WatchChangesResponse>(
+    's4wave.world.WatchChangesResponse',
+    () => [
+      [1, 'change', 11, 0, WorldChange.codec, 'body'],
+      [2, 'interest_ack', 11, 0, InterestAck.codec, 'body'],
+    ],
+  )
+
+/**
+ * InterestAck reports which interest filtered which changes. The changes the
+ * stream sent before the ack, up to after_seqno, were filtered under the
+ * earlier interest; every change after after_seqno is filtered under the
+ * interest with the deltas up to version applied. Nothing after after_seqno
+ * was sent before the ack, so nothing is sent twice. When the World no longer
+ * records the revision at after_seqno, the next change is unknown.
+ *
+ * @generated from message s4wave.world.InterestAck
+ */
+export interface InterestAck {
+  /**
+   * Version is the version of the last delta applied.
+   */
+  version?: bigint
+  /**
+   * AfterSeqno is the last seqno the earlier interest filtered. It may pass
+   * the last change sent, when the earlier interest accepted none since.
+   */
+  afterSeqno?: bigint
+}
+
+export const InterestAck: MessageType<InterestAck> =
+  /* @__PURE__ */ createMessageType<InterestAck>(
+    's4wave.world.InterestAck',
+    () => [
+      [1, 'version', 4],
+      [2, 'after_seqno', 4],
+    ],
   )
 
 /**

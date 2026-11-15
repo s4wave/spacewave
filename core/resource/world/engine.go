@@ -235,17 +235,6 @@ func (r *EngineResource) WaitSeqno(ctx context.Context, req *s4wave_world.WaitSe
 	return &s4wave_world.WaitSeqnoResponse{Seqno: seqno}, nil
 }
 
-// WatchChanges streams each later World revision with the changes since the
-// previous message.
-func (r *EngineResource) WatchChanges(
-	req *s4wave_world.WatchChangesRequest,
-	stream s4wave_world.SRPCEngineResourceService_WatchChangesStream,
-) error {
-	return world.WatchChanges(stream.Context(), r.engine, req.GetAfterSeqno(), func(seqno uint64, changes *world.ChangeSet) error {
-		return stream.Send(s4wave_world.NewWorldChange(seqno, changes))
-	})
-}
-
 // WaitObjectRev waits for an object revision through the engine's key watch.
 // A missing object is reported as a response error code so the client can
 // restore ErrObjectNotFound.

@@ -138,12 +138,45 @@ func (e *SDKEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, i
 // later seqno touches accepts and the changes since the previous one. The
 // remote engine streams every change, so the filter runs here.
 func (e *SDKEngine) WatchChanges(ctx context.Context, afterSeqno uint64, touches world.ChangeFilter, cb func(seqno uint64, changes *world.ChangeSet) error) error {
-	// Open the stream after afterSeqno.
-	strm, err := e.service.WatchChanges(ctx, &s4wave_world.WatchChangesRequest{AfterSeqno: afterSeqno})
+	return e.watchChanges(ctx, afterSeqno, nil, touches, cb)
+}
+
+// WatchIndexedChanges is WatchChanges for the changes interest accepts. When
+// the interest names every change it may accept, the remote engine indexes it
+// by those names and sends only the changes naming one; otherwise it sends
+// every change. Either way the interest filters here too, since a name may
+// match changes the interest rejects.
+func (e *SDKEngine) WatchIndexedChanges(ctx context.Context, afterSeqno uint64, interest *world.ChangeInterest, cb func(seqno uint64, changes *world.ChangeSet) error) error {
+	var delta *s4wave_world.ChangeInterestDelta
+	if keys, patterns, ok := interest.Names(); ok {
+		delta = s4wave_world.NewChangeInterestDelta(1, keys, patterns)
+	}
+	return e.watchChanges(ctx, afterSeqno, delta, interest.Accepts, cb)
+}
+
+// watchChanges opens the change stream after afterSeqno with interest, or
+// with none for every change, and hands cb each change touches accepts. The
+// interest never changes, so the request side closes after the first request.
+func (e *SDKEngine) watchChanges(
+	ctx context.Context,
+	afterSeqno uint64,
+	interest *s4wave_world.ChangeInterestDelta,
+	touches world.ChangeFilter,
+	cb func(seqno uint64, changes *world.ChangeSet) error,
+) error {
+	// Open the stream and send its only request.
+	strm, err := e.service.WatchChanges(ctx)
 	if err != nil {
 		return err
 	}
 	defer strm.Close()
+	req := &s4wave_world.WatchChangesRequest{AfterSeqno: afterSeqno, Interest: interest}
+	if err := strm.Send(req); err != nil {
+		return err
+	}
+	if err := strm.CloseSend(); err != nil {
+		return err
+	}
 
 	// Hand each change to cb until the stream or cb ends.
 	for {
@@ -151,11 +184,15 @@ func (e *SDKEngine) WatchChanges(ctx context.Context, afterSeqno uint64, touches
 		if err != nil {
 			return err
 		}
-		changes := msg.ToChangeSet()
+		change := msg.GetChange()
+		if change == nil {
+			continue
+		}
+		changes := change.ToChangeSet()
 		if !touches.Accepts(changes) {
 			continue
 		}
-		if err := cb(msg.GetSeqno(), changes); err != nil {
+		if err := cb(change.GetSeqno(), changes); err != nil {
 			return err
 		}
 	}

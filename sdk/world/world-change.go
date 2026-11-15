@@ -25,6 +25,35 @@ func NewWorldChange(seqno uint64, changes *world.ChangeSet) *WorldChange {
 	return &WorldChange{Seqno: seqno, Keys: changes.Keys, Quads: quads}
 }
 
+// NewChangeResponse wraps the changes that reach seqno as a WatchChanges
+// response.
+func NewChangeResponse(seqno uint64, changes *world.ChangeSet) *WatchChangesResponse {
+	return &WatchChangesResponse{Body: &WatchChangesResponse_Change{Change: NewWorldChange(seqno, changes)}}
+}
+
+// NewInterestAckResponse acknowledges every interest delta up to version: the
+// changes after afterSeqno are filtered under the interest they leave.
+func NewInterestAckResponse(version, afterSeqno uint64) *WatchChangesResponse {
+	return &WatchChangesResponse{Body: &WatchChangesResponse_InterestAck{
+		InterestAck: &InterestAck{Version: version, AfterSeqno: afterSeqno},
+	}}
+}
+
+// NewChangeInterestDelta returns the delta that adds keys and patterns, at
+// version.
+func NewChangeInterestDelta(version uint64, keys []string, patterns []world.GraphQuad) *ChangeInterestDelta {
+	quads := make([]*quad.Quad, len(patterns))
+	for i, q := range patterns {
+		quads[i] = &quad.Quad{
+			Subject:   q.GetSubject(),
+			Predicate: q.GetPredicate(),
+			Obj:       q.GetObj(),
+			Label:     q.GetLabel(),
+		}
+	}
+	return &ChangeInterestDelta{Version: version, AddKeys: keys, AddPatterns: quads}
+}
+
 // ToChangeSet decodes the changes the message lists.
 func (c *WorldChange) ToChangeSet() *world.ChangeSet {
 	// Decode an unknown change without its lists.
