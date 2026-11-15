@@ -1971,6 +1971,97 @@ func TestSyncControllerHeldWriteDuringFlushRereads(t *testing.T) {
 	}
 }
 
+// TestSyncControllerPartialPassKeepsHeld fails the push of a flush's first
+// chunk, so the flush stops before reading every dirty block. The blocks it
+// found corrupt are held with the count marked partial, a hold on a block it
+// did not reach is kept, and a later complete flush replaces the set and
+// clears partial.
+func TestSyncControllerPartialPassKeepsHeld(t *testing.T) {
+	// Fail pushes while fail is set.
+	var fail atomic.Bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if fail.Load() && strings.HasSuffix(r.URL.Path, "/sync/push") {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/protobuf")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, server.URL, DefaultSigningEnvPrefix, priv, pid.String())
+
+	// Queue the corrupt block, five chunk-sized blocks that fill three
+	// chunks, then a late block no failed flush reaches.
+	ctx := t.Context()
+	s := newDirtySyncExecuteTestController(t, cli, nil)
+	good := s.upper
+	addSyncChunkBlocks(t, ctx, s.store, good, 5)
+	wtx, err := s.store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	late := addSyncDirtyBlock(t, ctx, wtx, good, "late block")
+	if err := wtx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	s.updateDirtyState(ctx)
+	bad, err := block.BuildBlockRef([]byte("dirty block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.upper = &corruptUpperStore{StoreOps: good, bad: bad.GetHash()}
+	badKey, lateKey := bad.GetHash().MarshalString(), late.GetHash().MarshalString()
+	heldState := func() (map[string]struct{}, bool, time.Time) {
+		var known map[string]struct{}
+		var partial bool
+		var since time.Time
+		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			known, partial, since = s.corruptKnown, s.heldPartial, s.heldSince
+		})
+		return known, partial, since
+	}
+
+	// The first held flush fails its first push: held, partial, at least
+	// the block it found.
+	fail.Store(true)
+	var held *heldError
+	if err := s.FlushNow(ctx); err == nil || errors.As(err, &held) {
+		t.Fatalf("failing flush = %v; want the push error", err)
+	}
+	known, partial, since := heldState()
+	if !hasKey(known, badKey) || !partial || since.IsZero() {
+		t.Fatalf("after a failed push: %d held, partial %v, since %v; want the corrupt block, partial, a time", len(known), partial, since)
+	}
+	if text := s.held(len(known)).Error(); !strings.Contains(text, "at least 1 damaged blocks") {
+		t.Fatalf("held text = %q; want a lower bound", text)
+	}
+
+	// A hold on the late block survives a failed flush that never reaches it.
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.corruptKnown = map[string]struct{}{badKey: {}, lateKey: {}}
+	})
+	if err := s.FlushNow(ctx); err == nil || errors.As(err, &held) {
+		t.Fatalf("second failing flush = %v; want the push error", err)
+	}
+	known, partial, again := heldState()
+	if len(known) != 2 || !hasKey(known, lateKey) || !partial || !again.Equal(since) {
+		t.Fatalf("after a partial pass: %d held, late %v, partial %v; want both kept, partial, the first time", len(known), hasKey(known, lateKey), partial)
+	}
+
+	// A complete flush that reads every block replaces the set and clears
+	// partial: the late block reads sound and uploads.
+	fail.Store(false)
+	s.corruptRecheck.Store(true)
+	if err := s.FlushNow(ctx); !errors.As(err, &held) || held.count != 1 || held.partial {
+		t.Fatalf("complete flush = %v; want held with exactly 1 block", err)
+	}
+	known, partial, _ = heldState()
+	if len(known) != 1 || !hasKey(known, badKey) || partial {
+		t.Fatalf("after a complete pass: %d held, partial %v; want only the corrupt block, exact", len(known), partial)
+	}
+}
+
 // TestSyncReclaimWalkFailsOnMissingOrCorrupt checks that the reclaim walk
 // fails on a root it cannot read, missing everywhere or corrupt in the cache,
 // rather than judging the blocks under it dead.

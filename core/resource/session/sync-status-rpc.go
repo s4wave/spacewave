@@ -118,6 +118,7 @@ func syncStatusHeld(store provider_spacewave.SyncTelemetryBlockStoreSnapshot) *s
 	return &s4wave_session.SyncHeldState{
 		DamagedBlockCount: uint32Count(store.CorruptDirtyCount),
 		HeldAt:            timestamppb.New(store.HeldSince),
+		Partial:           store.HeldPartial,
 	}
 }
 

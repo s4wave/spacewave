@@ -358,6 +358,10 @@ message SyncHeldState {
   // HeldAt is when the store first held a block back. Nothing has been
   // published from the store since.
   google.protobuf.Timestamp held_at = 2;
+  // Partial is true when the pass that produced DamagedBlockCount stopped
+  // before reading every dirty block, so the count is a lower bound. False
+  // means the count is exact.
+  bool partial = 3;
 }
 
 // WatchSyncStatusResponse is the response type for WatchSyncStatus.

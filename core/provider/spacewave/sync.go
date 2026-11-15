@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -114,6 +115,10 @@ type syncController struct {
 	// heldSince is when the flush first held a corrupt block back, zero while
 	// none is held, under bcast.
 	heldSince time.Time
+	// heldPartial is set, under bcast, when the pass that last set
+	// corruptKnown stopped before reading every dirty block, so its size is
+	// a lower bound. A complete pass clears it.
+	heldPartial bool
 	// writes counts MarkDirty calls under bcast, so a held store waits for a
 	// new write rather than for any broadcast.
 	writes uint64
@@ -133,12 +138,19 @@ type heldError struct {
 	count int
 	// since is when the store first held a block back.
 	since time.Time
+	// partial is set when count is a lower bound: the pass that found the
+	// blocks stopped before reading every dirty block.
+	partial bool
 }
 
 // Error names the held state the person sees.
 func (e *heldError) Error() string {
-	return fmt.Sprintf("sync held: %d damaged blocks on this device, nothing published since %s",
-		e.count, e.since.Format(time.RFC3339))
+	count := strconv.Itoa(e.count)
+	if e.partial {
+		count = "at least " + count
+	}
+	return fmt.Sprintf("sync held: %s damaged blocks on this device, nothing published since %s",
+		count, e.since.Format(time.RFC3339))
 }
 
 // Is matches block.ErrBlockCorrupt.
@@ -975,10 +987,11 @@ func (s *syncController) flushChunks(ctx context.Context, through uint64, orderB
 			err = s.commitPushedChunk(ctx, chunk)
 		}
 		if err != nil {
-			// Stop the packer and wait for it before returning.
+			// Stop the packer at its next chunk and wait for it to record
+			// the held set of the blocks it read. Nothing receives its
+			// chunks now, so it cannot read on past the failure.
 			cancel()
-			for range chunks {
-			}
+			<-prepared
 			return 0, err
 		}
 	}
@@ -997,7 +1010,7 @@ func (s *syncController) prepareChunks(
 	through uint64,
 	orderBlocks bool,
 	emit func(*preparedSyncChunk) error,
-) (int, error) {
+) (_ int, err error) {
 	// Keep only one partial chunk alongside the current candidate page.
 	maxBlocks := int(writer.DefaultMaxBlocksPerPack)
 	pending := make([]dirtyCandidate, 0, maxBlocks)
@@ -1009,9 +1022,22 @@ func (s *syncController) prepareChunks(
 	var known map[string]struct{}
 	var writes uint64
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known, writes = s.corruptKnown, s.writes })
-	if s.corruptRecheck.Swap(false) {
+	recheck := s.corruptRecheck.Swap(false)
+	if recheck {
 		known = nil
 	}
+
+	// A pass that stops early keeps what it found and every earlier hold,
+	// and leaves a due recheck for the next pass.
+	defer func() {
+		if err == nil {
+			return
+		}
+		if recheck {
+			s.corruptRecheck.Store(true)
+		}
+		s.setCorruptKnown(corrupt, writes, true)
+	}()
 	flushPending := func() error {
 		// Load the pending payloads and emit their packs.
 		loaded, err := s.loadDirtyBlocks(ctx, pending, corrupt)
@@ -1088,7 +1114,7 @@ func (s *syncController) prepareChunks(
 	}
 
 	// Keep and report the corrupt blocks the pass left queued.
-	s.setCorruptKnown(corrupt, writes)
+	s.setCorruptKnown(corrupt, writes, false)
 	return len(corrupt), nil
 }
 
@@ -1098,17 +1124,41 @@ func (s *syncController) prepareChunks(
 // and a flush with nothing pending clears it. writes is the write count the
 // flush read with its copy of the known set.
 //
+// A partial flush stopped before reading every dirty block, on a push or
+// commit failure or a cancel. Its set joins the current one rather than
+// replacing it, since the blocks it did not reach keep their holds, and the
+// held state is marked partial: the count is a lower bound. A partial flush
+// that found nothing while nothing is held changes nothing, so the store
+// shows as not held; that is the one case the held state cannot know, since
+// the blocks the flush did not read may be damaged.
+//
 // Invariant: a write of a held hash always makes a later flush read the
 // block. MarkDirty removes the hash from the set at once, but this
 // replacement would put back a hash the flush read before that write landed.
 // The flush cannot tell which hashes a write touched, so when any write
 // landed since its copy it makes the next flush read every held block. The
 // caller holds flushMtx.
-func (s *syncController) setCorruptKnown(corrupt map[string]struct{}, writes uint64) {
+func (s *syncController) setCorruptKnown(corrupt map[string]struct{}, writes uint64, partial bool) {
 	// Start the held time on the first hold and clear it with the last.
 	var since time.Time
+	var changed bool
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		s.corruptKnown = corrupt
+		// Join a partial flush's set to the current one.
+		if partial {
+			if len(corrupt) == 0 && len(s.corruptKnown) == 0 {
+				return
+			}
+			next := maps.Clone(s.corruptKnown)
+			if next == nil {
+				next = make(map[string]struct{}, len(corrupt))
+			}
+			maps.Copy(next, corrupt)
+			corrupt = next
+		}
+
+		// Replace the set and derive the held state from it.
+		changed = true
+		s.corruptKnown, s.heldPartial = corrupt, partial && len(corrupt) != 0
 		if len(corrupt) != 0 && s.writes != writes {
 			s.corruptRecheck.Store(true)
 		}
@@ -1118,10 +1168,13 @@ func (s *syncController) setCorruptKnown(corrupt map[string]struct{}, writes uin
 		case s.heldSince.IsZero():
 			s.heldSince = time.Now()
 		}
-		since = s.heldSince
+		since, partial = s.heldSince, s.heldPartial
 	})
+	if !changed {
+		return
+	}
 	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.setSyncTelemetryCorruptDirty(id, len(corrupt), since)
+		t.setSyncTelemetryCorruptDirty(id, len(corrupt), since, partial)
 	})
 }
 
@@ -1150,9 +1203,9 @@ func withoutMarks(known map[string]struct{}, marks []block_store_writeback.Mark)
 // takes the count from the flush, not from corruptKnown, so a write that
 // clears a known entry meanwhile cannot turn a held flush into a success.
 func (s *syncController) held(count int) *heldError {
-	var since time.Time
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { since = s.heldSince })
-	return &heldError{count: count, since: since}
+	h := &heldError{count: count}
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { h.since, h.partial = s.heldSince, s.heldPartial })
+	return h
 }
 
 // hasKey reports whether set holds key.
@@ -1294,7 +1347,7 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) (int, erro
 		return 0, err
 	}
 	if state.GetCount() == 0 {
-		s.setCorruptKnown(nil, 0)
+		s.setCorruptKnown(nil, 0, false)
 		return 0, nil
 	}
 

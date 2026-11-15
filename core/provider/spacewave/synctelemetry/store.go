@@ -56,6 +56,9 @@ type BlockStoreSnapshot struct {
 	// HeldSince is when the store first held a block back, zero while none is
 	// held: nothing has been published from it since.
 	HeldSince time.Time
+	// HeldPartial is set when CorruptDirtyCount is a lower bound: the flush
+	// that found the blocks stopped before reading every dirty block.
+	HeldPartial bool
 }
 
 // Snapshot describes Spacewave cloud sync activity.
@@ -220,6 +223,7 @@ type state struct {
 	pendingUploadCount       int
 	corruptDirtyCount        int
 	heldSince                time.Time
+	heldPartial              bool
 	pendingPublications      int
 	activeUploadBytes        int64
 	activeUploadSent         int64
@@ -320,12 +324,14 @@ func (s *Store) SetPending(bstoreID string, bytes int64, count int) {
 }
 
 // SetCorruptDirty records the count of dirty blocks the last flush held back
-// because their local bytes fail their hash, and since when the store holds
-// them. While count is not zero the store publishes nothing.
-func (s *Store) SetCorruptDirty(bstoreID string, count int, since time.Time) {
+// because their local bytes fail their hash, since when the store holds them,
+// and whether the count is a lower bound because the flush stopped early.
+// While count is not zero the store publishes nothing.
+func (s *Store) SetCorruptDirty(bstoreID string, count int, since time.Time, partial bool) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		state := s.getOrCreateStateLocked(bstoreID)
 		state.corruptDirtyCount, state.heldSince = max(count, 0), since
+		state.heldPartial = partial && count > 0
 		broadcast()
 	})
 }
@@ -546,6 +552,7 @@ func BuildSnapshot(states []state) Snapshot {
 			CloudRemoteSequence:      state.cloudRemoteSequence,
 			CorruptDirtyCount:        state.corruptDirtyCount,
 			HeldSince:                state.heldSince,
+			HeldPartial:              state.heldPartial,
 		})
 		snap.PendingUploadBytes += state.pendingUploadBytes
 		snap.PendingUploadCount += state.pendingUploadCount + state.pendingPublications
