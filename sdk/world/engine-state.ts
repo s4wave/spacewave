@@ -199,8 +199,7 @@ export class EngineWorldState implements IWorldState {
       { case: 'createObject', value: { objectKey: key, rootRef } },
       abortSignal,
     )
-    // Return a new EngineWorldStateObject that wraps this engine + key
-    return new EngineWorldStateObject(this, key)
+    return this.bindObject(key)
   }
 
   // getObject looks up an object by key
@@ -217,6 +216,13 @@ export class EngineWorldState implements IWorldState {
       return null
     }
 
+    return this.bindObject(key)
+  }
+
+  // bindObject returns a handle to the object at key on the live World
+  // without checking that it exists. The handle holds no snapshot: each call
+  // reads the current revision and fails if the object is absent there.
+  public bindObject(key: string): IObjectState {
     return new EngineWorldStateObject(this, key)
   }
 
@@ -254,7 +260,7 @@ export class EngineWorldState implements IWorldState {
       },
       options?.abortSignal,
     )
-    return new EngineWorldStateObject(this, newKey)
+    return this.bindObject(newKey)
   }
 
   // deleteObject deletes an object and associated graph quads by ID

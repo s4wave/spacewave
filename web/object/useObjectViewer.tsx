@@ -162,10 +162,13 @@ function useViewerSource(
         undefined
       : undefined
 
-  const worldSetup = useObjectViewerSetup(worldState, worldObjectKey, {
-    typeIDHint: worldObjectType,
-    loadObjectState: worldObjectType !== UnixFSTypeID,
-  })
+  const worldSetup = useObjectViewerSetup(
+    worldState,
+    worldObjectKey || undefined,
+    {
+      typeIDHint: worldObjectType,
+    },
+  )
 
   const isUnixfs = infoCase === 'unixfsObjectInfo'
   const rootResource = RootContext.useContext()

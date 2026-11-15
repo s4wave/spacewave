@@ -93,7 +93,7 @@ export function useFakeWorldQuery<T>(
 ): Resource<T> {
   const [value, setValue] = useState<T | null>(null)
   useEffect(() => {
-    void query(world).then(setValue)
+    void query(world, new AbortController().signal).then(setValue)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [world, ...deps])
   return { value, loading: value === null, error: null, retry: () => {} }

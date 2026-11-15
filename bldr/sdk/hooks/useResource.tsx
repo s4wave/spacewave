@@ -83,6 +83,11 @@ export interface ResourceLoading<T> extends ResourceBase {
   value: T | null
   loading: true
   error: null
+  /**
+   * reopening is set while a stream that had yielded reopens after this
+   * failure; value is what it last yielded and may be out of date.
+   */
+  reopening?: Error
 }
 
 /** ResourceSettled is a loaded resource; value is null when it has none. */
@@ -118,6 +123,7 @@ export interface ResourceFields<T> extends ResourceBase {
   loading: boolean
   error: Error | null
   last?: T | null
+  reopening?: Error | null
 }
 
 

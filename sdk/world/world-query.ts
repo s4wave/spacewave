@@ -1,10 +1,13 @@
 import { Engine } from './engine.js'
 import type { IWorldState } from './world-state.js'
 
-/** WorldQuery reads one bounded answer from an immutable World snapshot. */
+/**
+ * WorldQuery reads one bounded answer from an immutable World snapshot. signal
+ * aborts the read when its watch ends.
+ */
 export type WorldQuery<T> = (
   world: IWorldState,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ) => Promise<T>
 
 /** WorldQuerySnapshot binds a query result to the World revision it read. */
@@ -39,24 +42,32 @@ export function watchWorldQuery<T>(
   )
 }
 
-// runWorldQuery runs one watch of query on its own Engine reference.
+// runWorldQuery runs one watch of query on its own Engine reference. A watch
+// without a signal reads with one of its own that aborts when it ends, so no
+// signal outlives the watch or is shared between watches.
 async function* runWorldQuery<T>(
   owner: Engine,
   query: WorldQuery<T>,
   signal?: AbortSignal,
 ): AsyncIterable<WorldQuerySnapshot<T>> {
-  using engine = new Engine(owner.resourceRef.createRef(owner.id))
-  for await (const world of engine.watchWorldState(signal)) {
-    // Pin the result to the snapshot's revision, then release the snapshot.
-    let snapshot: WorldQuerySnapshot<T>
-    try {
-      const { seqno } = await world.getSeqno(signal)
-      snapshot = { seqno, value: await query(world, signal) }
-    } finally {
-      world[Symbol.dispose]()
-    }
+  const own = new AbortController()
+  const read = signal ?? own.signal
+  try {
+    using engine = new Engine(owner.resourceRef.createRef(owner.id))
+    for await (const world of engine.watchWorldState(read)) {
+      // Pin the result to the snapshot's revision, then release the snapshot.
+      let snapshot: WorldQuerySnapshot<T>
+      try {
+        const { seqno } = await world.getSeqno(read)
+        snapshot = { seqno, value: await query(world, read) }
+      } finally {
+        world[Symbol.dispose]()
+      }
 
-    signal?.throwIfAborted()
-    yield snapshot
+      read.throwIfAborted()
+      yield snapshot
+    }
+  } finally {
+    own.abort()
   }
 }

@@ -304,6 +304,72 @@ describe('ObjectViewer', () => {
     expect(screen.queryByText('Loading the object')).toBeNull()
   })
 
+  describe('the Debug Viewer selected', () => {
+    const debugViewer = {
+      componentID: 'spacewave.debug.viewer',
+      typeID: '*',
+      name: 'Debug Viewer',
+      component: () => null,
+    }
+
+    it('shows a UnixFS path, which has no object to be missing', () => {
+      mockUseObjectViewer.mockReturnValue(
+        buildViewerResult({
+          typeID: 'unixfs/fs-node',
+          selectedComponent: debugViewer,
+          objectState: {
+            value: null,
+            loading: false,
+            error: null,
+            retry: vi.fn(),
+          },
+        }),
+      )
+      const objectInfo: ObjectInfo = {
+        info: {
+          case: 'unixfsObjectInfo',
+          value: { unixfsId: 'files', path: '/' },
+        },
+      }
+
+      render(
+        <ObjectViewer
+          objectInfo={objectInfo}
+          worldState={buildWorldState({} as IWorldState)}
+        />,
+      )
+
+      expect(screen.getByTestId('object-viewer-content')).toBeDefined()
+      expect(screen.queryByText(/^Object not found/)).toBeNull()
+    })
+
+    it('waits on the watch of a UnixFS-typed object, then shows it', () => {
+      const objectInfo: ObjectInfo = {
+        info: {
+          case: 'worldObjectInfo',
+          value: { objectKey: 'files', objectType: 'unixfs/fs-node' },
+        },
+      }
+      const worldState = buildWorldState({} as IWorldState)
+      const viewing = (value: object | null, loading: boolean) =>
+        buildViewerResult({
+          typeID: 'unixfs/fs-node',
+          selectedComponent: debugViewer,
+          objectState: { value, loading, error: null, retry: vi.fn() },
+        })
+      mockUseObjectViewer.mockReturnValue(viewing(null, true))
+      const { rerender } = render(
+        <ObjectViewer objectInfo={objectInfo} worldState={worldState} />,
+      )
+      expect(screen.getByText('Loading the object')).toBeDefined()
+      expect(screen.queryByText(/^Object not found/)).toBeNull()
+
+      mockUseObjectViewer.mockReturnValue(viewing({ id: 'files' }, false))
+      rerender(<ObjectViewer objectInfo={objectInfo} worldState={worldState} />)
+      expect(screen.getByTestId('object-viewer-content')).toBeDefined()
+    })
+  })
+
   it('does not use standalone mode when the selected viewer disables padding', () => {
     mockUseObjectViewer.mockReturnValue(
       buildViewerResult({
@@ -473,5 +539,260 @@ describe('ObjectViewer', () => {
         contextMenuLabel: 'files actions',
       }),
     )
+  })
+})
+
+describe('ObjectViewer view states', () => {
+  const objectKey = 'world/doc'
+  const objectInfo: ObjectInfo = {
+    info: {
+      case: 'worldObjectInfo',
+      value: { objectKey, objectType: '' },
+    },
+  }
+  const world = buildWorldState({} as IWorldState)
+  const handle = { id: 'doc' }
+
+  // mockView sets what the viewer hook returns for the next render.
+  function mockView(objectState: Record<string, unknown>) {
+    mockUseObjectViewer.mockReturnValue(
+      buildViewerResult({ objectKey, typeID: 'type/doc', objectState }),
+    )
+  }
+
+  // show renders the viewer over objectState with the World and type given.
+  function show(
+    objectState: Record<string, unknown>,
+    typeID: string | undefined = 'type/doc',
+    worldState: Resource<IWorldState> = world,
+  ) {
+    mockUseObjectViewer.mockReturnValue(
+      buildViewerResult({ objectKey, typeID, objectState }),
+    )
+    return render(
+      <ObjectViewer objectInfo={objectInfo} worldState={worldState} />,
+    )
+  }
+
+  beforeEach(() => {
+    cleanup()
+    mockUseObjectViewer.mockReset()
+  })
+
+  it('loads while the watch has not answered', () => {
+    show({ value: null, loading: true, error: null, retry: vi.fn() })
+    expect(screen.getByText('Loading the object')).toBeDefined()
+    expect(screen.queryByText(/^Object not found/)).toBeNull()
+  })
+
+  it('shows the object once it arrives', () => {
+    show({ value: handle, loading: false, error: null, retry: vi.fn() })
+    expect(screen.getByTestId('object-viewer-content')).toBeDefined()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('shows not found only when the watch answered absent', () => {
+    show({ value: null, loading: false, error: null, retry: vi.fn() })
+    expect(screen.getByText(/^Object not found/)).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
+  })
+
+  it('shows a watch that failed before answering as an error with Retry', () => {
+    const retry = vi.fn()
+    show(
+      {
+        value: null,
+        loading: false,
+        error: new Error('stream reset'),
+        last: null,
+        retry,
+      },
+      undefined,
+    )
+    expect(
+      screen.getByText('Could not read world/doc: stream reset'),
+    ).toBeDefined()
+    expect(screen.queryByText(/^Object not found/)).toBeNull()
+    expect(screen.queryByText('Loading the object')).toBeNull()
+    screen.getByRole('button', { name: 'Retry' }).click()
+    expect(retry).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the object on screen when the watch fails after answering', () => {
+    const { rerender } = show({
+      value: handle,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+    const content = screen.getByTestId('object-viewer-content')
+
+    mockUseObjectViewer.mockReturnValue(
+      buildViewerResult({
+        objectKey,
+        typeID: 'type/doc',
+        objectState: {
+          value: null,
+          loading: false,
+          error: new Error('stream reset'),
+          last: handle,
+          retry: vi.fn(),
+        },
+      }),
+    )
+    rerender(<ObjectViewer objectInfo={objectInfo} worldState={world} />)
+
+    expect(
+      screen.getByText('Could not read world/doc: stream reset'),
+    ).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeDefined()
+    expect(screen.getByTestId('object-viewer-content')).toBe(content)
+  })
+
+  it('shows a World that failed to open with its reason and Retry', () => {
+    const retry = vi.fn()
+    show({ value: null, loading: false, error: null, retry: vi.fn() }, 'x', {
+      value: null,
+      loading: false,
+      error: new Error('session released'),
+      last: null,
+      retry,
+    })
+    expect(
+      screen.getByText(
+        'Could not open the Space that holds world/doc: session released',
+      ),
+    ).toBeDefined()
+    expect(screen.queryByText('Loading the object')).toBeNull()
+    screen.getByRole('button', { name: 'Retry' }).click()
+    expect(retry).toHaveBeenCalledOnce()
+  })
+
+  it('loads with no Retry while the World waits on its parent', () => {
+    show(
+      { value: null, loading: false, error: null, retry: vi.fn() },
+      'x',
+      buildWorldState(null),
+    )
+    expect(screen.getByText('Loading the object')).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
+  })
+
+  it('keeps the content under a notice while the watch reopens', () => {
+    const settled = {
+      value: handle,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    }
+    const { rerender } = show(settled)
+    const content = screen.getByTestId('object-viewer-content')
+
+    // The watch failed after answering and reopens: the content stays.
+    mockView({
+      ...settled,
+      loading: true,
+      reopening: new Error('stream reset'),
+    })
+    rerender(<ObjectViewer objectInfo={objectInfo} worldState={world} />)
+    expect(
+      screen.getByText('Reconnecting. This view may be out of date.'),
+    ).toBeDefined()
+    expect(screen.getByTestId('object-viewer-content')).toBe(content)
+
+    // The first value after the reopen clears the notice.
+    mockView(settled)
+    rerender(<ObjectViewer objectInfo={objectInfo} worldState={world} />)
+    expect(
+      screen.queryByText('Reconnecting. This view may be out of date.'),
+    ).toBeNull()
+    expect(screen.getByTestId('object-viewer-content')).toBe(content)
+  })
+
+  describe('a viewer that needs no object handle', () => {
+    const selectedComponent = {
+      componentID: 'alarm.viewer',
+      typeID: 'alarm',
+      name: 'Alarm',
+      requiresObjectState: false,
+      component: () => null,
+    }
+
+    // showTyped renders the viewer for a component that reads the World
+    // itself, over objectState and the type the watch reported.
+    // mockTyped sets what the viewer hook returns for the next render.
+    function mockTyped(
+      objectState: Record<string, unknown>,
+      typeID: string | undefined,
+    ) {
+      mockUseObjectViewer.mockReturnValue(
+        buildViewerResult({
+          objectKey,
+          typeID,
+          objectState,
+          selectedComponent,
+        }),
+      )
+    }
+
+    function showTyped(
+      objectState: Record<string, unknown>,
+      typeID: string | undefined,
+    ) {
+      mockTyped(objectState, typeID)
+      return render(<ObjectViewer objectInfo={objectInfo} worldState={world} />)
+    }
+
+    it('shows a watch that failed before answering as an error', () => {
+      const retry = vi.fn()
+      showTyped(
+        {
+          value: null,
+          loading: false,
+          error: new Error('stream reset'),
+          last: null,
+          retry,
+        },
+        undefined,
+      )
+      expect(
+        screen.getByText('Could not read world/doc: stream reset'),
+      ).toBeDefined()
+      expect(screen.queryByText('Loading the object')).toBeNull()
+      screen.getByRole('button', { name: 'Retry' }).click()
+      expect(retry).toHaveBeenCalledOnce()
+    })
+
+    it('keeps its content under the failure after answering', () => {
+      const { rerender } = showTyped(
+        { value: null, loading: false, error: null, retry: vi.fn() },
+        'alarm',
+      )
+      const content = screen.getByTestId('object-viewer-content')
+      mockTyped(
+        {
+          value: null,
+          loading: false,
+          error: new Error('stream reset'),
+          last: null,
+          retry: vi.fn(),
+        },
+        'alarm',
+      )
+      rerender(<ObjectViewer objectInfo={objectInfo} worldState={world} />)
+      expect(
+        screen.getByText('Could not read world/doc: stream reset'),
+      ).toBeDefined()
+      expect(screen.getByTestId('object-viewer-content')).toBe(content)
+    })
+
+    it('shows not found when the watch answered absent', () => {
+      showTyped(
+        { value: null, loading: false, error: null, retry: vi.fn() },
+        undefined,
+      )
+      expect(screen.getByText(/^Object not found/)).toBeDefined()
+      expect(screen.queryByTestId('object-viewer-content')).toBeNull()
+    })
   })
 })
