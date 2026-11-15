@@ -61,10 +61,14 @@ func (t *pluginInstance) execGuardedPluginUpdate(ctx context.Context, args *exec
 		return nil
 	}
 
-	// Wait for the running plugin and ask it to quiesce.
+	// Wait for the running plugin and ask it to quiesce, only for a candidate
+	// the binding still accepts.
 	running, err := t.runningPluginCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
+	}
+	if !t.acceptsManifest(args) {
+		return context.Canceled
 	}
 
 	// Prepare the running generation for replacement.

@@ -1,12 +1,33 @@
 package plugin_host_scheduler
 
 import (
+	"context"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/callback"
+	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
+	"github.com/go-git/go-billy/v6/memfs"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_trust "github.com/s4wave/spacewave/bldr/manifest/trust"
+	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/unixfs"
+	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
@@ -195,4 +216,476 @@ func TestInstalledManifestPrefersNative(t *testing.T) {
 	if len(state.fallbacks) != 1 || !state.fallbacks[0].manifestSnapshot.GetManifestRef().EqualVT(darwinOld.GetManifestRef()) {
 		t.Fatal("native artifact fell back to another platform")
 	}
+}
+
+// TestInstallationRootStaysOutOfCatalog checks that a root which ran only
+// because an answerer admitted it for a load's peer stays out of the host
+// catalog, so a later plain or pinned load, which asks nothing, cannot start it.
+func TestInstallationRootStaysOutOfCatalog(t *testing.T) {
+	// Peer P's installation of R runs once its approval answers.
+	h := newInstallationHarness(t)
+	root := h.manifest(t, 1)
+	rootKey := manifestRootKey(root.GetManifestRef())
+	h.trusted.Add(bldr_manifest_trust.Root{PluginID: "colors", ManifestRoot: rootKey})
+	release := h.instance.addManifestSelection("peer-p", root)
+	defer release()
+	h.run(t, h.instance)
+	if got := h.nextStart(t); got != rootKey {
+		t.Fatalf("started root %s, want %s", got, rootKey)
+	}
+
+	// With the approval gone, neither load of the same plugin selects R.
+	h.removeApprover()
+	for _, pin := range []string{"", rootKey} {
+		_, load := h.c.newPluginInstance(pluginReference{pluginID: "colors", manifestRoot: pin})
+		h.selectCatalog(t, load)
+		if load.executePluginRoutine.GetState() != nil || load.downloadManifestRoutine.GetState() != nil {
+			t.Fatalf("load pinned to %q selected the installation's root from the catalog", pin)
+		}
+	}
+
+	// Once R is in the catalog the pinned load selects it, so the check above
+	// observes the catalog and not an empty selection path.
+	h.catalog(t, root)
+	_, pinned := h.c.newPluginInstance(pluginReference{pluginID: "colors", manifestRoot: rootKey})
+	h.selectCatalog(t, pinned)
+	if st := pinned.executePluginRoutine.GetState(); st == nil || manifestRootKey(st.manifestSnapshot.GetManifestRef()) != rootKey {
+		t.Fatal("pinned load did not select a catalog root")
+	}
+}
+
+// TestReleasedInstallationStopsWaiting checks that releasing an installation
+// while its root awaits approval ends the wait, that a later approval starts
+// nothing, and that the binding returns to its catalog demand.
+func TestReleasedInstallationStopsWaiting(t *testing.T) {
+	// Peer P's installation of R waits for an approval.
+	h := newInstallationHarness(t)
+	root := h.manifest(t, 1)
+	release := h.instance.addManifestSelection("peer-p", root)
+	h.run(t, h.instance)
+	_, err := h.c.pluginStatusCtr.WaitValueWithValidator(h.ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+		for _, st := range snap.GetExecutions() {
+			if st.GetSwap().GetAwaitingApproval() != nil {
+				return true, nil
+			}
+		}
+		return false, nil
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Releasing the selection ends the wait; approving R afterwards starts nothing.
+	release()
+	if h.instance.executePluginRoutine.GetState() != nil {
+		t.Fatal("released installation kept its execute state")
+	}
+	h.trusted.Add(bldr_manifest_trust.Root{PluginID: "colors", ManifestRoot: manifestRootKey(root.GetManifestRef())})
+	h.noStart(t, "approval after release")
+
+	// The binding runs the plugin's catalog manifest again.
+	catalog := h.manifest(t, 2)
+	h.catalog(t, catalog)
+	h.selectCatalog(t, h.instance)
+	if got, want := h.nextStart(t), manifestRootKey(catalog.GetManifestRef()); got != want {
+		t.Fatalf("started root %s, want catalog root %s", got, want)
+	}
+}
+
+// TestReleasedInstallationKeepsCatalogWorker checks that releasing an
+// installation while its root awaits approval leaves the catalog worker
+// beside it untouched, whether it runs the plugin or only serves its files:
+// no stop, no restart, and the execute routine returns to that worker's own
+// candidate.
+func TestReleasedInstallationKeepsCatalogWorker(t *testing.T) {
+	for _, serveAssets := range []bool{false, true} {
+		t.Run(map[bool]string{false: "runs", true: "serves-assets"}[serveAssets], func(t *testing.T) {
+			testReleasedInstallationKeepsCatalogWorker(t, serveAssets)
+		})
+	}
+}
+
+// testReleasedInstallationKeepsCatalogWorker runs one catalog worker mode.
+func testReleasedInstallationKeepsCatalogWorker(t *testing.T, serveAssets bool) {
+	// Answer approvals through the trust controller on a real bus; none is given.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	rel, err := tb.Bus.AddController(ctx, bldr_manifest_trust.NewController(bldr_manifest_trust.NewSet()), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel()
+
+	// Build a root host binding whose workers start in-process; a running
+	// worker also registers, an asset worker only holds its files.
+	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "js"}}}
+	c := &Controller{
+		le: le, bus: tb.Bus, conf: &Config{PeerId: "root"},
+		pluginHostsCtr:  ccontainer.NewCContainer(hosts),
+		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
+		pluginStatus:    make(map[string]*plugin.PluginStatus),
+	}
+	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
+	c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
+	type execution struct {
+		worker *pluginInstance
+		closed chan struct{}
+	}
+	started := make(chan *execution, 2)
+	instance.executions = keyed.NewKeyedRefCount(func(key executionReference) (keyed.Routine, *pluginInstance) {
+		_, worker := instance.newExecution(key)
+		run := &execution{worker: worker, closed: make(chan struct{})}
+		return func(ctx context.Context) error {
+			defer close(run.closed)
+			defer worker.finishExecution(nil)
+			started <- run
+			if !key.args.serveAssets {
+				worker.updateRpcClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux()))))
+				worker.finishInitialCapabilityRegistration(true)
+			}
+			<-ctx.Done()
+			return ctx.Err()
+		}, worker
+	})
+	instance.executions.SetContext(ctx, true)
+	defer instance.executions.ClearContext()
+	defer instance.clearExecution(nil)
+	instance.executePluginRoutine.SetContext(ctx, true)
+	defer instance.executePluginRoutine.ClearContext()
+
+	// The catalog root C0 runs, or serves its files, as W0.
+	catalog := &executePluginArgs{
+		pluginHost: hosts.pluginHosts[0], rev: 1, serveAssets: serveAssets,
+		manifestSnapshot: &manifest.ManifestSnapshot{ManifestRef: rootedTestManifestRef(t, 1).GetManifestRef()},
+	}
+	if serveAssets {
+		catalog.pluginHost = nil
+	}
+	instance.setExecutePluginState(catalog)
+	var w0 *execution
+	select {
+	case w0 = <-started:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	waitSwap(t, ctx, c, func(swap *plugin.PluginSwap) bool { return swap.GetSettled() != nil })
+	running := instance.runningPluginCtr.GetValue()
+
+	// Peer P's installation of R1 waits for an approval while W0 is admitted.
+	release := instance.addManifestSelection("peer-p", rootedTestManifestRef(t, 2))
+	waitSwap(t, ctx, c, func(swap *plugin.PluginSwap) bool { return swap.GetAwaitingApproval() != nil })
+
+	// Releasing it hands the routine back to W0, which is adopted as it is.
+	release()
+	if instance.executePluginRoutine.GetState() != catalog {
+		t.Fatal("released installation did not return the routine to the catalog worker")
+	}
+	waitSwap(t, ctx, c, func(swap *plugin.PluginSwap) bool { return swap.GetSettled() != nil })
+	select {
+	case run := <-started:
+		t.Fatalf("release started worker %p beside the catalog worker", run.worker)
+	case <-w0.closed:
+		t.Fatal("release stopped the catalog worker")
+	case <-time.After(300 * time.Millisecond):
+	}
+	instance.pluginUpdateMtx.Lock()
+	admitted := instance.activeExecution
+	instance.pluginUpdateMtx.Unlock()
+	if admitted != w0.worker {
+		t.Fatal("release took the catalog worker's admission")
+	}
+	if instance.runningPluginCtr.GetValue() != running {
+		t.Fatal("release replaced the catalog worker's running plugin")
+	}
+}
+
+// TestReleasedInstallationLeavesGuardedWorker checks that releasing an
+// installation of a guarded plugin clears its pending guarded update, so the
+// running catalog worker is never asked to quiesce for it.
+func TestReleasedInstallationLeavesGuardedWorker(t *testing.T) {
+	// Run catalog root C0 on a binding whose plugin guards its updates.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "js"}}}
+	c := &Controller{
+		le: logrus.NewEntry(logrus.New()), conf: &Config{PeerId: "root", UpdateGuardPluginIds: []string{"colors"}},
+		pluginHostsCtr: ccontainer.NewCContainer(hosts),
+	}
+	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
+	catalog := &executePluginArgs{
+		pluginHost: hosts.pluginHosts[0], rev: 1,
+		manifestSnapshot: &manifest.ManifestSnapshot{ManifestRef: rootedTestManifestRef(t, 1).GetManifestRef()},
+	}
+	instance.setExecutePluginState(catalog)
+	guard := &countingUpdateGuard{}
+	mux := srpc.NewMux()
+	if err := plugin.SRPCRegisterUpdateGuard(mux, guard); err != nil {
+		t.Fatal(err)
+	}
+	instance.runningPluginCtr.SetValue(plugin.NewRunningPlugin(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))))
+
+	// Selecting R1 routes it through the guarded update; releasing clears it.
+	release := instance.addManifestSelection("peer-p", rootedTestManifestRef(t, 2))
+	pending := instance.updatePluginRoutine.GetState()
+	if pending == nil || pending.installation == nil {
+		t.Fatal("guarded installation did not wait in the update routine")
+	}
+	release()
+	if instance.updatePluginRoutine.GetState() != nil {
+		t.Fatal("update routine kept the released installation")
+	}
+	if instance.executePluginRoutine.GetState() != catalog {
+		t.Fatal("release replaced the catalog candidate")
+	}
+
+	// A guarded update still holding the released candidate sends no Prepare.
+	if err := instance.execGuardedPluginUpdate(ctx, pending); err == nil {
+		t.Fatal("released candidate passed the guarded update")
+	}
+	if n := guard.calls.Load(); n != 0 {
+		t.Fatalf("running worker was asked to quiesce %d times for a released installation", n)
+	}
+}
+
+// countingUpdateGuard counts Prepare calls and permits each one.
+type countingUpdateGuard struct {
+	calls atomic.Int32
+}
+
+// Prepare records the call and permits the replacement.
+func (g *countingUpdateGuard) Prepare(context.Context, *plugin.PrepareUpdateRequest) (*plugin.PrepareUpdateResponse, error) {
+	g.calls.Add(1)
+	return &plugin.PrepareUpdateResponse{}, nil
+}
+
+// rootedTestManifestRef returns a colors js reference at rev with a root
+// hash derived from rev.
+func rootedTestManifestRef(t *testing.T, rev uint64) *manifest.ManifestRef {
+	t.Helper()
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte{0xb0, byte(rev)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := newTestManifestRef("colors", "js", rev, "candidate")
+	ref.ManifestRef.RootRef = &block.BlockRef{Hash: h}
+	return ref
+}
+
+// waitSwap waits until the colors binding's published swap state satisfies ok.
+func waitSwap(t *testing.T, ctx context.Context, c *Controller, ok func(*plugin.PluginSwap) bool) {
+	t.Helper()
+	_, err := c.pluginStatusCtr.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+		for _, st := range snap.GetExecutions() {
+			if st.GetPluginId() == "colors" && ok(st.GetSwap()) {
+				return true, nil
+			}
+		}
+		return false, nil
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// installationHarness runs one colors binding on a root host scheduler: an
+// installation asks AdmitPluginRoot for its own peer, a catalog load does not.
+type installationHarness struct {
+	ctx context.Context
+	le  *logrus.Entry
+	ws  world.WorldState
+	c   *Controller
+	// instance is the plain colors binding.
+	instance *pluginInstance
+	hosts    *pluginHostSet
+	// started receives the root of each plugin the host starts.
+	started chan string
+	// trusted answers AdmitPluginRoot until removeApprover is called.
+	trusted        *bldr_manifest_trust.Set
+	removeApprover func()
+}
+
+// installationHostKey is the plugin host object holding the harness catalog.
+const installationHostKey = "plugin-host"
+
+// newInstallationHarness builds the harness on a fresh testbed and World.
+func newInstallationHarness(t *testing.T) *installationHarness {
+	// Answer approvals through the trust controller on a real bus.
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	t.Cleanup(cancel)
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	trusted := bldr_manifest_trust.NewSet()
+	rel, err := tb.Bus.AddController(ctx, bldr_manifest_trust.NewController(trusted), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	removeApprover := sync.OnceFunc(rel)
+	t.Cleanup(removeApprover)
+
+	// Resolve every plugin host root lookup with one Root.
+	hostRoot := plugin_host_root.NewRoot()
+	rootCtrl := callback.NewCallbackController(
+		controller.NewInfo("test/plugin-host-root", controller.MustParseVersion("0.0.1"), ""),
+		nil,
+		func(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+			if _, ok := inst.GetDirective().(plugin_host_root.LookupRoot); !ok {
+				return nil, nil
+			}
+			return directive.R(directive.NewValueResolver([]plugin_host_root.LookupRootValue{hostRoot}), nil)
+		},
+		nil,
+	)
+	releaseRoot, err := tb.Bus.AddController(ctx, rootCtrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseRoot)
+
+	// Open a World with an empty catalog for the host.
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cursor.Release)
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, cursor, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manifest_world.CreateManifestStore(ctx, ws, installationHostKey); err != nil {
+		t.Fatal(err)
+	}
+
+	// Build the root host scheduler and its colors binding.
+	started := make(chan string, 4)
+	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&startedPluginHost{testPluginHost: testPluginHost{id: "js"}, started: started}}}
+	var wsv world.WorldState = ws
+	c := &Controller{
+		le: le, bus: tb.Bus, conf: &Config{PeerId: "root", WatchFetchManifest: true}, objKey: installationHostKey,
+		worldStateCtr: ccontainer.NewCContainer(wsv),
+		hostVolumeCtr: ccontainer.NewCContainer(&hostVol{
+			vol:  tb.Volume,
+			info: &volume.VolumeInfo{VolumeId: tb.Volume.GetID()},
+		}),
+		pluginHostsCtr:  ccontainer.NewCContainer(hosts),
+		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
+		pluginStatus:    make(map[string]*plugin.PluginStatus),
+	}
+	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
+	c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
+	instance.executions.SetContext(ctx, true)
+	t.Cleanup(func() { instance.executions.ClearContext() })
+	t.Cleanup(func() { instance.clearExecution(nil) })
+	return &installationHarness{
+		ctx: ctx, le: le, ws: ws, c: c, instance: instance, hosts: hosts,
+		started: started, trusted: trusted, removeApprover: removeApprover,
+	}
+}
+
+// manifest writes a runnable colors manifest at rev into the World, outside
+// any catalog, and returns its reference.
+func (h *installationHarness) manifest(t *testing.T, rev uint64) *manifest.ManifestRef {
+	// Write the dist and the manifest blocks.
+	t.Helper()
+	distFS := memfs.New()
+	if err := billy_util.WriteFile(distFS, "colors.js", []byte("export {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := manifest.NewManifest(manifest.NewManifestMeta("colors", manifest.BuildType_RELEASE, "js", rev), "colors.js")
+	ref, err := world.AccessObject(h.ctx, h.ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+		return manifest.CreateManifestWithBilly(h.ctx, bcs, m, distFS, nil, timestamppb.Now())
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return manifest.NewManifestRef(m.GetMeta(), ref)
+}
+
+// catalog stores ref in the host catalog.
+func (h *installationHarness) catalog(t *testing.T, ref *manifest.ManifestRef) {
+	t.Helper()
+	key := manifest.NewManifestKey(installationHostKey, ref.GetMeta())
+	if err := manifest_world.ExStoreManifestOp(h.ctx, h.ws, "", key, []string{installationHostKey}, ref); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// selectCatalog runs one catalog selection pass for load.
+func (h *installationHarness) selectCatalog(t *testing.T, load *pluginInstance) {
+	// Load the host object, releasing it before returning.
+	t.Helper()
+	obj, found, err := h.ws.GetObject(h.ctx, installationHostKey)
+	defer world.ReleaseObjectState(obj)
+	if err != nil || !found {
+		t.Fatalf("host object: %t, %v", found, err)
+	}
+	if _, _, err := load.processManifestWorldState(h.ctx, h.le, h.hosts, h.ws, obj); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// run starts the execute routine of load.
+func (h *installationHarness) run(t *testing.T, load *pluginInstance) {
+	load.executePluginRoutine.SetContext(h.ctx, true)
+	t.Cleanup(func() { load.executePluginRoutine.ClearContext() })
+}
+
+// nextStart waits for the host to start a plugin and returns its root.
+func (h *installationHarness) nextStart(t *testing.T) string {
+	t.Helper()
+	select {
+	case root := <-h.started:
+		return root
+	case <-h.ctx.Done():
+		t.Fatal(h.ctx.Err())
+		return ""
+	}
+}
+
+// noStart asserts that the host starts no plugin for a while.
+func (h *installationHarness) noStart(t *testing.T, phase string) {
+	t.Helper()
+	select {
+	case root := <-h.started:
+		t.Fatalf("%s: host started root %s", phase, root)
+	case <-time.After(300 * time.Millisecond):
+	}
+}
+
+// startedPluginHost reports each started root, then runs it until released.
+type startedPluginHost struct {
+	testPluginHost
+	started chan<- string
+}
+
+// ExecutePlugin reports manifestRoot and blocks until ctx ends.
+func (h *startedPluginHost) ExecutePlugin(
+	ctx context.Context,
+	pluginID,
+	instanceKey,
+	executionKey,
+	manifestRoot,
+	entrypoint string,
+	pluginDist *unixfs.FSHandle,
+	pluginAssets *unixfs.FSHandle,
+	hostRpcMux srpc.Mux,
+	rpcInit plugin_host.PluginRpcInitCb,
+) error {
+	select {
+	case h.started <- manifestRoot:
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	}
+	<-ctx.Done()
+	return context.Cause(ctx)
 }
