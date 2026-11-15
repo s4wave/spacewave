@@ -394,11 +394,7 @@ func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Re
 	if !c.conf.SchedulesPlugin(dir.LoadPluginID()) {
 		return nil, nil
 	}
-	instanceKey := dir.LoadPluginInstanceKey()
-	if instanceKey == "" {
-		instanceKey = c.conf.GetInstanceKey()
-	}
-	return bldr_plugin_host.NewLoadPluginResolver(c, dir, instanceKey), nil
+	return bldr_plugin_host.NewLoadPluginResolver(c, dir, c.bindingKey(dir.LoadPluginInstanceKey())), nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
