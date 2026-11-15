@@ -225,7 +225,7 @@ func (e *envelopeScenario) breakCheckpoint(inner *SOCheckpointInner) {
 	case 3:
 		inner.ReplayVersion = 2
 	case 4:
-		inner.StateData = make([]byte, MaxStateDataSize+1)
+		inner.StateData = make([]byte, MaxSyncStateSize+1)
 	case 5:
 		inner.PrevCheckpointHash = e.digest()
 	case 6:

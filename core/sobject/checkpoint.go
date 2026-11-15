@@ -54,13 +54,21 @@ func BuildSOCheckpoint(privKey crypto.PrivKey, inner *SOCheckpointInner) (*SOChe
 }
 
 // CoSign adds a signature by the owner of privKey. The checkpoint's identity
-// covers only its body, so the hash is unchanged.
+// covers only its body, so the hash is unchanged. It refuses, leaving c as it
+// was, a signature that would make c larger than Verify accepts.
 func (c *SOCheckpoint) CoSign(privKey crypto.PrivKey) error {
+	// Sign the body.
 	sig, err := peer.NewSignature(SOCheckpointSignatureContext, privKey, hash.RecommendedHashType, c.GetInner(), true)
 	if err != nil {
 		return errors.Wrap(err, "sign checkpoint")
 	}
+
+	// Keep the signature only if the signed checkpoint still loads.
 	c.Signatures = append(c.Signatures, sig)
+	if c.SizeVT() > MaxSyncStateSize {
+		c.Signatures = c.Signatures[:len(c.Signatures)-1]
+		return errors.Wrap(ErrMaxSizeExceeded, "signed checkpoint")
+	}
 	return nil
 }
 
@@ -121,7 +129,7 @@ func (i *SOCheckpointInner) Validate() error {
 	if i.GetReplayVersion() != SOReplayVersion {
 		return errors.Errorf("unsupported checkpoint replay version %d", i.GetReplayVersion())
 	}
-	if len(i.GetStateData()) > MaxStateDataSize {
+	if len(i.GetStateData()) > MaxSyncStateSize {
 		return ErrMaxSizeExceeded
 	}
 

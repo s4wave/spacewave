@@ -13,13 +13,13 @@ import (
 
 // MaxVotingWeight bounds one device's voting weight, so weight sums cannot
 // overflow uint64 at any participant count a config can encode: a config of
-// at most MaxStateDataSize bytes holds fewer than 2^24 participants, whose
+// at most MaxSyncStateSize bytes holds fewer than 2^24 participants, whose
 // weights sum to less than 2^40, and a quorum test multiplies the sum by three.
 const MaxVotingWeight = 1 << 16
 
 // maxControlValueSize bounds the value a control message carries: a
 // checkpoint body with its state, or a control record.
-const maxControlValueSize = MaxStateDataSize + 1024*1024
+const maxControlValueSize = MaxSyncStateSize + 1024*1024
 
 // soControlMessageHashDomain separates control message hashes from other
 // SHA-256 digests.

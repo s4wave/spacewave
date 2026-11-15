@@ -119,7 +119,7 @@ type InviteMutator interface {
 func (c *SharedObjectConfig) Validate() error {
 	// The participant list has no count of its own; the encoded config bounds
 	// it, and so bounds the voting weight sums and the work below.
-	if c.SizeVT() > MaxStateDataSize {
+	if c.SizeVT() > MaxSyncStateSize {
 		return ErrMaxCountExceeded
 	}
 
