@@ -175,6 +175,100 @@ func TestProxyVolumeHoldsStagesAndPins(t *testing.T) {
 	t.Fatal("a released block survived collection")
 }
 
+// TestProxyVolumeRequiresHeld checks that a root move requiring its blocks
+// held crosses the proxy: the host refuses a block nothing holds and the
+// client reads the refusal as ErrRootNotHeld, and a stage opened through the
+// proxy is the evidence that lets the move commit over a tree whose earlier
+// release netted and freed it.
+func TestProxyVolumeRequiresHeld(t *testing.T) {
+	// Serve a host volume that frees at once, so the check refuses rather
+	// than observes, and a released tree is freed.
+	ctx := t.Context()
+	log := logrus.New()
+	log.SetLevel(logrus.ErrorLevel)
+	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(log), testbed.WithVolumeConfig(&volume_s4db.Config{
+		Path:         filepath.Join(t.TempDir(), "host.s4wave"),
+		VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
+		StoreConfig:  &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"},
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	host := tb.Volume.(*volume_kvtx.Volume)
+	proxy := newTestProxy(t, tb.Volume)
+
+	// Build the tree H -> P -> L, and an admit storing only H.
+	entry := func(data string, children ...*block.PutBatchEntry) *block.PutBatchEntry {
+		t.Helper()
+		e := &block.PutBatchEntry{Data: []byte(data), RefsKnown: true}
+		for _, child := range children {
+			e.Refs = append(e.Refs, child.Ref)
+			e.Data = append(e.Data, child.Ref.MarshalString()...)
+		}
+		ref, err := block.BuildBlockRef(e.Data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		e.Ref = ref
+		return e
+	}
+	l := entry("leaf")
+	p := entry("payload", l)
+	h := entry("head", p)
+	admit := func() error {
+		roots := []block.NamedRoot{{Name: "payloads", Ref: h.Ref, RequireHeld: true}}
+		return proxy.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{h}, roots)
+	}
+	stagePut := func(vol volume.Roots) func() {
+		t.Helper()
+		stage, release, err := vol.OpenStage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := vol.PrepareStagedBlockBatch(ctx, stage, []*block.PutBatchEntry{l, p}); err != nil {
+			t.Fatal(err)
+		}
+		return release
+	}
+
+	// The host has no P: refused.
+	if err := admit(); !errors.Is(err, block.ErrRootNotHeld) {
+		t.Fatalf("admit over a missing block = %v, want ErrRootNotHeld", err)
+	}
+
+	// A host stage stores P -> L and is released; a later write carries
+	// the release and collection frees it: refused.
+	stagePut(host)()
+	other := entry("other")
+	if err := host.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{other}, []block.NamedRoot{{Name: "other", Ref: other.Ref}}); err != nil {
+		t.Fatal(err)
+	}
+	for range 16 {
+		res, err := host.Collect(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !res.More {
+			break
+		}
+	}
+	if err := admit(); !errors.Is(err, block.ErrRootNotHeld) {
+		t.Fatalf("admit over a released tree = %v, want ErrRootNotHeld", err)
+	}
+
+	// A live proxy stage that stores the tree again lets the admit commit.
+	defer stagePut(proxy)()
+	if err := admit(); err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range []*block.PutBatchEntry{h, p, l} {
+		if found, err := host.GetBlockExists(ctx, e.Ref); err != nil || !found {
+			t.Fatalf("block %s stored=%v: %v", e.Data, found, err)
+		}
+	}
+}
+
 // newTestProxy serves vol and returns a proxy volume connected to it.
 func newTestProxy(t *testing.T, vol volume.Volume) *ProxyVolume {
 	t.Helper()

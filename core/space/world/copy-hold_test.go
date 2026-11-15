@@ -1,6 +1,7 @@
 package space_world
 
 import (
+	"errors"
 	"slices"
 	"testing"
 	"time"
@@ -153,4 +154,76 @@ func TestCopyHoldsWhatItSkips(t *testing.T) {
 		}
 		return parent, []*block.BlockRef{parent, child}, nil
 	})
+}
+
+// TestAdmitRepeatRewritesTree holds an admitted payload P -> L whose blocks
+// are stored and netted to zero, as after the stage that stored them was
+// released, through the adapter's payload hold with frees on. The hold is
+// refused, and a repeat that keeps the tree in the pages again, as a
+// transaction written again does, lands it in the hold's own batch and
+// commits; collections past grace keep every block.
+func TestAdmitRepeatRewritesTree(t *testing.T) {
+	ctx := t.Context()
+	const grace = 300 * time.Millisecond
+	a, collect := newVolumeAdapter(t, 1<<20, grace)
+	store := a.pages.StoreOps
+	entry := func(name string, children ...*block.BlockRef) *block.PutBatchEntry {
+		t.Helper()
+		data := []byte(name)
+		for _, c := range children {
+			data = append(data, c.MarshalString()...)
+		}
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &block.PutBatchEntry{Ref: ref, Data: data, Refs: children, RefsKnown: true}
+	}
+	l := entry("leaf")
+	p := entry("payload", l.Ref)
+	stored := func() bool {
+		t.Helper()
+		for _, e := range []*block.PutBatchEntry{p, l} {
+			if _, found, err := store.GetBlock(ctx, e.Ref); err != nil || !found {
+				return false
+			}
+		}
+		return true
+	}
+
+	// Store the tree with no holder and net it to zero, not ripe.
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{l, p}); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(grace)
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry("tick")}); err != nil {
+		t.Fatal(err)
+	}
+	collect()
+	if !stored() {
+		t.Fatal("the tree was freed before it ripened")
+	}
+
+	// The hold is refused, then a repeat that keeps the tree commits.
+	adm := func() *spaceAdmission {
+		return &spaceAdmission{payloads: []*block.BlockRef{p.Ref}, done: make(chan struct{})}
+	}
+	if err := a.holdAdmitted(ctx, adm()); !errors.Is(err, block.ErrRootNotHeld) {
+		t.Fatalf("hold over a tree at zero = %v, want ErrRootNotHeld", err)
+	}
+	if _, err := a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{l, p}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.holdAdmitted(ctx, adm()); err != nil {
+		t.Fatalf("repeat: %v", err)
+	}
+
+	// Collections past grace keep the tree.
+	for range 2 {
+		time.Sleep(grace)
+		collect()
+	}
+	if !stored() {
+		t.Fatal("a collection freed the admitted tree")
+	}
 }

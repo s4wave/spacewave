@@ -2602,6 +2602,310 @@ func TestLivenessAdversarial(t *testing.T) {
 		})
 	}
 
+	// The admit subtests hold a payload tree P -> L that a stage built
+	// earlier, as a World's admit does: payloads moves from Q onto a new H
+	// naming P and Q, requiring its blocks held.
+	t.Run("admit after the tree was freed", func(t *testing.T) {
+		// The stage's release nets and frees P and L: refused.
+		v, clk, tr, admit := newAdmitVolume(t, true)
+		buildAndRelease(t, v, clk, tr)
+		requireStored(t, v, tr, false, "P", "L")
+		requireNotHeld(t, v, tr, admit())
+	})
+
+	t.Run("admit after a child was freed under its Dead parent", func(t *testing.T) {
+		// The release nets behind a younger record, so P and L are Dead but
+		// not ripe. A put of P again re-ripens P only, and L is freed while P
+		// stays stored and Dead: refused.
+		v, clk, tr, admit := newAdmitVolume(t, true)
+		freeUnderDeadParent(t, v, clk, tr)
+		requireNotHeld(t, v, tr, admit())
+	})
+
+	t.Run("put again of a Dead parent holds its child until it nets", func(t *testing.T) {
+		// The release nets behind a younger record, so P and L are Dead but
+		// not ripe. A put of P again sets the hold mark, and a collect past
+		// L's ripe sequence frees nothing until the put nets. P is still Dead,
+		// so the admit is refused.
+		v, clk, tr, admit := newAdmitVolume(t, true)
+		ctx := t.Context()
+		stage, release, err := v.OpenStage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		stagePut(t, v, stage, tr, "L", "P")
+		release()
+		if err := v.withDirectAtomic(ctx, nil); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace - time.Second)
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "y", Ref: tr["Q"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(2 * time.Second)
+		collectAll(t, v)
+		if _, err := v.PutBlockBatch(ctx, tr.entries("P")); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace - time.Second)
+		if res := collectAll(t, v); res.Freed != 0 {
+			t.Fatalf("freed %d before the put again netted", res.Freed)
+		}
+		requireStored(t, v, tr, true, "P", "L")
+		requireNotHeld(t, v, tr, admit())
+	})
+
+	t.Run("admit putting a Dead parent again over its freed child", func(t *testing.T) {
+		// (j) The admit's batch stores P again, which proves P's bytes but
+		// not its freed child L: refused.
+		v, clk, tr, admit := newAdmitVolume(t, true)
+		freeUnderDeadParent(t, v, clk, tr)
+		requireNotHeld(t, v, tr, admit("P"))
+	})
+
+	t.Run("admit giving birth to a payload root over its freed child", func(t *testing.T) {
+		// (k) The tree was freed whole; the admit's batch stores P anew but
+		// not L: refused.
+		v, clk, tr, admit := newAdmitVolume(t, true)
+		buildAndRelease(t, v, clk, tr)
+		requireStored(t, v, tr, false, "P", "L")
+		requireNotHeld(t, v, tr, admit("P"))
+	})
+
+	t.Run("admit repeated with the tree in its batch", func(t *testing.T) {
+		// As (j), then the writer repeats the admit storing the whole tree in
+		// its batch, as ErrRootNotHeld promises: commits. The repeat moves
+		// onto a new H naming P and M over L, a diamond three deep.
+		v, clk, tr, admit := newAdmitVolume(t, true)
+		freeUnderDeadParent(t, v, clk, tr)
+		requireNotHeld(t, v, tr, admit("P"))
+		tr.add(t, "M", "L")
+		h := tr.add(t, "H", "P", "M", "Q")
+		roots := []block.NamedRoot{{Name: "payloads", Ref: h, Previous: tr["Q"].Ref, RequireHeld: true}}
+		if err := v.SetBucketRoots(t.Context(), "b", tr.entries("H", "M", "P", "L"), roots); err != nil {
+			t.Fatal(err)
+		}
+		requireAdmitKept(t, v, clk, tr)
+		requireStored(t, v, tr, true, "M")
+	})
+
+	t.Run("admit observed past a failed read", func(t *testing.T) {
+		// The check's stage read fails on P, Dead over its freed child L.
+		// Enforcing returns the error; observing counts nothing and lands
+		// the move as with the check off.
+		v, clk, tr, _ := newAdmitVolume(t, true)
+		freeUnderDeadParent(t, v, clk, tr)
+		errRead := errors.New("stage read failed")
+		land := func(mode block_gc.HeldMode) error {
+			return v.withDirectAtomic(t.Context(), func(p *physicalTx) error {
+				_, err := v.landMoves(t.Context(), p, tr.entries("H"), block_gc.BucketRoots{
+					BucketID:  "b",
+					Roots:     []block.NamedRoot{{Name: "payloads", Ref: tr["H"].Ref, Previous: tr["Q"].Ref, RequireHeld: true}},
+					Mode:      mode,
+					StageHeld: func(context.Context, *block.BlockRef) (bool, error) { return false, errRead },
+					Observed:  v.observeNotHeld,
+				})
+				return err
+			})
+		}
+		if err := land(block_gc.HeldEnforce); !errors.Is(err, errRead) {
+			t.Fatalf("enforced Land = %v, want the read error", err)
+		}
+		if err := land(block_gc.HeldObserve); err != nil {
+			t.Fatalf("observed Land = %v, want commit", err)
+		}
+		if got, err := v.GetBucketRoot(t.Context(), "b", "payloads"); err != nil || !got.EqualsRef(tr["H"].Ref) {
+			t.Fatalf("payloads holds %v after the observed Land: %v", got, err)
+		}
+		h, _ := v.GetHealthSnapshotWithWait()
+		if n := h.GetNotHeldRootBlocks() + h.GetNotHeldChildBlocks(); n != 0 {
+			t.Fatalf("a failed check counted %d", n)
+		}
+	})
+
+	for _, freed := range []string{"put again", "born"} {
+		t.Run("admit storing P "+freed+" over a child a live stage holds", func(t *testing.T) {
+			// (l) As (j) and (k), with an open stage holding L: commits, and
+			// a collector that frees keeps the whole tree.
+			v, clk, tr, admit := newAdmitVolume(t, true)
+			if freed == "born" {
+				buildAndRelease(t, v, clk, tr)
+			} else {
+				freeUnderDeadParent(t, v, clk, tr)
+			}
+			stage, release, err := v.OpenStage(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			stagePut(t, v, stage, tr, "L")
+			if err := admit("P"); err != nil {
+				t.Fatal(err)
+			}
+			release()
+			requireAdmitKept(t, v, clk, tr)
+		})
+	}
+
+	t.Run("admit observed with frees off", func(t *testing.T) {
+		// The default with frees off observes: the move lands over the
+		// released tree and counts P, a child outside the batch.
+		v, clk := newLivenessVolume(t, false)
+		if v.heldMode != block_gc.HeldObserve {
+			t.Fatalf("mode %v with frees off, want observe", v.heldMode)
+		}
+		tr, admit := admitTree(t, v)
+		buildAndRelease(t, v, clk, tr)
+		if err := admit(); err != nil {
+			t.Fatal(err)
+		}
+		h, _ := v.GetHealthSnapshotWithWait()
+		root, child := h.GetNotHeldRootBlocks(), h.GetNotHeldChildBlocks()
+		if root != 0 || child != 1 {
+			t.Fatalf("observed root=%d child=%d, want 0 and 1", root, child)
+		}
+	})
+
+	t.Run("admit with the check off", func(t *testing.T) {
+		// Off with frees on checks nothing: the move lands and counts none.
+		v, clk := newLivenessVolume(t, true)
+		v.collector = v.newCollector(false, block_gc.DefaultGrace)
+		v.heldMode = rootHeldMode(store_kvtx.RootHeldCheck_ROOT_HELD_CHECK_OFF, true)
+		tr, admit := admitTree(t, v)
+		buildAndRelease(t, v, clk, tr)
+		if err := admit(); err != nil {
+			t.Fatal(err)
+		}
+		h, _ := v.GetHealthSnapshotWithWait()
+		if n := h.GetNotHeldRootBlocks() + h.GetNotHeldChildBlocks(); n != 0 {
+			t.Fatalf("observed %d with the check off", n)
+		}
+	})
+
+	t.Run("admit over bytes without a list", func(t *testing.T) {
+		v, _, tr, admit := newAdmitVolume(t, true)
+		ref, _, err := v.Store.PutBlock(t.Context(), tr["P"].Data, &block.PutOpts{RefsKnown: true})
+		if err != nil || !ref.EqualsRef(tr["P"].Ref) {
+			t.Fatalf("stored P without a list as %v: %v", ref, err)
+		}
+		requireNotHeld(t, v, tr, admit())
+	})
+
+	t.Run("admit after a flush cut after its first slice", func(t *testing.T) {
+		// The open stage stored L only; P is missing: refused.
+		v, _, tr, admit := newAdmitVolume(t, true)
+		stage, release, err := v.OpenStage(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer release()
+		stagePut(t, v, stage, tr, "L")
+		requireNotHeld(t, v, tr, admit())
+	})
+
+	t.Run("admit retried over a rebuilt tree", func(t *testing.T) {
+		// The release nets P and L to zero with frees off. A second stage
+		// puts the same tree again, and the admit commits at once, before
+		// netting gives P a holder. Once that stage is released and its
+		// release nets, a collector that frees keeps the whole tree.
+		v, clk, tr, admit := newAdmitVolume(t, false)
+		buildAndRelease(t, v, clk, tr)
+		stage, release, err := v.OpenStage(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		stagePut(t, v, stage, tr, "L", "P")
+		if err := admit(); err != nil {
+			t.Fatal(err)
+		}
+		requireStored(t, v, tr, true, "H", "P", "L", "Q")
+		release()
+		requireAdmitKept(t, v, clk, tr)
+	})
+
+	t.Run("admit under a live hold", func(t *testing.T) {
+		v, clk, tr, admit := newAdmitVolume(t, true)
+		if err := v.SetBucketRoots(t.Context(), "b", tr.entries("L", "P"), []block.NamedRoot{{Name: "other", Ref: tr["P"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		if err := admit(); err != nil {
+			t.Fatal(err)
+		}
+		requireStored(t, v, tr, true, "H", "P", "L", "Q")
+	})
+
+	t.Run("admit after the stage was released", func(t *testing.T) {
+		// The stage's release nets P and L to zero with frees off, so both
+		// are stored but nothing holds them: refused. The release nets first
+		// because until it does, P still reads one holder and the admit
+		// commits; that is safe, since the admit's up pair and the release's
+		// down pair net together and leave P held.
+		v, clk, tr, admit := newAdmitVolume(t, false)
+		buildAndRelease(t, v, clk, tr)
+		requireStored(t, v, tr, true, "P", "L")
+		requireNotHeld(t, v, tr, admit())
+	})
+
+	t.Run("admit before the stage's release nets", func(t *testing.T) {
+		// The admit commits while the release is in the journal and not
+		// netted, so P still reads its implied holder. The release then nets
+		// alone, older than Grace while the admit's record is not, which
+		// brings P and L to zero; their ripe sequence lies past the admit's
+		// record, so no free runs until the admit nets and re-holds them.
+		v, clk, tr, admit := newAdmitVolume(t, true)
+		ctx := t.Context()
+		stage, release, err := v.OpenStage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		stagePut(t, v, stage, tr, "L", "P")
+		release()
+		if err := v.withDirectAtomic(ctx, nil); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace / 2)
+		if err := admit(); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace/2 + time.Second)
+		if res := collectAll(t, v); res.Freed != 0 {
+			t.Fatalf("freed %d between the release and the admit", res.Freed)
+		}
+		requireStored(t, v, tr, true, "H", "P", "L", "Q")
+		for range 2 {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+		}
+		requireStored(t, v, tr, true, "H", "P", "L", "Q")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("admit evidenced by another holder's stage", func(t *testing.T) {
+		// After the writer's release nets to zero, another holder's stage
+		// puts the tree again while the writer's own stage holds nothing of
+		// it. The admit commits on that evidence, the other stage is released
+		// right after, and a collector that frees keeps the whole tree.
+		v, clk, tr, admit := newAdmitVolume(t, false)
+		ctx := t.Context()
+		buildAndRelease(t, v, clk, tr)
+		_, own, err := v.OpenStage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer own()
+		other, release, err := v.OpenStage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		stagePut(t, v, other, tr, "L", "P")
+		if err := admit(); err != nil {
+			t.Fatal(err)
+		}
+		release()
+		requireAdmitKept(t, v, clk, tr)
+	})
+
 	t.Run("frees off", func(t *testing.T) {
 		// With frees off the collector nets and frees nothing.
 		v, clk := newLivenessVolume(t, false)
@@ -3354,6 +3658,157 @@ func advanceRenewing(t *testing.T, v *Volume, clk *testClock, d time.Duration) {
 			t.Fatal(err)
 		}
 	}
+}
+
+// newAdmitVolume opens a Volume with frees on, so the check refuses, and
+// builds admitTree in it. Without frees it then swaps in a collector that
+// frees nothing, keeping the refusal.
+func newAdmitVolume(t *testing.T, frees bool) (*Volume, *testClock, testTree, func(extra ...string) error) {
+	t.Helper()
+	v, clk := newLivenessVolume(t, true)
+	if !frees {
+		v.collector = v.newCollector(false, block_gc.DefaultGrace)
+	}
+	tr, admit := admitTree(t, v)
+	return v, clk, tr, admit
+}
+
+// admitTree sets root payloads of v onto Q and builds the payload tree
+// P -> L and H naming P and Q, none of them stored. admit moves payloads
+// from Q onto H, storing H and the extra blocks and requiring its blocks
+// held.
+func admitTree(t *testing.T, v *Volume) (testTree, func(extra ...string) error) {
+	t.Helper()
+	tr := testTree{}
+	q := tr.add(t, "Q")
+	if err := v.SetBucketRoots(t.Context(), "b", tr.entries("Q"), []block.NamedRoot{{Name: "payloads", Ref: q}}); err != nil {
+		t.Fatal(err)
+	}
+	tr.add(t, "L")
+	tr.add(t, "P", "L")
+	h := tr.add(t, "H", "P", "Q")
+	admit := func(extra ...string) error {
+		roots := []block.NamedRoot{{Name: "payloads", Ref: h, Previous: q, RequireHeld: true}}
+		return v.SetBucketRoots(t.Context(), "b", tr.entries(append([]string{"H"}, extra...)...), roots)
+	}
+	return tr, admit
+}
+
+// freeUnderDeadParent stores P -> L under a stage, releases it, and frees L
+// while P stays stored and Dead, as the subtest of that name describes.
+func freeUnderDeadParent(t *testing.T, v *Volume, clk *testClock, tr testTree) {
+	t.Helper()
+	ctx := t.Context()
+	stage, release, err := v.OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stagePut(t, v, stage, tr, "L", "P")
+	release()
+	if err := v.withDirectAtomic(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	clk.Add(block_gc.DefaultGrace - time.Second)
+	if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "y", Ref: tr["Q"].Ref}}); err != nil {
+		t.Fatal(err)
+	}
+	clk.Add(2 * time.Second)
+	collectAll(t, v)
+	if _, err := v.PutBlockBatch(ctx, tr.entries("P")); err != nil {
+		t.Fatal(err)
+	}
+
+	// The put again holds every free until it nets, behind a younger
+	// record that keeps P's new ripe sequence ahead of the cursor.
+	clk.Add(block_gc.DefaultGrace - time.Second)
+	if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "y2", Ref: tr["Q"].Ref}}); err != nil {
+		t.Fatal(err)
+	}
+	clk.Add(2 * time.Second)
+	collectAll(t, v)
+	requireStored(t, v, tr, true, "P")
+	requireStored(t, v, tr, false, "L")
+	if listed, held := admitRecords(t, v, tr, "L"); listed || held {
+		t.Fatalf("freed L listed=%v held=%v, want neither", listed, held)
+	}
+	if listed, held := admitRecords(t, v, tr, "P"); !listed || held {
+		t.Fatalf("Dead P listed=%v held=%v, want listed and not held", listed, held)
+	}
+	t.Log("L freed with no list; P stored, listed and not held")
+}
+
+// stagePut puts each named block of tr under stage, one batch each.
+func stagePut(t *testing.T, v *Volume, stage string, tr testTree, names ...string) {
+	t.Helper()
+	for _, name := range names {
+		if _, err := v.PrepareStagedBlockBatch(t.Context(), stage, tr.entries(name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// buildAndRelease puts L and P under a stage, releases it, and nets the
+// release past the grace period.
+func buildAndRelease(t *testing.T, v *Volume, clk *testClock, tr testTree) {
+	t.Helper()
+	stage, release, err := v.OpenStage(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	stagePut(t, v, stage, tr, "L", "P")
+	release()
+	if err := v.withDirectAtomic(t.Context(), nil); err != nil {
+		t.Fatal(err)
+	}
+	clk.Add(block_gc.DefaultGrace + time.Second)
+	collectAll(t, v)
+}
+
+// admitRecords reports whether the named block of tr has a child list and
+// whether the records hold it.
+func admitRecords(t *testing.T, v *Volume, tr testTree, name string) (listed, held bool) {
+	t.Helper()
+	ref := tr[name].Ref
+	err := v.withDirectAtomic(t.Context(), func(p *physicalTx) error {
+		var err error
+		if listed, err = p.rec.HasChildren(t.Context(), ref); err != nil {
+			return err
+		}
+		held, err = p.rec.Held(t.Context(), ref)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return listed, held
+}
+
+// requireNotHeld checks that err refuses the admit and payloads still holds
+// Q.
+func requireNotHeld(t *testing.T, v *Volume, tr testTree, err error) {
+	t.Helper()
+	if !errors.Is(err, block.ErrRootNotHeld) {
+		t.Fatalf("admit = %v, want ErrRootNotHeld", err)
+	}
+	if got, err := v.GetBucketRoot(t.Context(), "b", "payloads"); err != nil || !got.EqualsRef(tr["Q"].Ref) {
+		t.Fatalf("payloads holds %v after the refusal: %v", got, err)
+	}
+}
+
+// requireAdmitKept turns frees on, nets every released stage past the grace
+// period, and checks that the admitted tree is stored whole.
+func requireAdmitKept(t *testing.T, v *Volume, clk *testClock, tr testTree) {
+	t.Helper()
+	v.collector = v.newCollector(true, block_gc.DefaultGrace)
+	if err := v.withDirectAtomic(t.Context(), nil); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+	}
+	requireStored(t, v, tr, true, "H", "P", "L", "Q")
+	requireAudit(t, v, 0)
 }
 
 // setUnadopted marks store, which must be empty, as a Volume of the current

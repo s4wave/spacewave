@@ -33,6 +33,13 @@ export enum SetBucketRootsResult {
    * refused a root that would hold a block.
    */
   UNHELD = 2,
+
+  /**
+   * SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD means a root that requires its
+   * blocks held would hold a stored block nothing holds, and nothing was
+   * written.
+   */
+  ROOT_NOT_HELD = 3,
 }
 
 export const SetBucketRootsResult_Enum = /* @__PURE__ */ createEnumType(
@@ -41,6 +48,7 @@ export const SetBucketRootsResult_Enum = /* @__PURE__ */ createEnumType(
     [0, 'SET_BUCKET_ROOTS_RESULT_OK'],
     [1, 'SET_BUCKET_ROOTS_RESULT_ROOT_MOVED'],
     [2, 'SET_BUCKET_ROOTS_RESULT_UNHELD'],
+    [3, 'SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD'],
   ],
 )
 
@@ -725,6 +733,11 @@ export interface NamedRoot {
    * held until released.
    */
   expiresUnixMilli?: bigint
+  /**
+   * RequireHeld refuses the move with SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD
+   * unless every stored block it newly reaches is held now.
+   */
+  requireHeld?: boolean
 }
 
 export const NamedRoot: MessageType<NamedRoot> =
@@ -733,6 +746,7 @@ export const NamedRoot: MessageType<NamedRoot> =
     [2, 'ref', 11, 0, BlockRef.codec],
     [3, 'previous', 11, 0, BlockRef.codec],
     [4, 'expires_unix_milli', 3],
+    [5, 'require_held', 8],
   ])
 
 /**

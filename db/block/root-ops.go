@@ -17,6 +17,15 @@ var ErrRootMoved = errors.New("named root moved")
 // World whose head is a root, fails at once instead of losing the hold.
 var ErrRootsUnheld = errors.New("store holds no named roots")
 
+// ErrRootNotHeld is returned by SetRoots for a root that requires its blocks
+// held when it would hold a stored block that nothing holds now: the block
+// is missing, stored without a child list, at zero holders, or held only by a
+// released stage. The collector may have freed what such a block names. The
+// move is refused whole. A repeat of the write that stores the tree again in
+// its own batch commits; a write that names blocks it did not store in that
+// batch is refused again until they are stored.
+var ErrRootNotHeld = errors.New("root names a block nothing holds")
+
 // NamedRoot moves one named root of a store.
 type NamedRoot struct {
 	// Name is the root name, unique within the store's bucket.
@@ -34,6 +43,15 @@ type NamedRoot struct {
 	// a reader pins a snapshot by holding a root it renews, and a holder that
 	// dies releases it by silence.
 	Expires time.Time
+	// RequireHeld refuses the change with ErrRootNotHeld unless the tree the
+	// move newly reaches is held now: Ref itself when the change does not
+	// store it, else, below each block the change stores, put anew or again,
+	// every child the change does not store. A put proves a block's own bytes,
+	// never its children. A writer sets it on a hold of roots it built
+	// earlier, which a released stage may have left for the collector. A
+	// store that frees nothing by liveness ignores it, since every block it
+	// stores stays stored, and a store may be configured to only observe it.
+	RequireHeld bool
 }
 
 // RootOps is the part of StoreOps that holds roots. A block is live while a

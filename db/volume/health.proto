@@ -62,4 +62,11 @@ message VolumeHealth {
   // ReserveBytes is the free disk below which the volume refuses new writes,
   // as of SizesAt. Zero when the volume keeps no reserve.
   uint64 reserve_bytes = 12;
+  // NotHeldRootBlocks counts the root blocks not held that root moves
+  // requiring their blocks held landed over while the volume observed rather
+  // than refused, since the volume opened.
+  uint64 not_held_root_blocks = 13;
+  // NotHeldChildBlocks counts the children outside their batch, not held, that
+  // such moves landed over while the volume observed, since it opened.
+  uint64 not_held_child_blocks = 14;
 }

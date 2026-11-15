@@ -31,6 +31,10 @@ const (
 	// SET_BUCKET_ROOTS_RESULT_UNHELD means the volume holds no roots and
 	// refused a root that would hold a block.
 	SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_UNHELD SetBucketRootsResult = 2
+	// SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD means a root that requires its
+	// blocks held would hold a stored block nothing holds, and nothing was
+	// written.
+	SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD SetBucketRootsResult = 3
 )
 
 // Enum value maps for SetBucketRootsResult.
@@ -39,11 +43,13 @@ var (
 		0: "SET_BUCKET_ROOTS_RESULT_OK",
 		1: "SET_BUCKET_ROOTS_RESULT_ROOT_MOVED",
 		2: "SET_BUCKET_ROOTS_RESULT_UNHELD",
+		3: "SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD",
 	}
 	SetBucketRootsResult_value = map[string]int32{
-		"SET_BUCKET_ROOTS_RESULT_OK":         0,
-		"SET_BUCKET_ROOTS_RESULT_ROOT_MOVED": 1,
-		"SET_BUCKET_ROOTS_RESULT_UNHELD":     2,
+		"SET_BUCKET_ROOTS_RESULT_OK":            0,
+		"SET_BUCKET_ROOTS_RESULT_ROOT_MOVED":    1,
+		"SET_BUCKET_ROOTS_RESULT_UNHELD":        2,
+		"SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD": 3,
 	}
 )
 
@@ -861,6 +867,9 @@ type NamedRoot struct {
 	// ExpiresUnixMilli is when the volume releases a leased root, zero for one
 	// held until released.
 	ExpiresUnixMilli int64 `protobuf:"varint,4,opt,name=expires_unix_milli,json=expiresUnixMilli,proto3" json:"expiresUnixMilli,omitempty"`
+	// RequireHeld refuses the move with SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD
+	// unless every stored block it newly reaches is held now.
+	RequireHeld bool `protobuf:"varint,5,opt,name=require_held,json=requireHeld,proto3" json:"requireHeld,omitempty"`
 }
 
 func (x *NamedRoot) Reset() {
@@ -895,6 +904,13 @@ func (x *NamedRoot) GetExpiresUnixMilli() int64 {
 		return x.ExpiresUnixMilli
 	}
 	return 0
+}
+
+func (x *NamedRoot) GetRequireHeld() bool {
+	if x != nil {
+		return x.RequireHeld
+	}
+	return false
 }
 
 // SetBucketRootsRequest stores blocks and moves named roots of a bucket.
@@ -1759,6 +1775,7 @@ func (m *NamedRoot) CloneVT() *NamedRoot {
 	r := new(NamedRoot)
 	r.Name = m.Name
 	r.ExpiresUnixMilli = m.ExpiresUnixMilli
+	r.RequireHeld = m.RequireHeld
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.Previous = protobuf_go_lite.CloneVTValue(m.Previous)
 	if len(m.unknownFields) > 0 {
@@ -2711,6 +2728,9 @@ func (this *NamedRoot) EqualVT(that *NamedRoot) bool {
 		return false
 	}
 	if this.ExpiresUnixMilli != that.ExpiresUnixMilli {
+		return false
+	}
+	if this.RequireHeld != that.RequireHeld {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4595,6 +4615,11 @@ func (x *NamedRoot) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("expiresUnixMilli")
 		s.WriteInt64(x.ExpiresUnixMilli)
 	}
+	if x.RequireHeld || s.HasField("requireHeld") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("requireHeld")
+		s.WriteBool(x.RequireHeld)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4632,6 +4657,9 @@ func (x *NamedRoot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "expires_unix_milli", "expiresUnixMilli":
 			s.AddField("expires_unix_milli")
 			x.ExpiresUnixMilli = s.ReadInt64()
+		case "require_held", "requireHeld":
+			s.AddField("require_held")
+			x.RequireHeld = s.ReadBool()
 		}
 	})
 }
@@ -6786,6 +6814,11 @@ func (m *NamedRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.RequireHeld {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RequireHeld)
+		i--
+		dAtA[i] = 0x28
+	}
 	if m.ExpiresUnixMilli != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresUnixMilli))
 		i--
@@ -7928,6 +7961,7 @@ func (m *NamedRoot) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpiresUnixMilli)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.RequireHeld)
 	n += len(m.unknownFields)
 	return n
 }
@@ -8666,6 +8700,10 @@ func (x *NamedRoot) MarshalProtoText() string {
 	if x.ExpiresUnixMilli != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_unix_milli")
 		protobuf_go_lite.TextWriteInt(&sb, x.ExpiresUnixMilli)
+	}
+	if x.RequireHeld != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "require_held")
+		protobuf_go_lite.TextWriteBool(&sb, x.RequireHeld)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -10887,6 +10925,16 @@ func (m *NamedRoot) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequireHeld", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RequireHeld = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

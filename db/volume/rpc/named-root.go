@@ -9,7 +9,7 @@ import (
 
 // NewNamedRoot returns the wire form of root.
 func NewNamedRoot(root block.NamedRoot) *NamedRoot {
-	out := &NamedRoot{Name: root.Name, Ref: root.Ref, Previous: root.Previous}
+	out := &NamedRoot{Name: root.Name, Ref: root.Ref, Previous: root.Previous, RequireHeld: root.RequireHeld}
 	if !root.Expires.IsZero() {
 		out.ExpiresUnixMilli = root.Expires.UnixMilli()
 	}
@@ -18,7 +18,7 @@ func NewNamedRoot(root block.NamedRoot) *NamedRoot {
 
 // ToNamedRoot returns the root the wire form names.
 func (r *NamedRoot) ToNamedRoot() block.NamedRoot {
-	out := block.NamedRoot{Name: r.GetName(), Ref: r.GetRef(), Previous: r.GetPrevious()}
+	out := block.NamedRoot{Name: r.GetName(), Ref: r.GetRef(), Previous: r.GetPrevious(), RequireHeld: r.GetRequireHeld()}
 	if ms := r.GetExpiresUnixMilli(); ms != 0 {
 		out.Expires = time.UnixMilli(ms)
 	}

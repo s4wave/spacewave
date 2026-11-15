@@ -8,11 +8,56 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
+	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	hash "github.com/s4wave/spacewave/net/hash"
 )
+
+// RootHeldCheck is what a Volume does with a root move that requires its
+// blocks held when a block it reaches is not. The check changes nothing the
+// collector frees.
+type RootHeldCheck int32
+
+const (
+	// ROOT_HELD_CHECK_UNKNOWN, the unset default, refuses the move while
+	// CollectorFrees is on, and observes it otherwise.
+	RootHeldCheck_ROOT_HELD_CHECK_UNKNOWN RootHeldCheck = 0
+	// ROOT_HELD_CHECK_OFF checks nothing.
+	RootHeldCheck_ROOT_HELD_CHECK_OFF RootHeldCheck = 1
+	// ROOT_HELD_CHECK_OBSERVE lands the move, and counts and logs the blocks
+	// not held by reason.
+	RootHeldCheck_ROOT_HELD_CHECK_OBSERVE RootHeldCheck = 2
+)
+
+// Enum value maps for RootHeldCheck.
+var (
+	RootHeldCheck_name = map[int32]string{
+		0: "ROOT_HELD_CHECK_UNKNOWN",
+		1: "ROOT_HELD_CHECK_OFF",
+		2: "ROOT_HELD_CHECK_OBSERVE",
+	}
+	RootHeldCheck_value = map[string]int32{
+		"ROOT_HELD_CHECK_UNKNOWN": 0,
+		"ROOT_HELD_CHECK_OFF":     1,
+		"ROOT_HELD_CHECK_OBSERVE": 2,
+	}
+)
+
+func (x RootHeldCheck) Enum() *RootHeldCheck {
+	p := new(RootHeldCheck)
+	*p = x
+	return p
+}
+
+func (x RootHeldCheck) String() string {
+	name, valid := RootHeldCheck_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
 
 // Config is the configuration for the kvtx store.
 type Config struct {
@@ -41,6 +86,9 @@ type Config struct {
 	// time a reader takes to pin a head it saw and the lease of a leased root.
 	// Empty uses the collector's default of 15 minutes.
 	CollectorGraceDur string `protobuf:"bytes,8,opt,name=collector_grace_dur,json=collectorGraceDur,proto3" json:"collectorGraceDur,omitempty"`
+	// RootHeldCheck is what the Volume does with a root move that requires its
+	// blocks held when a block it reaches is not.
+	RootHeldCheck RootHeldCheck `protobuf:"varint,9,opt,name=root_held_check,json=rootHeldCheck,proto3" json:"rootHeldCheck,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -77,6 +125,13 @@ func (x *Config) GetCollectorGraceDur() string {
 	return ""
 }
 
+func (x *Config) GetRootHeldCheck() RootHeldCheck {
+	if x != nil {
+		return x.RootHeldCheck
+	}
+	return RootHeldCheck_ROOT_HELD_CHECK_UNKNOWN
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -86,6 +141,7 @@ func (m *Config) CloneVT() *Config {
 	r.DisableHashGet = m.DisableHashGet
 	r.CollectorFrees = m.CollectorFrees
 	r.CollectorGraceDur = m.CollectorGraceDur
+	r.RootHeldCheck = m.RootHeldCheck
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -114,6 +170,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.CollectorGraceDur != that.CollectorGraceDur {
 		return false
 	}
+	if this.RootHeldCheck != that.RootHeldCheck {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -123,6 +182,46 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the RootHeldCheck to JSON.
+func (x RootHeldCheck) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), RootHeldCheck_name)
+}
+
+// MarshalText marshals the RootHeldCheck to text.
+func (x RootHeldCheck) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), RootHeldCheck_name)), nil
+}
+
+// MarshalJSON marshals the RootHeldCheck to JSON.
+func (x RootHeldCheck) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RootHeldCheck from JSON.
+func (x *RootHeldCheck) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(RootHeldCheck_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read RootHeldCheck enum: %v", err)
+		return
+	}
+	*x = RootHeldCheck(v)
+}
+
+// UnmarshalText unmarshals the RootHeldCheck from text.
+func (x *RootHeldCheck) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), RootHeldCheck_value)
+	if err != nil {
+		return err
+	}
+	*x = RootHeldCheck(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the RootHeldCheck from JSON.
+func (x *RootHeldCheck) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the Config message to JSON.
@@ -153,6 +252,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("collectorGraceDur")
 		s.WriteString(x.CollectorGraceDur)
 	}
+	if x.RootHeldCheck != 0 || s.HasField("rootHeldCheck") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootHeldCheck")
+		x.RootHeldCheck.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -182,6 +286,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "collector_grace_dur", "collectorGraceDur":
 			s.AddField("collector_grace_dur")
 			x.CollectorGraceDur = s.ReadString()
+		case "root_held_check", "rootHeldCheck":
+			s.AddField("root_held_check")
+			x.RootHeldCheck.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -220,6 +327,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.RootHeldCheck != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RootHeldCheck))
+		i--
+		dAtA[i] = 0x48
+	}
 	if len(m.CollectorGraceDur) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.CollectorGraceDur)
 		i--
@@ -253,8 +365,13 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableHashGet)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.CollectorFrees)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CollectorGraceDur)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RootHeldCheck)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x RootHeldCheck) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *Config) MarshalProtoText() string {
@@ -275,6 +392,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.CollectorGraceDur != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "collector_grace_dur")
 		protobuf_go_lite.TextWriteString(&sb, x.CollectorGraceDur)
+	}
+	if x.RootHeldCheck != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_held_check")
+		protobuf_go_lite.TextWriteStringer(&sb, RootHeldCheck(x.RootHeldCheck))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -344,6 +465,17 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.CollectorGraceDur = v
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootHeldCheck", wireType)
+			}
+			m.RootHeldCheck = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RootHeldCheck = RootHeldCheck(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

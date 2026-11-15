@@ -16,7 +16,46 @@ type BucketRoots struct {
 	BucketID string
 	// Roots are the moves.
 	Roots []block.NamedRoot
+	// Mode is what Land does when a move that requires its blocks held finds
+	// a block that is not, as requireTree describes.
+	Mode HeldMode
+	// StageHeld reports whether an open stage holds ref, read in the Land's
+	// transaction, for the moves that require their blocks held. Nil reports
+	// that none does.
+	StageHeld func(ctx context.Context, ref *block.BlockRef) (bool, error)
+	// Observed receives, in HeldObserve, the count of blocks not held by
+	// reason when any is nonzero, or no counts and the error when the check
+	// failed or was cancelled, before the Land's transaction commits, so it
+	// also counts a Land that later fails. Nil drops them.
+	Observed func(notHeld [NotHeldChild + 1]uint64, err error)
 }
+
+// HeldMode is what Land does with a move that requires its blocks held when
+// a block it reaches is not.
+type HeldMode uint8
+
+const (
+	// HeldEnforce refuses the Land with block.ErrRootNotHeld.
+	HeldEnforce HeldMode = iota
+	// HeldObserve lands the move and reports the blocks to Observed.
+	HeldObserve
+	// HeldOff checks nothing.
+	HeldOff
+)
+
+// NotHeldReason says which block of a move that requires its blocks held is
+// not held.
+type NotHeldReason uint8
+
+const (
+	// NotHeldRoot is the block the root moves onto, which the batch does not
+	// store: a repeat that stores the tree again in its batch lands.
+	NotHeldRoot NotHeldReason = iota
+	// NotHeldChild is a child outside the batch of a block the batch stores:
+	// one the writer stored in an earlier batch, or never did. Land cannot
+	// tell which, so a repeat lands only if it stores the child again.
+	NotHeldChild
+)
 
 // Land stores entries and moves the roots of each bucket in moves in one
 // write transaction, with the liveness records in rec and the block bytes in
@@ -81,7 +120,8 @@ type BucketRoots struct {
 // writes each born block's list, one journal record and the state record. The
 // pairs are eager, as Journal.tla models them: the collector nets each later,
 // and a shared child's up cancels the down its old parent's cascade gives it
-// when both net in one slice.
+// when both net in one slice. A move that requires its blocks held adds the
+// reads requireTree describes.
 func Land(
 	ctx context.Context,
 	rec *Records,
@@ -102,7 +142,7 @@ func Land(
 		adopting: state.GetAdoption() == Adoption_ADOPTION_ADOPTING,
 		verify:   state.GetUnverifiedLists(),
 		born:     make(map[string]*bornBlock),
-		touched:  make(map[string]struct{}),
+		touched:  make(map[string][]*block.BlockRef),
 	}
 
 	// Check every root before writing anything.
@@ -117,6 +157,13 @@ func Land(
 	existed, err := l.putEntries(ctx, entries)
 	if err != nil {
 		return nil, err
+	}
+
+	// Require the trees the strict moves reach held.
+	for i, move := range moves {
+		if err := l.requireMoveHeld(ctx, move, held[i]); err != nil {
+			return nil, err
+		}
 	}
 
 	// Count the holders the born blocks give their children.
@@ -171,9 +218,9 @@ type lander struct {
 	// and each block it gives birth to landed, since all the block's holders
 	// come through Land, as putList describes.
 	verify bool
-	// touched holds the block keys of the entries already stored, whose put
-	// the journal record's again list names.
-	touched map[string]struct{}
+	// touched maps the block keys of the entries already stored, whose put
+	// the journal record's again list names, to the refs each put names.
+	touched map[string][]*block.BlockRef
 	// onStored are the block keys of the stored blocks a root moves onto.
 	// With the touched blocks, they are the blocks the Land holds that the
 	// collector may have at zero, which decide the hold mark.
@@ -188,6 +235,9 @@ type lander struct {
 	// up and down are the journal record's pairs.
 	up, down [][]byte
 }
+
+// stageHeld is BucketRoots.StageHeld.
+type stageHeld = func(ctx context.Context, ref *block.BlockRef) (bool, error)
 
 // checkRoots refuses a root named twice, or one whose Previous differs from
 // the block it holds, and returns the block each root holds.
@@ -231,7 +281,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			l.refills = append(l.refills, entry)
 			fallthrough
 		case putStored:
-			l.touched[key] = struct{}{}
+			l.touched[key] = entry.Refs
 		default:
 			b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs)}
 			l.born[key] = b
@@ -499,6 +549,159 @@ func (l *lander) holdRoot(ctx context.Context, root block.NamedRoot) error {
 		return errors.Wrapf(block.ErrRefsUnknown, "named root %s on %s", root.Name, root.Ref.MarshalString())
 	}
 	return nil
+}
+
+// requireMoveHeld requires held, as move.Mode says, the tree each root of
+// move reaches that requires its blocks held and moves onto a new block. held
+// are the blocks the roots held before.
+func (l *lander) requireMoveHeld(ctx context.Context, move BucketRoots, held []*block.BlockRef) error {
+	// Off checks nothing.
+	if move.Mode == HeldOff {
+		return nil
+	}
+
+	// Walk each strict root that moves onto a new block, refusing the first
+	// block not held, or counting each one while observing, until a read
+	// fails.
+	var counts [NotHeldChild + 1]uint64
+	notHeld := func(reason NotHeldReason, ref *block.BlockRef) error {
+		if move.Mode == HeldEnforce {
+			return errors.Wrap(block.ErrRootNotHeld, ref.MarshalString())
+		}
+		counts[reason]++
+		return nil
+	}
+	var err error
+	for i, root := range move.Roots {
+		if root.RequireHeld && !root.Ref.GetEmpty() && !SameRef(root.Ref, held[i]) {
+			if err = l.requireTree(ctx, root.Ref, move.StageHeld, notHeld); err != nil {
+				break
+			}
+		}
+	}
+
+	// Enforcing refuses on the error. Observing lands as with the check off,
+	// and reports what it counted, or only the error that stopped it.
+	if move.Mode == HeldEnforce {
+		return err
+	}
+	if err != nil {
+		counts = [NotHeldChild + 1]uint64{}
+	}
+	if move.Observed != nil && (err != nil || counts != [NotHeldChild + 1]uint64{}) {
+		move.Observed(counts, err)
+	}
+	return nil
+}
+
+// requireTree requires the tree a strict root on ref reaches held, as far as
+// the batch carries it, and passes each block that is not to notHeld. A
+// root on a block the batch does not store requires that block held. From a
+// block the batch stores, born or put again, the walk visits each child: a
+// child the batch stores is walked the same way, and any other, a boundary
+// child, must be held. A block is held when the records hold it, or staged
+// reports that an open stage does.
+//
+// Invariants. The check keeps an accepted root from naming a block the
+// collector freed:
+//
+//  1. It reads Records.Held, never GetHolders: GetHolders reports one holder
+//     for a block with no count record, missing ones included. Held refuses
+//     a missing block, one without a child list, and one at zero holders,
+//     Dying or Dead, whose children may already be freed (Collector,
+//     invariant 2). A block with a list and no count record carries its
+//     implied holder: netting writes a zero record whenever a block reaches
+//     zero, and a free deletes both the list and the record, so neither
+//     reads Held. A Volume never adopted, such as one of format 7 or 8 whose
+//     collector does not free, nets nothing and has no zero records: there
+//     the check refuses only a missing block or one with no list.
+//  2. A held block holds its whole tree only by Collector invariant 1: a
+//     block with no holders holds nothing. The walk stops at a held block,
+//     so it does not cover a block another hold revived from Dead over a
+//     child the collector freed before the revival: that block reads Held.
+//     Held at the boundary is trusted, and today a hold that does not
+//     require its blocks held breaks that trust: replay's addPayloads,
+//     resetPayloads, or another bucket's root can land on a stored Dead block
+//     whose child was freed, which happens only with frees on.
+//  3. A put proves the block's own bytes, never its children: a block the
+//     batch stores, born or put again, may have been Dead with its children
+//     freed. So the requirement follows the batch down to its boundary, and
+//     the walk reads nothing for a block the batch stores. A boundary block
+//     may read at zero, since netting adds the holders a revival gives it
+//     only once its record is Grace old; an open stage then proves it, as
+//     every stage put lands a block's children before the block, with its
+//     stage roots, so a block a stage root holds is stored whole. Any open
+//     stage of the process is proof, not only the writer's. staged reads the
+//     stage's root in this transaction, and a stage released before it holds
+//     nothing. The stage is proof only at the instant of this Land; from it
+//     on the move's own holders keep the block, so a later release of the
+//     stage changes nothing. A stage holds a block only while it is a stage
+//     root: a later batch of the stage that names it as a child releases
+//     that root, so an interior block of a staged tree at netted zero is
+//     refused unless its own stage root remains.
+//  4. A root that keeps its block checks nothing: the name holds the block.
+//  5. Observing never fails the Land: the check only reads, and a check that
+//     errors or is cancelled counts nothing, and the Land proceeds as with
+//     the check off; only HeldEnforce returns the error.
+//
+// Cost: nothing for a block the batch stores; one child list and one count
+// record read for each distinct boundary block, and staged's reads for one
+// not held.
+func (l *lander) requireTree(ctx context.Context, ref *block.BlockRef, staged stageHeld, notHeld func(NotHeldReason, *block.BlockRef) error) error {
+	// A root the batch does not store must be held itself.
+	if _, ok := l.carried(ref); !ok {
+		return l.requireHeld(ctx, ref, staged, NotHeldRoot, notHeld)
+	}
+
+	// Walk the blocks the batch stores, requiring each boundary child held.
+	walk := []*block.BlockRef{ref}
+	seen := map[string]struct{}{string(BlockKey(ref)): {}}
+	for len(walk) != 0 {
+		children, _ := l.carried(walk[len(walk)-1])
+		walk = walk[:len(walk)-1]
+		for _, child := range children {
+			if child.GetEmpty() {
+				continue
+			}
+			key := string(BlockKey(child))
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			if _, ok := l.carried(child); ok {
+				walk = append(walk, child)
+			} else if err := l.requireHeld(ctx, child, staged, NotHeldChild, notHeld); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// carried returns the children of ref when the batch stores it, born or put
+// again.
+func (l *lander) carried(ref *block.BlockRef) ([]*block.BlockRef, bool) {
+	key := BlockKey(ref)
+	if b, ok := l.born[string(key)]; ok {
+		return b.children, true
+	}
+	children, ok := l.touched[string(key)]
+	return children, ok
+}
+
+// requireHeld passes ref to notHeld for reason unless the records hold it or
+// staged reports that an open stage does.
+func (l *lander) requireHeld(ctx context.Context, ref *block.BlockRef, staged stageHeld, reason NotHeldReason, notHeld func(NotHeldReason, *block.BlockRef) error) error {
+	held, err := l.rec.Held(ctx, ref)
+	if err != nil || held {
+		return err
+	}
+	if staged != nil {
+		if held, err = staged(ctx, ref); err != nil || held {
+			return err
+		}
+	}
+	return notHeld(reason, ref)
 }
 
 // appendJournal appends the record of the holders the Land added beyond each

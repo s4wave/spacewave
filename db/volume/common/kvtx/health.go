@@ -6,6 +6,7 @@ import (
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
@@ -67,8 +68,9 @@ func (v *Volume) SetHealthSizes(fn HealthSizesFn) {
 
 // GetHealthSnapshotWithWait returns the volume's health and a channel that
 // closes when its collection phase or measured sizes change. The publication
-// occupancy is read with the snapshot; its changes alone do not close the
-// channel, so a write wakes no watcher.
+// occupancy and the counts of blocks observed not held are read with the
+// snapshot; their changes alone do not close the channel, so a write wakes no
+// watcher.
 func (v *Volume) GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struct{}) {
 	// Copy the state and subscribe to its next change.
 	var st healthState
@@ -84,6 +86,9 @@ func (v *Volume) GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struc
 		GcPhase:      st.phase,
 		GcPhaseStart: timestamppb.New(st.phaseStart),
 		WriteState:   volume.VolumeWriteState_VOLUME_WRITE_STATE_WRITABLE,
+
+		NotHeldRootBlocks:  v.notHeld[block_gc.NotHeldRoot].Load(),
+		NotHeldChildBlocks: v.notHeld[block_gc.NotHeldChild].Load(),
 	}
 	if st.reserve {
 		h.WriteState = volume.VolumeWriteState_VOLUME_WRITE_STATE_RESERVE

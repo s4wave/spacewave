@@ -44,6 +44,8 @@ func (v *ProxyVolume) SetBucketRoots(ctx context.Context, req *volume_rpc.SetBuc
 		return &volume_rpc.SetBucketRootsResponse{Result: volume_rpc.SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_ROOT_MOVED, Name: err.Error()}, nil
 	case errors.Is(err, block.ErrRootsUnheld):
 		return &volume_rpc.SetBucketRootsResponse{Result: volume_rpc.SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_UNHELD, Name: err.Error()}, nil
+	case errors.Is(err, block.ErrRootNotHeld):
+		return &volume_rpc.SetBucketRootsResponse{Result: volume_rpc.SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD, Name: err.Error()}, nil
 	case err != nil:
 		return nil, err
 	}
