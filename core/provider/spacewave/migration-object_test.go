@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path"
+	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // TestCloudMigrationFlushBeforeTransfer keeps pending writes under their source
@@ -54,6 +56,49 @@ func TestCloudMigrationFlushBeforeTransfer(t *testing.T) {
 				t.Fatalf("published resource did not transfer: transferred=%v err=%v", transferred.Load(), err)
 			}
 		})
+	}
+}
+
+// TestCloudMigrationHeldBlockFails checks that a same-cloud migration whose
+// source store holds a dirty block that reads corrupt fails before the
+// transfer: ForceSync reports the held block, no checkpoint is published, the
+// account epoch does not move and the source keeps the block dirty.
+func TestCloudMigrationHeldBlockFails(t *testing.T) {
+	var transferred, checkpoints atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/api/resource/transfer":
+			transferred.Add(1)
+		case strings.HasSuffix(r.URL.Path, "/checkpoint"):
+			checkpoints.Add(1)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	// Read the source's only dirty block as corrupt before the flush.
+	_, key := newTestGenesisState(t)
+	syncer := newDirtySyncExecuteTestController(t, newTestPublicationClient(server, key, mustPeerID(t, key)), nil)
+	ref, err := block.BuildBlockRef([]byte("dirty block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	syncer.upper = &corruptUpperStore{StoreOps: syncer.upper, bad: ref.GetHash()}
+	source := NewTestProviderAccount(t, server.URL)
+	destination := NewTestProviderAccount(t, server.URL)
+	epoch := destination.state.epoch
+	object := &SharedObject{tkr: &sobjectTracker{id: "held-space"}, blkStore: &BlockStore{forceSync: syncer.FlushNowUnordered}}
+
+	err = destination.ImportMigrationObject(t.Context(), source, object, nil, nil)
+	if !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("migration = %v; want the held block error", err)
+	}
+	if transferred.Load() != 0 || checkpoints.Load() != 0 || destination.state.epoch != epoch {
+		t.Fatalf("transferred = %d, checkpoints = %d, epoch %d -> %d; want nothing moved",
+			transferred.Load(), checkpoints.Load(), epoch, destination.state.epoch)
+	}
+	if pending, err := syncer.scanDirtyCandidates(t.Context()); err != nil || len(pending) != 1 {
+		t.Fatalf("source dirty = %d blocks, %v; want the held block", len(pending), err)
 	}
 }
 
