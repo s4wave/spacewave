@@ -401,6 +401,10 @@ func formatPluginSwap(pluginID string, swap *bldr_plugin.PluginSwap, loc *time.L
 			" waits since " + clock(st.GetSinceAt()) +
 			" for the running worker to answer its activation check; " + swapWaitingNextStep(pluginID)
 	}
+	if st := swap.GetCheckingApproval(); st != nil {
+		return "; checking approval of rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
+			" on this device since " + clock(st.GetSinceAt())
+	}
 	if st := swap.GetAwaitingApproval(); st != nil {
 		return "; rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
 			" awaits approval on this device since " + clock(st.GetSinceAt())

@@ -1,6 +1,7 @@
 package plugin_host_scheduler
 
 import (
+	"context"
 	"time"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -25,16 +26,22 @@ func newSwapCandidate(args *executePluginArgs) swapCandidate {
 	}
 }
 
-// setSwap publishes the logical instance's swap state.
-func (t *pluginInstance) setSwap(swap *bldr_plugin.PluginSwap) {
+// setSwap publishes the logical instance's swap state for the pass running
+// under ctx. Each pass owns the swap state while it runs: the execute routine
+// cancels a pass before the next one starts, so a write from a canceled or
+// superseded pass is dropped. The check runs under the status lock, so a pass
+// canceled mid-write cannot land after its successor's first write.
+func (t *pluginInstance) setSwap(ctx context.Context, swap *bldr_plugin.PluginSwap) {
 	t.c.updatePluginExecutionStatus(t.pluginID, t.instanceKey, func(status *bldr_plugin.PluginExecutionStatus) {
-		status.Swap = swap
+		if ctx.Err() == nil {
+			status.Swap = swap
+		}
 	})
 }
 
 // setSwapPreparing says the candidate is being fetched and started.
-func (t *pluginInstance) setSwapPreparing(c swapCandidate) {
-	t.setSwap(&bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Preparing{Preparing: &bldr_plugin.PluginSwapPreparing{
+func (t *pluginInstance) setSwapPreparing(ctx context.Context, c swapCandidate) {
+	t.setSwap(ctx, &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Preparing{Preparing: &bldr_plugin.PluginSwapPreparing{
 		CandidateManifestRef: c.ref,
 		CandidateManifestRev: c.rev,
 		StartedAt:            c.startedAt,
@@ -43,8 +50,8 @@ func (t *pluginInstance) setSwapPreparing(c swapCandidate) {
 
 // setSwapWaiting says the candidate waits on the running execution's answer
 // to the activation check sent at sinceAt.
-func (t *pluginInstance) setSwapWaiting(c swapCandidate, sinceAt *timestamp.Timestamp) {
-	t.setSwap(&bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Waiting{Waiting: &bldr_plugin.PluginSwapWaiting{
+func (t *pluginInstance) setSwapWaiting(ctx context.Context, c swapCandidate, sinceAt *timestamp.Timestamp) {
+	t.setSwap(ctx, &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Waiting{Waiting: &bldr_plugin.PluginSwapWaiting{
 		CandidateManifestRef: c.ref,
 		CandidateManifestRev: c.rev,
 		SinceAt:              sinceAt,
@@ -53,8 +60,19 @@ func (t *pluginInstance) setSwapWaiting(c swapCandidate, sinceAt *timestamp.Time
 
 // setSwapAwaitingApproval says the candidate's root waits for AdmitPluginRoot
 // to admit it for peerID.
-func (t *pluginInstance) setSwapAwaitingApproval(c swapCandidate, peerID string) {
-	t.setSwap(&bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_AwaitingApproval{AwaitingApproval: &bldr_plugin.PluginSwapAwaitingApproval{
+func (t *pluginInstance) setSwapAwaitingApproval(ctx context.Context, c swapCandidate, peerID string) {
+	t.setSwap(ctx, &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_AwaitingApproval{AwaitingApproval: &bldr_plugin.PluginSwapAwaitingApproval{
+		CandidateManifestRef: c.ref,
+		CandidateManifestRev: c.rev,
+		PeerId:               peerID,
+		SinceAt:              c.startedAt,
+	}}})
+}
+
+// setSwapCheckingApproval says the scheduler asked whether the candidate's
+// root is admitted for peerID and has no answer yet.
+func (t *pluginInstance) setSwapCheckingApproval(ctx context.Context, c swapCandidate, peerID string) {
+	t.setSwap(ctx, &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_CheckingApproval{CheckingApproval: &bldr_plugin.PluginSwapCheckingApproval{
 		CandidateManifestRef: c.ref,
 		CandidateManifestRev: c.rev,
 		PeerId:               peerID,
@@ -64,8 +82,8 @@ func (t *pluginInstance) setSwapAwaitingApproval(c swapCandidate, peerID string)
 
 // setSwapFailed says the candidate failed with msg. The execute routine's
 // backoff fills RetryAt when it schedules the retry.
-func (t *pluginInstance) setSwapFailed(c swapCandidate, msg string) {
-	t.setSwap(&bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Failed{Failed: &bldr_plugin.PluginSwapFailed{
+func (t *pluginInstance) setSwapFailed(ctx context.Context, c swapCandidate, msg string) {
+	t.setSwap(ctx, &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Failed{Failed: &bldr_plugin.PluginSwapFailed{
 		CandidateManifestRef: c.ref,
 		CandidateManifestRev: c.rev,
 		ErrorMessage:         msg,
@@ -74,8 +92,8 @@ func (t *pluginInstance) setSwapFailed(c swapCandidate, msg string) {
 }
 
 // setSwapSettled says the candidate was admitted at admittedAt.
-func (t *pluginInstance) setSwapSettled(admittedAt time.Time) {
-	t.setSwap(&bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Settled{Settled: &bldr_plugin.PluginSwapSettled{
+func (t *pluginInstance) setSwapSettled(ctx context.Context, admittedAt time.Time) {
+	t.setSwap(ctx, &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Settled{Settled: &bldr_plugin.PluginSwapSettled{
 		AdmittedAt: timestamp.New(admittedAt),
 	}}})
 }

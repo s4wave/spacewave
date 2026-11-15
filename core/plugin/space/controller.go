@@ -580,20 +580,36 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		case c.loadTarget != nil:
 			candidates = loads.hosted.byPlugin[pid]
 		}
-		admitted := loads.gate.admitted(ctx, pid, candidates)
+		admitted, open := loads.gate.admitted(ctx, pid, candidates)
 
 		// Stop at once a load that names a root which lost its admission,
-		// rather than when its replacement runs.
+		// rather than when its replacement runs. The released load no longer
+		// runs, whatever its watch last said; the next load's watch reports
+		// from here.
 		previous, existed := refs[pid]
-		if existed && !loads.gate.allAdmitted(ctx, pid, previous.replaced) {
+		if existed && loads.gate.refused(ctx, pid, previous.replaced) {
 			previous.releasePrevious()
 			previous.replaced = nil
 			refs[pid] = previous
 		}
-		if existed && !loads.gate.allAdmitted(ctx, pid, previous.manifests) {
+		if existed && loads.gate.refused(ctx, pid, previous.manifests) {
 			previous.release()
 			delete(refs, pid)
 			existed = false
+			c.loadedPlugins.SetPluginState(pid, false, false)
+		}
+
+		// While any candidate's admission has not answered, keep the current
+		// load, or else name every candidate not refused: the host then says
+		// which root awaits whose approval and runs none until every root it
+		// asks about has answered, so the first pass does not load a fallback
+		// only to swap it out. The answers wake the loop, and the next pass
+		// keeps, replaces or withdraws this load.
+		if len(open) != len(admitted) {
+			if existed {
+				continue
+			}
+			admitted = open
 		}
 
 		// Keep an admitted load running while every newer root waits.
@@ -616,9 +632,13 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		if existed && slices.Equal(previous.manifestKeys, keys) {
 			continue
 		}
+		// A load that names a root not yet admitted is only ever sent to a host
+		// that asks for each root; it names the peer so the host must ask. The
+		// peer is the gate's: a root is pending only while the gate asks about
+		// it for that peer, and a gate with no peer refuses every root.
 		demand := bldr_plugin.NewLoadPluginInstanced(pid, conf.GetSpaceId())
 		if len(admitted) != 0 {
-			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), conf.GetSessionPeerId(), admitted...)
+			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), loads.gate.peerID, admitted...)
 		}
 
 		// Add the LoadPlugin directive to the plugin bus.
