@@ -49,8 +49,6 @@ import {
 import type { Quad } from '@go/github.com/s4wave/spacewave/db/block/quad/quad.pb.js'
 import { keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
-import { Device } from '@s4wave/sdk/device/device.pb.js'
-import { base58Decode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
 
 import { ComputersDashboardTypeID } from './computers.js'
 import { deriveSshHostKeys } from './ssh-host-keys.js'
@@ -91,8 +89,6 @@ const h = vi.hoisted(() => ({
     { objectKey: 'computers', objectType: 'spacewave/computers' },
     { objectKey: 'devices/build-host', objectType: 'spacewave/device' },
   ],
-  // devicePeers maps each Device key to the peer ID its body records.
-  devicePeers: {} as Record<string, string>,
   // quads and bodies are what committed batches linked and created.
   quads: [] as Quad[],
   bodies: {} as Record<string, Uint8Array>,
@@ -169,7 +165,7 @@ async function batchThroughSpies(mutations: WorldMutation[]) {
 }
 
 // linkedWorld answers quad lookups and body reads from what batches landed,
-// and Device bodies from devicePeers.
+// and object lookups from those bodies, the Secrets and the seeded objects.
 const linkedWorld = {
   lookupGraphQuads: (subject?: string, predicate?: string) =>
     Promise.resolve({
@@ -183,16 +179,18 @@ const linkedWorld = {
     Promise.resolve(
       keys.map((objectKey) => {
         const body = h.bodies[objectKey]
-        if (body) return { objectKey, exists: true, body }
-        const peerId = h.devicePeers[objectKey]
-        return peerId === undefined
-          ? { objectKey, exists: false }
-          : {
-              objectKey,
-              exists: true,
-              body: Device.toBinary({ peerId, label: objectKey }),
-            }
+        return body
+          ? { objectKey, exists: true, body }
+          : { objectKey, exists: false }
       }),
+    ),
+  getObject: (key: string) =>
+    Promise.resolve(
+      h.bodies[key] ||
+        h.secrets.has(key) ||
+        h.worldObjects.some((obj) => obj.objectKey === key)
+        ? { [Symbol.dispose]: () => {} }
+        : null,
     ),
 }
 
@@ -230,12 +228,6 @@ function wizardStateResult() {
       ...keysWorld(() => h.worldObjects.map((obj) => obj.objectKey)),
       applyWorldOp: h.applyWorldOp,
       deleteObject: h.deleteObject,
-      getObject: (key: string) =>
-        Promise.resolve(
-          h.bodies[key] || h.secrets.has(key)
-            ? { [Symbol.dispose]: () => {} }
-            : null,
-        ),
       ...linkedWorld,
       getEngine: () => ({ executeWorldBatch: batchThroughSpies }),
     },
@@ -353,17 +345,14 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
 
 import { AddDeviceWizardViewer } from './AddDeviceWizardViewer.js'
 
-// buildHostPeer is the peer ID of the device that printed the approved
-// ticket; pairedConfig is the wizard config after that ticket's approval.
-const buildHostPeer = '12D3KooWRBy97UB99e3J6hiPesre1MZeuNQvfan4gBziswrRJsNK'
-h.devicePeers = { 'devices/build-host': buildHostPeer }
-
+// pairedConfig is the wizard config after approving Build Host's ticket,
+// whose Device object takes devices/build-host once it joins.
 function pairedConfig(): Uint8Array {
-  const raw = base58Decode(buildHostPeer)
   return new TextEncoder().encode(
     JSON.stringify({
       completion: 'completion',
-      preview: { agentPeerId: bytesToBase64(raw) },
+      deviceKey: 'devices/build-host',
+      preview: { label: 'Build Host' },
     }),
   )
 }
@@ -415,7 +404,6 @@ describe('AddDeviceWizardViewer', () => {
     h.providerId = 'spacewave'
     h.sessionInfoLoading = false
     h.spaceSettingsIndexPath = 'wizard/device-setup'
-    h.devicePeers = { 'devices/build-host': buildHostPeer }
     h.quads = []
     h.bodies = {}
     h.secrets.clear()
@@ -552,6 +540,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
         status: SpaceLinkCallbackStatus.SpaceLinkCallbackStatus_OK,
         nonce: new Uint8Array([9]),
       },
+      deviceObjectKey: 'devices/build-host',
     })
     h.configData = new TextEncoder().encode(JSON.stringify({ ticket }))
     renderViewer()
@@ -582,8 +571,10 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     const config = JSON.parse(new TextDecoder().decode(update.configData)) as {
       ticket?: string
       completion?: string
+      deviceKey?: string
     }
     expect(config.ticket).toBe(ticket)
+    expect(config.deviceKey).toBe('devices/build-host')
     if (!config.completion) {
       throw new Error('expected completion')
     }
@@ -593,6 +584,33 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     expect(completion.status).toBe(
       SpaceLinkCallbackStatus.SpaceLinkCallbackStatus_OK,
     )
+  })
+
+  it('refuses an approval that does not report the Device key', async () => {
+    const ticket = bytesToBase64(new Uint8Array([1, 2, 3]))
+    h.previewSpaceLink.mockResolvedValue({
+      label: 'Build Host',
+      completionMode: SpaceLinkCompletionMode.SpaceLinkCompletionMode_CLI,
+    })
+    // An older responder sends no device_object_key.
+    h.approveSpaceLink.mockResolvedValue({
+      completionMode: SpaceLinkCompletionMode.SpaceLinkCompletionMode_CLI,
+      completion: {
+        status: SpaceLinkCallbackStatus.SpaceLinkCallbackStatus_OK,
+        nonce: new Uint8Array([9]),
+      },
+    })
+    h.configData = new TextEncoder().encode(JSON.stringify({ ticket }))
+    renderViewer()
+
+    fireEvent.click(screen.getByRole('button', { name: /approve/i }))
+
+    await waitFor(() =>
+      expect(h.toastError).toHaveBeenCalledWith(
+        'Ticket could not be approved. This Spacewave version did not report the Device key. Update Spacewave and approve the ticket again.',
+      ),
+    )
+    expect(h.updateState).not.toHaveBeenCalled()
   })
 
   it('replaces SpaceLink approval with the Cloud sign-in affordance for local sessions', () => {
@@ -647,7 +665,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     h.configData = pairedConfig()
     renderViewer()
 
-    expect(await screen.findByText('Device Objects')).toBeTruthy()
+    expect(await screen.findByText('Build Host joined')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /open device/i }))
 
     await waitFor(() => expect(h.deleteObject).toHaveBeenCalled())
@@ -662,7 +680,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     h.configData = pairedConfig()
     renderViewer()
 
-    expect(await screen.findByText('Device Objects')).toBeTruthy()
+    expect(await screen.findByText('Build Host joined')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /open device/i }))
 
     // The list wrote nothing, yet the device is real, so it opens.
@@ -673,39 +691,21 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     expect(screen.queryByText(/Could not finish/)).toBeNull()
   })
 
-  it('opens the Device the approved ticket paired, not the first Device', async () => {
+  it('waits for the approved Device to join and opens Computers until it does', async () => {
+    // Another Device has joined, but not the one the ticket approved.
     h.worldObjects = [
       { objectKey: 'computers', objectType: ComputersDashboardTypeID },
       { objectKey: 'devices/aaa-laptop', objectType: 'spacewave/device' },
-      { objectKey: 'devices/build-host', objectType: 'spacewave/device' },
     ]
-    h.devicePeers = {
-      'devices/aaa-laptop': '12D3KooWLaptopPeerDoesNotMatchTheTicket',
-      'devices/build-host': buildHostPeer,
-    }
     h.currentStep = 2
     h.configData = pairedConfig()
     renderViewer()
 
-    expect(await screen.findByText('devices/aaa-laptop')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /open device/i }))
-
-    await waitFor(() =>
-      expect(h.navigateToObjects).toHaveBeenCalledWith(['devices/build-host']),
-    )
-    expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
-  })
-
-  it('opens Computers when the paired Device has not enrolled yet', async () => {
-    h.devicePeers = {
-      'devices/build-host': '12D3KooWAnotherDeviceThatIsNotTheTicket',
-    }
-    h.currentStep = 2
-    h.configData = pairedConfig()
-    renderViewer()
-
-    expect(await screen.findByText('Device Objects')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /open device/i }))
+    expect(
+      await screen.findByText('Waiting for Build Host to join'),
+    ).toBeTruthy()
+    expect(screen.getByText('Complete setup')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /open computers/i }))
 
     await waitFor(() =>
       expect(h.navigateToObjects).toHaveBeenCalledWith(['computers']),
@@ -724,7 +724,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     expect(screen.getByRole('alert').textContent).toContain(
       "Could not read the Space's computers: world closed",
     )
-    const finish = screen.getByRole('button', { name: /open device/i })
+    const finish = screen.getByRole('button', { name: /open computers/i })
     expect((finish as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(finish)
     expect(h.deleteObject).not.toHaveBeenCalled()

@@ -6718,6 +6718,11 @@ export interface ApproveSpaceLinkResponse {
    * Completion is the generic callback/completion payload.
    */
   completion?: SpaceLinkCallback
+  /**
+   * DeviceObjectKey is the World key the linked device's Device object takes
+   * once it enrolls, derived from its peer ID.
+   */
+  deviceObjectKey?: string
 }
 
 export const ApproveSpaceLinkResponse: MessageType<ApproveSpaceLinkResponse> =
@@ -6731,6 +6736,7 @@ export const ApproveSpaceLinkResponse: MessageType<ApproveSpaceLinkResponse> =
       [5, 'callback_url', 9],
       [6, 'completion_mode', 14, 0, SpaceLinkCompletionMode_Enum],
       [7, 'completion', 11, 0, SpaceLinkCallback.codec],
+      [8, 'device_object_key', 9],
     ],
   )
 

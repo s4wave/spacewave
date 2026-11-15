@@ -33,6 +33,7 @@ import (
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
 	s4wave_provider_local "github.com/s4wave/spacewave/sdk/provider/local"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	"github.com/sirupsen/logrus"
@@ -1116,7 +1117,10 @@ func upsertLinkedDeviceObjectInWorld(
 	now time.Time,
 	onBlocked func(error),
 ) (string, error) {
-	objectKey := deviceObjectKey(record.PeerID)
+	objectKey, err := deviceObjectKey(record.PeerID)
+	if err != nil {
+		return "", err
+	}
 	stale := 0
 	for {
 		// Note the revision this attempt writes against.
@@ -1294,9 +1298,14 @@ func deviceSetupStateProto(state string) s4wave_device.DeviceSetupState {
 	}
 }
 
-func deviceObjectKey(peerID string) string {
-	sum := sha256.Sum256([]byte(peerID))
-	return "devices/" + hex.EncodeToString(sum[:])[:32]
+// deviceObjectKey returns the Device object key for a printable peer ID, the
+// key SpaceLink approval reports and enrollment uses.
+func deviceObjectKey(peerID string) (string, error) {
+	id, err := peer.IDB58Decode(peerID)
+	if err != nil {
+		return "", errors.Wrap(err, "parse device peer id")
+	}
+	return s4wave_device_world.EnrolledDeviceObjectKey(id), nil
 }
 
 func decodeDeviceCompletion(encoded string) (*s4wave_provider_spacewave.SpaceLinkCallback, error) {

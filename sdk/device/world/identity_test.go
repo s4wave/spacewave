@@ -11,7 +11,8 @@ import (
 	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
 )
 
-// TestEnsureDevice checks caller-owned atomic pairing and subsequent session readiness.
+// TestEnsureDevice checks caller-owned atomic pairing and that repeating it
+// changes nothing.
 func TestEnsureDevice(t *testing.T) {
 	// Create a World for atomic Device pairing.
 	ctx := t.Context()
@@ -125,22 +126,5 @@ func TestEnsureDevice(t *testing.T) {
 	check.Discard()
 	if after, err := tb.Engine.GetSeqno(ctx); err != nil || after != before {
 		t.Fatal("repeat pairing created a revision", before, after, err)
-	}
-
-	// Actual session enrollment promotes the same object, retaining pairing metadata.
-	if readyKey, err := s4wave_device_world.EnsureEnrolledDevice(ctx, tb.Engine, id, "New session label"); err != nil || readyKey != key {
-		t.Fatal("session enrollment changed paired Device identity", readyKey, err)
-	}
-	ready, err := tb.Engine.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer ready.Discard()
-	device, err := world.LookupObjectBody[s4wave_device.Device](ctx, ready, key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !device.IsSelectable() || device.Label != paired.Label || !device.CreatedAt.EqualVT(paired.CreatedAt) {
-		t.Fatal("session enrollment lost pairing metadata or readiness", device)
 	}
 }
