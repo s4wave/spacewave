@@ -255,7 +255,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/plugin": {
-      "hash": "1c8f63231404d0668969a2e7562a07340b7698fecb0f561e518f66a459ab191a",
+      "hash": "0a593e418d95a825f21ba97909e875849a3f8a70cccdbcf3b17d35c297a199cf",
       "generatedFiles": [
         "bldr/plugin/plugin.pb.go",
         "bldr/plugin/plugin.pb.ts",

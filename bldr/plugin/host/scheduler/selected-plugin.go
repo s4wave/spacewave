@@ -15,6 +15,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// errNoAdmissionPeer refuses a load that names manifest roots without the peer
+// whose approvals decide them.
+var errNoAdmissionPeer = errors.New("load names manifests without a peer to admit them")
+
 // executionReference identifies a candidate and its registration startup mode.
 type executionReference struct {
 	args     *executePluginArgs
@@ -370,20 +374,48 @@ func (t *pluginInstance) clearExecution(expected *pluginInstance) {
 	}
 }
 
+// admissionPeer returns the peer whose approvals decide the candidate's root,
+// and whether the root needs admission. A scheduler that requires admission
+// serves one peer and asks for its configured peer about every root, so a
+// load cannot name another. Any other scheduler asks only about the roots a
+// load names, for the load's peer; the roots its own catalog selects run as
+// before.
+func (t *pluginInstance) admissionPeer(args *executePluginArgs) (string, bool) {
+	switch {
+	case t.c.conf.GetRequireAdmission():
+		return t.c.conf.GetPeerId(), true
+	case args.installation != nil:
+		return args.installation.peerID, true
+	default:
+		return "", false
+	}
+}
+
 // admittedCandidates returns the candidates whose manifest roots are admitted,
-// keeping their order, when the scheduler requires admission. With none
-// admitted it waits until one is, so an unadmitted preferred candidate never
-// holds back an admitted fallback. A removal, with no manifest, passes.
+// keeping their order. With none admitted it waits until one is, so an
+// unadmitted preferred candidate never holds back an admitted fallback. A
+// removal, with no manifest, and candidates that need no admission pass. A
+// load that names roots without a peer runs none of them.
 func (t *pluginInstance) admittedCandidates(ctx context.Context, candidates []*executePluginArgs) ([]*executePluginArgs, error) {
-	// Pass every candidate through a scheduler that runs every root.
-	if !t.c.conf.GetRequireAdmission() || candidates[0] == nil || candidates[0].manifestSnapshot == nil {
+	// Pass a removal and candidates the scheduler runs without asking.
+	if candidates[0] == nil || candidates[0].manifestSnapshot == nil {
 		return candidates, nil
+	}
+	peerID, ask := t.admissionPeer(candidates[0])
+	if !ask {
+		return candidates, nil
+	}
+
+	// Refuse every root of a load that names no peer to ask for.
+	if peerID == "" {
+		t.setSwapFailed(newSwapCandidate(candidates[0]), "prepare plugin: "+errNoAdmissionPeer.Error())
+		return nil, nil
 	}
 	for {
 		// Keep the candidates admitted now, in order.
 		var admitted []*executePluginArgs
 		for _, candidate := range candidates {
-			ok, err := t.rootAdmitted(ctx, candidate)
+			ok, err := t.rootAdmitted(ctx, peerID, candidate)
 			if err != nil {
 				return nil, err
 			}
@@ -396,21 +428,21 @@ func (t *pluginInstance) admittedCandidates(ctx context.Context, candidates []*e
 		}
 
 		// Wait until any root is admitted, then check the order again.
-		if err := t.awaitAnyAdmission(ctx, candidates); err != nil {
+		if err := t.awaitAnyAdmission(ctx, peerID, candidates); err != nil {
 			return nil, err
 		}
 	}
 }
 
-// rootAdmitted reports whether the candidate's root is admitted once every
-// admission resolver has answered.
-func (t *pluginInstance) rootAdmitted(ctx context.Context, args *executePluginArgs) (bool, error) {
+// rootAdmitted reports whether the candidate's root is admitted for peerID
+// once every admission resolver has answered.
+func (t *pluginInstance) rootAdmitted(ctx context.Context, peerID string, args *executePluginArgs) (bool, error) {
 	// Ask once, returning when the resolvers go idle with or without a value.
 	root := manifestRootKey(args.manifestSnapshot.GetManifestRef())
 	_, _, ref, err := bus.ExecWaitValue[plugin.AdmitPluginRootValue](
 		ctx,
 		t.c.bus,
-		plugin.NewAdmitPluginRoot(t.c.conf.GetPeerId(), t.pluginID, root),
+		plugin.NewAdmitPluginRoot(peerID, t.pluginID, root),
 		bus.ReturnIfIdle(true),
 		nil,
 		nil,
@@ -422,8 +454,12 @@ func (t *pluginInstance) rootAdmitted(ctx context.Context, args *executePluginAr
 	return true, nil
 }
 
-// awaitAnyAdmission waits until any candidate's root is admitted.
-func (t *pluginInstance) awaitAnyAdmission(ctx context.Context, candidates []*executePluginArgs) error {
+// awaitAnyAdmission waits until any candidate's root is admitted for peerID,
+// publishing that the preferred candidate awaits approval meanwhile.
+func (t *pluginInstance) awaitAnyAdmission(ctx context.Context, peerID string, candidates []*executePluginArgs) error {
+	// Say what the plugin waits for before waiting.
+	t.setSwapAwaitingApproval(newSwapCandidate(candidates[0]), peerID)
+
 	// Wait on every root at once; the first admission cancels the rest.
 	waitCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -431,7 +467,7 @@ func (t *pluginInstance) awaitAnyAdmission(ctx context.Context, candidates []*ex
 	for _, candidate := range candidates {
 		root := manifestRootKey(candidate.manifestSnapshot.GetManifestRef())
 		go func() {
-			if _, err := plugin.WaitPluginRootAdmitted(waitCtx, t.c.bus, t.c.conf.GetPeerId(), t.pluginID, root); err == nil {
+			if _, err := plugin.WaitPluginRootAdmitted(waitCtx, t.c.bus, peerID, t.pluginID, root); err == nil {
 				admitted <- struct{}{}
 			}
 		}()
@@ -444,23 +480,34 @@ func (t *pluginInstance) awaitAnyAdmission(ctx context.Context, candidates []*ex
 	}
 }
 
-// awaitAdmission blocks until the bus admits the candidate's manifest root for
-// this scheduler's peer, when the scheduler requires admission. A root no
-// resolver admits waits until ctx ends: admission fails closed.
+// awaitAdmission blocks until the bus admits the candidate's manifest root,
+// when the root needs admission. A root no resolver admits waits until ctx
+// ends, and a load that names no peer never starts: admission fails closed.
 func (t *pluginInstance) awaitAdmission(ctx context.Context, args *executePluginArgs) error {
-	// Skip a scheduler that runs every root it selects.
-	if !t.c.conf.GetRequireAdmission() {
+	// Skip a root the scheduler runs without asking.
+	peerID, ask := t.admissionPeer(args)
+	if !ask {
 		return nil
 	}
+	if peerID == "" {
+		return errNoAdmissionPeer
+	}
 
-	// Wait for a resolver to admit the root.
+	// Ask once; publish the wait only when the root is not admitted yet.
 	root := manifestRootKey(args.manifestSnapshot.GetManifestRef())
 	le := t.le.WithFields(logrus.Fields{
 		"plugin-id":     t.pluginID,
 		"manifest-root": root,
 	})
+	ok, err := t.rootAdmitted(ctx, peerID, args)
+	if err != nil || ok {
+		return err
+	}
+
+	// Wait for a resolver to admit the root.
 	le.Debug("waiting for plugin root admission")
-	src, err := plugin.WaitPluginRootAdmitted(ctx, t.c.bus, t.c.conf.GetPeerId(), t.pluginID, root)
+	t.setSwapAwaitingApproval(newSwapCandidate(args), peerID)
+	src, err := plugin.WaitPluginRootAdmitted(ctx, t.c.bus, peerID, t.pluginID, root)
 	if err != nil {
 		return err
 	}

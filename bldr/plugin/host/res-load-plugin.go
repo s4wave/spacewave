@@ -35,7 +35,7 @@ func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 	case r.dir.LoadPluginServeAssets():
 		ref, relRef = r.c.AddAssetsPluginReference(pluginID, r.instanceKey, manifestRoot)
 	case len(r.dir.LoadPluginManifests()) != 0:
-		ref, relRef = r.c.AddSelectedPluginReference(pluginID, r.instanceKey, r.dir.LoadPluginManifests()...)
+		ref, relRef = r.c.AddSelectedPluginReference(pluginID, r.instanceKey, r.dir.LoadPluginPeerID(), r.dir.LoadPluginManifests()...)
 	case manifestRoot != "":
 		ref, relRef = r.c.AddPinnedPluginReference(pluginID, r.instanceKey, manifestRoot)
 	default:

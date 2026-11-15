@@ -135,27 +135,32 @@ func pluginStatusRowSummary(state BldrDevtoolPluginState) string {
 }
 
 // pluginSwapSummary describes a swap that is not settled: the candidate rev
-// being prepared, waiting on the running execution, or failed with its retry.
-// It returns empty for a settled or missing swap.
+// being prepared, waiting on the running execution, awaiting approval on this
+// device, or failed with its retry. It returns empty for a settled or missing
+// swap.
 func pluginSwapSummary(swap *bldr_plugin.PluginSwap) string {
-	if st := swap.GetPreparing(); st != nil {
-		return "preparing rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
-			" since " + pluginStatusTimestamp(st.GetStartedAt())
-	}
-	if st := swap.GetWaiting(); st != nil {
-		return "rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
-			" waits since " + pluginStatusTimestamp(st.GetSinceAt()) +
+	// Describe the candidate in the words of its swap state.
+	switch st := swap.GetState().(type) {
+	case *bldr_plugin.PluginSwap_Preparing:
+		return "preparing rev " + strconv.FormatUint(st.Preparing.GetCandidateManifestRev(), 10) +
+			" since " + pluginStatusTimestamp(st.Preparing.GetStartedAt())
+	case *bldr_plugin.PluginSwap_Waiting:
+		return "rev " + strconv.FormatUint(st.Waiting.GetCandidateManifestRev(), 10) +
+			" waits since " + pluginStatusTimestamp(st.Waiting.GetSinceAt()) +
 			" for the running plugin to answer its activation check"
-	}
-	if st := swap.GetFailed(); st != nil {
+	case *bldr_plugin.PluginSwap_AwaitingApproval:
+		return "rev " + strconv.FormatUint(st.AwaitingApproval.GetCandidateManifestRev(), 10) +
+			" awaits approval on this device since " + pluginStatusTimestamp(st.AwaitingApproval.GetSinceAt())
+	case *bldr_plugin.PluginSwap_Failed:
 		next := "retries on the next deploy or host change"
-		if st.GetRetryAt() != nil {
-			next = "retry at " + pluginStatusTimestamp(st.GetRetryAt())
+		if st.Failed.GetRetryAt() != nil {
+			next = "retry at " + pluginStatusTimestamp(st.Failed.GetRetryAt())
 		}
-		return "rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
-			" failed: " + st.GetErrorMessage() + "; " + next
+		return "rev " + strconv.FormatUint(st.Failed.GetCandidateManifestRev(), 10) +
+			" failed: " + st.Failed.GetErrorMessage() + "; " + next
+	default:
+		return ""
 	}
-	return ""
 }
 
 func pluginStatusTimestamp(ts *timestamp.Timestamp) string {

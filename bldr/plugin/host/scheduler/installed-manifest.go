@@ -11,13 +11,15 @@ import (
 // The scheduler may recover with an earlier artifact only when no worker survives.
 type installedManifests struct {
 	refs []*manifest.ManifestRef
+	// peerID is the peer whose approvals decide the refs' roots.
+	peerID string
 }
 
 // addManifestSelection retains the caller's installation choice. Replacing a
 // LoadPlugin demand adds the new selection before releasing the old demand.
-func (t *pluginInstance) addManifestSelection(refs ...*manifest.ManifestRef) func() {
+func (t *pluginInstance) addManifestSelection(peerID string, refs ...*manifest.ManifestRef) func() {
 	// Clone the caller's manifest references into a new selection.
-	selection := &installedManifests{refs: make([]*manifest.ManifestRef, len(refs))}
+	selection := &installedManifests{refs: make([]*manifest.ManifestRef, len(refs)), peerID: peerID}
 	for i, ref := range refs {
 		selection.refs[i] = ref.CloneVT()
 	}

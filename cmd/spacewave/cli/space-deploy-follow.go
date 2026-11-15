@@ -132,6 +132,12 @@ func classifyDeploy(p *s4wave_space.SpacePluginStatus, set *deployedSet, loc *ti
 			next: swapWaitingNextStep(set.manifestID),
 		}
 	}
+	if st := swap.GetAwaitingApproval(); st != nil && set.holds(st.GetCandidateManifestRef()) {
+		return deployState{
+			line: rev(st.GetCandidateManifestRev()) + " awaits approval on this device since " + clock(st.GetSinceAt()),
+			next: "allow the plugin on this device; follow it with spacewave plugin list --watch",
+		}
+	}
 	if st := swap.GetPreparing(); st != nil && set.holds(st.GetCandidateManifestRef()) {
 		return deployState{
 			line: "preparing " + rev(st.GetCandidateManifestRev()) + " since " + clock(st.GetStartedAt()),

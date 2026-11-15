@@ -569,3 +569,117 @@ func TestSelectedPluginAwaitsAdmission(t *testing.T) {
 	}
 	instance.closeExecutions()
 }
+
+// TestSchedulerAdmissionByHost checks which roots each host scheduler runs
+// without asking, which it refuses, and for which peer it asks.
+func TestSchedulerAdmissionByHost(t *testing.T) {
+	// Admit roots through the trust controller on a real bus.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	trusted := bldr_manifest_trust.NewSet()
+	rel, err := tb.Bus.AddController(ctx, bldr_manifest_trust.NewController(trusted), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel()
+
+	// newInstance builds a plugin instance on a scheduler with conf.
+	newInstance := func(conf *Config) (*Controller, *pluginInstance) {
+		c := &Controller{
+			le: le, bus: tb.Bus, conf: conf,
+			pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
+			pluginStatus:    make(map[string]*plugin.PluginStatus),
+		}
+		_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
+		c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
+		return c, instance
+	}
+	// candidate selects rev, named by a load for peerID when load is set.
+	candidate := func(rev uint64, load bool, peerID string) (*executePluginArgs, string) {
+		h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte{0xa0, byte(rev)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ref := newTestManifestRef("colors", "js", rev, "candidate").GetManifestRef()
+		ref.RootRef = &block.BlockRef{Hash: h}
+		args := &executePluginArgs{pluginHost: &testPluginHost{id: "test"}, rev: rev, manifestSnapshot: &manifest.ManifestSnapshot{ManifestRef: ref}}
+		if load {
+			args.installation = &installedManifests{peerID: peerID}
+		}
+		return args, manifestRootKey(ref)
+	}
+	// swapOf returns the instance's published swap state.
+	swapOf := func(c *Controller) *plugin.PluginSwap {
+		for _, st := range c.pluginStatusCtr.GetValue().GetExecutions() {
+			return st.GetSwap()
+		}
+		return nil
+	}
+	// admitted runs admittedCandidates and returns how many candidates pass.
+	admitted := func(instance *pluginInstance, args *executePluginArgs) int {
+		t.Helper()
+		got, err := instance.admittedCandidates(ctx, []*executePluginArgs{args})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(got)
+	}
+	// awaits asserts that the candidate waits for approval for wantPeer.
+	awaits := func(c *Controller, instance *pluginInstance, args *executePluginArgs, wantPeer string) {
+		t.Helper()
+		waitCtx, stop := context.WithTimeout(ctx, 300*time.Millisecond)
+		defer stop()
+		got, err := instance.admittedCandidates(waitCtx, []*executePluginArgs{args})
+		if err == nil || len(got) != 0 {
+			t.Fatalf("unapproved root returned %d candidates, err %v", len(got), err)
+		}
+		waiting := swapOf(c).GetAwaitingApproval()
+		if waiting == nil || waiting.GetPeerId() != wantPeer || waiting.GetCandidateManifestRev() != args.rev {
+			t.Fatalf("swap = %s, want awaiting approval for %s", swapOf(c).MarshalProtoText(), wantPeer)
+		}
+	}
+
+	t.Run("plain load needs no ask", func(t *testing.T) {
+		_, instance := newInstance(&Config{PeerId: "root"})
+		args, _ := candidate(1, false, "")
+		if n := admitted(instance, args); n != 1 {
+			t.Fatalf("plain catalog load passed %d candidates, want 1", n)
+		}
+	})
+	t.Run("manifest load with empty peer refused", func(t *testing.T) {
+		c, instance := newInstance(&Config{PeerId: "root"})
+		args, root := candidate(2, true, "")
+		trusted.Add(bldr_manifest_trust.Root{PluginID: "colors", ManifestRoot: root})
+		if n := admitted(instance, args); n != 0 {
+			t.Fatalf("load with no peer passed %d candidates, want 0", n)
+		}
+		if swapOf(c).GetFailed() == nil {
+			t.Fatalf("swap = %s, want failed", swapOf(c).MarshalProtoText())
+		}
+	})
+	t.Run("release root admitted on root host", func(t *testing.T) {
+		_, instance := newInstance(&Config{PeerId: "root"})
+		args, root := candidate(3, true, "peer")
+		trusted.Add(bldr_manifest_trust.Root{PluginID: "colors", ManifestRoot: root})
+		if n := admitted(instance, args); n != 1 {
+			t.Fatalf("release root passed %d candidates, want 1", n)
+		}
+	})
+	t.Run("unapproved root refused on root host", func(t *testing.T) {
+		c, instance := newInstance(&Config{PeerId: "root"})
+		args, _ := candidate(4, true, "peer")
+		awaits(c, instance, args, "peer")
+	})
+	t.Run("unapproved root refused on space host", func(t *testing.T) {
+		// The Space host asks for its own peer, whatever the load names.
+		c, instance := newInstance(&Config{RequireAdmission: true, PeerId: "space-peer"})
+		args, _ := candidate(5, true, "other")
+		awaits(c, instance, args, "space-peer")
+	})
+}

@@ -217,6 +217,7 @@ export interface PluginSwap {
     | { value: PluginSwapPreparing; case: 'preparing' }
     | { value: PluginSwapWaiting; case: 'waiting' }
     | { value: PluginSwapFailed; case: 'failed' }
+    | { value: PluginSwapAwaitingApproval; case: 'awaitingApproval' }
 }
 
 export const PluginSwap: MessageType<PluginSwap> =
@@ -227,6 +228,14 @@ export const PluginSwap: MessageType<PluginSwap> =
       [2, 'preparing', 11, 0, PluginSwapPreparing.codec, 'state'],
       [3, 'waiting', 11, 0, PluginSwapWaiting.codec, 'state'],
       [4, 'failed', 11, 0, PluginSwapFailed.codec, 'state'],
+      [
+        5,
+        'awaiting_approval',
+        11,
+        0,
+        PluginSwapAwaitingApproval.codec,
+        'state',
+      ],
     ],
   )
 
@@ -307,6 +316,42 @@ export const PluginSwapWaiting: MessageType<PluginSwapWaiting> =
       [1, 'candidate_manifest_ref', 9],
       [2, 'candidate_manifest_rev', 4],
       [3, 'since_at', 11, 0, Timestamp.codec],
+    ],
+  )
+
+/**
+ * PluginSwapAwaitingApproval is the swap state while no candidate root is
+ * admitted for the peer. The running execution, if any, is kept.
+ *
+ * @generated from message bldr.plugin.PluginSwapAwaitingApproval
+ */
+export interface PluginSwapAwaitingApproval {
+  /**
+   * CandidateManifestRef is the ref of the preferred manifest awaiting approval.
+   */
+  candidateManifestRef?: string
+  /**
+   * CandidateManifestRev is the build rev of that manifest.
+   */
+  candidateManifestRev?: bigint
+  /**
+   * PeerId is the peer whose approval the root waits for.
+   */
+  peerId?: string
+  /**
+   * SinceAt is when the scheduler began waiting.
+   */
+  sinceAt?: Date
+}
+
+export const PluginSwapAwaitingApproval: MessageType<PluginSwapAwaitingApproval> =
+  /* @__PURE__ */ createMessageType<PluginSwapAwaitingApproval>(
+    'bldr.plugin.PluginSwapAwaitingApproval',
+    () => [
+      [1, 'candidate_manifest_ref', 9],
+      [2, 'candidate_manifest_rev', 4],
+      [3, 'peer_id', 9],
+      [4, 'since_at', 11, 0, Timestamp.codec],
     ],
   )
 
@@ -599,6 +644,11 @@ export interface LoadPluginRequest {
    * ManifestRoot loads an exact historical executable without current registrations.
    */
   manifestRoot?: string
+  /**
+   * PeerId is the peer whose approvals decide the roots Manifests names. A
+   * host that serves one peer ignores it.
+   */
+  peerId?: string
 }
 
 export const LoadPluginRequest: MessageType<LoadPluginRequest> =
@@ -609,6 +659,7 @@ export const LoadPluginRequest: MessageType<LoadPluginRequest> =
       [2, 'instance_key', 9],
       [3, 'manifests', 11, 1, ManifestRef.codec],
       [4, 'manifest_root', 9],
+      [5, 'peer_id', 9],
     ],
   )
 

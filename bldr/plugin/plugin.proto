@@ -92,6 +92,9 @@ message PluginSwap {
     PluginSwapWaiting waiting = 3;
     // Failed means the last candidate failed to start.
     PluginSwapFailed failed = 4;
+    // AwaitingApproval means no candidate root is admitted for the peer yet,
+    // so nothing new starts until the peer's device approves one.
+    PluginSwapAwaitingApproval awaiting_approval = 5;
   }
 }
 
@@ -121,6 +124,19 @@ message PluginSwapWaiting {
   uint64 candidate_manifest_rev = 2;
   // SinceAt is when the activation check was sent to the running execution.
   google.protobuf.Timestamp since_at = 3;
+}
+
+// PluginSwapAwaitingApproval is the swap state while no candidate root is
+// admitted for the peer. The running execution, if any, is kept.
+message PluginSwapAwaitingApproval {
+  // CandidateManifestRef is the ref of the preferred manifest awaiting approval.
+  string candidate_manifest_ref = 1;
+  // CandidateManifestRev is the build rev of that manifest.
+  uint64 candidate_manifest_rev = 2;
+  // PeerId is the peer whose approval the root waits for.
+  string peer_id = 3;
+  // SinceAt is when the scheduler began waiting.
+  google.protobuf.Timestamp since_at = 4;
 }
 
 // PluginSwapFailed is the swap state after a candidate failed to start. The
@@ -285,6 +301,9 @@ message LoadPluginRequest {
   repeated .bldr.manifest.ManifestRef manifests = 3;
   // ManifestRoot loads an exact historical executable without current registrations.
   string manifest_root = 4;
+  // PeerId is the peer whose approvals decide the roots Manifests names. A
+  // host that serves one peer ignores it.
+  string peer_id = 5;
 }
 
 // LoadPluginResponse is a status response to a LoadPlugin request.

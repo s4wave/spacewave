@@ -51,6 +51,17 @@ func (t *pluginInstance) setSwapWaiting(c swapCandidate, sinceAt *timestamp.Time
 	}}})
 }
 
+// setSwapAwaitingApproval says the candidate's root waits for AdmitPluginRoot
+// to admit it for peerID.
+func (t *pluginInstance) setSwapAwaitingApproval(c swapCandidate, peerID string) {
+	t.setSwap(&bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_AwaitingApproval{AwaitingApproval: &bldr_plugin.PluginSwapAwaitingApproval{
+		CandidateManifestRef: c.ref,
+		CandidateManifestRev: c.rev,
+		PeerId:               peerID,
+		SinceAt:              c.startedAt,
+	}}})
+}
+
 // setSwapFailed says the candidate failed with msg. The execute routine's
 // backoff fills RetryAt when it schedules the retry.
 func (t *pluginInstance) setSwapFailed(c swapCandidate, msg string) {

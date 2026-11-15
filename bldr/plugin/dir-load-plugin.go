@@ -36,6 +36,11 @@ type LoadPlugin interface {
 	// Replacement uses prepared admission; nil follows normal catalog selection.
 	LoadPluginManifests() []*manifest.ManifestRef
 
+	// LoadPluginPeerID returns the peer whose approvals decide the roots
+	// LoadPluginManifests names. A host that serves one peer ignores it. A
+	// load naming manifests with no peer runs none of them.
+	LoadPluginPeerID() string
+
 	// LoadPluginServeAssets reports that the caller serves the plugin's files
 	// to a browser. When no host can run the plugin, the scheduler mounts the
 	// files of its browser manifest without running it.
@@ -52,6 +57,7 @@ type loadPlugin struct {
 	instanceKey  string
 	manifestRoot string
 	manifests    []*manifest.ManifestRef
+	peerID       string
 	serveAssets  bool
 }
 
@@ -70,13 +76,15 @@ func NewLoadPluginAtManifest(pluginID, instanceKey, manifestRoot string) LoadPlu
 	return &loadPlugin{pluginID: pluginID, instanceKey: instanceKey, manifestRoot: manifestRoot}
 }
 
-// NewLoadPluginWithManifests selects an installation and its recovery artifacts.
-func NewLoadPluginWithManifests(pluginID, instanceKey string, refs ...*manifest.ManifestRef) LoadPlugin {
+// NewLoadPluginWithManifests selects an installation and its recovery
+// artifacts. The host runs each root only once AdmitPluginRoot admits it for
+// peerID.
+func NewLoadPluginWithManifests(pluginID, instanceKey, peerID string, refs ...*manifest.ManifestRef) LoadPlugin {
 	cloned := make([]*manifest.ManifestRef, len(refs))
 	for i, ref := range refs {
 		cloned[i] = ref.CloneVT()
 	}
-	return &loadPlugin{pluginID: pluginID, instanceKey: instanceKey, manifests: cloned}
+	return &loadPlugin{pluginID: pluginID, instanceKey: instanceKey, manifests: cloned, peerID: peerID}
 }
 
 // NewLoadPluginAssets loads a plugin whose files the caller serves to a browser.
@@ -298,6 +306,11 @@ func (d *loadPlugin) LoadPluginManifests() []*manifest.ManifestRef {
 	return d.manifests
 }
 
+// LoadPluginPeerID returns the peer whose approvals decide the manifests.
+func (d *loadPlugin) LoadPluginPeerID() string {
+	return d.peerID
+}
+
 // LoadPluginServeAssets reports whether the caller serves the plugin's files.
 func (d *loadPlugin) LoadPluginServeAssets() bool {
 	return d.serveAssets
@@ -315,6 +328,7 @@ func (d *loadPlugin) IsEquivalent(other directive.Directive) bool {
 		d.LoadPluginInstanceKey() == od.LoadPluginInstanceKey() &&
 		d.LoadPluginManifestRoot() == od.LoadPluginManifestRoot() &&
 		d.LoadPluginServeAssets() == od.LoadPluginServeAssets() &&
+		d.LoadPluginPeerID() == od.LoadPluginPeerID() &&
 		slices.EqualFunc(d.LoadPluginManifests(), od.LoadPluginManifests(), (*manifest.ManifestRef).EqualVT)
 }
 
@@ -337,6 +351,9 @@ func (d *loadPlugin) GetDebugVals() directive.DebugValues {
 	}
 	if len(d.manifests) != 0 {
 		vals["installed-root"] = []string{d.manifests[0].GetManifestRef().GetRootRef().GetHash().MarshalString()}
+	}
+	if d.peerID != "" {
+		vals["peer-id"] = []string{d.peerID}
 	}
 	if d.serveAssets {
 		vals["serve-assets"] = []string{"true"}

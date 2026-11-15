@@ -19,6 +19,7 @@ import (
 	"github.com/go-git/go-billy/v6/memfs"
 	billy_util "github.com/go-git/go-billy/v6/util"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_trust "github.com/s4wave/spacewave/bldr/manifest/trust"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
@@ -75,6 +76,15 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer release()
+
+	// Admit each installed root as the release would.
+	trusted := bldr_manifest_trust.NewSet()
+	releaseTrust, err := b.AddController(ctx, bldr_manifest_trust.NewController(trusted), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseTrust()
+	peerID := tb.GetVolume().GetPeerID().String()
 
 	// Serve the real registration Resource tree as the core plugin capability.
 	generations := registration.NewRegistry()
@@ -185,12 +195,13 @@ func TestNativeApplicationPlugin(t *testing.T) {
 			t.Fatal(err)
 		}
 		revisions = append(revisions, ref.GetManifestRef().GetRootRef().GetHash().MarshalString())
+		trusted.Add(bldr_manifest_trust.Root{PluginID: "test-colors", ManifestRoot: revisions[len(revisions)-1]})
 
 		// Install and replace the actual native TypeScript worker while its logical
 		// reference remains open. An invalid third viewer must preserve revision two.
 		installed = append([]*manifest.ManifestRef{ref}, installed...)
 		loadStart := time.Now()
-		next, release := tb.GetScheduler().AddSelectedPluginReference("test-colors", "space/first", installed...)
+		next, release := tb.GetScheduler().AddSelectedPluginReference("test-colors", "space/first", peerID, installed...)
 		installationReleases = append(installationReleases, release)
 		defer release()
 		if current != nil && current != next {
@@ -246,7 +257,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 	// Reopen the persisted plugin choices and wait for recovery: a cold load
 	// of a stopped worker from its stored manifest.
 	reopenStart := time.Now()
-	reopened, releaseReopened := tb.GetScheduler().AddSelectedPluginReference("test-colors", "space/first", installed...)
+	reopened, releaseReopened := tb.GetScheduler().AddSelectedPluginReference("test-colors", "space/first", peerID, installed...)
 	defer releaseReopened()
 	if _, err := reopened.GetRunningPluginCtr().WaitValue(ctx, nil); err != nil {
 		t.Fatal(err)
@@ -264,7 +275,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 	}
 
 	// A second Space retains revision one while the first remains on revision two.
-	second, releaseSecond := tb.GetScheduler().AddSelectedPluginReference("test-colors", "space/second", installed[len(installed)-1])
+	second, releaseSecond := tb.GetScheduler().AddSelectedPluginReference("test-colors", "space/second", peerID, installed[len(installed)-1])
 	defer releaseSecond()
 	if _, err := second.GetRunningPluginCtr().WaitValue(ctx, nil); err != nil {
 		t.Fatal(err)
