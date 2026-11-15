@@ -8,6 +8,11 @@ var errGitCloneProgressComplete = errors.New("git clone progress complete")
 // the work it would publish has nothing left to replace.
 var ErrWizardGone = errors.New("this wizard no longer exists")
 
+// ErrNoWorldEngine refuses a write on a wizard opened without a World engine,
+// such as one an operation handler reaches through the operation's World
+// state. Such a wizard still serves its state and clone progress.
+var ErrNoWorldEngine = errors.New("this wizard was opened without a World engine and cannot write")
+
 // GitRepoKeyTakenError refuses a clone publish whose repository key another
 // object already holds.
 type GitRepoKeyTakenError struct {

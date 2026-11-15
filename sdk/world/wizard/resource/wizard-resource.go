@@ -46,7 +46,9 @@ type wizardStateWatchSnapshot struct {
 	err   error
 }
 
-// NewWizardResource creates a new WizardResource.
+// NewWizardResource creates a new WizardResource. engine may be nil, as for
+// every object type factory; the wizard then serves its state and clone
+// progress and refuses each write with ErrNoWorldEngine.
 func NewWizardResource(ws world.WorldState, engine world.Engine, objKey string, state *wizard.WizardState) *WizardResource {
 	// Initialize the wizard state and clone lifecycle.
 	if state == nil {
@@ -313,7 +315,7 @@ func (r *WizardResource) StartGitClone(ctx context.Context, req *wizard.StartGit
 // holds the World writer.
 func (r *WizardResource) requireWizard(ctx context.Context) error {
 	// Open a read transaction, discarded on return.
-	rtx, err := r.engine.NewTransaction(ctx, false)
+	rtx, err := r.newTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -413,10 +415,21 @@ func (r *WizardResource) setGitCloneProgress(progress *wizard.GitCloneProgress) 
 	})
 }
 
+// newTransaction opens a World transaction through the wizard's engine. The
+// engine is optional, as for every object type factory, so a wizard opened
+// without one returns ErrNoWorldEngine for each step that reads or writes
+// through a transaction.
+func (r *WizardResource) newTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	if r.engine == nil {
+		return nil, ErrNoWorldEngine
+	}
+	return r.engine.NewTransaction(ctx, write)
+}
+
 // persistState writes the wizard state to the world via a write transaction.
 func (r *WizardResource) persistState(ctx context.Context, state *wizard.WizardState) (uint64, error) {
 	// Open a write transaction for the wizard state.
-	wtx, err := r.engine.NewTransaction(ctx, true)
+	wtx, err := r.newTransaction(ctx, true)
 	if err != nil {
 		return 0, err
 	}
