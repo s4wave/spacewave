@@ -5,7 +5,6 @@ import (
 	"cmp"
 	"context"
 	"crypto/sha256"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -578,7 +577,7 @@ func TestSyncControllerPullDuringPush(t *testing.T) {
 
 	// Start the push, then pull while it uploads.
 	flushed := make(chan error, 1)
-	go func() { flushed <- s.FlushNow(ctx) }()
+	go func() { _, err := s.FlushNow(ctx); flushed <- err }()
 	select {
 	case <-pushing:
 	case err := <-flushed:
@@ -1279,7 +1278,7 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		lower:      push.lower(t),
 		upper:      upper,
 	}
-	if err := s.flush(ctx, true); err != nil {
+	if _, err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 
@@ -1356,7 +1355,7 @@ func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
 	}
 
 	// Drain the queue through the production packer and HTTP upload.
-	if err := s.flush(ctx, false); err == nil {
+	if _, err := s.flush(ctx, false); err == nil {
 		t.Fatal("expected flush to fail on the third push")
 	}
 
@@ -1435,7 +1434,7 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 	}
 	telemetry := &ProviderAccount{}
 	s.telemetry = telemetry
-	if err := s.flush(ctx, true); err != nil {
+	if _, err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 	if duplicateFetched.Load() {
@@ -1515,7 +1514,7 @@ func TestSyncControllerFlushAllDuplicateDirtyBlocksSkipsPush(t *testing.T) {
 	}
 	telemetry := &ProviderAccount{}
 	s.telemetry = telemetry
-	if err := s.flush(ctx, true); err != nil {
+	if _, err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 
@@ -1578,7 +1577,7 @@ func TestSyncControllerFlushDuplicateProbeErrorPreservesDirty(t *testing.T) {
 		lower:      newSyncTestErrorLowerPackfileStore(),
 		upper:      upper,
 	}
-	if err := s.flush(ctx, true); err == nil {
+	if _, err := s.flush(ctx, true); err == nil {
 		t.Fatal("expected duplicate probe error")
 	}
 
@@ -1634,7 +1633,7 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 		upper:      upper,
 		childLists: graph,
 	}
-	if err := s.flush(ctx, true); err != nil {
+	if _, err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 
@@ -1702,7 +1701,7 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 		lower:      push.lower(t),
 		upper:      upper,
 	}
-	if err := s.flush(ctx, true); err != nil {
+	if _, err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 
@@ -1749,8 +1748,8 @@ func (s *corruptUpperStore) GetStoredBlock(ctx context.Context, ref *block.Block
 
 // TestSyncControllerFlushSkipsCorruptDirtyBlock puts a dirty block whose local
 // bytes fail their hash among good ones: the good ones upload and clear, the
-// corrupt one stays dirty and counted, the flush reports ErrBlockCorrupt so no
-// checkpoint publishes, and the upper store keeps every block.
+// corrupt one stays dirty and counted, the flush reports it held back as a
+// count, not an error, and the upper store keeps every block.
 func TestSyncControllerFlushSkipsCorruptDirtyBlock(t *testing.T) {
 	// Mark three blocks dirty and read the second as corrupt.
 	ctx := context.Background()
@@ -1787,8 +1786,8 @@ func TestSyncControllerFlushSkipsCorruptDirtyBlock(t *testing.T) {
 		lower:      push.lower(t),
 		upper:      upper,
 	}
-	if err := s.flush(ctx, false); !errors.Is(err, block.ErrBlockCorrupt) {
-		t.Fatalf("flush = %v, want ErrBlockCorrupt", err)
+	if corrupt, err := s.flush(ctx, false); err != nil || corrupt != 1 {
+		t.Fatalf("flush = %d corrupt, %v; want 1, nil", corrupt, err)
 	}
 
 	// The two good blocks uploaded.
@@ -1818,8 +1817,8 @@ func TestSyncControllerFlushSkipsCorruptDirtyBlock(t *testing.T) {
 	}
 
 	// A second flush skips it again and still uploads nothing twice.
-	if err := s.flush(ctx, false); !errors.Is(err, block.ErrBlockCorrupt) {
-		t.Fatalf("second flush = %v, want ErrBlockCorrupt", err)
+	if corrupt, err := s.flush(ctx, false); err != nil || corrupt != 1 {
+		t.Fatalf("second flush = %d corrupt, %v; want 1, nil", corrupt, err)
 	}
 	if n := countSyncDirtyKeys(t, ctx, dirtyStore); n != 1 {
 		t.Fatalf("dirty entries after second flush = %d, want 1", n)
