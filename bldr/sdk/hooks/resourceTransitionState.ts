@@ -13,6 +13,9 @@ import type { Resource, ResourceFields } from './useResource.js'
  * only on the failed state. keepable is false once the run that produced
  * value disposed its handles, so a disposed value never becomes last. owner
  * is the generation of the run that produced value, or last once it moved.
+ * reopening is the failure a stream that had yielded is reopening after,
+ * while it loads again over value, which may be out of date; a value, a
+ * failure or a new key clears it.
  */
 export type ResourceTransitionState<T> = {
   key: number
@@ -22,6 +25,7 @@ export type ResourceTransitionState<T> = {
   keepable: boolean
   loading: boolean
   error: Error | null
+  reopening: Error | null
 }
 
 export type ResourceTransitionRun = {
@@ -73,7 +77,7 @@ export function resourceReady(resource: ParentState): boolean {
  * than in useResource.js, which many tests mock whole.
  */
 export function resourceOf<T>(fields: ResourceFields<T>): Resource<T> {
-  const { value, loading, error, last, ...base } = fields
+  const { value, loading, error, last, reopening, ...base } = fields
   if (error) {
     const kept = last ?? null
     return {
@@ -85,7 +89,9 @@ export function resourceOf<T>(fields: ResourceFields<T>): Resource<T> {
     }
   }
   if (loading) {
-    return { ...base, value, loading: true, error: null }
+    return reopening
+      ? { ...base, value, loading: true, error: null, reopening }
+      : { ...base, value, loading: true, error: null }
   }
   return { ...base, value, loading: false, error: null }
 }
@@ -138,6 +144,7 @@ function fresh<T>(key: number, loading: boolean): ResourceTransitionState<T> {
     keepable: true,
     loading,
     error: null,
+    reopening: null,
   }
 }
 
@@ -214,16 +221,21 @@ export function useResourceTransitionState<T>(
    * waitAgain marks the resource loading, keeping its value. A failure that
    * kept a last, or a quiet wait over any failure, stays failed as it is, so
    * a wait or a run that follows never blanks kept content; the run's first
-   * value, failure or empty settle replaces it.
+   * value, failure or empty settle replaces it. reopening marks a wait that
+   * follows a failure of a stream that had yielded; it lasts through the run
+   * that reopens it.
    */
   const waitAgain = useCallback(
-    (key: number, quiet = false) =>
-      update(key, (prev) =>
-        (prev.error !== null && (quiet || lastOf(prev) !== null)) ||
-        (prev.loading && prev.error === null)
-          ? prev
-          : { ...prev, loading: true, error: null },
-      ),
+    (key: number, quiet = false, reopening: Error | null = null) =>
+      update(key, (prev) => {
+        if (prev.error !== null && (quiet || lastOf(prev) !== null)) {
+          return prev
+        }
+        if (prev.loading && prev.error === null) {
+          return reopening && !prev.reopening ? { ...prev, reopening } : prev
+        }
+        return { ...prev, loading: true, error: null, reopening }
+      }),
     [update],
   )
 
@@ -236,6 +248,7 @@ export function useResourceTransitionState<T>(
         last: lastOf(prev),
         loading,
         error,
+        reopening: null,
       })),
     [update],
   )
@@ -337,6 +350,7 @@ export function useResourceTransitionState<T>(
         keepable: true,
         loading: false,
         error: null,
+        reopening: null,
       })
       return true
     },

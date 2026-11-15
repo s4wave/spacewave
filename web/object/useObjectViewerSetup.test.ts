@@ -8,20 +8,14 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { ObjectViewerComponent } from './object.js'
 import { useObjectViewerSetup } from './useObjectViewerSetup.js'
 
-interface LoadedObjectInfo {
+interface WatchedObject {
   key: string
-  rootRef: string
   typeID: string
+  rootRef: string | undefined
 }
 
 const h = vi.hoisted(() => ({
   allViewers: [] as ObjectViewerComponent[],
-  objectInfo: {
-    value: null,
-    loading: false,
-    error: null,
-    retry: vi.fn(),
-  } as Resource<LoadedObjectInfo | null>,
   objectState: {
     value: null,
     loading: false,
@@ -35,10 +29,20 @@ const h = vi.hoisted(() => ({
     retry: vi.fn(),
   } as Resource<{}>,
   useResource: vi.fn(),
+  watched: {
+    value: null,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  } as Resource<WatchedObject | null>,
 }))
 
 vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
   useResource: h.useResource,
+}))
+
+vi.mock('@s4wave/web/hooks/useWorldQuery.js', () => ({
+  useWorldQuery: () => h.watched,
 }))
 
 vi.mock('@s4wave/web/contexts/contexts.js', () => ({
@@ -63,13 +67,11 @@ vi.mock('@s4wave/sdk/world/types/types.js', () => ({
 
 beforeEach(() => {
   h.allViewers = []
-  h.objectInfo = resource<LoadedObjectInfo | null>(null)
   h.objectState = resource<IObjectState | null>(null)
   h.rootResource = resource({})
+  h.watched = resource<WatchedObject | null>(null)
   h.useResource.mockReset()
-  h.useResource.mockImplementation((source: unknown) =>
-    Array.isArray(source) ? h.objectInfo : h.objectState,
-  )
+  h.useResource.mockImplementation(() => h.objectState)
 })
 
 afterEach(() => {
@@ -109,12 +111,12 @@ describe('useObjectViewerSetup route transitions', () => {
       viewer('viewer.route-hint', 'type/route-hint'),
       viewer('viewer.current', 'type/current'),
     ]
-    h.objectState = resource<IObjectState | null>(previousObject)
-    h.objectInfo = resource<LoadedObjectInfo | null>({
+    h.watched = resource<WatchedObject | null>({
       key: 'world/object-a',
       typeID: 'type/previous',
       rootRef: 'root://previous',
     })
+    h.objectState = resource<IObjectState | null>(previousObject)
 
     const initialProps: {
       objectKey: string
@@ -139,15 +141,9 @@ describe('useObjectViewerSetup route transitions', () => {
       ),
     ).toEqual(['viewer.previous'])
 
+    // A new key clears the watch in the same render.
+    h.watched = resource<WatchedObject | null>(null, true)
     h.objectState = resource<IObjectState | null>(previousObject, true)
-    h.objectInfo = resource<LoadedObjectInfo | null>(
-      {
-        key: 'world/object-a',
-        typeID: 'type/previous',
-        rootRef: 'root://previous',
-      },
-      true,
-    )
 
     rerender({
       objectKey: 'world/object-b',
@@ -164,12 +160,12 @@ describe('useObjectViewerSetup route transitions', () => {
       ),
     ).toEqual(['viewer.route-hint'])
 
-    h.objectState = resource<IObjectState | null>(nextObject)
-    h.objectInfo = resource<LoadedObjectInfo | null>({
+    h.watched = resource<WatchedObject | null>({
       key: 'world/object-b',
       typeID: 'type/current',
       rootRef: 'root://current',
     })
+    h.objectState = resource<IObjectState | null>(nextObject)
 
     rerender({
       objectKey: 'world/object-b',

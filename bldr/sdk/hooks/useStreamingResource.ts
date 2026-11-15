@@ -26,7 +26,8 @@ export interface UseStreamingResourceOptions<T> {
   equals?: (prev: T, next: T) => boolean
   /**
    * reconnect reopens a stream that fails after yielding, keeping the value
-   * while it backs off exponentially. Once the backoff reaches its maximum,
+   * while it backs off exponentially, loading with reopening set to the
+   * failure. Once the backoff reaches its maximum,
    * the resource reports failed, with the value as last and Retry, and keeps
    * reopening at that wait without leaving the failed state. Each yielded
    * value resets the backoff and settles the resource. Retry reopens at once.
@@ -169,7 +170,7 @@ export function useStreamingResource<P, T>(
           if (backoff.capped()) {
             fail(run, e)
           } else {
-            waitAgain(key)
+            waitAgain(key, false, e)
           }
           reconnectTimer = setTimeout(() => {
             quietRef.current = backoff.capped()
@@ -222,6 +223,7 @@ export function useStreamingResource<P, T>(
         last: lastOf(state),
         loading: effectiveLoading,
         error: parent.error ?? state.error,
+        reopening: state.reopening,
         retry: parent.error ? parent.retry : retry,
       }),
     [state, effectiveLoading, retry, parent.error, parent.retry],

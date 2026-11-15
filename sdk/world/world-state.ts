@@ -61,6 +61,13 @@ export interface IWorldState {
   /** getEngine borrows the live owner when available; immutable snapshots have no Engine. */
   getEngine?(): Engine
 
+  /**
+   * bindObject returns a handle to the object at key without checking that it
+   * exists; each call on it reads the current revision. Only a live World,
+   * one with getEngine, has it.
+   */
+  bindObject?(key: string): IObjectState
+
   // getResourceRef returns the resource ref for creating child resources.
   // This is used to create typed object resources from accessTypedObject results.
   getResourceRef(): ClientResourceRef
