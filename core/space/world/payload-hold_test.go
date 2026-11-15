@@ -3,17 +3,21 @@ package space_world_test
 import (
 	"context"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
@@ -214,4 +218,135 @@ func (l *gatedOpPluginLoader) Execute(context.Context) error {
 // Close releases nothing.
 func (l *gatedOpPluginLoader) Close() error {
 	return nil
+}
+
+// TestForeignManifestBucketReplays stores a manifest whose ManifestRef names
+// a bucket no bucket on the bus has, once as the Space's own write and once
+// as another device's operation the Space replays, in the plain and the
+// authorized form. Each replayed write must reach the same stored root as
+// the local one, and neither may look the foreign bucket up: the World
+// cursor reads every ref from the Space's own store.
+//
+// Both paths run on one engine, so both share one World bucket ID. Two
+// replicas whose own World bucket IDs differ are not covered.
+func TestForeignManifestBucketReplays(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	f := newAdapterFixtureOn(t, fixtureOpts{opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
+	eng, engRef := f.start(t)
+	defer engRef.Release()
+	so := f.space(t)
+	store := so.GetBlockStore()
+	dev := addDevice(t, so)
+
+	// Record every bucket lookup or bucket API directive naming the foreign
+	// bucket; resolve none.
+	const foreign = "foreign-bucket"
+	var mtx sync.Mutex
+	var lookups int
+	removeHandler, err := f.tb.Bus.AddHandler(directive.NewFuncHandler(
+		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			var id string
+			switch dir := di.GetDirective().(type) {
+			case bucket_lookup.BuildBucketLookup:
+				id = dir.BuildBucketLookupBucketID()
+			case bucket.BuildBucketAPI:
+				id = dir.BuildBucketAPIBucketID()
+			}
+			if id == foreign {
+				mtx.Lock()
+				lookups++
+				mtx.Unlock()
+			}
+			return nil, nil
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeHandler()
+
+	// Store the manifest block in the Space store, as a download would.
+	data, err := (&bldr_manifest.Manifest{Meta: &bldr_manifest.ManifestMeta{ManifestId: "foreign"}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := []*block.PutBatchEntry{{Ref: root, Data: data, RefsKnown: true}}
+	if err := store.SetRoots(ctx, entries, []block.NamedRoot{{Name: "test-manifest", Ref: root}}); err != nil {
+		t.Fatal(err)
+	}
+	storeOp := func(key string, authorized bool) *manifest_world.StoreManifestOp {
+		ref := &bldr_manifest.ManifestRef{
+			Meta:        &bldr_manifest.ManifestMeta{ManifestId: "foreign"},
+			ManifestRef: &bucket.ObjectRef{BucketId: foreign, RootRef: root},
+		}
+		if authorized {
+			if err := ref.SignReleaseAuthorization(dev.priv); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return manifest_world.NewStoreManifestOp(key, nil, ref)
+	}
+
+	for _, authorized := range []bool{false, true} {
+		form := "plain"
+		if authorized {
+			form = "authorized"
+		}
+		local, replayed := "local-"+form, "replayed-"+form
+
+		// The Space's own write applies at once.
+		if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+			_, _, err := ws.ApplyWorldOp(ctx, storeOp(local, authorized), so.GetPeerID())
+			return err
+		}); err != nil {
+			t.Fatalf("%s: local write: %v", form, err)
+		}
+
+		// The device's operation replays.
+		body, err := storeOp(replayed, authorized).MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		dev.write(t, so, txOp(t, &world_block_tx.Tx{
+			TxType: world_block_tx.TxType_TxType_APPLY_WORLD_OP,
+			TxApplyWorldOp: &world_block_tx.TxApplyWorldOp{
+				OperationTypeId: manifest_world.StoreManifestOpTypeID,
+				OperationBody:   body,
+			},
+		}), false, false)
+		waitObjects(ctx, t, eng, replayed)
+
+		// Both objects hold the same root.
+		refs := make([]*bucket.ObjectRef, 2)
+		if err := world.ExecTransaction(ctx, eng, false, func(ctx context.Context, ws world.WorldState) error {
+			for i, key := range []string{local, replayed} {
+				obj, err := world.MustGetObject(ctx, ws, key)
+				if err != nil {
+					return err
+				}
+				refs[i], _, err = obj.GetRootRef(ctx)
+				world.ReleaseObjectState(obj)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if !refs[0].EqualVT(refs[1]) {
+			t.Fatalf("%s: replayed root %v differs from the local root %v", form, refs[1], refs[0])
+		}
+	}
+
+	mtx.Lock()
+	defer mtx.Unlock()
+	if lookups != 0 {
+		t.Fatalf("%d directives looked up the foreign bucket", lookups)
+	}
 }
