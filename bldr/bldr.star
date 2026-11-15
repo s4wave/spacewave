@@ -13,14 +13,14 @@ RELEASE_WEB_EMBEDS = [
 def demo_dist_config(embed_manifests):
     return dist_compiler_config(
         embedManifests=embed_manifests,
-        loadPlugins=["bldr-demo"],
+        loadPlugins=["web", "bldr-demo"],
         loadWebStartup="bldr/example/startup.tsx",
     )
 
 project(
     id="bldr-demo",
     start=start_config(
-        plugins=["bldr-demo"],
+        plugins=["web", "bldr-demo"],
     ),
 )
 

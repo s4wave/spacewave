@@ -140,7 +140,7 @@ func (t *pluginHostServerFsTracker) retainPlugin(
 	}
 
 	// Load the plugin at the manifest and count its running instances.
-	instanceKey, err := t.s.loadInstanceKey(familyID, "")
+	instanceKey, err := t.s.loadInstanceKey(familyID, "", manifestRoot != "")
 	if err != nil {
 		return nil, err
 	}

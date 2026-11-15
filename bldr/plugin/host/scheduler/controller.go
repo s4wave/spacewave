@@ -437,11 +437,41 @@ func (c *Controller) HandleDirective(
 	case bifrost_rpc.LookupRpcClient:
 		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, d, c))
 	case bifrost_rpc.LookupRpcService:
-		return directive.R(bldr_plugin.ResolveLookupRpcService(ctx, d, c))
+		return directive.R(c.resolveLookupRpcService(ctx, d))
 	case bldr_plugin.LookupPluginScheduler:
 		return directive.R(directive.NewValueResolver([]bldr_plugin.LookupPluginSchedulerValue{c}), nil)
 	}
 	return nil, nil
+}
+
+// resolveLookupRpcService resolves a lookup of a plugin's or the host's
+// services with that plugin's root client.
+//
+// Invariant: no call that originated in a plugin outside the host's set
+// reaches another plugin's root client. On the host bus the identity of a call
+// is the server ID the host itself assigned, never bytes the plugin sent; a
+// plugin outside the set reaches other plugins only through its own host
+// invoker, which delivers through PluginRpc under its binding. A lookup the
+// rule refuses fails at once instead of waiting for another resolver.
+func (c *Controller) resolveLookupRpcService(ctx context.Context, d bifrost_rpc.LookupRpcService) (directive.Resolver, error) {
+	// Leave lookups of services that no plugin root serves to other resolvers.
+	res, err := bldr_plugin.ResolveLookupRpcService(ctx, d, c)
+	if res == nil || err != nil {
+		return res, err
+	}
+
+	// Refuse a server ID the host did not give a host plugin.
+	serverID := d.LookupRpcServerID()
+	if !bldr_plugin.MayReachPluginRoot(serverID, c.conf.GetHostExportPluginIds()) {
+		return bldr_plugin.NewRelayRefusedResolver(serverID), nil
+	}
+	return res, nil
+}
+
+// GetHostPluginIds returns the IDs of the plugins this scheduler starts as
+// host plugins.
+func (c *Controller) GetHostPluginIds() []string {
+	return c.conf.GetHostExportPluginIds()
 }
 
 // pluginInstanceKey builds the deduplication key for pluginInstances.
@@ -639,5 +669,5 @@ var (
 	_ controller.Controller                = (*Controller)(nil)
 	_ bldr_plugin.LookupRpcClientHandler   = (*Controller)(nil)
 	_ bldr_plugin_host.PluginHostScheduler = (*Controller)(nil)
-	_ bldr_plugin.PluginScheduler          = (*Controller)(nil)
+	_ bldr_plugin.HostPluginScheduler      = (*Controller)(nil)
 )

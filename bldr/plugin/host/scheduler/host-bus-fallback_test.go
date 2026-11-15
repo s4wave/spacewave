@@ -3,6 +3,7 @@ package plugin_host_scheduler
 import (
 	"context"
 	"encoding/base64"
+	"io"
 	"slices"
 	"strconv"
 	"strings"
@@ -13,12 +14,15 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_entrypoint "github.com/s4wave/spacewave/bldr/plugin/entrypoint"
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_forward_rpc_service "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
+	bldr_web_plugin_browser "github.com/s4wave/spacewave/bldr/web/plugin/browser"
+	bldr_web_plugin_browser_controller "github.com/s4wave/spacewave/bldr/web/plugin/browser/controller"
 	bldr_web_plugin_controller "github.com/s4wave/spacewave/bldr/web/plugin/controller"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
@@ -66,8 +70,9 @@ func (p *probeServices) Close() error {
 
 // schedulerLookups resolves the scheduler's plugin and plugin-host RPC
 // lookups on the bus as its HandleDirective does, without running plugins.
+// It stands on the bus as the root host scheduler.
 type schedulerLookups struct {
-	sched *Controller
+	*Controller
 }
 
 func (s *schedulerLookups) GetControllerInfo() *controller.Info {
@@ -83,7 +88,7 @@ func (s *schedulerLookups) HandleDirective(ctx context.Context, di directive.Ins
 	if !ok {
 		return nil, nil
 	}
-	return directive.R(bldr_plugin.ResolveLookupRpcService(ctx, d, s.sched))
+	return directive.R(s.resolveLookupRpcService(ctx, d))
 }
 
 func (s *schedulerLookups) Close() error {
@@ -102,7 +107,7 @@ func newFallbackBed(ctx context.Context, t *testing.T, le *logrus.Entry, b bus.B
 	bed := &fallbackBed{sched: sched, loads: make(chan string, 8)}
 	addControllers(ctx, t, b,
 		&loadSpy{sched: sched, loads: bed.loads},
-		&schedulerLookups{sched: sched},
+		&schedulerLookups{sched},
 		&probeServices{bus: busName, ids: serviceIDs},
 	)
 	return bed
@@ -358,7 +363,7 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 				webPluginID:  bldr_plugin.NewRunningPlugin(webRoot),
 			},
 		},
-		&schedulerLookups{sched: sched},
+		&schedulerLookups{sched},
 		&probeServices{bus: "app", ids: []string{hostSvc}},
 	)
 
@@ -414,6 +419,168 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 	bed.expect(t, "root AccessRpcService body, web view server", bed.timedExec(ctx, rootBody, hostCall), relayed)
 	webRootBody := accessClient(webRoot, bifrost_rpc_access.SRPCAccessRpcServiceServiceID, coreSvc, "web-view/x")
 	bed.expect(t, "web plugin root AccessRpcService body, web view server", bed.timedExec(ctx, webRootBody, coreSvc), relayed)
+}
+
+// serverProbe answers LookupRpcService for one service ID with an error that
+// names its bus and the server ID the lookup came under.
+type serverProbe struct {
+	bus, id string
+}
+
+func (p *serverProbe) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/server-probe", controller.MustParseVersion("0.0.1"), "")
+}
+
+func (p *serverProbe) Execute(context.Context) error {
+	return nil
+}
+
+func (p *serverProbe) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	d, ok := di.GetDirective().(bifrost_rpc.LookupRpcService)
+	if !ok || d.LookupRpcServiceID() != p.id {
+		return nil, nil
+	}
+	reached := probeReached + p.bus + " as " + d.LookupRpcServerID()
+	inv := srpc.InvokerFunc(func(string, string, srpc.Stream) (bool, error) {
+		return true, errors.New(reached)
+	})
+	return directive.R(directive.NewValueResolver([]bifrost_rpc.LookupRpcServiceValue{inv}), nil)
+}
+
+func (p *serverProbe) Close() error {
+	return nil
+}
+
+// browserWebPlugin is the web plugin as it runs in a browser: its Plugin
+// service passes each incoming PluginRpc stream, unread, to its host's
+// WebPluginBrowserHost, as web-plugin-browser.ts does.
+type browserWebPlugin struct {
+	host bldr_web_plugin_browser.SRPCWebPluginBrowserHostClient
+}
+
+func (p *browserWebPlugin) PluginRpc(strm bldr_plugin.SRPCPlugin_PluginRpcStream) error {
+	out, err := p.host.PluginRpc(strm.Context())
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	go func() {
+		for {
+			pkt, err := strm.Recv()
+			if err != nil {
+				_ = out.CloseSend()
+				return
+			}
+			if out.Send(pkt) != nil {
+				return
+			}
+		}
+	}()
+	for {
+		pkt, err := out.Recv()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+		if err := strm.Send(pkt); err != nil {
+			return err
+		}
+	}
+}
+
+// TestHostBusWebPluginRelaysNothing checks a plugin outside the host set cannot
+// reach another plugin's root mux through the web plugin as it runs in a
+// browser, where the web plugin passes each incoming PluginRpc stream to the
+// browser controller on the host bus. A call it sends through the web plugin
+// to spacewave-core, directly or inside a second PluginRpc it opens with a
+// component ID it wrote, never reaches core as the host.
+func TestHostBusWebPluginRelaysNothing(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	const corePluginID, webPluginID = "spacewave-core", "web"
+	coreSvc := "probe.CoreService"
+	sched := NewController(le, tb.Bus, &Config{HostExportPluginIds: []string{corePluginID, webPluginID}})
+	bed := &fallbackBed{sched: sched, loads: make(chan string, 8)}
+	_, coreRoot := inProcessPlugin(ctx, t, le, sched, corePluginID, &serverProbe{bus: "core", id: coreSvc})
+
+	// The web plugin's host client is the scheduler's mux for it.
+	webMux, webRel := sched.buildPluginMux(ctx, webPluginID, nil, nil, nil, nil, nil, nil, nil, false, false, "")
+	t.Cleanup(webRel)
+	webHost := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(webMux)))
+	webPluginMux := srpc.NewMux()
+	_ = bldr_plugin.SRPCRegisterPlugin(webPluginMux, &browserWebPlugin{host: bldr_web_plugin_browser.NewSRPCWebPluginBrowserHostClient(webHost)})
+	webRoot := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(webPluginMux)))
+
+	addControllers(ctx, t, tb.Bus,
+		bldr_web_plugin_browser_controller.NewController(le, tb.Bus, &bldr_web_plugin_browser_controller.Config{}),
+		&relayLoads{
+			loadSpy: loadSpy{sched: sched, loads: bed.loads},
+			plugins: map[string]bldr_plugin.RunningPlugin{
+				corePluginID: bldr_plugin.NewRunningPlugin(coreRoot),
+				webPluginID:  bldr_plugin.NewRunningPlugin(webRoot),
+			},
+		},
+		&schedulerLookups{sched},
+	)
+
+	via := bldr_plugin.PluginServiceID
+	coreCall := via(corePluginID, coreSvc)
+	for _, caller := range []struct{ name, binding string }{
+		{"unkeyed plugin outside the host set", ""},
+		{"Space-keyed plugin", "space-a"},
+	} {
+		mux, rel := sched.buildPluginMux(ctx, "attacker", nil, nil, nil, nil, nil, nil, nil, false, false, caller.binding)
+		client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
+
+		// The legitimate path: the caller's own host invoker delivers to
+		// core through PluginRpc, stamped as itself, and loads another
+		// plugin under its own binding.
+		reached := bed.exec(ctx, client, coreCall)
+		if want := "reached on core as plugin/attacker"; reached != want {
+			t.Errorf("%s, core directly: got %s, want %s", caller.name, reached, want)
+		}
+		loaded := bed.exec(ctx, client, via("other", "probe.Svc"))
+		if want := "loaded at " + strconv.Quote(sched.bindingKey(caller.binding)); loaded != want {
+			t.Errorf("%s, another plugin directly: got %s, want %s", caller.name, loaded, want)
+		}
+
+		// F1: core's service named through the web plugin.
+		bed.expectNotHost(t, caller.name+", core through the web plugin", bed.timedExec(ctx, client, via(webPluginID, coreCall)))
+
+		// The nested variant: a PluginRpc to the browser host through the web
+		// plugin, under component IDs the caller wrote, then core's service.
+		for _, forged := range []string{corePluginID, webPluginID, "attacker"} {
+			browserHost := bldr_web_plugin_browser.NewSRPCWebPluginBrowserHostClientWithServiceID(client, via(webPluginID, bldr_web_plugin_browser.SRPCWebPluginBrowserHostServiceID))
+			nested := rpcstream.NewRpcStreamClient(browserHost.PluginRpc, forged, true)
+			bed.expectNotHost(t, caller.name+", nested PluginRpc as "+strconv.Quote(forged), bed.timedExec(ctx, nested, coreCall))
+		}
+		rel()
+	}
+
+	// The web plugin, a host plugin, still reaches core through its browser
+	// host as itself.
+	webBrowserHost := bldr_web_plugin_browser.NewSRPCWebPluginBrowserHostClient(webHost)
+	webNested := rpcstream.NewRpcStreamClient(webBrowserHost.PluginRpc, webPluginID, true)
+	if got, want := bed.exec(ctx, webNested, coreCall), "reached on core as plugin-host/default"; got != want {
+		t.Errorf("web plugin through its browser host: got %s, want %s", got, want)
+	}
+}
+
+// expectNotHost checks one call did not reach core as the host: it must be
+// refused with ErrRelayRefused at once.
+func (bed *fallbackBed) expectNotHost(t *testing.T, name string, r timedResult) {
+	t.Logf("%s: %s (%s)", name, r.got, r.took.Round(time.Millisecond))
+	if !strings.Contains(r.got, bldr_plugin.ErrRelayRefused.Error()) || r.took > 500*time.Millisecond {
+		t.Errorf("%s: want a refusal at once, got %s after %s", name, r.got, r.took)
+	}
 }
 
 // timedResult is one call's outcome, as exec reports it, and how long it took.
