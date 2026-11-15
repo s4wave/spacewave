@@ -248,7 +248,7 @@ func TestPluginActivationProbe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(newPluginRpcMux(le, b))))
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(NewPluginRpcMux(le, b))))
 
 	// The activation probe must report in-place replacement.
 	_, err = bldr_plugin.NewSRPCActivationClient(client).Check(ctx, &bldr_plugin.CheckActivationRequest{})
