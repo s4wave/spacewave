@@ -97,6 +97,31 @@ func waitForBlogReady(t testing.TB, page playwright.Page, title string) {
 	}
 }
 
+// showBlogReading puts the open blog in reading mode. The viewer persists its
+// mode, so a blog left in editing mode reopens there.
+func showBlogReading(t testing.TB, page playwright.Page) {
+	// Wait for the mode press, then press it when it offers reading.
+	t.Helper()
+	waitForBlogReady(t, page, "")
+	readPosts := page.Locator("button[title='Read posts']").First()
+	readPostsCount, err := readPosts.Count()
+	if err != nil {
+		t.Fatalf("count read posts button: %v", err)
+	}
+	if readPostsCount > 0 {
+		if err := readPosts.Click(); err != nil {
+			t.Fatalf("switch blog to reading mode: %v", err)
+		}
+	}
+
+	// Wait for the press reading mode draws, whichever branch ran, so a bar
+	// that drew no press while the count ran still ends in reading mode.
+	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
+	if err := page.Locator("button[title='Edit posts']").First().WaitFor(wait); err != nil {
+		t.Fatalf("wait for blog reading mode: %v", err)
+	}
+}
+
 func waitForNotebookReady(t testing.TB, page playwright.Page, noteTitle string) {
 	// Wait for the notebook search input to appear.
 	t.Helper()
@@ -313,6 +338,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		// Wait for the published post in the blog reader.
 		t.Log("wait for published post in blog reader")
 		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
+		showBlogReading(t, page)
 		waitForBlogReady(t, page, "Second Post")
 
 		// Verify the published post appears in the notebook.
@@ -338,16 +364,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		// Verify the plain note is hidden in reading mode.
 		t.Log("verify plain note hidden in reading mode")
 		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
-		readPosts := page.Locator("button[title='Read posts']").First()
-		readPostsCount, err := readPosts.Count()
-		if err != nil {
-			t.Fatalf("count read posts button: %v", err)
-		}
-		if readPostsCount > 0 {
-			if err := readPosts.Click(); err != nil {
-				t.Fatalf("switch blog to reading mode for plain note check: %v", err)
-			}
-		}
+		showBlogReading(t, page)
 		backToPosts := page.Locator("button:has-text('Back to posts')").First()
 		backToPostsCount, err := backToPosts.Count()
 		if err != nil {
