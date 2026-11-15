@@ -60,13 +60,10 @@ func waitForBlogReady(t testing.TB, page playwright.Page, title string) {
 	// Format the object route hash for the scenario.
 	t.Helper()
 
-	// Wait for the blog reading and editing buttons to appear.
+	// Wait for the reading view's mode press, which offers editing.
 	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
-	if err := page.Locator("button[title='Reading mode']").First().WaitFor(wait); err != nil {
-		t.Fatalf("wait for blog reading button: %v", err)
-	}
-	if err := page.Locator("button[title='Editing mode']").First().WaitFor(wait); err != nil {
-		t.Fatalf("wait for blog editing button: %v", err)
+	if err := page.Locator("button[title='Edit posts']").First().WaitFor(wait); err != nil {
+		t.Fatalf("wait for blog edit posts button: %v", err)
 	}
 	if title == "" {
 		return
@@ -276,7 +273,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 
 		// Create a new post and write it from the blog editor.
 		t.Log("create new post from blog editing mode")
-		if err := page.Locator("button[title='Editing mode']").First().Click(); err != nil {
+		if err := page.Locator("button[title='Edit posts']").First().Click(); err != nil {
 			t.Fatalf("switch blog to editing mode: %v", err)
 		}
 		wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
@@ -339,8 +336,15 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		// Verify the plain note is hidden in reading mode.
 		t.Log("verify plain note hidden in reading mode")
 		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
-		if err := page.Locator("button[title='Reading mode']").First().Click(); err != nil {
-			t.Fatalf("switch blog to reading mode for plain note check: %v", err)
+		readPosts := page.Locator("button[title='Read posts']").First()
+		readPostsCount, err := readPosts.Count()
+		if err != nil {
+			t.Fatalf("count read posts button: %v", err)
+		}
+		if readPostsCount > 0 {
+			if err := readPosts.Click(); err != nil {
+				t.Fatalf("switch blog to reading mode for plain note check: %v", err)
+			}
 		}
 		backToPosts := page.Locator("button:has-text('Back to posts')").First()
 		backToPostsCount, err := backToPosts.Count()
@@ -364,7 +368,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		}
 
 		// Verify the plain note appears in blog editing mode.
-		if err := page.Locator("button[title='Editing mode']").First().Click(); err != nil {
+		if err := page.Locator("button[title='Edit posts']").First().Click(); err != nil {
 			t.Fatalf("switch blog to editing mode for note list: %v", err)
 		}
 		if err := page.Locator("text=untitled").First().WaitFor(); err != nil {
