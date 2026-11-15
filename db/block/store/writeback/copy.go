@@ -79,6 +79,10 @@ type CopyStatus struct {
 	// they stay local, and a copy with any is not complete for dropping the
 	// local store.
 	RefsUnknown int64
+	// Corrupt is the number of blocks the copy left out because their local
+	// bytes fail their hash. They stay local, the copy goes on past them, and
+	// a copy with any is not done: its next call walks the list again.
+	Corrupt int64
 }
 
 // copyStep is one listed batch of a copy, in list order.
@@ -107,6 +111,8 @@ type copyRun struct {
 	ended bool
 	// counts are the step counts not yet published.
 	counts CopyStatus
+	// corrupt is the count of corrupt blocks the run left out.
+	corrupt int64
 }
 
 // land records a landed step and its counts, advancing the cursor past every
@@ -116,6 +122,7 @@ func (r *copyRun) land(st copyStep, counts CopyStatus) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	r.counts.add(counts)
+	r.corrupt += counts.Corrupt
 	r.landed[st.seq] = st.next
 
 	// Advance past the contiguous landed steps.
@@ -134,15 +141,15 @@ func (r *copyRun) land(st copyStep, counts CopyStatus) {
 	}
 }
 
-// take returns the cursor, whether the list ended, and the counts since the
-// last take.
-func (r *copyRun) take() ([]byte, bool, CopyStatus) {
+// take returns the cursor, whether the list ended, the counts since the last
+// take, and the corrupt blocks the run left out.
+func (r *copyRun) take() ([]byte, bool, CopyStatus, int64) {
 	// Swap the counts out under the lock.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	counts := r.counts
 	r.counts = CopyStatus{}
-	return r.cursor, r.ended, counts
+	return r.cursor, r.ended, counts, r.corrupt
 }
 
 // Copy writes every block list names to remote, resuming after the cursor a
@@ -265,8 +272,15 @@ func (s *Store) Copy(ctx context.Context, target string, remote block.StoreOps, 
 		return err
 	}
 
-	// Record the copy complete once the last step landed.
-	return s.saveCopy(ctx, target, run, true)
+	// Record the copy complete once the last step landed, unless it left
+	// corrupt blocks out.
+	if err := s.saveCopy(ctx, target, run, true); err != nil {
+		return err
+	}
+	if _, _, _, corrupt := run.take(); corrupt != 0 {
+		return errors.Wrapf(block.ErrBlockCorrupt, "%d blocks fail their hash and were not copied", corrupt)
+	}
+	return nil
 }
 
 // copyStep copies one listed batch: it asks the remote which blocks it holds,
@@ -302,14 +316,17 @@ func (s *Store) copyStep(ctx context.Context, remote block.StoreOps, refs []*blo
 		// Read the block with its refs.
 		ref := missing[i]
 		stored, err := s.local.GetStoredBlock(ctx, ref)
-		if err != nil {
+		if err != nil && !errors.Is(err, block.ErrBlockCorrupt) {
 			return errors.Wrap(err, "read block to copy")
 		}
 
-		// Count it, or keep it to write.
+		// Count it, or keep it to write. A corrupt block is left out, so one
+		// bad block does not stop the copy of the rest.
 		mtx.Lock()
 		defer mtx.Unlock()
 		switch {
+		case err != nil:
+			counts.Corrupt++
 		case stored == nil:
 			counts.Gone++
 		case !stored.RefsKnown:
@@ -366,12 +383,18 @@ func (s *Store) copyStep(ctx context.Context, remote block.StoreOps, refs []*blo
 }
 
 // saveCopy saves the copy's cursor, or marks it complete when complete is set
-// and the list ended, then publishes its counts and position.
+// and the list ended, then publishes its counts and position. A run that left
+// corrupt blocks out is never complete: at its end it clears the cursor, so
+// the next call walks the list again and retries them.
 func (s *Store) saveCopy(ctx context.Context, target string, run *copyRun, complete bool) error {
 	// Save the cursor, or the completion once the last step landed.
-	cursor, ended, counts := run.take()
-	done := complete && ended
+	cursor, ended, counts, corrupt := run.take()
+	done := complete && ended && corrupt == 0
+	restart := complete && ended && corrupt != 0
 	err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+		if restart {
+			return tx.Delete(ctx, []byte(copyCursorPrefix+target))
+		}
 		if done {
 			if err := tx.Delete(ctx, []byte(copyCursorPrefix+target)); err != nil {
 				return err
@@ -414,6 +437,7 @@ func (c *CopyStatus) add(o CopyStatus) {
 	c.CopiedBytes += o.CopiedBytes
 	c.Gone += o.Gone
 	c.RefsUnknown += o.RefsUnknown
+	c.Corrupt += o.Corrupt
 }
 
 // copyPosition returns the share of the key space before cursor. A block key

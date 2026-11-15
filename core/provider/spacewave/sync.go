@@ -30,6 +30,11 @@ const syncPushRetryTimeout = 30 * time.Second
 
 const syncNoProgressBackoff = time.Second
 
+// dirtyCorruptRetryMax bounds the wait between flushes that leave dirty blocks
+// whose local bytes fail their hash queued. A write still queues its blocks at
+// once; they upload with the next flush.
+const dirtyCorruptRetryMax = 10 * time.Minute
+
 const defaultSyncSizeThresholdBytes = 48 * 1024 * 1024
 
 // syncOrderDirtyBlocksLimit bounds optional locality ordering.
@@ -275,6 +280,12 @@ func (s *syncController) Execute(ctx context.Context) error {
 		interval = 30 * time.Second
 	}
 
+	// corruptDelay is the wait after a flush that left corrupt dirty blocks
+	// queued, zero after a clean flush. It doubles from the checkpoint interval
+	// to dirtyCorruptRetryMax, since rereading the blocks fails the same way
+	// until something rewrites them.
+	var corruptDelay time.Duration
+
 	// Flush at each deadline or size threshold until ctx ends.
 	for ctx.Err() == nil {
 		first, dirty, changed := s.pendingSnapshot()
@@ -318,6 +329,14 @@ func (s *syncController) Execute(ctx context.Context) error {
 				}
 				continue
 			}
+			if errors.Is(err, block.ErrBlockCorrupt) {
+				corruptDelay = min(max(2*corruptDelay, interval), dirtyCorruptRetryMax)
+				s.le.WithError(err).WithField("retry-in", corruptDelay).Warn("uploaded the dirty blocks that read intact")
+				if err := waitDirtySyncRetry(ctx, nil, corruptDelay); err != nil {
+					return nil
+				}
+				continue
+			}
 			s.le.WithError(err).Warn("block upload failed")
 			_, _, changed = s.pendingSnapshot()
 			if err := waitDirtySyncRetry(ctx, changed, nextProviderRetryDelay(bo, err)); err != nil {
@@ -328,6 +347,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 
 		// A flush with no progress must not spin on an expired deadline.
 		bo.Reset()
+		corruptDelay = 0
 		retryAt = time.Time{}
 		next, _, changed := s.pendingSnapshot()
 		if !next.IsZero() && !next.After(first) {
@@ -763,12 +783,19 @@ func dirtyCandidateChunkSize(size int64) int64 {
 	return size
 }
 
-// loadDirtyBlocks loads only the payloads for one bounded pack candidate.
-func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirtyCandidate) ([]dirtyBlock, error) {
+// loadDirtyBlocks loads only the payloads for one bounded pack candidate. A
+// block whose local bytes fail their hash is left out and counted in corrupt:
+// only a pushed chunk clears dirty markers, so it stays queued and counted
+// while the rest upload.
+func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirtyCandidate, corrupt *int) ([]dirtyBlock, error) {
 	blocks := make([]dirtyBlock, 0, len(candidates))
 	for _, candidate := range candidates {
 		ref := block.NewBlockRef(candidate.hash)
 		stored, err := s.upper.GetStoredBlock(ctx, ref)
+		if errors.Is(err, block.ErrBlockCorrupt) {
+			*corrupt++
+			continue
+		}
 		if err != nil {
 			return nil, errors.Wrap(err, "getting dirty block")
 		}
@@ -828,7 +855,10 @@ func (s *syncController) flushChunks(ctx context.Context, through uint64, orderB
 }
 
 // prepareChunks fills payload chunks across metadata pages before emitting them.
-// Later insertions fall beyond through and belong to the next flush.
+// Later insertions fall beyond through and belong to the next flush. Dirty
+// blocks whose local bytes fail their hash stay queued: the pass packs the
+// rest, then returns an error wrapping block.ErrBlockCorrupt with their count,
+// so the flush publishes no checkpoint that could name them.
 func (s *syncController) prepareChunks(
 	ctx context.Context,
 	through uint64,
@@ -839,9 +869,10 @@ func (s *syncController) prepareChunks(
 	maxBlocks := int(writer.DefaultMaxBlocksPerPack)
 	pending := make([]dirtyCandidate, 0, maxBlocks)
 	var pendingBytes int64
+	var corrupt int
 	flushPending := func() error {
 		// Load the pending payloads and emit their packs.
-		loaded, err := s.loadDirtyBlocks(ctx, pending)
+		loaded, err := s.loadDirtyBlocks(ctx, pending, &corrupt)
 		if err != nil {
 			return err
 		}
@@ -902,10 +933,20 @@ func (s *syncController) prepareChunks(
 			}
 		}
 	}
-	if len(pending) == 0 {
-		return nil
+	if len(pending) != 0 {
+		if err := flushPending(); err != nil {
+			return err
+		}
 	}
-	return flushPending()
+
+	// Report the corrupt blocks the pass left queued.
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.setSyncTelemetryCorruptDirty(id, corrupt)
+	})
+	if corrupt != 0 {
+		return errors.Wrapf(block.ErrBlockCorrupt, "%d dirty blocks fail their hash and stay queued", corrupt)
+	}
+	return nil
 }
 
 // prepareLoadedBlocks packs loaded dirty blocks, halving a set whose pack

@@ -20,6 +20,9 @@ const (
 	UploadPhasePushing
 	// UploadPhaseError means upload sync has a recorded error.
 	UploadPhaseError
+	// UploadPhaseCorrupt means dirty blocks fail their hash on the local disk,
+	// so they stay queued and do not upload; the rest of the queue uploads.
+	UploadPhaseCorrupt
 )
 
 // BlockSource identifies the observed source of a block read.
@@ -56,6 +59,9 @@ type Snapshot struct {
 	PendingUploadBytes int64
 	// PendingUploadCount is the approximate count of dirty upload items.
 	PendingUploadCount int
+	// CorruptDirtyCount is the count of dirty blocks the last flush could not
+	// upload because their local bytes fail their hash. They stay queued.
+	CorruptDirtyCount int
 	// ActiveUploadBytes is the approximate number of bytes currently being pushed.
 	ActiveUploadBytes int64
 	// ActiveUploadTransferredBytes is the approximate in-flight upload bytes sent.
@@ -205,6 +211,7 @@ type state struct {
 
 	pendingUploadBytes       int64
 	pendingUploadCount       int
+	corruptDirtyCount        int
 	pendingPublications      int
 	activeUploadBytes        int64
 	activeUploadSent         int64
@@ -300,6 +307,15 @@ func (s *Store) SetPending(bstoreID string, bytes int64, count int) {
 		state := s.getOrCreateStateLocked(bstoreID)
 		state.pendingUploadBytes = bytes
 		state.pendingUploadCount = count
+		broadcast()
+	})
+}
+
+// SetCorruptDirty records the count of dirty blocks the last flush skipped
+// because their local bytes fail their hash.
+func (s *Store) SetCorruptDirty(bstoreID string, count int) {
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.getOrCreateStateLocked(bstoreID).corruptDirtyCount = max(count, 0)
 		broadcast()
 	})
 }
@@ -521,6 +537,7 @@ func BuildSnapshot(states []state) Snapshot {
 		})
 		snap.PendingUploadBytes += state.pendingUploadBytes
 		snap.PendingUploadCount += state.pendingUploadCount + state.pendingPublications
+		snap.CorruptDirtyCount += state.corruptDirtyCount
 		snap.ActiveUploadBytes += state.activeUploadBytes
 		snap.ActiveUploadTransferredBytes += state.activeUploadSent
 		snap.InFlightPushes += state.inFlightPushes
@@ -670,7 +687,15 @@ func (s *Store) getOrCreateStateLocked(bstoreID string) *state {
 	return entry
 }
 
+// uploadPhase names the upload state of snap, the most urgent first: a corrupt
+// dirty block outranks a push error, since it fails every retry the same way.
 func uploadPhase(snap Snapshot) UploadPhase {
+	// A corrupt dirty block needs repair, not another retry.
+	if snap.CorruptDirtyCount > 0 {
+		return UploadPhaseCorrupt
+	}
+
+	// Otherwise report the push and the queue.
 	if snap.LastPushError != "" {
 		return UploadPhaseError
 	}
