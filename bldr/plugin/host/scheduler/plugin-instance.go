@@ -54,6 +54,11 @@ type pluginInstance struct {
 	executions *keyed.KeyedRefCount[executionReference, *pluginInstance]
 	// activeExecution is the admitted worker, protected by pluginUpdateMtx.
 	activeExecution *pluginInstance
+	// activeArgs is the candidate the admitted worker runs, and activeReadyAt
+	// when it finished startup, zero until then; both protected by
+	// pluginUpdateMtx.
+	activeArgs    *executePluginArgs
+	activeReadyAt time.Time
 	// releaseExecution retains the admitted worker through candidate changes.
 	releaseExecution func()
 	// executionsClosed prevents a finishing candidate from publishing after shutdown.

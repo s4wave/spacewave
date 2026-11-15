@@ -180,6 +180,23 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 		return t.serveAssets(ctx, args)
 	}
 
+	// Keep an admitted worker whose own candidate is selected again, as when a
+	// released installation returns the binding to it. One that finished
+	// startup is supervised again; one still starting finishes like a new one.
+	if worker, readyAt := t.admittedWorker(args); worker != nil {
+		if !readyAt.IsZero() {
+			t.settleAdmitted(worker)
+			return t.superviseExecution(ctx, worker, readyAt)
+		}
+		if _, err := waitStartup(ctx, worker); err != nil {
+			if ctx.Err() == nil {
+				t.clearExecution(worker)
+			}
+			return err
+		}
+		return t.runAdmitted(ctx, worker, args, recovery)
+	}
+
 	// Publish the swap state: preparing now, failed when the attempt fails.
 	candidate := newSwapCandidate(args)
 	t.setSwapPreparing(candidate)
@@ -229,15 +246,7 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 	}
 
 	// Wait for startup to complete or fail before activation.
-	state, err := worker.pluginLoadStateCtr.WaitValueWithValidator(ctx, func(state plugin.PluginLoadState) (bool, error) {
-		if state.GetInitialCapabilityRegistrationState() == plugin.InitialCapabilityRegistrationFailed {
-			if err := state.GetStartupError(); err != nil {
-				return false, err
-			}
-			return false, errors.New("plugin exited before completing startup")
-		}
-		return state.GetRunningPlugin() != nil, nil
-	}, nil)
+	state, err := waitStartup(ctx, worker)
 	if err != nil {
 		if admitted && ctx.Err() == nil {
 			t.clearExecution(worker)
@@ -261,20 +270,74 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 		}
 	}
 
+	return t.runAdmitted(ctx, worker, args, recovery)
+}
+
+// waitStartup waits for an admitted or prepared worker to finish startup and
+// returns its load state, or the error that ended its startup.
+func waitStartup(ctx context.Context, worker *pluginInstance) (plugin.PluginLoadState, error) {
+	return worker.pluginLoadStateCtr.WaitValueWithValidator(ctx, func(state plugin.PluginLoadState) (bool, error) {
+		if state.GetInitialCapabilityRegistrationState() == plugin.InitialCapabilityRegistrationFailed {
+			if err := state.GetStartupError(); err != nil {
+				return false, err
+			}
+			return false, errors.New("plugin exited before completing startup")
+		}
+		return state.GetRunningPlugin() != nil, nil
+	}, nil)
+}
+
+// runAdmitted publishes an admitted worker that finished startup, marks it
+// ready and supervises it until it exits.
+func (t *pluginInstance) runAdmitted(ctx context.Context, worker *pluginInstance, args *executePluginArgs, recovery bool) error {
 	// Publish the admitted manifest root and clear startup bookkeeping.
 	t.emitPluginManifestRoot(args.manifestSnapshot.GetManifestRef().GetRootRef().GetHash().MarshalString())
 	if !recovery {
 		t.c.clearPluginStatusError(t.pluginID, t.instanceKey)
 	}
 	t.stopStartupWaitBudget()
-	admittedAt := time.Now()
-	t.setSwapSettled(admittedAt)
 
-	// The worker's callback keeps public state current even while another
-	// candidate is preparing. A crashed admitted worker is released before retry.
+	// Mark the worker ready and publish the settled swap.
+	readyAt, _ := t.settleAdmitted(worker)
+	return t.superviseExecution(ctx, worker, readyAt)
+}
 
+// admittedWorker returns the admitted worker if it runs args itself, and when
+// it finished startup, zero while it is still starting; otherwise nil.
+func (t *pluginInstance) admittedWorker(args *executePluginArgs) (*pluginInstance, time.Time) {
+	t.pluginUpdateMtx.Lock()
+	defer t.pluginUpdateMtx.Unlock()
+	if t.activeArgs != args {
+		return nil, time.Time{}
+	}
+	return t.activeExecution, t.activeReadyAt
+}
+
+// settleAdmitted marks the worker ready, keeping an earlier ready time, and
+// publishes the settled swap. Both happen under pluginUpdateMtx and only while
+// the worker is still admitted, so a worker cleared meanwhile is never shown
+// as settled. It returns the ready time and whether the worker was admitted.
+func (t *pluginInstance) settleAdmitted(worker *pluginInstance) (time.Time, bool) {
+	// A worker cleared since the caller saw it is not settled.
+	t.pluginUpdateMtx.Lock()
+	defer t.pluginUpdateMtx.Unlock()
+	if t.activeExecution != worker {
+		return time.Now(), false
+	}
+	if t.activeReadyAt.IsZero() {
+		t.activeReadyAt = time.Now()
+	}
+	t.setSwapSettled(t.activeReadyAt)
+	return t.activeReadyAt, true
+}
+
+// superviseExecution waits for the admitted worker, ready since admittedAt,
+// to report a failed registration, then releases it and reports its exit.
+// The worker's callback keeps public state current even while another
+// candidate is preparing.
+func (t *pluginInstance) superviseExecution(ctx context.Context, worker *pluginInstance, admittedAt time.Time) error {
 	// Wait for the admitted worker to report a failed registration.
-	_, err = worker.pluginLoadStateCtr.WaitValueWithValidator(ctx, func(state plugin.PluginLoadState) (bool, error) {
+	_, err := worker.pluginLoadStateCtr.WaitValueWithValidator(ctx, func(state plugin.PluginLoadState) (bool, error) {
 		return state.GetInitialCapabilityRegistrationState() == plugin.InitialCapabilityRegistrationFailed, nil
 	}, nil)
 	if err != nil {
@@ -306,8 +369,12 @@ func (t *pluginInstance) admitExecution(worker *pluginInstance, release func(), 
 		}
 		admitted = true
 		previous = t.releaseExecution
-		t.activeExecution = worker
 		t.releaseExecution = release
+
+		// Record the worker and the candidate it runs; it is not ready yet.
+		t.activeExecution = worker
+		t.activeArgs = args
+		t.activeReadyAt = time.Time{}
 
 		// Switch the family alias and file access to the new worker.
 		t.ensureAccessProviders()
@@ -359,6 +426,7 @@ func (t *pluginInstance) clearExecution(expected *pluginInstance) {
 	release := t.releaseExecution
 	t.releaseExecution = nil
 	t.activeExecution = nil
+	t.activeArgs = nil
 	t.ensureAccessProviders()
 	t.distAccess.SetBlocked()
 	t.assetsAccess.SetBlocked()

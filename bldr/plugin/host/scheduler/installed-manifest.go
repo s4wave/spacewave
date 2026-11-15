@@ -32,17 +32,31 @@ func (t *pluginInstance) addManifestSelection(peerID string, refs ...*manifest.M
 	t.updateManifestSelectionLocked()
 	t.pluginUpdateMtx.Unlock()
 
-	// Return the release function that removes this selection again.
+	// Return the release function that removes this selection again. Releasing
+	// the last one ends the installation's work and returns the binding to its
+	// catalog demand.
 	return sync.OnceFunc(func() {
+		// Drop the selection and take the installation's work out of the routines.
 		t.pluginUpdateMtx.Lock()
 		delete(t.selections, id)
-		t.updateManifestSelectionLocked()
+		released, stop := t.updateManifestSelectionLocked()
 		t.pluginUpdateMtx.Unlock()
+		if !released {
+			return
+		}
+
+		// Stop a worker started for the installation, unless a newer admission
+		// replaced it, and select from the catalog again.
+		if stop != nil {
+			t.clearExecution(stop)
+		}
+		t.reselectManifests()
 	})
 }
 
-// updateManifestSelectionLocked projects the newest retained installation demand.
-func (t *pluginInstance) updateManifestSelectionLocked() {
+// updateManifestSelectionLocked projects the newest retained installation
+// demand. With none left, it calls releaseInstallationLocked.
+func (t *pluginInstance) updateManifestSelectionLocked() (released bool, stop *pluginInstance) {
 	// Find the selection with the highest sequence number.
 	var latest uint64
 	var selected *installedManifests
@@ -54,7 +68,42 @@ func (t *pluginInstance) updateManifestSelectionLocked() {
 
 	// Store it and reselect the installed manifest for the current hosts.
 	t.selectedManifest.Store(selected)
-	t.selectInstalledManifestLocked(t.c.pluginHostsCtr.GetValue())
+	if selected != nil {
+		t.selectInstalledManifestLocked(t.c.pluginHostsCtr.GetValue())
+		return false, nil
+	}
+	return t.releaseInstallationLocked()
+}
+
+// releaseInstallationLocked removes released installation work while nothing
+// is selected. It clears an installation candidate from the guarded update
+// routine, so the running worker is not asked to quiesce for it. Leaving the
+// execute routine cancels any wait for the candidate's admission: the routine
+// returns to the admitted worker's own candidate, which it adopts without a
+// restart, or to nothing when that worker ran the installation. It reports
+// whether anything was released, and the worker the caller must stop.
+func (t *pluginInstance) releaseInstallationLocked() (released bool, stop *pluginInstance) {
+	// Drop a guarded replacement waiting to quiesce the running worker.
+	if t.updatePluginRoutine != nil {
+		if pending := t.updatePluginRoutine.GetState(); pending != nil && pending.installation != nil {
+			t.updatePluginRoutine.SetState(nil)
+			released = true
+		}
+	}
+
+	// Stop a worker the installation started; a catalog worker keeps running.
+	restore := t.activeArgs
+	if restore != nil && restore.installation != nil {
+		restore, stop = nil, t.activeExecution
+		released = true
+	}
+
+	// Return the execute routine from the installation's candidate.
+	if current := t.executePluginRoutine.GetState(); current != nil && current.installation != nil {
+		t.executePluginRoutine.SetState(restore)
+		released = true
+	}
+	return released, stop
 }
 
 // selectInstalledManifestLocked sends the selected artifact through the normal
@@ -137,8 +186,14 @@ func installedManifestCandidates(selected *installedManifests, platforms map[str
 
 // acceptsManifest prevents catalog updates and superseded preparation from
 // replacing an explicitly installed artifact. The admitted worker may remain
-// older while its selected replacement prepares or reports an error.
+// older while its selected replacement prepares or reports an error. An
+// installation's candidate is accepted only while its installation is the
+// selection, so a released installation never starts; a removal or catalog
+// candidate only while nothing is selected.
 func (t *pluginInstance) acceptsManifest(args *executePluginArgs) bool {
 	selected := t.selectedManifest.Load()
-	return selected == nil || args != nil && args.installation == selected
+	if args == nil || args.installation == nil {
+		return selected == nil
+	}
+	return args.installation == selected
 }

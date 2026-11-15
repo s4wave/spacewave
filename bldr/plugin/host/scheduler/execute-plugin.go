@@ -170,8 +170,15 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	) error {
 		// Retain executable identity even when startup bypasses the catalog store.
 		// Exact replay needs the reference, without requiring an eager DAG copy.
+		// An installation's root enters the catalog only where every load asks
+		// AdmitPluginRoot: elsewhere a later catalog or pinned load would run a
+		// root only the installation's peer admitted, without asking.
 		// A World this peer only reads retains nothing.
-		if t.manifestRoot == "" && (t.c.conf.GetDisableStoreManifest() || args.installation != nil) {
+		retain := t.c.conf.GetDisableStoreManifest()
+		if args.installation != nil {
+			retain = t.c.conf.GetRequireAdmission()
+		}
+		if t.manifestRoot == "" && retain {
 			ref := bldr_manifest.NewManifestRef(manifest.GetMeta(), pluginManifest.GetManifestRef())
 			if err := manifest_world.ExStoreManifestOp(ctx, ws, t.c.peerID,
 				bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef()), []string{t.c.objKey}, ref); err != nil && !errors.Is(err, tx.ErrNotWrite) {
