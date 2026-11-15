@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -87,14 +88,28 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	case bifrost_rpc.LookupRpcClient:
 		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, dir, c))
 	case bifrost_rpc.LookupRpcService:
-		if !c.forwardsServerID(dir.LookupRpcServerID()) {
-			return nil, nil
+		res, err := bldr_plugin.ResolveLookupRpcService(ctx, dir, c)
+		if res != nil && !c.forwardsServerID(dir.LookupRpcServerID()) {
+			res = refuseRelay(dir.LookupRpcServerID())
 		}
-		return directive.R(bldr_plugin.ResolveLookupRpcService(ctx, dir, c))
+		return directive.R(res, err)
 	case unixfs_access.AccessUnixFS:
 		return directive.R(bldr_plugin.ResolveAccessUnixfs(ctx, dir, c))
 	}
 	return nil, nil
+}
+
+// ErrRelayRefused is returned to a caller whose call this plugin would have
+// relayed to its host or to another plugin on another plugin's behalf.
+var ErrRelayRefused = errors.New("plugin refuses to relay the call")
+
+// refuseRelay resolves a forwarding lookup this plugin refuses with
+// ErrRelayRefused, so the caller fails at once rather than waiting on the bus
+// for a resolver that never comes.
+func refuseRelay(serverID string) directive.Resolver {
+	return directive.NewFuncResolver(func(context.Context, directive.ResolverHandler) error {
+		return errors.Wrapf(ErrRelayRefused, "server %q", serverID)
+	})
 }
 
 // forwardsServerID reports whether a service lookup with serverID may be
@@ -102,18 +117,17 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 //
 // Invariant: this plugin never relays a call that arrived from another plugin
 // onto its host client or onto another plugin. Such a call arrives under
-// "plugin/<caller>" or "plugin/<caller>/<id>" (PluginServer), or under
-// "plugin-host/<id>" when another plugin's lookup reached this plugin's
-// AccessRpcService through a forwarder; none of those is listed. The listed
-// IDs are chosen by this plugin's own code or by its host:
+// "plugin/<caller>" or "plugin/<caller>/<id>" (PluginServer, which the host
+// names from the caller's identity), and none of those is listed. The root
+// mux, which only the host reaches, names the rest "plugin-host/<id>". The
+// listed IDs are chosen by this plugin's own code or by its host:
 //
 //   - "": this plugin's code looking a service up with no server.
 //   - "plugin-host/default": the root mux fallback, which serves only calls
 //     the host makes (NewPluginRpcMux in the entrypoint).
 //   - "plugin/<self>": the loopback client of this controller.
-//   - "web-view/<id>" and "web-worker/<id>": this plugin's web runtime and
-//     the host's frontend, which reach the root mux's AccessRpcService only
-//     through the host.
+//   - "web-view/<id>" and "web-worker/<id>": this plugin's own web runtime.
+//     No incoming call can name them: both muxes prefix every server ID.
 func (c *Controller) forwardsServerID(serverID string) bool {
 	switch serverID {
 	case "", bldr_plugin.HostServerID("default"), bldr_plugin.PluginServerID(c.meta.GetPluginId(), ""):
