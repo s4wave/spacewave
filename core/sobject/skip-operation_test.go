@@ -252,7 +252,9 @@ func TestSkippedOperationsPruneAndMerge(t *testing.T) {
 // TestSkipSOOperationIsFinal checks the owner's skip through SkipSOOperation:
 // a skip of a position no held operation matches fails, a writer cannot skip,
 // skipping again changes nothing, and a later skip keeps the earlier one, so
-// no change the package makes withdraws a skip above the checkpoint.
+// no change the package makes withdraws a skip above the checkpoint. The owner
+// skips at most MaxLiveSkips live operations, and skips again once a checkpoint
+// covers them.
 func TestSkipSOOperationIsFinal(t *testing.T) {
 	// The writer writes two operations.
 	ctx := t.Context()
@@ -299,6 +301,56 @@ func TestSkipSOOperationIsFinal(t *testing.T) {
 		if skip.GetPosition().EqualVT(skipFirst.GetPosition()) && skip.GetReason() != skipFirst.GetReason() {
 			t.Fatalf("first skip reason %q; want %q", skip.GetReason(), skipFirst.GetReason())
 		}
+	}
+
+	// The owner skips up to MaxLiveSkips live operations, and no more.
+	write := func(data string) *SOOperation {
+		var op *SOOperation
+		if err := g.host.UpdateSOState(ctx, func(state *SOState) error {
+			op = writeTestOp(t, state, keys[1], data)
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return op
+	}
+	skip := func(op *SOOperation) error {
+		pos := testSkip(t, g.ctr.GetValue(), op, "").GetPosition()
+		return SkipSOOperation(ctx, g.host, pos, "", keys[0])
+	}
+	for range MaxLiveSkips - len(cfg.GetSkippedOperations()) {
+		if err := skip(write("live")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := skip(write("past the cap")); err == nil {
+		t.Fatal("skipped an operation past MaxLiveSkips live skips")
+	}
+
+	// Once a checkpoint covers the skipped operations, the owner skips again,
+	// and the skip drops the covered entries.
+	if err := g.host.UpdateSOState(ctx, func(state *SOState) error {
+		xfrm, err := testHandle(t, state, keys[0]).GetTransformer(ctx)
+		if err != nil {
+			return err
+		}
+		enc, err := xfrm.EncodeBlock([]byte("checkpoint"))
+		if err != nil {
+			return err
+		}
+		checkpoint, err := state.BuildNextCheckpoint(mockSharedObjectID, keys[0], enc)
+		if err != nil {
+			return err
+		}
+		return state.AdoptCheckpoint(mockSharedObjectID, checkpoint)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := skip(write("after the checkpoint")); err != nil {
+		t.Fatalf("skip after a covering checkpoint: %v", err)
+	}
+	if n := len(g.ctr.GetValue().GetConfig().GetSkippedOperations()); n != 1 {
+		t.Fatalf("config skips %d operations after the checkpoint; want 1", n)
 	}
 }
 
