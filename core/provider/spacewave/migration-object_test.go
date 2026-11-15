@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 )
 
 // TestCloudMigrationFlushBeforeTransfer keeps pending writes under their source
@@ -144,8 +145,8 @@ func TestCloudMigrationRepeatFails(t *testing.T) {
 
 // TestCloudMigrationSpaceCopyHeldFails checks the copy of a Space into
 // another cloud: when the destination store's flush holds a corrupt dirty
-// block back, the copy fails with the held error and the checkpoint is never
-// posted over a block the cloud lacks.
+// block the copy wrote, the copy fails with the held error and posts no
+// second checkpoint.
 func TestCloudMigrationSpaceCopyHeldFails(t *testing.T) {
 	var checkpoints atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -156,31 +157,31 @@ func TestCloudMigrationSpaceCopyHeldFails(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// The destination store holds its only dirty block as corrupt.
+	// The destination store is the production one: the cloud overlay over a
+	// marking upper, so the copy marks what it writes dirty. The copied root
+	// reads back corrupt, so only the copy's mark can hold the flush.
 	key, pid := generateTestKeypair(t)
 	client := newTestPublicationClient(server, key, pid)
 	syncer := newDirtySyncExecuteTestController(t, client, nil)
-	held, err := block.BuildBlockRef([]byte("dirty block"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	syncer.upper = &corruptUpperStore{StoreOps: syncer.upper, bad: held.GetHash()}
-	destination := NewTestProviderAccount(t, server.URL)
-	dst := &BlockStore{store: block_store.NewStore("held-space", syncer.upper), forceSync: syncer.FlushNowUnordered}
-	destination.bstores = keyed.NewKeyedRefCount(func(id string) (keyed.Routine, *bstoreTracker) {
-		return nil, &bstoreTracker{a: destination, id: id, bstoreCtr: ccontainer.NewCContainer(dst), errCh: make(chan error, 1)}
-	})
-
-	// Copy one root from the source Space.
 	src := newSyncTestBlockStore()
 	root, _, err := src.PutBlock(t.Context(), []byte("space root"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	syncer.upper = &corruptUpperStore{StoreOps: syncer.upper, bad: root.GetHash()}
+	dirtyUpper := block_store_writeback.NewMarkingStore(syncer.upper, syncer.MarkDirty)
+	overlay := newCloudOverlay(t.Context(), syncer.le, newSyncTestBlockStore(), dirtyUpper)
+	destination := NewTestProviderAccount(t, server.URL)
+	dst := &BlockStore{store: block_store.NewStore("held-space", overlay), forceSync: syncer.FlushNowUnordered}
+	destination.bstores = keyed.NewKeyedRefCount(func(id string) (keyed.Routine, *bstoreTracker) {
+		return nil, &bstoreTracker{a: destination, id: id, bstoreCtr: ccontainer.NewCContainer(dst), errCh: make(chan error, 1)}
+	})
+
+	// Copy the root: the flush holds it back and no checkpoint follows.
 	err = destination.copyMigrationSpace(t.Context(), client, "held-space", src, []*block.BlockRef{root}, &sobject.SOCheckpoint{Inner: []byte("state")})
 	var heldErr *heldError
-	if !errors.As(err, &heldErr) || !errors.Is(err, block.ErrBlockCorrupt) {
-		t.Fatalf("copy = %v; want the held error", err)
+	if !errors.As(err, &heldErr) || !errors.Is(err, block.ErrBlockCorrupt) || heldErr.count != 1 {
+		t.Fatalf("copy = %v; want the copied root held", err)
 	}
 	if checkpoints.Load() != 0 {
 		t.Fatalf("checkpoints = %d; want none posted over a held store", checkpoints.Load())
