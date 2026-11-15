@@ -931,6 +931,27 @@ func startupContextError(err error) error {
 	return nil
 }
 
+// idSet indexes a filter list of ids. An empty set allows every id.
+type idSet map[string]struct{}
+
+// newIDSet indexes ids.
+func newIDSet(ids []string) idSet {
+	set := make(idSet, len(ids))
+	for _, id := range ids {
+		set[id] = struct{}{}
+	}
+	return set
+}
+
+// allows reports whether the filter keeps id.
+func (s idSet) allows(id string) bool {
+	if len(s) == 0 {
+		return true
+	}
+	_, ok := s[id]
+	return ok
+}
+
 // CollectManifests collects all Manifest linked to by the given object(s).
 //
 // Maps the manifests by manifest ID.
@@ -952,6 +973,7 @@ func CollectManifests(
 	// Collect one entry per readable manifest, grouped by manifest id.
 	var manifestErrors []error
 	manifestMap := make(map[string][]*CollectedManifest)
+	platforms := newIDSet(filterPlatformIDs)
 
 	// Look up each manifest object key in turn.
 	for _, objKey := range manifestObjKeys {
@@ -969,7 +991,7 @@ func CollectManifests(
 		// Filter by platform id when the caller supplied filters.
 		manifestID := collected.Manifest.GetMeta().GetManifestId()
 		platformID := collected.Manifest.GetMeta().GetPlatformId()
-		if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, platformID) {
+		if !platforms.allows(platformID) {
 			continue
 		}
 
@@ -1117,7 +1139,9 @@ func collectStartupManifests(
 	// Collect one entry per selected candidate, grouped by manifest id.
 	var manifestErrors []error
 	manifestMap := make(map[string][]*CollectedManifest)
+	platforms := newIDSet(filterPlatformIDs)
 
+	// Read each candidate and keep those the filters allow.
 	for _, candidate := range candidates {
 		// Intermediates are skipped; other type errors are skip errors.
 		objType, err := world_types.GetObjectType(ctx, ws, candidate.objectKey)
@@ -1162,7 +1186,7 @@ func collectStartupManifests(
 			continue
 		}
 		platformID := manifest.GetMeta().GetPlatformId()
-		if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, platformID) {
+		if !platforms.allows(platformID) {
 			continue
 		}
 
@@ -1562,15 +1586,14 @@ func FilterCollectedManifestsByBuildTypes(manifestList []*CollectedManifest, bui
 	}
 
 	// Drop each manifest whose build type is not allowed.
-	for i := 0; i < len(manifestList); i++ {
-		v := manifestList[i]
-		vBuildType := bldr_manifest.BuildType(v.Manifest.GetMeta().GetBuildType())
-		if !slices.Contains(buildTypes, vBuildType) {
-			manifestList = slices.Delete(manifestList, i, i+1)
-			i--
-		}
+	allowed := make(map[bldr_manifest.BuildType]struct{}, len(buildTypes))
+	for _, bt := range buildTypes {
+		allowed[bt] = struct{}{}
 	}
-	return manifestList
+	return slices.DeleteFunc(manifestList, func(v *CollectedManifest) bool {
+		_, ok := allowed[bldr_manifest.BuildType(v.Manifest.GetMeta().GetBuildType())]
+		return !ok
+	})
 }
 
 // FilterCollectedManifestsByMinRev filters a list of collected manifests by minimum revision.

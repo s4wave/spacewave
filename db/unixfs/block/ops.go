@@ -41,8 +41,8 @@ func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions fs.Fil
 	return nil
 }
 
-// Symlink creates a symbolic link from a location to a path.
-// returns a cursor to the new child node
+// Symlink creates a symbolic link from a location to a path. Returns a cursor
+// to the new child node.
 func Symlink(root *FSTree, path []string, lnk *FSSymlink, ts *timestamp.Timestamp) (*FSTree, error) {
 	// Resolve the parent directory for the symbolic link.
 	ts = FillPlaceholderTimestamp(ts)
@@ -344,8 +344,8 @@ func TruncateFile(
 	return nil
 }
 
-// Remove removes inodes at one or more paths.
-// returns if any were removed
+// Remove removes inodes at one or more paths and reports whether any were
+// removed.
 func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, error) {
 	var any bool
 	ts = FillPlaceholderTimestamp(ts)

@@ -32,7 +32,7 @@ func FsMknod(
 }
 
 // NewFsMknodOp constructs a new FsMknodOp block.
-// repoRef, worktreeArgs can be empty
+// repoRef and worktreeArgs can be empty.
 func NewFsMknodOp(
 	objKey string,
 	fsType FSType,

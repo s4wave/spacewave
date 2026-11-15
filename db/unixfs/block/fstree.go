@@ -99,12 +99,9 @@ func (f *FSTree) BuildFileHandle(ctx context.Context) (*file.Handle, error) {
 }
 
 // Mknod creates a node as a dirent of fstree.
-// f must be a directory.
-// returns a cursor to the new child node
-// initRef can be nil
-// checks if name exists, returns ErrExist if so
-// may return the existing child and ErrExist
-// slower than Mkdir for creating many directories at once
+// f must be a directory. Returns a cursor to the new child node. initRef can
+// be nil. Returns ErrExist, possibly with the existing child,
+// when name exists. Slower than Mkdir for creating many directories at once.
 func (f *FSTree) Mknod(
 	name string,
 	nodeType NodeType,
@@ -172,9 +169,8 @@ func (f *FSTree) Mknod(
 }
 
 // Symlink creates a symbolic link from a location to a path.
-// f must be a directory.
-// returns a cursor to the new child node
-// if checkExist, checks if name exists, returns ErrExist if so
+// f must be a directory. Returns a cursor to the new child node. If
+// checkExist, returns ErrExist when name exists.
 func (f *FSTree) Symlink(
 	checkExist bool,
 	name string,

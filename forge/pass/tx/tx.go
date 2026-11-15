@@ -38,7 +38,7 @@ type Transaction interface {
 	) error
 }
 
-// Validate checks the transaction (cursory checks only)
+// Validate performs cursory checks of the transaction.
 func (t *Tx) Validate() error {
 	// Require a pass object key and a supported transaction type.
 	if len(t.GetPassObjectKey()) == 0 {

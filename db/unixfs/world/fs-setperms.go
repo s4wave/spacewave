@@ -29,7 +29,7 @@ func FsSetPermissions(
 }
 
 // NewFsSetPermissionsOp constructs a new FsSetPermissionsOp block.
-// repoRef, worktreeArgs can be empty
+// repoRef and worktreeArgs can be empty.
 func NewFsSetPermissionsOp(
 	objKey string,
 	fsType FSType,

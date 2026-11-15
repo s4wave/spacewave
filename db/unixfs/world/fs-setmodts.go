@@ -27,7 +27,7 @@ func FsSetModTimestamp(
 }
 
 // NewFsSetModTimestampOp constructs a new FsSetModTimestampOp block.
-// repoRef, worktreeArgs can be empty
+// repoRef and worktreeArgs can be empty.
 func NewFsSetModTimestampOp(
 	objKey string,
 	fsType FSType,
