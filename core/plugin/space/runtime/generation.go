@@ -18,6 +18,7 @@ import (
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
 	"github.com/s4wave/spacewave/net/peer"
+	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
 	"github.com/sirupsen/logrus"
 )
 
@@ -163,6 +164,7 @@ func (g *Generation) start(
 	)
 	schedulerConf.HostStorageId = conf.GetHostStorageId()
 	schedulerConf.ExternalPluginIds = appPluginIDs
+	schedulerConf.AllowedHostServiceIds = []string{sdk_world_engine.SpaceWorldServiceID}
 
 	// A Space lists plugins any member can name, so each root runs only once
 	// the release, the development build or the device's person admits it.

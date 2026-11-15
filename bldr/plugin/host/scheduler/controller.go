@@ -3,7 +3,6 @@ package plugin_host_scheduler
 import (
 	"context"
 	"slices"
-	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -13,7 +12,6 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
-	frontend "github.com/s4wave/spacewave/bldr/frontend"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -544,21 +542,8 @@ func (c *Controller) buildPluginMux(
 	historical, prepared bool,
 	bindingKey string,
 ) (srpc.Mux, func()) {
-	// Ordinary services can wait for startup. Retained frontend grants already
-	// exist before their URLs are published, and must fail after release.
-	mux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, stream srpc.Stream) (bool, error) {
-		wait := !strings.HasPrefix(serviceID, frontend.AttachedServicePrefix)
-		return bifrost_rpc.NewInvoker(c.bus, bldr_plugin.PluginServerID(pluginID, ""), wait).
-			InvokeMethod(serviceID, methodID, stream)
-	}))
-
-	// register access host volume via rpc service
-	_ = volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyHostVol, bldr_plugin.HostVolumeServiceIDPrefix)
-
-	// register access web views via bus service
-	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
-
-	// register plugin host service
+	// Build the plugin host service, which also decides what the plugin
+	// reaches on the host bus beyond the services registered here.
 	hostServer := bldr_plugin_host.NewPluginHostServer(
 		ctx,
 		c.bus,
@@ -574,7 +559,14 @@ func (c *Controller) buildPluginMux(
 	hostServer.SetRegistrationInstanceKey(bindingKey)
 	hostServer.SetHostExportPluginIDs(c.conf.GetHostExportPluginIds())
 	hostServer.SetPluginScheduler(c)
+	mux := srpc.NewMux(hostServer.HostBusInvoker(c.conf.GetAllowedHostServiceIds()))
 	_ = bldr_plugin.SRPCRegisterPluginHost(mux, hostServer)
+
+	// register access host volume via rpc service
+	_ = volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyHostVol, bldr_plugin.HostVolumeServiceIDPrefix)
+
+	// register access web views via bus service
+	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
 
 	// register plugin dist fs service
 	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(

@@ -65,26 +65,14 @@ func NewLookupRpcClientResolver(h LookupRpcClientHandler, pluginID, stripService
 // prefixes. Returns the plugin id and the service-id prefix to strip, or
 // empty strings when no prefix matches.
 func matchPluginServiceID(serviceID string) (pluginID, stripPrefix string, ok bool) {
-	matchedService, matchedPrefix := srpc.CheckStripPrefix(serviceID, []string{
-		PluginServiceIDPrefix,
-		HostServiceIDPrefix,
-	})
-	switch matchedPrefix {
-	case PluginServiceIDPrefix:
-		id, remoteServiceID, cutOK := strings.Cut(matchedService, "/")
-		if !cutOK || remoteServiceID == "" || id == "" {
-			// Plugin services require both a plugin ID and a service ID.
-			return "", "", false
-		}
-		if err := ValidatePluginID(id, false); err != nil {
-			return "", "", false
-		}
-		return id, serviceID[:len(PluginServiceIDPrefix)+len(id)+1], true
-	case HostServiceIDPrefix:
+	if strings.HasPrefix(serviceID, HostServiceIDPrefix) {
 		return "", HostServiceIDPrefix, true
-	default:
+	}
+	id, _, ok := ParsePluginServiceID(serviceID)
+	if !ok {
 		return "", "", false
 	}
+	return id, PluginServiceIDPrefix + id + "/", true
 }
 
 // ResolveLookupRpcClient resolves a LookupRpcClient directive with a plugin or plugin host.

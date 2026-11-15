@@ -148,6 +148,14 @@ export interface Config {
    * The previously admitted root keeps running while a new root waits.
    */
   requireAdmission?: boolean
+  /**
+   * AllowedHostServiceIds lists bare host bus service IDs a plugin outside
+   * HostExportPluginIds may reach through its host's fallback, matched
+   * exactly. Such a plugin otherwise reaches only the services its host
+   * registers for it and other plugins' services under its own binding key.
+   * Empty allows none.
+   */
+  allowedHostServiceIds?: string[]
 }
 
 export const Config: MessageType<Config> =
@@ -177,6 +185,7 @@ export const Config: MessageType<Config> =
       [21, 'plugin_ids', 9, 1],
       [22, 'await_fetch_manifest', 8],
       [23, 'require_admission', 8],
+      [24, 'allowed_host_service_ids', 9, 1],
     ],
   )
 
