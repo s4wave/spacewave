@@ -604,7 +604,7 @@ func (o *bridgeOperation) validateWithService(
 		return true, o.callErr(ctx, err, false)
 	}
 	if msg := resp.GetError(); msg != "" {
-		return false, errors.New(msg)
+		return false, world.NewOpRefusedError(errors.New(msg))
 	}
 	return false, nil
 }

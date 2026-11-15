@@ -52,10 +52,11 @@ type ObjectOperation interface {
 	) (sysErr bool, err error)
 }
 
-// ValidateOp validates op when it implements ValidatedOperation.
+// ValidateOp validates op when it implements ValidatedOperation. Its error is
+// an *OpRefusedError.
 func ValidateOp(op Operation) error {
 	if v, ok := op.(ValidatedOperation); ok {
-		return v.Validate()
+		return NewOpRefusedError(v.Validate())
 	}
 	return nil
 }

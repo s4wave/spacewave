@@ -3,7 +3,6 @@ package world_block_tx
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
@@ -48,6 +47,8 @@ func (t *TxApplyObjectOp) GetEmpty() bool {
 
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
+// A failure is a refusal: a sentinel of the World engine, or an
+// *world.OpRefusedError.
 func (t *TxApplyObjectOp) Validate() error {
 	if len(t.GetOperationTypeId()) == 0 {
 		return world.ErrEmptyOp
@@ -57,7 +58,7 @@ func (t *TxApplyObjectOp) Validate() error {
 	}
 	if opSender := t.GetOpSender(); opSender != "" {
 		if _, err := confparse.ParsePeerID(opSender); err != nil {
-			return err
+			return world.NewOpRefusedError(err)
 		}
 	}
 	return nil
@@ -72,12 +73,8 @@ func (t *TxApplyObjectOp) ExecuteTx(
 ) (sysErr bool, rerr error) {
 	// Translate operation decoding panics into transaction errors.
 	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(error); ok {
-				rerr = v
-			} else {
-				rerr = errors.New("unmarshal operation paniced")
-			}
+		if v := recover(); v != nil {
+			rerr = &world.OpPanicError{Value: v}
 		}
 	}()
 

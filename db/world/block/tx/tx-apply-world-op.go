@@ -59,13 +59,15 @@ func (t *TxApplyWorldOp) GetEmpty() bool {
 
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
+// A failure is a refusal: a sentinel of the World engine, or an
+// *world.OpRefusedError.
 func (t *TxApplyWorldOp) Validate() error {
 	if len(t.GetOperationTypeId()) == 0 {
 		return world.ErrEmptyOp
 	}
 	if opSender := t.GetOpSender(); opSender != "" {
 		if _, err := confparse.ParsePeerID(opSender); err != nil {
-			return err
+			return world.NewOpRefusedError(err)
 		}
 	}
 	return nil
@@ -80,12 +82,8 @@ func (t *TxApplyWorldOp) ExecuteTx(
 ) (sysErr bool, rerr error) {
 	// Translate operation panics into transaction errors.
 	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(error); ok {
-				rerr = v
-			} else {
-				rerr = errors.New("apply operation paniced")
-			}
+		if v := recover(); v != nil {
+			rerr = &world.OpPanicError{Value: v}
 		}
 	}()
 
@@ -118,16 +116,12 @@ func (t *TxApplyWorldOp) decodeOp(ctx context.Context, lookupOp world.LookupOp) 
 }
 
 // decodeOperation constructs the operation type opTypeID with lookupOp and
-// decodes body into it.
+// decodes body into it. A body that does not decode is an *OpRefusedError.
 func decodeOperation(ctx context.Context, lookupOp world.LookupOp, opTypeID string, body []byte) (op world.Operation, rerr error) {
 	// Translate decoding panics into errors.
 	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(error); ok {
-				rerr = v
-			} else {
-				rerr = errors.New("unmarshal operation paniced")
-			}
+		if v := recover(); v != nil {
+			rerr = &world.OpPanicError{Value: v}
 		}
 	}()
 
@@ -140,7 +134,7 @@ func decodeOperation(ctx context.Context, lookupOp world.LookupOp, opTypeID stri
 		return nil, err
 	}
 	if err := op.UnmarshalVT(body); err != nil {
-		return nil, err
+		return nil, world.NewOpRefusedError(err)
 	}
 	return op, nil
 }
