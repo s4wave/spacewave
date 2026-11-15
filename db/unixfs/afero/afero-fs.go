@@ -63,7 +63,7 @@ func (f *AferoFS) GetOpTimestamp() time.Time {
 	return *ts
 }
 
-// Name  of this FileSystem
+// Name returns the name of this FileSystem.
 func (f *AferoFS) Name() string {
 	return AferoFSName
 }
@@ -242,7 +242,7 @@ func (f *AferoFS) Chown(name string, uid, gid int) error {
 	return syscall.EPERM
 }
 
-// Chtimes changes the access and modification times of the named file
+// Chtimes changes the access and modification times of the named file.
 func (f *AferoFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	if mtime.IsZero() {
 		mtime = f.timestamp()

@@ -29,14 +29,14 @@ func CheckWorkerType(ctx context.Context, ws world.WorldState, objKey string) er
 	return world_types.CheckObjectType(ctx, ws, objKey, WorkerTypeID)
 }
 
-// ListWorkerKeypairs lists all Keypair linked to by the given Worker object keys.
-// returns list of object keys
+// ListWorkerKeypairs returns the object keys of all Keypairs linked to by the
+// given Worker object keys.
 func ListWorkerKeypairs(ctx context.Context, w world.WorldState, workerKeys ...string) ([]string, error) {
 	return identity_world.ListObjectKeypairs(ctx, w, workerKeys...)
 }
 
-// CollectWorkerKeypairs collects all Keypair linked to by the given entities.
-// returns list of Keypair for each object key
+// CollectWorkerKeypairs collects all Keypairs linked to by the given Workers,
+// with the object key of each.
 func CollectWorkerKeypairs(ctx context.Context, w world.WorldState, workerKeys ...string) ([]*identity.Keypair, []string, error) {
 	// Find the keypair objects linked to the requested workers.
 	kpObjectKeys, err := ListWorkerKeypairs(ctx, w, workerKeys...)

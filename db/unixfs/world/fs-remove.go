@@ -27,7 +27,7 @@ func FsRemove(
 }
 
 // NewFsRemoveOp constructs a new FsRemoveOp block.
-// repoRef, worktreeArgs can be empty
+// repoRef and worktreeArgs can be empty.
 func NewFsRemoveOp(
 	objKey string,
 	fsType FSType,

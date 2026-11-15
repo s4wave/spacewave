@@ -37,7 +37,7 @@ type Transaction interface {
 	) error
 }
 
-// Validate checks the transaction (cursory checks only)
+// Validate performs cursory checks of the transaction.
 func (t *Tx) Validate() error {
 	// Validate the object key, tx type, and the located transaction.
 	if len(t.GetTaskObjectKey()) == 0 {

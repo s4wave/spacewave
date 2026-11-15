@@ -95,9 +95,8 @@ func LookupOrStoreKeypair(
 	return kp, kpKey, nil
 }
 
-// EnsureKeypairsExist ensures keypairs are written to storage.
-// checks for duplicates in the list
-// returns object keys
+// EnsureKeypairsExist ensures keypairs are written to storage and returns
+// their object keys. A duplicate in the list is refused.
 func EnsureKeypairsExist(
 	ctx context.Context,
 	ws world.WorldState,

@@ -28,7 +28,7 @@ func FsSymlink(
 }
 
 // NewFsSymlinkOp constructs a new FsSymlinkOp block.
-// repoRef, worktreeArgs can be empty
+// repoRef and worktreeArgs can be empty.
 func NewFsSymlinkOp(
 	objKey string,
 	fsType FSType,
