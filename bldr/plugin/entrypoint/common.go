@@ -385,16 +385,22 @@ func startInitialCapabilityRegistration(
 // applyStartupConfigSet applies the plugin's startup controllers. The returned
 // wait func returns once every controller in set is running or reported an
 // error, and the first pass of each running InitialCapabilityRegistrar has
-// settled.
+// settled. It fails with the host's refusal when the plugin's hostConfigSet
+// was refused, since that refusal is final and the plugin cannot start as
+// built.
 func applyStartupConfigSet(ctx context.Context, b bus.Bus, set configset.ConfigSet) (func(context.Context) error, func(), error) {
 	// Wait for the set to settle, then for each registrar it started.
 	started := make(chan struct{})
 	var registrars []bldr_plugin.InitialCapabilityRegistrar
+	var refused error
 	wait := func(ctx context.Context) error {
 		select {
 		case <-started:
 		case <-ctx.Done():
 			return context.Cause(ctx)
+		}
+		if refused != nil {
+			return refused
 		}
 		for _, registrar := range registrars {
 			if err := registrar.WaitInitialCapabilities(ctx); err != nil {
@@ -426,9 +432,12 @@ func applyStartupConfigSet(ctx context.Context, b bus.Bus, set configset.ConfigS
 			return
 		}
 
-		// Record the registrars, then report the set started.
+		// Record the registrars and any refusal, then report the set started.
 		closed = true
 		for _, st := range keys {
+			if err := st.GetError(); bldr_plugin.IsNotHostPlugin(err) {
+				refused = err
+			}
 			if registrar, ok := st.GetController().(bldr_plugin.InitialCapabilityRegistrar); ok {
 				registrars = append(registrars, registrar)
 			}
