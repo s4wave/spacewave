@@ -572,6 +572,7 @@ func (c *Controller) buildPluginMux(
 	)
 	hostServer.SetPrepared(prepared)
 	hostServer.SetRegistrationInstanceKey(bindingKey)
+	hostServer.SetHostExportPluginIDs(c.conf.GetHostExportPluginIds())
 	hostServer.SetPluginScheduler(c)
 	_ = bldr_plugin.SRPCRegisterPluginHost(mux, hostServer)
 
