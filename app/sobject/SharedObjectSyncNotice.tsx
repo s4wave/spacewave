@@ -144,7 +144,7 @@ function describeReplay(
     return {
       title: 'This Space is opening',
       description:
-        'It is catching up with changes it already holds. It is read only until then, so edits made now are not saved.',
+        'It is catching up with changes it already holds. Edits made now are saved once it opens.',
     }
   }
   if (state?.case !== 'waiting') return undefined
@@ -157,6 +157,18 @@ function describeReplay(
     return {
       title: 'This Space is waiting for a plugin approval',
       description: `A change in this Space needs ${named}, which is not approved on this device. ${later}`,
+    }
+  }
+  if (wait.state?.case === 'gap') {
+    return {
+      title: 'This Space is waiting for data it lacks',
+      description: `A change in this Space refers to data this device has not received yet. ${later}`,
+    }
+  }
+  if (wait.state?.case === 'retry') {
+    return {
+      title: 'This Space is retrying a change',
+      description: `A change in this Space failed on this device and is tried again shortly. ${later}`,
     }
   }
   return {
