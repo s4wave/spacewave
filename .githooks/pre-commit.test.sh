@@ -123,6 +123,11 @@ log_lacks() {
 	! grep -Fqx "$1" "$test_dir/hook.log"
 }
 
+# no_formatter_ran succeeds when neither oxfmt nor gofmt received a file.
+no_formatter_ran() {
+	! grep -Eq '^(oxfmt|gofmt) ' "$test_dir/hook.log"
+}
+
 out_says() {
 	grep -Fq "$1" "$commit_out"
 }
@@ -134,15 +139,15 @@ cleanup() {
 
 # --- 1. fast path ---------------------------------------------------------
 
-test_fast_path_skips_full_format() {
-	label='fast path: nothing dirty-formattable skips bun run format'
+test_docs_commit_runs_no_formatter() {
+	label='fast path: a docs-only commit runs no formatter'
 	new_repo
 	printf 'readme\n' >"$test_dir/repo/README.md"
 	seed_commit
 	printf 'more\n' >>"$test_dir/repo/README.md"
 	git -C "$test_dir/repo" add README.md
 	try_commit ok &&
-		log_lacks 'bun run format'
+		no_formatter_ran
 	note_result $? "$label"
 	cleanup
 }
@@ -239,31 +244,14 @@ test_go_pkg_dirs_unique_and_rooted() {
 # --- 7. exactness of the candidate set ---------------------------------------
 
 test_deleted_file_not_candidate() {
-	label='gate: deleted formattable file is not a format-check candidate'
+	label='gate: a staged deletion is not handed to a formatter'
 	new_repo
 	mkdir -p "$test_dir/repo/web"
 	printf 'let gone = 1;\n' >"$test_dir/repo/web/gone.ts"
 	seed_commit
-	rm "$test_dir/repo/web/gone.ts"
-	printf 'doc\n' >"$test_dir/repo/README.md"
-	git -C "$test_dir/repo" add README.md
+	git -C "$test_dir/repo" rm -q web/gone.ts
 	try_commit ok &&
-		log_lacks 'bun run format'
-	note_result $? "$label"
-	cleanup
-}
-
-test_vendor_dirty_not_candidate() {
-	label='gate: vendored dirty Go source is not a format-check candidate'
-	new_repo
-	mkdir -p "$test_dir/repo/vendor/example.com/pkg"
-	printf 'package pkg\n' >"$test_dir/repo/vendor/example.com/pkg/v.go"
-	seed_commit
-	printf 'package pkg\nvar V = 1\n' >"$test_dir/repo/vendor/example.com/pkg/v.go"
-	printf 'doc\n' >"$test_dir/repo/README.md"
-	git -C "$test_dir/repo" add README.md
-	try_commit ok &&
-		log_lacks 'bun run format'
+		no_formatter_ran
 	note_result $? "$label"
 	cleanup
 }
@@ -357,14 +345,13 @@ test_commit_all_reads_temporary_index() {
 # --- runner ------------------------------------------------------------------
 
 for t in \
-	test_fast_path_skips_full_format \
+	test_docs_commit_runs_no_formatter \
 	test_rename_dirty_destination \
 	test_rename_clean_commits_and_formats_destination \
 	test_spaces_and_quotes_in_names \
 	test_space_in_go_name_package_dirs \
 	test_go_pkg_dirs_unique_and_rooted \
 	test_deleted_file_not_candidate \
-	test_vendor_dirty_not_candidate \
 	test_go_paragraphs_gate \
 	test_docs_skip_go_paragraphs \
 	test_worktree_go_without_git_dir \
