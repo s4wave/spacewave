@@ -4135,7 +4135,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "f96c86884876d3eb109e4a2b7d268064347416ec418ff1bb5a8777a752dafecf",
+      "hash": "bd3ab541b4b326d84048895297ce64462d6608cf9996a5cb11cf7e1d6d65c8a9",
       "generatedFiles": [
         "sdk/session/local-session.pb.go",
         "sdk/session/local-session.pb.ts",

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
@@ -157,7 +158,8 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 // TestCloudPublicationHoldsPastCorruptBlock checks that a flush which holds
 // back a corrupt dirty block uploads the intact blocks but publishes nothing,
 // keeps the corrupt block's marker, local copy and count, and resumes
-// publication once a write repairs the block while mounted.
+// publication once the block is removed and written again while mounted.
+// A write alone keeps the stored bytes, so the removal comes first.
 func TestCloudPublicationHoldsPastCorruptBlock(t *testing.T) {
 	// Serve block pushes and checkpoints, counting each.
 	var uploads, checkpoints atomic.Int32
@@ -251,19 +253,25 @@ func TestCloudPublicationHoldsPastCorruptBlock(t *testing.T) {
 		t.Fatalf("second flush = %v, checkpoints = %d; want held unread", err, checkpoints.Load())
 	}
 
-	// A write of the hash clears its entry, so the next flush reads the
-	// repaired block, uploads it and publishes.
+	// Remove the block and write it again: the write clears its entry, so
+	// the next flush reads the rewritten block, uploads it and publishes.
+	if err := inner.RmBlock(t.Context(), bad); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := inner.PutBlock(t.Context(), []byte("corrupt block"), nil); err != nil {
+		t.Fatal(err)
+	}
 	if err := syncer.MarkDirty(t.Context(), marks[1:]); err != nil {
 		t.Fatal(err)
 	}
 	if err := syncer.FlushNow(t.Context()); err != nil {
-		t.Fatalf("flush after repair: %v", err)
+		t.Fatalf("flush after rewrite: %v", err)
 	}
 	if checkpoints.Load() != 1 || host.pending != nil {
 		t.Fatalf("checkpoints = %d, pending = %v; want one published", checkpoints.Load(), host.pending)
 	}
 	if pending, err := syncer.scanDirtyCandidates(t.Context()); err != nil || len(pending) != 0 {
-		t.Fatalf("dirty after repair = %d blocks, %v; want none", len(pending), err)
+		t.Fatalf("dirty after rewrite = %d blocks, %v; want none", len(pending), err)
 	}
 }
 
@@ -384,4 +392,56 @@ func mustPeerID(t *testing.T, key crypto.PrivKey) peer.ID {
 		t.Fatal(err)
 	}
 	return peerID
+}
+
+// TestCloudConfigChangeRefusedWhileHeld checks that a configuration change
+// on a store holding a corrupt dirty block returns the held error, posts
+// nothing, and leaves no lock held: the write lock and the flush are both
+// free afterwards.
+func TestCloudConfigChangeRefusedWhileHeld(t *testing.T) {
+	// Count every request but block pushes; a refused change posts nothing.
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/sync/push") {
+			requests.Add(1)
+		}
+		w.Header().Set("Content-Type", "application/protobuf")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	// Hold the store's only dirty block as corrupt.
+	initial, key := newTestGenesisState(t)
+	peerID := mustPeerID(t, key)
+	client := newTestPublicationClient(server, key, peerID)
+	syncer := newDirtySyncExecuteTestController(t, client, nil)
+	held, err := block.BuildBlockRef([]byte("dirty block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	syncer.upper = &corruptUpperStore{StoreOps: syncer.upper, bad: held.GetHash()}
+	host := newCloudSOHost(logrus.New().WithField("test", t.Name()), client, testSharedObjectID, "", nil, key, peerID, nil, nil, nil, nil, syncer)
+	host.stateCtr.SetValue(initial)
+
+	// Write a configuration change through the host's state lock.
+	err = host.soHost.UpdateSOState(t.Context(), func(*sobject.SOState) error { return nil }, &sobject.SOConfigChange{})
+	var heldErr *heldError
+	if !errors.As(err, &heldErr) || !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("config change = %v; want the held error", err)
+	}
+	if requests.Load() != 0 || !host.stateCtr.GetValue().EqualVT(initial) {
+		t.Fatalf("requests = %d; want none and the state unchanged", requests.Load())
+	}
+
+	// The write lock and the flush are free.
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	relLock, err := host.writeMu.Lock(ctx)
+	if err != nil {
+		t.Fatalf("write lock after refusal: %v", err)
+	}
+	relLock()
+	if err := syncer.FlushNow(ctx); !errors.As(err, &heldErr) {
+		t.Fatalf("flush after refusal = %v; want held, not blocked", err)
+	}
 }

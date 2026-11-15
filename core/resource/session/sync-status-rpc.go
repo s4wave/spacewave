@@ -108,6 +108,19 @@ func (r *SessionResource) buildSpacewaveSyncStatusSnapshot(
 		[]<-chan struct{}{accountCh, telemetryCh, compositionCh}
 }
 
+// syncStatusHeld returns the held state of store, or nil while it holds
+// nothing back. It reads the count and time the store's flush derived
+// together, so it never shows a held store as publishing.
+func syncStatusHeld(store provider_spacewave.SyncTelemetryBlockStoreSnapshot) *s4wave_session.SyncHeldState {
+	if store.CorruptDirtyCount <= 0 {
+		return nil
+	}
+	return &s4wave_session.SyncHeldState{
+		DamagedBlockCount: uint32Count(store.CorruptDirtyCount),
+		HeldAt:            timestamppb.New(store.HeldSince),
+	}
+}
+
 func (r *SessionResource) buildLocalSyncStatusSnapshot(
 	acc *provider_local.ProviderAccount,
 	rate *syncStatusRateState,
@@ -276,6 +289,7 @@ func syncStatusFromSpacewaveTelemetry(
 			LastSource:               syncStatusBlockSource(store.LastSource),
 			AcceptedCheckpointHeight: store.AcceptedCheckpointHeight,
 			CloudRemoteSequence:      store.CloudRemoteSequence,
+			Held:                     syncStatusHeld(store),
 		})
 	}
 

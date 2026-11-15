@@ -22,7 +22,7 @@ const (
 	UploadPhaseError
 	// UploadPhaseCorrupt means dirty blocks fail their hash on the local disk.
 	// They stay queued and local, the rest of the queue uploads, and the store
-	// publishes nothing until they are repaired: sync is held.
+	// publishes nothing while they stay: sync is held.
 	UploadPhaseCorrupt
 )
 
@@ -702,7 +702,7 @@ func (s *Store) getOrCreateStateLocked(bstoreID string) *state {
 // uploadPhase names the upload state of snap, the most urgent first: a corrupt
 // dirty block outranks a push error, since it fails every retry the same way.
 func uploadPhase(snap Snapshot) UploadPhase {
-	// A corrupt dirty block needs repair, not another retry.
+	// A corrupt dirty block fails every retry: sync is held.
 	if snap.CorruptDirtyCount > 0 {
 		return UploadPhaseCorrupt
 	}

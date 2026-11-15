@@ -290,7 +290,7 @@ class WatchStorageStatsRequest(_message.Message):
     def __init__(self) -> None: ...
 
 class SyncBlockStoreStatus(_message.Message):
-    __slots__ = ("block_store_id", "direct_hit_count", "cloud_hit_count", "cache_hit_count", "last_source", "accepted_checkpoint_height", "cloud_remote_sequence", "shared_object_id")
+    __slots__ = ("block_store_id", "direct_hit_count", "cloud_hit_count", "cache_hit_count", "last_source", "accepted_checkpoint_height", "cloud_remote_sequence", "shared_object_id", "held")
     BLOCK_STORE_ID_FIELD_NUMBER: _ClassVar[int]
     DIRECT_HIT_COUNT_FIELD_NUMBER: _ClassVar[int]
     CLOUD_HIT_COUNT_FIELD_NUMBER: _ClassVar[int]
@@ -299,6 +299,7 @@ class SyncBlockStoreStatus(_message.Message):
     ACCEPTED_CHECKPOINT_HEIGHT_FIELD_NUMBER: _ClassVar[int]
     CLOUD_REMOTE_SEQUENCE_FIELD_NUMBER: _ClassVar[int]
     SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    HELD_FIELD_NUMBER: _ClassVar[int]
     block_store_id: str
     direct_hit_count: int
     cloud_hit_count: int
@@ -307,7 +308,16 @@ class SyncBlockStoreStatus(_message.Message):
     accepted_checkpoint_height: int
     cloud_remote_sequence: int
     shared_object_id: str
-    def __init__(self, block_store_id: _Optional[str] = ..., direct_hit_count: _Optional[int] = ..., cloud_hit_count: _Optional[int] = ..., cache_hit_count: _Optional[int] = ..., last_source: _Optional[_Union[SyncBlockSource, str]] = ..., accepted_checkpoint_height: _Optional[int] = ..., cloud_remote_sequence: _Optional[int] = ..., shared_object_id: _Optional[str] = ...) -> None: ...
+    held: SyncHeldState
+    def __init__(self, block_store_id: _Optional[str] = ..., direct_hit_count: _Optional[int] = ..., cloud_hit_count: _Optional[int] = ..., cache_hit_count: _Optional[int] = ..., last_source: _Optional[_Union[SyncBlockSource, str]] = ..., accepted_checkpoint_height: _Optional[int] = ..., cloud_remote_sequence: _Optional[int] = ..., shared_object_id: _Optional[str] = ..., held: _Optional[_Union[SyncHeldState, _Mapping]] = ...) -> None: ...
+
+class SyncHeldState(_message.Message):
+    __slots__ = ("damaged_block_count", "held_at")
+    DAMAGED_BLOCK_COUNT_FIELD_NUMBER: _ClassVar[int]
+    HELD_AT_FIELD_NUMBER: _ClassVar[int]
+    damaged_block_count: int
+    held_at: _timestamp_pb2.Timestamp
+    def __init__(self, damaged_block_count: _Optional[int] = ..., held_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class WatchSyncStatusResponse(_message.Message):
     __slots__ = ("state", "direction", "transport_state", "p2p_state", "pending_upload_bytes", "pending_download_bytes", "pending_upload_count", "pending_download_count", "upload_bytes_per_second", "download_bytes_per_second", "active_upload_bytes", "active_upload_transferred_bytes", "in_flight_upload_count", "active_store_count", "active_peer_count", "last_error", "last_activity_at", "pack_range_request_count", "pack_range_response_bytes", "pack_full_response_fallback_count", "pack_full_response_fallback_bytes", "pack_last_full_response_fallback_bytes", "pack_manifest_entries", "pack_block_count_total", "pack_block_count_min", "pack_block_count_max", "pack_size_bytes_total", "pack_size_bytes_min", "pack_size_bytes_max", "pack_bloom_filter_count", "pack_bloom_missing_count", "pack_bloom_invalid_count", "pack_bloom_max_false_positive_rate", "pack_bloom_risk_pack_count", "pack_lookup_count", "pack_candidate_packs", "pack_opened_packs", "pack_negative_packs", "pack_target_hits", "pack_last_candidate_packs", "pack_last_opened_packs", "pack_last_negative_packs", "pack_last_target_hit", "pack_index_cache_hits", "pack_index_cache_misses", "pack_index_cache_read_errors", "pack_index_cache_write_errors", "pack_remote_index_loads", "pack_remote_index_bytes", "pack_last_remote_index_bytes", "pack_index_tail_fetch_count", "pack_index_tail_fetch_bytes", "pack_index_tail_response_bytes", "direct_p2p_disabled", "block_stores", "local_account", "local_copies", "peer_upload_bytes", "peer_download_bytes", "peers", "upload_error")
