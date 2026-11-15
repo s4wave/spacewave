@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
@@ -28,16 +29,10 @@ import (
 func TestPayloadHoldCoversUnappliedOps(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
-	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, opTypes: &space_world.OpTypes{
-		Declared: func(_ context.Context, _ world.WorldState, opTypeID string) ([]string, error) {
-			if opTypeID == world_mock.MockWorldOpTypeID {
-				return []string{testOpPlugin}, nil
-			}
-			return nil, nil
-		},
-	}})
+	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
 	eng, engRef := f.start(t)
 	defer engRef.Release()
+	listTestOpPlugin(ctx, t, eng)
 	so := f.space(t)
 	store := so.GetBlockStore()
 	dev := addDevice(t, so)

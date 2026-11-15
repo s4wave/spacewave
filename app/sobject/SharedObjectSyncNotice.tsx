@@ -1,13 +1,15 @@
-import { useEffect, useId } from 'react'
+import { useEffect, useId, useState } from 'react'
 
 import type {
   SharedObjectHealth,
   SORejectedEdit,
+  SOReplayState,
 } from '@s4wave/core/sobject/sobject.pb.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
-// SharedObjectSyncNotice presents peer recovery, rejected edits and a wrong
-// checkpoint without interrupting local content.
+// SharedObjectSyncNotice presents peer recovery, rejected edits, a wrong
+// checkpoint and a replay that is not caught up without interrupting local
+// content. SharedObjectSyncNotice.tla specifies the replay notice.
 export function SharedObjectSyncNotice({
   health,
 }: {
@@ -17,6 +19,11 @@ export function SharedObjectSyncNotice({
   const recovery = (health?.syncRecoveryPeerIds?.length ?? 0) > 0
   const denied = (health?.syncDeniedPeerIds?.length ?? 0) > 0
   const mismatch = !!health?.checkpointMismatch
+  const replayCase = health?.replay?.state?.case
+  const brief = replayCase === 'opening' || replayCase === 'catchingUp'
+  const briefShown = useBriefShown(brief)
+  const { title: waitTitle, description: waitDescription } =
+    describeReplay(health?.replay, briefShown) ?? {}
 
   useEffect(() => {
     if (!recovery && !denied) return
@@ -47,6 +54,20 @@ export function SharedObjectSyncNotice({
       toast.dismiss(mismatchID)
     }
   }, [id, mismatch])
+
+  useEffect(() => {
+    if (!waitTitle) return
+    const waitID = id + ':replay-wait'
+    toast.info(waitTitle, {
+      id: waitID,
+      description: waitDescription,
+      duration: Infinity,
+      closeButton: true,
+    })
+    return () => {
+      toast.dismiss(waitID)
+    }
+  }, [id, waitDescription, waitTitle])
 
   return (health?.rejectedEdits ?? []).map((edit) => {
     const hash = opHashKey(edit.opHash)
@@ -90,6 +111,68 @@ function describeRejectedEdit(edit: SORejectedEdit): string {
     return "Another member's change reached the Space first, so this edit no longer applies. Your other edits are kept."
   }
   return `This edit no longer applies because ${edit.reason || 'the Space rejected it'}. Your other edits are kept.`
+}
+
+// briefDelayMs is how long replay may open or catch up before the notice
+// says so, so a Space that opens or applies another device's change at once
+// shows no notice.
+const briefDelayMs = 2000
+
+// useBriefShown returns whether the notice shows a brief state, opening or
+// catching up: once replay has been in one for briefDelayMs, until it leaves.
+function useBriefShown(brief: boolean): boolean {
+  const [shown, setShown] = useState(false)
+  useEffect(() => {
+    if (!brief) {
+      setShown(false)
+      return
+    }
+    const timer = setTimeout(() => setShown(true), briefDelayMs)
+    return () => clearTimeout(timer)
+  }, [brief])
+  return brief && shown
+}
+
+// describeReplay says in plain words why this device's Space is read only,
+// or returns undefined when replay is caught up or a brief state is not shown
+// yet.
+function describeReplay(
+  replay: SOReplayState | undefined,
+  briefShown: boolean,
+): { title: string; description: string } | undefined {
+  const state = replay?.state
+  if (state?.case === 'opening') {
+    if (!briefShown) return undefined
+    return {
+      title: 'This Space is opening',
+      description:
+        'It is catching up with changes it already holds. It is read only until then, so edits made now are not saved.',
+    }
+  }
+  if (state?.case === 'catchingUp') {
+    if (!briefShown) return undefined
+    return {
+      title: 'This Space is catching up',
+      description:
+        'It is applying changes from another device. It is read only until then, so edits made now are not saved.',
+    }
+  }
+  if (state?.case !== 'waiting') return undefined
+  const wait = state.value
+  const later =
+    'You are seeing the Space as it was before that change. It is read only until it catches up, so edits made now are not saved.'
+  if (wait.state?.case === 'approval') {
+    const plugins = wait.state.value.pluginIds ?? []
+    const named = plugins.length > 0 ? plugins.join(', ') : 'a plugin'
+    return {
+      title: 'This Space is waiting for a plugin approval',
+      description: `A change in this Space needs ${named}, which is not approved on this device. ${later}`,
+    }
+  }
+  return {
+    title: 'This Space is waiting for an app it needs',
+    description: `A change in this Space needs an app that has not started on this device yet. ${later}`,
+  }
 }
 
 // opHashKey encodes an operation hash as lowercase hex.

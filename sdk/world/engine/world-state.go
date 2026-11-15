@@ -155,10 +155,14 @@ func (ws *SDKWorldState) CreateObject(ctx context.Context, key string, rootRef *
 
 	// Create the remote World object with its initial root reference.
 	resp, err := ws.service.CreateObject(ctx, &s4wave_world.CreateObjectRequest{
-		ObjectKey: key,
-		RootRef:   rootRef,
+		ObjectKey:      key,
+		RootRef:        rootRef,
+		KnownErrorCode: s4wave_world.KnownErrorCode,
 	})
 	if err != nil {
+		return nil, err
+	}
+	if err := s4wave_world.ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return nil, err
 	}
 
@@ -254,11 +258,15 @@ func (ws *SDKWorldState) RenameObject(ctx context.Context, oldKey, newKey string
 
 	// Rename the remote World object and its associated graph quads.
 	resp, err := ws.service.RenameObject(ctx, &s4wave_world.RenameObjectRequest{
-		OldObjectKey: oldKey,
-		NewObjectKey: newKey,
-		Descendants:  descendants,
+		OldObjectKey:   oldKey,
+		NewObjectKey:   newKey,
+		Descendants:    descendants,
+		KnownErrorCode: s4wave_world.KnownErrorCode,
 	})
 	if err != nil {
+		return nil, err
+	}
+	if err := s4wave_world.ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return nil, err
 	}
 
@@ -281,8 +289,11 @@ func (ws *SDKWorldState) DeleteObject(ctx context.Context, key string) (bool, er
 	}
 
 	// Delete the remote object and return whether it existed.
-	resp, err := ws.service.DeleteObject(ctx, &s4wave_world.DeleteObjectRequest{ObjectKey: key})
+	resp, err := ws.service.DeleteObject(ctx, &s4wave_world.DeleteObjectRequest{ObjectKey: key, KnownErrorCode: s4wave_world.KnownErrorCode})
 	if err != nil {
+		return false, err
+	}
+	if err := s4wave_world.ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return false, err
 	}
 	return resp.Deleted, nil
@@ -315,8 +326,11 @@ func (ws *SDKWorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) er
 	}
 
 	// Store the encoded quad in the remote World graph.
-	_, err := ws.service.SetGraphQuad(ctx, &s4wave_world.SetGraphQuadRequest{Quad: protoQuad})
-	return err
+	resp, err := ws.service.SetGraphQuad(ctx, &s4wave_world.SetGraphQuadRequest{Quad: protoQuad, KnownErrorCode: s4wave_world.KnownErrorCode})
+	if err != nil {
+		return err
+	}
+	return s4wave_world.ErrorFromCode(resp.GetErrorCode())
 }
 
 // DeleteGraphQuad deletes a quad from the graph store.
@@ -335,8 +349,11 @@ func (ws *SDKWorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad)
 	}
 
 	// Delete the encoded quad in the remote World graph.
-	_, err := ws.service.DeleteGraphQuad(ctx, &s4wave_world.DeleteGraphQuadRequest{Quad: protoQuad})
-	return err
+	resp, err := ws.service.DeleteGraphQuad(ctx, &s4wave_world.DeleteGraphQuadRequest{Quad: protoQuad, KnownErrorCode: s4wave_world.KnownErrorCode})
+	if err != nil {
+		return err
+	}
+	return s4wave_world.ErrorFromCode(resp.GetErrorCode())
 }
 
 // LookupGraphQuads searches for graph quads in the store.
@@ -580,8 +597,11 @@ func (ws *SDKWorldState) DeleteGraphObject(ctx context.Context, value string) er
 	}
 
 	// Delete the remote object's graph quads.
-	_, err := ws.service.DeleteGraphObject(ctx, &s4wave_world.DeleteGraphObjectRequest{ObjectKey: value})
-	return err
+	resp, err := ws.service.DeleteGraphObject(ctx, &s4wave_world.DeleteGraphObjectRequest{ObjectKey: value, KnownErrorCode: s4wave_world.KnownErrorCode})
+	if err != nil {
+		return err
+	}
+	return s4wave_world.ErrorFromCode(resp.GetErrorCode())
 }
 
 // ApplyWorldOp applies a batch operation at the world level.
@@ -601,9 +621,10 @@ func (ws *SDKWorldState) ApplyWorldOp(ctx context.Context, op world.Operation, s
 
 	// Apply the encoded operation to the remote World and return its outcome.
 	resp, err := ws.service.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{
-		OpTypeId: op.TypeID(),
-		OpData:   opData,
-		OpSender: sender.String(),
+		OpTypeId:       op.TypeID(),
+		OpData:         opData,
+		OpSender:       sender.String(),
+		KnownErrorCode: s4wave_world.KnownErrorCode,
 	})
 	if err != nil {
 		return 0, false, err

@@ -12,7 +12,9 @@ import (
 	"testing"
 	"time"
 
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
@@ -284,7 +286,7 @@ func TestExecuteWorldBatchOps(t *testing.T) {
 	ws := world.NewEngineWorldState(tb.Engine, true)
 
 	opReq := func(action string) *s4wave_world.ApplyWorldOpRequest {
-		return &s4wave_world.ApplyWorldOpRequest{OpTypeId: batchTestOpID, OpData: []byte(action), OpSender: "spoofed"}
+		return &s4wave_world.ApplyWorldOpRequest{OpTypeId: batchTestOpID, OpData: []byte(action), OpSender: "spoofed", KnownErrorCode: s4wave_world.KnownErrorCode}
 	}
 	op := func(action string) *s4wave_world.WorldMutation {
 		return &s4wave_world.WorldMutation{Mutation: &s4wave_world.WorldMutation_Op{Op: opReq(action)}}
@@ -492,10 +494,222 @@ func TestExecuteWorldBatchOps(t *testing.T) {
 	}
 	defer world.ReleaseObjectState(obj)
 	objResource := resource_world.NewObjectStateResource(logrus.NewEntry(logrus.New()), tb.Bus, obj, lookupOp)
-	objResp, err := objResource.ApplyObjectOp(ctx, &s4wave_world.ApplyObjectOpRequest{OpTypeId: batchTestOpID, OpData: []byte("missing")})
+	objResp, err := objResource.ApplyObjectOp(ctx, &s4wave_world.ApplyObjectOpRequest{OpTypeId: batchTestOpID, OpData: []byte("missing"), KnownErrorCode: s4wave_world.KnownErrorCode})
 	if err != nil || objResp.GetErrorCode() != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING || objResp.GetRejectionCode() != "" {
 		t.Fatalf("missing executable object op: %v %v", objResp, err)
 	}
+
+	// A client built before the code, which names no known code, gets the
+	// refusal as a failed call, never as a response it reads as success.
+	oldReq := opReq("missing")
+	oldReq.KnownErrorCode = 0
+	if opResp, err := engineResource.ExecuteWorldOp(ctx, oldReq); err == nil || opResp != nil {
+		t.Fatalf("missing executable op for an old client: %v %v, want a failed call", opResp, err)
+	}
+	objResp, err = objResource.ApplyObjectOp(ctx, &s4wave_world.ApplyObjectOpRequest{OpTypeId: batchTestOpID, OpData: []byte("missing")})
+	if err == nil || objResp != nil {
+		t.Fatalf("missing executable object op for an old client: %v %v, want a failed call", objResp, err)
+	}
+}
+
+// replayWaitEngine refuses every write transaction with the replay wait, as a
+// Space engine does while replay is not caught up.
+type replayWaitEngine struct {
+	world.Engine
+}
+
+// NewTransaction refuses a write with the replay wait.
+func (e *replayWaitEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	if write {
+		return nil, sobject.ErrReplayWaits
+	}
+	return e.Engine.NewTransaction(ctx, write)
+}
+
+// TestReplayWaitRefusal checks that a write the World refuses while replay
+// waits reaches each RPC caller as the typed REPLAY_WAITS code when its
+// request names that code as known, and as a failed call when it does not:
+// a caller built before the code never reads the refusal as success. The
+// batch carries the code to every caller, as every batch client already
+// fails on any code.
+func TestReplayWaitRefusal(t *testing.T) {
+	ctx := t.Context()
+	tb, cleanup := setupWorldTestbed(ctx, t)
+	defer cleanup()
+	obj, err := world.NewEngineWorldState(tb.Engine, true).CreateObject(ctx, "waits", &bucket.ObjectRef{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, startRev, err := obj.GetRootRef(ctx)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	edge := world.NewGraphQuadWithKeys("waits", "<waits-rel>", "waits", "")
+	if err := world.NewEngineWorldState(tb.Engine, true).SetGraphQuad(ctx, edge); err != nil {
+		t.Fatal(err.Error())
+	}
+	eng := &replayWaitEngine{Engine: tb.Engine}
+	lookupOp := func(ctx context.Context, typeID string) (world.Operation, error) {
+		if typeID != batchTestOpID {
+			return nil, world.ErrUnhandledOp
+		}
+		return &batchTestOp{h: &batchTestHooks{}}, nil
+	}
+	engineResource := resource_world.NewEngineResource(logrus.NewEntry(logrus.New()), tb.Bus, eng, lookupOp, nil)
+	defer engineResource.Close()
+	ctx = resource_server.WithResourceClientContext(ctx, &worldStateOperationResourceContext{ctx: ctx})
+	waits := s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_REPLAY_WAITS
+	known := s4wave_world.KnownErrorCode
+
+	// NewTransaction.
+	txResp, err := engineResource.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true, KnownErrorCode: known})
+	if err != nil || txResp.GetErrorCode() != waits || txResp.GetResourceId() != 0 {
+		t.Fatalf("write transaction while replay waits: %v %v, want REPLAY_WAITS", txResp, err)
+	}
+	if txResp, err := engineResource.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true}); !errors.Is(err, sobject.ErrReplayWaits) || txResp != nil {
+		t.Fatalf("old client's write transaction while replay waits: %v %v, want a failed call", txResp, err)
+	}
+
+	// ApplyWorldOp, through ExecuteWorldOp.
+	opReq := &s4wave_world.ApplyWorldOpRequest{OpTypeId: batchTestOpID, OpData: []byte("create:op-waits"), KnownErrorCode: known}
+	opResp, err := engineResource.ExecuteWorldOp(ctx, opReq)
+	if err != nil || opResp.GetErrorCode() != waits {
+		t.Fatalf("op while replay waits: %v %v, want REPLAY_WAITS", opResp, err)
+	}
+	opReq.KnownErrorCode = 0
+	if opResp, err := engineResource.ExecuteWorldOp(ctx, opReq); !errors.Is(err, sobject.ErrReplayWaits) || opResp != nil {
+		t.Fatalf("old client's op while replay waits: %v %v, want a failed call", opResp, err)
+	}
+
+	// The batch.
+	batchResp, err := engineResource.ExecuteWorldBatch(ctx, &s4wave_world.ExecuteWorldBatchRequest{Mutations: []*s4wave_world.WorldMutation{{
+		Mutation: &s4wave_world.WorldMutation_CreateObject{CreateObject: &s4wave_world.CreateObjectRequest{ObjectKey: "batch-waits", RootRef: &bucket.ObjectRef{}}},
+	}}})
+	if err != nil || batchResp.GetErrorCode() != waits || len(batchResp.GetResults()) != 0 {
+		t.Fatalf("batch while replay waits: %v %v, want REPLAY_WAITS", batchResp, err)
+	}
+
+	// SetRootRef on an object of the waiting World.
+	wobj, found, err := world.NewEngineWorldState(eng, true).GetObject(ctx, "waits")
+	if err != nil || !found {
+		t.Fatalf("object of the waiting World: %v %v", found, err)
+	}
+	defer world.ReleaseObjectState(wobj)
+	objResource := resource_world.NewObjectStateResource(logrus.NewEntry(logrus.New()), tb.Bus, wobj, lookupOp)
+	setResp, err := objResource.SetRootRef(ctx, &s4wave_world.SetRootRefRequest{RootRef: &bucket.ObjectRef{}, KnownErrorCode: known})
+	if err != nil || setResp.GetErrorCode() != waits || setResp.GetRev() != 0 {
+		t.Fatalf("root set while replay waits: %v %v, want REPLAY_WAITS", setResp, err)
+	}
+	if setResp, err := objResource.SetRootRef(ctx, &s4wave_world.SetRootRefRequest{RootRef: &bucket.ObjectRef{}}); !errors.Is(err, sobject.ErrReplayWaits) || setResp != nil {
+		t.Fatalf("old client's root set while replay waits: %v %v, want a failed call", setResp, err)
+	}
+
+	// IncrementRev on the same object.
+	revResp, err := objResource.IncrementRev(ctx, &s4wave_world.IncrementRevRequest{KnownErrorCode: known})
+	if err != nil || revResp.GetErrorCode() != waits || revResp.GetRev() != 0 {
+		t.Fatalf("rev increment while replay waits: %v %v, want REPLAY_WAITS", revResp, err)
+	}
+	if revResp, err := objResource.IncrementRev(ctx, &s4wave_world.IncrementRevRequest{}); !errors.Is(err, sobject.ErrReplayWaits) || revResp != nil {
+		t.Fatalf("old client's rev increment while replay waits: %v %v, want a failed call", revResp, err)
+	}
+
+	// The direct World state writes, each with the code and as an old
+	// client's failed call.
+	stateResource := resource_world.NewWorldStateResource(logrus.NewEntry(logrus.New()), tb.Bus, world.NewEngineWorldState(eng, true), lookupOp)
+	defer stateResource.Close()
+	edgeQuad := world.GraphQuadToQuad(edge)
+	newQuad := world.GraphQuadToQuad(world.NewGraphQuadWithKeys("waits", "<set-waits>", "waits", ""))
+	writes := []struct {
+		name  string
+		write func(known s4wave_world.WorldErrorCode) (codeResponse, error)
+	}{
+		{"create", func(known s4wave_world.WorldErrorCode) (codeResponse, error) {
+			req := &s4wave_world.CreateObjectRequest{ObjectKey: "create-waits", RootRef: &bucket.ObjectRef{}, KnownErrorCode: known}
+			return nilIfErr(stateResource.CreateObject(ctx, req))
+		}},
+		{"rename", func(known s4wave_world.WorldErrorCode) (codeResponse, error) {
+			req := &s4wave_world.RenameObjectRequest{OldObjectKey: "waits", NewObjectKey: "rename-waits", KnownErrorCode: known}
+			return nilIfErr(stateResource.RenameObject(ctx, req))
+		}},
+		{"delete", func(known s4wave_world.WorldErrorCode) (codeResponse, error) {
+			req := &s4wave_world.DeleteObjectRequest{ObjectKey: "waits", KnownErrorCode: known}
+			return nilIfErr(stateResource.DeleteObject(ctx, req))
+		}},
+		{"set quad", func(known s4wave_world.WorldErrorCode) (codeResponse, error) {
+			req := &s4wave_world.SetGraphQuadRequest{Quad: newQuad, KnownErrorCode: known}
+			return nilIfErr(stateResource.SetGraphQuad(ctx, req))
+		}},
+		{"delete quad", func(known s4wave_world.WorldErrorCode) (codeResponse, error) {
+			req := &s4wave_world.DeleteGraphQuadRequest{Quad: edgeQuad, KnownErrorCode: known}
+			return nilIfErr(stateResource.DeleteGraphQuad(ctx, req))
+		}},
+		{"delete graph object", func(known s4wave_world.WorldErrorCode) (codeResponse, error) {
+			req := &s4wave_world.DeleteGraphObjectRequest{ObjectKey: "waits", KnownErrorCode: known}
+			return nilIfErr(stateResource.DeleteGraphObject(ctx, req))
+		}},
+		{"world op", func(known s4wave_world.WorldErrorCode) (codeResponse, error) {
+			req := &s4wave_world.ApplyWorldOpRequest{OpTypeId: batchTestOpID, OpData: []byte("create:state-op-waits"), KnownErrorCode: known}
+			return nilIfErr(stateResource.ApplyWorldOp(ctx, req))
+		}},
+		{"object op", func(known s4wave_world.WorldErrorCode) (codeResponse, error) {
+			req := &s4wave_world.ApplyObjectOpRequest{OpTypeId: batchTestOpID, OpData: []byte("bump"), KnownErrorCode: known}
+			return nilIfErr(objResource.ApplyObjectOp(ctx, req))
+		}},
+	}
+	for _, w := range writes {
+		resp, err := w.write(known)
+		if err != nil || resp == nil || resp.GetErrorCode() != waits {
+			t.Fatalf("%s while replay waits: %v %v, want REPLAY_WAITS", w.name, resp, err)
+		}
+		if resp, err := w.write(0); !errors.Is(err, sobject.ErrReplayWaits) || resp != nil {
+			t.Fatalf("old client's %s while replay waits: %v %v, want a failed call", w.name, resp, err)
+		}
+	}
+
+	// Nothing was written: no new object, the object kept its revision and
+	// edge, and no new edge.
+	ws := world.NewEngineWorldState(tb.Engine, false)
+	for _, key := range []string{"op-waits", "batch-waits", "create-waits", "rename-waits", "state-op-waits"} {
+		obj, found, err := ws.GetObject(ctx, key)
+		world.ReleaseObjectState(obj)
+		if err != nil || found {
+			t.Fatalf("object %s after the refusals: found %v, %v", key, found, err)
+		}
+	}
+	kept, found, err := ws.GetObject(ctx, "waits")
+	if err != nil || !found {
+		t.Fatalf("refused delete removed the object: %v %v", found, err)
+	}
+	_, rev, err := kept.GetRootRef(ctx)
+	world.ReleaseObjectState(kept)
+	if err != nil || rev != startRev {
+		t.Fatalf("object revision after the refusals: %d %v, want %d", rev, err, startRev)
+	}
+	for pred, want := range map[string]int{"<waits-rel>": 1, "<set-waits>": 0} {
+		quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("waits", pred, "waits", ""), 0)
+		if err != nil || len(quads) != want {
+			t.Fatalf("edges %s after the refusals: %d %v, want %d", pred, len(quads), err, want)
+		}
+	}
+}
+
+// codeResponse is a World RPC response that carries an error code.
+type codeResponse interface {
+	GetErrorCode() s4wave_world.WorldErrorCode
+}
+
+// nilIfErr returns a nil response with err, so a failed call compares as nil
+// whatever the response type.
+func nilIfErr[T interface {
+	comparable
+	codeResponse
+}](resp T, err error) (codeResponse, error) {
+	var zero T
+	if err != nil || resp == zero {
+		return nil, err
+	}
+	return resp, nil
 }
 
 // refuseKeyGuard refuses a write naming key, and allows every other.

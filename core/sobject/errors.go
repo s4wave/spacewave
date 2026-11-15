@@ -71,6 +71,12 @@ var (
 	// ErrRejectedOp is returned if the op was rejected.
 	ErrRejectedOp = errors.New("rejected op")
 
+	// ErrReplayWaits is returned to a write while replay waits before the
+	// order its SharedObject held at open: nothing was written. A BodyWait
+	// matches it, and a remote client restores it from the World error code.
+	// Its text reaches the person where a save fails, so it is plain words.
+	ErrReplayWaits = errors.New("the Space is catching up and is read only until it does")
+
 	// ErrInvalidMeta is returned if the metadata is invalid.
 	ErrInvalidMeta = errors.New("sobject: meta: invalid shared object metadata")
 

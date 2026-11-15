@@ -1,0 +1,52 @@
+[
+  {
+    "name": "the approval wait says nothing",
+    "replace": [
+      [
+        "    [] phase = \"approval\" -> \"Names the plugin waiting for approval, and is read only until then\"",
+        "    [] phase = \"approval\" -> \"\""
+      ]
+    ],
+    "expect": "NobodyIsStuck"
+  },
+  {
+    "name": "the opening says nothing",
+    "replace": [
+      [
+        "    [] phase = \"opening\" -> \"Says the Space is opening, and is read only until then\"",
+        "    [] phase = \"opening\" -> \"\""
+      ]
+    ],
+    "expect": "NobodyIsStuck"
+  },
+  {
+    "name": "the Space takes writes while it waits",
+    "replace": [
+      [
+        "Writable == phase = \"caughtUp\"",
+        "Writable == phase \\in {\"caughtUp\", \"handler\"}"
+      ]
+    ],
+    "expect": "NoticeMatchesWrites"
+  },
+  {
+    "name": "the Space takes writes while it catches up",
+    "replace": [
+      [
+        "Writable == phase = \"caughtUp\"",
+        "Writable == phase \\in {\"caughtUp\", \"catchingUp\"}"
+      ]
+    ],
+    "expect": "NoticeMatchesWrites"
+  },
+  {
+    "name": "catching up says nothing",
+    "replace": [
+      [
+        "    [] phase = \"catchingUp\" -> \"Says the Space is catching up with another device, and is read only until then\"",
+        "    [] phase = \"catchingUp\" -> \"\""
+      ]
+    ],
+    "expect": "NobodyIsStuck"
+  }
+]

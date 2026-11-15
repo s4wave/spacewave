@@ -338,6 +338,14 @@ async function acceptAppOperation(
         'The application could not be reached; nothing was changed',
       )
     }
+    // The Space is catching up to the order it held when it opened, so it
+    // took no write; reads go on and the sync status shows what it waits for.
+    if (response.errorCode === WorldErrorCode.REPLAY_WAITS) {
+      throw new SyncError(
+        'UNAVAILABLE',
+        'The Space is catching up and is read only until it does; nothing was changed',
+      )
+    }
     // The application's build has no executable for this device, so the
     // host never sent the request, and sending it here again fails the same way.
     if (response.errorCode === WorldErrorCode.PLUGIN_EXECUTABLE_MISSING) {

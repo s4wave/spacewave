@@ -100,9 +100,35 @@ export class PluginExecutableMissingError extends Error {
   }
 }
 
-// pluginError returns the typed error for a plugin's built-in code, or
-// undefined for any other code.
-function pluginError(code: WorldErrorCode | undefined): Error | undefined {
+// ReplayWaitError reports that the World took no write because its replay is
+// not caught up: it is opening, or waits at an operation for a handler this
+// device lacks or a plugin's approval. Nothing was written and reads go on.
+// The write may be sent again once SharedObjectHealth.replay is caught_up.
+const replayWaitBrand = Symbol.for('spacewave.ReplayWaitError')
+
+export class ReplayWaitError extends Error {
+  override readonly name = 'ReplayWaitError'
+  readonly [replayWaitBrand] = true
+
+  // Client and plugin builds recognize the same public error across bundles.
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return (
+      value instanceof Error &&
+      replayWaitBrand in value &&
+      value[replayWaitBrand] === true
+    )
+  }
+
+  constructor() {
+    super('the Space is catching up and is read only until it does')
+  }
+}
+
+// typedError returns the typed error for a plugin's built-in code or a
+// replay wait, or undefined for any other code.
+export function typedError(
+  code: WorldErrorCode | undefined,
+): Error | undefined {
   switch (code) {
     case WorldErrorCode.PLUGIN_OP_TIMEOUT:
       return new PluginOpTimeoutError()
@@ -110,6 +136,8 @@ function pluginError(code: WorldErrorCode | undefined): Error | undefined {
       return new PluginUnavailableError()
     case WorldErrorCode.PLUGIN_EXECUTABLE_MISSING:
       return new PluginExecutableMissingError()
+    case WorldErrorCode.REPLAY_WAITS:
+      return new ReplayWaitError()
   }
   return undefined
 }
@@ -185,7 +213,7 @@ export function throwOperationError(response: OperationResponse): void {
   if (!code) return
   if (code === WorldErrorCode.UNHANDLED_OP)
     throw new Error('remote world operation unhandled')
-  const err = pluginError(code)
+  const err = typedError(code)
   if (err) throw err
   switch (code) {
     case WorldErrorCode.SUPERSEDED:
@@ -240,11 +268,11 @@ export interface BatchResponse extends OperationResponse {
 }
 
 // throwBatchError throws the refusal a batch response carries: an op's
-// rejection as WorldOperationRejection, a plugin's code as its typed error,
-// and another built-in code as WorldBatchRefusal.
+// rejection as WorldOperationRejection, a plugin's code or a replay wait as
+// its typed error, and another built-in code as WorldBatchRefusal.
 export function throwBatchError(response: BatchResponse): void {
   if (response.rejectionCode) throwOperationError(response)
-  const err = pluginError(response.errorCode)
+  const err = typedError(response.errorCode)
   if (err) throw err
   if (response.errorCode)
     throw new WorldBatchRefusal(response.failedIndex ?? 0, response.errorCode)

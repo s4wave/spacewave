@@ -16,6 +16,8 @@ interface UnixFSBrowserTransferOptions {
   displayPath: string
   pathHandle: Resource<FSHandle>
   uploadManager: UploadManager | null
+  // saveHold is why writes to the Space wait, from useSaveHold, or null.
+  saveHold: string | null
 }
 
 /**
@@ -30,6 +32,7 @@ export function useUnixFSBrowserTransfer({
   displayPath,
   pathHandle,
   uploadManager,
+  saveHold,
 }: UnixFSBrowserTransferOptions) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -60,7 +63,9 @@ export function useUnixFSBrowserTransfer({
     (e: ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files
       if (!files || files.length === 0) return
-      if (pathHandle.value) {
+      if (saveHold) {
+        toast.info(saveHold)
+      } else if (pathHandle.value) {
         uploadManager?.addFiles(
           pathHandle.value,
           Array.from(files),
@@ -70,7 +75,7 @@ export function useUnixFSBrowserTransfer({
       }
       e.target.value = ''
     },
-    [uploadManager, pathHandle.value, displayPath],
+    [uploadManager, pathHandle.value, displayPath, saveHold],
   )
 
   return {

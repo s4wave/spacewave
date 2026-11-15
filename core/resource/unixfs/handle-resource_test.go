@@ -9,7 +9,9 @@ import (
 	"net"
 	"path"
 	"slices"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	"github.com/s4wave/spacewave/core/sobject"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	unixfs_sdk "github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
@@ -162,6 +165,22 @@ func setupFSHandleResourceClient(
 	*FSHandleResource,
 	func(),
 ) {
+	t.Helper()
+	return setupFSHandleResourceClientOn(t, nil)
+}
+
+// setupFSHandleResourceClientOn is setupFSHandleResourceClient with the
+// resources writing through wrap's engine, when wrap is set.
+func setupFSHandleResourceClientOn(
+	t *testing.T,
+	wrap func(world.Engine) world.Engine,
+) (
+	context.Context,
+	*resource_client.Client,
+	*unixfs_sdk.FSHandle,
+	*FSHandleResource,
+	func(),
+) {
 	// Create the logger and context for the filesystem testbed.
 	t.Helper()
 	ctx := context.Background()
@@ -193,7 +212,11 @@ func setupFSHandleResourceClient(
 	<-time.After(time.Millisecond * 100)
 
 	// Initialize the test filesystem object in the World.
-	ws := world.NewEngineWorldState(wtb.Engine, true)
+	eng := wtb.Engine
+	if wrap != nil {
+		eng = wrap(eng)
+	}
+	ws := world.NewEngineWorldState(eng, true)
 	sender := wtb.Volume.GetPeerID()
 	fsType := unixfs_world.FSType_FSType_FS_NODE
 	if _, _, err := unixfs_world.FsInit(
@@ -1150,6 +1173,151 @@ func TestFSHandleResourceReadDuringUploadReloadRaceFree(t *testing.T) {
 	// Stop the root reader and wait for its completion.
 	close(stop)
 	wg.Wait()
+}
+
+// replayGateEngine refuses every write transaction with the replay wait
+// while waits is set, as a Space's World does while replay is not caught up.
+type replayGateEngine struct {
+	world.Engine
+	waits atomic.Bool
+}
+
+// NewTransaction refuses a write with the replay wait while waits is set.
+func (e *replayGateEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	if write && e.waits.Load() {
+		return nil, sobject.ErrReplayWaits
+	}
+	return e.Engine.NewTransaction(ctx, write)
+}
+
+// TestFSHandleResourceUploadTreeReplayWaits checks that an upload sent while
+// replay waits, by a caller that skips the app's save hold, has its bytes read
+// and then fails the call with the replay wait at commit: it never answers
+// success, and the World holds nothing of it.
+func TestFSHandleResourceUploadTreeReplayWaits(t *testing.T) {
+	gate := &replayGateEngine{}
+	ctx, _, rootHandle, rootResource, cleanup := setupFSHandleResourceClientOn(t, func(eng world.Engine) world.Engine {
+		gate.Engine = eng
+		return gate
+	})
+	defer cleanup()
+
+	// Upload a file while replay waits.
+	gate.waits.Store(true)
+	resp, err := rootResource.UploadTree(&uploadTreeMetricStream{
+		ctx: ctx,
+		messages: []*s4wave_unixfs.HandleUploadTreeRequest{
+			{
+				Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
+					FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
+						Path:      "waits.txt",
+						TotalSize: 5,
+						Mode:      0o644,
+						Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
+					},
+				},
+			},
+			{Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{Data: []byte("hello")}},
+		},
+	})
+	if !errors.Is(err, sobject.ErrReplayWaits) || resp != nil {
+		t.Fatalf("upload while replay waits: %v %v, want the replay wait", resp, err)
+	}
+
+	// Once replay catches up, the file is absent.
+	gate.waits.Store(false)
+	root := rootResource.GetHandle()
+	if root != rootHandle {
+		defer root.Release()
+	}
+	child, err := root.Lookup(ctx, "waits.txt")
+	if err == nil {
+		child.Release()
+	}
+	if !errors.Is(err, unixfs_errors.ErrNotExist) {
+		t.Fatalf("refused upload's file: %v, want not exist", err)
+	}
+}
+
+// TestFSHandleResourceWritesReplayWaits checks the handle writes the
+// documentation viewer sends, from a caller that skips the app's save hold
+// while replay waits: Mknod and Truncate fail the call, and a WriteAt, which
+// answers once buffered, has its commit refused and reported by the next
+// Sync. The World holds nothing of them.
+func TestFSHandleResourceWritesReplayWaits(t *testing.T) {
+	gate := &replayGateEngine{}
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClientOn(t, func(eng world.Engine) world.Engine {
+		gate.Engine = eng
+		return gate
+	})
+	defer cleanup()
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	refused := func(what string, err error) {
+		t.Helper()
+		if err == nil || !strings.Contains(err.Error(), sobject.ErrReplayWaits.Error()) {
+			t.Fatalf("%s while replay waits: %v, want the replay wait", what, err)
+		}
+	}
+
+	// Write kept.txt while caught up.
+	mknod := func(name string) error {
+		_, err := rootSvc.Mknod(ctx, &s4wave_unixfs.HandleMknodRequest{
+			Names:    []string{name},
+			NodeType: s4wave_unixfs.MknodType_MKNOD_TYPE_FILE,
+			Mode:     0o644,
+		})
+		return err
+	}
+	if err := mknod("kept.txt"); err != nil {
+		t.Fatal(err)
+	}
+	fileResp, err := rootSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "kept.txt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileRef := resClient.CreateResourceReference(fileResp.GetResourceId())
+	defer fileRef.Release()
+	fileClient, err := fileRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
+	if _, err := fileSvc.WriteAt(ctx, &s4wave_unixfs.HandleWriteAtRequest{Data: []byte("hello")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fileSvc.Sync(ctx, &s4wave_unixfs.HandleSyncRequest{}); err != nil {
+		t.Fatal(err)
+	}
+
+	// While replay waits, each write is refused.
+	gate.waits.Store(true)
+	refused("mknod", mknod("waits.txt"))
+	if _, err := fileSvc.WriteAt(ctx, &s4wave_unixfs.HandleWriteAtRequest{Data: []byte("HELLO, WORLD")}); err != nil {
+		t.Fatalf("buffered write while replay waits: %v", err)
+	}
+	_, err = fileSvc.Sync(ctx, &s4wave_unixfs.HandleSyncRequest{})
+	refused("sync of a buffered write", err)
+	_, err = fileSvc.Truncate(ctx, &s4wave_unixfs.HandleTruncateRequest{Size: 2})
+	refused("truncate", err)
+
+	// Once replay catches up, the World holds only what was written before.
+	gate.waits.Store(false)
+	if _, err := rootSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "waits.txt"}); err == nil {
+		t.Fatal("refused mknod created its file")
+	}
+	readResp, err := fileSvc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{Length: 64})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(readResp.GetData()); got != "hello" {
+		t.Fatalf("file after the refused writes reads %q, want %q", got, "hello")
+	}
 }
 
 func TestFSHandleResourceUploadTreeMetrics(t *testing.T) {

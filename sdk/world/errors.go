@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -61,6 +62,8 @@ func ErrorFromCode(code WorldErrorCode) error {
 		return &world.PluginUnavailableError{Sent: true, Err: ErrRemotePluginUnavailable}
 	case WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING:
 		return &world.PluginExecutableMissingError{}
+	case WorldErrorCode_WORLD_ERROR_CODE_REPLAY_WAITS:
+		return sobject.ErrReplayWaits
 	}
 	for _, c := range commitRefusals {
 		if c.code == code {
