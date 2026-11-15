@@ -154,6 +154,103 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 	}
 }
 
+// TestCloudPublicationPublishesPastCorruptBlock checks that a flush which
+// uploads every intact dirty block and holds back a corrupt one still publishes
+// the pending checkpoint, while the corrupt block keeps its marker, its local
+// copy and its place in the pending count.
+func TestCloudPublicationPublishesPastCorruptBlock(t *testing.T) {
+	// Serve block pushes and checkpoints, counting each.
+	var uploads, checkpoints atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/sync/push"):
+			uploads.Add(1)
+		case strings.HasSuffix(r.URL.Path, "/checkpoint"):
+			checkpoints.Add(1)
+		default:
+			t.Errorf("unexpected publication route: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/protobuf")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	// Queue three dirty blocks and read the last as corrupt.
+	initial, key := newTestGenesisState(t)
+	peerID := mustPeerID(t, key)
+	client := newTestPublicationClient(server, key, peerID)
+	syncer := newDirtySyncExecuteTestController(t, client, nil)
+	inner := syncer.upper
+	var marks []block_store_writeback.Mark
+	var bad *block.BlockRef
+	for _, body := range []string{"intact block", "corrupt block"} {
+		ref, _, err := inner.PutBlock(t.Context(), []byte(body), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		marks = append(marks, block_store_writeback.Mark{Hash: ref.GetHash(), Size: int64(len(body))})
+		bad = ref
+	}
+	if err := syncer.MarkDirty(t.Context(), marks); err != nil {
+		t.Fatal(err)
+	}
+	syncer.upper = &corruptUpperStore{StoreOps: inner, bad: bad.GetHash()}
+
+	// Accept a local checkpoint so a publication is pending.
+	account := &ProviderAccount{objStore: newSyncTestKvStore()}
+	persist := func(ctx context.Context, cache *api.VerifiedSOStateCache, changes []*sobject.SOConfigChange) error {
+		return account.writeVerifiedSOStateCache(ctx, testSharedObjectID, cache, changes)
+	}
+	host := &cloudSOHost{
+		le: logrus.New().WithField("test", t.Name()), client: client,
+		soID: testSharedObjectID, peerID: peerID, stateCtr: ccontainer.NewCContainer(initial),
+		verifiedConfig: initial.GetConfig(), lastConfigChainHash: initial.GetConfig().GetConfigChainHash(),
+		cloudState: initial.CloneVT(), persistVerifiedStateCache: persist, syncer: syncer,
+	}
+	base := host.stateCtr.GetValue()
+	written := base.CloneVT()
+	checkpoint, err := written.BuildNextCheckpoint(testSharedObjectID, key, []byte("state"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := written.AdoptCheckpoint(testSharedObjectID, checkpoint); err != nil {
+		t.Fatal(err)
+	}
+	if err := host.acceptLocalWrite(t.Context(), base, written); err != nil {
+		t.Fatal(err)
+	}
+
+	// The flush holds back the corrupt block and still publishes.
+	corrupt, err := syncer.FlushNow(t.Context())
+	if err != nil || corrupt != 1 {
+		t.Fatalf("flush = %d corrupt, %v; want 1, nil", corrupt, err)
+	}
+	if checkpoints.Load() != 1 || host.pending != nil {
+		t.Fatalf("checkpoints = %d, pending = %v; want one published", checkpoints.Load(), host.pending)
+	}
+
+	// The corrupt block keeps its marker, its local copy and its count.
+	pending, err := syncer.scanDirtyCandidates(t.Context())
+	if err != nil || len(pending) != 1 || !pending[0].hash.EqualVT(bad.GetHash()) {
+		t.Fatalf("dirty after flush = %d blocks, %v; want only the corrupt block", len(pending), err)
+	}
+	if state := readPersistedPending(t, syncer.store); state.GetCount() != 1 {
+		t.Fatalf("pending count = %d, want 1", state.GetCount())
+	}
+	if found, err := inner.GetBlockExists(t.Context(), bad); err != nil || !found {
+		t.Fatalf("corrupt block local copy: found = %v, err = %v", found, err)
+	}
+	if len(syncer.corruptKnown) != 1 {
+		t.Fatalf("corrupt state holds %d blocks, want 1", len(syncer.corruptKnown))
+	}
+
+	// A later flush holds it without reading it, until a recheck is due.
+	syncer.upper = &corruptUpperStore{StoreOps: inner, bad: nil}
+	if corrupt, err := syncer.FlushNow(t.Context()); err != nil || corrupt != 1 {
+		t.Fatalf("second flush = %d corrupt, %v; want 1 held unread", corrupt, err)
+	}
+}
+
 // TestCloudPublicationMissingBlockCannotPublish keeps checkpoint visibility behind the
 // complete dirty-block fence even when all state metadata is already durable.
 func TestCloudPublicationMissingBlockCannotPublish(t *testing.T) {

@@ -81,7 +81,8 @@ type CopyStatus struct {
 	RefsUnknown int64
 	// Corrupt is the number of blocks the copy left out because their local
 	// bytes fail their hash. They stay local, the copy goes on past them, and
-	// a copy with any is not done: its next call walks the list again.
+	// a copy with any is not done: its saved cursor stays before the first
+	// step that left one out, so the next call reads it again.
 	Corrupt int64
 }
 
@@ -95,20 +96,30 @@ type copyStep struct {
 	next []byte
 }
 
+// copyLanded is a landed step waiting for the steps before it.
+type copyLanded struct {
+	// next is the key the list resumes after the step.
+	next []byte
+	// corrupt reports that the step left a corrupt block out.
+	corrupt bool
+}
+
 // copyRun tracks the steps of a running copy, so its saved cursor only
 // passes steps that landed with every step before them.
 type copyRun struct {
 	// mtx guards the fields below.
 	mtx sync.Mutex
-	// landed holds the resume key of each landed step past the contiguous
-	// head.
-	landed map[int][]byte
+	// landed holds each landed step past the contiguous head.
+	landed map[int]copyLanded
 	// head is the seq of the first step not yet landed with all before it.
 	head int
 	// cursor is the resume key after the contiguous landed steps.
 	cursor []byte
 	// ended reports that the step ending the list landed with all before it.
 	ended bool
+	// held reports that a contiguous landed step left a corrupt block out;
+	// the cursor stays before that step.
+	held bool
 	// counts are the step counts not yet published.
 	counts CopyStatus
 	// corrupt is the count of corrupt blocks the run left out.
@@ -116,40 +127,46 @@ type copyRun struct {
 }
 
 // land records a landed step and its counts, advancing the cursor past every
-// contiguous landed step.
+// contiguous landed step up to the first that left a corrupt block out.
 func (r *copyRun) land(st copyStep, counts CopyStatus) {
 	// Record the step.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	r.counts.add(counts)
 	r.corrupt += counts.Corrupt
-	r.landed[st.seq] = st.next
+	r.landed[st.seq] = copyLanded{next: st.next, corrupt: counts.Corrupt != 0}
 
-	// Advance past the contiguous landed steps.
+	// Advance past the contiguous landed steps. Invariant: copy-done is
+	// written only when every block before the cursor was copied, so the
+	// cursor never passes the first step that left a corrupt block out, and
+	// a save after a remount, crash or cancel resumes at that step.
 	for {
-		next, ok := r.landed[r.head]
+		step, ok := r.landed[r.head]
 		if !ok {
 			return
 		}
 		delete(r.landed, r.head)
 		r.head++
-		if next == nil {
+		r.held = r.held || step.corrupt
+		if step.next == nil {
 			r.ended = true
 			return
 		}
-		r.cursor = next
+		if !r.held {
+			r.cursor = step.next
+		}
 	}
 }
 
-// take returns the cursor, whether the list ended, the counts since the last
-// take, and the corrupt blocks the run left out.
+// take returns the cursor, whether every listed block was copied, the counts
+// since the last take, and the corrupt blocks the run left out.
 func (r *copyRun) take() ([]byte, bool, CopyStatus, int64) {
 	// Swap the counts out under the lock.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	counts := r.counts
 	r.counts = CopyStatus{}
-	return r.cursor, r.ended, counts, r.corrupt
+	return r.cursor, r.ended && !r.held, counts, r.corrupt
 }
 
 // Copy writes every block list names to remote, resuming after the cursor a
@@ -195,7 +212,7 @@ func (s *Store) Copy(ctx context.Context, target string, remote block.StoreOps, 
 
 	// List the steps in order and copy them on the workers. A failed list
 	// stops listing but lets the listed steps land, so their progress saves.
-	run := &copyRun{landed: make(map[int][]byte), cursor: cursor}
+	run := &copyRun{landed: make(map[int]copyLanded), cursor: cursor}
 	steps := make(chan copyStep)
 	var listErr error
 	eg, egCtx := errgroup.WithContext(ctx)
@@ -383,18 +400,14 @@ func (s *Store) copyStep(ctx context.Context, remote block.StoreOps, refs []*blo
 }
 
 // saveCopy saves the copy's cursor, or marks it complete when complete is set
-// and the list ended, then publishes its counts and position. A run that left
-// corrupt blocks out is never complete: at its end it clears the cursor, so
-// the next call walks the list again and retries them.
+// and every listed block was copied, then publishes its counts and position.
+// A run that left corrupt blocks out is never complete: its cursor stays
+// before the first of them, so the next call reads them again.
 func (s *Store) saveCopy(ctx context.Context, target string, run *copyRun, complete bool) error {
-	// Save the cursor, or the completion once the last step landed.
-	cursor, ended, counts, corrupt := run.take()
-	done := complete && ended && corrupt == 0
-	restart := complete && ended && corrupt != 0
+	// Save the cursor, or the completion once every listed block was copied.
+	cursor, copied, counts, _ := run.take()
+	done := complete && copied
 	err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
-		if restart {
-			return tx.Delete(ctx, []byte(copyCursorPrefix+target))
-		}
 		if done {
 			if err := tx.Delete(ctx, []byte(copyCursorPrefix+target)); err != nil {
 				return err
