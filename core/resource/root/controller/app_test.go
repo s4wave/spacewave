@@ -240,7 +240,7 @@ func TestNestedAppRuntime(t *testing.T) {
 		rpcFor(published.ResourceId)
 
 		// Commit the World transaction after retaining the created object Resource.
-		if _, err := txClient.Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
+		if err := s4wave_world.CommitRemote(ctx, txClient); err != nil {
 			t.Fatal(err)
 		}
 	}

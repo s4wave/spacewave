@@ -5,7 +5,9 @@ import {
   PluginOpTimeoutError,
   PluginUnavailableError,
   throwBatchError,
+  throwCommitError,
   throwOperationError,
+  WorldCommitError,
   WorldOperationRejection,
 } from './errors.js'
 import { WorldErrorCode } from './world.pb.js'
@@ -90,5 +92,61 @@ describe('throwBatchError', () => {
         errorCode: WorldErrorCode.PLUGIN_EXECUTABLE_MISSING,
       }),
     ).toThrow(PluginExecutableMissingError)
+  })
+})
+
+describe('throwCommitError', () => {
+  it('returns for a published commit', () => {
+    expect(() => throwCommitError({})).not.toThrow()
+  })
+
+  it('restores a superseded commit with its message', () => {
+    let caught: unknown
+    try {
+      throwCommitError({
+        errorCode: WorldErrorCode.SUPERSEDED,
+        errorMessage: 'head moved to seqno 3: world candidate superseded',
+      })
+    } catch (err) {
+      caught = err
+    }
+    expect(caught).toBeInstanceOf(WorldCommitError)
+    expect(caught).toMatchObject({
+      code: WorldErrorCode.SUPERSEDED,
+      superseded: true,
+      message: 'head moved to seqno 3: world candidate superseded',
+    })
+  })
+
+  it('restores a stale generation as superseded with its message', () => {
+    let caught: unknown
+    try {
+      throwCommitError({
+        errorCode: WorldErrorCode.STALE_GENERATION,
+        errorMessage: 'base root is stale: coord: stale generation',
+      })
+    } catch (err) {
+      caught = err
+    }
+    expect(caught).toBeInstanceOf(WorldCommitError)
+    expect(caught).toMatchObject({
+      code: WorldErrorCode.STALE_GENERATION,
+      superseded: true,
+      message: 'base root is stale: coord: stale generation',
+    })
+  })
+
+  it('restores a not-held refusal as not superseded', () => {
+    let caught: unknown
+    try {
+      throwCommitError({ errorCode: WorldErrorCode.ROOT_NOT_HELD })
+    } catch (err) {
+      caught = err
+    }
+    expect(caught).toBeInstanceOf(WorldCommitError)
+    expect(caught).toMatchObject({
+      code: WorldErrorCode.ROOT_NOT_HELD,
+      superseded: false,
+    })
   })
 })

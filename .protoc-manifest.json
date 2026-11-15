@@ -4454,7 +4454,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/world": {
-      "hash": "cfc08f1a72607236bc7699dcc1e161abab57b84bdc71328c45c8943c80dfc1a6",
+      "hash": "208d927db162685e6ac039e702edb92194d168917b8f7ec79f3ae794a84a9c0d",
       "generatedFiles": [
         "sdk/world/world.pb.go",
         "sdk/world/world.pb.ts",

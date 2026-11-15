@@ -88,6 +88,12 @@ var (
 // retry site matches through it, so a change of the sentinel reaches them all.
 // coord.ErrStaleGeneration counts too: a coordinator reports a write lease
 // that lost its generation with it.
+//
+// An error that wraps ErrDurabilityUnknown is never superseded, whatever else
+// it wraps: the write may be durable, so no retrier may run it again.
 func IsSuperseded(err error) bool {
+	if errors.Is(err, ErrDurabilityUnknown) {
+		return false
+	}
 	return errors.Is(err, ErrSuperseded) || errors.Is(err, coord.ErrStaleGeneration)
 }

@@ -293,6 +293,45 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 		}
 	})
 
+	// A durable candidate whose report is lost, and whose head read then
+	// fails with a supersession, has an unknown outcome: the commit reports
+	// world.ErrDurabilityUnknown, never a supersession, so ExecTransaction
+	// runs the write once and never writes it twice.
+	t.Run("head read lost", func(t *testing.T) {
+		// Open an engine on an authority whose root reads can fail. The store
+		// is wrapped before open, since the engine's head watch reads it.
+		local := f.authority()
+		store := &rootFailStore{StoreOps: local.store}
+		local.store = store
+		pending := newPendingAuthority(local)
+		engine := f.openEngine(t, pending)
+
+		// Write through ExecTransaction, which replays a superseded write.
+		var runs atomic.Int32
+		done := make(chan error, 1)
+		go func() {
+			done <- world.ExecTransaction(ctx, engine, true, func(ctx context.Context, ws world.WorldState) error {
+				if runs.Add(1) > 1 {
+					return errors.New("the write ran twice")
+				}
+				obj, err := ws.CreateObject(ctx, "head-read-lost", nil)
+				world.ReleaseObjectState(obj)
+				return err
+			})
+		}()
+
+		// Accept the candidate, fail the head read, then make the candidate
+		// durable and lose the report.
+		pending.waitAdmitted(t)
+		store.failRoot(errors.Join(errors.New("head read lost the lease"), world.ErrSuperseded))
+		pending.durableLost(t, errors.New("record report lost"))
+		err := <-done
+		if !errors.Is(err, world.ErrDurabilityUnknown) || world.IsSuperseded(err) || runs.Load() != 1 {
+			t.Fatalf("ExecTransaction = %v after %d runs, want durability unknown after 1", err, runs.Load())
+		}
+		store.failRoot(nil)
+	})
+
 	// An authority that pipelines lets a writer begin on the previous
 	// writer's admitted candidate before it is durable: the later commit's
 	// Admit returns while the earlier one waits, readers see each head only

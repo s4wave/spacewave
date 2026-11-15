@@ -331,7 +331,14 @@ func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *b
 	head, herr := e.engine.authority.Head(ctx)
 	switch {
 	case herr != nil:
-		return nil, stderrors.Join(err, herr)
+		// The Authority accepted the candidate, so a failed reconcile leaves
+		// its outcome unknown. The head read's error stays text: its
+		// sentinels, such as a stale generation, would read as a refusal and
+		// replay a write that may be durable.
+		if !errors.Is(err, world.ErrDurabilityUnknown) {
+			err = stderrors.Join(world.ErrDurabilityUnknown, err)
+		}
+		return nil, errors.Wrapf(err, "read head: %v", herr)
 	case head.Root.EqualsRef(next.GetRootRef()):
 		return next, nil
 	case head.Seqno > adm.Seqno():

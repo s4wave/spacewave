@@ -11,7 +11,7 @@ import {
   TypedObjectResourceServiceClient,
   TxResourceServiceClient,
 } from './world_srpc.pb.js'
-import { throwOperationError } from './errors.js'
+import { throwCommitError, throwOperationError } from './errors.js'
 import { throwTypedObjectError } from './typed-object-grant-retired-error.js'
 import { ObjectState, type IObjectState } from './object-state.js'
 import { ObjectIterator } from './object_iterator.js'
@@ -758,8 +758,10 @@ export class Tx extends WorldStateResource {
 
   // Commit commits the transaction.
   // After commit, the transaction should be discarded.
+  // A commit the World refused throws WorldCommitError; its superseded field
+  // says whether another writer advanced the World first.
   public async commit(abortSignal?: AbortSignal): Promise<void> {
-    await this.txService.Commit({}, abortSignal)
+    throwCommitError(await this.txService.CommitTx({}, abortSignal))
   }
 
   // Discard discards the transaction without committing changes.

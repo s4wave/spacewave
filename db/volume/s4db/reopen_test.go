@@ -278,7 +278,7 @@ func runNativeReopenSeed(t *testing.T, ctx context.Context, env *nativeReopenEnv
 	}
 
 	// Commit the object and release its transaction resources.
-	if _, err := s4wave_world.NewSRPCTxResourceServiceClient(txClient).Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
+	if err := s4wave_world.CommitRemote(ctx, s4wave_world.NewSRPCTxResourceServiceClient(txClient)); err != nil {
 		t.Fatal(err)
 	}
 	releaseResource(resClient, objResp.GetResourceId())

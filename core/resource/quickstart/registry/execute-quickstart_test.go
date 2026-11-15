@@ -246,7 +246,7 @@ func (h *testQuickstartHandler) SeedQuickstart(
 
 	// Commit the seeded World objects before returning the plugin result.
 	tx := s4wave_world.NewSRPCTxResourceServiceClient(txClient)
-	if _, err := tx.Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
+	if err := s4wave_world.CommitRemote(ctx, tx); err != nil {
 		return nil, err
 	}
 	return &s4wave_quickstart_registry.SeedQuickstartResponse{

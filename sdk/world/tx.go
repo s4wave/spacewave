@@ -2,12 +2,8 @@ package s4wave_world
 
 import (
 	"context"
-	"strings"
 
-	"github.com/pkg/errors"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
-	"github.com/s4wave/spacewave/db/coord"
-	"github.com/s4wave/spacewave/db/world"
 )
 
 // Tx represents a transaction against the world state.
@@ -58,36 +54,28 @@ func NewTx(client *resource_client.Client, ref resource_client.ResourceRef, read
 // transport still ends the call, and its outcome is then unknown.
 //
 // A commit rejected because another writer advanced the World returns an error
-// world.IsSuperseded matches; the caller may retry from a new transaction.
+// world.IsSuperseded matches; the caller may retry from a new transaction. A
+// commit whose tree names a block the Volume does not hold returns an error
+// matching block.ErrRootNotHeld. Both are *CommitRefusal.
 func (tx *Tx) Commit(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	_, err := tx.txService.Commit(context.WithoutCancel(ctx), &CommitRequest{})
-	return CommitError(err)
+	return CommitRemote(ctx, tx.txService)
 }
 
-// CommitError restores the superseded classification that the RPC boundary
-// flattens to text in a Commit error, so world.IsSuperseded matches it.
-func CommitError(err error) error {
-	// Preserve a successful transaction commit.
-	if err == nil {
-		return nil
+// CommitRemote commits the transaction svc controls and returns its result:
+// nil when the commit published, a *CommitRefusal for a typed refusal, and
+// otherwise the RPC error. It is the only reader of CommitResponse. The request
+// ignores ctx's cancellation, so a caller's deadline never abandons a commit
+// that started. The server discards the transaction after every CommitTx,
+// refused or not, so a retry needs a new transaction.
+func CommitRemote(ctx context.Context, svc SRPCTxResourceServiceClient) error {
+	resp, err := svc.CommitTx(context.WithoutCancel(ctx), &CommitRequest{})
+	if err != nil {
+		return err
 	}
-
-	// Recognize a superseded or stale-generation error flattened by the RPC
-	// boundary, and restore its sentinel with the remote message.
-	for _, sentinel := range []error{world.ErrSuperseded, coord.ErrStaleGeneration} {
-		msg, found := strings.CutSuffix(err.Error(), sentinel.Error())
-		if !found {
-			continue
-		}
-		if msg = strings.TrimSuffix(msg, ": "); msg == "" {
-			return sentinel
-		}
-		return errors.Wrap(sentinel, msg)
-	}
-	return err
+	return commitResponseError(resp)
 }
 
 // Discard discards the transaction without committing changes.

@@ -508,6 +508,19 @@ func TestExecTransactionReplaysStaleCommit(t *testing.T) {
 	}
 }
 
+// TestIsSupersededExcludesUnknownOutcome checks that an unknown outcome is
+// never read as superseded, so no retrier replays a write that may be durable.
+func TestIsSupersededExcludesUnknownOutcome(t *testing.T) {
+	for _, refusal := range []error{world.ErrSuperseded, coord.ErrStaleGeneration} {
+		if !world.IsSuperseded(refusal) {
+			t.Fatalf("IsSuperseded(%v) = false, want true", refusal)
+		}
+		if err := errors.Join(world.ErrDurabilityUnknown, refusal); world.IsSuperseded(err) {
+			t.Fatalf("IsSuperseded(%v) = true, want false", err)
+		}
+	}
+}
+
 type releaseCountingWorldState struct {
 	world.WorldState
 	releases int

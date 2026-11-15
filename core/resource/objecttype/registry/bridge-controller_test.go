@@ -388,7 +388,7 @@ func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, req *s4wav
 		defer resourceCtx.ReleaseResource(objID)
 	}
 	tx := s4wave_world.NewSRPCTxResourceServiceClient(txClient)
-	if _, err := tx.Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
+	if err := s4wave_world.CommitRemote(ctx, tx); err != nil {
 		return nil, err
 	}
 
