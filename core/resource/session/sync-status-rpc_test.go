@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
+	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -651,3 +652,45 @@ var (
 	_ s4wave_session.SRPCSessionResourceService_WatchSyncStatusStream = (*testWatchSyncStatusStream)(nil)
 	_ session.Session                                                 = (*testSyncStatusSession)(nil)
 )
+
+// TestSyncStatusShowsHeldStore checks that a held store's typed held state
+// reaches the RPC from the telemetry its flush records, stays while a later
+// pull error replaces LastError, and clears when the store holds nothing.
+func TestSyncStatusShowsHeldStore(t *testing.T) {
+	// Hold two blocks back in the telemetry, as a held flush records them.
+	var telemetry synctelemetry.Store
+	since := time.Date(2026, 11, 15, 8, 0, 0, 0, time.UTC)
+	telemetry.SetCorruptDirty("store", 2, since)
+	project := func() *s4wave_session.WatchSyncStatusResponse {
+		return syncStatusFromSpacewaveTelemetry(
+			telemetry.Snapshot(),
+			provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+			provider_spacewave.TransportCompositionSnapshot{},
+			nil,
+			time.Time{},
+		)
+	}
+	wantHeld := func(stage string, resp *s4wave_session.WatchSyncStatusResponse) {
+		t.Helper()
+		held := resp.GetBlockStores()[0].GetHeld()
+		if held.GetDamagedBlockCount() != 2 || !held.GetHeldAt().AsTime().Equal(since) {
+			t.Fatalf("%s: held = %v; want 2 blocks held at %v", stage, held, since)
+		}
+	}
+	wantHeld("held", project())
+
+	// A later pull error takes LastError but leaves the held state.
+	telemetry.StartPull("store")
+	telemetry.FinishPull("store", errors.New("pull failed"))
+	resp := project()
+	if resp.GetLastError() != "pull failed" {
+		t.Fatalf("last error = %q; want the pull error", resp.GetLastError())
+	}
+	wantHeld("after a pull error", resp)
+
+	// The held state clears once the store holds nothing back.
+	telemetry.SetCorruptDirty("store", 0, time.Time{})
+	if held := project().GetBlockStores()[0].GetHeld(); held != nil {
+		t.Fatalf("held after the store cleared = %v; want unset", held)
+	}
+}

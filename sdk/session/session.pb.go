@@ -1021,6 +1021,10 @@ type SyncBlockStoreStatus struct {
 	CloudRemoteSequence uint64 `protobuf:"varint,7,opt,name=cloud_remote_sequence,json=cloudRemoteSequence,proto3" json:"cloudRemoteSequence,omitempty"`
 	// SharedObjectId identifies the SharedObject that supplied AcceptedCheckpointHeight.
 	SharedObjectId string `protobuf:"bytes,8,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+	// Held is set while the store holds back dirty blocks whose bytes on this
+	// device fail their hash, and unset otherwise. While it is set the store
+	// publishes nothing, whatever LastError says.
+	Held *SyncHeldState `protobuf:"bytes,9,opt,name=held,proto3" json:"held,omitempty"`
 }
 
 func (x *SyncBlockStoreStatus) Reset() {
@@ -1083,6 +1087,44 @@ func (x *SyncBlockStoreStatus) GetSharedObjectId() string {
 		return x.SharedObjectId
 	}
 	return ""
+}
+
+func (x *SyncBlockStoreStatus) GetHeld() *SyncHeldState {
+	if x != nil {
+		return x.Held
+	}
+	return nil
+}
+
+// SyncHeldState describes a block store that publishes nothing because dirty
+// blocks on this device fail their hash.
+type SyncHeldState struct {
+	unknownFields []byte
+	// DamagedBlockCount is the number of dirty blocks held back.
+	DamagedBlockCount uint32 `protobuf:"varint,1,opt,name=damaged_block_count,json=damagedBlockCount,proto3" json:"damagedBlockCount,omitempty"`
+	// HeldAt is when the store first held a block back. Nothing has been
+	// published from the store since.
+	HeldAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=held_at,json=heldAt,proto3" json:"heldAt,omitempty"`
+}
+
+func (x *SyncHeldState) Reset() {
+	*x = SyncHeldState{}
+}
+
+func (*SyncHeldState) ProtoMessage() {}
+
+func (x *SyncHeldState) GetDamagedBlockCount() uint32 {
+	if x != nil {
+		return x.DamagedBlockCount
+	}
+	return 0
+}
+
+func (x *SyncHeldState) GetHeldAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.HeldAt
+	}
+	return nil
 }
 
 // WatchSyncStatusResponse is the response type for WatchSyncStatus.
@@ -4653,6 +4695,7 @@ func (m *SyncBlockStoreStatus) CloneVT() *SyncBlockStoreStatus {
 	r.AcceptedCheckpointHeight = m.AcceptedCheckpointHeight
 	r.CloudRemoteSequence = m.CloudRemoteSequence
 	r.SharedObjectId = m.SharedObjectId
+	r.Held = protobuf_go_lite.CloneVTValue(m.Held)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4660,6 +4703,23 @@ func (m *SyncBlockStoreStatus) CloneVT() *SyncBlockStoreStatus {
 }
 
 func (m *SyncBlockStoreStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SyncHeldState) CloneVT() *SyncHeldState {
+	if m == nil {
+		return (*SyncHeldState)(nil)
+	}
+	r := new(SyncHeldState)
+	r.DamagedBlockCount = m.DamagedBlockCount
+	r.HeldAt = protobuf_go_lite.CloneVTValue(m.HeldAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SyncHeldState) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -6895,11 +6955,37 @@ func (this *SyncBlockStoreStatus) EqualVT(that *SyncBlockStoreStatus) bool {
 	if this.SharedObjectId != that.SharedObjectId {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Held, that.Held) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SyncBlockStoreStatus) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SyncBlockStoreStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SyncHeldState) EqualVT(that *SyncHeldState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.DamagedBlockCount != that.DamagedBlockCount {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.HeldAt, that.HeldAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SyncHeldState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SyncHeldState)
 	if !ok {
 		return false
 	}
@@ -10665,6 +10751,11 @@ func (x *SyncBlockStoreStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sharedObjectId")
 		s.WriteString(x.SharedObjectId)
 	}
+	if x.Held != nil || s.HasField("held") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("held")
+		x.Held.MarshalProtoJSON(s.WithField("held"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10706,12 +10797,73 @@ func (x *SyncBlockStoreStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "shared_object_id", "sharedObjectId":
 			s.AddField("shared_object_id")
 			x.SharedObjectId = s.ReadString()
+		case "held":
+			if s.ReadNil() {
+				x.Held = nil
+				return
+			}
+			x.Held = &SyncHeldState{}
+			x.Held.UnmarshalProtoJSON(s.WithField("held", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SyncBlockStoreStatus from JSON.
 func (x *SyncBlockStoreStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SyncHeldState message to JSON.
+func (x *SyncHeldState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.DamagedBlockCount != 0 || s.HasField("damagedBlockCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("damagedBlockCount")
+		s.WriteUint32(x.DamagedBlockCount)
+	}
+	if x.HeldAt != nil || s.HasField("heldAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("heldAt")
+		x.HeldAt.MarshalProtoJSON(s.WithField("heldAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SyncHeldState to JSON.
+func (x *SyncHeldState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SyncHeldState message from JSON.
+func (x *SyncHeldState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "damaged_block_count", "damagedBlockCount":
+			s.AddField("damaged_block_count")
+			x.DamagedBlockCount = s.ReadUint32()
+		case "held_at", "heldAt":
+			if s.ReadNil() {
+				x.HeldAt = nil
+				return
+			}
+			x.HeldAt = &timestamppb.Timestamp{}
+			x.HeldAt.UnmarshalProtoJSON(s.WithField("held_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SyncHeldState from JSON.
+func (x *SyncHeldState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -17211,6 +17363,16 @@ func (m *SyncBlockStoreStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Held != nil {
+		size, err := m.Held.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if len(m.SharedObjectId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
 		i--
@@ -17250,6 +17412,53 @@ func (m *SyncBlockStoreStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.BlockStoreId)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SyncHeldState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SyncHeldState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SyncHeldState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.HeldAt != nil {
+		size, err := m.HeldAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.DamagedBlockCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DamagedBlockCount))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -22231,6 +22440,25 @@ func (m *SyncBlockStoreStatus) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.AcceptedCheckpointHeight)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CloudRemoteSequence)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	if m.Held != nil {
+		l = m.Held.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SyncHeldState) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.DamagedBlockCount)
+	if m.HeldAt != nil {
+		l = m.HeldAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -24001,10 +24229,32 @@ func (x *SyncBlockStoreStatus) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
 		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
 	}
+	if x.Held != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "held")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Held)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SyncBlockStoreStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SyncHeldState) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SyncHeldState")
+	if x.DamagedBlockCount != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "damaged_block_count")
+		protobuf_go_lite.TextWriteUint(&sb, x.DamagedBlockCount)
+	}
+	if x.HeldAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "held_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.HeldAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SyncHeldState) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -27418,6 +27668,88 @@ func (m *SyncBlockStoreStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SharedObjectId = v
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Held", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Held == nil {
+				m.Held = &SyncHeldState{}
+			}
+			if err := m.Held.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SyncHeldState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SyncHeldState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SyncHeldState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DamagedBlockCount", wireType)
+			}
+			m.DamagedBlockCount = 0
+			m.DamagedBlockCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HeldAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.HeldAt == nil {
+				m.HeldAt = &timestamppb.Timestamp{}
+			}
+			if err := m.HeldAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
