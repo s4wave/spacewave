@@ -49,6 +49,8 @@ func (s *SourceStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 		if err != nil || stored == nil {
 			continue
 		}
+		// A source need not verify its reads, as FrameStore does not, so
+		// check the bytes here; a source that does verify fails the read.
 		if ref.VerifyData(stored.Data, false) == nil {
 			return stored, nil
 		}

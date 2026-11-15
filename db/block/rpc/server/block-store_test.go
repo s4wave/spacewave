@@ -13,10 +13,16 @@ type testStore struct {
 
 	features     block.StoreFeature
 	batchEntries []*block.PutBatchEntry
+	putCalls     int
 	fenced       bool
 	syncCount    int
 	// background records whether the last block read was background work.
 	background bool
+}
+
+func (s *testStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	s.putCalls++
+	return s.NopStoreOps.PutBlock(ctx, data, opts)
 }
 
 func (s *testStore) GetSupportedFeatures() block.StoreFeature {
@@ -190,3 +196,23 @@ func TestBlockStoreBackgroundPolicyMarksEveryRead(t *testing.T) {
 
 // _ is a type assertion
 var _ block.StoreOps = (*testStore)(nil)
+
+// TestBlockStorePutBlockRefusesWrongBytes checks that a single put whose bytes
+// do not hash to the ref it forces is refused before the store sees it.
+func TestBlockStorePutBlockRefusesWrongBytes(t *testing.T) {
+	store := &testStore{}
+	server := NewBlockStore(store)
+	resp, err := server.PutBlock(context.Background(), &block_rpc.PutBlockRequest{
+		Data:    []byte("other"),
+		PutOpts: &block.PutOpts{ForceBlockRef: mustBlockRef(t, []byte("named"))},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := resp.GetError(); got != block.ErrBlockRefMismatch.Error() {
+		t.Fatalf("error = %q, want %q", got, block.ErrBlockRefMismatch.Error())
+	}
+	if store.putCalls != 0 {
+		t.Fatalf("store took %d puts of refused bytes", store.putCalls)
+	}
+}

@@ -66,11 +66,12 @@ type corruptSource struct {
 	bad *block.BlockRef
 }
 
-// GetStoredBlock flips the bad block's bytes.
+// GetStoredBlock fails the bad block's read as corrupt, as a store that
+// verifies its reads does.
 func (c corruptSource) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	stored, err := c.Source.GetStoredBlock(ctx, ref)
 	if stored != nil && ref.EqualsRef(c.bad) {
-		return &block.StoredBlock{Data: []byte("wrong"), Refs: stored.Refs, RefsKnown: true}, nil
+		return nil, &block.CorruptError{Ref: ref}
 	}
 	return stored, err
 }

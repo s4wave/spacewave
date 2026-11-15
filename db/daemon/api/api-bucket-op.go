@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_event "github.com/s4wave/spacewave/db/bucket/event"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -30,6 +31,10 @@ func (a *API) BucketOp(
 	// Apply the requested block mutation or lookup.
 	switch req.GetOp() {
 	case BucketOp_BucketOp_BLOCK_PUT:
+		// The bytes come from another process: check a forced ref first.
+		if err := block.VerifyPutOpts(req.GetData(), req.GetPutOpts()); err != nil {
+			return nil, err
+		}
 		ref, existed, err := bk.PutBlock(ctx, req.GetData(), req.GetPutOpts())
 		if err != nil {
 			return nil, err

@@ -2,12 +2,40 @@
 // @generated from file github.com/s4wave/spacewave/db/block/rpc/block.proto (package block.rpc, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import type { StoreFeature } from '../block.pb.js'
 import { BlockRef, PutOpts, StoreFeature_Enum } from '../block.pb.js'
+
+/**
+ * GetBlockFailure classifies a failed block read.
+ *
+ * @generated from enum block.rpc.GetBlockFailure
+ */
+export enum GetBlockFailure {
+  /**
+   * GET_BLOCK_FAILURE_ERROR is any failure without a class below; error
+   * carries its text.
+   */
+  ERROR = 0,
+
+  /**
+   * GET_BLOCK_FAILURE_CORRUPT means the serving store read bytes that do not
+   * hash to the ref: block.ErrBlockCorrupt.
+   */
+  CORRUPT = 1,
+}
+
+export const GetBlockFailure_Enum = /* @__PURE__ */ createEnumType(
+  'block.rpc.GetBlockFailure',
+  [
+    [0, 'GET_BLOCK_FAILURE_ERROR'],
+    [1, 'GET_BLOCK_FAILURE_CORRUPT'],
+  ],
+)
 
 /**
  * GetHashTypeRequest requests the preferred hash type for the store.
@@ -268,6 +296,11 @@ export interface GetBlockResponse {
    * RefsKnown indicates the store recorded the block's outgoing refs.
    */
   refsKnown?: boolean
+  /**
+   * Failure classifies error, so the client returns the same error type the
+   * serving store did.
+   */
+  failure?: GetBlockFailure
 }
 
 export const GetBlockResponse: MessageType<GetBlockResponse> =
@@ -279,6 +312,7 @@ export const GetBlockResponse: MessageType<GetBlockResponse> =
       [3, 'error', 9],
       [4, 'refs', 11, 1, BlockRef.codec],
       [5, 'refs_known', 8],
+      [6, 'failure', 14, 0, GetBlockFailure_Enum],
     ],
   )
 

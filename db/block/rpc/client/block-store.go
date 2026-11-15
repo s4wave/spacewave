@@ -197,8 +197,8 @@ func (v *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 	if err != nil {
 		return nil, false, err
 	}
-	if errStr := resp.GetError(); errStr != "" {
-		return nil, false, errors.New(errStr)
+	if err := readFailure(ref, resp); err != nil {
+		return nil, false, err
 	}
 	if !resp.GetExists() {
 		return nil, false, nil
@@ -224,8 +224,8 @@ func (v *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	}
 
 	// Propagate the remote store failure or absence before constructing the block.
-	if errStr := resp.GetError(); errStr != "" {
-		return nil, errors.New(errStr)
+	if err := readFailure(ref, resp); err != nil {
+		return nil, err
 	}
 	if !resp.GetExists() {
 		return nil, nil
@@ -329,3 +329,17 @@ func (v *BlockStore) Sync(ctx context.Context) (bool, error) {
 
 // _ verifies the remote store contract.
 var _ block.StoreOps = (*BlockStore)(nil)
+
+// readFailure returns the error of a block read response with the type the
+// serving store returned: a CorruptError for a corrupt read, so the read-through
+// and fallback layers above take their corrupt branch for a remote store too.
+func readFailure(ref *block.BlockRef, resp *block_rpc.GetBlockResponse) error {
+	errStr := resp.GetError()
+	if errStr == "" {
+		return nil
+	}
+	if resp.GetFailure() == block_rpc.GetBlockFailure_GET_BLOCK_FAILURE_CORRUPT {
+		return &block.CorruptError{Ref: ref}
+	}
+	return errors.New(errStr)
+}

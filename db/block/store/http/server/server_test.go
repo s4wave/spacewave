@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -79,6 +80,20 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	}
 	if !retBlockExists {
 		t.Fail()
+	}
+
+	// Put bytes under a forced ref they do not hash to: the server refuses
+	// them and stores nothing under the ref.
+	namedRef, err := block.BuildBlockRef([]byte("named"), samplePutOpts)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, _, err = client.PutBlock(ctx, []byte("other"), &block.PutOpts{ForceBlockRef: namedRef})
+	if err == nil || !strings.Contains(err.Error(), block.ErrBlockRefMismatch.Error()) {
+		t.Fatalf("put wrong bytes: err = %v, want %v", err, block.ErrBlockRefMismatch)
+	}
+	if found, err := vol.GetBlockExists(ctx, namedRef); err != nil || found {
+		t.Fatalf("wrong bytes stored: found = %v, err = %v", found, err)
 	}
 
 	// Get a not-found block
