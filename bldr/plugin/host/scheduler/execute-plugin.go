@@ -117,7 +117,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	if err != nil {
 		return err
 	}
-	proxyHostVol := volume_rpc_server.NewProxyVolume(ctx, t.c.newPluginVolume(hostVol.vol, pluginID), false)
+	proxyHostVol := volume_rpc_server.NewProxyVolume(ctx, newPluginVolume(hostVol.vol, t.bindingKey, pluginID), false)
 
 	// Wait for the World state handle.
 	ws, err := t.c.worldStateCtr.WaitValue(ctx, nil)
