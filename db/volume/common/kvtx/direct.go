@@ -1,6 +1,7 @@
 package kvtx
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -177,7 +178,81 @@ func (d *directTx) settle() {
 // land stores entries and moves roots of bucketID in p, as block_gc.Land
 // describes, at the Volume's clock.
 func (v *Volume) land(ctx context.Context, p *physicalTx, bucketID string, entries []*block.PutBatchEntry, roots []block.NamedRoot) ([]bool, error) {
-	return v.landMoves(ctx, p, entries, block_gc.BucketRoots{BucketID: bucketID, Roots: roots})
+	stageHeld := func(ctx context.Context, ref *block.BlockRef) (bool, error) {
+		return v.heldByStage(ctx, p, ref)
+	}
+	return v.landMoves(ctx, p, entries, block_gc.BucketRoots{
+		BucketID:  bucketID,
+		Roots:     roots,
+		Mode:      v.heldMode,
+		StageHeld: stageHeld,
+		Observed:  v.observeNotHeld,
+	})
+}
+
+// observeNotHeld counts the blocks not held, by reason, that a root move
+// requiring its blocks held landed over while observing, or the error that
+// stopped the check with no counts, and logs either at Debug: an ordinary
+// admit over a released stage counts a child. The health snapshot reports the counts.
+// The reason names which block failed, the root or a child outside the batch;
+// it does not tell whether a repeat cures it.
+func (v *Volume) observeNotHeld(notHeld [block_gc.NotHeldChild + 1]uint64, err error) {
+	for reason, n := range notHeld {
+		v.notHeld[reason].Add(n)
+	}
+	if v.le != nil {
+		le := v.le.WithField("root-blocks", notHeld[block_gc.NotHeldRoot]).WithField("child-blocks", notHeld[block_gc.NotHeldChild])
+		if err != nil {
+			le = le.WithError(err)
+		}
+		le.Debug("root move landed over blocks not held or unchecked")
+	}
+}
+
+// heldByStage reports whether an open, unreleased stage of this process holds
+// ref by a root p's records still hold. Land asks it for a root that requires
+// its blocks held, when ref's netted holders read zero. Any open stage serves
+// as proof: a stage put lands each block's children before the block, in the
+// same transactions as its stage roots, so a block a stage root holds is
+// stored whole. It is proof only at the instant of the Land; from that
+// transaction on the move's own holders keep ref, so a later release of the
+// stage changes nothing.
+//
+// It takes rootPinMu inside p, as applyDeferred does. No caller of land holds
+// rootPinMu: it is never held while a Volume transaction opens or runs.
+func (v *Volume) heldByStage(ctx context.Context, p *physicalTx, ref *block.BlockRef) (bool, error) {
+	// Find the open stages whose record holds ref, under the pin lock.
+	unlock, err := v.rootPinMu.Lock(ctx)
+	if err != nil {
+		return false, err
+	}
+	var names []string
+	for stage, st := range v.stages {
+		if st.released || st.lost {
+			continue
+		}
+		name := stageRootName(stage, ref)
+		st.mu.Lock()
+		held := st.roots[name]
+		st.mu.Unlock()
+		if !held.GetEmpty() && held.EqualsRef(ref) {
+			names = append(names, name)
+		}
+	}
+	unlock()
+
+	// Confirm a root in the transaction: a collector releases a lapsed one.
+	key := block_gc.BlockKey(ref)
+	for _, name := range names {
+		entry, err := p.rec.GetRoot(ctx, "", name)
+		if err != nil {
+			return false, err
+		}
+		if entry != nil && bytes.Equal(entry.GetRef(), key) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // landMoves stores entries and moves the roots of each bucket in p in one

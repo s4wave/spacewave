@@ -172,7 +172,7 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 	// Hold them, then record the order, counting the keys of the operations
 	// it added and dropped.
 	if len(extra) != 0 {
-		if err := a.addPayloads(ctx, extra); err != nil {
+		if err := a.addPayloads(ctx, extra, false); err != nil {
 			return err
 		}
 	}
@@ -409,7 +409,7 @@ func (a *Adapter) resetPayloads(ctx context.Context, kept bool) error {
 	// Append them, or move onto the planned set with them and every held root
 	// a pending admission names, read again under the lock (invariant 3).
 	if drop == nil {
-		return a.appendRoots(ctx, h, missing)
+		return a.appendRoots(ctx, h, missing, false)
 	}
 	admitted := slices.DeleteFunc(a.pendingPayloads(), func(ref *block.BlockRef) bool { return !h.holds(ref) })
 	return a.movePayloadDrop(ctx, drop, len(snap), slices.Concat(missing, admitted))

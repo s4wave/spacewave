@@ -818,7 +818,7 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	// before queueing it, so the device that later owns the Space holds every
 	// payload above the checkpoint without the peer that wrote it.
 	if len(pos.payloads) != 0 {
-		if err := a.addPayloads(ctx, pos.payloads); err != nil {
+		if err := a.addPayloads(ctx, pos.payloads, false); err != nil {
 			return "", err
 		}
 	}
@@ -1099,7 +1099,7 @@ func (a *Adapter) runTrim(ctx context.Context, p *trimPlan) error {
 			a.checkpointWorlds.held(keep, nil),
 			a.imported.held(keepImported, nil),
 		}
-		return a.setRootSets(ctx, sets, next, nil, block.NamedRoot{Name: RootReplayBase, Ref: p.base})
+		return a.setRootSets(ctx, sets, next, nil, false, block.NamedRoot{Name: RootReplayBase, Ref: p.base})
 	})
 }
 
@@ -1175,7 +1175,7 @@ func (a *Adapter) admit(adm *spaceAdmission) {
 func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	// Hold the payloads before the operation that names them is queued.
 	if len(adm.payloads) != 0 {
-		if err := a.addPayloads(ctx, adm.payloads); err != nil {
+		if err := a.addPayloads(ctx, adm.payloads, true); err != nil {
 			return err
 		}
 	}
@@ -1684,14 +1684,17 @@ func (a *Adapter) readRetained(ctx context.Context) error {
 // calls it before the operation that names them is queued, so the swap stores
 // the writer's own kept payload pages in its one transaction, and the lock
 // waits only for another swap. Apply calls it for each operation it applies,
-// which holds nothing new for one this device already holds.
-func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef) error {
+// which holds nothing new for one this device already holds. requireHeld
+// refuses a payload nothing holds now with block.ErrRootNotHeld: a local
+// writer sets it, since a stage released before the admit may have left its
+// tree to the collector.
+func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef, requireHeld bool) error {
 	release, err := a.lockRoots(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
-	return a.appendRoots(ctx, &a.payloads, extra)
+	return a.appendRoots(ctx, &a.payloads, extra, requireHeld)
 }
 
 // holdRetained holds the retained roots under the retained root, or releases

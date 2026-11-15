@@ -29,8 +29,25 @@ message Config {
   // time a reader takes to pin a head it saw and the lease of a leased root.
   // Empty uses the collector's default of 15 minutes.
   string collector_grace_dur = 8;
+  // RootHeldCheck is what the Volume does with a root move that requires its
+  // blocks held when a block it reaches is not.
+  RootHeldCheck root_held_check = 9;
 
   // reserved: 1 mqueue_config
   // reserved: 4 gc_mark_walk, 5 disable_hold_counts, 6 upgrade_shared_counts
   reserved 4, 5, 6;
+}
+
+// RootHeldCheck is what a Volume does with a root move that requires its
+// blocks held when a block it reaches is not. The check changes nothing the
+// collector frees.
+enum RootHeldCheck {
+  // ROOT_HELD_CHECK_UNKNOWN, the unset default, refuses the move while
+  // CollectorFrees is on, and observes it otherwise.
+  ROOT_HELD_CHECK_UNKNOWN = 0;
+  // ROOT_HELD_CHECK_OFF checks nothing.
+  ROOT_HELD_CHECK_OFF = 1;
+  // ROOT_HELD_CHECK_OBSERVE lands the move, and counts and logs the blocks
+  // not held by reason.
+  ROOT_HELD_CHECK_OBSERVE = 2;
 }

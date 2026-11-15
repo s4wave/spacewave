@@ -140,6 +140,17 @@ export interface VolumeHealth {
    * as of SizesAt. Zero when the volume keeps no reserve.
    */
   reserveBytes?: bigint
+  /**
+   * NotHeldRootBlocks counts the root blocks not held that root moves
+   * requiring their blocks held landed over while the volume observed rather
+   * than refused, since the volume opened.
+   */
+  notHeldRootBlocks?: bigint
+  /**
+   * NotHeldChildBlocks counts the children outside their batch, not held, that
+   * such moves landed over while the volume observed, since it opened.
+   */
+  notHeldChildBlocks?: bigint
 }
 
 export const VolumeHealth: MessageType<VolumeHealth> =
@@ -154,4 +165,6 @@ export const VolumeHealth: MessageType<VolumeHealth> =
     [8, 'sizes_at', 11, 0, Timestamp.codec],
     [11, 'write_state', 14, 0, VolumeWriteState_Enum],
     [12, 'reserve_bytes', 4],
+    [13, 'not_held_root_blocks', 4],
+    [14, 'not_held_child_blocks', 4],
   ])

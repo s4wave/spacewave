@@ -100,6 +100,8 @@ func (v *ProxyVolume) SetBucketRoots(ctx context.Context, bucketID string, entri
 		return block.RootMoved(resp.GetName())
 	case volume_rpc.SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_UNHELD:
 		return errors.Join(block.ErrRootsUnheld, errors.New(resp.GetName()))
+	case volume_rpc.SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD:
+		return errors.Join(block.ErrRootNotHeld, errors.New(resp.GetName()))
 	}
 	return nil
 }

@@ -137,6 +137,13 @@ type VolumeHealth struct {
 	// ReserveBytes is the free disk below which the volume refuses new writes,
 	// as of SizesAt. Zero when the volume keeps no reserve.
 	ReserveBytes uint64 `protobuf:"varint,12,opt,name=reserve_bytes,json=reserveBytes,proto3" json:"reserveBytes,omitempty"`
+	// NotHeldRootBlocks counts the root blocks not held that root moves
+	// requiring their blocks held landed over while the volume observed rather
+	// than refused, since the volume opened.
+	NotHeldRootBlocks uint64 `protobuf:"varint,13,opt,name=not_held_root_blocks,json=notHeldRootBlocks,proto3" json:"notHeldRootBlocks,omitempty"`
+	// NotHeldChildBlocks counts the children outside their batch, not held, that
+	// such moves landed over while the volume observed, since it opened.
+	NotHeldChildBlocks uint64 `protobuf:"varint,14,opt,name=not_held_child_blocks,json=notHeldChildBlocks,proto3" json:"notHeldChildBlocks,omitempty"`
 }
 
 func (x *VolumeHealth) Reset() {
@@ -215,6 +222,20 @@ func (x *VolumeHealth) GetReserveBytes() uint64 {
 	return 0
 }
 
+func (x *VolumeHealth) GetNotHeldRootBlocks() uint64 {
+	if x != nil {
+		return x.NotHeldRootBlocks
+	}
+	return 0
+}
+
+func (x *VolumeHealth) GetNotHeldChildBlocks() uint64 {
+	if x != nil {
+		return x.NotHeldChildBlocks
+	}
+	return 0
+}
+
 func (m *VolumeHealth) CloneVT() *VolumeHealth {
 	if m == nil {
 		return (*VolumeHealth)(nil)
@@ -228,6 +249,8 @@ func (m *VolumeHealth) CloneVT() *VolumeHealth {
 	r.SizesKnown = m.SizesKnown
 	r.WriteState = m.WriteState
 	r.ReserveBytes = m.ReserveBytes
+	r.NotHeldRootBlocks = m.NotHeldRootBlocks
+	r.NotHeldChildBlocks = m.NotHeldChildBlocks
 	r.GcPhaseStart = protobuf_go_lite.CloneVTValue(m.GcPhaseStart)
 	r.SizesAt = protobuf_go_lite.CloneVTValue(m.SizesAt)
 	if len(m.unknownFields) > 0 {
@@ -274,6 +297,12 @@ func (this *VolumeHealth) EqualVT(that *VolumeHealth) bool {
 		return false
 	}
 	if this.ReserveBytes != that.ReserveBytes {
+		return false
+	}
+	if this.NotHeldRootBlocks != that.NotHeldRootBlocks {
+		return false
+	}
+	if this.NotHeldChildBlocks != that.NotHeldChildBlocks {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -425,6 +454,16 @@ func (x *VolumeHealth) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("reserveBytes")
 		s.WriteUint64(x.ReserveBytes)
 	}
+	if x.NotHeldRootBlocks != 0 || s.HasField("notHeldRootBlocks") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("notHeldRootBlocks")
+		s.WriteUint64(x.NotHeldRootBlocks)
+	}
+	if x.NotHeldChildBlocks != 0 || s.HasField("notHeldChildBlocks") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("notHeldChildBlocks")
+		s.WriteUint64(x.NotHeldChildBlocks)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -480,6 +519,12 @@ func (x *VolumeHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "reserve_bytes", "reserveBytes":
 			s.AddField("reserve_bytes")
 			x.ReserveBytes = s.ReadUint64()
+		case "not_held_root_blocks", "notHeldRootBlocks":
+			s.AddField("not_held_root_blocks")
+			x.NotHeldRootBlocks = s.ReadUint64()
+		case "not_held_child_blocks", "notHeldChildBlocks":
+			s.AddField("not_held_child_blocks")
+			x.NotHeldChildBlocks = s.ReadUint64()
 		}
 	})
 }
@@ -517,6 +562,16 @@ func (m *VolumeHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.NotHeldChildBlocks != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NotHeldChildBlocks))
+		i--
+		dAtA[i] = 0x70
+	}
+	if m.NotHeldRootBlocks != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NotHeldRootBlocks))
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.ReserveBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ReserveBytes))
@@ -603,6 +658,8 @@ func (m *VolumeHealth) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WriteState)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReserveBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NotHeldRootBlocks)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NotHeldChildBlocks)
 	n += len(m.unknownFields)
 	return n
 }
@@ -657,6 +714,14 @@ func (x *VolumeHealth) MarshalProtoText() string {
 	if x.ReserveBytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reserve_bytes")
 		protobuf_go_lite.TextWriteUint(&sb, x.ReserveBytes)
+	}
+	if x.NotHeldRootBlocks != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "not_held_root_blocks")
+		protobuf_go_lite.TextWriteUint(&sb, x.NotHeldRootBlocks)
+	}
+	if x.NotHeldChildBlocks != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "not_held_child_blocks")
+		protobuf_go_lite.TextWriteUint(&sb, x.NotHeldChildBlocks)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -790,6 +855,24 @@ func (m *VolumeHealth) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ReserveBytes = 0
 			m.ReserveBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotHeldRootBlocks", wireType)
+			}
+			m.NotHeldRootBlocks = 0
+			m.NotHeldRootBlocks, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotHeldChildBlocks", wireType)
+			}
+			m.NotHeldChildBlocks = 0
+			m.NotHeldChildBlocks, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

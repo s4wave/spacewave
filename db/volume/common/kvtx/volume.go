@@ -160,6 +160,11 @@ type Volume struct {
 	le *logrus.Entry
 	// storageFlows fills in the flows the storage counts, may be nil.
 	storageFlows func(*volume.VolumeFlows)
+	// heldMode is what Land does with a root move that requires its blocks
+	// held when one is not, from Config.RootHeldCheck.
+	heldMode block_gc.HeldMode
+	// notHeld counts the blocks observed not held, by block_gc.NotHeldReason.
+	notHeld [block_gc.NotHeldChild + 1]atomic.Uint64
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.
@@ -238,12 +243,26 @@ func NewVolume(
 			return nil, volume.Permanent(err)
 		}
 		v.collector = v.newCollector(conf.GetCollectorFrees(), grace)
+		v.heldMode = rootHeldMode(conf.GetRootHeldCheck(), conf.GetCollectorFrees())
 		if err := v.startLiveness(ctx); err != nil {
 			return nil, err
 		}
 	}
 	op.Handoff()
 	return v, nil
+}
+
+// rootHeldMode returns the Land mode for check: off and observe as set, and
+// otherwise refusal exactly while the collector frees, observation while it
+// does not.
+func rootHeldMode(check store_kvtx.RootHeldCheck, frees bool) block_gc.HeldMode {
+	switch {
+	case check == store_kvtx.RootHeldCheck_ROOT_HELD_CHECK_OFF:
+		return block_gc.HeldOff
+	case check == store_kvtx.RootHeldCheck_ROOT_HELD_CHECK_OBSERVE || !frees:
+		return block_gc.HeldObserve
+	}
+	return block_gc.HeldEnforce
 }
 
 // newCollector returns the collector of the Volume, which frees when frees is

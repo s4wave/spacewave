@@ -284,7 +284,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	go func() { done <- a.resetPayloads(ctx, false) }()
 	time.Sleep(50 * time.Millisecond)
 	adm := admit(a, first)
-	if err := a.setRootSets(ctx, []*rootSet{&a.payloads}, [][]*block.BlockRef{{first}}, nil); err != nil {
+	if err := a.setRootSets(ctx, []*rootSet{&a.payloads}, [][]*block.BlockRef{{first}}, nil, false); err != nil {
 		t.Fatal(err)
 	}
 	release()
@@ -311,7 +311,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	second := put(a, "second", shared)
 	third := put(a, "third", shared)
 	adm = admit(a, second, third)
-	if err := a.addPayloads(ctx, adm.payloads); err != nil {
+	if err := a.addPayloads(ctx, adm.payloads, false); err != nil {
 		t.Fatal(err)
 	}
 	expect(a, "admission after the release", []*block.BlockRef{second, third}, second, third, shared)
@@ -320,7 +320,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	// root back to the set it left, and keeps the shared page.
 	fourth := put(a, "fourth", shared)
 	other := admit(a, fourth)
-	if err := a.addPayloads(ctx, other.payloads); err != nil {
+	if err := a.addPayloads(ctx, other.payloads, false); err != nil {
 		t.Fatal(err)
 	}
 	if want := []*block.BlockRef{second, third, fourth}; !slices.EqualFunc(stored(a), want, refEqual) {
@@ -356,7 +356,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		t.Fatal(err)
 	}
 	fifth := put(b, "fifth", shared)
-	if err := b.addPayloads(ctx, admit(b, fifth).payloads); err != nil {
+	if err := b.addPayloads(ctx, admit(b, fifth).payloads, false); err != nil {
 		t.Fatal(err)
 	}
 	expect(b, "admission after the open", []*block.BlockRef{second, third, fifth}, second, third, fifth, shared)
@@ -368,7 +368,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	for i := range 8 {
 		extra := put(b, "payload "+strconv.Itoa(i))
 		prev := b.held[RootReplayPayloads]
-		if err := b.addPayloads(ctx, []*block.BlockRef{extra}); err != nil {
+		if err := b.addPayloads(ctx, []*block.BlockRef{extra}, false); err != nil {
 			t.Fatal(err)
 		}
 		want = append(want, extra)
@@ -388,14 +388,14 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	// ref, moves nothing; adding them beside a new payload names only the new
 	// one. The collection then keeps every payload the set holds.
 	held = b.held[RootReplayPayloads]
-	if err := b.addPayloads(ctx, []*block.BlockRef{second, want[4], second, nil}); err != nil {
+	if err := b.addPayloads(ctx, []*block.BlockRef{second, want[4], second, nil}, false); err != nil {
 		t.Fatal(err)
 	}
 	if !refEqual(b.held[RootReplayPayloads], held) {
 		t.Fatalf("re-adding held payloads moved the payloads root from %v to %v", held, b.held[RootReplayPayloads])
 	}
 	sixth := put(b, "sixth", shared)
-	if err := b.addPayloads(ctx, []*block.BlockRef{third, sixth, sixth, fifth}); err != nil {
+	if err := b.addPayloads(ctx, []*block.BlockRef{third, sixth, sixth, fifth}, false); err != nil {
 		t.Fatal(err)
 	}
 	want = append(want, sixth)
@@ -453,7 +453,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		// Show what the open on an empty set costs: a payload and a World
 		// added beside it release the unread block's roots.
 		extra := put(c, "extra "+name)
-		if err := c.addPayloads(ctx, admit(c, extra).payloads); err != nil {
+		if err := c.addPayloads(ctx, admit(c, extra).payloads, false); err != nil {
 			t.Fatal(err)
 		}
 		release, err := c.rootMtx.Lock(ctx)
@@ -1280,7 +1280,7 @@ func TestStaleAdapterHistoryRewriteFails(t *testing.T) {
 	// B rewrites the history alone, dropping Wc, as a stale trim does.
 	other := put("other")
 	locked(b, func() error {
-		return b.setRootSets(ctx, []*rootSet{&b.checkpointWorlds}, [][]*block.BlockRef{{other}}, nil)
+		return b.setRootSets(ctx, []*rootSet{&b.checkpointWorlds}, [][]*block.BlockRef{{other}}, nil, false)
 	})
 	before := map[string]*block.BlockRef{}
 	for _, name := range []string{RootReplayBase, RootCheckpoint} {
@@ -1358,7 +1358,7 @@ func TestResetPayloadsKeepsUnresolved(t *testing.T) {
 	store := a.so.GetBlockStore()
 	refs := putPayloads(ctx, t, store, "payload ", 2)
 	named, unnamed := refs[0], refs[1]
-	if err := a.addPayloads(ctx, refs); err != nil {
+	if err := a.addPayloads(ctx, refs, false); err != nil {
 		t.Fatal(err)
 	}
 	w := putPayloads(ctx, t, a.pages, "World ", 1)[0]
@@ -1413,7 +1413,7 @@ func TestResetPayloadsKeepsPayloadAdmittedAfterPlan(t *testing.T) {
 	f.a.resetPlanned = func() {
 		f.a.resetPlanned = nil
 		f.admit(f.admitted)
-		if err := f.a.addPayloads(ctx, []*block.BlockRef{f.admitted}); err != nil {
+		if err := f.a.addPayloads(ctx, []*block.BlockRef{f.admitted}, false); err != nil {
 			t.Error(err)
 		}
 	}
@@ -1443,7 +1443,7 @@ func newAdmittedPayloads(t *testing.T) *admittedPayloads {
 	ctx := t.Context()
 	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
 	refs := putPayloads(ctx, t, a.so.GetBlockStore(), "payload ", 3)
-	if err := a.addPayloads(ctx, refs); err != nil {
+	if err := a.addPayloads(ctx, refs, false); err != nil {
 		t.Fatal(err)
 	}
 	w := putPayloads(ctx, t, a.pages, "World ", 1)[0]
@@ -1510,7 +1510,7 @@ func timeResetPayloads(t *testing.T, n, drop int) {
 	named := putPayloads(ctx, t, store, "named ", n)
 	dropped := putPayloads(ctx, t, store, "dropped ", drop)
 	for chunk := range slices.Chunk(slices.Concat(named, dropped), 4096) {
-		if err := a.addPayloads(ctx, chunk); err != nil {
+		if err := a.addPayloads(ctx, chunk, false); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1617,7 +1617,7 @@ func TestTrimReleasesImportedPayloadOnceHeld(t *testing.T) {
 
 	// A save that drops it from the payloads root keeps it imported, and so
 	// does the next trim.
-	if err := a.addPayloads(ctx, []*block.BlockRef{payload}); err != nil {
+	if err := a.addPayloads(ctx, []*block.BlockRef{payload}, false); err != nil {
 		t.Fatal(err)
 	}
 	holdOrder(a, placeholder, nil, false)
@@ -1632,7 +1632,7 @@ func TestTrimReleasesImportedPayloadOnceHeld(t *testing.T) {
 	requireImported("trim after the save", true)
 
 	// Once the payloads root holds it, the trim releases it there.
-	if err := a.addPayloads(ctx, []*block.BlockRef{payload}); err != nil {
+	if err := a.addPayloads(ctx, []*block.BlockRef{payload}, false); err != nil {
 		t.Fatal(err)
 	}
 	trim()

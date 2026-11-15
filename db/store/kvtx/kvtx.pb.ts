@@ -2,10 +2,46 @@
 // @generated from file github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto (package store.kvtx, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
+
+/**
+ * RootHeldCheck is what a Volume does with a root move that requires its
+ * blocks held when a block it reaches is not. The check changes nothing the
+ * collector frees.
+ *
+ * @generated from enum store.kvtx.RootHeldCheck
+ */
+export enum RootHeldCheck {
+  /**
+   * ROOT_HELD_CHECK_UNKNOWN, the unset default, refuses the move while
+   * CollectorFrees is on, and observes it otherwise.
+   */
+  UNKNOWN = 0,
+
+  /**
+   * ROOT_HELD_CHECK_OFF checks nothing.
+   */
+  OFF = 1,
+
+  /**
+   * ROOT_HELD_CHECK_OBSERVE lands the move, and counts and logs the blocks
+   * not held by reason.
+   */
+  OBSERVE = 2,
+}
+
+export const RootHeldCheck_Enum = /* @__PURE__ */ createEnumType(
+  'store.kvtx.RootHeldCheck',
+  [
+    [0, 'ROOT_HELD_CHECK_UNKNOWN'],
+    [1, 'ROOT_HELD_CHECK_OFF'],
+    [2, 'ROOT_HELD_CHECK_OBSERVE'],
+  ],
+)
 
 /**
  * Config is the configuration for the kvtx store.
@@ -45,6 +81,11 @@ export interface Config {
    * Empty uses the collector's default of 15 minutes.
    */
   collectorGraceDur?: string
+  /**
+   * RootHeldCheck is what the Volume does with a root move that requires its
+   * blocks held when a block it reaches is not.
+   */
+  rootHeldCheck?: RootHeldCheck
 }
 
 export const Config: MessageType<Config> =
@@ -53,4 +94,5 @@ export const Config: MessageType<Config> =
     [3, 'disable_hash_get', 8],
     [7, 'collector_frees', 8],
     [8, 'collector_grace_dur', 9],
+    [9, 'root_held_check', 14, 0, RootHeldCheck_Enum],
   ])
