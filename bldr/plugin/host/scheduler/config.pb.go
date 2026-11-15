@@ -107,6 +107,12 @@ type Config struct {
 	// root has a value. With no resolver the root waits: admission fails closed.
 	// The previously admitted root keeps running while a new root waits.
 	RequireAdmission bool `protobuf:"varint,23,opt,name=require_admission,json=requireAdmission,proto3" json:"requireAdmission,omitempty"`
+	// AllowedHostServiceIds lists bare host bus service IDs a plugin outside
+	// HostExportPluginIds may reach through its host's fallback, matched
+	// exactly. Such a plugin otherwise reaches only the services its host
+	// registers for it and other plugins' services under its own binding key.
+	// Empty allows none.
+	AllowedHostServiceIds []string `protobuf:"bytes,24,rep,name=allowed_host_service_ids,json=allowedHostServiceIds,proto3" json:"allowedHostServiceIds,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -276,6 +282,13 @@ func (x *Config) GetRequireAdmission() bool {
 	return false
 }
 
+func (x *Config) GetAllowedHostServiceIds() []string {
+	if x != nil {
+		return x.AllowedHostServiceIds
+	}
+	return nil
+}
+
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.
 type PlatformSelectionPolicy struct {
 	unknownFields []byte
@@ -345,6 +358,7 @@ func (m *Config) CloneVT() *Config {
 	r.ExternalPluginIds = protobuf_go_lite.CloneSlice(m.ExternalPluginIds)
 	r.HostExportPluginIds = protobuf_go_lite.CloneSlice(m.HostExportPluginIds)
 	r.PluginIds = protobuf_go_lite.CloneSlice(m.PluginIds)
+	r.AllowedHostServiceIds = protobuf_go_lite.CloneSlice(m.AllowedHostServiceIds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -446,6 +460,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.RequireAdmission != that.RequireAdmission {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.AllowedHostServiceIds, that.AllowedHostServiceIds) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -614,6 +631,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("requireAdmission")
 		s.WriteBool(x.RequireAdmission)
 	}
+	if len(x.AllowedHostServiceIds) > 0 || s.HasField("allowedHostServiceIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("allowedHostServiceIds")
+		s.WriteStringArray(x.AllowedHostServiceIds)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -743,6 +765,13 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "require_admission", "requireAdmission":
 			s.AddField("require_admission")
 			x.RequireAdmission = s.ReadBool()
+		case "allowed_host_service_ids", "allowedHostServiceIds":
+			s.AddField("allowed_host_service_ids")
+			if s.ReadNil() {
+				x.AllowedHostServiceIds = nil
+				return
+			}
+			x.AllowedHostServiceIds = s.ReadStringArray()
 		}
 	})
 }
@@ -846,6 +875,15 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.AllowedHostServiceIds) > 0 {
+		for iNdEx := len(m.AllowedHostServiceIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.AllowedHostServiceIds[iNdEx])
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xc2
+		}
 	}
 	if m.RequireAdmission {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RequireAdmission)
@@ -1097,6 +1135,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(2, m.PluginIds)
 	n += protobuf_go_lite.SizeBoolNonZero(2, m.AwaitFetchManifest)
 	n += protobuf_go_lite.SizeBoolNonZero(2, m.RequireAdmission)
+	n += protobuf_go_lite.SizeStringSlice(2, m.AllowedHostServiceIds)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1236,6 +1275,14 @@ func (x *Config) MarshalProtoText() string {
 	if x.RequireAdmission != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "require_admission")
 		protobuf_go_lite.TextWriteBool(&sb, x.RequireAdmission)
+	}
+	if len(x.AllowedHostServiceIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "allowed_host_service_ids")
+		for i, v := range x.AllowedHostServiceIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1536,6 +1583,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RequireAdmission = bool(v)
+		case 24:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AllowedHostServiceIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AllowedHostServiceIds = append(m.AllowedHostServiceIds, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

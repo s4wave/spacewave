@@ -95,6 +95,12 @@ message Config {
   // root has a value. With no resolver the root waits: admission fails closed.
   // The previously admitted root keeps running while a new root waits.
   bool require_admission = 23;
+  // AllowedHostServiceIds lists bare host bus service IDs a plugin outside
+  // HostExportPluginIds may reach through its host's fallback, matched
+  // exactly. Such a plugin otherwise reaches only the services its host
+  // registers for it and other plugins' services under its own binding key.
+  // Empty allows none.
+  repeated string allowed_host_service_ids = 24;
 }
 
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.
