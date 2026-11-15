@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -33,6 +34,13 @@ func (a *ProviderAccount) watchSOHosting(ctx context.Context, soID string, so *S
 			continue
 		}
 
+		// A test may hold the reconcile back.
+		if hook := soHostingReconcileHook.Load(); hook != nil {
+			if err := (*hook)(ctx); err != nil {
+				return err
+			}
+		}
+
 		// Record the head only after its reconciliation succeeds.
 		if err := a.reconcileSOHosting(ctx, soID, so); err != nil {
 			return err
@@ -40,6 +48,11 @@ func (a *ProviderAccount) watchSOHosting(ctx context.Context, soID string, so *S
 		head, checked = next, true
 	}
 }
+
+// soHostingReconcileHook, when set by a test, runs before each hosting
+// reconcile and may hold it back. It is nil in production.
+// Hosting routines read it concurrently, so it is set atomically.
+var soHostingReconcileHook atomic.Pointer[func(ctx context.Context) error]
 
 // reconcileSOHosting follows the owners named by the configuration of so.
 // The account holding the successor of a departure commits it and promotes its

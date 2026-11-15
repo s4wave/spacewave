@@ -94,7 +94,7 @@ func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey cryp
 	}
 
 	// A joined object asks one linked owner to commit the departure.
-	ownerID, err := a.waitLinkedOwner(ctx, own.Owners())
+	ownerID, err := a.waitLinkedOwner(ctx, local.soHost)
 	if err != nil {
 		return err
 	}
@@ -140,21 +140,58 @@ func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey cryp
 	})
 }
 
-// waitLinkedOwner returns an owner with a live link, waiting until one links.
+// waitLinkedOwner returns an owner of host with a live link, waiting until one links.
+// The owners come from the current state on each wake, because sync may name
+// a new owner, such as the Session an owner enrolls after this member joined.
 // The object's sync retains every owner, so the wait needs no dial of its own.
 // One owner receives the request, because two owners committing the same
 // departure would fork the config chain.
-func (a *ProviderAccount) waitLinkedOwner(ctx context.Context, owners []string) (peer.ID, error) {
+func (a *ProviderAccount) waitLinkedOwner(ctx context.Context, host *sobject.SOHost) (peer.ID, error) {
+	// Watch the state that names the owners.
+	states, release, err := host.GetSOStateCtr(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+	defer release()
+
 	for {
-		online, waitChs := a.GetOnlinePeerIDsWithWait(owners)
+		// Read the owners and their links from the current state.
+		state, err := states.WaitValue(ctx, nil)
+		if err != nil {
+			return "", err
+		}
+		own, err := sobject.ReadSOOwnership(ctx, state.GetConfig(), host.ReadConfigEntry)
+		if err != nil {
+			return "", err
+		}
+		online, linkChs := a.GetOnlinePeerIDsWithWait(own.Owners())
 		if len(online) != 0 {
 			return peer.IDB58Decode(online[0])
 		}
-		if err := broadcast.WaitAny(ctx, waitChs...); err != nil {
+		if leaveOwnerWaitHook != nil {
+			leaveOwnerWaitHook()
+		}
+
+		// Wake on a new state or on any link change, whichever comes first.
+		waitCtx, cancel := context.WithCancel(ctx)
+		go func() {
+			_ = broadcast.WaitAny(waitCtx, linkChs...)
+			cancel()
+		}()
+		_, err = states.WaitValueChange(waitCtx, state, nil)
+		cancel()
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return "", ctxErr
+		}
+		if err != nil && !errors.Is(err, context.Canceled) {
 			return "", err
 		}
 	}
 }
+
+// leaveOwnerWaitHook, when set by a test, runs each time a leave finds no
+// linked owner and is about to wait. It is nil in production.
+var leaveOwnerWaitHook func()
 
 // acceptSharedObjectLeave holds the addressed host until its signed removal is committed.
 func (a *ProviderAccount) acceptSharedObjectLeave(ctx context.Context, request *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error) {
