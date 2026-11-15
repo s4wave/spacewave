@@ -18,6 +18,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_entrypoint "github.com/s4wave/spacewave/bldr/plugin/entrypoint"
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
+	plugin_forward_rpc_service "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -275,28 +276,55 @@ func TestHostBusFallbackAllowsOwnSpaceWorld(t *testing.T) {
 	}
 }
 
-// relayLoads resolves LoadPlugin on the host bus for the host plugin with its
-// running client and reports the binding key of any other load, as loadSpy.
+// relayLoads resolves LoadPlugin on the host bus for the in-process plugins
+// with their running clients and reports the binding key of any other load, as
+// loadSpy.
 type relayLoads struct {
 	loadSpy
-	hostPluginID string
-	hostPlugin   bldr_plugin.RunningPlugin
+	plugins map[string]bldr_plugin.RunningPlugin
 }
 
 func (s *relayLoads) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	d, ok := di.GetDirective().(bldr_plugin.LoadPlugin)
-	if !ok || d.LoadPluginID() != s.hostPluginID {
+	if !ok || s.plugins[d.LoadPluginID()] == nil {
 		return s.loadSpy.HandleDirective(ctx, di)
 	}
-	return directive.R(directive.NewValueResolver([]bldr_plugin.RunningPlugin{s.hostPlugin}), nil)
+	return directive.R(directive.NewValueResolver([]bldr_plugin.RunningPlugin{s.plugins[d.LoadPluginID()]}), nil)
+}
+
+// inProcessPlugin runs pluginID on its own bus with the real entrypoint
+// controller, its host client bound to the scheduler's mux for it, and returns
+// the bus and a client to its root mux.
+func inProcessPlugin(ctx context.Context, t *testing.T, le *logrus.Entry, sched *Controller, pluginID string, ctrls ...controller.Controller) (bus.Bus, srpc.Client) {
+	b, _, err := controllerbus_core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	mux, rel := sched.buildPluginMux(ctx, pluginID, nil, nil, nil, nil, nil, nil, nil, false, false, "")
+	t.Cleanup(rel)
+	host := bldr_plugin.NewSRPCPluginHostClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
+	ctrls = append(ctrls, plugin_entrypoint_controller.NewController(b, le, &bldr_plugin.PluginMeta{PluginId: pluginID}, host))
+	addControllers(ctx, t, b, ctrls...)
+	return b, srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(plugin_entrypoint.NewPluginRpcMux(le, b))))
+}
+
+// accessClient returns a client whose every call goes through the
+// AccessRpcService at accessServiceID on client, asking for serviceID under
+// serverID.
+func accessClient(client srpc.Client, accessServiceID, serviceID, serverID string) srpc.Client {
+	access := bifrost_rpc_access.NewSRPCAccessRpcServiceClientWithServiceID(client, accessServiceID)
+	req := bifrost_rpc_access.NewLookupRpcServiceRequest(serviceID, serverID)
+	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux(bifrost_rpc_access.NewProxyInvoker(access, req, true)))))
 }
 
 // TestHostBusFallbackHostPluginRelaysNothing checks a plugin outside the host
-// set cannot use a host plugin as a relay: a call it sends to spacewave-core
-// reaches no host bus service and loads no plugin as core, while a service
-// core itself serves still answers. Core runs in process with the real
-// entrypoint controller and root mux, on its own bus, with its host client
-// bound to the scheduler's mux for it.
+// set cannot use another plugin as a relay. A call it sends to spacewave-core
+// is refused at once and reaches no host bus service and loads no plugin as
+// core, while a service core itself serves still answers. A "web-view/" server
+// ID it names through the web plugin's forwarder reaches nothing on core, while
+// the web plugin's own web view still reaches core. Core and the web plugin
+// run in process with the real entrypoint controller and root mux, each on its
+// own bus, with its host client bound to the scheduler's mux for it.
 func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -305,54 +333,53 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
-	coreBus, _, err := controllerbus_core.NewCoreBus(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 
-	// The app bus serves a host-only probe; core's bus serves its own.
-	const corePluginID = "spacewave-core"
+	// The app bus serves a host-only probe; core's bus serves its own. The web
+	// plugin forwards its web views' calls to core, as the Go compiler's
+	// handle-rpc config asks it to.
+	const corePluginID, webPluginID = "spacewave-core", "web"
 	hostSvc, coreSvc := "probe.HostService", "probe.CoreService"
-	sched := NewController(le, tb.Bus, &Config{HostExportPluginIds: []string{corePluginID}})
+	sched := NewController(le, tb.Bus, &Config{HostExportPluginIds: []string{corePluginID, webPluginID}})
 	bed := &fallbackBed{sched: sched, loads: make(chan string, 8)}
-	coreMux, relCore := sched.buildPluginMux(ctx, corePluginID, nil, nil, nil, nil, nil, nil, nil, false, false, "")
-	defer relCore()
-	coreHost := bldr_plugin.NewSRPCPluginHostClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(coreMux))))
-	addControllers(ctx, t, coreBus,
-		plugin_entrypoint_controller.NewController(coreBus, le, &bldr_plugin.PluginMeta{PluginId: corePluginID}, coreHost),
-		&probeServices{bus: "core", ids: []string{coreSvc}},
-	)
-	coreRoot := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(plugin_entrypoint.NewPluginRpcMux(le, coreBus))))
+	_, coreRoot := inProcessPlugin(ctx, t, le, sched, corePluginID, &probeServices{bus: "core", ids: []string{coreSvc}})
+	webBus, webRoot := inProcessPlugin(ctx, t, le, sched, webPluginID)
+	addControllers(ctx, t, webBus, plugin_forward_rpc_service.NewController(le, webBus, &plugin_forward_rpc_service.Config{
+		PluginId:   corePluginID,
+		ServerIdRe: "^web-view/",
+	}))
 	addControllers(ctx, t, tb.Bus,
 		&relayLoads{
-			loadSpy:      loadSpy{sched: sched, loads: bed.loads},
-			hostPluginID: corePluginID,
-			hostPlugin:   bldr_plugin.NewRunningPlugin(coreRoot),
+			loadSpy: loadSpy{sched: sched, loads: bed.loads},
+			plugins: map[string]bldr_plugin.RunningPlugin{
+				corePluginID: bldr_plugin.NewRunningPlugin(coreRoot),
+				webPluginID:  bldr_plugin.NewRunningPlugin(webRoot),
+			},
 		},
 		&schedulerLookups{sched: sched},
 		&probeServices{bus: "app", ids: []string{hostSvc}},
 	)
 
-	// accessCall asks core's AccessRpcService, as the caller, for hostSvc
-	// under serverID.
-	viaCore := func(svc string) string { return bldr_plugin.PluginServiceID(corePluginID, svc) }
-	accessCall := func(serverID string) func(srpc.Client) srpc.Client {
+	// accessVia asks pluginID's AccessRpcService, as the caller, for
+	// serviceID under serverID.
+	via := bldr_plugin.PluginServiceID
+	accessVia := func(pluginID, serviceID, serverID string) func(srpc.Client) srpc.Client {
 		return func(client srpc.Client) srpc.Client {
-			access := bifrost_rpc_access.NewSRPCAccessRpcServiceClientWithServiceID(client, viaCore(bifrost_rpc_access.SRPCAccessRpcServiceServiceID))
-			req := bifrost_rpc_access.NewLookupRpcServiceRequest(bldr_plugin.HostServiceIDPrefix+hostSvc, serverID)
-			return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux(bifrost_rpc_access.NewProxyInvoker(access, req, false)))))
+			return accessClient(client, via(pluginID, bifrost_rpc_access.SRPCAccessRpcServiceServiceID), serviceID, serverID)
 		}
 	}
+	const relayed, shipped, nothing = "relayed", "shipped", "nothing"
+	hostCall := bldr_plugin.HostServiceIDPrefix + hostSvc
 	cases := []struct {
 		name, serviceID string
 		wrap            func(srpc.Client) srpc.Client
-		shipped         bool
+		want            string
 	}{
-		{"plugin-host service through core", viaCore(bldr_plugin.HostServiceIDPrefix + hostSvc), nil, false},
-		{"another plugin through core", "", nil, false},
-		{"AccessRpcService body, empty server", bldr_plugin.HostServiceIDPrefix + hostSvc, accessCall(""), false},
-		{"AccessRpcService body, default server", bldr_plugin.HostServiceIDPrefix + hostSvc, accessCall("default"), false},
-		{"core's own service", viaCore(coreSvc), nil, true},
+		{"plugin-host service through core", via(corePluginID, hostCall), nil, relayed},
+		{"another plugin through core", "", nil, relayed},
+		{"AccessRpcService body, empty server", hostCall, accessVia(corePluginID, hostCall, ""), relayed},
+		{"AccessRpcService body, default server", hostCall, accessVia(corePluginID, hostCall, "default"), relayed},
+		{"web view server through the web plugin", coreSvc, accessVia(webPluginID, coreSvc, "web-view/x"), nothing},
+		{"core's own service", via(corePluginID, coreSvc), nil, shipped},
 	}
 	for i, caller := range []struct{ name, binding string }{
 		{"unkeyed plugin outside the host set", ""},
@@ -368,17 +395,52 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 			// Each caller names its own plugin, so no load is shared.
 			serviceID := tc.serviceID
 			if serviceID == "" {
-				serviceID = viaCore(bldr_plugin.PluginServiceID("other-"+strconv.Itoa(i), "probe.Svc"))
+				serviceID = via(corePluginID, via("other-"+strconv.Itoa(i), "probe.Svc"))
 			}
-			got := bed.exec(ctx, c, serviceID)
-			t.Logf("%s, %s: %s", caller.name, tc.name, got)
-			switch {
-			case tc.shipped && got != "reached on core":
-				t.Errorf("%s, %s: shipped flow broke: %s", caller.name, tc.name, got)
-			case !tc.shipped && (got == "reached on app" || strings.HasPrefix(got, "loaded at")):
-				t.Errorf("%s, %s: escaped: %s", caller.name, tc.name, got)
-			}
+			bed.expect(t, caller.name+", "+tc.name, bed.timedExec(ctx, c, serviceID), tc.want)
 		}
 		rel()
+	}
+
+	// The host's own calls: a web view of the web plugin still reaches core,
+	// and core's root mux names a "web-view/" server ID as the host's.
+	webView := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux(bifrost_rpc.NewInvoker(webBus, web_view.WebViewServerID("1"), true)))))
+	bed.expect(t, "web plugin's own web view", bed.timedExec(ctx, webView, coreSvc), shipped)
+	rootBody := accessClient(coreRoot, bifrost_rpc_access.SRPCAccessRpcServiceServiceID, hostCall, "web-view/x")
+	bed.expect(t, "root AccessRpcService body, web view server", bed.timedExec(ctx, rootBody, hostCall), relayed)
+}
+
+// timedResult is one call's outcome, as exec reports it, and how long it took.
+type timedResult struct {
+	got  string
+	took time.Duration
+}
+
+// timedExec runs exec and measures it.
+func (bed *fallbackBed) timedExec(ctx context.Context, client srpc.Client, serviceID string) timedResult {
+	start := time.Now()
+	got := bed.exec(ctx, client, serviceID)
+	return timedResult{got: got, took: time.Since(start)}
+}
+
+// expect checks one relay test outcome. A relayed call must be refused with
+// ErrRelayRefused well before exec's deadline; a shipped call must reach core;
+// a call that should reach nothing must neither reach a probe nor load.
+func (bed *fallbackBed) expect(t *testing.T, name string, r timedResult, want string) {
+	t.Logf("%s: %s (%s)", name, r.got, r.took.Round(time.Millisecond))
+	escaped := strings.HasPrefix(r.got, "reached on") || strings.HasPrefix(r.got, "loaded at")
+	switch want {
+	case "shipped":
+		if r.got != "reached on core" {
+			t.Errorf("%s: shipped flow broke: %s", name, r.got)
+		}
+	case "relayed":
+		if !strings.Contains(r.got, plugin_entrypoint_controller.ErrRelayRefused.Error()) || r.took > 500*time.Millisecond {
+			t.Errorf("%s: want a refusal at once, got %s after %s", name, r.got, r.took)
+		}
+	case "nothing":
+		if escaped {
+			t.Errorf("%s: escaped: %s", name, r.got)
+		}
 	}
 }
