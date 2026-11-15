@@ -3,6 +3,7 @@ package world
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/net/peer"
@@ -37,10 +38,8 @@ type keyGuard struct {
 
 // CheckWrite refuses a write naming the guard's key.
 func (g *keyGuard) CheckWrite(ctx context.Context, ws WorldState, w *GuardedWrite) error {
-	for _, key := range w.ObjectKeys {
-		if key == g.key {
-			return g.refusal
-		}
+	if slices.Contains(w.ObjectKeys, g.key) {
+		return g.refusal
 	}
 	return nil
 }
