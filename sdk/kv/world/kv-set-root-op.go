@@ -72,6 +72,12 @@ func (o *KvSetRootOp) Validate() error {
 	return nil
 }
 
+// WriteObjectKeys returns the one object the op writes: the KV store whose
+// root it advances.
+func (o *KvSetRootOp) WriteObjectKeys() []string {
+	return []string{o.GetObjectKey()}
+}
+
 // ApplyWorldOp applies the root update to a kv/store world object.
 func (o *KvSetRootOp) ApplyWorldOp(
 	ctx context.Context,
@@ -214,4 +220,4 @@ func cloneKvMutations(mutations []*KvMutation) []*KvMutation {
 	return out
 }
 
-var _ world.Operation = (*KvSetRootOp)(nil)
+var _ world.WriteKeysOperation = (*KvSetRootOp)(nil)
