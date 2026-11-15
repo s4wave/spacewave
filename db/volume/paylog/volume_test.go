@@ -4,6 +4,7 @@ package paylog
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"testing"
 
@@ -179,10 +180,17 @@ func checkCorruptRead(t *testing.T, d *device.Memory, v *volume_kvtx.Volume, ref
 	if _, _, err := lower.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err)
 	}
+	// Count fills: v's put skips a key it holds, so an unchanged device alone
+	// cannot show that no fill was attempted.
+	var fills int
+	countFill := func(ctx context.Context, primary block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
+		fills++
+		return block_store.CacheFill(ctx, primary, ref, stored)
+	}
 	layered := block_store.NewStoreReadThrough(
 		func() block.StoreOps { return v },
 		func() block.StoreOps { return lower },
-		block_store.CacheFill,
+		countFill,
 	)
 	got, found, err := layered.GetBlock(ctx, ref)
 	if err != nil || !found || !bytes.Equal(got, data) {
@@ -193,7 +201,11 @@ func checkCorruptRead(t *testing.T, d *device.Memory, v *volume_kvtx.Volume, ref
 		t.Fatalf("layered stored read: %v err=%v", stored, err)
 	}
 
-	// Neither read wrote the device: the flipped byte stays for repair.
+	// Neither read filled v or wrote the device: the flipped byte stays for
+	// repair.
+	if fills != 0 {
+		t.Fatalf("layered reads filled the corrupt primary %d times", fills)
+	}
 	after := snapshotDevice(t, d)
 	if len(after) != len(before) {
 		t.Fatalf("device files %d, were %d", len(after), len(before))

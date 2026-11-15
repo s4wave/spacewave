@@ -2,6 +2,7 @@ package block_store_fillcache
 
 import (
 	"context"
+	"errors"
 
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -38,9 +39,13 @@ func (v *view) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool,
 		return nil, false, context.Cause(ctx)
 	}
 
-	// Remove a block that failed its hash, which the store reports as found,
-	// and read any other failure as a miss.
-	if found {
+	// Remove a block that failed its hash, so the fill that follows the miss
+	// can land, and read any other failure as a miss. The cache holds only
+	// copies of blocks a lower store holds, so removing one loses nothing:
+	// this is the cache's only remove, it drops the one row the corrupt read
+	// named, and the read falls through to the lower store, which serves and
+	// refills the block.
+	if errors.Is(err, block.ErrBlockCorrupt) {
 		v.cache.remove(ref)
 	}
 	v.cache.warn.warn(err, "the block fill cache failed a read, reading the packs")

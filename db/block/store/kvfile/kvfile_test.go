@@ -70,3 +70,42 @@ func TestStatBlockReportsReadError(t *testing.T) {
 		t.Fatalf("StatBlock: stat %v err %v", stat, err)
 	}
 }
+
+// TestGetBlockRejectsWrongBytes tests that a kvfile holding bytes under a ref
+// they do not hash to returns ErrBlockCorrupt and no data from both reads.
+func TestGetBlockRejectsWrongBytes(t *testing.T) {
+	// Write other bytes under the ref's key.
+	ctx := context.Background()
+	kvkey := store_kvkey.NewDefaultKVKey()
+	ref, err := block.BuildBlockRef([]byte("block data"), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rm, err := ref.MarshalKey()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	var buf bytes.Buffer
+	err = kvfile.Write(&buf, [][]byte{kvkey.GetBlockKey(rm)}, func(wr io.Writer, key []byte) (uint64, error) {
+		n, err := wr.Write([]byte("other data"))
+		return uint64(n), err
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	kvr, err := kvfile.BuildReader(bytes.NewReader(buf.Bytes()), uint64(buf.Len()))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	store := NewKvfileBlock(ctx, kvkey, kvr)
+
+	// Both reads report the mismatch and return no bytes.
+	data, found, err := store.GetBlock(ctx, ref)
+	if !errors.Is(err, block.ErrBlockCorrupt) || found || data != nil {
+		t.Fatalf("GetBlock: found %v data %q err %v", found, data, err)
+	}
+	stored, err := store.GetStoredBlock(ctx, ref)
+	if !errors.Is(err, block.ErrBlockCorrupt) || stored != nil {
+		t.Fatalf("GetStoredBlock: %v err %v", stored, err)
+	}
+}
