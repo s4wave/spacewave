@@ -2689,39 +2689,65 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireStored(t, v, tr, true, "M")
 	})
 
-	t.Run("admit observed past a failed read", func(t *testing.T) {
-		// The check's stage read fails on P, Dead over its freed child L.
-		// Enforcing returns the error; observing counts nothing and lands
-		// the move as with the check off.
-		v, clk, tr, _ := newAdmitVolume(t, true)
-		freeUnderDeadParent(t, v, clk, tr)
-		errRead := errors.New("stage read failed")
-		land := func(mode block_gc.HeldMode) error {
-			return v.withDirectAtomic(t.Context(), func(p *physicalTx) error {
-				_, err := v.landMoves(t.Context(), p, tr.entries("H"), block_gc.BucketRoots{
-					BucketID:  "b",
-					Roots:     []block.NamedRoot{{Name: "payloads", Ref: tr["H"].Ref, Previous: tr["Q"].Ref, RequireHeld: true}},
-					Mode:      mode,
-					StageHeld: func(context.Context, *block.BlockRef) (bool, error) { return false, errRead },
-					Observed:  v.observeNotHeld,
+	for _, counted := range []bool{false, true} {
+		name := "admit observed past a failed read"
+		if counted {
+			name += " after a count"
+		}
+		t.Run(name, func(t *testing.T) {
+			// The check's stage read fails on P, Dead over its freed child
+			// L. Enforcing returns the error; observing counts nothing and
+			// lands the move as with the check off. With counted, the first
+			// stage read answers false, so P is counted as H's child, and a
+			// second strict root on P then fails its read: the count made
+			// before the failure is dropped too.
+			v, clk, tr, _ := newAdmitVolume(t, true)
+			freeUnderDeadParent(t, v, clk, tr)
+			errRead := errors.New("stage read failed")
+			roots := []block.NamedRoot{{Name: "payloads", Ref: tr["H"].Ref, Previous: tr["Q"].Ref, RequireHeld: true}}
+			if counted {
+				roots = append(roots, block.NamedRoot{Name: "again", Ref: tr["P"].Ref, RequireHeld: true})
+			}
+			land := func(mode block_gc.HeldMode) error {
+				reads := 0
+				return v.withDirectAtomic(t.Context(), func(p *physicalTx) error {
+					_, err := v.landMoves(t.Context(), p, tr.entries("H"), block_gc.BucketRoots{
+						BucketID: "b",
+						Roots:    roots,
+						Mode:     mode,
+						StageHeld: func(context.Context, *block.BlockRef) (bool, error) {
+							reads++
+							if counted && reads == 1 {
+								return false, nil
+							}
+							return false, errRead
+						},
+						Observed: v.observeNotHeld,
+					})
+					return err
 				})
-				return err
-			})
-		}
-		if err := land(block_gc.HeldEnforce); !errors.Is(err, errRead) {
-			t.Fatalf("enforced Land = %v, want the read error", err)
-		}
-		if err := land(block_gc.HeldObserve); err != nil {
-			t.Fatalf("observed Land = %v, want commit", err)
-		}
-		if got, err := v.GetBucketRoot(t.Context(), "b", "payloads"); err != nil || !got.EqualsRef(tr["H"].Ref) {
-			t.Fatalf("payloads holds %v after the observed Land: %v", got, err)
-		}
-		h, _ := v.GetHealthSnapshotWithWait()
-		if n := h.GetNotHeldRootBlocks() + h.GetNotHeldChildBlocks(); n != 0 {
-			t.Fatalf("a failed check counted %d", n)
-		}
-	})
+			}
+			// Enforcing refuses at the first block not held, before the
+			// failing read when counted.
+			want := errRead
+			if counted {
+				want = block.ErrRootNotHeld
+			}
+			if err := land(block_gc.HeldEnforce); !errors.Is(err, want) {
+				t.Fatalf("enforced Land = %v, want %v", err, want)
+			}
+			if err := land(block_gc.HeldObserve); err != nil {
+				t.Fatalf("observed Land = %v, want commit", err)
+			}
+			if got, err := v.GetBucketRoot(t.Context(), "b", "payloads"); err != nil || !got.EqualsRef(tr["H"].Ref) {
+				t.Fatalf("payloads holds %v after the observed Land: %v", got, err)
+			}
+			h, _ := v.GetHealthSnapshotWithWait()
+			if n := h.GetNotHeldRootBlocks() + h.GetNotHeldChildBlocks(); n != 0 {
+				t.Fatalf("a failed check counted %d", n)
+			}
+		})
+	}
 
 	for _, freed := range []string{"put again", "born"} {
 		t.Run("admit storing P "+freed+" over a child a live stage holds", func(t *testing.T) {

@@ -27,12 +27,15 @@ func (v *heldVolume) GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan s
 		FreeDiskBytes: 1 << 30,
 		ReserveBytes:  1 << 28,
 		WriteState:    volume.VolumeWriteState_VOLUME_WRITE_STATE_RESERVE,
+
+		NotHeldRootBlocks:  2,
+		NotHeldChildBlocks: 7,
 	}, nil
 }
 
 // TestVolumeHealthScrape checks that a scrape reports a registered volume's
-// phase, its time in phase, its free disk and its reserve, and drops it once
-// released.
+// phase, its time in phase, its free disk, its reserve and its not-held
+// counters, and drops it once released.
 func TestVolumeHealthScrape(t *testing.T) {
 	// Scrape with a volume held in the mark for a minute.
 	release := volume.RegisterHealth(&heldVolume{start: time.Now().Add(-time.Minute)})
@@ -48,6 +51,9 @@ func TestVolumeHealthScrape(t *testing.T) {
 	}
 	if values["spacewave_volume_reserve_bytes"] != 1<<28 || values["spacewave_volume_write_reserve"] != 1 {
 		t.Fatalf("reserve series %v", values)
+	}
+	if values["spacewave_volume_not_held_root_blocks_total"] != 2 || values["spacewave_volume_not_held_child_blocks_total"] != 7 {
+		t.Fatalf("not-held series %v", values)
 	}
 
 	// A released volume leaves the scrape.

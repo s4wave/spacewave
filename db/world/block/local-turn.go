@@ -41,7 +41,12 @@ func (t *localTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 		return nil, errors.New("world candidate base is not the turn's base")
 	}
 
-	// Store the entries and swap the root.
+	// Store the entries and swap the root. The move does not require its
+	// blocks held: the candidate's boundary pages are the base's, which the
+	// root holds until this move, or blocks an open stage holds, so the
+	// check would pay its reads on every commit to catch only an operation
+	// that links a released tree, and no repeat of the commit could store
+	// that tree.
 	err := t.a.store.SetRoots(ctx, candidate.Entries, []block.NamedRoot{{
 		Name:     t.a.name,
 		Ref:      candidate.Root,

@@ -619,10 +619,13 @@ func (l *lander) requireMoveHeld(ctx context.Context, move BucketRoots, held []*
 //     block with no holders holds nothing. The walk stops at a held block,
 //     so it does not cover a block another hold revived from Dead over a
 //     child the collector freed before the revival: that block reads Held.
-//     Held at the boundary is trusted, and today a hold that does not
-//     require its blocks held breaks that trust: replay's addPayloads,
-//     resetPayloads, or another bucket's root can land on a stored Dead block
-//     whose child was freed, which happens only with frees on.
+//     Held at the boundary is trusted, and every hold that does not require
+//     its blocks held can break that trust: any root move without
+//     RequireHeld, a stage root, or a put of a block naming the Dead block as
+//     a child can land on a stored Dead block whose child was freed, which
+//     happens only with frees on. Today only a Space's admit, moving its
+//     payloads root, sets RequireHeld; every other hold is of this kind, such
+//     as replay's payload moves, the payload reset and the World head move.
 //  3. A put proves the block's own bytes, never its children: a block the
 //     batch stores, born or put again, may have been Dead with its children
 //     freed. So the requirement follows the batch down to its boundary, and

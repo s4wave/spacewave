@@ -170,7 +170,11 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 	}
 
 	// Hold them, then record the order, counting the keys of the operations
-	// it added and dropped.
+	// it added and dropped. The hold does not require its blocks held: the
+	// payloads are the order's, mostly written by other devices, so no
+	// repeat here could store their trees, and a refusal would stop replay
+	// on this replica alone, which replay never does. It is one of the
+	// non-strict holds invariant 2 of block_gc's requireTree names.
 	if len(extra) != 0 {
 		if err := a.addPayloads(ctx, extra, false); err != nil {
 			return err
