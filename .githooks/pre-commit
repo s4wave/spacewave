@@ -64,6 +64,11 @@ if [ ! -e node_modules ] && [ ! -L node_modules ]; then
 	if [ -d "$main_dir/node_modules" ]; then
 		ln -s "$main_dir/node_modules" node_modules
 		printf 'pre-commit: linked node_modules to %s/node_modules\n' "$main_dir" >&2
+	else
+		# A clone has no checkout to link from, and the tools would fail
+		# without saying why.
+		printf 'pre-commit: no node_modules here or in %s; run bun install --ignore-scripts\n' "$main_dir" >&2
+		exit 1
 	fi
 fi
 node_bin=$(pwd)/node_modules/.bin
