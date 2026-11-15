@@ -15,7 +15,16 @@ func (*CreateWizardObjectOp) TypeID() string {
 	return CreateWizardObjectOpTypeID
 }
 
+// RecordWizardEndingOpTypeID is the type ID of RecordWizardEndingOp.
+const RecordWizardEndingOpTypeID = "spacewave/wizard/record-ending"
+
+// TypeID returns the type ID of RecordWizardEndingOp.
+func (*RecordWizardEndingOp) TypeID() string {
+	return RecordWizardEndingOpTypeID
+}
+
 // WizardTypes lists the typed messages of wizard.proto.
 var WizardTypes = []typeid.Type{
 	{ID: CreateWizardObjectOpTypeID, New: func() any { return new(CreateWizardObjectOp) }},
+	{ID: RecordWizardEndingOpTypeID, New: func() any { return new(RecordWizardEndingOp) }},
 }

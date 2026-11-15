@@ -130,6 +130,7 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
   if (!state) {
     return (
       <WizardLoading
+        wizardKey={ws.objectKey}
         wizardGone={ws.wizardGone}
         detail="Preparing the virtual machine settings."
       />
@@ -138,6 +139,7 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
+      wizardKey={ws.objectKey}
       icon={<LuTerminal />}
       title="New WebAssembly VM"
       step={state.step ?? 0}

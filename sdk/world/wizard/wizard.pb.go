@@ -799,6 +799,37 @@ func (x *CreateWizardObjectOp) GetInitialConfigData() []byte {
 	return nil
 }
 
+// RecordWizardEndingOp records the object a wizard's Finish made or opened,
+// in the transaction that removes the wizard, so any view of the wizard's key
+// tells a finished wizard from a deleted one after it is gone.
+type RecordWizardEndingOp struct {
+	unknownFields []byte
+	// WizardKey is the object key of the wizard that finished.
+	WizardKey string `protobuf:"bytes,1,opt,name=wizard_key,json=wizardKey,proto3" json:"wizardKey,omitempty"`
+	// TargetKey is the object key the Finish opens.
+	TargetKey string `protobuf:"bytes,2,opt,name=target_key,json=targetKey,proto3" json:"targetKey,omitempty"`
+}
+
+func (x *RecordWizardEndingOp) Reset() {
+	*x = RecordWizardEndingOp{}
+}
+
+func (*RecordWizardEndingOp) ProtoMessage() {}
+
+func (x *RecordWizardEndingOp) GetWizardKey() string {
+	if x != nil {
+		return x.WizardKey
+	}
+	return ""
+}
+
+func (x *RecordWizardEndingOp) GetTargetKey() string {
+	if x != nil {
+		return x.TargetKey
+	}
+	return ""
+}
+
 // IntroWizardConfig is the config_data payload for a wizard/intro object. It
 // supplies the per-quickstart new-user introduction drawn around the target
 // object frame, so one intro viewer parameterizes over every quickstart.
@@ -1202,6 +1233,23 @@ func (m *CreateWizardObjectOp) CloneVT() *CreateWizardObjectOp {
 }
 
 func (m *CreateWizardObjectOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RecordWizardEndingOp) CloneVT() *RecordWizardEndingOp {
+	if m == nil {
+		return (*RecordWizardEndingOp)(nil)
+	}
+	r := new(RecordWizardEndingOp)
+	r.WizardKey = m.WizardKey
+	r.TargetKey = m.TargetKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RecordWizardEndingOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1689,6 +1737,29 @@ func (this *CreateWizardObjectOp) EqualVT(that *CreateWizardObjectOp) bool {
 
 func (this *CreateWizardObjectOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CreateWizardObjectOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RecordWizardEndingOp) EqualVT(that *RecordWizardEndingOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.WizardKey != that.WizardKey {
+		return false
+	}
+	if this.TargetKey != that.TargetKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RecordWizardEndingOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RecordWizardEndingOp)
 	if !ok {
 		return false
 	}
@@ -2932,6 +3003,56 @@ func (x *CreateWizardObjectOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the RecordWizardEndingOp message to JSON.
+func (x *RecordWizardEndingOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.WizardKey != "" || s.HasField("wizardKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("wizardKey")
+		s.WriteString(x.WizardKey)
+	}
+	if x.TargetKey != "" || s.HasField("targetKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetKey")
+		s.WriteString(x.TargetKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RecordWizardEndingOp to JSON.
+func (x *RecordWizardEndingOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RecordWizardEndingOp message from JSON.
+func (x *RecordWizardEndingOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "wizard_key", "wizardKey":
+			s.AddField("wizard_key")
+			x.WizardKey = s.ReadString()
+		case "target_key", "targetKey":
+			s.AddField("target_key")
+			x.TargetKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RecordWizardEndingOp from JSON.
+func (x *RecordWizardEndingOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the IntroWizardConfig message to JSON.
 func (x *IntroWizardConfig) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -3942,6 +4063,48 @@ func (m *CreateWizardObjectOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
+func (m *RecordWizardEndingOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RecordWizardEndingOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RecordWizardEndingOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.TargetKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TargetKey)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.WizardKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.WizardKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *IntroWizardConfig) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4297,6 +4460,18 @@ func (m *CreateWizardObjectOp) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.InitialStep)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.InitialConfigData)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RecordWizardEndingOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.WizardKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TargetKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4732,6 +4907,24 @@ func (x *CreateWizardObjectOp) MarshalProtoText() string {
 }
 
 func (x *CreateWizardObjectOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RecordWizardEndingOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RecordWizardEndingOp")
+	if x.WizardKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "wizard_key")
+		protobuf_go_lite.TextWriteString(&sb, x.WizardKey)
+	}
+	if x.TargetKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target_key")
+		protobuf_go_lite.TextWriteString(&sb, x.TargetKey)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RecordWizardEndingOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -6057,6 +6250,69 @@ func (m *CreateWizardObjectOp) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RecordWizardEndingOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RecordWizardEndingOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RecordWizardEndingOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WizardKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.WizardKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TargetKey = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -81,6 +81,7 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
   if (!state) {
     return (
       <WizardLoading
+        wizardKey={ws.objectKey}
         wizardGone={ws.wizardGone}
         detail="Initializing Forge job configuration."
       />
@@ -89,6 +90,7 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
+      wizardKey={ws.objectKey}
       icon={<LuBriefcase />}
       title="New Forge Job"
       step={state.step ?? 0}

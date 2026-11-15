@@ -127,6 +127,7 @@ describe('ForgeJobWizardViewer', () => {
       objects: new Set([decoded.jobKey]),
       indexPath: decoded.jobKey,
       creates: ['spacewave/forge/job/create'],
+      endings: new Map([['wizard/forge/job/test', decoded.jobKey]]),
     })
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.jobKey])
     expect(h.toastSuccess).toHaveBeenCalledWith('Created Build Job')

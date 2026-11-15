@@ -87,5 +87,12 @@
       ]
     ],
     "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a press the tab could not see land reports done without reading the ending",
+    "replace": [
+      ["IF read /\\ ~wizard' THEN \"done\"", "IF TRUE THEN \"done\""]
+    ],
+    "expect": "DoneMeansMade"
   }
 ]

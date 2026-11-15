@@ -63,6 +63,19 @@ vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
   }),
 }))
 
+// ending is what the watch of the wizard's recorded ending reports: the
+// object its Finish made, or undefined for a wizard deleted without one.
+let ending: string | undefined
+
+vi.mock('@s4wave/web/hooks/useWorldQuery.js', () => ({
+  useWorldQuery: () => ({
+    value: ending,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  }),
+}))
+
 vi.mock('@s4wave/web/sync/useObjectQuery.js', () => ({
   useObjectQuery: () => ({ ...watchedObject, retry: vi.fn() }),
 }))
@@ -158,6 +171,7 @@ describe('WizardViewer', () => {
   }
 
   beforeEach(() => {
+    ending = undefined
     currentState = {
       step: 0,
       targetTypeId: 'canvas',
@@ -225,6 +239,7 @@ describe('WizardViewer', () => {
       objects: new Set(),
       indexPath: '',
       creates: ['space/world/init-canvas'],
+      endings: new Map(),
     })
     expect(mocks.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Created Demo Canvas')

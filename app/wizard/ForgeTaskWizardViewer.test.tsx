@@ -101,11 +101,13 @@ describe('ForgeTaskWizardViewer', () => {
     expect(decoded.name).toBe('Compile Task')
     expect(decoded.jobKey).toBe('forge/job/main')
 
-    // The task, the index move and the wizard delete committed together.
+    // The task, its ending, the index move and the wizard delete committed
+    // together.
     expect(h.t.state).toEqual({
       objects: new Set([decoded.taskKey]),
       indexPath: decoded.taskKey,
       creates: ['spacewave/forge/task/create'],
+      endings: new Map([['wizard/forge/task/test', decoded.taskKey]]),
     })
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.taskKey])
     expect(h.toastSuccess).toHaveBeenCalledWith('Created task Compile Task')

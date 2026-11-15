@@ -254,6 +254,7 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
   if (!state) {
     return (
       <WizardLoading
+        wizardKey={ws.objectKey}
         wizardGone={ws.wizardGone}
         detail="Preparing the Git repository workflow."
       />
@@ -262,6 +263,7 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
+      wizardKey={ws.objectKey}
       icon={<LuGitBranch />}
       title="New Git Repository"
       step={currentStep}

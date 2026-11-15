@@ -150,6 +150,7 @@ describe('useWizardState', () => {
       objects: new Set(),
       indexPath: 'git/repo/next',
       creates: [],
+      endings: new Map(),
     })
 
     // The write guards on the wizard's path.

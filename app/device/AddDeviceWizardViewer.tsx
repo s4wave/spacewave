@@ -909,6 +909,7 @@ function AddDeviceWizardContent({
   if (!state) {
     return (
       <WizardLoading
+        wizardKey={ws.objectKey}
         wizardGone={ws.wizardGone}
         title="Loading Add Device"
         detail="Preparing the Device setup wizard."
@@ -919,6 +920,7 @@ function AddDeviceWizardContent({
   const copy = wizardCopy(mode, currentStep, isSshInstallMode, deviceJoin)
   return (
     <WizardShell
+      wizardKey={ws.objectKey}
       icon={<LuHardDrive />}
       title="Add Device"
       step={currentStep}

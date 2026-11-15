@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { RecordWizardEndingOpTypeID } from '@s4wave/sdk/world/wizard/wizard_typeid.pb.js'
 
 import {
   applyWizardMutations,
@@ -49,26 +50,34 @@ function madePlan(key: string) {
 }
 
 describe('finishWizard', () => {
-  it('creates, moves the index and deletes the wizard in one commit', async () => {
+  it('creates, records the ending, moves the index and deletes the wizard in one commit', async () => {
     const t = wizardTestWorld(['wizard/one'], 'wizard/one')
-    await finishWizard(wizardIn(t), plan)
+    await finishWizard(wizardIn(t), madePlan('obj/one'))
 
     // Every write ran inside one batch that committed.
     expect(t.calls).toEqual([
       'batch',
       createOpId,
+      RecordWizardEndingOpTypeID,
       SET_SPACE_INDEX_PATH_OP_ID,
       'delete',
       'commit',
     ])
     expect(t.state).toEqual({
-      objects: new Set(),
+      objects: new Set(['obj/one']),
       indexPath: 'obj/one',
       creates: [createOpId],
+      endings: new Map([['wizard/one', 'obj/one']]),
     })
   })
 
-  it.each([createOpId, SET_SPACE_INDEX_PATH_OP_ID, 'delete', 'commit'])(
+  it.each([
+    createOpId,
+    RecordWizardEndingOpTypeID,
+    SET_SPACE_INDEX_PATH_OP_ID,
+    'delete',
+    'commit',
+  ])(
     'leaves no object, the index and the wizard when %s throws',
     async (failOn) => {
       // The chosen call throws and the Finish rejects with it.
@@ -81,6 +90,7 @@ describe('finishWizard', () => {
         objects: new Set(['wizard/one']),
         indexPath: 'wizard/one',
         creates: [],
+        endings: new Map(),
       })
     },
   )
@@ -158,7 +168,12 @@ describe('cancelWizard', () => {
     const t = wizardTestWorld(['wizard/one'], 'wizard/one')
     await cancelWizard(wizardIn(t), '')
 
-    expect(t.state).toEqual({ objects: new Set(), indexPath: '', creates: [] })
+    expect(t.state).toEqual({
+      objects: new Set(),
+      indexPath: '',
+      creates: [],
+      endings: new Map(),
+    })
   })
 
   it('refuses an Intro Finish after a Cancel removed the wizard', async () => {
@@ -239,33 +254,39 @@ describe('useWizardFinish', () => {
     expect(t.state.objects).toEqual(new Set(['obj/one']))
   })
 
-  it('ends done when the watch shows the wizard its failed list removed', async () => {
-    // The list commits, the reply is lost, and the first check still sees
-    // the wizard because the read raced the commit.
-    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
-    const world = t.world as unknown as { getObject: unknown }
-    world.getObject = vi
-      .fn()
-      .mockResolvedValueOnce({ [Symbol.dispose]: () => {} })
-      .mockImplementation(t.world.getObject.bind(t.world))
+  it('ends done when an Intro Finish that creates nothing lost its reply', async () => {
+    // Intro opens an object that already exists; only its ending says the
+    // Finish landed rather than another tab's Cancel.
+    const t = wizardTestWorld(['wizard/one', 'obj/x'], 'wizard/one')
+    const intro = { creates: [], target: { openKey: 'obj/x', indexPath: 'x' } }
     t.loseReply = true
     const onDone = vi.fn()
-    const made = madePlan('obj/one')
+    const { result } = renderHook(() => useWizardFinish(wizardIn(t)))
+    await act(() => result.current.finish(() => Promise.resolve(intro), onDone))
+    expect(result.current.state).toEqual({ status: 'done' })
+    expect(onDone).toHaveBeenCalledWith(intro.target)
+  })
+
+  it('shows the gone screen when the ending could not be read', async () => {
+    // The reply is lost and so is the ending read, so the press shows failed.
+    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
+    const world = t.world as unknown as { lookupGraphQuads: unknown }
+    world.lookupGraphQuads = vi.fn().mockRejectedValue(new Error('offline'))
+    t.loseReply = true
+    const onDone = vi.fn()
     const { result, rerender } = renderHook(
       ({ gone }) => useWizardFinish({ ...wizardIn(t), wizardGone: gone }),
       { initialProps: { gone: false } },
     )
-    await act(() => result.current.finish(() => Promise.resolve(made), onDone))
+    await act(() =>
+      result.current.finish(() => Promise.resolve(madePlan('obj/one')), onDone),
+    )
     expect(result.current.state.status).toBe('failed')
 
-    // The watch sees the wizard gone: the control checks its target and
-    // ends done rather than showing the wizard deleted.
+    // The watch sees the wizard gone: the gone screen reads the ending.
     rerender({ gone: true })
-    expect(result.current.state).toEqual({ status: 'finishing' })
-    await vi.waitFor(() =>
-      expect(result.current.state).toEqual({ status: 'done' }),
-    )
-    expect(onDone).toHaveBeenCalledWith(made.target)
+    expect(result.current.state).toEqual({ status: 'gone' })
+    expect(onDone).not.toHaveBeenCalled()
   })
 
   it('shows gone when another tab removed the wizard after a failed press', async () => {

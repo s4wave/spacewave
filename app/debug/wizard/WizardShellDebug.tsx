@@ -11,6 +11,7 @@ const noop = () => {}
 // base is the wizard every fixture starts from: a two-step Git repository
 // wizard on its first step, named.
 const base: WizardShellProps = {
+  wizardKey: 'wizard/git-repo-1',
   icon: <LuGitBranch />,
   title: 'New Git Repository',
   step: 0,

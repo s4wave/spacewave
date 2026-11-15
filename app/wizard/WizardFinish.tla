@@ -13,6 +13,14 @@ EXTENDS Naturals
 \* opens the object; gone says the wizard was finished or cancelled elsewhere
 \* and offers to close the tab. A list refused because the wizard is gone
 \* goes to gone directly, and a tab that sees the wizard gone shows gone.
+\* WizardGone.tla models what the gone screen shows.
+\*
+\* The list also records the wizard's ending: in the same commit, the World
+\* records that the wizard finished as its object. A reply lost in flight
+\* leaves the tab unable to tell whether the list landed, so it reads the
+\* ending and shows done only when the ending names its object. Here the
+\* ending exists exactly when the wizard is gone, since only a Finish removes
+\* it and no object is deleted.
 \*
 \* Another writer may move the index off the wizard at any time. The index
 \* move always goes in the list and expects the wizard, so the World decides
@@ -79,7 +87,9 @@ Init ==
   /\ orphan = FALSE
   /\ wizard = TRUE
   /\ objects = 0
-  /\ index \in {"wizard", "other"}
+  \* An index that names something else from the start acts as one that
+  \* MoveIndex moved before the first press, so Init leaves that to it.
+  /\ index = "wizard"
   /\ moved = FALSE
 
 \* The settings watch catches up with the World's index. Until it does it
@@ -116,13 +126,28 @@ Commit(t) ==
   /\ live' = [live EXCEPT ![t] = FALSE]
   /\ UNCHANGED <<seen, orphan, moved>>
 
+\* ReadEnding ends a press the tab could not see land: it reads the ending
+\* and shows done when the ending names the object, and failed when it names
+\* none or the read fails. It follows the step's write of wizard.
+ReadEnding(t) ==
+  \E read \in BOOLEAN :
+    control' = [control EXCEPT ![t] = IF read /\ ~wizard' THEN "done" ELSE "failed"]
+
 \* A write in the list throws, or the tab closes, and the executor discards
 \* the list: nothing it staged lands.
 Discard(t) ==
   /\ live[t]
-  /\ control' = [control EXCEPT ![t] = "failed"]
   /\ live' = [live EXCEPT ![t] = FALSE]
   /\ UNCHANGED <<seen, orphan, wizard, objects, index, moved>>
+  /\ ReadEnding(t)
+
+\* The list commits, or is refused, but its reply is lost.
+LostReply(t) ==
+  /\ live[t]
+  /\ Apply(seen)
+  /\ ReadEnding(t)
+  /\ live' = [live EXCEPT ![t] = FALSE]
+  /\ UNCHANGED <<seen, orphan, moved>>
 
 \* The tab reloads; a list in flight carries on without it.
 Reload(t) ==
@@ -154,7 +179,8 @@ Close(t) ==
   /\ UNCHANGED vars
 
 Next ==
-  \/ \E t \in Tabs : Press(t) \/ Commit(t) \/ Discard(t) \/ Reload(t)
+  \/ \E t \in Tabs : Press(t) \/ Commit(t) \/ Discard(t) \/ LostReply(t)
+  \/ \E t \in Tabs : Reload(t)
   \/ \E t \in Tabs : Close(t)
   \/ Watch
   \/ OrphanEnds

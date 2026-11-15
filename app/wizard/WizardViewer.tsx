@@ -98,11 +98,14 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
 
   // The gone state shows before the wizard state loads, since a removed
   // wizard may never stream one.
-  if (finish.state.status === 'gone') return <WizardGone />
+  if (finish.state.status === 'gone') {
+    return <WizardGone wizardKey={ws.objectKey} />
+  }
 
   if (!state) {
     return (
       <WizardLoading
+        wizardKey={ws.objectKey}
         wizardGone={ws.wizardGone}
         detail="Preparing the configuration workflow."
       />
@@ -115,6 +118,7 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
+      wizardKey={ws.objectKey}
       title={`New ${displayName}`}
       step={state.step ?? 0}
       localName={ws.localName}

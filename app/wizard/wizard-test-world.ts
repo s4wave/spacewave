@@ -8,17 +8,46 @@ import { CreateWasiVmOp } from '@s4wave/sdk/vm/wasivm.pb.js'
 import { CREATE_WASIVM_OP_ID } from '@s4wave/sdk/vm/wasivm.js'
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/vmv86.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
+import { RecordWizardEndingOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
+import {
+  WIZARD_ENDINGS_OBJECT_KEY,
+  WIZARD_ENDING_PREDICATE_PREFIX,
+} from '@s4wave/sdk/world/wizard/wizard-ending.js'
+import { RecordWizardEndingOpTypeID } from '@s4wave/sdk/world/wizard/wizard_typeid.pb.js'
 import { WorldErrorCode } from '@s4wave/sdk/world/world.pb.js'
 import type { WorldMutation } from '@s4wave/sdk/world/world.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 // WizardWorldState is what a wizard test World holds: the object keys, the
-// Space index, and the create ops applied, in order. A create op whose key
-// the World decodes adds its object to objects.
+// Space index, the create ops applied, in order, and the wizard endings, by
+// wizard key. A create op whose key the World decodes adds its object to
+// objects.
 export interface WizardWorldState {
   objects: Set<string>
   indexPath: string
   creates: string[]
+  endings: Map<string, string>
+}
+
+// recordEnding stages a wizard ending as RecordWizardEndingOp does: it
+// replaces the wizard's ending, and records one only for a target that
+// exists.
+function recordEnding(state: WizardWorldState, opData: Uint8Array) {
+  const { wizardKey = '', targetKey = '' } =
+    RecordWizardEndingOp.fromBinary(opData)
+  state.endings.delete(wizardKey)
+  if (targetKey && state.objects.has(targetKey)) {
+    state.endings.set(wizardKey, targetKey)
+  }
+}
+
+// deleteObject stages an object delete, which drops every ending naming it as
+// the World drops every quad naming a deleted object.
+function deleteObject(state: WizardWorldState, key: string): boolean {
+  for (const [wizardKey, target] of state.endings) {
+    if (target === key) state.endings.delete(wizardKey)
+  }
+  return state.objects.delete(key)
 }
 
 // createdKeys decodes the object key each create op the wizards apply writes,
@@ -85,7 +114,12 @@ export function wizardTestWorld(
   // The World is set below, once its calls can close over t.
   const t: WizardTestWorld = {
     world: undefined as never,
-    state: { objects: new Set(objects), indexPath, creates: [] },
+    state: {
+      objects: new Set(objects),
+      indexPath,
+      creates: [],
+      endings: new Map(),
+    },
     calls: [],
     opData: new Map(),
     senders: new Map(),
@@ -111,6 +145,10 @@ export function wizardTestWorld(
         if (t.timeoutOn === opTypeId) return WorldErrorCode.PLUGIN_OP_TIMEOUT
         t.opData.set(opTypeId, opData)
         t.senders.set(opTypeId, opSender)
+        if (opTypeId === RecordWizardEndingOpTypeID) {
+          recordEnding(staged, opData)
+          return
+        }
         if (opTypeId !== SET_SPACE_INDEX_PATH_OP_ID) {
           applyCreate(staged, opTypeId, opData)
           return
@@ -137,7 +175,7 @@ export function wizardTestWorld(
       }
       case 'deleteObject':
         fail('delete')
-        if (!staged.objects.delete(m.mutation.value.objectKey ?? '')) {
+        if (!deleteObject(staged, m.mutation.value.objectKey ?? '')) {
           return WorldErrorCode.OBJECT_NOT_FOUND
         }
         return
@@ -153,6 +191,7 @@ export function wizardTestWorld(
       objects: new Set(t.state.objects),
       indexPath: t.state.indexPath,
       creates: [...t.state.creates],
+      endings: new Map(t.state.endings),
     }
     t.calls.push('batch')
     for (const [failedIndex, m] of mutations.entries()) {
@@ -176,6 +215,19 @@ export function wizardTestWorld(
       Promise.resolve(
         t.state.objects.has(key) ? { [Symbol.dispose]: () => {} } : null,
       ),
+    // lookupGraphQuads answers the ending lookup, the one quad read wizards
+    // make of this World.
+    lookupGraphQuads: (subject?: string, predicate?: string) => {
+      const prefix = WIZARD_ENDING_PREDICATE_PREFIX
+      if (
+        subject !== `<${WIZARD_ENDINGS_OBJECT_KEY}>` ||
+        !predicate?.startsWith(prefix)
+      ) {
+        throw new Error('unexpected quad lookup ' + subject + ' ' + predicate)
+      }
+      const target = t.state.endings.get(predicate.slice(prefix.length, -1))
+      return Promise.resolve({ quads: target ? [{ obj: `<${target}>` }] : [] })
+    },
     ...base,
     getEngine: () => ({ executeWorldBatch }),
     applyWorldOp: (opId: string, opData: Uint8Array, sender: string) => {
