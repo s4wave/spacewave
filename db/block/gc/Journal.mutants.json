@@ -34,5 +34,17 @@
     "replace": [["/\\ (HoldToFree \\/ b \\in rel) /\\ Settled", "/\\ (HoldToFree \\/ b \\in rel)"]],
     "expect": "CountsExact",
     "config": "Journal.cfg"
+  },
+  {
+    "name": "an inline free gives its children no down",
+    "replace": [["kids == IF inline THEN Decrement(b) ELSE {}", "kids == {}"]],
+    "expect": "CountsExact",
+    "config": "Journal-revive-hold.cfg"
+  },
+  {
+    "name": "a child an inline free takes to zero is freed at its parent's ripe point",
+    "replace": [["sripe == IF ChildRipe", "sripe == IF TRUE"]],
+    "expect": "NoFreedRead",
+    "config": "Journal-lease.cfg"
   }
 ]

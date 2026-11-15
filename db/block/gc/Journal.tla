@@ -165,11 +165,15 @@
 \*                   later one, as continueRelease does. A slice yields to a
 \*                   waiting writer between these transactions, so writers
 \*                   interleave anywhere between two of them.
-\*   Delete(b)       one Dead block in a collector slice, freeBlock: once no
+\*   Delete(b, in)   one Dead block in a collector slice, freeBlock: once no
 \*                   cascade is due or running, the cursor has passed the
 \*                   block's ripe sequence and the hold mark, and no fill's
 \*                   ups wait, delete the block with its child list and count
-\*                   record.
+\*                   record. With HoldToFree the free gives each child its
+\*                   down: inline (in), in the same transaction, when the list
+\*                   fits, or else through release pages that Release reaches
+\*                   one child at a time. A block's list either fits or not;
+\*                   the model lets every free take either way.
 \*   AdoptStart(r)   block_gc.Adopt's claimAdoption: report an adopted Volume,
 \*                   otherwise return it to unadopted and claim it for r.
 \*   AdoptClear(r)   Adopt's clearRun of the count, queue and mark records.
@@ -1056,36 +1060,52 @@ Release(c) ==
                  txns, holes, landVars, adoptVars, stageVars, writerVars>>
 
 \* Delete frees Dead block b: it deletes the block with its child list and
-\* count record and changes no other count, since the cascade already took
-\* its holder from its children. It waits while any cascade is due or
-\* running, until the cursor passes the block's ripe sequence (Ripe) and the
-\* hold mark (HoldMark), and while a fill's ups are unapplied (FillEager), or
-\* without FillEager while a fill record not netted yet names b, as the fill
-\* hold index does.
-Delete(b) ==
+\* count record. Without HoldToFree it changes no other count, since the
+\* cascade already took its holder from its children. It waits while any
+\* cascade is due or running, until the cursor passes the block's ripe
+\* sequence (Ripe) and the hold mark (HoldMark), and while a fill's ups are
+\* unapplied (FillEager), or without FillEager while a fill record not netted
+\* yet names b, as the fill hold index does.
+\*
+\* With HoldToFree the free gives each child its down. A paged free (inline
+\* FALSE) leaves them in pend for Release, as the release pages do; an inline
+\* free (inline TRUE) applies them all in its own transaction, as Release
+\* would one at a time, so pend stays empty.
+Delete(b, inline) ==
   /\ adoption = "adopted"
   /\ b \in zero /\ (HoldToFree \/ b \in rel) /\ Settled
   /\ Ripe => ripe[b] = 0
   /\ HoldMark => hseq = 0
   /\ IF FillEager THEN Unapplied = {} ELSE FUps(b) = 0
   /\ unverified /\ Gen => b \in young
+  /\ inline => HoldToFree
   /\ stored' = stored \ {b}
   /\ young' = young \ {b}
   /\ cut' = cut \ {b}
   /\ UNCHANGED <<unverified, rewritten>>
-  /\ cnt' = [cnt EXCEPT ![b] = 0]
-  /\ zero' = zero \ {b}
-  /\ rel' = rel \ {b}
-  /\ ripe' = [ripe EXCEPT ![b] = 0]
   /\ freed' = freed \cup {b}
   /\ freedLive' = (freedLive \/ b \in StoredLive \ ToPutNow)
-  /\ revived' = revived \ {b}
-  \* With HoldToFree the free gives each child its down, through Release.
-  /\ IF HoldToFree
+  /\ LET kids == IF inline THEN Decrement(b) ELSE {}
+         d == [x \in Blocks |-> IF x \in kids THEN -1 ELSE 0]
+         s == IF inline
+              THEN Step(IF ReleaseUnlisted THEN Blocks \ lost ELSE stored, d, {})
+              ELSE [cnt |-> cnt, zero |-> zero, ripe |-> ripe, rel |-> rel,
+                    under |-> FALSE]
+         sripe == IF ChildRipe
+                  THEN [x \in Blocks |-> IF x \in kids THEN 0 ELSE s.ripe[x]]
+                  ELSE s.ripe
+     IN /\ cnt' = [s.cnt EXCEPT ![b] = 0]
+        /\ zero' = s.zero \ {b}
+        /\ rel' = s.rel \ {b}
+        /\ ripe' = [sripe EXCEPT ![b] = 0]
+        /\ under' = (under \/ s.under)
+        /\ revived' = (revived \cup (zero \ s.zero)) \ {b}
+  \* With HoldToFree a paged free gives each child its down through Release.
+  /\ IF HoldToFree /\ ~inline
      THEN /\ pend' = Decrement(b)
           /\ pdir' = IF Decrement(b) = {} THEN 0 ELSE -1
      ELSE UNCHANGED <<pend, pdir>>
-  /\ UNCHANGED <<root, left, lost, jrVars, under, obs, seen, seenAge,
+  /\ UNCHANGED <<root, left, lost, jrVars, obs, seen, seenAge,
                  txns, holes, born, moved, sheld, fj, adoptVars, stageVars,
                  writerVars>>
 
@@ -1401,7 +1421,8 @@ Tick ==
 
 NetAny == \E k \in 1..Len(jr) : Net(k)
 NetFillAny == \E r \in fj : NetFill(r) \/ DropFill(r) \/ ApplyFill(r)
-DeleteAny == \E b \in Blocks : Delete(b) \/ Cascade(b) \/ Release(b)
+DeleteAny == \E b \in Blocks :
+  Delete(b, FALSE) \/ Delete(b, TRUE) \/ Cascade(b) \/ Release(b)
 
 Next ==
   \/ \E w \in Writers :
