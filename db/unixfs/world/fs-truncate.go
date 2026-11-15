@@ -86,7 +86,7 @@ func (o *FsTruncateOp) ApplyWorldObjectOp(
 	// validate
 	err = unixfs_block.ValidateTruncate(o.GetPath(), o.GetFileSize())
 	if err != nil {
-		return false, err
+		return false, world.NewOpRefusedError(err)
 	}
 
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
@@ -100,14 +100,14 @@ func (o *FsTruncateOp) ApplyWorldObjectOp(
 			fpath := o.GetPath().GetNodes()
 			return unixfs_block.TruncateFile(ctx, ftree, fpath, o.GetFileSize(), o.GetTimestamp())
 		case FSType_FSType_FS_OBJECT:
-			return errors.New("TODO apply truncate to fsobject")
+			return world.NewOpRefusedError(errors.New("TODO apply truncate to fsobject"))
 		case FSType_FSType_FS_HOST_VOLUME:
-			return unixfs_block.ErrCannotModifyHostVolume
+			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:
-			return errors.Wrap(ErrInvalidFSType, o.GetFsType().String())
+			return world.NewOpRefusedError(errors.Wrap(ErrInvalidFSType, o.GetFsType().String()))
 		}
 	})
-	return false, err
+	return false, fsRefusal(err)
 }
 
 // _ is a type assertion

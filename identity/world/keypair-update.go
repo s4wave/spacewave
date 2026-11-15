@@ -160,9 +160,9 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 		}
 		validate := func() error {
 			if kp.GetPeerId() == "" {
-				return errors.New("keypair cannot be empty")
+				return world.NewOpRefusedError(errors.New("keypair cannot be empty"))
 			}
-			return kp.Validate()
+			return world.NewOpRefusedError(kp.Validate())
 		}
 		pid, err := kp.ParsePeerID()
 		if err != nil {

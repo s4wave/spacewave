@@ -23,9 +23,16 @@ func (e *OpRefusedError) Unwrap() error { return e.Err }
 // NewOpRefusedError wraps err, a handler's refusal, in an *OpRefusedError.
 // It returns nil for nil, and err unchanged when it already is one.
 func NewOpRefusedError(err error) error {
-	var refused *OpRefusedError
-	if err == nil || errors.As(err, &refused) {
+	if err == nil || IsOpRefusedError(err) {
 		return err
 	}
 	return &OpRefusedError{Err: err}
+}
+
+// IsOpRefusedError reports whether err is or wraps an *OpRefusedError. A
+// handler whose write callback can both refuse and fail to read returns
+// !IsOpRefusedError(err) as its sysErr, so only the read failure waits.
+func IsOpRefusedError(err error) bool {
+	var refused *OpRefusedError
+	return errors.As(err, &refused)
 }

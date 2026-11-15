@@ -75,7 +75,7 @@ func (o *SqlQueryResultSetRootOp) ApplyWorldObjectOp(
 		return false, world.ErrObjectNotFound
 	}
 	if os.GetKey() != o.GetObjectKey() {
-		return false, errors.Errorf("sql/query-result: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
+		return false, world.NewOpRefusedError(errors.Errorf("sql/query-result: op target %s does not match object %s", o.GetObjectKey(), os.GetKey()))
 	}
 
 	// Advance the SQL query result object to the requested root.

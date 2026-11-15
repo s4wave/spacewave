@@ -112,7 +112,7 @@ func (o *SqlSetRootOp) ApplyWorldObjectOp(
 		return false, err
 	}
 	if os.GetKey() != o.GetObjectKey() {
-		return false, errors.Errorf("sql/db: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
+		return false, world.NewOpRefusedError(errors.Errorf("sql/db: op target %s does not match object %s", o.GetObjectKey(), os.GetKey()))
 	}
 
 	// Divergent commits replay this transaction's statements on the current

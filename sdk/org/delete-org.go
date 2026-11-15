@@ -33,7 +33,7 @@ func (o *DeleteOrganizationOp) ApplyWorldOp(
 		return true, err
 	}
 	if !found {
-		return false, errors.New("organization object not found")
+		return false, world.NewOpRefusedError(errors.New("organization object not found"))
 	}
 
 	// Read the organization body to check its child shared objects.
@@ -49,7 +49,7 @@ func (o *DeleteOrganizationOp) ApplyWorldOp(
 
 	// Keep organizations whose child shared objects still depend on them.
 	if state != nil && len(state.GetChildSharedObjects()) > 0 {
-		return false, errors.New("cannot delete organization with child shared objects")
+		return false, world.NewOpRefusedError(errors.New("cannot delete organization with child shared objects"))
 	}
 
 	// Remove the organization object from the World.

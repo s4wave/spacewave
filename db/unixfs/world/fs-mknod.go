@@ -92,7 +92,7 @@ func (o *FsMknodOp) ApplyWorldObjectOp(
 	// validate
 	err = unixfs_block.ValidateMknod(o.GetPaths(), o.GetNodeType())
 	if err != nil {
-		return false, err
+		return false, world.NewOpRefusedError(err)
 	}
 
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
@@ -107,14 +107,14 @@ func (o *FsMknodOp) ApplyWorldObjectOp(
 			nodeType := unixfs_block.NodeTypeToFSCursorNodeType(o.GetNodeType())
 			return wr.Mknod(ctx, paths, nodeType, fs.FileMode(o.GetPermissions()), o.GetTimestamp().AsTime())
 		case FSType_FSType_FS_OBJECT:
-			return errors.New("TODO apply mknod to fsobject")
+			return world.NewOpRefusedError(errors.New("TODO apply mknod to fsobject"))
 		case FSType_FSType_FS_HOST_VOLUME:
-			return unixfs_block.ErrCannotModifyHostVolume
+			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:
-			return errors.Wrap(ErrInvalidFSType, o.GetFsType().String())
+			return world.NewOpRefusedError(errors.Wrap(ErrInvalidFSType, o.GetFsType().String()))
 		}
 	})
-	return false, err
+	return false, fsRefusal(err)
 }
 
 // _ is a type assertion

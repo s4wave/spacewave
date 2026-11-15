@@ -59,10 +59,10 @@ func (o *CanvasSetNodeOp) ApplyWorldOp(
 			return uerr
 		}
 		if state == nil {
-			return ErrNodeNotFound
+			return world.NewOpRefusedError(ErrNodeNotFound)
 		}
 		if _, exists := state.Nodes[nodeID]; !exists {
-			return ErrNodeNotFound
+			return world.NewOpRefusedError(ErrNodeNotFound)
 		}
 
 		// Preserve the previous canvas state and persist the replacement node.

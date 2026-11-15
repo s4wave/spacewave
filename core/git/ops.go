@@ -39,7 +39,7 @@ func (o *CreateGitRepoWizardOp) ApplyWorldOp(
 
 	// Reject clone requests until import support lands.
 	if o.GetClone() {
-		return false, errors.New("clone must be imported before applying create git repo op")
+		return false, world.NewOpRefusedError(errors.New("clone must be imported before applying create git repo op"))
 	}
 
 	// Build the worktree and init operations for the new repository.

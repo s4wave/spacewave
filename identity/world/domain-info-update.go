@@ -63,9 +63,9 @@ func (o *DomainInfoUpdateOp) ApplyWorldOp(
 		}
 		validate := func() error {
 			if di.GetDomainId() == "" {
-				return errors.New("domainInfo cannot be empty")
+				return world.NewOpRefusedError(errors.New("domainInfo cannot be empty"))
 			}
-			return di.Validate()
+			return world.NewOpRefusedError(di.Validate())
 		}
 		return NewDomainInfoKey(di.GetDomainId()), validate, nil
 	}

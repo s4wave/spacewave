@@ -172,7 +172,7 @@ func (o *SetSpaceSettingsOp) ApplyWorldObjectOp(
 	// Require replacement settings before updating the object body.
 	settings := o.GetSettings()
 	if settings == nil {
-		return false, ErrInvalidSettings
+		return false, world.NewOpRefusedError(ErrInvalidSettings)
 	}
 
 	// Write the settings to the object, keeping its changelog setting.
@@ -184,7 +184,7 @@ func (o *SetSpaceSettingsOp) ApplyWorldObjectOp(
 		}
 		current, valid := currentBlock.(*space_world.SpaceSettings)
 		if currentBlock != nil && !valid {
-			return ErrInvalidSettings
+			return world.NewOpRefusedError(ErrInvalidSettings)
 		}
 
 		// Build the replacement, merging keybindings when the op expects them.

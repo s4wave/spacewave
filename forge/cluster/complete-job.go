@@ -69,7 +69,7 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 		return false, err
 	}
 	if !hasJob {
-		return false, errors.Errorf("cluster %s not linked to job %s", clusterKey, jobKey)
+		return false, world.NewOpRefusedError(errors.Errorf("cluster %s not linked to job %s", clusterKey, jobKey))
 	}
 
 	// Read the current Job before deriving its aggregate result.

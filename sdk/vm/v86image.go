@@ -138,7 +138,7 @@ func (o *SetV86ImageMetadataOp) ApplyWorldOp(
 		return true, err
 	}
 	if !found {
-		return false, errors.New("v86 image object not found")
+		return false, world.NewOpRefusedError(errors.New("v86 image object not found"))
 	}
 
 	// Require the opened object to carry the VM image block type.
@@ -147,7 +147,7 @@ func (o *SetV86ImageMetadataOp) ApplyWorldOp(
 		return true, err
 	}
 	if typeID != V86ImageTypeID {
-		return false, errors.Errorf("object %q is not a V86Image (type=%q)", objKey, typeID)
+		return false, world.NewOpRefusedError(errors.Errorf("object %q is not a V86Image (type=%q)", objKey, typeID))
 	}
 
 	// Replace the VM image metadata while retaining its creation timestamp.
@@ -159,7 +159,7 @@ func (o *SetV86ImageMetadataOp) ApplyWorldOp(
 			return unmarshalErr
 		}
 		if current == nil {
-			return errors.New("v86 image block missing on object")
+			return world.NewOpRefusedError(errors.New("v86 image block missing on object"))
 		}
 
 		// Preserve the image's creation timestamp in the replacement block.
@@ -168,7 +168,7 @@ func (o *SetV86ImageMetadataOp) ApplyWorldOp(
 		return nil
 	})
 	if err != nil {
-		return true, err
+		return !world.IsOpRefusedError(err), err
 	}
 
 	return false, nil

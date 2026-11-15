@@ -38,7 +38,7 @@ func (o *UpdateOrgOp) ApplyWorldOp(
 		return true, err
 	}
 	if !found {
-		return false, errors.New("organization object not found")
+		return false, world.NewOpRefusedError(errors.New("organization object not found"))
 	}
 
 	// Read the organization body before applying its update.
@@ -79,7 +79,7 @@ func generateInvite(op *CreateOrgInviteOp) (*OrgInvite, error) {
 	// Require an invitation type before generating its token.
 	inviteType := op.GetType()
 	if inviteType == OrgInviteType_ORG_INVITE_TYPE_UNKNOWN {
-		return nil, errors.New("invite type is required")
+		return nil, world.NewOpRefusedError(errors.New("invite type is required"))
 	}
 
 	// Generate a random token with the length required by the invitation type.
@@ -120,16 +120,16 @@ func applyJoinViaInvite(state *OrgState, join *JoinOrgViaInviteOp) error {
 	token := join.GetToken()
 	accountID := join.GetAccountId()
 	if token == "" {
-		return errors.New("invite token is required")
+		return world.NewOpRefusedError(errors.New("invite token is required"))
 	}
 	if accountID == "" {
-		return errors.New("account_id is required")
+		return world.NewOpRefusedError(errors.New("account_id is required"))
 	}
 
 	// Check if already a member.
 	for _, m := range state.Members {
 		if m.GetAccountId() == accountID {
-			return errors.New("already a member")
+			return world.NewOpRefusedError(errors.New("already a member"))
 		}
 	}
 
@@ -142,7 +142,7 @@ func applyJoinViaInvite(state *OrgState, join *JoinOrgViaInviteOp) error {
 		}
 	}
 	if invite == nil {
-		return errors.New("invalid invite token")
+		return world.NewOpRefusedError(errors.New("invalid invite token"))
 	}
 
 	// Check expiry.
@@ -155,7 +155,7 @@ func applyJoinViaInvite(state *OrgState, join *JoinOrgViaInviteOp) error {
 
 	// Check max uses.
 	if invite.GetMaxUses() > 0 && invite.GetUses() >= invite.GetMaxUses() {
-		return errors.New("invite has reached maximum uses")
+		return world.NewOpRefusedError(errors.New("invite has reached maximum uses"))
 	}
 
 	// Increment uses.

@@ -141,9 +141,9 @@ func (t *Tx) ApplyWorldOp(
 		bcs.SetPreWriteHook(func(b any) error {
 			v, vOk := b.(*forge_task.Task)
 			if !vOk {
-				return block.ErrUnexpectedType
+				return world.NewOpRefusedError(block.ErrUnexpectedType)
 			}
-			return v.Validate()
+			return world.NewOpRefusedError(v.Validate())
 		})
 		return nil
 	})

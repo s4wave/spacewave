@@ -128,7 +128,7 @@ func resolveVmObject(ctx context.Context, ws world.WorldState, objKey, typeID st
 	}
 	if !found {
 		world.ReleaseObjectState(objState)
-		return nil, false, errors.Errorf("%s object not found", typeID)
+		return nil, false, world.NewOpRefusedError(errors.Errorf("%s object not found", typeID))
 	}
 
 	// Require the opened object to carry the VM block type.
@@ -139,7 +139,7 @@ func resolveVmObject(ctx context.Context, ws world.WorldState, objKey, typeID st
 	}
 	if gotTypeID != typeID {
 		world.ReleaseObjectState(objState)
-		return nil, false, errors.Errorf("object %q is not a %s (type=%q)", objKey, typeID, gotTypeID)
+		return nil, false, world.NewOpRefusedError(errors.Errorf("object %q is not a %s (type=%q)", objKey, typeID, gotTypeID))
 	}
 	return objState, false, nil
 }
@@ -171,7 +171,7 @@ func (o *SetV86ConfigOp) ApplyWorldOp(
 			return unmarshalErr
 		}
 		if vm == nil {
-			return errors.New("vm-v86 block missing on object")
+			return world.NewOpRefusedError(errors.New("vm-v86 block missing on object"))
 		}
 
 		// Retain the requested configuration in the VM block.
@@ -180,7 +180,7 @@ func (o *SetV86ConfigOp) ApplyWorldOp(
 		return nil
 	})
 	if err != nil {
-		return true, err
+		return !world.IsOpRefusedError(err), err
 	}
 
 	return false, nil
@@ -231,13 +231,13 @@ func (o *SetV86StateOp) ApplyWorldOp(
 			return unmarshalErr
 		}
 		if vm == nil {
-			return errors.New("vm-v86 block missing on object")
+			return world.NewOpRefusedError(errors.New("vm-v86 block missing on object"))
 		}
 
 		// Advance the run generation with its new desired and observed states.
 		desired, observed, changed, stateErr := nextRunStates(vm.GetState(), vm.GetObservedState(), o.GetState())
 		if stateErr != nil || !changed {
-			return stateErr
+			return world.NewOpRefusedError(stateErr)
 		}
 		vm.State = desired
 		vm.ObservedState = observed
@@ -247,7 +247,7 @@ func (o *SetV86StateOp) ApplyWorldOp(
 		return nil
 	})
 	if err != nil {
-		return true, err
+		return !world.IsOpRefusedError(err), err
 	}
 
 	return false, nil

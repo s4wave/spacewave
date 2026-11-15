@@ -77,7 +77,7 @@ func (o *SqlQuerySetRootOp) ApplyWorldObjectOp(
 		return false, world.ErrObjectNotFound
 	}
 	if os.GetKey() != o.GetObjectKey() {
-		return false, errors.Errorf("sql/query: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
+		return false, world.NewOpRefusedError(errors.Errorf("sql/query: op target %s does not match object %s", o.GetObjectKey(), os.GetKey()))
 	}
 
 	// Preserve the existing root when initialization is create-once.
@@ -87,7 +87,7 @@ func (o *SqlQuerySetRootOp) ApplyWorldObjectOp(
 			return false, err
 		}
 		if rootRef != nil && !rootRef.GetRootRef().GetEmpty() {
-			return false, ErrQueryAlreadyInitialized
+			return false, world.NewOpRefusedError(ErrQueryAlreadyInitialized)
 		}
 	}
 

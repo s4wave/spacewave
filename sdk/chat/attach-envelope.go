@@ -54,7 +54,7 @@ func (o *AttachChatEnvelopeOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry
 		return false, err
 	}
 	if found {
-		return false, errors.New("chat envelope ID names another message")
+		return false, world.NewOpRefusedError(errors.New("chat envelope ID names another message"))
 	}
 
 	// Attach the envelope, in its redacted form when the message is redacted,

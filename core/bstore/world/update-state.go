@@ -51,7 +51,7 @@ func (o *UpdateBlockStoreStateOp) ApplyWorldOp(
 			return false, err
 		}
 		if exists {
-			return false, bstore.ErrBlockStoreExists
+			return false, world.NewOpRefusedError(bstore.ErrBlockStoreExists)
 		}
 	}
 

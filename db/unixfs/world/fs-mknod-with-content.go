@@ -122,7 +122,7 @@ func (o *FsMknodWithContentOp) ApplyWorldObjectOp(
 	sender peer.ID,
 ) (sysErr bool, err error) {
 	if err := o.Validate(); err != nil {
-		return false, err
+		return false, world.NewOpRefusedError(err)
 	}
 
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
@@ -143,14 +143,14 @@ func (o *FsMknodWithContentOp) ApplyWorldObjectOp(
 				o.GetBlobRef(),
 			)
 		case FSType_FSType_FS_OBJECT:
-			return errors.New("TODO apply mknod-with-content to fsobject")
+			return world.NewOpRefusedError(errors.New("TODO apply mknod-with-content to fsobject"))
 		case FSType_FSType_FS_HOST_VOLUME:
-			return unixfs_block.ErrCannotModifyHostVolume
+			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:
-			return errors.Wrap(ErrInvalidFSType, o.GetFsType().String())
+			return world.NewOpRefusedError(errors.Wrap(ErrInvalidFSType, o.GetFsType().String()))
 		}
 	})
-	return false, err
+	return false, fsRefusal(err)
 }
 
 // GetPayloadRefs returns the file content blob.
