@@ -12,11 +12,14 @@ import { uploadSeedTree, type SeedFile } from './unixfs-seed.js'
 export const SEED_KEY_TAKEN_CODE = 'notes/seed/key-taken'
 
 // SeedObject is one object a seed op writes: its key, the type it gives the
-// object, and the step that writes it.
+// object, and the step that writes it. keepFound marks a companion that a
+// seed with a free primary keeps as it is, whatever its type, when its key is
+// taken, instead of rejecting the op.
 export interface SeedObject {
   key: string
   typeId: string
   label: string
+  keepFound?: boolean
   write(worldState: IWorldState, abortSignal?: AbortSignal): Promise<void>
 }
 
@@ -28,7 +31,7 @@ export interface SeedObject {
 //     must be present with its type, and all are kept as they are;
 //   - primary absent: every companion key must be free, so a new primary never
 //     adopts an object left by an earlier one, such as the files of a deleted
-//     notebook;
+//     notebook; a keepFound companion whose key is taken is kept instead;
 //   - primary present with another type, or with none: rejection.
 //
 // A rejection names the key and the next step, and the World discards the
@@ -66,7 +69,9 @@ export async function applySeed(
         'Rename or delete that object, then try again.',
     )
   }
-  const taken = companionTypes.findIndex((found) => found !== null)
+  const taken = companionTypes.findIndex(
+    (found, i) => found !== null && !companions[i].keepFound,
+  )
   if (taken !== -1) {
     const key = companions[taken].key
     throw keyTaken(
@@ -75,7 +80,8 @@ export async function applySeed(
         `Delete or rename ${key}, then try again.`,
     )
   }
-  for (const object of [...companions, primary]) {
+  const writes = companions.filter((_, i) => companionTypes[i] === null)
+  for (const object of [...writes, primary]) {
     // eslint-disable-next-line react-doctor/async-await-in-loop -- the writes share one World transaction and run in order.
     await runSeedStep(object.label, () => object.write(worldState, abortSignal))
   }
