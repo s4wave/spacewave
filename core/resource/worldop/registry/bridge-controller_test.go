@@ -33,6 +33,8 @@ import (
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
+	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
@@ -1855,4 +1857,157 @@ type allowAllGuard struct{}
 // CheckWrite allows w.
 func (allowAllGuard) CheckWrite(context.Context, world.WorldState, *world.GuardedWrite) error {
 	return nil
+}
+
+// TestBridgedOpWritesFilesThroughStackedGuard applies a bridged plugin op that
+// makes the notes seed's UnixFS writes through the World state it is handed:
+// init-unixfs, then a file created, written and synced through its typed
+// handle. Guarded as ExecuteQuickstart guards a seed, the handler's guard
+// stacks on the op's guarded handle, and each nested write must apply. When
+// the handler first makes a nested op the plugin guard refuses and swallows
+// its refusal, the op still fails and none of its writes commit.
+func TestBridgedOpWritesFilesThroughStackedGuard(t *testing.T) {
+	// Serve the seed handler as the test plugin, with the UnixFS object type.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	sender := tb.Volume.GetPeerID()
+	pluginRoot := srpc.NewMux()
+	handler := &seedFilesHandler{testWorldOpHandler: &testWorldOpHandler{sender: sender}}
+	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(pluginRoot, handler); err != nil {
+		t.Fatal(err)
+	}
+	pluginResourceMux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+		t.Fatal(err)
+	}
+	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
+	rel, err := tb.Bus.AddController(ctx, &testWorldOpPluginLoadController{client: pluginClient}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel()
+	types := objecttype_controller.NewController(func(_ context.Context, typeID string) (objecttype.ObjectType, error) {
+		if typeID == s4wave_unixfs_world.UnixFSTypeID {
+			return s4wave_unixfs_world.UnixFSType, nil
+		}
+		return nil, nil
+	})
+	relTypes, err := tb.Bus.AddController(ctx, types, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer relTypes()
+	lookup := lookupPluginOp(ctx, t, tb, le)
+
+	// Apply the op unguarded and guarded as the plugin.
+	for _, guarded := range []bool{false, true} {
+		handler.key = fmt.Sprintf("test/seed-fs-%v", guarded)
+		opts := []resource_world.WorldStateResourceOption{resource_world.WithSessionPeerID(sender)}
+		if guarded {
+			opts = append(opts, resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard("test-plugin")))
+		}
+		res := resource_world.NewWorldStateResource(le, tb.Bus, world.NewEngineWorldState(tb.Engine, true), lookup, opts...)
+		resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data")})
+		if err != nil || resp.GetErrorCode() != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED || resp.GetRejectionCode() != "" {
+			t.Fatalf("guarded=%v: apply returned %v, code %v, rejection %q", guarded, err, resp.GetErrorCode(), resp.GetRejectionCode())
+		}
+		assertWorldObjectExists(t, ctx, tb.Engine, handler.key)
+	}
+
+	// Swallow a refused nested op before the same writes.
+	handler.key, handler.swallowKey = "test/seed-fs-swallowed", space_world.SpaceSettingsObjectKey
+	res := resource_world.NewWorldStateResource(le, tb.Bus, world.NewEngineWorldState(tb.Engine, true), lookup,
+		resource_world.WithSessionPeerID(sender), resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard("test-plugin")))
+	resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data")})
+	if err != nil || resp.GetRejectionCode() != space_world_optypes.PluginWriteRefusedCode || resp.GetSysErr() {
+		t.Fatalf("swallowed refusal: apply returned %v, code %v, rejection %q, want rejection %q",
+			err, resp.GetErrorCode(), resp.GetRejectionCode(), space_world_optypes.PluginWriteRefusedCode)
+	}
+	assertWorldObjectMissing(t, ctx, tb.Engine, handler.key)
+	assertWorldObjectMissing(t, ctx, tb.Engine, handler.swallowKey)
+}
+
+// seedFilesHandler applies the notes seed's UnixFS writes to key through the
+// attached World state, failing at the first step that fails. When swallowKey
+// is set, it first applies init-unixfs at swallowKey and ignores the result.
+type seedFilesHandler struct {
+	*testWorldOpHandler
+	key        string
+	swallowKey string
+}
+
+func (h *seedFilesHandler) ApplyWorldOp(
+	ctx context.Context,
+	req *s4wave_worldop_registry.ApplyWorldOpRequest,
+) (*s4wave_worldop_registry.ApplyWorldOpResponse, error) {
+	// Create the filesystem through the attached World state.
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	wsClient, err := resourceCtx.GetAttachedResource(req.GetAttachedWorldStateResourceId())
+	if err != nil {
+		return nil, err
+	}
+	ws := s4wave_world.NewSRPCWorldStateResourceServiceClient(wsClient)
+	if h.swallowKey != "" {
+		swallowed := space_world_ops.NewInitUnixFSOp(h.swallowKey, time.Unix(1, 0))
+		swallowedData, err := swallowed.MarshalVT()
+		if err != nil {
+			return nil, err
+		}
+		_, _ = ws.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: swallowed.TypeID(), OpData: swallowedData})
+	}
+	op := space_world_ops.NewInitUnixFSOp(h.key, time.Unix(1, 0))
+	opData, err := op.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	opResp, err := ws.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: op.TypeID(), OpData: opData})
+	if err != nil {
+		return nil, errors.Join(errors.New("init-unixfs"), err)
+	}
+	if opResp.GetErrorCode() != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED || opResp.GetRejectionCode() != "" {
+		return nil, fmt.Errorf("init-unixfs: code %v, rejection %q", opResp.GetErrorCode(), opResp.GetRejectionCode())
+	}
+
+	// Create, write and sync a file through the filesystem's typed handle.
+	typed := s4wave_world.NewSRPCTypedObjectResourceServiceClient(wsClient)
+	access, err := typed.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: h.key})
+	if err != nil {
+		return nil, errors.Join(errors.New("access"), err)
+	}
+	fsClient, err := resourceCtx.GetAttachedResource(access.GetResourceId())
+	if err != nil {
+		return nil, err
+	}
+	root := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fsClient)
+	if _, err := root.Mknod(ctx, &s4wave_unixfs.HandleMknodRequest{
+		Names:    []string{"a.md"},
+		NodeType: s4wave_unixfs.MknodType_MKNOD_TYPE_FILE,
+		Mode:     0o644,
+	}); err != nil {
+		return nil, errors.Join(errors.New("mknod"), err)
+	}
+	look, err := root.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "a.md"})
+	if err != nil {
+		return nil, errors.Join(errors.New("lookup"), err)
+	}
+	fileClient, err := resourceCtx.GetAttachedResource(look.GetResourceId())
+	if err != nil {
+		return nil, err
+	}
+	file := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
+	if _, err := file.WriteAt(ctx, &s4wave_unixfs.HandleWriteAtRequest{Data: []byte("hello")}); err != nil {
+		return nil, errors.Join(errors.New("writeAt"), err)
+	}
+	if _, err := file.Sync(ctx, &s4wave_unixfs.HandleSyncRequest{}); err != nil {
+		return nil, errors.Join(errors.New("sync"), err)
+	}
+	return &s4wave_worldop_registry.ApplyWorldOpResponse{}, nil
 }

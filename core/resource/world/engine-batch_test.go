@@ -5,6 +5,7 @@ package resource_world_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -494,5 +495,93 @@ func TestExecuteWorldBatchOps(t *testing.T) {
 	objResp, err := objResource.ApplyObjectOp(ctx, &s4wave_world.ApplyObjectOpRequest{OpTypeId: batchTestOpID, OpData: []byte("missing")})
 	if err != nil || objResp.GetErrorCode() != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING || objResp.GetRejectionCode() != "" {
 		t.Fatalf("missing executable object op: %v %v", objResp, err)
+	}
+}
+
+// refuseKeyGuard refuses a write naming key, and allows every other.
+type refuseKeyGuard struct{ key string }
+
+// CheckWrite refuses w when it names the guard's key.
+func (g *refuseKeyGuard) CheckWrite(_ context.Context, _ world.WorldState, w *world.GuardedWrite) error {
+	if slices.Contains(w.ObjectKeys, g.key) {
+		return &world.OperationRejection{Code: "test/guard-refused", Message: "refused by the test guard"}
+	}
+	return nil
+}
+
+// TestGuardedEngineResourceExecutesOps checks an op applied on an engine mount
+// guarded as a plugin's, through ExecuteWorldOp and through the World state
+// the mount's typed objects write with: a write the guard allows commits, and
+// a write the mount's guard or a different guard stacked over the mount's
+// state refuses fails the op and commits nothing.
+func TestGuardedEngineResourceExecutesOps(t *testing.T) {
+	ctx := t.Context()
+	tb, cleanup := setupWorldTestbed(ctx, t)
+	defer cleanup()
+	hooks := &batchTestHooks{}
+	lookupOp := func(ctx context.Context, typeID string) (world.Operation, error) {
+		if typeID != batchTestOpID {
+			return nil, world.ErrUnhandledOp
+		}
+		return &batchTestOp{h: hooks}, nil
+	}
+	mountGuard := &refuseKeyGuard{key: "test/mount-refused"}
+	engineResource := resource_world.NewEngineResource(
+		logrus.NewEntry(logrus.New()), tb.Bus, tb.Engine, lookupOp, nil,
+		resource_world.WithWriteGuard(mountGuard),
+	)
+	defer engineResource.Close()
+	ws := world.NewEngineWorldState(tb.Engine, true)
+	exists := func(key string) bool {
+		obj, found, err := ws.GetObject(ctx, key)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		return found
+	}
+
+	// ExecuteWorldOp commits an allowed write and refuses the guard's key.
+	for _, tc := range []struct {
+		key       string
+		rejection string
+	}{
+		{"test/mount-allowed", ""},
+		{"test/mount-refused", "test/guard-refused"},
+	} {
+		req := &s4wave_world.ApplyWorldOpRequest{OpTypeId: batchTestOpID, OpData: []byte("create:" + tc.key)}
+		resp, err := engineResource.ExecuteWorldOp(ctx, req)
+		if err != nil || resp.GetErrorCode() != 0 || resp.GetRejectionCode() != tc.rejection {
+			t.Fatalf("ExecuteWorldOp create %q: %v %v, want rejection %q", tc.key, resp, err, tc.rejection)
+		}
+		if exists(tc.key) != (tc.rejection == "") {
+			t.Fatalf("ExecuteWorldOp create %q: object exists %v", tc.key, exists(tc.key))
+		}
+	}
+
+	// The state the mount's typed objects write with is the mount's state
+	// guarded again by the mount's guard; a different guard over it is
+	// consulted too.
+	guarded := world.GuardEngine(tb.Engine, mountGuard)
+	outerGuard := &refuseKeyGuard{key: "test/outer-refused"}
+	for _, tc := range []struct {
+		guard   world.WriteGuard
+		key     string
+		refused bool
+	}{
+		{mountGuard, "test/typed-allowed", false},
+		{mountGuard, "test/mount-refused", true},
+		{outerGuard, "test/outer-refused", true},
+		{outerGuard, "test/mount-refused", true},
+	} {
+		typedWs := world.GuardWorldState(world.NewEngineWorldState(guarded, true), tc.guard)
+		_, _, err := typedWs.ApplyWorldOp(ctx, &batchTestOp{h: hooks, action: "create:" + tc.key}, "")
+		var rejection *world.OperationRejection
+		if refused := errors.As(err, &rejection); refused != tc.refused || (!tc.refused && err != nil) {
+			t.Fatalf("typed create %q: %v, want refused %v", tc.key, err, tc.refused)
+		}
+		if exists(tc.key) != !tc.refused {
+			t.Fatalf("typed create %q: object exists %v", tc.key, exists(tc.key))
+		}
 	}
 }
