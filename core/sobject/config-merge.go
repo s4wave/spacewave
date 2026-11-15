@@ -116,8 +116,9 @@ func signedByOwners(entry *SOConfigChange, cfg *SharedObjectConfig) bool {
 
 // applyConfigDelta returns target with each field that next changed from
 // parent set to its value in next. Participants and removed authors merge by
-// peer ID, and dropped roster peers merge as a set. The chain head fields
-// keep target's values. A new SharedObjectConfig field must be merged here.
+// peer ID, skipped operations by op hash, and dropped roster peers merge as a
+// set. The chain head fields keep target's values. A new SharedObjectConfig
+// field must be merged here.
 func applyConfigDelta(target, parent, next *SharedObjectConfig) *SharedObjectConfig {
 	// Merge the keyed lists by peer ID.
 	out := target.CloneVT()
@@ -132,6 +133,12 @@ func applyConfigDelta(target, parent, next *SharedObjectConfig) *SharedObjectCon
 	slices.SortFunc(out.RemovedAuthors, func(a, b *SOOperationPosition) int {
 		return strings.Compare(a.GetPeerId(), b.GetPeerId())
 	})
+	out.SkippedOperations = mergeByKey(
+		out.GetSkippedOperations(), parent.GetSkippedOperations(), next.GetSkippedOperations(),
+		func(s *SOSkippedOperation) string { return string(s.GetPosition().GetOpHash()) },
+		(*SOSkippedOperation).EqualVT, (*SOSkippedOperation).CloneVT,
+	)
+	sortSkippedOperations(out.SkippedOperations)
 	out.RosterDroppedPeerIds = mergeByKey(
 		out.GetRosterDroppedPeerIds(), parent.GetRosterDroppedPeerIds(), next.GetRosterDroppedPeerIds(),
 		func(id string) string { return id }, func(a, b string) bool { return a == b }, func(id string) string { return id },

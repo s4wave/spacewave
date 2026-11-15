@@ -21,8 +21,17 @@ import {
   SOParticipantRole,
   type SOSequenceHead,
   SOSequencer,
+  SOSkippedOperation,
   SharedObjectConfig,
 } from './sobject.pb.js'
+
+// MAX_SKIPPED_OPERATIONS is the most skips a config holds, matching Go
+// MaxSkippedOperations.
+export const MAX_SKIPPED_OPERATIONS = 8
+
+// MAX_SKIP_REASON_SIZE is the largest owner's note on a skip, in bytes,
+// matching Go MaxSkipReasonSize.
+export const MAX_SKIP_REASON_SIZE = 256
 
 // SO_CONFIG_CHANGE_SIGNATURE_CONTEXT is the signature context of every control
 // record. The signed body binds the object, so the context needs no per-record data.
@@ -66,6 +75,13 @@ export function validateSOConfig(cfg: SharedObjectConfig): void {
   // Pinned operations of removed authors outlive the final departure too.
   try {
     validateSOAuthorHeads('removed_authors', cfg.removedAuthors ?? [])
+  } catch (err) {
+    throw new SOConfigChangeError('invalid', (err as Error).message)
+  }
+
+  // So do an owner's skips, capped so each config copy stays small.
+  try {
+    validateSOSkippedOperations(cfg.skippedOperations ?? [])
   } catch (err) {
     throw new SOConfigChangeError('invalid', (err as Error).message)
   }
@@ -168,6 +184,43 @@ export function validateSOAuthorHeads(
       throw new Error(`${field} must be strictly sorted by peer_id`)
     }
   }
+}
+
+// validateSOSkippedOperations checks that skips holds at most
+// MAX_SKIPPED_OPERATIONS real positions, strictly sorted by op hash, each with
+// a reason of at most MAX_SKIP_REASON_SIZE bytes, matching Go
+// validateSkippedOperations. It throws on violation.
+export function validateSOSkippedOperations(
+  skips: readonly SOSkippedOperation[],
+): void {
+  if (skips.length > MAX_SKIPPED_OPERATIONS) {
+    throw new Error(
+      `skipped_operations holds ${skips.length} entries, more than ${MAX_SKIPPED_OPERATIONS}`,
+    )
+  }
+  for (const [i, skip] of skips.entries()) {
+    try {
+      validateSOPosition(skip.position)
+    } catch (err) {
+      throw new Error(`skipped_operations[${i}]: ${(err as Error).message}`, {
+        cause: err,
+      })
+    }
+    const reasonSize = new TextEncoder().encode(skip.reason ?? '').length
+    if (reasonSize > MAX_SKIP_REASON_SIZE) {
+      throw new Error(
+        `skipped_operations[${i}]: reason is longer than ${MAX_SKIP_REASON_SIZE} bytes`,
+      )
+    }
+    if (i > 0 && compareBytes(skipHash(skips[i - 1]), skipHash(skip)) >= 0) {
+      throw new Error('skipped_operations must be strictly sorted by op_hash')
+    }
+  }
+}
+
+// skipHash returns the op hash a skip names.
+function skipHash(skip: SOSkippedOperation): Uint8Array {
+  return skip.position?.opHash ?? new Uint8Array()
 }
 
 // validateSOPosition checks that pos names a real operation, matching Go
@@ -511,6 +564,7 @@ const PEER_CONFIG_CHANGE_TYPES: ReadonlySet<SOConfigChangeType> = new Set([
   SOConfigChangeType.SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER,
   SOConfigChangeType.SO_CONFIG_CHANGE_TYPE_SET_CONTROL,
   SOConfigChangeType.SO_CONFIG_CHANGE_TYPE_MERGE,
+  SOConfigChangeType.SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION,
 ])
 
 // verifyConfigMerge checks that a MERGE record's config is the one its branch
@@ -613,8 +667,9 @@ function signedByOwners(
 
 // applyConfigDelta returns target with each field that next changed from
 // parent set to its value in next, matching Go applyConfigDelta. Participants
-// and removed authors merge by peer ID, and dropped roster peers merge as a
-// set. The chain head fields keep target's values.
+// and removed authors merge by peer ID, skipped operations by op hash, and
+// dropped roster peers merge as a set. The chain head fields keep target's
+// values.
 function applyConfigDelta(
   target: SharedObjectConfig,
   parent: SharedObjectConfig,
@@ -639,6 +694,14 @@ function applyConfigDelta(
     (a, b) => SOOperationPosition.equals(a, b),
     (item) => SOOperationPosition.clone(item)!,
   ).sort((a, b) => compareStrings(peerID(a), peerID(b)))
+  out.skippedOperations = mergeByKey(
+    out.skippedOperations ?? [],
+    parent.skippedOperations ?? [],
+    next.skippedOperations ?? [],
+    (item) => bytesToHex(skipHash(item)),
+    (a, b) => SOSkippedOperation.equals(a, b),
+    (item) => SOSkippedOperation.clone(item)!,
+  ).sort((a, b) => compareBytes(skipHash(a), skipHash(b)))
   out.rosterDroppedPeerIds = mergeByKey(
     out.rosterDroppedPeerIds ?? [],
     parent.rosterDroppedPeerIds ?? [],
@@ -728,6 +791,17 @@ function equalSOConfigs(
     ),
   })
   return SharedObjectConfig.equals(sorted(a), sorted(b))
+}
+
+// compareBytes orders a and b as Go bytes.Compare does.
+function compareBytes(a: Uint8Array, b: Uint8Array): number {
+  const n = Math.min(a.length, b.length)
+  for (let i = 0; i < n; i++) {
+    if (a[i] !== b[i]) {
+      return a[i] < b[i] ? -1 : 1
+    }
+  }
+  return a.length - b.length
 }
 
 // compareStrings orders strings by code unit, which is byte order for the

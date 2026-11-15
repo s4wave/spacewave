@@ -128,6 +128,11 @@ func (c *SharedObjectConfig) Validate() error {
 		return err
 	}
 
+	// So do an owner's skips, capped so each config copy stays small.
+	if err := validateSkippedOperations(c.GetSkippedOperations()); err != nil {
+		return err
+	}
+
 	// The roster drops each peer once, in order.
 	for i, peerID := range c.GetRosterDroppedPeerIds() {
 		if _, err := parsePeerIDField(peerID); err != nil {

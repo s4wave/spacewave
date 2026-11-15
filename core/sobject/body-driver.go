@@ -513,10 +513,9 @@ func (d *BodyDriver) apply(ctx context.Context, ev *OrderEvent, i int) error {
 	// Prepare the operation as every member does.
 	h := ev.Order[i]
 	inner := ev.Set.Get(h)
-	op := &OrderedOperation{Hash: h, Inner: inner}
+	op := &OrderedOperation{Hash: h, Inner: inner, Refused: replayRefusal(ev.Set, ev.Config, h, inner)}
 	switch {
-	case ev.Set.Equivocated(h):
-		op.Refused = ReasonEquivocated
+	case op.Refused != "":
 	case inner.IsAcknowledgment():
 	default:
 		author, data, reason, err := PrepareReplayOp(ctx, ev.Snapshot, inner)
@@ -642,12 +641,13 @@ func (d *BodyDriver) concurrentAuthors(set *SOOperationSet, earlier []bodyPositi
 // admittedPrefix returns how many of the first n positions keep their
 // outcome under ev's config. A removal that pinned an author below
 // operations already applied, such as a cut through a chosen nonce, rejects
-// them now, so the body applies again from the first one and reaches the
-// World a member replaying from the checkpoint reaches. A refused position
-// applied nothing and stays. The check runs only while the config pins
-// removed authors: one binary search per position above the checkpoint.
+// them now, and so does an owner's skip of an applied operation, so the body
+// applies again from the first one and reaches the World a member replaying
+// from the checkpoint reaches. A refused position applied nothing and stays.
+// The check runs only while the config pins removed authors or skips
+// operations: one or two binary searches per position above the checkpoint.
 func (d *BodyDriver) admittedPrefix(ev *OrderEvent, n int) int {
-	if len(ev.Config.GetRemovedAuthors()) == 0 {
+	if len(ev.Config.GetRemovedAuthors()) == 0 && len(ev.Config.GetSkippedOperations()) == 0 {
 		return n
 	}
 	for i, pos := range d.positions[:n] {
@@ -655,7 +655,10 @@ func (d *BodyDriver) admittedPrefix(ev *OrderEvent, n int) int {
 			continue
 		}
 		inner := ev.Set.Get(pos.hash)
-		if inner != nil && !ev.Config.AdmitsOperation(inner.GetPeerId(), inner.GetNonce()) {
+		if inner == nil {
+			continue
+		}
+		if !ev.Config.AdmitsOperation(inner.GetPeerId(), inner.GetNonce()) || ev.Config.SkipsOperation(pos.hash, inner) {
 			return i
 		}
 	}

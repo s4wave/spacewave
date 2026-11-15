@@ -385,6 +385,9 @@ const (
 	// SO_CONFIG_CHANGE_TYPE_MERGE absorbs a concurrent branch of owner records
 	// into the chain after its parent. See SOConfigMerge.
 	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_MERGE SOConfigChangeType = 12
+	// SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION skips an operation replay waits at.
+	// See SOSkippedOperation.
+	SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION SOConfigChangeType = 13
 )
 
 // Enum value maps for SOConfigChangeType.
@@ -403,6 +406,7 @@ var (
 		10: "SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER",
 		11: "SO_CONFIG_CHANGE_TYPE_SET_CONTROL",
 		12: "SO_CONFIG_CHANGE_TYPE_MERGE",
+		13: "SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION",
 	}
 	SOConfigChangeType_value = map[string]int32{
 		"SO_CONFIG_CHANGE_TYPE_UNKNOWN":               0,
@@ -418,6 +422,7 @@ var (
 		"SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER":         10,
 		"SO_CONFIG_CHANGE_TYPE_SET_CONTROL":           11,
 		"SO_CONFIG_CHANGE_TYPE_MERGE":                 12,
+		"SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION":        13,
 	}
 )
 
@@ -1310,6 +1315,10 @@ type SharedObjectConfig struct {
 	// voters who committed it change. Required under group control; a change
 	// back to owner control keeps it.
 	SealedCheckpoint *SOCheckpointHead `protobuf:"bytes,16,opt,name=sealed_checkpoint,json=sealedCheckpoint,proto3" json:"sealedCheckpoint,omitempty"`
+	// SkippedOperations lists the operations an owner skipped, sorted by op
+	// hash, at most 8, kept until the checkpoint covers them. Replay refuses
+	// each one, whatever its outcome would be.
+	SkippedOperations []*SOSkippedOperation `protobuf:"bytes,17,rep,name=skipped_operations,json=skippedOperations,proto3" json:"skippedOperations,omitempty"`
 }
 
 func (x *SharedObjectConfig) Reset() {
@@ -1372,6 +1381,43 @@ func (x *SharedObjectConfig) GetSealedCheckpoint() *SOCheckpointHead {
 		return x.SealedCheckpoint
 	}
 	return nil
+}
+
+func (x *SharedObjectConfig) GetSkippedOperations() []*SOSkippedOperation {
+	if x != nil {
+		return x.SkippedOperations
+	}
+	return nil
+}
+
+// SOSkippedOperation is an operation the config skips: every replica refuses
+// it, whatever its outcome would be. A skip cannot be withdrawn.
+type SOSkippedOperation struct {
+	unknownFields []byte
+	// Position names the operation by author, nonce and hash.
+	Position *SOOperationPosition `protobuf:"bytes,1,opt,name=position,proto3" json:"position,omitempty"`
+	// Reason is the skipping owner's note to the author, at most 256 bytes.
+	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+}
+
+func (x *SOSkippedOperation) Reset() {
+	*x = SOSkippedOperation{}
+}
+
+func (*SOSkippedOperation) ProtoMessage() {}
+
+func (x *SOSkippedOperation) GetPosition() *SOOperationPosition {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
+func (x *SOSkippedOperation) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
 }
 
 // SOCheckpointHead names one checkpoint.
@@ -3519,6 +3565,7 @@ func (m *SharedObjectConfig) CloneVT() *SharedObjectConfig {
 	r.RosterDroppedPeerIds = protobuf_go_lite.CloneSlice(m.RosterDroppedPeerIds)
 	r.Sequencer = protobuf_go_lite.CloneVTValue(m.Sequencer)
 	r.SealedCheckpoint = protobuf_go_lite.CloneVTValue(m.SealedCheckpoint)
+	r.SkippedOperations = protobuf_go_lite.CloneVTSlice(m.SkippedOperations)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3526,6 +3573,23 @@ func (m *SharedObjectConfig) CloneVT() *SharedObjectConfig {
 }
 
 func (m *SharedObjectConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOSkippedOperation) CloneVT() *SOSkippedOperation {
+	if m == nil {
+		return (*SOSkippedOperation)(nil)
+	}
+	r := new(SOSkippedOperation)
+	r.Reason = m.Reason
+	r.Position = protobuf_go_lite.CloneVTValue(m.Position)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOSkippedOperation) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4768,11 +4832,37 @@ func (this *SharedObjectConfig) EqualVT(that *SharedObjectConfig) bool {
 	if !protobuf_go_lite.IsEqualVT(this.SealedCheckpoint, that.SealedCheckpoint) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.SkippedOperations, that.SkippedOperations, func() *SOSkippedOperation { return &SOSkippedOperation{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SharedObjectConfig) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SharedObjectConfig)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOSkippedOperation) EqualVT(that *SOSkippedOperation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Position, that.Position) {
+		return false
+	}
+	if this.Reason != that.Reason {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOSkippedOperation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOSkippedOperation)
 	if !ok {
 		return false
 	}
@@ -7418,6 +7508,17 @@ func (x *SharedObjectConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sealedCheckpoint")
 		x.SealedCheckpoint.MarshalProtoJSON(s.WithField("sealedCheckpoint"))
 	}
+	if len(x.SkippedOperations) > 0 || s.HasField("skippedOperations") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("skippedOperations")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.SkippedOperations {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("skippedOperations"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -7501,12 +7602,84 @@ func (x *SharedObjectConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.SealedCheckpoint = &SOCheckpointHead{}
 			x.SealedCheckpoint.UnmarshalProtoJSON(s.WithField("sealed_checkpoint", true))
+		case "skipped_operations", "skippedOperations":
+			s.AddField("skipped_operations")
+			if s.ReadNil() {
+				x.SkippedOperations = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.SkippedOperations = append(x.SkippedOperations, nil)
+					return
+				}
+				v := &SOSkippedOperation{}
+				v.UnmarshalProtoJSON(s.WithField("skipped_operations", false))
+				if s.Err() != nil {
+					return
+				}
+				x.SkippedOperations = append(x.SkippedOperations, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SharedObjectConfig from JSON.
 func (x *SharedObjectConfig) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOSkippedOperation message to JSON.
+func (x *SOSkippedOperation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Position != nil || s.HasField("position") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("position")
+		x.Position.MarshalProtoJSON(s.WithField("position"))
+	}
+	if x.Reason != "" || s.HasField("reason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reason")
+		s.WriteString(x.Reason)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOSkippedOperation to JSON.
+func (x *SOSkippedOperation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOSkippedOperation message from JSON.
+func (x *SOSkippedOperation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "position":
+			if s.ReadNil() {
+				x.Position = nil
+				return
+			}
+			x.Position = &SOOperationPosition{}
+			x.Position.UnmarshalProtoJSON(s.WithField("position", true))
+		case "reason":
+			s.AddField("reason")
+			x.Reason = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOSkippedOperation from JSON.
+func (x *SOSkippedOperation) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -11253,6 +11426,20 @@ func (m *SharedObjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.SkippedOperations) > 0 {
+		for iNdEx := len(m.SkippedOperations) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.SkippedOperations[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x8a
+		}
+	}
 	if m.SealedCheckpoint != nil {
 		size, err := m.SealedCheckpoint.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -11320,6 +11507,53 @@ func (m *SharedObjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOSkippedOperation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOSkippedOperation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOSkippedOperation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Reason) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Reason)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Position != nil {
+		size, err := m.Position.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -13759,6 +13993,25 @@ func (m *SharedObjectConfig) SizeVT() (n int) {
 		l = m.SealedCheckpoint.SizeVT()
 		n += protobuf_go_lite.SizeMessage(2, l)
 	}
+	for _, e := range m.SkippedOperations {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOSkippedOperation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Position != nil {
+		l = m.Position.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Reason)
 	n += len(m.unknownFields)
 	return n
 }
@@ -14929,10 +15182,40 @@ func (x *SharedObjectConfig) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sealed_checkpoint")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SealedCheckpoint)
 	}
+	if len(x.SkippedOperations) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "skipped_operations")
+		for i, v := range x.SkippedOperations {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOSkippedOperation{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SharedObjectConfig) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOSkippedOperation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOSkippedOperation")
+	if x.Position != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "position")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Position)
+	}
+	if x.Reason != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reason")
+		protobuf_go_lite.TextWriteString(&sb, x.Reason)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOSkippedOperation) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -17375,6 +17658,87 @@ func (m *SharedObjectConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SkippedOperations", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SkippedOperations = append(m.SkippedOperations, &SOSkippedOperation{})
+			if err := m.SkippedOperations[len(m.SkippedOperations)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOSkippedOperation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOSkippedOperation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOSkippedOperation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Position", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Position == nil {
+				m.Position = &SOOperationPosition{}
+			}
+			if err := m.Position.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Reason = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
