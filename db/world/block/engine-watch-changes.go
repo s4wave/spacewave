@@ -103,7 +103,8 @@ func (e *Engine) WatchIndexedChanges(
 	if err != nil {
 		return err
 	}
-	defer done()
+	var covered uint64
+	defer func() { done(covered) }()
 
 	// Copy the recorded spans when the change watch starts past afterSeqno and
 	// recorded every span since the head at afterSeqno. A reconnect wave
@@ -137,6 +138,7 @@ func (e *Engine) WatchIndexedChanges(
 		for changes == nil {
 			select {
 			case <-ctx.Done():
+				covered = sub.coveredThrough(w, afterSeqno)
 				return ctx.Err()
 			case <-sub.wake:
 			}
@@ -160,19 +162,19 @@ func (e *Engine) WatchIndexedChanges(
 }
 
 // subscribeChanges joins the change watch with a subscriber indexed by
-// interest, and returns done, which ends the call. A subscriber keeps the
+// interest, and returns done, which ends the call with the seqno it covered. A subscriber keeps the
 // watch running until it leaves.
 //
 // With a WatchSlot in ctx, it reuses the subscriber the slot kept from an
 // earlier call on the same watch, emptied of what it merged, and moves its
 // index entry by the difference between the interests, so a view that reruns
 // after each change touches only the names its reads gained or lost; done
-// puts the subscriber back in the slot, which leaves the watch when it
-// closes. The reuse keeps a fresh subscriber's order, indexing before the
+// puts the subscriber back in the slot with the seqno the call covered, and
+// the slot leaves the watch when it closes. The reuse keeps a fresh subscriber's order, indexing before the
 // caller reads the watch's base, so the caller's catch-up from afterSeqno
 // covers every change the emptied subscriber dropped. Without a slot, done
 // leaves the watch.
-func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInterest) (*engineChangeWatch, *changeSubscriber, func(), error) {
+func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInterest) (*engineChangeWatch, *changeSubscriber, func(covered uint64), error) {
 	// Claim the slot and the subscriber it kept on this Engine.
 	slot := world.WatchSlotFromContext(ctx)
 	var kept *slotSubscriber
@@ -213,7 +215,7 @@ func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInt
 	}
 	if err != nil {
 		if slot != nil {
-			slot.Put(nil)
+			slot.Put(nil, 0)
 		}
 		return nil, nil, nil, err
 	}
@@ -241,13 +243,13 @@ func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInt
 
 	// End the call by keeping the subscriber in the slot, idle, or by leaving.
 	if slot == nil {
-		return w, sub, func() { e.leaveChangeWatch(w, sub) }, nil
+		return w, sub, func(uint64) { e.leaveChangeWatch(w, sub) }, nil
 	}
-	return w, sub, func() {
+	return w, sub, func(covered uint64) {
 		sub.mtx.Lock()
 		sub.idle, sub.changes = true, nil
 		sub.mtx.Unlock()
-		slot.Put(&slotSubscriber{e: e, w: w, sub: sub})
+		slot.Put(&slotSubscriber{e: e, w: w, sub: sub}, covered)
 	}, nil
 }
 
@@ -326,6 +328,22 @@ func (s *changeSubscriber) add(seqno uint64, changes *world.ChangeSet) {
 	s.changes = world.MergeChangeSets(s.changes, changes, changeDiffLimit)
 	s.mtx.Unlock()
 	s.signal()
+}
+
+// coveredThrough returns the seqno through which a caller that reported every
+// change it took, the last after afterSeqno, has seen every change naming the
+// subscriber: the last span w handed out, unless changes wait untaken. The
+// caller must have caught up, so every later span reaches the subscriber
+// through w.
+func (s *changeSubscriber) coveredThrough(w *engineChangeWatch, afterSeqno uint64) uint64 {
+	// Load handed first: every span through it was added before the store.
+	handed := w.handed.Load()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if s.changes != nil {
+		return afterSeqno
+	}
+	return max(afterSeqno, handed)
 }
 
 // take returns and clears the merged changes and the seqno they reach.

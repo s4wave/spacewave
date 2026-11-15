@@ -43,8 +43,10 @@ type SRPCEngineResourceServiceClient interface {
 
 	WaitSeqno(ctx context.Context, in *WaitSeqnoRequest) (*WaitSeqnoResponse, error)
 	// WatchChanges streams each later World revision with the objects and graph
-	// quads it changed since the previous message.
-	WatchChanges(ctx context.Context, in *WatchChangesRequest) (SRPCEngineResourceService_WatchChangesClient, error)
+	// quads it changed since the previous message. The first request opens the
+	// stream; a stream opened with an interest takes later requests that change
+	// it, each acknowledged in order among the changes.
+	WatchChanges(ctx context.Context) (SRPCEngineResourceService_WatchChangesClient, error)
 	// WaitObjectRev waits until an object reaches a revision through the
 	// engine's key watch, which wakes only on commits that change the object.
 	WaitObjectRev(ctx context.Context, in *WaitObjectRevRequest) (*WaitObjectRevResponse, error)
@@ -199,36 +201,42 @@ func (c *srpcEngineResourceServiceClient) WaitSeqno(ctx context.Context, in *Wai
 	return out, nil
 }
 
-func (c *srpcEngineResourceServiceClient) WatchChanges(ctx context.Context, in *WatchChangesRequest) (SRPCEngineResourceService_WatchChangesClient, error) {
-	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchChanges", in)
+func (c *srpcEngineResourceServiceClient) WatchChanges(ctx context.Context) (SRPCEngineResourceService_WatchChangesClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchChanges", nil)
 	if err != nil {
 		return nil, err
 	}
 	strm := &srpcEngineResourceService_WatchChangesClient{stream}
-	// A failed half-close means the call ended; MsgRecv reports its outcome.
-	_ = strm.CloseSend()
 	return strm, nil
 }
 
 type SRPCEngineResourceService_WatchChangesClient interface {
 	srpc.Stream
-	Recv() (*WorldChange, error)
-	RecvTo(*WorldChange) error
+	Send(*WatchChangesRequest) error
+	Recv() (*WatchChangesResponse, error)
+	RecvTo(*WatchChangesResponse) error
 }
 
 type srpcEngineResourceService_WatchChangesClient struct {
 	srpc.Stream
 }
 
-func (x *srpcEngineResourceService_WatchChangesClient) Recv() (*WorldChange, error) {
-	m := new(WorldChange)
+func (x *srpcEngineResourceService_WatchChangesClient) Send(m *WatchChangesRequest) error {
+	if m == nil {
+		return nil
+	}
+	return x.MsgSend(m)
+}
+
+func (x *srpcEngineResourceService_WatchChangesClient) Recv() (*WatchChangesResponse, error) {
+	m := new(WatchChangesResponse)
 	if err := x.MsgRecv(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (x *srpcEngineResourceService_WatchChangesClient) RecvTo(m *WorldChange) error {
+func (x *srpcEngineResourceService_WatchChangesClient) RecvTo(m *WatchChangesResponse) error {
 	return x.MsgRecv(m)
 }
 
@@ -298,8 +306,10 @@ type SRPCEngineResourceServiceServer interface {
 
 	WaitSeqno(context.Context, *WaitSeqnoRequest) (*WaitSeqnoResponse, error)
 	// WatchChanges streams each later World revision with the objects and graph
-	// quads it changed since the previous message.
-	WatchChanges(*WatchChangesRequest, SRPCEngineResourceService_WatchChangesStream) error
+	// quads it changed since the previous message. The first request opens the
+	// stream; a stream opened with an interest takes later requests that change
+	// it, each acknowledged in order among the changes.
+	WatchChanges(SRPCEngineResourceService_WatchChangesStream) error
 	// WaitObjectRev waits until an object reaches a revision through the
 	// engine's key watch, which wakes only on commits that change the object.
 	WaitObjectRev(context.Context, *WaitObjectRevRequest) (*WaitObjectRevResponse, error)
@@ -534,12 +544,8 @@ func (SRPCEngineResourceServiceHandler) InvokeMethod_WaitSeqno(impl SRPCEngineRe
 }
 
 func (SRPCEngineResourceServiceHandler) InvokeMethod_WatchChanges(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
-	req := new(WatchChangesRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	serverStrm := &srpcEngineResourceService_WatchChangesStream{strm}
-	return impl.WatchChanges(req, serverStrm)
+	clientStrm := &srpcEngineResourceService_WatchChangesStream{strm}
+	return impl.WatchChanges(clientStrm)
 }
 
 func (SRPCEngineResourceServiceHandler) InvokeMethod_WaitObjectRev(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
@@ -695,25 +701,39 @@ type srpcEngineResourceService_WaitSeqnoStream struct {
 
 type SRPCEngineResourceService_WatchChangesStream interface {
 	srpc.Stream
-	Send(*WorldChange) error
-	SendAndClose(*WorldChange) error
+	Send(*WatchChangesResponse) error
+	SendAndClose(*WatchChangesResponse) error
+	Recv() (*WatchChangesRequest, error)
+	RecvTo(*WatchChangesRequest) error
 }
 
 type srpcEngineResourceService_WatchChangesStream struct {
 	srpc.Stream
 }
 
-func (x *srpcEngineResourceService_WatchChangesStream) Send(m *WorldChange) error {
+func (x *srpcEngineResourceService_WatchChangesStream) Send(m *WatchChangesResponse) error {
 	return x.MsgSend(m)
 }
 
-func (x *srpcEngineResourceService_WatchChangesStream) SendAndClose(m *WorldChange) error {
+func (x *srpcEngineResourceService_WatchChangesStream) SendAndClose(m *WatchChangesResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err
 		}
 	}
 	return x.CloseSend()
+}
+
+func (x *srpcEngineResourceService_WatchChangesStream) Recv() (*WatchChangesRequest, error) {
+	m := new(WatchChangesRequest)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcEngineResourceService_WatchChangesStream) RecvTo(m *WatchChangesRequest) error {
+	return x.MsgRecv(m)
 }
 
 type SRPCEngineResourceService_WaitObjectRevStream interface {

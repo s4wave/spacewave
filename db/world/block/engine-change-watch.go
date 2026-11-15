@@ -75,6 +75,10 @@ type engineChangeWatch struct {
 	// idle closes when the last watcher leaves so the watch releases its base
 	// without waiting for another head.
 	idle chan struct{}
+	// handed is the seqno of the last span handed to the subscribers, stored
+	// after every subscriber it names received it. A subscriber holding no
+	// changes has seen every change through it that names it.
+	handed atomic.Uint64
 }
 
 // changeSpan is one comparison of the change watch: the changes from the head
@@ -244,6 +248,7 @@ func (e *Engine) startChangeWatchLocked() (*engineChangeWatch, error) {
 		index:       world.NewChangeIndex[*changeSubscriber](),
 		idle:        make(chan struct{}),
 	}
+	w.handed.Store(w.baseSeqno)
 	e.changeWatch = w
 	e.changeWatches++
 	go e.runChangeWatch(w)
@@ -346,6 +351,7 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 				sub.add(nextSeqno, changes)
 			}
 		}
+		w.handed.Store(nextSeqno)
 		prevRelease()
 	}
 }

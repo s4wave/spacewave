@@ -773,3 +773,103 @@ func setPeerOnlyBlock(e *Engine, ref *block.BlockRef) (armed *atomic.Bool, waiti
 	locked.Unlock()
 	return armed, blocked
 }
+
+// TestWatchIndexedChangesCovered checks the seqno a slotted call reports as
+// covered when its context ends. A call whose interest skipped many commits
+// covers through the last head the watch handed out, so the next call starts
+// there with no unknown change although the skipped commits outnumber the
+// recorded heads. A member committed while the subscriber idles in the slot,
+// after the covered seqno and before the next call names it, arrives in that
+// call exactly once.
+func TestWatchIndexedChangesCovered(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	e := newRetirementTestEngine(t, ctx, nil)
+	ws := world.NewEngineWorldState(e, true)
+	slot := new(world.WatchSlot)
+	defer slot.Close()
+
+	// call runs one slotted WatchIndexedChanges after afterSeqno for keys,
+	// reporting each change, until stop cancels it and returns the slot's
+	// covered seqno.
+	type report struct {
+		seqno   uint64
+		keys    []string
+		unknown bool
+	}
+	call := func(afterSeqno uint64, keys ...string) (<-chan report, func() uint64) {
+		t.Helper()
+		interest, err := world.NewNamedInterest(keys, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		callCtx, callCancel := context.WithCancel(world.WithWatchSlot(ctx, slot))
+		reports := make(chan report, 16)
+		done := make(chan error, 1)
+		go func() {
+			done <- e.WatchIndexedChanges(callCtx, afterSeqno, interest, func(seqno uint64, cs *world.ChangeSet) error {
+				reports <- report{seqno, slices.Sorted(slices.Values(cs.Keys)), cs.Unknown}
+				return nil
+			})
+		}()
+		return reports, func() uint64 {
+			callCancel()
+			if err := <-done; !errors.Is(err, context.Canceled) {
+				t.Fatalf("call ended with %v, want canceled", err)
+			}
+			return slot.Covered()
+		}
+	}
+	expect := func(reports <-chan report, seqno uint64, key string) {
+		t.Helper()
+		select {
+		case got := <-reports:
+			if got.unknown || got.seqno != seqno || !slices.Equal(got.keys, []string{key}) {
+				t.Fatalf("report %+v, want %q at %d", got, key, seqno)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatalf("no report of %q at %d", key, seqno)
+		}
+	}
+
+	// Follow the old key and receive its commit.
+	reports, stop := call(headSeqno(t, ctx, e), "covered/old")
+	for len(e.indexedSubscribers()) != 1 {
+		time.Sleep(time.Millisecond)
+	}
+	createWatchTestObject(t, ctx, ws, "covered/old")
+	old := headSeqno(t, ctx, e)
+	expect(reports, old, "covered/old")
+
+	// Commit past the recorded heads without naming the old key, and wait
+	// until the watch handed out the last head.
+	for i := range changeWatchHeads + 2 {
+		createWatchTestObject(t, ctx, ws, "covered/skip-"+strconv.Itoa(i))
+	}
+	head := headSeqno(t, ctx, e)
+	locked := e.bcast.Lock()
+	w := e.changeWatch
+	locked.Unlock()
+	for deadline := time.Now().Add(10 * time.Second); w.handed.Load() != head; time.Sleep(time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatalf("watch handed out %d, want %d", w.handed.Load(), head)
+		}
+	}
+	if covered := stop(); covered != head {
+		t.Fatalf("covered %d, want the head %d past the last report %d", covered, head, old)
+	}
+
+	// The member commits while the subscriber idles; the next call from the
+	// covered head names it and receives its commit once, then the next.
+	createWatchTestObject(t, ctx, ws, "covered/member")
+	member := headSeqno(t, ctx, e)
+	reports, stop = call(head, "covered/old", "covered/member")
+	expect(reports, member, "covered/member")
+	if _, err := ws.DeleteObject(ctx, "covered/old"); err != nil {
+		t.Fatal(err)
+	}
+	expect(reports, headSeqno(t, ctx, e), "covered/old")
+	if covered := stop(); covered != headSeqno(t, ctx, e) {
+		t.Fatalf("covered %d after the last report, want %d", covered, headSeqno(t, ctx, e))
+	}
+}

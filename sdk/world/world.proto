@@ -41,8 +41,10 @@ service EngineResourceService {
   rpc WaitSeqno(WaitSeqnoRequest) returns (WaitSeqnoResponse);
 
   // WatchChanges streams each later World revision with the objects and graph
-  // quads it changed since the previous message.
-  rpc WatchChanges(WatchChangesRequest) returns (stream WorldChange);
+  // quads it changed since the previous message. The first request opens the
+  // stream; a stream opened with an interest takes later requests that change
+  // it, each acknowledged in order among the changes.
+  rpc WatchChanges(stream WatchChangesRequest) returns (stream WatchChangesResponse);
 
   // WaitObjectRev waits until an object reaches a revision through the
   // engine's key watch, which wakes only on commits that change the object.
@@ -195,10 +197,63 @@ message WaitSeqnoResponse {
   uint64 seqno = 1;
 }
 
-// WatchChangesRequest is the request type for WatchChanges.
+// WatchChangesRequest is one request on a WatchChanges stream.
 message WatchChangesRequest {
-  // AfterSeqno is the revision the stream starts after.
+  // AfterSeqno is the revision the stream starts after. Only the first request
+  // sets it.
   uint64 after_seqno = 1;
+  // Interest names the changes the stream sends. On the first request, an
+  // unset interest sends every change, and a set one, even empty, starts a
+  // named interest from nothing and applies it. Each later request must set
+  // it, on a stream opened with one, and changes the interest by it. Closing
+  // the request side ends only the deltas; the changes keep coming.
+  ChangeInterestDelta interest = 2;
+}
+
+// ChangeInterestDelta changes a named interest. A change reaches the stream
+// when it changes one of the interest's object keys, or sets or deletes a
+// graph quad matching one of its patterns. The stream may also send other
+// changes; a client filters what it receives.
+message ChangeInterestDelta {
+  // Version numbers the delta. The interest sent with the first request is
+  // version 1, and each later delta's version is one more than the one
+  // before; the stream fails on any other. The ack that applies a delta
+  // carries its version.
+  uint64 version = 1;
+  // AddKeys are object keys to add.
+  repeated string add_keys = 2;
+  // RemoveKeys are object keys to remove.
+  repeated string remove_keys = 3;
+  // AddPatterns are graph quad patterns to add. An empty field matches any
+  // value; a pattern must set at least one field.
+  repeated .quad.Quad add_patterns = 4;
+  // RemovePatterns are graph quad patterns to remove, spelled as added.
+  repeated .quad.Quad remove_patterns = 5;
+}
+
+// WatchChangesResponse is one message on a WatchChanges stream.
+message WatchChangesResponse {
+  oneof body {
+    // Change lists what one or more coalesced commits changed.
+    WorldChange change = 1;
+    // InterestAck reports that the interest now includes every delta up to
+    // a version.
+    InterestAck interest_ack = 2;
+  }
+}
+
+// InterestAck reports which interest filtered which changes. The changes the
+// stream sent before the ack, up to after_seqno, were filtered under the
+// earlier interest; every change after after_seqno is filtered under the
+// interest with the deltas up to version applied. Nothing after after_seqno
+// was sent before the ack, so nothing is sent twice. When the World no longer
+// records the revision at after_seqno, the next change is unknown.
+message InterestAck {
+  // Version is the version of the last delta applied.
+  uint64 version = 1;
+  // AfterSeqno is the last seqno the earlier interest filtered. It may pass
+  // the last change sent, when the earlier interest accepted none since.
+  uint64 after_seqno = 2;
 }
 
 // WorldChange lists what one or more coalesced commits changed.

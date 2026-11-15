@@ -21,6 +21,8 @@ type WatchSlot struct {
 	closed bool
 	// held is the kept subscription, or nil.
 	held WatchSlotHolder
+	// covered is the seqno the last call that put the slot back covered.
+	covered uint64
 }
 
 // WatchSlotHolder is a subscription a change feed keeps in a WatchSlot.
@@ -60,11 +62,15 @@ func (s *WatchSlot) Take() (held WatchSlotHolder, ok bool) {
 }
 
 // Put ends the call that took the slot and keeps held, which may be nil, for
-// the next call. After Close it releases held instead.
-func (s *WatchSlot) Put(held WatchSlotHolder) {
+// the next call. covered is the seqno through which the call reported every
+// change its interest accepts, or 0 when it cannot say; a caller that starts
+// its next call after covered misses none of them. After Close it releases
+// held instead.
+func (s *WatchSlot) Put(held WatchSlotHolder, covered uint64) {
 	// Return the subscription unless the slot has already closed.
 	s.mtx.Lock()
 	s.busy = false
+	s.covered = covered
 	if !s.closed {
 		s.held = held
 		held = nil
@@ -73,6 +79,14 @@ func (s *WatchSlot) Put(held WatchSlotHolder) {
 	if held != nil {
 		held.ReleaseWatch()
 	}
+}
+
+// Covered returns the seqno the last call that put the slot back covered, or
+// 0 when no call reported one.
+func (s *WatchSlot) Covered() uint64 {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.covered
 }
 
 // Close releases the kept subscription, and any a running call puts back.

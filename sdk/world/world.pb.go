@@ -636,11 +636,18 @@ func (x *WaitSeqnoResponse) GetSeqno() uint64 {
 	return 0
 }
 
-// WatchChangesRequest is the request type for WatchChanges.
+// WatchChangesRequest is one request on a WatchChanges stream.
 type WatchChangesRequest struct {
 	unknownFields []byte
-	// AfterSeqno is the revision the stream starts after.
+	// AfterSeqno is the revision the stream starts after. Only the first request
+	// sets it.
 	AfterSeqno uint64 `protobuf:"varint,1,opt,name=after_seqno,json=afterSeqno,proto3" json:"afterSeqno,omitempty"`
+	// Interest names the changes the stream sends. On the first request, an
+	// unset interest sends every change, and a set one, even empty, starts a
+	// named interest from nothing and applies it. Each later request must set
+	// it, on a stream opened with one, and changes the interest by it. Closing
+	// the request side ends only the deltas; the changes keep coming.
+	Interest *ChangeInterestDelta `protobuf:"bytes,2,opt,name=interest,proto3" json:"interest,omitempty"`
 }
 
 func (x *WatchChangesRequest) Reset() {
@@ -650,6 +657,166 @@ func (x *WatchChangesRequest) Reset() {
 func (*WatchChangesRequest) ProtoMessage() {}
 
 func (x *WatchChangesRequest) GetAfterSeqno() uint64 {
+	if x != nil {
+		return x.AfterSeqno
+	}
+	return 0
+}
+
+func (x *WatchChangesRequest) GetInterest() *ChangeInterestDelta {
+	if x != nil {
+		return x.Interest
+	}
+	return nil
+}
+
+// ChangeInterestDelta changes a named interest. A change reaches the stream
+// when it changes one of the interest's object keys, or sets or deletes a
+// graph quad matching one of its patterns. The stream may also send other
+// changes; a client filters what it receives.
+type ChangeInterestDelta struct {
+	unknownFields []byte
+	// Version numbers the delta. The interest sent with the first request is
+	// version 1, and each later delta's version is one more than the one
+	// before; the stream fails on any other. The ack that applies a delta
+	// carries its version.
+	Version uint64 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	// AddKeys are object keys to add.
+	AddKeys []string `protobuf:"bytes,2,rep,name=add_keys,json=addKeys,proto3" json:"addKeys,omitempty"`
+	// RemoveKeys are object keys to remove.
+	RemoveKeys []string `protobuf:"bytes,3,rep,name=remove_keys,json=removeKeys,proto3" json:"removeKeys,omitempty"`
+	// AddPatterns are graph quad patterns to add. An empty field matches any
+	// value; a pattern must set at least one field.
+	AddPatterns []*quad.Quad `protobuf:"bytes,4,rep,name=add_patterns,json=addPatterns,proto3" json:"addPatterns,omitempty"`
+	// RemovePatterns are graph quad patterns to remove, spelled as added.
+	RemovePatterns []*quad.Quad `protobuf:"bytes,5,rep,name=remove_patterns,json=removePatterns,proto3" json:"removePatterns,omitempty"`
+}
+
+func (x *ChangeInterestDelta) Reset() {
+	*x = ChangeInterestDelta{}
+}
+
+func (*ChangeInterestDelta) ProtoMessage() {}
+
+func (x *ChangeInterestDelta) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *ChangeInterestDelta) GetAddKeys() []string {
+	if x != nil {
+		return x.AddKeys
+	}
+	return nil
+}
+
+func (x *ChangeInterestDelta) GetRemoveKeys() []string {
+	if x != nil {
+		return x.RemoveKeys
+	}
+	return nil
+}
+
+func (x *ChangeInterestDelta) GetAddPatterns() []*quad.Quad {
+	if x != nil {
+		return x.AddPatterns
+	}
+	return nil
+}
+
+func (x *ChangeInterestDelta) GetRemovePatterns() []*quad.Quad {
+	if x != nil {
+		return x.RemovePatterns
+	}
+	return nil
+}
+
+// WatchChangesResponse is one message on a WatchChanges stream.
+type WatchChangesResponse struct {
+	unknownFields []byte
+	// Types that are assignable to Body:
+	//	*WatchChangesResponse_Change
+	//	*WatchChangesResponse_InterestAck
+	Body isWatchChangesResponse_Body `protobuf_oneof:"body"`
+}
+
+func (x *WatchChangesResponse) Reset() {
+	*x = WatchChangesResponse{}
+}
+
+func (*WatchChangesResponse) ProtoMessage() {}
+
+func (m *WatchChangesResponse) GetBody() isWatchChangesResponse_Body {
+	if m != nil {
+		return m.Body
+	}
+	return nil
+}
+
+func (x *WatchChangesResponse) GetChange() *WorldChange {
+	if x, ok := x.GetBody().(*WatchChangesResponse_Change); ok {
+		return x.Change
+	}
+	return nil
+}
+
+func (x *WatchChangesResponse) GetInterestAck() *InterestAck {
+	if x, ok := x.GetBody().(*WatchChangesResponse_InterestAck); ok {
+		return x.InterestAck
+	}
+	return nil
+}
+
+type isWatchChangesResponse_Body interface {
+	isWatchChangesResponse_Body()
+}
+
+type WatchChangesResponse_Change struct {
+	// Change lists what one or more coalesced commits changed.
+	Change *WorldChange `protobuf:"bytes,1,opt,name=change,proto3,oneof"`
+}
+
+type WatchChangesResponse_InterestAck struct {
+	// InterestAck reports that the interest now includes every delta up to
+	// a version.
+	InterestAck *InterestAck `protobuf:"bytes,2,opt,name=interest_ack,json=interestAck,proto3,oneof"`
+}
+
+func (*WatchChangesResponse_Change) isWatchChangesResponse_Body() {}
+
+func (*WatchChangesResponse_InterestAck) isWatchChangesResponse_Body() {}
+
+// InterestAck reports which interest filtered which changes. The changes the
+// stream sent before the ack, up to after_seqno, were filtered under the
+// earlier interest; every change after after_seqno is filtered under the
+// interest with the deltas up to version applied. Nothing after after_seqno
+// was sent before the ack, so nothing is sent twice. When the World no longer
+// records the revision at after_seqno, the next change is unknown.
+type InterestAck struct {
+	unknownFields []byte
+	// Version is the version of the last delta applied.
+	Version uint64 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	// AfterSeqno is the last seqno the earlier interest filtered. It may pass
+	// the last change sent, when the earlier interest accepted none since.
+	AfterSeqno uint64 `protobuf:"varint,2,opt,name=after_seqno,json=afterSeqno,proto3" json:"afterSeqno,omitempty"`
+}
+
+func (x *InterestAck) Reset() {
+	*x = InterestAck{}
+}
+
+func (*InterestAck) ProtoMessage() {}
+
+func (x *InterestAck) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *InterestAck) GetAfterSeqno() uint64 {
 	if x != nil {
 		return x.AfterSeqno
 	}
@@ -3935,6 +4102,7 @@ func (m *WatchChangesRequest) CloneVT() *WatchChangesRequest {
 	}
 	r := new(WatchChangesRequest)
 	r.AfterSeqno = m.AfterSeqno
+	r.Interest = protobuf_go_lite.CloneVTValue(m.Interest)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3942,6 +4110,89 @@ func (m *WatchChangesRequest) CloneVT() *WatchChangesRequest {
 }
 
 func (m *WatchChangesRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ChangeInterestDelta) CloneVT() *ChangeInterestDelta {
+	if m == nil {
+		return (*ChangeInterestDelta)(nil)
+	}
+	r := new(ChangeInterestDelta)
+	r.Version = m.Version
+	r.AddKeys = protobuf_go_lite.CloneSlice(m.AddKeys)
+	r.RemoveKeys = protobuf_go_lite.CloneSlice(m.RemoveKeys)
+	r.AddPatterns = protobuf_go_lite.CloneVTSlice(m.AddPatterns)
+	r.RemovePatterns = protobuf_go_lite.CloneVTSlice(m.RemovePatterns)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ChangeInterestDelta) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchChangesResponse) CloneVT() *WatchChangesResponse {
+	if m == nil {
+		return (*WatchChangesResponse)(nil)
+	}
+	r := new(WatchChangesResponse)
+	if m.Body != nil {
+		r.Body = m.Body.(interface {
+			CloneOneofVT() isWatchChangesResponse_Body
+		}).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchChangesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchChangesResponse_Change) CloneVT() *WatchChangesResponse_Change {
+	if m == nil {
+		return (*WatchChangesResponse_Change)(nil)
+	}
+	r := new(WatchChangesResponse_Change)
+	r.Change = protobuf_go_lite.CloneVTValue(m.Change)
+	return r
+}
+
+func (m *WatchChangesResponse_Change) CloneOneofVT() isWatchChangesResponse_Body {
+	return m.CloneVT()
+}
+
+func (m *WatchChangesResponse_InterestAck) CloneVT() *WatchChangesResponse_InterestAck {
+	if m == nil {
+		return (*WatchChangesResponse_InterestAck)(nil)
+	}
+	r := new(WatchChangesResponse_InterestAck)
+	r.InterestAck = protobuf_go_lite.CloneVTValue(m.InterestAck)
+	return r
+}
+
+func (m *WatchChangesResponse_InterestAck) CloneOneofVT() isWatchChangesResponse_Body {
+	return m.CloneVT()
+}
+
+func (m *InterestAck) CloneVT() *InterestAck {
+	if m == nil {
+		return (*InterestAck)(nil)
+	}
+	r := new(InterestAck)
+	r.Version = m.Version
+	r.AfterSeqno = m.AfterSeqno
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InterestAck) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -6312,11 +6563,132 @@ func (this *WatchChangesRequest) EqualVT(that *WatchChangesRequest) bool {
 	if this.AfterSeqno != that.AfterSeqno {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Interest, that.Interest) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *WatchChangesRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchChangesRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ChangeInterestDelta) EqualVT(that *ChangeInterestDelta) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Version != that.Version {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.AddKeys, that.AddKeys) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.RemoveKeys, that.RemoveKeys) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.AddPatterns, that.AddPatterns, func() *quad.Quad { return &quad.Quad{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.RemovePatterns, that.RemovePatterns, func() *quad.Quad { return &quad.Quad{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ChangeInterestDelta) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ChangeInterestDelta)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchChangesResponse) EqualVT(that *WatchChangesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Body == nil && that.Body != nil {
+		return false
+	} else if this.Body != nil {
+		if that.Body == nil {
+			return false
+		}
+		if !this.Body.(interface {
+			EqualVT(isWatchChangesResponse_Body) bool
+		}).EqualVT(that.Body) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchChangesResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchChangesResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchChangesResponse_Change) EqualVT(thatIface isWatchChangesResponse_Body) bool {
+	that, ok := thatIface.(*WatchChangesResponse_Change)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Change, that.Change, func() *WorldChange { return &WorldChange{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WatchChangesResponse_InterestAck) EqualVT(thatIface isWatchChangesResponse_Body) bool {
+	that, ok := thatIface.(*WatchChangesResponse_InterestAck)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.InterestAck, that.InterestAck, func() *InterestAck { return &InterestAck{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *InterestAck) EqualVT(that *InterestAck) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Version != that.Version {
+		return false
+	}
+	if this.AfterSeqno != that.AfterSeqno {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InterestAck) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InterestAck)
 	if !ok {
 		return false
 	}
@@ -9902,6 +10274,11 @@ func (x *WatchChangesRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("afterSeqno")
 		s.WriteUint64(x.AfterSeqno)
 	}
+	if x.Interest != nil || s.HasField("interest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("interest")
+		x.Interest.MarshalProtoJSON(s.WithField("interest"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -9922,12 +10299,257 @@ func (x *WatchChangesRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "after_seqno", "afterSeqno":
 			s.AddField("after_seqno")
 			x.AfterSeqno = s.ReadUint64()
+		case "interest":
+			if s.ReadNil() {
+				x.Interest = nil
+				return
+			}
+			x.Interest = &ChangeInterestDelta{}
+			x.Interest.UnmarshalProtoJSON(s.WithField("interest", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the WatchChangesRequest from JSON.
 func (x *WatchChangesRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ChangeInterestDelta message to JSON.
+func (x *ChangeInterestDelta) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Version != 0 || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		s.WriteUint64(x.Version)
+	}
+	if len(x.AddKeys) > 0 || s.HasField("addKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("addKeys")
+		s.WriteStringArray(x.AddKeys)
+	}
+	if len(x.RemoveKeys) > 0 || s.HasField("removeKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("removeKeys")
+		s.WriteStringArray(x.RemoveKeys)
+	}
+	if len(x.AddPatterns) > 0 || s.HasField("addPatterns") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("addPatterns")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.AddPatterns {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("addPatterns"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.RemovePatterns) > 0 || s.HasField("removePatterns") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("removePatterns")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.RemovePatterns {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("removePatterns"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ChangeInterestDelta to JSON.
+func (x *ChangeInterestDelta) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ChangeInterestDelta message from JSON.
+func (x *ChangeInterestDelta) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "version":
+			s.AddField("version")
+			x.Version = s.ReadUint64()
+		case "add_keys", "addKeys":
+			s.AddField("add_keys")
+			if s.ReadNil() {
+				x.AddKeys = nil
+				return
+			}
+			x.AddKeys = s.ReadStringArray()
+		case "remove_keys", "removeKeys":
+			s.AddField("remove_keys")
+			if s.ReadNil() {
+				x.RemoveKeys = nil
+				return
+			}
+			x.RemoveKeys = s.ReadStringArray()
+		case "add_patterns", "addPatterns":
+			s.AddField("add_patterns")
+			if s.ReadNil() {
+				x.AddPatterns = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.AddPatterns = append(x.AddPatterns, nil)
+					return
+				}
+				v := &quad.Quad{}
+				v.UnmarshalProtoJSON(s.WithField("add_patterns", false))
+				if s.Err() != nil {
+					return
+				}
+				x.AddPatterns = append(x.AddPatterns, v)
+			})
+		case "remove_patterns", "removePatterns":
+			s.AddField("remove_patterns")
+			if s.ReadNil() {
+				x.RemovePatterns = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.RemovePatterns = append(x.RemovePatterns, nil)
+					return
+				}
+				v := &quad.Quad{}
+				v.UnmarshalProtoJSON(s.WithField("remove_patterns", false))
+				if s.Err() != nil {
+					return
+				}
+				x.RemovePatterns = append(x.RemovePatterns, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ChangeInterestDelta from JSON.
+func (x *ChangeInterestDelta) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchChangesResponse message to JSON.
+func (x *WatchChangesResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Body != nil {
+		switch ov := x.Body.(type) {
+		case *WatchChangesResponse_Change:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("change")
+			ov.Change.MarshalProtoJSON(s.WithField("change"))
+		case *WatchChangesResponse_InterestAck:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("interestAck")
+			ov.InterestAck.MarshalProtoJSON(s.WithField("interestAck"))
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchChangesResponse to JSON.
+func (x *WatchChangesResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchChangesResponse message from JSON.
+func (x *WatchChangesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "change":
+			ov := &WatchChangesResponse_Change{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Change = nil
+				return
+			}
+			ov.Change = &WorldChange{}
+			ov.Change.UnmarshalProtoJSON(s.WithField("change", true))
+		case "interest_ack", "interestAck":
+			ov := &WatchChangesResponse_InterestAck{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.InterestAck = nil
+				return
+			}
+			ov.InterestAck = &InterestAck{}
+			ov.InterestAck.UnmarshalProtoJSON(s.WithField("interest_ack", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchChangesResponse from JSON.
+func (x *WatchChangesResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InterestAck message to JSON.
+func (x *InterestAck) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Version != 0 || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		s.WriteUint64(x.Version)
+	}
+	if x.AfterSeqno != 0 || s.HasField("afterSeqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("afterSeqno")
+		s.WriteUint64(x.AfterSeqno)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InterestAck to JSON.
+func (x *InterestAck) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InterestAck message from JSON.
+func (x *InterestAck) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "version":
+			s.AddField("version")
+			x.Version = s.ReadUint64()
+		case "after_seqno", "afterSeqno":
+			s.AddField("after_seqno")
+			x.AfterSeqno = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InterestAck from JSON.
+func (x *InterestAck) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -16273,8 +16895,224 @@ func (m *WatchChangesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Interest != nil {
+		size, err := m.Interest.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.AfterSeqno != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AfterSeqno))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ChangeInterestDelta) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ChangeInterestDelta) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ChangeInterestDelta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.RemovePatterns) > 0 {
+		for iNdEx := len(m.RemovePatterns) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RemovePatterns[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.AddPatterns) > 0 {
+		for iNdEx := len(m.AddPatterns) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.AddPatterns[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.RemoveKeys) > 0 {
+		for iNdEx := len(m.RemoveKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.RemoveKeys[iNdEx])
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.AddKeys) > 0 {
+		for iNdEx := len(m.AddKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.AddKeys[iNdEx])
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Version != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Version))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchChangesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchChangesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchChangesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.Body.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchChangesResponse_Change) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchChangesResponse_Change) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Change != nil {
+		size, err := m.Change.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchChangesResponse_InterestAck) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchChangesResponse_InterestAck) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.InterestAck != nil {
+		size, err := m.InterestAck.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InterestAck) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InterestAck) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InterestAck) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.AfterSeqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AfterSeqno))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Version != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Version))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -21266,6 +22104,86 @@ func (m *WatchChangesRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.AfterSeqno)
+	if m.Interest != nil {
+		l = m.Interest.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ChangeInterestDelta) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Version)
+	n += protobuf_go_lite.SizeStringSlice(1, m.AddKeys)
+	n += protobuf_go_lite.SizeStringSlice(1, m.RemoveKeys)
+	for _, e := range m.AddPatterns {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.RemovePatterns {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchChangesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchChangesResponse_Change) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Change != nil {
+		l = m.Change.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WatchChangesResponse_InterestAck) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.InterestAck != nil {
+		l = m.InterestAck.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *InterestAck) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Version)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.AfterSeqno)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23092,10 +24010,112 @@ func (x *WatchChangesRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "after_seqno")
 		protobuf_go_lite.TextWriteUint(&sb, x.AfterSeqno)
 	}
+	if x.Interest != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "interest")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Interest)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *WatchChangesRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ChangeInterestDelta) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ChangeInterestDelta")
+	if x.Version != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
+		protobuf_go_lite.TextWriteUint(&sb, x.Version)
+	}
+	if len(x.AddKeys) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "add_keys")
+		for i, v := range x.AddKeys {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.RemoveKeys) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "remove_keys")
+		for i, v := range x.RemoveKeys {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.AddPatterns) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "add_patterns")
+		for i, v := range x.AddPatterns {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &quad.Quad{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.RemovePatterns) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "remove_patterns")
+		for i, v := range x.RemovePatterns {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &quad.Quad{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ChangeInterestDelta) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchChangesResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchChangesResponse")
+	switch body := x.Body.(type) {
+	case *WatchChangesResponse_Change:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "change")
+		if body.Change == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &WorldChange{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Change)
+		}
+	case *WatchChangesResponse_InterestAck:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "interest_ack")
+		if body.InterestAck == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &InterestAck{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.InterestAck)
+		}
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchChangesResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InterestAck) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "InterestAck")
+	if x.Version != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
+		protobuf_go_lite.TextWriteUint(&sb, x.Version)
+	}
+	if x.AfterSeqno != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "after_seqno")
+		protobuf_go_lite.TextWriteUint(&sb, x.AfterSeqno)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *InterestAck) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -26299,6 +27319,263 @@ func (m *WatchChangesRequest) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AfterSeqno", wireType)
+			}
+			m.AfterSeqno = 0
+			m.AfterSeqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Interest", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Interest == nil {
+				m.Interest = &ChangeInterestDelta{}
+			}
+			if err := m.Interest.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ChangeInterestDelta) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ChangeInterestDelta: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ChangeInterestDelta: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version = 0
+			m.Version, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AddKeys", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AddKeys = append(m.AddKeys, v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoveKeys", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RemoveKeys = append(m.RemoveKeys, v)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AddPatterns", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AddPatterns = append(m.AddPatterns, &quad.Quad{})
+			if err := m.AddPatterns[len(m.AddPatterns)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemovePatterns", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RemovePatterns = append(m.RemovePatterns, &quad.Quad{})
+			if err := m.RemovePatterns[len(m.RemovePatterns)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchChangesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchChangesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchChangesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Change", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WatchChangesResponse_Change); ok {
+				if err := oneof.Change.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &WorldChange{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WatchChangesResponse_Change{Change: v}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InterestAck", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WatchChangesResponse_InterestAck); ok {
+				if err := oneof.InterestAck.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &InterestAck{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WatchChangesResponse_InterestAck{InterestAck: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InterestAck) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InterestAck: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InterestAck: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version = 0
+			m.Version, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field AfterSeqno", wireType)
 			}
