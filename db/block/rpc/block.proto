@@ -129,6 +129,19 @@ message GetBlockResponse {
   repeated .block.BlockRef refs = 4;
   // RefsKnown indicates the store recorded the block's outgoing refs.
   bool refs_known = 5;
+  // Failure classifies error, so the client returns the same error type the
+  // serving store did.
+  GetBlockFailure failure = 6;
+}
+
+// GetBlockFailure classifies a failed block read.
+enum GetBlockFailure {
+  // GET_BLOCK_FAILURE_ERROR is any failure without a class below; error
+  // carries its text.
+  GET_BLOCK_FAILURE_ERROR = 0;
+  // GET_BLOCK_FAILURE_CORRUPT means the serving store read bytes that do not
+  // hash to the ref: block.ErrBlockCorrupt.
+  GET_BLOCK_FAILURE_CORRUPT = 1;
 }
 
 // GetBlockExistsRequest requests to check if a block exists in the store.

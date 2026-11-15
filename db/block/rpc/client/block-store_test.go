@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
+	block_rpc_server "github.com/s4wave/spacewave/db/block/rpc/server"
 )
 
 // testBlockStoreClient records feature and batch calls without a transport.
@@ -242,5 +243,45 @@ func TestBlockStoreGetBlockRejectsWrongBytes(t *testing.T) {
 	}
 	if _, err := store.GetStoredBlock(t.Context(), ref); !errors.Is(err, block.ErrBlockCorrupt) {
 		t.Fatalf("GetStoredBlock of wrong bytes: %v, want ErrBlockCorrupt", err)
+	}
+}
+
+// corruptStore reads every block as corrupt, as a store whose disk returned
+// the wrong bytes does.
+type corruptStore struct {
+	block.NopStoreOps
+}
+
+func (corruptStore) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	return nil, false, &block.CorruptError{Ref: ref, StoreID: "disk"}
+}
+
+func (s corruptStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, s, ref)
+}
+
+// TestBlockStoreGetBlockKeepsCorruptClass checks that a corrupt read on the
+// serving side reaches the client as ErrBlockCorrupt on both read paths, so
+// the layers above a remote store take their corrupt branch.
+func TestBlockStoreGetBlockKeepsCorruptClass(t *testing.T) {
+	ref, err := block.BuildBlockRef([]byte("block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := block_rpc_server.NewBlockStore(corruptStore{})
+	for _, withRefs := range []bool{false, true} {
+		resp, err := server.GetBlock(t.Context(), &block_rpc.GetBlockRequest{Ref: ref, WithRefs: withRefs})
+		if err != nil {
+			t.Fatal(err)
+		}
+		store := NewBlockStore(&testBlockStoreClient{getResponse: resp}, 0, false)
+		if withRefs {
+			_, err = store.GetStoredBlock(t.Context(), ref)
+		} else {
+			_, _, err = store.GetBlock(t.Context(), ref)
+		}
+		if !errors.Is(err, block.ErrBlockCorrupt) {
+			t.Fatalf("read with refs %v: %v, want ErrBlockCorrupt", withRefs, err)
+		}
 	}
 }

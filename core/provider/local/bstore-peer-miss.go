@@ -164,7 +164,8 @@ func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 	pause := peerReadPauseMin
 	for {
 		blk, err := p.StoreOps.GetStoredBlock(readCtx, ref)
-		if err == nil || readCtx.Err() != nil {
+		// A corrupt answer is deterministic: asking again returns the same bytes.
+		if err == nil || readCtx.Err() != nil || errors.Is(err, block.ErrBlockCorrupt) {
 			return blk, peerReadErr(ctx, readCtx, ref, err)
 		}
 
@@ -191,7 +192,7 @@ func peerReadErr(ctx, readCtx context.Context, ref *block.BlockRef, err error) e
 		return err
 	case readCtx.Err() != nil:
 		return fmt.Errorf("%w: no peer served block %s within %v: %v", block.ErrUnavailable, ref.MarshalString(), peerReadLimit(), err)
-	case errors.Is(err, block.ErrUnavailable):
+	case errors.Is(err, block.ErrUnavailable), errors.Is(err, block.ErrBlockCorrupt):
 		return err
 	default:
 		return fmt.Errorf("%w: peer read of block %s: %w", block.ErrUnavailable, ref.MarshalString(), err)

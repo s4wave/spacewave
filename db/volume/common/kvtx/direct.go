@@ -350,8 +350,10 @@ func (v *Volume) putEntries(
 // putEntry returns the batch entry of a PutBlock, named the way the store
 // names it. A forced ref is taken as given, unhashed: this Volume trusts the
 // bytes it is handed, so every caller that forces a ref must have hashed the
-// bytes or built them in this process. Bytes from another process are hashed
-// before they reach a Volume, as the block RPC server does for its batches.
+// bytes, built them in this process, or read them from a store that verified
+// them. Bytes from another process are hashed at the edge that receives them:
+// the block RPC server's PutBlock and PutBlockBatch, the HTTP block server's
+// PUT, the daemon API's bucket put, and the bucket lookup Resource's puts.
 func putEntry(data []byte, opts *block.PutOpts, hashType hash.HashType) (*block.PutBatchEntry, error) {
 	ref := opts.GetForceBlockRef()
 	if ref.GetEmpty() {

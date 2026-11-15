@@ -98,6 +98,10 @@ func (r *BucketLookupCursorResource) GetBlock(ctx context.Context, req *s4wave_b
 
 // PutBlock puts a block.
 func (r *BucketLookupCursorResource) PutBlock(ctx context.Context, req *s4wave_bucket_lookup.PutBlockRequest) (*s4wave_bucket_lookup.PutBlockResponse, error) {
+	// The bytes come from another process: check a forced ref first.
+	if err := block.VerifyPutOpts(req.GetData(), req.GetOpts()); err != nil {
+		return nil, err
+	}
 	ref, existed, err := r.cursor.PutBlock(ctx, req.GetData(), req.GetOpts())
 	if err != nil {
 		return nil, err
@@ -110,8 +114,15 @@ func (r *BucketLookupCursorResource) PutBlock(ctx context.Context, req *s4wave_b
 
 // PutBlockBatch puts a batch of blocks.
 func (r *BucketLookupCursorResource) PutBlockBatch(ctx context.Context, req *s4wave_bucket_lookup.PutBlockBatchRequest) (*s4wave_bucket_lookup.PutBlockBatchResponse, error) {
+	// The bytes come from another process, so each must hash to the ref it
+	// names before the cursor takes any of the batch.
 	entries := make([]*block.PutBatchEntry, len(req.GetEntries()))
 	for i, entry := range req.GetEntries() {
+		if !entry.GetTombstone() && !entry.GetRef().GetEmpty() {
+			if err := block.VerifyPut(entry.GetRef(), entry.GetData()); err != nil {
+				return nil, err
+			}
+		}
 		entries[i] = &block.PutBatchEntry{
 			Ref:       entry.GetRef(),
 			Data:      entry.GetData(),

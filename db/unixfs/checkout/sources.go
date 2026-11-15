@@ -96,7 +96,9 @@ func (s *sources) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bo
 			}
 		}
 
-		// Keep each block a remote serves, so a retry reads it here.
+		// Keep each block a remote serves, so a retry reads it here. The seed
+		// rebuilds blocks from files on disk and does not verify, so every
+		// source keeps this check.
 		data, found, err := source.GetBlock(ctx, ref)
 		if err == nil && found {
 			err = ref.VerifyData(data, false)

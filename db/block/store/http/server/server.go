@@ -254,10 +254,17 @@ func (h *HTTPBlockServer) ServePutBlock(ctx context.Context, rw http.ResponseWri
 		return
 	}
 
-	// Write the block with the selected hash and encode the store result.
+	// Write the block with the selected hash and encode the store result. The
+	// bytes come from another process, so they must hash to the ref they
+	// force before the store takes them.
 	putOpts.HashType = reqHashType
-	putRef, existed, err := h.store.PutBlock(ctx, req.GetData(), putOpts)
 	resp := &block_store_http.PutResponse{}
+	if err := block.VerifyPutOpts(req.GetData(), putOpts); err != nil {
+		resp.Err = err.Error()
+		h.writeResponse(rw, resp, false)
+		return
+	}
+	putRef, existed, err := h.store.PutBlock(ctx, req.GetData(), putOpts)
 	if err != nil {
 		resp.Err = err.Error()
 	} else {
