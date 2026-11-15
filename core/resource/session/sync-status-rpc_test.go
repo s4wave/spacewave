@@ -654,13 +654,15 @@ var (
 )
 
 // TestSyncStatusShowsHeldStore checks that a held store's typed held state
-// reaches the RPC from the telemetry its flush records, stays while a later
-// pull error replaces LastError, and clears when the store holds nothing.
+// reaches the RPC from the telemetry its flush records, marks a count from a
+// flush that stopped early as partial, stays while a later pull error
+// replaces LastError, and clears when the store holds nothing.
 func TestSyncStatusShowsHeldStore(t *testing.T) {
-	// Hold two blocks back in the telemetry, as a held flush records them.
+	// A flush that stopped early on a failed push found one block: held,
+	// with the count a lower bound.
 	var telemetry synctelemetry.Store
 	since := time.Date(2026, 11, 15, 8, 0, 0, 0, time.UTC)
-	telemetry.SetCorruptDirty("store", 2, since)
+	telemetry.SetCorruptDirty("store", 1, since, true)
 	project := func() *s4wave_session.WatchSyncStatusResponse {
 		return syncStatusFromSpacewaveTelemetry(
 			telemetry.Snapshot(),
@@ -670,14 +672,18 @@ func TestSyncStatusShowsHeldStore(t *testing.T) {
 			time.Time{},
 		)
 	}
-	wantHeld := func(stage string, resp *s4wave_session.WatchSyncStatusResponse) {
+	wantHeld := func(stage string, resp *s4wave_session.WatchSyncStatusResponse, count uint32, partial bool) {
 		t.Helper()
 		held := resp.GetBlockStores()[0].GetHeld()
-		if held.GetDamagedBlockCount() != 2 || !held.GetHeldAt().AsTime().Equal(since) {
-			t.Fatalf("%s: held = %v; want 2 blocks held at %v", stage, held, since)
+		if held.GetDamagedBlockCount() != count || held.GetPartial() != partial || !held.GetHeldAt().AsTime().Equal(since) {
+			t.Fatalf("%s: held = %v; want %d blocks, partial %v, held at %v", stage, held, count, partial, since)
 		}
 	}
-	wantHeld("held", project())
+	wantHeld("partial", project(), 1, true)
+
+	// A complete flush replaces the count and clears partial.
+	telemetry.SetCorruptDirty("store", 2, since, false)
+	wantHeld("held", project(), 2, false)
 
 	// A later pull error takes LastError but leaves the held state.
 	telemetry.StartPull("store")
@@ -686,10 +692,10 @@ func TestSyncStatusShowsHeldStore(t *testing.T) {
 	if resp.GetLastError() != "pull failed" {
 		t.Fatalf("last error = %q; want the pull error", resp.GetLastError())
 	}
-	wantHeld("after a pull error", resp)
+	wantHeld("after a pull error", resp, 2, false)
 
 	// The held state clears once the store holds nothing back.
-	telemetry.SetCorruptDirty("store", 0, time.Time{})
+	telemetry.SetCorruptDirty("store", 0, time.Time{}, false)
 	if held := project().GetBlockStores()[0].GetHeld(); held != nil {
 		t.Fatalf("held after the store cleared = %v; want unset", held)
 	}

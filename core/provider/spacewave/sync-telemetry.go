@@ -73,8 +73,8 @@ func (a *ProviderAccount) setSyncTelemetryPending(bstoreID string, bytes int64, 
 	a.syncTelemetry.SetPending(bstoreID, bytes, count)
 }
 
-func (a *ProviderAccount) setSyncTelemetryCorruptDirty(bstoreID string, count int, since time.Time) {
-	a.syncTelemetry.SetCorruptDirty(bstoreID, count, since)
+func (a *ProviderAccount) setSyncTelemetryCorruptDirty(bstoreID string, count int, since time.Time, partial bool) {
+	a.syncTelemetry.SetCorruptDirty(bstoreID, count, since, partial)
 }
 
 func (a *ProviderAccount) startSyncTelemetryPush(bstoreID string, bytes int64) {

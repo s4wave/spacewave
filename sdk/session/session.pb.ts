@@ -986,6 +986,12 @@ export interface SyncHeldState {
    * published from the store since.
    */
   heldAt?: Date
+  /**
+   * Partial is true when the pass that produced DamagedBlockCount stopped
+   * before reading every dirty block, so the count is a lower bound. False
+   * means the count is exact.
+   */
+  partial?: boolean
 }
 
 export const SyncHeldState: MessageType<SyncHeldState> =
@@ -994,6 +1000,7 @@ export const SyncHeldState: MessageType<SyncHeldState> =
     () => [
       [1, 'damaged_block_count', 13],
       [2, 'held_at', 11, 0, Timestamp.codec],
+      [3, 'partial', 8],
     ],
   )
 

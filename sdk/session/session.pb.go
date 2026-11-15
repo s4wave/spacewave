@@ -1105,6 +1105,10 @@ type SyncHeldState struct {
 	// HeldAt is when the store first held a block back. Nothing has been
 	// published from the store since.
 	HeldAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=held_at,json=heldAt,proto3" json:"heldAt,omitempty"`
+	// Partial is true when the pass that produced DamagedBlockCount stopped
+	// before reading every dirty block, so the count is a lower bound. False
+	// means the count is exact.
+	Partial bool `protobuf:"varint,3,opt,name=partial,proto3" json:"partial,omitempty"`
 }
 
 func (x *SyncHeldState) Reset() {
@@ -1125,6 +1129,13 @@ func (x *SyncHeldState) GetHeldAt() *timestamppb.Timestamp {
 		return x.HeldAt
 	}
 	return nil
+}
+
+func (x *SyncHeldState) GetPartial() bool {
+	if x != nil {
+		return x.Partial
+	}
+	return false
 }
 
 // WatchSyncStatusResponse is the response type for WatchSyncStatus.
@@ -4712,6 +4723,7 @@ func (m *SyncHeldState) CloneVT() *SyncHeldState {
 	}
 	r := new(SyncHeldState)
 	r.DamagedBlockCount = m.DamagedBlockCount
+	r.Partial = m.Partial
 	r.HeldAt = protobuf_go_lite.CloneVTValue(m.HeldAt)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -6979,6 +6991,9 @@ func (this *SyncHeldState) EqualVT(that *SyncHeldState) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.HeldAt, that.HeldAt) {
+		return false
+	}
+	if this.Partial != that.Partial {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10831,6 +10846,11 @@ func (x *SyncHeldState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("heldAt")
 		x.HeldAt.MarshalProtoJSON(s.WithField("heldAt"))
 	}
+	if x.Partial || s.HasField("partial") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("partial")
+		s.WriteBool(x.Partial)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10858,6 +10878,9 @@ func (x *SyncHeldState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.HeldAt = &timestamppb.Timestamp{}
 			x.HeldAt.UnmarshalProtoJSON(s.WithField("held_at", true))
+		case "partial":
+			s.AddField("partial")
+			x.Partial = s.ReadBool()
 		}
 	})
 }
@@ -17445,6 +17468,11 @@ func (m *SyncHeldState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Partial {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Partial)
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.HeldAt != nil {
 		size, err := m.HeldAt.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -22459,6 +22487,7 @@ func (m *SyncHeldState) SizeVT() (n int) {
 		l = m.HeldAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Partial)
 	n += len(m.unknownFields)
 	return n
 }
@@ -24250,6 +24279,10 @@ func (x *SyncHeldState) MarshalProtoText() string {
 	if x.HeldAt != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "held_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.HeldAt)
+	}
+	if x.Partial != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "partial")
+		protobuf_go_lite.TextWriteBool(&sb, x.Partial)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -27750,6 +27783,16 @@ func (m *SyncHeldState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Partial", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Partial = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
