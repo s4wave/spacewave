@@ -1,0 +1,57 @@
+[
+  {
+    "name": "the skip names a position instead of the op's hash",
+    "replace": [
+      [
+        "Skipped(v) == {cfgs[j].op : j \\in 1..v}",
+        "Skipped(v) == {order[cfgs[j].at] : j \\in {j \\in 1..v : cfgs[j].at <= Len(order)}}"
+      ]
+    ],
+    "expect": "NoMismatch",
+    "config": "ReplaySkip.cfg"
+  },
+  {
+    "name": "an applied op the config now skips keeps its place",
+    "replace": [
+      [
+        "                               /\\ ~(s[i].out = \"applied\" /\\ s[i].op \\in Skipped(v))",
+        "                               /\\ TRUE"
+      ]
+    ],
+    "expect": "Agree",
+    "config": "ReplaySkip.cfg"
+  },
+  {
+    "name": "the owner skips an op it is not waiting at",
+    "replace": [
+      [
+        "Skip == /\\ Waiting(\"owner\")",
+        "Skip == /\\ Kept(\"owner\") = Len(done[\"owner\"]) /\\ Len(done[\"owner\"]) < Len(order)"
+      ]
+    ],
+    "expect": "SkipHitsOnlyStalledOp",
+    "config": "ReplaySkip.cfg"
+  },
+  {
+    "name": "a member installs a checkpoint before its config",
+    "replace": [
+      [
+        "Install(d) == /\\ d # \"owner\" /\\ seen[d] >= ck.cfg",
+        "Install(d) == /\\ d # \"owner\""
+      ]
+    ],
+    "expect": "NoMismatch",
+    "config": "ReplaySkip.cfg"
+  },
+  {
+    "name": "the config never reaches the member",
+    "replace": [
+      [
+        "            /\\ \\A d \\in Devices : WF_vars(Step(d)) /\\ WF_vars(SeeConfig(d))",
+        "            /\\ \\A d \\in Devices : WF_vars(Step(d))"
+      ]
+    ],
+    "expect": "StallExits",
+    "config": "ReplaySkip.cfg"
+  }
+]
