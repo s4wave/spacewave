@@ -216,7 +216,7 @@ func runSharedDaemonFixture() error {
 			controller.NewInfo("test/resource", controller.MustParseVersion("0.0.1"), ""), mux,
 			[]string{resource.SRPCResourceServiceServiceID})
 		if os.Getenv(sharedDaemonFixtureMode) == "distribution" {
-			ctrl = newNativeCorePlugin(mux)
+			ctrl = newNativeCorePlugin(cliBus.GetBus(), mux)
 		}
 		release, err := cliBus.GetBus().AddController(ctx, ctrl, nil)
 		if err != nil {

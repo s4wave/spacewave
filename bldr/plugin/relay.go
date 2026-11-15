@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
 )
@@ -30,21 +31,69 @@ func IsIncomingServerID(serverID string) bool {
 	return strings.HasPrefix(serverID, HostServerIDPrefix) || strings.HasPrefix(serverID, PluginServerIDPrefix)
 }
 
+// webWorkerServerIDPrefix prefixes the server ID the web runtime gives a
+// worker's calls on the host bus: "web-worker/<worker ID>", where a plugin's
+// worker ID is "plugin/<X>" or "plugin/<X>/<execution key>".
+const webWorkerServerIDPrefix = "web-worker/"
+
 // MayReachPluginRoot reports whether a call that arrives on the host bus under
 // serverID may reach a plugin's root client, which carries the host's powers.
 //
 // Invariant: no call that originated in a plugin outside the host's set
-// reaches another plugin's root client. On the host bus the identity of a call
-// is the server ID the host itself assigned, never bytes the plugin sent, so
-// the rule is an allow list that fails closed: a server ID in the "plugin/"
-// namespace passes only when it is exactly "plugin/<X>" with X in
-// hostPluginIDs. "plugin/<X>/<sub>" and "plugin/<X>" for any X outside the
-// set are refused. A server ID outside that namespace was assigned by the host
-// for its own calls and passes.
+// reaches another plugin's root client. The rule is an allow list keyed on the
+// plugin the server ID names, and it fails closed:
+//
+//   - "plugin/<X>" passes only with X in hostPluginIDs; "plugin/<X>/<sub>" is
+//     refused.
+//   - "web-worker/plugin/<X>" and "web-worker/plugin/<X>/<key>" pass only with
+//     X in hostPluginIDs; any other "web-worker/" ID is refused.
+//   - Any other server ID passes: the host names its own calls ("",
+//     "plugin-host/<id>"), and "web-view/<id>" carries no owning plugin, while
+//     the app's own views need plugin roots.
+//
+// Limit: where the web runtime runs (a browser, an Electron renderer, devtool
+// web) a worker's or view's ID is the connecting script's own claim, so this
+// stops a plugin that names itself honestly, not a script that claims a host
+// plugin's ID or a view's. Only native plugin processes get host-assigned IDs.
 func MayReachPluginRoot(serverID string, hostPluginIDs []string) bool {
+	if workerID, ok := strings.CutPrefix(serverID, webWorkerServerIDPrefix); ok {
+		pluginID, ok := strings.CutPrefix(workerID, PluginServerIDPrefix)
+		pluginID, _, _ = strings.Cut(pluginID, "/")
+		return ok && pluginID != "" && slices.Contains(hostPluginIDs, pluginID)
+	}
 	pluginID, ok := strings.CutPrefix(serverID, PluginServerIDPrefix)
 	if !ok {
 		return true
 	}
 	return slices.Contains(hostPluginIDs, pluginID)
+}
+
+// IsWebWorkerServerID reports whether serverID names a web worker's calls.
+func IsWebWorkerServerID(serverID string) bool {
+	return strings.HasPrefix(serverID, webWorkerServerIDPrefix)
+}
+
+// NewHostRootResolver guards res, a resolver that hands out a plugin's root
+// client or the host's powers on b, with MayReachPluginRoot against the host
+// set of b's root host scheduler.
+//
+// A server ID that passes with an empty host set passes with every set, so it
+// resolves with res at once. Any other waits for the root host scheduler on b
+// and is refused with ErrRelayRefused unless the scheduler's set admits it:
+// with no host set yet the lookup reaches nothing.
+func NewHostRootResolver(b bus.Bus, serverID string, res directive.Resolver) directive.Resolver {
+	if MayReachPluginRoot(serverID, nil) {
+		return res
+	}
+	return directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		// Wait for the host set, then refuse a server ID outside it.
+		scheduler, err := WaitHostPluginScheduler(ctx, b)
+		if err != nil {
+			return err
+		}
+		if !MayReachPluginRoot(serverID, scheduler.GetHostPluginIds()) {
+			return NewRelayRefusedResolver(serverID).Resolve(ctx, handler)
+		}
+		return res.Resolve(ctx, handler)
+	})
 }
