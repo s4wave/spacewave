@@ -11,6 +11,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
@@ -389,12 +392,21 @@ func (s *loadSpy) HandleDirective(_ context.Context, di directive.Instance) ([]d
 	}
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, _ directive.ResolverHandler) error {
 		select {
-		case s.loads <- s.sched.bindingKey(d.LoadPluginInstanceKey()):
+		case s.loads <- s.bindingKey(d):
 		case <-ctx.Done():
 		}
 		<-ctx.Done()
 		return nil
 	}), nil)
+}
+
+// bindingKey reports the binding key the scheduler picks for d, or "refused".
+func (s *loadSpy) bindingKey(d bldr_plugin.LoadPlugin) string {
+	key, err := s.sched.loadBindingKey(d)
+	if err != nil {
+		return "refused"
+	}
+	return key
 }
 
 func (s *loadSpy) Close() error {
@@ -436,7 +448,7 @@ func TestKeyedCallerLoadStaysInScope(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
-	app := &Controller{conf: &Config{}}
+	app := &Controller{conf: &Config{HostExportPluginIds: []string{"spacewave-core"}}}
 	spy := &loadSpy{sched: app, loads: make(chan string, 1)}
 	rel, err := tb.Bus.AddController(ctx, spy, nil)
 	if err != nil {
@@ -466,6 +478,7 @@ func TestKeyedCallerLoadStaysInScope(t *testing.T) {
 		{"another key, another plugin", "other", "space-b", "", true},
 		{"own key", "attacker", "space-a", "space-a", false},
 		{"empty key, host-export core", "spacewave-core", "", "", false},
+		{"own key, host-export core", "spacewave-core", "space-a", "", false},
 	} {
 		key, ran := loadThroughHost(ctx, host, spy.loads, tc.pluginID, tc.key)
 		if !ran {
@@ -475,6 +488,81 @@ func TestKeyedCallerLoadStaysInScope(t *testing.T) {
 		}
 		if ran == tc.refused || key != tc.want {
 			t.Fatalf("%s: ran=%v bound to %q, want refused=%v bound to %q", tc.name, ran, key, tc.refused, tc.want)
+		}
+	}
+}
+
+// TestHostPluginLoadsBindToSchedulerInstance checks every load of a host
+// plugin, whatever key a Space bridge carries, runs the scheduler's one
+// instance on the host volume, while a Space plugin keeps its own instance and
+// scoped view, and that a Space key cannot pick a host plugin's build.
+func TestHostPluginLoadsBindToSchedulerInstance(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+	app := &Controller{
+		le:              le,
+		conf:            &Config{HostExportPluginIds: []string{"spacewave-core"}},
+		pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
+		pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
+	}
+	app.pluginInstances = keyed.NewKeyedRefCountWithLogger(app.newPluginInstance, le)
+
+	// Resolve each load as the parent bus does and keep it until the end.
+	for _, dir := range []bldr_plugin.LoadPlugin{
+		bldr_plugin.NewLoadPlugin("spacewave-core"),
+		bldr_plugin.NewLoadPluginInstanced("spacewave-core", "space-a"),
+		bldr_plugin.NewLoadPluginInstanced("spacewave-core", "space-b"),
+		bldr_plugin.NewLoadPluginInstanced("space-plugin", "space-a"),
+	} {
+		res, err := app.resolveLoadPlugin(dir)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		go func() { _ = res.Resolve(ctx, newLoadPluginValuesHandler()) }()
+	}
+
+	// One core instance, on the host volume, and the Space plugin's own.
+	deadline := time.Now().Add(2 * time.Second)
+	for len(app.pluginInstances.GetKeys()) < 2 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	got := make(map[string]string)
+	for _, ref := range app.pluginInstances.GetKeys() {
+		got[ref.pluginID] = ref.instanceKey
+		t.Logf("instance %s at %q", ref.pluginID, ref.instanceKey)
+	}
+	if len(got) != 2 || len(app.pluginInstances.GetKeys()) != 2 {
+		t.Fatalf("instances %v, want one core and one Space plugin", app.pluginInstances.GetKeys())
+	}
+	if key, ok := got["spacewave-core"]; !ok || newPluginVolume(tb.Volume, key, "spacewave-core") != tb.Volume {
+		t.Fatalf("core runs at %q, want the scheduler's instance on the host volume", key)
+	}
+	if key := got["space-plugin"]; key != "space-a" || newPluginVolume(tb.Volume, key, "space-plugin") == tb.Volume {
+		t.Fatalf("Space plugin runs at %q, want space-a on a scoped view", key)
+	}
+
+	// A Space key cannot select core's build; the scheduler's own key can.
+	root := "manifest-root"
+	ref := &bldr_manifest.ManifestRef{}
+	for _, tc := range []struct {
+		name    string
+		dir     bldr_plugin.LoadPlugin
+		refused bool
+	}{
+		{"Space key, manifest root", bldr_plugin.NewLoadPluginAtManifest("spacewave-core", "space-a", root), true},
+		{"Space key, manifests", bldr_plugin.NewLoadPluginWithManifests("spacewave-core", "space-a", "", ref), true},
+		{"own key, manifest root", bldr_plugin.NewLoadPluginAtManifest("spacewave-core", "", root), false},
+		{"Space plugin, manifests", bldr_plugin.NewLoadPluginWithManifests("space-plugin", "space-a", "", ref), false},
+	} {
+		_, err := app.resolveLoadPlugin(tc.dir)
+		t.Logf("%s: %v", tc.name, errString(err))
+		if (err != nil) != tc.refused {
+			t.Errorf("%s: err %v, want refused=%v", tc.name, err, tc.refused)
 		}
 	}
 }
