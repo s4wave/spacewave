@@ -9,10 +9,11 @@ import (
 
 // Engine is the top-level resource for the World data structure.
 // Engine implements a transactional world state container.
-// Provides:
-// - NewTransaction(ctx, write bool) (Tx, error)
-// - WorldStorage for bucket cursor access (BuildStorageCursor, AccessWorldState)
-// - WorldWaitSeqno for sequence number waiting (GetSeqno, WaitSeqno)
+//
+// It provides:
+//   - NewTransaction(ctx, write bool) (Tx, error)
+//   - WorldStorage for bucket cursor access (BuildStorageCursor, AccessWorldState)
+//   - WorldWaitSeqno for sequence number waiting (GetSeqno, WaitSeqno)
 //
 // This Go SDK implementation wraps EngineResourceService and WatchWorldStateResourceService.
 type Engine struct {
@@ -67,8 +68,11 @@ func (e *Engine) WatchWorldRootSnapshots(ctx context.Context) (SRPCEngineResourc
 // Note: Engine might return a read-only transaction even if write=true.
 func (e *Engine) NewTransaction(ctx context.Context, write bool) (*Tx, error) {
 	// Request a World transaction with the desired write access.
-	resp, err := e.service.NewTransaction(ctx, &NewTransactionRequest{Write: write})
+	resp, err := e.service.NewTransaction(ctx, &NewTransactionRequest{Write: write, KnownErrorCode: KnownErrorCode})
 	if err != nil {
+		return nil, err
+	}
+	if err := ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return nil, err
 	}
 

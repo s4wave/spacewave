@@ -176,6 +176,12 @@ type Adapter struct {
 	// bcast.
 	headHeight    uint64
 	headPositions int
+	// replayGate is the replay state the body driver last reached, which
+	// decides whether the Space takes writes. Guarded by bcast.
+	replayGate replayGate
+	// handlerWait is replay's wait for a handler, or nil. Owned by the body
+	// driver's goroutine, which calls Apply and Install.
+	handlerWait *handlerWait
 	// engine is the serving engine once built, until it retires. Guarded by
 	// bcast.
 	engine *Engine
@@ -259,6 +265,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		imported:         rootSet{name: RootImport},
 		payloads:         rootSet{name: RootReplayPayloads},
 		payloadVersions:  make(map[string]uint32),
+		replayGate:       newReplayGate(),
 	}
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
@@ -504,18 +511,21 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 		return nil, err
 	}
 
-	// Wait for an initialized head at or past that order.
+	// Wait for an initialized head at or past that order, or at an
+	// operation replay waits at, so reads go on while the device lacks its
+	// handler. Writes wait for the catch up.
 	var queued bool
 	for {
-		var installed, reached bool
+		var installed, reached, waiting bool
 		var state *InnerState
 		var waitCh <-chan struct{}
 		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			installed, state, waitCh = a.installed, a.headState, getWaitCh()
 			reached = a.headHeight > target.Checkpoint.GetHeight() ||
 				(a.headHeight == target.Checkpoint.GetHeight() && a.headPositions >= len(target.Order))
+			waiting = a.replayGate.state.GetWaiting() != nil
 		})
-		if !state.GetHeadRef().GetEmpty() && reached {
+		if !state.GetHeadRef().GetEmpty() && (reached || waiting) {
 			break
 		}
 
@@ -629,11 +639,18 @@ func (a *Adapter) WatchHead(_ context.Context, fn func(world.Head)) (func(), err
 
 // Begin waits for the local writer turn. A participant whose role cannot
 // write, or an owner handing over, gets tx.ErrNotWrite, since replay would
-// refuse every operation it writes. The turn's Base is the writer head, not
-// durable while a candidate admitted before it waits.
+// refuse every operation it writes. While replay is not caught up, Begin
+// returns a *sobject.BodyWait whose Wake closes once it is. The turn's Base is
+// the writer head, not durable while a candidate admitted before it waits.
 func (a *Adapter) Begin(ctx context.Context) (world.Turn, error) {
 	// Refuse a participant that cannot write.
 	if err := a.checkWrites(ctx); err != nil {
+		return nil, err
+	}
+
+	// Refuse a write while replay is not caught up. Admit checks again, as
+	// replay may stop at a wait before the turn admits.
+	if err := a.writeWait(); err != nil {
 		return nil, err
 	}
 
@@ -798,19 +815,21 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		adopt = &spacePosition{state: state, seqno: c.Seqno, payloads: adm.payloads, handlers: adm.handlers}
 	}
 
-	// Compute the position, waiting at an operation whose type a plugin the
-	// World installs declares until the plugin registers a handler.
+	// Compute the position. At an operation whose type no handler resolves,
+	// return the wait for its handler, so the driver steps again with no lock
+	// held once it registers. A transient replay has no driver to wait in.
 	pos, err := r.run(ctx, index, op, adopt)
-	var pending *pendingOpError
-	for !a.opts.transient && errors.As(err, &pending) {
-		if err := a.awaitOpHandler(ctx, pending); err != nil {
-			return "", err
+	var unresolved *unresolvedOpError
+	if errors.As(err, &unresolved) {
+		if a.opts.transient {
+			return "", errors.Wrap(ErrUnresolvedOp, unresolved.opTypeID)
 		}
-		pos, err = r.run(ctx, index, op, adopt)
+		return "", a.waitForHandler(unresolved)
 	}
 	if err != nil {
 		return "", err
 	}
+	a.endHandlerWait()
 	r.positions = append(r.positions, pos)
 	delete(a.missing, string(op.Hash))
 
@@ -905,7 +924,10 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		return false, err
 	}
 
-	// Record the install and drop the pages no live World reaches.
+	// Record the install and drop the pages no live World reaches. A wait for
+	// a handler ends, as the checkpoint may cover its operation; Apply starts
+	// it again if not.
+	a.endHandlerWait()
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.installed, a.checkpoint, a.checkpointSeqno = true, base, seqno
 		broadcast()
@@ -1159,11 +1181,33 @@ func (a *Adapter) enqueueOp(op *WorldOp) (*spaceAdmission, error) {
 // admit records adm as pending and makes its candidate the writer head.
 func (a *Adapter) admit(adm *spaceAdmission) {
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		a.pending = append(a.pending, adm)
-		if !adm.candidate.Root.GetEmpty() {
-			a.writer = world.Head{Root: adm.candidate.Root, Seqno: adm.candidate.Seqno}
+		a.admitLocked(adm)
+	})
+}
+
+// admitWrite admits adm as admit does unless replay is not caught up, when it
+// returns replay's wait instead. It checks in the same hold of bcast that
+// admits, so no wait begins between the check and the admission.
+func (a *Adapter) admitWrite(adm *spaceAdmission) error {
+	var wait *sobject.BodyWait
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if wait = a.replayGate.writeWait(); wait == nil {
+			a.admitLocked(adm)
 		}
 	})
+	if wait != nil {
+		return wait
+	}
+	return nil
+}
+
+// admitLocked records adm as pending and makes its candidate the writer head.
+// The caller holds bcast.
+func (a *Adapter) admitLocked(adm *spaceAdmission) {
+	a.pending = append(a.pending, adm)
+	if !adm.candidate.Root.GetEmpty() {
+		a.writer = world.Head{Root: adm.candidate.Root, Seqno: adm.candidate.Seqno}
+	}
 }
 
 // holdAdmitted holds what adm's queued operation needs once it is durable:

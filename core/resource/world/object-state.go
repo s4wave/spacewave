@@ -64,12 +64,18 @@ func (r *ObjectStateResource) GetModSeqno(ctx context.Context, _ *s4wave_world.G
 	return &s4wave_world.GetModSeqnoResponse{ModSeqno: seqno}, nil
 }
 
-// SetRootRef updates the root reference of the object.
+// SetRootRef updates the root reference of the object. A write the World
+// refuses before its turn opens returns as its code to a client that decodes
+// it, and as the call's error otherwise.
 func (r *ObjectStateResource) SetRootRef(ctx context.Context, req *s4wave_world.SetRootRefRequest) (*s4wave_world.SetRootRefResponse, error) {
 	// Write the new root reference and read back the revision.
 	rev, err := r.obj.SetRootRef(ctx, req.GetRootRef())
+	code, err := replayWaitCode(req.GetKnownErrorCode(), err)
 	if err != nil {
 		return nil, err
+	}
+	if code != 0 {
+		return &s4wave_world.SetRootRefResponse{ErrorCode: code}, nil
 	}
 	return &s4wave_world.SetRootRefResponse{Rev: rev}, nil
 }
@@ -99,7 +105,20 @@ func (r *ObjectStateResource) AccessWorldState(ctx context.Context, req *s4wave_
 }
 
 // ApplyObjectOp applies a batch operation at the object level.
+// A refusal whose code the client does not decode returns as the call's error.
 func (r *ObjectStateResource) ApplyObjectOp(ctx context.Context, req *s4wave_world.ApplyObjectOpRequest) (*s4wave_world.ApplyObjectOpResponse, error) {
+	resp, err := r.applyObjectOp(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if err := undecodedRefusal(req.GetKnownErrorCode(), resp.GetErrorCode()); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// applyObjectOp resolves and applies the operation req names to the object.
+func (r *ObjectStateResource) applyObjectOp(ctx context.Context, req *s4wave_world.ApplyObjectOpRequest) (*s4wave_world.ApplyObjectOpResponse, error) {
 	// Reject the operation when no lookup op is configured.
 	if r.lookupOp == nil {
 		return &s4wave_world.ApplyObjectOpResponse{
@@ -157,10 +176,17 @@ func (r *ObjectStateResource) ApplyObjectOp(ctx context.Context, req *s4wave_wor
 
 // IncrementRev increments the revision of the object.
 func (r *ObjectStateResource) IncrementRev(ctx context.Context, req *s4wave_world.IncrementRevRequest) (*s4wave_world.IncrementRevResponse, error) {
+	// Increment the revision; a replay wait answers as its code.
 	rev, err := r.obj.IncrementRev(ctx)
+	code, err := replayWaitCode(req.GetKnownErrorCode(), err)
 	if err != nil {
 		return nil, err
 	}
+	if code != 0 {
+		return &s4wave_world.IncrementRevResponse{ErrorCode: code}, nil
+	}
+
+	// Return the revision after the increment.
 	return &s4wave_world.IncrementRevResponse{Rev: rev}, nil
 }
 

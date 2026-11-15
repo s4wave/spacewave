@@ -62,6 +62,7 @@ import {
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { SharedObjectBodyContainer } from '@s4wave/app/sobject/SharedObjectBodyContainer.js'
 import { SharedObjectSyncNotice } from '@s4wave/app/sobject/SharedObjectSyncNotice.js'
+import { SpaceReplayContext } from '@s4wave/app/sobject/space-replay.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
@@ -1078,12 +1079,16 @@ function SharedObjectRouteState({
   mutationError: string
 }) {
   const dmcaHref = useStaticHref('/dmca')
+  const replay = healthResp?.health?.replay
+  const spaceReplay = useMemo(() => ({ replay }), [replay])
 
   if (mounted) {
     return (
       <>
         <SharedObjectSyncNotice health={healthResp?.health} />
-        <SharedObjectBodyContainer />
+        <SpaceReplayContext.Provider value={spaceReplay}>
+          <SharedObjectBodyContainer />
+        </SpaceReplayContext.Provider>
       </>
     )
   }

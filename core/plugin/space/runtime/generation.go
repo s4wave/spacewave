@@ -46,7 +46,8 @@ type Generation struct {
 
 // startGeneration starts one generation of the Space plugin runtime on a child
 // bus of parent. plugin/space loads the account plugins alongside the Space's,
-// keeps only the plugins for which demanded returns true, and calls
+// keeps only the plugins for which demanded returns true, loads the plugins
+// replayPlugins returns even when the Space no longer lists them, and calls
 // bindingsChanged after it deletes a process binding.
 func startGeneration(
 	ctx context.Context,
@@ -55,6 +56,7 @@ func startGeneration(
 	conf *Config,
 	demanded func(pluginID string) bool,
 	accountPlugins func() []string,
+	replayPlugins func() []string,
 	bindingsChanged func(),
 ) (*Generation, error) {
 	// Build the generation with its own cancelable context.
@@ -67,7 +69,7 @@ func startGeneration(
 
 	// Start it, undoing the completed steps on failure.
 	appPluginIDs := canonicalPluginIDs(conf.GetAppPluginIds())
-	if err := g.start(ctx, parent, le, conf.GetSpace(), appPluginIDs, demanded, accountPlugins, bindingsChanged); err != nil {
+	if err := g.start(ctx, parent, le, conf.GetSpace(), appPluginIDs, demanded, accountPlugins, replayPlugins, bindingsChanged); err != nil {
 		g.release()
 		return nil, err
 	}
@@ -104,6 +106,7 @@ func (g *Generation) start(
 	appPluginIDs []string,
 	demanded func(pluginID string) bool,
 	accountPlugins func() []string,
+	replayPlugins func() []string,
 	bindingsChanged func(),
 ) error {
 	// Build the isolated child bus.
@@ -121,6 +124,7 @@ func (g *Generation) start(
 		plugin_space.WithManifestSource(parent),
 		plugin_space.WithPluginDemand(demanded),
 		plugin_space.WithAccountPlugins(accountPlugins),
+		plugin_space.WithReplayPlugins(replayPlugins),
 		plugin_space.WithProcessBindingsChanged(bindingsChanged),
 	}
 	if conf.GetHostPluginId() != "" {

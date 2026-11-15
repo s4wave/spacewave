@@ -90,8 +90,14 @@ func (os *SDKObjectState) SetRootRef(ctx context.Context, rootRef *bucket.Object
 	}
 
 	// Change the remote object root and return its revision.
-	resp, err := os.service.SetRootRef(ctx, &s4wave_world.SetRootRefRequest{RootRef: rootRef})
+	resp, err := os.service.SetRootRef(ctx, &s4wave_world.SetRootRefRequest{
+		RootRef:        rootRef,
+		KnownErrorCode: s4wave_world.KnownErrorCode,
+	})
 	if err != nil {
+		return 0, err
+	}
+	if err := s4wave_world.ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return 0, err
 	}
 	return resp.Rev, nil
@@ -122,9 +128,10 @@ func (os *SDKObjectState) ApplyObjectOp(ctx context.Context, op world.Operation,
 
 	// Apply the encoded operation to the remote object and return its outcome.
 	resp, err := os.service.ApplyObjectOp(ctx, &s4wave_world.ApplyObjectOpRequest{
-		OpTypeId: op.TypeID(),
-		OpData:   opData,
-		OpSender: sender.String(),
+		OpTypeId:       op.TypeID(),
+		OpData:         opData,
+		OpSender:       sender.String(),
+		KnownErrorCode: s4wave_world.KnownErrorCode,
 	})
 	if err != nil {
 		return 0, false, err
@@ -144,8 +151,11 @@ func (os *SDKObjectState) IncrementRev(ctx context.Context) (uint64, error) {
 	}
 
 	// Increment the remote object revision.
-	resp, err := os.service.IncrementRev(ctx, &s4wave_world.IncrementRevRequest{})
+	resp, err := os.service.IncrementRev(ctx, &s4wave_world.IncrementRevRequest{KnownErrorCode: s4wave_world.KnownErrorCode})
 	if err != nil {
+		return 0, err
+	}
+	if err := s4wave_world.ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return 0, err
 	}
 	return resp.Rev, nil

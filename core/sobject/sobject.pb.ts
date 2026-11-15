@@ -709,6 +709,12 @@ export interface SharedObjectHealth {
    * authenticated since the object mounted, sorted by peer ID.
    */
   syncPeers?: SOSyncPeer[]
+  /**
+   * Replay is where this device's replay stands, as the body driver steps
+   * it. The body takes writes only while it is caught_up. Unset when no body
+   * driver runs on the object.
+   */
+  replay?: SOReplayState
 }
 
 export const SharedObjectHealth: MessageType<SharedObjectHealth> =
@@ -727,7 +733,161 @@ export const SharedObjectHealth: MessageType<SharedObjectHealth> =
       [10, 'checkpoint_mismatch', 11, 0, SOCheckpointMismatch.codec],
       [11, 'unordered_count', 13],
       [12, 'sync_peers', 11, 1, SOSyncPeer.codec],
+      [13, 'replay', 11, 0, SOReplayState.codec],
     ],
+  )
+
+/**
+ * SOReplayState is where this device's replay stands. The body driver sets it
+ * after each step and when a state arrives; the body refuses writes in every state but caught_up, so
+ * what the health shows and what a write meets never disagree.
+ *
+ * @generated from message sobject.SOReplayState
+ */
+export interface SOReplayState {
+  /**
+   * @generated from oneof sobject.SOReplayState.state
+   */
+  state?:
+    | { value?: undefined; case: undefined }
+    | { value: SOReplayOpening; case: 'opening' }
+    | { value: SOReplayWait; case: 'waiting' }
+    | { value: SOReplayCaughtUp; case: 'caughtUp' }
+    | { value: SOReplayCatchingUp; case: 'catchingUp' }
+}
+
+export const SOReplayState: MessageType<SOReplayState> =
+  /* @__PURE__ */ createMessageType<SOReplayState>(
+    'sobject.SOReplayState',
+    () => [
+      [1, 'opening', 11, 0, SOReplayOpening.codec, 'state'],
+      [2, 'waiting', 11, 0, SOReplayWait.codec, 'state'],
+      [3, 'caught_up', 11, 0, SOReplayCaughtUp.codec, 'state'],
+      [4, 'catching_up', 11, 0, SOReplayCatchingUp.codec, 'state'],
+    ],
+  )
+
+/**
+ * SOReplayOpening is replay before its first step reached the end of the
+ * order.
+ *
+ * @generated from message sobject.SOReplayOpening
+ */
+export interface SOReplayOpening {}
+
+export const SOReplayOpening: MessageType<SOReplayOpening> =
+  /* @__PURE__ */ createMessageType<SOReplayOpening>(
+    'sobject.SOReplayOpening',
+    () => [],
+  )
+
+/**
+ * SOReplayCaughtUp is replay at the end of the order its last step read.
+ *
+ * @generated from message sobject.SOReplayCaughtUp
+ */
+export interface SOReplayCaughtUp {}
+
+export const SOReplayCaughtUp: MessageType<SOReplayCaughtUp> =
+  /* @__PURE__ */ createMessageType<SOReplayCaughtUp>(
+    'sobject.SOReplayCaughtUp',
+    () => [],
+  )
+
+/**
+ * SOReplayCatchingUp is replay with another peer's operation held and not yet
+ * applied.
+ *
+ * @generated from message sobject.SOReplayCatchingUp
+ */
+export interface SOReplayCatchingUp {}
+
+export const SOReplayCatchingUp: MessageType<SOReplayCatchingUp> =
+  /* @__PURE__ */ createMessageType<SOReplayCatchingUp>(
+    'sobject.SOReplayCatchingUp',
+    () => [],
+  )
+
+/**
+ * SOReplayWait is the operation this device's replay waits at. A missing
+ * handler is a fact about this device and its release, not about the
+ * operation, so replay waits for one instead of refusing the operation.
+ *
+ * @generated from message sobject.SOReplayWait
+ */
+export interface SOReplayWait {
+  /**
+   * CheckpointHeight is the height of the checkpoint the operation is above.
+   */
+  checkpointHeight?: bigint
+  /**
+   * Position is the operation's index in the order above that checkpoint.
+   */
+  position?: number
+  /**
+   * OpTypeId is the operation type no handler on this device resolves.
+   */
+  opTypeId?: string
+  /**
+   * PluginId is the plugin a pinned operation type names, or empty for an
+   * unpinned type.
+   */
+  pluginId?: string
+  /**
+   * State is what the wait needs before replay can resume.
+   *
+   * @generated from oneof sobject.SOReplayWait.state
+   */
+  state?:
+    | { value?: undefined; case: undefined }
+    | { value: SOReplayWaitHandler; case: 'handler' }
+    | { value: SOReplayWaitApproval; case: 'approval' }
+}
+
+export const SOReplayWait: MessageType<SOReplayWait> =
+  /* @__PURE__ */ createMessageType<SOReplayWait>(
+    'sobject.SOReplayWait',
+    () => [
+      [1, 'checkpoint_height', 4],
+      [2, 'position', 13],
+      [3, 'op_type_id', 9],
+      [4, 'plugin_id', 9],
+      [5, 'handler', 11, 0, SOReplayWaitHandler.codec, 'state'],
+      [6, 'approval', 11, 0, SOReplayWaitApproval.codec, 'state'],
+    ],
+  )
+
+/**
+ * SOReplayWaitHandler waits for a plugin on this device to register a handler
+ * for the operation type.
+ *
+ * @generated from message sobject.SOReplayWaitHandler
+ */
+export interface SOReplayWaitHandler {}
+
+export const SOReplayWaitHandler: MessageType<SOReplayWaitHandler> =
+  /* @__PURE__ */ createMessageType<SOReplayWaitHandler>(
+    'sobject.SOReplayWaitHandler',
+    () => [],
+  )
+
+/**
+ * SOReplayWaitApproval waits for this device's person to approve the plugins
+ * that could handle the operation type.
+ *
+ * @generated from message sobject.SOReplayWaitApproval
+ */
+export interface SOReplayWaitApproval {
+  /**
+   * PluginIds lists the plugins awaiting approval on this device, sorted.
+   */
+  pluginIds?: string[]
+}
+
+export const SOReplayWaitApproval: MessageType<SOReplayWaitApproval> =
+  /* @__PURE__ */ createMessageType<SOReplayWaitApproval>(
+    'sobject.SOReplayWaitApproval',
+    () => [[1, 'plugin_ids', 9, 1]],
   )
 
 /**

@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/broadcast"
+	plugin_space_runtime "github.com/s4wave/spacewave/core/plugin/space/runtime"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 )
 
@@ -17,17 +18,21 @@ const opPluginLoaderControllerID = "spacewave/space/op-plugin-loader"
 
 // opPluginLoader runs the plugins that replay of the Space's World asks for
 // with LoadOpPlugins, from the first request until the Space resource is
-// released. A plugin keeps running after its handler resolves, so later
-// operations of its types do not each pause replay and restart it. Only the
-// Space's listed plugins whose manifests declare an operation type the World
-// replays are ever requested.
+// released, as a replay demand: a plugin the Space no longer lists still
+// loads, but only once the host scheduler admits its manifest root. A plugin
+// keeps running after its handler resolves, so later operations of its types
+// do not each pause replay and restart it. Each LoadOpPlugins resolves the
+// requested plugins whose load the scheduler shows awaiting approval, read
+// from the scheduler for as long as the directive lives.
 type opPluginLoader struct {
 	// r is the Space resource whose plugin runtime runs the plugins.
 	r *SpaceResource
-	// bcast guards pluginIDs.
+	// bcast guards pluginIDs and runtime.
 	bcast broadcast.Broadcast
 	// pluginIDs is the sorted set of requested plugins.
 	pluginIDs []string
+	// runtime is the held Space plugin runtime, or nil before run holds it.
+	runtime *plugin_space_runtime.Controller
 }
 
 // StartOpPluginLoader runs the plugins that replay of the Space's World
@@ -64,7 +69,7 @@ func (l *opPluginLoader) Execute(ctx context.Context) error {
 }
 
 // HandleDirective adds the plugins a LoadOpPlugins for the Space's World
-// engine requests. It resolves no value.
+// engine requests, and resolves those awaiting approval.
 func (l *opPluginLoader) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	// Accept only requests from this Space's World engine.
 	dir, ok := di.GetDirective().(space_world.LoadOpPlugins)
@@ -82,7 +87,78 @@ func (l *opPluginLoader) HandleDirective(ctx context.Context, di directive.Insta
 			broadcast()
 		}
 	})
-	return nil, nil
+	requested := dir.LoadOpPluginsPluginIDs()
+	return []directive.Resolver{directive.NewFuncResolver(func(ctx context.Context, h directive.ResolverHandler) error {
+		l.resolveAwaiting(ctx, h, requested)
+		return nil
+	})}, nil
+}
+
+// resolveAwaiting keeps one value on h, the requested plugins awaiting
+// approval, until ctx ends: the directive's release ends the watch of the
+// running generation's scheduler status.
+func (l *opPluginLoader) resolveAwaiting(ctx context.Context, h directive.ResolverHandler, requested []string) {
+	var valID uint32
+	var hasVal bool
+	show := func(ids []string) {
+		if hasVal {
+			h.RemoveValue(valID)
+			hasVal = false
+		}
+		if len(ids) != 0 {
+			valID, hasVal = h.AddValue(space_world.LoadOpPluginsValue(ids))
+		}
+	}
+	for {
+		// Wait for run to hold the plugin runtime.
+		var runtime *plugin_space_runtime.Controller
+		var ch <-chan struct{}
+		l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			runtime, ch = l.runtime, getWaitCh()
+		})
+		if runtime == nil {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ch:
+				continue
+			}
+		}
+
+		// Follow the running generation's scheduler until the generation
+		// changes.
+		gen, genCh, _ := runtime.GetGeneration()
+		if gen == nil {
+			show(nil)
+			select {
+			case <-ctx.Done():
+				return
+			case <-genCh:
+				continue
+			}
+		}
+		genCtx, genCancel := context.WithCancel(ctx)
+		go func() {
+			select {
+			case <-genCh:
+				genCancel()
+			case <-genCtx.Done():
+			}
+		}()
+		err := gen.GetSpaceController().WatchAwaitingApproval(genCtx, requested, show)
+		genCancel()
+		if ctx.Err() != nil {
+			return
+		}
+		if err != nil && genCtx.Err() == nil {
+			l.r.le.WithError(err).Warn("cannot watch plugin approval for operation plugins")
+			select {
+			case <-ctx.Done():
+				return
+			case <-genCh:
+			}
+		}
+	}
 }
 
 // Close releases nothing.
@@ -129,9 +205,13 @@ func (l *opPluginLoader) run(ctx context.Context) {
 		_, runtime, runtimeRef, err = l.r.AcquireContentsRuntime(ctx)
 	}
 	defer runtimeRef.Release()
+	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		l.runtime = runtime
+		broadcast()
+	})
 
 	// Demand the requested plugins and follow later requests.
-	demand := runtime.DemandPlugins(ids)
+	demand := runtime.DemandReplayPlugins(ids)
 	defer demand.Release()
 	for {
 		l.r.le.WithField("plugin-ids", ids).Debug("running operation plugins")
@@ -140,8 +220,11 @@ func (l *opPluginLoader) run(ctx context.Context) {
 			return
 		case <-changed:
 		}
-		ids, changed = l.getPluginIDs()
-		demand.SetPluginIDs(ids)
+		next, nextChanged := l.getPluginIDs()
+		if !slices.Equal(next, ids) {
+			demand.SetPluginIDs(next)
+		}
+		ids, changed = next, nextChanged
 	}
 }
 

@@ -20,6 +20,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@s4wave/web/ui/sheet.js'
+import { useSaveHold } from '@s4wave/app/sobject/space-replay.js'
 import { Documentation } from '@s4wave/sdk/docs/docs.pb.js'
 import { MknodType } from '@s4wave/sdk/unixfs/index.js'
 import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
@@ -35,6 +36,7 @@ import {
   useUnixFSHandleTextContent,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 import {
@@ -128,6 +130,7 @@ function useDocPage(
   const [editContent, setEditContent] = useState<string | null>(null)
   const fileHandle = useUnixFSHandle(rootHandle, selectedPage)
   const textResource = useUnixFSHandleTextContent(fileHandle)
+  const saveHold = useSaveHold()
 
   const selectPage = useCallback(
     (name: string) => {
@@ -138,24 +141,41 @@ function useDocPage(
     [setSelectedPage, setEditing],
   )
 
-  const toggleEdit = useCallback(() => {
-    if (editing) {
-      // Save on exit from edit mode.
-      if (editContent !== null) {
-        const handle = fileHandle.value
-        if (handle) {
-          const encoded = new TextEncoder().encode(editContent)
-          void handle
-            .writeAt(0n, encoded)
-            .then(() => handle.truncate(BigInt(encoded.byteLength)))
-        }
-        setEditContent(null)
-      }
-    } else {
+  const toggleEdit = useCallback(async () => {
+    if (!editing) {
       setEditContent(textResource.value ?? '')
+      setEditing(true)
+      return
     }
-    setEditing((prev) => !prev)
-  }, [editing, editContent, fileHandle.value, textResource.value, setEditing])
+    // Keep editing while the Space takes no writes, so the edits stay.
+    if (editContent !== null && saveHold) {
+      toast.info(saveHold)
+      return
+    }
+    // Save on exit from edit mode, and keep editing if the save fails: the
+    // Space may start catching up between this check and the commit.
+    const handle = fileHandle.value
+    if (editContent !== null && handle) {
+      const encoded = new TextEncoder().encode(editContent)
+      try {
+        await handle.writeAt(0n, encoded)
+        await handle.truncate(BigInt(encoded.byteLength))
+        await handle.sync()
+      } catch {
+        toast.error('Not saved. Your edits are still here.')
+        return
+      }
+    }
+    setEditContent(null)
+    setEditing(false)
+  }, [
+    editing,
+    editContent,
+    saveHold,
+    fileHandle.value,
+    textResource.value,
+    setEditing,
+  ])
 
   const cancelEdit = useCallback(() => {
     setEditContent(null)
@@ -503,12 +523,21 @@ export function DocumentationViewer({
     [selectPage],
   )
 
+  const saveHold = useSaveHold()
   const handleCreatePage = useCallback(async () => {
     setNavOpen(false)
+    if (saveHold) {
+      toast.info(saveHold)
+      return
+    }
     const handle = rootHandle.value
     if (!handle) return
-    selectPage(await createUntitledPage(handle, mdEntries))
-  }, [rootHandle.value, mdEntries, selectPage])
+    try {
+      selectPage(await createUntitledPage(handle, mdEntries))
+    } catch {
+      toast.error('The page was not created.')
+    }
+  }, [rootHandle.value, mdEntries, saveHold, selectPage])
 
   const title = doc?.name || 'Documentation'
 
@@ -588,7 +617,7 @@ export function DocumentationViewer({
             editContent={page.editContent}
             onEditContentChange={page.setEditContent}
             textResource={page.textResource}
-            onToggleEdit={page.toggleEdit}
+            onToggleEdit={() => void page.toggleEdit()}
             onCancelEdit={page.cancelEdit}
           />
         </div>

@@ -9,9 +9,13 @@ import (
 )
 
 // LoadOpPlugins asks the holders of a World engine's plugin runtime to run
-// the plugins its replay waits for. The Space adapter keeps one while replay
-// waits at an operation whose type those plugins declare, and releases it once
-// a handler for the type resolves. It resolves no value.
+// the plugins its replay waits for, for replay only and only once the host's
+// scheduler admits each plugin's manifest root. The Space adapter keeps one while replay
+// waits at an operation whose type no handler resolves, naming the plugin a
+// pinned type names or the plugins the World before the operation lists, and
+// releases it once a handler for the type resolves. A holder resolves a
+// LoadOpPluginsValue while the scheduler shows some of the plugins awaiting
+// approval.
 type LoadOpPlugins interface {
 	// Directive indicates LoadOpPlugins is a directive.
 	directive.Directive
@@ -21,6 +25,11 @@ type LoadOpPlugins interface {
 	// LoadOpPluginsPluginIDs returns the sorted plugins to run.
 	LoadOpPluginsPluginIDs() []string
 }
+
+// LoadOpPluginsValue is the sorted IDs of requested plugins whose load the
+// host scheduler shows as PluginSwapAwaitingApproval. It carries that state to
+// the waiting adapter and holds none of its own.
+type LoadOpPluginsValue []string
 
 // loadOpPlugins is an in-memory LoadOpPlugins directive.
 type loadOpPlugins struct {

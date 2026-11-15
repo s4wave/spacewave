@@ -320,7 +320,7 @@ func TestWorldOpRegistryBridgeControllerDeadlineReleasesWriter(t *testing.T) {
 	res := resource_world.NewWorldStateResource(le, tb.Bus, ws, lookupPluginOp(ctx, t, tb, le), resource_world.WithSessionPeerID(tb.Volume.GetPeerID()))
 	applied := make(chan *s4wave_world.ApplyWorldOpResponse, 1)
 	go func() {
-		resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data")})
+		resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data"), KnownErrorCode: s4wave_world.KnownErrorCode})
 		if err != nil {
 			t.Errorf("ApplyWorldOp: %v", err)
 		}
@@ -558,7 +558,7 @@ func TestWorldOpRegistryBridgeControllerColdLoadHoldsNoWriter(t *testing.T) {
 	applied := make(chan *s4wave_world.ApplyWorldOpResponse, 1)
 	start := time.Now()
 	go func() {
-		resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data")})
+		resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data"), KnownErrorCode: s4wave_world.KnownErrorCode})
 		if err != nil {
 			t.Errorf("ApplyWorldOp: %v", err)
 		}

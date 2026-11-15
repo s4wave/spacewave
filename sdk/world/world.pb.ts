@@ -159,6 +159,16 @@ export enum WorldErrorCode {
    * nothing was committed.
    */
   ROOT_NOT_HELD = 9,
+
+  /**
+   * WORLD_ERROR_CODE_REPLAY_WAITS indicates that the World takes no writes
+   * because its replay is not caught up: it is opening, or waits at an
+   * operation, such as for a handler this device lacks or the approval of a
+   * plugin. Nothing was written. Reads go on. The Space's health shows the
+   * replay state in SharedObjectHealth.replay; the caller may write again
+   * once it is caught_up.
+   */
+  REPLAY_WAITS = 10,
 }
 
 export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
@@ -174,6 +184,7 @@ export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
     [7, 'WORLD_ERROR_CODE_SUPERSEDED'],
     [8, 'WORLD_ERROR_CODE_STALE_GENERATION'],
     [9, 'WORLD_ERROR_CODE_ROOT_NOT_HELD'],
+    [10, 'WORLD_ERROR_CODE_REPLAY_WAITS'],
   ],
 )
 
@@ -485,12 +496,22 @@ export interface NewTransactionRequest {
    * Write indicates whether this transaction will perform write operations.
    */
   write?: boolean
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const NewTransactionRequest: MessageType<NewTransactionRequest> =
   /* @__PURE__ */ createMessageType<NewTransactionRequest>(
     's4wave.world.NewTransactionRequest',
-    () => [[1, 'write', 8]],
+    () => [
+      [1, 'write', 8],
+      [2, 'known_error_code', 14, 0, WorldErrorCode_Enum],
+    ],
   )
 
 /**
@@ -507,6 +528,11 @@ export interface NewTransactionResponse {
    * ReadOnly indicates whether the transaction is read-only.
    */
   readOnly?: boolean
+  /**
+   * ErrorCode identifies a built-in World refusal to open a write
+   * transaction, such as REPLAY_WAITS. No transaction was opened.
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const NewTransactionResponse: MessageType<NewTransactionResponse> =
@@ -515,6 +541,7 @@ export const NewTransactionResponse: MessageType<NewTransactionResponse> =
     () => [
       [1, 'resource_id', 13],
       [2, 'read_only', 8],
+      [3, 'error_code', 14, 0, WorldErrorCode_Enum],
     ],
   )
 
@@ -1064,6 +1091,13 @@ export interface CreateObjectRequest {
    * RootRef is the initial reference to the object's root data.
    */
   rootRef?: ObjectRef
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const CreateObjectRequest: MessageType<CreateObjectRequest> =
@@ -1072,6 +1106,7 @@ export const CreateObjectRequest: MessageType<CreateObjectRequest> =
     () => [
       [1, 'object_key', 9],
       [2, 'root_ref', 11, 0, ObjectRef.codec],
+      [3, 'known_error_code', 14, 0, WorldErrorCode_Enum],
     ],
   )
 
@@ -1089,6 +1124,11 @@ export interface CreateObjectResponse {
    * ObjectKey is the unique identifier of the created object.
    */
   objectKey?: string
+  /**
+   * ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+   * Nothing was written.
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const CreateObjectResponse: MessageType<CreateObjectResponse> =
@@ -1097,6 +1137,7 @@ export const CreateObjectResponse: MessageType<CreateObjectResponse> =
     () => [
       [1, 'resource_id', 13],
       [2, 'object_key', 9],
+      [3, 'error_code', 14, 0, WorldErrorCode_Enum],
     ],
   )
 
@@ -1166,6 +1207,13 @@ export interface RenameObjectRequest {
    * Descendants renames objects under old_object_key + "/" to the new prefix.
    */
   descendants?: boolean
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const RenameObjectRequest: MessageType<RenameObjectRequest> =
@@ -1175,6 +1223,7 @@ export const RenameObjectRequest: MessageType<RenameObjectRequest> =
       [1, 'old_object_key', 9],
       [2, 'new_object_key', 9],
       [3, 'descendants', 8],
+      [4, 'known_error_code', 14, 0, WorldErrorCode_Enum],
     ],
   )
 
@@ -1192,6 +1241,11 @@ export interface RenameObjectResponse {
    * ObjectKey is the unique identifier of the renamed object.
    */
   objectKey?: string
+  /**
+   * ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+   * Nothing was written.
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const RenameObjectResponse: MessageType<RenameObjectResponse> =
@@ -1200,6 +1254,7 @@ export const RenameObjectResponse: MessageType<RenameObjectResponse> =
     () => [
       [1, 'resource_id', 13],
       [2, 'object_key', 9],
+      [3, 'error_code', 14, 0, WorldErrorCode_Enum],
     ],
   )
 
@@ -1213,12 +1268,22 @@ export interface DeleteObjectRequest {
    * ObjectKey is the unique identifier of the object to delete.
    */
   objectKey?: string
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const DeleteObjectRequest: MessageType<DeleteObjectRequest> =
   /* @__PURE__ */ createMessageType<DeleteObjectRequest>(
     's4wave.world.DeleteObjectRequest',
-    () => [[1, 'object_key', 9]],
+    () => [
+      [1, 'object_key', 9],
+      [2, 'known_error_code', 14, 0, WorldErrorCode_Enum],
+    ],
   )
 
 /**
@@ -1231,12 +1296,20 @@ export interface DeleteObjectResponse {
    * Deleted indicates whether the object was found and successfully deleted.
    */
   deleted?: boolean
+  /**
+   * ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+   * Nothing was written.
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const DeleteObjectResponse: MessageType<DeleteObjectResponse> =
   /* @__PURE__ */ createMessageType<DeleteObjectResponse>(
     's4wave.world.DeleteObjectResponse',
-    () => [[1, 'deleted', 8]],
+    () => [
+      [1, 'deleted', 8],
+      [2, 'error_code', 14, 0, WorldErrorCode_Enum],
+    ],
   )
 
 /**
@@ -1368,12 +1441,22 @@ export interface SetGraphQuadRequest {
    * Quad is the graph quad to add or update in the store.
    */
   quad?: Quad
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const SetGraphQuadRequest: MessageType<SetGraphQuadRequest> =
   /* @__PURE__ */ createMessageType<SetGraphQuadRequest>(
     's4wave.world.SetGraphQuadRequest',
-    () => [[1, 'quad', 11, 0, Quad.codec]],
+    () => [
+      [1, 'quad', 11, 0, Quad.codec],
+      [2, 'known_error_code', 14, 0, WorldErrorCode_Enum],
+    ],
   )
 
 /**
@@ -1381,12 +1464,18 @@ export const SetGraphQuadRequest: MessageType<SetGraphQuadRequest> =
  *
  * @generated from message s4wave.world.SetGraphQuadResponse
  */
-export interface SetGraphQuadResponse {}
+export interface SetGraphQuadResponse {
+  /**
+   * ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+   * Nothing was written.
+   */
+  errorCode?: WorldErrorCode
+}
 
 export const SetGraphQuadResponse: MessageType<SetGraphQuadResponse> =
   /* @__PURE__ */ createMessageType<SetGraphQuadResponse>(
     's4wave.world.SetGraphQuadResponse',
-    () => [],
+    () => [[1, 'error_code', 14, 0, WorldErrorCode_Enum]],
   )
 
 /**
@@ -1399,12 +1488,22 @@ export interface DeleteGraphQuadRequest {
    * Quad is the graph quad to remove from the store.
    */
   quad?: Quad
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const DeleteGraphQuadRequest: MessageType<DeleteGraphQuadRequest> =
   /* @__PURE__ */ createMessageType<DeleteGraphQuadRequest>(
     's4wave.world.DeleteGraphQuadRequest',
-    () => [[1, 'quad', 11, 0, Quad.codec]],
+    () => [
+      [1, 'quad', 11, 0, Quad.codec],
+      [2, 'known_error_code', 14, 0, WorldErrorCode_Enum],
+    ],
   )
 
 /**
@@ -1412,12 +1511,18 @@ export const DeleteGraphQuadRequest: MessageType<DeleteGraphQuadRequest> =
  *
  * @generated from message s4wave.world.DeleteGraphQuadResponse
  */
-export interface DeleteGraphQuadResponse {}
+export interface DeleteGraphQuadResponse {
+  /**
+   * ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+   * Nothing was written.
+   */
+  errorCode?: WorldErrorCode
+}
 
 export const DeleteGraphQuadResponse: MessageType<DeleteGraphQuadResponse> =
   /* @__PURE__ */ createMessageType<DeleteGraphQuadResponse>(
     's4wave.world.DeleteGraphQuadResponse',
-    () => [],
+    () => [[1, 'error_code', 14, 0, WorldErrorCode_Enum]],
   )
 
 /**
@@ -2035,12 +2140,22 @@ export interface DeleteGraphObjectRequest {
    * ObjectKey is the key of the object whose graph references should be deleted.
    */
   objectKey?: string
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const DeleteGraphObjectRequest: MessageType<DeleteGraphObjectRequest> =
   /* @__PURE__ */ createMessageType<DeleteGraphObjectRequest>(
     's4wave.world.DeleteGraphObjectRequest',
-    () => [[1, 'object_key', 9]],
+    () => [
+      [1, 'object_key', 9],
+      [2, 'known_error_code', 14, 0, WorldErrorCode_Enum],
+    ],
   )
 
 /**
@@ -2048,12 +2163,18 @@ export const DeleteGraphObjectRequest: MessageType<DeleteGraphObjectRequest> =
  *
  * @generated from message s4wave.world.DeleteGraphObjectResponse
  */
-export interface DeleteGraphObjectResponse {}
+export interface DeleteGraphObjectResponse {
+  /**
+   * ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+   * Nothing was written.
+   */
+  errorCode?: WorldErrorCode
+}
 
 export const DeleteGraphObjectResponse: MessageType<DeleteGraphObjectResponse> =
   /* @__PURE__ */ createMessageType<DeleteGraphObjectResponse>(
     's4wave.world.DeleteGraphObjectResponse',
-    () => [],
+    () => [[1, 'error_code', 14, 0, WorldErrorCode_Enum]],
   )
 
 /**
@@ -2074,6 +2195,13 @@ export interface ApplyWorldOpRequest {
    * OpSender is the peer ID of the sender applying the operation.
    */
   opSender?: string
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
@@ -2083,6 +2211,7 @@ export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
       [1, 'op_type_id', 9],
       [2, 'op_data', 12],
       [3, 'op_sender', 9],
+      [4, 'known_error_code', 14, 0, WorldErrorCode_Enum],
     ],
   )
 
@@ -2761,12 +2890,22 @@ export interface SetRootRefRequest {
    * RootRef is the new reference to set as the object's root data.
    */
   rootRef?: ObjectRef
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const SetRootRefRequest: MessageType<SetRootRefRequest> =
   /* @__PURE__ */ createMessageType<SetRootRefRequest>(
     's4wave.world.SetRootRefRequest',
-    () => [[1, 'root_ref', 11, 0, ObjectRef.codec]],
+    () => [
+      [1, 'root_ref', 11, 0, ObjectRef.codec],
+      [2, 'known_error_code', 14, 0, WorldErrorCode_Enum],
+    ],
   )
 
 /**
@@ -2779,12 +2918,20 @@ export interface SetRootRefResponse {
    * Rev is the revision number after the update.
    */
   rev?: bigint
+  /**
+   * ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+   * Nothing was written.
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const SetRootRefResponse: MessageType<SetRootRefResponse> =
   /* @__PURE__ */ createMessageType<SetRootRefResponse>(
     's4wave.world.SetRootRefResponse',
-    () => [[1, 'rev', 4]],
+    () => [
+      [1, 'rev', 4],
+      [2, 'error_code', 14, 0, WorldErrorCode_Enum],
+    ],
   )
 
 /**
@@ -2805,6 +2952,13 @@ export interface ApplyObjectOpRequest {
    * OpSender is the peer ID of the sender applying the operation.
    */
   opSender?: string
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const ApplyObjectOpRequest: MessageType<ApplyObjectOpRequest> =
@@ -2814,6 +2968,7 @@ export const ApplyObjectOpRequest: MessageType<ApplyObjectOpRequest> =
       [1, 'op_type_id', 9],
       [2, 'op_data', 12],
       [3, 'op_sender', 9],
+      [4, 'known_error_code', 14, 0, WorldErrorCode_Enum],
     ],
   )
 
@@ -2862,12 +3017,20 @@ export const ApplyObjectOpResponse: MessageType<ApplyObjectOpResponse> =
  *
  * @generated from message s4wave.world.IncrementRevRequest
  */
-export interface IncrementRevRequest {}
+export interface IncrementRevRequest {
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns a refusal with a higher code, past OBJECT_NOT_FOUND, as an
+   * RPC error, so a client built before that code existed fails the call
+   * instead of reading the reply as success.
+   */
+  knownErrorCode?: WorldErrorCode
+}
 
 export const IncrementRevRequest: MessageType<IncrementRevRequest> =
   /* @__PURE__ */ createMessageType<IncrementRevRequest>(
     's4wave.world.IncrementRevRequest',
-    () => [],
+    () => [[1, 'known_error_code', 14, 0, WorldErrorCode_Enum]],
   )
 
 /**
@@ -2880,12 +3043,20 @@ export interface IncrementRevResponse {
    * Rev is the revision number after the increment.
    */
   rev?: bigint
+  /**
+   * ErrorCode identifies a built-in World refusal, such as REPLAY_WAITS.
+   * Nothing was written.
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const IncrementRevResponse: MessageType<IncrementRevResponse> =
   /* @__PURE__ */ createMessageType<IncrementRevResponse>(
     's4wave.world.IncrementRevResponse',
-    () => [[1, 'rev', 4]],
+    () => [
+      [1, 'rev', 4],
+      [2, 'error_code', 14, 0, WorldErrorCode_Enum],
+    ],
   )
 
 /**

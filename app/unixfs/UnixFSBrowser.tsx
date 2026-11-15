@@ -18,6 +18,7 @@ import { useFileListState } from '@s4wave/web/editors/file-browser/FileList.js'
 import { UnixFSPathLoadingCard } from '@s4wave/app/loading/wrappers/UnixFSPathLoadingCard.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
+import { useSaveHold } from '@s4wave/app/sobject/space-replay.js'
 import { useSessionUploadManager } from '@s4wave/app/session/SessionUploadManagerContext.js'
 import { useSessionSyncStatus } from '../session/SessionSyncStatusContext.js'
 import { UnixFSFileViewer } from './UnixFSFileViewer.js'
@@ -159,6 +160,7 @@ function useUnixFSBrowserModel({
   // browser is mounted outside a session (display, debug harness); uploads are
   // simply unavailable there.
   const uploadManager = useSessionUploadManager()
+  const saveHold = useSaveHold()
 
   const {
     rootHandle,
@@ -239,6 +241,7 @@ function useUnixFSBrowserModel({
     displayPath,
     pathHandle,
     uploadManager,
+    saveHold,
   })
   const rename = useUnixFSBrowserRename({
     pathHandle,
@@ -269,6 +272,7 @@ function useUnixFSBrowserModel({
     rootHandle: rootHandle.value,
     sourceParentHandle: pathHandle.value,
     uploadManager,
+    saveHold,
     folderDropEntryId: state.folderDropEntryId,
     setDragging,
     setFolderDropEntryId,
