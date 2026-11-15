@@ -223,6 +223,10 @@ func (b *BlockStore) Sync(ctx context.Context) (bool, error) {
 }
 
 // ForceSync flushes any pending dirty blocks to the cloud immediately.
+//
+// A caller told that a sync is complete may rely on every reached block being
+// on the remote; a sync that held a block back never reports complete, and
+// returns an error matching block.ErrBlockCorrupt.
 func (b *BlockStore) ForceSync(ctx context.Context) error {
 	if b.forceSync == nil {
 		return nil

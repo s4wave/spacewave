@@ -3,6 +3,7 @@ package delta
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -558,5 +559,70 @@ func TestOpenMirrorUnionSpaceIDMismatch(t *testing.T) {
 	}
 	if union != nil {
 		t.Fatalf("expected nil union on error, got %+v", union)
+	}
+}
+
+// TestMirrorUnionSkipsCorruptPack checks that a pack whose copy of a block
+// fails its hash yields to the next pack that holds an intact copy, and that
+// the corrupt error returns when no pack does.
+func TestMirrorUnionSkipsCorruptPack(t *testing.T) {
+	ctx := context.Background()
+
+	// Pack one block, then copy the pack with a byte of the body flipped.
+	body := []byte("mirror union corrupt pack block")
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, body)
+	if err != nil {
+		t.Fatalf("hash.Sum: %v", err)
+	}
+	emitted := false
+	var pack bytes.Buffer
+	if _, err := writer.PackBlocks(&pack, func() (*hash.Hash, *block.StoredBlock, error) {
+		if emitted {
+			return nil, nil, nil
+		}
+		emitted = true
+		return h, &block.StoredBlock{Data: body, RefsKnown: true}, nil
+	}); err != nil {
+		t.Fatalf("PackBlocks: %v", err)
+	}
+	good := pack.Bytes()
+	at := bytes.Index(good, body)
+	if at < 0 {
+		t.Fatal("pack does not hold the body bytes")
+	}
+	bad := bytes.Clone(good)
+	bad[at] ^= 0xff
+
+	// open writes the given packs in walk order and opens their union.
+	open := func(packs ...[]byte) *MirrorUnion {
+		mirrorDir := t.TempDir()
+		spaceID := "01test000000000000corrupt"
+		packDir := filepath.Join(mirrorDir, spaceID, "packs", "01")
+		if err := os.MkdirAll(packDir, 0o755); err != nil {
+			t.Fatalf("mkdir pack dir: %v", err)
+		}
+		for i, data := range packs {
+			name := filepath.Join(packDir, "0"+strconv.Itoa(i)+"PACK.kvf")
+			if err := os.WriteFile(name, data, 0o644); err != nil {
+				t.Fatalf("write pack: %v", err)
+			}
+		}
+		union, err := OpenMirrorUnion(ctx, nil, mirrorDir, spaceID)
+		if err != nil {
+			t.Fatalf("OpenMirrorUnion: %v", err)
+		}
+		t.Cleanup(func() { _ = union.Close() })
+		return union
+	}
+
+	// The corrupt pack comes first and yields to the intact one.
+	got, found, err := open(bad, good).GetBlock(ctx, block.NewBlockRef(h))
+	if err != nil || !found || !bytes.Equal(got, body) {
+		t.Fatalf("GetBlock = found %v, %v; want the intact copy", found, err)
+	}
+
+	// With only the corrupt pack the read reports the corrupt class.
+	if _, _, err := open(bad).GetBlock(ctx, block.NewBlockRef(h)); !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("GetBlock over a corrupt pack = %v; want corrupt", err)
 	}
 }
