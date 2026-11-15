@@ -106,7 +106,7 @@ func (o *FsRenameOp) ApplyWorldObjectOp(
 	// validate
 	err = unixfs_block.ValidateRename(o.GetSrcPath(), o.GetDestPath())
 	if err != nil {
-		return false, err
+		return false, world.NewOpRefusedError(err)
 	}
 
 	// Rename the inode through the World object filesystem transaction.
@@ -123,12 +123,12 @@ func (o *FsRenameOp) ApplyWorldObjectOp(
 			paths := unixfs_block.PathsToStringSlices(o.GetSrcPath(), o.GetDestPath())
 			return wr.Rename(ctx, paths[0], paths[1], ts)
 		case FSType_FSType_FS_OBJECT:
-			return errors.New("TODO rename on fsobject")
+			return world.NewOpRefusedError(errors.New("TODO rename on fsobject"))
 		case FSType_FSType_FS_HOST_VOLUME:
-			return unixfs_block.ErrCannotModifyHostVolume
+			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:
-			return errors.Wrap(ErrInvalidFSType, srcFsType.String())
+			return world.NewOpRefusedError(errors.Wrap(ErrInvalidFSType, srcFsType.String()))
 		}
 	})
-	return false, err
+	return false, fsRefusal(err)
 }

@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -70,11 +71,11 @@ func applyUpdateOrg(state *OrgState, op *UpdateOrgOp) error {
 	case *UpdateOrgOp_AddMember:
 		member := body.AddMember.GetMember()
 		if member == nil {
-			return errors.New("member is required")
+			return world.NewOpRefusedError(errors.New("member is required"))
 		}
 		for _, m := range state.Members {
 			if m.GetAccountId() == member.GetAccountId() {
-				return errors.New("member already exists")
+				return world.NewOpRefusedError(errors.New("member already exists"))
 			}
 		}
 		state.Members = append(state.Members, member.CloneVT())
@@ -82,14 +83,14 @@ func applyUpdateOrg(state *OrgState, op *UpdateOrgOp) error {
 		accountID := body.RemoveMember.GetAccountId()
 		idx := slices.IndexFunc(state.Members, func(m *OrgMemberInfo) bool { return m.GetAccountId() == accountID })
 		if idx < 0 {
-			return errors.New("member not found")
+			return world.NewOpRefusedError(errors.New("member not found"))
 		}
 		state.Members = append(state.Members[:idx], state.Members[idx+1:]...)
 	case *UpdateOrgOp_AddChildSo:
 		soID := body.AddChildSo.GetSharedObjectId()
 		for _, c := range state.ChildSharedObjects {
 			if c.GetSharedObjectId() == soID {
-				return errors.New("child SO already exists")
+				return world.NewOpRefusedError(errors.New("child SO already exists"))
 			}
 		}
 		state.ChildSharedObjects = append(state.ChildSharedObjects, &OrgChildRef{SharedObjectId: soID})
@@ -97,7 +98,7 @@ func applyUpdateOrg(state *OrgState, op *UpdateOrgOp) error {
 		soID := body.RemoveChildSo.GetSharedObjectId()
 		idx := slices.IndexFunc(state.ChildSharedObjects, func(c *OrgChildRef) bool { return c.GetSharedObjectId() == soID })
 		if idx < 0 {
-			return errors.New("child SO not found")
+			return world.NewOpRefusedError(errors.New("child SO not found"))
 		}
 		state.ChildSharedObjects = append(state.ChildSharedObjects[:idx], state.ChildSharedObjects[idx+1:]...)
 	case *UpdateOrgOp_CreateInvite:
@@ -110,7 +111,7 @@ func applyUpdateOrg(state *OrgState, op *UpdateOrgOp) error {
 		invID := body.RevokeInvite.GetInviteId()
 		idx := slices.IndexFunc(state.Invites, func(inv *OrgInvite) bool { return inv.GetId() == invID })
 		if idx < 0 {
-			return errors.New("invite not found")
+			return world.NewOpRefusedError(errors.New("invite not found"))
 		}
 		state.Invites = append(state.Invites[:idx], state.Invites[idx+1:]...)
 	case *UpdateOrgOp_JoinViaInvite:
@@ -118,7 +119,7 @@ func applyUpdateOrg(state *OrgState, op *UpdateOrgOp) error {
 			return err
 		}
 	default:
-		return errors.New("unknown update body")
+		return world.NewOpRefusedError(errors.New("unknown update body"))
 	}
 	return nil
 }

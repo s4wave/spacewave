@@ -74,7 +74,7 @@ func (o *SqlSchemaSetRootOp) ApplyWorldObjectOp(
 		return false, world.ErrObjectNotFound
 	}
 	if os.GetKey() != o.GetObjectKey() {
-		return false, errors.Errorf("sql/schema: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
+		return false, world.NewOpRefusedError(errors.Errorf("sql/schema: op target %s does not match object %s", o.GetObjectKey(), os.GetKey()))
 	}
 
 	// Publish the root reference on the matching SQL schema object.

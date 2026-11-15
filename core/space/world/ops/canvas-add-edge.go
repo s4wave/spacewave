@@ -79,13 +79,13 @@ func (o *CanvasAddEdgeOp) ApplyWorldOp(
 
 		// Verify source and target nodes exist.
 		if state.GetNodes() == nil {
-			return ErrEdgeNodeNotFound
+			return world.NewOpRefusedError(ErrEdgeNodeNotFound)
 		}
 		if _, ok := state.GetNodes()[edge.GetSourceNodeId()]; !ok {
-			return ErrEdgeNodeNotFound
+			return world.NewOpRefusedError(ErrEdgeNodeNotFound)
 		}
 		if _, ok := state.GetNodes()[edge.GetTargetNodeId()]; !ok {
-			return ErrEdgeNodeNotFound
+			return world.NewOpRefusedError(ErrEdgeNodeNotFound)
 		}
 
 		// Preserve the previous canvas state and persist the new edge.

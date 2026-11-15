@@ -86,7 +86,7 @@ func (o *FsSymlinkOp) ApplyWorldObjectOp(
 	// validate
 	err = unixfs_block.ValidateSymlink(o.GetPath(), o.GetSymlink())
 	if err != nil {
-		return false, err
+		return false, world.NewOpRefusedError(err)
 	}
 
 	_, _, err = AccessUnixfsObject(ctx, objectHandle, true, o.GetFsType(), func(ftree *unixfs_block.FSTree) error {
@@ -100,7 +100,7 @@ func (o *FsSymlinkOp) ApplyWorldObjectOp(
 		)
 	}, nil)
 
-	return false, err
+	return false, fsRefusal(err)
 }
 
 // _ is a type assertion

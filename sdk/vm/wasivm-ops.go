@@ -130,13 +130,13 @@ func (o *SetWasiVmStateOp) ApplyWorldOp(
 			return unmarshalErr
 		}
 		if vm == nil {
-			return errors.New("wasivm block missing on object")
+			return world.NewOpRefusedError(errors.New("wasivm block missing on object"))
 		}
 
 		// Advance the run generation with its new desired and observed states.
 		desired, observed, changed, stateErr := nextRunStates(vm.GetState(), vm.GetObservedState(), o.GetState())
 		if stateErr != nil || !changed {
-			return stateErr
+			return world.NewOpRefusedError(stateErr)
 		}
 		vm.State = desired
 		vm.ObservedState = observed
@@ -146,7 +146,7 @@ func (o *SetWasiVmStateOp) ApplyWorldOp(
 		return nil
 	})
 	if err != nil {
-		return true, err
+		return !world.IsOpRefusedError(err), err
 	}
 	return false, nil
 }

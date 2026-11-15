@@ -81,7 +81,7 @@ func (o *FsSetModTimestampOp) ApplyWorldObjectOp(
 	// validate
 	err = unixfs_block.ValidateSetModTimestamp(o.GetPaths())
 	if err != nil {
-		return false, err
+		return false, world.NewOpRefusedError(err)
 	}
 
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
@@ -94,14 +94,14 @@ func (o *FsSetModTimestampOp) ApplyWorldObjectOp(
 			paths := unixfs_block.PathsToStringSlices(o.GetPaths()...)
 			return unixfs_block.SetModTimestamp(ftree, paths, o.GetTimestamp())
 		case FSType_FSType_FS_OBJECT:
-			return errors.New("TODO apply set-mod-timestamp to fsobject")
+			return world.NewOpRefusedError(errors.New("TODO apply set-mod-timestamp to fsobject"))
 		case FSType_FSType_FS_HOST_VOLUME:
-			return unixfs_block.ErrCannotModifyHostVolume
+			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:
-			return errors.Wrap(ErrInvalidFSType, o.GetFsType().String())
+			return world.NewOpRefusedError(errors.Wrap(ErrInvalidFSType, o.GetFsType().String()))
 		}
 	})
-	return false, err
+	return false, fsRefusal(err)
 }
 
 // _ is a type assertion

@@ -77,7 +77,7 @@ func (o *SqlTableViewSetRootOp) ApplyWorldObjectOp(
 
 	// Require the supplied object to match the table view operation.
 	if os.GetKey() != o.GetObjectKey() {
-		return false, errors.Errorf("sql/table-view: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
+		return false, world.NewOpRefusedError(errors.Errorf("sql/table-view: op target %s does not match object %s", o.GetObjectKey(), os.GetKey()))
 	}
 
 	// Advance the table view object's root reference.

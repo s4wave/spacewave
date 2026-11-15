@@ -88,13 +88,13 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 	}
 	clusterPeerIDStr := clusterPeerID.String()
 	if clusterPeerIDStr == "" {
-		return false, errors.Wrap(peer.ErrEmptyPeerID, "cluster")
+		return false, world.NewOpRefusedError(errors.Wrap(peer.ErrEmptyPeerID, "cluster"))
 	}
 
 	// Require the sender to match the cluster's controlling peer.
 	senderPeerIDStr := sender.String()
 	if senderPeerIDStr != clusterPeerIDStr {
-		return false, errors.Errorf("tx sender %s does not match cluster %s", senderPeerIDStr, clusterPeerIDStr)
+		return false, world.NewOpRefusedError(errors.Errorf("tx sender %s does not match cluster %s", senderPeerIDStr, clusterPeerIDStr))
 	}
 
 	// Confirm the job is linked to the cluster.
@@ -132,7 +132,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 		// Reject tasks that already have a peer assignment.
 		taskPeerID := task.GetPeerId()
 		if taskPeerID != "" {
-			return errors.Errorf("task already assigned to %s", taskPeerID)
+			return world.NewOpRefusedError(errors.Errorf("task already assigned to %s", taskPeerID))
 		}
 
 		// Store the cluster peer assignment.

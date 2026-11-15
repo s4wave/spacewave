@@ -80,7 +80,7 @@ func (o *SqlWorkbenchSetRootOp) ApplyWorldObjectOp(
 		return false, world.ErrObjectNotFound
 	}
 	if os.GetKey() != o.GetObjectKey() {
-		return false, errors.Errorf("sql/workbench: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
+		return false, world.NewOpRefusedError(errors.Errorf("sql/workbench: op target %s does not match object %s", o.GetObjectKey(), os.GetKey()))
 	}
 
 	// Protect an existing workbench root from repeated initialization.
@@ -90,7 +90,7 @@ func (o *SqlWorkbenchSetRootOp) ApplyWorldObjectOp(
 			return false, err
 		}
 		if rootRef != nil && !rootRef.GetRootRef().GetEmpty() {
-			return false, ErrWorkbenchAlreadyInitialized
+			return false, world.NewOpRefusedError(ErrWorkbenchAlreadyInitialized)
 		}
 	}
 

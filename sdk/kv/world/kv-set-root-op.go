@@ -110,7 +110,7 @@ func (o *KvSetRootOp) ApplyWorldObjectOp(
 		return false, err
 	}
 	if os.GetKey() != o.GetObjectKey() {
-		return false, errors.Errorf("kv/store: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
+		return false, world.NewOpRefusedError(errors.Errorf("kv/store: op target %s does not match object %s", o.GetObjectKey(), os.GetKey()))
 	}
 
 	// Divergent commits replay this transaction's writes on the current root;

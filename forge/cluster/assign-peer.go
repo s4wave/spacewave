@@ -97,7 +97,7 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		}
 		clusterPeerIDStr := clusterPeerID.String()
 		if clusterPeerIDStr == "" {
-			return errors.Wrap(peer.ErrEmptyPeerID, "cluster")
+			return world.NewOpRefusedError(errors.Wrap(peer.ErrEmptyPeerID, "cluster"))
 		}
 		if clusterPeerIDStr == peerIDStr {
 			return nil
@@ -106,7 +106,7 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		// Require the sender to match the cluster's current peer.
 		senderPeerIDStr := sender.String()
 		if senderPeerIDStr != clusterPeerIDStr {
-			return errors.Errorf("tx sender %s does not match cluster %s", senderPeerIDStr, clusterPeerIDStr)
+			return world.NewOpRefusedError(errors.Errorf("tx sender %s does not match cluster %s", senderPeerIDStr, clusterPeerIDStr))
 		}
 
 		// Store the replacement cluster peer ID.
