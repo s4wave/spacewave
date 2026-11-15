@@ -369,7 +369,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/scheduler": {
-      "hash": "7d01b39748251b6f963e60acf2050a015f5894e7751df438e8a9459072d1409e",
+      "hash": "b848ab609d38be4f74cd3df7ff99f7513ebc23600f888827bfcd343d3cff5a82",
       "generatedFiles": [
         "bldr/plugin/host/scheduler/config.pb.go",
         "bldr/plugin/host/scheduler/config.pb.ts"
@@ -4011,6 +4011,16 @@
         "sdk/org/org.proto"
       ]
     },
+    "github.com/s4wave/spacewave/sdk/plugin/approval": {
+      "hash": "c500a81674d2e25c8a235095a845599a9f28b4f985f2c920a5044aa8e00ae6ef",
+      "generatedFiles": [
+        "sdk/plugin/approval/approval.pb.go",
+        "sdk/plugin/approval/approval.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/plugin/approval/approval.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/sdk/plugin/registration": {
       "hash": "d9d102d7b5c1f19ffa14bd18340b6fb0f21ab26eee16a4915bfef80c2f9b2497",
       "generatedFiles": [
@@ -4125,7 +4135,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "e6f652638cdf8395b91f1b3848fb1b02ba299e3b21758fe6ca5e0498207b9dae",
+      "hash": "f96c86884876d3eb109e4a2b7d268064347416ec418ff1bb5a8777a752dafecf",
       "generatedFiles": [
         "sdk/session/local-session.pb.go",
         "sdk/session/local-session.pb.ts",

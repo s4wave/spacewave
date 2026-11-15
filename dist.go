@@ -83,7 +83,8 @@ import "embed"
 //go:embed sdk/sync/index.ts net/peer/base58.ts
 //go:embed sdk/sync/query.ts sdk/sync/live-query.ts sdk/sync/attachment.ts sdk/sync/instance.ts sdk/sync/plugin.ts
 //go:embed sdk/sync/upgrade.ts sdk/sync/plugin-operations.ts sdk/sync/object-query.ts
-//go:embed sdk/plugin/registration/*.ts sdk/plugin/viewer-plugin.ts
+//go:embed sdk/plugin/approval/approval.pb.ts sdk/plugin/registration/*.ts
+//go:embed sdk/plugin/viewer-plugin.ts
 //go:embed sdk/sync/app.ts sdk/sync/schema.ts sdk/sync/transaction.ts sdk/sync/keys.ts
 //go:embed sdk/sync/errors.ts sdk/sync/json.ts sdk/sync/operation.ts sdk/kv/world/store.ts
 //go:embed sdk/sync/client.ts sdk/sync/access.ts sdk/sync/wire.ts sdk/sync/sync.pb.ts sdk/sync/sync_srpc.pb.ts

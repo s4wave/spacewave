@@ -1,0 +1,38 @@
+syntax = "proto3";
+package s4wave.plugin.approval;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/plugin/approval;s4wave_plugin_approval";
+
+// PluginApproval is one device person's decision about one plugin manifest
+// root. It is stored in the device-local platform-account ObjectStore under
+// the session peer that decided it, never in a shared Space, so another
+// member of a Space cannot write it.
+message PluginApproval {
+  // PluginId is the plugin the decision is for.
+  string plugin_id = 1;
+  // ManifestRoot is the b58 hash of the manifest root the decision names. A
+  // new root of the same plugin has no decision until the person makes one.
+  string manifest_root = 2;
+  // State is the decision. Only ALLOWED admits the root.
+  PluginApprovalState state = 3;
+  // DecidedAt is when the person made the decision.
+  .google.protobuf.Timestamp decided_at = 4;
+  // Name is the manifest's display name as shown when deciding.
+  string name = 5;
+  // Version is the manifest's version as shown when deciding.
+  string version = 6;
+}
+
+// PluginApprovalState is the decision a PluginApproval records.
+enum PluginApprovalState {
+  // PluginApprovalState_UNKNOWN is no decision; the root does not run.
+  PluginApprovalState_UNKNOWN = 0;
+  // PluginApprovalState_ALLOWED admits the root on this device.
+  PluginApprovalState_ALLOWED = 1;
+  // PluginApprovalState_DECLINED refuses the root on this device.
+  PluginApprovalState_DECLINED = 2;
+  // PluginApprovalState_TURNED_OFF refuses a root the person allowed before.
+  PluginApprovalState_TURNED_OFF = 3;
+}

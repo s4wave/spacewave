@@ -90,7 +90,7 @@ var processRetryBackoff = &backoff.Backoff{
 // For FetchManifest: resolves FetchManifest directives for manifest IDs
 // matching the current SpaceSettings and account plugin IDs. Uses a shared world watch
 // loop with broadcast to handle resolver set changes. With a manifest source,
-// approved requests also resolve from the parent bus.
+// listed requests also resolve from the parent bus.
 //
 // Also reconciles process bindings: starts enabled persistent processes, stops
 // processes that are removed or disabled, and deletes the bindings of deleted
@@ -103,9 +103,9 @@ type Controller struct {
 	bcast broadcast.Broadcast
 	// resolverBcast fires when the resolver set changes.
 	resolverBcast broadcast.Broadcast
-	// manifestSource resolves approved manifests from the parent bus.
+	// manifestSource resolves listed manifests from the parent bus.
 	manifestSource bus.Bus
-	// loadTarget receives approved LoadPlugin directives when Space runs in a plugin.
+	// loadTarget receives listed LoadPlugin directives when Space runs in a plugin.
 	loadTarget bus.Bus
 	// demanded reports whether a listed plugin should stay loaded.
 	demanded func(pluginID string) bool
@@ -115,6 +115,9 @@ type Controller struct {
 	bindingsChanged func()
 	// resolvers is the set of active FetchManifest resolvers.
 	resolvers map[*resolverEntry]struct{}
+	// sourceRoots holds the manifest roots the parent source supplied, by
+	// plugin. Only added to. Protected by bcast.
+	sourceRoots map[sourceRoot]struct{}
 	// pluginIDs is the current set of plugin IDs from SpaceSettings and the account.
 	// Updated each world watch cycle. Protected by bcast.
 	pluginIDs []string
@@ -184,13 +187,13 @@ type factoryConfig struct {
 	bindingsChanged func()
 }
 
-// WithManifestSource permits approved Space plugins to fetch manifests from
+// WithManifestSource permits listed Space plugins to fetch manifests from
 // source in addition to the Space World.
 func WithManifestSource(source bus.Bus) FactoryOption {
 	return func(conf *factoryConfig) { conf.manifestSource = source }
 }
 
-// WithLoadTarget sends approved Space plugin load directives to target.
+// WithLoadTarget sends listed Space plugin load directives to target.
 func WithLoadTarget(target bus.Bus) FactoryOption {
 	return func(conf *factoryConfig) { conf.loadTarget = target }
 }
@@ -300,6 +303,8 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	switch dir := di.GetDirective().(type) {
 	case manifest.FetchManifest:
 		return c.resolveFetchManifest(ctx, di, dir)
+	case bldr_plugin.AdmitPluginRoot:
+		return c.resolveAdmitPluginRoot(dir)
 	case plugin_list.ListAvailablePlugins:
 		return c.resolveListAvailablePlugins(ctx, di, dir)
 	case objecttype.LookupObjectType:
@@ -363,7 +368,7 @@ func (c *Controller) GetRegistrationPendingAndWaitCh() (bool, <-chan struct{}) {
 
 // resolveFetchManifest handles a FetchManifest directive. The Space World
 // resolver always runs; processResolvers resolves it from World state. With a
-// manifest source, a second resolver relays approved requests to the parent
+// manifest source, a second resolver relays listed requests to the parent
 // bus, so a manifest resolves whether it is stored in the Space World or
 // supplied by the parent.
 func (c *Controller) resolveFetchManifest(

@@ -102,6 +102,11 @@ type Config struct {
 	// Requires WatchFetchManifest and FetchManifest resolvers that mark idle,
 	// including while their source is unreachable.
 	AwaitFetchManifest bool `protobuf:"varint,22,opt,name=await_fetch_manifest,json=awaitFetchManifest,proto3" json:"awaitFetchManifest,omitempty"`
+	// RequireAdmission runs a plugin manifest root only while an
+	// AdmitPluginRoot directive for this scheduler's peer, the plugin and the
+	// root has a value. With no resolver the root waits: admission fails closed.
+	// The previously admitted root keeps running while a new root waits.
+	RequireAdmission bool `protobuf:"varint,23,opt,name=require_admission,json=requireAdmission,proto3" json:"requireAdmission,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -264,6 +269,13 @@ func (x *Config) GetAwaitFetchManifest() bool {
 	return false
 }
 
+func (x *Config) GetRequireAdmission() bool {
+	if x != nil {
+		return x.RequireAdmission
+	}
+	return false
+}
+
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.
 type PlatformSelectionPolicy struct {
 	unknownFields []byte
@@ -324,6 +336,7 @@ func (m *Config) CloneVT() *Config {
 	r.MaterializerPluginId = m.MaterializerPluginId
 	r.HostStorageId = m.HostStorageId
 	r.AwaitFetchManifest = m.AwaitFetchManifest
+	r.RequireAdmission = m.RequireAdmission
 	r.FetchBackoff = protobuf_go_lite.CloneVTValue(m.FetchBackoff)
 	r.ExecBackoff = protobuf_go_lite.CloneVTValue(m.ExecBackoff)
 	r.PlatformSelectionPolicies = protobuf_go_lite.CloneVTSlice(m.PlatformSelectionPolicies)
@@ -430,6 +443,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.AwaitFetchManifest != that.AwaitFetchManifest {
+		return false
+	}
+	if this.RequireAdmission != that.RequireAdmission {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -593,6 +609,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("awaitFetchManifest")
 		s.WriteBool(x.AwaitFetchManifest)
 	}
+	if x.RequireAdmission || s.HasField("requireAdmission") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("requireAdmission")
+		s.WriteBool(x.RequireAdmission)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -719,6 +740,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "await_fetch_manifest", "awaitFetchManifest":
 			s.AddField("await_fetch_manifest")
 			x.AwaitFetchManifest = s.ReadBool()
+		case "require_admission", "requireAdmission":
+			s.AddField("require_admission")
+			x.RequireAdmission = s.ReadBool()
 		}
 	})
 }
@@ -822,6 +846,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RequireAdmission {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RequireAdmission)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb8
 	}
 	if m.AwaitFetchManifest {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AwaitFetchManifest)
@@ -1065,6 +1096,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(2, m.HostExportPluginIds)
 	n += protobuf_go_lite.SizeStringSlice(2, m.PluginIds)
 	n += protobuf_go_lite.SizeBoolNonZero(2, m.AwaitFetchManifest)
+	n += protobuf_go_lite.SizeBoolNonZero(2, m.RequireAdmission)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1200,6 +1232,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.AwaitFetchManifest != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "await_fetch_manifest")
 		protobuf_go_lite.TextWriteBool(&sb, x.AwaitFetchManifest)
+	}
+	if x.RequireAdmission != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "require_admission")
+		protobuf_go_lite.TextWriteBool(&sb, x.RequireAdmission)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1490,6 +1526,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.AwaitFetchManifest = bool(v)
+		case 23:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequireAdmission", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RequireAdmission = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

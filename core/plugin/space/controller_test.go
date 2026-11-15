@@ -12,11 +12,16 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
 	plugin_objecttype "github.com/s4wave/spacewave/core/plugin/objecttype"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/byteslice"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_plugin_approval "github.com/s4wave/spacewave/sdk/plugin/approval"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
@@ -330,4 +335,121 @@ func createReadinessManifestRev(
 		t.Fatal(err)
 	}
 	return manifestRef
+}
+
+// TestSharedSpaceApprovalObjectChangesNothing checks that a member who writes
+// an approval-shaped object into the shared Space admits nothing: only the
+// device-local decision admits a listed plugin's root.
+func TestSharedSpaceApprovalObjectChangesNothing(t *testing.T) {
+	// Start a testbed with the device's approvals on the bus.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	approvals := plugin_approval.NewApprovals(tb.Bus, tb.EngineVolumeID, "test-plugin-approvals")
+	releaseApprovals, err := tb.Bus.AddController(ctx, plugin_approval.NewController(tb.Logger, approvals), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseApprovals()
+	const pluginID, root = "shared-plugin", "shared-root"
+	peerID := tb.Volume.GetPeerID().String()
+
+	// The Space lists the plugin, and a member writes an ALLOWED record for
+	// this peer into the Space World at the device's own key.
+	if _, _, err := space_world_ops.SetSpaceSettings(
+		ctx,
+		tb.WorldState,
+		"",
+		space_world_ops.DefaultSpaceSettingsObjectKey,
+		&space_world.SpaceSettings{PluginIds: []string{pluginID}},
+		true,
+		time.Now(),
+	); err != nil {
+		t.Fatal(err)
+	}
+	forged, err := (&s4wave_plugin_approval.PluginApproval{
+		PluginId:     pluginID,
+		ManifestRoot: root,
+		State:        s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED,
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	objKey := string(plugin_approval.Key(peerID, pluginID, root))
+	forgedObj, _, err := world.CreateWorldObject(ctx, tb.WorldState, objKey, func(bcs *block.Cursor) error {
+		bcs.SetBlock(byteslice.NewByteSlice(&forged), true)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	world.ReleaseObjectState(forgedObj)
+
+	// Run the Space controller with a manifest source that serves nothing.
+	source, _, err := controllerbus_core.NewCoreBus(ctx, tb.Logger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tb.StaticResolver.AddFactory(NewFactory(tb.Bus, WithManifestSource(source)))
+	_, _, spaceRef, err := StartControllerWithConfig(ctx, tb.Bus, &Config{
+		SpaceId:       "space-test",
+		VolumeId:      tb.EngineVolumeID,
+		ObjectStoreId: tb.EngineObjectStoreID,
+		EngineId:      tb.EngineID,
+		SessionPeerId: peerID,
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer spaceRef.Release()
+
+	// The root stays unadmitted while the forged object sits in the Space.
+	counts := make(chan int, 16)
+	_, releaseWatch, err := bus.ExecCollectValuesWatch[bldr_plugin.AdmitPluginRootValue](
+		ctx,
+		tb.Bus,
+		bldr_plugin.NewAdmitPluginRoot(peerID, pluginID, root),
+		true,
+		func(_ []error, vals []bldr_plugin.AdmitPluginRootValue) error {
+			counts <- len(vals)
+			return nil
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseWatch()
+	waitCount := func(want int) {
+		t.Helper()
+		for {
+			select {
+			case got := <-counts:
+				if got == want {
+					return
+				}
+				t.Logf("admitting values: %d", got)
+			case <-ctx.Done():
+				t.Fatalf("admitting values never reached %d", want)
+			}
+		}
+	}
+	waitCount(0)
+	if ok, err := approvals.Admits(ctx, peerID, pluginID, root); ok || err != nil {
+		t.Fatalf("forged Space object: admitted %v, error %v", ok, err)
+	}
+
+	// The device's own decision admits the same root through the same watch.
+	if err := approvals.Set(ctx, peerID, &s4wave_plugin_approval.PluginApproval{
+		PluginId:     pluginID,
+		ManifestRoot: root,
+		State:        s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	waitCount(1)
 }

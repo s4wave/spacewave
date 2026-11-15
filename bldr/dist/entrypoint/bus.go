@@ -22,6 +22,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
 	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
 	manifest_fetch_world "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
+	bldr_manifest_trust "github.com/s4wave/spacewave/bldr/manifest/trust"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -335,6 +336,19 @@ func BuildDistBus(
 	}
 	rels.add(relStaticManifestFetcher)
 
+	// Serve the trusted root set, then trust every manifest the binary embeds.
+	trustedRoots := bldr_manifest_trust.NewSet()
+	relTrustedRoots, err := b.AddController(ctx, bldr_manifest_trust.NewController(trustedRoots), nil)
+	if err != nil {
+		rel()
+		return nil, errors.Wrap(err, "start trusted manifest roots")
+	}
+	rels.add(relTrustedRoots)
+	if err := addEmbeddedTrustedRoots(ctx, b, distWorldEngineID, distBundleObjKey, trustedRoots); err != nil {
+		rel()
+		return nil, errors.Wrap(err, "read embedded manifest roots")
+	}
+
 	// start the node controller.
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
 	_, _, nodeCtrlRef, err := bus.ExecOneOff(ctx, b, dir, nil, nil)
@@ -636,4 +650,38 @@ func (d *DistBus) AddRelease(release func()) {
 // Release releases the devtool bus.
 func (d *DistBus) Release() {
 	d.rel()
+}
+
+// addEmbeddedTrustedRoots reads the manifests the binary embeds, once, and adds
+// each (plugin ID, manifest root) pair to set.
+func addEmbeddedTrustedRoots(
+	ctx context.Context,
+	b bus.Bus,
+	engineID, objKey string,
+	set *bldr_manifest_trust.Set,
+) error {
+	// Read the embedded World. Its engine is rooted at the dist World root ref
+	// from the binary's dist metadata over the static block store, with lookup
+	// disabled, so no Space or World write can add a manifest to it.
+	eng, _, engRef, err := world.ExLookupWorldEngine(ctx, b, false, engineID, nil)
+	if err != nil {
+		return err
+	}
+	defer engRef.Release()
+	manifests, _, err := bldr_manifest_world.CollectManifests(ctx, world.NewEngineWorldState(eng, false), nil, objKey)
+	if err != nil {
+		return err
+	}
+
+	// Trusted because the binary embeds it: the manifest is reachable from the
+	// dist World root compiled into this binary.
+	for _, list := range manifests {
+		for _, m := range list {
+			set.Add(bldr_manifest_trust.Root{
+				PluginID:     m.Manifest.GetMeta().GetManifestId(),
+				ManifestRoot: m.ManifestRef.GetRootRef().GetHash().MarshalString(),
+			})
+		}
+	}
+	return nil
 }

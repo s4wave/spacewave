@@ -344,6 +344,20 @@ SESSIONRESOURCESERVICE_SERVICE = ServiceDescriptor(
             False,
         ),
         MethodDescriptor(
+            "SetPluginApproval",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalResponse,
+            False,
+            False,
+        ),
+        MethodDescriptor(
+            "WatchPluginApprovals",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsResponse,
+            False,
+            True,
+        ),
+        MethodDescriptor(
             "WatchStorageBackends",
             _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
             _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsResponse,
@@ -1398,6 +1412,49 @@ class SessionResourceServiceClient:
         finally:
             await call.aclose()
 
+    async def set_plugin_approval(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalResponse:
+        call = await self._client.open_call(
+            self._service,
+            "SetPluginApproval",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalResponse()
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
+    async def watch_plugin_approvals(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsResponse
+    ]:
+        call = await self._client.open_call(
+            self._service,
+            "WatchPluginApprovals",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            while True:
+                data = await call.receive()
+                if data is None:
+                    return
+                response = _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsResponse()
+                response.ParseFromString(data)
+                yield response
+        finally:
+            await call.aclose()
+
     async def watch_storage_backends(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
@@ -1811,6 +1868,18 @@ class SessionResourceServiceServer(Protocol):
     ) -> (
         _github_com_s4wave_spacewave_sdk_session_session_pb2.SetAccountPluginResponse
     ): ...
+    async def set_plugin_approval(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalResponse
+    ): ...
+    def watch_plugin_approvals(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsResponse
+    ]: ...
     def watch_storage_backends(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
@@ -2420,6 +2489,28 @@ def register_session_resource_service(
         await call.send(response.SerializeToString(deterministic=True))
 
     registry.register(service, "SetAccountPlugin", set_account_plugin_handler)
+
+    async def set_plugin_approval_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.SetPluginApprovalRequest()
+        request.ParseFromString(first)
+        response = await implementation.set_plugin_approval(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "SetPluginApproval", set_plugin_approval_handler)
+
+    async def watch_plugin_approvals_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsRequest()
+        request.ParseFromString(first)
+        async for response in implementation.watch_plugin_approvals(request):
+            await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "WatchPluginApprovals", watch_plugin_approvals_handler)
 
     async def watch_storage_backends_handler(call: Call) -> None:
         first = await call.receive()

@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_trust "github.com/s4wave/spacewave/bldr/manifest/trust"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/block"
@@ -185,6 +186,15 @@ func (r *fetchManifestResolver) reconcileManifestsCore(
 			manifestRefs[i].ReleaseAuthorization = candidate.GetReleaseAuthorization().CloneVT()
 			if err := manifestRefs[i].VerifyReleaseAuthorization(r.releasePeers); err != nil {
 				return true, errors.Wrapf(err, "manifest %s", m.ManifestKey)
+			}
+
+			// Trusted because a release key pinned by the release authority
+			// signed this root for this plugin ID, as verified just above.
+			if err := r.c.addTrustedRoot(ctx, bldr_manifest_trust.Root{
+				PluginID:     m.Manifest.GetMeta().GetManifestId(),
+				ManifestRoot: m.ManifestRef.GetRootRef().GetHash().MarshalString(),
+			}); err != nil {
+				return true, err
 			}
 		}
 	}

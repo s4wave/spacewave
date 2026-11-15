@@ -141,6 +141,13 @@ export interface Config {
    * including while their source is unreachable.
    */
   awaitFetchManifest?: boolean
+  /**
+   * RequireAdmission runs a plugin manifest root only while an
+   * AdmitPluginRoot directive for this scheduler's peer, the plugin and the
+   * root has a value. With no resolver the root waits: admission fails closed.
+   * The previously admitted root keeps running while a new root waits.
+   */
+  requireAdmission?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -169,6 +176,7 @@ export const Config: MessageType<Config> =
       [20, 'host_export_plugin_ids', 9, 1],
       [21, 'plugin_ids', 9, 1],
       [22, 'await_fetch_manifest', 8],
+      [23, 'require_admission', 8],
     ],
   )
 

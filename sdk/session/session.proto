@@ -9,6 +9,7 @@ import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/core/space/space.proto";
 import "github.com/s4wave/spacewave/db/block/store/s3/s3.proto";
 import "github.com/s4wave/spacewave/net/hash/hash.proto";
+import "github.com/s4wave/spacewave/sdk/plugin/approval/approval.proto";
 import "google/protobuf/timestamp.proto";
 
 service SessionResourceService {
@@ -69,6 +70,13 @@ service SessionResourceService {
   // SetAccountPlugin adds a plugin to or removes it from the account plugin
   // list, which loads into every Space the account mounts afterwards.
   rpc SetAccountPlugin(SetAccountPluginRequest) returns (SetAccountPluginResponse);
+  // SetPluginApproval records this device's decision about one plugin
+  // manifest root for the session. The decision is kept on the device, never
+  // in a Space or the account.
+  rpc SetPluginApproval(SetPluginApprovalRequest) returns (SetPluginApprovalResponse);
+  // WatchPluginApprovals streams the session's plugin decisions on this
+  // device: all of them first, then each decision written after.
+  rpc WatchPluginApprovals(WatchPluginApprovalsRequest) returns (stream WatchPluginApprovalsResponse);
   // WatchStorageBackends streams the account's storage backends and the
   // Spaces placed on each.
   rpc WatchStorageBackends(WatchStorageBackendsRequest) returns (stream WatchStorageBackendsResponse);
@@ -1089,6 +1097,37 @@ message SetAccountPluginRequest {
 
 // SetAccountPluginResponse is the response for SetAccountPlugin.
 message SetAccountPluginResponse {}
+
+// SetPluginApprovalRequest is the request for SetPluginApproval.
+message SetPluginApprovalRequest {
+  // PluginId is the manifest ID of the plugin.
+  string plugin_id = 1;
+  // ManifestRoot is the b58 hash of the manifest root block decided about.
+  string manifest_root = 2;
+  // State is the decision. UNKNOWN is refused.
+  .s4wave.plugin.approval.PluginApprovalState state = 3;
+  // Name is the plugin's display name at the time of the decision.
+  string name = 4;
+  // Version is the plugin's version at the time of the decision.
+  string version = 5;
+}
+
+// SetPluginApprovalResponse is the response for SetPluginApproval.
+message SetPluginApprovalResponse {}
+
+// WatchPluginApprovalsRequest is the request for WatchPluginApprovals.
+message WatchPluginApprovalsRequest {}
+
+// WatchPluginApprovalsResponse carries plugin decisions. Decisions are
+// replaced, never removed, so a change is always an upsert.
+message WatchPluginApprovalsResponse {
+  // Snapshot is set on the first message: approvals holds every decision and
+  // replaces what the receiver had.
+  bool snapshot = 1;
+  // Approvals holds every decision when snapshot is set, and otherwise the
+  // decisions added or changed since the previous message.
+  repeated .s4wave.plugin.approval.PluginApproval approvals = 2;
+}
 
 // WatchStorageBackendsRequest is the request for WatchStorageBackends.
 message WatchStorageBackendsRequest {}

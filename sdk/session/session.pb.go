@@ -23,6 +23,7 @@ import (
 	space "github.com/s4wave/spacewave/core/space"
 	s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	hash "github.com/s4wave/spacewave/net/hash"
+	approval "github.com/s4wave/spacewave/sdk/plugin/approval"
 )
 
 // SyncStatusState describes the aggregate session sync state.
@@ -3643,6 +3644,116 @@ func (x *SetAccountPluginResponse) Reset() {
 
 func (*SetAccountPluginResponse) ProtoMessage() {}
 
+// SetPluginApprovalRequest is the request for SetPluginApproval.
+type SetPluginApprovalRequest struct {
+	unknownFields []byte
+	// PluginId is the manifest ID of the plugin.
+	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// ManifestRoot is the b58 hash of the manifest root block decided about.
+	ManifestRoot string `protobuf:"bytes,2,opt,name=manifest_root,json=manifestRoot,proto3" json:"manifestRoot,omitempty"`
+	// State is the decision. UNKNOWN is refused.
+	State approval.PluginApprovalState `protobuf:"varint,3,opt,name=state,proto3" json:"state,omitempty"`
+	// Name is the plugin's display name at the time of the decision.
+	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	// Version is the plugin's version at the time of the decision.
+	Version string `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
+}
+
+func (x *SetPluginApprovalRequest) Reset() {
+	*x = SetPluginApprovalRequest{}
+}
+
+func (*SetPluginApprovalRequest) ProtoMessage() {}
+
+func (x *SetPluginApprovalRequest) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *SetPluginApprovalRequest) GetManifestRoot() string {
+	if x != nil {
+		return x.ManifestRoot
+	}
+	return ""
+}
+
+func (x *SetPluginApprovalRequest) GetState() approval.PluginApprovalState {
+	if x != nil {
+		return x.State
+	}
+	return approval.PluginApprovalState(0)
+}
+
+func (x *SetPluginApprovalRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SetPluginApprovalRequest) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+// SetPluginApprovalResponse is the response for SetPluginApproval.
+type SetPluginApprovalResponse struct {
+	unknownFields []byte
+}
+
+func (x *SetPluginApprovalResponse) Reset() {
+	*x = SetPluginApprovalResponse{}
+}
+
+func (*SetPluginApprovalResponse) ProtoMessage() {}
+
+// WatchPluginApprovalsRequest is the request for WatchPluginApprovals.
+type WatchPluginApprovalsRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchPluginApprovalsRequest) Reset() {
+	*x = WatchPluginApprovalsRequest{}
+}
+
+func (*WatchPluginApprovalsRequest) ProtoMessage() {}
+
+// WatchPluginApprovalsResponse carries plugin decisions. Decisions are
+// replaced, never removed, so a change is always an upsert.
+type WatchPluginApprovalsResponse struct {
+	unknownFields []byte
+	// Snapshot is set on the first message: approvals holds every decision and
+	// replaces what the receiver had.
+	Snapshot bool `protobuf:"varint,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	// Approvals holds every decision when snapshot is set, and otherwise the
+	// decisions added or changed since the previous message.
+	Approvals []*approval.PluginApproval `protobuf:"bytes,2,rep,name=approvals,proto3" json:"approvals,omitempty"`
+}
+
+func (x *WatchPluginApprovalsResponse) Reset() {
+	*x = WatchPluginApprovalsResponse{}
+}
+
+func (*WatchPluginApprovalsResponse) ProtoMessage() {}
+
+func (x *WatchPluginApprovalsResponse) GetSnapshot() bool {
+	if x != nil {
+		return x.Snapshot
+	}
+	return false
+}
+
+func (x *WatchPluginApprovalsResponse) GetApprovals() []*approval.PluginApproval {
+	if x != nil {
+		return x.Approvals
+	}
+	return nil
+}
+
 // WatchStorageBackendsRequest is the request for WatchStorageBackends.
 type WatchStorageBackendsRequest struct {
 	unknownFields []byte
@@ -5946,6 +6057,73 @@ func (m *SetAccountPluginResponse) CloneVT() *SetAccountPluginResponse {
 }
 
 func (m *SetAccountPluginResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetPluginApprovalRequest) CloneVT() *SetPluginApprovalRequest {
+	if m == nil {
+		return (*SetPluginApprovalRequest)(nil)
+	}
+	r := new(SetPluginApprovalRequest)
+	r.PluginId = m.PluginId
+	r.ManifestRoot = m.ManifestRoot
+	r.State = m.State
+	r.Name = m.Name
+	r.Version = m.Version
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetPluginApprovalRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetPluginApprovalResponse) CloneVT() *SetPluginApprovalResponse {
+	if m == nil {
+		return (*SetPluginApprovalResponse)(nil)
+	}
+	r := new(SetPluginApprovalResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetPluginApprovalResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchPluginApprovalsRequest) CloneVT() *WatchPluginApprovalsRequest {
+	if m == nil {
+		return (*WatchPluginApprovalsRequest)(nil)
+	}
+	r := new(WatchPluginApprovalsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchPluginApprovalsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchPluginApprovalsResponse) CloneVT() *WatchPluginApprovalsResponse {
+	if m == nil {
+		return (*WatchPluginApprovalsResponse)(nil)
+	}
+	r := new(WatchPluginApprovalsResponse)
+	r.Snapshot = m.Snapshot
+	r.Approvals = protobuf_go_lite.CloneVTSlice(m.Approvals)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchPluginApprovalsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -8645,6 +8823,95 @@ func (this *SetAccountPluginResponse) EqualVT(that *SetAccountPluginResponse) bo
 
 func (this *SetAccountPluginResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetAccountPluginResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetPluginApprovalRequest) EqualVT(that *SetPluginApprovalRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PluginId != that.PluginId {
+		return false
+	}
+	if this.ManifestRoot != that.ManifestRoot {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if this.Version != that.Version {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetPluginApprovalRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetPluginApprovalRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetPluginApprovalResponse) EqualVT(that *SetPluginApprovalResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetPluginApprovalResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetPluginApprovalResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchPluginApprovalsRequest) EqualVT(that *WatchPluginApprovalsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchPluginApprovalsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchPluginApprovalsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchPluginApprovalsResponse) EqualVT(that *WatchPluginApprovalsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Snapshot != that.Snapshot {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Approvals, that.Approvals, func() *approval.PluginApproval { return &approval.PluginApproval{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchPluginApprovalsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchPluginApprovalsResponse)
 	if !ok {
 		return false
 	}
@@ -14928,6 +15195,211 @@ func (x *SetAccountPluginResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SetPluginApprovalRequest message to JSON.
+func (x *SetPluginApprovalRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
+	if x.ManifestRoot != "" || s.HasField("manifestRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestRoot")
+		s.WriteString(x.ManifestRoot)
+	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.Version != "" || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		s.WriteString(x.Version)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetPluginApprovalRequest to JSON.
+func (x *SetPluginApprovalRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetPluginApprovalRequest message from JSON.
+func (x *SetPluginApprovalRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
+		case "manifest_root", "manifestRoot":
+			s.AddField("manifest_root")
+			x.ManifestRoot = s.ReadString()
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "version":
+			s.AddField("version")
+			x.Version = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetPluginApprovalRequest from JSON.
+func (x *SetPluginApprovalRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetPluginApprovalResponse message to JSON.
+func (x *SetPluginApprovalResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetPluginApprovalResponse to JSON.
+func (x *SetPluginApprovalResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetPluginApprovalResponse message from JSON.
+func (x *SetPluginApprovalResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SetPluginApprovalResponse from JSON.
+func (x *SetPluginApprovalResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchPluginApprovalsRequest message to JSON.
+func (x *WatchPluginApprovalsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchPluginApprovalsRequest to JSON.
+func (x *WatchPluginApprovalsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchPluginApprovalsRequest message from JSON.
+func (x *WatchPluginApprovalsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchPluginApprovalsRequest from JSON.
+func (x *WatchPluginApprovalsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchPluginApprovalsResponse message to JSON.
+func (x *WatchPluginApprovalsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Snapshot || s.HasField("snapshot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("snapshot")
+		s.WriteBool(x.Snapshot)
+	}
+	if len(x.Approvals) > 0 || s.HasField("approvals") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("approvals")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Approvals {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("approvals"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchPluginApprovalsResponse to JSON.
+func (x *WatchPluginApprovalsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchPluginApprovalsResponse message from JSON.
+func (x *WatchPluginApprovalsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "snapshot":
+			s.AddField("snapshot")
+			x.Snapshot = s.ReadBool()
+		case "approvals":
+			s.AddField("approvals")
+			if s.ReadNil() {
+				x.Approvals = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Approvals = append(x.Approvals, nil)
+					return
+				}
+				v := &approval.PluginApproval{}
+				v.UnmarshalProtoJSON(s.WithField("approvals", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Approvals = append(x.Approvals, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchPluginApprovalsResponse from JSON.
+func (x *WatchPluginApprovalsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the WatchStorageBackendsRequest message to JSON.
 func (x *WatchStorageBackendsRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -20521,6 +20993,176 @@ func (m *SetAccountPluginResponse) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
+func (m *SetPluginApprovalRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetPluginApprovalRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetPluginApprovalRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Version) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Version)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.ManifestRoot) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ManifestRoot)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetPluginApprovalResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetPluginApprovalResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetPluginApprovalResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchPluginApprovalsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchPluginApprovalsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchPluginApprovalsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchPluginApprovalsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchPluginApprovalsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchPluginApprovalsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Approvals) > 0 {
+		for iNdEx := len(m.Approvals) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Approvals[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Snapshot {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Snapshot)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchStorageBackendsRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -22648,6 +23290,56 @@ func (m *SetAccountPluginResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetPluginApprovalRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestRoot)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Version)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetPluginApprovalResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchPluginApprovalsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchPluginApprovalsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Snapshot)
+	for _, e := range m.Approvals {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -24993,6 +25685,82 @@ func (x *SetAccountPluginResponse) MarshalProtoText() string {
 }
 
 func (x *SetAccountPluginResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetPluginApprovalRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetPluginApprovalRequest")
+	if x.PluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PluginId)
+	}
+	if x.ManifestRoot != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "manifest_root")
+		protobuf_go_lite.TextWriteString(&sb, x.ManifestRoot)
+	}
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, approval.PluginApprovalState(x.State))
+	}
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.Version != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
+		protobuf_go_lite.TextWriteString(&sb, x.Version)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetPluginApprovalRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetPluginApprovalResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SetPluginApprovalResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetPluginApprovalResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchPluginApprovalsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "WatchPluginApprovalsRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchPluginApprovalsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchPluginApprovalsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchPluginApprovalsResponse")
+	if x.Snapshot != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "snapshot")
+		protobuf_go_lite.TextWriteBool(&sb, x.Snapshot)
+	}
+	if len(x.Approvals) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "approvals")
+		for i, v := range x.Approvals {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &approval.PluginApproval{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchPluginApprovalsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -32038,6 +32806,252 @@ func (m *SetAccountPluginResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: SetAccountPluginResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetPluginApprovalRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetPluginApprovalRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetPluginApprovalRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRoot", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ManifestRoot = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = approval.PluginApprovalState(_v)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Version = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetPluginApprovalResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetPluginApprovalResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetPluginApprovalResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchPluginApprovalsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchPluginApprovalsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchPluginApprovalsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchPluginApprovalsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchPluginApprovalsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchPluginApprovalsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Snapshot", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Snapshot = bool(v)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Approvals", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Approvals = append(m.Approvals, &approval.PluginApproval{})
+			if err := m.Approvals[len(m.Approvals)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

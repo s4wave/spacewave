@@ -111,6 +111,13 @@ type SRPCSessionResourceServiceClient interface {
 	// SetAccountPlugin adds a plugin to or removes it from the account plugin
 	// list, which loads into every Space the account mounts afterwards.
 	SetAccountPlugin(ctx context.Context, in *SetAccountPluginRequest) (*SetAccountPluginResponse, error)
+	// SetPluginApproval records this device's decision about one plugin
+	// manifest root for the session. The decision is kept on the device, never
+	// in a Space or the account.
+	SetPluginApproval(ctx context.Context, in *SetPluginApprovalRequest) (*SetPluginApprovalResponse, error)
+	// WatchPluginApprovals streams the session's plugin decisions on this
+	// device: all of them first, then each decision written after.
+	WatchPluginApprovals(ctx context.Context, in *WatchPluginApprovalsRequest) (SRPCSessionResourceService_WatchPluginApprovalsClient, error)
 	// WatchStorageBackends streams the account's storage backends and the
 	// Spaces placed on each.
 	WatchStorageBackends(ctx context.Context, in *WatchStorageBackendsRequest) (SRPCSessionResourceService_WatchStorageBackendsClient, error)
@@ -793,6 +800,48 @@ func (c *srpcSessionResourceServiceClient) SetAccountPlugin(ctx context.Context,
 	return out, nil
 }
 
+func (c *srpcSessionResourceServiceClient) SetPluginApproval(ctx context.Context, in *SetPluginApprovalRequest) (*SetPluginApprovalResponse, error) {
+	out := new(SetPluginApprovalResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetPluginApproval", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSessionResourceServiceClient) WatchPluginApprovals(ctx context.Context, in *WatchPluginApprovalsRequest) (SRPCSessionResourceService_WatchPluginApprovalsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchPluginApprovals", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSessionResourceService_WatchPluginApprovalsClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCSessionResourceService_WatchPluginApprovalsClient interface {
+	srpc.Stream
+	Recv() (*WatchPluginApprovalsResponse, error)
+	RecvTo(*WatchPluginApprovalsResponse) error
+}
+
+type srpcSessionResourceService_WatchPluginApprovalsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_WatchPluginApprovalsClient) Recv() (*WatchPluginApprovalsResponse, error) {
+	m := new(WatchPluginApprovalsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSessionResourceService_WatchPluginApprovalsClient) RecvTo(m *WatchPluginApprovalsResponse) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcSessionResourceServiceClient) WatchStorageBackends(ctx context.Context, in *WatchStorageBackendsRequest) (SRPCSessionResourceService_WatchStorageBackendsClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchStorageBackends", in)
 	if err != nil {
@@ -1035,6 +1084,13 @@ type SRPCSessionResourceServiceServer interface {
 	// SetAccountPlugin adds a plugin to or removes it from the account plugin
 	// list, which loads into every Space the account mounts afterwards.
 	SetAccountPlugin(context.Context, *SetAccountPluginRequest) (*SetAccountPluginResponse, error)
+	// SetPluginApproval records this device's decision about one plugin
+	// manifest root for the session. The decision is kept on the device, never
+	// in a Space or the account.
+	SetPluginApproval(context.Context, *SetPluginApprovalRequest) (*SetPluginApprovalResponse, error)
+	// WatchPluginApprovals streams the session's plugin decisions on this
+	// device: all of them first, then each decision written after.
+	WatchPluginApprovals(*WatchPluginApprovalsRequest, SRPCSessionResourceService_WatchPluginApprovalsStream) error
 	// WatchStorageBackends streams the account's storage backends and the
 	// Spaces placed on each.
 	WatchStorageBackends(*WatchStorageBackendsRequest, SRPCSessionResourceService_WatchStorageBackendsStream) error
@@ -1133,6 +1189,8 @@ func (SRPCSessionResourceServiceHandler) GetMethodIDs() []string {
 		"AcceptLocalPairingAnswer",
 		"EnsureDeveloperSpace",
 		"SetAccountPlugin",
+		"SetPluginApproval",
+		"WatchPluginApprovals",
 		"WatchStorageBackends",
 		"CheckStorageBackend",
 		"AddStorageBackend",
@@ -1247,6 +1305,10 @@ func (d *SRPCSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_EnsureDeveloperSpace(d.impl, strm)
 	case "SetAccountPlugin":
 		return true, d.InvokeMethod_SetAccountPlugin(d.impl, strm)
+	case "SetPluginApproval":
+		return true, d.InvokeMethod_SetPluginApproval(d.impl, strm)
+	case "WatchPluginApprovals":
+		return true, d.InvokeMethod_WatchPluginApprovals(d.impl, strm)
 	case "WatchStorageBackends":
 		return true, d.InvokeMethod_WatchStorageBackends(d.impl, strm)
 	case "CheckStorageBackend":
@@ -1803,6 +1865,27 @@ func (SRPCSessionResourceServiceHandler) InvokeMethod_SetAccountPlugin(impl SRPC
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_SetPluginApproval(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetPluginApprovalRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetPluginApproval(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_WatchPluginApprovals(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchPluginApprovalsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSessionResourceService_WatchPluginApprovalsStream{strm}
+	return impl.WatchPluginApprovals(req, serverStrm)
 }
 
 func (SRPCSessionResourceServiceHandler) InvokeMethod_WatchStorageBackends(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
@@ -2401,6 +2484,37 @@ type SRPCSessionResourceService_SetAccountPluginStream interface {
 
 type srpcSessionResourceService_SetAccountPluginStream struct {
 	srpc.Stream
+}
+
+type SRPCSessionResourceService_SetPluginApprovalStream interface {
+	srpc.Stream
+}
+
+type srpcSessionResourceService_SetPluginApprovalStream struct {
+	srpc.Stream
+}
+
+type SRPCSessionResourceService_WatchPluginApprovalsStream interface {
+	srpc.Stream
+	Send(*WatchPluginApprovalsResponse) error
+	SendAndClose(*WatchPluginApprovalsResponse) error
+}
+
+type srpcSessionResourceService_WatchPluginApprovalsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_WatchPluginApprovalsStream) Send(m *WatchPluginApprovalsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSessionResourceService_WatchPluginApprovalsStream) SendAndClose(m *WatchPluginApprovalsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCSessionResourceService_WatchStorageBackendsStream interface {

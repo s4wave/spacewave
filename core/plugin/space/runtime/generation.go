@@ -163,6 +163,10 @@ func (g *Generation) start(
 	)
 	schedulerConf.HostStorageId = conf.GetHostStorageId()
 	schedulerConf.ExternalPluginIds = appPluginIDs
+
+	// A Space lists plugins any member can name, so each root runs only once
+	// the release, the development build or the device's person admits it.
+	schedulerConf.RequireAdmission = true
 	if err := schedulerConf.Validate(); err != nil {
 		return err
 	}

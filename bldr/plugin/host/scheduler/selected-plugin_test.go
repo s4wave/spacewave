@@ -11,7 +11,11 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_trust "github.com/s4wave/spacewave/bldr/manifest/trust"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
@@ -390,4 +394,148 @@ func TestFailingPluginRestartBacksOff(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("candidate failed with retry: %s", snap.GetExecutions()[0].GetSwap().MarshalProtoText())
+}
+
+// TestSelectedPluginAwaitsAdmission checks that a scheduler requiring
+// admission starts no worker for an unadmitted root, keeps the running worker
+// while a new root waits, and switches once the new root is admitted.
+func TestSelectedPluginAwaitsAdmission(t *testing.T) {
+	// Admit roots through the trust controller on a real bus.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	trusted := bldr_manifest_trust.NewSet()
+	rel, err := tb.Bus.AddController(ctx, bldr_manifest_trust.NewController(trusted), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel()
+	c := &Controller{
+		le: le, bus: tb.Bus, conf: &Config{RequireAdmission: true, PeerId: "peer"},
+		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
+		pluginStatus:    make(map[string]*plugin.PluginStatus),
+	}
+	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
+	c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
+
+	// Each worker reports its start, then serves activation until released.
+	type execution struct {
+		closed     chan struct{}
+		activation *candidateActivation
+	}
+	started := make(chan *execution, 1)
+	instance.executions = keyed.NewKeyedRefCount(func(key executionReference) (keyed.Routine, *pluginInstance) {
+		_, worker := instance.newExecution(key)
+		run := &execution{closed: make(chan struct{}), activation: &candidateActivation{activated: make(chan struct{})}}
+		return func(ctx context.Context) error {
+			defer close(run.closed)
+			defer worker.finishExecution(nil)
+			started <- run
+			mux := srpc.NewMux()
+			if err := plugin.SRPCRegisterActivation(mux, run.activation); err != nil {
+				return err
+			}
+			worker.updateRpcClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
+			worker.finishInitialCapabilityRegistration(true)
+			<-ctx.Done()
+			return ctx.Err()
+		}, worker
+	})
+	instance.executions.SetContext(ctx, true)
+	defer instance.executions.ClearContext()
+	defer instance.clearExecution(nil)
+
+	// candidate selects rev with a manifest root derived from it.
+	roots := make(map[uint64]string)
+	candidate := func(rev uint64) *executePluginArgs {
+		t.Helper()
+		h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte{byte(rev)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ref := newTestManifestRef("colors", "js", rev, "candidate").GetManifestRef()
+		ref.RootRef = &block.BlockRef{Hash: h}
+		roots[rev] = manifestRootKey(ref)
+		return &executePluginArgs{pluginHost: &testPluginHost{id: "test"}, rev: rev, manifestSnapshot: &manifest.ManifestSnapshot{ManifestRef: ref}}
+	}
+	// selectRev runs selection of rev in the background.
+	selectRev := func(rev uint64) (context.CancelFunc, <-chan error) {
+		attempt, stop := context.WithCancel(ctx)
+		args := candidate(rev)
+		done := make(chan error, 1)
+		go func() { done <- instance.execSelectedPlugin(attempt, args) }()
+		return stop, done
+	}
+	// noStart asserts that no worker starts for a while.
+	noStart := func(phase string) {
+		t.Helper()
+		select {
+		case <-started:
+			t.Fatalf("%s: a worker started for an unadmitted root", phase)
+		case <-time.After(200 * time.Millisecond):
+		}
+	}
+	nextStarted := func() *execution {
+		t.Helper()
+		select {
+		case run := <-started:
+			return run
+		case <-ctx.Done():
+			t.Fatal(ctx.Err())
+			return nil
+		}
+	}
+	admit := func(rev uint64) {
+		trusted.Add(bldr_manifest_trust.Root{PluginID: "colors", ManifestRoot: roots[rev]})
+	}
+
+	// An unadmitted root runs nothing; admitting it starts the worker.
+	stopFirst, doneFirst := selectRev(1)
+	noStart("first root")
+	admit(1)
+	first := nextStarted()
+	initial, err := instance.runningPluginCtr.WaitValue(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stopFirst()
+	<-doneFirst
+
+	// A new root waits while the old worker keeps running.
+	stopNext, doneNext := selectRev(2)
+	defer stopNext()
+	noStart("new root")
+	select {
+	case <-first.closed:
+		t.Fatal("a waiting root stopped the running worker")
+	default:
+	}
+	if instance.runningPluginCtr.GetValue() != initial {
+		t.Fatal("a waiting root replaced the running worker")
+	}
+
+	// Admitting the new root switches to it.
+	admit(2)
+	next := nextStarted()
+	select {
+	case <-next.activation.activated:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	if _, err := instance.runningPluginCtr.WaitValueChange(ctx, initial, nil); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-first.closed:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	stopNext()
+	<-doneNext
+	instance.closeExecutions()
 }

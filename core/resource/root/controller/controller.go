@@ -13,6 +13,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	resource_command "github.com/s4wave/spacewave/core/resource/command"
 	resource_flowgraph_registry "github.com/s4wave/spacewave/core/resource/flowgraph/registry"
@@ -60,6 +61,8 @@ type Controller struct {
 	registries *registries
 	// bindingRegistry is shared with nested Resource roots.
 	bindingRegistry *process_binding.BindingRegistry
+	// approvals holds the device's plugin decisions, shared with nested roots.
+	approvals *plugin_approval.Approvals
 	// commandsManager is the commands manager resource
 	commandsManager *resource_command.CommandsManager
 
@@ -90,6 +93,7 @@ func withParent(parent *Controller) Option {
 		c.parent = parent
 		c.registries = parent.registries
 		c.bindingRegistry = parent.bindingRegistry
+		c.approvals = parent.approvals
 	}
 }
 
@@ -113,6 +117,9 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 			}
 			if c.bindingRegistry == nil {
 				c.bindingRegistry = process_binding.NewBindingRegistry()
+			}
+			if c.approvals == nil {
+				c.approvals = plugin_approval.NewApprovals(b, bldr_plugin.PluginVolumeID, process_binding.DefaultObjectStoreID)
 			}
 
 			// create the resource server
@@ -185,6 +192,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		releases = nil
 	}
+
+	// Admit the plugin roots the device's person allowed.
+	approvalsRel, err := b.AddController(ctx, plugin_approval.NewController(le, c.approvals), nil)
+	if err != nil {
+		return err
+	}
+	releases = append(releases, approvalsRel)
 
 	// Register the object type controller.
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
