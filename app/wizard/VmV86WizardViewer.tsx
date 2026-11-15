@@ -8,18 +8,21 @@ import {
 } from 'react'
 import { LuMonitor } from 'react-icons/lu'
 
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import {
   useResource,
   useResourceValue,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Root } from '@s4wave/sdk/root/root.js'
 import type { V86Image } from '@s4wave/sdk/vm/v86.pb.js'
+import { V86ImageTypeID } from '@s4wave/sdk/vm/v86image.js'
 import {
   V86WizardConfig,
   V86WizardConfig_Source,
 } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { useEntitySet } from '@s4wave/web/hooks/useEntitySet.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
@@ -37,8 +40,9 @@ import {
   type VmCreationState,
 } from '../vm/v86-creation.js'
 import {
-  listV86Images,
   loadCdnV86Image,
+  v86ImageDecoder,
+  v86ImageEntries,
   type V86ImageEntry,
 } from '../vm/v86-images.js'
 import {
@@ -49,6 +53,7 @@ import {
 import { V86CatalogDialog } from './V86CatalogDialog.js'
 import { V86ConfigStep } from './V86ConfigStep.js'
 import { V86SourceStep } from './V86SourceStep.js'
+import { v86ListingsStatus } from './v86-listings.js'
 import { VmCreationProgressScreen } from './VmCreationProgressScreen.js'
 import { WizardShell } from './WizardShell.js'
 import { useWizardState } from './useWizardState.js'
@@ -103,18 +108,19 @@ function useV86WizardStartupMarks(
 
 /**
  * useV86WorldListings loads the VM images and VMs already in the Space and
- * resolves the newest VM that has an image, which new VMs inherit from.
+ * resolves the newest VM that has an image, which new VMs inherit from, with
+ * the step's pending state and failures from v86ListingsStatus.
  */
 function useV86WorldListings(spaceWorldResource: SpaceWorldResource) {
-  const inSpaceImagesResource = useResource(
+  const inSpaceImagesResource = useEntitySet(
     spaceWorldResource,
-    (world: EngineWorldState, signal: AbortSignal) =>
-      listV86Images(world, signal),
-    [],
+    { case: 'type', typeId: V86ImageTypeID },
+    v86ImageDecoder,
   )
+  const inSpaceImageSet = resourceContent(inSpaceImagesResource)
   const inSpaceImages = useMemo(
-    () => inSpaceImagesResource.value ?? [],
-    [inSpaceImagesResource.value],
+    () => v86ImageEntries(inSpaceImageSet),
+    [inSpaceImageSet],
   )
 
   const existingVmsResource = useResource(
@@ -131,7 +137,7 @@ function useV86WorldListings(spaceWorldResource: SpaceWorldResource) {
   return {
     inSpaceImages,
     existingDefault,
-    pending: inSpaceImagesResource.loading || existingVmsResource.loading,
+    ...v86ListingsStatus(inSpaceImagesResource, existingVmsResource),
   }
 }
 
@@ -559,7 +565,7 @@ export function VmV86WizardViewer({
   const [operationError, setOperationError] = useState('')
 
   useV86WizardStartupMarks(objectKey, !!wizardResource.value, state?.step)
-  const { inSpaceImages, existingDefault, pending } =
+  const { inSpaceImages, existingDefault, pending, failures } =
     useV86WorldListings(spaceWorldResource)
   const { creation, startCreation } = useVmCreation()
   const { updateConfigDraft, persistConfig } = useV86ConfigWriter(
@@ -660,6 +666,7 @@ export function VmV86WizardViewer({
             existingDefault={existingDefault}
             inSpaceImages={inSpaceImages}
             pending={pending}
+            failures={failures}
             onSelectInSpace={source.selectInSpaceImage}
             onOpenCatalog={() => source.setCatalogOpen(true)}
           />

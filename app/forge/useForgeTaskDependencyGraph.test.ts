@@ -1,87 +1,125 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import {
+  readKeyedSet,
+  type KeyedSetReader,
+} from '@s4wave/sdk/world/entity-set.js'
 import { keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
-import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { GraphEdgeBucketDirection } from '@s4wave/sdk/world/world.pb.js'
 import {
+  PRED_JOB_TO_TASK,
   PRED_TASK_TO_CACHED,
   PRED_TASK_TO_SUBTASK,
 } from '@s4wave/web/forge/predicates.js'
-import { loadForgeTaskDependencyGraph } from './useForgeTaskDependencyGraph.js'
+import {
+  forgeTaskDependencyEdges,
+  forgeTaskDependencySource,
+} from './useForgeTaskDependencyGraph.js'
 
-describe('loadForgeTaskDependencyGraph', () => {
-  it('groups dependency lookups by predicate instead of querying per task', async () => {
+const tasks = ['forge/task/1', 'forge/task/2', 'forge/task/3']
+
+describe('forgeTaskDependencySource', () => {
+  it('reads the edges among the job tasks in one call per predicate', async () => {
     const signal = new AbortController().signal
-    const world = {
+    const reader = {
+      getSeqno: vi.fn(() => Promise.resolve({ seqno: 4n })),
       listGraphEdgeBuckets: vi.fn(
-        (
-          originObjectKeys: string[],
-          _limitPerOrigin: number,
-          options: { predicate?: string },
-        ) =>
+        (keys: string[], _limit: number, options: { predicate?: string }) =>
           Promise.resolve({
-            buckets: originObjectKeys.map((originObjectKey) => ({
-              originObjectKey,
-              outgoing:
-                originObjectKey === 'forge/task/1'
-                  ? [
-                      {
-                        obj: keyToIRI(
-                          options.predicate === PRED_TASK_TO_SUBTASK
-                            ? 'forge/task/2'
-                            : 'forge/task/3',
-                        ),
-                        predicate: options.predicate,
-                      },
-                      {
-                        obj: keyToIRI('forge/task/outside'),
-                        predicate: options.predicate,
-                      },
-                    ]
-                  : [],
-            })),
+            buckets:
+              options.predicate === PRED_JOB_TO_TASK
+                ? [
+                    {
+                      originObjectKey: 'forge/job',
+                      outgoing: tasks.map((key) => ({ obj: keyToIRI(key) })),
+                    },
+                  ]
+                : keys.map((originObjectKey) => ({
+                    originObjectKey,
+                    outgoing:
+                      originObjectKey === 'forge/task/1'
+                        ? [
+                            {
+                              obj: keyToIRI(
+                                options.predicate === PRED_TASK_TO_SUBTASK
+                                  ? 'forge/task/2'
+                                  : 'forge/task/3',
+                              ),
+                            },
+                            { obj: keyToIRI('forge/task/outside') },
+                          ]
+                        : [],
+                  })),
           }),
       ),
-      lookupGraphQuads: vi.fn(() => {
-        throw new Error('use listGraphEdgeBuckets')
-      }),
-    } as unknown as IWorldState
+    }
 
-    const edges = await loadForgeTaskDependencyGraph(
-      world,
-      [
-        { objectKey: 'forge/task/1', typeId: 'forge/task' },
-        { objectKey: 'forge/task/2', typeId: 'forge/task' },
-        { objectKey: 'forge/task/3', typeId: 'forge/task' },
-      ],
+    const set = await readKeyedSet(
+      reader as unknown as KeyedSetReader,
+      forgeTaskDependencySource('forge/job'),
       signal,
     )
 
-    expect(edges).toEqual([
+    expect(forgeTaskDependencyEdges(set)).toEqual([
       { from: 'forge/task/1', to: 'forge/task/2', kind: 'subtask' },
       { from: 'forge/task/1', to: 'forge/task/3', kind: 'cached' },
     ])
-    expect(world.lookupGraphQuads).not.toHaveBeenCalled()
-    expect(world.listGraphEdgeBuckets).toHaveBeenCalledTimes(2)
-    expect(world.listGraphEdgeBuckets).toHaveBeenNthCalledWith(
-      1,
-      ['forge/task/1', 'forge/task/2', 'forge/task/3'],
-      50,
-      {
-        predicate: PRED_TASK_TO_SUBTASK,
+    for (const predicate of [PRED_TASK_TO_SUBTASK, PRED_TASK_TO_CACHED]) {
+      expect(reader.listGraphEdgeBuckets).toHaveBeenCalledWith(tasks, 50, {
+        predicate,
         direction: GraphEdgeBucketDirection.OUT,
         abortSignal: signal,
-      },
-    )
-    expect(world.listGraphEdgeBuckets).toHaveBeenNthCalledWith(
-      2,
-      ['forge/task/1', 'forge/task/2', 'forge/task/3'],
-      50,
+      })
+    }
+  })
+
+  it('takes a task added to the job as a change of the set', () => {
+    const source = forgeTaskDependencySource('forge/job')
+    const members = new Set(tasks)
+    const added = source.route(
       {
-        predicate: PRED_TASK_TO_CACHED,
-        direction: GraphEdgeBucketDirection.OUT,
-        abortSignal: signal,
+        seqno: 5n,
+        quads: [
+          {
+            subject: keyToIRI('forge/job'),
+            predicate: PRED_JOB_TO_TASK,
+            obj: keyToIRI('forge/task/4'),
+          },
+        ],
       },
+      members,
     )
+    expect(added).toEqual({ list: true, keys: [] })
+
+    const linked = source.route(
+      {
+        seqno: 6n,
+        quads: [
+          {
+            subject: keyToIRI('forge/task/4'),
+            predicate: PRED_TASK_TO_SUBTASK,
+            obj: keyToIRI('forge/task/1'),
+          },
+        ],
+      },
+      members,
+    )
+    expect(linked).toEqual({ list: false, keys: ['forge/task/4'] })
+
+    const blank = source.route(
+      {
+        seqno: 7n,
+        quads: [
+          {
+            subject: '_:b0',
+            predicate: PRED_TASK_TO_SUBTASK,
+            obj: keyToIRI('forge/task/1'),
+          },
+        ],
+      },
+      members,
+    )
+    expect(blank).toEqual({ list: false, keys: [] })
+    expect(source.names(['forge/task/4']).patterns).toHaveLength(2)
   })
 })

@@ -5,6 +5,7 @@ import {
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { iriToKey } from '@s4wave/sdk/world/graph-utils.js'
+import { TypePred, typeIDFromIRI } from '@s4wave/sdk/world/types/types.js'
 import { GraphEdgeBucketDirection } from '@s4wave/sdk/world/world.pb.js'
 
 // ForgeLinkedEntity represents a linked entity discovered via graph quads.
@@ -15,7 +16,6 @@ export interface ForgeLinkedEntity {
 
 const forgeLinkedEntityLimit = 200
 const forgeLinkedEntityTypeLimit = 1
-const typePredicate = '<type>'
 
 export async function loadForgeLinkedEntities(
   world: IWorldState,
@@ -51,7 +51,7 @@ export async function loadForgeLinkedEntities(
     uniqueEntityKeys,
     forgeLinkedEntityTypeLimit,
     {
-      predicate: typePredicate,
+      predicate: TypePred,
       direction: GraphEdgeBucketDirection.OUT,
       abortSignal: signal,
     },
@@ -59,7 +59,7 @@ export async function loadForgeLinkedEntities(
   const typeIdsByEntity = new Map(
     (typeResponse.buckets ?? []).map((typeBucket) => [
       typeBucket.originObjectKey ?? '',
-      typeBucket.outgoing?.[0]?.obj ? iriToKey(typeBucket.outgoing[0].obj) : '',
+      typeIDFromIRI(typeBucket.outgoing?.[0]?.obj),
     ]),
   )
 

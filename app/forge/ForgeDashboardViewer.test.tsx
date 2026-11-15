@@ -49,7 +49,17 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 }))
 
 vi.mock('./useForgeDashboardActivity.js', () => ({
-  useForgeDashboardActivity: () => ({
+  useForgeDashboardWork: () => ({
+    members: resourceOf({
+      value: { seqno: 1n, keys: [], rows: new Map(), complete: true },
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    }),
+    entities: [
+      { objectKey: 'forge/cluster/main', typeId: 'forge/cluster' },
+      { objectKey: 'forge/worker/session', typeId: 'forge/worker' },
+    ],
     entries: [
       {
         id: 'activity-1',
@@ -60,7 +70,6 @@ vi.mock('./useForgeDashboardActivity.js', () => ({
         timestamp: new Date('2026-04-17T12:00:00Z'),
       },
     ],
-    loading: false,
   }),
 }))
 
@@ -106,22 +115,6 @@ vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
 vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
   useForgeBlockData: () => ({
     name: 'Forge Dashboard',
-  }),
-}))
-
-vi.mock('@s4wave/web/forge/useForgeLinkedEntities.js', () => ({
-  useForgeLinkedEntities: () => ({
-    entities: [
-      {
-        objectKey: 'forge/cluster/main',
-        typeId: 'forge/cluster',
-      },
-      {
-        objectKey: 'forge/worker/session',
-        typeId: 'forge/worker',
-      },
-    ],
-    loading: false,
   }),
 }))
 

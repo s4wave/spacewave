@@ -2,6 +2,8 @@ import React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
+import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
+
 import { ForgeTaskViewer } from './ForgeTaskViewer.js'
 
 vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
@@ -47,64 +49,55 @@ vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
   }),
 }))
 
-vi.mock('@s4wave/web/forge/useForgeLinkedEntities.js', () => ({
-  useForgeLinkedEntities: () => ({
-    entities: [
-      {
-        objectKey: 'forge/pass/2',
-        typeId: 'forge/pass',
+// The pass set lists the older pass first, so the viewer's newest-first
+// order is its own.
+vi.mock('@s4wave/web/hooks/useEntitySet.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useEntitySet: () =>
+    resourceOf({
+      value: {
+        seqno: 1n,
+        keys: ['forge/pass/1', 'forge/pass/2'],
+        rows: new Map<string, object>(
+          (
+            [
+              [
+                'forge/pass/1',
+                {
+                  passNonce: 1n,
+                  passState: 4,
+                  replicas: 1,
+                  timestamp: new Date('2026-04-17T12:02:00Z'),
+                  execStates: [],
+                  result: { failError: 'cache miss' },
+                },
+              ],
+              [
+                'forge/pass/2',
+                {
+                  passNonce: 2n,
+                  passState: 2,
+                  replicas: 1,
+                  timestamp: new Date('2026-04-17T12:05:00Z'),
+                  execStates: [
+                    {
+                      objectKey: 'forge/execution/current',
+                      executionState: 2,
+                      peerId: '12D3KooWExec',
+                      timestamp: new Date('2026-04-17T12:05:05Z'),
+                    },
+                  ],
+                },
+              ],
+            ] as [string, object][]
+          ).map(([key, value]) => [key, { value }]),
+        ),
+        complete: true,
       },
-      {
-        objectKey: 'forge/pass/1',
-        typeId: 'forge/pass',
-      },
-    ],
-    loading: false,
-  }),
-}))
-
-vi.mock('./useForgeDecodedLinkedEntities.js', () => ({
-  useForgeDecodedLinkedEntities: () => ({
-    items: [
-      {
-        entity: {
-          objectKey: 'forge/pass/2',
-          typeId: 'forge/pass',
-        },
-        data: {
-          passNonce: 2n,
-          passState: 2,
-          replicas: 1,
-          timestamp: new Date('2026-04-17T12:05:00Z'),
-          execStates: [
-            {
-              objectKey: 'forge/execution/current',
-              executionState: 2,
-              peerId: '12D3KooWExec',
-              timestamp: new Date('2026-04-17T12:05:05Z'),
-            },
-          ],
-        },
-      },
-      {
-        entity: {
-          objectKey: 'forge/pass/1',
-          typeId: 'forge/pass',
-        },
-        data: {
-          passNonce: 1n,
-          passState: 4,
-          replicas: 1,
-          timestamp: new Date('2026-04-17T12:02:00Z'),
-          execStates: [],
-          result: {
-            failError: 'cache miss',
-          },
-        },
-      },
-    ],
-    loading: false,
-  }),
+      loading: false,
+      error: null,
+      retry: () => {},
+    }),
 }))
 
 describe('ForgeTaskViewer', () => {

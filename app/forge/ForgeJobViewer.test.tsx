@@ -1,5 +1,5 @@
 import React from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
@@ -8,6 +8,10 @@ import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wiza
 import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { Task } from '@go/github.com/s4wave/spacewave/forge/task/task.pb.js'
+import type { EntityRow, KeyedSet } from '@s4wave/sdk/world/entity-set.js'
 import { ForgeJobViewer } from './ForgeJobViewer.js'
 
 const mockVisibleWizardTypeSet = new Set(['forge/task'])
@@ -42,49 +46,39 @@ vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
   }),
 }))
 
-vi.mock('@s4wave/web/forge/useForgeLinkedEntities.js', () => ({
-  useForgeLinkedEntities: () => ({
-    entities: [
-      {
-        objectKey: 'forge/task/a',
-        typeId: 'forge/task',
-      },
-      {
-        objectKey: 'forge/task/b',
-        typeId: 'forge/task',
-      },
-    ],
-    loading: false,
-  }),
+// tasks is the followed task set the viewer reads; a test replaces it and
+// renders again to move the set through its states.
+const tasks = vi.hoisted(() => ({
+  current: undefined as unknown as Resource<KeyedSet<EntityRow<Partial<Task>>>>,
 }))
 
-vi.mock('./useForgeDecodedLinkedEntities.js', () => ({
-  useForgeDecodedLinkedEntities: () => ({
-    items: [
-      {
-        entity: {
-          objectKey: 'forge/task/a',
-          typeId: 'forge/task',
-        },
-        data: {
-          name: 'Build input',
-          taskState: 4,
-        },
-      },
-      {
-        entity: {
-          objectKey: 'forge/task/b',
-          typeId: 'forge/task',
-        },
-        data: {
-          name: 'Ship output',
-          taskState: 2,
-        },
-      },
-    ],
-    loading: false,
-  }),
+vi.mock('@s4wave/web/hooks/useEntitySet.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useEntitySet: () => tasks.current,
 }))
+
+// taskSet is a read task set; keys lists members whose bodies are not read.
+function taskSet(
+  rows: Record<string, Partial<Task>>,
+  { keys = Object.keys(rows), complete = true, seqno = 1n } = {},
+): KeyedSet<EntityRow<Partial<Task>>> {
+  return {
+    seqno,
+    keys,
+    rows: new Map(Object.entries(rows).map(([key, value]) => [key, { value }])),
+    complete,
+  }
+}
+
+// loaded is a resource holding set.
+function loaded(
+  set: KeyedSet<EntityRow<Partial<Task>>>,
+): Resource<KeyedSet<EntityRow<Partial<Task>>>> {
+  return resourceOf({ value: set, loading: false, error: null, retry: vi.fn() })
+}
+
+const buildInput = { name: 'Build input', taskState: 4 }
+const shipOutput = { name: 'Ship output', taskState: 2 }
 
 vi.mock('./useForgeTaskDependencyGraph.js', () => ({
   useForgeTaskDependencyGraph: () => ({
@@ -120,7 +114,12 @@ describe('ForgeJobViewer', () => {
   const mockNavigateToObjects = vi.fn()
 
   function renderViewer() {
-    return render(
+    const view = render(viewer())
+    return { ...view, update: () => view.rerender(viewer()) }
+  }
+
+  function viewer() {
+    return (
       <SpaceContainerContext.Provider
         spaceId="space-1"
         spaceState={{ ready: true }}
@@ -154,9 +153,15 @@ describe('ForgeJobViewer', () => {
           }}
           objectState={{} as never}
         />
-      </SpaceContainerContext.Provider>,
+      </SpaceContainerContext.Provider>
     )
   }
+
+  beforeEach(() => {
+    tasks.current = loaded(
+      taskSet({ 'forge/task/a': buildInput, 'forge/task/b': shipOutput }),
+    )
+  })
 
   afterEach(() => {
     cleanup()
@@ -214,5 +219,78 @@ describe('ForgeJobViewer', () => {
     renderViewer()
 
     expect(screen.queryByRole('button', { name: /add task/i })).toBeNull()
+  })
+
+  it('keeps the rows and never lowers progress while a task is linked', () => {
+    const view = renderViewer()
+    expect(screen.getAllByText('50% complete').length).toBeGreaterThan(0)
+
+    // A third task is linked and read in the same wake: no loading line,
+    // the rows stay, and the count and its row arrive together.
+    tasks.current = loaded(
+      taskSet({
+        'forge/task/a': buildInput,
+        'forge/task/b': shipOutput,
+        'forge/task/c': { name: 'Publish', taskState: 4 },
+      }),
+    )
+    view.update()
+    expect(screen.queryByText('Loading tasks...')).toBeNull()
+    expect(screen.getAllByText('Build input').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('2/3').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('67% complete').length).toBeGreaterThan(0)
+
+    // A removed task leaves its row and the count.
+    tasks.current = loaded(
+      taskSet({
+        'forge/task/a': buildInput,
+        'forge/task/c': { name: 'Publish', taskState: 4 },
+      }),
+    )
+    view.update()
+    expect(screen.queryByText('Ship output')).toBeNull()
+    expect(screen.getAllByText('2/2').length).toBeGreaterThan(0)
+  })
+
+  it('shows the first pages of a large job as they arrive', () => {
+    tasks.current = loaded(
+      taskSet(
+        { 'forge/task/a': buildInput },
+        {
+          keys: ['forge/task/a', 'forge/task/b', 'forge/task/c'],
+          complete: false,
+        },
+      ),
+    )
+    renderViewer()
+    expect(screen.getAllByText('Build input').length).toBeGreaterThan(0)
+    expect(screen.getByText('Loading 2 more')).toBeTruthy()
+    expect(screen.queryByText('No tasks in job')).toBeNull()
+  })
+
+  it('reports a failure before the first read, never an empty job', () => {
+    tasks.current = resourceOf({
+      value: null,
+      loading: false,
+      error: new Error('stream reset'),
+      retry: vi.fn(),
+    })
+    renderViewer()
+    expect(screen.queryByText('No tasks in job')).toBeNull()
+    expect(screen.getAllByText(/Could not read the tasks/).length).toBe(1)
+    expect(screen.getAllByRole('button', { name: /retry/i }).length).toBe(1)
+  })
+
+  it('keeps the rows under a failure after the first read', () => {
+    tasks.current = resourceOf({
+      value: null,
+      last: taskSet({ 'forge/task/a': buildInput }),
+      loading: false,
+      error: new Error('stream reset'),
+      retry: vi.fn(),
+    })
+    renderViewer()
+    expect(screen.getAllByText('Build input').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Could not read the tasks/).length).toBe(1)
   })
 })

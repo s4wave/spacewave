@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { LuActivity, LuListTodo, LuPlay } from 'react-icons/lu'
 
 import {
@@ -11,24 +11,25 @@ import {
   State as PassState,
 } from '@go/github.com/s4wave/spacewave/forge/pass/pass.pb.js'
 
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
+import { messageDecoder } from '@s4wave/sdk/world/entity-set.js'
+import { entitySetRows, useEntitySet } from '@s4wave/web/hooks/useEntitySet.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { useForgeBlock } from '@s4wave/web/forge/useForgeBlockData.js'
-import { useForgeLinkedEntities } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 import {
   forgeBlockStatus,
   ForgeViewerShell,
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
-import { ForgeEntityList } from '@s4wave/web/forge/ForgeEntityList.js'
 import { PRED_TASK_TO_PASS } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
 import { FactRow } from '@s4wave/web/ui/FactList.js'
 import { ForgeValueSetDisplay } from './ForgeValueSetDisplay.js'
-import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
+import { ForgeSetList, type ForgeSetRow } from './ForgeSetList.js'
 
 export const ForgeTaskTypeID = 'forge/task'
 
@@ -68,6 +69,50 @@ function describeResult(result?: {
   return 'Failed'
 }
 
+const passDecoder = messageDecoder(Pass)
+const passIcon = <LuPlay className="size-3 shrink-0" />
+
+// comparePasses orders passes newest first: by nonce, then by time.
+function comparePasses(a: ForgeSetRow<Pass>, b: ForgeSetRow<Pass>): number {
+  const aNonce = a.value.passNonce ?? 0n
+  const bNonce = b.value.passNonce ?? 0n
+  if (aNonce !== bNonce) return bNonce > aNonce ? 1 : -1
+  const aTime = a.value.timestamp?.getTime() ?? 0
+  const bTime = b.value.timestamp?.getTime() ?? 0
+  return bTime - aTime
+}
+
+// PassRow draws one pass; it draws again only when its body changed.
+const PassRow = memo(function PassRow({ objectKey, value }: ForgeSetRow<Pass>) {
+  const execCount = value.execStates?.length ?? 0
+  return (
+    <div className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-foreground truncate text-sm font-medium">
+            Pass #{value.passNonce?.toString() ?? '0'}
+          </div>
+          <div className="text-foreground-alt/50 truncate text-xs">
+            {value.timestamp?.toISOString() ?? objectKey}
+          </div>
+        </div>
+        <StateBadge state={value.passState ?? 0} labels={passStateLabels} />
+      </div>
+      <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
+        <span>
+          {execCount} execution{execCount === 1 ? '' : 's'}
+        </span>
+        <span>Replicas {value.replicas ?? 0}</span>
+        <span>{describeResult(value.result)}</span>
+      </div>
+    </div>
+  )
+})
+
+function renderPassRow(row: ForgeSetRow<Pass>) {
+  return <PassRow key={row.objectKey} {...row} />
+}
+
 // ForgeTaskViewer displays a Forge Task entity with tabbed layout.
 export function ForgeTaskViewer({
   objectInfo,
@@ -79,30 +124,26 @@ export function ForgeTaskViewer({
   const task = block.value ?? undefined
   useObjectName(task?.name)
 
-  const { entities: passes, loading: passesLoading } = useForgeLinkedEntities(
+  const passes = useEntitySet(
     worldState,
-    objectKey,
-    PRED_TASK_TO_PASS,
+    {
+      case: 'link',
+      origin: objectKey,
+      predicate: PRED_TASK_TO_PASS,
+      direction: 'out',
+    },
+    passDecoder,
   )
-  const { items: decodedPasses, loading: decodedPassesLoading } =
-    useForgeDecodedLinkedEntities(worldState, passes, Pass)
+  const passSet = resourceContent(passes)
   const sortedPasses = useMemo(
-    () =>
-      decodedPasses.toSorted((a, b) => {
-        const aNonce = Number(a.data.passNonce ?? 0n)
-        const bNonce = Number(b.data.passNonce ?? 0n)
-        if (aNonce !== bNonce) return bNonce - aNonce
-        const aTime = a.data.timestamp?.getTime() ?? 0
-        const bTime = b.data.timestamp?.getTime() ?? 0
-        return bTime - aTime
-      }),
-    [decodedPasses],
+    () => entitySetRows(passSet).toSorted(comparePasses),
+    [passSet],
   )
   const currentPass = useMemo(
     () =>
       sortedPasses.find(
         (pass) =>
-          (pass.data.passState ?? PassState.PassState_UNKNOWN) !==
+          (pass.value.passState ?? PassState.PassState_UNKNOWN) !==
           PassState.PassState_COMPLETE,
       ) ??
       sortedPasses[0] ??
@@ -110,7 +151,7 @@ export function ForgeTaskViewer({
     [sortedPasses],
   )
   const currentExecution = useMemo(() => {
-    const execStates = currentPass?.data.execStates ?? []
+    const execStates = currentPass?.value.execStates ?? []
     return (
       execStates.find(
         (execution) =>
@@ -134,7 +175,7 @@ export function ForgeTaskViewer({
               figures={[
                 {
                   label: 'Passes',
-                  value: passesLoading ? '-' : passes.length,
+                  value: passSet?.keys.length ?? '-',
                   detail: `Current nonce ${task?.passNonce?.toString() ?? '0'}`,
                 },
                 {
@@ -163,17 +204,17 @@ export function ForgeTaskViewer({
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-foreground text-sm font-medium">
-                        Pass #{currentPass.data.passNonce?.toString() ?? '0'}
+                        Pass #{currentPass.value.passNonce?.toString() ?? '0'}
                       </div>
                       <div className="text-foreground-alt/50 text-xs">
-                        {currentPass.data.execStates?.length ?? 0} execution
-                        {(currentPass.data.execStates?.length ?? 0) === 1
+                        {currentPass.value.execStates?.length ?? 0} execution
+                        {(currentPass.value.execStates?.length ?? 0) === 1
                           ? ''
                           : 's'}
                       </div>
                     </div>
                     <StateBadge
-                      state={currentPass.data.passState ?? 0}
+                      state={currentPass.value.passState ?? 0}
                       labels={passStateLabels}
                     />
                   </div>
@@ -215,47 +256,15 @@ export function ForgeTaskViewer({
         id: 'passes',
         label: 'Pass History',
         content: (
-          <div className="space-y-2">
-            {sortedPasses.length === 0 && (
-              <ForgeEntityList
-                entities={passes}
-                loading={passesLoading || decodedPassesLoading}
-                icon={<LuPlay className="size-3 shrink-0" />}
-                loadingLabel="Loading passes..."
-                emptyLabel="No passes yet"
-              />
-            )}
-            {sortedPasses.map((pass) => (
-              <div
-                key={pass.entity.objectKey}
-                className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-foreground truncate text-sm font-medium">
-                      Pass #{pass.data.passNonce?.toString() ?? '0'}
-                    </div>
-                    <div className="text-foreground-alt/50 truncate text-xs">
-                      {pass.data.timestamp?.toISOString() ??
-                        pass.entity.objectKey}
-                    </div>
-                  </div>
-                  <StateBadge
-                    state={pass.data.passState ?? 0}
-                    labels={passStateLabels}
-                  />
-                </div>
-                <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
-                  <span>
-                    {pass.data.execStates?.length ?? 0} execution
-                    {(pass.data.execStates?.length ?? 0) === 1 ? '' : 's'}
-                  </span>
-                  <span>Replicas {pass.data.replicas ?? 0}</span>
-                  <span>{describeResult(pass.data.result)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ForgeSetList
+            set={passes}
+            what="the passes"
+            icon={passIcon}
+            loadingLabel="Loading passes..."
+            emptyLabel="No passes yet"
+            renderRow={renderPassRow}
+            compare={comparePasses}
+          />
         ),
       },
       {
@@ -277,15 +286,7 @@ export function ForgeTaskViewer({
         ),
       },
     ],
-    [
-      currentExecution,
-      currentPass,
-      decodedPassesLoading,
-      passes,
-      passesLoading,
-      sortedPasses,
-      task,
-    ],
+    [currentExecution, currentPass, passSet, passes, task],
   )
 
   // Details lists the task's identity behind the bar.

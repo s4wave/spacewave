@@ -17,6 +17,13 @@ export function buildTypeObjectKey(typeID: string): string {
   return TypesPrefix + typeID
 }
 
+// typeIDFromIRI returns the type ID a type quad's object names, or '' when
+// it names no type.
+export function typeIDFromIRI(iri: string | undefined): string {
+  if (!iri?.startsWith('<' + TypesPrefix) || !iri.endsWith('>')) return ''
+  return iri.slice(1 + TypesPrefix.length, -1)
+}
+
 // BuildTypeQuad returns a type quad for a key and type
 export function buildTypeQuad(objKey: string, typeID: string): GraphQuad {
   return {

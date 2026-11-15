@@ -9,6 +9,7 @@ import {
   LuServer,
 } from 'react-icons/lu'
 
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { ForgeDashboard } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
@@ -21,23 +22,22 @@ import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import type { ViewerBarAction } from '@s4wave/web/object/ViewerBar.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
-import { useForgeLinkedEntities } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 import {
   ForgeViewerShell,
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
 import { ForgeEntityLink } from '@s4wave/web/forge/ForgeEntityLink.js'
-import { PRED_DASHBOARD_FORGE_REF } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { ProcessBindingList } from './ProcessBindingList.js'
-import { useForgeDashboardActivity } from './useForgeDashboardActivity.js'
+import { useForgeDashboardWork } from './useForgeDashboardActivity.js'
 import { useVisibleObjectWizardTypeSet } from '../space/useVisibleObjectWizardTypeSet.js'
 
 export const ForgeDashboardTypeID = 'spacewave/forge/dashboard'
@@ -70,14 +70,33 @@ export function ForgeDashboardViewer({
   const { navigateToObjects, spaceWorld } = SpaceContainerContext.useContext()
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
 
-  const { entities, loading: entitiesLoading } = useForgeLinkedEntities(
-    worldState,
-    objectKey,
-    PRED_DASHBOARD_FORGE_REF,
+  const {
+    members,
+    entities,
+    entries: activityEntries,
+  } = useForgeDashboardWork(worldState, objectKey, dashboard)
+  // Until the first read of the linked work lands, its failure is the
+  // dashboard's; after it, the rows stay and the watch reopens.
+  const entitiesLoading = !resourceContent(members)
+  const activityLoading = entitiesLoading
+  const worldError =
+    worldState.error ?? (entitiesLoading ? members.error : null)
+  const retryWorld = worldState.error ? worldState.retry : members.retry
+  // A failure after the first value keeps the rows and draws a notice with
+  // Retry above them while the watch reopens.
+  const membersError = members.error
+  const membersRetry = members.retry
+  const keptFailure = useMemo(
+    () =>
+      !entitiesLoading && membersError
+        ? ({
+            state: 'failed',
+            message: `Could not read the Forge entities: ${membersError.message}`,
+            retry: membersRetry,
+          } as const)
+        : null,
+    [entitiesLoading, membersError, membersRetry],
   )
-  const { entries: activityEntries, loading: activityLoading } =
-    useForgeDashboardActivity(worldState, dashboard, entities)
-  const worldError = worldState.error
 
   // Group entities by type for summary cards.
   const typeCounts = useMemo(() => {
@@ -294,6 +313,7 @@ export function ForgeDashboardViewer({
               </div>
             )}
 
+            {keptFailure && <ViewerStatus {...keptFailure} />}
             {worldError ? (
               <LoadingCard
                 view={{
@@ -302,7 +322,7 @@ export function ForgeDashboardViewer({
                   detail:
                     'This dashboard could not read its linked Forge work.',
                   error: 'Try again to reload Forge entities.',
-                  onRetry: worldState.retry,
+                  onRetry: retryWorld,
                 }}
               />
             ) : (
@@ -443,6 +463,7 @@ export function ForgeDashboardViewer({
         label: 'Activity',
         content: (
           <div className="space-y-2">
+            {keptFailure && <ViewerStatus {...keptFailure} />}
             {worldError ? (
               <LoadingCard
                 view={{
@@ -450,7 +471,7 @@ export function ForgeDashboardViewer({
                   title: 'Forge activity unavailable',
                   detail: 'This dashboard could not read recent Forge work.',
                   error: 'Try again to reload Forge activity.',
-                  onRetry: worldState.retry,
+                  onRetry: retryWorld,
                 }}
               />
             ) : activityLoading && activityEntries.length === 0 ? (
@@ -522,6 +543,7 @@ export function ForgeDashboardViewer({
         label: 'Entities',
         content: (
           <div className="space-y-2">
+            {keptFailure && <ViewerStatus {...keptFailure} />}
             {worldError ? (
               <LoadingCard
                 view={{
@@ -530,7 +552,7 @@ export function ForgeDashboardViewer({
                   detail:
                     'This dashboard could not read its linked Forge work.',
                   error: 'Try again to reload Forge entities.',
-                  onRetry: worldState.retry,
+                  onRetry: retryWorld,
                 }}
               />
             ) : entitiesLoading && entities.length === 0 ? (
@@ -632,7 +654,8 @@ export function ForgeDashboardViewer({
       entities,
       entitiesLoading,
       worldError,
-      worldState.retry,
+      keptFailure,
+      retryWorld,
       handleStartWorkers,
       handleToggle,
       openingAction,

@@ -22,6 +22,7 @@ import { EngineWorldState } from './engine-state.js'
 import type {
   ObjectBody,
   ObjectRecordBase,
+  GetObjectBodiesBatchResponse,
   GraphEdgeBucketDirection,
   ListGraphEdgeBucketsResponse,
   ListObjectsRequest,
@@ -620,14 +621,25 @@ export class WorldStateResource extends Resource implements IWorldState {
     // Collect the pages, giving up if any page reads another World revision.
     const bodies: ObjectBody[] = []
     let worldSeqno: bigint | undefined
-    const pages = this.service.GetObjectBodiesBatch({ objectKeys }, abortSignal)
-    for await (const page of pages) {
+    for await (const page of this.getObjectBodyPages(objectKeys, abortSignal)) {
       const pageSeqno = page.worldSeqno ?? 0n
       worldSeqno ??= pageSeqno
       if (pageSeqno !== worldSeqno) return null
       bodies.push(...(page.bodies ?? []))
     }
     return bodies
+  }
+
+  /**
+   * getObjectBodyPages streams object root bodies in request order, one
+   * budgeted page at a time, each with the World seqno it read. On a read
+   * transaction every page reads the transaction's one revision.
+   */
+  public getObjectBodyPages(
+    objectKeys: string[],
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<GetObjectBodiesBatchResponse> {
+    return this.service.GetObjectBodiesBatch({ objectKeys }, abortSignal)
   }
 
   /** listObjectsWithType collects the matching keys in stable graph-index order. */

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "no re-read on ack",
+    "replace": [["AckRereads == TRUE", "AckRereads == FALSE"]],
+    "expect": "EmittedAtR"
+  },
+  {
+    "name": "no full read on unknown",
+    "replace": [["UnknownRereads == TRUE", "UnknownRereads == FALSE"]],
+    "expect": "QuiescentMatchesWorld"
+  },
+  {
+    "name": "skip changes at or below R",
+    "replace": [["SkipAtReadAt == TRUE", "SkipAtReadAt == FALSE"]],
+    "expect": "EmittedAtR"
+  },
+  {
+    "name": "no relist on link",
+    "replace": [["RelistOnLink == TRUE", "RelistOnLink == FALSE"]],
+    "expect": "QuiescentMatchesWorld"
+  },
+  {
+    "name": "no relist on followed past listedAt",
+    "replace": [["RelistOnFollowed == TRUE", "RelistOnFollowed == FALSE"]],
+    "expect": "QuiescentMatchesWorld"
+  }
+]
