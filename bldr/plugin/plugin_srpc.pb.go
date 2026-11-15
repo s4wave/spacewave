@@ -531,7 +531,7 @@ type SRPCPluginClient interface {
 	SRPCClient() srpc.Client
 
 	// PluginRpc handles an RPC call from a remote plugin.
-	// Component ID: remote plugin id
+	// Component ID: the caller's PluginCaller, encoded by the host.
 	PluginRpc(ctx context.Context) (SRPCPlugin_PluginRpcClient, error)
 }
 
@@ -594,7 +594,7 @@ func (x *srpcPlugin_PluginRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) error 
 
 type SRPCPluginServer interface {
 	// PluginRpc handles an RPC call from a remote plugin.
-	// Component ID: remote plugin id
+	// Component ID: the caller's PluginCaller, encoded by the host.
 	PluginRpc(SRPCPlugin_PluginRpcStream) error
 }
 

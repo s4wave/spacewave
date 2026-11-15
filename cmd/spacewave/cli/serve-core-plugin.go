@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -90,10 +89,11 @@ func (p *nativeCorePlugin) WaitPluginClient(context.Context, func(), string) (sr
 	return p.client, nil, nil
 }
 
-// PluginRpc serves another plugin's calls to core with the native services.
+// PluginRpc serves another plugin's calls to core with the native services,
+// each carrying the caller the host stamped on the stream.
 func (p *nativeCorePlugin) PluginRpc(strm bldr_plugin.SRPCPlugin_PluginRpcStream) error {
-	return rpcstream.HandleRpcStream(strm, func(context.Context, string, func()) (srpc.Invoker, func(), error) {
-		return p.invoker, nil, nil
+	return bldr_plugin.ServePluginRpc(strm, func(*bldr_plugin.PluginCaller) srpc.Invoker {
+		return p.invoker
 	})
 }
 

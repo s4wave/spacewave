@@ -203,19 +203,19 @@ func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcSt
 				return nil, "", nil, err
 			}
 
-			// Open the target's PluginRpc under this plugin's ID.
+			// Open the target's PluginRpc stamped with this plugin's identity.
 			caller, release, err := s.openPluginRpc(ctx, pluginID, instanceKey, manifestRoot)
 			if err != nil {
 				return nil, "", nil, err
 			}
-			return caller, s.pluginID, release, nil
+			return caller, s.caller().ComponentID(), release, nil
 		},
 	)
 }
 
 // openPluginRpc loads pluginID at the instance this server's plugin may reach
 // and returns the target's PluginRpc caller and a release function. The caller
-// opens the stream with this server's plugin ID as the component ID, so the
+// opens the stream with this server's PluginCaller as the component ID, so the
 // target serves the call under "plugin/<caller>" and never on its root mux.
 func (s *PluginHostServer) openPluginRpc(
 	ctx context.Context,
@@ -345,9 +345,19 @@ func (s *PluginHostServer) HostBusInvoker(allowedServiceIDs []string) srpc.Invok
 			return true, err
 		}
 		defer release()
-		client := rpcstream.NewRpcStreamClient(caller, s.pluginID, false)
+		client := rpcstream.NewRpcStreamClient(caller, s.caller().ComponentID(), false)
 		return srpc.NewClientInvoker(client).InvokeMethod(remoteServiceID, methodID, strm)
 	})
+}
+
+// caller returns the identity the host stamps on this server's plugin's calls
+// to other plugins. It reads only fields set before the server is exposed.
+func (s *PluginHostServer) caller() *bldr_plugin.PluginCaller {
+	return &bldr_plugin.PluginCaller{
+		PluginId:   s.pluginID,
+		BindingKey: s.registrationInstanceKey,
+		HostSet:    s.callerIsHostPlugin(),
+	}
 }
 
 // callerIsHostPlugin reports whether this server's plugin is one the host

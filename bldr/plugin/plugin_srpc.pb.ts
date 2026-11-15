@@ -422,7 +422,7 @@ export const PluginDefinition = {
   methods: {
     /**
      * PluginRpc handles an RPC call from a remote plugin.
-     * Component ID: remote plugin id
+     * Component ID: the caller's PluginCaller, encoded by the host.
      *
      * @generated from rpc bldr.plugin.Plugin.PluginRpc
      */
@@ -443,7 +443,7 @@ export const PluginDefinition = {
 export interface Plugin {
   /**
    * PluginRpc handles an RPC call from a remote plugin.
-   * Component ID: remote plugin id
+   * Component ID: the caller's PluginCaller, encoded by the host.
    *
    * @generated from rpc bldr.plugin.Plugin.PluginRpc
    */
@@ -461,7 +461,7 @@ export interface Plugin {
 export interface PluginHandler {
   /**
    * PluginRpc handles an RPC call from a remote plugin.
-   * Component ID: remote plugin id
+   * Component ID: the caller's PluginCaller, encoded by the host.
    *
    * @generated from rpc bldr.plugin.Plugin.PluginRpc
    */
@@ -484,7 +484,7 @@ export class PluginClient implements Plugin {
   }
   /**
    * PluginRpc handles an RPC call from a remote plugin.
-   * Component ID: remote plugin id
+   * Component ID: the caller's PluginCaller, encoded by the host.
    *
    * @generated from rpc bldr.plugin.Plugin.PluginRpc
    */
