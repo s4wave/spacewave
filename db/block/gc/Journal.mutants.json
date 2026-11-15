@@ -1,0 +1,38 @@
+[
+  {
+    "name": "a free gives its children no down",
+    "replace": [["THEN /\\ pend' = Decrement(b)", "THEN /\\ pend' = {}"]],
+    "expect": "CountsExact",
+    "config": "Journal-revive-hold.cfg"
+  },
+  {
+    "name": "netting a block to zero still releases its children",
+    "replace": [["Due == IF HoldToFree THEN {} ELSE", "Due == IF FALSE THEN {} ELSE"]],
+    "expect": "CountsExact",
+    "config": "Journal-revive-hold.cfg"
+  },
+  {
+    "name": "a child a free takes to zero is freed at its parent's ripe point",
+    "replace": [["IF HoldToFree /\\ ChildRipe", "IF HoldToFree"]],
+    "expect": "NoFreedRead",
+    "config": "Journal-lease.cfg"
+  },
+  {
+    "name": "a free does not wait for its own grace",
+    "replace": [["  /\\ Ripe => ripe[b] = 0", "  /\\ TRUE"]],
+    "expect": "NoFreedRead",
+    "config": "Journal.cfg"
+  },
+  {
+    "name": "a free ignores the hold mark",
+    "replace": [["  /\\ HoldMark => hseq = 0", "  /\\ TRUE"]],
+    "expect": "NoFreedRead",
+    "config": "Journal-collect.cfg"
+  },
+  {
+    "name": "a free starts before the last free's release finished",
+    "replace": [["/\\ (HoldToFree \\/ b \\in rel) /\\ Settled", "/\\ (HoldToFree \\/ b \\in rel)"]],
+    "expect": "CountsExact",
+    "config": "Journal.cfg"
+  }
+]
