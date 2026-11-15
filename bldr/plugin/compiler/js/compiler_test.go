@@ -44,8 +44,9 @@ func TestPluginCompilerJs(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Build the testbed and release it when the test ends.
-	tb, err := testbed.BuildTestbed(ctx, le)
+	// Build the testbed and release it when the test ends. The plugin stays
+	// outside the host set and reaches only the mock service it calls.
+	tb, err := testbed.BuildTestbedWithSchedulerConfig(ctx, le, testbed.AllowHostServices(starpc_mock.SRPCMockServiceID))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

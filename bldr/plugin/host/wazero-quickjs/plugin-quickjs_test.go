@@ -93,8 +93,9 @@ func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []stri
 	}
 	scriptContents := string(scriptBytes)
 
-	// Start the testbed and register the QuickJS host factory.
-	tb, err := testbed.BuildTestbed(ctx, le)
+	// Start the testbed. The plugin stays outside the host set and reaches
+	// only the mock service it calls.
+	tb, err := testbed.BuildTestbedWithSchedulerConfig(ctx, le, testbed.AllowHostServices(starpc_mock.SRPCMockServiceID))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
