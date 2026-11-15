@@ -800,6 +800,13 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 		return nil, err
 	}
 
+	// Start the write's budget for plugin calls at its first writer acquire.
+	budget := world.GetWriteBudget(ctx)
+	if budget == nil {
+		budget = world.NewWriteBudget(world.WriteBudgetLength)
+	}
+	budget.Start()
+
 	// Take the Authority's turn and the head it builds on.
 	turn, err := e.beginTurn(ctx)
 	if err != nil {
@@ -871,16 +878,17 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 
 	// Build the write state on the base.
 	baseHeadRef := root.GetRef().Clone()
-	world, err := e.buildWriteState(taskCtx, root, rootBlock)
+	ws, err := e.buildWriteState(taskCtx, root, rootBlock)
 	if err != nil {
 		if private != nil {
 			private.Release()
 		}
 		return fail(retirement, err)
 	}
+	ws.budget = budget
 
 	// Register the writer only once it carries its base and turn.
-	engTx := newEngineTx(e, NewTx(world))
+	engTx := newEngineTx(e, NewTx(ws))
 	engTx.baseHeadRef = baseHeadRef
 	engTx.privateBase = private
 	engTx.turn = turn

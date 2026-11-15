@@ -342,6 +342,79 @@ func TestWorldOpRegistryBridgeControllerDeadlineReleasesWriter(t *testing.T) {
 	}
 }
 
+func TestWorldOpRegistryBridgeControllerRetriesShareWriteBudget(t *testing.T) {
+	// Start a World testbed whose plugin applies a nested plugin operation
+	// that sleeps for most of the write's budget.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	const budgetLength = time.Second
+	handler := &nestedSleepWorldOpHandler{sleep: 800 * time.Millisecond, attached: make(chan attachedWorldState, 4)}
+
+	// Expose the handler through the plugin Resource server.
+	pluginRoot := srpc.NewMux()
+	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(pluginRoot, handler); err != nil {
+		t.Fatal(err)
+	}
+	pluginResourceMux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+		t.Fatal(err)
+	}
+	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
+	rel, err := tb.Bus.AddController(ctx, &testWorldOpPluginLoadController{client: pluginClient}, nil)
+	if err != nil {
+		t.Fatalf("AddController plugin load: %v", err)
+	}
+	defer rel()
+	op, err := lookupPluginOp(ctx, t, tb, le)(ctx, "test/plugin-op")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := op.UnmarshalVT([]byte("outer")); err != nil {
+		t.Fatal(err)
+	}
+
+	// The first attempt spends most of the budget, then another writer
+	// supersedes it. The replay spends the rest and is cut at the deadline.
+	var attempts int
+	start := time.Now()
+	budgetCtx := world.WithWriteBudget(ctx, world.NewWriteBudget(budgetLength))
+	err = world.ExecTransaction(budgetCtx, tb.Engine, true, func(ctx context.Context, wtx world.WorldState) error {
+		attempts++
+		if _, _, err := wtx.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID()); err != nil {
+			return err
+		}
+		return world.ErrSuperseded
+	})
+	held := time.Since(start)
+	var timeout *world.PluginOpTimeoutError
+	if !errors.As(err, &timeout) {
+		t.Fatalf("ExecTransaction error = %v, want PluginOpTimeoutError", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("attempts = %d, want 2", attempts)
+	}
+	if held > budgetLength+500*time.Millisecond {
+		t.Fatalf("writer held %v, want at most %v plus margin", held, budgetLength)
+	}
+
+	// Each attempt's World state reaches the plugin detached, including the
+	// one attached when the budget expired.
+	close(handler.attached)
+	var n int
+	for a := range handler.attached {
+		n++
+		waitDetached(t, a)
+	}
+	if n != 2 {
+		t.Fatalf("attached World states = %d, want 2", n)
+	}
+}
+
 func TestWorldOpRegistryBridgeControllerColdLoadHoldsNoWriter(t *testing.T) {
 	// Start a World testbed whose plugin never finishes loading.
 	ctx := context.Background()
@@ -1309,6 +1382,82 @@ func (h *stallWorldOpHandler) ApplyWorldOp(
 	h.entered <- struct{}{}
 	<-h.stall
 	return &s4wave_worldop_registry.ApplyWorldOpResponse{}, nil
+}
+
+// attachedWorldState is a World state resource the bridge attached to the
+// plugin for an outer operation.
+type attachedWorldState struct {
+	rctx resource_server.ResourceClientContext
+	id   uint32
+}
+
+// nestedSleepWorldOpHandler applies a nested plugin operation for the "outer"
+// payload through its attached World state, and sleeps for the "nested" one
+// without watching its context, like a stalled worker.
+type nestedSleepWorldOpHandler struct {
+	testWorldOpHandler
+	sleep    time.Duration
+	attached chan attachedWorldState
+}
+
+func (h *nestedSleepWorldOpHandler) ValidateOp(
+	context.Context,
+	*s4wave_worldop_registry.ValidateOpRequest,
+) (*s4wave_worldop_registry.ValidateOpResponse, error) {
+	return &s4wave_worldop_registry.ValidateOpResponse{}, nil
+}
+
+func (h *nestedSleepWorldOpHandler) ApplyWorldOp(
+	ctx context.Context,
+	req *s4wave_worldop_registry.ApplyWorldOpRequest,
+) (*s4wave_worldop_registry.ApplyWorldOpResponse, error) {
+	// Sleep through the nested operation.
+	if string(req.GetOpData()) == "nested" {
+		time.Sleep(h.sleep)
+		return &s4wave_worldop_registry.ApplyWorldOpResponse{}, nil
+	}
+
+	// Record the attached World state, then apply the nested operation.
+	rctx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id := req.GetAttachedWorldStateResourceId()
+	h.attached <- attachedWorldState{rctx: rctx, id: id}
+	worldClient, err := rctx.GetAttachedResource(id)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := s4wave_world.NewSRPCWorldStateResourceServiceClient(worldClient).ApplyWorldOp(
+		ctx,
+		&s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("nested")},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if code := resp.GetErrorCode(); code != 0 {
+		return nil, errors.New("nested operation failed: " + code.String())
+	}
+	return &s4wave_worldop_registry.ApplyWorldOpResponse{}, nil
+}
+
+// waitDetached waits for the bridge's detach of a to reach the plugin. The
+// detach is sent without an acknowledgment, so it checks the plugin's view.
+func waitDetached(t *testing.T, a attachedWorldState) {
+	t.Helper()
+	tick := time.NewTicker(5 * time.Millisecond)
+	defer tick.Stop()
+	timeout := time.After(5 * time.Second)
+	for {
+		if _, err := a.rctx.GetAttachedResource(a.id); errors.Is(err, resource.ErrResourceNotFound) {
+			return
+		}
+		select {
+		case <-tick.C:
+		case <-timeout:
+			t.Fatalf("attached World state %d was not detached", a.id)
+		}
+	}
 }
 
 // hangPluginLoadController resolves the load of test-plugin with a resolver

@@ -6,7 +6,10 @@ import (
 )
 
 // PluginOpTimeoutError reports that a plugin did not answer a World operation
-// within Deadline. The operation's apply returns it. When the World state the
+// within Deadline: the WriteBudget of the write holding the engine's writer,
+// which its attempts and nested operations share, or the per-operation
+// deadline of an operation applied with none. The operation's apply returns
+// it. When the World state the
 // operation was applied to discards a failed operation's transaction, as
 // AppliesAtomically reports, nothing the operation wrote was kept. It matches
 // context.DeadlineExceeded, so a replay stops at the operation and tries it
@@ -16,7 +19,7 @@ type PluginOpTimeoutError struct {
 	PluginID string
 	// OperationTypeID is the operation type it was applying.
 	OperationTypeID string
-	// Deadline is how long the plugin had.
+	// Deadline is the length of the budget or deadline that ended the call.
 	Deadline time.Duration
 }
 

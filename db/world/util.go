@@ -13,6 +13,7 @@ import (
 // snapshot becomes invalid, it replays cb in a fresh transaction, up to
 // maxEngineWorldStateTries more times. cb must be safe to replay: it must
 // create or reset its per-attempt state and perform no external effects.
+// Every attempt of a write spends one WriteBudget.
 func ExecTransaction(
 	ctx context.Context,
 	eng Engine,
@@ -20,13 +21,14 @@ func ExecTransaction(
 	cb func(ctx context.Context, wtx WorldState) error,
 ) error {
 	// Replay the complete attempt while the failure permits a fresh transaction.
+	ctx, budget := withWrite(ctx, write)
 	var err error
 	for range maxEngineWorldStateTries + 1 {
 		if err = ctx.Err(); err != nil {
 			return err
 		}
-		err = execTransactionOnce(ctx, eng, write, cb)
-		if !retryWorldOp(err) {
+		var retry bool
+		if retry, err = replayWorldOp(budget, execTransactionOnce(ctx, eng, write, cb)); !retry {
 			return err
 		}
 	}
