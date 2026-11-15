@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -90,26 +89,13 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	case bifrost_rpc.LookupRpcService:
 		res, err := bldr_plugin.ResolveLookupRpcService(ctx, dir, c)
 		if res != nil && !c.forwardsServerID(dir.LookupRpcServerID()) {
-			res = refuseRelay(dir.LookupRpcServerID())
+			res = bldr_plugin.NewRelayRefusedResolver(dir.LookupRpcServerID())
 		}
 		return directive.R(res, err)
 	case unixfs_access.AccessUnixFS:
 		return directive.R(bldr_plugin.ResolveAccessUnixfs(ctx, dir, c))
 	}
 	return nil, nil
-}
-
-// ErrRelayRefused is returned to a caller whose call this plugin would have
-// relayed to its host or to another plugin on another plugin's behalf.
-var ErrRelayRefused = errors.New("plugin refuses to relay the call")
-
-// refuseRelay resolves a forwarding lookup this plugin refuses with
-// ErrRelayRefused, so the caller fails at once rather than waiting on the bus
-// for a resolver that never comes.
-func refuseRelay(serverID string) directive.Resolver {
-	return directive.NewFuncResolver(func(context.Context, directive.ResolverHandler) error {
-		return errors.Wrapf(ErrRelayRefused, "server %q", serverID)
-	})
 }
 
 // forwardsServerID reports whether a service lookup with serverID may be
