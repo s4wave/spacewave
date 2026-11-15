@@ -154,11 +154,11 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 	}
 }
 
-// TestCloudPublicationPublishesPastCorruptBlock checks that a flush which
-// uploads every intact dirty block and holds back a corrupt one still publishes
-// the pending checkpoint, while the corrupt block keeps its marker, its local
-// copy and its place in the pending count.
-func TestCloudPublicationPublishesPastCorruptBlock(t *testing.T) {
+// TestCloudPublicationHoldsPastCorruptBlock checks that a flush which holds
+// back a corrupt dirty block uploads the intact blocks but publishes nothing,
+// keeps the corrupt block's marker, local copy and count, and resumes
+// publication once a write repairs the block while mounted.
+func TestCloudPublicationHoldsPastCorruptBlock(t *testing.T) {
 	// Serve block pushes and checkpoints, counting each.
 	var uploads, checkpoints atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -220,13 +220,16 @@ func TestCloudPublicationPublishesPastCorruptBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The flush holds back the corrupt block and still publishes.
-	corrupt, err := syncer.FlushNow(t.Context())
-	if err != nil || corrupt != 1 {
-		t.Fatalf("flush = %d corrupt, %v; want 1, nil", corrupt, err)
+	// The flush uploads the intact block, holds the corrupt one and
+	// publishes nothing.
+	err = syncer.FlushNow(t.Context())
+	var held *heldError
+	if !errors.As(err, &held) || held.count != 1 || !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("flush = %v; want held with 1 block", err)
 	}
-	if checkpoints.Load() != 1 || host.pending != nil {
-		t.Fatalf("checkpoints = %d, pending = %v; want one published", checkpoints.Load(), host.pending)
+	if uploads.Load() == 0 || checkpoints.Load() != 0 || host.pending == nil {
+		t.Fatalf("uploads = %d, checkpoints = %d, pending = %v; want pushed and nothing published",
+			uploads.Load(), checkpoints.Load(), host.pending)
 	}
 
 	// The corrupt block keeps its marker, its local copy and its count.
@@ -240,14 +243,27 @@ func TestCloudPublicationPublishesPastCorruptBlock(t *testing.T) {
 	if found, err := inner.GetBlockExists(t.Context(), bad); err != nil || !found {
 		t.Fatalf("corrupt block local copy: found = %v, err = %v", found, err)
 	}
-	if len(syncer.corruptKnown) != 1 {
-		t.Fatalf("corrupt state holds %d blocks, want 1", len(syncer.corruptKnown))
+
+	// A later flush holds it without reading it: the store now reads good,
+	// but nothing wrote the hash.
+	syncer.upper = &corruptUpperStore{StoreOps: inner, bad: nil}
+	if err := syncer.FlushNow(t.Context()); !errors.As(err, &held) || checkpoints.Load() != 0 {
+		t.Fatalf("second flush = %v, checkpoints = %d; want held unread", err, checkpoints.Load())
 	}
 
-	// A later flush holds it without reading it, until a recheck is due.
-	syncer.upper = &corruptUpperStore{StoreOps: inner, bad: nil}
-	if corrupt, err := syncer.FlushNow(t.Context()); err != nil || corrupt != 1 {
-		t.Fatalf("second flush = %d corrupt, %v; want 1 held unread", corrupt, err)
+	// A write of the hash clears its entry, so the next flush reads the
+	// repaired block, uploads it and publishes.
+	if err := syncer.MarkDirty(t.Context(), marks[1:]); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncer.FlushNow(t.Context()); err != nil {
+		t.Fatalf("flush after repair: %v", err)
+	}
+	if checkpoints.Load() != 1 || host.pending != nil {
+		t.Fatalf("checkpoints = %d, pending = %v; want one published", checkpoints.Load(), host.pending)
+	}
+	if pending, err := syncer.scanDirtyCandidates(t.Context()); err != nil || len(pending) != 0 {
+		t.Fatalf("dirty after repair = %d blocks, %v; want none", len(pending), err)
 	}
 }
 

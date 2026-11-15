@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"context"
 	"crypto/sha256"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -577,7 +578,7 @@ func TestSyncControllerPullDuringPush(t *testing.T) {
 
 	// Start the push, then pull while it uploads.
 	flushed := make(chan error, 1)
-	go func() { _, err := s.FlushNow(ctx); flushed <- err }()
+	go func() { err := s.FlushNow(ctx); flushed <- err }()
 	select {
 	case <-pushing:
 	case err := <-flushed:
@@ -1790,10 +1791,13 @@ func TestSyncControllerFlushSkipsCorruptDirtyBlock(t *testing.T) {
 		t.Fatalf("flush = %d corrupt, %v; want 1, nil", corrupt, err)
 	}
 
-	// The two good blocks uploaded.
+	// The two good blocks uploaded, and no pushed pack holds the corrupt one.
 	var pushedBlocks int
 	for _, pack := range push.committed() {
 		pushedBlocks += int(pack.req.GetBlockCount()) //nolint:gosec // test counts are small
+		if slices.Contains(readPackPhysicalKeys(t, pack.data), refs[1].GetHash().MarshalString()) {
+			t.Fatal("pushed pack holds the corrupt block")
+		}
 	}
 	if pushedBlocks != blockCount-1 {
 		t.Fatalf("pushed %d blocks, want %d", pushedBlocks, blockCount-1)
@@ -1822,5 +1826,72 @@ func TestSyncControllerFlushSkipsCorruptDirtyBlock(t *testing.T) {
 	}
 	if n := countSyncDirtyKeys(t, ctx, dirtyStore); n != 1 {
 		t.Fatalf("dirty entries after second flush = %d, want 1", n)
+	}
+}
+
+// TestSyncControllerHeldWaitIgnoresFlushBroadcast checks that a held store
+// waits for a new write or its recheck deadline, not for the broadcast its own
+// flush raised, so it does no flush while idle. A write of the held hash
+// clears it from the known set.
+func TestSyncControllerHeldWaitIgnoresFlushBroadcast(t *testing.T) {
+	// Hold the only dirty block as corrupt.
+	s := newDirtySyncExecuteTestController(t, nil, nil)
+	ref, err := block.BuildBlockRef([]byte("dirty block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.upper = &corruptUpperStore{StoreOps: s.upper, bad: ref.GetHash()}
+	writes, _ := s.writeSnapshot()
+	var held *heldError
+	if err := s.FlushNow(t.Context()); !errors.As(err, &held) {
+		t.Fatalf("flush = %v; want held", err)
+	}
+
+	// The flush's own broadcast and any later one leave the wait to its
+	// deadline, which reports a recheck.
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) { broadcast() })
+	start := time.Now()
+	recheck, err := s.waitHeld(t.Context(), writes, start.Add(200*time.Millisecond), time.Hour)
+	if err != nil || !recheck || time.Since(start) < 200*time.Millisecond {
+		t.Fatalf("wait = %v, %v after %v; want a recheck at the deadline", recheck, err, time.Since(start))
+	}
+
+	// A write ends the wait one interval later, without a recheck, and
+	// clears the written hash from the known set.
+	writes, _ = s.writeSnapshot()
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		if err := s.MarkDirty(context.Background(), []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: int64(len("dirty block"))}}); err != nil {
+			t.Error(err)
+		}
+	}()
+	recheck, err = s.waitHeld(t.Context(), writes, time.Now().Add(time.Hour), 10*time.Millisecond)
+	if err != nil || recheck {
+		t.Fatalf("wait after write = %v, %v; want a flush without a recheck", recheck, err)
+	}
+	if hasKey(s.corruptKnown, ref.GetHash().MarshalString()) {
+		t.Fatal("write of the held hash left it known corrupt")
+	}
+}
+
+// TestSyncReclaimWalkFailsOnMissingOrCorrupt checks that the reclaim walk
+// fails on a root it cannot read, missing everywhere or corrupt in the cache,
+// rather than judging the blocks under it dead.
+func TestSyncReclaimWalkFailsOnMissingOrCorrupt(t *testing.T) {
+	s := newDirtySyncExecuteTestController(t, nil, nil)
+	held, err := block.BuildBlockRef([]byte("dirty block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	absent, err := block.BuildBlockRef([]byte("absent block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.upper = &corruptUpperStore{StoreOps: s.upper, bad: held.GetHash()}
+	if _, err := s.walkLive(t.Context(), []*block.BlockRef{absent}); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("walk over a missing root = %v; want not found", err)
+	}
+	if _, err := s.walkLive(t.Context(), []*block.BlockRef{held}); !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("walk over a corrupt root = %v; want corrupt", err)
 	}
 }

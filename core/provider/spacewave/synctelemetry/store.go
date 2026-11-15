@@ -20,8 +20,9 @@ const (
 	UploadPhasePushing
 	// UploadPhaseError means upload sync has a recorded error.
 	UploadPhaseError
-	// UploadPhaseCorrupt means dirty blocks fail their hash on the local disk,
-	// so they stay queued and do not upload; the rest of the queue uploads.
+	// UploadPhaseCorrupt means dirty blocks fail their hash on the local disk.
+	// They stay queued and local, the rest of the queue uploads, and the store
+	// publishes nothing until they are repaired: sync is held.
 	UploadPhaseCorrupt
 )
 
@@ -49,6 +50,12 @@ type BlockStoreSnapshot struct {
 	LastSource               BlockSource
 	AcceptedCheckpointHeight uint64
 	CloudRemoteSequence      uint64
+	// CorruptDirtyCount counts the dirty blocks held back because their local
+	// bytes fail their hash. While it is not zero the store publishes nothing.
+	CorruptDirtyCount int
+	// HeldSince is when the store first held a block back, zero while none is
+	// held: nothing has been published from it since.
+	HeldSince time.Time
 }
 
 // Snapshot describes Spacewave cloud sync activity.
@@ -212,6 +219,7 @@ type state struct {
 	pendingUploadBytes       int64
 	pendingUploadCount       int
 	corruptDirtyCount        int
+	heldSince                time.Time
 	pendingPublications      int
 	activeUploadBytes        int64
 	activeUploadSent         int64
@@ -311,11 +319,13 @@ func (s *Store) SetPending(bstoreID string, bytes int64, count int) {
 	})
 }
 
-// SetCorruptDirty records the count of dirty blocks the last flush skipped
-// because their local bytes fail their hash.
-func (s *Store) SetCorruptDirty(bstoreID string, count int) {
+// SetCorruptDirty records the count of dirty blocks the last flush held back
+// because their local bytes fail their hash, and since when the store holds
+// them. While count is not zero the store publishes nothing.
+func (s *Store) SetCorruptDirty(bstoreID string, count int, since time.Time) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		s.getOrCreateStateLocked(bstoreID).corruptDirtyCount = max(count, 0)
+		state := s.getOrCreateStateLocked(bstoreID)
+		state.corruptDirtyCount, state.heldSince = max(count, 0), since
 		broadcast()
 	})
 }
@@ -534,6 +544,8 @@ func BuildSnapshot(states []state) Snapshot {
 			LastSource:               state.lastSource,
 			AcceptedCheckpointHeight: state.acceptedCheckpointHeight,
 			CloudRemoteSequence:      state.cloudRemoteSequence,
+			CorruptDirtyCount:        state.corruptDirtyCount,
+			HeldSince:                state.heldSince,
 		})
 		snap.PendingUploadBytes += state.pendingUploadBytes
 		snap.PendingUploadCount += state.pendingUploadCount + state.pendingPublications
