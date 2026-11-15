@@ -109,45 +109,25 @@ func (h *SharedObjectHealth) WithSyncPeerConnection(peerID string, connected boo
 	return next
 }
 
-// WithRejectedEdits returns a snapshot listing edits as this device's edits that
-// replay no longer applies.
-func (h *SharedObjectHealth) WithRejectedEdits(edits []*SORejectedEdit) *SharedObjectHealth {
-	// Keep the snapshot when the edits are unchanged.
-	if slices.EqualFunc(h.GetRejectedEdits(), edits, (*SORejectedEdit).EqualVT) {
+// WithReplay returns a snapshot showing what the body driver reports of this
+// device's replay: its revoked edits, a checkpoint whose state differs from
+// the replayed one, the edits the sequencer has not placed, and the
+// operation replay waits at.
+func (h *SharedObjectHealth) WithReplay(r *BodyReport) *SharedObjectHealth {
+	// Keep the snapshot when the report shows nothing new.
+	if slices.EqualFunc(h.GetRejectedEdits(), r.RejectedEdits, (*SORejectedEdit).EqualVT) &&
+		h.GetCheckpointMismatch().EqualVT(r.CheckpointMismatch) &&
+		h.GetUnorderedCount() == r.Unordered &&
+		h.GetReplayWait().EqualVT(r.ReplayWait) {
 		return h
 	}
 
-	// Copy the snapshot with the new edits.
+	// Copy the snapshot with the report.
 	next := h.edit()
-	next.RejectedEdits = edits
-	return next
-}
-
-// WithCheckpointMismatch returns a snapshot reporting mismatch, or no mismatch
-// when it is nil.
-func (h *SharedObjectHealth) WithCheckpointMismatch(mismatch *SOCheckpointMismatch) *SharedObjectHealth {
-	// Keep the snapshot when the mismatch is unchanged.
-	if h.GetCheckpointMismatch().EqualVT(mismatch) {
-		return h
-	}
-
-	// Copy the snapshot with the new mismatch.
-	next := h.edit()
-	next.CheckpointMismatch = mismatch
-	return next
-}
-
-// WithUnorderedCount returns a snapshot reporting n operations the sequencer
-// has not placed yet.
-func (h *SharedObjectHealth) WithUnorderedCount(n uint32) *SharedObjectHealth {
-	// Keep the snapshot when the count is unchanged.
-	if h.GetUnorderedCount() == n {
-		return h
-	}
-
-	// Copy the snapshot with the new count.
-	next := h.edit()
-	next.UnorderedCount = n
+	next.RejectedEdits = r.RejectedEdits
+	next.CheckpointMismatch = r.CheckpointMismatch
+	next.UnorderedCount = r.Unordered
+	next.ReplayWait = r.ReplayWait
 	return next
 }
 

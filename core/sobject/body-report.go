@@ -15,12 +15,15 @@ type BodyReport struct {
 	CheckpointMismatch *SOCheckpointMismatch
 	// Unordered counts the edits the appointed sequencer has not placed.
 	Unordered uint32
+	// ReplayWait is the operation replay waits at, or nil.
+	ReplayWait *SOReplayWait
 }
 
 // equal reports whether r and other show the same health.
 func (r *BodyReport) equal(other *BodyReport) bool {
 	return other != nil &&
 		r.Unordered == other.Unordered &&
+		r.ReplayWait.EqualVT(other.ReplayWait) &&
 		r.CheckpointMismatch.EqualVT(other.CheckpointMismatch) &&
 		slices.EqualFunc(r.RejectedEdits, other.RejectedEdits, (*SORejectedEdit).EqualVT)
 }

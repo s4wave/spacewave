@@ -7,9 +7,7 @@ import (
 )
 
 // OpTypes resolves the operation types of a Space World: the built-in
-// operations first, then the bus, and the operation types the Space's
-// installed plugin manifests declare.
+// operations first, then the handlers registered on the bus.
 var OpTypes = space_world.OpTypes{
-	Lookup:   space_world_optypes.LookupWorldOp,
-	Declared: space_world.DeclaredOpPlugins,
+	Lookup: space_world_optypes.LookupWorldOp,
 }

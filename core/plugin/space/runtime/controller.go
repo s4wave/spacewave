@@ -283,6 +283,7 @@ func (c *Controller) runGeneration(ctx context.Context, retry backoff.BackOff) e
 		c.GetConfig(),
 		c.IsPluginDemanded,
 		c.GetAccountPluginIDs,
+		c.GetReplayPluginIDs,
 		c.NotifyProcessBindingsChanged,
 	)
 	if err != nil {

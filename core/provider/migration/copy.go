@@ -22,8 +22,8 @@ import (
 // the source Space's Adapter resolves them on b, the source account's bus
 // (Account.SpaceBus), so a running plugin's operations name their payloads.
 // It fails with space_world.ErrUnresolvedOp while an operation's type
-// resolves nowhere and the source's replay does not refuse it, such as a
-// plugin's that is not running (space_world.ImportRoots).
+// resolves nowhere on an initialized World, such as a plugin's that is not
+// running (space_world.ImportRoots).
 func Roots(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -43,7 +43,7 @@ func Roots(
 		WithConfigHistory(soHost.ReadConfigEntry).
 		WithOperationVerifier(soHost.GetOperationVerifier()).
 		WithGrantKeyring(soHost.GetGrantKeyring())
-	return space_world.ImportRoots(ctx, le, b, factories, object, space.SpaceEngineId(ref), space_world_engine.OpTypes, snap)
+	return space_world.ImportRoots(ctx, le, b, object, space.SpaceEngineId(ref), space_world_engine.OpTypes, snap)
 }
 
 // CopyRoots copies every block reachable from roots out of src into

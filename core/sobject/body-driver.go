@@ -71,6 +71,8 @@ type BodyDriver struct {
 	applied map[string]struct{}
 	// mismatch is the checkpoint mismatch the last Install found, or nil.
 	mismatch *SOCheckpointMismatch
+	// wait is the wait the last step stopped at, or nil.
+	wait *SOReplayWait
 	// shown is the report last sent to report.
 	shown *BodyReport
 	// storing reports that a checkpoint's store and signature run in the
@@ -133,6 +135,10 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 		delay = min(2*delay, bodyRetryMax)
 	}
 
+	// Step again when the body's wait ends.
+	stopWake := func() {}
+	defer func() { stopWake() }()
+
 	// Step each new state, and the held one on a retry.
 	var snap SharedObjectStateSnapshot
 	for {
@@ -146,26 +152,51 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 		if snap == nil {
 			continue
 		}
-		if err := d.Step(ctx, snap); err != nil {
-			if ctx.Err() != nil {
-				return context.Canceled
-			}
+		err = d.Step(ctx, snap)
+		stopWake()
+		var wait *BodyWait
+		switch {
+		case err == nil:
+			delay = bodyRetryMin
+		case ctx.Err() != nil:
+			return context.Canceled
+		case errors.As(err, &wait):
+			delay = bodyRetryMin
+			stopWake = d.wakeOn(ctx, wait.Wake)
+		default:
 			d.le.WithError(err).Warn("replay stopped before the end of the order")
 			retry()
-			continue
 		}
-		delay = bodyRetryMin
 	}
+}
+
+// wakeOn steps the driver again once ch is closed, until the returned stop is
+// called.
+func (d *BodyDriver) wakeOn(ctx context.Context, ch <-chan struct{}) func() {
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-ch:
+			select {
+			case d.wake <- errBodyRetry:
+			default:
+			}
+		}
+	}()
+	return cancel
 }
 
 // Step brings the body to the order of snap: it has the body hold what snap's
 // operations read, installs snap's checkpoint when it moved, then applies every operation above it the body has not
 // applied in this order. It returns the first error, with the body at the
-// operations before it.
+// operations before it; a *BodyWait comes back unwrapped, for Execute to step
+// again when it ends.
 func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) error {
-	// Hold the body for the step.
+	// Hold the body for the step, and find its wait anew.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
+	d.wait = nil
 
 	// Read the order.
 	ev, err := ReadOrder(ctx, snap)
@@ -447,6 +478,12 @@ func (d *BodyDriver) apply(ctx context.Context, ev *OrderEvent, i int) error {
 
 	// Apply it and record its outcome.
 	reason, err := d.body.Apply(ctx, i, op)
+	var wait *BodyWait
+	if errors.As(err, &wait) {
+		wait.Wait.CheckpointHeight, wait.Wait.Position = ev.Checkpoint.GetHeight(), uint32(i) //nolint:gosec // an index into the order in memory.
+		d.wait = wait.Wait
+		return wait
+	}
 	if err != nil {
 		return errors.Wrapf(err, "apply operation %d above checkpoint %d", i, ev.Checkpoint.GetHeight())
 	}
@@ -501,7 +538,7 @@ func (d *BodyDriver) publishReport(ev *OrderEvent) {
 
 	// Collect this device's revoked edits.
 	self := d.so.GetPeerID().String()
-	report := &BodyReport{CheckpointMismatch: d.mismatch}
+	report := &BodyReport{CheckpointMismatch: d.mismatch, ReplayWait: d.wait}
 	if ev.Set.Unordered() > 0 {
 		report.Unordered = uint32(ev.Set.Unordered()) //nolint:gosec // the operations held in memory.
 	}
