@@ -282,6 +282,56 @@ func waitHealth(ctx context.Context, t *testing.T, health ccontainer.Watchable[*
 	}
 }
 
+// runPluginOpSystemError makes the plugin's handler report a system error on
+// each replayed run, with an error a refusal also returns: the system error
+// decides, so replay leaves the position unapplied and waits to retry rather
+// than refuse it, and once the error clears the next attempt applies the
+// operation as one clean apply.
+func runPluginOpSystemError(t *testing.T) {
+	// Remount with replay waiting at the operation, failing every run.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	s := newPluginOpSpace(ctx, t, nil)
+	s.marks.sysErr.Store(true)
+	s.remountWaiting(ctx, t)
+	defer func() { s.engRef.Release() }()
+	accessor, ok := s.f.space(t).(sobject.SharedObjectHealthAccessor)
+	if !ok {
+		t.Fatal("the Space's shared object exposes no health")
+	}
+	health, releaseHealth, err := accessor.AccessSharedObjectHealth(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseHealth()
+
+	// Register the handler: replay waits to retry, short of the operation.
+	close(s.start)
+	waitHealth(ctx, t, health, "the retry wait", func(h *sobject.SharedObjectHealth) bool {
+		return h.GetReplay().GetWaiting().GetRetry().GetDeadlineUnixMs() != 0
+	})
+	if seqno, err := s.eng.GetSeqno(ctx); err != nil || seqno >= s.seqno {
+		t.Fatalf("seqno during the retry wait = %d, %v, want one before the operation's %d", seqno, err, s.seqno)
+	}
+
+	// Clear the error: the next attempt applies, as one clean apply.
+	s.marks.sysErr.Store(false)
+	if _, err := s.eng.WaitSeqno(ctx, s.seqno); err != nil {
+		t.Fatal(err)
+	}
+	if err := world.AccessEngine(ctx, s.eng, func(ctx context.Context, eng world.Engine) error {
+		if err := hasObjects(ctx, eng, "plugin-object"); err != nil {
+			return err
+		}
+		return lacksObject(ctx, eng, crashObject)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	waitHealth(ctx, t, health, "caught up", func(h *sobject.SharedObjectHealth) bool {
+		return h.GetReplay().GetCaughtUp() != nil
+	})
+}
+
 // runPluginOpDeadline makes the plugin's handler answer replay's first run of
 // its operation with the error a plugin call returns at the operation
 // deadline. The deadline is a fact about this device, not the operation, so
@@ -671,6 +721,9 @@ type replayMarks struct {
 	// crashes counts the runs left, after the missing ones, that write
 	// crashObject and then fail as a handler lost after it was sent.
 	crashes atomic.Int32
+	// sysErr, while set, makes each run write crashObject and then report a
+	// system error carrying a refusal's sentinel.
+	sysErr atomic.Bool
 }
 
 // setTimeouts fails the next n replayed runs at the operation deadline.
@@ -726,6 +779,15 @@ func (o *markedOp) ApplyWorldOp(ctx context.Context, le *logrus.Entry, ws world.
 			return false, err
 		}
 		return false, &world.PluginUnavailableError{PluginID: testOpPlugin, OperationTypeID: o.TypeID(), Sent: true, Err: errors.New("connection lost")}
+	}
+
+	if o.marks.sysErr.Load() {
+		obj, err := ws.CreateObject(ctx, crashObject, nil)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			return false, err
+		}
+		return true, world.ErrObjectNotFound
 	}
 
 	// Record the mark, failing a replayed run at the deadline.

@@ -251,8 +251,10 @@ func GuardOpWorldState(ctx context.Context, ws WorldState) WorldState {
 // GuardOpResult returns the result an engine reports for an op it applied
 // under ctx, through GuardOpWorldState or GuardOpObjectState, that returned
 // sysErr and err: a success becomes the first guard error recorded in the
-// op's tree, even one the op swallowed. An engine calls it before its
-// transaction can commit, so no engine path commits a refused op.
+// op's tree, even one the op swallowed, and a system error with no error
+// becomes an *OpSystemError. An engine calls it before its transaction can
+// commit, so no engine path commits a refused op or one whose handler
+// reported a system error.
 func GuardOpResult(ctx context.Context, sysErr bool, err error) (bool, error) {
 	if err != nil {
 		return sysErr, err
@@ -260,7 +262,10 @@ func GuardOpResult(ctx context.Context, sysErr bool, err error) (bool, error) {
 	if gerr := getOpApply(ctx).guardErr(); gerr != nil {
 		return IsGuardSysErr(gerr), gerr
 	}
-	return sysErr, nil
+	if sysErr {
+		return true, NewOpSystemError(nil)
+	}
+	return false, nil
 }
 
 // GuardOpObjectState returns the handle an engine gives an object op it
