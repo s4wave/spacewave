@@ -172,7 +172,7 @@ func TestSyncUploadedBlockCanBeMarkedAgain(t *testing.T) {
 	if err != nil || len(candidates) != 1 {
 		t.Fatalf("initial queue: %v (%d blocks)", err, len(candidates))
 	}
-	if _, err := syncer.FlushNow(t.Context()); err != nil {
+	if err := syncer.FlushNow(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -180,7 +180,7 @@ func TestSyncUploadedBlockCanBeMarkedAgain(t *testing.T) {
 	if err := syncer.MarkDirty(t.Context(), []block_store_writeback.Mark{{Hash: candidates[0].hash, Size: candidates[0].size}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := syncer.FlushNow(t.Context()); err != nil {
+	if err := syncer.FlushNow(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	if packs, _ := push.uploadTotals(); packs != 1 {

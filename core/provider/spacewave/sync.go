@@ -3,6 +3,8 @@ package provider_spacewave
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -105,11 +107,40 @@ type syncController struct {
 	// the manifest, so a stale plan is never retried.
 	compactWaitPull atomic.Bool
 	// corruptKnown holds the dirty blocks the last flush found corrupt, keyed
-	// by hash, under flushMtx. A flush skips and counts them without reading
-	// them until corruptRecheck is set.
+	// by hash, under bcast. A flush skips and counts them without reading
+	// them until corruptRecheck is set. The map is replaced, never changed.
 	corruptKnown map[string]struct{}
+	// heldSince is when the flush first held a corrupt block back, zero while
+	// none is held, under bcast.
+	heldSince time.Time
+	// writes counts MarkDirty calls under bcast, so a held store waits for a
+	// new write rather than for any broadcast.
+	writes uint64
 	// corruptRecheck makes the next flush read the known corrupt blocks again.
 	corruptRecheck atomic.Bool
+}
+
+// heldError is the result of a flush that uploaded every dirty block it could
+// verify and held back count whose local bytes fail their hash. It published
+// nothing: a checkpoint is published only when every block it reaches is on
+// the remote. It matches block.ErrBlockCorrupt, so a caller that needs every
+// block on the remote fails as on any other corrupt read.
+type heldError struct {
+	// count is the number of corrupt dirty blocks held back.
+	count int
+	// since is when the store first held a block back.
+	since time.Time
+}
+
+// Error names the held state the person sees.
+func (e *heldError) Error() string {
+	return fmt.Sprintf("sync held: %d damaged blocks on this device, nothing published since %s",
+		e.count, e.since.Format(time.RFC3339))
+}
+
+// Is matches block.ErrBlockCorrupt.
+func (e *heldError) Is(target error) bool {
+	return target == block.ErrBlockCorrupt
 }
 
 // Init reads persisted queue accounting and runs the initial pull. Access-gated pull
@@ -325,7 +356,39 @@ func (s *syncController) Execute(ctx context.Context) error {
 			}
 		}
 
-		corrupt, err := s.FlushNow(ctx)
+		writes, _ := s.writeSnapshot()
+		err := s.FlushNow(ctx)
+
+		// A held flush published nothing and waits for a new write, which
+		// flushes one interval after it arrives, or for the slow delay to
+		// read the held blocks again. Nothing else wakes it, so a held store
+		// does no work while idle.
+		var held *heldError
+		if errors.As(err, &held) {
+			bo.Reset()
+			retryAt = time.Time{}
+			if recheckAt.IsZero() || rechecked {
+				corruptDelay = min(max(2*corruptDelay, interval), dirtyCorruptRetryMax)
+				recheckAt = time.Now().Add(corruptDelay)
+				s.le.WithError(held).WithField("recheck-in", corruptDelay).Warn("sync held")
+			}
+
+			// Merge small packs a publication before the hold left due.
+			if s.takeCompactDue() {
+				if err := s.CompactNow(ctx); err != nil && ctx.Err() == nil {
+					s.le.WithError(err).Warn("small pack merge failed")
+				}
+			}
+			recheck, err := s.waitHeld(ctx, writes, recheckAt, interval)
+			if err != nil {
+				return nil
+			}
+			if recheck {
+				s.corruptRecheck.Store(true)
+			}
+			rechecked = recheck
+			continue
+		}
 		if err != nil {
 			retryAt = time.Now().Add(clouderror.RetryAfter(err))
 			if ctx.Err() != nil {
@@ -349,33 +412,6 @@ func (s *syncController) Execute(ctx context.Context) error {
 
 		bo.Reset()
 		retryAt = time.Time{}
-
-		// Known corrupt blocks keep the queue's deadline expired, so wait for
-		// new work, which flushes one interval after it arrives, or for the
-		// slow delay to read them again.
-		if corrupt != 0 {
-			if recheckAt.IsZero() || rechecked {
-				corruptDelay = min(max(2*corruptDelay, interval), dirtyCorruptRetryMax)
-				recheckAt = time.Now().Add(corruptDelay)
-				s.le.WithField("corrupt-blocks", corrupt).WithField("recheck-in", corruptDelay).
-					Warn("dirty blocks fail their hash and stay queued; the rest uploaded")
-			}
-			rechecked = false
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-changed:
-				select {
-				case <-ctx.Done():
-					return nil
-				case <-time.After(interval):
-				}
-			case <-time.After(time.Until(recheckAt)):
-				s.corruptRecheck.Store(true)
-				rechecked = true
-			}
-			continue
-		}
 		corruptDelay, recheckAt, rechecked = 0, time.Time{}, false
 
 		// A flush with no progress must not spin on an expired deadline.
@@ -408,8 +444,53 @@ func (s *syncController) drain(ctx context.Context, retryAt time.Time) {
 	// Flush on a detached context, bounded like a forced sync.
 	flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), forceSyncTimeout)
 	defer cancel()
-	if _, err := s.FlushNow(flushCtx); err != nil {
+
+	// A held flush publishes nothing either; the held blocks keep their
+	// markers for the next mount.
+	if err := s.FlushNow(flushCtx); err != nil {
 		s.le.WithError(err).Warn("pending cloud work kept for the next mount")
+	}
+}
+
+// writeSnapshot returns the write count with the broadcast wait, read together.
+func (s *syncController) writeSnapshot() (uint64, <-chan struct{}) {
+	var writes uint64
+	var changed <-chan struct{}
+	s.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+		writes, changed = s.writes, getWait()
+	})
+	return writes, changed
+}
+
+// waitHeld waits while a flush holds corrupt blocks back. A write after the
+// flush started, counted past writes, ends the wait one interval later; the
+// recheckAt deadline ends it with recheck set. Other broadcasts, such as a
+// flush another caller ran, do not end it. It returns ctx's error when ctx
+// ends.
+func (s *syncController) waitHeld(ctx context.Context, writes uint64, recheckAt time.Time, interval time.Duration) (bool, error) {
+	// Wait for a new write or the recheck deadline.
+	deadline := time.NewTimer(time.Until(recheckAt))
+	defer deadline.Stop()
+	for {
+		now, changed := s.writeSnapshot()
+		if now != writes {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return false, ctx.Err()
+		case <-deadline.C:
+			return true, nil
+		case <-changed:
+		}
+	}
+
+	// Let a burst of writes gather before the flush.
+	select {
+	case <-ctx.Done():
+		return false, ctx.Err()
+	case <-time.After(interval):
+		return false, nil
 	}
 }
 
@@ -463,23 +544,21 @@ func (s *syncController) waitDirtySyncGate(ctx context.Context) error {
 	}
 }
 
-// FlushNow serializes an immediate flush request. It returns the count of
-// dirty blocks it held back because their local bytes fail their hash; the
-// flush still uploaded the rest and published, so they are not an error.
-// Their markers stay, so the pending upload count still includes them.
-func (s *syncController) FlushNow(ctx context.Context) (int, error) {
+// FlushNow serializes an immediate flush request. A flush that held back a
+// dirty block whose local bytes fail its hash returns a *heldError and
+// publishes nothing; the block keeps its marker and its local copy.
+func (s *syncController) FlushNow(ctx context.Context) error {
 	s.flushMtx.Lock()
 	defer s.flushMtx.Unlock()
 	return s.flushCheckpoint(ctx, true)
 }
 
 // FlushNowUnordered flushes dirty blocks without refgraph locality ordering.
-// Like FlushNow, it succeeds while holding back corrupt dirty blocks.
+// Like FlushNow, it fails with a *heldError while a corrupt block is held.
 func (s *syncController) FlushNowUnordered(ctx context.Context) error {
 	s.flushMtx.Lock()
 	defer s.flushMtx.Unlock()
-	_, err := s.flushCheckpoint(ctx, false)
-	return err
+	return s.flushCheckpoint(ctx, false)
 }
 
 // PullNow serializes an immediate remote packfile manifest pull. It runs
@@ -586,6 +665,14 @@ func (s *syncController) MarkDirty(ctx context.Context, marks []block_store_writ
 		// Publish each committed batch; retrying a partial mark is idempotent.
 		s.publishDirtyState(state)
 	}
+
+	// Count the write for a held store's wait. A write of a held block's hash
+	// may repair it, so it leaves the known set and the next flush reads it.
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.writes++
+		s.corruptKnown = withoutMarks(s.corruptKnown, marks)
+		broadcast()
+	})
 	return nil
 }
 
@@ -914,7 +1001,8 @@ func (s *syncController) prepareChunks(
 	// corrupt collects the dirty blocks this pass holds back. Unless a recheck
 	// is due, the blocks the last pass found corrupt are held without a read.
 	corrupt := make(map[string]struct{})
-	known := s.corruptKnown
+	var known map[string]struct{}
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known = s.corruptKnown })
 	if s.corruptRecheck.Swap(false) {
 		known = nil
 	}
@@ -999,14 +1087,56 @@ func (s *syncController) prepareChunks(
 }
 
 // setCorruptKnown records the corrupt dirty blocks the last flush held back
-// and shows their count. The count follows the markers: a marker cleared, as
-// a duplicate or by a successful read, leaves the set at the next flush, and
-// a flush with nothing pending clears it. The caller holds flushMtx.
+// and shows the held state. The count follows the markers: a marker cleared,
+// as a duplicate or by a successful read, leaves the set at the next flush,
+// and a flush with nothing pending clears it. A write of a held hash leaves
+// the set at once, in MarkDirty. The caller holds flushMtx.
 func (s *syncController) setCorruptKnown(corrupt map[string]struct{}) {
-	s.corruptKnown = corrupt
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.setSyncTelemetryCorruptDirty(id, len(corrupt))
+	// Start the held time on the first hold and clear it with the last.
+	var since time.Time
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.corruptKnown = corrupt
+		switch {
+		case len(corrupt) == 0:
+			s.heldSince = time.Time{}
+		case s.heldSince.IsZero():
+			s.heldSince = time.Now()
+		}
+		since = s.heldSince
 	})
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.setSyncTelemetryCorruptDirty(id, len(corrupt), since)
+	})
+}
+
+// withoutMarks returns known without the hashes in marks. It returns known
+// itself when no mark is in it, and a new map otherwise, since the map is
+// replaced, never changed.
+func withoutMarks(known map[string]struct{}, marks []block_store_writeback.Mark) map[string]struct{} {
+	var out map[string]struct{}
+	for _, m := range marks {
+		key := m.Hash.MarshalString()
+		if !hasKey(known, key) {
+			continue
+		}
+		if out == nil {
+			out = maps.Clone(known)
+		}
+		delete(out, key)
+	}
+	if out == nil {
+		return known
+	}
+	return out
+}
+
+// held returns the held state of a flush that held count blocks back. It
+// takes the count from the flush, not from corruptKnown, so a write that
+// clears a known entry meanwhile cannot turn a held flush into a success.
+func (s *syncController) held(count int) *heldError {
+	var since time.Time
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { since = s.heldSince })
+	return &heldError{count: count, since: since}
 }
 
 // hasKey reports whether set holds key.

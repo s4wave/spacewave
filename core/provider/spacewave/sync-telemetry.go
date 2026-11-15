@@ -1,6 +1,8 @@
 package provider_spacewave
 
 import (
+	"time"
+
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
@@ -71,8 +73,8 @@ func (a *ProviderAccount) setSyncTelemetryPending(bstoreID string, bytes int64, 
 	a.syncTelemetry.SetPending(bstoreID, bytes, count)
 }
 
-func (a *ProviderAccount) setSyncTelemetryCorruptDirty(bstoreID string, count int) {
-	a.syncTelemetry.SetCorruptDirty(bstoreID, count)
+func (a *ProviderAccount) setSyncTelemetryCorruptDirty(bstoreID string, count int, since time.Time) {
+	a.syncTelemetry.SetCorruptDirty(bstoreID, count, since)
 }
 
 func (a *ProviderAccount) startSyncTelemetryPush(bstoreID string, bytes int64) {
