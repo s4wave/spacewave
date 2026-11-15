@@ -12,7 +12,6 @@ import (
 // replay. Each depends only on the operation and the World it applies to, so
 // every replica that applies the operation on the same World refuses it.
 var replayRefusals = []error{
-	world.ErrEngineUnguardedOp,
 	world.ErrObjectExists,
 	world.ErrObjectNotFound,
 	world.ErrQuadNotFound,
@@ -47,8 +46,9 @@ var replayRefusals = []error{
 // native handler's or a validation's *world.OpRefusedError, or one of
 // replayRefusals. A refusal is final on every replica, so refusing on a
 // failure that depends on this device, such as a missing or corrupt block, a
-// read the device could not finish, a store it opened read only or a handler
-// it lacks, would split replicas. A failure of a wait class, or of
+// read the device could not finish, a store it opened read only, a handler
+// it lacks or an engine of this build that applied an op unguarded
+// (world.ErrEngineUnguardedOp), would split replicas. A failure of a wait class, or of
 // no known type, therefore waits, even when it wraps a refusal.
 func replayRefuses(err error) bool {
 	// Wait on a failure that depends on this device.

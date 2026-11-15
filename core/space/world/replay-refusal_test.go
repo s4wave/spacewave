@@ -73,6 +73,7 @@ func TestReplayRefuses(t *testing.T) {
 		world.ErrStateNotFound,
 		tx.ErrNotWrite,
 		world.ErrUnhandledOp,
+		world.ErrEngineUnguardedOp,
 		world.NewOpSystemError(nil),
 		world.NewOpSystemError(world.ErrObjectNotFound),
 		&world.OpPanicError{Value: "boom"},
