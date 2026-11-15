@@ -739,8 +739,9 @@ export const SharedObjectHealth: MessageType<SharedObjectHealth> =
 
 /**
  * SOReplayState is where this device's replay stands. The body driver sets it
- * after each step; the body refuses writes in every state but caught_up, so
- * what the health shows and what a write meets never disagree.
+ * after each step. A write meets the same state the health shows: caught_up
+ * admits it, opening holds it until replay reaches caught_up or a wait, and a
+ * wait refuses it.
  *
  * @generated from message sobject.SOReplayState
  */
@@ -794,8 +795,8 @@ export const SOReplayCaughtUp: MessageType<SOReplayCaughtUp> =
 
 /**
  * SOReplayWait is the operation this device's replay waits at. A missing
- * handler is a fact about this device and its release, not about the
- * operation, so replay waits for one instead of refusing the operation.
+ * handler, a missing block or a failed read is a fact about this device, not
+ * about the operation, so replay waits instead of refusing the operation.
  *
  * @generated from message sobject.SOReplayWait
  */
@@ -826,6 +827,8 @@ export interface SOReplayWait {
     | { value?: undefined; case: undefined }
     | { value: SOReplayWaitHandler; case: 'handler' }
     | { value: SOReplayWaitApproval; case: 'approval' }
+    | { value: SOReplayWaitGap; case: 'gap' }
+    | { value: SOReplayWaitRetry; case: 'retry' }
 }
 
 export const SOReplayWait: MessageType<SOReplayWait> =
@@ -838,6 +841,8 @@ export const SOReplayWait: MessageType<SOReplayWait> =
       [4, 'plugin_id', 9],
       [5, 'handler', 11, 0, SOReplayWaitHandler.codec, 'state'],
       [6, 'approval', 11, 0, SOReplayWaitApproval.codec, 'state'],
+      [7, 'gap', 11, 0, SOReplayWaitGap.codec, 'state'],
+      [8, 'retry', 11, 0, SOReplayWaitRetry.codec, 'state'],
     ],
   )
 
@@ -872,6 +877,38 @@ export const SOReplayWaitApproval: MessageType<SOReplayWaitApproval> =
   /* @__PURE__ */ createMessageType<SOReplayWaitApproval>(
     'sobject.SOReplayWaitApproval',
     () => [[1, 'plugin_ids', 9, 1]],
+  )
+
+/**
+ * SOReplayWaitGap waits for a block or plugin the operation reads to become
+ * available on this device.
+ *
+ * @generated from message sobject.SOReplayWaitGap
+ */
+export interface SOReplayWaitGap {}
+
+export const SOReplayWaitGap: MessageType<SOReplayWaitGap> =
+  /* @__PURE__ */ createMessageType<SOReplayWaitGap>(
+    'sobject.SOReplayWaitGap',
+    () => [],
+  )
+
+/**
+ * SOReplayWaitRetry waits to step again after a failure that names no wait.
+ *
+ * @generated from message sobject.SOReplayWaitRetry
+ */
+export interface SOReplayWaitRetry {
+  /**
+   * DeadlineUnixMs is when replay steps again, in Unix milliseconds.
+   */
+  deadlineUnixMs?: bigint
+}
+
+export const SOReplayWaitRetry: MessageType<SOReplayWaitRetry> =
+  /* @__PURE__ */ createMessageType<SOReplayWaitRetry>(
+    'sobject.SOReplayWaitRetry',
+    () => [[1, 'deadline_unix_ms', 4]],
   )
 
 /**

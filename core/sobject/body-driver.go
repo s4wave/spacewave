@@ -73,6 +73,13 @@ type BodyDriver struct {
 	mismatch *SOCheckpointMismatch
 	// replay is where replay stands after the last step.
 	replay *SOReplayState
+	// backoff is the delay before the next step after a failure or a wait
+	// with no wake, zero after a step that reached the end of its order or a
+	// wait that wakes.
+	backoff time.Duration
+	// retryAt is when the driver steps again after the last failure or wait
+	// with no wake.
+	retryAt time.Time
 	// shown is the report last sent to report.
 	shown *BodyReport
 	// storing reports that a checkpoint's store and signature run in the
@@ -114,26 +121,32 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 	}
 	defer rel()
 
-	// Wake a failed step after a backoff.
+	// Wake a failed step at the deadline its replay state shows.
 	wake := d.wake
-	delay := bodyRetryMin
 	var timer *time.Timer
 	defer func() {
 		if timer != nil {
 			timer.Stop()
 		}
 	}()
+
+	// retry sets the timer for the deadline setReplay recorded.
 	retry := func() {
+		// Drop the timer an earlier failure set.
 		if timer != nil {
 			timer.Stop()
 		}
-		timer = time.AfterFunc(delay, func() {
+
+		// Read the deadline under the lock setReplay holds.
+		d.mtx.Lock()
+		at := d.retryAt
+		d.mtx.Unlock()
+		timer = time.AfterFunc(time.Until(at), func() {
 			select {
 			case wake <- errBodyRetry:
 			default:
 			}
 		})
-		delay = min(2*delay, bodyRetryMax)
 	}
 
 	// Step again when the body's wait ends.
@@ -158,14 +171,14 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 		var wait *BodyWait
 		switch {
 		case err == nil:
-			delay = bodyRetryMin
 		case ctx.Err() != nil:
 			return context.Canceled
-		case errors.As(err, &wait):
-			delay = bodyRetryMin
+		case errors.As(err, &wait) && wait.Wake != nil:
 			stopWake = d.wakeOn(ctx, wait.Wake)
 		default:
-			d.le.WithError(err).Warn("replay stopped before the end of the order")
+			if wait == nil {
+				d.le.WithError(err).Warn("replay stopped before the end of the order")
+			}
 			retry()
 		}
 	}
@@ -198,36 +211,51 @@ func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) e
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
-	// Read the order.
+	// Read the order, show the opening before the first step applies
+	// anything, then step.
 	ev, err := ReadOrder(ctx, snap)
-	if err != nil {
-		return err
+	if err == nil {
+		if d.shown == nil {
+			d.publishReport(ev)
+		}
+		err = d.step(ctx, ev)
 	}
 
-	// Show the opening before the first step applies anything, then step
-	// and show where replay stands after it.
-	if d.shown == nil {
+	// Show where replay stands after it, unless the step ended with ctx.
+	if ctx.Err() == nil {
+		d.setReplay(err)
+	}
+	if ev != nil {
 		d.publishReport(ev)
 	}
-	err = d.step(ctx, ev)
-	d.setReplay(err)
-	d.publishReport(ev)
 	return err
 }
 
 // setReplay moves the replay state after a step that returned err: caught up
 // when the step reached the end of its order, waiting at a *BodyWait, and
-// unchanged after any other error, which the driver retries. It tells a body
-// that observes the state, under the same hold of the body as the step.
+// waiting to retry at the end of the next backoff after any other error. A
+// wait with no Wake also steps again after the backoff. It tells a body that
+// observes the state, under the same hold of the body as the step.
 func (d *BodyDriver) setReplay(err error) {
+	// Advance the backoff of a step that only a retry can move on.
 	var wait *BodyWait
+	isWait := errors.As(err, &wait)
+	if err == nil || (isWait && wait.Wake != nil) {
+		d.backoff = 0
+	} else {
+		d.backoff = min(max(2*d.backoff, bodyRetryMin), bodyRetryMax)
+		d.retryAt = time.Now().Add(d.backoff)
+	}
+
+	// Move the state.
 	switch {
 	case err == nil:
 		d.replay = replayCaughtUp
-	case errors.As(err, &wait):
+	case isWait:
 		d.replay = &SOReplayState{State: &SOReplayState_Waiting{Waiting: wait.Wait}}
 	default:
-		return
+		retry := &SOReplayWaitRetry{DeadlineUnixMs: uint64(d.retryAt.UnixMilli())} //nolint:gosec // a time after the epoch.
+		d.replay = &SOReplayState{State: &SOReplayState_Waiting{Waiting: &SOReplayWait{State: &SOReplayWait_Retry{Retry: retry}}}}
 	}
 	if obs, ok := d.body.(ReplayObserver); ok {
 		obs.ObserveReplay(d.replay)

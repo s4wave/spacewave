@@ -1,81 +1,77 @@
 package space_world
 
 import (
+	"context"
+
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
-// replayGate is the adapter's copy of the replay state the body driver steps,
-// which decides whether the Space takes writes. The driver is its only
-// writer, through ObserveReplay; serve reads it to publish the engine, and
-// Admit and writeOp to refuse a write. The adapter's bcast guards it.
+// newReplayOpening returns the replay state before the driver's first step.
+func newReplayOpening() *sobject.SOReplayState {
+	return &sobject.SOReplayState{State: &sobject.SOReplayState_Opening{Opening: &sobject.SOReplayOpening{}}}
+}
+
+// ObserveReplay takes the replay state the driver reached, waking serve, the
+// writes waiting while replay opens, and any watcher on a change. A wait for
+// a handler lasts only while the state waits for one: on any other state it
+// ends. The driver calls it on its goroutine, which owns the handler wait.
+func (a *Adapter) ObserveReplay(state *sobject.SOReplayState) {
+	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if a.replayState.EqualVT(state) {
+			return
+		}
+		a.replayState = state
+		broadcast()
+	})
+	switch state.GetWaiting().GetState().(type) {
+	case *sobject.SOReplayWait_Handler, *sobject.SOReplayWait_Approval:
+	default:
+		a.endHandlerWait()
+	}
+}
+
+// gateWrite runs admit, which may be nil, under the hold of bcast that finds
+// replay caught up. While replay opens it waits for the state to move, until
+// ctx ends. In any wait it returns a *sobject.BodyWait, whose Wake closes on
+// the next change of the Adapter's state, without running admit.
 //
 // Invariant: a write is admitted only on a World that applied every operation
 // ordered before it that this device has seen; while replay opens or waits at
-// any position, the Space is read only on this device. A turn builds on the
+// any position, the Space takes no write on this device. A turn builds on the
 // installed head, which lacks the operation replay waits at and every one
 // after it, and a recorded write applied after them would replace what they
-// wrote, such as an object root, with nothing to detect it.
-type replayGate struct {
-	// state is the driver's last replay state, nil before its first step.
-	state *sobject.SOReplayState
-	// caughtUp is closed on the next move to caught up while the state is not
-	// caught up, and nil while it is.
-	caughtUp chan struct{}
-}
-
-// newReplayGate returns the gate before the driver's first step.
-func newReplayGate() replayGate {
-	return replayGate{caughtUp: make(chan struct{})}
-}
-
-// set moves the gate to state, closing caughtUp on a move to caught up and
-// opening a new one on a move away from it.
-func (g *replayGate) set(state *sobject.SOReplayState) {
-	was := g.caughtUp == nil
-	g.state = state
-	switch now := state.GetCaughtUp() != nil; {
-	case now && !was:
-		close(g.caughtUp)
-		g.caughtUp = nil
-	case !now && was:
-		g.caughtUp = make(chan struct{})
-	}
-}
-
-// writeWait returns the wait a write meets, nil while caught up. Its Wake
-// closes once replay is caught up again. It carries no Wait: what replay
-// waits for is published once, in the Space's health.
-func (g *replayGate) writeWait() *sobject.BodyWait {
-	if g.caughtUp == nil {
-		return nil
-	}
-	return &sobject.BodyWait{Wake: g.caughtUp}
-}
-
-// ObserveReplay takes the replay state the driver reached, waking serve and
-// any watcher on a change.
-func (a *Adapter) ObserveReplay(state *sobject.SOReplayState) {
-	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if a.replayGate.state.EqualVT(state) {
-			return
+// wrote, such as an object root, with nothing to detect it. Opening holds the
+// write rather than refuse it, as replay of what this device already holds
+// usually reaches the end of its order in moments.
+func (a *Adapter) gateWrite(ctx context.Context, admit func()) error {
+	for {
+		var opening bool
+		var wait *sobject.BodyWait
+		var waitCh <-chan struct{}
+		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			switch {
+			case a.replayState.GetCaughtUp() != nil:
+				if admit != nil {
+					admit()
+				}
+			case a.replayState.GetOpening() != nil:
+				opening, waitCh = true, getWaitCh()
+			default:
+				wait = &sobject.BodyWait{Wake: getWaitCh()}
+			}
+		})
+		if wait != nil {
+			return wait
 		}
-		a.replayGate.set(state)
-		broadcast()
-	})
-}
-
-// writeWait returns the wait a write meets while replay is not caught up, or
-// nil. Admit and writeOp check it again where they admit, so a wait that
-// began after Begin still refuses the write.
-func (a *Adapter) writeWait() error {
-	var wait *sobject.BodyWait
-	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		wait = a.replayGate.writeWait()
-	})
-	if wait == nil {
-		return nil
+		if !opening {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-waitCh:
+		}
 	}
-	return wait
 }
 
 // _ is a type assertion

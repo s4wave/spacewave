@@ -72,7 +72,8 @@ type spaceFence struct {
 //     both off by default, so the fence answers but no backend deletes by it
 //     until an operator turns them on.
 func (a *Adapter) ReclaimFence(ctx context.Context, copyRoots bool) ([]*block.BlockRef, error) {
-	// Place the fence after this device's admitted operations.
+	// Place the fence after this device's admitted operations, bypassing
+	// the write gate as enqueue says.
 	pass := ulid.NewULID()
 	adm, err := a.enqueueOp(&WorldOp{Body: &WorldOp_Fence{Fence: &FenceOp{Pass: pass}}})
 	if err != nil {
@@ -265,7 +266,8 @@ func (a *Adapter) noteFenceOp(ctx context.Context, op *sobject.OrderedOperation)
 		return err
 	}
 
-	// Queue it after the operations this device started.
+	// Queue it after the operations this device started, bypassing the
+	// write gate as enqueue says.
 	_, err = a.enqueueOp(&WorldOp{Body: &WorldOp_RootSet{RootSet: &RootSetOp{Fence: op.Hash, Roots: dedupRefs(roots)}}})
 	return err
 }

@@ -159,7 +159,22 @@ func (r *FSHandleResource) registerChildResource(
 	}
 
 	// Register the child service with the shared filesystem barriers.
-	childResource := newFSHandleResource(
+	childResource := r.newChildResource(childHandle, childPath)
+	resourceID, err := client.AddResourceValue(childResource.GetMux(), childResource, func() {
+		childHandle.Release()
+	})
+	if err != nil {
+		childHandle.Release()
+		return 0, err
+	}
+
+	return resourceID, nil
+}
+
+// newChildResource returns the resource of childHandle at childPath, which
+// shares r's filesystem barriers, cursor and World.
+func (r *FSHandleResource) newChildResource(childHandle *unixfs.FSHandle, childPath []string) *FSHandleResource {
+	return newFSHandleResource(
 		r.le,
 		childHandle,
 		r.bcast,
@@ -171,15 +186,6 @@ func (r *FSHandleResource) registerChildResource(
 		r.fsType,
 		childPath,
 	)
-	resourceID, err := client.AddResourceValue(childResource.GetMux(), childResource, func() {
-		childHandle.Release()
-	})
-	if err != nil {
-		childHandle.Release()
-		return 0, err
-	}
-
-	return resourceID, nil
 }
 
 // joinHandlePath joins relPath onto the current handle path.
