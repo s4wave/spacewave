@@ -381,11 +381,12 @@ jobs:
       - name: Generate Resource bindings
         run: bun run gen
 
-      - name: Verify generated Resource bindings
+      - name: Verify generated bindings
         run: |
           manifests=(
             .protoc-python-resource-manifest.json
             .protoc-python-session-journey-manifest.json
+            .protoc-python-web-plugin-manifest.json
           )
           mapfile -t python_generated < <(
             jq -r '.packages[].generatedFiles[]' "${manifests[@]}"
@@ -401,7 +402,7 @@ jobs:
           )
           if ! git diff --exit-code -- "${paths[@]}" ||
             [ -n "$(git status --porcelain -- "${paths[@]}")" ]; then
-            echo 'Resource generation changed a committed binding or manifest.'
+            echo 'Generation changed a committed binding or manifest.'
             exit 1
           fi
 
