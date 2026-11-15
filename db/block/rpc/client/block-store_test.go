@@ -23,6 +23,8 @@ type testBlockStoreClient struct {
 	shortExisted bool
 	// getRequest is the last GetBlock request.
 	getRequest *block_rpc.GetBlockRequest
+	// getResponse answers GetBlock when set.
+	getResponse *block_rpc.GetBlockResponse
 }
 
 func (c *testBlockStoreClient) SRPCClient() srpc.Client {
@@ -79,6 +81,9 @@ func (c *testBlockStoreClient) GetBlock(
 	req *block_rpc.GetBlockRequest,
 ) (*block_rpc.GetBlockResponse, error) {
 	c.getRequest = req
+	if c.getResponse != nil {
+		return c.getResponse, nil
+	}
 	return &block_rpc.GetBlockResponse{}, nil
 }
 
@@ -219,5 +224,23 @@ func TestBlockStoreGetBlockSendsBackground(t *testing.T) {
 		if gotGet != background || client.getRequest.GetBackground() != background {
 			t.Fatalf("background %v sent as GetBlock %v, GetStoredBlock %v", background, gotGet, client.getRequest.GetBackground())
 		}
+	}
+}
+
+func TestBlockStoreGetBlockRejectsWrongBytes(t *testing.T) {
+	// Answer a read with bytes that do not hash to the requested ref.
+	ref, err := block.BuildBlockRef([]byte("block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &testBlockStoreClient{getResponse: &block_rpc.GetBlockResponse{Data: []byte("other"), Exists: true}}
+	store := NewBlockStore(client, 0, false)
+
+	// Both read paths refuse the bytes as corrupt.
+	if _, _, err := store.GetBlock(t.Context(), ref); !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("GetBlock of wrong bytes: %v, want ErrBlockCorrupt", err)
+	}
+	if _, err := store.GetStoredBlock(t.Context(), ref); !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("GetStoredBlock of wrong bytes: %v, want ErrBlockCorrupt", err)
 	}
 }

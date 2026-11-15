@@ -2337,7 +2337,7 @@ func TestCollectStartupManifestEligibilityDemandsExternalRefAndUsesWriteback(t *
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	cacheStore := block_store_kvtx.NewKVTxBlock(cacheKey, store_kvtx_inmem.NewStore(), 0, true)
+	cacheStore := block_store_kvtx.NewKVTxBlock(cacheKey, store_kvtx_inmem.NewStore(), 0)
 	networkGets := &atomic.Uint32{}
 	provider := block_store.NewStore(
 		"test/startup-demand-provider",
@@ -3100,7 +3100,7 @@ func TestDownloadManifestCopiesExternalVolumeDAGAndCachesSourceReads(t *testing.
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	cache := block_store_kvtx.NewKVTxBlock(cacheKey, store_kvtx_inmem.NewStore(), 0, true)
+	cache := block_store_kvtx.NewKVTxBlock(cacheKey, store_kvtx_inmem.NewStore(), 0)
 	networkGets := &atomic.Uint32{}
 	sourceStore := &writebackLookupBlockStore{
 		StoreOps:    remote.store,
@@ -4419,7 +4419,7 @@ func newTestExternalManifestRefWithDistAssets(
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ops := block_store_kvtx.NewKVTxBlock(kvk, store_kvtx_inmem.NewStore(), 0, true)
+	ops := block_store_kvtx.NewKVTxBlock(kvk, store_kvtx_inmem.NewStore(), 0)
 	store := &countingBlockStore{store: ops, gets: &atomic.Uint32{}}
 
 	// Create the manifest block in the store.

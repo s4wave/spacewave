@@ -102,7 +102,6 @@ func newMirrorStore(t *testing.T, ctx context.Context, specs ...blockSpec) block
 		store_kvkey.NewDefaultKVKey(),
 		store_kvtx_inmem.NewStore(),
 		hash.HashType_HashType_SHA256,
-		false,
 	)
 	// Put each spec block and assert its ref key.
 	for _, spec := range specs {

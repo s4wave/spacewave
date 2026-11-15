@@ -8,12 +8,8 @@ message Config {
   // HashType is the hash type to use for block refs.
   // If unset (0 value) will use the Spacewave default (SHA256).
   .hash.HashType hash_type = 2;
-  // DisableHashGet disables hashing values for Get requests.
-  // This improves performance if the underlying store is trusted & consistent.
-  //
-  // If the store may return invalid data or mismatch the requested block ref,
-  // do not enable this option. It is important to hash the data for each read.
-  bool disable_hash_get = 3;
+  // Every block read is verified against its ref.
+  reserved 3;
   // CollectorFrees turns on the Volume collector's frees. Off, the collector
   // still releases lapsed leases and nets the journal, so its counts stay
   // current, and frees nothing. Turning it on also adopts an unadopted

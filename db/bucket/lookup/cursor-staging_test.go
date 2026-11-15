@@ -16,7 +16,7 @@ import (
 func TestCursorStagingCoversDirectAndTransactionStorePaths(t *testing.T) {
 	// Construct a cursor whose effective block store buffers destination writes.
 	ctx := t.Context()
-	raw := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, true)
+	raw := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)
 	stage := block.NewBufferedStore(ctx, raw)
 	cursor := NewCursor(ctx, nil, logrus.NewEntry(logrus.New()), nil, raw, nil, &bucket.ObjectRef{BucketId: "staged"}, &bucket.BucketOpArgs{BucketId: "staged", VolumeId: "volume"}, nil)
 	cursor.SetTransactionStore(stage)

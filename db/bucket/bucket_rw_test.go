@@ -30,7 +30,6 @@ func newBucketRWTestStore() *bucketRWTestStore {
 			store_kvkey.NewDefaultKVKey(),
 			store_kvtx_inmem.NewStore(),
 			hash.HashType_HashType_BLAKE3,
-			false,
 		),
 	}
 }

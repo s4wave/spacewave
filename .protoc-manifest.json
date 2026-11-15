@@ -1786,7 +1786,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/store/inmem": {
-      "hash": "b7ab0753986e42d79c3fabe0a48c1c572c752c661d549ebb1a11586a0e2c422b",
+      "hash": "d994ee4aada92516b2e91725df8f58af4d1d9289fa2407121b6dbff32710bb09",
       "generatedFiles": [
         "db/block/store/inmem/inmem.pb.go",
         "db/block/store/inmem/inmem.pb.ts"
@@ -1826,7 +1826,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/store/redis": {
-      "hash": "9fcc9a13a901b8af3c8e7bf97541fb04ccd4a61071d5adb53373793777e7f699",
+      "hash": "2dba91a3b4501cbe2b54f1149d5443809a710e48efa1da9a5e39f17dd1539cbe",
       "generatedFiles": [
         "db/block/store/redis/redis.pb.go",
         "db/block/store/redis/redis.pb.ts"
@@ -2303,7 +2303,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/store/kvtx": {
-      "hash": "1ae3f8251c0f0a620210d8f9082469f8546ed76a1f36244448a811710f413ae5",
+      "hash": "1b45d49dcdd89722caf1bebde470a66e9642db2172a16878cb41e5ef53c11f62",
       "generatedFiles": [
         "db/store/kvtx/kvtx.pb.go",
         "db/store/kvtx/kvtx.pb.ts"
@@ -2453,7 +2453,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/volume": {
-      "hash": "fc3d165c02030014403b873186e22f87a3a084a3f51fb4497ce6d5e0b123fe94",
+      "hash": "2c42cfa5031c81d31dbc5ebe8cf1a8f3900bf30770486ad705f89c9334aa6b5f",
       "generatedFiles": [
         "db/volume/health.pb.go",
         "db/volume/health.pb.ts",

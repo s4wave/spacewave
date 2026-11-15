@@ -34,14 +34,6 @@ export interface Config {
    */
   forceHashType?: HashType
   /**
-   * DisableHashGet disables hashing values for Get requests.
-   * This improves performance if the underlying store is trusted & consistent.
-   *
-   * If the store may return invalid data or mismatch the requested block ref,
-   * do not enable this option. It is important to hash the data for each read.
-   */
-  disableHashGet?: boolean
-  /**
    * BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
    */
   bucketIds?: string[]
@@ -64,5 +56,4 @@ export const Config: MessageType<Config> =
     [5, 'bucket_ids', 9, 1],
     [6, 'skip_not_found', 8],
     [7, 'verbose', 8],
-    [8, 'disable_hash_get', 8],
   ])

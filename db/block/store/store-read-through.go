@@ -162,11 +162,16 @@ func (*StoreReadThrough) Sync(context.Context) (bool, error) { return true, nil 
 // GetBlock reads the primary source, then the current lower source. With a
 // fill, a lower hit with known refs is inserted into primary in the
 // background with its refs. A lower hit with unknown refs is served without the fill.
+// A corrupt primary copy is served from lower, as readPastCorrupt describes.
 func (s *StoreReadThrough) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Serve the block from the primary store when it is available there.
 	primary := s.source(s.primary)
 	if primary != nil {
 		data, found, err := primary.GetBlock(ctx, ref)
+		if errors.Is(err, block.ErrBlockCorrupt) {
+			stored, err := s.readPastCorrupt(ctx, ref, err)
+			return stored.GetData(), stored != nil, err
+		}
 		if err != nil || found {
 			return data, found, err
 		}
@@ -192,12 +197,16 @@ func (s *StoreReadThrough) GetBlock(ctx context.Context, ref *block.BlockRef) ([
 // GetStoredBlock reads the block and its refs from the primary source, then
 // the current lower source. The refs come from the source that answered. With
 // a fill, a lower hit with known refs is inserted into primary in the
-// background with its refs.
+// background with its refs. A corrupt primary copy is served from lower, as
+// readPastCorrupt describes.
 func (s *StoreReadThrough) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Serve the stored block and its refs from the primary store when present.
 	primary := s.source(s.primary)
 	if primary != nil {
 		stored, err := primary.GetStoredBlock(ctx, ref)
+		if errors.Is(err, block.ErrBlockCorrupt) {
+			return s.readPastCorrupt(ctx, ref, err)
+		}
 		if err != nil || stored != nil {
 			return stored, err
 		}
@@ -245,6 +254,29 @@ func (s *StoreReadThrough) readLower(ctx context.Context, primary, lower block.S
 	}
 	if s.fill != nil && primary != nil && stored.RefsKnown {
 		_ = s.fill(context.WithoutCancel(ctx), primary, ref, stored)
+	}
+	return stored, nil
+}
+
+// readPastCorrupt serves a block whose primary copy failed verification with
+// corruptErr from the lower source, which checks its own bytes, or returns
+// corruptErr when lower is absent or misses.
+//
+// Invariant: it writes nothing to primary. The corrupt copy stays where it is,
+// as evidence and for the store that holds it to report; replacing it is a
+// separate repair. So every later read of the block reads lower again.
+func (s *StoreReadThrough) readPastCorrupt(ctx context.Context, ref *block.BlockRef, corruptErr error) (*block.StoredBlock, error) {
+	// Read lower, keeping the corrupt error on a miss.
+	lower := s.source(s.lower)
+	if lower == nil {
+		return nil, corruptErr
+	}
+	stored, err := lower.GetStoredBlock(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	if stored == nil {
+		return nil, corruptErr
 	}
 	return stored, nil
 }

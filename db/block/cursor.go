@@ -593,7 +593,7 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 	if c == nil {
 		return nil, false, nil
 	}
-	data, _, found, err := c.fetchAt(ctx, c.pos.ref, false)
+	data, _, found, err := c.fetchAt(ctx, c.pos.ref)
 	return data, found, err
 }
 
@@ -622,7 +622,7 @@ func (c *Cursor) fetchLeafAt(ctx context.Context, ref *BlockRef) ([]byte, bool, 
 
 	// Read the block under a mark that records whether the store asks to keep it.
 	fetchCtx, mark := withBlockReadMark(ctx, ref)
-	data, _, found, err := c.fetchAt(fetchCtx, ref, false)
+	data, _, found, err := c.fetchAt(fetchCtx, ref)
 	if err != nil || !found {
 		return nil, found, err
 	}
@@ -647,7 +647,7 @@ func (c *Cursor) FetchWithKeep(ctx context.Context) (data []byte, keep func(cont
 
 	// Read the block under a mark that records whether the store asks to keep it.
 	fetchCtx, mark := withBlockReadMark(ctx, c.pos.ref)
-	data, _, found, err = c.fetchAt(fetchCtx, c.pos.ref, false)
+	data, _, found, err = c.fetchAt(fetchCtx, c.pos.ref)
 	if err != nil || !found {
 		return nil, nil, found, err
 	}
@@ -656,11 +656,11 @@ func (c *Cursor) FetchWithKeep(ctx context.Context) (data []byte, keep func(cont
 
 // fetchAt loads the decoded block data at ref, reading through this cursor's
 // transaction, store and transformer, none of which depend on the position.
-// With verify it also checks the stored bytes against ref before the
-// transformer may decode them in place, and returns their length when they
-// match, so the caller can cache the decoded block without copying the stored
-// bytes. Otherwise the returned length is zero.
-func (c *Cursor) fetchAt(ctx context.Context, ref *BlockRef, verify bool) ([]byte, int, bool, error) {
+// The store that produced the bytes checked them against ref, returning
+// ErrBlockCorrupt on a mismatch, so the cursor decodes and caches them without
+// hashing them again. It returns the stored length, so the caller can cache
+// the decoded block without copying the stored bytes.
+func (c *Cursor) fetchAt(ctx context.Context, ref *BlockRef) ([]byte, int, bool, error) {
 	// Skip a nil cursor or an empty ref.
 	if c == nil {
 		return nil, 0, false, nil
@@ -695,11 +695,8 @@ func (c *Cursor) fetchAt(ctx context.Context, ref *BlockRef, verify bool) ([]byt
 	recordAccessLog(ctx, ref, len(data))
 	holdRead(ctx, ref)
 
-	// Verify the stored bytes before decoding may overwrite them.
-	var stored int
-	if verify && ref.VerifyData(data, false) == nil {
-		stored = len(data)
-	}
+	// Keep the stored length for the caller's decoded-block cache.
+	stored := len(data)
 
 	// Decode the stored data with the transformer, if any.
 	if xfrm := c.transformer(); xfrm != nil {
@@ -804,7 +801,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	// The mark records whether a durable store served the block, and whether
 	// the store asks for the block's refs to keep it.
 	fetchCtx, mark := withBlockReadMark(ctx, c.pos.ref)
-	dat, stored, datFound, err := c.fetchAt(fetchCtx, c.pos.ref, cacheable)
+	dat, stored, datFound, err := c.fetchAt(fetchCtx, c.pos.ref)
 	if err != nil {
 		return nil, err
 	}
@@ -837,8 +834,6 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		// operation's front cache.
 		switch {
 		case !cacheable:
-		case stored == 0:
-			RecordDecodedBlockUncacheable(ctx)
 		default:
 			if err := storeDecodedBlock(ctx, cacheKey, storeToken, b, stored, share, mark); err != nil {
 				return nil, err
