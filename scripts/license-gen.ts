@@ -341,11 +341,14 @@ function jsPackageRepo(name: string): string | undefined {
 // Collapses all whitespace (including line breaks within paragraphs) to single
 // spaces, preserving paragraph breaks (double newlines).
 function normalize(text: string): string {
+  // NUL never occurs in license text, so it marks a paragraph break while the
+  // other whitespace collapses.
+  const paragraph = '\x00'
   return text
     .replace(/\r\n/g, '\n')
-    .replace(/\n\n+/g, '\x00') // preserve paragraph breaks
-    .replace(/\s+/g, ' ') // collapse all whitespace
-    .replace(/\x00/g, '\n\n') // restore paragraph breaks
+    .replace(/\n\n+/g, paragraph)
+    .replace(/\s+/g, ' ')
+    .replaceAll(paragraph, '\n\n')
     .trim()
 }
 

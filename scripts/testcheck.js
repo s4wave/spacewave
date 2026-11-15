@@ -35,14 +35,17 @@ async function run(command, args, name) {
   })
 }
 
+// ansiPattern matches the ANSI color codes vitest writes around its summary.
+// oxlint-disable-next-line no-control-regex -- an ANSI code starts with ESC.
+const ansiPattern = /\x1b\[[0-9;]*m/g
+
 // Extract summary line from vitest output
 function extractVitestSummary(output) {
   const lines = output.split('\n')
   for (const line of lines) {
     // Match lines like "Test Files  18 passed (18)" or "Tests  244 passed | 4 skipped (248)"
     if (/Test Files/.test(line) && /(passed|failed)/.test(line)) {
-      // Strip ANSI codes
-      return line.replace(/\x1b\[[0-9;]*m/g, '').trim()
+      return line.replace(ansiPattern, '').trim()
     }
   }
   return null
@@ -53,7 +56,7 @@ function extractTestCount(output) {
   const lines = output.split('\n')
   for (const line of lines) {
     if (/Tests/.test(line) && !/Test Files/.test(line)) {
-      return line.replace(/\x1b\[[0-9;]*m/g, '').trim()
+      return line.replace(ansiPattern, '').trim()
     }
   }
   return null

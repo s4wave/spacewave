@@ -25,7 +25,6 @@ const ignorePatterns = [
   'runtime/**',
   'vendor/**',
   'vite-check/**',
-  'scripts/**',
   'wasm_exec.js',
   'hydra/**',
   '**/.bldr/**',

@@ -279,7 +279,7 @@ function readJson<T>(path: string): T {
   try {
     return JSON.parse(readFileSync(path, 'utf8')) as T
   } catch (err) {
-    throw new Error(`read JSON ${path}: ${String(err)}`)
+    throw new Error(`read JSON ${path}: ${String(err)}`, { cause: err })
   }
 }
 
