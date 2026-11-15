@@ -1992,7 +1992,8 @@ func TestSyncControllerPartialPassKeepsHeld(t *testing.T) {
 	cli := NewSessionClient(http.DefaultClient, server.URL, DefaultSigningEnvPrefix, priv, pid.String())
 
 	// Queue the corrupt block, five chunk-sized blocks that fill three
-	// chunks, then a late block no failed flush reaches.
+	// chunks, then a late block no failed flush reaches. The flushes are
+	// unordered so the chunks follow the dirty sequence.
 	ctx := t.Context()
 	s := newDirtySyncExecuteTestController(t, cli, nil)
 	good := s.upper
@@ -2026,7 +2027,7 @@ func TestSyncControllerPartialPassKeepsHeld(t *testing.T) {
 	// the block it found.
 	fail.Store(true)
 	var held *heldError
-	if err := s.FlushNow(ctx); err == nil || errors.As(err, &held) {
+	if err := s.FlushNowUnordered(ctx); err == nil || errors.As(err, &held) {
 		t.Fatalf("failing flush = %v; want the push error", err)
 	}
 	known, partial, since := heldState()
@@ -2041,7 +2042,7 @@ func TestSyncControllerPartialPassKeepsHeld(t *testing.T) {
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		s.corruptKnown = map[string]struct{}{badKey: {}, lateKey: {}}
 	})
-	if err := s.FlushNow(ctx); err == nil || errors.As(err, &held) {
+	if err := s.FlushNowUnordered(ctx); err == nil || errors.As(err, &held) {
 		t.Fatalf("second failing flush = %v; want the push error", err)
 	}
 	known, partial, again := heldState()
@@ -2053,12 +2054,81 @@ func TestSyncControllerPartialPassKeepsHeld(t *testing.T) {
 	// partial: the late block reads sound and uploads.
 	fail.Store(false)
 	s.corruptRecheck.Store(true)
-	if err := s.FlushNow(ctx); !errors.As(err, &held) || held.count != 1 || held.partial {
+	if err := s.FlushNowUnordered(ctx); !errors.As(err, &held) || held.count != 1 || held.partial {
 		t.Fatalf("complete flush = %v; want held with exactly 1 block", err)
 	}
 	known, partial, _ = heldState()
 	if len(known) != 1 || !hasKey(known, badKey) || partial {
 		t.Fatalf("after a complete pass: %d held, partial %v; want only the corrupt block, exact", len(known), partial)
+	}
+}
+
+// TestSyncControllerFailedPushKeepsRecheck holds a block that a write has
+// since made sound, with its recheck pending, in a chunk after the first. A
+// flush that consumes the recheck and fails its first push stops before that
+// chunk; it must hand the recheck back so the next flush reads the block and
+// uploads it rather than holding it unread.
+func TestSyncControllerFailedPushKeepsRecheck(t *testing.T) {
+	// Fail pushes while fail is set and count the ones accepted.
+	var fail atomic.Bool
+	var pushed atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sync/push") {
+			if fail.Load() {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			pushed.Add(1)
+		}
+		w.Header().Set("Content-Type", "application/protobuf")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, server.URL, DefaultSigningEnvPrefix, priv, pid.String())
+
+	// Queue five chunk-sized blocks that fill three chunks, then the held
+	// block, sound on disk, known and due a recheck. The flushes are
+	// unordered so the held block packs after the first chunk.
+	ctx := t.Context()
+	s := newDirtySyncExecuteTestController(t, cli, nil)
+	addSyncChunkBlocks(t, ctx, s.store, s.upper, 5)
+	wtx, err := s.store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	late := addSyncDirtyBlock(t, ctx, wtx, s.upper, "late block")
+	if err := wtx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	s.updateDirtyState(ctx)
+	lateKey := late.GetHash().MarshalString()
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.corruptKnown = map[string]struct{}{lateKey: {}}
+		s.heldSince = time.Now()
+	})
+	s.corruptRecheck.Store(true)
+
+	// The first push fails: the recheck survives and the hold stays.
+	fail.Store(true)
+	var held *heldError
+	if err := s.FlushNowUnordered(ctx); err == nil || errors.As(err, &held) {
+		t.Fatalf("failing flush = %v; want the push error", err)
+	}
+	var known map[string]struct{}
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known = s.corruptKnown })
+	if !s.corruptRecheck.Load() || !hasKey(known, lateKey) {
+		t.Fatalf("after a failed push: recheck %v, held %v; want both kept", s.corruptRecheck.Load(), hasKey(known, lateKey))
+	}
+
+	// The next flush reads the block, uploads it and clears the hold.
+	fail.Store(false)
+	if err := s.FlushNowUnordered(ctx); err != nil {
+		t.Fatalf("flush after the failure = %v; want the block read and uploaded", err)
+	}
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known = s.corruptKnown })
+	if len(known) != 0 || pushed.Load() == 0 {
+		t.Fatalf("after the flush: %d held, %d pushes; want none held", len(known), pushed.Load())
 	}
 }
 

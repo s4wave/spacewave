@@ -152,9 +152,11 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 
 // copyMigrationSpace copies the blocks under roots from src into the cloud
 // store of resource id, flushes it, then posts checkpoint again, which the
-// cloud takes as a repeat once the copy is durable. A flush that holds a
-// corrupt block back fails, so the checkpoint is never posted over a block
-// the cloud lacks.
+// cloud takes as a repeat once the copy is durable. The create-with-state
+// post before it already made checkpoint the cloud's state, since a push needs
+// the store the create makes. A flush that holds a corrupt block back fails
+// the import, and until a repeat import finishes the copy the cloud serves
+// that checkpoint over blocks it lacks.
 func (a *ProviderAccount) copyMigrationSpace(ctx context.Context, client *SessionClient, id string, src block.StoreOps, roots []*block.BlockRef, checkpoint *sobject.SOCheckpoint) error {
 	// Mount the destination store.
 	store, release, err := a.MountBlockStore(ctx, NewBlockStoreRef(a.GetProviderID(), a.accountID, id), nil)
