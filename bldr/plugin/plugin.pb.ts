@@ -218,6 +218,7 @@ export interface PluginSwap {
     | { value: PluginSwapWaiting; case: 'waiting' }
     | { value: PluginSwapFailed; case: 'failed' }
     | { value: PluginSwapAwaitingApproval; case: 'awaitingApproval' }
+    | { value: PluginSwapCheckingApproval; case: 'checkingApproval' }
 }
 
 export const PluginSwap: MessageType<PluginSwap> =
@@ -234,6 +235,14 @@ export const PluginSwap: MessageType<PluginSwap> =
         11,
         0,
         PluginSwapAwaitingApproval.codec,
+        'state',
+      ],
+      [
+        6,
+        'checking_approval',
+        11,
+        0,
+        PluginSwapCheckingApproval.codec,
         'state',
       ],
     ],
@@ -347,6 +356,43 @@ export interface PluginSwapAwaitingApproval {
 export const PluginSwapAwaitingApproval: MessageType<PluginSwapAwaitingApproval> =
   /* @__PURE__ */ createMessageType<PluginSwapAwaitingApproval>(
     'bldr.plugin.PluginSwapAwaitingApproval',
+    () => [
+      [1, 'candidate_manifest_ref', 9],
+      [2, 'candidate_manifest_rev', 4],
+      [3, 'peer_id', 9],
+      [4, 'since_at', 11, 0, Timestamp.codec],
+    ],
+  )
+
+/**
+ * PluginSwapCheckingApproval is the swap state while the scheduler waits for
+ * the answer to whether a candidate root is admitted for the peer. The running
+ * execution, if any, is kept.
+ *
+ * @generated from message bldr.plugin.PluginSwapCheckingApproval
+ */
+export interface PluginSwapCheckingApproval {
+  /**
+   * CandidateManifestRef is the ref of the manifest whose root is checked.
+   */
+  candidateManifestRef?: string
+  /**
+   * CandidateManifestRev is the build rev of that manifest.
+   */
+  candidateManifestRev?: bigint
+  /**
+   * PeerId is the peer whose approval is checked.
+   */
+  peerId?: string
+  /**
+   * SinceAt is when the scheduler asked.
+   */
+  sinceAt?: Date
+}
+
+export const PluginSwapCheckingApproval: MessageType<PluginSwapCheckingApproval> =
+  /* @__PURE__ */ createMessageType<PluginSwapCheckingApproval>(
+    'bldr.plugin.PluginSwapCheckingApproval',
     () => [
       [1, 'candidate_manifest_ref', 9],
       [2, 'candidate_manifest_rev', 4],

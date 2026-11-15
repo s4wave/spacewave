@@ -95,6 +95,9 @@ message PluginSwap {
     // AwaitingApproval means no candidate root is admitted for the peer yet,
     // so nothing new starts until the peer's device approves one.
     PluginSwapAwaitingApproval awaiting_approval = 5;
+    // CheckingApproval means the scheduler asked whether a candidate root is
+    // admitted for the peer and has no answer yet.
+    PluginSwapCheckingApproval checking_approval = 6;
   }
 }
 
@@ -136,6 +139,20 @@ message PluginSwapAwaitingApproval {
   // PeerId is the peer whose approval the root waits for.
   string peer_id = 3;
   // SinceAt is when the scheduler began waiting.
+  google.protobuf.Timestamp since_at = 4;
+}
+
+// PluginSwapCheckingApproval is the swap state while the scheduler waits for
+// the answer to whether a candidate root is admitted for the peer. The running
+// execution, if any, is kept.
+message PluginSwapCheckingApproval {
+  // CandidateManifestRef is the ref of the manifest whose root is checked.
+  string candidate_manifest_ref = 1;
+  // CandidateManifestRev is the build rev of that manifest.
+  uint64 candidate_manifest_rev = 2;
+  // PeerId is the peer whose approval is checked.
+  string peer_id = 3;
+  // SinceAt is when the scheduler asked.
   google.protobuf.Timestamp since_at = 4;
 }
 

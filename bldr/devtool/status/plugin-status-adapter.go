@@ -135,8 +135,8 @@ func pluginStatusRowSummary(state BldrDevtoolPluginState) string {
 }
 
 // pluginSwapSummary describes a swap that is not settled: the candidate rev
-// being prepared, waiting on the running execution, awaiting approval on this
-// device, or failed with its retry. It returns empty for a settled or missing
+// being prepared, waiting on the running execution, having its approval on
+// this device checked, awaiting that approval, or failed with its retry. It returns empty for a settled or missing
 // swap.
 func pluginSwapSummary(swap *bldr_plugin.PluginSwap) string {
 	// Describe the candidate in the words of its swap state.
@@ -148,6 +148,9 @@ func pluginSwapSummary(swap *bldr_plugin.PluginSwap) string {
 		return "rev " + strconv.FormatUint(st.Waiting.GetCandidateManifestRev(), 10) +
 			" waits since " + pluginStatusTimestamp(st.Waiting.GetSinceAt()) +
 			" for the running plugin to answer its activation check"
+	case *bldr_plugin.PluginSwap_CheckingApproval:
+		return "checking approval of rev " + strconv.FormatUint(st.CheckingApproval.GetCandidateManifestRev(), 10) +
+			" on this device since " + pluginStatusTimestamp(st.CheckingApproval.GetSinceAt())
 	case *bldr_plugin.PluginSwap_AwaitingApproval:
 		return "rev " + strconv.FormatUint(st.AwaitingApproval.GetCandidateManifestRev(), 10) +
 			" awaits approval on this device since " + pluginStatusTimestamp(st.AwaitingApproval.GetSinceAt())

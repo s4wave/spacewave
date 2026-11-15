@@ -2,9 +2,14 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/callback"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -664,11 +669,19 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		}
 	})
 	t.Run("release root admitted on root host", func(t *testing.T) {
-		_, instance := newInstance(&Config{PeerId: "root"})
+		c, instance := newInstance(&Config{PeerId: "root"})
 		args, root := candidate(3, true, "peer")
 		trusted.Add(bldr_manifest_trust.Root{PluginID: "colors", ManifestRoot: root})
 		if n := admitted(instance, args); n != 1 {
 			t.Fatalf("release root passed %d candidates, want 1", n)
+		}
+
+		// An admitted root never reads as awaiting approval.
+		if err := instance.awaitAdmission(ctx, args); err != nil {
+			t.Fatal(err)
+		}
+		if swapOf(c).GetCheckingApproval().GetCandidateManifestRev() != args.rev {
+			t.Fatalf("swap = %s, want checking approval of the admitted root", swapOf(c).MarshalProtoText())
 		}
 	})
 	t.Run("unapproved root refused on root host", func(t *testing.T) {
@@ -681,5 +694,240 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		c, instance := newInstance(&Config{RequireAdmission: true, PeerId: "space-peer"})
 		args, _ := candidate(5, true, "other")
 		awaits(c, instance, args, "space-peer")
+	})
+	t.Run("each fallback is decided by its own peer", func(t *testing.T) {
+		// A catalog fallback runs while the preferred load's root waits.
+		_, instance := newInstance(&Config{PeerId: "root"})
+		preferred, _ := candidate(6, true, "peer")
+		catalog, _ := candidate(7, false, "")
+		got, err := instance.admittedCandidates(ctx, []*executePluginArgs{preferred, catalog})
+		if err != nil || len(got) != 1 || got[0] != catalog {
+			t.Fatalf("admitted %d candidates, err %v, want only the catalog fallback", len(got), err)
+		}
+
+		// A preferred root with no peer does not refuse an admitted fallback.
+		noPeer, _ := candidate(8, true, "")
+		fallback, root := candidate(9, true, "peer")
+		trusted.Add(bldr_manifest_trust.Root{PluginID: "colors", ManifestRoot: root})
+		got, err = instance.admittedCandidates(ctx, []*executePluginArgs{noPeer, fallback})
+		if err != nil || len(got) != 1 || got[0] != fallback {
+			t.Fatalf("admitted %d candidates, err %v, want only the admitted fallback", len(got), err)
+		}
+	})
+	// resolveFor adds a controller answering AdmitPluginRoot for peerID with
+	// fn's resolver.
+	resolveFor := func(t *testing.T, peerID string, fn func(context.Context, directive.ResolverHandler) error) {
+		t.Helper()
+		ctrl := callback.NewCallbackController(
+			controller.NewInfo("test/approvals-"+peerID, controller.MustParseVersion("0.0.1"), ""),
+			nil,
+			func(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+				d, ok := inst.GetDirective().(plugin.AdmitPluginRoot)
+				if !ok || d.AdmitPluginRootPeerID() != peerID {
+					return nil, nil
+				}
+				return directive.R(directive.NewFuncResolver(fn), nil)
+			},
+			nil,
+		)
+		release, err := tb.Bus.AddController(ctx, ctrl, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(release)
+	}
+	t.Run("failed read skipped beside an admitted root", func(t *testing.T) {
+		resolveFor(t, "broken", func(context.Context, directive.ResolverHandler) error {
+			return errors.New("approval store down")
+		})
+
+		// The admitted fallback runs although the preferred root's read failed.
+		c, instance := newInstance(&Config{PeerId: "root"})
+		broken, _ := candidate(11, true, "broken")
+		fallback, root := candidate(12, true, "peer")
+		trusted.Add(bldr_manifest_trust.Root{PluginID: "colors", ManifestRoot: root})
+		got, err := instance.admittedCandidates(ctx, []*executePluginArgs{broken, fallback})
+		if err != nil || len(got) != 1 || got[0] != fallback {
+			t.Fatalf("admitted %d candidates, err %v, want only the admitted fallback", len(got), err)
+		}
+
+		// Alone, the failed read fails the load and names its error.
+		got, err = instance.admittedCandidates(ctx, []*executePluginArgs{broken})
+		if err == nil || len(got) != 0 {
+			t.Fatalf("failed read returned %d candidates, err %v", len(got), err)
+		}
+		failed := swapOf(c).GetFailed()
+		if failed == nil || failed.GetCandidateManifestRev() != broken.rev || !strings.Contains(failed.GetErrorMessage(), "approval store down") {
+			t.Fatalf("swap = %s, want failed with the read's error", swapOf(c).MarshalProtoText())
+		}
+	})
+	t.Run("unanswered read shows the root it awaits", func(t *testing.T) {
+		// A resolver that never goes idle holds the read open.
+		resolveFor(t, "silent", func(ctx context.Context, _ directive.ResolverHandler) error {
+			<-ctx.Done()
+			return ctx.Err()
+		})
+		c, instance := newInstance(&Config{PeerId: "root"})
+		args, _ := candidate(13, true, "silent")
+		readCtx, stop := context.WithCancel(ctx)
+		defer stop()
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			_, _ = instance.admittedCandidates(readCtx, []*executePluginArgs{args})
+		}()
+
+		// While the read hangs, the swap says whose approval of which root is
+		// being checked, not that the root awaits approval.
+		waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		_, err := c.pluginStatusCtr.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+			for _, st := range snap.GetExecutions() {
+				w := st.GetSwap().GetCheckingApproval()
+				return w.GetCandidateManifestRev() == args.rev && w.GetPeerId() == "silent", nil
+			}
+			return false, nil
+		}, nil)
+		if err != nil {
+			t.Fatalf("swap = %s, want checking approval for silent: %v", swapOf(c).MarshalProtoText(), err)
+		}
+		select {
+		case <-done:
+			t.Fatal("read returned before any resolver answered")
+		default:
+		}
+		stop()
+		<-done
+	})
+	t.Run("failed wait fails the load", func(t *testing.T) {
+		// The first ask finds no answer; every later one fails to read.
+		var asks atomic.Int32
+		failing := callback.NewCallbackController(
+			controller.NewInfo("test/failing-approvals", controller.MustParseVersion("0.0.1"), ""),
+			nil,
+			func(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+				d, ok := inst.GetDirective().(plugin.AdmitPluginRoot)
+				if !ok || d.AdmitPluginRootPeerID() != "failing" || asks.Add(1) == 1 {
+					return nil, nil
+				}
+				return directive.R(directive.NewFuncResolver(func(context.Context, directive.ResolverHandler) error {
+					return errors.New("approval store down")
+				}), nil)
+			},
+			nil,
+		)
+		release, err := tb.Bus.AddController(ctx, failing, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer release()
+
+		// The wait returns the failure and publishes it as a failed swap.
+		c, instance := newInstance(&Config{PeerId: "root"})
+		args, _ := candidate(10, true, "failing")
+		got, err := instance.admittedCandidates(ctx, []*executePluginArgs{args})
+		if err == nil || len(got) != 0 {
+			t.Fatalf("failed wait returned %d candidates, err %v", len(got), err)
+		}
+		failed := swapOf(c).GetFailed()
+		if failed == nil || failed.GetCandidateManifestRev() != args.rev || !strings.Contains(failed.GetErrorMessage(), "approval store down") {
+			t.Fatalf("swap = %s, want failed with the wait's error", swapOf(c).MarshalProtoText())
+		}
+	})
+	// settledSwap publishes a settled swap from a live pass and returns it.
+	settledSwap := func(c *Controller, instance *pluginInstance) *plugin.PluginSwap {
+		t.Helper()
+		instance.setSwapSettled(ctx, time.Now())
+		swap := swapOf(c)
+		if swap.GetSettled() == nil {
+			t.Fatalf("swap = %s, want settled", swap.MarshalProtoText())
+		}
+		return swap
+	}
+	t.Run("canceled pass leaves the settled swap", func(t *testing.T) {
+		// A pass whose ctx already ended asks about nothing and writes nothing.
+		c, instance := newInstance(&Config{PeerId: "root"})
+		settled := settledSwap(c, instance)
+		first, _ := candidate(15, true, "peer")
+		second, _ := candidate(16, true, "peer")
+		passCtx, stop := context.WithCancel(ctx)
+		stop()
+		got, err := instance.admittedCandidates(passCtx, []*executePluginArgs{first, second})
+		if err == nil || len(got) != 0 {
+			t.Fatalf("canceled pass returned %d candidates, err %v", len(got), err)
+		}
+		if !swapOf(c).EqualVT(settled) {
+			t.Fatalf("swap = %s, want the settled state untouched", swapOf(c).MarshalProtoText())
+		}
+	})
+	t.Run("superseded pass cannot overwrite the newer state", func(t *testing.T) {
+		// The old pass hangs reading its first root, with a second to visit.
+		resolveFor(t, "stalled", func(ctx context.Context, _ directive.ResolverHandler) error {
+			<-ctx.Done()
+			return ctx.Err()
+		})
+		c, instance := newInstance(&Config{PeerId: "root"})
+		first, _ := candidate(17, true, "stalled")
+		second, _ := candidate(18, true, "peer")
+		oldCtx, stopOld := context.WithCancel(ctx)
+		defer stopOld()
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			_, _ = instance.admittedCandidates(oldCtx, []*executePluginArgs{first, second})
+		}()
+		waitCtx, cancelWait := context.WithTimeout(ctx, 5*time.Second)
+		defer cancelWait()
+		if _, err := c.pluginStatusCtr.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+			for _, st := range snap.GetExecutions() {
+				return st.GetSwap().GetCheckingApproval().GetCandidateManifestRev() == first.rev, nil
+			}
+			return false, nil
+		}, nil); err != nil {
+			t.Fatalf("old pass never checked its first root: %v", err)
+		}
+
+		// The routine cancels the old pass before the next starts; the newer
+		// pass settles, then the old one finishes behind it.
+		stopOld()
+		settled := settledSwap(c, instance)
+		<-done
+		if !swapOf(c).EqualVT(settled) {
+			t.Fatalf("swap = %s, want the newer pass's settled state", swapOf(c).MarshalProtoText())
+		}
+	})
+	t.Run("kept worker still starting shows preparing", func(t *testing.T) {
+		// The admitted worker runs the selected args but has not finished
+		// startup, so selecting it again waits for that startup.
+		c, instance := newInstance(&Config{PeerId: "root"})
+		settledSwap(c, instance)
+		args, _ := candidate(19, false, "")
+		worker := &pluginInstance{pluginLoadStateCtr: ccontainer.NewCContainer(
+			plugin.NewPluginLoadState(nil, plugin.InitialCapabilityRegistrationPending),
+		)}
+		instance.pluginUpdateMtx.Lock()
+		instance.activeArgs, instance.activeExecution = args, worker
+		instance.pluginUpdateMtx.Unlock()
+		passCtx, stop := context.WithCancel(ctx)
+		defer stop()
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			_ = instance.execSelectedCandidate(passCtx, args, false)
+		}()
+
+		// The swap leaves the earlier settled state for preparing this root.
+		waitCtx, cancelWait := context.WithTimeout(ctx, 5*time.Second)
+		defer cancelWait()
+		if _, err := c.pluginStatusCtr.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+			for _, st := range snap.GetExecutions() {
+				return st.GetSwap().GetPreparing().GetCandidateManifestRev() == args.rev, nil
+			}
+			return false, nil
+		}, nil); err != nil {
+			t.Fatalf("swap = %s, want preparing the kept worker's root", swapOf(c).MarshalProtoText())
+		}
+		stop()
+		<-done
 	})
 }
