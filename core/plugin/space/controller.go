@@ -536,8 +536,10 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	if c.accountPlugins != nil {
 		ids = append(ids, pluginids.Missing(ids, pluginids.FilterValid(le, c.accountPlugins()))...)
 	}
+	var replayOnly []string
 	if c.replayPlugins != nil {
-		ids = append(ids, pluginids.Missing(ids, pluginids.FilterValid(le, c.replayPlugins()))...)
+		replayOnly = pluginids.Missing(ids, pluginids.FilterValid(le, c.replayPlugins()))
+		ids = append(ids, replayOnly...)
 	}
 
 	// Update the stored pluginIDs for FetchManifest filtering.
@@ -588,10 +590,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	// retains the admitted worker while preparing this exact installation target.
 	for _, pid := range ids {
 		// Name the World manifests the gate admits: a pinned plugin's
-		// installation, or the hosted selection of an unpinned one. A plugin
-		// only a waiting replay asks for names every candidate: no release
-		// load stands in for it, so its host's scheduler asks AdmitPluginRoot
-		// for the session peer and waits, showing PluginSwapAwaitingApproval.
+		// installation, or the hosted selection of an unpinned one.
 		installKeys := installs[pid].GetManifestKeys()
 		var candidates []*manifest.ManifestRef
 		switch {
@@ -603,51 +602,73 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		case c.loadTarget != nil:
 			candidates = loads.hosted.byPlugin[pid]
 		}
-		admitted, open := loads.gate.admitted(ctx, pid, candidates)
-
-		// Stop at once a load that names a root which lost its admission,
-		// rather than when its replacement runs. The released load no longer
-		// runs, whatever its watch last said; the next load's watch reports
-		// from here.
 		previous, existed := refs[pid]
-		if existed && loads.gate.refused(ctx, pid, previous.replaced) {
-			previous.releasePrevious()
-			previous.replaced = nil
-			refs[pid] = previous
-		}
-		if existed && loads.gate.refused(ctx, pid, previous.manifests) {
-			previous.release()
-			delete(refs, pid)
-			existed = false
-			c.loadedPlugins.SetPluginState(pid, false, false)
-		}
 
-		// While any candidate's admission has not answered, keep the current
-		// load, or else name every candidate not refused: the host then says
-		// which root awaits whose approval and runs none until every root it
-		// asks about has answered, so the first pass does not load a fallback
-		// only to swap it out. The answers wake the loop, and the next pass
-		// keeps, replaces or withdraws this load.
-		if len(open) != len(admitted) {
-			if existed {
+		// A plugin demanded only by replay starts on this device only from a
+		// root this device has approved; with no approved root it does not
+		// start and the Space waits for approval. Its load names every
+		// candidate with the session peer, so the host's scheduler asks
+		// AdmitPluginRoot and waits, showing PluginSwapAwaitingApproval. The
+		// gate never withdraws it to a plain load, and with no candidate it
+		// has no load at all.
+		var admitted []*manifest.ManifestRef
+		if c.loadTarget != nil && slices.Contains(replayOnly, pid) {
+			if len(candidates) == 0 {
+				if existed {
+					previous.release()
+					delete(refs, pid)
+				}
+				c.loadedPlugins.SetPluginState(pid, false, true)
 				continue
 			}
-			admitted = open
-		}
+			admitted = candidates
+		} else {
+			var open []*manifest.ManifestRef
+			admitted, open = loads.gate.admitted(ctx, pid, candidates)
 
-		// Keep an admitted load running while every newer root waits.
-		if len(admitted) == 0 && len(candidates) != 0 && existed && len(previous.manifests) != 0 {
-			continue
-		}
-
-		// Withdraw a pinned plugin none of whose installation is admitted.
-		if len(installKeys) != 0 && len(admitted) == 0 {
-			if existed {
+			// Stop at once a load that names a root which lost its admission,
+			// rather than when its replacement runs. The released load no
+			// longer runs, whatever its watch last said; the next load's watch
+			// reports from here.
+			if existed && loads.gate.refused(ctx, pid, previous.replaced) {
+				previous.releasePrevious()
+				previous.replaced = nil
+				refs[pid] = previous
+			}
+			if existed && loads.gate.refused(ctx, pid, previous.manifests) {
 				previous.release()
 				delete(refs, pid)
+				existed = false
+				c.loadedPlugins.SetPluginState(pid, false, false)
 			}
-			c.loadedPlugins.SetPluginState(pid, false, true)
-			continue
+
+			// While any candidate's admission has not answered, keep the
+			// current load, or else name every candidate not refused: the host
+			// then says which root awaits whose approval and runs none until
+			// every root it asks about has answered, so the first pass does not
+			// load a fallback only to swap it out. The answers wake the loop,
+			// and the next pass keeps, replaces or withdraws this load.
+			if len(open) != len(admitted) {
+				if existed {
+					continue
+				}
+				admitted = open
+			}
+
+			// Keep an admitted load running while every newer root waits.
+			if len(admitted) == 0 && len(candidates) != 0 && existed && len(previous.manifests) != 0 {
+				continue
+			}
+
+			// Withdraw a pinned plugin none of whose installation is admitted.
+			if len(installKeys) != 0 && len(admitted) == 0 {
+				if existed {
+					previous.release()
+					delete(refs, pid)
+				}
+				c.loadedPlugins.SetPluginState(pid, false, true)
+				continue
+			}
 		}
 
 		// Keep a load whose admitted manifests did not change.
@@ -655,6 +676,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		if existed && slices.Equal(previous.manifestKeys, keys) {
 			continue
 		}
+
 		// A load that names a root not yet admitted is only ever sent to a host
 		// that asks for each root; it names the peer so the host must ask. The
 		// peer is the gate's: a root is pending only while the gate asks about
