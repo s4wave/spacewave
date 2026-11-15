@@ -153,7 +153,7 @@ function useDocPage(
       return
     }
     // Save on exit from edit mode, and keep editing if the save fails: the
-    // Space may start catching up between this check and the commit.
+    // Space's replay may enter a wait between this check and the commit.
     const handle = fileHandle.value
     if (editContent !== null && handle) {
       const encoded = new TextEncoder().encode(editContent)

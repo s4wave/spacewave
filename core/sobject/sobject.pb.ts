@@ -739,7 +739,7 @@ export const SharedObjectHealth: MessageType<SharedObjectHealth> =
 
 /**
  * SOReplayState is where this device's replay stands. The body driver sets it
- * after each step and when a state arrives; the body refuses writes in every state but caught_up, so
+ * after each step; the body refuses writes in every state but caught_up, so
  * what the health shows and what a write meets never disagree.
  *
  * @generated from message sobject.SOReplayState
@@ -753,7 +753,6 @@ export interface SOReplayState {
     | { value: SOReplayOpening; case: 'opening' }
     | { value: SOReplayWait; case: 'waiting' }
     | { value: SOReplayCaughtUp; case: 'caughtUp' }
-    | { value: SOReplayCatchingUp; case: 'catchingUp' }
 }
 
 export const SOReplayState: MessageType<SOReplayState> =
@@ -763,7 +762,6 @@ export const SOReplayState: MessageType<SOReplayState> =
       [1, 'opening', 11, 0, SOReplayOpening.codec, 'state'],
       [2, 'waiting', 11, 0, SOReplayWait.codec, 'state'],
       [3, 'caught_up', 11, 0, SOReplayCaughtUp.codec, 'state'],
-      [4, 'catching_up', 11, 0, SOReplayCatchingUp.codec, 'state'],
     ],
   )
 
@@ -791,20 +789,6 @@ export interface SOReplayCaughtUp {}
 export const SOReplayCaughtUp: MessageType<SOReplayCaughtUp> =
   /* @__PURE__ */ createMessageType<SOReplayCaughtUp>(
     'sobject.SOReplayCaughtUp',
-    () => [],
-  )
-
-/**
- * SOReplayCatchingUp is replay with another peer's operation held and not yet
- * applied.
- *
- * @generated from message sobject.SOReplayCatchingUp
- */
-export interface SOReplayCatchingUp {}
-
-export const SOReplayCatchingUp: MessageType<SOReplayCatchingUp> =
-  /* @__PURE__ */ createMessageType<SOReplayCatchingUp>(
-    'sobject.SOReplayCatchingUp',
     () => [],
   )
 

@@ -19,11 +19,10 @@ export function SharedObjectSyncNotice({
   const recovery = (health?.syncRecoveryPeerIds?.length ?? 0) > 0
   const denied = (health?.syncDeniedPeerIds?.length ?? 0) > 0
   const mismatch = !!health?.checkpointMismatch
-  const replayCase = health?.replay?.state?.case
-  const brief = replayCase === 'opening' || replayCase === 'catchingUp'
-  const briefShown = useBriefShown(brief)
+  const opening = health?.replay?.state?.case === 'opening'
+  const openingShown = useOpeningShown(opening)
   const { title: waitTitle, description: waitDescription } =
-    describeReplay(health?.replay, briefShown) ?? {}
+    describeReplay(health?.replay, openingShown) ?? {}
 
   useEffect(() => {
     if (!recovery && !denied) return
@@ -113,48 +112,39 @@ function describeRejectedEdit(edit: SORejectedEdit): string {
   return `This edit no longer applies because ${edit.reason || 'the Space rejected it'}. Your other edits are kept.`
 }
 
-// briefDelayMs is how long replay may open or catch up before the notice
-// says so, so a Space that opens or applies another device's change at once
-// shows no notice.
-const briefDelayMs = 2000
+// openingDelayMs is how long replay may open before the notice says so, so a
+// Space that opens at once shows no notice.
+const openingDelayMs = 2000
 
-// useBriefShown returns whether the notice shows a brief state, opening or
-// catching up: once replay has been in one for briefDelayMs, until it leaves.
-function useBriefShown(brief: boolean): boolean {
+// useOpeningShown returns whether the notice shows the opening: once replay
+// has been opening for openingDelayMs, until it leaves the opening.
+function useOpeningShown(opening: boolean): boolean {
   const [shown, setShown] = useState(false)
   useEffect(() => {
-    if (!brief) {
+    if (!opening) {
       setShown(false)
       return
     }
-    const timer = setTimeout(() => setShown(true), briefDelayMs)
+    const timer = setTimeout(() => setShown(true), openingDelayMs)
     return () => clearTimeout(timer)
-  }, [brief])
-  return brief && shown
+  }, [opening])
+  return opening && shown
 }
 
 // describeReplay says in plain words why this device's Space is read only,
-// or returns undefined when replay is caught up or a brief state is not shown
+// or returns undefined when replay is caught up or the opening is not shown
 // yet.
 function describeReplay(
   replay: SOReplayState | undefined,
-  briefShown: boolean,
+  openingShown: boolean,
 ): { title: string; description: string } | undefined {
   const state = replay?.state
   if (state?.case === 'opening') {
-    if (!briefShown) return undefined
+    if (!openingShown) return undefined
     return {
       title: 'This Space is opening',
       description:
         'It is catching up with changes it already holds. It is read only until then, so edits made now are not saved.',
-    }
-  }
-  if (state?.case === 'catchingUp') {
-    if (!briefShown) return undefined
-    return {
-      title: 'This Space is catching up',
-      description:
-        'It is applying changes from another device. It is read only until then, so edits made now are not saved.',
     }
   }
   if (state?.case !== 'waiting') return undefined

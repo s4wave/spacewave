@@ -11,22 +11,17 @@
 \* waits for the person to approve; the approval itself is made where plugin
 \* approvals are made, so the notice offers no press. CaughtUp shows nothing.
 \*
-\* CatchingUp is replay that caught up while this device holds another
-\* device's change it has not applied. It begins when the state holding that
-\* change arrives, before replay steps it, so no write is taken on a World
-\* that lacks it, and ends when the step reaches the end of the order. A wait
-\* can begin at that change, and the Space is read only again until replay
-\* passes it. A restart
+\* A wait can begin after caught up, at a change another device ordered
+\* later, and the Space is read only again until replay passes it. A restart
 \* opens the Space again and keeps every change in the order.
 \*
-\* The component holds the opening and catching up notices back for their
-\* first two seconds, so a Space that opens or applies a change at once
-\* flashes none; a write refused then says why in
+\* The component holds the opening notice back for its first two seconds, so
+\* a Space that opens at once flashes none; a write refused then says why in
 \* its own error, and an editor's save control reads the same state.
 
 People == {"member"}
 
-Phases == {"opening", "catchingUp", "handler", "approval", "caughtUp"}
+Phases == {"opening", "handler", "approval", "caughtUp"}
 
 \* The notice offers no press in any state.
 Buttons == {}
@@ -45,7 +40,6 @@ Allowed(p, b) == FALSE
 Hint(p) ==
   CASE phase = "caughtUp" -> "Shows the Space with no notice"
     [] phase = "opening" -> "Says the Space is opening, and is read only until then"
-    [] phase = "catchingUp" -> "Says the Space is catching up with another device, and is read only until then"
     [] phase = "handler" -> "Says the Space waits for the app that handles a change, and is read only until then"
     [] phase = "approval" -> "Names the plugin waiting for approval, and is read only until then"
 
@@ -55,18 +49,10 @@ Init == phase = "opening"
 Open ==
   /\ phase = "opening"
   /\ phase' = "caughtUp"
-\* A state arrives holding another device's change replay has not applied.
-Arrive ==
-  /\ phase = "caughtUp"
-  /\ phase' = "catchingUp"
-\* The step reaches the end of the order with that change applied.
-Apply ==
-  /\ phase = "catchingUp"
-  /\ phase' = "caughtUp"
 \* Replay reaches a change no handler on this device resolves, while opening
-\* or stepping a change another device ordered after it caught up.
+\* or at a change ordered after it caught up.
 Stall ==
-  /\ phase \in {"opening", "catchingUp"}
+  /\ phase \in {"opening", "caughtUp"}
   /\ phase' = "handler"
 \* The plugin that could handle it is not approved on this device.
 NeedApproval ==
@@ -88,8 +74,6 @@ Restart ==
 
 Next ==
   \/ Open
-  \/ Arrive
-  \/ Apply
   \/ Stall
   \/ NeedApproval
   \/ Approve

@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -57,9 +56,6 @@ type BodyDriver struct {
 	checkpointer *bodyCheckpointer
 	// wake asks Execute to step again without a state change.
 	wake chan error
-	// replay is where replay stands. It has its own lock, so a state that
-	// arrives during a step moves it.
-	replay *replayMachine
 
 	// mtx serializes the body's calls and guards the fields below.
 	mtx sync.Mutex
@@ -75,6 +71,10 @@ type BodyDriver struct {
 	applied map[string]struct{}
 	// mismatch is the checkpoint mismatch the last Install found, or nil.
 	mismatch *SOCheckpointMismatch
+	// replay is where replay stands after the last step.
+	replay *SOReplayState
+	// shown is the report last sent to report.
+	shown *BodyReport
 	// storing reports that a checkpoint's store and signature run in the
 	// background, so a step signs no other.
 	storing bool
@@ -83,10 +83,6 @@ type BodyDriver struct {
 // NewBodyDriver returns the driver of body on so. report receives what the
 // health shows of the replay, and may be nil.
 func NewBodyDriver(le *logrus.Entry, so SharedObject, body Body, report func(*BodyReport)) *BodyDriver {
-	var observe func(*SOReplayState)
-	if obs, ok := body.(ReplayObserver); ok {
-		observe = obs.ObserveReplay
-	}
 	return &BodyDriver{
 		le:      le,
 		so:      so,
@@ -94,7 +90,7 @@ func NewBodyDriver(le *logrus.Entry, so SharedObject, body Body, report func(*Bo
 		report:  report,
 		applied: make(map[string]struct{}),
 		wake:    make(chan error, 1),
-		replay:  newReplayMachine(observe, report),
+		replay:  replayOpening,
 	}
 }
 
@@ -111,18 +107,12 @@ func (d *BodyDriver) SetCheckpointer(host *SOHost, privKey crypto.PrivKey, sfs *
 // Execute steps the body to each state of so until ctx ends. After an error
 // it steps again on the next state, or after a backoff when no state arrives.
 func (d *BodyDriver) Execute(ctx context.Context) error {
-	// Watch the state beside the steps, so a state that arrives during a
-	// step moves the replay state at once.
+	// Watch the state.
 	ctr, rel, err := d.so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer rel()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	var latest bodyArrival
-	watched := make(chan error, 1)
-	go func() { watched <- d.watch(ctx, ctr, &latest) }()
 
 	// Wake a failed step after a backoff.
 	wake := d.wake
@@ -150,18 +140,20 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 	stopWake := func() {}
 	defer func() { stopWake() }()
 
-	// Step the latest state on each arrival, and again on a retry.
+	// Step each new state, and the held one on a retry.
+	var snap SharedObjectStateSnapshot
 	for {
-		select {
-		case err := <-watched:
+		next, err := ctr.WaitValueChange(ctx, snap, wake)
+		if err != nil && !errors.Is(err, errBodyRetry) {
 			return err
-		case <-wake:
 		}
-		next := latest.load()
-		if next.snap == nil {
+		if next != nil {
+			snap = next
+		}
+		if snap == nil {
 			continue
 		}
-		err = d.stepArrival(ctx, next)
+		err = d.Step(ctx, snap)
 		stopWake()
 		var wait *BodyWait
 		switch {
@@ -196,134 +188,49 @@ func (d *BodyDriver) wakeOn(ctx context.Context, ch <-chan struct{}) func() {
 	return cancel
 }
 
-// bodyArrival is the latest state the driver watched, with its generation
-// and its order when reading it succeeded.
-type bodyArrival struct {
-	// mtx guards the fields below.
-	mtx sync.Mutex
-	// snap is the state, or nil before the first.
-	snap SharedObjectStateSnapshot
-	// ev is snap's order, or nil when reading it failed.
-	ev *OrderEvent
-	// gen is snap's generation, counted from 1 by arrival.
-	gen uint64
-}
-
-// bodyArrivalValue is a copy of a bodyArrival's fields.
-type bodyArrivalValue struct {
-	snap SharedObjectStateSnapshot
-	ev   *OrderEvent
-	gen  uint64
-}
-
-// load returns the latest arrival.
-func (a *bodyArrival) load() bodyArrivalValue {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-	return bodyArrivalValue{snap: a.snap, ev: a.ev, gen: a.gen}
-}
-
-// watch reads the order of each state of ctr as it arrives, moves the replay
-// state to catching up when the state holds a new operation of another peer,
-// then hands the state to the step loop as latest. It returns when ctx ends.
-func (d *BodyDriver) watch(ctx context.Context, ctr ccontainer.Watchable[SharedObjectStateSnapshot], latest *bodyArrival) error {
-	positions := newForeignPositions(d.so.GetPeerID().String())
-	var snap SharedObjectStateSnapshot
-	var gen uint64
-	for {
-		next, err := ctr.WaitValueChange(ctx, snap, nil)
-		if err != nil {
-			return err
-		}
-		if next == nil {
-			continue
-		}
-		snap = next
-		gen++
-
-		// Enter catching up before the step loop can see the state. A
-		// failed read leaves the step to read it again and retry.
-		ev, err := ReadOrder(ctx, snap)
-		if err == nil && positions.advance(ev) {
-			d.replay.arrive(gen)
-		}
-		if err != nil {
-			ev = nil
-		}
-		latest.mtx.Lock()
-		latest.snap, latest.ev, latest.gen = snap, ev, gen
-		latest.mtx.Unlock()
-		select {
-		case d.wake <- errBodyRetry:
-		default:
-		}
-	}
-}
-
-// stepArrival steps the body to the order of the arrival a, as Step does, and
-// records it as the generation a step reached.
-func (d *BodyDriver) stepArrival(ctx context.Context, a bodyArrivalValue) error {
-	// Hold the body for the step.
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-
-	// Read the order when the watcher could not, then step it.
-	ev := a.ev
-	if ev == nil {
-		var err error
-		if ev, err = ReadOrder(ctx, a.snap); err != nil {
-			return err
-		}
-	}
-	return d.stepOrder(ctx, ev, a.gen)
-}
-
 // Step brings the body to the order of snap: it has the body hold what snap's
-// operations read, installs snap's checkpoint when it moved, then applies
-// every operation above it the body has not applied in this order. It returns
-// the first error, with the body at the operations before it; a *BodyWait
-// comes back unwrapped, for Execute to step again when it ends. A driver
-// stepped only through Step watches no arrivals, so it is never catching up.
+// operations read, installs snap's checkpoint when it moved, then applies every operation above it the body has not
+// applied in this order. It returns the first error, with the body at the
+// operations before it; a *BodyWait comes back unwrapped, for Execute to step
+// again when it ends.
 func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) error {
 	// Hold the body for the step.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
-	// Read the order and step it.
+	// Read the order.
 	ev, err := ReadOrder(ctx, snap)
 	if err != nil {
 		return err
 	}
-	return d.stepOrder(ctx, ev, 0)
-}
 
-// stepOrder steps the body to ev, the order of the state of generation gen.
-// It shows the opening before the first step applies anything, then steps and
-// shows where replay stands after it. The caller holds mtx.
-func (d *BodyDriver) stepOrder(ctx context.Context, ev *OrderEvent, gen uint64) error {
-	// Show the opening before the first step applies anything.
-	if !d.replay.shownAny() {
+	// Show the opening before the first step applies anything, then step
+	// and show where replay stands after it.
+	if d.shown == nil {
 		d.publishReport(ev)
 	}
-
-	// Step, then show where replay stands after it.
-	err := d.step(ctx, ev)
-	d.setReplay(err, gen)
+	err = d.step(ctx, ev)
+	d.setReplay(err)
 	d.publishReport(ev)
 	return err
 }
 
-// setReplay moves the replay state after a step to generation gen that
-// returned err: caught up with gen when the step reached the end of its
-// order, waiting at a *BodyWait, and unchanged after any other error, which
-// the driver retries. The machine tells a body that observes the state.
-func (d *BodyDriver) setReplay(err error, gen uint64) {
+// setReplay moves the replay state after a step that returned err: caught up
+// when the step reached the end of its order, waiting at a *BodyWait, and
+// unchanged after any other error, which the driver retries. It tells a body
+// that observes the state, under the same hold of the body as the step.
+func (d *BodyDriver) setReplay(err error) {
 	var wait *BodyWait
 	switch {
 	case err == nil:
-		d.replay.step(replayCaughtUp, gen)
+		d.replay = replayCaughtUp
 	case errors.As(err, &wait):
-		d.replay.step(&SOReplayState{State: &SOReplayState_Waiting{Waiting: wait.Wait}}, gen)
+		d.replay = &SOReplayState{State: &SOReplayState_Waiting{Waiting: wait.Wait}}
+	default:
+		return
+	}
+	if obs, ok := d.body.(ReplayObserver); ok {
+		obs.ObserveReplay(d.replay)
 	}
 }
 
@@ -661,7 +568,7 @@ func (d *BodyDriver) publishReport(ev *OrderEvent) {
 
 	// Collect this device's revoked edits.
 	self := d.so.GetPeerID().String()
-	report := &BodyReport{CheckpointMismatch: d.mismatch}
+	report := &BodyReport{CheckpointMismatch: d.mismatch, Replay: d.replay}
 	if ev.Set.Unordered() > 0 {
 		report.Unordered = uint32(ev.Set.Unordered()) //nolint:gosec // the operations held in memory.
 	}
@@ -679,8 +586,12 @@ func (d *BodyDriver) publishReport(ev *OrderEvent) {
 		})
 	}
 
-	// Send it with the replay state when it changed.
-	d.replay.show(report)
+	// Send it when it changed.
+	if report.equal(d.shown) {
+		return
+	}
+	d.shown = report
+	d.report(report)
 }
 
 // concurrentAuthors returns the sorted authors, other than self, of the
