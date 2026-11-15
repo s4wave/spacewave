@@ -411,8 +411,7 @@ func TestWorldOpRegistryBridgeControllerRetriesShareWriteBudget(t *testing.T) {
 		return world.ErrSuperseded
 	})
 	held := time.Since(start)
-	var timeout *world.PluginOpTimeoutError
-	if !errors.As(err, &timeout) {
+	if _, ok := errors.AsType[*world.PluginOpTimeoutError](err); !ok {
 		t.Fatalf("ExecTransaction error = %v, want PluginOpTimeoutError", err)
 	}
 	if attempts != 2 {
