@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"context"
 	"crypto/sha256"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -1730,4 +1731,97 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 		t.Fatalf("expected 2 manifest entries, got %d", len(mfst.GetEntries()))
 	}
 	assertSyncPackEntryMetadata(t, mfst.GetEntries())
+}
+
+// corruptUpperStore reads one block as corrupt, as an upper store whose disk
+// returned the wrong bytes does, and serves the rest.
+type corruptUpperStore struct {
+	block.StoreOps
+	bad *hash.Hash
+}
+
+func (s *corruptUpperStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	if ref.GetHash().EqualVT(s.bad) {
+		return nil, &block.CorruptError{Ref: ref}
+	}
+	return s.StoreOps.GetStoredBlock(ctx, ref)
+}
+
+// TestSyncControllerFlushSkipsCorruptDirtyBlock puts a dirty block whose local
+// bytes fail their hash among good ones: the good ones upload and clear, the
+// corrupt one stays dirty and counted, the flush reports ErrBlockCorrupt so no
+// checkpoint publishes, and the upper store keeps every block.
+func TestSyncControllerFlushSkipsCorruptDirtyBlock(t *testing.T) {
+	// Mark three blocks dirty and read the second as corrupt.
+	ctx := context.Background()
+	dirtyStore := newSyncTestKvStore()
+	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
+	if err != nil {
+		t.Fatalf("new manifest: %v", err)
+	}
+	const blockCount = 3
+	inner := newSyncTestBlockStore()
+	addSyncChunkBlocks(t, ctx, dirtyStore, inner, blockCount)
+	var refs []*block.BlockRef
+	for i := range blockCount {
+		ref, err := block.BuildBlockRef(bytes.Repeat([]byte{byte(i + 1)}, syncTestChunkBlockBytes), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+	}
+	upper := &corruptUpperStore{StoreOps: inner, bad: refs[1].GetHash()}
+
+	// Flush through the production packer and HTTP upload.
+	push := newTestPushServer(t, "")
+	srv := httptest.NewServer(push)
+	defer srv.Close()
+	push.base = srv.URL
+	priv, pid := generateTestKeypair(t)
+	s := &syncController{
+		le:         logrus.NewEntry(logrus.New()),
+		store:      dirtyStore,
+		client:     NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
+		resourceID: "test-res",
+		mfst:       mfst,
+		lower:      push.lower(t),
+		upper:      upper,
+	}
+	if err := s.flush(ctx, false); !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("flush = %v, want ErrBlockCorrupt", err)
+	}
+
+	// The two good blocks uploaded.
+	var pushedBlocks int
+	for _, pack := range push.committed() {
+		pushedBlocks += int(pack.req.GetBlockCount()) //nolint:gosec // test counts are small
+	}
+	if pushedBlocks != blockCount-1 {
+		t.Fatalf("pushed %d blocks, want %d", pushedBlocks, blockCount-1)
+	}
+
+	// Only the corrupt block stays dirty, and the queue still counts it.
+	pending, err := s.scanDirtyCandidates(ctx)
+	if err != nil || len(pending) != 1 || !pending[0].hash.EqualVT(refs[1].GetHash()) {
+		t.Fatalf("dirty after flush = %d blocks, %v; want only the corrupt block", len(pending), err)
+	}
+	if state := readPersistedPending(t, dirtyStore); state.GetCount() != 1 {
+		t.Fatalf("persisted queue counts %d blocks, want 1", state.GetCount())
+	}
+
+	// Nothing was freed: the upper store holds every block.
+	for i, ref := range refs {
+		found, err := inner.GetBlockExists(ctx, ref)
+		if err != nil || !found {
+			t.Fatalf("block %d after flush: found = %v, err = %v", i, found, err)
+		}
+	}
+
+	// A second flush skips it again and still uploads nothing twice.
+	if err := s.flush(ctx, false); !errors.Is(err, block.ErrBlockCorrupt) {
+		t.Fatalf("second flush = %v, want ErrBlockCorrupt", err)
+	}
+	if n := countSyncDirtyKeys(t, ctx, dirtyStore); n != 1 {
+		t.Fatalf("dirty entries after second flush = %d, want 1", n)
+	}
 }
