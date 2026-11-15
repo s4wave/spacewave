@@ -502,6 +502,7 @@ func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
 		opened:           openedNow(),
+		replayState:      newReplayOpening(),
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
@@ -683,6 +684,7 @@ func newVolumeAdapter(t *testing.T, maxPending int, grace time.Duration) (*Adapt
 		le:               logrus.NewEntry(log),
 		so:               &bucketObject{store: &bucketStore{StoreOps: bkt, LeasedRoots: roots, RootProofs: proofs}},
 		opened:           openedNow(),
+		replayState:      newReplayOpening(),
 		pages:            block.NewPendingStore(bkt, maxPending),
 		held:             make(map[string]*block.BlockRef),
 		checkpointWorlds: rootSet{name: RootCheckpoint},
@@ -734,6 +736,7 @@ func TestTrimKeepsRestoredWorlds(t *testing.T) {
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
 		opened:           openedNow(),
+		replayState:      newReplayOpening(),
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
@@ -778,6 +781,7 @@ func TestTrimMovesRootsTogether(t *testing.T) {
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
 		opened:           openedNow(),
+		replayState:      newReplayOpening(),
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
@@ -848,6 +852,7 @@ func TestTrimKeepsItsBaseAndSkipsOlderPlans(t *testing.T) {
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
 		opened:           openedNow(),
+		replayState:      newReplayOpening(),
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
@@ -1169,6 +1174,7 @@ func TestStaleAdapterTrimFails(t *testing.T) {
 		le:               a.le,
 		so:               a.so,
 		opened:           openedNow(),
+		replayState:      newReplayOpening(),
 		pages:            block.NewPendingStore(a.so.GetBlockStore().(*bucketStore).StoreOps, 1<<20),
 		held:             make(map[string]*block.BlockRef),
 		checkpointWorlds: rootSet{name: RootCheckpoint},
@@ -1239,6 +1245,7 @@ func TestStaleAdapterHistoryRewriteFails(t *testing.T) {
 		le:               a.le,
 		so:               a.so,
 		opened:           openedNow(),
+		replayState:      newReplayOpening(),
 		pages:            block.NewPendingStore(a.so.GetBlockStore().(*bucketStore).StoreOps, 1<<20),
 		held:             make(map[string]*block.BlockRef),
 		checkpointWorlds: rootSet{name: RootCheckpoint},

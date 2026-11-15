@@ -1,0 +1,115 @@
+[
+  {
+    "name": "a writer admits without checking the gate under the lock",
+    "replace": [
+      [
+        "            /\\ CASE replay = \"caughtUp\" ->\n                      /\\ holder' = w",
+        "            /\\ CASE TRUE ->\n                      /\\ holder' = w"
+      ]
+    ],
+    "expect": "NoWriteWhileWaiting",
+    "config": "ReplayWriteGate.cfg"
+  },
+  {
+    "name": "replay steps while a writer holds the lock",
+    "replace": [
+      ["Step == /\\ holder = \"free\" /\\ StepReady", "Step == /\\ StepReady"]
+    ],
+    "expect": "NoWriteWhileWaiting",
+    "config": "ReplayWriteGate.cfg"
+  },
+  {
+    "name": "a failure of unknown kind drops its op",
+    "replace": [
+      [
+        "                       /\\ replay' = \"waitRetry\" /\\ failed' = TRUE\n                       /\\ UNCHANGED <<todo, applied, refused>>",
+        "                       /\\ refused' = refused \\cup {op} /\\ todo' = Tail(todo)\n                       /\\ UNCHANGED <<replay, failed, applied>>"
+      ]
+    ],
+    "expect": "OpsKept",
+    "config": "ReplayWriteGate.cfg"
+  },
+  {
+    "name": "a gap waits as a missing handler",
+    "replace": [
+      [
+        "                       /\\ replay' = \"waitGap\"",
+        "                       /\\ replay' = \"waitHandler\""
+      ]
+    ],
+    "expect": "OwnOpNeverWaits",
+    "config": "ReplayWriteGate.cfg"
+  },
+  {
+    "name": "a write during opening is admitted before caughtUp",
+    "replace": [
+      [
+        "            /\\ CASE replay = \"caughtUp\" ->\n                      /\\ holder' = w",
+        "            /\\ CASE replay \\in {\"opening\", \"caughtUp\"} ->\n                      /\\ holder' = w"
+      ]
+    ],
+    "expect": "NoWriteWhileWaiting",
+    "config": "ReplayWriteGate.cfg"
+  },
+  {
+    "name": "a handler wait is never resumed",
+    "replace": [["             \\/ replay = \"waitHandler\" /\\ Seen\n", ""]],
+    "expect": "deadlock",
+    "config": "ReplayWriteGate.cfg"
+  },
+  {
+    "name": "a write refused or cancelled never tries again",
+    "replace": [
+      [
+        "Retry(w) == /\\ wstate[w] \\in {\"refused\", \"cancelled\"} /\\ Writable",
+        "Retry(w) == /\\ wstate[w] \\in {\"refused\", \"cancelled\"} /\\ FALSE"
+      ]
+    ],
+    "expect": "WritesAdmitted",
+    "config": "ReplayWriteGateOneDevice.cfg"
+  },
+  {
+    "name": "a waiting write is refused when replay catches up",
+    "replace": [
+      [
+        "              THEN /\\ holder' = w /\\ wstate' = [wstate EXCEPT ![w] = \"checked\"]\n              ELSE",
+        "              THEN /\\ UNCHANGED holder /\\ wstate' = [wstate EXCEPT ![w] = \"refused\"]\n              ELSE"
+      ]
+    ],
+    "expect": "RefusedOnlyInWait",
+    "config": "ReplayWriteGate.cfg"
+  },
+  {
+    "name": "a waiting write is never woken",
+    "replace": [
+      [
+        "Wake(w) == /\\ wstate[w] = \"waiting\" /\\ replay # \"opening\" /\\ holder = \"free\"",
+        "Wake(w) == /\\ wstate[w] = \"waiting\" /\\ FALSE /\\ holder = \"free\""
+      ]
+    ],
+    "expect": "WaitingWriteDecided",
+    "config": "ReplayWriteGateOneDevice.cfg"
+  },
+  {
+    "name": "an opening with nothing left to apply stays opening",
+    "replace": [
+      [
+        "           THEN /\\ replay' = \"caughtUp\"\n",
+        "           THEN /\\ replay' = replay\n"
+      ]
+    ],
+    "expect": "OpeningExits",
+    "config": "ReplayWriteGateOneDevice.cfg"
+  },
+  {
+    "name": "a restart forgets the ops it applied",
+    "replace": [
+      [
+        "           /\\ todo' = SelectSeq(LogOrder, LAMBDA o : o \\in applied \\cup refused) \\o todo",
+        "           /\\ todo' = todo"
+      ]
+    ],
+    "expect": "OpsKept",
+    "config": "ReplayWriteGate.cfg"
+  }
+]

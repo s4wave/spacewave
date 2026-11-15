@@ -3,6 +3,7 @@ package space_world
 import (
 	"context"
 	"slices"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -10,6 +11,10 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/world"
 )
+
+// handlerLookupRetry is how long a handler watch waits after a failed lookup
+// before it ends, and the driver starts the next.
+const handlerLookupRetry = time.Second
 
 // handlerWait is replay's wait at an operation whose type no handler resolves
 // on this device. While it lasts a LoadOpPlugins asks the Space's plugin
@@ -95,12 +100,9 @@ func (a *Adapter) endHandlerWait() {
 // watch holds a LoadOpPlugins for the wait's plugins, recording the ones
 // awaiting approval, until a handler for the type resolves on b, the lookup
 // fails or ctx ends. It then marks the wait done and wakes the driver, which
-// applies the operation or starts a new wait.
-//
-// It relies on no LookupWorldOp resolver failing while live, so the watch ends
-// only on a resolved handler or on teardown. A resolver that could fail while
-// live would make the driver start the next watch at once; such a resolver
-// needs a backoff here first.
+// applies the operation or starts a new wait. After a failed lookup it first
+// waits handlerLookupRetry, so a resolver that fails at once costs one lookup
+// per interval rather than a spin of watches.
 func (w *handlerWait) watch(ctx context.Context, b bus.Bus, engineID string) {
 	// Ask for the plugins, following which await approval.
 	if len(w.pluginIDs) != 0 {
@@ -142,6 +144,13 @@ func (w *handlerWait) watch(ctx context.Context, b bus.Bus, engineID string) {
 	)
 	if err == nil {
 		ref.Release()
+	} else {
+		t := time.NewTimer(handlerLookupRetry)
+		select {
+		case <-ctx.Done():
+		case <-t.C:
+		}
+		t.Stop()
 	}
 	w.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		w.done = true

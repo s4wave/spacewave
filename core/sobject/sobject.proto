@@ -194,8 +194,9 @@ message SharedObjectHealth {
 }
 
 // SOReplayState is where this device's replay stands. The body driver sets it
-// after each step; the body refuses writes in every state but caught_up, so
-// what the health shows and what a write meets never disagree.
+// after each step. A write meets the same state the health shows: caught_up
+// admits it, opening holds it until replay reaches caught_up or a wait, and a
+// wait refuses it.
 message SOReplayState {
   oneof state {
     // Opening is replay before its first step reached the end of the order:
@@ -219,8 +220,8 @@ message SOReplayOpening {}
 message SOReplayCaughtUp {}
 
 // SOReplayWait is the operation this device's replay waits at. A missing
-// handler is a fact about this device and its release, not about the
-// operation, so replay waits for one instead of refusing the operation.
+// handler, a missing block or a failed read is a fact about this device, not
+// about the operation, so replay waits instead of refusing the operation.
 message SOReplayWait {
   // CheckpointHeight is the height of the checkpoint the operation is above.
   uint64 checkpoint_height = 1;
@@ -242,6 +243,13 @@ message SOReplayWait {
 
     // Approval waits for this device's person to approve a plugin.
     SOReplayWaitApproval approval = 6;
+
+    // Gap waits for a block or plugin the operation reads to become
+    // available on this device.
+    SOReplayWaitGap gap = 7;
+
+    // Retry waits to step again after a failure that names no wait.
+    SOReplayWaitRetry retry = 8;
   }
 }
 
@@ -254,6 +262,16 @@ message SOReplayWaitHandler {}
 message SOReplayWaitApproval {
   // PluginIds lists the plugins awaiting approval on this device, sorted.
   repeated string plugin_ids = 1;
+}
+
+// SOReplayWaitGap waits for a block or plugin the operation reads to become
+// available on this device.
+message SOReplayWaitGap {}
+
+// SOReplayWaitRetry waits to step again after a failure that names no wait.
+message SOReplayWaitRetry {
+  // DeadlineUnixMs is when replay steps again, in Unix milliseconds.
+  uint64 deadline_unix_ms = 1;
 }
 
 // SOSyncPeer is this device's sync stream with one authenticated participant.
