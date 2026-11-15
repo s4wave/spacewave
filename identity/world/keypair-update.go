@@ -113,13 +113,13 @@ func EnsureKeypairsExist(
 	for nki, nkp := range kps {
 		pid, err := nkp.ParsePeerID()
 		if err != nil {
-			return nil, errors.Errorf("keypairs[%d]: parse peer id", nki)
+			return nil, world.NewOpRefusedError(errors.Errorf("keypairs[%d]: parse peer id", nki))
 		}
 
 		objKey := NewKeypairKey(pid.String())
 		kpObjectKeys[nki] = objKey
 		if _, dupe := createdKp[objKey]; dupe {
-			return nil, errors.Errorf("keypairs[%d]: duplicate: %s", nki, pid.String())
+			return nil, world.NewOpRefusedError(errors.Errorf("keypairs[%d]: duplicate: %s", nki, pid.String()))
 		}
 		createdKp[objKey] = struct{}{}
 	}

@@ -571,7 +571,7 @@ func (f *FSCursorService) resolveFSCursorLookup(
 		err := f.ingestFSCursorLocked(retHandleID, func() (unixfs.FSCursor, error) {
 			cursor, err := parentCursorOps.Lookup(ctx, lookupName)
 			if err == nil && cursor == nil {
-				err = fs.ErrNotExist
+				err = unixfs_errors.ErrNotExist
 			}
 			lookupFsCursor = cursor
 			return cursor, err

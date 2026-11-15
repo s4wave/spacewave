@@ -90,7 +90,7 @@ func syncFSToUnixfsRefBatch(
 ) error {
 	// Reset the root workdir before importing its replacement tree.
 	if path := workdirRef.GetPath(); path != nil && len(path.GetNodes()) != 0 {
-		return errors.New("batch worktree sync does not support non-root workdir paths")
+		return world.NewOpRefusedError(errors.New("batch worktree sync does not support non-root workdir paths"))
 	}
 	_, _, err := unixfs_world.FsInit(
 		ctx,

@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/world"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
@@ -50,7 +51,7 @@ func (t *TxCancel) ExecuteTx(
 		forge_execution.State_ExecutionState_COMPLETE:
 		return nil
 	default:
-		return errors.Wrapf(forge_value.ErrUnknownState, "%s", state.String())
+		return world.NewOpRefusedError(errors.Wrapf(forge_value.ErrUnknownState, "%s", state.String()))
 	}
 
 	exCursor.SetBlock(root, true)

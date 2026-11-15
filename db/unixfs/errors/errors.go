@@ -15,9 +15,15 @@ var (
 	// ErrFsNotFound is returned if the unixfs was not found by id.
 	ErrFsNotFound = errors.New("fs not found")
 	// ErrExist is returned if the file or directory already exists.
-	ErrExist = fs.ErrExist
+	//
+	// It is its own value, distinct from fs.ErrExist, so an error a disk or
+	// OS layer returns is never read as the tree's answer. errors.Is matches
+	// it against fs.ErrExist; os.IsExist does not, see ToFs.
+	ErrExist error = &fsError{msg: "file already exists", fsErr: fs.ErrExist}
 	// ErrNotExist is returned if the file does not exist.
-	ErrNotExist = fs.ErrNotExist
+	//
+	// It is its own value, distinct from fs.ErrNotExist, as ErrExist is.
+	ErrNotExist error = &fsError{msg: "file does not exist", fsErr: fs.ErrNotExist}
 	// ErrClosed is returned if read on a file that is already closed.
 	// Note: many functions return context.Canceled instead.
 	ErrClosed = fs.ErrClosed
@@ -50,6 +56,10 @@ var (
 	ErrEmptyUnixFsId = errors.New("empty unixfs id")
 	// ErrCrossFsRename is retruned if we try to rename across two unrelated FS.
 	ErrCrossFsRename = errors.New("cross-fs rename unimplemented")
+	// ErrNegativeOffset is returned if a write names a negative file offset.
+	ErrNegativeOffset = errors.New("negative offset not supported")
+	// ErrEmptyBlob is returned if a blob written into a file holds no data.
+	ErrEmptyBlob = errors.New("empty blob")
 	// ErrUnknown is returned if a remote service returned an unknown error.
 	ErrUnknown = errors.New("unknown unixfs error")
 )
@@ -204,5 +214,36 @@ func (e *UnixFSError) ToGoError() error {
 		return errors.Wrap(err, e.ErrorBody)
 	}
 
+	return err
+}
+
+// fsError is a unixfs sentinel that errors.Is also matches against the io/fs
+// error it stands for.
+type fsError struct {
+	msg   string
+	fsErr error
+}
+
+// Error returns the error message.
+func (e *fsError) Error() string {
+	return e.msg
+}
+
+// Is reports whether target is the io/fs error e stands for.
+func (e *fsError) Is(target error) bool {
+	return target == e.fsErr
+}
+
+// ToFs returns fs.ErrExist or fs.ErrNotExist for an err that is ErrExist or
+// ErrNotExist, and err otherwise. Adapters to os-style interfaces, such as
+// billy and afero, return through it, since their callers test errors with
+// os.IsExist and os.IsNotExist, which match only the io/fs values.
+func ToFs(err error) error {
+	switch {
+	case errors.Is(err, ErrNotExist):
+		return fs.ErrNotExist
+	case errors.Is(err, ErrExist):
+		return fs.ErrExist
+	}
 	return err
 }

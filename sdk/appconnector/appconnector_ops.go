@@ -142,11 +142,11 @@ func validateTokenSecret(ctx context.Context, ws world.WorldState, objKey string
 		return errors.Wrap(err, "app connector token secret")
 	}
 	if secret.GetKind() != s4wave_secret.SecretKindAPIToken {
-		return errors.Errorf(
+		return world.NewOpRefusedError(errors.Errorf(
 			"app connector token secret has kind %q, want %q",
 			secret.GetKind(),
 			s4wave_secret.SecretKindAPIToken,
-		)
+		))
 	}
 	return nil
 }

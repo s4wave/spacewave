@@ -167,7 +167,7 @@ func (t *Tx) ApplyWorldObjectOp(
 		// Apply the transaction and validate the resulting execution.
 		err = tx.ExecuteTx(ctx, sender, bcs, ex)
 		if err == nil {
-			err = ex.Validate()
+			err = world.NewOpRefusedError(ex.Validate())
 		}
 		return err
 	})

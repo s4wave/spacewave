@@ -47,5 +47,5 @@ func (p *Placement) ValidateLinked(ctx context.Context, ws world.WorldState) err
 			return nil
 		}
 	}
-	return errors.Errorf("peer %s is not linked to Worker %s", p.GetPeerId(), p.GetWorkerObjectKey())
+	return world.NewOpRefusedError(errors.Errorf("peer %s is not linked to Worker %s", p.GetPeerId(), p.GetWorkerObjectKey()))
 }

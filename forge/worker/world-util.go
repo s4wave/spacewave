@@ -3,7 +3,6 @@ package forge_worker
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/identity"
@@ -27,14 +26,7 @@ func LookupWorker(ctx context.Context, ws world.WorldState, objKey string) (*Wor
 
 // CheckWorkerType checks the type graph quad for a worker.
 func CheckWorkerType(ctx context.Context, ws world.WorldState, objKey string) error {
-	workerType, err := world_types.GetObjectType(ctx, ws, objKey)
-	if err != nil {
-		return err
-	}
-	if workerType != WorkerTypeID {
-		return errors.Errorf("expected worker type %s but got %q", WorkerTypeID, workerType)
-	}
-	return err
+	return world_types.CheckObjectType(ctx, ws, objKey, WorkerTypeID)
 }
 
 // ListWorkerKeypairs lists all Keypair linked to by the given Worker object keys.

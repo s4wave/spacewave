@@ -92,19 +92,19 @@ func (f *AferoFS) Mkdir(name string, perm os.FileMode) error {
 		if fsh != nil {
 			fsh.Release()
 		}
-		return err
+		return unixfs_errors.ToFs(err)
 	}
 	defer fsh.Release()
 
 	// mkdir operation
-	return fsh.Mknod(
+	return unixfs_errors.ToFs(fsh.Mknod(
 		f.ctx,
 		true,
 		[]string{createDir},
 		unixfs.NewFSCursorNodeType_Dir(),
 		perm,
 		ts,
-	)
+	))
 }
 
 // MkdirAll creates a directory path and all parents that does not exist
@@ -116,11 +116,11 @@ func (f *AferoFS) MkdirAll(mpath string, perm os.FileMode) error {
 	// Clone the filesystem handle so MkdirAllPath can create every missing parent.
 	fsh, err := f.h.Clone(f.ctx)
 	if err != nil {
-		return err
+		return unixfs_errors.ToFs(err)
 	}
 	defer fsh.Release()
 
-	return fsh.MkdirAllPath(f.ctx, mpath, perm, f.timestamp())
+	return unixfs_errors.ToFs(fsh.MkdirAllPath(f.ctx, mpath, perm, f.timestamp()))
 }
 
 // Open opens a file, returning it or an error, if any happens.
@@ -130,7 +130,7 @@ func (f *AferoFS) Open(name string) (afero.File, error) {
 		if fileHandle != nil {
 			fileHandle.Release()
 		}
-		return nil, err
+		return nil, unixfs_errors.ToFs(err)
 	}
 	return NewAferoFSFile(f.ctx, fileHandle.GetName(), fileHandle, os.O_RDONLY, f.timestamp()), nil
 }
@@ -151,7 +151,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 			if dirHandle != nil {
 				dirHandle.Release()
 			}
-			return nil, err
+			return nil, unixfs_errors.ToFs(err)
 		}
 		defer dirHandle.Release()
 		h = dirHandle
@@ -169,7 +169,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 			if fileHandle != nil {
 				fileHandle.Release()
 			}
-			return nil, err
+			return nil, unixfs_errors.ToFs(err)
 		}
 	}
 
@@ -177,7 +177,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 	// create the file if necessary
 	if err == unixfs_errors.ErrNotExist {
 		if !unixfs.FlagIsCreate(flag) {
-			return nil, err
+			return nil, unixfs_errors.ToFs(err)
 		}
 
 		// create the file
@@ -190,7 +190,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 			f.timestamp(),
 		)
 		if err != nil {
-			return nil, err
+			return nil, unixfs_errors.ToFs(err)
 		}
 
 		// re-open the file again
@@ -204,7 +204,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 		if fileHandle != nil {
 			fileHandle.Release()
 		}
-		return nil, err
+		return nil, unixfs_errors.ToFs(err)
 	}
 	return NewAferoFSFile(f.ctx, fileHandle.GetName(), fileHandle, flag, f.timestamp()), nil
 }
@@ -217,22 +217,23 @@ func (f *AferoFS) Remove(filepath string) error {
 // RemoveAll removes a directory path and any children it contains. It does not
 // fail if the path does not exist (return nil).
 func (f *AferoFS) RemoveAll(filepath string) error {
-	return unixfs.RemoveAllWithPath(f.ctx, f.h, filepath, f.timestamp())
+	return unixfs_errors.ToFs(unixfs.RemoveAllWithPath(f.ctx, f.h, filepath, f.timestamp()))
 }
 
 // Rename renames a file.
 func (f *AferoFS) Rename(oldpath, newpath string) error {
-	return unixfs.RenameWithPaths(f.ctx, f.h, oldpath, newpath, f.timestamp())
+	return unixfs_errors.ToFs(unixfs.RenameWithPaths(f.ctx, f.h, oldpath, newpath, f.timestamp()))
 }
 
 // Stat returns a FileInfo describing the named file, or any error.
 func (f *AferoFS) Stat(filepath string) (fs.FileInfo, error) {
-	return unixfs.StatWithPath(f.ctx, f.h, filepath)
+	fi, err := unixfs.StatWithPath(f.ctx, f.h, filepath)
+	return fi, unixfs_errors.ToFs(err)
 }
 
 // Chmod changes the mode of the named file to mode.
 func (f *AferoFS) Chmod(filepath string, mode os.FileMode) error {
-	return unixfs.ChmodWithPath(f.ctx, f.h, filepath, mode, f.timestamp())
+	return unixfs_errors.ToFs(unixfs.ChmodWithPath(f.ctx, f.h, filepath, mode, f.timestamp()))
 }
 
 // Chown changes the uid and gid of the named file.
@@ -246,7 +247,7 @@ func (f *AferoFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	if mtime.IsZero() {
 		mtime = f.timestamp()
 	}
-	return unixfs.SetModTimestampWithPath(f.ctx, f.h, name, mtime)
+	return unixfs_errors.ToFs(unixfs.SetModTimestampWithPath(f.ctx, f.h, name, mtime))
 }
 
 // timestamp returns the timestamp to use for writes.

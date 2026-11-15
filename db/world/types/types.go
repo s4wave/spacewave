@@ -104,18 +104,21 @@ func GetObjectType(ctx context.Context, ws world.WorldState, key string) (string
 }
 
 // CheckObjectType asserts that the object key exists and has the given type.
+// A missing or other type is a *world.OpRefusedError, the World's answer for
+// key; an error reading the type is returned as is.
 func CheckObjectType(ctx context.Context, ws world.WorldState, key, typeID string) error {
+	// Read the type, then refuse a missing object or another type.
 	objType, err := GetObjectType(ctx, ws, key)
 	if err != nil {
 		return err
 	}
-	if objType != typeID {
-		if objType == "" {
-			return errors.Errorf("object %s: expected object to exist w/ a valid type", key)
-		}
-		return errors.Errorf("object %s: expected type %s but got %q", key, typeID, objType)
+	if objType == typeID {
+		return nil
 	}
-	return err
+	if objType == "" {
+		return world.NewOpRefusedError(errors.Errorf("object %s: expected object to exist w/ a valid type", key))
+	}
+	return world.NewOpRefusedError(errors.Errorf("object %s: expected type %s but got %q", key, typeID, objType))
 }
 
 // SetObjectType sets the type of a given object by writing a graph quad.

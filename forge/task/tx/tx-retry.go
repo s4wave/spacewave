@@ -64,7 +64,7 @@ func (t *TxRetry) ExecuteTx(
 ) error {
 	// Validate the root task and transaction.
 	if root == nil {
-		return errors.New("unexpected empty root task object")
+		return world.NewOpRefusedError(errors.New("unexpected empty root task object"))
 	}
 	if err := t.Validate(); err != nil {
 		return err
@@ -79,11 +79,11 @@ func (t *TxRetry) ExecuteTx(
 	switch root.GetTaskState() {
 	case forge_task.State_TaskState_COMPLETE:
 		if root.GetResult() == nil || root.GetResult().GetSuccess() {
-			return errors.New("task did not fail")
+			return world.NewOpRefusedError(errors.New("task did not fail"))
 		}
 	case forge_task.State_TaskState_PENDING:
 	default:
-		return errors.Errorf("task state %s cannot be retried", root.GetTaskState().String())
+		return world.NewOpRefusedError(errors.Errorf("task state %s cannot be retried", root.GetTaskState().String()))
 	}
 
 	// Collect the task's passes for the expected nonce.
@@ -98,7 +98,7 @@ func (t *TxRetry) ExecuteTx(
 	var predecessorKey string
 	for i, pass := range passes {
 		if pass.GetPassNonce() > expectedNonce {
-			return errors.Errorf("pass %d already has successor", expectedNonce)
+			return world.NewOpRefusedError(errors.Errorf("pass %d already has successor", expectedNonce))
 		}
 		if pass.GetPassNonce() == expectedNonce {
 			predecessor = pass
@@ -106,18 +106,18 @@ func (t *TxRetry) ExecuteTx(
 		}
 	}
 	if root.GetPassNonce() != expectedNonce {
-		return errors.Errorf("task points at pass %d, expected %d", root.GetPassNonce(), expectedNonce)
+		return world.NewOpRefusedError(errors.Errorf("task points at pass %d, expected %d", root.GetPassNonce(), expectedNonce))
 	}
 	if predecessor == nil || predecessorKey == "" {
-		return errors.Errorf("failed pass %d is not linked to task", expectedNonce)
+		return world.NewOpRefusedError(errors.Errorf("failed pass %d is not linked to task", expectedNonce))
 	}
 
 	// Require the predecessor pass to be terminal and failed.
 	if predecessor.GetPassState() != forge_pass.State_PassState_COMPLETE {
-		return errors.Errorf("pass %d is not terminal", expectedNonce)
+		return world.NewOpRefusedError(errors.Errorf("pass %d is not terminal", expectedNonce))
 	}
 	if predecessor.GetResult() == nil || predecessor.GetResult().GetSuccess() {
-		return errors.Errorf("pass %d did not fail", expectedNonce)
+		return world.NewOpRefusedError(errors.Errorf("pass %d did not fail", expectedNonce))
 	}
 
 	// Require every execution of the failed pass to be complete.
@@ -127,7 +127,7 @@ func (t *TxRetry) ExecuteTx(
 	}
 	for i, exec := range execObjs {
 		if exec.GetExecutionState() != forge_execution.State_ExecutionState_COMPLETE {
-			return errors.Errorf("pass %d execution %d is still live", expectedNonce, i)
+			return world.NewOpRefusedError(errors.Errorf("pass %d execution %d is still live", expectedNonce, i))
 		}
 	}
 
@@ -136,7 +136,7 @@ func (t *TxRetry) ExecuteTx(
 		if sameInputs(root.GetValueSet().GetInputs(), nextInputs.GetInputs()) {
 			return nil
 		}
-		return errors.New("retry already applied with different inputs")
+		return world.NewOpRefusedError(errors.New("retry already applied with different inputs"))
 	}
 
 	// Rebuild the value set with the retry's inputs.

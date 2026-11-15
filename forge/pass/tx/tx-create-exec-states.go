@@ -73,7 +73,7 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 	if placement := root.GetPlacement(); placement != nil {
 		specs := t.GetExecSpecs()
 		if len(specs) != 1 || specs[0].GetPeerId() != placement.GetPeerId() {
-			return errors.New("placed pass requires one Execution on its selected peer")
+			return world.NewOpRefusedError(errors.New("placed pass requires one Execution on its selected peer"))
 		}
 	}
 

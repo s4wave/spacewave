@@ -86,7 +86,7 @@ func CheckClusterHasJob(ctx context.Context, w world.WorldState, clusterKey, job
 func EnsureClusterHasJob(ctx context.Context, w world.WorldState, clusterKey, jobKey string) error {
 	hasJob, err := CheckClusterHasJob(ctx, w, clusterKey, jobKey)
 	if err == nil && !hasJob {
-		err = errors.Errorf("cluster %s does not have job %s", clusterKey, jobKey)
+		err = world.NewOpRefusedError(errors.Errorf("cluster %s does not have job %s", clusterKey, jobKey))
 	}
 	return err
 }

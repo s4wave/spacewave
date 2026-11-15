@@ -67,7 +67,7 @@ func (t *TxCancel) ExecuteTx(
 		forge_pass.State_PassState_COMPLETE:
 		return nil
 	default:
-		return errors.Wrapf(forge_value.ErrUnknownState, "%s", state.String())
+		return world.NewOpRefusedError(errors.Wrapf(forge_value.ErrUnknownState, "%s", state.String()))
 	}
 
 	bcs.SetBlock(root, true)

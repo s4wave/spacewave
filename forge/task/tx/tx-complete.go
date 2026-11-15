@@ -86,10 +86,10 @@ func (t *TxComplete) ExecuteTx(
 		// reject the operation rather than terminally failing a Task that is
 		// still running or that already recorded a successful completion.
 		if root.GetTaskState() != forge_task.State_TaskState_CHECKING {
-			return errors.Errorf(
+			return world.NewOpRefusedError(errors.Errorf(
 				"%s: must be in CHECKING state if completing successfully",
 				root.GetTaskState().String(),
-			)
+			))
 		}
 		passOutputs, err = validateTaskCompletion(
 			ctx,
@@ -152,14 +152,14 @@ func validateTaskCompletion(
 	passResult := tpass.GetResult()
 	if !passResult.GetSuccess() {
 		passResult.FillFailError()
-		return nil, errors.Wrap(errors.New(passResult.GetFailError()), "pass failed")
+		return nil, world.NewOpRefusedError(errors.Wrap(errors.New(passResult.GetFailError()), "pass failed"))
 	}
 	if tpass.GetPassState() != forge_pass.State_PassState_COMPLETE {
-		return nil, errors.Errorf(
+		return nil, world.NewOpRefusedError(errors.Errorf(
 			"expected pass[%d] to be complete: %s",
 			root.GetPassNonce(),
 			tpass.GetPassState().String(),
-		)
+		))
 	}
 
 	// Recompute the Target outputs and compare them with the saved Pass values.
@@ -176,10 +176,10 @@ func validateTaskCompletion(
 		return nil, errors.Wrapf(err, "pass[%d]: compute outputs", root.GetPassNonce())
 	}
 	if !passOutputs.Equals(tpass.GetValueSet().GetOutputs()) {
-		return nil, errors.Errorf(
+		return nil, world.NewOpRefusedError(errors.Errorf(
 			"pass[%d]: outputs mismatch re-computed pass values",
 			root.GetPassNonce(),
-		)
+		))
 	}
 	return passOutputs, nil
 }
