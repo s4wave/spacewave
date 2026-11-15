@@ -240,26 +240,20 @@ class SharedObjectHealth(_message.Message):
     def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ..., rejected_edits: _Optional[_Iterable[_Union[SORejectedEdit, _Mapping]]] = ..., checkpoint_mismatch: _Optional[_Union[SOCheckpointMismatch, _Mapping]] = ..., unordered_count: _Optional[int] = ..., sync_peers: _Optional[_Iterable[_Union[SOSyncPeer, _Mapping]]] = ..., replay: _Optional[_Union[SOReplayState, _Mapping]] = ...) -> None: ...
 
 class SOReplayState(_message.Message):
-    __slots__ = ("opening", "waiting", "caught_up", "catching_up")
+    __slots__ = ("opening", "waiting", "caught_up")
     OPENING_FIELD_NUMBER: _ClassVar[int]
     WAITING_FIELD_NUMBER: _ClassVar[int]
     CAUGHT_UP_FIELD_NUMBER: _ClassVar[int]
-    CATCHING_UP_FIELD_NUMBER: _ClassVar[int]
     opening: SOReplayOpening
     waiting: SOReplayWait
     caught_up: SOReplayCaughtUp
-    catching_up: SOReplayCatchingUp
-    def __init__(self, opening: _Optional[_Union[SOReplayOpening, _Mapping]] = ..., waiting: _Optional[_Union[SOReplayWait, _Mapping]] = ..., caught_up: _Optional[_Union[SOReplayCaughtUp, _Mapping]] = ..., catching_up: _Optional[_Union[SOReplayCatchingUp, _Mapping]] = ...) -> None: ...
+    def __init__(self, opening: _Optional[_Union[SOReplayOpening, _Mapping]] = ..., waiting: _Optional[_Union[SOReplayWait, _Mapping]] = ..., caught_up: _Optional[_Union[SOReplayCaughtUp, _Mapping]] = ...) -> None: ...
 
 class SOReplayOpening(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
 class SOReplayCaughtUp(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class SOReplayCatchingUp(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 

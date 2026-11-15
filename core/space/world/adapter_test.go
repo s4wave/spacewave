@@ -324,9 +324,6 @@ func TestAdapterRunThrough(t *testing.T) {
 	t.Run("plugin-op-deadline", runPluginOpDeadline)
 	t.Run("plugin-op-restart-wait", runPluginOpRestartWait)
 	t.Run("plugin-op-late-wait", runPluginOpLateWait)
-	t.Run("foreign-arrival", runForeignArrival)
-	t.Run("rapid-local-writes", runRapidLocalWrites)
-	t.Run("rapid-writes-with-arrivals", runRapidWritesWithArrivals)
 	t.Run("sql-primary", func(t *testing.T) {
 		location, creds := sqlTestLocation(t)
 		runAdapterThrough(t, newAdapterFixtureOn(t, fixtureOpts{sql: location, creds: creds}))

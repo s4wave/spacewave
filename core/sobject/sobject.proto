@@ -194,7 +194,7 @@ message SharedObjectHealth {
 }
 
 // SOReplayState is where this device's replay stands. The body driver sets it
-// after each step and when a state arrives; the body refuses writes in every state but caught_up, so
+// after each step; the body refuses writes in every state but caught_up, so
 // what the health shows and what a write meets never disagree.
 message SOReplayState {
   oneof state {
@@ -208,12 +208,6 @@ message SOReplayState {
 
     // CaughtUp is replay at the end of the order its last step read.
     SOReplayCaughtUp caught_up = 3;
-
-    // CatchingUp is replay that reached the end of its last order while this
-    // device holds a newer one with another peer's operation the body has not
-    // applied. It is entered when that state arrives, before the step that
-    // applies the operation, and left when that step reaches the end.
-    SOReplayCatchingUp catching_up = 4;
   }
 }
 
@@ -223,10 +217,6 @@ message SOReplayOpening {}
 
 // SOReplayCaughtUp is replay at the end of the order its last step read.
 message SOReplayCaughtUp {}
-
-// SOReplayCatchingUp is replay with another peer's operation held and not yet
-// applied.
-message SOReplayCatchingUp {}
 
 // SOReplayWait is the operation this device's replay waits at. A missing
 // handler is a fact about this device and its release, not about the
