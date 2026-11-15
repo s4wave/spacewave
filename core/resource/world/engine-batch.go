@@ -215,13 +215,13 @@ func applyObjectMutation(
 ) (uint64, *s4wave_world.ExecuteWorldBatchResponse, error) {
 	// Acquire the object, refusing the batch when it is absent.
 	obj, found, err := ws.GetObject(ctx, key)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return 0, nil, err
 	}
 	if !found {
 		return 0, objectNotFound(), nil
 	}
-	defer world.ReleaseObjectState(obj)
 	rev, err := apply(obj)
 	return rev, nil, err
 }
