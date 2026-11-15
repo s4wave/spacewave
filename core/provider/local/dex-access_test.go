@@ -6,6 +6,7 @@ import (
 	"errors"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -103,12 +104,31 @@ func newDEXRolePeers(t *testing.T, ctx context.Context) *dexRolePeers {
 }
 
 // TestDEXRequesterRole gates new requests on the stream opened before departure.
+// The leave-before-enrollment case joins before the owner enrolls its Session
+// as an owner, so the leave starts while the joiner's owners name only the
+// owner's storage identity, which never links.
 func TestDEXRequesterRole(t *testing.T) {
-	for _, departure := range []string{"leave", "remove"} {
+	for _, departure := range []string{"leave", "leave-before-enrollment", "remove"} {
 		t.Run(departure, func(t *testing.T) {
 			// Bound the complete two-peer request and departure lifecycle.
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 			t.Cleanup(cancel)
+
+			// Hold every hosting reconcile until the leave waits.
+			var hosting chan struct{}
+			if departure == "leave-before-enrollment" {
+				hosting = make(chan struct{})
+				hold := func(ctx context.Context) error {
+					select {
+					case <-hosting:
+						return nil
+					case <-ctx.Done():
+						return context.Cause(ctx)
+					}
+				}
+				soHostingReconcileHook.Store(&hold)
+				t.Cleanup(func() { soHostingReconcileHook.Store(nil) })
+			}
 			peers := newDEXRolePeers(t, ctx)
 			data := []byte("retained blocks need a current requester role")
 			ref, _, err := peers.objects[0].GetBlockStore().PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
@@ -127,7 +147,26 @@ func TestDEXRequesterRole(t *testing.T) {
 
 			// Revoke the requesting Session through the real authority writer.
 			owner := peers.objects[0]
-			if departure == "leave" {
+			if hosting != nil {
+				// The joiner's owners still name only the storage identity.
+				state, err := peers.objects[1].soHost.GetHostState(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				own, err := sobject.ReadSOOwnership(ctx, state.GetConfig(), peers.objects[1].soHost.ReadConfigEntry)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if slices.Contains(own.Owners(), peers.sessions[0].GetPeerId().String()) {
+					t.Fatal("owner Session enrolled before the gated reconcile")
+				}
+
+				// Enroll the owner's Session only once the leave waits on the stale owners.
+				var once sync.Once
+				leaveOwnerWaitHook = func() { once.Do(func() { close(hosting) }) }
+				t.Cleanup(func() { leaveOwnerWaitHook = nil })
+			}
+			if departure != "remove" {
 				if err := peers.accounts[1].LeaveSharedObject(ctx, peers.sessions[1].GetPrivKey(), owner.GetSharedObjectID(), ""); err != nil {
 					t.Fatal(err)
 				}
