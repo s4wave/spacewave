@@ -1,4 +1,5 @@
 import { WorldErrorCode, type AccessTypedObjectResponse } from './world.pb.js'
+import { WorldOperationError } from './errors.js'
 
 /** TypedObjectGrantRetiredError identifies acquisition prevented by retirement of its granting World mount. */
 export class TypedObjectGrantRetiredError extends Error {
@@ -9,7 +10,7 @@ export class TypedObjectGrantRetiredError extends Error {
   }
 }
 
-/** throwTypedObjectError restores acquisition failure and preserves terminal caller cancellation. */
+/** throwTypedObjectError restores acquisition failure and preserves terminal caller cancellation. It returns only for a response with no error code. */
 export function throwTypedObjectError(
   response: AccessTypedObjectResponse,
   abortSignal?: AbortSignal,
@@ -21,4 +22,7 @@ export function throwTypedObjectError(
   if (response.errorCode === WorldErrorCode.OBJECT_NOT_FOUND) {
     throw new Error('object not found')
   }
+  // Any other code is a failure this build cannot name; access never
+  // succeeds on one.
+  if (response.errorCode) throw new WorldOperationError(response.errorCode)
 }

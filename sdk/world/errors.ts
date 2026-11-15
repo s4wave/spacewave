@@ -172,17 +172,51 @@ export interface OperationResponse {
 }
 
 // throwOperationError restores the typed rejection or error an operation
-// response carries across the Resource RPC boundary.
+// response carries across the Resource RPC boundary. It returns only when the
+// response carries no rejection and no error code, so a refused or failed
+// operation never reads as success.
 export function throwOperationError(response: OperationResponse): void {
   if (response.rejectionCode)
     throw new WorldOperationRejection(
       response.rejectionCode,
       response.rejectionMessage ?? '',
     )
-  if (response.errorCode === WorldErrorCode.UNHANDLED_OP)
+  const code = response.errorCode
+  if (!code) return
+  if (code === WorldErrorCode.UNHANDLED_OP)
     throw new Error('remote world operation unhandled')
-  const err = pluginError(response.errorCode)
+  const err = pluginError(code)
   if (err) throw err
+  switch (code) {
+    case WorldErrorCode.SUPERSEDED:
+    case WorldErrorCode.STALE_GENERATION:
+    case WorldErrorCode.ROOT_NOT_HELD:
+      throw new WorldCommitError(code, '')
+  }
+  throw new WorldOperationError(code)
+}
+
+// WorldOperationError reports an operation the World refused or failed with a
+// built-in code that has no more specific error, including a code this build
+// does not know. The operation did not succeed.
+const worldOperationErrorBrand = Symbol.for('spacewave.WorldOperationError')
+
+export class WorldOperationError extends Error {
+  override readonly name = 'WorldOperationError'
+  readonly [worldOperationErrorBrand] = true
+
+  // Client and plugin builds recognize the same public error across bundles.
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return (
+      value instanceof Error &&
+      worldOperationErrorBrand in value &&
+      value[worldOperationErrorBrand] === true
+    )
+  }
+
+  constructor(readonly code: WorldErrorCode) {
+    super(`world operation failed: ${WorldErrorCode[code] ?? code}`)
+  }
 }
 
 // WorldBatchRefusal refuses a World batch with a built-in code, such as an

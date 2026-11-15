@@ -1,5 +1,6 @@
 import { Engine } from '../world/engine.js'
 import type { WorldStateResource } from '../world/world-state.js'
+import { throwOperationError } from '../world/errors.js'
 import { WorldErrorCode } from '../world/world.pb.js'
 
 import { createAccess, type DatabaseAccess } from './access.js'
@@ -351,6 +352,10 @@ async function acceptAppOperation(
         response.rejectionMessage ?? 'Application operation was rejected',
       )
     }
+    // Any other code is a refusal this build cannot name. It throws here,
+    // never reaching the sync below, and the catch reports it as uncertain,
+    // so the caller retries the same request.
+    throwOperationError(response)
     if (response.sysErr) {
       throw new SyncError(
         'UNCERTAIN',
