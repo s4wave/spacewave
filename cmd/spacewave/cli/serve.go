@@ -230,7 +230,7 @@ func runServeCommand(
 
 		// Native core owns the same Resource authority as the core plugin.
 		// Present it as that plugin before starting plugins that register types.
-		releaseCorePlugin, err := cliBus.GetBus().AddController(serveCtx, newNativeCorePlugin(invoker), nil)
+		releaseCorePlugin, err := cliBus.GetBus().AddController(serveCtx, newNativeCorePlugin(cliBus.GetBus(), invoker), nil)
 		if err != nil {
 			return err
 		}
