@@ -25,9 +25,9 @@ import {
   SharedObjectConfig,
 } from './sobject.pb.js'
 
-// MAX_SKIPPED_OPERATIONS is the most skips a config holds, matching Go
-// MaxSkippedOperations.
-export const MAX_SKIPPED_OPERATIONS = 8
+// MAX_SKIPPED_OPERATIONS is the most skips a config holds, a merge of owners'
+// concurrent skips included, matching Go MaxSkippedOperations.
+export const MAX_SKIPPED_OPERATIONS = 32
 
 // MAX_SKIP_REASON_SIZE is the largest owner's note on a skip, in bytes,
 // matching Go MaxSkipReasonSize.

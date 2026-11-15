@@ -25,8 +25,8 @@
     "name": "the owner skips an op it is not waiting at",
     "replace": [
       [
-        "Skip == /\\ Waiting(\"owner\")",
-        "Skip == /\\ Kept(\"owner\") = Len(done[\"owner\"]) /\\ Len(done[\"owner\"]) < Len(order)"
+        "Skip(d) == /\\ d \\in Skippers /\\ Waiting(d)",
+        "Skip(d) == /\\ d \\in Skippers /\\ Kept(d) = Len(done[d]) /\\ Len(done[d]) < Len(order)"
       ]
     ],
     "expect": "SkipHitsOnlyStalledOp",
@@ -47,8 +47,8 @@
     "name": "the config never reaches the member",
     "replace": [
       [
-        "            /\\ \\A d \\in Devices : WF_vars(Step(d)) /\\ WF_vars(SeeConfig(d))",
-        "            /\\ \\A d \\in Devices : WF_vars(Step(d))"
+        "WF_vars(Step(d)) /\\ WF_vars(SeeConfig(d)) /\\ WF_vars(Install(d))",
+        "WF_vars(Step(d)) /\\ WF_vars(Install(d))"
       ]
     ],
     "expect": "StallExits",
@@ -69,8 +69,8 @@
     "name": "the owner skips past the cap",
     "replace": [
       [
-        "        /\\ Cardinality(Live) < MaxLive",
-        "        /\\ TRUE"
+        "           /\\ Cardinality(Held(d)) < MaxLive",
+        "           /\\ TRUE"
       ]
     ],
     "expect": "LiveCapped",
@@ -80,22 +80,33 @@
     "name": "a config change prunes a skip the checkpoint does not cover",
     "replace": [
       [
-        "Live == IF cfgs = <<>> THEN {} ELSE {e \\in cfgs[Len(cfgs)].skips : e.op \\notin Covered}",
-        "Live == {}"
+        "LET skips == Live \\cup Held(d) \\cup",
+        "LET skips =="
       ]
     ],
     "expect": "Agree",
     "config": "ReplaySkip-Two.cfg"
   },
   {
-    "name": "a pruned config arrives without its checkpoint",
+    "name": "a device counts as settled without the checkpoint",
     "replace": [
       [
-        "IF HasPrefix(done[d], Base(Len(cfgs))) THEN done",
-        "IF TRUE THEN done"
+        "/\\ Len(done[d]) = Len(order) /\\ HasPrefix(done[d], ck.outs)",
+        "/\\ Len(done[d]) = Len(order)"
       ]
     ],
     "expect": "Agree",
-    "config": "ReplaySkip.cfg"
+    "config": "ReplaySkip-Stale.cfg"
+  },
+  {
+    "name": "a device keeps its refusal of an op after adopting a checkpoint that applied it",
+    "replace": [
+      [
+        "              /\\ done' = [done EXCEPT ![\"owner\"] = ck2.outs]",
+        "              /\\ done' = done"
+      ]
+    ],
+    "expect": "StallExits",
+    "config": "ReplaySkip-Stale.cfg"
   }
 ]

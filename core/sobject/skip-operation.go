@@ -9,9 +9,15 @@ import (
 	"github.com/s4wave/spacewave/net/crypto"
 )
 
-// MaxSkippedOperations is the most skips a config holds before a checkpoint
-// covers them. Each one adds a full config copy to the config chain.
-const MaxSkippedOperations = 8
+// MaxLiveSkips is the most skips above the checkpoint an owner's skip leaves
+// in the config. SkipSOOperation refuses a skip past it. Each skip adds a full
+// config copy to the config chain.
+const MaxLiveSkips = 8
+
+// MaxSkippedOperations is the most skips a config holds. A merge keeps every
+// skip of each owner's concurrent branch, so it may hold more than
+// MaxLiveSkips; a merge past this bound fails instead of dropping a skip.
+const MaxSkippedOperations = 32
 
 // MaxSkipReasonSize is the largest owner's note on a skip, in bytes.
 const MaxSkipReasonSize = 256
@@ -45,9 +51,13 @@ func SkipSOOperation(ctx context.Context, host *SOHost, pos *SOOperationPosition
 		return nil
 	}
 
-	// Add the skip in op hash order. ChangeSOConfig prunes the skips the
-	// checkpoint covers, then Validate enforces the cap.
+	// Drop the skips the checkpoint covers, so the cap counts only the skips
+	// that still decide an operation, then add the skip in op hash order.
 	next := current.CloneVT()
+	pruneSkippedOperations(set, next)
+	if live := len(next.GetSkippedOperations()); live >= MaxLiveSkips {
+		return errors.Errorf("the config already skips %d operations above the checkpoint, the most an owner adds", live)
+	}
 	next.SkippedOperations = append(next.SkippedOperations, &SOSkippedOperation{Position: pos.CloneVT(), Reason: reason})
 	sortSkippedOperations(next.SkippedOperations)
 	return ChangeSOConfig(ctx, host, state, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION, signer, nil, nil)

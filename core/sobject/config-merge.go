@@ -88,7 +88,12 @@ func mergeConfigBranch(sharedObjectID string, head *SharedObjectConfig, merge *S
 			return nil, errors.Wrapf(err, "branch[%d]", i)
 		}
 		if signedByOwners(change, result) {
+			// The merge keeps every skip both branches wrote, so a union past
+			// the bound fails the merge rather than drop one.
 			candidate := applyConfigDelta(result, parent, next)
+			if n := len(candidate.GetSkippedOperations()); n > MaxSkippedOperations {
+				return nil, errors.Errorf("branch[%d]: merged config skips %d operations, more than %d", i, n, MaxSkippedOperations)
+			}
 			if candidate.Validate() == nil {
 				result = candidate
 			}
