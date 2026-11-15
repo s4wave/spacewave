@@ -176,9 +176,10 @@ type Adapter struct {
 	// bcast.
 	headHeight    uint64
 	headPositions int
-	// replayGate is the replay state the body driver last reached, which
-	// decides whether the Space takes writes. Guarded by bcast.
-	replayGate replayGate
+	// replayState is the replay state the body driver last reached, opening
+	// before its first step. It alone decides whether the Space takes writes
+	// (gateWrite). Guarded by bcast.
+	replayState *sobject.SOReplayState
 	// handlerWait is replay's wait for a handler, or nil. Owned by the body
 	// driver's goroutine, which calls Apply and Install.
 	handlerWait *handlerWait
@@ -265,7 +266,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		imported:         rootSet{name: RootImport},
 		payloads:         rootSet{name: RootReplayPayloads},
 		payloadVersions:  make(map[string]uint32),
-		replayGate:       newReplayGate(),
+		replayState:      newReplayOpening(),
 	}
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
@@ -523,7 +524,7 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 			installed, state, waitCh = a.installed, a.headState, getWaitCh()
 			reached = a.headHeight > target.Checkpoint.GetHeight() ||
 				(a.headHeight == target.Checkpoint.GetHeight() && a.headPositions >= len(target.Order))
-			waiting = a.replayGate.state.GetWaiting() != nil
+			waiting = a.replayState.GetWaiting() != nil
 		})
 		if !state.GetHeadRef().GetEmpty() && (reached || waiting) {
 			break
@@ -536,6 +537,7 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 				return nil, err
 			}
 			if init != nil {
+				// Bypasses the write gate, as enqueue says.
 				if _, err := a.enqueueOp(init); err != nil {
 					return nil, err
 				}
@@ -639,18 +641,19 @@ func (a *Adapter) WatchHead(_ context.Context, fn func(world.Head)) (func(), err
 
 // Begin waits for the local writer turn. A participant whose role cannot
 // write, or an owner handing over, gets tx.ErrNotWrite, since replay would
-// refuse every operation it writes. While replay is not caught up, Begin
-// returns a *sobject.BodyWait whose Wake closes once it is. The turn's Base is
-// the writer head, not durable while a candidate admitted before it waits.
+// refuse every operation it writes. While replay opens, Begin waits for it
+// until ctx ends; while replay waits, it returns a *sobject.WriteWait. The
+// turn's Base is the writer head, not durable while a candidate admitted
+// before it waits.
 func (a *Adapter) Begin(ctx context.Context) (world.Turn, error) {
 	// Refuse a participant that cannot write.
 	if err := a.checkWrites(ctx); err != nil {
 		return nil, err
 	}
 
-	// Refuse a write while replay is not caught up. Admit checks again, as
-	// replay may stop at a wait before the turn admits.
-	if err := a.writeWait(); err != nil {
+	// Wait while replay opens, and refuse a write while it waits. The
+	// admission gates again, as replay may stop at a wait before it.
+	if err := a.gateWrite(ctx, nil); err != nil {
 		return nil, err
 	}
 
@@ -817,19 +820,22 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 
 	// Compute the position. At an operation whose type no handler resolves,
 	// return the wait for its handler, so the driver steps again with no lock
-	// held once it registers. A transient replay has no driver to wait in.
+	// held once it registers; at a block or plugin this device lacks, the
+	// wait for it, which the driver retries after a backoff. A transient
+	// replay has no driver to wait in.
 	pos, err := r.run(ctx, index, op, adopt)
 	var unresolved *unresolvedOpError
-	if errors.As(err, &unresolved) {
-		if a.opts.transient {
-			return "", errors.Wrap(ErrUnresolvedOp, unresolved.opTypeID)
-		}
+	switch {
+	case errors.As(err, &unresolved) && a.opts.transient:
+		return "", errors.Wrap(ErrUnresolvedOp, unresolved.opTypeID)
+	case errors.As(err, &unresolved):
 		return "", a.waitForHandler(unresolved)
-	}
-	if err != nil {
+	case err != nil && !a.opts.transient && ctx.Err() == nil && isReplayGap(err):
+		gap := &sobject.SOReplayWait{State: &sobject.SOReplayWait_Gap{Gap: &sobject.SOReplayWaitGap{}}}
+		return "", &sobject.BodyWait{Wait: gap, Err: err}
+	case err != nil:
 		return "", err
 	}
-	a.endHandlerWait()
 	r.positions = append(r.positions, pos)
 	delete(a.missing, string(op.Hash))
 
@@ -924,10 +930,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		return false, err
 	}
 
-	// Record the install and drop the pages no live World reaches. A wait for
-	// a handler ends, as the checkpoint may cover its operation; Apply starts
-	// it again if not.
-	a.endHandlerWait()
+	// Record the install and drop the pages no live World reaches.
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.installed, a.checkpoint, a.checkpointSeqno = true, base, seqno
 		broadcast()
@@ -1162,6 +1165,13 @@ func (a *Adapter) newAdmission(candidate world.Candidate, op []byte, payloads []
 // enqueue admits the encoded operation op, which builds no World of its own,
 // after this device's admitted operations and queues it. A nil op is an
 // acknowledgment.
+//
+// It bypasses gateWrite, which guards a write chosen from the installed
+// head: none of its callers reads the head to choose its operation. The init
+// operation applies only to an empty World, the acknowledgment carries no
+// operation, and a fence and a root set change no World object, so replay
+// decides each alike wherever it stands. Gating them would stall serve's
+// init and the storage reclaim behind a wait they cannot affect.
 func (a *Adapter) enqueue(op []byte) *spaceAdmission {
 	adm := a.newAdmission(world.Candidate{}, op, nil, nil)
 	a.admit(adm)
@@ -1185,20 +1195,11 @@ func (a *Adapter) admit(adm *spaceAdmission) {
 	})
 }
 
-// admitWrite admits adm as admit does unless replay is not caught up, when it
-// returns replay's wait instead. It checks in the same hold of bcast that
-// admits, so no wait begins between the check and the admission.
-func (a *Adapter) admitWrite(adm *spaceAdmission) error {
-	var wait *sobject.BodyWait
-	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if wait = a.replayGate.writeWait(); wait == nil {
-			a.admitLocked(adm)
-		}
-	})
-	if wait != nil {
-		return wait
-	}
-	return nil
+// admitWrite admits adm as admit does once gateWrite finds replay caught up,
+// in the same hold of bcast, so no wait begins between the check and the
+// admission. It returns gateWrite's error without admitting adm.
+func (a *Adapter) admitWrite(ctx context.Context, adm *spaceAdmission) error {
+	return a.gateWrite(ctx, func() { a.admitLocked(adm) })
 }
 
 // admitLocked records adm as pending and makes its candidate the writer head.
@@ -1348,8 +1349,8 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, err error) {
 // Acknowledge queues an acknowledgment after every operation this device
 // admitted, and returns once the SharedObject holds it.
 func (a *Adapter) Acknowledge(ctx context.Context) error {
-	// Queue it after the admitted operations, and wait for the SharedObject
-	// to hold it.
+	// Queue it after the admitted operations, bypassing the write gate as
+	// enqueue says, and wait for the SharedObject to hold it.
 	_, err := a.enqueue(nil).WaitDecided(ctx)
 	return err
 }

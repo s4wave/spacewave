@@ -64,7 +64,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/sobject": {
-      "hash": "9934441299c7b74759cf33f19a7e16b830dd357086c16939049592bc4fafb67d",
+      "hash": "3d9f2507c6a9dba68d6938ba77d98a75f076dfd7dffbbb16b8ca1af626136cdd",
       "generatedFiles": [
         "core/sobject/sobject_pb2.py",
         "core/sobject/sobject_pb2.pyi"

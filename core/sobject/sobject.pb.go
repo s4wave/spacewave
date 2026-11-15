@@ -882,8 +882,9 @@ func (x *SharedObjectHealth) GetReplay() *SOReplayState {
 }
 
 // SOReplayState is where this device's replay stands. The body driver sets it
-// after each step; the body refuses writes in every state but caught_up, so
-// what the health shows and what a write meets never disagree.
+// after each step. A write meets the same state the health shows: caught_up
+// admits it, opening holds it until replay reaches caught_up or a wait, and a
+// wait refuses it.
 type SOReplayState struct {
 	unknownFields []byte
 	// Types that are assignable to State:
@@ -978,8 +979,8 @@ func (x *SOReplayCaughtUp) Reset() {
 func (*SOReplayCaughtUp) ProtoMessage() {}
 
 // SOReplayWait is the operation this device's replay waits at. A missing
-// handler is a fact about this device and its release, not about the
-// operation, so replay waits for one instead of refusing the operation.
+// handler, a missing block or a failed read is a fact about this device, not
+// about the operation, so replay waits instead of refusing the operation.
 type SOReplayWait struct {
 	unknownFields []byte
 	// CheckpointHeight is the height of the checkpoint the operation is above.
@@ -996,6 +997,8 @@ type SOReplayWait struct {
 	// Types that are assignable to State:
 	//	*SOReplayWait_Handler
 	//	*SOReplayWait_Approval
+	//	*SOReplayWait_Gap
+	//	*SOReplayWait_Retry
 	State isSOReplayWait_State `protobuf_oneof:"state"`
 }
 
@@ -1054,6 +1057,20 @@ func (x *SOReplayWait) GetApproval() *SOReplayWaitApproval {
 	return nil
 }
 
+func (x *SOReplayWait) GetGap() *SOReplayWaitGap {
+	if x, ok := x.GetState().(*SOReplayWait_Gap); ok {
+		return x.Gap
+	}
+	return nil
+}
+
+func (x *SOReplayWait) GetRetry() *SOReplayWaitRetry {
+	if x, ok := x.GetState().(*SOReplayWait_Retry); ok {
+		return x.Retry
+	}
+	return nil
+}
+
 type isSOReplayWait_State interface {
 	isSOReplayWait_State()
 }
@@ -1068,9 +1085,24 @@ type SOReplayWait_Approval struct {
 	Approval *SOReplayWaitApproval `protobuf:"bytes,6,opt,name=approval,proto3,oneof"`
 }
 
+type SOReplayWait_Gap struct {
+	// Gap waits for a block or plugin the operation reads to become
+	// available on this device.
+	Gap *SOReplayWaitGap `protobuf:"bytes,7,opt,name=gap,proto3,oneof"`
+}
+
+type SOReplayWait_Retry struct {
+	// Retry waits to step again after a failure that names no wait.
+	Retry *SOReplayWaitRetry `protobuf:"bytes,8,opt,name=retry,proto3,oneof"`
+}
+
 func (*SOReplayWait_Handler) isSOReplayWait_State() {}
 
 func (*SOReplayWait_Approval) isSOReplayWait_State() {}
+
+func (*SOReplayWait_Gap) isSOReplayWait_State() {}
+
+func (*SOReplayWait_Retry) isSOReplayWait_State() {}
 
 // SOReplayWaitHandler waits for a plugin on this device to register a handler
 // for the operation type.
@@ -1103,6 +1135,38 @@ func (x *SOReplayWaitApproval) GetPluginIds() []string {
 		return x.PluginIds
 	}
 	return nil
+}
+
+// SOReplayWaitGap waits for a block or plugin the operation reads to become
+// available on this device.
+type SOReplayWaitGap struct {
+	unknownFields []byte
+}
+
+func (x *SOReplayWaitGap) Reset() {
+	*x = SOReplayWaitGap{}
+}
+
+func (*SOReplayWaitGap) ProtoMessage() {}
+
+// SOReplayWaitRetry waits to step again after a failure that names no wait.
+type SOReplayWaitRetry struct {
+	unknownFields []byte
+	// DeadlineUnixMs is when replay steps again, in Unix milliseconds.
+	DeadlineUnixMs uint64 `protobuf:"varint,1,opt,name=deadline_unix_ms,json=deadlineUnixMs,proto3" json:"deadlineUnixMs,omitempty"`
+}
+
+func (x *SOReplayWaitRetry) Reset() {
+	*x = SOReplayWaitRetry{}
+}
+
+func (*SOReplayWaitRetry) ProtoMessage() {}
+
+func (x *SOReplayWaitRetry) GetDeadlineUnixMs() uint64 {
+	if x != nil {
+		return x.DeadlineUnixMs
+	}
+	return 0
 }
 
 // SOSyncPeer is this device's sync stream with one authenticated participant.
@@ -3301,6 +3365,32 @@ func (m *SOReplayWait_Approval) CloneOneofVT() isSOReplayWait_State {
 	return m.CloneVT()
 }
 
+func (m *SOReplayWait_Gap) CloneVT() *SOReplayWait_Gap {
+	if m == nil {
+		return (*SOReplayWait_Gap)(nil)
+	}
+	r := new(SOReplayWait_Gap)
+	r.Gap = protobuf_go_lite.CloneVTValue(m.Gap)
+	return r
+}
+
+func (m *SOReplayWait_Gap) CloneOneofVT() isSOReplayWait_State {
+	return m.CloneVT()
+}
+
+func (m *SOReplayWait_Retry) CloneVT() *SOReplayWait_Retry {
+	if m == nil {
+		return (*SOReplayWait_Retry)(nil)
+	}
+	r := new(SOReplayWait_Retry)
+	r.Retry = protobuf_go_lite.CloneVTValue(m.Retry)
+	return r
+}
+
+func (m *SOReplayWait_Retry) CloneOneofVT() isSOReplayWait_State {
+	return m.CloneVT()
+}
+
 func (m *SOReplayWaitHandler) CloneVT() *SOReplayWaitHandler {
 	if m == nil {
 		return (*SOReplayWaitHandler)(nil)
@@ -3329,6 +3419,37 @@ func (m *SOReplayWaitApproval) CloneVT() *SOReplayWaitApproval {
 }
 
 func (m *SOReplayWaitApproval) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOReplayWaitGap) CloneVT() *SOReplayWaitGap {
+	if m == nil {
+		return (*SOReplayWaitGap)(nil)
+	}
+	r := new(SOReplayWaitGap)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOReplayWaitGap) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOReplayWaitRetry) CloneVT() *SOReplayWaitRetry {
+	if m == nil {
+		return (*SOReplayWaitRetry)(nil)
+	}
+	r := new(SOReplayWaitRetry)
+	r.DeadlineUnixMs = m.DeadlineUnixMs
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOReplayWaitRetry) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4434,6 +4555,40 @@ func (this *SOReplayWait_Approval) EqualVT(thatIface isSOReplayWait_State) bool 
 	return true
 }
 
+func (this *SOReplayWait_Gap) EqualVT(thatIface isSOReplayWait_State) bool {
+	that, ok := thatIface.(*SOReplayWait_Gap)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Gap, that.Gap, func() *SOReplayWaitGap { return &SOReplayWaitGap{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SOReplayWait_Retry) EqualVT(thatIface isSOReplayWait_State) bool {
+	that, ok := thatIface.(*SOReplayWait_Retry)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Retry, that.Retry, func() *SOReplayWaitRetry { return &SOReplayWaitRetry{} }) {
+		return false
+	}
+	return true
+}
+
 func (this *SOReplayWaitHandler) EqualVT(that *SOReplayWaitHandler) bool {
 	if this == that {
 		return true
@@ -4465,6 +4620,43 @@ func (this *SOReplayWaitApproval) EqualVT(that *SOReplayWaitApproval) bool {
 
 func (this *SOReplayWaitApproval) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SOReplayWaitApproval)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOReplayWaitGap) EqualVT(that *SOReplayWaitGap) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOReplayWaitGap) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOReplayWaitGap)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOReplayWaitRetry) EqualVT(that *SOReplayWaitRetry) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.DeadlineUnixMs != that.DeadlineUnixMs {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOReplayWaitRetry) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOReplayWaitRetry)
 	if !ok {
 		return false
 	}
@@ -6760,6 +6952,14 @@ func (x *SOReplayWait) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("approval")
 			ov.Approval.MarshalProtoJSON(s.WithField("approval"))
+		case *SOReplayWait_Gap:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("gap")
+			ov.Gap.MarshalProtoJSON(s.WithField("gap"))
+		case *SOReplayWait_Retry:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("retry")
+			ov.Retry.MarshalProtoJSON(s.WithField("retry"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -6809,6 +7009,24 @@ func (x *SOReplayWait) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.Approval = &SOReplayWaitApproval{}
 			ov.Approval.UnmarshalProtoJSON(s.WithField("approval", true))
+		case "gap":
+			ov := &SOReplayWait_Gap{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Gap = nil
+				return
+			}
+			ov.Gap = &SOReplayWaitGap{}
+			ov.Gap.UnmarshalProtoJSON(s.WithField("gap", true))
+		case "retry":
+			ov := &SOReplayWait_Retry{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Retry = nil
+				return
+			}
+			ov.Retry = &SOReplayWaitRetry{}
+			ov.Retry.UnmarshalProtoJSON(s.WithField("retry", true))
 		}
 	})
 }
@@ -6891,6 +7109,78 @@ func (x *SOReplayWaitApproval) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SOReplayWaitApproval from JSON.
 func (x *SOReplayWaitApproval) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOReplayWaitGap message to JSON.
+func (x *SOReplayWaitGap) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOReplayWaitGap to JSON.
+func (x *SOReplayWaitGap) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOReplayWaitGap message from JSON.
+func (x *SOReplayWaitGap) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SOReplayWaitGap from JSON.
+func (x *SOReplayWaitGap) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOReplayWaitRetry message to JSON.
+func (x *SOReplayWaitRetry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.DeadlineUnixMs != 0 || s.HasField("deadlineUnixMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deadlineUnixMs")
+		s.WriteUint64(x.DeadlineUnixMs)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOReplayWaitRetry to JSON.
+func (x *SOReplayWaitRetry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOReplayWaitRetry message from JSON.
+func (x *SOReplayWaitRetry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "deadline_unix_ms", "deadlineUnixMs":
+			s.AddField("deadline_unix_ms")
+			x.DeadlineUnixMs = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOReplayWaitRetry from JSON.
+func (x *SOReplayWaitRetry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -10603,6 +10893,54 @@ func (m *SOReplayWait_Approval) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *SOReplayWait_Gap) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOReplayWait_Gap) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Gap != nil {
+		size, err := m.Gap.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x3a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOReplayWait_Retry) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOReplayWait_Retry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Retry != nil {
+		size, err := m.Retry.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x42
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SOReplayWaitHandler) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -10670,6 +11008,75 @@ func (m *SOReplayWaitApproval) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOReplayWaitGap) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOReplayWaitGap) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOReplayWaitGap) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOReplayWaitRetry) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOReplayWaitRetry) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOReplayWaitRetry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.DeadlineUnixMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DeadlineUnixMs))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -13213,6 +13620,36 @@ func (m *SOReplayWait_Approval) SizeVT() (n int) {
 	return n
 }
 
+func (m *SOReplayWait_Gap) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Gap != nil {
+		l = m.Gap.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SOReplayWait_Retry) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Retry != nil {
+		l = m.Retry.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
 func (m *SOReplayWaitHandler) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -13230,6 +13667,27 @@ func (m *SOReplayWaitApproval) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringSlice(1, m.PluginIds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOReplayWaitGap) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOReplayWaitRetry) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.DeadlineUnixMs)
 	n += len(m.unknownFields)
 	return n
 }
@@ -14276,6 +14734,20 @@ func (x *SOReplayWait) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Approval)
 		}
+	case *SOReplayWait_Gap:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "gap")
+		if body.Gap == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOReplayWaitGap{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Gap)
+		}
+	case *SOReplayWait_Retry:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry")
+		if body.Retry == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOReplayWaitRetry{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Retry)
+		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -14309,6 +14781,30 @@ func (x *SOReplayWaitApproval) MarshalProtoText() string {
 }
 
 func (x *SOReplayWaitApproval) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOReplayWaitGap) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SOReplayWaitGap")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOReplayWaitGap) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOReplayWaitRetry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOReplayWaitRetry")
+	if x.DeadlineUnixMs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "deadline_unix_ms")
+		protobuf_go_lite.TextWriteUint(&sb, x.DeadlineUnixMs)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOReplayWaitRetry) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -16300,6 +16796,46 @@ func (m *SOReplayWait) UnmarshalVT(dAtA []byte) error {
 				m.State = &SOReplayWait_Approval{Approval: v}
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Gap", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SOReplayWait_Gap); ok {
+				if err := oneof.Gap.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SOReplayWaitGap{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SOReplayWait_Gap{Gap: v}
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Retry", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SOReplayWait_Retry); ok {
+				if err := oneof.Retry.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SOReplayWaitRetry{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SOReplayWait_Retry{Retry: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -16396,6 +16932,101 @@ func (m *SOReplayWaitApproval) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PluginIds = append(m.PluginIds, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOReplayWaitGap) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOReplayWaitGap: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOReplayWaitGap: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOReplayWaitRetry) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOReplayWaitRetry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOReplayWaitRetry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeadlineUnixMs", wireType)
+			}
+			m.DeadlineUnixMs = 0
+			m.DeadlineUnixMs, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

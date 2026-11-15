@@ -3,6 +3,7 @@ package space_world_test
 import (
 	"bytes"
 	"context"
+	"math"
 	"strconv"
 	"testing"
 	"time"
@@ -500,6 +501,46 @@ func TestAdapterSupersedes(t *testing.T) {
 	waitObjects(ctx, t, busEngine, "base", "contested")
 }
 
+// TestAdapterAdmitsOnMovedHead begins a write on the head H, lets replay
+// apply another device's conflicting operation, which moves the head to H',
+// and only then commits it: the write is admitted on H' and applies there,
+// so it is refused or superseded, and never replaces the other device's
+// object.
+func TestAdapterAdmitsOnMovedHead(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	f := newAdapterFixture(t)
+	_, engRef := f.start(t)
+	defer engRef.Release()
+	busEngine := world.NewBusEngine(ctx, f.tb.Bus, f.engineID)
+	waitObjects(ctx, t, busEngine)
+	so := f.space(t)
+	remote := addDevice(t, so)
+
+	// Begin the write on H.
+	tx, err := busEngine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	obj, err := tx.CreateObject(ctx, "contested", nil)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Move the head to H' with the other device's operation.
+	remote.write(t, so, createOp(t, "contested"), false, false)
+	waitObjects(ctx, t, busEngine, "contested")
+
+	// Commit: the write is admitted on H' and does not replace the object.
+	err = tx.Commit(ctx)
+	if err == nil || (!world.IsSuperseded(err) && !errors.Is(err, sobject.ErrRejectedOp)) {
+		t.Fatalf("commit on the moved head = %v, want superseded or refused", err)
+	}
+	waitObjects(ctx, t, busEngine, "contested")
+}
+
 // TestAdapterUnmountMidCommit unmounts a Space while one commit's operation
 // is inside QueueOperation and another waits in the queue behind it: the
 // first reports its durability unknown, the second is superseded, neither
@@ -576,4 +617,66 @@ func TestAdapterUnmountMidCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitObjects(ctx, t, eng, "after")
+}
+
+// TestWriteWaitsThroughOpening holds an order of heldOps operations from
+// another device while the Space World is down, mounts it again, and writes at
+// once: the write waits while replay opens, is admitted once replay is caught
+// up, and lands after every held operation. It logs how long the write waited.
+func TestWriteWaitsThroughOpening(t *testing.T) {
+	const heldOps = 256
+	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
+	defer cancel()
+	f := newAdapterFixture(t)
+	eng, engRef := f.start(t)
+	waitObjects(ctx, t, eng)
+	so := f.space(t)
+	remote := addDevice(t, so)
+
+	// Unmount, then hold the order the next mount replays.
+	keys := make([]string, heldOps)
+	for i := range keys {
+		keys[i] = "held-" + strconv.Itoa(i)
+	}
+	var served *space_world.Engine
+	if err := world.AccessEngine(ctx, eng, func(_ context.Context, eng world.Engine) error {
+		served = eng.(*space_world.Engine)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	engRef.Release()
+	if _, err := served.WaitSeqno(ctx, math.MaxUint64); !world.IsSuperseded(err) {
+		t.Fatalf("waiting for the released engine to retire: %v", err)
+	}
+	if err := so.(sobject.InviteHost).GetSOHost().UpdateSOState(ctx, func(state *sobject.SOState) error {
+		for _, key := range keys {
+			if err := remote.add(t, so, state, createOp(t, key), false); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Mount and write at once: the write waits for replay to open, and
+	// commits behind every held operation.
+	begin := time.Now()
+	eng, engRef = f.start(t)
+	defer engRef.Release()
+	mounted := time.Since(begin)
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, "local", nil)
+		world.ReleaseObjectState(obj)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("a write sent at mount committed %v after the mount began (mount returned at %v) behind %d held operations", time.Since(begin), mounted, heldOps)
+	if err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
+		return hasObjects(ctx, eng, append(keys, "local")...)
+	}); err != nil {
+		t.Fatalf("the write committed ahead of the held order: %v", err)
+	}
 }
