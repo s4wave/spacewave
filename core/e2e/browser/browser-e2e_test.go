@@ -94,9 +94,18 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Load the merged project configuration.
+	projectConfig, err := s4wave_core_e2e.LoadProjectConfig(repoRoot)
+	if err == nil {
+		err = projectConfig.Validate()
+	}
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	// Build the native bldr testbed. The browser under test consumes the native
 	// core API while frontend and fixture plugins run in QuickJS.
-	tb, err := s4wave_core_e2e.NewNativeTestbed(ctx, le)
+	tb, err := s4wave_core_e2e.NewNativeTestbed(ctx, le, projectConfig.GetStart().GetPlugins())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -163,15 +172,6 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	}
 	defer quickjsHostRef.Release()
 	_ = quickjsHost
-
-	// Load the merged project configuration.
-	projectConfig, err := s4wave_core_e2e.LoadProjectConfig(repoRoot)
-	if err == nil {
-		err = projectConfig.Validate()
-	}
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 
 	// Route manifest builds through the devtool remote.
 	projectConfig.Remotes = map[string]*bldr_project.RemoteConfig{

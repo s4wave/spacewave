@@ -72,8 +72,17 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// load the merged project config
+	projectConfig, err := s4wave_core_e2e.LoadProjectConfig(repoRoot)
+	if err == nil {
+		err = projectConfig.Validate()
+	}
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	// build the bldr testbed
-	tb, err := s4wave_core_e2e.NewNativeTestbed(ctx, le)
+	tb, err := s4wave_core_e2e.NewNativeTestbed(ctx, le, projectConfig.GetStart().GetPlugins())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -106,11 +115,11 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 		bucketID,
 	)
 
-	// register testbed resource service directly on testbed mux
-	// the JS plugin reaches this via bus fallback: hostMux has its own
-	// ResourceServer (from scheduler), so wrapping in ResourceServer here
-	// would be shadowed. Direct registration is reachable because hostMux
-	// falls through to LookupRpcService for unknown services.
+	// Register the testbed resource service directly on the testbed mux. The
+	// plugin's host mux has its own ResourceServer from the scheduler, so
+	// wrapping it in a ResourceServer here would be shadowed. The E2E plugin
+	// is outside the host set; the host reaches this service for it only
+	// because NewNativeTestbed allows the service's ID.
 	if err := testbedResourceServer.Register(tb.GetMux()); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -158,15 +167,6 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer quickjsHostRef.Release()
-
-	// load the merged project config
-	projectConfig, err := s4wave_core_e2e.LoadProjectConfig(repoRoot)
-	if err == nil {
-		err = projectConfig.Validate()
-	}
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 
 	// apply the devtool remote for building manifests
 	// see devtool/bus.go in bldr

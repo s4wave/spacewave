@@ -78,7 +78,7 @@ func setupPluginClients(
 	}
 
 	// Compose native execution with the project's manifest builders.
-	tb, err := s4wave_core_e2e.NewNativeTestbed(ctx, le)
+	tb, err := s4wave_core_e2e.NewNativeTestbed(ctx, le, startPlugins)
 	if err != nil {
 		t.Fatal(err)
 	}
