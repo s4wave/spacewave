@@ -118,6 +118,7 @@ func NewSpaceContentsResource(
 // reference. The runtime stops after its last holder is released.
 func (r *SpaceContentsResource) Release() {
 	r.ctxCancel()
+	r.le.WithField("holder", "contents-mount").Debug("probe: plugin instance released")
 	r.demand.Release()
 	r.runtimeRef.Release()
 }

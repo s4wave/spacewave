@@ -788,7 +788,7 @@ function useMissingSpaceGuard(
   sharedObjectId: string,
   mounted: boolean,
   resourcesList: WatchResourcesListResponse | null | undefined,
-): boolean {
+): { redirect: boolean; awaiting: boolean } {
   const environment = useAppEnvironment()
   const sessionIndex = useSessionIndex()
   const instanceKey = environment.instanceKey
@@ -824,9 +824,11 @@ function useMissingSpaceGuard(
       instanceKey,
     )
 
-  return (
-    mounted && !!resourcesList && !awaitingResourcesList && !inResourcesList
-  )
+  return {
+    redirect:
+      mounted && !!resourcesList && !awaitingResourcesList && !inResourcesList,
+    awaiting: awaitingResourcesList,
+  }
 }
 
 // useSharedObjectRemediation owns the repair and reinitialize mutations, the
@@ -1186,10 +1188,26 @@ export function SessionSharedObjectContainer() {
   const { sharedObjectResource, sharedObjectBodyResource } =
     useMountedSharedObject(session, sharedObjectId, navigateSession)
 
-  const shouldRedirectMissingSpace = useMissingSpaceGuard(
+  const missingSpaceGuard = useMissingSpaceGuard(
     sharedObjectId,
     !!sharedObjectResource.value,
     resourcesList,
+  )
+  const shouldRedirectMissingSpace = missingSpaceGuard.redirect
+
+  useEffect(() => {
+    if (!resourcesList) return
+    console.warn(
+      'probe: resources list published',
+      resourcesList.spacesList?.length ?? 0,
+    )
+  }, [resourcesList])
+
+  useEffect(
+    () => () => {
+      console.warn('probe: space route unmounted')
+    },
+    [],
   )
 
   const resourceError =
@@ -1223,6 +1241,12 @@ export function SessionSharedObjectContainer() {
       }),
     )
   } else if (shouldRedirectMissingSpace) {
+    console.warn(
+      'probe: missing space guard redirect',
+      !!sharedObjectResource.value,
+      !!resourcesList,
+      missingSpaceGuard.awaiting,
+    )
     queueMicrotask(() => navigateSession({ path: '', replace: true }))
   }
 

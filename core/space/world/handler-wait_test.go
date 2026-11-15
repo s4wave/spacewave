@@ -31,7 +31,7 @@ func TestHandlerWaitWakesAfterEarlyEnd(t *testing.T) {
 
 	// The watch ends at once, before the report takes the wake.
 	w := &handlerWait{opTypeID: world_mock.MockWorldOpTypeID, cancel: cancel}
-	w.watch(ctx, b, "engine")
+	w.watch(ctx, logrus.NewEntry(logrus.New()), b, "engine")
 	if !w.ended() {
 		t.Fatal("the watch returned without ending the wait")
 	}

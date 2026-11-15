@@ -25,6 +25,7 @@ func (r *SpaceResource) HoldNodeTypePlugins(
 	var releaseRuntime func()
 	defer func() {
 		if demand != nil {
+			r.le.WithField("holder", "node-type-hold").Debug("probe: plugin instance released")
 			demand.Release()
 			releaseRuntime()
 		}

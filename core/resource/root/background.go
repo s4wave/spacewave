@@ -180,7 +180,10 @@ func (s *CoreRootServer) newBackgroundSpaceHold(key backgroundSpace) (keyed.Rout
 		// Demand the held plugins.
 		pluginIDs, changed := hold.getPluginIDs()
 		demand := runtime.DemandPlugins(pluginIDs)
-		defer demand.Release()
+		defer func() {
+			s.le.WithField("holder", "background-hold").Debug("probe: plugin instance released")
+			demand.Release()
+		}()
 
 		// Follow changes to the held plugins until the hold ends.
 		le := s.le.WithField("space-id", key.spaceID)
