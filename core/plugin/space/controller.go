@@ -57,8 +57,14 @@ type pluginReference struct {
 	ref directive.Reference
 	// releaseState stops watching the plugin state.
 	releaseState func()
-	// manifestKeys are the installed manifest keys the load selected.
+	// manifestKeys are the sorted artifact keys of the admitted manifests the
+	// load names, empty for a load that names none.
 	manifestKeys []string
+	// manifests are the World manifests the load names.
+	manifests []*manifest.ManifestRef
+	// replaced are the World manifests the load it replaced names, until a
+	// lost admission releases that load.
+	replaced []*manifest.ManifestRef
 	// releasePrevious releases the load this one replaced, once.
 	releasePrevious func()
 }
@@ -430,26 +436,31 @@ func (c *Controller) resolveWorldFetchManifest(
 func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) error {
 	// Release the process set and plugin references when the loop ends.
 	le := c.GetLogger()
-	refs := make(map[string]pluginReference)
-	hosted := &hostedManifests{}
+	var watchLoop *world_control.WatchLoop
+	loads := &pluginLoads{
+		refs:   make(map[string]pluginReference),
+		pinned: make(map[string]pinnedManifests),
+		gate:   newAdmissionGate(c.GetBus(), c.GetConfig().GetSessionPeerId(), func() { watchLoop.Wake() }),
+	}
 	defer func() {
 		c.processes.ClearContext()
-		for _, ref := range refs {
+		for _, ref := range loads.refs {
 			ref.release()
 		}
+		loads.gate.release()
 		c.loadedPlugins.Reset()
 	}()
 	c.processes.SetContext(ctx, true)
 
 	// Reconcile plugins, resolvers, and processes on every World state change.
-	watchLoop := world_control.NewWatchLoop(le, "", world_control.NewWaitForStateHandler(func(
+	watchLoop = world_control.NewWatchLoop(le, "", world_control.NewWaitForStateHandler(func(
 		ctx context.Context,
 		ws world.WorldState,
 		_ world.ObjectState,
 		_ *block.Cursor,
 		_ uint64,
 	) (bool, error) {
-		c.reconcilePlugins(ctx, ws, refs, hosted)
+		c.reconcilePlugins(ctx, ws, loads)
 		c.processResolvers(ctx, ws)
 		c.reconcileProcesses(ctx, ws)
 		return true, nil
@@ -492,7 +503,8 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 // LoadPlugin directives for the demanded plugin_ids of the Space and the
 // account. A plugin on both lists keeps the Space's installation pin. A Space
 // hosted in a plugin loads an unpinned plugin from the manifests hosted selects.
-func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, refs map[string]pluginReference, hosted *hostedManifests) {
+// A load names only World manifests the gate admits.
+func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, loads *pluginLoads) {
 	// Read SpaceSettings from the World state.
 	le := c.GetLogger()
 	conf := c.GetConfig()
@@ -531,10 +543,16 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	c.loadedPlugins.Reconcile(ids)
 
 	// Release directives for plugins no longer listed or demanded.
+	refs := loads.refs
 	for pid, ref := range refs {
 		if _, ok := desired[pid]; !ok {
 			ref.release()
 			delete(refs, pid)
+		}
+	}
+	for pid := range loads.pinned {
+		if _, ok := desired[pid]; !ok {
+			delete(loads.pinned, pid)
 		}
 	}
 
@@ -543,40 +561,64 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	if c.loadTarget != nil && slices.ContainsFunc(ids, func(pid string) bool {
 		return len(installs[pid].GetManifestKeys()) == 0
 	}) {
-		hosted.refresh(ctx, c, ws)
+		loads.hosted.refresh(ctx, c, ws)
 	}
 
 	// Add a replacement demand before releasing the previous one. The scheduler
 	// retains the admitted worker while preparing this exact installation target.
 	for _, pid := range ids {
-		keys := installs[pid].GetManifestKeys()
-		var selected []*manifest.ManifestRef
-		if len(keys) == 0 && c.loadTarget != nil {
-			sel := hosted.byPlugin[pid]
-			keys, selected = sel.keys, sel.refs
+		// Name the World manifests the gate admits: a pinned plugin's
+		// installation, or the hosted selection of an unpinned one.
+		installKeys := installs[pid].GetManifestKeys()
+		var candidates []*manifest.ManifestRef
+		switch {
+		case len(installKeys) != 0:
+			candidates = loads.lookupPinned(ctx, c, ws, pid, installKeys)
+			if len(candidates) == 0 {
+				continue
+			}
+		case c.loadTarget != nil:
+			candidates = loads.hosted.byPlugin[pid]
 		}
+		admitted := loads.gate.admitted(ctx, pid, candidates)
+
+		// Stop at once a load that names a root which lost its admission,
+		// rather than when its replacement runs.
 		previous, existed := refs[pid]
+		if existed && !loads.gate.allAdmitted(ctx, pid, previous.replaced) {
+			previous.releasePrevious()
+			previous.replaced = nil
+			refs[pid] = previous
+		}
+		if existed && !loads.gate.allAdmitted(ctx, pid, previous.manifests) {
+			previous.release()
+			delete(refs, pid)
+			existed = false
+		}
+
+		// Keep an admitted load running while every newer root waits.
+		if len(admitted) == 0 && len(candidates) != 0 && existed && len(previous.manifests) != 0 {
+			continue
+		}
+
+		// Withdraw a pinned plugin none of whose installation is admitted.
+		if len(installKeys) != 0 && len(admitted) == 0 {
+			if existed {
+				previous.release()
+				delete(refs, pid)
+			}
+			c.loadedPlugins.SetPluginState(pid, false, true)
+			continue
+		}
+
+		// Keep a load whose admitted manifests did not change.
+		keys := artifactKeys(admitted)
 		if existed && slices.Equal(previous.manifestKeys, keys) {
 			continue
 		}
 		demand := bldr_plugin.NewLoadPluginInstanced(pid, conf.GetSpaceId())
-		switch {
-		case len(selected) != 0:
-			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), selected...)
-		case len(keys) != 0:
-			var pinned []*manifest.ManifestRef
-			for _, key := range keys {
-				ref, err := space_world.LookupSpacePluginManifest(ctx, ws, pid, key)
-				if err != nil {
-					warnOnErrorUnlessCanceled(ctx, le, err, "failed to resolve installed plugin artifact")
-					continue
-				}
-				pinned = append(pinned, ref)
-			}
-			if len(pinned) == 0 {
-				continue
-			}
-			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), pinned...)
+		if len(admitted) != 0 {
+			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), admitted...)
 		}
 
 		// Add the LoadPlugin directive to the plugin bus.
@@ -593,6 +635,10 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 
 		// Track the previous reference for release once the replacement runs.
 		pluginID := pid
+		var replaced []*manifest.ManifestRef
+		if existed {
+			replaced = previous.manifests
+		}
 		releasePrevious := sync.OnceFunc(func() {
 			if existed {
 				previous.release()
@@ -624,10 +670,15 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		refs[pid] = pluginReference{
 			ref:             ref,
 			releaseState:    releaseState,
-			manifestKeys:    slices.Clone(keys),
+			manifestKeys:    keys,
+			manifests:       admitted,
+			replaced:        replaced,
 			releasePrevious: releasePrevious,
 		}
 	}
+
+	// Stop watching the roots no load names any longer.
+	loads.gate.prune()
 }
 
 // markBindingsStale makes the next reconcileProcesses reread the bindings.
