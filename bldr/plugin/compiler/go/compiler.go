@@ -616,7 +616,7 @@ func (c *Controller) BuildPlugin(
 		if err := applyToConfigSet("handle-rpc", &bldr_web_plugin_handle_rpc.Config{
 			WebPluginId:    webPluginID,
 			HandlePluginId: pluginID,
-			ServerIdRe:     "web-view/.*",
+			ServerIdRe:     "^web-view/",
 		}); err != nil {
 			return nil, err
 		}

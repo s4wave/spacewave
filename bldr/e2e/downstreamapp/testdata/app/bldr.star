@@ -30,7 +30,7 @@ manifest("downstream-core",
             "handle-rpc": config_entry("bldr/web/plugin/handle-rpc", 1, {
                 "webPluginId": "web",
                 "handlePluginId": "downstream-core",
-                "serverIdRe": "web-view/.*",
+                "serverIdRe": "^web-view/",
             }),
         },
     ),

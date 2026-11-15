@@ -3,7 +3,6 @@ package plugin_entrypoint
 import (
 	"context"
 	"io/fs"
-	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -311,10 +310,6 @@ func NewPluginRpcMux(le *logrus.Entry, b bus.Bus) srpc.Mux {
 		func(remoteServerID string) (string, error) {
 			if remoteServerID == "" {
 				remoteServerID = "default"
-			}
-			// simplify plugin-host/web-view/ to web-view/
-			if strings.HasPrefix(remoteServerID, "web-view/") {
-				return remoteServerID, nil
 			}
 			return bldr_plugin.HostServerIDPrefix + remoteServerID, nil
 		},
