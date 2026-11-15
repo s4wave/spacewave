@@ -19,6 +19,10 @@ import (
 // whose approvals decide them.
 var errNoAdmissionPeer = errors.New("load names manifests without a peer to admit them")
 
+// errNoApprovalOwner refuses a load whose root the trust set did not admit on
+// a host with no approvals owner, where nothing else can ever admit it.
+var errNoApprovalOwner = errors.New("host has no approval owner to admit this root")
+
 // executionReference identifies a candidate and its registration startup mode.
 type executionReference struct {
 	args     *executePluginArgs
@@ -169,7 +173,7 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 	// Wait for the root's admission before any host starts or file is served.
 	// A running worker is left alone, so an admitted root keeps running while
 	// a new root waits.
-	if err := t.awaitAdmission(ctx, args); err != nil {
+	if admitted, err := t.awaitAdmission(ctx, args); err != nil || !admitted {
 		return err
 	}
 	if args.serveAssets {
@@ -462,23 +466,32 @@ func (t *pluginInstance) admissionPeer(args *executePluginArgs) (string, bool) {
 	}
 }
 
+// awaitsOwner reports whether a root the resolvers did not admit may still be
+// admitted later: the host answers admission itself, or an approvals owner
+// can admit it. Otherwise the root is refused rather than left waiting.
+func (t *pluginInstance) awaitsOwner() bool {
+	return t.c.conf.GetRequireAdmission() || t.c.conf.GetAdmissionPluginId() != ""
+}
+
 // admittedCandidates returns the candidates that may run, keeping their order:
 // each is decided by its own peer, and passes when it needs no admission or
 // its root is admitted. Before each root is read, the swap state says its
 // approval is being checked, so a read that does not answer shows what it
 // waits for, and an admitted root never shows as awaiting approval. With none passing it waits until a waiting root is admitted, so
 // an unadmitted preferred candidate never holds back an admitted fallback. A
-// candidate that names a root without a peer never runs, and one whose read
-// failed is skipped. When none passes and a read or wait failed, the failed
+// candidate that names a root without a peer never runs, nor does an
+// unadmitted one on a host with no approvals owner, and one whose read failed
+// is skipped. When none passes and a read or wait failed, the failed
 // swap state names that error and the load retries instead of showing a wait
 // that never ends.
 func (t *pluginInstance) admittedCandidates(ctx context.Context, candidates []*executePluginArgs) ([]*executePluginArgs, error) {
 	for {
 		// Sort the candidates into those that pass now, those that wait for
-		// admission, the first that names no peer and the first that failed.
+		// admission, the first that can never be admitted and the first that
+		// failed.
 		var admitted, waiting []*executePluginArgs
-		var noPeer, failed *executePluginArgs
-		var failedErr error
+		var refused, failed *executePluginArgs
+		var refusedErr, failedErr error
 		for _, candidate := range candidates {
 			peerID, ask := t.admissionPeer(candidate)
 			if !ask {
@@ -486,8 +499,8 @@ func (t *pluginInstance) admittedCandidates(ctx context.Context, candidates []*e
 				continue
 			}
 			if peerID == "" {
-				if noPeer == nil {
-					noPeer = candidate
+				if refused == nil {
+					refused, refusedErr = candidate, errNoAdmissionPeer
 				}
 				continue
 			}
@@ -502,8 +515,10 @@ func (t *pluginInstance) admittedCandidates(ctx context.Context, candidates []*e
 				}
 			case ok:
 				admitted = append(admitted, candidate)
-			default:
+			case t.awaitsOwner():
 				waiting = append(waiting, candidate)
+			case refused == nil:
+				refused, refusedErr = candidate, errNoApprovalOwner
 			}
 		}
 		if len(admitted) != 0 {
@@ -515,7 +530,7 @@ func (t *pluginInstance) admittedCandidates(ctx context.Context, candidates []*e
 
 		// Refuse a load none of whose roots can ever be admitted.
 		if len(waiting) == 0 {
-			t.setSwapFailed(ctx, newSwapCandidate(noPeer), "prepare plugin: "+errNoAdmissionPeer.Error())
+			t.setSwapFailed(ctx, newSwapCandidate(refused), "prepare plugin: "+refusedErr.Error())
 			return nil, nil
 		}
 
@@ -594,18 +609,23 @@ func (t *pluginInstance) awaitAnyAdmission(ctx context.Context, waiting []*execu
 }
 
 // awaitAdmission blocks until the bus admits the candidate's manifest root,
-// when the root needs admission. The swap state says the root's approval is
-// being checked until the resolvers answer, and that it awaits approval once
-// they answered without admitting it. A root no resolver admits waits until ctx ends, and a load
-// that names no peer never starts: admission fails closed.
-func (t *pluginInstance) awaitAdmission(ctx context.Context, args *executePluginArgs) error {
+// when the root needs admission, and reports whether the candidate may start.
+// The swap state says the root's approval is being checked until the resolvers
+// answer, and that it awaits approval once they answered without admitting it.
+// A root no resolver admits waits until ctx ends. A load that names no peer,
+// or whose root is not admitted on a host with no approvals owner, can never
+// be admitted: it returns false with a nil error and the swap state failed,
+// as admittedCandidates refuses it, so the execute routine does not retry it.
+func (t *pluginInstance) awaitAdmission(ctx context.Context, args *executePluginArgs) (bool, error) {
 	// Skip a root the scheduler runs without asking.
 	peerID, ask := t.admissionPeer(args)
 	if !ask {
-		return nil
+		return true, nil
 	}
+	candidate := newSwapCandidate(args)
 	if peerID == "" {
-		return errNoAdmissionPeer
+		t.setSwapFailed(ctx, candidate, "prepare plugin: "+errNoAdmissionPeer.Error())
+		return false, nil
 	}
 
 	// Check the root's approval, saying so until the resolvers answer.
@@ -614,14 +634,17 @@ func (t *pluginInstance) awaitAdmission(ctx context.Context, args *executePlugin
 		"plugin-id":     t.pluginID,
 		"manifest-root": root,
 	})
-	candidate := newSwapCandidate(args)
 	t.setSwapCheckingApproval(ctx, candidate, peerID)
 	ok, err := t.rootAdmitted(ctx, peerID, args)
 	if err != nil {
-		return t.failAdmission(ctx, args, err)
+		return false, t.failAdmission(ctx, args, err)
 	}
 	if ok {
-		return nil
+		return true, nil
+	}
+	if !t.awaitsOwner() {
+		t.setSwapFailed(ctx, candidate, "prepare plugin: "+errNoApprovalOwner.Error())
+		return false, nil
 	}
 
 	// Wait for a resolver to admit the root.
@@ -629,8 +652,8 @@ func (t *pluginInstance) awaitAdmission(ctx context.Context, args *executePlugin
 	t.setSwapAwaitingApproval(ctx, candidate, peerID)
 	src, err := plugin.WaitPluginRootAdmitted(ctx, t.c.bus, peerID, t.pluginID, root)
 	if err != nil {
-		return t.failAdmission(ctx, args, err)
+		return false, t.failAdmission(ctx, args, err)
 	}
 	le.WithField("admit-source", src).Debug("plugin root admitted")
-	return nil
+	return true, nil
 }

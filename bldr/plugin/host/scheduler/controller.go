@@ -630,6 +630,12 @@ func (c *Controller) buildPluginMux(
 		historical,
 	)
 	hostServer.SetPrepared(prepared)
+
+	// A plugin trusted to run plugins on these hosts may also name the peer
+	// whose approvals decide its loads; every other plugin's loads use none.
+	hostServer.SetNamesPeers(slices.Contains(c.conf.GetHostExportPluginIds(), pluginID))
+
+	// Bind the registration and scheduler, then register the service.
 	hostServer.SetRegistrationInstanceKey(bindingKey)
 	hostServer.SetHostExportPluginIDs(c.conf.GetHostExportPluginIds())
 	hostServer.SetPluginScheduler(c)

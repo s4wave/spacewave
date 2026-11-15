@@ -622,6 +622,7 @@ def dist_release_config(
         channelKey=channel_key,
         loadPlugins=load_plugins,
         loadWebStartup=WEB_STARTUP,
+        admissionPluginId="spacewave-core",
     )
     # Installers and native updates carry a single executable. Its bootstrap
     # World must survive packaging without an adjacent volume file.
@@ -1130,5 +1131,6 @@ project(
         plugins=["web", "spacewave-web", "spacewave-app",
                  "spacewave-core", "spacewave-debug"],
         loadWebStartup=WEB_STARTUP,
+        admissionPluginId="spacewave-core",
     ),
 )

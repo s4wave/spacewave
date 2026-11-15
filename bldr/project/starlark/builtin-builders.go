@@ -119,6 +119,8 @@ var validDistCompilerFields = map[string]bool{
 	"cli_pkgs":                     true,
 	"updateGuardPluginIds":         true,
 	"update_guard_plugin_ids":      true,
+	"admissionPluginId":            true,
+	"admission_plugin_id":          true,
 	"loadPlugins":                  true,
 	"load_plugins":                 true,
 	"loadWebStartup":               true,

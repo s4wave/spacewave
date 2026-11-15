@@ -156,6 +156,14 @@ export interface Config {
    * Empty allows none.
    */
   allowedHostServiceIds?: string[]
+  /**
+   * AdmissionPluginId is the plugin that owns this host's approvals and
+   * admits the roots an installation load names. Empty means the host has no
+   * owner: a root its trust set does not admit can never be admitted, so the
+   * load is refused instead of waiting. Unused with RequireAdmission, whose
+   * host answers AdmitPluginRoot itself.
+   */
+  admissionPluginId?: string
 }
 
 export const Config: MessageType<Config> =
@@ -186,6 +194,7 @@ export const Config: MessageType<Config> =
       [22, 'await_fetch_manifest', 8],
       [23, 'require_admission', 8],
       [24, 'allowed_host_service_ids', 9, 1],
+      [25, 'admission_plugin_id', 9],
     ],
   )
 

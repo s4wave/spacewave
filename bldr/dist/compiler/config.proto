@@ -110,6 +110,10 @@ message Config {
   // UpdateGuardPluginIds require the running plugin's UpdateGuard service to
   // authorize hot replacement. Initial startup does not require approval.
   repeated string update_guard_plugin_ids = 15;
+  // AdmissionPluginId names the plugin that owns this device's plugin
+  // approvals. The host builds its root admission controller asking that
+  // plugin in code at startup; empty leaves admission to the trusted roots.
+  string admission_plugin_id = 19;
 
   // GoscriptDeferredFunctions lists exported package/path.Function boundaries
   // whose modules initialize on first invocation in a GoScript dist build.

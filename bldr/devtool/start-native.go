@@ -13,6 +13,7 @@ import (
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_plugin_admit "github.com/s4wave/spacewave/bldr/plugin/admit"
 	bldr_plugin_compiler_js "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
@@ -137,6 +138,16 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	// Startup plugins may run their own plugins, such as a Space's, on the
 	// devtool's plugin hosts.
 	schedConf.HostExportPluginIds = startPlugins
+	schedConf.AdmissionPluginId = projCtrl.GetConfig().GetProjectConfig().GetStart().GetAdmissionPluginId()
+
+	// Ask the project's approvals owner about every root the scheduler loads.
+	if owner := projCtrl.GetConfig().GetProjectConfig().GetStart().GetAdmissionPluginId(); owner != "" {
+		relAdmit, err := b.GetBus().AddController(ctx, bldr_plugin_admit.NewController(le, b.GetBus(), owner), nil)
+		if err != nil {
+			return err
+		}
+		defer relAdmit()
+	}
 
 	// Start the plugin scheduler and attach its status to the devtool producer.
 	sched, relSched, err := plugin_host_default.StartPluginSchedulerWithConfig(ctx, b.GetBus(), schedConf)

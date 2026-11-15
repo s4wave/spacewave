@@ -101,6 +101,12 @@ message Config {
   // registers for it and other plugins' services under its own binding key.
   // Empty allows none.
   repeated string allowed_host_service_ids = 24;
+  // AdmissionPluginId is the plugin that owns this host's approvals and
+  // admits the roots an installation load names. Empty means the host has no
+  // owner: a root its trust set does not admit can never be admitted, so the
+  // load is refused instead of waiting. Unused with RequireAdmission, whose
+  // host answers AdmitPluginRoot itself.
+  string admission_plugin_id = 25;
 }
 
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.

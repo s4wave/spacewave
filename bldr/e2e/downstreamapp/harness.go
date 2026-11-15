@@ -31,28 +31,38 @@ import (
 )
 
 const (
-	RunEnv             = "RUN_DOWNSTREAM_APP_E2E"
-	CompilerEnv        = "BLDR_DOWNSTREAM_APP_COMPILER"
+	// RunEnv enables the downstream app e2e when set.
+	RunEnv = "RUN_DOWNSTREAM_APP_E2E"
+	// CompilerEnv selects the browser Go compiler: go or goscript.
+	CompilerEnv = "BLDR_DOWNSTREAM_APP_COMPILER"
+	// WorkerModeEnv selects dedicated or shared plugin workers.
 	WorkerModeEnv      = "BLDR_DOWNSTREAM_APP_WORKER_MODE"
 	fixtureProjectPath = "bldr/e2e/downstreamapp/testdata/app/bldr.star"
 
 	defaultManifestBuildTimeout = 5 * time.Minute
 )
 
+// BrowserCompiler names the compiler for browser Go plugins.
 type BrowserCompiler string
 
 const (
-	BrowserCompilerGo       BrowserCompiler = "go"
+	// BrowserCompilerGo compiles browser plugins with the Go toolchain.
+	BrowserCompilerGo BrowserCompiler = "go"
+	// BrowserCompilerGoScript compiles browser plugins with GoScript.
 	BrowserCompilerGoScript BrowserCompiler = "goscript"
 )
 
+// WorkerMode names how the browser runs plugin workers.
 type WorkerMode string
 
 const (
+	// WorkerModeDedicated runs each plugin in a dedicated worker.
 	WorkerModeDedicated WorkerMode = "dedicated"
-	WorkerModeShared    WorkerMode = "shared"
+	// WorkerModeShared runs plugins in shared workers.
+	WorkerModeShared WorkerMode = "shared"
 )
 
+// Harness runs the downstream fixture app in a browser devtool session.
 type Harness struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
@@ -82,6 +92,7 @@ type bootConfig struct {
 	blockedManifestPreflight *blockingManifestPreflight
 }
 
+// ResolveBrowserCompiler reads CompilerEnv, defaulting to GoScript.
 func ResolveBrowserCompiler() (BrowserCompiler, error) {
 	raw := strings.ToLower(strings.TrimSpace(os.Getenv(CompilerEnv)))
 	switch raw {
@@ -94,6 +105,7 @@ func ResolveBrowserCompiler() (BrowserCompiler, error) {
 	}
 }
 
+// ResolveWorkerMode reads WorkerModeEnv, defaulting to dedicated workers.
 func ResolveWorkerMode() (WorkerMode, error) {
 	raw := strings.ToLower(strings.TrimSpace(os.Getenv(WorkerModeEnv)))
 	switch raw {
@@ -106,6 +118,7 @@ func ResolveWorkerMode() (WorkerMode, error) {
 	}
 }
 
+// Boot builds the fixture app and serves it until Release.
 func Boot(ctx context.Context, le *logrus.Entry) (*Harness, error) {
 	return boot(ctx, le, bootConfig{})
 }
@@ -234,6 +247,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 			addr,
 			projConfig.GetId(),
 			projConfig.GetStart().GetPlugins(),
+			projConfig.GetStart().GetAdmissionPluginId(),
 			startupManifestPreflights,
 			webStartupSrcPath,
 			workerMode == WorkerModeDedicated,
@@ -388,6 +402,7 @@ func (p *blockingManifestPreflight) preflight() devtool.StartupManifestPreflight
 	}
 }
 
+// GetControllerInfo returns information about the controller.
 func (p *blockingManifestPreflight) GetControllerInfo() *cb_controller.Info {
 	return cb_controller.NewInfo(
 		"bldr/e2e/downstreamapp/blocking-manifest-preflight",
@@ -396,10 +411,12 @@ func (p *blockingManifestPreflight) GetControllerInfo() *cb_controller.Info {
 	)
 }
 
+// Execute executes the controller.
 func (p *blockingManifestPreflight) Execute(context.Context) error {
 	return nil
 }
 
+// HandleDirective blocks FetchManifest for the preflight plugin until Release.
 func (p *blockingManifestPreflight) HandleDirective(
 	_ context.Context,
 	di directive.Instance,
@@ -454,12 +471,14 @@ func (p *blockingManifestPreflight) handleIdle(isIdle bool, errs []error) {
 	})
 }
 
+// Release lets the blocked fetch finish.
 func (p *blockingManifestPreflight) Release() {
 	p.releaseOnce.Do(func() {
 		close(p.release)
 	})
 }
 
+// Close releases any resources used by the controller.
 func (p *blockingManifestPreflight) Close() error {
 	return nil
 }
@@ -657,6 +676,7 @@ func (s *manifestWaitState) signalLocked(err error) {
 	close(s.done)
 }
 
+// LaunchBrowser starts headless Chromium through Playwright.
 func (h *Harness) LaunchBrowser() error {
 	// Start the Playwright runtime.
 	pw, err := playwright.Run()
@@ -683,6 +703,7 @@ func (h *Harness) LaunchBrowser() error {
 	return nil
 }
 
+// NewPage opens a page in a new browser context.
 func (h *Harness) NewPage() (playwright.BrowserContext, playwright.Page, error) {
 	// Open a browser context for the page.
 	ctx, err := h.browser.NewContext()
@@ -699,10 +720,13 @@ func (h *Harness) NewPage() (playwright.BrowserContext, playwright.Page, error) 
 	return ctx, page, nil
 }
 
+// BaseURL returns the app's HTTP origin.
 func (h *Harness) BaseURL() string { return h.baseURL }
 
+// BootTime returns how long Boot took.
 func (h *Harness) BootTime() time.Duration { return h.bootTime }
 
+// Release closes the browser and stops the app.
 func (h *Harness) Release() {
 	// Release the blocking preflight and close the browser.
 	if h.blockedManifestPreflight != nil {

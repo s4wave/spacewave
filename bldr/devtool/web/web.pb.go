@@ -34,6 +34,10 @@ type DevtoolInitBrowser struct {
 	// PlatformSelectionPolicies bind project-owned startup plugins to the
 	// platform selected by the active development compiler.
 	PlatformSelectionPolicies []*scheduler.PlatformSelectionPolicy `protobuf:"bytes,6,rep,name=platform_selection_policies,json=platformSelectionPolicies,proto3" json:"platformSelectionPolicies,omitempty"`
+	// AdmissionPluginId names the plugin that owns this device's plugin
+	// approvals. The host builds its root admission controller asking that
+	// plugin in code at startup; empty leaves admission to the trusted roots.
+	AdmissionPluginId string `protobuf:"bytes,7,opt,name=admission_plugin_id,json=admissionPluginId,proto3" json:"admissionPluginId,omitempty"`
 }
 
 func (x *DevtoolInitBrowser) Reset() {
@@ -84,6 +88,13 @@ func (x *DevtoolInitBrowser) GetPlatformSelectionPolicies() []*scheduler.Platfor
 	return nil
 }
 
+func (x *DevtoolInitBrowser) GetAdmissionPluginId() string {
+	if x != nil {
+		return x.AdmissionPluginId
+	}
+	return ""
+}
+
 func (m *DevtoolInitBrowser) CloneVT() *DevtoolInitBrowser {
 	if m == nil {
 		return (*DevtoolInitBrowser)(nil)
@@ -92,6 +103,7 @@ func (m *DevtoolInitBrowser) CloneVT() *DevtoolInitBrowser {
 	r.AppId = m.AppId
 	r.DevtoolPeerId = m.DevtoolPeerId
 	r.ForceDedicatedWorkers = m.ForceDedicatedWorkers
+	r.AdmissionPluginId = m.AdmissionPluginId
 	r.DevtoolVolumeInfo = protobuf_go_lite.CloneVTValue(m.DevtoolVolumeInfo)
 	r.StartPlugins = protobuf_go_lite.CloneSlice(m.StartPlugins)
 	r.PlatformSelectionPolicies = protobuf_go_lite.CloneVTSlice(m.PlatformSelectionPolicies)
@@ -127,6 +139,9 @@ func (this *DevtoolInitBrowser) EqualVT(that *DevtoolInitBrowser) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.PlatformSelectionPolicies, that.PlatformSelectionPolicies, func() *scheduler.PlatformSelectionPolicy { return &scheduler.PlatformSelectionPolicy{} }) {
+		return false
+	}
+	if this.AdmissionPluginId != that.AdmissionPluginId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -183,6 +198,11 @@ func (x *DevtoolInitBrowser) MarshalProtoJSON(s *json.MarshalState) {
 			element.MarshalProtoJSON(s.WithField("platformSelectionPolicies"))
 		}
 		s.WriteArrayEnd()
+	}
+	if x.AdmissionPluginId != "" || s.HasField("admissionPluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("admissionPluginId")
+		s.WriteString(x.AdmissionPluginId)
 	}
 	s.WriteObjectEnd()
 }
@@ -242,6 +262,9 @@ func (x *DevtoolInitBrowser) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.PlatformSelectionPolicies = append(x.PlatformSelectionPolicies, v)
 			})
+		case "admission_plugin_id", "admissionPluginId":
+			s.AddField("admission_plugin_id")
+			x.AdmissionPluginId = s.ReadString()
 		}
 	})
 }
@@ -279,6 +302,11 @@ func (m *DevtoolInitBrowser) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.AdmissionPluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.AdmissionPluginId)
+		i--
+		dAtA[i] = 0x3a
 	}
 	if len(m.PlatformSelectionPolicies) > 0 {
 		for iNdEx := len(m.PlatformSelectionPolicies) - 1; iNdEx >= 0; iNdEx-- {
@@ -345,6 +373,7 @@ func (m *DevtoolInitBrowser) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AdmissionPluginId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -387,6 +416,10 @@ func (x *DevtoolInitBrowser) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.AdmissionPluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "admission_plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.AdmissionPluginId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -483,6 +516,16 @@ func (m *DevtoolInitBrowser) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdmissionPluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AdmissionPluginId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
