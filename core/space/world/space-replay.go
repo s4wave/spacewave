@@ -344,7 +344,12 @@ func (r *spaceReplay) applyTx(ctx context.Context, txOp *ApplyTxOp, prev *InnerS
 		if err != nil {
 			return false, err
 		}
-		_, err = ttx.ExecuteTx(ctx, peerID, waitingLookup(r.a.lookupOp, btx), btx)
+
+		// A system error is a fault of this device, whatever its error.
+		sysErr, err := ttx.ExecuteTx(ctx, peerID, waitingLookup(r.a.lookupOp, btx), btx)
+		if sysErr && err != nil {
+			err = world.NewOpSystemError(err)
+		}
 		return err == nil, err
 	})
 }
@@ -371,8 +376,9 @@ func (r *spaceReplay) applyGraphSettingsStep(ctx context.Context, stepOp *GraphS
 // World prev and commits it when change reports a change. It returns the World
 // after the commit, or prev when nothing changed. A failure of change refuses
 // the operation with a reason that starts with failed, but a canceled read, a
-// missing block or a missing handler stops replay instead: none is a property
-// of the operation, so refusing it would split replicas.
+// missing block, a missing handler or a handler's system error stops replay
+// instead: none is a property of the operation, so refusing it would split
+// replicas.
 func (r *spaceReplay) commitOn(ctx context.Context, prev *InnerState, failed string, change func(*world_block.EngineTx) (bool, error)) (*InnerState, string, error) {
 	// A change needs a World.
 	if prev.GetHeadRef().GetEmpty() {
@@ -398,11 +404,13 @@ func (r *spaceReplay) commitOn(ctx context.Context, prev *InnerState, failed str
 		return err
 	}()
 
-	// Stop for a gap, refuse a failed change, and keep an unchanged World.
+	// Stop for a gap or a system error, refuse a failed change, and keep an
+	// unchanged World.
 	if err := ctx.Err(); err != nil {
 		return nil, "", err
 	}
-	if isReplayGap(aerr) {
+	var sysErr *world.OpSystemError
+	if isReplayGap(aerr) || errors.As(aerr, &sysErr) {
 		return nil, "", aerr
 	}
 	if aerr != nil {

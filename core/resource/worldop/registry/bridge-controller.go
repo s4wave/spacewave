@@ -380,7 +380,10 @@ func (o *bridgeOperation) applyWorldOp(
 	if resp.GetRejectionCode() != "" {
 		return false, &world.OperationRejection{Code: resp.GetRejectionCode(), Message: resp.GetRejectionMessage()}
 	}
-	return resp.GetSystemError(), nil
+	if resp.GetSystemError() {
+		return true, world.NewOpSystemError(nil)
+	}
+	return false, nil
 }
 
 // ApplyWorldObjectOp applies the operation to a world object by proxying to the
@@ -473,7 +476,10 @@ func (o *bridgeOperation) applyWorldObjectOp(
 	if resp.GetRejectionCode() != "" {
 		return false, &world.OperationRejection{Code: resp.GetRejectionCode(), Message: resp.GetRejectionMessage()}
 	}
-	return resp.GetSystemError(), nil
+	if resp.GetSystemError() {
+		return true, world.NewOpSystemError(nil)
+	}
+	return false, nil
 }
 
 // PrepareApply connects to the plugin before the engine takes its writer, so a

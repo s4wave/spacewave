@@ -58,7 +58,8 @@ func (m *MockObjectOp) ApplyWorldObjectOp(
 		return nil
 	})
 
-	return true, err
+	// A failure here is the store's, not a verdict on the operation.
+	return err != nil, err
 }
 
 // _ is a type assertion

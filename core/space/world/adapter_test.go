@@ -322,6 +322,7 @@ func TestAdapterRunThrough(t *testing.T) {
 	t.Run("plugin-op-waiting-write", runPluginOpWaitingWrite)
 	t.Run("plugin-op-approval", runPluginOpApproval)
 	t.Run("plugin-op-deadline", runPluginOpDeadline)
+	t.Run("plugin-op-system-error", runPluginOpSystemError)
 	t.Run("plugin-op-restart-wait", runPluginOpRestartWait)
 	t.Run("plugin-op-late-wait", runPluginOpLateWait)
 	t.Run("sql-primary", func(t *testing.T) {
