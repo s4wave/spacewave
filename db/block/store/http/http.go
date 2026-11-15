@@ -264,15 +264,8 @@ func (b *HTTPBlock) get(ctx context.Context, ref *block.BlockRef, withRefs bool)
 	}
 
 	// Verify the data matches the block ref.
-	dlRef, err := block.BuildBlockRef(
-		data,
-		&block.PutOpts{HashType: ref.GetHash().GetHashType(), ForceBlockRef: ref},
-	)
-	if err != nil {
+	if err := block.VerifyRead(ref, data, b.baseURL.String()); err != nil {
 		return nil, err
-	}
-	if !dlRef.EqualsRef(ref) {
-		return nil, errors.Wrapf(block.ErrBlockRefMismatch, "service returned %s but expected %s", dlRef.MarshalString(), ref.MarshalString())
 	}
 
 	return &block.StoredBlock{

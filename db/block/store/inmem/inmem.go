@@ -9,20 +9,18 @@ import (
 )
 
 // InmemBlock is a block store on top of an in-memory key-value store.
-// Stores blocks at {objectPrefix}/{block ref}
+// Stores blocks at {objectPrefix}/{block ref}.
 type InmemBlock = block_store_kvtx.KVTxBlock
 
 // NewInmemBlock builds a new block store on top of an in-memory key-value store.
 //
 // forceHashType can be 0 to use the default hash type.
-// hashGet hashes Get requests for integrity, use if the storage is unreliable or untrusted.
 func NewInmemBlock(
 	kvk *kvkey.KVKey,
 	st *store_kvtx_inmem.Store,
 	forceHashType hash.HashType,
-	hashGet bool,
 ) *InmemBlock {
-	return block_store_kvtx.NewDurableKVTxBlock(kvk, st, forceHashType, hashGet)
+	return block_store_kvtx.NewDurableKVTxBlock(kvk, st, forceHashType)
 }
 
 // _ is a type assertion

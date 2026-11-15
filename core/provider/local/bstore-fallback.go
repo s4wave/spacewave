@@ -303,8 +303,10 @@ func (r *fallbackReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 }
 
 // readFallback reads the block from the fallback after the sources missed it,
-// or failed with primaryErr. A fallback hit is filled into the local store.
-// Without a hit, it returns primaryErr, else the fallback's error, else a miss.
+// or failed with primaryErr. A fallback hit is filled into the local store,
+// except past a corrupt local copy: that copy stays as it is, and replacing it
+// is a separate repair. Without a hit, it returns primaryErr, else the
+// fallback's error, else a miss.
 func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, primaryErr error) (*block.StoredBlock, error) {
 	// A failure of the caller's own context is not the sources' failure.
 	if ctx.Err() != nil {
@@ -314,20 +316,19 @@ func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, p
 		r.fills.packErrors.Add(1)
 	}
 
-	// Read the fallback and fill its hit.
+	// Read the fallback and fill its hit. The fallback checks its own bytes;
+	// corrupt bytes are a failure, not a miss, and fill nothing.
 	stored, err := r.fallback.GetStoredBlock(ctx, ref)
-	if err == nil && stored != nil {
-		// Serve and fill only bytes that hash to ref. Corrupt bytes are a
-		// failure, not a miss.
-		if !ref.GetEmpty() {
-			if _, err := ref.GetHash().VerifyData(stored.Data); err != nil {
-				if r.fills != nil {
-					r.fills.failed.Add(1)
-				}
-				return nil, errors.Wrap(err, "verify fallback block")
-			}
+	if errors.Is(err, block.ErrBlockCorrupt) {
+		if r.fills != nil {
+			r.fills.failed.Add(1)
 		}
-		r.fillHit(ctx, ref, stored)
+		return nil, errors.Wrap(err, "read fallback block")
+	}
+	if err == nil && stored != nil {
+		if !errors.Is(primaryErr, block.ErrBlockCorrupt) {
+			r.fillHit(ctx, ref, stored)
+		}
 		return stored, nil
 	}
 	if primaryErr != nil {

@@ -55,14 +55,6 @@ export interface Config {
    */
   hashType?: HashType
   /**
-   * DisableHashGet disables hashing values for Get requests.
-   * This improves performance if the underlying store is trusted & consistent.
-   *
-   * If the store may return invalid data or mismatch the requested block ref,
-   * do not enable this option. It is important to hash the data for each read.
-   */
-  disableHashGet?: boolean
-  /**
    * CollectorFrees turns on the Volume collector's frees. Off, the collector
    * still releases lapsed leases and nets the journal, so its counts stay
    * current, and frees nothing. Turning it on also adopts an unadopted
@@ -91,7 +83,6 @@ export interface Config {
 export const Config: MessageType<Config> =
   /* @__PURE__ */ createMessageType<Config>('store.kvtx.Config', () => [
     [2, 'hash_type', 14, 0, HashType_Enum],
-    [3, 'disable_hash_get', 8],
     [7, 'collector_frees', 8],
     [8, 'collector_grace_dur', 9],
     [9, 'root_held_check', 14, 0, RootHeldCheck_Enum],

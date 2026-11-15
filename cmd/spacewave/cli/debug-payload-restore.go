@@ -539,7 +539,7 @@ func findSpaceBucket(ctx context.Context, buckets bucket_store.Store, spaceID st
 func encodePayload(ctx context.Context, xfrm block.Transformer, hashType hash.HashType, data []byte) (*block.BlockRef, []*block.PutBatchEntry, error) {
 	// Write the blob into a scratch store that records each block.
 	store := &recordStore{
-		StoreOps: block_store_inmem.NewInmemBlock(kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), hashType, false),
+		StoreOps: block_store_inmem.NewInmemBlock(kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), hashType),
 		seen:     make(map[string]struct{}),
 	}
 	tx, bcs := block.NewTransaction(store, xfrm, nil, nil)

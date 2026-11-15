@@ -107,7 +107,6 @@ func newWritebackStore(blockFn func()) *writebackStore {
 			store_kvkey.NewDefaultKVKey(),
 			store_kvtx_inmem.NewStore(),
 			hash.HashType_HashType_SHA256,
-			false,
 		),
 		blockFn: blockFn,
 	}
@@ -2016,8 +2015,8 @@ func TestPackfileStoreRejectsCorruptedBlock(t *testing.T) {
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	for range 2 {
 		got, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
-		if !errors.Is(err, block.ErrBlockRefMismatch) {
-			t.Fatalf("GetBlock data=%q err=%v, want ErrBlockRefMismatch", got, err)
+		if !errors.Is(err, block.ErrBlockCorrupt) {
+			t.Fatalf("GetBlock data=%q err=%v, want ErrBlockCorrupt", got, err)
 		}
 	}
 }

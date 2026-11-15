@@ -28,7 +28,6 @@ func newCountingBatchStore() *countingBatchStore {
 			store_kvkey.NewDefaultKVKey(),
 			store_kvtx_inmem.NewStore(),
 			0,
-			false,
 		),
 	}
 }

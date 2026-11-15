@@ -19,7 +19,7 @@ func TestBeginReadOperationReusesReadTransaction(t *testing.T) {
 	ctx := context.Background()
 	kvkey := store_kvkey.NewDefaultKVKey()
 	store := &countingStore{inner: hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())}
-	blocks := NewKVTxBlock(kvkey, store, 0, false)
+	blocks := NewKVTxBlock(kvkey, store, 0)
 
 	// Store a new block for repeated read checks.
 	ref, existed, err := blocks.PutBlock(ctx, []byte("hello"), nil)
@@ -72,7 +72,7 @@ func TestPutBlockBatchUsesSingleWriteTransaction(t *testing.T) {
 	// Create a counting block store and two batch fixtures.
 	ctx := context.Background()
 	store := newCountingStore()
-	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0, false)
+	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0)
 	firstData := []byte("first batch block")
 	secondData := []byte("second batch block")
 	firstRef := mustBuildBlockRef(t, firstData)
@@ -137,7 +137,7 @@ func TestPutBlockBatchTombstoneUsesSameWriteTransaction(t *testing.T) {
 	// Create a counting block store for a mixed write and tombstone batch.
 	ctx := context.Background()
 	store := newCountingStore()
-	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0, false)
+	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0)
 
 	// Prepare old, retained, and new block fixtures.
 	oldData := []byte("old batch block")
@@ -197,7 +197,7 @@ func TestPutBlockBatchTombstoneUsesSameWriteTransaction(t *testing.T) {
 func TestPutBlockBatchExistenceTracksEarlierEntries(t *testing.T) {
 	// Create a store with one block removed and one never written.
 	ctx := context.Background()
-	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), newCountingStore(), 0, false)
+	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), newCountingStore(), 0)
 	removedData := []byte("removed batch block")
 	freshData := []byte("fresh batch block")
 	removedRef := mustBuildBlockRef(t, removedData)
@@ -227,7 +227,7 @@ func TestPutBlockBatchValidationErrorsDoNotCommitPartialBatch(t *testing.T) {
 	// Create a counting block store with valid and mismatched references.
 	ctx := context.Background()
 	store := newCountingStore()
-	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0, false)
+	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0)
 	goodData := []byte("good batch block")
 	goodRef := mustBuildBlockRef(t, goodData)
 	wrongRef := mustBuildBlockRef(t, []byte("different batch block"))
@@ -284,7 +284,7 @@ func TestGetBlockExistsBatchUsesSingleReadTransaction(t *testing.T) {
 	// Create a counting block store for batched presence checks.
 	ctx := context.Background()
 	store := newCountingStore()
-	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0, false)
+	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0)
 
 	// Prepare stored and missing block references.
 	firstData := []byte("exists first")
@@ -340,7 +340,7 @@ func TestPutBlockBatchRetriesWholeLogicalOperation(t *testing.T) {
 		}
 
 		// Prepare the block store and batch fixtures for this run.
-		blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0, false)
+		blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0)
 		firstData := []byte("retry first batch block")
 		secondData := []byte("retry second batch block")
 		firstRef := mustBuildBlockRef(t, firstData)
@@ -355,7 +355,7 @@ func TestPutBlockBatchRetriesWholeLogicalOperation(t *testing.T) {
 		}
 
 		// Read the first block from the underlying committed store.
-		reader := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), backend, 0, false)
+		reader := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), backend, 0)
 		first, found, err := reader.GetBlock(ctx, firstRef)
 		if err != nil {
 			t.Fatal(err)

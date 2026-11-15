@@ -47,7 +47,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller
 		if err != nil {
 			return nil, nil, err
 		}
-		storeOps := NewRedisBlock(kvk, st, conf.GetForceHashType(), !conf.GetDisableHashGet())
+		storeOps := NewRedisBlock(kvk, st, conf.GetForceHashType())
 		return block_store.NewStore(conf.GetBlockStoreId(), storeOps), func() { st.GetPool().Close() }, nil
 	}
 }

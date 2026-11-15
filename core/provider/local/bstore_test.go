@@ -34,7 +34,6 @@ func newBatchForwardTestStore() *batchForwardTestStore {
 		store_kvkey.NewDefaultKVKey(),
 		store_kvtx_inmem.NewStore(),
 		0,
-		false,
 	)
 	return &batchForwardTestStore{
 		Store: block_store.NewStore("test", ops),

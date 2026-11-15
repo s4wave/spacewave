@@ -63,9 +63,18 @@ func (s *BlockStore) PutBlockBatch(
 	ctx context.Context,
 	req *block_rpc.PutBlockBatchRequest,
 ) (*block_rpc.PutBlockBatchResponse, error) {
-	// Convert wire entries without dropping references or tombstones.
+	// Convert wire entries without dropping references or tombstones. The
+	// bytes come from another process, so each must hash to its ref before
+	// the store takes any of the batch.
+	resp := &block_rpc.PutBlockBatchResponse{}
 	entries := make([]*block.PutBatchEntry, 0, len(req.GetEntries()))
 	for _, entry := range req.GetEntries() {
+		if !entry.GetTombstone() {
+			if err := block.VerifyPut(entry.GetRef(), entry.GetData()); err != nil {
+				resp.Error = err.Error()
+				return resp, nil
+			}
+		}
 		entries = append(entries, &block.PutBatchEntry{
 			Ref:       entry.GetRef(),
 			Data:      entry.GetData(),
@@ -76,7 +85,6 @@ func (s *BlockStore) PutBlockBatch(
 	}
 
 	// Report the store's batch result through the service response.
-	resp := &block_rpc.PutBlockBatchResponse{}
 	existed, err := s.store.PutBlockBatch(ctx, entries)
 	if err != nil {
 		resp.Error = err.Error()

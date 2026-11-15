@@ -70,7 +70,7 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 	if btx, ok := tx.(BlockTx); ok {
 		blocks = btx.GetBlockStore()
 	} else {
-		blocks = block_store_kvtx.NewKVTxBlock(v.kvKey, p.store, v.GetHashType(), v.atomicHashGet)
+		blocks = block_store_kvtx.NewKVTxBlock(v.kvKey, p.store, v.GetHashType())
 	}
 	p.blocks = &txBlocks{
 		StoreOps: blocks,

@@ -36,7 +36,7 @@ func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	if err != nil {
 		return nil, false, err
 	}
-	existed, err := p.PutBlockBatch(ctx, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
+	existed, err := p.putVerified(ctx, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
 	if err != nil {
 		return nil, false, err
 	}
@@ -46,6 +46,14 @@ func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 // PutBlockBatch keeps the entries the bound allows and puts the rest to the
 // stage.
 func (p *pendingStage) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
+	if err := verifyKeepable(entries); err != nil {
+		return nil, err
+	}
+	return p.putVerified(ctx, entries)
+}
+
+// putVerified keeps or stages entries whose keepable bytes match their refs.
+func (p *pendingStage) putVerified(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
 	existed, stored, err := p.put(ctx, p.stage, p.hold, entries)
 	if stored {
 		p.stored.Store(true)

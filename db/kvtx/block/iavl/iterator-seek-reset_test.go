@@ -17,7 +17,7 @@ import (
 func TestIteratorSeekAfterExhaustion(t *testing.T) {
 	// Create real memory block storage and a shared raw value reference.
 	ctx := t.Context()
-	store := block_store_inmem.NewInmemBlock(kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), hash.HashType_HashType_BLAKE3, true)
+	store := block_store_inmem.NewInmemBlock(kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), hash.HashType_HashType_BLAKE3)
 	valueRef, _, err := store.PutBlock(ctx, []byte("value"), nil)
 	if err != nil {
 		t.Fatal(err)
