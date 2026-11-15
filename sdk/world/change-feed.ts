@@ -186,6 +186,14 @@ export class ChangeFeedSubscription implements AsyncIterable<ChangeFeedEvent> {
     this.wake?.()
   }
 
+  // drain takes the events queued unread, without waiting. A reader that
+  // woke on one event takes the rest of the burst with it.
+  drain(): ChangeFeedEvent[] {
+    const queued = this.queue
+    this.queue = []
+    return queued
+  }
+
   // fail ends the subscription with err once its queued events are read.
   fail(err: unknown) {
     this.error = err

@@ -1,15 +1,32 @@
 import { useMemo } from 'react'
 
-import {
-  useResource,
-  type Resource,
-} from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { Execution } from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
 import { Job } from '@go/github.com/s4wave/spacewave/forge/job/job.pb.js'
 import { Pass } from '@go/github.com/s4wave/spacewave/forge/pass/pass.pb.js'
 import { Task } from '@go/github.com/s4wave/spacewave/forge/task/task.pb.js'
 import { ForgeDashboard } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
-import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import { changePattern } from '@s4wave/sdk/world/change-feed.js'
+import {
+  entitySetKey,
+  entitySetSource,
+  readKeyedSet,
+  watchKeyedSet,
+  type EntitySetSpec,
+  type KeyedRowPage,
+  type KeyedSet,
+  type KeyedSetSource,
+} from '@s4wave/sdk/world/entity-set.js'
+import { iriToKey, isIRI, keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
+import { TypePred, typeIDFromIRI } from '@s4wave/sdk/world/types/types.js'
+import {
+  WorldStateResource,
+  type IWorldState,
+} from '@s4wave/sdk/world/world-state.js'
+import { GraphEdgeBucketDirection } from '@s4wave/sdk/world/world.pb.js'
+import { PRED_DASHBOARD_FORGE_REF } from '@s4wave/web/forge/predicates.js'
 import type { ForgeLinkedEntity } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 
 const entityTypeLabels: Record<string, string> = {
@@ -75,7 +92,7 @@ export interface ForgeDashboardActivityEntry {
   detail: string
 }
 
-function describeActivitySource(
+export function describeActivitySource(
   entity: ForgeLinkedEntity,
   data: Uint8Array,
 ): ForgeDashboardActivitySource | null {
@@ -131,36 +148,95 @@ function describeActivitySource(
   return null
 }
 
-export async function loadForgeDashboardActivityEntries(
-  world: IWorldState,
-  dashboard: ForgeDashboard | undefined,
-  entities: ForgeLinkedEntity[],
-  signal: AbortSignal,
-): Promise<ForgeDashboardActivityEntry[]> {
-  const activityEntities: ForgeLinkedEntity[] = []
-  for (const entity of entities) {
-    if (activitySourceTypeIds.has(entity.typeId)) {
-      activityEntities.push(entity)
-    }
+// ForgeDashboardMember is one object a dashboard links: its type, and the
+// activity its body describes when its type has activity.
+export interface ForgeDashboardMember {
+  readonly typeId: string
+  readonly source: ForgeDashboardActivitySource | null
+}
+
+// forgeDashboardSource is the keyed set of the objects a dashboard links.
+// Each read lists the members' types, then reads the bodies of only those
+// whose type has activity, so other linked objects cost no body read.
+export function forgeDashboardSource(
+  objectKey: string,
+): KeyedSetSource<ForgeDashboardMember> {
+  const spec: EntitySetSpec = {
+    case: 'link',
+    origin: objectKey,
+    predicate: PRED_DASHBOARD_FORGE_REF,
+    direction: 'out',
   }
-
-  const sources = await Promise.all(
-    activityEntities.map(async (entity) => {
-      using objectState = await world.getObject(entity.objectKey, signal)
-      if (!objectState) return null
-      using cursor = await objectState.accessWorldState(undefined, signal)
-      const resp = await cursor.unmarshal({ blockType: entity.typeId }, signal)
-      if (!resp.found || !resp.data?.length) return null
-      return describeActivitySource(entity, resp.data)
+  const bodies = entitySetSource(spec, {
+    name: 'bytes',
+    decode: (body) => body,
+  })
+  // A retype commits only the type quad, so each member is followed by its
+  // type quads as well as its key, and such a quad routes to its subject
+  // when that is an IRI.
+  const typePred = changePattern({ predicate: TypePred }).predicate
+  return {
+    ...bodies,
+    names: (keys) => ({
+      keys,
+      patterns: keys.map((key) =>
+        changePattern({ subject: keyToIRI(key), predicate: TypePred }),
+      ),
     }),
-  )
-
-  return buildForgeDashboardActivityEntries(
-    dashboard,
-    sources.filter(
-      (source): source is ForgeDashboardActivitySource => source !== null,
-    ),
-  )
+    route: (change, members) => {
+      const route = bodies.route(change, members)
+      const retyped = (change.quads ?? []).flatMap((quad) =>
+        quad.predicate === typePred && isIRI(quad.subject)
+          ? [iriToKey(quad.subject)]
+          : [],
+      )
+      if (retyped.length === 0) return route
+      return { list: route.list, keys: [...route.keys, ...retyped] }
+    },
+    read: async function* (tx, keys, signal) {
+      if (keys.length === 0) return
+      const types = await tx.listGraphEdgeBuckets([...keys], 1, {
+        predicate: TypePred,
+        direction: GraphEdgeBucketDirection.OUT,
+        abortSignal: signal,
+      })
+      const typeIds = new Map(
+        (types.buckets ?? []).map((bucket) => [
+          bucket.originObjectKey ?? '',
+          typeIDFromIRI(bucket.outgoing?.[0]?.obj),
+        ]),
+      )
+      const typeOf = (key: string) => typeIds.get(key) ?? ''
+      const active = keys.filter((key) =>
+        activitySourceTypeIds.has(typeOf(key)),
+      )
+      const rows: KeyedRowPage<ForgeDashboardMember>['rows'] = keys
+        .filter((key) => !activitySourceTypeIds.has(typeOf(key)))
+        .map((key) => [key, { typeId: typeOf(key), source: null }] as const)
+      if (active.length === 0) {
+        yield { rows }
+        return
+      }
+      let first = true
+      for await (const page of bodies.read(tx, active, signal)) {
+        const decoded = page.rows.map(([key, body]) => {
+          const typeId = typeOf(key)
+          return [
+            key,
+            body && {
+              typeId,
+              source: describeActivitySource({ objectKey: key, typeId }, body),
+            },
+          ] as const
+        })
+        yield {
+          seqno: page.seqno,
+          rows: first ? [...rows, ...decoded] : decoded,
+        }
+        first = false
+      }
+    },
+  }
 }
 
 export function buildForgeDashboardActivityEntries(
@@ -208,30 +284,63 @@ export function buildForgeDashboardActivityEntries(
   return entries.slice(0, 20)
 }
 
-export function useForgeDashboardActivity(
+// useForgeDashboardWork follows the objects a dashboard links and derives
+// its activity from their bodies. A live World wakes it only on a change to
+// the links or to a linked object; a World snapshot is read once.
+export function useForgeDashboardWork(
   worldState: Resource<IWorldState>,
+  objectKey: string,
   dashboard: ForgeDashboard | undefined,
-  entities: ForgeLinkedEntity[],
-): { entries: ForgeDashboardActivityEntry[]; loading: boolean } {
-  const resource = useResource(
+): {
+  members: Resource<KeyedSet<ForgeDashboardMember>>
+  entities: ForgeLinkedEntity[]
+  entries: ForgeDashboardActivityEntry[]
+} {
+  const members = useStreamingResource(
     worldState,
-    async (world, signal) => {
-      if (!world) return []
-      return loadForgeDashboardActivityEntries(
-        world,
-        dashboard,
-        entities,
-        signal,
-      )
+    async function* (world, signal) {
+      const source = forgeDashboardSource(objectKey)
+      const engine = world.getEngine?.()
+      if (engine) {
+        yield* watchKeyedSet(engine, source, signal)
+        return
+      }
+      if (!(world instanceof WorldStateResource)) {
+        throw new Error('This World can not list its objects.')
+      }
+      yield await readKeyedSet(world, source, signal)
     },
-    [dashboard?.createdAt?.toISOString(), dashboard?.name, entities],
+    [
+      entitySetKey({
+        case: 'link',
+        origin: objectKey,
+        predicate: PRED_DASHBOARD_FORGE_REF,
+        direction: 'out',
+      }),
+    ],
+    { reconnect: true },
   )
-
-  return useMemo(
-    () => ({
-      entries: resource.value ?? [],
-      loading: resource.loading,
-    }),
-    [resource.loading, resource.value],
+  const set = resourceContent(members)
+  const entities = useMemo(
+    () =>
+      set?.keys.flatMap((key) => {
+        const member = set.rows.get(key)
+        return member ? [{ objectKey: key, typeId: member.typeId }] : []
+      }) ?? [],
+    [set],
   )
+  const createdAt = dashboard?.createdAt?.getTime()
+  const name = dashboard?.name
+  const entries = useMemo(
+    () =>
+      buildForgeDashboardActivityEntries(
+        {
+          createdAt: createdAt === undefined ? undefined : new Date(createdAt),
+          name,
+        },
+        set?.keys.flatMap((key) => set.rows.get(key)?.source ?? []) ?? [],
+      ),
+    [createdAt, name, set],
+  )
+  return { members, entities, entries }
 }

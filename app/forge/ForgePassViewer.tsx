@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { LuActivity, LuPlay } from 'react-icons/lu'
 
 import {
@@ -7,16 +7,17 @@ import {
 } from '@go/github.com/s4wave/spacewave/forge/pass/pass.pb.js'
 import { Execution } from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
 
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
+import { messageDecoder } from '@s4wave/sdk/world/entity-set.js'
+import { useEntitySet } from '@s4wave/web/hooks/useEntitySet.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useForgeBlock } from '@s4wave/web/forge/useForgeBlockData.js'
-import { useForgeLinkedEntities } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 import {
   forgeBlockStatus,
   ForgeViewerShell,
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
-import { ForgeEntityList } from '@s4wave/web/forge/ForgeEntityList.js'
 import { ForgeEntityLink } from '@s4wave/web/forge/ForgeEntityLink.js'
 import { PRED_PASS_TO_EXECUTION } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
@@ -24,7 +25,7 @@ import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
 import { FactRow } from '@s4wave/web/ui/FactList.js'
 import { ForgeValueSetPanels } from './ForgeValueSetDisplay.js'
-import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
+import { ForgeSetList, type ForgeSetRow } from './ForgeSetList.js'
 
 export const ForgePassTypeID = 'forge/pass'
 
@@ -55,6 +56,44 @@ function describeResult(result?: {
   return 'Failed'
 }
 
+const executionDecoder = messageDecoder(Execution)
+const executionIcon = <LuActivity className="size-3 shrink-0" />
+
+// ExecutionRow draws one execution; it draws again only when its body
+// changed.
+const ExecutionRow = memo(function ExecutionRow({
+  objectKey,
+  value,
+}: ForgeSetRow<Execution>) {
+  return (
+    <div className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <ForgeEntityLink
+            objectKey={objectKey}
+            className="text-foreground truncate text-sm font-medium"
+          />
+          <div className="text-foreground-alt/50 truncate text-xs">
+            {value.peerId || 'Worker pending'}
+          </div>
+        </div>
+        <StateBadge
+          state={value.executionState ?? 0}
+          labels={executionStateLabels}
+        />
+      </div>
+      <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
+        <span>{value.timestamp?.toISOString() ?? 'No timestamp'}</span>
+        <span>{describeResult(value.result)}</span>
+      </div>
+    </div>
+  )
+})
+
+function renderExecutionRow(row: ForgeSetRow<Execution>) {
+  return <ExecutionRow key={row.objectKey} {...row} />
+}
+
 // ForgePassViewer displays a Forge Pass entity with execution list.
 export function ForgePassViewer({
   objectInfo,
@@ -65,10 +104,17 @@ export function ForgePassViewer({
   const block = useForgeBlock(objectState, ForgePassTypeID, Pass)
   const pass = block.value ?? undefined
 
-  const { entities: executions, loading: executionsLoading } =
-    useForgeLinkedEntities(worldState, objectKey, PRED_PASS_TO_EXECUTION)
-  const { items: decodedExecutions, loading: decodedExecutionsLoading } =
-    useForgeDecodedLinkedEntities(worldState, executions, Execution)
+  const executions = useEntitySet(
+    worldState,
+    {
+      case: 'link',
+      origin: objectKey,
+      predicate: PRED_PASS_TO_EXECUTION,
+      direction: 'out',
+    },
+    executionDecoder,
+  )
+  const executionCount = resourceContent(executions)?.keys.length
 
   const tabs: ForgeViewerTab[] = useMemo(
     () => [
@@ -82,9 +128,7 @@ export function ForgePassViewer({
                 { label: 'Replicas', value: pass?.replicas ?? 0 },
                 {
                   label: 'Executions',
-                  value: decodedExecutionsLoading
-                    ? '-'
-                    : decodedExecutions.length,
+                  value: executionCount ?? '-',
                 },
               ]}
             />
@@ -99,48 +143,16 @@ export function ForgePassViewer({
       {
         id: 'executions',
         label: 'Executions',
-        content:
-          decodedExecutions.length === 0 ? (
-            <ForgeEntityList
-              entities={executions}
-              loading={executionsLoading || decodedExecutionsLoading}
-              icon={<LuActivity className="size-3 shrink-0" />}
-              loadingLabel="Loading executions..."
-              emptyLabel="No executions yet"
-            />
-          ) : (
-            <div className="space-y-2">
-              {decodedExecutions.map((execution) => (
-                <div
-                  key={execution.entity.objectKey}
-                  className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <ForgeEntityLink
-                        objectKey={execution.entity.objectKey}
-                        className="text-foreground truncate text-sm font-medium"
-                      />
-                      <div className="text-foreground-alt/50 truncate text-xs">
-                        {execution.data.peerId || 'Worker pending'}
-                      </div>
-                    </div>
-                    <StateBadge
-                      state={execution.data.executionState ?? 0}
-                      labels={executionStateLabels}
-                    />
-                  </div>
-                  <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
-                    <span>
-                      {execution.data.timestamp?.toISOString() ??
-                        'No timestamp'}
-                    </span>
-                    <span>{describeResult(execution.data.result)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ),
+        content: (
+          <ForgeSetList
+            set={executions}
+            what="the executions"
+            icon={executionIcon}
+            loadingLabel="Loading executions..."
+            emptyLabel="No executions yet"
+            renderRow={renderExecutionRow}
+          />
+        ),
       },
       {
         id: 'values',
@@ -162,13 +174,7 @@ export function ForgePassViewer({
         ),
       },
     ],
-    [
-      decodedExecutions,
-      decodedExecutionsLoading,
-      executions,
-      executionsLoading,
-      pass,
-    ],
+    [executionCount, executions, pass],
   )
 
   // Details lists the pass's identity behind the bar.

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
+import { buildTypeObjectKey } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { GraphEdgeBucketDirection } from '@s4wave/sdk/world/world.pb.js'
 import { loadForgeLinkedEntities } from './useForgeLinkedEntities.js'
@@ -35,9 +36,11 @@ describe('loadForgeLinkedEntities', () => {
             outgoing: [
               {
                 obj: keyToIRI(
-                  originObjectKey.startsWith('forge/job')
-                    ? 'forge/job'
-                    : 'forge/worker',
+                  buildTypeObjectKey(
+                    originObjectKey.startsWith('forge/job')
+                      ? 'forge/job'
+                      : 'forge/worker',
+                  ),
                 ),
                 predicate: '<type>',
               },
@@ -108,7 +111,9 @@ describe('loadForgeLinkedEntities', () => {
           buckets: [
             {
               originObjectKey: 'forge/cluster/main',
-              outgoing: [{ obj: keyToIRI('forge/cluster') }],
+              outgoing: [
+                { obj: keyToIRI(buildTypeObjectKey('forge/cluster')) },
+              ],
             },
           ],
         })

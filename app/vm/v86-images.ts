@@ -3,6 +3,7 @@ import type { Space } from '@s4wave/sdk/space/space.js'
 import { V86Image } from '@s4wave/sdk/vm/v86.pb.js'
 import { V86ImageTypeID } from '@s4wave/sdk/vm/v86image.js'
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
+import type { EntityDecoder, KeyedSet } from '@s4wave/sdk/world/entity-set.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { mountCdnImageSpace } from './cdn-image-space.js'
@@ -33,21 +34,57 @@ export async function readV86Image(
   using cursor = await obj.accessWorldState(undefined, signal)
   const resp = await cursor.unmarshal({ blockType: V86ImageTypeID }, signal)
   if (!resp.found || !resp.data?.length) return undefined
+  return v86ImageEntry(objectKey, decodeV86Metadata(resp.data))
+}
+
+// V86Metadata is decoded image metadata, or why it could not be decoded.
+export type V86Metadata = { image: V86Image } | { metadataError: string }
+
+// decodeV86Metadata decodes the metadata stored at a V86Image object root.
+export function decodeV86Metadata(data: Uint8Array): V86Metadata {
   try {
-    return { objectKey, image: V86Image.fromBinary(resp.data) }
+    return { image: V86Image.fromBinary(data) }
   } catch (err) {
     return {
-      objectKey,
-      image: {
-        name: objectKey,
-        platform: 'v86',
-        description: 'Metadata could not be decoded.',
-        tags: [],
-      },
       metadataError:
         err instanceof Error ? err.message : 'metadata decode failed',
     }
   }
+}
+
+// v86ImageDecoder decodes V86Image bodies in a followed set of images.
+export const v86ImageDecoder: EntityDecoder<V86Metadata> = {
+  name: 'v86-image',
+  decode: decodeV86Metadata,
+}
+
+// v86ImageEntry is the entry of metadata read at objectKey; metadata that
+// could not be decoded gets a placeholder image.
+function v86ImageEntry(objectKey: string, meta: V86Metadata): V86ImageEntry {
+  if ('image' in meta) return { objectKey, image: meta.image }
+  return {
+    objectKey,
+    image: {
+      name: objectKey,
+      platform: 'v86',
+      description: 'Metadata could not be decoded.',
+      tags: [],
+    },
+    metadataError: meta.metadataError,
+  }
+}
+
+// v86ImageEntries lists the images of a followed set, newest first.
+export function v86ImageEntries(
+  set: KeyedSet<V86Metadata> | null,
+): V86ImageEntry[] {
+  if (!set) return []
+  return set.keys
+    .flatMap((key) => {
+      const meta = set.rows.get(key)
+      return meta ? [v86ImageEntry(key, meta)] : []
+    })
+    .sort(compareV86ImageNewestFirst)
 }
 
 // listV86Images reads every V86Image in world, newest first.

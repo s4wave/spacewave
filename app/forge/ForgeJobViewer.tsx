@@ -1,5 +1,5 @@
 /* eslint-disable react-doctor/no-giant-component */
-import { useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import {
   LuBriefcase,
   LuGitBranch,
@@ -17,13 +17,11 @@ import {
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useForgeBlock } from '@s4wave/web/forge/useForgeBlockData.js'
-import { useForgeLinkedEntities } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 import {
   forgeBlockStatus,
   ForgeViewerShell,
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
-import { ForgeEntityList } from '@s4wave/web/forge/ForgeEntityList.js'
 import { PRED_JOB_TO_TASK } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -36,7 +34,10 @@ import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
 import { buildWizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
-import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
+import { messageDecoder } from '@s4wave/sdk/world/entity-set.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
+import { entitySetRows, useEntitySet } from '@s4wave/web/hooks/useEntitySet.js'
+import { ForgeSetList, type ForgeSetRow } from './ForgeSetList.js'
 import { useForgeTaskDependencyGraph } from './useForgeTaskDependencyGraph.js'
 import { useVisibleObjectWizardTypeSet } from '../space/useVisibleObjectWizardTypeSet.js'
 
@@ -58,6 +59,32 @@ const taskStateLabels: Record<number, string> = {
   [TaskState.TaskState_RETRY]: 'RETRY',
 }
 
+const taskDecoder = messageDecoder(Task)
+
+const taskIcon = <LuListTodo className="size-3 shrink-0" />
+
+// TaskRow draws one task; it draws again only when that task's body changes.
+const TaskRow = memo(function TaskRow({ objectKey, value }: ForgeSetRow<Task>) {
+  return (
+    <div className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition duration-150">
+      <div className="min-w-0">
+        <div className="text-foreground truncate text-sm font-medium">
+          {value.name || objectKey}
+        </div>
+        <div className="text-foreground-alt/50 truncate text-xs">
+          {objectKey}
+        </div>
+      </div>
+      <StateBadge state={value.taskState ?? 0} labels={taskStateLabels} />
+    </div>
+  )
+})
+
+// renderTaskRow draws a task row keyed by its object.
+function renderTaskRow(row: ForgeSetRow<Task>) {
+  return <TaskRow key={row.objectKey} {...row} />
+}
+
 /** ForgeJobViewer displays a Forge Job entity with tabbed layout. */
 export function ForgeJobViewer({
   objectInfo,
@@ -73,36 +100,33 @@ export function ForgeJobViewer({
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
   const canCreateTask = visibleWizardTypeSet.has('forge/task')
 
-  const { entities: tasks, loading: tasksLoading } = useForgeLinkedEntities(
+  const tasks = useEntitySet(
     worldState,
-    objectKey,
-    PRED_JOB_TO_TASK,
+    {
+      case: 'link',
+      origin: objectKey,
+      predicate: PRED_JOB_TO_TASK,
+      direction: 'out',
+    },
+    taskDecoder,
   )
-  const { items: decodedTasks, loading: decodedTasksLoading } =
-    useForgeDecodedLinkedEntities(worldState, tasks, Task)
+  const taskSet = resourceContent(tasks)
+  const decodedTasks = useMemo(() => entitySetRows(taskSet), [taskSet])
+  const taskCount = taskSet?.keys.length ?? 0
   const { edges: taskEdges, loading: taskEdgesLoading } =
-    useForgeTaskDependencyGraph(worldState, tasks)
-  const taskByKey = useMemo(
-    () =>
-      new Map(
-        decodedTasks.map((task) => [task.entity.objectKey, task] as const),
-      ),
-    [decodedTasks],
-  )
+    useForgeTaskDependencyGraph(worldState, objectKey)
 
   const completeTaskCount = useMemo(
     () =>
       decodedTasks.filter(
         (task) =>
-          (task.data.taskState ?? TaskState.TaskState_UNKNOWN) ===
+          (task.value.taskState ?? TaskState.TaskState_UNKNOWN) ===
           TaskState.TaskState_COMPLETE,
       ).length,
     [decodedTasks],
   )
-  const progressPercent = useMemo(() => {
-    if (tasks.length === 0) return 0
-    return Math.round((completeTaskCount / tasks.length) * 100)
-  }, [completeTaskCount, tasks.length])
+  const progressPercent =
+    taskCount === 0 ? 0 : Math.round((completeTaskCount / taskCount) * 100)
 
   const handleAddTask = useCallback(async () => {
     setCreatingTask(true)
@@ -137,51 +161,15 @@ export function ForgeJobViewer({
 
   const tasksContent = useMemo(() => {
     if (tasksView === 'list') {
-      if (tasksLoading || decodedTasksLoading) {
-        return (
-          <ForgeEntityList
-            entities={tasks}
-            loading
-            icon={<LuListTodo className="size-3 shrink-0" />}
-            loadingLabel="Loading tasks..."
-            emptyLabel="No tasks in job"
-          />
-        )
-      }
-      if (decodedTasks.length === 0) {
-        return (
-          <ForgeEntityList
-            entities={tasks}
-            loading={tasksLoading}
-            icon={<LuListTodo className="size-3 shrink-0" />}
-            loadingLabel="Loading tasks..."
-            emptyLabel="No tasks in job"
-          />
-        )
-      }
-
       return (
-        <div className="space-y-2">
-          {decodedTasks.map((task) => (
-            <div
-              key={task.entity.objectKey}
-              className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition duration-150"
-            >
-              <div className="min-w-0">
-                <div className="text-foreground truncate text-sm font-medium">
-                  {task.data.name || task.entity.objectKey}
-                </div>
-                <div className="text-foreground-alt/50 truncate text-xs">
-                  {task.entity.objectKey}
-                </div>
-              </div>
-              <StateBadge
-                state={task.data.taskState ?? 0}
-                labels={taskStateLabels}
-              />
-            </div>
-          ))}
-        </div>
+        <ForgeSetList
+          set={tasks}
+          what="the tasks"
+          icon={taskIcon}
+          loadingLabel="Loading tasks..."
+          emptyLabel="No tasks in job"
+          renderRow={renderTaskRow}
+        />
       )
     }
 
@@ -195,7 +183,7 @@ export function ForgeJobViewer({
         </div>
       )
     }
-    if (decodedTasks.length === 0) {
+    if (taskSet?.complete && decodedTasks.length === 0) {
       return (
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
           <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
@@ -219,8 +207,8 @@ export function ForgeJobViewer({
     return (
       <div className="space-y-2">
         {taskEdges.map((edge) => {
-          const fromTask = taskByKey.get(edge.from)
-          const toTask = taskByKey.get(edge.to)
+          const fromTask = taskSet?.rows.get(edge.from)?.value
+          const toTask = taskSet?.rows.get(edge.to)?.value
           return (
             <div
               key={`${edge.kind}:${edge.from}:${edge.to}`}
@@ -228,9 +216,9 @@ export function ForgeJobViewer({
             >
               <div className="text-foreground flex items-center gap-2 text-sm font-medium">
                 <LuGitBranch className="size-3.5" />
-                <span>{fromTask?.data.name || edge.from}</span>
+                <span>{fromTask?.name || edge.from}</span>
                 <span className="text-foreground-alt/50 text-xs">-&gt;</span>
-                <span>{toTask?.data.name || edge.to}</span>
+                <span>{toTask?.name || edge.to}</span>
               </div>
               <div className="text-foreground-alt/50 micro-text mt-1 tracking-widest uppercase">
                 {edge.kind}
@@ -240,16 +228,7 @@ export function ForgeJobViewer({
         })}
       </div>
     )
-  }, [
-    decodedTasks,
-    decodedTasksLoading,
-    taskByKey,
-    taskEdges,
-    taskEdgesLoading,
-    tasks,
-    tasksLoading,
-    tasksView,
-  ])
+  }, [decodedTasks, taskEdges, taskEdgesLoading, taskSet, tasks, tasksView])
 
   const tabs: ForgeViewerTab[] = useMemo(
     () => [
@@ -268,7 +247,7 @@ export function ForgeJobViewer({
               title="Tasks"
             >
               <div className="text-foreground text-2xl font-semibold">
-                {tasksLoading ? '-' : `${completeTaskCount}/${tasks.length}`}
+                {taskSet ? `${completeTaskCount}/${taskCount}` : '-'}
               </div>
               <div className="text-foreground-alt/50 mt-1 text-xs">
                 {progressPercent}% complete
@@ -340,9 +319,9 @@ export function ForgeJobViewer({
       creatingTask,
       handleAddTask,
       progressPercent,
-      tasks.length,
+      taskCount,
+      taskSet,
       tasksContent,
-      tasksLoading,
       tasksView,
     ],
   )

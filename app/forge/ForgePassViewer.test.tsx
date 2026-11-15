@@ -2,6 +2,8 @@ import React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
+import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
+
 import { ForgePassViewer } from './ForgePassViewer.js'
 
 vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
@@ -53,38 +55,34 @@ vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
   }),
 }))
 
-vi.mock('@s4wave/web/forge/useForgeLinkedEntities.js', () => ({
-  useForgeLinkedEntities: () => ({
-    entities: [
-      {
-        objectKey: 'forge/execution/1',
-        typeId: 'forge/execution',
+vi.mock('@s4wave/web/hooks/useEntitySet.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useEntitySet: () =>
+    resourceOf({
+      value: {
+        seqno: 1n,
+        keys: ['forge/execution/1'],
+        rows: new Map<string, object>(
+          (
+            [
+              [
+                'forge/execution/1',
+                {
+                  peerId: '12D3KooWExec',
+                  executionState: 2,
+                  timestamp: new Date('2026-04-17T12:11:00Z'),
+                  result: { success: true },
+                },
+              ],
+            ] as [string, object][]
+          ).map(([key, value]) => [key, { value }]),
+        ),
+        complete: true,
       },
-    ],
-    loading: false,
-  }),
-}))
-
-vi.mock('./useForgeDecodedLinkedEntities.js', () => ({
-  useForgeDecodedLinkedEntities: () => ({
-    items: [
-      {
-        entity: {
-          objectKey: 'forge/execution/1',
-          typeId: 'forge/execution',
-        },
-        data: {
-          peerId: '12D3KooWExec',
-          executionState: 2,
-          timestamp: new Date('2026-04-17T12:11:00Z'),
-          result: {
-            success: true,
-          },
-        },
-      },
-    ],
-    loading: false,
-  }),
+      loading: false,
+      error: null,
+      retry: () => {},
+    }),
 }))
 
 describe('ForgePassViewer', () => {

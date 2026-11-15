@@ -1,0 +1,49 @@
+[
+  {
+    "name": "a failed read keeps showing loading",
+    "replace": [
+      [
+        "IF failed /\\ got # \"complete\" THEN \"failed\"",
+        "IF failed /\\ got # \"complete\" THEN \"loading\""
+      ]
+    ],
+    "expect": "LoadingIsTrue"
+  },
+  {
+    "name": "a failure offers no Retry",
+    "replace": [
+      ["Shown == IF View = \"failed\" THEN {\"retry\"} ELSE {}", "Shown == {}"]
+    ],
+    "expect": "FailureHasNextStep"
+  },
+  {
+    "name": "a failure seeds from no images",
+    "replace": [
+      [
+        "  /\\ View = \"ready\"\n  /\\ seeded' = TRUE",
+        "  /\\ View \\in {\"ready\", \"failed\"}\n  /\\ seeded' = TRUE"
+      ]
+    ],
+    "expect": "SeedOnlyFromRead"
+  },
+  {
+    "name": "seeds before the listing is complete",
+    "replace": [
+      [
+        "ELSE IF got = \"complete\" THEN \"ready\"",
+        "ELSE IF got # \"none\" THEN \"ready\""
+      ]
+    ],
+    "expect": "SeedOnlyFromRead"
+  },
+  {
+    "name": "a failure after a partial listing keeps loading",
+    "replace": [
+      [
+        "IF failed /\\ got # \"complete\" THEN \"failed\"",
+        "IF failed /\\ got = \"none\" THEN \"failed\""
+      ]
+    ],
+    "expect": "PartialFailureIsShown"
+  }
+]

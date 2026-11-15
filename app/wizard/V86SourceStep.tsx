@@ -11,6 +11,7 @@ import {
 import type { ExistingVm } from '../vm/v86-creation.js'
 import { formatV86ImageLabel, type V86ImageEntry } from '../vm/v86-images.js'
 import { V86ImageRow } from './V86ImageRow.js'
+import type { V86ListingsFailure } from './v86-listings.js'
 
 // V86SourceStepProps describes the images a new VM can boot.
 export interface V86SourceStepProps {
@@ -20,6 +21,8 @@ export interface V86SourceStepProps {
   inSpaceImages: V86ImageEntry[]
   // pending is set while the Space's images and VMs are still loading.
   pending: boolean
+  // failures lists each listing that could not be read; pending stays set.
+  failures?: V86ListingsFailure[]
   onSelectInSpace: (imageKey: string) => void
   onOpenCatalog: () => void
 }
@@ -31,6 +34,7 @@ export function V86SourceStep({
   existingDefault,
   inSpaceImages,
   pending,
+  failures = [],
   onSelectInSpace,
   onOpenCatalog,
 }: V86SourceStepProps) {
@@ -47,7 +51,18 @@ export function V86SourceStep({
         Choose a VM image
       </h3>
 
-      {pending && empty && (
+      {failures.map((failure) => (
+        <LoadingCard
+          key={failure.title}
+          view={{
+            state: 'error',
+            title: failure.title,
+            error: failure.message,
+            onRetry: failure.retry,
+          }}
+        />
+      ))}
+      {pending && failures.length === 0 && (
         <LoadingCard
           view={{
             state: 'active',
