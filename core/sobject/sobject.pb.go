@@ -778,6 +778,13 @@ type SharedObjectHealth struct {
 	// SyncPeers lists this device's sync stream with each participant it has
 	// authenticated since the object mounted, sorted by peer ID.
 	SyncPeers []*SOSyncPeer `protobuf:"bytes,12,rep,name=sync_peers,json=syncPeers,proto3" json:"syncPeers,omitempty"`
+	// ReplayWait is set while this device's replay waits at an operation whose
+	// type has no handler on this device. The body serves the state before it
+	// meanwhile, and replay resumes once a handler registers.
+	ReplayWait *SOReplayWait `protobuf:"bytes,13,opt,name=replay_wait,json=replayWait,proto3" json:"replayWait,omitempty"`
+	// RefusedCount is the number of operations above the installed checkpoint
+	// that this device's replay refused.
+	RefusedCount uint32 `protobuf:"varint,14,opt,name=refused_count,json=refusedCount,proto3" json:"refusedCount,omitempty"`
 }
 
 func (x *SharedObjectHealth) Reset() {
@@ -866,6 +873,148 @@ func (x *SharedObjectHealth) GetUnorderedCount() uint32 {
 func (x *SharedObjectHealth) GetSyncPeers() []*SOSyncPeer {
 	if x != nil {
 		return x.SyncPeers
+	}
+	return nil
+}
+
+func (x *SharedObjectHealth) GetReplayWait() *SOReplayWait {
+	if x != nil {
+		return x.ReplayWait
+	}
+	return nil
+}
+
+func (x *SharedObjectHealth) GetRefusedCount() uint32 {
+	if x != nil {
+		return x.RefusedCount
+	}
+	return 0
+}
+
+// SOReplayWait is the operation this device's replay waits at. A missing
+// handler is a fact about this device and its release, not about the
+// operation, so replay waits for one instead of refusing the operation.
+type SOReplayWait struct {
+	unknownFields []byte
+	// CheckpointHeight is the height of the checkpoint the operation is above.
+	CheckpointHeight uint64 `protobuf:"varint,1,opt,name=checkpoint_height,json=checkpointHeight,proto3" json:"checkpointHeight,omitempty"`
+	// Position is the operation's index in the order above that checkpoint.
+	Position uint32 `protobuf:"varint,2,opt,name=position,proto3" json:"position,omitempty"`
+	// OpTypeId is the operation type no handler on this device resolves.
+	OpTypeId string `protobuf:"bytes,3,opt,name=op_type_id,json=opTypeId,proto3" json:"opTypeId,omitempty"`
+	// PluginId is the plugin a pinned operation type names, or empty for an
+	// unpinned type.
+	PluginId string `protobuf:"bytes,4,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// State is what the wait needs before replay can resume.
+	//
+	// Types that are assignable to State:
+	//	*SOReplayWait_Handler
+	//	*SOReplayWait_Approval
+	State isSOReplayWait_State `protobuf_oneof:"state"`
+}
+
+func (x *SOReplayWait) Reset() {
+	*x = SOReplayWait{}
+}
+
+func (*SOReplayWait) ProtoMessage() {}
+
+func (x *SOReplayWait) GetCheckpointHeight() uint64 {
+	if x != nil {
+		return x.CheckpointHeight
+	}
+	return 0
+}
+
+func (x *SOReplayWait) GetPosition() uint32 {
+	if x != nil {
+		return x.Position
+	}
+	return 0
+}
+
+func (x *SOReplayWait) GetOpTypeId() string {
+	if x != nil {
+		return x.OpTypeId
+	}
+	return ""
+}
+
+func (x *SOReplayWait) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (m *SOReplayWait) GetState() isSOReplayWait_State {
+	if m != nil {
+		return m.State
+	}
+	return nil
+}
+
+func (x *SOReplayWait) GetHandler() *SOReplayWaitHandler {
+	if x, ok := x.GetState().(*SOReplayWait_Handler); ok {
+		return x.Handler
+	}
+	return nil
+}
+
+func (x *SOReplayWait) GetApproval() *SOReplayWaitApproval {
+	if x, ok := x.GetState().(*SOReplayWait_Approval); ok {
+		return x.Approval
+	}
+	return nil
+}
+
+type isSOReplayWait_State interface {
+	isSOReplayWait_State()
+}
+
+type SOReplayWait_Handler struct {
+	// Handler waits for a plugin on this device to register a handler.
+	Handler *SOReplayWaitHandler `protobuf:"bytes,5,opt,name=handler,proto3,oneof"`
+}
+
+type SOReplayWait_Approval struct {
+	// Approval waits for this device's person to approve a plugin.
+	Approval *SOReplayWaitApproval `protobuf:"bytes,6,opt,name=approval,proto3,oneof"`
+}
+
+func (*SOReplayWait_Handler) isSOReplayWait_State() {}
+
+func (*SOReplayWait_Approval) isSOReplayWait_State() {}
+
+// SOReplayWaitHandler waits for a plugin on this device to register a handler
+// for the operation type.
+type SOReplayWaitHandler struct {
+	unknownFields []byte
+}
+
+func (x *SOReplayWaitHandler) Reset() {
+	*x = SOReplayWaitHandler{}
+}
+
+func (*SOReplayWaitHandler) ProtoMessage() {}
+
+// SOReplayWaitApproval waits for this device's person to approve the plugins
+// that could handle the operation type.
+type SOReplayWaitApproval struct {
+	unknownFields []byte
+	// PluginIds lists the plugins awaiting approval on this device, sorted.
+	PluginIds []string `protobuf:"bytes,1,rep,name=plugin_ids,json=pluginIds,proto3" json:"pluginIds,omitempty"`
+}
+
+func (x *SOReplayWaitApproval) Reset() {
+	*x = SOReplayWaitApproval{}
+}
+
+func (*SOReplayWaitApproval) ProtoMessage() {}
+
+func (x *SOReplayWaitApproval) GetPluginIds() []string {
+	if x != nil {
+		return x.PluginIds
 	}
 	return nil
 }
@@ -2914,12 +3063,14 @@ func (m *SharedObjectHealth) CloneVT() *SharedObjectHealth {
 	r.RemediationHint = m.RemediationHint
 	r.Error = m.Error
 	r.UnorderedCount = m.UnorderedCount
+	r.RefusedCount = m.RefusedCount
 	r.Metadata = protobuf_go_lite.CloneBytes(m.Metadata)
 	r.SyncDeniedPeerIds = protobuf_go_lite.CloneSlice(m.SyncDeniedPeerIds)
 	r.SyncRecoveryPeerIds = protobuf_go_lite.CloneSlice(m.SyncRecoveryPeerIds)
 	r.RejectedEdits = protobuf_go_lite.CloneVTSlice(m.RejectedEdits)
 	r.CheckpointMismatch = protobuf_go_lite.CloneVTValue(m.CheckpointMismatch)
 	r.SyncPeers = protobuf_go_lite.CloneVTSlice(m.SyncPeers)
+	r.ReplayWait = protobuf_go_lite.CloneVTValue(m.ReplayWait)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2927,6 +3078,85 @@ func (m *SharedObjectHealth) CloneVT() *SharedObjectHealth {
 }
 
 func (m *SharedObjectHealth) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOReplayWait) CloneVT() *SOReplayWait {
+	if m == nil {
+		return (*SOReplayWait)(nil)
+	}
+	r := new(SOReplayWait)
+	r.CheckpointHeight = m.CheckpointHeight
+	r.Position = m.Position
+	r.OpTypeId = m.OpTypeId
+	r.PluginId = m.PluginId
+	if m.State != nil {
+		r.State = m.State.(interface{ CloneOneofVT() isSOReplayWait_State }).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOReplayWait) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOReplayWait_Handler) CloneVT() *SOReplayWait_Handler {
+	if m == nil {
+		return (*SOReplayWait_Handler)(nil)
+	}
+	r := new(SOReplayWait_Handler)
+	r.Handler = protobuf_go_lite.CloneVTValue(m.Handler)
+	return r
+}
+
+func (m *SOReplayWait_Handler) CloneOneofVT() isSOReplayWait_State {
+	return m.CloneVT()
+}
+
+func (m *SOReplayWait_Approval) CloneVT() *SOReplayWait_Approval {
+	if m == nil {
+		return (*SOReplayWait_Approval)(nil)
+	}
+	r := new(SOReplayWait_Approval)
+	r.Approval = protobuf_go_lite.CloneVTValue(m.Approval)
+	return r
+}
+
+func (m *SOReplayWait_Approval) CloneOneofVT() isSOReplayWait_State {
+	return m.CloneVT()
+}
+
+func (m *SOReplayWaitHandler) CloneVT() *SOReplayWaitHandler {
+	if m == nil {
+		return (*SOReplayWaitHandler)(nil)
+	}
+	r := new(SOReplayWaitHandler)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOReplayWaitHandler) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOReplayWaitApproval) CloneVT() *SOReplayWaitApproval {
+	if m == nil {
+		return (*SOReplayWaitApproval)(nil)
+	}
+	r := new(SOReplayWaitApproval)
+	r.PluginIds = protobuf_go_lite.CloneSlice(m.PluginIds)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOReplayWaitApproval) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -3829,11 +4059,129 @@ func (this *SharedObjectHealth) EqualVT(that *SharedObjectHealth) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.SyncPeers, that.SyncPeers, func() *SOSyncPeer { return &SOSyncPeer{} }) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.ReplayWait, that.ReplayWait) {
+		return false
+	}
+	if this.RefusedCount != that.RefusedCount {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SharedObjectHealth) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SharedObjectHealth)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOReplayWait) EqualVT(that *SOReplayWait) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State == nil && that.State != nil {
+		return false
+	} else if this.State != nil {
+		if that.State == nil {
+			return false
+		}
+		if !this.State.(interface {
+			EqualVT(isSOReplayWait_State) bool
+		}).EqualVT(that.State) {
+			return false
+		}
+	}
+	if this.CheckpointHeight != that.CheckpointHeight {
+		return false
+	}
+	if this.Position != that.Position {
+		return false
+	}
+	if this.OpTypeId != that.OpTypeId {
+		return false
+	}
+	if this.PluginId != that.PluginId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOReplayWait) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOReplayWait)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOReplayWait_Handler) EqualVT(thatIface isSOReplayWait_State) bool {
+	that, ok := thatIface.(*SOReplayWait_Handler)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Handler, that.Handler, func() *SOReplayWaitHandler { return &SOReplayWaitHandler{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SOReplayWait_Approval) EqualVT(thatIface isSOReplayWait_State) bool {
+	that, ok := thatIface.(*SOReplayWait_Approval)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Approval, that.Approval, func() *SOReplayWaitApproval { return &SOReplayWaitApproval{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SOReplayWaitHandler) EqualVT(that *SOReplayWaitHandler) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOReplayWaitHandler) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOReplayWaitHandler)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOReplayWaitApproval) EqualVT(that *SOReplayWaitApproval) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.PluginIds, that.PluginIds) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOReplayWaitApproval) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOReplayWaitApproval)
 	if !ok {
 		return false
 	}
@@ -5838,6 +6186,16 @@ func (x *SharedObjectHealth) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.ReplayWait != nil || s.HasField("replayWait") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("replayWait")
+		x.ReplayWait.MarshalProtoJSON(s.WithField("replayWait"))
+	}
+	if x.RefusedCount != 0 || s.HasField("refusedCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refusedCount")
+		s.WriteUint32(x.RefusedCount)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5933,12 +6291,194 @@ func (x *SharedObjectHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.SyncPeers = append(x.SyncPeers, v)
 			})
+		case "replay_wait", "replayWait":
+			if s.ReadNil() {
+				x.ReplayWait = nil
+				return
+			}
+			x.ReplayWait = &SOReplayWait{}
+			x.ReplayWait.UnmarshalProtoJSON(s.WithField("replay_wait", true))
+		case "refused_count", "refusedCount":
+			s.AddField("refused_count")
+			x.RefusedCount = s.ReadUint32()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SharedObjectHealth from JSON.
 func (x *SharedObjectHealth) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOReplayWait message to JSON.
+func (x *SOReplayWait) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CheckpointHeight != 0 || s.HasField("checkpointHeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkpointHeight")
+		s.WriteUint64(x.CheckpointHeight)
+	}
+	if x.Position != 0 || s.HasField("position") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("position")
+		s.WriteUint32(x.Position)
+	}
+	if x.OpTypeId != "" || s.HasField("opTypeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opTypeId")
+		s.WriteString(x.OpTypeId)
+	}
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
+	if x.State != nil {
+		switch ov := x.State.(type) {
+		case *SOReplayWait_Handler:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("handler")
+			ov.Handler.MarshalProtoJSON(s.WithField("handler"))
+		case *SOReplayWait_Approval:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("approval")
+			ov.Approval.MarshalProtoJSON(s.WithField("approval"))
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOReplayWait to JSON.
+func (x *SOReplayWait) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOReplayWait message from JSON.
+func (x *SOReplayWait) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "checkpoint_height", "checkpointHeight":
+			s.AddField("checkpoint_height")
+			x.CheckpointHeight = s.ReadUint64()
+		case "position":
+			s.AddField("position")
+			x.Position = s.ReadUint32()
+		case "op_type_id", "opTypeId":
+			s.AddField("op_type_id")
+			x.OpTypeId = s.ReadString()
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
+		case "handler":
+			ov := &SOReplayWait_Handler{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Handler = nil
+				return
+			}
+			ov.Handler = &SOReplayWaitHandler{}
+			ov.Handler.UnmarshalProtoJSON(s.WithField("handler", true))
+		case "approval":
+			ov := &SOReplayWait_Approval{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Approval = nil
+				return
+			}
+			ov.Approval = &SOReplayWaitApproval{}
+			ov.Approval.UnmarshalProtoJSON(s.WithField("approval", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOReplayWait from JSON.
+func (x *SOReplayWait) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOReplayWaitHandler message to JSON.
+func (x *SOReplayWaitHandler) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOReplayWaitHandler to JSON.
+func (x *SOReplayWaitHandler) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOReplayWaitHandler message from JSON.
+func (x *SOReplayWaitHandler) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SOReplayWaitHandler from JSON.
+func (x *SOReplayWaitHandler) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOReplayWaitApproval message to JSON.
+func (x *SOReplayWaitApproval) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.PluginIds) > 0 || s.HasField("pluginIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginIds")
+		s.WriteStringArray(x.PluginIds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOReplayWaitApproval to JSON.
+func (x *SOReplayWaitApproval) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOReplayWaitApproval message from JSON.
+func (x *SOReplayWaitApproval) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "plugin_ids", "pluginIds":
+			s.AddField("plugin_ids")
+			if s.ReadNil() {
+				x.PluginIds = nil
+				return
+			}
+			x.PluginIds = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOReplayWaitApproval from JSON.
+func (x *SOReplayWaitApproval) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -9269,6 +9809,21 @@ func (m *SharedObjectHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.RefusedCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RefusedCount))
+		i--
+		dAtA[i] = 0x70
+	}
+	if m.ReplayWait != nil {
+		size, err := m.ReplayWait.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x6a
+	}
 	if len(m.SyncPeers) > 0 {
 		for iNdEx := len(m.SyncPeers) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.SyncPeers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -9351,6 +9906,186 @@ func (m *SharedObjectHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOReplayWait) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOReplayWait) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOReplayWait) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.State.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if len(m.PluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginId)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.OpTypeId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.OpTypeId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Position != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Position))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.CheckpointHeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CheckpointHeight))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOReplayWait_Handler) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOReplayWait_Handler) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Handler != nil {
+		size, err := m.Handler.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x2a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOReplayWait_Approval) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOReplayWait_Approval) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Approval != nil {
+		size, err := m.Approval.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x32
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOReplayWaitHandler) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOReplayWaitHandler) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOReplayWaitHandler) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOReplayWaitApproval) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOReplayWaitApproval) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOReplayWaitApproval) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PluginIds) > 0 {
+		for iNdEx := len(m.PluginIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginIds[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -11761,6 +12496,79 @@ func (m *SharedObjectHealth) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.ReplayWait != nil {
+		l = m.ReplayWait.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RefusedCount)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOReplayWait) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CheckpointHeight)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Position)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpTypeId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
+	if vtmsg, ok := m.State.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOReplayWait_Handler) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Handler != nil {
+		l = m.Handler.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SOReplayWait_Approval) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Approval != nil {
+		l = m.Approval.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SOReplayWaitHandler) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOReplayWaitApproval) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.PluginIds)
 	n += len(m.unknownFields)
 	return n
 }
@@ -12709,10 +13517,88 @@ func (x *SharedObjectHealth) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if x.ReplayWait != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "replay_wait")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ReplayWait)
+	}
+	if x.RefusedCount != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refused_count")
+		protobuf_go_lite.TextWriteUint(&sb, x.RefusedCount)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SharedObjectHealth) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOReplayWait) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOReplayWait")
+	if x.CheckpointHeight != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_height")
+		protobuf_go_lite.TextWriteUint(&sb, x.CheckpointHeight)
+	}
+	if x.Position != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "position")
+		protobuf_go_lite.TextWriteUint(&sb, x.Position)
+	}
+	if x.OpTypeId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_type_id")
+		protobuf_go_lite.TextWriteString(&sb, x.OpTypeId)
+	}
+	if x.PluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PluginId)
+	}
+	switch body := x.State.(type) {
+	case *SOReplayWait_Handler:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "handler")
+		if body.Handler == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOReplayWaitHandler{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Handler)
+		}
+	case *SOReplayWait_Approval:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "approval")
+		if body.Approval == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOReplayWaitApproval{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Approval)
+		}
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOReplayWait) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOReplayWaitHandler) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SOReplayWaitHandler")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOReplayWaitHandler) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOReplayWaitApproval) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOReplayWaitApproval")
+	if len(x.PluginIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "plugin_ids")
+		for i, v := range x.PluginIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOReplayWaitApproval) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -14379,6 +15265,247 @@ func (m *SharedObjectHealth) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReplayWait", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ReplayWait == nil {
+				m.ReplayWait = &SOReplayWait{}
+			}
+			if err := m.ReplayWait.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RefusedCount", wireType)
+			}
+			m.RefusedCount = 0
+			m.RefusedCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOReplayWait) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOReplayWait: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOReplayWait: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointHeight", wireType)
+			}
+			m.CheckpointHeight = 0
+			m.CheckpointHeight, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Position", wireType)
+			}
+			m.Position = 0
+			m.Position, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpTypeId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OpTypeId = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginId = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Handler", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SOReplayWait_Handler); ok {
+				if err := oneof.Handler.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SOReplayWaitHandler{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SOReplayWait_Handler{Handler: v}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Approval", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SOReplayWait_Approval); ok {
+				if err := oneof.Approval.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SOReplayWaitApproval{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SOReplayWait_Approval{Approval: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOReplayWaitHandler) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOReplayWaitHandler: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOReplayWaitHandler: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOReplayWaitApproval) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOReplayWaitApproval: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOReplayWaitApproval: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginIds = append(m.PluginIds, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -210,7 +210,7 @@ class SharedObjectMeta(_message.Message):
     def __init__(self, body_type: _Optional[str] = ..., body_meta: _Optional[bytes] = ..., account_private: _Optional[bool] = ...) -> None: ...
 
 class SharedObjectHealth(_message.Message):
-    __slots__ = ("status", "layer", "common_reason", "remediation_hint", "error", "metadata", "sync_denied_peer_ids", "sync_recovery_peer_ids", "rejected_edits", "checkpoint_mismatch", "unordered_count", "sync_peers")
+    __slots__ = ("status", "layer", "common_reason", "remediation_hint", "error", "metadata", "sync_denied_peer_ids", "sync_recovery_peer_ids", "rejected_edits", "checkpoint_mismatch", "unordered_count", "sync_peers", "replay_wait", "refused_count")
     STATUS_FIELD_NUMBER: _ClassVar[int]
     LAYER_FIELD_NUMBER: _ClassVar[int]
     COMMON_REASON_FIELD_NUMBER: _ClassVar[int]
@@ -223,6 +223,8 @@ class SharedObjectHealth(_message.Message):
     CHECKPOINT_MISMATCH_FIELD_NUMBER: _ClassVar[int]
     UNORDERED_COUNT_FIELD_NUMBER: _ClassVar[int]
     SYNC_PEERS_FIELD_NUMBER: _ClassVar[int]
+    REPLAY_WAIT_FIELD_NUMBER: _ClassVar[int]
+    REFUSED_COUNT_FIELD_NUMBER: _ClassVar[int]
     status: SharedObjectHealthStatus
     layer: SharedObjectHealthLayer
     common_reason: SharedObjectHealthCommonReason
@@ -235,7 +237,35 @@ class SharedObjectHealth(_message.Message):
     checkpoint_mismatch: SOCheckpointMismatch
     unordered_count: int
     sync_peers: _containers.RepeatedCompositeFieldContainer[SOSyncPeer]
-    def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ..., rejected_edits: _Optional[_Iterable[_Union[SORejectedEdit, _Mapping]]] = ..., checkpoint_mismatch: _Optional[_Union[SOCheckpointMismatch, _Mapping]] = ..., unordered_count: _Optional[int] = ..., sync_peers: _Optional[_Iterable[_Union[SOSyncPeer, _Mapping]]] = ...) -> None: ...
+    replay_wait: SOReplayWait
+    refused_count: int
+    def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ..., rejected_edits: _Optional[_Iterable[_Union[SORejectedEdit, _Mapping]]] = ..., checkpoint_mismatch: _Optional[_Union[SOCheckpointMismatch, _Mapping]] = ..., unordered_count: _Optional[int] = ..., sync_peers: _Optional[_Iterable[_Union[SOSyncPeer, _Mapping]]] = ..., replay_wait: _Optional[_Union[SOReplayWait, _Mapping]] = ..., refused_count: _Optional[int] = ...) -> None: ...
+
+class SOReplayWait(_message.Message):
+    __slots__ = ("checkpoint_height", "position", "op_type_id", "plugin_id", "handler", "approval")
+    CHECKPOINT_HEIGHT_FIELD_NUMBER: _ClassVar[int]
+    POSITION_FIELD_NUMBER: _ClassVar[int]
+    OP_TYPE_ID_FIELD_NUMBER: _ClassVar[int]
+    PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
+    HANDLER_FIELD_NUMBER: _ClassVar[int]
+    APPROVAL_FIELD_NUMBER: _ClassVar[int]
+    checkpoint_height: int
+    position: int
+    op_type_id: str
+    plugin_id: str
+    handler: SOReplayWaitHandler
+    approval: SOReplayWaitApproval
+    def __init__(self, checkpoint_height: _Optional[int] = ..., position: _Optional[int] = ..., op_type_id: _Optional[str] = ..., plugin_id: _Optional[str] = ..., handler: _Optional[_Union[SOReplayWaitHandler, _Mapping]] = ..., approval: _Optional[_Union[SOReplayWaitApproval, _Mapping]] = ...) -> None: ...
+
+class SOReplayWaitHandler(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class SOReplayWaitApproval(_message.Message):
+    __slots__ = ("plugin_ids",)
+    PLUGIN_IDS_FIELD_NUMBER: _ClassVar[int]
+    plugin_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, plugin_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SOSyncPeer(_message.Message):
     __slots__ = ("peer_id", "connected", "since", "error")

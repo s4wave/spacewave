@@ -1,0 +1,13 @@
+---
+title: "Space waits for a change handler"
+---
+stateDiagram-v2
+  s0: Up to date
+  s1: Waiting for an app
+  s2: Waiting for approval
+  [*] --> s0
+  s0 --> s1: reaches an unknown change
+  s1 --> s0: handler arrives
+  s1 --> s2: plugin not approved
+  s2 --> s0: handler arrives
+  s2 --> s1: person approves or app restarts

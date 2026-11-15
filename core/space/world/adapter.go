@@ -176,6 +176,13 @@ type Adapter struct {
 	// bcast.
 	headHeight    uint64
 	headPositions int
+	// waiting is set while replay waits at an operation whose type no
+	// handler resolves; serve then publishes the World before it. Guarded by
+	// bcast.
+	waiting bool
+	// handlerWait is replay's wait for a handler, or nil. Owned by the body
+	// driver's goroutine, which calls Apply and Install.
+	handlerWait *handlerWait
 	// engine is the serving engine once built, until it retires. Guarded by
 	// bcast.
 	engine *Engine
@@ -507,15 +514,17 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 	// Wait for an initialized head at or past that order.
 	var queued bool
 	for {
-		var installed, reached bool
+		var installed, reached, waiting bool
 		var state *InnerState
 		var waitCh <-chan struct{}
 		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			installed, state, waitCh = a.installed, a.headState, getWaitCh()
+			installed, state, waiting, waitCh = a.installed, a.headState, a.waiting, getWaitCh()
 			reached = a.headHeight > target.Checkpoint.GetHeight() ||
 				(a.headHeight == target.Checkpoint.GetHeight() && a.headPositions >= len(target.Order))
 		})
-		if !state.GetHeadRef().GetEmpty() && reached {
+		// Serve the World before an operation replay waits at, so reads go
+		// on while the device lacks its handler.
+		if !state.GetHeadRef().GetEmpty() && (reached || waiting) {
 			break
 		}
 
@@ -798,19 +807,21 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		adopt = &spacePosition{state: state, seqno: c.Seqno, payloads: adm.payloads, handlers: adm.handlers}
 	}
 
-	// Compute the position, waiting at an operation whose type a plugin the
-	// World installs declares until the plugin registers a handler.
+	// Compute the position. At an operation whose type no handler resolves,
+	// return the wait for its handler, so the driver steps again with no lock
+	// held once it registers. A transient replay has no driver to wait in.
 	pos, err := r.run(ctx, index, op, adopt)
-	var pending *pendingOpError
-	for !a.opts.transient && errors.As(err, &pending) {
-		if err := a.awaitOpHandler(ctx, pending); err != nil {
-			return "", err
+	var unresolved *unresolvedOpError
+	if errors.As(err, &unresolved) {
+		if a.opts.transient {
+			return "", errors.Wrap(ErrUnresolvedOp, unresolved.opTypeID)
 		}
-		pos, err = r.run(ctx, index, op, adopt)
+		return "", a.waitForHandler(unresolved)
 	}
 	if err != nil {
 		return "", err
 	}
+	a.endHandlerWait()
 	r.positions = append(r.positions, pos)
 	delete(a.missing, string(op.Hash))
 
@@ -905,7 +916,10 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		return false, err
 	}
 
-	// Record the install and drop the pages no live World reaches.
+	// Record the install and drop the pages no live World reaches. A wait for
+	// a handler ends, as the checkpoint may cover its operation; Apply starts
+	// it again if not.
+	a.endHandlerWait()
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.installed, a.checkpoint, a.checkpointSeqno = true, base, seqno
 		broadcast()

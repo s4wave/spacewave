@@ -2,25 +2,21 @@ package space_world
 
 import (
 	"context"
-	"strings"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_worldop_registry "github.com/s4wave/spacewave/sdk/worldop/registry"
 	"github.com/sirupsen/logrus"
 )
 
 // OpTypes resolves the World operation types a Space engine applies.
 type OpTypes struct {
 	// Lookup resolves built-in operations before the bus lookup, or is nil.
+	// It is the static schema every release of this binary shares.
 	Lookup world.LookupOp
-	// Declared returns the plugins the World ws declares handle opTypeID, an
-	// operation type neither Lookup nor the bus resolves. Replay stops at an
-	// operation of a declared type until a handler for it resolves on the bus,
-	// and rejects one of an undeclared type. It must read only ws, so every
-	// replica decides alike. Nil declares none.
-	Declared func(ctx context.Context, ws world.WorldState, opTypeID string) ([]string, error)
 }
 
 // ErrBusPayloadOperation is returned when a handler on the bus resolves an
@@ -96,90 +92,67 @@ func (t OpTypes) HeldLookupOn(b bus.Bus, le *logrus.Entry, engineID string) (wor
 	return lookups.LookupOp, release
 }
 
-// pendingOpError reports an operation whose type the World declares a plugin
-// handles, met before a handler for the type resolved.
-type pendingOpError struct {
+// unresolvedOpError reports an operation whose type neither the static
+// schema nor a handler on the bus resolves on this device yet.
+//
+// Invariant: the author and every replayer decide a position alike from the
+// operation and the World alone. Whether a handler exists is a fact about the
+// device and its release, so a missing handler is never a refusal: replay
+// waits at the operation until a handler registers.
+type unresolvedOpError struct {
 	// opTypeID is the operation type.
 	opTypeID string
-	// pluginIDs are the plugins the World declares handle it.
+	// pluginID is the plugin a pinned type names, or empty.
+	pluginID string
+	// pluginIDs are the plugins to run while waiting: the pinned one, or
+	// every plugin the World before the operation lists.
 	pluginIDs []string
 }
 
 // Error returns the error message.
-func (e *pendingOpError) Error() string {
-	return "operation type " + e.opTypeID + " waits for a handler from plugin " + strings.Join(e.pluginIDs, ", ")
+func (e *unresolvedOpError) Error() string {
+	return "no handler resolves operation type " + e.opTypeID
 }
 
 // isReplayGap reports whether err stops replay at its operation instead of
 // deciding the operation: a block that is not available, a canceled read, a
 // put through a replay stage that was released or lost, or an operation whose
-// declared handler has not resolved. None is a property of the operation, so
+// type no handler resolves yet. None is a property of the operation, so
 // refusing it would split replicas.
 func isReplayGap(err error) bool {
-	var pending *pendingOpError
+	var unresolved *unresolvedOpError
 	return block.IsNotAvailable(err) ||
 		errors.Is(err, block.ErrStageReleased) ||
-		errors.As(err, &pending) ||
+		errors.As(err, &unresolved) ||
 		errors.Is(err, context.Canceled) ||
 		errors.Is(err, context.DeadlineExceeded)
 }
 
-// awaitOpHandler asks the holders of the Space's plugin runtime to run the
-// plugins pending names, with a LoadOpPlugins directive held while it waits,
-// and returns once a handler for pending's operation type resolves on the
-// bus. Without a bus lookup no handler can resolve, so it waits for ctx.
-func (a *Adapter) awaitOpHandler(ctx context.Context, pending *pendingOpError) error {
-	// Wait out the run when nothing can resolve the type.
-	if a.opts.DisableLookup || a.opts.Bus == nil {
-		<-ctx.Done()
-		return context.Cause(ctx)
-	}
-
-	// Ask for the declaring plugins while waiting.
-	a.le.WithField("op-type", pending.opTypeID).WithField("plugin-ids", pending.pluginIDs).Info("replay waits for an operation plugin")
-	_, loadRef, err := a.opts.Bus.AddDirective(ctx, NewLoadOpPlugins(a.opts.EngineID, pending.pluginIDs), nil)
-	if err != nil {
-		return err
-	}
-	defer loadRef.Release()
-
-	// Wait for a lookup value that resolves the type. Other values, such as
-	// the built-in operations, resolve nothing for it.
-	_, _, ref, err := bus.ExecWaitValue[world.LookupWorldOpValue](
-		ctx,
-		a.opts.Bus,
-		world.NewLookupWorldOp(pending.opTypeID, a.opts.EngineID),
-		nil,
-		nil,
-		func(lookup world.LookupWorldOpValue) (bool, error) {
-			op, err := lookup(ctx, pending.opTypeID)
-			return op != nil && err == nil, nil
-		},
-	)
-	if err != nil {
-		return err
-	}
-	ref.Release()
-	return nil
-}
-
-// declaredLookup wraps lookupOp so that an operation type it does not
-// resolve, and that ws declares a plugin handles, fails with a pendingOpError
-// instead of resolving to nothing.
-func declaredLookup(lookupOp world.LookupOp, declared func(context.Context, world.WorldState, string) ([]string, error), ws world.WorldState) world.LookupOp {
-	if declared == nil {
-		return lookupOp
-	}
+// waitingLookup wraps lookupOp so that an operation type it does not
+// resolve fails with an unresolvedOpError instead of resolving to nothing. ws
+// is the World the operation runs on, whose Space settings name the plugins
+// to run while replay waits.
+func waitingLookup(lookupOp world.LookupOp, ws world.WorldState) world.LookupOp {
 	return func(ctx context.Context, opTypeID string) (world.Operation, error) {
-		// Resolve the operation, then check an unresolved type's declaration.
+		// Resolve the operation.
 		op, err := lookupOp(ctx, opTypeID)
 		if op != nil || err != nil {
 			return op, err
 		}
-		pluginIDs, err := declared(ctx, ws, opTypeID)
-		if err != nil || len(pluginIDs) == 0 {
+
+		// Name the plugins that could handle it: the pinned one, or the
+		// listed ones. A settings read that fails for want of a block stops
+		// replay there; any other failure only names no plugin.
+		wait := &unresolvedOpError{opTypeID: opTypeID}
+		if pluginID, _, _, ok := s4wave_worldop_registry.ParsePinnedOperationID(opTypeID); ok {
+			wait.pluginID, wait.pluginIDs = pluginID, []string{pluginID}
+			return nil, wait
+		}
+		settings, err := LookupSpaceSettingsBody(ctx, ws)
+		if isReplayGap(err) {
 			return nil, err
 		}
-		return nil, &pendingOpError{opTypeID: opTypeID, pluginIDs: pluginIDs}
+		wait.pluginIDs = slices.Sorted(slices.Values(settings.GetPluginIds()))
+		return nil, wait
 	}
 }

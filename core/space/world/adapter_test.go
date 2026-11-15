@@ -319,6 +319,9 @@ func TestAdapterRunThrough(t *testing.T) {
 		}
 	})
 	t.Run("plugin-op", runPluginOpThrough)
+	t.Run("plugin-op-waiting-write", runPluginOpWaitingWrite)
+	t.Run("plugin-op-approval", runPluginOpApproval)
+	t.Run("plugin-op-deadline", runPluginOpDeadline)
 	t.Run("sql-primary", func(t *testing.T) {
 		location, creds := sqlTestLocation(t)
 		runAdapterThrough(t, newAdapterFixtureOn(t, fixtureOpts{sql: location, creds: creds}))

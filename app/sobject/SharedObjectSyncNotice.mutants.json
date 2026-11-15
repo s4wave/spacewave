@@ -1,0 +1,12 @@
+[
+  {
+    "name": "the approval wait says nothing",
+    "replace": [
+      [
+        "    [] wait = \"approval\" -> \"Names the plugin waiting for approval, and edits apply after\"",
+        "    [] wait = \"approval\" -> \"\""
+      ]
+    ],
+    "expect": "NobodyIsStuck"
+  }
+]

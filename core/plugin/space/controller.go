@@ -117,6 +117,9 @@ type Controller struct {
 	demanded func(pluginID string) bool
 	// accountPlugins returns the account plugin list, or is nil without one.
 	accountPlugins func() []string
+	// replayPlugins returns the plugins a waiting replay demands, which load
+	// even when the Space no longer lists them, or is nil.
+	replayPlugins func() []string
 	// bindingsChanged is called after the controller deletes a process binding.
 	bindingsChanged func()
 	// resolvers is the set of active FetchManifest resolvers.
@@ -190,6 +193,7 @@ type factoryConfig struct {
 	loadTarget      bus.Bus
 	demanded        func(pluginID string) bool
 	accountPlugins  func() []string
+	replayPlugins   func() []string
 	bindingsChanged func()
 }
 
@@ -215,6 +219,16 @@ func WithPluginDemand(demanded func(pluginID string) bool) FactoryOption {
 // plugins the Space lists. Call NotifyChanged after the list changes.
 func WithAccountPlugins(accountPlugins func() []string) FactoryOption {
 	return func(conf *factoryConfig) { conf.accountPlugins = accountPlugins }
+}
+
+// WithReplayPlugins loads the plugins replayPlugins returns even when the
+// Space no longer lists them, for a replay that waits at an operation they
+// handle. Each load names every World manifest of the plugin with the
+// session peer, so the host's scheduler starts only a root AdmitPluginRoot
+// admits and otherwise shows PluginSwapAwaitingApproval until one is. Call
+// NotifyChanged after the list changes.
+func WithReplayPlugins(replayPlugins func() []string) FactoryOption {
+	return func(conf *factoryConfig) { conf.replayPlugins = replayPlugins }
 }
 
 // WithProcessBindingsChanged calls notify after the controller deletes the
@@ -245,6 +259,7 @@ func NewFactory(b bus.Bus, opts ...FactoryOption) controller.Factory {
 				loadTarget:      factoryConf.loadTarget,
 				demanded:        factoryConf.demanded,
 				accountPlugins:  factoryConf.accountPlugins,
+				replayPlugins:   factoryConf.replayPlugins,
 				bindingsChanged: factoryConf.bindingsChanged,
 				resolvers:       make(map[*resolverEntry]struct{}),
 				bindingsStale:   true,
@@ -503,7 +518,8 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 // LoadPlugin directives for the demanded plugin_ids of the Space and the
 // account. A plugin on both lists keeps the Space's installation pin. A Space
 // hosted in a plugin loads an unpinned plugin from the manifests hosted selects.
-// A load names only World manifests the gate admits.
+// A load names only World manifests the gate admits, except a plugin only
+// replay asks for, whose roots the host's scheduler admits.
 func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, loads *pluginLoads) {
 	// Read SpaceSettings from the World state.
 	le := c.GetLogger()
@@ -514,11 +530,18 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		return
 	}
 
-	// Filter the plugin IDs the Space lists, then the account's.
+	// Filter the plugin IDs the Space lists, then the account's, then the
+	// ones a waiting replay demands.
 	ids := pluginids.FilterValid(le, settings.GetPluginIds())
 	if c.accountPlugins != nil {
 		ids = append(ids, pluginids.Missing(ids, pluginids.FilterValid(le, c.accountPlugins()))...)
 	}
+	var replayIDs []string
+	if c.replayPlugins != nil {
+		replayIDs = pluginids.Missing(ids, pluginids.FilterValid(le, c.replayPlugins()))
+		ids = append(ids, replayIDs...)
+	}
+	replayOnly := func(pid string) bool { return slices.Contains(replayIDs, pid) }
 
 	// Update the stored pluginIDs for FetchManifest filtering.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -568,7 +591,10 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	// retains the admitted worker while preparing this exact installation target.
 	for _, pid := range ids {
 		// Name the World manifests the gate admits: a pinned plugin's
-		// installation, or the hosted selection of an unpinned one.
+		// installation, or the hosted selection of an unpinned one. A plugin
+		// only a waiting replay asks for names every candidate: no release
+		// load stands in for it, so its host's scheduler asks AdmitPluginRoot
+		// for the session peer and waits, showing PluginSwapAwaitingApproval.
 		installKeys := installs[pid].GetManifestKeys()
 		var candidates []*manifest.ManifestRef
 		switch {
@@ -580,17 +606,20 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		case c.loadTarget != nil:
 			candidates = loads.hosted.byPlugin[pid]
 		}
-		admitted := loads.gate.admitted(ctx, pid, candidates)
+		admitted := candidates
+		if !replayOnly(pid) {
+			admitted = loads.gate.admitted(ctx, pid, candidates)
+		}
 
 		// Stop at once a load that names a root which lost its admission,
 		// rather than when its replacement runs.
 		previous, existed := refs[pid]
-		if existed && !loads.gate.allAdmitted(ctx, pid, previous.replaced) {
+		if existed && !replayOnly(pid) && !loads.gate.allAdmitted(ctx, pid, previous.replaced) {
 			previous.releasePrevious()
 			previous.replaced = nil
 			refs[pid] = previous
 		}
-		if existed && !loads.gate.allAdmitted(ctx, pid, previous.manifests) {
+		if existed && !replayOnly(pid) && !loads.gate.allAdmitted(ctx, pid, previous.manifests) {
 			previous.release()
 			delete(refs, pid)
 			existed = false

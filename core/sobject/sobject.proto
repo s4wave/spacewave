@@ -186,6 +186,53 @@ message SharedObjectHealth {
   // SyncPeers lists this device's sync stream with each participant it has
   // authenticated since the object mounted, sorted by peer ID.
   repeated SOSyncPeer sync_peers = 12;
+
+  // ReplayWait is set while this device's replay waits at an operation whose
+  // type has no handler on this device. The body serves the state before it
+  // meanwhile, and replay resumes once a handler registers.
+  SOReplayWait replay_wait = 13;
+
+  // RefusedCount is the number of operations above the installed checkpoint
+  // that this device's replay refused.
+  uint32 refused_count = 14;
+}
+
+// SOReplayWait is the operation this device's replay waits at. A missing
+// handler is a fact about this device and its release, not about the
+// operation, so replay waits for one instead of refusing the operation.
+message SOReplayWait {
+  // CheckpointHeight is the height of the checkpoint the operation is above.
+  uint64 checkpoint_height = 1;
+
+  // Position is the operation's index in the order above that checkpoint.
+  uint32 position = 2;
+
+  // OpTypeId is the operation type no handler on this device resolves.
+  string op_type_id = 3;
+
+  // PluginId is the plugin a pinned operation type names, or empty for an
+  // unpinned type.
+  string plugin_id = 4;
+
+  // State is what the wait needs before replay can resume.
+  oneof state {
+    // Handler waits for a plugin on this device to register a handler.
+    SOReplayWaitHandler handler = 5;
+
+    // Approval waits for this device's person to approve a plugin.
+    SOReplayWaitApproval approval = 6;
+  }
+}
+
+// SOReplayWaitHandler waits for a plugin on this device to register a handler
+// for the operation type.
+message SOReplayWaitHandler {}
+
+// SOReplayWaitApproval waits for this device's person to approve the plugins
+// that could handle the operation type.
+message SOReplayWaitApproval {
+  // PluginIds lists the plugins awaiting approval on this device, sorted.
+  repeated string plugin_ids = 1;
 }
 
 // SOSyncPeer is this device's sync stream with one authenticated participant.
