@@ -3516,7 +3516,7 @@
       ]
     },
     "github.com/s4wave/spacewave/plugin/notes/proto": {
-      "hash": "f3e6015309e6a837a54a45d2052166f24030639f65aaae866570557bbf277e76",
+      "hash": "508c1f6ae75ed9d2c58a7d462328d1799859ea88229c687441d5effca51979bd",
       "generatedFiles": [
         "plugin/notes/proto/blog.pb.go",
         "plugin/notes/proto/blog.pb.ts",
@@ -4405,6 +4405,18 @@
         "sdk/unixfs/handle.proto"
       ]
     },
+    "github.com/s4wave/spacewave/sdk/unixfs/world": {
+      "hash": "a8ef840f77c746d8f21788ca50754377d790dc0c58494fda0546d98f8024b274",
+      "generatedFiles": [
+        "sdk/unixfs/world/stage.pb.go",
+        "sdk/unixfs/world/stage.pb.ts",
+        "sdk/unixfs/world/stage_srpc.pb.go",
+        "sdk/unixfs/world/stage_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/unixfs/world/stage.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/sdk/viewer/registry": {
       "hash": "6dfae8c1e05ba0494fabd44474aa47d09107221747b60a647ccb5b4158f2d204",
       "generatedFiles": [
@@ -4444,7 +4456,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/world": {
-      "hash": "0c2d1833aec0d864eaff0045ff6e364a687d62edee704ca207d3b1ce79d9dfa3",
+      "hash": "15747a2b5ae2c450cd16be31cc9998779b6b61518703571b6a8c99400eb24abe",
       "generatedFiles": [
         "sdk/world/world.pb.go",
         "sdk/world/world.pb.ts",

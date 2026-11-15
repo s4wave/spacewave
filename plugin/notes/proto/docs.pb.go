@@ -12,6 +12,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // Documentation is a world object that presents markdown files from UnixFS
@@ -109,6 +110,53 @@ func (x *CreateDocumentationOp) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
+// CreateDocumentationStagedOp creates a Documentation with a UnixFS source
+// and initial page from content the sender staged. It replaces
+// CreateDocumentationOp for new creates.
+//
+// The sender builds every object's content in a World stage before it sends
+// the op, and holds the stage until the op's transaction returns. Under the
+// World writer the op only reads the keys and adopts the staged roots, so the
+// writer waits on no content build. An op missing a staged root is rejected.
+type CreateDocumentationStagedOp struct {
+	unknownFields []byte
+	// ObjectKey is the world object key for the documentation.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// DocsRoot is the staged Documentation block, the documentation object's
+	// root.
+	DocsRoot *bucket.ObjectRef `protobuf:"bytes,2,opt,name=docs_root,json=docsRoot,proto3" json:"docsRoot,omitempty"`
+	// UnixfsRoot is the staged UnixFS tree of the index page, the UnixFS
+	// object's root.
+	UnixfsRoot *bucket.ObjectRef `protobuf:"bytes,3,opt,name=unixfs_root,json=unixfsRoot,proto3" json:"unixfsRoot,omitempty"`
+}
+
+func (x *CreateDocumentationStagedOp) Reset() {
+	*x = CreateDocumentationStagedOp{}
+}
+
+func (*CreateDocumentationStagedOp) ProtoMessage() {}
+
+func (x *CreateDocumentationStagedOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *CreateDocumentationStagedOp) GetDocsRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.DocsRoot
+	}
+	return nil
+}
+
+func (x *CreateDocumentationStagedOp) GetUnixfsRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.UnixfsRoot
+	}
+	return nil
+}
+
 func (m *Documentation) CloneVT() *Documentation {
 	if m == nil {
 		return (*Documentation)(nil)
@@ -144,6 +192,24 @@ func (m *CreateDocumentationOp) CloneVT() *CreateDocumentationOp {
 }
 
 func (m *CreateDocumentationOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateDocumentationStagedOp) CloneVT() *CreateDocumentationStagedOp {
+	if m == nil {
+		return (*CreateDocumentationStagedOp)(nil)
+	}
+	r := new(CreateDocumentationStagedOp)
+	r.ObjectKey = m.ObjectKey
+	r.DocsRoot = protobuf_go_lite.CloneVTValue(m.DocsRoot)
+	r.UnixfsRoot = protobuf_go_lite.CloneVTValue(m.UnixfsRoot)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateDocumentationStagedOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -199,6 +265,32 @@ func (this *CreateDocumentationOp) EqualVT(that *CreateDocumentationOp) bool {
 
 func (this *CreateDocumentationOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CreateDocumentationOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateDocumentationStagedOp) EqualVT(that *CreateDocumentationStagedOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.DocsRoot, that.DocsRoot) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.UnixfsRoot, that.UnixfsRoot) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateDocumentationStagedOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateDocumentationStagedOp)
 	if !ok {
 		return false
 	}
@@ -366,6 +458,72 @@ func (x *CreateDocumentationOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the CreateDocumentationStagedOp message to JSON.
+func (x *CreateDocumentationStagedOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.DocsRoot != nil || s.HasField("docsRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("docsRoot")
+		x.DocsRoot.MarshalProtoJSON(s.WithField("docsRoot"))
+	}
+	if x.UnixfsRoot != nil || s.HasField("unixfsRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unixfsRoot")
+		x.UnixfsRoot.MarshalProtoJSON(s.WithField("unixfsRoot"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateDocumentationStagedOp to JSON.
+func (x *CreateDocumentationStagedOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateDocumentationStagedOp message from JSON.
+func (x *CreateDocumentationStagedOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "docs_root", "docsRoot":
+			if s.ReadNil() {
+				x.DocsRoot = nil
+				return
+			}
+			x.DocsRoot = &bucket.ObjectRef{}
+			x.DocsRoot.UnmarshalProtoJSON(s.WithField("docs_root", true))
+		case "unixfs_root", "unixfsRoot":
+			if s.ReadNil() {
+				x.UnixfsRoot = nil
+				return
+			}
+			x.UnixfsRoot = &bucket.ObjectRef{}
+			x.UnixfsRoot.UnmarshalProtoJSON(s.WithField("unixfs_root", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateDocumentationStagedOp from JSON.
+func (x *CreateDocumentationStagedOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Documentation) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -487,6 +645,63 @@ func (m *CreateDocumentationOp) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *CreateDocumentationStagedOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateDocumentationStagedOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateDocumentationStagedOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.UnixfsRoot != nil {
+		size, err := m.UnixfsRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.DocsRoot != nil {
+		size, err := m.DocsRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Documentation) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -518,6 +733,25 @@ func (m *CreateDocumentationOp) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Description)
 	if m.Timestamp != nil {
 		l = m.Timestamp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateDocumentationStagedOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	if m.DocsRoot != nil {
+		l = m.DocsRoot.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.UnixfsRoot != nil {
+		l = m.UnixfsRoot.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -581,6 +815,28 @@ func (x *CreateDocumentationOp) MarshalProtoText() string {
 }
 
 func (x *CreateDocumentationOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateDocumentationStagedOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CreateDocumentationStagedOp")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.DocsRoot != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "docs_root")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.DocsRoot)
+	}
+	if x.UnixfsRoot != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unixfs_root")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UnixfsRoot)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CreateDocumentationStagedOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -737,6 +993,89 @@ func (m *CreateDocumentationOp) UnmarshalVT(dAtA []byte) error {
 				m.Timestamp = &timestamppb.Timestamp{}
 			}
 			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateDocumentationStagedOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateDocumentationStagedOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateDocumentationStagedOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DocsRoot", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.DocsRoot == nil {
+				m.DocsRoot = &bucket.ObjectRef{}
+			}
+			if err := m.DocsRoot.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnixfsRoot", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.UnixfsRoot == nil {
+				m.UnixfsRoot = &bucket.ObjectRef{}
+			}
+			if err := m.UnixfsRoot.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

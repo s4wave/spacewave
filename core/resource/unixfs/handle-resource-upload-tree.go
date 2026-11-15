@@ -10,14 +10,23 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 )
 
+// UploadTreeStream receives the entry messages of an UploadTree stream.
+type UploadTreeStream interface {
+	// Context returns the stream context.
+	Context() context.Context
+	// Recv returns the next entry message, or io.EOF at the end.
+	Recv() (*s4wave_unixfs.HandleUploadTreeRequest, error)
+}
+
 type uploadTreeFile struct {
-	strm      s4wave_unixfs.SRPCFSHandleResourceService_UploadTreeStream
+	strm      UploadTreeStream
 	state     *uploadTreeState
 	name      string
 	remaining int64
@@ -25,11 +34,51 @@ type uploadTreeFile struct {
 }
 
 type uploadTreeState struct {
-	b    *unixfs_world.BatchFSWriter
+	b *unixfs_world.BatchFSWriter
+	// base is the path entry paths are relative to.
+	base []string
 	dirs map[string]struct{}
 	resp s4wave_unixfs.HandleUploadTreeWritten
 	// ordered is set when any message asked for an ordered commit.
 	ordered bool
+}
+
+// newUploadTreeState starts recording an UploadTree stream into b, with entry
+// paths relative to base.
+func newUploadTreeState(b *unixfs_world.BatchFSWriter, base []string) *uploadTreeState {
+	return &uploadTreeState{b: b, base: base, dirs: make(map[string]struct{})}
+}
+
+// BuildStagedTree records an UploadTree entry stream into a new filesystem
+// node tree built in stage and returns its root once the stream ends. Entries
+// go to the stage's block store as they arrive: a file the tree node embeds
+// is held as bytes until the end, and a larger one is built as a blob. The
+// stage holds the tree, so the caller holds the stage until the World
+// transaction adopting the root returns.
+func BuildStagedTree(strm UploadTreeStream, stage world.WorldStage) (*bucket.ObjectRef, error) {
+	b := unixfs_world.NewStagedBatchFSWriter(stage, unixfs_world.FSType_FSType_FS_NODE)
+	defer b.Release()
+	if err := newUploadTreeState(b, nil).ingest(strm); err != nil {
+		return nil, err
+	}
+	return b.CommitStaged(strm.Context(), time.Now())
+}
+
+// ingest records every message of strm into the batch until the stream ends.
+func (state *uploadTreeState) ingest(strm UploadTreeStream) error {
+	ctx := strm.Context()
+	for {
+		msg, err := strm.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if err := state.handleMessage(ctx, strm, msg); err != nil {
+			return err
+		}
+	}
 }
 
 // UploadTree uploads a directory tree relative to this handle in one batch.
@@ -57,10 +106,7 @@ func (r *FSHandleResource) UploadTree(
 	}
 
 	// Start the batch and record an abort when it does not commit.
-	state := &uploadTreeState{
-		b:    unixfs_world.NewBatchFSWriter(r.ws, r.objKey, r.fsType, ""),
-		dirs: make(map[string]struct{}),
-	}
+	state := newUploadTreeState(unixfs_world.NewBatchFSWriter(r.ws, r.objKey, r.fsType, ""), r.path)
 	committed := false
 	defer func() {
 		if !committed {
@@ -70,17 +116,8 @@ func (r *FSHandleResource) UploadTree(
 	defer state.b.Release()
 
 	// Ingest the stream into the batch.
-	for {
-		msg, err := strm.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		if err := r.handleUploadTreeMessage(ctx, strm, state, msg); err != nil {
-			return nil, err
-		}
+	if err := state.ingest(strm); err != nil {
+		return nil, err
 	}
 
 	// Blob ingestion can overlap, but the commit, handle wait, and change
@@ -201,11 +238,10 @@ func expectUploadTreeFile(
 	}
 }
 
-// handleUploadTreeMessage handles one UploadTree stream message.
-func (r *FSHandleResource) handleUploadTreeMessage(
+// handleMessage handles one UploadTree stream message.
+func (state *uploadTreeState) handleMessage(
 	ctx context.Context,
-	strm s4wave_unixfs.SRPCFSHandleResourceService_UploadTreeStream,
-	state *uploadTreeState,
+	strm UploadTreeStream,
 	msg *s4wave_unixfs.HandleUploadTreeRequest,
 ) error {
 	state.ordered = state.ordered || msg.GetOrderedCommit()
@@ -218,19 +254,18 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 		if len(parts) == 0 {
 			return errors.New("directory path is required")
 		}
-		if err := r.ensureUploadTreeParents(ctx, state, parts[:len(parts)-1]); err != nil {
+		if err := state.ensureParents(ctx, parts[:len(parts)-1]); err != nil {
 			return err
 		}
 		if dir.GetExpectMissing() {
-			parentPath := slices.Concat(r.path, parts[:len(parts)-1])
+			parentPath := slices.Concat(state.base, parts[:len(parts)-1])
 			if err := state.b.ExpectMissing(parentPath, parts[len(parts)-1]); err != nil {
 				return err
 			}
 		}
-		if err := r.addUploadTreeDir(
+		if err := state.addDir(
 			ctx,
-			state,
-			slices.Concat(r.path, parts),
+			slices.Concat(state.base, parts),
 			fs.FileMode(dir.GetMode()),
 		); err != nil {
 			return err
@@ -252,8 +287,8 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 			return errors.New("file total_size must be non-negative")
 		}
 
-		parentPath := slices.Concat(r.path, parts[:len(parts)-1])
-		if err := r.ensureUploadTreeParents(ctx, state, parts[:len(parts)-1]); err != nil {
+		parentPath := slices.Concat(state.base, parts[:len(parts)-1])
+		if err := state.ensureParents(ctx, parts[:len(parts)-1]); err != nil {
 			return err
 		}
 		if err := expectUploadTreeFile(state.b, parentPath, parts[len(parts)-1], fileStart); err != nil {
@@ -297,31 +332,29 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 	return errors.New("tree upload data received before file_start")
 }
 
-// ensureUploadTreeParents creates any missing parent directories for relParts.
-func (r *FSHandleResource) ensureUploadTreeParents(
+// ensureParents creates any missing parent directories for relParts.
+func (state *uploadTreeState) ensureParents(
 	ctx context.Context,
-	state *uploadTreeState,
 	relParts []string,
 ) error {
 	if len(relParts) == 0 {
 		return nil
 	}
-	fullPath := slices.Concat(r.path, relParts)
+	fullPath := slices.Concat(state.base, relParts)
 	for i := range fullPath {
-		if len(fullPath[:i+1]) <= len(r.path) {
+		if len(fullPath[:i+1]) <= len(state.base) {
 			continue
 		}
-		if err := r.addUploadTreeDir(ctx, state, fullPath[:i+1], 0o755); err != nil {
+		if err := state.addDir(ctx, fullPath[:i+1], 0o755); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// addUploadTreeDir records one directory if it has not already been added.
-func (r *FSHandleResource) addUploadTreeDir(
+// addDir records one directory if it has not already been added.
+func (state *uploadTreeState) addDir(
 	ctx context.Context,
-	state *uploadTreeState,
 	fullPath []string,
 	mode fs.FileMode,
 ) error {

@@ -8,15 +8,15 @@ import { useWizardState } from '@s4wave/app/wizard/useWizardState.js'
 import {
   useWizardFinish,
   WizardInputError,
-  type WizardMutation,
 } from '@s4wave/app/wizard/wizard-finish.js'
+import type { WorldStage } from '@s4wave/sdk/world/stage.js'
 import { buildNotebookUnixfsObjectKey } from './content-seed.js'
-import { CREATE_BLOG_OP_ID } from './proto/create-blog.js'
-import { CREATE_DOCS_OP_ID } from './proto/create-docs.js'
-import { INIT_NOTEBOOK_OP_ID } from './proto/init-notebook.js'
-import { CreateBlogOp } from './proto/blog.pb.js'
-import { CreateDocumentationOp } from './proto/docs.pb.js'
-import { InitNotebookOp } from './proto/notebook.pb.js'
+import {
+  stageBlogCreate,
+  stageDocsCreate,
+  stageNotebookCreate,
+  type StagedNotesCreate,
+} from './staged-seed.js'
 import { WizardLoading } from '@s4wave/app/wizard/WizardLoading.js'
 
 export const NotesNotebookWizardTypeID = 'wizard/notes/notebook'
@@ -31,36 +31,22 @@ const displayNames: Record<NotesTargetTypeId, string> = {
   'notes/blog': 'Blog',
 }
 
-// notesCreateOps is the World op that creates each notes type's object and
-// its seed content. The notes plugin applies it inside the Finish batch.
+// notesCreateOps builds each notes type's object and seed content in a World
+// stage and returns the World op that adopts them. The notes plugin applies
+// the op inside the Finish batch, while the plan holds the stage.
 const notesCreateOps: Record<
   NotesTargetTypeId,
-  (key: string, name: string, at: Date) => WizardMutation
+  (
+    stage: WorldStage,
+    key: string,
+    name: string,
+    at: Date,
+  ) => Promise<StagedNotesCreate>
 > = {
-  'notes/notebook': (key, name, at) => ({
-    kind: 'op',
-    opId: INIT_NOTEBOOK_OP_ID,
-    opData: InitNotebookOp.toBinary({
-      notebookObjectKey: key,
-      unixfsObjectKey: buildNotebookUnixfsObjectKey(key),
-      name,
-      timestamp: at,
-    }),
-  }),
-  'notes/docs': (key, name, at) => ({
-    kind: 'op',
-    opId: CREATE_DOCS_OP_ID,
-    opData: CreateDocumentationOp.toBinary({
-      objectKey: key,
-      name,
-      timestamp: at,
-    }),
-  }),
-  'notes/blog': (key, name, at) => ({
-    kind: 'op',
-    opId: CREATE_BLOG_OP_ID,
-    opData: CreateBlogOp.toBinary({ objectKey: key, name, timestamp: at }),
-  }),
+  'notes/notebook': (stage, key, name) =>
+    stageNotebookCreate(stage, key, buildNotebookUnixfsObjectKey(key), name),
+  'notes/docs': (stage, key, name, at) => stageDocsCreate(stage, key, name, at),
+  'notes/blog': (stage, key, name, at) => stageBlogCreate(stage, key, name, at),
 }
 
 function isNotesTargetTypeId(value: string): value is NotesTargetTypeId {
@@ -95,14 +81,31 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
           throw new Error('Unknown notes type ' + targetTypeId)
         }
         await ws.persistDraftState()
-        const targetKey = await buildObjectKey(
-          ws.spaceWorld,
-          state.targetKeyPrefix ?? '',
-          name,
-        )
-        return {
-          creates: [notesCreateOps[targetTypeId](targetKey, name, new Date())],
-          target: { openKey: targetKey, indexPath: targetKey, name },
+        const [key, staged] = await Promise.allSettled([
+          buildObjectKey(ws.spaceWorld, state.targetKeyPrefix ?? '', name),
+          ws.spaceWorld.stageWorldState(),
+        ])
+        if (staged.status === 'rejected') throw staged.reason
+        // The plan holds the stage until the Finish list returns; a build
+        // that fails releases it here.
+        const stage = staged.value
+        try {
+          if (key.status === 'rejected') throw key.reason
+          const targetKey = key.value
+          const op = await notesCreateOps[targetTypeId](
+            stage,
+            targetKey,
+            name,
+            new Date(),
+          )
+          return {
+            creates: [{ kind: 'op', opId: op.opTypeId, opData: op.opData }],
+            target: { openKey: targetKey, indexPath: targetKey, name },
+            hold: stage,
+          }
+        } catch (err) {
+          stage.release()
+          throw err
         }
       },
       (target) => {

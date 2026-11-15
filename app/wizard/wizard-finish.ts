@@ -144,11 +144,14 @@ function wizardRemoval(wizard: WizardRef, indexPath: string): WizardMutation[] {
 // was free when the plan was prepared. targetMade says the target exists
 // apart from the list, such as a device paired before Finish: a list refused
 // because the wizard is gone then still ends done and opens the target, since
-// the target is real.
+// the target is real. hold keeps what the creates adopt alive until the list
+// returns, such as a World stage holding content built while preparing;
+// finishWizard disposes it once the list returns or fails.
 export interface WizardFinishPlan {
   creates: WizardMutation[]
   target: WizardFinishTarget
   targetMade?: boolean
+  hold?: Disposable
 }
 
 // WizardFinishTarget is what a Finish made: the object to open, the path a
@@ -170,6 +173,7 @@ export async function finishWizard(
   plan: WizardFinishPlan,
   signal?: AbortSignal,
 ) {
+  using _hold = plan.hold
   await applyWizardMutations(
     wizard.spaceWorld,
     wizard.sessionPeerId,

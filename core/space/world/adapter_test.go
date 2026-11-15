@@ -204,6 +204,13 @@ func (f *adapterFixture) start(t *testing.T) (*world.BusEngine, directive.Refere
 // transactions as superseded.
 func (f *adapterFixture) remount(ctx context.Context, t *testing.T, eng world.Engine, ref directive.Reference) (*world.BusEngine, directive.Reference) {
 	t.Helper()
+	return f.remountWith(ctx, t, eng, ref, nil)
+}
+
+// remountWith remounts as remount does, calling retired, if set, after the
+// engine retires and before it starts again.
+func (f *adapterFixture) remountWith(ctx context.Context, t *testing.T, eng world.Engine, ref directive.Reference, retired func()) (*world.BusEngine, directive.Reference) {
+	t.Helper()
 	var served *space_world.Engine
 	if err := world.AccessEngine(ctx, eng, func(_ context.Context, eng world.Engine) error {
 		served = eng.(*space_world.Engine)
@@ -214,6 +221,9 @@ func (f *adapterFixture) remount(ctx context.Context, t *testing.T, eng world.En
 	ref.Release()
 	if _, err := served.WaitSeqno(ctx, math.MaxUint64); !world.IsSuperseded(err) {
 		t.Fatalf("waiting for the released engine to retire: %v", err)
+	}
+	if retired != nil {
+		retired()
 	}
 	return f.start(t)
 }

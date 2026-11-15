@@ -34,6 +34,9 @@ const h = vi.hoisted(() => ({
   nextResourceId: 1,
   executeWorldBatch: vi.fn(),
   engineRelease: vi.fn(),
+  stageRelease: vi.fn(),
+  // staged lists what each seed built in its World stage, in order.
+  staged: [] as string[],
   // world maps each object key in the seed test's Space to its type, '' when
   // untyped; seedWrites lists every seed write in the order it was made.
   world: new Map<string, string>(),
@@ -241,7 +244,27 @@ vi.mock('@s4wave/sdk/world/engine.js', () => ({
     constructor(_ref: unknown) {}
     executeWorldBatch = h.executeWorldBatch
     release = h.engineRelease
+    stageWorldState() {
+      const stage = {
+        buildStorageCursor: () => Promise.resolve({ [Symbol.dispose]() {} }),
+        release: h.stageRelease,
+        [Symbol.dispose]: () => stage.release(),
+      }
+      return Promise.resolve(stage)
+    }
   },
+}))
+
+// stagedRoot is the root of content staged under name.
+function stagedRoot(name: string) {
+  h.staged.push(name)
+  return { rootRef: { hash: { hash: new TextEncoder().encode(name) } } }
+}
+
+vi.mock('@s4wave/sdk/unixfs/world/stage.js', () => ({
+  buildStagedTree: vi.fn((_stage: unknown, files: Array<{ path: string }>) =>
+    Promise.resolve(stagedRoot('tree ' + files.map((f) => f.path).join(','))),
+  ),
 }))
 
 // The seed writes act on h.world the way the World does: a create or a UnixFS
@@ -261,6 +284,10 @@ vi.mock('@s4wave/sdk/world/world-state.js', async (importOriginal) => ({
     getObject(key: string) {
       return Promise.resolve(h.world.has(key) ? { release: vi.fn() } : null)
     }
+    createObject(key: string) {
+      createSeedObject(key, 'create')
+      return Promise.resolve({ [Symbol.dispose]() {} })
+    }
     applyWorldOp(_opTypeId: string, opData: Uint8Array) {
       const key = InitUnixFSOp.fromBinary(opData).objectKey ?? ''
       createSeedObject(key, 'init', 'unixfs/fs-node')
@@ -276,6 +303,7 @@ vi.mock('./object-block.js', async (importOriginal) => ({
     createSeedObject(key, 'create')
     return Promise.resolve()
   }),
+  stageObjectBlock: vi.fn(() => Promise.resolve(stagedRoot('block'))),
 }))
 
 vi.mock('./unixfs-seed.js', async (importOriginal) => ({
@@ -308,7 +336,12 @@ import {
   WorldBatchRefusal,
   WorldOperationRejection,
 } from '../../sdk/world/errors.js'
-import { InitNotebookOp } from './proto/notebook.pb.js'
+import { InitNotebookOp, InitNotebookStagedOp } from './proto/notebook.pb.js'
+import { CreateBlogOp } from './proto/blog.pb.js'
+import { CreateDocumentationOp } from './proto/docs.pb.js'
+import { CREATE_BLOG_OP_ID } from './proto/create-blog.js'
+import { CREATE_DOCS_OP_ID } from './proto/create-docs.js'
+import { INIT_NOTEBOOK_OP_ID } from './proto/init-notebook.js'
 import { Hash } from '../../net/hash/hash.pb.js'
 import { base58Encode } from '../../net/peer/base58.js'
 import { pinnedOperationID } from '../../sdk/sync/instance.js'
@@ -406,8 +439,20 @@ describe('notes backend registration', () => {
         ),
         pluginId: 'spacewave-notes',
       })),
-      { operationTypeId: 'notes/notebook/init', pluginId: 'spacewave-notes' },
+      {
+        operationTypeId: 'notes/notebook/init-staged',
+        pluginId: 'spacewave-notes',
+      },
+      {
+        operationTypeId: 'notes/blog/create-staged',
+        pluginId: 'spacewave-notes',
+      },
+      {
+        operationTypeId: 'notes/docs/create-staged',
+        pluginId: 'spacewave-notes',
+      },
       { operationTypeId: 'notes/notebook/edit', pluginId: 'spacewave-notes' },
+      { operationTypeId: 'notes/notebook/init', pluginId: 'spacewave-notes' },
       { operationTypeId: 'notes/blog/create', pluginId: 'spacewave-notes' },
       { operationTypeId: 'notes/docs/create', pluginId: 'spacewave-notes' },
     ])
@@ -457,7 +502,7 @@ describe('notes backend registration', () => {
         category: 'Content',
         iconName: 'LuNotebookPen',
         description: 'Notebook of markdown pages and notes',
-        createOpId: 'notes/notebook/init',
+        createOpId: 'notes/notebook/init-staged',
         defaultNamePattern: 'Notebook',
         keyPrefix: 'notebook/',
         persistent: true,
@@ -470,7 +515,7 @@ describe('notes backend registration', () => {
         category: 'Content',
         iconName: 'LuBookOpen',
         description: 'Structured documentation site with sections',
-        createOpId: 'notes/docs/create',
+        createOpId: 'notes/docs/create-staged',
         defaultNamePattern: 'Documentation',
         keyPrefix: 'docs/',
         persistent: true,
@@ -483,7 +528,7 @@ describe('notes backend registration', () => {
         category: 'Content',
         iconName: 'LuPenLine',
         description: 'Blog of dated posts with an index page',
-        createOpId: 'notes/blog/create',
+        createOpId: 'notes/blog/create-staged',
         defaultNamePattern: 'Blog',
         keyPrefix: 'blog/',
         persistent: true,
@@ -539,11 +584,10 @@ describe('notes backend registration', () => {
     ])
     expect(h.activatedScopes).toEqual([h.scopeRef])
     expect(h.rootRef.createRef).not.toHaveBeenCalled()
-    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(22)
-    expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22,
-    ])
+    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(25)
+    expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual(
+      Array.from({ length: 25 }, (_, i) => i + 1),
+    )
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).not.toHaveBeenCalled()
     }
@@ -687,9 +731,9 @@ describe('notes backend registration', () => {
       h.wizardRegistrations.map((registration) => registration.typeId),
     ).toEqual(['notes/notebook', 'notes/docs', 'notes/blog'])
     expect(h.viewerRegistrations).toHaveLength(1)
-    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(13)
+    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(16)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
     ])
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
@@ -723,9 +767,10 @@ describe('notes backend registration', () => {
     ).toEqual(['notebook', 'docs', 'blog'])
     expect(h.activatedScopes).toHaveLength(0)
     expect(h.viewerRegistrations).toHaveLength(6)
-    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(21)
+    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(24)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      22, 23, 24,
     ])
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
@@ -790,10 +835,13 @@ describe('notes quickstart seed', () => {
     )
   }
 
-  // applyBatchesThroughOpHandler makes the host apply each seed batch's one
-  // op through the plugin's op handler, writing nothing when the op fails or
-  // is rejected.
-  function applyBatchesThroughOpHandler() {
+  // applyOp applies one op through the plugin's op handler as the host does,
+  // writing nothing when the op fails or is rejected. It returns the
+  // handler's rejection, if any.
+  async function applyOp(
+    opTypeId: string,
+    opData: Uint8Array,
+  ): Promise<{ rejectionCode?: string; rejectionMessage?: string }> {
     const created = h.createdHandlers.find(
       (c) => c.definition === WorldOpHandlerServiceDefinition,
     )
@@ -804,36 +852,46 @@ describe('notes quickstart seed', () => {
         context: unknown,
       ): Promise<{ rejectionCode?: string; rejectionMessage?: string }>
     }
+    const before = new Map(h.world)
+    const restore = () => {
+      h.world.clear()
+      for (const [key, typeId] of before) h.world.set(key, typeId)
+    }
+    const signal = new AbortController().signal
+    let resp: { rejectionCode?: string; rejectionMessage?: string }
+    try {
+      resp = await opHandler.ApplyWorldOp(
+        {
+          operationTypeId: opTypeId,
+          opData,
+          attachedWorldStateResourceId: 1,
+        },
+        signal,
+        { signal },
+      )
+    } catch (err) {
+      restore()
+      throw err
+    }
+    if (resp.rejectionCode) restore()
+    return resp
+  }
+
+  // applyBatchesThroughOpHandler makes the host apply each seed batch's one
+  // op with applyOp.
+  function applyBatchesThroughOpHandler() {
     h.executeWorldBatch.mockImplementation(
       async (
-        mutations: Array<{ mutation: { value: Record<string, unknown> } }>,
+        mutations: Array<{
+          mutation: { value: { opTypeId: string; opData: Uint8Array } }
+        }>,
       ) => {
-        const before = new Map(h.world)
-        const restore = () => {
-          h.world.clear()
-          for (const [key, typeId] of before) h.world.set(key, typeId)
-        }
-        const op = mutations[0]?.mutation.value ?? {}
-        const signal = new AbortController().signal
-        let resp: { rejectionCode?: string; rejectionMessage?: string }
-        try {
-          resp = await opHandler.ApplyWorldOp(
-            {
-              operationTypeId: op.opTypeId,
-              opData: op.opData,
-              attachedWorldStateResourceId: 1,
-            },
-            signal,
-            { signal },
-          )
-        } catch (err) {
-          restore()
-          throw err
-        }
-        if (resp.rejectionCode) {
-          restore()
-          return { ...resp, failedIndex: 0 }
-        }
+        const op = mutations[0]?.mutation.value
+        const resp = await applyOp(
+          op?.opTypeId ?? '',
+          op?.opData ?? new Uint8Array(),
+        )
+        if (resp.rejectionCode) return { ...resp, failedIndex: 0 }
         return { seqno: 1n }
       },
     )
@@ -842,19 +900,26 @@ describe('notes quickstart seed', () => {
   beforeEach(() => {
     h.executeWorldBatch.mockReset()
     h.engineRelease.mockReset()
+    h.stageRelease.mockReset()
+    h.staged.length = 0
   })
 
-  it('seeds each quickstart with its create op as one batch', async () => {
-    h.executeWorldBatch.mockResolvedValue({ seqno: 1n })
+  it('seeds each quickstart with its staged create op as one batch, holding the stage until the batch returns', async () => {
+    h.executeWorldBatch.mockImplementation(() => {
+      // The batch adopts the staged roots, so the stage is still held.
+      expect(h.stageRelease).not.toHaveBeenCalled()
+      return Promise.resolve({ seqno: 1n })
+    })
     const handler = await startSeedHandler()
 
     const ops = new Map<string, Uint8Array>()
     for (const [id, opTypeId, indexPath] of [
-      ['notebook', 'notes/notebook/init', 'notebook'],
-      ['docs', 'notes/docs/create', 'documentation'],
-      ['blog', 'notes/blog/create', 'blog/site'],
+      ['notebook', 'notes/notebook/init-staged', 'notebook'],
+      ['docs', 'notes/docs/create-staged', 'documentation'],
+      ['blog', 'notes/blog/create-staged', 'blog/site'],
     ]) {
       h.executeWorldBatch.mockClear()
+      h.stageRelease.mockClear()
       await expect(seed(handler, id)).resolves.toEqual({
         indexPath,
         pluginIds: ['spacewave-notes'],
@@ -865,12 +930,26 @@ describe('notes quickstart seed', () => {
       expect(mutations[0].mutation.case).toBe('op')
       expect(mutations[0].mutation.value.opTypeId).toBe(opTypeId)
       ops.set(id, mutations[0].mutation.value.opData)
+      expect(h.stageRelease).toHaveBeenCalledTimes(1)
     }
-    const notebookOp = InitNotebookOp.fromBinary(
+    const notebookOp = InitNotebookStagedOp.fromBinary(
       ops.get('notebook') ?? new Uint8Array(),
     )
     expect(notebookOp.notebookObjectKey).toBe('notebook')
     expect(notebookOp.unixfsObjectKey).toBe('files')
+    expect(notebookOp.notebookRoot?.rootRef).toBeDefined()
+    expect(notebookOp.unixfsRoot?.rootRef).toBeDefined()
+    // Each create stages its blocks and tree concurrently, so only the
+    // set staged is fixed, not its order.
+    expect(h.staged.toSorted()).toEqual([
+      'block',
+      'block',
+      'block',
+      'block',
+      'tree hello-world.md',
+      'tree index.md',
+      'tree welcome.md,getting-started.md',
+    ])
     expect(h.engineRelease).toHaveBeenCalledTimes(3)
   })
 
@@ -893,6 +972,7 @@ describe('notes quickstart seed', () => {
     expect(refusal).toBeInstanceOf(WorldBatchRefusal)
     expect((refusal as WorldBatchRefusal).failedIndex).toBe(0)
     expect(h.engineRelease).toHaveBeenCalledTimes(2)
+    expect(h.stageRelease).toHaveBeenCalledTimes(2)
   })
 
   it('seeds again over its own earlier seed, writing each object once, and rejects a key it cannot keep', async () => {
@@ -904,15 +984,15 @@ describe('notes quickstart seed', () => {
         'notebook',
         'notebook',
         'notes/notebook',
-        ['init files', 'upload files', 'create notebook', 'type notebook'],
+        ['create files', 'type files', 'create notebook', 'type notebook'],
       ],
       [
         'docs',
         'documentation',
         'notes/docs',
         [
-          'init documentation-fs',
-          'upload documentation-fs',
+          'create documentation-fs',
+          'type documentation-fs',
           'create documentation',
           'type documentation',
         ],
@@ -922,8 +1002,8 @@ describe('notes quickstart seed', () => {
         'blog/site',
         'notes/blog',
         [
-          'init fs/blog/site',
-          'upload fs/blog/site',
+          'create fs/blog/site',
+          'type fs/blog/site',
           'create blog/site-notebook',
           'type blog/site-notebook',
           'create blog/site',
@@ -992,9 +1072,14 @@ describe('notes quickstart seed', () => {
     }
   })
 
-  it('keeps an object left at a new blog companion notebook key, and refuses every other taken companion key', async () => {
+  it('replays a stored blog op over an object left at its companion notebook key, and refuses every other taken companion key', async () => {
     const handler = await startSeedHandler()
     applyBatchesThroughOpHandler()
+    const blogOp = CreateBlogOp.toBinary({
+      objectKey: 'blog/site',
+      name: 'Blog',
+      timestamp: new Date(0),
+    })
 
     // A blog op stored before applySeed decided seeds succeeded over any
     // object at its companion notebook key and kept it; its replay must too.
@@ -1002,10 +1087,7 @@ describe('notes quickstart seed', () => {
       h.world.clear()
       h.seedWrites.length = 0
       h.world.set('blog/site-notebook', foundType)
-      await expect(seed(handler, 'blog')).resolves.toEqual({
-        indexPath: 'blog/site',
-        pluginIds: ['spacewave-notes'],
-      })
+      await expect(applyOp(CREATE_BLOG_OP_ID, blogOp)).resolves.toEqual({})
       expect(h.seedWrites).toEqual([
         'init fs/blog/site',
         'upload fs/blog/site',
@@ -1019,24 +1101,96 @@ describe('notes quickstart seed', () => {
       ])
     }
 
-    // The UnixFS root of every seed, and the docs rules, are unchanged: a
-    // free primary whose UnixFS key is taken rejects the op.
-    for (const [id, key, primary] of [
-      ['blog', 'fs/blog/site', 'notes/blog blog/site'],
-      ['docs', 'documentation-fs', 'notes/docs documentation'],
-    ]) {
+    // The staged blog op, the one seeds send now, keeps the full rule: a
+    // taken companion notebook key rejects it.
+    h.world.clear()
+    h.seedWrites.length = 0
+    h.world.set('blog/site-notebook', 'notes/notebook')
+    const staged = await seed(handler, 'blog').catch((err: unknown) => err)
+    expect((staged as WorldOperationRejection).code).toBe(SEED_KEY_TAKEN_CODE)
+    expect([...h.world]).toEqual([['blog/site-notebook', 'notes/notebook']])
+    expect(h.seedWrites).toEqual([])
+
+    // The UnixFS root of every stored op, and the docs rules, are unchanged:
+    // a free primary whose UnixFS key is taken rejects the op.
+    for (const [opTypeId, opData, key, primary] of [
+      [CREATE_BLOG_OP_ID, blogOp, 'fs/blog/site', 'notes/blog blog/site'],
+      [
+        CREATE_DOCS_OP_ID,
+        CreateDocumentationOp.toBinary({
+          objectKey: 'documentation',
+          name: 'Docs',
+          timestamp: new Date(0),
+        }),
+        'documentation-fs',
+        'notes/docs documentation',
+      ],
+    ] as const) {
       h.world.clear()
       h.seedWrites.length = 0
       h.world.set(key, 'unixfs/fs-node')
-      const rejection = await seed(handler, id).catch((err: unknown) => err)
-      expect((rejection as WorldOperationRejection).code).toBe(
-        SEED_KEY_TAKEN_CODE,
-      )
-      expect((rejection as WorldOperationRejection).message).toBe(
-        `The object ${key} was left by an earlier object, so the new ${primary} cannot use it. Delete or rename ${key}, then try again.`,
-      )
+      await expect(applyOp(opTypeId, opData)).resolves.toEqual({
+        rejectionCode: SEED_KEY_TAKEN_CODE,
+        rejectionMessage: `The object ${key} was left by an earlier object, so the new ${primary} cannot use it. Delete or rename ${key}, then try again.`,
+      })
       expect([...h.world]).toEqual([[key, 'unixfs/fs-node']])
       expect(h.seedWrites).toEqual([])
+    }
+  })
+
+  it('replays a stored op of each old id over the objects an earlier seed left, keeping them', async () => {
+    await startSeedHandler()
+
+    // Between the seed rule's introduction and the staged ids, an old-id op
+    // whose primary was present with its type and every companion present
+    // with its type succeeded and kept them all. Its replay through the
+    // current handler must succeed the same way, writing nothing.
+    for (const [opTypeId, opData, objects] of [
+      [
+        INIT_NOTEBOOK_OP_ID,
+        InitNotebookOp.toBinary({
+          notebookObjectKey: 'notebook',
+          unixfsObjectKey: 'files',
+          name: 'Notebook',
+          timestamp: new Date(0),
+        }),
+        [
+          ['files', 'unixfs/fs-node'],
+          ['notebook', 'notes/notebook'],
+        ],
+      ],
+      [
+        CREATE_DOCS_OP_ID,
+        CreateDocumentationOp.toBinary({
+          objectKey: 'documentation',
+          name: 'Docs',
+          timestamp: new Date(0),
+        }),
+        [
+          ['documentation', 'notes/docs'],
+          ['documentation-fs', 'unixfs/fs-node'],
+        ],
+      ],
+      [
+        CREATE_BLOG_OP_ID,
+        CreateBlogOp.toBinary({
+          objectKey: 'blog/site',
+          name: 'Blog',
+          timestamp: new Date(0),
+        }),
+        [
+          ['blog/site', 'notes/blog'],
+          ['blog/site-notebook', 'notes/notebook'],
+          ['fs/blog/site', 'unixfs/fs-node'],
+        ],
+      ],
+    ] as const) {
+      h.world.clear()
+      h.seedWrites.length = 0
+      for (const [key, typeId] of objects) h.world.set(key, typeId)
+      await expect(applyOp(opTypeId, opData)).resolves.toEqual({})
+      expect(h.seedWrites).toEqual([])
+      expect([...h.world].sort()).toEqual(objects)
     }
   })
 

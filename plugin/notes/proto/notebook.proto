@@ -2,6 +2,7 @@ syntax = "proto3";
 package notes;
 
 import "google/protobuf/timestamp.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 
 // Notebook is a world object that curates markdown files from UnixFS
 // sources into a note-browsing experience.
@@ -30,6 +31,26 @@ message InitNotebookOp {
   google.protobuf.Timestamp timestamp = 3;
   // Name is the notebook's display name; empty names it Notes.
   string name = 4;
+}
+
+// InitNotebookStagedOp creates a Notebook with a UnixFS source and starter
+// notes from content the sender staged. It replaces InitNotebookOp for new
+// creates.
+//
+// The sender builds every object's content in a World stage before it sends
+// the op, and holds the stage until the op's transaction returns. Under the
+// World writer the op only reads the keys and adopts the staged roots, so the
+// writer waits on no content build. An op missing a staged root is rejected.
+message InitNotebookStagedOp {
+  // NotebookObjectKey is the world object key for the notebook.
+  string notebook_object_key = 1;
+  // UnixfsObjectKey is the world object key for the UnixFS storage.
+  string unixfs_object_key = 2;
+  // NotebookRoot is the staged Notebook block, the notebook object's root.
+  bucket.ObjectRef notebook_root = 3;
+  // UnixfsRoot is the staged UnixFS tree of starter notes, the UnixFS
+  // object's root.
+  bucket.ObjectRef unixfs_root = 4;
 }
 
 // NotebookEditOp changes one Notebook's source list in a single World

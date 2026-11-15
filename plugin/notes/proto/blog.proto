@@ -2,6 +2,7 @@ syntax = "proto3";
 package notes;
 
 import "google/protobuf/timestamp.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "github.com/s4wave/spacewave/plugin/notes/proto/notebook.proto";
 
 // Blog is a world object that presents markdown files from UnixFS
@@ -29,4 +30,25 @@ message CreateBlogOp {
   string author_registry_path = 4;
   // Timestamp is the creation timestamp.
   google.protobuf.Timestamp timestamp = 5;
+}
+
+// CreateBlogStagedOp creates a Blog with a UnixFS source and initial post,
+// and the companion notebook that edits its posts, from content the sender
+// staged. It replaces CreateBlogOp for new creates.
+//
+// The sender builds every object's content in a World stage before it sends
+// the op, and holds the stage until the op's transaction returns. Under the
+// World writer the op only reads the keys and adopts the staged roots, so the
+// writer waits on no content build. An op missing a staged root is rejected.
+message CreateBlogStagedOp {
+  // ObjectKey is the world object key for the blog.
+  string object_key = 1;
+  // BlogRoot is the staged Blog block, the blog object's root.
+  bucket.ObjectRef blog_root = 2;
+  // UnixfsRoot is the staged UnixFS tree of the first post, the UnixFS
+  // object's root.
+  bucket.ObjectRef unixfs_root = 3;
+  // NotebookRoot is the staged Notebook block, the companion notebook
+  // object's root.
+  bucket.ObjectRef notebook_root = 4;
 }

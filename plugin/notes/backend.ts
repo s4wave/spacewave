@@ -85,15 +85,41 @@ import { DocsResource } from './docs-resource.js'
 import { seedBlog } from './blog-seed.js'
 import { seedDocs, seedNotebook } from './content-seed.js'
 import {
+  applyBlogStaged,
+  applyDocsStaged,
+  applyNotebookStaged,
+  stageBlogCreate,
+  stageDocsCreate,
+  stageNotebookCreate,
+  type StagedNotesCreate,
+} from './staged-seed.js'
+import {
   INIT_NOTEBOOK_OP_ID,
+  INIT_NOTEBOOK_STAGED_OP_ID,
   NOTEBOOK_OBJECT_KEY,
 } from './proto/init-notebook.js'
-import { BLOG_OBJECT_KEY, CREATE_BLOG_OP_ID } from './proto/create-blog.js'
-import { CREATE_DOCS_OP_ID } from './proto/create-docs.js'
-import { InitNotebookOp, NotebookEditOp } from './proto/notebook.pb.js'
+import {
+  BLOG_OBJECT_KEY,
+  CREATE_BLOG_OP_ID,
+  CREATE_BLOG_STAGED_OP_ID,
+} from './proto/create-blog.js'
+import {
+  CREATE_DOCS_OP_ID,
+  CREATE_DOCS_STAGED_OP_ID,
+} from './proto/create-docs.js'
+import {
+  InitNotebookOp,
+  InitNotebookStagedOp,
+  NotebookEditOp,
+} from './proto/notebook.pb.js'
 import { applyNotebookEdit, NOTEBOOK_EDIT_OP_ID } from './notebook-edit.js'
-import { CreateBlogOp } from './proto/blog.pb.js'
-import { CreateDocumentationOp } from './proto/docs.pb.js'
+import { CreateBlogOp, CreateBlogStagedOp } from './proto/blog.pb.js'
+import {
+  CreateDocumentationOp,
+  CreateDocumentationStagedOp,
+} from './proto/docs.pb.js'
+import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import type { WorldStage } from '@s4wave/sdk/world/stage.js'
 import { notebookViews } from './saved-views.js'
 
 type SavedViewOperations = ReturnType<
@@ -296,11 +322,38 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<ApplyWorldOpResponse> {
+    const opData = request.opData ?? new Uint8Array()
     switch (opTypeId) {
-      case INIT_NOTEBOOK_OP_ID:
-        return this.applyInitNotebook(request, abortSignal, context)
+      case INIT_NOTEBOOK_STAGED_OP_ID:
+        return this.applyWithWorldState(request, context, (ws) =>
+          applyNotebookStaged(
+            ws,
+            InitNotebookStagedOp.fromBinary(opData),
+            abortSignal,
+          ),
+        )
+      case CREATE_DOCS_STAGED_OP_ID:
+        return this.applyWithWorldState(request, context, (ws) =>
+          applyDocsStaged(
+            ws,
+            CreateDocumentationStagedOp.fromBinary(opData),
+            abortSignal,
+          ),
+        )
+      case CREATE_BLOG_STAGED_OP_ID:
+        return this.applyWithWorldState(request, context, (ws) =>
+          applyBlogStaged(
+            ws,
+            CreateBlogStagedOp.fromBinary(opData),
+            abortSignal,
+          ),
+        )
       case NOTEBOOK_EDIT_OP_ID:
         return this.applyNotebookEdit(request, abortSignal, context)
+      // Replay only: stored ops of these ids replay through this handler, and
+      // nothing sends them any more; see INIT_NOTEBOOK_OP_ID.
+      case INIT_NOTEBOOK_OP_ID:
+        return this.applyInitNotebook(request, abortSignal, context)
       case CREATE_BLOG_OP_ID:
         return this.applyCreateBlog(request, abortSignal, context)
       case CREATE_DOCS_OP_ID:
@@ -324,6 +377,28 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
     _context: ServerContext,
   ): Promise<ValidateOpResponse> {
     return Promise.resolve({})
+  }
+
+  // applyWithWorldState applies an op through the World state the host
+  // attached to request.
+  private async applyWithWorldState(
+    request: ApplyWorldOpRequest,
+    context: ServerContext,
+    apply: (ws: IWorldState) => Promise<void>,
+  ): Promise<ApplyWorldOpResponse> {
+    const engineId = request.attachedWorldStateResourceId ?? 0
+    if (!engineId) {
+      throw new Error('attachedWorldStateResourceId is required')
+    }
+    const wsRef = getResourceCall(context).getAttachedRef(engineId)
+    const ws = new WorldStateResource(wsRef)
+    try {
+      await apply(ws)
+      return {}
+    } finally {
+      ws.release()
+      wsRef.release()
+    }
   }
 
   // applyInitNotebook handles the init-notebook operation: a UnixFS object
@@ -474,13 +549,15 @@ class NotesQuickstartHandler implements QuickstartHandlerServiceHandler {
     this.pluginId = pluginId
   }
 
-  // SeedQuickstart creates the quickstart's content with the plugin's own
-  // create op, sent as a one-op World batch. The host applies it under its
-  // writer and plugin op deadline, so no transaction is held across calls.
-  // The op keeps a whole earlier seed, found by its primary object having its
-  // type, so seeding a Space again, as Retry does after a later quickstart
-  // step failed, completes without a second copy or an overwrite. Any other
-  // object at a seed key rejects the op; see applySeed.
+  // SeedQuickstart creates the quickstart's content: it builds the content in
+  // a World stage, then sends the plugin's staged create op as a one-op World
+  // batch, holding the stage until the batch returns. The host applies the op
+  // under its writer and plugin op deadline, where it only adopts the staged
+  // roots, so no transaction is held across calls and the writer waits on no
+  // content build. The op keeps a whole earlier seed, found by its primary
+  // object having its type, so seeding a Space again, as Retry does after a
+  // later quickstart step failed, completes without a second copy or an
+  // overwrite. Any other object at a seed key rejects the op; see applySeed.
   // The batch carries no Space settings ops; the caller writes the index
   // after this returns.
   async SeedQuickstart(
@@ -492,14 +569,19 @@ class NotesQuickstartHandler implements QuickstartHandlerServiceHandler {
     if (!engineId) {
       throw new Error('attachedEngineResourceId is required')
     }
-    const seed = buildQuickstartSeed(request.quickstartId ?? '', new Date())
+    const quickstartId = request.quickstartId ?? ''
+    const seed = quickstartSeeds[quickstartId]
+    if (!seed) throw new Error('unhandled notes quickstart: ' + quickstartId)
+    const signal = context.signal
     const engineRef = getResourceCall(context).getAttachedRef(engineId)
     const engine = new Engine(engineRef)
     try {
+      using stage = await engine.stageWorldState(signal)
+      const op = await seed.stage(stage, new Date(), signal)
       throwBatchError(
         await engine.executeWorldBatch(
-          [{ mutation: { case: 'op', value: seed.op } }],
-          context.signal,
+          [{ mutation: { case: 'op', value: op } }],
+          signal,
         ),
       )
       return { indexPath: seed.indexPath, pluginIds: [this.pluginId] }
@@ -509,59 +591,46 @@ class NotesQuickstartHandler implements QuickstartHandlerServiceHandler {
   }
 }
 
-// QuickstartSeed is the create op that seeds one Notes quickstart and the
-// object the Space indexes to afterwards.
+// QuickstartSeed stages the create op that seeds one Notes quickstart, and
+// names the object the Space indexes to afterwards.
 interface QuickstartSeed {
-  op: { opTypeId: string; opData: Uint8Array }
   indexPath: string
+  stage(
+    stage: WorldStage,
+    timestamp: Date,
+    abortSignal: AbortSignal,
+  ): Promise<StagedNotesCreate>
 }
 
-// buildQuickstartSeed returns the seed for quickstartId.
-function buildQuickstartSeed(
-  quickstartId: string,
-  timestamp: Date,
-): QuickstartSeed {
-  switch (quickstartId) {
-    case 'notebook':
-      return {
-        op: {
-          opTypeId: INIT_NOTEBOOK_OP_ID,
-          opData: InitNotebookOp.toBinary({
-            notebookObjectKey: NOTEBOOK_OBJECT_KEY,
-            unixfsObjectKey: UNIXFS_OBJECT_KEY,
-            name: 'Notes',
-            timestamp,
-          }),
-        },
-        indexPath: NOTEBOOK_OBJECT_KEY,
-      }
-    case 'docs':
-      return {
-        op: {
-          opTypeId: CREATE_DOCS_OP_ID,
-          opData: CreateDocumentationOp.toBinary({
-            objectKey: DOCS_QUICKSTART_OBJECT_KEY,
-            name: 'Documentation',
-            timestamp,
-          }),
-        },
-        indexPath: DOCS_QUICKSTART_OBJECT_KEY,
-      }
-    case 'blog':
-      return {
-        op: {
-          opTypeId: CREATE_BLOG_OP_ID,
-          opData: CreateBlogOp.toBinary({
-            objectKey: BLOG_OBJECT_KEY,
-            name: 'Blog',
-            timestamp,
-          }),
-        },
-        indexPath: BLOG_OBJECT_KEY,
-      }
-    default:
-      throw new Error('unhandled notes quickstart: ' + quickstartId)
-  }
+// quickstartSeeds maps each Notes quickstart id to its seed.
+const quickstartSeeds: Record<string, QuickstartSeed | undefined> = {
+  notebook: {
+    indexPath: NOTEBOOK_OBJECT_KEY,
+    stage: (stage, _timestamp, signal) =>
+      stageNotebookCreate(
+        stage,
+        NOTEBOOK_OBJECT_KEY,
+        UNIXFS_OBJECT_KEY,
+        'Notes',
+        signal,
+      ),
+  },
+  docs: {
+    indexPath: DOCS_QUICKSTART_OBJECT_KEY,
+    stage: (stage, timestamp, signal) =>
+      stageDocsCreate(
+        stage,
+        DOCS_QUICKSTART_OBJECT_KEY,
+        'Documentation',
+        timestamp,
+        signal,
+      ),
+  },
+  blog: {
+    indexPath: BLOG_OBJECT_KEY,
+    stage: (stage, timestamp, signal) =>
+      stageBlogCreate(stage, BLOG_OBJECT_KEY, 'Blog', timestamp, signal),
+  },
 }
 
 // startNotesBackend starts the notes backend generation.
@@ -692,36 +761,25 @@ export function startNotesBackend(
     // Register typed saved-view operations alongside the existing Notes operations.
     await savedViews.register(root, (ref) => refs.push(ref))
 
-    // Register WorldOps.
+    // Register WorldOps. The unstaged create ops stay registered so stored
+    // ops of their ids still replay.
     const woSvc = new WorldOpRegistryResourceServiceClient(root.client)
-    const initNotebookOp = await woSvc.RegisterWorldOp(
-      { operationTypeId: INIT_NOTEBOOK_OP_ID, pluginId },
-      signal,
-    )
-    refs.push(
-      retainRegistration(initNotebookOp.resourceId, 'init notebook world op'),
-    )
-    const notebookEditOp = await woSvc.RegisterWorldOp(
-      { operationTypeId: NOTEBOOK_EDIT_OP_ID, pluginId },
-      signal,
-    )
-    refs.push(
-      retainRegistration(notebookEditOp.resourceId, 'notebook edit world op'),
-    )
-    const createBlogOp = await woSvc.RegisterWorldOp(
-      { operationTypeId: CREATE_BLOG_OP_ID, pluginId },
-      signal,
-    )
-    refs.push(
-      retainRegistration(createBlogOp.resourceId, 'create blog world op'),
-    )
-    const createDocsOp = await woSvc.RegisterWorldOp(
-      { operationTypeId: CREATE_DOCS_OP_ID, pluginId },
-      signal,
-    )
-    refs.push(
-      retainRegistration(createDocsOp.resourceId, 'create docs world op'),
-    )
+    for (const [operationTypeId, label] of [
+      [INIT_NOTEBOOK_STAGED_OP_ID, 'init notebook staged world op'],
+      [CREATE_BLOG_STAGED_OP_ID, 'create blog staged world op'],
+      [CREATE_DOCS_STAGED_OP_ID, 'create docs staged world op'],
+      [NOTEBOOK_EDIT_OP_ID, 'notebook edit world op'],
+      [INIT_NOTEBOOK_OP_ID, 'init notebook world op'],
+      [CREATE_BLOG_OP_ID, 'create blog world op'],
+      [CREATE_DOCS_OP_ID, 'create docs world op'],
+    ]) {
+      // eslint-disable-next-line react-doctor/async-await-in-loop -- each registration is retained before the next, so a failure releases what came before.
+      const op = await woSvc.RegisterWorldOp(
+        { operationTypeId, pluginId },
+        signal,
+      )
+      refs.push(retainRegistration(op.resourceId, label))
+    }
 
     // Register persistent ObjectWizards for in-space Notes creation.
     const wizardSvc = new ObjectWizardRegistryResourceServiceClient(root.client)
@@ -734,7 +792,7 @@ export function startNotesBackend(
           description: 'Notebook of markdown pages and notes',
           category: 'Content',
           iconName: 'LuNotebookPen',
-          createOpId: INIT_NOTEBOOK_OP_ID,
+          createOpId: INIT_NOTEBOOK_STAGED_OP_ID,
           defaultNamePattern: 'Notebook',
           keyPrefix: 'notebook/',
           persistent: true,
@@ -753,7 +811,7 @@ export function startNotesBackend(
           description: 'Structured documentation site with sections',
           category: 'Content',
           iconName: 'LuBookOpen',
-          createOpId: CREATE_DOCS_OP_ID,
+          createOpId: CREATE_DOCS_STAGED_OP_ID,
           defaultNamePattern: 'Documentation',
           keyPrefix: 'docs/',
           persistent: true,
@@ -772,7 +830,7 @@ export function startNotesBackend(
           description: 'Blog of dated posts with an index page',
           category: 'Content',
           iconName: 'LuPenLine',
-          createOpId: CREATE_BLOG_OP_ID,
+          createOpId: CREATE_BLOG_STAGED_OP_ID,
           defaultNamePattern: 'Blog',
           keyPrefix: 'blog/',
           persistent: true,

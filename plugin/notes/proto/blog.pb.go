@@ -12,6 +12,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // Blog is a world object that presents markdown files from UnixFS
@@ -118,6 +119,62 @@ func (x *CreateBlogOp) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
+// CreateBlogStagedOp creates a Blog with a UnixFS source and initial post,
+// and the companion notebook that edits its posts, from content the sender
+// staged. It replaces CreateBlogOp for new creates.
+//
+// The sender builds every object's content in a World stage before it sends
+// the op, and holds the stage until the op's transaction returns. Under the
+// World writer the op only reads the keys and adopts the staged roots, so the
+// writer waits on no content build. An op missing a staged root is rejected.
+type CreateBlogStagedOp struct {
+	unknownFields []byte
+	// ObjectKey is the world object key for the blog.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// BlogRoot is the staged Blog block, the blog object's root.
+	BlogRoot *bucket.ObjectRef `protobuf:"bytes,2,opt,name=blog_root,json=blogRoot,proto3" json:"blogRoot,omitempty"`
+	// UnixfsRoot is the staged UnixFS tree of the first post, the UnixFS
+	// object's root.
+	UnixfsRoot *bucket.ObjectRef `protobuf:"bytes,3,opt,name=unixfs_root,json=unixfsRoot,proto3" json:"unixfsRoot,omitempty"`
+	// NotebookRoot is the staged Notebook block, the companion notebook
+	// object's root.
+	NotebookRoot *bucket.ObjectRef `protobuf:"bytes,4,opt,name=notebook_root,json=notebookRoot,proto3" json:"notebookRoot,omitempty"`
+}
+
+func (x *CreateBlogStagedOp) Reset() {
+	*x = CreateBlogStagedOp{}
+}
+
+func (*CreateBlogStagedOp) ProtoMessage() {}
+
+func (x *CreateBlogStagedOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *CreateBlogStagedOp) GetBlogRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.BlogRoot
+	}
+	return nil
+}
+
+func (x *CreateBlogStagedOp) GetUnixfsRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.UnixfsRoot
+	}
+	return nil
+}
+
+func (x *CreateBlogStagedOp) GetNotebookRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.NotebookRoot
+	}
+	return nil
+}
+
 func (m *Blog) CloneVT() *Blog {
 	if m == nil {
 		return (*Blog)(nil)
@@ -154,6 +211,25 @@ func (m *CreateBlogOp) CloneVT() *CreateBlogOp {
 }
 
 func (m *CreateBlogOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateBlogStagedOp) CloneVT() *CreateBlogStagedOp {
+	if m == nil {
+		return (*CreateBlogStagedOp)(nil)
+	}
+	r := new(CreateBlogStagedOp)
+	r.ObjectKey = m.ObjectKey
+	r.BlogRoot = protobuf_go_lite.CloneVTValue(m.BlogRoot)
+	r.UnixfsRoot = protobuf_go_lite.CloneVTValue(m.UnixfsRoot)
+	r.NotebookRoot = protobuf_go_lite.CloneVTValue(m.NotebookRoot)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateBlogStagedOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -212,6 +288,35 @@ func (this *CreateBlogOp) EqualVT(that *CreateBlogOp) bool {
 
 func (this *CreateBlogOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CreateBlogOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateBlogStagedOp) EqualVT(that *CreateBlogStagedOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.BlogRoot, that.BlogRoot) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.UnixfsRoot, that.UnixfsRoot) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.NotebookRoot, that.NotebookRoot) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateBlogStagedOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateBlogStagedOp)
 	if !ok {
 		return false
 	}
@@ -383,6 +488,84 @@ func (x *CreateBlogOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the CreateBlogStagedOp message to JSON.
+func (x *CreateBlogStagedOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.BlogRoot != nil || s.HasField("blogRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blogRoot")
+		x.BlogRoot.MarshalProtoJSON(s.WithField("blogRoot"))
+	}
+	if x.UnixfsRoot != nil || s.HasField("unixfsRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unixfsRoot")
+		x.UnixfsRoot.MarshalProtoJSON(s.WithField("unixfsRoot"))
+	}
+	if x.NotebookRoot != nil || s.HasField("notebookRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("notebookRoot")
+		x.NotebookRoot.MarshalProtoJSON(s.WithField("notebookRoot"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateBlogStagedOp to JSON.
+func (x *CreateBlogStagedOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateBlogStagedOp message from JSON.
+func (x *CreateBlogStagedOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "blog_root", "blogRoot":
+			if s.ReadNil() {
+				x.BlogRoot = nil
+				return
+			}
+			x.BlogRoot = &bucket.ObjectRef{}
+			x.BlogRoot.UnmarshalProtoJSON(s.WithField("blog_root", true))
+		case "unixfs_root", "unixfsRoot":
+			if s.ReadNil() {
+				x.UnixfsRoot = nil
+				return
+			}
+			x.UnixfsRoot = &bucket.ObjectRef{}
+			x.UnixfsRoot.UnmarshalProtoJSON(s.WithField("unixfs_root", true))
+		case "notebook_root", "notebookRoot":
+			if s.ReadNil() {
+				x.NotebookRoot = nil
+				return
+			}
+			x.NotebookRoot = &bucket.ObjectRef{}
+			x.NotebookRoot.UnmarshalProtoJSON(s.WithField("notebook_root", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateBlogStagedOp from JSON.
+func (x *CreateBlogStagedOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Blog) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -504,6 +687,73 @@ func (m *CreateBlogOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *CreateBlogStagedOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateBlogStagedOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateBlogStagedOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.NotebookRoot != nil {
+		size, err := m.NotebookRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.UnixfsRoot != nil {
+		size, err := m.UnixfsRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.BlogRoot != nil {
+		size, err := m.BlogRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Blog) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -533,6 +783,29 @@ func (m *CreateBlogOp) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AuthorRegistryPath)
 	if m.Timestamp != nil {
 		l = m.Timestamp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateBlogStagedOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	if m.BlogRoot != nil {
+		l = m.BlogRoot.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.UnixfsRoot != nil {
+		l = m.UnixfsRoot.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.NotebookRoot != nil {
+		l = m.NotebookRoot.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -600,6 +873,32 @@ func (x *CreateBlogOp) MarshalProtoText() string {
 }
 
 func (x *CreateBlogOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateBlogStagedOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CreateBlogStagedOp")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.BlogRoot != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "blog_root")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.BlogRoot)
+	}
+	if x.UnixfsRoot != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unixfs_root")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UnixfsRoot)
+	}
+	if x.NotebookRoot != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "notebook_root")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.NotebookRoot)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CreateBlogStagedOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -761,6 +1060,104 @@ func (m *CreateBlogOp) UnmarshalVT(dAtA []byte) error {
 				m.Timestamp = &timestamppb.Timestamp{}
 			}
 			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateBlogStagedOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateBlogStagedOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateBlogStagedOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlogRoot", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.BlogRoot == nil {
+				m.BlogRoot = &bucket.ObjectRef{}
+			}
+			if err := m.BlogRoot.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnixfsRoot", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.UnixfsRoot == nil {
+				m.UnixfsRoot = &bucket.ObjectRef{}
+			}
+			if err := m.UnixfsRoot.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotebookRoot", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.NotebookRoot == nil {
+				m.NotebookRoot = &bucket.ObjectRef{}
+			}
+			if err := m.NotebookRoot.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

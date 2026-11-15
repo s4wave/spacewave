@@ -5,6 +5,7 @@
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 
 /**
  * Notebook is a world object that curates markdown files from UnixFS
@@ -86,6 +87,49 @@ export const InitNotebookOp: MessageType<InitNotebookOp> =
       [2, 'unixfs_object_key', 9],
       [3, 'timestamp', 11, 0, Timestamp.codec],
       [4, 'name', 9],
+    ],
+  )
+
+/**
+ * InitNotebookStagedOp creates a Notebook with a UnixFS source and starter
+ * notes from content the sender staged. It replaces InitNotebookOp for new
+ * creates.
+ *
+ * The sender builds every object's content in a World stage before it sends
+ * the op, and holds the stage until the op's transaction returns. Under the
+ * World writer the op only reads the keys and adopts the staged roots, so the
+ * writer waits on no content build. An op missing a staged root is rejected.
+ *
+ * @generated from message notes.InitNotebookStagedOp
+ */
+export interface InitNotebookStagedOp {
+  /**
+   * NotebookObjectKey is the world object key for the notebook.
+   */
+  notebookObjectKey?: string
+  /**
+   * UnixfsObjectKey is the world object key for the UnixFS storage.
+   */
+  unixfsObjectKey?: string
+  /**
+   * NotebookRoot is the staged Notebook block, the notebook object's root.
+   */
+  notebookRoot?: ObjectRef
+  /**
+   * UnixfsRoot is the staged UnixFS tree of starter notes, the UnixFS
+   * object's root.
+   */
+  unixfsRoot?: ObjectRef
+}
+
+export const InitNotebookStagedOp: MessageType<InitNotebookStagedOp> =
+  /* @__PURE__ */ createMessageType<InitNotebookStagedOp>(
+    'notes.InitNotebookStagedOp',
+    () => [
+      [1, 'notebook_object_key', 9],
+      [2, 'unixfs_object_key', 9],
+      [3, 'notebook_root', 11, 0, ObjectRef.codec],
+      [4, 'unixfs_root', 11, 0, ObjectRef.codec],
     ],
   )
 

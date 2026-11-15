@@ -12,6 +12,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // Notebook is a world object that curates markdown files from UnixFS
@@ -118,6 +119,61 @@ func (x *InitNotebookOp) GetName() string {
 		return x.Name
 	}
 	return ""
+}
+
+// InitNotebookStagedOp creates a Notebook with a UnixFS source and starter
+// notes from content the sender staged. It replaces InitNotebookOp for new
+// creates.
+//
+// The sender builds every object's content in a World stage before it sends
+// the op, and holds the stage until the op's transaction returns. Under the
+// World writer the op only reads the keys and adopts the staged roots, so the
+// writer waits on no content build. An op missing a staged root is rejected.
+type InitNotebookStagedOp struct {
+	unknownFields []byte
+	// NotebookObjectKey is the world object key for the notebook.
+	NotebookObjectKey string `protobuf:"bytes,1,opt,name=notebook_object_key,json=notebookObjectKey,proto3" json:"notebookObjectKey,omitempty"`
+	// UnixfsObjectKey is the world object key for the UnixFS storage.
+	UnixfsObjectKey string `protobuf:"bytes,2,opt,name=unixfs_object_key,json=unixfsObjectKey,proto3" json:"unixfsObjectKey,omitempty"`
+	// NotebookRoot is the staged Notebook block, the notebook object's root.
+	NotebookRoot *bucket.ObjectRef `protobuf:"bytes,3,opt,name=notebook_root,json=notebookRoot,proto3" json:"notebookRoot,omitempty"`
+	// UnixfsRoot is the staged UnixFS tree of starter notes, the UnixFS
+	// object's root.
+	UnixfsRoot *bucket.ObjectRef `protobuf:"bytes,4,opt,name=unixfs_root,json=unixfsRoot,proto3" json:"unixfsRoot,omitempty"`
+}
+
+func (x *InitNotebookStagedOp) Reset() {
+	*x = InitNotebookStagedOp{}
+}
+
+func (*InitNotebookStagedOp) ProtoMessage() {}
+
+func (x *InitNotebookStagedOp) GetNotebookObjectKey() string {
+	if x != nil {
+		return x.NotebookObjectKey
+	}
+	return ""
+}
+
+func (x *InitNotebookStagedOp) GetUnixfsObjectKey() string {
+	if x != nil {
+		return x.UnixfsObjectKey
+	}
+	return ""
+}
+
+func (x *InitNotebookStagedOp) GetNotebookRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.NotebookRoot
+	}
+	return nil
+}
+
+func (x *InitNotebookStagedOp) GetUnixfsRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.UnixfsRoot
+	}
+	return nil
 }
 
 // NotebookEditOp changes one Notebook's source list in a single World
@@ -336,6 +392,25 @@ func (m *InitNotebookOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *InitNotebookStagedOp) CloneVT() *InitNotebookStagedOp {
+	if m == nil {
+		return (*InitNotebookStagedOp)(nil)
+	}
+	r := new(InitNotebookStagedOp)
+	r.NotebookObjectKey = m.NotebookObjectKey
+	r.UnixfsObjectKey = m.UnixfsObjectKey
+	r.NotebookRoot = protobuf_go_lite.CloneVTValue(m.NotebookRoot)
+	r.UnixfsRoot = protobuf_go_lite.CloneVTValue(m.UnixfsRoot)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InitNotebookStagedOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *NotebookEditOp) CloneVT() *NotebookEditOp {
 	if m == nil {
 		return (*NotebookEditOp)(nil)
@@ -513,6 +588,35 @@ func (this *InitNotebookOp) EqualVT(that *InitNotebookOp) bool {
 
 func (this *InitNotebookOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*InitNotebookOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InitNotebookStagedOp) EqualVT(that *InitNotebookStagedOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.NotebookObjectKey != that.NotebookObjectKey {
+		return false
+	}
+	if this.UnixfsObjectKey != that.UnixfsObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.NotebookRoot, that.NotebookRoot) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.UnixfsRoot, that.UnixfsRoot) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InitNotebookStagedOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InitNotebookStagedOp)
 	if !ok {
 		return false
 	}
@@ -856,6 +960,80 @@ func (x *InitNotebookOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the InitNotebookOp from JSON.
 func (x *InitNotebookOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InitNotebookStagedOp message to JSON.
+func (x *InitNotebookStagedOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.NotebookObjectKey != "" || s.HasField("notebookObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("notebookObjectKey")
+		s.WriteString(x.NotebookObjectKey)
+	}
+	if x.UnixfsObjectKey != "" || s.HasField("unixfsObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unixfsObjectKey")
+		s.WriteString(x.UnixfsObjectKey)
+	}
+	if x.NotebookRoot != nil || s.HasField("notebookRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("notebookRoot")
+		x.NotebookRoot.MarshalProtoJSON(s.WithField("notebookRoot"))
+	}
+	if x.UnixfsRoot != nil || s.HasField("unixfsRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unixfsRoot")
+		x.UnixfsRoot.MarshalProtoJSON(s.WithField("unixfsRoot"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InitNotebookStagedOp to JSON.
+func (x *InitNotebookStagedOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InitNotebookStagedOp message from JSON.
+func (x *InitNotebookStagedOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "notebook_object_key", "notebookObjectKey":
+			s.AddField("notebook_object_key")
+			x.NotebookObjectKey = s.ReadString()
+		case "unixfs_object_key", "unixfsObjectKey":
+			s.AddField("unixfs_object_key")
+			x.UnixfsObjectKey = s.ReadString()
+		case "notebook_root", "notebookRoot":
+			if s.ReadNil() {
+				x.NotebookRoot = nil
+				return
+			}
+			x.NotebookRoot = &bucket.ObjectRef{}
+			x.NotebookRoot.UnmarshalProtoJSON(s.WithField("notebook_root", true))
+		case "unixfs_root", "unixfsRoot":
+			if s.ReadNil() {
+				x.UnixfsRoot = nil
+				return
+			}
+			x.UnixfsRoot = &bucket.ObjectRef{}
+			x.UnixfsRoot.UnmarshalProtoJSON(s.WithField("unixfs_root", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InitNotebookStagedOp from JSON.
+func (x *InitNotebookStagedOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1267,6 +1445,68 @@ func (m *InitNotebookOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *InitNotebookStagedOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitNotebookStagedOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InitNotebookStagedOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.UnixfsRoot != nil {
+		size, err := m.UnixfsRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.NotebookRoot != nil {
+		size, err := m.NotebookRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.UnixfsObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.UnixfsObjectKey)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.NotebookObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.NotebookObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *NotebookEditOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1567,6 +1807,26 @@ func (m *InitNotebookOp) SizeVT() (n int) {
 	return n
 }
 
+func (m *InitNotebookStagedOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NotebookObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.UnixfsObjectKey)
+	if m.NotebookRoot != nil {
+		l = m.NotebookRoot.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.UnixfsRoot != nil {
+		l = m.UnixfsRoot.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *NotebookEditOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1737,6 +1997,32 @@ func (x *InitNotebookOp) MarshalProtoText() string {
 }
 
 func (x *InitNotebookOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InitNotebookStagedOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "InitNotebookStagedOp")
+	if x.NotebookObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "notebook_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.NotebookObjectKey)
+	}
+	if x.UnixfsObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unixfs_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.UnixfsObjectKey)
+	}
+	if x.NotebookRoot != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "notebook_root")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.NotebookRoot)
+	}
+	if x.UnixfsRoot != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unixfs_root")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UnixfsRoot)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *InitNotebookStagedOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2033,6 +2319,99 @@ func (m *InitNotebookOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Name = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InitNotebookStagedOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitNotebookStagedOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitNotebookStagedOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotebookObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NotebookObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnixfsObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.UnixfsObjectKey = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotebookRoot", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.NotebookRoot == nil {
+				m.NotebookRoot = &bucket.ObjectRef{}
+			}
+			if err := m.NotebookRoot.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnixfsRoot", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.UnixfsRoot == nil {
+				m.UnixfsRoot = &bucket.ObjectRef{}
+			}
+			if err := m.UnixfsRoot.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
