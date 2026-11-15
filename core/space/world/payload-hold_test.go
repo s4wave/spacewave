@@ -18,7 +18,9 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 )
@@ -349,4 +351,165 @@ func TestForeignManifestBucketReplays(t *testing.T) {
 	if lookups != 0 {
 		t.Fatalf("%d directives looked up the foreign bucket", lookups)
 	}
+}
+
+// TestMissingTreePageWaits removes pages of a World tree from the Space's
+// store, then replays another device's operation that reads one: replay must
+// wait for the block as a gap, not refuse the operation, since another
+// replica with the page applies it. It covers the object tree, an IAVL tree,
+// read by a World operation, and the graph tree, an Okra tree, read by a
+// graph quad write. Both trees are those every Space World has.
+func TestMissingTreePageWaits(t *testing.T) {
+	cases := []struct {
+		name string
+		// pages returns the refs of pages the operation reads, and the
+		// operation.
+		pages func(t *testing.T, w *world_block.World, keys []string) ([]*block.BlockRef, []byte)
+	}{
+		{"iavl", func(t *testing.T, w *world_block.World, keys []string) ([]*block.BlockRef, []byte) {
+			// Take both children of the root, and an object other than the
+			// root's, which one of them holds.
+			tree := w.GetObjectKeyValue()
+			root := tree.GetIavlRoot()
+			impl := tree.GetImplType()
+			if impl != kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL && impl != kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH {
+				t.Fatalf("object tree is %v, not IAVL", impl)
+			}
+			if root.GetLeftChildRef().GetEmpty() || root.GetRightChildRef().GetEmpty() {
+				t.Fatal("the object tree's root has no two child pages")
+			}
+			key := keys[0]
+			if string(root.GetKey()) == key {
+				key = keys[1]
+			}
+			return []*block.BlockRef{root.GetLeftChildRef(), root.GetRightChildRef()}, txOp(t, &world_block_tx.Tx{
+				TxType: world_block_tx.TxType_TxType_APPLY_WORLD_OP,
+				TxApplyWorldOp: &world_block_tx.TxApplyWorldOp{
+					OperationTypeId: world_mock.MockWorldOpTypeID,
+					OperationBody:   marshalOp(t, world_mock.NewMockWorldOp(key, "hello")),
+				},
+			})
+		}},
+		{"okra", func(t *testing.T, w *world_block.World, keys []string) ([]*block.BlockRef, []byte) {
+			// Take the root page, which every graph read starts from.
+			tree := w.GetGraphKeyValue()
+			switch impl := tree.GetImplType(); impl {
+			case kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA,
+				kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE,
+				kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH:
+			default:
+				t.Fatalf("graph tree is %v, not Okra", impl)
+			}
+			ref := tree.GetOkraRoot().GetRootPageRef()
+			if ref.GetEmpty() {
+				t.Fatal("the graph tree has no root page")
+			}
+			quad := world.NewGraphQuadWithKeys(keys[0], "<other>", keys[2], "")
+			return []*block.BlockRef{ref}, txOp(t, &world_block_tx.Tx{
+				TxType:         world_block_tx.TxType_TxType_SET_GRAPH_QUAD,
+				TxSetGraphQuad: &world_block_tx.TxSetGraphQuad{Quad: world.GraphQuadToQuad(quad)},
+			})
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			runMissingTreePage(t, tc.pages)
+		})
+	}
+}
+
+// runMissingTreePage fills both World trees, removes the pages pages names
+// from the Space's store, replays the operation pages returns from another
+// device, and checks that replay waits on the gap.
+func runMissingTreePage(t *testing.T, pages func(t *testing.T, w *world_block.World, keys []string) ([]*block.BlockRef, []byte)) {
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	f := newAdapterFixture(t)
+	eng, engRef := f.start(t)
+	defer engRef.Release()
+	so := f.space(t)
+	store := so.GetBlockStore()
+	dev := addDevice(t, so)
+	accessor, ok := so.(sobject.SharedObjectHealthAccessor)
+	if !ok {
+		t.Fatal("the Space's shared object exposes no health")
+	}
+	health, releaseHealth, err := accessor.AccessSharedObjectHealth(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseHealth()
+
+	// Fill both trees past one page: objects, each linked to the next.
+	var keys []string
+	for i := range 64 {
+		keys = append(keys, "obj-"+strconv.Itoa(100+i))
+	}
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		for i, key := range keys {
+			obj, err := ws.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(obj)
+			if err != nil {
+				return err
+			}
+			if i != 0 {
+				if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(keys[i-1], "<next>", key, "")); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	waitHealth(ctx, t, health, "caught up", func(h *sobject.SharedObjectHealth) bool {
+		return h.GetReplay().GetCaughtUp() != nil
+	})
+
+	// Find the pages in the installed World.
+	var refs []*block.BlockRef
+	var op []byte
+	if err := world.ExecTransaction(ctx, eng, false, func(ctx context.Context, ws world.WorldState) error {
+		return ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+			_, bcs := bls.BuildTransaction(nil)
+			w, err := world_block.UnmarshalWorld(ctx, bcs)
+			if err != nil {
+				return err
+			}
+			refs, op = pages(t, w, keys)
+			return nil
+		})
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove them once the installed head stored them.
+	for _, ref := range refs {
+		for {
+			exists, err := store.GetBlockExists(ctx, ref)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if exists {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatal("the installed head never stored the page")
+			case <-time.After(10 * time.Millisecond):
+			}
+		}
+		if err := store.RmBlock(ctx, ref); err != nil {
+			t.Fatal(err)
+		}
+		if exists, err := store.GetBlockExists(ctx, ref); err != nil || exists {
+			t.Fatalf("page still stored after removal: %v, %v", exists, err)
+		}
+	}
+
+	// The device's operation reads the page: replay waits on the gap.
+	dev.write(t, so, op, false, false)
+	waitHealth(ctx, t, health, "the gap wait", func(h *sobject.SharedObjectHealth) bool {
+		return h.GetReplay().GetWaiting().GetGap() != nil
+	})
 }
