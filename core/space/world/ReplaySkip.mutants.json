@@ -3,8 +3,8 @@
     "name": "the skip names a position instead of the op's hash",
     "replace": [
       [
-        "Skipped(v) == {cfgs[j].op : j \\in 1..v}",
-        "Skipped(v) == {order[cfgs[j].at] : j \\in {j \\in 1..v : cfgs[j].at <= Len(order)}}"
+        "Skipped(v) == IF v = 0 THEN {} ELSE {e.op : e \\in cfgs[v].skips}",
+        "Skipped(v) == IF v = 0 THEN {} ELSE {order[e.at] : e \\in {e \\in cfgs[v].skips : e.at <= Len(order)}}"
       ]
     ],
     "expect": "NoMismatch",
@@ -52,6 +52,50 @@
       ]
     ],
     "expect": "StallExits",
+    "config": "ReplaySkip.cfg"
+  },
+  {
+    "name": "a checkpoint names a config without its skips",
+    "replace": [
+      [
+        "cfg |-> seen[\"owner\"]]",
+        "cfg |-> 0]"
+      ]
+    ],
+    "expect": "CheckpointHoldsSkips",
+    "config": "ReplaySkip.cfg"
+  },
+  {
+    "name": "the owner skips past the cap",
+    "replace": [
+      [
+        "        /\\ Cardinality(Live) < MaxLive",
+        "        /\\ TRUE"
+      ]
+    ],
+    "expect": "LiveCapped",
+    "config": "ReplaySkip.cfg"
+  },
+  {
+    "name": "a config change prunes a skip the checkpoint does not cover",
+    "replace": [
+      [
+        "Live == IF cfgs = <<>> THEN {} ELSE {e \\in cfgs[Len(cfgs)].skips : e.op \\notin Covered}",
+        "Live == {}"
+      ]
+    ],
+    "expect": "Agree",
+    "config": "ReplaySkip-Two.cfg"
+  },
+  {
+    "name": "a pruned config arrives without its checkpoint",
+    "replace": [
+      [
+        "IF HasPrefix(done[d], Base(Len(cfgs))) THEN done",
+        "IF TRUE THEN done"
+      ]
+    ],
+    "expect": "Agree",
     "config": "ReplaySkip.cfg"
   }
 ]
