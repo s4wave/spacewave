@@ -136,3 +136,14 @@ func VerifyPut(ref *BlockRef, data []byte) error {
 	}
 	return nil
 }
+
+// VerifyPutOpts checks bytes handed in from another process against the ref
+// their PutOpts force, returning ErrBlockRefMismatch when they differ. A put
+// without a forced ref is hashed by the store, so it passes unchecked.
+func VerifyPutOpts(data []byte, opts *PutOpts) error {
+	ref := opts.GetForceBlockRef()
+	if ref.GetEmpty() {
+		return nil
+	}
+	return VerifyPut(ref, data)
+}

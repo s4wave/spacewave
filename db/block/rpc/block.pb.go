@@ -8,12 +8,51 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
+	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	block "github.com/s4wave/spacewave/db/block"
 	hash "github.com/s4wave/spacewave/net/hash"
 )
+
+// GetBlockFailure classifies a failed block read.
+type GetBlockFailure int32
+
+const (
+	// GET_BLOCK_FAILURE_ERROR is any failure without a class below; error
+	// carries its text.
+	GetBlockFailure_GET_BLOCK_FAILURE_ERROR GetBlockFailure = 0
+	// GET_BLOCK_FAILURE_CORRUPT means the serving store read bytes that do not
+	// hash to the ref: block.ErrBlockCorrupt.
+	GetBlockFailure_GET_BLOCK_FAILURE_CORRUPT GetBlockFailure = 1
+)
+
+// Enum value maps for GetBlockFailure.
+var (
+	GetBlockFailure_name = map[int32]string{
+		0: "GET_BLOCK_FAILURE_ERROR",
+		1: "GET_BLOCK_FAILURE_CORRUPT",
+	}
+	GetBlockFailure_value = map[string]int32{
+		"GET_BLOCK_FAILURE_ERROR":   0,
+		"GET_BLOCK_FAILURE_CORRUPT": 1,
+	}
+)
+
+func (x GetBlockFailure) Enum() *GetBlockFailure {
+	p := new(GetBlockFailure)
+	*p = x
+	return p
+}
+
+func (x GetBlockFailure) String() string {
+	name, valid := GetBlockFailure_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
 
 // GetHashTypeRequest requests the preferred hash type for the store.
 type GetHashTypeRequest struct {
@@ -303,6 +342,9 @@ type GetBlockResponse struct {
 	Refs []*block.BlockRef `protobuf:"bytes,4,rep,name=refs,proto3" json:"refs,omitempty"`
 	// RefsKnown indicates the store recorded the block's outgoing refs.
 	RefsKnown bool `protobuf:"varint,5,opt,name=refs_known,json=refsKnown,proto3" json:"refsKnown,omitempty"`
+	// Failure classifies error, so the client returns the same error type the
+	// serving store did.
+	Failure GetBlockFailure `protobuf:"varint,6,opt,name=failure,proto3" json:"failure,omitempty"`
 }
 
 func (x *GetBlockResponse) Reset() {
@@ -344,6 +386,13 @@ func (x *GetBlockResponse) GetRefsKnown() bool {
 		return x.RefsKnown
 	}
 	return false
+}
+
+func (x *GetBlockResponse) GetFailure() GetBlockFailure {
+	if x != nil {
+		return x.Failure
+	}
+	return GetBlockFailure_GET_BLOCK_FAILURE_ERROR
 }
 
 // GetBlockExistsRequest requests to check if a block exists in the store.
@@ -768,6 +817,7 @@ func (m *GetBlockResponse) CloneVT() *GetBlockResponse {
 	r.Exists = m.Exists
 	r.Error = m.Error
 	r.RefsKnown = m.RefsKnown
+	r.Failure = m.Failure
 	r.Data = protobuf_go_lite.CloneBytes(m.Data)
 	r.Refs = protobuf_go_lite.CloneVTSlice(m.Refs)
 	if len(m.unknownFields) > 0 {
@@ -1190,6 +1240,9 @@ func (this *GetBlockResponse) EqualVT(that *GetBlockResponse) bool {
 	if this.RefsKnown != that.RefsKnown {
 		return false
 	}
+	if this.Failure != that.Failure {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1414,6 +1467,46 @@ func (this *SyncResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the GetBlockFailure to JSON.
+func (x GetBlockFailure) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), GetBlockFailure_name)
+}
+
+// MarshalText marshals the GetBlockFailure to text.
+func (x GetBlockFailure) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), GetBlockFailure_name)), nil
+}
+
+// MarshalJSON marshals the GetBlockFailure to JSON.
+func (x GetBlockFailure) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetBlockFailure from JSON.
+func (x *GetBlockFailure) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(GetBlockFailure_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read GetBlockFailure enum: %v", err)
+		return
+	}
+	*x = GetBlockFailure(v)
+}
+
+// UnmarshalText unmarshals the GetBlockFailure from text.
+func (x *GetBlockFailure) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), GetBlockFailure_value)
+	if err != nil {
+		return err
+	}
+	*x = GetBlockFailure(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the GetBlockFailure from JSON.
+func (x *GetBlockFailure) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the GetHashTypeRequest message to JSON.
@@ -1993,6 +2086,11 @@ func (x *GetBlockResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("refsKnown")
 		s.WriteBool(x.RefsKnown)
 	}
+	if x.Failure != 0 || s.HasField("failure") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("failure")
+		x.Failure.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2040,6 +2138,9 @@ func (x *GetBlockResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "refs_known", "refsKnown":
 			s.AddField("refs_known")
 			x.RefsKnown = s.ReadBool()
+		case "failure":
+			s.AddField("failure")
+			x.Failure.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -3022,6 +3123,11 @@ func (m *GetBlockResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Failure != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Failure))
+		i--
+		dAtA[i] = 0x30
+	}
 	if m.RefsKnown {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RefsKnown)
 		i--
@@ -3632,6 +3738,7 @@ func (m *GetBlockResponse) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.RefsKnown)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Failure)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3764,6 +3871,10 @@ func (m *SyncResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x GetBlockFailure) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *GetHashTypeRequest) MarshalProtoText() string {
@@ -3988,6 +4099,10 @@ func (x *GetBlockResponse) MarshalProtoText() string {
 	if x.RefsKnown != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refs_known")
 		protobuf_go_lite.TextWriteBool(&sb, x.RefsKnown)
+	}
+	if x.Failure != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failure")
+		protobuf_go_lite.TextWriteStringer(&sb, GetBlockFailure(x.Failure))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4893,6 +5008,17 @@ func (m *GetBlockResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RefsKnown = bool(v)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failure", wireType)
+			}
+			m.Failure = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Failure = GetBlockFailure(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

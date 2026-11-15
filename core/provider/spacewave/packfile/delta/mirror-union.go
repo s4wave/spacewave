@@ -68,15 +68,22 @@ func (m *MirrorUnion) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 }
 
 // GetStoredBlock returns the first hit across the union of packs, with its
-// refs. Returns nil when no pack holds the block.
+// refs. Returns nil when no pack holds the block. A pack whose copy fails its
+// hash yields to the next pack; the corrupt error returns only when no pack
+// holds an intact copy.
 func (m *MirrorUnion) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	var corrupt error
 	for _, s := range m.stores {
 		stored, err := getMirrorBlock(ctx, s, ref)
+		if errors.Is(err, block.ErrBlockCorrupt) {
+			corrupt = err
+			continue
+		}
 		if err != nil || stored != nil {
 			return stored, err
 		}
 	}
-	return nil, nil
+	return nil, corrupt
 }
 
 // GetBlockExists returns true if any pack contains the block.

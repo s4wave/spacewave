@@ -103,6 +103,16 @@ var (
 		"Children outside their batch, not held, that root moves requiring their blocks held landed over while the volume observed, counted per move, since it opened; a missing block counts too.",
 		[]string{volumeLabel}, nil,
 	)
+	volumeCorruptReadsDesc = prometheus.NewDesc(
+		"spacewave_volume_corrupt_reads_total",
+		"Reads whose stored bytes did not hash to their ref, since the volume opened.",
+		[]string{volumeLabel}, nil,
+	)
+	volumeCorruptRefsDesc = prometheus.NewDesc(
+		"spacewave_volume_corrupt_refs",
+		"Distinct refs those reads named, up to the bound the volume's health lists; the refs themselves stay in the health snapshot.",
+		[]string{volumeLabel}, nil,
+	)
 	volumeValueFreedBytesDesc = prometheus.NewDesc(
 		"spacewave_volume_value_freed_bytes_total",
 		"Length of the stored values outside its index that the volume's storage replaced or deleted, by key family, since it opened.",
@@ -121,7 +131,7 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 		volumeWriteReserveDesc, volumeNotHeldRootBlocksDesc, volumeNotHeldChildBlocksDesc,
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc, volumePutExistingDesc,
 		volumePutRefusedDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
-		volumeBackgroundWaitMaxSecondsDesc,
+		volumeBackgroundWaitMaxSecondsDesc, volumeCorruptReadsDesc, volumeCorruptRefsDesc,
 	} {
 		ch <- d
 	}
@@ -177,6 +187,10 @@ func collectVolume(ch chan<- prometheus.Metric, h *volume.VolumeHealth, now time
 	// Report the blocks root moves landed over while observing.
 	ch <- prometheus.MustNewConstMetric(volumeNotHeldRootBlocksDesc, prometheus.CounterValue, float64(h.GetNotHeldRootBlocks()), id)
 	ch <- prometheus.MustNewConstMetric(volumeNotHeldChildBlocksDesc, prometheus.CounterValue, float64(h.GetNotHeldChildBlocks()), id)
+
+	// Report the reads that failed their hash.
+	ch <- prometheus.MustNewConstMetric(volumeCorruptReadsDesc, prometheus.CounterValue, float64(h.GetCorruptReads()), id)
+	ch <- prometheus.MustNewConstMetric(volumeCorruptRefsDesc, prometheus.GaugeValue, float64(len(h.GetCorruptRefs())), id)
 
 	// Report the sizes once the storage measured them.
 	if !h.GetSizesKnown() {

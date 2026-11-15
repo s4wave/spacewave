@@ -381,6 +381,9 @@ func readFrom(ctx context.Context, src Source, ref *block.BlockRef) (*block.Stor
 	if block.IsNotAvailable(err) {
 		return nil, ReasonMissing, nil
 	}
+	if errors.Is(err, block.ErrBlockCorrupt) {
+		return nil, ReasonCorrupt, nil
+	}
 	if err != nil {
 		if readErrorsLogged.Add(1) <= maxReadErrorsLogged {
 			logrus.WithError(err).WithField("source", fmt.Sprintf("%T", src)).WithField("ref", ref.MarshalString()).Warn("block read failed")
@@ -391,7 +394,9 @@ func readFrom(ctx context.Context, src Source, ref *block.BlockRef) (*block.Stor
 		return nil, ReasonMissing, nil
 	}
 
-	// Check the bytes, then the refs the walk follows.
+	// Check the bytes, then the refs the walk follows. A Source need not
+	// verify its reads: FrameStore serves frames from a file as written, so
+	// the walk checks here what every source serves.
 	if err := ref.VerifyData(stored.Data, false); err != nil {
 		return nil, ReasonCorrupt, nil
 	}

@@ -2,6 +2,7 @@ package block_rpc_server
 
 import (
 	"context"
+	"errors"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
@@ -47,8 +48,14 @@ func (s *BlockStore) PutBlock(
 	ctx context.Context,
 	req *block_rpc.PutBlockRequest,
 ) (*block_rpc.PutBlockResponse, error) {
-	outRef, existed, err := s.store.PutBlock(ctx, req.GetData(), req.GetPutOpts())
+	// The bytes come from another process, so they must hash to the ref they
+	// force before the store takes them.
 	resp := &block_rpc.PutBlockResponse{}
+	if err := block.VerifyPutOpts(req.GetData(), req.GetPutOpts()); err != nil {
+		resp.Error = err.Error()
+		return resp, nil
+	}
+	outRef, existed, err := s.store.PutBlock(ctx, req.GetData(), req.GetPutOpts())
 	if err != nil {
 		resp.Error = err.Error()
 	} else {
@@ -114,6 +121,9 @@ func (s *BlockStore) GetBlock(
 	switch {
 	case err != nil:
 		resp.Error = err.Error()
+		if errors.Is(err, block.ErrBlockCorrupt) {
+			resp.Failure = block_rpc.GetBlockFailure_GET_BLOCK_FAILURE_CORRUPT
+		}
 	case stored != nil:
 		resp.Exists = true
 		resp.Data = stored.Data
