@@ -26,7 +26,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "bldr/plugin/host/storage/volume"
 
-// Version is the component version
+// Version is the component version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -115,11 +115,21 @@ func (c *Controller) Execute(ctx context.Context) error {
 			hostVolumeID + "-srv": hostStorageVolumeRpcServerCtrlConf,
 		},
 	}
-	_, _, hostConfigSetRef, err := loader.WaitExecControllerRunning(ctx, c.GetBus(), resolver.NewLoadControllerWithConfig(hostConfigSet), nil)
+	hostConfigSetCtrl, _, hostConfigSetRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_configset.Controller](ctx, c.GetBus(), resolver.NewLoadControllerWithConfig(hostConfigSet), nil)
 	if err != nil {
 		return err
 	}
 	defer hostConfigSetRef.Release()
+
+	// A host that did not start this plugin refuses the volume for good, so
+	// the refusal becomes the volume's result rather than a retry.
+	if err := hostConfigSetCtrl.WaitAccepted(ctx); err != nil {
+		if bldr_plugin.IsNotHostPlugin(err) {
+			c.volProm.SetResult(nil, err)
+			return nil
+		}
+		return err
+	}
 
 	// Construct the volume rpc client controller.
 	volumeRpcClientConf := &volume_rpc_client.Config{
