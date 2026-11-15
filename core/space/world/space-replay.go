@@ -374,11 +374,10 @@ func (r *spaceReplay) applyGraphSettingsStep(ctx context.Context, stepOp *GraphS
 
 // commitOn runs change on a write transaction of the replay engine at the
 // World prev and commits it when change reports a change. It returns the World
-// after the commit, or prev when nothing changed. A failure of change refuses
-// the operation with a reason that starts with failed, but a canceled read, a
-// missing block, a missing handler or a handler's system error stops replay
-// instead: none is a property of the operation, so refusing it would split
-// replicas.
+// after the commit, or prev when nothing changed. A failure of change that
+// replayRefuses refuses the operation with a reason that starts with failed;
+// any other failure stops replay at the operation instead, as it may depend
+// on this device, and refusing it would split replicas.
 func (r *spaceReplay) commitOn(ctx context.Context, prev *InnerState, failed string, change func(*world_block.EngineTx) (bool, error)) (*InnerState, string, error) {
 	// A change needs a World.
 	if prev.GetHeadRef().GetEmpty() {
@@ -404,17 +403,16 @@ func (r *spaceReplay) commitOn(ctx context.Context, prev *InnerState, failed str
 		return err
 	}()
 
-	// Stop for a gap or a system error, refuse a failed change, and keep an
-	// unchanged World.
+	// Stop for a failure of this device, refuse a refused change, and keep
+	// an unchanged World.
 	if err := ctx.Err(); err != nil {
 		return nil, "", err
 	}
-	var sysErr *world.OpSystemError
-	if isReplayGap(aerr) || errors.As(aerr, &sysErr) {
-		return nil, "", aerr
+	if replayRefuses(aerr) {
+		return nil, failed + ": " + aerr.Error(), nil
 	}
 	if aerr != nil {
-		return nil, failed + ": " + aerr.Error(), nil
+		return nil, "", aerr
 	}
 	if next == nil {
 		return prev, "", nil

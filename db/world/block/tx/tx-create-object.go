@@ -52,12 +52,14 @@ func (t *TxCreateObject) GetEmpty() bool {
 
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
+// A failure is a refusal: a sentinel of the World engine, or an
+// *world.OpRefusedError.
 func (t *TxCreateObject) Validate() error {
 	if len(t.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
 	if err := t.GetRootRef().Validate(); err != nil {
-		return err
+		return world.NewOpRefusedError(err)
 	}
 	return nil
 }
