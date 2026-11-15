@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // listRefs lists refs in key order from a sorted slice, as a CopyList over
@@ -155,4 +156,70 @@ func TestCopySkipsUnknownRefs(t *testing.T) {
 	if err != nil || found {
 		t.Fatalf("remote = %v/%v, want absent", found, err)
 	}
+}
+
+// TestCopyHoldsCursorAtCorruptStep checks that a step leaving a corrupt block
+// out holds the saved cursor before it, so a run that saves, ends and starts
+// again never records the copy done past the block.
+func TestCopyHoldsCursorAtCorruptStep(t *testing.T) {
+	// Land a corrupt first step and a clean second one, then save as the
+	// ticker or a cancel would.
+	ctx := t.Context()
+	s := newTestEnv(t).newStore(t, true)
+	run := &copyRun{landed: make(map[int]copyLanded)}
+	run.land(copyStep{seq: 1, next: []byte("k2")}, CopyStatus{Scanned: 1})
+	run.land(copyStep{seq: 0, next: []byte("k1")}, CopyStatus{Scanned: 1, Corrupt: 1})
+	if err := s.saveCopy(ctx, "db", run, false); err != nil {
+		t.Fatal(err)
+	}
+
+	// A new run starts from the saved cursor with no corrupt count and lands
+	// the last step clean; the copy must not be done.
+	cursor, found := readCopyKey(t, s, copyCursorPrefix+"db")
+	if found {
+		t.Fatalf("cursor passed the corrupt step: %q", cursor)
+	}
+	run = &copyRun{landed: make(map[int]copyLanded), cursor: cursor}
+	run.land(copyStep{seq: 0, next: nil}, CopyStatus{Scanned: 1})
+	if err := s.saveCopy(ctx, "db", run, true); err != nil {
+		t.Fatal(err)
+	}
+	if status, _ := s.GetStatus(); !status.Copy.Done {
+		t.Fatal("a clean run from the held cursor should finish")
+	}
+
+	// The same run with the corrupt step still corrupt is not done.
+	s = newTestEnv(t).newStore(t, true)
+	run = &copyRun{landed: make(map[int]copyLanded)}
+	run.land(copyStep{seq: 0, next: []byte("k1")}, CopyStatus{Scanned: 1, Corrupt: 1})
+	run.land(copyStep{seq: 1, next: nil}, CopyStatus{Scanned: 1})
+	if err := s.saveCopy(ctx, "db", run, true); err != nil {
+		t.Fatal(err)
+	}
+	if status, _ := s.GetStatus(); status.Copy.Done || copyKeyFound(t, s, copyDonePrefix+"db") {
+		t.Fatal("copy recorded done past a corrupt block")
+	}
+}
+
+// readCopyKey reads key from the store's marker store.
+func readCopyKey(t *testing.T, s *Store, key string) ([]byte, bool) {
+	t.Helper()
+	var val []byte
+	var found bool
+	err := kvtx.RunTransaction(t.Context(), false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+		var err error
+		val, found, err = tx.Get(ctx, []byte(key))
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return val, found
+}
+
+// copyKeyFound reports whether the marker store holds key.
+func copyKeyFound(t *testing.T, s *Store, key string) bool {
+	t.Helper()
+	_, found := readCopyKey(t, s, key)
+	return found
 }

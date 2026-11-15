@@ -197,6 +197,10 @@ func (s *syncController) writeReclaimState(ctx context.Context, state *ReclaimSt
 
 // walkLive returns the block keys of every block under roots. It reads each
 // block from the local cache first and falls back to the cloud.
+// The walk must keep failing on a missing or corrupt block: a published
+// checkpoint may reach a block held back as corrupt on another device, and a
+// walk that went on without it would judge the block's children dead and
+// trash their packs.
 func (s *syncController) walkLive(ctx context.Context, roots []*block.BlockRef) (map[string]struct{}, error) {
 	live := make(map[string]struct{})
 	src := &reclaimReadStore{StoreOps: s.upper, cloud: s.lower}

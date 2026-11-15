@@ -216,8 +216,9 @@ func (s *syncController) setPublication(h *cloudSOHost, pending *api.PendingSOPu
 
 // flushCheckpoint runs under flushMtx. Snapshotting publications before blocks
 // prevents a concurrent edit from publishing state whose blocks missed this
-// flush.
-func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) (retErr error) {
+// flush. It returns the count of corrupt dirty blocks the flush held back;
+// any other flush failure publishes nothing.
+func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) (_ int, retErr error) {
 	// Record sync errors in telemetry for the resource.
 	if s.telemetry != nil {
 		defer func() { s.telemetry.syncTelemetry.RecordError(s.resourceID, retErr) }()
@@ -236,21 +237,27 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 	for i, host := range hosts {
 		pending[i] = host.pendingPublication()
 	}
-	if err := s.flush(ctx, orderBlocks); err != nil {
-		return err
+	corrupt, err := s.flush(ctx, orderBlocks)
+	if err != nil {
+		return 0, err
 	}
 
-	// Publish each host's checkpoint after its blocks are durable.
+	// Publish each host's checkpoint after its blocks are durable. A block
+	// held back as corrupt does not hold the checkpoint: invariant, a
+	// checkpoint may be published while a block it reaches is held back as
+	// corrupt on this device; nothing may free, evict or judge liveness on
+	// the assumption that a published root's closure is on the remote. A
+	// reader of the missing block gets block.ErrNotFound for it.
 	for i, host := range hosts {
 		if err := host.publishCheckpoint(ctx, pending[i]); err != nil {
-			return err
+			return 0, err
 		}
 	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.compactDue = true
 		broadcast()
 	})
-	return nil
+	return corrupt, nil
 }
 
 // acceptCloudSnapshot keeps the cloud cursor paired with its authenticated
@@ -355,7 +362,7 @@ func dropCoveredOperations(sharedObjectID string, pending *api.PendingSOPublicat
 func (h *cloudSOHost) publishConfigChange(ctx context.Context, prev, next *sobject.SOState, entry *sobject.SOConfigChange) error {
 	// Settle accepted local work so the cloud holds the locked state.
 	if h.syncer != nil {
-		if err := h.syncer.FlushNow(ctx); err != nil {
+		if _, err := h.syncer.FlushNow(ctx); err != nil {
 			return errors.Wrap(err, "flush pending publication")
 		}
 	}

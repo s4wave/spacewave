@@ -30,9 +30,9 @@ const syncPushRetryTimeout = 30 * time.Second
 
 const syncNoProgressBackoff = time.Second
 
-// dirtyCorruptRetryMax bounds the wait between flushes that leave dirty blocks
-// whose local bytes fail their hash queued. A write still queues its blocks at
-// once; they upload with the next flush.
+// dirtyCorruptRetryMax bounds the wait before a flush reads the dirty blocks
+// whose local bytes failed their hash again. New writes do not wait for it:
+// they flush one checkpoint interval after they arrive.
 const dirtyCorruptRetryMax = 10 * time.Minute
 
 const defaultSyncSizeThresholdBytes = 48 * 1024 * 1024
@@ -104,6 +104,12 @@ type syncController struct {
 	// compactWaitPull holds merges after a failed merge until a pull refreshes
 	// the manifest, so a stale plan is never retried.
 	compactWaitPull atomic.Bool
+	// corruptKnown holds the dirty blocks the last flush found corrupt, keyed
+	// by hash, under flushMtx. A flush skips and counts them without reading
+	// them until corruptRecheck is set.
+	corruptKnown map[string]struct{}
+	// corruptRecheck makes the next flush read the known corrupt blocks again.
+	corruptRecheck atomic.Bool
 }
 
 // Init reads persisted queue accounting and runs the initial pull. Access-gated pull
@@ -280,11 +286,14 @@ func (s *syncController) Execute(ctx context.Context) error {
 		interval = 30 * time.Second
 	}
 
-	// corruptDelay is the wait after a flush that left corrupt dirty blocks
-	// queued, zero after a clean flush. It doubles from the checkpoint interval
-	// to dirtyCorruptRetryMax, since rereading the blocks fails the same way
-	// until something rewrites them.
+	// corruptDelay is the wait before a flush reads the known corrupt dirty
+	// blocks again, zero while none are known. It doubles from the checkpoint
+	// interval to dirtyCorruptRetryMax, since rereading the blocks fails the
+	// same way until something repairs them. recheckAt is when that read is
+	// due, and rechecked reports that the last flush was that read.
 	var corruptDelay time.Duration
+	var recheckAt time.Time
+	var rechecked bool
 
 	// Flush at each deadline or size threshold until ctx ends.
 	for ctx.Err() == nil {
@@ -316,7 +325,8 @@ func (s *syncController) Execute(ctx context.Context) error {
 			}
 		}
 
-		if err := s.FlushNow(ctx); err != nil {
+		corrupt, err := s.FlushNow(ctx)
+		if err != nil {
 			retryAt = time.Now().Add(clouderror.RetryAfter(err))
 			if ctx.Err() != nil {
 				return nil
@@ -329,14 +339,6 @@ func (s *syncController) Execute(ctx context.Context) error {
 				}
 				continue
 			}
-			if errors.Is(err, block.ErrBlockCorrupt) {
-				corruptDelay = min(max(2*corruptDelay, interval), dirtyCorruptRetryMax)
-				s.le.WithError(err).WithField("retry-in", corruptDelay).Warn("uploaded the dirty blocks that read intact")
-				if err := waitDirtySyncRetry(ctx, nil, corruptDelay); err != nil {
-					return nil
-				}
-				continue
-			}
 			s.le.WithError(err).Warn("block upload failed")
 			_, _, changed = s.pendingSnapshot()
 			if err := waitDirtySyncRetry(ctx, changed, nextProviderRetryDelay(bo, err)); err != nil {
@@ -345,10 +347,38 @@ func (s *syncController) Execute(ctx context.Context) error {
 			continue
 		}
 
-		// A flush with no progress must not spin on an expired deadline.
 		bo.Reset()
-		corruptDelay = 0
 		retryAt = time.Time{}
+
+		// Known corrupt blocks keep the queue's deadline expired, so wait for
+		// new work, which flushes one interval after it arrives, or for the
+		// slow delay to read them again.
+		if corrupt != 0 {
+			if recheckAt.IsZero() || rechecked {
+				corruptDelay = min(max(2*corruptDelay, interval), dirtyCorruptRetryMax)
+				recheckAt = time.Now().Add(corruptDelay)
+				s.le.WithField("corrupt-blocks", corrupt).WithField("recheck-in", corruptDelay).
+					Warn("dirty blocks fail their hash and stay queued; the rest uploaded")
+			}
+			rechecked = false
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-changed:
+				select {
+				case <-ctx.Done():
+					return nil
+				case <-time.After(interval):
+				}
+			case <-time.After(time.Until(recheckAt)):
+				s.corruptRecheck.Store(true)
+				rechecked = true
+			}
+			continue
+		}
+		corruptDelay, recheckAt, rechecked = 0, time.Time{}, false
+
+		// A flush with no progress must not spin on an expired deadline.
 		next, _, changed := s.pendingSnapshot()
 		if !next.IsZero() && !next.After(first) {
 			select {
@@ -378,7 +408,7 @@ func (s *syncController) drain(ctx context.Context, retryAt time.Time) {
 	// Flush on a detached context, bounded like a forced sync.
 	flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), forceSyncTimeout)
 	defer cancel()
-	if err := s.FlushNow(flushCtx); err != nil {
+	if _, err := s.FlushNow(flushCtx); err != nil {
 		s.le.WithError(err).Warn("pending cloud work kept for the next mount")
 	}
 }
@@ -433,18 +463,23 @@ func (s *syncController) waitDirtySyncGate(ctx context.Context) error {
 	}
 }
 
-// FlushNow serializes an immediate flush request.
-func (s *syncController) FlushNow(ctx context.Context) error {
+// FlushNow serializes an immediate flush request. It returns the count of
+// dirty blocks it held back because their local bytes fail their hash; the
+// flush still uploaded the rest and published, so they are not an error.
+// Their markers stay, so the pending upload count still includes them.
+func (s *syncController) FlushNow(ctx context.Context) (int, error) {
 	s.flushMtx.Lock()
 	defer s.flushMtx.Unlock()
 	return s.flushCheckpoint(ctx, true)
 }
 
 // FlushNowUnordered flushes dirty blocks without refgraph locality ordering.
+// Like FlushNow, it succeeds while holding back corrupt dirty blocks.
 func (s *syncController) FlushNowUnordered(ctx context.Context) error {
 	s.flushMtx.Lock()
 	defer s.flushMtx.Unlock()
-	return s.flushCheckpoint(ctx, false)
+	_, err := s.flushCheckpoint(ctx, false)
+	return err
 }
 
 // PullNow serializes an immediate remote packfile manifest pull. It runs
@@ -784,16 +819,16 @@ func dirtyCandidateChunkSize(size int64) int64 {
 }
 
 // loadDirtyBlocks loads only the payloads for one bounded pack candidate. A
-// block whose local bytes fail their hash is left out and counted in corrupt:
+// block whose local bytes fail their hash is left out and added to corrupt:
 // only a pushed chunk clears dirty markers, so it stays queued and counted
 // while the rest upload.
-func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirtyCandidate, corrupt *int) ([]dirtyBlock, error) {
+func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirtyCandidate, corrupt map[string]struct{}) ([]dirtyBlock, error) {
 	blocks := make([]dirtyBlock, 0, len(candidates))
 	for _, candidate := range candidates {
 		ref := block.NewBlockRef(candidate.hash)
 		stored, err := s.upper.GetStoredBlock(ctx, ref)
 		if errors.Is(err, block.ErrBlockCorrupt) {
-			*corrupt++
+			corrupt[candidate.hash.MarshalString()] = struct{}{}
 			continue
 		}
 		if err != nil {
@@ -818,16 +853,19 @@ func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirty
 
 // flushChunks packs the dirty blocks into chunks on a second goroutine while
 // this one pushes and commits the previous chunk, so packing overlaps the
-// upload with at most two chunks in memory. Chunks commit in order.
-func (s *syncController) flushChunks(ctx context.Context, through uint64, orderBlocks bool) error {
+// upload with at most two chunks in memory. Chunks commit in order. It returns
+// the count of corrupt dirty blocks the pass held back.
+func (s *syncController) flushChunks(ctx context.Context, through uint64, orderBlocks bool) (int, error) {
 	// Pack the chunks on a second goroutine.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	chunks := make(chan *preparedSyncChunk)
 	prepared := make(chan error, 1)
+	var corrupt int
 	go func() {
 		defer close(chunks)
-		prepared <- s.prepareChunks(ctx, through, orderBlocks, func(chunk *preparedSyncChunk) error {
+		var err error
+		corrupt, err = s.prepareChunks(ctx, through, orderBlocks, func(chunk *preparedSyncChunk) error {
 			select {
 			case chunks <- chunk:
 				return nil
@@ -835,6 +873,7 @@ func (s *syncController) flushChunks(ctx context.Context, through uint64, orderB
 				return ctx.Err()
 			}
 		})
+		prepared <- err
 	}()
 
 	// Push and commit each chunk in order.
@@ -848,31 +887,40 @@ func (s *syncController) flushChunks(ctx context.Context, through uint64, orderB
 			cancel()
 			for range chunks {
 			}
-			return err
+			return 0, err
 		}
 	}
-	return <-prepared
+	err := <-prepared
+	return corrupt, err
 }
 
 // prepareChunks fills payload chunks across metadata pages before emitting them.
 // Later insertions fall beyond through and belong to the next flush. Dirty
 // blocks whose local bytes fail their hash stay queued: the pass packs the
-// rest, then returns an error wrapping block.ErrBlockCorrupt with their count,
-// so the flush publishes no checkpoint that could name them.
+// rest and returns their count. A block the last pass found corrupt is
+// skipped and counted without a read until corruptRecheck is set. The caller
+// holds flushMtx.
 func (s *syncController) prepareChunks(
 	ctx context.Context,
 	through uint64,
 	orderBlocks bool,
 	emit func(*preparedSyncChunk) error,
-) error {
+) (int, error) {
 	// Keep only one partial chunk alongside the current candidate page.
 	maxBlocks := int(writer.DefaultMaxBlocksPerPack)
 	pending := make([]dirtyCandidate, 0, maxBlocks)
 	var pendingBytes int64
-	var corrupt int
+
+	// corrupt collects the dirty blocks this pass holds back. Unless a recheck
+	// is due, the blocks the last pass found corrupt are held without a read.
+	corrupt := make(map[string]struct{})
+	known := s.corruptKnown
+	if s.corruptRecheck.Swap(false) {
+		known = nil
+	}
 	flushPending := func() error {
 		// Load the pending payloads and emit their packs.
-		loaded, err := s.loadDirtyBlocks(ctx, pending, &corrupt)
+		loaded, err := s.loadDirtyBlocks(ctx, pending, corrupt)
 		if err != nil {
 			return err
 		}
@@ -891,7 +939,7 @@ func (s *syncController) prepareChunks(
 	for after := uint64(0); after < through; {
 		page, err := s.scanDirtyPage(ctx, after, through)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		if len(page) == 0 {
 			break
@@ -899,17 +947,17 @@ func (s *syncController) prepareChunks(
 		after = page[len(page)-1].sequence
 		blocks, duplicates, err := s.filterDuplicateDirtyBlocks(ctx, view, page)
 		if err != nil {
-			return errors.Wrap(err, "filtering duplicate dirty blocks")
+			return 0, errors.Wrap(err, "filtering duplicate dirty blocks")
 		}
 		if len(duplicates) != 0 {
 			if err := s.cleanupDirtyCandidates(ctx, duplicates); err != nil {
-				return err
+				return 0, err
 			}
 		}
 		if orderBlocks {
 			blocks, err = s.orderDirtyBlocks(ctx, blocks)
 			if err != nil {
-				return err
+				return 0, err
 			}
 		}
 
@@ -917,36 +965,54 @@ func (s *syncController) prepareChunks(
 		for _, candidate := range blocks {
 			size := dirtyCandidateChunkSize(candidate.size)
 			if size > writer.DefaultMaxPackBytes {
-				return errors.Errorf("dirty block %s exceeds max pack chunk size", candidate.hash.MarshalString())
+				return 0, errors.Errorf("dirty block %s exceeds max pack chunk size", candidate.hash.MarshalString())
+			}
+			if len(known) != 0 {
+				if key := candidate.hash.MarshalString(); hasKey(known, key) {
+					corrupt[key] = struct{}{}
+					continue
+				}
 			}
 			if len(pending) != 0 && pendingBytes+size > syncFlushMaxPackBytes {
 				if err := flushPending(); err != nil {
-					return err
+					return 0, err
 				}
 			}
 			pending = append(pending, candidate)
 			pendingBytes += size
 			if len(pending) == maxBlocks {
 				if err := flushPending(); err != nil {
-					return err
+					return 0, err
 				}
 			}
 		}
 	}
 	if len(pending) != 0 {
 		if err := flushPending(); err != nil {
-			return err
+			return 0, err
 		}
 	}
 
-	// Report the corrupt blocks the pass left queued.
+	// Keep and report the corrupt blocks the pass left queued.
+	s.setCorruptKnown(corrupt)
+	return len(corrupt), nil
+}
+
+// setCorruptKnown records the corrupt dirty blocks the last flush held back
+// and shows their count. The count follows the markers: a marker cleared, as
+// a duplicate or by a successful read, leaves the set at the next flush, and
+// a flush with nothing pending clears it. The caller holds flushMtx.
+func (s *syncController) setCorruptKnown(corrupt map[string]struct{}) {
+	s.corruptKnown = corrupt
 	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.setSyncTelemetryCorruptDirty(id, corrupt)
+		t.setSyncTelemetryCorruptDirty(id, len(corrupt))
 	})
-	if corrupt != 0 {
-		return errors.Wrapf(block.ErrBlockCorrupt, "%d dirty blocks fail their hash and stay queued", corrupt)
-	}
-	return nil
+}
+
+// hasKey reports whether set holds key.
+func hasKey(set map[string]struct{}, key string) bool {
+	_, ok := set[key]
+	return ok
 }
 
 // prepareLoadedBlocks packs loaded dirty blocks, halving a set whose pack
@@ -1065,8 +1131,9 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 	return errors.Wrap(err, "pushing packfile")
 }
 
-// flush collects dirty blocks, packs them, pushes to the server, and updates the manifest.
-func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
+// flush collects dirty blocks, packs them, pushes to the server, and updates
+// the manifest. It returns the count of corrupt dirty blocks it held back.
+func (s *syncController) flush(ctx context.Context, orderBlocks bool) (int, error) {
 	// Capture every insertion that must precede the caller's publication.
 	var state *PendingUploadState
 	err := kvtx.RunTransaction(ctx, false,
@@ -1078,10 +1145,11 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 		},
 	)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if state.GetCount() == 0 {
-		return nil
+		s.setCorruptKnown(nil)
+		return 0, nil
 	}
 
 	// Preserve the existing locality-ordering limit and payload pipeline.
