@@ -84,7 +84,8 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 	}
 
 	// Clone the repository through a stage held until the publish commits,
-	// publishing progress to the wizard.
+	// publishing progress to the wizard. The engine is present: StartGitClone
+	// refuses a wizard without one in requireWizard before this runs.
 	stage, err := r.engine.StageWorldState(ctx)
 	if err != nil {
 		r.failGitClone(req.GetObjectKey(), "Clone failed.", err)
@@ -142,7 +143,7 @@ func (r *WizardResource) publishGitClone(
 	sender peer.ID,
 ) error {
 	// Open the write transaction; a return before Commit discards it.
-	wtx, err := r.engine.NewTransaction(ctx, true)
+	wtx, err := r.newTransaction(ctx, true)
 	if err != nil {
 		return err
 	}

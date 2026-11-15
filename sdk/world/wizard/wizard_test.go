@@ -25,6 +25,7 @@ import (
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	bifcrypto "github.com/s4wave/spacewave/net/crypto"
@@ -884,22 +885,50 @@ func TestWizardRegistryWatchCancellation(t *testing.T) {
 	}
 }
 
-func TestWizardGitCloneProgressWatchSendsTerminalOnce(t *testing.T) {
-	// Bound the clone progress watch lifetime.
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	// Create the wizard resource for the invalid clone request.
+func TestWizardResourceWithoutEngineRefusesWrites(t *testing.T) {
+	// Open a wizard without a World engine.
+	ctx := t.Context()
 	r := wizard_resource.NewWizardResource(nil, nil, "wizard/git/test", &s4wave_wizard.WizardState{})
 	defer r.Close()
 
-	// Start a Git clone with an invalid configuration.
+	// Verify the clone and the state update both refuse.
 	_, err := r.StartGitClone(ctx, &s4wave_wizard.StartGitCloneRequest{
 		ObjectKey:  "git/repo/test",
 		Name:       "Test Repo",
 		ConfigData: []byte{0xff},
 	})
+	if !errors.Is(err, wizard_resource.ErrNoWorldEngine) {
+		t.Fatalf("StartGitClone: got %v, want ErrNoWorldEngine", err)
+	}
+	_, err = r.UpdateWizardState(ctx, &s4wave_wizard.UpdateWizardStateRequest{Step: 1})
+	if !errors.Is(err, wizard_resource.ErrNoWorldEngine) {
+		t.Fatalf("UpdateWizardState: got %v, want ErrNoWorldEngine", err)
+	}
+}
+
+func TestWizardGitCloneProgressWatchSendsTerminalOnce(t *testing.T) {
+	// Bound the clone progress watch lifetime.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// Create the wizard object and its resource on a World engine.
+	objKey := "wizard/git/test"
+	tb := world_testbed.MustDefault(t, t.Context(), world_testbed.WithWorldVerbose(false))
+	obj, err := tb.WorldState.CreateObject(ctx, objKey, nil)
+	world.ReleaseObjectState(obj)
 	if err != nil {
+		t.Fatal(err)
+	}
+	r := wizard_resource.NewWizardResource(tb.WorldState, tb.Engine, objKey, &s4wave_wizard.WizardState{})
+	defer r.Close()
+
+	// Start a Git clone with an invalid configuration.
+	req := &s4wave_wizard.StartGitCloneRequest{
+		ObjectKey:  "git/repo/test",
+		Name:       "Test Repo",
+		ConfigData: []byte{0xff},
+	}
+	if _, err := r.StartGitClone(ctx, req); err != nil {
 		t.Fatalf("StartGitClone: %v", err)
 	}
 
