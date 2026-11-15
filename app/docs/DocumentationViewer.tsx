@@ -90,7 +90,12 @@ function useDocSource(
   return linkedSource
 }
 
-/** createUntitledPage creates the next free untitled page and returns its name. */
+/**
+ * createUntitledPage creates the next free untitled page, writes its title,
+ * and returns its name. A page created whose title then failed to write stays
+ * empty: it throws UntitledPageEmptyError naming it, so the caller says what
+ * exists.
+ */
 async function createUntitledPage(
   handle: DocHandle,
   mdEntries: DocEntry[],
@@ -104,14 +109,28 @@ async function createUntitledPage(
   }
 
   await handle.mknod([name], MknodType.FILE)
-  const child = await handle.lookup(name)
   const title = name.replace(/\.md$/, '')
-  const template = `# ${title}\n`
-  const encoded = new TextEncoder().encode(template)
-  await child.writeAt(0n, encoded)
-  await child.sync()
-  child.release()
+  const encoded = new TextEncoder().encode(`# ${title}\n`)
+  try {
+    const child = await handle.lookup(name)
+    try {
+      await child.writeAt(0n, encoded)
+      await child.sync()
+    } finally {
+      child.release()
+    }
+  } catch {
+    throw new UntitledPageEmptyError(name)
+  }
   return name
+}
+
+// UntitledPageEmptyError is a page createUntitledPage created whose title
+// failed to write.
+class UntitledPageEmptyError extends Error {
+  constructor(public readonly page: string) {
+    super(`${page} was created empty`)
+  }
 }
 
 /**
@@ -558,8 +577,13 @@ export function DocumentationViewer({
     if (!handle) return
     try {
       selectPage(await createUntitledPage(handle, mdEntries))
-    } catch {
-      toast.error('The page was not created.')
+    } catch (err) {
+      if (!(err instanceof UntitledPageEmptyError)) {
+        toast.error('The page was not created.')
+        return
+      }
+      toast.error(`${err.page} was created, but its title was not written.`)
+      selectPage(err.page)
     }
   }, [rootHandle.value, mdEntries, saveHold, selectPage])
 
