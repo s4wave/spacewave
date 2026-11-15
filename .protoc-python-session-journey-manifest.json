@@ -133,6 +133,16 @@
         "sdk/command/command.proto"
       ]
     },
+    "github.com/s4wave/spacewave/sdk/plugin/approval": {
+      "hash": "c500a81674d2e25c8a235095a845599a9f28b4f985f2c920a5044aa8e00ae6ef",
+      "generatedFiles": [
+        "sdk/plugin/approval/approval_pb2.py",
+        "sdk/plugin/approval/approval_pb2.pyi"
+      ],
+      "protoFiles": [
+        "sdk/plugin/approval/approval.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/sdk/root": {
       "hash": "f2f92104f61a113f1e06a3308c1ef7eb43b848d0d3e611acb6e2461fca433604",
       "generatedFiles": [

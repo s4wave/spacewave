@@ -37,7 +37,8 @@ sdk = ["py.typed"]
 [tool.mypy]
 strict = true
 
-# The generated message stubs annotate map fields as a bare Mapping.
+# The generated message stubs annotate map fields and the dict form of every
+# message field as a bare Mapping.
 [[tool.mypy.overrides]]
 module = [
     "bldr.resource.resource_pb2",
@@ -55,6 +56,7 @@ module = [
     "net.peer.peer_pb2",
     "rpcstream.rpcstream_pb2",
     "sdk.command.command_pb2",
+    "sdk.plugin.approval.approval_pb2",
     "sdk.root.root_pb2",
     "sdk.secret.secret_pb2",
     "sdk.session.session_pb2",
