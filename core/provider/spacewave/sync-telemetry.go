@@ -18,6 +18,9 @@ const (
 	SyncTelemetryUploadPhasePushing = synctelemetry.UploadPhasePushing
 	// SyncTelemetryUploadPhaseError means upload sync has a recorded error.
 	SyncTelemetryUploadPhaseError = synctelemetry.UploadPhaseError
+	// SyncTelemetryUploadPhaseCorrupt means dirty blocks fail their hash and
+	// stay queued while the rest upload.
+	SyncTelemetryUploadPhaseCorrupt = synctelemetry.UploadPhaseCorrupt
 )
 
 // SyncTelemetrySnapshot describes Spacewave cloud sync activity.
@@ -66,6 +69,10 @@ func (a *ProviderAccount) registerSyncTelemetryStore(
 
 func (a *ProviderAccount) setSyncTelemetryPending(bstoreID string, bytes int64, count int) {
 	a.syncTelemetry.SetPending(bstoreID, bytes, count)
+}
+
+func (a *ProviderAccount) setSyncTelemetryCorruptDirty(bstoreID string, count int) {
+	a.syncTelemetry.SetCorruptDirty(bstoreID, count)
 }
 
 func (a *ProviderAccount) startSyncTelemetryPush(bstoreID string, bytes int64) {
