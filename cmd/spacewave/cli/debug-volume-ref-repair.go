@@ -85,7 +85,8 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Child lists verified", strconv.FormatUint(res.rebuild.Verified, 10)},
 		{"Child lists written", strconv.FormatUint(res.rebuild.Rewritten, 10)},
 		{"Decoded lists refused for dropping a stored child", strconv.FormatUint(res.rebuild.Dropped, 10)},
-		{"Reached lists still unverified", strconv.FormatUint(res.rebuild.Unverified, 10)},
+		{"Operation payloads not walked", strconv.FormatUint(res.opPayloads, 10)},
+		{"Reached blocks without a verified list", strconv.FormatUint(res.rebuild.Unverified, 10)},
 		{"Lists verified", strconv.FormatBool(res.verified || res.rebuild.Cleared)},
 		{"Returned to unadopted for a recount", strconv.FormatBool(res.rebuild.Unadopted)},
 		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},
@@ -127,6 +128,9 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 	for _, kind := range slices.Sorted(maps.Keys(res.unwalkedRoots)) {
 		roots := res.unwalkedRoots[kind]
 		fields = append(fields, [2]string{"Named roots not walked: " + kind, strconv.FormatUint(roots.count, 10) + " (" + roots.sample + ")"})
+	}
+	for _, ref := range res.opPayloadSample {
+		fields = append(fields, [2]string{"Operation payload sample", ref.MarshalString()})
 	}
 	for _, ref := range res.holders.heldSample {
 		fields = append(fields, [2]string{"Held listless sample", ref.MarshalString()})
@@ -241,6 +245,8 @@ func newDebugRefRepairCommand() *cli.Command {
 			"splitting the lists a named root reaches from leaked ones; a dry run predicts them as a real run would leave the volume, " +
 			"and on a volume whose lists are verified, where a real run writes no list, it counts them as they are. " +
 			"A walked Space's named roots are typed by the kind the Space gives each name; an import or fence root, which holds roots of several types, is counted unwalked and keeps the mark. " +
+			"An operation's payload root is typed by its operation, which the replay cursor's outcomes and the payload roots do not record, so each is counted unwalked and keeps the list it has. " +
+			"The mark clears only when every stored block a named root reaches has a verified list; a stored block with none keeps it. " +
 			"It compares each walked block's stored list with its decoded refs before writing, counting equal, empty, shorter, longer and differing lists with a sample, " +
 			"since a wrong list the volume marked verified is never rewritten; a dry run compares the same way and writes nothing. " +
 			"Run it only on a stopped volume, with --dry-run first.",

@@ -18,16 +18,17 @@ import (
 	"github.com/aperturerobotics/util/prng"
 	"github.com/pkg/errors"
 	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/block/byteslice"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	git_block "github.com/s4wave/spacewave/db/git/block"
 	"github.com/s4wave/spacewave/db/s4db"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
@@ -437,11 +438,14 @@ func TestDebugRefRepair(t *testing.T) {
 // that refuse the adoption. The Space's World holds an object under the same
 // key as the entrypoint World's filesystem with a type that holds no refs, and
 // the repair types each from its own World, so every list it writes equals the
-// refs its writer declared. The Space's named roots are walked by their kind:
-// a World only its checkpoint's two-block chain holds and a payload only its
-// replay payloads root holds get lists, while its import root, which holds
-// roots of several types, is counted unwalked and keeps the mark until it is
-// released.
+// refs its writer declared. The Space plants every named root an Adapter
+// writes, each holding a World or payload no other root holds, so typing any
+// two kinds the other way round fails: the replay base, checkpoint chain,
+// replay cursor, pending, backfill and retained roots each get their World
+// listed, while the replay payloads root's Git repository and manifest roots,
+// whose type only their operations name, and the import root, which holds
+// roots of several types, are counted unwalked, get no list, and keep the mark
+// until they are released.
 func TestDebugRefRepairWorldRoot(t *testing.T) {
 	// Open a volume unadopted with its lists unverified.
 	ctx := t.Context()
@@ -498,22 +502,29 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Hold an older World of the Space only under a checkpoint chain of two
-	// HeldRoots blocks, and a payload blob only under the replay payloads
-	// root, all without lists. Hold a raw block under the import root, whose
-	// HeldRoots block and its root have lists.
-	olderLeaf, _, err := vol.Store.PutBlock(ctx, []byte("an older leaf object root"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	older := buildUntrackedWorld(t, le, vol, space.xfrmConf, func(ctx context.Context, ws world.WorldState) error {
-		obj, err := ws.CreateObject(ctx, worldRootTestKey, &bucket.ObjectRef{RootRef: olderLeaf})
-		world.ReleaseObjectState(obj)
+	// Hold a World of the Space only under each root that holds Worlds: a
+	// checkpoint chain of two HeldRoots blocks, the replay cursor, pending
+	// and backfill roots, and the retained set, all without lists.
+	leafWorld := func(label string) untrackedWorld {
+		t.Helper()
+		leaf, _, err := vol.Store.PutBlock(ctx, []byte(label), nil)
 		if err != nil {
-			return err
+			t.Fatal(err)
 		}
-		return world_types.SetObjectType(ctx, ws, worldRootTestKey, worldRootLeafType)
-	})
+		return buildUntrackedWorld(t, le, vol, space.xfrmConf, func(ctx context.Context, ws world.WorldState) error {
+			obj, err := ws.CreateObject(ctx, worldRootTestKey, &bucket.ObjectRef{RootRef: leaf})
+			world.ReleaseObjectState(obj)
+			if err != nil {
+				return err
+			}
+			return world_types.SetObjectType(ctx, ws, worldRootTestKey, worldRootLeafType)
+		})
+	}
+	older := leafWorld("an older leaf object root")
+	cursorWorld := leafWorld("a leaf held by the replay cursor root")
+	pendingWorld := leafWorld("a leaf held by the pending root")
+	backfillWorld := leafWorld("a leaf held by the backfill root")
+	retainedWorld := leafWorld("a leaf held by the retained root")
 	putRaw := func(data []byte) *block.BlockRef {
 		t.Helper()
 		ref, _, err := vol.Store.PutBlock(ctx, data, nil)
@@ -522,38 +533,69 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 		}
 		return ref
 	}
-	putHeld := func(held *space_world.HeldRoots) *block.BlockRef {
+	putMsg := func(msg interface{ MarshalVT() ([]byte, error) }) *block.BlockRef {
 		t.Helper()
-		data, err := held.MarshalVT()
+		data, err := msg.MarshalVT()
 		if err != nil {
 			t.Fatal(err)
 		}
 		return putRaw(data)
 	}
-	checkpointLink := putHeld(&space_world.HeldRoots{Roots: []*block.BlockRef{older.root}})
-	checkpoint := putHeld(&space_world.HeldRoots{Roots: []*block.BlockRef{space.root}, Prev: checkpointLink})
-	payloadData, err := (&blob.Blob{BlobType: blob.BlobType_BlobType_RAW, TotalSize: 9, RawData: []byte("a payload")}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
+	heldOf := func(roots ...*block.BlockRef) *block.BlockRef {
+		t.Helper()
+		return putMsg(&space_world.HeldRoots{Roots: roots})
 	}
+	checkpointLink := heldOf(older.root)
+	checkpoint := putMsg(&space_world.HeldRoots{Roots: []*block.BlockRef{space.root}, Prev: checkpointLink})
+	cursorHeld := heldOf(cursorWorld.root)
+	pendingHeld := heldOf(pendingWorld.root)
+	backfillHeld := heldOf(backfillWorld.root)
+	retainedSet := putMsg(&space_world.RetainedRootSet{Roots: []*space_world.RetainedRoot{{Name: "retained", RootRef: retainedWorld.root}}})
+
+	// Hold a Git repository root and a manifest root, encoded with the
+	// Space's transform as their operations write them, only under the replay
+	// payloads root, without lists. Hold a raw block under the import root,
+	// whose HeldRoots block has no list.
 	xfrmWalker := refwalk.NewWalker(le, nil, nil)
 	spaceXfrm, err := xfrmWalker.Transformer(space.xfrmConf)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if payloadData, err = spaceXfrm.EncodeBlock(payloadData); err != nil {
-		t.Fatal(err)
+	putPayload := func(msg interface{ MarshalVT() ([]byte, error) }) *block.BlockRef {
+		t.Helper()
+		data, err := msg.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if data, err = spaceXfrm.EncodeBlock(data); err != nil {
+			t.Fatal(err)
+		}
+		return putRaw(data)
 	}
+	repo := git_block.NewRepo()
+	repo.ShallowRefsStoreRef = putRaw([]byte("a shallow refs store"))
+	gitRoot := putPayload(repo)
+	appManifest := bldr_manifest.NewManifest(bldr_manifest.NewManifestMeta("app", bldr_manifest.BuildType_RELEASE, "web", 1), "entry.mjs")
+	appManifest.DistFsRef = putRaw([]byte("a manifest's dist filesystem"))
+	manifestRoot := putPayload(appManifest)
 	xfrmWalker.Close()
-	payload := putRaw(payloadData)
-	payloads := putHeld(&space_world.HeldRoots{Roots: []*block.BlockRef{payload}})
+	payloads := heldOf(gitRoot, manifestRoot)
 	imported := putRaw([]byte("held by an import"))
-	importHeld := putHeld(&space_world.HeldRoots{Roots: []*block.BlockRef{imported}})
+	importHeld := heldOf(imported)
 	spaceRoots := []block.NamedRoot{
 		{Name: space_world.RootReplayBase, Ref: space.root},
 		{Name: space_world.RootCheckpoint, Ref: checkpoint},
-		{Name: space_world.RootReplayPayloads, Ref: payloads},
 		{Name: space_world.RootImport, Ref: importHeld},
+		{Name: space_world.RootReplayCursor, Ref: cursorHeld},
+		{Name: space_world.RootReplayPayloads, Ref: payloads},
+		{Name: space_world.RootRetained, Ref: retainedSet},
+		{Name: space_world.RootPending, Ref: pendingHeld},
+		{Name: space_world.RootBackfill, Ref: backfillHeld},
+	}
+	for _, root := range spaceRoots {
+		if kind, ok := space_world.HeldRootKind(root.Name); !ok || kind == 0 {
+			t.Fatalf("named root %s has no kind", root.Name)
+		}
 	}
 	if err := vol.SetBucketRoots(ctx, restoreTestBucket, nil, spaceRoots); err != nil {
 		t.Fatal(err)
@@ -575,12 +617,6 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 	// Plant an empty list on the entrypoint filesystem's root, as a walk that
 	// typed it as the Space's leaf object would have written it.
 	writeRecords(t, vol, func(rec *block_gc.Records) error {
-		if err := rec.PutChildren(ctx, importHeld, []*block.BlockRef{imported}); err != nil {
-			return err
-		}
-		if err := rec.PutChildren(ctx, imported, nil); err != nil {
-			return err
-		}
 		if err := rec.PutChildren(ctx, built.fsRoot, nil); err != nil {
 			return err
 		}
@@ -592,8 +628,9 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 
 	// The dry run walks the Space from its cursor and its typed roots and the
 	// World from its head root, counts the import root and the root of the
-	// wrong bucket unwalked, and predicts the two holders adoption would
-	// refuse.
+	// wrong bucket unwalked and the two payloads, and predicts the holders
+	// adoption would refuse: the two unwalked roots' blocks, the payloads the
+	// replay payloads list names, and the leaked list's child.
 	lookup := func(ctx context.Context, typeID string) (blocktype.BlockType, error) {
 		if typeID == worldRootLeafType {
 			return blocktype.New[byteslice.ByteSlice](typeID), nil
@@ -605,18 +642,25 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("dry run: %+v", dry)
-	if dry.spaces != 1 || dry.roots != 6 || dry.spaceRoots != 3 || dry.typedRoots != 1 || dry.unwalkedRoots["world:"].count != 1 ||
+	if dry.spaces != 1 || dry.roots != 10 || dry.spaceRoots != 7 || dry.typedRoots != 1 || dry.unwalkedRoots["world:"].count != 1 ||
 		dry.unwalkedRoots[space_world.RootImport].count != 1 || len(dry.unwalkedRoots) != 2 || dry.lacking == 0 || dry.rebuild.Verified != 0 {
 		t.Fatalf("dry run: %+v", dry)
+	}
+	if dry.opPayloads != 2 || !slices.ContainsFunc(dry.opPayloadSample, gitRoot.EqualVT) || !slices.ContainsFunc(dry.opPayloadSample, manifestRoot.EqualVT) {
+		t.Fatalf("dry run counted %d payloads, sample %v", dry.opPayloads, dry.opPayloadSample)
 	}
 	if dry.absent != 0 || dry.undecodable != 0 || len(dry.untyped) != 0 {
 		t.Fatalf("dry run did not walk the whole World: %+v", dry)
 	}
 	wantHolders := func(name string, h refRepairHolders) {
 		t.Helper()
-		if h.roots != 1 || h.reached != 0 || h.leaked != 1 || !slices.ContainsFunc(h.heldSample, wrongRoot.EqualVT) ||
-			!slices.ContainsFunc(h.heldSample, leakedChild.EqualVT) || !slices.ContainsFunc(h.leakedSample, lister.EqualVT) {
+		if h.roots != 2 || h.reached != 2 || h.leaked != 1 || !slices.ContainsFunc(h.leakedSample, lister.EqualVT) {
 			t.Fatalf("%s holders: %+v", name, h)
+		}
+		for _, ref := range []*block.BlockRef{wrongRoot, importHeld, gitRoot, manifestRoot, leakedChild} {
+			if !slices.ContainsFunc(h.heldSample, ref.EqualVT) {
+				t.Fatalf("%s holders do not sample %s: %+v", name, ref.MarshalString(), h)
+			}
 		}
 	}
 	wantHolders("dry-run", dry.holders)
@@ -640,26 +684,38 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 	}
 
 	// Applying verifies every walked list and refuses none, but keeps the
-	// mark: the import root holds a listed block no run verified, the cost of
-	// a root counted unwalked.
+	// mark: the import root's HeldRoots block, the two payloads and the root of
+	// the wrong bucket are stored without a list, the cost of roots counted
+	// unwalked.
 	applied, err := repairVolumeRefs(ctx, le, path, "", false, lookup)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if applied.rebuild.Rewritten < dry.lacking || applied.rebuild.Verified != dry.blocks || applied.rebuild.Dropped != 0 ||
-		applied.rebuild.Unverified != 1 || !slices.ContainsFunc(applied.rebuild.UnverifiedSample, importHeld.EqualVT) || applied.rebuild.Cleared {
-		t.Fatalf("applied rebuild %+v, expected at least %d written of %d verified and the import's list unverified", applied.rebuild, dry.lacking, dry.blocks)
+		applied.rebuild.Unverified != 4 || applied.rebuild.Cleared {
+		t.Fatalf("applied rebuild %+v, expected at least %d written of %d verified and four blocks without a list", applied.rebuild, dry.lacking, dry.blocks)
+	}
+	for _, ref := range []*block.BlockRef{importHeld, gitRoot, manifestRoot, wrongRoot} {
+		if !slices.ContainsFunc(applied.rebuild.UnverifiedSample, ref.EqualVT) {
+			t.Fatalf("applied rebuild does not sample %s: %+v", ref.MarshalString(), applied.rebuild)
+		}
 	}
 	wantHolders("applied", applied.holders)
 
-	// With the import root released, as the Adapter's trim releases it, a
-	// second run finds every reached list verified by the first and clears
-	// the mark.
+	// With the import and replay payloads roots released, as the Adapter's
+	// trim releases them, and the wrong bucket's root released, a second run
+	// finds every reached list verified by the first and clears the mark.
 	rootVol, err := openStoppedVolume(ctx, le, path, volumeWritable)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = rootVol.SetBucketRoots(ctx, restoreTestBucket, nil, []block.NamedRoot{{Name: space_world.RootImport, Previous: importHeld}})
+	err = rootVol.SetBucketRoots(ctx, restoreTestBucket, nil, []block.NamedRoot{
+		{Name: space_world.RootImport, Previous: importHeld},
+		{Name: space_world.RootReplayPayloads, Previous: payloads},
+	})
+	if err == nil {
+		err = rootVol.SetBucketRoots(ctx, "other-bucket", nil, []block.NamedRoot{{Name: rootName, Previous: wrongRoot}})
+	}
 	if cerr := rootVol.Close(); err == nil {
 		err = cerr
 	}
@@ -686,15 +742,18 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 	}
 	written := map[string][]*block.BlockRef{
 		leaf.MarshalString():           nil,
-		olderLeaf.MarshalString():      nil,
-		payload.MarshalString():        nil,
 		checkpointLink.MarshalString(): {older.root},
 		checkpoint.MarshalString():     {space.root, checkpointLink},
-		payloads.MarshalString():       {payload},
+		cursorHeld.MarshalString():     {cursorWorld.root},
+		pendingHeld.MarshalString():    {pendingWorld.root},
+		backfillHeld.MarshalString():   {backfillWorld.root},
+		retainedSet.MarshalString():    {retainedWorld.root},
+		payloads.MarshalString():       {gitRoot, manifestRoot},
 	}
 	maps.Copy(written, built.refs)
-	maps.Copy(written, space.refs)
-	maps.Copy(written, older.refs)
+	for _, w := range []untrackedWorld{space, older, cursorWorld, pendingWorld, backfillWorld, retainedWorld} {
+		maps.Copy(written, w.refs)
+	}
 	var listed int
 	for key, want := range written {
 		ref, err := block.UnmarshalBlockRefB58(key)
@@ -713,16 +772,20 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 			t.Fatalf("list of %s: %d children, its writer declared %d", key, len(children), len(want))
 		}
 	}
-	for _, ref := range []*block.BlockRef{built.fsRoot, older.root, checkpointLink, checkpoint, payloads, payload} {
+	for _, ref := range []*block.BlockRef{
+		built.fsRoot, space.root, older.root, checkpointLink, checkpoint, cursorHeld, cursorWorld.root,
+		pendingHeld, pendingWorld.root, backfillHeld, backfillWorld.root, retainedSet, retainedWorld.root, payloads,
+	} {
 		if _, found, err := checkVol.GetChildren(ctx, ref); err != nil || !found {
 			t.Fatalf("list of %s: found %v, %v", ref.MarshalString(), found, err)
 		}
 	}
 	t.Logf("%d listed blocks of %d written match their writers' refs", listed, len(written))
 
-	// The repair invented no list: the blocks it could not type have none, and
-	// the leaked list names what it named.
-	for _, ref := range []*block.BlockRef{wrongRoot, leakedChild} {
+	// The repair invented no list: the blocks it could not type, the payloads
+	// and the import's holder among them, have none, and the leaked list names
+	// what it named.
+	for _, ref := range []*block.BlockRef{wrongRoot, leakedChild, gitRoot, manifestRoot, importHeld} {
 		if _, found, err := checkVol.GetChildren(ctx, ref); err != nil || found {
 			t.Fatalf("list of %s: found %v, %v", ref.MarshalString(), found, err)
 		}
@@ -735,31 +798,35 @@ func TestDebugRefRepairWorldRoot(t *testing.T) {
 		t.Fatalf("leaked list: %v, %v, %v", children, found, err)
 	}
 
-	// Nothing walked is missing afterward.
+	// Nothing walked is missing afterward. The released replay payloads
+	// holder is no longer walked, and its list, which no root reaches now,
+	// leaks the two payloads it names beside the planted leaked list.
 	after, err := repairVolumeRefs(ctx, le, path, "", true, lookup)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if after.lacking != 0 || after.blocks != dry.blocks || len(after.listSample) != 0 || after.lists[block_gc.ListEqual] != after.blocks {
+	if after.lacking != 0 || after.blocks != dry.blocks-1 || len(after.listSample) != 0 || after.lists[block_gc.ListEqual] != after.blocks {
 		t.Fatalf("after repair: %+v", after)
 	}
-	wantHolders("after", after.holders)
-
-	// Adoption refuses with exactly the holders the dry run predicted.
-	refused, err := adoptVolume(ctx, le, path)
-	if !errors.Is(err, block_gc.ErrAdoptUnknown) || refused.Unknown != dry.holders.total() ||
-		!slices.ContainsFunc(refused.UnknownSample, wrongRoot.EqualVT) || !slices.ContainsFunc(refused.UnknownSample, leakedChild.EqualVT) {
-		t.Fatalf("adopt: %+v, %v; predicted %+v", refused, err, dry.holders)
+	h := after.holders
+	if h.roots != 0 || h.reached != 0 || h.leaked != 3 || !slices.ContainsFunc(h.leakedSample, lister.EqualVT) || !slices.ContainsFunc(h.leakedSample, payloads.EqualVT) {
+		t.Fatalf("after holders: %+v", h)
 	}
 
-	// The audit reaches both Worlds and the root of the wrong bucket, which it
-	// finds stored without a list.
+	// Adoption refuses with exactly the holders the dry run counts.
+	refused, err := adoptVolume(ctx, le, path)
+	if !errors.Is(err, block_gc.ErrAdoptUnknown) || refused.Unknown != h.total() ||
+		!slices.ContainsFunc(refused.UnknownSample, gitRoot.EqualVT) || !slices.ContainsFunc(refused.UnknownSample, leakedChild.EqualVT) {
+		t.Fatalf("adopt: %+v, %v; counted %+v", refused, err, h)
+	}
+
+	// The audit reaches exactly the walked blocks, none stored without a list.
 	audit, err := auditVolume(ctx, le, path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if uint64(len(audit.Mark.Live)) != dry.blocks+1 || audit.Mark.Unknown != 1 || !slices.ContainsFunc(audit.Mark.UnknownSample, wrongRoot.EqualVT) {
-		t.Fatalf("audit reached %d of %d blocks: %+v", len(audit.Mark.Live), dry.blocks+1, audit.Mark)
+	if uint64(len(audit.Mark.Live)) != after.blocks || audit.Mark.Unknown != 0 {
+		t.Fatalf("audit reached %d of %d blocks: %+v", len(audit.Mark.Live), after.blocks, audit.Mark)
 	}
 }
 

@@ -59,9 +59,11 @@ const (
 	RootKindRetained
 	// RootKindWorlds holds a HeldRoots chain of World root blocks.
 	RootKindWorlds
-	// RootKindPayloads holds a HeldRoots chain of operation payload roots,
-	// each a blob.
-	RootKindPayloads
+	// RootKindOpPayloads holds a HeldRoots chain of operation payload roots.
+	// Each root's type is the one its operation names, such as a blob, a Git
+	// repository or a manifest, and the chain does not record the operation,
+	// so a reader with only the chain can walk the holders but not the roots.
+	RootKindOpPayloads
 	// RootKindMixed holds a HeldRoots chain of roots of several types, World
 	// roots and payloads, with nothing recording which is which.
 	RootKindMixed
@@ -77,7 +79,7 @@ var heldRoots = []struct {
 	{RootCheckpoint, RootKindWorlds},
 	{RootImport, RootKindMixed},
 	{RootReplayCursor, RootKindWorlds},
-	{RootReplayPayloads, RootKindPayloads},
+	{RootReplayPayloads, RootKindOpPayloads},
 	{RootRetained, RootKindRetained},
 	{RootPending, RootKindWorlds},
 	{RootBackfill, RootKindWorlds},
