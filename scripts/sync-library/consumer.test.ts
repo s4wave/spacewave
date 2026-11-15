@@ -120,6 +120,7 @@ test(
     let worker: Worker | undefined
     const originalPost = Worker.prototype.postMessage
     Worker.prototype.postMessage = function (...args) {
+      // oxlint-disable-next-line no-this-alias -- the test captures the Worker the server posts to.
       worker = this
       return originalPost.apply(this, args)
     }

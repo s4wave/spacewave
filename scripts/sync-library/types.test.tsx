@@ -31,6 +31,7 @@ db.mutate('increment', { amount: 'one' })
 // @ts-expect-error Mutation results retain their output type.
 const invalid: string = await db.mutate('increment', { amount: 1 })
 const { SyncProvider, useCollection } = createSyncContext(schema)
+// oxlint-disable-next-line react-hooks/rules-of-hooks -- this file is only typechecked, never run.
 const state: SubscriptionState<number> = useCollection('counts')
 const component = (
   <SyncProvider db={db}>

@@ -565,7 +565,18 @@ async function readProductionWrapperReport(
   return parsed as ProductionWrapperReport
 }
 
-async function renderMarkdown(report: any): Promise<string> {
+// SizeReport is the size-report.json content that the Markdown summary reads.
+interface SizeReport {
+  generatedAt: string
+  paths: { tsDir: string; productionWrapperReport: string | null }
+  sizeRows: { name: string; bytes: number; mib: number }[]
+  counts: { allFiles: number; tsFiles: number }
+  protobuf: Awaited<ReturnType<typeof analyzeProtoFiles>>
+  productionWrapperReport: ProductionWrapperReport | null
+  largestFiles: FileRecord[]
+}
+
+async function renderMarkdown(report: SizeReport): Promise<string> {
   const lines: string[] = [
     '# GoScript Spacewave Core Size Report',
     '',
