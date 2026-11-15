@@ -96,7 +96,8 @@ func configEntryBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args star
 	return dict, nil
 }
 
-// startConfigBuiltin implements start_config(plugins, loadWebStartup, disableBuild).
+// startConfigBuiltin implements start_config(plugins, loadWebStartup,
+// disableBuild, admissionPluginId).
 // Returns a dict matching StartConfig structure.
 func startConfigBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	// Reject positional arguments.
@@ -122,6 +123,13 @@ func startConfigBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args star
 				return nil, errExpectedString("start_config", "loadWebStartup")
 			}
 			if err := dict.SetKey(starlark.String("loadWebStartup"), val); err != nil {
+				return nil, err
+			}
+		case "admissionPluginId", "admission_plugin_id":
+			if _, ok := val.(starlark.String); !ok {
+				return nil, errExpectedString("start_config", "admissionPluginId")
+			}
+			if err := dict.SetKey(starlark.String("admissionPluginId"), val); err != nil {
 				return nil, err
 			}
 		case "disableBuild", "disable_build":

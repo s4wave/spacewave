@@ -27,6 +27,10 @@ func limitMemory(memoryBytes uint64) error {
 	}
 
 	// Set the limit above the current size.
-	limit := pages*uint64(os.Getpagesize()) + memoryBytes
+	pageSize := os.Getpagesize()
+	if pageSize <= 0 {
+		return errors.Errorf("invalid page size %d", pageSize)
+	}
+	limit := pages*uint64(pageSize) + memoryBytes
 	return unix.Setrlimit(unix.RLIMIT_AS, &unix.Rlimit{Cur: limit, Max: limit})
 }

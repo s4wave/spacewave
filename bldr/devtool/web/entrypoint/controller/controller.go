@@ -20,6 +20,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_plugin_admit "github.com/s4wave/spacewave/bldr/plugin/admit"
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
@@ -306,6 +307,16 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	// Startup plugins may run their own plugins, such as a Space's, on the
 	// browser's plugin hosts.
 	pluginSchedConf.HostExportPluginIds = slices.Clone(devtoolInfo.GetStartPlugins())
+	pluginSchedConf.AdmissionPluginId = devtoolInfo.GetAdmissionPluginId()
+
+	// Ask the project's approvals owner about every root the scheduler loads.
+	if owner := devtoolInfo.GetAdmissionPluginId(); owner != "" {
+		relAdmit, err := b.AddController(ctx, bldr_plugin_admit.NewController(le, b, owner), nil)
+		if err != nil {
+			return err
+		}
+		defer relAdmit()
+	}
 
 	// Start the scheduler, gating manifest copies on the startup group.
 	pluginSchedCtrl := plugin_host_scheduler.NewController(le, b, pluginSchedConf)
