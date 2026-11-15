@@ -330,13 +330,13 @@ function FileEntryRow({
         <>
           <div
             role="cell"
-            className="text-foreground-alt/60 hidden w-35 min-w-25 shrink text-xs @min-[24rem]/file-list:block"
+            className="text-foreground-alt/60 @table-22:block hidden w-35 min-w-25 shrink text-xs"
           >
             {details?.modTime ? format(details.modTime, 'MMM dd, yyyy') : '—'}
           </div>
           <div
             role="cell"
-            className="text-foreground-alt/60 hidden w-17.5 min-w-12.5 shrink text-right text-xs @min-[15.5rem]/file-list:block"
+            className="text-foreground-alt/60 @table-16:block hidden w-17.5 min-w-12.5 shrink text-right text-xs"
           >
             {entrySizeLabel(entry, details)}
           </div>
