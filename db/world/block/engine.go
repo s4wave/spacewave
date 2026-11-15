@@ -416,9 +416,12 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 // writer's candidate goes to the Authority on its own base, and the Authority
 // decides it against the head it holds.
 func (e *Engine) followHead(head world.Head) {
+	// Read under closing: Close joins this call through the watch's release
+	// after canceling closing, so a read waiting on a missing block ends.
+	ctx := e.closing
+
 	// Skip an empty head and the published one, which ends a direct head the
 	// watch now reports.
-	ctx := context.Background()
 	if head.Root.GetEmpty() {
 		return
 	}
@@ -454,7 +457,7 @@ func (e *Engine) followHead(head world.Head) {
 	ref.RootRef = head.Root.Clone()
 	rootBlock, err := e.decodeRoot(ctx, ref)
 	if err != nil {
-		if !errors.Is(err, ErrEngineClosed) {
+		if ctx.Err() == nil {
 			e.le.WithError(err).Warn("unable to read the World head the authority reported")
 		}
 		return
