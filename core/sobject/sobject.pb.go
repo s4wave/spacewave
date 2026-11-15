@@ -882,7 +882,7 @@ func (x *SharedObjectHealth) GetReplay() *SOReplayState {
 }
 
 // SOReplayState is where this device's replay stands. The body driver sets it
-// after each step and when a state arrives; the body refuses writes in every state but caught_up, so
+// after each step; the body refuses writes in every state but caught_up, so
 // what the health shows and what a write meets never disagree.
 type SOReplayState struct {
 	unknownFields []byte
@@ -890,7 +890,6 @@ type SOReplayState struct {
 	//	*SOReplayState_Opening
 	//	*SOReplayState_Waiting
 	//	*SOReplayState_CaughtUp
-	//	*SOReplayState_CatchingUp
 	State isSOReplayState_State `protobuf_oneof:"state"`
 }
 
@@ -928,13 +927,6 @@ func (x *SOReplayState) GetCaughtUp() *SOReplayCaughtUp {
 	return nil
 }
 
-func (x *SOReplayState) GetCatchingUp() *SOReplayCatchingUp {
-	if x, ok := x.GetState().(*SOReplayState_CatchingUp); ok {
-		return x.CatchingUp
-	}
-	return nil
-}
-
 type isSOReplayState_State interface {
 	isSOReplayState_State()
 }
@@ -956,21 +948,11 @@ type SOReplayState_CaughtUp struct {
 	CaughtUp *SOReplayCaughtUp `protobuf:"bytes,3,opt,name=caught_up,json=caughtUp,proto3,oneof"`
 }
 
-type SOReplayState_CatchingUp struct {
-	// CatchingUp is replay that reached the end of its last order while this
-	// device holds a newer one with another peer's operation the body has not
-	// applied. It is entered when that state arrives, before the step that
-	// applies the operation, and left when that step reaches the end.
-	CatchingUp *SOReplayCatchingUp `protobuf:"bytes,4,opt,name=catching_up,json=catchingUp,proto3,oneof"`
-}
-
 func (*SOReplayState_Opening) isSOReplayState_State() {}
 
 func (*SOReplayState_Waiting) isSOReplayState_State() {}
 
 func (*SOReplayState_CaughtUp) isSOReplayState_State() {}
-
-func (*SOReplayState_CatchingUp) isSOReplayState_State() {}
 
 // SOReplayOpening is replay before its first step reached the end of the
 // order.
@@ -994,18 +976,6 @@ func (x *SOReplayCaughtUp) Reset() {
 }
 
 func (*SOReplayCaughtUp) ProtoMessage() {}
-
-// SOReplayCatchingUp is replay with another peer's operation held and not yet
-// applied.
-type SOReplayCatchingUp struct {
-	unknownFields []byte
-}
-
-func (x *SOReplayCatchingUp) Reset() {
-	*x = SOReplayCatchingUp{}
-}
-
-func (*SOReplayCatchingUp) ProtoMessage() {}
 
 // SOReplayWait is the operation this device's replay waits at. A missing
 // handler is a fact about this device and its release, not about the
@@ -3253,19 +3223,6 @@ func (m *SOReplayState_CaughtUp) CloneOneofVT() isSOReplayState_State {
 	return m.CloneVT()
 }
 
-func (m *SOReplayState_CatchingUp) CloneVT() *SOReplayState_CatchingUp {
-	if m == nil {
-		return (*SOReplayState_CatchingUp)(nil)
-	}
-	r := new(SOReplayState_CatchingUp)
-	r.CatchingUp = protobuf_go_lite.CloneVTValue(m.CatchingUp)
-	return r
-}
-
-func (m *SOReplayState_CatchingUp) CloneOneofVT() isSOReplayState_State {
-	return m.CloneVT()
-}
-
 func (m *SOReplayOpening) CloneVT() *SOReplayOpening {
 	if m == nil {
 		return (*SOReplayOpening)(nil)
@@ -3293,21 +3250,6 @@ func (m *SOReplayCaughtUp) CloneVT() *SOReplayCaughtUp {
 }
 
 func (m *SOReplayCaughtUp) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *SOReplayCatchingUp) CloneVT() *SOReplayCatchingUp {
-	if m == nil {
-		return (*SOReplayCatchingUp)(nil)
-	}
-	r := new(SOReplayCatchingUp)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *SOReplayCatchingUp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4383,23 +4325,6 @@ func (this *SOReplayState_CaughtUp) EqualVT(thatIface isSOReplayState_State) boo
 	return true
 }
 
-func (this *SOReplayState_CatchingUp) EqualVT(thatIface isSOReplayState_State) bool {
-	that, ok := thatIface.(*SOReplayState_CatchingUp)
-	if !ok {
-		return false
-	}
-	if this == that {
-		return true
-	}
-	if this == nil && that != nil || this != nil && that == nil {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTImplicit(this.CatchingUp, that.CatchingUp, func() *SOReplayCatchingUp { return &SOReplayCatchingUp{} }) {
-		return false
-	}
-	return true
-}
-
 func (this *SOReplayOpening) EqualVT(that *SOReplayOpening) bool {
 	if this == that {
 		return true
@@ -4428,23 +4353,6 @@ func (this *SOReplayCaughtUp) EqualVT(that *SOReplayCaughtUp) bool {
 
 func (this *SOReplayCaughtUp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SOReplayCaughtUp)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *SOReplayCatchingUp) EqualVT(that *SOReplayCatchingUp) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *SOReplayCatchingUp) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*SOReplayCatchingUp)
 	if !ok {
 		return false
 	}
@@ -6699,10 +6607,6 @@ func (x *SOReplayState) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("caughtUp")
 			ov.CaughtUp.MarshalProtoJSON(s.WithField("caughtUp"))
-		case *SOReplayState_CatchingUp:
-			s.WriteMoreIf(&wroteField)
-			s.WriteObjectField("catchingUp")
-			ov.CatchingUp.MarshalProtoJSON(s.WithField("catchingUp"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -6749,15 +6653,6 @@ func (x *SOReplayState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.CaughtUp = &SOReplayCaughtUp{}
 			ov.CaughtUp.UnmarshalProtoJSON(s.WithField("caught_up", true))
-		case "catching_up", "catchingUp":
-			ov := &SOReplayState_CatchingUp{}
-			x.State = ov
-			if s.ReadNil() {
-				ov.CatchingUp = nil
-				return
-			}
-			ov.CatchingUp = &SOReplayCatchingUp{}
-			ov.CatchingUp.UnmarshalProtoJSON(s.WithField("catching_up", true))
 		}
 	})
 }
@@ -6824,36 +6719,6 @@ func (x *SOReplayCaughtUp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SOReplayCaughtUp from JSON.
 func (x *SOReplayCaughtUp) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the SOReplayCatchingUp message to JSON.
-func (x *SOReplayCatchingUp) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the SOReplayCatchingUp to JSON.
-func (x *SOReplayCatchingUp) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the SOReplayCatchingUp message from JSON.
-func (x *SOReplayCatchingUp) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		// no fields
-	})
-}
-
-// UnmarshalJSON unmarshals the SOReplayCatchingUp from JSON.
-func (x *SOReplayCatchingUp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -10565,30 +10430,6 @@ func (m *SOReplayState_CaughtUp) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
-func (m *SOReplayState_CatchingUp) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SOReplayState_CatchingUp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	if m.CatchingUp != nil {
-		size, err := m.CatchingUp.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x22
-	} else {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
-		i--
-		dAtA[i] = 0x22
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *SOReplayOpening) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -10640,38 +10481,6 @@ func (m *SOReplayCaughtUp) MarshalToVT(dAtA []byte) (int, error) {
 }
 
 func (m *SOReplayCaughtUp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *SOReplayCatchingUp) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SOReplayCatchingUp) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SOReplayCatchingUp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -13337,21 +13146,6 @@ func (m *SOReplayState_CaughtUp) SizeVT() (n int) {
 	return n
 }
 
-func (m *SOReplayState_CatchingUp) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.CatchingUp != nil {
-		l = m.CatchingUp.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	} else {
-		n += 2
-	}
-	return n
-}
-
 func (m *SOReplayOpening) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -13363,16 +13157,6 @@ func (m *SOReplayOpening) SizeVT() (n int) {
 }
 
 func (m *SOReplayCaughtUp) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *SOReplayCatchingUp) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -14430,13 +14214,6 @@ func (x *SOReplayState) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.CaughtUp)
 		}
-	case *SOReplayState_CatchingUp:
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "catching_up")
-		if body.CatchingUp == nil {
-			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOReplayCatchingUp{})
-		} else {
-			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.CatchingUp)
-		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -14462,16 +14239,6 @@ func (x *SOReplayCaughtUp) MarshalProtoText() string {
 }
 
 func (x *SOReplayCaughtUp) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *SOReplayCatchingUp) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "SOReplayCatchingUp")
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *SOReplayCatchingUp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -16326,26 +16093,6 @@ func (m *SOReplayState) UnmarshalVT(dAtA []byte) error {
 				m.State = &SOReplayState_CaughtUp{CaughtUp: v}
 			}
 			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CatchingUp", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if oneof, ok := m.State.(*SOReplayState_CatchingUp); ok {
-				if err := oneof.CatchingUp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-					return err
-				}
-			} else {
-				v := &SOReplayCatchingUp{}
-				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-					return err
-				}
-				m.State = &SOReplayState_CatchingUp{CatchingUp: v}
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -16430,49 +16177,6 @@ func (m *SOReplayCaughtUp) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: SOReplayCaughtUp: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *SOReplayCatchingUp) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SOReplayCatchingUp: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SOReplayCatchingUp: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:
