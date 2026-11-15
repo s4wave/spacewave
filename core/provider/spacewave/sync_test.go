@@ -1869,7 +1869,7 @@ func TestSyncControllerHeldWaitIgnoresFlushBroadcast(t *testing.T) {
 	if err != nil || recheck {
 		t.Fatalf("wait after write = %v, %v; want a flush without a recheck", recheck, err)
 	}
-	if hasKey(s.corruptKnown, ref.GetHash().MarshalString()) {
+	if hasKey(s.hold.blocks, ref.GetHash().MarshalString()) {
 		t.Fatal("write of the held hash left it known corrupt")
 	}
 }
@@ -1971,18 +1971,20 @@ func TestSyncControllerHeldWriteDuringFlushRereads(t *testing.T) {
 	}
 }
 
-// TestSyncControllerPartialPassKeepsHeld fails the push of a flush's first
-// chunk, so the flush stops before reading every dirty block. The blocks it
-// found corrupt are held with the count marked partial, a hold on a block it
-// did not reach is kept, and a later complete flush replaces the set and
-// clears partial.
-func TestSyncControllerPartialPassKeepsHeld(t *testing.T) {
-	// Fail pushes while fail is set.
-	var fail atomic.Bool
+// heldTestController builds a sync controller over a server that fails every
+// push from the failFrom-th on while failFrom is not zero, with telemetry, so
+// a test reads the held state the sync status shows. Its queue holds the
+// "dirty block" first, then five chunk-sized blocks that fill three chunks.
+// The upper store reads the hashes in bad as corrupt.
+func heldTestController(t *testing.T) (*syncController, *atomic.Int32, *atomic.Int32, *corruptSetStore) {
+	// Fail pushes from failFrom on and count them.
+	var failFrom, pushes atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if fail.Load() && strings.HasSuffix(r.URL.Path, "/sync/push") {
-			w.WriteHeader(http.StatusBadRequest)
-			return
+		if strings.HasSuffix(r.URL.Path, "/sync/push") {
+			if n, f := pushes.Add(1), failFrom.Load(); f != 0 && n >= f {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 		}
 		w.Header().Set("Content-Type", "application/protobuf")
 		w.WriteHeader(http.StatusOK)
@@ -1991,18 +1993,75 @@ func TestSyncControllerPartialPassKeepsHeld(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, server.URL, DefaultSigningEnvPrefix, priv, pid.String())
 
-	// Queue the corrupt block, five chunk-sized blocks that fill three
-	// chunks, then a late block no failed flush reaches. The flushes are
-	// unordered so the chunks follow the dirty sequence.
-	ctx := t.Context()
+	// Queue the chunk-sized blocks behind the dirty block and read through
+	// the corrupt set.
 	s := newDirtySyncExecuteTestController(t, cli, nil)
-	good := s.upper
-	addSyncChunkBlocks(t, ctx, s.store, good, 5)
+	s.telemetry = NewTestProviderAccount(t, server.URL)
+	addSyncChunkBlocks(t, t.Context(), s.store, s.upper, 5)
+	s.updateDirtyState(t.Context())
+	upper := &corruptSetStore{StoreOps: s.upper, bad: map[string]struct{}{}}
+	s.upper = upper
+	return s, &failFrom, &pushes, upper
+}
+
+// corruptSetStore reads each block whose hash is in bad as corrupt.
+type corruptSetStore struct {
+	block.StoreOps
+	bad map[string]struct{}
+}
+
+func (s *corruptSetStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	if hasKey(s.bad, ref.GetHash().MarshalString()) {
+		return nil, &block.CorruptError{Ref: ref}
+	}
+	return s.StoreOps.GetStoredBlock(ctx, ref)
+}
+
+// heldStatus returns the held state the sync status shows for the test store.
+func heldStatus(t *testing.T, s *syncController) (int, bool, time.Time) {
+	t.Helper()
+	for _, b := range s.telemetry.GetSyncTelemetrySnapshot().BlockStores {
+		if b.BlockStoreID == s.resourceID {
+			return b.CorruptDirtyCount, b.HeldPartial, b.HeldSince
+		}
+	}
+	return 0, false, time.Time{}
+}
+
+// wantHold checks the controller's held set and the status it shows.
+func wantHold(t *testing.T, stage string, s *syncController, keys []string, partial bool) {
+	t.Helper()
+	var hold holdState
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { hold = s.hold })
+	count, shownPartial, since := heldStatus(t, s)
+	held := len(keys) != 0
+	if len(hold.blocks) != len(keys) || hold.partial != partial || hold.since.IsZero() == held ||
+		count != len(keys) || shownPartial != partial || !since.Equal(hold.since) {
+		t.Fatalf("%s: held %d partial %v since %v, shown %d partial %v since %v; want %d held, partial %v",
+			stage, len(hold.blocks), hold.partial, hold.since, count, shownPartial, since, len(keys), partial)
+	}
+	for _, key := range keys {
+		if !hasKey(hold.blocks, key) {
+			t.Fatalf("%s: a block that must stay held is not", stage)
+		}
+	}
+}
+
+// TestSyncControllerPartialPassKeepsHeld fails the push of a flush's first
+// chunk, so the flush stops before reading every dirty block. The blocks it
+// found corrupt are held with the count shown partial, a hold on a block it
+// did not reach is kept, and a later complete flush replaces the set and
+// clears partial. The flushes are unordered so the chunks follow the dirty
+// sequence.
+func TestSyncControllerPartialPassKeepsHeld(t *testing.T) {
+	// Queue a late block behind the chunks and read the dirty block corrupt.
+	ctx := t.Context()
+	s, failFrom, pushes, upper := heldTestController(t)
 	wtx, err := s.store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	late := addSyncDirtyBlock(t, ctx, wtx, good, "late block")
+	late := addSyncDirtyBlock(t, ctx, wtx, upper.StoreOps, "late block")
 	if err := wtx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -2011,56 +2070,191 @@ func TestSyncControllerPartialPassKeepsHeld(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.upper = &corruptUpperStore{StoreOps: good, bad: bad.GetHash()}
 	badKey, lateKey := bad.GetHash().MarshalString(), late.GetHash().MarshalString()
-	heldState := func() (map[string]struct{}, bool, time.Time) {
-		var known map[string]struct{}
-		var partial bool
-		var since time.Time
-		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			known, partial, since = s.corruptKnown, s.heldPartial, s.heldSince
-		})
-		return known, partial, since
-	}
+	upper.bad[badKey] = struct{}{}
 
 	// The first held flush fails its first push: held, partial, at least
 	// the block it found.
-	fail.Store(true)
+	failFrom.Store(1)
 	var held *heldError
 	if err := s.FlushNowUnordered(ctx); err == nil || errors.As(err, &held) {
 		t.Fatalf("failing flush = %v; want the push error", err)
 	}
-	known, partial, since := heldState()
-	if !hasKey(known, badKey) || !partial || since.IsZero() {
-		t.Fatalf("after a failed push: %d held, partial %v, since %v; want the corrupt block, partial, a time", len(known), partial, since)
-	}
-	if text := s.held(len(known)).Error(); !strings.Contains(text, "at least 1 damaged blocks") {
-		t.Fatalf("held text = %q; want a lower bound", text)
-	}
+	wantHold(t, "after a failed push", s, []string{badKey}, true)
+	var since time.Time
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { since = s.hold.since })
 
-	// A hold on the late block survives a failed flush that never reaches it.
+	// An earlier hold on the late block survives a rechecking flush that
+	// fails before reaching it, with the first held time.
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		s.corruptKnown = map[string]struct{}{badKey: {}, lateKey: {}}
+		s.setHold(map[string]struct{}{badKey: {}, lateKey: {}}, false)
 	})
+	s.corruptRecheck.Store(true)
+	pushes.Store(0)
 	if err := s.FlushNowUnordered(ctx); err == nil || errors.As(err, &held) {
 		t.Fatalf("second failing flush = %v; want the push error", err)
 	}
-	known, partial, again := heldState()
-	if len(known) != 2 || !hasKey(known, lateKey) || !partial || !again.Equal(since) {
-		t.Fatalf("after a partial pass: %d held, late %v, partial %v; want both kept, partial, the first time", len(known), hasKey(known, lateKey), partial)
+	wantHold(t, "after a partial pass", s, []string{badKey, lateKey}, true)
+	var since2 time.Time
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { since2 = s.hold.since })
+	if !s.corruptRecheck.Load() || !since2.Equal(since) {
+		t.Fatal("the partial pass lost the recheck or restarted the held time")
 	}
 
 	// A complete flush that reads every block replaces the set and clears
 	// partial: the late block reads sound and uploads.
-	fail.Store(false)
-	s.corruptRecheck.Store(true)
-	if err := s.FlushNowUnordered(ctx); !errors.As(err, &held) || held.count != 1 || held.partial {
+	failFrom.Store(0)
+	if err := s.FlushNowUnordered(ctx); !errors.As(err, &held) || held.count != 1 {
 		t.Fatalf("complete flush = %v; want held with exactly 1 block", err)
 	}
-	known, partial, _ = heldState()
-	if len(known) != 1 || !hasKey(known, badKey) || partial {
-		t.Fatalf("after a complete pass: %d held, partial %v; want only the corrupt block, exact", len(known), partial)
+	wantHold(t, "after a complete pass", s, []string{badKey}, false)
+}
+
+// TestSyncControllerWriteClearsPartialHold holds a block on a flush that
+// fails its first push, then writes the block sound. The write empties the
+// held set, so the store is not held and the status shows nothing held, and a
+// flush that fails again before finding anything leaves it so.
+func TestSyncControllerWriteClearsPartialHold(t *testing.T) {
+	// Hold the dirty block on a failed flush.
+	ctx := t.Context()
+	s, failFrom, _, upper := heldTestController(t)
+	bad, err := block.BuildBlockRef([]byte("dirty block"), nil)
+	if err != nil {
+		t.Fatal(err)
 	}
+	badKey := bad.GetHash().MarshalString()
+	upper.bad[badKey] = struct{}{}
+	failFrom.Store(1)
+	if err := s.FlushNowUnordered(ctx); err == nil {
+		t.Fatal("failing flush succeeded")
+	}
+	wantHold(t, "after a failed push", s, []string{badKey}, true)
+
+	// Remove the block and write it sound: nothing is held.
+	delete(upper.bad, badKey)
+	if err := s.MarkDirty(ctx, []block_store_writeback.Mark{{Hash: bad.GetHash(), Size: int64(len("dirty block"))}}); err != nil {
+		t.Fatal(err)
+	}
+	wantHold(t, "after the write", s, nil, false)
+
+	// A flush that fails before finding anything keeps it not held.
+	if err := s.FlushNowUnordered(ctx); err == nil {
+		t.Fatal("failing flush succeeded")
+	}
+	wantHold(t, "after another failed push", s, nil, false)
+}
+
+// wantMarker checks that the dirty marker and the stored bytes of a damaged
+// block are still there.
+func wantMarker(t *testing.T, stage string, s *syncController, upper *corruptSetStore, ref *block.BlockRef) {
+	t.Helper()
+	var marked bool
+	err := kvtx.RunTransaction(t.Context(), false,
+		func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, false) },
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var err error
+			marked, err = tx.Exists(ctx, []byte("dirty/"+ref.GetHash().MarshalString()))
+			return err
+		},
+	)
+	if err != nil || !marked {
+		t.Fatalf("%s: the damaged block's marker is gone: %v", stage, err)
+	}
+	if found, err := upper.GetBlockExists(t.Context(), ref); err != nil || !found {
+		t.Fatalf("%s: the damaged block's bytes are gone: %v", stage, err)
+	}
+}
+
+// TestSyncControllerPartialPassDropsSoundHeld holds a block that has since
+// read sound, with its recheck due, and damages a block in the same first
+// chunk. The flush reads both, pushes and commits that chunk, then fails the
+// next push. The block it proved sound must not be counted as held; the
+// damaged block stays held, partial, with its marker and bytes.
+func TestSyncControllerPartialPassDropsSoundHeld(t *testing.T) {
+	// Hold the dirty block, sound on disk, with a recheck due, and damage the
+	// first chunk-sized block.
+	ctx := t.Context()
+	s, failFrom, _, upper := heldTestController(t)
+	sound, err := block.BuildBlockRef([]byte("dirty block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad, err := block.BuildBlockRef(bytes.Repeat([]byte{1}, syncTestChunkBlockBytes), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	badKey := bad.GetHash().MarshalString()
+	upper.bad[badKey] = struct{}{}
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.setHold(map[string]struct{}{sound.GetHash().MarshalString(): {}}, false)
+	})
+	s.corruptRecheck.Store(true)
+
+	// The second push fails after the first chunk committed.
+	failFrom.Store(2)
+	if err := s.FlushNowUnordered(ctx); err == nil {
+		t.Fatal("failing flush succeeded")
+	}
+	wantHold(t, "after the partial pass", s, []string{badKey}, true)
+	wantMarker(t, "after the partial pass", s, upper, bad)
+}
+
+// TestSyncControllerHeldMarkerSurvives tries to lose a damaged block's dirty
+// marker across the paths that change the held state: a failed flush, a
+// write of the damaged hash that keeps its damaged bytes and empties the
+// held set, a write of another block, and a complete flush. The marker and
+// the bytes must stay, and the last flush must hold exactly that block.
+// TestSyncControllerPartialPassDropsSoundHeld covers a flush that fails after
+// a committed chunk.
+func TestSyncControllerHeldMarkerSurvives(t *testing.T) {
+	// Read the dirty block as damaged throughout.
+	ctx := t.Context()
+	s, failFrom, _, upper := heldTestController(t)
+	bad, err := block.BuildBlockRef([]byte("dirty block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	badKey := bad.GetHash().MarshalString()
+	upper.bad[badKey] = struct{}{}
+
+	// A failed flush holds it.
+	failFrom.Store(1)
+	if err := s.FlushNowUnordered(ctx); err == nil {
+		t.Fatal("failing flush succeeded")
+	}
+	wantMarker(t, "failed flush", s, upper, bad)
+	wantHold(t, "failed flush", s, []string{badKey}, true)
+
+	// A write that keeps the damaged bytes empties the held set.
+	if err := s.MarkDirty(ctx, []block_store_writeback.Mark{{Hash: bad.GetHash(), Size: int64(len("dirty block"))}}); err != nil {
+		t.Fatal(err)
+	}
+	wantMarker(t, "write of the damaged hash", s, upper, bad)
+	wantHold(t, "write of the damaged hash", s, nil, false)
+
+	// A write of another block, then a complete flush that uploads every
+	// sound block and holds the damaged one again.
+	wtx, err := s.store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other := addSyncDirtyBlock(t, ctx, wtx, upper.StoreOps, "other block")
+	if err := wtx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.MarkDirty(ctx, []block_store_writeback.Mark{{Hash: other.GetHash(), Size: int64(len("other block"))}}); err != nil {
+		t.Fatal(err)
+	}
+	failFrom.Store(0)
+	var held *heldError
+	if err := s.FlushNowUnordered(ctx); !errors.As(err, &held) || held.count != 1 {
+		t.Fatalf("complete flush = %v; want exactly the damaged block held", err)
+	}
+	wantMarker(t, "complete flush", s, upper, bad)
+	if n := readPersistedPending(t, s.store).GetCount(); n != 1 {
+		t.Fatalf("pending markers = %d; want only the damaged block", n)
+	}
+	wantHold(t, "complete flush", s, []string{badKey}, false)
 }
 
 // TestSyncControllerFailedPushKeepsRecheck holds a block that a write has
@@ -2104,8 +2298,7 @@ func TestSyncControllerFailedPushKeepsRecheck(t *testing.T) {
 	s.updateDirtyState(ctx)
 	lateKey := late.GetHash().MarshalString()
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		s.corruptKnown = map[string]struct{}{lateKey: {}}
-		s.heldSince = time.Now()
+		s.setHold(map[string]struct{}{lateKey: {}}, false)
 	})
 	s.corruptRecheck.Store(true)
 
@@ -2116,7 +2309,7 @@ func TestSyncControllerFailedPushKeepsRecheck(t *testing.T) {
 		t.Fatalf("failing flush = %v; want the push error", err)
 	}
 	var known map[string]struct{}
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known = s.corruptKnown })
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known = s.hold.blocks })
 	if !s.corruptRecheck.Load() || !hasKey(known, lateKey) {
 		t.Fatalf("after a failed push: recheck %v, held %v; want both kept", s.corruptRecheck.Load(), hasKey(known, lateKey))
 	}
@@ -2126,7 +2319,7 @@ func TestSyncControllerFailedPushKeepsRecheck(t *testing.T) {
 	if err := s.FlushNowUnordered(ctx); err != nil {
 		t.Fatalf("flush after the failure = %v; want the block read and uploaded", err)
 	}
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known = s.corruptKnown })
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known = s.hold.blocks })
 	if len(known) != 0 || pushed.Load() == 0 {
 		t.Fatalf("after the flush: %d held, %d pushes; want none held", len(known), pushed.Load())
 	}
