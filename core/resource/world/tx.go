@@ -72,8 +72,8 @@ func NewTxResource(
 	return txResource
 }
 
-// Commit commits the transaction.
-func (r *TxResource) Commit(ctx context.Context, req *s4wave_world.CommitRequest) (*s4wave_world.CommitResponse, error) {
+// CommitTx commits the transaction.
+func (r *TxResource) CommitTx(ctx context.Context, req *s4wave_world.CommitRequest) (*s4wave_world.CommitResponse, error) {
 	// Fence terminal transaction operations under the transaction lock.
 	r.terminalMtx.Lock()
 	if r.terminal {
@@ -90,11 +90,7 @@ func (r *TxResource) Commit(ctx context.Context, req *s4wave_world.CommitRequest
 	if r.typedResource != nil {
 		r.typedResource.Close()
 	}
-	err := r.tx.Commit(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return &s4wave_world.CommitResponse{}, nil
+	return s4wave_world.NewCommitResponse(r.tx.Commit(ctx))
 }
 
 // Discard discards the transaction without committing changes.

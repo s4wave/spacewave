@@ -202,3 +202,32 @@ var (
 	_ world.Authority = (*pendingAuthority)(nil)
 	_ world.Admission = (*pendingAdmission)(nil)
 )
+
+// rootFailStore is a store whose root reads fail with err once failRoot sets
+// it, as a Volume whose read of the head fails after the Authority accepted a
+// candidate.
+type rootFailStore struct {
+	block.StoreOps
+	// mtx guards err.
+	mtx sync.Mutex
+	// err fails each GetRoot while set.
+	err error
+}
+
+// failRoot fails each later GetRoot with err, or stops failing when err is nil.
+func (s *rootFailStore) failRoot(err error) {
+	s.mtx.Lock()
+	s.err = err
+	s.mtx.Unlock()
+}
+
+// GetRoot fails with the set error, or reads the wrapped store.
+func (s *rootFailStore) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	s.mtx.Lock()
+	err := s.err
+	s.mtx.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	return s.StoreOps.GetRoot(ctx, name)
+}

@@ -207,7 +207,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 
 		// Commit the transaction
 		txClient := s4wave_world.NewSRPCTxResourceServiceClient(txSrpcClient)
-		_, err = txClient.Commit(ctx, &s4wave_world.CommitRequest{})
+		err = s4wave_world.CommitRemote(ctx, txClient)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

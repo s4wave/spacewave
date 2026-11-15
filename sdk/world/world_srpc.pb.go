@@ -2192,8 +2192,9 @@ type SRPCTxResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
-	// Commit atomically publishes the retained transaction.
-	Commit(ctx context.Context, in *CommitRequest) (*CommitResponse, error)
+	// CommitTx atomically publishes the retained transaction. A typed refusal
+	// returns in the response, not as an RPC error.
+	CommitTx(ctx context.Context, in *CommitRequest) (*CommitResponse, error)
 	// Discard releases the retained transaction without publication.
 	Discard(ctx context.Context, in *DiscardRequest) (*DiscardResponse, error)
 }
@@ -2216,9 +2217,9 @@ func NewSRPCTxResourceServiceClientWithServiceID(cc srpc.Client, serviceID strin
 
 func (c *srpcTxResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
 
-func (c *srpcTxResourceServiceClient) Commit(ctx context.Context, in *CommitRequest) (*CommitResponse, error) {
+func (c *srpcTxResourceServiceClient) CommitTx(ctx context.Context, in *CommitRequest) (*CommitResponse, error) {
 	out := new(CommitResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "Commit", in, out)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CommitTx", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -2235,8 +2236,9 @@ func (c *srpcTxResourceServiceClient) Discard(ctx context.Context, in *DiscardRe
 }
 
 type SRPCTxResourceServiceServer interface {
-	// Commit atomically publishes the retained transaction.
-	Commit(context.Context, *CommitRequest) (*CommitResponse, error)
+	// CommitTx atomically publishes the retained transaction. A typed refusal
+	// returns in the response, not as an RPC error.
+	CommitTx(context.Context, *CommitRequest) (*CommitResponse, error)
 	// Discard releases the retained transaction without publication.
 	Discard(context.Context, *DiscardRequest) (*DiscardResponse, error)
 }
@@ -2267,7 +2269,7 @@ func (d *SRPCTxResourceServiceHandler) GetServiceID() string { return d.serviceI
 
 func (SRPCTxResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
-		"Commit",
+		"CommitTx",
 		"Discard",
 	}
 }
@@ -2281,8 +2283,8 @@ func (d *SRPCTxResourceServiceHandler) InvokeMethod(
 	}
 
 	switch methodID {
-	case "Commit":
-		return true, d.InvokeMethod_Commit(d.impl, strm)
+	case "CommitTx":
+		return true, d.InvokeMethod_CommitTx(d.impl, strm)
 	case "Discard":
 		return true, d.InvokeMethod_Discard(d.impl, strm)
 	default:
@@ -2290,12 +2292,12 @@ func (d *SRPCTxResourceServiceHandler) InvokeMethod(
 	}
 }
 
-func (SRPCTxResourceServiceHandler) InvokeMethod_Commit(impl SRPCTxResourceServiceServer, strm srpc.Stream) error {
+func (SRPCTxResourceServiceHandler) InvokeMethod_CommitTx(impl SRPCTxResourceServiceServer, strm srpc.Stream) error {
 	req := new(CommitRequest)
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	out, err := impl.Commit(strm.Context(), req)
+	out, err := impl.CommitTx(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -2314,11 +2316,11 @@ func (SRPCTxResourceServiceHandler) InvokeMethod_Discard(impl SRPCTxResourceServ
 	return strm.MsgSend(out)
 }
 
-type SRPCTxResourceService_CommitStream interface {
+type SRPCTxResourceService_CommitTxStream interface {
 	srpc.Stream
 }
 
-type srpcTxResourceService_CommitStream struct {
+type srpcTxResourceService_CommitTxStream struct {
 	srpc.Stream
 }
 

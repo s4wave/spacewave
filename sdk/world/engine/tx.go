@@ -44,7 +44,8 @@ func NewSDKTx(client ResourceClient, ref resource_client.ResourceRef, readOnly b
 // from the call on, so a caller's deadline does not abandon a commit that
 // started; closing the transport still ends the call. A commit rejected
 // because another writer advanced the World returns an error
-// world.IsSuperseded matches.
+// world.IsSuperseded matches, and one whose tree names a block the Volume does
+// not hold returns an error matching block.ErrRootNotHeld.
 func (tx *SDKTx) Commit(ctx context.Context) error {
 	// Refuse a caller that has already stopped waiting, then release the resource.
 	if err := ctx.Err(); err != nil {
@@ -55,11 +56,11 @@ func (tx *SDKTx) Commit(ctx context.Context) error {
 	}
 
 	// Send the commit, then release the finished transaction resource.
-	_, err := tx.txService.Commit(context.WithoutCancel(ctx), &s4wave_world.CommitRequest{})
+	err := s4wave_world.CommitRemote(ctx, tx.txService)
 	tx.finished.Store(true)
 	tx.ref.Release()
 	tx.hold.finish("commit")
-	return s4wave_world.CommitError(err)
+	return err
 }
 
 // Discard cancels the transaction.

@@ -137,6 +137,19 @@ const (
 	// runs. It is final on this device: sending the operation again here meets
 	// it again. The operation was never sent to apply, so nothing was written.
 	WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING WorldErrorCode = 6
+	// WORLD_ERROR_CODE_SUPERSEDED indicates that another writer advanced the
+	// World before the transaction published, so nothing was committed. The
+	// caller may retry from a new transaction.
+	WorldErrorCode_WORLD_ERROR_CODE_SUPERSEDED WorldErrorCode = 7
+	// WORLD_ERROR_CODE_STALE_GENERATION indicates that the transaction would
+	// have published from an older coordinator generation than the current one,
+	// so nothing was committed. It is a superseded commit: the caller may retry
+	// from a new transaction.
+	WorldErrorCode_WORLD_ERROR_CODE_STALE_GENERATION WorldErrorCode = 8
+	// WORLD_ERROR_CODE_ROOT_NOT_HELD indicates that the transaction's tree names
+	// a block the Volume does not hold, so the Volume refused the root and
+	// nothing was committed.
+	WorldErrorCode_WORLD_ERROR_CODE_ROOT_NOT_HELD WorldErrorCode = 9
 )
 
 // Enum value maps for WorldErrorCode.
@@ -149,6 +162,9 @@ var (
 		4: "WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT",
 		5: "WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE",
 		6: "WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING",
+		7: "WORLD_ERROR_CODE_SUPERSEDED",
+		8: "WORLD_ERROR_CODE_STALE_GENERATION",
+		9: "WORLD_ERROR_CODE_ROOT_NOT_HELD",
 	}
 	WorldErrorCode_value = map[string]int32{
 		"WORLD_ERROR_CODE_UNSPECIFIED":                0,
@@ -158,6 +174,9 @@ var (
 		"WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT":          4,
 		"WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE":         5,
 		"WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING":  6,
+		"WORLD_ERROR_CODE_SUPERSEDED":                 7,
+		"WORLD_ERROR_CODE_STALE_GENERATION":           8,
+		"WORLD_ERROR_CODE_ROOT_NOT_HELD":              9,
 	}
 )
 
@@ -867,7 +886,7 @@ func (x *AccessWorldStateResponse) GetResourceId() uint32 {
 	return 0
 }
 
-// CommitRequest is the request type for Commit.
+// CommitRequest is the request type for CommitTx.
 type CommitRequest struct {
 	unknownFields []byte
 }
@@ -878,9 +897,22 @@ func (x *CommitRequest) Reset() {
 
 func (*CommitRequest) ProtoMessage() {}
 
-// CommitResponse is the response type for Commit.
+// CommitResponse is the response type for CommitTx.
+//
+// The zero value means the transaction committed. A commit the World refused
+// with a typed result returns it here with no RPC error: error_code is
+// SUPERSEDED, STALE_GENERATION or ROOT_NOT_HELD, and nothing was committed.
+// Any other commit failure returns as an RPC error. After every CommitTx,
+// refused or not, the server has discarded the transaction: a later CommitTx
+// fails as closed, and a repeat needs a new transaction. A client turns a
+// non-zero error_code into its typed error before any caller sees the
+// response.
 type CommitResponse struct {
 	unknownFields []byte
+	// ErrorCode is the typed refusal, or UNSPECIFIED when the commit published.
+	ErrorCode WorldErrorCode `protobuf:"varint,1,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
+	// ErrorMessage is the server's full error text for a typed refusal.
+	ErrorMessage string `protobuf:"bytes,2,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
 }
 
 func (x *CommitResponse) Reset() {
@@ -888,6 +920,20 @@ func (x *CommitResponse) Reset() {
 }
 
 func (*CommitResponse) ProtoMessage() {}
+
+func (x *CommitResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *CommitResponse) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
 
 // DiscardRequest is the request type for Discard.
 type DiscardRequest struct {
@@ -4068,6 +4114,8 @@ func (m *CommitResponse) CloneVT() *CommitResponse {
 		return (*CommitResponse)(nil)
 	}
 	r := new(CommitResponse)
+	r.ErrorCode = m.ErrorCode
+	r.ErrorMessage = m.ErrorMessage
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -6491,6 +6539,12 @@ func (this *CommitResponse) EqualVT(that *CommitResponse) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ErrorCode != that.ErrorCode {
+		return false
+	}
+	if this.ErrorMessage != that.ErrorMessage {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10357,6 +10411,17 @@ func (x *CommitResponse) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
+	if x.ErrorMessage != "" || s.HasField("errorMessage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorMessage")
+		s.WriteString(x.ErrorMessage)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10371,7 +10436,16 @@ func (x *CommitResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
+		case "error_message", "errorMessage":
+			s.AddField("error_message")
+			x.ErrorMessage = s.ReadString()
+		}
 	})
 }
 
@@ -16640,6 +16714,16 @@ func (m *CommitResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.ErrorMessage) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ErrorMessage)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -21312,6 +21396,8 @@ func (m *CommitResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ErrorMessage)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23183,7 +23269,15 @@ func (x *CommitRequest) String() string {
 
 func (x *CommitResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "CommitResponse")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CommitResponse")
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
+	}
+	if x.ErrorMessage != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_message")
+		protobuf_go_lite.TextWriteString(&sb, x.ErrorMessage)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -26829,6 +26923,27 @@ func (m *CommitResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: CommitResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorMessage", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ErrorMessage = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -2532,12 +2532,13 @@ export const TxResourceServiceDefinition = {
   typeName: 's4wave.world.TxResourceService',
   methods: {
     /**
-     * Commit atomically publishes the retained transaction.
+     * CommitTx atomically publishes the retained transaction. A typed refusal
+     * returns in the response, not as an RPC error.
      *
-     * @generated from rpc s4wave.world.TxResourceService.Commit
+     * @generated from rpc s4wave.world.TxResourceService.CommitTx
      */
-    Commit: {
-      name: 'Commit',
+    CommitTx: {
+      name: 'CommitTx',
       I: CommitRequest,
       O: CommitResponse,
       kind: MethodKind.Unary,
@@ -2563,11 +2564,12 @@ export const TxResourceServiceDefinition = {
  */
 export interface TxResourceService {
   /**
-   * Commit atomically publishes the retained transaction.
+   * CommitTx atomically publishes the retained transaction. A typed refusal
+   * returns in the response, not as an RPC error.
    *
-   * @generated from rpc s4wave.world.TxResourceService.Commit
+   * @generated from rpc s4wave.world.TxResourceService.CommitTx
    */
-  Commit(
+  CommitTx(
     request: CommitRequest,
     abortSignal?: AbortSignal,
   ): Promise<CommitResponse>
@@ -2590,11 +2592,12 @@ export interface TxResourceService {
  */
 export interface TxResourceServiceHandler {
   /**
-   * Commit atomically publishes the retained transaction.
+   * CommitTx atomically publishes the retained transaction. A typed refusal
+   * returns in the response, not as an RPC error.
    *
-   * @generated from rpc s4wave.world.TxResourceService.Commit
+   * @generated from rpc s4wave.world.TxResourceService.CommitTx
    */
-  Commit(
+  CommitTx(
     request: CommitRequest,
     abortSignal: AbortSignal,
     context: ServerContext,
@@ -2620,22 +2623,23 @@ export class TxResourceServiceClient implements TxResourceService {
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || TxResourceServiceServiceName
     this.rpc = rpc
-    this.Commit = this.Commit.bind(this)
+    this.CommitTx = this.CommitTx.bind(this)
     this.Discard = this.Discard.bind(this)
   }
   /**
-   * Commit atomically publishes the retained transaction.
+   * CommitTx atomically publishes the retained transaction. A typed refusal
+   * returns in the response, not as an RPC error.
    *
-   * @generated from rpc s4wave.world.TxResourceService.Commit
+   * @generated from rpc s4wave.world.TxResourceService.CommitTx
    */
-  async Commit(
+  async CommitTx(
     request: CommitRequest,
     abortSignal?: AbortSignal,
   ): Promise<CommitResponse> {
     const requestMsg = CommitRequest.create(request)
     const result = await this.rpc.request(
       this.service,
-      TxResourceServiceDefinition.methods.Commit.name,
+      TxResourceServiceDefinition.methods.CommitTx.name,
       CommitRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )

@@ -114,6 +114,56 @@ function pluginError(code: WorldErrorCode | undefined): Error | undefined {
   return undefined
 }
 
+// WorldCommitError reports a commit the World refused with a typed result, so
+// nothing was committed. superseded is true when another writer advanced the
+// World first (SUPERSEDED or STALE_GENERATION): the caller may retry from a
+// new transaction. ROOT_NOT_HELD means the transaction's tree names a block
+// the Volume does not hold.
+const worldCommitBrand = Symbol.for('spacewave.WorldCommitError')
+
+export class WorldCommitError extends Error {
+  override readonly name = 'WorldCommitError'
+  readonly [worldCommitBrand] = true
+
+  // Client and plugin builds recognize the same public error across bundles.
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return (
+      value instanceof Error &&
+      worldCommitBrand in value &&
+      value[worldCommitBrand] === true
+    )
+  }
+
+  constructor(
+    readonly code: WorldErrorCode,
+    message: string,
+  ) {
+    super(message || `world commit refused: ${WorldErrorCode[code]}`)
+  }
+
+  // superseded reports whether another writer advanced the World first.
+  get superseded(): boolean {
+    return (
+      this.code === WorldErrorCode.SUPERSEDED ||
+      this.code === WorldErrorCode.STALE_GENERATION
+    )
+  }
+}
+
+// CommitErrorResponse is the error part of a World transaction's Commit
+// response.
+export interface CommitErrorResponse {
+  errorCode?: WorldErrorCode
+  errorMessage?: string
+}
+
+// throwCommitError throws the typed refusal a CommitTx response carries as
+// WorldCommitError, and returns when the commit published.
+export function throwCommitError(response: CommitErrorResponse): void {
+  if (response.errorCode)
+    throw new WorldCommitError(response.errorCode, response.errorMessage ?? '')
+}
+
 // OperationResponse is the error part of a World or object operation response.
 export interface OperationResponse {
   errorCode?: WorldErrorCode

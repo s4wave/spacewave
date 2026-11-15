@@ -411,7 +411,7 @@ func (c *aptCommitFailureSRPCClient) ExecCall(
 	in srpc.Message,
 	out srpc.Message,
 ) error {
-	if c.failure.enabled && method == "Commit" {
+	if c.failure.enabled && method == "CommitTx" {
 		return c.failure.err
 	}
 	return c.Client.ExecCall(ctx, service, method, in, out)

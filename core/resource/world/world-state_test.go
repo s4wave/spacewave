@@ -810,7 +810,7 @@ func TestEngineResourceOperationObserverPropagatesToTransactions(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, err := writeTx.Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
+	if err := s4wave_world.CommitRemote(ctx, writeTx); err != nil {
 		t.Fatal(err.Error())
 	}
 	resourceCtx.ReleaseResource(writeResp.GetResourceId())

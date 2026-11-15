@@ -343,18 +343,33 @@ service WatchWorldStateResourceService {
 
 // TxResourceService controls one retained World transaction.
 service TxResourceService {
-  // Commit atomically publishes the retained transaction.
-  rpc Commit(CommitRequest) returns (CommitResponse);
+  // CommitTx atomically publishes the retained transaction. A typed refusal
+  // returns in the response, not as an RPC error.
+  rpc CommitTx(CommitRequest) returns (CommitResponse);
 
   // Discard releases the retained transaction without publication.
   rpc Discard(DiscardRequest) returns (DiscardResponse);
 }
 
-// CommitRequest is the request type for Commit.
+// CommitRequest is the request type for CommitTx.
 message CommitRequest {}
 
-// CommitResponse is the response type for Commit.
-message CommitResponse {}
+// CommitResponse is the response type for CommitTx.
+//
+// The zero value means the transaction committed. A commit the World refused
+// with a typed result returns it here with no RPC error: error_code is
+// SUPERSEDED, STALE_GENERATION or ROOT_NOT_HELD, and nothing was committed.
+// Any other commit failure returns as an RPC error. After every CommitTx,
+// refused or not, the server has discarded the transaction: a later CommitTx
+// fails as closed, and a repeat needs a new transaction. A client turns a
+// non-zero error_code into its typed error before any caller sees the
+// response.
+message CommitResponse {
+  // ErrorCode is the typed refusal, or UNSPECIFIED when the commit published.
+  WorldErrorCode error_code = 1;
+  // ErrorMessage is the server's full error text for a typed refusal.
+  string error_message = 2;
+}
 
 // DiscardRequest is the request type for Discard.
 message DiscardRequest {}
@@ -802,6 +817,19 @@ enum WorldErrorCode {
   // runs. It is final on this device: sending the operation again here meets
   // it again. The operation was never sent to apply, so nothing was written.
   WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING = 6;
+  // WORLD_ERROR_CODE_SUPERSEDED indicates that another writer advanced the
+  // World before the transaction published, so nothing was committed. The
+  // caller may retry from a new transaction.
+  WORLD_ERROR_CODE_SUPERSEDED = 7;
+  // WORLD_ERROR_CODE_STALE_GENERATION indicates that the transaction would
+  // have published from an older coordinator generation than the current one,
+  // so nothing was committed. It is a superseded commit: the caller may retry
+  // from a new transaction.
+  WORLD_ERROR_CODE_STALE_GENERATION = 8;
+  // WORLD_ERROR_CODE_ROOT_NOT_HELD indicates that the transaction's tree names
+  // a block the Volume does not hold, so the Volume refused the root and
+  // nothing was committed.
+  WORLD_ERROR_CODE_ROOT_NOT_HELD = 9;
 }
 
 // ApplyWorldOpResponse is the response type for ApplyWorldOp.

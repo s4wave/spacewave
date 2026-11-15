@@ -137,6 +137,28 @@ export enum WorldErrorCode {
    * it again. The operation was never sent to apply, so nothing was written.
    */
   PLUGIN_EXECUTABLE_MISSING = 6,
+
+  /**
+   * WORLD_ERROR_CODE_SUPERSEDED indicates that another writer advanced the
+   * World before the transaction published, so nothing was committed. The
+   * caller may retry from a new transaction.
+   */
+  SUPERSEDED = 7,
+
+  /**
+   * WORLD_ERROR_CODE_STALE_GENERATION indicates that the transaction would
+   * have published from an older coordinator generation than the current one,
+   * so nothing was committed. It is a superseded commit: the caller may retry
+   * from a new transaction.
+   */
+  STALE_GENERATION = 8,
+
+  /**
+   * WORLD_ERROR_CODE_ROOT_NOT_HELD indicates that the transaction's tree names
+   * a block the Volume does not hold, so the Volume refused the root and
+   * nothing was committed.
+   */
+  ROOT_NOT_HELD = 9,
 }
 
 export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
@@ -149,6 +171,9 @@ export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
     [4, 'WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT'],
     [5, 'WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE'],
     [6, 'WORLD_ERROR_CODE_PLUGIN_EXECUTABLE_MISSING'],
+    [7, 'WORLD_ERROR_CODE_SUPERSEDED'],
+    [8, 'WORLD_ERROR_CODE_STALE_GENERATION'],
+    [9, 'WORLD_ERROR_CODE_ROOT_NOT_HELD'],
   ],
 )
 
@@ -777,7 +802,7 @@ export const AccessWorldStateResponse: MessageType<AccessWorldStateResponse> =
   )
 
 /**
- * CommitRequest is the request type for Commit.
+ * CommitRequest is the request type for CommitTx.
  *
  * @generated from message s4wave.world.CommitRequest
  */
@@ -790,16 +815,37 @@ export const CommitRequest: MessageType<CommitRequest> =
   )
 
 /**
- * CommitResponse is the response type for Commit.
+ * CommitResponse is the response type for CommitTx.
+ *
+ * The zero value means the transaction committed. A commit the World refused
+ * with a typed result returns it here with no RPC error: error_code is
+ * SUPERSEDED, STALE_GENERATION or ROOT_NOT_HELD, and nothing was committed.
+ * Any other commit failure returns as an RPC error. After every CommitTx,
+ * refused or not, the server has discarded the transaction: a later CommitTx
+ * fails as closed, and a repeat needs a new transaction. A client turns a
+ * non-zero error_code into its typed error before any caller sees the
+ * response.
  *
  * @generated from message s4wave.world.CommitResponse
  */
-export interface CommitResponse {}
+export interface CommitResponse {
+  /**
+   * ErrorCode is the typed refusal, or UNSPECIFIED when the commit published.
+   */
+  errorCode?: WorldErrorCode
+  /**
+   * ErrorMessage is the server's full error text for a typed refusal.
+   */
+  errorMessage?: string
+}
 
 export const CommitResponse: MessageType<CommitResponse> =
   /* @__PURE__ */ createMessageType<CommitResponse>(
     's4wave.world.CommitResponse',
-    () => [],
+    () => [
+      [1, 'error_code', 14, 0, WorldErrorCode_Enum],
+      [2, 'error_message', 9],
+    ],
   )
 
 /**
