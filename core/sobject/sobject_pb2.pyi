@@ -81,6 +81,7 @@ class SOConfigChangeType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER: _ClassVar[SOConfigChangeType]
     SO_CONFIG_CHANGE_TYPE_SET_CONTROL: _ClassVar[SOConfigChangeType]
     SO_CONFIG_CHANGE_TYPE_MERGE: _ClassVar[SOConfigChangeType]
+    SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION: _ClassVar[SOConfigChangeType]
 
 class SORevocationReason(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -148,6 +149,7 @@ SO_CONFIG_CHANGE_TYPE_SET_ROSTER: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_SET_CONTROL: SOConfigChangeType
 SO_CONFIG_CHANGE_TYPE_MERGE: SOConfigChangeType
+SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION: SOConfigChangeType
 SO_REVOCATION_REASON_UNKNOWN: SORevocationReason
 SO_REVOCATION_REASON_SESSION_REVOKED: SORevocationReason
 SO_REVOCATION_REASON_ORG_REMOVED: SORevocationReason
@@ -326,7 +328,7 @@ class SOCheckpointMismatch(_message.Message):
     def __init__(self, height: _Optional[int] = ...) -> None: ...
 
 class SharedObjectConfig(_message.Message):
-    __slots__ = ("participants", "config_chain_hash", "config_chain_seqno", "removed_authors", "roster_dropped_peer_ids", "sequencer", "control", "sealed_checkpoint")
+    __slots__ = ("participants", "config_chain_hash", "config_chain_seqno", "removed_authors", "roster_dropped_peer_ids", "sequencer", "control", "sealed_checkpoint", "skipped_operations")
     PARTICIPANTS_FIELD_NUMBER: _ClassVar[int]
     CONFIG_CHAIN_HASH_FIELD_NUMBER: _ClassVar[int]
     CONFIG_CHAIN_SEQNO_FIELD_NUMBER: _ClassVar[int]
@@ -335,6 +337,7 @@ class SharedObjectConfig(_message.Message):
     SEQUENCER_FIELD_NUMBER: _ClassVar[int]
     CONTROL_FIELD_NUMBER: _ClassVar[int]
     SEALED_CHECKPOINT_FIELD_NUMBER: _ClassVar[int]
+    SKIPPED_OPERATIONS_FIELD_NUMBER: _ClassVar[int]
     participants: _containers.RepeatedCompositeFieldContainer[SOParticipantConfig]
     config_chain_hash: bytes
     config_chain_seqno: int
@@ -343,7 +346,16 @@ class SharedObjectConfig(_message.Message):
     sequencer: SOSequencer
     control: SOControl
     sealed_checkpoint: SOCheckpointHead
-    def __init__(self, participants: _Optional[_Iterable[_Union[SOParticipantConfig, _Mapping]]] = ..., config_chain_hash: _Optional[bytes] = ..., config_chain_seqno: _Optional[int] = ..., removed_authors: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., roster_dropped_peer_ids: _Optional[_Iterable[str]] = ..., sequencer: _Optional[_Union[SOSequencer, _Mapping]] = ..., control: _Optional[_Union[SOControl, str]] = ..., sealed_checkpoint: _Optional[_Union[SOCheckpointHead, _Mapping]] = ...) -> None: ...
+    skipped_operations: _containers.RepeatedCompositeFieldContainer[SOSkippedOperation]
+    def __init__(self, participants: _Optional[_Iterable[_Union[SOParticipantConfig, _Mapping]]] = ..., config_chain_hash: _Optional[bytes] = ..., config_chain_seqno: _Optional[int] = ..., removed_authors: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., roster_dropped_peer_ids: _Optional[_Iterable[str]] = ..., sequencer: _Optional[_Union[SOSequencer, _Mapping]] = ..., control: _Optional[_Union[SOControl, str]] = ..., sealed_checkpoint: _Optional[_Union[SOCheckpointHead, _Mapping]] = ..., skipped_operations: _Optional[_Iterable[_Union[SOSkippedOperation, _Mapping]]] = ...) -> None: ...
+
+class SOSkippedOperation(_message.Message):
+    __slots__ = ("position", "reason")
+    POSITION_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    position: SOOperationPosition
+    reason: str
+    def __init__(self, position: _Optional[_Union[SOOperationPosition, _Mapping]] = ..., reason: _Optional[str] = ...) -> None: ...
 
 class SOCheckpointHead(_message.Message):
     __slots__ = ("height", "hash")

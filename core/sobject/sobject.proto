@@ -381,6 +381,21 @@ message SharedObjectConfig {
   // voters who committed it change. Required under group control; a change
   // back to owner control keeps it.
   SOCheckpointHead sealed_checkpoint = 16;
+
+  // SkippedOperations lists the operations an owner skipped, sorted by op
+  // hash, at most 8, kept until the checkpoint covers them. Replay refuses
+  // each one, whatever its outcome would be.
+  repeated SOSkippedOperation skipped_operations = 17;
+}
+
+// SOSkippedOperation is an operation the config skips: every replica refuses
+// it, whatever its outcome would be. A skip cannot be withdrawn.
+message SOSkippedOperation {
+  // Position names the operation by author, nonce and hash.
+  SOOperationPosition position = 1;
+
+  // Reason is the skipping owner's note to the author, at most 256 bytes.
+  string reason = 2;
 }
 
 // SOControl says who changes a config and signs checkpoints.
@@ -503,6 +518,9 @@ enum SOConfigChangeType {
   // SO_CONFIG_CHANGE_TYPE_MERGE absorbs a concurrent branch of owner records
   // into the chain after its parent. See SOConfigMerge.
   SO_CONFIG_CHANGE_TYPE_MERGE = 12;
+  // SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION skips an operation replay waits at.
+  // See SOSkippedOperation.
+  SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION = 13;
 }
 
 // SORevocationReason describes why a participant was removed.

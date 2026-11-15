@@ -151,7 +151,8 @@ func RemoveSOParticipant(
 // operation state holds from each removed peer that its checkpoint does not
 // cover, or the operation at the nonce admitThrough gives for the peer. It
 // drops pins the checkpoint now covers and pins of peers next admits again,
-// and keeps the list sorted by peer ID.
+// and keeps the list sorted by peer ID. It also drops the skips the
+// checkpoint covers.
 func pinRemovedAuthors(sharedObjectID string, state *SOState, next *SharedObjectConfig, peers []string, admitThrough map[string]uint64) error {
 	// Read the operations held above the checkpoint.
 	set, err := state.OperationSet(sharedObjectID)
@@ -159,7 +160,9 @@ func pinRemovedAuthors(sharedObjectID string, state *SOState, next *SharedObject
 		return err
 	}
 
-	// Keep each earlier pin a later checkpoint or rejoin has not made redundant.
+	// Keep each earlier pin and skip a later checkpoint or rejoin has not made
+	// redundant.
+	pruneSkippedOperations(set, next)
 	pins := make(map[string]*SOOperationPosition, len(next.GetRemovedAuthors())+len(peers))
 	for _, pin := range next.GetRemovedAuthors() {
 		participates := slices.ContainsFunc(next.GetParticipants(), func(p *SOParticipantConfig) bool { return p.GetPeerId() == pin.GetPeerId() })

@@ -228,7 +228,8 @@ func isPeerConfigChange(t SOConfigChangeType) bool {
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_ROSTER,
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER,
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_CONTROL,
-		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_MERGE:
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_MERGE,
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION:
 		return true
 	default:
 		return false

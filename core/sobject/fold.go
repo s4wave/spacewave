@@ -55,10 +55,14 @@ func Fold(ctx context.Context, snap SharedObjectStateSnapshot, process ProcessOp
 	}
 	res := &FoldResult{StateData: slices.Clone(checkpoint.GetStateData())}
 
-	// Apply each operation and record its outcome.
+	// Apply each operation under the current config and record its outcome.
+	cfg, err := snap.GetConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
 	for _, h := range set.Order() {
 		inner := set.Get(h)
-		reason, err := res.apply(ctx, snap, set, h, inner, process)
+		reason, err := res.apply(ctx, snap, set, cfg, h, inner, process)
 		if err != nil {
 			return nil, err
 		}
@@ -73,14 +77,15 @@ func (r *FoldResult) apply(
 	ctx context.Context,
 	snap SharedObjectStateSnapshot,
 	set *SOOperationSet,
+	cfg *SharedObjectConfig,
 	h []byte,
 	inner *SOOperationInner,
 	process ProcessOpsFunc,
 ) (string, error) {
 	// Authorize and decode the operation as every member does. An
 	// acknowledgment applies nothing.
-	if set.Equivocated(h) {
-		return ReasonEquivocated, nil
+	if reason := replayRefusal(set, cfg, h, inner); reason != "" {
+		return reason, nil
 	}
 	if inner.IsAcknowledgment() {
 		return "", nil

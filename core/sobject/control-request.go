@@ -195,6 +195,7 @@ var ErrAwaitingGroup = errors.New("the change waits for the group to agree")
 // ChangeSOConfig returns ErrAwaitingGroup; the group applies it once more than
 // two thirds of the voting weight agree, which with two or three voters is all
 // of them, and hands the key to the members it admits instead of calling fn.
+// Either way next first drops the skips the held checkpoint covers.
 func ChangeSOConfig(
 	ctx context.Context,
 	host *SOHost,
@@ -205,8 +206,17 @@ func ChangeSOConfig(
 	revInfo *SORevocationInfo,
 	fn func(state *SOState) error,
 ) error {
-	// Under owner control the owner applies the change at once.
+	// Drop the skips the held checkpoint covers, so the cap counts only the
+	// skips that still decide an operation.
 	sharedObjectID := host.GetSharedObjectID()
+	set, err := state.OperationSet(sharedObjectID)
+	if err != nil {
+		return err
+	}
+	next = next.CloneVT()
+	pruneSkippedOperations(set, next)
+
+	// Under owner control the owner applies the change at once.
 	current := state.GetConfig()
 	if !current.IsGroupControl() {
 		return applyOwnerConfigChange(ctx, host, state, next, changeType, signer, revInfo, fn)

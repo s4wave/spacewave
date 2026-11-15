@@ -371,6 +371,12 @@ export enum SOConfigChangeType {
    * into the chain after its parent. See SOConfigMerge.
    */
   SO_CONFIG_CHANGE_TYPE_MERGE = 12,
+
+  /**
+   * SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION skips an operation replay waits at.
+   * See SOSkippedOperation.
+   */
+  SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION = 13,
 }
 
 export const SOConfigChangeType_Enum = /* @__PURE__ */ createEnumType(
@@ -389,6 +395,7 @@ export const SOConfigChangeType_Enum = /* @__PURE__ */ createEnumType(
     [10, 'SO_CONFIG_CHANGE_TYPE_SET_SEQUENCER'],
     [11, 'SO_CONFIG_CHANGE_TYPE_SET_CONTROL'],
     [12, 'SO_CONFIG_CHANGE_TYPE_MERGE'],
+    [13, 'SO_CONFIG_CHANGE_TYPE_SKIP_OPERATION'],
   ],
 )
 
@@ -1046,6 +1053,12 @@ export interface SharedObjectConfig {
    * back to owner control keeps it.
    */
   sealedCheckpoint?: SOCheckpointHead
+  /**
+   * SkippedOperations lists the operations an owner skipped, sorted by op
+   * hash, at most 8, kept until the checkpoint covers them. Replay refuses
+   * each one, whatever its outcome would be.
+   */
+  skippedOperations?: SOSkippedOperation[]
 }
 
 export const SharedObjectConfig: MessageType<SharedObjectConfig> =
@@ -1060,6 +1073,33 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
       [14, 'sequencer', 11, 0, SOSequencer.codec],
       [15, 'control', 14, 0, SOControl_Enum],
       [16, 'sealed_checkpoint', 11, 0, SOCheckpointHead.codec],
+      [17, 'skipped_operations', 11, 1, SOSkippedOperation.codec],
+    ],
+  )
+
+/**
+ * SOSkippedOperation is an operation the config skips: every replica refuses
+ * it, whatever its outcome would be. A skip cannot be withdrawn.
+ *
+ * @generated from message sobject.SOSkippedOperation
+ */
+export interface SOSkippedOperation {
+  /**
+   * Position names the operation by author, nonce and hash.
+   */
+  position?: SOOperationPosition
+  /**
+   * Reason is the skipping owner's note to the author, at most 256 bytes.
+   */
+  reason?: string
+}
+
+export const SOSkippedOperation: MessageType<SOSkippedOperation> =
+  /* @__PURE__ */ createMessageType<SOSkippedOperation>(
+    'sobject.SOSkippedOperation',
+    () => [
+      [1, 'position', 11, 0, SOOperationPosition.codec],
+      [2, 'reason', 9],
     ],
   )
 
