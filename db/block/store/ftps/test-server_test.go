@@ -116,6 +116,11 @@ func (s *testServer) ClientConnected(ftpserver.ClientContext) (string, error) {
 func (s *testServer) ClientDisconnected(cc ftpserver.ClientContext) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
+	s.endSession(cc)
+}
+
+// endSession stops counting the session of cc, once. The caller holds mtx.
+func (s *testServer) endSession(cc ftpserver.ClientContext) {
 	if user, ok := s.users[cc]; ok {
 		s.open[user]--
 		s.total--
@@ -185,11 +190,18 @@ func (f *spendFile) Read(p []byte) (int, error) {
 	return n, err
 }
 
+// Close closes the file. A spent session stops counting before its
+// connection closes: the client frees its tokens as soon as it sees the close,
+// and its next login can arrive before ClientDisconnected runs.
 func (f *spendFile) Close() error {
 	err := f.File.Close()
-	f.fs.srv.mtx.Lock()
-	spend := f.fs.srv.spendPartial && !f.eof
-	f.fs.srv.mtx.Unlock()
+	srv := f.fs.srv
+	srv.mtx.Lock()
+	spend := srv.spendPartial && !f.eof
+	if spend {
+		srv.endSession(f.fs.cc)
+	}
+	srv.mtx.Unlock()
 	if spend {
 		_ = f.fs.cc.Close()
 	}
