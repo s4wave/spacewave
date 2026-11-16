@@ -18,15 +18,16 @@ type InvokerController struct {
 	bus bus.Bus
 	// info is the controller info
 	info *controller.Info
-	// invoker is the prefix invoker
-	invoker *srpc.PrefixInvoker
+	// invoker serves methods after the matched service prefix is stripped.
+	invoker srpc.Invoker
 	// matchServicePrefixes is the list of service id prefixes to match.
 	// strips the prefix before calling invoke
 	// if empty, forwards all services
 	matchServicePrefixes []string
 }
 
-// NewInvokerController constructs a new controller.
+// NewInvokerController constructs a new controller. Register a queryable
+// invoker's handlers before attaching the controller to the bus.
 func NewInvokerController(
 	le *logrus.Entry,
 	bus bus.Bus,
@@ -38,7 +39,7 @@ func NewInvokerController(
 		le:                   le,
 		bus:                  bus,
 		info:                 info,
-		invoker:              srpc.NewPrefixInvoker(invoker, matchServicePrefixes),
+		invoker:              invoker,
 		matchServicePrefixes: matchServicePrefixes,
 	}
 }
@@ -61,12 +62,22 @@ func (c *InvokerController) HandleDirective(
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case LookupRpcService:
+		// Match the service in the invoker's own namespace.
+		serviceID := d.LookupRpcServiceID()
 		if len(c.matchServicePrefixes) != 0 {
-			_, matchedPrefix := srpc.CheckStripPrefix(d.LookupRpcServiceID(), c.matchServicePrefixes)
+			stripped, matchedPrefix := srpc.CheckStripPrefix(serviceID, c.matchServicePrefixes)
 			if len(matchedPrefix) == 0 {
 				return nil, nil
 			}
+			serviceID = stripped
 		}
+
+		// An empty namespace dispatches by method; otherwise require the service.
+		if queryable, ok := c.invoker.(srpc.QueryableInvoker); serviceID != "" && ok && !queryable.HasService(serviceID) {
+			return nil, nil
+		}
+
+		// Publish only a service the wrapped invoker can handle.
 		return directive.R(NewLookupRpcServiceResolver(c), nil)
 	}
 	return nil, nil
@@ -76,6 +87,16 @@ func (c *InvokerController) HandleDirective(
 // Returns false, nil if not found.
 // If service string is empty, ignore it.
 func (c *InvokerController) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+	// Route a prefixed service into the wrapped invoker's namespace.
+	if len(c.matchServicePrefixes) != 0 {
+		stripped, matchedPrefix := srpc.CheckStripPrefix(serviceID, c.matchServicePrefixes)
+		if len(matchedPrefix) == 0 {
+			return false, nil
+		}
+		serviceID = stripped
+	}
+
+	// Invoke the same underlying service that the controller advertised.
 	return c.invoker.InvokeMethod(serviceID, methodID, strm)
 }
 
