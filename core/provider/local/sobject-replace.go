@@ -110,8 +110,8 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 	if errors.Is(err, ErrStateChanged) || errors.Is(err, sobject.ErrSharedObjectNotFound) {
 		return err
 	}
-	if err == nil && testHookReplaceCommitted != nil {
-		err = testHookReplaceCommitted(id)
+	if hook := testHookReplaceCommitted.Load(); err == nil && hook != nil {
+		err = (*hook)(id)
 	}
 
 	// Any other failure may have stored the write: a commit error can follow

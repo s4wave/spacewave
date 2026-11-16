@@ -457,8 +457,8 @@ func (h *sobjectRun) end() {
 func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr error) {
 	// Take this run's handle, which retires every earlier run, and report a
 	// terminal mount error through it.
-	if testHookRunStarting != nil {
-		testHookRunStarting(t.id)
+	if hook := testHookRunStarting.Load(); hook != nil {
+		(*hook)(t.id)
 	}
 	run := t.res.start(rctx)
 	defer func() {
@@ -548,8 +548,8 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		if !errors.Is(err, sobject.ErrSharedObjectNotFound) && !errors.Is(err, sobject.ErrSharedObjectArriving) {
 			return err
 		}
-		if testHookStateRefused != nil {
-			testHookStateRefused(sharedObjectID)
+		if hook := testHookStateRefused.Load(); hook != nil {
+			(*hook)(sharedObjectID)
 		}
 		run.publish(sobject.BuildSharedObjectHealthFromError(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
@@ -624,8 +624,8 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
 	), so, nil)
 	defer func() {
-		if testHookRunEnding != nil {
-			testHookRunEnding(t.id, run.end)
+		if hook := testHookRunEnding.Load(); hook != nil {
+			(*hook)(t.id, run.end)
 			return
 		}
 		run.end()
@@ -906,8 +906,8 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, objStore obj
 
 	// Store a genesis while the object is still listed, after clearing keys
 	// an earlier lifetime left.
-	if testHookStateListed != nil {
-		testHookStateListed(sharedObjectID)
+	if hook := testHookStateListed.Load(); hook != nil {
+		(*hook)(sharedObjectID)
 	}
 	write, err := t.a.genesisSOStateWriter(ctx, sharedObjectID)
 	if err != nil {

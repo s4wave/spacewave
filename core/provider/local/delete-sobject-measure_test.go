@@ -260,7 +260,7 @@ func rehearseDeleteCrash(t *testing.T) {
 
 	// Hold the delete resume as it reaches so3's mark.
 	reached, proceed := make(chan struct{}), make(chan struct{})
-	testHookResumeMark = func(id string) {
+	testHookResumeMark.Store(new(func(id string) {
 		if id != "so3" {
 			return
 		}
@@ -269,8 +269,8 @@ func rehearseDeleteCrash(t *testing.T) {
 		case <-proceed:
 		case <-ctx.Done():
 		}
-	}
-	t.Cleanup(func() { testHookResumeMark = nil })
+	}))
+	t.Cleanup(func() { testHookResumeMark.Store(nil) })
 
 	// Reopen. While the resume waits on so3's mark, create so3 again, and
 	// enroll so4 again up to its list write: store its placeholder, mount it
@@ -294,7 +294,7 @@ func rehearseDeleteCrash(t *testing.T) {
 	rel4()
 	close(proceed)
 	waitDeleteResume(ctx, t, a, false)
-	testHookResumeMark = nil
+	testHookResumeMark.Store(nil)
 	if n := countTestKeys(ctx, t, a, SobjectReleaseMarkPrefix()); n != 0 {
 		t.Fatalf("the resume left %d release marks", n)
 	}
@@ -361,16 +361,16 @@ func rehearseDeleteReleaseFails(t *testing.T) {
 	closeRehearsalAccount(ctx, t, a, release)
 
 	// Reopen with so1's release failing.
-	testHookReleaseBucket = func(bucketID string) error {
+	testHookReleaseBucket.Store(new(func(bucketID string) error {
 		if bucketID == failed {
 			return errors.New("injected release failure")
 		}
 		return nil
-	}
-	t.Cleanup(func() { testHookReleaseBucket = nil })
+	}))
+	t.Cleanup(func() { testHookReleaseBucket.Store(nil) })
 	a, _, release = openRehearsalAccount(ctx, t, dir, sessRef)
 	waitDeleteResume(ctx, t, a, false)
-	testHookReleaseBucket = nil
+	testHookReleaseBucket.Store(nil)
 	if n := countTestKeys(ctx, t, a, SobjectReleaseMarkKey("so1")); n != 1 {
 		t.Fatalf("the failed release left %d marks for so1, want 1", n)
 	}
@@ -499,13 +499,13 @@ func rehearseDeleteMarkRemovalFails(t *testing.T) {
 	closeRehearsalAccount(ctx, t, a, release)
 
 	// Reopen with the mark removal failing.
-	testHookDeleteReleaseMark = func(string) error {
+	testHookDeleteReleaseMark.Store(new(func(string) error {
 		return errors.New("injected mark removal failure")
-	}
-	t.Cleanup(func() { testHookDeleteReleaseMark = nil })
+	}))
+	t.Cleanup(func() { testHookDeleteReleaseMark.Store(nil) })
 	a, _, release = openRehearsalAccount(ctx, t, dir, sessRef)
 	waitDeleteResume(ctx, t, a, false)
-	testHookDeleteReleaseMark = nil
+	testHookDeleteReleaseMark.Store(nil)
 	requireRehearsalRoot(ctx, t, a, "so1", false)
 	if n := countTestKeys(ctx, t, a, SobjectReleaseMarkKey("so1")); n != 1 {
 		t.Fatalf("the failed removal left %d marks for so1, want 1", n)
@@ -561,7 +561,7 @@ func rehearseDeleteDuringStart(t *testing.T) {
 
 	// Hold the resume at so1's mark.
 	reached, proceed := make(chan struct{}), make(chan struct{})
-	testHookResumeMark = func(id string) {
+	testHookResumeMark.Store(new(func(id string) {
 		if id != "so1" {
 			return
 		}
@@ -570,8 +570,8 @@ func rehearseDeleteDuringStart(t *testing.T) {
 		case <-proceed:
 		case <-ctx.Done():
 		}
-	}
-	t.Cleanup(func() { testHookResumeMark = nil })
+	}))
+	t.Cleanup(func() { testHookResumeMark.Store(nil) })
 
 	// Reopen and delete so2 while the resume waits, then let it finish.
 	a, _, release = openRehearsalAccount(ctx, t, dir, sessRef)
@@ -586,7 +586,7 @@ func rehearseDeleteDuringStart(t *testing.T) {
 	}
 	close(proceed)
 	waitDeleteResume(ctx, t, a, false)
-	testHookResumeMark = nil
+	testHookResumeMark.Store(nil)
 
 	// Both are released and no mark is left.
 	requireRehearsalRoot(ctx, t, a, "so1", false)
@@ -613,8 +613,8 @@ func putRehearsalObjects(ctx context.Context, t *testing.T, a *ProviderAccount, 
 // follows fails. Each id must end unlisted with its "rehearsal" root held.
 func crashRehearsalDeletes(ctx context.Context, t *testing.T, a *ProviderAccount, ids ...string) {
 	var stop context.CancelFunc
-	testHookDeleteCommitted = func(string) { stop() }
-	defer func() { testHookDeleteCommitted = nil }()
+	testHookDeleteCommitted.Store(new(func(string) { stop() }))
+	defer func() { testHookDeleteCommitted.Store(nil) }()
 	for _, id := range ids {
 		var dctx context.Context
 		dctx, stop = context.WithCancel(ctx)

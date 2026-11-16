@@ -57,8 +57,8 @@ func (a *ProviderAccount) collectGCRootlessBlocks(ctx context.Context) (block_gc
 // volume that cannot release a bucket.
 func (a *ProviderAccount) releaseBucketRoots(ctx context.Context, bucketID string) error {
 	// Let a test fail the release.
-	if testHookReleaseBucket != nil {
-		if err := testHookReleaseBucket(bucketID); err != nil {
+	if hook := testHookReleaseBucket.Load(); hook != nil {
+		if err := (*hook)(bucketID); err != nil {
 			return err
 		}
 	}

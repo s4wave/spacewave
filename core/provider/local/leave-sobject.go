@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	"slices"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
@@ -168,8 +169,8 @@ func (a *ProviderAccount) waitLinkedOwner(ctx context.Context, host *sobject.SOH
 		if len(online) != 0 {
 			return peer.IDB58Decode(online[0])
 		}
-		if leaveOwnerWaitHook != nil {
-			leaveOwnerWaitHook()
+		if hook := leaveOwnerWaitHook.Load(); hook != nil {
+			(*hook)()
 		}
 
 		// Wake on a new state or on any link change, whichever comes first.
@@ -191,7 +192,8 @@ func (a *ProviderAccount) waitLinkedOwner(ctx context.Context, host *sobject.SOH
 
 // leaveOwnerWaitHook, when set by a test, runs each time a leave finds no
 // linked owner and is about to wait. It is nil in production.
-var leaveOwnerWaitHook func()
+// Tests replace it while leave routines run, so each call loads one snapshot.
+var leaveOwnerWaitHook atomic.Pointer[func()]
 
 // acceptSharedObjectLeave holds the addressed host until its signed removal is committed.
 func (a *ProviderAccount) acceptSharedObjectLeave(ctx context.Context, request *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error) {

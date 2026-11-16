@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"slices"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -35,53 +36,54 @@ const DeleteStateEnv = "SPACEWAVE_SOBJECT_DELETE_STATE"
 // at startup.
 var deleteStateOff = os.Getenv(DeleteStateEnv) == "off"
 
-// Test hooks that force an interleaving; nil outside tests.
+// Test hooks force an interleaving and are nil outside tests.
+// Tests replace them while account routines run, so each call loads one snapshot.
 var (
 	// testHookDeletePublished runs after a delete publishes its catalog
 	// entry, before it takes mtx for the local delete.
-	testHookDeletePublished func(id string)
+	testHookDeletePublished atomic.Pointer[func(id string)]
 	// testHookStateListed runs after a mount reads that its listed object has
 	// no stored state, before the transaction that stores a genesis.
-	testHookStateListed func(id string)
+	testHookStateListed atomic.Pointer[func(id string)]
 	// testHookRunStarting runs as a tracker run starts, before it takes its
 	// sobjectRun.
-	testHookRunStarting func(id string)
+	testHookRunStarting atomic.Pointer[func(id string)]
 	// testHookRunEnding runs as a ready tracker run exits, in place of
 	// clearing its mount result; it must call end.
-	testHookRunEnding func(id string, end func())
+	testHookRunEnding atomic.Pointer[func(id string, end func())]
 	// testHookDeleteCommitted runs after a delete commits, before it restarts
 	// the live mount.
-	testHookDeleteCommitted func(id string)
+	testHookDeleteCommitted atomic.Pointer[func(id string)]
 	// testHookReplaceCommitted runs after a replace commits, before it
 	// restarts the live mount; an error it returns is the replace's, as from
 	// a commit that stored the state and then failed.
-	testHookReplaceCommitted func(id string) error
+	testHookReplaceCommitted atomic.Pointer[func(id string) error]
 	// testHookStateWriting runs in a mounted state write's transaction,
 	// after its mount check, before it reads the stored state.
-	testHookStateWriting func(id string)
+	testHookStateWriting atomic.Pointer[func(id string)]
 	// testHookStateCommitted runs after a mounted state write commits; an
 	// error it returns is the write's, as from a commit that stored the
 	// state and then failed.
-	testHookStateCommitted func(id string) error
+	testHookStateCommitted atomic.Pointer[func(id string) error]
 	// testHookStateSettling runs before a failed state write reads storage
 	// to settle whether it committed; an error it returns is the read's.
-	testHookStateSettling func(id string) error
+	testHookStateSettling atomic.Pointer[func(id string) error]
 	// testHookStateRefused runs after a mount finds no state it may use,
 	// before it publishes the refusal.
-	testHookStateRefused func(id string)
+	testHookStateRefused atomic.Pointer[func(id string)]
 	// testHookResumeMark runs as the start resume reaches a release mark,
 	// before it takes mtx.
-	testHookResumeMark func(id string)
+	testHookResumeMark atomic.Pointer[func(id string)]
 	// testHookReleaseBucket runs before a bucket's roots are released; an
 	// error it returns fails the release.
-	testHookReleaseBucket func(bucketID string) error
+	testHookReleaseBucket atomic.Pointer[func(bucketID string) error]
 	// testHookDeleteReleaseMark runs before a release mark is removed; an
 	// error it returns fails the removal.
-	testHookDeleteReleaseMark func(id string) error
+	testHookDeleteReleaseMark atomic.Pointer[func(id string) error]
 	// testHookEnrollmentMounted runs after an enrollment mounts its
 	// placeholder and before it takes mtx to install the state and list the
 	// id.
-	testHookEnrollmentMounted func(id string)
+	testHookEnrollmentMounted atomic.Pointer[func(id string)]
 )
 
 // errCannotDeleteSettings is returned when a delete names the account's bound
@@ -217,8 +219,8 @@ func (a *ProviderAccount) scanReleaseMarks(ctx context.Context, after []byte) ([
 // resumeSharedObjectDeletes.
 func (a *ProviderAccount) resumeSharedObjectRelease(ctx context.Context, id string) (bool, error) {
 	// Let a test act before the lock is taken.
-	if testHookResumeMark != nil {
-		testHookResumeMark(id)
+	if hook := testHookResumeMark.Load(); hook != nil {
+		(*hook)(id)
 	}
 
 	// Hold the lock a create, a delete and every list change hold.
@@ -310,8 +312,8 @@ func (a *ProviderAccount) readReleaseMark(ctx context.Context, id string) (block
 
 // deleteReleaseMark removes id's release mark. Assumes mtx is locked.
 func (a *ProviderAccount) deleteReleaseMark(ctx context.Context, id string) error {
-	if testHookDeleteReleaseMark != nil {
-		if err := testHookDeleteReleaseMark(id); err != nil {
+	if hook := testHookDeleteReleaseMark.Load(); hook != nil {
+		if err := (*hook)(id); err != nil {
 			return err
 		}
 	}
@@ -330,8 +332,8 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 	if err := a.publishAccountCatalogEntry(ctx, entry, true); err != nil {
 		return err
 	}
-	if testHookDeletePublished != nil {
-		testHookDeletePublished(id)
+	if hook := testHookDeletePublished.Load(); hook != nil {
+		(*hook)(id)
 	}
 
 	// Local cleanup follows the committed account decision, and removes only
@@ -457,8 +459,8 @@ func (a *ProviderAccount) deleteSharedObjectLocked(ctx context.Context, id strin
 		return err
 	}
 	a.soListCtr.SetValue(sharedObjectList)
-	if testHookDeleteCommitted != nil {
-		testHookDeleteCommitted(id)
+	if hook := testHookDeleteCommitted.Load(); hook != nil {
+		(*hook)(id)
 	}
 
 	// Restart the live mount after the commit. It reloads, finds no state and

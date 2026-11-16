@@ -113,8 +113,8 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		var stored []byte
 		var found bool
 		rerr := rctx.Err()
-		if rerr == nil && testHookStateSettling != nil {
-			rerr = testHookStateSettling(sharedObjectID)
+		if hook := testHookStateSettling.Load(); rerr == nil && hook != nil {
+			rerr = (*hook)(sharedObjectID)
 		}
 		if rerr == nil {
 			rerr = kvtx.RunTransaction(rctx, false,
@@ -223,8 +223,8 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						if err := rctx.Err(); err != nil {
 							return err
 						}
-						if testHookStateWriting != nil {
-							testHookStateWriting(sharedObjectID)
+						if hook := testHookStateWriting.Load(); hook != nil {
+							(*hook)(sharedObjectID)
 						}
 						stored, found, err := tx.Get(ctx, ent.key)
 						if err != nil {
@@ -273,8 +273,8 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				if relWrites != nil {
 					relWrites()
 				}
-				if err == nil && testHookStateCommitted != nil {
-					err = testHookStateCommitted(sharedObjectID)
+				if hook := testHookStateCommitted.Load(); err == nil && hook != nil {
+					err = (*hook)(sharedObjectID)
 				}
 				if err != nil {
 					if err := settle(sharedObjectID, ent, data, ended, err); err != nil {

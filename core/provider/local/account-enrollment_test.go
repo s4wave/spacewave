@@ -127,14 +127,14 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 	// and leave the placeholder for the enrollment to install into.
 	var createErr error
 	var placeholderKeys, keysAfterCreate int
-	testHookEnrollmentMounted = func(id string) {
+	testHookEnrollmentMounted.Store(new(func(id string) {
 		if id == spaceID && placeholderKeys == 0 {
 			placeholderKeys = countTestKeys(ctx, t, replica, SobjectObjectStorePrefix(spaceID))
 			_, createErr = replica.CreateSharedObject(ctx, spaceID, &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 			keysAfterCreate = countTestKeys(ctx, t, replica, SobjectObjectStorePrefix(spaceID))
 		}
-	}
-	defer func() { testHookEnrollmentMounted = nil }()
+	}))
+	defer func() { testHookEnrollmentMounted.Store(nil) }()
 
 	// Only the storage signer owns the Space before pairing starts sync.
 	initial := getSOState(ctx, t, source, spaceRef, spaceRef.GetProviderResourceRef().GetId())
@@ -189,7 +189,7 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 	if err := <-finished; err != nil {
 		t.Fatal(err)
 	}
-	testHookEnrollmentMounted = nil
+	testHookEnrollmentMounted.Store(nil)
 
 	// The racing create was refused and kept the placeholder, and installing
 	// the Space finished its pending release. The checkpoint read below
