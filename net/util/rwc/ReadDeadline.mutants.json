@@ -1,0 +1,7 @@
+[
+  {
+    "name": "A changed deadline leaves the read on its original snapshot",
+    "replace": [["/\\ ~DropWake", "/\\ DropWake"]],
+    "expect": "Expires"
+  }
+]
