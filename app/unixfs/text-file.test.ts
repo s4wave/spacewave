@@ -141,6 +141,21 @@ describe('reduceTextFile', () => {
     ])
   })
 
+  it('keeps a landed save over a read of the version its draft started from', () => {
+    // Another writer's same text moves the seen version while the save flies.
+    const state = replay(
+      ...drafted,
+      { type: 'save', over: false },
+      { type: 'read', content: read('original', 2) },
+      { type: 'saved', text: 'mine', crlf: false, version: v(3) },
+      { type: 'read', content: original },
+    )
+
+    // The read of the draft's own base is older than the save.
+    const view = viewOf(state)
+    expect(view.state === 'shown' && view.text).toBe('mine')
+  })
+
   it("takes another writer's text read after a landed save as theirs", () => {
     // A draft of a landed save; the first read after it holds other text.
     const state = replay(
