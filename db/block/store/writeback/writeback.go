@@ -92,6 +92,8 @@ type Store struct {
 	// lowered counts the transactions that lowered floor, guarded by bcast,
 	// so clear raises it only when none lowered it since clear read it.
 	lowered uint64
+	// indexDone closes when the context-owned index repair loop exits.
+	indexDone chan struct{}
 	// counted closes once the status counts the whole queue, as countRest
 	// describes.
 	counted chan struct{}
@@ -158,7 +160,7 @@ func newStore(
 ) (*Store, error) {
 	// Connect local block writes to the durable upload markers, or diverted
 	// values to their packs, which need none.
-	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, reads: newReadGate(), counted: make(chan struct{})}
+	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, reads: newReadGate(), counted: make(chan struct{}), indexDone: make(chan struct{})}
 	switch {
 	case divert:
 		s.MarkingStore = NewMarkingStore(writes, func(context.Context, []Mark) error { return nil })
@@ -243,6 +245,11 @@ func newStore(
 		Oldest:         oldest,
 		Target:         string(target),
 		EvictableBytes: evictableBytes,
+	}
+	if !readOnly {
+		go s.rebuildEvictIndex(ctx)
+	} else {
+		close(s.indexDone)
 	}
 	if resume == nil {
 		close(s.counted)
@@ -420,7 +427,7 @@ func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 		if enabled {
 			return nil
 		}
-		for _, prefix := range []string{markedPrefix, queuePrefix, evictPrefix} {
+		for _, prefix := range []string{markedPrefix, queuePrefix, evictPrefix, evictIndexPrefix} {
 			if err := deletePrefix(ctx, tx, prefix); err != nil {
 				return err
 			}
@@ -563,10 +570,12 @@ func (s *Store) MarkBlocks(ctx context.Context, tx kvtx.Tx, blocks []kvtx.BlockM
 	if err != nil {
 		return nil, errors.Wrap(err, "queue block upload")
 	}
-	if delta.added == 0 {
+	if delta.added == 0 && delta.evictable == 0 {
 		return nil, nil
 	}
-	s.lowerFloor(delta.oldest)
+	if delta.added != 0 {
+		s.lowerFloor(delta.oldest)
+	}
 	return func() { s.applyQueued(gen, delta) }, nil
 }
 
@@ -642,11 +651,12 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 		if s.gen != gen || !s.status.Enabled {
 			return
 		}
-		if s.status.Pending <= 0 || delta.oldest.Before(s.status.Oldest) {
+		if delta.added != 0 && (s.status.Pending <= 0 || delta.oldest.Before(s.status.Oldest)) {
 			s.status.Oldest = delta.oldest
 		}
 		s.status.Pending += delta.added
 		s.status.PendingBytes += delta.addedBytes
+		s.status.EvictableBytes += delta.evictable
 		broadcast()
 	})
 }
@@ -662,6 +672,7 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	// the writer lock find their pages cached and bound how long it holds
 	// them.
 	s.prefetchClear(ctx, batch)
+	retryRefused := evictRefusedRetry.Load()
 
 	// Clear behind every foreground writer: the upload is background work,
 	// and a player's write must not queue behind its marker clears. The
@@ -707,12 +718,23 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 			if err := tx.Delete(ctx, pending.markedKey); err != nil {
 				return err
 			}
-			if !pending.dropped {
+			// A reservation made while indexed accounting was on survives a
+			// later disable. Untouched legacy markers still use the off policy.
+			var reserved bool
+			if pending.dropped && !retryRefused {
+				reserved, err = tx.Exists(ctx, evictIndexKey(pending.ref.GetHash()))
+				if err != nil {
+					return err
+				}
+			}
+			if !pending.dropped || retryRefused || reserved {
 				added, err := queueEvict(ctx, tx, epoch, pending.ref.GetHash(), pending.size)
 				if err != nil {
 					return err
 				}
 				queuedBytes += added
+			}
+			if !pending.dropped {
 				uploaded++
 				uploadedBytes += pending.size
 			}

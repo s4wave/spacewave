@@ -130,16 +130,22 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 func TestEvictionPassLogIntervals(t *testing.T) {
 	for _, name := range []string{"zero", "accumulate"} {
 		t.Run(name, func(t *testing.T) {
+			// The Store watches process-wide policy outside synthetic time. Its
+			// worker must not become an external-channel waiter inside the bubble.
+			ownerCtx, stopOwner := context.WithCancel(t.Context())
+			defer stopOwner()
+			local := newLeafStore()
+			wb, err := block_store_writeback.NewStore(ownerCtx, local, local, store_kvtx_inmem.NewStore(), "test/log", true)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Keep eviction timers, work and cancellation inside synthetic time.
 			synctest.Test(t, func(t *testing.T) {
 				// Open a placement over in-memory stores without external services.
 				zero := name == "zero"
 				ctx, cancel := context.WithCancel(t.Context())
 				defer cancel()
-				local := newLeafStore()
-				wb, err := block_store_writeback.NewStore(ctx, local, local, store_kvtx_inmem.NewStore(), "test/log", true)
-				if err != nil {
-					t.Fatal(err)
-				}
 				remote := newLeafStore()
 				p := &placementState{wb: wb, evictGate: new(csync.Mutex), remote: new(atomic.Pointer[openBackend])}
 				if !zero {

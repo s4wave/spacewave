@@ -161,8 +161,8 @@ func (s *Store) drainFills() {
 // entry. With refusal retry enabled, queueing commits before any value write,
 // and fillMtx excludes a pass until every value write has finished. A failed
 // queue commit writes no values; a crash leaves only surplus queue entries,
-// which a later pass cleans. A filled marked block retains its eviction
-// entry on refusal, including when a dropped upload later clears its marker.
+// which a later pass cleans. With indexed accounting a marker covers a fill
+// instead; every retry-on clear restores coverage in its marker transaction.
 //
 // This store upkeep runs below Flowgraphs: it must work before a Space loads.
 // Retry off retains the former value-before-queue ordering.
