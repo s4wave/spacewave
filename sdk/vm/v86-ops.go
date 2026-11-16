@@ -168,7 +168,7 @@ func (o *SetV86ConfigOp) ApplyWorldOp(
 		// Decode the VM block and require its retained metadata.
 		vm, unmarshalErr := block.UnmarshalBlock[VmV86](ctx, bcs)
 		if unmarshalErr != nil {
-			return unmarshalErr
+			return world.RefuseDecodeError(unmarshalErr)
 		}
 		if vm == nil {
 			return world.NewOpRefusedError(errors.New("vm-v86 block missing on object"))
@@ -228,7 +228,7 @@ func (o *SetV86StateOp) ApplyWorldOp(
 		// Decode the VM block and require its retained execution state.
 		vm, unmarshalErr := block.UnmarshalBlock[VmV86](ctx, bcs)
 		if unmarshalErr != nil {
-			return unmarshalErr
+			return world.RefuseDecodeError(unmarshalErr)
 		}
 		if vm == nil {
 			return world.NewOpRefusedError(errors.New("vm-v86 block missing on object"))

@@ -156,7 +156,7 @@ func (o *SetV86ImageMetadataOp) ApplyWorldOp(
 		// Decode the current VM image and require its retained metadata.
 		current, unmarshalErr := block.UnmarshalBlock[V86Image](ctx, bcs)
 		if unmarshalErr != nil {
-			return unmarshalErr
+			return world.RefuseDecodeError(unmarshalErr)
 		}
 		if current == nil {
 			return world.NewOpRefusedError(errors.New("v86 image block missing on object"))

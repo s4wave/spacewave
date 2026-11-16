@@ -1,6 +1,10 @@
 package world
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/s4wave/spacewave/db/block"
+)
 
 // OpRefusedError is an operation its handler refused on the World it applied
 // to: a decision of the handler from the operation and that base alone, such
@@ -35,4 +39,16 @@ func NewOpRefusedError(err error) error {
 func IsOpRefusedError(err error) bool {
 	var refused *OpRefusedError
 	return errors.As(err, &refused)
+}
+
+// RefuseDecodeError refuses err when it is a *block.DecodeError: bytes that
+// were read and checked against their ref but do not decode, the same on
+// every replica. Any other error, such as a failed read, is returned
+// unchanged and waits.
+func RefuseDecodeError(err error) error {
+	var decodeErr *block.DecodeError
+	if errors.As(err, &decodeErr) {
+		return NewOpRefusedError(err)
+	}
+	return err
 }

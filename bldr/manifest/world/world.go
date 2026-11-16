@@ -575,10 +575,7 @@ func readManifestRefObject(ctx context.Context, ws world.WorldState, objKey stri
 	})
 
 	// Refuse a stored root that does not decode; a failed read waits.
-	if _, ok := stderrors.AsType[*block.DecodeError](err); ok {
-		err = world.NewOpRefusedError(err)
-	}
-	return manifestRef, ref, err
+	return manifestRef, ref, world.RefuseDecodeError(err)
 }
 
 // NewListManifestPath creates a Path that selects all Manifest and

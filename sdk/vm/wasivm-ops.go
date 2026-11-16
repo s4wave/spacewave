@@ -127,7 +127,7 @@ func (o *SetWasiVmStateOp) ApplyWorldOp(
 		// Decode the VM block.
 		vm, unmarshalErr := block.UnmarshalBlock[WasiVm](ctx, bcs)
 		if unmarshalErr != nil {
-			return unmarshalErr
+			return world.RefuseDecodeError(unmarshalErr)
 		}
 		if vm == nil {
 			return world.NewOpRefusedError(errors.New("wasivm block missing on object"))
