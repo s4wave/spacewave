@@ -17,6 +17,13 @@ describe('plugin JS entrypoint retry logging', () => {
     expect(isEntrypointLifecycleRetry(err)).toBe(true)
     expect(isEntrypointLifecycleRetry(new Error('stream reset'))).toBe(true)
     expect(isEntrypointLifecycleRetry(new Error('ERR_RPC_ABORT'))).toBe(true)
+    expect(
+      isEntrypointLifecycleRetry(
+        new Error(
+          'WebRuntimeClient: plugin/spacewave-web//generation/1: runtime client generation 1 closed: runtime-disconnected',
+        ),
+      ),
+    ).toBe(true)
     expect(isEntrypointLifecycleRetry(new Error('different'))).toBe(false)
   })
 

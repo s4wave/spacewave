@@ -65,10 +65,22 @@ function logError(message: string, error: unknown): void {
   console.error(error)
 }
 
+// runtimeClientClosedPattern matches a RuntimeClientClosedError by message,
+// since the error reaches the plugin across postMessage, which strips its class.
+const runtimeClientClosedPattern = /runtime client generation \d+ closed: /
+
+// isEntrypointLifecycleRetry reports whether error ends one attempt as part of
+// a normal lifecycle: an abort, a stream reset, or a runtime client generation
+// closing, as on a page reload. The retry reaches the next live runtime, so
+// none of these is logged.
 export function isEntrypointLifecycleRetry(error: unknown): boolean {
   if (error !== null && isAbortError(error)) return true
   if (!(error instanceof Error)) return false
-  return error.name === 'StreamResetError' || error.message === 'stream reset'
+  return (
+    error.name === 'StreamResetError' ||
+    error.message === 'stream reset' ||
+    runtimeClientClosedPattern.test(error.message)
+  )
 }
 
 // notHostPluginMessage is the message of bldr_plugin.ErrNotHostPlugin, the
