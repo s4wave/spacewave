@@ -558,8 +558,10 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 				waiting = false
 			case <-p.policyWake:
 				waiting = false
-			case now := <-save.C:
-				passLog.due(now)
+			case <-save.C:
+				// Time the log limit by the clock now, not the tick's time,
+				// which lags when a slow save delays the tick.
+				passLog.due(time.Now())
 				if err := p.reads.save(ctx); err != nil {
 					return err
 				}
