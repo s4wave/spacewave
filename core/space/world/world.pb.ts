@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/core/space/world/world.proto (package space.world, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
@@ -15,6 +16,33 @@ import {
   WorldFormat_Enum,
 } from '../../../db/world/block/world.pb.js'
 import { Tx } from '../../../db/world/block/tx/tx.pb.js'
+
+/**
+ * ReplayRefusalRule is the rule that decided a cursor's refusals.
+ *
+ * @generated from enum space.world.ReplayRefusalRule
+ */
+export enum ReplayRefusalRule {
+  /**
+   * REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER refused operations whose
+   * handlers were missing, so a refusal may be a fact about the device.
+   */
+  REFUSES_MISSING_HANDLER = 0,
+
+  /**
+   * REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER waits at a missing handler, so a
+   * refusal is a verdict on the operation and the World before it.
+   */
+  WAITS_FOR_HANDLER = 1,
+}
+
+export const ReplayRefusalRule_Enum = /* @__PURE__ */ createEnumType(
+  'space.world.ReplayRefusalRule',
+  [
+    [0, 'REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER'],
+    [1, 'REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER'],
+  ],
+)
 
 /**
  * WorldContents contains a list of world objects and types.
@@ -569,6 +597,10 @@ export interface ReplayCursor {
    * Height is the height of the checkpoint whose World is Base.
    */
   height?: bigint
+  /**
+   * RefusalRule is the rule that decided the refusals in Outcomes.
+   */
+  refusalRule?: ReplayRefusalRule
 }
 
 export const ReplayCursor: MessageType<ReplayCursor> =
@@ -579,6 +611,7 @@ export const ReplayCursor: MessageType<ReplayCursor> =
       [2, 'outcomes', 11, 1, ReplayCursorOutcome.codec],
       [3, 'head', 11, 0, InnerState.codec],
       [7, 'height', 4],
+      [8, 'refusal_rule', 14, 0, ReplayRefusalRule_Enum],
     ],
   )
 
