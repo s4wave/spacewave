@@ -266,6 +266,15 @@ const CacheReadsEnv = "SPACEWAVE_EVICT_CACHE_READS"
 // cacheReadsOff is read once at startup from CacheReadsEnv.
 var cacheReadsOff = os.Getenv(CacheReadsEnv) == "off"
 
+// EvictRefusedRetryEnv enables refused-entry retries when set to "on".
+// Every other value, including an unset variable, keeps the default off.
+const EvictRefusedRetryEnv = "SPACEWAVE_EVICT_REFUSED_RETRY"
+
+// init selects the provider's refusal policy once at process startup.
+func init() {
+	block_store_writeback.SetEvictRefusedRetry(os.Getenv(EvictRefusedRetryEnv) == "on")
+}
+
 // cacheHits records the blocks served from decoded-block caches, a read the
 // local store never sees: without it, a block the backend keeps decoded in
 // memory looks unread, eviction drops its local copy, and the first read after
@@ -453,6 +462,12 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 		var retry <-chan time.Time
 		if want := p.evictLatch.Bytes(status); want > 0 && p.remote.Load() != nil {
 			result, err := p.evict(ctx, want)
+			le.WithFields(logrus.Fields{
+				"evicted":       result.Evicted,
+				"evicted-bytes": result.EvictedBytes,
+				"requeued":      result.Requeued,
+				"refused":       result.Refused,
+			}).Info("eviction pass")
 			switch {
 			case err != nil && ctx.Err() == nil && block_store_writeback.IsBusyError(err):
 				le.WithError(err).WithField("evicted-bytes", result.EvictedBytes).Warn("eviction pass ended on a busy database, retrying")
