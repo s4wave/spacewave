@@ -553,6 +553,15 @@ function resolveDisplayStatus(
       onRetry: c.retryDisplay,
     }
   }
+  // A SharedObject mount that settles with no value found no such Space.
+  if (!c.sharedObjectResource.loading && !c.sharedObjectResource.value) {
+    return {
+      state: 'error',
+      title: 'Space not found',
+      detail: 'The session lists this Space but could not open it.',
+      onRetry: c.sharedObjectResource.retry,
+    }
+  }
   return isSpaceMounting(c) ? SPACE_LOADING_STATUS : null
 }
 
