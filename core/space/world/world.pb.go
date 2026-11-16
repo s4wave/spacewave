@@ -9,6 +9,7 @@ import (
 	io "io"
 	maps "maps"
 	slices "slices"
+	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
@@ -20,6 +21,44 @@ import (
 	tx "github.com/s4wave/spacewave/db/world/block/tx"
 	command "github.com/s4wave/spacewave/sdk/command"
 )
+
+// ReplayRefusalRule is the rule that decided a cursor's refusals.
+type ReplayRefusalRule int32
+
+const (
+	// REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER refused operations whose
+	// handlers were missing, so a refusal may be a fact about the device.
+	ReplayRefusalRule_REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER ReplayRefusalRule = 0
+	// REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER waits at a missing handler, so a
+	// refusal is a verdict on the operation and the World before it.
+	ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER ReplayRefusalRule = 1
+)
+
+// Enum value maps for ReplayRefusalRule.
+var (
+	ReplayRefusalRule_name = map[int32]string{
+		0: "REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER",
+		1: "REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER",
+	}
+	ReplayRefusalRule_value = map[string]int32{
+		"REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER": 0,
+		"REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER":       1,
+	}
+)
+
+func (x ReplayRefusalRule) Enum() *ReplayRefusalRule {
+	p := new(ReplayRefusalRule)
+	*p = x
+	return p
+}
+
+func (x ReplayRefusalRule) String() string {
+	name, valid := ReplayRefusalRule_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
 
 // WorldContents contains a list of world objects and types.
 type WorldContents struct {
@@ -783,6 +822,8 @@ type ReplayCursor struct {
 	Head *InnerState `protobuf:"bytes,3,opt,name=head,proto3" json:"head,omitempty"`
 	// Height is the height of the checkpoint whose World is Base.
 	Height uint64 `protobuf:"varint,7,opt,name=height,proto3" json:"height,omitempty"`
+	// RefusalRule is the rule that decided the refusals in Outcomes.
+	RefusalRule ReplayRefusalRule `protobuf:"varint,8,opt,name=refusal_rule,json=refusalRule,proto3" json:"refusalRule,omitempty"`
 }
 
 func (x *ReplayCursor) Reset() {
@@ -817,6 +858,13 @@ func (x *ReplayCursor) GetHeight() uint64 {
 		return x.Height
 	}
 	return 0
+}
+
+func (x *ReplayCursor) GetRefusalRule() ReplayRefusalRule {
+	if x != nil {
+		return x.RefusalRule
+	}
+	return ReplayRefusalRule_REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER
 }
 
 // ReplayCursorOutcome is the outcome of one replayed operation.
@@ -1454,6 +1502,7 @@ func (m *ReplayCursor) CloneVT() *ReplayCursor {
 	}
 	r := new(ReplayCursor)
 	r.Height = m.Height
+	r.RefusalRule = m.RefusalRule
 	r.Base = protobuf_go_lite.CloneVTValue(m.Base)
 	r.Outcomes = protobuf_go_lite.CloneVTSlice(m.Outcomes)
 	r.Head = protobuf_go_lite.CloneVTValue(m.Head)
@@ -2137,6 +2186,9 @@ func (this *ReplayCursor) EqualVT(that *ReplayCursor) bool {
 	if this.Height != that.Height {
 		return false
 	}
+	if this.RefusalRule != that.RefusalRule {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2256,6 +2308,46 @@ func (this *BackfillState) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the ReplayRefusalRule to JSON.
+func (x ReplayRefusalRule) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), ReplayRefusalRule_name)
+}
+
+// MarshalText marshals the ReplayRefusalRule to text.
+func (x ReplayRefusalRule) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), ReplayRefusalRule_name)), nil
+}
+
+// MarshalJSON marshals the ReplayRefusalRule to JSON.
+func (x ReplayRefusalRule) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReplayRefusalRule from JSON.
+func (x *ReplayRefusalRule) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(ReplayRefusalRule_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read ReplayRefusalRule enum: %v", err)
+		return
+	}
+	*x = ReplayRefusalRule(v)
+}
+
+// UnmarshalText unmarshals the ReplayRefusalRule from text.
+func (x *ReplayRefusalRule) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), ReplayRefusalRule_value)
+	if err != nil {
+		return err
+	}
+	*x = ReplayRefusalRule(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the ReplayRefusalRule from JSON.
+func (x *ReplayRefusalRule) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the WorldContents message to JSON.
@@ -3668,6 +3760,11 @@ func (x *ReplayCursor) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("height")
 		s.WriteUint64(x.Height)
 	}
+	if x.RefusalRule != 0 || s.HasField("refusalRule") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refusalRule")
+		x.RefusalRule.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3720,6 +3817,9 @@ func (x *ReplayCursor) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "height":
 			s.AddField("height")
 			x.Height = s.ReadUint64()
+		case "refusal_rule", "refusalRule":
+			s.AddField("refusal_rule")
+			x.RefusalRule.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -5199,6 +5299,11 @@ func (m *ReplayCursor) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.RefusalRule != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RefusalRule))
+		i--
+		dAtA[i] = 0x40
+	}
 	if m.Height != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Height))
 		i--
@@ -5902,6 +6007,7 @@ func (m *ReplayCursor) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Height)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RefusalRule)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5976,6 +6082,10 @@ func (m *BackfillState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Seqno)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x ReplayRefusalRule) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *WorldContents) MarshalProtoText() string {
@@ -6514,6 +6624,10 @@ func (x *ReplayCursor) MarshalProtoText() string {
 	if x.Height != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "height")
 		protobuf_go_lite.TextWriteUint(&sb, x.Height)
+	}
+	if x.RefusalRule != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refusal_rule")
+		protobuf_go_lite.TextWriteStringer(&sb, ReplayRefusalRule(x.RefusalRule))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -8203,6 +8317,17 @@ func (m *ReplayCursor) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Height = 0
 			m.Height, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RefusalRule", wireType)
+			}
+			m.RefusalRule = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RefusalRule = ReplayRefusalRule(_v)
 			if err != nil {
 				return err
 			}
