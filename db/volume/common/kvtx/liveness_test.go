@@ -2569,6 +2569,15 @@ func testLivenessAdversarial(t *testing.T) {
 		})
 	}
 
+	for _, k := range []int{1, 100, 1000} {
+		t.Run("blocks named past the cursor "+strconv.Itoa(k), func(t *testing.T) {
+			testTailKeeps(t, k, 0)
+		})
+	}
+	t.Run("blocks named past the cursor past the index bound", func(t *testing.T) {
+		testTailKeeps(t, 100, 1000)
+	})
+
 	for _, mid := range []string{"a crash", "children held again", "a second parent's release", "the releasing block put again", "a crash mid re-hold", "the releasing block lost"} {
 		t.Run("release interrupted by "+mid, func(t *testing.T) {
 			// F names 6,000 leaves, more than one slice moves, and G names
@@ -4631,4 +4640,212 @@ func countPrefix(t *testing.T, store *store_kvtx_inmem.Store, prefix []byte) int
 		t.Fatal(err)
 	}
 	return n
+}
+
+// tailProbe runs a collector's transactions, recording the store operations
+// and the time each free transaction took, and calls after following each.
+type tailProbe struct {
+	block_gc.Store
+	// cs counts the store's operations.
+	cs *kvtx_kvtest.CountingStore
+	// sweep reports that the pass is freeing.
+	sweep bool
+	// ops are the operations of each free transaction.
+	ops []uint64
+	// took is the time each free transaction took.
+	took []time.Duration
+	// after runs after each free transaction, given its index.
+	after func(i int)
+}
+
+// Update runs the transaction, recording it when the pass is freeing.
+func (p *tailProbe) Update(ctx context.Context, fn func(rec *block_gc.Records, blocks block.StoreOps) error) error {
+	before, start := p.cs.Counts(), time.Now()
+	err := p.Store.Update(ctx, fn)
+	if !p.sweep {
+		return err
+	}
+	p.took = append(p.took, time.Since(start))
+	p.ops = append(p.ops, p.cs.Counts().Sub(before).Total())
+	if p.after != nil {
+		p.after(len(p.ops) - 1)
+	}
+	return err
+}
+
+// phase notes whether the pass is freeing.
+func (p *tailProbe) phase(ph block_gc.Phase) func() {
+	p.sweep = ph == block_gc.PhaseSweep
+	return func() { p.sweep = false }
+}
+
+// testTailKeeps stores k leaves and blocks Y and Z, each under its own root,
+// releases them, and nets the releases, so all are Dead and ripe. A writer
+// that holds none of them then appends records past the cursor naming the
+// leaves in again lists: a tail of about 150,000 entries, more than one free
+// slice reads, and a record naming the first leaf half a grace period later.
+// While the free reads the tail, another such record names Z. The free must
+// read the whole tail across slices, keep the leaves and Z, and free Y. Once
+// the tail nets, each leaf ripens again at the journal's end, still stored
+// while the late record that names the first leaf has not netted; once it
+// nets, everything frees. With limit set below the tail, the index saturates
+// and the free keeps Y too, until the tail nets and a rebuild fits.
+func testTailKeeps(t *testing.T, k, limit int) {
+	// Store and release the blocks, then net the releases.
+	t.Helper()
+	ctx := t.Context()
+	cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
+	v, err := NewVolume(ctx, "test/tail-keeps", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true, CollectorHoldUntilFree: testHold}, false, false, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
+	v.clock = clk.Now
+	t.Cleanup(func() { _ = v.Close() })
+	tr := testTree{}
+	leaves := make([]string, k)
+	for i := range leaves {
+		leaves[i] = "leaf " + strconv.Itoa(i)
+	}
+	names := append(slices.Clone(leaves), "Y", "Z")
+	var roots, released []block.NamedRoot
+	for _, name := range names {
+		ref := tr.add(t, name)
+		roots = append(roots, block.NamedRoot{Name: name, Ref: ref})
+		released = append(released, block.NamedRoot{Name: name, Previous: ref})
+	}
+	if err := v.SetBucketRoots(ctx, "b", tr.entries(names...), roots); err != nil {
+		t.Fatal(err)
+	}
+	if err := v.SetBucketRoots(ctx, "b", nil, released[:k]); err != nil {
+		t.Fatal(err)
+	}
+	if err := v.SetBucketRoots(ctx, "b", nil, released[k:]); err != nil {
+		t.Fatal(err)
+	}
+	clk.Add(block_gc.DefaultGrace + time.Second)
+	nets := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{HoldUntilFree: testHold, Now: v.now})
+	for more := true; more; {
+		res, err := nets.Collect(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		more = res.More
+	}
+
+	// Append the tail as a writer that holds none of the blocks, in records
+	// of 3,000 entries, so a netting slice ends inside one.
+	appendNames := func(keys ...[]byte) {
+		t.Helper()
+		err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+			state, err := p.rec.GetState(ctx)
+			if err != nil {
+				return err
+			}
+			for len(keys) != 0 {
+				n := min(len(keys), 3000)
+				r := &block_gc.JournalRecord{AtUnixMilli: v.now().UnixMilli(), Again: keys[:n]}
+				if err := p.rec.PutJournal(ctx, state.GetNextSeq(), r); err != nil {
+					return err
+				}
+				keys, state.NextSeq = keys[n:], state.GetNextSeq()+1
+			}
+			return p.rec.SetState(ctx, state)
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	key := func(name string) []byte { return block_gc.BlockKey(tr[name].Ref) }
+	tail := make([][]byte, 150_000)
+	for i := range tail {
+		tail[i] = key(leaves[i%k])
+	}
+	appendNames(tail...)
+	clk.Add(block_gc.DefaultGrace / 2)
+	appendNames(key(leaves[0]))
+	late := livenessState(t, v).GetNextSeq() - 1
+
+	// Free, naming Z between the first two slices that read the tail.
+	probe := &tailProbe{Store: collectorStore{v: v}, cs: cs}
+	probe.after = func(i int) {
+		if i == 1 {
+			appendNames(key("Z"))
+		}
+	}
+	c := block_gc.NewCollector(probe, block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now, Phase: probe.phase, TailEntries: limit})
+	collect := func() block_gc.CollectResult {
+		t.Helper()
+		var total block_gc.CollectResult
+		for more := true; more; {
+			res, err := c.Collect(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			total.Freed += res.Freed
+			total.Kept += res.Kept
+			total.Netted += res.Netted
+			total.TailReading += res.TailReading
+			total.TailSaturated += res.TailSaturated
+			more = res.More
+		}
+		return total
+	}
+	res := collect()
+	reading := int(res.TailReading) //nolint:gosec // a test size.
+	saturated := limit != 0
+	if reading < 2 || res.Freed != uint64(b2u(!saturated)) || (res.TailSaturated != 0) != saturated {
+		t.Fatalf("free = %+v, want the tail read across slices and Y freed unless saturated", res)
+	}
+	requireStored(t, v, tr, saturated, "Y")
+	requireStored(t, v, tr, true, append(slices.Clone(leaves), "Z")...)
+	readOps, freeOps := slices.Max(probe.ops[1:1+reading]), probe.ops[1+reading:]
+	t.Logf("tail of %d leaves: read in %d slices of at most %d operations, longest %v; then %d free slices of %v operations",
+		k, reading, readOps, slices.Max(probe.took), len(freeOps), freeOps)
+
+	// A second pass reads no tail and reads the kept entries again.
+	probe.ops, probe.took, probe.after = nil, nil, nil
+	if res := collect(); res.Freed != 0 || res.TailReading != 0 && !saturated {
+		t.Fatalf("second free = %+v, want nothing freed and no tail read", res)
+	}
+	t.Logf("tail of %d leaves: second pass %d free slices of %v operations", k, len(probe.ops), probe.ops)
+
+	// Net the tail but not the late record or Z's, landed after it: each
+	// leaf ripens again at the journal's end, past the late record, and
+	// stays. A saturated index now fits again and frees Y.
+	clk.Add(block_gc.DefaultGrace/2 + time.Second)
+	if res := collect(); res.Freed != uint64(b2u(saturated)) || res.TailSaturated != 0 {
+		t.Fatalf("free after the tail netted = %+v, want Y freed only if saturated before", res)
+	}
+	state := livenessState(t, v)
+	if state.GetCursor() != late {
+		t.Fatalf("cursor %d, want the late record %d", state.GetCursor(), late)
+	}
+	err = v.readRecords(ctx, func(rec *block_gc.Records) error {
+		holders, ripe, err := rec.GetHolders(ctx, tr[leaves[0]].Ref)
+		if err == nil && (holders != 0 || ripe <= late) {
+			t.Errorf("first leaf holders %d ripe %d, want 0 and past the late record %d", holders, ripe, late)
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	requireStored(t, v, tr, true, append(slices.Clone(leaves), "Z")...)
+
+	// Net the late record: everything frees.
+	clk.Add(block_gc.DefaultGrace/2 + time.Second)
+	if res := collect(); res.Freed != uint64(k)+1 { //nolint:gosec // a test size.
+		t.Fatalf("last free = %+v, want the leaves and Z freed", res)
+	}
+	requireStored(t, v, tr, false, names...)
+	requireAudit(t, v, 0)
+}
+
+// b2u returns 1 for true and 0 for false.
+func b2u(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }

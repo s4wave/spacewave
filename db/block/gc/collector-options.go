@@ -32,6 +32,11 @@ type CollectorOptions struct {
 	// of a leased root, so a reader whose process stalled past its lease
 	// still finds its blocks. Zero uses DefaultGrace.
 	Grace time.Duration
+	// TailEntries bounds the up and again entries of the journal past the
+	// cursor the free indexes in memory to keep the blocks they name. Past
+	// it the free keeps every block until netting trims the journal below
+	// it. Zero uses DefaultTailEntries.
+	TailEntries int
 	// Now returns the time records and leases are read on; nil is time.Now.
 	Now func() time.Time
 	// Budget bounds the time one Collect spends before it reports More; zero
@@ -108,3 +113,6 @@ const sliceLeases = 256
 // below that mark, as by a clock that stepped back, is released at most this
 // late.
 const leaseRescan = time.Hour
+
+// DefaultTailEntries is the tail index bound of a Collector that sets none.
+const DefaultTailEntries = 1 << 19
