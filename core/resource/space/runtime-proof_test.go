@@ -409,7 +409,27 @@ func TestSpaceRuntimeDeletesBindingOfDeletedObject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for {
-		bindings := recvSpaceRuntimeWatchState(t, stream).GetProcessBindings()
+		// Keep the watch deadline and diagnose its authoritative state on failure.
+		var state *s4wave_space.SpaceContentsState
+		select {
+		case state = <-stream.msgs:
+		case <-time.After(5 * time.Second):
+			diagnosticCtx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			stored, storeErr := resource.listProcessBindingInfos(diagnosticCtx)
+			exists, existsErr := tb.WorldState.HasObject(diagnosticCtx, "deleted")
+			seqno, seqErr := tb.WorldState.GetSeqno(diagnosticCtx)
+			keptBound := slices.ContainsFunc(stored, func(binding *s4wave_space.ProcessBindingInfo) bool {
+				return binding.GetObjectKey() == "kept"
+			})
+			deletedBound := slices.ContainsFunc(stored, func(binding *s4wave_space.ProcessBindingInfo) bool {
+				return binding.GetObjectKey() == "deleted"
+			})
+			t.Fatalf("delete watch stalled: bindingCount=%d keptBound=%t deletedBound=%t storeReadFailed=%t deletedExists=%t objectReadFailed=%t seqno=%d seqnoReadFailed=%t", len(stored), keptBound, deletedBound, storeErr != nil, exists, existsErr != nil, seqno, seqErr != nil)
+		}
+
+		// Require the original projection: only the kept object's binding remains.
+		bindings := state.GetProcessBindings()
 		if len(bindings) == 1 && bindings[0].GetObjectKey() == "kept" {
 			break
 		}
