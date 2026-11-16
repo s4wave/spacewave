@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
@@ -18,6 +19,11 @@ type evictMoveCountStore struct {
 	kvtx.Store
 	// moves is the number of committed queue-changing transactions.
 	moves int
+	// busy is the number of queue-changing commits still to fail busy, as
+	// SQLite reports another writer, before they commit.
+	busy int
+	// busied is the number of queue-changing commits failed busy.
+	busied int
 }
 
 // NewTransaction wraps the real transaction to count its queue changes.
@@ -44,8 +50,14 @@ func (t *evictMoveCountTx) Delete(ctx context.Context, key []byte) error {
 	return t.Tx.Delete(ctx, key)
 }
 
-// Commit counts a committed queue change.
+// Commit counts a committed queue change, failing it busy first while busy
+// is set.
 func (t *evictMoveCountTx) Commit(ctx context.Context) error {
+	if t.moved && t.store.busy != 0 {
+		t.store.busy--
+		t.store.busied++
+		return errors.New("database is locked")
+	}
 	err := t.Tx.Commit(ctx)
 	if err == nil && t.moved {
 		t.store.moves++
@@ -207,6 +219,41 @@ func TestEvictRetryOffKeepsPinBehavior(t *testing.T) {
 	}
 	if f.moves.moves != 1 {
 		t.Fatalf("queue commits = %d, want one for the batch", f.moves.moves)
+	}
+	status, _ := f.store.GetStatus()
+	if status.EvictableBytes != f.sizes["kept"] || status.EvictedBytes != f.sizes["held"] {
+		t.Fatalf("status evictable = %d, evicted = %d", status.EvictableBytes, status.EvictedBytes)
+	}
+	f.checkLocal(t)
+}
+
+// TestEvictRetryOffKeepsPinBehaviorAcrossBatches runs the scenario of
+// TestEvictRetryOffKeepsPinBehavior with refusal retry off in batches of 40
+// entries, so one pass takes three batches, and fails the first batch's queue
+// commit busy once: the pass writes the same queue and counts, in one queue
+// commit a batch.
+func TestEvictRetryOffKeepsPinBehaviorAcrossBatches(t *testing.T) {
+	SetEvictBatch(EvictBatch{MinBlocks: 40, MaxBlocks: 40})
+	t.Cleanup(func() { SetEvictBatch(EvictBatch{}) })
+	f := newEvictMixScenario(t)
+	f.moves.busy = 1
+	result, err := f.store.Evict(t.Context(), f.remote, 1<<30, f.keep, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := EvictResult{Evicted: 70, EvictedBytes: f.sizes["held"], Requeued: 5, Refused: 25}
+	if result != want {
+		t.Fatalf("result = %+v, want %+v", result, want)
+	}
+	if got, want := f.queue(t), f.want("kept"); !slices.Equal(got, want) {
+		t.Fatalf("queue = %q, want %q", got, want)
+	}
+	var total int
+	for _, kind := range evictMixKinds {
+		total += kind.count
+	}
+	if batches := (total + 39) / 40; f.moves.moves != batches || f.moves.busied != 1 {
+		t.Fatalf("queue commits = %d with %d busy, want %d and 1", f.moves.moves, f.moves.busied, batches)
 	}
 	status, _ := f.store.GetStatus()
 	if status.EvictableBytes != f.sizes["kept"] || status.EvictedBytes != f.sizes["held"] {

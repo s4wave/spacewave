@@ -272,7 +272,13 @@ const EvictRefusedRetryEnv = "SPACEWAVE_EVICT_REFUSED_RETRY"
 
 // init selects the provider's refusal policy once at process startup.
 func init() {
-	block_store_writeback.SetEvictRefusedRetry(os.Getenv(EvictRefusedRetryEnv) == "on")
+	block_store_writeback.SetEvictRefusedRetry(evictRefusedRetryOn(os.Getenv(EvictRefusedRetryEnv)))
+}
+
+// evictRefusedRetryOn reports whether an EvictRefusedRetryEnv value enables
+// refused-entry retries: only the exact value "on" does.
+func evictRefusedRetryOn(value string) bool {
+	return value == "on"
 }
 
 // cacheHits records the blocks served from decoded-block caches, a read the
@@ -424,6 +430,66 @@ func (r *readRecorder) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 // at the next upload would only queue them again.
 const evictShortWait = 10 * time.Minute
 
+// evictLogInterval is the least time between two logs of the eviction counts.
+// A store over its high mark can run a pass on every upload commit, several a
+// second, so the loop sums the passes' counts and logs them at most this
+// often.
+const evictLogInterval = time.Minute
+
+// evictPassLog sums the counts of the eviction passes not yet logged.
+type evictPassLog struct {
+	// le is the logger of the eviction loop.
+	le *logrus.Entry
+	// sum is the summed counts of the passes not yet logged.
+	sum block_store_writeback.EvictResult
+	// unlogged is set while sum holds a pass not yet logged.
+	unlogged bool
+	// last is when the counts were last logged, zero before the first log.
+	last time.Time
+}
+
+// add sums a pass's counts, then logs them when evictLogInterval has passed
+// since the last log, or before the first.
+func (l *evictPassLog) add(result block_store_writeback.EvictResult, now time.Time) {
+	// Sum the pass into the unlogged counts, then log them if due.
+	l.sum.Evicted += result.Evicted
+	l.sum.EvictedBytes += result.EvictedBytes
+	l.sum.Requeued += result.Requeued
+	l.sum.Refused += result.Refused
+	l.unlogged = true
+	l.due(now)
+}
+
+// due logs the summed counts when any are unlogged and evictLogInterval has
+// passed since the last log, or none was logged yet.
+func (l *evictPassLog) due(now time.Time) {
+	if l.last.IsZero() || now.Sub(l.last) >= evictLogInterval {
+		l.flush(now)
+	}
+}
+
+// flush logs the summed counts when any pass is unlogged, and clears them.
+// Counts that are all zero write no line and leave the last log time.
+func (l *evictPassLog) flush(now time.Time) {
+	// Write nothing without unlogged passes, or for counts that are all zero.
+	if !l.unlogged {
+		return
+	}
+	if l.sum == (block_store_writeback.EvictResult{}) {
+		l.unlogged = false
+		return
+	}
+
+	// Log the summed counts and start the next sum.
+	l.le.WithFields(logrus.Fields{
+		"evicted":       l.sum.Evicted,
+		"evicted-bytes": l.sum.EvictedBytes,
+		"requeued":      l.sum.Requeued,
+		"refused":       l.sum.Refused,
+	}).Info("eviction pass")
+	l.sum, l.unlogged, l.last = block_store_writeback.EvictResult{}, false, now
+}
+
 // evictBusyWait is how long eviction waits to retry a pass that ended on a
 // busy database, after the pass's own retries of the busy transaction.
 const evictBusyWait = 30 * time.Second
@@ -439,10 +505,16 @@ const evictBusyWait = 30 * time.Second
 // such as SetResidentMarks lowering the high mark, starts it at once either
 // way. A pass that ends on a busy database, after its own retries, is retried
 // after evictBusyWait instead of ending the loop. Between passes it saves the
-// recorded reads every readSaveInterval.
+// recorded reads every readSaveInterval. It logs the passes' summed counts at
+// most every evictLogInterval, as evictPassLog describes, and the counts left
+// unlogged when it returns.
 func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) error {
+	// Save recorded reads between passes, and log the passes' counts left
+	// unlogged on return.
 	save := time.NewTicker(readSaveInterval)
 	defer save.Stop()
+	passLog := &evictPassLog{le: le}
+	defer func() { passLog.flush(time.Now()) }()
 
 	// Count reads served from decoded-block caches and held by live values,
 	// which never reach the local store, unless CacheReadsEnv turns that off.
@@ -462,12 +534,7 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 		var retry <-chan time.Time
 		if want := p.evictLatch.Bytes(status); want > 0 && p.remote.Load() != nil {
 			result, err := p.evict(ctx, want)
-			le.WithFields(logrus.Fields{
-				"evicted":       result.Evicted,
-				"evicted-bytes": result.EvictedBytes,
-				"requeued":      result.Requeued,
-				"refused":       result.Refused,
-			}).Info("eviction pass")
+			passLog.add(result, time.Now())
 			switch {
 			case err != nil && ctx.Err() == nil && block_store_writeback.IsBusyError(err):
 				le.WithError(err).WithField("evicted-bytes", result.EvictedBytes).Warn("eviction pass ended on a busy database, retrying")
@@ -491,7 +558,8 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 				waiting = false
 			case <-p.policyWake:
 				waiting = false
-			case <-save.C:
+			case now := <-save.C:
+				passLog.due(now)
 				if err := p.reads.save(ctx); err != nil {
 					return err
 				}

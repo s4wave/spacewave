@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"maps"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -35,8 +36,9 @@ func (b *evictTestBackend) GetBlockExistsBatch(ctx context.Context, refs []*bloc
 }
 
 // TestEvictionRetriesTransientBackend uses the production routine backoff to
-// retry a backend error without a restart and logs counters for both passes.
-// Ported from Spacewave master c03394ac8.
+// retry a backend error without a restart and logs counters for the pass that
+// evicted. Ported from Spacewave master c03394ac8, where it logs both passes;
+// here the failed pass's counts are all zero, which writes no line.
 func TestEvictionRetriesTransientBackend(t *testing.T) {
 	// Upload through the real test backend and fail its first eviction probe.
 	f := newFallbackTest(t)
@@ -83,7 +85,7 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 		}
 	}
 
-	// Join the routine before reading the two completed-pass log records.
+	// Join the routine before reading the completed-pass log record.
 	cancel()
 	select {
 	case err := <-exits:
@@ -94,8 +96,8 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 		t.Fatal("eviction routine never stopped")
 	}
 	entries := hook.AllEntries()
-	if len(entries) != 2 {
-		t.Fatalf("logged %d passes, want 2", len(entries))
+	if len(entries) != 1 {
+		t.Fatalf("logged %d passes, want 1", len(entries))
 	}
 	for _, entry := range entries {
 		if entry.Data["refused"] != 0 || entry.Data["requeued"] != 0 {
@@ -116,7 +118,85 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 			t.Fatalf("pass byte count = %v", entry.Data)
 		}
 	}
-	if entries[1].Data["evicted"] != 1 {
+	if entries[0].Data["evicted"] != 1 {
 		t.Fatalf("successful pass counters = %v", entries[1].Data)
+	}
+}
+
+// TestEvictPassLogSums checks that the eviction loop sums its passes' counts
+// and logs them at most every evictLogInterval, writes no line for counts that
+// are all zero, and logs what is left unlogged when flushed on exit.
+func TestEvictPassLogSums(t *testing.T) {
+	logger, hook := logrustest.NewNullLogger()
+	l := &evictPassLog{le: logrus.NewEntry(logger)}
+	counts := func() []logrus.Fields {
+		var out []logrus.Fields
+		for _, entry := range hook.AllEntries() {
+			out = append(out, entry.Data)
+		}
+		return out
+	}
+	start := time.Unix(1000, 0)
+	pass := block_store_writeback.EvictResult{Evicted: 1, EvictedBytes: 10, Requeued: 2, Refused: 3}
+
+	// A zero pass first writes nothing, and leaves the next pass logged at
+	// once.
+	l.add(block_store_writeback.EvictResult{}, start)
+	if got := counts(); len(got) != 0 {
+		t.Fatalf("zero pass logged %v", got)
+	}
+
+	// The first counted pass logs at once; passes within the interval sum.
+	l.add(pass, start)
+	l.add(pass, start.Add(time.Second))
+	l.add(pass, start.Add(evictLogInterval-time.Nanosecond))
+	l.due(start.Add(evictLogInterval - time.Nanosecond))
+	if got := counts(); len(got) != 1 || got[0]["evicted"] != 1 || got[0]["evicted-bytes"] != int64(10) {
+		t.Fatalf("first interval logged %v", got)
+	}
+
+	// The interval's end logs the two summed passes, from the ticker's due.
+	l.due(start.Add(evictLogInterval))
+	want := logrus.Fields{"evicted": 2, "evicted-bytes": int64(20), "requeued": 4, "refused": 6}
+	if got := counts(); len(got) != 2 || !maps.Equal(got[1], want) {
+		t.Fatalf("second log = %v, want %v", got, want)
+	}
+
+	// Nothing unlogged writes nothing; the exit flush logs a pass within
+	// the interval.
+	l.due(start.Add(3 * evictLogInterval))
+	l.flush(start.Add(3 * evictLogInterval))
+	if got := counts(); len(got) != 2 {
+		t.Fatalf("idle loop logged %v", got[2:])
+	}
+	l.add(pass, start.Add(3*evictLogInterval+time.Second))
+	if got := counts(); len(got) != 3 {
+		t.Fatalf("pass after an idle interval logged %d lines, want 3", len(got))
+	}
+	l.add(pass, start.Add(3*evictLogInterval+2*time.Second))
+	l.flush(start.Add(3*evictLogInterval + 3*time.Second))
+	if got := counts(); len(got) != 4 || got[3]["refused"] != 3 {
+		t.Fatalf("exit flush logged %v", got)
+	}
+
+	// Zero counts within an interval write no line at the interval's end.
+	l.add(block_store_writeback.EvictResult{}, start.Add(4*evictLogInterval))
+	l.due(start.Add(5 * evictLogInterval))
+	l.flush(start.Add(5 * evictLogInterval))
+	if got := counts(); len(got) != 4 {
+		t.Fatalf("zero interval logged %v", got[4:])
+	}
+}
+
+// TestEvictRefusedRetryOn checks that only the exact value "on" of
+// EvictRefusedRetryEnv enables refused-entry retries.
+func TestEvictRefusedRetryOn(t *testing.T) {
+	for value, want := range map[string]bool{
+		"on": true, "": false, "ON": false, "On": false, "1": false, "true": false,
+		" on": false, "on ": false, "off": false, "yes": false,
+	} {
+		if got := evictRefusedRetryOn(value); got != want {
+			t.Errorf("evictRefusedRetryOn(%q) = %v, want %v", value, got, want)
+		}
 	}
 }
