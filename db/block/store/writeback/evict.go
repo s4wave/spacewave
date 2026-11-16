@@ -282,11 +282,13 @@ func addEvictableBytes(ctx context.Context, tx kvtx.Tx, delta int64) error {
 //
 // While Counting, the walk that starts the queue's kept count has yet to
 // reach part of the queue, so the resident bytes are short by the blocks
-// awaiting upload it has not counted. A pass still takes the marks: the
-// uploaded bytes are counted in full, so a store past the high mark on them
-// alone evicts down to the low mark, and the pending bytes the walk counts
-// later start the next pass. Dropping every uploaded byte while Counting
-// could empty the local copies of a store whose walk runs long.
+// awaiting upload it has not counted. A pass still takes the marks, on the
+// bytes counted so far: a store whose counted resident bytes are under the
+// high mark evicts nothing while they stay there, which can last until the
+// walk ends, and one past it on them evicts toward the low mark on them. The
+// pending bytes the walk counts later start the next pass. Dropping every
+// uploaded byte while Counting could empty the local copies of a store whose
+// walk runs long.
 func (s Status) EvictBytes() int64 {
 	resident := s.ResidentBytes()
 	switch {
