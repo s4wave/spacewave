@@ -46,8 +46,7 @@ func IsOpRefusedError(err error) bool {
 // every replica. Any other error, such as a failed read, is returned
 // unchanged and waits.
 func RefuseDecodeError(err error) error {
-	var decodeErr *block.DecodeError
-	if errors.As(err, &decodeErr) {
+	if _, ok := errors.AsType[*block.DecodeError](err); ok {
 		return NewOpRefusedError(err)
 	}
 	return err
