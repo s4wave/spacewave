@@ -553,7 +553,9 @@ func (o *bridgeOperation) withDeadline(ctx context.Context) (context.Context, co
 // position alike. A call into a worker loses its error's type, so an error
 // that arrives as ctx ends counts as the ending's: the
 // world.PluginOpTimeoutError when the deadline from withDeadline ended it,
-// and err wrapping ctx's error otherwise. While ctx is live, a cancellation or
+// and err wrapping ctx's error otherwise. A spent shared budget also counts as
+// a timeout before the local timer publishes cancellation. While ctx is live,
+// a cancellation or
 // a typed load error from connectPlugin returns as is, and every other error
 // returns as a world.PluginUnavailableError.
 func (o *bridgeOperation) callErr(ctx context.Context, err error, sent bool) error {
@@ -569,6 +571,16 @@ func (o *bridgeOperation) callErr(ctx context.Context, err error, sent bool) err
 			return timeout
 		}
 		return fmt.Errorf("%w: %w", err, ctx.Err())
+	}
+
+	// A nested call may report the shared deadline before this call's timer
+	// publishes it. The budget's deadline decides both calls' outcome.
+	if budget := world.GetWriteBudget(ctx); budget.Spent() {
+		return &world.PluginOpTimeoutError{
+			PluginID:        o.reg.GetPluginId(),
+			OperationTypeID: o.opTypeID,
+			Deadline:        budget.GetLength(),
+		}
 	}
 
 	// Keep a typed load error or a cancellation; anything else is a wait.
