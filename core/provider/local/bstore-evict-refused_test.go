@@ -119,7 +119,7 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 		}
 	}
 	if entries[0].Data["evicted"] != 1 {
-		t.Fatalf("successful pass counters = %v", entries[1].Data)
+		t.Fatalf("successful pass counters = %v", entries[0].Data)
 	}
 }
 
