@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net"
-	"os"
 	"sync"
 	"time"
 )
@@ -25,9 +24,9 @@ type Conn struct {
 	// raddr is the remote addr
 	raddr net.Addr
 
-	ar       sync.Pool   // packet arena
-	rd       time.Time   // read deadline
-	packetCh chan []byte // packet ch
+	ar       sync.Pool    // packet arena
+	rd       readDeadline // read deadline and change notification
+	packetCh chan []byte  // packet ch
 	closeErr error
 }
 
@@ -73,32 +72,17 @@ func (p *Conn) RemoteAddr() net.Addr {
 // Read can be made to time out and return an error after a fixed
 // time limit; see SetDeadline and SetReadDeadline.
 func (p *Conn) Read(b []byte) (n int, err error) {
-	// Apply the configured read deadline to the connection context.
-	deadline := p.rd
-	ctx := p.ctx
-	if !deadline.IsZero() {
-		var ctxCancel context.CancelFunc
-		ctx, ctxCancel = context.WithDeadline(ctx, deadline)
-		defer ctxCancel()
+	// Wait for a payload, observing deadline changes while blocked.
+	pkt, ok, err := p.rd.read(p.ctx, p.packetCh)
+	if err != nil {
+		return 0, err
 	}
-
-	// Wait for the next buffered payload or a connection close.
-	var pkt []byte
-	var ok bool
-	select {
-	case <-ctx.Done():
-		if !deadline.IsZero() {
-			return 0, os.ErrDeadlineExceeded
+	if !ok {
+		err = p.closeErr
+		if err == nil {
+			err = io.EOF
 		}
-		return 0, context.Canceled
-	case pkt, ok = <-p.packetCh:
-		if !ok {
-			err = p.closeErr
-			if err == nil {
-				err = io.EOF
-			}
-			return 0, err
-		}
+		return 0, err
 	}
 
 	// Copy the payload into the caller's buffer and release its arena slot.
@@ -135,17 +119,16 @@ func (p *Conn) Write(pkt []byte) (n int, err error) {
 //
 // Write deadlines are not supported; see SetWriteDeadline.
 //
-// A zero value for t means ReadFrom will not time out.
+// A zero value for t means Read will not time out.
 func (p *Conn) SetDeadline(t time.Time) error {
-	p.rd = t
-	return nil
+	return p.SetReadDeadline(t)
 }
 
-// SetReadDeadline sets the deadline for future ReadFrom calls
-// and any currently-blocked ReadFrom call.
-// A zero value for t means ReadFrom will not time out.
+// SetReadDeadline sets the deadline for future Read calls
+// and any currently-blocked Read call.
+// A zero value for t means Read will not time out.
 func (p *Conn) SetReadDeadline(t time.Time) error {
-	p.rd = t
+	p.rd.set(t)
 	return nil
 }
 

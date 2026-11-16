@@ -30,9 +30,9 @@ type PacketConn struct {
 	// maxPacketSize is the maximum allowed packet size
 	maxPacketSize uint32
 
-	ar       sync.Pool   // packet arena
-	rd       time.Time   // read deadline
-	packetCh chan []byte // packet ch
+	ar       sync.Pool    // packet arena
+	rd       readDeadline // read deadline and change notification
+	packetCh chan []byte  // packet ch
 	closeErr error
 }
 
@@ -86,29 +86,17 @@ func (p *PacketConn) RemoteAddr() net.Addr {
 // ReadFrom can be made to time out and return an error after a
 // fixed time limit; see SetDeadline and SetReadDeadline.
 func (p *PacketConn) ReadFrom(pk []byte) (n int, addr net.Addr, err error) {
-	// Apply the configured read deadline to the connection context.
-	deadline := p.rd
-	ctx := p.ctx
-	if !deadline.IsZero() {
-		var ctxCancel context.CancelFunc
-		ctx, ctxCancel = context.WithDeadline(ctx, deadline)
-		defer ctxCancel()
+	// Wait for a payload, observing deadline changes while blocked.
+	pkt, ok, err := p.rd.read(p.ctx, p.packetCh)
+	if err != nil {
+		return 0, nil, err
 	}
-
-	// Wait for the next complete packet or a connection close.
-	var pkt []byte
-	var ok bool
-	select {
-	case <-ctx.Done():
-		return 0, nil, ctx.Err()
-	case pkt, ok = <-p.packetCh:
-		if !ok {
-			err = p.closeErr
-			if err == nil {
-				err = io.EOF
-			}
-			return 0, nil, err
+	if !ok {
+		err = p.closeErr
+		if err == nil {
+			err = io.EOF
 		}
+		return 0, nil, err
 	}
 
 	// Copy the packet into the caller's buffer and return its address.
@@ -171,15 +159,14 @@ func (p *PacketConn) WriteTo(pkt []byte, addr net.Addr) (n int, err error) {
 //
 // A zero value for t means ReadFrom will not time out.
 func (p *PacketConn) SetDeadline(t time.Time) error {
-	p.rd = t
-	return nil
+	return p.SetReadDeadline(t)
 }
 
 // SetReadDeadline sets the deadline for future ReadFrom calls
 // and any currently-blocked ReadFrom call.
 // A zero value for t means ReadFrom will not time out.
 func (p *PacketConn) SetReadDeadline(t time.Time) error {
-	p.rd = t
+	p.rd.set(t)
 	return nil
 }
 

@@ -4,7 +4,9 @@ import (
 	"context"
 	"io"
 	"net"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/peer"
@@ -105,5 +107,126 @@ func TestRwcPacketConnReadErrNotTemporary(t *testing.T) {
 	}
 	if !errors.Is(err, tempReadErr{}) {
 		t.Fatalf("read error %v does not wrap the cause", err)
+	}
+}
+
+// deadlineReadContext reports when a read reaches its wait after subscribing.
+type deadlineReadContext struct {
+	context.Context
+	waiting chan struct{}
+}
+
+// Done reports the read's wait without delaying cancellation.
+func (c deadlineReadContext) Done() <-chan struct{} {
+	// Signal each wait without blocking a read or a repeated deadline wakeup.
+	select {
+	case c.waiting <- struct{}{}:
+	default:
+	}
+	return c.Context.Done()
+}
+
+// TestReadDeadline checks deadline changes after a reader has subscribed.
+func TestReadDeadline(t *testing.T) {
+	// Wait for the reader's select after it snapshots its deadline.
+	var deadline readDeadline
+	waiting := make(chan struct{}, 1)
+	ctx := deadlineReadContext{Context: t.Context(), waiting: waiting}
+	packets := make(chan []byte)
+	result := make(chan error, 1)
+	read := func() { _, _, err := deadline.read(ctx, packets); result <- err }
+	go read()
+	<-waiting
+
+	// Setting an expired deadline must wake a read that started without one.
+	deadline.set(time.Now().Add(-time.Second))
+	if err := <-result; !errors.Is(err, os.ErrDeadlineExceeded) {
+		t.Fatalf("pending read returned %v, want deadline exceeded", err)
+	}
+	if _, _, err := deadline.read(ctx, packets); !errors.Is(err, os.ErrDeadlineExceeded) {
+		t.Fatalf("future read returned %v, want deadline exceeded", err)
+	}
+
+	// Clearing a future deadline must wake the reader to discard its timer.
+	deadline.set(time.Now().Add(time.Hour))
+	go read()
+	<-waiting
+	deadline.set(time.Time{})
+	<-waiting
+	packets <- []byte{1}
+	if err := <-result; err != nil {
+		t.Fatal(err)
+	}
+
+	// A future deadline expires through the timer without another setter.
+	deadline.set(time.Now().Add(10 * time.Millisecond))
+	go read()
+	if err := <-result; !errors.Is(err, os.ErrDeadlineExceeded) {
+		t.Fatalf("timed read returned %v, want deadline exceeded", err)
+	}
+	for len(waiting) != 0 {
+		<-waiting
+	}
+
+	// Extending an expired deadline allows the next packet to arrive.
+	deadline.set(time.Now().Add(-time.Second))
+	deadline.set(time.Now().Add(time.Hour))
+	go read()
+	<-waiting
+	packets <- []byte{2}
+	if err := <-result; err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestConnDeadlineConcurrent checks both deadline setters against pending reads
+// on the framed and buffered connection adapters.
+func TestConnDeadlineConcurrent(t *testing.T) {
+	// Exercise both connection implementations through their deadline methods.
+	for _, packet := range []bool{true, false} {
+		name := "Conn"
+		if packet {
+			name = "PacketConn"
+		}
+		t.Run(name, func(t *testing.T) {
+			// Hold a read pending on an otherwise idle in-memory stream.
+			stream, remote := net.Pipe()
+			defer remote.Close()
+			var conn interface {
+				SetDeadline(time.Time) error
+				SetReadDeadline(time.Time) error
+				Close() error
+			}
+			result := make(chan error, 1)
+			if packet {
+				pc := NewPacketConn(t.Context(), stream, nil, nil, 1500, 1)
+				conn = pc
+				go func() { _, _, err := pc.ReadFrom(make([]byte, 1)); result <- err }()
+			} else {
+				c := NewConn(t.Context(), stream, nil, nil, 1)
+				conn = c
+				go func() { _, err := c.Read(make([]byte, 1)); result <- err }()
+			}
+			defer conn.Close()
+
+			// Exercise both setters concurrently before timing out the read.
+			done := make(chan struct{}, 2)
+			for _, set := range []func(time.Time) error{conn.SetDeadline, conn.SetReadDeadline} {
+				go func() {
+					for range 1000 {
+						_ = set(time.Time{})
+					}
+					done <- struct{}{}
+				}()
+			}
+			<-done
+			<-done
+			if err := conn.SetReadDeadline(time.Now().Add(-time.Second)); err != nil {
+				t.Fatal(err)
+			}
+			if err := <-result; !errors.Is(err, os.ErrDeadlineExceeded) {
+				t.Fatalf("pending read returned %v, want deadline exceeded", err)
+			}
+		})
 	}
 }
