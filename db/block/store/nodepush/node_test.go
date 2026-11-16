@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"os"
 	"path/filepath"
@@ -193,7 +194,10 @@ func TestNodeRunThrough(t *testing.T) {
 	end = connect(ctx, t, client, server)
 	waitFor(t, func() bool { return apply.count() == 1 })
 	waitFor(t, func() bool { return nextPending(server) == "" })
-	for id, keys := range apply.applied {
+	apply.mtx.Lock()
+	applied := maps.Clone(apply.applied)
+	apply.mtx.Unlock()
+	for id, keys := range applied {
 		if len(keys) != 1 || string(keys[0]) != string(key) {
 			t.Fatalf("pack %s reported keys %x", id, keys)
 		}

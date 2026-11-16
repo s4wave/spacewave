@@ -364,9 +364,11 @@ func (s *Server) rotate(id string) {
 
 // sendReport sends report id from its file.
 func (s *Server) sendReport(ctx context.Context, out chan<- []byte, id string) {
-	// A file that can't be read waits for its turn to end.
+	// A file that can't be read waits for its turn to end. An empty file is a
+	// report applied since nextReport chose it: it would decode to a report
+	// with no pack and no keys, so it sends nothing.
 	data, err := os.ReadFile(s.reportPath(id))
-	if err != nil {
+	if err != nil || len(data) == 0 {
 		return
 	}
 	report := &PackReport{}
