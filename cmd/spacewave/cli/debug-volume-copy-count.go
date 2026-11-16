@@ -186,9 +186,12 @@ func countVolumeDrop(ctx context.Context, src string, drop *sqlDrop, out, w io.W
 // up to the last separator within dropCountDepth, so a key's own name never
 // splits a family.
 func dropCountClassOf(key []byte) string {
+	// Name a graph record by its binary first byte.
 	if len(key) != 0 && key[0] < 0x20 {
-		return volumeKeyClassOf(key[:1], []byte("/"), 0, 1)
+		return formatVolumeKeyClass(key[:1])
 	}
+
+	// Cut a named key after its last separator within the depth.
 	end := 0
 	for range dropCountDepth {
 		i := bytes.IndexByte(key[end:], '/')
@@ -200,5 +203,5 @@ func dropCountClassOf(key []byte) string {
 	if end == 0 {
 		end = len(key)
 	}
-	return volumeKeyClassOf(key[:end], []byte("/"), 0, 96)
+	return formatVolumeKeyClass(key[:min(end, 96)])
 }

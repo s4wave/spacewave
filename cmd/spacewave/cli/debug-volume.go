@@ -22,7 +22,8 @@ import (
 
 // volumeKeyClass accumulates the keys that share one grouping prefix.
 type volumeKeyClass struct {
-	// class is the grouping prefix of the keys.
+	// class is the grouping prefix of the keys after the scan prefix, raw
+	// while scanning and quoted for display once the scan ends.
 	class string
 	// keys counts the keys in the class.
 	keys uint64
@@ -133,21 +134,10 @@ func runDebugVolumeUsage(
 	tx := ktx.(*s4db.Tx)
 
 	// Group every key under the prefix by its class.
-	classes := make(map[string]*volumeKeyClass)
+	classes := newVolumeKeyClasses(separator, depth, width)
 	var total volumeKeyClass
 	err = tx.ScanPrefixLens(ctx, prefix, func(k []byte, n int) error {
-		// Find or add the key's class.
-		class := volumeKeyClassOf(k[len(prefix):], separator, depth, width)
-		kc := classes[class]
-		if kc == nil {
-			kc = &volumeKeyClass{class: string(prefix) + class}
-			classes[class] = kc
-		}
-
-		// Count the key and its bytes.
-		kc.keys++
-		kc.keyBytes += uint64(len(k))
-		kc.valueBytes += uint64(n) //nolint:gosec // Value lengths are never negative.
+		classes.add(k[len(prefix):], len(k), n)
 		return nil
 	})
 	if err != nil {
@@ -155,8 +145,9 @@ func runDebugVolumeUsage(
 	}
 
 	// Rank classes by the bytes they hold.
-	ranked := make([]*volumeKeyClass, 0, len(classes))
-	for _, kc := range classes {
+	ranked := make([]*volumeKeyClass, 0, len(classes.byClass))
+	for _, kc := range classes.byClass {
+		kc.class = string(prefix) + formatVolumeKeyClass([]byte(kc.class))
 		ranked = append(ranked, kc)
 		total.keys += kc.keys
 		total.keyBytes += kc.keyBytes
@@ -179,6 +170,7 @@ func runDebugVolumeUsage(
 		writeJSONUint64Field(ms, &more, "keys", total.keys)
 		writeJSONUint64Field(ms, &more, "keyBytes", total.keyBytes)
 		writeJSONUint64Field(ms, &more, "valueBytes", total.valueBytes)
+		writeJSONUint64Field(ms, &more, "classWidth", uint64(classes.width)) //nolint:gosec // The width is never negative.
 		ms.WriteMoreIf(&more)
 		ms.WriteObjectField("stats")
 		writeVolumeStatsJSON(ms, &stats)
@@ -208,6 +200,7 @@ func runDebugVolumeUsage(
 		{"Keys", strconv.FormatUint(total.keys, 10)},
 		{"Key Bytes", humanize.IBytes(total.keyBytes)},
 		{"Value Bytes", humanize.IBytes(total.valueBytes)},
+		{"Class Width", strconv.Itoa(classes.width)},
 		{"Index Keys", strconv.FormatInt(stats.KeyCount, 10)},
 		{"Live Values", ibytes(stats.LiveBytes)},
 		{"Dead Values", ibytes(stats.DeadBytes)},
@@ -349,9 +342,76 @@ func ibytes(n int64) string {
 	return humanize.IBytes(uint64(n))
 }
 
+// volumeKeyClassesMax bounds the classes a usage scan holds. Keys that would
+// make more, such as unique binary keys with no separator, are grouped at a
+// narrower width instead, so the scan's memory follows the key shapes rather
+// than the key count.
+const volumeKeyClassesMax = 1 << 16
+
+// volumeKeyClasses counts scanned keys by class, narrowing its width to stay
+// within volumeKeyClassesMax classes.
+type volumeKeyClasses struct {
+	// separator, depth and width cut a key to its class; width only shrinks.
+	separator    []byte
+	depth, width int
+	// byClass maps each raw class to its counts.
+	byClass map[string]*volumeKeyClass
+}
+
+// newVolumeKeyClasses builds an empty class count for the grouping flags.
+func newVolumeKeyClasses(separator []byte, depth, width int) *volumeKeyClasses {
+	return &volumeKeyClasses{
+		separator: separator,
+		depth:     depth,
+		width:     width,
+		byClass:   make(map[string]*volumeKeyClass),
+	}
+}
+
+// add counts one key, given after the scan prefix, whose full key is keyLen
+// bytes and whose value is n bytes.
+func (c *volumeKeyClasses) add(key []byte, keyLen, n int) {
+	// Find or add the key's class.
+	class := volumeKeyClassOf(key, c.separator, c.depth, c.width)
+	kc := c.byClass[string(class)]
+	if kc == nil {
+		kc = &volumeKeyClass{class: string(class)}
+		c.byClass[kc.class] = kc
+	}
+
+	// Count the key and its bytes.
+	kc.keys++
+	kc.keyBytes += uint64(keyLen) //nolint:gosec // Key lengths are never negative.
+	kc.valueBytes += uint64(n)    //nolint:gosec // Value lengths are never negative.
+
+	// Narrow until the classes fit; width 0 leaves one class.
+	for len(c.byClass) > volumeKeyClassesMax {
+		c.narrow()
+	}
+}
+
+// narrow lowers the width by one byte and merges each class into its prefix at
+// the new width, which is the class volumeKeyClassOf gives at that width.
+func (c *volumeKeyClasses) narrow() {
+	c.width--
+	merged := make(map[string]*volumeKeyClass, len(c.byClass))
+	for _, kc := range c.byClass {
+		kc.class = kc.class[:min(len(kc.class), c.width)]
+		into := merged[kc.class]
+		if into == nil {
+			merged[kc.class] = kc
+			continue
+		}
+		into.keys += kc.keys
+		into.keyBytes += kc.keyBytes
+		into.valueBytes += kc.valueBytes
+	}
+	c.byClass = merged
+}
+
 // volumeKeyClassOf returns the leading depth segments of key, including their
-// separators, capped to width bytes. Keys with non-printable bytes are quoted.
-func volumeKeyClassOf(key, separator []byte, depth, width int) string {
+// separators, capped to width bytes.
+func volumeKeyClassOf(key, separator []byte, depth, width int) []byte {
 	// Cut after the depth-th separator.
 	end := 0
 	for range depth {
@@ -365,9 +425,12 @@ func volumeKeyClassOf(key, separator []byte, depth, width int) string {
 	if depth == 0 {
 		end = len(key)
 	}
-	class := key[:min(end, width)]
+	return key[:min(end, width)]
+}
 
-	// Keep printable classes readable and escape binary ones.
+// formatVolumeKeyClass keeps a printable class readable and quotes a binary
+// one.
+func formatVolumeKeyClass(class []byte) string {
 	for _, c := range class {
 		if c < 0x20 || c > 0x7e {
 			quoted := strconv.QuoteToASCII(string(class))
