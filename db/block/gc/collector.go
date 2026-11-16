@@ -837,14 +837,11 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 
 	// Bring the tail index up to the journal's end in this transaction,
 	// which no Land can commit inside of, before any free reads it (T1). A
-	// sync reads a slice's budget of entries, one page's while a writer
-	// waits; one that stops short frees nothing, and the next slice reads on.
+	// sync reads a slice's budget of entries, at most a page more once a
+	// writer waits; one that stops short frees nothing, and the next slice
+	// reads on.
 	if len(ripe) != 0 {
-		budget := c.share(slicePairs)
-		if c.waiting() {
-			budget = min(budget, journalPagePairs)
-		}
-		reached, err := c.tail.sync(ctx, rec, state, budget)
+		reached, err := c.tail.sync(ctx, rec, state, c.share(slicePairs), c.waiting)
 		if err != nil {
 			return from, false, false, err
 		}
@@ -968,18 +965,10 @@ func (r *Records) freeable(ctx context.Context, state *LivenessState) (bool, err
 // the list does not fit the moves f has left after an earlier free, it
 // changes nothing and reports false, so the next slice frees it first.
 func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, state *LivenessState, ripe uint64, ref *block.BlockRef, res *CollectResult, f *freeing) (bool, error) {
-	// Check the block is stored, reading the list whose children a free
-	// under HoldUntilFree releases.
+	// Check the block is stored.
 	key := BlockKey(ref)
 	queued := rec.queueKey(ripe, key)
-	var children []*block.BlockRef
-	var listed bool
-	var err error
-	if f != nil {
-		children, listed, err = rec.GetChildren(ctx, ref)
-	} else {
-		listed, err = rec.HasChildren(ctx, ref)
-	}
+	listed, err := rec.HasChildren(ctx, ref)
 	if err != nil {
 		return false, err
 	}
@@ -1023,9 +1012,19 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 		}
 	}
 
-	// Leave a list that does not fit the moves left for the next slice.
-	if f != nil && len(children) > f.moves-f.moved && f.moved != 0 {
-		return false, nil
+	// Read the list whose children a free under HoldUntilFree releases,
+	// only once the checks above let the block go, so a kept block costs no
+	// list read. Leave a list that does not fit the moves left for the next
+	// slice.
+	var children []*block.BlockRef
+	if f != nil {
+		children, _, err = rec.GetChildren(ctx, ref)
+		if err != nil {
+			return false, err
+		}
+		if len(children) > f.moves-f.moved && f.moved != 0 {
+			return false, nil
+		}
 	}
 
 	// Free its bytes and records.

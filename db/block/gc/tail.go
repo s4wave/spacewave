@@ -85,24 +85,32 @@ func (t *tail) has(key []byte) bool {
 // no reading of state's journal or a saturated one netting trimmed below the
 // limit. It reads whole records, stopping before the one that would pass
 // budget entries, counting at least one per record, unless it read none yet.
-// It reports whether it reached NextSeq.
-func (t *tail) sync(ctx context.Context, rec *Records, state *LivenessState, budget int) (bool, error) {
+// Once waiting reports true it reads at most one journal page more, so a
+// writer that starts waiting mid-scan waits as long as one that waited when
+// the slice began, and a writer that always waits still lets the index catch
+// up a page a slice. It reports whether it reached NextSeq.
+//
+// A rebuild takes a new map rather than clearing the old one, so the writer
+// the free holds waits for no work in proportion to the old reading; the Go
+// collector reclaims that map off the writer.
+func (t *tail) sync(ctx context.Context, rec *Records, state *LivenessState, budget int, waiting func() bool) (bool, error) {
 	// Start over from the cursor when the reading is not of this journal or
 	// a rebuild now fits.
 	cursor := state.GetCursor()
 	if !t.built || t.run != state.GetAdoptionRun() || t.from != cursor || (t.saturated && t.entries <= t.limit) {
 		t.built, t.run, t.from, t.next = true, state.GetAdoptionRun(), cursor, cursor
-		t.entries, t.saturated = 0, false
-		if t.named == nil {
-			t.named = make(map[string]int)
-		}
-		clear(t.named)
+		t.entries, t.saturated, t.named = 0, false, make(map[string]int)
 	}
 
-	// Stream the records from next into the counts, up to the budget.
-	read, reached := 0, true
+	// Stream the records from next into the counts, up to the budget or a
+	// waiting writer.
+	read, reached, capped := 0, true, false
 	err := rec.ScanJournal(ctx, t.next, func(seq uint64, r *JournalRecord) (bool, error) {
-		// Stop before the record that would pass the budget.
+		// Stop before the record that would pass the budget, cut to a page
+		// past the reading once a writer waits.
+		if !capped && waiting() {
+			capped, budget = true, min(budget, read+journalPagePairs)
+		}
 		cost := max(len(r.GetUp())+len(r.GetDown())+len(r.GetAgain()), 1)
 		if read != 0 && read+cost > budget {
 			reached = false

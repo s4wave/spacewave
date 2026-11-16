@@ -22,8 +22,10 @@ type AuditResult struct {
 	// the blocks they release.
 	Leaked uint64
 	// LiveQueued counts the blocks a root reaches that the collector would
-	// free now: Dead, ripe, with no cascade due, no fill up unapplied and the
-	// cursor past the hold mark. Any is an error in the counts.
+	// free now: Dead, ripe, with no cascade due, no fill up unapplied, the
+	// cursor past the hold mark, and no up or again entry past the cursor
+	// naming it, which the free's tail check keeps it for. Any is an error in
+	// the counts.
 	LiveQueued uint64
 	// LiveQueuedSample names up to sampleSize of them.
 	LiveQueuedSample []*block.BlockRef
@@ -82,9 +84,9 @@ func Audit(ctx context.Context, store AdoptStore, record bool) (AuditResult, err
 			return err
 		}
 
-		// Read what the journal past the cursor does to each block, and
-		// whether the collector would free now.
-		delta, err := journalTail(ctx, rec, state)
+		// Read what the journal past the cursor does to each block and which
+		// blocks it names, and whether the collector would free now.
+		delta, named, err := journalTail(ctx, rec, state)
 		if err != nil {
 			return err
 		}
@@ -102,7 +104,7 @@ func Audit(ctx context.Context, store AdoptStore, record bool) (AuditResult, err
 		}
 		releasing := newReleaseCursor(rec, state.GetRelease())
 		err = rec.ScanChildren(ctx, func(ref *block.BlockRef, _ []*block.BlockRef) error {
-			return res.checkStored(ctx, rec, state, ref, mark, counted, releasing, frees, delta)
+			return res.checkStored(ctx, rec, state, ref, mark, counted, releasing, frees, delta, named)
 		})
 		if err != nil {
 			return err
@@ -170,7 +172,8 @@ func (res *AuditResult) countUnlisted(ctx context.Context, store AdoptStore) err
 // checkStored compares one stored block with the walk, the queue and the
 // holders that name it, taking the stored blocks in block key order. A block
 // a paged release names is no leak: the release takes its parent's holder
-// later.
+// later. named holds the blocks the journal past the cursor names, which the
+// free keeps.
 func (res *AuditResult) checkStored(
 	ctx context.Context,
 	rec *Records,
@@ -181,6 +184,7 @@ func (res *AuditResult) checkStored(
 	releasing *releaseCursor,
 	frees bool,
 	delta map[string]int64,
+	named map[string]struct{},
 ) error {
 	// Read its netted holders and whether the release in progress names it.
 	res.Stored++
@@ -196,8 +200,9 @@ func (res *AuditResult) checkStored(
 	pending = pending && !state.GetRelease().GetRehold()
 
 	// Count a live block the collector would free, and a leak.
+	_, kept := named[string(key)]
 	switch {
-	case mark.Has(ref) && holders == 0 && frees && ripe <= state.GetCursor():
+	case mark.Has(ref) && holders == 0 && frees && ripe <= state.GetCursor() && !kept:
 		res.LiveQueued++
 		res.LiveQueuedSample = sample(res.LiveQueuedSample, ref)
 	case !mark.Has(ref) && holders != 0 && !pending:
@@ -283,12 +288,21 @@ func tallyHolders(ctx context.Context, rec *Records, state *LivenessState) (map[
 
 // journalTail reads the journal past the cursor and the fill records not
 // netted yet: each block's pairs the counts do not include yet, skipping the
-// entries of the record at the cursor its net offset already applied. A
-// record's again list moves no holder.
-func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[string]int64, error) {
-	// Sum the journal records past the cursor.
+// entries of the record at the cursor its net offset already applied, and
+// the blocks the records name in an up pair or an again list, whole, as the
+// free's tail index counts them. A record's again list moves no holder.
+func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[string]int64, map[string]struct{}, error) {
+	// Sum the journal records past the cursor, noting the blocks they name.
 	delta := make(map[string]int64)
+	named := make(map[string]struct{})
 	err := rec.ScanJournal(ctx, state.GetCursor(), func(seq uint64, r *JournalRecord) (bool, error) {
+		// Note every block the record names to the tail index, whole.
+		for _, keys := range tailNames(r) {
+			for _, key := range keys {
+				named[string(key)] = struct{}{}
+			}
+		}
+
 		// Skip the entries of the cursor's record that the counts include.
 		skip := uint64(0)
 		if seq == state.GetCursor() {
@@ -312,7 +326,7 @@ func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[s
 		return true, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Add the fill ups not applied yet and the downs of the fill records not
@@ -324,7 +338,7 @@ func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[s
 		return true, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = rec.scanFillRecords(ctx, 0, func(fr fillRecord) (bool, error) {
 		for _, down := range fr.rec.GetDown() {
@@ -332,7 +346,7 @@ func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[s
 		}
 		return true, nil
 	})
-	return delta, err
+	return delta, named, err
 }
 
 // holeCount is what an audit's snapshot gives the count of one hole.
