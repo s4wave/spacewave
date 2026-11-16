@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/aperturerobotics/util/csync"
@@ -39,7 +40,7 @@ func (b *evictTestBackend) GetBlockExistsBatch(ctx context.Context, refs []*bloc
 }
 
 // TestEvictionRetriesTransientBackend uses the production routine backoff to
-// retry a backend error without a restart and logs counters for both passes.
+// retry a backend error without a restart and logs only the successful work.
 func TestEvictionRetriesTransientBackend(t *testing.T) {
 	// Upload through the real test backend and fail its first eviction probe.
 	f := newFallbackTest(t)
@@ -86,7 +87,7 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 		}
 	}
 
-	// Join the routine before reading the two completed-pass log records.
+	// Join the routine to flush the successful pass before its minute ends.
 	cancel()
 	select {
 	case err := <-exits:
@@ -97,8 +98,8 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 		t.Fatal("eviction routine never stopped")
 	}
 	entries := hook.AllEntries()
-	if len(entries) != 2 {
-		t.Fatalf("logged %d passes, want 2", len(entries))
+	if len(entries) != 1 {
+		t.Fatalf("logged %d summaries, want 1", len(entries))
 	}
 	for _, entry := range entries {
 		if entry.Data["refused"] != 0 || entry.Data["requeued"] != 0 {
@@ -119,9 +120,152 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 			t.Fatalf("pass byte count = %v", entry.Data)
 		}
 	}
-	if entries[1].Data["evicted"] != 1 {
-		t.Fatalf("successful pass counters = %v", entries[1].Data)
+	if entries[0].Data["evicted"] != 1 {
+		t.Fatalf("successful pass counters = %v", entries[0].Data)
 	}
+}
+
+// TestEvictionPassLogIntervals checks silence for zero passes, minute totals,
+// and the final partial interval through the real provider routine.
+func TestEvictionPassLogIntervals(t *testing.T) {
+	for _, name := range []string{"zero", "accumulate"} {
+		t.Run(name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				// Open a placement over in-memory stores without external services.
+				zero := name == "zero"
+				ctx, cancel := context.WithCancel(t.Context())
+				defer cancel()
+				local := newLeafStore()
+				wb, err := block_store_writeback.NewStore(ctx, local, local, store_kvtx_inmem.NewStore(), "test/log", true)
+				if err != nil {
+					t.Fatal(err)
+				}
+				remote := newLeafStore()
+				p := &placementState{wb: wb, evictGate: new(csync.Mutex), remote: new(atomic.Pointer[openBackend])}
+				if !zero {
+					p.remote.Store(&openBackend{store: openedBackend{StoreOps: remote}})
+				}
+				wb.SetPolicy(block_store_writeback.Policy{ResidentHigh: 1})
+				logger, hook := logrustest.NewNullLogger()
+				done := make(chan error, 1)
+				go func() { done <- p.runEviction(ctx, logrus.NewEntry(logger)) }()
+
+				// Fill actual eviction entries and let every runnable pass finish.
+				fill := func(data string) {
+					// Confirm the remote copy before making it resident locally.
+					ref, _, err := remote.PutBlock(ctx, []byte(data), &block.PutOpts{RefsKnown: true})
+					if err != nil {
+						t.Fatal(err)
+					}
+					wb.Refill(ref, &block.StoredBlock{Data: []byte(data), RefsKnown: true})
+					synctest.Wait()
+				}
+				fill("first")
+				if entries := hook.AllEntries(); len(entries) != 0 {
+					t.Fatalf("logged before the interval ended: %+v", entries)
+				}
+
+				// An unopened backend returns zero even across repeated shortfalls.
+				if zero {
+					time.Sleep(2 * evictShortWait)
+					synctest.Wait()
+					if status, _ := wb.GetStatus(); status.EvictableBytes != 5 {
+						t.Fatalf("zero pass changed eviction bytes: %+v", status)
+					}
+				} else {
+					// A second completed pass joins the first minute's totals.
+					time.Sleep(evictLogInterval / 2)
+					fill("second")
+					if entries := hook.AllEntries(); len(entries) != 0 {
+						t.Fatalf("logged before the interval ended: %+v", entries)
+					}
+
+					// Hold the next pass across the first interval's deadline.
+					release, err := p.evictGate.Lock(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
+					fill("third")
+					time.Sleep(evictLogInterval / 2)
+					synctest.Wait()
+					entries := hook.AllEntries()
+					if len(entries) != 1 || entries[0].Data["evicted"] != 2 || entries[0].Data["evicted-bytes"] != int64(11) {
+						t.Fatalf("first minute totals = %+v", entries)
+					}
+
+					// Complete the blocked pass; cancellation must flush its interval.
+					release()
+					synctest.Wait()
+					if entries := hook.AllEntries(); len(entries) != 1 {
+						t.Fatalf("new interval logged early: %+v", entries)
+					}
+				}
+
+				// Join the routine and check that shutdown flushes only real work.
+				cancel()
+				if err := <-done; !errors.Is(err, context.Canceled) {
+					t.Fatalf("routine exit = %v, want canceled", err)
+				}
+				entries := hook.AllEntries()
+				if zero {
+					if len(entries) != 0 {
+						t.Fatalf("zero passes logged: %+v", entries)
+					}
+				} else if len(entries) != 2 || entries[1].Data["evicted"] != 1 || entries[1].Data["evicted-bytes"] != int64(5) {
+					t.Fatalf("shutdown totals = %+v", entries)
+				}
+			})
+		})
+	}
+}
+
+// TestEvictionPassLogCounts preserves every counter when multiple passes join
+// an interval, suppresses empty intervals, and flushes a partial result on stop.
+func TestEvictionPassLogCounts(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// Start the same worker the provider joins on exit.
+		logger, hook := logrustest.NewNullLogger()
+		passes := make(chan block_store_writeback.EvictResult)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			logEvictionPasses(logrus.NewEntry(logger), passes)
+		}()
+
+		// Empty results leave the worker idle even after a minute.
+		passes <- block_store_writeback.EvictResult{}
+		time.Sleep(evictLogInterval)
+		synctest.Wait()
+		if entries := hook.AllEntries(); len(entries) != 0 {
+			t.Fatalf("empty interval logged: %+v", entries)
+		}
+
+		// Add all four counts from several passes in the first active minute.
+		passes <- block_store_writeback.EvictResult{Evicted: 1, EvictedBytes: 7, Requeued: 2, Refused: 3}
+		time.Sleep(evictLogInterval / 2)
+		passes <- block_store_writeback.EvictResult{Evicted: 4, EvictedBytes: 11, Requeued: 5, Refused: 6}
+		time.Sleep(evictLogInterval / 2)
+		synctest.Wait()
+		entries := hook.AllEntries()
+		want := logrus.Fields{"evicted": 5, "evicted-bytes": int64(18), "requeued": 7, "refused": 9}
+		if len(entries) != 1 {
+			t.Fatalf("logged %d intervals, want 1", len(entries))
+		}
+		for key, value := range want {
+			if entries[0].Data[key] != value {
+				t.Fatalf("interval counts = %v, want %v", entries[0].Data, want)
+			}
+		}
+
+		// Closing the producer flushes a nonempty partial interval exactly once.
+		passes <- block_store_writeback.EvictResult{Refused: 1}
+		close(passes)
+		<-done
+		entries = hook.AllEntries()
+		if len(entries) != 2 || entries[1].Data["refused"] != 1 {
+			t.Fatalf("partial interval = %+v", entries)
+		}
+	})
 }
 
 // TestReadSetKeepsRecentReads checks that eviction keeps a read block across

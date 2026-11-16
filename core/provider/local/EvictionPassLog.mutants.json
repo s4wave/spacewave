@@ -1,0 +1,12 @@
+[
+  {
+    "name": "A closing routine leaves its logger running",
+    "replace": [["producer = \"closing\" /\\ worker = \"stopped\"", "producer = \"closing\""]],
+    "expect": "Joined"
+  },
+  {
+    "name": "A deadline waits behind the next blocked pass",
+    "replace": [["worker = \"receiving\" /\\ due", "worker = \"receiving\" /\\ due /\\ ~inPass"]],
+    "expect": "DeadlineFlushes"
+  }
+]

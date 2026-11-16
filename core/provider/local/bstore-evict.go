@@ -434,6 +434,9 @@ func (p *placementState) setPolicy(cache *account_settings.BlockStoreCache) {
 // at the next upload would only queue them again.
 const evictShortWait = 10 * time.Minute
 
+// evictLogInterval bounds pass summaries to one per minute while the routine runs.
+const evictLogInterval = time.Minute
+
 // runEviction keeps the store's resident bytes under its placement's budget.
 // When the resident bytes cross the high mark, a pass drops the uploaded
 // blocks not read within readKeepAge, oldest queued first, down to the low
@@ -445,6 +448,18 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 	save := time.NewTicker(readSaveInterval)
 	defer save.Stop()
 
+	// Join the logger on every exit, including its last partial interval.
+	passes := make(chan block_store_writeback.EvictResult)
+	logged := make(chan struct{})
+	go func() {
+		defer close(logged)
+		logEvictionPasses(le, passes)
+	}()
+	defer func() {
+		close(passes)
+		<-logged
+	}()
+
 	// Count reads served from decoded-block caches and held by live values,
 	// which never reach the local store, unless CacheReadsEnv turns that off.
 	startCacheHits()
@@ -454,12 +469,7 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 		var retry <-chan time.Time
 		if want := status.EvictBytes(); want > 0 {
 			result, err := p.evict(ctx, want)
-			le.WithFields(logrus.Fields{
-				"evicted":       result.Evicted,
-				"evicted-bytes": result.EvictedBytes,
-				"requeued":      result.Requeued,
-				"refused":       result.Refused,
-			}).Info("eviction pass")
+			passes <- result
 			if err != nil {
 				return err
 			}
@@ -483,6 +493,71 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 					return err
 				}
 			}
+		}
+	}
+}
+
+// logEvictionPasses sums nonzero pass results over one minute from the first
+// result, then logs only the four totals. Closing passes flushes the remainder.
+// Its caller joins it, so neither a timer nor a log write outlives the routine.
+func logEvictionPasses(le *logrus.Entry, passes <-chan block_store_writeback.EvictResult) {
+	// Keep the counts and deadline in this worker, independent of a blocked pass.
+	var pending block_store_writeback.EvictResult
+	var timer *time.Timer
+	var ready <-chan time.Time
+	flush := func() {
+		// Disarm the interval before writing its totals.
+		if timer != nil {
+			timer.Stop()
+			ready = nil
+		}
+		if pending == (block_store_writeback.EvictResult{}) {
+			return
+		}
+
+		// Preserve inherited fields and add only the four counts.
+		le.WithFields(logrus.Fields{
+			"evicted":       pending.Evicted,
+			"evicted-bytes": pending.EvictedBytes,
+			"requeued":      pending.Requeued,
+			"refused":       pending.Refused,
+		}).Info("eviction pass")
+		pending = block_store_writeback.EvictResult{}
+	}
+	defer flush()
+
+	// Wait on results and the active deadline; an idle worker has no timer.
+	for {
+		select {
+		case result, ok := <-passes:
+			// Flush and stop when the routine has sent its last result.
+			if !ok {
+				return
+			}
+
+			// Empty passes neither produce a line nor start a deadline.
+			if result == (block_store_writeback.EvictResult{}) {
+				continue
+			}
+
+			// End an elapsed interval even when a result and timer are both ready.
+			select {
+			case <-ready:
+				flush()
+			default:
+			}
+
+			// Count work and start the first result's deadline.
+			pending.Evicted += result.Evicted
+			pending.EvictedBytes += result.EvictedBytes
+			pending.Requeued += result.Requeued
+			pending.Refused += result.Refused
+			if ready == nil {
+				timer = time.NewTimer(evictLogInterval)
+				ready = timer.C
+			}
+		case <-ready:
+			flush()
 		}
 	}
 }
