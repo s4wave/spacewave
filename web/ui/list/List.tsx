@@ -4,6 +4,7 @@ import { List as VirtualList, ListImperativeAPI } from 'react-window'
 import { cn } from '@s4wave/web/style/utils.js'
 import isEqual from '@s4wave/web/util/isEqual.js'
 import { ListItem } from './ListItem.js'
+import { isEditableElement } from './focus.js'
 import {
   ListAction,
   ListDispatch,
@@ -333,9 +334,15 @@ export function List<T>({
     state.focusedIndex >= visibleItems.visibleStartIndex &&
     state.focusedIndex <= visibleItems.visibleStopIndex
 
+  // Restore a keyboard target when the focused row leaves the viewport.
   const listContainerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (!focusedIndexVisible && listContainerRef.current) {
+    // Keep typing in an editor while missing row indices are reconciled.
+    if (
+      !focusedIndexVisible &&
+      !isEditableElement(document.activeElement) &&
+      listContainerRef.current
+    ) {
       listContainerRef.current.focus()
     }
   }, [focusedIndexVisible])

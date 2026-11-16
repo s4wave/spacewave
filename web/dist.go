@@ -70,6 +70,7 @@ import "embed"
 //go:embed ui/card.tsx ui/code-block.tsx ui/collapsible.tsx ui/command.tsx ui/credential/AuthProgressCard.tsx ui/credential/CredentialProofInput.tsx
 //go:embed ui/credential/auth-utils.ts ui/credential/useCredentialProof.ts ui/dialog.tsx ui/input.tsx
 //go:embed ui/label.tsx ui/list/List.tsx ui/list/ListItem.tsx ui/list/ListRow.tsx ui/list/ListState.tsx
+//go:embed ui/list/focus.ts
 //go:embed ui/list/index.ts ui/loading/LoadingCard.tsx ui/loading/LoadingInline.tsx ui/loading/LoadingScreen.tsx
 //go:embed ui/loading/ProgressBar.tsx ui/loading/Spinner.tsx ui/loading/index.ts ui/loading/types.ts
 //go:embed ui/loading/loading-screen-style.ts
