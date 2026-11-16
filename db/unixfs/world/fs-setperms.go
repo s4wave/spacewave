@@ -98,7 +98,7 @@ func (o *FsSetPermissionsOp) ApplyWorldObjectOp(
 			paths := unixfs_block.PathsToStringSlices(o.GetPaths()...)
 			return unixfs_block.SetPermissions(ftree, paths, fs.FileMode(o.GetPermissions()), o.GetTimestamp())
 		case FSType_FSType_FS_OBJECT:
-			return world.NewOpRefusedError(errors.New("TODO apply set-permissions to fsobject"))
+			return world.NewOpRefusedError(ErrFSObjectUnsupported)
 		case FSType_FSType_FS_HOST_VOLUME:
 			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:

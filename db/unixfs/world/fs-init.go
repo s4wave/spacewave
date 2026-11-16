@@ -35,8 +35,7 @@ func FsInit(
 	return ws.ApplyWorldOp(ctx, initOp, sender)
 }
 
-// NewFsInitOp constructs a new FsInitOp block.
-// repoRef, worktreeArgs can be empty
+// NewFsInitOp constructs a new FsInitOp block. fsRef may be nil.
 func NewFsInitOp(
 	objKey string,
 	fsType FSType,
@@ -55,10 +54,14 @@ func NewFsInitOp(
 
 // Validate performs cursory checks on the op.
 func (o *FsInitOp) Validate() error {
+	// Check the object key, timestamp, filesystem type and reference.
 	if len(o.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
 	if err := o.GetTimestamp().Validate(false); err != nil {
+		return err
+	}
+	if err := o.GetFsType().Validate(true); err != nil {
 		return err
 	}
 	if err := o.GetFsRef().Validate(); err != nil {

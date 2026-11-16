@@ -107,7 +107,7 @@ func (o *FsMknodOp) ApplyWorldObjectOp(
 			nodeType := unixfs_block.NodeTypeToFSCursorNodeType(o.GetNodeType())
 			return wr.Mknod(ctx, paths, nodeType, fs.FileMode(o.GetPermissions()), o.GetTimestamp().AsTime())
 		case FSType_FSType_FS_OBJECT:
-			return world.NewOpRefusedError(errors.New("TODO apply mknod to fsobject"))
+			return world.NewOpRefusedError(ErrFSObjectUnsupported)
 		case FSType_FSType_FS_HOST_VOLUME:
 			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:

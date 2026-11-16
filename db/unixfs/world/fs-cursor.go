@@ -22,7 +22,6 @@ import (
 // FSCursor attaches a cursor to a World object and watches it for changes.
 //
 // It supports these positions:
-//   - FSObject (with changelog)
 //   - FSNode (like inode)
 //   - File (raw file block graph)
 //

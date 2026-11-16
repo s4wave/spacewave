@@ -123,7 +123,7 @@ func (o *FsCopyOp) ApplyWorldObjectOp(
 			paths := unixfs_block.PathsToStringSlices(o.GetSrcPath(), o.GetDestPath())
 			return wr.Copy(ctx, paths[0], paths[1], ts)
 		case FSType_FSType_FS_OBJECT:
-			return world.NewOpRefusedError(errors.New("TODO copy on fsobject"))
+			return world.NewOpRefusedError(ErrFSObjectUnsupported)
 		case FSType_FSType_FS_HOST_VOLUME:
 			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:

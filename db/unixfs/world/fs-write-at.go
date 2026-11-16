@@ -139,7 +139,7 @@ func (o *FsWriteAtOp) ApplyWorldObjectOp(
 				o.GetTimestamp(),
 			)
 		case FSType_FSType_FS_OBJECT:
-			return world.NewOpRefusedError(errors.New("TODO apply write to fsobject"))
+			return world.NewOpRefusedError(ErrFSObjectUnsupported)
 		case FSType_FSType_FS_HOST_VOLUME:
 			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:

@@ -123,7 +123,7 @@ func (o *FsRenameOp) ApplyWorldObjectOp(
 			paths := unixfs_block.PathsToStringSlices(o.GetSrcPath(), o.GetDestPath())
 			return wr.Rename(ctx, paths[0], paths[1], ts)
 		case FSType_FSType_FS_OBJECT:
-			return world.NewOpRefusedError(errors.New("TODO rename on fsobject"))
+			return world.NewOpRefusedError(ErrFSObjectUnsupported)
 		case FSType_FSType_FS_HOST_VOLUME:
 			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:

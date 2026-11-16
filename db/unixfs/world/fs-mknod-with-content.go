@@ -143,7 +143,7 @@ func (o *FsMknodWithContentOp) ApplyWorldObjectOp(
 				o.GetBlobRef(),
 			)
 		case FSType_FSType_FS_OBJECT:
-			return world.NewOpRefusedError(errors.New("TODO apply mknod-with-content to fsobject"))
+			return world.NewOpRefusedError(ErrFSObjectUnsupported)
 		case FSType_FSType_FS_HOST_VOLUME:
 			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:

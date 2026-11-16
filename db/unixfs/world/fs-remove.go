@@ -97,7 +97,7 @@ func (o *FsRemoveOp) ApplyWorldObjectOp(
 			paths := unixfs_block.PathsToStringSlices(o.GetPaths()...)
 			return wr.Remove(ctx, paths, o.GetTimestamp().AsTime())
 		case FSType_FSType_FS_OBJECT:
-			return world.NewOpRefusedError(errors.New("TODO remove from fsobject"))
+			return world.NewOpRefusedError(ErrFSObjectUnsupported)
 		case FSType_FSType_FS_HOST_VOLUME:
 			return world.NewOpRefusedError(unixfs_block.ErrCannotModifyHostVolume)
 		default:

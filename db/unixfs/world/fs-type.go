@@ -111,7 +111,8 @@ func UnmarshalFSRootWithType(ctx context.Context, bcs *block.Cursor, f FSType) (
 	return blk, typeID, nil
 }
 
-// Validate checks the FSType.
+// Validate checks the FSType. It refuses FS_OBJECT, which no reader or writer
+// implements, so an operation naming it fails before it is committed.
 func (f FSType) Validate(allowUnknown bool) error {
 	if f == FSType_FSType_UNKNOWN && allowUnknown {
 		return nil
@@ -120,6 +121,7 @@ func (f FSType) Validate(allowUnknown bool) error {
 	switch f {
 	case FSType_FSType_FS_NODE:
 	case FSType_FSType_FS_OBJECT:
+		return ErrFSObjectUnsupported
 	case FSType_FSType_FS_HOST_VOLUME:
 	default:
 		return errors.Wrap(ErrInvalidFSType, f.String())

@@ -31,7 +31,7 @@ func LookupFsType(ctx context.Context, ws world.WorldState, objKey string) (FSTy
 
 // ValidateOrCreateFs creates or checks a reference to a Unixfs.
 // fsRef can be nil to create a new FS.
-// returns the root ref, typeID, and error
+// It returns the root ref, typeID, and error.
 func ValidateOrCreateFs(
 	ctx context.Context,
 	accessState world.AccessWorldStateFunc,
@@ -106,8 +106,7 @@ func AccessUnixfsObject(
 			}
 			return cbFsTree(ftree)
 		case FSType_FSType_FS_OBJECT:
-			// TODO: handle FS_OBJECT
-			return errors.Wrap(ErrInvalidFSType, fsType.String())
+			return ErrFSObjectUnsupported
 		case FSType_FSType_FS_HOST_VOLUME:
 			if cbHostVolume == nil {
 				return errors.Wrap(ErrInvalidFSType, fsType.String())
