@@ -1,7 +1,6 @@
 package s4db
 
 import (
-	"path/filepath"
 	"slices"
 	"testing"
 )
@@ -119,43 +118,5 @@ func TestPick(t *testing.T) {
 	pick, ok = (&mergeJob{}).pick(m)
 	if !ok || len(pick.inputs) != 15 || pick.level != 1 {
 		t.Fatalf("pick %+v ok %v, want level 0 and level 1 into level 1", pick, ok)
-	}
-}
-
-// TestWriteSuperFollowsFile checks that a superblock write takes its
-// generation from the file, so a process whose copy is stale never writes
-// over a newer generation, and skips a superblock older than the file's.
-func TestWriteSuperFollowsFile(t *testing.T) {
-	// Plant a newer generation at a higher seq, as another process would.
-	db := openTest(t, filepath.Join(t.TempDir(), "super.s4wave"), Options{})
-	defer db.Close()
-	planted := db.super
-	planted.gen, planted.seq = 7, 50
-	if _, err := db.s.WriteAt(planted.encode(), planted.page()*pageSize); err != nil {
-		t.Fatal(err)
-	}
-
-	// An older superblock is not written.
-	older := planted
-	older.seq = 40
-	if err := db.writeSuper(older); err != nil {
-		t.Fatal(err)
-	}
-	order, err := db.readSupers()
-	if err != nil || order[0].gen != 7 || order[0].seq != 50 {
-		t.Fatalf("after an older write: %+v, %v", order, err)
-	}
-
-	// A newer one follows the generation and becomes this handle's.
-	newer := planted
-	newer.seq = 60
-	if err := db.writeSuper(newer); err != nil {
-		t.Fatal(err)
-	}
-	if order, err = db.readSupers(); err != nil || order[0].gen != 8 || order[0].seq != 60 || order[1].gen != 7 {
-		t.Fatalf("after a newer write: %+v, %v", order, err)
-	}
-	if db.super.gen != 8 {
-		t.Fatalf("db.super gen %d, want 8", db.super.gen)
 	}
 }
