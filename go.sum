@@ -30,6 +30,8 @@ github.com/aperturerobotics/common v0.38.3 h1:JhXMnvEjOeYwBUQua+5Kwy7YOKhyPLD4HD
 github.com/aperturerobotics/common v0.38.3/go.mod h1:LkSn7PwAbNE5mahtTMyZfeLBc00STLzTZHfdhU+47kY=
 github.com/aperturerobotics/common v0.38.4-0.20261113092522-14fa5fde5980 h1:6vTE20iI1kGaC6MHwg0LIuzJrPUvBOSiMfWohTEtBg4=
 github.com/aperturerobotics/common v0.38.4-0.20261113092522-14fa5fde5980/go.mod h1:LkSn7PwAbNE5mahtTMyZfeLBc00STLzTZHfdhU+47kY=
+github.com/aperturerobotics/common v0.38.4-0.20261116035128-fbf25b5aed53 h1:P/lHQlzCtDLvfoZkWj6avllJ53GRR4QC0xyWGE3H5Ts=
+github.com/aperturerobotics/common v0.38.4-0.20261116035128-fbf25b5aed53/go.mod h1:LkSn7PwAbNE5mahtTMyZfeLBc00STLzTZHfdhU+47kY=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20261101202130-19d64da664cd h1:67jdk1Jtjxmw1YKvBzOnJ4XBYYVoKjj5EFYyuKkgE6Y=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20261101202130-19d64da664cd/go.mod h1:60X5k6b9DYA+RmSwBmxrZ8O81CUrLojTzAld//Vz9xU=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20261024231300-09c82549af7a h1:1+aqnPBdCps2DXBoiQ9q586iwJSacGXdK3QI3Rk+Wg8=
@@ -92,6 +94,8 @@ github.com/aperturerobotics/util v1.34.10-0.20261108210205-d8754415b105 h1:CHcTx
 github.com/aperturerobotics/util v1.34.10-0.20261108210205-d8754415b105/go.mod h1:NCySShOBZEGJl31Q2z3xSeDOWxRZ9wTcDTGAHvNi9bo=
 github.com/aperturerobotics/util v1.34.10-0.20261114002337-af1dd2948d5d h1:ip/NkGsyGZXkHGTVNiJ1r+d9vHzCZOfYBH6V5gi/bYg=
 github.com/aperturerobotics/util v1.34.10-0.20261114002337-af1dd2948d5d/go.mod h1:NCySShOBZEGJl31Q2z3xSeDOWxRZ9wTcDTGAHvNi9bo=
+github.com/aperturerobotics/util v1.34.10-0.20261115041930-26f4843a3124 h1:IA7oBk5anJfLUW8ZW4qfo0Ne42RaAdtkgRRBYdJQ2ts=
+github.com/aperturerobotics/util v1.34.10-0.20261115041930-26f4843a3124/go.mod h1:NCySShOBZEGJl31Q2z3xSeDOWxRZ9wTcDTGAHvNi9bo=
 github.com/aperturerobotics/vitess v0.0.0-20261108201950-8dc30550ec17 h1:vxDUO7AnOjee5clJZ4d+x1+GZJzKtlyMERQ7zpNKjm0=
 github.com/aperturerobotics/vitess v0.0.0-20261108201950-8dc30550ec17/go.mod h1:BA7YZUS4BoNY+k1nl7A3TLJkLY4KfW4I0c+DbXblfis=
 github.com/aperturerobotics/wazero v0.0.0-20261015230425-cef9eb51e433 h1:47nHIG21jQvOmVHYbdZHdGcd7SQ89+gor1LG9JkTOLM=

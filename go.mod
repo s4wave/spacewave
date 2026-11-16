@@ -27,7 +27,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20261110052155-7ec2cb5f95c8
 	github.com/aperturerobotics/cli v1.1.1-0.20261024231437-afc764ba6d68 // master
-	github.com/aperturerobotics/common v0.38.4-0.20261113092522-14fa5fde5980
+	github.com/aperturerobotics/common v0.38.4-0.20261116035128-fbf25b5aed53
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20261101202130-19d64da664cd // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20261024231300-09c82549af7a
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -44,7 +44,7 @@ require (
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20261028131920-f644656fc4a7 // master
 	github.com/aperturerobotics/starpc v0.52.4-0.20261024233818-0a9074172c29 // master
-	github.com/aperturerobotics/util v1.34.10-0.20261114002337-af1dd2948d5d // master
+	github.com/aperturerobotics/util v1.34.10-0.20261115041930-26f4843a3124 // master
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/cloudflare/circl v1.6.5
 	github.com/cockroachdb/apd/v3 v3.2.3
@@ -56,7 +56,7 @@ require (
 	github.com/fclairamb/ftpserverlib v0.32.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261109134749-d67c9b5cfb14 // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261109134919-12b788e49978 // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261115061857-e825c7512770 // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.12.0
 	github.com/gomodule/redigo v2.0.0+incompatible
