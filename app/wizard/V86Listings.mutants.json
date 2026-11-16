@@ -1,10 +1,20 @@
 [
   {
-    "name": "a failed read keeps showing loading",
+    "name": "a stopped read keeps showing loading",
     "replace": [
       [
-        "IF failed /\\ got # \"complete\" THEN \"failed\"",
-        "IF failed /\\ got # \"complete\" THEN \"loading\""
+        "IF read = \"stopped\" /\\ got # \"complete\" THEN \"failed\"",
+        "IF read = \"stopped\" /\\ got # \"complete\" THEN \"loading\""
+      ]
+    ],
+    "expect": "LoadingIsTrue"
+  },
+  {
+    "name": "the loading card names the images while only the VMs are read",
+    "replace": [
+      [
+        "ELSE IF ImageView = \"loading\" THEN \"images\"",
+        "ELSE IF ImageView = \"loading\" \\/ vms = \"loading\" THEN \"images\""
       ]
     ],
     "expect": "LoadingIsTrue"
@@ -12,38 +22,38 @@
   {
     "name": "a failure offers no Retry",
     "replace": [
-      ["Shown == IF View = \"failed\" THEN {\"retry\"} ELSE {}", "Shown == {}"]
+      [
+        "(IF ImageView = \"failed\" \\/ Notice THEN {\"retryImages\"} ELSE {})",
+        "(IF Notice THEN {\"retryImages\"} ELSE {})"
+      ]
     ],
     "expect": "FailureHasNextStep"
   },
   {
-    "name": "a failure seeds from no images",
+    "name": "a stopped watch over a complete listing stays quiet",
     "replace": [
-      [
-        "  /\\ View = \"ready\"\n  /\\ seeded' = TRUE",
-        "  /\\ View \\in {\"ready\", \"failed\"}\n  /\\ seeded' = TRUE"
-      ]
+      ["Notice == got = \"complete\" /\\ read = \"stopped\"", "Notice == FALSE"]
     ],
-    "expect": "SeedOnlyFromRead"
+    "expect": "StopIsShown"
   },
   {
     "name": "seeds before the listing is complete",
     "replace": [
       [
-        "ELSE IF got = \"complete\" THEN \"ready\"",
-        "ELSE IF got # \"none\" THEN \"ready\""
+        "  /\\ ImageView = \"ready\"\n  /\\ vms",
+        "  /\\ ImageView # \"failed\"\n  /\\ vms"
       ]
     ],
     "expect": "SeedOnlyFromRead"
   },
   {
-    "name": "a failure after a partial listing keeps loading",
+    "name": "seeds before the VMs are read",
     "replace": [
       [
-        "IF failed /\\ got # \"complete\" THEN \"failed\"",
-        "IF failed /\\ got = \"none\" THEN \"failed\""
+        "  /\\ ImageView = \"ready\"\n  /\\ vms = \"read\"\n",
+        "  /\\ ImageView = \"ready\"\n"
       ]
     ],
-    "expect": "PartialFailureIsShown"
+    "expect": "SeedOnlyFromRead"
   }
 ]

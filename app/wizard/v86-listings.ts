@@ -19,6 +19,12 @@ export interface V86ListingsStatus {
   // failures lists each listing that could not be read, images first;
   // pending stays set while any is listed.
   failures: V86ListingsFailure[]
+  // waiting names the listing still being read while none failed: the
+  // images until their first read is complete, then the VMs.
+  waiting: 'images' | 'vms' | null
+  // stopped is set when the watch of a complete image set reached its
+  // reconnect cap: the set stays and seeds, but may be out of date.
+  stopped: V86ListingsFailure | null
 }
 
 /**
@@ -26,9 +32,11 @@ export interface V86ListingsStatus {
  * set and VM listing, as V86Listings.tla specifies. The image set is pending
  * until its first read is complete: a watch yields after each page of that
  * read, and a default seeded from a partial set could miss the newest image.
- * An image read that fails before the set is complete is a failure, whether
- * or not it had yielded a page; one that fails after keeps the complete set
- * and reopens by itself, so it stays quiet.
+ * While the watch reconnects by itself the resource loads again, so the step
+ * keeps loading before the set is complete and stays quiet after. The
+ * resource fails only once the watch stops at its reconnect cap: before the
+ * set is complete that is a failure, whether or not it had yielded a page;
+ * after it the complete set stays, but may be out of date, so it is stopped.
  */
 export function v86ListingsStatus(
   images: Resource<KeyedSet<unknown>>,
@@ -44,9 +52,17 @@ export function v86ListingsStatus(
   if (vms.error) {
     failures.push(failureOf('Could not read the VMs in this Space', vms))
   }
+  let waiting: V86ListingsStatus['waiting'] = null
+  if (failures.length === 0) {
+    if (!imageSet?.complete) waiting = 'images'
+    else if (vms.loading) waiting = 'vms'
+  }
+  const stops = imageSet?.complete && images.error
   return {
     pending: !imageSet?.complete || vms.loading || !!vms.error,
     failures,
+    waiting,
+    stopped: stops ? failureOf('This list may be out of date', images) : null,
   }
 }
 

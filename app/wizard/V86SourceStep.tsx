@@ -3,6 +3,7 @@ import { LuCloud, LuHardDrive, LuMonitor, LuRefreshCcw } from 'react-icons/lu'
 import { Button } from '@s4wave/web/ui/button.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import {
   V86WizardConfig_Source,
   type V86WizardConfig,
@@ -11,7 +12,7 @@ import {
 import type { ExistingVm } from '../vm/v86-creation.js'
 import { formatV86ImageLabel, type V86ImageEntry } from '../vm/v86-images.js'
 import { V86ImageRow } from './V86ImageRow.js'
-import type { V86ListingsFailure } from './v86-listings.js'
+import type { V86ListingsFailure, V86ListingsStatus } from './v86-listings.js'
 
 // V86SourceStepProps describes the images a new VM can boot.
 export interface V86SourceStepProps {
@@ -23,9 +24,27 @@ export interface V86SourceStepProps {
   pending: boolean
   // failures lists each listing that could not be read; pending stays set.
   failures?: V86ListingsFailure[]
+  // waiting names the listing the loading card says is being read.
+  waiting?: V86ListingsStatus['waiting']
+  // stopped is set when the complete image list stopped following changes.
+  stopped?: V86ListingsFailure | null
   onSelectInSpace: (imageKey: string) => void
   onOpenCatalog: () => void
 }
+
+// waitingViews is the loading card for each listing still being read.
+const waitingViews = {
+  images: {
+    state: 'active',
+    title: 'Looking for VM images in this Space',
+    detail: 'Reading images that are ready to use.',
+  },
+  vms: {
+    state: 'active',
+    title: 'Looking for VMs in this Space',
+    detail: 'Reading which image each VM boots.',
+  },
+} as const
 
 // V86SourceStep is the first wizard step: choose the image the VM boots,
 // from this Space or from the published catalog.
@@ -35,6 +54,8 @@ export function V86SourceStep({
   inSpaceImages,
   pending,
   failures = [],
+  waiting = null,
+  stopped = null,
   onSelectInSpace,
   onOpenCatalog,
 }: V86SourceStepProps) {
@@ -62,15 +83,14 @@ export function V86SourceStep({
           }}
         />
       ))}
-      {pending && failures.length === 0 && (
-        <LoadingCard
-          view={{
-            state: 'active',
-            title: 'Looking for VM images in this Space',
-            detail: 'Reading images that are ready to use.',
-          }}
+      {stopped && (
+        <ViewerStatus
+          state="failed"
+          message={`${stopped.title}: ${stopped.message}`}
+          retry={stopped.retry}
         />
       )}
+      {waiting && <LoadingCard view={waitingViews[waiting]} />}
 
       {existingDefault && inheritKey && (
         <V86ImageRow

@@ -565,8 +565,14 @@ export function VmV86WizardViewer({
   const [operationError, setOperationError] = useState('')
 
   useV86WizardStartupMarks(objectKey, !!wizardResource.value, state?.step)
-  const { inSpaceImages, existingDefault, pending, failures } =
-    useV86WorldListings(spaceWorldResource)
+  const {
+    inSpaceImages,
+    existingDefault,
+    pending,
+    failures,
+    waiting,
+    stopped,
+  } = useV86WorldListings(spaceWorldResource)
   const { creation, startCreation } = useVmCreation()
   const { updateConfigDraft, persistConfig } = useV86ConfigWriter(
     wizardResource,
@@ -667,6 +673,8 @@ export function VmV86WizardViewer({
             inSpaceImages={inSpaceImages}
             pending={pending}
             failures={failures}
+            waiting={waiting}
+            stopped={stopped}
             onSelectInSpace={source.selectInSpaceImage}
             onOpenCatalog={() => source.setCatalogOpen(true)}
           />

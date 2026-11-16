@@ -64,6 +64,7 @@ describe('V86SourceStep', () => {
         existingDefault={undefined}
         inSpaceImages={partialImages}
         pending
+        waiting="images"
         onSelectInSpace={() => {}}
         onOpenCatalog={() => {}}
       />,
@@ -72,6 +73,51 @@ describe('V86SourceStep', () => {
     expect(screen.getByText('Alpine')).toBeTruthy()
     expect(screen.getByText('Looking for VM images in this Space')).toBeTruthy()
     expect(screen.queryByText('Add image from catalog')).toBeNull()
+  })
+
+  it('names the VM listing when only it is still read', () => {
+    render(
+      <V86SourceStep
+        cfg={V86WizardConfig.create()}
+        existingDefault={undefined}
+        inSpaceImages={partialImages}
+        pending
+        waiting="vms"
+        onSelectInSpace={() => {}}
+        onOpenCatalog={() => {}}
+      />,
+    )
+
+    expect(screen.getByText('Looking for VMs in this Space')).toBeTruthy()
+    expect(screen.queryByText('Looking for VM images in this Space')).toBeNull()
+  })
+
+  it('keeps a stopped complete list under a notice with Retry', async () => {
+    const user = userEvent.setup()
+    const retry = vi.fn()
+    render(
+      <V86SourceStep
+        cfg={V86WizardConfig.create()}
+        existingDefault={undefined}
+        inSpaceImages={partialImages}
+        pending={false}
+        stopped={{
+          title: 'This list may be out of date',
+          message: 'stream reset',
+          retry,
+        }}
+        onSelectInSpace={() => {}}
+        onOpenCatalog={() => {}}
+      />,
+    )
+
+    expect(
+      screen.getByText('This list may be out of date: stream reset'),
+    ).toBeTruthy()
+    expect(screen.getByText('Alpine')).toBeTruthy()
+    expect(screen.getByText('Add image from catalog')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(retry).toHaveBeenCalledOnce()
   })
 
   it('keeps the images read so far under each failure', async () => {

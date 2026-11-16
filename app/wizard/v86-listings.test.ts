@@ -38,6 +38,8 @@ describe('v86ListingsStatus', () => {
     expect(v86ListingsStatus(images, vmsRead)).toEqual({
       pending: true,
       failures: [],
+      waiting: 'images',
+      stopped: null,
     })
   })
 
@@ -51,6 +53,27 @@ describe('v86ListingsStatus', () => {
     expect(v86ListingsStatus(images, vmsRead)).toEqual({
       pending: false,
       failures: [],
+      waiting: null,
+      stopped: null,
+    })
+  })
+
+  it('names the VM listing while only it is read', () => {
+    const images = resourceOf({
+      value: imageSet(true),
+      loading: false,
+      error: null,
+      retry: retryImages,
+    })
+    const vms = resourceOf<unknown>({
+      value: null,
+      loading: true,
+      error: null,
+      retry: retryVms,
+    })
+    expect(v86ListingsStatus(images, vms)).toMatchObject({
+      pending: true,
+      waiting: 'vms',
     })
   })
 
@@ -76,6 +99,8 @@ describe('v86ListingsStatus', () => {
           retry: retryVms,
         },
       ],
+      waiting: null,
+      stopped: null,
     })
 
     const noImages = resourceOf<KeyedSet<unknown>>({
@@ -107,20 +132,44 @@ describe('v86ListingsStatus', () => {
           retry: retryImages,
         },
       ],
+      waiting: null,
+      stopped: null,
     })
   })
 
-  it('stays quiet when a complete image set later fails', () => {
+  it('stays quiet while a complete image set reconnects', () => {
+    const images = resourceOf({
+      value: imageSet(true),
+      loading: true,
+      error: null,
+      reopening: new Error('stream reset'),
+      retry: retryImages,
+    })
+    expect(v86ListingsStatus(images, vmsRead)).toEqual({
+      pending: false,
+      failures: [],
+      waiting: null,
+      stopped: null,
+    })
+  })
+
+  it('reports a complete image set whose watch stopped at its cap', () => {
     const images = resourceOf({
       value: null,
       last: imageSet(true),
-      loading: true,
+      loading: false,
       error: new Error('stream reset'),
       retry: retryImages,
     })
     expect(v86ListingsStatus(images, vmsRead)).toEqual({
       pending: false,
       failures: [],
+      waiting: null,
+      stopped: {
+        title: 'This list may be out of date',
+        message: 'stream reset',
+        retry: retryImages,
+      },
     })
   })
 
