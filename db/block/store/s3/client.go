@@ -157,15 +157,6 @@ func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int
 	return io.ReadAll(io.LimitReader(resp.Body, int64(length)))
 }
 
-// ObjectStat describes a stored object.
-type ObjectStat struct {
-	// Size is the content length in bytes.
-	Size int64
-	// ChecksumSHA256 is the SHA-256 the service verified when the object was
-	// uploaded with one, or nil.
-	ChecksumSHA256 []byte
-}
-
 // HeadObject returns the object's size and upload checksum.
 // Returns ErrNotFound if the object does not exist.
 func (c *Client) HeadObject(ctx context.Context, bucket, key string) (*ObjectStat, error) {

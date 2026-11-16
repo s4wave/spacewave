@@ -59,6 +59,7 @@ func (s *PackStore) indexPending(ctx context.Context, width int, pack, batch tim
 	eg.SetLimit(max(width, 1))
 	for _, id := range s.index.pendingIDs() {
 		eg.Go(func() error {
+			// Index the pack unless it was finished or removed meanwhile.
 			entry := s.index.pendingEntry(id)
 			if entry == nil {
 				return nil
@@ -71,6 +72,8 @@ func (s *PackStore) indexPending(ctx context.Context, width int, pack, batch tim
 			if err != nil {
 				return errors.Wrap(err, "index packfile "+id)
 			}
+
+			// Count its progress and rest before the next pack.
 			atomic.AddUint64(&progress.Packs, 1)
 			atomic.AddUint64(&progress.Keys, keys)
 			atomic.AddUint64(&progress.Bytes, size)
@@ -128,6 +131,7 @@ func sleep(ctx context.Context, d time.Duration) error {
 // that is not serving reads. report is called about once a second with the
 // progress so far. The store must have been opened with an Index.
 func (s *PackStore) BuildIndex(ctx context.Context, width int, report func(IndexProgress)) error {
+	// Load the cached entries, and list the packs if nothing has yet.
 	if s.index == nil {
 		return errors.New("pack store has no index")
 	}
@@ -139,6 +143,8 @@ func (s *PackStore) BuildIndex(ctx context.Context, width int, report func(Index
 			return err
 		}
 	}
+
+	// Report progress once a second while the packs are indexed.
 	var progress IndexProgress
 	done := make(chan struct{})
 	defer close(done)

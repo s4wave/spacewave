@@ -205,6 +205,7 @@ func (x *packIndex) load(ctx context.Context) (int, []*packfile.PackfileEntry, e
 // own read transaction, skipping a pack with no entry. The entries keep the
 // order of ids.
 func (x *packIndex) readEntries(ctx context.Context, ids []string) ([]*packfile.PackfileEntry, error) {
+	// Hand out ids to at most loadReaders workers through a shared cursor.
 	read := make([]*packfile.PackfileEntry, len(ids))
 	var next atomic.Int64
 	eg, egCtx := errgroup.WithContext(ctx)
@@ -226,6 +227,8 @@ func (x *packIndex) readEntries(ctx context.Context, ids []string) ([]*packfile.
 			return nil
 		})
 	}
+
+	// Drop the packs with no cached entry, keeping the order of ids.
 	if err := eg.Wait(); err != nil {
 		return nil, err
 	}
@@ -235,10 +238,13 @@ func (x *packIndex) readEntries(ctx context.Context, ids []string) ([]*packfile.
 // getEntry reads the cached entry of pack id, or nil when it has none or it
 // does not decode to that pack.
 func getEntry(ctx context.Context, tx kvtx.Tx, id string) (*packfile.PackfileEntry, error) {
+	// Read the e/ row, treating a missing row as no entry.
 	value, found, err := tx.Get(ctx, []byte(indexEntryPrefix+id))
 	if err != nil || !found {
 		return nil, errors.Wrap(err, "read cached entry")
 	}
+
+	// Decode it, treating a row for another pack as no entry.
 	entry := &packfile.PackfileEntry{}
 	if entry.UnmarshalVT(value) != nil || entry.GetId() != id {
 		return nil, nil
@@ -386,6 +392,7 @@ func (x *packIndex) forgetRow(id string, row packRow) {
 
 // nextRow numbers a new pack. Call with mtx held.
 func (x *packIndex) nextRow(id string, indexed bool) packRow {
+	// Give the pack the next row number and announce the change.
 	row := packRow{num: uint32(len(x.ids)), indexed: indexed} //nolint:gosec // 2^32 packs cannot exist.
 	x.ids = append(x.ids, id)
 	x.rows[id] = row
@@ -397,6 +404,7 @@ func (x *packIndex) nextRow(id string, indexed bool) packRow {
 // once it holds indexFlushEntries entries. The pack is indexed in the
 // background.
 func (x *packIndex) addListed(ctx context.Context, entry *packfile.PackfileEntry) error {
+	// Buffer the entry and flush once the buffer is full.
 	x.mtx.Lock()
 	x.buffered = append(x.buffered, entry)
 	full := len(x.buffered) >= indexFlushEntries
@@ -409,6 +417,7 @@ func (x *packIndex) addListed(ctx context.Context, entry *packfile.PackfileEntry
 
 // flush persists the buffered entries as unindexed packs.
 func (x *packIndex) flush(ctx context.Context) error {
+	// Take the buffer.
 	x.mtx.Lock()
 	buffered := x.buffered
 	x.buffered = nil
@@ -417,7 +426,7 @@ func (x *packIndex) flush(ctx context.Context) error {
 		return nil
 	}
 
-	// Number the packs and write their rows.
+	// Number the packs the table does not hold yet.
 	type added struct {
 		entry *packfile.PackfileEntry
 		row   packRow
@@ -432,6 +441,8 @@ func (x *packIndex) flush(ctx context.Context) error {
 		rows = append(rows, added{entry: entry, row: x.nextRow(id, false)})
 	}
 	x.mtx.Unlock()
+
+	// Write their rows, unless the index is read-only.
 	if x.readOnly {
 		return nil
 	}
@@ -461,6 +472,7 @@ func (x *packIndex) flush(ctx context.Context) error {
 
 // putPackRows writes the e/ and p/ rows of a pack.
 func putPackRows(ctx context.Context, tx kvtx.Tx, entry *packfile.PackfileEntry, row packRow) error {
+	// Write the entry, then the row that numbers the pack.
 	data, err := entry.MarshalVT()
 	if err != nil {
 		return err
@@ -896,6 +908,7 @@ func (x *packIndex) locate(ctx context.Context, keys [][]byte, placed []bool) ([
 // locateAll reports for each key whether its row names a pack the table
 // holds.
 func (x *packIndex) locateAll(ctx context.Context, keys [][]byte) ([]bool, error) {
+	// Locate every key, then report which found a pack.
 	ids, err := x.locate(ctx, keys, make([]bool, len(keys)))
 	if err != nil {
 		return nil, err
@@ -929,6 +942,7 @@ func (x *packIndex) wake() {
 
 // pendingIDs returns the packs to index.
 func (x *packIndex) pendingIDs() []string {
+	// Copy the pending set in a stable order.
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
 	ids := make([]string, 0, len(x.pending))
