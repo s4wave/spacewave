@@ -4831,20 +4831,28 @@ func testTailKeeps(t *testing.T, k, limit int) {
 // that holds none of the blocks, in records of 3,000 entries.
 func appendAgain(t *testing.T, v *Volume, keys ...[]byte) {
 	t.Helper()
+	for len(keys) != 0 {
+		n := min(len(keys), 3000)
+		appendJournal(t, v, &block_gc.JournalRecord{Again: keys[:n]})
+		keys = keys[n:]
+	}
+}
+
+// appendJournal appends r to the journal as a writer's record, stamped now,
+// without netting or moving any count.
+func appendJournal(t *testing.T, v *Volume, r *block_gc.JournalRecord) {
+	t.Helper()
 	ctx := t.Context()
 	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
 		state, err := p.rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
-		for len(keys) != 0 {
-			n := min(len(keys), 3000)
-			r := &block_gc.JournalRecord{AtUnixMilli: v.now().UnixMilli(), Again: keys[:n]}
-			if err := p.rec.PutJournal(ctx, state.GetNextSeq(), r); err != nil {
-				return err
-			}
-			keys, state.NextSeq = keys[n:], state.GetNextSeq()+1
+		r.AtUnixMilli = v.now().UnixMilli()
+		if err := p.rec.PutJournal(ctx, state.GetNextSeq(), r); err != nil {
+			return err
 		}
+		state.NextSeq = state.GetNextSeq() + 1
 		return p.rec.SetState(ctx, state)
 	})
 	if err != nil {
@@ -4894,20 +4902,23 @@ func (f *failNetting) phase(ph block_gc.Phase) func() {
 	return func() { f.netting = false }
 }
 
-// testTailTrimRetry attacks the tail index across a failed netting. C lists
-// three leaves, and a release took C to zero, ripe. Records past the cursor
-// name C, and the leaves, in again lists: an older one naming C twice and a
-// younger one, half a grace period later, naming C twice. The free indexes
-// them: whole reads both records; partial reads only the older one before
-// the younger is appended; spanning reads only the older one, before a
-// second older record naming C once, which the netting deletes with the
-// first. Once the older records ripen, the netting that deletes them fails
-// after proposing its trim, then runs again and commits. Had the failed trim
-// subtracted, the two trims would take out at least as many of C's entries
-// as the younger record holds, and the free would take C while that record
-// is unnetted. A fresh parent P then holds C. C and its leaves must read
-// until the records net, and once P is released everything frees, so the
-// committed trim left no entry behind.
+// testTailTrimRetry attacks the tail index across a failed netting, with C
+// kept by the tail alone. C lists three leaves, and a release took C to zero,
+// ripe. An older record names C and each leaf twice as balanced up and down
+// entries, which cancel when it nets, so the netting reads none of them and
+// leaves their ripe sequences below the cursor; a younger record, half a grace
+// period later, names them twice again. The free indexes them: whole reads
+// both records; partial reads both, then a later record naming only the
+// leaves lands unread; spanning reads only the older record, before a second
+// older record naming them once lands unread, which the netting deletes with
+// the first. Once the older records ripen, the netting that deletes them fails
+// after proposing its trim, then runs again and commits. C must stay ripe at
+// or below the cursor, so only the tail keeps it: had the failed trim
+// subtracted too, the two trims would take out every entry the index holds
+// for C in whole and partial, and the free would take C while the younger
+// record is unnetted. A fresh parent P then holds C. C and its leaves must
+// read until the records net, and once P is released everything frees, so
+// the committed trim left no entry behind.
 func testTailTrimRetry(t *testing.T, mode string) {
 	// Store C under root c, release it, and net the release.
 	v, clk := newLivenessVolume(t, true)
@@ -4935,16 +4946,14 @@ func testTailTrimRetry(t *testing.T, mode string) {
 		more = res.More
 	}
 
-	// Append the older records and the younger one, freeing to build the
-	// index before or after the younger lands.
-	key := func(name string) []byte { return block_gc.BlockKey(tr[name].Ref) }
-	naming := func(n int) [][]byte {
-		keys := make([][]byte, 0, n+len(leaves))
+	// Append the records, freeing to build the index at the mode's point.
+	all := append(slices.Clone(leaves), "C")
+	naming := func(n int, names ...string) [][]byte {
+		var keys [][]byte
 		for range n {
-			keys = append(keys, key("C"))
-		}
-		for _, name := range leaves {
-			keys = append(keys, key(name))
+			for _, name := range names {
+				keys = append(keys, block_gc.BlockKey(tr[name].Ref))
+			}
 		}
 		return keys
 	}
@@ -4964,29 +4973,33 @@ func testTailTrimRetry(t *testing.T, mode string) {
 		}
 		return total
 	}
-	older := livenessState(t, v).GetNextSeq()
-	appendAgain(t, v, naming(2)...)
-	if mode != "whole" {
+	requireKept := func(what string) {
+		t.Helper()
 		if res := collect(); res.Freed != 0 || res.Kept == 0 {
-			t.Fatalf("free over the older record = %+v, want C kept", res)
+			t.Fatalf("free %s = %+v, want C kept", what, res)
 		}
 	}
+	older := livenessState(t, v).GetNextSeq()
+	appendJournal(t, v, &block_gc.JournalRecord{Up: naming(2, all...), Down: naming(2, all...)})
 	if mode == "spanning" {
-		appendAgain(t, v, naming(1)...)
+		requireKept("over the older record")
+		appendJournal(t, v, &block_gc.JournalRecord{Up: naming(1, all...), Down: naming(1, all...)})
 	}
 	clk.Add(block_gc.DefaultGrace / 2)
 	younger := livenessState(t, v).GetNextSeq()
-	appendAgain(t, v, naming(2)...)
-	if mode == "whole" {
-		if res := collect(); res.Freed != 0 || res.Kept == 0 {
-			t.Fatalf("free over both records = %+v, want C kept", res)
-		}
+	appendJournal(t, v, &block_gc.JournalRecord{Again: naming(2, all...)})
+	if mode != "spanning" {
+		requireKept("over both records")
 	}
-	all := append(slices.Clone(leaves), "C")
+	if mode == "partial" {
+		appendJournal(t, v, &block_gc.JournalRecord{Again: naming(1, leaves...)})
+	}
 	requireStored(t, v, tr, true, all...)
 
 	// Ripen the older records, fail their netting once it proposed its trim,
-	// then run it again: C must stay while the younger record is unnetted.
+	// then run it again: C must stay while the younger record is unnetted,
+	// ripe at or below the cursor, so the tail alone kept it. Only netting moves
+	// a ripe sequence, so C's after the free is the one the free read.
 	clk.Add(block_gc.DefaultGrace/2 + time.Second)
 	probe.armed = true
 	if _, err := c.Collect(ctx); !errors.Is(err, errFailedNet) {
@@ -4995,11 +5008,12 @@ func testTailTrimRetry(t *testing.T, mode string) {
 	if cursor := livenessState(t, v).GetCursor(); cursor != older {
 		t.Fatalf("cursor %d after the failed netting, want the older record %d", cursor, older)
 	}
-	if res := collect(); res.Freed != 0 {
-		t.Fatalf("free after the netting committed = %+v, want C kept for the younger record", res)
-	}
+	requireKept("after the netting committed, for the younger record")
 	if cursor := livenessState(t, v).GetCursor(); cursor != younger {
 		t.Fatalf("cursor %d after the netting, want the younger record %d", cursor, younger)
+	}
+	if holders, ripe := blockHolders(t, v, tr, "C"); holders != 0 || ripe > younger {
+		t.Fatalf("C holds %d, ripe at %d: want zero and ripe at or below the cursor %d", holders, ripe, younger)
 	}
 	requireStored(t, v, tr, true, all...)
 
@@ -5030,6 +5044,22 @@ func testTailTrimRetry(t *testing.T, mode string) {
 	if !probe.failed {
 		t.Fatal("no netting failed")
 	}
+}
+
+// blockHolders returns the netted holders and ripe sequence of the block tr
+// names name.
+func blockHolders(t *testing.T, v *Volume, tr testTree, name string) (uint64, uint64) {
+	t.Helper()
+	var holders, ripe uint64
+	err := v.readRecords(t.Context(), func(rec *block_gc.Records) error {
+		var err error
+		holders, ripe, err = rec.GetHolders(t.Context(), tr[name].Ref)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return holders, ripe
 }
 
 // b2u returns 1 for true and 0 for false.

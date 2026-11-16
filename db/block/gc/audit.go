@@ -24,8 +24,10 @@ type AuditResult struct {
 	// LiveQueued counts the blocks a root reaches that the collector would
 	// free now: Dead, ripe, with no cascade due, no fill up unapplied, the
 	// cursor past the hold mark, and no up or again entry past the cursor
-	// naming it, which the free's tail check keeps it for. Any is an error in
-	// the counts.
+	// naming it, which the free's tail check keeps it for. It ignores the
+	// collector's saturated tail index, which keeps every block while the
+	// tail passes CollectorOptions.TailEntries, so it can count a block a
+	// collector at that bound would keep. Any is an error in the counts.
 	LiveQueued uint64
 	// LiveQueuedSample names up to sampleSize of them.
 	LiveQueuedSample []*block.BlockRef
@@ -291,6 +293,10 @@ func tallyHolders(ctx context.Context, rec *Records, state *LivenessState) (map[
 // entries of the record at the cursor its net offset already applied, and
 // the blocks the records name in an up pair or an again list, whole, as the
 // free's tail index counts them. A record's again list moves no holder.
+// The named set holds every distinct key of the tail, with no TailEntries
+// bound: 524,288 distinct keys keep about 24.5 MiB of key bytes and string
+// headers before the map's own overhead, which suits a copy host, as Audit
+// says.
 func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[string]int64, map[string]struct{}, error) {
 	// Sum the journal records past the cursor, noting the blocks they name.
 	delta := make(map[string]int64)

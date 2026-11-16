@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"sync"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -308,7 +310,7 @@ func measureTailWait(t *testing.T, leaves, entries int) {
 
 	// Reopen, then measure two passes: the free keeps every ripe block for
 	// the unnetted records.
-	v, _ = openWaitVolumeAt(t, path, "", true)
+	v, closeVolume = openWaitVolumeAt(t, path, "", true)
 	clk = &skewClock{}
 	clk.skew.Store(skew)
 	v.clock = clk.Now
@@ -335,6 +337,86 @@ func measureTailWait(t *testing.T, leaves, entries int) {
 		t.Fatalf("freed %d, %d slices reading the tail, %d saturated: want none freed, the tail read in slices, unsaturated", sum.Freed, sum.TailReading, sum.TailSaturated)
 	}
 	t.Logf("tail of %d entries over %d kept blocks: two passes in %v, %d slices reading the tail, %d kept; %s", entries, len(named), elapsed, sum.TailReading, sum.Kept, waits)
+	closeVolume()
+
+	// Reopen, then queue one timed commit behind a slice reading the tail.
+	v, _ = openWaitVolumeAt(t, path, "", true)
+	v.clock = clk.Now
+	queued, wait := measureQueuedTailWait(t, v, tr)
+	t.Logf("one commit queued mid-scan behind a slice reading the cold tail: waited %v, %v of it after it queued", wait, queued)
+}
+
+// measureQueuedTailWait queues one foreground commit behind a free slice
+// reading the tail of v, whose collector holds no index yet, and returns how
+// long the commit waited after the store reported it queued, and in all.
+// The collector's WritersWaiting hook starts the commit on its third call of
+// the first free transaction, once the sync read one record, and returns
+// only once the store's own WritersWaiting reports the commit queued, so the
+// commit waits behind the rest of that slice: the sync's last page and the
+// commit.
+func measureQueuedTailWait(t *testing.T, v *Volume, tr testTree) (time.Duration, time.Duration) {
+	t.Helper()
+	ctx := t.Context()
+	w, ok := v.kvtxStore.(kvtx.WriterQueueStore)
+	if !ok {
+		t.Fatal("store reports no writer queue")
+	}
+	ref := tr.add(t, "timed")
+	var sweeping, started bool
+	var calls int
+	var queuedAt, startAt time.Time
+	done := make(chan error, 1)
+	var doneAt time.Time
+	waiting := func() bool {
+		// Count the calls of the first free transaction until the third.
+		if !sweeping || started {
+			return w.WritersWaiting()
+		}
+		if calls++; calls < 3 {
+			return w.WritersWaiting()
+		}
+
+		// Start the commit and hold the slice until the store queues it.
+		started, startAt = true, time.Now()
+		go func() {
+			err := v.SetBucketRoots(ctx, "b", tr.entries("timed"), []block.NamedRoot{{Name: "timed", Ref: ref}})
+			doneAt = time.Now()
+			done <- err
+		}()
+		for !w.WritersWaiting() {
+			if time.Since(startAt) > 10*time.Second {
+				t.Error("the commit never queued")
+				return true
+			}
+			runtime.Gosched()
+		}
+		queuedAt = time.Now()
+		return true
+	}
+	c := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{
+		Frees:          true,
+		HoldUntilFree:  true,
+		Now:            v.now,
+		WritersWaiting: waiting,
+		Phase: func(ph block_gc.Phase) func() {
+			sweeping = ph == block_gc.PhaseSweep
+			return func() { sweeping = false }
+		},
+	})
+	res, err := c.Collect(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !started {
+		t.Fatalf("no free transaction reached its third waiting check: %+v", res)
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if res.Freed != 0 || res.TailReading == 0 {
+		t.Fatalf("pass = %+v, want nothing freed and the tail read short", res)
+	}
+	return doneAt.Sub(queuedAt), doneAt.Sub(startAt)
 }
 
 // skewClock reads the wall clock moved forward by a skew, so a measurement
