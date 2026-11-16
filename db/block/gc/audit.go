@@ -17,8 +17,9 @@ type AuditResult struct {
 	// that the paged release in progress does not name. After a pass that
 	// left nothing to do, that is garbage a hole, a put outside a batch or a
 	// lost release keeps; while a cascade is due it also counts the children
-	// of blocks still Dying, and while the journal past the cursor holds
-	// downs, the blocks they release.
+	// of blocks still Dying, under HoldUntilFree the children of blocks at
+	// zero not freed yet, and while the journal past the cursor holds downs,
+	// the blocks they release.
 	Leaked uint64
 	// LiveQueued counts the blocks a root reaches that the collector would
 	// free now: Dead, ripe, with no cascade due, no fill up unapplied and the
@@ -227,8 +228,9 @@ func counts(ctx context.Context, rec *Records, ref *block.BlockRef) (bool, error
 
 // tallyHolders counts, for each named block, the roots, the child lists and
 // the paged cascade in progress that name it, in rec. Once the Volume is
-// adopted, a block's list counts only while its children count it, Live or
-// Dying; a child a paged release has not reached yet still counts its
+// adopted under the release-at-zero rule, a block's list counts only while
+// its children count it, Live or Dying; under HoldUntilFree every stored
+// list counts; a child a paged release has not reached yet still counts its
 // parent, and one a paged re-hold has not reached does not yet. Leaving the
 // release's children out would restore a hole's count one too low and free
 // the hole while a root still reaches it.
@@ -243,10 +245,12 @@ func tallyHolders(ctx context.Context, rec *Records, state *LivenessState) (map[
 		return nil, err
 	}
 
-	// Count the child lists of the blocks their children count.
-	adopted := state.GetAdoption() == Adoption_ADOPTION_ADOPTED
+	// Count the child lists of the blocks their children count: every one
+	// under HoldUntilFree, where a stored block holds its children until it
+	// is freed.
+	released := state.GetAdoption() == Adoption_ADOPTION_ADOPTED && state.GetHoldRule() != HoldRule_HOLD_RULE_HOLD_UNTIL_FREE
 	err = rec.ScanChildren(ctx, func(ref *block.BlockRef, children []*block.BlockRef) error {
-		if adopted {
+		if released {
 			held, err := counts(ctx, rec, ref)
 			if err != nil || !held {
 				return err

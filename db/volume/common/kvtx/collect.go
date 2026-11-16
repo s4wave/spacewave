@@ -78,7 +78,8 @@ func (s collectorStore) ScanBlocks(ctx context.Context, fn func(refs []*block.Bl
 }
 
 // Adopt counts the holders of every block of a Volume that predates its
-// journal and marks it adopted, as block_gc.Adopt describes, reporting the
+// journal, or was counted under the other hold rule, under the Volume's hold
+// rule and marks it adopted, as block_gc.Adopt describes, reporting the
 // mark phase while it runs. It runs one adoption of this Volume at a time; an
 // adoption from another process on the same store supersedes it, as
 // block_gc.Adopt describes. Adopt a Volume only once every writer that uses
@@ -91,7 +92,7 @@ func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 	v.adoptMu.Lock()
 	defer v.adoptMu.Unlock()
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
-	return block_gc.Adopt(backgroundPass(ctx), collectorStore{v: v})
+	return block_gc.Adopt(backgroundPass(ctx), collectorStore{v: v}, v.holdRule)
 }
 
 // runBackgroundAdopt adopts the Volume, in Adopt's bounded background

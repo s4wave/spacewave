@@ -57,6 +57,45 @@ func (x Adoption) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// HoldRule is the rule a Volume's counts were written under: when a block at
+// zero holders stops counting as a holder of its children.
+type HoldRule int32
+
+const (
+	// HOLD_RULE_RELEASE_AT_ZERO releases a block's children when it reaches
+	// zero holders, through a cascade, before the block itself is freed.
+	HoldRule_HOLD_RULE_RELEASE_AT_ZERO HoldRule = 0
+	// HOLD_RULE_HOLD_UNTIL_FREE keeps a block a holder of each child it lists
+	// until the transaction that frees it, which gives each child its down.
+	HoldRule_HOLD_RULE_HOLD_UNTIL_FREE HoldRule = 1
+)
+
+// Enum value maps for HoldRule.
+var (
+	HoldRule_name = map[int32]string{
+		0: "HOLD_RULE_RELEASE_AT_ZERO",
+		1: "HOLD_RULE_HOLD_UNTIL_FREE",
+	}
+	HoldRule_value = map[string]int32{
+		"HOLD_RULE_RELEASE_AT_ZERO": 0,
+		"HOLD_RULE_HOLD_UNTIL_FREE": 1,
+	}
+)
+
+func (x HoldRule) Enum() *HoldRule {
+	p := new(HoldRule)
+	*p = x
+	return p
+}
+
+func (x HoldRule) String() string {
+	name, valid := HoldRule_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // RootEntry is one named root in a Volume's root table: the block the name
 // holds.
 type RootEntry struct {
@@ -185,6 +224,11 @@ type LivenessState struct {
 	// adopted: the adoption zeroes it once its clear has deleted the records
 	// an earlier run left, and counts each block it settles Dying.
 	Cascades uint64 `protobuf:"varint,13,opt,name=cascades,proto3" json:"cascades,omitempty"`
+	// HoldRule is the rule the counts were written under, set by the adoption
+	// that counted them or at the birth of an empty Volume. The collector nets
+	// and frees only a Volume whose rule matches its own; a mismatch adopts the
+	// Volume again, which counts every child list under the collector's rule.
+	HoldRule HoldRule `protobuf:"varint,14,opt,name=hold_rule,json=holdRule,proto3" json:"holdRule,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -263,10 +307,17 @@ func (x *LivenessState) GetCascades() uint64 {
 	return 0
 }
 
+func (x *LivenessState) GetHoldRule() HoldRule {
+	if x != nil {
+		return x.HoldRule
+	}
+	return HoldRule_HOLD_RULE_RELEASE_AT_ZERO
+}
+
 // Release is a cascade whose child list is longer than one collector slice
 // moves: the release of the children of a block that lost its last holder,
-// or the re-hold of the children of one that gained a holder after its
-// release. The slice that starts it moves the list to release pages and
+// or under HOLD_RULE_HOLD_UNTIL_FREE of a block the collector freed, or the
+// re-hold of the children of one that gained a holder after its release. The slice that starts it moves the list to release pages and
 // marks the block released or held; each later slice moves the next
 // children's holders by one and moves Next in the same transaction, and the
 // last deletes the pages and clears the release.
@@ -367,6 +418,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.NetOffset = m.NetOffset
 	r.HoldMark = m.HoldMark
 	r.Cascades = m.Cascades
+	r.HoldRule = m.HoldRule
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -485,6 +537,9 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this.Cascades != that.Cascades {
 		return false
 	}
+	if this.HoldRule != that.HoldRule {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -562,6 +617,46 @@ func (x *Adoption) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the Adoption from JSON.
 func (x *Adoption) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the HoldRule to JSON.
+func (x HoldRule) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), HoldRule_name)
+}
+
+// MarshalText marshals the HoldRule to text.
+func (x HoldRule) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), HoldRule_name)), nil
+}
+
+// MarshalJSON marshals the HoldRule to JSON.
+func (x HoldRule) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the HoldRule from JSON.
+func (x *HoldRule) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(HoldRule_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read HoldRule enum: %v", err)
+		return
+	}
+	*x = HoldRule(v)
+}
+
+// UnmarshalText unmarshals the HoldRule from text.
+func (x *HoldRule) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), HoldRule_value)
+	if err != nil {
+		return err
+	}
+	*x = HoldRule(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the HoldRule from JSON.
+func (x *HoldRule) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -751,6 +846,11 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("cascades")
 		s.WriteUint64(x.Cascades)
 	}
+	if x.HoldRule != 0 || s.HasField("holdRule") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("holdRule")
+		x.HoldRule.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -802,6 +902,9 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "cascades":
 			s.AddField("cascades")
 			x.Cascades = s.ReadUint64()
+		case "hold_rule", "holdRule":
+			s.AddField("hold_rule")
+			x.HoldRule.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1006,6 +1109,11 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.HoldRule != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.HoldRule))
+		i--
+		dAtA[i] = 0x70
+	}
 	if m.Cascades != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cascades))
 		i--
@@ -1161,6 +1269,7 @@ func (m *LivenessState) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldMark)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cascades)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldRule)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1180,6 +1289,10 @@ func (m *Release) SizeVT() (n int) {
 }
 
 func (x Adoption) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x HoldRule) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -1281,6 +1394,10 @@ func (x *LivenessState) MarshalProtoText() string {
 	if x.Cascades != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cascades")
 		protobuf_go_lite.TextWriteUint(&sb, x.Cascades)
+	}
+	if x.HoldRule != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hold_rule")
+		protobuf_go_lite.TextWriteStringer(&sb, HoldRule(x.HoldRule))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1575,6 +1692,17 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Cascades = 0
 			m.Cascades, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HoldRule", wireType)
+			}
+			m.HoldRule = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.HoldRule = HoldRule(_v)
 			if err != nil {
 				return err
 			}

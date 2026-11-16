@@ -20,6 +20,13 @@ type CollectorOptions struct {
 	// upgraded from an older format; with Frees off it stays unadopted, since
 	// nothing reads exact counts until frees turn on.
 	Frees bool
+	// HoldUntilFree keeps a block at zero holders a holder of each child it
+	// lists until the transaction that frees it, as Collector describes. Off,
+	// a block releases its children when it reaches zero. The collector nets
+	// and frees only a Volume whose counts were written under its own rule,
+	// LivenessState.HoldRule; a Volume under the other rule waits for an
+	// adoption, which counts it again under this one.
+	HoldUntilFree bool
 	// Grace is how old a journal record must be before a pass nets it. It
 	// must exceed the time a reader takes to pin a head it saw and the lease
 	// of a leased root, so a reader whose process stalled past its lease
@@ -37,6 +44,14 @@ type CollectorOptions struct {
 	// kvtx.WriterQueueStore does; nil reports none. The free loop stops at the
 	// next block, and a paged cascade at the next page, once one waits.
 	WritersWaiting func() bool
+}
+
+// rule returns the hold rule the options name.
+func (o *CollectorOptions) rule() HoldRule {
+	if o.HoldUntilFree {
+		return HoldRule_HOLD_RULE_HOLD_UNTIL_FREE
+	}
+	return HoldRule_HOLD_RULE_RELEASE_AT_ZERO
 }
 
 // sliceTarget is how long the collector's own work in one transaction aims

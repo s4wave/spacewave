@@ -28,6 +28,11 @@ message Config {
   // RootHeldCheck is what the Volume does with a root move that requires its
   // blocks held when a block it reaches is not.
   RootHeldCheck root_held_check = 9;
+  // CollectorHoldUntilFree keeps a block at zero holders a holder of each
+  // child it lists until the collector frees it, so no child is freed while
+  // a stored parent names it. Changing it adopts the Volume again in the
+  // background, and nothing frees until that finishes.
+  bool collector_hold_until_free = 10;
 
   // reserved: 1 mqueue_config
   // reserved: 4 gc_mark_walk, 5 disable_hold_counts, 6 upgrade_shared_counts

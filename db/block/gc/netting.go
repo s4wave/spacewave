@@ -45,6 +45,11 @@ import (
 //  5. A block without a child list is never zero: its holders floor at the
 //     one its absent record implies, and no cascade reaches past it. A down
 //     cascade due on one is dropped, its children keeping its holder.
+//  6. Under HoldUntilFree no block cascades: a block at zero keeps its
+//     children's holders, rel stays clear and no cascade record is written.
+//     A block with a child list is on the free queue exactly when it is at
+//     zero, at its ripe sequence. The only release is a free's, which
+//     freeing starts through release.
 type netting struct {
 	// c is the collector, for its pace and writer queue.
 	c *Collector
@@ -74,6 +79,8 @@ type netting struct {
 	moves int
 	// full reports that a cascade did not fit the slice.
 	full bool
+	// hold runs the slice under HoldUntilFree.
+	hold bool
 }
 
 // node is one block a netting slice reached.
@@ -138,6 +145,7 @@ func (c *Collector) newNetting(rec *Records, state *LivenessState, res *CollectR
 		nodes:    make(map[string]*node),
 		cascades: make(map[string]byte),
 		moves:    moves,
+		hold:     c.opts.HoldUntilFree,
 	}, nil
 }
 
@@ -317,8 +325,9 @@ func (n *netting) apply(ctx context.Context, nd *node) error {
 	}
 
 	// Read its child list and rel flag; a block without a list never
-	// cascades, and the write drops a down cascade due on one.
-	if err := n.readList(ctx, nd); err != nil {
+	// cascades, and the write drops a down cascade due on one. Under
+	// HoldUntilFree the list decides only the floor and the queue entry.
+	if err := n.readList(ctx, nd); err != nil || n.hold {
 		return err
 	}
 	if err := n.readRel(ctx, nd); err != nil || !nd.listed {
@@ -394,21 +403,30 @@ func (n *netting) cascade(ctx context.Context, nd *node) error {
 		}
 	}
 	nd.rel = !nd.rel
-	if inline {
-		for _, child := range nd.children {
+	return n.release(ctx, nd.key, nd.children, dir)
+}
+
+// release moves each of children, the child list of the block at key, by
+// dir: inline when they fit the slice's moves, and otherwise through release
+// pages, starting the paged cascade. A caller starts a paged one only while
+// none is in progress and the slice has moved nothing yet.
+func (n *netting) release(ctx context.Context, key []byte, children []*block.BlockRef, dir int64) error {
+	// Move a list that fits.
+	if len(children) <= n.moves-n.moved {
+		for _, child := range children {
 			if err := n.move(BlockKey(child), dir); err != nil {
 				return err
 			}
 		}
-		n.moved += len(nd.children)
+		n.moved += len(children)
 		return nil
 	}
 
 	// Page a longer list and start moving it.
-	if err := n.rec.putReleasePages(ctx, nd.children); err != nil {
+	if err := n.rec.putReleasePages(ctx, children); err != nil {
 		return err
 	}
-	n.state.Release = &Release{Block: nd.key, Children: uint64(len(nd.children)), Rehold: dir > 0}
+	n.state.Release = &Release{Block: key, Children: uint64(len(children)), Rehold: dir > 0}
 	return n.continueRelease(ctx)
 }
 
@@ -571,6 +589,11 @@ func (n *netting) writeNode(ctx context.Context, nd *node) error {
 		}
 	}
 
+	// Under HoldUntilFree a listed block is queued exactly while at zero.
+	if n.hold {
+		return n.writeQueue(ctx, nd, holders, ripe)
+	}
+
 	// A node whose rel flag was never read kept it and its holders: its
 	// cascade and queue records stand.
 	if !listed || !nd.relRead {
@@ -612,6 +635,23 @@ func (n *netting) writeNode(ctx context.Context, nd *node) error {
 		if err := n.rec.tx.Set(ctx, n.rec.queueKey(ripe, nd.key), nil); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// writeQueue moves nd's queue entry under HoldUntilFree, where a listed
+// block is on the queue exactly while at zero, at its ripe sequence: off it
+// once it gains a holder, onto it once it reaches zero, and to its new ripe
+// sequence when it ripened again. Only a listed block is ever at zero.
+func (n *netting) writeQueue(ctx context.Context, nd *node, holders, ripe uint64) error {
+	queued0, queued := nd.holders0 == 0, holders == 0
+	if queued0 && (!queued || ripe != nd.ripe0) {
+		if err := n.rec.tx.Delete(ctx, n.rec.queueKey(nd.ripe0, nd.key)); err != nil {
+			return err
+		}
+	}
+	if queued && (!queued0 || ripe != nd.ripe0) {
+		return n.rec.tx.Set(ctx, n.rec.queueKey(ripe, nd.key), nil)
 	}
 	return nil
 }

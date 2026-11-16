@@ -78,6 +78,13 @@ export interface Config {
    * blocks held when a block it reaches is not.
    */
   rootHeldCheck?: RootHeldCheck
+  /**
+   * CollectorHoldUntilFree keeps a block at zero holders a holder of each
+   * child it lists until the collector frees it, so no child is freed while
+   * a stored parent names it. Changing it adopts the Volume again in the
+   * background, and nothing frees until that finishes.
+   */
+  collectorHoldUntilFree?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -86,4 +93,5 @@ export const Config: MessageType<Config> =
     [7, 'collector_frees', 8],
     [8, 'collector_grace_dur', 9],
     [9, 'root_held_check', 14, 0, RootHeldCheck_Enum],
+    [10, 'collector_hold_until_free', 8],
   ])
