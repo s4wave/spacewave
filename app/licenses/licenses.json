@@ -1737,7 +1737,7 @@
     },
     {
       "name": "go.opentelemetry.io/otel",
-      "version": "v1.44.0",
+      "version": "v1.47.0",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://go.opentelemetry.io/otel",
@@ -1745,7 +1745,7 @@
     },
     {
       "name": "go.opentelemetry.io/otel/trace",
-      "version": "v1.44.0",
+      "version": "v1.47.0",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://go.opentelemetry.io/otel/trace",
