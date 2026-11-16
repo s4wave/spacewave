@@ -136,6 +136,7 @@ func TestHostedSpaceLoadsWorldManifests(t *testing.T) {
 	first := h.storeManifest(ctx, t, "test/manifests/first", 1)
 	h.setApproval(ctx, t, first, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED)
 	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
+	h.loads.waitStarts(ctx, t, pluginReadinessPluginID, artifactKeys([]*bldr_manifest.ManifestRef{first}), 1)
 	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, artifactKeys([]*bldr_manifest.ManifestRef{first}))
 	h.loads.waitManifests(ctx, t, "absent", nil)
 
@@ -150,6 +151,7 @@ func TestHostedSpaceLoadsWorldManifests(t *testing.T) {
 
 	// Allowing the newer revision replaces the load.
 	h.setApproval(ctx, t, second, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED)
+	h.loads.waitStarts(ctx, t, pluginReadinessPluginID, artifactKeys([]*bldr_manifest.ManifestRef{second}), 1)
 	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, artifactKeys([]*bldr_manifest.ManifestRef{second}))
 	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
 	if starts := h.loads.getStarts("absent"); starts != 1 {
@@ -157,10 +159,10 @@ func TestHostedSpaceLoadsWorldManifests(t *testing.T) {
 	}
 }
 
-// TestHostedSpaceLoadsOnlyAdmittedRoots checks that a hosted Space, whose
-// host runs every root it is sent, never sends a World root the device has
-// not allowed: the plugin loads without it until the device's person allows
-// the root, and loses it again when they decline.
+// TestHostedSpaceLoadsOnlyAdmittedRoots checks that a hosted Space's host
+// never starts a World root the device has not allowed: the plugin loads
+// without it until the device's person allows the root, and loses it again
+// when they decline.
 func TestHostedSpaceLoadsOnlyAdmittedRoots(t *testing.T) {
 	// Bound the test and start the hosted Space with the device's approvals.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -175,15 +177,22 @@ func TestHostedSpaceLoadsOnlyAdmittedRoots(t *testing.T) {
 	if starts := h.loads.getStarts(pluginReadinessPluginID); starts != 1 {
 		t.Fatalf("unapproved: readiness loads started = %d, want 1", starts)
 	}
+	if starts := h.loads.getStartsOf(pluginReadinessPluginID, keys); starts != 0 {
+		t.Fatalf("unapproved root started %d times", starts)
+	}
 
 	// Allowing the root sends a load that names it.
 	h.setApproval(ctx, t, ref, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED)
+	h.loads.waitStarts(ctx, t, pluginReadinessPluginID, keys, 1)
 	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, keys)
 
 	// Declining it withdraws that load.
 	h.setApproval(ctx, t, ref, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_DECLINED)
 	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, nil)
 	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
+	if starts := h.loads.getStartsOf(pluginReadinessPluginID, keys); starts != 1 {
+		t.Fatalf("root started %d times across approval and decline, want 1", starts)
+	}
 }
 
 // TestHostedSpaceReplayFallsBackUntilRootAllowed checks that a hosted Space,
@@ -301,9 +310,10 @@ type hostedSpace struct {
 
 // startHostedSpace starts a Space hosted on a testbed bus that holds the
 // device's approvals, listing the readiness plugin and one with no manifest.
+// Its host checks named roots against those approvals, as the scheduler does.
 func startHostedSpace(ctx context.Context, t *testing.T) *hostedSpace {
 	t.Helper()
-	return startHostedSpaceWith(ctx, t, []string{"absent", pluginReadinessPluginID}, false)
+	return startHostedSpaceWith(ctx, t, []string{"absent", pluginReadinessPluginID}, true)
 }
 
 // startHostedSpaceWith starts a Space listing listed, hosted on a testbed bus
@@ -739,17 +749,18 @@ func (r *loadRecorder) HandleDirective(
 // for peerID, waiting until at least one is.
 func (r *loadRecorder) awaitAdmitted(ctx context.Context, peerID, pluginID string, refs []*bldr_manifest.ManifestRef) ([]*bldr_manifest.ManifestRef, error) {
 	for {
-		// Read each root's admission once its resolvers have answered.
+		// Take an admission value immediately, or observe an idle refusal,
+		// as the real scheduler does when checking a root.
 		var admitted []*bldr_manifest.ManifestRef
 		for _, ref := range refs {
-			vals, _, valsRef, err := bus.ExecCollectValues[bldr_plugin.AdmitPluginRootValue](
-				ctx, r.admit, bldr_plugin.NewAdmitPluginRoot(peerID, pluginID, manifestRoot(ref)), false, nil,
+			_, _, valsRef, err := bus.ExecWaitValue[bldr_plugin.AdmitPluginRootValue](
+				ctx, r.admit, bldr_plugin.NewAdmitPluginRoot(peerID, pluginID, manifestRoot(ref)), bus.ReturnIfIdle(true), nil, nil,
 			)
 			if err != nil {
 				return nil, err
 			}
-			valsRef.Release()
-			if len(vals) != 0 {
+			if valsRef != nil {
+				valsRef.Release()
 				admitted = append(admitted, ref)
 			}
 		}
