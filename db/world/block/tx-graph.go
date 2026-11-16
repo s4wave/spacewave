@@ -9,9 +9,10 @@ import (
 // AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
-// Write operations will fail if the store is read-only.
+// Write operations will fail if the store is read-only. A writer holds the
+// write lock for the whole callback, so cb must not call back into the Tx.
 func (t *Tx) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
-	return t.locked(ctx, false, func() error {
+	return t.locked(ctx, write, func() error {
 		return t.state.AccessCayleyGraph(ctx, write, cb)
 	})
 }
