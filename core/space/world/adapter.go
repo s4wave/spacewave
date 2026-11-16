@@ -289,14 +289,32 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	// released it after it stopped, so this one reads the roots only once no
 	// other adapter moves them. The release runs last, after the engine
 	// retired.
-	detach, err := a.so.SetBody(ctx, a)
+	stopBody, detach, err := a.so.SetBody(ctx, a)
 	if err != nil {
 		return err
 	}
 	defer detach()
 	runCtx, stopRun := context.WithCancel(ctx)
-	defer stopRun()
 	a.runCtx = runCtx
+
+	// Stop body calls before releasing replay resources on every exit, including
+	// startup failure while the driver waits for opened. Keep the claim until
+	// this cleanup returns; detach is the last defer.
+	defer func() {
+		// Join every driver and voter call while retaining the body's claim.
+		stopBody()
+
+		// Refuse new stores, cancel the running stores and drain their holds.
+		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			a.stopped = true
+		})
+		stopRun()
+		a.waitBackground()
+
+		// End replay only after its last user has returned.
+		a.replay.close()
+		a.replay.stage.end()
+	}()
 
 	// Read what an earlier run held, then let the driver step the body.
 	if err := a.loadRoots(ctx); err != nil {
@@ -339,16 +357,6 @@ func (a *Adapter) Execute(ctx context.Context) error {
 		return err
 	})
 	err = g.Wait()
-
-	// Refuse new background stores, end the running ones and wait for them,
-	// so none starts or lands beside the next adapter's claim.
-	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		a.stopped = true
-	})
-	stopRun()
-	a.waitBackground()
-	a.replay.close()
-	a.replay.stage.end()
 	return err
 }
 

@@ -1,0 +1,42 @@
+[
+  {
+    "name": "cleanup races the running driver",
+    "replace": [
+      [
+        "Cleanup == /\\ phase = \"stopped\"",
+        "Cleanup == /\\ phase \\in {\"stopping\", \"stopped\"}"
+      ]
+    ],
+    "expect": "StopsBeforeCleanup"
+  },
+  {
+    "name": "release permits a successor before cleanup",
+    "replace": [
+      [
+        "Release == /\\ phase = \"cleaned\"",
+        "Release == /\\ phase \\in {\"stopped\", \"cleaned\"}"
+      ]
+    ],
+    "expect": "SuccessorAfterCleanup"
+  },
+  {
+    "name": "stop omits joining the voter",
+    "replace": [
+      [
+        "/\\ workers[\"voter\"] = \"exited\"",
+        "/\\ TRUE"
+      ]
+    ],
+    "expect": "StopsBeforeCleanup"
+  },
+  {
+    "name": "cleanup omits draining background stores",
+    "replace": [
+      [
+        "/\\ store # \"running\"",
+        "/\\ TRUE"
+      ]
+    ],
+    "expect": "BackgroundResourcesLive"
+  }
+]

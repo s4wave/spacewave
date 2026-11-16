@@ -213,8 +213,8 @@ func (s *SharedObject) showReplay(r *sobject.BodyReport) {
 // SetBody waits for the previous body's release, then attaches the body the
 // SharedObject agrees on until release. The mount drives the body through its
 // replay, signs the checkpoints this device owes and votes in the group's
-// decisions while the body is attached.
-func (s *SharedObject) SetBody(ctx context.Context, body sobject.Body) (func(), error) {
+// decisions until stop joins them. release frees the claim after stop.
+func (s *SharedObject) SetBody(ctx context.Context, body sobject.Body) (func(), func(), error) {
 	return s.body.SetBody(ctx, body)
 }
 

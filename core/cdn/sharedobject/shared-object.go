@@ -41,23 +41,6 @@ type CdnSharedObject struct {
 	body *sobject.BodyHost
 }
 
-// CdnSharedObjectOptions configure a CdnSharedObject.
-type CdnSharedObjectOptions struct {
-	// SpaceID is the CDN Space ULID this SharedObject represents.
-	SpaceID string
-	// Bus is the controllerbus used by session consumers of GetBus().
-	Bus bus.Bus
-	// PeerID is the local peer id. An empty value is allowed for anonymous
-	// mounts on local-only bootstraps where no session identity exists yet.
-	PeerID peer.ID
-	// Logger logs the driver of an attached body, or is nil to discard.
-	Logger *logrus.Entry
-	// BlockStore reads the CDN Space and tracks its root pointer. It is
-	// either the transport-owning CdnBlockStore or a SuppliedBlockStore reading
-	// through a process that already owns that transport.
-	BlockStore cdn_bstore.RootBlockStore
-}
-
 // NewCdnSharedObject constructs a new CdnSharedObject. The caller is expected
 // to refresh the block store pointer before the first read so GetCheckpoint
 // returns the current published checkpoint.
@@ -214,15 +197,18 @@ func (s *CdnSharedObject) AccessSharedObjectHealth(_ context.Context, _ func()) 
 }
 
 // SetBody waits for the previous body's release, then attaches body, which
-// the mount installs each published checkpoint into, until release. A CDN mount has no lifecycle of its own, so an
-// attached body's driver runs until the body is detached.
-func (s *CdnSharedObject) SetBody(ctx context.Context, body sobject.Body) (func(), error) {
-	release, err := s.body.SetBody(ctx, body)
+// the mount installs each published checkpoint into, until stop joins its driver.
+// release frees the claim after stop. A CDN mount has no lifecycle of its own.
+func (s *CdnSharedObject) SetBody(ctx context.Context, body sobject.Body) (func(), func(), error) {
+	// Claim the body before starting its driver's context.
+	stop, release, err := s.body.SetBody(ctx, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+
+	// Keep the driver running until its owner stops it.
 	s.body.SetContext(context.Background())
-	return release, nil
+	return stop, release, nil
 }
 
 // QueueOperation is not supported on a read-only CDN mount.

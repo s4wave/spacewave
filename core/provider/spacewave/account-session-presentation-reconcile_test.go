@@ -279,8 +279,8 @@ func (s *testSessionPresentationSharedObject) AccessSharedObjectState(
 }
 
 // SetBody ignores the body: the test object replays nothing.
-func (s *testSessionPresentationSharedObject) SetBody(context.Context, sobject.Body) (func(), error) {
-	return func() {}, nil
+func (s *testSessionPresentationSharedObject) SetBody(context.Context, sobject.Body) (func(), func(), error) {
+	return func() {}, func() {}, nil
 }
 
 // QueueOperation records a session presentation removal, then signs the
