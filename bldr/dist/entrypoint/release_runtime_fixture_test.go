@@ -27,6 +27,9 @@ import (
 	plugin_host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
+	"github.com/s4wave/spacewave/bldr/resource"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	sdk_plugin_host "github.com/s4wave/spacewave/bldr/sdk/plugin/host"
 	"github.com/s4wave/spacewave/bldr/testbed"
 	launcher_controller "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller"
 	"github.com/s4wave/spacewave/db/block"
@@ -247,6 +250,14 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatalf("scheduler did not start transient plugin: %v", ctx.Err())
 	}
+
+	// Process entry alone is not RPC readiness, which a copy that starts
+	// after the startup group opens requires from this plugin.
+	_, transientClientRef, err := bldr_plugin.ExPluginLoadWaitClient(ctx, tb.GetBus(), "transient-plugin", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(transientClientRef.Release)
 
 	// Confirm both executables still reference their original remote buckets.
 	waitForManifestBucket(t, ctx, tb, "spacewave-core", "spacewave-release")
@@ -477,6 +488,36 @@ func (h *releaseFixturePluginHost) ExecutePlugin(
 	hostRpcMux srpc.Mux,
 	rpcInit bldr_plugin_host.PluginRpcInitCb,
 ) error {
+	// Publish the RPC connection that the scheduler uses as running state.
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux())))
+	if err := rpcInit(client); err != nil {
+		return err
+	}
+	defer rpcInit(nil)
+
+	// Complete the empty capability pass through the same host Resource API
+	// a plugin uses before the scheduler reports it running.
+	hostClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(hostRpcMux)))
+	hostResources, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(hostClient))
+	if err != nil {
+		return err
+	}
+	defer hostResources.Release()
+
+	// Retain the host root until this fixture's execution ends.
+	root := hostResources.AccessRootResource()
+	defer root.Release()
+	rootClient, err := root.GetClient()
+	if err != nil {
+		return err
+	}
+	if _, err := sdk_plugin_host.NewSRPCPluginHostResourceServiceClient(rootClient).CompleteInitialCapabilityRegistration(
+		ctx, &sdk_plugin_host.CompleteInitialCapabilityRegistrationRequest{},
+	); err != nil {
+		return err
+	}
+
+	// Record process admission without executing JavaScript.
 	select {
 	case h.started <- pluginID:
 	default:
