@@ -1,7 +1,26 @@
 [
   {
     "name": "A refusal loses its queue entry",
-    "replace": [["IF RetryRefused THEN epoch ELSE -1", "-1"]],
+    "replace": [
+      [
+        "IF RetryRefused THEN epoch ELSE -1",
+        "-1"
+      ]
+    ],
     "expect": "RefusedRetained"
+  },
+  {
+    "name": "A retry trusts its queue entry instead of the remote",
+    "replace": [
+      [
+        "current \\in marked \\/ current \\notin remote",
+        "current \\in marked"
+      ],
+      [
+        "current \\in remote /\\ current \\notin marked",
+        "current \\notin marked"
+      ]
+    ],
+    "expect": "NoMissingCopyDropped"
   }
 ]

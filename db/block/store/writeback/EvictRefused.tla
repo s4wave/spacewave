@@ -1,14 +1,19 @@
 ---------------------------- MODULE EvictRefused ----------------------------
 \* Evict advances the durable epoch, checks one bounded batch, drops values,
-\* then atomically deletes/moves queue entries. One entry models a batch.
-\* Upload clear and fill are modeled by the initial queued values, including
-\* a peer fill absent remotely and a marked block. Later puts/remote changes
-\* occur between passes; this model checks refusal retention, not the existing
+\* then atomically deletes/moves queue entries. One entry models a metadata
+\* slice, including restart after earlier slices committed. The Go scan and
+\* probes still batch 1,024 entries; retry metadata commits at most 64 entries.
+\* Fill is modeled by the initial queued values, including
+\* a peer fill absent remotely and a marked block. Upload clear queues an
+\* uploaded block at the current epoch; a dropped upload clears its marker
+\* without queueing. This exception requires retaining marked refusals. Puts
+\* are outside this model; remote restoration occurs between passes. It checks
+\* refusal retention, not the existing
 \* concurrent put versus eviction contract or backend existence accuracy.
 \* The caller always keeps block 4, which moves forward under either policy.
 \* Errors before commit preserve the queue. Restart forgets the cursor and
 \* recovers the committed queue; a crash after a value drop leaves cleanup.
-\* Disable's deliberate queue reset, upload implementation, KV durability and
+\* Disable's deliberate queue reset, upload I/O, KV durability and
 \* provider timers/backoff are outside this bounded queue-transition model.
 EXTENDS Integers, FiniteSets
 CONSTANT RetryRefused
@@ -74,12 +79,20 @@ Restart == /\ phase \in {"check", "refuse", "keep", "drop", "cleanup"}
 
 \* The next pass rechecks the backend and marker; refusal alone changes neither.
 ClearCause == /\ phase = "idle" /\ epoch = 1
+              /\ remote # Blocks \/ marked # {}
               /\ remote' = Blocks /\ marked' = {}
-              /\ UNCHANGED <<queue, local, epoch, phase, current, seen, refused, restarted>>
+              /\ queue' = [b \in Blocks |-> IF b \in marked THEN epoch ELSE queue[b]]
+              /\ UNCHANGED <<local, epoch, phase, current, seen, refused, restarted>>
+
+\* Upload observed an absent local block. Its unchanged pending entry may
+\* clear without queueing eviction; this is not the uploaded clear above.
+ClearDropped == /\ phase = "idle" /\ epoch = 1 /\ marked # {}
+                /\ local' = local \ marked /\ marked' = {}
+                /\ UNCHANGED <<queue, remote, epoch, phase, current, seen, refused, restarted>>
 
 Done == /\ phase = "idle" /\ epoch = 2 /\ UNCHANGED vars
 Next == Start \/ Select \/ Check \/ Refuse \/ Keep \/ Drop \/ Cleanup \/ Finish
-        \/ Restart \/ ClearCause \/ Done
+        \/ Restart \/ ClearCause \/ ClearDropped \/ Done
 \* One failure per pass bounds the retry abstraction. A fair pass must finish
 \* even when its remote remains missing and its marker never clears.
 Spec == Init /\ [][Next]_vars
