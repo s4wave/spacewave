@@ -163,8 +163,8 @@ func TestDEXRequesterRole(t *testing.T) {
 
 				// Enroll the owner's Session only once the leave waits on the stale owners.
 				var once sync.Once
-				leaveOwnerWaitHook = func() { once.Do(func() { close(hosting) }) }
-				t.Cleanup(func() { leaveOwnerWaitHook = nil })
+				leaveOwnerWaitHook.Store(new(func() { once.Do(func() { close(hosting) }) }))
+				t.Cleanup(func() { leaveOwnerWaitHook.Store(nil) })
 			}
 			if departure != "remove" {
 				if err := peers.accounts[1].LeaveSharedObject(ctx, peers.sessions[1].GetPrivKey(), owner.GetSharedObjectID(), ""); err != nil {

@@ -163,7 +163,7 @@ func TestDeleteSharedObjectRacingHandleWriteFails(t *testing.T) {
 	defer rel()
 	var stateErr, localErr error
 	var ranHook bool
-	testHookDeleteCommitted = func(id string) {
+	testHookDeleteCommitted.Store(new(func(id string) {
 		if id != "racing" {
 			return
 		}
@@ -173,8 +173,8 @@ func TestDeleteSharedObjectRacingHandleWriteFails(t *testing.T) {
 		}
 		stateErr = tryWriteTestStateData(ctx, so, []byte("fake-racing"))
 		localErr = tryWriteTestLocalKeys(ctx, so, 1)
-	}
-	t.Cleanup(func() { testHookDeleteCommitted = nil })
+	}))
+	t.Cleanup(func() { testHookDeleteCommitted.Store(nil) })
 	if err := a.DeleteSharedObject(ctx, "racing"); err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +240,7 @@ func TestReplaceSharedObjectRacingHandleWrite(t *testing.T) {
 	// restarts the mount.
 	var hookErr error
 	var ranHook bool
-	testHookReplaceCommitted = func(id string) error {
+	testHookReplaceCommitted.Store(new(func(id string) error {
 		if id != "replaced" {
 			return nil
 		}
@@ -250,8 +250,8 @@ func TestReplaceSharedObjectRacingHandleWrite(t *testing.T) {
 		}
 		hookErr = tryWriteTestStateData(ctx, so, []byte("fake-resurrected"))
 		return nil
-	}
-	t.Cleanup(func() { testHookReplaceCommitted = nil })
+	}))
+	t.Cleanup(func() { testHookReplaceCommitted.Store(nil) })
 	if err := a.ReplaceSharedObjectState(ctx, a.le, "replaced", owner, []byte("fake-moved"), read()); err != nil {
 		t.Fatal(err)
 	}
@@ -304,12 +304,12 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 
 	// A mounted write stores its state, then its commit fails.
 	var once sync.Once
-	testHookStateCommitted = func(id string) error {
+	testHookStateCommitted.Store(new(func(id string) error {
 		var err error
 		once.Do(func() { err = errAmbiguous })
 		return err
-	}
-	t.Cleanup(func() { testHookStateCommitted = nil })
+	}))
+	t.Cleanup(func() { testHookStateCommitted.Store(nil) })
 	if err := tryWriteTestStateData(ctx, so, []byte("fake-b")); err != nil {
 		t.Fatalf("the stored write returned %v", err)
 	}
@@ -325,7 +325,7 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 
 	// A commit error after another writer stored an earlier state reloads.
 	key := SobjectObjectStoreHostStateKey("ambiguous")
-	testHookStateCommitted = func(id string) error {
+	testHookStateCommitted.Store(new(func(id string) error {
 		err := a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
 			return tx.Set(ctx, key, other.State)
 		})
@@ -333,11 +333,11 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 			return err
 		}
 		return errAmbiguous
-	}
+	}))
 	if err := tryWriteTestStateData(ctx, so, []byte("fake-lost")); !errors.Is(err, errAmbiguous) || !errors.Is(err, sobject.ErrStateWriteUnknown) {
 		t.Fatalf("the overwritten write returned %v", err)
 	}
-	testHookStateCommitted = nil
+	testHookStateCommitted.Store(nil)
 	expectTestMountEnded(ctx, t, so)
 	next, relNext := mountTestSharedObject(ctx, t, a, ref)
 	defer relNext()
@@ -353,8 +353,8 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testHookReplaceCommitted = func(string) error { return errAmbiguous }
-	t.Cleanup(func() { testHookReplaceCommitted = nil })
+	testHookReplaceCommitted.Store(new(func(string) error { return errAmbiguous }))
+	t.Cleanup(func() { testHookReplaceCommitted.Store(nil) })
 	stored, err := a.ReadStoredSharedObject(ctx, "ambiguous")
 	if err != nil {
 		t.Fatal(err)
@@ -375,21 +375,22 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 	author := moved.GetPeerID().String()
 	before := testAuthorNonce(ctx, t, moved, author)
 	var commitOnce, settleOnce sync.Once
-	testHookStateCommitted = func(string) error {
+	testHookStateCommitted.Store(new(func(string) error {
 		var err error
 		commitOnce.Do(func() { err = errAmbiguous })
 		return err
-	}
-	testHookStateSettling = func(string) error {
+	}))
+	testHookStateSettling.Store(new(func(string) error {
 		var err error
 		settleOnce.Do(func() { err = errors.New("fake settle read failure") })
 		return err
-	}
-	t.Cleanup(func() { testHookStateSettling = nil })
+	}))
+	t.Cleanup(func() { testHookStateSettling.Store(nil) })
 	if _, err := moved.QueueOperation(ctx, []byte("op-unknown")); !errors.Is(err, sobject.ErrStateWriteUnknown) {
 		t.Fatalf("the unsettled operation returned %v", err)
 	}
-	testHookStateCommitted, testHookStateSettling = nil, nil
+	testHookStateCommitted.Store(nil)
+	testHookStateSettling.Store(nil)
 	expectTestMountEnded(ctx, t, moved)
 	reloaded, relReloaded := mountTestSharedObject(ctx, t, a, ref)
 	defer relReloaded()
@@ -404,7 +405,7 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 	// appended, which decodes to the same state.
 	before = testAuthorNonce(ctx, t, reloaded, author)
 	commitOnce = sync.Once{}
-	testHookStateCommitted = func(string) error {
+	testHookStateCommitted.Store(new(func(string) error {
 		var err error
 		commitOnce.Do(func() {
 			err = a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
@@ -419,11 +420,11 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 			}
 		})
 		return err
-	}
+	}))
 	if _, err := reloaded.QueueOperation(ctx, []byte("op-successor")); !errors.Is(err, sobject.ErrStateWriteUnknown) {
 		t.Fatalf("the operation under a successor returned %v", err)
 	}
-	testHookStateCommitted = nil
+	testHookStateCommitted.Store(nil)
 	expectTestMountEnded(ctx, t, reloaded)
 	last, relLast := mountTestSharedObject(ctx, t, a, ref)
 	defer relLast()
@@ -476,14 +477,14 @@ func TestMountReloadsAfterStoreChange(t *testing.T) {
 	}
 	var mtx sync.Mutex
 	var runs int
-	testHookRunStarting = func(id string) {
+	testHookRunStarting.Store(new(func(id string) {
 		if id == "behind" {
 			mtx.Lock()
 			runs++
 			mtx.Unlock()
 		}
-	}
-	t.Cleanup(func() { testHookRunStarting = nil })
+	}))
+	t.Cleanup(func() { testHookRunStarting.Store(nil) })
 
 	// The next write fails once and the mount reloads the stored state.
 	if err := tryWriteTestStateData(ctx, so, []byte("fake-c")); !errors.Is(err, ErrStateChanged) {
@@ -524,7 +525,7 @@ func TestRestartLoadWaitsForOldWriter(t *testing.T) {
 	// Hold the next write past its mount check.
 	reached, resume := make(chan struct{}), make(chan struct{})
 	var once sync.Once
-	testHookStateWriting = func(id string) {
+	testHookStateWriting.Store(new(func(id string) {
 		if id != "handoff" {
 			return
 		}
@@ -532,8 +533,8 @@ func TestRestartLoadWaitsForOldWriter(t *testing.T) {
 			close(reached)
 			<-resume
 		})
-	}
-	t.Cleanup(func() { testHookStateWriting = nil })
+	}))
+	t.Cleanup(func() { testHookStateWriting.Store(nil) })
 	writeErr := make(chan error, 1)
 	go func() {
 		writeErr <- tryWriteTestStateData(ctx, so, []byte("fake-late"))
@@ -547,12 +548,12 @@ func TestRestartLoadWaitsForOldWriter(t *testing.T) {
 	// Restart the mount and let the write commit once the new run starts.
 	started := make(chan struct{})
 	var startOnce sync.Once
-	testHookRunStarting = func(id string) {
+	testHookRunStarting.Store(new(func(id string) {
 		if id == "handoff" {
 			startOnce.Do(func() { close(started) })
 		}
-	}
-	t.Cleanup(func() { testHookRunStarting = nil })
+	}))
+	t.Cleanup(func() { testHookRunStarting.Store(nil) })
 	a.restartSharedObject("handoff", nil)
 	select {
 	case <-started:
@@ -587,7 +588,7 @@ func TestRefusedMountRevivesOnCreate(t *testing.T) {
 	// Hold the first refusal of the unlisted id.
 	reached, resume := make(chan struct{}), make(chan struct{})
 	var once sync.Once
-	testHookStateRefused = func(id string) {
+	testHookStateRefused.Store(new(func(id string) {
 		if id != "revive" {
 			return
 		}
@@ -595,8 +596,8 @@ func TestRefusedMountRevivesOnCreate(t *testing.T) {
 			close(reached)
 			<-resume
 		})
-	}
-	t.Cleanup(func() { testHookStateRefused = nil })
+	}))
+	t.Cleanup(func() { testHookStateRefused.Store(nil) })
 
 	// Take a reference, as MountSharedObject does, and wait for the read.
 	providerID := a.t.accountInfo.GetProviderId()
@@ -684,7 +685,7 @@ func TestRestartChainKeepsNewestMount(t *testing.T) {
 	// Hold the first run's exit before it clears its result.
 	reached, resume, exited := make(chan struct{}), make(chan struct{}), make(chan struct{})
 	var once sync.Once
-	testHookRunEnding = func(id string, end func()) {
+	testHookRunEnding.Store(new(func(id string, end func()) {
 		held := false
 		if id == "chain" {
 			once.Do(func() { held = true })
@@ -697,8 +698,8 @@ func TestRestartChainKeepsNewestMount(t *testing.T) {
 		<-resume
 		end()
 		close(exited)
-	}
-	t.Cleanup(func() { testHookRunEnding = nil })
+	}))
+	t.Cleanup(func() { testHookRunEnding.Store(nil) })
 	var resumeOnce sync.Once
 	release1 := func() { resumeOnce.Do(func() { close(resume) }) }
 	t.Cleanup(release1)
@@ -840,15 +841,15 @@ func TestDeleteSharedObjectInterruptedCompletesOnRerun(t *testing.T) {
 	dctx, dcancel := context.WithCancel(ctx)
 	defer dcancel()
 	var published bool
-	testHookDeletePublished = func(id string) {
+	testHookDeletePublished.Store(new(func(id string) {
 		if id == "rerun" {
 			published = true
 			dcancel()
 		}
-	}
-	t.Cleanup(func() { testHookDeletePublished = nil })
+	}))
+	t.Cleanup(func() { testHookDeletePublished.Store(nil) })
 	err = a.DeleteSharedObject(dctx, "rerun")
-	testHookDeletePublished = nil
+	testHookDeletePublished.Store(nil)
 
 	// The delete stopped after its publish, and the local state is whole.
 	if !published || !errors.Is(err, context.Canceled) {
@@ -1148,7 +1149,7 @@ func TestMountListedObjectWithoutState(t *testing.T) {
 	// An object unlisted between the mount's read and its genesis write is
 	// refused by the write's reread of the list, and gets no state. The hook
 	// is set before the listing, so it catches whichever mount comes first.
-	testHookStateListed = func(id string) {
+	testHookStateListed.Store(new(func(id string) {
 		if id != "unlisting" {
 			return
 		}
@@ -1160,8 +1161,8 @@ func TestMountListedObjectWithoutState(t *testing.T) {
 			t.Error(err)
 		}
 		a.soListCtr.SetValue(list)
-	}
-	t.Cleanup(func() { testHookStateListed = nil })
+	}))
+	t.Cleanup(func() { testHookStateListed.Store(nil) })
 	ref = listTestSharedObjectWithoutState(ctx, t, a, "unlisting")
 	expectTestMountNotFound(ctx, t, a, ref)
 	if n := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("unlisting")); n != 0 {
@@ -1244,7 +1245,7 @@ func TestDeleteSharedObjectRefusesSettings(t *testing.T) {
 func holdTestRunStart(t *testing.T, id string) func() {
 	resume := make(chan struct{})
 	var held, released sync.Once
-	testHookRunStarting = func(hid string) {
+	testHookRunStarting.Store(new(func(hid string) {
 		if hid != id {
 			return
 		}
@@ -1253,11 +1254,11 @@ func holdTestRunStart(t *testing.T, id string) func() {
 		if hold {
 			<-resume
 		}
-	}
+	}))
 	release := func() { released.Do(func() { close(resume) }) }
 	t.Cleanup(func() {
 		release()
-		testHookRunStarting = nil
+		testHookRunStarting.Store(nil)
 	})
 	return release
 }
@@ -1390,7 +1391,7 @@ func TestDeleteSharedObjectKeepsRecreatedObject(t *testing.T) {
 
 	// Remove the object and create it again once the delete has published.
 	var hookErr error
-	testHookDeletePublished = func(id string) {
+	testHookDeletePublished.Store(new(func(id string) {
 		if id != "race" {
 			return
 		}
@@ -1412,10 +1413,10 @@ func TestDeleteSharedObjectKeepsRecreatedObject(t *testing.T) {
 		fresh, releaseFresh := mountTestSharedObject(ctx, t, a, ref)
 		hookErr = tryWriteTestStateData(ctx, fresh, []byte("fake-new"))
 		releaseFresh()
-	}
-	t.Cleanup(func() { testHookDeletePublished = nil })
+	}))
+	t.Cleanup(func() { testHookDeletePublished.Store(nil) })
 	err := a.DeleteSharedObject(ctx, "race")
-	testHookDeletePublished = nil
+	testHookDeletePublished.Store(nil)
 	if err != nil || hookErr != nil {
 		t.Fatalf("the delete returned %v, the re-create %v", err, hookErr)
 	}

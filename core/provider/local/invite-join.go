@@ -369,8 +369,8 @@ func (a *ProviderAccount) mountEnrolledSO(
 
 	// Hold the account lock from the check through the list write, so no
 	// create, delete or other enrollment of the id runs in between.
-	if testHookEnrollmentMounted != nil {
-		testHookEnrollmentMounted(soID)
+	if hook := testHookEnrollmentMounted.Load(); hook != nil {
+		(*hook)(soID)
 	}
 	relMtx, err = a.mtx.Lock(ctx)
 	if err != nil {
