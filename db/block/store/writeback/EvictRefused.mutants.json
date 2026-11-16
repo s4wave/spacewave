@@ -1,0 +1,7 @@
+[
+  {
+    "name": "A refusal loses its queue entry",
+    "replace": [["IF RetryRefused THEN epoch ELSE -1", "-1"]],
+    "expect": "RefusedRetained"
+  }
+]

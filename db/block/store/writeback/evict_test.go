@@ -1,14 +1,302 @@
 package block_store_writeback
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
 )
+
+// evictCommitStore fails a transaction that changes existing eviction entries.
+type evictCommitStore struct {
+	kvtx.Store
+	// err is the failure returned instead of committing queue changes.
+	err error
+}
+
+// NewTransaction wraps the real transaction without changing its reads or writes.
+func (s *evictCommitStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	tx, err := s.Store.NewTransaction(ctx, write)
+	if err != nil {
+		return nil, err
+	}
+	return &evictCommitTx{Tx: tx, err: s.err}, nil
+}
+
+// evictCommitTx discards a prepared queue move when its commit fails.
+type evictCommitTx struct {
+	kvtx.Tx
+	// err is the injected commit failure.
+	err error
+	// moved records whether this transaction deletes an eviction entry.
+	moved bool
+}
+
+// Delete records an eviction queue change while staging the real deletion.
+func (t *evictCommitTx) Delete(ctx context.Context, key []byte) error {
+	t.moved = t.moved || bytes.HasPrefix(key, []byte(evictPrefix))
+	return t.Tx.Delete(ctx, key)
+}
+
+// Commit fails a queue move after its writes are staged, before they commit.
+func (t *evictCommitTx) Commit(ctx context.Context) error {
+	if t.moved {
+		return t.err
+	}
+	return t.Tx.Commit(ctx)
+}
+
+// TestEvictRefusedCommitFailure keeps the old entry when its replacement
+// fails to commit, including a restart after another value was dropped.
+func TestEvictRefusedCommitFailure(t *testing.T) {
+	// Upload two blocks, then remove one remote copy and fail the queue commit.
+	SetEvictRefusedRetry(true)
+	t.Cleanup(func() { SetEvictRefusedRetry(false) })
+	ctx := t.Context()
+	env := newTestEnv(t)
+	s := env.newStore(t, true)
+	remote := newInmemBlockStore()
+	refs := make([]*block.BlockRef, 0, 2)
+	for _, data := range []string{"missing remote copy", "held remote copy"} {
+		ref, _, err := s.PutBlock(ctx, []byte(data), leafOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+	}
+	drain(t, s, remote)
+	if err := remote.RmBlock(ctx, refs[0]); err != nil {
+		t.Fatal(err)
+	}
+	failure := errors.New("queue commit failed")
+	s.markers = &evictCommitStore{Store: s.markers, err: failure}
+
+	// A successful tombstone is counted even if queue cleanup fails; the
+	// refused value stays local and neither entry's removal commits.
+	result, err := s.Evict(ctx, remote, 1<<30, nil, nil)
+	if !errors.Is(err, failure) {
+		t.Fatalf("evict error = %v, want injected failure", err)
+	}
+	if result.Evicted != 1 || result.EvictedBytes != int64(len("held remote copy")) || result.Refused != 0 {
+		t.Fatalf("failed queue commit result = %+v", result)
+	}
+	if s.evictFrom != nil {
+		t.Fatal("failed queue commit advanced the cursor")
+	}
+
+	// Inspect both original epoch-zero keys before any retry can repair
+	// them, along with the byte sum in the same persisted snapshot.
+	err = kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+		seen := make(map[string]bool, len(refs))
+		if err := scanEvictable(ctx, tx, nil, func(entry evictEntry) error {
+			if entry.epoch != 0 {
+				t.Fatalf("failed commit moved an entry to epoch %d", entry.epoch)
+			}
+			seen[entry.hash.MarshalString()] = true
+			return nil
+		}); err != nil {
+			return err
+		}
+		if len(seen) != len(refs) {
+			t.Fatalf("failed commit left %d entries, want %d", len(seen), len(refs))
+		}
+		for _, ref := range refs {
+			if !seen[ref.GetHash().MarshalString()] {
+				t.Fatal("failed commit lost an original queue entry")
+			}
+		}
+		total, err := readEvictableBytes(ctx, tx)
+		if err != nil {
+			return err
+		}
+		if want := int64(len("missing remote copy") + len("held remote copy")); total != want {
+			t.Fatalf("failed commit left queue bytes %d, want %d", total, want)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Reopen without the injector: the old queue entry survives, and the
+	// already-dropped value is only cleaned up, never counted as another drop.
+	env.open(t)
+	s = env.newStore(t, true)
+	result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Refused != 1 || result.Evicted != 0 {
+		t.Fatalf("restart after failed commit = %+v", result)
+	}
+	if data, found, err := s.GetBlock(ctx, refs[0]); err != nil || !found || string(data) != "missing remote copy" {
+		t.Fatalf("missing remote copy lost on restart: %q, %v, %v", data, found, err)
+	}
+	if status, _ := s.GetStatus(); status.EvictableBytes != int64(len("missing remote copy")) {
+		t.Fatalf("queue after recovery = %+v", status)
+	}
+}
+
+// TestEvictRefusedRetry retains both refusal causes across a reopen, checks
+// the remote again on every pass, and evicts only after each cause clears.
+func TestEvictRefusedRetry(t *testing.T) {
+	// Exercise both refusal modes with the opt-in behavior and its rollback.
+	for _, retry := range []bool{false, true} {
+		for _, marked := range []bool{false, true} {
+			t.Run(fmt.Sprintf("retry=%t/marked=%t", retry, marked), func(t *testing.T) {
+				// Queue one uploaded block, then make its remote copy absent or
+				// rewrite it so an upload marker prevents eviction.
+				SetEvictRefusedRetry(retry)
+				t.Cleanup(func() { SetEvictRefusedRetry(false) })
+				ctx := t.Context()
+				env := newTestEnv(t)
+				s := env.newStore(t, true)
+				remote := newInmemBlockStore()
+				data := []byte("refused local copy")
+				ref, _, err := s.PutBlock(ctx, data, leafOpts)
+				if err != nil {
+					t.Fatal(err)
+				}
+				drain(t, s, remote)
+				if marked {
+					if _, _, err := s.PutBlock(ctx, data, leafOpts); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if !marked {
+					if err := remote.RmBlock(ctx, ref); err != nil {
+						t.Fatal(err)
+					}
+				}
+
+				// A refusal keeps the exact local bytes and marker state. A
+				// retained entry stays counted without claiming a caller keep.
+				result, err := s.Evict(ctx, remote, 1<<30, nil, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if result.Refused != 1 || result.Evicted != 0 || result.Requeued != 0 {
+					t.Fatalf("refusal = %+v", result)
+				}
+				if got, found, err := s.GetBlock(ctx, ref); err != nil || !found || string(got) != string(data) {
+					t.Fatalf("local read after refusal = %q, %v, %v", got, found, err)
+				}
+				if got := env.isMarked(t, ref); got != marked {
+					t.Fatalf("marked = %v, want %v", got, marked)
+				}
+				var wantBytes int64
+				if retry {
+					wantBytes = int64(len(data))
+				}
+				if status, _ := s.GetStatus(); status.EvictableBytes != wantBytes {
+					t.Fatalf("evictable = %d, want %d", status.EvictableBytes, wantBytes)
+				}
+
+				// Reopen the Volume before retrying. Even with no new upload,
+				// a still-missing remote copy must remain readable locally.
+				env.open(t)
+				s = env.newStore(t, true)
+				result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				wantRefused := 0
+				if retry {
+					wantRefused = 1
+				}
+				if result.Refused != wantRefused || result.Evicted != 0 {
+					t.Fatalf("restart pass = %+v, want %d refusals", result, wantRefused)
+				}
+				if got, found, err := s.GetBlock(ctx, ref); err != nil || !found || string(got) != string(data) {
+					t.Fatalf("local read after restart retry = %q, %v, %v", got, found, err)
+				}
+
+				// Restore remote possession without synthesizing an upload for
+				// the unmarked block; clear a real marker through Upload.
+				if _, _, err := remote.PutBlock(ctx, data, leafOpts); err != nil {
+					t.Fatal(err)
+				}
+				if marked {
+					drain(t, s, remote)
+				}
+				result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				wantEvicted := 0
+				if retry || marked {
+					wantEvicted = 1
+				}
+				if result.Evicted != wantEvicted || result.Refused != 0 {
+					t.Fatalf("cleared cause = %+v, want %d evictions", result, wantEvicted)
+				}
+				if got, found, err := remote.GetBlock(ctx, ref); err != nil || !found || string(got) != string(data) {
+					t.Fatalf("remote read after eviction = %q, %v, %v", got, found, err)
+				}
+			})
+		}
+	}
+}
+
+// TestEvictPermanentRefusalDoesNotStarve crosses a batch boundary of refused
+// entries at a one-byte target and still reaches a remotely held value.
+func TestEvictPermanentRefusalDoesNotStarve(t *testing.T) {
+	// Queue only unmarked fills; every entry but the last lacks a remote copy.
+	SetEvictRefusedRetry(true)
+	t.Cleanup(func() { SetEvictRefusedRetry(false) })
+	ctx := t.Context()
+	s := newTestEnv(t).newStore(t, true)
+	remote := newInmemBlockStore()
+	entries := make([]*block.PutBatchEntry, 0, evictBatchBlocks+1)
+	for i := range evictBatchBlocks + 1 {
+		data := fmt.Appendf(nil, "permanent-refusal-%05d", i)
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: data, RefsKnown: true})
+	}
+
+	// Order the queue exactly as a pass sees it, making the sole evictable
+	// block sort last so an early refusal cannot mask starvation.
+	slices.SortFunc(entries, func(a, b *block.PutBatchEntry) int {
+		return strings.Compare(a.Ref.GetHash().MarshalString(), b.Ref.GetHash().MarshalString())
+	})
+	last := entries[len(entries)-1]
+	if _, _, err := remote.PutBlock(ctx, last.Data, leafOpts); err != nil {
+		t.Fatal(err)
+	}
+
+	// Let the normal refill producer land every local value and queue entry.
+	for _, entry := range entries {
+		s.Refill(entry.Ref, &block.StoredBlock{Data: entry.Data, RefsKnown: true})
+	}
+	waitStatus(t, s, func(st Status) bool { return st.Refills == int64(len(entries)) })
+
+	// Each refused entry is counted once while the held block is evicted;
+	// another pass returns despite the permanently absent remote copies.
+	result, err := s.Evict(ctx, remote, 1, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Refused != evictBatchBlocks || result.Evicted != 1 || result.Requeued != 0 {
+		t.Fatalf("mixed pass = %+v", result)
+	}
+	result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Refused != evictBatchBlocks || result.Evicted != 0 {
+		t.Fatalf("permanent refusal pass = %+v", result)
+	}
+}
 
 // TestEvictAdmitPacesBatches checks that an eviction pass asks its admit
 // before each batch with the bytes the last one dropped, and that the admit's
