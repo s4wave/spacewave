@@ -96,7 +96,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	defer projCtrlRef.Release()
 
 	// Wait for the evaluated project configuration.
-	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
+	projCtrl, err := projWatcher.WaitProjectController(ctx)
 	if err != nil {
 		return err
 	}

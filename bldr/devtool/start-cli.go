@@ -57,7 +57,7 @@ func (a *DevtoolArgs) ExecuteCliProject(ctx context.Context, manifestID string, 
 	defer projWatcherRef.Release()
 
 	// get the project controller
-	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
+	projCtrl, err := projWatcher.WaitProjectController(ctx)
 	if err != nil {
 		return err
 	}

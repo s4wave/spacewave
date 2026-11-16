@@ -64,7 +64,7 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	defer projWatcherRef.Release()
 
 	// Wait for evaluated project configuration before selecting targets.
-	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
+	projCtrl, err := projWatcher.WaitProjectController(ctx)
 	if err != nil {
 		return err
 	}

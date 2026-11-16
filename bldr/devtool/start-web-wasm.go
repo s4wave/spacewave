@@ -125,7 +125,7 @@ func (a *DevtoolArgs) executeWebProject(ctx context.Context, compilerName, goPlu
 	defer projCtrlRef.Release()
 
 	// Wait for the running project controller.
-	currProjCtrl, err := projCtrl.GetProjectController().WaitValue(ctx, nil)
+	currProjCtrl, err := projCtrl.WaitProjectController(ctx)
 	if err != nil {
 		return err
 	}

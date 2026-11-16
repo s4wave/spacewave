@@ -589,7 +589,7 @@ func produceManifestPack(
 		return errors.Wrap(err, "start project controller")
 	}
 	defer projWatcherRef.Release()
-	if _, err := projWatcher.GetProjectController().WaitValue(ctx, nil); err != nil {
+	if _, err := projWatcher.WaitProjectController(ctx); err != nil {
 		return errors.Wrap(err, "wait project controller")
 	}
 

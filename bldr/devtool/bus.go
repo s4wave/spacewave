@@ -610,7 +610,7 @@ func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repo
 
 	// Wait for the project controller and attach its status producers.
 	projWatcher := ctrl.(*bldr_project_watcher.Controller)
-	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
+	projCtrl, err := projWatcher.WaitProjectController(ctx)
 	if err != nil {
 		ctrlRef.Release()
 		return nil, nil, err

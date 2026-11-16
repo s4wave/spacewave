@@ -51,7 +51,7 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	defer projWatcherRef.Release()
 
 	// get the project controller from the watcher
-	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
+	projCtrl, err := projWatcher.WaitProjectController(ctx)
 	if err != nil {
 		return err
 	}

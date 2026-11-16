@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/fsnotify"
 	"github.com/aperturerobotics/util/ccontainer"
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
@@ -33,8 +34,8 @@ const ControllerID = ConfigID
 // Controller is the bldr Project Watcher controller.
 type Controller struct {
 	*bus.BusController[*Config]
-	// projCtrlCtr is the project controller container
-	projCtrlCtr *ccontainer.CContainer[*bldr_project_controller.Controller]
+	// startCtr holds the startup outcome, nil while the first load runs.
+	startCtr *ccontainer.CContainer[*startResult]
 	// starLoadedFiles tracks files loaded during the last starlark evaluation.
 	starLoadedFiles []string
 }
@@ -54,15 +55,28 @@ func NewFactory(b bus.Bus) controller.Factory {
 		func(base *bus.BusController[*Config]) (*Controller, error) {
 			return &Controller{
 				BusController: base,
-				projCtrlCtr:   ccontainer.NewCContainer[*bldr_project_controller.Controller](nil),
+				startCtr:      ccontainer.NewCContainer[*startResult](nil),
 			}, nil
 		},
 	)
 }
 
-// GetProjectController returns the project controller watchable.
-func (c *Controller) GetProjectController() ccontainer.Watchable[*bldr_project_controller.Controller] {
-	return c.projCtrlCtr
+// startResult is the outcome of starting the project controller: the running
+// controller, or the error of a start that nothing will retry.
+type startResult struct {
+	ctrl *bldr_project_controller.Controller
+	err  error
+}
+
+// WaitProjectController waits for the running project controller. Without a
+// watch, a failed start is final and returns its error. A watching controller
+// retries the start until the config loads.
+func (c *Controller) WaitProjectController(ctx context.Context) (*bldr_project_controller.Controller, error) {
+	res, err := c.startCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return res.ctrl, res.err
 }
 
 // Execute executes the controller goroutine.
@@ -73,34 +87,23 @@ func (c *Controller) Execute(rctx context.Context) error {
 	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
 
-	// load the initial config
-	projCtrlConf, err := c.loadProjectControllerConfig(ctx)
+	// Start the project controller. Without a watch the config cannot change,
+	// so a failed start is final rather than retried.
+	configPath := c.GetConfig().GetConfigPath()
+	watch := !c.GetConfig().GetDisableWatch() && configPath != ""
+	projCtrl, ctrlRef, err := c.start(ctx, subCtxCancel)
 	if err != nil {
-		return err
-	}
-
-	// start the controller
-	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		c.GetBus(),
-		resolver.NewLoadControllerWithConfig(projCtrlConf),
-		subCtxCancel,
-	)
-	if err != nil {
-		return err
+		if watch || ctx.Err() != nil {
+			return err
+		}
+		c.startCtr.SetValue(&startResult{err: err})
+		return nil
 	}
 	defer ctrlRef.Release()
+	c.startCtr.SetValue(&startResult{ctrl: projCtrl})
 
-	// Publish the running project controller.
-	projCtrl, ok := ctrl.(*bldr_project_controller.Controller)
-	if !ok {
-		return errors.New("project controller returned with unknown type")
-	}
-	c.projCtrlCtr.SetValue(projCtrl)
-
-	// Block until canceled when watching is disabled or no config path set.
-	configPath := c.GetConfig().GetConfigPath()
-	if c.GetConfig().GetDisableWatch() || configPath == "" {
+	// Block until canceled when not watching.
+	if !watch {
 		<-ctx.Done()
 		return context.Canceled
 	}
@@ -158,6 +161,33 @@ func (c *Controller) Execute(rctx context.Context) error {
 			return err
 		}
 	}
+}
+
+// start loads the config and waits for the project controller it configures
+// to run. disposed is called when the project controller stops running.
+func (c *Controller) start(ctx context.Context, disposed func()) (*bldr_project_controller.Controller, directive.Reference, error) {
+	// Load the initial config.
+	projCtrlConf, err := c.loadProjectControllerConfig(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Start the controller.
+	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		c.GetBus(),
+		resolver.NewLoadControllerWithConfig(projCtrlConf),
+		disposed,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	projCtrl, ok := ctrl.(*bldr_project_controller.Controller)
+	if !ok {
+		ctrlRef.Release()
+		return nil, nil, errors.New("project controller returned with unknown type")
+	}
+	return projCtrl, ctrlRef, nil
 }
 
 // loadProjectControllerConfig loads a merged copy of the project controller config.

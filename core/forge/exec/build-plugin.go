@@ -212,7 +212,7 @@ func (h *buildPluginHandler) Execute(ctx context.Context) error {
 		return err
 	}
 	defer projectRef.Release()
-	compiler, err := watcher.GetProjectController().WaitValue(ctx, nil)
+	compiler, err := watcher.WaitProjectController(ctx)
 	if err != nil {
 		return err
 	}
