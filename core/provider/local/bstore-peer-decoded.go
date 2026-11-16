@@ -35,6 +35,7 @@ func (p *placementState) peerDecoded(peers block_store.StoreSource) block_store.
 // GetStoredBlock reads the block from peers and marks a hit without refs to
 // be kept once the reader decodes it.
 func (r *peerDecodedReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Return misses and blocks whose child refs the peer already supplied.
 	stored, err := r.StoreOps.GetStoredBlock(ctx, ref)
 	if err != nil || stored == nil || stored.RefsKnown {
 		return stored, err
