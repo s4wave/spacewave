@@ -48,7 +48,12 @@ var evictRefusedRetry atomic.Bool
 // Turning it off restores refusal dropping and the earlier fill ordering
 // without enabling eviction. Each pass and fill samples it once.
 func SetEvictRefusedRetry(on bool) {
-	evictRefusedRetry.Store(on)
+	if evictRefusedRetry.Swap(on) != on {
+		evictIndexPolicy.bcast.HoldLock(func(changed func(), _ func() <-chan struct{}) {
+			evictIndexPolicy.revision.Add(1)
+			changed()
+		})
+	}
 }
 
 // EvictResult reports what an eviction pass did.
@@ -63,7 +68,8 @@ type EvictResult struct {
 	Requeued int
 	// Refused counts decisions to keep a block because a marker awaits upload
 	// or the remote does not report holding it, even if a later write fails.
-	// These entries move to the new epoch when refusal retry is enabled.
+	// These entries move to the new epoch when refusal retry is enabled;
+	// indexed marked values instead retain their marker's clear reservation.
 	Refused int
 }
 
@@ -142,11 +148,34 @@ func scanEvictable(ctx context.Context, tx kvtx.Tx, from []byte, cb func(evictEn
 	return it.Err()
 }
 
-// queueEvict sets a block's eviction queue entry at epoch, returning the bytes
-// it added to the queue: zero when the entry was already there.
+// queueEvict queues a block at epoch and returns its signed byte delta.
+// Indexed moves replace one canonical entry; a marker instead covers the
+// value. Legacy mode deduplicates only the exact epoch/hash key.
 func queueEvict(ctx context.Context, tx kvtx.Tx, epoch uint64, h *hash.Hash, size int64) (int64, error) {
+	// Select one policy inside the transaction; legacy writes invalidate pointers.
+	indexed := evictQueueIndex.Load() && evictRefusedRetry.Load()
+	if indexed {
+		return queueIndexedEvict(ctx, tx, epoch, h, size)
+	}
+	pointer, found, err := tx.Get(ctx, evictIndexKey(h))
+	if err != nil {
+		return 0, err
+	}
+	if found {
+		marked, err := tx.Exists(ctx, markedKey(h))
+		if err != nil {
+			return 0, err
+		}
+		if !marked && len(pointer) != 0 {
+			if err := tx.Delete(ctx, evictIndexKey(h)); err != nil {
+				return 0, err
+			}
+		}
+	}
+
+	// Preserve the legacy epoch/hash insertion while the index is disabled.
 	key := evictKey(epoch, h)
-	found, err := tx.Exists(ctx, key)
+	found, err = tx.Exists(ctx, key)
 	if err != nil || found {
 		return 0, err
 	}
@@ -230,7 +259,8 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 // Eviction drops a local value only when no upload marker was observed and
 // the remote confirms holding it. Refusal retry never bypasses those checks.
 // With refusal retry enabled, an entry leaves the queue only after its local
-// value is dropped or already absent. A refused or caller-kept entry moves
+// value is dropped, already absent, or covered by a marker whose clear
+// reserves replacement coverage. Other refused or caller-kept entries move
 // atomically to the new epoch. A failed queue commit leaves the old entry.
 // An entry moved to the pass epoch is not visited again in that pass.
 func (s *Store) Evict(
@@ -432,18 +462,24 @@ func (s *Store) evictBatch(
 		var delta int64
 		err = kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 			delta = 0
+			retainedAt := 0
 			for _, entry := range batch[first:end] {
-				if err := tx.Delete(ctx, entry.key); err != nil {
-					return err
-				}
-				delta -= entry.size
-			}
-			for _, entry := range retained {
-				added, err := queueEvict(ctx, tx, epoch, entry.hash, entry.size)
+				// Only a live scanned row owns the right to be moved by this pass.
+				removed, found, err := deleteEvictEntry(ctx, tx, entry)
 				if err != nil {
 					return err
 				}
-				delta += added
+				delta += removed
+				if retainedAt < len(retained) && bytes.Equal(retained[retainedAt].key, entry.key) {
+					retainedAt++
+					if found {
+						added, err := queueEvict(ctx, tx, epoch, entry.hash, entry.size)
+						if err != nil {
+							return err
+						}
+						delta += added
+					}
+				}
 			}
 			return addEvictableBytes(ctx, tx, delta)
 		}, kvtx.RetryInvalidSnapshot)

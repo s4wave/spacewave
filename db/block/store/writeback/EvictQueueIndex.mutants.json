@@ -1,0 +1,138 @@
+[
+  {
+    "name": "Legacy marked-byte counterexample remains reachable",
+    "replace": [
+      [
+        "NoMarkedOverlap == Repaired =>",
+        "NoMarkedOverlap == trace = 7 =>"
+      ]
+    ],
+    "expect": "NoMarkedOverlap",
+    "config": "EvictQueueIndex.cfg"
+  },
+  {
+    "name": "Marker creation retains indexed eviction bytes",
+    "replace": [
+      [
+        "entries' = IF markIndexed THEN Remove(2) ELSE entries",
+        "entries' = entries"
+      ]
+    ],
+    "expect": "NoMarkedOverlap",
+    "config": "EvictQueueIndex.cfg"
+  },
+  {
+    "name": "A fill queues marked bytes",
+    "replace": [
+      [
+        "IF h \\in marked THEN Remove(h) ELSE Remove(h) \\cup {<<epoch,h>>}",
+        "Remove(h) \\cup {<<epoch,h>>}"
+      ]
+    ],
+    "expect": "NoMarkedOverlap",
+    "config": "EvictQueueIndex.cfg"
+  },
+  {
+    "name": "A dropped clear removes coverage",
+    "replace": [
+      [
+        "entries' = IF stage # 4 \\/ retryActive \\/ pointer[2] # -1 THEN",
+        "entries' = IF stage # 4 THEN"
+      ]
+    ],
+    "expect": "NoStrandedValue",
+    "config": "EvictQueueIndex-coverage.cfg"
+  },
+  {
+    "name": "Rebuild retains duplicates",
+    "replace": [
+      [
+        "(live /\\ pointer[h] # e[1])",
+        "FALSE"
+      ],
+      [
+        "duplicate == <<pointer[h],h>> \\in entries /\\ pointer[h] # e[1]",
+        "duplicate == FALSE"
+      ]
+    ],
+    "expect": "NoDuplicates",
+    "config": "EvictQueueIndex.cfg"
+  },
+  {
+    "name": "Reenable trusts stale completion",
+    "replace": [
+      [
+        "enabled' = FALSE\n        /\\ complete' = FALSE /\\ cursor' = 0",
+        "enabled' = FALSE\n        /\\ complete' = TRUE /\\ cursor' = 0"
+      ]
+    ],
+    "expect": "NoDuplicates",
+    "config": "EvictQueueIndex.cfg"
+  },
+  {
+    "name": "A revisited repair entry is debited after deletion",
+    "replace": [
+      [
+        "IF e \\in entries /\\ (h \\in marked \\/ duplicate) THEN -1 ELSE 0",
+        "IF (h \\in marked \\/ duplicate) THEN -1 ELSE 0"
+      ]
+    ],
+    "expect": "ExactBytes",
+    "config": "EvictQueueIndex.cfg"
+  },
+  {
+    "name": "An old eviction snapshot erases the new pointer",
+    "replace": [
+      [
+        "THEN [pointer EXCEPT ![h] = epoch] ELSE pointer",
+        "THEN [pointer EXCEPT ![h] = epoch] ELSE [pointer EXCEPT ![h] = -1]"
+      ]
+    ],
+    "expect": "PointerSound",
+    "config": "EvictQueueIndex-snapshot.cfg"
+  },
+  {
+    "name": "Eviction trusts metadata instead of remote existence",
+    "replace": [
+      [
+        "2 \\notin marked /\\ 2 \\in remote",
+        "2 \\notin marked"
+      ]
+    ],
+    "expect": "NoMissingCopyDropped",
+    "config": "EvictQueueIndex.cfg"
+  },
+  {
+    "name": "An indexed later epoch adds instead of moving",
+    "replace": [
+      [
+        "IF h \\in marked THEN Remove(h) ELSE Remove(h) \\cup {<<epoch,h>>}",
+        "IF h \\in marked THEN Remove(h) ELSE entries \\cup {<<epoch,h>>}"
+      ]
+    ],
+    "expect": "NoDuplicates",
+    "config": "EvictQueueIndex.cfg"
+  },
+  {
+    "name": "A staged off marker bypasses the activation fence",
+    "replace": [
+      [
+        "/\\ markFence = fence",
+        "/\\ TRUE"
+      ]
+    ],
+    "expect": "NoMarkedOverlap",
+    "config": "EvictQueueIndex-fence.cfg"
+  },
+  {
+    "name": "An absent old snapshot is debited again",
+    "replace": [
+      [
+        "IF captured \\in entries THEN -1 ELSE 0",
+        "-1"
+      ]
+    ],
+    "expect": "ExactBytes",
+    "config": "EvictQueueIndex-snapshot.cfg"
+  }
+]
