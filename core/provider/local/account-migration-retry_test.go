@@ -607,7 +607,7 @@ func mergeOpOnNoWorld(t *testing.T, busPayload bool) {
 	if _, err := so.SetSequencer(ctx, so.GetPeerID().String()); err != nil {
 		t.Fatal(err)
 	}
-	releaseBody, err := so.SetBody(ctx, pausedBody{})
+	_, releaseBody, err := so.SetBody(ctx, pausedBody{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1132,7 +1132,7 @@ type heldRootSO struct {
 }
 
 // SetBody attaches body through heldRootBody.
-func (s heldRootSO) SetBody(ctx context.Context, body sobject.Body) (func(), error) {
+func (s heldRootSO) SetBody(ctx context.Context, body sobject.Body) (func(), func(), error) {
 	return s.SharedObject.SetBody(ctx, heldRootBody{Body: body, held: s.held})
 }
 
@@ -1338,7 +1338,7 @@ func pauseAboveCheckpoint(ctx context.Context, t *testing.T, tb *testbed.Testbed
 	// Swap the Space body for the paused one once it detaches.
 	bodyRef.Release()
 	controller.Release()
-	releaseBody, err := so.SetBody(ctx, pausedBody{})
+	_, releaseBody, err := so.SetBody(ctx, pausedBody{})
 	if err != nil {
 		t.Fatal(err)
 	}

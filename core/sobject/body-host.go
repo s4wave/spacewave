@@ -2,13 +2,13 @@ package sobject
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 // BodyHost runs the BodyDriver of the body a SharedObject carries, for the
@@ -65,10 +65,12 @@ func (h *BodyHost) ClearContext() {
 	h.rc.ClearContext()
 }
 
-// SetBody waits until no body is attached, then attaches body until release,
-// so the SharedObject has one body at a time: a body attaches only once the
-// previous one was released. Returns ctx's error if it ends first.
-func (h *BodyHost) SetBody(ctx context.Context, body Body) (release func(), err error) {
+// SetBody waits until no body is attached, then claims it for body.
+// stop cancels and joins the driver and voting work while retaining the claim.
+// release stops the body before freeing its claim for the next body.
+// Both functions may be called repeatedly, including concurrently.
+// Returns ctx's error if it ends before the body attaches.
+func (h *BodyHost) SetBody(ctx context.Context, body Body) (stop, release func(), err error) {
 	// Wait for the previous body's release, then attach it.
 	for {
 		var attached bool
@@ -86,22 +88,46 @@ func (h *BodyHost) SetBody(ctx context.Context, body Body) (release func(), err 
 		}
 		select {
 		case <-ctx.Done():
-			return nil, context.Cause(ctx)
+			return nil, nil, context.Cause(ctx)
 		case <-wait:
 		}
 	}
 
-	// Detach it once and wake the next attach.
-	var once sync.Once
-	return func() {
-		once.Do(func() {
-			h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				h.body = nil
-				h.rc.SetState(nil)
-				broadcast()
-			})
+	// Stop and join all body calls without letting another body attach.
+	var stopped, released bool
+	var exited <-chan struct{}
+	stop = func() {
+		// Retain the first stop's join channel for concurrent and later calls.
+		var wait <-chan struct{}
+		h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if !stopped {
+				exited, _, _, _ = h.rc.SetState(nil)
+				stopped = true
+			}
+			wait = exited
 		})
-	}, nil
+
+		// Join outside the claim lock, including a driver already canceled.
+		if wait != nil {
+			<-wait
+		}
+	}
+
+	// Free the claim only after its driver and its owner's cleanup ended.
+	release = func() {
+		// Join the body before publishing the claim's release.
+		stop()
+
+		// Wake the next body only after the previous body stopped.
+		h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if !released {
+				released = true
+				h.body = nil
+				broadcast()
+			}
+		})
+	}
+	return stop, release, nil
 }
 
 // execute drives body, and votes with it as the judge when the host signs.
@@ -113,15 +139,24 @@ func (h *BodyHost) execute(ctx context.Context, body Body) error {
 	}
 	d.SetCheckpointer(h.host, h.privKey, h.sfs)
 
-	// Vote in the group's decisions beside it.
+	// Vote in the group's decisions beside it, and join both before returning.
 	control, err := newControl(h.le, h.host, h.privKey, d)
 	if err != nil {
 		return err
 	}
-	go func() {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var g errgroup.Group
+	g.Go(func() error {
 		if err := control.Execute(ctx); err != nil && ctx.Err() == nil {
 			h.le.WithError(err).Warn("stopped voting in group decisions")
 		}
-	}()
-	return d.Execute(ctx)
+		return nil
+	})
+
+	// End voting when the driver returns, then join it before freeing the body.
+	err = d.Execute(ctx)
+	cancel()
+	_ = g.Wait()
+	return err
 }

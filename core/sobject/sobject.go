@@ -58,14 +58,13 @@ type SharedObject interface {
 	// durably.
 	QueueOperation(ctx context.Context, op []byte) (string, error)
 
-	// SetBody waits until no body is attached, then attaches body until
-	// release, so the SharedObject has one owner at a time: a body attaches
-	// only after the previous one was released, which its owner does once it
-	// stopped. The SharedObject replays its agreed order into the body through
-	// a BodyDriver while the body is attached, and a host that signs
-	// checkpoints asks the body for the state each one carries. Returns ctx's
-	// error if it ends before the body attaches.
-	SetBody(ctx context.Context, body Body) (release func(), err error)
+	// SetBody waits until no body is attached, then claims it for body.
+	// stop cancels and joins the BodyDriver and voting work, retaining the claim
+	// while the caller cleans up the body's resources.
+	// release calls stop and frees the claim for the next body.
+	// Both functions may be called repeatedly, including concurrently.
+	// Returns ctx's error if it ends before the body attaches.
+	SetBody(ctx context.Context, body Body) (stop, release func(), err error)
 }
 
 // SharedObjectHealthAccessor exposes SharedObject health directly from a mounted object.
@@ -213,7 +212,8 @@ func (c *SharedObjectConfig) Writers() []string {
 // drop, in participant order.
 func (c *SharedObjectConfig) TrimRoster() []string {
 	return slices.DeleteFunc(c.Writers(), func(peerID string) bool {
-		return slices.Contains(c.GetRosterDroppedPeerIds(), peerID)
+		_, dropped := slices.BinarySearch(c.GetRosterDroppedPeerIds(), peerID)
+		return dropped
 	})
 }
 
@@ -222,8 +222,12 @@ func (c *SharedObjectConfig) TrimRoster() []string {
 // One checkpointer keeps owners from signing different checkpoints at one
 // height.
 func (c *SharedObjectConfig) Checkpointer() string {
+	// Find the first owner outside the validated, sorted drop list.
 	for _, p := range c.GetParticipants() {
-		if IsOwner(p.GetRole()) && !slices.Contains(c.GetRosterDroppedPeerIds(), p.GetPeerId()) {
+		if !IsOwner(p.GetRole()) {
+			continue
+		}
+		if _, dropped := slices.BinarySearch(c.GetRosterDroppedPeerIds(), p.GetPeerId()); !dropped {
 			return p.GetPeerId()
 		}
 	}
