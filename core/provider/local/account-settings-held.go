@@ -2,7 +2,6 @@ package provider_local
 
 import (
 	"context"
-	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -105,8 +104,16 @@ func (a *ProviderAccount) waitAccountSettingsHeld(ctx context.Context) error {
 // hasRemoteAccountMember reports whether settings name an active member other
 // than the excluded local Sessions.
 func hasRemoteAccountMember(settings *account_settings.AccountSettings, exclude ...peer.ID) bool {
+	// Index the excluded Session identities once for the member walk.
+	excluded := make(map[string]struct{}, len(exclude))
+	for _, id := range exclude {
+		excluded[id.String()] = struct{}{}
+	}
+
+	// Find an active member outside the excluded local Sessions.
 	for _, member := range settings.GetSessions() {
-		if member.GetRevoked() || slices.ContainsFunc(exclude, func(id peer.ID) bool { return id.String() == member.GetPeerId() }) {
+		_, skip := excluded[member.GetPeerId()]
+		if member.GetRevoked() || skip {
 			continue
 		}
 		return true

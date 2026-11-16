@@ -119,9 +119,12 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 // deliverAccountTransitions sends retained signed redirects when an old Session
 // reconnects. It waits on transport events; offline clients create no traffic.
 func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, state *p2pSyncState, settings *account_settings.AccountSettings) error {
+	// Leave accounts without retained redirects idle.
 	if len(settings.GetAcceptedMigrations()) == 0 {
 		return nil
 	}
+
+	// Resend retained redirects when the Session's transport links change.
 	transport := state.sessionTransport
 	for {
 		links, wait := transport.GetLinkSnapshotsWithWait()
@@ -129,6 +132,14 @@ func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, state *
 			if !slices.Contains(transition.GetDestinationPeerIds(), transport.GetPeerID().String()) && !slices.Contains(transition.GetSessionPeerIds(), transport.GetPeerID().String()) {
 				continue
 			}
+
+			// Index this redirect's Session recipients before walking its links.
+			sessionPeers := make(map[string]struct{}, len(transition.GetSessionPeerIds()))
+			for _, id := range transition.GetSessionPeerIds() {
+				sessionPeers[id] = struct{}{}
+			}
+
+			// Deliver the matching recovery object's durable checkpoint.
 			for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
 				if entry.GetSource() != "migration-recovery" || entry.GetRef().GetProviderResourceRef().GetId() != transition.GetSource().GetId() {
 					continue
@@ -154,7 +165,8 @@ func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, state *
 				message := &pairing.SharedObject{Entry: entry, State: checkpoint, ConfigLineage: lineage}
 				for _, connection := range links {
 					remote := connection.RemotePeerID
-					if !slices.Contains(transition.GetSessionPeerIds(), remote.String()) || settings.FindAccountSession(remote.String()) != nil {
+					_, authorized := sessionPeers[remote.String()]
+					if !authorized || settings.FindAccountSession(remote.String()) != nil {
 						continue
 					}
 					requestCtx, cancel := context.WithTimeout(ctx, 5*time.Second)

@@ -412,6 +412,7 @@ func SetPackIndexStore(providerID, accountID string, store kvtx.Store) {
 // packs: the account's registered pack index store when it has one, else the
 // account volume's, or nil when the volume has no key/value store.
 func (t *bstoreTracker) packIndexStore() kvtx.Store {
+	// Prefer the account's registered index store over its volume.
 	prefix := block_store_s3.PackIndexPrefix(t.id)
 	id := StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID())
 	if store, ok := packIndexStores.Load(id); ok {

@@ -56,7 +56,9 @@ func (a *ProviderAccount) runLinkedCloudAccountDiscovery(ctx context.Context) er
 	return nil
 }
 
+// loadLinkedCloudAccountID reads the linked cloud account from Session metadata.
 func (a *ProviderAccount) loadLinkedCloudAccountID(ctx context.Context) (string, error) {
+	// Retain the Session object store while reading its link metadata.
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(
 		ctx,
 		a.t.p.b,
@@ -70,6 +72,7 @@ func (a *ProviderAccount) loadLinkedCloudAccountID(ctx context.Context) (string,
 	}
 	defer diRef.Release()
 
+	// Stop at the first nonempty cloud link in the Session metadata.
 	var linkedCloudAccountID string
 	stopErr := errors.New("linked cloud account id found")
 	err = kvtx.RunTransaction(ctx, false,
@@ -77,6 +80,7 @@ func (a *ProviderAccount) loadLinkedCloudAccountID(ctx context.Context) (string,
 			return objStoreHandle.GetObjectStore().NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Keep the link found by this transaction attempt.
 			var attemptLinkedCloudAccountID string
 			err := tx.ScanPrefix(ctx, []byte{}, func(key, value []byte) error {
 				if !bytes.HasSuffix(key, []byte("/linked-cloud")) || len(value) == 0 {
@@ -531,10 +535,12 @@ func syncAccountSettingsState(
 	return nil
 }
 
+// buildAccountSettingsSyncOps encodes the changes that bring target to source.
 func buildAccountSettingsSyncOps(
 	source *account_settings.AccountSettings,
 	target *account_settings.AccountSettings,
 ) ([][]byte, error) {
+	// Treat missing settings as empty snapshots.
 	if source == nil {
 		source = &account_settings.AccountSettings{}
 	}
@@ -542,6 +548,7 @@ func buildAccountSettingsSyncOps(
 		target = &account_settings.AccountSettings{}
 	}
 
+	// Emit a changed display name before the keyed settings.
 	ops := make([][]byte, 0)
 	if source.GetDisplayName() != target.GetDisplayName() {
 		opData, err := marshalAccountSettingsSyncOp(&account_settings.AccountSettingsOp{
@@ -557,6 +564,7 @@ func buildAccountSettingsSyncOps(
 		ops = append(ops, opData)
 	}
 
+	// Compare paired devices by peer identity.
 	sourceDevices := make(map[string]*account_settings.PairedDevice, len(source.GetPairedDevices()))
 	targetDevices := make(map[string]*account_settings.PairedDevice, len(target.GetPairedDevices()))
 	for _, dev := range source.GetPairedDevices() {
@@ -597,6 +605,7 @@ func buildAccountSettingsSyncOps(
 		ops = append(ops, opData)
 	}
 
+	// Compare entity keypairs by peer identity.
 	sourceKeypairs := make(map[string]*session.EntityKeypair, len(source.GetEntityKeypairs()))
 	targetKeypairs := make(map[string]*session.EntityKeypair, len(target.GetEntityKeypairs()))
 	for _, kp := range source.GetEntityKeypairs() {
@@ -637,6 +646,7 @@ func buildAccountSettingsSyncOps(
 		ops = append(ops, opData)
 	}
 
+	// Compare Session presentations by peer identity.
 	sourcePresentations := make(map[string]*account_settings.SessionPresentation, len(source.GetSessionPresentations()))
 	targetPresentations := make(map[string]*account_settings.SessionPresentation, len(target.GetSessionPresentations()))
 	for _, pres := range source.GetSessionPresentations() {

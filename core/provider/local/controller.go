@@ -9,7 +9,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "provider/local"
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -18,5 +18,5 @@ var controllerDescrip = "local provider"
 // Controller is the provider controller type.
 type Controller = provider_controller.ProviderController
 
-// _ is a type assertion
+// _ is a type assertion.
 var _ provider.ProviderController = (*Controller)(nil)
