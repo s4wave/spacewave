@@ -3203,11 +3203,42 @@ func testLivenessAdversarial(t *testing.T) {
 	t.Run("admit after a child was freed under its Dead parent", func(t *testing.T) {
 		// The release nets behind a younger record, so P and L are Dead but
 		// not ripe. A put of P again re-ripens P only, and L is freed while P
-		// stays stored and Dead: refused.
+		// stays stored and Dead: refused. Under hold until free P still holds
+		// L, but the root names P itself, which nothing holds: refused too.
 		v, clk, tr, admit := newAdmitVolume(t, true)
 		freeUnderDeadParent(t, v, clk, tr)
 		requireNotHeld(t, v, tr, admit())
 	})
+
+	if testHold {
+		t.Run("admit after the collector freed a Dead parent and its child", func(t *testing.T) {
+			// Under hold until free the collector frees Dead P once its put
+			// again nets, and L with it. The admit over H naming P, and the
+			// admit storing P again over L, are both refused, and no root
+			// names a freed block.
+			v, clk, tr, admit := newAdmitVolume(t, true)
+			freeUnderDeadParent(t, v, clk, tr)
+			for range 3 {
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				collectAll(t, v)
+			}
+			requireStored(t, v, tr, false, "P", "L")
+			for _, name := range []string{"P", "L"} {
+				if listed, held := admitRecords(t, v, tr, name); listed || held {
+					t.Fatalf("freed %s listed=%v held=%v, want neither", name, listed, held)
+				}
+			}
+			requireNotHeld(t, v, tr, admit())
+			requireNotHeld(t, v, tr, admit("P"))
+			for _, name := range []string{"payloads", "y", "y2"} {
+				if got, err := v.GetBucketRoot(t.Context(), "b", name); err != nil || !got.EqualsRef(tr["Q"].Ref) {
+					t.Fatalf("root %s holds %v after the refusals: %v", name, got, err)
+				}
+			}
+			requireStored(t, v, tr, true, "Q")
+			requireAudit(t, v, 0)
+		})
+	}
 
 	t.Run("put again of a Dead parent holds its child until it nets", func(t *testing.T) {
 		// The release nets behind a younger record, so P and L are Dead but
@@ -3244,10 +3275,11 @@ func testLivenessAdversarial(t *testing.T) {
 
 	t.Run("admit putting a Dead parent again over its freed child", func(t *testing.T) {
 		// (j) The admit's batch stores P again, which proves P's bytes but
-		// not its freed child L: refused.
+		// not its freed child L: refused. Under hold until free L is still
+		// held, so the admit lands.
 		v, clk, tr, admit := newAdmitVolume(t, true)
 		freeUnderDeadParent(t, v, clk, tr)
-		requireNotHeld(t, v, tr, admit("P"))
+		requireDeadParentAdmit(t, v, clk, tr, admit("P"))
 	})
 
 	t.Run("admit giving birth to a payload root over its freed child", func(t *testing.T) {
@@ -3262,13 +3294,23 @@ func testLivenessAdversarial(t *testing.T) {
 	t.Run("admit repeated with the tree in its batch", func(t *testing.T) {
 		// As (j), then the writer repeats the admit storing the whole tree in
 		// its batch, as ErrRootNotHeld promises: commits. The repeat moves
-		// onto a new H naming P and M over L, a diamond three deep.
+		// onto a new H naming P and M over L, a diamond three deep. Under
+		// hold until free the first admit lands, and the repeat moves on
+		// from it.
 		v, clk, tr, admit := newAdmitVolume(t, true)
 		freeUnderDeadParent(t, v, clk, tr)
-		requireNotHeld(t, v, tr, admit("P"))
+		prev := tr["Q"].Ref
+		if err := admit("P"); testHold {
+			if err != nil {
+				t.Fatalf("admit over L held by Dead P = %v, want commit", err)
+			}
+			prev = tr["H"].Ref
+		} else {
+			requireNotHeld(t, v, tr, err)
+		}
 		tr.add(t, "M", "L")
 		h := tr.add(t, "H", "P", "M", "Q")
-		roots := []block.NamedRoot{{Name: "payloads", Ref: h, Previous: tr["Q"].Ref, RequireHeld: true}}
+		roots := []block.NamedRoot{{Name: "payloads", Ref: h, Previous: prev, RequireHeld: true}}
 		if err := v.SetBucketRoots(t.Context(), "b", tr.entries("H", "M", "P", "L"), roots); err != nil {
 			t.Fatal(err)
 		}
@@ -4307,8 +4349,10 @@ func admitTree(t *testing.T, v *Volume) (testTree, func(extra ...string) error) 
 	return tr, admit
 }
 
-// freeUnderDeadParent stores P -> L under a stage, releases it, and frees L
+// freeUnderDeadParent stores P -> L under a stage, releases it, and collects
 // while P stays stored and Dead, as the subtest of that name describes.
+// Under release at zero the collection frees L; under hold until free P
+// still holds L, which stays stored, listed and held.
 func freeUnderDeadParent(t *testing.T, v *Volume, clk *testClock, tr testTree) {
 	t.Helper()
 	ctx := t.Context()
@@ -4340,14 +4384,41 @@ func freeUnderDeadParent(t *testing.T, v *Volume, clk *testClock, tr testTree) {
 	clk.Add(2 * time.Second)
 	collectAll(t, v)
 	requireStored(t, v, tr, true, "P")
+	if listed, held := admitRecords(t, v, tr, "P"); !listed || held {
+		t.Fatalf("Dead P listed=%v held=%v, want listed and not held", listed, held)
+	}
+	if testHold {
+		requireStored(t, v, tr, true, "L")
+		if listed, held := admitRecords(t, v, tr, "L"); !listed || !held {
+			t.Fatalf("L under Dead P listed=%v held=%v, want both", listed, held)
+		}
+		t.Log("P stored, listed and not held; it still holds L")
+		return
+	}
 	requireStored(t, v, tr, false, "L")
 	if listed, held := admitRecords(t, v, tr, "L"); listed || held {
 		t.Fatalf("freed L listed=%v held=%v, want neither", listed, held)
 	}
-	if listed, held := admitRecords(t, v, tr, "P"); !listed || held {
-		t.Fatalf("Dead P listed=%v held=%v, want listed and not held", listed, held)
-	}
 	t.Log("L freed with no list; P stored, listed and not held")
+}
+
+// requireDeadParentAdmit checks the admit over P, Dead after
+// freeUnderDeadParent: release at zero freed L, so err refuses it; hold until
+// free kept L held under P, so the admit lands and the admitted tree stays
+// stored whole once a collector that frees nets it.
+func requireDeadParentAdmit(t *testing.T, v *Volume, clk *testClock, tr testTree, err error) {
+	t.Helper()
+	if !testHold {
+		requireNotHeld(t, v, tr, err)
+		return
+	}
+	if err != nil {
+		t.Fatalf("admit over L held by Dead P = %v, want commit", err)
+	}
+	if got, err := v.GetBucketRoot(t.Context(), "b", "payloads"); err != nil || !got.EqualsRef(tr["H"].Ref) {
+		t.Fatalf("payloads holds %v after the admit: %v", got, err)
+	}
+	requireAdmitKept(t, v, clk, tr)
 }
 
 // stagePut puts each named block of tr under stage, one batch each.
