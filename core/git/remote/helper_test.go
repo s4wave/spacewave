@@ -136,6 +136,35 @@ func TestHelperDeletesRef(t *testing.T) {
 	}
 }
 
+// TestHelperPushFromWorktree checks a push from a linked worktree of HEAD and
+// of an abbreviated hash, the sources Git passes through as typed.
+func TestHelperPushFromWorktree(t *testing.T) {
+	// Commit in a linked worktree of a local repository.
+	ctx := t.Context()
+	engine := newTestWorld(t, ctx)
+	src := newLocalRepo(t)
+	commit(t, src, "one")
+	wt := filepath.Join(t.TempDir(), "wt")
+	gitCmd(t, src, "worktree", "add", "-q", "-b", "topic", wt)
+	head := commit(t, wt, "two")
+	gitDir := gitCmd(t, wt, "rev-parse", "--absolute-git-dir")
+
+	// Push HEAD and an abbreviated hash from the worktree's Git directory.
+	h := NewHelper(engine, testRepoKey, gitDir)
+	if got := run(t, ctx, h, "push HEAD:refs/heads/topic\npush "+head[:9]+":refs/heads/short\n\n"); got != "ok refs/heads/topic\nok refs/heads/short\n\n" {
+		t.Fatalf("push = %q", got)
+	}
+	list := run(t, ctx, h, "list\n")
+	if !strings.Contains(list, head+" refs/heads/topic\n") || !strings.Contains(list, head+" refs/heads/short\n") {
+		t.Fatalf("list = %q, want %s", list, head)
+	}
+
+	// A source that names nothing is refused for that ref alone.
+	if got := run(t, ctx, h, "push refs/heads/missing:refs/heads/missing\n\n"); got != "error refs/heads/missing src refspec refs/heads/missing does not match any\n\n" {
+		t.Fatalf("missing source push = %q", got)
+	}
+}
+
 // newTestWorld returns an empty World; the first push creates the Repo object.
 func newTestWorld(t *testing.T, ctx context.Context) world.Engine {
 	t.Helper()

@@ -16,6 +16,8 @@ import (
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/client"
+	"github.com/go-git/go-git/v6/plumbing/transport"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	git_world "github.com/s4wave/spacewave/db/git/world"
@@ -36,7 +38,9 @@ type Helper struct {
 	engine world.Engine
 	// objectKey is the Repo object key.
 	objectKey string
-	// gitDir is the local repository's Git directory.
+	// gitDir is the local repository's Git directory: GIT_DIR, which for a
+	// linked worktree is .git/worktrees/NAME and reaches the shared refs and
+	// objects only through its commondir file.
 	gitDir string
 	// pushed records whether a push changed the Repo.
 	pushed bool
@@ -243,9 +247,17 @@ func (h *Helper) fetch(ctx context.Context, hashes []string) error {
 	}
 
 	// Push the objects from the Repo into the local repository.
-	err := h.readRepo(ctx, func(repo *git.Repository) error {
-		remote := git.NewRemote(repo.Storer, &config.RemoteConfig{Name: localRemoteName, URLs: []string{h.gitDir}})
-		err := remote.PushContext(ctx, &git.PushOptions{RemoteName: localRemoteName, RefSpecs: specs})
+	local, err := h.openLocal()
+	if err != nil {
+		return err
+	}
+	err = h.readRepo(ctx, func(repo *git.Repository) error {
+		remote := h.localRemote(repo)
+		err := remote.PushContext(ctx, &git.PushOptions{
+			RemoteName:    localRemoteName,
+			RefSpecs:      specs,
+			ClientOptions: h.localClient(local),
+		})
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
 			return nil
 		}
@@ -256,10 +268,6 @@ func (h *Helper) fetch(ctx context.Context, hashes []string) error {
 	}
 
 	// Remove the temporary refs from the local repository.
-	local, err := git.PlainOpen(h.gitDir)
-	if err != nil {
-		return errors.Wrap(err, "open local repository")
-	}
 	for i := range hashes {
 		name := plumbing.ReferenceName(fetchRefPrefix + strconv.Itoa(i))
 		if err := local.Storer.RemoveReference(name); err != nil {
@@ -347,6 +355,12 @@ func (h *Helper) push(ctx context.Context, cmds []pushCommand) ([]string, error)
 // object is still at prevRev. It returns a failure reason per command and
 // whether the root was adopted.
 func (h *Helper) pushAt(ctx context.Context, cmds []pushCommand, prevRef *bucket.ObjectRef, prevRev uint64) ([]string, bool, error) {
+	// Open the local repository that holds the pushed objects.
+	local, err := h.openLocal()
+	if err != nil {
+		return nil, false, err
+	}
+
 	// Stage the Repo update until the adopting transaction returns.
 	stage, err := h.engine.StageWorldState(ctx)
 	if err != nil {
@@ -357,9 +371,9 @@ func (h *Helper) pushAt(ctx context.Context, cmds []pushCommand, prevRef *bucket
 	// Apply every command to the staged Repo and collect reasons.
 	results := make([]string, len(cmds))
 	nextRef, err := git_world.AccessRepo(ctx, stage.AccessWorldState, prevRef, nil, nil, nil, func(repo *git.Repository) error {
-		remote := git.NewRemote(repo.Storer, &config.RemoteConfig{Name: localRemoteName, URLs: []string{h.gitDir}})
+		remote := h.localRemote(repo)
 		for i, cmd := range cmds {
-			reason, err := h.pushOne(ctx, repo, remote, cmd)
+			reason, err := h.pushOne(ctx, local, repo, remote, cmd)
 			if err != nil {
 				return err
 			}
@@ -378,7 +392,7 @@ func (h *Helper) pushAt(ctx context.Context, cmds []pushCommand, prevRef *bucket
 
 // pushOne applies one ref update inside the Repo and returns the reason it was
 // refused, or an error when the Repo itself failed.
-func (h *Helper) pushOne(ctx context.Context, repo *git.Repository, remote *git.Remote, cmd pushCommand) (string, error) {
+func (h *Helper) pushOne(ctx context.Context, local, repo *git.Repository, remote *git.Remote, cmd pushCommand) (string, error) {
 	// Refuse a leased update unless dst still holds the expected hash, then
 	// force it.
 	dst := plumbing.ReferenceName(cmd.dst)
@@ -402,15 +416,23 @@ func (h *Helper) pushOne(ctx context.Context, repo *git.Repository, remote *git.
 		return "", repo.Storer.RemoveReference(dst)
 	}
 
-	// Fetch the source ref into the destination from the local repository.
-	spec := cmd.src + ":" + cmd.dst
+	// Resolve the source as Git typed it, such as HEAD, a branch or an
+	// abbreviated hash, to the object it names in the local repository.
+	src, err := local.ResolveRevision(plumbing.Revision(cmd.src))
+	if err != nil {
+		return "src refspec " + cmd.src + " does not match any", nil
+	}
+
+	// Fetch the source object into the destination from the local repository.
+	spec := src.String() + ":" + cmd.dst
 	if cmd.force {
 		spec = "+" + spec
 	}
-	err := remote.FetchContext(ctx, &git.FetchOptions{
-		RemoteName: localRemoteName,
-		RefSpecs:   []config.RefSpec{config.RefSpec(spec)},
-		Tags:       git.NoTags,
+	err = remote.FetchContext(ctx, &git.FetchOptions{
+		RemoteName:    localRemoteName,
+		RefSpecs:      []config.RefSpec{config.RefSpec(spec)},
+		Tags:          git.NoTags,
+		ClientOptions: h.localClient(local),
 	})
 	switch {
 	case err == nil || errors.Is(err, git.NoErrAlreadyUpToDate):
@@ -422,6 +444,25 @@ func (h *Helper) pushOne(ctx context.Context, repo *git.Repository, remote *git.
 	default:
 		return strings.ReplaceAll(err.Error(), "\n", " "), nil
 	}
+}
+
+// openLocal opens the local repository at gitDir, following a linked
+// worktree's commondir to the shared refs and objects.
+func (h *Helper) openLocal() (*git.Repository, error) {
+	local, err := git.PlainOpen(h.gitDir)
+	return local, errors.Wrap(err, "open local repository")
+}
+
+// localRemote returns a remote on repo that names the local repository.
+func (h *Helper) localRemote(repo *git.Repository) *git.Remote {
+	return git.NewRemote(repo.Storer, &config.RemoteConfig{Name: localRemoteName, URLs: []string{h.gitDir}})
+}
+
+// localClient routes the local remote's transfers to the open local
+// repository's storage, which the file transport's own loader cannot find in a
+// linked worktree's Git directory.
+func (h *Helper) localClient(local *git.Repository) []client.Option {
+	return []client.Option{client.WithLoader(transport.MapLoader{h.gitDir: local.Storer})}
 }
 
 // readRepo opens the Repo read-only in one World read transaction.
