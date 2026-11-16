@@ -19,7 +19,8 @@ type CollectResult struct {
 	// queue once the lists were verified.
 	Requeued uint64
 	// Kept counts the times a free found Dead blocks waiting on their ripe
-	// sequence or the hold mark.
+	// sequence or the hold mark, and the blocks it kept because a record
+	// past the cursor names them.
 	Kept uint64
 	// Leaked counts the children a down cascade reached that the store
 	// lacks, whose own children the cascade cannot reach.

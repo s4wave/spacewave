@@ -15,19 +15,19 @@
     "name": "a child a free takes to zero is freed at its parent's ripe point",
     "replace": [["IF HoldToFree /\\ ChildRipe", "IF HoldToFree"]],
     "expect": "NoFreedRead",
-    "config": "Journal-lease.cfg"
+    "config": "Journal-lease-notail.cfg"
   },
   {
     "name": "a free does not wait for its own grace",
     "replace": [["  /\\ Ripe => ripe[b] = 0", "  /\\ TRUE"]],
     "expect": "NoFreedRead",
-    "config": "Journal.cfg"
+    "config": "Journal-notail.cfg"
   },
   {
     "name": "a free ignores the hold mark",
     "replace": [["  /\\ HoldMark => hseq = 0", "  /\\ TRUE"]],
     "expect": "NoFreedRead",
-    "config": "Journal-collect.cfg"
+    "config": "Journal-collect-notail.cfg"
   },
   {
     "name": "a free starts before the last free's release finished",
@@ -45,6 +45,18 @@
     "name": "a child an inline free takes to zero is freed at its parent's ripe point",
     "replace": [["sripe == IF ChildRipe", "sripe == IF TRUE"]],
     "expect": "NoFreedRead",
-    "config": "Journal-lease.cfg"
+    "config": "Journal-lease-notail.cfg"
+  },
+  {
+    "name": "a free ignores the records past the cursor that name it, under hold until free",
+    "replace": [["  /\\ TailCheck => \\A i \\in 1..Len(jr) : \\A x \\in jr[i].up : x[2] # b", "  /\\ TRUE"]],
+    "expect": "NoFreedRead",
+    "config": "Journal-rogue-hold.cfg"
+  },
+  {
+    "name": "a free ignores the records past the cursor that name it, under release at zero",
+    "replace": [["  /\\ TailCheck => \\A i \\in 1..Len(jr) : \\A x \\in jr[i].up : x[2] # b", "  /\\ TRUE"]],
+    "expect": "NoFreedRead",
+    "config": "Journal-rogue.cfg"
   }
 ]

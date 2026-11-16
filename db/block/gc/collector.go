@@ -161,6 +161,18 @@ import (
 //   - H8. LivenessState.HoldRule names the rule the counts were written under.
 //     The collector nets and frees only when it matches the option; on a
 //     mismatch it does neither until an adoption counts the Volume again.
+//
+// Under both rules:
+//
+//   - T1. It frees no block a journal record past the cursor names in an up
+//     pair or an again list, read in the transaction that frees it, as tail
+//     describes. A writer may name a block it does not hold after the block
+//     reached zero, a put again or a new parent naming a stored child; that
+//     record's sequence is past the block's ripe sequence, so only this keeps
+//     the block until the record nets. A writer naming a block already freed
+//     lands over a hole, which the audit counts and only Grace covers: its
+//     record is appended after the zero, so no sequence the collector could
+//     wait for bounds it.
 type Collector struct {
 	// store runs the collector's transactions.
 	store Store
@@ -185,6 +197,9 @@ type Collector struct {
 	// leaseFullAt is when the last sweep from the start of the lease index
 	// began; zero before the first.
 	leaseFullAt time.Time
+	// tail indexes the blocks the records past the cursor name (T1). A new
+	// collector starts with none and reads the tail once at its first free.
+	tail tail
 }
 
 // pace scales a slice's budgets by how long the slices before it took: one
@@ -217,13 +232,20 @@ func (c *Collector) update(ctx context.Context, fn func(rec *Records, blocks blo
 	var took time.Duration
 	ran := false
 	err := c.store.Update(ctx, func(rec *Records, blocks block.StoreOps) error {
+		// Run fn with no tail trim pending, so a retried run trims once.
 		start := c.opts.Now()
+		c.tail.begin()
 		err := fn(rec, blocks)
 		took, ran = c.opts.Now().Sub(start), true
 		return err
 	})
 	if ran {
 		c.pace.observe(took)
+	}
+
+	// Trim the tail index by the records a committed netting deleted.
+	if err == nil {
+		c.tail.commit()
 	}
 	return err
 }
@@ -574,6 +596,7 @@ func (c *Collector) netSlice(ctx context.Context, n *netting, budget int) (bool,
 
 	// Sum the entries of the aged records from the cursor.
 	var netted []uint64
+	var trimmed []string
 	partial := false
 	future := make(map[uint64]*JournalRecord)
 	err := rec.ScanJournal(ctx, state.GetCursor(), func(seq uint64, r *JournalRecord) (bool, error) {
@@ -618,6 +641,13 @@ func (c *Collector) netSlice(ctx context.Context, n *netting, budget int) (bool,
 		}
 		netted = append(netted, seq)
 		offset = 0
+		if c.tail.read(seq) {
+			for _, keys := range [][][]byte{ups, r.GetAgain()} {
+				for _, key := range keys {
+					trimmed = append(trimmed, string(key))
+				}
+			}
+		}
 		return true, nil
 	})
 	if err != nil {
@@ -635,14 +665,17 @@ func (c *Collector) netSlice(ctx context.Context, n *netting, budget int) (bool,
 	}
 
 	// Delete the records netted whole, move the cursor past them, and keep
-	// the offset into the one netted in part.
+	// the offset into the one netted in part. The tail index drops the
+	// entries of the deleted records it read once the transaction commits.
 	for _, seq := range netted {
 		if err := rec.DeleteJournal(ctx, seq); err != nil {
 			return false, err
 		}
 	}
 	if len(netted) != 0 {
-		state.Cursor = netted[len(netted)-1] + 1
+		to := netted[len(netted)-1] + 1
+		c.tail.trim = tailTrim{set: true, from: state.GetCursor(), to: to, keys: trimmed}
+		state.Cursor = to
 	}
 	state.NetOffset = offset
 	n.res.Netted += uint64(len(netted))
@@ -794,6 +827,14 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 		return from, false, false, err
 	}
 
+	// Bring the tail index up to the journal's end in this transaction,
+	// which no Land can commit inside of, before any free reads it (T1).
+	if len(ripe) != 0 {
+		if err := c.tail.sync(ctx, rec, state); err != nil {
+			return from, false, false, err
+		}
+	}
+
 	// Under HoldUntilFree, the frees give their children downs within the
 	// moves a netting slice makes, one page's while a writer waits.
 	var f *freeing
@@ -898,8 +939,9 @@ func (r *Records) freeable(ctx context.Context, state *LivenessState) (bool, err
 // freeBlock frees one Dead block at ripe: its bytes, child list, queue
 // entry, proof, count record and landed mark. It deletes only the queue
 // entry when the entry is stale: the block has no child list or no zero
-// record at ripe. While the Volume's lists are unverified it parks a block
-// Land did not give birth to instead, as invariant 11 describes. With f set,
+// record at ripe. It keeps a block the tail index names, changing nothing.
+// While the Volume's lists are unverified it parks a block Land did not give
+// birth to instead, as invariant 11 describes. With f set,
 // under HoldUntilFree, the free gives each child its down through f; when
 // the list does not fit the moves f has left after an earlier free, it
 // changes nothing and reports false, so the next slice frees it first.
@@ -932,6 +974,14 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 	}
 	if holders != 0 || at != ripe {
 		return true, rec.tx.Delete(ctx, queued)
+	}
+
+	// Keep a block a record past the cursor names: its holder, or its put
+	// again, nets after its ripe sequence (T1). The entry stays queued, and
+	// the netting of that record moves or deletes it.
+	if c.tail.has(key) {
+		res.Kept++
+		return true, nil
 	}
 
 	// Park an older block while the lists are unverified: a list that lacks

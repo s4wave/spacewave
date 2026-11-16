@@ -40,9 +40,10 @@ whole tree stored. That config passes.
 ## A third candidate, the variant with ChildRipe: NoFreedRead fails in 11 states
 
 Config `testdata/Journal-lease-childripe.cfg`, with `HoldToFree = TRUE`,
-`ChildRipe = TRUE` and `Grace = 2`. ChildRipe frees a child at its parent's
-ripe point. The variant without it gives the child the journal's end at the
-child's own zeroing.
+`ChildRipe = TRUE`, `TailCheck = FALSE` and `Grace = 2`. ChildRipe frees a
+child at its parent's ripe point. The variant without it gives the child the
+journal's end at the child's own zeroing. The tail check alone also keeps the
+child, since the unnetted root move names it.
 
 1. Init: main names R1. R1, C, E, F and G are stored.
 2. Observe(a): a reads main's head, R1.

@@ -394,6 +394,22 @@
 \*              over C while R1, C's only other holder, is at zero; R1 is
 \*              freed, its release takes C to zero, and C is freed under main
 \*              before that move's record nets (NoFreedRead).
+\*   RogueBlocks adds a writer that moves main onto a block in the set and
+\*              puts it, naming its children without holding them: born, it
+\*              journals an up pair for each child, and stored, a put again.
+\*              The writer needs only that the children are stored; a child
+\*              already freed would land over a hole, which the audit counts
+\*              and only Grace covers, since a record appended after the zero
+\*              carries no sequence the collector could have waited for.
+\*   TailCheck  TRUE frees a block only when no record past the cursor names
+\*              it in an up pair, as the collector's tail index reads.
+\*              testdata/Journal-rogue-notail.cfg: main moves off R1, R1 and
+\*              then C are freed, which takes F to zero, the rogue writer
+\*              moves main onto C2 naming F, and F is freed before that
+\*              record nets (NoFreedRead). It also keeps every block Ripe,
+\*              ChildRipe and HoldMark keep in their testdata configs, so
+\*              those configs, and the -notail configs their mutants run on,
+\*              set it FALSE to show each guard alone.
 \*
 \* Left out: a fill of a recorded hole, which LandFill stores as a refill,
 \* journaling nothing; the format 7 upgrade (an unadopted Volume here holds
@@ -415,7 +431,7 @@ CONSTANTS Writers, MaxTxns, Grace, Window, Lease, MaxHoles,
           Stage, Rehold, StageCAS,
           Sessions, SessionGrace, Skips, BornDown, Staged, ReleaseUnlisted,
           FillBlocks, FillUps, Holds, FillBorn, FillEager, CutList, Gen,
-          RewriteFlag, Recount, HoldToFree, ChildRipe
+          RewriteFlag, Recount, HoldToFree, ChildRipe, RogueBlocks, TailCheck
 
 None == "none"
 Unmoved == "unmoved"
@@ -741,6 +757,16 @@ Commit(w, r) ==
 HoldStored(w, r) ==
   /\ Holds /\ obs[w] # None /\ r # obs[w] /\ r \in stored
   /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> r]})
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+                 stageVars, writerVars>>
+
+\* RoguePut moves main onto b and puts b, naming b's children without
+\* holding them and without the observed head CAS checks: a writer that
+\* breaks the contract that it names only blocks it holds. Born, b journals
+\* an up pair for each child; stored, it is a put again.
+RoguePut(b) ==
+  /\ b \in RogueBlocks /\ Kids(b) \subseteq stored
+  /\ Land({b}, {[n |-> "main", from |-> root["main"], to |-> b]})
   /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
                  stageVars, writerVars>>
 
@@ -1077,6 +1103,7 @@ Delete(b, inline) ==
   /\ Ripe => ripe[b] = 0
   /\ HoldMark => hseq = 0
   /\ IF FillEager THEN Unapplied = {} ELSE FUps(b) = 0
+  /\ TailCheck => \A i \in 1..Len(jr) : \A x \in jr[i].up : x[2] # b
   /\ unverified /\ Gen => b \in young
   /\ inline => HoldToFree
   /\ stored' = stored \ {b}
@@ -1434,6 +1461,7 @@ Next ==
        \/ tgt[w] # None /\ \E batch \in SUBSET Unsent(w) : SessionPut(w, batch)
        \/ tgt[w] # None /\ \E b \in Unsent(w) : SessionSkip(w, b)
        \/ SessionFinish(w) \/ SessionAbandon(w)
+  \/ \E b \in RogueBlocks : RoguePut(b)
   \/ ReaderSee \/ ReaderPin \/ ReaderLate
   \/ \E n \in Dropped : Drop(n)
   \/ \E n \in Leases : Sweep(n)

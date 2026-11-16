@@ -705,8 +705,8 @@ type stopMidRelease struct {
 	// up to its end partly netted instead.
 	pages [2]uint64
 	// until, when set, selects the first transaction after which it reports
-	// true instead.
-	until func() bool
+	// true of the state instead.
+	until func(state *block_gc.LivenessState) bool
 	// stopped records that a transaction left one in progress.
 	stopped bool
 }
@@ -730,7 +730,7 @@ func (s *stopMidRelease) Update(ctx context.Context, fn func(rec *block_gc.Recor
 			s.stopped = cursor >= s.pages[0] && cursor < s.pages[1] && (cursor > s.pages[0] || state.GetNetOffset() != 0)
 		}
 		if s.until != nil {
-			s.stopped = s.until()
+			s.stopped = s.until(state)
 		}
 		return err
 	})
@@ -2435,6 +2435,140 @@ func testLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	for _, tc := range []struct {
+		who, ripe string
+		restart   bool
+	}{
+		{"F again", "unripe", false}, {"F again", "unripe behind a record", false}, {"F again", "ripe", false},
+		{"a new parent", "unripe", false}, {"a new parent", "unripe behind a record", false}, {"a new parent", "ripe", false},
+		{"a new parent", "unripe behind a record", true},
+	} {
+		ripe, title := tc.ripe, "born put over children of an inline free "+tc.who+" "+tc.ripe
+		if tc.restart {
+			title += " across a collector restart"
+		}
+		t.Run(title, func(t *testing.T) {
+			// F names three leaves, few enough to free inline, and root g
+			// holds G. Root f releases F, and the collector stops once F is
+			// freed with its leaves still stored. A writer then puts F again,
+			// born since its bytes and list are gone, or a new parent P,
+			// naming the leaves: right after the free, so its record is the
+			// first after it; behind a younger root move onto G that nets
+			// first; or after that move netted, so the leaves are ripe. The
+			// same collector then runs on, its tail index extended from the
+			// free, or with restart a new one, whose index is read whole from
+			// the cursor. Every leaf the parent lists must still read once
+			// the collector is quiet.
+			v, clk := newLivenessVolume(t, true)
+			ctx := t.Context()
+			tr := testTree{}
+			leaves := []string{"leaf 0", "leaf 1", "leaf 2"}
+			for _, name := range leaves {
+				tr.add(t, name)
+			}
+			f := tr.add(t, "F", leaves...)
+			np := tr.add(t, "P", leaves...)
+			gr := tr.add(t, "G")
+			roots := []block.NamedRoot{{Name: "f", Ref: f}, {Name: "g", Ref: gr}}
+			if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(leaves), "F", "G")...), roots); err != nil {
+				t.Fatal(err)
+			}
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "f", Previous: f}}); err != nil {
+				t.Fatal(err)
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			stored := func(name string) bool {
+				_, found, err := v.GetBlock(ctx, tr[name].Ref)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return found
+			}
+			// Stop once F is freed, or under release at zero, which frees F
+			// and its leaves in one transaction, once the release netted.
+			netted := livenessState(t, v).GetNextSeq()
+			resumed := false
+			probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, until: func(state *block_gc.LivenessState) bool {
+				if resumed {
+					return false
+				}
+				if testHold {
+					return !stored("F")
+				}
+				return state.GetCursor() >= netted
+			}}
+			opts := block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now}
+			c := block_gc.NewCollector(probe, opts)
+			res, err := c.Collect(ctx)
+			if !errors.Is(err, errMidRelease) {
+				t.Fatalf("collect = %+v err %v, want it stopped once F is freed", res, err)
+			}
+			freed := res.Freed
+			left := 0
+			for _, name := range leaves {
+				if stored(name) {
+					left++
+				}
+			}
+			t.Logf("stopped with F stored %t and %d of %d leaves stored", stored("F"), left, len(leaves))
+
+			// A root move onto G writes a record after the free.
+			if ripe != "unripe" {
+				if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "g2", Ref: gr}}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if ripe == "ripe" {
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				nets := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{HoldUntilFree: testHold, Now: v.now})
+				if _, err := nets.Collect(ctx); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if ripe == "unripe behind a record" {
+				clk.Add(block_gc.DefaultGrace / 2)
+			}
+			parent, ref := "F", f
+			if tc.who == "a new parent" {
+				parent, ref = "P", np
+			}
+			if err := v.SetBucketRoots(ctx, "b", tr.entries(parent), []block.NamedRoot{{Name: "p", Ref: ref}}); err != nil {
+				t.Fatal(err)
+			}
+
+			// Collect to quiescence across the grace periods, with the stopped
+			// collector resumed or a new one.
+			resumed, probe.stopped = true, false
+			if tc.restart {
+				c = block_gc.NewCollector(collectorStore{v: v}, opts)
+			}
+			for range 4 {
+				clk.Add(block_gc.DefaultGrace/2 + time.Second)
+				for more := true; more; {
+					res, err := c.Collect(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
+					freed, more = freed+res.Freed, res.More
+				}
+			}
+			audit, err := v.Audit(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			lost := 0
+			for _, name := range leaves {
+				if !stored(name) {
+					lost++
+				}
+			}
+			t.Logf("freed %d, holes %d, leaves lost %d of %d, %s stored %t", freed, audit.Holes, lost, len(leaves), parent, stored(parent))
+			if lost != 0 || !stored(parent) {
+				t.Errorf("%s lists %d freed leaves", parent, lost)
+			}
+		})
+	}
+
 	for _, mid := range []string{"a crash", "children held again", "a second parent's release", "the releasing block put again", "a crash mid re-hold", "the releasing block lost"} {
 		t.Run("release interrupted by "+mid, func(t *testing.T) {
 			// F names 6,000 leaves, more than one slice moves, and G names
@@ -2648,7 +2782,7 @@ func testLivenessAdversarial(t *testing.T) {
 				}
 				return found
 			}
-			probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, until: func() bool { return !stored("D1") && stored("D2") }}
+			probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, until: func(*block_gc.LivenessState) bool { return !stored("D1") && stored("D2") }}
 			c := block_gc.NewCollector(probe, block_gc.CollectorOptions{HoldUntilFree: true, Frees: true, Now: v.now})
 			if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) {
 				t.Fatalf("collect = %v, want it stopped with D2's free waiting", err)
