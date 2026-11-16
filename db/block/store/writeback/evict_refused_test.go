@@ -541,3 +541,98 @@ func TestEvictRetryNeedsCheck(t *testing.T) {
 		t.Fatalf("local value after unchecked pass with retry off: found=%v, err=%v", found, err)
 	}
 }
+
+// TestEvictRetryBusySecondSlice fails the second metadata slice of a retried
+// batch busy once, after the first committed, with both slices changing the
+// byte sum: the absent and dropped entries leave it. At the failure the
+// durable keys and byte sum hold the first slice alone, the status projects
+// the same bytes, and the dropped bytes are not reported yet; after the retry
+// the queue, sums and counts are those of an undisturbed pass.
+func TestEvictRetryBusySecondSlice(t *testing.T) {
+	// Build the mixed batch, and fail its second queue commit busy once.
+	SetEvictRefusedRetry(true)
+	t.Cleanup(func() { SetEvictRefusedRetry(false) })
+	f := newEvictMixScenario(t)
+	f.moves.busy, f.moves.busyAfter = 1, 1
+
+	// List the entries in scan order with their kinds, to predict the state
+	// after the first slice.
+	type queued struct {
+		ref  *block.BlockRef
+		kind string
+		size int64
+	}
+	var order []queued
+	for _, kind := range evictMixKinds {
+		for i, ref := range f.refs[kind.name] {
+			order = append(order, queued{ref, kind.name, int64(len(evictMixData(kind.name, i)))})
+		}
+	}
+	slices.SortFunc(order, func(a, b queued) int {
+		return strings.Compare(a.ref.GetHash().MarshalString(), b.ref.GetHash().MarshalString())
+	})
+	if len(order) <= evictRetryCommitBlocks {
+		t.Fatalf("batch of %d entries fits one slice", len(order))
+	}
+	retained := map[string]bool{"missing": true, "marked": true, "kept": true}
+	var wantMid []string
+	var midBytes, firstDelta, secondDelta int64
+	for i, entry := range order {
+		switch {
+		case i >= evictRetryCommitBlocks:
+			wantMid = append(wantMid, fmt.Sprintf("%s=%d", evictKey(0, entry.ref.GetHash()), entry.size))
+			midBytes += entry.size
+			if !retained[entry.kind] {
+				secondDelta -= entry.size
+			}
+		case retained[entry.kind]:
+			wantMid = append(wantMid, fmt.Sprintf("%s=%d", evictKey(1, entry.ref.GetHash()), entry.size))
+			midBytes += entry.size
+		default:
+			firstDelta -= entry.size
+		}
+	}
+	if firstDelta == 0 || secondDelta == 0 {
+		t.Fatalf("slice byte deltas %d and %d, want both nonzero", firstDelta, secondDelta)
+	}
+	wantMid = append(wantMid, epochKey+"=1", fmt.Sprintf("%s=%d", evictableBytesKey, midBytes))
+	slices.Sort(wantMid)
+
+	// At the busy failure check the projected state, and once its
+	// transaction is done, before the retry, the durable state.
+	var checked bool
+	f.moves.afterBusy = func() {
+		checked = true
+		if got := f.queue(t); !slices.Equal(got, wantMid) {
+			t.Errorf("queue at the busy slice = %q, want %q", got, wantMid)
+		}
+	}
+	f.moves.onBusy = func() {
+		status, _ := f.store.GetStatus()
+		if status.EvictableBytes != midBytes || status.EvictedBytes != 0 {
+			t.Errorf("status at the busy slice evictable = %d, evicted = %d, want %d and 0", status.EvictableBytes, status.EvictedBytes, midBytes)
+		}
+	}
+	result, err := f.store.Evict(t.Context(), f.remote, 1<<30, f.keep, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !checked || f.moves.busied != 1 || f.moves.moves != 2 {
+		t.Fatalf("busy checked = %v, busied = %d, commits = %d", checked, f.moves.busied, f.moves.moves)
+	}
+
+	// After the retry the pass matches an undisturbed one.
+	want := EvictResult{Evicted: 70, EvictedBytes: f.sizes["held"], Requeued: 5, Refused: 25}
+	if result != want {
+		t.Fatalf("result = %+v, want %+v", result, want)
+	}
+	if got, want := f.queue(t), f.want("missing", "marked", "kept"); !slices.Equal(got, want) {
+		t.Fatalf("queue = %q, want %q", got, want)
+	}
+	status, _ := f.store.GetStatus()
+	wantBytes := f.sizes["missing"] + f.sizes["marked"] + f.sizes["kept"]
+	if status.EvictableBytes != wantBytes || status.EvictedBytes != f.sizes["held"] {
+		t.Fatalf("status evictable = %d, evicted = %d", status.EvictableBytes, status.EvictedBytes)
+	}
+	f.checkLocal(t)
+}

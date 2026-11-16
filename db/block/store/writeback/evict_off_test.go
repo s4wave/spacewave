@@ -24,10 +24,27 @@ type evictMoveCountStore struct {
 	busy int
 	// busied is the number of queue-changing commits failed busy.
 	busied int
+	// busyAfter is the number of queue-changing commits that commit before
+	// busy applies.
+	busyAfter int
+	// onBusy, when set, runs before each busy failure.
+	onBusy func()
+	// afterBusy, when set, runs once a busy failure's transaction is done,
+	// before the next transaction opens.
+	afterBusy func()
+	// busyDone is set from a busy failure until afterBusy runs.
+	busyDone bool
 }
 
 // NewTransaction wraps the real transaction to count its queue changes.
 func (s *evictMoveCountStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Run afterBusy before the transaction after a busy failure.
+	if s.busyDone && s.afterBusy != nil {
+		s.busyDone = false
+		s.afterBusy()
+	}
+
+	// Open the real transaction.
 	tx, err := s.Store.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
@@ -53,9 +70,13 @@ func (t *evictMoveCountTx) Delete(ctx context.Context, key []byte) error {
 // Commit counts a committed queue change, failing it busy first while busy
 // is set.
 func (t *evictMoveCountTx) Commit(ctx context.Context) error {
-	if t.moved && t.store.busy != 0 {
+	if t.moved && t.store.busy != 0 && t.store.moves >= t.store.busyAfter {
+		if t.store.onBusy != nil {
+			t.store.onBusy()
+		}
 		t.store.busy--
 		t.store.busied++
+		t.store.busyDone = true
 		return errors.New("database is locked")
 	}
 	err := t.Tx.Commit(ctx)
