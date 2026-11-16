@@ -1,0 +1,7 @@
+[
+  {
+    "name": "the prefix wrapper hides that its mux lacks the requested service",
+    "replace": [["IF CheckService THEN advertised ELSE", "IF FALSE THEN advertised ELSE"]],
+    "expect": "ChosenServiceExists"
+  }
+]
