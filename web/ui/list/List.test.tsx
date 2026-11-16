@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { List, type ListProps } from './List.js'
@@ -44,6 +45,68 @@ describe('List', () => {
   })
 
   describe('empty state', () => {
+    it('keeps the first inline editor focused after an empty list gains a row', () => {
+      // Reopen a folder with the preceding folder's persisted row focus.
+      const empty: ListItem[] = []
+      const editor: ListItem[] = [{ id: 'new-folder' }]
+      const cancel = vi.fn()
+      function EditorRow() {
+        return (
+          <input
+            aria-label="Folder name"
+            ref={(input) => input?.focus()}
+            onBlur={cancel}
+          />
+        )
+      }
+      function Folder() {
+        const state = useListState(null, 'folder', { focusedIndex: 0 })
+        const [editing, setEditing] = useState(false)
+        return (
+          <>
+            <button type="button" onClick={() => setEditing(true)}>
+              New folder
+            </button>
+            <List
+              items={editing ? editor : empty}
+              rowComponent={EditorRow}
+              state={state}
+            />
+          </>
+        )
+      }
+      render(<Folder />)
+
+      // The list's index reconciliation must leave the editor taking text.
+      fireEvent.click(screen.getByRole('button', { name: 'New folder' }))
+      expect(document.activeElement).toBe(
+        screen.getByRole('textbox', { name: 'Folder name' }),
+      )
+      expect(cancel).not.toHaveBeenCalled()
+    })
+
+    it('returns keyboard focus to the list after its focused row disappears', () => {
+      // Give the row DOM focus through the real ListRow.
+      const items: ListItem[] = [{ id: 'removed' }]
+      function Folder({ empty }: { empty: boolean }) {
+        const state = useListState(null, 'folder', { focusedIndex: 0 })
+        return (
+          <List
+            items={empty ? [] : items}
+            rowComponent={ListRow}
+            state={state}
+          />
+        )
+      }
+      const view = render(<Folder empty={false} />)
+      screen.getByRole('row').focus()
+      expect(document.activeElement).toBe(screen.getByRole('row'))
+
+      // Removing the focused row leaves the list as the keyboard target.
+      view.rerender(<Folder empty={true} />)
+      expect(document.activeElement).toBe(screen.getByRole('rowgroup'))
+    })
+
     it('shows default placeholder "No items" when items array is empty', () => {
       render(<TestList items={[]} rowComponent={TestRow} />)
       expect(screen.getByText('No items')).toBeTruthy()
