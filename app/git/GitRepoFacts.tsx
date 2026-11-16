@@ -1,26 +1,19 @@
 import type { GetRepoInfoResponse } from '@s4wave/sdk/git/repo.pb.js'
+import { escapeObjectKey } from '@s4wave/sdk/space/object-uri.js'
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 
 // gitCloneAddress is the spacewave:// address Git clones the repository
-// object from: spacewave:///u/<session>/so/<space>/-/<key>, with the key raw.
-// Its contract is the Git remote's parser, ParseSpacewaveURI in
-// sdk/space/object-uri.go, which cleans the path and splits it on /-/ but
-// never percent-decodes, so an encoded key would name another object. It is
-// null without a session, Space or key, or for a key that parser would read
-// back as another: an empty, ".", ".." or "-" segment, as in a key with a
-// leading, trailing or doubled slash.
+// object from: spacewave:///u/<session>/so/<space>/-/<key>, with the Space and
+// key escaped for ParseSpacewaveURI, the Git remote's parser. It is null
+// without a session, Space or key.
 export function gitCloneAddress(
   sessionIndex: number,
   spaceId: string | undefined,
   objectKey: string,
 ): string | null {
   if (!sessionIndex || !spaceId || !objectKey) return null
-  const segments = objectKey.split('/')
-  if (segments.some((s) => s === '' || s === '.' || s === '..' || s === '-')) {
-    return null
-  }
-  return `spacewave:///u/${sessionIndex}/so/${spaceId}/-/${objectKey}`
+  return `spacewave:///u/${sessionIndex}/so/${encodeURIComponent(spaceId)}/-/${escapeObjectKey(objectKey)}`
 }
 
 // GitCloneFact is the Clone fact: the address, shortened in its middle, and

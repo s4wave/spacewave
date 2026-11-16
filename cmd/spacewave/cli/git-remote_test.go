@@ -14,6 +14,8 @@ func TestParseGitRemoteURL(t *testing.T) {
 		{"spacewave://space-1/cdn/git", fsURI{spaceID: "space-1", objectKey: "cdn/git"}},
 		{"space-1/repo", fsURI{spaceID: "space-1", objectKey: "repo"}},
 		{"spacewave:///u/3/so/space-1/-/cdn/git", fsURI{sessionIdx: 3, spaceID: "space-1", objectKey: "cdn/git"}},
+		{"spacewave:///u/1/so/space-1/-/My%20Repo/%2D/x%2F", fsURI{sessionIdx: 1, spaceID: "space-1", objectKey: "My Repo/-/x/"}},
+		{"spacewave://space-1/My%20Repo", fsURI{spaceID: "space-1", objectKey: "My Repo"}},
 	}
 	for _, tc := range cases {
 		got, err := parseGitRemoteURL(tc.url)
@@ -30,6 +32,7 @@ func TestParseGitRemoteURL(t *testing.T) {
 		"spacewave:///u/3/so/space-1",
 		"spacewave:///u/3/so/space-1/-/repo/-/dir",
 		"spacewave:///u/x/so/space-1/-/repo",
+		"spacewave://space-1/100%",
 	} {
 		if _, err := parseGitRemoteURL(url); err == nil {
 			t.Fatalf("parse %q: want an error", url)

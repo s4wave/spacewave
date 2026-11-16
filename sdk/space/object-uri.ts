@@ -88,3 +88,42 @@ export function joinObjectUriPath(
   const path = parts.join(PATH_SEPARATOR)
   return path && isAbsolute ? PATH_SEPARATOR + path : path
 }
+
+/**
+ * Escapes an object key for a spacewave:/// address, the inverse of
+ * ParseSpacewaveURI in sdk/space/object-uri.go, which cleans the path, splits
+ * it on /-/ and then percent-decodes each part. Each segment is
+ * percent-encoded, and a whole ".", ".." or "-" segment is escaped so it reads
+ * as neither a relative step nor a delimiter. A slash stays raw between two
+ * nonempty segments and is "%2F" beside an empty one, so a leading, trailing
+ * or doubled slash survives the cleaning.
+ *
+ * Examples:
+ * - "My Repo" -> "My%20Repo"
+ * - "a/-/b" -> "a/%2D/b"
+ * - "/repos/x" -> "%2Frepos/x"
+ *
+ * @param objectKey - The object key to escape
+ * @returns The escaped key
+ */
+export function escapeObjectKey(objectKey: string): string {
+  const segments = objectKey.split(PATH_SEPARATOR)
+  let out = escapeKeySegment(segments[0])
+  for (let i = 1; i < segments.length; i++) {
+    const sep = segments[i - 1] && segments[i] ? PATH_SEPARATOR : '%2F'
+    out += sep + escapeKeySegment(segments[i])
+  }
+  return out
+}
+
+// escapeKeySegment percent-encodes one key segment, escaping a whole ".",
+// ".." or "-" segment that encodeURIComponent would leave raw.
+function escapeKeySegment(segment: string): string {
+  if (segment === '.' || segment === '..') {
+    return segment.replaceAll('.', '%2E')
+  }
+  if (segment === '-') {
+    return '%2D'
+  }
+  return encodeURIComponent(segment)
+}

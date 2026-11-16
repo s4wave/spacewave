@@ -1,6 +1,7 @@
 package s4wave_space
 
 import (
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
@@ -13,15 +14,16 @@ const SubpathDelimiter = "/-/"
 const PathSeparator = "/"
 
 // SpacewaveURI is a parsed spacewave URI.
-// Full form: /u/{session_idx}/so/{space_id}/-/{objectKey}/-/{path}/-/{nested}
-// Short form: objectKey/-/path (defaults session=1, space="")
+//
+// Full form: /u/{session_idx}/so/{space_id}/-/{objectKey}/-/{path}/-/{nested}.
+// Short form: objectKey/-/path, with session 1 and no Space.
 type SpacewaveURI struct {
 	// SessionIdx is the session index.
 	SessionIdx uint32
 	// SpaceID is the space identifier.
 	SpaceID string
-	// Segments contains the path segments split by /-/ delimiters.
-	// [0]=objectKey, [1]=path, [2+]=nested
+	// Segments contains the decoded path segments split by /-/ delimiters:
+	// [0] is the object key, [1] the path and [2:] the nested paths.
 	Segments []string
 }
 
@@ -35,19 +37,38 @@ type SpacewaveURI struct {
 // (session=1, space="") and the string is split on /-/ delimiters.
 //
 // A plain string without /-/ is treated as an object key only.
+//
+// The Space ID and each segment are percent-decoded after the structure is
+// parsed, so an escape carries what the structure would otherwise consume:
+// "%2F" is a slash beside an empty segment, "%2E" a dot of a "." or ".."
+// segment, and "%2D" a "-" segment.
 func ParseSpacewaveURI(uri string) (SpacewaveURI, error) {
 	// Normalize the Spacewave URI before interpreting its session prefix.
 	cleaned := path.Clean("/" + uri)
 	uri = strings.TrimPrefix(cleaned, "/")
 
-	// Parse session-qualified Spacewave URIs through the full URI parser.
+	// Parse session-qualified Spacewave URIs through the full URI parser, and
+	// unqualified segments under the default session.
+	var result SpacewaveURI
+	var err error
 	if strings.HasPrefix(uri, "u/") {
-		return parseFullURI(uri)
+		result, err = parseFullURI(uri)
+		if err != nil {
+			return SpacewaveURI{}, err
+		}
+	} else {
+		result = SpacewaveURI{SessionIdx: 1, Segments: splitSegments(uri)}
 	}
 
-	// Parse unqualified Spacewave URI segments under the default session.
-	result := SpacewaveURI{SessionIdx: 1}
-	result.Segments = splitSegments(uri)
+	// Decode the escapes the structure left in place.
+	if result.SpaceID, err = url.PathUnescape(result.SpaceID); err != nil {
+		return SpacewaveURI{}, err
+	}
+	for i, seg := range result.Segments {
+		if result.Segments[i], err = url.PathUnescape(seg); err != nil {
+			return SpacewaveURI{}, err
+		}
+	}
 	return result, nil
 }
 

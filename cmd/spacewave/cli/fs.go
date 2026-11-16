@@ -87,7 +87,9 @@ key (the entity within a space). Later segments form the UnixFS path inside
 that object. In the full form, "/u/{n}" selects the session by index and
 "so/{space-id}" selects the space. The full form is identical to the URL
 path used by the spacewave web UI, so a path copied from the browser
-address bar can be used here directly.
+address bar can be used here directly. Percent escapes are decoded after the
+URI is split, so a key holding "%" writes it as "%25", and a "-" segment or a
+leading, trailing or doubled slash is written "%2D" or "%2F".
 
 When the short forms are used the session index defaults to 1 and the space
 is resolved from the daemon's default space. The --space and --session-index

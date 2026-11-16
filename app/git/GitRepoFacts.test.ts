@@ -3,32 +3,36 @@ import { describe, expect, it } from 'vitest'
 import { gitCloneAddress } from './GitRepoFacts.js'
 
 describe('gitCloneAddress', () => {
-  it('writes the key raw, as the Git remote parser reads it', () => {
-    // The parser never percent-decodes, so spaces, percent signs and
-    // non-ASCII letters go in as they are.
+  it('escapes the key for the Git remote parser', () => {
+    // Spaces, percent signs and non-ASCII letters are percent-encoded, and
+    // the slashes between ordinary segments stay raw.
     expect(gitCloneAddress(1, 'sp', 'My Repo')).toBe(
-      'spacewave:///u/1/so/sp/-/My Repo',
+      'spacewave:///u/1/so/sp/-/My%20Repo',
     )
     expect(gitCloneAddress(1, 'sp', '100%')).toBe(
-      'spacewave:///u/1/so/sp/-/100%',
+      'spacewave:///u/1/so/sp/-/100%25',
     )
     expect(gitCloneAddress(2, 'sp', 'repos/café')).toBe(
-      'spacewave:///u/2/so/sp/-/repos/café',
+      'spacewave:///u/2/so/sp/-/repos/caf%C3%A9',
     )
   })
 
-  it('gives no address for a key the parser would read back as another', () => {
-    // A leading, trailing or doubled slash is cleaned away, and a "-"
-    // segment splits the path.
-    for (const key of [
-      '/repos/x',
-      'repos/x/',
-      'a//b',
-      'a/./b',
-      'a/../b',
-      'a/-/b',
-    ]) {
-      expect(gitCloneAddress(1, 'sp', key)).toBeNull()
+  it('escapes what the parser would clean or split', () => {
+    // These addresses are the ones TestParseSpacewaveURIEscapes in
+    // sdk/space/object-uri_test.go reads back as the key.
+    const cases: [string, string][] = [
+      ['/repos/x', '%2Frepos/x'],
+      ['repos/x/', 'repos/x%2F'],
+      ['a//b', 'a%2F%2Fb'],
+      ['a/./b', 'a/%2E/b'],
+      ['a/../b', 'a/%2E%2E/b'],
+      ['a/-/b', 'a/%2D/b'],
+      ['-', '%2D'],
+    ]
+    for (const [key, escaped] of cases) {
+      expect(gitCloneAddress(1, 'sp', key)).toBe(
+        `spacewave:///u/1/so/sp/-/${escaped}`,
+      )
     }
   })
 

@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"math"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -160,10 +161,19 @@ func parseGitRemoteURL(url string) (fsURI, error) {
 		return uri, nil
 	}
 
-	// Split a short address at the end of the Space ID.
+	// Split a short address at the end of the Space ID, then decode each part
+	// as ParseSpacewaveURI does.
 	space, objectKey, ok := strings.Cut(addr, "/")
 	if !ok || space == "" || objectKey == "" {
 		return fsURI{}, errors.Errorf("remote URL %q is not %s<space>/<object-key>", url, gitRemoteURLPrefix)
+	}
+	space, err := neturl.PathUnescape(space)
+	if err != nil {
+		return fsURI{}, errors.Wrapf(err, "remote URL %q", url)
+	}
+	objectKey, err = neturl.PathUnescape(objectKey)
+	if err != nil {
+		return fsURI{}, errors.Wrapf(err, "remote URL %q", url)
 	}
 	return fsURI{spaceID: space, objectKey: objectKey}, nil
 }
