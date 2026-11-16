@@ -513,12 +513,20 @@ func TestEvictRetryNeedsCheck(t *testing.T) {
 		return epoch
 	}
 	epoch := readEpochNow()
+	durable := &evictMixScenario{store: s}
+	before := durable.queue(t)
+	if len(before) != 3 {
+		t.Fatalf("durable queue before the unchecked pass = %v, want one entry, the epoch and the byte sum", before)
+	}
 
 	// An unchecked pass fails before advancing the epoch, and the local bytes
-	// and queue stay.
+	// and the durable queue keys, epoch and byte sum stay as they were.
 	result, err = s.Evict(ctx, nil, 1<<30, nil, nil)
 	if !errors.Is(err, ErrEvictRetryUnchecked) || result != (EvictResult{}) {
 		t.Fatalf("unchecked pass under retry = %+v, %v", result, err)
+	}
+	if after := durable.queue(t); !slices.Equal(after, before) {
+		t.Fatalf("durable queue after the unchecked pass = %v, want %v", after, before)
 	}
 	if got := readEpochNow(); got != epoch {
 		t.Fatalf("unchecked pass advanced the epoch to %d from %d", got, epoch)
