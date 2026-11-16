@@ -299,15 +299,16 @@ func (t *Tx) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 }
 
 // nameMissingBlock wraps an operation's failure on a block that is not
-// available with a label naming the operation and with its decoded body, so a
-// stalled replay names the write whose block is gone. Other errors pass through
-// unchanged: their messages become rejection reasons every member must agree
-// on.
-func nameMissingBlock(err error, label string, op world.Operation) error {
+// available with a label naming the operation, so a stalled replay names the
+// write whose block is gone. The label never includes the decoded body: an op
+// body can hold an ObjectRef whose transform carries the Space's block key, and
+// this error reaches logs. Other errors pass through unchanged: their messages
+// become rejection reasons every member must agree on.
+func nameMissingBlock(err error, label string) error {
 	if !block.IsNotAvailable(err) {
 		return err
 	}
-	return errors.Wrapf(err, "%s %v", label, op)
+	return errors.Wrap(err, label)
 }
 
 // _ is a type assertion

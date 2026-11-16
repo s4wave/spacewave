@@ -105,7 +105,7 @@ func (t *TxApplyWorldOp) ExecuteTx(
 
 	// Apply the operation.
 	_, sysErr, err = worldInstance.ApplyWorldOp(ctx, op, sender)
-	return sysErr, nameMissingBlock(err, t.GetOperationTypeId(), op)
+	return sysErr, nameMissingBlock(err, t.GetOperationTypeId())
 }
 
 // decodeOp validates the transaction and decodes its operation, resolving the

@@ -188,7 +188,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 	outpRef.RootRef = nextRootRef
 	le = le.
 		WithField("root-ref-after", nextRootRef.MarshalString()).
-		WithField("ref-after", outpRef.MarshalString()).
 		WithField("size-after", sizeAfter)
 	le.Infof("applied %d ops to store", opCount)
 

@@ -100,7 +100,7 @@ func (t *TxApplyObjectOp) ExecuteTx(
 		return false, err
 	}
 	_, sysErr, err = obj.ApplyObjectOp(ctx, op, sender)
-	return sysErr, nameMissingBlock(err, t.GetOperationTypeId()+" on "+t.GetObjectKey(), op)
+	return sysErr, nameMissingBlock(err, t.GetOperationTypeId()+" on "+t.GetObjectKey())
 }
 
 // decodeOp validates the transaction and decodes its operation, resolving the
