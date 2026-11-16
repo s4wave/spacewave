@@ -38,13 +38,15 @@ const evictBatchBlocks = 1024
 // its old key, inserts its replacement and adjusts bytes in one transaction.
 const evictRetryCommitBlocks = 64
 
-// evictRefusedRetry selects whether passes retain refused entries.
+// evictRefusedRetry selects refusal retention and queue-before-value fills.
 // The default preserves the earlier refusal-dropping behavior until enabled.
 var evictRefusedRetry atomic.Bool
 
 // SetEvictRefusedRetry selects refusal retention for passes started afterward.
-// When on, a refused entry moves to the new epoch for a later pass to recheck.
-// Turning it off restores refusal-dropping behavior without enabling eviction.
+// When on, a refused entry moves to the new epoch for a later pass to recheck,
+// and a fill reserves its queue entry before exposing the local value.
+// Turning it off restores refusal dropping and the earlier fill ordering
+// without enabling eviction. Each pass and fill samples it once.
 func SetEvictRefusedRetry(on bool) {
 	evictRefusedRetry.Store(on)
 }
@@ -244,16 +246,24 @@ func (s *Store) Evict(
 	// Its writes wait behind every foreground writer.
 	ctx = kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(ctx))
 
-	// Serialize the pass with other passes.
+	// Keep one queue policy for the pass and exclude unfinished fills before
+	// taking the pass mutex. A pass waiting for a fill must not delay disable.
 	var result EvictResult
+	retryRefused := evictRefusedRetry.Load()
+	if retryRefused {
+		releaseFill, err := s.fillMtx.Lock(ctx)
+		if err != nil {
+			return result, err
+		}
+		defer releaseFill()
+	}
+
+	// Serialize the pass with other passes and disabling uploads.
 	release, err := s.evictMtx.Lock(ctx)
 	if err != nil {
 		return result, err
 	}
 	defer release()
-
-	// Keep one refusal policy for the entire pass, including all its batches.
-	retryRefused := evictRefusedRetry.Load()
 
 	// Advance the epoch, so entries this pass queues sort after the walk.
 	var epoch uint64

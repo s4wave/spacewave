@@ -22,5 +22,29 @@
       ]
     ],
     "expect": "NoMissingCopyDropped"
+  },
+  {
+    "name": "A fill commits its queue only after writing its value",
+    "replace": [
+      [
+        "IF RetryRefused THEN \"reserve\" ELSE \"write\"",
+        "\"write\""
+      ],
+      [
+        "IF RetryRefused THEN \"done\" ELSE \"queue\"",
+        "\"queue\""
+      ]
+    ],
+    "expect": "NoStrandedValue"
+  },
+  {
+    "name": "Eviction cleans a fill reservation before its value write",
+    "replace": [
+      [
+        "(~RetryRefused \\/ ~FillActive)",
+        "TRUE"
+      ]
+    ],
+    "expect": "NoStrandedValue"
   }
 ]
