@@ -120,6 +120,10 @@ type Volume struct {
 	// adoptWake holds one pending request for a background adoption pass,
 	// nil without a background adoption.
 	adoptWake chan struct{}
+	// holdRule is the hold rule the collector counts under, from
+	// CollectorHoldUntilFree, which an empty store starts adopted under and
+	// an adoption counts under.
+	holdRule block_gc.HoldRule
 	// proofMu guards the pending root proofs and the free count. It is never
 	// held across a volume transaction.
 	proofMu sync.Mutex
@@ -208,6 +212,10 @@ func NewVolume(
 		statsFn:   statsFn,
 		closeFn:   closeFn,
 		health:    healthState{phase: volume.VolumeGCPhase_VOLUME_GC_PHASE_IDLE, phaseStart: time.Now()},
+		holdRule:  block_gc.HoldRule_HOLD_RULE_RELEASE_AT_ZERO,
+	}
+	if conf.GetCollectorHoldUntilFree() {
+		v.holdRule = block_gc.HoldRule_HOLD_RULE_HOLD_UNTIL_FREE
 	}
 	if domain, ok := store.(BlockDomain); ok {
 		v.Store = store_kvtx.NewKVTxWithBlockStore(kvkey, store, domain.GetBlockStore(), conf)
@@ -262,13 +270,15 @@ func rootHeldMode(check store_kvtx.RootHeldCheck, frees bool) block_gc.HeldMode 
 }
 
 // newCollector returns the collector of the Volume, which frees when frees is
-// set, with grace as its grace period, zero for the default.
+// set, under the Volume's hold rule, with grace as its grace period, zero for
+// the default.
 func (v *Volume) newCollector(frees bool, grace time.Duration) *block_gc.Collector {
 	opts := block_gc.CollectorOptions{
-		Frees: frees,
-		Grace: grace,
-		Now:   v.now,
-		Phase: v.collectorPhase,
+		Frees:         frees,
+		HoldUntilFree: v.holdRule == block_gc.HoldRule_HOLD_RULE_HOLD_UNTIL_FREE,
+		Grace:         grace,
+		Now:           v.now,
+		Phase:         v.collectorPhase,
 	}
 	if w, ok := v.kvtxStore.(kvtx.WriterQueueStore); ok {
 		opts.WritersWaiting = w.WritersWaiting
@@ -335,12 +345,16 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 	// nothing reads the counts. Child lists an older format left unverified
 	// adopt as they are, and the collector frees only blocks born since
 	// until they are verified. The adoption also runs again whenever a list
-	// rebuild returns the Volume to unadopted.
-	if v.collector.Frees() {
+	// rebuild returns the Volume to unadopted. A Volume adopted under the
+	// other hold rule adopts again whether or not frees are on, since the
+	// collector nets nothing until its counts follow its own rule.
+	adopted := state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED
+	switched := adopted && state.GetHoldRule() != v.holdRule
+	if v.collector.Frees() || switched {
 		adoptCtx, cancelAdopt := context.WithCancel(context.WithoutCancel(ctx))
 		v.adoptCancel, v.adoptDone = cancelAdopt, make(chan struct{})
 		v.adoptWake = make(chan struct{}, 1)
-		if state.GetAdoption() != block_gc.Adoption_ADOPTION_ADOPTED {
+		if !adopted || switched {
 			v.wakeAdopt()
 		}
 		go v.runBackgroundAdopt(adoptCtx)
@@ -386,7 +400,7 @@ func initVolume(
 
 	// Bring a writable store to the current format before any read.
 	if !v.readOnly {
-		if _, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey); err != nil {
+		if _, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey, v.holdRule); err != nil {
 			return nil, err
 		}
 	}

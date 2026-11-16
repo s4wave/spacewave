@@ -83,16 +83,25 @@ var ErrAdoptSuperseded = errors.New("another adoption superseded this one")
 // to write unless the Volume is still adopting in its run. A run another
 // claimed or superseded writes nothing more and returns ErrAdoptSuperseded.
 //
+// It counts under rule, which it records in the state: under
+// HOLD_RULE_HOLD_UNTIL_FREE a stored block with no holder goes on the free
+// queue with its children counting it, and under HOLD_RULE_RELEASE_AT_ZERO it
+// is Dying, its children released by a cascade. A Volume adopted under the
+// other rule is claimed and counted again from its child lists, so no free
+// reads counts written under a rule other than the collector's.
+//
 // Adoption counts only child lists and named roots. A block that older code
 // held another way, such as through a bucket's ownership, has no holder here,
 // so adopt a Volume only once every writer that uses it holds what it needs
 // under named roots.
-func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
-	// Report an adopted Volume, after deleting what a finished adoption may
-	// have left; otherwise claim it unadopted for a new run.
+func Adopt(ctx context.Context, store Store, rule HoldRule) (AdoptResult, error) {
+	// Report a Volume adopted under rule, after deleting what a finished
+	// adoption may have left; otherwise claim it unadopted for a new run.
 	var res AdoptResult
 	run := ulid.NewULID()
-	adopted, err := claimAdoption(ctx, store, run)
+	adopted, err := claimAdoption(ctx, store, run, func(state *LivenessState) bool {
+		return state.GetHoldRule() == rule
+	})
 	if err != nil {
 		return res, err
 	}
@@ -131,7 +140,7 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 
 	// Count the holders, refuse a block stored without a child list, and
 	// settle the stored blocks' counts.
-	a := &adoption{store: store, run: run, res: &res}
+	a := &adoption{store: store, run: run, rule: rule, res: &res}
 	if err := a.count(ctx); err != nil {
 		return res, abandonAdopt(ctx, store, run, err)
 	}
@@ -142,12 +151,13 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 		return res, abandonAdopt(ctx, store, run, err)
 	}
 	err = store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Mark it adopted at the cursor.
+		// Mark it adopted under rule at the cursor.
 		state, err := inRun(ctx, rec, run)
 		if err != nil {
 			return err
 		}
 		state.Adoption = Adoption_ADOPTION_ADOPTED
+		state.HoldRule = rule
 		state.Cursor = cursor
 		return rec.SetState(ctx, state)
 	})
@@ -176,22 +186,23 @@ func inRun(ctx context.Context, rec *Records, run string) (*LivenessState, error
 // it journals nothing more. A Volume calls it when it opens: the adoption
 // that marked it ended with the process.
 func ResetAdoption(ctx context.Context, store Store) error {
-	_, err := claimAdoption(ctx, store, "")
+	_, err := claimAdoption(ctx, store, "", func(*LivenessState) bool { return true })
 	return err
 }
 
-// claimAdoption returns a Volume that is not adopted to unadopted under run,
-// superseding any run that marked or claimed it, and reports whether the
-// Volume is adopted. An empty run claims it for none.
-func claimAdoption(ctx context.Context, store Store, run string) (bool, error) {
+// claimAdoption returns a Volume that is not adopted, or is adopted but not
+// as keep accepts, to unadopted under run, superseding any run that marked or
+// claimed it, and reports whether it left the Volume adopted. An empty run
+// claims it for none.
+func claimAdoption(ctx context.Context, store Store, run string, keep func(*LivenessState) bool) (bool, error) {
 	var adopted bool
 	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Leave an adopted Volume, and one already in the claim.
+		// Leave an adopted Volume keep accepts, and one already in the claim.
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
-		if adopted = state.GetAdoption() == Adoption_ADOPTION_ADOPTED; adopted {
+		if adopted = state.GetAdoption() == Adoption_ADOPTION_ADOPTED && keep(state); adopted {
 			return nil
 		}
 		if state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run {
@@ -252,6 +263,8 @@ type adoption struct {
 	store Store
 	// run names the adoption's run.
 	run string
+	// rule is the hold rule it counts under.
+	rule HoldRule
 	// res is the result.
 	res *AdoptResult
 }
@@ -294,8 +307,9 @@ func (a *adoption) count(ctx context.Context) error {
 	}
 
 	// Settle each stored block: one holder is implied, and a block with none
-	// is Dying, at zero with children that count it, so the collector
-	// releases them once the Volume is adopted.
+	// is at zero with children that count it: Dying, so the collector
+	// releases them once the Volume is adopted, or under HoldUntilFree on the
+	// free queue, so the free releases them.
 	return forSlices(ctx, a.store, a.run, kindChildren, func(rec *Records, _ block.StoreOps, r adoptRecord) error {
 		// Skip a block born since the adoption began.
 		ref, born, err := a.listed(ctx, rec, r)
@@ -316,14 +330,18 @@ func (a *adoption) count(ctx context.Context) error {
 			return rec.SetHolders(ctx, ref, n, 0)
 		}
 
-		// Settle a block no holder names Dying, ripe at the journal's end.
+		// Settle a block no holder names at zero, ripe at the journal's end.
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
 		a.res.Queued++
-		if err := rec.SetHolders(ctx, ref, 0, state.GetNextSeq()); err != nil {
+		ripe := state.GetNextSeq()
+		if err := rec.SetHolders(ctx, ref, 0, ripe); err != nil {
 			return err
+		}
+		if a.rule == HoldRule_HOLD_RULE_HOLD_UNTIL_FREE {
+			return rec.tx.Set(ctx, rec.queueKey(ripe, BlockKey(ref)), nil)
 		}
 		if err := rec.addCascade(ctx, state, BlockKey(ref), cascadeDown); err != nil {
 			return err

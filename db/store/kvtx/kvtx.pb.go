@@ -83,6 +83,11 @@ type Config struct {
 	// RootHeldCheck is what the Volume does with a root move that requires its
 	// blocks held when a block it reaches is not.
 	RootHeldCheck RootHeldCheck `protobuf:"varint,9,opt,name=root_held_check,json=rootHeldCheck,proto3" json:"rootHeldCheck,omitempty"`
+	// CollectorHoldUntilFree keeps a block at zero holders a holder of each
+	// child it lists until the collector frees it, so no child is freed while
+	// a stored parent names it. Changing it adopts the Volume again in the
+	// background, and nothing frees until that finishes.
+	CollectorHoldUntilFree bool `protobuf:"varint,10,opt,name=collector_hold_until_free,json=collectorHoldUntilFree,proto3" json:"collectorHoldUntilFree,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -119,6 +124,13 @@ func (x *Config) GetRootHeldCheck() RootHeldCheck {
 	return RootHeldCheck_ROOT_HELD_CHECK_UNKNOWN
 }
 
+func (x *Config) GetCollectorHoldUntilFree() bool {
+	if x != nil {
+		return x.CollectorHoldUntilFree
+	}
+	return false
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -128,6 +140,7 @@ func (m *Config) CloneVT() *Config {
 	r.CollectorFrees = m.CollectorFrees
 	r.CollectorGraceDur = m.CollectorGraceDur
 	r.RootHeldCheck = m.RootHeldCheck
+	r.CollectorHoldUntilFree = m.CollectorHoldUntilFree
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -154,6 +167,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.RootHeldCheck != that.RootHeldCheck {
+		return false
+	}
+	if this.CollectorHoldUntilFree != that.CollectorHoldUntilFree {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -235,6 +251,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rootHeldCheck")
 		x.RootHeldCheck.MarshalProtoJSON(s)
 	}
+	if x.CollectorHoldUntilFree || s.HasField("collectorHoldUntilFree") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("collectorHoldUntilFree")
+		s.WriteBool(x.CollectorHoldUntilFree)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -264,6 +285,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "root_held_check", "rootHeldCheck":
 			s.AddField("root_held_check")
 			x.RootHeldCheck.UnmarshalProtoJSON(s)
+		case "collector_hold_until_free", "collectorHoldUntilFree":
+			s.AddField("collector_hold_until_free")
+			x.CollectorHoldUntilFree = s.ReadBool()
 		}
 	})
 }
@@ -302,6 +326,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.CollectorHoldUntilFree {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CollectorHoldUntilFree)
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.RootHeldCheck != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RootHeldCheck))
 		i--
@@ -335,6 +364,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.CollectorFrees)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CollectorGraceDur)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RootHeldCheck)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.CollectorHoldUntilFree)
 	n += len(m.unknownFields)
 	return n
 }
@@ -361,6 +391,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.RootHeldCheck != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_held_check")
 		protobuf_go_lite.TextWriteStringer(&sb, RootHeldCheck(x.RootHeldCheck))
+	}
+	if x.CollectorHoldUntilFree != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "collector_hold_until_free")
+		protobuf_go_lite.TextWriteBool(&sb, x.CollectorHoldUntilFree)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -431,6 +465,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CollectorHoldUntilFree", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CollectorHoldUntilFree = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

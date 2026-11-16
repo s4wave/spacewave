@@ -791,6 +791,16 @@ func (l *lander) appendJournal(ctx context.Context, state *LivenessState, now ti
 // a born tree; otherwise one count record read per block until one is at
 // zero, since the state it already read counts the cascade records.
 func (l *lander) holdsZero(ctx context.Context, state *LivenessState, held [][]byte) (bool, error) {
+	// Under HoldUntilFree a free deletes its block as its paged release
+	// starts, so a put of that block during the release is born and holds no
+	// stored block, and the children the release took to zero regain it only
+	// once this record's up pairs net. Mark a Land with up pairs while a
+	// release is in progress, as a put again of the Dying block marks under
+	// release at zero. It reads nothing: the state is already read.
+	if len(l.up) != 0 && state.GetRelease() != nil && state.GetHoldRule() == HoldRule_HOLD_RULE_HOLD_UNTIL_FREE {
+		return true, nil
+	}
+
 	// A Land that holds no stored block sets no mark.
 	if len(held) == 0 {
 		return false, nil

@@ -44,6 +44,35 @@ func (c *testClock) Add(d time.Duration) {
 	c.mtx.Unlock()
 }
 
+// testHold selects the hold rule the liveness Volumes of a test open under
+// and adopt under: HoldUntilFree when set. forEachRule sets it; a test that
+// runs under both rules must not run in parallel with another.
+var testHold bool
+
+// testRule returns the hold rule testHold selects.
+func testRule() block_gc.HoldRule {
+	if testHold {
+		return block_gc.HoldRule_HOLD_RULE_HOLD_UNTIL_FREE
+	}
+	return block_gc.HoldRule_HOLD_RULE_RELEASE_AT_ZERO
+}
+
+// forEachRule runs body once under each hold rule, as a subtest named for
+// the rule.
+func forEachRule(t *testing.T, body func(t *testing.T)) {
+	for _, hold := range []bool{false, true} {
+		name := "release at zero"
+		if hold {
+			name = "hold until free"
+		}
+		t.Run(name, func(t *testing.T) {
+			testHold = hold
+			t.Cleanup(func() { testHold = false })
+			body(t)
+		})
+	}
+}
+
 // newLivenessVolume opens an empty Volume, adopted from birth, with the
 // collector's frees set and a clock the test moves.
 func newLivenessVolume(t *testing.T, frees bool) (*Volume, *testClock) {
@@ -54,8 +83,15 @@ func newLivenessVolume(t *testing.T, frees bool) (*Volume, *testClock) {
 // openLivenessVolume opens a Volume over store, as newLivenessVolume does.
 func openLivenessVolume(t *testing.T, store *store_kvtx_inmem.Store, frees bool) (*Volume, *testClock) {
 	t.Helper()
+	return openRuleVolume(t, store, frees, testHold)
+}
+
+// openRuleVolume opens a Volume over store under the hold rule hold names,
+// HoldUntilFree when set, whatever testHold selects.
+func openRuleVolume(t *testing.T, store *store_kvtx_inmem.Store, frees, hold bool) (*Volume, *testClock) {
+	t.Helper()
 	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
-	v, err := NewVolume(t.Context(), "test/liveness", store_kvkey.NewDefaultKVKey(), store, &store_kvtx.Config{CollectorFrees: frees}, false, false, nil, nil)
+	v, err := NewVolume(t.Context(), "test/liveness", store_kvkey.NewDefaultKVKey(), store, &store_kvtx.Config{CollectorFrees: frees, CollectorHoldUntilFree: hold}, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,11 +198,51 @@ func requireAudit(t *testing.T, v *Volume, leaked uint64) {
 	}
 }
 
+// requireListsStored checks that no stored block of tr lists a child that is
+// not stored: under HoldUntilFree, no child is freed while a stored parent
+// lists it, the model's NoLiveListsFreed.
+func requireListsStored(t *testing.T, v *Volume, tr testTree) {
+	t.Helper()
+	stored := func(ref *block.BlockRef) bool {
+		_, found, err := v.GetBlock(t.Context(), ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return found
+	}
+	for name, e := range tr {
+		if !stored(e.Ref) {
+			continue
+		}
+		for _, child := range e.Refs {
+			if !stored(child) {
+				t.Fatalf("block %s stored over a freed child", name)
+			}
+		}
+	}
+}
+
+// requireReads checks that each named block of tr reads its own bytes.
+func requireReads(t *testing.T, v *Volume, tr testTree, names ...string) {
+	t.Helper()
+	for _, name := range names {
+		data, found, err := v.GetBlock(t.Context(), tr[name].Ref)
+		if err != nil || !found || !bytes.Equal(data, tr[name].Data) {
+			t.Fatalf("block %s found=%t err %v, want its bytes", name, found, err)
+		}
+	}
+}
+
 // TestLivenessRunThrough stores a tree, swaps the root to a second tree that
 // shares a subtree, collects, and checks that the grace period keeps the old
 // tree, that afterwards only what the live root reaches is stored, and that a
 // hole under a dead page frees nothing below it while the audit reports it.
 func TestLivenessRunThrough(t *testing.T) {
+	forEachRule(t, testLivenessRunThrough)
+}
+
+// testLivenessRunThrough runs TestLivenessRunThrough under testHold's rule.
+func testLivenessRunThrough(t *testing.T) {
 	// Store R1 -> C -> {E, F}, F -> G under main.
 	v, clk := newLivenessVolume(t, true)
 	ctx := t.Context()
@@ -333,18 +409,28 @@ func TestLivenessRunThrough(t *testing.T) {
 		t.Logf("wide free beside a waiting writer: longest transaction %d operations in %v over 5,000 children, %d in %v over 10,000", s, sd, l, ld)
 	}
 
-	// A page replaced by one sharing its children costs no read and no write
-	// per shared child, in the net or the free: the new page's up pair and
-	// the old page's cascade down cancel in the slice.
+	// Under release at zero, a page replaced by one sharing its children
+	// costs no read and no write per shared child, in the net or the free:
+	// the new page's up pair and the old page's cascade down cancel in the
+	// slice. Under HoldUntilFree the behavior moved, not the assertion: the
+	// old page holds its children until its free, so nothing cancels, and
+	// each shared child costs exactly one read and one write in the net, for
+	// the new page's up, and one of each in the free, for the old page's
+	// down.
+	perChild := 0
+	if testHold {
+		perChild = 1
+	}
 	net31, free31 := measureReplacedPage(t, 31)
 	for _, shared := range []int{63, 127} {
 		net, free := measureReplacedPage(t, shared)
 		t.Logf("replaced page of %d shared children: net %d reads %d writes, free %d reads %d writes; of 31: net %d/%d, free %d/%d",
 			shared, net.Reads+net.Steps, net.Writes, free.Reads+free.Steps, free.Writes,
 			net31.Reads+net31.Steps, net31.Writes, free31.Reads+free31.Steps, free31.Writes)
-		if net.Reads+net.Steps != net31.Reads+net31.Steps || net.Writes != net31.Writes ||
-			free.Reads+free.Steps != free31.Reads+free31.Steps || free.Writes != free31.Writes {
-			t.Errorf("a replaced page of %d shared children cost more than one of 31", shared)
+		more := uint64(perChild * (shared - 31))
+		if net.Reads+net.Steps != net31.Reads+net31.Steps+more || net.Writes != net31.Writes+more ||
+			free.Reads+free.Steps != free31.Reads+free31.Steps+more || free.Writes != free31.Writes+more {
+			t.Errorf("a replaced page of %d shared children cost other than %d more reads and writes than one of 31", shared, more)
 		}
 	}
 
@@ -384,7 +470,7 @@ func measureLivenessPaths(t *testing.T, n int) livenessCosts {
 	t.Helper()
 	ctx := t.Context()
 	cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
-	v, err := NewVolume(ctx, "test/scaling", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
+	v, err := NewVolume(ctx, "test/scaling", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true, CollectorHoldUntilFree: testHold}, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -603,9 +689,10 @@ func allocated(fn func()) uint64 {
 var errMidRelease = errors.New("stopped mid-release")
 
 // stopMidRelease runs a collector's transactions until one leaves a paged
-// release in progress, a paged re-hold when rehold is set, or a cascade
-// record due when cascade is set, then fails every later one, as a process
-// that dies there.
+// release in progress, a paged re-hold when rehold is set, a cascade record
+// due when cascade is set, the journal records from pages[0] to pages[1]
+// partly netted when pages is set, or until true when until is set, then
+// fails every later one, as a process that dies there.
 type stopMidRelease struct {
 	block_gc.Store
 	// v is the Volume, whose state it reads after each transaction.
@@ -614,6 +701,12 @@ type stopMidRelease struct {
 	rehold bool
 	// cascade selects a due cascade record instead of a paged cascade.
 	cascade bool
+	// pages, when its end is set, selects the journal records from its start
+	// up to its end partly netted instead.
+	pages [2]uint64
+	// until, when set, selects the first transaction after which it reports
+	// true instead.
+	until func() bool
 	// stopped records that a transaction left one in progress.
 	stopped bool
 }
@@ -633,6 +726,12 @@ func (s *stopMidRelease) Update(ctx context.Context, fn func(rec *block_gc.Recor
 		if s.cascade {
 			s.stopped = state.GetCascades() != 0
 		}
+		if cursor := state.GetCursor(); s.pages[1] != 0 {
+			s.stopped = cursor >= s.pages[0] && cursor < s.pages[1] && (cursor > s.pages[0] || state.GetNetOffset() != 0)
+		}
+		if s.until != nil {
+			s.stopped = s.until()
+		}
 		return err
 	})
 }
@@ -640,16 +739,22 @@ func (s *stopMidRelease) Update(ctx context.Context, fn func(rec *block_gc.Recor
 // livenessCascades returns the cascade records the state of v counts.
 func livenessCascades(t *testing.T, v *Volume) uint64 {
 	t.Helper()
-	var due uint64
+	return livenessState(t, v).GetCascades()
+}
+
+// livenessState returns the liveness state of v.
+func livenessState(t *testing.T, v *Volume) *block_gc.LivenessState {
+	t.Helper()
+	var state *block_gc.LivenessState
 	err := v.readRecords(t.Context(), func(rec *block_gc.Records) error {
-		state, err := rec.GetState(t.Context())
-		due = state.GetCascades()
+		var err error
+		state, err = rec.GetState(t.Context())
 		return err
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return due
+	return state
 }
 
 // errPaceLimit is the failure paceProbe returns past its limit.
@@ -707,7 +812,7 @@ func measureWideFree(t *testing.T, children int, waiting bool) (uint64, time.Dur
 	t.Helper()
 	ctx := t.Context()
 	cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
-	v, err := NewVolume(ctx, "test/wide-free", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
+	v, err := NewVolume(ctx, "test/wide-free", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true, CollectorHoldUntilFree: testHold}, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -732,7 +837,7 @@ func measureWideFree(t *testing.T, children int, waiting bool) (uint64, time.Dur
 	clk.Add(block_gc.DefaultGrace + time.Second)
 	cs.ResetMax()
 	store := &timedStore{Store: collectorStore{v: v}}
-	opts := block_gc.CollectorOptions{Frees: true, Now: v.now}
+	opts := block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now}
 	if waiting {
 		opts.WritersWaiting = func() bool { return true }
 	}
@@ -762,7 +867,7 @@ func measureReplacedPage(t *testing.T, shared int) (net, free kvtx_kvtest.Counts
 	t.Helper()
 	ctx := t.Context()
 	cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
-	v, err := NewVolume(ctx, "test/replaced-page", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
+	v, err := NewVolume(ctx, "test/replaced-page", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true, CollectorHoldUntilFree: testHold}, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -793,7 +898,7 @@ func measureReplacedPage(t *testing.T, shared int) (net, free kvtx_kvtest.Counts
 	run := func(frees bool) kvtx_kvtest.Counts {
 		t.Helper()
 		before := cs.Counts()
-		c := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{Frees: frees, Now: v.now})
+		c := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: frees, Now: v.now})
 		for {
 			res, err := c.Collect(ctx)
 			if err != nil {
@@ -912,6 +1017,11 @@ func punchHole(t *testing.T, v *Volume, ref *block.BlockRef) {
 // period, a release and a birth that share a child in different intervals,
 // and a Volume that predates adoption. It frees no live block in any.
 func TestLivenessAdversarial(t *testing.T) {
+	forEachRule(t, testLivenessAdversarial)
+}
+
+// testLivenessAdversarial runs TestLivenessAdversarial under testHold's rule.
+func testLivenessAdversarial(t *testing.T) {
 	t.Run("reader pin", func(t *testing.T) {
 		// Store R1 -> E under main and pin it as a reader that saw it.
 		v, clk := newLivenessVolume(t, true)
@@ -1234,12 +1344,18 @@ func TestLivenessAdversarial(t *testing.T) {
 		clk.Add(2 * time.Second)
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "R", "C")
-		if proved() {
-			t.Fatal("released R still proved")
+
+		// The behavior moved under HoldUntilFree, not the assertion: R holds
+		// C until R itself is freed, so its proof stays true and a stage may
+		// hold R on it. Under release at zero C may go first, so the proof
+		// goes with the release.
+		if proved() != testHold {
+			t.Fatalf("released R proved=%t, want %t", !testHold, testHold)
 		}
 
 		// A pending proof of R counts for nothing, nor holds it under a stage,
-		// and carrying it writes none.
+		// and carrying it writes none; under HoldUntilFree the recorded proof
+		// it rides over stays.
 		if err := v.MarkRootsComplete(ctx, []*block.BlockRef{r}); err != nil {
 			t.Fatal(err)
 		}
@@ -1261,9 +1377,10 @@ func TestLivenessAdversarial(t *testing.T) {
 		if err := v.MarkRootsComplete(ctx, []*block.BlockRef{r, z}); err != nil {
 			t.Fatal(err)
 		}
-		if proved() {
-			t.Fatal("carried a proof of a released R")
+		if proved() != testHold {
+			t.Fatalf("carried proof of a released R proved=%t, want %t", !testHold, testHold)
 		}
+		requireStored(t, v, tr, true, "R", "C")
 
 		// Once R ripens, it and C go.
 		clk.Add(block_gc.DefaultGrace + time.Second)
@@ -1653,7 +1770,7 @@ func TestLivenessAdversarial(t *testing.T) {
 				}
 			},
 		}}
-		if _, err := block_gc.Adopt(ctx, probe); err != nil || len(probe.at) != 0 {
+		if _, err := block_gc.Adopt(ctx, probe, testRule()); err != nil || len(probe.at) != 0 {
 			t.Fatalf("adopt = %v with %d fills left", err, len(probe.at))
 		}
 		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "r", Ref: f}}); err != nil {
@@ -1716,7 +1833,7 @@ func TestLivenessAdversarial(t *testing.T) {
 					}
 				},
 			}}
-			if _, err := block_gc.Adopt(ctx, probe); err != nil || len(probe.at) != 0 {
+			if _, err := block_gc.Adopt(ctx, probe, testRule()); err != nil || len(probe.at) != 0 {
 				t.Fatalf("adopt = %v with %d fills left", err, len(probe.at))
 			}
 
@@ -1862,7 +1979,7 @@ func TestLivenessAdversarial(t *testing.T) {
 				}
 			},
 		}}
-		if _, err := block_gc.Adopt(ctx, probe); err != nil || len(probe.at) != 0 {
+		if _, err := block_gc.Adopt(ctx, probe, testRule()); err != nil || len(probe.at) != 0 {
 			t.Fatalf("adopt = %v with %d fills left", err, len(probe.at))
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
@@ -1915,7 +2032,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// as the record has pairs or reads half of its bytes.
 		ctx := t.Context()
 		cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
-		v, err := NewVolume(ctx, "test/wide", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
+		v, err := NewVolume(ctx, "test/wide", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true, CollectorHoldUntilFree: testHold}, false, false, nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1990,7 +2107,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			clk.Add(3 * time.Millisecond)
 			time.Sleep(3 * time.Millisecond)
 		}}
-		if freed := collectThrough(t, probe, block_gc.CollectorOptions{Frees: true, Now: v.now}); freed != 2001 {
+		if freed := collectThrough(t, probe, block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now}); freed != 2001 {
 			t.Fatalf("freed %d of W and its 2000 leaves", freed)
 		}
 		requireStored(t, v, tr, false, append(slices.Clone(leaves), "W")...)
@@ -2042,6 +2159,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		}}
 		opts := block_gc.CollectorOptions{
 			Frees:          true,
+			HoldUntilFree:  testHold,
 			Now:            v.now,
 			WritersWaiting: func() bool { return true },
 		}
@@ -2049,11 +2167,271 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("freed %d before the writer's records aged", freed)
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
-		if freed := collectThrough(t, probe, opts); freed != 101 {
-			t.Fatalf("freed %d of G and its 100 leaves", freed)
+		if !testHold {
+			if freed := collectThrough(t, probe, opts); freed != 101 {
+				t.Fatalf("freed %d of G and its 100 leaves", freed)
+			}
+		} else {
+			// The behavior moved under HoldUntilFree, not the assertion: G
+			// holds its leaves until its free, which gives them the journal's
+			// end as their ripe sequence, behind the writer's records of this
+			// pass, so they go one grace period after G.
+			if freed := collectThrough(t, probe, opts); freed != 1 {
+				t.Fatalf("freed %d of G alone", freed)
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			if freed := collectThrough(t, probe, opts); freed != 100 {
+				t.Fatalf("freed %d of G's 100 leaves", freed)
+			}
 		}
 		requireStored(t, v, tr, false, append(slices.Clone(leaves), "G")...)
 		requireStored(t, v, tr, true, held...)
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("revive over a freed child", func(t *testing.T) {
+		// main holds R2 -> C2 -> L and moves to R1, behind a younger record,
+		// so R2 is at zero but not yet ripe when main moves back onto R2
+		// with no put. Under HoldUntilFree no transaction frees a child
+		// while a stored parent lists it, so the revived tree reads; the
+		// release at zero rule relies on the hold mark alone.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "L")
+		tr.add(t, "C2", "L")
+		r2 := tr.add(t, "R2", "C2")
+		r1 := tr.add(t, "R1")
+		z := tr.add(t, "Z")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("L", "C2", "R2", "Z"), []block.NamedRoot{{Name: "main", Ref: r2}, {Name: "z", Ref: z}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("R1"), []block.NamedRoot{{Name: "main", Ref: r1, Previous: r2}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace - time.Second)
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "y", Ref: z}}); err != nil {
+			t.Fatal(err)
+		}
+		probe := &paceProbe{Store: collectorStore{v: v}, limit: 10_000, after: func() {
+			if testHold {
+				requireListsStored(t, v, tr)
+			}
+		}}
+		opts := block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now}
+		clk.Add(2 * time.Second)
+		if freed := collectThrough(t, probe, opts); freed != 0 {
+			t.Fatalf("freed %d before R2 ripened", freed)
+		}
+
+		// Revive R2 with no put; R1 goes, and R2's tree reads.
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Ref: r2, Previous: r1}}); err != nil {
+			t.Fatal(err)
+		}
+		var freed uint64
+		for range 3 {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			freed += collectThrough(t, probe, opts)
+		}
+		if freed != 1 {
+			t.Fatalf("freed %d after the revive, want R1 alone", freed)
+		}
+		requireReads(t, v, tr, "R2", "C2", "L", "Z")
+		requireStored(t, v, tr, false, "R1")
+		requireAudit(t, v, 0)
+
+		// Once main leaves R2, its whole tree goes.
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r2}}); err != nil {
+			t.Fatal(err)
+		}
+		freed = 0
+		for range 4 {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			freed += collectThrough(t, probe, opts)
+		}
+		if freed != 3 {
+			t.Fatalf("freed %d of R2's tree, want 3", freed)
+		}
+		requireStored(t, v, tr, false, "R2", "C2", "L")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("shared child at its other parent's free", func(t *testing.T) {
+		// C is under R1, which main holds, and under R3, whose root x is
+		// released and netted to zero but not freed. main then moves from R1
+		// onto R3 in one Land, and the next pass frees R1. C keeps R3's
+		// holder through R1's free.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "C")
+		r1 := tr.add(t, "R1", "C")
+		r3 := tr.add(t, "R3", "C")
+		roots := []block.NamedRoot{{Name: "main", Ref: r1}, {Name: "x", Ref: r3}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("C", "R1", "R3"), roots); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "x", Previous: r3}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		nets := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{HoldUntilFree: testHold, Now: v.now})
+		if res, err := nets.Collect(ctx); err != nil || res.Netted == 0 || res.Freed != 0 {
+			t.Fatalf("netting x's release = %+v err %v, want it netted and nothing freed", res, err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Ref: r3, Previous: r1}}); err != nil {
+			t.Fatal(err)
+		}
+		probe := &paceProbe{Store: collectorStore{v: v}, limit: 10_000, after: func() {
+			if testHold {
+				requireListsStored(t, v, tr)
+			}
+		}}
+		opts := block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now}
+		var freed uint64
+		for range 3 {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			freed += collectThrough(t, probe, opts)
+		}
+		if freed != 1 {
+			t.Fatalf("freed %d, want R1 alone", freed)
+		}
+		requireReads(t, v, tr, "R3", "C")
+		requireStored(t, v, tr, false, "R1")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("deep tree under steady writes", func(t *testing.T) {
+		// A tree five levels deep, each block naming two, loses its root,
+		// and a writer commits a new root naming A, which root a holds,
+		// after every collector transaction, an up pair for each. Every
+		// block of the tree is freed in the end with exact counts; the tree
+		// ripens behind the writer's first records, as in "writer always
+		// waiting", and under HoldUntilFree one level goes per grace
+		// period, since a free ripens its children behind the writer's
+		// later records.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		var level []string
+		for i := range 16 {
+			name := "level 5 block " + strconv.Itoa(i)
+			tr.add(t, name)
+			level = append(level, name)
+		}
+		names := slices.Clone(level)
+		for depth := 4; depth >= 1; depth-- {
+			var up []string
+			for i := 0; i < len(level); i += 2 {
+				name := "level " + strconv.Itoa(depth) + " block " + strconv.Itoa(i/2)
+				tr.add(t, name, level[i], level[i+1])
+				up = append(up, name)
+			}
+			names = append(names, up...)
+			level = up
+		}
+		root := tr[level[0]].Ref
+		a := tr.add(t, "A")
+		roots := []block.NamedRoot{{Name: "tree", Ref: root}, {Name: "a", Ref: a}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(names), "A")...), roots); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "tree", Previous: root}}); err != nil {
+			t.Fatal(err)
+		}
+		held := []string{"A"}
+		probe := &paceProbe{Store: collectorStore{v: v}, limit: 10_000, after: func() {
+			if testHold {
+				requireListsStored(t, v, tr)
+			}
+			name := "write " + strconv.Itoa(len(held))
+			ref := tr.add(t, name, "A")
+			if err := v.SetBucketRoots(ctx, "b", tr.entries(name), []block.NamedRoot{{Name: name, Ref: ref}}); err != nil {
+				t.Fatal(err)
+			}
+			held = append(held, name)
+		}}
+		opts := block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now}
+		want := []uint64{0, 31}
+		if testHold {
+			want = []uint64{0, 1, 2, 4, 8, 16}
+		}
+		for i, n := range want {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			if freed := collectThrough(t, probe, opts); freed != n {
+				t.Fatalf("round %d freed %d, want %d", i, freed, n)
+			}
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		if freed := collectThrough(t, probe, opts); freed != 0 {
+			t.Fatalf("freed %d past the tree", freed)
+		}
+		requireStored(t, v, tr, false, names...)
+		requireStored(t, v, tr, true, held...)
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("hold rule switched", func(t *testing.T) {
+		// A Volume written under the other hold rule holds main -> R -> X,
+		// D -> E released, netted and then held again by d with no put, and
+		// G -> H released and netted, none freed. A collector under this
+		// rule nets and frees nothing on it; reopened under this rule, the
+		// Volume adopts again, and then R, X, D and E read and G and H go.
+		store := store_kvtx_inmem.NewStore()
+		v1, clk1 := openRuleVolume(t, store, false, !testHold)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		tr.add(t, "E")
+		d := tr.add(t, "D", "E")
+		tr.add(t, "H")
+		g := tr.add(t, "G", "H")
+		roots := []block.NamedRoot{{Name: "main", Ref: r}, {Name: "d", Ref: d}, {Name: "g", Ref: g}}
+		if err := v1.SetBucketRoots(ctx, "b", tr.entries("X", "R", "E", "D", "H", "G"), roots); err != nil {
+			t.Fatal(err)
+		}
+		if err := v1.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "d", Previous: d}, {Name: "g", Previous: g}}); err != nil {
+			t.Fatal(err)
+		}
+		clk1.Add(block_gc.DefaultGrace + time.Second)
+		if res := collectAll(t, v1); res.Netted == 0 || res.Freed != 0 {
+			t.Fatalf("netting under the other rule = %+v, want it netted and nothing freed", res)
+		}
+		if err := v1.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "d", Ref: d}}); err != nil {
+			t.Fatal(err)
+		}
+		clk1.Add(block_gc.DefaultGrace + time.Second)
+		c := block_gc.NewCollector(collectorStore{v: v1}, block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v1.now})
+		if res, err := c.Collect(ctx); err != nil || res.Netted != 0 || res.Freed != 0 {
+			t.Fatalf("collect under this rule before the switch = %+v err %v, want nothing netted or freed", res, err)
+		}
+		requireStored(t, v1, tr, true, "X", "R", "E", "D", "H", "G")
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Reopen under this rule and wait for the adoption to record it.
+		v, clk := openLivenessVolume(t, store, true)
+		for deadline := time.Now().Add(10 * time.Second); ; time.Sleep(time.Millisecond) {
+			state := livenessState(t, v)
+			if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED && state.GetHoldRule() == testRule() {
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("background adoption left the Volume %v under %v", state.GetAdoption(), state.GetHoldRule())
+			}
+		}
+		var freed uint64
+		for range 3 {
+			clk.Add(3 * (block_gc.DefaultGrace + time.Second))
+			freed += collectAll(t, v).Freed
+		}
+		if freed != 2 {
+			t.Fatalf("freed %d after the switch, want G and H", freed)
+		}
+		requireReads(t, v, tr, "X", "R", "E", "D")
+		requireStored(t, v, tr, false, "H", "G")
 		requireAudit(t, v, 0)
 	})
 
@@ -2087,15 +2465,19 @@ func TestLivenessAdversarial(t *testing.T) {
 			}
 			clk.Add(block_gc.DefaultGrace + time.Second)
 			probe := &stopMidRelease{Store: collectorStore{v: v}, v: v}
-			c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
+			c := block_gc.NewCollector(probe, block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now})
 			if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) {
 				t.Fatalf("collect = %v, want it stopped mid-release", err)
 			}
-			requireStored(t, v, tr, true, "F")
+			// The behavior moved under HoldUntilFree, not the assertion: the
+			// free deletes F in the transaction that starts its paged
+			// release, which then carries F's downs.
+			requireStored(t, v, tr, !testHold, "F")
 
 			// Act while the release is in progress, then collect to the end
 			// and once more after every record ages.
 			kept := []string{"G", first, last}
+			var pages [2]uint64
 			switch mid {
 			case "children held again":
 				err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "k1", Ref: tr[leaves[1]].Ref}, {Name: "k2", Ref: tr[leaves[len(leaves)-2]].Ref}})
@@ -2109,9 +2491,11 @@ func TestLivenessAdversarial(t *testing.T) {
 				}
 				kept = nil
 			case "the releasing block put again", "a crash mid re-hold":
+				pages[0] = livenessState(t, v).GetNextSeq()
 				if err := v.SetBucketRoots(ctx, "b", tr.entries("F"), []block.NamedRoot{{Name: "f", Ref: f}}); err != nil {
 					t.Fatal(err)
 				}
+				pages[1] = livenessState(t, v).GetNextSeq()
 				kept = append(slices.Clone(leaves), "F", "G")
 			case "the releasing block lost":
 				punchHole(t, v, f)
@@ -2120,9 +2504,16 @@ func TestLivenessAdversarial(t *testing.T) {
 			clk.Add(block_gc.DefaultGrace + time.Second)
 
 			// Stop again once the put again's paged re-hold is in progress.
+			// The behavior moved under HoldUntilFree, not the assertion: the
+			// free already deleted F, so the put again is born with no
+			// re-hold, and its up pairs, which give the leaves back their
+			// holder, net across slices; stop with them partly netted.
 			if mid == "a crash mid re-hold" {
 				probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, rehold: true}
-				c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
+				if testHold {
+					probe = &stopMidRelease{Store: collectorStore{v: v}, v: v, pages: pages}
+				}
+				c := block_gc.NewCollector(probe, block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now})
 				if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) {
 					t.Fatalf("collect = %v, want it stopped mid re-hold", err)
 				}
@@ -2176,11 +2567,14 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		probe := &stopMidRelease{Store: collectorStore{v: v}, v: v}
-		c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
+		c := block_gc.NewCollector(probe, block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now})
 		if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) {
 			t.Fatalf("collect = %v, want it stopped mid-release", err)
 		}
-		requireStored(t, v, tr, true, "F", h)
+		// Under HoldUntilFree the free already deleted F; its release pages
+		// carry its downs.
+		requireStored(t, v, tr, !testHold, "F")
+		requireStored(t, v, tr, true, h)
 		requireAudit(t, v, 0)
 
 		// Lose H and audit, finish the release, and put H again.
@@ -2235,10 +2629,30 @@ func TestLivenessAdversarial(t *testing.T) {
 			}
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
-		probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, cascade: true}
-		c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
-		if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) || livenessCascades(t, v) != 1 {
-			t.Fatalf("collect = %v with %d cascades due, want it stopped with D2's", err, livenessCascades(t, v))
+		if !testHold {
+			probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, cascade: true}
+			c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
+			if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) || livenessCascades(t, v) != 1 {
+				t.Fatalf("collect = %v with %d cascades due, want it stopped with D2's", err, livenessCascades(t, v))
+			}
+		} else {
+			// The behavior moved under HoldUntilFree, not the assertion: no
+			// cascade record exists, and the release is D2's free, which
+			// gives its leaves their downs. D1's free moves E1 first, so
+			// D2's list no longer fits the slice and its free waits for the
+			// next; stop there.
+			stored := func(name string) bool {
+				_, found, err := v.GetBlock(ctx, tr[name].Ref)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return found
+			}
+			probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, until: func() bool { return !stored("D1") && stored("D2") }}
+			c := block_gc.NewCollector(probe, block_gc.CollectorOptions{HoldUntilFree: true, Frees: true, Now: v.now})
+			if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) {
+				t.Fatalf("collect = %v, want it stopped with D2's free waiting", err)
+			}
 		}
 
 		// Lose D2, let G go, and collect past the grace period.
@@ -2250,8 +2664,12 @@ func TestLivenessAdversarial(t *testing.T) {
 		res := collectAll(t, v)
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		more := collectAll(t, v)
-		if res.Stranded+more.Stranded != 1 || livenessCascades(t, v) != 0 {
-			t.Fatalf("dropped %d releases with %d due, want D2's dropped", res.Stranded+more.Stranded, livenessCascades(t, v))
+		stranded := uint64(1)
+		if testHold {
+			stranded = 0
+		}
+		if res.Stranded+more.Stranded != stranded || livenessCascades(t, v) != 0 {
+			t.Fatalf("dropped %d releases with %d due, want %d", res.Stranded+more.Stranded, livenessCascades(t, v), stranded)
 		}
 		requireStored(t, v, tr, false, "D1", "E1", "G")
 		requireStored(t, v, tr, true, leaves[0], leaves[len(leaves)-1])
@@ -2287,7 +2705,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatal(err)
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
-		nets := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{Now: v.now})
+		nets := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{HoldUntilFree: testHold, Now: v.now})
 		for more := true; more; {
 			res, err := nets.Collect(ctx)
 			if err != nil {
@@ -2302,22 +2720,43 @@ func TestLivenessAdversarial(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		clk.Add(block_gc.DefaultGrace + time.Second)
-		probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, cascade: true}
-		c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
-		if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) || livenessCascades(t, v) != 1 {
-			t.Fatalf("collect = %v with %d cascades due, want it stopped with H's re-hold", err, livenessCascades(t, v))
-		}
+		if !testHold {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, cascade: true}
+			c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
+			if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) || livenessCascades(t, v) != 1 {
+				t.Fatalf("collect = %v with %d cascades due, want it stopped with H's re-hold", err, livenessCascades(t, v))
+			}
 
-		// Lose H: the frees wait, and the audit reports the record.
-		punchHole(t, v, h)
-		clk.Add(block_gc.DefaultGrace + time.Second)
-		if res := collectAll(t, v); res.Freed != 0 || res.Stranded != 0 {
-			t.Fatalf("freed %d and dropped %d under H's due re-hold", res.Freed, res.Stranded)
-		}
-		requireStored(t, v, tr, true, append(slices.Clone(leaves), "D1", "E1")...)
-		if res, err := v.Audit(ctx); err != nil || res.UnlistedCascades != 1 || res.Holes != 1 {
-			t.Fatalf("audit found %d unlisted cascades and %d holes err %v, want 1 and 1", res.UnlistedCascades, res.Holes, err)
+			// Lose H: the frees wait, and the audit reports the record.
+			punchHole(t, v, h)
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			if res := collectAll(t, v); res.Freed != 0 || res.Stranded != 0 {
+				t.Fatalf("freed %d and dropped %d under H's due re-hold", res.Freed, res.Stranded)
+			}
+			requireStored(t, v, tr, true, append(slices.Clone(leaves), "D1", "E1")...)
+			if res, err := v.Audit(ctx); err != nil || res.UnlistedCascades != 1 || res.Holes != 1 {
+				t.Fatalf("audit found %d unlisted cascades and %d holes err %v, want 1 and 1", res.UnlistedCascades, res.Holes, err)
+			}
+		} else {
+			// The behavior moved under HoldUntilFree, not the assertion: H
+			// held its leaves while Dead, so holding it again is one count
+			// update with no re-hold to defer. Lose H before that record
+			// nets: the leaves keep H's holder, D1 and E1 go, and the
+			// audit reports the hole.
+			punchHole(t, v, h)
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			res := collectAll(t, v)
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			more := collectAll(t, v)
+			if res.Freed+more.Freed != 2 || res.Stranded+more.Stranded != 0 {
+				t.Fatalf("freed %d and dropped %d with H lost, want D1 and E1 freed", res.Freed+more.Freed, res.Stranded+more.Stranded)
+			}
+			requireStored(t, v, tr, true, leaves...)
+			requireStored(t, v, tr, false, "D1", "E1")
+			if res, err := v.Audit(ctx); err != nil || res.UnlistedCascades != 0 || res.Holes != 1 {
+				t.Fatalf("audit found %d unlisted cascades and %d holes err %v, want 0 and 1", res.UnlistedCascades, res.Holes, err)
+			}
 		}
 
 		// Refill H: the re-hold runs, and only D1 and E1 go.
@@ -2363,7 +2802,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			}
 			return func() {}
 		}
-		c := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{Frees: true, Now: v.now, Phase: fill})
+		c := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now, Phase: fill})
 		if res, err := c.Collect(ctx); err != nil || !filled || res.Freed != 0 {
 			t.Fatalf("collect freed %d err %v filled %v, want P filled and C kept", res.Freed, err, filled)
 		}
@@ -2994,7 +3433,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			},
 			adoptSettle: cancel,
 		}
-		if _, err := block_gc.Adopt(probeCtx, probe); !errors.Is(err, context.Canceled) || len(probe.at) != 0 {
+		if _, err := block_gc.Adopt(probeCtx, probe, testRule()); !errors.Is(err, context.Canceled) || len(probe.at) != 0 {
 			t.Fatalf("interrupted adopt = %v with %d writes left, want canceled after both", err, len(probe.at))
 		}
 		if adoption := livenessAdoption(t, v); adoption != block_gc.Adoption_ADOPTION_UNADOPTED {
@@ -3031,7 +3470,7 @@ func TestLivenessAdversarial(t *testing.T) {
 				}
 			},
 		}}
-		if _, err := block_gc.Adopt(ctx, probe); err != nil || len(probe.at) != 0 {
+		if _, err := block_gc.Adopt(ctx, probe, testRule()); err != nil || len(probe.at) != 0 {
 			t.Fatalf("rerun adopt = %v with %d writes left", err, len(probe.at))
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
@@ -3434,7 +3873,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		}}
 		go func() {
 			defer close(cleared)
-			_, _ = block_gc.Adopt(bCtx, probeB)
+			_, _ = block_gc.Adopt(bCtx, probeB, testRule())
 		}()
 
 		// A starts B before its mark and lets B clear before it settles.
@@ -3445,7 +3884,7 @@ func TestLivenessAdversarial(t *testing.T) {
 				<-cleared
 			},
 		}}
-		_, err := block_gc.Adopt(ctx, probeA)
+		_, err := block_gc.Adopt(ctx, probeA, testRule())
 		releaseB()
 		<-cleared
 		if !errors.Is(err, block_gc.ErrAdoptSuperseded) {
@@ -3482,12 +3921,12 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
 			adoptSettle: func() {
-				if _, err := block_gc.Adopt(ctx, collectorStore{v: v}); err != nil {
+				if _, err := block_gc.Adopt(ctx, collectorStore{v: v}, testRule()); err != nil {
 					t.Error(err)
 				}
 			},
 		}}
-		if _, err := block_gc.Adopt(ctx, probe); !errors.Is(err, block_gc.ErrAdoptSuperseded) || len(probe.at) != 0 {
+		if _, err := block_gc.Adopt(ctx, probe, testRule()); !errors.Is(err, block_gc.ErrAdoptSuperseded) || len(probe.at) != 0 {
 			t.Fatalf("superseded adopt = %v with %d adoptions left, want superseded", err, len(probe.at))
 		}
 		if adoption := livenessAdoption(t, v); adoption != block_gc.Adoption_ADOPTION_ADOPTED {

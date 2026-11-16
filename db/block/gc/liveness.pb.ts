@@ -41,6 +41,34 @@ export const Adoption_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * HoldRule is the rule a Volume's counts were written under: when a block at
+ * zero holders stops counting as a holder of its children.
+ *
+ * @generated from enum block.gc.HoldRule
+ */
+export enum HoldRule {
+  /**
+   * HOLD_RULE_RELEASE_AT_ZERO releases a block's children when it reaches
+   * zero holders, through a cascade, before the block itself is freed.
+   */
+  RELEASE_AT_ZERO = 0,
+
+  /**
+   * HOLD_RULE_HOLD_UNTIL_FREE keeps a block a holder of each child it lists
+   * until the transaction that frees it, which gives each child its down.
+   */
+  HOLD_UNTIL_FREE = 1,
+}
+
+export const HoldRule_Enum = /* @__PURE__ */ createEnumType(
+  'block.gc.HoldRule',
+  [
+    [0, 'HOLD_RULE_RELEASE_AT_ZERO'],
+    [1, 'HOLD_RULE_HOLD_UNTIL_FREE'],
+  ],
+)
+
+/**
  * RootEntry is one named root in a Volume's root table: the block the name
  * holds.
  *
@@ -172,6 +200,13 @@ export interface LivenessState {
    * an earlier run left, and counts each block it settles Dying.
    */
   cascades?: bigint
+  /**
+   * HoldRule is the rule the counts were written under, set by the adoption
+   * that counted them or at the birth of an empty Volume. The collector nets
+   * and frees only a Volume whose rule matches its own; a mismatch adopts the
+   * Volume again, which counts every child list under the collector's rule.
+   */
+  holdRule?: HoldRule
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -188,14 +223,15 @@ export const LivenessState: MessageType<LivenessState> =
       [11, 'release', 11, 0, Release.codec],
       [12, 'hold_mark', 4],
       [13, 'cascades', 4],
+      [14, 'hold_rule', 14, 0, HoldRule_Enum],
     ],
   )
 
 /**
  * Release is a cascade whose child list is longer than one collector slice
  * moves: the release of the children of a block that lost its last holder,
- * or the re-hold of the children of one that gained a holder after its
- * release. The slice that starts it moves the list to release pages and
+ * or under HOLD_RULE_HOLD_UNTIL_FREE of a block the collector freed, or the
+ * re-hold of the children of one that gained a holder after its release. The slice that starts it moves the list to release pages and
  * marks the block released or held; each later slice moves the next
  * children's holders by one and moves Next in the same transaction, and the
  * last deletes the pages and clears the release.

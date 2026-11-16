@@ -124,6 +124,43 @@ import (
 //     a missing block arrives; the gap still needs a cut list above it, of
 //     which a check of 1,555,914 lists on one production Volume found none,
 //     with 476,410 more of plugin types not yet checked.
+//
+// The states and invariants above are the release-at-zero rule. Under
+// HoldUntilFree, Journal.tla with HoldToFree, a stored block is Live (holders)
+// or Zero (no holders, on the free queue at its ripe sequence), and its
+// children count it in both, so Dying, Dead and Holding cannot be reached
+// and no cascade record is written. The free moves a Zero block to freed and
+// gives each child its down in the same transaction: Delete(b, TRUE), or
+// Delete(b, FALSE) and the Release steps for a list longer than a slice's
+// moves. Under it the invariants are these, with 3, 4, 8 and 11 as above:
+//
+//   - H1. A stored block with a child list holds each child it lists until the
+//     transaction that frees the block. Netting never moves a child's count
+//     because its parent crossed zero.
+//   - H2. It frees only a block with a child list, a zero record at the queue
+//     entry's ripe sequence, and a ripe sequence the cursor passed, read in
+//     the transaction that frees it. In that transaction it gives each child
+//     the block lists one down through netting, inline when the list fits
+//     the slice's moves, and otherwise writes the list to release pages and
+//     the state's Release before it commits, so a crash leaves the downs
+//     owed, never lost.
+//   - H3. A child the free's downs take to zero takes the journal's end,
+//     NextSeq, as its ripe sequence, never its parent's: it is freed only
+//     once every record appended before its free has netted. On a quiet
+//     journal the cursor is already there, so the same pass frees it.
+//   - H4. Nothing frees while a free's paged release is in progress, and
+//     nothing while a fill's up pairs are unapplied.
+//   - H5. A down that would leave a child below zero is refused and the child
+//     kept with one holder; nothing is re-held.
+//   - H6. A child without a child list, a hole or one not yet stored, floors at
+//     its implied holder when the free gives it its down, and the free counts
+//     it in Leaked.
+//   - H7. The hold mark keeps a block's own count right: a Land that gives a
+//     holder to a block at zero sets it, and nothing frees until the cursor
+//     passes it. Its children need nothing, since they still count it.
+//   - H8. LivenessState.HoldRule names the rule the counts were written under.
+//     The collector nets and frees only when it matches the option; on a
+//     mismatch it does neither until an adoption counts the Volume again.
 type Collector struct {
 	// store runs the collector's transactions.
 	store Store
@@ -264,11 +301,13 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 		c.leaseFullAt = start
 	}
 
-	// Read whether the Volume is adopted.
-	var adopted bool
+	// Read whether the Volume is adopted under the collector's rule. A
+	// Volume adopted under the other rule waits for its adoption again.
+	var adopted, current bool
 	err = c.store.View(ctx, func(rec *Records) error {
 		state, err := rec.GetState(ctx)
 		adopted = state.GetAdoption() == Adoption_ADOPTION_ADOPTED
+		current = c.current(state)
 		return err
 	})
 	if err != nil {
@@ -278,35 +317,71 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 		res.More, err = c.dropFills(ctx, past)
 		return res, err
 	}
+	if !current {
+		return res, nil
+	}
 
-	// Net the aged journal records, then the aged fill records.
+	// Net, then free. Under HoldUntilFree a free gives its children their
+	// downs, so once a free took a child to zero or started a paged release,
+	// net and free again: the release continues in netting, and a child
+	// ripe at a cursor that already passed the journal's end frees in the
+	// same pass.
+	for {
+		if res.More, err = c.netStep(ctx, &res, past); err != nil || res.More || !c.opts.Frees {
+			return res, err
+		}
+		again := false
+		if again, res.More, err = c.freeStep(ctx, &res, past); err != nil || res.More || !again {
+			return res, err
+		}
+	}
+}
+
+// current reports whether state's counts were written under the collector's
+// hold rule.
+func (c *Collector) current(state *LivenessState) bool {
+	return state.GetHoldRule() == c.opts.rule()
+}
+
+// netStep nets the aged journal records, then the aged fill records, and
+// reports whether it stopped at past with work left.
+func (c *Collector) netStep(ctx context.Context, res *CollectResult, past func() bool) (bool, error) {
 	for _, body := range []func(context.Context, *netting, int) (bool, error){c.netSlice, c.netFillSlice} {
 		end := c.phase(PhaseNet)
-		res.More, err = eachSlice(ctx, c.update, struct{}{}, past, func(rec *Records, _ block.StoreOps, _ struct{}) (struct{}, bool, error) {
-			full, err := c.net(ctx, rec, &res, body)
+		more, err := eachSlice(ctx, c.update, struct{}{}, past, func(rec *Records, _ block.StoreOps, _ struct{}) (struct{}, bool, error) {
+			full, err := c.net(ctx, rec, res, body)
 			return struct{}{}, full, err
 		})
 		end()
-		if err != nil || res.More {
-			return res, err
+		if err != nil || more {
+			return more, err
 		}
+	}
+	return false, nil
+}
+
+// freeStep moves the parked blocks back onto the queue once the Volume's
+// lists are verified, then frees the queued blocks. It reports whether a
+// free took a child to zero or started a paged release, so the pass nets and
+// frees again, and whether it stopped at past with work left.
+func (c *Collector) freeStep(ctx context.Context, res *CollectResult, past func() bool) (bool, bool, error) {
+	// Requeue the parked blocks first, so this pass frees them too.
+	defer c.phase(PhaseSweep)()
+	more, err := eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
+		return c.requeueSlice(ctx, rec, res, from)
+	})
+	if err != nil || more {
+		return false, more, err
 	}
 
-	// Free the queued blocks, after moving the parked ones back onto the
-	// queue once the Volume's lists are verified.
-	if c.opts.Frees {
-		defer c.phase(PhaseSweep)()
-		res.More, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
-			return c.requeueSlice(ctx, rec, &res, from)
-		})
-		if err != nil || res.More {
-			return res, err
-		}
-		res.More, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
-			return c.freeSlice(ctx, rec, blocks, &res, from)
-		})
-	}
-	return res, err
+	// Free the queued blocks, noting whether any free gave more work.
+	again := false
+	more, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
+		next, full, gave, err := c.freeSlice(ctx, rec, blocks, res, from)
+		again = again || gave
+		return next, full, err
+	})
+	return again, more, err
 }
 
 // eachSlice runs slice in one transaction of update at a time, the first at
@@ -448,9 +523,9 @@ func (c *Collector) startNetting(ctx context.Context, rec *Records, state *Liven
 // let the slice go on, then the resolve, and writes what changed and the
 // state when it changed. It reports whether the slice was full.
 func (c *Collector) net(ctx context.Context, rec *Records, res *CollectResult, body func(context.Context, *netting, int) (bool, error)) (bool, error) {
-	// Net only an adopted Volume.
+	// Net only an adopted Volume under the collector's rule.
 	state, err := rec.GetState(ctx)
-	if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+	if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED || !c.current(state) {
 		return false, err
 	}
 
@@ -655,30 +730,40 @@ func (c *Collector) dropFills(ctx context.Context, past func() bool) (bool, erro
 // freeSlice frees up to sliceFrees ripe Dead blocks in one transaction, in
 // ripe order, stopping at the first block the cursor has not passed and at
 // the next block once a writer waits. It frees nothing while a cascade is
-// due or in progress, while a fill's up pairs are unapplied, or until the
-// cursor passes the hold mark, as Collector describes. A free deletes the
-// block's bytes, child list, queue entry, proof and count record, and
-// changes no other count: its children lost its holder when it died. It
-// reports whether the slice was full.
+// due or in progress, while a fill's up pairs are unapplied, until the
+// cursor passes the hold mark, or while the Volume's counts were written
+// under the other hold rule, as Collector describes. A free deletes the
+// block's bytes, child list, queue entry, proof and count record. Under the
+// release-at-zero rule it changes no other count: its children lost its
+// holder when it died. Under HoldUntilFree it gives each child its down, as
+// freeing describes, and the slice stops after a free that starts a paged
+// release. It reports whether the slice was full, and whether a free took a
+// child to zero or started a paged release.
 //
 // It starts at the queue position from and returns the position past the
 // entries it deleted, where the next slice of the pass resumes, so a long
 // run of frees reads each entry once rather than walking the run's deleted
 // entries again each slice. The resume lasts only the pass's free step:
-// within it, nothing adds a queue entry before the resume. The free deletes
-// entries and adds none, a writer's Land and a fill write only journal and
-// fill records, and the only path that adds an entry below the cursor, a
-// Dying block whose cascade finishes and turns it Dead at its old ripe
-// sequence, is netting, which runs before the free step, never between its
-// slices. A cascade a slice finds due stops the step.
-func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, error) {
-	// Free only in an adopted Volume with every cascade and fill up netted.
+// within it, nothing adds a queue entry before the resume, except a free's
+// down under HoldUntilFree, which queues a child at the journal's end. The
+// free step reports that, and the pass runs another from the start. The
+// free deletes entries, a writer's Land and a fill write only journal and
+// fill records, and the only other path that adds an entry below the
+// cursor, a Dying block whose cascade finishes and turns it Dead at its old
+// ripe sequence, is netting, which runs before the free step, never between
+// its slices. A cascade a slice finds due stops the step.
+func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, bool, error) {
+	// Free only in an adopted Volume under the collector's rule, with every
+	// cascade and fill up netted.
 	state, err := rec.GetState(ctx)
 	if err != nil {
-		return from, false, err
+		return from, false, false, err
+	}
+	if !c.current(state) {
+		return from, false, false, nil
 	}
 	if ok, err := rec.freeable(ctx, state); err != nil || !ok {
-		return from, false, err
+		return from, false, false, err
 	}
 
 	// Take the next ripe blocks, only one while a writer waits, noting one
@@ -706,20 +791,48 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 		return true, nil
 	})
 	if err != nil {
-		return from, false, err
+		return from, false, false, err
 	}
 
-	// Free each until a writer waits; the next slice resumes there.
+	// Under HoldUntilFree, the frees give their children downs within the
+	// moves a netting slice makes, one page's while a writer waits.
+	var f *freeing
+	if c.opts.HoldUntilFree {
+		start, err := state.MarshalVT()
+		if err != nil {
+			return from, false, false, err
+		}
+		f = &freeing{start: start, moves: c.share(sliceReleases)}
+		if c.waiting() {
+			f.moves = min(f.moves, releasePageChildren)
+		}
+	}
+
+	// Free each until a writer waits, a list does not fit the moves left or
+	// a paged release starts; the next slice resumes there.
 	for i, e := range ripe {
 		if i != 0 && c.waiting() {
-			return from, true, nil
+			full = true
+			break
 		}
-		if err := c.freeBlock(ctx, rec, blocks, state.GetUnverifiedLists(), e.ripe, e.ref, res); err != nil {
-			return from, false, err
+		freed, err := c.freeBlock(ctx, rec, blocks, state, e.ripe, e.ref, res, f)
+		if err != nil {
+			return from, false, false, err
+		}
+		if !freed {
+			full = true
+			break
 		}
 		from = queuePos(e.ripe, BlockKey(e.ref))
+		if state.GetRelease() != nil {
+			full = true
+			break
+		}
 	}
-	return from, full, nil
+	if f == nil {
+		return from, full, false, nil
+	}
+	return from, full, f.gave, f.writeState(ctx, rec, state)
 }
 
 // requeueSlice moves up to a slice of parked blocks back onto the free queue
@@ -783,56 +896,152 @@ func (r *Records) freeable(ctx context.Context, state *LivenessState) (bool, err
 }
 
 // freeBlock frees one Dead block at ripe: its bytes, child list, queue
-// entry, proof, count record and landed mark. It deletes only the queue entry when the
-// entry is stale: the block has no child list or no zero record at ripe.
-// While the Volume's lists are unverified it parks a block Land did not give
-// birth to instead, as invariant 11 describes.
-func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, unverified bool, ripe uint64, ref *block.BlockRef, res *CollectResult) error {
-	// Check the block is stored, Dead and at the entry's ripe sequence.
+// entry, proof, count record and landed mark. It deletes only the queue
+// entry when the entry is stale: the block has no child list or no zero
+// record at ripe. While the Volume's lists are unverified it parks a block
+// Land did not give birth to instead, as invariant 11 describes. With f set,
+// under HoldUntilFree, the free gives each child its down through f; when
+// the list does not fit the moves f has left after an earlier free, it
+// changes nothing and reports false, so the next slice frees it first.
+func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, state *LivenessState, ripe uint64, ref *block.BlockRef, res *CollectResult, f *freeing) (bool, error) {
+	// Check the block is stored, reading the list whose children a free
+	// under HoldUntilFree releases.
 	key := BlockKey(ref)
-	if err := rec.tx.Delete(ctx, rec.queueKey(ripe, key)); err != nil {
-		return err
+	queued := rec.queueKey(ripe, key)
+	var children []*block.BlockRef
+	var listed bool
+	var err error
+	if f != nil {
+		children, listed, err = rec.GetChildren(ctx, ref)
+	} else {
+		listed, err = rec.HasChildren(ctx, ref)
 	}
-	listed, err := rec.HasChildren(ctx, ref)
-	if err != nil || !listed {
-		return err
+	if err != nil {
+		return false, err
+	}
+	if !listed {
+		return true, rec.tx.Delete(ctx, queued)
 	}
 
 	// Check its count. The netting moves a block's queue entry whenever it
 	// changes the block's ripe sequence, so at differs from ripe only when
 	// damage left the records apart, and the block is kept.
 	holders, at, err := rec.GetHolders(ctx, ref)
-	if err != nil || holders != 0 || at != ripe {
-		return err
+	if err != nil {
+		return false, err
+	}
+	if holders != 0 || at != ripe {
+		return true, rec.tx.Delete(ctx, queued)
 	}
 
 	// Park an older block while the lists are unverified: a list that lacks
 	// a child may name it.
+	unverified := state.GetUnverifiedLists()
 	if unverified {
 		landed, err := rec.tx.Exists(ctx, rec.key(kindLanded, key))
 		if err != nil {
-			return err
+			return false, err
 		}
 		if !landed {
 			res.Parked++
-			return rec.tx.Set(ctx, rec.parkedKey(ripe, key), nil)
+			if err := rec.tx.Delete(ctx, queued); err != nil {
+				return false, err
+			}
+			return true, rec.tx.Set(ctx, rec.parkedKey(ripe, key), nil)
 		}
 	}
 
+	// Leave a list that does not fit the moves left for the next slice.
+	if f != nil && len(children) > f.moves-f.moved && f.moved != 0 {
+		return false, nil
+	}
+
 	// Free its bytes and records.
+	if err := rec.tx.Delete(ctx, queued); err != nil {
+		return false, err
+	}
 	if err := blocks.RmBlock(ctx, ref); err != nil {
-		return err
+		return false, err
 	}
 	for _, del := range []func(context.Context, *block.BlockRef) error{rec.DeleteChildren, rec.DeleteProof} {
 		if err := del(ctx, ref); err != nil {
-			return err
+			return false, err
 		}
 	}
 	if unverified {
 		if err := rec.tx.Delete(ctx, rec.key(kindLanded, key)); err != nil {
-			return err
+			return false, err
 		}
 	}
 	res.Freed++
-	return rec.SetHolders(ctx, ref, 1, 0)
+	if err := rec.SetHolders(ctx, ref, 1, 0); err != nil {
+		return false, err
+	}
+
+	// Give its children their downs under HoldUntilFree.
+	if f == nil {
+		return true, nil
+	}
+	return true, f.give(ctx, c, rec, state, res, key, children)
+}
+
+// freeing is one free slice's downs under HoldUntilFree, where a block holds
+// each child it lists until the transaction that frees it. Each free gives
+// its children their downs through a netting of its own, so every count
+// change still runs through netting: a child taken to zero takes the
+// journal's end as its ripe sequence (H3), one below zero is kept with one
+// holder (H5), and one without a child list floors at its implied holder
+// and counts in Leaked (H6). A list longer than the moves left starts a paged
+// release, which netting continues, and nothing frees until it finishes
+// (H4).
+type freeing struct {
+	// start is the state as the slice began, so an unchanged one is not
+	// written.
+	start []byte
+	// moves is the slice's budget of moved children, and moved the children
+	// its frees moved.
+	moves, moved int
+	// gave reports that a free took a child to zero or started a paged
+	// release, so the pass nets and frees again.
+	gave bool
+}
+
+// give gives each child of the freed block at key its down, inline when the
+// children fit the moves left, and otherwise through release pages, which a
+// free starts only as the slice's first mover.
+func (f *freeing) give(ctx context.Context, c *Collector, rec *Records, state *LivenessState, res *CollectResult, key []byte, children []*block.BlockRef) error {
+	// Move the children in a netting of the free's own, and resolve and
+	// write what they changed.
+	n, err := c.newNetting(rec, state, res, f.moves-f.moved)
+	if err != nil {
+		return err
+	}
+
+	// Release the children, noting the queue length to tell whether a child
+	// reached zero.
+	queued := res.Queued
+	if err := n.release(ctx, key, children, -1); err != nil {
+		return err
+	}
+	if err := n.resolve(ctx); err != nil {
+		return err
+	}
+	if err := n.write(ctx); err != nil {
+		return err
+	}
+
+	// Count the moves and report whether the pass must net and free again.
+	f.moved += n.moved
+	f.gave = f.gave || res.Queued != queued || state.GetRelease() != nil
+	return nil
+}
+
+// writeState writes state when the slice's frees changed it, by starting a
+// paged release or moving one.
+func (f *freeing) writeState(ctx context.Context, rec *Records, state *LivenessState) error {
+	end, err := state.MarshalVT()
+	if err != nil || bytes.Equal(end, f.start) {
+		return err
+	}
+	return rec.SetState(ctx, state)
 }

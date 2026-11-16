@@ -51,14 +51,14 @@ const (
 // unadoptFormat describes. Format 8 kept a count record only for a block
 // with holders, a queue entry for one without, and an index of the journal's
 // up pairs; format 7 kept fill marks instead of fill records. An empty store
-// starts adopted. Any other store keeps the child lists format 4
+// starts adopted under rule. Any other store keeps the child lists format 4
 // and later wrote, in place under the liveness prefix, gains the named roots
 // its reference graph held, and is left unadopted: it keeps no journal and
 // frees nothing until an adoption counts its holders. Every other record of
 // the old graph stays until a background sweep deletes it, since nothing reads
 // it, so the upgrade at open reads the graph's edges once and writes only the
 // roots. A crash at any point leaves a store a rerun upgrades again.
-func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) (uint64, error) {
+func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, rule block_gc.HoldRule) (uint64, error) {
 	// A migration's commits are background work, which waits for a
 	// checkpoint the store's writes outpaced.
 	ctx = block.WithBackground(ctx)
@@ -75,13 +75,13 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		return 0, volume.Permanent(errors.Errorf("store format version %d is newer than supported version %d", version, store_kvkey.FormatVersion))
 	}
 
-	// Start an empty store adopted at the current format.
+	// Start an empty store adopted at the current format under rule.
 	empty, err := storeEmpty(ctx, store)
 	if err != nil {
 		return 0, err
 	}
 	if empty {
-		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED}
+		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED, HoldRule: rule}
 		return version, writeFormat(ctx, store, keys, state)
 	}
 
