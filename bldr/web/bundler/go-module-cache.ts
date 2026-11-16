@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, dirname, isAbsolute, join, resolve, sep } from 'node:path'
 
@@ -102,6 +102,38 @@ function parseGoMod(modPath: string): Map<string, GoModulePin> {
   }
   pinsByMod.set(modPath, pins)
   return pins
+}
+
+const vendorMatchesByRoot = new Map<string, boolean>()
+
+// vendorMatchesGoMod reports whether root's vendor directory holds the module
+// versions its go.mod selects, as the go command requires before it reads
+// vendor. A module both files list must agree; a root without a go.mod or
+// without vendor/modules.txt has nothing to disagree with. The answer is
+// cached for the life of the process, like the go.mod pins.
+export function vendorMatchesGoMod(root: string): boolean {
+  let matches = vendorMatchesByRoot.get(root)
+  if (matches === undefined) {
+    matches = readVendorMatchesGoMod(root)
+    vendorMatchesByRoot.set(root, matches)
+  }
+  return matches
+}
+
+// readVendorMatchesGoMod compares each module vendor/modules.txt lists, as
+// "# path version [=> path version]", with the version go.mod selects.
+function readVendorMatchesGoMod(root: string): boolean {
+  const modPath = join(root, 'go.mod')
+  const modulesTxt = join(root, 'vendor', 'modules.txt')
+  if (!existsSync(modPath) || !existsSync(modulesTxt)) return true
+  const pins = parseGoMod(modPath)
+  for (const line of readFileSync(modulesTxt, 'utf8').split('\n')) {
+    if (!line.startsWith('# ')) continue
+    const fields = line.slice(2).trim().split(/\s+/)
+    const version = pins.get(fields[0])?.version
+    if (version && fields[fields.length - 1] !== version) return false
+  }
+  return true
 }
 
 // resolveGoModuleCachePath returns the replacement or module-cache source of

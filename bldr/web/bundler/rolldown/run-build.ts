@@ -12,7 +12,10 @@ import {
   sep,
 } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { resolveGoModuleCachePath } from '../go-module-cache.js'
+import {
+  resolveGoModuleCachePath,
+  vendorMatchesGoMod,
+} from '../go-module-cache.js'
 import type {
   BuildOutput,
   BuildRequest,
@@ -400,7 +403,8 @@ export async function runBuild(
     }
     return null
   }
-  // Resolve @go imports from local source, vendor, or the module cache.
+  // Resolve @go imports from local source, a vendor directory that matches its
+  // go.mod, or the module cache.
   const resolveGoImport = (source: string): string | null => {
     if (!source.startsWith('@go/') || !source.endsWith('.js')) return null
     const importPath = source.slice('@go/'.length)
@@ -415,7 +419,7 @@ export async function runBuild(
       )
     }
     for (const root of [localModule?.root, workingModule?.root, bldrDistRoot]) {
-      if (!root) continue
+      if (!root || !vendorMatchesGoMod(root)) continue
       const resolved = existingSourcePath(join(root, 'vendor', importPath))
       if (resolved) return resolved
     }

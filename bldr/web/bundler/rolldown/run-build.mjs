@@ -3,7 +3,7 @@
 
 // bldr/web/bundler/rolldown/run-build.ts
 import { createHash } from "crypto";
-import { existsSync, readFileSync as readFileSync2, realpathSync, statSync } from "fs";
+import { existsSync as existsSync2, readFileSync as readFileSync2, realpathSync, statSync } from "fs";
 import { promises as fs } from "fs";
 import {
   basename,
@@ -18,7 +18,7 @@ import {
 import { pathToFileURL } from "url";
 
 // bldr/web/bundler/go-module-cache.ts
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { delimiter, dirname, isAbsolute, join, resolve, sep } from "path";
 var pinsByMod = new Map;
@@ -97,6 +97,32 @@ function parseGoMod(modPath) {
   }
   pinsByMod.set(modPath, pins);
   return pins;
+}
+var vendorMatchesByRoot = new Map;
+function vendorMatchesGoMod(root) {
+  let matches = vendorMatchesByRoot.get(root);
+  if (matches === undefined) {
+    matches = readVendorMatchesGoMod(root);
+    vendorMatchesByRoot.set(root, matches);
+  }
+  return matches;
+}
+function readVendorMatchesGoMod(root) {
+  const modPath = join(root, "go.mod");
+  const modulesTxt = join(root, "vendor", "modules.txt");
+  if (!existsSync(modPath) || !existsSync(modulesTxt))
+    return true;
+  const pins = parseGoMod(modPath);
+  for (const line of readFileSync(modulesTxt, "utf8").split(`
+`)) {
+    if (!line.startsWith("# "))
+      continue;
+    const fields = line.slice(2).trim().split(/\s+/);
+    const version = pins.get(fields[0])?.version;
+    if (version && fields[fields.length - 1] !== version)
+      return false;
+  }
+  return true;
 }
 function resolveGoModuleCachePath(roots, importPath) {
   const pins = new Map;
@@ -249,7 +275,7 @@ async function runBuild(request, dependencyRoot) {
   const trackInput = (filePath) => {
     if (!filePath || filePath.startsWith("\x00") || !isAbsolute2(filePath))
       return;
-    if (!existsSync(filePath))
+    if (!existsSync2(filePath))
       return;
     let normalizedPath;
     try {
@@ -333,7 +359,7 @@ async function runBuild(request, dependencyRoot) {
       return existingSourcePath(join2(sourceRoot, importPath.slice(LOCAL_MODULE_PREFIX.length)));
     }
     for (const root of [localModule?.root, workingModule?.root, bldrDistRoot]) {
-      if (!root)
+      if (!root || !vendorMatchesGoMod(root))
         continue;
       const resolved = existingSourcePath(join2(root, "vendor", importPath));
       if (resolved)
@@ -533,7 +559,7 @@ ${original}`;
     const line = loc?.line || 0;
     const column = loc?.column || 0;
     let lineText = "";
-    if (file && line > 0 && existsSync(file)) {
+    if (file && line > 0 && existsSync2(file)) {
       try {
         lineText = readFileSync2(file, "utf8").split(/\r?\n/)[line - 1] || "";
       } catch {
@@ -699,7 +725,7 @@ async function appendBothSourcemaps(outputRoot, outputs, enabled) {
       continue;
     const mapName = output.sourcemapFileName || `${output.fileName}.map`;
     const mapPath = join2(outputRoot, mapName);
-    if (!existsSync(mapPath))
+    if (!existsSync2(mapPath))
       continue;
     const mapBytes = await fs.readFile(mapPath);
     const outputPath = join2(outputRoot, output.fileName);
