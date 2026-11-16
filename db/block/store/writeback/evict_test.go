@@ -19,6 +19,8 @@ type evictCommitStore struct {
 	kvtx.Store
 	// err is the failure returned instead of committing queue changes.
 	err error
+	// allow permits this many queue-changing commits before the failure.
+	allow int
 }
 
 // NewTransaction wraps the real transaction without changing its reads or writes.
@@ -27,14 +29,14 @@ func (s *evictCommitStore) NewTransaction(ctx context.Context, write bool) (kvtx
 	if err != nil {
 		return nil, err
 	}
-	return &evictCommitTx{Tx: tx, err: s.err}, nil
+	return &evictCommitTx{Tx: tx, store: s}, nil
 }
 
 // evictCommitTx discards a prepared queue move when its commit fails.
 type evictCommitTx struct {
 	kvtx.Tx
-	// err is the injected commit failure.
-	err error
+	// store controls when queue-changing commits start to fail.
+	store *evictCommitStore
 	// moved records whether this transaction deletes an eviction entry.
 	moved bool
 }
@@ -47,100 +49,241 @@ func (t *evictCommitTx) Delete(ctx context.Context, key []byte) error {
 
 // Commit fails a queue move after its writes are staged, before they commit.
 func (t *evictCommitTx) Commit(ctx context.Context) error {
-	if t.moved {
-		return t.err
+	// Refuse the selected queue transaction before it changes durable state.
+	if t.moved && t.store.allow == 0 {
+		return t.store.err
 	}
-	return t.Tx.Commit(ctx)
+
+	// Count only successful slices toward the injected failure point.
+	err := t.Tx.Commit(ctx)
+	if err == nil && t.moved {
+		t.store.allow--
+	}
+	return err
 }
 
-// TestEvictRefusedCommitFailure keeps the old entry when its replacement
-// fails to commit, including a restart after another value was dropped.
-func TestEvictRefusedCommitFailure(t *testing.T) {
-	// Upload two blocks, then remove one remote copy and fail the queue commit.
+// TestEvictRefusedPartialCommitFailure preserves the byte sum and every
+// local value across a restart between committed and failed metadata slices.
+func TestEvictRefusedPartialCommitFailure(t *testing.T) {
+	// Queue more refusals than one metadata slice can move.
 	SetEvictRefusedRetry(true)
 	t.Cleanup(func() { SetEvictRefusedRetry(false) })
 	ctx := t.Context()
 	env := newTestEnv(t)
 	s := env.newStore(t, true)
 	remote := newInmemBlockStore()
-	refs := make([]*block.BlockRef, 0, 2)
-	for _, data := range []string{"missing remote copy", "held remote copy"} {
-		ref, _, err := s.PutBlock(ctx, []byte(data), leafOpts)
+	var refs []*block.BlockRef
+	var size int64
+	for i := range evictRetryCommitBlocks + 1 {
+		data := fmt.Appendf(nil, "partial-refusal-%05d", i)
+		ref, err := block.BuildBlockRef(data, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
+		size += int64(len(data))
 		refs = append(refs, ref)
+		s.Refill(ref, &block.StoredBlock{Data: data, RefsKnown: true})
 	}
-	drain(t, s, remote)
-	if err := remote.RmBlock(ctx, refs[0]); err != nil {
-		t.Fatal(err)
-	}
-	failure := errors.New("queue commit failed")
-	s.markers = &evictCommitStore{Store: s.markers, err: failure}
+	waitStatus(t, s, func(st Status) bool { return st.Refills == int64(len(refs)) })
 
-	// A successful tombstone is counted even if queue cleanup fails; the
-	// refused value stays local and neither entry's removal commits.
+	// Let the first atomic slice commit, then fail the next one.
+	failure := errors.New("second metadata slice failed")
+	s.markers = &evictCommitStore{Store: s.markers, err: failure, allow: 1}
 	result, err := s.Evict(ctx, remote, 1<<30, nil, nil)
-	if !errors.Is(err, failure) {
-		t.Fatalf("evict error = %v, want injected failure", err)
-	}
-	if result.Evicted != 1 || result.EvictedBytes != int64(len("held remote copy")) || result.Refused != 0 {
-		t.Fatalf("failed queue commit result = %+v", result)
+	if !errors.Is(err, failure) || result != (EvictResult{Refused: len(refs)}) {
+		t.Fatalf("partial metadata commit = %+v, %v", result, err)
 	}
 	if s.evictFrom != nil {
-		t.Fatal("failed queue commit advanced the cursor")
+		t.Fatal("partial metadata commit advanced the cursor")
 	}
 
-	// Inspect both original epoch-zero keys before any retry can repair
-	// them, along with the byte sum in the same persisted snapshot.
+	// Check the two epochs and durable byte sum before recovery can repair it.
 	err = kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-		seen := make(map[string]bool, len(refs))
+		counts := make(map[uint64]int)
 		if err := scanEvictable(ctx, tx, nil, func(entry evictEntry) error {
-			if entry.epoch != 0 {
-				t.Fatalf("failed commit moved an entry to epoch %d", entry.epoch)
-			}
-			seen[entry.hash.MarshalString()] = true
+			counts[entry.epoch]++
 			return nil
 		}); err != nil {
 			return err
 		}
-		if len(seen) != len(refs) {
-			t.Fatalf("failed commit left %d entries, want %d", len(seen), len(refs))
-		}
-		for _, ref := range refs {
-			if !seen[ref.GetHash().MarshalString()] {
-				t.Fatal("failed commit lost an original queue entry")
-			}
+		if len(counts) != 2 || counts[0] != 1 || counts[1] != evictRetryCommitBlocks {
+			t.Fatalf("partially committed epochs = %v", counts)
 		}
 		total, err := readEvictableBytes(ctx, tx)
-		if err != nil {
-			return err
+		if err == nil && total != size {
+			t.Fatalf("partially committed bytes = %d, want %d", total, size)
 		}
-		if want := int64(len("missing remote copy") + len("held remote copy")); total != want {
-			t.Fatalf("failed commit left queue bytes %d, want %d", total, want)
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Reopen without the injector: the old queue entry survives, and the
-	// already-dropped value is only cleaned up, never counted as another drop.
+	// Reopen after the partial move and retry every missing remote copy safely.
 	env.open(t)
 	s = env.newStore(t, true)
 	result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
-	if err != nil {
-		t.Fatal(err)
+	if err != nil || result != (EvictResult{Refused: len(refs)}) {
+		t.Fatalf("retry after partial commit = %+v, %v", result, err)
 	}
-	if result.Refused != 1 || result.Evicted != 0 {
-		t.Fatalf("restart after failed commit = %+v", result)
+	if status, _ := s.GetStatus(); status.EvictableBytes != size {
+		t.Fatalf("queue after partial commit recovery = %+v", status)
 	}
-	if data, found, err := s.GetBlock(ctx, refs[0]); err != nil || !found || string(data) != "missing remote copy" {
-		t.Fatalf("missing remote copy lost on restart: %q, %v, %v", data, found, err)
+	for _, ref := range refs {
+		if _, found, err := s.GetBlock(ctx, ref); err != nil || !found {
+			t.Fatalf("retry lost a local copy: found=%v, err=%v", found, err)
+		}
 	}
-	if status, _ := s.GetStatus(); status.EvictableBytes != int64(len("missing remote copy")) {
-		t.Fatalf("queue after recovery = %+v", status)
+}
+
+// evictDropStore fails the tombstone write before it changes local values.
+type evictDropStore struct {
+	block.StoreOps
+	// err is the injected write failure.
+	err error
+}
+
+// PutBlockBatch returns the injected failure without writing the batch.
+func (s *evictDropStore) PutBlockBatch(context.Context, []*block.PutBatchEntry) ([]bool, error) {
+	return nil, s.err
+}
+
+// TestEvictRefusedDropFailure preserves master's refusal counts when the
+// tombstone batch fails, under either retry policy.
+func TestEvictRefusedDropFailure(t *testing.T) {
+	// Fail a batch containing both a refusal and a remotely held block.
+	for _, retry := range []bool{false, true} {
+		t.Run(fmt.Sprintf("retry=%t", retry), func(t *testing.T) {
+			// Upload two blocks, then remove one remote copy.
+			SetEvictRefusedRetry(retry)
+			t.Cleanup(func() { SetEvictRefusedRetry(false) })
+			ctx := t.Context()
+			s := newTestEnv(t).newStore(t, true)
+			remote := newInmemBlockStore()
+			var refs []*block.BlockRef
+			for _, data := range []string{"missing", "held"} {
+				ref, _, err := s.PutBlock(ctx, []byte(data), leafOpts)
+				if err != nil {
+					t.Fatal(err)
+				}
+				refs = append(refs, ref)
+			}
+			drain(t, s, remote)
+			if err := remote.RmBlock(ctx, refs[0]); err != nil {
+				t.Fatal(err)
+			}
+
+			// Refusal is decided before the tombstone write can fail.
+			failure := errors.New("tombstone write failed")
+			s.values = &evictDropStore{StoreOps: s.values, err: failure}
+			result, err := s.Evict(ctx, remote, 1<<30, nil, nil)
+			if !errors.Is(err, failure) || result != (EvictResult{Refused: 1}) {
+				t.Fatalf("failed tombstones = %+v, %v", result, err)
+			}
+			if s.evictFrom != nil {
+				t.Fatal("failed tombstones advanced the cursor")
+			}
+		})
+	}
+}
+
+// TestEvictRefusedCommitFailure keeps the old entry when its replacement
+// fails to commit, including a restart after another value was dropped.
+func TestEvictRefusedCommitFailure(t *testing.T) {
+	// Both policies use master's result boundaries on metadata failures.
+	for _, retry := range []bool{false, true} {
+		t.Run(fmt.Sprintf("retry=%t", retry), func(t *testing.T) {
+			// Upload two blocks, then remove one remote copy and fail the queue commit.
+			SetEvictRefusedRetry(retry)
+			t.Cleanup(func() { SetEvictRefusedRetry(false) })
+			ctx := t.Context()
+			env := newTestEnv(t)
+			s := env.newStore(t, true)
+			remote := newInmemBlockStore()
+			refs := make([]*block.BlockRef, 0, 2)
+			for _, data := range []string{"missing remote copy", "held remote copy"} {
+				ref, _, err := s.PutBlock(ctx, []byte(data), leafOpts)
+				if err != nil {
+					t.Fatal(err)
+				}
+				refs = append(refs, ref)
+			}
+			drain(t, s, remote)
+			if err := remote.RmBlock(ctx, refs[0]); err != nil {
+				t.Fatal(err)
+			}
+			failure := errors.New("queue commit failed")
+			s.markers = &evictCommitStore{Store: s.markers, err: failure}
+
+			// Master counts refusal decisions before writes, successful tombstones
+			// immediately, and bytes only after the metadata commit succeeds.
+			result, err := s.Evict(ctx, remote, 1<<30, nil, nil)
+			if !errors.Is(err, failure) {
+				t.Fatalf("evict error = %v, want injected failure", err)
+			}
+			if result.Evicted != 1 || result.EvictedBytes != 0 || result.Refused != 1 {
+				t.Fatalf("failed queue commit result = %+v", result)
+			}
+			if s.evictFrom != nil {
+				t.Fatal("failed queue commit advanced the cursor")
+			}
+
+			// Inspect both original epoch-zero keys before any retry can repair
+			// them, along with the byte sum in the same persisted snapshot.
+			err = kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+				seen := make(map[string]bool, len(refs))
+				if err := scanEvictable(ctx, tx, nil, func(entry evictEntry) error {
+					if entry.epoch != 0 {
+						t.Fatalf("failed commit moved an entry to epoch %d", entry.epoch)
+					}
+					seen[entry.hash.MarshalString()] = true
+					return nil
+				}); err != nil {
+					return err
+				}
+				if len(seen) != len(refs) {
+					t.Fatalf("failed commit left %d entries, want %d", len(seen), len(refs))
+				}
+				for _, ref := range refs {
+					if !seen[ref.GetHash().MarshalString()] {
+						t.Fatal("failed commit lost an original queue entry")
+					}
+				}
+				total, err := readEvictableBytes(ctx, tx)
+				if err != nil {
+					return err
+				}
+				if want := int64(len("missing remote copy") + len("held remote copy")); total != want {
+					t.Fatalf("failed commit left queue bytes %d, want %d", total, want)
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Reopen without the injector: the old queue entry survives, and the
+			// already-dropped value is only cleaned up, never counted as another drop.
+			env.open(t)
+			s = env.newStore(t, true)
+			result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Refused != 1 || result.Evicted != 0 {
+				t.Fatalf("restart after failed commit = %+v", result)
+			}
+			if data, found, err := s.GetBlock(ctx, refs[0]); err != nil || !found || string(data) != "missing remote copy" {
+				t.Fatalf("missing remote copy lost on restart: %q, %v, %v", data, found, err)
+			}
+			var wantBytes int64
+			if retry {
+				wantBytes = int64(len("missing remote copy"))
+			}
+			if status, _ := s.GetStatus(); status.EvictableBytes != wantBytes {
+				t.Fatalf("queue after recovery = %+v", status)
+			}
+		})
 	}
 }
 

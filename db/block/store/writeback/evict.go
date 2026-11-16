@@ -33,6 +33,11 @@ type EvictAdmit func(ctx context.Context, lastBytes int64) error
 // evictBatchBlocks bounds the entries one eviction step reads and commits.
 const evictBatchBlocks = 1024
 
+// evictRetryCommitBlocks bounds each metadata write when refusals are retried.
+// The scan and remote probe keep their bulk size; a queue move always deletes
+// its old key, inserts its replacement and adjusts bytes in one transaction.
+const evictRetryCommitBlocks = 64
+
 // evictRefusedRetry selects whether passes retain refused entries.
 // The default preserves the earlier refusal-dropping behavior until enabled.
 var evictRefusedRetry atomic.Bool
@@ -54,8 +59,8 @@ type EvictResult struct {
 	// epoch.
 	// This excludes Refused even when refusal retry moves those entries too.
 	Requeued int
-	// Refused is the number of committed decisions to keep a block because a
-	// marker awaits upload or the remote does not report holding it.
+	// Refused counts decisions to keep a block because a marker awaits upload
+	// or the remote does not report holding it, even if a later write fails.
 	// These entries move to the new epoch when refusal retry is enabled.
 	Refused int
 }
@@ -361,12 +366,12 @@ func (s *Store) evictBatch(
 	var requeue []evictEntry
 	var drop []*block.PutBatchEntry
 	var evictedBytes int64
-	var kept, refused int
+	var kept int
 	for i, entry := range batch {
 		switch {
 		case !held[i]:
 		case marked[i] || !stored[i]:
-			refused++
+			result.Refused++
 			if retryRefused {
 				requeue = append(requeue, entry)
 			}
@@ -387,37 +392,57 @@ func (s *Store) evictBatch(
 			return nil, false, errors.Wrap(err, "evict blocks")
 		}
 		result.Evicted += len(drop)
-		result.EvictedBytes += evictedBytes
 	}
 
-	// Delete the walked entries and queue the kept ones at the new epoch,
-	// reading without the writer lock. Refused entries retain their bytes and
-	// marker state; moving them past this pass bounds each to one attempt.
-	var delta int64
-	err = kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
-		delta = 0
-		for _, entry := range batch {
-			if err := tx.Delete(ctx, entry.key); err != nil {
-				return err
-			}
-			delta -= entry.size
+	// Retry adds a lookup and insertion per refusal. Bound the writer hold
+	// with smaller metadata transactions while preserving the legacy batch
+	// boundary when retry is off. Each move and its byte change stay atomic.
+	limit := len(batch)
+	if retryRefused {
+		limit = evictRetryCommitBlocks
+	}
+	for first := 0; first < len(batch); first += limit {
+		// Partition the retained entries in the same key order as the scan.
+		end := min(first+limit, len(batch))
+		n := 0
+		for n < len(requeue) && bytes.Compare(requeue[n].key, batch[end-1].key) <= 0 {
+			n++
 		}
-		for _, entry := range requeue {
-			added, err := queueEvict(ctx, tx, epoch, entry.hash, entry.size)
-			if err != nil {
-				return err
+		retained := requeue[:n]
+		var delta int64
+		err = kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+			delta = 0
+			for _, entry := range batch[first:end] {
+				if err := tx.Delete(ctx, entry.key); err != nil {
+					return err
+				}
+				delta -= entry.size
 			}
-			delta += added
+			for _, entry := range retained {
+				added, err := queueEvict(ctx, tx, epoch, entry.hash, entry.size)
+				if err != nil {
+					return err
+				}
+				delta += added
+			}
+			return addEvictableBytes(ctx, tx, delta)
+		}, kvtx.RetryInvalidSnapshot)
+		if err != nil {
+			return nil, false, errors.Wrap(err, "update eviction queue")
 		}
-		return addEvictableBytes(ctx, tx, delta)
-	}, kvtx.RetryInvalidSnapshot)
-	if err != nil {
-		return nil, false, errors.Wrap(err, "update eviction queue")
+
+		// Project each committed slice; drop-byte reporting keeps the original
+		// boundary after all metadata for this scan batch commits.
+		var reportedBytes int64
+		if end == len(batch) {
+			reportedBytes = evictedBytes
+		}
+		s.addEvictStatus(delta, reportedBytes)
+		requeue = requeue[n:]
 	}
 
 	// Report the batch.
-	s.addEvictStatus(delta, evictedBytes)
-	result.Refused += refused
+	result.EvictedBytes += evictedBytes
 	result.Requeued += kept
 	return next, done, nil
 }

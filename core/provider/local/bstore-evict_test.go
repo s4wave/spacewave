@@ -52,7 +52,9 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 	f.p.evictGate = new(csync.Mutex)
 	f.wb.SetPolicy(block_store_writeback.Policy{ResidentHigh: 1})
 	logger, hook := logrustest.NewNullLogger()
-	le := logrus.NewEntry(logger)
+	le := logrus.NewEntry(logger).WithFields(logrus.Fields{
+		"bstore-id": "test-store", "account-id": "test-account", "routine": "storage-evict",
+	})
 	exits := make(chan error, 2)
 	rc := routine.NewRoutineContainer(routine.WithRetry(providerBackoff), routine.WithExitCb(func(err error) { exits <- err }))
 	ctx, cancel := context.WithCancel(t.Context())
@@ -102,8 +104,19 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 		if entry.Data["refused"] != 0 || entry.Data["requeued"] != 0 {
 			t.Fatalf("pass counters = %v", entry.Data)
 		}
-		if len(entry.Data) != 4 {
-			t.Fatalf("pass log contains fields beyond counters: %v", entry.Data)
+		if entry.Message != "eviction pass" || len(entry.Data) != len(le.Data)+4 {
+			t.Fatalf("pass log adds fields or text beyond counters: %+v", entry)
+		}
+		for key, value := range le.Data {
+			if entry.Data[key] != value {
+				t.Fatalf("pass log changed inherited field %s: %v", key, entry.Data)
+			}
+		}
+		if _, ok := entry.Data["evicted"].(int); !ok {
+			t.Fatalf("pass eviction count = %v", entry.Data)
+		}
+		if _, ok := entry.Data["evicted-bytes"].(int64); !ok {
+			t.Fatalf("pass byte count = %v", entry.Data)
 		}
 	}
 	if entries[1].Data["evicted"] != 1 {
