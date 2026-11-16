@@ -165,8 +165,11 @@ import (
 // Under both rules:
 //
 //   - T1. It frees no block a journal record past the cursor names in an up
-//     pair or an again list, read in the transaction that frees it, as tail
-//     describes. A writer may name a block it does not hold after the block
+//     pair or an again list. The free reads the index of those names only
+//     after a sync reached NextSeq in the transaction that frees, as tail
+//     describes, and a slice whose sync stops short frees nothing. While the
+//     index is saturated it names every block, and the free keeps them all.
+//     A writer may name a block it does not hold after the block
 //     reached zero, a put again or a new parent naming a stored child; that
 //     record's sequence is past the block's ripe sequence, so only this keeps
 //     the block until the record nets. A writer naming a block already freed
@@ -198,7 +201,8 @@ type Collector struct {
 	// began; zero before the first.
 	leaseFullAt time.Time
 	// tail indexes the blocks the records past the cursor name (T1). A new
-	// collector starts with none and reads the tail once at its first free.
+	// collector starts with none and reads the tail once, a slice at a time,
+	// at its first frees.
 	tail tail
 }
 
@@ -276,16 +280,20 @@ type Store interface {
 
 // NewCollector returns a collector of store.
 func NewCollector(store Store, opts CollectorOptions) *Collector {
+	// Fill in the defaults of the options left unset.
 	if opts.Grace == 0 {
 		opts.Grace = DefaultGrace
 	}
 	if opts.Budget == 0 {
 		opts.Budget = DefaultBudget
 	}
+	if opts.TailEntries == 0 {
+		opts.TailEntries = DefaultTailEntries
+	}
 	if opts.Now == nil {
 		opts.Now = time.Now
 	}
-	return &Collector{store: store, opts: opts}
+	return &Collector{store: store, opts: opts, tail: tail{limit: opts.TailEntries}}
 }
 
 // Collect runs one bounded pass: it releases the leased roots whose lease
@@ -642,7 +650,7 @@ func (c *Collector) netSlice(ctx context.Context, n *netting, budget int) (bool,
 		netted = append(netted, seq)
 		offset = 0
 		if c.tail.read(seq) {
-			for _, keys := range [][][]byte{ups, r.GetAgain()} {
+			for _, keys := range tailNames(r) {
 				for _, key := range keys {
 					trimmed = append(trimmed, string(key))
 				}
@@ -828,10 +836,24 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 	}
 
 	// Bring the tail index up to the journal's end in this transaction,
-	// which no Land can commit inside of, before any free reads it (T1).
+	// which no Land can commit inside of, before any free reads it (T1). A
+	// sync reads a slice's budget of entries, one page's while a writer
+	// waits; one that stops short frees nothing, and the next slice reads on.
 	if len(ripe) != 0 {
-		if err := c.tail.sync(ctx, rec, state); err != nil {
+		budget := c.share(slicePairs)
+		if c.waiting() {
+			budget = min(budget, journalPagePairs)
+		}
+		reached, err := c.tail.sync(ctx, rec, state, budget)
+		if err != nil {
 			return from, false, false, err
+		}
+		if !reached {
+			res.TailReading++
+			return from, true, false, nil
+		}
+		if c.tail.saturated {
+			res.TailSaturated++
 		}
 	}
 
