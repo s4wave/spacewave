@@ -367,16 +367,23 @@ func runPluginOpWaitingWrite(t *testing.T) {
 		t.Fatalf("order grew from %d to %d while replay waits", before, n)
 	}
 
-	// Register the handler: replay catches up and the wait's Wake closes.
+	// Register the handler and observe the change that wakes the writer.
 	close(s.start)
 	select {
 	case <-wait.Wake:
 	case <-ctx.Done():
-		t.Fatal("the wait's Wake never closed once replay caught up")
+		t.Fatal("the wait's Wake never closed after the handler registered")
 	}
 	if _, err := s.eng.WaitSeqno(ctx, s.seqno); err != nil {
 		t.Fatal(err)
 	}
+
+	// Wait for the driver's write gate after the engine publishes its head.
+	// Wake reports any body state change, and WaitSeqno can precede caught up.
+	health := spaceHealth(ctx, t, so)
+	waitHealth(ctx, t, health, "caught up", func(h *sobject.SharedObjectHealth) bool {
+		return h.GetReplay().GetCaughtUp() != nil
+	})
 
 	// The operation's root is still read after catch up.
 	if got := objectRoot(ctx, t, s.eng, "plugin-object"); !got.EqualVT(written) {
