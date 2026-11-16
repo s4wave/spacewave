@@ -187,6 +187,22 @@ func TestPinnedOperationReplay(t *testing.T) {
 		t.Fatalf("handler error at the deadline = %v, expected a deadline", err)
 	}
 
+	// A nested call can return its deadline as an untyped RPC error before
+	// the outer timer publishes cancellation. The shared budget is already
+	// spent even though the outer context still reports no error.
+	budget := world.NewWriteBudget(time.Nanosecond)
+	budget.Start()
+	deadline, _ := budget.Deadline()
+	passed, cancelPassed := context.WithDeadline(t.Context(), deadline)
+	defer cancelPassed()
+	<-passed.Done()
+	outerCtx := world.WithWriteBudget(t.Context(), budget)
+	deadlineErr := hang.callErr(outerCtx, errors.New("nested handler failed"), true)
+	timeout, ok := errors.AsType[*world.PluginOpTimeoutError](deadlineErr)
+	if !ok || timeout.Deadline != budget.GetLength() || outerCtx.Err() != nil {
+		t.Fatalf("nested error at the shared deadline = %v, outer context = %v", deadlineErr, outerCtx.Err())
+	}
+
 	// A handler that fails its call long before the deadline gave no verdict,
 	// so replay waits at it as at an unreachable plugin: the error is the type
 	// replay counts as a gap, marked sent, and never a stored rejection.

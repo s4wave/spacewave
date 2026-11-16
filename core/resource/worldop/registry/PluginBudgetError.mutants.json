@@ -1,0 +1,7 @@
+[
+  {
+    "name": "the outer timer alone decides whether the shared budget expired",
+    "replace": [["IF outer \\/ spent THEN", "IF outer THEN"]],
+    "expect": "SharedDeadlineIsTimeout"
+  }
+]
