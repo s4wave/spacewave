@@ -3,6 +3,7 @@ package block_store_s3
 import (
 	"context"
 	"math"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
@@ -30,6 +31,51 @@ const tailStepPause = 100 * time.Millisecond
 // long for the index's writer does not stall the drain as long again.
 const tailStepPauseMax = time.Second
 
+// tailCounts are the process-wide counts ReadIndexTailCounts returns.
+var tailCounts struct {
+	queued, dropped, held, drained, rows atomic.Uint64
+}
+
+// tailsHeld stops every pack index queueing tails; see SetIndexTailsHeld.
+var tailsHeld atomic.Bool
+
+// IndexTailCounts are the running counts of the index tail drains of every
+// pack index in the process, since it started.
+type IndexTailCounts struct {
+	// Queued counts the tails queued for the drain.
+	Queued uint64
+	// Dropped counts the tails left out because the queue held
+	// tailQueueBytes.
+	Dropped uint64
+	// Held counts the tails left out while SetIndexTailsHeld held them.
+	Held uint64
+	// Drained counts the queued tails whose drain step committed.
+	Drained uint64
+	// RowsUpgraded counts the h rows those steps wrote with their extents.
+	RowsUpgraded uint64
+}
+
+// ReadIndexTailCounts returns the running counts of the index tail drains.
+func ReadIndexTailCounts() IndexTailCounts {
+	return IndexTailCounts{
+		Queued:       tailCounts.queued.Load(),
+		Dropped:      tailCounts.dropped.Load(),
+		Held:         tailCounts.held.Load(),
+		Drained:      tailCounts.drained.Load(),
+		RowsUpgraded: tailCounts.rows.Load(),
+	}
+}
+
+// SetIndexTailsHeld stops every pack index in the process queueing index
+// tails while held is set, and resumes it when cleared. A held tail is left
+// out as a dropped one is: its blocks' h rows keep only their pack, and the
+// pack's next cold read reads its tail from the bucket again. Tails queued
+// before the hold still drain, and rows already written keep their extents,
+// so holding stops the drain's rewrites of h rows without touching a row.
+func SetIndexTailsHeld(held bool) {
+	tailsHeld.Store(held)
+}
+
 // tailQueue holds index tails awaiting their write, one per pack. The fields
 // are guarded by packIndex.mtx.
 type tailQueue struct {
@@ -45,11 +91,22 @@ type tailQueue struct {
 // drain when none runs. A pack already queued keeps its first tail, which
 // is the same bytes.
 func (x *packIndex) queueTail(packID string, data []byte) {
+	// Leave every tail out while tails are held.
+	if tailsHeld.Load() {
+		tailCounts.held.Add(1)
+		return
+	}
+
 	// Skip a queued pack, and drop a tail past the byte bound.
 	x.mtx.Lock()
 	q := &x.tails
-	if _, ok := q.pending[packID]; ok || q.bytes+len(data) > tailQueueBytes {
+	if _, ok := q.pending[packID]; ok {
 		x.mtx.Unlock()
+		return
+	}
+	if q.bytes+len(data) > tailQueueBytes {
+		x.mtx.Unlock()
+		tailCounts.dropped.Add(1)
 		return
 	}
 
@@ -62,6 +119,7 @@ func (x *packIndex) queueTail(packID string, data []byte) {
 	drain := !q.draining
 	q.draining = true
 	x.mtx.Unlock()
+	tailCounts.queued.Add(1)
 	if drain {
 		go x.drainTails()
 	}
@@ -122,22 +180,30 @@ func (x *packIndex) drainTails() {
 		}
 		x.mtx.Unlock()
 
-		// Upgrade the step's rows in one transaction.
+		// Upgrade the step's rows in one transaction, counting them once it
+		// commits. A retried transaction counts its last attempt.
 		started := time.Now()
-		_ = kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
+		var tails, rows uint64
+		err := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 			return x.store.NewTransaction(ctx, true)
 		}, func(ctx context.Context, tx kvtx.Tx) error {
+			tails, rows = 0, 0
 			for id, data := range step {
 				num, ok := nums[id]
 				if !ok {
 					continue
 				}
-				if err := upgradeHashRows(ctx, tx, id, num, data); err != nil {
+				if err := upgradeHashRows(ctx, tx, id, num, data, &rows); err != nil {
 					return err
 				}
+				tails++
 			}
 			return nil
 		})
+		if err == nil {
+			tailCounts.drained.Add(tails)
+			tailCounts.rows.Add(rows)
+		}
 
 		// Unqueue the step, written or dropped, then pause before the next.
 		x.mtx.Lock()
@@ -150,7 +216,8 @@ func (x *packIndex) drainTails() {
 // upgradeHashRows writes the extent of each block the tail of pack id lists
 // into its h row, where the row names the pack as num and holds no extent.
 // The pack's size, which the tail's offsets need, comes from its entry row.
-func upgradeHashRows(ctx context.Context, tx kvtx.Tx, id string, num uint32, tail []byte) error {
+// It adds the rows it writes to upgraded.
+func upgradeHashRows(ctx context.Context, tx kvtx.Tx, id string, num uint32, tail []byte, upgraded *uint64) error {
 	// Read the pack's size.
 	data, found, err := tx.Get(ctx, []byte(indexEntryPrefix+id))
 	if err != nil || !found {
@@ -181,7 +248,11 @@ func upgradeHashRows(ctx context.Context, tx kvtx.Tx, id string, num uint32, tai
 
 		// Write the extent into the row.
 		row.off, row.size, row.extent = ie.GetOffset(), uint32(ie.GetSize()), true //nolint:gosec // checked against MaxUint32 above.
-		return tx.Set(ctx, rowKey, row.marshal())
+		if err := tx.Set(ctx, rowKey, row.marshal()); err != nil {
+			return err
+		}
+		*upgraded++
+		return nil
 	})
 }
 
