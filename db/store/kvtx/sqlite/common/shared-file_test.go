@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -44,10 +43,8 @@ func TestSharedFileLocks(t *testing.T) {
 		return
 	}
 
-	// Write through the first Store, with a reader of the second pinning the
-	// log so it passes the write-back size, until the first's checkpointer
-	// writes the database file back.
-	ctx := context.Background()
+	// Observe the first Store's database write-back through its checkpointer.
+	ctx := t.Context()
 	path := filepath.Join(t.TempDir(), "shared.db")
 	written := make(chan struct{}, 1)
 	common.SetCheckpointHook(func(step string) {
@@ -59,7 +56,10 @@ func TestSharedFileLocks(t *testing.T) {
 		}
 	}, 25*time.Millisecond)
 	defer common.SetCheckpointHook(nil, 25*time.Millisecond)
+
+	// Open both tables and keep the second's connections alive for the probe.
 	first := openRestartStore(t, path)
+	defer first.Close()
 	drv := reflect.TypeOf(first.GetDB().Driver())
 	if drv.Kind() == reflect.Pointer {
 		drv = drv.Elem()
@@ -72,28 +72,43 @@ func TestSharedFileLocks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer second.Close()
+
+	// Pin the log before the batch so SQLite cannot reset it below the
+	// write-back threshold before the checkpointer observes it.
 	pin, err := second.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer pin.Discard()
 	if _, _, err := pin.Get(ctx, restartKey(0)); err != nil {
 		t.Fatal(err)
 	}
-	writing, stopWriting := context.WithCancel(ctx)
-	defer stopWriting()
-	writeDone := make(chan error, 1)
-	go func() {
-		var committed atomic.Int64
-		writeDone <- writeUntilClosed(writing, first, path, &committed)
-	}()
+
+	// Commit 8 MiB in one batch, above the checkpointer's 4 MiB write-back
+	// threshold even when its first pass runs before another writer could.
+	batch, err := first.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer batch.Discard()
+	for i := range 2048 {
+		if err := batch.Set(ctx, restartKey(i), restartValue(i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := batch.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Wait for the database write-back, with no writer growing a pinned log
+	// while the checkpointer gathers commits for its next interval.
+	wait, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	select {
 	case <-written:
-	case err := <-writeDone:
-		t.Fatalf("writer stopped before a write-back: %v", err)
-	}
-	stopWriting()
-	if err := <-writeDone; err != nil {
-		t.Fatal(err)
+	case <-wait.Done():
+		t.Fatal("database write-back did not complete:", context.Cause(wait))
 	}
 	pin.Discard()
 
