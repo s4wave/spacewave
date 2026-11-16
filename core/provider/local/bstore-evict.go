@@ -271,9 +271,14 @@ var cacheReadsOff = os.Getenv(CacheReadsEnv) == "off"
 // Every other value, including an unset variable, keeps the default off.
 const EvictRefusedRetryEnv = "SPACEWAVE_EVICT_REFUSED_RETRY"
 
+// EvictQueueIndexEnv enables indexed accounting only at the exact value on.
+// Refusal retry must also be on; every other combination keeps legacy metadata.
+const EvictQueueIndexEnv = "SPACEWAVE_EVICT_QUEUE_INDEX"
+
 // init selects the provider's refusal policy once at process startup.
 func init() {
 	block_store_writeback.SetEvictRefusedRetry(os.Getenv(EvictRefusedRetryEnv) == "on")
+	block_store_writeback.SetEvictQueueIndex(os.Getenv(EvictQueueIndexEnv) == "on")
 }
 
 // cacheHits records the blocks served from decoded-block caches, a read the

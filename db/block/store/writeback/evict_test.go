@@ -927,3 +927,56 @@ func TestFillDuringEvictRemoteProbe(t *testing.T) {
 		t.Fatalf("next pass = %+v, %v; want the mid-pass fill evicted", result, err)
 	}
 }
+
+// TestMarkedRefusalDuplicateEpochCounterexample checks the candidate against
+// a marked hash queued in two epochs, with a byte target between its entries.
+func TestMarkedRefusalDuplicateEpochCounterexample(t *testing.T) {
+	// Choose queue order A, marked H, B so the first pass stops before H.
+	SetEvictRefusedRetry(true)
+	t.Cleanup(func() { SetEvictRefusedRetry(false) })
+	ctx := t.Context()
+	s := newIndexTestStore(t, newTestEnv(t))
+	SetEvictQueueIndex(true)
+	t.Cleanup(func() { SetEvictQueueIndex(false) })
+	remote := newInmemBlockStore()
+	type value struct {
+		ref  *block.BlockRef
+		data []byte
+	}
+	values := make([]value, 0, 3)
+	for i := range 3 {
+		data := fmt.Appendf(nil, "duplicate-epoch-%d", i)
+		ref, _, err := s.PutBlock(ctx, data, leafOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		values = append(values, value{ref: ref, data: data})
+	}
+	slices.SortFunc(values, func(a, b value) int { return bytes.Compare(evictKey(0, a.ref.GetHash()), evictKey(0, b.ref.GetHash())) })
+	drain(t, s, remote)
+
+	// Advance the epoch by evicting only A, leaving H and B in epoch zero.
+	result, err := s.Evict(ctx, remote, 1, nil, nil)
+	if err != nil || result.Evicted != 1 {
+		t.Fatalf("first pass = %+v, %v", result, err)
+	}
+	h := values[1]
+	if _, _, err := s.PutBlock(ctx, h.data, leafOpts); err != nil {
+		t.Fatal(err)
+	}
+	drain(t, s, remote)
+	if _, _, err := s.PutBlock(ctx, h.data, leafOpts); err != nil {
+		t.Fatal(err)
+	}
+
+	// Marker creation already removed H; the second one-byte pass evicts B.
+	result, err = s.Evict(ctx, remote, 1, nil, nil)
+	if err != nil || result.Refused != 0 || result.Evicted != 1 {
+		t.Fatalf("second pass = %+v, %v", result, err)
+	}
+	status, _ := s.GetStatus()
+	t.Logf("refused=%d pending=%d evictable=%d actual=%d", result.Refused, status.PendingBytes, status.EvictableBytes, len(h.data))
+	if status.EvictableBytes != 0 {
+		t.Fatalf("refused marked hash remains double-counted: %+v", status)
+	}
+}

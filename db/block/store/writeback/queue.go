@@ -178,6 +178,8 @@ type queueDelta struct {
 	added int
 	// addedBytes is the size of those blocks.
 	addedBytes int64
+	// evictable is the byte delta from removing indexed marker overlap.
+	evictable int64
 	// oldest is the earliest write time of those blocks, while added is not
 	// zero.
 	oldest time.Time
@@ -194,6 +196,14 @@ type queueDelta struct {
 // could have read the block absent, as a swept block that this write stored
 // again.
 func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, error) {
+	// Read the activation fence before sampling policy. A transaction staged
+	// while off must conflict with an enabling repair, including optimistic
+	// block transactions that otherwise read no eviction metadata.
+	if _, err := readEpoch(ctx, tx); err != nil {
+		return queueDelta{}, err
+	}
+	indexed := evictQueueIndex.Load() && evictRefusedRetry.Load()
+
 	// Read every block's marker, which names its queue entry.
 	keys := make([][]byte, len(marks))
 	for i, mark := range marks {
@@ -210,6 +220,17 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, erro
 	now := time.Now()
 	queuedHere := make(map[string][]byte)
 	for i, mark := range marks {
+		// Remove indexed eviction coverage in the marker transaction, including
+		// refreshes. Unindexed legacy overlap is left to bounded repair.
+		if indexed {
+			n, err := coverMarkedEvict(ctx, tx, mark.Hash)
+			if err != nil {
+				return queueDelta{}, err
+			}
+			delta.evictable += n
+		}
+
+		// Resolve an existing marker before creating its upload entry.
 		key := keys[i]
 		queued := entries[i]
 		if q, ok := queuedHere[string(key)]; ok {
@@ -241,6 +262,9 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, erro
 		}
 		delta.added++
 		delta.addedBytes += mark.Size
+	}
+	if err := addEvictableBytes(ctx, tx, delta.evictable); err != nil {
+		return queueDelta{}, err
 	}
 	return delta, nil
 }
