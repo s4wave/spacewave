@@ -36,12 +36,25 @@ func buildS3BlockStore(
 	creds *block_store_s3.Credentials,
 	index kvtx.Store,
 ) (backendStore, error) {
+	// Build the direct origin client before applying optional reads.
 	client, err := buildS3Client(location, creds)
 	if err != nil {
 		return nil, err
 	}
-	return block_store_s3.NewPackStore(le, client, location.GetBucket(), location.BlockStorePrefix(blockStoreID), &block_store_s3.PackStoreOptions{
-		Pricing:   location.GetPricing(),
+
+	// Keep writes and catalog reads direct; wrap only this store's pack ranges.
+	var objects block_store_s3.ObjectStore = client
+	pricing := location.GetPricing()
+	if binding := s3ReadCache.Load(); binding != nil && binding.endpoint == location.GetEndpoint() && binding.bucket == location.GetBucket() && binding.blockStoreID == blockStoreID {
+		objects = &block_store_s3.ReadThroughStore{ObjectStore: client, Cache: binding.cache, Bucket: location.GetBucket(), PackPrefix: location.BlockStorePrefix(blockStoreID) + "packs/"}
+		if pricing == nil {
+			pricing = block_store_s3.PricingForEndpoint(location.GetEndpoint())
+		}
+	}
+
+	// Open the same pack store with its original policies.
+	return block_store_s3.NewPackStore(le, objects, location.GetBucket(), location.BlockStorePrefix(blockStoreID), &block_store_s3.PackStoreOptions{
+		Pricing:   pricing,
 		KeepPacks: location.GetKeepPacks(),
 		Index:     index,
 		IndexOnly: location.GetIndexOnly(),
