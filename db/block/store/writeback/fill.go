@@ -157,10 +157,36 @@ func (s *Store) drainFills() {
 	}
 }
 
-// writeFills writes the values of a step, then queues them for eviction in
-// one transaction. A crash between the two leaves values the eviction queue
-// does not count, which the next fill of the block counts.
+// writeFills keeps a filled value covered by an upload marker or an eviction
+// entry. With refusal retry enabled, queueing commits before any value write,
+// and fillMtx excludes a pass until every value write has finished. A failed
+// queue commit writes no values; a crash leaves only surplus queue entries,
+// which a later pass cleans. A filled marked block retains its eviction
+// entry on refusal, including when a dropped upload later clears its marker.
+//
+// This store upkeep runs below Flowgraphs: it must work before a Space loads.
+// Retry off retains the former value-before-queue ordering.
 func (s *Store) writeFills(ctx context.Context, batch []fill) error {
+	// Reserve queue coverage before exposing values, without a writer lock
+	// across value I/O. Foreground block writes never acquire fillMtx.
+	repairQueue := evictRefusedRetry.Load()
+	if repairQueue {
+		release, err := s.fillMtx.Lock(ctx)
+		if err != nil {
+			return err
+		}
+		defer release()
+
+		// Publish reserved coverage even if the later value write fails.
+		added, err := s.queueFills(ctx, batch)
+		if err != nil {
+			return err
+		}
+		if added != 0 {
+			s.addFillStatus(added, 0, 0)
+		}
+	}
+
 	// Write the refilled values below the ownership layer in one batch.
 	var refills []*block.PutBatchEntry
 	for _, f := range batch {
@@ -200,14 +226,38 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 		return errors.Wrap(err, "cache remote block")
 	}
 
-	// Queue the step's values for eviction at the current epoch, counting
-	// their bytes once. The cold entry reads run without the writer lock, so
+	// Keep the legacy ordering selectable, then count completed refills.
+	var queued int64
+	if !repairQueue {
+		var err error
+		queued, err = s.queueFills(ctx, batch)
+		if err != nil {
+			return err
+		}
+	}
+	var refilled int64
+	for _, f := range batch {
+		if f.refill {
+			refilled++
+		}
+	}
+	if !repairQueue || refilled != 0 {
+		s.addFillStatus(queued, refilled, 0)
+	}
+	return nil
+}
+
+// queueFills commits eviction coverage for a fill batch and returns its added
+// bytes. The caller projects them only after this transaction commits.
+func (s *Store) queueFills(ctx context.Context, batch []fill) (int64, error) {
+	// Count newly inserted epoch/hash entries at the current epoch.
+	// The cold entry reads run without the writer lock, so
 	// no writer waits on them; a commit that changed what they read meanwhile
 	// runs the body again.
-	var added, refilled int64
+	var added int64
 	err := kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Read the epoch the step queues under.
-		added, refilled = 0, 0
+		added = 0
 		epoch, err := readEpoch(ctx, tx)
 		if err != nil {
 			return err
@@ -220,21 +270,15 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 				return err
 			}
 			added += n
-			if f.refill {
-				refilled++
-			}
 		}
 
 		// Count the step's new bytes once.
 		return addEvictableBytes(ctx, tx, added)
 	}, kvtx.RetryInvalidSnapshot)
 	if err != nil {
-		return errors.Wrap(err, "queue filled blocks")
+		return 0, errors.Wrap(err, "queue filled blocks")
 	}
-
-	// Publish the committed resident bytes and refill count to watchers.
-	s.addFillStatus(added, refilled, 0)
-	return nil
+	return added, nil
 }
 
 // addFillStatus projects a drain step or a dropped fill into the status.

@@ -61,6 +61,10 @@ type Store struct {
 	// their projection into status. Block writes mark without it, inside their
 	// own transactions.
 	mtx csync.Mutex
+	// fillMtx excludes eviction from a queue-before-value fill window. Passes
+	// acquire it before evictMtx, so waiting for a fill never holds the mutex
+	// that disabling uploads waits on. Foreground writes do not acquire it.
+	fillMtx csync.Mutex
 	// evictMtx runs one eviction pass at a time, and disabling uploads waits
 	// for the pass to end.
 	evictMtx csync.Mutex
@@ -200,8 +204,11 @@ func newStore(
 		if err != nil {
 			return err
 		}
+
+		// Count only the initial upload chunk before serving the store.
 		resume = nil
 		err = scanQueue(ctx, tx, nil, func(item queueItem) error {
+			// Record the oldest write represented by the initial count.
 			if pending == 0 {
 				at, err := item.at()
 				if err != nil {
@@ -209,6 +216,8 @@ func newStore(
 				}
 				oldest = at
 			}
+
+			// Leave the next entry for the bounded background count.
 			if pending == openCountLimit {
 				resume = bytes.Clone(item.key)
 				return errScanDone
@@ -300,9 +309,12 @@ func (s *Store) countRest(ctx context.Context, resume []byte) {
 		err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
 			pending, pendingBytes, next = 0, 0, nil
 			err := scanQueue(ctx, tx, resume, func(item queueItem) error {
+				// Stop at the writes whose status is already projected.
 				if bytes.Compare(item.key, end) >= 0 {
 					return errScanDone
 				}
+
+				// Resume the next chunk at its first uncounted entry.
 				if pending == openCountLimit {
 					next = bytes.Clone(item.key)
 					return errScanDone

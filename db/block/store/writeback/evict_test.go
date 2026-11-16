@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -14,7 +15,7 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// evictCommitStore fails a transaction that changes existing eviction entries.
+// evictCommitStore fails a transaction that changes eviction entries.
 type evictCommitStore struct {
 	kvtx.Store
 	// err is the failure returned instead of committing queue changes.
@@ -32,31 +33,37 @@ func (s *evictCommitStore) NewTransaction(ctx context.Context, write bool) (kvtx
 	return &evictCommitTx{Tx: tx, store: s}, nil
 }
 
-// evictCommitTx discards a prepared queue move when its commit fails.
+// evictCommitTx discards prepared queue changes when its commit fails.
 type evictCommitTx struct {
 	kvtx.Tx
 	// store controls when queue-changing commits start to fail.
 	store *evictCommitStore
-	// moved records whether this transaction deletes an eviction entry.
-	moved bool
+	// changed records whether this transaction mutates an eviction entry.
+	changed bool
 }
 
 // Delete records an eviction queue change while staging the real deletion.
 func (t *evictCommitTx) Delete(ctx context.Context, key []byte) error {
-	t.moved = t.moved || bytes.HasPrefix(key, []byte(evictPrefix))
+	t.changed = t.changed || bytes.HasPrefix(key, []byte(evictPrefix))
 	return t.Tx.Delete(ctx, key)
 }
 
-// Commit fails a queue move after its writes are staged, before they commit.
+// Set records insertion as well as movement of an eviction queue entry.
+func (t *evictCommitTx) Set(ctx context.Context, key, value []byte) error {
+	t.changed = t.changed || bytes.HasPrefix(key, []byte(evictPrefix))
+	return t.Tx.Set(ctx, key, value)
+}
+
+// Commit fails queue changes after their writes are staged, before they commit.
 func (t *evictCommitTx) Commit(ctx context.Context) error {
 	// Refuse the selected queue transaction before it changes durable state.
-	if t.moved && t.store.allow == 0 {
+	if t.changed && t.store.allow == 0 {
 		return t.store.err
 	}
 
 	// Count only successful slices toward the injected failure point.
 	err := t.Tx.Commit(ctx)
-	if err == nil && t.moved {
+	if err == nil && t.changed {
 		t.store.allow--
 	}
 	return err
@@ -136,15 +143,20 @@ func TestEvictRefusedPartialCommitFailure(t *testing.T) {
 	}
 }
 
-// evictDropStore fails the tombstone write before it changes local values.
+// evictDropStore injects write failures or gates a value write.
 type evictDropStore struct {
 	block.StoreOps
 	// err is the injected write failure.
 	err error
+	// put gates a value write when configured instead of returning err.
+	put func(context.Context, []*block.PutBatchEntry) ([]bool, error)
 }
 
-// PutBlockBatch returns the injected failure without writing the batch.
-func (s *evictDropStore) PutBlockBatch(context.Context, []*block.PutBatchEntry) ([]bool, error) {
+// PutBlockBatch gates the write when configured, or returns the injected failure.
+func (s *evictDropStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	if s.put != nil {
+		return s.put(ctx, entries)
+	}
 	return nil, s.err
 }
 
@@ -627,5 +639,208 @@ func TestFillQueueBoundsAndDedupes(t *testing.T) {
 	}
 	if n := len(s.fills.queued); n != 0 || s.fills.draining {
 		t.Fatalf("after the drain %d blocks are queued, draining=%v; want none", n, s.fills.draining)
+	}
+}
+
+// TestDroppedClearAfterFillKeepsEvictionCoverage reproduces a dropped upload
+// whose cache fill deduplicates against an older entry before marked refusal.
+func TestDroppedClearAfterFillKeepsEvictionCoverage(t *testing.T) {
+	// Upload once, then leave a new marker beside the old eviction entry.
+	SetEvictRefusedRetry(true)
+	t.Cleanup(func() { SetEvictRefusedRetry(false) })
+	ctx := t.Context()
+	env := newTestEnv(t)
+	s := env.newStore(t, true)
+	remote := newInmemBlockStore()
+	data := []byte("filled after absent upload read")
+	ref, _, err := s.PutBlock(ctx, data, leafOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	drain(t, s, remote)
+	if _, _, err := s.PutBlock(ctx, data, leafOpts); err != nil {
+		t.Fatal(err)
+	}
+
+	// Let upload observe absence, then restore the value without a re-put.
+	if err := s.local.RmBlock(ctx, ref); err != nil {
+		t.Fatal(err)
+	}
+	head, err := s.scanHead(ctx, batchLimitsOf(nil), nil)
+	if err != nil || len(head.entries) != 1 {
+		t.Fatalf("scan = %v, %v", head, err)
+	}
+	if err := s.uploadChunk(ctx, remote, head.entries); err != nil || !head.entries[0].dropped {
+		t.Fatalf("upload = %v, dropped=%v", err, head.entries[0].dropped)
+	}
+	if err := s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Refusal keeps the value pending until the dropped upload clears its marker.
+	result, err := s.Evict(ctx, remote, 1<<30, nil, nil)
+	if err != nil || result != (EvictResult{Refused: 1}) {
+		t.Fatalf("marked refusal = %+v, %v", result, err)
+	}
+	if status, _ := s.GetStatus(); status.PendingBytes != int64(len(data)) {
+		t.Fatalf("pending value after refusal = %+v", status)
+	}
+
+	// The dropped clear removes the marker but preserves eviction coverage.
+	if err := s.clear(ctx, head.entries); err != nil {
+		t.Fatal(err)
+	}
+	if env.isMarked(t, ref) {
+		t.Fatal("dropped clear retained the marker")
+	}
+	env.open(t)
+	s = env.newStore(t, true)
+	if status, _ := s.GetStatus(); status.PendingBytes != 0 || status.EvictableBytes != int64(len(data)) {
+		t.Fatalf("reopened coverage = %+v", status)
+	}
+	result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
+	if err != nil || result != (EvictResult{Evicted: 1, EvictedBytes: int64(len(data))}) {
+		t.Fatalf("eviction after dropped clear = %+v, %v", result, err)
+	}
+}
+
+// TestFillQueueFailureCannotStrandValue fails the queue commit before a fill
+// can expose local bytes, then checks both cleanup and a later successful fill.
+func TestFillQueueFailureCannotStrandValue(t *testing.T) {
+	// Fail the metadata reservation for a cache fill and a value-only refill.
+	SetEvictRefusedRetry(true)
+	t.Cleanup(func() { SetEvictRefusedRetry(false) })
+	for _, refill := range []bool{false, true} {
+		t.Run(fmt.Sprintf("refill=%t", refill), func(t *testing.T) {
+			// Start with remote bytes and no local value or upload marker.
+			ctx := t.Context()
+			env := newTestEnv(t)
+			s := env.newStore(t, true)
+			remote := newInmemBlockStore()
+			data := []byte("queue failure must precede value write")
+			ref, _, err := remote.PutBlock(ctx, data, leafOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			batch := []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}, refill: refill}}
+			failure := errors.New("fill queue commit failed")
+			s.markers = &evictCommitStore{Store: s.markers, err: failure}
+
+			// Refuse the queue commit and attempt to strand an untracked value.
+			if err := s.writeFills(ctx, batch); !errors.Is(err, failure) {
+				t.Fatalf("failed fill = %v", err)
+			}
+			if found, err := s.values.GetBlockExists(ctx, ref); err != nil || found {
+				t.Fatalf("value after queue failure = %v, %v", found, err)
+			}
+			env.open(t)
+			s = env.newStore(t, true)
+			if status, _ := s.GetStatus(); status.EvictableBytes != 0 {
+				t.Fatalf("failed fill queue persisted: %+v", status)
+			}
+
+			// A value-write failure leaves only a surplus queue entry to clean.
+			values := s.values
+			if refill {
+				s.values = &evictDropStore{StoreOps: values, err: failure}
+				if err := s.writeFills(ctx, batch); !errors.Is(err, failure) {
+					t.Fatalf("failed value write = %v", err)
+				}
+				s.values = values
+				result, err := s.Evict(ctx, remote, 1<<30, nil, nil)
+				if err != nil || result != (EvictResult{}) {
+					t.Fatalf("clean surplus queue = %+v, %v", result, err)
+				}
+			}
+
+			// Refill successfully, then try to evict with the remote copy absent.
+			if err := s.writeFills(ctx, batch); err != nil {
+				t.Fatal(err)
+			}
+			if err := remote.RmBlock(ctx, ref); err != nil {
+				t.Fatal(err)
+			}
+			env.open(t)
+			s = env.newStore(t, true)
+			result, err := s.Evict(ctx, remote, 1<<30, nil, nil)
+			if err != nil || result != (EvictResult{Refused: 1}) {
+				t.Fatalf("missing remote refusal = %+v, %v", result, err)
+			}
+			if got, found, err := s.GetBlock(ctx, ref); err != nil || !found || !bytes.Equal(got, data) {
+				t.Fatalf("last copy after failed eviction = %q, %v, %v", got, found, err)
+			}
+		})
+	}
+}
+
+// TestFillReservationExcludesEviction attempts to clean a reserved queue entry
+// while the fill has not yet exposed its local value.
+func TestFillReservationExcludesEviction(t *testing.T) {
+	// Hold the value write after its queue reservation has committed.
+	SetEvictRefusedRetry(true)
+	t.Cleanup(func() { SetEvictRefusedRetry(false) })
+	ctx := t.Context()
+	s := newTestEnv(t).newStore(t, true)
+	remote := newInmemBlockStore()
+	data := []byte("reserved fill awaiting its value")
+	ref, _, err := remote.PutBlock(ctx, data, leafOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entered, release := make(chan struct{}), make(chan struct{})
+	t.Cleanup(func() {
+		select {
+		case <-release:
+		default:
+			close(release)
+		}
+	})
+	values := s.values
+	s.values = &evictDropStore{StoreOps: values, put: func(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+		// Expose the reservation/write boundary without holding the KV writer.
+		close(entered)
+		select {
+		case <-release:
+			return values.PutBlockBatch(ctx, entries)
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}}
+	filled := make(chan error, 1)
+	go func() {
+		filled <- s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}, refill: true}})
+	}()
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("fill did not reach the reserved value write")
+	}
+
+	// A pass must wait for the fill rather than delete its absent-value entry.
+	passCtx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
+	defer cancel()
+	if _, err := s.Evict(passCtx, remote, 1<<30, nil, nil); !errors.Is(err, context.Canceled) || !errors.Is(passCtx.Err(), context.DeadlineExceeded) {
+		t.Fatalf("eviction entered unfinished fill: %v", err)
+	}
+	if status, _ := s.GetStatus(); status.EvictableBytes != int64(len(data)) {
+		t.Fatalf("reservation after waiting pass = %+v", status)
+	}
+
+	// Finish the value write, then consume the still-present queue entry.
+	close(release)
+	select {
+	case err := <-filled:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("fill did not finish after release")
+	}
+
+	// Remove the gate before the eviction writes its tombstone batch.
+	s.values = values
+	result, err := s.Evict(ctx, remote, 1<<30, nil, nil)
+	if err != nil || result != (EvictResult{Evicted: 1, EvictedBytes: int64(len(data))}) {
+		t.Fatalf("eviction after completed fill = %+v, %v", result, err)
 	}
 }
