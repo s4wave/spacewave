@@ -282,8 +282,8 @@ func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_pro
 	return ctrlConfig, nil
 }
 
+// ResolveStarlarkPath returns the bldr.star path beside a config path.
 // For example, "path/to/bldr.yaml" resolves to "path/to/bldr.star".
-// e.g. "bldr.yaml" -> "bldr.star", "path/to/bldr.yaml" -> "path/to/bldr.star"
 func ResolveStarlarkPath(configPath string) string {
 	dir := filepath.Dir(configPath)
 	return filepath.Join(dir, "bldr.star")
