@@ -230,6 +230,16 @@ message ReplaySpan {
   .block.BlockRef prev = 3;
 }
 
+// ReplayRefusalRule is the rule that decided a cursor's refusals.
+enum ReplayRefusalRule {
+  // REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER refused operations whose
+  // handlers were missing, so a refusal may be a fact about the device.
+  REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER = 0;
+  // REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER waits at a missing handler, so a
+  // refusal is a verdict on the operation and the World before it.
+  REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER = 1;
+}
+
 // ReplayCursor is the replay a Space engine last saved on this device, so a
 // remount resumes after it instead of replaying from the checkpoint. It names
 // a head World only once the replay cursor root holds that World.
@@ -242,6 +252,8 @@ message ReplayCursor {
   InnerState head = 3;
   // Height is the height of the checkpoint whose World is Base.
   uint64 height = 7;
+  // RefusalRule is the rule that decided the refusals in Outcomes.
+  ReplayRefusalRule refusal_rule = 8;
   // Fields 4 to 6 held the deadlist ledger.
   reserved 4, 5, 6;
 }
