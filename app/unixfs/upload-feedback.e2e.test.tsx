@@ -23,13 +23,10 @@ function recordingHandle(resolveUpload: boolean): {
   handle: FSHandle
   signals: AbortSignal[]
 } {
+  // Record the pool's signals while controlling whether sends settle.
   const signals: AbortSignal[] = []
   const pending = Promise.withResolvers<never>()
-  const uploadTree = (
-    _entries: unknown,
-    _opts: unknown,
-    signal?: AbortSignal,
-  ) => {
+  const uploadTree: FSHandle['uploadTree'] = (_entries, _opts, signal) => {
     if (signal) signals.push(signal)
     return resolveUpload
       ? Promise.resolve({
@@ -41,7 +38,15 @@ function recordingHandle(resolveUpload: boolean): {
         })
       : pending.promise
   }
-  return { handle: { uploadTree } as unknown as FSHandle, signals }
+
+  // The manager owns a clone and checks the empty folder before sending.
+  const handle = {
+    uploadTree,
+    readdirAll: async () => [],
+    clone: async (): Promise<FSHandle> => handle as unknown as FSHandle,
+    release: () => {},
+  } satisfies Pick<FSHandle, 'uploadTree' | 'readdirAll' | 'clone' | 'release'>
+  return { handle: handle as unknown as FSHandle, signals }
 }
 
 // DriveViewerStub starts a two-file upload against handle on mount, standing in
