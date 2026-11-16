@@ -3,6 +3,7 @@
 package spacewave_cli
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -113,6 +114,9 @@ func buildGitRemoteServeCommand() *cli.Command {
 				return err
 			}
 			if sessIdx == 0 {
+				if uint64(uri.sessionIdx) > uint64(math.MaxInt) {
+					return errors.New("remote session index exceeds the platform int range")
+				}
 				sessIdx = int(uri.sessionIdx)
 			}
 			gitDir, err := gitRemoteDir()

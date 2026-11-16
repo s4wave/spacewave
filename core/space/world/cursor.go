@@ -134,7 +134,10 @@ func (a *Adapter) encodeCursor() (*block.BlockRef, []byte, error) {
 	// Record each position's outcome after the base.
 	r := a.replay
 	head, _ := r.head()
-	cursor := &ReplayCursor{Base: r.base, Head: head, Height: r.height}
+	cursor := &ReplayCursor{
+		Base: r.base, Head: head, Height: r.height,
+		RefusalRule: ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER,
+	}
 	prev := r.base
 	for _, pos := range r.positions {
 		outcome := &ReplayCursorOutcome{
@@ -181,6 +184,9 @@ func (a *Adapter) writeCursor(ctx context.Context, root *block.BlockRef, data []
 // loadCursor reads the saved cursor whose head World the replay cursor root
 // holds into the replay's restored positions. A cursor whose World the root
 // does not hold, or whose outcomes do not lead to its head, is ignored.
+// Loading preserves every position, World and payload hold.
+// Only an old-rule refused position loses its hash, so replay decides it again.
+// The stored cursor stays unchanged until an ordinary save of computed positions.
 func (a *Adapter) loadCursor(ctx context.Context) error {
 	// Read the saved cursor.
 	cursor, err := readSavedCursor(ctx, a.so)
@@ -211,6 +217,9 @@ func (a *Adapter) loadCursor(ctx context.Context) error {
 			state:    states[i],
 			seqno:    outcome.GetSeqno(),
 			payloads: outcome.GetPayloads(),
+		}
+		if cursor.GetRefusalRule() == ReplayRefusalRule_REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER && outcome.GetReason() != "" {
+			positions[i].op.Hash = nil
 		}
 		if a.handlersCurrent(ctx, outcome.GetPayloadHandlers()) {
 			positions[i].handlers = outcome.GetPayloadHandlers()

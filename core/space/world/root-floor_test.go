@@ -1,7 +1,10 @@
 package space_world
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -15,7 +18,9 @@ import (
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
+	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
+	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -290,4 +295,259 @@ func TestRootRecomputesThroughTheFloor(t *testing.T) {
 		}
 		check(t, w)
 	})
+}
+
+// TestCursorRefusalRulePreservesPositions loads each rule twice without a save.
+// Only hashes of old-rule refusals change; the stored cursor stays byte-identical.
+func TestCursorRefusalRulePreservesPositions(t *testing.T) {
+	for _, rule := range []ReplayRefusalRule{
+		ReplayRefusalRule_REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER,
+		ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER,
+	} {
+		t.Run(rule.String(), func(t *testing.T) {
+			// Save applied and refused positions over real in-memory storage.
+			ctx := t.Context()
+			w := newFloorWorld(t)
+			w.open(1 << 20)
+			ops := w.ops(3)
+
+			// Persist a successful prefix followed by a refusal.
+			w.apply(0, ops[0])
+			w.apply(1, ops[1])
+			ops[2].Refused = "a saved verdict"
+			if reason, err := w.a.Apply(ctx, 2, ops[2]); err != nil || reason == "" {
+				t.Fatalf("historical refusal = %q, %v", reason, err)
+			}
+			if err := w.a.saveCursor(ctx); err != nil {
+				t.Fatal(err)
+			}
+			w.a.waitBackground()
+
+			// Select the historical rule without changing any saved outcome.
+			cursor, err := readSavedCursor(ctx, w.so)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cursor.GetRefusalRule() != ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER {
+				t.Fatal("a newly encoded cursor did not record the current rule")
+			}
+
+			// Retain the same outcomes under the selected rule.
+			cursor.RefusalRule = rule
+			data, err := cursor.MarshalVT()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := writeLocalState(ctx, w.so, replayCursorStoreID, replayCursorKey, data); err != nil {
+				t.Fatal(err)
+			}
+			states, ok := cursor.states()
+			if !ok {
+				t.Fatal("fixture cursor does not reach its head")
+			}
+
+			// Loading twice must preserve every position and the saved record.
+			w.open(1 << 20)
+			for range 2 {
+				if err := w.a.loadCursor(ctx); err != nil {
+					t.Fatal(err)
+				}
+				if len(w.a.replay.restored) != len(cursor.GetOutcomes()) {
+					t.Fatal("loading dropped a cursor position")
+				}
+				for i, pos := range w.a.replay.restored {
+					outcome := cursor.GetOutcomes()[i]
+					hash := outcome.GetHash()
+					if rule == ReplayRefusalRule_REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER && outcome.GetReason() != "" {
+						hash = nil
+					}
+					if !bytes.Equal(pos.op.Hash, hash) || pos.reason != outcome.GetReason() || pos.seqno != outcome.GetSeqno() || !pos.state.EqualVT(states[i]) || !slices.EqualFunc(pos.payloads, outcome.GetPayloads(), (*block.BlockRef).EqualVT) || !pos.handlers.EqualVT(outcome.GetPayloadHandlers()) {
+						t.Fatalf("load changed position %d beyond its old refused hash", i)
+					}
+				}
+				stored, found, err := readLocalState(ctx, w.so, replayCursorStoreID, replayCursorKey)
+				if err != nil || !found || !bytes.Equal(stored, data) {
+					t.Fatalf("load rewrote the saved cursor: found %v, error %v", found, err)
+				}
+				if !w.a.replay.restoredFrom.EqualVT(cursor.GetBase()) {
+					t.Fatal("load changed the cursor's base")
+				}
+			}
+		})
+	}
+}
+
+// TestCursorRerunSurvivesRestart replays an old cursor through a missing handler.
+// A changed World invalidates successful successors; the non-idempotent revision
+// increment must survive exactly once beside member and deterministic refusals.
+func TestCursorRerunSurvivesRestart(t *testing.T) {
+	// Build a transaction that creates an object and needs the plugin handler.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	w := newFloorWorld(t)
+	w.open(1 << 20)
+
+	// Encode both refused operations through the same plugin transaction type.
+	pluginOp := func(key string) *sobject.OrderedOperation {
+		t.Helper()
+		tx, err := world_block_tx.NewTxApplyWorldOp(world_mock.NewMockWorldOp(key, "recovered"), w.so.peerID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return w.op(key, &WorldOp{Body: &WorldOp_ApplyTxOp{ApplyTxOp: &ApplyTxOp{Tx: &world_block_tx.Tx{
+			TxType: world_block_tx.TxType_TxType_BATCH,
+			TxBatch: &world_block_tx.TxBatch{Txs: []*world_block_tx.Tx{
+				{TxType: world_block_tx.TxType_TxType_CREATE_OBJECT, TxCreateObject: &world_block_tx.TxCreateObject{ObjectKey: key}},
+				tx,
+			}},
+		}}}})
+	}
+	ops := append(w.ops(2), pluginOp("member"), pluginOp("recovered"), w.createOp("after"))
+	ops[2].Refused = "member verdict"
+	ops = append(ops, w.op("increment", &WorldOp{Body: &WorldOp_ApplyTxOp{ApplyTxOp: &ApplyTxOp{Tx: &world_block_tx.Tx{
+		TxType:         world_block_tx.TxType_TxType_OBJECT_INC_REV,
+		TxObjectIncRev: &world_block_tx.TxObjectIncRev{ObjectKey: "k1"},
+	}}}}), w.op("duplicate", &WorldOp{Body: &WorldOp_ApplyTxOp{ApplyTxOp: &ApplyTxOp{Tx: &world_block_tx.Tx{
+		TxType:         world_block_tx.TxType_TxType_CREATE_OBJECT,
+		TxCreateObject: &world_block_tx.TxCreateObject{ObjectKey: "k1"},
+	}}}}))
+
+	// Save the old build's view, where only the handler operation was skipped.
+	for i, op := range ops {
+		historical := *op
+		if i == 3 {
+			historical.Refused = "an opaque old verdict"
+		}
+		reason, err := w.a.Apply(ctx, i, &historical)
+		if err != nil || (reason != "") != (i == 2 || i == 3 || i == 6) {
+			t.Fatalf("historical position %d = %q, %v", i, reason, err)
+		}
+	}
+	if err := w.a.saveCursor(ctx); err != nil {
+		t.Fatal(err)
+	}
+	w.a.waitBackground()
+
+	// Store the historical rule while keeping the saved Worlds and payloads.
+	old, err := readSavedCursor(ctx, w.so)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old.RefusalRule = ReplayRefusalRule_REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER
+	data, err := old.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeLocalState(ctx, w.so, replayCursorStoreID, replayCursorKey, data); err != nil {
+		t.Fatal(err)
+	}
+
+	// Restart after clearing in memory but before replay or a current-rule save.
+	w.open(1 << 20)
+	if err := w.a.loadCursor(ctx); err != nil {
+		t.Fatal(err)
+	}
+	w.open(1 << 20)
+	w.a.runCtx = ctx
+	defer func() { w.a.endHandlerWait() }()
+
+	// Preserve the member verdict and stop at the adjacent missing handler.
+	for i, op := range ops[:3] {
+		reason, err := w.a.Apply(ctx, i, op)
+		if err != nil || (reason != "") != (i == 2) {
+			t.Fatalf("replay prefix %d = %q, %v", i, reason, err)
+		}
+	}
+	reason, err := w.a.Apply(ctx, 3, ops[3])
+	var wait *sobject.BodyWait
+	if reason != "" || !errors.As(err, &wait) {
+		t.Fatalf("missing handler = %q, %v, want a typed wait", reason, err)
+	}
+	if len(w.a.replay.positions) != 3 {
+		t.Fatal("waiting recorded an outcome for the missing handler")
+	}
+
+	// A wait must leave the old cursor available to another restart.
+	stored, err := readSavedCursor(ctx, w.so)
+	if err != nil || !stored.EqualVT(old) {
+		t.Fatalf("restart or wait changed the saved cursor: %v", err)
+	}
+
+	// Register the real handler, take its wake, and replay the changed suffix.
+	release, err := w.tb.Bus.AddController(ctx, world.NewLookupOpController("test-plugin", "", world_mock.LookupMockOp), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	select {
+	case <-wait.Wake:
+	case <-ctx.Done():
+		t.Fatal("handler registration never woke replay")
+	}
+
+	// Recompute the successors on the World the recovered operation changed.
+	for i := 3; i < len(ops); i++ {
+		reason, err := w.a.Apply(ctx, i, ops[i])
+		if err != nil || (reason != "") != (i == 6) {
+			t.Fatalf("recovered position %d = %q, %v", i, reason, err)
+		}
+	}
+	head, seqno := w.a.replay.head()
+	if got := hasKeys(ctx, t, w.a.replay, head, "k1", "recovered", "after", "member"); !slices.Equal(got, []bool{true, true, true, false}) {
+		t.Fatalf("recovered World membership = %v", got)
+	}
+
+	// Read the revision to detect a lost or duplicated increment.
+	engine, err := w.a.replay.bind(ctx, head.GetHeadRef())
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = world.ExecTransaction(ctx, engine, false, func(ctx context.Context, ws world.WorldState) error {
+		// Release the object on every path after acquiring it.
+		obj, err := world.MustGetObject(ctx, ws, "k1")
+		if err != nil {
+			return err
+		}
+		defer world.ReleaseObjectState(obj)
+
+		// Exactly one increment follows the object's creation.
+		_, rev, err := obj.GetRootRef(ctx)
+		if err == nil && rev != 2 {
+			t.Fatalf("revision increment applied %d times, want once", rev-1)
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Restart once before saving and once after saving the current rule.
+	w.a.endHandlerWait()
+	for _, save := range []bool{false, true} {
+		if save {
+			if err := w.a.saveCursor(ctx); err != nil {
+				t.Fatal(err)
+			}
+			w.a.waitBackground()
+			current, err := readSavedCursor(ctx, w.so)
+			if err != nil || current.GetRefusalRule() != ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER {
+				t.Fatalf("current-rule save = %v, %v", current, err)
+			}
+		}
+		w.open(1 << 20)
+		for i, op := range ops {
+			reason, err := w.a.Apply(ctx, i, op)
+			if err != nil || (reason != "") != (i == 2 || i == 6) {
+				t.Fatalf("restart position %d = %q, %v", i, reason, err)
+			}
+		}
+		got, gotSeqno := w.a.replay.head()
+		if !got.EqualVT(head) || gotSeqno != seqno {
+			t.Fatalf("restart after save %v lost, duplicated or invented an effect: seqno %d, want %d", save, gotSeqno, seqno)
+		}
+		w.collect()
+		if got := hasKeys(ctx, t, w.a.replay, got, "k1", "recovered", "after", "member"); !slices.Equal(got, []bool{true, true, true, false}) {
+			t.Fatalf("collection after save %v changed World membership: %v", save, got)
+		}
+	}
 }
