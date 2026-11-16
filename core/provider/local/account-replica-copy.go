@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/volume"
 )
 
 // runAccountReplicaCopy hydrates the published graph of every accepted state
@@ -67,7 +68,14 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 	latest := ccontainer.NewCContainer[*replicaHead](nil)
 	copier := routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "copy-world-head"), routine.WithRetry(providerBackoff))
 	copier.SetRoutine(func(ctx context.Context) error {
-		return publishErr(ctx, a.copyAccountWorldHeads(ctx, so, state, local, latest, exchange))
+		err := publishErr(ctx, a.copyAccountWorldHeads(ctx, so, state, local, latest, exchange))
+		if errors.Is(err, volume.ErrReserve) {
+			// Retry once the volume leaves its disk reserve, not on a timer.
+			if werr := volume.WaitWritable(ctx, a.vol); werr != nil {
+				return werr
+			}
+		}
+		return err
 	})
 	copier.SetContext(ctx, false)
 	defer func() {
