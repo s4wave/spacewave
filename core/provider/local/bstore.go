@@ -643,11 +643,12 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// to its SQL backend leaves the local bucket as it is, and serve mode
 	// evicts nothing.
 	if sqlStore == nil && !placement.serveOnly {
+		evictLe := le.WithField("routine", "storage-evict")
 		eviction := routine.NewRoutineContainerWithLogger(
-			le.WithField("routine", "storage-evict"),
+			evictLe,
 			routine.WithRetry(providerBackoff),
 		)
-		eviction.SetRoutine(placement.runEviction)
+		eviction.SetRoutine(func(ctx context.Context) error { return placement.runEviction(ctx, evictLe) })
 		eviction.SetContext(ctx, true)
 		defer eviction.ClearContext()
 	}

@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -32,6 +33,17 @@ type EvictAdmit func(ctx context.Context, lastBytes int64) error
 // evictBatchBlocks bounds the entries one eviction step reads and commits.
 const evictBatchBlocks = 1024
 
+// evictRefusedRetry selects whether passes retain refused entries.
+// The default preserves the earlier refusal-dropping behavior until enabled.
+var evictRefusedRetry atomic.Bool
+
+// SetEvictRefusedRetry selects refusal retention for passes started afterward.
+// When on, a refused entry moves to the new epoch for a later pass to recheck.
+// Turning it off restores refusal-dropping behavior without enabling eviction.
+func SetEvictRefusedRetry(on bool) {
+	evictRefusedRetry.Store(on)
+}
+
 // EvictResult reports what an eviction pass did.
 type EvictResult struct {
 	// Evicted is the number of local values dropped.
@@ -40,9 +52,11 @@ type EvictResult struct {
 	EvictedBytes int64
 	// Requeued is the number of entries the caller kept, queued at the new
 	// epoch.
+	// This excludes Refused even when refusal retry moves those entries too.
 	Requeued int
-	// Refused is the number of blocks kept because the remote store may not
-	// hold them: a marker awaits upload, or the remote does not report them.
+	// Refused is the number of committed decisions to keep a block because a
+	// marker awaits upload or the remote does not report holding it.
+	// These entries move to the new epoch when refusal retry is enabled.
 	Refused int
 }
 
@@ -205,6 +219,13 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 // store holds the same hash.
 //
 // A non-nil admit paces the pass, as EvictAdmit describes.
+//
+// Eviction drops a local value only when no upload marker was observed and
+// the remote confirms holding it. Refusal retry never bypasses those checks.
+// With refusal retry enabled, an entry leaves the queue only after its local
+// value is dropped or already absent. A refused or caller-kept entry moves
+// atomically to the new epoch. A failed queue commit leaves the old entry.
+// An entry moved to the pass epoch is not visited again in that pass.
 func (s *Store) Evict(
 	ctx context.Context,
 	remote block.StoreOps,
@@ -225,6 +246,9 @@ func (s *Store) Evict(
 		return result, err
 	}
 	defer release()
+
+	// Keep one refusal policy for the entire pass, including all its batches.
+	retryRefused := evictRefusedRetry.Load()
 
 	// Advance the epoch, so entries this pass queues sort after the walk.
 	var epoch uint64
@@ -250,7 +274,7 @@ func (s *Store) Evict(
 			}
 		}
 		last = result.EvictedBytes
-		next, done, err := s.evictBatch(ctx, remote, epoch, maxBytes, keep, s.evictFrom, &result)
+		next, done, err := s.evictBatch(ctx, remote, epoch, maxBytes, keep, retryRefused, s.evictFrom, &result)
 		if err != nil {
 			return result, err
 		}
@@ -272,6 +296,7 @@ func (s *Store) evictBatch(
 	epoch uint64,
 	maxBytes int64,
 	keep func(*hash.Hash) bool,
+	retryRefused bool,
 	from []byte,
 	result *EvictResult,
 ) ([]byte, bool, error) {
@@ -336,13 +361,18 @@ func (s *Store) evictBatch(
 	var requeue []evictEntry
 	var drop []*block.PutBatchEntry
 	var evictedBytes int64
+	var kept, refused int
 	for i, entry := range batch {
 		switch {
 		case !held[i]:
 		case marked[i] || !stored[i]:
-			result.Refused++
+			refused++
+			if retryRefused {
+				requeue = append(requeue, entry)
+			}
 		case keep != nil && keep(entry.hash):
 			requeue = append(requeue, entry)
+			kept++
 		default:
 			drop = append(drop, &block.PutBatchEntry{Ref: refs[i], Tombstone: true})
 			evictedBytes += entry.size
@@ -357,11 +387,12 @@ func (s *Store) evictBatch(
 			return nil, false, errors.Wrap(err, "evict blocks")
 		}
 		result.Evicted += len(drop)
+		result.EvictedBytes += evictedBytes
 	}
 
 	// Delete the walked entries and queue the kept ones at the new epoch,
-	// reading without the writer lock. A refused block's next upload queues it
-	// again.
+	// reading without the writer lock. Refused entries retain their bytes and
+	// marker state; moving them past this pass bounds each to one attempt.
 	var delta int64
 	err = kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		delta = 0
@@ -386,7 +417,7 @@ func (s *Store) evictBatch(
 
 	// Report the batch.
 	s.addEvictStatus(delta, evictedBytes)
-	result.EvictedBytes += evictedBytes
-	result.Requeued += len(requeue)
+	result.Refused += refused
+	result.Requeued += kept
 	return next, done, nil
 }

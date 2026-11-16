@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/sirupsen/logrus"
 )
 
 // readSetMax bounds the blocks a read set records in one generation. Reads
@@ -430,7 +431,8 @@ const evictShortWait = 10 * time.Minute
 // mark. Uploads and writes change the status, which starts the next check,
 // or evictShortWait after a pass that fell short of the mark. Between passes
 // it saves the recorded reads every readSaveInterval.
-func (p *placementState) runEviction(ctx context.Context) error {
+func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) error {
+	// Save recorded reads between passes and during the shortfall wait.
 	save := time.NewTicker(readSaveInterval)
 	defer save.Stop()
 
@@ -443,6 +445,12 @@ func (p *placementState) runEviction(ctx context.Context) error {
 		var retry <-chan time.Time
 		if want := status.EvictBytes(); want > 0 {
 			result, err := p.evict(ctx, want)
+			le.WithFields(logrus.Fields{
+				"evicted":       result.Evicted,
+				"evicted-bytes": result.EvictedBytes,
+				"requeued":      result.Requeued,
+				"refused":       result.Refused,
+			}).Info("eviction pass")
 			if err != nil {
 				return err
 			}
