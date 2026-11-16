@@ -23,8 +23,10 @@ var PluginHostControllerFactories = [](func(bus bus.Bus) controller.Factory){
 
 // PluginHostController contains the plugin host controllers.
 type PluginHostController struct {
+	// WebHost runs Go Wasm web plugins.
 	WebHost *plugin_host_controller.Controller
-	JsHost  *plugin_host_controller.Controller
+	// JsHost runs JavaScript web plugins.
+	JsHost *plugin_host_controller.Controller
 }
 
 // StartPluginHost starts the plugin host.
@@ -38,6 +40,7 @@ func StartPluginHost(
 	pluginsDistRoot string,
 	webRuntimeID string,
 ) (ctrl *PluginHostController, rel func(), err error) {
+	// Start the Go Wasm host before attaching the JavaScript host.
 	webHostConf := plugin_host_web.NewConfig(webRuntimeID, "web/js/wasm")
 	webHostCtrl, _, webHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
 		ctx,
@@ -49,6 +52,7 @@ func StartPluginHost(
 		return nil, nil, err
 	}
 
+	// Release the first host if the JavaScript host cannot start.
 	jsHostConf := plugin_host_web.NewConfig(webRuntimeID, bldr_platform.PlatformID_JS)
 	jsHostCtrl, _, jsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
 		ctx,
@@ -61,11 +65,14 @@ func StartPluginHost(
 		return nil, nil, err
 	}
 
-	return &PluginHostController{
-			WebHost: webHostCtrl,
-			JsHost:  jsHostCtrl,
-		}, func() {
-			jsHostRef.Release()
-			webHostRef.Release()
-		}, nil
+	// Hand both hosts to the caller with one release function.
+	ctrl = &PluginHostController{
+		WebHost: webHostCtrl,
+		JsHost:  jsHostCtrl,
+	}
+	rel = func() {
+		jsHostRef.Release()
+		webHostRef.Release()
+	}
+	return ctrl, rel, nil
 }
