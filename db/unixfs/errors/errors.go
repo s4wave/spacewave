@@ -71,14 +71,10 @@ func NewUnixFSError(err error) *UnixFSError {
 		return nil
 	}
 
-	// Unwrap the error to find the base error.
+	// Unwrap the error to its innermost base error.
 	uErr := &UnixFSError{}
 	baseErr := err
-	for {
-		nerr := errors.Unwrap(err)
-		if nerr == nil || nerr == baseErr {
-			break
-		}
+	for nerr := errors.Unwrap(baseErr); nerr != nil; nerr = errors.Unwrap(baseErr) {
 		baseErr = nerr
 	}
 

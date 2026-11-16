@@ -1,6 +1,7 @@
 package unixfs_errors
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -143,6 +144,22 @@ func TestNewUnixFSError(t *testing.T) {
 			expectedError: &UnixFSError{
 				ErrorType: UnixFSErrorType_EMPTY_UNIXFS_ID,
 				ErrorBody: "",
+			},
+		},
+		{
+			name:       "Error wrapped with a stack",
+			inputError: errors.Wrap(ErrNotExist, "open notes"),
+			expectedError: &UnixFSError{
+				ErrorType: UnixFSErrorType_NOT_EXIST,
+				ErrorBody: "open notes",
+			},
+		},
+		{
+			name:       "Error wrapped twice",
+			inputError: fmt.Errorf("lookup: %w", fmt.Errorf("mkdir: %w", ErrExist)),
+			expectedError: &UnixFSError{
+				ErrorType: UnixFSErrorType_EXIST,
+				ErrorBody: "lookup: mkdir",
 			},
 		},
 		{
