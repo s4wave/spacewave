@@ -56,6 +56,11 @@ const (
 // its old key, inserts its replacement and adjusts bytes in one transaction.
 const evictRetryCommitBlocks = 64
 
+// ErrEvictRetryUnchecked is returned by a pass with refusal retry on and a nil
+// check: a refused entry stays queued under retry, and a pass without a check
+// would drop it on the queue's word alone.
+var ErrEvictRetryUnchecked = errors.New("eviction with refusal retry needs a remote check")
+
 // evictRefusedRetry selects whether passes retain refused entries.
 // The default preserves the earlier refusal-dropping behavior until enabled.
 var evictRefusedRetry atomic.Bool
@@ -397,6 +402,8 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 // after its local value is dropped or already absent. A refused or caller-kept
 // entry moves atomically to the new epoch. A failed queue commit leaves the old
 // entry. An entry moved to the pass epoch is not visited again in that pass.
+// With refusal retry enabled a nil check returns ErrEvictRetryUnchecked
+// before the pass changes anything.
 func (s *Store) Evict(
 	ctx context.Context,
 	check block.StoreOps,
@@ -419,7 +426,12 @@ func (s *Store) Evict(
 	defer release()
 
 	// Keep one refusal policy for the entire pass, including all its batches.
+	// Under retry a refused entry stays queued, so only a checked pass may
+	// read the queue.
 	retryRefused := evictRefusedRetry.Load()
+	if retryRefused && check == nil {
+		return result, ErrEvictRetryUnchecked
+	}
 
 	// Advance the epoch, so entries this pass queues sort after the walk.
 	var epoch uint64

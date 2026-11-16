@@ -477,3 +477,67 @@ func TestEvictRetryOnMixedBatch(t *testing.T) {
 	}
 	f.checkLocal(t)
 }
+
+// TestEvictRetryNeedsCheck checks that with refusal retry on, a pass without a
+// remote check fails before it changes anything, so an entry a checked pass
+// refused and kept queued is never dropped on the queue's word; and that with
+// retry off the unchecked pass drops it, as the evictor did before retry.
+func TestEvictRetryNeedsCheck(t *testing.T) {
+	// Fill an unmarked block the remote lacks, as a peer fill does.
+	SetEvictRefusedRetry(true)
+	t.Cleanup(func() { SetEvictRefusedRetry(false) })
+	ctx := t.Context()
+	s := newTestEnv(t).newStore(t, true)
+	remote := newInmemBlockStore()
+	data := []byte("unmarked fill the remote lacks")
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Refill(ref, &block.StoredBlock{Data: data, RefsKnown: true})
+	waitStatus(t, s, func(st Status) bool { return st.Refills == 1 })
+
+	// A checked pass refuses it and keeps it queued.
+	result, err := s.Evict(ctx, remote, 1<<30, nil, nil)
+	if err != nil || result != (EvictResult{Refused: 1}) {
+		t.Fatalf("checked pass = %+v, %v", result, err)
+	}
+	readEpochNow := func() uint64 {
+		var epoch uint64
+		if err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+			epoch, err = readEpoch(ctx, tx)
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return epoch
+	}
+	epoch := readEpochNow()
+
+	// An unchecked pass fails before advancing the epoch, and the local bytes
+	// and queue stay.
+	result, err = s.Evict(ctx, nil, 1<<30, nil, nil)
+	if !errors.Is(err, ErrEvictRetryUnchecked) || result != (EvictResult{}) {
+		t.Fatalf("unchecked pass under retry = %+v, %v", result, err)
+	}
+	if got := readEpochNow(); got != epoch {
+		t.Fatalf("unchecked pass advanced the epoch to %d from %d", got, epoch)
+	}
+	if got, found, err := s.GetBlock(ctx, ref); err != nil || !found || string(got) != string(data) {
+		t.Fatalf("local read after unchecked pass = %q, %v, %v", got, found, err)
+	}
+	if status, _ := s.GetStatus(); status.EvictableBytes != int64(len(data)) {
+		t.Fatalf("queue after unchecked pass = %+v", status)
+	}
+
+	// With retry off the unchecked pass trusts the queue and drops the
+	// block, as before retry.
+	SetEvictRefusedRetry(false)
+	result, err = s.Evict(ctx, nil, 1<<30, nil, nil)
+	if err != nil || result != (EvictResult{Evicted: 1, EvictedBytes: int64(len(data))}) {
+		t.Fatalf("unchecked pass with retry off = %+v, %v", result, err)
+	}
+	if _, found, err := s.values.GetBlock(ctx, ref); err != nil || found {
+		t.Fatalf("local value after unchecked pass with retry off: found=%v, err=%v", found, err)
+	}
+}
