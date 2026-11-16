@@ -608,8 +608,12 @@ func (l *lander) requireMoveHeld(ctx context.Context, move BucketRoots, held []*
 //  1. It reads Records.Held, never GetHolders: GetHolders reports one holder
 //     for a block with no count record, missing ones included. Held refuses
 //     a missing block, one without a child list, and one at zero holders,
-//     Dying or Dead, whose children may already be freed (Collector,
-//     invariant 2). A block with a list and no count record carries its
+//     Dying or Dead, whose children release at zero may already have freed
+//     (Collector, invariant 2). Under HoldUntilFree a stored Dead block
+//     still holds its children, so a boundary child under it reads Held and
+//     the move lands where release at zero refuses it; once the collector
+//     frees the block, and then its children, none has a list and the move
+//     is refused. A block with a list and no count record carries its
 //     implied holder: netting writes a zero record whenever a block reaches
 //     zero, and a free deletes both the list and the record, so neither
 //     reads Held. A Volume never adopted, such as one of format 7 or 8 whose
