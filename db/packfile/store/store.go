@@ -7,7 +7,6 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
@@ -446,10 +445,14 @@ func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, view *Manifest
 		bloomKeys[i] = bloom.NewKey([]byte(key))
 	}
 
-	// Select manifest packs whose bloom filters may contain the block keys.
+	// Select manifest packs whose bloom filters may contain the block keys,
+	// leaving packs backing off to the ordered probe.
 	var candidates []*packfile.PackfileEntry
 	view.entries.Scan(func(item *manifestEntry) bool {
 		if s.locator != nil && s.locator.Indexed(item.entry.GetId()) {
+			return true
+		}
+		if s.failures.backingOff(item.entry.GetId()) {
 			return true
 		}
 		if item.filter == nil || slices.ContainsFunc(bloomKeys, item.filter.TestKey) {
@@ -567,30 +570,45 @@ func (s *PackfileStore) probeCatalog(
 	if err != nil {
 		return err
 	}
-	err = s.probeList(ctx, candidates, lookup, visit)
-	if lookup.hit || !located || probeStopped(ctx, err) {
-		return err
-	}
+
+	// Probe the candidates, putting off each pack that backs off.
+	var deferred []*manifestEntry
+	err = s.probeList(ctx, candidates, lookup, visit, &deferred)
 
 	// The locator placed the key in a pack that lacks it or that failed, so
 	// its answer rules nothing out: test every filter the first round
-	// skipped, as the probe passes over any failing pack. The first round's
-	// failure stands when the rest find nothing.
-	tried := make(map[*manifestEntry]struct{}, len(candidates))
-	for _, item := range candidates {
-		tried[item] = struct{}{}
+	// skipped, as the probe passes over any failing pack. The first failure
+	// stands when the rest find nothing.
+	if !lookup.hit && located && !probeStopped(ctx, err) {
+		restErr := s.probeList(ctx, unlocatedCandidates(view, key, candidates), lookup, visit, &deferred)
+		if err == nil || lookup.hit || probeStopped(ctx, restErr) {
+			err = restErr
+		}
 	}
+	if lookup.hit || probeStopped(ctx, err) {
+		lookup.passedOver += len(deferred)
+		return err
+	}
+
+	// The packs backing off are the last that may hold the block, so try
+	// them now: a backoff never turns a possible read into an error.
+	lastErr := s.probeList(ctx, deferred, lookup, visit, nil)
+	if err == nil || lookup.hit || probeStopped(ctx, lastErr) {
+		return lastErr
+	}
+	return err
+}
+
+// unlocatedCandidates returns the filter candidates for key that the located
+// round did not try.
+func unlocatedCandidates(view *ManifestSnapshot, key []byte, tried []*manifestEntry) []*manifestEntry {
 	var rest []*manifestEntry
 	for _, item := range view.filterCandidates(bloom.NewKey(key)) {
-		if _, ok := tried[item]; !ok {
+		if !slices.Contains(tried, item) {
 			rest = append(rest, item)
 		}
 	}
-	restErr := s.probeList(ctx, rest, lookup, visit)
-	if lookup.hit || err == nil || probeStopped(ctx, restErr) {
-		return restErr
-	}
-	return err
+	return rest
 }
 
 // probeStopped reports whether a probe error ends the lookup instead of
@@ -604,12 +622,15 @@ func probeStopped(ctx context.Context, err error) bool {
 // lookup.hit when one does. A candidate that fails to open or read is passed
 // over, so a lost or damaged pack hides only the blocks it held: the first
 // such error is returned only when no later candidate holds the block. A
-// closed reader or a stopped context ends the probe at once.
+// closed reader or a stopped context ends the probe at once. When deferred is
+// not nil, a pack backing off is appended to it instead of probed, for the
+// caller to try after every other candidate.
 func (s *PackfileStore) probeList(
 	ctx context.Context,
 	candidates []*manifestEntry,
 	lookup *packLookup,
 	visit func(eng *PackReader) (bool, error),
+	deferred *[]*manifestEntry,
 ) error {
 	lookup.candidates += len(candidates)
 
@@ -618,7 +639,12 @@ func (s *PackfileStore) probeList(
 	var misses int
 	var firstErr error
 	for i, item := range candidates {
-		// Probe the candidate, passing over one that fails.
+		// Put off a pack backing off, and probe the candidate, passing over
+		// one that fails.
+		if deferred != nil && s.failures.backingOff(item.entry.GetId()) {
+			*deferred = append(*deferred, item)
+			continue
+		}
 		found, err := s.probeOne(ctx, item.entry, lookup, visit)
 		if err != nil {
 			if probeStopped(ctx, err) {
@@ -653,30 +679,29 @@ func (s *PackfileStore) probeList(
 }
 
 // probeOne opens one candidate pack and visits it, reporting whether it holds
-// the block. An empty pack holds nothing. A pack waiting out a failed load's
-// backoff returns that failure without a fetch, and each failure and
-// recovery is noted in the store's pack failures.
+// the block. An empty pack holds nothing. Each failure and recovery is noted
+// in the store's pack failures; a stopped probe notes nothing, so a cancelled
+// lookup never starts or extends a backoff.
 func (s *PackfileStore) probeOne(
 	ctx context.Context,
 	entry *packfile.PackfileEntry,
 	lookup *packLookup,
 	visit func(eng *PackReader) (bool, error),
 ) (bool, error) {
-	// Validate the candidate pack size, and skip a pack backing off.
+	// Validate the candidate pack size before opening its reader.
 	size, err := manifestPackSize(entry)
 	if err != nil || size <= 0 {
 		return false, err
 	}
-	id := entry.GetId()
-	if err := s.failures.backingOff(id, time.Now()); err != nil {
-		return false, err
-	}
 
 	// Borrow the candidate pack reader, and release it after the visit.
+	id := entry.GetId()
 	eng, release, err := s.getOrOpenEngine(id, size, entry.GetBlockCount())
 	if err != nil {
 		err = errors.Wrap(err, "opening packfile")
-		s.failures.failed(id, err, true, time.Now())
+		if !probeStopped(ctx, err) {
+			s.failures.failed(id, err, true)
+		}
 		return false, err
 	}
 	lookup.opened++
@@ -686,7 +711,7 @@ func (s *PackfileStore) probeOne(
 	// Note a failure, backing off a failed index load, or a recovery.
 	if err != nil {
 		if !probeStopped(ctx, err) {
-			s.failures.failed(id, err, eng.indexLoadFailed(), time.Now())
+			s.failures.failed(id, err, eng.indexLoadFailed())
 		}
 		return false, err
 	}
@@ -695,11 +720,12 @@ func (s *PackfileStore) probeOne(
 }
 
 // loadBloomHitIndexes loads the indexes of the bloom-filtered candidates
-// concurrently when more than one remains, ignoring load errors.
+// concurrently when more than one remains, ignoring load errors. A pack
+// backing off is left for the ordered probe.
 func (s *PackfileStore) loadBloomHitIndexes(ctx context.Context, candidates []*manifestEntry) {
 	var hits []*packfile.PackfileEntry
 	for _, item := range candidates {
-		if item.filter != nil {
+		if item.filter != nil && !s.failures.backingOff(item.entry.GetId()) {
 			hits = append(hits, item.entry)
 		}
 	}
@@ -837,6 +863,12 @@ func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, remove
 		for _, id := range removed {
 			remove(id)
 		}
+
+		// Keep failure records only for packs left in the catalog.
+		s.failures.retain(func(id string) bool {
+			_, ok := s.manifestByID[id]
+			return ok
+		})
 
 		// Publish the accepted pack descriptors into the catalog.
 		for _, entry := range entries {
