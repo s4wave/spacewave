@@ -1,6 +1,7 @@
 package spacewave_chat
 
 import (
+	"bytes"
 	"context"
 	"slices"
 	"strconv"
@@ -262,5 +263,18 @@ func TestChannelChainAcrossPages(t *testing.T) {
 	}
 	if _, _, ok, err := bob.readChannelSpan(c.ctx, count+1, 1); err != nil || ok {
 		t.Fatalf("span past the end: ok=%v err=%v", ok, err)
+	}
+
+	// A forward page over the RPC carries the same chain.
+	from := uint64(chatMessagePageSize + 1)
+	resp, err := bob.ListMessages(c.ctx, &spacewave_chat_rpc.ListMessagesRequest{FromIndex: &from, Limit: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (ChannelChain{}).Fold(all[:from]); !bytes.Equal(resp.GetBaseChain(), want[:]) {
+		t.Fatal("ListMessages chain does not fold the keys below its page")
+	}
+	if len(resp.GetMessages()) != 2 || !resp.GetHasMore() {
+		t.Fatalf("ListMessages read %d messages, has more %v", len(resp.GetMessages()), resp.GetHasMore())
 	}
 }

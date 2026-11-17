@@ -139,6 +139,9 @@ message ListMessagesResponse {
   repeated ChatMessageInfo messages = 1;
   // HasMore indicates more messages exist in the selected pagination direction.
   bool has_more = 2;
+  // BaseChain is the channel's prefix chain below from_index, read with the
+  // messages, set only for a from_index page.
+  bytes base_chain = 3;
 }
 
 // ListThreadsRequest selects an activity-ordered thread page.

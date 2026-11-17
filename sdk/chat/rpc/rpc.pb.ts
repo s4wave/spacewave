@@ -295,6 +295,11 @@ export interface ListMessagesResponse {
    * HasMore indicates more messages exist in the selected pagination direction.
    */
   hasMore?: boolean
+  /**
+   * BaseChain is the channel's prefix chain below from_index, read with the
+   * messages, set only for a from_index page.
+   */
+  baseChain?: Uint8Array
 }
 
 export const ListMessagesResponse: MessageType<ListMessagesResponse> =
@@ -303,6 +308,7 @@ export const ListMessagesResponse: MessageType<ListMessagesResponse> =
     () => [
       [1, 'messages', 11, 1, ChatMessageInfo.codec],
       [2, 'has_more', 8],
+      [3, 'base_chain', 12],
     ],
   )
 

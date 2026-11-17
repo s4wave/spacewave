@@ -255,6 +255,24 @@ func (r *ChatResource) ListMessages(
 		limit = defaultMessageListLimit
 	}
 
+	// A forward page reads its keys with the chain below them from one
+	// snapshot, so a reader following the channel can check its place.
+	if req.FromIndex != nil && req.BeforeIndex == nil && req.GetBeforeKey() == "" {
+		base, keys, count, ok, err := r.readSpan(ctx, req.GetFromIndex(), uint64(limit))
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, errors.New("from index exceeds channel message count")
+		}
+		messages, err := r.readMessages(ctx, keys)
+		if err != nil {
+			return nil, err
+		}
+		hasMore := req.GetFromIndex()+uint64(len(keys)) < count
+		return &spacewave_chat_rpc.ListMessagesResponse{Messages: messages, HasMore: hasMore, BaseChain: base[:]}, nil
+	}
+
 	// Resolve the requested pagination direction and its channel boundary.
 	channel, err := r.readChannel(ctx)
 	if err != nil {
@@ -1284,39 +1302,45 @@ func (r *ChatResource) readMessagePage(ctx context.Context, ws world.WorldState,
 	return page, err
 }
 
-// readChannelSpan is the channel's ChannelRead. It reads the chain below start
-// and up to limit keys from start inside one read transaction, so the chain
-// and the keys describe one order.
+// readChannelSpan is the channel's ChannelRead.
 func (r *ChatResource) readChannelSpan(ctx context.Context, start, limit uint64) (ChannelChain, []string, bool, error) {
+	base, keys, _, ok, err := r.readSpan(ctx, start, limit)
+	return base, keys, ok, err
+}
+
+// readSpan reads the chain below start, up to limit keys from start, and the
+// channel's message count inside one read transaction, so all three describe
+// one order. ok is false when the channel holds fewer than start entries.
+func (r *ChatResource) readSpan(ctx context.Context, start, limit uint64) (ChannelChain, []string, uint64, bool, error) {
 	// Take one snapshot of the channel and its pages.
 	ws := r.ws
 	if r.engine != nil {
 		tx, err := r.engine.NewTransaction(ctx, false)
 		if err != nil {
-			return ChannelChain{}, nil, false, err
+			return ChannelChain{}, nil, 0, false, err
 		}
 		defer tx.Discard()
 		ws = tx
 	}
 	channel, err := world.LookupObjectBody[ChatChannel](ctx, ws, r.objectKey)
 	if err != nil {
-		return ChannelChain{}, nil, false, err
+		return ChannelChain{}, nil, 0, false, err
 	}
 	count := channel.GetMessageCount()
 	if start > count {
-		return ChannelChain{}, nil, false, nil
+		return ChannelChain{}, nil, count, false, nil
 	}
 
 	// Read the chain below start, then the keys from start.
 	base, err := r.chainAt(ctx, ws, start)
 	if err != nil {
-		return ChannelChain{}, nil, false, err
+		return ChannelChain{}, nil, 0, false, err
 	}
 	keys, err := r.readMessageKeys(ctx, ws, start, min(start+limit, count))
 	if err != nil {
-		return ChannelChain{}, nil, false, err
+		return ChannelChain{}, nil, 0, false, err
 	}
-	return base, keys, true, nil
+	return base, keys, count, true, nil
 }
 
 // chainAt returns the chain of the channel's entries below index: the base of

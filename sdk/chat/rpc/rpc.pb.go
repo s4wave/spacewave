@@ -375,6 +375,9 @@ type ListMessagesResponse struct {
 	Messages []*ChatMessageInfo `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
 	// HasMore indicates more messages exist in the selected pagination direction.
 	HasMore bool `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"hasMore,omitempty"`
+	// BaseChain is the channel's prefix chain below from_index, read with the
+	// messages, set only for a from_index page.
+	BaseChain []byte `protobuf:"bytes,3,opt,name=base_chain,json=baseChain,proto3" json:"baseChain,omitempty"`
 }
 
 func (x *ListMessagesResponse) Reset() {
@@ -395,6 +398,13 @@ func (x *ListMessagesResponse) GetHasMore() bool {
 		return x.HasMore
 	}
 	return false
+}
+
+func (x *ListMessagesResponse) GetBaseChain() []byte {
+	if x != nil {
+		return x.BaseChain
+	}
+	return nil
 }
 
 // ListThreadsRequest selects an activity-ordered thread page.
@@ -1009,6 +1019,7 @@ func (m *ListMessagesResponse) CloneVT() *ListMessagesResponse {
 	}
 	r := new(ListMessagesResponse)
 	r.HasMore = m.HasMore
+	r.BaseChain = protobuf_go_lite.CloneBytes(m.BaseChain)
 	r.Messages = protobuf_go_lite.CloneVTSlice(m.Messages)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1500,6 +1511,9 @@ func (this *ListMessagesResponse) EqualVT(that *ListMessagesResponse) bool {
 		return false
 	}
 	if this.HasMore != that.HasMore {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.BaseChain, that.BaseChain) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2430,6 +2444,11 @@ func (x *ListMessagesResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("hasMore")
 		s.WriteBool(x.HasMore)
 	}
+	if len(x.BaseChain) > 0 || s.HasField("baseChain") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("baseChain")
+		s.WriteBytes(x.BaseChain)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2468,6 +2487,9 @@ func (x *ListMessagesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "has_more", "hasMore":
 			s.AddField("has_more")
 			x.HasMore = s.ReadBool()
+		case "base_chain", "baseChain":
+			s.AddField("base_chain")
+			x.BaseChain = s.ReadBytes()
 		}
 	})
 }
@@ -3804,6 +3826,11 @@ func (m *ListMessagesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.BaseChain) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.BaseChain)
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.HasMore {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.HasMore)
 		i--
@@ -4597,6 +4624,7 @@ func (m *ListMessagesResponse) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.HasMore)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.BaseChain)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5024,6 +5052,10 @@ func (x *ListMessagesResponse) MarshalProtoText() string {
 	if x.HasMore != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "has_more")
 		protobuf_go_lite.TextWriteBool(&sb, x.HasMore)
+	}
+	if len(x.BaseChain) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "base_chain")
+		protobuf_go_lite.TextWriteBytes(&sb, x.BaseChain)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -6078,6 +6110,14 @@ func (m *ListMessagesResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.HasMore = bool(v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BaseChain", wireType)
+			}
+			m.BaseChain, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.BaseChain, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
