@@ -1,0 +1,78 @@
+[
+  {
+    "name": "F1: pullGap reads a closed epoch as covered",
+    "replace": [
+      [
+        "ClosedGap == TRUE",
+        "ClosedGap == FALSE"
+      ]
+    ],
+    "expect": "Cover"
+  },
+  {
+    "name": "F2: the marker's validity lives in process memory",
+    "replace": [
+      [
+        "ClaimRetire == Retire(marker, mPos[1])",
+        "ClaimRetire == {[m |-> marker, ls |-> lines, sy |-> syn, ok |-> TRUE, f |-> 0]}"
+      ],
+      [
+        "IF claimed THEN \\E r",
+        "IF FALSE THEN \\E r"
+      ]
+    ],
+    "expect": "MarkerSound"
+  },
+  {
+    "name": "F4: a failed marker removal is reported durable",
+    "replace": [
+      [
+        "ls |-> PoisonLines(e), sy |-> PoisonSyn(e), ok |-> TRUE",
+        "ls |-> lines, sy |-> syn, ok |-> TRUE"
+      ]
+    ],
+    "expect": "MarkerSound"
+  },
+  {
+    "name": "F5: a write racing the attach is never seen",
+    "replace": [
+      [
+        "unseen' = TRUE",
+        "UNCHANGED unseen"
+      ]
+    ],
+    "expect": "MarkerSound",
+    "config": "EpochCover-early.cfg"
+  },
+  {
+    "name": "R1: a deploy to another build keeps the marker",
+    "replace": [
+      [
+        "marker' = IF k # lastKind THEN \"none\" ELSE marker",
+        "marker' = marker"
+      ]
+    ],
+    "expect": "MarkerSound"
+  },
+  {
+    "name": "The backend detaches the observer before Close",
+    "replace": [
+      [
+        "DetachFirst == FALSE",
+        "DetachFirst == TRUE"
+      ]
+    ],
+    "expect": "ResumeWhenClean"
+  },
+  {
+    "name": "A crash between the store's first write and Claim",
+    "replace": [
+      [
+        "CrashOK == ~(kind = \"new\" /\\ stage \\in Early)",
+        "CrashOK == TRUE"
+      ]
+    ],
+    "expect": "MarkerSound",
+    "config": "EpochCover-early.cfg"
+  }
+]
