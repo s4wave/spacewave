@@ -19,8 +19,10 @@ import (
 // learns it instead of seeing too few roots.
 //
 // It reads one edge list per owner node, so its cost is the owner nodes and
-// the blocks they hold directly, not the blocks under them.
-func OwnedRoots(ctx context.Context, rg RefGraphOps, skip func(node string) bool, fn func(owner string, ref *block.BlockRef) error) error {
+// the blocks they hold directly, not the blocks under them. It returns that
+// frontier's size, the owner nodes walked and the blocks reported, which is
+// also the entries it held in memory.
+func OwnedRoots(ctx context.Context, rg RefGraphOps, skip func(node string) bool, fn func(owner string, ref *block.BlockRef) error) (int, error) {
 	// Walk the owner nodes depth first from the root, each once.
 	seen := map[string]bool{NodeGCRoot: true}
 	reported := make(map[string]bool)
@@ -30,7 +32,7 @@ func OwnedRoots(ctx context.Context, rg RefGraphOps, skip func(node string) bool
 		stack = stack[:len(stack)-1]
 		targets, err := rg.GetOutgoingRefs(ctx, node)
 		if err != nil {
-			return errors.Wrap(err, "read the edges of "+FormatIRI(node))
+			return 0, errors.Wrap(err, "read the edges of "+FormatIRI(node))
 		}
 
 		// Report each block once, and queue each owner not yet seen.
@@ -40,11 +42,11 @@ func OwnedRoots(ctx context.Context, rg RefGraphOps, skip func(node string) bool
 			case strings.HasPrefix(target, prefixBlock):
 				ref, ok := ParseBlockIRI(target)
 				if !ok {
-					return errors.Errorf("%s holds a block node that does not parse: %q", FormatIRI(node), target)
+					return 0, errors.Errorf("%s holds a block node that does not parse: %q", FormatIRI(node), target)
 				}
 				reported[target] = true
 				if err := fn(node, ref); err != nil {
-					return err
+					return 0, err
 				}
 			default:
 				seen[target] = true
@@ -52,5 +54,5 @@ func OwnedRoots(ctx context.Context, rg RefGraphOps, skip func(node string) bool
 			}
 		}
 	}
-	return nil
+	return len(seen) + len(reported), nil
 }

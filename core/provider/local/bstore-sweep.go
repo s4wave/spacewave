@@ -13,6 +13,7 @@ import (
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/sirupsen/logrus"
 )
 
 // ErrSweepServeOnly is returned by the sweep's pack calls for a store in serve
@@ -36,6 +37,8 @@ type storeSweep struct {
 	roots block_gc.RefGraphOps
 	// bucket is the mounted store's bucket in that volume.
 	bucket string
+	// le logs for the mounted store, nil while it is not mounted.
+	le *logrus.Entry
 }
 
 // storeSweeps maps each block store to its storeSweep. Entries are never
@@ -56,7 +59,7 @@ func (t *bstoreTracker) mountSweep(wb *block_store_writeback.Store, bucketID str
 	// observer.
 	s := lookupSweep(adoptKey{volumeID: StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()), storeID: t.id})
 	s.mtx.Lock()
-	s.wb, s.roots, s.bucket = wb, t.a.vol.GetRefGraph(), bucketID
+	s.wb, s.roots, s.bucket, s.le = wb, t.a.vol.GetRefGraph(), bucketID, t.a.le
 	wb.SetObserver(s.observer)
 	s.mtx.Unlock()
 
@@ -64,7 +67,7 @@ func (t *bstoreTracker) mountSweep(wb *block_store_writeback.Store, bucketID str
 	return func() {
 		s.mtx.Lock()
 		if s.wb == wb {
-			s.wb, s.roots, s.bucket = nil, nil, ""
+			s.wb, s.roots, s.bucket, s.le = nil, nil, "", nil
 		}
 		s.mtx.Unlock()
 	}
@@ -132,7 +135,7 @@ func (r *sweepRoots) ListRoots(ctx context.Context, prefix string, fn func(block
 	// Read the mounted store's graph and bucket.
 	s := lookupSweep(r.key)
 	s.mtx.Lock()
-	wb, rg, bucket := s.wb, s.roots, s.bucket
+	wb, rg, bucket, le := s.wb, s.roots, s.bucket, s.le
 	s.mtx.Unlock()
 	if wb == nil || rg == nil || bucket == "" {
 		return errors.New("the block store is not mounted on a volume with an ownership graph")
@@ -150,13 +153,22 @@ func (r *sweepRoots) ListRoots(ctx context.Context, prefix string, fn func(block
 		_, isBucket := block_gc.ParseBucketIRI(node)
 		return isBucket && node != own
 	}
-	return block_gc.OwnedRoots(ctx, rg, skip, func(owner string, ref *block.BlockRef) error {
+	start, listed := time.Now(), 0
+	frontier, err := block_gc.OwnedRoots(ctx, rg, skip, func(owner string, ref *block.BlockRef) error {
 		name := owner + "/" + ref.MarshalString()
 		if !strings.HasPrefix(name, prefix) {
 			return nil
 		}
+		listed++
 		return fn(block.NamedRoot{Name: name, Ref: ref})
 	})
+	if err != nil {
+		return err
+	}
+
+	// Log the walk once per listing: its frontier is what it held in memory.
+	le.WithFields(logrus.Fields{"bucket": bucket, "frontier": frontier, "roots": listed, "took": time.Since(start).String()}).Info("listed the owned roots")
+	return nil
 }
 
 // SweepPacks returns the pack states of the mounted block store storeID of the

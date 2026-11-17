@@ -230,7 +230,7 @@ func (s *PackStore) Quarantine(ctx context.Context, ids []string) error {
 	if err := s.loadEntries(ctx); err != nil {
 		return err
 	}
-	release, err := s.holdMtx.Lock(ctx)
+	release, err := s.lockHold(ctx, "quarantine")
 	if err != nil {
 		return err
 	}
@@ -279,7 +279,7 @@ func (s *PackStore) Lift(ctx context.Context, ids []string) error {
 	if err := s.loadEntries(ctx); err != nil {
 		return err
 	}
-	release, err := s.holdMtx.Lock(ctx)
+	release, err := s.lockHold(ctx, "lift")
 	if err != nil {
 		return err
 	}
@@ -324,7 +324,7 @@ func (s *PackStore) Lift(ctx context.Context, ids []string) error {
 // writes nothing more.
 func (s *PackStore) noteFallback(ctx context.Context, id string, ref *block.BlockRef) error {
 	// Serialize with the other moves of the pack's state.
-	release, err := s.holdMtx.Lock(ctx)
+	release, err := s.lockHold(ctx, "fallback")
 	if err != nil {
 		return err
 	}
@@ -502,4 +502,34 @@ func (s *PackStore) statHeld(ctx context.Context, ref *block.BlockRef) (*block.B
 		return nil, err
 	}
 	return stat, nil
+}
+
+// lockHold takes holdMtx for op and returns its release, which logs the hold
+// when it is the longest this store has seen. A read that falls back to a
+// held pack waits behind every hold, so the longest hold bounds that wait.
+// Each call adds two clock reads and one atomic load; the log line, written
+// after the release, runs only on a new maximum.
+func (s *PackStore) lockHold(ctx context.Context, op string) (func(), error) {
+	// Take the lock and start the clock.
+	release, err := s.holdMtx.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	start := time.Now()
+
+	// Release it, then log a new longest hold.
+	return func() {
+		held := time.Since(start)
+		release()
+		for {
+			longest := s.holdLongest.Load()
+			if int64(held) <= longest {
+				return
+			}
+			if s.holdLongest.CompareAndSwap(longest, int64(held)) {
+				break
+			}
+		}
+		s.le.WithFields(logrus.Fields{"op": op, "held": held.String()}).Info("longest pack hold so far")
+	}, nil
 }

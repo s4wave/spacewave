@@ -116,6 +116,9 @@ type PackStore struct {
 	// holdMtx serializes the moves of the packs' sweep states, each a q/ row
 	// write followed by the manifest move.
 	holdMtx csync.Mutex
+	// holdLongest is the longest holdMtx was held through lockHold, in
+	// nanoseconds; a hold past it logs and raises it.
+	holdLongest atomic.Int64
 	// holdMoves counts the halves of the manifest moves setHolds made: odd
 	// while one runs. A read that misses both manifests while it changed
 	// reads again, since the pack may have moved between the two lookups.
