@@ -476,7 +476,7 @@ export class BrowserShellTabsStore {
           'The Shell Tab snapshot changed before this mutation committed.',
         )
       }
-      const next = transition(current)
+      const { result, ...next } = transition(current)
       const serialized = JSON.stringify(next)
       try {
         if (!this.storage) throw new Error('localStorage is unavailable')
@@ -491,7 +491,7 @@ export class BrowserShellTabsStore {
       }
       this.snapshot = cloneSnapshot(next)
       this.publish()
-      return next.result
+      return result
     })
   }
 
