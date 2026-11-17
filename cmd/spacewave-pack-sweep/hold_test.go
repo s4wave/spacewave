@@ -89,9 +89,9 @@ func serveAdmin(t *testing.T, store *block_store_s3.PackStore, dir string) *comm
 		Log:     b.wlog,
 		Refs:    packsweep.SourceRefs{store},
 		Enabled: func() bool { return true },
-		Operations: func() (time.Time, time.Time) {
+		Operations: func() (time.Time, time.Time, bool) {
 			ops := b.marking.OldestOperations()
-			return ops.Write, ops.Read
+			return ops.Write, ops.Read, true
 		},
 	})
 	handler, err := block_packsweep_admin.NewHTTPHandler(server, "/admin/pack-sweep")

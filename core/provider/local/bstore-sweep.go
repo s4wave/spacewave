@@ -2,11 +2,13 @@ package provider_local
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_packsweep_admin "github.com/s4wave/spacewave/db/block/packsweep/admin"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
@@ -29,6 +31,11 @@ type storeSweep struct {
 	observer block_store_writeback.WriteObserver
 	// wb is the mounted write-back, nil while the store is not mounted.
 	wb *block_store_writeback.Store
+	// roots is the ownership graph of the volume holding the mounted store,
+	// nil while the store is not mounted.
+	roots block_gc.RefGraphOps
+	// bucket is the mounted store's bucket in that volume.
+	bucket string
 }
 
 // storeSweeps maps each block store to its storeSweep. Entries are never
@@ -44,11 +51,12 @@ func lookupSweep(key adoptKey) *storeSweep {
 // mountSweep applies the store's write observer to the mount's write-back,
 // before the mount takes any write, and returns the function that detaches
 // it at unmount.
-func (t *bstoreTracker) mountSweep(wb *block_store_writeback.Store) func() {
-	// Record the mount and give it the store's observer.
+func (t *bstoreTracker) mountSweep(wb *block_store_writeback.Store, bucketID string) func() {
+	// Record the mount with its bucket's graph, and give it the store's
+	// observer.
 	s := lookupSweep(adoptKey{volumeID: StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()), storeID: t.id})
 	s.mtx.Lock()
-	s.wb = wb
+	s.wb, s.roots, s.bucket = wb, t.a.vol.GetRefGraph(), bucketID
 	wb.SetObserver(s.observer)
 	s.mtx.Unlock()
 
@@ -56,7 +64,7 @@ func (t *bstoreTracker) mountSweep(wb *block_store_writeback.Store) func() {
 	return func() {
 		s.mtx.Lock()
 		if s.wb == wb {
-			s.wb = nil
+			s.wb, s.roots, s.bucket = nil, nil, ""
 		}
 		s.mtx.Unlock()
 	}
@@ -79,21 +87,68 @@ func SetWriteObserver(providerID, accountID, storeID string, o block_store_write
 
 // OldestOperations returns when the oldest write and read operation still open
 // on the mounted block store storeID began, each zero for none, as
-// block_store_writeback.MarkingStore.OldestOperations reports them. A store
-// not mounted has none open.
-func OldestOperations(providerID, accountID, storeID string) (write, read time.Time) {
+// block_store_writeback.MarkingStore.OldestOperations reports them. ok is
+// false while the store is not mounted: its operations are then unknown, not
+// none, since a remount may be opening them.
+func OldestOperations(providerID, accountID, storeID string) (write, read time.Time, ok bool) {
 	// Find the open mount.
 	s := lookupSweep(adoptKey{volumeID: StorageVolumeID(providerID, accountID), storeID: storeID})
 	s.mtx.Lock()
 	wb := s.wb
 	s.mtx.Unlock()
 	if wb == nil {
-		return time.Time{}, time.Time{}
+		return time.Time{}, time.Time{}, false
 	}
 
 	// Report its oldest open operations.
 	ops := wb.OldestOperations()
-	return ops.Write, ops.Read
+	return ops.Write, ops.Read, true
+}
+
+// SweepRoots lists the roots of the mounted block store storeID of the
+// account for a pack sweep, from the ownership graph of the volume that holds
+// it, as block_gc.OwnedRoots finds them: every block the store's bucket holds
+// through a named root or a write no parent references yet, and every block a
+// reader of the volume pins or stages. The bucket's named roots are every
+// root its writers set through block.SetRetainedRoots, whatever its name, so
+// a kind of root added later is listed without a change here. Another
+// bucket's roots are left out. A store not mounted, a volume with no graph,
+// or a graph read that fails ends the listing with an error, so the sweep
+// keeps every pack.
+func SweepRoots(providerID, accountID, storeID string) block_packsweep_admin.RootLister {
+	return &sweepRoots{key: adoptKey{volumeID: StorageVolumeID(providerID, accountID), storeID: storeID}}
+}
+
+// sweepRoots lists a mounted store's roots from its volume's graph.
+type sweepRoots struct {
+	key adoptKey
+}
+
+// ListRoots calls fn with each root whose name starts with prefix, named by
+// the graph node that owns it.
+func (r *sweepRoots) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	// Read the mounted store's graph and bucket.
+	s := lookupSweep(r.key)
+	s.mtx.Lock()
+	rg, bucket := s.roots, s.bucket
+	s.mtx.Unlock()
+	if rg == nil || bucket == "" {
+		return errors.New("the block store is not mounted on a volume with an ownership graph")
+	}
+
+	// Walk the owners, leaving out the other buckets.
+	own := block_gc.BucketIRI(bucket)
+	skip := func(node string) bool {
+		_, isBucket := block_gc.ParseBucketIRI(node)
+		return isBucket && node != own
+	}
+	return block_gc.OwnedRoots(ctx, rg, skip, func(owner string, ref *block.BlockRef) error {
+		name := owner + "/" + ref.MarshalString()
+		if !strings.HasPrefix(name, prefix) {
+			return nil
+		}
+		return fn(block.NamedRoot{Name: name, Ref: ref})
+	})
 }
 
 // SweepPacks returns the pack states of the mounted block store storeID of the
