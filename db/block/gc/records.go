@@ -115,7 +115,8 @@ const (
 	// generation is Open, as Generation_GENERATION_OPEN describes; a write
 	// that marks the block's list takes its entry off, and so does the
 	// collector once its free proof holds for the block. An entry whose block
-	// the store does not list stays, and keeps the generation Open.
+	// the store does not list stays while its bytes remain, for the walk to
+	// list it again; with the bytes gone too the proof pops it.
 	kindFront byte = 'G'
 	// kindUnmarked keys an entry of the unmarked run, by the block: a block
 	// whose bytes or list the store holds without a list from content, or

@@ -6142,6 +6142,61 @@ func TestLivenessSettle(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("front entry whose list and bytes are lost", func(t *testing.T) {
+		// Root main moves onto the old U, which puts U on the front, and its
+		// release nets U Dead behind a younger record that moves root z onto
+		// Z, so U is not yet ripe. Damage then loses U's list: while its
+		// bytes remain, U stays on the front for the walk to decode. Once the
+		// bytes are lost too nothing can decode U, so the free proof must pop
+		// it, and the flip comes with A kept, rather than U keeping the
+		// generation Open.
+		tr := testTree{}
+		tr.add(t, "A")
+		tr.add(t, "K")
+		tr.add(t, "U", "K")
+		tr.add(t, "Z")
+		v, clk, store := oldStore(t, tr, "A", []string{"A", "K", "U"})
+		ctx := t.Context()
+		if err := rootOnto(t, v, tr, "U"); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: tr["U"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace - time.Second)
+		z := []block.NamedRoot{{Name: "z", Ref: tr["Z"].Ref}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("Z"), z); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(2 * time.Second)
+		if res := collectAll(t, v); res.Flipped || res.Popped != 0 || !has(t, store, front, tr["U"].Ref) {
+			t.Fatalf("collect = %+v, want U Dead on the front, not yet ripe", res)
+		}
+
+		// Lose U's list: while its bytes remain, U stays once it ripens.
+		lose := func(f func(p *physicalTx) error) {
+			if err := v.withDirectAtomic(ctx, f); err != nil {
+				t.Fatal(err)
+			}
+		}
+		lose(func(p *physicalTx) error { return p.rec.DeleteChildren(ctx, tr["U"].Ref) })
+		verify(t, v, tr, "A")
+		clk.Add(block_gc.DefaultGrace)
+		if res := collectAll(t, v); res.Flipped || !has(t, store, front, tr["U"].Ref) {
+			t.Fatalf("collect = %+v, want U on the front while its bytes remain", res)
+		}
+
+		// Lose U's bytes too, and collect until the flip.
+		lose(func(p *physicalTx) error { return p.blocks.RmBlock(ctx, tr["U"].Ref) })
+		res := collectUntil(t, v, clk, func(res block_gc.CollectResult) bool { return res.Flipped })
+		if has(t, store, front, tr["U"].Ref) {
+			t.Fatalf("collect = %+v, want U off the front", res)
+		}
+		settleAll(t, v, clk, store, tr)
+		requireStored(t, v, tr, true, "A", "Z")
+		requireStored(t, v, tr, false, "U")
+	})
+
 	t.Run("put again of a swept child before its unmarked parent", func(t *testing.T) {
 		// The old chain G -> P -> C is garbage, among 300 old leaves, and C's
 		// key sorts more than a sweep slice before P's. Between the slice

@@ -361,8 +361,8 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 	}
 
 	// Take the free-proven entries off the front, then try the flip.
-	more, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
-		return c.frontSlice(ctx, rec, res, from)
+	more, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
+		return c.frontSlice(ctx, rec, blocks, res, from)
 	})
 	if err != nil || more {
 		return more, err
@@ -587,8 +587,14 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 // (T1): the pop reads the tail index, synced to the journal's end in the
 // slice's transaction, as the free does. A slice that pops raises the pop
 // mark to the latest ripe sequence it popped, as kindPopMark describes, at
-// the cost of one key read and write per such slice.
-func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
+// the cost of one key read and write per such slice. A list lasts from the
+// block's put to its free, and the free parks while Open, so an entry the
+// store does not list is damage that lost the list. While the bytes remain
+// it stays, for the walk decodes them and writes the list again; once they
+// are gone too nothing can decode the block, which names no child the walk
+// could still find, and it pops under the same proof, so damage cannot keep
+// the generation Open.
+func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, error) {
 	// Pop only while Open, and while the free proof can hold.
 	state, err := rec.GetState(ctx)
 	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN {
@@ -646,8 +652,17 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectRe
 		if err != nil {
 			return from, false, err
 		}
-		if !listed || holders != 0 || ripe > cursor || c.tail.has(key) {
+		if holders != 0 || ripe > cursor || c.tail.has(key) {
 			continue
+		}
+		if !listed {
+			stored, err := blocks.GetBlockExists(ctx, ref)
+			if err != nil {
+				return from, false, err
+			}
+			if stored {
+				continue
+			}
 		}
 		if cursor < state.GetHoldMark() {
 			stalled = true
