@@ -346,6 +346,53 @@ func (c *Client) ObjectVersions(ctx context.Context, bucket, key string) ([]stri
 	}
 }
 
+// ListObjectVersions calls fn with every version and delete marker of every
+// key under prefix, including keys whose newest version is a delete marker,
+// which ListObjects leaves out. Each page lists the versions, then the delete
+// markers, so the order within a key is not the age order. Each request lists
+// up to 1000 entries.
+func (c *Client) ListObjectVersions(ctx context.Context, bucket, prefix string, fn func(ObjectVersion) error) error {
+	query := url.Values{"versions": {""}, "prefix": {prefix}}
+	for {
+		// Read one page of the listing.
+		resp, err := c.do(ctx, http.MethodGet, bucket, "", query, nil, nil)
+		if err != nil {
+			return err
+		}
+		if err := checkStatus(resp, bucket, prefix, http.MethodGet); err != nil {
+			_ = resp.Body.Close()
+			return err
+		}
+		body, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			return err
+		}
+
+		// Report the versions, then the delete markers.
+		doc := string(body)
+		for _, name := range []string{"Version", "DeleteMarker"} {
+			err := visitElements(doc, name, func(element string) error {
+				return fn(ObjectVersion{
+					Key:          html.UnescapeString(xmlElementText(element, "Key")),
+					VersionID:    html.UnescapeString(xmlElementText(element, "VersionId")),
+					DeleteMarker: name == "DeleteMarker",
+				})
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		// Continue from the next page, if any.
+		if xmlElementText(doc, "IsTruncated") != "true" {
+			return nil
+		}
+		query.Set("key-marker", html.UnescapeString(xmlElementText(doc, "NextKeyMarker")))
+		query.Set("version-id-marker", html.UnescapeString(xmlElementText(doc, "NextVersionIdMarker")))
+	}
+}
+
 // ListObjects calls fn with the key and size of every object under prefix, in
 // key order. Each request lists up to 1000 objects.
 func (c *Client) ListObjects(ctx context.Context, bucket, prefix string, fn func(key string, size int64) error) error {
