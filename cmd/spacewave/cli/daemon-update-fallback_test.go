@@ -30,14 +30,15 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 	t.Setenv(sharedDaemonUpdateTarget, stagedPath)
 	t.Setenv(sharedDaemonCorruptOnAccept, "")
 
-	// Set the daemon environment and a timeout context.
+	// Bound the full old/failed/fallback workflow separately from each startup.
 	t.Setenv(sharedDaemonFailSelected, "1")
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 	t.Setenv(daemon.StartupTimeoutEnvVar, "5s")
-	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
 	defer cancel()
+	started := time.Now()
 
 	// Watch the state directory and clean the fixture.
 	watcher, err := fsnotify.NewWatcher()
@@ -54,6 +55,7 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 	if err := daemon.StartExecutable(ctx, statePath, oldPath, daemon.LauncherCommand); err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("old daemon started after %s", time.Since(started))
 	socketPath := filepath.Join(statePath, socketName)
 	connector := daemon.NewConnector(nil, nil)
 	client, err := connector.Connect(ctx, statePath, socketPath)
@@ -76,11 +78,15 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	client.Close()
+	t.Logf("failing update accepted after %s", time.Since(started))
 
 	// Wait until the restored daemon is ready.
 	for {
 		select {
 		case event := <-watcher.Events:
+			if event.Name == filepath.Join(statePath, "failed-new-pid") {
+				t.Logf("selected child attempted startup after %s", time.Since(started))
+			}
 			if event.Name != socketPath+".ready" {
 				continue
 			}
@@ -108,6 +114,7 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 				t.Fatalf("fallback daemon did not serve Resource: %v", err)
 			}
 			fallbackClient.Close()
+			t.Logf("fallback ready and failed child joined after %s", time.Since(started))
 			return
 		case err := <-watcher.Errors:
 			t.Fatal(err)
