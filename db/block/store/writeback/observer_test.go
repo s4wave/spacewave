@@ -35,11 +35,13 @@ func (r *recordingObserver) take() []string {
 }
 
 // retainingStore stands in for a store that retains roots: a root change
-// writes its entries as one batch, and a pin holds nothing. The other root
-// calls are not made.
+// writes its entries as one batch, and a pin holds nothing but is recorded in
+// pins when set. The other root calls are not made.
 type retainingStore struct {
 	ownedStore
 	block.RootRetainer
+	// pins records each pin, when set.
+	pins *recordingObserver
 }
 
 // SupportsRootRetention reports that the store retains roots.
@@ -54,8 +56,11 @@ func (r retainingStore) SetRetainedRoots(ctx context.Context, entries []*block.P
 	return err
 }
 
-// PinRoot holds nothing.
-func (retainingStore) PinRoot(context.Context, *block.BlockRef) (func(), error) {
+// PinRoot holds nothing, and records the pin in pins.
+func (r retainingStore) PinRoot(_ context.Context, ref *block.BlockRef) (func(), error) {
+	if r.pins != nil {
+		r.pins.add("pin", ref.GetHash())
+	}
 	return func() {}, nil
 }
 
@@ -65,11 +70,11 @@ func (retainingStore) PinRoot(context.Context, *block.BlockRef) (func(), error) 
 func TestObserverSeesWrites(t *testing.T) {
 	ctx := t.Context()
 	env := newTestEnv(t)
-	s, err := NewStore(ctx, retainingStore{ownedStore: ownedStore{env.vol}}, env.vol, env.markers(t), testMarkersID, true)
+	obs := &recordingObserver{}
+	s, err := NewStore(ctx, retainingStore{ownedStore: ownedStore{env.vol}, pins: obs}, env.vol, env.markers(t), testMarkersID, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	obs := &recordingObserver{}
 	s.SetObserver(obs)
 	entries, refs := batchOf(t, "a", "b")
 	name := func(kind string, ref *block.BlockRef) string { return kind + " " + ref.GetHash().MarshalString() }
@@ -114,13 +119,15 @@ func TestObserverSeesWrites(t *testing.T) {
 		t.Fatalf("roots seen as %v", got)
 	}
 
-	// A reader's pin is seen as a root.
+	// A reader's pin is seen as a root once the store holds it, so a sweep
+	// that lists the pins after the log position it read finds a pin the log
+	// named before that position.
 	unpin, err := s.PinRoot(ctx, parentRef)
 	if err != nil {
 		t.Fatal(err)
 	}
 	unpin()
-	if got := obs.take(); !slices.Equal(got, []string{name("r", parentRef)}) {
+	if got := obs.take(); !slices.Equal(got, []string{name("pin", parentRef), name("r", parentRef)}) {
 		t.Fatalf("pin seen as %v", got)
 	}
 
