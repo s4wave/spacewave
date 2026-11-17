@@ -15,6 +15,12 @@ import (
 // out of the store, until the operator purges them.
 const trashDir = "trash/"
 
+// TrashPrefix returns the object prefix of the trash under prefix. A pack
+// store opened on it reads the trashed packs as its own.
+func TrashPrefix(prefix string) string {
+	return prefix + trashDir
+}
+
 // TrashPackKey returns the object key of pack id in the trash under prefix.
 func TrashPackKey(prefix, id string) string {
 	return prefix + trashDir + packDir + id

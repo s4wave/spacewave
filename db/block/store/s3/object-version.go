@@ -13,4 +13,8 @@ type ObjectVersion struct {
 	DeleteMarker bool
 	// Size is the version's bytes, zero for a delete marker.
 	Size int64
+	// ETag is the version's entity tag as listed, quotes included: the MD5
+	// of a single-part object, or a digest with a part count after a dash
+	// for a multipart one. Empty for a delete marker.
+	ETag string
 }

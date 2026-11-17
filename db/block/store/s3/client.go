@@ -126,6 +126,28 @@ func (c *Client) CopyObjectVersion(ctx context.Context, srcBucket, srcKey, srcVe
 	return nil
 }
 
+// BucketVersioning returns the bucket's versioning status as the service
+// reports it: "Enabled", "Suspended", or empty for a bucket that never kept
+// versions.
+func (c *Client) BucketVersioning(ctx context.Context, bucket string) (string, error) {
+	// Read the bucket's versioning configuration.
+	resp, err := c.do(ctx, http.MethodGet, bucket, "", url.Values{"versioning": {""}}, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if err := checkStatus(resp, bucket, "", http.MethodGet); err != nil {
+		return "", err
+	}
+
+	// Return its status.
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", errors.Wrap(err, "read versioning")
+	}
+	return xmlElementText(string(body), "Status"), nil
+}
+
 // HideObject deletes the current version of key without a version id, which
 // on a versioned bucket adds a delete marker, B2's hide marker, and keeps
 // every version under it.
@@ -445,6 +467,7 @@ func visitVersions(doc string, fn func(ObjectVersion) error) error {
 			VersionID:    html.UnescapeString(xmlElementText(content, "VersionId")),
 			DeleteMarker: name == "DeleteMarker",
 			Size:         size,
+			ETag:         html.UnescapeString(xmlElementText(content, "ETag")),
 		})
 		if err != nil {
 			return err

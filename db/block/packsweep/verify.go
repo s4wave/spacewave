@@ -11,6 +11,10 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
+// ReasonTrashed names a block only a trashed pack holds: live, and readable
+// only after a restore.
+const ReasonTrashed = "trashed"
+
 // Verify defaults.
 const (
 	// DefaultVerifyBatch is the frontier keys one verify transaction takes.
@@ -36,6 +40,10 @@ type VerifyOptions struct {
 	// Source serves the blocks, such as a pack store that reads the bucket
 	// alone.
 	Source packcopy.Source
+	// Trash serves the blocks of the packs a sweep moved to the trash, or is
+	// nil. A block Source lacks and Trash holds is named ReasonTrashed and
+	// still counts as bad.
+	Trash packcopy.Source
 	// Roots are the named roots, walked in order. A block an earlier root
 	// reached counts for that root alone.
 	Roots []block.NamedRoot
@@ -74,7 +82,7 @@ func Verify(ctx context.Context, opts *VerifyOptions) (*VerifyResult, error) {
 
 	// Walk each root in turn, sharing the set of blocks read.
 	res := &VerifyResult{BadReasons: make(map[string]uint64)}
-	v := &verifier{store: opts.Store, src: opts.Source, reads: reads, maxBad: maxBad, res: res}
+	v := &verifier{store: opts.Store, src: opts.Source, trash: opts.Trash, reads: reads, maxBad: maxBad, res: res}
 	for _, root := range opts.Roots {
 		if root.Ref.GetEmpty() {
 			continue
@@ -106,6 +114,8 @@ type verifier struct {
 	store kvtx.Store
 	// src serves the blocks.
 	src packcopy.Source
+	// trash serves the trashed packs' blocks, or is nil.
+	trash packcopy.Source
 	// reads is the blocks read at once.
 	reads int
 	// maxBad is the bad blocks the result lists.
@@ -241,6 +251,23 @@ func (v *verifier) readFrontier(ctx context.Context, n int) ([]*verifyRead, erro
 	return keys, nil
 }
 
+// read reads one block from the source, checking it against its hash. A block
+// the source lacks and the trash holds is named ReasonTrashed.
+func (v *verifier) read(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, string, error) {
+	// Read it from the source.
+	stored, reason, err := packcopy.ReadVerified(ctx, v.src, ref)
+	if err != nil || reason != packcopy.ReasonMissing || v.trash == nil {
+		return stored, reason, err
+	}
+
+	// Look for a missing block in the trash.
+	_, trashReason, err := packcopy.ReadVerified(ctx, v.trash, ref)
+	if err != nil || trashReason != "" {
+		return nil, reason, err
+	}
+	return nil, ReasonTrashed, nil
+}
+
 // readBlocks reads the keys' blocks, v.reads at a time, checking each
 // against its hash.
 func (v *verifier) readBlocks(ctx context.Context, keys []*verifyRead) error {
@@ -252,7 +279,7 @@ func (v *verifier) readBlocks(ctx context.Context, keys []*verifyRead) error {
 	for range min(v.reads, len(keys)) {
 		wg.Go(func() {
 			for k := range next {
-				stored, reason, err := packcopy.ReadVerified(ctx, v.src, k.ref)
+				stored, reason, err := v.read(ctx, k.ref)
 				if err != nil {
 					errOnce.Do(func() { firstErr = err })
 					continue

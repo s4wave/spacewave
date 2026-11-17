@@ -2,10 +2,13 @@
 // objects: PUT, copy of a key or of one version, ranged GET and HEAD,
 // ListObjectsV2 by prefix, and the versions of an overwritten or hidden key.
 // A delete with a version id removes that version; one without hides the key
-// under a delete marker, as a versioned bucket does.
+// under a delete marker, as a versioned bucket does. The bucket reports its
+// versioning, and a bucket with versioning off keeps one version per key.
 package s3test
 
 import (
+	"crypto/md5" //nolint:gosec // S3 defines a single-part ETag as the MD5 of the bytes.
+	"encoding/hex"
 	"encoding/xml"
 	"io"
 	"maps"
@@ -45,6 +48,9 @@ type Bucket struct {
 	// refuseVersions, when set, answers every version listing with 501, as
 	// a service without versioning or a key it cannot list does.
 	refuseVersions bool
+	// unversioned, when set, keeps one version per key and reports
+	// versioning off.
+	unversioned bool
 	// url is where the bucket serves.
 	url string
 	// uploads counts the multipart uploads begun.
@@ -114,6 +120,14 @@ func (b *Bucket) RefuseVersions(refuse bool) {
 	b.refuseVersions = refuse
 }
 
+// SetVersioning turns versioning on, as a new bucket has it, or off, where
+// each write replaces the key's history with its one version.
+func (b *Bucket) SetVersioning(enabled bool) {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	b.unversioned = !enabled
+}
+
 // Hide puts a delete marker on key as its newest version, as a lifecycle rule
 // or a plain delete does in a versioned bucket: the key leaves the object
 // listing and plain reads, and its older versions stay readable by id.
@@ -126,6 +140,14 @@ func (b *Bucket) Hide(key string) {
 // hide records a delete marker as the newest version of key, as a delete
 // without a version id does, and drops the object.
 func (b *Bucket) hide(key string) {
+	// Without versioning a delete removes the key outright.
+	if b.unversioned {
+		delete(b.history, key)
+		delete(b.objects, key)
+		return
+	}
+
+	// Otherwise it adds a marker over the versions.
 	b.versions++
 	b.history[key] = slices.Insert(b.history[key], 0, objectVersion{id: strconv.Itoa(b.versions), marker: true})
 	delete(b.objects, key)
@@ -191,6 +213,12 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "<Error><Code>NotImplemented</Code></Error>", http.StatusNotImplemented)
 	case query.Has("versions"):
 		b.listVersions(w, query.Get("prefix"))
+	case r.Method == http.MethodGet && query.Has("versioning"):
+		status := "<Status>Enabled</Status>"
+		if b.unversioned {
+			status = ""
+		}
+		_, _ = io.WriteString(w, "<VersioningConfiguration>"+status+"</VersioningConfiguration>")
 	case query.Get("list-type") == "2":
 		prefix := query.Get("prefix")
 		var result listResult
@@ -319,9 +347,13 @@ func (b *Bucket) Versions(prefix string) []string {
 
 // store makes data the current version of key.
 func (b *Bucket) store(key string, data []byte) {
+	// Make the data the newest version, or the only one without versioning.
 	b.versions++
 	version := objectVersion{id: strconv.Itoa(b.versions), data: data, modified: time.Now()}
 	b.objects[key] = data
+	if b.unversioned {
+		b.history[key] = nil
+	}
 	b.history[key] = slices.Insert(b.history[key], 0, version)
 }
 
@@ -349,11 +381,12 @@ func (b *Bucket) listVersions(w io.Writer, prefix string) {
 			continue
 		}
 		for _, version := range b.history[key] {
-			element := "Version"
-			if version.marker {
-				element = "DeleteMarker"
+			element, etag := "DeleteMarker", ""
+			if !version.marker {
+				sum := md5.Sum(version.data) //nolint:gosec // S3 defines a single-part ETag as the MD5 of the bytes.
+				element, etag = "Version", "<ETag>&quot;"+hex.EncodeToString(sum[:])+"&quot;</ETag>"
 			}
-			_, _ = io.WriteString(w, "<"+element+"><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId><Size>"+strconv.Itoa(len(version.data))+"</Size></"+element+">")
+			_, _ = io.WriteString(w, "<"+element+"><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId>"+etag+"<Size>"+strconv.Itoa(len(version.data))+"</Size></"+element+">")
 		}
 	}
 	_, _ = io.WriteString(w, "</ListVersionsResult>")
