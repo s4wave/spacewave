@@ -1,0 +1,12 @@
+[
+  {
+    "name": "worker reads the mutable child bus after teardown",
+    "replace": [["nilBus' = ~captured", "nilBus' = ~transport"]],
+    "expect": "BusRetained"
+  },
+  {
+    "name": "transport teardown leaves the pairing worker orphaned",
+    "replace": [["bound /\\ ~canceled /\\ (~transport \\/ ~attempt)", "bound /\\ ~canceled /\\ (~attempt)"]],
+    "expect": "OwnerEndsWorker"
+  }
+]

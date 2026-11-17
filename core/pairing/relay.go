@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/transport"
@@ -86,7 +87,7 @@ func (e *Engine) GenerateCode(ctx context.Context, relay Relay) (string, error) 
 
 	// Wait for the peer that resolves the code.
 	parentCtx, active := e.begin(true, true, "", string(code), "", StatusCodeGenerated)
-	go e.runSolicit(parentCtx, active, st)
+	go e.runRelay(parentCtx, active, st)
 	return string(code), nil
 }
 
@@ -104,18 +105,30 @@ func (e *Engine) CompletePeer(ctx context.Context, relay Relay, remotePeer peer.
 
 	// Hold the link in the background until the exchange ends.
 	parentCtx, active := e.begin(false, offerCurrent, label, "", remotePeer, StatusWaitingForPeer)
-	go func() {
-		// Establish the authenticated link, then run the solicitation.
-		_, release, err := link.EstablishLinkWithPeerEx(parentCtx, st.GetChildBus(), e.peerID, remotePeer, false)
-		if err != nil {
-			e.fail(active, StatusFailed, err)
-			return
-		}
-		defer release()
-		e.update(active, func(a *attempt) { a.snapshot.Status = StatusPeerConnected })
-		e.runSolicit(parentCtx, active, st)
-	}()
+	go e.runRelay(parentCtx, active, st)
 	return nil
+}
+
+// runRelay keeps link establishment and solicitation on one transport lifetime.
+func (e *Engine) runRelay(ctx context.Context, active *attempt, st *transport.SessionTransport) {
+	// Cancel the attempt's transport work when its captured bus generation stops.
+	err := st.WithChildBus(ctx, func(ctx context.Context, b bus.Bus) error {
+		// The receiving client first connects to the peer that registered the code.
+		if !active.offering {
+			_, release, err := link.EstablishLinkWithPeerEx(ctx, b, e.peerID, active.snapshot.RemotePeerID, false)
+			if err != nil {
+				return err
+			}
+			defer release()
+			e.update(active, func(a *attempt) { a.snapshot.Status = StatusPeerConnected })
+		}
+
+		// Solicit on the same captured bus even if the Session replaces its transport.
+		return e.runSolicit(ctx, active, b)
+	})
+	if err != nil {
+		e.fail(active, StatusFailed, err)
+	}
 }
 
 // ResolveCode consumes a code at the relay and returns the peer that

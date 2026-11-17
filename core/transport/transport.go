@@ -205,6 +205,35 @@ func (t *SessionTransport) GetChildBus() bus.Bus {
 	return childBus
 }
 
+// WithChildBus runs fn on one transport generation's bus.
+// The callback context ends with ctx or that transport generation.
+// The callback must honor cancellation and keep bus use inside the call.
+// Returns a context error without calling fn when the generation has stopped.
+func (t *SessionTransport) WithChildBus(ctx context.Context, fn func(context.Context, bus.Bus) error) error {
+	// Capture the bus and its owning lifetime in the same transport snapshot.
+	var b bus.Bus
+	var owner context.Context
+	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		b, owner = t.childBus, t.lifecycleCtx
+	})
+	if owner == nil || b == nil {
+		return context.Canceled
+	}
+
+	// Keep work on the captured generation until either owner cancels it.
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	stop := context.AfterFunc(owner, cancel)
+	defer stop()
+	if err := owner.Err(); err != nil {
+		return err
+	}
+	if err := runCtx.Err(); err != nil {
+		return err
+	}
+	return fn(runCtx, b)
+}
+
 // GetLinkedPeerIDsSnapshotWithWait returns linked peer IDs and their change channels.
 // Each controller retains its link state; callers wait on all returned channels.
 func (t *SessionTransport) GetLinkedPeerIDsSnapshotWithWait(peerIDs []peer.ID) (map[peer.ID]struct{}, []<-chan struct{}) {

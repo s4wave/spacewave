@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/session"
@@ -29,14 +30,8 @@ const (
 	approvalTimeout = 10 * time.Minute
 )
 
-func (e *Engine) runSolicit(ctx context.Context, active *attempt, transport *transport.SessionTransport) {
-	// The Session may stop its transport after code registration returns.
-	childBus := transport.GetChildBus()
-	if childBus == nil {
-		e.fail(active, StatusFailed, errors.New("pairing transport stopped before solicitation"))
-		return
-	}
-
+// runSolicit waits for enrollment on the bus retained by the relay worker.
+func (e *Engine) runSolicit(ctx context.Context, active *attempt, childBus bus.Bus) error {
 	// Retain the solicitation until this attempt ends or accepts a stream.
 	streams := make(chan link_solicit.SolicitMountedStream, 1)
 	_, ref, err := childBus.AddDirective(
@@ -50,8 +45,7 @@ func (e *Engine) runSolicit(ctx context.Context, active *attempt, transport *tra
 		}, nil, nil, nil),
 	)
 	if err != nil {
-		e.fail(active, StatusFailed, err)
-		return
+		return err
 	}
 	defer ref.Release()
 
@@ -59,7 +53,7 @@ func (e *Engine) runSolicit(ctx context.Context, active *attempt, transport *tra
 	var mounted link_solicit.SolicitMountedStream
 	select {
 	case <-ctx.Done():
-		return
+		return ctx.Err()
 	case mounted = <-streams:
 	}
 
@@ -69,8 +63,7 @@ func (e *Engine) runSolicit(ctx context.Context, active *attempt, transport *tra
 		if err == nil {
 			err = errors.New("pairing stream was already accepted")
 		}
-		e.fail(active, StatusFailed, err)
-		return
+		return err
 	}
 
 	// Keep the accepted stream open and capture the remote peer.
@@ -81,13 +74,14 @@ func (e *Engine) runSolicit(ctx context.Context, active *attempt, transport *tra
 	// Establish an authenticated link to the remote and run the exchange on it.
 	_, release, err := link.EstablishLinkWithPeerEx(ctx, childBus, e.peerID, remote, false)
 	if err != nil {
-		e.fail(active, StatusFailed, err)
-		return
+		return err
 	}
 	defer release()
 	e.runStream(ctx, active, strm, remote, nil)
+	return nil
 }
 
+// runDirect exchanges enrollment over an already authenticated pairing link.
 func (e *Engine) runDirect(ctx context.Context, active *attempt, lnk link.Link) {
 	// Open the pairing stream: the offerer accepts, the receiver opens and greets.
 	var strm stream.Stream

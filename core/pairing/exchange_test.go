@@ -16,7 +16,7 @@ func TestPairingSolicitStoppedTransport(t *testing.T) {
 	engine := &Engine{ctx: t.Context()}
 	ctx, active := engine.begin(true, true, "", "code", "", StatusCodeGenerated)
 	defer engine.Clear()
-	engine.runSolicit(ctx, active, &transport.SessionTransport{})
+	engine.runRelay(ctx, active, &transport.SessionTransport{})
 
 	// Require the attempt to fail with a message.
 	snapshot, _ := engine.Snapshot()
