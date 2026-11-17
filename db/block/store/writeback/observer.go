@@ -30,6 +30,30 @@ type MissObserver interface {
 	Missed()
 }
 
+// AttachObserver is a WriteObserver told when it becomes a store's observer
+// and when it stops being one, so it can refuse to vouch for writes while no
+// store shows them to it.
+type AttachObserver interface {
+	WriteObserver
+	// Attached reports whether the observer is now a store's observer. It
+	// must return at once.
+	Attached(on bool)
+}
+
+// TellAttached tells prev, when it is not next, that it was detached, and
+// next that it is attached. SetObserver calls it; an owner that keeps an
+// observer for a store not yet mounted calls it as it sets one.
+func TellAttached(prev, next WriteObserver) {
+	if prev != nil && prev != next {
+		if ao, ok := prev.(AttachObserver); ok {
+			ao.Attached(false)
+		}
+	}
+	if ao, ok := next.(AttachObserver); ok {
+		ao.Attached(true)
+	}
+}
+
 // observerSlot holds the observer of a MarkingStore and every copy of it, such
 // as its read operations and stages, so one SetObserver reaches them all.
 type observerSlot struct {
@@ -79,6 +103,12 @@ var loadHook func()
 // none, a write costs two atomic loads more. The observer it replaces is told
 // it misses the writes from here on, and a new one is told it missed the
 // writes the store accepted with none set.
+//
+// Attach and detach are exact; replacing one observer with another is not: a
+// write that loaded the old observer before the swap delivers to it after it
+// was told Missed, and the new one never learns of that write. A caller that
+// needs every write seen, such as a write log, sets its one observer or nil,
+// never another in its place.
 func (m *MarkingStore) SetObserver(o WriteObserver) {
 	// Swap the observer.
 	var next *WriteObserver
@@ -86,6 +116,11 @@ func (m *MarkingStore) SetObserver(o WriteObserver) {
 		next = &o
 	}
 	prev := m.observer.p.Swap(next)
+	var prevObserver WriteObserver
+	if prev != nil {
+		prevObserver = *prev
+	}
+	TellAttached(prevObserver, o)
 
 	// Tell each side what it misses; setting the same observer again tells
 	// it nothing.
