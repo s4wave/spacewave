@@ -71,9 +71,14 @@ type Log struct {
 	// while no epoch was open, or a store reporting writes it did not show.
 	// A set missed keeps the next start from resuming the closed epoch.
 	missed atomic.Bool
-	// resumeDir is the directory of the last epoch, whose resume marker a
-	// miss removes.
-	resumeDir atomic.Pointer[string]
+	// claimed is the directory Claim took, whose resume marker a miss
+	// retires.
+	claimed atomic.Pointer[string]
+	// unsynced is set when a retired segment failed to sync, which keeps
+	// Close from leaving a resume marker.
+	unsynced atomic.Bool
+	// retiring counts the retired segments still syncing.
+	retiring sync.WaitGroup
 
 	// mu guards the fields below.
 	mu sync.Mutex
@@ -93,6 +98,11 @@ type Log struct {
 	bytes int64
 	// broken is why the last epoch ended without a close line.
 	broken string
+	// closed is the close line of the claimed directory's last epoch, and
+	// resumable is set while that epoch may resume at it: Claim found its
+	// marker, or this log closed it cleanly, and no start used it since.
+	closed    Position
+	resumable bool
 	// scratch holds the encoded hash of the line being written.
 	scratch [hashScratchBytes]byte
 }
@@ -184,29 +194,63 @@ func (l *Log) Missed() {
 }
 
 // miss records a write the log did not see while no epoch was open. Only the
-// first miss after a close does any work: it removes the resume marker, so the
-// next start opens a new epoch. Every later call is one atomic load.
+// first miss does any work: it retires a resume marker Close left, so no later
+// start resumes past the write, and when the retirement cannot be made durable
+// it poisons the epoch, as retireMarker describes. With no marker, which is
+// the case until Close, that is one failed open. Every later call is one
+// atomic load.
 func (l *Log) miss() {
 	// Skip once recorded.
 	if l.missed.Load() || !l.missed.CompareAndSwap(false, true) {
 		return
 	}
 
-	// Remove the marker, durably, so no later start resumes past this write.
-	if dir := l.resumeDir.Load(); dir != nil {
-		if err := os.Remove(markerPath(*dir)); err == nil {
-			_ = syncDir(*dir)
+	// Retire the marker.
+	if dir := l.claimed.Load(); dir != nil {
+		if _, durable := retireMarker(*dir); !durable {
+			l.le.WithField("dir", *dir).Error("write log: a missed write could not retire the resume marker")
 		}
 	}
 }
 
+// Claim binds the log to dir and takes the directory's resume marker, durably,
+// so the epoch it names may resume only in this log, and only while it misses
+// no write. Call it before the store takes its first write, whether or not the
+// log will be on, with the log already the store's observer: a process that
+// writes the store without claiming leaves the marker for a later start to
+// resume past its writes. Set claims its directory when Claim did not.
+func (l *Log) Claim(dir string) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.claim(dir)
+}
+
+// claim binds the log to dir, taking its marker, unless it is bound to it.
+func (l *Log) claim(dir string) error {
+	// Keep a directory already claimed.
+	if prev := l.claimed.Load(); prev != nil && *prev == dir {
+		return nil
+	}
+
+	// Take the marker, then bind; a miss before the bind finds no marker it
+	// could retire, and missed keeps the epoch from resuming.
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	l.closed, l.resumable = takeMarker(dir)
+	l.claimed.Store(&dir)
+	return nil
+}
+
 // Set switches the log: nil turns it off, closing the open epoch with its
-// close line; options turn it on in their directory. Options equal to the
-// current ones change nothing, so a broken epoch stays ended until the log is
-// turned off and on again. Turning on resumes the directory's last epoch when
-// it closed cleanly and the log missed no write since, as resume describes;
-// otherwise it starts a new epoch and removes the segments of every other
-// epoch there, which no cycle can use once the epoch changed.
+// close line; options turn it on in their directory, claiming it. Options
+// equal to the current ones change nothing, so a broken epoch stays ended
+// until the log is turned off and on again. Turning on resumes the
+// directory's last epoch when it closed cleanly, in this log or in the one
+// whose marker Claim took, and the log missed no write since; otherwise it
+// starts a new epoch and removes the segments of every other epoch there,
+// which no cycle can use once the epoch changed. Turning off leaves no marker:
+// only Close does.
 func (l *Log) Set(opts *Options) error {
 	// Hold the log for the switch.
 	l.mu.Lock()
@@ -232,12 +276,15 @@ func (l *Log) Set(opts *Options) error {
 		return nil
 	}
 
-	// Close any epoch, then start one in the directory.
+	// Close any epoch, claim the directory, then start an epoch in it.
 	if err := l.closeEpoch(); err != nil {
 		l.le.WithError(err).Warn("write log: closing the epoch")
 	}
 	l.opts = next
-	l.resumeDir.Store(&next.Dir)
+	if err := l.claim(next.Dir); err != nil {
+		l.breakEpoch(err)
+		return err
+	}
 	if err := l.startEpoch(); err != nil {
 		l.breakEpoch(err)
 		return err
@@ -245,9 +292,23 @@ func (l *Log) Set(opts *Options) error {
 	return nil
 }
 
-// Close closes the open epoch with its close line and turns the log off.
+// Close closes the open epoch with its close line, turns the log off, and
+// leaves the resume marker that lets the next process's Claim resume the
+// epoch, unless a write escaped it. Call it once the store takes no more
+// writes: a later write is a miss that retires the marker again. It waits on
+// the last segment's sync, a sync of the marker and one of the directory.
 func (l *Log) Close() error {
-	return l.Set(nil)
+	// Close the epoch and turn the log off.
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	err := l.closeEpoch()
+	l.opts = Options{}
+
+	// Leave the marker once the close line is written.
+	if err != nil {
+		return err
+	}
+	return l.markResumable()
 }
 
 // Status returns the log's state.
@@ -284,22 +345,21 @@ func (l *Log) Position() (Position, bool) {
 // startEpoch opens an epoch in the configured directory: the last one
 // resumed, or a new one, removing the segments of the other epochs there.
 func (l *Log) startEpoch() error {
-	// Take the resume marker, durably, before turning on: a resumed epoch's
-	// lines then never follow a marker a crash could bring back.
-	if err := os.MkdirAll(l.opts.Dir, 0o755); err != nil {
-		return err
-	}
-	mark, marked, err := takeMarker(l.opts.Dir)
-	if err != nil {
-		return err
+	// Retire a marker this log's Close left, durably, before turning on: a
+	// resumed epoch's lines then never follow a marker a crash could bring
+	// back, and one that cannot be retired resumes nothing.
+	resumable := l.resumable
+	l.resumable = false
+	if _, durable := retireMarker(l.opts.Dir); !durable {
+		resumable = false
 	}
 
 	// Turn on before reading missed, so a write the log does not take is a
 	// miss this start sees; writes wait on the lock until the segment opens.
 	l.on.Store(true)
-	resume := marked && !l.missed.Load() && closedAt(l.opts.Dir, mark)
+	resume := resumable && !l.missed.Load() && closedAt(l.opts.Dir, l.closed)
 	if resume {
-		l.epoch, l.seq, l.broken = mark.Epoch, mark.Seq, ""
+		l.epoch, l.seq, l.broken = l.closed.Epoch, l.closed.Seq, ""
 	} else {
 		var id [8]byte
 		if _, err := rand.Read(id[:]); err != nil {
@@ -359,17 +419,14 @@ func (l *Log) openSegment() error {
 	return nil
 }
 
-// rotate closes the open segment and opens the next.
+// rotate retires the open segment and opens the next.
 func (l *Log) rotate() error {
-	// Close the full segment.
+	// Flush the full segment and retire it.
 	if err := l.w.Flush(); err != nil {
 		return err
 	}
-	file := l.file
+	l.retire(l.file)
 	l.file = nil
-	if err := file.Close(); err != nil {
-		return err
-	}
 
 	// Recount the directory, which a reader trimming it directly shrinks,
 	// and open the next segment.
@@ -392,59 +449,66 @@ func (l *Log) closeEpoch() error {
 	}
 	l.on.Store(false)
 
-	// Write the close line and close the file.
+	// Write the close line, then retire the file.
 	line := appendMarker(l.w.AvailableBuffer(), l.seq, kindClose, l.epoch)
 	_, err := l.w.Write(line)
 	if err == nil {
 		err = l.w.Flush()
 	}
 	l.bytes += int64(len(line))
-	if cerr := l.file.Close(); err == nil {
-		err = cerr
-	}
+	l.retire(l.file)
 	l.file = nil
 	if err != nil {
 		l.broken = err.Error()
 		return err
 	}
 
-	// Leave the marker that lets the next start resume the epoch, unless a
-	// write may have escaped it.
-	return l.markResumable()
+	// Remember the close line, which a start in this log may resume at.
+	l.closed = Position{Epoch: l.epoch, Seq: l.seq}
+	l.resumable = true
+	return nil
 }
 
-// markResumable makes the closed epoch's segments durable and writes the
-// marker naming its close line, so a start that finds it can continue the
-// epoch. A miss after the marker removes it, and one between the check and
-// the rename is caught by the check after it.
+// retire syncs and closes a finished segment off the writer's path. Every
+// segment but the open one is retired, so a close waits on one sync.
+func (l *Log) retire(file io.WriteCloser) {
+	l.retiring.Add(1)
+	go func() {
+		defer l.retiring.Done()
+		synced := false
+		if f, ok := file.(interface{ Sync() error }); ok {
+			synced = f.Sync() == nil
+		}
+		if err := file.Close(); err != nil || !synced {
+			l.unsynced.Store(true)
+		}
+	}()
+}
+
+// markResumable writes the marker naming the closed epoch's close line, once
+// its segments are durable, so the next process's Claim can resume it. A miss
+// after the marker retires it, and one between the check and the rename is
+// caught by the check after it.
 func (l *Log) markResumable() error {
-	// Skip when a write escaped the epoch.
-	dir := l.opts.Dir
-	if l.missed.Load() {
+	// Skip when the epoch cannot resume or a write escaped it.
+	dir := l.claimed.Load()
+	if dir == nil || !l.resumable || l.missed.Load() {
 		return nil
 	}
 
-	// Sync every segment of the epoch, so the marker implies its lines.
-	segs, err := listSegments(dir)
-	if err != nil {
-		return err
-	}
-	for _, seg := range epochSegments(segs, l.epoch) {
-		if err := syncFile(seg.path(dir)); err != nil {
-			return err
-		}
+	// Wait for the retired segments' syncs, so the marker implies the lines.
+	l.retiring.Wait()
+	if l.unsynced.Load() || !closedAt(*dir, l.closed) {
+		return nil
 	}
 
-	// Write the marker beside them, then drop it if a miss raced or the
-	// directory cannot make it durable.
-	if err := writeMarker(dir, Position{Epoch: l.epoch, Seq: l.seq}); err != nil {
+	// Write the marker beside them, then retire it if a miss raced.
+	if err := writeMarker(*dir, l.closed); err != nil {
+		_, _ = retireMarker(*dir)
 		return err
 	}
-	if err := syncDir(dir); err != nil || l.missed.Load() {
-		if rerr := os.Remove(markerPath(dir)); rerr != nil && !os.IsNotExist(rerr) && err == nil {
-			err = rerr
-		}
-		return err
+	if l.missed.Load() {
+		_, _ = retireMarker(*dir)
 	}
 	return nil
 }

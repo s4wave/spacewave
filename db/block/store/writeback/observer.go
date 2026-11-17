@@ -41,18 +41,39 @@ type observerSlot struct {
 
 // load returns the observer for a write, nil for none, recording a write no
 // observer saw.
+//
+// A write that finds no observer stores unseen, then loads the observer
+// again; SetObserver swaps the observer, then loads unseen. The atomics are
+// sequentially consistent, so for a write racing the first attach either its
+// second load sees the new observer, which then sees the write, or the
+// attach's load sees unseen and reports the miss: both missing would order
+// the store before the second load before the swap before the attach's load,
+// which then sees the store.
 func (s *observerSlot) load() WriteObserver {
+	// Return the observer when one is set.
 	if s == nil {
 		return nil
 	}
 	if p := s.p.Load(); p != nil {
 		return *p
 	}
+
+	// Record the unseen write, then look again.
+	if loadHook != nil {
+		loadHook()
+	}
 	if !s.unseen.Load() {
 		s.unseen.Store(true)
 	}
+	if p := s.p.Load(); p != nil {
+		return *p
+	}
 	return nil
 }
+
+// loadHook, when set by a test, runs in load between finding no observer and
+// recording the unseen write, where an attach races the write.
+var loadHook func()
 
 // SetObserver sets the observer of the store's writes, nil for none. With
 // none, a write costs two atomic loads more. The observer it replaces is told

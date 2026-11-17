@@ -186,6 +186,44 @@ func TestObserverSeesWrites(t *testing.T) {
 	}
 }
 
+// missObserver is a recordingObserver that records Missed.
+type missObserver struct {
+	recordingObserver
+	missed bool
+}
+
+func (m *missObserver) Missed() {
+	m.mu.Lock()
+	m.missed = true
+	m.mu.Unlock()
+}
+
+// TestFirstAttachRace attaches the first observer while a write that found
+// none is under way, and checks the observer either sees the write or is told
+// it missed one.
+func TestFirstAttachRace(t *testing.T) {
+	// Attach inside the write's window, after it found no observer.
+	m := NewMarkingStore(newUntrackedBlockStore(), func(context.Context, []Mark) error { return nil })
+	obs := &missObserver{}
+	loadHook = func() {
+		loadHook = nil
+		m.SetObserver(obs)
+	}
+	defer func() { loadHook = nil }()
+	if _, _, err := m.PutBlock(t.Context(), []byte("raced"), nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// The write is seen or reported.
+	seen := obs.take()
+	obs.mu.Lock()
+	missed := obs.missed
+	obs.mu.Unlock()
+	if len(seen) == 0 && !missed {
+		t.Fatal("the write escaped the attach: neither seen nor reported missed")
+	}
+}
+
 // TestNoObserverCostsNothing checks a batch with no observer allocates
 // nothing in the observer.
 func TestNoObserverCostsNothing(t *testing.T) {

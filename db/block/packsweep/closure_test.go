@@ -2,6 +2,7 @@ package packsweep
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -248,36 +249,27 @@ func TestPullGaps(t *testing.T) {
 		t.Fatal("pull ran from another R")
 	}
 
-	// Closing the epoch pauses its cover, read from the directory too, and
-	// turning the log on again resumes it.
+	// A pull that reaches the close line while the log is off ends the cover,
+	// read from the directory too: the store may take writes the log misses.
 	if err := log.Close(); err != nil {
 		t.Fatal(err)
 	}
 	pull, err := PullLog(ctx, &PullOptions{Store: store, Source: writelog.Dir(dir)})
-	if err != nil || pull.Gap != "" || pull.Lines != 1 {
+	if err != nil || !strings.Contains(pull.Gap, "closed") || pull.Lines != 1 {
 		t.Fatalf("pull after close = %+v, %v", pull, err)
 	}
-	if err := log.Set(&writelog.Options{Dir: dir, SegmentBytes: 1024}); err != nil {
-		t.Fatal(err)
-	}
-	log.Put(h.GetHash())
-	if pull, err = PullLog(ctx, &PullOptions{Store: store, Source: log}); err != nil || pull.Gap != "" || pull.Lines != 2 {
-		t.Fatalf("pull after resume = %+v, %v", pull, err)
+	if again, err := FollowLog(ctx, &PullOptions{Store: store, Source: writelog.Dir(dir)}, time.Millisecond); err != nil || *again != *pull {
+		t.Fatalf("follow after the gap = %+v, %v", again, err)
 	}
 
-	// A write while the log is off ends its cover.
-	if err := log.Close(); err != nil {
-		t.Fatal(err)
-	}
-	log.Put(h.GetHash())
+	// A pull after the log resumed crosses the close line.
+	store = store_kvtx_inmem.NewStore()
 	if err := log.Set(&writelog.Options{Dir: dir, SegmentBytes: 1024}); err != nil {
 		t.Fatal(err)
 	}
-	if pull, err = PullLog(ctx, &PullOptions{Store: store, Source: log}); err != nil || pull.Gap == "" || pull.Lines != 2 {
-		t.Fatalf("pull after a missed write = %+v, %v", pull, err)
-	}
-	if again, err := FollowLog(ctx, &PullOptions{Store: store, Source: log}, time.Millisecond); err != nil || *again != *pull {
-		t.Fatalf("follow after the gap = %+v, %v", again, err)
+	log.Put(h.GetHash())
+	if pull, err = PullLog(ctx, &PullOptions{Store: store, Source: log, Start: start.String()}); err != nil || pull.Gap != "" || pull.Lines != 2 {
+		t.Fatalf("pull after resume = %+v, %v", pull, err)
 	}
 
 	// A new epoch loses the old one's lines.
