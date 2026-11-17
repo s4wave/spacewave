@@ -927,16 +927,14 @@ func (s *Store[T]) fillWALGap(ctx context.Context, mode holdMode) (holdMode, boo
 			// Caught up with no new frame, or with the writers held back
 			// few enough to copy within walFlowWaitMax: close the gap in a
 			// free turn, or queue for one once the log is far past its
-			// bound, ahead of the writers once they are held back.
+			// bound, in arrival order behind the writers then waiting: a
+			// lower priority would yield to every writer arriving after it,
+			// and writers that never pause would leave the gap unclosed.
 			if release, ok := s.writeMtx.TryLock(); ok {
 				return holdOnFall, gap(release)
 			}
 			if size >= walGapQueueMultiple*s.walBound {
-				prio := writerBackground
-				if behind {
-					prio = writerForeground
-				}
-				release, err := s.writeMtx.Lock(ctx, prio)
+				release, err := s.writeMtx.Lock(ctx, writerForeground)
 				if err != nil {
 					return mode, true
 				}
