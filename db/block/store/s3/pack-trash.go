@@ -96,6 +96,11 @@ func (s *PackStore) BeginTrash(ctx context.Context, ids []string) error {
 // call naming only removed packs repairs the rows of its keys alone. A pack
 // that is not trashing, that a read missed while trashing, or whose entry or
 // file is not in the trash fails the call before anything changes.
+//
+// The bucket reads that check the trash run before holdMtx is taken, since a
+// fallback read takes it too: under it the call only rechecks the states and
+// misses in the index and repairs the rows its keys carry, at most
+// MaxBackendKeys of the sweep's keys and holders, in local transactions.
 func (s *PackStore) Remove(ctx context.Context, ids []string, keys []KeyHolders) error {
 	return s.remove(ctx, ids, keys, true)
 }
@@ -120,41 +125,35 @@ func (s *PackStore) remove(ctx context.Context, ids []string, keys []KeyHolders,
 	if err := s.loadEntries(ctx); err != nil {
 		return err
 	}
+
+	// Choose the trashing packs, and check each pack's entry and file are in
+	// the trash and out of the store, outside the lock.
+	remove, err := s.trashedPacks(ctx, ids)
+	if err != nil {
+		return err
+	}
+	for _, id := range remove {
+		if err := s.checkTrashed(ctx, id); err != nil {
+			return errors.Wrap(err, "remove pack "+id)
+		}
+	}
+
+	// Under the lock, check again that each is trashing and no read missed it
+	// since.
 	release, err := s.holdMtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
-
-	// Choose the trashing packs the table still holds, refusing one a read
-	// missed.
-	var remove []string
-	for _, id := range ids {
-		state, ok := s.index.heldState(id)
-		if !ok || slices.Contains(remove, id) {
-			continue
-		}
-		if state != PackTrashing {
-			return errors.Errorf("remove pack %s: it is %s, not trashing", id, state)
-		}
-		hold, _, err := s.index.readHold(ctx, id)
-		if err != nil {
-			return err
-		}
-		if hold.event != 0 {
-			return errors.Errorf("remove pack %s: a read missed it while trashing; restore it", id)
-		}
-		remove = append(remove, id)
+	again, err := s.trashedPacks(ctx, remove)
+	if err != nil {
+		return err
+	}
+	if len(again) != len(remove) {
+		return errors.New("remove packs: a pack left the table during the call")
 	}
 	if len(remove) == 0 {
 		return s.index.repairRows(ctx, nil, keys, drop)
-	}
-
-	// Check each pack's entry and file are in the trash and out of the store.
-	for _, id := range remove {
-		if err := s.checkTrashed(ctx, id); err != nil {
-			return errors.Wrap(err, "remove pack "+id)
-		}
 	}
 
 	// Repair the h rows, then drop the packs.
@@ -172,12 +171,40 @@ func (s *PackStore) remove(ctx context.Context, ids []string, keys []KeyHolders,
 	return nil
 }
 
+// trashedPacks returns the trashing packs of ids the table still holds,
+// refusing a pack that is not trashing or that a read missed. It reads only
+// the index.
+func (s *PackStore) trashedPacks(ctx context.Context, ids []string) ([]string, error) {
+	// Choose each trashing pack once, checking its row for a miss.
+	var remove []string
+	for _, id := range ids {
+		state, ok := s.index.heldState(id)
+		if !ok || slices.Contains(remove, id) {
+			continue
+		}
+		if state != PackTrashing {
+			return nil, errors.Errorf("remove pack %s: it is %s, not trashing", id, state)
+		}
+		hold, _, err := s.index.readHold(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		if hold.event != 0 {
+			return nil, errors.Errorf("remove pack %s: a read missed it while trashing; restore it", id)
+		}
+		remove = append(remove, id)
+	}
+	return remove, nil
+}
+
 // Restore registers again the trashing packs ids whose entries and files the
 // command moved back from the trash, as for a pack a read missed while it was
 // trashing. A registered pack stays as it is, so a repeated call changes
 // nothing; a pack the table lacks, a quarantined one, or one whose entry or
 // file is not back in the store fails the call before any row is written. The
-// pack's row keeps its miss, with the restore's time.
+// pack's row keeps its miss, with the restore's time. The bucket reads run
+// before holdMtx is taken; under it the call rechecks the states and writes
+// one row per pack.
 func (s *PackStore) Restore(ctx context.Context, ids []string) error {
 	// Refuse a store that holds nothing.
 	if s.index == nil || !s.keepPacks {
@@ -186,34 +213,31 @@ func (s *PackStore) Restore(ctx context.Context, ids []string) error {
 	if err := s.loadEntries(ctx); err != nil {
 		return err
 	}
+
+	// Choose the trashing packs and check each is back in the store, outside
+	// the lock.
+	move, err := s.restoringPacks(ids)
+	if err != nil || len(move) == 0 {
+		return err
+	}
+	for _, id := range move {
+		if err := s.checkRestored(ctx, id); err != nil {
+			return errors.Wrap(err, "restore pack "+id)
+		}
+	}
+
+	// Under the lock, check again that each is still trashing.
 	release, err := s.holdMtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
-
-	// Choose the trashing packs, refusing a pack the sweep has not trashed.
-	var move []string
-	for _, id := range ids {
-		state, ok := s.index.heldState(id)
-		switch {
-		case !ok:
-			return errors.Errorf("restore pack %s: the index holds no such pack", id)
-		case state == PackQuarantined:
-			return errors.Errorf("restore pack %s: it is quarantined, not trashing", id)
-		case state == PackTrashing && !slices.Contains(move, id):
-			move = append(move, id)
-		}
+	again, err := s.restoringPacks(move)
+	if err != nil {
+		return err
 	}
-	if len(move) == 0 {
-		return nil
-	}
-
-	// Check each pack is back in the store.
-	for _, id := range move {
-		if err := s.checkRestored(ctx, id); err != nil {
-			return errors.Wrap(err, "restore pack "+id)
-		}
+	if len(again) != len(move) {
+		return errors.New("restore packs: a pack left the trashing state during the call")
 	}
 
 	// Record the restores with each miss, then return the packs to the reads.
@@ -232,6 +256,26 @@ func (s *PackStore) Restore(ctx context.Context, ids []string) error {
 	s.setHolds(move, PackRegistered)
 	s.le.WithField("packs", len(move)).Info("restored trashed packs")
 	return nil
+}
+
+// restoringPacks returns the trashing packs of ids, refusing a pack the table
+// lacks or one that is quarantined. It reads only the index.
+func (s *PackStore) restoringPacks(ids []string) ([]string, error) {
+	// Choose each trashing pack once, refusing a pack the sweep has not
+	// trashed.
+	var move []string
+	for _, id := range ids {
+		state, ok := s.index.heldState(id)
+		switch {
+		case !ok:
+			return nil, errors.Errorf("restore pack %s: the index holds no such pack", id)
+		case state == PackQuarantined:
+			return nil, errors.Errorf("restore pack %s: it is quarantined, not trashing", id)
+		case state == PackTrashing && !slices.Contains(move, id):
+			move = append(move, id)
+		}
+	}
+	return move, nil
 }
 
 // checkRestored checks that the entry and file of pack id are back in the

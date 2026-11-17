@@ -6,7 +6,9 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -367,4 +369,88 @@ func testTrashRemove(t *testing.T, kind string) {
 	s.Close()
 	s = openSweepStore(client, kv)
 	checkAdopted(s)
+}
+
+// trashGate is an ObjectStore whose reads of trash keys wait for gate to
+// close, signaling entered first, so a test can hold a removal in its bucket
+// checks.
+type trashGate struct {
+	ObjectStore
+	entered chan struct{}
+	gate    chan struct{}
+}
+
+// GetObjectRange waits on the gate for a trash key, then reads the range.
+func (g *trashGate) GetObjectRange(ctx context.Context, bucket, key string, off int64, length int) ([]byte, error) {
+	// Hold a read of the trash until the gate opens.
+	if strings.HasPrefix(key, "p/"+trashDir) {
+		select {
+		case g.entered <- struct{}{}:
+		default:
+		}
+		select {
+		case <-g.gate:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	return g.ObjectStore.GetObjectRange(ctx, bucket, key, off, length)
+}
+
+// TestRemoveReadsOutsideHold holds a removal in its bucket checks of the
+// trash and reads meanwhile: a read that lifts a quarantined pack completes
+// without waiting for the removal, and a read that misses the trashing pack
+// records the miss, which the removal sees when it takes the lock and refuses.
+func TestRemoveReadsOutsideHold(t *testing.T) {
+	// Write a pack to quarantine and a pack to remove, and move the second
+	// to the trash.
+	ctx := t.Context()
+	_, client := newFakeBucket(t, nil)
+	gated := &trashGate{ObjectStore: client, entered: make(chan struct{}, 1), gate: make(chan struct{})}
+	s := openSweepStore(gated, newIndexKV(t, "memory"))
+	defer s.Close()
+	q := putDatas(ctx, t, s, "q0", "q1")
+	r := putDatas(ctx, t, s, "r0", "r1")
+	packQ, packR := packOf(t, s, q[0]), packOf(t, s, r[0])
+	if err := s.Quarantine(ctx, []string{packQ, packR}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.BeginTrash(ctx, []string{packR}); err != nil {
+		t.Fatal(err)
+	}
+	trashMove(ctx, t, client, "p/", packR)
+
+	// Start the removal and wait for it to reach the trash.
+	done := make(chan error, 1)
+	go func() {
+		done <- s.Remove(ctx, []string{packR}, []KeyHolders{{Key: hashKey(r[0])}, {Key: hashKey(r[1])}})
+	}()
+	select {
+	case <-gated.entered:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the removal never read the trash")
+	}
+
+	// A read of the quarantined pack completes while the removal waits.
+	readCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if data, found, err := s.GetBlock(readCtx, q[0]); err != nil || !found || string(data) != "q0" {
+		t.Fatalf("read of a quarantined block during a removal = %q, %v, %v", data, found, err)
+	}
+	if heldStateOf(t, s, packQ) != PackRegistered {
+		t.Fatal("the read did not lift the quarantined pack")
+	}
+
+	// A read that misses the trashing pack records the miss, and the removal
+	// refuses once the gate opens.
+	if _, _, err := s.GetBlock(readCtx, r[0]); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("read of a trashed block = %v, want not found", err)
+	}
+	close(gated.gate)
+	if err := <-done; err == nil {
+		t.Fatal("removed a pack a read missed during the removal")
+	}
+	if heldStateOf(t, s, packR) != PackTrashing {
+		t.Fatal("the refused removal moved the pack")
+	}
 }
