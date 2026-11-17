@@ -21,7 +21,7 @@ type writer struct {
 	// held is set while this handle holds the writer lock. It is safe
 	// without the writer lock.
 	held atomic.Bool
-	// requests guards the foreground count and its slot intent lock.
+	// requests guards local foreground announcements and completion wakes.
 	requests broadcast.Broadcast
 
 	// waiting counts this handle's foreground writers waiting for the writer lock. It
@@ -33,9 +33,8 @@ type writer struct {
 	served atomic.Uint64
 }
 
-// lock takes the writer lock and brings the handle up to date with records
-// other processes appended. Waiting for another process cannot be canceled;
-// ctx bounds the wait for this handle's writers.
+// lock announces foreground demand and takes the transaction writer lock.
+// ctx bounds the wait for this process's other transactions.
 func (w *writer) lock(ctx context.Context) error {
 	// Announce this request before it can wait behind any background step.
 	if err := w.beginWait(); err != nil {
@@ -45,10 +44,10 @@ func (w *writer) lock(ctx context.Context) error {
 	return w.take(ctx)
 }
 
-// take acquires the writer locks and refreshes the handle. Foreground callers
+// take acquires the transaction writer locks. Foreground callers
 // announce their request first; background callers check announcements afterward.
 func (w *writer) take(ctx context.Context) error {
-	// Exclude this handle's other writers, then the other processes.
+	// Exclude concurrent transactions before taking the native commit byte.
 	release, err := w.mtx.Lock(ctx)
 	if err != nil {
 		return err
@@ -61,17 +60,10 @@ func (w *writer) take(ctx context.Context) error {
 	w.unlockMtx = release
 	w.held.Store(true)
 
-	// Apply what other processes wrote before any record is appended.
-	if err := w.db.refresh(ctx); err != nil {
-		w.unlock()
-		return err
-	}
 	return nil
 }
 
-// tryLock takes the writer lock when no writer holds it, and brings the
-// handle up to date as lock does: a record appended from a stale state would
-// overwrite another process's records.
+// tryLock takes the transaction writer lock only while foreground work is idle.
 func (w *writer) tryLock(ctx context.Context) (bool, error) {
 	// Exclude this handle's writers, then other processes, without
 	// waiting.
@@ -87,17 +79,12 @@ func (w *writer) tryLock(ctx context.Context) (bool, error) {
 	w.unlockMtx = release
 	w.held.Store(true)
 
-	// An optional closing mark yields to foreground requests in every process.
+	// An optional closing mark yields to local foreground requests.
 	if slot, err := w.waitingSlot(); err != nil || slot >= 0 {
 		w.unlock()
 		return false, err
 	}
 
-	// Apply what other processes wrote.
-	if err := w.db.refresh(ctx); err != nil {
-		w.unlock()
-		return false, err
-	}
 	return true, nil
 }
 

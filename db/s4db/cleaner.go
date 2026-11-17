@@ -138,7 +138,7 @@ func (c *cleaner) victim(m *manifest) (uint64, bool) {
 // it found a victim: slack in free chunks below a top chunk the cleaner cannot
 // move waits for a release step, and a scheduler that counted the empty step
 // as work would spin without reaching its quiet mark. The caller holds
-// lockClean.
+// the sole scheduler loop.
 func (c *cleaner) step(ctx context.Context) (bool, error) {
 	// Choose the victim on a snapshot.
 	db := c.db

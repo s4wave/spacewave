@@ -34,19 +34,9 @@ const (
 	lockWriter = 1 << 40
 	// lockSlot is the first reader slot lock; slot i locks lockSlot+i.
 	lockSlot = lockWriter + 1
-	// lockFlush is held by the process running the flush job.
-	lockFlush = lockSlot + slots
-	// lockMerge is held by the process running the merge job.
-	lockMerge = lockFlush + 1
-	// lockClean is held by the process running the cleaner.
-	lockClean = lockMerge + 1
-	// lockSuper is held while a process writes a superblock, so generations
-	// stay ordered across processes.
-	lockSuper = lockClean + 1
-	// lockForeground is one intent byte per reader slot. A foreground request
-	// holds its slot's byte until it acquires the writer lock; background
-	// steps check these bytes while holding the writer lock before appending.
-	lockForeground = lockSuper + 1
+	// lockWriterOwner is held from writable open through descriptor close.
+	// Reader slots and the previous engine's intent range do not overlap it.
+	lockWriterOwner = lockWriter - 1
 	// lockLease is the first of leaseLocks lease locks, one per name hash.
 	lockLease = 1 << 41
 	// leaseLocks is the number of lease lock bytes.

@@ -21,6 +21,8 @@ var (
 	// open. Record locks on some systems belong to the process, so a second
 	// handle could not exclude the first.
 	ErrOpenInProcess = errors.New("database is already open in this process")
+	// ErrWriterOwned is returned when another process holds the writable file.
+	ErrWriterOwned = &WriterOwnedError{}
 	// ErrReadOnly is returned when a read-only handle is asked to write.
 	ErrReadOnly = errors.New("database is open read-only")
 	// ErrKeyTooLong is returned when a key exceeds MaxKeySize.
@@ -33,3 +35,12 @@ var (
 	// the one before it.
 	ErrOutOfOrder = errors.New("keys are not in ascending order")
 )
+
+// WriterOwnedError reports that another process holds the writable file.
+// Callers can match ErrWriterOwned with errors.Is or this type with errors.As.
+type WriterOwnedError struct{}
+
+// Error describes the conflicting writable open.
+func (*WriterOwnedError) Error() string {
+	return "database is open writable in another process"
+}

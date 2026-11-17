@@ -135,6 +135,15 @@ func BuildDistBus(
 		rel()
 		return nil, err
 	}
+
+	// Join controller shutdown before releasing the runtime lease or relaunching.
+	rels.add(func() {
+		if err := b.Close(); err != nil {
+			le.WithError(err).Error("closing distribution bus")
+		}
+	})
+
+	// Register the composition after retaining its bus shutdown.
 	composition.AddFactories(b, sr)
 
 	// Construct the DistBus with the bus and storage identity.

@@ -9,10 +9,10 @@
 // chunks, allocated lowest first, so it shrinks by truncation and nothing is
 // punched.
 //
-// Any number of processes may open the file. Each holds a reader slot that
+// One process may open the file writable; other processes may open it read-only. Each holds a reader slot that
 // publishes the oldest state its snapshots read, and tails the log when the
 // file changes. A write transaction holds the writer lock, so commits from
-// all processes form one sequence, and every background step appends its
+// this process form one sequence, and every background step appends its
 // record under the same lock.
 package s4db
 
@@ -128,7 +128,26 @@ type DB struct {
 }
 
 // open opens the database in s, closing s on failure.
+// open claims writer ownership before constructing or recovering the handle.
 func open(s storage, opts Options) (*DB, error) {
+	// Claim the writable file before recovery can create or repair any bytes.
+	// The OS releases this lifetime lock on close or process death.
+	if !opts.ReadOnly {
+		ok, err := s.lock(lockWriterOwner, false)
+		if err != nil || !ok {
+			_ = s.close()
+			if err != nil {
+				return nil, err
+			}
+			return nil, ErrWriterOwned
+		}
+	}
+
+	return openOwned(s, opts)
+}
+
+// openOwned constructs a handle after its caller claimed writable ownership.
+func openOwned(s storage, opts Options) (*DB, error) {
 	// Build the database on s with its flusher and writer.
 	opts = opts.withDefaults()
 	db := &DB{
@@ -154,8 +173,10 @@ func open(s storage, opts Options) (*DB, error) {
 	}
 
 	// Follow other processes' records, and run the background jobs.
-	db.tailer.SetRoutine(db.tailLoop)
-	db.tailer.SetContext(context.Background(), false)
+	if opts.ReadOnly {
+		db.tailer.SetRoutine(db.tailLoop)
+		db.tailer.SetContext(context.Background(), false)
+	}
 	if !opts.ReadOnly {
 		db.sched = newScheduler(db)
 	}
@@ -305,19 +326,11 @@ func (db *DB) readManifest(sb superblock) (*manifest, error) {
 	return decodeManifest(b)
 }
 
-// writeSuper writes sb as the file's next superblock generation and flushes
-// it, under lockSuper so processes publishing at once keep the generations
-// ordered. The generation comes from the file, since another process may have
-// published since this one read it; when the file already holds a superblock
-// at or past sb.seq, sb is older than it and is not written. db.super keeps
-// the newest superblock this handle made durable.
+// writeSuper writes and flushes the next superblock generation. superMtx
+// serializes this process's publishers and readers of db.super; the lifetime
+// writer-owner lock excludes every other publisher.
 func (db *DB) writeSuper(sb superblock) error {
-	// Serialize with the other publishers and this handle's readers of
-	// db.super.
-	if _, err := db.s.lock(lockSuper, true); err != nil {
-		return err
-	}
-	defer func() { _ = db.s.unlock(lockSuper) }()
+	// Serialize this process's superblock publishers.
 	db.superMtx.Lock()
 	defer db.superMtx.Unlock()
 
@@ -592,7 +605,7 @@ func (db *DB) readValue(v value) ([]byte, error) {
 }
 
 // NewTransaction opens a transaction. A write transaction holds the writer
-// lock across all processes until Commit or Discard.
+// lock until Commit or Discard.
 func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Refuse a closed handle and serve a read from the published state.
 	if db.closed.Load() {

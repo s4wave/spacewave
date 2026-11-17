@@ -21,6 +21,23 @@ type osFile struct {
 // an existing file only. The file is still opened for writing: the byte locks
 // and the reader slot need it.
 func Open(path string, opts Options) (*DB, error) {
+	return openNative(context.Background(), path, opts, false)
+}
+
+// OpenWait opens path after its previous writable handle closes. ctx bounds
+// the wait. A cancelled OS wait retains its descriptor until the lock arrives,
+// then closes it without recovering or modifying the file.
+func OpenWait(ctx context.Context, path string, opts Options) (*DB, error) {
+	return openNative(ctx, path, opts, true)
+}
+
+// openNative registers the descriptor and optionally waits for writer ownership.
+func openNative(ctx context.Context, path string, opts Options, wait bool) (*DB, error) {
+	// Do not create or retain a file for a request already cancelled.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	// Open the file once per process.
 	flags := os.O_RDWR | os.O_CREATE
 	if opts.ReadOnly {
@@ -32,7 +49,38 @@ func Open(path string, opts Options) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return open(&osFile{File: f, path: path, closeFile: closeFile}, opts)
+	s := &osFile{File: f, path: path, closeFile: closeFile}
+	if wait && !opts.ReadOnly {
+		// A single OS wait observes close and process death without polling.
+		done := make(chan error, 1)
+		go func() {
+			_, err := s.lock(lockWriterOwner, true)
+			done <- err
+		}()
+		select {
+		case err := <-done:
+			if err != nil {
+				_ = s.close()
+				return nil, err
+			}
+		case <-ctx.Done():
+			go func() { <-done; _ = s.close() }()
+			return nil, ctx.Err()
+		}
+	}
+
+	// A cancelled grant closes its descriptor before any recovery writes.
+	if err := ctx.Err(); err != nil {
+		_ = s.close()
+		return nil, err
+	}
+
+	// Waiting already acquired the lifetime byte. Windows rejects taking it
+	// twice on one handle, so recovery must consume that claim directly.
+	if wait && !opts.ReadOnly {
+		return openOwned(s, opts)
+	}
+	return open(s, opts)
 }
 
 // Build creates the database at path and writes the pairs source yields, in
@@ -55,6 +103,13 @@ func Build(ctx context.Context, path string, opts Options, source func(yield fun
 
 	// Build into it, keeping the file only on success.
 	s := &osFile{File: f, path: path, closeFile: closeFile}
+	if ok, err := s.lock(lockWriterOwner, false); err != nil || !ok {
+		_ = s.close()
+		if err != nil {
+			return err
+		}
+		return ErrWriterOwned
+	}
 	err = build(ctx, s, opts, runTarget, source)
 	if cerr := s.close(); err == nil {
 		err = cerr

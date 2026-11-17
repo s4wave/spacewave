@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 func runChild(path string, in io.Reader, out io.Writer) error {
 	// Open the file and take the lease.
 	ctx := context.Background()
-	db, err := db_s4db.Open(path, db_s4db.Options{})
+	db, err := db_s4db.Open(path, db_s4db.Options{ReadOnly: true})
 	if err != nil {
 		return err
 	}
@@ -62,9 +62,6 @@ func runChild(path string, in io.Reader, out io.Writer) error {
 		return err
 	}
 	defer watch.Close()
-	if err := commit(ctx, db, "child"); err != nil {
-		return err
-	}
 	fmt.Fprintln(out, "held", db.Seq())
 
 	// Wait for the parent's commit through the watch.
@@ -125,16 +122,15 @@ func TestCoordinatorProcesses(t *testing.T) {
 		t.Fatalf("read child commit: %v", err)
 	}
 
-	// The file is shared, the lease is busy, and the watch reports the
-	// child's commit.
+	// The observer shares the file and its named lease excludes the writer.
 	if shared, err := db.Shared(); err != nil || !shared {
 		t.Fatalf("Shared while the child has the file open = %v, %v", shared, err)
 	}
 	if l, ok, err := c.TryAcquireWriteLease(ctx, testScope); err != nil || ok {
 		t.Fatalf("TryAcquireWriteLease while the child holds it = %v, %v, %v", l, ok, err)
 	}
-	if err := waitGeneration(ctx, watch, childSeq); err != nil {
-		t.Fatalf("watch the child's commit: %v", err)
+	if childSeq != db.Seq() {
+		t.Fatalf("observer started at %d, writer at %d", childSeq, db.Seq())
 	}
 
 	// The child's watch reports the parent's commit.

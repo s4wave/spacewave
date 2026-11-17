@@ -449,8 +449,8 @@ const (
 )
 
 // openStoppedVolume opens the volume file at path without creating or
-// rewriting its peer key, and refuses it while another process has it open.
-// A daemon started meanwhile shares the file, so stop it for the whole run.
+// rewriting its peer key, and refuses a writable open while another writer holds it.
+// Read-only commands use a pinned snapshot alongside the daemon.
 // The caller closes the volume.
 //
 // Invariant: a command that only reads the volume opens it with readOnly set,
@@ -483,14 +483,5 @@ func openStoppedVolumeStore(ctx context.Context, le *logrus.Entry, path string, 
 		return nil, errors.Wrap(err, "open volume")
 	}
 
-	// Refuse a volume a daemon has open.
-	shared, err := volume_s4db.GetDB(vol).Shared()
-	if err == nil && shared {
-		err = errors.Errorf("%s is open in another process; stop the daemon first", path)
-	}
-	if err != nil {
-		vol.Close()
-		return nil, err
-	}
 	return vol, nil
 }

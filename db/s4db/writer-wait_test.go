@@ -4,11 +4,9 @@ package s4db
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,243 +14,115 @@ import (
 	"time"
 )
 
-// admissionEnv selects the process that pauses after announcing foreground intent.
-const admissionEnv = "S4DB_TEST_ADMISSION"
+// ownerEnv selects a child that holds writer ownership until killed or released.
+const ownerEnv = "S4DB_TEST_OWNER"
 
-// runAdmission pauses between beginWait and take, the production foreground
-// protocol's two steps, so the parent can exercise a remote background contender.
-func runAdmission(t *testing.T, path string) {
-	// Hold the file without automatic maintenance changing the handoff.
-	db := openTest(t, path, Options{})
-	defer db.Close()
-	db.sched.stop()
-	ctx := t.Context()
-
-	// Announce a foreground request, then let the parent choose take or exit.
-	if err := db.w.beginWait(); err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println("announced")
-	command, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	if err != nil {
-		t.Fatal(err)
-	}
-	if command == "exit\n" {
-		return
-	}
-	if command == "lease\n" {
-		// End the controlled request before testing the parent's lease.
-		db.w.endWait()
-
-		// A rejected alias probe must retain its owner's native lock.
-		lease, ok, err := db.TryLease("source-claim")
-		if lease != nil {
-			lease.Release()
-		}
-		if err != nil || ok {
-			t.Fatalf("duplicate probe dropped the parent's lease: %t %v", ok, err)
+// TestWriterOwner checks exclusion before mutation, live read-only opens, orderly
+// handoff, cancellation, alias exclusion and ownership recovery after process death.
+func TestWriterOwner(t *testing.T) {
+	// A child announces only after recovery and writer ownership have completed.
+	if path := os.Getenv(ownerEnv); path != "" {
+		db := openTest(t, path, Options{})
+		fmt.Println("owned")
+		_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
 		}
 		return
 	}
-
-	// Finish the foreground protocol and publish a value before any background
-	// callback proceeds. Exiting above leaves the OS to drop the intent instead.
-	if err := db.w.take(ctx); err != nil {
-		t.Fatal(err)
-	}
-	db.w.endWait()
-	err = db.w.commit(ctx, db.cur.Load(), []tentry{{key: []byte("admitted"), data: []byte("child")}}, false)
-	db.w.unlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.flush.syncThrough(ctx, db.cur.Load().seq); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// startAdmission starts a real process with an announced foreground request.
-func startAdmission(t *testing.T, ctx context.Context, path string) (*exec.Cmd, io.WriteCloser) {
-	// Start the same test binary and retain its input to select take or exit.
-	t.Helper()
-	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestWriterAdmission$", "-test.timeout=20s")
-	cmd.Env = append(os.Environ(), admissionEnv+"="+path)
-
-	// Wire both protocol pipes before starting the child.
-	in, err := cmd.StdinPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Start the child after its protocol endpoints are ready.
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = in.Close(); _ = cmd.Process.Kill() })
-
-	// The ready line establishes that intent is held before the parent acts.
-	line, err := bufio.NewReader(out).ReadString('\n')
-	if err != nil || line != "announced\n" {
-		t.Fatalf("child announcement %q: %v", line, err)
-	}
-	return cmd, in
-}
-
-// TestWriterAdmission checks remote intent, successful handoff, process death
-// and cancellation of a local queued transaction against the real writer locks.
-func TestWriterAdmission(t *testing.T) {
-	// A child executes the controlled foreground half of the same protocol.
-	if path := os.Getenv(admissionEnv); path != "" {
-		runAdmission(t, path)
-		return
-	}
-	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
 
-	// Foreground intent excludes a closing mark and runs before background work.
-	for _, command := range []string{"write", "exit", "lease"} {
-		t.Run(command, func(t *testing.T) {
-			// Wait for a child to announce its request on its own slot byte.
-			path := filepath.Join(t.TempDir(), "admission.s4wave")
-			db := openTest(t, path, Options{})
-			defer db.Close()
-			db.sched.stop()
-
-			// A rejected duplicate must preserve the parent's process-scoped lease.
-			if command == "lease" {
-				// Retain a native lock while rejecting a second descriptor.
-				lease, ok, err := db.TryLease("source-claim")
-				if err != nil || !ok {
-					t.Fatalf("parent lease: %t %v", ok, err)
-				}
-				defer lease.Release()
-
-				// The child will verify that refusing this alias kept the lock.
-				alias := path + ".alias"
-				if err := os.Link(path, alias); err != nil {
-					t.Fatal(err)
-				}
-				if _, err := Open(alias, Options{}); !errors.Is(err, ErrOpenInProcess) {
-					t.Fatalf("duplicate probe: %v", err)
-				}
-			}
-
-			// Start a contender only after the source-ownership probe completes.
-			cmd, in := startAdmission(t, ctx, path)
-
-			// Optional background work must not pass that announced intent.
-			ok, err := db.w.tryLock(ctx)
-			if ok {
-				db.w.unlock()
-			}
-			if err != nil || ok {
-				t.Fatalf("closing mark passed foreground intent: %t %v", ok, err)
-			}
-
-			// The background callback can proceed only after take or process exit.
-			done := make(chan error, 1)
-			go func() {
-				done <- db.w.locked(ctx, func() error {
-					if command != "write" {
-						return nil
-					}
-					v, found, err := db.lookup(db.cur.Load(), []byte("admitted"))
-					if err != nil || !found || !bytes.Equal(v.inline, []byte("child")) {
-						return fmt.Errorf("background passed foreground commit: %t %v", found, err)
-					}
-					return nil
-				})
-			}()
-			if _, err := io.WriteString(in, command+"\n"); err != nil {
+	// Test both OS death cleanup and an ordinary writer close.
+	for _, death := range []bool{false, true} {
+		t.Run(fmt.Sprint(death), func(t *testing.T) {
+			// Start an independent writable process on a fresh file.
+			path := filepath.Join(t.TempDir(), "owner.s4wave")
+			cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestWriterOwner$", "-test.timeout=15s")
+			cmd.Env = append(os.Environ(), ownerEnv+"="+path)
+			in, err := cmd.StdinPipe()
+			if err != nil {
 				t.Fatal(err)
 			}
-			in.Close()
-			if err := cmd.Wait(); err != nil {
+			out, err := cmd.StdoutPipe()
+			if err != nil {
 				t.Fatal(err)
 			}
-			if err := <-done; err != nil {
+			cmd.Stderr = os.Stderr
+			if err := cmd.Start(); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = in.Close(); _ = cmd.Process.Kill() })
+			if line, err := bufio.NewReader(out).ReadString('\n'); err != nil || line != "owned\n" {
+				t.Fatalf("owner startup %q: %v", line, err)
+			}
+
+			// Rejection happens before reader-slot or recovery writes, including aliases.
+			before, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			alias := path + ".alias"
+			if err := os.Link(path, alias); err != nil {
+				t.Fatal(err)
+			}
+			for _, name := range []string{path, alias} {
+				if db, err := Open(name, Options{}); !errors.Is(err, ErrWriterOwned) {
+					if db != nil {
+						_ = db.Close()
+					}
+					t.Fatalf("second writer: %v", err)
+				}
+			}
+			after, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(before) != string(after) {
+				t.Fatal("rejected writer mutated file")
+			}
+
+			// A reader remains usable alongside the writer and rejects writes itself.
+			reader := openTest(t, path, Options{ReadOnly: true})
+			if _, err := reader.NewTransaction(ctx, true); !errors.Is(err, ErrReadOnly) {
+				t.Fatalf("read-only writer: %v", err)
+			}
+			if err := reader.Close(); err != nil {
+				t.Fatal(err)
+			}
+
+			// Cancellation returns while the OS still holds the old owner's lock.
+			cancelled, stop := context.WithTimeout(ctx, 20*time.Millisecond)
+			defer stop()
+			if db, err := OpenWait(cancelled, path, Options{}); !errors.Is(err, context.DeadlineExceeded) {
+				if db != nil {
+					_ = db.Close()
+				}
+				t.Fatalf("cancelled owner wait: %v", err)
+			}
+
+			// Death releases the lifetime lock without a persisted flag or repair.
+			if death {
+				_ = cmd.Process.Kill()
+			} else {
+				_ = in.Close()
+			}
+			err = cmd.Wait()
+			if err != nil && !death {
+				t.Fatal(err)
+			}
+			if err := openFiles.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+				return len(openFiles.ids) == 0, nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			db, err := OpenWait(ctx, path, Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := db.Close(); err != nil {
 				t.Fatal(err)
 			}
 		})
 	}
-
-	// A background step yields once, then runs behind a stream that always has
-	// its next request announced, as a tight commit loop on cheap syncs does.
-	t.Run("steady", func(t *testing.T) {
-		// Two overlapping requests keep this handle's intent held throughout.
-		db := openTest(t, filepath.Join(t.TempDir(), "steady.s4wave"), Options{})
-		defer db.Close()
-		db.sched.stop()
-		for range 2 {
-			if err := db.w.beginWait(); err != nil {
-				t.Fatal(err)
-			}
-		}
-		defer db.w.endWait()
-
-		// The step sees the first request and yields to it.
-		ran := make(chan struct{})
-		done := make(chan error, 1)
-		go func() {
-			done <- db.w.locked(ctx, func() error {
-				close(ran)
-				return nil
-			})
-		}()
-		select {
-		case <-ran:
-			t.Fatal("background step passed an announced request")
-		case <-time.After(50 * time.Millisecond):
-		}
-
-		// Serving one request lets the step run though the other is announced.
-		db.w.endWait()
-		if err := <-done; err != nil {
-			t.Fatal(err)
-		}
-	})
-
-	// Cancelling before the local mutex grants a transaction drops its intent.
-	t.Run("cancel", func(t *testing.T) {
-		// Hold the local writer while a real transaction announces itself.
-		db := openTest(t, filepath.Join(t.TempDir(), "cancel.s4wave"), Options{})
-		defer db.Close()
-		db.sched.stop()
-		release, err := db.w.mtx.Lock(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer release()
-
-		// Queue a cancellable transaction behind the held local writer.
-		request, stop := context.WithCancel(ctx)
-		defer stop()
-		done := make(chan error, 1)
-		go func() {
-			tx, err := db.NewTransaction(request, true)
-			if tx != nil {
-				tx.Discard()
-			}
-			done <- err
-		}()
-
-		// Wait on the announcement itself, then cancel and verify its cleanup.
-		if err := db.w.requests.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-			return db.w.waiting.Load() != 0, nil
-		}); err != nil {
-			t.Fatal(err)
-		}
-		stop()
-		if err := <-done; !errors.Is(err, context.Canceled) {
-			t.Fatalf("cancelled transaction: %v", err)
-		}
-		if n := db.w.waiting.Load(); n != 0 {
-			t.Fatalf("cancelled request retains %d intents", n)
-		}
-	})
 }

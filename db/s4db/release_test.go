@@ -31,8 +31,6 @@ func TestReleaseBacklog(t *testing.T) {
 
 	// Run a real second owner; its exit makes the reservation reclaimable.
 	path := filepath.Join(t.TempDir(), "backlog.s4wave")
-	db := openTest(t, path, Options{})
-	defer db.Close()
 	ctx, cancel := context.WithTimeout(t.Context(), 3*quietMark)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestReleaseBacklog$", "-test.timeout=10s")
@@ -40,6 +38,9 @@ func TestReleaseBacklog(t *testing.T) {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("producer: %v\n%s", err, out)
 	}
+
+	db := openTest(t, path, Options{})
+	defer db.Close()
 
 	// Start the first bounded batch. The scheduler must retain the continuation
 	// instead of making the remaining seven batches wait for quiet timers.

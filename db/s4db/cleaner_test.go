@@ -209,7 +209,7 @@ func TestCleanerRace(t *testing.T) {
 		}
 	}
 
-	// Start the child churning its keys.
+	// Start a read-only process that checks values while this process churns.
 	cmd := exec.Command(os.Args[0], "-test.run=^$")
 	cmd.Env = append(os.Environ(), churnEnv+"="+path)
 	var out bytes.Buffer
@@ -221,7 +221,7 @@ func TestCleanerRace(t *testing.T) {
 	// Writers churn their keys; readers check every key set they see.
 	stop := make(chan time.Time)
 	errs := make(chan error, 8)
-	for w, who := range []string{"a", "b"} {
+	for w, who := range []string{"a", "b", "c"} {
 		go func() { errs <- churn(ctx, db, who, uint64(w), stop) }() // #nosec G115 -- a small index.
 	}
 	for range 4 {
@@ -256,7 +256,7 @@ func TestCleanerRace(t *testing.T) {
 	// Run for a while, then stop everyone and check the final contents.
 	time.Sleep(4 * time.Second)
 	close(stop)
-	for range 6 {
+	for range 7 {
 		if err := <-errs; err != nil {
 			t.Fatal(err)
 		}

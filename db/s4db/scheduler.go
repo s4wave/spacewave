@@ -20,7 +20,7 @@ const memtableStall = 2
 const memtableCeiling = 8
 
 // scheduler runs this handle's background jobs: it watches the published
-// state for the flush trigger, runs the flusher under lockFlush, releases
+// state for the flush trigger, runs the flusher, releases
 // what the jobs made pending, and marks a quiet file so its pending chunks
 // can be freed.
 type scheduler struct {
@@ -91,9 +91,7 @@ func (s *scheduler) run() {
 		}
 
 		// Flush when the memtable or the log since the last flush passed the
-		// budget. When another process holds the flush lock, its flush record
-		// changes the state and wakes this loop, so go on to the other jobs
-		// and sleep rather than try again at once.
+		// budget. The writer-owner lock excludes another process's scheduler.
 		if st.mem.len() != 0 && (st.mem.bytes > s.db.budget || st.logBytes > 4*s.db.budget) && s.flush() {
 			quietAt = time.Now()
 			continue
@@ -161,39 +159,18 @@ func (s *scheduler) run() {
 	}
 }
 
-// flush runs one flush when no other process is flushing, reporting whether
-// it flushed. A failure leaves the state for the next trigger.
+// flush runs one flush. Only the scheduler's loop runs flush jobs.
 func (s *scheduler) flush() bool {
-	// Take the flush lock without waiting.
-	ok, err := s.db.s.lock(lockFlush, false)
-	if err != nil || !ok {
-		return false
-	}
-	defer func() { _ = s.db.s.unlock(lockFlush) }()
 	return (&flushJob{db: s.db}).run(s.ctx) == nil
 }
 
-// merge runs one merge when no other process is merging, reporting whether
-// it ran.
+// merge runs one merge. The scheduler runs jobs serially.
 func (s *scheduler) merge() bool {
-	// Take the merge lock without waiting.
-	ok, err := s.db.s.lock(lockMerge, false)
-	if err != nil || !ok {
-		return false
-	}
-	defer func() { _ = s.db.s.unlock(lockMerge) }()
 	return (&mergeJob{db: s.db}).run(s.ctx) == nil
 }
 
-// clean runs one cleaner step when no other process is cleaning, reporting
-// whether it cleaned a victim.
+// clean runs one cleaner step on the scheduler's single loop.
 func (s *scheduler) clean() bool {
-	// Take the clean lock without waiting.
-	ok, err := s.db.s.lock(lockClean, false)
-	if err != nil || !ok {
-		return false
-	}
-	defer func() { _ = s.db.s.unlock(lockClean) }()
 	ran, err := s.cleaner.step(s.ctx)
 	return ran && err == nil
 }
