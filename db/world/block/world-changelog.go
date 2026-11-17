@@ -46,16 +46,16 @@ func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*blo
 	return changeBcs, nil
 }
 
-// updateSeqno computes the latest sequence number and updates t.seqno.
+// updateSeqno computes the latest sequence number, updates t.seqno, counts
+// the change and wakes the waiters.
 func (t *WorldState) updateSeqno(r *World) {
 	// Add the seqnos the pending changes will reach.
 	currSeqno := r.GetLastChange().GetSeqno()
 	nextSeqno := currSeqno + t.pendingEntries
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		if t.seqno != nextSeqno {
-			t.seqno = nextSeqno
-			broadcast()
-		}
+		t.seqno = nextSeqno
+		t.changes++
+		broadcast()
 	})
 }
 
