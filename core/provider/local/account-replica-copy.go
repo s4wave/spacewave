@@ -3,6 +3,7 @@ package provider_local
 import (
 	"bytes"
 	"context"
+	"os"
 	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
@@ -29,12 +30,11 @@ import (
 // The copier finishes each head before it takes the newest, so a writer that
 // publishes faster than a copy completes does not restart it. A block that no
 // connected peer holds, or holds only without its refs, is not a failure: the
-// copy logs it once and waits for a newer head, which replaces it, or for a peer
-// session to start on exchange that may hold the block, or an accepted config
-// change that may grant access on the existing session. So a missing old block
-// cannot pin replication to an old head. exchange is nil when the bucket has no
-// DEX controller. Any other failure is published as the object's copy error
-// before the routine retries.
+// copy logs it once and waits for a peer session to start on exchange that may
+// hold the block, or an accepted config change that may grant access on the
+// existing session, and then copies the newest head (copyAccountWorldHead).
+// exchange is nil when the bucket has no DEX controller. Any other failure is
+// published as the object's copy error before the routine retries.
 func (a *ProviderAccount) runAccountReplicaCopy(
 	ctx context.Context,
 	so sobject.SharedObject,
@@ -136,6 +136,33 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 	}
 }
 
+// ReplicaRewalkEnv names the environment variable that restores, when set to
+// "on", the earlier wait of a copy blocked on missing blocks: each newer head
+// ends the wait and is walked at once, and without a peer exchange only a newer
+// head ends it. Every other value, including an unset variable, keeps the
+// default, under which a blocked copy waits for a peer session start or a
+// config change and then copies the newest head.
+//
+// What the per-head walk did besides growing the Volume, and who read it:
+//
+//   - It rewrote the progress record (account-replica-copy/progress) and the
+//     published progress for each head. The record is read back only to skip a
+//     completed head (copyAndPersistAccountWorld); the published progress
+//     feeds GetAccountCopyProgress and the Session's sync status, which shows
+//     its blocks, bytes, completion and error. While blocked those now stay at
+//     the blocked head's walk, with the same incomplete state and hole error,
+//     where they showed the newest head's walk.
+//   - It logged "waiting for a peer that holds a World block with its refs"
+//     once per head; now it logs once per walk that blocks, so once per wake.
+//   - It stored each newer head's span block on arrival
+//     (copyAccountWorldHeads); now the span is stored when the copy takes its
+//     head after a wait.
+const ReplicaRewalkEnv = "SPACEWAVE_REPLICA_COPY_REWALK"
+
+// replicaRewalk selects ReplicaRewalkEnv's earlier behavior. It is read once,
+// here, at startup.
+var replicaRewalk = os.Getenv(ReplicaRewalkEnv) == "on"
+
 // replicaHead is a published graph for the account replica copy.
 type replicaHead struct {
 	// span is the published span block, or nil.
@@ -177,13 +204,34 @@ func (a *ProviderAccount) copyAccountWorldHeads(
 	}
 }
 
-// copyAccountWorldHead copies cur until it completes or latest holds a newer
-// head. A block that no reachable source holds or serves, such as one every
+// copyAccountWorldHead copies cur until it completes, or until a wait for a
+// missing block ends with a newer head in latest, which it leaves to the caller
+// to copy. A block that no reachable source holds or serves, such as one every
 // peer refuses, or holds only without its refs, does not appear by retrying the
 // same head: the copy logs it once and retries when a peer session starts on
-// exchange or the authority config changes. A session retry first reads the
-// blocks the walk found missing and walks again only once one of them arrives.
-// It returns nil when a newer head arrives first, which the caller copies next.
+// exchange or the authority config changes. A retry first reads the blocks the
+// walk found missing and walks again only once one of them arrives.
+//
+// A newer head does not end the wait (unless ReplicaRewalkEnv is on): a walk
+// of it would stop at the same blocks, and every such walk puts each block on
+// the paths from the root to them again, under a stage that releases them when
+// the walk ends, so the Volume grew by those writes for each head. Waiting
+// writes nothing. It gives up only the case of a newer head that no longer
+// reaches the missing blocks, which now completes at the next session start or
+// config change instead of at once. With no exchange, as when the bucket's DEX
+// controller failed to start, no session start comes, and the wait ends only on
+// a config change or when the copy restarts.
+//
+// Invariants, with either setting of ReplicaRewalkEnv:
+//
+//  1. Newest head wins: when a wait ends, the copy takes the newest head in
+//     latest, never an older one, and a blocked head is never retried while a
+//     newer one waits.
+//  2. Nothing is released or freed before the account World root moves: a copy
+//     with holes does not move the root (copyWorldGraph), and the wait writes
+//     and releases nothing.
+//  3. Completion proofs cover only subtrees with no hole under them
+//     (block.StageCopy, invariant 4); the wait adds none.
 func (a *ProviderAccount) copyAccountWorldHead(
 	ctx context.Context,
 	so sobject.SharedObject,
@@ -203,19 +251,21 @@ func (a *ProviderAccount) copyAccountWorldHead(
 			return err
 		}
 
-		// Wait for a source that may hold the block with its refs, or for a
-		// newer head.
+		// Wait for a source that may hold the block with its refs, and under
+		// ReplicaRewalkEnv also for a newer head.
 		if !logged {
 			a.le.WithError(err).Info("waiting for a peer that holds a World block with its refs")
 		}
 		var holes *worldHolesError
 		errors.As(err, &holes)
 		waitCtx, cancel := context.WithCancel(ctx)
-		go func() {
-			_, _ = latest.WaitValueChange(waitCtx, cur, nil)
-			cancel()
-		}()
-		if exchange != nil {
+		if replicaRewalk {
+			go func() {
+				_, _ = latest.WaitValueChange(waitCtx, cur, nil)
+				cancel()
+			}()
+		}
+		if exchange != nil || !replicaRewalk {
 			err = waitWorldHoles(waitCtx, so.GetBlockStore(), absent, gen, holes)
 		} else {
 			<-waitCtx.Done()

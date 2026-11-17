@@ -357,7 +357,8 @@ func mountEmptyReplicaDestination(ctx context.Context, t *testing.T) sobject.Sha
 
 // TestAccountReplicaCopyWaitsOnUnknownRefs copies from a source that holds
 // every block without its refs. Retrying the same head cannot succeed, so the
-// copy makes one attempt and waits for the next head, which ends it.
+// copy makes one attempt and waits: a newer head does not end the wait, and a
+// reset, as on a config change, returns it for the caller to copy the newest.
 func TestAccountReplicaCopyWaitsOnUnknownRefs(t *testing.T) {
 	// Mount a seeded source Space.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
@@ -375,21 +376,24 @@ func TestAccountReplicaCopyWaitsOnUnknownRefs(t *testing.T) {
 	}
 	defer releaseLocal()
 
-	// Without a peer exchange, the copy waits until the next head arrives.
+	// Without a peer exchange, the copy waits through a newer head until a
+	// reset.
 	cur := &replicaHead{head: head}
 	latest := ccontainer.NewCContainer(cur)
+	absent := &knownAbsent{}
 	done := make(chan error, 1)
 	go func() {
-		done <- account.copyAccountWorldHead(ctx, destination, &p2pSyncState{}, local, latest, cur, &knownAbsent{}, nil)
+		done <- account.copyAccountWorldHead(ctx, destination, &p2pSyncState{}, local, latest, cur, absent, nil)
 	}()
+	latest.SetValue(&replicaHead{head: head.CloneVT()})
 	select {
 	case err := <-done:
-		t.Fatalf("copy returned %v before the next head", err)
+		t.Fatalf("copy returned %v on a newer head", err)
 	case <-time.After(500 * time.Millisecond):
 	}
-	latest.SetValue(&replicaHead{head: head.CloneVT()})
+	absent.reset()
 	if err := <-done; err != nil {
-		t.Fatalf("copy returned %v after the next head", err)
+		t.Fatalf("copy returned %v after the reset", err)
 	}
 	if reads := source.reads.Load(); reads != 1 {
 		t.Fatalf("copy read the source %d times, want one attempt", reads)
@@ -471,6 +475,148 @@ func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 	}
 }
 
+// TestAccountReplicaCopyBlockedWaitsOutHeads blocks a copy on a hole and
+// publishes newer heads, each a new root over the blocked World and a new
+// leaf. The blocked copy must walk none of them, and once the hole is readable
+// and a reset wakes it, it must complete at the newest head with every block
+// of that head readable from the destination. A copy stopped while blocked,
+// as by a process exit, must on its next start walk once, block again, and
+// then walk none of the heads that follow.
+func TestAccountReplicaCopyBlockedWaitsOutHeads(t *testing.T) {
+	// Mount a source whose leaf payload is a hole, and an empty destination
+	// whose probe reads through the source, as a Session's DEX does.
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+	account, so, head, leaf, _ := mountSeededReplicaSource(ctx, t)
+	dstSO := mountEmptyReplicaDestination(ctx, t)
+	source := &holeStore{StoreOps: so.GetBlockStore(), hole: leaf, err: block.ErrNotFound}
+	destination := &replicaDestination{SharedObject: so, store: &BlockStore{
+		store:     block_store.NewStore("destination", dstSO.GetBlockStore()),
+		readStore: block_store.NewStore("destination-read", source),
+		copyStore: source,
+	}}
+	local, releaseLocal, err := so.AccessLocalStateStore(ctx, "account-replica-copy-test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseLocal()
+
+	// newer publishes a head whose root names the blocked World and a new leaf.
+	var heads int
+	newer := func() *replicaHead {
+		t.Helper()
+		heads++
+		fresh := []byte(fmt.Sprintf("newer leaf %d", heads))
+		freshRef, err := block.BuildBlockRef(fresh, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs := []*block.BlockRef{head.GetRootRef(), freshRef}
+		data := []byte(fmt.Sprintf("newer root %d", heads))
+		rootRef, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := so.GetBlockStore().PutBlockBatch(ctx, []*block.PutBatchEntry{
+			{Ref: freshRef, Data: fresh, RefsKnown: true},
+			{Ref: rootRef, Data: data, Refs: refs, RefsKnown: true},
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return &replicaHead{head: &bucket.ObjectRef{RootRef: rootRef}}
+	}
+
+	// run copies the heads in latest until stop is called, as one process
+	// lifetime does.
+	run := func(state *p2pSyncState, latest *ccontainer.CContainer[*replicaHead], absent *knownAbsent) (stop func()) {
+		runCtx, cancelRun := context.WithCancel(ctx)
+		done := make(chan error, 1)
+		go func() {
+			done <- account.copyAccountWorldHeads(runCtx, destination, state, local, latest, absent, nil)
+		}()
+		return func() {
+			cancelRun()
+			<-done
+		}
+	}
+
+	// waitsOut publishes three heads to a blocked copy and checks that it
+	// walks none of them and still reports the blocked head.
+	waitsOut := func(state *p2pSyncState, latest *ccontainer.CContainer[*replicaHead], blocked *bucket.ObjectRef) {
+		t.Helper()
+		reads := source.reads.Load()
+		for range 3 {
+			latest.SetValue(newer())
+		}
+		time.Sleep(300 * time.Millisecond)
+		if got := source.reads.Load(); got != reads {
+			t.Fatalf("blocked copy read %d blocks across newer heads, want none", got-reads)
+		}
+		progress := waitReplicaCopyProgress(ctx, t, state, so.GetSharedObjectID(), false)
+		if !progress.GetHead().EqualVT(blocked) {
+			t.Fatalf("blocked copy reports head %v, want the blocked %v", progress.GetHead(), blocked)
+		}
+	}
+
+	// The first start walks the head once, blocks on the hole, and waits out
+	// the newer heads.
+	id := so.GetSharedObjectID()
+	latest := ccontainer.NewCContainer(&replicaHead{head: head})
+	first := &p2pSyncState{}
+	stop := run(first, latest, &knownAbsent{})
+	waitReplicaCopyProgress(ctx, t, first, id, false)
+	waitsOut(first, latest, head)
+
+	// Stopped while blocked, the next start walks the newest head once, blocks
+	// again, and waits out the heads that follow.
+	stop()
+	restarted := latest.GetValue().head
+	reads := source.reads.Load()
+	second, absent := &p2pSyncState{}, &knownAbsent{}
+	stop = run(second, latest, absent)
+	defer func() { stop() }()
+	if blocked := waitReplicaCopyProgress(ctx, t, second, id, false); !blocked.GetHead().EqualVT(restarted) {
+		t.Fatalf("restarted copy blocked on %v, want the newest head %v", blocked.GetHead(), restarted)
+	}
+	if source.reads.Load() == reads {
+		t.Fatal("restarted copy walked nothing")
+	}
+	waitsOut(second, latest, restarted)
+
+	// Once the hole is readable, a reset, as on a peer session start, wakes
+	// the copy, which completes at the newest head.
+	newest := latest.GetValue().head
+	source.filled.Store(true)
+	absent.reset()
+	if completed := waitReplicaCopyProgress(ctx, t, second, id, true); !completed.GetHead().EqualVT(newest) {
+		t.Fatalf("copy completed at %v, want the newest head %v", completed.GetHead(), newest)
+	}
+	dst := dstSO.GetBlockStore()
+	held, err := dst.GetRoot(ctx, accountWorldRoot)
+	if err != nil || !held.EqualsRef(newest.GetRootRef()) {
+		t.Fatalf("destination World root = %v/%v, want the newest head", held, err)
+	}
+
+	// Every block of the newest head reads from the destination alone.
+	pending, blocks := []*block.BlockRef{newest.GetRootRef()}, 0
+	for len(pending) != 0 {
+		ref := pending[len(pending)-1]
+		pending = pending[:len(pending)-1]
+		if _, found, err := dst.GetBlock(ctx, ref); err != nil || !found {
+			t.Fatalf("destination block %s: found=%v err=%v", ref.MarshalString(), found, err)
+		}
+		stored, err := so.GetBlockStore().GetStoredBlock(ctx, ref)
+		if err != nil || stored == nil {
+			t.Fatalf("source block %s: %v", ref.MarshalString(), err)
+		}
+		pending = append(pending, stored.Refs...)
+		blocks++
+	}
+	if blocks < 4 {
+		t.Fatalf("newest head has %d blocks, want its root, new leaf and the World", blocks)
+	}
+}
+
 // holeStore serves its inner store's blocks except one.
 type holeStore struct {
 	block.StoreOps
@@ -484,12 +630,19 @@ type holeStore struct {
 	holeReads atomic.Int32
 	// onHole, when set, runs on each stored read of hole.
 	onHole func()
+	// filled, once set, serves hole like any other block.
+	filled atomic.Bool
+}
+
+// isHole reports whether ref is the hole and the store does not serve it.
+func (s *holeStore) isHole(ref *block.BlockRef) bool {
+	return ref.EqualVT(s.hole) && !s.filled.Load()
 }
 
 // GetStoredBlock reads the inner block unless it is the hole.
 func (s *holeStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	s.reads.Add(1)
-	if ref.EqualVT(s.hole) {
+	if s.isHole(ref) {
 		s.holeReads.Add(1)
 		if s.onHole != nil {
 			s.onHole()
@@ -502,7 +655,7 @@ func (s *holeStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 // GetBlock reads the inner block unless it is the hole, which a missing store
 // reports as not found and a refusing one as its error.
 func (s *holeStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	if !ref.EqualVT(s.hole) {
+	if !s.isHole(ref) {
 		return s.StoreOps.GetBlock(ctx, ref)
 	}
 	s.holeReads.Add(1)
