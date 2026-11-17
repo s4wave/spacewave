@@ -76,6 +76,14 @@ type volumeCtxPair struct {
 	ctx context.Context
 }
 
+// heldStore returns the pair's volume as StoreOps, or nil for a nil pair.
+func (p *volumeCtxPair) heldStore() block.StoreOps {
+	if p == nil || p.vol == nil {
+		return nil
+	}
+	return p.vol
+}
+
 // NewController constructs a new volume controller.
 func NewController(
 	le *logrus.Entry,
@@ -244,10 +252,15 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // GetHeldStore returns the ready volume, or nil before it is ready.
 func (c *Controller) GetHeldStore() block.StoreOps {
-	if pair := c.volume.GetValue(); pair != nil {
-		return pair.vol
-	}
-	return nil
+	return c.volume.GetValue().heldStore()
+}
+
+// WaitHeldStore waits until the ready volume differs from prev.
+func (c *Controller) WaitHeldStore(ctx context.Context, prev block.StoreOps) (block.StoreOps, error) {
+	pair, err := c.volume.WaitValueWithValidator(ctx, func(pair *volumeCtxPair) (bool, error) {
+		return pair.heldStore() != prev, nil
+	}, nil)
+	return pair.heldStore(), err
 }
 
 // volumeConstructionWaiter is a transient construction error that clears when Wait returns.

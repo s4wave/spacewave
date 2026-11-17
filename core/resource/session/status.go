@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -56,10 +57,6 @@ func NewStatusResourceWithSession(
 	}
 }
 
-// storeRefreshInterval is how often WatchControllers rereads the held stores.
-// A controller builds or replaces its store without a controller change.
-const storeRefreshInterval = 2 * time.Second
-
 // maxStoreDepth bounds the walk into a held store's parts.
 const maxStoreDepth = 8
 
@@ -68,29 +65,66 @@ func (r *StatusResource) WatchControllers(
 	_ *s4wave_status.WatchControllersRequest,
 	strm s4wave_status.SRPCSystemStatusService_WatchControllersStream,
 ) error {
-	// Refresh on a timer, since a held store's parts change without a signal.
+	// Send the list whenever the controllers or a held store change. The held
+	// stores are read before the list, so a change in between wakes the watch.
 	ctx := strm.Context()
-	ticker := time.NewTicker(storeRefreshInterval)
-	defer ticker.Stop()
-
-	// Send the list whenever it changes.
 	var prev *s4wave_status.WatchControllersResponse
 	for {
 		waitCh := r.controllersWaitCh()
-		resp := buildControllersResponse(r.b.GetControllers())
+		ctrls := r.b.GetControllers()
+		held := heldStores(ctrls)
+		resp := buildControllersResponse(ctrls)
 		if prev == nil || !resp.EqualVT(prev) {
 			if err := strm.Send(resp); err != nil {
 				return err
 			}
 			prev = resp
 		}
+
+		// Wait for a controller change or a held store change.
+		watchCtx, cancel := context.WithCancel(ctx)
+		storeCh := watchHeldStores(watchCtx, held)
 		select {
 		case <-ctx.Done():
+			cancel()
 			return context.Canceled
 		case <-waitCh:
-		case <-ticker.C:
+		case <-storeCh:
+		}
+		cancel()
+	}
+}
+
+// heldStore is a store holder and the store it held when read.
+type heldStore struct {
+	holder block.StoreHolder
+	store  block.StoreOps
+}
+
+// heldStores reads the store each StoreHolder controller holds.
+func heldStores(ctrls []controller.Controller) []heldStore {
+	var held []heldStore
+	for _, c := range ctrls {
+		if holder, ok := c.(block.StoreHolder); ok {
+			held = append(held, heldStore{holder: holder, store: holder.GetHeldStore()})
 		}
 	}
+	return held
+}
+
+// watchHeldStores returns a channel closed when any holder's store differs
+// from the store read in held. Its watches end with ctx.
+func watchHeldStores(ctx context.Context, held []heldStore) <-chan struct{} {
+	changed := make(chan struct{})
+	var once sync.Once
+	for _, h := range held {
+		go func() {
+			if _, err := h.holder.WaitHeldStore(ctx, h.store); err == nil {
+				once.Do(func() { close(changed) })
+			}
+		}()
+	}
+	return changed
 }
 
 // buildControllersResponse describes each controller and the store it holds.

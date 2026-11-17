@@ -51,21 +51,18 @@ func TestControllersResponseOpensHeldStore(t *testing.T) {
 	}
 	defer rel()
 
-	// Wait for the controller to build its store.
+	// Wait for the controller to build its store, then read the response.
+	if _, err := ctrl.WaitHeldStore(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
 	var store *s4wave_status.StoreInfo
-	for store == nil {
-		for _, info := range buildControllersResponse(b.GetControllers()).GetControllers() {
-			if info.GetId() == "test/bstore" {
-				store = info.GetStore()
-			}
+	for _, info := range buildControllersResponse(b.GetControllers()).GetControllers() {
+		if info.GetId() == "test/bstore" {
+			store = info.GetStore()
 		}
-		if store == nil {
-			select {
-			case <-ctx.Done():
-				t.Fatal("store never built")
-			case <-time.After(10 * time.Millisecond):
-			}
-		}
+	}
+	if store == nil {
+		t.Fatal("held store not reported")
 	}
 
 	// The store opens into the overlay, and the overlay into its two stores.

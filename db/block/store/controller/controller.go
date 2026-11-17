@@ -85,10 +85,24 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // GetHeldStore returns the built block store, or nil while none is built.
 func (c *Controller) GetHeldStore() block.StoreOps {
-	if store := c.storeCtr.GetValue(); store != nil {
-		return store
+	return heldStoreOps(c.storeCtr.GetValue())
+}
+
+// WaitHeldStore waits until the built block store differs from prev.
+func (c *Controller) WaitHeldStore(ctx context.Context, prev block.StoreOps) (block.StoreOps, error) {
+	store, err := c.storeCtr.WaitValueWithValidator(ctx, func(store block_store.Store) (bool, error) {
+		return heldStoreOps(store) != prev, nil
+	}, nil)
+	return heldStoreOps(store), err
+}
+
+// heldStoreOps converts store to StoreOps, keeping an absent store a nil
+// interface instead of a typed nil.
+func heldStoreOps(store block_store.Store) block.StoreOps {
+	if store == nil {
+		return nil
 	}
-	return nil
+	return store
 }
 
 // WaitBlockStore adds a reference to the block store and waits for it to be constructed.
