@@ -4,8 +4,11 @@
 \* slice: Go scans/probes 1,024 entries and commits at most 64 with retry on.
 \* Store.writeFills reserves queue coverage before writing values while holding
 \* fillMtx. Its queue commit may fail, its value write may fail, and a crash
-\* may abandon the fill between either step. Evict cannot clean the reservation
-\* before the fill finishes. Retry off models the former value-before-queue
+\* may abandon the fill between either step. Evict takes fillMtx only around
+\* its epoch advance: Start waits for an unfinished fill, and a fill may start
+\* at any later point of the pass, reserving under the pass epoch, which the
+\* pass neither visits nor deletes. A pass deletes only the older entry it
+\* scanned. Retry off models the former value-before-queue
 \* order without that exclusion. The ordering assumes committed metadata and
 \* values share their Volume's ordered commit/recovery contract, not atomicity
 \* across the two transactions or durability of an ordered commit by itself.
@@ -20,7 +23,8 @@
 \* upload I/O and provider scheduling are outside this bounded model. Current
 \* marker/remote decisions stand for the existing probe semantics. Foreground
 \* writes never take fillMtx; KV writer admission is not modeled. The pass
-\* takes fillMtx before evictMtx; disable still takes only the latter. A map with
+\* takes fillMtx before evictMtx and releases it after the epoch advance;
+\* disable still takes only the latter. A map with
 \* one entry per hash abstracts coverage, not cross-epoch multiplicity or byte
 \* accounting; duplicate epochs and the marked-byte overlap remain unresolved.
 EXTENDS Integers, FiniteSets
@@ -37,7 +41,7 @@ Init == /\ \E old \in {-1, 0} : queue = [b \in Blocks |-> IF b = 3 THEN old ELSE
         /\ seen = {} /\ refused = {} /\ restarted = FALSE /\ fillPhase = "waiting"
 
 FillActive == fillPhase \in {"reserve", "write", "queue"}
-FillStart == /\ fillPhase = "waiting" /\ (~RetryRefused \/ phase = "idle")
+FillStart == /\ fillPhase = "waiting"
              /\ fillPhase' = IF RetryRefused THEN "reserve" ELSE "write"
              /\ UNCHANGED <<queue, local, remote, marked, epoch, phase, current,
                             seen, refused, restarted>>
@@ -77,7 +81,8 @@ Check == /\ phase = "check" /\ current \notin seen
          /\ UNCHANGED <<queue, local, remote, marked, epoch, current, refused,
                         restarted, fillPhase>>
 Refuse == /\ phase = "refuse"
-          /\ queue' = [queue EXCEPT ![current] = IF RetryRefused THEN epoch ELSE -1]
+          /\ queue' = [queue EXCEPT ![current] = IF @ >= epoch THEN @
+                                                  ELSE IF RetryRefused THEN epoch ELSE -1]
           /\ refused' = refused \cup {current} /\ phase' = "scan"
           /\ UNCHANGED <<local, remote, marked, epoch, current, seen, restarted, fillPhase>>
 Keep == /\ phase = "keep"
@@ -89,7 +94,8 @@ Drop == /\ phase = "drop" /\ current \in remote /\ current \notin marked
         /\ UNCHANGED <<queue, remote, marked, epoch, current, seen, refused,
                        restarted, fillPhase>>
 Cleanup == /\ phase = "cleanup"
-           /\ queue' = [queue EXCEPT ![current] = -1] /\ phase' = "scan"
+           /\ queue' = [queue EXCEPT ![current] = IF @ >= epoch THEN @ ELSE -1]
+           /\ phase' = "scan"
            /\ UNCHANGED <<local, remote, marked, epoch, current, seen, refused,
                           restarted, fillPhase>>
 Finish == /\ phase = "scan" /\ Eligible = {} /\ phase' = "idle"

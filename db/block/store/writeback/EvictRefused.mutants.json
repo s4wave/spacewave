@@ -46,5 +46,15 @@
       ]
     ],
     "expect": "NoStrandedValue"
+  },
+  {
+    "name": "A pass deletes the entry a fill reserved under the pass epoch",
+    "replace": [
+      [
+        "![current] = IF @ >= epoch THEN @ ELSE -1]",
+        "![current] = -1]"
+      ]
+    ],
+    "expect": "NoStrandedValue"
   }
 ]

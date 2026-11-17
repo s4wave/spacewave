@@ -61,9 +61,11 @@ type Store struct {
 	// their projection into status. Block writes mark without it, inside their
 	// own transactions.
 	mtx csync.Mutex
-	// fillMtx excludes eviction from a queue-before-value fill window. Passes
-	// acquire it before evictMtx, so waiting for a fill never holds the mutex
-	// that disabling uploads waits on. Foreground writes do not acquire it.
+	// fillMtx excludes a pass's epoch advance from a queue-before-value fill
+	// window; Evict describes why the advance is the only exclusion needed.
+	// Passes acquire it before evictMtx, so waiting for a fill never holds the
+	// mutex that disabling uploads waits on. Foreground writes do not acquire
+	// it.
 	fillMtx csync.Mutex
 	// evictMtx runs one eviction pass at a time, and disabling uploads waits
 	// for the pass to end.
