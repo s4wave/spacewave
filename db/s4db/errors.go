@@ -38,9 +38,21 @@ var (
 
 // WriterOwnedError reports that another process holds the writable file.
 // Callers can match ErrWriterOwned with errors.Is or this type with errors.As.
-type WriterOwnedError struct{}
+// An error from opening a native file carries its path, and its Wait blocks
+// until that owner closes, as a runtime handoff needs.
+type WriterOwnedError struct {
+	// path is the refused file, or empty when the refusal cannot be waited on.
+	path string
+}
 
 // Error describes the conflicting writable open.
 func (*WriterOwnedError) Error() string {
 	return "database is open writable in another process"
+}
+
+// Is matches every WriterOwnedError, so errors.Is(err, ErrWriterOwned) holds
+// for one that carries a path.
+func (*WriterOwnedError) Is(target error) bool {
+	_, ok := target.(*WriterOwnedError)
+	return ok
 }

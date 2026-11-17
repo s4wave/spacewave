@@ -59,28 +59,12 @@ func openNative(ctx context.Context, path string, opts Options, wait bool) (*DB,
 			if err != nil {
 				return nil, err
 			}
-			return nil, ErrWriterOwned
+			return nil, &WriterOwnedError{path: path}
 		}
 	}
 	if wait && !opts.ReadOnly {
-		// A single OS wait observes close and process death without polling.
-		done := make(chan error, 1)
-		go func() {
-			ok, err := s.lock(lockWriterOwner, true)
-			if err == nil && !ok {
-				err = ErrWriterOwned
-			}
-			done <- err
-		}()
-		select {
-		case err := <-done:
-			if err != nil {
-				_ = s.close()
-				return nil, err
-			}
-		case <-ctx.Done():
-			go func() { <-done; _ = s.close() }()
-			return nil, ctx.Err()
+		if err := s.waitOwner(ctx); err != nil {
+			return nil, err
 		}
 	}
 
@@ -195,6 +179,30 @@ func (f *osFile) watch(slot int, readOnly bool) (watcher, error) {
 		return nil, err
 	}
 	return w, nil
+}
+
+// waitOwner blocks until f holds the writer-owner byte, or ctx ends. A single
+// OS wait observes close and process death without polling. On failure f is
+// closed; a cancelled wait closes it once the abandoned lock call returns.
+func (f *osFile) waitOwner(ctx context.Context) error {
+	done := make(chan error, 1)
+	go func() {
+		ok, err := f.lock(lockWriterOwner, true)
+		if err == nil && !ok {
+			err = ErrWriterOwned
+		}
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			_ = f.close()
+		}
+		return err
+	case <-ctx.Done():
+		go func() { <-done; _ = f.close() }()
+		return ctx.Err()
+	}
 }
 
 // close closes the file and releases its registration.
