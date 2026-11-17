@@ -80,6 +80,8 @@ type Store[T SQLiteDriverConfig] struct {
 	writeMtx csync.PrioMutex
 	// writersWaiting counts write transactions queued on writeMtx.
 	writersWaiting atomic.Int32
+	// stats counts the writer turn waits and holds and the passes for Stats.
+	stats storeStats
 
 	// flusher makes ordered commits durable by flushing the WAL.
 	flusher *kvtx.OrderedFlusher
@@ -211,6 +213,7 @@ func newStore[T SQLiteDriverConfig](db *sql.DB, table string, config T, walBound
 	}
 	s.flusher = kvtx.NewOrderedFlusher(s.flushWAL, SyncDeadline)
 	go s.runCheckpoints(ctx)
+	openStores.Store(s, struct{}{})
 	return s, nil
 }
 
@@ -514,11 +517,22 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 		prio = writerBackground
 	}
 	s.writersWaiting.Add(1)
+	queued := time.Now()
 	release, err := s.writeMtx.Lock(ctx, prio)
 	s.writersWaiting.Add(-1)
 	if err != nil {
 		return nil, err
 	}
+
+	// Count the wait, and the hold when the transaction returns the turn.
+	turn := time.Now()
+	s.stats.addWait(prio, turn.Sub(queued))
+	release = func(release func()) func() {
+		return func() {
+			s.stats.addHold(prio, time.Since(turn))
+			release()
+		}
+	}(release)
 
 	// Begin on a connection of its own, taking SQLite's write lock at once so
 	// the transaction never waits to upgrade from a read.
@@ -571,7 +585,8 @@ func (s *Store[T]) Execute(ctx context.Context) error {
 // Close stops the checkpointer, flushes pending ordered commits, and closes
 // the database.
 func (s *Store[T]) Close() error {
-	// Wait for the checkpointer's running step.
+	// Leave the stats registry, then wait for the checkpointer's running step.
+	openStores.Delete(s)
 	s.stopCheckpoints()
 	<-s.checkpointsDone
 
@@ -920,7 +935,9 @@ func (c checkpoint) caught() bool {
 func (s *Store[T]) passOnce(ctx context.Context, q rowQuerier) checkpoint {
 	// Run the pass; a busy or failed one judges no pin.
 	var c checkpoint
+	start := time.Now()
 	c.err = q.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&c.busy, &c.logged, &c.copied)
+	s.stats.addPassive(time.Since(start))
 	if c.err != nil || c.busy {
 		return c
 	}
