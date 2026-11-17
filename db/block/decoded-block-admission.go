@@ -259,3 +259,20 @@ func (m *blockReadMark) admission() (uint64, bool) {
 	defer m.mtx.Unlock()
 	return m.gen, m.durable && !m.staged
 }
+
+// refusal returns why admission refused the read: staged content, or no
+// durable store marked it.
+func (m *blockReadMark) refusal() DecodedBlockNotStoredReason {
+	// A read nobody tracked had no durable store mark it.
+	if m == nil {
+		return DecodedBlockNotStoredNotDurable
+	}
+
+	// Staged content vetoes admission whether or not a store marked it.
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	if m.staged {
+		return DecodedBlockNotStoredStaged
+	}
+	return DecodedBlockNotStoredNotDurable
+}

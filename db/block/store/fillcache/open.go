@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 	"github.com/sirupsen/logrus"
 )
@@ -35,9 +36,13 @@ func openStore(ctx context.Context, le *logrus.Entry, path string) (store_kvtx_s
 		return store, nil
 	}
 
-	// Delete the unusable file and open a new one.
+	// Delete the unusable file and open a new one. An earlier cache on the
+	// file in this process may have served its blocks into the decoded-block
+	// pool, so report them all removed.
 	le.WithError(err).Warn("the block fill cache file is unusable, recreating it")
-	if err := removeFiles(path); err != nil {
+	err = removeFiles(path)
+	block.InvalidateAllRemovedBlocks()
+	if err != nil {
 		return nil, err
 	}
 	return tryOpenStore(ctx, path)

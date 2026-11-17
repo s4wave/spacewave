@@ -740,6 +740,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	ctx = c.decodedBlockCacheContext(ctx)
 	cacheKey, cacheable := decodedBlockCacheKeyFor(c.pos.ref, b, c.transformer())
 	if !cacheable {
+		decodedBlockCacheFromContext(ctx).recordNotStored("", DecodedBlockNotStoredUncacheable)
 		RecordDecodedBlockUncacheable(ctx)
 	}
 	share := c.t.sharesDecodedBlock(b)
@@ -809,6 +810,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		switch {
 		case !cacheable:
 		case stored == 0:
+			decodedBlockCacheFromContext(ctx).recordNotStored(cacheKey.ref, DecodedBlockNotStoredUnverified)
 			RecordDecodedBlockUncacheable(ctx)
 		default:
 			if err := storeDecodedBlock(ctx, cacheKey, storeToken, b, stored, share, mark); err != nil {

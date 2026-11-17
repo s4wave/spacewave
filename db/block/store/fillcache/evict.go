@@ -90,57 +90,77 @@ func (e *evicter) next(ctx context.Context, evicting bool) (bool, error) {
 
 // step deletes about a chunk of adjacent rows, starting at the first
 // row at or after a random key and wrapping to the first row.
+//
+// The delete bypasses the cache's block store, so step reports each deleted
+// block to the decoded-block pool itself, after the delete, whether or not it
+// committed. The cache's one writer runs every step and every fill, so the
+// deleted range holds exactly the scanned keys.
 func (e *evicter) step(ctx context.Context) error {
 	// Find the run from a random start, or from the start of the table.
 	start, err := e.randomKey()
 	if err != nil {
 		return err
 	}
-	first, last, err := e.run(ctx, start)
+	keys, err := e.run(ctx, start)
 	if err != nil {
 		return err
 	}
-	if first == nil {
-		first, last, err = e.run(ctx, []byte{0})
-		if err != nil || first == nil {
+	if len(keys) == 0 {
+		keys, err = e.run(ctx, []byte{0})
+		if err != nil || len(keys) == 0 {
 			return err
 		}
 	}
 
-	// Delete the run in one statement.
+	// Delete the run in one statement, then report its blocks removed.
+	first, last := keys[0], keys[len(keys)-1]
 	_, err = e.db.ExecContext(ctx, "DELETE FROM "+e.table+" WHERE key >= ? AND key <= ?", first, last) //nolint:gosec // the table name is the cache's constant.
+	e.reportRemoved(keys)
 	return err
 }
 
-// run returns the first and last key of the rows from start whose values sum
-// to about the chunk. It returns nil keys when no row is at or after
-// start.
-func (e *evicter) run(ctx context.Context, start []byte) (first, last []byte, err error) {
+// reportRemoved reports the blocks under the table keys as removed to the
+// decoded-block pool. A key that does not parse as a block reference names
+// no block the cache served.
+func (e *evicter) reportRemoved(keys [][]byte) {
+	prefix := len(e.keys.GetBlockKey(nil))
+	for _, key := range keys {
+		if len(key) <= prefix {
+			continue
+		}
+		ref := &block.BlockRef{}
+		if err := ref.UnmarshalVT(key[prefix:]); err == nil {
+			block.InvalidateRemovedBlock(ref)
+		}
+	}
+}
+
+// run returns the keys, in order, of the rows from start whose values sum to
+// about the chunk. It returns no keys when no row is at or after start.
+func (e *evicter) run(ctx context.Context, start []byte) ([][]byte, error) {
 	// Scan the rows from start in key order.
 	rows, err := e.db.QueryContext(ctx,
 		"SELECT key, length(value) FROM "+e.table+" WHERE key >= ? ORDER BY key LIMIT ?", //nolint:gosec // the table name is the cache's constant.
 		start, evictChunkRows,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer rows.Close()
 
 	// Extend the run until it holds enough bytes.
+	var keys [][]byte
 	var size int64
 	for rows.Next() && size < e.chunk {
 		var key []byte
 		var n int64
 		if err := rows.Scan(&key, &n); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		if first == nil {
-			first = key
-		}
-		last = key
+		keys = append(keys, key)
 		size += n
 	}
-	return first, last, errors.Wrap(rows.Err(), "scan the fill cache")
+	return keys, errors.Wrap(rows.Err(), "scan the fill cache")
 }
 
 // randomKey returns a block key with a random digest, built the way the cache

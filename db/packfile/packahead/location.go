@@ -33,3 +33,10 @@ type location struct {
 func (l location) end() int64 {
 	return int64(l.off) + int64(l.size)
 }
+
+// durable reports whether the Log holds the value durably: not removed, in a
+// pack no failed sync poisoned, and finalized or covered by a sync. The caller
+// holds the Log's lock.
+func (l location) durable() bool {
+	return !l.removed && !l.p.poisoned && (l.p.state == packFinal || l.end() <= l.p.synced)
+}

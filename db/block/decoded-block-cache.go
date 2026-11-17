@@ -91,7 +91,7 @@ func newDecodedBlockPool(opts DecodedBlockCacheOptions) (*decodedBlockPool, erro
 	// Normalize the decoded-cache budget and preserve disabled pools.
 	opts = opts.normalize()
 	if opts.Disabled {
-		pool := &decodedBlockPool{}
+		pool := &decodedBlockPool{outcomes: new(decodedBlockOutcomes)}
 		pool.maxCost.Store(opts.MaxCost)
 		return pool, nil
 	}
@@ -243,7 +243,10 @@ func (c *DecodedBlockCache) Snapshot() DecodedBlockCacheSnapshot {
 
 	// Capture the pool budget, its retained cost and its event counters.
 	st := c.pool.stats()
+	lookups, notStored := c.pool.outcomes.sum()
 	return DecodedBlockCacheSnapshot{
+		Lookups:       lookups,
+		NotStored:     notStored,
 		MaxCost:       c.MaxCost(),
 		RemainingCost: c.MaxCost() - st.retained,
 		RetainedCost:  st.retained,
@@ -271,11 +274,13 @@ func (c *DecodedBlockCache) Lookup(
 ) (Block, bool, error) {
 	// Reuse the decoded block retained in the read-operation cache.
 	if cached := front.lookup(key); cached != nil {
+		c.recordLookup(key.ref, DecodedBlockLookupFrontHit)
 		return decodedBlockHit(ctx, cached, share)
 	}
 
 	// Record a miss when the shared decoded-block pool is disabled.
 	if !c.enabled() {
+		c.recordLookup(key.ref, DecodedBlockLookupDisabled)
 		if front != nil {
 			recordDecodedBlockCacheMiss(ctx)
 		}
@@ -283,21 +288,34 @@ func (c *DecodedBlockCache) Lookup(
 	}
 
 	// Look up the shared entry and reject stale invalidation epochs and
-	// entries a durable store removed after admitting them.
+	// entries a durable store removed after admitting them. The shard counts
+	// the hit or miss only after the check, so a stale entry is a miss.
 	cacheKey := c.cacheKey(key)
-	cached, ok := c.pool.get(cacheKey)
-	if ok && (cached.epochs != c.epochs(key.ref) || removedSince(key.ref, cached.durableGen)) {
+	cached, shard, ok := c.pool.lookup(cacheKey)
+	outcome := DecodedBlockLookupHit
+	switch {
+	case !ok:
+		outcome = DecodedBlockLookupAbsent
+	case cached.epochs != c.epochs(key.ref):
+		outcome = DecodedBlockLookupStaleEpoch
+	case removedSince(key.ref, cached.durableGen):
+		outcome = DecodedBlockLookupStaleRemoved
+	}
+	c.recordLookup(key.ref, outcome)
+	if ok && outcome != DecodedBlockLookupHit {
 		c.pool.del(cacheKey)
 		ok = false
 	}
 
 	// Record a cache miss when no current shared entry exists.
 	if !ok {
+		shard.misses.Add(1)
 		recordDecodedBlockCacheMiss(ctx)
 		return nil, false, nil
 	}
 
 	// Retain the shared block in the read cache and hand it to the caller.
+	shard.hits.Add(1)
 	front.store(key, cached.block)
 	return decodedBlockHit(ctx, cached.block, share)
 }
@@ -337,6 +355,7 @@ func (c *DecodedBlockCache) Store(
 			return err
 		}
 		if !ok {
+			c.recordNotStored(key.ref, DecodedBlockNotStoredUncloneable)
 			RecordDecodedBlockUncloneable(ctx)
 			return nil
 		}
@@ -347,6 +366,7 @@ func (c *DecodedBlockCache) Store(
 	if c != nil {
 		epochs = c.epochs(key.ref)
 		if token.ok && (token.cache != c || token.epochs != epochs) {
+			c.recordNotStored(key.ref, DecodedBlockNotStoredTokenStale)
 			return nil
 		}
 	}
@@ -354,7 +374,12 @@ func (c *DecodedBlockCache) Store(
 	// Retain the cloned block in the read-operation cache, and keep a block a
 	// durable store removed since the read out of the shared pool.
 	front.store(key, cloned)
-	if !c.enabled() || removedSince(key.ref, durableGen) {
+	if !c.enabled() {
+		c.recordNotStored(key.ref, DecodedBlockNotStoredDisabled)
+		return nil
+	}
+	if removedSince(key.ref, durableGen) {
+		c.recordNotStored(key.ref, DecodedBlockNotStoredRemovedSince)
 		return nil
 	}
 
@@ -362,6 +387,7 @@ func (c *DecodedBlockCache) Store(
 	cacheKey := c.cacheKey(key)
 	cost, ok := decodedBlockCacheCost(cacheKey, blk, size)
 	if !ok {
+		c.recordNotStored(key.ref, DecodedBlockNotStoredCostUnknown)
 		RecordDecodedBlockUncacheable(ctx)
 		return nil
 	}
@@ -382,6 +408,7 @@ func (c *DecodedBlockCache) Store(
 	}, cost)
 	recordDecodedBlockCacheStore(ctx, accepted, cost)
 	if !accepted {
+		c.recordNotStored(key.ref, DecodedBlockNotStoredRejected)
 		recordDecodedBlockCacheRejected(ctx)
 	}
 	return nil
@@ -565,10 +592,11 @@ func storeDecodedBlock(
 	share bool,
 	mark *blockReadMark,
 ) error {
-	var cache *DecodedBlockCache
+	cache := decodedBlockCacheFromContext(ctx)
 	durableGen, durable := mark.admission()
-	if durable {
-		cache = decodedBlockCacheFromContext(ctx)
+	if !durable {
+		cache.recordNotStored(key.ref, mark.refusal())
+		cache = nil
 	}
 	return cache.Store(ctx, decodedBlockFrontCacheFromContext(ctx), token, key, blk, size, durableGen, share)
 }

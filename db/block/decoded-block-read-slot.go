@@ -85,13 +85,14 @@ func newDecodedBlockReadData(cache *DecodedBlockCache, key decodedBlockCacheKey,
 
 // readSlot attaches immutable traversal metadata to a currently admitted entry.
 // A superseded, evicted, oversized or invalid entry remains on the normal path.
+// It counts no hit or miss: the load it follows counted its own lookup.
 func (c *DecodedBlockCache) readSlot(key decodedBlockCacheKey) *decodedBlockReadSlot {
 	// Require an active, valid and read-shareable decoded entry.
 	if !c.enabled() {
 		return nil
 	}
 	poolKey := c.cacheKey(key)
-	entry, ok := c.pool.get(poolKey)
+	entry, _, ok := c.pool.lookup(poolKey)
 	if !ok || entry.read == nil || entry.epochs != c.epochs(key.ref) || removedSince(key.ref, entry.durableGen) {
 		return nil
 	}

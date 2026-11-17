@@ -51,6 +51,9 @@ type decodedBlockPool struct {
 	budget *ReadCacheBudget
 	// nextEvict rotates the shard ReadCacheEvict starts from.
 	nextEvict atomic.Uint64
+	// outcomes counts the lookup outcomes and not-stored reasons of every
+	// scope in the pool.
+	outcomes *decodedBlockOutcomes
 }
 
 // decodedBlockShard is one lock's share of a pool.
@@ -120,7 +123,7 @@ type decodedBlockQueue struct {
 func newDecodedBlockPoolShards(maxCost int64) *decodedBlockPool {
 	// Size the shards from the budget and make their maps.
 	n := int(min(max(maxCost/decodedBlockShardMinCost, 1), decodedBlockPoolMaxShards))
-	pool := &decodedBlockPool{shards: make([]decodedBlockShard, n), seed: maphash.MakeSeed()}
+	pool := &decodedBlockPool{shards: make([]decodedBlockShard, n), seed: maphash.MakeSeed(), outcomes: new(decodedBlockOutcomes)}
 	for i := range pool.shards {
 		pool.shards[i].entries = make(map[string]*decodedBlockPoolEntry)
 	}
@@ -158,8 +161,21 @@ func (p *decodedBlockPool) stats() decodedBlockPoolStats {
 	return st
 }
 
-// get returns the entry for key and records the lookup.
+// get returns the entry for key and records the lookup as a hit or miss.
 func (p *decodedBlockPool) get(key string) (decodedBlockCacheEntry, bool) {
+	value, s, ok := p.lookup(key)
+	if ok {
+		s.hits.Add(1)
+	} else {
+		s.misses.Add(1)
+	}
+	return value, ok
+}
+
+// lookup returns the entry for key and its shard, raising the entry's
+// frequency, and records nothing: the caller counts the hit or miss once it
+// knows whether the entry is current.
+func (p *decodedBlockPool) lookup(key string) (decodedBlockCacheEntry, *decodedBlockShard, bool) {
 	// Find the entry and raise its count under the read lock.
 	s := p.shard(key)
 	s.mtx.RLock()
@@ -173,13 +189,7 @@ func (p *decodedBlockPool) get(key string) (decodedBlockCacheEntry, bool) {
 	}
 	s.mtx.RUnlock()
 
-	// Count the hit or miss.
-	if e == nil {
-		s.misses.Add(1)
-		return decodedBlockCacheEntry{}, false
-	}
-	s.hits.Add(1)
-	return value, true
+	return value, s, e != nil
 }
 
 // put stores value under key with cost, evicting older entries to stay within

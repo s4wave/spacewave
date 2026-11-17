@@ -53,6 +53,13 @@ type Options struct {
 //
 // One goroutine writes the file, in batched transactions, so fills never queue
 // behind each other for SQLite's write lock and a read never waits for a write.
+//
+// The cache's reads are durable reads, so their decoded blocks may enter the
+// shared decoded-block pool, and every way a block leaves the file reports it
+// removed: a tombstone for a block that failed its hash goes through the
+// block store, which reports it; an eviction deletes rows past the block
+// store and reports each itself; recreating an unusable file reports every
+// block removed. Close removes nothing: the file keeps its blocks.
 type Cache struct {
 	// le is the entry for the cache's log lines.
 	le *logrus.Entry
@@ -92,16 +99,19 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 		return nil, errors.Wrap(err, "open the block fill cache")
 	}
 
-	// Build the cache over the database.
+	// Build the cache over the database. Its block store is durable, so its
+	// reads may enter the shared decoded-block pool.
 	keys := store_kvkey.NewDefaultKVKey()
 	c := &Cache{
 		le:     le,
 		warn:   rateLog{le: le},
 		store:  store,
-		blocks: block_store_kvtx.NewKVTxBlock(keys, store, 0, true),
+		blocks: block_store_kvtx.NewDurableKVTxBlock(keys, store, 0, true),
 		exited: make(chan struct{}),
 	}
 	c.view = &view{StoreOps: block.NewReadOnlyStore(c.blocks), cache: c}
+
+	// Bound the cache's rows and its queued fills.
 	limit := opts.LimitBytes
 	if limit <= 0 {
 		limit = DefaultLimitBytes

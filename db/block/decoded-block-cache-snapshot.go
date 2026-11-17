@@ -29,4 +29,13 @@ type DecodedBlockCacheSnapshot struct {
 	CostAdded int64
 	// CostEvicted is the sum of costs evicted.
 	CostEvicted int64
+	// Lookups counts the lookups by outcome, indexed by
+	// DecodedBlockLookupOutcome, whose String is the metric label. Hits
+	// equals Lookups[DecodedBlockLookupHit], and Misses the sum of the
+	// absent and stale outcomes.
+	Lookups [DecodedBlockLookupOutcomeCount]uint64
+	// NotStored counts the decoded blocks kept out of the pool by reason,
+	// indexed by DecodedBlockNotStoredReason, whose String is the metric
+	// label.
+	NotStored [DecodedBlockNotStoredReasonCount]uint64
 }
