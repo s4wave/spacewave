@@ -205,12 +205,15 @@ func (s *PackStore) trashedPacks(ctx context.Context, ids []string) ([]string, e
 
 // Restore registers again the trashing packs ids whose entries and files the
 // command moved back from the trash, as for a pack a read missed while it was
-// trashing. A registered pack stays as it is, so a repeated call changes
-// nothing; a pack the table lacks, a quarantined one, or one whose entry or
-// file is not back in the store fails the call before any row is written. The
-// pack's row keeps its miss, with the restore's time. The bucket reads run
+// trashing, and records the restore on each: the row keeps its miss, with the
+// restore's time as its event. A registered pack named here, such as one the
+// command adopted back after its removal, records the restore too unless its
+// row has an event already, so a repeated call changes nothing. A pack the
+// table lacks, a quarantined one, or one whose entry or file is not back in
+// the store fails the call before any row is written. The bucket reads run
 // before holdMtx is taken; under it the call rechecks the states and writes
-// one row per pack.
+// one row per pack. A registered pack with an event stays out of quarantine
+// until Forget clears it.
 func (s *PackStore) Restore(ctx context.Context, ids []string) error {
 	// Refuse a store that holds nothing.
 	if s.index == nil || !s.keepPacks {
@@ -222,8 +225,8 @@ func (s *PackStore) Restore(ctx context.Context, ids []string) error {
 
 	// Choose the trashing packs and check each is back in the store, outside
 	// the lock.
-	move, err := s.restoringPacks(ids)
-	if err != nil || len(move) == 0 {
+	move, _, err := s.restoringPacks(ids)
+	if err != nil {
 		return err
 	}
 	for _, id := range move {
@@ -238,50 +241,115 @@ func (s *PackStore) Restore(ctx context.Context, ids []string) error {
 		return err
 	}
 	defer release()
-	again, err := s.restoringPacks(move)
+	again, registered, err := s.restoringPacks(ids)
 	if err != nil {
 		return err
 	}
-	if len(again) != len(move) {
+	if !slices.Equal(again, move) {
 		return errors.New("restore packs: a pack left the trashing state during the call")
 	}
 
-	// Record the restores with each miss, then return the packs to the reads.
+	// Record the restores, keeping each miss, on the trashing packs and on
+	// the registered ones with no event yet.
 	now := time.Now().UnixNano()
-	holds := make([]packHold, len(move))
-	for i, id := range move {
+	var write []string
+	var holds []packHold
+	for _, id := range move {
 		prev, _, err := s.index.readHold(ctx, id)
 		if err != nil {
 			return err
 		}
-		holds[i] = packHold{state: PackRegistered, since: now, event: now, key: prev.key}
+		write = append(write, id)
+		holds = append(holds, packHold{state: PackRegistered, since: now, event: now, key: prev.key})
 	}
-	if err := s.index.writeHolds(ctx, move, holds); err != nil {
+	for _, id := range registered {
+		prev, ok, err := s.index.readHold(ctx, id)
+		if err != nil {
+			return err
+		}
+		if ok && prev.event != 0 {
+			continue
+		}
+		since := now
+		if ok {
+			since = prev.since
+		}
+		write = append(write, id)
+		holds = append(holds, packHold{state: PackRegistered, since: since, event: now})
+	}
+	if len(write) == 0 {
+		return nil
+	}
+	if err := s.index.writeHolds(ctx, write, holds); err != nil {
 		return err
 	}
+
+	// Return the trashing packs to the reads.
 	s.setHolds(move, PackRegistered)
-	s.le.WithField("packs", len(move)).Info("restored trashed packs")
+	s.le.WithField("packs", len(write)).Info("restored packs")
 	return nil
 }
 
-// restoringPacks returns the trashing packs of ids, refusing a pack the table
-// lacks or one that is quarantined. It reads only the index.
-func (s *PackStore) restoringPacks(ids []string) ([]string, error) {
-	// Choose each trashing pack once, refusing a pack the sweep has not
-	// trashed.
-	var move []string
+// Forget clears the read a restore or a fallback read recorded on each
+// registered pack of ids, so the sweep may move it again: the operator calls
+// it once the root that reached the pack is in the sweep's root listing. A
+// pack in another state, or whose row records no event, stays as it is, so a
+// repeated call changes nothing.
+func (s *PackStore) Forget(ctx context.Context, ids []string) error {
+	// Refuse a store that holds nothing.
+	if s.index == nil || !s.keepPacks {
+		return errNoSweep
+	}
+
+	// Take the lock over the pack states.
+	release, err := s.lockHold(ctx, "forget")
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	// Choose each registered row with an event, keeping its time.
+	var forgot []string
+	var holds []packHold
+	for _, id := range ids {
+		prev, ok, err := s.index.readHold(ctx, id)
+		if err != nil {
+			return err
+		}
+		if ok && prev.state == PackRegistered && prev.event != 0 && !slices.Contains(forgot, id) {
+			forgot = append(forgot, id)
+			holds = append(holds, packHold{state: PackRegistered, since: prev.since})
+		}
+	}
+
+	// Write their rows, clearing each event.
+	if len(forgot) == 0 {
+		return nil
+	}
+	if err := s.index.writeHolds(ctx, forgot, holds); err != nil {
+		return err
+	}
+	s.le.WithField("packs", len(forgot)).Info("forgot the reads of restored packs")
+	return nil
+}
+
+// restoringPacks returns the trashing packs of ids and the registered ones,
+// each once, refusing a pack the table lacks or a quarantined one.
+func (s *PackStore) restoringPacks(ids []string) (move, registered []string, err error) {
 	for _, id := range ids {
 		state, ok := s.index.heldState(id)
 		switch {
 		case !ok:
-			return nil, errors.Errorf("restore pack %s: the index holds no such pack", id)
+			return nil, nil, errors.Errorf("restore pack %s: the index holds no such pack", id)
 		case state == PackQuarantined:
-			return nil, errors.Errorf("restore pack %s: it is quarantined, not trashing", id)
+			return nil, nil, errors.Errorf("restore pack %s: it is quarantined, not trashing", id)
 		case state == PackTrashing && !slices.Contains(move, id):
 			move = append(move, id)
+		case state == PackRegistered && !slices.Contains(registered, id):
+			registered = append(registered, id)
 		}
 	}
-	return move, nil
+	return move, registered, nil
 }
 
 // checkRestored checks that the entry and file of pack id are back in the

@@ -583,3 +583,88 @@ func TestRemoveAfterKilledRestore(t *testing.T) {
 		t.Fatalf("no removal named the restoring pack %s as a holder", restoring)
 	}
 }
+
+// TestRestoredKept tries to sweep restored packs again: the judgment that
+// passed them still calls them dead, one came back from the trashing state
+// and one by adoption after its removal, yet a second quarantine, recheck,
+// trash and removal leave both registered with their objects in the store.
+// Once forget clears their restores, the same pass takes them.
+func TestRestoredKept(t *testing.T) {
+	ctx := t.Context()
+	h := newHoldFixture(t)
+	passed := h.passAll(t)
+	const prefix = "v2/"
+	ropts := &RestoreOptions{TrashOptions: TrashOptions{CoverOptions: *h.opts, Mover: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Moves: 1}}
+	opts := &ropts.TrashOptions
+
+	// Trash every passed pack, restore one, remove the rest, and adopt one
+	// removed pack back.
+	if _, err := Trash(ctx, opts); err != nil {
+		t.Fatal(err)
+	}
+	kept, adopted := passed[0], passed[1]
+	ropts.Packs = []string{kept}
+	if got, err := Restore(ctx, ropts); err != nil || got.Restored != 1 {
+		t.Fatalf("restore = %+v, %v", got, err)
+	}
+	if got, err := Remove(ctx, &RemoveOptions{CoverOptions: *h.opts}); err != nil || got.Removed != uint64(len(passed)-1) { //nolint:gosec // test counts.
+		t.Fatalf("removal = %+v, %v", got, err)
+	}
+	ropts.Packs = []string{adopted}
+	if got, err := Restore(ctx, ropts); err != nil || got.Adopted != 1 {
+		t.Fatalf("adoption = %+v, %v", got, err)
+	}
+	both := []string{kept, adopted}
+
+	// sweep runs a whole pass from the standing judgment, and returns its
+	// quarantine.
+	sweep := func() *QuarantineResult {
+		t.Helper()
+		res, err := Quarantine(ctx, h.opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		h.backend.now = h.backend.now.Add(2 * time.Hour)
+		h.recheck(t)
+		if _, err := Trash(ctx, opts); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Remove(ctx, &RemoveOptions{CoverOptions: *h.opts}); err != nil {
+			t.Fatal(err)
+		}
+		return res
+	}
+
+	// The pass leaves both registered, in the store, and reported.
+	res := sweep()
+	var read []string
+	for _, r := range res.Read {
+		read = append(read, r.ID)
+	}
+	slices.Sort(read)
+	want := slices.Sorted(slices.Values(both))
+	if !slices.Equal(read, want) || res.Quarantined != 0 {
+		t.Fatalf("quarantine over restored packs = %+v, read %v, want %v", res, read, want)
+	}
+	for _, id := range both {
+		if st := h.backend.hold(id); st.Absent || st.State != PackRegistered || st.Event.IsZero() {
+			t.Fatalf("restored pack %s after the pass: %+v", id, st)
+		}
+		if !h.objectAt(t, block_store_s3.EntryObjectKey(prefix, id)) || !h.objectAt(t, block_store_s3.PackObjectKey(prefix, id)) {
+			t.Fatalf("the pass moved restored pack %s", id)
+		}
+	}
+
+	// Once forget clears the restores, the pass trashes both.
+	if _, err := h.backend.Forget(ctx, both); err != nil {
+		t.Fatal(err)
+	}
+	if res := sweep(); len(res.Read) != 0 || res.Quarantined != uint64(len(both)) {
+		t.Fatalf("quarantine after forget = %+v", res)
+	}
+	for _, id := range both {
+		if h.objectAt(t, block_store_s3.PackObjectKey(prefix, id)) {
+			t.Fatalf("pack %s stayed after the forgotten pass", id)
+		}
+	}
+}

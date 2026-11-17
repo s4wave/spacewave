@@ -107,7 +107,7 @@ class SqlLocation(_message.Message):
     def __init__(self, host: _Optional[str] = ..., port: _Optional[int] = ..., database: _Optional[str] = ..., table_prefix: _Optional[str] = ..., tls: _Optional[bool] = ..., tls_cert_sha256: _Optional[str] = ...) -> None: ...
 
 class S3Location(_message.Message):
-    __slots__ = ("endpoint", "region", "bucket", "object_prefix", "disable_ssl", "pricing", "keep_packs")
+    __slots__ = ("endpoint", "region", "bucket", "object_prefix", "disable_ssl", "pricing", "keep_packs", "index_only", "max_pack_bytes", "linger_seconds")
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
     REGION_FIELD_NUMBER: _ClassVar[int]
     BUCKET_FIELD_NUMBER: _ClassVar[int]
@@ -115,6 +115,9 @@ class S3Location(_message.Message):
     DISABLE_SSL_FIELD_NUMBER: _ClassVar[int]
     PRICING_FIELD_NUMBER: _ClassVar[int]
     KEEP_PACKS_FIELD_NUMBER: _ClassVar[int]
+    INDEX_ONLY_FIELD_NUMBER: _ClassVar[int]
+    MAX_PACK_BYTES_FIELD_NUMBER: _ClassVar[int]
+    LINGER_SECONDS_FIELD_NUMBER: _ClassVar[int]
     endpoint: str
     region: str
     bucket: str
@@ -122,7 +125,10 @@ class S3Location(_message.Message):
     disable_ssl: bool
     pricing: _s3_pb2.Pricing
     keep_packs: bool
-    def __init__(self, endpoint: _Optional[str] = ..., region: _Optional[str] = ..., bucket: _Optional[str] = ..., object_prefix: _Optional[str] = ..., disable_ssl: _Optional[bool] = ..., pricing: _Optional[_Union[_s3_pb2.Pricing, _Mapping]] = ..., keep_packs: _Optional[bool] = ...) -> None: ...
+    index_only: bool
+    max_pack_bytes: int
+    linger_seconds: int
+    def __init__(self, endpoint: _Optional[str] = ..., region: _Optional[str] = ..., bucket: _Optional[str] = ..., object_prefix: _Optional[str] = ..., disable_ssl: _Optional[bool] = ..., pricing: _Optional[_Union[_s3_pb2.Pricing, _Mapping]] = ..., keep_packs: _Optional[bool] = ..., index_only: _Optional[bool] = ..., max_pack_bytes: _Optional[int] = ..., linger_seconds: _Optional[int] = ...) -> None: ...
 
 class BlockStorePlacement(_message.Message):
     __slots__ = ("block_store_id", "storage_backend_id", "cache", "fallback_storage_backend_id")
@@ -137,7 +143,7 @@ class BlockStorePlacement(_message.Message):
     def __init__(self, block_store_id: _Optional[str] = ..., storage_backend_id: _Optional[str] = ..., cache: _Optional[_Union[BlockStoreCache, _Mapping]] = ..., fallback_storage_backend_id: _Optional[str] = ...) -> None: ...
 
 class BlockStoreCache(_message.Message):
-    __slots__ = ("settle_seconds", "max_pending_bytes", "resident_high_bytes", "resident_low_bytes", "skip_backfill", "max_upload_reads", "upload_read_slow_millis")
+    __slots__ = ("settle_seconds", "max_pending_bytes", "resident_high_bytes", "resident_low_bytes", "skip_backfill", "max_upload_reads", "upload_read_slow_millis", "fill_queue_bytes")
     SETTLE_SECONDS_FIELD_NUMBER: _ClassVar[int]
     MAX_PENDING_BYTES_FIELD_NUMBER: _ClassVar[int]
     RESIDENT_HIGH_BYTES_FIELD_NUMBER: _ClassVar[int]
@@ -145,6 +151,7 @@ class BlockStoreCache(_message.Message):
     SKIP_BACKFILL_FIELD_NUMBER: _ClassVar[int]
     MAX_UPLOAD_READS_FIELD_NUMBER: _ClassVar[int]
     UPLOAD_READ_SLOW_MILLIS_FIELD_NUMBER: _ClassVar[int]
+    FILL_QUEUE_BYTES_FIELD_NUMBER: _ClassVar[int]
     settle_seconds: int
     max_pending_bytes: int
     resident_high_bytes: int
@@ -152,7 +159,8 @@ class BlockStoreCache(_message.Message):
     skip_backfill: bool
     max_upload_reads: int
     upload_read_slow_millis: int
-    def __init__(self, settle_seconds: _Optional[int] = ..., max_pending_bytes: _Optional[int] = ..., resident_high_bytes: _Optional[int] = ..., resident_low_bytes: _Optional[int] = ..., skip_backfill: _Optional[bool] = ..., max_upload_reads: _Optional[int] = ..., upload_read_slow_millis: _Optional[int] = ...) -> None: ...
+    fill_queue_bytes: int
+    def __init__(self, settle_seconds: _Optional[int] = ..., max_pending_bytes: _Optional[int] = ..., resident_high_bytes: _Optional[int] = ..., resident_low_bytes: _Optional[int] = ..., skip_backfill: _Optional[bool] = ..., max_upload_reads: _Optional[int] = ..., upload_read_slow_millis: _Optional[int] = ..., fill_queue_bytes: _Optional[int] = ...) -> None: ...
 
 class AccountSession(_message.Message):
     __slots__ = ("peer_id", "storage_peer_id", "revoked", "revoked_by_storage_peer_id")

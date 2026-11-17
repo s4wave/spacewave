@@ -101,7 +101,7 @@ func (b *fakeBackend) Quarantine(_ context.Context, ids []string) ([]PackHold, e
 	b.calls["quarantine"]++
 	out := make([]PackHold, len(ids))
 	for i, id := range ids {
-		if h := b.hold(id); h.State == PackRegistered {
+		if h := b.hold(id); h.State == PackRegistered && h.Event.IsZero() {
 			b.holds[id] = PackHold{ID: id, State: PackQuarantined, Since: b.now}
 		}
 		out[i] = b.hold(id)
@@ -199,17 +199,35 @@ func (b *fakeBackend) Restore(_ context.Context, ids []string) ([]PackHold, erro
 		}
 	}
 
-	// Register each trashing pack, keeping its miss.
+	// Register each trashing pack, keeping its miss, and record the restore
+	// on a registered pack with no event.
 	out := make([]PackHold, len(ids))
 	for i, id := range ids {
-		if h := b.hold(id); h.State == PackTrashing {
-			b.holds[id] = PackHold{ID: id, State: PackRegistered, Since: b.now, Event: b.now}
+		switch h := b.hold(id); {
+		case h.State == PackTrashing:
+			b.holds[id] = PackHold{ID: id, State: PackRegistered, Since: b.now, Event: b.now, Key: h.Key}
+		case h.State == PackRegistered && h.Event.IsZero():
+			h.Event = b.now
+			b.holds[id] = h
 		}
 		out[i] = b.hold(id)
 	}
 	if b.failRestore {
 		b.failRestore = false
 		return nil, errors.New("killed")
+	}
+	return out, nil
+}
+
+// Forget clears the event of each registered pack.
+func (b *fakeBackend) Forget(_ context.Context, ids []string) ([]PackHold, error) {
+	b.calls["forget"]++
+	out := make([]PackHold, len(ids))
+	for i, id := range ids {
+		if h := b.hold(id); h.State == PackRegistered && !h.Event.IsZero() {
+			b.holds[id] = PackHold{ID: id, State: PackRegistered, Since: h.Since}
+		}
+		out[i] = b.hold(id)
 	}
 	return out, nil
 }
@@ -473,7 +491,8 @@ func TestQuarantineResumes(t *testing.T) {
 
 	// The recheck skips unanswered records; the next quarantine answers
 	// them with the first time.
-	if got := h.recheck(t); got.Passed != 0 || len(got.Waiting) != 0 || h.backend.calls["status"] != 0 {
+	statuses := h.backend.calls["status"]
+	if got := h.recheck(t); got.Passed != 0 || len(got.Waiting) != 0 || h.backend.calls["status"] != statuses {
 		t.Fatalf("recheck of unanswered records = %+v", got)
 	}
 	h.backend.now = first.Add(time.Minute)

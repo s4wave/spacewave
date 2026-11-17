@@ -142,6 +142,19 @@ export const PackSweepAdminDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * Forget clears the read a restore or a fallback read recorded on
+     * registered packs, so the sweep may move them again once the root that
+     * read reached is listed.
+     *
+     * @generated from rpc block.packsweep.admin.PackSweepAdmin.Forget
+     */
+    Forget: {
+      name: 'Forget',
+      I: PacksRequest,
+      O: PacksResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * Adopt registers packs another writer uploaded.
      *
      * @generated from rpc block.packsweep.admin.PackSweepAdmin.Adopt
@@ -273,6 +286,18 @@ export interface PackSweepAdmin {
    * @generated from rpc block.packsweep.admin.PackSweepAdmin.Restore
    */
   Restore(
+    request: PacksRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PacksResponse>
+
+  /**
+   * Forget clears the read a restore or a fallback read recorded on
+   * registered packs, so the sweep may move them again once the root that
+   * read reached is listed.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Forget
+   */
+  Forget(
     request: PacksRequest,
     abortSignal?: AbortSignal,
   ): Promise<PacksResponse>
@@ -424,6 +449,19 @@ export interface PackSweepAdminHandler {
   ): Promise<PacksResponse>
 
   /**
+   * Forget clears the read a restore or a fallback read recorded on
+   * registered packs, so the sweep may move them again once the root that
+   * read reached is listed.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Forget
+   */
+  Forget(
+    request: PacksRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PacksResponse>
+
+  /**
    * Adopt registers packs another writer uploaded.
    *
    * @generated from rpc block.packsweep.admin.PackSweepAdmin.Adopt
@@ -474,6 +512,7 @@ export class PackSweepAdminClient implements PackSweepAdmin {
     this.BeginTrash = this.BeginTrash.bind(this)
     this.Remove = this.Remove.bind(this)
     this.Restore = this.Restore.bind(this)
+    this.Forget = this.Forget.bind(this)
     this.Adopt = this.Adopt.bind(this)
     this.ReadLog = this.ReadLog.bind(this)
     this.TrimLog = this.TrimLog.bind(this)
@@ -650,6 +689,27 @@ export class PackSweepAdminClient implements PackSweepAdmin {
     const result = await this.rpc.request(
       this.service,
       PackSweepAdminDefinition.methods.Restore.name,
+      PacksRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return PacksResponse.fromBinary(result)
+  }
+
+  /**
+   * Forget clears the read a restore or a fallback read recorded on
+   * registered packs, so the sweep may move them again once the root that
+   * read reached is listed.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Forget
+   */
+  async Forget(
+    request: PacksRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PacksResponse> {
+    const requestMsg = PacksRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      PackSweepAdminDefinition.methods.Forget.name,
       PacksRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )

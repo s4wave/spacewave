@@ -204,6 +204,21 @@ func adoptBatch(ctx context.Context, opts *RestoreOptions, batch []*PackRecord, 
 		return errors.Wrap(err, "adopt")
 	}
 
+	// Record the restore on each, so quarantine leaves it out until forget,
+	// as for a pack restored from the trashing state.
+	holds, err := opts.Backend.Restore(ctx, ids)
+	if err != nil {
+		return errors.Wrap(err, "record the adopted packs' restore")
+	}
+	if len(holds) != len(ids) {
+		return errors.Errorf("the backend answered %d of %d packs", len(holds), len(ids))
+	}
+	for i, h := range holds {
+		if h.ID != ids[i] || h.Absent || h.State != PackRegistered || h.Event.IsZero() {
+			return errors.Errorf("adopted pack %s is in state %d with no restore after it", ids[i], h.State)
+		}
+	}
+
 	// Drop their records, then report any failed move.
 	if err := writePackRecords(ctx, opts.Store, nil, ids); err != nil {
 		return err

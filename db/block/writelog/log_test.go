@@ -247,7 +247,7 @@ func TestResume(t *testing.T) {
 			_ = l.Close()
 			between, store := newLog(), newStore()
 			store.SetObserver(between)
-			if err := between.Claim(dir); err != nil {
+			if err := between.Claim(dir, nil, nil); err != nil {
 				t.Fatal(err)
 			}
 			put(t, store, 100)
@@ -306,7 +306,7 @@ func TestResume(t *testing.T) {
 			dir := *l.claimed.Load()
 			_ = l.Close()
 			between, store := newLog(), newStore()
-			if err := between.Claim(dir); err == nil {
+			if err := between.Claim(dir, nil, nil); err == nil {
 				t.Fatal("claim while unattached succeeded")
 			}
 			put(t, store, 100)
@@ -599,4 +599,82 @@ func BenchmarkPut(b *testing.B) {
 			_ = l.Close()
 		})
 	}
+}
+
+// TestResumeWitness checks a claimed epoch resumes only when the marker's
+// witness equals the one taken before the next store opened: a store written
+// with no log between the two processes, a marker written before witnesses,
+// a claim with no witness, and a witness that cannot be read at Close all
+// start a new epoch.
+func TestResumeWitness(t *testing.T) {
+	ctx := t.Context()
+	for _, tc := range []struct {
+		name string
+		// between runs between the processes and returns the next witness.
+		between func(t *testing.T, dir string) []byte
+		// fail makes the first process's witness fail at Close.
+		fail   bool
+		resume bool
+	}{
+		{"same", func(*testing.T, string) []byte { return []byte("files 1") }, false, true},
+		{"unobserved write", func(*testing.T, string) []byte { return []byte("files 2") }, false, false},
+		{"no witness", func(*testing.T, string) []byte { return nil }, false, false},
+		{"old marker", func(t *testing.T, dir string) []byte {
+			m, err := parseMarker(mustRead(t, markerPath(dir)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := writeMarker(dir, m.pos, nil); err != nil {
+				t.Fatal(err)
+			}
+			return []byte("files 1")
+		}, false, false},
+		{"unreadable", func(*testing.T, string) []byte { return []byte("files 1") }, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// run starts a process over dir: it claims with opened, writes
+			// once, and closes with closing.
+			dir := t.TempDir()
+			run := func(opened []byte, closing Witness) Position {
+				store := block_store_writeback.NewMarkingStore(
+					block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false),
+					func(context.Context, []block_store_writeback.Mark) error { return nil },
+				)
+				l := newLog()
+				store.SetObserver(l)
+				_ = l.Claim(dir, opened, closing)
+				if err := l.Set(&Options{Dir: dir}); err != nil {
+					t.Fatal(err)
+				}
+				at, _ := l.Position()
+				if _, _, err := store.PutBlock(ctx, []byte("block "+strconv.FormatUint(at.Seq, 10)), nil); err != nil {
+					t.Fatal(err)
+				}
+				if err := l.Close(); err != nil && !tc.fail {
+					t.Fatal(err)
+				}
+				return at
+			}
+			closing := func() ([]byte, error) { return []byte("files 1"), nil }
+			if tc.fail {
+				closing = func() ([]byte, error) { return nil, errors.New("stat failed") }
+			}
+			first := run([]byte("files 1"), closing)
+			opened := tc.between(t, dir)
+			second := run(opened, nil)
+			if resumed := second.Epoch == first.Epoch; resumed != tc.resume {
+				t.Fatalf("resumed %v: first %v, second %v", resumed, first, second)
+			}
+		})
+	}
+}
+
+// mustRead reads the file at path.
+func mustRead(t *testing.T, path string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }

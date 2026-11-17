@@ -194,7 +194,7 @@ func TestQuarantineMoves(t *testing.T) {
 			t.Fatal(err)
 		}
 		hold, ok, err := s.index.readHold(ctx, packA)
-		if err != nil || !ok || hold.state != PackRegistered || hold.event == 0 || len(hold.key) != 0 {
+		if err != nil || !ok || hold.state != PackRegistered || hold.event != 0 || len(hold.key) != 0 {
 			t.Fatalf("command lift record = %+v, %v, %v", hold, ok, err)
 		}
 		if !locatedAny(t, s, a) {

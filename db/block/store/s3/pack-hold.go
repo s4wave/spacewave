@@ -57,10 +57,14 @@ type packHold struct {
 	state PackState
 	// since is when the pack entered state, in Unix nanoseconds.
 	since int64
-	// event is when the last lift or miss read the pack, in Unix nanoseconds,
-	// or zero when none did. A lift by the command records no key.
+	// event is when a fallback read last lifted or missed the pack, or a
+	// restore returned it, in Unix nanoseconds, or zero when none did. A lift
+	// by the command records none. While the pack is registered, a nonzero
+	// event keeps it out of quarantine until Forget clears it, since the read
+	// or restore came from a root the sweep's walk may not list.
 	event int64
-	// key is the block key the event read.
+	// key is the block key the event read, empty for a restore of a pack no
+	// read missed.
 	key []byte
 }
 
@@ -220,8 +224,10 @@ var errNoSweep = errors.New("the pack sweep needs a store that keeps its packs a
 // listing: a read that misses every registered pack falls back to them and
 // lifts the one that serves it. It writes their q/ rows in one transaction
 // before any read stops seeing them. A pack already quarantined stays as it
-// is, so a repeated call changes nothing; a trashing pack or one the table
-// lacks fails the call before any row is written.
+// is, so a repeated call changes nothing, and so does a registered pack whose
+// row records an event, which stays registered until Forget clears it; a
+// trashing pack or one the table lacks fails the call before any row is
+// written.
 func (s *PackStore) Quarantine(ctx context.Context, ids []string) error {
 	// Refuse a store whose own passes may rewrite a held pack.
 	if s.index == nil || !s.keepPacks {
@@ -246,7 +252,13 @@ func (s *PackStore) Quarantine(ctx context.Context, ids []string) error {
 		case state == PackTrashing:
 			return errors.Errorf("quarantine pack %s: it is trashing", id)
 		case state == PackRegistered && !slices.Contains(move, id):
-			move = append(move, id)
+			prev, _, err := s.index.readHold(ctx, id)
+			if err != nil {
+				return err
+			}
+			if prev.event == 0 {
+				move = append(move, id)
+			}
 		}
 	}
 	if len(move) == 0 {
@@ -306,7 +318,7 @@ func (s *PackStore) Lift(ctx context.Context, ids []string) error {
 	now := time.Now().UnixNano()
 	holds := make([]packHold, len(move))
 	for i := range holds {
-		holds[i] = packHold{state: PackRegistered, since: now, event: now}
+		holds[i] = packHold{state: PackRegistered, since: now}
 	}
 	if err := s.index.writeHolds(ctx, move, holds); err != nil {
 		return err

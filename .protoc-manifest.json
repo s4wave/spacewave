@@ -1007,7 +1007,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/account/settings": {
-      "hash": "d1c6b882582ab570fd1dc18576b7f9404fd41b4c33013c13f484807524aaa9dd",
+      "hash": "c15e4306d214ebc2425d32abbcac6932c473b81d31498f8bba2206f48e7cd2f9",
       "generatedFiles": [
         "core/account/settings/settings.pb.go",
         "core/account/settings/settings.pb.ts"
@@ -1732,7 +1732,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/packsweep/admin": {
-      "hash": "2b3dc262feb3114d452bba1308485702153867bcfc6f716d42b1d9415a8e22a1",
+      "hash": "4c0b5dd917bed78c2ff0eb87a9cf090cd9d514f0428c3874d0b4432ff023d58e",
       "generatedFiles": [
         "db/block/packsweep/admin/admin.pb.go",
         "db/block/packsweep/admin/admin.pb.ts",
@@ -1826,7 +1826,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/store/nodepush": {
-      "hash": "6457edd1b5ebc0734593a332231cb0e12937cbcee048d88aa0a3d1fb748a6c77",
+      "hash": "eec405397f88df6fe5177c9219cf1e3159e517a4bda84f9010cd60b219555782",
       "generatedFiles": [
         "db/block/store/nodepush/nodepush.pb.go",
         "db/block/store/nodepush/nodepush.pb.ts"

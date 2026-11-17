@@ -35,6 +35,10 @@ service PackSweepAdmin {
   // Restore registers again trashing packs whose entries and files the
   // command moved back from the trash, as for a pack a read missed.
   rpc Restore(PacksRequest) returns (PacksResponse);
+  // Forget clears the read a restore or a fallback read recorded on
+  // registered packs, so the sweep may move them again once the root that
+  // read reached is listed.
+  rpc Forget(PacksRequest) returns (PacksResponse);
   // Adopt registers packs another writer uploaded.
   rpc Adopt(AdoptRequest) returns (AdoptResponse);
   // ReadLog returns the write log's lines after a position.

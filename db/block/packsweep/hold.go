@@ -59,6 +59,11 @@ type PackHold struct {
 	// clock, or zero. A trashing pack with an event was missed by a read
 	// after its move, and goes back by restore.
 	Event time.Time
+	// Key is the block key the event read, empty for a restore of a pack no
+	// read missed. A registered pack with an event was reached by a read or a
+	// restore from a root the walk may not list, so Quarantine leaves it out
+	// until Forget clears the event.
+	Key []byte
 	// Absent is set for a pack the backend does not hold: removed, or never
 	// registered.
 	Absent bool
@@ -119,6 +124,9 @@ type Backend interface {
 	// Restore registers again trashing packs whose entries and files are
 	// back in the store, and returns their states after.
 	Restore(ctx context.Context, ids []string) ([]PackHold, error)
+	// Forget clears the read a restore or a fallback read recorded on
+	// registered packs, and returns their states after.
+	Forget(ctx context.Context, ids []string) ([]PackHold, error)
 	// Adopt registers packs whose entries and files are in the store, each
 	// with every key its index holds; a registered pack stays as it is. It
 	// takes at most MaxBackendAdopt packs.
@@ -446,6 +454,10 @@ type QuarantineResult struct {
 	// Unmoved is the packs the backend answered were not quarantined, such
 	// as one it no longer holds; their records stay for the next run.
 	Unmoved uint64
+	// Read is the dead and low packs left registered because a fallback read
+	// lifted them or a restore returned them: a root the walk may not list
+	// reached them. List the root, then forget the packs.
+	Read []PackHold
 }
 
 // Quarantine pulls the log and walks W, then quarantines through the backend
@@ -456,8 +468,9 @@ type QuarantineResult struct {
 // after it, so a run killed between the two calls the backend again for the
 // same packs, which keeps each held pack's first quarantine time. Those packs
 // are not checked again here: the recheck lifts one that turned live. A pack
-// a read lifted leaves the cycle, and a later run may quarantine it again
-// once the log line of that read is in W.
+// whose row records an event, from a fallback read or a restore, is left out,
+// since the root that reached it may be missing from the walk, and stays out
+// of every cycle until Forget clears the event.
 func Quarantine(ctx context.Context, opts *CoverOptions) (*QuarantineResult, error) {
 	// Cover the cycle from R.
 	head, blocked, err := cover(ctx, opts)
@@ -490,8 +503,12 @@ func Quarantine(ctx context.Context, opts *CoverOptions) (*QuarantineResult, err
 		return nil, err
 	}
 
-	// Keep the candidates still removable.
+	// Leave out the candidates a read reached, then keep those still
+	// removable.
 	res := &QuarantineResult{}
+	if candidates, err = leaveRead(ctx, opts.Backend, candidates, res); err != nil {
+		return nil, err
+	}
 	if ids, err = keepRemovable(ctx, opts.Store, candidates, ids, res); err != nil {
 		return nil, err
 	}
@@ -503,6 +520,39 @@ func Quarantine(ctx context.Context, opts *CoverOptions) (*QuarantineResult, err
 		}
 	}
 	return res, nil
+}
+
+// leaveRead returns the candidates whose rows record no event, a batch of
+// backend states at a time, and adds the rest to res.Read.
+func leaveRead(ctx context.Context, b Backend, candidates []*Judgment, res *QuarantineResult) ([]*Judgment, error) {
+	var keep []*Judgment
+	for batch := range slices.Chunk(candidates, MaxBackendPacks) {
+		// Read the batch's states.
+		ids := make([]string, len(batch))
+		for i, j := range batch {
+			ids[i] = j.ID
+		}
+		st, err := b.Status(ctx, ids)
+		if err != nil {
+			return nil, errors.Wrap(err, "read the packs' states")
+		}
+		if len(st.Packs) != len(ids) {
+			return nil, errors.Errorf("the backend answered %d of %d packs", len(st.Packs), len(ids))
+		}
+
+		// Keep each registered pack no read or restore reached.
+		for i, h := range st.Packs {
+			if h.ID != ids[i] {
+				return nil, errors.Errorf("the backend answered pack %s for %s", h.ID, ids[i])
+			}
+			if h.State == PackRegistered && !h.Event.IsZero() {
+				res.Read = append(res.Read, h)
+				continue
+			}
+			keep = append(keep, batch[i])
+		}
+	}
+	return keep, nil
 }
 
 // keepRemovable appends to ids the candidates still removable, counting the

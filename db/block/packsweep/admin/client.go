@@ -174,6 +174,15 @@ func (b backend) Restore(ctx context.Context, ids []string) ([]packsweep.PackHol
 	return sweepHolds(resp.GetPacks())
 }
 
+// Forget clears the read recorded on registered packs.
+func (b backend) Forget(ctx context.Context, ids []string) ([]packsweep.PackHold, error) {
+	resp, err := b.SRPCPackSweepAdminClient.Forget(ctx, &PacksRequest{PackIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	return sweepHolds(resp.GetPacks())
+}
+
 // Adopt registers packs whose entries and files are in the store.
 func (b backend) Adopt(ctx context.Context, packs []packsweep.AdoptedPack) error {
 	req := &AdoptRequest{Packs: make([]*AdoptPack, len(packs))}
@@ -198,6 +207,7 @@ func sweepHolds(holds []*PackHold) ([]packsweep.PackHold, error) {
 			State:  packsweep.PackState(state),
 			Since:  fromUnixNano(h.GetSinceUnixNano()),
 			Event:  fromUnixNano(h.GetEventUnixNano()),
+			Key:    h.GetKey(),
 			Absent: h.GetAbsent(),
 		}
 	}
