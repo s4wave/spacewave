@@ -29,7 +29,7 @@ import (
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/s4wave/spacewave/db/packfile/writer"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
-	store_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
+	store_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -182,21 +182,105 @@ func peakRSSKiB(t *testing.T) int64 {
 // makeScaleCapture builds size typed objects, replaces each object's version
 // once, and writes every block to one of three tiers in turn. Each version's
 // body holds bodyBytes of distinct 8 KiB chunks, or a short inline label when
-// bodyBytes is zero. The blocks are built in a SQLite store on disk, so the
-// test process does not hold the capture in memory. It returns the declared
-// capture and the bytes its sources hold.
+// bodyBytes is zero. The World's own blocks, about a hundred bytes each, are
+// built in memory and copied to the tiers at the end; body chunks bypass the
+// Volume and stream straight to the tiers as they are made, so the capture is
+// written in a few large transactions and its bulk is never held in memory.
+// It returns the declared capture and the bytes its sources hold.
 func makeScaleCapture(t *testing.T, dir string, size, bodyBytes int) (*recovery.Source, int64) {
 	t.Helper()
 	ctx := t.Context()
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	keygen := store_kvkey.NewDefaultKVKey()
+
+	// Open the three tiers: SQLite, the local pack log and remote packs.
+	local, remote := filepath.Join(dir, "packahead"), filepath.Join(dir, "remote")
+	if err := os.MkdirAll(remote, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	store, err := store_sqlite.OpenWithPragmas(ctx, filepath.Join(dir, "build.sqlite"), "build", store_sqlite.Pragmas{})
+	path := filepath.Join(dir, "capture.sqlite")
+	db, err := sql.Open(sqliteDriver(), path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer store.Close()
-	keygen := store_kvkey.NewDefaultKVKey()
+	defer db.Close()
+	if _, err := db.Exec("CREATE TABLE volume (key BLOB PRIMARY KEY,value BLOB NOT NULL)"); err != nil {
+		t.Fatal(err)
+	}
+	sqlTx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sqlTx.Exec("INSERT INTO volume VALUES (?,?)", keygen.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(9)); err != nil {
+		t.Fatal(err)
+	}
+	log, err := packahead.Open(ctx, local, packahead.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	type remoteBlock struct {
+		h    *hash.Hash
+		data []byte
+	}
+	var batch []packahead.Block
+	var pending []remoteBlock
+	packs, emitted := 0, 0
+	flushRemote := func() {
+		file, err := os.Create(filepath.Join(remote, fmt.Sprintf("%06d.kvf", packs)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		next := pending
+		if _, err := writer.PackBlocks(file, func() (*hash.Hash, *block.StoredBlock, error) {
+			if len(next) == 0 {
+				return nil, nil, nil
+			}
+			b := next[0]
+			next = next[1:]
+			return b.h, &block.StoredBlock{Data: b.data}, nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
+		packs++
+		pending = nil
+	}
+	// emit writes one block to the next tier in turn; value is not retained.
+	emit := func(ref *block.BlockRef, value []byte) {
+		t.Helper()
+		defer func() { emitted++ }()
+		switch emitted % 3 {
+		case 0:
+			refKey, err := ref.MarshalKey()
+			if err == nil {
+				_, err = sqlTx.Exec("INSERT INTO volume VALUES (?,?)", keygen.GetBlockKey(refKey), value)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+		case 1:
+			encoded, err := block.EncodeBlockObject(value, nil, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			batch = append(batch, packahead.Block{Key: packfile.BlockKey(ref.GetHash()), Value: encoded})
+			if len(batch) == 256 {
+				if err := log.Append(ctx, batch); err != nil {
+					t.Fatal(err)
+				}
+				batch = nil
+			}
+		default:
+			pending = append(pending, remoteBlock{ref.GetHash(), bytes.Clone(value)})
+			if uint64(len(pending)) == writer.DefaultMaxBlocksPerPack {
+				flushRemote()
+			}
+		}
+	}
+
+	// Build the World's blocks in memory.
+	store := store_inmem.NewStore()
 	blocks, err := volume_kvtx.NewVolume(ctx, "synthetic-scale", keygen, store, nil, false, true, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -223,10 +307,11 @@ func makeScaleCapture(t *testing.T, dir string, size, bodyBytes int) (*recovery.
 			for start := 0; start < bodyBytes; start += len(chunk) {
 				data := chunk[:min(len(chunk), bodyBytes-start)]
 				_, _ = random.Read(data)
-				ref, _, err := blocks.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
+				ref, err := block.BuildBlockRef(data, &block.PutOpts{})
 				if err != nil {
 					t.Fatal(err)
 				}
+				emit(ref, data)
 				value.ChunkIndex.Chunks = append(value.ChunkIndex.Chunks, blob.NewChunk(ref, uint64(len(data)), uint64(start))) //nolint:gosec // positive.
 			}
 		}
@@ -271,93 +356,19 @@ func makeScaleCapture(t *testing.T, dir string, size, bodyBytes int) (*recovery.
 		t.Fatal(err)
 	}
 
-	// Spread the blocks over SQLite, the local log and remote packs in turn.
-	local, remote := filepath.Join(dir, "packahead"), filepath.Join(dir, "remote")
-	if err := os.MkdirAll(remote, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(dir, "capture.sqlite")
-	db, err := sql.Open(sqliteDriver(), path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-	if _, err := db.Exec("CREATE TABLE volume (key BLOB PRIMARY KEY,value BLOB NOT NULL)"); err != nil {
-		t.Fatal(err)
-	}
-	sqlTx, err := db.Begin()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := sqlTx.Exec("INSERT INTO volume VALUES (?,?)", keygen.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(9)); err != nil {
-		t.Fatal(err)
-	}
-	log, err := packahead.Open(ctx, local, packahead.Options{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	type remoteBlock struct {
-		h    *hash.Hash
-		data []byte
-	}
-	var batch []packahead.Block
-	var pending []remoteBlock
-	packs := 0
-	flushRemote := func() {
-		file, err := os.Create(filepath.Join(remote, fmt.Sprintf("%06d.kvf", packs)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		next := pending
-		if _, err := writer.PackBlocks(file, func() (*hash.Hash, *block.StoredBlock, error) {
-			if len(next) == 0 {
-				return nil, nil, nil
-			}
-			b := next[0]
-			next = next[1:]
-			return b.h, &block.StoredBlock{Data: b.data}, nil
-		}); err != nil {
-			t.Fatal(err)
-		}
-		if err := file.Close(); err != nil {
-			t.Fatal(err)
-		}
-		packs++
-		pending = nil
-	}
+	// Copy the World's blocks to the tiers.
 	read, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	i := 0
-	err = read.ScanPrefix(ctx, keygen.GetBlockFullPrefix(), func(key, value []byte) error {
-		defer func() { i++ }()
+	prefix := keygen.GetBlockFullPrefix()
+	err = read.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		ref := &block.BlockRef{}
-		if err := ref.UnmarshalVT(key[len(keygen.GetBlockFullPrefix()):]); err != nil {
+		if err := ref.UnmarshalVT(key[len(prefix):]); err != nil {
 			return err
 		}
-		switch i % 3 {
-		case 0:
-			_, err := sqlTx.Exec("INSERT INTO volume VALUES (?,?)", key, value)
-			return err
-		case 1:
-			encoded, err := block.EncodeBlockObject(value, nil, false)
-			if err != nil {
-				return err
-			}
-			batch = append(batch, packahead.Block{Key: packfile.BlockKey(ref.GetHash()), Value: encoded})
-			if len(batch) == 256 {
-				err = log.Append(ctx, batch)
-				batch = nil
-			}
-			return err
-		default:
-			pending = append(pending, remoteBlock{ref.GetHash(), append([]byte(nil), value...)})
-			if uint64(len(pending)) == writer.DefaultMaxBlocksPerPack {
-				flushRemote()
-			}
-			return nil
-		}
+		emit(ref, value)
+		return nil
 	})
 	read.Discard()
 	if err != nil {
