@@ -45,19 +45,6 @@ func (t *WorldState) getObject(ctx context.Context, key string) (*ObjectState, b
 	return ost, true, nil
 }
 
-// mustGetObject returns an error if not found.
-func (t *WorldState) mustGetObject(ctx context.Context, key string) (*ObjectState, error) {
-	// Turn an absent object into the required-object contract's error.
-	obj, found, err := t.getObject(ctx, key)
-	if err == nil && !found {
-		err = world.ErrObjectNotFound
-	}
-	if err != nil {
-		return nil, err
-	}
-	return obj, nil
-}
-
 // IterateObjects returns an iterator with the given object key prefix.
 // The prefix is NOT clipped from the output keys.
 // Keys are returned in sorted order.

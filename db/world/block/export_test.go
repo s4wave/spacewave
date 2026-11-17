@@ -75,3 +75,9 @@ func (s *readThroughStore) OpenStage(ctx context.Context) (block.StoreOps, func(
 	}
 	return newReadThroughStore(staged, s.rt), release, nil
 }
+
+// ObjectRevWake returns the channel the next change to key closes in the
+// write transaction's World state.
+func ObjectRevWake(t *EngineTx, key string) <-chan struct{} {
+	return t.writeTx.state.revs.wait(key)
+}

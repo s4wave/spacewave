@@ -228,7 +228,7 @@ func (o *ObjectState) setRoot(ctx context.Context, root *Object) error {
 // WaitRev waits until the object rev is >= the specified.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
-// Returns the new rev.
+// Returns the new rev. Only a change to this object's key wakes the wait.
 func (o *ObjectState) WaitRev(
 	ctx context.Context,
 	rev uint64,
@@ -239,27 +239,18 @@ func (o *ObjectState) WaitRev(
 			return 0, err
 		}
 
-		// Count the state's changes before reading the revision.
-		changes := o.w.getChanges()
+		// Take the key's wake before reading the revision.
+		woken := o.w.revs.wait(o.key)
 
 		_, currRev, err := o.GetRootRef(ctx)
-		if err != nil {
-			if err == world.ErrObjectNotFound && ignoreNotFound {
-				_, err = o.w.waitChanges(ctx, changes)
-				if err != nil {
-					return 0, err
-				}
-				continue
-			}
+		if err != nil && (err != world.ErrObjectNotFound || !ignoreNotFound) {
 			return 0, err
 		}
-
-		if currRev >= rev {
+		if err == nil && currRev >= rev {
 			return currRev, nil
 		}
 
-		_, err = o.w.waitChanges(ctx, changes)
-		if err != nil {
+		if err := o.w.waitRev(ctx, woken); err != nil {
 			return 0, err
 		}
 	}

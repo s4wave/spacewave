@@ -185,6 +185,11 @@ func (t *spaceWriteTx) ApplyWorldOp(ctx context.Context, op world.Operation, sen
 	return t.Tx.ApplyWorldOp(ctx, op, sender)
 }
 
+// WaitObjectRev waits through the engine's write transaction.
+func (t *spaceWriteTx) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	return world.WaitObjectRev(ctx, t.Tx, key, rev, ignoreNotFound)
+}
+
 // participant returns this device's participant in the accepted config.
 func (a *Adapter) participant(ctx context.Context) (*sobject.SOParticipantConfig, error) {
 	snap, err := a.so.GetSharedObjectState(ctx)

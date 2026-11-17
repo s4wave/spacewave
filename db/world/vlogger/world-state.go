@@ -27,6 +27,11 @@ func NewWorldState(le *logrus.Entry, worldState world.WorldState) *WorldState {
 	}
 }
 
+// WaitObjectRev waits through the underlying WorldState.
+func (w *WorldState) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	return world.WaitObjectRev(ctx, w.WorldState, key, rev, ignoreNotFound)
+}
+
 func objectKeyForLogging(key string) string {
 	return "len=" + strconv.Itoa(len(key))
 }

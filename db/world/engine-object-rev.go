@@ -18,7 +18,10 @@ type ObjectRevWaiter interface {
 // revision. It returns ErrObjectNotFound if the object does not exist, unless
 // ignoreNotFound is set, in which case it waits for the object to appear. An
 // ObjectRevWaiter waits through its watch. Any other WorldState waits on the
-// object's own WaitRev, and rereads a missing object after each World commit.
+// object's own WaitRev, and rereads a missing object after each seqno, which
+// is right only for a state whose seqno moves on every change. A pending
+// write transaction's seqno does not, since a run of same-type changes shares
+// one, so a transaction and each wrapper around one is an ObjectRevWaiter.
 func WaitObjectRev(ctx context.Context, ws WorldState, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
 	if waiter, ok := ws.(ObjectRevWaiter); ok {
 		return waiter.WaitObjectRev(ctx, key, rev, ignoreNotFound)

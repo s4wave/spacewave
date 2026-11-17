@@ -96,45 +96,13 @@ func (t *TxObjectState) IncrementRev(ctx context.Context) (uint64, error) {
 // WaitRev waits until the object rev is >= the specified.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
-// Returns the new rev.
+// Returns the new rev. Only a change to this object's key wakes the wait.
 func (t *TxObjectState) WaitRev(
 	ctx context.Context,
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	for {
-		var changes uint64
-		var currObjRev uint64
-		err := t.tx.locked(ctx, false, func() error {
-			// Count the transaction's changes before reading the revision.
-			changes = t.tx.state.getChanges()
-
-			// Load the object and require that it exists.
-			obj, err := t.tx.state.mustGetObject(ctx, t.key)
-			if err != nil {
-				return err
-			}
-
-			// Read the object's current revision.
-			_, currObjRev, err = obj.GetRootRef(ctx)
-			if err != nil {
-				return err
-			}
-
-			return nil
-		})
-		if err != nil {
-			return 0, err
-		}
-		if currObjRev >= rev {
-			return currObjRev, nil
-		}
-
-		_, err = t.tx.state.waitChanges(ctx, changes)
-		if err != nil {
-			return 0, err
-		}
-	}
+	return t.tx.WaitObjectRev(ctx, t.key, rev, ignoreNotFound)
 }
 
 // _ is a type assertion

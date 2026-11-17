@@ -116,12 +116,13 @@ type WorldState struct {
 
 	// seqnoBcast guards below fields
 	seqnoBcast broadcast.Broadcast
-	// seqno is the current sequence number of the world state
+	// seqno is the current sequence number of the world state: the changelog
+	// position its pending changes reach once flushed. A run of same-type
+	// changes shares one seqno, so it does not move on every change.
 	seqno uint64
-	// changes counts the changes applied to the state and the roots it moved
-	// to. A waiter inside a write transaction waits on it rather than on the
-	// seqno, since a run of same-type changes shares one seqno.
-	changes uint64
+
+	// revs wakes the waiters of an object when a change names its key.
+	revs revWatch
 }
 
 // NewWorldState constructs a new world handle.
@@ -326,45 +327,15 @@ func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error
 	}
 }
 
-// getChanges returns the count of changes applied to the state.
-func (t *WorldState) getChanges() uint64 {
-	var changes uint64
-	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		changes = t.changes
-	})
-	return changes
-}
-
-// waitChanges waits until the state has applied more than after changes and
-// returns the new count. Read the count before the state it guards, so a
-// change between the read and the wait still wakes the waiter.
-func (t *WorldState) waitChanges(ctx context.Context, after uint64) (uint64, error) {
-	for {
-		var waitCh <-chan struct{}
-		var err error
-		var changes uint64
-		t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			if t.discarded.Load() {
-				err = tx.ErrDiscarded
-				return
-			}
-			changes = t.changes
-			if changes <= after {
-				waitCh = getWaitCh()
-			}
-		})
-		if err != nil {
-			return 0, err
-		}
-		if waitCh == nil {
-			return changes, nil
-		}
-
-		select {
-		case <-ctx.Done():
-			return 0, ctx.Err()
-		case <-waitCh:
-		}
+// waitRev waits until woken, taken from revs before the caller read the
+// object, closes. It reports why the state ended once it is discarded, as
+// WaitSeqno does.
+func (t *WorldState) waitRev(ctx context.Context, woken <-chan struct{}) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-woken:
+		return t.discardErr()
 	}
 }
 
@@ -585,9 +556,11 @@ func (t *WorldState) setBlockTransaction(
 	t.loggedRoots = nil
 	subtask.End()
 
-	// Update the sequence number from the new root.
+	// Update the sequence number from the new root and wake every object
+	// waiter, since any object may differ at it.
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/update-seqno")
 	t.updateSeqno(root)
+	t.revs.wakeAll()
 	subtask.End()
 	return nil
 }
@@ -634,7 +607,7 @@ func (t *WorldState) Discard() {
 		}
 	}
 
-	// Release the base root pin and wake sequence waiters.
+	// Release the base root pin and wake the sequence and object waiters.
 	if t.readRelease != nil {
 		t.readRelease()
 		t.readRelease = nil
@@ -646,6 +619,7 @@ func (t *WorldState) Discard() {
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		broadcast()
 	})
+	t.revs.close()
 }
 
 // PrepareCommit folds the pending changes into the World tree: it applies the

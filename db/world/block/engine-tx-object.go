@@ -115,39 +115,15 @@ func (t *EngineTxObjectState) IncrementRev(ctx context.Context) (rev uint64, err
 // WaitRev waits until the object rev is >= the specified.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
-// Immutable read transactions cannot advance. Live watches use EngineWorldState.
+// A writer advances within its pending transaction, and only a change to this
+// object's key wakes the wait. Immutable read transactions cannot advance.
+// Live watches use EngineWorldState.
 func (t *EngineTxObjectState) WaitRev(
 	ctx context.Context,
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	// A writer can advance within its pending transaction. Count its changes
-	// before reading the revision.
-	writeTx := t.t.writeTx
-	var changes uint64
-	if writeTx != nil {
-		changes = writeTx.state.getChanges()
-	}
-
-	for {
-		_, currRev, err := t.GetRootRef(ctx)
-		if err != nil {
-			return 0, err
-		}
-		if currRev >= rev {
-			return currRev, nil
-		}
-
-		// A snapshot can only satisfy revisions it already contains.
-		if writeTx == nil {
-			<-ctx.Done()
-			return 0, ctx.Err()
-		}
-		changes, err = writeTx.state.waitChanges(ctx, changes)
-		if err != nil {
-			return 0, err
-		}
-	}
+	return t.t.WaitObjectRev(ctx, t.key, rev, ignoreNotFound)
 }
 
 // withObject runs cb on the object through the transaction's performOp. A

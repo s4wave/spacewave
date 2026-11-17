@@ -37,6 +37,11 @@ func NewBudgetWorldState(ws world.WorldState, budget int) *BudgetWorldState {
 	return &BudgetWorldState{WorldState: ws, budget: budget}
 }
 
+// WaitObjectRev waits through the wrapped transaction.
+func (w *BudgetWorldState) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	return world.WaitObjectRev(ctx, w.WorldState, key, rev, ignoreNotFound)
+}
+
 // ApplyWorldOp applies a world-level operation if it fits in the budget.
 func (w *BudgetWorldState) ApplyWorldOp(ctx context.Context, op world.Operation, opSender peer.ID) (uint64, bool, error) {
 	// Size the batch entry the transaction will record for the op.
