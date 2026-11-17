@@ -263,6 +263,7 @@ func TestDecodedBlockHitObserverAndHolds(t *testing.T) {
 	SetDecodedBlockHitObserver(func(ref *BlockRef) { seen = append(seen, ref) })
 	t.Cleanup(func() { SetDecodedBlockHitObserver(nil) })
 	EnableRefHolds()
+	before := ReadRefHoldStats()
 	ref, key, blk, data := newDecodedBlockCacheTestEntry(t, "observed")
 	ctx = WithDecodedBlockCache(ctx, cache)
 	view, part := NewRefHold(), NewRefHold()
@@ -304,8 +305,9 @@ func TestDecodedBlockHitObserverAndHolds(t *testing.T) {
 		t.Fatal("block still held after its last hold was collected")
 	}
 
-	// The two holds shared one slot, which the last release freed.
-	if st := ReadRefHoldStats(); st.Blocks != 0 || st.Slots != 1 {
-		t.Fatalf("held table: %+v", st)
+	// The two holds shared one slot, which the last release freed. The table
+	// is the process's, so an earlier run's free slot may serve them.
+	if st := ReadRefHoldStats(); st.Blocks != 0 || st.Slots > before.Slots+1 {
+		t.Fatalf("held table: %+v, %+v before", st, before)
 	}
 }
