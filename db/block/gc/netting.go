@@ -612,6 +612,14 @@ func (n *netting) writeNode(ctx context.Context, nd *node) error {
 		}
 	}
 
+	// A block that leaves zero while Open leaves the park and the run the
+	// park put it in, as Records.unpark describes.
+	if nd.holders0 == 0 && holders != 0 && n.state.GetGeneration() == Generation_GENERATION_OPEN {
+		if err := n.rec.unpark(ctx, nd.key, nd.ripe0); err != nil {
+			return err
+		}
+	}
+
 	// Write the count record when it changed.
 	if holders != nd.holders0 || ripe != nd.ripe0 {
 		n.res.Counted++

@@ -571,16 +571,14 @@ func (l *lander) holdStored(ctx context.Context, ref *block.BlockRef) (bool, err
 		return listed, err
 	}
 
-	// Refuse a hidden block. A marked list is never unmarked, but a marked
-	// block may die and park.
-	if !marked || l.gen == Generation_GENERATION_OPEN {
-		hidden, err := l.rec.Hidden(ctx, ref)
-		if err != nil {
-			return true, err
-		}
-		if hidden {
-			return true, &AbsentError{Ref: ref}
-		}
+	// Refuse a hidden block. A marked block may die and park, and the flip
+	// unmarks a parked one.
+	hidden, err := l.rec.Hidden(ctx, ref)
+	if err != nil {
+		return true, err
+	}
+	if hidden {
+		return true, &AbsentError{Ref: ref}
 	}
 
 	// Push an unverified block while Open, which the hold mark covers.

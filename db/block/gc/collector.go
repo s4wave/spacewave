@@ -199,6 +199,14 @@ type Collector struct {
 	// its end, so the run holds no unmarked block and the next step drops
 	// it. A restart sweeps once more, finding only reborn entries.
 	sweptRun bool
+	// seedRoot is the root key after which the seeding resumes, seedSeq the
+	// journal sequence it resumes at, and seededRoots and seeded report
+	// that it passed the last root and the journal's end, as seed describes.
+	// A restart seeds again.
+	seedRoot    []byte
+	seedSeq     uint64
+	seededRoots bool
+	seeded      bool
 }
 
 // pace scales a slice's budgets by how long the slices before it took: one
@@ -1001,15 +1009,12 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 		return true, nil
 	}
 
-	// Park it while the generation is Open, and leave an unmarked one to
-	// the sweep.
+	// Park it while the generation is Open, in the run, and leave an
+	// unmarked one to the sweep.
 	switch state.GetGeneration() {
 	case Generation_GENERATION_OPEN:
 		res.Parked++
-		if err := rec.tx.Delete(ctx, queued); err != nil {
-			return false, err
-		}
-		return true, rec.tx.Set(ctx, rec.parkedKey(ripe, key), nil)
+		return true, rec.park(ctx, queued, rec.parkedKey(ripe, key), key)
 	case Generation_GENERATION_SWEEPING:
 		unmarked, err := rec.Unmarked(ctx, key)
 		if err != nil {

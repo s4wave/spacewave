@@ -102,9 +102,10 @@ const (
 	kindFillBorn byte = 'M'
 	// kindParked keys a Dead block the free held back while the generation
 	// is Open, by its big-endian ripe sequence, then the block, as the free
-	// queue keys it. It holds no value. Once the generation leaves Open the
-	// collector moves each back onto the free queue, where the free checks
-	// the block again.
+	// queue keys it. It holds no value. A parked block is in the run, as
+	// Records.park describes. Once the generation leaves Open the collector
+	// moves each back onto the free queue, where the free drops it as
+	// unmarked and the sweep deletes it.
 	kindParked byte = 'X'
 	// kindFront keys a block on the settle's front, by the block: a stored
 	// block whose list may lack a child, named by a young or verified block,
@@ -116,7 +117,8 @@ const (
 	// the store does not list stays, and keeps the generation Open.
 	kindFront byte = 'G'
 	// kindUnmarked keys an entry of the unmarked run, by the block: a block
-	// whose bytes or list the store holds without a list from content. Its
+	// whose bytes or list the store holds without a list from content, or
+	// one the free parked while Open, as Records.park describes. Its
 	// value is empty, runReborn once a put stored the block again, or
 	// runSwept once the sweep deleted it. The run is built in slices while
 	// the generation is Open, and is complete once its runComplete entry
@@ -155,6 +157,14 @@ const (
 	// settle's flip returns the Volume to unadopted when it finds it, and the
 	// adoption that follows deletes it with the counts.
 	kindRewritten byte = 'Y'
+	// kindPopMark is one record, with no key past the kind, whose value is
+	// the big-endian latest ripe sequence of a block the settle's front
+	// popped while Open, or the largest uint64 once a readoption recounted
+	// after a pop. A Dead block that names a popped child is Dead at a ripe
+	// sequence no later than the child's, so the flip waits only for the
+	// queued blocks at or below the mark, as Collector.flip describes. The
+	// flip deletes it.
+	kindPopMark byte = 'p'
 	// kindVerifiedRetired, kindLandedRetired, kindReachedRetired and
 	// kindSuspectRetired are the verified and landed marks, the walk's
 	// reached marks and the suspect records an older store wrote. Nothing
@@ -559,12 +569,13 @@ func (r *Records) Present(ctx context.Context, ref *block.BlockRef) (bool, error
 
 // Hidden reports whether ref, a block with a child list, reads absent until
 // a put stores it again: while Sweeping, an unmarked block, whose put gives
-// birth to it again, as Records.rebirth describes; while Open, a parked one,
-// whose cascade released its children while the settle's front may have
-// popped them, so a hold onto it would revive a list whose children the
-// flip can leave in the run. Settled, it reads only the generation; while
-// Sweeping, one run entry; while Open, the count record and, for a zero
-// one, its parked key.
+// birth to it again, as Records.rebirth describes, which includes every
+// block parked at the flip, since the park put it in the run; while Open,
+// a parked one, whose cascade released its children while the settle's
+// front may have popped them, so a hold onto it would revive a list whose
+// children the flip can leave in the run. Settled, it reads only the
+// generation; while Sweeping, one run entry; while Open, the count record
+// and, for a zero one, its parked key.
 func (r *Records) Hidden(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	gen, err := r.generation(ctx)
 	if err != nil {
@@ -600,6 +611,75 @@ func (r *Records) parked(ctx context.Context, key []byte) (bool, error) {
 // flip, reading at most one key.
 func (r *Records) AnyParked(ctx context.Context) (bool, error) {
 	return r.anyKey(ctx, r.key(kindParked))
+}
+
+// park parks the Dead block at key, queued at the queue key queued, while
+// Open: its queue entry turns into its parked key, parked, and it joins the
+// run, so the flip unmarks it with the old blocks. Its cascade may have
+// released children the front then popped, which the flip leaves in the
+// run; a block that names them and stays present after the flip could be
+// held again over children the sweep deletes. An old block's run entry is
+// already empty, or the run's scan writes it, so the write changes nothing
+// there. It reads nothing.
+func (r *Records) park(ctx context.Context, queued, parked, key []byte) error {
+	if err := r.tx.Delete(ctx, queued); err != nil {
+		return err
+	}
+	if err := r.tx.Set(ctx, parked, nil); err != nil {
+		return err
+	}
+	return r.tx.Set(ctx, r.key(kindUnmarked, key), nil)
+}
+
+// unpark ends the park of the block at key, parked at ripe, when it gains a
+// holder while Open, as a fill's up or a re-hold gives it: its parked key
+// goes, and so does its run entry when its list is marked, which only the
+// park wrote. An old block's list stays unverified, so it stays in the run.
+// It reads the list record.
+func (r *Records) unpark(ctx context.Context, key []byte, ripe uint64) error {
+	if err := r.tx.Delete(ctx, r.parkedKey(ripe, key)); err != nil {
+		return err
+	}
+	_, marked, err := r.listState(ctx, key)
+	if err != nil || !marked {
+		return err
+	}
+	return r.tx.Delete(ctx, r.key(kindUnmarked, key))
+}
+
+// unrunParked takes each of up to a slice of parked blocks after the parked
+// key after out of the run, as unpark does, while the generation is Open,
+// and returns the last parked key it read and whether more may follow. A
+// readoption calls it before it deletes the parked records. It reads one
+// list record per parked block.
+func (r *Records) unrunParked(ctx context.Context, after []byte) ([]byte, bool, error) {
+	// Read a slice of parked keys while Open.
+	if gen, err := r.generation(ctx); err != nil || gen != Generation_GENERATION_OPEN {
+		return after, false, err
+	}
+	recs, err := r.scanAfter(ctx, kindParked, after, sliceRecords)
+	if err != nil {
+		return after, false, err
+	}
+
+	// Take each marked one out of the run; an unverified one stays.
+	for _, rec := range recs {
+		after = rec.key
+		if len(rec.key) < 8 {
+			return after, false, errBadBlockKey
+		}
+		key := rec.key[8:]
+		_, marked, err := r.listState(ctx, key)
+		if err != nil {
+			return after, false, err
+		}
+		if marked {
+			if err := r.tx.Delete(ctx, r.key(kindUnmarked, key)); err != nil {
+				return after, false, err
+			}
+		}
+	}
+	return after, len(recs) == sliceRecords, nil
 }
 
 // repark takes the parked block at key back from the free, while Open, so
@@ -867,6 +947,41 @@ func (r *Records) scanQueue(ctx context.Context, from []byte, fn func(ripe uint6
 		}
 		return fn(binary.BigEndian.Uint64(key), ref)
 	})
+}
+
+// ripeQueued reports whether the free queue holds a block at a ripe
+// sequence no later than upTo, which the free has yet to take, reading at
+// most one key.
+func (r *Records) ripeQueued(ctx context.Context, upTo uint64) (bool, error) {
+	var ripe bool
+	err := r.scanQueue(ctx, nil, func(seq uint64, _ *block.BlockRef) (bool, error) {
+		ripe = seq <= upTo
+		return false, nil
+	})
+	return ripe, err
+}
+
+// popMark returns the pop mark and whether it exists, as kindPopMark
+// describes, reading one key.
+func (r *Records) popMark(ctx context.Context) (uint64, bool, error) {
+	value, found, err := r.tx.Get(ctx, r.key(kindPopMark))
+	if err != nil || !found {
+		return 0, false, err
+	}
+	if len(value) != 8 {
+		return 0, false, errors.New("liveness pop mark is malformed")
+	}
+	return binary.BigEndian.Uint64(value), true, nil
+}
+
+// raisePopMark raises the pop mark to at least seq, reading and writing one
+// key.
+func (r *Records) raisePopMark(ctx context.Context, seq uint64) error {
+	mark, found, err := r.popMark(ctx)
+	if err != nil || found && mark >= seq {
+		return err
+	}
+	return r.tx.Set(ctx, r.key(kindPopMark), binary.BigEndian.AppendUint64(nil, seq))
 }
 
 // cascadeKey returns the cascade key of the block at key.

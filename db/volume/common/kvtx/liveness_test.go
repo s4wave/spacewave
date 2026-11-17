@@ -4318,22 +4318,23 @@ func testLivenessAdversarial(t *testing.T) {
 }
 
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
-// each fit in one slice: the claim, the clears of counts, the queue, parked
+// each fit in one slice: the claim, the pop mark's raise, the take-out of
+// parked blocks from the run, the clears of counts, the queue, parked
 // blocks, cascade records, born marks, moved-root marks, old fill marks,
 // release pages, fill ups, the old up index, recount records, the four
 // retired marks, unmarked counts and fill records, then the mark, the root
 // count, the child list count and the settle.
 const (
 	// adoptClearCounts clears the count records an earlier run left.
-	adoptClearCounts = 2
+	adoptClearCounts = 4
 	// adoptMark marks the Volume adopting.
-	adoptMark = 18
+	adoptMark = 20
 	// adoptCountRoots counts the roots.
-	adoptCountRoots = 19
+	adoptCountRoots = 21
 	// adoptCountChildren counts the child lists' holders.
-	adoptCountChildren = 20
+	adoptCountChildren = 22
 	// adoptSettle settles the stored blocks' counts.
-	adoptSettle = 21
+	adoptSettle = 23
 )
 
 // auditProbe runs before, once, when an audit scans the stored bytes, which
@@ -4797,8 +4798,13 @@ func TestLivenessSettle(t *testing.T) {
 		// check answers absent, a root onto U is refused as unmarked, which
 		// asks the writer to put it again, and the sweep deletes both.
 		v, clk, store, tr := oldU(t, false)
-		if res := collectUntil(t, v, clk, flipped); res.Unmarked != 2 {
-			t.Fatalf("flip = %+v, want U and K in the run", res)
+		var entered uint64
+		res := collectUntil(t, v, clk, func(res block_gc.CollectResult) bool {
+			entered += res.Unmarked
+			return res.Flipped
+		})
+		if entered != 2 {
+			t.Fatalf("flip = %+v after %d run entries, want U and K in the run", res, entered)
 		}
 		if found, err := v.GetBlockExists(t.Context(), tr["U"].Ref); err != nil || found {
 			t.Fatalf("exists U while Sweeping = %v err %v, want absent", found, err)
@@ -5044,10 +5050,10 @@ func TestLivenessSettle(t *testing.T) {
 
 	t.Run("root onto a dead verified parent after the flip", func(t *testing.T) {
 		// The walk verified the unreached P, which names the old C -> E. P
-		// dies while Open; once the free proof pops C, the flip leaves C and
-		// E unmarked, and the pass that flips frees the parked P. A root onto
-		// P after the flip is refused as not found, and the sweep deletes C
-		// and E, which nothing names.
+		// dies while Open and parks, which puts it in the run; once the free
+		// proof pops C, the flip unmarks P with C and E. A root onto P after
+		// the flip is refused as unmarked, and the sweep deletes all three,
+		// which nothing names.
 		tr := testTree{}
 		tr.add(t, "A")
 		tr.add(t, "E")
@@ -5056,14 +5062,59 @@ func TestLivenessSettle(t *testing.T) {
 		v, clk, store := oldStore(t, tr, "A", []string{"A", "E", "C", "P"})
 		verify(t, v, tr, "A", "P")
 		collectUntil(t, v, clk, flipped)
-		requireStored(t, v, tr, false, "P")
-		if err := rootOnto(t, v, tr, "P"); !errors.Is(err, block.ErrNotFound) {
-			t.Fatalf("root onto the freed P err %v, want it refused as not found", err)
+		if found, err := v.GetBlockExists(t.Context(), tr["P"].Ref); err != nil || found {
+			t.Fatalf("the unmarked P exists=%v err %v, want absent", found, err)
+		}
+		err := rootOnto(t, v, tr, "P")
+		var unmarked *block_gc.AbsentError
+		if !errors.As(err, &unmarked) || !errors.Is(err, block.ErrRefsUnknown) || !unmarked.Ref.EqualsRef(tr["P"].Ref) {
+			t.Fatalf("root onto the unmarked P err %v, want an AbsentError", err)
 		}
 		collectUntil(t, v, clk, settled)
 		requireStored(t, v, tr, false, "P", "C", "E")
 		if has(t, store, run, nil) {
 			t.Fatal("the run outlived the settle")
+		}
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("root onto a dead verified parent before its free", func(t *testing.T) {
+		// As above, but the root moves onto P in the window between the flip
+		// and P's free, while P is still stored. The park put P in the run,
+		// so the flip unmarked it with C and E: the root is refused as
+		// unmarked, and the sweep deletes all three. Were it accepted, its
+		// re-hold would reach C and E, and the sweep would have to keep them.
+		tr := testTree{}
+		tr.add(t, "A")
+		tr.add(t, "E")
+		tr.add(t, "C", "E")
+		tr.add(t, "P", "C")
+		v, clk, _ := oldStore(t, tr, "A", []string{"A", "E", "C", "P"})
+		verify(t, v, tr, "A", "P")
+		var tried bool
+		var rootErr error
+		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+			if tried || livenessGeneration(t, v) != block_gc.Generation_GENERATION_SWEEPING {
+				return
+			}
+			if _, found, err := v.GetBlock(t.Context(), tr["P"].Ref); err != nil || !found {
+				return
+			}
+			tried = true
+			rootErr = rootOnto(t, v, tr, "P")
+		}}
+		swapCollector(v, block_gc.NewCollector(probe, block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now}))
+		collectUntil(t, v, clk, settled)
+		if !tried {
+			t.Fatal("the root never moved onto P between the flip and its free")
+		}
+		switch {
+		case rootErr == nil:
+			requireStored(t, v, tr, true, "P", "C", "E")
+		case errors.Is(rootErr, block.ErrRefsUnknown):
+			requireStored(t, v, tr, false, "P", "C", "E")
+		default:
+			t.Fatal(rootErr)
 		}
 		requireAudit(t, v, 0)
 	})
