@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/packsweep"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
 	"github.com/sirupsen/logrus"
@@ -17,8 +19,8 @@ import (
 
 // TestCommandVerify checks the verify against a bucket alone: a clean bucket
 // passes with every block counted for the root that reached it first, and a
-// bucket with one block's bytes corrupted and one pack gone fails, naming
-// those two blocks and counting the rest.
+// bucket with one block's bytes corrupted and one pack moved to the trash
+// fails, naming those two blocks, the second as trashed, and counting the rest.
 func TestCommandVerify(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -95,8 +97,8 @@ func TestCommandVerify(t *testing.T) {
 		t.Fatalf("clean per root = %v, want [5 0]", got)
 	}
 
-	// Corrupt the leaf's bytes in the first pack, and remove the second
-	// pack's object, keeping its entry.
+	// Corrupt the leaf's bytes in the first pack, and move the second pack
+	// and its entry to the trash, as a sweep does.
 	var packs []string
 	if err := client.ListObjects(ctx, s3test.BucketName, "world/packs/", func(key string, _ int64) error {
 		packs = append(packs, key)
@@ -115,8 +117,18 @@ func TestCommandVerify(t *testing.T) {
 			corrupted = true
 			continue
 		}
-		if err := client.DeleteObject(ctx, s3test.BucketName, key); err != nil {
-			t.Fatal(err)
+		id := strings.TrimPrefix(key, "world/packs/")
+		moves := [][2]string{
+			{key, block_store_s3.TrashPackKey("world/", id)},
+			{"world/entries/" + id, block_store_s3.TrashEntryKey("world/", id)},
+		}
+		for _, mv := range moves {
+			if err := client.PutObject(ctx, s3test.BucketName, mv[1], readObject(ctx, t, client, mv[0]), ""); err != nil {
+				t.Fatal(err)
+			}
+			if err := client.DeleteObject(ctx, s3test.BucketName, mv[0]); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	if !corrupted {
@@ -138,8 +150,8 @@ func TestCommandVerify(t *testing.T) {
 	for _, b := range res.GetArray("bad_blocks") {
 		bad[string(b.GetStringBytes("ref"))] = string(b.GetStringBytes("reason"))
 	}
-	if len(bad) != 2 || bad[corruptRef.MarshalString()] == "" || bad[lostRef.MarshalString()] == "" {
-		t.Fatalf("bad blocks = %v, want the corrupted leaf and the lost one", bad)
+	if len(bad) != 2 || bad[corruptRef.MarshalString()] == "" || bad[lostRef.MarshalString()] != packsweep.ReasonTrashed {
+		t.Fatalf("bad blocks = %v, want the corrupted leaf and the trashed one", bad)
 	}
 	if got := perRoot(res); len(got) != 2 || got[0] != 3 || got[1] != 0 {
 		t.Fatalf("damaged per root = %v, want [3 0]", got)

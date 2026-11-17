@@ -55,7 +55,8 @@ func (a *Args) copyFlags() []cli.Flag {
 
 // runCopyVersions copies every version and delete marker under the prefixes
 // from one bucket to another, each key's oldest first, server-side, and
-// prints the counts.
+// prints the counts. It refuses a destination without versioning and one the
+// source prefixes overlap in the same bucket, before any write.
 func (a *Args) runCopyVersions(*cli.Context) error {
 	// Run until a signal stops the copy.
 	ctx, cancel := signalContext()
@@ -116,7 +117,8 @@ func copyResultJSON(a *fastjson.Arena, r *block_store_s3.VersionCopyResult, dryR
 		n    uint64
 	}{
 		{"keys", r.Keys}, {"versions", r.Versions}, {"markers", r.Markers},
-		{"bytes", r.Bytes}, {"skipped", r.Skipped}, {"conflicts", r.Conflicts},
+		{"bytes", r.Bytes}, {"largest", r.Largest}, {"skipped", r.Skipped},
+		{"resumed", r.Resumed}, {"conflicts", r.Conflicts},
 	} {
 		obj.Set(f.name, a.NewNumberString(strconv.FormatUint(f.n, 10)))
 	}

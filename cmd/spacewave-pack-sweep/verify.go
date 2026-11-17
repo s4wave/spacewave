@@ -43,7 +43,7 @@ func (a *Args) runVerify(*cli.Context) error {
 	defer cancel()
 	le := logrus.NewEntry(logrus.StandardLogger())
 
-	// Read the roots, then reach the store, refusing every write to it.
+	// Read the roots, then reach the bucket.
 	roots, err := a.verifyRoots(ctx)
 	if err != nil {
 		return err
@@ -53,8 +53,13 @@ func (a *Args) runVerify(*cli.Context) error {
 		return err
 	}
 	defer closeStore()
+
+	// Open the live packs, and the trashed ones to name a block only they
+	// hold, both read-only.
 	store := block_store_s3.NewPackStore(le, readOnly{objects}, bucket, a.Prefix, &block_store_s3.PackStoreOptions{KeepPacks: true})
 	defer store.Close()
+	trash := block_store_s3.NewPackStore(le.WithField("packs", "trash"), readOnly{objects}, bucket, block_store_s3.TrashPrefix(a.Prefix), &block_store_s3.PackStoreOptions{KeepPacks: true})
+	defer trash.Close()
 
 	// Keep the blocks read and the frontier in a scratch file of the
 	// verify's own, removed after.
@@ -74,6 +79,7 @@ func (a *Args) runVerify(*cli.Context) error {
 	res, err := packsweep.Verify(ctx, &packsweep.VerifyOptions{
 		Store:  db,
 		Source: store,
+		Trash:  trash,
 		Roots:  roots,
 		Batch:  a.Batch,
 		Reads:  a.Reads,
@@ -94,7 +100,7 @@ func (a *Args) runVerify(*cli.Context) error {
 		return err
 	}
 	if res.Bad != 0 {
-		return errors.Errorf("%d blocks missing, unreadable, corrupt or without their refs", res.Bad)
+		return errors.Errorf("%d blocks missing, trashed, unreadable, corrupt or without their refs", res.Bad)
 	}
 	return nil
 }
