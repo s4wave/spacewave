@@ -79,7 +79,11 @@ func TestHolesGitCheckout(t *testing.T) {
 			eng, ref := f.start(t)
 			defer func() { ref.Release() }()
 			ws := world.NewEngineWorldState(eng, true)
-			src := holesRepo(t, 40, 48<<10)
+			// 12 files of 16 KiB put the clone and the second and third
+			// worktrees past the 64 KiB bound on every run, as checks of
+			// OverflowStage.Stored show, and keep the run short where a pack
+			// inflates byte by byte, as under GoScript.
+			src := holesRepo(t, 12, 16<<10)
 
 			// Clone without checkout, as the import does.
 			if _, _, err := ws.ApplyWorldOp(ctx, &git_world.GitCloneOp{
