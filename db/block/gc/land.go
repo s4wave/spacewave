@@ -93,12 +93,18 @@ const (
 // include it. The audit records each hole it finds under a live root and
 // restores its count from the holders it found, and a put of a recorded hole
 // counts it as stored too: Land writes its list back, and its children gain no
-// holder. The one gap is a block lost with its list and put again before any
-// audit records it: the put counts it as a new block the batch gives no
-// holder, which the collector frees once the put ages past the grace period
-// while its parents still name it, and an audit before then reports the
-// undercount. A restore of lost blocks therefore audits first, as the payload
-// restore does.
+// holder. A put of an unrecorded hole counts it as a new block the batch
+// gives no holder, so it keeps the block only through an invariant the
+// adoption sets: a block without a child list counts one holder more than
+// its namers. Turning frees on recounts (SetFrees), which restores that for
+// every hole, so a hole lost while frees were off survives its put. A block
+// lost with its list after that recount and put again before any audit
+// records it is the residual window: the put leaves it one holder short, the
+// collector frees it once the put ages past the grace period while its
+// parents still name it, and an audit before then reports the undercount. A
+// restore of lost blocks therefore audits first, as the payload restore
+// does, or opens the Volume once with frees off, so frees turn on again
+// through the recount.
 //
 // While the Volume's old generation is Open, Land keeps the settle's front
 // invariant, as settle.go describes: it pushes onto the front each child a

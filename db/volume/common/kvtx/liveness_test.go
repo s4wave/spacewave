@@ -1061,6 +1061,21 @@ func punchHole(t *testing.T, v *Volume, ref *block.BlockRef) {
 	}
 }
 
+// loseBlock loses ref from the store with its child list but keeps its count,
+// as damage no audit has seen yet does.
+func loseBlock(t *testing.T, v *Volume, ref *block.BlockRef) {
+	t.Helper()
+	err := v.withDirectAtomic(t.Context(), func(p *physicalTx) error {
+		if err := p.rec.DeleteChildren(t.Context(), ref); err != nil {
+			return err
+		}
+		return p.blocks.RmBlock(t.Context(), ref)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestLivenessAdversarial tries to make the collector free a live block: a
 // reader pinning an old root during a swap and a reader whose lease lapses,
 // two writers moving one root, a root moved away and back within the grace
@@ -2572,6 +2587,77 @@ func testLivenessAdversarial(t *testing.T) {
 		requireReads(t, v, tr, "X", "R")
 		requireStored(t, v, tr, false, "E", "D")
 		requireAudit(t, v, 0)
+	})
+
+	t.Run("turning frees on recounts an adopted Volume", func(t *testing.T) {
+		// An adopted Volume with frees off holds main -> R -> P -> C, and
+		// the store loses C with its list but keeps its count, so no audit
+		// records the hole. Turning frees on recounts, which counts C one
+		// holder more than P, its namer, so a put of C alone leaves it held
+		// by P and it outlives the grace.
+		store := store_kvtx_inmem.NewStore()
+		v1, _ := openLivenessVolume(t, store, true)
+		waitAdopted(t, v1)
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+		v2, _ := openLivenessVolume(t, store, false)
+		ctx := t.Context()
+		tr := testTree{}
+		c := tr.add(t, "C")
+		tr.add(t, "P", "C")
+		r := tr.add(t, "R", "P")
+		if err := v2.SetBucketRoots(ctx, "b", tr.entries("C", "P", "R"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+		loseBlock(t, v2, c)
+		if err := v2.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Turn frees on, put C alone, and collect past the grace.
+		v, clk := openLivenessVolume(t, store, true)
+		waitAdopted(t, v)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("C"), nil); err != nil {
+			t.Fatal(err)
+		}
+		for range 3 {
+			clk.Add(3 * (block_gc.DefaultGrace + time.Second))
+			collectAll(t, v)
+		}
+		requireReads(t, v, tr, "R", "P", "C")
+		if holders, _ := blockHolders(t, v, tr, "C"); holders != 1 {
+			t.Fatalf("C counts %d holders after its put, want P's 1", holders)
+		}
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("the audit sees the residual", func(t *testing.T) {
+		// After the recount, the store loses C with its list, and a put of
+		// C alone comes before any audit records the hole. That put leaves
+		// C one holder short of P, its namer, the residual window, and an
+		// audit run before the grace reports it.
+		v, _ := newLivenessVolume(t, true)
+		waitAdopted(t, v)
+		ctx := t.Context()
+		tr := testTree{}
+		c := tr.add(t, "C")
+		tr.add(t, "P", "C")
+		r := tr.add(t, "R", "P")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("C", "P", "R"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+		loseBlock(t, v, c)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("C"), nil); err != nil {
+			t.Fatal(err)
+		}
+		res, err := block_gc.Audit(ctx, collectorStore{v: v}, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.Undercount != 1 || !slices.ContainsFunc(res.UndercountSample, c.EqualsRef) {
+			t.Fatalf("audit found %d undercounts in %v, want C alone", res.Undercount, res.UndercountSample)
+		}
 	})
 
 	for _, tc := range []struct {
