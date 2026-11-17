@@ -9,11 +9,14 @@
 // chunks, allocated lowest first, so it shrinks by truncation and nothing is
 // punched.
 //
-// Any number of processes may open the file. Each holds a reader slot that
-// publishes the oldest state its snapshots read, and tails the log when the
-// file changes. A write transaction holds the writer lock, so commits from
-// all processes form one sequence, and every background step appends its
-// record under the same lock.
+// One process may open the file writable; other processes may open it read-only.
+// Read-only handles publish their oldest snapshot in reader slots and tail the
+// log when the file changes. The writer tracks its oldest snapshot locally.
+// Stop older writable processes before
+// upgrading: every writer must implement the owner lock. Ownership locks the
+// inode; removing or replacing its pathname requires stopping its users first.
+// A write transaction holds the writer lock, so commits from this process form
+// one sequence, and every background step appends its record under the same lock.
 package s4db
 
 import (
@@ -102,20 +105,12 @@ type DB struct {
 	pinMtx csync.Mutex
 	// pinned is the pin last written to the slot.
 	pinned pin
-	// ownSeq is the newest record this handle wrote. The writer stores it
-	// before the write reaches the file, so a tailed state beyond it came
-	// from another process.
-	ownSeq atomic.Uint64
 	// orderedSeq is the newest ordered commit this handle made, which the
 	// deadline flush makes durable. WaitDurable waits for it alone: a
 	// background record, such as a free or truncate record or a cleaner
 	// move, arms no flush, so waiting for the published state would wait for
 	// the next commit on a quiet file.
 	orderedSeq atomic.Uint64
-	// shared is set once a tail finds another process's record. Until then
-	// the slot keeps the pin written at open, which is no newer than any
-	// state this handle reads, so the slot is not rewritten on every commit.
-	shared atomic.Bool
 	// flows counts the values this handle's commits wrote and freed outside
 	// the index, for each of Options.Families and then for the other keys.
 	flows []flowCount
@@ -127,8 +122,26 @@ type DB struct {
 	waitMax atomic.Int64
 }
 
-// open opens the database in s, closing s on failure.
+// open claims writer ownership before recovering the database, closing s on failure.
 func open(s storage, opts Options) (*DB, error) {
+	// Claim the writable file before recovery can create or repair any bytes.
+	// The OS releases this lifetime lock on close or process death.
+	if !opts.ReadOnly {
+		ok, err := s.lock(lockWriterOwner, false)
+		if err != nil || !ok {
+			_ = s.close()
+			if err != nil {
+				return nil, err
+			}
+			return nil, ErrWriterOwned
+		}
+	}
+
+	return openOwned(s, opts)
+}
+
+// openOwned constructs a handle after its caller claimed writable ownership.
+func openOwned(s storage, opts Options) (*DB, error) {
 	// Build the database on s with its flusher and writer.
 	opts = opts.withDefaults()
 	db := &DB{
@@ -154,26 +167,21 @@ func open(s storage, opts Options) (*DB, error) {
 	}
 
 	// Follow other processes' records, and run the background jobs.
-	db.tailer.SetRoutine(db.tailLoop)
-	db.tailer.SetContext(context.Background(), false)
+	if opts.ReadOnly {
+		db.tailer.SetRoutine(db.tailLoop)
+		db.tailer.SetContext(context.Background(), false)
+	}
 	if !opts.ReadOnly {
-		db.sched = newScheduler(db)
+		startScheduler(db)
 	}
 	return db, nil
 }
 
 // load creates the file if empty, takes a reader slot, and recovers state.
 func (db *DB) load() error {
-	// Create the file under the writer lock so concurrent openers agree.
+	// The lifetime writer claim already excludes creation or repair by a peer.
 	if !db.opts.ReadOnly {
-		if _, err := db.s.lock(lockWriter, true); err != nil {
-			return err
-		}
-		err := db.w.create()
-		if uerr := db.s.unlock(lockWriter); err == nil {
-			err = uerr
-		}
-		if err != nil {
+		if err := db.w.create(); err != nil {
 			return err
 		}
 	}
@@ -194,10 +202,10 @@ func (db *DB) load() error {
 	if db.slot, err = takeSlot(db.s); err != nil {
 		return err
 	}
-	if err := db.writePin(pin{id: db.id}); err != nil {
+	if err := db.writePin(pin{}); err != nil {
 		return err
 	}
-	if db.watch, err = db.s.watch(db.slot); err != nil {
+	if db.watch, err = db.s.watch(db.slot, db.opts.ReadOnly); err != nil {
 		return err
 	}
 
@@ -221,7 +229,6 @@ func (db *DB) load() error {
 	// Publish the loaded state and pin it.
 	st.refs = new(refCount)
 	db.cur.Store(st)
-	db.ownSeq.Store(st.seq)
 	return db.writePin(db.localPin())
 }
 
@@ -305,34 +312,20 @@ func (db *DB) readManifest(sb superblock) (*manifest, error) {
 	return decodeManifest(b)
 }
 
-// writeSuper writes sb as the file's next superblock generation and flushes
-// it, under lockSuper so processes publishing at once keep the generations
-// ordered. The generation comes from the file, since another process may have
-// published since this one read it; when the file already holds a superblock
-// at or past sb.seq, sb is older than it and is not written. db.super keeps
-// the newest superblock this handle made durable.
+// writeSuper writes and flushes the next superblock generation. superMtx
+// serializes this process's publishers and readers of db.super; the lifetime
+// writer-owner lock excludes every other publisher.
 func (db *DB) writeSuper(sb superblock) error {
-	// Serialize with the other publishers and this handle's readers of
-	// db.super.
-	if _, err := db.s.lock(lockSuper, true); err != nil {
-		return err
-	}
-	defer func() { _ = db.s.unlock(lockSuper) }()
+	// Serialize this process's superblock publishers.
 	db.superMtx.Lock()
 	defer db.superMtx.Unlock()
 
-	// Follow the newest generation in the file, unless it is already past sb.
-	order, err := db.readSupers()
-	if err != nil {
-		return err
+	// The sole writable handle already holds the last durable generation.
+	// Failed writes leave that generation unchanged for a retry.
+	if db.super.seq >= sb.seq {
+		return nil
 	}
-	sb.gen = 1
-	if len(order) != 0 {
-		if order[0].seq >= sb.seq {
-			return nil
-		}
-		sb.gen = order[0].gen + 1
-	}
+	sb.gen = db.super.gen + 1
 
 	// Write and flush it.
 	if _, err := db.s.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
@@ -397,26 +390,14 @@ func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 	return next, torn, nil
 }
 
-// cutTorn erases the record after st whose values a crash tore, so tails,
-// which trust records, end the log where recovery did. Another process may
-// have appended meanwhile, so it tails again under the writer lock first.
+// cutTorn erases the record after st whose values a crash tore, so reader
+// tails end the log where recovery did. Writer ownership excludes new appends.
 func (db *DB) cutTorn(st *state) (*state, error) {
-	// Exclude writers and find the torn record again.
-	if _, err := db.s.lock(lockWriter, true); err != nil {
+	// Recovery already found the torn record under lifetime writer ownership.
+	if _, err := db.s.WriteAt(make([]byte, recordHeader), fileOff(st.pos)); err != nil {
 		return nil, err
 	}
-	st, torn, err := db.tail(st, true)
-
-	// Overwrite its header and flush.
-	if err == nil && torn {
-		if _, err = db.s.WriteAt(make([]byte, recordHeader), fileOff(st.pos)); err == nil {
-			err = db.s.flushDurable()
-		}
-	}
-	if uerr := db.s.unlock(lockWriter); err == nil {
-		err = uerr
-	}
-	return st, err
+	return st, db.s.flushDurable()
 }
 
 // verify reports whether every value r references matches its checksum.
@@ -431,16 +412,11 @@ func (db *DB) verify(r *record) bool {
 	return true
 }
 
-// tailLoop applies records other processes append until the watcher stops.
-// It skips the wakes this handle's writer raises: while the writer lock is
-// held no other process writes, and taking the lock applied what they wrote
-// before. A failed tail leaves the published state; the next change retries
-// it.
+// tailLoop applies the writable process's records on a read-only handle.
+// A failed tail leaves the published state; the next file change retries it.
 func (db *DB) tailLoop(ctx context.Context) error {
 	for db.watch.wait() {
-		if !db.w.held.Load() {
-			_ = db.refresh(ctx)
-		}
+		_ = db.refresh(ctx)
 	}
 	return nil
 }
@@ -448,18 +424,20 @@ func (db *DB) tailLoop(ctx context.Context) error {
 // refresh publishes the records other processes wrote, without waiting for
 // the tail loop to notice them.
 func (db *DB) refresh(ctx context.Context) error {
+	// Only readers can observe another handle's commits. The writable handle
+	// already publishes every change and never replays its own log.
+	if !db.opts.ReadOnly {
+		return nil
+	}
 	st, _, err := db.tail(db.cur.Load(), false)
 	if err != nil {
 		return err
 	}
-	if st.seq > db.ownSeq.Load() {
-		db.shared.Store(true)
-	}
 	return db.publish(ctx, st)
 }
 
-// publish makes st the published state unless the published state is as
-// new, then raises the slot's pin when it can and another process reads it.
+// publish advances the state and a read-only handle's reader pin. The writable
+// handle's scheduler reads its local snapshots directly instead of its slot.
 func (db *DB) publish(ctx context.Context, st *state) error {
 	// Keep a published state at least as new.
 	l := db.bcast.Lock()
@@ -477,7 +455,7 @@ func (db *DB) publish(ctx context.Context, st *state) error {
 	db.retired = slices.DeleteFunc(append(db.retired, cur), func(s *state) bool { return !s.refs.held() })
 	l.Broadcast()
 	l.Unlock()
-	if !db.shared.Load() {
+	if !db.opts.ReadOnly {
 		return nil
 	}
 	return db.updatePin(ctx)
@@ -500,19 +478,18 @@ func (db *DB) acquire() (*state, int) {
 	}
 }
 
-// release ends a snapshot of st counted in stripe. The pin moves only when
-// a replaced state's last snapshot may have ended and another process reads
-// the slot.
+// release ends a snapshot and raises a read-only handle's pin when its last
+// reader of a replaced state finishes. The writer reads its local pin directly.
 func (db *DB) release(st *state, stripe int) {
-	if st.refs[stripe].n.Add(-1) != 0 || db.cur.Load() == st || !db.shared.Load() {
+	if st.refs[stripe].n.Add(-1) != 0 || db.cur.Load() == st || !db.opts.ReadOnly {
 		return
 	}
 	_ = db.updatePin(context.Background())
 }
 
-// pin returns the pin a snapshot of st holds, for the handle id.
-func (st *state) pin(id uint64) pin {
-	return pin{seq: st.seq, version: st.m.version, id: id}
+// pin returns the pin a snapshot of st holds.
+func (st *state) pin() pin {
+	return pin{seq: st.seq, version: st.m.version}
 }
 
 // localPin returns the oldest state this handle's snapshots read, and
@@ -521,13 +498,13 @@ func (db *DB) localPin() pin {
 	// Start from the published state.
 	l := db.bcast.Lock()
 	defer l.Unlock()
-	p := db.cur.Load().pin(db.id)
+	p := db.cur.Load().pin()
 
 	// Lower the pin by each replaced state still read.
 	live := db.retired[:0]
 	for _, s := range db.retired {
 		if s.refs.held() {
-			p = p.lower(s.pin(db.id))
+			p = p.lower(s.pin())
 			live = append(live, s)
 		}
 	}
@@ -592,7 +569,7 @@ func (db *DB) readValue(v value) ([]byte, error) {
 }
 
 // NewTransaction opens a transaction. A write transaction holds the writer
-// lock across all processes until Commit or Discard.
+// lock until Commit or Discard.
 func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Refuse a closed handle and serve a read from the published state.
 	if db.closed.Load() {

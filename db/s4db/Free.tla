@@ -13,8 +13,8 @@
 \* chunk whose live count reaches zero is sealed and pending, closing it when
 \* it is still open; it is free once every reader's pin passes the sealing
 \* record.
-\* A job reserves a free chunk by slot; the job finishes (the chunk becomes a
-\* run) or its process dies, which frees the chunk by the slot rule.
+\* The sole writer reserves a free chunk; the job finishes (it becomes a run)
+\* or the writer dies, allowing its successor to reclaim every reservation.
 \* Allocating a free chunk clears what it held. Readers take a snapshot of the
 \* references, read through them, and release.
 \*
@@ -47,7 +47,7 @@ VARIABLES
   tag,       \* the last tag issued
   version,   \* the record count, which dates pending chunks and pins
   pendAt,    \* the version that sealed each pending chunk
-  owner,     \* the slot that reserved each reserved chunk, and whether it lives
+  owner,     \* whether each reservation belongs to the current writer
   cpc,       \* the cleaner: "idle", "scanned"
   victim,    \* the cleaner's victim
   moves,     \* the entries the cleaner found live in its snapshot
@@ -67,7 +67,7 @@ Init ==
   /\ hot = 1 /\ cold = 2
   /\ tag = 0 /\ version = 0
   /\ pendAt = [c \in Chunks |-> 0]
-  /\ owner = [c \in Chunks |-> [slot |-> 0, alive |-> FALSE]]
+  /\ owner = [c \in Chunks |-> FALSE]
   /\ cpc = "idle" /\ victim = 0 /\ moves = {}
   /\ snap = [r \in Readers |-> [k \in Keys |-> None]]
   /\ pin = [r \in Readers |-> 0]
@@ -180,34 +180,34 @@ Release ==
        /\ kind' = [kind EXCEPT ![c] = "free"]
   /\ UNCHANGED <<entries, refs, latest, live, hot, cold, tag, version, pendAt, owner, cpc, victim, moves, snap, pin>>
 
-\* A job reserves the lowest free chunk for slot 1, which lives.
+\* The sole writer reserves the lowest free chunk.
 Reserve ==
   /\ More /\ HasFree
   /\ kind' = [kind EXCEPT ![Lowest] = "reserved"]
   /\ entries' = [entries EXCEPT ![Lowest] = {}]
-  /\ owner' = [owner EXCEPT ![Lowest] = [slot |-> 1, alive |-> TRUE]]
+  /\ owner' = [owner EXCEPT ![Lowest] = TRUE]
   /\ version' = version + 1
   /\ UNCHANGED <<refs, latest, live, hot, cold, tag, pendAt, cpc, victim, moves, snap, pin>>
 
 \* The job finishes: the chunk holds a run.
 Finish ==
   /\ More /\ \E c \in Chunks :
-       /\ kind[c] = "reserved" /\ owner[c].alive
+       /\ kind[c] = "reserved" /\ owner[c]
        /\ kind' = [kind EXCEPT ![c] = "run"]
   /\ version' = version + 1
   /\ UNCHANGED <<entries, refs, latest, live, hot, cold, tag, pendAt, owner, cpc, victim, moves, snap, pin>>
 
-\* The job's process dies: its slot lock drops, and the next table check
-\* frees the chunk.
+\* The writer dies: its lifetime lock drops. The next owner can reclaim
+\* every reservation from that writer; reader pins cannot own reservations.
 Die ==
   /\ \E c \in Chunks :
-       /\ kind[c] = "reserved" /\ owner[c].alive
-       /\ owner' = [owner EXCEPT ![c] = [slot |-> 1, alive |-> FALSE]]
+       /\ kind[c] = "reserved" /\ owner[c]
+       /\ owner' = [d \in Chunks |-> FALSE]
   /\ UNCHANGED <<kind, entries, refs, latest, live, hot, cold, tag, version, pendAt, cpc, victim, moves, snap, pin>>
 
 Reclaim ==
   /\ \E c \in Chunks :
-       /\ kind[c] = "reserved" /\ ~owner[c].alive
+       /\ kind[c] = "reserved" /\ ~owner[c]
        /\ kind' = [kind EXCEPT ![c] = "free"]
   /\ UNCHANGED <<entries, refs, latest, live, hot, cold, tag, version, pendAt, owner, cpc, victim, moves, snap, pin>>
 

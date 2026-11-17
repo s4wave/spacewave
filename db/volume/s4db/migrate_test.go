@@ -128,7 +128,7 @@ func writeBase58Block(t *testing.T, path string, data []byte) *block.BlockRef {
 // it when standard input closes.
 func holdOpen(t *testing.T, path string) {
 	// Open the file and hold it until standard input closes.
-	db, err := s4db.Open(path, s4db.Options{})
+	db, err := s4db.Open(path, s4db.Options{ReadOnly: true})
 	if err != nil {
 		t.Fatal(err)
 	}

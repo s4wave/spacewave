@@ -31,8 +31,8 @@ type storage interface {
 	unlock(off int64) error
 	// held reports whether another holder has the lock on the byte at off.
 	held(off int64) (bool, error)
-	// watch returns a watcher for the reader in slot.
-	watch(slot int) (watcher, error)
+	// watch returns file-change notifications for a reader, or the writer notifier.
+	watch(slot int, readOnly bool) (watcher, error)
 	// close releases the file. The database closes its watcher first.
 	close() error
 }

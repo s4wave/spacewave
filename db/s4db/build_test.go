@@ -8,11 +8,73 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 )
+
+// TestBuildOwnerRacedOpen preserves a writer that initialized a newly created
+// file before its builder could acquire ownership.
+func TestBuildOwnerRacedOpen(t *testing.T) {
+	// Commit real data in a separate process during the pre-claim interval.
+	const writerEnv = "S4DB_TEST_BUILD_INTERVENING_WRITER"
+	if path := os.Getenv(writerEnv); path != "" {
+		db := openTest(t, path, Options{})
+		defer db.Close()
+		tx, err := db.NewTransaction(t.Context(), true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Discard()
+		if err := tx.Set(t.Context(), []byte("accepted"), []byte("keep")); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancel()
+	path := filepath.Join(t.TempDir(), "raced-build.s4wave")
+	f, closeFile, err := OpenFile(path, func(name string) (*os.File, error) {
+		return openNativeFile(name, os.O_RDWR|os.O_CREATE|os.O_EXCL)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeFile()
+	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestBuildOwnerRacedOpen$", "-test.timeout=15s")
+	cmd.Env = append(os.Environ(), writerEnv+"="+path)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("intervening writer: %v\n%s", err, out)
+	}
+
+	// Resume the same production claim/build path after the accepted writer closes.
+	s := &osFile{File: f, path: path, closeFile: closeFile}
+	called := false
+	err = buildNative(ctx, s, Options{}, func(func([]byte, []byte) error) error {
+		called = true
+		return nil
+	})
+	if called || !errors.Is(err, os.ErrExist) {
+		t.Fatalf("builder resumed after intervening writes: source=%t error=%v", called, err)
+	}
+	db := openTest(t, path, Options{ReadOnly: true})
+	defer db.Close()
+	tx, err := db.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	value, found, err := tx.Get(ctx, []byte("accepted"))
+	if err != nil || !found || string(value) != "keep" {
+		t.Fatalf("intervening commit lost: found=%t value=%q error=%v", found, value, err)
+	}
+}
 
 // buildValue returns the value of key number i: mostly inline, every seventh
 // in a value chunk, and every ten-thousandth past a whole chunk, so a large

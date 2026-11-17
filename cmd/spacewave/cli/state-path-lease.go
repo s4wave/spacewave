@@ -144,11 +144,19 @@ func acquireStatePathLease(
 
 	// Open the lease file, converting one a previous release wrote; this
 	// process already holding it open is a same-process runtime.
-	db, err := volume_s4db.Open(ctx, le, leasePath, s4db.Options{})
-	if errors.Is(err, s4db.ErrOpenInProcess) {
+	open := volume_s4db.Open
+	if wait {
+		open = volume_s4db.OpenWait
+	}
+	db, err := open(ctx, le, leasePath, s4db.Options{})
+	if errors.Is(err, s4db.ErrOpenInProcess) || errors.Is(err, s4db.ErrWriterOwned) {
+		holderPID := 0
+		if errors.Is(err, s4db.ErrOpenInProcess) {
+			holderPID = os.Getpid()
+		}
 		return nil, &StatePathLeaseHeldError{
 			StatePath: statePath,
-			HolderPID: os.Getpid(),
+			HolderPID: holderPID,
 			StorePath: leasePath,
 		}
 	}
