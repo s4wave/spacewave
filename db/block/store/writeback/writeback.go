@@ -663,13 +663,12 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	// them.
 	s.prefetchClear(ctx, batch)
 
-	// Clear behind every foreground writer: the upload is background work,
-	// and a player's write must not queue behind its marker clears. The
+	// Clear with background admission: the upload is deferrable work. The
 	// writers that block on mtx while a clear waits are a backfill, a
 	// change of enabled and the marking store of a store that cannot mark
 	// in its own transaction; a store that marks in the write's transaction
 	// takes no mtx.
-	ctx = kvtx.WithBackgroundWriteContext(ctx)
+	ctx = block.WithBackground(ctx)
 
 	// Serialize uploaded marker removal with queue status updates.
 	release, err := s.mtx.Lock(ctx)

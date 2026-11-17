@@ -12,6 +12,7 @@ import (
 	bdb "github.com/aperturerobotics/bbolt"
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/aperturerobotics/util/csync"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -31,7 +32,7 @@ type Store struct {
 	// flusher makes ordered commits durable with a bolt flush.
 	flusher *kvtx.OrderedFlusher
 	// writers orders the write transactions ahead of bolt's own writer lock,
-	// so a transaction opened with kvtx.WithBackgroundWriteContext waits
+	// so a transaction opened with block.WithBackground waits
 	// behind every foreground writer that is waiting. Bolt's lock grants
 	// waiters in no priority order, so without it a burst of background
 	// writes, such as cache fills or upload marker clears, queues ahead of a
@@ -42,7 +43,7 @@ type Store struct {
 // Priorities of Store.writers.
 const (
 	// writerBackground is the priority of write transactions opened with
-	// kvtx.WithBackgroundWriteContext.
+	// block.WithBackground.
 	writerBackground = iota - 1
 	// writerForeground is the priority of every other write transaction.
 	writerForeground
@@ -92,14 +93,14 @@ func (s *Store) RefreshForCoordinationLock() error {
 // Always call Discard() after you are done with the transaction.
 //
 // A write transaction first takes the Store's writer turn, behind every
-// waiting foreground writer when ctx carries kvtx.WithBackgroundWriteContext,
+// waiting foreground writer when ctx carries block.WithBackground,
 // and holds it until the transaction commits or is discarded.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Take the writer turn at the transaction's priority.
 	var release func()
 	if write {
 		prio := writerForeground
-		if kvtx.IsBackgroundWriteContext(ctx) {
+		if block.IsBackground(ctx) {
 			prio = writerBackground
 		}
 		var err error

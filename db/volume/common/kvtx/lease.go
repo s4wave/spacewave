@@ -27,16 +27,17 @@ func (v *Volume) leaseExpiry() time.Time {
 }
 
 // rootRenewForeground is the age of the last renewal past which the next
-// renewal runs as a foreground write, half the lease, so constant foreground
-// writes delay renewals but never starve one until its lease lapses.
+// renewal runs as a foreground write, half the lease, so writer admission
+// stops deferring it while the expiry approaches. This sets admission policy;
+// caller bodies, storage and scheduling still have no finite time bound.
 const rootRenewForeground = rootLease / 2
 
 // runRootRenewal renews the leased roots this process holds every
 // rootRenewInterval until ctx ends. A renewal is one changing transaction,
-// which also carries the deferred releases. It runs as background work, so it
-// waits behind foreground writers, and gives up after rootRenewInterval; once
-// the last renewal is older than rootRenewForeground it runs in the
-// foreground instead. A foreground writer waits at most for one renewal.
+// which also carries the deferred releases. It uses background admission and
+// gives up after rootRenewInterval. Once the last renewal is older than
+// rootRenewForeground it runs in the foreground. That promotion retains the
+// lifecycle context without adding a background marker.
 func (v *Volume) runRootRenewal(ctx context.Context) {
 	// Tick every rootRenewInterval. renewed is the base of the last renewal's
 	// expiry, or, until one lands, the start, one interval before the first
@@ -57,10 +58,10 @@ func (v *Volume) runRootRenewal(ctx context.Context) {
 			renewed = v.now().Add(-rootRenewInterval)
 		}
 
-		// Renew behind the foreground writers while the lease has time left.
-		renewCtx := block.WithBackground(ctx)
+		// Defer renewal as background work only while the lease has time left.
+		renewCtx := ctx
 		if v.now().Sub(renewed) < rootRenewForeground {
-			renewCtx = backgroundPass(ctx)
+			renewCtx = block.WithBackground(ctx)
 		}
 		renewCtx, cancel := context.WithTimeout(renewCtx, rootRenewInterval)
 		base, err := v.renewRoots(renewCtx)

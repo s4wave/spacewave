@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -26,7 +27,7 @@ const legacySweepKeys = 2048
 func (v *Volume) runLegacySweep(ctx context.Context) {
 	// Delete the legacy kinds under the liveness prefix, as background work.
 	defer close(v.legacyDone)
-	ctx = backgroundPass(ctx)
+	ctx = block.WithBackground(ctx)
 	for _, kind := range legacyGraphKinds {
 		prefix := append(bytes.Clone(livenessPrefix), kind)
 		if err := v.sweepLegacyPrefix(ctx, prefix); err != nil {

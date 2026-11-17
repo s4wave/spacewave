@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
 )
@@ -22,8 +23,7 @@ const tailBatchRows = 16
 
 // tailStepPause is the least pause after a drain step. The pause is twice
 // the step's own time when that is longer, up to tailStepPauseMax, so the
-// drain slows as the disk it shares with player writes slows, and players
-// never queue behind it.
+// drain slows as the disk it shares with foreground writes slows.
 const tailStepPause = 100 * time.Millisecond
 
 // tailStepPauseMax bounds the pause after a slow step, so a step that waited
@@ -96,7 +96,8 @@ func (x *packIndex) forgetQueuedTailsLocked(ids []string) {
 // row is derived from bytes the bucket holds, so the commit is ordered rather
 // than flushed, and a failed step drops its tails.
 func (x *packIndex) drainTails() {
-	ctx := kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(context.Background()))
+	// Admit lazy extent upgrades as background reads and ordered writes.
+	ctx := block.WithBackground(kvtx.WithOrderedCommitContext(context.Background()))
 	for {
 		// Take the next step with each tail's pack number, or end the drain on
 		// an empty queue. A tail stays queued, and readable, until its step is
