@@ -32,8 +32,8 @@ type ReadStatus struct {
 	// read ended; they say nothing of the peers.
 	PeerCanceled uint64
 	// PeerRemembered counts the reads answered unavailable without asking a
-	// peer, because the peers failed to serve the block with an error within
-	// peerUnservedFor. They are counted apart from the reads that asked.
+	// peer, because the peers refused the block within peerUnservedFor. They
+	// are counted apart from the reads that asked.
 	PeerRemembered uint64
 	// PeerFilled counts the blocks a peer served that filled the local store.
 	// A block served without its refs fills later, counted in
@@ -60,6 +60,7 @@ func (p *placementState) readStatus() ReadStatus {
 			PeerError: p.peerReads.failed[peerError].Load(),
 			Timeout:   p.peerReads.failed[peerTimeout].Load(),
 			NoSession: p.peerReads.failed[peerNoSession].Load(),
+			Exchange:  p.peerReads.failed[peerExchange].Load(),
 		},
 		PeerCanceled:   p.peerReads.canceled.Load(),
 		PeerRemembered: p.peerReads.remembered.Load(),

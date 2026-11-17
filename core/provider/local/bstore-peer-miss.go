@@ -62,8 +62,7 @@ type peerMissLog struct {
 	peers func() block.StoreOps
 	// counts counts the outcomes of the peer reads, or is nil.
 	counts *peerReadCounts
-	// unserved holds the refs the peers failed to serve with an error, or
-	// is nil to always ask.
+	// unserved holds the refs the peers refused, or is nil to always ask.
 	unserved *unservedRefs
 }
 
@@ -140,21 +139,24 @@ func (p *peerMissLog) fetch(ref *block.BlockRef) block.PeerFetch {
 // readPeers asks the peers in store for ref until one answers, or
 // peerReadLimit ends, and counts the outcome once in counts, which may be nil.
 // A read that failed while its caller still waited warns through le, once per
-// block, as warnPeerFailed describes. A read whose peers answered with an
-// error is remembered in unserved, which may be nil, and a read of a ref
-// unserved holds fails with block.ErrUnavailable at once, asks no peer and
-// counts as remembered instead.
+// block, as warnPeerFailed describes. A read that failed only because peers
+// refused the block, as peerRefused proves, is remembered in unserved, which
+// may be nil, and a read of a ref unserved holds fails with
+// block.ErrUnavailable at once, asks no peer and counts as remembered instead.
+// A failed exchange, a missing session or a timeout in any attempt leaves the
+// ref unremembered, so a blip to a peer costs no more than the read it failed.
 func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts, unserved *unservedRefs) (blk *block.StoredBlock, err error) {
-	// Answer a ref the peers recently failed to serve from memory.
+	// Answer a ref the peers recently refused from memory.
 	key := ref.MarshalString()
 	if unserved.holds(key, time.Now()) {
 		counts.recordRemembered()
-		return nil, fmt.Errorf("%w: block %s recently failed on every peer", block.ErrUnavailable, key)
+		return nil, fmt.Errorf("%w: block %s recently refused by the peers", block.ErrUnavailable, key)
 	}
 
 	// Count the read's outcome once it ends, warn of a failure and remember
-	// a peer's error.
+	// a block the peers refused.
 	cause := peerTimeout
+	refused, unproven := false, false
 	defer func() {
 		switch {
 		case err == nil:
@@ -164,14 +166,15 @@ func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref 
 		default:
 			counts.recordFailed(cause)
 			warnPeerFailed(le, ref, cause)
-			if cause == peerError {
+			if refused && !unproven {
 				unserved.remember(key, time.Now())
 			}
 		}
 	}()
 
 	// Ask the peers until one answers, or the bound ends. A timeout keeps
-	// the cause an earlier attempt found.
+	// the cause an earlier attempt found, and an attempt the bound cut off
+	// neither proves nor disproves a refusal.
 	readCtx, cancel := context.WithTimeout(ctx, peerReadLimit())
 	defer cancel()
 	pause := peerReadPauseMin
@@ -180,6 +183,12 @@ func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref 
 		if err != nil {
 			if c := peerFailCause(err); c != peerTimeout {
 				cause = c
+			}
+			switch {
+			case peerRefused(err):
+				refused = true
+			case readCtx.Err() == nil:
+				unproven = true
 			}
 		}
 		if err == nil || readCtx.Err() != nil {

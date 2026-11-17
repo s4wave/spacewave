@@ -17,14 +17,18 @@ import (
 type peerCause int
 
 const (
-	// peerError is a read a peer answered with an error, or whose exchange
-	// with a peer failed.
+	// peerError is a read a peer answered with an error: its own lookup of
+	// the block failed.
 	peerError peerCause = iota
 	// peerTimeout is a read whose bound ended with a request outstanding.
 	peerTimeout
 	// peerNoSession is a read that found no open peer session to ask, or
 	// whose session closed under the request.
 	peerNoSession
+	// peerExchange is a read whose exchange with a peer failed, such as a
+	// failed send, a reset stream or a block that failed to verify, which
+	// says nothing of whether the peer holds the block.
+	peerExchange
 	// peerCauseCount is the number of causes.
 	peerCauseCount
 )
@@ -36,6 +40,8 @@ func (c peerCause) String() string {
 		return "timeout"
 	case peerNoSession:
 		return "no_session"
+	case peerExchange:
+		return "exchange"
 	default:
 		return "peer_error"
 	}
@@ -53,8 +59,41 @@ func peerFailCause(err error) peerCause {
 	case errors.Is(err, context.DeadlineExceeded):
 		return peerTimeout
 	default:
-		return peerError
+		return peerExchange
 	}
+}
+
+// peerRefused reports whether err proves that the peers cannot serve the
+// block: every failure it carries is a peer's own error answer, beside the
+// block.ErrUnavailable that wraps them. A failed exchange, a closed session or
+// a timeout from any peer leaves it unproven, since that peer may hold it.
+func peerRefused(err error) bool {
+	// Walk err's tree: every leaf must be the wrapper or a refusal, and one
+	// must be a refusal.
+	refused := false
+	var walk func(error) bool
+	walk = func(err error) bool {
+		switch e := err.(type) {
+		case interface{ Unwrap() []error }:
+			for _, inner := range e.Unwrap() {
+				if !walk(inner) {
+					return false
+				}
+			}
+			return true
+		case interface{ Unwrap() error }:
+			return walk(e.Unwrap())
+		}
+		switch {
+		case errors.Is(err, dex_solicit.ErrPeerError):
+			refused = true
+			return true
+		case errors.Is(err, block.ErrUnavailable):
+			return true
+		}
+		return false
+	}
+	return walk(err) && refused
 }
 
 // peerSiteDepth bounds the stack walk that names a failed read's reader.
