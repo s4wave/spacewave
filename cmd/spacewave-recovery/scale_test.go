@@ -3,15 +3,18 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -26,7 +29,7 @@ import (
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/s4wave/spacewave/db/packfile/writer"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
-	store_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	store_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -36,11 +39,23 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestRecoveryScale counts synthetic captures of n and 10n objects, each with
-// two versions, spread over SQLite, a local pack log and retained remote
-// packs, and logs one line per size. It runs only when RECOVERY_SCALE_N is
-// set, keeping its stores under RECOVERY_SCALE_DIR. Each count runs in a
-// child process, so its peak RSS excludes the capture's construction.
+// scalePeakSlackKiB bounds how far the count's peak resident set may grow from
+// the first size to a larger one. The fixed costs that fill with data are the
+// SQLite pagers, 2 MiB on the capture's one connection and on each of up to
+// four scratch connections, plus Go heap and allocator slack; between 100 and
+// 1000 objects the measured growth was 7.3 MiB. Anything that keeps even
+// 150 bytes per block crosses the bound at 1000 objects.
+const scalePeakSlackKiB = 16 << 10
+
+// TestRecoveryScale counts synthetic captures of several sizes, each object
+// with two versions, spread over SQLite, a local pack log and retained remote
+// packs, and logs one line per size. RECOVERY_SCALE_N lists the object counts,
+// comma-separated; one count n means n and 10n. RECOVERY_SCALE_BODY sets each
+// version's body bytes, stored as distinct 8 KiB chunks; zero keeps a short
+// inline body. Stores live under RECOVERY_SCALE_DIR. Each count runs in a
+// child process that reports its own peak resident set, and the test fails
+// when a larger size's peak exceeds the first's by scalePeakSlackKiB, because
+// the walk must stream: memory may not grow with the block count.
 func TestRecoveryScale(t *testing.T) {
 	// A child counts one capture and exits.
 	if manifest := os.Getenv("RECOVERY_SCALE_CHILD"); manifest != "" {
@@ -55,12 +70,24 @@ func TestRecoveryScale(t *testing.T) {
 		if err := runCount(t.Context(), io.Discard, source, os.Getenv("RECOVERY_SCALE_SCRATCH"), countOptions()); err != nil {
 			t.Fatal(err)
 		}
+		if err := os.WriteFile(os.Getenv("RECOVERY_SCALE_PEAK"), strconv.AppendInt(nil, peakRSSKiB(t), 10), 0o600); err != nil {
+			t.Fatal(err)
+		}
 		return
 	}
-	n, _ := strconv.Atoi(os.Getenv("RECOVERY_SCALE_N"))
-	if n <= 0 {
+	var sizes []int
+	for field := range strings.SplitSeq(os.Getenv("RECOVERY_SCALE_N"), ",") {
+		if size, err := strconv.Atoi(field); err == nil && size > 0 {
+			sizes = append(sizes, size)
+		}
+	}
+	if len(sizes) == 0 {
 		t.Skip("set RECOVERY_SCALE_N to measure")
 	}
+	if len(sizes) == 1 {
+		sizes = append(sizes, 10*sizes[0])
+	}
+	body, _ := strconv.Atoi(os.Getenv("RECOVERY_SCALE_BODY"))
 	base := t.TempDir()
 	if dir := os.Getenv("RECOVERY_SCALE_DIR"); dir != "" {
 		var err error
@@ -71,14 +98,15 @@ func TestRecoveryScale(t *testing.T) {
 	}
 	t.Logf("scale stores in %s", base)
 
-	for _, size := range []int{n, 10 * n} {
+	var firstPeak int64
+	for i, size := range sizes {
 		// Build the capture, then count it in a child process.
 		dir := filepath.Join(base, strconv.Itoa(size))
-		source, sourceBytes := makeScaleCapture(t, dir, size)
+		source, sourceBytes := makeScaleCapture(t, dir, size, body)
 		stamp := treeStamp(t, []string{source.GetPath(), source.GetPacks()[0].GetPath(), source.GetPacks()[1].GetPath()})
 		scratch := filepath.Join(dir, "scratch.sqlite")
 		cmd := exec.CommandContext(t.Context(), os.Args[0], "-test.run=^TestRecoveryScale$", "-test.timeout=60m")
-		cmd.Env = append(os.Environ(), "RECOVERY_SCALE_CHILD="+writeManifest(t, source), "RECOVERY_SCALE_SCRATCH="+scratch)
+		cmd.Env = append(os.Environ(), "RECOVERY_SCALE_CHILD="+writeManifest(t, source), "RECOVERY_SCALE_SCRATCH="+scratch, "RECOVERY_SCALE_PEAK="+filepath.Join(dir, "peak"))
 		start := time.Now()
 		out, err := cmd.CombinedOutput()
 		elapsed := time.Since(start)
@@ -88,6 +116,14 @@ func TestRecoveryScale(t *testing.T) {
 		usage, ok := cmd.ProcessState.SysUsage().(*syscall.Rusage)
 		if !ok {
 			t.Fatal("child resource usage is unavailable")
+		}
+		peakData, err := os.ReadFile(filepath.Join(dir, "peak"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		peak, err := strconv.ParseInt(string(peakData), 10, 64)
+		if err != nil {
+			t.Fatal(err)
 		}
 		result, err := recovery.ReadResult(scratch)
 		if err != nil {
@@ -102,17 +138,41 @@ func TestRecoveryScale(t *testing.T) {
 		count := result.GetCounts()
 		writes := changedPaths(t, stamp)
 		t.Logf("scale objects=%d phase=%s source_bytes=%d blocks=%d block_bytes=%d locations=%d versions=%d pack_files=%d peak_rss_kib=%d scratch_bytes=%d duration=%s source_writes=%d in_blocks=%d out_blocks=%d",
-			size, result.GetPhase(), sourceBytes, count.GetPhysicalBlocks(), count.GetPhysicalBytes(), count.GetPhysicalLocations(), count.GetObjectVersions(), count.GetPackFiles(), maxRSSKiB(usage), scratchBytes, elapsed.Round(time.Millisecond), writes, usage.Inblock, usage.Oublock)
+			size, result.GetPhase(), sourceBytes, count.GetPhysicalBlocks(), count.GetPhysicalBytes(), count.GetPhysicalLocations(), count.GetObjectVersions(), count.GetPackFiles(), peak, scratchBytes, elapsed.Round(time.Millisecond), writes, usage.Inblock, usage.Oublock)
 		// Each object has two versions; SetObjectType adds the one version of
 		// the shared kv/store type object.
 		if writes != 0 || result.GetPhase() != recovery.Phase_PHASE_COUNTED || count.GetObjectVersions() != uint64(2*size+1) { //nolint:gosec // positive.
 			t.Fatalf("scale count of %d objects: phase %s, %d versions, %d source writes", size, result.GetPhase(), count.GetObjectVersions(), writes)
 		}
+		if i == 0 {
+			firstPeak = peak
+		} else if peak > firstPeak+scalePeakSlackKiB {
+			t.Fatalf("scale count of %d objects peaked at %d KiB, more than %d KiB above %d objects' %d KiB; the count keeps memory per block", size, peak, scalePeakSlackKiB, sizes[0], firstPeak)
+		}
 	}
 }
 
-// maxRSSKiB returns the child's peak resident set in KiB; Darwin reports bytes.
-func maxRSSKiB(usage *syscall.Rusage) int64 {
+// peakRSSKiB returns this process's own peak resident set in KiB. Linux
+// carries the parent's high-water mark across fork and exec into ru_maxrss,
+// so there it reads VmHWM, which belongs to the current address space alone.
+func peakRSSKiB(t *testing.T) int64 {
+	t.Helper()
+	if status, err := os.ReadFile("/proc/self/status"); err == nil {
+		_, rest, found := bytes.Cut(status, []byte("VmHWM:"))
+		fields := bytes.Fields(rest)
+		if !found || len(fields) == 0 {
+			t.Fatal("VmHWM is missing from /proc/self/status")
+		}
+		peak, err := strconv.ParseInt(string(fields[0]), 10, 64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return peak
+	}
+	var usage syscall.Rusage
+	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &usage); err != nil {
+		t.Fatal(err)
+	}
 	if runtime.GOOS == "darwin" {
 		return usage.Maxrss / 1024
 	}
@@ -120,12 +180,22 @@ func maxRSSKiB(usage *syscall.Rusage) int64 {
 }
 
 // makeScaleCapture builds size typed objects, replaces each object's version
-// once, and writes every block to one of three tiers in turn. It returns the
-// declared capture and the bytes its sources hold.
-func makeScaleCapture(t *testing.T, dir string, size int) (*recovery.Source, int64) {
+// once, and writes every block to one of three tiers in turn. Each version's
+// body holds bodyBytes of distinct 8 KiB chunks, or a short inline label when
+// bodyBytes is zero. The blocks are built in a SQLite store on disk, so the
+// test process does not hold the capture in memory. It returns the declared
+// capture and the bytes its sources hold.
+func makeScaleCapture(t *testing.T, dir string, size, bodyBytes int) (*recovery.Source, int64) {
 	t.Helper()
 	ctx := t.Context()
-	store := store_inmem.NewStore()
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	store, err := store_sqlite.OpenWithPragmas(ctx, filepath.Join(dir, "build.sqlite"), "build", store_sqlite.Pragmas{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
 	keygen := store_kvkey.NewDefaultKVKey()
 	blocks, err := volume_kvtx.NewVolume(ctx, "synthetic-scale", keygen, store, nil, false, true, nil, nil)
 	if err != nil {
@@ -144,8 +214,22 @@ func makeScaleCapture(t *testing.T, dir string, size int) (*recovery.Source, int
 		}
 		return ref
 	}
+	random := rand.NewChaCha8([32]byte{})
+	chunk := make([]byte, 8<<10)
 	body := func(label string) *bucket.ObjectRef {
 		value := &blob.Blob{TotalSize: uint64(len(label)), RawData: []byte(label)}
+		if bodyBytes > 0 {
+			value = &blob.Blob{BlobType: blob.BlobType_BlobType_CHUNKED, TotalSize: uint64(bodyBytes), ChunkIndex: &blob.ChunkIndex{}} //nolint:gosec // positive.
+			for start := 0; start < bodyBytes; start += len(chunk) {
+				data := chunk[:min(len(chunk), bodyBytes-start)]
+				_, _ = random.Read(data)
+				ref, _, err := blocks.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
+				if err != nil {
+					t.Fatal(err)
+				}
+				value.ChunkIndex.Chunks = append(value.ChunkIndex.Chunks, blob.NewChunk(ref, uint64(len(data)), uint64(start))) //nolint:gosec // positive.
+			}
+		}
 		return &bucket.ObjectRef{RootRef: put(&kvtx_block.KeyValueStore{ImplType: kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL, IavlRoot: &iavl.Node{Key: []byte("item"), Size: 1, ValueBlob: value}})}
 	}
 
