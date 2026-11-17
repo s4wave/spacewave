@@ -1,0 +1,8 @@
+[
+  {
+    "name": "yielded background call never ages",
+    "config": "WriterAdmission-liveness.cfg",
+    "replace": [["/\\ aged' = [aged EXCEPT ![b] = TRUE]", "/\\ aged' = [aged EXCEPT ![b] = FALSE]"]],
+    "expect": "BackgroundYieldBound"
+  }
+]
