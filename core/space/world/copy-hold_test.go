@@ -315,6 +315,10 @@ func TestAdmitHoldsOverflow(t *testing.T) {
 		}
 		errCh := make(chan error, 1)
 		go func() { errCh <- a.keepAdmitted(t.Context(), admission(mid, leaf, root)) }()
+
+		// Wait for the leaf's page, failing at once if the admission returns
+		// before its hold, or if the page never arrives.
+		deadline := time.Now().Add(10 * time.Second)
 		for {
 			ok, err := a.pages.StoreOps.GetBlockExists(t.Context(), leaf.Ref)
 			if err != nil {
@@ -322,6 +326,14 @@ func TestAdmitHoldsOverflow(t *testing.T) {
 			}
 			if ok {
 				break
+			}
+			select {
+			case err := <-errCh:
+				t.Fatalf("admission returned %v before the leaf's page was kept", err)
+			default:
+			}
+			if time.Now().After(deadline) {
+				t.Fatal("the leaf's page was not kept within 10s")
 			}
 			time.Sleep(time.Millisecond)
 		}
