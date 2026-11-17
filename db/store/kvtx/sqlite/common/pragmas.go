@@ -13,6 +13,9 @@ type Pragmas struct {
 	// MmapSize sets the SQLite mmap_size pragma in bytes. 0 leaves the
 	// SQLite default (mmap disabled).
 	MmapSize int64
+	// DisableMmap explicitly disables memory mapping on every connection.
+	// It overrides MmapSize; the zero-value policy of existing callers is unchanged.
+	DisableMmap bool
 	// TempStore sets the SQLite temp_store pragma. Valid values are 0
 	// (DEFAULT), 1 (FILE), 2 (MEMORY). 0 leaves the SQLite default.
 	TempStore int32

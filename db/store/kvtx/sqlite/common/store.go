@@ -320,8 +320,12 @@ func openPool[T SQLiteDriverConfig](config T, path string, pragmas Pragmas, hold
 	if pragmas.CacheSize != 0 {
 		connPragmas = append(connPragmas, "PRAGMA cache_size="+strconv.FormatInt(int64(pragmas.CacheSize), 10))
 	}
-	if pragmas.MmapSize != 0 {
-		connPragmas = append(connPragmas, "PRAGMA mmap_size="+strconv.FormatInt(pragmas.MmapSize, 10))
+	if pragmas.DisableMmap || pragmas.MmapSize != 0 {
+		mmapSize := pragmas.MmapSize
+		if pragmas.DisableMmap {
+			mmapSize = 0
+		}
+		connPragmas = append(connPragmas, "PRAGMA mmap_size="+strconv.FormatInt(mmapSize, 10))
 	}
 	if pragmas.TempStore != 0 {
 		connPragmas = append(connPragmas, "PRAGMA temp_store="+strconv.FormatInt(int64(pragmas.TempStore), 10))

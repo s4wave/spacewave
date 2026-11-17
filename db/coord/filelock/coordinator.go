@@ -160,7 +160,7 @@ func (c *Coordinator) openLockFile(ctx context.Context, scope coord.Scope) (*os.
 	}
 
 	// Open the scope's lock file.
-	path := filepath.Join(lockDir, lockDigest(c.storeID, scope)+".lock")
+	path := c.LockPath(scope)
 
 	// #nosec G703 -- path is the managed lock directory joined with a hex digest filename.
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
@@ -172,6 +172,12 @@ func (c *Coordinator) openLockFile(ctx context.Context, scope coord.Scope) (*os.
 		return nil, err
 	}
 	return file, nil
+}
+
+// LockPath returns the keyed scope's actual lock file path without opening it.
+// Callers preserving an immutable input can reject filesystem aliases before a lease opens it.
+func (c *Coordinator) LockPath(scope coord.Scope) string {
+	return filepath.Join(c.dir, lockDirName, lockDigest(c.storeID, scope)+".lock")
 }
 
 // waitLockFile blocks in the kernel until file holds its advisory lock. On

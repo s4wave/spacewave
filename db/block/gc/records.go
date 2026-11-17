@@ -461,9 +461,10 @@ func (r *Records) namedKey(kind byte, bucketID, name string) []byte {
 	return r.key(kind, binary.AppendUvarint(nil, uint64(len(bucketID))), []byte(bucketID), []byte(name))
 }
 
-// parseNamedKey splits the part of a namedKey after its kind into the bucket
+// ParseNamedKey splits the part of a namedKey after its kind into the bucket
 // and the name.
-func parseNamedKey(rest []byte) (string, string, error) {
+func ParseNamedKey(rest []byte) (string, string, error) {
+	// Bound the bucket slice before converting either component.
 	n, size := binary.Uvarint(rest)
 	if size <= 0 || uint64(len(rest)-size) < n { //nolint:gosec // size > 0 and at most len(rest).
 		return "", "", errors.New("liveness root record is malformed")
@@ -538,7 +539,7 @@ func (r *Records) ScanRoots(ctx context.Context, fn func(bucketID, name string, 
 	prefix := r.key(kindRoot)
 	return r.tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		// Split the bucket from the name.
-		bucketID, name, err := parseNamedKey(key[len(prefix):])
+		bucketID, name, err := ParseNamedKey(key[len(prefix):])
 		if err != nil {
 			return err
 		}
