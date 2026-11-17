@@ -345,8 +345,9 @@ func TestEvictIndexWriterHold(t *testing.T) {
 	t.Logf("index-marker entries=%d transactions=1 legacy-writer-hold=%s indexed-writer-hold=%s observed-difference=%s", evictRetryCommitBlocks, baseline, measured.holds[0], measured.holds[0]-baseline)
 }
 
-// TestEvictIndexActivationFence rejects an off-policy marker staged before
-// the enabling repair's epoch fence on the real native optimistic engine.
+// TestEvictIndexActivationFence commits an off-policy marker staged before
+// the enabling repair's epoch fence on the real native optimistic engine
+// without a conflict, covering its block under the policy at the commit.
 func TestEvictIndexActivationFence(t *testing.T) {
 	// Open native storage without a live repair worker to control the fence.
 	t.Setenv(kvtx.OptimisticEnv, "on")
@@ -382,7 +383,7 @@ func TestEvictIndexActivationFence(t *testing.T) {
 	}
 
 	// Stage the marker while off, then activate and commit the epoch fence.
-	var delta queueDelta
+	var delta *queueDelta
 	var attempts int
 	err = kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		attempts++
@@ -404,12 +405,13 @@ func TestEvictIndexActivationFence(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The replay must remove overlap under the new policy, never publish stale bytes.
-	if attempts != 2 {
-		t.Fatalf("marker attempts=%d, want conflict and one replay", attempts)
+	// The commit must remove overlap under the new policy without a replay,
+	// never publish stale bytes.
+	if attempts != 1 {
+		t.Fatalf("marker attempts=%d, want one with no conflict", attempts)
 	}
 	gen, _ := s.getEnabledGen()
-	s.applyQueued(gen, delta)
+	s.applyQueued(gen, *delta)
 	checkEvictIndex(t, s, 0, 0)
 	err = kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
 		found, err := tx.Exists(ctx, markedKey(ref.GetHash()))

@@ -195,14 +195,17 @@ type queueDelta struct {
 // block before this write finds the entry changed and keeps it: the upload
 // could have read the block absent, as a swept block that this write stored
 // again.
-func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, error) {
-	// Read the activation fence before sampling policy. A transaction staged
-	// while off must conflict with an enabling repair, including optimistic
-	// block transactions that otherwise read no eviction metadata.
-	if _, err := readEpoch(ctx, tx); err != nil {
-		return queueDelta{}, err
+//
+// The marked blocks' eviction coverage changes at the commit, as
+// coverMarksAtCommit describes, so the write reads no eviction metadata a
+// transaction validates. The returned delta's evictable bytes are final once
+// tx commits.
+func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (*queueDelta, error) {
+	// Cover the marked blocks' eviction entries at the commit.
+	delta := &queueDelta{}
+	if err := coverMarksAtCommit(ctx, tx, marks, delta); err != nil {
+		return nil, err
 	}
-	indexed := evictQueueIndex.Load() && evictRefusedRetry.Load()
 
 	// Read every block's marker, which names its queue entry.
 	keys := make([][]byte, len(marks))
@@ -211,25 +214,14 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, erro
 	}
 	entries, found, err := kvtx.GetBatch(ctx, tx, keys)
 	if err != nil {
-		return queueDelta{}, err
+		return nil, err
 	}
 
 	// Queue each block, finding a block listed twice under the entry its
 	// first listing queued.
-	var delta queueDelta
 	now := time.Now()
 	queuedHere := make(map[string][]byte)
 	for i, mark := range marks {
-		// Remove indexed eviction coverage in the marker transaction, including
-		// refreshes. Unindexed legacy overlap is left to bounded repair.
-		if indexed {
-			n, err := coverMarkedEvict(ctx, tx, mark.Hash)
-			if err != nil {
-				return queueDelta{}, err
-			}
-			delta.evictable += n
-		}
-
 		// Resolve an existing marker before creating its upload entry.
 		key := keys[i]
 		queued := entries[i]
@@ -242,7 +234,7 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, erro
 		// Change the queue value of a block that is queued already.
 		if len(queued) != 0 {
 			if err := tx.Set(ctx, queued, queueValue(mark.Size, now)); err != nil {
-				return queueDelta{}, err
+				return nil, err
 			}
 			continue
 		}
@@ -251,10 +243,10 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, erro
 		at := queueTime(mark.At)
 		entryKey := queueKey(at, mark.Hash)
 		if err := tx.Set(ctx, key, entryKey); err != nil {
-			return queueDelta{}, err
+			return nil, err
 		}
 		if err := tx.Set(ctx, entryKey, queueValue(mark.Size, time.Time{})); err != nil {
-			return queueDelta{}, err
+			return nil, err
 		}
 		queuedHere[string(key)] = entryKey
 		if delta.added == 0 || at.Before(delta.oldest) {
@@ -263,10 +255,48 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, erro
 		delta.added++
 		delta.addedBytes += mark.Size
 	}
-	if err := addEvictableBytes(ctx, tx, delta.evictable); err != nil {
-		return queueDelta{}, err
-	}
 	return delta, nil
+}
+
+// coverMarks removes the indexed eviction coverage of the marked blocks,
+// including refreshes, and returns the change to the evictable bytes.
+// Unindexed legacy overlap is left to bounded repair.
+func coverMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (int64, error) {
+	var evictable int64
+	for _, mark := range marks {
+		n, err := coverMarkedEvict(ctx, tx, mark.Hash)
+		if err != nil {
+			return 0, err
+		}
+		evictable += n
+	}
+	return evictable, addEvictableBytes(ctx, tx, evictable)
+}
+
+// coverMarksAtCommit covers the marked blocks' indexed eviction entries at the
+// commit of tx, holding the store's writer, when indexed accounting is on
+// then, and sets delta's evictable bytes. Its reads are not validated, so an
+// optimistic marker transaction never conflicts with an eviction pass, a
+// repair or another marker over the eviction metadata. A transaction that
+// holds the writer from its start, as every Volume marker transaction does,
+// runs it at once.
+//
+// Invariant: no committed marker leaves its block's bytes counted as
+// evictable by an indexed entry. The policy flips on before an enabling
+// repair commits its epoch boundary, and that commit and this check both hold
+// the writer. A marker whose check runs before the boundary commits before the
+// repair's walk starts, so the walk reads it; one whose check runs after finds
+// the policy on and covers against the state the repair left. While the
+// policy is off the check reads only the two switches.
+func coverMarksAtCommit(ctx context.Context, tx kvtx.Tx, marks []Mark, delta *queueDelta) error {
+	return kvtx.AtCommit(ctx, tx, func(ctx context.Context, tx kvtx.Tx) error {
+		if !evictQueueIndex.Load() || !evictRefusedRetry.Load() {
+			return nil
+		}
+		n, err := coverMarks(ctx, tx, marks)
+		delta.evictable = n
+		return err
+	})
 }
 
 // queueValue returns the value of a queue entry for a block of size bytes. A

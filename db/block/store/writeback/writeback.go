@@ -573,13 +573,17 @@ func (s *Store) MarkBlocks(ctx context.Context, tx kvtx.Tx, blocks []kvtx.BlockM
 	if err != nil {
 		return nil, errors.Wrap(err, "queue block upload")
 	}
-	if delta.added == 0 && delta.evictable == 0 {
-		return nil, nil
-	}
 	if delta.added != 0 {
 		s.lowerFloor(delta.oldest)
 	}
-	return func() { s.applyQueued(gen, delta) }, nil
+
+	// Project the delta once the transaction committed, when its evictable
+	// bytes are final; a delta of nothing wakes no watcher.
+	return func() {
+		if delta.added != 0 || delta.evictable != 0 {
+			s.applyQueued(gen, *delta)
+		}
+	}, nil
 }
 
 // queue queues blocks for upload in one transaction of their own, as a
@@ -605,7 +609,7 @@ func (s *Store) queue(ctx context.Context, marks []Mark) error {
 	}
 
 	// Queue the markers in one write transaction.
-	var delta queueDelta
+	var delta *queueDelta
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		var err error
 		delta, err = queueMarks(ctx, tx, marks)
@@ -617,7 +621,7 @@ func (s *Store) queue(ctx context.Context, marks []Mark) error {
 	if err != nil {
 		return errors.Wrap(err, "queue block upload")
 	}
-	s.applyQueued(gen, delta)
+	s.applyQueued(gen, *delta)
 	return nil
 }
 
