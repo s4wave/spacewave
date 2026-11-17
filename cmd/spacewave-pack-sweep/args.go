@@ -151,6 +151,8 @@ type Args struct {
 
 	// copy configures the version copy.
 	versionCopy copyArgs
+	// probe configures the hide probe.
+	probe probeArgs
 
 	// dialAdmin reaches the admin service; nil dials AdminURL. Tests set it.
 	dialAdmin func(ctx context.Context) (*block_packsweep_admin.Client, func(), error)

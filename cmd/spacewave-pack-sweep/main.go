@@ -148,6 +148,12 @@ func main() {
 			Action: args.runCopyVersions,
 		},
 		{
+			Name:   "probe-hide",
+			Usage:  "write one scratch key outside the store prefix, hide and unhide it, and print each store answer against what the hide assumes; it leaves the key in place",
+			Flags:  args.probeFlags(),
+			Action: args.runProbeHide,
+		},
+		{
 			Name:   "status",
 			Usage:  "print the cycle's state",
 			Flags:  args.scratchFlags(),
