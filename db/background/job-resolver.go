@@ -70,6 +70,7 @@ func (r *jobResolver) Resolve(ctx context.Context, handler directive.ResolverHan
 		select {
 		case <-ctx.Done():
 			return context.Canceled
+		//gostyle:timer backoff
 		case <-time.After(delay):
 		}
 	}

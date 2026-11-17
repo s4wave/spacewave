@@ -223,6 +223,7 @@ func retrySyncPush(ctx context.Context, push func() error) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		//gostyle:timer backoff
 		case <-time.After(time.Duration(1<<attempt) * time.Second):
 		}
 	}

@@ -72,6 +72,7 @@ func (c *Client) Run(ctx context.Context, dial func(context.Context) (net.Conn, 
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		//gostyle:timer backoff
 		case <-time.After(retry):
 		}
 	}

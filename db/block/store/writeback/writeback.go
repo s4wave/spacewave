@@ -341,6 +341,7 @@ func (s *Store) countRest(ctx context.Context, resume []byte) {
 			select {
 			case <-ctx.Done():
 				return
+			//gostyle:timer backoff
 			case <-time.After(countRetry):
 			}
 			continue

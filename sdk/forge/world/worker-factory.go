@@ -184,6 +184,7 @@ func (r *forgeWorkerResource) Execute(
 		defer close(renewDone)
 		renewTick := r.renewTick
 		if renewTick == nil {
+			//gostyle:timer deadline
 			renew := time.NewTicker(forge_runtime.DefaultOwnerLeaseDuration / 3)
 			defer renew.Stop()
 			renewTick = renew.C

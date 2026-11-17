@@ -78,6 +78,7 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 }
 
 func (l *lease) keepalive(ctx context.Context) {
+	//gostyle:timer deadline
 	ticker := time.NewTicker(redisLeaseRenew)
 	defer ticker.Stop()
 	l.keepaliveWith(ctx, ticker.C, l.renew)

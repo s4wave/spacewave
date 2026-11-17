@@ -584,6 +584,7 @@ func (c *Client) dial(ctx context.Context) (*conn, error) {
 			return cn, err
 		}
 		select {
+		//gostyle:timer backoff
 		case <-time.After(wait):
 		case <-ctx.Done():
 			return nil, context.Cause(ctx)
@@ -624,6 +625,7 @@ func (c *Client) dialOnce(ctx context.Context) (*conn, error) {
 // keepalive closes the connection when the server stops answering, which
 // fails the requests waiting on it and lets the next call dial again.
 func (cn *conn) keepalive() {
+	//gostyle:timer deadline
 	t := time.NewTicker(keepaliveInterval)
 	defer t.Stop()
 	for {
@@ -639,6 +641,7 @@ func (cn *conn) keepalive() {
 		}()
 		select {
 		case <-answered:
+		//gostyle:timer deadline
 		case <-time.After(keepaliveTimeout):
 			_ = cn.ssh.Close()
 			return

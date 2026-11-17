@@ -30,6 +30,7 @@ func watchWorld(ctx context.Context, eng world.Engine, gap time.Duration, read f
 			select {
 			case <-ctx.Done():
 				return context.Cause(ctx)
+			//gostyle:timer deadline
 			case <-time.After(wait):
 			}
 		}

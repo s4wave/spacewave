@@ -178,7 +178,7 @@ func (v *Volume) wakeHealthSizes() {
 func (v *Volume) runHealthSizes(ctx context.Context) {
 	// Poll from an initial measurement until ctx ends.
 	defer close(v.healthDone)
-	ticker := time.NewTicker(healthPoll)
+	ticker := time.NewTicker(healthPoll) //gostyle:timer external the filesystem offers no size watch
 	defer ticker.Stop()
 	var measuredAt time.Time
 	due := true

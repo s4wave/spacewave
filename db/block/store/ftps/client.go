@@ -553,6 +553,7 @@ func (c *Client) dial(ctx context.Context, login int) (*ftp.ServerConn, error) {
 			return conn, err
 		}
 		select {
+		//gostyle:timer backoff
 		case <-time.After(wait):
 		case <-ctx.Done():
 			return nil, err

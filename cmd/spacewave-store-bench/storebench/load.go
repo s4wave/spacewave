@@ -219,6 +219,7 @@ func (l *load) schedule(ctx context.Context, queue chan<- struct{}) {
 	}
 
 	// Queue one write per tick until the load ends.
+	//gostyle:timer deadline
 	tick := time.NewTicker(time.Duration(float64(time.Second) / l.conf.WriteRate))
 	defer tick.Stop()
 	for {

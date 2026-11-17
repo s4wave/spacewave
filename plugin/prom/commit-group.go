@@ -61,6 +61,7 @@ func (g *commitGroup) join(store *Store, eng world.Engine) func() {
 
 // run commits the members once per window until ctx ends.
 func (g *commitGroup) run(ctx context.Context) {
+	//gostyle:timer deadline
 	t := time.NewTicker(g.window)
 	defer t.Stop()
 	for {

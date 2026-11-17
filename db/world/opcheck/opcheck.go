@@ -72,6 +72,7 @@ func Check(t testing.TB, c Case) {
 	appliedRoot, applied := applyOp(ctx, eng, c.Op, c.Sender)
 
 	// Replay the decoded operation on a second replica a moment later.
+	//gostyle:timer deadline
 	time.Sleep(2 * time.Millisecond)
 	replayOp := decodeOp(ctx, t, c)
 	replica, closeReplica := openAt(ctx, t, tbed, base, c.LookupOp)

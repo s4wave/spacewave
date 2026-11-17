@@ -61,6 +61,7 @@ func main() {
 			select {
 			case <-ctx.Done():
 				return
+			//gostyle:timer deadline
 			case <-time.After(time.Millisecond * 500):
 			}
 

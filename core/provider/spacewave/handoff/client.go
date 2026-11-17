@@ -196,6 +196,7 @@ func readHandoffResult(ctx context.Context, wsURL string) (*websocket.Conn, []by
 		select {
 		case <-ctx.Done():
 			return nil, nil, ctx.Err()
+		//gostyle:timer backoff
 		case <-time.After(delay):
 		}
 		delay = min(delay*2, 16*time.Second)

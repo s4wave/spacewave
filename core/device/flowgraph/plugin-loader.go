@@ -88,6 +88,7 @@ func (r *pluginLoadResolver) Resolve(ctx context.Context, handler directive.Reso
 		select {
 		case <-ctx.Done():
 			return nil
+		//gostyle:timer backoff
 		case <-time.After(delay):
 		}
 	}

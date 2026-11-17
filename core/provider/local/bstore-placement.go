@@ -304,6 +304,7 @@ func (t *bstoreTracker) runDrain(ctx context.Context, drain *packahead.Drain, re
 		select {
 		case <-ctx.Done():
 			return
+		//gostyle:timer backoff
 		case <-time.After(drainRetryDelay):
 		}
 	}

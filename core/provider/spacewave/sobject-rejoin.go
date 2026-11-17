@@ -159,6 +159,7 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 				select {
 				case <-ctx.Done():
 					return ctx.Err()
+				//gostyle:timer backoff
 				case <-time.After(backoff):
 				}
 				continue
@@ -185,6 +186,7 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
+			//gostyle:timer backoff
 			case <-time.After(backoff):
 			}
 			continue

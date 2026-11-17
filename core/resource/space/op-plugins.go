@@ -200,6 +200,7 @@ func (l *opPluginLoader) run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
+		//gostyle:timer backoff
 		case <-time.After(bo.NextBackOff()):
 		}
 		_, runtime, runtimeRef, err = l.r.AcquireContentsRuntime(ctx)

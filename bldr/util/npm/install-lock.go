@@ -39,6 +39,7 @@ func (l *installLock) Lock(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		//gostyle:timer external
 		case <-time.After(delay):
 		}
 		delay = min(delay*2, maxDelay)

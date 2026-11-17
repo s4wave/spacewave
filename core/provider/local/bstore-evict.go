@@ -450,6 +450,7 @@ const evictLogInterval = time.Minute
 // it saves the recorded reads every readSaveInterval.
 func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) error {
 	// Save recorded reads between passes and during the shortfall wait.
+	//gostyle:timer deadline
 	save := time.NewTicker(readSaveInterval)
 	defer save.Stop()
 
@@ -479,6 +480,7 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 				return err
 			}
 			if result.EvictedBytes < want {
+				//gostyle:timer backoff
 				changed, retry = nil, time.After(evictShortWait)
 			}
 		}

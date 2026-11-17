@@ -26,7 +26,7 @@ func (h *PrototypeHost) Prototype(req *common.PrototypeRequest, strm common.SRPC
 
 	// Stream a response every 500ms until the stream context ends.
 	ctx := strm.Context()
-	ticker := time.NewTicker(time.Millisecond * 500)
+	ticker := time.NewTicker(time.Millisecond * 500) //gostyle:timer deadline
 	var seqno int32
 	for {
 		select {

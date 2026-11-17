@@ -229,7 +229,7 @@ func (a *BenchArgs) sampleStats(ctx context.Context, db *s4db.DB, start time.Tim
 	// Read a sample each tick until ctx ends.
 	var out []sample
 	var printed time.Duration
-	tick := time.NewTicker(a.Sample)
+	tick := time.NewTicker(a.Sample) //gostyle:timer deadline
 	defer tick.Stop()
 	for {
 		// Keep the sample, and print a line when one is due.

@@ -44,7 +44,7 @@ func (v *Volume) runRootRenewal(ctx context.Context) {
 	// tick. The loop reads the clock only after a tick, since the clock may
 	// be set after the Volume opens.
 	defer close(v.renewDone)
-	ticker := time.NewTicker(rootRenewInterval)
+	ticker := time.NewTicker(rootRenewInterval) //gostyle:timer deadline
 	defer ticker.Stop()
 	var renewed time.Time
 	for {

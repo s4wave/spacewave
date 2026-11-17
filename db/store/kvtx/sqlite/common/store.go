@@ -476,6 +476,7 @@ func (s *Store[T]) initTableWithRetry(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		//gostyle:timer backoff
 		case <-time.After(backoff):
 		}
 

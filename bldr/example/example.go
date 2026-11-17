@@ -121,6 +121,7 @@ func (d *Demo) RunDemo(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return
+			//gostyle:timer backoff
 			case <-time.After(bo.NextBackOff()):
 			}
 		}

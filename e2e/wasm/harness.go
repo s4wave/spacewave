@@ -1074,6 +1074,7 @@ func (h *Harness) waitForReady(ctx context.Context) error {
 			return errors.New("wasm lifecycle exited before server became ready")
 		case <-ctx.Done():
 			return ctx.Err()
+		//gostyle:timer external the dev server is another process
 		case <-time.After(200 * time.Millisecond):
 		}
 	}

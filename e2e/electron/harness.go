@@ -149,6 +149,7 @@ func (h *Harness) ConnectDriver() error {
 }
 
 func (h *Harness) connectDriver(ctx context.Context) error {
+	//gostyle:timer external
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	var lastErr error
@@ -272,6 +273,7 @@ func (h *Harness) WaitForPage(ctx context.Context) (playwright.Page, error) {
 	if h.browser == nil {
 		return nil, errors.New("playwright CDP browser is not connected")
 	}
+	//gostyle:timer external
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -316,6 +318,7 @@ func (h *Harness) AppPages() []playwright.Page {
 
 // WaitForNoAppPages waits until no app renderer pages are visible.
 func (h *Harness) WaitForNoAppPages(ctx context.Context) error {
+	//gostyle:timer external
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -337,6 +340,7 @@ func (h *Harness) WaitForAppPages(
 	ctx context.Context,
 	count int,
 ) ([]playwright.Page, error) {
+	//gostyle:timer external
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -359,6 +363,7 @@ func (h *Harness) WaitForAppPageCount(
 	ctx context.Context,
 	count int,
 ) ([]playwright.Page, error) {
+	//gostyle:timer external
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -511,7 +516,7 @@ func (h *Harness) waitForCDP(ctx context.Context) error {
 	// Query the Electron CDP endpoint until startup succeeds or ends.
 	url := h.CDPEndpoint() + "/json/version"
 	client := &http.Client{Timeout: 500 * time.Millisecond}
-	ticker := time.NewTicker(250 * time.Millisecond)
+	ticker := time.NewTicker(250 * time.Millisecond) //gostyle:timer external
 	defer ticker.Stop()
 	for {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -540,6 +545,7 @@ func (h *Harness) waitForCDP(ctx context.Context) error {
 // as the newly started runtime when both launches reuse the same debug port.
 func (h *Harness) waitForCDPClosed(ctx context.Context) error {
 	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(h.cdpPort))
+	//gostyle:timer external
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	for {

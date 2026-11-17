@@ -411,6 +411,7 @@ func runWebSocketPing(ctx context.Context, conn *ws.Conn, interval, timeout time
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		//gostyle:timer deadline
 		case <-time.After(interval):
 		}
 

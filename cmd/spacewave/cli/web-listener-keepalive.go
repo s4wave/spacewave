@@ -35,6 +35,7 @@ func startWebListenerKeepalive(
 			select {
 			case <-ctx.Done():
 				return
+			//gostyle:timer backoff
 			case <-time.After(webListenerKeepaliveRetryDelay):
 			}
 		}

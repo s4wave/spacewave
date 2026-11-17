@@ -31,6 +31,7 @@ func (a *ClientArgs) RunWait(c *cli.Context) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		//gostyle:timer external the daemon socket belongs to another process
 		case <-time.After(500 * time.Millisecond):
 		}
 	}

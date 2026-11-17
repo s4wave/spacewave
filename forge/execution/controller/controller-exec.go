@@ -64,6 +64,7 @@ func (c *Controller) executeClaimed(claimCtx context.Context, execConf *ExecConf
 		c.le.WithError(execErr).Debug("retrying interrupted execution")
 		select {
 		case <-ctx.Done():
+		//gostyle:timer backoff
 		case <-time.After(retry.NextBackOff()):
 		}
 	}
@@ -90,6 +91,7 @@ func (c *Controller) executeClaimed(claimCtx context.Context, execConf *ExecConf
 		select {
 		case <-claimCtx.Done():
 			return nil
+		//gostyle:timer backoff
 		case <-time.After(bo.NextBackOff()):
 		}
 	}

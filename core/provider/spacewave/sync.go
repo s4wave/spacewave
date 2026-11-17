@@ -366,6 +366,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 				return nil
 			case <-changed:
 				continue
+			//gostyle:timer deadline
 			case <-time.After(delay):
 			}
 		}
@@ -435,6 +436,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 			case <-ctx.Done():
 				return nil
 			case <-changed:
+			//gostyle:timer backoff
 			case <-time.After(syncNoProgressBackoff):
 			}
 		}

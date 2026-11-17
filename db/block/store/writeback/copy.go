@@ -233,6 +233,7 @@ func (s *Store) Copy(ctx context.Context, target string, remote block.StoreOps, 
 
 	// Save the cursor every few seconds until the workers finish.
 	eg.Go(func() error {
+		//gostyle:timer deadline
 		ticker := time.NewTicker(copySaveEvery)
 		defer ticker.Stop()
 		for {

@@ -70,6 +70,7 @@ func (r *reconciler) run(ctx context.Context) error {
 		var retry <-chan time.Time
 		if err := r.pass(ctx); err != nil && ctx.Err() == nil {
 			r.c.le.WithError(err).WithField("step", r.step.String()).Warn("replica step failed")
+			//gostyle:timer backoff
 			retry = time.After(retryDelay)
 		}
 		select {

@@ -1072,6 +1072,7 @@ func (a *Adapter) runTrimNewest(ctx context.Context, plan *trimPlan) {
 		select {
 		case <-ctx.Done():
 			return
+		//gostyle:timer backoff
 		case <-time.After(delay):
 		}
 		delay = min(2*delay, trimBackoffMax)

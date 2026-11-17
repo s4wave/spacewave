@@ -173,6 +173,7 @@ func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 		select {
 		case <-readCtx.Done():
 			return nil, peerReadErr(ctx, readCtx, ref, err)
+		//gostyle:timer backoff
 		case <-time.After(pause):
 		}
 		pause = min(pause*2, peerReadPauseMax)

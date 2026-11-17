@@ -101,6 +101,7 @@ func HoldImport(ctx context.Context, store block.StoreOps, roots ...*block.Block
 			select {
 			case <-ctx.Done():
 				return context.Cause(ctx)
+			//gostyle:timer backoff
 			case <-time.After(delay):
 			}
 			delay *= 2

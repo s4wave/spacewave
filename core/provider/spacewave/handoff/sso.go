@@ -64,6 +64,7 @@ func StartSSOHandoff(
 	endpoint string,
 	provider string,
 ) (*SSOResult, []byte, string, error) {
+	// Delete the auth session on any failed exit once one exists.
 	var wsTicket string
 	var nonce string
 	cleanupSession := func() {}
@@ -87,6 +88,8 @@ func StartSSOHandoff(
 	if err != nil {
 		return nil, nil, "", errors.Wrap(err, "marshal desktop sso start request")
 	}
+
+	// Send the start request.
 	startURL := endpoint + "/api/auth/sso/start"
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, startURL, bytes.NewReader(startBody))
 	if err != nil {
@@ -98,6 +101,8 @@ func StartSSOHandoff(
 	if err != nil {
 		return nil, nil, "", errors.Wrap(err, "start desktop sso")
 	}
+
+	// Read and parse the start response.
 	defer httpclient.DrainAndCloseResponseBody(httpResp)
 	respBody, err := io.ReadAll(httpResp.Body)
 	if err != nil {
@@ -110,6 +115,8 @@ func StartSSOHandoff(
 	if err := startResp.UnmarshalVT(respBody); err != nil {
 		return nil, nil, "", errors.Wrap(err, "parse desktop sso start response")
 	}
+
+	// Require the ticket and browser URL, and arm the session cleanup.
 	wsTicket = startResp.GetWsTicket()
 	if wsTicket == "" {
 		return nil, nil, "", errors.New("server did not return a desktop sso websocket ticket")
@@ -144,6 +151,7 @@ func StartSSOHandoff(
 	// WS and HTTP both converge into the local SSOResult.
 	var resultPtr *SSOResult
 	for attempts := 0; ; attempts++ {
+		// Read the result from the relay.
 		conn, _, dialErr := websocket.Dial(ctx, wsURL, nil)
 		if dialErr != nil {
 			return nil, nil, "", errors.Wrap(dialErr, "connect websocket")
@@ -162,6 +170,8 @@ func StartSSOHandoff(
 		if ctx.Err() != nil {
 			return nil, nil, "", errors.Wrap(readErr, "read SSO result")
 		}
+
+		// Fall back to the HTTP exchange after a read failure.
 		exchangeCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 		exchanged, exchangeErr := exchangeAuthSessionSignInResult(
 			exchangeCtx,
@@ -174,6 +184,8 @@ func StartSSOHandoff(
 			resultPtr = ssoResultFromProto(exchanged)
 			break
 		}
+
+		// Give up after three attempts, else back off and retry.
 		if attempts >= 2 {
 			if exchangeErr != nil {
 				return nil, nil, "", errors.Wrapf(
@@ -187,12 +199,13 @@ func StartSSOHandoff(
 		select {
 		case <-ctx.Done():
 			return nil, nil, "", errors.Wrap(readErr, "read SSO result")
+		//gostyle:timer backoff
 		case <-time.After(250 * time.Millisecond):
 		}
 	}
 
+	// Report an error the provider returned.
 	result := *resultPtr
-
 	if result.Error != "" {
 		return &result, nil, nonce, errors.Errorf("SSO error: %s", result.Error)
 	}

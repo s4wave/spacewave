@@ -149,6 +149,7 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 				h.releaseBrowserPeerLease(s, browserPeer)
 				retErr = errors.Wrap(lastErr, "connect resources (last attempt)")
 				return retErr
+			//gostyle:timer backoff
 			case <-time.After(backoff):
 			}
 

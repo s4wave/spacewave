@@ -190,6 +190,7 @@ func (a *args) drain(ctx context.Context, le *logrus.Entry, log *packahead.Log, 
 		le.WithError(err).Warn("upload packs")
 		select {
 		case <-ctx.Done():
+		//gostyle:timer backoff
 		case <-time.After(uploadRetry):
 		}
 	}

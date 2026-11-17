@@ -536,6 +536,7 @@ func runLoopWithStdin(ctx context.Context, qjs *quickjs.QuickJS, stdinBuf *wazer
 					return err
 				}
 				continue
+			//gostyle:timer deadline
 			case <-time.After(timerDur):
 				continue
 			}

@@ -58,6 +58,7 @@ func newScraper(le *logrus.Entry, store *Store, cfg *s4wave_prom.ScrapeConfig, p
 // run scrapes now and then once per interval until ctx ends or the store is
 // stood down, which returns ErrStoodDown.
 func (s *scraper) run(ctx context.Context) error {
+	//gostyle:timer deadline
 	t := time.NewTicker(s.cfg.Interval())
 	defer t.Stop()
 	for {

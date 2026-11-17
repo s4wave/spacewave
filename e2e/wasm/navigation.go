@@ -105,6 +105,7 @@ func WaitForAppReady(page playwright.Page) error {
 		if !isTransientAppWaitError(err) {
 			break
 		}
+		//gostyle:timer external
 		<-time.After(250 * time.Millisecond)
 	}
 

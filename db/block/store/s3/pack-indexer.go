@@ -150,6 +150,7 @@ func (s *PackStore) BuildIndex(ctx context.Context, width int, report func(Index
 	defer close(done)
 	if report != nil {
 		go func() {
+			//gostyle:timer deadline
 			t := time.NewTicker(time.Second)
 			defer t.Stop()
 			for {

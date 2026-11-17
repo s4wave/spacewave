@@ -57,6 +57,7 @@ func (d *App) Execute(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return context.Canceled
+		//gostyle:timer deadline
 		case <-time.After(time.Second):
 		}
 

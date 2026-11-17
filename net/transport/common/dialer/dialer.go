@@ -89,6 +89,7 @@ func (d *Dialer) Execute(ctx context.Context) (link.Link, error) {
 		select {
 		case <-ctx.Done():
 			return nil, context.Canceled
+		//gostyle:timer backoff
 		case <-time.After(bo):
 		}
 	}

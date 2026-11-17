@@ -35,7 +35,7 @@ func buildWatchCommand() *cli.Command {
 		Action: func(c *cli.Context) error {
 			// Keep the repeated JavaScript evaluations within the command lifetime.
 			ctx := c.Context
-			ticker := time.NewTicker(interval)
+			ticker := time.NewTicker(interval) //gostyle:timer deadline
 			defer ticker.Stop()
 
 			// Read the JavaScript file for each evaluation against the running page.

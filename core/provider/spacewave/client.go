@@ -226,6 +226,7 @@ func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 		select {
 		case <-req.Context().Done():
 			return resp, nil
+		//gostyle:timer deadline
 		case <-time.After(delay):
 		}
 	}

@@ -28,6 +28,7 @@ func WaitForDesktopSSOLink(
 	wsTicket string,
 	openURL string,
 ) (*api.DesktopSSOLinkResult, error) {
+	// Require the ticket and browser URL the server issues for the link.
 	if wsTicket == "" {
 		return nil, errors.New("server did not return a desktop sso-link websocket ticket")
 	}
@@ -35,16 +36,19 @@ func WaitForDesktopSSOLink(
 		return nil, errors.New("server did not return a desktop sso-link browser url")
 	}
 
+	// Read the auth-session nonce from the ticket.
 	nonce, err := parseJWTSubject(wsTicket)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse desktop sso-link nonce")
 	}
 
+	// Restrict the browser to the provider's own hosts.
 	allowedHosts := ssoProviderHosts[provider]
 	if len(allowedHosts) == 0 {
 		return nil, errors.Errorf("unsupported sso provider %q", provider)
 	}
 
+	// Delete the auth session on any failed exit; success disarms it.
 	cleanupSession := func() {
 		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
@@ -52,10 +56,12 @@ func WaitForDesktopSSOLink(
 		cleanupSession()
 	}()
 
+	// Build the auth-session websocket URL from the endpoint.
 	wsURL := strings.Replace(endpoint, "https://", "wss://", 1)
 	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
 	wsURL += "/api/auth/session/ws?tk=" + wsTicket
 
+	// Open the provider's sign-in page in the browser.
 	if openErr := openBrowserValidated(openURL, allowedHosts); openErr != nil {
 		return nil, errors.Wrap(openErr, "open browser for SSO link")
 	}
@@ -87,6 +93,8 @@ func WaitForDesktopSSOLink(
 		if ctx.Err() != nil {
 			return nil, errors.Wrap(readErr, "read SSO-link result")
 		}
+
+		// Fall back to the HTTP exchange after a read failure.
 		exchangeCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 		exchanged, exchangeErr := exchangeAuthSessionLinkResult(
 			exchangeCtx,
@@ -99,6 +107,8 @@ func WaitForDesktopSSOLink(
 			result = exchanged
 			break
 		}
+
+		// Give up after three attempts, else back off and retry.
 		if attempts >= 2 {
 			if exchangeErr != nil {
 				return nil, errors.Wrapf(
@@ -112,10 +122,12 @@ func WaitForDesktopSSOLink(
 		select {
 		case <-ctx.Done():
 			return nil, errors.Wrap(readErr, "read SSO-link result")
+		//gostyle:timer backoff
 		case <-time.After(250 * time.Millisecond):
 		}
 	}
 
+	// Require a code, and default the provider to the one requested.
 	if result.GetCode() == "" {
 		return nil, errors.New("SSO-link relay returned empty code")
 	}

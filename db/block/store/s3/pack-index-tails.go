@@ -144,6 +144,7 @@ func (x *packIndex) drainTails() {
 		x.mtx.Lock()
 		x.forgetQueuedTailsLocked(mapKeys(step))
 		x.mtx.Unlock()
+		//gostyle:timer deadline
 		time.Sleep(min(max(tailStepPause, 2*time.Since(started)), tailStepPauseMax))
 	}
 }

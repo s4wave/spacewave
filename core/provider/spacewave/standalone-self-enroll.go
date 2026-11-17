@@ -151,6 +151,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 				select {
 				case <-ctx.Done():
 					return false, ctx.Err()
+				//gostyle:timer backoff
 				case <-time.After(backoff):
 				}
 				continue
@@ -174,6 +175,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 			select {
 			case <-ctx.Done():
 				return false, ctx.Err()
+			//gostyle:timer backoff
 			case <-time.After(backoff):
 			}
 			continue

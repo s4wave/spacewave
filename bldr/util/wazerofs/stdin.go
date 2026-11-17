@@ -164,6 +164,7 @@ func (b *StdinBuffer) Poll(flag wazero_exp_sys.Pflag, timeoutMillis int32) (read
 		// Wait for either waitCh or timeoutMillis
 		select {
 		case <-waitCh:
+		//gostyle:timer deadline
 		case <-time.After(time.Millisecond * time.Duration(timeoutMillis)):
 		}
 	}

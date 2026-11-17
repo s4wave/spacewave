@@ -97,6 +97,7 @@ func (c *Controller) watchPeer(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
+		//gostyle:timer backoff
 		case <-time.After(watchRetryDelay):
 		}
 	}

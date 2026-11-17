@@ -173,6 +173,7 @@ func (s *SOSync) Execute(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		//gostyle:timer backoff
 		case <-time.After(delay):
 		}
 	}
