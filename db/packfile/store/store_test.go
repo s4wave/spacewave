@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
 	"strconv"
@@ -1020,6 +1021,23 @@ func TestPackfileStoreBacksOffLostPack(t *testing.T) {
 	}
 	if n := levels(logrus.InfoLevel); n != 1 {
 		t.Fatalf("logged %d recovery lines, want 1", n)
+	}
+
+	// A failed block read's record lapses after packRetryMax, and the
+	// store's closed error stops a probe, so a lookup racing shutdown
+	// records and logs no failure.
+	store.failures.failed("kept", errors.New("block read failed"), false)
+	*clock = clock.Add(packRetryMax)
+	store.failures.retain(func(string) bool { return true })
+	if !probeStopped(ctx, fmt.Errorf("open: %w", ErrPackfileStoreClosed)) {
+		t.Fatal("closed store error does not stop the probe")
+	}
+	store.Close()
+	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h}); found || err != nil {
+		t.Fatalf("lookup after close = %v, %v, want a miss", found, err)
+	}
+	if n, warns := failingCount(store), levels(logrus.WarnLevel); n != 0 || warns != 2 {
+		t.Fatalf("after lapse and close: %d packs failing and %d failure lines, want 0 and 2", n, warns)
 	}
 }
 
