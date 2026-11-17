@@ -82,10 +82,13 @@ func OpenImmutable(ctx context.Context, path, table, driver string, limit int) (
 }
 
 // Get copies one bounded value, reporting absence separately from empty bytes.
+// One query reads the value's length and selects the value only within the
+// limit, so the driver never allocates an oversized value.
 func (r *Immutable) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
-	// Check the stored length before the driver allocates the value.
+	// Read the length, and the value only within the limit.
 	var size int
-	err := r.db.QueryRowContext(ctx, "SELECT length(value) FROM "+r.table+" WHERE key=?", key).Scan(&size)
+	var data []byte
+	err := r.db.QueryRowContext(ctx, "SELECT length(value),CASE WHEN length(value)<=? THEN value END FROM "+r.table+" WHERE key=?", r.limit, key).Scan(&size, &data)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, false, nil
 	}
@@ -95,53 +98,52 @@ func (r *Immutable) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	if size > r.limit {
 		return nil, false, errors.New("immutable source record exceeds decoder bound")
 	}
-
-	// Read through the same immutable capture after bounding the allocation.
-	var data []byte
-	err = r.db.QueryRowContext(ctx, "SELECT value FROM "+r.table+" WHERE key=?", key).Scan(&data)
-	return data, err == nil, err
+	if data == nil {
+		data = []byte{}
+	}
+	return data, true, nil
 }
 
 // Next copies the first key after after, or the first key when after is nil.
 // Each call closes its SQL row before the caller processes or writes scratch.
+// One query seeks through the primary key and selects the key and value only
+// when both are BLOBs within the limit, so the driver never allocates an
+// oversized or mistyped record.
 func (r *Immutable) Next(ctx context.Context, after []byte) ([]byte, []byte, error) {
 	// Seek through the primary key without loading or retaining the inventory.
-	query := "SELECT length(key),length(value),typeof(key),typeof(value) FROM " + r.table
-	var args []any
+	const ok = "typeof(key)='blob' AND typeof(value)='blob' AND length(key)<=?1 AND length(value)<=?1"
+	query := "SELECT length(key),length(value),typeof(key),typeof(value)," +
+		"CASE WHEN " + ok + " THEN key END,CASE WHEN " + ok + " THEN value END FROM " + r.table
+	args := []any{r.limit}
 	if after != nil {
-		query += " WHERE key>?"
+		query += " WHERE key>?2"
 		args = append(args, after)
 	}
 	query += " ORDER BY key LIMIT 1"
 
-	// Check both column sizes before selecting either byte column.
+	// Check the types and sizes the query bounded the copy by.
 	var keySize, size int
 	var keyType, valueType string
-	err := r.db.QueryRowContext(ctx, query, args...).Scan(&keySize, &size, &keyType, &valueType)
+	var key, data []byte
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(&keySize, &size, &keyType, &valueType, &key, &data)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil, nil
 	}
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Refuse a record the query did not copy.
 	if keyType != "blob" || valueType != "blob" {
 		return nil, nil, errors.New("immutable table requires BLOB keys and values")
 	}
 	if keySize > r.limit || size > r.limit {
 		return nil, nil, errors.New("immutable source record exceeds decoder bound")
 	}
-
-	// Copy both bounded columns after releasing the length read scope.
-	query = "SELECT key,value FROM " + r.table
-	if after != nil {
-		query += " WHERE key>?"
-	}
-	var key, data []byte
-	err = r.db.QueryRowContext(ctx, query+" ORDER BY key LIMIT 1", args...).Scan(&key, &data)
-	if err == nil && key == nil {
+	if key == nil {
 		key = []byte{}
 	}
-	return key, data, err
+	return key, data, nil
 }
 
 // Close releases only the read-only connection; it runs no store upkeep.
