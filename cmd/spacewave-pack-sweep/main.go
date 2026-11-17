@@ -137,7 +137,7 @@ func main() {
 		},
 		{
 			Name:   "verify",
-			Usage:  "read every block the roots reach from the bucket alone, checking each against its hash",
+			Usage:  "read every block the roots reach from the bucket alone, checking each against its hash, with candidate packs left out to prove their removal loses nothing",
 			Flags:  args.verifyFlags(),
 			Action: args.runVerify,
 		},

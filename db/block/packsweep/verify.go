@@ -15,6 +15,10 @@ import (
 // only after a restore.
 const ReasonTrashed = "trashed"
 
+// ReasonCandidate names a block only a candidate pack holds: live, so removing
+// that candidate would lose it.
+const ReasonCandidate = "candidate"
+
 // Verify defaults.
 const (
 	// DefaultVerifyBatch is the frontier keys one verify transaction takes.
@@ -44,6 +48,10 @@ type VerifyOptions struct {
 	// nil. A block Source lacks and Trash holds is named ReasonTrashed and
 	// still counts as bad.
 	Trash packcopy.Source
+	// Candidates serves the blocks of the packs Source leaves out because a
+	// sweep would remove them, or is nil. A block Source lacks and Candidates
+	// holds is named ReasonCandidate and still counts as bad.
+	Candidates packcopy.Source
 	// Roots are the named roots, walked in order. A block an earlier root
 	// reached counts for that root alone.
 	Roots []block.NamedRoot
@@ -82,7 +90,12 @@ func Verify(ctx context.Context, opts *VerifyOptions) (*VerifyResult, error) {
 
 	// Walk each root in turn, sharing the set of blocks read.
 	res := &VerifyResult{BadReasons: make(map[string]uint64)}
-	v := &verifier{store: opts.Store, src: opts.Source, trash: opts.Trash, reads: reads, maxBad: maxBad, res: res}
+	v := &verifier{store: opts.Store, src: opts.Source, reads: reads, maxBad: maxBad, res: res}
+	for _, fb := range []verifyFallback{{opts.Trash, ReasonTrashed}, {opts.Candidates, ReasonCandidate}} {
+		if fb.src != nil {
+			v.fallbacks = append(v.fallbacks, fb)
+		}
+	}
 	for _, root := range opts.Roots {
 		if root.Ref.GetEmpty() {
 			continue
@@ -114,14 +127,23 @@ type verifier struct {
 	store kvtx.Store
 	// src serves the blocks.
 	src packcopy.Source
-	// trash serves the trashed packs' blocks, or is nil.
-	trash packcopy.Source
+	// fallbacks name a block src lacks by the first other source holding it.
+	fallbacks []verifyFallback
 	// reads is the blocks read at once.
 	reads int
 	// maxBad is the bad blocks the result lists.
 	maxBad int
 	// res is the result so far.
 	res *VerifyResult
+}
+
+// verifyFallback is a source of blocks the verified source leaves out, and
+// the reason a block only it holds is named by.
+type verifyFallback struct {
+	// src serves the left-out packs' blocks.
+	src packcopy.Source
+	// reason names a block only src holds.
+	reason string
 }
 
 // verifyRead is one frontier block and what reading it found.
@@ -252,20 +274,25 @@ func (v *verifier) readFrontier(ctx context.Context, n int) ([]*verifyRead, erro
 }
 
 // read reads one block from the source, checking it against its hash. A block
-// the source lacks and the trash holds is named ReasonTrashed.
+// the source lacks and a fallback holds is named by that fallback's reason.
 func (v *verifier) read(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, string, error) {
 	// Read it from the source.
 	stored, reason, err := packcopy.ReadVerified(ctx, v.src, ref)
-	if err != nil || reason != packcopy.ReasonMissing || v.trash == nil {
+	if err != nil || reason != packcopy.ReasonMissing {
 		return stored, reason, err
 	}
 
-	// Look for a missing block in the trash.
-	_, trashReason, err := packcopy.ReadVerified(ctx, v.trash, ref)
-	if err != nil || trashReason != "" {
-		return nil, reason, err
+	// Name a missing block by the first fallback that holds it intact.
+	for _, fb := range v.fallbacks {
+		_, fbReason, err := packcopy.ReadVerified(ctx, fb.src, ref)
+		if err != nil {
+			return nil, reason, err
+		}
+		if fbReason == "" {
+			return nil, fb.reason, nil
+		}
 	}
-	return nil, ReasonTrashed, nil
+	return nil, reason, nil
 }
 
 // readBlocks reads the keys' blocks, v.reads at a time, checking each

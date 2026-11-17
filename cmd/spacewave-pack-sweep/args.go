@@ -125,6 +125,9 @@ type Args struct {
 	Candidates string
 	// Verdicts are the verdicts the candidate list takes.
 	Verdicts cli.StringSlice
+	// Mutant is a pack a check adds to the candidates and must then find
+	// live, or mutantAuto to pick one from the judgments.
+	Mutant string
 	// AcceptMissing lists missing blocks accepted as lost, one b58 ref a line.
 	AcceptMissing string
 	// AdminURL is the backend's pack sweep admin service, a ws or wss URL.
