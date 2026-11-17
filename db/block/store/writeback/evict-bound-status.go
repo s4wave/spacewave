@@ -46,8 +46,9 @@ type EvictBoundStatus struct {
 	// Refused counts the queue entries refused, by EvictRefusalLabels. The
 	// map is replaced, never changed, so a copied status keeps its counts.
 	Refused map[string]int64
-	// DroppedAhead is how many blocks were dropped ahead of their queue
-	// entries and await the walk that meets those entries.
+	// DroppedAhead is how many blocks bounded passes dropped with their pack
+	// ahead of the walk since the store opened, each deleting its queue entry
+	// in the same commit.
 	DroppedAhead int64
 }
 

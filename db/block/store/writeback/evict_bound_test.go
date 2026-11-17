@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -373,9 +374,8 @@ func TestBoundedEvictRemoteLies(t *testing.T) {
 }
 
 // TestBoundedEvictStaleEntry checks that a pass drops a pack's values ahead
-// of their queue entries and subtracts them from the evictable bytes at
-// once, and that the later walk that meets those entries deletes them
-// without charging the budget or counting them evicted.
+// of their queue entries, deletes those entries and subtracts their sizes in
+// the same commit, and that a later pass finds nothing left to walk.
 func TestBoundedEvictStaleEntry(t *testing.T) {
 	e := newBoundEnv(t, 4, 4)
 	budget := &EvictBudget{ID: "b1", Bytes: 1 << 20}
@@ -386,20 +386,101 @@ func TestBoundedEvictStaleEntry(t *testing.T) {
 		t.Fatalf("pass = %+v, held %d; want the whole pack", result, e.held(t))
 	}
 	status, _ := e.s.GetStatus()
-	if status.EvictableBytes != 0 || status.Bound.DroppedAhead != 3 {
-		t.Fatalf("evictable = %d, dropped ahead = %d; want 0 and 3", status.EvictableBytes, status.Bound.DroppedAhead)
+	if status.EvictableBytes != 0 || status.Bound.DroppedAhead != 3 || e.queued(t) != 0 {
+		t.Fatalf("evictable = %d, dropped ahead = %d, queued %d; want 0, 3 and 0", status.EvictableBytes, status.Bound.DroppedAhead, e.queued(t))
 	}
 	left := status.Bound.BudgetLeft
 
-	// The next pass deletes the three stale entries for nothing.
+	// The next pass finds nothing to walk.
 	result = e.evict(t, budget, 1<<30)
 	status, _ = e.s.GetStatus()
-	if result.Evicted != 0 || result.EvictedBytes != 0 || status.Bound.BudgetLeft != left {
-		t.Fatalf("stale pass = %+v, left %d; want nothing, %d left", result, status.Bound.BudgetLeft, left)
+	if result.Evicted != 0 || result.EvictedBytes != 0 || status.Bound.BudgetLeft != left || status.EvictableBytes != 0 {
+		t.Fatalf("second pass = %+v, left %d, evictable %d; want nothing, %d left, 0", result, status.Bound.BudgetLeft, status.EvictableBytes, left)
 	}
-	if status.EvictableBytes != 0 || status.Bound.DroppedAhead != 0 {
-		t.Fatalf("after the stale pass evictable = %d, dropped ahead = %d; want 0 and 0", status.EvictableBytes, status.Bound.DroppedAhead)
+}
+
+// TestBoundedEvictAheadWithoutEntry checks that a value of a verified pack
+// with no queue entry, as one held from before the queue, stays held, and
+// that the pass leaves evictable-bytes the summed size of the queue's
+// entries, here none.
+func TestBoundedEvictAheadWithoutEntry(t *testing.T) {
+	e := newBoundEnv(t, 4, 4)
+	e.unqueue(t, e.refs[3])
+	budget := &EvictBudget{ID: "b1", Bytes: 1 << 20}
+
+	// A pass over the first entry drops the pack's queued values only.
+	result := e.evict(t, budget, 1)
+	if result.Evicted != 3 || e.held(t) != 1 {
+		t.Fatalf("pass = %+v, held %d; want three dropped and one held", result, e.held(t))
 	}
+	held, err := e.s.values.GetBlockExistsBatch(t.Context(), e.refs[3:])
+	if err != nil || !held[0] {
+		t.Fatalf("the value without an entry was dropped: %v", err)
+	}
+	status, _ := e.s.GetStatus()
+	if status.EvictableBytes != 0 || status.Bound.DroppedAhead != 2 {
+		t.Fatalf("evictable = %d, dropped ahead = %d; want 0 and 2", status.EvictableBytes, status.Bound.DroppedAhead)
+	}
+	var stored int64
+	err = kvtx.RunTransaction(t.Context(), false, e.s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+		var err error
+		stored, err = readEvictableBytes(ctx, tx)
+		return err
+	})
+	if err != nil || stored != 0 {
+		t.Fatalf("stored evictable bytes = %d, %v; want 0", stored, err)
+	}
+}
+
+// queued counts the eviction queue's entries.
+func (e *boundEnv) queued(t *testing.T) int {
+	t.Helper()
+	n := 0
+	err := kvtx.RunTransaction(t.Context(), false, e.s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+		n = 0
+		return scanEvictable(ctx, tx, nil, func(evictEntry) error {
+			n++
+			return nil
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
+// unqueue deletes ref's eviction queue entries and their bytes, leaving the
+// value held with no entry.
+func (e *boundEnv) unqueue(t *testing.T, ref *block.BlockRef) {
+	t.Helper()
+	var delta int64
+	err := kvtx.RunTransaction(t.Context(), true, e.s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+		var keys [][]byte
+		delta = 0
+		err := scanEvictable(ctx, tx, nil, func(entry evictEntry) error {
+			if entry.hash.CompareHash(ref.GetHash()) {
+				keys = append(keys, entry.key)
+				delta -= entry.size
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		if len(keys) == 0 {
+			return errors.New("no queue entry to delete")
+		}
+		for _, key := range keys {
+			if err := tx.Delete(ctx, key); err != nil {
+				return err
+			}
+		}
+		return addEvictableBytes(ctx, tx, delta)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.s.addEvictStatus(delta, 0)
 }
 
 // putRaceValues puts a block again just before the drop write, as a writer

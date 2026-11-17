@@ -2,6 +2,7 @@ package block_store_writeback
 
 import (
 	"context"
+	"slices"
 	"strconv"
 	"time"
 
@@ -33,21 +34,18 @@ import (
 // path that could remove a verified pack. And a value of the fetched pack
 // with no entry in the batch drops ahead only when the local index places it
 // in that pack, since a read follows the index to the pack it names.
+//
+// A value drops ahead only with a queue entry of its own at an epoch of the
+// batch's entries for that pack, and the queue commit deletes that entry and
+// subtracts its recorded size, so evictable-bytes stays the summed size of
+// the queue's entries. A value with no such entry, such as one held from
+// before the queue or between an enable and its backfill, is not dropped:
+// the pass keeps a value it cannot account for, and the walk that meets its
+// entry, if it has one, fetches the pack again.
 
-// Persisted bounded-eviction keys of the meta store.
-const (
-	// evictBudgetPrefix prefixes the bytes left of each seen budget id:
-	// evict-budget/<id> = decimal bytes.
-	evictBudgetPrefix = "evict-budget/"
-	// evictDroppedPrefix prefixes the block of a pack that a batch dropped
-	// ahead of its queue entry: evict-dropped/<hash> = decimal size. The
-	// batch subtracted the size from evictable-bytes, so the walk that meets
-	// the entry deletes both and changes no count.
-	evictDroppedPrefix = "evict-dropped/"
-	// evictDroppedCountKey holds how many evict-dropped keys exist, kept in
-	// the commits that write and delete them.
-	evictDroppedCountKey = "evict-dropped-count"
-)
+// evictBudgetPrefix prefixes the bytes left of each seen budget id in the
+// meta store: evict-budget/<id> = decimal bytes.
+const evictBudgetPrefix = "evict-budget/"
 
 // ErrEvictUnbounded is returned by EvictBounded without a budget source, a
 // verifier or a remote delete check.
@@ -81,11 +79,6 @@ type EvictBound struct {
 	RemoteDeletes func() string
 }
 
-// evictDroppedKey returns the evict-dropped key of a block.
-func evictDroppedKey(h *hash.Hash) []byte {
-	return append([]byte(evictDroppedPrefix), h.MarshalString()...)
-}
-
 // readInt reads a decimal key, returning found false when it is absent.
 func readInt(ctx context.Context, tx kvtx.Tx, key []byte) (int64, bool, error) {
 	value, found, err := tx.Get(ctx, key)
@@ -112,9 +105,10 @@ func setInt(ctx context.Context, tx kvtx.Tx, key []byte, n int64) error {
 // every value, as EvictVerifier.VerifyPack describes; tombstones the pack's
 // values that are held locally, have no upload marker and are not kept, up
 // to the reservation, including values whose queue entries lie outside the
-// batch when the local index places them in the pack, in writes of at most
-// the adaptive batch limit; then, in one commit, deletes the batch's dropped
-// entries, records each value dropped ahead of its entry, moves the entries
+// batch when the local index places them in the pack and an entry of theirs
+// sits at an epoch of the batch's entries for it, in writes of at most the
+// adaptive batch limit; then, in one commit, deletes the batch's dropped
+// entries and those of the values dropped ahead, moves the entries
 // it did not drop to the new epoch, corrects evictable-bytes and returns the
 // unspent reservation. A pack that fails verification drops nothing; its entries
 // move to the new epoch and the pack is skipped for the rest of the pass, so
@@ -156,11 +150,6 @@ func (s *Store) EvictBounded(
 		return result, nil
 	}
 
-	// Load the dropped-ahead count into the status once per open.
-	if err := s.loadDroppedAhead(ctx); err != nil {
-		return result, err
-	}
-
 	// Advance the epoch, so entries this pass queues sort after the walk.
 	epoch, err := s.advanceEvictEpoch(ctx)
 	if err != nil {
@@ -187,29 +176,6 @@ func (s *Store) EvictBounded(
 		}
 	}
 	return result, nil
-}
-
-// loadDroppedAhead reads the persisted dropped-ahead count into the status,
-// once per open.
-func (s *Store) loadDroppedAhead(ctx context.Context) error {
-	// Read the count once per open.
-	if s.droppedAheadLoaded {
-		return nil
-	}
-	var n int64
-	err := retryBusy(ctx, func() error {
-		return kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-			var err error
-			n, _, err = readInt(ctx, tx, []byte(evictDroppedCountKey))
-			return err
-		})
-	})
-	if err != nil {
-		return errors.Wrap(err, "read dropped-ahead count")
-	}
-	s.droppedAheadLoaded = true
-	s.addEvictBoundStatus(0, false, 0, nil, n)
-	return nil
 }
 
 // boundPass is the state of one bounded pass.
@@ -403,20 +369,19 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 		verified += v.Size
 	}
 
-	// Collect the candidates: the group's entries the pack holds, then the
-	// rest of the pack's values that the local index places in it.
+	// Take as candidates the group's entries the pack holds.
 	refused := make(map[string]int64)
 	type candidate struct {
 		hash  *hash.Hash
 		size  int64
 		entry int
+		// ahead is the queue key of a value outside the batch, nil for a
+		// batch entry.
+		ahead []byte
 	}
 	var cands []candidate
-	inGroup := make(map[string]bool, len(group))
 	for _, i := range group {
-		key := batch[i].hash.MarshalString()
-		inGroup[key] = true
-		vs, ok := sizes[key]
+		vs, ok := sizes[batch[i].hash.MarshalString()]
 		if !ok {
 			fates[i] = fateRequeue
 			refused[EvictRefusedAbsent]++
@@ -424,12 +389,21 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 		}
 		cands = append(cands, candidate{hash: batch[i].hash, size: vs, entry: i})
 	}
+
+	// Name the rest of the pack's values: those with no entry in the batch.
+	inBatch := make(map[string]bool, len(batch))
+	for _, entry := range batch {
+		inBatch[entry.hash.MarshalString()] = true
+	}
 	var rest []EvictVerifiedValue
 	for _, v := range values {
-		if !inGroup[v.Hash.MarshalString()] {
+		if !inBatch[v.Hash.MarshalString()] {
 			rest = append(rest, v)
 		}
 	}
+
+	// Add those the local index places in this pack and that have an entry
+	// of their own at an epoch of the group's.
 	if len(rest) != 0 {
 		// A value also held in another pack reads through the one its index
 		// row names, which this fetch did not prove.
@@ -441,9 +415,21 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 		if err != nil {
 			return false, errors.Wrap(err, "locate remote packs")
 		}
+		var located []EvictVerifiedValue
 		for i, v := range rest {
 			if rlocs[i].ID == id {
-				cands = append(cands, candidate{hash: v.Hash, size: v.Size, entry: -1})
+				located = append(located, v)
+			}
+		}
+
+		// A value without an entry the commit can delete stays.
+		keys, err := s.aheadEntries(ctx, batch, group, located)
+		if err != nil {
+			return false, err
+		}
+		for i, v := range located {
+			if keys[i] != nil {
+				cands = append(cands, candidate{hash: v.Hash, size: v.Size, entry: -1, ahead: keys[i]})
 			}
 		}
 	}
@@ -470,7 +456,7 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 
 	// Take those held, with no marker, not kept, up to the reservation.
 	var drop []*block.PutBatchEntry
-	var ahead []EvictVerifiedValue
+	var ahead [][]byte
 	var spent int64
 	for i, c := range cands {
 		switch {
@@ -498,7 +484,7 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 			if c.entry >= 0 {
 				fates[c.entry] = fateDrop
 			} else {
-				ahead = append(ahead, EvictVerifiedValue{Hash: c.hash, Size: c.size})
+				ahead = append(ahead, c.ahead)
 			}
 		}
 	}
@@ -557,16 +543,54 @@ func (s *Store) markedBatch(ctx context.Context, hashes []*hash.Hash) ([]bool, e
 	return marked, nil
 }
 
-// commit applies fates to the batch's entries, records each value of ahead
-// as dropped ahead of its entry, and returns refund bytes to budget id, in
-// one metadata commit, then projects the evictable and evicted bytes.
-//
-// An entry of a value dropped ahead of it had its size subtracted from
-// evictable-bytes when the value dropped, so whatever its fate it subtracts
-// nothing more and consumes one count of its evict-dropped key. Each key
-// counts the drops ahead its entries have yet to meet, which a block put
-// again after its drop, and dropped ahead again, can raise past one.
-func (p *boundPass) commit(ctx context.Context, batch []evictEntry, fates []entryFate, ahead []EvictVerifiedValue, id string, refund, evicted int64) error {
+// aheadEntries returns for each value the key of its queue entry at an epoch
+// of the group's batch entries, or nil when it has none there. One point read
+// per value and distinct epoch, a single epoch for a pack uploaded in one
+// commit, in one read transaction. The pass holds evictMtx, and only a pass
+// or a disable, which takes evictMtx, deletes an entry, so a key found here
+// stands until the pass commits.
+func (s *Store) aheadEntries(ctx context.Context, batch []evictEntry, group []int, values []EvictVerifiedValue) ([][]byte, error) {
+	// Name the epochs the group's entries sit at.
+	var epochs []uint64
+	for _, i := range group {
+		if !slices.Contains(epochs, batch[i].epoch) {
+			epochs = append(epochs, batch[i].epoch)
+		}
+	}
+
+	// Find each value's entry at one of them.
+	keys := make([][]byte, len(values))
+	err := retryBusy(ctx, func() error {
+		return kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+			for i, v := range values {
+				keys[i] = nil
+				for _, epoch := range epochs {
+					key := evictKey(epoch, v.Hash)
+					found, err := tx.Exists(ctx, key)
+					if err != nil {
+						return err
+					}
+					if found {
+						keys[i] = key
+						break
+					}
+				}
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "read eviction queue entries")
+	}
+	return keys, nil
+}
+
+// commit applies fates to the batch's entries, deletes the entries ahead of
+// the values dropped ahead of the walk, and returns refund bytes to budget
+// id, in one metadata commit, then projects the evictable and evicted bytes.
+// Each deleted entry subtracts its recorded size, so evictable-bytes stays
+// the summed size of the queue's entries.
+func (p *boundPass) commit(ctx context.Context, batch []evictEntry, fates []entryFate, ahead [][]byte, id string, refund, evicted int64) error {
 	// Skip a commit that changes nothing.
 	s := p.s
 	changes := len(ahead) != 0 || refund != 0
@@ -578,31 +602,14 @@ func (p *boundPass) commit(ctx context.Context, batch []evictEntry, fates []entr
 	}
 
 	// Commit the changes, recounting on each attempt.
-	var delta, droppedDelta int64
+	var delta, droppedAhead int64
 	err := retryBusy(ctx, func() error {
 		return kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 			// Settle each walked entry.
-			delta, droppedDelta = 0, 0
+			delta, droppedAhead = 0, 0
 			for i, entry := range batch {
 				if fates[i] == fateLeave {
 					continue
-				}
-				dk := evictDroppedKey(entry.hash)
-				n, _, err := readInt(ctx, tx, dk)
-				if err != nil {
-					return err
-				}
-				size := entry.size
-				if n > 0 {
-					size, droppedDelta = 0, droppedDelta-1
-					if n == 1 {
-						err = tx.Delete(ctx, dk)
-					} else {
-						err = setInt(ctx, tx, dk, n-1)
-					}
-					if err != nil {
-						return err
-					}
 				}
 				if fates[i] == fateRequeue {
 					added, err := queueEvict(ctx, tx, p.epoch, entry.hash, entry.size)
@@ -614,30 +621,23 @@ func (p *boundPass) commit(ctx context.Context, batch []evictEntry, fates []entr
 				if err := tx.Delete(ctx, entry.key); err != nil {
 					return err
 				}
-				delta -= size
+				delta -= entry.size
 			}
 
-			// Record the values dropped ahead of their entries.
-			for _, v := range ahead {
-				dk := evictDroppedKey(v.Hash)
-				n, _, err := readInt(ctx, tx, dk)
+			// Delete the entries of the values dropped ahead of the walk.
+			for _, key := range ahead {
+				size, found, err := readInt(ctx, tx, key)
 				if err != nil {
 					return err
 				}
-				if err := setInt(ctx, tx, dk, n+1); err != nil {
+				if !found {
+					continue
+				}
+				if err := tx.Delete(ctx, key); err != nil {
 					return err
 				}
-				droppedDelta++
-				delta -= v.Size
-			}
-			if droppedDelta != 0 {
-				n, _, err := readInt(ctx, tx, []byte(evictDroppedCountKey))
-				if err != nil {
-					return err
-				}
-				if err := setInt(ctx, tx, []byte(evictDroppedCountKey), n+droppedDelta); err != nil {
-					return err
-				}
+				droppedAhead++
+				delta -= size
 			}
 
 			// Return the unspent reservation.
@@ -658,8 +658,8 @@ func (p *boundPass) commit(ctx context.Context, batch []evictEntry, fates []entr
 		return errors.Wrap(err, "update eviction queue")
 	}
 	s.addEvictStatus(delta, evicted)
-	if droppedDelta != 0 {
-		s.addEvictBoundStatus(0, false, 0, nil, droppedDelta)
+	if droppedAhead != 0 {
+		s.addEvictBoundStatus(0, false, 0, nil, droppedAhead)
 	}
 	return nil
 }
