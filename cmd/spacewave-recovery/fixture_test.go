@@ -251,7 +251,7 @@ func makeFixtureWithConflict(t *testing.T, conflict bool) *fixture {
 	if _, err := db.Exec("INSERT INTO volume VALUES (?,?)", listKey, block_gc.EncodeChildren(nil)); err != nil {
 		t.Fatal(err)
 	}
-	insert([]byte{2, 'S'}, &block_gc.LivenessState{UnverifiedLists: true})
+	insert([]byte{2, 'S'}, &block_gc.LivenessState{Generation: block_gc.Generation_GENERATION_OPEN})
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
