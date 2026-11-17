@@ -6519,11 +6519,11 @@ func TestLivenessSettle(t *testing.T) {
 		// that sweeps C and the one that sweeps P, a put stores C again under
 		// the new X, in one batch, so C counts X's implied holder alone. The
 		// sweep of P must not release a holder from C, which X holds. In the
-		// zero count case the sweep left C a zero count, as for a block whose
-		// holders gained since the flip netted to zero, so the put reparks C,
-		// and the repark must keep C's run entry: under HoldUntilFree P's
-		// old list still holds C, and P's sweep reads that entry to keep C's
-		// holder.
+		// zero count case C's count reads zero after the sweep, which only
+		// damage leaves, since netting floors an unlisted block at its
+		// implied holder, so the put reparks C, and the repark must keep C's
+		// run entry: under HoldUntilFree P's old list still holds C, and P's
+		// sweep reads that entry to keep C's holder.
 		forEachRule(t, func(t *testing.T) {
 			for _, zero := range []bool{false, true} {
 				t.Run("zero count "+strconv.FormatBool(zero), func(t *testing.T) {
