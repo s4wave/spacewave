@@ -184,6 +184,7 @@ func collectAll(t *testing.T, v *Volume) block_gc.CollectResult {
 		total.Netted += res.Netted
 		total.Freed += res.Freed
 		total.Kept += res.Kept
+		total.StallHoldMark += res.StallHoldMark
 		total.Parked += res.Parked
 		total.Requeued += res.Requeued
 		total.Leaked += res.Leaked
@@ -1537,10 +1538,11 @@ func testLivenessAdversarial(t *testing.T) {
 		}
 
 		// Once the younger record nets, R and E are ripe, and the hold mark
-		// still keeps them; once the move nets, they are held again.
+		// still keeps them, which the pass reports; once the move nets, they
+		// are held again.
 		clk.Add(block_gc.DefaultGrace - time.Second)
-		if res := collectAll(t, v); res.Freed != 0 {
-			t.Fatalf("freed %d past the hold mark", res.Freed)
+		if res := collectAll(t, v); res.Freed != 0 || res.StallHoldMark == 0 {
+			t.Fatalf("freed %d past the hold mark, reporting %d waits on it", res.Freed, res.StallHoldMark)
 		}
 		clk.Add(2 * time.Second)
 		collectAll(t, v)

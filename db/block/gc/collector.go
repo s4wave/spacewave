@@ -834,8 +834,12 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 	}
 	err = rec.scanQueue(ctx, from, func(seq uint64, ref *block.BlockRef) (bool, error) {
 		switch {
-		case seq > cursor || cursor < state.GetHoldMark():
+		case seq > cursor:
 			res.Kept++
+			return false, nil
+		case cursor < state.GetHoldMark():
+			res.Kept++
+			res.StallHoldMark++
 			return false, nil
 		case len(ripe) == frees:
 			full = true

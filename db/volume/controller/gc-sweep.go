@@ -5,8 +5,52 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume"
 )
+
+// stallWarnAfter is how long collection passes must keep reporting a stalled
+// free before the sweep warns of it, and how often it warns again while the
+// stall lasts. A wait on the hold mark lasts about one grace period after a
+// Land that held a block at zero, so twice the default grace warns only of a
+// stall that persists.
+const stallWarnAfter = 2 * block_gc.DefaultGrace
+
+// stallWatch follows one kind of stalled free across collection passes. It
+// is clear until a pass reports the stall, then stalled since that pass's
+// time, until a pass that ran every step reports none: a pass that stopped
+// with work left may not have reached the free.
+type stallWatch struct {
+	// since is when the stall began, zero while clear.
+	since time.Time
+	// warned is when the sweep last warned of this stall.
+	warned time.Time
+}
+
+// observe records the stall the pass that ended at now reported, and returns
+// how long the stall has lasted and whether to warn of it: once it has lasted
+// stallWarnAfter, then each stallWarnAfter while it lasts.
+func (s *stallWatch) observe(now time.Time, stalled, more bool) (time.Duration, bool) {
+	// Clear the stall on a pass that ran every step without it, and keep it
+	// through one that stopped early.
+	if !stalled {
+		if !more {
+			*s = stallWatch{}
+		}
+		return 0, false
+	}
+
+	// Start the stall, and warn once it lasted and the last warning aged.
+	if s.since.IsZero() {
+		s.since = now
+	}
+	lasted := now.Sub(s.since)
+	if lasted < stallWarnAfter || now.Sub(s.warned) < stallWarnAfter {
+		return lasted, false
+	}
+	s.warned = now
+	return lasted, true
+}
 
 // gcDelegator is implemented by a volume that views another controller's
 // storage. That controller sees every owner's references and sweeps through the
@@ -62,6 +106,7 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 	defer timer.Stop()
 	hw, _ := vol.(volume.HealthWatcher)
 	reserve := &reserveWatch{hw: hw}
+	var saturated, held stallWatch
 	for {
 		// Pull the pass in when the volume entered the reserve.
 		entered, healthCh := reserve.entered()
@@ -99,6 +144,8 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 				WithField("queued", res.Queued).
 				WithField("freed", res.Freed).
 				WithField("kept", res.Kept).
+				WithField("tail-saturated", res.TailSaturated).
+				WithField("stall-hold-mark", res.StallHoldMark).
 				WithField("leaked", res.Leaked).
 				WithField("lapsed", res.Lapsed).
 				WithField("more", res.More).
@@ -110,6 +157,22 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		}
 		if res.Stranded != 0 {
 			c.le.WithField("stranded", res.Stranded).Warn("gc pass dropped the releases of blocks lost with their child lists")
+		}
+
+		// Warn of a free that stays stalled pass after pass.
+		now := time.Now()
+		if lasted, warn := saturated.observe(now, res.TailSaturated != 0, res.More); warn {
+			c.le.
+				WithField("tail-saturated", res.TailSaturated).
+				WithField("stalled-for", lasted.Round(time.Second).String()).
+				Warn("gc frees kept: the journal past the cursor names more blocks than the tail index holds")
+		}
+		if lasted, warn := held.observe(now, res.StallHoldMark != 0, res.More); warn {
+			c.le.
+				WithField("stall-hold-mark", res.StallHoldMark).
+				WithField("hold-mark", res.HoldMark).
+				WithField("stalled-for", lasted.Round(time.Second).String()).
+				Warn("gc frees wait on the hold mark: writers keep holding blocks the collector has at zero")
 		}
 
 		// Let the storage reclaim the space of the freed blocks.

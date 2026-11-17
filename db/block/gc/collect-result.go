@@ -54,6 +54,13 @@ type CollectResult struct {
 	// the cursor naming more entries than CollectorOptions.TailEntries, so
 	// they kept every block they reached.
 	TailSaturated uint64
+	// StallHoldMark counts the free and pop slices that found a ripe block
+	// they could take and waited only because the cursor trails the hold
+	// mark: a Land held a block the collector may have at zero, and nothing
+	// frees or pops until netting passes that Land's record, about one Grace
+	// later. A writer that holds such a block again within each Grace keeps
+	// the cursor behind the mark on every pass, which stops every free.
+	StallHoldMark uint64
 	// Leaked counts the children a down cascade reached that the store
 	// lacks, whose own children the cascade cannot reach.
 	Leaked uint64

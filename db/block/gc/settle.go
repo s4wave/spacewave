@@ -630,7 +630,7 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectRe
 
 	// Pop each the proof holds for.
 	cursor := state.GetCursor()
-	var popped bool
+	var popped, stalled bool
 	var poppedRipe uint64
 	for _, key := range keys {
 		from = key
@@ -646,7 +646,11 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectRe
 		if err != nil {
 			return from, false, err
 		}
-		if !listed || holders != 0 || ripe > cursor || cursor < state.GetHoldMark() || c.tail.has(key) {
+		if !listed || holders != 0 || ripe > cursor || c.tail.has(key) {
+			continue
+		}
+		if cursor < state.GetHoldMark() {
+			stalled = true
 			continue
 		}
 		if err := rec.tx.Delete(ctx, rec.key(kindFront, key)); err != nil {
@@ -656,7 +660,11 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectRe
 		res.Popped++
 	}
 
-	// Raise the pop mark past what this slice popped.
+	// Report a wait on the hold mark, and raise the pop mark past what this
+	// slice popped.
+	if stalled {
+		res.StallHoldMark++
+	}
 	if !popped {
 		return from, full, nil
 	}

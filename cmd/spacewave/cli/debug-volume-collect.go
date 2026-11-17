@@ -83,6 +83,8 @@ func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *sto
 		sum.Queued += res.Queued
 		sum.Freed += res.Freed
 		sum.Kept += res.Kept
+		sum.TailSaturated += res.TailSaturated
+		sum.StallHoldMark += res.StallHoldMark
 		sum.Parked += res.Parked
 		sum.Requeued += res.Requeued
 		sum.Leaked += res.Leaked
@@ -107,6 +109,8 @@ func collectFields(path string, frees bool, passes int, res block_gc.CollectResu
 		{"Queued to free", strconv.FormatUint(res.Queued, 10)},
 		{"Freed", strconv.FormatUint(res.Freed, 10)},
 		{"Kept", strconv.FormatUint(res.Kept, 10)},
+		{"Free slices, tail saturated", strconv.FormatUint(res.TailSaturated, 10)},
+		{"Slices waiting on hold mark", strconv.FormatUint(res.StallHoldMark, 10)},
 		{"Parked older blocks", strconv.FormatUint(res.Parked, 10)},
 		{"Requeued parked blocks", strconv.FormatUint(res.Requeued, 10)},
 		{"Leaked", strconv.FormatUint(res.Leaked, 10)},
