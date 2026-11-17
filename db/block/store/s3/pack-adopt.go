@@ -86,9 +86,10 @@ func (s *PackStore) adopt(ctx context.Context, entry *packfile.PackfileEntry, ve
 	return true, nil
 }
 
-// KeepsBlocks reports that the store never reclaims a block it holds.
+// KeepsBlocks reports that the store never reclaims a block it holds. A store
+// whose prefix DeletePackStore deleted in this process keeps nothing.
 func (s *PackStore) KeepsBlocks() bool {
-	return s.keepPacks
+	return s.keepPacks && !packStoreDeleted(s.bucket, s.prefix)
 }
 
 // objectStatter reports an object's size without reading its body.

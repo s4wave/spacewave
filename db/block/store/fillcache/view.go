@@ -17,6 +17,9 @@ type view struct {
 	block.StoreOps
 	// cache is the cache the view reads.
 	cache *Cache
+	// keeper is the durable store below the cache when it may declare that it
+	// keeps its blocks. A read it then declares so for is durable.
+	keeper blockKeeper
 }
 
 // BeginReadOperation returns the view itself, which holds no read state.
@@ -27,9 +30,19 @@ func (v *view) BeginReadOperation(context.Context) (block.StoreOps, func(), erro
 // GetBlock reads the block from the cache. A failure of the cache, or a block
 // that fails its hash, reads as a miss.
 func (v *view) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	// Serve the block when the cache holds it intact.
+	// Serve the block when the cache holds it intact. Note the removal
+	// generation before the read and ask the keeper after it, so a keeper
+	// that stops keeping its blocks between the two has reported the removal
+	// past the noted generation.
+	var gen uint64
+	if v.keeper != nil {
+		gen = block.DurableReadGeneration()
+	}
 	data, found, err := v.StoreOps.GetBlock(ctx, ref)
 	if err == nil {
+		if found && v.keeper != nil && v.keeper.KeepsBlocks() {
+			block.MarkDurableRead(ctx, ref, gen)
+		}
 		return data, found, nil
 	}
 

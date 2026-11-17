@@ -139,7 +139,7 @@ func TestCacheDecodedPoolAdmission(t *testing.T) {
 	if _, err := c.store.GetDB().ExecContext(ctx, "UPDATE "+cacheTable+" SET value = randomblob(64)"); err != nil {
 		t.Fatal(err)
 	}
-	if _, found, err := c.kept.GetBlock(ctx, corrupt); err != nil || found {
+	if _, found, err := (&view{StoreOps: c.view.StoreOps, cache: c, keeper: keptPacks{src}}).GetBlock(ctx, corrupt); err != nil || found {
 		t.Fatalf("read of the corrupt row: found %v, err %v; want a miss", found, err)
 	}
 	wait(t, c)

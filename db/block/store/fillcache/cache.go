@@ -83,9 +83,6 @@ type Cache struct {
 	// view is the read-only view of blocks served by Reads over a durable
 	// store that may remove blocks. Its reads are not durable.
 	view *view
-	// kept is the view served by Reads over a durable store that keeps every
-	// block, whose reads are durable.
-	kept *view
 	// evict deletes rows when the cache passes its size bound.
 	evict *evicter
 	// cancel stops the writer.
@@ -115,8 +112,8 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 	}
 
 	// Build the cache over the database. Its block store is durable, so its
-	// tombstones report their removals; only the kept view's reads mark
-	// themselves durable.
+	// tombstones report their removals. The views read a store that marks no
+	// read durable; a view over a store that keeps its blocks marks its own.
 	keys := store_kvkey.NewDefaultKVKey()
 	c := &Cache{
 		le:     le,
@@ -126,7 +123,6 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 		exited: make(chan struct{}),
 	}
 	c.view = &view{StoreOps: block.NewReadOnlyStore(block_store_kvtx.NewKVTxBlock(keys, store, 0, true)), cache: c}
-	c.kept = &view{StoreOps: block.NewReadOnlyStore(c.blocks), cache: c}
 
 	// Bound the cache's rows and its queued fills.
 	limit := opts.LimitBytes
@@ -158,7 +154,14 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 // removes a block it holds; that store, not the cache's row, makes the read
 // durable. A store that removes blocks, as reclaim does, cannot tell the
 // cache, which would go on serving its copy; the pool then keeps nothing the
-// cache serves.
+// cache serves. Each read asks lower again, after it notes the removal
+// generation, so a store that stops keeping its blocks, as a deleted pack
+// store does, makes no read durable once it reports the removal.
+//
+// The rows do not record the store they were filled from. A cache read
+// through lower holds only the blocks of stores read through it before, and
+// the caller must not read one cache through stores that hold different
+// blocks while one of them keeps its blocks.
 func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
 	return func() block.StoreOps {
 		// Read nothing without a durable store to copy from.
@@ -167,14 +170,14 @@ func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
 			return nil
 		}
 
-		// Read the kept view, whose reads are durable, only over a store that
-		// keeps its blocks.
-		view := c.view
-		if keeper, ok := store.(blockKeeper); ok && keeper.KeepsBlocks() {
-			view = c.kept
+		// Mark reads durable only over a store that may keep its blocks; each
+		// read asks it again.
+		cached := c.view
+		if keeper, ok := store.(blockKeeper); ok {
+			cached = &view{StoreOps: c.view.StoreOps, cache: c, keeper: keeper}
 		}
 		return block_store.NewCacheReadThrough(
-			func() block.StoreOps { return view },
+			func() block.StoreOps { return cached },
 			func() block.StoreOps { return store },
 			c.Fill,
 		)

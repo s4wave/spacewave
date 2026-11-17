@@ -10,7 +10,10 @@ EXTENDS Naturals, FiniteSets
 \* pack of a store that keeps its blocks holds it. A fill-cache row is a copy, so
 \* its eviction or a deleted cache file is not a Remove. Remove is a removal by
 \* this process (a hash-failure tombstone, DeletePackStore), which reports the
-\* generation before it deletes. Deletion from outside the process, as a bucket
+\* generation before it deletes. DeletePackStore first marks its store as no
+\* longer keeping blocks, and a fill-cache read asks the keeper after noting the
+\* generation, so a surviving row stops being durable in the same step as the
+\* report: Remove's atomic change. Deletion from outside the process, as a bucket
 \* lifecycle rule or a manual tool, is outside the invariant and not modeled.
 \* Root publication does not retarget existing cursors; snapshot binding is
 \* checked by ReadCursorRoots and the real World snapshot test.
