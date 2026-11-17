@@ -82,10 +82,13 @@ func SetWriteObserver(providerID, accountID, storeID string, o block_store_write
 	s := lookupSweep(adoptKey{volumeID: StorageVolumeID(providerID, accountID), storeID: storeID})
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
+	prev := s.observer
 	s.observer = o
 	if s.wb != nil {
 		s.wb.SetObserver(o)
+		return
 	}
+	block_store_writeback.TellAttached(prev, o)
 }
 
 // OldestOperations returns when the oldest write and read operation still open

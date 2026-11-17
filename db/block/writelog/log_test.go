@@ -195,14 +195,14 @@ func TestResume(t *testing.T) {
 			func(context.Context, []block_store_writeback.Mark) error { return nil },
 		)
 	}
-	put := func(store *block_store_writeback.MarkingStore, i int) {
+	put := func(t *testing.T, store *block_store_writeback.MarkingStore, i int) {
 		t.Helper()
 		if _, _, err := store.PutBlock(ctx, []byte("block "+strconv.Itoa(i)), nil); err != nil {
 			t.Fatal(err)
 		}
 	}
 	// open turns on a new log over dir, observing store.
-	open := func(dir string, store *block_store_writeback.MarkingStore) *Log {
+	open := func(t *testing.T, dir string, store *block_store_writeback.MarkingStore) *Log {
 		t.Helper()
 		l := newLog()
 		store.SetObserver(l)
@@ -214,33 +214,33 @@ func TestResume(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		// stop stops the first log and its store and returns the next store.
-		stop   func(l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore
+		stop   func(t *testing.T, l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore
 		resume bool
 	}{
-		{"clean", func(l *Log, _ *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+		{"clean", func(t *testing.T, l *Log, _ *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
 			_ = l.Close()
 			return newStore()
 		}, true},
-		{"crash", func(*Log, *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+		{"crash", func(*testing.T, *Log, *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
 			return newStore()
 		}, false},
-		{"write after close", func(l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+		{"write after close", func(t *testing.T, l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
 			_ = l.Close()
-			put(store, 100)
+			put(t, store, 100)
 			return newStore()
 		}, false},
-		{"detached", func(l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+		{"detached", func(t *testing.T, l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
 			_ = l.Close()
 			store.SetObserver(nil)
 			return newStore()
 		}, false},
-		{"attached late", func(l *Log, _ *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+		{"attached late", func(t *testing.T, l *Log, _ *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
 			_ = l.Close()
 			next := newStore()
-			put(next, 100)
+			put(t, next, 100)
 			return next
 		}, false},
-		{"run without the log", func(l *Log, _ *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+		{"run without the log", func(t *testing.T, l *Log, _ *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
 			// A process with its log off claims the directory, writes, and
 			// stops cleanly.
 			dir := *l.claimed.Load()
@@ -250,11 +250,11 @@ func TestResume(t *testing.T) {
 			if err := between.Claim(dir); err != nil {
 				t.Fatal(err)
 			}
-			put(store, 100)
+			put(t, store, 100)
 			_ = between.Close()
 			return newStore()
 		}, false},
-		{"unremovable marker", func(l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+		{"unremovable marker", func(t *testing.T, l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
 			// A write after Close misses, and the directory refuses the
 			// marker's removal.
 			dir := *l.claimed.Load()
@@ -262,7 +262,7 @@ func TestResume(t *testing.T) {
 			if err := os.Chmod(dir, 0o500); err != nil {
 				t.Fatal(err)
 			}
-			put(store, 100)
+			put(t, store, 100)
 			if err := os.Chmod(dir, 0o700); err != nil {
 				t.Fatal(err)
 			}
@@ -271,21 +271,63 @@ func TestResume(t *testing.T) {
 			}
 			return newStore()
 		}, false},
+		{"unpoisonable marker", func(t *testing.T, l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+			// A write after Close misses while neither the marker's removal
+			// nor the poison can be written; once the directory is writable
+			// again the log's Close retires the marker.
+			dir := *l.claimed.Load()
+			_ = l.Close()
+			segs, err := listSegments(dir)
+			if err != nil || len(segs) == 0 {
+				t.Fatalf("segments %v, %v", segs, err)
+			}
+			last := segs[len(segs)-1].path(dir)
+			for _, c := range []struct {
+				path string
+				mode os.FileMode
+			}{{last, 0o400}, {dir, 0o500}} {
+				if err := os.Chmod(c.path, c.mode); err != nil {
+					t.Fatal(err)
+				}
+			}
+			put(t, store, 100)
+			if err := os.Chmod(dir, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if !closedAt(dir, Position{Epoch: segs[0].epoch, Seq: 10}) {
+				t.Fatal("the poison was written")
+			}
+			_ = l.Close()
+			return newStore()
+		}, false},
+		{"claimed unattached", func(t *testing.T, l *Log, _ *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+			// A process claims the directory with its log no store's
+			// observer, writes, and stops cleanly.
+			dir := *l.claimed.Load()
+			_ = l.Close()
+			between, store := newLog(), newStore()
+			if err := between.Claim(dir); err == nil {
+				t.Fatal("claim while unattached succeeded")
+			}
+			put(t, store, 100)
+			_ = between.Close()
+			return newStore()
+		}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// Log some writes, stop, then start another log.
-			if tc.name == "unremovable marker" && os.Geteuid() == 0 {
+			if (tc.name == "unremovable marker" || tc.name == "unpoisonable marker") && os.Geteuid() == 0 {
 				t.Skip("root removes the marker from a read-only directory")
 			}
 			dir := t.TempDir()
 			store := newStore()
-			l := open(dir, store)
+			l := open(t, dir, store)
 			for i := range 10 {
-				put(store, i)
+				put(t, store, i)
 			}
 			pos, _ := l.Position()
-			nextStore := tc.stop(l, store)
-			next := open(dir, nextStore)
+			nextStore := tc.stop(t, l, store)
+			next := open(t, dir, nextStore)
 			defer next.Close()
 
 			// A resumed epoch reads across the close to the new line; a new
@@ -303,7 +345,7 @@ func TestResume(t *testing.T) {
 				}
 				return
 			}
-			put(nextStore, 10)
+			put(t, nextStore, 10)
 			if lines, res := readAll(t, next, Position{Epoch: pos.Epoch}); len(lines) != 11 || res.State != ReadOpen {
 				t.Fatalf("read across the close: %d lines, %+v", len(lines), res)
 			}
@@ -313,15 +355,15 @@ func TestResume(t *testing.T) {
 	// Off and on in one process resumes, unless a write came between.
 	dir := t.TempDir()
 	store := newStore()
-	l := open(dir, store)
-	put(store, 0)
+	l := open(t, dir, store)
+	put(t, store, 0)
 	pos, _ := l.Position()
 	for _, write := range []bool{false, true} {
 		if err := l.Set(nil); err != nil {
 			t.Fatal(err)
 		}
 		if write {
-			put(store, 1)
+			put(t, store, 1)
 		}
 		if err := l.Set(&Options{Dir: dir}); err != nil {
 			t.Fatal(err)
@@ -334,8 +376,8 @@ func TestResume(t *testing.T) {
 
 	// A miss while the epoch is open ends it.
 	store = newStore()
-	l = open(t.TempDir(), store)
-	put(store, 0)
+	l = open(t, t.TempDir(), store)
+	put(t, store, 0)
 	pos, _ = l.Position()
 	store.SetObserver(nil)
 	if st := l.Status(); st.On || st.Broken == "" {
@@ -344,7 +386,33 @@ func TestResume(t *testing.T) {
 	if _, res := readAll(t, l, pos); res.State != ReadGap {
 		t.Fatalf("read after a detach %+v", res)
 	}
+
+	// A segment whose sync failed leaves no marker.
+	dir = t.TempDir()
+	store = newStore()
+	l = newLog()
+	store.SetObserver(l)
+	if err := l.Set(&Options{Dir: dir, create: func(path string) (io.WriteCloser, error) {
+		f, err := createFile(path)
+		return failSync{f}, err
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	put(t, store, 0)
+	if err := l.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(markerPath(dir)); !os.IsNotExist(err) {
+		t.Fatalf("marker after a failed sync: %v", err)
+	}
 }
+
+// failSync is a segment whose sync fails.
+type failSync struct {
+	io.WriteCloser
+}
+
+func (failSync) Sync() error { return errors.New("sync failed") }
 
 // failAfter fails every write after n bytes.
 type failAfter struct {

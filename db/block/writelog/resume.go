@@ -76,9 +76,13 @@ func retireMarker(dir string) ([]byte, bool) {
 		return nil, true
 	}
 
-	// Remove it and sync the directory.
+	// Remove it and sync the directory; one another retirement removed first
+	// still needs the sync.
 	if err == nil {
 		err = os.Remove(markerPath(dir))
+		if os.IsNotExist(err) {
+			err = nil
+		}
 	}
 	if err == nil {
 		err = syncDir(dir)

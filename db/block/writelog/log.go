@@ -79,6 +79,13 @@ type Log struct {
 	unsynced atomic.Bool
 	// retiring counts the retired segments still syncing.
 	retiring sync.WaitGroup
+	// attached is set while the log is a store's observer, as the store's
+	// Attached calls report it.
+	attached atomic.Bool
+	// marker orders a miss's retirement of the marker after markResumable's
+	// last check of missed and its write: either the check sees the miss, or
+	// the miss waits for the marker and retires it.
+	marker sync.Mutex
 
 	// mu guards the fields below.
 	mu sync.Mutex
@@ -205,12 +212,20 @@ func (l *Log) miss() {
 		return
 	}
 
-	// Retire the marker.
+	// Retire the marker, after any marker write in progress.
 	if dir := l.claimed.Load(); dir != nil {
+		l.marker.Lock()
+		defer l.marker.Unlock()
 		if _, durable := retireMarker(*dir); !durable {
 			l.le.WithField("dir", *dir).Error("write log: a missed write could not retire the resume marker")
 		}
 	}
+}
+
+// Attached records whether the log is a store's observer. The store calls it
+// as it attaches and detaches the log.
+func (l *Log) Attached(on bool) {
+	l.attached.Store(on)
 }
 
 // Claim binds the log to dir and takes the directory's resume marker, durably,
@@ -218,11 +233,25 @@ func (l *Log) miss() {
 // no write. Call it before the store takes its first write, whether or not the
 // log will be on, with the log already the store's observer: a process that
 // writes the store without claiming leaves the marker for a later start to
-// resume past its writes. Set claims its directory when Claim did not.
+// resume past its writes. A log that is no store's observer cannot see the
+// writes it would need, so Claim still takes the marker but records a miss,
+// and returns an error: nothing resumes and Close leaves no marker. No error
+// stops the store; the caller logs it. Set claims its directory when Claim
+// did not.
 func (l *Log) Claim(dir string) error {
+	// Take the marker.
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.claim(dir)
+	if err := l.claim(dir); err != nil {
+		return err
+	}
+
+	// Refuse to resume what no store showed this log.
+	if !l.attached.Load() {
+		l.miss()
+		return errors.New("write log: claimed while no store's observer; resume disabled")
+	}
+	return nil
 }
 
 // claim binds the log to dir, taking its marker, unless it is bound to it.
@@ -295,8 +324,12 @@ func (l *Log) Set(opts *Options) error {
 // Close closes the open epoch with its close line, turns the log off, and
 // leaves the resume marker that lets the next process's Claim resume the
 // epoch, unless a write escaped it. Call it once the store takes no more
-// writes: a later write is a miss that retires the marker again. It waits on
-// the last segment's sync, a sync of the marker and one of the directory.
+// writes: a later write is a miss that retires the marker again, and a process
+// killed between such a write and its retirement leaves the marker behind. It
+// waits on the last segment's sync, a sync of the marker and one of the
+// directory. After a miss it retries the marker's retirement instead, so a
+// marker a miss could neither remove nor poison does not outlive a directory
+// that has become writable again.
 func (l *Log) Close() error {
 	// Close the epoch and turn the log off.
 	l.mu.Lock()
@@ -486,13 +519,22 @@ func (l *Log) retire(file io.WriteCloser) {
 }
 
 // markResumable writes the marker naming the closed epoch's close line, once
-// its segments are durable, so the next process's Claim can resume it. A miss
-// after the marker retires it, and one between the check and the rename is
-// caught by the check after it.
+// its segments are durable, so the next process's Claim can resume it. The
+// last check of missed and the write hold marker, so a miss either stops the
+// write or retires the marker after it.
 func (l *Log) markResumable() error {
-	// Skip when the epoch cannot resume or a write escaped it.
+	// Skip when the epoch cannot resume; after a miss, retry the retirement.
 	dir := l.claimed.Load()
-	if dir == nil || !l.resumable || l.missed.Load() {
+	if dir == nil {
+		return nil
+	}
+	if l.missed.Load() {
+		if _, durable := retireMarker(*dir); !durable {
+			l.le.WithField("dir", *dir).Error("write log: the resume marker could not be retired")
+		}
+		return nil
+	}
+	if !l.resumable {
 		return nil
 	}
 
@@ -502,13 +544,15 @@ func (l *Log) markResumable() error {
 		return nil
 	}
 
-	// Write the marker beside them, then retire it if a miss raced.
+	// Write the marker beside them unless a miss came first.
+	l.marker.Lock()
+	defer l.marker.Unlock()
+	if l.missed.Load() {
+		return nil
+	}
 	if err := writeMarker(*dir, l.closed); err != nil {
 		_, _ = retireMarker(*dir)
 		return err
-	}
-	if l.missed.Load() {
-		_, _ = retireMarker(*dir)
 	}
 	return nil
 }
