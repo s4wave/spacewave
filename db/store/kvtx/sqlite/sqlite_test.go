@@ -3,7 +3,9 @@
 package store_kvtx_sqlite
 
 import (
+	"bytes"
 	"context"
+	"database/sql"
 	"os"
 	"strconv"
 	"strings"
@@ -493,5 +495,96 @@ func TestSQLiteWALBound(t *testing.T) {
 			t.Fatalf("write-ahead log is %d bytes, want at most %d", info.Size(), 4*bound)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// TestImmutableCapture exercises first-key, empty-key and bounded allocation reads.
+func TestImmutableCapture(t *testing.T) {
+	// Create a checkpointed capture directly, without live Volume startup.
+	ctx := t.Context()
+	path := t.TempDir() + "/capture.sqlite"
+	driver := "sqlite3"
+	for _, name := range sql.Drivers() {
+		if name == "sqlite" {
+			driver = name
+		}
+	}
+	db, err := sql.Open(driver, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("CREATE TABLE items (key BLOB PRIMARY KEY, value BLOB NOT NULL)"); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range [][]byte{{}, {'a'}, {'z'}} {
+		if _, err := db.Exec("INSERT INTO items VALUES (?,?)", key, []byte("value")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Read the empty first key once, then seek strictly beyond it.
+	reader, err := OpenImmutable(ctx, path, "items", 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var after []byte
+	for i, want := range []string{"", "a", "z"} {
+		key, value, err := reader.Next(ctx, after)
+		if err != nil || key == nil || string(key) != want || string(value) != "value" {
+			t.Fatalf("row %d: %q %q %v", i, key, value, err)
+		}
+		after = key
+	}
+	key, _, err := reader.Next(ctx, after)
+	if err != nil || key != nil {
+		t.Fatalf("end: %q %v", key, err)
+	}
+	if err := reader.Close(); err != nil {
+		t.Fatal(err)
+	}
+	current, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	final, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, current) || !os.SameFile(info, final) || info.Size() != final.Size() || info.Mode() != final.Mode() || !info.ModTime().Equal(final.ModTime()) {
+		t.Fatal("immutable read changed capture")
+	}
+
+	// Reject an oversized first key before selecting its bytes into the driver.
+	db, err = sql.Open(driver, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("DELETE FROM items"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("INSERT INTO items VALUES (?,?)", bytes.Repeat([]byte{'x'}, 65), []byte("v")); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reader, err = OpenImmutable(ctx, path, "items", 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	if _, _, err := reader.Next(ctx, nil); err == nil {
+		t.Fatal("oversized key accepted")
 	}
 }

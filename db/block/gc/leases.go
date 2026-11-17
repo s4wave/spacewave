@@ -68,7 +68,7 @@ func (r *Records) ScanLapsed(ctx context.Context, from, now int64, limit int) ([
 		if expires > now {
 			return false, nil
 		}
-		bucketID, name, err := parseNamedKey(key[8:])
+		bucketID, name, err := ParseNamedKey(key[8:])
 		if err != nil {
 			return false, err
 		}
