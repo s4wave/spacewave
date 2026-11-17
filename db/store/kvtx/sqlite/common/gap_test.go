@@ -590,15 +590,23 @@ func TestWALGapSmallWritersBoundWait(t *testing.T) {
 			}()
 		}
 
-		// Time the large commits, then stop the small writers.
+		// Time the large commits, then stop the small writers. A flow
+		// wait ends without failing the commit when its context ends, so
+		// a wait the checkpointer never ends shows only as a commit that
+		// outlived its deadline. How long the copy takes depends on the
+		// disk, so the bound is that the deadline never ends a wait.
 		var longest time.Duration
 		for i := range 5 {
-			c, cancel := context.WithTimeout(ctx, 10*time.Second)
+			c, cancel := context.WithTimeout(ctx, restartTimeCap)
 			began := time.Now()
 			if err := commit(c, i*2048, 2048); err != nil {
 				t.Fatal(err)
 			}
-			longest = max(longest, time.Since(began))
+			took := time.Since(began)
+			longest = max(longest, took)
+			if c.Err() != nil {
+				t.Errorf("%d small writers: an 8 MiB commit waited %v, until its deadline", writers, took)
+			}
 			cancel()
 		}
 		close(stop)
@@ -606,9 +614,6 @@ func TestWALGapSmallWritersBoundWait(t *testing.T) {
 			<-done
 		}
 		t.Logf("%d small writers: longest 8 MiB commit %v", writers, longest.Round(time.Millisecond))
-		if longest > 3*time.Second {
-			t.Errorf("%d small writers: an 8 MiB commit took %v", writers, longest)
-		}
 	}
 }
 
