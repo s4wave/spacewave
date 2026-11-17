@@ -42,8 +42,8 @@ type IndexedChangeWatcher interface {
 
 // WatchChanges calls cb with each seqno of w after afterSeqno and the changes
 // since the previous call. w is an Engine or a WorldState; a WorldState that
-// is not a ChangeWatcher reports every advance as an unknown ChangeSet.
-// Returns when ctx is canceled or cb returns an error.
+// is not a ChangeWatcher reports every advance as an unknown ChangeSet, and a
+// writable one returns ErrPendingWriteWatch. Returns when ctx is canceled or cb returns an error.
 func WatchChanges(
 	ctx context.Context,
 	w WorldWaitSeqno,
@@ -55,7 +55,8 @@ func WatchChanges(
 
 // WatchTouchingChanges is WatchChanges for the changes touches accepts. A
 // World with a change feed tests each change once on the feed and wakes only
-// the watchers it concerns.
+// the watchers it concerns. A writable WorldState without one, such as a
+// pending write transaction, returns ErrPendingWriteWatch.
 func WatchTouchingChanges(
 	ctx context.Context,
 	w WorldWaitSeqno,
@@ -66,6 +67,11 @@ func WatchTouchingChanges(
 	// Prefer the World's own change feed.
 	if watcher, ok := w.(ChangeWatcher); ok {
 		return watcher.WatchChanges(ctx, afterSeqno, touches, cb)
+	}
+
+	// Refuse a pending write state, whose seqno cannot name each change.
+	if ws, ok := w.(WorldState); ok && !ws.GetReadOnly() {
+		return ErrPendingWriteWatch
 	}
 
 	// Report each seqno advance as unknown, which every filter accepts.
