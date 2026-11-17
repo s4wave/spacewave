@@ -56,7 +56,7 @@ const peerMissReport = time.Minute
 // only after the local store, the backend and the read fallback all missed, so
 // it reports the misses, at most once per peerMissReport with their count and
 // the latest ref, before asking peers, and gives the peers peerReadWait to
-// serve it.
+// serve it. It serves reads only and never asks peers about existence.
 type peerMissLog struct {
 	// StoreOps is the peer store.
 	block.StoreOps
@@ -177,6 +177,19 @@ func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 		}
 		pause = min(pause*2, peerReadPauseMax)
 	}
+}
+
+// GetBlockExists reports every block missing. Peers are a read source only:
+// existence is a question about the stores this placement holds, and a write
+// or a copy that asks it must never wait on, or fail with, a peer exchange.
+// This is the answer returningPeers gives while the peers are away.
+func (p *peerMissLog) GetBlockExists(context.Context, *block.BlockRef) (bool, error) {
+	return false, nil
+}
+
+// GetBlockExistsBatch reports every block missing, as GetBlockExists does.
+func (p *peerMissLog) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return make([]bool, len(refs)), nil
 }
 
 // peerReadErr reports a peer read of ref that failed or outlived its bound
