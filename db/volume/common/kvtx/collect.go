@@ -142,7 +142,7 @@ func (v *Volume) Audit(ctx context.Context) (block_gc.AuditResult, error) {
 		return block_gc.AuditResult{}, block.ErrAtomicCommitUnsupported
 	}
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
-	return block_gc.Audit(block.WithBackground(ctx), collectorStore{v: v}, !v.readOnly)
+	return block_gc.Audit(block.WithBackground(ctx), collectorStore{v: v}, v.now(), !v.readOnly)
 }
 
 // collectorPhase reports a collection step in the Volume's health.

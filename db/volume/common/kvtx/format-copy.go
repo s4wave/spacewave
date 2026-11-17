@@ -3,6 +3,7 @@ package kvtx
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -127,7 +128,7 @@ func copyStore(
 		if gen != block_gc.Generation_GENERATION_SETTLED && !reachable.AllowUnknown {
 			return errors.New("the child lists come from an older store format and may lack children, which a reachable copy would drop; rebuild them first")
 		}
-		mark, err := block_gc.Reachable(ctx, rec, func(ctx context.Context, ref *block.BlockRef) (bool, error) {
+		mark, err := block_gc.Reachable(ctx, rec, time.Now(), func(ctx context.Context, ref *block.BlockRef) (bool, error) {
 			rm, err := ref.MarshalKey()
 			if err != nil {
 				return false, err

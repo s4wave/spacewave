@@ -1864,6 +1864,40 @@ func testLivenessAdversarial(t *testing.T) {
 		})
 	}
 
+	for name, lapsed := range map[string]bool{"live": false, "lapsed": true} {
+		t.Run("stage parent ahead of its child "+name, func(t *testing.T) {
+			// A stage stores P, which names C, while C waits in the writer's
+			// memory, and its process dies before C lands. The audit records
+			// C as a hole either way. Only once the stage's lease lapsed does
+			// it count C as a hole no live holder names.
+			v, clk := newLivenessVolume(t, false)
+			ctx := t.Context()
+			tr := testTree{}
+			tr.add(t, "C")
+			tr.add(t, "P", "C")
+			stage, _, err := v.OpenStage(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := v.PrepareStagedBlockBatch(ctx, stage, tr.entries("P")); err != nil {
+				t.Fatal(err)
+			}
+			want := uint64(0)
+			if lapsed {
+				clk.Add(rootLease + time.Second)
+				want = 1
+			}
+			res, err := v.Audit(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if res.Holes != 1 || res.LapsedHoles != want || uint64(len(res.Mark.LapsedRefs)) != want {
+				t.Fatalf("audit recorded %d holes, %d of them lapsed, and found %d lapsed, want 1, %d and %d",
+					res.Holes, res.LapsedHoles, len(res.Mark.LapsedRefs), want, want)
+			}
+		})
+	}
+
 	t.Run("cache fill during an adoption", func(t *testing.T) {
 		// main holds C on an unadopted Volume. While an adoption settles its
 		// counts, after it counted the child lists, a cache fill stores F
@@ -3364,7 +3398,7 @@ func testLivenessAdversarial(t *testing.T) {
 					collectAll(t, v)
 				}
 			}
-			if res, err := block_gc.Audit(ctx, probe, true); err != nil || res.Holes != 1 {
+			if res, err := block_gc.Audit(ctx, probe, clk.Now(), true); err != nil || res.Holes != 1 {
 				t.Fatalf("audit recorded %d holes err %v, want 1", res.Holes, err)
 			}
 

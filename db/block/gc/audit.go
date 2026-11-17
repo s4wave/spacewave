@@ -2,6 +2,7 @@ package block_gc
 
 import (
 	"context"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -40,6 +41,11 @@ type AuditResult struct {
 	UndercountSample []*block.BlockRef
 	// Holes counts the holes under a live root this audit recorded.
 	Holes uint64
+	// LapsedHoles counts the recorded holes that only roots whose lease
+	// lapsed reach, as Mark.LapsedRefs describes; Holes counts them too. Such
+	// a hole names nothing a World or a live reader refers to, but the audit
+	// records it all the same, since an extra holder is the safe side.
+	LapsedHoles uint64
 	// Unlisted counts the blocks whose bytes the Volume holds without a child
 	// list that no root reaches: garbage nothing frees, since only a block
 	// with a list is stored for the collector.
@@ -62,10 +68,11 @@ type AuditResult struct {
 // then records each hole it reached that no record names yet, restoring its
 // count from the holders the snapshot gave it, so a later put of the hole
 // counts it as stored, as Land describes. It keeps the reached set and a
-// holder count per named block in memory, so it suits a copy host. With
-// record unset it writes nothing, for a store opened read-only, and Holes
-// stays zero.
-func Audit(ctx context.Context, store AdoptStore, record bool) (AuditResult, error) {
+// holder count per named block in memory, so it suits a copy host. now
+// splits the roots whose lease lapsed from the held ones, as Reachable
+// describes. With record unset it writes nothing, for a store opened
+// read-only, and Holes stays zero.
+func Audit(ctx context.Context, store AdoptStore, now time.Time, record bool) (AuditResult, error) {
 	// Read the snapshot: the walk, the holders, the stored blocks and what
 	// each hole's count lacks.
 	var res AuditResult
@@ -76,7 +83,7 @@ func Audit(ctx context.Context, store AdoptStore, record bool) (AuditResult, err
 		if err != nil {
 			return err
 		}
-		mark, err := Reachable(ctx, rec, store.BlockStored)
+		mark, err := Reachable(ctx, rec, now, store.BlockStored)
 		if err != nil {
 			return err
 		}
@@ -111,7 +118,14 @@ func Audit(ctx context.Context, store AdoptStore, record bool) (AuditResult, err
 		if err != nil {
 			return err
 		}
-		holes, err = holeCounts(ctx, rec, state, mark.AbsentRefs, tally, delta)
+
+		// Count what each hole lacks, those held roots reach first.
+		holes, err = holeCounts(ctx, rec, state, mark.AbsentRefs, false, tally, delta)
+		if err != nil {
+			return err
+		}
+		lapsed, err := holeCounts(ctx, rec, state, mark.LapsedRefs, true, tally, delta)
+		holes = append(holes, lapsed...)
 		if err != nil || !cascadesCounted(state) {
 			return err
 		}
@@ -385,11 +399,13 @@ type holeCount struct {
 	// floor is the least netted holders the hole keeps, in a Volume the
 	// collector does not net yet, whose counts change only by an adoption.
 	floor uint64
+	// lapsed reports that only roots whose lease lapsed reach the hole.
+	lapsed bool
 }
 
 // holeCounts returns, from the snapshot in rec, what each hole in absent that
 // a holder names lacks in its count, using the tally and journal delta of the
-// same snapshot.
+// same snapshot, and marks each lapsed when only lapsed roots reach it.
 //
 // Invariant: in an adopted Volume, a hole's netted holders change after the
 // snapshot only by netting a journal or fill record, a fill up or a cascade,
@@ -405,6 +421,7 @@ func holeCounts(
 	rec *Records,
 	state *LivenessState,
 	absent []*block.BlockRef,
+	lapsed bool,
 	tally map[string]uint64,
 	delta map[string]int64,
 ) ([]holeCount, error) {
@@ -420,7 +437,7 @@ func holeCounts(
 
 		// Before the collector nets, keep the tally as the least holders.
 		if !adopted {
-			holes = append(holes, holeCount{ref: ref, floor: named})
+			holes = append(holes, holeCount{ref: ref, floor: named, lapsed: lapsed})
 			continue
 		}
 
@@ -430,7 +447,7 @@ func holeCounts(
 			return nil, err
 		}
 		missing := int64(named) - int64(holders) - delta[string(key)] //nolint:gosec // counts stay far below the int64 range.
-		h := holeCount{ref: ref}
+		h := holeCount{ref: ref, lapsed: lapsed}
 		if missing > 0 {
 			h.add = uint64(missing)
 		}
@@ -477,6 +494,9 @@ func recordHole(ctx context.Context, rec *Records, h holeCount, res *AuditResult
 		return err
 	}
 	res.Holes++
+	if h.lapsed {
+		res.LapsedHoles++
+	}
 
 	// Raise its netted holders.
 	holders, ripe, err := rec.GetHolders(ctx, h.ref)
