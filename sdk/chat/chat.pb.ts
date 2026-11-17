@@ -157,12 +157,20 @@ export interface ChatMessagePage {
    * MessageKeys are page-local message object keys in creation order.
    */
   messageKeys?: string[]
+  /**
+   * BaseChain is the channel's prefix chain over every key before this page.
+   * Empty for the first page, which has no key before it.
+   */
+  baseChain?: Uint8Array
 }
 
 export const ChatMessagePage: MessageType<ChatMessagePage> =
   /* @__PURE__ */ createMessageType<ChatMessagePage>(
     'spacewave.chat.ChatMessagePage',
-    () => [[1, 'message_keys', 9, 1]],
+    () => [
+      [1, 'message_keys', 9, 1],
+      [2, 'base_chain', 12],
+    ],
   )
 
 /**

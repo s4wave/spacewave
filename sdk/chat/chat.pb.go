@@ -225,6 +225,9 @@ type ChatMessagePage struct {
 	unknownFields []byte
 	// MessageKeys are page-local message object keys in creation order.
 	MessageKeys []string `protobuf:"bytes,1,rep,name=message_keys,json=messageKeys,proto3" json:"messageKeys,omitempty"`
+	// BaseChain is the channel's prefix chain over every key before this page.
+	// Empty for the first page, which has no key before it.
+	BaseChain []byte `protobuf:"bytes,2,opt,name=base_chain,json=baseChain,proto3" json:"baseChain,omitempty"`
 }
 
 func (x *ChatMessagePage) Reset() {
@@ -236,6 +239,13 @@ func (*ChatMessagePage) ProtoMessage() {}
 func (x *ChatMessagePage) GetMessageKeys() []string {
 	if x != nil {
 		return x.MessageKeys
+	}
+	return nil
+}
+
+func (x *ChatMessagePage) GetBaseChain() []byte {
+	if x != nil {
+		return x.BaseChain
 	}
 	return nil
 }
@@ -616,6 +626,7 @@ func (m *ChatMessagePage) CloneVT() *ChatMessagePage {
 	}
 	r := new(ChatMessagePage)
 	r.MessageKeys = protobuf_go_lite.CloneSlice(m.MessageKeys)
+	r.BaseChain = protobuf_go_lite.CloneBytes(m.BaseChain)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -839,6 +850,9 @@ func (this *ChatMessagePage) EqualVT(that *ChatMessagePage) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.MessageKeys, that.MessageKeys) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.BaseChain, that.BaseChain) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1354,6 +1368,11 @@ func (x *ChatMessagePage) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("messageKeys")
 		s.WriteStringArray(x.MessageKeys)
 	}
+	if len(x.BaseChain) > 0 || s.HasField("baseChain") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("baseChain")
+		s.WriteBytes(x.BaseChain)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1378,6 +1397,9 @@ func (x *ChatMessagePage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.MessageKeys = s.ReadStringArray()
+		case "base_chain", "baseChain":
+			s.AddField("base_chain")
+			x.BaseChain = s.ReadBytes()
 		}
 	})
 }
@@ -2064,6 +2086,11 @@ func (m *ChatMessagePage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.BaseChain) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.BaseChain)
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.MessageKeys) > 0 {
 		for iNdEx := len(m.MessageKeys) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.MessageKeys[iNdEx])
@@ -2495,6 +2522,7 @@ func (m *ChatMessagePage) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringSlice(1, m.MessageKeys)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.BaseChain)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2740,6 +2768,10 @@ func (x *ChatMessagePage) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.BaseChain) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "base_chain")
+		protobuf_go_lite.TextWriteBytes(&sb, x.BaseChain)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3277,6 +3309,14 @@ func (m *ChatMessagePage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.MessageKeys = append(m.MessageKeys, v)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BaseChain", wireType)
+			}
+			m.BaseChain, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.BaseChain, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

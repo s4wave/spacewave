@@ -310,7 +310,7 @@ func (r *ChatResource) ListMessages(
 	}
 
 	// Load only the selected interval and report directional history.
-	keys, err := r.readMessageKeys(ctx, startIndex, endIndex)
+	keys, err := r.readMessageKeys(ctx, r.ws, startIndex, endIndex)
 	if err != nil {
 		return nil, err
 	}
@@ -326,9 +326,11 @@ func (r *ChatResource) WatchMessages(
 	_ *spacewave_chat_rpc.WatchMessagesRequest,
 	strm spacewave_chat_rpc.SRPCChatResourceService_WatchMessagesStream,
 ) error {
-	// Track the next unsent channel position for this attachment.
+	// Follow the channel with a cursor, so a replay that reorders entries this
+	// attachment already sent never hides one it has not. After a reorder the
+	// cursor may send an entry again; the client keeps messages by key.
 	ctx := strm.Context()
-	nextIndex := uint64(0)
+	cursor := NewChannelCursor(0, ChannelChain{})
 	initialized := false
 
 	// Read the channel root before the channel, so a concurrent append ends
@@ -342,23 +344,21 @@ func (r *ChatResource) WatchMessages(
 		if err != nil {
 			return err
 		}
-		messageCount := channel.GetMessageCount()
-		if nextIndex > messageCount {
-			nextIndex = messageCount
-		}
-		if !initialized && messageCount == 0 {
+		if !initialized && channel.GetMessageCount() == 0 {
 			if err := strm.Send(&spacewave_chat_rpc.WatchMessagesResponse{}); err != nil {
 				return err
 			}
 		}
 
-		// Emit complete bounded history batches in acceptance order.
+		// Emit bounded batches of the entries not yet sent, in index order.
 		initialized = true
-		for nextIndex < messageCount {
-			endIndex := min(nextIndex+defaultMessageListLimit, messageCount)
-			keys, err := r.readMessageKeys(ctx, nextIndex, endIndex)
+		for {
+			_, keys, err := cursor.Read(ctx, defaultMessageListLimit, r.readChannelSpan)
 			if err != nil {
 				return err
+			}
+			if len(keys) == 0 {
+				break
 			}
 			messages, err := r.readMessages(ctx, keys)
 			if err != nil {
@@ -369,7 +369,6 @@ func (r *ChatResource) WatchMessages(
 					return err
 				}
 			}
-			nextIndex = endIndex
 			if err := ctx.Err(); err != nil {
 				return err
 			}
@@ -1188,6 +1187,15 @@ func (r *ChatResource) appendMessagePageKey(ctx context.Context, ws world.WorldS
 			page = &ChatMessagePage{}
 		}
 
+		// A new page records the chain below it, from the full page before it.
+		if len(page.GetMessageKeys()) == 0 && index != 0 {
+			base, err := r.chainAt(ctx, ws, index)
+			if err != nil {
+				return err
+			}
+			page.BaseChain = base[:]
+		}
+
 		// Retain the accepted message key in the page block.
 		page.MessageKeys = append(page.MessageKeys, msgKey)
 		bcs.SetBlock(page, true)
@@ -1238,7 +1246,7 @@ func (r *ChatResource) readMessages(ctx context.Context, keys []string) ([]*spac
 }
 
 // readMessageKeys resolves a half-open interval from bounded channel pages.
-func (r *ChatResource) readMessageKeys(ctx context.Context, startIndex, endIndex uint64) ([]string, error) {
+func (r *ChatResource) readMessageKeys(ctx context.Context, ws world.WorldState, startIndex, endIndex uint64) ([]string, error) {
 	// Avoid touching storage for an empty interval.
 	if startIndex >= endIndex {
 		return nil, nil
@@ -1247,7 +1255,7 @@ func (r *ChatResource) readMessageKeys(ctx context.Context, startIndex, endIndex
 	// Visit only pages intersecting the requested history interval.
 	keys := make([]string, 0, int(endIndex-startIndex)) //nolint:gosec // the requested history interval is bounded by the page query contract.
 	for pageIndex := startIndex / chatMessagePageSize; pageIndex <= (endIndex-1)/chatMessagePageSize; pageIndex++ {
-		page, err := r.readMessagePage(ctx, pageIndex)
+		page, err := r.readMessagePage(ctx, ws, pageIndex)
 		if err != nil {
 			return nil, err
 		}
@@ -1268,12 +1276,96 @@ func (r *ChatResource) readMessageKeys(ctx context.Context, startIndex, endIndex
 }
 
 // readMessagePage reads one bounded history page.
-func (r *ChatResource) readMessagePage(ctx context.Context, pageIndex uint64) (*ChatMessagePage, error) {
-	page, err := world.LookupObjectBody[ChatMessagePage](ctx, r.ws, r.messagePageKey(pageIndex))
+func (r *ChatResource) readMessagePage(ctx context.Context, ws world.WorldState, pageIndex uint64) (*ChatMessagePage, error) {
+	page, err := world.LookupObjectBody[ChatMessagePage](ctx, ws, r.messagePageKey(pageIndex))
 	if errors.Is(err, world.ErrObjectNotFound) {
 		return &ChatMessagePage{}, nil
 	}
 	return page, err
+}
+
+// readChannelSpan is the channel's ChannelRead. It reads the chain below start
+// and up to limit keys from start inside one read transaction, so the chain
+// and the keys describe one order.
+func (r *ChatResource) readChannelSpan(ctx context.Context, start, limit uint64) (ChannelChain, []string, bool, error) {
+	// Take one snapshot of the channel and its pages.
+	ws := r.ws
+	if r.engine != nil {
+		tx, err := r.engine.NewTransaction(ctx, false)
+		if err != nil {
+			return ChannelChain{}, nil, false, err
+		}
+		defer tx.Discard()
+		ws = tx
+	}
+	channel, err := world.LookupObjectBody[ChatChannel](ctx, ws, r.objectKey)
+	if err != nil {
+		return ChannelChain{}, nil, false, err
+	}
+	count := channel.GetMessageCount()
+	if start > count {
+		return ChannelChain{}, nil, false, nil
+	}
+
+	// Read the chain below start, then the keys from start.
+	base, err := r.chainAt(ctx, ws, start)
+	if err != nil {
+		return ChannelChain{}, nil, false, err
+	}
+	keys, err := r.readMessageKeys(ctx, ws, start, min(start+limit, count))
+	if err != nil {
+		return ChannelChain{}, nil, false, err
+	}
+	return base, keys, true, nil
+}
+
+// chainAt returns the chain of the channel's entries below index: the base of
+// the page holding entry index-1 folded over that page's keys below index.
+func (r *ChatResource) chainAt(ctx context.Context, ws world.WorldState, index uint64) (ChannelChain, error) {
+	// The empty prefix has the zero chain.
+	if index == 0 {
+		return ChannelChain{}, nil
+	}
+
+	// Read the page holding entry index-1 and its keys below index.
+	pageIndex := (index - 1) / chatMessagePageSize
+	page, err := r.readMessagePage(ctx, ws, pageIndex)
+	if err != nil {
+		return ChannelChain{}, err
+	}
+	keys := page.GetMessageKeys()
+	if offset := index - pageIndex*chatMessagePageSize; offset < uint64(len(keys)) {
+		keys = keys[:offset]
+	}
+
+	// Fold those keys onto the chain below the page.
+	base, err := r.pageBase(ctx, ws, pageIndex, page)
+	if err != nil {
+		return ChannelChain{}, err
+	}
+	return base.Fold(keys), nil
+}
+
+// pageBase returns the chain below a page. A page written before pages held
+// their base folds forward from the nearest earlier page that holds one, or
+// from the first page.
+func (r *ChatResource) pageBase(ctx context.Context, ws world.WorldState, pageIndex uint64, page *ChatMessagePage) (ChannelChain, error) {
+	// The first page and every page written with its base need no reads.
+	var base ChannelChain
+	if pageIndex == 0 || copy(base[:], page.GetBaseChain()) == len(base) {
+		return base, nil
+	}
+
+	// Fold the page before onto its own base.
+	prior, err := r.readMessagePage(ctx, ws, pageIndex-1)
+	if err != nil {
+		return ChannelChain{}, err
+	}
+	base, err = r.pageBase(ctx, ws, pageIndex-1, prior)
+	if err != nil {
+		return ChannelChain{}, err
+	}
+	return base.Fold(prior.GetMessageKeys()), nil
 }
 
 // readMessage projects an accepted message without retaining an object handle.

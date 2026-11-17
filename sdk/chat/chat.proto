@@ -74,6 +74,9 @@ message ChatMessagePage {
 
   // MessageKeys are page-local message object keys in creation order.
   repeated string message_keys = 1;
+  // BaseChain is the channel's prefix chain over every key before this page.
+  // Empty for the first page, which has no key before it.
+  bytes base_chain = 2;
 }
 
 // ChatThread stores one bounded summary in the channel's activity-ordered thread index.
