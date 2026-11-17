@@ -57,6 +57,18 @@ func TestPeerReadsWaitAcrossRestart(t *testing.T) {
 		if source() == nil {
 			t.Fatal("a source with peers reads none")
 		}
+
+		// Peers serve the block's reads but never answer its existence, so a
+		// write's existence check cannot wait on a peer exchange.
+		if found, err := source().GetBlockExists(ctx, ref); err != nil || found {
+			t.Fatalf("peer existence answered found=%v err=%v", found, err)
+		}
+		if found, err := source().GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil || found[0] {
+			t.Fatalf("peer batch existence answered found=%v err=%v", found, err)
+		}
+		if _, found, err := source().GetBlock(ctx, ref); err != nil || !found {
+			t.Fatalf("peer read found=%v err=%v", found, err)
+		}
 		stop()
 
 		// A read during the restart waits for the next lifecycle.
