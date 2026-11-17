@@ -4,9 +4,9 @@ package hash
 
 import (
 	"crypto/sha1" //nolint:gosec // Git object storage requires SHA-1.
-	"crypto/sha256"
 	"hash"
 
+	"github.com/s4wave/spacewave/net/hash/sha256"
 	"github.com/zeebo/blake3"
 )
 
