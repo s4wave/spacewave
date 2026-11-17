@@ -399,13 +399,20 @@ func TestQuarantineRecheck(t *testing.T) {
 	readID := held[0]
 	h.backend.holds[readID] = PackHold{ID: readID, State: PackRegistered, Since: h.backend.now}
 	relinked := h.relink(t, held[1:]...)
-	if slices.Contains(relinked, readID) {
-		t.Fatal("the relinked block is in the lifted pack")
+
+	// The relinked block may also sit in a duplicate pack that stayed
+	// registered or that the read lifted; exactly the other quarantined
+	// packs that hold it turn live, and held[1:] gives at least one.
+	var live int
+	for _, id := range relinked {
+		if id != readID && slices.Contains(held, id) {
+			live++
+		}
 	}
 	got := h.recheck(t)
-	passed := quarantined - 1 - len(relinked)
-	if got.Blocked != "" || got.Lifted != 1 || got.Live != uint64(len(relinked)) || got.Passed != uint64(passed) || len(got.Waiting) != 0 { //nolint:gosec // test counts.
-		t.Fatalf("recheck = %+v, want 1 lifted, %d live and %d passed", got, len(relinked), passed)
+	passed := quarantined - 1 - live
+	if live == 0 || got.Blocked != "" || got.Lifted != 1 || got.Live != uint64(live) || got.Passed != uint64(passed) || len(got.Waiting) != 0 { //nolint:gosec // test counts.
+		t.Fatalf("recheck = %+v, want 1 lifted, %d live and %d passed", got, live, passed)
 	}
 	records = recordsByID(t, h.store)
 	if len(records) != passed {
