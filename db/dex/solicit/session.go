@@ -2,6 +2,7 @@ package dex_solicit
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -590,7 +591,7 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 			return nil, errSessionClosed
 		}
 		if resp.GetError() != "" {
-			return nil, errors.New(resp.GetError())
+			return nil, fmt.Errorf("%w: %s", ErrPeerError, resp.GetError())
 		}
 		if !resp.GetFound() {
 			return nil, nil

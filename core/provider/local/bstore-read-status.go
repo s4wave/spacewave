@@ -25,9 +25,12 @@ type ReadStatus struct {
 	// PeerNotHeld counts the peer reads every peer asked answered that it
 	// lacks the block.
 	PeerNotHeld uint64
-	// PeerFailed counts the peer reads that failed, outlived the peer read
-	// bound or were canceled.
-	PeerFailed uint64
+	// PeerFailed counts the peer reads that failed while their caller
+	// waited, by cause.
+	PeerFailed PeerFailedCauses
+	// PeerCanceled counts the peer reads whose caller went away before the
+	// read ended; they say nothing of the peers.
+	PeerCanceled uint64
 	// PeerFilled counts the blocks a peer served that filled the local store.
 	// A block served without its refs fills later, counted in
 	// FallbackStatus.Filled instead.
@@ -35,22 +38,6 @@ type ReadStatus struct {
 	// PeerServedClass counts the blocks peers served by what the backend knew
 	// of them, as classified after the read.
 	PeerServedClass PeerServedClasses
-}
-
-// PeerServedClasses counts the blocks peers served by what the placement's
-// open backend knew of each, classified off the read path.
-type PeerServedClasses struct {
-	// IndexedHeld counts blocks the local pack index placed and the backend's
-	// packs confirmed.
-	IndexedHeld uint64
-	// IndexedMissing counts blocks the index placed that the packs did not
-	// confirm, or whose check failed.
-	IndexedMissing uint64
-	// NotIndexed counts blocks the index placed nowhere.
-	NotIndexed uint64
-	// Unclassified counts blocks dropped from a full queue, whose lookups
-	// failed or outlived their bound, or with no open indexed backend.
-	Unclassified uint64
 }
 
 // readCounter is a backend that counts its block reads by source.
@@ -65,8 +52,13 @@ func (p *placementState) readStatus() ReadStatus {
 		Local:       p.localHits.Load(),
 		PeerServed:  p.peerReads.served.Load(),
 		PeerNotHeld: p.peerReads.notHeld.Load(),
-		PeerFailed:  p.peerReads.failed.Load(),
-		PeerFilled:  p.peerReads.filled.Load(),
+		PeerFailed: PeerFailedCauses{
+			PeerError: p.peerReads.failed[peerError].Load(),
+			Timeout:   p.peerReads.failed[peerTimeout].Load(),
+			NoSession: p.peerReads.failed[peerNoSession].Load(),
+		},
+		PeerCanceled: p.peerReads.canceled.Load(),
+		PeerFilled:   p.peerReads.filled.Load(),
 		PeerServedClass: PeerServedClasses{
 			IndexedHeld:    p.peerReads.classes[peerIndexedHeld].Load(),
 			IndexedMissing: p.peerReads.classes[peerIndexedMissing].Load(),

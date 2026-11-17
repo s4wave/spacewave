@@ -118,7 +118,7 @@ func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 
 	// Log the first miss of the block.
 	p.logMiss(ref)
-	return readPeers(ctx, p.StoreOps, ref, p.counts)
+	return readPeers(ctx, p.le, p.StoreOps, ref, p.counts)
 }
 
 // fetch returns the deferred peer read of ref, which reads the unscoped peer
@@ -131,22 +131,41 @@ func (p *peerMissLog) fetch(ref *block.BlockRef) block.PeerFetch {
 				store = peers
 			}
 		}
-		return readPeers(block.WithPeerReads(ctx, nil), store, ref, p.counts)
+		return readPeers(block.WithPeerReads(ctx, nil), p.le, store, ref, p.counts)
 	}
 }
 
 // readPeers asks the peers in store for ref until one answers, or
 // peerReadLimit ends, and counts the outcome once in counts, which may be nil.
-func readPeers(ctx context.Context, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts) (blk *block.StoredBlock, err error) {
-	// Count the read's outcome once it ends.
-	defer func() { counts.record(ref, blk, err) }()
+// A read that failed while its caller still waited warns through le, once per
+// block, as warnPeerFailed describes.
+func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts) (blk *block.StoredBlock, err error) {
+	// Count the read's outcome once it ends, and warn of a failure.
+	cause := peerTimeout
+	defer func() {
+		switch {
+		case err == nil:
+			counts.record(ref, blk)
+		case ctx.Err() != nil:
+			counts.recordCanceled()
+		default:
+			counts.recordFailed(cause)
+			warnPeerFailed(le, ref, cause)
+		}
+	}()
 
-	// Ask the peers until one answers, or the bound ends.
+	// Ask the peers until one answers, or the bound ends. A timeout keeps
+	// the cause an earlier attempt found.
 	readCtx, cancel := context.WithTimeout(ctx, peerReadLimit())
 	defer cancel()
 	pause := peerReadPauseMin
 	for {
 		blk, err := store.GetStoredBlock(readCtx, ref)
+		if err != nil {
+			if c := peerFailCause(err); c != peerTimeout {
+				cause = c
+			}
+		}
 		if err == nil || readCtx.Err() != nil {
 			return blk, peerReadErr(ctx, err)
 		}
@@ -168,8 +187,12 @@ type peerReadCounts struct {
 	served atomic.Uint64
 	// notHeld counts the reads every peer asked answered it lacks the block.
 	notHeld atomic.Uint64
-	// failed counts the reads that failed, timed out or were canceled.
-	failed atomic.Uint64
+	// failed counts the reads that failed while their caller waited, by
+	// peerCause.
+	failed [peerCauseCount]atomic.Uint64
+	// canceled counts the reads whose caller went away first, which say
+	// nothing of the peers.
+	canceled atomic.Uint64
 	// filled counts the blocks a peer served that filled the local store.
 	filled atomic.Uint64
 	// classes counts the served blocks by peerClass.
@@ -179,19 +202,31 @@ type peerReadCounts struct {
 	queue chan *block.BlockRef
 }
 
-// record counts the outcome of one peer read of ref, and hands a served block
-// to the classifier. The peer store reports a block every peer lacks as no
-// block and no error, and any failure as an error.
-func (c *peerReadCounts) record(ref *block.BlockRef, blk *block.StoredBlock, err error) {
+// record counts one peer read of ref that ended without an error, and hands a
+// served block to the classifier. The peer store reports a block every peer
+// lacks as no block and no error.
+func (c *peerReadCounts) record(ref *block.BlockRef, blk *block.StoredBlock) {
 	switch {
 	case c == nil:
-	case err != nil:
-		c.failed.Add(1)
 	case blk != nil:
 		c.served.Add(1)
 		c.classify(ref)
 	default:
 		c.notHeld.Add(1)
+	}
+}
+
+// recordFailed counts one peer read that failed while its caller waited.
+func (c *peerReadCounts) recordFailed(cause peerCause) {
+	if c != nil {
+		c.failed[cause].Add(1)
+	}
+}
+
+// recordCanceled counts one peer read whose caller went away first.
+func (c *peerReadCounts) recordCanceled() {
+	if c != nil {
+		c.canceled.Add(1)
 	}
 }
 

@@ -254,12 +254,16 @@ func TestPeerBlockFanoutDeadlineClearsPendingRequests(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
 	defer cancel()
 
-	// Start a slow peer for the caller deadline test.
+	// Start a slow peer for the caller deadline test, and a peer whose own
+	// lookup fails.
 	c := newTestDexSolicitController()
 	ref := testDexBlockRef(t, "deadline")
 	slow, slowRemote, slowCleanup := newTestPeerSessionPair(c, peer.ID("slow"))
 	defer slowCleanup()
 	slow.start(ctx)
+	failing, failingRemote, failingCleanup := newTestPeerSessionPair(c, peer.ID("failing"))
+	defer failingCleanup()
+	failing.start(ctx)
 
 	// Observe the slow peer receiving the unanswered request.
 	received := make(chan struct{})
@@ -270,14 +274,25 @@ func TestPeerBlockFanoutDeadlineClearsPendingRequests(t *testing.T) {
 		}
 	}()
 
-	// Verify the caller deadline ends fanout with an error rather than a miss,
-	// and clears its pending request.
-	found, err := peerBlockFanout{sessions: []*peerSession{slow}, ref: ref}.run(ctx)
+	// Answer the failing peer's request with its lookup error.
+	go func() {
+		var req DexMessage
+		if err := failingRemote.RecvMsg(&req); err == nil {
+			_ = failingRemote.SendMsg(&DexMessage{RequestId: req.GetRequestId(), IsResponse: true, Error: "tier away"})
+		}
+	}()
+
+	// Verify the caller deadline ends fanout with an error rather than a miss
+	// that keeps each peer's cause, and clears its pending request.
+	found, err := peerBlockFanout{sessions: []*peerSession{slow, failing}, ref: ref}.run(ctx)
 	if found != nil {
 		t.Fatalf("fanout returned data after caller deadline: %q", found.GetData())
 	}
 	if err == nil {
 		t.Fatal("fanout reported an unanswered request as a miss")
+	}
+	if !errors.Is(err, block.ErrUnavailable) || !errors.Is(err, ErrPeerError) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("fanout error %v lost a peer's cause", err)
 	}
 	recvTestDexValue(t, received, "deadline request")
 	waitTestDexCondition(t, "slow pending request to clear after caller deadline", func() bool {
