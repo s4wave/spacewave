@@ -27,6 +27,11 @@ import (
 //     version is gone, and it checks after that the version is current.
 //   - A read of a hidden version names its id, so it reads the bytes the hide
 //     kept and never a later write to the key.
+//   - Each method acts on a version listing only when the listing shows the
+//     order it assumes, newest first: the first entry alone is IsLatest, and
+//     each entry's LastModified is set and no later than the one before it.
+//     The S3 API does not promise that order, so a listing that does not show
+//     it is a refusal, ErrVersionOrder, before any write.
 type ObjectHider interface {
 	ObjectStore
 	// HideObjectVersion hides key under a delete marker and returns the
@@ -156,9 +161,14 @@ func (c *Client) GetObjectVersionRange(ctx context.Context, bucket, key, version
 	return c.getRange(ctx, bucket, key, url.Values{"versionId": {version}}, off, length)
 }
 
+// ErrVersionOrder is returned when a version listing does not show the
+// newest-first order the hide and unhide act on.
+var ErrVersionOrder = errors.New("the version listing is not newest first")
+
 // keyVersions lists the versions and delete markers of key alone, newest
-// first, as the listing orders them.
+// first, refusing a listing that does not show that order.
 func (c *Client) keyVersions(ctx context.Context, bucket, key string) ([]ObjectVersion, error) {
+	// Keep the key's own entries; the prefix also lists longer keys.
 	var out []ObjectVersion
 	err := c.ListObjectVersions(ctx, bucket, key, func(v ObjectVersion) error {
 		if v.Key == key {
@@ -169,7 +179,30 @@ func (c *Client) keyVersions(ctx context.Context, bucket, key string) ([]ObjectV
 	if err != nil {
 		return nil, errors.Wrap(err, "list the versions of "+bucket+"/"+key)
 	}
+
+	// Act only on a listing that shows its order.
+	if err := checkVersionOrder(out); err != nil {
+		return nil, errors.Wrapf(err, "list the versions of %s/%s", bucket, key)
+	}
 	return out, nil
+}
+
+// checkVersionOrder checks that versions, one key's listing, is newest first:
+// only the first is IsLatest, and every LastModified is set and no later than
+// the one before it. Equal times pass, since a hide in the same second as the
+// write can list both with one time.
+func checkVersionOrder(versions []ObjectVersion) error {
+	for i, v := range versions {
+		switch {
+		case v.IsLatest != (i == 0):
+			return errors.Wrapf(ErrVersionOrder, "entry %d (%s) has IsLatest %v", i, v.VersionID, v.IsLatest)
+		case v.LastModified.IsZero():
+			return errors.Wrapf(ErrVersionOrder, "entry %d (%s) has no LastModified", i, v.VersionID)
+		case i > 0 && v.LastModified.After(versions[i-1].LastModified):
+			return errors.Wrapf(ErrVersionOrder, "entry %d (%s) is newer than the entry before it", i, v.VersionID)
+		}
+	}
+	return nil
 }
 
 // hiddenVersion returns the newest content version under the newest delete

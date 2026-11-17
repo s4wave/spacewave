@@ -2,6 +2,8 @@
 
 package block_store_s3
 
+import "time"
+
 // ObjectVersion is one version of a key in a version listing.
 type ObjectVersion struct {
 	// Key is the object key.
@@ -17,4 +19,9 @@ type ObjectVersion struct {
 	// of a single-part object, or a digest with a part count after a dash
 	// for a multipart one. Empty for a delete marker.
 	ETag string
+	// IsLatest is set on the key's current version, marker or content.
+	IsLatest bool
+	// LastModified is when the version was written, zero when the listing
+	// did not give a time the parser reads.
+	LastModified time.Time
 }

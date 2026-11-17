@@ -468,12 +468,15 @@ func visitVersions(doc string, fn func(ObjectVersion) error) error {
 			return errors.New("s3 list: unterminated " + name + " element")
 		}
 		size, _ := strconv.ParseInt(xmlElementText(content, "Size"), 10, 64)
+		modified, _ := time.Parse(time.RFC3339Nano, xmlElementText(content, "LastModified"))
 		err := fn(ObjectVersion{
 			Key:          html.UnescapeString(xmlElementText(content, "Key")),
 			VersionID:    html.UnescapeString(xmlElementText(content, "VersionId")),
 			DeleteMarker: name == "DeleteMarker",
 			Size:         size,
 			ETag:         html.UnescapeString(xmlElementText(content, "ETag")),
+			IsLatest:     xmlElementText(content, "IsLatest") == "true",
+			LastModified: modified,
 		})
 		if err != nil {
 			return err

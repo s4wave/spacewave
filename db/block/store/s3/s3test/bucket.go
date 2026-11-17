@@ -4,6 +4,10 @@
 // A delete with a version id removes that version; one without hides the key
 // under a delete marker, as a versioned bucket does. The bucket reports its
 // versioning, and a bucket with versioning off keeps one version per key.
+//
+// The same server answers B2's native b2_authorize_account and
+// b2_list_buckets, which report the bucket's lifecycle rules, the one place
+// B2 shows a rule that hides or deletes versions on its own.
 package s3test
 
 import (
@@ -22,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/fastjson"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 )
 
@@ -56,6 +61,14 @@ type Bucket struct {
 	// unversioned, when set, keeps one version per key and reports
 	// versioning off.
 	unversioned bool
+	// oldestFirst, when set, lists each key's versions oldest first, an
+	// order the S3 API does not rule out.
+	oldestFirst bool
+	// lifecycle is the JSON value b2_list_buckets reports as the bucket's
+	// lifecycleRules, "[]" when unset.
+	lifecycle string
+	// b2Status, when nonzero, is the status every B2 native call answers.
+	b2Status int
 	// url is where the bucket serves.
 	url string
 	// uploads counts the multipart uploads begun.
@@ -125,6 +138,33 @@ func (b *Bucket) RefuseVersions(refuse bool) {
 	b.refuseVersions = refuse
 }
 
+// ListOldestFirst makes every version listing give each key's versions
+// oldest first while set, as a store that does not keep S3's usual order may.
+func (b *Bucket) ListOldestFirst(set bool) {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	b.oldestFirst = set
+}
+
+// SetLifecycleRules sets the JSON value b2_list_buckets reports as the
+// bucket's lifecycleRules, such as
+// `[{"fileNamePrefix":"","daysFromHidingToDeleting":1,"daysFromUploadingToHiding":null}]`
+// for B2's "keep only the last version". The fake reports the rules and does
+// not run them.
+func (b *Bucket) SetLifecycleRules(rules string) {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	b.lifecycle = rules
+}
+
+// FailB2 makes every B2 native call answer status, or answer normally again
+// when status is zero.
+func (b *Bucket) FailB2(status int) {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	b.b2Status = status
+}
+
 // SetVersioning turns versioning on, as a new bucket has it, or off, where
 // each write replaces the key's history with its one version.
 func (b *Bucket) SetVersioning(enabled bool) {
@@ -155,7 +195,7 @@ func (b *Bucket) hide(key string) {
 
 	// Otherwise it adds a marker over the versions.
 	b.versions++
-	b.history[key] = slices.Insert(b.history[key], 0, objectVersion{id: strconv.Itoa(b.versions), marker: true})
+	b.history[key] = slices.Insert(b.history[key], 0, objectVersion{id: strconv.Itoa(b.versions), modified: time.Now(), marker: true})
 	delete(b.objects, key)
 	if b.marked == nil {
 		b.marked = make(map[string]bool)
@@ -219,6 +259,8 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := strings.TrimPrefix(r.URL.Path, "/"+BucketName+"/")
 	query := r.URL.Query()
 	switch {
+	case strings.HasPrefix(r.URL.Path, "/b2api/"):
+		b.serveB2(w, r)
 	case query.Has("versions") && b.refuseVersions:
 		http.Error(w, "<Error><Code>NotImplemented</Code></Error>", http.StatusNotImplemented)
 	case query.Has("versions"):
@@ -443,14 +485,57 @@ func (b *Bucket) listVersions(w io.Writer, prefix string) {
 		if !strings.HasPrefix(key, prefix) {
 			continue
 		}
-		for _, version := range b.history[key] {
+		history := slices.Clone(b.history[key])
+		if b.oldestFirst {
+			slices.Reverse(history)
+		}
+		for _, version := range history {
 			element, etag := "DeleteMarker", ""
 			if !version.marker {
 				sum := md5.Sum(version.data) //nolint:gosec // S3 defines a single-part ETag as the MD5 of the bytes.
 				element, etag = "Version", "<ETag>&quot;"+hex.EncodeToString(sum[:])+"&quot;</ETag>"
 			}
-			_, _ = io.WriteString(w, "<"+element+"><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId>"+etag+"<Size>"+strconv.Itoa(len(version.data))+"</Size></"+element+">")
+			latest := strconv.FormatBool(version.id == b.history[key][0].id)
+			modified := version.modified.UTC().Format("2006-01-02T15:04:05.000Z")
+			_, _ = io.WriteString(w, "<"+element+"><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId><IsLatest>"+latest+"</IsLatest><LastModified>"+modified+"</LastModified>"+etag+"<Size>"+strconv.Itoa(len(version.data))+"</Size></"+element+">")
 		}
 	}
 	_, _ = io.WriteString(w, "</ListVersionsResult>")
+}
+
+// serveB2 answers B2's native b2_authorize_account, with the server itself as
+// the apiUrl, and b2_list_buckets, which reports the bucket and its lifecycle
+// rules to a request that names BucketName or no bucket.
+func (b *Bucket) serveB2(w http.ResponseWriter, r *http.Request) {
+	if b.b2Status != 0 {
+		http.Error(w, `{"status":`+strconv.Itoa(b.b2Status)+`,"code":"fake"}`, b.b2Status)
+		return
+	}
+	switch r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:] {
+	case "b2_authorize_account":
+		if _, _, ok := r.BasicAuth(); !ok {
+			http.Error(w, `{"status":401,"code":"unauthorized"}`, http.StatusUnauthorized)
+			return
+		}
+		_, _ = io.WriteString(w, `{"accountId":"account","authorizationToken":"token","apiInfo":{"storageApi":{"apiUrl":"`+b.url+`"}}}`)
+	case "b2_list_buckets":
+		body, _ := io.ReadAll(r.Body)
+		var parser fastjson.Parser
+		req, err := parser.ParseBytes(body)
+		if r.Header.Get("Authorization") != "token" || err != nil || string(req.GetStringBytes("accountId")) != "account" {
+			http.Error(w, `{"status":401,"code":"bad_auth_token"}`, http.StatusUnauthorized)
+			return
+		}
+		if name := string(req.GetStringBytes("bucketName")); name != "" && name != BucketName {
+			_, _ = io.WriteString(w, `{"buckets":[]}`)
+			return
+		}
+		rules := b.lifecycle
+		if rules == "" {
+			rules = "[]"
+		}
+		_, _ = io.WriteString(w, `{"buckets":[{"bucketName":"`+BucketName+`","lifecycleRules":`+rules+`}]}`)
+	default:
+		http.Error(w, `{"status":404,"code":"not_found"}`, http.StatusNotFound)
+	}
 }

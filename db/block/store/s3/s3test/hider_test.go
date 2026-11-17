@@ -15,8 +15,9 @@ import (
 // version and a repeat adds no marker; a read by id serves the hidden bytes
 // even after a later write to the key; an unhide makes the exact version
 // current, and refuses a key a later write covers or a version that is gone;
-// a bucket that does not keep versions refuses the hide and keeps the object.
-// No call deletes a content version.
+// a listing not newest first refuses every call; a bucket that does not keep
+// versions refuses the hide and keeps the object. No call deletes a content
+// version.
 func TestHider(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -120,6 +121,31 @@ func TestHider(t *testing.T) {
 		t.Fatalf("hide of a missing key = %v, want not found", err)
 	}
 	noneDeleted("later write")
+
+	// A listing oldest first, which the S3 API does not rule out, makes the
+	// hide, the unhide and the hidden-version read refuse before any write.
+	put("o", "first")
+	put("o", "second")
+	hiddenO, err := hider.HideObjectVersion(ctx, BucketName, "o")
+	if err != nil {
+		t.Fatal(err)
+	}
+	put("p", "first")
+	put("p", "second")
+	b.ListOldestFirst(true)
+	if _, err := hider.HideObjectVersion(ctx, BucketName, "p"); !errors.Is(err, block_store_s3.ErrVersionOrder) {
+		t.Fatalf("hide on an oldest-first listing = %v, want version order", err)
+	}
+	if err := hider.UnhideObjectVersion(ctx, BucketName, "o", hiddenO.Version); !errors.Is(err, block_store_s3.ErrVersionOrder) {
+		t.Fatalf("unhide on an oldest-first listing = %v, want version order", err)
+	}
+	if _, err := hider.HiddenObjectVersion(ctx, BucketName, "o"); !errors.Is(err, block_store_s3.ErrVersionOrder) {
+		t.Fatalf("hidden version on an oldest-first listing = %v, want version order", err)
+	}
+	b.ListOldestFirst(false)
+	versions("o", "o hidden", "o second", "o first")
+	versions("p", "p second", "p first")
+	noneDeleted("oldest-first listing")
 
 	// A bucket that keeps no versions refuses the hide, keeping the object.
 	b.SetVersioning(false)
