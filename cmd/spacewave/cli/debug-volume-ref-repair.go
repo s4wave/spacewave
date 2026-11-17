@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world/refwalk"
@@ -21,7 +22,7 @@ import (
 // debugRefRepairArgs are the arguments of the offline ref graph repair.
 type debugRefRepairArgs struct {
 	// spaceID limits the repair to one SharedObject. Empty repairs every Space
-	// with a replay cursor in the volume.
+	// with a replay cursor in the volume and every named root it can type.
 	spaceID string
 	// dryRun counts the missing edges without writing them.
 	dryRun bool
@@ -68,20 +69,34 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Volume", path},
 		{"Dry run", strconv.FormatBool(dryRun)},
 		{"Spaces", strconv.Itoa(res.spaces)},
+		{"Named roots", strconv.FormatUint(res.roots, 10)},
+		{"Named roots of walked Spaces typed by kind", strconv.FormatUint(res.spaceRoots, 10)},
+		{"Named roots walked by type", strconv.FormatUint(res.typedRoots, 10)},
 		{"Blocks walked", strconv.FormatUint(res.blocks, 10)},
 		{"Blocks absent", strconv.FormatUint(res.absent, 10)},
 		{"Blocks undecodable", strconv.FormatUint(res.undecodable, 10)},
 		{"Blocks without a child list", strconv.FormatUint(res.lacking, 10)},
 		{"Children they name", strconv.FormatUint(res.edges, 10)},
+		{"Stored lists equal to the decoded refs", strconv.FormatUint(res.lists[block_gc.ListEqual], 10)},
+		{"Stored lists empty, decoded refs not", strconv.FormatUint(res.lists[block_gc.ListEmpty], 10)},
+		{"Stored lists shorter than the decoded refs", strconv.FormatUint(res.lists[block_gc.ListShort], 10)},
+		{"Stored lists longer than the decoded refs", strconv.FormatUint(res.lists[block_gc.ListLong], 10)},
+		{"Stored lists differing both ways", strconv.FormatUint(res.lists[block_gc.ListDiffers], 10)},
 		{"Child lists verified", strconv.FormatUint(res.rebuild.Verified, 10)},
 		{"Child lists written", strconv.FormatUint(res.rebuild.Rewritten, 10)},
 		{"Decoded lists refused for dropping a stored child", strconv.FormatUint(res.rebuild.Dropped, 10)},
-		{"Reached lists still unverified", strconv.FormatUint(res.rebuild.Unverified, 10)},
+		{"Operation payloads not walked", strconv.FormatUint(res.opPayloads, 10)},
+		{"Reached blocks without a verified list", strconv.FormatUint(res.rebuild.Unverified, 10)},
 		{"Lists verified", strconv.FormatBool(res.verified || res.rebuild.Cleared)},
 		{"Returned to unadopted for a recount", strconv.FormatBool(res.rebuild.Unadopted)},
 		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},
 		{"Stored blocks without a child list", strconv.FormatUint(res.untracked, 10)},
 		{"Their bytes", strconv.FormatUint(res.untrackedBytes, 10)},
+		{"Holders of listless blocks after the run", strconv.FormatUint(res.holders.total(), 10)},
+		{"Holders counted", res.holders.basis},
+		{"Held by named roots", strconv.FormatUint(res.holders.roots, 10)},
+		{"Held by reached child lists", strconv.FormatUint(res.holders.reached, 10)},
+		{"Held by leaked child lists", strconv.FormatUint(res.holders.leaked, 10)},
 	}
 
 	// List private-state prefix groups and a bounded sample of untracked blocks.
@@ -104,6 +119,25 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 	for _, ref := range res.rebuild.DroppedSample {
 		fields = append(fields, [2]string{"Refused sample", ref.MarshalString()})
 	}
+	for _, l := range res.listSample {
+		fields = append(fields, [2]string{"Mismatched list sample", l.ref.MarshalString() + " (" + l.diff.String() + ")"})
+	}
+
+	// Name the roots not walked by kind, the blocks left listless that an
+	// adoption counts as unknown, and the leaked listers naming them.
+	for _, kind := range slices.Sorted(maps.Keys(res.unwalkedRoots)) {
+		roots := res.unwalkedRoots[kind]
+		fields = append(fields, [2]string{"Named roots not walked: " + kind, strconv.FormatUint(roots.count, 10) + " (" + roots.sample + ")"})
+	}
+	for _, ref := range res.opPayloadSample {
+		fields = append(fields, [2]string{"Operation payload sample", ref.MarshalString()})
+	}
+	for _, ref := range res.holders.heldSample {
+		fields = append(fields, [2]string{"Held listless sample", ref.MarshalString()})
+	}
+	for _, ref := range res.holders.leakedSample {
+		fields = append(fields, [2]string{"Leaked lister sample", ref.MarshalString()})
+	}
 
 	// Retain the walk's reasons for stopping at an untyped ref, with a sample
 	// ref of each.
@@ -115,9 +149,11 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 }
 
 // repairVolumeRefs walks the Spaces of the stopped volume at path, all of them
-// or spaceID alone, typing objects' roots with lookup, and unless dryRun is set rebuilds the child lists they
-// reach from the decoded blocks, clearing the volume's unverified lists mark
-// when every list a root reaches is verified. Once the mark is clear the
+// with every named root it can type, or spaceID alone, typing objects' roots
+// with lookup, and unless dryRun is set rebuilds the child lists they reach
+// from the decoded blocks, clearing the volume's unverified lists mark when
+// every list a root reaches is verified. It then splits the holders an
+// adoption would refuse, measured after a real run and predicted on a dry run. Once the mark is clear the
 // rebuild refuses the volume and the run only walks it, so a list found short
 // after that is not repaired here: re-verifying a verified volume needs a step
 // that sets the mark again, and none exists yet.
@@ -134,12 +170,12 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 	if err != nil {
 		return refRepairResult{}, err
 	}
-	if len(cursors) == 0 {
-		return refRepairResult{}, errors.New("no replay cursor found for the selected Spaces")
+	if spaceID != "" && len(cursors) == 0 {
+		return refRepairResult{}, errors.Errorf("no replay cursor found for space %s", spaceID)
 	}
 
 	// Start the list rebuild unless this is a dry run, then walk each Space
-	// and release the walker.
+	// and, for the whole volume, the named roots, and release the walker.
 	rr := newRefRepair(le, vol, lookup)
 	defer rr.close()
 	if !dryRun {
@@ -153,6 +189,15 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 		if err := rr.walkSpace(ctx, sc); err != nil {
 			return refRepairResult{}, errors.Wrapf(err, "walk space %s", sc.spaceID)
 		}
+	}
+	if spaceID == "" {
+		if err := rr.walkNamedRoots(ctx); err != nil {
+			return refRepairResult{}, errors.Wrap(err, "walk the named roots")
+		}
+	}
+	var walked func(*block.BlockRef) bool
+	if dryRun {
+		walked = rr.walked()
 	}
 	rr.close()
 
@@ -170,6 +215,11 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 			return refRepairResult{}, errors.Wrap(err, "finish the child list rebuild")
 		}
 	}
+
+	// Split the holders an adoption would refuse.
+	if err := rr.splitHolders(ctx, walked); err != nil {
+		return refRepairResult{}, errors.Wrap(err, "split the holders of listless blocks")
+	}
 	return rr.res, nil
 }
 
@@ -178,10 +228,12 @@ func newDebugRefRepairCommand() *cli.Command {
 	args := &debugRefRepairArgs{}
 	return &cli.Command{
 		Name:      "ref-repair",
-		Usage:     "rebuild the child lists a stopped volume's Spaces reach",
+		Usage:     "rebuild the child lists a stopped volume's Spaces and typed roots reach",
 		ArgsUsage: "<volume-file>",
-		Description: "Walks the Worlds each Space's replay cursor retains, decoding each block by its type, " +
-			"and rewrites the child list of each block whose list is missing or lacks a child its decoded refs name, marking it verified. " +
+		Description: "Walks the Worlds each Space's replay cursor retains, and without --space each named root whose type its writer's rule gives, " +
+			"such as an entrypoint World engine's head root in the engine's own bucket, decoding each block by its type; " +
+			"it counts the other named roots by kind and decodes none of them. " +
+			"It rewrites the child list of each block whose list is missing or lacks a child its decoded refs name, marking it verified. " +
 			"When every list a named root reaches is verified it clears the volume's unverified lists mark, so the collector may free older blocks; " +
 			"a block it cannot decode keeps its list unverified and is reported, and so does one whose decoded refs drop a child its stored list names. " +
 			"A rerun skips the lists it verified, and a volume whose lists are verified is only walked and never repaired. " +
@@ -189,6 +241,14 @@ func newDebugRefRepairCommand() *cli.Command {
 			"Blocks stored before puts carried their child lists have none. " +
 			"Also counts plugin object-store keys by volume prefix and measures all stored blocks without a child list. " +
 			"These counts cover the whole volume even with --space, and describe it before repair. The scan does not decode those blocks. " +
+			"Last it counts the holders an adoption would refuse, the named roots and child lists naming a block left stored without a list, " +
+			"splitting the lists a named root reaches from leaked ones; a dry run predicts them as a real run would leave the volume, " +
+			"and on a volume whose lists are verified, where a real run writes no list, it counts them as they are. " +
+			"A walked Space's named roots are typed by the kind the Space gives each name; an import or fence root, which holds roots of several types, is counted unwalked and keeps the mark. " +
+			"An operation's payload root is typed by its operation, which the replay cursor's outcomes and the payload roots do not record, so each is counted unwalked and keeps the list it has. " +
+			"The mark clears only when every stored block a named root reaches has a verified list; a stored block with none keeps it. " +
+			"It compares each walked block's stored list with its decoded refs before writing, counting equal, empty, shorter, longer and differing lists with a sample, " +
+			"since a wrong list the volume marked verified is never rewritten; a dry run compares the same way and writes nothing. " +
 			"Run it only on a stopped volume, with --dry-run first.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,

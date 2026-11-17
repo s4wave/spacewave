@@ -6,6 +6,47 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
+// EachRoot calls fn with every named root of store in bucket and name order,
+// reading sliceRecords roots per read snapshot and calling fn outside it, so
+// fn may write to the Volume and holds no snapshot open while it runs. A root
+// set or moved between slices is seen as the slice that reaches its key reads
+// it.
+func EachRoot(ctx context.Context, store Store, fn func(bucketID, name string, ref *block.BlockRef) error) error {
+	var after []byte
+	for {
+		// Read the next roots after the last one taken.
+		var recs []adoptRecord
+		err := store.View(ctx, func(rec *Records) error {
+			var err error
+			recs, err = rec.scanAfter(ctx, kindRoot, after, sliceRecords)
+			return err
+		})
+		if err != nil || len(recs) == 0 {
+			return err
+		}
+
+		// Call fn with each.
+		for _, r := range recs {
+			bucketID, name, err := parseNamedKey(r.key)
+			if err != nil {
+				return err
+			}
+			entry := &RootEntry{}
+			if err := entry.UnmarshalVT(r.value); err != nil {
+				return err
+			}
+			ref, _, err := ParseBlockKey(entry.GetRef())
+			if err != nil {
+				return err
+			}
+			if err := fn(bucketID, name, ref); err != nil {
+				return err
+			}
+		}
+		after = recs[len(recs)-1].key
+	}
+}
+
 // walkVisit decides one block a walk reached, in the walk's transaction, and
 // returns the children to descend into.
 type walkVisit func(ctx context.Context, rec *Records, ref *block.BlockRef) ([]*block.BlockRef, error)
