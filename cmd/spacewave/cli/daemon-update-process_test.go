@@ -40,7 +40,9 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
-	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Second)
+
+	// Two startups may each use 15 seconds, in addition to copying and handoff.
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
 	defer cancel()
 
 	// Watch the state directory and copy the fixture executables.
@@ -135,7 +137,9 @@ func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
-	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Second)
+
+	// Two startups may each use 15 seconds, in addition to copying and handoff.
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
 	defer cancel()
 
 	// Watch the state directory for the replacement daemon.
