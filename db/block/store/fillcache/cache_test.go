@@ -218,3 +218,30 @@ func TestCacheFillsBlocksWithUnknownRefs(t *testing.T) {
 		t.Fatal("the cached block reports its refs known")
 	}
 }
+
+// TestCacheCloseAfterCancel opens caches and cancels each one's context right
+// after Open returns, before its writer has had a chance to run, then closes
+// it. Close must return: a writer that never starts would never signal its
+// exit.
+func TestCacheCloseAfterCancel(t *testing.T) {
+	le := logrus.NewEntry(logrus.New())
+	dir := t.TempDir()
+	for i := range 200 {
+		ctx, cancel := context.WithCancel(t.Context())
+		c, err := Open(ctx, le, filepath.Join(dir, "blocks.db"), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		cancel()
+		closed := make(chan error, 1)
+		go func() { closed <- c.Close() }()
+		select {
+		case err := <-closed:
+			if err != nil {
+				t.Fatal(err)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatalf("Close %d did not return after its context was canceled", i)
+		}
+	}
+}

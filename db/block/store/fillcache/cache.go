@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -135,9 +134,7 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 	// Run the writer until Close.
 	runCtx, cancel := context.WithCancel(ctx)
 	c.cancel = cancel
-	rc := routine.NewRoutineContainer()
-	rc.SetRoutine(c.run)
-	rc.SetContext(runCtx, false)
+	go c.run(runCtx)
 	return c, nil
 }
 
@@ -228,8 +225,9 @@ func (c *Cache) Close() error {
 }
 
 // run writes the queued entries in batches and evicts while the cache is over
-// its bound, until ctx ends.
-func (c *Cache) run(ctx context.Context) error {
+// its bound, until ctx ends. It runs on its own goroutine from Open, so it
+// starts even when ctx has ended, and Close always sees exited close.
+func (c *Cache) run(ctx context.Context) {
 	defer close(c.exited)
 
 	// Mark the writes as background work a crash may lose, so a commit takes no
@@ -244,7 +242,7 @@ func (c *Cache) run(ctx context.Context) error {
 			return len(batch) != 0 || evicting, nil
 		})
 		if err != nil {
-			return nil
+			return
 		}
 
 		// Write the entries, reporting their tombstones removed before the
