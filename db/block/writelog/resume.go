@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // markerName is the resume marker's file in a log directory. Its first line is
@@ -16,10 +18,13 @@ import (
 // write, so it never outlives the process that claims the directory.
 const markerName = "resume"
 
-// Witness returns a fingerprint of the store's files as they stand, such as
-// each file's size, modification time and inode, so a write no log observed
-// between one process's Close and the next one's Claim changes it. An error
-// means the files cannot be vouched for, and no epoch resumes.
+// Witness returns a fingerprint of the store's files as they stand, one line
+// per file, so a write no log observed between one process's Close and the
+// next one's Claim changes it. What a line records is the caller's choice,
+// such as each file's size and its modification and change times. When a
+// witness differs, Claim logs the first line that differs, so the line should
+// name its file. An error means the files cannot be vouched for, and no epoch
+// resumes.
 type Witness func() ([]byte, error)
 
 // marker is a parsed resume marker.
@@ -92,23 +97,60 @@ func writeMarker(dir string, pos Position, witness []byte) error {
 // needs the access the removal lacked, so the operator removes the marker.
 const stuckMarker = "write log: the resume marker could be neither removed nor poisoned; remove it before the next start, which would otherwise resume past this process's writes"
 
-// takeMarker retires the marker of dir and returns what it named, whether the
-// epoch there may resume at it, and whether the retirement is durable, as
-// retireMarker reports. The epoch may resume when the marker parsed, its
-// removal is durable, and the epoch's last segment ends at its close line.
-func takeMarker(dir string) (marker, bool, bool) {
+// takeMarker retires the marker of dir and returns what it named, why its
+// epoch may not resume there, empty when it may, and whether the retirement is
+// durable, as retireMarker reports. The epoch may resume when the marker
+// parsed, its removal is durable, and the epoch's last segment ends at its
+// close line.
+func takeMarker(dir string) (marker, string, bool) {
 	// Retire the marker; only a durable removal may resume.
 	data, durable := retireMarker(dir)
-	if data == nil || !durable {
-		return marker{}, false, durable
+	switch {
+	case data == nil && durable:
+		return marker{}, "no resume marker", true
+	case !durable:
+		return marker{}, "the resume marker could not be read or removed", false
 	}
 
 	// Parse the marker and check the epoch still ends there.
 	m, err := parseMarker(data)
 	if err != nil {
-		return marker{}, false, true
+		return marker{}, "the resume marker is unreadable", true
 	}
-	return m, closedAt(dir, m.pos), true
+	if !closedAt(dir, m.pos) {
+		return m, "the epoch does not end at the resume marker", true
+	}
+	return m, "", true
+}
+
+// witnessDiff returns why the witness opened, taken as the store opened, keeps
+// the epoch at a marker carrying the witness closed from resuming, empty when
+// it does not: no witness on either side, or the first line that differs.
+func witnessDiff(closed, opened []byte) string {
+	// Name a missing witness.
+	switch {
+	case len(closed) == 0:
+		return "the resume marker is in the old format, with no witness"
+	case len(opened) == 0:
+		return "the store's files could not be witnessed at open"
+	case bytes.Equal(closed, opened):
+		return ""
+	}
+
+	// Find the first line that differs.
+	was, now := strings.Split(string(closed), "\n"), strings.Split(string(opened), "\n")
+	for i := 0; ; i++ {
+		var a, b string
+		if i < len(was) {
+			a = was[i]
+		}
+		if i < len(now) {
+			b = now[i]
+		}
+		if a != b {
+			return "the store changed since the last close: " + strconv.Quote(a) + " is now " + strconv.Quote(b)
+		}
+	}
 }
 
 // retireMarker removes the marker of dir, durably, returning its contents,
