@@ -112,9 +112,11 @@ func OldestOperations(providerID, accountID, storeID string) (write, read time.T
 // reader of the volume pins or stages. The bucket's named roots are every
 // root its writers set through block.SetRetainedRoots, whatever its name, so
 // a kind of root added later is listed without a change here. Another
-// bucket's roots are left out. A store not mounted, a volume with no graph,
-// or a graph read that fails ends the listing with an error, so the sweep
-// keeps every pack.
+// bucket's roots are left out. A store not mounted, a volume with no graph, a
+// store that does not record its roots there (block.SupportsRootRetention
+// false, as over a packahead log or a volume without atomic publication), or
+// a graph read that fails ends the listing with an error, so the sweep keeps
+// every pack.
 func SweepRoots(providerID, accountID, storeID string) block_packsweep_admin.RootLister {
 	return &sweepRoots{key: adoptKey{volumeID: StorageVolumeID(providerID, accountID), storeID: storeID}}
 }
@@ -130,10 +132,16 @@ func (r *sweepRoots) ListRoots(ctx context.Context, prefix string, fn func(block
 	// Read the mounted store's graph and bucket.
 	s := lookupSweep(r.key)
 	s.mtx.Lock()
-	rg, bucket := s.roots, s.bucket
+	wb, rg, bucket := s.wb, s.roots, s.bucket
 	s.mtx.Unlock()
-	if rg == nil || bucket == "" {
+	if wb == nil || rg == nil || bucket == "" {
 		return errors.New("the block store is not mounted on a volume with an ownership graph")
+	}
+
+	// Refuse a store that does not record its roots in the graph: its writers'
+	// named roots and pins never reach it, so the walk would miss them silently.
+	if !block.SupportsRootRetention(wb) {
+		return errors.New("the block store does not record its roots in the ownership graph")
 	}
 
 	// Walk the owners, leaving out the other buckets.
