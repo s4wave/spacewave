@@ -66,7 +66,7 @@ func openDatabase(ctx context.Context, le *logrus.Entry, path string, opts s4db.
 
 	// Convert a previous-format file, which a read-only open cannot write.
 	if opts.ReadOnly {
-		return nil, volume.Permanent(volume.ErrReadOnlyUpgrade)
+		return nil, volume.Permanent(errors.Join(volume.ErrReadOnlyUpgrade, err))
 	}
 	if err := convertPrevious(ctx, le, path); err != nil {
 		return nil, err

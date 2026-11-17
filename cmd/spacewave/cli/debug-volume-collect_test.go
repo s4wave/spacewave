@@ -3,6 +3,8 @@
 package spacewave_cli
 
 import (
+	"bytes"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -14,7 +16,8 @@ import (
 
 // TestDebugVolumeCollect replaces a bucket head on a fresh volume, then checks
 // that collection without frees keeps the replaced head and that collection
-// with frees deletes it and keeps the live head.
+// with frees deletes it and keeps the live head, and that volume-state reads
+// the stored frees switch each left without changing the file.
 func TestDebugVolumeCollect(t *testing.T) {
 	// Write a head and replace it, so the first head is garbage.
 	ctx := t.Context()
@@ -57,6 +60,27 @@ func TestDebugVolumeCollect(t *testing.T) {
 		return oldOK, liveOK
 	}
 
+	// frees reads the stored frees switch read-only, leaving the file's bytes
+	// as they were.
+	frees := func() bool {
+		before, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		state, _, err := readVolumeState(ctx, le, path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		after, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(before, after) {
+			t.Fatal("reading the state changed the volume file")
+		}
+		return state.GetFrees()
+	}
+
 	// Without frees the passes net the journal and delete nothing.
 	res, _, err := collectVolume(ctx, le, path, &store_kvtx.Config{CollectorGraceDur: "1ns"})
 	if err != nil {
@@ -67,6 +91,9 @@ func TestDebugVolumeCollect(t *testing.T) {
 	}
 	if oldOK, liveOK := stored(); !oldOK || !liveOK {
 		t.Fatalf("without frees: old head stored %v, live head stored %v", oldOK, liveOK)
+	}
+	if frees() {
+		t.Fatal("state reads frees on after a collection without frees")
 	}
 
 	// With frees the replaced head goes and the live head stays.
@@ -79,5 +106,8 @@ func TestDebugVolumeCollect(t *testing.T) {
 	}
 	if oldOK, liveOK := stored(); oldOK || !liveOK {
 		t.Fatalf("with frees: old head stored %v, live head stored %v", oldOK, liveOK)
+	}
+	if !frees() {
+		t.Fatal("state reads frees off after a collection with frees")
 	}
 }

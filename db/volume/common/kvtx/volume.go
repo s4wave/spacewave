@@ -260,7 +260,7 @@ func NewVolume(
 		// returning the Volume to unadopted for a recount under the
 		// configured rule (block_gc.SetFrees), then count under the stored
 		// rule or, unadopted, the configured one.
-		state, parked, err := v.readLiveness(ctx)
+		state, parked, err := v.ReadLiveness(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -337,9 +337,10 @@ func parseGrace(dur string) (time.Duration, error) {
 	return grace, nil
 }
 
-// readLiveness reads the Volume's liveness state and, for a Volume whose
-// generation is Open, whether it parked any block.
-func (v *Volume) readLiveness(ctx context.Context) (*block_gc.LivenessState, bool, error) {
+// ReadLiveness reads the Volume's liveness state and, for a Volume whose
+// generation is Open, whether it parked any block, in one read snapshot. It
+// writes nothing, so it serves a read-only Volume.
+func (v *Volume) ReadLiveness(ctx context.Context) (*block_gc.LivenessState, bool, error) {
 	var state *block_gc.LivenessState
 	var parked bool
 	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
@@ -369,7 +370,7 @@ func volumeHoldRule(state *block_gc.LivenessState, configured block_gc.HoldRule)
 }
 
 // startLiveness starts the renewal of this process's leased roots from state,
-// the liveness state readLiveness read, returns a Volume an adoption left
+// the liveness state ReadLiveness read, returns a Volume an adoption left
 // adopting to unadopted and, when the format 7 upgrade left an old graph's
 // records, starts their background sweep. parked reports whether an Open
 // Volume parked any block. A read-only Volume only reads the liveness state.

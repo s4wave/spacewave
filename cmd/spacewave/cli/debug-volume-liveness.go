@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"context"
+	"encoding/hex"
 	"os"
 	"strconv"
 
@@ -133,6 +134,78 @@ func adoptFields(path string, res block_gc.AdoptResult) [][2]string {
 	return appendRefSample(fields, "Listless sample", res.UnknownSample)
 }
 
+// debugVolumeStateArgs are the arguments of the liveness state reader.
+type debugVolumeStateArgs struct{}
+
+// BuildFlags returns the state flags.
+func (a *debugVolumeStateArgs) BuildFlags() []cli.Flag {
+	return nil
+}
+
+// Run prints the liveness state record of the stopped volume.
+func (a *debugVolumeStateArgs) Run(c *cli.Context) error {
+	// Read the state of the volume at the argument's path.
+	if c.NArg() != 1 {
+		return errors.New("expected one volume file argument")
+	}
+	path := c.Args().First()
+	state, parked, err := readVolumeState(c.Context, logrus.NewEntry(logrus.New()), path)
+	if err != nil {
+		return err
+	}
+
+	// Print the record.
+	writeFields(os.Stdout, stateFields(path, state, parked))
+	return nil
+}
+
+// readVolumeState opens the stopped volume at path read-only and reads its
+// liveness state, and whether an Open generation parked any block. A file
+// that needs a conversion or a format upgrade fails with
+// volume.ErrReadOnlyUpgrade naming its format, and is left as it was.
+func readVolumeState(ctx context.Context, le *logrus.Entry, path string) (*block_gc.LivenessState, bool, error) {
+	vol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
+	if err != nil {
+		return nil, false, err
+	}
+	defer vol.Close()
+	return vol.ReadLiveness(ctx)
+}
+
+// stateFields formats a liveness state in the command's field table.
+func stateFields(path string, state *block_gc.LivenessState, parked bool) [][2]string {
+	// List the record's fields.
+	fields := [][2]string{
+		{"Volume", path},
+		{"Adoption", state.GetAdoption().String()},
+		{"Adoption run", state.GetAdoptionRun()},
+		{"Hold rule", state.GetHoldRule().String()},
+		{"Generation", state.GetGeneration().String()},
+		{"Frees", strconv.FormatBool(state.GetFrees())},
+		{"Frees mark", strconv.FormatUint(state.GetFreesMark(), 10)},
+		{"Next sequence", strconv.FormatUint(state.GetNextSeq(), 10)},
+		{"Cursor", strconv.FormatUint(state.GetCursor(), 10)},
+		{"Net offset", strconv.FormatUint(state.GetNetOffset(), 10)},
+		{"Hold mark", strconv.FormatUint(state.GetHoldMark(), 10)},
+		{"Cascades", strconv.FormatUint(state.GetCascades(), 10)},
+		{"Legacy graph", strconv.FormatBool(state.GetLegacyGraph())},
+	}
+	if state.GetGeneration() == block_gc.Generation_GENERATION_OPEN {
+		fields = append(fields, [2]string{"Parked blocks", strconv.FormatBool(parked)})
+	}
+
+	// Describe a release in progress.
+	if rel := state.GetRelease(); rel != nil {
+		fields = append(fields,
+			[2]string{"Release block", hex.EncodeToString(rel.GetBlock())},
+			[2]string{"Release next", strconv.FormatUint(rel.GetNext(), 10)},
+			[2]string{"Release children", strconv.FormatUint(rel.GetChildren(), 10)},
+			[2]string{"Release re-hold", strconv.FormatBool(rel.GetRehold())},
+		)
+	}
+	return fields
+}
+
 // appendRefSample appends one labeled row per ref.
 func appendRefSample(fields [][2]string, label string, refs []*block.BlockRef) [][2]string {
 	// Add a row per ref.
@@ -173,6 +246,23 @@ func newDebugVolumeAdoptCommand() *cli.Command {
 			"before 7 until debug ref-repair verifies them, and refuses when a holder names a block stored without a " +
 			"child list. An adopted volume reports Already adopted and changes nothing. Adopt a volume only once every " +
 			"writer that uses it holds what it needs under named roots, and run it only on a stopped volume.",
+		Flags:  args.BuildFlags(),
+		Action: args.Run,
+	}
+}
+
+// newDebugVolumeStateCommand returns the liveness state reader.
+func newDebugVolumeStateCommand() *cli.Command {
+	args := &debugVolumeStateArgs{}
+	return &cli.Command{
+		Name:      "volume-state",
+		Usage:     "print a stopped volume's liveness state record: adoption, hold rule, generation and frees",
+		ArgsUsage: "<volume-file>",
+		Description: "Opens the volume read-only and prints its liveness state record: the adoption and its run, " +
+			"the hold rule the counts were written under, the generation, whether frees were on at the last " +
+			"writable open (off when the frees mark is stale), the journal position, the hold mark, the cascade " +
+			"count and any release in progress. It writes nothing. A file that needs a conversion or a format " +
+			"upgrade is reported with its format and left unchanged; a file another process holds is refused.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
 	}

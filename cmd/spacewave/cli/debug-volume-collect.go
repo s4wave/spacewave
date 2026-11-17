@@ -74,8 +74,18 @@ func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *sto
 	}
 	defer vol.Close()
 
-	// Collect until a pass reports no work left.
+	// Turning frees on returned the Volume to unadopted for a recount, which
+	// the background adoption would run later; count it now, so the passes
+	// free rather than find an unadopted Volume and stop.
 	start := time.Now()
+	if conf.GetCollectorFrees() {
+		if _, err := vol.Adopt(ctx); err != nil {
+			sum.Duration = time.Since(start)
+			return sum, 0, errors.Wrap(err, "adopt before freeing")
+		}
+	}
+
+	// Collect until a pass reports no work left.
 	for passes := 1; ; passes++ {
 		res, err := vol.Collect(ctx)
 		sum.Netted += res.Netted
@@ -130,8 +140,9 @@ func newDebugVolumeCollectCommand() *cli.Command {
 		ArgsUsage: "<volume-file>",
 		Description: "Runs the volume's collector as the daemon's sweep does, pass after pass until one reports no work " +
 			"left, and prints the totals. Without --frees the passes release lapsed leases and net the journal and free " +
-			"nothing. With --frees an adopted volume frees what lost its last holder; this deletes blocks, so run it on a " +
-			"copy for a rehearsal, and compare a volume-audit before and after. Run it only on a stopped volume.",
+			"nothing. With --frees the volume is first counted again, as turning frees on requires, and then frees what " +
+			"lost its last holder; this deletes blocks, so run it on a copy for a rehearsal, and compare a volume-audit " +
+			"before and after. Run it only on a stopped volume.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
 	}
