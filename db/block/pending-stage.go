@@ -69,9 +69,6 @@ func (p *pendingStage) BeginReadOperation(context.Context) (StoreOps, func(), er
 
 // HoldCompleteRoots makes the inner stage hold each proved root.
 func (p *pendingStage) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
-	if l, ok := p.stage.(*lazyStage); ok {
-		return l.HoldCompleteRoots(ctx, refs)
-	}
 	return HoldCompleteRoots(ctx, p.stage, refs)
 }
 
@@ -170,6 +167,11 @@ func (s *OverflowStage) Stored() bool {
 	return s.stored.Load()
 }
 
+// HoldCompleteRoots opens the inner stage and makes it hold each proved root.
+func (s *OverflowStage) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	return s.lazy.HoldCompleteRoots(ctx, refs)
+}
+
 // Release ends the stage. A block only it held is then freed once the grace
 // period passes, and a later put past the bound fails with ErrStageReleased.
 // Release of a stage no put went past ends nothing on the inner store.
@@ -182,4 +184,5 @@ var (
 	_ StoreOps   = (*pendingStage)(nil)
 	_ RootProofs = (*pendingStage)(nil)
 	_ StoreOps   = (*OverflowStage)(nil)
+	_ RootProofs = (*OverflowStage)(nil)
 )
