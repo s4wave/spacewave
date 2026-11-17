@@ -28,20 +28,31 @@ import (
 // that began after the commit. The checkpointer goes idle only with the log
 // under walHoldMultiple times its bound, which past it means SQLite reset
 // the log; once a pass copied the whole log, which the next writer to begin
-// resets, and that writer may be the one waiting; once a reader pins it; or
-// once a pass fails, which no wait can mend. A log a reader pins cannot reset, so while the last pass found
-// it pinned no commit waits, and the finding ends every wait at once. The
-// wait's length is the copy of the frames behind the commit, at most the
-// commit's own frames plus those of the commits in flight beside it, over
-// the copy rate: about 24 MiB/s on forge, so 2.2 s for a 54 MB commit.
+// resets, and that writer may be the one waiting; once a reader pins it;
+// once a pass fails, which no wait can mend; once a reader it does not judge
+// a pin cuts a pass short; or once another checkpointer on the same log
+// makes a pass busy. In the last two the commit's frames may be left
+// uncopied, and later passes copy them. A log a reader pins cannot reset, so
+// while the last pass found it pinned no commit waits, and the finding ends
+// every wait at once. The wait's length is the copy of the frames behind the
+// commit, at most the commit's own frames plus those of the commits in
+// flight beside it, over the copy rate: about 24 MiB/s on forge, so 2.2 s
+// for a 54 MB commit.
+//
+// The wait also ends once a pass that began after the commit copied the
+// whole log as it began, and the wait has lasted walFlowWaitMax: by then the
+// commit is copied, and holding it on serves only to let the gap close, which
+// small writers that together add more than walGapFrames frames per pass
+// never let happen. So the wait is at most the copy of its frames or
+// walFlowWaitMax, whichever is longer.
 //
 // Invariant: a commit of at most walGapFrames frames never waits here, so a
 // writer of small commits keeps fillWALGap's bound of one walTurnHold plus
 // the gap's flush behind the checkpointer.
 //
 // Several writers: past walHoldMultiple times the bound the checkpointer
-// goes idle only once a pass copied the whole log, and each pass holds the writers
-// back from its start, letting each waiting writer one commit per
+// goes idle only once a pass copied the whole log, and each pass holds the
+// writers back from its start, letting each waiting writer one commit per
 // walTurnHold. A large writer that commits there waits, so once every large
 // writer waits, only small writers' commits land between passes; the first
 // caught-up pass after them finds at most walGapFrames new frames, takes the
@@ -51,6 +62,9 @@ import (
 // unless a reader pins it, the log stays under walHoldMultiple times its
 // bound plus one commit of each large writer in flight at once and one
 // commit of each small writer per walTurnHold while the passes copy them.
+// Small writers that add more than walGapFrames frames between passes keep
+// the gap from closing; each large writer then commits once per
+// walFlowWaitMax and its copy, and the log grows until they pause.
 type walFlow struct {
 	// size returns the log's size on this host, or zero when unknown.
 	size func() int64
@@ -74,10 +88,13 @@ type walFlow struct {
 	mtx sync.Mutex
 	// settled is round when the checkpointer last went idle.
 	settled uint64
+	// copied is round when a pass last copied the whole log as it began.
+	copied uint64
 	// pinned reports that the checkpointer's last pass found a reader
 	// pinning the log.
 	pinned bool
-	// idle is closed and replaced each time the checkpointer goes idle.
+	// idle is closed and replaced each time the checkpointer goes idle or
+	// copied moves.
 	idle chan struct{}
 }
 
@@ -128,20 +145,42 @@ func (f *walFlow) committed() uint64 {
 	return seq
 }
 
+// walFlowWaitMax is how long a wait lasts at most once its commit is copied.
+// It is longer than the gap takes to close behind a few small writers, about
+// 100 to 230 ms for an 8 MiB commit on a Mac.
+const walFlowWaitMax = 10 * walTurnHold
+
 // wait waits until the checkpointer goes idle after a pass that began after
-// commit seq, or ctx ends.
+// commit seq, until such a pass copied the whole log and walFlowWaitMax has
+// passed, or until ctx ends.
 func (f *walFlow) wait(ctx context.Context, seq uint64) {
 	start := time.Now()
 	defer func() { f.stats.addFlowWait(time.Since(start)) }()
+	var bound <-chan time.Time
 	for {
+		// End once idle or pinned; once the commit is copied, arm the
+		// deadline for the rest of walFlowWaitMax.
 		f.mtx.Lock()
-		settled, pinned, idle := f.settled, f.pinned, f.idle
+		settled, pinned, copied, idle := f.settled, f.pinned, f.copied, f.idle
 		f.mtx.Unlock()
 		if settled >= seq || pinned {
 			return
 		}
+		if copied >= seq && bound == nil {
+			left := walFlowWaitMax - time.Since(start)
+			if left <= 0 {
+				return
+			}
+			deadline := time.NewTimer(left)
+			defer deadline.Stop()
+			bound = deadline.C
+		}
+
+		// Wait for the checkpointer, the deadline, or the caller.
 		select {
 		case <-ctx.Done():
+			return
+		case <-bound:
 			return
 		case <-idle:
 		}
@@ -152,6 +191,20 @@ func (f *walFlow) wait(ctx context.Context, seq uint64) {
 // so far.
 func (f *walFlow) pass() {
 	f.round = f.commits.Load()
+}
+
+// caught marks the pass that began at the last call to pass as having copied
+// the whole log as it began, so every commit counted then is copied.
+func (f *walFlow) caught() {
+	// Wake the waiters only when the copied round moved.
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	if f.round <= f.copied {
+		return
+	}
+	f.copied = f.round
+	close(f.idle)
+	f.idle = make(chan struct{})
 }
 
 // settle marks the checkpointer idle until the next commit, ending the wait

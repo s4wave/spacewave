@@ -12,3 +12,8 @@ func SetCheckpointHook(hook func(step string), gapHold time.Duration) {
 func SetReadTurns[T SQLiteDriverConfig](s *Store[T], n int) {
 	s.readTurns = make(readTurns, n)
 }
+
+// WakeCheckpoint wakes s's checkpointer as a commit would, without one.
+func WakeCheckpoint(s any) {
+	s.(interface{ wakeCheckpoint() }).wakeCheckpoint()
+}

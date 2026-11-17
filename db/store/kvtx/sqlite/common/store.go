@@ -669,9 +669,11 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 		// with a gap pass cut short of the log's end and no reader keeping
 		// the log, pass again at once instead: a writer waiting in walFlow
 		// commits nothing to wake the checkpointer. Once a pass copied the
-		// whole log, wait whatever its size: only the next writer's begin
-		// resets it, and a writer waiting in walFlow begins only after
-		// this settle.
+		// whole log, or found it empty, wait whatever its size: only the
+		// next writer's begin resets it, and a writer waiting in walFlow
+		// begins only after this settle. A log is empty and its file large
+		// after a transaction spilled into a copied log, which restarts it
+		// at once, and rolled back; only the next commit trims the file.
 		if rest || mode == holdNever || s.walSize() < walHoldMultiple*s.walBound {
 			s.flow.settle(mode == holdNever)
 			select {
@@ -716,7 +718,7 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 		}
 		failing = s.logCheckpoint(failing, c.err)
 		pinned = s.logPin(pinned, mode, c)
-		if rest = !c.caught(); rest || c.logged <= 0 {
+		if rest = !c.caught() || c.logged <= 0; rest {
 			continue
 		}
 
@@ -1057,9 +1059,13 @@ func (s *Store[T]) pass(ctx context.Context, q rowQuerier, mode holdMode) (check
 		done <- c
 	}()
 
-	// next is the mode of the pass after one that ended with c.
+	// next is the mode of the pass after one that ended with c, and marks
+	// the commits it copied.
 	held := false
 	next := func(c checkpoint) (checkpoint, holdMode) {
+		if c.caught() {
+			s.flow.caught()
+		}
 		switch {
 		case c.pinned:
 			return c, holdNever

@@ -483,6 +483,135 @@ func walRestartChild(t *testing.T, path, step string) {
 	}
 }
 
+// TestWALGapEmptyLogRests checks that the checkpointer waits for a commit
+// after a pass finds the log empty with its file far past the bound. A
+// transaction that spills into a copied log restarts it at once and, rolled
+// back, leaves it empty; only the next commit trims the file. A checkpointer
+// that took the empty pass as a copy to follow up passed again at once,
+// thousands of times a second, with no writer.
+func TestWALGapEmptyLogRests(t *testing.T) {
+	// Count the passes.
+	var passes atomic.Int64
+	common.SetCheckpointHook(func(step string) {
+		if step == "copy" {
+			passes.Add(1)
+		}
+	}, 25*time.Millisecond)
+	defer common.SetCheckpointHook(nil, 25*time.Millisecond)
+
+	// Open a store whose cache spills a 4 MiB transaction.
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "empty.db")
+	db, err := store_kvtx_sqlite.OpenWithPragmas(ctx, path, "kv", store_kvtx_sqlite.Pragmas{WALCheckpointBytes: restartBound, CacheSize: -256})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	// write sets rows 4 KiB rows, then commits or discards them.
+	write := func(first, rows int, commit bool) {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for j := range rows {
+			if err := tx.Set(ctx, restartKey(first+j), restartValue(first+j)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if !commit {
+			tx.Discard()
+			return
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Commit 8 MiB, 32 times the bound, and let the passes copy it.
+	write(0, 2048, true)
+	time.Sleep(2 * time.Second)
+
+	// Spill 4 MiB into the copied log, roll it back, and wake the
+	// checkpointer once; it should then wait.
+	write(4096, 1024, false)
+	common.WakeCheckpoint(db)
+	time.Sleep(200 * time.Millisecond)
+	before := passes.Load()
+	time.Sleep(time.Second)
+	if idle := passes.Load() - before; idle > 5 {
+		t.Errorf("checkpointer passed %d times in one second with no writer", idle)
+	}
+}
+
+// TestWALGapSmallWritersBoundWait checks that a large commit's wait in the
+// flow is bounded while small writers commit beside it. Passes held from
+// their start let each small writer commit once per walTurnHold, so with
+// enough of them every pass finds more than walGapFrames new frames, the gap
+// never closes, and the checkpointer never goes idle; the large commit's wait
+// then ends once its frames are copied and walFlowWaitMax has passed.
+func TestWALGapSmallWritersBoundWait(t *testing.T) {
+	ctx := context.Background()
+	db := openRestartStore(t, filepath.Join(t.TempDir(), "starve.db"))
+	defer db.Close()
+
+	// commit writes rows 4 KiB rows from first in one transaction.
+	value := make([]byte, 4096)
+	commit := func(ctx context.Context, first, rows int) error {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			return err
+		}
+		for j := range rows {
+			if err := tx.Set(ctx, restartKey(first+j), value); err != nil {
+				tx.Discard()
+				return err
+			}
+		}
+		return tx.Commit(ctx)
+	}
+
+	// Beside each count of small writers, time five 8 MiB commits.
+	for _, writers := range []int{1, 16, 32} {
+		// Start the small writers, 16 rows a commit.
+		stop := make(chan struct{})
+		done := make(chan struct{})
+		for w := range writers {
+			go func() {
+				defer func() { done <- struct{}{} }()
+				for i := 0; ; i++ {
+					select {
+					case <-stop:
+						return
+					default:
+					}
+					_ = commit(ctx, w*512+i*16, 16)
+				}
+			}()
+		}
+
+		// Time the large commits, then stop the small writers.
+		var longest time.Duration
+		for i := range 5 {
+			c, cancel := context.WithTimeout(ctx, 10*time.Second)
+			began := time.Now()
+			if err := commit(c, i*2048, 2048); err != nil {
+				t.Fatal(err)
+			}
+			longest = max(longest, time.Since(began))
+			cancel()
+		}
+		close(stop)
+		for range writers {
+			<-done
+		}
+		t.Logf("%d small writers: longest 8 MiB commit %v", writers, longest.Round(time.Millisecond))
+		if longest > 3*time.Second {
+			t.Errorf("%d small writers: an 8 MiB commit took %v", writers, longest)
+		}
+	}
+}
+
 // openRestartStore opens the store at path with the restart tests' bound.
 func openRestartStore(t *testing.T, path string) store_kvtx_sqlite.Store {
 	db, err := store_kvtx_sqlite.OpenWithPragmas(context.Background(), path, "kv", store_kvtx_sqlite.Pragmas{WALCheckpointBytes: restartBound})
