@@ -153,7 +153,9 @@ func TestPeerReadFailCauses(t *testing.T) {
 			want := &block.StoredBlock{Data: []byte("served")}
 			peers := &causePeers{blk: want}
 			src := newPeerMissSource(logrus.NewEntry(logger), func() block.StoreOps { return peers }, nil, &p.peerReads)
-			ref, err := block.BuildBlockRef([]byte(t.Name()), nil)
+			// Name a block no earlier run in this process failed: the
+			// process warns of each block's first failure only.
+			ref, err := block.BuildBlockRef(fmt.Appendf(nil, "%s %d", t.Name(), time.Now().UnixNano()), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
