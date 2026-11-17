@@ -5381,6 +5381,154 @@ func TestLivenessSettle(t *testing.T) {
 		requireStored(t, v, tr, true, "U", "K")
 	})
 
+	t.Run("put meets the records of an earlier life", func(t *testing.T) {
+		// U names K. An earlier life leaves U's records in one state: queued
+		// while Settled, fill-born with its fill record pending, parked while
+		// Open, or unmarked while Sweeping. Then a writer puts U and K
+		// again, by a Land or by a fill and a root. Whatever records U's
+		// earlier life left, the put must leave U reading, and the
+		// collector must keep it.
+		fresh := func(t *testing.T) (*Volume, *testClock, kvtx.Store, testTree) {
+			t.Helper()
+			tr := testTree{}
+			tr.add(t, "A")
+			tr.add(t, "K")
+			tr.add(t, "U", "K")
+			tr.add(t, "W")
+			store := store_kvtx_inmem.NewStore()
+			v, clk := openLivenessVolume(t, store, true)
+			waitAdopted(t, v)
+			return v, clk, store, tr
+		}
+		queuedKey := slices.Concat(livenessPrefix, []byte{'Q'})
+		parkedKey := slices.Concat(livenessPrefix, []byte{'X'})
+		states := []struct {
+			name string
+			// open builds the state and returns the Volume.
+			open func(t *testing.T) (*Volume, *testClock, kvtx.Store, testTree)
+			// settle collects the Volume to its end state.
+			settle func(t *testing.T, v *Volume, clk *testClock, store kvtx.Store, tr testTree)
+		}{{
+			name: "queued while Settled",
+			open: func(t *testing.T) (*Volume, *testClock, kvtx.Store, testTree) {
+				// A root move younger than the grace period keeps the cursor
+				// short of U's ripe sequence, so U waits on the free queue.
+				v, clk, store, tr := fresh(t)
+				roots := []block.NamedRoot{{Name: "main", Ref: tr["U"].Ref}, {Name: "w", Ref: tr["W"].Ref}}
+				if err := v.SetBucketRoots(t.Context(), "b", tr.entries("K", "U", "W"), roots); err != nil {
+					t.Fatal(err)
+				}
+				if err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "main", Previous: tr["U"].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+				clk.Add(block_gc.DefaultGrace - time.Second)
+				if err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "y", Ref: tr["W"].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+				clk.Add(2 * time.Second)
+				if res := collectAll(t, v); res.Freed != 0 || countPrefix(t, store, queuedKey) == 0 {
+					t.Fatalf("collect = %+v, want U queued", res)
+				}
+				requireStored(t, v, tr, true, "U")
+				return v, clk, store, tr
+			},
+		}, {
+			name: "fill-born with its record pending",
+			open: func(t *testing.T) (*Volume, *testClock, kvtx.Store, testTree) {
+				v, clk, store, tr := fresh(t)
+				fill(t, v, tr, "U", "K")
+				return v, clk, store, tr
+			},
+		}, {
+			name: "parked while Open",
+			open: func(t *testing.T) (*Volume, *testClock, kvtx.Store, testTree) {
+				// W, never walked, holds the generation Open.
+				tr := testTree{}
+				tr.add(t, "A")
+				tr.add(t, "K")
+				tr.add(t, "U", "K")
+				tr.add(t, "W")
+				v, clk, store := oldStore(t, tr, "A", []string{"A", "K", "U", "W"})
+				verify(t, v, tr, "A")
+				if err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "w", Ref: tr["W"].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+				if err := rootOnto(t, v, tr, "U"); err != nil {
+					t.Fatal(err)
+				}
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				collectAll(t, v)
+				if err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "main", Previous: tr["U"].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+				for range 4 {
+					clk.Add(block_gc.DefaultGrace + time.Second)
+					res := collectAll(t, v)
+					if res.Flipped {
+						t.Fatalf("collect = %+v, want W to hold the flip", res)
+					}
+				}
+				if countPrefix(t, store, parkedKey) == 0 {
+					t.Fatal("U is not parked")
+				}
+				return v, clk, store, tr
+			},
+			settle: func(t *testing.T, v *Volume, clk *testClock, store kvtx.Store, tr testTree) {
+				verify(t, v, tr, "W")
+				settleAll(t, v, clk, store, tr)
+			},
+		}, {
+			name: "unmarked while Sweeping",
+			open: func(t *testing.T) (*Volume, *testClock, kvtx.Store, testTree) {
+				v, clk, store, tr := oldU(t, false)
+				collectUntil(t, v, clk, flipped)
+				if !has(t, store, run, tr["U"].Ref) {
+					t.Fatal("U is not in the run")
+				}
+				return v, clk, store, tr
+			},
+			settle: func(t *testing.T, v *Volume, clk *testClock, store kvtx.Store, tr testTree) {
+				settleAll(t, v, clk, store, tr)
+			},
+		}}
+		forEachRule(t, func(t *testing.T) {
+			for _, st := range states {
+				for _, byFill := range []bool{false, true} {
+					name := st.name + " put by a Land"
+					if byFill {
+						name = st.name + " put by a fill"
+					}
+					t.Run(name, func(t *testing.T) {
+						v, clk, store, tr := st.open(t)
+						if byFill {
+							fill(t, v, tr, "U", "K")
+							if err := rootOnto(t, v, tr, "U"); err != nil {
+								t.Fatal(err)
+							}
+						} else if err := rootOnto(t, v, tr, "U", "U", "K"); err != nil {
+							t.Fatal(err)
+						}
+						requireStored(t, v, tr, true, "U", "K")
+						// A pass just inside the put's grace period nets the records
+						// before it, and must keep U while the put waits past the cursor.
+						clk.Add(block_gc.DefaultGrace - time.Second)
+						collectAll(t, v)
+						requireStored(t, v, tr, true, "U", "K")
+						if st.settle != nil {
+							st.settle(t, v, clk, store, tr)
+						}
+						for range 4 {
+							clk.Add(block_gc.DefaultGrace + time.Second)
+							collectAll(t, v)
+						}
+						requireStored(t, v, tr, true, "U", "K")
+						requireAudit(t, v, 0)
+					})
+				}
+			}
+		})
+	})
+
 	t.Run("unwalked root seeds the flip", func(t *testing.T) {
 		// The carried root names A, which no walk decoded. The flip pushes
 		// A onto the front rather than flip, and the walk then decodes A.
@@ -6132,7 +6280,7 @@ func TestLivenessSettle(t *testing.T) {
 
 		// The younger record nets, so D ripens, and the hold mark keeps it
 		// queued; the flip comes.
-		clk.Add(block_gc.DefaultGrace - 2*time.Second)
+		clk.Add(block_gc.DefaultGrace - time.Second)
 		if res := collectAll(t, v); !res.Flipped || res.StallHoldMark == 0 {
 			t.Fatalf("collect with D held back by the hold mark = %+v, want the flip", res)
 		}
