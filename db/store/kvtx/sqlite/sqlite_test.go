@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -489,6 +490,7 @@ func TestSQLiteWALBound(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		if info.Size() <= 4*bound {
+			checkWALBoundStats(t, tp)
 			return
 		}
 		if time.Now().After(deadline) {
@@ -586,5 +588,31 @@ func TestImmutableCapture(t *testing.T) {
 	defer reader.Close()
 	if _, _, err := reader.Next(ctx, nil); err == nil {
 		t.Fatal("oversized key accepted")
+	}
+}
+
+// checkWALBoundStats checks the counters of the store at path after
+// TestSQLiteWALBound's writes: every write took and held a foreground turn,
+// and the checkpointer passed over the log.
+func checkWALBoundStats(t *testing.T, path string) {
+	t.Helper()
+	var found bool
+	common.EachStoreStats(func(st common.StoreStats) {
+		if filepath.Base(st.File) != filepath.Base(path) {
+			return
+		}
+		found = true
+		if st.ForegroundWaits < 2000 || st.BackgroundWaits != 0 {
+			t.Fatalf("writer turns: %d foreground, %d background; want at least 2000 foreground", st.ForegroundWaits, st.BackgroundWaits)
+		}
+		if st.ForegroundHold <= 0 || st.BackgroundHold != 0 {
+			t.Fatalf("writer holds: %v foreground, %v background; want some foreground", st.ForegroundHold, st.BackgroundHold)
+		}
+		if st.Passives == 0 || st.Passive <= 0 {
+			t.Fatalf("checkpoints: %+v", st)
+		}
+	})
+	if !found {
+		t.Fatalf("no store stats for %s", path)
 	}
 }
