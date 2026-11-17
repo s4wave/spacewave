@@ -126,6 +126,12 @@ func (w *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error
 	return w.world.WaitSeqno(ctx, value)
 }
 
+// WaitObjectRev waits through the World the operations apply to, without the
+// recorder's lock, so the operations it waits on can apply.
+func (w *WorldState) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	return world.WaitObjectRev(ctx, w.world, key, rev, ignoreNotFound)
+}
+
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
 // The cursor should be released independently of the WorldState.
 // Be sure to call Release on the cursor when done.

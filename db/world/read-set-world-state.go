@@ -57,6 +57,12 @@ func (s *readSetWorldState) GetObject(ctx context.Context, key string) (ObjectSt
 	return s.WorldState.GetObject(ctx, key)
 }
 
+// WaitObjectRev records the object key and waits through the wrapped state.
+func (s *readSetWorldState) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	s.reads.addKeys(key)
+	return WaitObjectRev(ctx, s.WorldState, key, rev, ignoreNotFound)
+}
+
 // IterateObjects records the key prefix.
 func (s *readSetWorldState) IterateObjects(ctx context.Context, prefix string, reversed bool) ObjectIterator {
 	s.reads.addPrefix(prefix)

@@ -41,21 +41,24 @@ func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*blo
 	t.pendingChanges = append(t.pendingChanges, changeBcs)
 	t.pendingType = w.GetChangeType()
 
-	// Update the sequence number and return the change cursor.
+	// Update the sequence number, wake the waiters of the keys the change
+	// names and return the change cursor.
 	t.updateSeqno(r)
+	t.revs.wake(w.GetKey(), w.GetNewKey())
 	return changeBcs, nil
 }
 
-// updateSeqno computes the latest sequence number, updates t.seqno, counts
-// the change and wakes the waiters.
+// updateSeqno computes the latest sequence number, updates t.seqno and wakes
+// the seqno waiters when it moved.
 func (t *WorldState) updateSeqno(r *World) {
 	// Add the seqnos the pending changes will reach.
 	currSeqno := r.GetLastChange().GetSeqno()
 	nextSeqno := currSeqno + t.pendingEntries
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		t.seqno = nextSeqno
-		t.changes++
-		broadcast()
+		if t.seqno != nextSeqno {
+			t.seqno = nextSeqno
+			broadcast()
+		}
 	})
 }
 

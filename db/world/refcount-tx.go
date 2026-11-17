@@ -20,6 +20,11 @@ func NewRefCountTx(tx Tx, ref refcount.RefLike) *RefCountTx {
 	return &RefCountTx{WorldState: tx, tx: tx, ref: ref}
 }
 
+// WaitObjectRev waits through the wrapped transaction.
+func (r *RefCountTx) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	return WaitObjectRev(ctx, r.WorldState, key, rev, ignoreNotFound)
+}
+
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (r *RefCountTx) Commit(ctx context.Context) error {
