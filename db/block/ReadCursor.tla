@@ -6,6 +6,12 @@ EXTENDS Naturals, FiniteSets
 \* and charges/evicts atomically under the lock (FinishAttach). AbortLoad and
 \* AbortAttach represent cancellation, decode failure and GetBlockRefs failure.
 \* Invalidate/Remove/ChangeScope model external freshness and borrowed authority.
+\* Stated abstraction for durability: a key is durable while a surviving backing
+\* pack of a store that keeps its blocks holds it. A fill-cache row is a copy, so
+\* its eviction or a deleted cache file is not a Remove. Remove is a removal by
+\* this process (a hash-failure tombstone, DeletePackStore), which reports the
+\* generation before it deletes. Deletion from outside the process, as a bucket
+\* lifecycle rule or a manual tool, is outside the invariant and not modeled.
 \* Root publication does not retarget existing cursors; snapshot binding is
 \* checked by ReadCursorRoots and the real World snapshot test.
 \* Units are proportional byte charges: one decoded payload plus two units of

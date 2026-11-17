@@ -6,6 +6,17 @@
 // of the cache reads as a miss, so a damaged, full, slow or missing cache costs
 // only the read of the durable store. The file may be deleted at any time and
 // Open recreates it.
+//
+// A read the cache serves is durable, and its decoded block may enter the
+// shared decoded-block pool, because the store below keeps the block, not
+// because the cache holds a row for it: a row is only a faster copy of a block
+// the store holds. Over a store that declares with KeepsBlocks that it never
+// removes a block, losing a row loses nothing the pool may serve, so eviction
+// reports no removal. Over any other store no read the cache serves enters the
+// pool. The invariant covers removals by this process only: a block deleted
+// from a kept store's bucket from outside it, as by a bucket lifecycle rule or
+// a manual tool, is outside it, and the pool may go on serving such a block
+// until its entry leaves.
 package block_store_fillcache
 
 import (
@@ -55,13 +66,11 @@ type Options struct {
 //
 // The cache's reads are durable reads only over a durable store that keeps
 // every block it holds, see Reads, so only their decoded blocks may enter the
-// shared decoded-block pool. Every way a block leaves the file reports it
-// removed before the removal commits and again after: the writer reports a
-// tombstone for a block that failed its hash before its write, and the block
-// store reports it after; an eviction deletes rows past the block store and
-// reports each itself; opening the file, which may be new or replaced,
-// reports every block removed, and recreating an unusable one reports them
-// again after the delete. Close removes nothing: the file keeps its blocks.
+// shared decoded-block pool. A row leaving the file is not a removal of its
+// block, which the store below still holds, so eviction reports nothing. A
+// tombstone for a block that failed its hash is reported removed by the block
+// store once its write commits, as the bytes the cache held were wrong.
+// Opening the file still reports every block removed, a constant-time bump.
 type Cache struct {
 	// le is the entry for the cache's log lines.
 	le *logrus.Entry
@@ -146,9 +155,10 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 //
 // The cache's reads are durable, so their decoded blocks may enter the shared
 // decoded-block pool, only while lower declares with KeepsBlocks that it never
-// removes a block it holds. A store that removes blocks, as reclaim does,
-// cannot tell the cache, which would go on serving its copy; the pool then
-// keeps nothing the cache serves.
+// removes a block it holds; that store, not the cache's row, makes the read
+// durable. A store that removes blocks, as reclaim does, cannot tell the
+// cache, which would go on serving its copy; the pool then keeps nothing the
+// cache serves.
 func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
 	return func() block.StoreOps {
 		// Read nothing without a durable store to copy from.
@@ -245,10 +255,9 @@ func (c *Cache) run(ctx context.Context) {
 			return
 		}
 
-		// Write the entries, reporting their tombstones removed before the
-		// write, as the block store reports them again after it.
+		// Write the entries. The block store reports their tombstones removed
+		// once the write commits.
 		if len(batch) != 0 {
-			block.InvalidateRemovedTombstones(batch)
 			if _, err := c.blocks.PutBlockBatch(wctx, batch); err != nil && ctx.Err() == nil {
 				c.warn.warn(err, "the block fill cache failed a write, dropping its fills")
 			}
