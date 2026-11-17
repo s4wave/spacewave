@@ -214,6 +214,53 @@ func TestTrashRemove(t *testing.T) {
 	if again, err := Remove(ctx, ropts); err != nil || again.Removed != 0 || again.Missed != 1 || h.backend.calls["remove"] != calls {
 		t.Fatalf("second removal = %+v, %v", again, err)
 	}
+
+	// A purge before the wait deletes nothing. One past it deletes every
+	// version of each removed pack's objects, including an older version the
+	// bucket kept, and leaves the moved pack a read missed in the trash.
+	var kept string
+	for _, id := range passed[1:] {
+		if id != missed {
+			kept = id
+			break
+		}
+	}
+	keptKey := block_store_s3.TrashPackKey(prefix, kept)
+	if err := h.f.client.PutObject(ctx, s3test.BucketName, keptKey, []byte("an older version"), ""); err != nil {
+		t.Fatal(err)
+	}
+	popts := &PurgeOptions{Store: h.store, Purger: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Now: func() time.Time { return at.Add(time.Hour) }}
+	if got, err := Purge(ctx, popts); err != nil || got.Purged != 0 || got.Versions != 0 || got.Waiting != uint64(removed) { //nolint:gosec // test counts.
+		t.Fatalf("purge before the wait = %+v, %v", got, err)
+	}
+	popts.Now = func() time.Time { return at.Add(DefaultPurgeAfter + time.Hour) }
+	purged, err := Purge(ctx, popts)
+	if err != nil || purged.Purged != uint64(removed) || purged.Versions != uint64(2*removed+1) || purged.Waiting != 0 { //nolint:gosec // test counts.
+		t.Fatalf("purge = %+v, %v, want %d packs and %d versions", purged, err, removed, 2*removed+1)
+	}
+	records = recordsByID(t, h.store)
+	for _, id := range passed[1:] {
+		if id == missed {
+			if records[id].Stage != StageMoved || !h.objectAt(t, block_store_s3.TrashPackKey(prefix, id)) {
+				t.Fatalf("the missed pack %s after the purge: %+v", id, records[id])
+			}
+			continue
+		}
+		if records[id].Stage != StagePurged {
+			t.Fatalf("pack %s after the purge: %+v", id, records[id])
+		}
+		for _, key := range purgeKeys(prefix, id) {
+			versions, err := h.f.client.ObjectVersions(ctx, s3test.BucketName, key)
+			if err != nil || len(versions) != 0 {
+				t.Fatalf("%s keeps versions %v, %v", key, versions, err)
+			}
+		}
+	}
+
+	// A second purge deletes nothing.
+	if again, err := Purge(ctx, popts); err != nil || again.Purged != 0 || again.Versions != 0 {
+		t.Fatalf("second purge = %+v, %v", again, err)
+	}
 }
 
 // TestRestore returns the trashing packs reads missed to the store, at each

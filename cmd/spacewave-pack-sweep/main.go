@@ -112,6 +112,12 @@ func main() {
 			Action: args.runRemove,
 		},
 		{
+			Name:   "purge",
+			Usage:  "delete every version of each removed pack's objects, by version id, once it has been removed for --after",
+			Flags:  args.purgeFlags(),
+			Action: args.runPurge,
+		},
+		{
 			Name:   "restore",
 			Usage:  "move each trashing pack a read missed, and each named pack, back from the store's trash, file first, and register it again",
 			Flags:  args.restoreFlags(),

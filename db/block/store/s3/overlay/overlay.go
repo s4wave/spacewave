@@ -529,4 +529,7 @@ func linkRecord(src, dst string) error {
 }
 
 // _ is a type assertion
-var _ block_store_s3.ObjectMover = (*Store)(nil)
+var (
+	_ block_store_s3.ObjectMover  = (*Store)(nil)
+	_ block_store_s3.ObjectPurger = (*Store)(nil)
+)

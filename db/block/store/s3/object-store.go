@@ -39,8 +39,20 @@ type ObjectMover interface {
 	MoveObject(ctx context.Context, bucket, from, to string) error
 }
 
+// ObjectPurger is an ObjectStore that deletes every version of an object by
+// its version id, as a pack sweep purges a removed pack from a bucket that
+// keeps old versions.
+type ObjectPurger interface {
+	ObjectStore
+	// PurgeObject deletes every version of key, calling deleted with each id
+	// after the store confirmed it. A missing key purges nothing. It fails
+	// where the versions cannot be listed rather than hide the current one.
+	PurgeObject(ctx context.Context, bucket, key string, deleted func(version string)) error
+}
+
 // _ is a type assertion
 var (
-	_ ObjectStore = (*Client)(nil)
-	_ ObjectMover = (*Client)(nil)
+	_ ObjectStore  = (*Client)(nil)
+	_ ObjectMover  = (*Client)(nil)
+	_ ObjectPurger = (*Client)(nil)
 )

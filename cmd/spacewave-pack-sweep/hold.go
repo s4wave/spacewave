@@ -37,7 +37,7 @@ func (a *Args) adminURLFlag() cli.Flag {
 // trashFlags configures the trash, which reaches the backend and the store.
 func (a *Args) trashFlags() []cli.Flag {
 	flags := append(a.scratchFlags(), a.adminURLFlag())
-	flags = append(flags, a.sftpFlags()...)
+	flags = append(flags, a.dialFlags()...)
 	return append(flags, &cli.IntFlag{Name: "moves", Usage: "packs moved to the trash at once, each two renames", Value: packsweep.DefaultMoves, Destination: &a.Moves})
 }
 
@@ -50,13 +50,22 @@ func (a *Args) restoreFlags() []cli.Flag {
 // compactFlags configures the compaction, which covers the cycle as the
 // quarantine does and reaches the store.
 func (a *Args) compactFlags() []cli.Flag {
-	flags := append(a.adminFlags(), a.sftpFlags()...)
+	flags := append(a.adminFlags(), a.dialFlags()...)
 	return append(flags, &cli.Int64Flag{Name: "max-pack-bytes", Usage: "most bytes of a pack the compaction writes", Value: writer.DefaultMaxPackBytes, Destination: &a.MaxPackBytes})
 }
 
 // removeFlags configures the removal, which reaches the backend only.
 func (a *Args) removeFlags() []cli.Flag {
 	return append(a.scratchFlags(), a.adminURLFlag())
+}
+
+// purgeFlags configures the purge, which reaches the store only.
+func (a *Args) purgeFlags() []cli.Flag {
+	flags := append(a.scratchFlags(), a.dialFlags()...)
+	return append(flags,
+		&cli.DurationFlag{Name: "after", Usage: "how long since its removal a pack stays in the trash before the purge deletes it", Value: packsweep.DefaultPurgeAfter, Destination: &a.After},
+		&cli.StringSliceFlag{Name: "pack", Usage: "a removed pack to purge; repeat for each; none purges every removed pack past --after", Destination: &a.Packs},
+	)
 }
 
 // waitFlag is how long a pack stays quarantined before it can pass.
@@ -282,6 +291,62 @@ func (a *Args) runRemove(*cli.Context) error {
 	res, err := packsweep.Remove(ctx, &packsweep.RemoveOptions{Store: store, Backend: client.Backend()})
 	if err != nil {
 		return err
+	}
+	return a.print(res.JSON)
+}
+
+// runPurge deletes every version of each removed pack's objects once it has
+// been removed for --after, printing a line for each version deleted.
+func (a *Args) runPurge(*cli.Context) error {
+	// Open the scratch file until a signal stops the step.
+	ctx, cancel := signalContext()
+	defer cancel()
+	db, store, err := a.openScratch()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Reach the store, and refuse one the catalog does not describe or that
+	// cannot delete a version by its id.
+	objects, root, closeStore, err := a.dialStore()
+	if err != nil {
+		return err
+	}
+	defer closeStore()
+	purger, ok := objects.(block_store_s3.ObjectPurger)
+	if !ok {
+		return errors.New("the store cannot delete an object's versions by id")
+	}
+	if err := checkStore(ctx, db, a.storeBinding(root)); err != nil {
+		return err
+	}
+
+	// Purge, printing each deleted version, then the result.
+	var printErr error
+	res, err := packsweep.Purge(ctx, &packsweep.PurgeOptions{
+		Store:  store,
+		Purger: purger,
+		Bucket: root,
+		Prefix: a.Prefix,
+		After:  a.After,
+		Packs:  a.Packs.Value(),
+		Deleted: func(key, version string) {
+			if printErr == nil {
+				printErr = a.print(func(ar *fastjson.Arena) *fastjson.Value {
+					v := ar.NewObject()
+					v.Set("deleted", ar.NewString(key))
+					v.Set("version", ar.NewString(version))
+					return v
+				})
+			}
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if printErr != nil {
+		return printErr
 	}
 	return a.print(res.JSON)
 }
