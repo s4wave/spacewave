@@ -27,6 +27,40 @@
 //   - A pack is judged dead only when the walk finished with no frontier left
 //     and none of the pack's keys is in L or W.
 //
+// The later steps quarantine the dead packs, recheck them, move the passed
+// ones to the store's trash, have the backend remove them, and purge them
+// once removed for a wait. The invariants that keep them from losing a
+// reached block:
+//   - A pack object under the store's prefix leaves the store's listing only
+//     when two things hold. First, no key in its tail index is reached from
+//     the roots the backend lists (for the World, its head and the roots the
+//     head retains) or from a root the write log names. Second, since its
+//     quarantine began, no h row named the pack's number in a lookup that
+//     served a read, a Has or a write's dedupe.
+//   - A quarantined pack is invisible to the index's Locate and extent
+//     lookups, so a write that would dedupe against it stores the block again
+//     in a new pack. A read that finds the block only there lifts the pack, or
+//     records the miss that restores a trashing one.
+//   - Every write of the backend's store is in the write log before it is
+//     stored, deduped or pushed: a fill store's diverted write, an atomic
+//     publication, and a reader's pin, which the log names as a root. A block
+//     written after the roots were read is therefore in W.
+//   - A write, a read operation or a stage open on the backend is in its
+//     record of open operations from before it touches the store until it
+//     ends, and the recheck passes no pack while one opened before the pack's
+//     quarantine is open.
+//   - A block in the write-back's durable queue is in no pack of the store,
+//     so no step touches it.
+//   - Where a pack's state is unsure (a log gap, a key with unknown refs, a
+//     hole the walk could not read and the operator did not accept), the pack
+//     stays.
+//   - Pack ids are never reused, so a removed pack's keys name no later pack.
+//   - The purge deletes, by version id, only the objects of a pack removed
+//     for longer than its wait, and never falls back to a plain delete, which
+//     on a bucket that keeps old versions hides the current version and
+//     leaves it billed. A pack's record turns purged only after every
+//     version of its keys is gone.
+//
 // The scratch store's keys:
 //
 //	c/p/{pack id}            catalogued pack: blocks, value bytes, size, created

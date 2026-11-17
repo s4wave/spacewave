@@ -34,6 +34,10 @@ import (
 const (
 	// sftpPasswordEnv names the variable holding the SFTP password.
 	sftpPasswordEnv = "PACK_SWEEP_SFTP_PASSWORD" //nolint:gosec // the name of a variable, not a password.
+	// s3KeyIDEnv names the variable holding the S3 access key id.
+	s3KeyIDEnv = "PACK_SWEEP_S3_KEY_ID"
+	// s3SecretEnv names the variable holding the S3 secret access key.
+	s3SecretEnv = "PACK_SWEEP_S3_SECRET" //nolint:gosec // the name of a variable, not a secret.
 	// defaultIndexTable is the table of a pack index file.
 	defaultIndexTable = "pack_index"
 )
@@ -61,6 +65,13 @@ type Args struct {
 	IndexTable string
 	// IndexBucket is the bucket of a Bolt index file.
 	IndexBucket string
+	// S3Endpoint is the store's S3 endpoint host, reached over HTTPS; set,
+	// it reaches the store over S3 instead of SFTP.
+	S3Endpoint string
+	// S3Bucket is the store's bucket.
+	S3Bucket string
+	// S3Region is the bucket's region.
+	S3Region string
 	// SFTPAddr is the store server's host:port.
 	SFTPAddr string
 	// SFTPUser is the store login.
@@ -122,10 +133,13 @@ type Args struct {
 	Packs cli.StringSlice
 	// MaxPackBytes bounds a pack the compaction writes.
 	MaxPackBytes int64
+	// After is how long since its removal a pack stays in the trash before
+	// the purge deletes it.
+	After time.Duration
 
 	// dialAdmin reaches the admin service; nil dials AdminURL. Tests set it.
 	dialAdmin func(ctx context.Context) (*block_packsweep_admin.Client, func(), error)
-	// dial reaches the store; nil dials SFTP. Tests set it.
+	// dial reaches the store; nil dials S3 or SFTP. Tests set it.
 	dial func() (block_store_s3.ObjectStore, string, func(), error)
 	// out receives the printed results; nil prints to stdout.
 	out io.Writer
@@ -140,7 +154,7 @@ func (a *Args) scratchFlags() []cli.Flag {
 
 // storeFlags binds the flags of the snapshot.
 func (a *Args) storeFlags() []cli.Flag {
-	return append(a.sftpFlags(),
+	return append(a.dialFlags(),
 		&cli.StringFlag{Name: "index", Usage: "copy of the store's pack index file, read for the pack list", Destination: &a.Index, Required: true},
 		&cli.StringFlag{Name: "index-type", Usage: "volume type of the pack index file: sqlite, bolt or s4db; detected when unset", Destination: &a.IndexType},
 		&cli.StringFlag{Name: "index-table", Usage: "table of a SQLite pack index file", Value: defaultIndexTable, Destination: &a.IndexTable},
@@ -150,15 +164,19 @@ func (a *Args) storeFlags() []cli.Flag {
 	)
 }
 
-// sftpFlags binds the flags that name and reach the store.
-func (a *Args) sftpFlags() []cli.Flag {
+// dialFlags binds the flags that name and reach the store, over S3 when
+// --s3-endpoint is set and over SFTP otherwise.
+func (a *Args) dialFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "store-id", Usage: "block store id whose pack index the index file holds", Destination: &a.StoreID, Required: true},
-		&cli.StringFlag{Name: "sftp-addr", Usage: "store server's host:port", Destination: &a.SFTPAddr, Required: true},
-		&cli.StringFlag{Name: "sftp-user", Usage: "store login; the password comes from " + sftpPasswordEnv, Destination: &a.SFTPUser, Required: true},
-		&cli.StringFlag{Name: "sftp-host-key", Usage: "store server's host key line or SHA256 fingerprint", Destination: &a.SFTPHostKey, Required: true},
+		&cli.StringFlag{Name: "s3-endpoint", Usage: "store's S3 endpoint host, reached over HTTPS; the key comes from " + s3KeyIDEnv + " and " + s3SecretEnv, Destination: &a.S3Endpoint},
+		&cli.StringFlag{Name: "s3-bucket", Usage: "store's bucket, with --s3-endpoint", Destination: &a.S3Bucket},
+		&cli.StringFlag{Name: "s3-region", Usage: "store's bucket region, with --s3-endpoint", Destination: &a.S3Region},
+		&cli.StringFlag{Name: "sftp-addr", Usage: "store server's host:port", Destination: &a.SFTPAddr},
+		&cli.StringFlag{Name: "sftp-user", Usage: "store login; the password comes from " + sftpPasswordEnv, Destination: &a.SFTPUser},
+		&cli.StringFlag{Name: "sftp-host-key", Usage: "store server's host key line or SHA256 fingerprint", Destination: &a.SFTPHostKey},
 		&cli.IntFlag{Name: "sftp-conns", Usage: "most SSH connections to the store at once", Value: 2, Destination: &a.SFTPConns},
-		&cli.StringFlag{Name: "sftp-root", Usage: "store directory holding the prefix", Destination: &a.SFTPRoot, Required: true},
+		&cli.StringFlag{Name: "sftp-root", Usage: "store directory holding the prefix", Destination: &a.SFTPRoot},
 		&cli.StringFlag{Name: "prefix", Usage: "key prefix of the store's packs", Destination: &a.Prefix},
 		&cli.StringFlag{Name: "overlay", Usage: "rehearse: only read the store, recording every write, move and delete in this directory, which the rehearsal's backend shares", Destination: &a.Overlay},
 	}
@@ -368,10 +386,36 @@ func (a *Args) dialStore() (block_store_s3.ObjectStore, string, func(), error) {
 	return ov, root, closeStore, nil
 }
 
-// dialBase reaches the store over SFTP unless a test set another way.
+// dialBase reaches the store over S3 or SFTP unless a test set another way,
+// and returns the bucket or directory holding the prefix as its root.
 func (a *Args) dialBase() (block_store_s3.ObjectStore, string, func(), error) {
+	// Use a test's store.
 	if a.dial != nil {
 		return a.dial()
+	}
+
+	// Reach a bucket over S3.
+	if a.S3Endpoint != "" {
+		if a.S3Bucket == "" {
+			return nil, "", nil, errors.New("--s3-endpoint needs --s3-bucket")
+		}
+		client, err := block_store_s3.BuildClient(&block_store_s3.ClientConfig{
+			Endpoint: a.S3Endpoint,
+			Region:   a.S3Region,
+			Credentials: &block_store_s3.Credentials{
+				AccessKeyId:     os.Getenv(s3KeyIDEnv),
+				SecretAccessKey: os.Getenv(s3SecretEnv),
+			},
+		})
+		if err != nil {
+			return nil, "", nil, err
+		}
+		return client, a.S3Bucket, func() {}, nil
+	}
+
+	// Reach a directory over SFTP.
+	if a.SFTPAddr == "" || a.SFTPUser == "" || a.SFTPHostKey == "" || a.SFTPRoot == "" {
+		return nil, "", nil, errors.New("name the store with --s3-endpoint and --s3-bucket, or --sftp-addr, --sftp-user, --sftp-host-key and --sftp-root")
 	}
 	client, err := block_store_sftp.NewClient(block_store_sftp.Config{
 		Addr:     a.SFTPAddr,

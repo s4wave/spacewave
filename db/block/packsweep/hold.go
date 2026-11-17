@@ -151,6 +151,9 @@ const (
 	// StageRemoved is a pack the backend removed; it stays in the trash
 	// until the operator purges it.
 	StageRemoved
+	// StagePurged is a removed pack whose every object version the purge
+	// deleted; it can no longer be restored.
+	StagePurged
 )
 
 // String names the stage.
@@ -166,6 +169,8 @@ func (s Stage) String() string {
 		return "moved"
 	case StageRemoved:
 		return "removed"
+	case StagePurged:
+		return "purged"
 	default:
 		return "unknown"
 	}
