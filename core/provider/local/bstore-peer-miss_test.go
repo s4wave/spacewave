@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -35,7 +34,7 @@ func (f *flakyPeers) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 // peerRead reads ref through a peerMissLog over peers.
 func peerRead(t *testing.T, peers block.StoreOps) (*block.StoredBlock, time.Duration, error) {
 	t.Helper()
-	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), seen: &sync.Map{}}
+	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), seen: newSeenRefs()}
 	ref := block.NewBlockRef(nil)
 	started := time.Now()
 	blk, err := p.GetStoredBlock(context.Background(), ref)
@@ -109,7 +108,7 @@ func (h *hangingPeers) GetBlockExistsBatch(ctx context.Context, _ []*block.Block
 // reports the block absent at once without asking a peer that never answers.
 func TestPeerExistsAsksNoPeer(t *testing.T) {
 	peers := &hangingPeers{}
-	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), seen: &sync.Map{}}
+	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), seen: newSeenRefs()}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	ref := block.NewBlockRef(nil)
@@ -130,7 +129,7 @@ func TestPeerExistsAsksNoPeer(t *testing.T) {
 func TestPeerReadDeferred(t *testing.T) {
 	want := &block.StoredBlock{Data: []byte("served")}
 	peers := &flakyPeers{blk: want}
-	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), seen: &sync.Map{}}
+	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), seen: newSeenRefs()}
 	ref := block.NewBlockRef(nil)
 	reads := block.NewPeerReads()
 	ctx := block.WithPeerReads(context.Background(), reads)
@@ -337,5 +336,30 @@ func TestPeerReadFailCauses(t *testing.T) {
 				t.Fatalf("read after failures: %v %v, %d reads after %d", blk, err, peers.reads.Load(), asked)
 			}
 		})
+	}
+}
+
+// TestPeerFailOnceBounded checks that the once-per-block set forgets its
+// oldest ref past seenRefsCap, and that site names only main module frames.
+func TestPeerFailOnceBounded(t *testing.T) {
+	s := newSeenRefs()
+	for i := range seenRefsCap + 1 {
+		if !s.add(fmt.Sprint(i)) {
+			t.Fatalf("ref %d counted as seen before it was added", i)
+		}
+	}
+	if len(s.keys) != seenRefsCap || s.add(fmt.Sprint(seenRefsCap)) || !s.add("0") {
+		t.Fatalf("set holds %d refs, want the newest %d", len(s.keys), seenRefsCap)
+	}
+	for fn, want := range map[string]bool{
+		"example.com/app/backend.(*srv).read":   true,
+		"example.com/app.Run":                   true,
+		"main.main":                             true,
+		"example.com/application/x.Read":        false,
+		"github.com/aperturerobotics/util/x.Go": false,
+	} {
+		if inModule(fn, "example.com/app") != want {
+			t.Errorf("inModule(%q) = %v, want %v", fn, !want, want)
+		}
 	}
 }

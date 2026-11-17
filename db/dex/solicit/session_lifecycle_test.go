@@ -294,6 +294,9 @@ func TestPeerBlockFanoutDeadlineClearsPendingRequests(t *testing.T) {
 	if !errors.Is(err, block.ErrUnavailable) || !errors.Is(err, ErrPeerError) || !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("fanout error %v lost a peer's cause", err)
 	}
+	if got := relayError(err); got != ErrPeerError.Error() {
+		t.Fatalf("relay sends %q for %v, want the cause alone", got, err)
+	}
 	recvTestDexValue(t, received, "deadline request")
 	waitTestDexCondition(t, "slow pending request to clear after caller deadline", func() bool {
 		return testDexPendingLen(slow) == 0

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -56,8 +55,8 @@ type peerMissLog struct {
 	block.StoreOps
 	// le logs the misses.
 	le *logrus.Entry
-	// seen holds the refs already logged, keyed by their marshaled string.
-	seen *sync.Map
+	// seen holds the refs already logged, at most seenRefsCap of them.
+	seen *seenRefs
 	// peers returns the unscoped peer store, which a read deferred by
 	// block.WithPeerReads fetches from after its read scope ends.
 	peers func() block.StoreOps
@@ -68,7 +67,7 @@ type peerMissLog struct {
 // newPeerMissSource wraps peers so each block that reaches it is logged once.
 // Each peer read counts its outcome in counts, which may be nil.
 func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, counts *peerReadCounts) func() block.StoreOps {
-	seen := &sync.Map{}
+	seen := newSeenRefs()
 	return func() block.StoreOps {
 		store := peers()
 		if store == nil {
@@ -270,7 +269,7 @@ func peerReadErr(ctx context.Context, err error) error {
 // logMiss warns the first time ref reaches the peers.
 func (p *peerMissLog) logMiss(ref *block.BlockRef) {
 	key := ref.MarshalString()
-	if _, loaded := p.seen.LoadOrStore(key, struct{}{}); loaded {
+	if !p.seen.add(key) {
 		return
 	}
 	p.le.WithField("ref", key).Warn("block missing from the local store, the backend and the fallback; asking peers")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 
@@ -60,20 +61,29 @@ func peerFailCause(err error) peerCause {
 const peerSiteDepth = 64
 
 // peerFailSeen holds the refs whose failed peer read this process has
-// warned of, keyed by their marshaled string. It grows by one entry per
-// distinct block that fails, which stays small while peers serve the World.
-var peerFailSeen sync.Map
+// warned of, the last seenRefsCap of them, for every World in the process.
+var peerFailSeen = newSeenRefs()
+
+// mainModule is the import path of the binary's main module, or "" when the
+// binary carries no build info.
+var mainModule = sync.OnceValue(func() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	return info.Main.Path
+})
 
 // warnPeerFailed warns the first time this process fails a peer read of ref
 // while its caller waited. The warning carries the ref, the cause and two
-// function names from the reader's stack: site, the innermost frame outside
-// Spacewave and the standard library, which names the application code that
-// asked, and root, the outermost frame walked, which names the goroutine the
+// function names from the reader's stack: site, the innermost frame in the
+// binary's main module, which names the application code that asked, and
+// root, the outermost frame walked, which names the goroutine the
 // read ran in. It runs only on the failure path, and walks the stack only for
 // a block's first failure.
 func warnPeerFailed(le *logrus.Entry, ref *block.BlockRef, cause peerCause) {
 	key := ref.MarshalString()
-	if _, loaded := peerFailSeen.LoadOrStore(key, struct{}{}); loaded {
+	if !peerFailSeen.add(key) {
 		return
 	}
 	site, root := readerSite()
@@ -85,19 +95,22 @@ func warnPeerFailed(le *logrus.Entry, ref *block.BlockRef, cause peerCause) {
 }
 
 // readerSite walks at most peerSiteDepth frames of the caller's stack and
-// returns the innermost frame outside Spacewave and the standard library,
-// and the outermost frame other than the runtime's. Either is "-" when the
-// walk found none.
+// returns the innermost frame in the main module, and the outermost frame
+// other than the runtime's. Either is "-" when the walk found none.
 func readerSite() (site, root string) {
+	// Capture the stack above warnPeerFailed.
 	var pcs [peerSiteDepth]uintptr
 	frames := runtime.CallersFrames(pcs[:runtime.Callers(3, pcs[:])])
+	mod := mainModule()
+
+	// Keep the innermost main module frame and the outermost frame.
 	site, root = "-", "-"
 	for {
 		frame, more := frames.Next()
 		fn := frame.Function
 		if fn != "" && !strings.HasPrefix(fn, "runtime.") {
 			root = fn
-			if site == "-" && appFrame(fn) {
+			if site == "-" && inModule(fn, mod) {
 				site = fn
 			}
 		}
@@ -107,12 +120,13 @@ func readerSite() (site, root string) {
 	}
 }
 
-// appFrame reports whether the function fn is outside Spacewave and the
-// standard library, whose import paths start with no domain.
-func appFrame(fn string) bool {
-	if strings.HasPrefix(fn, "github.com/s4wave/spacewave/") {
-		return false
+// inModule reports whether the function fn is in the module whose path is
+// mod, which holds the binary's package main as well as mod's own packages.
+func inModule(fn, mod string) bool {
+	// Accept package main, then any package under mod.
+	if strings.HasPrefix(fn, "main.") {
+		return true
 	}
-	host, _, found := strings.Cut(fn, "/")
-	return found && strings.Contains(host, ".")
+	rest, ok := strings.CutPrefix(fn, mod)
+	return ok && mod != "" && (strings.HasPrefix(rest, "/") || strings.HasPrefix(rest, "."))
 }
