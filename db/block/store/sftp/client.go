@@ -406,14 +406,14 @@ func (c *Client) do(ctx context.Context, fn func(cn *conn) error) error {
 // when the slot has none. A call whose slot cannot connect runs again on a
 // connected slot it has not tried, so a server that refuses some sessions
 // serves the call on the others; a retry never dials, so a server that
-// refuses every session costs one dial's attempts, not one per slot. It returns fn's result, or the context's cause when
-// ctx ends first; fn then runs on and holds its lane until the server
+// refuses every session costs one dial's attempts, not one per slot. It
+// returns fn's result, or the context's cause when ctx ends first; fn then runs on and holds its lane until the server
 // answers, so the lanes count every request the server holds.
 func (c *Client) doOn(ctx context.Context, name string, fn func(cn *conn) error) error {
 	// Each retry is refused at once by a slot without a connection, so a
 	// retry that lands on one again, when no preferred lane is free, costs
 	// nothing; the attempts are bounded all the same.
-	var tried []*slot
+	tried := make(map[*slot]bool, len(c.slots))
 	for attempt := 1; ; attempt++ {
 		// Run once, and return any result but a refused connection.
 		err := c.doOnce(ctx, name, tried, fn)
@@ -423,9 +423,7 @@ func (c *Client) doOn(ctx context.Context, name string, fn func(cn *conn) error)
 		}
 
 		// Avoid the refusing slot, and stop once every slot refused.
-		if !slices.Contains(tried, connectErr.slot) {
-			tried = append(tried, connectErr.slot)
-		}
+		tried[connectErr.slot] = true
 		if len(tried) == len(c.slots) {
 			return err
 		}
@@ -434,7 +432,7 @@ func (c *Client) doOn(ctx context.Context, name string, fn func(cn *conn) error)
 
 // doOnce runs fn on one lane, preferring a slot with name open and avoiding
 // the slots tried. A ConnectError it returns names the slot that failed.
-func (c *Client) doOnce(ctx context.Context, name string, tried []*slot, fn func(cn *conn) error) error {
+func (c *Client) doOnce(ctx context.Context, name string, tried map[*slot]bool, fn func(cn *conn) error) error {
 	// Refuse a call whose caller already left.
 	if ctx.Err() != nil {
 		return context.Cause(ctx)
@@ -445,7 +443,7 @@ func (c *Client) doOnce(ctx context.Context, name string, tried []*slot, fn func
 	var prefer func(*slot) bool
 	switch {
 	case len(tried) != 0:
-		prefer = func(s *slot) bool { return !slices.Contains(tried, s) && s.connected() }
+		prefer = func(s *slot) bool { return !tried[s] && s.connected() }
 	case name != "":
 		prefer = func(s *slot) bool { return s.hasOpen(name) }
 	}

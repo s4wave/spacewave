@@ -208,6 +208,7 @@ func (t *sobjectTracker) resolveRejoinRecoveryMaterial(
 	cli *SessionClient,
 	currentEpoch uint64,
 ) (*sobject.SOEntityRecoveryMaterial, error) {
+	// Load the cached envelope; it serves only for this entity at currentEpoch.
 	cachedEnv, err := t.a.loadRecoveryEnvelopeCache(ctx, soID)
 	if err != nil {
 		t.a.le.WithError(err).WithField("sobject-id", soID).
@@ -218,6 +219,7 @@ func (t *sobjectTracker) resolveRejoinRecoveryMaterial(
 		cachedEnv.GetKeyEpoch() == currentEpoch &&
 		(cachedEnv.GetEntityId() == "" || cachedEnv.GetEntityId() == t.a.accountID)
 
+	// Decrypt the cached envelope, clearing it when it no longer decrypts.
 	if envCacheValid {
 		material, err := t.decryptRecoveryEnvelope(ctx, cachedEnv)
 		if err == nil {
@@ -235,6 +237,7 @@ func (t *sobjectTracker) resolveRejoinRecoveryMaterial(
 			Debug("cached recovery envelope failed to decrypt; refetching")
 	}
 
+	// Fetch, check and decrypt the current envelope, then cache it.
 	fetchedEnv, err := cli.GetSORecoveryEnvelope(ctx, soID)
 	if err != nil {
 		return nil, err
@@ -259,6 +262,7 @@ func (t *sobjectTracker) decryptRecoveryEnvelope(
 	ctx context.Context,
 	env *sobject.SOEntityRecoveryEnvelope,
 ) (*sobject.SOEntityRecoveryMaterial, error) {
+	// Decrypt with the account's decoder, refusing material for another entity.
 	decoder, err := t.a.GetSharedObjectRecoveryDecoder(ctx)
 	if err != nil {
 		return nil, err

@@ -173,6 +173,8 @@ func (c *Client) PutObject(ctx context.Context, bucket, key string, data []byte,
 	_, _ = rand.Read(tag)
 	tmp := dir + tempPrefix + hex.EncodeToString(tag) + "-" + base
 
+	// Store and rename on one connection, and record the size only once the
+	// object is in place.
 	err := c.do(ctx, func(conn *ftp.ServerConn, _ *slot) error {
 		// Upload the temporary file, creating the directories it needs.
 		err := conn.Stor(tmp, bytes.NewReader(data))
