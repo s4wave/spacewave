@@ -452,10 +452,10 @@ func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, view *Manifest
 		if s.locator != nil && s.locator.Indexed(item.entry.GetId()) {
 			return true
 		}
-		if s.failures.backingOff(item.entry.GetId()) {
+		if item.filter != nil && !slices.ContainsFunc(bloomKeys, item.filter.TestKey) {
 			return true
 		}
-		if item.filter == nil || slices.ContainsFunc(bloomKeys, item.filter.TestKey) {
+		if !s.failures.backingOff(item.entry.GetId()) {
 			candidates = append(candidates, item.entry)
 		}
 		return true
@@ -613,9 +613,10 @@ func unlocatedCandidates(view *ManifestSnapshot, key []byte, tried []*manifestEn
 
 // probeStopped reports whether a probe error ends the lookup instead of
 // passing over one pack: a reader closed by a manifest change, which
-// restarts the lookup, or a stopped context.
+// restarts the lookup, a closed store, or a stopped context. A stopped probe
+// records no pack failure.
 func probeStopped(ctx context.Context, err error) bool {
-	return err != nil && (errors.Is(err, ErrPackReaderClosed) || ctx.Err() != nil)
+	return err != nil && (errors.Is(err, ErrPackReaderClosed) || errors.Is(err, ErrPackfileStoreClosed) || ctx.Err() != nil)
 }
 
 // probeList probes candidates in order until one holds the block, setting
