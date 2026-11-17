@@ -143,8 +143,8 @@ func TestQuarantineStatLifts(t *testing.T) {
 
 // TestQuarantineMoves checks the moves the states refuse, the command's lift,
 // the miss a trashing pack records, the held packs Packs reports, and that a
-// remove forgets the pack's row. KeepsBlocks reports false while any pack is
-// held.
+// remove forgets the pack's row. KeepsBlocks stays true while packs are held,
+// and only their blocks stop locating.
 func TestQuarantineMoves(t *testing.T) {
 	eachIndexVolume(t, func(t *testing.T, kind string) {
 		ctx := t.Context()
@@ -171,19 +171,24 @@ func TestQuarantineMoves(t *testing.T) {
 		}
 
 		// The command's lift records no block. While the packs are held the
-		// store does not report that it keeps its blocks.
-		if !s.KeepsBlocks() {
-			t.Fatal("a store with no held pack reports it may reclaim blocks")
-		}
+		// store still keeps its blocks, the held packs' blocks locate nowhere,
+		// and a pack it does not hold still places every block.
+		c := adoptBlocks(ctx, t, s, "c", 2)
 		if err := s.Quarantine(ctx, []string{packA, packB}); err != nil {
 			t.Fatal(err)
 		}
-		if s.KeepsBlocks() {
-			t.Fatal("a store with quarantined packs reports it keeps its blocks")
+		if !s.KeepsBlocks() {
+			t.Fatal("a store with quarantined packs reports it may reclaim blocks")
+		}
+		if locatedAny(t, s, append(slices.Clone(a), b...)) {
+			t.Fatal("a quarantined pack places a block")
+		}
+		if got, err := s.LocateBlocks(ctx, c); err != nil || slices.Contains(got, false) {
+			t.Fatalf("LocateBlocks of an unheld pack = %v, %v; want every block placed", got, err)
 		}
 		packs, err := s.Packs(ctx)
-		if err != nil || len(packs) != 2 {
-			t.Fatalf("Packs = %d packs, %v; want both held packs", len(packs), err)
+		if err != nil || len(packs) != 3 {
+			t.Fatalf("Packs = %d packs, %v; want the held packs and pack c", len(packs), err)
 		}
 		if err := s.Lift(ctx, []string{packA, packA}); err != nil {
 			t.Fatal(err)

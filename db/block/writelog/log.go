@@ -217,7 +217,7 @@ func (l *Log) miss() {
 		l.marker.Lock()
 		defer l.marker.Unlock()
 		if _, durable := retireMarker(*dir); !durable {
-			l.le.WithField("dir", *dir).Error("write log: a missed write could not retire the resume marker")
+			l.le.WithField("dir", *dir).Error(stuckMarker)
 		}
 	}
 }
@@ -266,7 +266,11 @@ func (l *Log) claim(dir string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	l.closed, l.resumable = takeMarker(dir)
+	var retired bool
+	l.closed, l.resumable, retired = takeMarker(dir)
+	if !retired {
+		l.le.WithField("dir", dir).Error(stuckMarker)
+	}
 	l.claimed.Store(&dir)
 	return nil
 }
@@ -530,7 +534,7 @@ func (l *Log) markResumable() error {
 	}
 	if l.missed.Load() {
 		if _, durable := retireMarker(*dir); !durable {
-			l.le.WithField("dir", *dir).Error("write log: the resume marker could not be retired")
+			l.le.WithField("dir", *dir).Error(stuckMarker)
 		}
 		return nil
 	}
