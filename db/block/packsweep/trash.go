@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
-	"github.com/s4wave/spacewave/db/kvtx"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -23,10 +22,8 @@ const moveRecordBatch = 256
 
 // TrashOptions configures Trash.
 type TrashOptions struct {
-	// Store is the scratch store.
-	Store kvtx.Store
-	// Backend is the backend's side of the cycle.
-	Backend Backend
+	// CoverOptions pulls the log and walks W before any pack moves.
+	CoverOptions
 	// Mover moves the packs' objects within the store's bucket.
 	Mover block_store_s3.ObjectMover
 	// Bucket is the store's bucket.
@@ -49,6 +46,11 @@ type TrashResult struct {
 	// Missed is the trashing packs a read missed after their move, left for
 	// restore.
 	Missed uint64
+	// Live is the packs holding a key some root reached since their pass:
+	// the quarantined are lifted, and the trashing left for restore.
+	Live uint64
+	// Blocked is why no pack moved, empty when the log let them.
+	Blocked string
 }
 
 // JSON describes the trash step.
@@ -58,6 +60,8 @@ func (r *TrashResult) JSON(a *fastjson.Arena) *fastjson.Value {
 		jsonField{"lifted", jsonUint(a, r.Lifted)},
 		jsonField{"gone", jsonUint(a, r.Gone)},
 		jsonField{"missed", jsonUint(a, r.Missed)},
+		jsonField{"live", jsonUint(a, r.Live)},
+		jsonField{"blocked", a.NewString(r.Blocked)},
 	)
 }
 
@@ -69,6 +73,11 @@ func (r *TrashResult) JSON(a *fastjson.Arena) *fastjson.Value {
 // cleanly, so a run killed anywhere resumes: a move whose source is gone and
 // whose destination is there counts as done. A pack lifted between the status
 // and the backend's call fails that call, and the next run drops it.
+//
+// A pass is not final. After reading the packs' states, Trash pulls the log
+// and walks W, as the recheck does, and checks each pack again: a quarantined
+// pack holding a key in L or W is lifted, and a trashing one is marked live
+// and left for restore.
 func Trash(ctx context.Context, opts *TrashOptions) (*TrashResult, error) {
 	// Take the passed and trashing packs, and read their states.
 	records, err := readPackRecords(ctx, opts.Store)
@@ -104,6 +113,8 @@ func Trash(ctx context.Context, opts *TrashOptions) (*TrashResult, error) {
 			res.Lifted++
 		case h.State == PackTrashing && !h.Event.IsZero():
 			res.Missed++
+		case h.State == PackTrashing && p.Wait == MarkLive:
+			res.Live++
 		case h.State == PackTrashing:
 			move = append(move, p)
 		case h.State == PackQuarantined:
@@ -114,6 +125,12 @@ func Trash(ctx context.Context, opts *TrashOptions) (*TrashResult, error) {
 	}
 	if err := writePackRecords(ctx, opts.Store, nil, del); err != nil {
 		return nil, err
+	}
+
+	// Check the packs again against the log pulled now, and keep the live.
+	begin, move, err = recheckTrash(ctx, opts, status, begin, move, res)
+	if err != nil || res.Blocked != "" {
+		return res, err
 	}
 
 	// Begin trashing a batch at a time, then move every trashing pack.
@@ -129,6 +146,53 @@ func Trash(ctx context.Context, opts *TrashOptions) (*TrashResult, error) {
 		}
 	}
 	return res, nil
+}
+
+// recheckTrash checks the packs to begin and to move against the log pulled
+// now, and returns those still removable. It lifts a live quarantined pack and
+// drops its record, and marks a live trashing pack for restore. It sets
+// res.Blocked, with nothing changed, when the log does not cover the cycle.
+func recheckTrash(ctx context.Context, opts *TrashOptions, status *BackendStatus, begin, move []*PackRecord, res *TrashResult) ([]*PackRecord, []*PackRecord, error) {
+	// Check every pack the step would act on.
+	check := append(slices.Clip(begin), move...)
+	ok, blocked, err := stillRemovable(ctx, &opts.CoverOptions, status, check)
+	if err != nil || blocked != "" {
+		res.Blocked = blocked
+		return nil, nil, err
+	}
+
+	// Keep the removable, and split off the live by state.
+	var keepBegin, keepMove, marked []*PackRecord
+	var lift []string
+	for i, p := range check {
+		switch {
+		case ok[i] && i < len(begin):
+			keepBegin = append(keepBegin, p)
+		case ok[i]:
+			keepMove = append(keepMove, p)
+		case i < len(begin):
+			lift = append(lift, p.ID)
+		default:
+			p.Wait = MarkLive
+			marked = append(marked, p)
+		}
+	}
+	res.Live += uint64(len(lift) + len(marked))
+
+	// Mark the live trashing packs, then lift the live quarantined ones and
+	// drop their records.
+	if err := writePackRecords(ctx, opts.Store, marked, nil); err != nil {
+		return nil, nil, err
+	}
+	for batch := range slices.Chunk(lift, MaxBackendPacks) {
+		if _, err := opts.Backend.Lift(ctx, batch); err != nil {
+			return nil, nil, errors.Wrap(err, "lift the live packs")
+		}
+		if err := writePackRecords(ctx, opts.Store, nil, batch); err != nil {
+			return nil, nil, err
+		}
+	}
+	return keepBegin, keepMove, nil
 }
 
 // beginTrashBatch records a batch of passed packs as trashing, then has the

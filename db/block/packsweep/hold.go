@@ -154,6 +154,11 @@ const (
 	// StagePurged is a removed pack whose every object version the purge
 	// deleted; it can no longer be restored.
 	StagePurged
+	// StageRestoring is a pack the restore is bringing back, recorded before
+	// its first move. Only the restore acts on it, and repeats until the
+	// backend reads the pack again, so a restore killed anywhere never leaves
+	// a record the removal or the purge would act on.
+	StageRestoring
 )
 
 // String names the stage.
@@ -171,6 +176,8 @@ func (s Stage) String() string {
 		return "removed"
 	case StagePurged:
 		return "purged"
+	case StageRestoring:
+		return "restoring"
 	default:
 		return "unknown"
 	}
@@ -188,6 +195,21 @@ const (
 	// WaitOpenRead is a read operation open since before the quarantine: it
 	// may hold a block of the pack it read without the fallback.
 	WaitOpenRead = "open-read"
+)
+
+// Marks the moving steps leave on a pack past its pass, in its record's Wait.
+const (
+	// MarkLive is a trashing pack that gained a live key after its pass. The
+	// trash and the removal leave it, and the restore brings it back.
+	MarkLive = "live"
+	// MarkRemoving is a moved pack the removal asked the backend to drop: a
+	// run killed after the call finds it absent and records it removed.
+	MarkRemoving = "removing"
+	// MarkAbsent is a moved pack the backend reported absent before the
+	// removal asked it to drop it, as after the index was rebuilt from a
+	// backup older than the pack. The removal leaves it moved, so the purge
+	// never deletes it, and a restore naming it adopts it.
+	MarkAbsent = "absent"
 )
 
 // PackRecord is the command's record of a pack it moved. Records stay across
@@ -574,16 +596,10 @@ func Recheck(ctx context.Context, opts *RecheckOptions) (*RecheckResult, error) 
 	}
 
 	// Cover the cycle from R after the status, in the epoch the log is in.
-	head, blocked, err := cover(ctx, &opts.CoverOptions)
+	blocked, err := coverSince(ctx, &opts.CoverOptions, status)
 	if err != nil || blocked != "" {
 		res.Blocked = blocked
 		return res, err
-	}
-	if r, err := writelog.ParsePosition(head.LogPosition); err != nil {
-		return nil, err
-	} else if !status.LogOn || status.LogEpoch != r.Epoch {
-		res.Blocked = BlockLogGap
-		return res, nil
 	}
 
 	// Judge each pack, then write the records and lift the live packs.
@@ -716,6 +732,60 @@ func recheckBatch(ctx context.Context, opts *RecheckOptions, records []*PackReco
 	}
 	res.Live += uint64(len(ids))
 	return writePackRecords(ctx, opts.Store, nil, ids)
+}
+
+// coverSince pulls the log to its open end and walks W, as cover does, and
+// returns why no pack may move, empty when one may: a hole, or a log whose
+// epoch differs from the one status was read in, or that was off then. The
+// caller reads status first, so every write that ended before it is in W.
+func coverSince(ctx context.Context, opts *CoverOptions, status *BackendStatus) (string, error) {
+	// Pull the log and walk W.
+	head, blocked, err := cover(ctx, opts)
+	if err != nil || blocked != "" {
+		return blocked, err
+	}
+
+	// Require the status's epoch to be the cycle's.
+	r, err := writelog.ParsePosition(head.LogPosition)
+	if err != nil {
+		return "", err
+	}
+	if !status.LogOn || status.LogEpoch != r.Epoch {
+		return BlockLogGap, nil
+	}
+	return "", nil
+}
+
+// stillRemovable checks the packs again against the log pulled now: it
+// returns why none may move, as coverSince does, or for each record whether
+// none of its keys is in L or W. status is the packs' states, read before
+// this call. A step that moves a pack calls it after reading status and
+// before the move, so no pass is final: a key some root reached after the
+// recheck keeps the pack.
+func stillRemovable(ctx context.Context, opts *CoverOptions, status *BackendStatus, records []*PackRecord) ([]bool, string, error) {
+	// Cover the cycle since status.
+	if len(records) == 0 {
+		return nil, "", nil
+	}
+	blocked, err := coverSince(ctx, opts, status)
+	if err != nil || blocked != "" {
+		return nil, blocked, err
+	}
+
+	// Test each batch of packs' keys.
+	ok := make([]bool, 0, len(records))
+	for batch := range slices.Chunk(records, MaxBackendPacks) {
+		ids := make([]string, len(batch))
+		for i, p := range batch {
+			ids[i] = p.ID
+		}
+		batchOK, err := removablePacks(ctx, opts.Store, ids)
+		if err != nil {
+			return nil, "", err
+		}
+		ok = append(ok, batchOK...)
+	}
+	return ok, "", nil
 }
 
 // holdWait returns why a quarantined pack waits another round, empty for

@@ -69,7 +69,7 @@ func TestTrashRemove(t *testing.T) {
 	h := newHoldFixture(t)
 	passed := h.passAll(t)
 	const prefix = "v2/"
-	opts := &TrashOptions{Store: h.store, Backend: h.backend, Mover: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Moves: 1}
+	opts := &TrashOptions{CoverOptions: *h.opts, Mover: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Moves: 1}
 
 	// A read lifts one passed pack, and a trash killed after the backend's
 	// call leaves the rest trashing.
@@ -120,7 +120,7 @@ func TestTrashRemove(t *testing.T) {
 	defer func(round, weight int) { removeRoundKeys, removeCallWeight = round, weight }(removeRoundKeys, removeCallWeight)
 	removeRoundKeys, removeCallWeight = 15, 7
 	at := time.Unix(2_000_000, 0).UTC()
-	ropts := &RemoveOptions{Store: h.store, Backend: h.backend, Now: func() time.Time { return at }}
+	ropts := &RemoveOptions{CoverOptions: *h.opts, Now: func() time.Time { return at }}
 	h.backend.failRemove = true
 	if _, err := Remove(ctx, ropts); err == nil {
 		t.Fatal("killed removal returned no error")
@@ -263,6 +263,75 @@ func TestTrashRemove(t *testing.T) {
 	}
 }
 
+// TestTrashRecheck shows a pass is not final: a block a root reaches after a
+// pack's recheck keeps the pack. The trash lifts a passed pack holding it, and
+// leaves a trashing one for restore; the removal leaves a moved one for
+// restore; the restore brings both back.
+func TestTrashRecheck(t *testing.T) {
+	ctx := t.Context()
+	h := newHoldFixture(t)
+	passed := h.passAll(t)
+	const prefix = "v2/"
+	ropts := &RestoreOptions{TrashOptions: TrashOptions{CoverOptions: *h.opts, Mover: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Moves: 1}}
+	opts := &ropts.TrashOptions
+	within := func(ids, set []string) []string {
+		return slices.DeleteFunc(ids, func(id string) bool { return !slices.Contains(set, id) })
+	}
+	without := func(set, ids []string) []string {
+		return slices.DeleteFunc(slices.Clone(set), func(id string) bool { return slices.Contains(ids, id) })
+	}
+
+	// A link after the pass lifts the passed packs holding its block; a
+	// trash killed after the backend's call leaves the rest trashing.
+	lifted := h.relink(t, passed...)
+	h.backend.failBeginTrash = true
+	if _, err := Trash(ctx, opts); err == nil {
+		t.Fatal("killed trash returned no error")
+	}
+	trashing := without(passed, lifted)
+	for _, id := range lifted {
+		if _, ok := recordsByID(t, h.store)[id]; ok || h.backend.hold(id).State != PackRegistered {
+			t.Fatalf("relinked passed pack %s was not lifted: %v", id, h.backend.hold(id))
+		}
+	}
+
+	// A link to a trashing pack leaves it unmoved and marked for restore.
+	liveTrash := within(h.relink(t, trashing...), trashing)
+	res, err := Trash(ctx, opts)
+	if err != nil || res.Live != uint64(len(liveTrash)) || res.Moved != uint64(len(trashing)-len(liveTrash)) { //nolint:gosec // test counts.
+		t.Fatalf("trash = %+v, %v, want %d live", res, err, len(liveTrash))
+	}
+	for _, id := range liveTrash {
+		if rec := recordsByID(t, h.store)[id]; rec.Stage != StageTrash || rec.Wait != MarkLive || !h.objectAt(t, block_store_s3.PackObjectKey(prefix, id)) {
+			t.Fatalf("relinked trashing pack %s: %+v", id, rec)
+		}
+	}
+
+	// A link to a moved pack keeps the removal from removing it.
+	moved := without(trashing, liveTrash)
+	liveMoved := within(h.relink(t, moved...), moved)
+	got, err := Remove(ctx, &RemoveOptions{CoverOptions: *h.opts})
+	if err != nil || got.Live != uint64(len(liveMoved)) || got.Removed != uint64(len(moved)-len(liveMoved)) { //nolint:gosec // test counts.
+		t.Fatalf("removal = %+v, %v, want %d live", got, err, len(liveMoved))
+	}
+	for _, id := range liveMoved {
+		if h.backend.removed[id] {
+			t.Fatalf("the removal removed relinked pack %s", id)
+		}
+	}
+
+	// The restore brings back every pack marked live, unnamed.
+	back, err := Restore(ctx, ropts)
+	if err != nil || back.Restored != uint64(len(liveTrash)+len(liveMoved)) { //nolint:gosec // test counts.
+		t.Fatalf("restore = %+v, %v", back, err)
+	}
+	for _, id := range append(liveTrash, liveMoved...) {
+		if h.backend.hold(id).State != PackRegistered || !h.objectAt(t, block_store_s3.PackObjectKey(prefix, id)) {
+			t.Fatalf("relinked pack %s is not back", id)
+		}
+	}
+}
+
 // TestRestore returns the trashing packs reads missed to the store, at each
 // point the trash leaves them: before any move, between the entry and the
 // file, and after both. A restore killed mid-move and one killed after the
@@ -273,7 +342,7 @@ func TestRestore(t *testing.T) {
 	h := newHoldFixture(t)
 	passed := h.passAll(t)
 	const prefix = "v2/"
-	ropts := &RestoreOptions{TrashOptions: TrashOptions{Store: h.store, Backend: h.backend, Mover: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Moves: 1}}
+	ropts := &RestoreOptions{TrashOptions: TrashOptions{CoverOptions: *h.opts, Mover: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Moves: 1}}
 	opts := &ropts.TrashOptions
 	miss := func(id string) {
 		h.backend.holds[id] = PackHold{ID: id, State: PackTrashing, Since: h.backend.now, Event: h.backend.now}
@@ -355,7 +424,7 @@ func TestRestore(t *testing.T) {
 	// Remove the rest; a restore naming one moves it back and adopts it with
 	// the keys its own index lists, a killed one resumes, and a repeat
 	// refuses it, since its record is gone.
-	if got, err := Remove(ctx, &RemoveOptions{Store: h.store, Backend: h.backend}); err != nil || got.Removed != uint64(len(passed)-4) { //nolint:gosec // test counts.
+	if got, err := Remove(ctx, &RemoveOptions{CoverOptions: *h.opts}); err != nil || got.Removed != uint64(len(passed)-4) { //nolint:gosec // test counts.
 		t.Fatalf("removal = %+v, %v", got, err)
 	}
 	gone := passed[4]
@@ -363,6 +432,24 @@ func TestRestore(t *testing.T) {
 	ropts.Mover = &failMover{ObjectMover: h.f.client, from: block_store_s3.TrashEntryKey(prefix, gone)}
 	if _, err := Restore(ctx, ropts); err == nil || h.backend.calls["adopt"] != 0 {
 		t.Fatal("killed adoption returned no error, or adopted")
+	}
+
+	// A purge past the wait after the killed adoption purges the other
+	// removed packs and leaves this one: its record left StageRemoved before
+	// the first move, so the file already back under its original key stays.
+	if rec := recordsByID(t, h.store)[gone]; rec.Stage != StageRestoring {
+		t.Fatalf("the killed adoption's record = %+v", rec)
+	}
+	late := func() time.Time { return time.Now().Add(2 * DefaultPurgeAfter) }
+	popts := &PurgeOptions{Store: h.store, Purger: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Now: late}
+	if got, err := Purge(ctx, popts); err != nil || got.Purged != uint64(len(passed)-5) { //nolint:gosec // test counts.
+		t.Fatalf("purge during the adoption = %+v, %v", got, err)
+	}
+	if rec := recordsByID(t, h.store)[gone]; rec.Stage != StageRestoring {
+		t.Fatalf("the purge changed the killed adoption's record to %+v", rec)
+	}
+	if !h.objectAt(t, block_store_s3.PackObjectKey(prefix, gone)) || !h.objectAt(t, block_store_s3.TrashEntryKey(prefix, gone)) {
+		t.Fatal("the purge deleted the pack the killed adoption began")
 	}
 	ropts.Mover = h.f.client
 	got, err = Restore(ctx, ropts)

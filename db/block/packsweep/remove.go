@@ -23,10 +23,9 @@ var (
 
 // RemoveOptions configures Remove.
 type RemoveOptions struct {
-	// Store is the scratch store, holding the snapshot's catalog.
-	Store kvtx.Store
-	// Backend is the backend's side of the cycle.
-	Backend Backend
+	// CoverOptions pulls the log and walks W before any pack is removed;
+	// its Store holds the snapshot's catalog.
+	CoverOptions
 	// Now returns the removal time; nil uses time.Now.
 	Now func() time.Time
 }
@@ -39,6 +38,14 @@ type RemoveResult struct {
 	// Missed is the moved packs a read missed, or that left the trashing
 	// state, left for restore.
 	Missed uint64
+	// Live is the moved packs holding a key some root reached since their
+	// pass, left for restore.
+	Live uint64
+	// Absent is the moved packs the backend no longer held before the removal
+	// asked it to drop them, left moved and never purged.
+	Absent uint64
+	// Blocked is why no pack was removed, empty when the log let them be.
+	Blocked string
 	// Rounds is the reads of the catalog's member rows the holders took.
 	Rounds uint64
 }
@@ -55,7 +62,9 @@ type removePack struct {
 	spilled []KeyHolders
 }
 
-// Remove has the backend remove each moved pack no read missed. It sends
+// Remove has the backend remove each moved pack no read missed and no root
+// reaches now: it reads the packs' states, then pulls the log and walks W, and
+// leaves a pack holding a key in L or W for restore. It sends
 // every key the snapshot lists in the pack with the other packs listing it,
 // leaving out the packs the sweep moved to the trash, so the backend points
 // each h row that names the pack at a holder it still reads, or deletes it.
@@ -93,15 +102,31 @@ func Remove(ctx context.Context, opts *RemoveOptions) (*RemoveResult, error) {
 		return nil, err
 	}
 
-	// Remove the trashing packs no read missed, and finish the absent ones a
-	// killed run dropped; leave the missed for restore.
-	var remove []*PackRecord
-	for i, p := range moved {
-		if h := status.Packs[i]; h.Absent || (h.State == PackTrashing && h.Event.IsZero()) {
+	// Sort the packs: finish the absent ones a killed removal dropped, check
+	// the trashing ones no read missed, and leave the rest for restore.
+	remove, check, err := sortRemove(ctx, opts, moved, status, res)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check the trashing packs against the log pulled now.
+	ok, blocked, err := stillRemovable(ctx, &opts.CoverOptions, status, check)
+	if err != nil || blocked != "" {
+		res.Blocked = blocked
+		return res, err
+	}
+	var live []*PackRecord
+	for i, p := range check {
+		if ok[i] {
 			remove = append(remove, p)
 			continue
 		}
-		res.Missed++
+		p.Wait = MarkLive
+		live = append(live, p)
+	}
+	res.Live += uint64(len(live))
+	if err := writePackRecords(ctx, opts.Store, live, nil); err != nil {
+		return nil, err
 	}
 
 	// Remove a round of packs at a time.
@@ -121,6 +146,36 @@ func Remove(ctx context.Context, opts *RemoveOptions) (*RemoveResult, error) {
 	return res, nil
 }
 
+// sortRemove sorts the moved packs by state. An absent pack the removal asked
+// the backend to drop is finished; one it never asked is left moved and marked
+// absent, so the purge never deletes it and a restore naming it adopts it. A
+// trashing pack no read missed and not marked live is returned to check. The
+// rest are left for restore.
+func sortRemove(ctx context.Context, opts *RemoveOptions, moved []*PackRecord, status *BackendStatus, res *RemoveResult) (remove, check []*PackRecord, err error) {
+	// Sort each pack by its state and its mark.
+	var absent []*PackRecord
+	for i, p := range moved {
+		h := status.Packs[i]
+		switch {
+		case h.Absent && p.Wait == MarkRemoving:
+			remove = append(remove, p)
+		case h.Absent:
+			if p.Wait != MarkAbsent {
+				p.Wait = MarkAbsent
+				absent = append(absent, p)
+			}
+			res.Absent++
+		case h.State == PackTrashing && h.Event.IsZero() && p.Wait != MarkLive:
+			check = append(check, p)
+		default:
+			res.Missed++
+		}
+	}
+
+	// Record the newly absent packs.
+	return remove, check, writePackRecords(ctx, opts.Store, absent, nil)
+}
+
 // recordRemoved records the packs removed at the options' time.
 func recordRemoved(ctx context.Context, opts *RemoveOptions, packs []*PackRecord, res *RemoveResult) error {
 	// Read the clock once for the batch.
@@ -132,7 +187,7 @@ func recordRemoved(ctx context.Context, opts *RemoveOptions, packs []*PackRecord
 
 	// Record each pack removed.
 	for _, p := range packs {
-		p.Stage, p.Removed = StageRemoved, at
+		p.Stage, p.Removed, p.Wait = StageRemoved, at, ""
 	}
 	res.Removed += uint64(len(packs))
 	return writePackRecords(ctx, opts.Store, packs, nil)
@@ -284,11 +339,15 @@ type removeCall struct {
 // send removes the call's packs, checks the backend answers each absent,
 // prunes the rows of their spilled keys, and records them removed.
 func (c *removeCall) send(ctx context.Context, opts *RemoveOptions, res *RemoveResult) error {
-	// Remove the packs.
+	// Mark the packs removing, then remove them.
 	ids := make([]string, len(c.packs))
 	recs := make([]*PackRecord, len(c.packs))
 	for i, p := range c.packs {
+		p.rec.Wait = MarkRemoving
 		ids[i], recs[i] = p.rec.ID, p.rec
+	}
+	if err := writePackRecords(ctx, opts.Store, recs, nil); err != nil {
+		return err
 	}
 	if err := removeCalled(ctx, opts, ids, c.keys); err != nil {
 		return err

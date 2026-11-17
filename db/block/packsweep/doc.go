@@ -33,8 +33,11 @@
 // reached block:
 //   - A pack object under the store's prefix leaves the store's listing only
 //     when two things hold. First, no key in its tail index is reached from
-//     the roots the backend lists (for the World, its head and the roots the
-//     head retains) or from a root the write log names. Second, since its
+//     the roots the backend lists or from a root the write log names. The
+//     backend lists every root its store holds, by walking the store's own
+//     owner nodes rather than a list of root kinds, with every restore point
+//     the operator can return the store to; a root it cannot read fails the
+//     listing, and no pack moves. Second, since its
 //     quarantine began, no h row named the pack's number in a lookup that
 //     served a read, a Has or a write's dedupe.
 //   - A quarantined pack is invisible to the index's Locate and extent
@@ -54,12 +57,25 @@
 //   - Where a pack's state is unsure (a log gap, a key with unknown refs, a
 //     hole the walk could not read and the operator did not accept), the pack
 //     stays.
+//   - A pass is not final. The trash, before the backend marks a pack
+//     trashing and before it moves a pack's objects, and the removal, before
+//     the backend drops a pack, each read the packs' states, then pull the log
+//     to its open end and walk W, and act only on packs none of whose keys is
+//     in L or W then. A pack a root reached since its recheck is lifted, or
+//     left trashing and marked for the restore.
+//   - A restore records a pack StageRestoring before it moves any of its
+//     objects, and the removal and the purge act on no pack at that stage. The
+//     command runs one step at a time on a scratch store, holding a lock
+//     beside it, so a purge never reads a pack removed that a restore is
+//     bringing back.
 //   - Pack ids are never reused, so a removed pack's keys name no later pack.
 //   - The purge deletes, by version id, only the objects of a pack removed
 //     for longer than its wait, and never falls back to a plain delete, which
 //     on a bucket that keeps old versions hides the current version and
 //     leaves it billed. A pack's record turns purged only after every
-//     version of its keys is gone.
+//     version of its keys is gone. No step that deletes an object falls back
+//     to a plain delete: a move deletes its source by version id, and a store
+//     that cannot list versions fails the step with the object kept.
 //
 // The scratch store's keys:
 //

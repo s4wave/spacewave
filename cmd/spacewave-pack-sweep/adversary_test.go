@@ -14,9 +14,11 @@ import (
 // from a new root, puts one again and links it, or reads one, the put and the
 // read as the write-back store logs and drains or fills them. A block it
 // linked or put before the trash reads through every later step and cycle,
-// and one it read before the trash reads at the cycle's end. A block it linked
-// or read after the trash may be gone, as the sweep's model allows: a restore
-// naming the cycle's removed packs brings each such block back.
+// though the recheck passed its pack before the link, since the trash checks
+// each pack again against the log pulled then; one it read before the trash
+// reads at the cycle's end. A block it linked or read after the trash may be
+// gone, as the sweep's model allows: a restore naming the cycle's removed
+// packs brings each such block back.
 func TestCommandAdversary(t *testing.T) {
 	commandRuns(t, testCommandAdversary)
 }
@@ -72,10 +74,11 @@ func (a *adversary) act(i int) {
 	}
 	ref := r.prey[0]
 	r.prey = r.prey[1:]
-	// A link is late once the recheck passed, before the trash; a read once
-	// the trash's last check passed, after it. A put is never late.
+	// A link or a read is late once the trash's last check passed, after
+	// it; a link before the trash comes after the recheck passed its pack,
+	// and the trash's own check keeps it. A put is never late.
 	kind := (r.cycles + i) % 3
-	late := (kind == 0 && i >= a.trashAt) || (kind == 2 && i > a.trashAt)
+	late := kind != 1 && i > a.trashAt
 	if late {
 		a.acts[3]++
 	}
