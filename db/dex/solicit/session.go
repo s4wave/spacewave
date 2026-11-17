@@ -2,6 +2,7 @@ package dex_solicit
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -299,7 +300,7 @@ func (s *peerSession) buildResponse(ctx context.Context, req *DexMessage) *DexMe
 	if hops > 0 {
 		found, err := s.c.forwardToPeers(ctx, ref, hops-1, s)
 		if err != nil {
-			resp.Error = err.Error()
+			resp.Error = relayError(err)
 			return resp
 		}
 		if found != nil {
@@ -307,6 +308,23 @@ func (s *peerSession) buildResponse(ctx context.Context, req *DexMessage) *DexMe
 		}
 	}
 	return resp
+}
+
+// relayError names the cause of a forwarded lookup's failure for the
+// requester: a peer's error, no peer session, or a timeout. It leaves out the
+// downstream peers' own error text, which the fanout joins, so the answer
+// stays one short string whatever the fanout and the hop count.
+func relayError(err error) string {
+	switch {
+	case errors.Is(err, ErrPeerError):
+		return ErrPeerError.Error()
+	case errors.Is(err, ErrNoPeerSession):
+		return ErrNoPeerSession.Error()
+	case errors.Is(err, context.DeadlineExceeded):
+		return context.DeadlineExceeded.Error()
+	default:
+		return "forwarded lookup failed"
+	}
 }
 
 // sendMessage queues a message for the session writer and waits for its write.
@@ -590,7 +608,7 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 			return nil, errSessionClosed
 		}
 		if resp.GetError() != "" {
-			return nil, errors.New(resp.GetError())
+			return nil, fmt.Errorf("%w: %s", ErrPeerError, resp.GetError())
 		}
 		if !resp.GetFound() {
 			return nil, nil

@@ -27,6 +27,7 @@ func TestPeerReadsWaitAcrossRestart(t *testing.T) {
 			logrus.NewEntry(logrus.New()),
 			func() block.StoreOps { return account.getP2PStore("b") },
 			func(ctx context.Context) block.StoreOps { return account.waitP2PStore(ctx, "b") },
+			nil,
 		)
 		if source() != nil {
 			t.Fatal("a source before any P2P sync reads peers")

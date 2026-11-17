@@ -82,6 +82,8 @@ type placementState struct {
 	reads readSet
 	// localHits counts the blocks the local store served.
 	localHits atomic.Uint64
+	// peerReads counts the peer reads by outcome and the blocks they filled.
+	peerReads peerReadCounts
 	// evictGate is held by each eviction pass and by a storage move.
 	evictGate *csync.Mutex
 	// evictAdmit paces eviction passes, or holds nil.
@@ -512,6 +514,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	placement.tracker, _ = t.a.vol.(childListReader)
 	placement.serveOnly = serveOnly.Load()
 	placement.peerUpload = !placement.serveOnly && peerFillsUpload.Load()
+
+	// Classify the blocks peers serve the placement until the mount ends.
+	placement.startPeerClassify(ctx)
 	if backend != nil {
 		if !placement.serveOnly {
 			placement.cache = t.fillCache()
@@ -583,7 +588,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	if !placement.serveOnly {
 		recorded = &readRecorder{StoreOps: recorded, reads: &placement.reads}
 	}
-	peers := t.peerSource(le, bucketID)
+	peers := t.peerSource(le, bucketID, &placement.peerReads)
 	if placement.serveOnly {
 		peers = func() block.StoreOps { return nil }
 	}
