@@ -27,7 +27,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20261110052155-7ec2cb5f95c8
 	github.com/aperturerobotics/cli v1.1.1-0.20261024231437-afc764ba6d68 // master
-	github.com/aperturerobotics/common v0.38.4-0.20261116035128-fbf25b5aed53
+	github.com/aperturerobotics/common v0.38.4
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20261117003208-0c6288548094 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20261024231300-09c82549af7a
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -119,8 +119,8 @@ require (
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
-	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20261003014807-d46d22154f35 // indirect
-	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260808023521-7b1595380c3f // indirect
+	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20261024221648-a1c7ae9a2bb8 // indirect
+	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20261024220153-869f5fcfca4f // indirect
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
