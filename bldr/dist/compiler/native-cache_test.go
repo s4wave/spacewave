@@ -57,8 +57,11 @@ func TestNativeAssetPackageCache(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Compile the package and capture the exported archive path.
-		cmd := exec.CommandContext(t.Context(), "go", "list", "-mod=mod", "-export", "-f", "{{.Export}}", ".")
+		// Compile the package and capture the exported archive path. A main
+		// package compiles in the module's build info, whose VCS stamp turns
+		// dirty when any other test leaves a file in the checkout; without
+		// -buildvcs=false that stamp, not the asset, would decide reuse.
+		cmd := exec.CommandContext(t.Context(), "go", "list", "-mod=mod", "-buildvcs=false", "-export", "-f", "{{.Export}}", ".")
 		cmd.Dir = dir
 		out, err := cmd.CombinedOutput()
 		if err != nil {
