@@ -157,7 +157,7 @@ func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int
 	return io.ReadAll(io.LimitReader(resp.Body, int64(length)))
 }
 
-// HeadObject returns the object's size and upload checksum.
+// HeadObject returns the object's size, upload checksum and time stored.
 // Returns ErrNotFound if the object does not exist.
 func (c *Client) HeadObject(ctx context.Context, bucket, key string) (*ObjectStat, error) {
 	// Ask for the object's metadata with its stored checksum.
@@ -170,8 +170,12 @@ func (c *Client) HeadObject(ctx context.Context, bucket, key string) (*ObjectSta
 		return nil, err
 	}
 
-	// Read the size and decode the checksum when the service reports one.
+	// Read the size and time, and decode the checksum when the service
+	// reports one.
 	stat := &ObjectStat{Size: resp.ContentLength}
+	if modified, err := http.ParseTime(resp.Header.Get("Last-Modified")); err == nil {
+		stat.LastModified = modified
+	}
 	if sum := resp.Header.Get(ChecksumSHA256Header); sum != "" {
 		stat.ChecksumSHA256, err = base64.StdEncoding.DecodeString(sum)
 		if err != nil {
