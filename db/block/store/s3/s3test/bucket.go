@@ -1,6 +1,6 @@
 // Package s3test serves an in-memory S3 bucket for tests of code that writes
 // objects: PUT, copy, ranged GET and HEAD, ListObjectsV2 by prefix, and the
-// versions of an overwritten key.
+// versions of an overwritten or hidden key.
 package s3test
 
 import (
@@ -57,6 +57,9 @@ type objectVersion struct {
 	id string
 	// data is its content.
 	data []byte
+	// marker is set on a delete marker, which hides the key and holds no
+	// content.
+	marker bool
 }
 
 // New serves an empty bucket until the test ends and returns it with a client
@@ -105,6 +108,18 @@ func (b *Bucket) RefuseVersions(refuse bool) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	b.refuseVersions = refuse
+}
+
+// Hide puts a delete marker on key as its newest version, as a lifecycle rule
+// or a plain delete does in a versioned bucket: the key leaves the object
+// listing and plain reads, and its older versions stay readable by id.
+func (b *Bucket) Hide(key string) {
+	// Record the marker as the newest version and drop the object.
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	b.versions++
+	b.history[key] = slices.Insert(b.history[key], 0, objectVersion{id: strconv.Itoa(b.versions), marker: true})
+	delete(b.objects, key)
 }
 
 // Keys returns the sorted object keys under prefix.
@@ -227,6 +242,10 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data, ok := b.objects[key]
 		if version := query.Get("versionId"); version != "" {
 			i := slices.IndexFunc(b.history[key], func(v objectVersion) bool { return v.id == version })
+			if i >= 0 && b.history[key][i].marker {
+				http.Error(w, "<Error><Code>MethodNotAllowed</Code></Error>", http.StatusMethodNotAllowed)
+				return
+			}
 			if ok = i >= 0; ok {
 				data = b.history[key][i].data
 			}
@@ -255,8 +274,9 @@ func (b *Bucket) deleteVersion(key, id string) {
 	history := slices.DeleteFunc(b.history[key], func(v objectVersion) bool { return v.id == id })
 	b.history[key] = history
 
-	// Serve the newest version left, or nothing.
-	if len(history) == 0 {
+	// Serve the newest version left, or nothing when none is left or the
+	// newest is a delete marker.
+	if len(history) == 0 || history[0].marker {
 		delete(b.objects, key)
 		return
 	}
@@ -272,7 +292,11 @@ func (b *Bucket) listVersions(w io.Writer, prefix string) {
 			continue
 		}
 		for _, version := range b.history[key] {
-			_, _ = io.WriteString(w, "<Version><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId></Version>")
+			element := "Version"
+			if version.marker {
+				element = "DeleteMarker"
+			}
+			_, _ = io.WriteString(w, "<"+element+"><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId></"+element+">")
 		}
 	}
 	_, _ = io.WriteString(w, "</ListVersionsResult>")
