@@ -91,7 +91,11 @@ func (w *eventSourceWatcher) execute(ctx context.Context) error {
 // serve streams the object's events until its binding changes, and returns the
 // new binding. It returns an error when the stream fails while the binding
 // stands.
-func (w *eventSourceWatcher) serve(ctx context.Context, watch *s4wave_flowgraph.BindingWatch, binding *s4wave_flowgraph.FlowgraphBinding) (*s4wave_flowgraph.FlowgraphBinding, error) {
+func (w *eventSourceWatcher) serve(
+	ctx context.Context,
+	watch *s4wave_flowgraph.BindingWatch,
+	binding *s4wave_flowgraph.FlowgraphBinding,
+) (*s4wave_flowgraph.FlowgraphBinding, error) {
 	// Cancel the stream when the binding changes.
 	streamCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -183,9 +187,16 @@ func (w *eventSourceWatcher) openClient(ctx context.Context, typeID string) (flo
 }
 
 // watchEvents delivers the batches of one WatchEvents stream opened after
-// cursor. It returns nil when a delivery names a stale cursor, so the caller
-// resumes from the stored one, and an error when the stream ends or fails.
-func (w *eventSourceWatcher) watchEvents(ctx context.Context, client flowgraph_eventsource.SRPCEventSourceServiceClient, cursor []byte, binding *s4wave_flowgraph.FlowgraphBinding) error {
+// cursor, and acknowledges each delivered one. It returns nil when a delivery
+// names a stale cursor or the run holds it, so the caller resumes from the
+// stored cursor once the run takes events, and an error when the stream ends
+// or fails.
+func (w *eventSourceWatcher) watchEvents(
+	ctx context.Context,
+	client flowgraph_eventsource.SRPCEventSourceServiceClient,
+	cursor []byte,
+	binding *s4wave_flowgraph.FlowgraphBinding,
+) error {
 	// Open the stream after the cursor.
 	stream, err := client.WatchEvents(ctx, &flowgraph_eventsource.WatchEventsRequest{Cursor: cursor})
 	if err != nil {
@@ -206,14 +217,20 @@ func (w *eventSourceWatcher) watchEvents(ctx context.Context, client flowgraph_e
 		if err != nil {
 			return err
 		}
-		if result == DeliverEventsResult_DELIVER_EVENTS_RESULT_STALE_CURSOR {
+		switch result {
+		case DeliverEventsResult_DELIVER_EVENTS_RESULT_STALE_CURSOR:
 			w.c.le.Debugf("event source %q: another reader moved the cursor, resuming from the stored one", w.key.nodeID)
+			return nil
+		case DeliverEventsResult_DELIVER_EVENTS_RESULT_HELD:
+			w.c.le.Debugf("event source %q: the run holds its events, waiting", w.key.nodeID)
 			return nil
 		}
 		cursor = batch.GetNextCursor()
 
-		// Tell the source what the run now holds. A failed ack only delays
-		// the source's cleanup, and the next batch's ack covers it.
+		// Tell the source what the run now holds. The Space has decided the
+		// delivery, and a replay cannot undo it, since every run writer
+		// expects the run root it read. A failed ack only delays the source's
+		// cleanup, and the next batch's ack covers it.
 		if len(cursor) != 0 {
 			if _, err := client.AckEvents(ctx, &flowgraph_eventsource.AckEventsRequest{Cursor: cursor}); err != nil {
 				w.c.le.WithError(err).Debugf("event source %q: ack failed", w.key.nodeID)
@@ -222,27 +239,52 @@ func (w *eventSourceWatcher) watchEvents(ctx context.Context, client flowgraph_e
 	}
 }
 
-// readCursor reads the run's stored cursor for the node.
+// readCursor waits until the run takes events and returns its stored cursor
+// for the node. While the run holds its sources it waits on the run's next
+// revision, so no stream is open and no event is read.
 func (w *eventSourceWatcher) readCursor(ctx context.Context) ([]byte, error) {
+	for {
+		// Read the run and stop when it takes events.
+		run, rev, err := w.readRun(ctx)
+		if err != nil || takesEvents(run) {
+			return run.GetCursor()[w.key.nodeID], err
+		}
+
+		// Wait for the run to change.
+		w.c.le.Debugf("event source %q: the run is %s with its arrivals waiting, holding the source", w.key.nodeID, run.GetState())
+		if _, err := world.WaitObjectRev(ctx, world.NewEngineWorldState(w.c.engine, false), w.c.conf.GetObjectKey(), rev+1, false); err != nil {
+			return nil, err
+		}
+	}
+}
+
+// readRun reads the run and its revision in one read transaction.
+func (w *eventSourceWatcher) readRun(ctx context.Context) (*s4wave_flowgraph.FlowgraphRun, uint64, error) {
 	// Open the read transaction.
 	tx, err := w.c.engine.NewTransaction(ctx, false)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer tx.Discard()
 
-	// Read the run's cursor for the node.
+	// Read the run and its revision.
 	obj, run, _, err := readRun(ctx, tx, w.c.conf.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return run.GetCursor()[w.key.nodeID], nil
+	_, rev, err := obj.GetRootRef(ctx)
+	return run, rev, err
 }
 
 // deliver hands one batch to the run in one World transaction. A batch whose
 // events have no payload object names the source object.
-func (w *eventSourceWatcher) deliver(ctx context.Context, cursor []byte, batch *flowgraph_eventsource.WatchEventsResponse, binding *s4wave_flowgraph.FlowgraphBinding) (DeliverEventsResult, error) {
+func (w *eventSourceWatcher) deliver(
+	ctx context.Context,
+	cursor []byte,
+	batch *flowgraph_eventsource.WatchEventsResponse,
+	binding *s4wave_flowgraph.FlowgraphBinding,
+) (DeliverEventsResult, error) {
 	// Translate the source's events to the run's delivery.
 	req := &DeliverEventsRequest{
 		NodeId:     w.key.nodeID,

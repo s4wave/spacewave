@@ -29,6 +29,14 @@ export enum DeliverEventsResult {
    * first. The source resumes from the stored cursor.
    */
   STALE_CURSOR = 2,
+
+  /**
+   * DELIVER_EVENTS_RESULT_HELD changed nothing: the run takes no events while
+   * it is not running or while its waiting arrivals reach the pending bound.
+   * The source stops reading and acknowledges nothing, so its events stay in
+   * the source, and resumes from the stored cursor once the run takes events.
+   */
+  HELD = 3,
 }
 
 export const DeliverEventsResult_Enum = /* @__PURE__ */ createEnumType(
@@ -37,6 +45,7 @@ export const DeliverEventsResult_Enum = /* @__PURE__ */ createEnumType(
     [0, 'DELIVER_EVENTS_RESULT_UNKNOWN'],
     [1, 'DELIVER_EVENTS_RESULT_DELIVERED'],
     [2, 'DELIVER_EVENTS_RESULT_STALE_CURSOR'],
+    [3, 'DELIVER_EVENTS_RESULT_HELD'],
   ],
 )
 

@@ -2,18 +2,23 @@ package flowgraph_run_test
 
 import (
 	"context"
+	"slices"
 	"strconv"
 	"sync"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/world"
+	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
+	world_expect "github.com/s4wave/spacewave/db/world/expect"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_task "github.com/s4wave/spacewave/forge/task"
+	forge_world "github.com/s4wave/spacewave/forge/world"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	flowgraph_pure "github.com/s4wave/spacewave/sdk/flowgraph/pure"
 	flowgraph_run "github.com/s4wave/spacewave/sdk/flowgraph/run"
@@ -298,8 +303,7 @@ func (e *env) readState(key string) (string, string) {
 // Each event is folded exactly once, the fold's output reaches a Target Step
 // as a Task-owned value, and the run keeps running with nothing waiting.
 func TestStandingPureFold(t *testing.T) {
-	// Register the fold and create a graph of an event source feeding the
-	// fold, whose output feeds a Target Step.
+	// Register the fold and create its graph.
 	e := newEnv(t)
 	fold := &foldFunction{barrier: make(chan struct{})}
 	release, err := e.tb.Bus.AddController(e.ctx, &pureFunctions{id: "test/fold", fn: fold}, nil)
@@ -307,30 +311,7 @@ func TestStandingPureFold(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(release)
-	source := &s4wave_flowgraph.FlowgraphNode{
-		TypeId: "test/event-source",
-		Ports:  []*s4wave_flowgraph.FlowgraphPort{port("events", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT)},
-	}
-	pure := &s4wave_flowgraph.FlowgraphNode{
-		TypeId: s4wave_flowgraph.StepNodeTypeID,
-		Step: &s4wave_flowgraph.FlowgraphStep{Keyed: true, Exec: &s4wave_flowgraph.FlowgraphStep_Pure{Pure: &s4wave_flowgraph.PureStep{
-			FunctionId:  "test/fold",
-			StatePrefix: "fold/",
-			StateTypeId: "test/fold-state",
-		}}},
-		Ports: []*s4wave_flowgraph.FlowgraphPort{
-			port("in", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT),
-			port("out", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT),
-		},
-	}
-	e.createGraph(map[string]*s4wave_flowgraph.FlowgraphNode{
-		sourceID: source,
-		"fold":   pure,
-		"a":      e.step([]string{"in"}, [2]string{"done", "none"}, true, nil),
-	}, map[string]*s4wave_flowgraph.FlowgraphConnection{
-		"src-fold": connect(sourceID, "events", "fold", "in"),
-		"fold-a":   connect("fold", "out", "a", "in"),
-	})
+	e.foldGraph()
 	key := e.standingRun()
 
 	// Run two controllers of the same run, as two Devices do.
@@ -351,11 +332,6 @@ func TestStandingPureFold(t *testing.T) {
 	}
 
 	// Deliver two events for one key; the first is evaluated by both.
-	payload := func(id, value string) *flowgraph_run.DeliveredEvent {
-		ev := event(id, "k")
-		ev.Payload = []byte(value)
-		return ev
-	}
 	if result := e.deliverStanding("", "c1", payload("e1", "5")); result != flowgraph_run.DeliverEventsResult_DELIVER_EVENTS_RESULT_DELIVERED {
 		t.Fatalf("first delivery = %s", result)
 	}
@@ -384,5 +360,212 @@ func TestStandingPureFold(t *testing.T) {
 	}
 	if state, typeID := e.readState("fold/k"); state != "12" || typeID != "test/fold-state" {
 		t.Fatalf("state = %q of type %q, want 12 of type test/fold-state", state, typeID)
+	}
+}
+
+// foldGraph creates a graph of an event source feeding a keyed pure fold
+// into a state object, whose output feeds a Target Step a.
+func (e *env) foldGraph() {
+	source := &s4wave_flowgraph.FlowgraphNode{
+		TypeId: "test/event-source",
+		Ports:  []*s4wave_flowgraph.FlowgraphPort{port("events", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT)},
+	}
+	pure := &s4wave_flowgraph.FlowgraphNode{
+		TypeId: s4wave_flowgraph.StepNodeTypeID,
+		Step: &s4wave_flowgraph.FlowgraphStep{Keyed: true, Exec: &s4wave_flowgraph.FlowgraphStep_Pure{Pure: &s4wave_flowgraph.PureStep{
+			FunctionId:  "test/fold",
+			StatePrefix: "fold/",
+			StateTypeId: "test/fold-state",
+		}}},
+		Ports: []*s4wave_flowgraph.FlowgraphPort{
+			port("in", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT),
+			port("out", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT),
+		},
+	}
+	e.createGraph(map[string]*s4wave_flowgraph.FlowgraphNode{
+		sourceID: source,
+		"fold":   pure,
+		"a":      e.step([]string{"in"}, [2]string{"done", "none"}, true, nil),
+	}, map[string]*s4wave_flowgraph.FlowgraphConnection{
+		"src-fold": connect(sourceID, "events", "fold", "in"),
+		"fold-a":   connect("fold", "out", "a", "in"),
+	})
+}
+
+// payload builds an event for key k carrying a decimal payload.
+func payload(id, value string) *flowgraph_run.DeliveredEvent {
+	ev := event(id, "k")
+	ev.Payload = []byte(value)
+	return ev
+}
+
+// foldOnce evaluates the fold's ready inputs in ws and commits the result
+// there, as one Device's pure watcher does, and reports whether it committed.
+func (e *env) foldOnce(ctx context.Context, ws world.WorldState, eval *flowgraph_run.PureEval) (bool, error) {
+	resp, err := (&foldFunction{calls: 2}).Evaluate(ctx, eval.Request())
+	if err != nil {
+		return false, err
+	}
+	return flowgraph_run.CommitPure(ctx, ws, standingKey, "fold", eval, resp)
+}
+
+// readFold reads the fold's ready evaluation from the committed World.
+func (e *env) readFold() *flowgraph_run.PureEval {
+	e.t.Helper()
+	eval, err := flowgraph_run.ReadPure(e.ctx, e.tb.WorldState, standingKey, "fold")
+	if err != nil || eval == nil {
+		e.t.Fatalf("read fold: %v, %v", eval, err)
+	}
+	return eval
+}
+
+// recordable lets a test record a write transaction as a Space records it.
+type recordable struct {
+	world.Tx
+}
+
+// TakeSetRoots names no roots; the replay below needs none.
+func (recordable) TakeSetRoots() []*block.BlockRef {
+	return nil
+}
+
+// record runs fn in a write transaction on the current head and returns the
+// operations it recorded, as a Device proposes them, without committing it.
+func (e *env) record(fn func(ctx context.Context, ws world.WorldState) error) *world_block_tx.TxBatch {
+	e.t.Helper()
+	tx, err := e.tb.Engine.NewTransaction(e.ctx, true)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	defer tx.Discard()
+	rec, err := world_block_tx.NewWorldState(e.ctx, recordable{tx}, true)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	if err := fn(e.ctx, rec); err != nil {
+		e.t.Fatal(err)
+	}
+	return rec.GetTxBatch().CloneVT()
+}
+
+// replay runs recorded operations on the current head and commits them, as a
+// Space replays a Device's operation ordered after the head moved, and
+// returns the error that refuses them.
+func (e *env) replay(batch *world_block_tx.TxBatch) error {
+	lookup := world.NewSchema(slices.Concat(world_expect.ExpectTypes, forge_world.Types)).LookupOp
+	return world.ExecTransaction(e.ctx, e.tb.Engine, true, func(ctx context.Context, tx world.WorldState) error {
+		_, err := batch.ExecuteTx(ctx, e.sender, lookup, tx)
+		return err
+	})
+}
+
+// TestReplayOnMovedRun replays two writes Device B recorded on a run that
+// Device A has since moved, as a Space does for B's operations ordered after
+// A's. A folded the event B also folded, started Step a from the fold's
+// output, and delivered the event B also read. Each replay is refused, so no
+// arrival is lost, the cursor does not go back, and Step a does not start a
+// second time.
+func TestReplayOnMovedRun(t *testing.T) {
+	// Create the fold graph's standing run holding one event.
+	e := newEnv(t)
+	e.foldGraph()
+	e.standingRun()
+	if result := e.deliverStanding("", "c1", payload("e1", "5")); result != flowgraph_run.DeliverEventsResult_DELIVER_EVENTS_RESULT_DELIVERED {
+		t.Fatalf("first delivery = %s", result)
+	}
+
+	// Device B delivers the next event and folds the first on this head.
+	deliveryB := e.record(func(ctx context.Context, ws world.WorldState) error {
+		_, err := flowgraph_run.DeliverEvents(ctx, ws, standingKey, &flowgraph_run.DeliverEventsRequest{
+			NodeId: sourceID, Cursor: []byte("c1"), NextCursor: []byte("c2b"), Events: []*flowgraph_run.DeliveredEvent{payload("e2b", "9")},
+		})
+		return err
+	})
+	foldB := e.record(func(ctx context.Context, ws world.WorldState) error {
+		_, err := e.foldOnce(ctx, ws, e.readFold())
+		return err
+	})
+
+	// Device A folds the first event, starts Step a and delivers the next.
+	eval := e.readFold()
+	e.exec(func(ctx context.Context, tx world.WorldState) error {
+		_, err := e.foldOnce(ctx, tx, eval)
+		return err
+	})
+	e.exec(func(ctx context.Context, tx world.WorldState) error {
+		return flowgraph_run.Advance(ctx, tx, standingKey)
+	})
+	if result := e.deliverStanding("c1", "c2", payload("e2", "7")); result != flowgraph_run.DeliverEventsResult_DELIVER_EVENTS_RESULT_DELIVERED {
+		t.Fatalf("second delivery = %s", result)
+	}
+	before := e.readStanding()
+	if len(before.GetActivations()) != 1 || before.GetVisits()["fold"].GetCount() != 1 {
+		t.Fatalf("run after A's writes = %v, want Step a started once from one fold", before)
+	}
+
+	// Replaying either of B's writes on A's head is refused.
+	for name, batch := range map[string]*world_block_tx.TxBatch{"delivery": deliveryB, "fold": foldB} {
+		if err := e.replay(batch); !errors.Is(err, world_expect.ErrRootMoved) {
+			t.Fatalf("replay of B's %s = %v, want %v", name, err, world_expect.ErrRootMoved)
+		}
+	}
+
+	// The run keeps A's arrival, cursor and activation, and the state A's fold.
+	after := e.readStanding()
+	if !after.EqualVT(before) {
+		t.Fatalf("replay changed the run: %v, was %v", after, before)
+	}
+	requireEventIDs(t, after, "e2")
+	if got := string(after.GetCursor()[sourceID]); got != "c2" {
+		t.Fatalf("cursor = %q, want c2", got)
+	}
+	if state, _ := e.readState("fold/k"); state != "5" {
+		t.Fatalf("state = %q, want 5", state)
+	}
+}
+
+// TestPureCommitStateMoved commits an evaluation whose arrival the run still
+// holds in content, as a second equal event, after another evaluation moved
+// the state it read. The stale evaluation must not commit, since it would
+// fold onto the old state and lose the first fold.
+func TestPureCommitStateMoved(t *testing.T) {
+	// Create the fold graph's standing run holding two equal events.
+	e := newEnv(t)
+	e.foldGraph()
+	e.standingRun()
+	if result := e.deliverStanding("", "c1", payload("e1", "5"), payload("e1", "5")); result != flowgraph_run.DeliverEventsResult_DELIVER_EVENTS_RESULT_DELIVERED {
+		t.Fatalf("delivery = %s", result)
+	}
+
+	// Read an evaluation, then fold the first event with a fresh one.
+	stale := e.readFold()
+	fresh := e.readFold()
+	e.exec(func(ctx context.Context, tx world.WorldState) error {
+		_, err := e.foldOnce(ctx, tx, fresh)
+		return err
+	})
+
+	// The stale evaluation matches the second event but read the old state.
+	var committed bool
+	e.exec(func(ctx context.Context, tx world.WorldState) error {
+		var err error
+		committed, err = e.foldOnce(ctx, tx, stale)
+		return err
+	})
+	if committed {
+		t.Fatal("stale evaluation committed onto a moved state")
+	}
+	if state, _ := e.readState("fold/k"); state != "5" {
+		t.Fatalf("state = %q, want 5", state)
+	}
+
+	// A fresh evaluation folds the second event onto the moved state.
+	again := e.readFold()
+	e.exec(func(ctx context.Context, tx world.WorldState) error {
+		_, err := e.foldOnce(ctx, tx, again)
+		return err
+	})
+	if state, _ := e.readState("fold/k"); state != "10" {
+		t.Fatalf("state = %q, want 10", state)
 	}
 }

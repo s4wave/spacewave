@@ -7,6 +7,7 @@ import (
 	forge_job_ops "github.com/s4wave/spacewave/core/forge/job"
 	forge_task_ops "github.com/s4wave/spacewave/core/forge/task"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	world_expect "github.com/s4wave/spacewave/db/world/expect"
 	forge_world "github.com/s4wave/spacewave/forge/world"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
@@ -21,6 +22,7 @@ import (
 // buildTypes adds the operations whose packages differ between builds.
 var Types = slices.Concat(
 	OpsTypes,
+	world_expect.ExpectTypes,
 	unixfs_world.UnixfsTypes,
 	spacewave_chat.ChatTypes,
 	s4wave_device.DeviceTypes,

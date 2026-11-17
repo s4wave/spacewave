@@ -211,7 +211,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	releases = append(releases, admitRel)
 
 	// Register the object type controller.
-	objectTypeCtrl := objecttype_controller.NewControllerWithMetadata(space_world_objecttypes.LookupObjectType, space_world_objecttypes.LookupObjectTypeMetadata)
+	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
 	objectTypeRel, err := b.AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
 		return err

@@ -1,0 +1,28 @@
+syntax = "proto3";
+package world.expect;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/aperturerobotics/common/typeid/typeid.proto";
+
+option go_package = "github.com/s4wave/spacewave/db/world/expect;world_expect";
+
+// ExpectRootsOp fails unless each named object holds its expected root, and
+// changes nothing. A writer that decides a change from objects it read applies
+// it before writing them. A replay of the writer's transaction onto a World
+// where another writer moved one of those objects then fails, so the whole
+// transaction is refused and the writer decides again on the new head.
+message ExpectRootsOp {
+  option (typeid.id) = "world/expect-roots";
+
+  // Roots are the objects and the roots each must hold.
+  repeated ExpectedRoot roots = 1;
+}
+
+// ExpectedRoot is the root one object must hold.
+message ExpectedRoot {
+  // ObjectKey is the object's key.
+  string object_key = 1;
+  // RootRef is the object's root block, or empty when the object must not
+  // exist.
+  block.BlockRef root_ref = 2;
+}

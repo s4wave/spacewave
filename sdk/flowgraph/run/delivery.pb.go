@@ -27,6 +27,11 @@ const (
 	// the node is not the one the request named, so another reader delivered
 	// first. The source resumes from the stored cursor.
 	DeliverEventsResult_DELIVER_EVENTS_RESULT_STALE_CURSOR DeliverEventsResult = 2
+	// DELIVER_EVENTS_RESULT_HELD changed nothing: the run takes no events while
+	// it is not running or while its waiting arrivals reach the pending bound.
+	// The source stops reading and acknowledges nothing, so its events stay in
+	// the source, and resumes from the stored cursor once the run takes events.
+	DeliverEventsResult_DELIVER_EVENTS_RESULT_HELD DeliverEventsResult = 3
 )
 
 // Enum value maps for DeliverEventsResult.
@@ -35,11 +40,13 @@ var (
 		0: "DELIVER_EVENTS_RESULT_UNKNOWN",
 		1: "DELIVER_EVENTS_RESULT_DELIVERED",
 		2: "DELIVER_EVENTS_RESULT_STALE_CURSOR",
+		3: "DELIVER_EVENTS_RESULT_HELD",
 	}
 	DeliverEventsResult_value = map[string]int32{
 		"DELIVER_EVENTS_RESULT_UNKNOWN":      0,
 		"DELIVER_EVENTS_RESULT_DELIVERED":    1,
 		"DELIVER_EVENTS_RESULT_STALE_CURSOR": 2,
+		"DELIVER_EVENTS_RESULT_HELD":         3,
 	}
 )
 

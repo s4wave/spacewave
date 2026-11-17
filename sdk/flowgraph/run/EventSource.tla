@@ -2,9 +2,9 @@
 EXTENDS Naturals, Sequences, FiniteSets
 CONSTANTS Devices, MaxSeq
 VARIABLES bound, wstate, sstate, wcursor, batch, batchEnd, ackPending,
-          stored, log, head, gapThrough, acked
+          stored, log, head, gapThrough, acked, ver, base
 vars == <<bound, wstate, sstate, wcursor, batch, batchEnd, ackPending,
-          stored, log, head, gapThrough, acked>>
+          stored, log, head, gapThrough, acked, ver, base>>
 
 (* Models one event-source node of a standing run, read by the watcher in
    event-source-watcher.go on every Device whose process binding is approved.
@@ -15,6 +15,15 @@ vars == <<bound, wstate, sstate, wcursor, batch, batchEnd, ackPending,
    the watcher resumes from the stored cursor. After a delivery the watcher
    calls AckEvents with the delivered cursor so a retaining source may drop
    what the run holds.
+
+   DeliverEvents is not one atomic compare-and-set on the World. The Device
+   decides it in a write transaction on its own head, which records a whole
+   write of the run, and the Space places the operation later, replaying the
+   recorded write when another Device's operation was placed first. ver
+   counts the run's writes and base[d] is the root the batch expects; the
+   recorded expected-root guard refuses a replay onto a moved run, and the
+   writer then decides again on the new head. The watcher acks only once
+   the Space placed the delivery, so no replay can undo what it acked.
 
    The source is abstracted as a seqno log: events (gapThrough, head] are
    readable, and an expiry moves gapThrough past events nobody acked, which
@@ -38,27 +47,32 @@ Init == /\ bound = FALSE
         /\ head = 0
         /\ gapThrough = 0
         /\ acked = 0
+        /\ ver = 0
+        /\ base = [d \in Devices |-> 0]
 
 \* BindingChanged: the run's process binding becomes usable or unusable.
-\* Losing it stops every watcher and drops its unsent batch.
+\* Losing it stops every watcher and drops its unsent batch; a delivery the
+\* Space has yet to place is still placed.
 BindingChanged ==
   /\ bound' = ~bound
-  /\ wstate' = IF bound THEN [d \in Devices |-> "WaitingBinding"] ELSE wstate
-  /\ batch' = IF bound THEN [d \in Devices |-> NoBatch] ELSE batch
-  /\ UNCHANGED <<sstate, wcursor, batchEnd, ackPending, stored, log, head, gapThrough, acked>>
+  /\ wstate' = IF bound
+                THEN [d \in Devices |-> IF wstate[d] = "Placing" THEN "Placing" ELSE "WaitingBinding"]
+                ELSE wstate
+  /\ batch' = IF bound THEN [d \in Devices |-> IF wstate[d] = "Placing" THEN batch[d] ELSE NoBatch] ELSE batch
+  /\ UNCHANGED <<sstate, wcursor, batchEnd, ackPending, stored, log, head, gapThrough, acked, ver, base>>
 
 \* Open: the watcher builds the source client from its object type.
 Open(d) ==
   /\ bound
   /\ wstate[d] \in {"WaitingBinding", "Backoff"}
   /\ wstate' = [wstate EXCEPT ![d] = "Opening"]
-  /\ UNCHANGED <<bound, sstate, wcursor, batch, batchEnd, ackPending, stored, log, head, gapThrough, acked>>
+  /\ UNCHANGED <<bound, sstate, wcursor, batch, batchEnd, ackPending, stored, log, head, gapThrough, acked, ver, base>>
 
 \* SignerReady: the session that signs inbox requests unlocks or appears.
 SignerReady(d) ==
   /\ sstate[d] \in {"SignerLocked", "SignerMissing"}
   /\ sstate' = [sstate EXCEPT ![d] = "Reading"]
-  /\ UNCHANGED <<bound, wstate, wcursor, batch, batchEnd, ackPending, stored, log, head, gapThrough, acked>>
+  /\ UNCHANGED <<bound, wstate, wcursor, batch, batchEnd, ackPending, stored, log, head, gapThrough, acked, ver, base>>
 
 \* Stream: the opened source streams from the run's stored cursor.
 Stream(d) ==
@@ -66,19 +80,19 @@ Stream(d) ==
   /\ sstate[d] \in {"Reading", "Gap"}
   /\ wstate' = [wstate EXCEPT ![d] = "Streaming"]
   /\ wcursor' = [wcursor EXCEPT ![d] = stored]
-  /\ UNCHANGED <<bound, sstate, batch, batchEnd, ackPending, stored, log, head, gapThrough, acked>>
+  /\ UNCHANGED <<bound, sstate, batch, batchEnd, ackPending, stored, log, head, gapThrough, acked, ver, base>>
 
 \* Receive: the cloud inbox receives one event.
 Receive ==
   /\ head < MaxSeq
   /\ head' = head + 1
-  /\ UNCHANGED <<bound, wstate, sstate, wcursor, batch, batchEnd, ackPending, stored, log, gapThrough, acked>>
+  /\ UNCHANGED <<bound, wstate, sstate, wcursor, batch, batchEnd, ackPending, stored, log, gapThrough, acked, ver, base>>
 
 \* Expire: retention drops every unacked event through head.
 Expire ==
   /\ head > Max(acked, gapThrough)
   /\ gapThrough' = head
-  /\ UNCHANGED <<bound, wstate, sstate, wcursor, batch, batchEnd, ackPending, stored, log, head, acked>>
+  /\ UNCHANGED <<bound, wstate, sstate, wcursor, batch, batchEnd, ackPending, stored, log, head, acked, ver, base>>
 
 \* BatchRead: the source answers a read from the watcher's cursor, as one gap
 \* event when events after the cursor expired, else the retained events; the
@@ -96,7 +110,7 @@ BatchRead(d) ==
         /\ batchEnd' = [batchEnd EXCEPT ![d] = head]
         /\ sstate' = [sstate EXCEPT ![d] = "Reading"]
   /\ wstate' = [wstate EXCEPT ![d] = "Delivering"]
-  /\ UNCHANGED <<bound, wcursor, ackPending, stored, log, head, gapThrough, acked>>
+  /\ UNCHANGED <<bound, wcursor, ackPending, stored, log, head, gapThrough, acked, ver, base>>
 
 \* Ordered appends the batch to the arrival log in seqno order.
 RECURSIVE Ordered(_)
@@ -104,18 +118,38 @@ Ordered(S) == IF S = {} THEN <<>>
               ELSE LET e == CHOOSE x \in S : \A y \in S : x[2] <= y[2]
                    IN <<e>> \o Ordered(S \ {e})
 
-\* Delivered: DeliverEvents names the stored cursor, so it stores the batch
-\* and moves the cursor in one World operation.
-Delivered(d) ==
+\* Decided: DeliverEvents names the stored cursor on the Device's head, so
+\* its write transaction records the arrivals and the moved cursor.
+Decided(d) ==
   /\ wstate[d] = "Delivering"
   /\ stored = wcursor[d]
+  /\ base' = [base EXCEPT ![d] = ver]
+  /\ wstate' = [wstate EXCEPT ![d] = "Placing"]
+  /\ UNCHANGED <<bound, sstate, wcursor, batch, batchEnd, ackPending, stored, log, head, gapThrough, acked, ver>>
+
+\* Delivered: the Space places the delivery onto a head where the run still
+\* holds the expected root, so the recorded write stores the batch and moves
+\* the cursor; only then does the watcher hold an ack to send.
+Delivered(d) ==
+  /\ wstate[d] = "Placing"
+  /\ base[d] = ver
   /\ log' = log \o Ordered(batch[d])
   /\ stored' = batchEnd[d]
+  /\ ver' = ver + 1
   /\ wcursor' = [wcursor EXCEPT ![d] = batchEnd[d]]
   /\ ackPending' = [ackPending EXCEPT ![d] = batchEnd[d]]
   /\ batch' = [batch EXCEPT ![d] = NoBatch]
-  /\ wstate' = [wstate EXCEPT ![d] = "Streaming"]
-  /\ UNCHANGED <<bound, sstate, batchEnd, head, gapThrough, acked>>
+  /\ wstate' = [wstate EXCEPT ![d] = IF bound THEN "Streaming" ELSE "WaitingBinding"]
+  /\ UNCHANGED <<bound, sstate, batchEnd, head, gapThrough, acked, base>>
+
+\* Refused: the replay onto a moved run fails the expected-root guard, so the
+\* Space refuses the delivery and DeliverEvents decides again on the new head.
+Refused(d) ==
+  /\ wstate[d] = "Placing"
+  /\ base[d] # ver
+  /\ wstate' = [wstate EXCEPT ![d] = IF bound THEN "Delivering" ELSE "WaitingBinding"]
+  /\ batch' = IF bound THEN batch ELSE [batch EXCEPT ![d] = NoBatch]
+  /\ UNCHANGED <<bound, sstate, wcursor, batchEnd, ackPending, stored, log, head, gapThrough, acked, ver, base>>
 
 \* StaleCursor: another Device moved the stored cursor first.
 StaleCursor(d) ==
@@ -123,14 +157,14 @@ StaleCursor(d) ==
   /\ stored # wcursor[d]
   /\ batch' = [batch EXCEPT ![d] = NoBatch]
   /\ wstate' = [wstate EXCEPT ![d] = "Resuming"]
-  /\ UNCHANGED <<bound, sstate, wcursor, batchEnd, ackPending, stored, log, head, gapThrough, acked>>
+  /\ UNCHANGED <<bound, sstate, wcursor, batchEnd, ackPending, stored, log, head, gapThrough, acked, ver, base>>
 
 \* Resume: the watcher reads the stored cursor and streams from it.
 Resume(d) ==
   /\ wstate[d] = "Resuming"
   /\ wcursor' = [wcursor EXCEPT ![d] = stored]
   /\ wstate' = [wstate EXCEPT ![d] = "Streaming"]
-  /\ UNCHANGED <<bound, sstate, batch, batchEnd, ackPending, stored, log, head, gapThrough, acked>>
+  /\ UNCHANGED <<bound, sstate, batch, batchEnd, ackPending, stored, log, head, gapThrough, acked, ver, base>>
 
 \* Acked: the source drops what the delivered cursor covers. The source keeps
 \* the highest ack, so a late ack from a slower Device moves nothing back.
@@ -138,7 +172,7 @@ Acked(d) ==
   /\ ackPending[d] > 0
   /\ acked' = Max(acked, ackPending[d])
   /\ ackPending' = [ackPending EXCEPT ![d] = 0]
-  /\ UNCHANGED <<bound, wstate, sstate, wcursor, batch, batchEnd, stored, log, head, gapThrough>>
+  /\ UNCHANGED <<bound, wstate, sstate, wcursor, batch, batchEnd, stored, log, head, gapThrough, ver, base>>
 
 \* StreamFailed: the read fails, perhaps because the signer locked again.
 StreamFailed(d) ==
@@ -146,19 +180,20 @@ StreamFailed(d) ==
   /\ wstate' = [wstate EXCEPT ![d] = "Backoff"]
   /\ batch' = [batch EXCEPT ![d] = NoBatch]
   /\ sstate' \in {[sstate EXCEPT ![d] = s] : s \in {sstate[d], "SignerLocked"}}
-  /\ UNCHANGED <<bound, wcursor, batchEnd, ackPending, stored, log, head, gapThrough, acked>>
+  /\ UNCHANGED <<bound, wcursor, batchEnd, ackPending, stored, log, head, gapThrough, acked, ver, base>>
 
 Next == \/ BindingChanged
         \/ Receive
         \/ Expire
         \/ \E d \in Devices :
              \/ Open(d) \/ SignerReady(d) \/ Stream(d) \/ BatchRead(d)
-             \/ Delivered(d) \/ StaleCursor(d) \/ Resume(d) \/ Acked(d)
+             \/ Decided(d) \/ Delivered(d) \/ Refused(d) \/ StaleCursor(d)
+             \/ Resume(d) \/ Acked(d)
              \/ StreamFailed(d)
 Spec == Init /\ [][Next]_vars
 
 TypeOK ==
-  /\ wstate \in [Devices -> {"WaitingBinding", "Opening", "Streaming", "Delivering", "Resuming", "Backoff"}]
+  /\ wstate \in [Devices -> {"WaitingBinding", "Opening", "Streaming", "Delivering", "Placing", "Resuming", "Backoff"}]
   /\ sstate \in [Devices -> {"SignerLocked", "SignerMissing", "Reading", "Gap"}]
   /\ stored \in 0..MaxSeq /\ acked \in 0..MaxSeq
 

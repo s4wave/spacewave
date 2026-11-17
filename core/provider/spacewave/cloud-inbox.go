@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	flowgraph_eventsource "github.com/s4wave/spacewave/sdk/flowgraph/eventsource"
+	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	"github.com/sirupsen/logrus"
 )
@@ -20,8 +21,11 @@ import (
 // CloudInboxType is the object type of a cloud inbox event source. Its
 // resource reads the inbox as the account that owns the object's Space,
 // signing each request with that account's session key, so no plugin needs a
-// signing grant.
-var CloudInboxType = objecttype.NewObjectType(cloudinbox.TypeID, cloudInboxFactory)
+// signing grant. It carries the ports a Flowgraph binds it by.
+var CloudInboxType = s4wave_objecttype_registry.WithMetadata(
+	objecttype.NewObjectType(cloudinbox.TypeID, cloudInboxFactory),
+	cloudinbox.Metadata(),
+)
 
 // cloudInboxFactory serves EventSourceService for a cloud inbox object. It
 // reads the inbox ID from the object's body and the account from the Space's

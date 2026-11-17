@@ -50,9 +50,7 @@ func RecordActivationActor(ctx context.Context, ws world.WorldState, runKey, act
 
 	// Commit the actor receipt with the rest of the caller's transaction.
 	activation.ActorKey = actorKey
-	_, _, err = world.AccessObjectState(ctx, obj, true, func(cursor *block.Cursor) error {
+	return writeRun(ctx, ws, runKey, obj, func(cursor *block.Cursor) {
 		cursor.SetBlock(next, true)
-		return nil
 	})
-	return err
 }

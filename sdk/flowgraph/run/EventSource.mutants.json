@@ -1,6 +1,8 @@
 [
- {"name": "Deliver without naming the stored cursor", "replace": [["/\\ wstate[d] = \"Delivering\"\n  /\\ stored = wcursor[d]", "/\\ wstate[d] = \"Delivering\""]], "expect": "ExactlyOnce"},
+ {"name": "Deliver without naming the stored cursor", "replace": [["/\\ wstate[d] = \"Delivering\"\n  /\\ stored = wcursor[d]\n", "/\\ wstate[d] = \"Delivering\"\n"]], "expect": "ExactlyOnce"},
  {"name": "Ack the batch when it is read", "replace": [["/\\ wstate' = [wstate EXCEPT ![d] = \"Delivering\"]\n  /\\ UNCHANGED <<bound, wcursor, ackPending,", "/\\ wstate' = [wstate EXCEPT ![d] = \"Delivering\"]\n  /\\ ackPending' = [ackPending EXCEPT ![d] = batchEnd'[d]]\n  /\\ UNCHANGED <<bound, wcursor,"]], "expect": "AckBehindCursor"},
  {"name": "Report a gap without moving the cursor past it", "replace": [["/\\ batchEnd' = [batchEnd EXCEPT ![d] = gapThrough]", "/\\ batchEnd' = [batchEnd EXCEPT ![d] = wcursor[d]]"]], "expect": "ArrivalBehindCursor"},
- {"name": "Read past expired events without a gap", "replace": [["/\\ gapThrough <= wcursor[d]\n", "/\\ TRUE\n"]], "expect": "NoSilentLoss"}
+ {"name": "Read past expired events without a gap", "replace": [["/\\ gapThrough <= wcursor[d]\n", "/\\ TRUE\n"]], "expect": "NoSilentLoss"},
+ {"name": "Replay a delivery onto a moved run without the expected-root guard", "replace": [["/\\ wstate[d] = \"Placing\"\n  /\\ base[d] = ver\n", "/\\ wstate[d] = \"Placing\"\n"]], "expect": "ExactlyOnce"},
+ {"name": "Ack the delivery when it is decided, before the Space places it", "replace": [["/\\ base' = [base EXCEPT ![d] = ver]\n", "/\\ base' = [base EXCEPT ![d] = ver]\n  /\\ ackPending' = [ackPending EXCEPT ![d] = batchEnd[d]]\n"], ["batch, batchEnd, ackPending, stored, log, head, gapThrough, acked, ver>>", "batch, batchEnd, stored, log, head, gapThrough, acked, ver>>"]], "expect": "AckBehindCursor"}
 ]

@@ -12,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/world"
+	world_expect "github.com/s4wave/spacewave/db/world/expect"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_target "github.com/s4wave/spacewave/forge/target"
@@ -56,15 +57,32 @@ func advance(ctx context.Context, ws world.WorldState, runKey string) ([]string,
 
 	// Write the run only when it changed, so its own revision settles the loop.
 	if !r.run.EqualVT(previous) {
-		_, _, err = world.AccessObjectState(ctx, obj, true, func(cursor *block.Cursor) error {
+		err = writeRun(ctx, ws, runKey, obj, func(cursor *block.Cursor) {
 			cursor.SetBlock(r.run, true)
-			return nil
 		})
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 	return r.running(), pureKeys(graph), nil
+}
+
+// writeRun writes the run object read in the write transaction ws, after
+// expecting it to keep the root ws read. Every writer of a run decides its
+// change from the run it read, so a replay of its transaction onto a World
+// where another Device's writer moved the run must not overwrite that change:
+// the expectation fails the replay, the Space refuses the transaction, and the
+// writer decides again on the new head. Call it before any other write to the
+// run in ws.
+func writeRun(ctx context.Context, ws world.WorldState, runKey string, obj world.ObjectState, write func(cursor *block.Cursor)) error {
+	if err := world_expect.ExpectCurrent(ctx, ws, runKey); err != nil {
+		return err
+	}
+	_, _, err := world.AccessObjectState(ctx, obj, true, func(cursor *block.Cursor) error {
+		write(cursor)
+		return nil
+	})
+	return err
 }
 
 // readRun reads a run object and its pinned graph. The caller releases obj.
@@ -208,9 +226,9 @@ func (r *runner) outcome(ctx context.Context, nodeID string, task *forge_task.Ta
 // readSpend reads a spend output as a decimal integer blob.
 func (r *runner) readSpend(ctx context.Context, output *forge_value.Value) (uint64, string, error) {
 	// Read the blob the output references.
-	data, err := r.readOutput(ctx, output)
-	if err != nil {
-		return 0, "", err
+	data, failure, err := r.readOutput(ctx, output, s4wave_flowgraph.SpendOutputName)
+	if err != nil || failure != "" {
+		return 0, failure, err
 	}
 
 	// Parse the decimal spend.
@@ -313,32 +331,36 @@ func (r *runner) ready(nodeID string, ports []string, keyed bool) ([]int, string
 		ports = []string{""}
 	}
 
-	// Collect the keys to try: the arrivals' keys for a keyed Step, otherwise
-	// one pass that matches any key.
-	var tries []string
-	if keyed {
-		for _, arrival := range r.run.GetArrivals() {
-			if arrival.GetNodeId() == nodeID && !slices.Contains(tries, arrival.GetKey()) {
-				tries = append(tries, arrival.GetKey())
-			}
+	// Index the earliest arrival at each port for each key, in one pass over
+	// the arrivals; an unkeyed Step matches every arrival under one key.
+	portIndex := make(map[string]int, len(ports))
+	for i, port := range ports {
+		portIndex[port] = i
+	}
+	var order []string
+	byKey := make(map[string][]int)
+	for i, arrival := range r.run.GetArrivals() {
+		if arrival.GetNodeId() != nodeID {
+			continue
 		}
-	} else {
-		tries = []string{""}
+		key := ""
+		if keyed {
+			key = arrival.GetKey()
+		}
+		taken, seen := byKey[key]
+		if !seen {
+			taken = slices.Repeat([]int{-1}, len(ports))
+			byKey[key] = taken
+			order = append(order, key)
+		}
+		if p, ok := portIndex[arrival.GetPort()]; ok && taken[p] < 0 {
+			taken[p] = i
+		}
 	}
 
-	// Take the earliest arrival at each port.
-	for _, key := range tries {
-		taken := make([]int, 0, len(ports))
-		for _, port := range ports {
-			i := slices.IndexFunc(r.run.GetArrivals(), func(arrival *s4wave_flowgraph.FlowgraphArrival) bool {
-				return arrival.GetNodeId() == nodeID && arrival.GetPort() == port && (!keyed || arrival.GetKey() == key)
-			})
-			if i < 0 {
-				break
-			}
-			taken = append(taken, i)
-		}
-		if len(taken) == len(ports) {
+	// Take the earliest key, by its first arrival, with an arrival at every port.
+	for _, key := range order {
+		if taken := byKey[key]; !slices.Contains(taken, -1) {
 			return taken, key
 		}
 	}
@@ -620,22 +642,33 @@ func inputPorts(graph *s4wave_flowgraph.Flowgraph, nodeID string) []string {
 	return ports
 }
 
-// readOutput reads a reserved output's blob through its storage reference.
-func (r *runner) readOutput(ctx context.Context, output *forge_value.Value) ([]byte, error) {
+// readOutput reads a Task output's blob through its storage reference. A blob
+// that declares more than MaxEventPayload bytes is not fetched; failure then
+// names the output and the limit.
+func (r *runner) readOutput(ctx context.Context, output *forge_value.Value, name string) ([]byte, string, error) {
 	// Resolve the Forge value to its stored object.
 	ref, err := output.ToBucketRef()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	// Read the output blob without changing it.
+	// Check the blob's declared size, then fetch its body.
 	var data []byte
+	var failure string
 	_, err = world.AccessObject(ctx, r.ws.AccessWorldState, ref, func(cursor *block.Cursor) error {
-		var err error
+		// Read the blob root and refuse an oversized body before fetching it.
+		root, err := blob.UnmarshalBlob(ctx, cursor)
+		if err != nil {
+			return err
+		}
+		if root.GetTotalSize() > s4wave_flowgraph.MaxEventPayload {
+			failure = "output " + name + " is over " + strconv.Itoa(s4wave_flowgraph.MaxEventPayload) + " bytes"
+			return nil
+		}
 		data, err = blob.FetchToBytes(ctx, cursor)
 		return err
 	})
-	return data, err
+	return data, failure, err
 }
 
 // routingKey reads the reserved key output, or inherits the activation's key.
@@ -645,9 +678,9 @@ func (r *runner) routingKey(ctx context.Context, task *forge_task.Task, inherite
 	if output == nil || output.IsEmpty() {
 		return inherited, "", nil
 	}
-	data, err := r.readOutput(ctx, output)
-	if err != nil {
-		return "", "", err
+	data, failure, err := r.readOutput(ctx, output, s4wave_flowgraph.KeyOutputName)
+	if err != nil || failure != "" {
+		return "", failure, err
 	}
 
 	// Permit one terminal line ending, but reject multiline routing keys.

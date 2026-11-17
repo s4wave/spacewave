@@ -189,13 +189,11 @@ func ResumeRun(ctx context.Context, ws world.WorldState, runKey string) error {
 	})
 
 	// Write the run with the graph pinned at the current revision.
-	_, _, err = world.AccessObjectState(ctx, obj, true, func(cursor *block.Cursor) error {
+	return writeRun(ctx, ws, runKey, obj, func(cursor *block.Cursor) {
 		cursor.SetBlock(next, true)
 		next.Placements = snapshot.GetPlacements()
 		next.SetGraph(cursor, graph, snapshot.GetRevision())
-		return nil
 	})
-	return err
 }
 
 // accepts reports whether an arrival reaches a Step input of the graph.

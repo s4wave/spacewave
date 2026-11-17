@@ -1,6 +1,7 @@
 [
- {"name": "Commit without checking the revision and arrivals", "replace": [["/\\ phase = \"Ready\"\n  /\\ eval[d].in \\subseteq pending /\\ eval[d].rev = rev\n  /\\ ~Faults", "/\\ ~Faults"]], "expect": "ExactlyOnce"},
- {"name": "Consume every pending arrival, not the evaluated set", "replace": [["/\\ eval[d].in \\subseteq pending /\\ eval[d].rev = rev\n  /\\ ~Faults(eval[d].in)\n  /\\ consumed' = Append(consumed, eval[d].in)\n  /\\ pending' = pending \\ eval[d].in", "/\\ eval[d].rev = rev\n  /\\ ~Faults(eval[d].in)\n  /\\ consumed' = Append(consumed, eval[d].in)\n  /\\ pending' = {}"]], "expect": "NoLoss"},
- {"name": "Write the state outside the commit", "replace": [["/\\ phase' = \"Faulted\"", "/\\ phase' = \"Faulted\" /\\ rev' = rev + 1"], ["/\\ UNCHANGED <<pending, arrived, consumed, rev, registered, fixed>>\n\n\\* LostRace", "/\\ UNCHANGED <<pending, arrived, consumed, registered, fixed>>\n\n\\* LostRace"]], "expect": "RevisionPerCommit"},
- {"name": "Drop the arrivals on a fault", "replace": [["/\\ UNCHANGED <<pending, arrived, consumed, rev, registered, fixed>>\n\n\\* LostRace", "/\\ pending' = {}\n  /\\ UNCHANGED <<arrived, consumed, rev, registered, fixed>>\n\n\\* LostRace"]], "expect": "NoLoss"}
+ {"name": "Commit without checking the revision and arrivals", "replace": [["/\\ eval[d].in \\subseteq pending /\\ eval[d].rev = rev\n  /\\ ~Faults", "/\\ ~Faults"]], "expect": "ExactlyOnce"},
+ {"name": "Consume every pending arrival, not the evaluated set", "replace": [["pend |-> IF f THEN pending ELSE pending \\ eval[d].in", "pend |-> IF f THEN pending ELSE {}"]], "expect": "NoLoss"},
+ {"name": "Write the state outside the commit", "replace": [["rev |-> IF f THEN rev ELSE rev + 1", "rev |-> rev + 1"]], "expect": "RevisionPerCommit"},
+ {"name": "Drop the arrivals on a fault", "replace": [["pend |-> IF f THEN pending ELSE", "pend |-> IF f THEN {} ELSE"]], "expect": "NoLoss"},
+ {"name": "Replay a commit onto a moved root without the expected-root guard", "replace": [["/\\ dstate[d] = \"Placing\"\n  /\\ batch[d].base = ver\n", "/\\ dstate[d] = \"Placing\"\n"]], "expect": "NoLoss"}
 ]

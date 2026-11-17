@@ -4,7 +4,6 @@ import (
 	"context"
 	"maps"
 	"slices"
-	"strconv"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/keyed"
@@ -14,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
+	world_expect "github.com/s4wave/spacewave/db/world/expect"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
@@ -58,9 +58,9 @@ func (r *runner) anyPureReady() bool {
 	return false
 }
 
-// pureEval is one evaluation of a pure Step: the arrivals and state revision
-// it read, and the request built from them. The commit applies the result only
-// when the run still holds the arrivals and the state object is unchanged.
+// pureEval is one evaluation of a pure Step: the arrivals and state root it
+// read, and the request built from them. The commit applies the result only
+// when the run still holds the arrivals and the state object holds that root.
 type pureEval struct {
 	// key is the arrivals' shared key, and empty for an unkeyed Step.
 	key string
@@ -68,10 +68,8 @@ type pureEval struct {
 	inputs []*s4wave_flowgraph.FlowgraphArrival
 	// stateKey is the state object's key, or empty when the Step keeps none.
 	stateKey string
-	// stateFound reports whether the state object existed.
-	stateFound bool
-	// stateRev is the state object's revision when it existed.
-	stateRev uint64
+	// stateRoot is the state object's root block, or nil when it did not exist.
+	stateRoot *block.BlockRef
 	// req is the evaluation request.
 	req *flowgraph_pure.EvaluateRequest
 	// fault says why the inputs cannot be evaluated, or is empty.
@@ -108,17 +106,19 @@ func (r *runner) readPure(ctx context.Context, key pureKey) (*pureEval, error) {
 			eval.fault = failure
 		}
 		eval.inputs = append(eval.inputs, arrival.CloneVT())
-		eval.req.Inputs = append(eval.req.Inputs, input)
+		if failure == "" {
+			eval.req.Inputs = append(eval.req.Inputs, input)
+		}
 	}
 
-	// Read the state object and its revision.
+	// Read the state object and its root.
 	if prefix := pure.GetStatePrefix(); prefix != "" {
 		eval.stateKey = prefix + arrivalKey
-		state, found, rev, err := r.readState(ctx, eval.stateKey)
+		state, root, err := r.readState(ctx, eval.stateKey)
 		if err != nil {
 			return nil, err
 		}
-		eval.stateFound, eval.stateRev, eval.req.State = found, rev, state
+		eval.stateRoot, eval.req.State = root, state
 	}
 	return eval, nil
 }
@@ -156,28 +156,26 @@ func (r *runner) pureInput(ctx context.Context, arrival *s4wave_flowgraph.Flowgr
 	}
 
 	// Read its blob; an oversized output faults the Step.
-	input.Value, err = r.readOutput(ctx, output)
-	if err != nil {
-		return nil, "", err
+	value, failure, err := r.readOutput(ctx, output, taskOutput.GetOutputName())
+	if err != nil || failure != "" {
+		return nil, failure, err
 	}
-	if len(input.Value) > s4wave_flowgraph.MaxEventPayload {
-		return nil, "task output " + taskOutput.GetOutputName() + " is over " + strconv.Itoa(s4wave_flowgraph.MaxEventPayload) + " bytes", nil
-	}
+	input.Value = value
 	return input, "", nil
 }
 
-// readState reads a state object's blob and revision. A missing object reads
-// as not found with no body.
-func (r *runner) readState(ctx context.Context, key string) ([]byte, bool, uint64, error) {
-	// Look up the state object and its revision.
+// readState reads a state object's blob and root block. A missing object
+// reads as a nil root with no body.
+func (r *runner) readState(ctx context.Context, key string) ([]byte, *block.BlockRef, error) {
+	// Look up the state object and its root.
 	obj, found, err := r.ws.GetObject(ctx, key)
 	defer world.ReleaseObjectState(obj)
 	if err != nil || !found {
-		return nil, false, 0, err
+		return nil, nil, err
 	}
-	_, rev, err := obj.GetRootRef(ctx)
+	ref, _, err := obj.GetRootRef(ctx)
 	if err != nil {
-		return nil, false, 0, err
+		return nil, nil, err
 	}
 
 	// Read the body.
@@ -187,13 +185,15 @@ func (r *runner) readState(ctx context.Context, key string) ([]byte, bool, uint6
 		data, err = blob.FetchToBytes(ctx, cursor)
 		return err
 	})
-	return data, true, rev, err
+	return data, ref.GetRootRef(), err
 }
 
 // commitPure applies an evaluation's result in the caller's write
 // transaction. It returns false, changing nothing, when the evaluation lost a
-// race: the run no longer holds the evaluated arrivals at a ready Step, or the
-// state object moved. A fault pauses the run at the Step and keeps the
+// race: the run no longer holds the evaluated arrivals at a running, unbounded
+// Step, or the state object moved. The transaction expects the run and the
+// state object to keep the roots it read, so a replay on another head is
+// refused and the watcher evaluates again. A fault pauses the run at the Step and keeps the
 // arrivals. A conclusion consumes the arrivals, writes the next state, counts
 // the visit and routes the chosen port with the arrivals' key.
 func commitPure(
@@ -214,6 +214,11 @@ func commitPure(
 	taken, err := r.pureCurrent(ctx, key, eval)
 	if err != nil || taken == nil {
 		return false, err
+	}
+	if eval.stateKey != "" {
+		if err := world_expect.ExpectCurrent(ctx, ws, eval.stateKey); err != nil {
+			return false, err
+		}
 	}
 
 	// Pause on a fault or a port the Step does not declare.
@@ -247,17 +252,20 @@ func commitPure(
 	}
 
 	// Write the run; the run controller advances from its new revision.
-	_, _, err = world.AccessObjectState(ctx, obj, true, func(cursor *block.Cursor) error {
+	err = writeRun(ctx, ws, runKey, obj, func(cursor *block.Cursor) {
 		cursor.SetBlock(r.run, true)
-		return nil
 	})
 	return err == nil, err
 }
 
 // pureCurrent returns the indexes of the evaluated arrivals in the run when
-// the evaluation still applies, or nil when it lost a race. Each evaluated
-// arrival must match a distinct arrival of the run, the Step must still be
-// ready and unblocked, and the state object must hold the revision read.
+// the evaluation still applies, or nil when it lost a race. The run must still
+// be running the Step's function below its bound, each evaluated arrival must
+// match the content of a distinct arrival of the run at any index, and the
+// state object must hold the root read. Matching content suffices because the
+// function is pure: equal arrivals on an equal state give the same result, and
+// the state root tells a fold already applied from one still to apply. It
+// compares roots and reads no block, since it runs under the World writer.
 func (r *runner) pureCurrent(ctx context.Context, key pureKey, eval *pureEval) ([]int, error) {
 	// Require the running Step with the same function and an open bound.
 	step := r.graph.GetNodes()[key.nodeID].GetStep()
@@ -284,10 +292,10 @@ func (r *runner) pureCurrent(ctx context.Context, key pureKey, eval *pureEval) (
 		taken = append(taken, i)
 	}
 
-	// Require the state object unchanged.
+	// Require the state object to hold the root read.
 	if eval.stateKey != "" {
-		_, found, rev, err := r.readState(ctx, eval.stateKey)
-		if err != nil || found != eval.stateFound || rev != eval.stateRev {
+		root, err := world_expect.ReadRoot(ctx, r.ws, eval.stateKey)
+		if err != nil || !world_expect.SameRoot(root, eval.stateRoot) {
 			return nil, err
 		}
 	}

@@ -29,12 +29,32 @@ func (r *DeliverEventsRequest) Validate() error {
 	return nil
 }
 
+// MaxPendingArrivals is the encoded size of a run's waiting arrivals at which
+// the run stops taking events. A delivery is taken only below it, so the run
+// block exceeds it by at most one batch while its Steps do not consume.
+const MaxPendingArrivals = 1 << 20
+
+// takesEvents reports whether a run takes a delivery: it is running and its
+// waiting arrivals are below MaxPendingArrivals. A paused run, or one whose
+// Steps have stopped consuming, holds its sources instead.
+func takesEvents(run *s4wave_flowgraph.FlowgraphRun) bool {
+	if run.GetState() != s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_RUNNING {
+		return false
+	}
+	size := 0
+	for _, arrival := range run.GetArrivals() {
+		size += arrival.SizeVT()
+	}
+	return size < MaxPendingArrivals
+}
+
 // DeliverEvents queues one arrival per event along each connection from an
 // event-source node into a Step input, and stores the cursor after the last
 // event. It applies only when the run's stored cursor for the node equals the
 // cursor the request read; otherwise it changes nothing and returns
 // DELIVER_EVENTS_RESULT_STALE_CURSOR, and the caller resumes from the stored
-// cursor. The arrivals and the cursor are written together, so an event is
+// cursor. A run that does not take events changes nothing and returns
+// DELIVER_EVENTS_RESULT_HELD, and the caller waits for it. The arrivals and the cursor are written together, so an event is
 // never queued without its cursor or the cursor moved without its event.
 // Call it in a write transaction; the run controller for runKey routes the
 // arrivals. For a bound source, pass its current type binding to validate
@@ -64,6 +84,11 @@ func DeliverEvents(
 		return DeliverEventsResult_DELIVER_EVENTS_RESULT_UNKNOWN, errors.Errorf("deliver events: node %q is not in the run's graph", req.GetNodeId())
 	}
 
+	// Hold a delivery the run cannot consume now.
+	if !takesEvents(run) {
+		return DeliverEventsResult_DELIVER_EVENTS_RESULT_HELD, nil
+	}
+
 	// Reject a delivery that read a cursor another reader has moved.
 	if !bytes.Equal(run.GetCursor()[req.GetNodeId()], req.GetCursor()) {
 		return DeliverEventsResult_DELIVER_EVENTS_RESULT_STALE_CURSOR, nil
@@ -78,7 +103,8 @@ func DeliverEvents(
 		port := node.FindPort(event.GetPort())
 		if node.GetObjectKey() != "" {
 			port = nil
-			if len(bindings) != 0 && bindings[0].GetObjectKey() == node.GetObjectKey() && bindings[0].GetState() == s4wave_flowgraph.FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_BOUND {
+			bound := len(bindings) != 0 && bindings[0].GetState() == s4wave_flowgraph.FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_BOUND
+			if bound && bindings[0].GetObjectKey() == node.GetObjectKey() {
 				port = bindings[0].FindPort(event.GetPort())
 			}
 		}
@@ -120,9 +146,8 @@ func DeliverEvents(
 	}
 
 	// Write the arrivals and the cursor in this one transaction.
-	_, _, err = world.AccessObjectState(ctx, obj, true, func(cursor *block.Cursor) error {
+	err = writeRun(ctx, ws, runKey, obj, func(cursor *block.Cursor) {
 		cursor.SetBlock(next, true)
-		return nil
 	})
 	if err != nil {
 		return DeliverEventsResult_DELIVER_EVENTS_RESULT_UNKNOWN, err

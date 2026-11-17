@@ -3,8 +3,10 @@ package flowgraph_run_test
 import (
 	"bytes"
 	"context"
+	"strconv"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	flowgraph_run "github.com/s4wave/spacewave/sdk/flowgraph/run"
@@ -165,4 +167,62 @@ func TestEventPorts(t *testing.T) {
 	// An event without a port retains the existing broadcast behavior.
 	e.deliver("c1", "c2", event("broadcast", "topic"))
 	requireEventIDs(t, e.readRun(), "thread-1", "broadcast", "broadcast")
+}
+
+// TestDeliverEventsHeld holds deliveries to a run that cannot consume them: one
+// whose waiting arrivals reached the pending bound, and a paused one. A held
+// delivery changes nothing, so its events stay in the source, and resuming the
+// run takes them again.
+func TestDeliverEventsHeld(t *testing.T) {
+	// Start a run whose source node feeds a Step, with no controller running.
+	e := newEnv(t)
+	e.eventGraph()
+	e.startRun()
+
+	// Fill the run's waiting arrivals past the bound in one delivery.
+	var batch []*flowgraph_run.DeliveredEvent
+	for i := range flowgraph_run.MaxPendingArrivals/s4wave_flowgraph.MaxEventPayload + 1 {
+		ev := event("big"+strconv.Itoa(i), "")
+		ev.Payload = bytes.Repeat([]byte{'x'}, s4wave_flowgraph.MaxEventPayload)
+		batch = append(batch, ev)
+	}
+	if result := e.deliver("", "c1", batch...); result != flowgraph_run.DeliverEventsResult_DELIVER_EVENTS_RESULT_DELIVERED {
+		t.Fatalf("filling delivery = %s", result)
+	}
+
+	// The next delivery is held and changes nothing.
+	full := e.readRun()
+	if result := e.deliver("c1", "c2", event("e1", "")); result != flowgraph_run.DeliverEventsResult_DELIVER_EVENTS_RESULT_HELD {
+		t.Fatalf("delivery to a full run = %s, want held", result)
+	}
+	if !e.readRun().EqualVT(full) {
+		t.Fatal("held delivery changed the run")
+	}
+
+	// A paused run with no waiting arrivals holds the delivery too.
+	e.exec(func(ctx context.Context, tx world.WorldState) error {
+		obj, _, err := tx.GetObject(ctx, runKey)
+		defer world.ReleaseObjectState(obj)
+		if err != nil {
+			return err
+		}
+		paused := full.CloneVT()
+		paused.Arrivals = nil
+		paused.State, paused.PausedNode, paused.PauseReason = s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED, "a", "test"
+		_, _, err = world.AccessObjectState(ctx, obj, true, func(cursor *block.Cursor) error {
+			cursor.SetBlock(paused, true)
+			return nil
+		})
+		return err
+	})
+	if result := e.deliver("c1", "c2", event("e1", "")); result != flowgraph_run.DeliverEventsResult_DELIVER_EVENTS_RESULT_HELD {
+		t.Fatalf("delivery to a paused run = %s, want held", result)
+	}
+
+	// Resuming the run takes the held event from the stored cursor.
+	e.resume()
+	if result := e.deliver("c1", "c2", event("e1", "")); result != flowgraph_run.DeliverEventsResult_DELIVER_EVENTS_RESULT_DELIVERED {
+		t.Fatalf("delivery after resume = %s", result)
+	}
+	requireEventIDs(t, e.readRun(), "e1")
 }

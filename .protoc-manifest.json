@@ -2642,6 +2642,18 @@
         "db/world/block/tx/tx.proto"
       ]
     },
+    "github.com/s4wave/spacewave/db/world/expect": {
+      "hash": "c1955e68c6c3db32a199715bbbef2ee5c8f39d9606b6d9306c7bf00945de5740",
+      "generatedFiles": [
+        "db/world/expect/expect.pb.go",
+        "db/world/expect/expect.pb.ts",
+        "db/world/expect/expect_typeid.pb.go",
+        "db/world/expect/expect_typeid.pb.ts"
+      ],
+      "protoFiles": [
+        "db/world/expect/expect.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/db/world/mock": {
       "hash": "4ba2e4494b82213cba43f2f2599c82d4b0b87bac916df345ddc68daed6284886",
       "generatedFiles": [
@@ -3940,7 +3952,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/flowgraph/run": {
-      "hash": "97fe751bcebed541619775f36721b70839e12a9ed2cc541de84a4945c0254b6f",
+      "hash": "60b6c03c7662693bd40c5ab30bc70dcfed7ffa35ef511a647cfa9972ca3ec27c",
       "generatedFiles": [
         "sdk/flowgraph/run/config.pb.go",
         "sdk/flowgraph/run/config.pb.ts",

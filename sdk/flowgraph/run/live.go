@@ -37,6 +37,7 @@ func (r *runner) runningActivation(nodeID, key string) *s4wave_flowgraph.Flowgra
 // the arrivals and an inbox.
 func (r *runner) deliverLive(nodeID string) {
 	r.run.Arrivals = slices.DeleteFunc(r.run.Arrivals, func(arrival *s4wave_flowgraph.FlowgraphArrival) bool {
+		// Keep arrivals at other nodes and keys with no running activation.
 		if arrival.GetNodeId() != nodeID {
 			return false
 		}
@@ -44,6 +45,8 @@ func (r *runner) deliverLive(nodeID string) {
 		if activation == nil {
 			return false
 		}
+
+		// Move the arrival into the activation's inbox at its next sequence.
 		activation.LastInputSeq++
 		activation.Inbox = append(activation.Inbox, &s4wave_flowgraph.FlowgraphLiveInput{
 			Seq:     activation.GetLastInputSeq(),
@@ -116,6 +119,7 @@ func WatchLiveInputs(
 // readInbox reads the inbox of the running activation with the given Task key
 // from a run object, or ErrActivationEnded when the run holds none.
 func readInbox(ctx context.Context, obj world.ObjectState, activationID string) ([]*s4wave_flowgraph.FlowgraphLiveInput, error) {
+	// Find the running activation and copy its inbox.
 	var inbox []*s4wave_flowgraph.FlowgraphLiveInput
 	var found bool
 	_, _, err := world.AccessObjectState(ctx, obj, false, func(cursor *block.Cursor) error {
@@ -175,9 +179,7 @@ func AckLiveInputs(
 		return nil
 	}
 	activation.Inbox = inbox
-	_, _, err = world.AccessObjectState(ctx, obj, true, func(cursor *block.Cursor) error {
+	return writeRun(ctx, ws, runKey, obj, func(cursor *block.Cursor) {
 		cursor.SetBlock(next, true)
-		return nil
 	})
-	return err
 }
