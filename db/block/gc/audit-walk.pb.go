@@ -160,6 +160,10 @@ type WalkCounts struct {
 	// between the first and the last of the block's views, so the namers
 	// summed across them bound no one view's.
 	Wide uint64 `protobuf:"varint,14,opt,name=wide,proto3" json:"wide,omitempty"`
+	// Declined counts the listed blocks whose undercount went unchecked
+	// because the Volume was not adopted or the sweep owned the block: their
+	// counts are not in force.
+	Declined uint64 `protobuf:"varint,15,opt,name=declined,proto3" json:"declined,omitempty"`
 }
 
 func (x *WalkCounts) Reset() {
@@ -262,6 +266,13 @@ func (x *WalkCounts) GetTailPairs() uint64 {
 func (x *WalkCounts) GetWide() uint64 {
 	if x != nil {
 		return x.Wide
+	}
+	return 0
+}
+
+func (x *WalkCounts) GetDeclined() uint64 {
+	if x != nil {
+		return x.Declined
 	}
 	return 0
 }
@@ -388,31 +399,25 @@ func (x *WalkProgress) GetWideMoved() bool {
 }
 
 // WalkMark is what one view reads of the things that can change the namers
-// of one block: the journal's end, how far netting has gone, the paged
-// release, and the block's own holders and pending pairs. Two views that
-// read the same mark saw the same namers of the block.
+// of one block: the Volume's liveness state, and the block's own listing,
+// holders and pending pairs. Two views that read the same mark saw the same
+// namers of the block.
 type WalkMark struct {
 	unknownFields []byte
-	// Adoption is the Volume's adoption.
-	Adoption Adoption `protobuf:"varint,1,opt,name=adoption,proto3" json:"adoption,omitempty"`
-	// NextSeq is the sequence the next journal record takes.
-	NextSeq uint64 `protobuf:"varint,2,opt,name=next_seq,json=nextSeq,proto3" json:"nextSeq,omitempty"`
-	// Cursor is the oldest journal record not netted.
-	Cursor uint64 `protobuf:"varint,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	// NetOffset is how much of the record at the cursor is netted.
-	NetOffset uint64 `protobuf:"varint,4,opt,name=net_offset,json=netOffset,proto3" json:"netOffset,omitempty"`
-	// Release is the paged release in progress, unset when none is.
-	Release *Release `protobuf:"bytes,5,opt,name=release,proto3" json:"release,omitempty"`
+	// State is the Volume's liveness state record: the journal's end, how far
+	// netting has gone, the paged release, the adoption and its run, the hold
+	// rule and the generation.
+	State *LivenessState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
 	// Listed is whether the block has a child list.
-	Listed bool `protobuf:"varint,6,opt,name=listed,proto3" json:"listed,omitempty"`
+	Listed bool `protobuf:"varint,2,opt,name=listed,proto3" json:"listed,omitempty"`
 	// Holders is the block's netted holders.
-	Holders uint64 `protobuf:"varint,7,opt,name=holders,proto3" json:"holders,omitempty"`
+	Holders uint64 `protobuf:"varint,3,opt,name=holders,proto3" json:"holders,omitempty"`
 	// Journal is what the journal past the cursor does to its holders.
-	Journal int64 `protobuf:"varint,8,opt,name=journal,proto3" json:"journal,omitempty"`
+	Journal int64 `protobuf:"varint,4,opt,name=journal,proto3" json:"journal,omitempty"`
 	// Fill is what the fill records not netted do to its holders.
-	Fill int64 `protobuf:"varint,9,opt,name=fill,proto3" json:"fill,omitempty"`
+	Fill int64 `protobuf:"varint,5,opt,name=fill,proto3" json:"fill,omitempty"`
 	// Pending is what the paged release does to its namers.
-	Pending int64 `protobuf:"varint,10,opt,name=pending,proto3" json:"pending,omitempty"`
+	Pending int64 `protobuf:"varint,6,opt,name=pending,proto3" json:"pending,omitempty"`
 }
 
 func (x *WalkMark) Reset() {
@@ -421,37 +426,9 @@ func (x *WalkMark) Reset() {
 
 func (*WalkMark) ProtoMessage() {}
 
-func (x *WalkMark) GetAdoption() Adoption {
+func (x *WalkMark) GetState() *LivenessState {
 	if x != nil {
-		return x.Adoption
-	}
-	return Adoption_ADOPTION_UNADOPTED
-}
-
-func (x *WalkMark) GetNextSeq() uint64 {
-	if x != nil {
-		return x.NextSeq
-	}
-	return 0
-}
-
-func (x *WalkMark) GetCursor() uint64 {
-	if x != nil {
-		return x.Cursor
-	}
-	return 0
-}
-
-func (x *WalkMark) GetNetOffset() uint64 {
-	if x != nil {
-		return x.NetOffset
-	}
-	return 0
-}
-
-func (x *WalkMark) GetRelease() *Release {
-	if x != nil {
-		return x.Release
+		return x.State
 	}
 	return nil
 }
@@ -510,6 +487,7 @@ func (m *WalkCounts) CloneVT() *WalkCounts {
 	r.UnconfirmedUnrooted = m.UnconfirmedUnrooted
 	r.TailPairs = m.TailPairs
 	r.Wide = m.Wide
+	r.Declined = m.Declined
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -551,16 +529,12 @@ func (m *WalkMark) CloneVT() *WalkMark {
 		return (*WalkMark)(nil)
 	}
 	r := new(WalkMark)
-	r.Adoption = m.Adoption
-	r.NextSeq = m.NextSeq
-	r.Cursor = m.Cursor
-	r.NetOffset = m.NetOffset
 	r.Listed = m.Listed
 	r.Holders = m.Holders
 	r.Journal = m.Journal
 	r.Fill = m.Fill
 	r.Pending = m.Pending
-	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
+	r.State = protobuf_go_lite.CloneVTValue(m.State)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -617,6 +591,9 @@ func (this *WalkCounts) EqualVT(that *WalkCounts) bool {
 		return false
 	}
 	if this.Wide != that.Wide {
+		return false
+	}
+	if this.Declined != that.Declined {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -686,19 +663,7 @@ func (this *WalkMark) EqualVT(that *WalkMark) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.Adoption != that.Adoption {
-		return false
-	}
-	if this.NextSeq != that.NextSeq {
-		return false
-	}
-	if this.Cursor != that.Cursor {
-		return false
-	}
-	if this.NetOffset != that.NetOffset {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.Release, that.Release) {
+	if !protobuf_go_lite.IsEqualVT(this.State, that.State) {
 		return false
 	}
 	if this.Listed != that.Listed {
@@ -885,6 +850,11 @@ func (x *WalkCounts) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("wide")
 		s.WriteUint64(x.Wide)
 	}
+	if x.Declined != 0 || s.HasField("declined") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("declined")
+		s.WriteUint64(x.Declined)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -944,6 +914,9 @@ func (x *WalkCounts) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "wide":
 			s.AddField("wide")
 			x.Wide = s.ReadUint64()
+		case "declined":
+			s.AddField("declined")
+			x.Declined = s.ReadUint64()
 		}
 	})
 }
@@ -1091,30 +1064,10 @@ func (x *WalkMark) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.Adoption != 0 || s.HasField("adoption") {
+	if x.State != nil || s.HasField("state") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("adoption")
-		x.Adoption.MarshalProtoJSON(s)
-	}
-	if x.NextSeq != 0 || s.HasField("nextSeq") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("nextSeq")
-		s.WriteUint64(x.NextSeq)
-	}
-	if x.Cursor != 0 || s.HasField("cursor") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("cursor")
-		s.WriteUint64(x.Cursor)
-	}
-	if x.NetOffset != 0 || s.HasField("netOffset") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("netOffset")
-		s.WriteUint64(x.NetOffset)
-	}
-	if x.Release != nil || s.HasField("release") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("release")
-		x.Release.MarshalProtoJSON(s.WithField("release"))
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s.WithField("state"))
 	}
 	if x.Listed || s.HasField("listed") {
 		s.WriteMoreIf(&wroteField)
@@ -1158,25 +1111,13 @@ func (x *WalkMark) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "adoption":
-			s.AddField("adoption")
-			x.Adoption.UnmarshalProtoJSON(s)
-		case "next_seq", "nextSeq":
-			s.AddField("next_seq")
-			x.NextSeq = s.ReadUint64()
-		case "cursor":
-			s.AddField("cursor")
-			x.Cursor = s.ReadUint64()
-		case "net_offset", "netOffset":
-			s.AddField("net_offset")
-			x.NetOffset = s.ReadUint64()
-		case "release":
+		case "state":
 			if s.ReadNil() {
-				x.Release = nil
+				x.State = nil
 				return
 			}
-			x.Release = &Release{}
-			x.Release.UnmarshalProtoJSON(s.WithField("release", true))
+			x.State = &LivenessState{}
+			x.State.UnmarshalProtoJSON(s.WithField("state", true))
 		case "listed":
 			s.AddField("listed")
 			x.Listed = s.ReadBool()
@@ -1229,6 +1170,11 @@ func (m *WalkCounts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Declined != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Declined))
+		i--
+		dAtA[i] = 0x78
 	}
 	if m.Wide != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Wide))
@@ -1432,57 +1378,37 @@ func (m *WalkMark) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.Pending != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Pending))
 		i--
-		dAtA[i] = 0x50
+		dAtA[i] = 0x30
 	}
 	if m.Fill != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Fill))
 		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x28
 	}
 	if m.Journal != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Journal))
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x20
 	}
 	if m.Holders != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Holders))
 		i--
-		dAtA[i] = 0x38
+		dAtA[i] = 0x18
 	}
 	if m.Listed {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Listed)
 		i--
-		dAtA[i] = 0x30
+		dAtA[i] = 0x10
 	}
-	if m.Release != nil {
-		size, err := m.Release.MarshalToSizedBufferVT(dAtA[:i])
+	if m.State != nil {
+		size, err := m.State.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x2a
-	}
-	if m.NetOffset != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NetOffset))
-		i--
-		dAtA[i] = 0x20
-	}
-	if m.Cursor != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cursor))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.NextSeq != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextSeq))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.Adoption != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Adoption))
-		i--
-		dAtA[i] = 0x8
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -1507,6 +1433,7 @@ func (m *WalkCounts) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.UnconfirmedUnrooted)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.TailPairs)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Wide)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Declined)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1544,12 +1471,8 @@ func (m *WalkMark) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Adoption)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextSeq)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cursor)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.NetOffset)
-	if m.Release != nil {
-		l = m.Release.SizeVT()
+	if m.State != nil {
+		l = m.State.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Listed)
@@ -1628,6 +1551,10 @@ func (x *WalkCounts) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "wide")
 		protobuf_go_lite.TextWriteUint(&sb, x.Wide)
 	}
+	if x.Declined != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "declined")
+		protobuf_go_lite.TextWriteUint(&sb, x.Declined)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1692,25 +1619,9 @@ func (x *WalkProgress) String() string {
 func (x *WalkMark) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WalkMark")
-	if x.Adoption != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "adoption")
-		protobuf_go_lite.TextWriteStringer(&sb, Adoption(x.Adoption))
-	}
-	if x.NextSeq != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_seq")
-		protobuf_go_lite.TextWriteUint(&sb, x.NextSeq)
-	}
-	if x.Cursor != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cursor")
-		protobuf_go_lite.TextWriteUint(&sb, x.Cursor)
-	}
-	if x.NetOffset != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "net_offset")
-		protobuf_go_lite.TextWriteUint(&sb, x.NetOffset)
-	}
-	if x.Release != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "release")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Release)
+	if x.State != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.State)
 	}
 	if x.Listed != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "listed")
@@ -1882,6 +1793,15 @@ func (m *WalkCounts) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Wide = 0
 			m.Wide, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Declined", wireType)
+			}
+			m.Declined = 0
+			m.Declined, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
@@ -2085,59 +2005,21 @@ func (m *WalkMark) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Adoption", wireType)
-			}
-			m.Adoption = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.Adoption = Adoption(_v)
-			if err != nil {
-				return err
-			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NextSeq", wireType)
-			}
-			m.NextSeq = 0
-			m.NextSeq, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Cursor", wireType)
-			}
-			m.Cursor = 0
-			m.Cursor, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NetOffset", wireType)
-			}
-			m.NetOffset = 0
-			m.NetOffset, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Release", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			if m.Release == nil {
-				m.Release = &Release{}
+			if m.State == nil {
+				m.State = &LivenessState{}
 			}
-			if err := m.Release.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+			if err := m.State.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
-		case 6:
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Listed", wireType)
 			}
@@ -2147,7 +2029,7 @@ func (m *WalkMark) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Listed = bool(v)
-		case 7:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Holders", wireType)
 			}
@@ -2156,7 +2038,7 @@ func (m *WalkMark) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 8:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Journal", wireType)
 			}
@@ -2165,7 +2047,7 @@ func (m *WalkMark) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 9:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Fill", wireType)
 			}
@@ -2174,7 +2056,7 @@ func (m *WalkMark) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 10:
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Pending", wireType)
 			}

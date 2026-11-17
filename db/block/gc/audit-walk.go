@@ -34,13 +34,20 @@ import (
 //     views of its own, walkSliceEdges edges to a view, and its valid edges
 //     are summed across them. The sum bounds the true namers of the last
 //     view only if no namer changed between the views, so each view reads a
-//     WalkMark: the journal's end, the cursor and net offset, the paged
-//     release, and the block's own listing, holders, journal and fill sums
-//     and release pending. A namer leaves or joins only by a journal record
-//     (NextSeq), by netting a parent to zero or re-holding it (Cursor and
-//     NetOffset), by a free's or re-hold's paged release (Release, and the
-//     block's holders once the release pages it), or by a fill that writes
-//     the block's pairs (its fill sum). The undercount check runs only when
+//     WalkMark: the whole liveness state record, and the block's own
+//     listing, holders, journal and fill sums and release pending. In one
+//     adoption a namer leaves or joins only by a journal record (NextSeq),
+//     by netting a parent to zero or re-holding it (Cursor and NetOffset), by
+//     a free's or re-hold's paged release (Release, and the block's holders
+//     once the release pages it), or by a fill that writes the block's pairs
+//     (its fill sum). An unadopted Volume's Lands write no journal, and each
+//     adoption names a new AdoptionRun, so a cycle through unadopted moves
+//     the mark. Whether a parent counts through its frozen old list turns on
+//     the generation, in the state, and on its run entry, which leaves the
+//     run only by the sweep or a rebirth: a sweep that releases children
+//     journals their downs, one that releases none leaves the edge invalid
+//     before and after, and a rebirth comes in a Land that journals the new
+//     list. The undercount check runs only when
 //     every view read the first view's mark; otherwise the block counts as
 //     Wide and its undercount goes unchecked. The hole test needs no mark:
 //     one valid edge in any view names the block, and the confirm phase
@@ -53,12 +60,15 @@ import (
 //     reads in its view and applies to the copies. It copies only the pairs
 //     of blocks not checked yet, and keeps those of the slice it checks only
 //     while that slice is unfinished. Each check copies at most
-//     walkSliceEdges pairs and sums at most walkBacklogPairs past them and
-//     in the fill records, in its own view, so a view's work is bounded
-//     whatever a writer's rate. A view that finds more left only copies,
-//     releases the view and waits walkBehindWait before the next; after
-//     walkBehindViews such views in a row the walk ends with ErrWalkBehind,
-//     keeping its scratch to resume.
+//     walkSliceEdges pairs and sums at most walkBacklogPairs pairs in all:
+//     past them, in the fill records, and among the slice's copies in
+//     scratch from the cursor on, which grow with netting's lag. A view's
+//     work is so bounded whatever a writer's rate or netting's stall. A view
+//     that finds more left only copies, releases the view and waits
+//     walkBehindWait before the next; after walkBehindViews such views in a
+//     row the walk ends with ErrWalkBehind, keeping its scratch to resume.
+//     A stopped copy nets nothing, so one whose unnetted journal names a
+//     slice's blocks more than walkBacklogPairs times stays behind.
 //   - A named block with neither bytes, a list nor a hole record is a
 //     candidate, not a hole: a writer may store a parent ahead of its child.
 //     It is reported only if it is still named and absent once the confirm
@@ -74,12 +84,14 @@ import (
 //     written since, and its clock for a hole's class is a day old.
 //
 // One view reads at most: walkSliceEdges journal pairs to copy, with the
-// record that passes them; walkBacklogPairs pairs past the copy and in the
-// fill records; the scratch copies of the slice's blocks past the cursor,
-// which netting keeps to its lag; a binary search of the paged release and
+// record that passes them; walkBacklogPairs pairs past the copy, in the
+// fill records and among the slice's copies in scratch; a binary search of the paged release and
 // the release pages that overlap the slice's keys; and, for each of at most
 // walkSliceChildren blocks, four point reads, with walkSliceEdges edges of
-// one to three point reads each. Any process that holds the Volume open may
+// one point read for a root edge and up to four for a list edge: the
+// parent's list, its run entry while Sweeping, then its holders and cascade,
+// or its frozen count. The lists phase writes walkSliceEdges edges and then
+// the rest of the list it stopped in, which the largest block bounds. Any process that holds the Volume open may
 // run the walk beside its writers, since it only reads; the debug command
 // walks a stopped copy, because a second process may not open a live
 // Volume.
@@ -148,7 +160,11 @@ const (
 	// which leaves the store to its writers before the next copy.
 	walkBehindWait = 100 * time.Millisecond
 	// walkRunAge bounds the age of a run that resumes; an older run starts
-	// over.
+	// over. Only an open checks it, since only a run that stopped can sit
+	// idle; a run that keeps going ages with its own work. Age loses
+	// detection and never reports falsely: an edge older than a namer misses
+	// it, which lowers the bound, and a lease is held past an older start
+	// longer, so a hole is classed HELD more often, not less.
 	walkRunAge = 24 * time.Hour
 	// walkClearRecords bounds the records one commit of a restart deletes.
 	// They lie together in key order, so a commit dirties few pages.
@@ -202,7 +218,11 @@ func Walk(ctx context.Context, store WalkStore, scratch kvtx.Store, opts WalkOpt
 			w.res.Counts = w.prog.GetCounts()
 			w.res.Started = time.UnixMilli(w.prog.GetStartedUnixMilli())
 			w.res.Resumes = w.prog.GetResumes()
-			return w.res, nil
+			return w.res, w.view(ctx, func(rec *Records) error {
+				state, err := rec.GetState(ctx)
+				w.res.Adoption = state.GetAdoption()
+				return err
+			})
 		default:
 			err = errBadWalkRecord
 		}
@@ -871,14 +891,15 @@ func (w *walker) readTally(ctx context.Context, edges, rec *Records, state *Live
 	}
 
 	// Sum the fill records against the same budget.
-	if t.fill, t.behind, err = fillDelta(ctx, rec, keep, walkBacklogPairs-read); err != nil || t.behind {
+	var fill int
+	if t.fill, fill, t.behind, err = fillDelta(ctx, rec, keep, walkBacklogPairs-read); err != nil || t.behind {
 		return t, err
 	}
 
-	// Add the copies of the journal past the cursor, then read the paged
-	// release.
-	if err := tailDelta(ctx, edges, state, keep, t.copied, t.journal); err != nil {
-		return nil, err
+	// Add the copies of the journal past the cursor against what is left of
+	// the budget, then read the paged release.
+	if t.behind, err = tailDelta(ctx, edges, state, keep, t.copied, t.journal, walkBacklogPairs-read-fill); err != nil || t.behind {
+		return t, err
 	}
 	t.pending, err = releasePending(ctx, rec, state, keys)
 	return t, err
@@ -901,16 +922,12 @@ func readMark(ctx context.Context, rec *Records, state *LivenessState, key []byt
 		return nil, err
 	}
 	return &WalkMark{
-		Adoption:  state.GetAdoption(),
-		NextSeq:   state.GetNextSeq(),
-		Cursor:    state.GetCursor(),
-		NetOffset: state.GetNetOffset(),
-		Release:   state.GetRelease().CloneVT(),
-		Listed:    listed,
-		Holders:   holders,
-		Journal:   t.journal[string(key)],
-		Fill:      t.fill[string(key)],
-		Pending:   t.pending[string(key)],
+		State:   state.CloneVT(),
+		Listed:  listed,
+		Holders: holders,
+		Journal: t.journal[string(key)],
+		Fill:    t.fill[string(key)],
+		Pending: t.pending[string(key)],
 	}, nil
 }
 
@@ -976,12 +993,12 @@ func copyTail(
 }
 
 // fillDelta sums, for the blocks in keep, the pairs of the fill records not
-// netted yet, as fillTail does, reading at most budget pairs; past it the
-// view is behind. Netting deletes a fill record once it is Grace old and an
+// netted yet, as fillTail does, reading at most budget pairs, and returns how
+// many it read; past the budget the view is behind. Netting deletes a fill record once it is Grace old and an
 // unadopted Volume's pass drops them, so only a cache fill of more than
 // walkBacklogPairs pairs in one grace period, about 73 a second, passes the
 // budget; the walk then waits, or ends with ErrWalkBehind and resumes later.
-func fillDelta(ctx context.Context, rec *Records, keep map[string]struct{}, budget int) (map[string]int64, bool, error) {
+func fillDelta(ctx context.Context, rec *Records, keep map[string]struct{}, budget int) (map[string]int64, int, bool, error) {
 	// add sums one pair for a block in keep, and reports false past the
 	// budget.
 	fill := make(map[string]int64)
@@ -1006,7 +1023,7 @@ func fillDelta(ctx context.Context, rec *Records, keep map[string]struct{}, budg
 		return true, nil
 	})
 	if err != nil || read > budget {
-		return fill, read > budget, err
+		return fill, read, read > budget, err
 	}
 	err = rec.scanFillRecords(ctx, 0, func(fr fillRecord) (bool, error) {
 		for _, down := range fr.rec.GetDown() {
@@ -1016,15 +1033,25 @@ func fillDelta(ctx context.Context, rec *Records, keep map[string]struct{}, budg
 		}
 		return true, nil
 	})
-	return fill, read > budget, err
+	return fill, read, read > budget, err
 }
 
 // tailDelta adds to delta what the journal past the cursor does to each
 // block in keep, as journalTail sums it in the view of state: the copies in
 // edges and in copied, from the cursor on, skipping the entries of the
 // record at the cursor its net offset already applied. delta holds on entry
-// the sums copyTail read past its copies.
-func tailDelta(ctx context.Context, edges *Records, state *LivenessState, keep map[string]struct{}, copied []walkRecord, delta map[string]int64) error {
+// the sums copyTail read past its copies. It reads at most budget copies in
+// scratch and reports the view behind past it: the copies of a block grow
+// with netting's lag, which a stalled collector leaves unbounded.
+func tailDelta(
+	ctx context.Context,
+	edges *Records,
+	state *LivenessState,
+	keep map[string]struct{},
+	copied []walkRecord,
+	delta map[string]int64,
+	budget int,
+) (bool, error) {
 	// add sums one copy past the cursor and the net offset.
 	add := func(key, at, value []byte) error {
 		// Skip the pairs netting already applied.
@@ -1045,18 +1072,23 @@ func tailDelta(ctx context.Context, edges *Records, state *LivenessState, keep m
 		return nil
 	}
 
-	// Sum each block's copies in scratch from the cursor on.
+	// Sum each block's copies in scratch from the cursor on, within the
+	// budget.
 	from := binary.BigEndian.AppendUint64(nil, state.GetCursor())
+	var read int
 	for key := range keep {
 		err := edges.scan(ctx, walkKey(walkTail, []byte(key)), from, func(at []byte, value func() ([]byte, error)) (bool, error) {
+			if read++; read > budget {
+				return false, nil
+			}
 			v, err := value()
 			if err != nil {
 				return false, err
 			}
 			return true, add([]byte(key), at, v)
 		})
-		if err != nil {
-			return err
+		if err != nil || read > budget {
+			return read > budget, err
 		}
 	}
 
@@ -1064,16 +1096,16 @@ func tailDelta(ctx context.Context, edges *Records, state *LivenessState, keep m
 	for _, c := range copied {
 		ref, at, err := ParseBlockKey(c.key[1:])
 		if err != nil {
-			return err
+			return false, err
 		}
 		key := BlockKey(ref)
 		if _, ok := keep[string(key)]; ok {
 			if err := add(key, at, c.value); err != nil {
-				return err
+				return false, err
 			}
 		}
 	}
-	return nil
+	return false, nil
 }
 
 // nextChildren returns the block keys of the next named blocks past the
@@ -1122,7 +1154,9 @@ func (w *walker) nextChildren(ctx context.Context) (keys [][]byte, wide, done bo
 // releasePending counts, for each of keys, in key order, how many times the
 // paged release in progress has not moved it yet, negated for a re-hold, as
 // tallyHolders applies them. The release names its children in block key
-// order, so it finds the first not below keys[0] by a binary search from the
+// order, since it pages a child list and every list is in that order:
+// EncodeChildren sorts, and mergeList's union merges two sorted lists. So it
+// finds the first not below keys[0] by a binary search from the
 // release's Next, then merges forward, reading only the pages that overlap
 // the keys' range.
 func releasePending(ctx context.Context, rec *Records, state *LivenessState, keys [][]byte) (map[string]int64, error) {
@@ -1205,10 +1239,13 @@ func (w *walker) checkChild(
 	}
 	if listed {
 		unmarked, err := rec.Unmarked(ctx, key)
+		total := w.prog.GetCounts()
 		if err != nil || unmarked || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+			if err == nil {
+				total.Declined++
+			}
 			return ref, false, err
 		}
-		total := w.prog.GetCounts()
 		if !sound {
 			total.Wide++
 			return ref, false, nil

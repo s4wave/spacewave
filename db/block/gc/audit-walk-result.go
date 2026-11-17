@@ -10,6 +10,9 @@ import (
 type WalkResult struct {
 	// Counts is what the whole run counted, across restarts.
 	Counts *WalkCounts
+	// Adoption is the Volume's adoption when the walk ended. Outside Adopted
+	// its counts are not in force, and every listed block is Declined.
+	Adoption Adoption
 	// Started is when the run began.
 	Started time.Time
 	// Resumes counts the times a process took up the run from scratch.

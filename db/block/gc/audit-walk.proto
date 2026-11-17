@@ -80,6 +80,10 @@ message WalkCounts {
   // between the first and the last of the block's views, so the namers
   // summed across them bound no one view's.
   uint64 wide = 14;
+  // Declined counts the listed blocks whose undercount went unchecked
+  // because the Volume was not adopted or the sweep owned the block: their
+  // counts are not in force.
+  uint64 declined = 15;
 }
 
 // WalkProgress is the one progress record of a streaming audit walk, kept in
@@ -120,28 +124,22 @@ message WalkProgress {
 }
 
 // WalkMark is what one view reads of the things that can change the namers
-// of one block: the journal's end, how far netting has gone, the paged
-// release, and the block's own holders and pending pairs. Two views that
-// read the same mark saw the same namers of the block.
+// of one block: the Volume's liveness state, and the block's own listing,
+// holders and pending pairs. Two views that read the same mark saw the same
+// namers of the block.
 message WalkMark {
-  // Adoption is the Volume's adoption.
-  Adoption adoption = 1;
-  // NextSeq is the sequence the next journal record takes.
-  uint64 next_seq = 2;
-  // Cursor is the oldest journal record not netted.
-  uint64 cursor = 3;
-  // NetOffset is how much of the record at the cursor is netted.
-  uint64 net_offset = 4;
-  // Release is the paged release in progress, unset when none is.
-  Release release = 5;
+  // State is the Volume's liveness state record: the journal's end, how far
+  // netting has gone, the paged release, the adoption and its run, the hold
+  // rule and the generation.
+  LivenessState state = 1;
   // Listed is whether the block has a child list.
-  bool listed = 6;
+  bool listed = 2;
   // Holders is the block's netted holders.
-  uint64 holders = 7;
+  uint64 holders = 3;
   // Journal is what the journal past the cursor does to its holders.
-  int64 journal = 8;
+  int64 journal = 4;
   // Fill is what the fill records not netted do to its holders.
-  int64 fill = 9;
+  int64 fill = 5;
   // Pending is what the paged release does to its namers.
-  int64 pending = 10;
+  int64 pending = 6;
 }

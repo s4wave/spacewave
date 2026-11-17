@@ -5,8 +5,7 @@
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
-import type { Adoption } from './liveness.pb.js'
-import { Adoption_Enum, Release } from './liveness.pb.js'
+import { LivenessState } from './liveness.pb.js'
 
 /**
  * WalkPhase is the step a streaming audit walk has reached, as
@@ -175,6 +174,12 @@ export interface WalkCounts {
    * summed across them bound no one view's.
    */
   wide?: bigint
+  /**
+   * Declined counts the listed blocks whose undercount went unchecked
+   * because the Volume was not adopted or the sweep owned the block: their
+   * counts are not in force.
+   */
+  declined?: bigint
 }
 
 export const WalkCounts: MessageType<WalkCounts> =
@@ -193,6 +198,7 @@ export const WalkCounts: MessageType<WalkCounts> =
     [12, 'unconfirmed_unrooted', 4],
     [13, 'tail_pairs', 4],
     [14, 'wide', 4],
+    [15, 'declined', 4],
   ])
 
 /**
@@ -278,33 +284,19 @@ export const WalkProgress: MessageType<WalkProgress> =
 
 /**
  * WalkMark is what one view reads of the things that can change the namers
- * of one block: the journal's end, how far netting has gone, the paged
- * release, and the block's own holders and pending pairs. Two views that
- * read the same mark saw the same namers of the block.
+ * of one block: the Volume's liveness state, and the block's own listing,
+ * holders and pending pairs. Two views that read the same mark saw the same
+ * namers of the block.
  *
  * @generated from message block.gc.WalkMark
  */
 export interface WalkMark {
   /**
-   * Adoption is the Volume's adoption.
+   * State is the Volume's liveness state record: the journal's end, how far
+   * netting has gone, the paged release, the adoption and its run, the hold
+   * rule and the generation.
    */
-  adoption?: Adoption
-  /**
-   * NextSeq is the sequence the next journal record takes.
-   */
-  nextSeq?: bigint
-  /**
-   * Cursor is the oldest journal record not netted.
-   */
-  cursor?: bigint
-  /**
-   * NetOffset is how much of the record at the cursor is netted.
-   */
-  netOffset?: bigint
-  /**
-   * Release is the paged release in progress, unset when none is.
-   */
-  release?: Release
+  state?: LivenessState
   /**
    * Listed is whether the block has a child list.
    */
@@ -329,14 +321,10 @@ export interface WalkMark {
 
 export const WalkMark: MessageType<WalkMark> =
   /* @__PURE__ */ createMessageType<WalkMark>('block.gc.WalkMark', () => [
-    [1, 'adoption', 14, 0, Adoption_Enum],
-    [2, 'next_seq', 4],
-    [3, 'cursor', 4],
-    [4, 'net_offset', 4],
-    [5, 'release', 11, 0, Release.codec],
-    [6, 'listed', 8],
-    [7, 'holders', 4],
-    [8, 'journal', 3],
-    [9, 'fill', 3],
-    [10, 'pending', 3],
+    [1, 'state', 11, 0, LivenessState.codec],
+    [2, 'listed', 8],
+    [3, 'holders', 4],
+    [4, 'journal', 3],
+    [5, 'fill', 3],
+    [6, 'pending', 3],
   ])

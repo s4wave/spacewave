@@ -121,12 +121,14 @@ func auditWalkFields(path string, res *block_gc.WalkResult) [][2]string {
 	n := res.Counts
 	fields := [][2]string{
 		{"Volume", path},
+		{"Adoption", res.Adoption.String()},
 		{"Roots", strconv.FormatUint(n.GetRoots(), 10)},
 		{"Child lists", strconv.FormatUint(n.GetLists(), 10)},
 		{"Edges", strconv.FormatUint(n.GetEdges(), 10)},
 		{"Checked blocks", strconv.FormatUint(n.GetChecked(), 10)},
 		{"Undercounted blocks", strconv.FormatUint(n.GetUndercount(), 10)},
 		{"Wide blocks whose namers moved, unchecked", strconv.FormatUint(n.GetWide(), 10)},
+		{"Declined, counts not in force", strconv.FormatUint(n.GetDeclined(), 10)},
 		{"Named without a child list", strconv.FormatUint(n.GetUnknown(), 10)},
 		{"Hole candidates", strconv.FormatUint(n.GetCandidates(), 10)},
 		{"Journal pairs copied", strconv.FormatUint(n.GetTailPairs(), 10)},
@@ -172,7 +174,9 @@ func newDebugVolumeAuditWalkCommand() *cli.Command {
 			"under the same --run. It reports each undercounted block, whose counted holders are fewer than the edges " +
 			"that still name it, and each named block absent without a hole record, rereading those after --delay and " +
 			"classing what is still absent by whether a held root, only a lapsed root, or no root reaches it. It removes " +
-			"the scratch store once the walk finishes. Run it only on a stopped volume.",
+			"the scratch store once the walk finishes. Run it only on a stopped volume: a block named by more than 4,096 " +
+			"edges is checked across several views, and any write between them leaves it unchecked and counted wide. " +
+			"Undercounts are checked only on an adopted volume; on any other, each listed block is counted declined.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
 	}

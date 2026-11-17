@@ -1923,6 +1923,10 @@ func testLivenessAdversarial(t *testing.T) {
 		testAuditWalk(t)
 	})
 
+	t.Run("streaming audit under stalled netting", func(t *testing.T) {
+		testAuditWalkStalled(t)
+	})
+
 	for _, tc := range []struct {
 		name           string
 		audited, named bool
@@ -8312,6 +8316,162 @@ func testAuditWalk(t *testing.T) {
 	if c := res.Counts; c.GetUndercount() != 1 || c.GetWide() != 0 || !slices.ContainsFunc(res.UndercountSample, tr["H2"].Ref.EqualsRef) {
 		t.Fatalf("quiet walk found %d undercounts, sample %v, and %d wide, want H2 alone and none", c.GetUndercount(), res.UndercountSample, c.GetWide())
 	}
+
+	// Between X's two views, a recount moves one root off X and another onto
+	// it with no journal record. Its first view counts the edges of wide0
+	// to wide995 in name order, the second those of wide996 to wide999.
+	// wide999 leaves X before the first view; while the Volume is unadopted,
+	// wide0 leaves and wide999 returns; the recount writes X's holders as
+	// the first view read them. The mark must move, so X is wide and not
+	// undercounted.
+	tr.add(t, "Y")
+	cycled := &walkHookStore{collectorStore: collectorStore{v: v}}
+	cycled.hook = func(prog *block_gc.WalkProgress) error {
+		if prog.GetPhase() != block_gc.WalkPhase_WALK_PHASE_CHECK {
+			return nil
+		}
+		switch cycled.step {
+		case 0:
+			// Move wide999 to Y and net it.
+			cycled.step++
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("Y"), []block.NamedRoot{{Name: "wide999", Ref: tr["Y"].Ref, Previous: tr["X"].Ref}}); err != nil {
+				return err
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+		case 1:
+			// Past X's first view, swap wide0 and wide999 unadopted, then
+			// count again.
+			if prog.GetWideSeen() == 0 {
+				return nil
+			}
+			cycled.step++
+			frees := livenessState(t, v).GetFrees()
+			for _, on := range []bool{!frees, frees} {
+				if _, err := block_gc.SetFrees(ctx, collectorStore{v: v}, on, v.holdRule); err != nil {
+					return err
+				}
+			}
+			roots := []block.NamedRoot{
+				{Name: "wide0", Ref: tr["Y"].Ref, Previous: tr["X"].Ref},
+				{Name: "wide999", Ref: tr["X"].Ref, Previous: tr["Y"].Ref},
+			}
+			if err := v.SetBucketRoots(ctx, "b", nil, roots); err != nil {
+				return err
+			}
+			_, err := v.Adopt(ctx)
+			return err
+		}
+		return nil
+	}
+	cycledScratch, err := store_kvtx_sqlite.Open(ctx, filepath.Join(t.TempDir(), "cycled.db"), "walk")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cycledScratch.Close()
+	cycled.scratch = cycledScratch
+	res, err = block_gc.Walk(ctx, cycled, cycledScratch, block_gc.WalkOptions{Run: "cycled", Delay: -1, Now: v.now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c := res.Counts; cycled.step != 2 || c.GetWide() != 1 || slices.ContainsFunc(res.UndercountSample, tr["X"].Ref.EqualsRef) {
+		t.Fatalf("cycled walk took %d steps, found %d wide and undercount sample %v, want 2, X wide and not undercounted", cycled.step, c.GetWide(), res.UndercountSample)
+	}
+}
+
+// testAuditWalkStalled names one block S from about 76,000 parents while
+// netting stalls, so the journal past the cursor holds more pairs of S than
+// one check view may read. The walk copies them all into scratch, and every
+// view of S then finds more copies than its budget: the walk must stay
+// behind rather than read them all in one view.
+func testAuditWalkStalled(t *testing.T) {
+	// Land S, then batches of 2,000 parents of S under one root each. Every
+	// batch after the first journals an up pair of S per parent.
+	v, _ := newLivenessVolume(t, true)
+	ctx := t.Context()
+	s := []byte("stalled shared leaf")
+	sRef, err := block.BuildBlockRef(s, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for b := range 38 {
+		entries := []*block.PutBatchEntry{{Ref: sRef, Data: s, RefsKnown: true}}
+		var parents []*block.BlockRef
+		for i := range 2000 {
+			p := []byte("stalled parent " + strconv.Itoa(b) + " " + strconv.Itoa(i))
+			pRef, err := block.BuildBlockRef(p, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			entries = append(entries, &block.PutBatchEntry{Ref: pRef, Data: p, Refs: []*block.BlockRef{sRef}, RefsKnown: true})
+			parents = append(parents, pRef)
+		}
+		g := []byte("stalled grandparent " + strconv.Itoa(b))
+		gRef, err := block.BuildBlockRef(g, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries = append(entries, &block.PutBatchEntry{Ref: gRef, Data: g, Refs: parents, RefsKnown: true})
+		if err := v.SetBucketRoots(ctx, "b", entries, []block.NamedRoot{{Name: "g" + strconv.Itoa(b), Ref: gRef}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Walk without netting. The copy of the journal ends within 20 views, so
+	// a walk still behind at its 40th wait reads S's copies against the
+	// budget; stop it there.
+	scratch, err := store_kvtx_sqlite.Open(ctx, filepath.Join(t.TempDir(), "stalled.db"), "walk")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer scratch.Close()
+	errStalled := errors.New("still behind")
+	var waits int
+	wait := func(context.Context, time.Duration) error {
+		if waits++; waits == 40 {
+			return errStalled
+		}
+		return nil
+	}
+	res, err := v.AuditWalk(ctx, scratch, block_gc.WalkOptions{Run: "stalled", Delay: -1, Wait: wait})
+	if !errors.Is(err, errStalled) {
+		t.Fatalf("walk under stalled netting returned %v with %+v after %d waits, want it behind at 40", err, res, waits)
+	}
+}
+
+// walkHookStore is a walk's view of a Volume that calls hook with the walk's
+// progress in scratch before each view.
+type walkHookStore struct {
+	collectorStore
+	// scratch is the walk's scratch store.
+	scratch kvtx.Store
+	// hook runs before each view.
+	hook func(prog *block_gc.WalkProgress) error
+	// step is how far the hook has gone.
+	step int
+}
+
+// View reads the walk's progress, runs the hook, then runs fn in a view.
+func (s *walkHookStore) View(ctx context.Context, fn func(rec *block_gc.Records) error) error {
+	tx, err := s.scratch.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	value, found, err := tx.Get(ctx, []byte{'p'})
+	tx.Discard()
+	if err != nil {
+		return err
+	}
+	prog := &block_gc.WalkProgress{}
+	if found {
+		if err := prog.UnmarshalVT(value); err != nil {
+			return err
+		}
+	}
+	if err := s.hook(prog); err != nil {
+		return err
+	}
+	return s.collectorStore.View(ctx, fn)
 }
 
 // auditWalkWrites is how many roots auditWalkWriter writes: two journal
