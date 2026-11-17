@@ -109,6 +109,9 @@ type Store[T SQLiteDriverConfig] struct {
 	// backfill is the log's backfill mark after the checkpointer's last
 	// pass, which only the checkpointer moves and reads.
 	backfill int
+	// copyFrame is how long the last pass that copied frames took per frame,
+	// zero before one; only the checkpointer moves and reads it.
+	copyFrame time.Duration
 
 	// checkpointWake wakes the checkpointer after a commit.
 	checkpointWake chan struct{}
@@ -152,12 +155,15 @@ const walHoldMultiple = 8
 const walTurnHold = 25 * time.Millisecond
 
 // walGapHold is the deadline of the pass that closes the gap under the turn:
-// walTurnHold, and shorter only in tests that interrupt every gap.
-var walGapHold = walTurnHold
+// walFlowWaitMax, the wait the flow already allows a writer, and shorter only
+// in tests that interrupt every gap. fillWALGap tries the gap only for frames
+// the measured copy rate copies within walFlowWaitMax.
+var walGapHold = walFlowWaitMax
 
-// walGapFrames is the most frames a pass may find past the last one for
-// fillWALGap to close the gap with the log past walHoldMultiple times its
-// bound: about 15 ms of copying at 8,600 frames a second, inside walTurnHold.
+// walGapFrames is the most frames a commit may add and count as small: walFlow
+// holds a commit that adds more once the log is far past its bound. Before any
+// pass has measured the copy rate, it is also the most frames fillWALGap
+// copies under the turn: about 15 ms at 8,600 frames a second.
 const walGapFrames = 128
 
 // walWriteBackBytes is the log size past which a pass writes the log and the
@@ -176,6 +182,16 @@ const walBehindBytes = 1 << 20
 // starts, and when the checkpointer takes and frees the writer turn, for tests
 // that stop, slow or time the store between them.
 var checkpointHook func(step string)
+
+// copyDelay, set only by tests, lengthens each pass by that long before it
+// copies, standing in for a slow disk: a deadline that ends during it cuts
+// the pass as one that ends during a copy does.
+var copyDelay time.Duration
+
+// diskless, set only by tests before a store opens, keeps the device out of
+// every pass and commit: synchronous=OFF, and no flush or write-back, so a
+// pass takes copyDelay and the copy through the page cache on any host.
+var diskless bool
 
 // tell tells checkpointHook, when set, that the checkpointer reached step.
 func tell(step string) {
@@ -318,7 +334,10 @@ func openPool[T SQLiteDriverConfig](config T, path string, pragmas Pragmas, hold
 
 	// List the pragmas every connection runs.
 	synchronous := "NORMAL"
-	if pragmas.FullSync {
+	switch {
+	case diskless:
+		synchronous = "OFF"
+	case pragmas.FullSync:
 		synchronous = "FULL"
 	}
 	connPragmas := []string{
@@ -602,6 +621,9 @@ func (s *Store[T]) Close() error {
 
 // flushWAL makes every commit the WAL holds durable through the driver.
 func (s *Store[T]) flushWAL() error {
+	if diskless {
+		return nil
+	}
 	file, err := s.dbFile()
 	if err != nil {
 		return err
@@ -705,9 +727,8 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 		// after the next commit. Holding from the start changes how often
 		// a writer meets a hold, not how long: each slice is walTurnHold,
 		// and a writer queued at foreground waits behind at most one, or
-		// behind the gap pass, cut at walGapHold, and its flush of at most
-		// about walGapFrames pages: 25 ms plus 512 KiB at 24 MiB/s, at most
-		// 46 ms on forge.
+		// behind the gap pass, cut at walGapHold (walFlowWaitMax, 250 ms),
+		// and its flush of the pages it copied.
 		if mode == holdOnFall && s.walSize() >= walHoldMultiple*s.walBound {
 			mode = holdAtOnce
 		}
@@ -810,21 +831,29 @@ func (s *Store[T]) walSize() int64 {
 //
 // It keeps two invariants:
 //
-//   - The checkpointer holds the writer turn at most walTurnHold at a time:
-//     a pass under the turn runs with that deadline, and a back-pressure
-//     slice releases the turn after it, then queues behind every writer
-//     waiting. The one step no deadline interrupts is SQLite's flush of the
-//     database file at the end of a gap pass that copies everything, and the
-//     write-backs around each pass leave it only the pages the last pass and
-//     the gap copied. So a commit waits behind the checkpointer at most one
-//     walTurnHold plus that flush, and at most one hold per commit: 26 to 35
-//     ms on forge with a writer of 180 MiB/s held back.
+//   - The checkpointer holds the writer turn at most walTurnHold at a time
+//     for a back-pressure slice, which releases the turn and queues behind
+//     every writer waiting, and at most walGapHold (walFlowWaitMax, 250 ms)
+//     for the gap pass, which runs with that deadline. The gap pass is tried
+//     only for the frames the last pass measured it copies within
+//     walFlowWaitMax, so on a disk that copies them in 10 ms it holds the
+//     turn about 10 ms. The one step no deadline interrupts is SQLite's
+//     flush of the database file at the end of a gap pass that copies
+//     everything, and the write-backs around each pass leave it only the
+//     pages the last pass and the gap copied. So a commit waits behind the
+//     checkpointer at most one walGapHold plus that flush, and at most one
+//     hold per commit: 26 to 35 ms on forge with a writer of 180 MiB/s held
+//     back.
 //   - While the passes fall behind the writers, or a writer commits during
 //     every pass, the log passes walHoldMultiple times its bound only by
 //     what the writers commit while passes run with them held back: one
-//     commit per writer per walTurnHold, until a pass finds at most
-//     walGapFrames new frames and the gap closes. Below that multiple,
-//     writers grow the log unchecked.
+//     commit per writer per walTurnHold, until a pass finds new frames that
+//     copy within walFlowWaitMax and the gap closes. That bound holds while
+//     the disk copies what the writers add during a pass within that time.
+//     On a disk too slow for that, each gap pass is cut at its deadline or
+//     never tried, and the log grows until the writers pause; every wait
+//     stays within its bound. Below walHoldMultiple times its bound, writers
+//     grow the log unchecked.
 //
 // A reader whose snapshot predates a pass limits how far it copies and keeps
 // the next writer from resetting the log. Holding writers back cannot shrink
@@ -857,7 +886,7 @@ func (s *Store[T]) fillWALGap(ctx context.Context, mode holdMode) (holdMode, boo
 		q = conn
 	}
 
-	// gap copies under the held turn within walTurnHold, releases it, and
+	// gap copies under the held turn within walGapHold, releases it, and
 	// reports whether it copied the whole log.
 	gap := func(release func()) bool {
 		// Copy within the deadline, then release the turn.
@@ -894,11 +923,11 @@ func (s *Store[T]) fillWALGap(ctx context.Context, mode holdMode) (holdMode, boo
 			// A reader keeps the log: pass again after an interval.
 			return mode, true
 
-		case c.caught() && (c.logged == seen || behind && seen >= 0 && c.logged-seen <= walGapFrames):
-			// Caught up with no new frame, or few with the writers held
-			// back: close the gap in a free turn, or queue for one once the
-			// log is far past its bound, ahead of the writers once they are
-			// held back.
+		case c.caught() && (c.logged == seen || behind && seen >= 0 && s.gapFits(c.logged-seen)):
+			// Caught up with no new frame, or with the writers held back
+			// few enough to copy within walFlowWaitMax: close the gap in a
+			// free turn, or queue for one once the log is far past its
+			// bound, ahead of the writers once they are held back.
 			if release, ok := s.writeMtx.TryLock(); ok {
 				return holdOnFall, gap(release)
 			}
@@ -988,17 +1017,52 @@ func (s *Store[T]) passOnce(ctx context.Context, q rowQuerier) checkpoint {
 	// Run the pass; a busy or failed one judges no pin.
 	var c checkpoint
 	start := time.Now()
+	if c.err = waitCopyDelay(ctx); c.err != nil {
+		return c
+	}
 	c.err = q.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&c.busy, &c.logged, &c.copied)
-	s.stats.addPassive(time.Since(start))
+	took := time.Since(start)
+	s.stats.addPassive(took)
 	if c.err != nil || c.busy {
 		return c
 	}
 
-	// Judge the pin against the last pass's mark, then keep this one's.
+	// Judge the pin against the last pass's mark, then keep this one's, and
+	// the time this pass took per frame it copied.
 	c.mark = s.backfill
 	c.pinned = c.copied < c.logged && c.copied == c.mark
 	s.backfill = c.copied
+	if n := c.copied - c.mark; n > 0 {
+		s.copyFrame = took / time.Duration(n)
+	}
 	return c
+}
+
+// waitCopyDelay waits out copyDelay, or returns ctx's error once it ends.
+func waitCopyDelay(ctx context.Context) error {
+	if copyDelay <= 0 {
+		return nil
+	}
+	delay := time.NewTimer(copyDelay)
+	defer delay.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-delay.C:
+		return nil
+	}
+}
+
+// gapFits reports whether a pass under the turn would copy frames within
+// walFlowWaitMax at the copy rate the last pass measured, or, before one has,
+// whether they are at most walGapFrames. The rate includes each pass's fixed
+// cost, its flush, spread over its frames, so a small gap after a large pass
+// may take longer than estimated; walGapHold then cuts it.
+func (s *Store[T]) gapFits(frames int) bool {
+	if s.copyFrame <= 0 {
+		return frames <= walGapFrames
+	}
+	return time.Duration(frames)*s.copyFrame <= walFlowWaitMax
 }
 
 // holdMode is when a pass holds the writers back.
@@ -1078,28 +1142,42 @@ func (s *Store[T]) pass(ctx context.Context, q rowQuerier, mode holdMode) (check
 		return next(<-done)
 	}
 
-	// Wait for the pass; once it falls behind, hold the writers back.
-	start, first := s.walSize(), walTurnHold
-	if mode == holdAtOnce {
-		first = 0
-	}
-	check := time.NewTimer(first)
+	// Wait for the pass; once it falls behind, hold the writers back. At
+	// once, the check fires at the start; on a fall, each commit during the
+	// pass wakes it, so the hold begins at the commit that leaves the pass
+	// behind and not up to a slice later, when a writer of small ordered
+	// commits, which return before any flush, may have grown the log by
+	// tens of MiB. A wake taken here is posted back on return, for
+	// fillWALGap's wait for the next commit.
+	start := s.walSize()
+	check := time.NewTimer(0)
 	defer check.Stop()
+	var wake <-chan struct{}
+	if mode == holdOnFall {
+		check.Stop()
+		wake = s.checkpointWake
+	}
+	woke := false
+	defer func() {
+		if woke {
+			s.wakeCheckpoint()
+		}
+	}()
 	for {
 		select {
 		case c := <-done:
 			return next(c)
 		case <-check.C:
+		case <-wake:
+			woke = true
+			size := s.walSize()
+			if size < walHoldMultiple*s.walBound || size-start < walBehindBytes {
+				continue
+			}
+			wake = nil
 		}
 		if ctx.Err() != nil {
 			return next(<-done)
-		}
-		if mode == holdOnFall && !held {
-			size := s.walSize()
-			if size < walHoldMultiple*s.walBound || size-start < walBehindBytes {
-				check.Reset(walTurnHold)
-				continue
-			}
 		}
 		if !held {
 			held = true
@@ -1142,7 +1220,7 @@ func (s *Store[T]) pass(ctx context.Context, q rowQuerier, mode holdMode) (check
 func (s *Store[T]) writeBackLog() {
 	// Open the log and write its dirty pages back.
 	file, err := s.dbFile()
-	if err != nil || file == "" {
+	if err != nil || file == "" || diskless {
 		return
 	}
 	f, err := os.OpenFile(file+"-wal", os.O_RDWR, 0)
@@ -1158,7 +1236,7 @@ func (s *Store[T]) writeBackLog() {
 func (s *Store[T]) writeBackDB() {
 	// Write back the file SQLite reports, a database in memory having none.
 	file, err := s.dbFile()
-	if err != nil || file == "" {
+	if err != nil || file == "" || diskless {
 		return
 	}
 	s.hold.writeBack(file)

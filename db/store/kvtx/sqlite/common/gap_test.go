@@ -98,8 +98,8 @@ func TestWALGapStopped(t *testing.T) {
 				default:
 				}
 			}
-		}, 25*time.Millisecond)
-		defer common.SetCheckpointHook(nil, 25*time.Millisecond)
+		}, common.DefaultGapHold)
+		defer common.SetCheckpointHook(nil, common.DefaultGapHold)
 		db := openRestartStore(t, path)
 		var committed atomic.Int64
 		writing, stopWriting := context.WithCancel(context.Background())
@@ -278,127 +278,198 @@ func TestWALGapHold(t *testing.T) {
 // TestWALGapLargeCommits commits 8 MiB at a time, 2048 frames each, back to
 // back past a 256 KiB log bound, beside a writer of 16-frame commits. No hold
 // of the turn can copy such a commit within its slice, so without the writer
-// waiting for its own frames the log grows without bound. With it the log
-// stays within 8 times its bound plus one large commit in flight and what
+// waiting for its own frames the log grows without bound. With it, on a disk
+// that copies what the writers add during a pass within walFlowWaitMax, the
+// log stays within 8 times its bound plus one large commit in flight and what
 // the small writer commits while the holds run, and a reader that pins the
-// log ends the wait.
+// log ends the wait. The real disk may be slower than that, so this run
+// asserts the log's bound only when measuring; TestWALGapCopyRegimes asserts
+// both regimes at a known copy speed.
 func TestWALGapLargeCommits(t *testing.T) {
 	for _, pin := range []bool{false, true} {
 		t.Run("pin "+strconv.FormatBool(pin), func(t *testing.T) {
-			ctx := context.Background()
-			path := filepath.Join(t.TempDir(), "large.db")
-			db := openRestartStore(t, path)
-			defer db.Close()
-
-			// commit writes rows rows of 4 KiB from key first as one
-			// ordered commit under ctx, returning how long Commit took.
-			value := make([]byte, 4096)
-			commit := func(ctx context.Context, first, rows int) time.Duration {
-				tx, err := db.NewTransaction(ctx, true)
-				if err != nil {
-					t.Error(err)
-					return 0
-				}
-				for j := range rows {
-					if err := tx.Set(ctx, restartKey((first+j)%restartKeys), value); err != nil {
-						t.Error(err)
-						tx.Discard()
-						return 0
-					}
-				}
-				began := time.Now()
-				if err := tx.Commit(kvtx.WithOrderedCommitContext(ctx)); err != nil {
-					t.Error(err)
-				}
-				return time.Since(began)
-			}
-
-			// Pin the log with a reader whose snapshot holds the first commit.
-			commit(ctx, 0, 16)
+			r := runLargeCommits(t, pin)
 			if pin {
-				read, err := db.NewTransaction(ctx, false)
-				if err != nil {
-					t.Fatal(err)
+				if r.peak < 8*restartBound {
+					t.Errorf("log peaked at %.1fx its bound; the reader did not pin it past 8x", float64(r.peak)/restartBound)
 				}
-				defer read.Discard()
-				if _, _, err := read.Get(ctx, restartKey(0)); err != nil {
-					t.Fatal(err)
-				}
-			}
-
-			// Run the small writer beside the large one, timing its commits.
-			stop := make(chan struct{})
-			smallDone := make(chan time.Duration)
-			go func() {
-				var longest time.Duration
-				for i := 0; ; i++ {
-					select {
-					case <-stop:
-						smallDone <- longest
-						return
-					default:
-					}
-					longest = max(longest, commit(ctx, i*16, 16))
-				}
-			}()
-
-			// Commit 40 large commits, 320 MiB, or for restartTimeCap,
-			// timing each and the log after it.
-			var longest time.Duration
-			var peak int64
-			start := time.Now()
-			n := 0
-			for ; n < 40 && time.Since(start) < restartTimeCap; n++ {
-				longest = max(longest, commit(ctx, n*2048, 2048))
-				if info, err := os.Stat(path + "-wal"); err == nil {
-					peak = max(peak, info.Size())
-				}
-			}
-			took := time.Since(start)
-			close(stop)
-			small := <-smallDone
-
-			// Read the largest log a commit left, which a commit that
-			// waited no longer sees once Commit returns.
-			var st common.StoreStats
-			common.EachStoreStats(func(s common.StoreStats) {
-				if filepath.Base(s.File) == filepath.Base(path) {
-					st = s
-				}
-			})
-			peak = max(peak, st.LogPeakBytes)
-
-			// Bound the log, or under the pin show the writer ran free.
-			const large = 2048 * (4096 + 24)
-			t.Logf("%d large commits in %v, longest %v, %d waits, longest %v, total %v, small writer's longest commit %v, log peak %.1fx its bound", n, took.Round(time.Millisecond), longest, st.FlowWaits, st.FlowWaitMax, st.FlowWait, small, float64(peak)/restartBound)
-			if pin {
-				if peak < 8*restartBound {
-					t.Errorf("log peaked at %.1fx its bound; the reader did not pin it past 8x", float64(peak)/restartBound)
-				}
-				if longest > 2*common.CheckpointInterval {
-					t.Errorf("a large commit under a pinned log took %v, want at most %v", longest, 2*common.CheckpointInterval)
+				if r.longest > 2*common.CheckpointInterval {
+					t.Errorf("a large commit under a pinned log took %v, want at most %v", r.longest, 2*common.CheckpointInterval)
 				}
 				return
 			}
-			if limit := int64(8*restartBound + 2*large); peak > limit {
-				t.Errorf("log peaked at %d bytes, want at most %d: 8 bounds, the large commit in flight, and as much again for the holds' overshoot", peak, limit)
-			}
-			if measuring && small > 50*time.Millisecond {
-				t.Errorf("small writer's longest commit took %v, want at most 50ms", small)
+			if measuring {
+				r.checkBound(t)
+				r.checkSmall(t)
 			}
 
 			// Commit alone, as a scan's last batches do: no other writer
 			// begins on the copied log to reset it, so each wait must end
 			// once a pass copies the log, not on the reset.
+			ctx := context.Background()
 			alone, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
 			for i := range 4 {
-				took := commit(alone, i*2048, 2048)
+				took := r.commit(alone, i*2048, 2048)
 				if alone.Err() != nil {
 					t.Fatalf("lone large commit %d waited %v, until its deadline", i, took)
 				}
 			}
 		})
+	}
+}
+
+// TestWALGapCopyRegimes runs TestWALGapLargeCommits' writers with the device
+// out of the copy and a fixed delay added to each pass, so the copy speed is
+// the same on every host. With passes inside walFlowWaitMax the gap closes
+// and the log stays within its bound. With passes beyond it every gap pass
+// ends at its deadline and the log may grow, but no small commit waits past
+// one gap hold and one slice, and no large commit's wait passes the copy of
+// its frames or walFlowWaitMax, whichever is longer.
+func TestWALGapCopyRegimes(t *testing.T) {
+	for _, delay := range []time.Duration{100 * time.Millisecond, 400 * time.Millisecond} {
+		t.Run("copy "+delay.String(), func(t *testing.T) {
+			// Restore after the store closes, which runLargeCommits defers.
+			t.Cleanup(common.SetDiskless(delay))
+			r := runLargeCommits(t, false)
+			r.checkSmall(t)
+			if delay <= common.FlowWaitMax {
+				r.checkBound(t)
+				return
+			}
+
+			// A large commit waits for the copy of its frames: the pass in
+			// flight, a gap pass cut at walFlowWaitMax, and the pass after
+			// it, which outlasts walFlowWaitMax.
+			if limit := 2*delay + common.FlowWaitMax + common.TurnHold + waitSlack; r.st.FlowWaitMax > limit {
+				t.Errorf("a large commit waited %v in the flow, want at most %v", r.st.FlowWaitMax, limit)
+			}
+		})
+	}
+}
+
+// waitSlack is what the regime checks allow a wait past its bound for the
+// scheduler and the copy through the page cache.
+const waitSlack = 100 * time.Millisecond
+
+// largeRun is what runLargeCommits measured.
+type largeRun struct {
+	// commit commits rows rows of 4 KiB from key first as one ordered
+	// commit under ctx, returning how long it took from the wait for the
+	// writer turn to Commit's return.
+	commit func(ctx context.Context, first, rows int) time.Duration
+	// n large commits took took, the longest longest, beside a small
+	// writer whose longest commit took small.
+	n                    int
+	took, longest, small time.Duration
+	// peak is the largest log a commit left.
+	peak int64
+	// st is the store's counters after the run.
+	st common.StoreStats
+}
+
+// largeCommit is the log bytes of one 8 MiB commit.
+const largeCommit = 2048 * (4096 + 24)
+
+// runLargeCommits commits 40 large commits beside a small writer, pinning
+// the log with a reader first when pin is set, and returns the open store's
+// measurements.
+func runLargeCommits(t *testing.T, pin bool) *largeRun {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "large.db")
+	db := openRestartStore(t, path)
+	t.Cleanup(func() { _ = db.Close() })
+	r := &largeRun{}
+
+	// commit as largeRun describes.
+	value := make([]byte, 4096)
+	r.commit = func(ctx context.Context, first, rows int) time.Duration {
+		began := time.Now()
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Error(err)
+			return 0
+		}
+		for j := range rows {
+			if err := tx.Set(ctx, restartKey((first+j)%restartKeys), value); err != nil {
+				t.Error(err)
+				tx.Discard()
+				return 0
+			}
+		}
+		if err := tx.Commit(kvtx.WithOrderedCommitContext(ctx)); err != nil {
+			t.Error(err)
+		}
+		return time.Since(began)
+	}
+
+	// Pin the log with a reader whose snapshot holds the first commit.
+	r.commit(ctx, 0, 16)
+	if pin {
+		read, err := db.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(read.Discard)
+		if _, _, err := read.Get(ctx, restartKey(0)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Run the small writer beside the large one, timing its commits.
+	stop := make(chan struct{})
+	smallDone := make(chan time.Duration)
+	go func() {
+		var longest time.Duration
+		for i := 0; ; i++ {
+			select {
+			case <-stop:
+				smallDone <- longest
+				return
+			default:
+			}
+			longest = max(longest, r.commit(ctx, i*16, 16))
+		}
+	}()
+
+	// Commit 40 large commits, 320 MiB, or for restartTimeCap, timing each
+	// and the log after it.
+	start := time.Now()
+	for ; r.n < 40 && time.Since(start) < restartTimeCap; r.n++ {
+		r.longest = max(r.longest, r.commit(ctx, r.n*2048, 2048))
+		if info, err := os.Stat(path + "-wal"); err == nil {
+			r.peak = max(r.peak, info.Size())
+		}
+	}
+	r.took = time.Since(start)
+	close(stop)
+	r.small = <-smallDone
+
+	// Read the largest log a commit left, which a commit that waited no
+	// longer sees once Commit returns.
+	common.EachStoreStats(func(s common.StoreStats) {
+		if filepath.Base(s.File) == filepath.Base(path) {
+			r.st = s
+		}
+	})
+	r.peak = max(r.peak, r.st.LogPeakBytes)
+	t.Logf("%d large commits in %v, longest %v, %d waits, longest %v, total %v, small writer's longest commit %v, log peak %.1fx its bound", r.n, r.took.Round(time.Millisecond), r.longest, r.st.FlowWaits, r.st.FlowWaitMax, r.st.FlowWait, r.small, float64(r.peak)/restartBound)
+	return r
+}
+
+// checkBound checks that the log stayed within 8 bounds, the large commit in
+// flight, and as much again for the holds' overshoot.
+func (r *largeRun) checkBound(t *testing.T) {
+	if limit := int64(8*restartBound + 2*largeCommit); r.peak > limit {
+		t.Errorf("log peaked at %d bytes, %.1fx its bound, want at most %d: 8 bounds, the large commit in flight, and as much again for the holds' overshoot", r.peak, float64(r.peak)/restartBound, limit)
+	}
+}
+
+// checkSmall checks that no small commit waited past one gap hold and one
+// slice of the turn.
+func (r *largeRun) checkSmall(t *testing.T) {
+	if limit := common.FlowWaitMax + common.TurnHold + waitSlack; r.small > limit {
+		t.Errorf("small writer's longest commit took %v, want at most %v", r.small, limit)
 	}
 }
 
@@ -433,8 +504,8 @@ func timeHolds(t *testing.T) *holdTimer {
 			// at a time.
 			h.longest.Store(max(h.longest.Load(), time.Now().UnixNano()-h.taken.Load()))
 		}
-	}, 25*time.Millisecond)
-	t.Cleanup(func() { common.SetCheckpointHook(nil, 25*time.Millisecond) })
+	}, common.DefaultGapHold)
+	t.Cleanup(func() { common.SetCheckpointHook(nil, common.DefaultGapHold) })
 	return h
 }
 
@@ -444,16 +515,17 @@ func (h *holdTimer) String() string {
 }
 
 // checkTurn checks, when measuring, that no hold of the writer turn and no
-// writer's wait for it passed two 25 ms slices.
+// writer's wait for it passed one gap hold and one slice.
 func (h *holdTimer) checkTurn(t *testing.T, turn time.Duration) {
 	if !measuring {
 		return
 	}
-	if held := time.Duration(h.longest.Load()); held > 50*time.Millisecond {
-		t.Errorf("longest hold of the writer turn was %v, want at most 50ms", held)
+	limit := common.FlowWaitMax + common.TurnHold
+	if held := time.Duration(h.longest.Load()); held > limit {
+		t.Errorf("longest hold of the writer turn was %v, want at most %v", held, limit)
 	}
-	if turn > 50*time.Millisecond {
-		t.Errorf("longest wait for the writer turn was %v, want at most 50ms", turn)
+	if turn > limit {
+		t.Errorf("longest wait for the writer turn was %v, want at most %v", turn, limit)
 	}
 }
 
@@ -461,7 +533,7 @@ func (h *holdTimer) checkTurn(t *testing.T, turn time.Duration) {
 // prints the commits made, and waits to be killed.
 func walRestartChild(t *testing.T, path, step string) {
 	// A gap deadline of 1 µs interrupts every gap.
-	hold := 25 * time.Millisecond
+	hold := common.DefaultGapHold
 	if step == "gap false" {
 		hold = time.Microsecond
 	}
@@ -496,8 +568,8 @@ func TestWALGapEmptyLogRests(t *testing.T) {
 		if step == "copy" {
 			passes.Add(1)
 		}
-	}, 25*time.Millisecond)
-	defer common.SetCheckpointHook(nil, 25*time.Millisecond)
+	}, common.DefaultGapHold)
+	defer common.SetCheckpointHook(nil, common.DefaultGapHold)
 
 	// Open a store whose cache spills a 4 MiB transaction.
 	ctx := context.Background()

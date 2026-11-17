@@ -54,8 +54,8 @@ func TestSharedFileLocks(t *testing.T) {
 			default:
 			}
 		}
-	}, 25*time.Millisecond)
-	defer common.SetCheckpointHook(nil, 25*time.Millisecond)
+	}, common.DefaultGapHold)
+	defer common.SetCheckpointHook(nil, common.DefaultGapHold)
 
 	// Open both tables and keep the second's connections alive for the probe.
 	first := openRestartStore(t, path)

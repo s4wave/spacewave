@@ -14,13 +14,14 @@ import (
 //
 // SQLite resets the log only for a writer that begins on a fully copied log,
 // and fillWALGap opens that gap under the writer turn only when a pass leaves
-// at most walGapFrames frames to copy within walTurnHold. A writer whose
-// commits each add more than that, back to back, never leaves such a gap, so
-// without the flow its log grows without bound. No hold of the turn bounded
-// by walTurnHold can copy such a commit, so the flow charges the writer that
-// made it instead: once a commit leaves the log at walHoldMultiple times its
-// bound and added more than walGapFrames frames, the writer waits for the
-// checkpointer outside the turn, and every other writer and reader goes on.
+// no more frames than the last pass measured it copies within
+// walFlowWaitMax. A writer whose commits each add more than that, back to
+// back, never leaves such a gap, so without the flow its log grows without
+// bound. No hold of the turn bounded by walFlowWaitMax can copy such a
+// commit, so the flow charges the writer that made it instead: once a commit
+// leaves the log at walHoldMultiple times its bound and added more than
+// walGapFrames frames, the writer waits for the checkpointer outside the
+// turn, and every other writer and reader goes on.
 //
 // The wait begins after the commit has landed and released the turn, so it
 // holds no lock and fails no commit: a cancelled context ends it early, and
@@ -44,27 +45,34 @@ import (
 // commit is copied, and holding it on serves only to let the gap close, which
 // small writers that together add more than walGapFrames frames per pass
 // never let happen. So the wait is at most the copy of its frames or
-// walFlowWaitMax, whichever is longer.
+// walFlowWaitMax, whichever is longer. On a disk that cannot copy the gap
+// within walFlowWaitMax the checkpointer never goes idle, and this deadline
+// is what ends the wait.
 //
-// Invariant: a commit of at most walGapFrames frames never waits here, so a
-// writer of small commits keeps fillWALGap's bound of one walTurnHold plus
-// the gap's flush behind the checkpointer.
+// Invariant: a commit of at most walGapFrames frames never waits here. It
+// waits only behind the checkpointer's hold of the writer turn, at most one
+// per commit: a back-pressure slice of walTurnHold, or the gap pass of at
+// most walGapHold (walFlowWaitMax) and the flush of the pages it copied.
 //
 // Several writers: past walHoldMultiple times the bound the checkpointer
 // goes idle only once a pass copied the whole log, and each pass holds the
 // writers back from its start, letting each waiting writer one commit per
 // walTurnHold. A large writer that commits there waits, so once every large
 // writer waits, only small writers' commits land between passes; the first
-// caught-up pass after them finds at most walGapFrames new frames, takes the
-// turn ahead of the writers, since the log is past walGapQueueMultiple times
-// its bound, and closes the gap; the checkpointer goes idle, and the next
-// writer, small or released from its wait, resets the log. So
-// unless a reader pins it, the log stays under walHoldMultiple times its
-// bound plus one commit of each large writer in flight at once and one
-// commit of each small writer per walTurnHold while the passes copy them.
-// Small writers that add more than walGapFrames frames between passes keep
-// the gap from closing; each large writer then commits once per
-// walFlowWaitMax and its copy, and the log grows until they pause.
+// caught-up pass after them finds new frames it can copy within
+// walFlowWaitMax, takes the turn ahead of the writers, since the log is past
+// walGapQueueMultiple times its bound, and closes the gap; the checkpointer
+// goes idle, and the next writer, small or released from its wait, resets
+// the log. The contract has two regimes:
+//   - The disk copies the frames the writers add during a pass within
+//     walFlowWaitMax: the gap closes, the log resets, and unless a reader
+//     pins it the log stays under walHoldMultiple times its bound plus one
+//     commit of each large writer in flight at once and one commit of each
+//     small writer per walTurnHold while the passes copy them.
+//   - The disk cannot: the gap pass is not tried or is cut at its deadline,
+//     the log grows until the writers pause, and every wait stays within
+//     its bound: a small commit's one hold of the turn, and a large
+//     commit's copy or walFlowWaitMax, whichever is longer.
 type walFlow struct {
 	// size returns the log's size on this host, or zero when unknown.
 	size func() int64
