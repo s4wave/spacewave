@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/stamp"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/sirupsen/logrus"
@@ -94,7 +95,9 @@ func unmarshalPackHold(b []byte) (packHold, error) {
 	}, nil
 }
 
-// readHeld reads the state of every held pack from the q/ rows.
+// readHeld reads the state of every held pack from the q/ rows, and raises
+// the stamp floor past their hold times, so an operation that begins after the
+// load stamps after every hold even if the clock stepped back since.
 func readHeld(ctx context.Context, tx kvtx.Tx) (map[string]PackState, error) {
 	held := make(map[string]PackState)
 	err := tx.ScanPrefix(ctx, []byte(indexHoldPrefix), func(key, value []byte) error {
@@ -103,6 +106,7 @@ func readHeld(ctx context.Context, tx kvtx.Tx) (map[string]PackState, error) {
 			return err
 		}
 		if hold.state.held() {
+			stamp.Raise(hold.since)
 			held[string(key[len(indexHoldPrefix):])] = hold.state
 		}
 		return nil
@@ -289,8 +293,10 @@ func (s *PackStore) Quarantine(ctx context.Context, ids []string) error {
 	s.quarantining.Add(1)
 	defer s.quarantining.Add(-1)
 
-	// Write their rows with the hold time.
-	now := time.Now().UnixNano()
+	// Write their rows with the hold time, a stamp greater than the start of
+	// every operation begun before it, so a backward clock step cannot place
+	// an open read after the hold.
+	now := stamp.Next()
 	holds := make([]packHold, len(move))
 	for i := range holds {
 		holds[i] = packHold{state: PackQuarantined, since: now}
@@ -548,10 +554,13 @@ func (s *PackStore) statHeld(ctx context.Context, ref *block.BlockRef) (*block.B
 // Invariant: a pass that read "" before verifying a pack opened its read
 // operation before any quarantine's hold time, so the sweep's recheck waits
 // for it (WaitOpenRead) before it can trash the pack. Quarantine raises
-// quarantining before it reads its hold time and lowers it after heldCount
-// counts the holds; trashing keeps a pack held until Remove forgets it; a
-// restart loads the holds and the table from one snapshot under mtx; and
-// before the table loads, Registered refuses every pack.
+// quarantining before it takes its hold time and lowers it after heldCount
+// counts the holds; both the hold time and the pass's start are stamp.Next
+// stamps, which order them as they happened whatever the wall clock does;
+// trashing keeps a pack held until Remove forgets it; a restart loads the
+// holds and the table from one snapshot under mtx and raises the stamp floor
+// past every loaded hold time, so a read opened after the restart stamps
+// after them; and before the table loads, Registered refuses every pack.
 func (s *PackStore) sweepHalt() string {
 	if s.index != nil && (s.quarantining.Load() != 0 || s.index.heldCount.Load() != 0) {
 		return "pack sweep"

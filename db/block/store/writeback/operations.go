@@ -3,6 +3,8 @@ package block_store_writeback
 import (
 	"sync"
 	"time"
+
+	"github.com/s4wave/spacewave/db/block/stamp"
 )
 
 // OpenOperations is when the oldest write and the oldest read operation still
@@ -24,7 +26,8 @@ type OpenOperations struct {
 
 // openOp is one open operation.
 type openOp struct {
-	// at is when it began, in Unix nanoseconds.
+	// at is when it began, as a stamp.Next stamp: a pack held after it began
+	// carries a greater stamp, whatever the wall clock did between them.
 	at int64
 	// read is set for a read operation or stage, clear for a write.
 	read bool
@@ -52,7 +55,7 @@ func (o *openOps) begin(read bool) uint64 {
 	if o == nil {
 		return 0
 	}
-	at := time.Now().UnixNano()
+	at := stamp.Next()
 	o.mtx.Lock()
 	o.next++
 	n := o.next

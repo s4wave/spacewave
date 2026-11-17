@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/stamp"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
@@ -108,8 +109,20 @@ func TestUploadReputsQuarantinedBlock(t *testing.T) {
 // only after a recheck that waits while the store's oldest open read began no
 // later than the pack's hold time (packsweep's WaitOpenRead), so the pass must
 // show as that read until it ends; a later verify finds the pack unregistered.
-// It fails if openEvictPass records nothing.
+// It fails if openEvictPass records nothing. The stepped case sets the clock
+// an hour back between the pass's start and the hold, which must not place
+// the pass after the hold.
 func TestEvictPassHoldsSweepRecheck(t *testing.T) {
+	for _, step := range []time.Duration{0, -time.Hour} {
+		t.Run(step.String(), func(t *testing.T) {
+			testEvictPassHoldsSweepRecheck(t, step)
+		})
+	}
+}
+
+// testEvictPassHoldsSweepRecheck runs TestEvictPassHoldsSweepRecheck with the
+// clock moved by step after the pass opens.
+func testEvictPassHoldsSweepRecheck(t *testing.T, step time.Duration) {
 	// One remote pack holds the block.
 	ctx := t.Context()
 	_, client := s3test.New(t)
@@ -132,11 +145,16 @@ func TestEvictPassHoldsSweepRecheck(t *testing.T) {
 		t.Fatalf("an idle store has a read open since %v", ops.Read)
 	}
 
-	// A pass opens and verifies the pack, then the sweep holds it.
+	// A pass opens and verifies the pack, then the clock steps and the sweep
+	// holds it.
+	base := time.Now().UnixNano()
+	restore := stamp.SetClock(func() int64 { return base })
+	defer restore()
 	end := s.openEvictPass()
 	if !remote.Registered(id) {
 		t.Fatal("the pass cannot verify a registered pack")
 	}
+	stamp.SetClock(func() int64 { return base + int64(step) })
 	if err := remote.Quarantine(ctx, []string{id}); err != nil {
 		t.Fatal(err)
 	}
