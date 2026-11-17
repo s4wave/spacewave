@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -137,17 +138,19 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 
 	// The selected manifest starts its pack closure, and a retry preserves
 	// byte ordering so unchanged content retains its pack identities.
-	_, first, err := collectBlocks(ctx, w.Engine, metadata)
+	firstClosure, err := collectBlocks(ctx, w.Engine, metadata)
 	if err != nil {
 		t.Fatal(err)
 	}
+	first := firstClosure.blocks
 	if len(first) == 0 || !first[0].ref.EqualVT(metadata.ManifestRefs[0].ManifestRef.RootRef) {
 		t.Fatal("release content does not begin with the selected manifest")
 	}
-	_, repeated, err := collectBlocks(ctx, w.Engine, metadata)
+	repeatedClosure, err := collectBlocks(ctx, w.Engine, metadata)
 	if err != nil {
 		t.Fatal(err)
 	}
+	repeated := repeatedClosure.blocks
 	if len(first) != len(repeated) {
 		t.Fatal("repeated export changed the block closure")
 	}
@@ -214,4 +217,91 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 	if err == nil || client.uploads != 0 || client.checkpoints != 0 {
 		t.Fatalf("missing content: error=%v uploads=%d checkpoints=%d", err, client.uploads, client.checkpoints)
 	}
+}
+
+// TestExportHoldsOnePack checks that Export keeps no block data beyond the
+// pack being encoded: when a pack is emitted, the live heap beyond that pack's
+// own buffer stays a small fraction of the release content.
+func TestExportHoldsOnePack(t *testing.T) {
+	// Store an incompressible executable that fits in one pack.
+	const size = 32 << 20
+	ctx := t.Context()
+	w, err := OpenLocalWorld(ctx, logrus.NewEntry(logrus.New()), filepath.Join(t.TempDir(), "release.s4wave"), "test-release", "test-release")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(w.Release)
+	metadata := stageExecutable(t, w, size)
+
+	// Measure the live heap at each emitted pack, beyond the pack itself.
+	runtime.GC()
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	base := ms.HeapAlloc
+	var packs, packed int
+	var extra uint64
+	_, _, err = Export(ctx, w.Engine, metadata, "test-space", func(_ context.Context, _ int, _ *packfile.PackfileEntry, data []byte) error {
+		runtime.GC()
+		runtime.ReadMemStats(&ms)
+		packs++
+		packed += len(data)
+		if live := ms.HeapAlloc - min(ms.HeapAlloc, base+uint64(cap(data))); live > extra {
+			extra = live
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if packed < size {
+		t.Fatalf("packed %d bytes in %d packs, want at least %d", packed, packs, size)
+	}
+	if extra > size/4 {
+		t.Fatalf("Export held %d MiB beyond its pack for %d MiB of content", extra>>20, size>>20)
+	}
+	t.Logf("packs=%d packed=%d MiB extra=%d MiB", packs, packed>>20, extra>>20)
+}
+
+// stageExecutable commits a manifest with size random bytes of executable to
+// w and stages its release channel.
+func stageExecutable(t *testing.T, w *LocalWorld, size int) *release.ReleaseMetadata {
+	ctx := t.Context()
+	exe := make([]byte, size)
+	if _, err := rand.Read(exe); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := w.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	const manifestKey = "test/releases"
+	meta := &bldr_manifest.ManifestMeta{ManifestId: "test-desktop", BuildType: "release", PlatformId: "desktop/windows/amd64", Rev: 1}
+	ref, err := world.AccessObject(ctx, tx.AccessWorldState, nil, func(cursor *block.Cursor) error {
+		return bldr_manifest.CreateManifestWithIoFS(ctx, cursor, bldr_manifest.NewManifest(meta, "app.exe"), fstest.MapFS{"app.exe": {Data: exe, Mode: 0o755}}, nil, nil)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manifest_world.CreateManifestStore(ctx, tx, manifestKey); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := manifest_world.SetManifest(ctx, tx, "", "test/native", ref); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.SetGraphQuad(ctx, manifest_world.NewManifestQuad(manifestKey, "test/native", meta.GetManifestId())); err != nil {
+		t.Fatal(err)
+	}
+	releaseKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	metadata, err := StageChannel(ctx, tx, manifestKey, &release.ReleaseMetadata{ProjectId: "test", Version: "0.1.0", ChannelKey: "alpha", Rev: 1}, releaseKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	return metadata
 }
