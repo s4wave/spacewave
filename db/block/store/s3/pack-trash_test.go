@@ -107,6 +107,9 @@ func testTrashRemove(t *testing.T, kind string) {
 	if packOf(t, s, r[0]) != packR || packOf(t, s, r[1]) != packR {
 		t.Fatal("the last pack written does not name x and y")
 	}
+	if !s.Registered(packR) || s.Registered("nope") {
+		t.Fatal("Registered misreports a written pack or one the table lacks")
+	}
 
 	// Only a quarantined pack begins trashing, and a trashing pack is
 	// neither quarantined nor lifted.
@@ -126,6 +129,9 @@ func testTrashRemove(t *testing.T, kind string) {
 	}
 	if heldStateOf(t, s, packR) != PackTrashing || heldStateOf(t, s, packH2) != PackQuarantined {
 		t.Fatal("trashing moved the wrong packs")
+	}
+	if s.Registered(packR) || s.Registered(packH2) || !s.Registered(packH1) {
+		t.Fatal("Registered reports a trashing or quarantined pack, or misses a registered one")
 	}
 	if s.Quarantine(ctx, []string{packR}) == nil || s.Lift(ctx, []string{packR}) == nil {
 		t.Fatal("quarantined or lifted a trashing pack")
@@ -202,6 +208,9 @@ func testTrashRemove(t *testing.T, kind string) {
 	}
 	if err := s.Remove(ctx, []string{packR}, keys[3:]); err != nil {
 		t.Fatal(err)
+	}
+	if s.Registered(packR) {
+		t.Fatal("Registered reports a removed pack")
 	}
 	checkRemoved := func(s *PackStore) {
 		t.Helper()
@@ -294,6 +303,9 @@ func testTrashRemove(t *testing.T, kind string) {
 		if err := s.Restore(ctx, []string{packD, packH1}); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if !s.Registered(packD) {
+		t.Fatal("Registered misses a restored pack, which carries an event")
 	}
 	checkRestored := func(s *PackStore) {
 		t.Helper()
