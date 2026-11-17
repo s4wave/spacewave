@@ -43,8 +43,47 @@ const checkerPaths = [/^package\.json$/, /^bun\.lock$/, /^patches\//]
 
 // fullRunSpecs are the specs a delta run leaves to the full runs, because their
 // models and mutants take longer than a delta run may hold its branch's queue.
-// The CI hourly workflow's full dispatch checks them on master.
+// The CI hourly workflow's full dispatch checks them on master. A delta run
+// that changes one checks only its stackConfigs, in one job.
 const fullRunSpecs = new Set(['db/block/gc/Journal.tla'])
+
+// stackConfigs are the Journal configs a delta run checks when the spec
+// changes: each finishes in under five minutes and 6 GB on one core. The
+// checker also runs every mutant of the spec in that job, and checks no
+// testdata config mutant, until a release of it separates the two.
+const stackConfigs = [
+  'db/block/gc/Journal-collect-notail.cfg',
+  'db/block/gc/Journal-rogue-hold.cfg',
+  'db/block/gc/Journal-stage.cfg',
+  'db/block/gc/Journal-writers-staged.cfg',
+  'db/block/gc/Journal-hole.cfg',
+  'db/block/gc/Journal-adopt-revive-hold.cfg',
+  'db/block/gc/Journal-lease-notail.cfg',
+  'db/block/gc/Journal-adopt.cfg',
+  'db/block/gc/Journal-collect.cfg',
+  'db/block/gc/Journal-fill.cfg',
+  'db/block/gc/Journal-revive-hold.cfg',
+  'db/block/gc/Journal-adopt-cut-onerun.cfg',
+  'db/block/gc/Journal-fill-adopt.cfg',
+]
+
+// unrunConfigs are the model configs no CI run checks, each with its reason.
+// The host-only ones need more memory than the runner's 16 GB and are checked
+// on a build host.
+const unrunConfigs = new Map([
+  [
+    'db/block/gc/Journal-adopt-cut-n.cfg',
+    'host-only: 6.0 million states, 44 minutes and a 14.5 GB peak',
+  ],
+  [
+    'db/block/gc/Journal-adopt-cut-nostage.cfg',
+    'host-only: unfinished after 53 minutes at 14.7 GB',
+  ],
+  [
+    'db/block/gc/Journal-adopt-revive-hole.cfg',
+    'fails CountsCover, which stays open until the adoption window is decided',
+  ],
+])
 
 // jsInputs are the files the TypeScript typecheck, oxlint, and JavaScript
 // tests read.
@@ -213,6 +252,36 @@ const ownSpecJobs: SpecEntry[] = [
     name: 'Journal-adopt-cut',
     configs: 'db/block/gc/Journal-adopt-cut.cfg',
     workers: 1,
+    timeout: 45,
+  },
+  {
+    name: 'Journal-adopt-cut-open',
+    configs: 'db/block/gc/Journal-adopt-cut-open.cfg',
+    workers: 1,
+    timeout: 30,
+  },
+  {
+    name: 'Journal-adopt-cut-r2',
+    configs: 'db/block/gc/Journal-adopt-cut-r2.cfg',
+    workers: 1,
+    timeout: 45,
+  },
+  {
+    name: 'Journal-adopt-revive-fill',
+    configs: 'db/block/gc/Journal-adopt-revive-fill.cfg',
+    workers: 1,
+    timeout: 90,
+  },
+  {
+    name: 'Journal-adopt-revive-reader',
+    configs: 'db/block/gc/Journal-adopt-revive-reader.cfg',
+    workers: 1,
+    timeout: 30,
+  },
+  {
+    name: 'Journal-adopt-revive-replaced',
+    configs: 'db/block/gc/Journal-adopt-revive-replaced.cfg',
+    workers: 1,
     timeout: 25,
   },
   {
@@ -225,13 +294,19 @@ const ownSpecJobs: SpecEntry[] = [
     name: 'Journal-hole-fill',
     configs: 'db/block/gc/Journal-hole-fill.cfg',
     workers: 1,
-    timeout: 25,
+    timeout: 90,
   },
   {
     name: 'Journal-lease',
     configs: 'db/block/gc/Journal-lease.cfg',
     workers: 1,
     timeout: 45,
+  },
+  {
+    name: 'Journal-notail',
+    configs: 'db/block/gc/Journal-notail.cfg',
+    workers: 1,
+    timeout: 30,
   },
   {
     name: 'Journal-stage',
@@ -457,11 +532,11 @@ function goscriptPackages(graph: Graph): Set<string> {
 }
 
 // specConfigs returns every model config the spec jobs check: the tracked
-// .cfg files outside testdata.
+// .cfg files outside testdata, less unrunConfigs.
 function specConfigs(): string[] {
   return run('git', ['ls-files', '*.cfg', ':!:**/testdata/**'])
     .split('\n')
-    .filter((file) => file !== '')
+    .filter((file) => file !== '' && !unrunConfigs.has(file))
 }
 
 // specEntries returns the spec jobs that check a config selected allows: each
@@ -483,14 +558,25 @@ function specEntries(selected: (config: string) => boolean): SpecEntry[] {
 }
 
 // deltaSpecs returns the spec jobs a delta run checks: the models whose
-// config, spec or spec modules changed, less those of fullRunSpecs.
+// config, spec or spec modules changed, less those of fullRunSpecs, and one
+// Journal-stack job of the changed stackConfigs.
 function deltaSpecs(files: string[]): SpecEntry[] {
   const changed = changedSpec(files)
   const tlaFiles = trackedSpecs()
-  return specEntries((config) => {
+  const entries = specEntries((config) => {
     const spec = specOf(config, tlaFiles)
     return changed(config) && (spec === undefined || !fullRunSpecs.has(spec))
   })
+  const stack = stackConfigs.filter(changed)
+  if (stack.length > 0) {
+    entries.push({
+      name: 'Journal-stack',
+      configs: stack.join(' '),
+      workers: 1,
+      timeout: 60,
+    })
+  }
+  return entries
 }
 
 // specOf returns the spec the checker pairs config with: the .tla in its
