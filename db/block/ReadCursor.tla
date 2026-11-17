@@ -1,20 +1,24 @@
 -------------------------- MODULE ReadCursor --------------------------
 EXTENDS Naturals, FiniteSets
 \* Callers: NewReadCursor/Okra.NewTx bind immutable references; UnmarshalReadBlock
-\* and Cursor.Unmarshal perform StartLoad/ReadBytes/StoreFill. readSlot builds
-\* metadata outside the shard lock (StartAttach), then compares slot identity
+\* and Cursor.Unmarshal perform StartLoad/NoteGen/AskKeeper/ReadBytes/StoreFill.
+\* readSlot builds metadata outside the shard lock (StartAttach), then compares slot identity
 \* and charges/evicts atomically under the lock (FinishAttach). AbortLoad and
 \* AbortAttach represent cancellation, decode failure and GetBlockRefs failure.
-\* Invalidate/Remove/ChangeScope model external freshness and borrowed authority.
-\* Stated abstraction for durability: a key is durable while a surviving backing
-\* pack of a store that keeps its blocks holds it. A fill-cache row is a copy, so
-\* its eviction or a deleted cache file is not a Remove. Remove is a removal by
-\* this process (a hash-failure tombstone, DeletePackStore), which reports the
-\* generation before it deletes. DeletePackStore first marks its store as no
-\* longer keeping blocks, and a fill-cache read asks the keeper after noting the
-\* generation, so a surviving row stops being durable in the same step as the
-\* report: Remove's atomic change. Deletion from outside the process, as a bucket
-\* lifecycle rule or a manual tool, is outside the invariant and not modeled.
+\* Invalidate/Mark/Bump/Delete/ChangeScope model external freshness and borrowed
+\* authority. Stated abstraction for durability: a key is durable while a
+\* surviving backing pack of a store that keeps its blocks holds it. A fill-cache
+\* row is a copy, so its eviction or a deleted cache file is not a removal. A
+\* removal by this process (a hash-failure tombstone, DeletePackStore) takes
+\* three steps: Mark records the store as deleted, so its keeper reports that
+\* it no longer keeps blocks; Bump raises the removal generation
+\* (InvalidateAllRemovedBlocks); Delete removes the packs, and the key stops
+\* being durable. A load notes the generation (NoteGen, DurableReadGeneration),
+\* then asks the keeper (AskKeeper, KeepsBlocks). The steps interleave with
+\* every other action. MarkFirst and NoteFirst choose these orders; the
+\* mutant configs in testdata reverse each and must fail StoredReads.
+\* Deletion from outside the process, as a bucket lifecycle rule or a manual
+\* tool, is outside the invariant and not modeled.
 \* Root publication does not retarget existing cursors; snapshot binding is
 \* checked by ReadCursorRoots and the real World snapshot test.
 \* Units are proportional byte charges: one decoded payload plus two units of
@@ -22,22 +26,25 @@ EXTENDS Naturals, FiniteSets
 \* ReadCursorClock. Caller-held blocks during a read are outside the pool budget.
 \* Encoded-hash validation remains Cursor.Unmarshal's existing tested contract.
 CONSTANTS Scopes, Refs, TokenCount, Budget, ClearRetired, CheckAdmission, CheckSlot,
-          CheckScope, CheckRemoval, CheckEpoch, CheckBudget, CheckEnabled
-VARIABLES enabled, durable, generation, epoch, scope, moved, cache, blockKey, metadata,
+          CheckScope, CheckRemoval, CheckEpoch, CheckBudget, CheckEnabled,
+          MarkFirst, NoteFirst
+VARIABLES enabled, durable, marked, generation, epoch, scope, moved, cache, blockKey, metadata,
           stampGen, stampEpoch, nextToken, links, fill, attach, bad
-vars == <<enabled, durable, generation, epoch, scope, moved, cache, blockKey, metadata,
+vars == <<enabled, durable, marked, generation, epoch, scope, moved, cache, blockKey, metadata,
           stampGen, stampEpoch, nextToken, links, fill, attach, bad>>
 Keys == Scopes \X Refs
 Tokens == 1..TokenCount
 None == <<2, CHOOSE r \in Refs : TRUE>>
 IdleFill == [phase |-> "idle", key |-> CHOOSE k \in Keys : TRUE,
-             gen |-> 0, rev |-> 0, committed |-> FALSE]
+             gen |-> 0, rev |-> 0, committed |-> FALSE, noted |-> FALSE,
+             asked |-> FALSE]
 IdleAttach == [token |-> 0, key |-> CHOOSE k \in Keys : TRUE]
 Live == {cache[k] : k \in Keys} \ {0}
 Charge(tokens, meta) == Cardinality(tokens) + 2 * Cardinality({t \in tokens : meta[t]})
 Retained == {t \in Tokens : blockKey[t] # None}
 Init == /\ enabled = Scopes
         /\ durable \in SUBSET {k \in Keys : k[1] = 0}
+        /\ marked = {}
         /\ generation = [r \in Refs |-> 0]
         /\ epoch = [s \in Scopes |-> 0]
         /\ scope = 0 /\ moved = FALSE
@@ -49,19 +56,31 @@ Init == /\ enabled = Scopes
         /\ nextToken = 1
         /\ links = [r \in Refs |-> 0]
         /\ fill = IdleFill /\ attach = IdleAttach /\ bad = FALSE
-StartLoad(r, committed) ==
+StartLoad(r) ==
     /\ fill.phase = "idle"
-    /\ (committed => <<scope, r>> \in durable)
-    /\ fill' = [phase |-> "fetch", key |-> <<scope, r>>,
-                gen |-> generation[r], rev |-> epoch[scope], committed |-> committed]
-    /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, cache, blockKey,
+    /\ fill' = [IdleFill EXCEPT !.phase = "fetch", !.key = <<scope, r>>]
+    /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, cache, blockKey,
                    metadata, stampGen, stampEpoch, nextToken, links, attach, bad>>
-ReadBytes == /\ fill.phase = "fetch"
+\* Keeps(k) is the keeper's answer: the store keeps its blocks and is not marked.
+Keeps(k) == k \in durable \ marked
+NoteGen == /\ fill.phase = "fetch" /\ ~fill.noted /\ (NoteFirst \/ fill.asked)
+           /\ fill' = [fill EXCEPT !.gen = generation[fill.key[2]],
+                                   !.rev = epoch[fill.key[1]], !.noted = TRUE]
+           /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, cache,
+              blockKey, metadata, stampGen, stampEpoch, nextToken, links, attach, bad>>
+\* AskKeeper is deterministic: it commits the read exactly when the keeper answers
+\* yes, as GetBlock marks a found row durable only when KeepsBlocks returns true.
+AskKeeper ==
+    /\ fill.phase = "fetch" /\ ~fill.asked /\ (~NoteFirst \/ fill.noted)
+    /\ fill' = [fill EXCEPT !.committed = Keeps(fill.key), !.asked = TRUE]
+    /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, cache,
+       blockKey, metadata, stampGen, stampEpoch, nextToken, links, attach, bad>>
+ReadBytes == /\ fill.phase = "fetch" /\ fill.noted /\ fill.asked
              /\ fill' = [fill EXCEPT !.phase = "decoded"]
-             /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, cache,
+             /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, cache,
                 blockKey, metadata, stampGen, stampEpoch, nextToken, links, attach, bad>>
 AbortLoad == /\ fill.phase # "idle" /\ fill' = IdleFill
-             /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, cache,
+             /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, cache,
                 blockKey, metadata, stampGen, stampEpoch, nextToken, links, attach, bad>>
 Admissible == /\ (~CheckAdmission \/ fill.committed)
               /\ (~CheckEnabled \/ fill.key[1] \in enabled)
@@ -81,14 +100,14 @@ StoreFill ==
     /\ stampGen' = [stampGen EXCEPT ![nextToken] = fill.gen]
     /\ stampEpoch' = [stampEpoch EXCEPT ![nextToken] = fill.rev]
     /\ nextToken' = nextToken + 1 /\ fill' = IdleFill
-    /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, links, attach, bad>>
+    /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, links, attach, bad>>
 StartAttach(k) ==
     /\ attach.token = 0 /\ cache[k] # 0 /\ ~metadata[cache[k]]
     /\ attach' = [token |-> cache[k], key |-> k]
-    /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, cache, blockKey,
+    /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, cache, blockKey,
                    metadata, stampGen, stampEpoch, nextToken, links, fill, bad>>
 AbortAttach == /\ attach.token # 0 /\ attach' = IdleAttach
-               /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, cache,
+               /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, cache,
                   blockKey, metadata, stampGen, stampEpoch, nextToken, links, fill, bad>>
 FinishAttach ==
     /\ attach.token # 0
@@ -102,7 +121,7 @@ FinishAttach ==
        /\ blockKey' = [t \in Tokens |-> IF t = attach.token THEN attach.key
                          ELSE IF ClearRetired /\ t \in victims THEN None ELSE blockKey[t]]
     /\ attach' = IdleAttach
-    /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, stampGen, stampEpoch,
+    /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, stampGen, stampEpoch,
                    nextToken, links, fill, bad>>
 Evict(k) ==
     /\ cache[k] # 0
@@ -110,28 +129,37 @@ Evict(k) ==
        /\ cache' = [cache EXCEPT ![k] = 0]
        /\ blockKey' = IF ClearRetired THEN [blockKey EXCEPT ![t] = None] ELSE blockKey
        /\ metadata' = IF ClearRetired THEN [metadata EXCEPT ![t] = FALSE] ELSE metadata
-    /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, stampGen, stampEpoch,
+    /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, stampGen, stampEpoch,
                    nextToken, links, fill, attach, bad>>
-Remove(k) == /\ k \in durable /\ generation[k[2]] = 0
+Mark(k) == /\ k \in durable /\ k \notin marked
+           /\ generation[k[2]] = IF MarkFirst THEN 0 ELSE 1
+           /\ marked' = marked \cup {k}
+           /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, cache, blockKey,
+                 metadata, stampGen, stampEpoch, nextToken, links, fill, attach, bad>>
+Bump(k) == /\ k \in durable /\ generation[k[2]] = 0
+           /\ IF MarkFirst THEN k \in marked ELSE k \notin marked
+           /\ generation' = [generation EXCEPT ![k[2]] = 1]
+           /\ UNCHANGED <<enabled, durable, marked, epoch, scope, moved, cache, blockKey,
+                 metadata, stampGen, stampEpoch, nextToken, links, fill, attach, bad>>
+Delete(k) == /\ k \in durable /\ k \in marked /\ generation[k[2]] = 1
              /\ durable' = durable \ {k}
-             /\ generation' = [generation EXCEPT ![k[2]] = 1]
-             /\ UNCHANGED <<enabled, epoch, scope, moved, cache, blockKey, metadata,
+             /\ UNCHANGED <<enabled, marked, generation, epoch, scope, moved, cache, blockKey, metadata,
                             stampGen, stampEpoch, nextToken, links, fill, attach, bad>>
 Invalidate(s) == /\ epoch[s] = 0 /\ epoch' = [epoch EXCEPT ![s] = 1]
-                 /\ UNCHANGED <<enabled, durable, generation, scope, moved, cache, blockKey,
+                 /\ UNCHANGED <<enabled, durable, marked, generation, scope, moved, cache, blockKey,
                        metadata, stampGen, stampEpoch, nextToken, links, fill, attach, bad>>
 Close(s) == /\ s \in enabled
             /\ enabled' = enabled \ {s}
             /\ epoch' = [epoch EXCEPT ![s] = @ + 1]
-            /\ UNCHANGED <<durable, generation, scope, moved, cache, blockKey,
+            /\ UNCHANGED <<durable, marked, generation, scope, moved, cache, blockKey,
                  metadata, stampGen, stampEpoch, nextToken, links, fill, attach, bad>>
 
 ChangeScope == /\ 1 \in Scopes /\ ~moved /\ scope' = 1 /\ moved' = TRUE
-               /\ UNCHANGED <<enabled, durable, generation, epoch, cache, blockKey, metadata,
+               /\ UNCHANGED <<enabled, durable, marked, generation, epoch, cache, blockKey, metadata,
                               stampGen, stampEpoch, nextToken, links, fill, attach, bad>>
 Bind(r) == /\ cache[<<scope, r>>] # 0 /\ metadata[cache[<<scope, r>>]]
            /\ links' = [links EXCEPT ![r] = cache[<<scope, r>>]]
-           /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, cache, blockKey,
+           /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, cache, blockKey,
                           metadata, stampGen, stampEpoch, nextToken, fill, attach, bad>>
 Read(r) ==
     /\ links[r] # 0
@@ -143,12 +171,12 @@ Read(r) ==
        /\ (~CheckEpoch \/ stampEpoch[t] = epoch[scope])
        /\ bad' = (bad \/ scope \notin enabled \/ <<scope, r>> \notin durable
                       \/ blockKey[t] # <<scope, r>> \/ stampEpoch[t] # epoch[scope])
-    /\ UNCHANGED <<enabled, durable, generation, epoch, scope, moved, cache, blockKey,
+    /\ UNCHANGED <<enabled, durable, marked, generation, epoch, scope, moved, cache, blockKey,
                    metadata, stampGen, stampEpoch, nextToken, links, fill, attach>>
-Next == (\E r \in Refs : StartLoad(r, TRUE) \/ StartLoad(r, FALSE) \/ Bind(r) \/ Read(r))
-        \/ (\E k \in Keys : StartAttach(k) \/ Evict(k) \/ Remove(k))
+Next == (\E r \in Refs : StartLoad(r) \/ Bind(r) \/ Read(r))
+        \/ (\E k \in Keys : StartAttach(k) \/ Evict(k) \/ Mark(k) \/ Bump(k) \/ Delete(k))
         \/ (\E s \in Scopes : Invalidate(s) \/ Close(s))
-        \/ ReadBytes \/ StoreFill \/ AbortLoad \/ FinishAttach \/ AbortAttach
+        \/ NoteGen \/ AskKeeper \/ ReadBytes \/ StoreFill \/ AbortLoad \/ FinishAttach \/ AbortAttach
         \/ ChangeScope \/ UNCHANGED vars
 Bounded == Charge(Retained, metadata) <= Budget
 RetiredEmpty == \A t \in Tokens : t \notin Live => blockKey[t] = None
