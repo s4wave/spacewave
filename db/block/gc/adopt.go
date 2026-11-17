@@ -3,6 +3,7 @@ package block_gc
 import (
 	"context"
 	"math"
+	"time"
 
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
@@ -71,6 +72,17 @@ var ErrAdoptSuperseded = errors.New("another adoption superseded this one")
 // holders, since the put that stores it brings the holder its record implies.
 // It drops the journal before the cursor and marks the Volume adopted.
 //
+// The mark writes an empty journal record at the cursor, stamped by now, the
+// clock Land stamps the Volume's records with. Invariant: a block the
+// adoption settles at zero ripens behind that marker, so the collector frees
+// it only once the marker is Grace old. The records the mark leaves behind
+// carried the down pair of a root that moved off a block within Grace, which
+// a reader that saw the block may still be about to pin; without the marker
+// the settled block would be ripe at the cursor itself and free at once. The
+// mark also sets AdoptMark past the marker, and the settle's flip, which
+// unmarks every old block its walk did not reach, waits for the cursor to
+// reach it: the reader's sight is no seed of that walk.
+//
 // It refuses with ErrAdoptUnknown, returning the Volume to unadopted, when a
 // root or a stored block names a block stored without a child list. It counts
 // child lists an older store format left unverified as they are: such a list
@@ -95,7 +107,7 @@ var ErrAdoptSuperseded = errors.New("another adoption superseded this one")
 // held another way, such as through a bucket's ownership, has no holder here,
 // so adopt a Volume only once every writer that uses it holds what it needs
 // under named roots.
-func Adopt(ctx context.Context, store Store, rule HoldRule) (AdoptResult, error) {
+func Adopt(ctx context.Context, store Store, rule HoldRule, now func() time.Time) (AdoptResult, error) {
 	// Report a Volume adopted under rule, after deleting what a finished
 	// adoption may have left; otherwise claim it unadopted for a new run.
 	var res AdoptResult
@@ -128,8 +140,15 @@ func Adopt(ctx context.Context, store Store, rule HoldRule) (AdoptResult, error)
 			return ErrAdoptSuperseded
 		}
 
-		// Start the cursor at the next journal record.
+		// Start the cursor at the next journal record, an empty marker that
+		// ages like any other, so a block settled at zero waits Grace, and
+		// the flip waits for the cursor to pass it.
 		cursor = state.GetNextSeq()
+		marker := &JournalRecord{AtUnixMilli: now().UnixMilli()}
+		if err := rec.PutJournal(ctx, cursor, marker); err != nil {
+			return err
+		}
+		state.NextSeq, state.AdoptMark = cursor+1, cursor+1
 		state.Adoption = Adoption_ADOPTION_ADOPTING
 		state.AdoptionRun = run
 		state.Cursor, state.NetOffset, state.Cascades = cursor, 0, 0

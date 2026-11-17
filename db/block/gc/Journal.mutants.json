@@ -58,5 +58,18 @@
     "replace": [["  /\\ TailCheck => \\A i \\in 1..Len(jr) : \\A x \\in jr[i].up : x[2] # b", "  /\\ TRUE"]],
     "expect": "NoFreedRead",
     "config": "Journal-rogue.cfg"
+  },
+  {
+    "name": "an adoption starts the journal empty, with no marker to wait Grace on",
+    "replace": [["/\\ jr' = <<[age |-> 0, up |-> {}, down |-> {}]>>", "/\\ jr' = <<>>"],
+                ["/\\ amark' = 1", "/\\ amark' = 0"]],
+    "expect": "ReaderWindow",
+    "config": "Journal-adopt-revive-reader.cfg"
+  },
+  {
+    "name": "the flip does not wait for the adoption's marker to net",
+    "replace": [["unmarks it.\n  /\\ amark = 0", "unmarks it.\n  /\\ TRUE"]],
+    "expect": "ReaderWindow",
+    "config": "Journal-adopt-revive-reader.cfg"
   }
 ]

@@ -276,6 +276,23 @@ export interface LivenessState {
    * which fails safe.
    */
   freesMark?: bigint
+  /**
+   * AdoptMark is one past the sequence of the empty record the last
+   * adoption wrote at its mark. A block the adoption settles may be a head a
+   * reader saw before the mark, whose move off it the dropped journal
+   * carried, so the settle's flip, its only reader, unmarks nothing until
+   * the cursor reaches this mark and the record is Grace old. Nothing clears
+   * it: once reached, the cursor stays past it, and an adoption after the
+   * flip sets a mark that no flip reads.
+   *
+   * Invariant: only Adopt's mark transaction writes it; no Land, fill,
+   * netting, free or flip does. So no write a steady writer lands can move
+   * it, and the flip waits at most Grace past the mark plus the time to net
+   * the records before it, unlike frees, which a writer can hold off through
+   * HoldMark. Journal.tla models it as amark, which only AdoptMark raises
+   * (AdoptMarkFixed).
+   */
+  adoptMark?: bigint
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -295,6 +312,7 @@ export const LivenessState: MessageType<LivenessState> =
       [14, 'hold_rule', 14, 0, HoldRule_Enum],
       [15, 'frees', 8],
       [16, 'frees_mark', 4],
+      [17, 'adopt_mark', 4],
     ],
   )
 

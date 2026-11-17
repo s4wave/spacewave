@@ -1198,6 +1198,53 @@ func testLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("reader sight across an adoption", func(t *testing.T) {
+		// A reader sees head R1 of main, which then moves to R2, and the
+		// Volume adopts again before the reader pins R1: the adoption drops
+		// the record of the move and counts R1 at zero.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "E")
+		r1 := tr.add(t, "R1", "E")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("E", "R1"), []block.NamedRoot{{Name: "main", Ref: r1}}); err != nil {
+			t.Fatal(err)
+		}
+		r2 := tr.add(t, "R2")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("R2"), []block.NamedRoot{{Name: "main", Ref: r2, Previous: r1}}); err != nil {
+			t.Fatal(err)
+		}
+		markUnadopted(t, v)
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		// A pass at once frees nothing the reader saw: the adoption's marker
+		// record is not Grace old, so R1 has not ripened. The reader pins R1
+		// within its window and reads the whole tree past the grace period.
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "R1", "E", "R2")
+		unpin, err := v.PinBucketRoot(ctx, r1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "R1", "E", "R2")
+
+		// Once the pin is released, the old tree goes after the grace
+		// period.
+		unpin()
+		if err := v.withDirectAtomic(ctx, nil); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "R1", "E")
+		requireStored(t, v, tr, true, "R2")
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("lapsed lease", func(t *testing.T) {
 		// A pin whose process died lapses; the collector releases it, and
 		// frees the old tree only a grace period later.
@@ -2065,7 +2112,7 @@ func testLivenessAdversarial(t *testing.T) {
 				}
 			},
 		}}
-		if _, err := block_gc.Adopt(ctx, probe, testRule()); err != nil || len(probe.at) != 0 {
+		if _, err := block_gc.Adopt(ctx, probe, testRule(), v.now); err != nil || len(probe.at) != 0 {
 			t.Fatalf("adopt = %v with %d fills left", err, len(probe.at))
 		}
 		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "r", Ref: f}}); err != nil {
@@ -2128,7 +2175,7 @@ func testLivenessAdversarial(t *testing.T) {
 					}
 				},
 			}}
-			if _, err := block_gc.Adopt(ctx, probe, testRule()); err != nil || len(probe.at) != 0 {
+			if _, err := block_gc.Adopt(ctx, probe, testRule(), v.now); err != nil || len(probe.at) != 0 {
 				t.Fatalf("adopt = %v with %d fills left", err, len(probe.at))
 			}
 
@@ -2246,7 +2293,7 @@ func testLivenessAdversarial(t *testing.T) {
 				}
 			},
 		}}
-		if _, err := block_gc.Adopt(ctx, probe, testRule()); err != nil || len(probe.at) != 0 {
+		if _, err := block_gc.Adopt(ctx, probe, testRule(), v.now); err != nil || len(probe.at) != 0 {
 			t.Fatalf("adopt = %v with %d fills left", err, len(probe.at))
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
@@ -4358,7 +4405,7 @@ func testLivenessAdversarial(t *testing.T) {
 			},
 			adoptSettle: cancel,
 		}
-		if _, err := block_gc.Adopt(probeCtx, probe, testRule()); !errors.Is(err, context.Canceled) || len(probe.at) != 0 {
+		if _, err := block_gc.Adopt(probeCtx, probe, testRule(), v.now); !errors.Is(err, context.Canceled) || len(probe.at) != 0 {
 			t.Fatalf("interrupted adopt = %v with %d writes left, want canceled after both", err, len(probe.at))
 		}
 		if adoption := livenessAdoption(t, v); adoption != block_gc.Adoption_ADOPTION_UNADOPTED {
@@ -4395,7 +4442,7 @@ func testLivenessAdversarial(t *testing.T) {
 				}
 			},
 		}}
-		if _, err := block_gc.Adopt(ctx, probe, testRule()); err != nil || len(probe.at) != 0 {
+		if _, err := block_gc.Adopt(ctx, probe, testRule(), v.now); err != nil || len(probe.at) != 0 {
 			t.Fatalf("rerun adopt = %v with %d writes left", err, len(probe.at))
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
@@ -4856,9 +4903,9 @@ func testLivenessAdversarial(t *testing.T) {
 			},
 		}}
 		probeA := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
-			adoptCountRoots: func() { _, errB = block_gc.Adopt(ctx, probeB, testRule()) },
+			adoptCountRoots: func() { _, errB = block_gc.Adopt(ctx, probeB, testRule(), v.now) },
 		}}
-		_, errA := block_gc.Adopt(ctx, probeA, testRule())
+		_, errA := block_gc.Adopt(ctx, probeA, testRule(), v.now)
 		if !errors.Is(errA, block_gc.ErrAdoptSuperseded) || errB != nil {
 			t.Fatalf("adoptions = %v and %v with %d and %d hooks left, want A superseded and B adopted", errA, errB, len(probeA.at), len(probeB.at))
 		}
@@ -4920,7 +4967,7 @@ func testLivenessAdversarial(t *testing.T) {
 		}}
 		go func() {
 			defer close(cleared)
-			_, _ = block_gc.Adopt(bCtx, probeB, testRule())
+			_, _ = block_gc.Adopt(bCtx, probeB, testRule(), v.now)
 		}()
 
 		// A starts B before its mark and lets B clear before it settles.
@@ -4931,7 +4978,7 @@ func testLivenessAdversarial(t *testing.T) {
 				<-cleared
 			},
 		}}
-		_, err := block_gc.Adopt(ctx, probeA, testRule())
+		_, err := block_gc.Adopt(ctx, probeA, testRule(), v.now)
 		releaseB()
 		<-cleared
 		if !errors.Is(err, block_gc.ErrAdoptSuperseded) {
@@ -4968,12 +5015,12 @@ func testLivenessAdversarial(t *testing.T) {
 		}
 		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
 			adoptSettle: func() {
-				if _, err := block_gc.Adopt(ctx, collectorStore{v: v}, testRule()); err != nil {
+				if _, err := block_gc.Adopt(ctx, collectorStore{v: v}, testRule(), v.now); err != nil {
 					t.Error(err)
 				}
 			},
 		}}
-		if _, err := block_gc.Adopt(ctx, probe, testRule()); !errors.Is(err, block_gc.ErrAdoptSuperseded) || len(probe.at) != 0 {
+		if _, err := block_gc.Adopt(ctx, probe, testRule(), v.now); !errors.Is(err, block_gc.ErrAdoptSuperseded) || len(probe.at) != 0 {
 			t.Fatalf("superseded adopt = %v with %d adoptions left, want superseded", err, len(probe.at))
 		}
 		if adoption := livenessAdoption(t, v); adoption != block_gc.Adoption_ADOPTION_ADOPTED {
@@ -5274,6 +5321,54 @@ func TestLivenessSettle(t *testing.T) {
 		settleAll(t, v, clk, store, tr)
 		requireReads(t, v, tr, "N", "C7", "D7")
 		requireFront(t, v)
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("reader sight across an adoption while the generation is open", func(t *testing.T) {
+		// R1 -> E in an old store, its generation Open, R1 its world root.
+		// A reader sees R1, the root moves to R2, and the Volume adopts
+		// again before the reader pins R1: the adoption drops the record of
+		// the move, so no seed of the settle walk reaches R1. Passes within
+		// the grace period walk, and the flip, which would unmark R1 for
+		// the sweep, waits for the adoption's marker; the reader pins R1
+		// and the settle keeps it.
+		tr := testTree{}
+		tr.add(t, "E")
+		tr.add(t, "R1", "E")
+		v, clk, store := oldStore(t, tr, "R1", []string{"E", "R1"})
+		tr.add(t, "R2")
+		world := []block.NamedRoot{{Name: "world", Ref: tr["R2"].Ref, Previous: tr["R1"].Ref}}
+		if err := v.SetBucketRoots(t.Context(), "space", tr.entries("R2"), world); err != nil {
+			t.Fatal(err)
+		}
+		markUnadopted(t, v)
+		if _, err := v.Adopt(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+		for range 4 {
+			walkFront(t, v, store, tr)
+			collectAll(t, v)
+		}
+		requireStored(t, v, tr, true, "R1", "E", "R2")
+		unpin, err := v.PinBucketRoot(t.Context(), tr["R1"].Ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		settleAll(t, v, clk, store, tr)
+		requireStored(t, v, tr, true, "R1", "E", "R2")
+
+		// Once the pin is released, the old tree goes after the grace
+		// period.
+		unpin()
+		if err := v.withDirectAtomic(t.Context(), nil); err != nil {
+			t.Fatal(err)
+		}
+		for range 4 {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+		}
+		requireStored(t, v, tr, false, "R1", "E")
+		requireStored(t, v, tr, true, "R2")
 		requireAudit(t, v, 0)
 	})
 

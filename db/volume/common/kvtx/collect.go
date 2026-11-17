@@ -93,7 +93,7 @@ func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 	v.adoptMu.Lock()
 	defer v.adoptMu.Unlock()
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
-	return block_gc.Adopt(block.WithBackground(ctx), collectorStore{v: v}, v.holdRule)
+	return block_gc.Adopt(block.WithBackground(ctx), collectorStore{v: v}, v.holdRule, v.now)
 }
 
 // runBackgroundAdopt adopts the Volume, in Adopt's bounded background
