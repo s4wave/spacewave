@@ -145,7 +145,7 @@ func testPackStoreDrain(t *testing.T, kind string) {
 	// A second pack drains; past the budget both are evicted.
 	appendChain(log, 20)
 	later := time.Now()
-	waitPacks(log, 2)
+	infos = waitPacks(log, 2)
 	remote.fail.Store(false)
 	runCtx, cancel := context.WithCancel(ctx)
 	done := make(chan error, 1)
@@ -156,8 +156,11 @@ func testPackStoreDrain(t *testing.T, kind string) {
 	if !drain.UploadedBefore(later) {
 		t.Fatal("drained Log not reported uploaded")
 	}
-	if st, _ := drain.Status(); st != (packahead.DrainStatus{}) {
-		t.Fatalf("status after the drain = %+v", st)
+	// Nothing stays pending or local. The first run failed once; the second
+	// found the first pack listed and wrote the second.
+	want := packahead.DrainStatus{Written: 1, WrittenBytes: uint64(infos[1].Size), Listed: 1, Failures: 1}
+	if st, _ := drain.Status(); st != want {
+		t.Fatalf("status after the drain = %+v, want %+v", st, want)
 	}
 	if got := remote.puts.Load(); got != 1 {
 		t.Fatalf("drain uploaded %d packs, want the 1 the store lacked", got)
