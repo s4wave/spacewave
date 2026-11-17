@@ -61,9 +61,10 @@ func (h *holdFixture) objectAt(t *testing.T, key string) bool {
 
 // TestTrashRemove carries the passed packs through the trash and the
 // removal: a lifted pack leaves the cycle, a trash killed after the backend's
-// call and one killed mid-move resume, a pack a read missed after its move
-// stays for restore, and the removal, killed after the backend's first call,
-// sends each removed pack's keys with their other holders in bounded calls.
+// call and one killed mid-move resume, a bucket that cannot list versions
+// leaves every pack at its key, a pack a read missed after its move stays for
+// restore, and the removal, killed after the backend's first call, sends each
+// removed pack's keys with their other holders in bounded calls.
 func TestTrashRemove(t *testing.T) {
 	ctx := t.Context()
 	h := newHoldFixture(t)
@@ -86,6 +87,19 @@ func TestTrashRemove(t *testing.T) {
 	for _, id := range passed[1:] {
 		if records[id].Stage != StageTrash || h.backend.hold(id).State != PackTrashing {
 			t.Fatalf("pack %s after the kill: record %+v, state %v", id, records[id], h.backend.hold(id))
+		}
+	}
+
+	// A bucket that cannot list versions fails the move and keeps the pack
+	// where it was, rather than hide it with a plain delete.
+	h.f.bucket.RefuseVersions(true)
+	if _, err := Trash(ctx, opts); err == nil {
+		t.Fatal("a trash where versions cannot be listed returned no error")
+	}
+	h.f.bucket.RefuseVersions(false)
+	for _, id := range passed[1:] {
+		if !h.objectAt(t, block_store_s3.EntryObjectKey(prefix, id)) || !h.objectAt(t, block_store_s3.PackObjectKey(prefix, id)) {
+			t.Fatalf("pack %s left its key where versions cannot be listed", id)
 		}
 	}
 
@@ -233,10 +247,14 @@ func TestTrashRemove(t *testing.T) {
 	if got, err := Purge(ctx, popts); err != nil || got.Purged != 0 || got.Versions != 0 || got.Waiting != uint64(removed) { //nolint:gosec // test counts.
 		t.Fatalf("purge before the wait = %+v, %v", got, err)
 	}
+	// Past the wait every version goes: two keys a pack, the older version
+	// written above, and the second copy of the one key the refused move
+	// copied before its delete failed.
 	popts.Now = func() time.Time { return at.Add(DefaultPurgeAfter + time.Hour) }
 	purged, err := Purge(ctx, popts)
-	if err != nil || purged.Purged != uint64(removed) || purged.Versions != uint64(2*removed+1) || purged.Waiting != 0 { //nolint:gosec // test counts.
-		t.Fatalf("purge = %+v, %v, want %d packs and %d versions", purged, err, removed, 2*removed+1)
+	versions := 2*removed + 2
+	if err != nil || purged.Purged != uint64(removed) || purged.Versions != uint64(versions) || purged.Waiting != 0 { //nolint:gosec // test counts.
+		t.Fatalf("purge = %+v, %v, want %d packs and %d versions", purged, err, removed, versions)
 	}
 	records = recordsByID(t, h.store)
 	for _, id := range passed[1:] {
