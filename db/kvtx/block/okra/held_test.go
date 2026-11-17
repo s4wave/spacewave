@@ -2,6 +2,7 @@ package kvtx_block_okra
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math/rand/v2"
 	"testing"
@@ -81,8 +82,32 @@ func TestDeferCursorWritesMatchImmediate(t *testing.T) {
 		}
 	}
 
-	rng := rand.New(rand.NewPCG(3, 9))
+	// Scans of an empty tree see the writes it holds.
 	values := make(map[string]uint64)
+	for i := range 3 {
+		key := fmt.Sprintf("object-seed-%d", i)
+		set(held, key, 1)
+		set(now, key, 1)
+		values[key] = 1
+	}
+	var scanned, scannedKeys int
+	if err := held.tx.ScanPrefix(ctx, []byte("object-"), func(key, val []byte) error {
+		scanned++
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := held.tx.ScanPrefixKeys(ctx, []byte("object-"), func(key []byte) error {
+		scannedKeys++
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if scanned != len(values) || scannedKeys != len(values) {
+		t.Fatalf("empty tree scans saw %d and %d held keys, want %d", scanned, scannedKeys, len(values))
+	}
+
+	rng := rand.New(rand.NewPCG(3, 9))
 	for round := range 24 {
 		for i := range 160 {
 			key := fmt.Sprintf("object-%04d", rng.IntN(700))
@@ -172,5 +197,39 @@ func TestDeferCursorWritesMatchImmediate(t *testing.T) {
 	}
 	if !heldRef.EqualsRef(nowRef) {
 		t.Fatal("written roots differ")
+	}
+}
+
+// TestDeferCursorWritesFlushErrorSticks checks that a failed Flush, which may
+// leave the tree partly written, fails every later Flush and the Commit, even
+// after GetCursor, which cannot return the error, flushed again.
+func TestDeferCursorWritesFlushErrorSticks(t *testing.T) {
+	ctx := t.Context()
+	_, cursor := block.NewTransaction(newOkraTestStore(), nil, nil, nil)
+	cursor.SetBlock(&Root{}, true)
+	tx, err := NewTx(ctx, cursor, nil, true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	tx.DeferCursorWrites()
+	value := cursor.Detach(false)
+	value.ClearAllRefs()
+	value.SetBlock(&Root{Size: 1}, true)
+	if err := tx.SetCursorAtKey(ctx, []byte("object"), value, false); err != nil {
+		t.Fatal(err)
+	}
+
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	if err := tx.Flush(canceled); err == nil {
+		t.Fatal("flush on a canceled context succeeded")
+	}
+	_ = tx.GetCursor()
+	if err := tx.Flush(ctx); err == nil {
+		t.Fatal("flush after a failed flush succeeded")
+	}
+	if err := tx.Commit(ctx); err == nil {
+		t.Fatal("commit after a failed flush succeeded")
 	}
 }

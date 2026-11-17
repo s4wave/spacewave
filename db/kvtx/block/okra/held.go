@@ -37,10 +37,16 @@ func (t *Tx) Held() int {
 	return len(t.held)
 }
 
-// Flush applies the held cursor writes as one batch. The writes stay held
-// when the batch fails; the transaction is then partly written, and the
-// caller discards it.
+// Flush applies the held cursor writes as one batch. A failed batch can leave
+// the tree partly written, so its error sticks: this and every later Flush,
+// and so every read that applies held writes and Commit, return it, and the
+// caller discards the transaction.
 func (t *Tx) Flush(ctx context.Context) error {
+	// A failed batch left the tree partly written.
+	if t.flushErr != nil {
+		return t.flushErr
+	}
+
 	// A tree that holds nothing has nothing to apply.
 	if len(t.held) == 0 {
 		return nil
@@ -59,6 +65,7 @@ func (t *Tx) Flush(ctx context.Context) error {
 
 	// Apply the batch, and drop the held writes once it is written.
 	if err := t.applyBatch(ctx, ops); err != nil {
+		t.flushErr = err
 		return err
 	}
 	t.held = nil

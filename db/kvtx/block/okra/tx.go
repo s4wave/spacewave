@@ -33,6 +33,10 @@ type Tx struct {
 	deferCursors bool
 	// held are the held cursor writes by key.
 	held map[string]heldWrite
+	// flushErr is the error of a failed Flush, which left the tree partly
+	// written; Flush returns it from then on, so no later read or Commit
+	// builds on that tree.
+	flushErr error
 }
 
 // NewTx constructs a new Okra transaction.
@@ -104,7 +108,8 @@ func validateRootAtCursor(root *Root, bcs *block.Cursor) error {
 }
 
 // GetCursor returns the cursor pointing to the root of the tree. A tree with
-// held cursor writes applies them first; call Flush to see its error.
+// held cursor writes applies them first. When that fails, the root stays as
+// the failure left it, and Flush and Commit return the error.
 func (t *Tx) GetCursor() *block.Cursor {
 	_ = t.Flush(context.Background())
 	return t.bcs
@@ -525,6 +530,11 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, val []b
 		return err
 	}
 
+	// Apply the held cursor writes, so the scan sees them.
+	if err := t.Flush(ctx); err != nil {
+		return err
+	}
+
 	// Avoid traversing an empty Okra tree.
 	if t.root.GetSize() == 0 {
 		return nil
@@ -556,6 +566,11 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, val []b
 func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	// Stop the Okra operation if its context was canceled.
 	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	// Apply the held cursor writes, so the scan sees them.
+	if err := t.Flush(ctx); err != nil {
 		return err
 	}
 
