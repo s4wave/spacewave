@@ -103,7 +103,9 @@ func TestRecoveryScale(t *testing.T) {
 		writes := changedPaths(t, stamp)
 		t.Logf("scale objects=%d phase=%s source_bytes=%d blocks=%d block_bytes=%d locations=%d versions=%d pack_files=%d peak_rss_kib=%d scratch_bytes=%d duration=%s source_writes=%d in_blocks=%d out_blocks=%d",
 			size, result.GetPhase(), sourceBytes, count.GetPhysicalBlocks(), count.GetPhysicalBytes(), count.GetPhysicalLocations(), count.GetObjectVersions(), count.GetPackFiles(), maxRSSKiB(usage), scratchBytes, elapsed.Round(time.Millisecond), writes, usage.Inblock, usage.Oublock)
-		if writes != 0 || result.GetPhase() != recovery.Phase_PHASE_COUNTED || count.GetObjectVersions() != uint64(2*size) { //nolint:gosec // positive.
+		// Each object has two versions; SetObjectType adds the one version of
+		// the shared kv/store type object.
+		if writes != 0 || result.GetPhase() != recovery.Phase_PHASE_COUNTED || count.GetObjectVersions() != uint64(2*size+1) { //nolint:gosec // positive.
 			t.Fatalf("scale count of %d objects: phase %s, %d versions, %d source writes", size, result.GetPhase(), count.GetObjectVersions(), writes)
 		}
 	}
