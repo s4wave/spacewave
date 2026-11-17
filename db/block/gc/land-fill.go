@@ -23,10 +23,11 @@ import (
 //
 // The pairs go to a fill record of their own, not the journal, written blind
 // at now: a fill reads only the child list of each block it puts, whether the
-// Volume records any hole and, when it does, each block's hole record, so an
-// optimistic fill conflicts only with a commit that stores or frees one of
-// its blocks or records or refills a hole, never with the journal's sequence
-// number.
+// Volume records any hole and, when it does, each block's hole record, and
+// the count record of each block without either, so an optimistic fill
+// conflicts only with a commit that stores or frees one of its blocks,
+// changes the count of one it gives birth to, or records or refills a hole,
+// never with the journal's sequence number.
 // Collector.Collect applies the record's up pairs in its first slice, and
 // nets its down pair once the record is Grace old.
 //

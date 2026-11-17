@@ -90,10 +90,12 @@ func (v *Volume) withDirect(ctx context.Context, durable bool, fn func(p *physic
 // holds the writer throughout as withDirectAtomic does.
 //
 // A fill lands through block_gc.LandFill, which reads only the child list of
-// each block it puts and the Volume's hole records, and writes its pairs to a
-// fill record of its own, blind, so it conflicts only with a commit that
-// stores or frees one of its blocks, or with a write of a hole record, and,
-// until the Volume's old generation settles, with a write of the state.
+// each block it puts, the Volume's hole records and the count of each block
+// it gives birth to, and writes its pairs to a fill record of its own, blind,
+// so it conflicts only with a commit that stores or frees one of its blocks
+// or changes the count of one it gives birth to, or with a write of a hole
+// record, and, until the Volume's old generation settles, with a write of the
+// state.
 //
 // It carries no deferred edits: they reserve in-memory pins once per
 // transaction, and the writers holding the store's writer carry them. fn runs

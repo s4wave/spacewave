@@ -6880,6 +6880,42 @@ func TestLivenessSettle(t *testing.T) {
 		})
 	})
 
+	t.Run("put of an unmarked block that lost its list", func(t *testing.T) {
+		// The old chain P -> U is garbage, so the flip unmarks both, and
+		// under HoldUntilFree U's count keeps P's holder. U's list is then
+		// lost, and a Land, or a fill and a root, stores U again under main
+		// while Sweeping: the sweep must keep U, which main holds.
+		forEachRule(t, func(t *testing.T) {
+			for _, byFill := range []bool{false, true} {
+				tr := testTree{}
+				tr.add(t, "A")
+				tr.add(t, "U")
+				tr.add(t, "P", "U")
+				v, clk, _ := oldStore(t, tr, "A", []string{"A", "P", "U"})
+				verify(t, v, tr, "A")
+				collectUntil(t, v, clk, flipped)
+				err := v.withDirectAtomic(t.Context(), func(p *physicalTx) error {
+					return p.rec.DeleteChildren(t.Context(), tr["U"].Ref)
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if byFill {
+					fill(t, v, tr, "U")
+					err = rootOnto(t, v, tr, "U")
+				} else {
+					err = rootOnto(t, v, tr, "U", "U")
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				collectUntil(t, v, clk, settled)
+				requireStored(t, v, tr, true, "A", "U")
+				requireAudit(t, v, 0)
+			}
+		})
+	})
+
 	t.Run("renewal of a lapsed pin on an unmarked block", func(t *testing.T) {
 		// A pin holds the old U, and its process stalls past the lease, so
 		// the collector releases the pin's root. U dies, the free proof pops

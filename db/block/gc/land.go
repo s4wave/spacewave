@@ -507,15 +507,26 @@ func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entr
 // unlistedPut returns what a put of the block at key, which has neither a
 // child list nor a hole record, does. It keeps this invariant: a put leaves
 // no record that lets the collector free or sweep the block it stores
-// without a later release. A zero count is such a record, left when the
-// store lost a Dead block's list while its count, queue entry, front entry,
-// parked key and run entry outlived it. The put reparks such a block, as
-// Records.repark describes, or, when it is unmarked while Sweeping, gives
-// birth to it again; either way it takes no extra holder for bytes stored
-// without a list, since its count recorded that nothing else holds it. It
-// reads the count record, an indexed point read, and only for a zero one
-// the generation and, while Sweeping, the run entry.
+// without a later release. Two records can outlive a lost list and do so.
+// An empty run entry while Sweeping is one, since the sweep deletes every
+// block it names whatever the block's list or count, so the put gives an
+// unmarked block birth again, as Records.rebirth describes, whatever its
+// count. A zero count is the other, left when the store lost a Dead block's
+// list while its count, queue entry, front entry, parked key and run entry
+// outlived it, so the put reparks such a block, as Records.repark
+// describes. Neither takes an extra holder for bytes stored without a
+// list, since the block's count recorded what holds it.
+//
+// Cost per block: the generation, which Records reads once and caches, and
+// only while Sweeping one run entry; then the count record. Each is an
+// indexed point read.
 func unlistedPut(ctx context.Context, rec *Records, key []byte) (putKind, error) {
+	// An unmarked block is born again, whatever its count.
+	unmarked, err := rec.Unmarked(ctx, key)
+	if err != nil || unmarked {
+		return putReborn, err
+	}
+
 	// Read the count; a block with none or with holders is born.
 	value, found, err := rec.tx.Get(ctx, rec.key(kindCount, key))
 	if err != nil || !found {
@@ -525,13 +536,7 @@ func unlistedPut(ctx context.Context, rec *Records, key []byte) (putKind, error)
 	if err != nil || holders != 0 {
 		return putBorn, err
 	}
-
-	// An unmarked block is born again; any other leaves its zero count.
-	unmarked, err := rec.Unmarked(ctx, key)
-	if err == nil && unmarked {
-		return putReborn, nil
-	}
-	return putRepark, err
+	return putRepark, nil
 }
 
 // listedPut returns what a put of ref, a block with a child list, does: a
