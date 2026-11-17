@@ -414,9 +414,10 @@ func testLivenessRunThrough(t *testing.T) {
 		}
 	}
 
-	// A commit of three blocks reads each block's child list and bytes once,
-	// beyond the state and the root it moves.
-	if c := small.counts["commit"]; c.Reads+c.Steps > 2*3+4 {
+	// A commit of three blocks reads each block's child list, bytes and count
+	// record once, beyond the state and the root it moves. The count read lets
+	// a put repark a block whose lost list left a zero count.
+	if c := small.counts["commit"]; c.Reads+c.Steps > 3*3+4 {
 		t.Errorf("a commit of three blocks read %d records and stepped %d", c.Reads, c.Steps)
 	}
 
@@ -6517,75 +6518,109 @@ func TestLivenessSettle(t *testing.T) {
 		// key sorts more than a sweep slice before P's. Between the slice
 		// that sweeps C and the one that sweeps P, a put stores C again under
 		// the new X, in one batch, so C counts X's implied holder alone. The
-		// sweep of P must not release a holder from C, which X holds.
-		var tr testTree
-		listed := []string{"A", "G", "P", "C"}
-		for i := 0; ; i++ {
-			if i == 64 {
-				t.Fatal("no chain sorts C a slice before P")
-			}
-			tr = testTree{}
-			tr.add(t, "A")
-			fillers := make([][]byte, 300)
-			for j := range fillers {
-				fillers[j] = block_gc.BlockKey(tr.add(t, "F"+strconv.Itoa(j)))
-			}
-			tr.add(t, "C"+strconv.Itoa(i))
-			tr["C"] = tr["C"+strconv.Itoa(i)]
-			c := block_gc.BlockKey(tr["C"].Ref)
-			p := block_gc.BlockKey(tr.add(t, "P", "C"))
-			between := 0
-			for _, k := range fillers {
-				if bytes.Compare(c, k) < 0 && bytes.Compare(k, p) < 0 {
-					between++
-				}
-			}
-			if between > 130 {
-				break
-			}
-		}
-		for j := range 300 {
-			listed = append(listed, "F"+strconv.Itoa(j))
-		}
-		tr.add(t, "G", "P")
-		tr.add(t, "X", "C")
-		v, clk, store := oldStore(t, tr, "A", listed)
-		verify(t, v, tr, "A")
+		// sweep of P must not release a holder from C, which X holds. In the
+		// zero count case the sweep left C a zero count, as for a block whose
+		// holders gained since the flip netted to zero, so the put reparks C,
+		// and the repark must keep C's run entry: under HoldUntilFree P's
+		// old list still holds C, and P's sweep reads that entry to keep C's
+		// holder.
+		forEachRule(t, func(t *testing.T) {
+			for _, zero := range []bool{false, true} {
+				t.Run("zero count "+strconv.FormatBool(zero), func(t *testing.T) {
+					var tr testTree
+					listed := []string{"A", "G", "P", "C"}
+					for i := 0; ; i++ {
+						if i == 64 {
+							t.Fatal("no chain sorts C a slice before P")
+						}
+						tr = testTree{}
+						tr.add(t, "A")
+						fillers := make([][]byte, 300)
+						for j := range fillers {
+							fillers[j] = block_gc.BlockKey(tr.add(t, "F"+strconv.Itoa(j)))
+						}
+						tr.add(t, "C"+strconv.Itoa(i))
+						tr["C"] = tr["C"+strconv.Itoa(i)]
+						c := block_gc.BlockKey(tr["C"].Ref)
+						p := block_gc.BlockKey(tr.add(t, "P", "C"))
+						between := 0
+						for _, k := range fillers {
+							if bytes.Compare(c, k) < 0 && bytes.Compare(k, p) < 0 {
+								between++
+							}
+						}
+						if between > 130 {
+							break
+						}
+					}
+					for j := range 300 {
+						listed = append(listed, "F"+strconv.Itoa(j))
+					}
+					tr.add(t, "G", "P")
+					tr.add(t, "X", "C")
+					v, clk, store := oldStore(t, tr, "A", listed)
+					verify(t, v, tr, "A")
 
-		// Put C again under X once the sweep took C and not yet P.
-		var put bool
-		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
-			if put || livenessGeneration(t, v) != block_gc.Generation_GENERATION_SWEEPING {
-				return
+					// Put C again under X once the sweep took C and not yet P.
+					runValue := func(ref *block.BlockRef) string {
+						tx, err := store.NewTransaction(t.Context(), false)
+						if err != nil {
+							t.Fatal(err)
+						}
+						defer tx.Discard()
+						value, _, err := tx.Get(t.Context(), slices.Concat(run, block_gc.BlockKey(ref)))
+						if err != nil {
+							t.Fatal(err)
+						}
+						return string(value)
+					}
+					var put bool
+					probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+						if put || livenessGeneration(t, v) != block_gc.Generation_GENERATION_SWEEPING {
+							return
+						}
+						if has(t, store, run, tr["C"].Ref) != zero || !has(t, store, run, tr["P"].Ref) {
+							return
+						}
+						if zero && (runValue(tr["C"].Ref) != "s" || runValue(tr["P"].Ref) != "") {
+							return
+						}
+						put = true
+						if zero {
+							err := v.withDirectAtomic(t.Context(), func(p *physicalTx) error {
+								return p.rec.SetHolders(t.Context(), tr["C"].Ref, 0, 0)
+							})
+							if err != nil {
+								t.Fatal(err)
+							}
+						}
+						if err := v.SetBucketRoots(t.Context(), "b", tr.entries("C", "X"), []block.NamedRoot{{Name: "x", Ref: tr["X"].Ref}}); err != nil {
+							t.Fatal(err)
+						}
+					}}
+					c := block_gc.NewCollector(probe, block_gc.CollectorOptions{HoldUntilFree: testHold, Frees: true, Now: v.now})
+					for range 12 {
+						clk.Add(block_gc.DefaultGrace + time.Second)
+						for more := true; more; {
+							res, err := c.Collect(t.Context())
+							if err != nil {
+								t.Fatal(err)
+							}
+							more = res.More
+						}
+					}
+					if !put || livenessGeneration(t, v) != block_gc.Generation_GENERATION_SETTLED {
+						t.Fatalf("put %v at generation %v, want C put between the slices and the settle done", put, livenessGeneration(t, v))
+					}
+					requireStored(t, v, tr, true, "X", "C")
+					requireStored(t, v, tr, false, "G", "P")
+					if n := holdersOf(t, v, tr["C"].Ref); n != 1 {
+						t.Fatalf("C has %d holders, want X's", n)
+					}
+					requireAudit(t, v, 0)
+				})
 			}
-			if has(t, store, run, tr["C"].Ref) || !has(t, store, run, tr["P"].Ref) {
-				return
-			}
-			put = true
-			if err := v.SetBucketRoots(t.Context(), "b", tr.entries("C", "X"), []block.NamedRoot{{Name: "x", Ref: tr["X"].Ref}}); err != nil {
-				t.Fatal(err)
-			}
-		}}
-		c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
-		for range 12 {
-			clk.Add(block_gc.DefaultGrace + time.Second)
-			for more := true; more; {
-				res, err := c.Collect(t.Context())
-				if err != nil {
-					t.Fatal(err)
-				}
-				more = res.More
-			}
-		}
-		if !put || livenessGeneration(t, v) != block_gc.Generation_GENERATION_SETTLED {
-			t.Fatalf("put %v at generation %v, want C put between the slices and the settle done", put, livenessGeneration(t, v))
-		}
-		requireStored(t, v, tr, true, "X", "C")
-		requireStored(t, v, tr, false, "G", "P")
-		if n := holdersOf(t, v, tr["C"].Ref); n != 1 {
-			t.Fatalf("C has %d holders, want X's", n)
-		}
-		requireAudit(t, v, 0)
+		})
 	})
 
 	t.Run("renewal of a lapsed pin on an unmarked block", func(t *testing.T) {
