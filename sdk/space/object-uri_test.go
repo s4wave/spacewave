@@ -29,8 +29,9 @@ func TestParseObjectURITable(t *testing.T) {
 }
 
 // TestParseSpacewaveURIEscapes checks that escaped keys the structure would
-// otherwise clean or split come back whole. The addresses are the ones
-// escapeObjectKey in sdk/space/object-uri.ts writes.
+// otherwise clean or split come back whole. The cases must match the
+// escapeObjectKey table in sdk/space/object-uri.test.ts, which writes these
+// addresses from these keys, so the writer and the reader stay inverse.
 func TestParseSpacewaveURIEscapes(t *testing.T) {
 	cases := []struct {
 		uri string
@@ -57,7 +58,9 @@ func TestParseSpacewaveURIEscapes(t *testing.T) {
 			t.Errorf("ParseSpacewaveURI(%q) = %+v, want key %q", c.uri, got, c.key)
 		}
 	}
-	if _, err := ParseSpacewaveURI("/u/1/so/sp/-/100%"); err == nil {
-		t.Error("ParseSpacewaveURI accepted a bare percent sign")
+	// A part that is not valid percent-encoding reads as written.
+	got, err := ParseSpacewaveURI("/u/1/so/sp/-/100%/-/a%zz")
+	if err != nil || len(got.Segments) != 2 || got.Segments[0] != "100%" || got.Segments[1] != "a%zz" {
+		t.Errorf("ParseSpacewaveURI of raw percent signs = %+v, %v", got, err)
 	}
 }

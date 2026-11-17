@@ -85,11 +85,12 @@ path inside the object. Three forms are accepted:
 The "/-/" sequence delimits URI segments. The first segment is the object
 key (the entity within a space). Later segments form the UnixFS path inside
 that object. In the full form, "/u/{n}" selects the session by index and
-"so/{space-id}" selects the space. The full form is identical to the URL
-path used by the spacewave web UI, so a path copied from the browser
-address bar can be used here directly. Percent escapes are decoded after the
+"so/{space-id}" selects the space. Percent escapes are decoded after the
 URI is split, so a key holding "%" writes it as "%25", and a "-" segment or a
-leading, trailing or doubled slash is written "%2D" or "%2F".
+leading, trailing or doubled slash is written "%2D" or "%2F"; a part that is
+not valid percent-encoding is read as written. A path copied from the
+browser address bar reads the same here, except that the web UI decodes
+before it splits, so it reads "%2D", "%2E" and "%2F" as structure.
 
 When the short forms are used the session index defaults to 1 and the space
 is resolved from the daemon's default space. The --space and --session-index
