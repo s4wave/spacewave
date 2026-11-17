@@ -2644,6 +2644,16 @@
         "db/world/mock/mock.proto"
       ]
     },
+    "github.com/s4wave/spacewave/db/world/recovery": {
+      "hash": "2f37a994a9bb29fd1bf930c80c4563db93a9863d1c8f8340044692b8e3de48dc",
+      "generatedFiles": [
+        "db/world/recovery/recovery.pb.go",
+        "db/world/recovery/recovery.pb.ts"
+      ],
+      "protoFiles": [
+        "db/world/recovery/recovery.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/e2e/wasm/session": {
       "hash": "2dc06dc204a31cdced455e188ceb9ad07fab23da74fd534af3c4a7f6d63d83c6",
       "generatedFiles": [

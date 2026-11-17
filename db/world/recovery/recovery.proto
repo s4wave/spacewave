@@ -1,0 +1,226 @@
+syntax = "proto3";
+package world.recovery;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/db/world/block/world.proto";
+
+// Source declares one immutable, checkpointed SQLite Volume capture.
+// The operator supplies trusted typing context, never inferred Space membership.
+message Source {
+  // CaptureId identifies the authorized isolated snapshot.
+  string capture_id = 1;
+  // Path selects a checkpointed SQLite file without a WAL or hot journal.
+  string path = 2;
+  // Tables selects the Volume key/value tables, including duplicate locations.
+  repeated string tables = 3;
+  // Worlds declares captured current and historical World interpretations.
+  repeated WorldInput worlds = 4;
+  // Witnesses selects surviving native replay records in the first table.
+  repeated WitnessInput witnesses = 5;
+}
+
+// WorldInput supplies a trusted typed parent path for object attribution.
+message WorldInput {
+  // SpaceId is the captured Space identity.
+  string space_id = 1;
+  // Ref contains the bucket and inline transformation context.
+  .bucket.ObjectRef ref = 2;
+  // Current selects the current accepted World for this Space.
+  bool current = 3;
+}
+
+// WitnessInput selects native records whose contents must agree before confirmation.
+message WitnessInput {
+  // SpaceId binds the native operation and checkpoint to a captured Space.
+  string space_id = 1;
+  // AcceptedKey selects a native space.world.ReplayCursor with a successful outcome.
+  bytes accepted_key = 2;
+  // RefusedKey selects a native space.world.ReplayCursor with a refused outcome.
+  bytes refused_key = 3;
+  // OperationKey selects the native sobject.SOOperationInner body.
+  bytes operation_key = 4;
+  // CheckpointKey selects the native sobject.SOCheckpointInner body.
+  bytes checkpoint_key = 5;
+}
+
+// Phase is the durable scratch lifecycle; every non-counted result is provisional.
+enum Phase {
+  // PHASE_UNKNOWN is invalid persisted state.
+  PHASE_UNKNOWN = 0;
+  // PHASE_INVENTORY streams physical records.
+  PHASE_INVENTORY = 1;
+  // PHASE_INTERPRET follows typed World paths and classifies structural evidence.
+  PHASE_INTERPRET = 2;
+  // PHASE_TRAVERSE follows held roots and verifies candidate closures.
+  PHASE_TRAVERSE = 3;
+  // PHASE_COUNTED has completed all declared work with the displayed coverage.
+  PHASE_COUNTED = 4;
+  // PHASE_PAUSED preserves the last committed step after interruption or failure.
+  PHASE_PAUSED = 5;
+  // PHASE_STALE refuses to continue against a changed capture.
+  PHASE_STALE = 6;
+}
+
+// Result is the durable aggregate record consumed by the count command.
+message Result {
+  // InputIdentity binds the manifest, file identity and interpretation rules.
+  bytes input_identity = 1;
+  // Phase controls whether the displayed counts are provisional.
+  Phase phase = 2;
+  // ResumePhase preserves the failed operation's durable boundary.
+  Phase resume_phase = 3;
+  // Cursor is the physical key committed with the inventory rows.
+  bytes cursor = 4;
+  // Table is the current declared table index.
+  uint32 table = 5;
+  // Counts contains distinct hashes, keys and versions in separate units.
+  Counts counts = 6;
+  // Gaps lists unsupported source tiers and interpretation limits.
+  repeated string gaps = 7;
+  // Failure explains the paused or stale state.
+  string failure = 8;
+  // Input preserves the bounded capture declaration for source-free report reads.
+  // Renderers show its identity and boundaries, never inline transform material.
+  Source input = 9;
+  // Progress is the atomic continuation of the count's current indexed pass.
+  Progress progress = 10;
+}
+
+// Pass identifies the closed set of graph and count passes after interpretation.
+enum Pass {
+  // PASS_UNKNOWN precedes the graph passes while inventory/interpretation run.
+  PASS_UNKNOWN = 0;
+  // PASS_BAD propagates incomplete closures through reverse edges.
+  PASS_BAD = 1;
+  // PASS_ROOTS resolves captured held roots to their typed interpretations.
+  PASS_ROOTS = 2;
+  // PASS_REACH follows the union of held-root closures.
+  PASS_REACH = 3;
+  // PASS_CURRENT records current-World provenance and intentional deletions.
+  PASS_CURRENT = 4;
+  // PASS_WITNESSES validates native causal evidence and exact-version deltas.
+  PASS_WITNESSES = 5;
+  // PASS_VERSIONS aggregates distinct normalized object versions.
+  PASS_VERSIONS = 6;
+  // PASS_PHYSICAL aggregates distinct bytes and publishes the completed result.
+  PASS_PHYSICAL = 7;
+}
+
+// Progress resumes bounded memberships, witnesses and graph slices after a crash.
+message Progress {
+  // Pass selects the current graph/count pass after interpretation finishes.
+  Pass pass = 1;
+  // MembershipWorld is the zero-based World being interpreted for membership.
+  uint32 membership_world = 2;
+  // MembershipAfter is the last atomically committed object-tree key.
+  string membership_after = 3;
+  // WitnessIndex is the zero-based native witness declaration being checked.
+  uint32 witness_index = 4;
+  // Witness holds validated World positions while their versions are compared.
+  WitnessPosition witness = 5;
+  // ActiveNode preserves the queued interpretation during a bounded edge slice.
+  bytes active_node = 6;
+  // EdgeAfter is the last processed ordered adjacency key of ActiveNode.
+  bytes edge_after = 7;
+  // RootAfter is the last interpreted alias of the current held root.
+  bytes root_after = 8;
+}
+
+// WitnessEvidence is native-validated causal context supplied to the count primitive.
+message WitnessEvidence {
+  // AcceptedBefore is the typed World immediately before the accepted operation.
+  .bucket.ObjectRef accepted_before = 1;
+  // AcceptedAfter is the typed World immediately after that accepted operation.
+  .bucket.ObjectRef accepted_after = 2;
+  // RefusedBefore must match AcceptedBefore, including interpretation context.
+  .bucket.ObjectRef refused_before = 3;
+  // RefusedAfter is unchanged by the failed operation under the captured rule.
+  .bucket.ObjectRef refused_after = 4;
+  // Covering is the state the covering checkpoint carries after refusal.
+  .bucket.ObjectRef covering = 5;
+  // OperationHash binds acceptance, refusal and author cover to one operation.
+  bytes operation_hash = 6;
+  // Author is the native operation's author peer identity.
+  string author = 7;
+  // Nonce is the exact operation position in Author's chain, counted from one.
+  uint64 nonce = 8;
+}
+
+// WitnessPosition selects captured Worlds only after native evidence is validated.
+message WitnessPosition {
+  // Accepted selects the captured World containing the operation's effect.
+  uint32 accepted = 1;
+  // Before selects the captured World preceding both acceptance and refusal.
+  uint32 before = 2;
+  // Covering selects the captured World carried by the covering checkpoint.
+  uint32 covering = 3;
+  // Refused selects the captured World after the refused operation.
+  uint32 refused = 4;
+}
+
+// Counts separates physical evidence, attributed versions and causal proof.
+message Counts {
+  // PhysicalLocations counts duplicate stored occurrences separately.
+  uint64 physical_locations = 1;
+  // PhysicalBlocks counts distinct full content references.
+  uint64 physical_blocks = 2;
+  // PhysicalBytes sums bytes once per distinct full content reference.
+  uint64 physical_bytes = 3;
+  // OrphanBlocks counts hashes proven unreachable from captured held roots.
+  uint64 orphan_blocks = 4;
+  // OrphanBytes sums distinct proven unreachable bytes.
+  uint64 orphan_bytes = 5;
+  // CandidateKeys counts distinct attributed Space/bucket/object keys absent as versions.
+  uint64 candidate_keys = 6;
+  // ObjectVersions counts distinct attributed versions, including current versions.
+  uint64 object_versions = 7;
+  // AttributableVersions counts historical versions absent from the current World.
+  uint64 attributable_versions = 8;
+  // ChangedKeys counts candidate versions whose key remains in the current World.
+  uint64 changed_keys = 9;
+  // RecoverableVersions counts candidates with complete verified closures.
+  uint64 recoverable_versions = 10;
+  // PartialVersions counts candidates with missing or unsupported descendants.
+  uint64 partial_versions = 11;
+  // StructuralCandidates counts unbound structurally valid Object records.
+  uint64 structural_candidates = 12;
+  // UnassignedBlocks counts physical hashes without a typed interpretation.
+  uint64 unassigned_blocks = 13;
+  // LiveHoles counts distinct missing hashes reached from held roots.
+  uint64 live_holes = 14;
+  // ConfirmedRefusalLosses counts candidates with agreeing native history witnesses.
+  uint64 confirmed_refusal_losses = 15;
+  // IntentionalDeletes counts candidates named by a typed current delete changelog.
+  uint64 intentional_deletes = 16;
+  // UnknownReachability counts physical hashes whose non-reachability is unproven.
+  uint64 unknown_reachability = 17;
+}
+
+// Node is a disk-backed traversal item; interpretation identity includes its context.
+message Node {
+  // Ref identifies the stored bytes.
+  .block.BlockRef ref = 1;
+  // World selects the trusted World interpretation, zero based.
+  uint32 world = 3;
+  // TreeKey is the object-tree key checked against Object.Key.
+  bytes tree_key = 4;
+  // Parent is the interpretation key used for closure propagation.
+  bytes parent = 5;
+  // Constructor identifies the supported native constructor, including tree value context.
+  string constructor = 6;
+  // Context resolves inherited bucket and inline transformations for this node.
+  .bucket.ObjectRef context = 7;
+  // ExpectedSize validates a raw chunk's declared byte length when nonzero.
+  uint64 expected_size = 8;
+}
+
+// Version is the exact normalized version and its source interpretation.
+message Version {
+  // SpaceId is inherited from the trusted parent World.
+  string space_id = 1;
+  // Object contains the decoded native metadata with resolved body context.
+  .world.block.Object object = 2;
+  // World identifies a historical World containing this version.
+  uint32 world = 3;
+}
