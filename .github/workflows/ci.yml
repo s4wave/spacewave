@@ -3,13 +3,15 @@ name: CI
 # Every run runs every job. A pull request into master and each master push
 # narrow the member jobs to a delta: the Go tests of the changed packages and
 # every package whose tests depend on one, the lint of the changed packages,
-# and the JavaScript checks when their inputs changed. A manual dispatch, which
+# and the JavaScript checks when their inputs changed. A push to a stack branch,
+# named <machine>-stack, narrows to the delta from its merge base with master,
+# so one run covers every change the stack holds that master lacks. A manual dispatch, which
 # the CI hourly workflow sends for an unmeasured master head, and a pull
 # request into release run the full suite. The end-to-end suites run in the E2E
 # workflow on the same full-run triggers.
 on:
   push:
-    branches: ['master']
+    branches: ['master', '*-stack']
     paths-ignore:
       - 'doc/**'
       - '*.md'
@@ -22,12 +24,14 @@ on:
       - 'CHANGELOG.org'
   workflow_dispatch:
 
-# Pull request runs group by pull request number, and a new push cancels the
-# previous run. Every other run groups by commit, so each master push gets its
-# own delta run and a burst of pushes cannot cancel a pending one.
+# Pull request runs group by pull request number and stack pushes by branch,
+# and a new push cancels the previous run: a newer stack head contains the
+# older one, so the older result has no use. Every other run groups by commit,
+# so each master push gets its own delta run and a burst of pushes cannot
+# cancel a pending one.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || (github.event_name == 'push' && endsWith(github.ref_name, '-stack') && github.ref_name) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && endsWith(github.ref_name, '-stack')) }}
 
 permissions:
   contents: read
@@ -57,14 +61,18 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       # A pull request checks out the merge commit, whose first parent is the
-      # base branch. A push compares with the previous master head; a new
-      # branch or a force push that dropped it runs the full suite.
+      # base branch. A master push compares with the previous master head; a
+      # force push that dropped it runs the full suite. A stack push compares
+      # with its merge base with master, which the compare API names so the
+      # shallow checkout need not hold the history between them.
       - name: Select jobs
         id: select
         env:
           EVENT: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
+          REF_NAME: ${{ github.ref_name }}
           BEFORE: ${{ github.event.before }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           case "$EVENT" in
           pull_request)
@@ -75,7 +83,14 @@ jobs:
             fi
             ;;
           push)
-            if git fetch --depth=1 origin "$BEFORE"; then
+            if [ "${REF_NAME%-stack}" != "$REF_NAME" ]; then
+              if base=$(gh api "repos/$GITHUB_REPOSITORY/compare/master...$GITHUB_SHA" --jq .merge_base_commit.sha) &&
+                git fetch --depth=1 origin "$base"; then
+                bun scripts/ci-affected.ts delta "$base"
+              else
+                bun scripts/ci-affected.ts full
+              fi
+            elif git fetch --depth=1 origin "$BEFORE"; then
               bun scripts/ci-affected.ts delta "$BEFORE"
             else
               bun scripts/ci-affected.ts full
