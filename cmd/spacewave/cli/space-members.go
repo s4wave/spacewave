@@ -5,7 +5,6 @@ package spacewave_cli
 import (
 	"context"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -311,16 +310,53 @@ func memberPeerIDs(
 	members []*s4wave_space.SpaceParticipantInfo,
 	names []string,
 ) (peerIDs, accountIDs []string, err error) {
+	// Index only requested identities; a command naming nobody needs no scan.
+	if len(names) == 0 {
+		return nil, nil, nil
+	}
+	byIdentity := make(map[string]int, len(names))
 	for _, name := range names {
-		// Find the member, or keep the name as an account ID.
-		idx := slices.IndexFunc(members, func(member *s4wave_space.SpaceParticipantInfo) bool {
-			return name == member.GetAccountId() ||
-				name == member.GetEntityId() ||
-				slices.Contains(member.GetPeerIds(), name)
-		})
+		byIdentity[name] = -1
+	}
+	unmatched := len(byIdentity)
+
+	// Resolve each identity to its first member without retaining unrelated IDs.
+	for i, member := range members {
+		for _, identity := range [2]string{member.GetAccountId(), member.GetEntityId()} {
+			if first, wanted := byIdentity[identity]; wanted && first < 0 {
+				byIdentity[identity] = i
+				unmatched--
+			}
+		}
+		if unmatched == 0 {
+			break
+		}
+
+		// Peer identities obey the same first-match rule and finish the scan early.
+		for _, peerID := range member.GetPeerIds() {
+			if first, wanted := byIdentity[peerID]; wanted && first < 0 {
+				byIdentity[peerID] = i
+				unmatched--
+				if unmatched == 0 {
+					break
+				}
+			}
+		}
+		if unmatched == 0 {
+			break
+		}
+	}
+
+	// Resolve names in argument order and emit each peer or unknown account only once.
+	seenPeers := make(map[string]struct{})
+	seenAccounts := make(map[string]struct{}, len(names))
+	for _, name := range names {
+		// Find the first matching member, or keep the name as an account ID.
+		idx := byIdentity[name]
 		if idx < 0 {
-			if !slices.Contains(accountIDs, name) {
+			if _, seen := seenAccounts[name]; !seen {
 				accountIDs = append(accountIDs, name)
+				seenAccounts[name] = struct{}{}
 			}
 			continue
 		}
@@ -331,8 +367,9 @@ func memberPeerIDs(
 			return nil, nil, errors.Errorf("%s is you; use space leave instead", name)
 		}
 		for _, peerID := range member.GetPeerIds() {
-			if !slices.Contains(peerIDs, peerID) {
+			if _, seen := seenPeers[peerID]; !seen {
 				peerIDs = append(peerIDs, peerID)
+				seenPeers[peerID] = struct{}{}
 			}
 		}
 	}

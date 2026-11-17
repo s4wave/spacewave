@@ -91,6 +91,7 @@ func newDebugVolumeCopyCommand() *cli.Command {
 			&cli.StringFlag{Name: "sql-store-id", Usage: "with --drop-sql-blocks, the block store id whose rows to check", Destination: &sqlArgs.storeID},
 		},
 		Action: func(c *cli.Context) error {
+			// Validate the source and destination arguments for the chosen operation.
 			if countOnly && !dropSQL {
 				return errors.New("--count-only needs --drop-sql-blocks")
 			}
@@ -100,6 +101,8 @@ func newDebugVolumeCopyCommand() *cli.Command {
 			if !countOnly && c.NArg() != 2 {
 				return errors.New("expected the volume file and the new file")
 			}
+
+			// Select reachability filtering and the SQL block comparison source.
 			var reach *volume_kvtx.CopyReachableOptions
 			if reachable {
 				reach = &opts
@@ -117,6 +120,8 @@ func newDebugVolumeCopyCommand() *cli.Command {
 				}
 				drop = &sqlArgs
 			}
+
+			// Count the proposed copy or create the destination with progress on stderr.
 			if countOnly {
 				return countVolumeDrop(c.Context, c.Args().Get(0), drop, os.Stdout, os.Stderr)
 			}
@@ -318,6 +323,7 @@ func (d *sqlDrop) isMarked(ref *block.BlockRef) bool {
 // does not mean SQL holds it either: blocks written before the store was
 // placed on SQL, or while uploads were off, were never marked.
 func (d *sqlDrop) drop(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Retain marked blocks and collect only unmarked references for the SQL query.
 	drop := make([]bool, len(refs))
 	var ask []*block.BlockRef
 	var at []int
@@ -330,6 +336,8 @@ func (d *sqlDrop) drop(ctx context.Context, refs []*block.BlockRef) ([]bool, err
 	if len(ask) == 0 {
 		return drop, nil
 	}
+
+	// Map the SQL existence results back to the original reference positions.
 	held, err := d.store.GetBlockExistsBatch(ctx, ask)
 	if err != nil {
 		return nil, err

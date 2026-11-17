@@ -253,12 +253,14 @@ func buildForgeShowExecutionCommand(statePath *string, sessionIdx *uint, spaceID
 			}
 			defer client.close()
 
-			// Mount the session and the Space, and open its World engine.
+			// Mount the session that accesses the execution.
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
+
+			// Resolve the execution Space and retain its mounted service.
 			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
 			if err != nil {
 				return err
@@ -268,6 +270,8 @@ func buildForgeShowExecutionCommand(statePath *string, sessionIdx *uint, spaceID
 				return err
 			}
 			defer spaceCleanup()
+
+			// Open the World engine that holds the execution record.
 			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 			if err != nil {
 				return err

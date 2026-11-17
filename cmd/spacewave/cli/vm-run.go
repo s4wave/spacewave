@@ -23,20 +23,33 @@ import (
 // literal Ctrl-A to the guest.
 const serialEscapePrefix = 0x01
 
+// v86RunArgs selects the local image, root backing, and virtual machine options.
 type v86RunArgs struct {
-	root      string
-	rootMode  string
-	assetDir  string
-	v86Dir    string
-	fsDir     string
-	imageKey  string
-	bootArgs  string
-	memoryMb  uint
+	// root selects v86fs or the host9p root device.
+	root string
+	// rootMode selects the v86fs root's backing and persistence.
+	rootMode string
+	// assetDir overrides the directory holding all boot artifacts.
+	assetDir string
+	// v86Dir overrides the emulator and BIOS artifact directory.
+	v86Dir string
+	// fsDir overrides the kernel and root filesystem artifact directory.
+	fsDir string
+	// imageKey selects the image used when hydrating artifacts from the CDN.
+	imageKey string
+	// bootArgs overrides the guest kernel command line.
+	bootArgs string
+	// memoryMb is the guest memory in MiB, or zero for the runtime default.
+	memoryMb uint
+	// enableJIT enables the emulator's JIT compiler.
 	enableJIT bool
-	refresh   bool
-	net       bool
+	// refresh forces cached assets to be hydrated again.
+	refresh bool
+	// net attaches the guest NIC to the host's usermode network stack.
+	net bool
 }
 
+// newVmRunCommand builds the local VM command and its serial console action.
 func newVmRunCommand() *cli.Command {
 	args := &v86RunArgs{root: "v86fs", rootMode: "ram", memoryMb: 128}
 	return &cli.Command{
@@ -67,6 +80,7 @@ func newVmRunCommand() *cli.Command {
 	}
 }
 
+// runV86Interactive boots the selected image and attaches the terminal until quit.
 func runV86Interactive(c *cli.Context, args *v86RunArgs) error {
 	// Stop the VM when the process is interrupted.
 	ctx, stop := signal.NotifyContext(c.Context, os.Interrupt)
@@ -217,12 +231,18 @@ func buildV86RunBoot(ctx context.Context, args *v86RunArgs) (v86_wazero.HostBoot
 // one literal Ctrl-A. Filtered output that overflows the caller buffer is held
 // in pending and served on the next read.
 type serialEscapeReader struct {
-	src     io.Reader
-	quit    context.CancelFunc
-	armed   bool
+	// src supplies the terminal's unfiltered input.
+	src io.Reader
+	// quit cancels the console when the quit escape is read.
+	quit context.CancelFunc
+	// armed records a Ctrl-A prefix whose following byte has not arrived.
+	armed bool
+	// pending holds filtered bytes that did not fit in the previous read buffer.
 	pending []byte
 }
 
+// Read filters console escapes and retains output that does not fit in p.
+// Ctrl-A x cancels the console and returns EOF after any preceding output.
 func (e *serialEscapeReader) Read(p []byte) (int, error) {
 	// Read stdin, treating Ctrl-A x as quit.
 	if len(e.pending) != 0 {
@@ -258,6 +278,7 @@ func (e *serialEscapeReader) Read(p []byte) (int, error) {
 	return e.flush(p, out), err
 }
 
+// flush copies filtered input to p and retains the remainder for the next read.
 func (e *serialEscapeReader) flush(p, out []byte) int {
 	n := copy(p, out)
 	if n < len(out) {
