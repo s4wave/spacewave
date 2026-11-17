@@ -51,6 +51,8 @@ type objectVersion struct {
 	id string
 	// data is its content.
 	data []byte
+	// modified is when it was stored, served as Last-Modified.
+	modified time.Time
 }
 
 // New serves an empty bucket until the test ends and returns it with a client
@@ -191,18 +193,16 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		b.deleteVersion(key, query.Get("versionId"))
 		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodGet || r.Method == http.MethodHead:
-		data, ok := b.objects[key]
+		history := b.history[key]
+		i := 0
 		if version := query.Get("versionId"); version != "" {
-			i := slices.IndexFunc(b.history[key], func(v objectVersion) bool { return v.id == version })
-			if ok = i >= 0; ok {
-				data = b.history[key][i].data
-			}
+			i = slices.IndexFunc(history, func(v objectVersion) bool { return v.id == version })
 		}
-		if !ok {
+		if i < 0 || i >= len(history) {
 			http.Error(w, "<Error><Code>NoSuchKey</Code></Error>", http.StatusNotFound)
 			return
 		}
-		http.ServeContent(w, r, key, time.Time{}, strings.NewReader(string(data)))
+		http.ServeContent(w, r, key, history[i].modified, strings.NewReader(string(history[i].data)))
 	default:
 		w.WriteHeader(http.StatusNoContent)
 	}
@@ -211,7 +211,7 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // store makes data the current version of key.
 func (b *Bucket) store(key string, data []byte) {
 	b.versions++
-	version := objectVersion{id: strconv.Itoa(b.versions), data: data}
+	version := objectVersion{id: strconv.Itoa(b.versions), data: data, modified: time.Now()}
 	b.objects[key] = data
 	b.history[key] = slices.Insert(b.history[key], 0, version)
 }

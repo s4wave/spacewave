@@ -12,7 +12,8 @@ import (
 )
 
 // TestPutObjectStream uploads an object in concurrent parts, a short one as
-// one PUT, and leaves nothing behind a failed upload.
+// one PUT, and leaves nothing behind a failed upload. A stat of the upload
+// reports when it was stored.
 func TestPutObjectStream(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
@@ -31,6 +32,15 @@ func TestPutObjectStream(t *testing.T) {
 	body, err := client.GetObjectRange(ctx, s3test.BucketName, "big", 0, len(data))
 	if err != nil || !bytes.Equal(body, data) {
 		t.Fatalf("read back %d bytes, %v", len(body), err)
+	}
+
+	// Its stat carries its size and when it was stored, to the second.
+	stat, err := client.HeadObject(ctx, s3test.BucketName, "big")
+	if err != nil || stat.Size != int64(len(data)) {
+		t.Fatalf("stat: %+v, %v", stat, err)
+	}
+	if age := time.Since(stat.LastModified); age < 0 || age > 10*time.Second {
+		t.Fatalf("stat stored %v, %v ago", stat.LastModified, age)
 	}
 
 	// A short stream and an empty one are plain objects.
