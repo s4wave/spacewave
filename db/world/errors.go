@@ -49,6 +49,11 @@ var (
 	// unmount. It never means the commit failed: the next open reconciles
 	// the head, so the writer reads the World before it writes again.
 	ErrDurabilityUnknown = errors.New("world commit durability unknown")
+	// ErrPendingWriteWatch is returned for a change watch on a pending write
+	// state: a run of same-type changes shares one seqno until the flush, so a
+	// seqno position cannot name each change. Watch the Engine, which reports
+	// the changes once they commit.
+	ErrPendingWriteWatch = errors.New("cannot watch changes on a pending write state")
 	// ErrUnexpectedChangeType is returned when a change with an unexpected
 	// ChangeType is encountered. Typically wrapped with name of type.
 	ErrUnexpectedChangeType = errors.New("change type was unexpected")
