@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
 	"strconv"
@@ -21,6 +22,8 @@ import (
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/sirupsen/logrus"
+	logrustest "github.com/sirupsen/logrus/hooks/test"
 )
 
 // bytesTransport serves Fetch calls from a fixed byte slice, optionally
@@ -840,6 +843,240 @@ func TestPackfileStoreProbeSurvivesManifestChange(t *testing.T) {
 	}
 	if !res.exists {
 		t.Fatal("expected the block in the merged pack")
+	}
+}
+
+// failingTransport serves pack bytes, failing every fetch while fail is set
+// and counting the fetches. release, when set, holds each fetch until it
+// closes.
+type failingTransport struct {
+	data    []byte
+	fail    atomic.Bool
+	fetches atomic.Int32
+	release chan struct{}
+}
+
+// fetch serves one range of the pack.
+func (f *failingTransport) fetch(_ context.Context, off int64, length int) ([]byte, error) {
+	// Count the fetch, wait for its release, and fail it while failing.
+	f.fetches.Add(1)
+	if f.release != nil {
+		<-f.release
+	}
+	if f.fail.Load() {
+		return nil, errors.New("pack unavailable")
+	}
+
+	// Serve the range from the pack bytes.
+	if off >= int64(len(f.data)) {
+		return nil, io.EOF
+	}
+	end := min(off+int64(length), int64(len(f.data)))
+	return bytes.Clone(f.data[off:end]), nil
+}
+
+// failingPackStore returns a store over the packs, each served by its
+// transport and listed with its sequence, newest probed first, and a clock
+// the test moves.
+func failingPackStore(t *testing.T, packs map[string]*failingTransport, seqs map[string]uint64, bloomBytes []byte) (*PackfileStore, *time.Time) {
+	// Open each pack through its transport.
+	store := NewPackfileStore(func(packID string, size int64) (*PackReader, error) {
+		return NewPackReader(packID, size, TransportFunc(packs[packID].fetch)), nil
+	}, nil)
+	t.Cleanup(func() { store.Close() })
+
+	// Publish the packs and fix the clock.
+	var entries []*packfile.PackfileEntry
+	for id, tr := range packs {
+		entries = append(entries, &packfile.PackfileEntry{
+			Id:          id,
+			BloomFilter: bloomBytes,
+			BlockCount:  1,
+			SizeBytes:   uint64(len(tr.data)),
+			Sequence:    seqs[id],
+		})
+	}
+	store.UpdateManifest(entries)
+	clock := time.Unix(1_000_000, 0)
+	store.failures.now = func() time.Time { return clock }
+	return store, &clock
+}
+
+// failingCount returns the number of packs on the store's failure list.
+func failingCount(store *PackfileStore) int {
+	store.failures.mtx.Lock()
+	defer store.failures.mtx.Unlock()
+	return len(store.failures.packs)
+}
+
+// TestPackfileStoreRetriesSoleHolderAtOnce checks that a pack that is the
+// only holder of a block is read again on the very next lookup after one
+// transient index failure, though it backs off: a backoff never turns a
+// possible read into an error.
+func TestPackfileStoreRetriesSoleHolderAtOnce(t *testing.T) {
+	// Publish one pack whose first index fetch fails.
+	ctx := t.Context()
+	packBytes, bloomBytes := buildTestPack(t, map[string][]byte{"a": []byte("alpha-data")})
+	tr := &failingTransport{data: packBytes}
+	tr.fail.Store(true)
+	store, _ := failingPackStore(t, map[string]*failingTransport{"only": tr}, map[string]uint64{"only": 1}, bloomBytes)
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The first lookup fails, and the pack starts backing off.
+	if _, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: h}); err == nil {
+		t.Fatal("first lookup succeeded on a failing pack")
+	}
+	if !store.failures.backingOff("only") {
+		t.Fatal("failed index load started no backoff")
+	}
+
+	// The very next lookup, with the clock unmoved, reads the block.
+	tr.fail.Store(false)
+	data, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h})
+	if err != nil || !found || string(data) != "alpha-data" {
+		t.Fatalf("next lookup = %q, %v, %v, want alpha-data", data, found, err)
+	}
+	if n := failingCount(store); n != 0 {
+		t.Fatalf("failure list holds %d packs after the read, want 0", n)
+	}
+}
+
+// TestPackfileStoreBacksOffLostPack checks a lost pack whose block has a
+// second holder: every lookup finds the block, the lost pack is fetched once
+// per backoff interval, each pass-over is counted, and the pack is logged
+// once when it fails and once when it reads again, leaving the failure list.
+func TestPackfileStoreBacksOffLostPack(t *testing.T) {
+	// Publish the lost pack, probed first, and a second holder.
+	ctx := t.Context()
+	packBytes, bloomBytes := buildTestPack(t, map[string][]byte{"a": []byte("alpha-data")})
+	lost, kept := &failingTransport{data: packBytes}, &failingTransport{data: packBytes}
+	lost.fail.Store(true)
+	store, clock := failingPackStore(t,
+		map[string]*failingTransport{"lost": lost, "kept": kept},
+		map[string]uint64{"lost": 2, "kept": 1}, bloomBytes)
+	logger, hook := logrustest.NewNullLogger()
+	store.SetLogger(logrus.NewEntry(logger))
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lookup := func() {
+		t.Helper()
+		data, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h})
+		if err != nil || !found || string(data) != "alpha-data" {
+			t.Fatalf("lookup = %q, %v, %v, want alpha-data", data, found, err)
+		}
+	}
+	levels := func(level logrus.Level) int {
+		var n int
+		for _, e := range hook.AllEntries() {
+			if e.Level == level {
+				n++
+			}
+		}
+		return n
+	}
+
+	// Five lookups within the first interval fetch the lost pack once.
+	for range 5 {
+		lookup()
+	}
+	if n := lost.fetches.Load(); n != 1 {
+		t.Fatalf("lost pack fetched %d times in one interval, want 1", n)
+	}
+	if n := store.SnapshotStats().PassedOverPacks; n != 5 {
+		t.Fatalf("PassedOverPacks = %d, want 5", n)
+	}
+
+	// After the interval one lookup fetches it again, and the log stays at
+	// one line.
+	*clock = clock.Add(packRetryMin)
+	lookup()
+	lookup()
+	if n := lost.fetches.Load(); n != 2 {
+		t.Fatalf("lost pack fetched %d times after one interval, want 2", n)
+	}
+	if n := levels(logrus.WarnLevel); n != 1 {
+		t.Fatalf("logged %d failure lines, want 1", n)
+	}
+
+	// Once the pack reads again and its interval passes, it is read, leaves
+	// the failure list, and logs its recovery once.
+	lost.fail.Store(false)
+	lookup()
+	if n := lost.fetches.Load(); n != 2 {
+		t.Fatalf("lost pack fetched %d times inside its interval, want 2", n)
+	}
+	*clock = clock.Add(2 * packRetryMin)
+	lookup()
+	lookup()
+	if lost.fetches.Load() == 2 {
+		t.Fatal("recovered pack not read after its interval")
+	}
+	if n := failingCount(store); n != 0 {
+		t.Fatalf("failure list holds %d packs after recovery, want 0", n)
+	}
+	if n := levels(logrus.InfoLevel); n != 1 {
+		t.Fatalf("logged %d recovery lines, want 1", n)
+	}
+
+	// A failed block read's record lapses after packRetryMax, and the
+	// store's closed error stops a probe, so a lookup racing shutdown
+	// records and logs no failure.
+	store.failures.failed("kept", errors.New("block read failed"), false)
+	*clock = clock.Add(packRetryMax)
+	store.failures.retain(func(string) bool { return true })
+	if !probeStopped(ctx, fmt.Errorf("open: %w", ErrPackfileStoreClosed)) {
+		t.Fatal("closed store error does not stop the probe")
+	}
+	store.Close()
+	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h}); found || err != nil {
+		t.Fatalf("lookup after close = %v, %v, want a miss", found, err)
+	}
+	if n, warns := failingCount(store), levels(logrus.WarnLevel); n != 0 || warns != 2 {
+		t.Fatalf("after lapse and close: %d packs failing and %d failure lines, want 0 and 2", n, warns)
+	}
+}
+
+// TestPackfileStoreCancelledLoadLeavesNoBackoff checks that a lookup whose
+// context is cancelled while its pack's index loads records no failure, so
+// the pack starts no backoff.
+func TestPackfileStoreCancelledLoadLeavesNoBackoff(t *testing.T) {
+	// Publish one pack whose index fetch waits for a release.
+	packBytes, bloomBytes := buildTestPack(t, map[string][]byte{"a": []byte("alpha-data")})
+	tr := &failingTransport{data: packBytes, release: make(chan struct{})}
+	store, _ := failingPackStore(t, map[string]*failingTransport{"slow": tr}, map[string]uint64{"slow": 1}, bloomBytes)
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Cancel the lookup once its index fetch has started.
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: h})
+		done <- err
+	}()
+	for tr.fetches.Load() == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled lookup = %v, want context.Canceled", err)
+	}
+
+	// The pack is on no failure list, and reads once the fetch is released.
+	if n := failingCount(store); n != 0 {
+		t.Fatalf("cancelled lookup left %d packs failing, want 0", n)
+	}
+	close(tr.release)
+	data, found, err := store.GetBlock(t.Context(), &block.BlockRef{Hash: h})
+	if err != nil || !found || string(data) != "alpha-data" {
+		t.Fatalf("lookup after release = %q, %v, %v, want alpha-data", data, found, err)
 	}
 }
 

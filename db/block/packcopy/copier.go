@@ -339,7 +339,7 @@ func (c *copier) read(ctx context.Context, n *node) readResult {
 		if reason == "" {
 			return readResult{node: n, stored: stored, held: n.held, kids: kids}
 		}
-		res.reason = worseReason(res.reason, reason)
+		res.reason = WorseReason(res.reason, reason)
 	}
 
 	// Read a block the target holds back from the target.
@@ -351,25 +351,25 @@ func (c *copier) read(ctx context.Context, n *node) readResult {
 		if reason == "" {
 			return readResult{node: n, stored: stored, held: true, kids: kids}
 		}
-		res.reason = worseReason(res.reason, reason)
+		res.reason = WorseReason(res.reason, reason)
 	}
 	return res
 }
 
 // readTyped reads a block from one store and decodes it by the node's type.
 func (c *copier) readTyped(ctx context.Context, src Source, n *node) (*block.StoredBlock, map[string]any, string, error) {
-	stored, reason, err := readFrom(ctx, src, n.ref)
+	stored, reason, err := ReadVerified(ctx, src, n.ref)
 	if err != nil || reason != "" {
 		return nil, nil, reason, err
 	}
 	return c.typeBlock(ctx, n, stored)
 }
 
-// readFrom reads and checks a block from one store, returning the reason the
+// ReadVerified reads and checks a block from one store, returning the reason the
 // store cannot serve it. A block whose refs are unknown is returned for the
 // caller to type. An error stops the walk: the run is over, or the read
 // went over the budget. Any other failure is that store's.
-func readFrom(ctx context.Context, src Source, ref *block.BlockRef) (*block.StoredBlock, string, error) {
+func ReadVerified(ctx context.Context, src Source, ref *block.BlockRef) (*block.StoredBlock, string, error) {
 	// Read the block, separating a stop from a failed read.
 	stored, err := src.GetStoredBlock(ctx, ref)
 	if ctx.Err() != nil {
@@ -404,9 +404,9 @@ const maxReadErrorsLogged = 20
 // readErrorsLogged counts the failed reads this run logged.
 var readErrorsLogged atomic.Int64
 
-// worseReason returns the reason that says more about a block no store could
+// WorseReason returns the reason that says more about a block no store could
 // serve: a store that held it outranks one that did not.
-func worseReason(a, b string) string {
+func WorseReason(a, b string) string {
 	if a == ReasonMissing {
 		return b
 	}

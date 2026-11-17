@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/sirupsen/logrus"
@@ -41,6 +40,10 @@ func (r *countingRemote) PutPackFile(ctx context.Context, id string, data []byte
 // holds only once the values written before its time are uploaded; and a
 // drain of a Log whose packs the store holds uploads none again.
 func TestPackStoreDrain(t *testing.T) {
+	eachIndexVolume(t, testPackStoreDrain)
+}
+
+func testPackStoreDrain(t *testing.T, kind string) {
 	ctx := t.Context()
 	dir := t.TempDir()
 	open := func() *packahead.Log {
@@ -101,7 +104,7 @@ func TestPackStoreDrain(t *testing.T) {
 
 	// Open an indexed store on the bucket.
 	_, client := newFakeBucket(t, nil)
-	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	kv := newIndexKV(t, kind)
 	store := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{Index: kv})
 	t.Cleanup(store.Close)
 	remote := &countingRemote{PackStore: store}
@@ -142,7 +145,7 @@ func TestPackStoreDrain(t *testing.T) {
 	// A second pack drains; past the budget both are evicted.
 	appendChain(log, 20)
 	later := time.Now()
-	waitPacks(log, 2)
+	infos = waitPacks(log, 2)
 	remote.fail.Store(false)
 	runCtx, cancel := context.WithCancel(ctx)
 	done := make(chan error, 1)
@@ -153,8 +156,11 @@ func TestPackStoreDrain(t *testing.T) {
 	if !drain.UploadedBefore(later) {
 		t.Fatal("drained Log not reported uploaded")
 	}
-	if st, _ := drain.Status(); st != (packahead.DrainStatus{}) {
-		t.Fatalf("status after the drain = %+v", st)
+	// Nothing stays pending or local. The first run failed once; the second
+	// found the first pack listed and wrote the second.
+	want := packahead.DrainStatus{Written: 1, WrittenBytes: uint64(infos[1].Size), Listed: 1, Failures: 1}
+	if st, _ := drain.Status(); st != want {
+		t.Fatalf("status after the drain = %+v, want %+v", st, want)
 	}
 	if got := remote.puts.Load(); got != 1 {
 		t.Fatalf("drain uploaded %d packs, want the 1 the store lacked", got)

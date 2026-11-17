@@ -1,0 +1,410 @@
+package packsweep
+
+import (
+	"bytes"
+	"cmp"
+	"context"
+	"slices"
+	"time"
+
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
+)
+
+// Bounds of a removal, variables so a test can lower them.
+var (
+	// removeRoundKeys is the keys past which a removal stops adding packs to
+	// a round. A round holds its keys and their holders in memory, and reads
+	// every member row of the catalog once to find the holders.
+	removeRoundKeys = 1 << 20
+	// removeCallWeight is the keys and holders one backend call carries.
+	removeCallWeight = MaxBackendKeys
+)
+
+// RemoveOptions configures Remove.
+type RemoveOptions struct {
+	// CoverOptions pulls the log and walks W before any pack is removed;
+	// its Store holds the snapshot's catalog.
+	CoverOptions
+	// Now returns the removal time; nil uses time.Now.
+	Now func() time.Time
+}
+
+// RemoveResult reports a removal.
+type RemoveResult struct {
+	// Removed is the packs the backend removed, in this run or one killed
+	// before it recorded them.
+	Removed uint64
+	// Missed is the moved packs a read missed, or that left the trashing
+	// state, left for restore.
+	Missed uint64
+	// Live is the moved packs holding a key some root reached since their
+	// pass, left for restore.
+	Live uint64
+	// Absent is the moved packs the backend no longer held before the removal
+	// asked it to drop them, left moved and never purged.
+	Absent uint64
+	// Blocked is why no pack was removed, empty when the log let them be.
+	Blocked string
+	// Rounds is the reads of the catalog's member rows the holders took.
+	Rounds uint64
+}
+
+// removePack is a moved pack to remove, with its keys and their holders.
+type removePack struct {
+	// rec is the pack's record.
+	rec *PackRecord
+	// keys are the keys the catalog lists in the pack, by tail.
+	keys []KeyHolders
+	// spilled are the keys no other pack holds that went in a call repairing
+	// the rows alone, which keeps their rows; the drop leaves them naming the
+	// pack, and a call after it prunes them.
+	spilled []KeyHolders
+}
+
+// Remove has the backend remove each moved pack no read missed and no root
+// reaches now: it reads the packs' states, then pulls the log and walks W, and
+// leaves a pack holding a key in L or W for restore. It sends
+// every key the snapshot lists in the pack with the other packs listing it,
+// leaving out the packs the sweep moved to the trash, so the backend points
+// each h row that names the pack at a holder it still reads, or deletes it.
+// The packs go in rounds of about removeRoundKeys keys, each round reading the
+// catalog's member rows once, and each backend call carries at most
+// MaxBackendKeys keys and holders; a pack holding more sends its first keys in
+// calls that repair the rows only, its keys with other holders first. A pack
+// is recorded removed with the time once the backend answers it absent and
+// the rows of its keys are pruned; a run killed before that finds it absent
+// and sends its keys again.
+func Remove(ctx context.Context, opts *RemoveOptions) (*RemoveResult, error) {
+	// Take the moved packs, and every pack whose file is in the trash.
+	records, err := readPackRecords(ctx, opts.Store)
+	if err != nil {
+		return nil, err
+	}
+	trashed := make(map[string]bool)
+	var moved []*PackRecord
+	for _, p := range records {
+		if p.Stage.Trashed() {
+			trashed[p.ID] = true
+		}
+		if p.Stage == StageMoved {
+			moved = append(moved, p)
+		}
+	}
+
+	// Read the moved packs' states.
+	res := &RemoveResult{}
+	if len(moved) == 0 {
+		return res, nil
+	}
+	status, err := backendStatus(ctx, opts.Backend, moved)
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort the packs: finish the absent ones a killed removal dropped, check
+	// the trashing ones no read missed, and leave the rest for restore.
+	remove, check, err := sortRemove(ctx, opts, moved, status, res)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check the trashing packs against the log pulled now.
+	ok, blocked, err := stillRemovable(ctx, &opts.CoverOptions, status, check)
+	if err != nil || blocked != "" {
+		res.Blocked = blocked
+		return res, err
+	}
+	var live []*PackRecord
+	for i, p := range check {
+		if ok[i] {
+			remove = append(remove, p)
+			continue
+		}
+		p.Wait = MarkLive
+		live = append(live, p)
+	}
+	res.Live += uint64(len(live))
+	if err := writePackRecords(ctx, opts.Store, live, nil); err != nil {
+		return nil, err
+	}
+
+	// Remove a round of packs at a time.
+	for len(remove) != 0 {
+		var round []*removePack
+		if round, remove, err = takeRound(ctx, opts.Store, remove); err != nil {
+			return nil, err
+		}
+		if err := findHolders(ctx, opts.Store, round, trashed); err != nil {
+			return nil, err
+		}
+		res.Rounds++
+		if err := removeRound(ctx, opts, round, res); err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+// sortRemove sorts the moved packs by state. An absent pack the removal asked
+// the backend to drop is finished; one it never asked is left moved and marked
+// absent, so the purge never deletes it and a restore naming it adopts it. A
+// trashing pack no read missed and not marked live is returned to check. The
+// rest are left for restore.
+func sortRemove(ctx context.Context, opts *RemoveOptions, moved []*PackRecord, status *BackendStatus, res *RemoveResult) (remove, check []*PackRecord, err error) {
+	// Sort each pack by its state and its mark.
+	var absent []*PackRecord
+	for i, p := range moved {
+		h := status.Packs[i]
+		switch {
+		case h.Absent && p.Wait == MarkRemoving:
+			remove = append(remove, p)
+		case h.Absent:
+			if p.Wait != MarkAbsent {
+				p.Wait = MarkAbsent
+				absent = append(absent, p)
+			}
+			res.Absent++
+		case h.State == PackTrashing && h.Event.IsZero() && p.Wait != MarkLive:
+			check = append(check, p)
+		default:
+			res.Missed++
+		}
+	}
+
+	// Record the newly absent packs.
+	return remove, check, writePackRecords(ctx, opts.Store, absent, nil)
+}
+
+// recordRemoved records the packs removed at the options' time.
+func recordRemoved(ctx context.Context, opts *RemoveOptions, packs []*PackRecord, res *RemoveResult) error {
+	// Read the clock once for the batch.
+	now := time.Now
+	if opts.Now != nil {
+		now = opts.Now
+	}
+	at := now().UTC()
+
+	// Record each pack removed.
+	for _, p := range packs {
+		p.Stage, p.Removed, p.Wait = StageRemoved, at, ""
+	}
+	res.Removed += uint64(len(packs))
+	return writePackRecords(ctx, opts.Store, packs, nil)
+}
+
+// takeRound reads the keys of the first packs of todo, until they hold
+// removeRoundKeys keys, and returns those packs and the rest. A round takes
+// at least one pack.
+func takeRound(ctx context.Context, store kvtx.Store, todo []*PackRecord) ([]*removePack, []*PackRecord, error) {
+	// Read the packs' member rows in one read.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer tx.Discard()
+
+	// Take packs until the round is full.
+	var round []*removePack
+	keys := 0
+	for len(todo) != 0 && (len(round) == 0 || keys < removeRoundKeys) {
+		p := &removePack{rec: todo[0]}
+		prefix := []byte(catalogMemberPrefix + p.rec.ID + "/")
+		err := tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
+			p.keys = append(p.keys, KeyHolders{Key: bytes.Clone(key[len(prefix):])})
+			return nil
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+		round, todo, keys = append(round, p), todo[1:], keys+len(p.keys)
+	}
+	return round, todo, nil
+}
+
+// findHolders reads every member row of the catalog once and adds to each
+// key of the round the other packs that hold it, up to MaxKeyHolders, leaving
+// out the packs in trashed, whose files are in the trash.
+func findHolders(ctx context.Context, store kvtx.Store, round []*removePack, trashed map[string]bool) error {
+	// Index the round's keys by tail.
+	index := make(map[string]*KeyHolders)
+	for _, p := range round {
+		for i := range p.keys {
+			index[string(p.keys[i].Key)] = &p.keys[i]
+		}
+	}
+
+	// Read the member rows, each pack id then its key's tail.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	return tx.ScanPrefixKeys(ctx, []byte(catalogMemberPrefix), func(key []byte) error {
+		// Split the row's key, and skip a pack whose file is in the trash.
+		rest := key[len(catalogMemberPrefix):]
+		slash := bytes.IndexByte(rest, '/')
+		if slash < 0 {
+			return errors.Errorf("malformed catalog member key %q", key)
+		}
+		id, tail := rest[:slash], rest[slash+1:]
+		if trashed[string(id)] {
+			return nil
+		}
+
+		// Add the pack to the key's holders.
+		k := index[string(tail)]
+		if k != nil && len(k.Others) < MaxKeyHolders {
+			k.Others = append(k.Others, string(id))
+		}
+		return nil
+	})
+}
+
+// removeRound has the backend remove the round's packs, as many in a call as
+// MaxBackendPacks and MaxBackendKeys allow.
+func removeRound(ctx context.Context, opts *RemoveOptions, round []*removePack, res *RemoveResult) error {
+	var call removeCall
+	for _, p := range round {
+		// Repair the first keys of a pack too large for one call alone.
+		keys, err := repairFirst(ctx, opts, p)
+		if err != nil {
+			return err
+		}
+
+		// Send the call before the pack would overflow it, then add the pack.
+		w := keysWeight(keys)
+		if len(call.packs) != 0 && (call.weight+w > removeCallWeight || len(call.packs) == MaxBackendPacks) {
+			if err := call.send(ctx, opts, res); err != nil {
+				return err
+			}
+			call = removeCall{}
+		}
+		call.packs = append(call.packs, p)
+		call.keys = append(call.keys, keys...)
+		call.weight += w
+	}
+	if len(call.packs) == 0 {
+		return nil
+	}
+	return call.send(ctx, opts, res)
+}
+
+// repairFirst sends the keys of p, those with other holders first, in calls
+// that repair the rows alone until the rest fit in one call, and returns the
+// rest. Putting the keys no other pack holds last brings them to the call that
+// drops the pack, which deletes their rows; the ones that do not fit are kept
+// in p.spilled for the prune after it.
+func repairFirst(ctx context.Context, opts *RemoveOptions, p *removePack) ([]KeyHolders, error) {
+	// Order the keys with other holders first.
+	keys := p.keys
+	slices.SortStableFunc(keys, func(a, b KeyHolders) int {
+		return cmp.Compare(lone(a), lone(b))
+	})
+
+	// Repair a call's worth at a time.
+	for keysWeight(keys) > removeCallWeight {
+		n := keysFitting(keys, removeCallWeight)
+		if _, err := opts.Backend.Remove(ctx, []string{p.rec.ID}, keys[:n], true); err != nil {
+			return nil, errors.Wrap(err, "repair the rows of pack "+p.rec.ID)
+		}
+		for _, k := range keys[:n] {
+			if len(k.Others) == 0 {
+				p.spilled = append(p.spilled, k)
+			}
+		}
+		keys = keys[n:]
+	}
+	return keys, nil
+}
+
+// lone is 1 for a key no other pack holds, else 0.
+func lone(k KeyHolders) int {
+	if len(k.Others) == 0 {
+		return 1
+	}
+	return 0
+}
+
+// removeCall is one backend call removing packs.
+type removeCall struct {
+	// packs are the packs the call removes.
+	packs []*removePack
+	// keys are the keys it repairs.
+	keys []KeyHolders
+	// weight is the keys and holders together.
+	weight int
+}
+
+// send removes the call's packs, checks the backend answers each absent,
+// prunes the rows of their spilled keys, and records them removed.
+func (c *removeCall) send(ctx context.Context, opts *RemoveOptions, res *RemoveResult) error {
+	// Mark the packs removing, then remove them.
+	ids := make([]string, len(c.packs))
+	recs := make([]*PackRecord, len(c.packs))
+	for i, p := range c.packs {
+		p.rec.Wait = MarkRemoving
+		ids[i], recs[i] = p.rec.ID, p.rec
+	}
+	if err := writePackRecords(ctx, opts.Store, recs, nil); err != nil {
+		return err
+	}
+	if err := removeCalled(ctx, opts, ids, c.keys); err != nil {
+		return err
+	}
+
+	// Prune the rows the drop left naming each pack, then record them.
+	for _, p := range c.packs {
+		for len(p.spilled) != 0 {
+			n := keysFitting(p.spilled, removeCallWeight)
+			if err := removeCalled(ctx, opts, []string{p.rec.ID}, p.spilled[:n]); err != nil {
+				return err
+			}
+			p.spilled = p.spilled[n:]
+		}
+	}
+	return recordRemoved(ctx, opts, recs, res)
+}
+
+// removeCalled has the backend remove packs ids, repairing the rows of keys,
+// and checks it answers each absent.
+func removeCalled(ctx context.Context, opts *RemoveOptions, ids []string, keys []KeyHolders) error {
+	// Remove the packs.
+	holds, err := opts.Backend.Remove(ctx, ids, keys, false)
+	if err != nil {
+		return errors.Wrap(err, "remove")
+	}
+
+	// Check each is gone.
+	if len(holds) != len(ids) {
+		return errors.Errorf("the backend answered %d of %d packs", len(holds), len(ids))
+	}
+	for i, id := range ids {
+		if h := holds[i]; h.ID != id || !h.Absent {
+			return errors.Errorf("pack %s is in state %d after its removal", id, h.State)
+		}
+	}
+	return nil
+}
+
+// keysWeight returns the keys and their holders together.
+func keysWeight(keys []KeyHolders) int {
+	w := 0
+	for _, k := range keys {
+		w += 1 + len(k.Others)
+	}
+	return w
+}
+
+// keysFitting returns how many of the first keys fit in weight limit, at
+// least one.
+func keysFitting(keys []KeyHolders, limit int) int {
+	w := 0
+	for i, k := range keys {
+		w += 1 + len(k.Others)
+		if w > limit {
+			return max(i, 1)
+		}
+	}
+	return len(keys)
+}

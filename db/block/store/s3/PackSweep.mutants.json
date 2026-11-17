@@ -1,0 +1,117 @@
+[
+  {
+    "name": "Roots reads the roots before the position",
+    "replace": [
+      [
+        "/\\ R' = Len(log) /\\ REpoch' = epoch /\\ L' = L",
+        "/\\ R' = R /\\ REpoch' = REpoch /\\ L' = reached"
+      ],
+      [
+        "/\\ L' = reached /\\ R' = R /\\ REpoch' = REpoch",
+        "/\\ L' = L /\\ R' = Len(log) /\\ REpoch' = epoch"
+      ]
+    ],
+    "expect": "Served"
+  },
+  {
+    "name": "The recheck ignores the log since R",
+    "replace": [
+      [
+        "/\\ Covered /\\ Removable(p)\n",
+        "/\\ Covered /\\ \\A b \\in Holds(p) : b \\notin L \\/ Elsewhere(b, p)\n"
+      ]
+    ],
+    "expect": "Served"
+  },
+  {
+    "name": "The recheck ignores a gap",
+    "replace": [
+      [
+        "/\\ Covered /\\ Removable(p)\n",
+        "/\\ phase = \"walked\" /\\ Removable(p)\n"
+      ]
+    ],
+    "expect": "Served"
+  },
+  {
+    "name": "A quarantined holder counts as placed elsewhere",
+    "replace": [
+      [
+        "b \\in Holds(q) /\\ state[q] = \"reg\"",
+        "b \\in Holds(q) /\\ state[q] \\in {\"reg\", \"quar\"}"
+      ]
+    ],
+    "expect": "Served"
+  },
+  {
+    "name": "A read does not fall back to a quarantined pack",
+    "replace": [
+      [
+        "ELSE IF \\E p \\in Packs : b \\in Holds(p) /\\ state[p] = \"quar\"",
+        "ELSE IF FALSE"
+      ]
+    ],
+    "expect": "NoFailedRead"
+  },
+  {
+    "name": "BeginTrash moves a lifted pack",
+    "replace": [
+      [
+        "/\\ cst[p] = \"pass\" /\\ state[p] = \"quar\"\n  /\\ state' = [state EXCEPT ![p] = \"trash\"]",
+        "/\\ cst[p] = \"pass\" /\\ state[p] \\in {\"quar\", \"reg\"}\n  /\\ state' = [state EXCEPT ![p] = \"trash\"]"
+      ]
+    ],
+    "expect": "Served"
+  },
+  {
+    "name": "The move ignores a recorded miss",
+    "replace": [
+      [
+        "/\\ cst[p] = \"trash\" /\\ state[p] = \"trash\" /\\ ~missed[p]",
+        "/\\ cst[p] = \"trash\" /\\ state[p] = \"trash\""
+      ]
+    ],
+    "expect": "Served"
+  },
+  {
+    "name": "Remove ignores a recorded miss",
+    "replace": [
+      [
+        "/\\ moved[p] /\\ ~missed[p]",
+        "/\\ moved[p]"
+      ]
+    ],
+    "expect": "MissKept"
+  },
+  {
+    "name": "Remove runs before the file is in the trash",
+    "replace": [
+      [
+        "/\\ moved[p] /\\ ~missed[p]",
+        "/\\ ~missed[p]"
+      ]
+    ],
+    "expect": "RemovedFromTrash"
+  },
+  {
+    "name": "Locate places a block in a quarantined pack",
+    "replace": [
+      [
+        "/\\ fresh' = IF \\E p \\in Packs : b \\in Holds(p) /\\ state[p] = \"reg\"",
+        "/\\ fresh' = IF \\E p \\in Packs : b \\in Holds(p) /\\ state[p] \\in {\"reg\", \"quar\"}"
+      ]
+    ],
+    "expect": "Served"
+  },
+  {
+    "name": "A recorded miss never restores the pack",
+    "replace": [
+      [
+        "/\\ missed[p] /\\ state[p] = \"trash\"\n  /\\ moved'",
+        "/\\ FALSE\n  /\\ moved'"
+      ]
+    ],
+    "expect": "MissRestored",
+    "config": "PackSweep-restore.cfg"
+  }
+]

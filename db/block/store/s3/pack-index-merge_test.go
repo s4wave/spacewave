@@ -6,16 +6,19 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // TestMergePackIndex merges an index into one that already lists a pack of it
 // unindexed and holds a pack of its own, then merges again.
 func TestMergePackIndex(t *testing.T) {
+	eachIndexVolume(t, testMergePackIndex)
+}
+
+func testMergePackIndex(t *testing.T, kind string) {
 	ctx := t.Context()
 	newIndex := func() *packIndex {
-		return newPackIndex(hashmap.NewHashmapKvtx(hashmap.NewBTreeMap[[]byte]()))
+		return newPackIndex(newIndexKV(t, kind))
 	}
 	keysOf := func(id string) [][]byte {
 		var keys [][]byte

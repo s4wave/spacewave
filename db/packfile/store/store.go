@@ -64,6 +64,8 @@ type PackfileStore struct {
 	engines map[string]*PackReader
 	stats   packLookupStats
 	notify  func()
+	// failures tracks the packs a probe could not read.
+	failures packFailures
 
 	// bcast guards manifest, bloom, and close-completion state.
 	bcast broadcast.Broadcast
@@ -290,6 +292,13 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 // order. The first pack that finds the block returns it. Returns nil when no
 // pack holds the block.
 func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	stored, _, err := s.GetStoredBlockPack(ctx, ref)
+	return stored, err
+}
+
+// GetStoredBlockPack is GetStoredBlock that also returns the id of the pack
+// that served the block, "" on a miss.
+func (s *PackfileStore) GetStoredBlockPack(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, string, error) {
 	// Trace the block lookup across candidate pack readers.
 	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/store/get-block")
 	defer task.End()
@@ -298,7 +307,7 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	h := ref.GetHash()
 	if h == nil {
 		trace.Log(ctx, "result", "empty-hash")
-		return nil, nil
+		return nil, "", nil
 	}
 	if trace.IsEnabled() {
 		trace.Log(ctx, "block-ref", ref.MarshalString())
@@ -307,28 +316,32 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 
 	// Read the block from the first candidate pack that contains it.
 	var stored *block.StoredBlock
+	var packID string
 	var lookup packLookup
 	err := s.probePacks(ctx, key, &lookup, func(eng *PackReader) (bool, error) {
 		// Trace and read the block from this candidate pack.
 		trace.Log(ctx, "pack-id", eng.packID)
 		var err error
 		stored, err = eng.getBlock(ctx, key, ref)
+		if stored != nil {
+			packID = eng.packID
+		}
 		return stored != nil, err
 	})
 	s.recordLookupStats(lookup)
 	if err != nil {
 		trace.Log(ctx, "result", "error")
-		return nil, err
+		return nil, "", err
 	}
 
 	// Record whether the candidate packs supplied the requested block.
 	trace.Logf(ctx, "candidate-packs", "%d", lookup.candidates)
 	if stored == nil {
 		trace.Log(ctx, "result", "miss")
-		return nil, nil
+		return nil, "", nil
 	}
 	trace.Log(ctx, "result", "hit")
-	return stored, nil
+	return stored, packID, nil
 }
 
 // GetBlockExists reports whether a block exists in the store.
@@ -386,9 +399,13 @@ func (s *PackfileStore) getBlockExistsBatch(ctx context.Context, view *ManifestS
 		return out, nil
 	}
 
-	// Load candidate pack indexes before probing the block keys.
+	// Load candidate pack indexes before probing the block keys. The load is
+	// best effort, like the probe: a pack that fails to load is passed over
+	// by each probe that reaches it.
 	if err := s.loadCandidateIndexes(ctx, view, keys); err != nil {
-		return nil, err
+		if errors.Is(err, ErrPackReaderClosed) || ctx.Err() != nil {
+			return nil, err
+		}
 	}
 
 	// Probe each unique key and account for the complete batch lookup.
@@ -428,13 +445,17 @@ func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, view *Manifest
 		bloomKeys[i] = bloom.NewKey([]byte(key))
 	}
 
-	// Select manifest packs whose bloom filters may contain the block keys.
+	// Select manifest packs whose bloom filters may contain the block keys,
+	// leaving packs backing off to the ordered probe.
 	var candidates []*packfile.PackfileEntry
 	view.entries.Scan(func(item *manifestEntry) bool {
 		if s.locator != nil && s.locator.Indexed(item.entry.GetId()) {
 			return true
 		}
-		if item.filter == nil || slices.ContainsFunc(bloomKeys, item.filter.TestKey) {
+		if item.filter != nil && !slices.ContainsFunc(bloomKeys, item.filter.TestKey) {
+			return true
+		}
+		if !s.failures.backingOff(item.entry.GetId()) {
 			candidates = append(candidates, item.entry)
 		}
 		return true
@@ -480,26 +501,37 @@ func (s *PackfileStore) loadIndexes(ctx context.Context, candidates []*packfile.
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	stat, _, err := s.StatBlockPack(ctx, ref)
+	return stat, err
+}
+
+// StatBlockPack is StatBlock that also returns the id of the pack holding the
+// block, "" when none does.
+func (s *PackfileStore) StatBlockPack(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, string, error) {
 	// Resolve the block reference to its pack index key.
 	h := ref.GetHash()
 	if h == nil {
-		return nil, nil
+		return nil, "", nil
 	}
 	key := packfile.BlockKey(h)
 
 	// Read block metadata from the first matching candidate pack.
 	var stat *block.BlockStat
+	var packID string
 	var lookup packLookup
 	err := s.probePacks(ctx, key, &lookup, func(eng *PackReader) (bool, error) {
 		var err error
 		stat, err = eng.statBlock(ctx, key, ref)
+		if stat != nil {
+			packID = eng.packID
+		}
 		return stat != nil, err
 	})
 	s.recordLookupStats(lookup)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return stat, nil
+	return stat, packID, nil
 }
 
 // probePacks visits the engine of each pack whose bloom filter may hold key,
@@ -538,60 +570,92 @@ func (s *PackfileStore) probeCatalog(
 	if err != nil {
 		return err
 	}
-	if err := s.probeList(ctx, candidates, lookup, visit); err != nil || lookup.hit || !located {
+
+	// Probe the candidates, putting off each pack that backs off.
+	var deferred []*manifestEntry
+	err = s.probeList(ctx, candidates, lookup, visit, &deferred)
+
+	// The locator placed the key in a pack that lacks it or that failed, so
+	// its answer rules nothing out: test every filter the first round
+	// skipped, as the probe passes over any failing pack. The first failure
+	// stands when the rest find nothing.
+	if !lookup.hit && located && !probeStopped(ctx, err) {
+		restErr := s.probeList(ctx, unlocatedCandidates(view, key, candidates), lookup, visit, &deferred)
+		if err == nil || lookup.hit || probeStopped(ctx, restErr) {
+			err = restErr
+		}
+	}
+	if lookup.hit || probeStopped(ctx, err) {
+		lookup.passedOver += len(deferred)
 		return err
 	}
 
-	// The locator placed the key in a pack that lacks it, so its answer rules
-	// nothing out: test every filter the first round skipped.
-	tried := make(map[*manifestEntry]struct{}, len(candidates))
-	for _, item := range candidates {
-		tried[item] = struct{}{}
+	// The packs backing off are the last that may hold the block, so try
+	// them now: a backoff never turns a possible read into an error.
+	lastErr := s.probeList(ctx, deferred, lookup, visit, nil)
+	if err == nil || lookup.hit || probeStopped(ctx, lastErr) {
+		return lastErr
 	}
+	return err
+}
+
+// unlocatedCandidates returns the filter candidates for key that the located
+// round did not try.
+func unlocatedCandidates(view *ManifestSnapshot, key []byte, tried []*manifestEntry) []*manifestEntry {
 	var rest []*manifestEntry
 	for _, item := range view.filterCandidates(bloom.NewKey(key)) {
-		if _, ok := tried[item]; !ok {
+		if !slices.Contains(tried, item) {
 			rest = append(rest, item)
 		}
 	}
-	return s.probeList(ctx, rest, lookup, visit)
+	return rest
+}
+
+// probeStopped reports whether a probe error ends the lookup instead of
+// passing over one pack: a reader closed by a manifest change, which
+// restarts the lookup, a closed store, or a stopped context. A stopped probe
+// records no pack failure.
+func probeStopped(ctx context.Context, err error) bool {
+	return err != nil && (errors.Is(err, ErrPackReaderClosed) || errors.Is(err, ErrPackfileStoreClosed) || ctx.Err() != nil)
 }
 
 // probeList probes candidates in order until one holds the block, setting
-// lookup.hit when one does.
+// lookup.hit when one does. A candidate that fails to open or read is passed
+// over, so a lost or damaged pack hides only the blocks it held: the first
+// such error is returned only when no later candidate holds the block. A
+// closed reader or a stopped context ends the probe at once. When deferred is
+// not nil, a pack backing off is appended to it instead of probed, for the
+// caller to try after every other candidate.
 func (s *PackfileStore) probeList(
 	ctx context.Context,
 	candidates []*manifestEntry,
 	lookup *packLookup,
 	visit func(eng *PackReader) (bool, error),
+	deferred *[]*manifestEntry,
 ) error {
 	lookup.candidates += len(candidates)
 
-	// Probe candidate pack readers until the requested block is found.
+	// Probe candidate pack readers until the requested block is found,
+	// keeping the first failure for a probe that finds it nowhere.
 	var misses int
+	var firstErr error
 	for i, item := range candidates {
-		// Validate the candidate pack size before opening its reader.
-		entry := item.entry
-		size, err := manifestPackSize(entry)
-		if err != nil {
-			return err
-		}
-		if size <= 0 {
+		// Put off a pack backing off, and probe the candidate, passing over
+		// one that fails.
+		if deferred != nil && s.failures.backingOff(item.entry.GetId()) {
+			*deferred = append(*deferred, item)
 			continue
 		}
-
-		// Borrow the candidate pack reader for this block probe.
-		eng, release, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
+		found, err := s.probeOne(ctx, item.entry, lookup, visit)
 		if err != nil {
-			return errors.Wrap(err, "opening packfile")
-		}
-
-		// Probe the block and release the candidate reader before handling the result.
-		lookup.opened++
-		found, err := visit(eng)
-		release()
-		if err != nil {
-			return err
+			if probeStopped(ctx, err) {
+				return err
+			}
+			lookup.passedOver++
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
 		}
 
 		// Record a successful block probe or count the negative pack.
@@ -612,15 +676,57 @@ func (s *PackfileStore) probeList(
 			s.loadBloomHitIndexes(ctx, candidates[i+1:])
 		}
 	}
-	return nil
+	return firstErr
+}
+
+// probeOne opens one candidate pack and visits it, reporting whether it holds
+// the block. An empty pack holds nothing. Each failure and recovery is noted
+// in the store's pack failures; a stopped probe notes nothing, so a cancelled
+// lookup never starts or extends a backoff.
+func (s *PackfileStore) probeOne(
+	ctx context.Context,
+	entry *packfile.PackfileEntry,
+	lookup *packLookup,
+	visit func(eng *PackReader) (bool, error),
+) (bool, error) {
+	// Validate the candidate pack size before opening its reader.
+	size, err := manifestPackSize(entry)
+	if err != nil || size <= 0 {
+		return false, err
+	}
+
+	// Borrow the candidate pack reader, and release it after the visit.
+	id := entry.GetId()
+	eng, release, err := s.getOrOpenEngine(id, size, entry.GetBlockCount())
+	if err != nil {
+		err = errors.Wrap(err, "opening packfile")
+		if !probeStopped(ctx, err) {
+			s.failures.failed(id, err, true)
+		}
+		return false, err
+	}
+	lookup.opened++
+	defer release()
+	found, err := visit(eng)
+
+	// Note a failure, backing off a failed index load, or a recovery.
+	if err != nil {
+		if !probeStopped(ctx, err) {
+			s.failures.failed(id, err, eng.indexLoadFailed())
+		}
+		return false, err
+	}
+	s.failures.recovered(id)
+	return found, nil
 }
 
 // loadBloomHitIndexes loads the indexes of the bloom-filtered candidates
-// concurrently when more than one remains, ignoring load errors.
+// concurrently when more than one remains, ignoring load errors. A pack
+// backing off is left for the ordered probe.
 func (s *PackfileStore) loadBloomHitIndexes(ctx context.Context, candidates []*manifestEntry) {
 	var hits []*packfile.PackfileEntry
 	for _, item := range candidates {
-		if item.filter != nil {
+		if item.filter != nil && !s.failures.backingOff(item.entry.GetId()) {
 			hits = append(hits, item.entry)
 		}
 	}
@@ -635,9 +741,10 @@ func (s *PackfileStore) recordLookupStats(lookup packLookup) {
 	var notify func()
 	s.mtx.Lock()
 	s.stats.LookupCount++
-	s.stats.CandidatePacks += uint64(lookup.candidates) //nolint:gosec // counts are non-negative loop lengths.
-	s.stats.OpenedPacks += uint64(lookup.opened)        //nolint:gosec // counts are non-negative loop lengths.
-	s.stats.NegativePacks += uint64(lookup.negative)    //nolint:gosec // counts are non-negative loop lengths.
+	s.stats.CandidatePacks += uint64(lookup.candidates)  //nolint:gosec // counts are non-negative loop lengths.
+	s.stats.OpenedPacks += uint64(lookup.opened)         //nolint:gosec // counts are non-negative loop lengths.
+	s.stats.NegativePacks += uint64(lookup.negative)     //nolint:gosec // counts are non-negative loop lengths.
+	s.stats.PassedOverPacks += uint64(lookup.passedOver) //nolint:gosec // counts are non-negative loop lengths.
 	if lookup.hit {
 		s.stats.TargetHits++
 	}
@@ -757,6 +864,12 @@ func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, remove
 		for _, id := range removed {
 			remove(id)
 		}
+
+		// Keep failure records only for packs left in the catalog.
+		s.failures.retain(func(id string) bool {
+			_, ok := s.manifestByID[id]
+			return ok
+		})
 
 		// Publish the accepted pack descriptors into the catalog.
 		for _, entry := range entries {
