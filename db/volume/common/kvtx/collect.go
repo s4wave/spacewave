@@ -6,7 +6,6 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
@@ -26,7 +25,7 @@ func (v *Volume) Collect(ctx context.Context) (block_gc.CollectResult, error) {
 	// lease the pass releases none it still holds, then carry the deferred
 	// releases of pins and stages, so the pass sees what this process
 	// released, then collect.
-	ctx = backgroundPass(ctx)
+	ctx = block.WithBackground(ctx)
 	if _, err := v.renewRoots(ctx); err != nil {
 		return block_gc.CollectResult{}, err
 	}
@@ -92,7 +91,7 @@ func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 	v.adoptMu.Lock()
 	defer v.adoptMu.Unlock()
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
-	return block_gc.Adopt(backgroundPass(ctx), collectorStore{v: v}, v.holdRule)
+	return block_gc.Adopt(block.WithBackground(ctx), collectorStore{v: v}, v.holdRule)
 }
 
 // runBackgroundAdopt adopts the Volume, in Adopt's bounded background
@@ -142,7 +141,7 @@ func (v *Volume) Audit(ctx context.Context) (block_gc.AuditResult, error) {
 		return block_gc.AuditResult{}, block.ErrAtomicCommitUnsupported
 	}
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
-	return block_gc.Audit(backgroundPass(ctx), collectorStore{v: v}, !v.readOnly)
+	return block_gc.Audit(block.WithBackground(ctx), collectorStore{v: v}, !v.readOnly)
 }
 
 // collectorPhase reports a collection step in the Volume's health.
@@ -154,13 +153,6 @@ func (v *Volume) collectorPhase(p block_gc.Phase) func() {
 		return v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_SWEEP)
 	}
 	return func() {}
-}
-
-// backgroundPass marks ctx as background work: its reads are background
-// reads, and its write transactions queue behind the writers that wait, as
-// kvtx.WriterQueueStore admits them.
-func backgroundPass(ctx context.Context) context.Context {
-	return kvtx.WithBackgroundWriteContext(block.WithBackground(ctx))
 }
 
 // _ is a type assertion

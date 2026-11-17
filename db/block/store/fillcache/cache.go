@@ -183,7 +183,7 @@ func (c *Cache) run(ctx context.Context) error {
 
 	// Mark the writes as background work a crash may lose, so a commit takes no
 	// flush of its own.
-	wctx := kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(ctx))
+	wctx := block.WithBackground(kvtx.WithOrderedCommitContext(ctx))
 	for {
 		// Wait for entries to write or an eviction to go on.
 		var batch []*block.PutBatchEntry

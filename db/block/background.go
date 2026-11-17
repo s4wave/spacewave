@@ -68,15 +68,29 @@ func Raised(ctx context.Context) <-chan struct{} {
 	return demand.raised
 }
 
-// WithBackground marks ctx as background work, such as a fill no person is
-// waiting for. A store that fetches remote data admits a background fetch only
-// while no foreground fetch on that store needs the link. Reads served from
-// local or resident data do not wait.
+// WithBackground marks reads and writes as background work.
+// Use it for fills and bookkeeping whose result a later pass can redo.
+// Keep each writer hold bounded; the marker cannot bound caller bodies or I/O.
+//
+// Native s4db admits a finite cohort of queued foreground writers, then one
+// shared background slice, including marked optimistic commits and internal
+// slices. A foreground head encounters at most one background slice total,
+// including a slice already running. Background progresses under continuing
+// foreground arrivals. This gives no finite wall-clock bound on caller bodies,
+// storage, scheduling or existing memtable backpressure.
+// Bolt and SQLite instead serve every queued foreground writer first;
+// their background writes may wait indefinitely under steady foreground load.
+// Stores without background scheduling ignore the mark.
+//
+// The marker also selects ReadBackground in the existing read-demand API.
+// A remote fetch yields while foreground fetches need the store's bounded link.
+// Reads served from local or resident data do not wait for that link.
 func WithBackground(ctx context.Context) context.Context {
 	return WithReadClass(ctx, ReadBackground)
 }
 
-// IsBackground reports whether ctx is marked as background work.
+// IsBackground reports whether ctx carries the background read/write marker.
+// Other read classes retain foreground write admission.
 func IsBackground(ctx context.Context) bool {
 	return ReadClassOf(ctx) == ReadBackground
 }
