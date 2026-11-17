@@ -60,10 +60,9 @@ func (p *placementState) readStatus() ReadStatus {
 		PeerCanceled: p.peerReads.canceled.Load(),
 		PeerFilled:   p.peerReads.filled.Load(),
 		PeerServedClass: PeerServedClasses{
-			IndexedHeld:    p.peerReads.classes[peerIndexedHeld].Load(),
-			IndexedMissing: p.peerReads.classes[peerIndexedMissing].Load(),
-			NotIndexed:     p.peerReads.classes[peerNotIndexed].Load(),
-			Unclassified:   p.peerReads.classes[peerUnclassified].Load(),
+			Indexed:      p.peerReads.classes[peerIndexed].Load(),
+			NotIndexed:   p.peerReads.classes[peerNotIndexed].Load(),
+			Unclassified: p.peerReads.classes[peerUnclassified].Load(),
 		},
 	}
 	if remote := p.remote.Load(); remote != nil {
