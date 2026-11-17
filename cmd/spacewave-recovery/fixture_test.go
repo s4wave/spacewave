@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/core/sobject"
@@ -42,6 +43,8 @@ type fixture struct {
 	size uint64
 	// liveChild is omitted from its inherited unverified list but present in typed bytes.
 	liveChild *block.BlockRef
+	// liveBody is the current live object's exact version.
+	liveBody *bucket.ObjectRef
 	// refused is the typed body's exact surviving version.
 	refused *bucket.ObjectRef
 	// expected is derived from native writer child refs before corrupting capture lists.
@@ -195,13 +198,7 @@ func makeFixtureWithConflict(t *testing.T, conflict bool) *fixture {
 
 	// Write plain SQLite rows without a Volume opener, with duplicate physical locations.
 	path := filepath.Join(t.TempDir(), "capture.sqlite")
-	driver := "sqlite3"
-	for _, name := range sql.Drivers() {
-		if name == "sqlite" {
-			driver = name
-		}
-	}
-	db, err := sql.Open(driver, path)
+	db, err := sql.Open(sqliteDriver(), path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +211,7 @@ func makeFixtureWithConflict(t *testing.T, conflict bool) *fixture {
 			t.Fatal(err)
 		}
 	}
-	result := &fixture{liveChild: liveChild, refused: refusedBody}
+	result := &fixture{liveChild: liveChild, liveBody: liveBody, refused: refusedBody}
 	read, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -311,6 +308,14 @@ func makeFixtureWithConflict(t *testing.T, conflict bool) *fixture {
 	}
 	result.expected = expected
 	return result
+}
+
+// sqliteDriver names the registered SQLite driver of this build.
+func sqliteDriver() string {
+	if slices.Contains(sql.Drivers(), "sqlite") {
+		return "sqlite"
+	}
+	return "sqlite3"
 }
 
 // writeManifest writes the exact binary Source consumed by the production command.

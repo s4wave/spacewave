@@ -17,6 +17,46 @@ import (
 	block1 "github.com/s4wave/spacewave/db/world/block"
 )
 
+// PackTier names where a captured pack directory came from.
+type PackTier int32
+
+const (
+	// PACK_TIER_UNKNOWN is an invalid declaration.
+	PackTier_PACK_TIER_UNKNOWN PackTier = 0
+	// PACK_TIER_LOCAL is a local pack log: finalized packs and open logs by name.
+	PackTier_PACK_TIER_LOCAL PackTier = 1
+	// PACK_TIER_REMOTE is a retained copy of current, replaced or trash remote packs.
+	PackTier_PACK_TIER_REMOTE PackTier = 2
+)
+
+// Enum value maps for PackTier.
+var (
+	PackTier_name = map[int32]string{
+		0: "PACK_TIER_UNKNOWN",
+		1: "PACK_TIER_LOCAL",
+		2: "PACK_TIER_REMOTE",
+	}
+	PackTier_value = map[string]int32{
+		"PACK_TIER_UNKNOWN": 0,
+		"PACK_TIER_LOCAL":   1,
+		"PACK_TIER_REMOTE":  2,
+	}
+)
+
+func (x PackTier) Enum() *PackTier {
+	p := new(PackTier)
+	*p = x
+	return p
+}
+
+func (x PackTier) String() string {
+	name, valid := PackTier_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // Phase is the durable scratch lifecycle; every non-counted result is provisional.
 type Phase int32
 
@@ -133,7 +173,7 @@ func (x Pass) String() string {
 	return strconv.Itoa(int(x))
 }
 
-// Source declares one immutable, checkpointed SQLite Volume capture.
+// Source declares one immutable, checkpointed SQLite Volume capture and its value tiers.
 // The operator supplies trusted typing context, never inferred Space membership.
 type Source struct {
 	unknownFields []byte
@@ -147,6 +187,8 @@ type Source struct {
 	Worlds []*WorldInput `protobuf:"bytes,4,rep,name=worlds,proto3" json:"worlds,omitempty"`
 	// Witnesses selects surviving native replay records in the first table.
 	Witnesses []*WitnessInput `protobuf:"bytes,5,rep,name=witnesses,proto3" json:"witnesses,omitempty"`
+	// Packs declares captured pack directories holding values beside the Volume records.
+	Packs []*PackSource `protobuf:"bytes,6,rep,name=packs,proto3" json:"packs,omitempty"`
 }
 
 func (x *Source) Reset() {
@@ -188,6 +230,42 @@ func (x *Source) GetWitnesses() []*WitnessInput {
 		return x.Witnesses
 	}
 	return nil
+}
+
+func (x *Source) GetPacks() []*PackSource {
+	if x != nil {
+		return x.Packs
+	}
+	return nil
+}
+
+// PackSource declares one immutable directory of captured packs.
+type PackSource struct {
+	unknownFields []byte
+	// Path selects the directory; its entries are read in name order.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// Tier selects which file names hold packs and how each is read.
+	Tier PackTier `protobuf:"varint,2,opt,name=tier,proto3" json:"tier,omitempty"`
+}
+
+func (x *PackSource) Reset() {
+	*x = PackSource{}
+}
+
+func (*PackSource) ProtoMessage() {}
+
+func (x *PackSource) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *PackSource) GetTier() PackTier {
+	if x != nil {
+		return x.Tier
+	}
+	return PackTier_PACK_TIER_UNKNOWN
 }
 
 // WorldInput supplies a trusted typed parent path for object attribution.
@@ -308,6 +386,10 @@ type Result struct {
 	Input *Source `protobuf:"bytes,9,opt,name=input,proto3" json:"input,omitempty"`
 	// Progress is the atomic continuation of the count's current indexed pass.
 	Progress *Progress `protobuf:"bytes,10,opt,name=progress,proto3" json:"progress,omitempty"`
+	// PackDir is the current declared pack directory index, after every table.
+	PackDir uint32 `protobuf:"varint,11,opt,name=pack_dir,json=packDir,proto3" json:"packDir,omitempty"`
+	// PackAfter is the name of the last pack file committed in PackDir.
+	PackAfter string `protobuf:"bytes,12,opt,name=pack_after,json=packAfter,proto3" json:"packAfter,omitempty"`
 }
 
 func (x *Result) Reset() {
@@ -384,6 +466,20 @@ func (x *Result) GetProgress() *Progress {
 		return x.Progress
 	}
 	return nil
+}
+
+func (x *Result) GetPackDir() uint32 {
+	if x != nil {
+		return x.PackDir
+	}
+	return 0
+}
+
+func (x *Result) GetPackAfter() string {
+	if x != nil {
+		return x.PackAfter
+	}
+	return ""
 }
 
 // Progress resumes bounded memberships, witnesses and graph slices after a crash.
@@ -636,6 +732,14 @@ type Counts struct {
 	IntentionalDeletes uint64 `protobuf:"varint,16,opt,name=intentional_deletes,json=intentionalDeletes,proto3" json:"intentionalDeletes,omitempty"`
 	// UnknownReachability counts physical hashes whose non-reachability is unproven.
 	UnknownReachability uint64 `protobuf:"varint,17,opt,name=unknown_reachability,json=unknownReachability,proto3" json:"unknownReachability,omitempty"`
+	// PackFiles counts captured pack files read, including unreadable ones.
+	PackFiles uint64 `protobuf:"varint,18,opt,name=pack_files,json=packFiles,proto3" json:"packFiles,omitempty"`
+	// UnreadablePacks counts pack files with neither a readable index nor a valid record.
+	UnreadablePacks uint64 `protobuf:"varint,19,opt,name=unreadable_packs,json=unreadablePacks,proto3" json:"unreadablePacks,omitempty"`
+	// UnreadTailBytes sums retained bytes past the last valid open-log record.
+	UnreadTailBytes uint64 `protobuf:"varint,20,opt,name=unread_tail_bytes,json=unreadTailBytes,proto3" json:"unreadTailBytes,omitempty"`
+	// CorruptValues counts pack values whose bytes fail their content reference.
+	CorruptValues uint64 `protobuf:"varint,21,opt,name=corrupt_values,json=corruptValues,proto3" json:"corruptValues,omitempty"`
 }
 
 func (x *Counts) Reset() {
@@ -763,6 +867,34 @@ func (x *Counts) GetUnknownReachability() uint64 {
 	return 0
 }
 
+func (x *Counts) GetPackFiles() uint64 {
+	if x != nil {
+		return x.PackFiles
+	}
+	return 0
+}
+
+func (x *Counts) GetUnreadablePacks() uint64 {
+	if x != nil {
+		return x.UnreadablePacks
+	}
+	return 0
+}
+
+func (x *Counts) GetUnreadTailBytes() uint64 {
+	if x != nil {
+		return x.UnreadTailBytes
+	}
+	return 0
+}
+
+func (x *Counts) GetCorruptValues() uint64 {
+	if x != nil {
+		return x.CorruptValues
+	}
+	return 0
+}
+
 // Node is a disk-backed traversal item; interpretation identity includes its context.
 type Node struct {
 	unknownFields []byte
@@ -885,6 +1017,7 @@ func (m *Source) CloneVT() *Source {
 	r.Tables = protobuf_go_lite.CloneSlice(m.Tables)
 	r.Worlds = protobuf_go_lite.CloneVTSlice(m.Worlds)
 	r.Witnesses = protobuf_go_lite.CloneVTSlice(m.Witnesses)
+	r.Packs = protobuf_go_lite.CloneVTSlice(m.Packs)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -892,6 +1025,23 @@ func (m *Source) CloneVT() *Source {
 }
 
 func (m *Source) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PackSource) CloneVT() *PackSource {
+	if m == nil {
+		return (*PackSource)(nil)
+	}
+	r := new(PackSource)
+	r.Path = m.Path
+	r.Tier = m.Tier
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PackSource) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -942,6 +1092,8 @@ func (m *Result) CloneVT() *Result {
 	r.ResumePhase = m.ResumePhase
 	r.Table = m.Table
 	r.Failure = m.Failure
+	r.PackDir = m.PackDir
+	r.PackAfter = m.PackAfter
 	r.InputIdentity = protobuf_go_lite.CloneBytes(m.InputIdentity)
 	r.Cursor = protobuf_go_lite.CloneBytes(m.Cursor)
 	r.Counts = protobuf_go_lite.CloneVTValue(m.Counts)
@@ -1045,6 +1197,10 @@ func (m *Counts) CloneVT() *Counts {
 	r.ConfirmedRefusalLosses = m.ConfirmedRefusalLosses
 	r.IntentionalDeletes = m.IntentionalDeletes
 	r.UnknownReachability = m.UnknownReachability
+	r.PackFiles = m.PackFiles
+	r.UnreadablePacks = m.UnreadablePacks
+	r.UnreadTailBytes = m.UnreadTailBytes
+	r.CorruptValues = m.CorruptValues
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1116,11 +1272,37 @@ func (this *Source) EqualVT(that *Source) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Witnesses, that.Witnesses, func() *WitnessInput { return &WitnessInput{} }) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Packs, that.Packs, func() *PackSource { return &PackSource{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Source) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Source)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PackSource) EqualVT(that *PackSource) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	if this.Tier != that.Tier {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PackSource) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PackSource)
 	if !ok {
 		return false
 	}
@@ -1219,6 +1401,12 @@ func (this *Result) EqualVT(that *Result) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Progress, that.Progress) {
+		return false
+	}
+	if this.PackDir != that.PackDir {
+		return false
+	}
+	if this.PackAfter != that.PackAfter {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1400,6 +1588,18 @@ func (this *Counts) EqualVT(that *Counts) bool {
 	if this.UnknownReachability != that.UnknownReachability {
 		return false
 	}
+	if this.PackFiles != that.PackFiles {
+		return false
+	}
+	if this.UnreadablePacks != that.UnreadablePacks {
+		return false
+	}
+	if this.UnreadTailBytes != that.UnreadTailBytes {
+		return false
+	}
+	if this.CorruptValues != that.CorruptValues {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1473,6 +1673,46 @@ func (this *Version) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the PackTier to JSON.
+func (x PackTier) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), PackTier_name)
+}
+
+// MarshalText marshals the PackTier to text.
+func (x PackTier) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), PackTier_name)), nil
+}
+
+// MarshalJSON marshals the PackTier to JSON.
+func (x PackTier) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PackTier from JSON.
+func (x *PackTier) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(PackTier_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read PackTier enum: %v", err)
+		return
+	}
+	*x = PackTier(v)
+}
+
+// UnmarshalText unmarshals the PackTier from text.
+func (x *PackTier) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), PackTier_value)
+	if err != nil {
+		return err
+	}
+	*x = PackTier(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the PackTier from JSON.
+func (x *PackTier) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the Phase to JSON.
@@ -1600,6 +1840,17 @@ func (x *Source) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.Packs) > 0 || s.HasField("packs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Packs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("packs"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1666,12 +1917,80 @@ func (x *Source) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Witnesses = append(x.Witnesses, v)
 			})
+		case "packs":
+			s.AddField("packs")
+			if s.ReadNil() {
+				x.Packs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Packs = append(x.Packs, nil)
+					return
+				}
+				v := &PackSource{}
+				v.UnmarshalProtoJSON(s.WithField("packs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Packs = append(x.Packs, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Source from JSON.
 func (x *Source) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PackSource message to JSON.
+func (x *PackSource) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	if x.Tier != 0 || s.HasField("tier") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("tier")
+		x.Tier.MarshalProtoJSON(s)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PackSource to JSON.
+func (x *PackSource) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PackSource message from JSON.
+func (x *PackSource) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		case "tier":
+			s.AddField("tier")
+			x.Tier.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PackSource from JSON.
+func (x *PackSource) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1869,6 +2188,16 @@ func (x *Result) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("progress")
 		x.Progress.MarshalProtoJSON(s.WithField("progress"))
 	}
+	if x.PackDir != 0 || s.HasField("packDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packDir")
+		s.WriteUint32(x.PackDir)
+	}
+	if x.PackAfter != "" || s.HasField("packAfter") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packAfter")
+		s.WriteString(x.PackAfter)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1932,6 +2261,12 @@ func (x *Result) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Progress = &Progress{}
 			x.Progress.UnmarshalProtoJSON(s.WithField("progress", true))
+		case "pack_dir", "packDir":
+			s.AddField("pack_dir")
+			x.PackDir = s.ReadUint32()
+		case "pack_after", "packAfter":
+			s.AddField("pack_after")
+			x.PackAfter = s.ReadString()
 		}
 	})
 }
@@ -2320,6 +2655,26 @@ func (x *Counts) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("unknownReachability")
 		s.WriteUint64(x.UnknownReachability)
 	}
+	if x.PackFiles != 0 || s.HasField("packFiles") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packFiles")
+		s.WriteUint64(x.PackFiles)
+	}
+	if x.UnreadablePacks != 0 || s.HasField("unreadablePacks") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unreadablePacks")
+		s.WriteUint64(x.UnreadablePacks)
+	}
+	if x.UnreadTailBytes != 0 || s.HasField("unreadTailBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unreadTailBytes")
+		s.WriteUint64(x.UnreadTailBytes)
+	}
+	if x.CorruptValues != 0 || s.HasField("corruptValues") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("corruptValues")
+		s.WriteUint64(x.CorruptValues)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2388,6 +2743,18 @@ func (x *Counts) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "unknown_reachability", "unknownReachability":
 			s.AddField("unknown_reachability")
 			x.UnknownReachability = s.ReadUint64()
+		case "pack_files", "packFiles":
+			s.AddField("pack_files")
+			x.PackFiles = s.ReadUint64()
+		case "unreadable_packs", "unreadablePacks":
+			s.AddField("unreadable_packs")
+			x.UnreadablePacks = s.ReadUint64()
+		case "unread_tail_bytes", "unreadTailBytes":
+			s.AddField("unread_tail_bytes")
+			x.UnreadTailBytes = s.ReadUint64()
+		case "corrupt_values", "corruptValues":
+			s.AddField("corrupt_values")
+			x.CorruptValues = s.ReadUint64()
 		}
 	})
 }
@@ -2586,6 +2953,18 @@ func (m *Source) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Packs) > 0 {
+		for iNdEx := len(m.Packs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Packs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
 	if len(m.Witnesses) > 0 {
 		for iNdEx := len(m.Witnesses) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Witnesses[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -2624,6 +3003,48 @@ func (m *Source) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.CaptureId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.CaptureId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PackSource) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PackSource) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PackSource) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Tier != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Tier))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Path) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Path)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -2767,6 +3188,16 @@ func (m *Result) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PackAfter) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PackAfter)
+		i--
+		dAtA[i] = 0x62
+	}
+	if m.PackDir != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackDir))
+		i--
+		dAtA[i] = 0x58
 	}
 	if m.Progress != nil {
 		size, err := m.Progress.MarshalToSizedBufferVT(dAtA[:i])
@@ -3093,6 +3524,34 @@ func (m *Counts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.CorruptValues != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CorruptValues))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
+	}
+	if m.UnreadTailBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UnreadTailBytes))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
+	}
+	if m.UnreadablePacks != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UnreadablePacks))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x98
+	}
+	if m.PackFiles != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackFiles))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
+	}
 	if m.UnknownReachability != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UnknownReachability))
 		i--
@@ -3331,6 +3790,22 @@ func (m *Source) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for _, e := range m.Packs {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PackSource) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Path)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Tier)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3391,6 +3866,8 @@ func (m *Result) SizeVT() (n int) {
 		l = m.Progress.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackDir)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackAfter)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3486,6 +3963,10 @@ func (m *Counts) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ConfirmedRefusalLosses)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.IntentionalDeletes)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.UnknownReachability)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackFiles)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.UnreadablePacks)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.UnreadTailBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.CorruptValues)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3527,6 +4008,10 @@ func (m *Version) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.World)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x PackTier) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x Phase) MarshalProtoText() string {
@@ -3580,10 +4065,40 @@ func (x *Source) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.Packs) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "packs")
+		for i, v := range x.Packs {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &PackSource{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *Source) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PackSource) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PackSource")
+	if x.Path != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "path")
+		protobuf_go_lite.TextWriteString(&sb, x.Path)
+	}
+	if x.Tier != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tier")
+		protobuf_go_lite.TextWriteStringer(&sb, PackTier(x.Tier))
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PackSource) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3685,6 +4200,14 @@ func (x *Result) MarshalProtoText() string {
 	if x.Progress != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "progress")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Progress)
+	}
+	if x.PackDir != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_dir")
+		protobuf_go_lite.TextWriteUint(&sb, x.PackDir)
+	}
+	if x.PackAfter != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_after")
+		protobuf_go_lite.TextWriteString(&sb, x.PackAfter)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3874,6 +4397,22 @@ func (x *Counts) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unknown_reachability")
 		protobuf_go_lite.TextWriteUint(&sb, x.UnknownReachability)
 	}
+	if x.PackFiles != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_files")
+		protobuf_go_lite.TextWriteUint(&sb, x.PackFiles)
+	}
+	if x.UnreadablePacks != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unreadable_packs")
+		protobuf_go_lite.TextWriteUint(&sb, x.UnreadablePacks)
+	}
+	if x.UnreadTailBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unread_tail_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.UnreadTailBytes)
+	}
+	if x.CorruptValues != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "corrupt_values")
+		protobuf_go_lite.TextWriteUint(&sb, x.CorruptValues)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -4017,6 +4556,83 @@ func (m *Source) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Packs", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Packs = append(m.Packs, &PackSource{})
+			if err := m.Packs[len(m.Packs)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PackSource) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PackSource: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PackSource: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Path = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Tier", wireType)
+			}
+			m.Tier = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Tier = PackTier(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -4335,6 +4951,25 @@ func (m *Result) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackDir", wireType)
+			}
+			m.PackDir = 0
+			m.PackDir, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackAfter", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackAfter = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -4873,6 +5508,42 @@ func (m *Counts) UnmarshalVT(dAtA []byte) error {
 			}
 			m.UnknownReachability = 0
 			m.UnknownReachability, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 18:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackFiles", wireType)
+			}
+			m.PackFiles = 0
+			m.PackFiles, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 19:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnreadablePacks", wireType)
+			}
+			m.UnreadablePacks = 0
+			m.UnreadablePacks, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnreadTailBytes", wireType)
+			}
+			m.UnreadTailBytes = 0
+			m.UnreadTailBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 21:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CorruptValues", wireType)
+			}
+			m.CorruptValues = 0
+			m.CorruptValues, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

@@ -11,7 +11,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
@@ -64,9 +63,26 @@ func NewScanner(ctx context.Context, source *Source, scratch string, opts Option
 			}
 		}
 	}
-	for i, table := range source.GetTables() {
-		if slices.Contains(source.GetTables()[:i], table) {
+
+	// Reject a table declared twice.
+	tables := make(map[string]bool, len(source.GetTables()))
+	for _, table := range source.GetTables() {
+		if tables[table] {
 			return nil, errors.New("capture repeats the same table location")
+		}
+		tables[table] = true
+	}
+	if len(source.GetPacks()) > 32 {
+		return nil, errors.New("capture declares more than 32 pack directories")
+	}
+	for i, p := range source.GetPacks() {
+		if p.GetPath() == "" || (p.GetTier() != PackTier_PACK_TIER_LOCAL && p.GetTier() != PackTier_PACK_TIER_REMOTE) {
+			return nil, errors.New("pack source requires a directory and a known tier")
+		}
+		for _, other := range source.GetPacks()[:i] {
+			if sameDir(p.GetPath(), other.GetPath()) {
+				return nil, errors.New("capture repeats the same pack directory")
+			}
 		}
 	}
 
@@ -88,11 +104,11 @@ func NewScanner(ctx context.Context, source *Source, scratch string, opts Option
 	if err != nil {
 		return nil, err
 	}
-	physical, err := captureIdentity(source.GetPath())
+	physical, err := captureIdentity(source)
 	if err != nil {
 		return nil, err
 	}
-	identity := sha256.Sum256(bytes.Join([][]byte{manifest, []byte(abs), physical, []byte("recovery-count-3"), []byte(opts.InterpretationID)}, []byte{0}))
+	identity := sha256.Sum256(bytes.Join([][]byte{manifest, []byte(abs), physical, []byte("recovery-count-4"), []byte(opts.InterpretationID)}, []byte{0}))
 
 	// Open only physically immutable backend handles, before opening scratch.
 	s := &Scanner{source: source.CloneVT(), opts: opts, capture: physical}
@@ -115,6 +131,11 @@ func NewScanner(ctx context.Context, source *Source, scratch string, opts Option
 	if err := rejectSourceAliases(info, absScratch, coordinator.LockPath(scope)); err != nil {
 		return nil, errors.Join(err, s.Close())
 	}
+	for _, p := range source.GetPacks() {
+		if sameDir(directory, p.GetPath()) {
+			return nil, errors.Join(errors.New("scratch must not be inside a captured pack directory"), s.Close())
+		}
+	}
 
 	// Exclude another active count only after rejecting every writable source alias.
 	var acquired bool
@@ -133,7 +154,7 @@ func NewScanner(ctx context.Context, source *Source, scratch string, opts Option
 	// Initialize the indexes or retain the prior run, including a paused cursor.
 	err = s.db.Update(func(tx *scratchTx) error {
 		// Initialize the durable report and named indexes in the same transaction.
-		s.result = &Result{Input: source.CloneVT(), Progress: &Progress{}, InputIdentity: bytes.Clone(identity[:]), Phase: Phase_PHASE_INVENTORY, Counts: &Counts{}, Gaps: []string{"s4db, external BlockDomain values, packahead, local packs, remote catalogs and uncataloged packs are not covered", "wholly absent versions cannot be counted; structural decoding does not prove Space membership", "unbound detection probes separate plain Object records only, not every declared transform context or detached World, IAVL, Okra or changelog roots; zero candidates cannot prove absence", "unsupported constructors or transformations and missing descendants keep closures partial"}}
+		s.result = &Result{Input: source.CloneVT(), Progress: &Progress{}, InputIdentity: bytes.Clone(identity[:]), Phase: Phase_PHASE_INVENTORY, Counts: &Counts{}, Gaps: append(packGaps(source.GetPacks()), "wholly absent versions cannot be counted; structural decoding does not prove Space membership", "unbound detection probes separate plain Object records only, not every declared transform context or detached World, IAVL, Okra or changelog roots; zero candidates cannot prove absence", "unsupported constructors or transformations and missing descendants keep closures partial")}
 		s.result.Input.Path = abs
 		if previous := tx.Bucket([]byte("state")).Get([]byte("result")); previous != nil {
 			durable := &Result{}
@@ -172,7 +193,7 @@ func (s *Scanner) Run(ctx context.Context) (*Result, error) {
 
 	// Execute one bounded durable operation at a time.
 	for s.result.GetPhase() != Phase_PHASE_COUNTED {
-		physical, identityErr := captureIdentity(s.source.GetPath())
+		physical, identityErr := captureIdentity(s.source)
 		if identityErr != nil || !bytes.Equal(physical, s.capture) {
 			s.result.Phase = Phase_PHASE_STALE
 			s.result.Failure = "capture identity changed; preserve this report and start a new scratch file"
@@ -203,7 +224,7 @@ func (s *Scanner) Run(ctx context.Context) (*Result, error) {
 			}
 		}
 	}
-	physical, identityErr := captureIdentity(s.source.GetPath())
+	physical, identityErr := captureIdentity(s.source)
 	if identityErr != nil || !bytes.Equal(physical, s.capture) {
 		s.result.Phase = Phase_PHASE_STALE
 		s.result.Failure = "capture identity changed; preserve this report and start a new scratch file"
@@ -274,6 +295,13 @@ func (s *Scanner) pause(cause error) (*Result, error) {
 	// A failed pause write leaves the earlier non-counted result resumable.
 	err = s.db.Update(s.save)
 	return s.Result(), errors.Join(cause, err)
+}
+
+// sameDir reports whether two paths name the same existing directory.
+func sameDir(a, b string) bool {
+	ai, aerr := os.Stat(a)
+	bi, berr := os.Stat(b)
+	return aerr == nil && berr == nil && os.SameFile(ai, bi)
 }
 
 // keyNode binds a work item to its full reference, constructor and World context.

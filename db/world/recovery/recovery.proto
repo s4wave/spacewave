@@ -5,7 +5,7 @@ import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "github.com/s4wave/spacewave/db/world/block/world.proto";
 
-// Source declares one immutable, checkpointed SQLite Volume capture.
+// Source declares one immutable, checkpointed SQLite Volume capture and its value tiers.
 // The operator supplies trusted typing context, never inferred Space membership.
 message Source {
   // CaptureId identifies the authorized isolated snapshot.
@@ -18,6 +18,26 @@ message Source {
   repeated WorldInput worlds = 4;
   // Witnesses selects surviving native replay records in the first table.
   repeated WitnessInput witnesses = 5;
+  // Packs declares captured pack directories holding values beside the Volume records.
+  repeated PackSource packs = 6;
+}
+
+// PackTier names where a captured pack directory came from.
+enum PackTier {
+  // PACK_TIER_UNKNOWN is an invalid declaration.
+  PACK_TIER_UNKNOWN = 0;
+  // PACK_TIER_LOCAL is a local pack log: finalized packs and open logs by name.
+  PACK_TIER_LOCAL = 1;
+  // PACK_TIER_REMOTE is a retained copy of current, replaced or trash remote packs.
+  PACK_TIER_REMOTE = 2;
+}
+
+// PackSource declares one immutable directory of captured packs.
+message PackSource {
+  // Path selects the directory; its entries are read in name order.
+  string path = 1;
+  // Tier selects which file names hold packs and how each is read.
+  PackTier tier = 2;
 }
 
 // WorldInput supplies a trusted typed parent path for object attribution.
@@ -85,6 +105,10 @@ message Result {
   Source input = 9;
   // Progress is the atomic continuation of the count's current indexed pass.
   Progress progress = 10;
+  // PackDir is the current declared pack directory index, after every table.
+  uint32 pack_dir = 11;
+  // PackAfter is the name of the last pack file committed in PackDir.
+  string pack_after = 12;
 }
 
 // Pass identifies the closed set of graph and count passes after interpretation.
@@ -195,6 +219,14 @@ message Counts {
   uint64 intentional_deletes = 16;
   // UnknownReachability counts physical hashes whose non-reachability is unproven.
   uint64 unknown_reachability = 17;
+  // PackFiles counts captured pack files read, including unreadable ones.
+  uint64 pack_files = 18;
+  // UnreadablePacks counts pack files with neither a readable index nor a valid record.
+  uint64 unreadable_packs = 19;
+  // UnreadTailBytes sums retained bytes past the last valid open-log record.
+  uint64 unread_tail_bytes = 20;
+  // CorruptValues counts pack values whose bytes fail their content reference.
+  uint64 corrupt_values = 21;
 }
 
 // Node is a disk-backed traversal item; interpretation identity includes its context.

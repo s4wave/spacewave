@@ -10,15 +10,31 @@ import (
 	"strconv"
 )
 
-// captureIdentity binds persistent inode/device identity and mutation metadata.
-func captureIdentity(path string) ([]byte, error) {
-	// Require a regular file with platform-provided stable physical identity.
+// captureIdentity binds the capture file's and every declared pack
+// directory's persistent identity and mutation metadata.
+func captureIdentity(source *Source) ([]byte, error) {
+	// Bind the capture file, then each declared pack directory.
+	identity, err := statIdentity(source.GetPath(), false)
+	if err != nil {
+		return nil, err
+	}
+	dirs, err := packDirIdentity(source.GetPacks())
+	if err != nil {
+		return nil, err
+	}
+	return append(identity, dirs...), nil
+}
+
+// statIdentity binds persistent inode/device identity and mutation metadata
+// of a regular file, or of a directory when dir is set.
+func statIdentity(path string, dir bool) ([]byte, error) {
+	// Require a regular file or directory with stable physical identity.
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
 	}
-	if !info.Mode().IsRegular() {
-		return nil, errors.New("capture must be a regular file")
+	if dir != info.IsDir() || (!dir && !info.Mode().IsRegular()) {
+		return nil, errors.New("capture must be a regular file and pack sources directories")
 	}
 	value := reflect.Indirect(reflect.ValueOf(info.Sys()))
 	if !value.IsValid() || value.Kind() != reflect.Struct {

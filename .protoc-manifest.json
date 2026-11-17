@@ -1,7 +1,7 @@
 {
   "version": 2,
   "protocFlagsHash": "b5f7c87919a73157c296d8d4595340b098ad9dab5ee36d84f3adfad490f138ee",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.19.1-0.20261024022728-f0dcc8ef200f,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
       "hash": "b151ca9704cbadf4e0cf0a5f55e57d006ba858f63ba47a9bf2f9a92eb52a78c2",
@@ -2645,7 +2645,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/world/recovery": {
-      "hash": "2f37a994a9bb29fd1bf930c80c4563db93a9863d1c8f8340044692b8e3de48dc",
+      "hash": "d8ff0fef4f1ba7fa9fe5914c6d045ab046436d047548a6177135ad5175eb077b",
       "generatedFiles": [
         "db/world/recovery/recovery.pb.go",
         "db/world/recovery/recovery.pb.ts"

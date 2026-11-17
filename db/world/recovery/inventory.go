@@ -7,7 +7,10 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"slices"
+	"strconv"
 
+	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -16,7 +19,11 @@ import (
 
 // inventory copies one bounded source record and advances its cursor atomically.
 func (s *Scanner) inventory(ctx context.Context) error {
-	// Finish physical inventory before any typed reader opens scratch blocks.
+	// Read the pack tiers after the tables, then finish physical inventory
+	// before any typed reader opens scratch blocks.
+	if int(s.result.GetTable()) == len(s.readers) && int(s.result.GetPackDir()) < len(s.source.GetPacks()) {
+		return s.inventoryPack(ctx)
+	}
 	if int(s.result.GetTable()) == len(s.readers) {
 		return s.db.Update(func(tx *scratchTx) error {
 			// Commit the physical record, occurrence and matching inventory cursor.
@@ -55,14 +62,22 @@ func (s *Scanner) inventory(ctx context.Context) error {
 			return err
 		}
 	}
+	var legacy uint64
 	if s.result.GetCursor() == nil {
 		data, found, err := reader.Get(ctx, store_kvkey.NewDefaultKVKey().GetFormatVersionKey())
 		if err != nil {
 			return err
 		}
 		format, parseErr := store_kvkey.ParseFormatVersion(data)
-		if !found || parseErr != nil || format < 7 || format > 9 {
-			return errors.New("source table is not a supported Volume format (7 through 9)")
+		if !found {
+			// A store without a version key predates versioning: format 0.
+			format, parseErr = 0, nil
+		}
+		if parseErr != nil || format > store_kvkey.FormatVersion {
+			return errors.New("source table is not a supported Volume format (0 through 9)")
+		}
+		if format < 7 {
+			legacy = format + 1
 		}
 	}
 	key, value, err := reader.Next(ctx, s.result.GetCursor())
@@ -76,6 +91,12 @@ func (s *Scanner) inventory(ctx context.Context) error {
 	// Commit a record, its location and its continuation in one scratch write.
 	return s.db.Update(func(tx *scratchTx) error {
 		// Commit the physical record, occurrence and matching inventory cursor.
+		if legacy != 0 {
+			if err := tx.Bucket([]byte("state")).Put([]byte("reach-incomplete"), []byte{1}); err != nil {
+				return err
+			}
+			s.addGap("store format " + strconv.FormatUint(legacy-1, 10) + " keeps its named roots in legacy graph records, which are not read; non-reachability is unknown")
+		}
 		if key == nil {
 			s.result.Table++
 			s.result.Cursor = nil
@@ -85,6 +106,14 @@ func (s *Scanner) inventory(ctx context.Context) error {
 		// Verify ordinary content before recording its location and cursor.
 		prefix := store_kvkey.NewDefaultKVKey().GetBlockFullPrefix()
 		if encoded, ok := bytes.CutPrefix(key, prefix); ok {
+			// Format 0 keyed a block by the base58 text of its ref bytes.
+			if len(encoded) != 0 && encoded[0] != binaryBlockRefTag {
+				decoded, err := b58.Decode(string(encoded))
+				if err != nil {
+					return err
+				}
+				encoded = decoded
+			}
 			ref := &block.BlockRef{}
 			if err := ref.UnmarshalVT(encoded); err != nil {
 				return err
@@ -99,25 +128,8 @@ func (s *Scanner) inventory(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			if tx.Bucket([]byte("data")).Get(key) == nil {
-				if err := tx.Bucket([]byte("data")).Put(key, value); err != nil {
-					return err
-				}
-				s.result.Counts.PhysicalBlocks++
-				s.result.Counts.PhysicalBytes += uint64(len(value))
-				obj := &world_block.Object{}
-				if obj.UnmarshalVT(value) == nil && obj.GetKey() != "" && obj.GetRootRef().Validate() == nil && !obj.GetRootRef().GetRootRef().GetEmpty() {
-					if err := tx.Bucket([]byte("unbound")).Put(canonical, nil); err != nil {
-						return err
-					}
-				}
-			}
-			location := append(binary.BigEndian.AppendUint32(nil, s.result.GetTable()), canonical...)
-			if tx.Bucket([]byte("locations")).Get(location) == nil {
-				if err := tx.Bucket([]byte("locations")).Put(location, []byte{1}); err != nil {
-					return err
-				}
-				s.result.Counts.PhysicalLocations++
+			if err := s.recordBlock(tx, canonical, value, append(binary.BigEndian.AppendUint32(nil, s.result.GetTable()), canonical...)); err != nil {
+				return err
 			}
 		} else {
 			if err := tx.Bucket([]byte("meta")).Put(append(binary.BigEndian.AppendUint32(nil, s.result.GetTable()), key...), value); err != nil {
@@ -160,4 +172,44 @@ func (s *Scanner) inventory(ctx context.Context) error {
 		s.result.Cursor = bytes.Clone(key)
 		return s.save(tx)
 	})
+}
+
+// binaryBlockRefTag begins every marshaled BlockRef: the tag of its hash
+// field. Base58 text never contains it.
+const binaryBlockRefTag = 0x0a
+
+// recordBlock records one verified occurrence of a block: its bytes once per
+// canonical reference, an unbound Object probe, and its physical location.
+func (s *Scanner) recordBlock(tx *scratchTx, canonical, value, location []byte) error {
+	// Store distinct bytes once under the key the typed readers use.
+	key := store_kvkey.NewDefaultKVKey().GetBlockKey(canonical)
+	if tx.Bucket([]byte("data")).Get(key) == nil {
+		if err := tx.Bucket([]byte("data")).Put(key, value); err != nil {
+			return err
+		}
+		s.result.Counts.PhysicalBlocks++
+		s.result.Counts.PhysicalBytes += uint64(len(value))
+		obj := &world_block.Object{}
+		if obj.UnmarshalVT(value) == nil && obj.GetKey() != "" && obj.GetRootRef().Validate() == nil && !obj.GetRootRef().GetRootRef().GetEmpty() {
+			if err := tx.Bucket([]byte("unbound")).Put(canonical, nil); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Count each distinct location of the same bytes.
+	if tx.Bucket([]byte("locations")).Get(location) == nil {
+		if err := tx.Bucket([]byte("locations")).Put(location, []byte{1}); err != nil {
+			return err
+		}
+		s.result.Counts.PhysicalLocations++
+	}
+	return nil
+}
+
+// addGap appends a coverage gap once.
+func (s *Scanner) addGap(gap string) {
+	if !slices.Contains(s.result.GetGaps(), gap) {
+		s.result.Gaps = append(s.result.Gaps, gap)
+	}
 }
