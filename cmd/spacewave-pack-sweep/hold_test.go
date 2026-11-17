@@ -392,6 +392,39 @@ func testCommandQuarantine(t *testing.T, kind string, rehearsal bool, method pac
 		t.Fatal("trashed through a scratch file of another prefix")
 	}
 	args.Prefix = "world/"
+
+	// A hide refuses, and hides nothing, until it reads the bucket's
+	// lifecycle rules and none deletes hidden versions under the prefix:
+	// without B2 or the operator's statement, on a rule over every key, on a
+	// rule over the prefix that hides, on rules it cannot parse, and on a
+	// failed read. A rule on another prefix, or one that only cancels
+	// unfinished uploads, lets it through.
+	if hide {
+		refuse := func(step string, want error) {
+			t.Helper()
+			err := args.runTrash(nil)
+			if err == nil || (want != nil && !errors.Is(err, want)) {
+				t.Fatalf("trash with %s = %v, want a refusal", step, err)
+			}
+			if _, err := objects.GetObjectRange(ctx, s3test.BucketName, block_store_s3.EntryObjectKey("world/", deadPack), 0, 1); err != nil {
+				t.Fatalf("after the refused trash with %s the entry reads %v", step, err)
+			}
+		}
+		refuse("no lifecycle finding", nil)
+		args.b2API = bucket.URL()
+		bucket.SetLifecycleRules(`[{"fileNamePrefix":"","daysFromHidingToDeleting":1,"daysFromUploadingToHiding":null}]`)
+		refuse("keep only the last version", block_store_s3.ErrLifecycleRule)
+		bucket.SetLifecycleRules(`[{"fileNamePrefix":"world/packs/","daysFromUploadingToHiding":30,"daysFromHidingToDeleting":null}]`)
+		refuse("a hiding rule under the prefix", block_store_s3.ErrLifecycleRule)
+		bucket.SetLifecycleRules(`{"fileNamePrefix":""}`)
+		refuse("rules that are not a list", nil)
+		bucket.SetLifecycleRules(`[{"daysFromHidingToDeleting":null}]`)
+		refuse("a rule without a prefix", nil)
+		bucket.FailB2(http.StatusUnauthorized)
+		refuse("a refused read", nil)
+		bucket.FailB2(0)
+		bucket.SetLifecycleRules(`[{"fileNamePrefix":"other/","daysFromHidingToDeleting":1,"daysFromUploadingToHiding":null},{"fileNamePrefix":"","daysFromStartingToCancelingUnfinishedLargeFiles":7,"daysFromHidingToDeleting":null,"daysFromUploadingToHiding":null}]`)
+	}
 	for _, want := range []uint{2, 0} {
 		out.Reset()
 		if err := args.runTrash(nil); err != nil {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/fastjson"
@@ -43,6 +44,7 @@ func (a *Args) trashFlags() []cli.Flag {
 	return append(flags,
 		&cli.IntFlag{Name: "moves", Usage: "packs moved to the trash at once, each two renames", Value: packsweep.DefaultMoves, Destination: &a.Moves},
 		&cli.StringFlag{Name: "trash-method", Usage: "how the trash sets a pack aside: move copies it to the trash and deletes every version of the original; hide puts a delete marker over it, on a bucket that keeps old versions, and deletes nothing", Value: packsweep.TrashMove.String(), Destination: &a.TrashMethod},
+		&cli.BoolFlag{Name: noLifecycleRuleFlag, Usage: "state that the bucket has no lifecycle rule that hides or deletes versions under --prefix, which a hide needs on a store that is not B2; on B2 the trash reads the rules itself and ignores this", Destination: &a.NoLifecycleRule},
 	)
 }
 
@@ -311,6 +313,14 @@ func (a *Args) runMoves(step func(context.Context, *packsweep.TrashOptions) (fun
 		return err
 	}
 
+	// A hide needs the finding that no lifecycle rule deletes what it keeps.
+	var clearance block_store_s3.HideClearance
+	if method == packsweep.TrashHide {
+		if clearance, err = a.hideClearance(ctx, root); err != nil {
+			return err
+		}
+	}
+
 	// Reach the backend and the refs, run the step, and print the result.
 	opts, closeOpts, err := a.coverOptions(ctx, store)
 	if err != nil {
@@ -321,6 +331,7 @@ func (a *Args) runMoves(step func(context.Context, *packsweep.TrashOptions) (fun
 		CoverOptions: *opts,
 		Mover:        mover,
 		Hider:        hider,
+		Clearance:    clearance,
 		Method:       method,
 		Bucket:       root,
 		Prefix:       a.Prefix,
@@ -330,6 +341,44 @@ func (a *Args) runMoves(step func(context.Context, *packsweep.TrashOptions) (fun
 		return err
 	}
 	return a.print(res)
+}
+
+// noLifecycleRuleFlag is the operator's statement that the bucket has no
+// lifecycle rule that hides or deletes versions under the prefix.
+const noLifecycleRuleFlag = "bucket-has-no-lifecycle-rule"
+
+// hideClearance finds that no lifecycle rule of bucket hides or deletes the
+// versions a hide keeps under the prefix. On B2 it reads the rules through
+// B2's native API with the store's own key, whatever the flag says; on any
+// other store it takes the operator's --bucket-has-no-lifecycle-rule.
+func (a *Args) hideClearance(ctx context.Context, bucket string) (block_store_s3.HideClearance, error) {
+	// Read B2's rules.
+	api := a.b2API
+	if api == "" && isB2Endpoint(a.S3Endpoint) {
+		api = block_store_s3.B2APIURL
+	}
+	if api != "" {
+		return block_store_s3.ReadB2HideClearance(ctx, block_store_s3.B2Account{
+			APIURL: api,
+			KeyID:  os.Getenv(s3KeyIDEnv),
+			Key:    os.Getenv(s3SecretEnv),
+		}, bucket, a.Prefix)
+	}
+
+	// Elsewhere take the operator's statement.
+	if !a.NoLifecycleRule {
+		return block_store_s3.HideClearance{}, errors.Errorf("--trash-method hide needs to know that no lifecycle rule deletes hidden versions: on a store that is not B2, check the bucket and pass --%s", noLifecycleRuleFlag)
+	}
+	return block_store_s3.StatedHideClearance(bucket, a.Prefix), nil
+}
+
+// isB2Endpoint reports whether endpoint, a host or URL, is a Backblaze B2 S3
+// endpoint, whose lifecycle rules B2's native API reads.
+func isB2Endpoint(endpoint string) bool {
+	host := strings.TrimPrefix(strings.TrimPrefix(endpoint, "https://"), "http://")
+	host, _, _ = strings.Cut(host, "/")
+	host, _, _ = strings.Cut(host, ":")
+	return strings.HasSuffix(strings.ToLower(host), ".backblazeb2.com")
 }
 
 // runRemove has the backend remove the moved packs.

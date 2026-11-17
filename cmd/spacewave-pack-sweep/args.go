@@ -136,6 +136,9 @@ type Args struct {
 	Moves int
 	// TrashMethod is how the trash sets a pack aside: move or hide.
 	TrashMethod string
+	// NoLifecycleRule is the operator's statement that the bucket has no
+	// lifecycle rule that hides or deletes versions under the prefix.
+	NoLifecycleRule bool
 	// Packs names packs the restore brings back besides those reads missed.
 	Packs cli.StringSlice
 	// MaxPackBytes bounds a pack the compaction writes.
@@ -151,6 +154,9 @@ type Args struct {
 
 	// dialAdmin reaches the admin service; nil dials AdminURL. Tests set it.
 	dialAdmin func(ctx context.Context) (*block_packsweep_admin.Client, func(), error)
+	// b2API, when set, is where the hide reads the bucket's lifecycle rules
+	// through B2's native API, as on a B2 endpoint. Tests set it.
+	b2API string
 	// dial reaches the store; nil dials S3 or SFTP. Tests set it.
 	dial func() (block_store_s3.ObjectStore, string, func(), error)
 	// out receives the printed results; nil prints to stdout.

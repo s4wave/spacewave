@@ -118,8 +118,18 @@
     "name": "A read of a hidden pack does not read its kept version",
     "replace": [
       [
-        "Kept(p) == state[p] = \"trash\" /\\ (~moved[p] \\/ hid[p])",
+        "Kept(p) == state[p] = \"trash\" /\\ (~moved[p] \\/ (hid[p] /\\ ~expired[p]))",
         "Kept(p) == state[p] = \"trash\" /\\ ~moved[p]"
+      ]
+    ],
+    "expect": "HiddenServed"
+  },
+  {
+    "name": "The trash hides on a bucket whose lifecycle rule deletes hidden versions",
+    "replace": [
+      [
+        "\\E h \\in IF rule THEN {FALSE} ELSE BOOLEAN : hid'",
+        "\\E h \\in BOOLEAN : hid'"
       ]
     ],
     "expect": "HiddenServed"

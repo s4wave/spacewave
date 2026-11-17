@@ -44,6 +44,7 @@ func testCommandAdversary(t *testing.T, kind string, rehearsal bool, method pack
 	defer r.stop()
 	defer stopWriter()
 	r.args.TrashMethod = method.String()
+	r.args.NoLifecycleRule = true
 	a := &adversary{r: r, trashAt: slices.Index(runSteps, "trash"), hide: method == packsweep.TrashHide}
 	r.before = a.act
 

@@ -62,6 +62,7 @@ func testCommandRunThrough(t *testing.T, kind string, rehearsal bool, method pac
 	defer r.stop()
 	defer stopWriter()
 	r.args.TrashMethod = method.String()
+	r.args.NoLifecycleRule = true
 
 	// Run a cycle restarting the backend before each step, then a clean one.
 	var removed, compacted, lifted, gaps, hidden uint

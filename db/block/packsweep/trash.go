@@ -30,6 +30,10 @@ type TrashOptions struct {
 	// back. The trash needs it for Method TrashHide, and the restore for
 	// each pack whose record holds that method.
 	Hider block_store_s3.ObjectHider
+	// Clearance is the finding that no lifecycle rule hides or deletes
+	// versions under Prefix in Bucket. Every hide needs one that covers
+	// them, since such a rule would delete a hidden pack's kept version.
+	Clearance block_store_s3.HideClearance
 	// Method is how the trash sets aside each pack whose trash begins in
 	// this run; a pack already trashing keeps the method its record holds.
 	Method TrashMethod
@@ -96,6 +100,9 @@ func Trash(ctx context.Context, opts *TrashOptions) (*TrashResult, error) {
 	// Refuse a hide with no store to hide in.
 	if opts.Method == TrashHide && opts.Hider == nil {
 		return nil, errors.New("trash: the store cannot hide its objects")
+	}
+	if opts.Method == TrashHide && !opts.Clearance.Covers(opts.Bucket, opts.Prefix) {
+		return nil, errors.Wrap(ErrNoHideClearance, "trash")
 	}
 
 	// Take the passed and trashing packs, and read their states.
@@ -316,15 +323,26 @@ func restorePack(ctx context.Context, opts *TrashOptions, p *PackRecord) error {
 	return unhidePack(ctx, opts, p)
 }
 
+// ErrNoHideClearance is returned by a hide without a HideClearance for the
+// store's bucket and prefix.
+var ErrNoHideClearance = errors.New("no finding that the bucket's lifecycle rules keep hidden versions under the prefix")
+
 // hidePack hides the entry and then the file of pack p under delete markers,
 // recording on p the version each marker covers. Its only calls are
 // HideObjectVersion's, which deletes no version; a run killed between them
-// hides again, and a hide of a hidden key returns the version under it.
+// hides again, and a hide of a hidden key returns the version under it. It
+// refuses without a clearance for the bucket and prefix, which a pack already
+// trashing by a hide also needs, whatever Method this run names.
 func hidePack(ctx context.Context, opts *TrashOptions, p *PackRecord) error {
-	// Hide the entry, then the file, and record both versions.
+	// Refuse a store that cannot hide, or one whose lifecycle is not cleared.
 	if opts.Hider == nil {
 		return errors.Errorf("hide pack %s: the store cannot hide its objects", p.ID)
 	}
+	if !opts.Clearance.Covers(opts.Bucket, opts.Prefix) {
+		return errors.Wrap(ErrNoHideClearance, "hide pack "+p.ID)
+	}
+
+	// Hide the entry, then the file, and record both versions.
 	entry, err := opts.Hider.HideObjectVersion(ctx, opts.Bucket, block_store_s3.EntryObjectKey(opts.Prefix, p.ID))
 	if err != nil {
 		return errors.Wrap(err, "hide the entry of pack "+p.ID)
