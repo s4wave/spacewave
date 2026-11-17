@@ -70,8 +70,9 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 	if exchange != nil {
 		watchCtx, cancelWatch := context.WithCancel(ctx)
 		watched := make(chan struct{})
+		starts := exchange.GetSessionStarts()
 		go func() {
-			resetOnSessionStart(watchCtx, exchange, absent)
+			resetOnSessionStart(watchCtx, exchange, starts, absent)
 			close(watched)
 		}()
 		defer func() {

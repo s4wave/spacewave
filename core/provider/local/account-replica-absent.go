@@ -96,9 +96,10 @@ func (k *knownAbsent) waitReset(ctx context.Context, gen uint64) error {
 }
 
 // resetOnSessionStart resets absent each time a peer session starts on
-// exchange, until ctx ends.
-func resetOnSessionStart(ctx context.Context, exchange *dex_solicit.Controller, absent *knownAbsent) {
-	starts := exchange.GetSessionStarts()
+// exchange after GetSessionStarts returned starts, until ctx ends. The caller
+// reads starts before any walk begins, so no session start falls between a
+// walk and the watch.
+func resetOnSessionStart(ctx context.Context, exchange *dex_solicit.Controller, starts uint64, absent *knownAbsent) {
 	for exchange.WaitSessionStart(ctx, starts) == nil {
 		starts = exchange.GetSessionStarts()
 		absent.reset()

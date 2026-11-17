@@ -76,43 +76,116 @@ func TestAccountReplicaCopyFollowsParticipantGrants(t *testing.T) {
 	}()
 
 	// Observe the completed denied walk before restoring its authority.
-	waitProgress := func(complete bool) *AccountReplicaCopyState {
-		for {
-			// Read progress and subscribe to its next change under one lock.
-			var progress *AccountReplicaCopyState
-			var wait <-chan struct{}
-			state.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
-				progress = state.copyProgress[replica.GetSharedObjectID()].CloneVT()
-				wait = getWait()
-			})
-
-			// Finish only after the walk publishes the requested outcome.
-			if progress != nil && (complete && progress.GetComplete() || !complete && progress.GetError() != "") {
-				return progress
-			}
-
-			// Await a real progress transition or the test's failure deadline.
-			select {
-			case <-ctx.Done():
-				t.Fatalf("wait for copy complete=%v: %v; progress=%v", complete, ctx.Err(), progress)
-			case <-wait:
-			}
-		}
-	}
-	denied := waitProgress(false)
+	denied := waitReplicaCopyProgress(ctx, t, state, replica.GetSharedObjectID(), false)
 	starts := peers.exchanges[1].GetSessionStarts()
 
 	// Restore the same Session's grant on the same published graph and stream.
 	if _, _, _, err := sobject.AddSOParticipant(ctx, owner.soHost, owner.GetSharedObjectID(), owner.GetPrivKey(), owner.GetPeerID().String(), requester, peers.sessions[1].GetPrivKey().GetPublic(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "", ""); err != nil {
 		t.Fatal(err)
 	}
-	completed := waitProgress(true)
+	completed := waitReplicaCopyProgress(ctx, t, state, replica.GetSharedObjectID(), true)
 	if !denied.GetHead().EqualVT(completed.GetHead()) || peers.exchanges[1].GetSessionStarts() != starts {
 		t.Fatal("copy required another World or DEX session")
 	}
 	data, found, err := replica.GetBlockStore().GetBlock(ctx, leaf)
 	if err != nil || !found || string(data) != string(payload) {
 		t.Fatalf("replica leaf after grant: found=%v err=%v", found, err)
+	}
+}
+
+// TestAccountReplicaCopyRereadsHolesOnSessionStart copies a graph whose leaf
+// no peer holds, then returns the leaf to the owner and restarts the owner's
+// transport. The replica's new peer session alone must read the known-absent
+// hole again and complete the copy of the same head.
+func TestAccountReplicaCopyRereadsHolesOnSessionStart(t *testing.T) {
+	// Seed the owner's graph and evict its leaf from both peers' Volumes,
+	// keeping the bytes; the owner goes first so the replica cannot fetch it
+	// back. A bucket's RmBlock only releases its hold.
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+	peers := newDEXRolePeers(t, ctx)
+	owner, replica := peers.objects[0], peers.objects[1]
+	entries := peers.accounts[0].soListCtr.GetValue().GetSharedObjects()
+	i := slices.IndexFunc(entries, func(entry *sobject.SharedObjectListEntry) bool {
+		return entry.GetRef().GetProviderResourceRef().GetId() == owner.GetSharedObjectID()
+	})
+	if i == -1 {
+		t.Fatal("source object is absent from account")
+	}
+	leaf, payload := seedProviderReplicaPayload(ctx, t, peers.accounts[0], peers.accounts[0], entries[i].GetRef())
+	ownerStore := owner.GetBlockStore()
+	for _, account := range peers.accounts {
+		if err := account.vol.RmBlock(ctx, leaf); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Copy until the walk records the leaf as a hole.
+	state := &p2pSyncState{}
+	done := make(chan error, 1)
+	go func() {
+		done <- peers.accounts[1].runAccountReplicaCopy(ctx, replica, state, peers.exchanges[1])
+	}()
+	defer func() {
+		cancel()
+		<-done
+	}()
+	holed := waitReplicaCopyProgress(ctx, t, state, replica.GetSharedObjectID(), false)
+	starts := peers.exchanges[1].GetSessionStarts()
+
+	// Return the leaf to the owner, then restart the owner's transport so a
+	// new peer session starts at the replica.
+	ref, _, err := ownerStore.PutBlock(ctx, payload, &block.PutOpts{RefsKnown: true})
+	if err != nil || !ref.EqualVT(leaf) {
+		t.Fatalf("restore leaf = %v/%v, want %v", ref, err, leaf)
+	}
+	peers.accounts[0].StopP2PSync()
+	peers.accounts[0].StopSessionTransport()
+	if err := peers.accounts[0].EnsureConfiguredSessionTransport(ctx, peers.sessions[0].GetPrivKey()); err != nil {
+		t.Fatal(err)
+	}
+	if err := peers.accounts[0].StartPersistentP2PSync(ctx, peers.accounts[0].GetSessionTransport()); err != nil {
+		t.Fatal(err)
+	}
+
+	// The session start completes the copy of the same head.
+	completed := waitReplicaCopyProgress(ctx, t, state, replica.GetSharedObjectID(), true)
+	if !holed.GetHead().EqualVT(completed.GetHead()) {
+		t.Fatal("copy required another World")
+	}
+	if peers.exchanges[1].GetSessionStarts() == starts {
+		t.Fatal("copy completed without a peer session start")
+	}
+	data, found, err := replica.GetBlockStore().GetBlock(ctx, leaf)
+	if err != nil || !found || string(data) != string(payload) {
+		t.Fatalf("replica leaf after session start: found=%v err=%v", found, err)
+	}
+}
+
+// waitReplicaCopyProgress waits until the copy of id publishes a completed
+// walk, or a failed one when complete is false, and returns its progress.
+func waitReplicaCopyProgress(ctx context.Context, t *testing.T, state *p2pSyncState, id string, complete bool) *AccountReplicaCopyState {
+	t.Helper()
+	for {
+		// Read progress and subscribe to its next change under one lock.
+		var progress *AccountReplicaCopyState
+		var wait <-chan struct{}
+		state.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+			progress = state.copyProgress[id].CloneVT()
+			wait = getWait()
+		})
+
+		// Finish only after the walk publishes the requested outcome.
+		if progress != nil && (complete && progress.GetComplete() || !complete && progress.GetError() != "") {
+			return progress
+		}
+
+		// Await a real progress transition or the test's failure deadline.
+		select {
+		case <-ctx.Done():
+			t.Fatalf("wait for copy complete=%v: %v; progress=%v", complete, ctx.Err(), progress)
+		case <-wait:
+		}
 	}
 }
 
@@ -380,6 +453,20 @@ func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 			if got := source.holeReads.Load(); got != 2 {
 				t.Fatalf("hole read %d times after one reset, want twice", got)
 			}
+
+			// A reset that lands while a walk reads the hole drops the walk's
+			// holes, so the next walk reads the hole again.
+			absent.reset()
+			source.onHole = absent.reset
+			walk()
+			source.onHole = nil
+			if absent.has(leaf) {
+				t.Fatal("a walk begun before a reset left its hole in the set")
+			}
+			walk()
+			if got := source.holeReads.Load(); got != 4 {
+				t.Fatalf("hole read %d times after a reset during a walk, want four", got)
+			}
 		})
 	}
 }
@@ -395,6 +482,8 @@ type holeStore struct {
 	reads atomic.Int32
 	// holeReads counts the reads of hole, stored or plain.
 	holeReads atomic.Int32
+	// onHole, when set, runs on each stored read of hole.
+	onHole func()
 }
 
 // GetStoredBlock reads the inner block unless it is the hole.
@@ -402,6 +491,9 @@ func (s *holeStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 	s.reads.Add(1)
 	if ref.EqualVT(s.hole) {
 		s.holeReads.Add(1)
+		if s.onHole != nil {
+			s.onHole()
+		}
 		return nil, s.err
 	}
 	return s.StoreOps.GetStoredBlock(ctx, ref)
