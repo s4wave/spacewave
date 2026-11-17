@@ -160,9 +160,9 @@ type WalkCounts struct {
 	// between the first and the last of the block's views, so the namers
 	// summed across them bound no one view's.
 	Wide uint64 `protobuf:"varint,14,opt,name=wide,proto3" json:"wide,omitempty"`
-	// Declined counts the listed blocks whose undercount went unchecked
-	// because the Volume was not adopted or the sweep owned the block: their
-	// counts are not in force.
+	// Declined counts the listed blocks whose undercount went unchecked:
+	// the Volume was not adopted, so no count was in force, or the sweep owned
+	// the block.
 	Declined uint64 `protobuf:"varint,15,opt,name=declined,proto3" json:"declined,omitempty"`
 }
 

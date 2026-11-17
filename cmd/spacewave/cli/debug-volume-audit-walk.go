@@ -128,7 +128,7 @@ func auditWalkFields(path string, res *block_gc.WalkResult) [][2]string {
 		{"Checked blocks", strconv.FormatUint(n.GetChecked(), 10)},
 		{"Undercounted blocks", strconv.FormatUint(n.GetUndercount(), 10)},
 		{"Wide blocks whose namers moved, unchecked", strconv.FormatUint(n.GetWide(), 10)},
-		{"Declined, counts not in force", strconv.FormatUint(n.GetDeclined(), 10)},
+		{"Declined, the sweep's or counts not in force", strconv.FormatUint(n.GetDeclined(), 10)},
 		{"Named without a child list", strconv.FormatUint(n.GetUnknown(), 10)},
 		{"Hole candidates", strconv.FormatUint(n.GetCandidates(), 10)},
 		{"Journal pairs copied", strconv.FormatUint(n.GetTailPairs(), 10)},
@@ -139,7 +139,7 @@ func auditWalkFields(path string, res *block_gc.WalkResult) [][2]string {
 		{"Unconfirmed, no root reaches", strconv.FormatUint(n.GetUnconfirmedUnrooted(), 10)},
 		{"Started", res.Started.Format(time.RFC3339)},
 		{"Resumes", strconv.FormatUint(uint64(res.Resumes), 10)},
-		{"Restarted a run older than a day", strconv.FormatBool(res.Restarted)},
+		{"Restarted a stale or unreadable run", strconv.FormatBool(res.Restarted)},
 	}
 
 	// Give the longest view of the Volume in each phase.

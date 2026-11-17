@@ -123,3 +123,47 @@ func TestSettleWaitsForNetting(t *testing.T) {
 		})
 	}
 }
+
+// TestWalkRestartsUnreadableProgress checks that a walk whose scratch holds a
+// progress record this build cannot read, as a build with another WalkMark
+// leaves, drops it with the run's records and begins the run again, instead
+// of failing every open until someone deletes the store.
+func TestWalkRestartsUnreadableProgress(t *testing.T) {
+	// Leave a progress record that does not decode, beside an edge.
+	ctx := context.Background()
+	scratch := store_kvtx_inmem.NewStore()
+	tx, err := scratch.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	edge := walkKey(walkEdge, []byte("stale edge"))
+	for key, value := range map[string][]byte{string([]byte{walkProgressKind}): {0xff, 0xff}, string(edge): nil} {
+		if err := tx.Set(ctx, []byte(key), value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Open the run: it begins again and keeps nothing of the old one.
+	w, err := openWalk(ctx, nil, scratch, WalkOptions{Run: "next"})
+	if err != nil {
+		t.Fatalf("open over unreadable progress: %v", err)
+	}
+	if !w.res.Restarted || w.prog.GetPhase() != WalkPhase_WALK_PHASE_ROOTS {
+		t.Fatalf("restarted %v in phase %v; want a new run", w.res.Restarted, w.prog.GetPhase())
+	}
+	prog, err := w.readProgress(ctx)
+	if err != nil || prog.GetRun() != "next" {
+		t.Fatalf("progress %v, %v; want the new run's", prog, err)
+	}
+	tx, err = scratch.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	if _, found, err := tx.Get(ctx, edge); err != nil || found {
+		t.Fatalf("stale edge found %v, %v; want it cleared", found, err)
+	}
+}

@@ -17,8 +17,8 @@ type WalkResult struct {
 	Started time.Time
 	// Resumes counts the times a process took up the run from scratch.
 	Resumes uint32
-	// Restarted reports that this process found the run older than a day in
-	// scratch, and began it again.
+	// Restarted reports that this process found the run in scratch older
+	// than a day, or in a progress record it cannot read, and began it again.
 	Restarted bool
 	// LongestView is this process's longest view of the Volume in each
 	// phase.

@@ -275,8 +275,20 @@ func openWalk(ctx context.Context, store WalkStore, scratch kvtx.Store, opts Wal
 		res:     &WalkResult{LongestView: make(map[WalkPhase]time.Duration)},
 	}
 
-	// Resume the run's progress, unless it is too old.
+	// Resume the run's progress, unless it is too old. A progress record
+	// this build cannot read, such as one an older build left, names no run
+	// it can resume or refuse, so the walk drops it and starts over.
 	prog, err := w.readProgress(ctx)
+	if errors.Is(err, errBadWalkRecord) {
+		if err := w.dropProgress(ctx); err != nil {
+			return nil, err
+		}
+		if err := w.clear(ctx); err != nil {
+			return nil, err
+		}
+		w.res.Restarted = true
+		prog, err = nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -364,12 +376,31 @@ func (w *walker) readProgress(ctx context.Context) (*WalkProgress, error) {
 
 // getProgress reads the progress record in tx, nil when none.
 func getProgress(ctx context.Context, tx kvtx.TxOps) (*WalkProgress, error) {
+	// Read and decode the record; one that does not decode is malformed.
 	value, found, err := tx.Get(ctx, []byte{walkProgressKind})
 	if err != nil || !found {
 		return nil, err
 	}
 	prog := &WalkProgress{}
-	return prog, prog.UnmarshalVT(value)
+	if err := prog.UnmarshalVT(value); err != nil {
+		return nil, errors.Wrapf(errBadWalkRecord, "progress: %v", err)
+	}
+	return prog, nil
+}
+
+// dropProgress deletes a progress record this build cannot read.
+func (w *walker) dropProgress(ctx context.Context) error {
+	// Delete the record in its own commit, without the owner check, which
+	// would read it.
+	tx, err := w.scratch.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	if err := tx.Delete(ctx, []byte{walkProgressKind}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // write commits recs to scratch, walkCommitRecords at a time, with the

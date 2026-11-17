@@ -175,9 +175,9 @@ export interface WalkCounts {
    */
   wide?: bigint
   /**
-   * Declined counts the listed blocks whose undercount went unchecked
-   * because the Volume was not adopted or the sweep owned the block: their
-   * counts are not in force.
+   * Declined counts the listed blocks whose undercount went unchecked:
+   * the Volume was not adopted, so no count was in force, or the sweep owned
+   * the block.
    */
   declined?: bigint
 }
