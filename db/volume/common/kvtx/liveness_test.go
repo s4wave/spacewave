@@ -6271,6 +6271,80 @@ func TestLivenessSettle(t *testing.T) {
 		requireStored(t, v, tr, false, "U")
 	})
 
+	t.Run("put of a lost front entry beside its pop", func(t *testing.T) {
+		// As "front entry whose list and bytes are lost", U is Dead and ripe
+		// on the front with its list and bytes lost, so the next pass pops
+		// and parks it. A writer puts U and K again and moves root main onto
+		// U, just before that pass, just after it, or once the flip left U
+		// unmarked. The put finds no list, yet U keeps its zero count, its
+		// run entry and, after the pass, its parked key. The store must keep
+		// U, which root main holds, through the flip and the sweep.
+		for _, name := range []string{"before the pop", "after the pop", "after the flip"} {
+			t.Run(name, func(t *testing.T) {
+				tr := testTree{}
+				tr.add(t, "A")
+				tr.add(t, "K")
+				tr.add(t, "U", "K")
+				tr.add(t, "Z")
+				v, clk, store := oldStore(t, tr, "A", []string{"A", "K", "U"})
+				ctx := t.Context()
+				if err := rootOnto(t, v, tr, "U"); err != nil {
+					t.Fatal(err)
+				}
+				if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: tr["U"].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+				clk.Add(block_gc.DefaultGrace - time.Second)
+				z := []block.NamedRoot{{Name: "z", Ref: tr["Z"].Ref}}
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("Z"), z); err != nil {
+					t.Fatal(err)
+				}
+				clk.Add(2 * time.Second)
+				if res := collectAll(t, v); res.Flipped || res.Popped != 0 || !has(t, store, front, tr["U"].Ref) {
+					t.Fatalf("collect = %+v, want U Dead on the front, not yet ripe", res)
+				}
+
+				// Lose U's list and bytes, and walk A, so U alone holds the flip.
+				err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+					if err := p.rec.DeleteChildren(ctx, tr["U"].Ref); err != nil {
+						return err
+					}
+					return p.blocks.RmBlock(ctx, tr["U"].Ref)
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				verify(t, v, tr, "A")
+				clk.Add(block_gc.DefaultGrace)
+
+				// Put U again and hold it, beside the pass that pops it.
+				put := func() {
+					t.Helper()
+					if err := rootOnto(t, v, tr, "U", "U", "K"); err != nil {
+						t.Fatal(err)
+					}
+				}
+				switch name {
+				case "before the pop":
+					put()
+				case "after the pop":
+					if res := collectAll(t, v); res.Popped == 0 {
+						t.Fatalf("collect = %+v, want U popped", res)
+					}
+					put()
+				default:
+					if res := collectUntil(t, v, clk, flipped); res.Swept != 0 {
+						t.Fatalf("collect = %+v, want the flip before the sweep", res)
+					}
+					put()
+				}
+				collectUntil(t, v, clk, settled)
+				requireStored(t, v, tr, true, "A", "Z", "U", "K")
+				requireAudit(t, v, 0)
+			})
+		}
+	})
+
 	t.Run("put again of a swept child before its unmarked parent", func(t *testing.T) {
 		// The old chain G -> P -> C is garbage, among 300 old leaves, and C's
 		// key sorts more than a sweep slice before P's. Between the slice

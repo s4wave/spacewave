@@ -689,8 +689,11 @@ func (r *Records) unrunParked(ctx context.Context, after []byte) ([]byte, bool, 
 // repark takes the parked block at key back from the free, while Open, so
 // a put can give birth to it again: it deletes its zero count, which leaves
 // it the implied holder of a born block, its parked key, its run entry and
-// its front entry. The caller writes its list from content and journals a
-// holder for each child as for a born block. Under release at zero its
+// its front entry. A put of a block without a list left with a zero count
+// reparks it in any generation; while Sweeping its run entry stays, since
+// the run stays the run at the flip, and it is not unmarked. The caller
+// writes its list from content and journals a holder for each child as for
+// a born block. Under release at zero its
 // cascade released its children already. Under HoldUntilFree its stored
 // list still holds them, since only a free gives them their downs, so it
 // returns the block keys of that list, which lose this holder as a rebirth's
@@ -723,13 +726,17 @@ func (r *Records) repark(ctx context.Context, state *LivenessState, key []byte) 
 		}
 	}
 
-	// Delete the count, the parked key, the run entry and the front entry.
-	for _, del := range [][]byte{r.key(kindCount, key), r.parkedKey(ripe, key), r.key(kindUnmarked, key), r.key(kindFront, key)} {
+	// Delete the count, the parked key, the front entry and, unless
+	// Sweeping, the run entry.
+	for _, del := range [][]byte{r.key(kindCount, key), r.parkedKey(ripe, key), r.key(kindFront, key)} {
 		if err := r.tx.Delete(ctx, del); err != nil {
 			return nil, err
 		}
 	}
-	return released, nil
+	if state.GetGeneration() == Generation_GENERATION_SWEEPING {
+		return released, nil
+	}
+	return released, r.tx.Delete(ctx, r.key(kindUnmarked, key))
 }
 
 // Held reports whether ref is present with holders: its count record is not
