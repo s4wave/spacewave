@@ -397,9 +397,13 @@ func (s *PackfileStore) getBlockExistsBatch(ctx context.Context, view *ManifestS
 		return out, nil
 	}
 
-	// Load candidate pack indexes before probing the block keys.
+	// Load candidate pack indexes before probing the block keys. The load is
+	// best effort, like the probe: a pack that fails to load is passed over
+	// by each probe that reaches it.
 	if err := s.loadCandidateIndexes(ctx, view, keys); err != nil {
-		return nil, err
+		if errors.Is(err, ErrPackReaderClosed) || ctx.Err() != nil {
+			return nil, err
+		}
 	}
 
 	// Probe each unique key and account for the complete batch lookup.
@@ -580,7 +584,10 @@ func (s *PackfileStore) probeCatalog(
 }
 
 // probeList probes candidates in order until one holds the block, setting
-// lookup.hit when one does.
+// lookup.hit when one does. A candidate that fails to open or read is passed
+// over, so a lost or damaged pack hides only the blocks it held: the first
+// such error is returned only when no later candidate holds the block. A
+// closed reader or a stopped context ends the probe at once.
 func (s *PackfileStore) probeList(
 	ctx context.Context,
 	candidates []*manifestEntry,
@@ -589,31 +596,21 @@ func (s *PackfileStore) probeList(
 ) error {
 	lookup.candidates += len(candidates)
 
-	// Probe candidate pack readers until the requested block is found.
+	// Probe candidate pack readers until the requested block is found,
+	// keeping the first failure for a probe that finds it nowhere.
 	var misses int
+	var firstErr error
 	for i, item := range candidates {
-		// Validate the candidate pack size before opening its reader.
-		entry := item.entry
-		size, err := manifestPackSize(entry)
+		// Probe the candidate, passing over one that fails.
+		found, err := s.probeOne(item.entry, lookup, visit)
 		if err != nil {
-			return err
-		}
-		if size <= 0 {
+			if errors.Is(err, ErrPackReaderClosed) || ctx.Err() != nil {
+				return err
+			}
+			if firstErr == nil {
+				firstErr = err
+			}
 			continue
-		}
-
-		// Borrow the candidate pack reader for this block probe.
-		eng, release, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
-		if err != nil {
-			return errors.Wrap(err, "opening packfile")
-		}
-
-		// Probe the block and release the candidate reader before handling the result.
-		lookup.opened++
-		found, err := visit(eng)
-		release()
-		if err != nil {
-			return err
 		}
 
 		// Record a successful block probe or count the negative pack.
@@ -634,7 +631,30 @@ func (s *PackfileStore) probeList(
 			s.loadBloomHitIndexes(ctx, candidates[i+1:])
 		}
 	}
-	return nil
+	return firstErr
+}
+
+// probeOne opens one candidate pack and visits it, reporting whether it holds
+// the block. An empty pack holds nothing.
+func (s *PackfileStore) probeOne(
+	entry *packfile.PackfileEntry,
+	lookup *packLookup,
+	visit func(eng *PackReader) (bool, error),
+) (bool, error) {
+	// Validate the candidate pack size before opening its reader.
+	size, err := manifestPackSize(entry)
+	if err != nil || size <= 0 {
+		return false, err
+	}
+
+	// Borrow the candidate pack reader, and release it after the visit.
+	eng, release, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
+	if err != nil {
+		return false, errors.Wrap(err, "opening packfile")
+	}
+	lookup.opened++
+	defer release()
+	return visit(eng)
 }
 
 // loadBloomHitIndexes loads the indexes of the bloom-filtered candidates
