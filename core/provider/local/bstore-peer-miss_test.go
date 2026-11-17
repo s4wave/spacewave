@@ -192,6 +192,38 @@ func TestPeerReadCountsFailed(t *testing.T) {
 	}
 }
 
+// TestPeerReadRemembersUnserved checks that a block the peers failed to serve
+// with an error fails unavailable at once on the next read, asks no peer and
+// counts as remembered, not failed, and that the memory ends after
+// peerUnservedFor.
+func TestPeerReadRemembersUnserved(t *testing.T) {
+	SetPeerReadWait(300 * time.Millisecond)
+	defer SetPeerReadWait(0)
+	peers := &flakyPeers{fails: 1 << 30}
+	p := &placementState{remote: &atomic.Pointer[openBackend]{}}
+	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, &p.peerReads)
+	ref := block.NewBlockRef(nil)
+	if _, err := src().GetStoredBlock(context.Background(), ref); !errors.Is(err, block.ErrUnavailable) {
+		t.Fatalf("first read: %v", err)
+	}
+	asked := peers.reads.Load()
+
+	started := time.Now()
+	blk, err := src().GetStoredBlock(context.Background(), ref)
+	st := p.readStatus()
+	if blk != nil || !errors.Is(err, block.ErrUnavailable) || time.Since(started) > 100*time.Millisecond || peers.reads.Load() != asked {
+		t.Fatalf("second read: %v %v after %v, %d peer reads, want %d", blk, err, time.Since(started), peers.reads.Load(), asked)
+	}
+	if st.PeerRemembered != 1 || st.PeerFailed != (PeerFailedCauses{PeerError: 1}) {
+		t.Fatalf("counts: %+v", st)
+	}
+
+	mem := src().(*peerMissLog).unserved
+	if !mem.holds(ref.MarshalString(), time.Now().Add(peerUnservedFor-time.Second)) || mem.holds(ref.MarshalString(), time.Now().Add(peerUnservedFor)) {
+		t.Fatal("memory does not end after peerUnservedFor")
+	}
+}
+
 // putStore takes a put, or fails it with err.
 type putStore struct {
 	block.StoreOps
