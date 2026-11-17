@@ -113,3 +113,141 @@ func TestHTTPRangeCache(t *testing.T) {
 		})
 	}
 }
+
+// TestHTTPRangeCacheBreakerProbe covers the cool-off, the single half-open
+// probe and the counts and state the backend exports.
+func TestHTTPRangeCacheBreakerProbe(t *testing.T) {
+	// Serve failures or hits, holding a request while hold is set.
+	var failing atomic.Bool
+	var hold atomic.Pointer[chan struct{}]
+	arrived := make(chan struct{}, 1)
+	failing.Store(true)
+	srv, calls := guardWorker(t, func(w http.ResponseWriter, _ *http.Request) {
+		if h := hold.Load(); h != nil {
+			arrived <- struct{}{}
+			<-*h
+		}
+		if failing.Load() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		guardHit(w, "10")
+	})
+	cache := NewHTTPRangeCache(srv.URL, "test-token")
+	var clock atomic.Int64
+	clock.Store(time.Unix(1_800_000_000, 0).UnixNano())
+	cache.now = func() time.Time { return time.Unix(0, clock.Load()) }
+	lower := &cacheTestOrigin{}
+	check := func(step string, cacheCalls int32, state HTTPRangeCacheBreaker, requests [5]uint64) {
+		t.Helper()
+		counts := cache.Counts()
+		if calls.Load() != cacheCalls || counts.Breaker != state || counts.Requests != requests {
+			t.Fatalf("%s: cache calls %d, counts %+v", step, calls.Load(), counts)
+		}
+	}
+
+	// Open after five fallbacks; reads in the cool-off are skipped.
+	for range 5 {
+		guardRead(t, t.Context(), cache, lower)
+	}
+	check("open", 5, BreakerOpen, [5]uint64{0, 0, 5, 0, 0})
+	clock.Add(int64(breakerCoolOff - time.Second))
+	guardRead(t, t.Context(), cache, lower)
+	check("cool-off", 5, BreakerOpen, [5]uint64{0, 0, 5, 1, 0})
+
+	// A failed probe opens it for another cool-off.
+	clock.Add(int64(time.Second))
+	guardRead(t, t.Context(), cache, lower)
+	check("failed probe", 6, BreakerOpen, [5]uint64{0, 0, 6, 1, 0})
+	guardRead(t, t.Context(), cache, lower)
+	check("reopened", 6, BreakerOpen, [5]uint64{0, 0, 6, 2, 0})
+
+	// While a probe is in flight, other reads go direct.
+	clock.Add(int64(breakerCoolOff))
+	failing.Store(false)
+	release := make(chan struct{})
+	hold.Store(&release)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		store := &ReadThroughStore{ObjectStore: lower, Cache: cache, Bucket: "world", PackPrefix: "test/packs/"}
+		if data, err := store.GetObjectRange(t.Context(), "world", "test/packs/pfv1_test", 3, 4); err != nil || string(data) != "data" {
+			t.Errorf("probe read: %q %v", data, err)
+		}
+	}()
+	<-arrived
+	hold.Store(nil)
+	if cache.Counts().Breaker != BreakerHalfOpen {
+		t.Fatal("probe not half-open")
+	}
+	guardRead(t, t.Context(), cache, lower)
+	close(release)
+	<-done
+
+	// The probe's hit closes the breaker, and reads use the cache again.
+	check("probe", 7, BreakerClosed, [5]uint64{1, 0, 6, 3, 0})
+	guardRead(t, t.Context(), cache, lower)
+	check("closed", 8, BreakerClosed, [5]uint64{2, 0, 6, 3, 0})
+	if lower.calls.Load() != 9 {
+		t.Fatalf("direct calls %d", lower.calls.Load())
+	}
+}
+
+// TestHTTPRangeCacheBreakerCancel does not count a caller's cancellation
+// against the Worker.
+func TestHTTPRangeCacheBreakerCancel(t *testing.T) {
+	srv, calls := guardWorker(t, func(_ http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	})
+	cache := NewHTTPRangeCache(srv.URL, "test-token")
+	store := &ReadThroughStore{ObjectStore: &cacheTestOrigin{}, Cache: cache, Bucket: "world", PackPrefix: "test/packs/"}
+	for range breakerConsecutive + 1 {
+		ctx, cancel := context.WithCancel(t.Context())
+		timer := time.AfterFunc(10*time.Millisecond, cancel)
+		_, _ = store.GetObjectRange(ctx, "world", "test/packs/pfv1_test", 3, 4)
+		timer.Stop()
+		cancel()
+	}
+	if calls.Load() != breakerConsecutive+1 || cache.Counts().Breaker != BreakerClosed {
+		t.Fatalf("cache calls %d, state %d", calls.Load(), cache.Counts().Breaker)
+	}
+}
+
+// TestHTTPRangeCacheBreakerQuota opens the breaker on one 429 from the Worker
+// for the longer quota cool-off.
+func TestHTTPRangeCacheBreakerQuota(t *testing.T) {
+	var quota atomic.Bool
+	quota.Store(true)
+	srv, calls := guardWorker(t, func(w http.ResponseWriter, _ *http.Request) {
+		if quota.Load() {
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		guardHit(w, "10")
+	})
+	cache := NewHTTPRangeCache(srv.URL, "test-token")
+	var clock atomic.Int64
+	clock.Store(time.Unix(1_800_000_000, 0).UnixNano())
+	cache.now = func() time.Time { return time.Unix(0, clock.Load()) }
+	lower := &cacheTestOrigin{}
+
+	// One 429 opens it; the ordinary cool-off is not enough to probe.
+	guardRead(t, t.Context(), cache, lower)
+	if calls.Load() != 1 || cache.Counts().Breaker != BreakerOpen {
+		t.Fatalf("after 429: cache calls %d, state %d", calls.Load(), cache.Counts().Breaker)
+	}
+	clock.Add(int64(breakerCoolOff))
+	guardRead(t, t.Context(), cache, lower)
+	if calls.Load() != 1 {
+		t.Fatalf("probed inside the quota cool-off: cache calls %d", calls.Load())
+	}
+
+	// After the quota cool-off a probe that hits closes it.
+	clock.Add(int64(breakerQuotaCoolOff - breakerCoolOff))
+	quota.Store(false)
+	guardRead(t, t.Context(), cache, lower)
+	counts := cache.Counts()
+	if calls.Load() != 2 || counts.Breaker != BreakerClosed || counts.Requests != [5]uint64{1, 0, 1, 1, 0} {
+		t.Fatalf("after probe: cache calls %d, counts %+v", calls.Load(), counts)
+	}
+}
