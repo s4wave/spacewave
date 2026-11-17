@@ -423,6 +423,11 @@
 \*              stage root and a session's stage hold reach only C's
 \*              tree, which main's heads reach too, so skipping one
 \*              changes nothing these configs can see.
+\*   ListDrop   TRUE lets a free drop the child list of a block a listed
+\*              parent names, keeping its bytes and the parent's list
+\*              (testdata/Journal-adopt-droplist.cfg, KidsListed). The
+\*              model keeps no bytes apart from the list, so the block
+\*              leaves stored and is not freed.
 \*
 \* Left out: a fill of a recorded hole, which LandFill stores as a refill,
 \* journaling nothing; the format 7 upgrade (an unadopted Volume here holds
@@ -446,7 +451,7 @@ CONSTANTS Writers, MaxTxns, Grace, Window, Lease, MaxHoles,
           FillBlocks, FillUps, Holds, FillBorn, FillEager, CutList, Gen,
           RewriteFlag, Recount, ClearMark, Suspect, SuspectLand,
           SuspectRecount, SuspectEarly, Promote, HoldGate, OldHoldCheck,
-          WalkSkip
+          WalkSkip, ListDrop
 
 None == "none"
 Unmoved == "unmoved"
@@ -1259,6 +1264,17 @@ Delete(b) ==
                  txns, holes, born, moved, sheld, fj, adoptVars, stageVars,
                  writerVars, pend, pdir>>
 
+\* DropList is a broken free: it deletes the child list of b, which a listed
+\* parent names, and keeps b's bytes and the parent's list. Only ListDrop
+\* enables it.
+DropList(b) ==
+  /\ ListDrop /\ adoption = "adopted"
+  /\ b \in stored \ (zero \cup rel)
+  /\ \E p \in stored \ rel : b \in Kids(p)
+  /\ stored' = stored \ {b}
+  /\ UNCHANGED <<root, left, lost, gcVars, jrVars, obs, seen, seenAge, txns,
+                 holes, landVars, adoptVars, stageVars, writerVars>>
+
 \* Fill stores b, a block a peer holds, with its child list, and writes its
 \* record: an up pair for each child, with FillUps, and a down pair for its
 \* own implied holder. It reads no liveness state, so it lands whatever the
@@ -1451,6 +1467,11 @@ Skipped(b) == b \in born \/ (FillBorn /\ FillRecorded(b))
 
 \* AdoptList counts a holder of each child of the next child list, in key
 \* order, that no born mark names.
+\* The adoption writes no child list, here or in the code: adoption.hold
+\* counts holders and only reads whether a block has a list, and Adopt
+\* refuses, as Unknown, a holder naming a block stored without one. Lists
+\* come only from Land's putList, LandFill and the list rebuild, and only
+\* the collector's free deletes one, so an adoption orders no list write.
 AdoptList(r) ==
   /\ pc[r] = "lists"
   /\ IF ~Owned(r) THEN Superseded(r)
@@ -1639,7 +1660,8 @@ Tick ==
 
 NetAny == NetUps \/ \E k \in 1..Len(jr) : Net(k)
 NetFillAny == \E r \in fj : NetFill(r) \/ DropFill(r) \/ ApplyFill(r)
-DeleteAny == \E b \in Blocks : Delete(b) \/ Cascade(b) \/ Release(b)
+DeleteAny == \E b \in Blocks :
+  Delete(b) \/ Cascade(b) \/ Release(b) \/ DropList(b)
 
 Next ==
   \/ \E w \in Writers :
@@ -1703,6 +1725,17 @@ NoFreedRead == (LiveSet \cap freed) \subseteq ToPut
 \* child the store lacks, which a read fills, so this walk stops at a block
 \* the store does not hold, where NoFreedRead walks every child.
 NoFreedStoredRead == ~freedLive
+
+\* Once adopted, every child of a listed parent the collector has not
+\* released is stored, lost, or one a session has still to put. A Land
+\* that skips requireListed for a child named in the list of the block it
+\* replaces relies on this: the stored parent's list vouches that each
+\* child still has its own. A fill stores a block before its children, which
+\* a read fills, so a config with FillBlocks leaves this out, as HoleKeeps.
+\* An absent child passes requireListed too; only a child whose bytes are
+\* stored without a list fails it, a state the model does not carry.
+KidsListed ==
+  Adopted => \A p \in stored \ rel : Kids(p) \subseteq stored \cup lost \cup ToPut
 
 \* At most one fill record names a block, so keying the records by block
 \* loses none.
