@@ -554,8 +554,11 @@ func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, ho
 // askPeers runs a block fanout over sessions. A peer that replaces its link
 // closes the session a request went out on while its new session comes up, so
 // a fanout that failed on a closed session waits up to sessionReplaceWait for
-// open sessions and asks again, at most maxSessionRetries times. Only a
-// session close is retried: a miss, a peer error or ctx ending returns at once.
+// open sessions and asks again, at most maxSessionRetries times. The fanout
+// keeps every peer's failure, so it asks again when any peer's session closed,
+// whatever the other peers answered and in whatever order. Only a session
+// close is retried: a fanout whose failures include no close returns at once,
+// as does a miss or ctx ending.
 func (c *Controller) askPeers(ctx context.Context, sessions []*peerSession, ref *block.BlockRef, hops uint32, exclude *peerSession) (*DexMessage, error) {
 	found, err := peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
 	for attempt := 0; attempt < maxSessionRetries && errors.Is(err, errSessionClosed) && ctx.Err() == nil; attempt++ {
