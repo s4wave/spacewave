@@ -2,7 +2,6 @@ package writelog
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"io"
@@ -254,12 +253,16 @@ func (l *Log) Claim(dir string, opened []byte, closing Witness) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.witness = closing
-	m, err := l.claim(dir)
+	m, why, err := l.claim(dir)
 	if err != nil {
 		return err
 	}
-	if len(opened) == 0 || !bytes.Equal(m.witness, opened) {
+	if why == "" {
+		why = witnessDiff(m.witness, opened)
+	}
+	if why != "" {
 		l.resumable = false
+		l.le.WithField("dir", dir).Info("write log: the next epoch starts new, since " + why)
 	}
 
 	// Refuse to resume what no store showed this log.
@@ -270,26 +273,28 @@ func (l *Log) Claim(dir string, opened []byte, closing Witness) error {
 	return nil
 }
 
-// claim binds the log to dir, taking its marker and returning it, unless it is
-// bound to it already, when it returns the marker this log would write.
-func (l *Log) claim(dir string) (marker, error) {
+// claim binds the log to dir, taking its marker and returning it with why its
+// epoch may not resume, as takeMarker reports, unless it is bound to it
+// already, when it returns the marker this log would write and never resumes
+// from it again.
+func (l *Log) claim(dir string) (marker, string, error) {
 	// Keep a directory already claimed.
 	if prev := l.claimed.Load(); prev != nil && *prev == dir {
-		return marker{pos: l.closed}, nil
+		return marker{pos: l.closed}, "the log claimed the directory already", nil
 	}
 
 	// Take the marker, then bind; a miss before the bind finds no marker it
 	// could retire, and missed keeps the epoch from resuming.
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return marker{}, err
+		return marker{}, "", err
 	}
-	m, resumable, retired := takeMarker(dir)
-	l.closed, l.resumable = m.pos, resumable
+	m, why, retired := takeMarker(dir)
+	l.closed, l.resumable = m.pos, why == ""
 	if !retired {
 		l.le.WithField("dir", dir).Error(stuckMarker)
 	}
 	l.claimed.Store(&dir)
-	return m, nil
+	return m, why, nil
 }
 
 // Set switches the log: nil turns it off, closing the open epoch with its
@@ -331,7 +336,7 @@ func (l *Log) Set(opts *Options) error {
 		l.le.WithError(err).Warn("write log: closing the epoch")
 	}
 	l.opts = next
-	if _, err := l.claim(next.Dir); err != nil {
+	if _, _, err := l.claim(next.Dir); err != nil {
 		l.breakEpoch(err)
 		return err
 	}
