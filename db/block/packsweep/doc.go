@@ -37,10 +37,9 @@
 //     walk and the log prove unreferenced, and no local copy is a fallback.
 //     The eviction confirms each block with the store's GetBlockExistsBatch,
 //     which answers from registered packs alone, so a block whose only
-//     bucket copy is in a held pack keeps its local copy. The store's
-//     KeepsBlocks reports false while any pack is quarantined or trashing,
-//     but the eviction does not read it yet; once it does, it halts while
-//     the sweep holds a pack, rather than confirming block by block.
+//     bucket copy is in a held pack keeps its local copy. The write-back's
+//     upload dedupe and ClearLocated decide block by block in the same way:
+//     the store's LocateBlocks skips the rows that name a held pack.
 //   - A pack object under the store's prefix leaves the store's listing only
 //     when two things hold. First, no key in its tail index is reached from
 //     the roots the backend lists or from a root the write log names. The

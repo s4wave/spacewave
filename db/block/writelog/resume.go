@@ -46,22 +46,31 @@ func writeMarker(dir string, pos Position) error {
 	return syncDir(dir)
 }
 
+// stuckMarker is logged when a marker can be neither removed nor poisoned.
+// This process never resumes from it, but the marker stays valid on disk, and
+// a later start that can remove it would resume past this process's writes.
+// No file in the directory can record the refusal durably, since writing one
+// needs the access the removal lacked, so the operator removes the marker.
+const stuckMarker = "write log: the resume marker could be neither removed nor poisoned; remove it before the next start, which would otherwise resume past this process's writes"
+
 // takeMarker retires the marker of dir and returns the position it named,
-// and whether the epoch there may resume at it: the marker parsed, its
-// removal is durable, and the epoch's last segment ends at its close line.
-func takeMarker(dir string) (Position, bool) {
+// whether the epoch there may resume at it, and whether the retirement is
+// durable, as retireMarker reports. The epoch may resume when the marker
+// parsed, its removal is durable, and the epoch's last segment ends at its
+// close line.
+func takeMarker(dir string) (Position, bool, bool) {
 	// Retire the marker; only a durable removal may resume.
 	data, durable := retireMarker(dir)
 	if data == nil || !durable {
-		return Position{}, false
+		return Position{}, false, durable
 	}
 
 	// Parse the position and check the epoch still ends there.
 	pos, err := ParsePosition(string(bytes.TrimSpace(data)))
 	if err != nil {
-		return Position{}, false
+		return Position{}, false, true
 	}
-	return pos, closedAt(dir, pos)
+	return pos, closedAt(dir, pos), true
 }
 
 // retireMarker removes the marker of dir, durably, returning its contents,

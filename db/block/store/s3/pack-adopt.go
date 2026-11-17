@@ -86,14 +86,15 @@ func (s *PackStore) adopt(ctx context.Context, entry *packfile.PackfileEntry, ve
 	return true, nil
 }
 
-// KeepsBlocks reports that the store never reclaims a block it holds. It
-// reports false while a pack sweep holds any pack quarantined or trashing,
-// since the sweep may then move that pack out of the bucket, and a caller
-// that drops or skips its own copy of a block on the strength of this store
-// holding it must wait until the sweep releases or removes the pack. The
-// count is read without a lock, and the index loads it with the held packs.
+// KeepsBlocks reports that the store never reclaims a block it holds: no
+// rewrite replaces a pack it lists. A pack sweep moves only packs it holds
+// quarantined or trashing, and LocateBlocks, GetBlockExists and every other
+// lookup that vouches for a block skip the rows that name a held pack, so a
+// caller that drops or skips its own copy on their word keeps the copy of
+// every block whose only bucket copy the sweep may move, while blocks in
+// other packs still clear.
 func (s *PackStore) KeepsBlocks() bool {
-	return s.keepPacks && (s.index == nil || s.index.heldCount.Load() == 0)
+	return s.keepPacks
 }
 
 // objectStatter reports an object's size without reading its body.
