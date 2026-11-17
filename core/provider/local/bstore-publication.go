@@ -76,6 +76,12 @@ func (b *BlockStore) AcquirePublicationPreparation(ctx context.Context) (func(),
 // SubmitAtomic admits a publication, pushing its blocks to the storage node
 // when the store has one.
 func (b *BlockStore) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
+	// Show the write observer the publication's blocks and roots before any
+	// path below stores, dedupes or pushes them: a publication writes beside
+	// the marking store, and a pack sweep's log must see every write.
+	if b.placement != nil {
+		b.placement.wb.ObservePublication(p)
+	}
 	if b.push != nil {
 		return b.push.SubmitAtomic(ctx, p)
 	}

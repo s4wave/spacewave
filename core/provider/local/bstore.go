@@ -560,6 +560,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer t.mountSweep(wb)()
 
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
