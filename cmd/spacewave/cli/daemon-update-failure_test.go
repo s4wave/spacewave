@@ -29,13 +29,15 @@ func TestDaemonUpdateChangedAfterAcceptanceReportsError(t *testing.T) {
 	t.Setenv(sharedDaemonUpdateTarget, stagedPath)
 	t.Setenv(sharedDaemonCorruptOnAccept, "1")
 
-	// Set the daemon environment and a timeout context.
+	// Bound the whole failure/retry separately from each 15-second startup.
+	// Restoring and preparing the second artifact also copies a test binary.
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
-	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
 	defer cancel()
+	started := time.Now()
 
 	// Watch the state directory and clean the fixture.
 	watcher, err := fsnotify.NewWatcher()
@@ -52,6 +54,7 @@ func TestDaemonUpdateChangedAfterAcceptanceReportsError(t *testing.T) {
 	if err := daemon.StartExecutable(ctx, statePath, oldPath, daemon.LauncherCommand); err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("old daemon started after %s", time.Since(started))
 	socketPath := filepath.Join(statePath, socketName)
 	connector := daemon.NewConnector(nil, nil)
 	client, err := connector.Connect(ctx, statePath, socketPath)
@@ -93,6 +96,7 @@ func TestDaemonUpdateChangedAfterAcceptanceReportsError(t *testing.T) {
 
 	// Wait until the update reports a digest error.
 failureReported:
+	t.Logf("accepted artifact failure reported after %s", time.Since(started))
 	status := &spacewave_launcher.LauncherInfo{}
 	if err := rpc.ExecCall(ctx, "test.DaemonUpdate", "Status", &spacewave_launcher.WatchLauncherInfoRequest{}, status); err != nil {
 		t.Fatal(err)
@@ -115,6 +119,7 @@ failureReported:
 		t.Fatal(err)
 	}
 	apply()
+	t.Logf("retry accepted after %s", time.Since(started))
 	late.Close()
 	client.Close()
 
@@ -132,6 +137,7 @@ failureReported:
 					t.Fatal(err)
 				}
 				newClient.Close()
+				t.Logf("replacement ready after %s", time.Since(started))
 				return
 			}
 		case err := <-watcher.Errors:
