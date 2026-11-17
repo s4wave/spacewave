@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
@@ -22,6 +23,11 @@ const MinPartBytes = 5 << 20
 
 // maxParts is the most parts one object may have.
 const maxParts = 10000
+
+// abortTimeout bounds the abort of a failed upload, which runs past the
+// caller's cancellation: a bucket that never answers it holds the caller only
+// this long, and the parts it leaves go to the bucket's lifecycle rule.
+const abortTimeout = 30 * time.Second
 
 // StreamOptions configures PutObjectStream.
 type StreamOptions struct {
@@ -63,7 +69,9 @@ func (c *Client) PutObjectStream(ctx context.Context, bucket, key string, r io.R
 		err = c.completeMultipart(ctx, bucket, key, uploadID, parts)
 	}
 	if err != nil {
-		c.abortMultipart(context.WithoutCancel(ctx), bucket, key, uploadID)
+		actx, cancel := context.WithTimeout(context.WithoutCancel(ctx), abortTimeout)
+		c.abortMultipart(actx, bucket, key, uploadID)
+		cancel()
 		return 0, err
 	}
 	return size, nil
