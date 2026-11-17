@@ -1902,6 +1902,119 @@ func testLivenessAdversarial(t *testing.T) {
 		testAuditWalk(t)
 	})
 
+	for _, tc := range []struct {
+		name           string
+		audited, named bool
+	}{
+		{"unaudited", false, false},
+		{"audited", true, false},
+		{"audited and named again", true, true},
+	} {
+		t.Run("stage dies holding a parent before its child "+tc.name, func(t *testing.T) {
+			// An adopted format 6 store, its generation Open, holds the old
+			// root A. A live stage holds L. A second stage puts P, which
+			// names C, before C, as a buffered store's drain may order
+			// them, and its process dies with both unput C and P's lapsing
+			// root. An audit while the root lives records C as a hole.
+			// Past the lease the collector releases the dead stage's root
+			// and keeps L. Unaudited, P frees once the generation settles.
+			// Audited, the hole record outlives every block that named C
+			// and holds the flip: the generation stays Open, P stays
+			// parked, and no pass reports why. A commit that names P again
+			// after the lapse, and later puts C, refills the hole, keeps
+			// both, and lets the generation settle.
+			store := store_kvtx_inmem.NewStore()
+			tr := testTree{}
+			tr.add(t, "A")
+			writeLegacyStore(t, store, store_kvkey.NewDefaultKVKey(), tr, "A", true, "A")
+			v, clk := openUnadoptedVolume(t, store)
+			ctx := t.Context()
+			if _, err := v.Adopt(ctx); err != nil {
+				t.Fatal(err)
+			}
+			if gen := livenessGeneration(t, v); gen != block_gc.Generation_GENERATION_OPEN {
+				t.Fatalf("the adoption left the generation %v, want it open", gen)
+			}
+			live, releaseLive, err := v.OpenStage(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer releaseLive()
+			tr.add(t, "L")
+			if _, err := v.PrepareStagedBlockBatch(ctx, live, tr.entries("L")); err != nil {
+				t.Fatal(err)
+			}
+
+			// The dying stage puts P alone; its process stops renewing.
+			dead, _, err := v.OpenStage(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			tr.add(t, "C")
+			p := tr.add(t, "P", "C")
+			if _, err := v.PrepareStagedBlockBatch(ctx, dead, tr.entries("P")); err != nil {
+				t.Fatal(err)
+			}
+			unlock, err := v.rootPinMu.Lock(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			delete(v.stages, dead)
+			unlock()
+			if tc.audited {
+				if res, err := v.Audit(ctx); err != nil || res.Holes != 1 {
+					t.Fatalf("audit under the live stage root recorded %d holes err %v, want C", res.Holes, err)
+				}
+			}
+
+			// Past the lease the dead stage's root lapses, the live one's
+			// does not.
+			advanceRenewing(t, v, clk, rootLease+time.Second)
+			if res := collectAll(t, v); res.Lapsed != 1 {
+				t.Fatalf("pass past the lease lapsed %d roots, want the dead stage's", res.Lapsed)
+			}
+			if tc.named {
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
+					t.Fatal(err)
+				}
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("C"), nil); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			// Settle as far as the store lets it.
+			for range 8 {
+				if livenessGeneration(t, v) == block_gc.Generation_GENERATION_OPEN {
+					walkFront(t, v, store, tr)
+				}
+				advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
+				collectAll(t, v)
+			}
+			requireReads(t, v, tr, "A", "L")
+			gen := livenessGeneration(t, v)
+			holes := countPrefix(t, store, slices.Concat(livenessPrefix, []byte{'O'}))
+			switch {
+			case tc.named:
+				requireReads(t, v, tr, "P", "C")
+				if gen != block_gc.Generation_GENERATION_SETTLED || holes != 0 {
+					t.Fatalf("after the refill the generation is %v with %d hole records, want Settled and none", gen, holes)
+				}
+			case tc.audited:
+				requireStored(t, v, tr, true, "P")
+				requireStored(t, v, tr, false, "C")
+				if gen != block_gc.Generation_GENERATION_OPEN || holes != 1 {
+					t.Fatalf("the generation is %v with %d hole records, want Open, held by C's", gen, holes)
+				}
+			default:
+				requireStored(t, v, tr, false, "P", "C")
+				if gen != block_gc.Generation_GENERATION_SETTLED || holes != 0 {
+					t.Fatalf("the generation is %v with %d hole records, want Settled and none", gen, holes)
+				}
+			}
+			requireAudit(t, v, 0)
+		})
+	}
+
 	t.Run("cache fill during an adoption", func(t *testing.T) {
 		// main holds C on an unadopted Volume. While an adoption settles its
 		// counts, after it counted the child lists, a cache fill stores F

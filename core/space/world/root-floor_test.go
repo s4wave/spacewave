@@ -6,6 +6,7 @@ import (
 	"errors"
 	"slices"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -548,4 +549,86 @@ func TestCursorRerunSurvivesRestart(t *testing.T) {
 			t.Fatalf("collection after save %v changed World membership: %v", save, got)
 		}
 	}
+
+	// Die between the replay's overflow puts and the cursor save. Under a
+	// one-byte bound every page goes to the epoch's stage and every position
+	// starts a save; a save already running skips them, and ending the
+	// adapter then ends the stage unsaved, as a lapsed lease does.
+	all := append(slices.Clone(ops), w.createOp("late1"), w.createOp("late2"))
+	keys := []string{"k1", "recovered", "after", "member", "late1", "late2", "late3"}
+	replayAll := func(phase string) *InnerState {
+		t.Helper()
+		for i, op := range all {
+			reason, err := w.a.Apply(ctx, i, op)
+			if err != nil || (reason != "") != (i == 2 || i == 6) {
+				t.Fatalf("%s position %d = %q, %v", phase, i, reason, err)
+			}
+		}
+		w.a.waitBackground()
+		got, _ := w.a.replay.head()
+		return got
+	}
+	requireKeys := func(phase string, state *InnerState) {
+		t.Helper()
+		want := []bool{true, true, true, false, true, true, len(all) > 9}
+		if got := hasKeys(ctx, t, w.a.replay, state, keys...); !slices.Equal(got, want) {
+			t.Fatalf("World %s = %v", phase, got)
+		}
+	}
+	gated := &gatedRoots{bucketStore: w.so.store.(*bucketStore)}
+	w.so.store = gated
+	w.open(1)
+	w.a.cursorSaving.Store(true)
+	replayAll("unsaved")
+	if !w.a.replay.stage.epoch.Stored() || w.a.replay.saved == len(all) {
+		t.Fatal("the replayed pages did not overflow to an unsaved epoch")
+	}
+	w.open(1)
+	w.collect()
+	requireKeys("after the death", replayAll("after the death"))
+
+	// Collect while a save's root move waits: the epoch the save rotated out
+	// still holds the pages of the World it saves.
+	w.a.cursorSaving.Store(true)
+	w.apply(len(all), w.createOp("late3"))
+	all = append(all, w.createOp("late3"))
+	w.a.cursorSaving.Store(false)
+	if !w.a.replay.stage.epoch.Stored() {
+		t.Fatal("the position's pages did not overflow to its epoch")
+	}
+	gate := make(chan struct{})
+	gated.gate.Store(&gate)
+	if err := w.a.saveCursor(ctx); err != nil {
+		t.Fatal(err)
+	}
+	w.collect()
+	gated.gate.Store(nil)
+	close(gate)
+	w.a.waitBackground()
+	head, _ = w.a.replay.head()
+	w.open(1)
+	w.collect()
+	if got := replayAll("after the saved overflow"); !got.EqualVT(head) {
+		t.Fatal("restart after the saved overflow changed the head World")
+	}
+	requireKeys("after the saved overflow", head)
+}
+
+// gatedRoots is a bucket whose root moves wait on gate while it is set.
+type gatedRoots struct {
+	*bucketStore
+	// gate is closed to let the waiting root moves through.
+	gate atomic.Pointer[chan struct{}]
+}
+
+// SetRoots waits on the gate, then moves the roots.
+func (s *gatedRoots) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	if gate := s.gate.Load(); gate != nil {
+		select {
+		case <-*gate:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return s.bucketStore.SetRoots(ctx, entries, roots)
 }

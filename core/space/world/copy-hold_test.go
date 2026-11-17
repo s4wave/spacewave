@@ -2,6 +2,7 @@ package space_world
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"slices"
 	"testing"
@@ -337,4 +338,53 @@ func TestAdmitHoldsOverflow(t *testing.T) {
 		age(collect)
 		requireStored(t, a, mid, leaf, root)
 	})
+
+	t.Run("overflow stage opened under a cancelled context", func(t *testing.T) {
+		// The put past the bound opens the lazy stage under a context
+		// already cancelled, and the store's open honours it, so the open
+		// fails. The admission fails with it
+		// and stores nothing the stage would have held: a block the Volume
+		// stored unheld would free before any root named it. A repeat under
+		// a live context admits the World, and collections keep it.
+		a, collect := newVolumeAdapter(t, bound, grace)
+		inner := a.pages.StoreOps
+		a.pages = block.NewPendingStore(&cancelStageStore{
+			StoreOps:    inner,
+			LeasedRoots: inner.(block.LeasedRoots),
+			RootProofs:  inner.(block.RootProofs),
+		}, bound)
+		leaf := page(t, "leaf", bound+1)
+		root := page(t, "root", 0, leaf.Ref)
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+		if err := a.keepAdmitted(ctx, admission(leaf, root)); !errors.Is(err, context.Canceled) {
+			t.Fatalf("admission under a cancelled context = %v, want it cancelled", err)
+		}
+		for _, e := range []*block.PutBatchEntry{leaf, root} {
+			if ok, err := a.pages.StoreOps.GetBlockExists(t.Context(), e.Ref); err != nil || ok {
+				t.Fatalf("block %q stored=%v err %v after a cancelled admission, want absent", e.Data[:4], ok, err)
+			}
+		}
+		if err := a.keepAdmitted(t.Context(), admission(leaf, root)); err != nil {
+			t.Fatal(err)
+		}
+		age(collect)
+		requireStored(t, a, leaf, root)
+	})
+}
+
+// cancelStageStore is a bucket whose OpenStage fails under a cancelled
+// context, as a stage open that waits on a lock does.
+type cancelStageStore struct {
+	block.StoreOps
+	block.LeasedRoots
+	block.RootProofs
+}
+
+// OpenStage fails under a cancelled context, and otherwise opens the stage.
+func (s *cancelStageStore) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	return s.LeasedRoots.OpenStage(ctx)
 }
