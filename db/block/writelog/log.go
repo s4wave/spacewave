@@ -257,7 +257,11 @@ func (l *Log) Claim(dir string, opened []byte, closing Witness) error {
 	if err != nil {
 		return err
 	}
-	if why == "" {
+	switch {
+	case why != "":
+	case !l.attached.Load():
+		why = "the log observes no store, as in a restore"
+	default:
 		why = witnessDiff(m.witness, opened)
 	}
 	if why != "" {

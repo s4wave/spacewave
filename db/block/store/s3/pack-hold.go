@@ -185,6 +185,25 @@ func (x *packIndex) heldState(id string) (PackState, bool) {
 	return x.held[id], true
 }
 
+// Registered reports whether pack id is in the plain registered state: in the
+// store's pack table and held by no quarantine or trashing, so every read,
+// locate and listing sees it and no sweep step will trash it before a
+// quarantine. It is false for a quarantined, trashing, removed or unknown
+// pack, for a store with no index, and before the table loads, so a caller
+// that drops another copy of a pack's blocks on its answer keeps them when
+// unsure. A registered pack a read lifted or a restore brought back is
+// registered, whatever its q/ row's event. The answer is a snapshot: a later
+// quarantine is still safe for such a caller, since a read of a held pack
+// falls back to it and lifts it or records a miss that keeps it. It reads the
+// table in memory under its read lock, with no transaction.
+func (s *PackStore) Registered(id string) bool {
+	if s.index == nil || id == "" {
+		return false
+	}
+	state, known := s.index.heldState(id)
+	return known && state == PackRegistered
+}
+
 // heldPack returns the held pack the key's h row names, or "" when the row
 // names a registered or removed pack or there is no row.
 func (x *packIndex) heldPack(ctx context.Context, key []byte) (string, error) {
