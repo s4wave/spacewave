@@ -326,9 +326,10 @@ func (r *ChatResource) WatchMessages(
 	_ *spacewave_chat_rpc.WatchMessagesRequest,
 	strm spacewave_chat_rpc.SRPCChatResourceService_WatchMessagesStream,
 ) error {
-	// Track the next unsent channel position for this attachment.
+	// Follow the channel with a cursor, so a replay that moves entries this
+	// attachment already sent never hides one it has not.
 	ctx := strm.Context()
-	nextIndex := uint64(0)
+	cursor := NewChannelCursor(0)
 	initialized := false
 
 	// Read the channel root before the channel, so a concurrent append ends
@@ -343,22 +344,21 @@ func (r *ChatResource) WatchMessages(
 			return err
 		}
 		messageCount := channel.GetMessageCount()
-		if nextIndex > messageCount {
-			nextIndex = messageCount
-		}
 		if !initialized && messageCount == 0 {
 			if err := strm.Send(&spacewave_chat_rpc.WatchMessagesResponse{}); err != nil {
 				return err
 			}
 		}
 
-		// Emit complete bounded history batches in acceptance order.
+		// Emit bounded batches of the entries not yet sent, in index order.
 		initialized = true
-		for nextIndex < messageCount {
-			endIndex := min(nextIndex+defaultMessageListLimit, messageCount)
-			keys, err := r.readMessageKeys(ctx, nextIndex, endIndex)
+		for {
+			_, keys, _, err := cursor.Read(ctx, messageCount, defaultMessageListLimit, r.readMessageKeys)
 			if err != nil {
 				return err
+			}
+			if len(keys) == 0 {
+				break
 			}
 			messages, err := r.readMessages(ctx, keys)
 			if err != nil {
@@ -369,7 +369,6 @@ func (r *ChatResource) WatchMessages(
 					return err
 				}
 			}
-			nextIndex = endIndex
 			if err := ctx.Err(); err != nil {
 				return err
 			}
