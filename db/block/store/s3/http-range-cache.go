@@ -49,6 +49,9 @@ const (
 	// cacheDeadline is a direct read made because the caller's deadline was
 	// too near for an attempt and a fallback.
 	cacheDeadline
+	// cacheRejected is a direct read made because bytes the Worker served
+	// earlier in the same block read failed the block's hash.
+	cacheRejected
 	// cacheResults is the number of results.
 	cacheResults
 )
@@ -126,6 +129,12 @@ func (c *HTTPRangeCache) Read(ctx context.Context, lower ObjectStore, bucket, ke
 		return lower.GetObjectRange(ctx, bucket, key, off, length)
 	}
 
+	// Go direct for the rest of a block read whose Worker bytes failed its hash.
+	blockRead, _ := ctx.Value(rangeReadKey{}).(*rangeRead)
+	if blockRead != nil && blockRead.direct.Load() {
+		return c.direct(ctx, lower, cacheRejected, bucket, key, off, length)
+	}
+
 	// Go direct when a failed attempt would leave the direct read too little time.
 	now := c.now()
 	if deadline, ok := ctx.Deadline(); ok && deadline.Sub(now) < c.client.Timeout+cacheDeadlineMargin {
@@ -142,6 +151,9 @@ func (c *HTTPRangeCache) Read(ctx context.Context, lower ObjectStore, bucket, ke
 	data, source, ok, quota := c.read(ctx, bucket, key, off, length)
 	c.breaker.record(c.now(), probe, ok, quota, !ok && ctx.Err() != nil)
 	if ok {
+		if blockRead != nil {
+			blockRead.cached.Store(true)
+		}
 		c.counts[source].Add(1)
 		c.bytes[source].Add(uint64(len(data)))
 		return data, nil
@@ -149,6 +161,33 @@ func (c *HTTPRangeCache) Read(ctx context.Context, lower ObjectStore, bucket, ke
 
 	// Fall back with the caller's original context, even after a cache timeout.
 	return c.direct(ctx, lower, cacheFallback, bucket, key, off, length)
+}
+
+// rangeReadKey keys a block read's rangeRead in its context.
+type rangeReadKey struct{}
+
+// rangeRead follows the range reads of one block read. The block's hash is
+// checked only after Read returns the Worker's bytes, so a read that fails the
+// check sets direct and reads again: the Worker is not asked for the same
+// bytes twice in one read.
+type rangeRead struct {
+	// cached is set when the Worker served bytes to this read.
+	cached atomic.Bool
+	// direct sends the read's remaining range reads to the bucket.
+	direct atomic.Bool
+}
+
+// withRangeRead returns ctx carrying a new rangeRead for one block read.
+func withRangeRead(ctx context.Context) (context.Context, *rangeRead) {
+	read := &rangeRead{}
+	return context.WithValue(ctx, rangeReadKey{}, read), read
+}
+
+// reject reports whether the read should be tried again from the bucket: the
+// Worker served it bytes and it was not already sent direct. It sends the
+// rest of the read direct.
+func (r *rangeRead) reject() bool {
+	return r.cached.Load() && r.direct.CompareAndSwap(false, true)
 }
 
 // direct reads from lower and counts the read under result.

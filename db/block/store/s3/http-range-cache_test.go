@@ -138,7 +138,7 @@ func TestHTTPRangeCacheBreakerProbe(t *testing.T) {
 	clock.Store(time.Unix(1_800_000_000, 0).UnixNano())
 	cache.now = func() time.Time { return time.Unix(0, clock.Load()) }
 	lower := &cacheTestOrigin{}
-	check := func(step string, cacheCalls int32, state HTTPRangeCacheBreaker, requests [5]uint64) {
+	check := func(step string, cacheCalls int32, state HTTPRangeCacheBreaker, requests [6]uint64) {
 		t.Helper()
 		counts := cache.Counts()
 		if calls.Load() != cacheCalls || counts.Breaker != state || counts.Requests != requests {
@@ -150,17 +150,17 @@ func TestHTTPRangeCacheBreakerProbe(t *testing.T) {
 	for range 5 {
 		guardRead(t, t.Context(), cache, lower)
 	}
-	check("open", 5, BreakerOpen, [5]uint64{0, 0, 5, 0, 0})
+	check("open", 5, BreakerOpen, [6]uint64{0, 0, 5, 0, 0, 0})
 	clock.Add(int64(breakerCoolOff - time.Second))
 	guardRead(t, t.Context(), cache, lower)
-	check("cool-off", 5, BreakerOpen, [5]uint64{0, 0, 5, 1, 0})
+	check("cool-off", 5, BreakerOpen, [6]uint64{0, 0, 5, 1, 0, 0})
 
 	// A failed probe opens it for another cool-off.
 	clock.Add(int64(time.Second))
 	guardRead(t, t.Context(), cache, lower)
-	check("failed probe", 6, BreakerOpen, [5]uint64{0, 0, 6, 1, 0})
+	check("failed probe", 6, BreakerOpen, [6]uint64{0, 0, 6, 1, 0, 0})
 	guardRead(t, t.Context(), cache, lower)
-	check("reopened", 6, BreakerOpen, [5]uint64{0, 0, 6, 2, 0})
+	check("reopened", 6, BreakerOpen, [6]uint64{0, 0, 6, 2, 0, 0})
 
 	// While a probe is in flight, other reads go direct.
 	clock.Add(int64(breakerCoolOff))
@@ -185,9 +185,9 @@ func TestHTTPRangeCacheBreakerProbe(t *testing.T) {
 	<-done
 
 	// The probe's hit closes the breaker, and reads use the cache again.
-	check("probe", 7, BreakerClosed, [5]uint64{1, 0, 6, 3, 0})
+	check("probe", 7, BreakerClosed, [6]uint64{1, 0, 6, 3, 0, 0})
 	guardRead(t, t.Context(), cache, lower)
-	check("closed", 8, BreakerClosed, [5]uint64{2, 0, 6, 3, 0})
+	check("closed", 8, BreakerClosed, [6]uint64{2, 0, 6, 3, 0, 0})
 	if lower.calls.Load() != 9 {
 		t.Fatalf("direct calls %d", lower.calls.Load())
 	}
@@ -247,7 +247,7 @@ func TestHTTPRangeCacheBreakerQuota(t *testing.T) {
 	quota.Store(false)
 	guardRead(t, t.Context(), cache, lower)
 	counts := cache.Counts()
-	if calls.Load() != 2 || counts.Breaker != BreakerClosed || counts.Requests != [5]uint64{1, 0, 1, 1, 0} {
+	if calls.Load() != 2 || counts.Breaker != BreakerClosed || counts.Requests != [6]uint64{1, 0, 1, 1, 0, 0} {
 		t.Fatalf("after probe: cache calls %d, counts %+v", calls.Load(), counts)
 	}
 }

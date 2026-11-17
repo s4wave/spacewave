@@ -540,7 +540,8 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 	if ref.GetEmpty() {
 		return nil, block.ErrEmptyBlockRef
 	}
-	if stored := s.readExtent(ctx, ref); stored != nil {
+	ctx, read := withRangeRead(ctx)
+	if stored := s.readExtent(ctx, read, ref); stored != nil {
 		return stored, nil
 	}
 
@@ -548,13 +549,42 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 	var stored *block.StoredBlock
 	err := s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
 		var err error
-		stored, err = s.packs.GetStoredBlock(ctx, ref)
+		stored, err = s.readPacks(ctx, read, ref)
 		return stored == nil && placed[0], err
 	})
 	if stored != nil {
 		s.reads.packs.Add(1)
 	}
 	return stored, err
+}
+
+// readPacks reads ref through the pack readers, once more from the bucket
+// when the read failed after the read cache's Worker answered one of their
+// fetches. The readers fetch under their own context, shared by concurrent
+// reads, so a context value cannot send their fetches direct: the store sends
+// all of its readers' fetches direct while it reads again.
+func (s *PackStore) readPacks(ctx context.Context, read *rangeRead, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Read from the bucket alone once Worker bytes failed in this read.
+	if read.direct.Load() {
+		return s.readPacksDirect(ctx, ref)
+	}
+	served := s.reads.served.Load()
+	stored, err := s.packs.GetStoredBlock(ctx, ref)
+	if err == nil || s.reads.served.Load() == served {
+		return stored, err
+	}
+
+	// The Worker answered a fetch during the failed read; ask only the bucket.
+	read.direct.Store(true)
+	return s.readPacksDirect(ctx, ref)
+}
+
+// readPacksDirect reads ref through the pack readers with their fetches sent
+// to the bucket.
+func (s *PackStore) readPacksDirect(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	s.reads.direct.Add(1)
+	defer s.reads.direct.Add(-1)
+	return s.packs.GetStoredBlock(ctx, ref)
 }
 
 // readCounters are the running counts of ReadCounts.
@@ -567,6 +597,10 @@ type readCounters struct {
 	bucket atomic.Uint64
 	// packs counts the reads through the pack readers.
 	packs atomic.Uint64
+	// served counts the pack readers' fetches the read cache's Worker answered.
+	served atomic.Uint64
+	// direct, above zero, sends the pack readers' fetches to the bucket.
+	direct atomic.Int32
 }
 
 // ReadCounts returns the store's block reads by where their bytes came from.
@@ -622,8 +656,10 @@ func SetIndexExtentReads(on bool) {
 // holds its extent, and returns nil when it does not, or when the bytes read
 // do not hold the block: a row of a pack sharing its number may name the
 // wrong pack, and the lookup through the pack readers finds the right one.
-// Concurrent reads of one block share the range read.
-func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.StoredBlock {
+// Concurrent reads of one block share the range read. Bytes the read cache's
+// Worker served that fail the block's hash are read once more from the bucket,
+// and read sends the rest of the block read there.
+func (s *PackStore) readExtent(ctx context.Context, read *rangeRead, ref *block.BlockRef) *block.StoredBlock {
 	// Find the extent.
 	if s.index == nil || !extentReadsOn.Load() || ref.GetHash() == nil {
 		return nil
@@ -647,16 +683,21 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 			}
 		}
 
-		// Read the extent.
-		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
-		if err != nil {
-			return nil, err
+		// Read the extent, again from the bucket when the Worker's bytes fail.
+		for {
+			data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
+			if err != nil {
+				return nil, err
+			}
+			stored, err := verifiedBlock(ref, data)
+			if err == nil {
+				s.reads.bucket.Add(1)
+				return stored, nil
+			}
+			if !read.reject() {
+				return nil, err
+			}
 		}
-		stored, err := verifiedBlock(ref, data)
-		if err == nil {
-			s.reads.bucket.Add(1)
-		}
-		return stored, err
 	})
 	stored, _ := value.(*block.StoredBlock)
 	return stored
@@ -1160,7 +1201,7 @@ func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string
 
 // openPack opens a reader over the ranges of packfile id.
 func (s *PackStore) openPack(id string, size int64) (*packfile_store.PackReader, error) {
-	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id}
+	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id, reads: &s.reads}
 	eng := packfile_store.NewPackReader(id, size, transport)
 	if s.exactReads {
 		eng.SetExactReads()
@@ -1173,14 +1214,29 @@ type rangeTransport struct {
 	client ObjectStore
 	bucket string
 	key    string
+	// reads counts the fetches the read cache's Worker answered and sends
+	// fetches direct, when set.
+	reads *readCounters
 }
 
-// Fetch reads bytes [off, off+length) of the object.
+// Fetch reads bytes [off, off+length) of the object, from the bucket alone
+// while reads.direct is above zero.
 func (t *rangeTransport) Fetch(ctx context.Context, off int64, length int) ([]byte, error) {
+	// Mark the fetch, sending it direct while the store reads again.
 	if length <= 0 {
 		return nil, nil
 	}
-	return t.client.GetObjectRange(ctx, t.bucket, t.key, off, length)
+	ctx, read := withRangeRead(ctx)
+	if t.reads != nil && t.reads.direct.Load() > 0 {
+		read.direct.Store(true)
+	}
+
+	// Read the range, counting a fetch the Worker answered.
+	data, err := t.client.GetObjectRange(ctx, t.bucket, t.key, off, length)
+	if t.reads != nil && read.cached.Load() {
+		t.reads.served.Add(1)
+	}
+	return data, err
 }
 
 // _ is a type assertion
