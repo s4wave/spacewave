@@ -57,6 +57,8 @@ type Controller struct {
 	stagingDirFunc func() (string, error)
 	// currentExecutableBundleFunc overrides current executable bundle detection in tests.
 	currentExecutableBundleFunc func() (execPath string, isBundle bool, bundleRoot string, err error)
+	// keepStagedReleases keeps older release copies when a version stages.
+	keepStagedReleases bool
 	// adoptMtx orders adoptDistConf calls.
 	adoptMtx sync.Mutex
 	// mtx guards below fields
