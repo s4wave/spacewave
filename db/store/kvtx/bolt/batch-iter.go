@@ -122,8 +122,8 @@ func (i *sliceIterator) Close() {
 	i.entries = nil
 }
 
-// _ is a type assertion
-var _ kvtx.Iterator = (*sliceIterator)(nil)
-
 // stringCompare compares two byte slices lexicographically.
 func stringCompare(a, b []byte) int { return bytes.Compare(a, b) }
+
+// _ is a type assertion.
+var _ kvtx.Iterator = (*sliceIterator)(nil)

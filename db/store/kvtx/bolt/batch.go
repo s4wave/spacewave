@@ -7,7 +7,6 @@ import (
 	"context"
 	"slices"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
@@ -43,12 +42,6 @@ type BatchStore struct {
 // GetDB returns the bolt DB.
 func (b *BatchStore) GetDB() *bdb.DB {
 	return b.store.GetDB()
-}
-
-// BatchStats tracks batch store performance.
-type BatchStats struct {
-	Writes  atomic.Int64
-	Commits atomic.Int64
 }
 
 // NewBatchStore constructs a BatchStore wrapping the given bolt Store.

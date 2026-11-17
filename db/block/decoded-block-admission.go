@@ -231,6 +231,7 @@ func MarkStagedRead(ctx context.Context) {
 // keep runs at most once, after the read returns, and only for a block the
 // reader decoded. A read nobody marks drops it without copying data.
 func KeepDecodedRefs(ctx context.Context, ref *BlockRef, data []byte, keep func(ctx context.Context, data []byte, refs []*BlockRef)) {
+	// Ignore reads nobody tracks and requests for another block.
 	mark := blockReadMarkFromContext(ctx)
 	if mark == nil || !mark.ref.EqualsRef(ref) {
 		return
@@ -245,6 +246,7 @@ func KeepDecodedRefs(ctx context.Context, ref *BlockRef, data []byte, keep func(
 
 // takeKeep returns and clears the read's keep, or nil.
 func (m *blockReadMark) takeKeep() func(context.Context, []*BlockRef) {
+	// Transfer the callback to one reader while holding the read-mark lock.
 	if m == nil {
 		return nil
 	}
