@@ -35,8 +35,11 @@ import (
 //     and a record's up and down pairs never change once written; netting
 //     only moves the cursor and the net offset past them, which the check
 //     reads in its view and applies to the copies. Each check copies at most
-//     walkSliceEdges pairs and reads the records past them in its own view,
-//     so a writer faster than the copy slows the walk but never stops it.
+//     walkSliceEdges pairs and sums at most walkBacklogPairs past them in its
+//     own view, so a view's work is bounded whatever a writer's rate. A view
+//     that finds more left only copies, releases the view and waits
+//     walkBehindWait before the next; after walkBehindViews such views in a
+//     row the walk ends with ErrWalkBehind, keeping its scratch to resume.
 //   - A named block with neither bytes, a list nor a hole record is a
 //     candidate, not a hole: a writer may store a parent ahead of its child.
 //     It is reported only if it is still named and absent once the confirm
@@ -103,10 +106,24 @@ const (
 	walkConfirmSlice = 64
 	// walkClassBound bounds the blocks the class walk of one hole visits.
 	walkClassBound = 4096
+	// walkBacklogPairs bounds the journal pairs one check view sums past its
+	// copy; a view that finds more is behind and only copies.
+	walkBacklogPairs = 65536
+	// walkBehindViews bounds the views in a row that find the walk behind
+	// before it gives up with ErrWalkBehind.
+	walkBehindViews = 256
+	// walkBehindWait is the wait after a view that found the walk behind,
+	// which leaves the store to its writers before the next copy.
+	walkBehindWait = 100 * time.Millisecond
 )
 
 // ErrWalkTaken reports a scratch store another run of the walk owns.
 var ErrWalkTaken = errors.New("audit walk scratch store belongs to another run")
+
+// ErrWalkBehind reports a walk whose copy of the journal stayed behind a
+// writer for walkBehindViews views in a row. Its scratch store holds the copy
+// so far, so a later run of the same name resumes it.
+var ErrWalkBehind = errors.New("audit walk fell behind the journal's writers")
 
 // errBadWalkRecord reports a scratch record the walk did not write.
 var errBadWalkRecord = errors.New("audit walk scratch record is malformed")
@@ -167,6 +184,8 @@ type walker struct {
 	prog *WalkProgress
 	// res collects the samples.
 	res *WalkResult
+	// behind counts the check views in a row that found the walk behind.
+	behind int
 }
 
 // walkRecord is one scratch record to write.
@@ -491,12 +510,16 @@ func (w *walker) check(ctx context.Context) error {
 		keep[string(key)] = struct{}{}
 	}
 
-	// Check each against the counts in one view, copying the journal
-	// records written since the last slice.
+	// Collect what the view finds: the absent blocks, the journal copy and
+	// whether the walk is behind its writers.
 	total := w.prog.GetCounts()
 	var found []*block.BlockRef
 	var copied []walkRecord
 	var next uint64
+	var behind bool
+
+	// Check each against the counts in one view, copying the journal
+	// records written since the last slice.
 	err = w.viewScratch(ctx, func(edges *Records) error {
 		return w.store.View(ctx, func(rec *Records) error {
 			// Copy the journal past the last copy, and read the rest for the
@@ -506,8 +529,8 @@ func (w *walker) check(ctx context.Context) error {
 				return err
 			}
 			var live map[string]int64
-			copied, next, live, err = copyTail(ctx, rec, state, w.prog.GetTail(), keep)
-			if err != nil {
+			copied, next, live, behind, err = copyTail(ctx, rec, state, w.prog.GetTail(), keep)
+			if err != nil || behind {
 				return err
 			}
 
@@ -541,6 +564,18 @@ func (w *walker) check(ctx context.Context) error {
 	w.prog.Tail = next
 	total.TailPairs += uint64(len(copied))
 
+	// Behind a writer, keep the copy, wait and copy again, up to the bound.
+	if behind {
+		if w.behind++; w.behind > walkBehindViews {
+			return errors.Wrapf(ErrWalkBehind, "%d views past %d pairs", walkBehindViews, walkBacklogPairs)
+		}
+		if err := w.write(ctx, copied); err != nil {
+			return err
+		}
+		return w.opts.Wait(ctx, walkBehindWait)
+	}
+	w.behind = 0
+
 	// Write a candidate for each block whose bytes are absent too.
 	now := millis(w.opts.Now().UnixMilli())
 	recs := copied
@@ -573,15 +608,28 @@ func (w *walker) check(ctx context.Context) error {
 // passes walkSliceEdges pairs, as walkTail records, and the sequence past
 // the last of them. It sums the pairs of the records past those for the
 // blocks in keep alone, which it returns as live. Those records are past the
-// cursor's, so none needs the net offset.
-func copyTail(ctx context.Context, rec *Records, state *LivenessState, from uint64, keep map[string]struct{}) ([]walkRecord, uint64, map[string]int64, error) {
+// cursor's, so none needs the net offset. Once it has read walkBacklogPairs
+// pairs past its copy it stops and reports the walk behind; live is then
+// partial and unused.
+func copyTail(
+	ctx context.Context,
+	rec *Records,
+	state *LivenessState,
+	from uint64,
+	keep map[string]struct{},
+) (recs []walkRecord, next uint64, live map[string]int64, behind bool, err error) {
 	// Start at the copy or the cursor, whichever is later.
-	next := max(from, state.GetCursor())
-	var recs []walkRecord
-	live := make(map[string]int64)
-	err := rec.ScanJournal(ctx, next, func(seq uint64, r *JournalRecord) (bool, error) {
-		// Past the bound, sum the record for the slice's blocks.
+	next = max(from, state.GetCursor())
+	live = make(map[string]int64)
+	var past int
+	err = rec.ScanJournal(ctx, next, func(seq uint64, r *JournalRecord) (bool, error) {
+		// Past the bound, sum the record for the slice's blocks, unless the
+		// backlog passes its own bound.
 		if len(recs) >= walkSliceEdges {
+			if past += len(r.GetUp()) + len(r.GetDown()); past > walkBacklogPairs {
+				behind = true
+				return false, nil
+			}
 			for d, keys := range map[int64][][]byte{1: r.GetUp(), -1: r.GetDown()} {
 				for _, key := range keys {
 					if _, ok := keep[string(key)]; ok {
@@ -608,7 +656,7 @@ func copyTail(ctx context.Context, rec *Records, state *LivenessState, from uint
 		next = seq + 1
 		return true, nil
 	})
-	return recs, next, live, err
+	return recs, next, live, behind, err
 }
 
 // tailDelta adds to delta what the journal past the cursor and the fill
