@@ -31,6 +31,13 @@
 // ones to the store's trash, have the backend remove them, and purge them
 // once removed for a wait. The invariants that keep them from losing a
 // reached block:
+//   - A pack the sweep trashes may hold the only copy of every block in it:
+//     the write-back's bounded eviction drops a block's local copy once its
+//     pack verifies in the bucket. So the sweep trashes only what the root
+//     walk and the log prove unreferenced, and no local copy is a fallback.
+//     While any pack is quarantined or trashing, the store's KeepsBlocks
+//     reports false, which halts that eviction until the sweep releases or
+//     removes the pack.
 //   - A pack object under the store's prefix leaves the store's listing only
 //     when two things hold. First, no key in its tail index is reached from
 //     the roots the backend lists or from a root the write log names. The

@@ -143,7 +143,8 @@ func TestQuarantineStatLifts(t *testing.T) {
 
 // TestQuarantineMoves checks the moves the states refuse, the command's lift,
 // the miss a trashing pack records, the held packs Packs reports, and that a
-// remove forgets the pack's row.
+// remove forgets the pack's row. KeepsBlocks reports false while any pack is
+// held.
 func TestQuarantineMoves(t *testing.T) {
 	eachIndexVolume(t, func(t *testing.T, kind string) {
 		ctx := t.Context()
@@ -169,9 +170,16 @@ func TestQuarantineMoves(t *testing.T) {
 			t.Fatal("quarantined on a store that rewrites its packs")
 		}
 
-		// The command's lift records no block.
+		// The command's lift records no block. While the packs are held the
+		// store does not report that it keeps its blocks.
+		if !s.KeepsBlocks() {
+			t.Fatal("a store with no held pack reports it may reclaim blocks")
+		}
 		if err := s.Quarantine(ctx, []string{packA, packB}); err != nil {
 			t.Fatal(err)
+		}
+		if s.KeepsBlocks() {
+			t.Fatal("a store with quarantined packs reports it keeps its blocks")
 		}
 		packs, err := s.Packs(ctx)
 		if err != nil || len(packs) != 2 {
@@ -233,7 +241,7 @@ func TestQuarantineMoves(t *testing.T) {
 		if n := rowCount(t, kv, indexHoldPrefix); n != 1 {
 			t.Fatalf("%d q/ rows after the remove, want pack a's lift", n)
 		}
-		if s.index.heldCount.Load() != 0 {
+		if s.index.heldCount.Load() != 0 || !s.KeepsBlocks() {
 			t.Fatal("the removed pack is still held")
 		}
 	})
