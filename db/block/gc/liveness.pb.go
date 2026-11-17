@@ -303,6 +303,21 @@ type LivenessState struct {
 	// reads it as unknown sees the mark stale and forces one more recount,
 	// which fails safe.
 	FreesMark uint64 `protobuf:"varint,16,opt,name=frees_mark,json=freesMark,proto3" json:"freesMark,omitempty"`
+	// AdoptMark is one past the sequence of the empty record the last
+	// adoption wrote at its mark. A block the adoption settles may be a head a
+	// reader saw before the mark, whose move off it the dropped journal
+	// carried, so the settle's flip, its only reader, unmarks nothing until
+	// the cursor reaches this mark and the record is Grace old. Nothing clears
+	// it: once reached, the cursor stays past it, and an adoption after the
+	// flip sets a mark that no flip reads.
+	//
+	// Invariant: only Adopt's mark transaction writes it; no Land, fill,
+	// netting, free or flip does. So no write a steady writer lands can move
+	// it, and the flip waits at most Grace past the mark plus the time to net
+	// the records before it, unlike frees, which a writer can hold off through
+	// HoldMark. Journal.tla models it as amark, which only AdoptMark raises
+	// (AdoptMarkFixed).
+	AdoptMark uint64 `protobuf:"varint,17,opt,name=adopt_mark,json=adoptMark,proto3" json:"adoptMark,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -398,6 +413,13 @@ func (x *LivenessState) GetFrees() bool {
 func (x *LivenessState) GetFreesMark() uint64 {
 	if x != nil {
 		return x.FreesMark
+	}
+	return 0
+}
+
+func (x *LivenessState) GetAdoptMark() uint64 {
+	if x != nil {
+		return x.AdoptMark
 	}
 	return 0
 }
@@ -509,6 +531,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.HoldRule = m.HoldRule
 	r.Frees = m.Frees
 	r.FreesMark = m.FreesMark
+	r.AdoptMark = m.AdoptMark
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -634,6 +657,9 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 		return false
 	}
 	if this.FreesMark != that.FreesMark {
+		return false
+	}
+	if this.AdoptMark != that.AdoptMark {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -997,6 +1023,11 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("freesMark")
 		s.WriteUint64(x.FreesMark)
 	}
+	if x.AdoptMark != 0 || s.HasField("adoptMark") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("adoptMark")
+		s.WriteUint64(x.AdoptMark)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1057,6 +1088,9 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "frees_mark", "freesMark":
 			s.AddField("frees_mark")
 			x.FreesMark = s.ReadUint64()
+		case "adopt_mark", "adoptMark":
+			s.AddField("adopt_mark")
+			x.AdoptMark = s.ReadUint64()
 		}
 	})
 }
@@ -1261,6 +1295,13 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.AdoptMark != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AdoptMark))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
+	}
 	if m.FreesMark != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FreesMark))
 		i--
@@ -1436,6 +1477,7 @@ func (m *LivenessState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldRule)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Frees)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.FreesMark)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.AdoptMark)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1576,6 +1618,10 @@ func (x *LivenessState) MarshalProtoText() string {
 	if x.FreesMark != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "frees_mark")
 		protobuf_go_lite.TextWriteUint(&sb, x.FreesMark)
+	}
+	if x.AdoptMark != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "adopt_mark")
+		protobuf_go_lite.TextWriteUint(&sb, x.AdoptMark)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1901,6 +1947,15 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.FreesMark = 0
 			m.FreesMark, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdoptMark", wireType)
+			}
+			m.AdoptMark = 0
+			m.AdoptMark, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

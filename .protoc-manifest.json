@@ -1696,7 +1696,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/gc": {
-      "hash": "aa5e171c4be38e0f2e03ad124f0735ba74e92eb60cf363774a79fc070b265960",
+      "hash": "c8fe7fae7484beb9c724a55dbf08d045c917180d1f685ed90369c5f81d578fc3",
       "generatedFiles": [
         "db/block/gc/audit-walk.pb.go",
         "db/block/gc/audit-walk.pb.ts",

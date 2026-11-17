@@ -649,6 +649,9 @@ VARIABLES
              \* before any block may be freed: the journal's length after the
              \* last record that held a stored block that was released or at
              \* zero, or while a cascade was due, less those netted since
+  amark,     \* the adoption mark, as the records past the cursor that must
+             \* net before the flip: 1 at the mark, for its empty record, less
+             \* those netted since; no other step raises it
   under,     \* some transaction took a holder from a block that had none
   obs,       \* each writer's observed head of main
   seen,      \* the head of main the reader saw and has not pinned, or None
@@ -712,7 +715,7 @@ VARIABLES
              \* each step that returns it to unadopted asks for one
   revived    \* history: stored blocks that left zero by gaining a holder
 gcVars == <<cnt, zero, rel, unproved, ripe, under, pend, pdir, revived>>
-jrVars == <<jr, hseq, noff>>
+jrVars == <<jr, hseq, noff, amark>>
 fillVars == <<fj, freedLive>>
 genVars == <<cut, young, unverified, rewritten, unmarked, flipped, parked, reparked, verified,
              walk, wake>>
@@ -726,7 +729,7 @@ runVars == <<pc, pos, opens>>
 stageVars == <<stage, stall>>
 writerVars == <<tgt, sessionAge, wrote, skipped>>
 vars == <<root, left, stored, lost, cnt, zero, rel, unproved, ripe, jr, hseq,
-          noff, under,
+          noff, amark, under,
           obs, seen, seenAge, txns, holes, adoption, owner, pc, pos, born,
           moved, opens, stage, stall, tgt, sessionAge, wrote, skipped, sheld,
           freed, fj, freedLive, pend, pdir, cut, young, unverified,
@@ -759,6 +762,7 @@ Init ==
   /\ jr = <<>>
   /\ hseq = 0
   /\ noff = FALSE
+  /\ amark = 0
   /\ under = FALSE
   /\ obs = [w \in Writers |-> None]
   /\ seen = None
@@ -1015,7 +1019,7 @@ LandCore(batch, moves, holds, rels, keep) ==
      /\ left' = [n \in Leases |->
                    IF root'[n] = None THEN -1
                    ELSE IF \E m \in moves : m.n = n THEN Lease ELSE left[n]]
-     /\ UNCHANGED noff
+     /\ UNCHANGED <<noff, amark>>
      /\ jr' = IF append THEN Append(jr, [age |-> 0, up |-> up, down |-> down])
               ELSE jr
      /\ hseq' = IF append /\ HoldMark /\ onStored # {} /\
@@ -1395,6 +1399,7 @@ Net(k) ==
         /\ UNCHANGED unproved
   /\ jr' = SubSeq(jr, k + 1, Len(jr))
   /\ hseq' = Past(hseq, k)
+  /\ amark' = Past(amark, k)
   /\ noff' = FALSE
   /\ UNCHANGED <<root, left, stored, lost, obs, seen, seenAge, txns, holes,
                  netLandVars, adoptVars, stageVars, writerVars, pend, pdir>>
@@ -1417,7 +1422,7 @@ NetUps ==
         /\ parked' = s.parked
         /\ UNCHANGED unproved
   /\ noff' = TRUE
-  /\ UNCHANGED <<root, left, stored, lost, jr, hseq, obs, seen, seenAge,
+  /\ UNCHANGED <<root, left, stored, lost, jr, hseq, amark, obs, seen, seenAge,
                  txns, holes, netLandVars, adoptVars, stageVars, writerVars,
                  pend, pdir>>
 
@@ -1719,7 +1724,14 @@ AdoptClear(r) ==
 \* AdoptMark marks the Volume adopting in r at the journal's end. The
 \* collector's cursor moves there, past every ripe sequence and the hold
 \* mark, and the records before it, which the counts will reflect, are never
-\* read again. It counts each stage hold a writer holds at the mark: a stage
+\* read again. It starts the journal with one empty marker record, which ages
+\* like any other, so a block the adoption settles at zero ripens behind it
+\* and is freed only once the marker is Grace old: a reader that saw a head
+\* before the mark, whose move off the head the dropped records carried, has
+\* Grace to pin it. The adoption mark (amark) makes the flip wait for the
+\* marker too, since the walk does not seed that head and the flip would
+\* unmark it unreached; the mark is fixed, so a writer cannot extend it.
+\* It counts each stage hold a writer holds at the mark: a stage
 \* hold is a root record, and countRoots counts each root at the block it
 \* held when the adoption began, which a hold the stage moves later keeps in
 \* its adoption root mark. Counting them at the mark rather than in AdoptRoot's
@@ -1730,9 +1742,10 @@ AdoptMark(r) ==
      THEN Superseded(r)
      ELSE /\ adoption' = "adopting"
           /\ owner' = r
-          /\ jr' = <<>>
+          /\ jr' = <<[age |-> 0, up |-> {}, down |-> {}]>>
           /\ ripe' = [b \in Blocks |-> 0]
           /\ hseq' = 0
+          /\ amark' = 1
           /\ noff' = FALSE
           /\ pc' = [pc EXCEPT ![r] = "roots"]
           /\ pos' = [pos EXCEPT ![r] = 0]
@@ -1972,6 +1985,9 @@ Flippable ==
   \* queue entry at a ripe sequence: a marked block naming a child the front
   \* popped is such a block, and the flip unmarks it with the child.
   /\ \A b \in zero \cap stored : ripe[b] = 0 => b \in parked
+  \* The adoption's marker has netted, so a head a reader saw before the
+  \* mark, which no seed reaches, is Grace old before the flip unmarks it.
+  /\ amark = 0
 
 \* WalkEnd ends a pass whose front is empty. A dirty pass, or one that
 \* rewrote a list, starts again; with Recount a rewrite returns the Volume
@@ -2158,7 +2174,7 @@ Tick ==
   /\ stall' = IF Building THEN Older(stall, Lease + Grace + 1) ELSE 0
   /\ sessionAge' = [w \in Writers |->
                       IF tgt[w] = None THEN 0 ELSE Older(sessionAge[w], Grace)]
-  /\ UNCHANGED <<root, stored, lost, gcVars, hseq, noff, obs, seen, txns, holes,
+  /\ UNCHANGED <<root, stored, lost, gcVars, hseq, noff, amark, obs, seen, txns, holes,
                  born, moved, sheld, genVars, freed, freedLive, adoptVars, stage, tgt,
                  wrote, skipped>>
 
@@ -2467,4 +2483,15 @@ Collected == <>[](Quiet /\ stored \subseteq LiveSet \cup BelowLost)
 \* Unverified. With RunCovers it makes a completed run hold every unverified
 \* block, so RunMissWitness holds and scan-on's flip takes what scan-off's does.
 UnverifiedShrinks == [][unverified => Unverified' \subseteq Unverified]_vars
+
+\* Only an adoption's mark raises the flip's target; a write never does, so
+\* a writer that lands without pause cannot hold the flip off, as it can
+\* hold off frees through the hold mark.
+AdoptMarkFixed == [][amark' > amark => adoption' = "adopting"]_vars
+
+\* A reachability witness, which a testdata config expects violated: the
+\* flip may run while a record a writer landed after the adoption's marker
+\* has not netted yet.
+NoFlipUnderWrites == ~(unverified /\ adoption = "adopted" /\ Flippable /\
+                       amark = 0 /\ Len(jr) > 0)
 ====
