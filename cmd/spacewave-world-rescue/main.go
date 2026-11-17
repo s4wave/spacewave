@@ -17,6 +17,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -42,6 +43,10 @@ const defaultIndexTable = "pack_index"
 const (
 	exitHardStop = 2
 	exitStopped  = 3
+	// exitIncomplete: the run left keep set blocks unwritten or whole packs
+	// unread (result.KeepFailed, result.WholeUnread); it wins over a clean
+	// stop, since the ledger finishes those packs and no later run reads them.
+	exitIncomplete = 5
 )
 
 // args are the command's flags.
@@ -122,22 +127,52 @@ func main() {
 	// Run it and exit by the kind of its error.
 	if err := app.Run(os.Args); err != nil {
 		_, _ = os.Stderr.WriteString(err.Error() + "\n")
-		var hard *hardStopError
-		if errors.As(err, &hard) {
-			os.Exit(exitHardStop)
-		}
-		var stopped stoppedError
-		if errors.As(err, &stopped) {
-			os.Exit(exitStopped)
-		}
-		os.Exit(1)
+		os.Exit(exitCode(err))
 	}
+}
+
+// exitCode returns the exit code of a run's error.
+func exitCode(err error) int {
+	// Match the error kinds from the most severe down.
+	var hard *hardStopError
+	if errors.As(err, &hard) {
+		return exitHardStop
+	}
+	var incomplete incompleteError
+	if errors.As(err, &incomplete) {
+		return exitIncomplete
+	}
+	var stopped stoppedError
+	if errors.As(err, &stopped) {
+		return exitStopped
+	}
+	return 1
+}
+
+// resultError returns the error a finished run's result ends in: nil when it
+// finished clean.
+func resultError(res *result) error {
+	if res.KeepFailed != 0 || res.WholeUnread != 0 {
+		return incompleteError{keepFailed: res.KeepFailed, wholeUnread: res.WholeUnread}
+	}
+	if res.Stop != "" {
+		return stoppedError(res.Stop)
+	}
+	return nil
 }
 
 // stoppedError reports a clean early stop.
 type stoppedError string
 
 func (e stoppedError) Error() string { return "stopped cleanly: " + string(e) }
+
+// incompleteError reports a run that left keep set blocks unwritten or whole
+// packs unread.
+type incompleteError struct{ keepFailed, wholeUnread int }
+
+func (e incompleteError) Error() string {
+	return fmt.Sprintf("incomplete: keep-failed %d whole-unread %d", e.keepFailed, e.wholeUnread)
+}
 
 // run checks the flags, opens the index and the server, and runs the rescue.
 func (a *args) run() error {
@@ -329,10 +364,7 @@ func (a *args) run() error {
 	if err != nil {
 		return err
 	}
-	if res.Stop != "" {
-		return stoppedError(res.Stop)
-	}
-	return nil
+	return resultError(res)
 }
 
 // readPackList reads a file of pack ids, the first field of each non-empty

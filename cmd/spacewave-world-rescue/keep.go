@@ -151,6 +151,9 @@ type keeper struct {
 	o    keepOptions
 	mtx  sync.Mutex
 	seen map[keyTail]struct{}
+	// failed holds the tails a pack held but did not give: bytes that do
+	// not hash to the key, or an index entry past the pack's end.
+	failed map[keyTail]struct{}
 	// Kept, Dropped and Failed count blocks; Dup those the run had already
 	// stored; KeptBytes the kept data.
 	Kept, Dropped, Failed, Dup int
@@ -162,7 +165,30 @@ func newKeeper(o keepOptions) *keeper {
 	if o.Set == nil {
 		return nil
 	}
-	return &keeper{o: o, seen: make(map[keyTail]struct{})}
+	return &keeper{o: o, seen: make(map[keyTail]struct{}), failed: make(map[keyTail]struct{})}
+}
+
+// fail records that a pack held key but did not give it.
+func (k *keeper) fail(key []byte) {
+	k.mtx.Lock()
+	defer k.mtx.Unlock()
+	k.Failed++
+	k.failed[tailOf(key)] = struct{}{}
+}
+
+// lost counts the keep set keys a pack held but did not give and no other
+// pack gave since: the keep set blocks the run failed to write.
+func (k *keeper) lost() int {
+	// Count, under the lock, the failed keys no later pack gave.
+	k.mtx.Lock()
+	defer k.mtx.Unlock()
+	var n int
+	for t := range k.failed {
+		if _, ok := k.seen[t]; !ok {
+			n++
+		}
+	}
+	return n
 }
 
 // take returns the keep set's blocks of a pack, verified against their keys,
@@ -177,6 +203,7 @@ func (k *keeper) take(index []*kvfile.IndexEntry, data []byte, wanted map[string
 		}
 		off, size := ie.GetOffset(), ie.GetSize()
 		if off+size > uint64(len(data)) {
+			k.fail(key)
 			continue
 		}
 		if !k.claim(key) {
@@ -189,9 +216,9 @@ func (k *keeper) take(index []*kvfile.IndexEntry, data []byte, wanted map[string
 		blk, ok := verifyKeyed(key, data[off:off+size])
 		if !ok {
 			k.mtx.Lock()
-			k.Failed++
 			delete(k.seen, tailOf(key))
 			k.mtx.Unlock()
+			k.fail(key)
 			continue
 		}
 		out = append(out, extra{key: key, off: off, size: size, blk: blk})

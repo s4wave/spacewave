@@ -147,6 +147,12 @@ type result struct {
 	// PackErrors counts the packs whose fetch failed after retries; their
 	// refs stay unrecorded for the next run.
 	PackErrors int
+	// KeepFailed counts the keep set keys a read pack held but did not give
+	// and no other pack gave: blocks the run failed to write. WholeUnread
+	// counts the packs read whole for the keep set that were never read
+	// (missing, unsized, too large, over size, or a bad pack index); the
+	// ledger finishes them, so a later run does not read them either.
+	KeepFailed, WholeUnread int
 	// Bytes is the bytes fetched across runs.
 	Bytes uint64
 	// Requests is this run's request attempts.
@@ -180,6 +186,9 @@ type packResult struct {
 	reqs reqStats
 	// skip says why the pack was not fetched, empty when it was.
 	skip string
+	// unread says why a whole read of the pack never read it, empty when
+	// it did or never tried.
+	unread string
 	// extras are the keep set's blocks of the pack.
 	extras []extra
 }
@@ -366,9 +375,19 @@ func (r *rescuer) count(state string, n int) {
 
 // finish fills the run's totals.
 func (r *rescuer) finish() *result {
+	r.res.KeepFailed = r.keepLost()
 	r.res.Bytes = r.fetch.fetched.Load()
 	r.res.Requests = r.fetch.requests.Load()
 	return &r.res
+}
+
+// keepLost counts the keep set keys the run failed to write, 0 without a
+// keep set.
+func (r *rescuer) keepLost() int {
+	if r.keep == nil {
+		return 0
+	}
+	return r.keep.lost()
 }
 
 // belowFloor reports whether writing extra bytes would leave the output's
@@ -1001,6 +1020,10 @@ func (r *rescuer) flush(ctx context.Context) error {
 				return err
 			}
 		}
+		if res.complete && res.unread != "" && r.keep != nil {
+			r.res.WholeUnread++
+			r.le.WithField("pack", res.id).WithField("why", res.unread).Warn("whole pack not read; its keep set blocks are not taken")
+		}
 		if res.complete {
 			if err := r.ledger.pack(res.id, res.fetched, len(res.keys), res.notInPack(), res.skip); err != nil {
 				return err
@@ -1065,10 +1088,11 @@ func (r *rescuer) progress() {
 	secs := max(time.Since(r.start).Seconds(), 1e-3)
 	fetched := r.fetch.fetched.Load()
 	_, _ = fmt.Fprintf(r.o.Log,
-		"packs %d/%d (whole %d, ranged %d, errors %d) refs done %d failed %d not-in-pack %d too-large %d ambiguous-num %d shared-num %d absent %d deferred %d no-extent %d/%d bytes %d (%.0f B/s) requests %d (%.1f/s)\n",
+		"packs %d/%d (whole %d, ranged %d, errors %d) refs done %d failed %d not-in-pack %d too-large %d ambiguous-num %d shared-num %d absent %d deferred %d no-extent %d/%d bytes %d (%.0f B/s) requests %d (%.1f/s) keep-failed %d whole-unread %d\n",
 		r.res.PacksDone, r.res.PacksTotal, r.res.Whole, r.res.Ranged, r.res.PackErrors,
 		r.res.Done, r.res.Failed, r.res.NotInPack, r.res.TooLarge, r.res.Ambiguous, r.res.SharedNum, r.res.Absent, r.res.Deferred, r.res.NoExtentDone, r.res.NoExtent,
-		fetched, float64(fetched-r.bytes0)/secs, r.fetch.requests.Load(), float64(r.fetch.requests.Load())/secs)
+		fetched, float64(fetched-r.bytes0)/secs, r.fetch.requests.Load(), float64(r.fetch.requests.Load())/secs,
+		r.keepLost(), r.res.WholeUnread)
 }
 
 // packKey returns the object key of a pack.
@@ -1205,7 +1229,7 @@ func (r *rescuer) missing(res *packResult, p *packWork, err error) (*packResult,
 				res.finished = append(res.finished, refReason{key: w.key, state: stateFailed, reason: "pack-missing"})
 			}
 		}
-		res.complete = true
+		res.complete, res.unread = true, "pack-missing"
 		return res, nil
 	}
 	return res, err
@@ -1222,7 +1246,7 @@ func (r *rescuer) skipAll(res *packResult, p *packWork, state, why string) *pack
 	for _, w := range p.wants {
 		res.finished = append(res.finished, refReason{key: w.key, state: state, reason: why})
 	}
-	res.complete, res.skip = true, why
+	res.complete, res.skip, res.unread = true, why, why
 	return res
 }
 
@@ -1231,7 +1255,7 @@ func (r *rescuer) failAll(res *packResult, p *packWork, reason string) *packResu
 	for _, w := range p.wants {
 		res.finished = append(res.finished, refReason{key: w.key, state: stateFailed, reason: reason})
 	}
-	res.complete = true
+	res.complete, res.unread = true, reason
 	return res
 }
 

@@ -169,6 +169,78 @@ func TestRescueWholePacksNoHashRow(t *testing.T) {
 	}
 }
 
+// TestRescueWholePacksIncomplete reports a keep set block a listed pack held
+// but did not give, and a listed pack it could not read, in the result, the
+// progress line and the exit class, beside a run that gets them all.
+func TestRescueWholePacksIncomplete(t *testing.T) {
+	src := newSource(t)
+	a, b, c := src.pack(3), src.pack(4), src.pack(4)
+	idB, idC := packOf(t, src, b[0]), packOf(t, src, c[0])
+	src.dropHashRows(append(append([]*block.BlockRef(nil), b...), c...))
+
+	// A clean run over both listed packs keeps all eight and exits 0.
+	out := t.TempDir()
+	var kept, dropped bytes.Buffer
+	o := testOptions(src, writeList(t, out, a), out)
+	o.Keep = keepOf(t, append(append([]*block.BlockRef(nil), b...), c...), &kept, &dropped)
+	o.WholePacks = []string{idB, idC}
+	res, err := run(context.Background(), o, &fakeServer{dir: src.dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.KeepFailed != 0 || res.WholeUnread != 0 || resultError(res) != nil {
+		t.Fatalf("clean run %+v", res)
+	}
+
+	// Flip a byte inside b[0]'s value in pack B and delete pack C.
+	root := filepath.Join(src.dir, testRoot)
+	pathB := objectPath(root, testPrefix+"packs/"+idB)
+	data, err := os.ReadFile(pathB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	index, err := packfile.ReadIndex(bytes.NewReader(data), uint64(len(data)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyB0 := packfile.BlockKey(b[0].GetHash())
+	for _, ie := range index {
+		if bytes.Equal(ie.GetKey(), keyB0) {
+			data[ie.GetOffset()+ie.GetSize()/2] ^= 0xff
+		}
+	}
+	if err := os.WriteFile(pathB, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(objectPath(root, testPrefix+"packs/"+idC)); err != nil {
+		t.Fatal(err)
+	}
+
+	// A fresh run reports both, in the result, the progress line and exit 5.
+	out = t.TempDir()
+	var log bytes.Buffer
+	o = testOptions(src, writeList(t, out, a), out)
+	o.Keep = keepOf(t, append(append([]*block.BlockRef(nil), b...), c...), &kept, &dropped)
+	o.WholePacks = []string{idB, idC}
+	o.Log = &log
+	res, err = run(context.Background(), o, &fakeServer{dir: src.dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.KeepFailed != 1 || res.WholeUnread != 1 {
+		t.Fatalf("result %+v", res)
+	}
+	if n := checkOutput(t, out, b[1:]); n != 3 {
+		t.Fatalf("good keep set blocks stored %d of 3", n)
+	}
+	if !strings.Contains(log.String(), "keep-failed 1 whole-unread 1\n") {
+		t.Fatalf("progress lacks the counts:\n%s", log.String())
+	}
+	if code := exitCode(resultError(res)); code != exitIncomplete {
+		t.Fatalf("exit %d", code)
+	}
+}
+
 // TestRescueWholePacksSharedNum reads a listed pack on a pack number another
 // pack shares, which no wanted ref's bloom filter test gives a ref, for its
 // keep set blocks.
