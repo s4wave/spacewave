@@ -6,6 +6,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
@@ -143,6 +144,22 @@ func (v *Volume) Audit(ctx context.Context) (block_gc.AuditResult, error) {
 	}
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
 	return block_gc.Audit(block.WithBackground(ctx), collectorStore{v: v}, v.now(), !v.readOnly)
+}
+
+// AuditWalk runs the streaming audit of the Volume, as block_gc.Walk
+// describes, keeping its records in scratch, a store of the walk's own and
+// never the Volume's. It reads the Volume only in short views, so it runs
+// beside writers and collection passes, and writes nothing to it. A nil
+// opts.Now uses the Volume's clock.
+func (v *Volume) AuditWalk(ctx context.Context, scratch kvtx.Store, opts block_gc.WalkOptions) (*block_gc.WalkResult, error) {
+	if !v.HoldsRoots() {
+		return nil, block.ErrAtomicCommitUnsupported
+	}
+	if opts.Now == nil {
+		opts.Now = v.now
+	}
+	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
+	return block_gc.Walk(block.WithBackground(ctx), collectorStore{v: v}, scratch, opts)
 }
 
 // collectorPhase reports a collection step in the Volume's health.

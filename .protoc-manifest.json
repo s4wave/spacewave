@@ -1696,12 +1696,15 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/gc": {
-      "hash": "e43d02ad29ec7b09e3670d40b0c2c4b4bb12c372584758fb4d47cc3ed582e11d",
+      "hash": "aa5e171c4be38e0f2e03ad124f0735ba74e92eb60cf363774a79fc070b265960",
       "generatedFiles": [
+        "db/block/gc/audit-walk.pb.go",
+        "db/block/gc/audit-walk.pb.ts",
         "db/block/gc/liveness.pb.go",
         "db/block/gc/liveness.pb.ts"
       ],
       "protoFiles": [
+        "db/block/gc/audit-walk.proto",
         "db/block/gc/liveness.proto"
       ]
     },

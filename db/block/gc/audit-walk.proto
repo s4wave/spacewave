@@ -1,0 +1,97 @@
+syntax = "proto3";
+package block.gc;
+
+// WalkPhase is the step a streaming audit walk has reached, as
+// WalkProgress records it in the walk's scratch store.
+enum WalkPhase {
+  // WALK_PHASE_UNKNOWN is a walk that has not begun.
+  WALK_PHASE_UNKNOWN = 0;
+  // WALK_PHASE_ROOTS writes an edge for each named root.
+  WALK_PHASE_ROOTS = 1;
+  // WALK_PHASE_LISTS writes an edge for each child of each stored list.
+  WALK_PHASE_LISTS = 2;
+  // WALK_PHASE_CHECK checks each named block against the edges still valid.
+  WALK_PHASE_CHECK = 3;
+  // WALK_PHASE_CONFIRM rereads each hole candidate after the confirm delay.
+  WALK_PHASE_CONFIRM = 4;
+  // WALK_PHASE_DONE is a walk with its report complete.
+  WALK_PHASE_DONE = 5;
+}
+
+// HoleClass says which roots reach a hole, as the edges the walk wrote show.
+enum HoleClass {
+  // HOLE_CLASS_UNKNOWN is a hole whose namers the walk did not trace to an
+  // end within its bound.
+  HOLE_CLASS_UNKNOWN = 0;
+  // HOLE_CLASS_HELD is a hole a held root reaches: one with no lease, or
+  // whose lease runs past the walk's clock, such as a World's.
+  HOLE_CLASS_HELD = 1;
+  // HOLE_CLASS_LAPSED is a hole that only roots whose lease lapsed reach,
+  // such as the stage of a process that died.
+  HOLE_CLASS_LAPSED = 2;
+  // HOLE_CLASS_UNROOTED is a hole that a list holding its children names but
+  // no root reaches.
+  HOLE_CLASS_UNROOTED = 3;
+}
+
+// WalkCounts is what a streaming audit walk has counted so far.
+message WalkCounts {
+  // Roots counts the named roots the walk read.
+  uint64 roots = 1;
+  // Lists counts the stored child lists the walk read.
+  uint64 lists = 2;
+  // Edges counts the edges the walk wrote, one for each root and each child
+  // of each list that holds its children.
+  uint64 edges = 3;
+  // Checked counts the named blocks the check phase checked.
+  uint64 checked = 4;
+  // Undercount counts the blocks whose netted holders, with the journal past
+  // the cursor, were fewer than the namers still valid in the same view.
+  uint64 undercount = 5;
+  // Candidates counts the named blocks with neither bytes, a list nor a hole
+  // record when checked.
+  uint64 candidates = 6;
+  // Unknown counts the named blocks whose bytes the Volume held without a
+  // list when checked.
+  uint64 unknown = 7;
+  // Settled counts the candidates that were no longer named and absent once
+  // the confirm delay passed: a put stored them, an audit recorded them, or
+  // their namers went.
+  uint64 settled = 8;
+  // Unconfirmed counts the candidates still named and absent once the
+  // confirm delay passed. Each is a hole unless a writer holds its parent
+  // ahead of it for longer than the delay.
+  uint64 unconfirmed = 9;
+  // UnconfirmedHeld counts the unconfirmed candidates of HOLE_CLASS_HELD.
+  uint64 unconfirmed_held = 10;
+  // UnconfirmedLapsed counts the unconfirmed candidates of
+  // HOLE_CLASS_LAPSED.
+  uint64 unconfirmed_lapsed = 11;
+  // UnconfirmedUnrooted counts the unconfirmed candidates of
+  // HOLE_CLASS_UNROOTED.
+  uint64 unconfirmed_unrooted = 12;
+  // TailPairs counts the journal pairs the walk copied into its scratch
+  // store, so each check view reads only the journal written since the last.
+  uint64 tail_pairs = 13;
+}
+
+// WalkProgress is the one progress record of a streaming audit walk, kept in
+// its scratch store, so a restart of the same run resumes where it stopped.
+message WalkProgress {
+  // Run names the walk that owns the scratch store. A walk under another
+  // name refuses the store.
+  string run = 1;
+  // Phase is the step the walk has reached.
+  WalkPhase phase = 2;
+  // After is the last key the phase finished, after its record kind: the
+  // phase resumes past it. Empty starts the phase.
+  bytes after = 3;
+  // StartedUnixMilli is when the walk began, in Unix milliseconds. It splits
+  // the held roots from the lapsed ones.
+  int64 started_unix_milli = 4;
+  // Counts is what the walk has counted.
+  WalkCounts counts = 5;
+  // Tail is the sequence past the last journal record the walk copied into
+  // its scratch store. The check copies from the later of it and the cursor.
+  uint64 tail = 6;
+}

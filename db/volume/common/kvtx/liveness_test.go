@@ -1898,6 +1898,10 @@ func testLivenessAdversarial(t *testing.T) {
 		})
 	}
 
+	t.Run("streaming audit beside writers", func(t *testing.T) {
+		testAuditWalk(t)
+	})
+
 	t.Run("cache fill during an adoption", func(t *testing.T) {
 		// main holds C on an unadopted Volume. While an adoption settles its
 		// counts, after it counted the child lists, a cache fill stores F
@@ -7287,4 +7291,157 @@ func b2u(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+// testAuditWalk runs the streaming audit while a writer moves roots onto new
+// trees and collects with frees on. main -> R -> H, and the store loses H
+// with its list: a hole a held root reaches. main2 -> R2 -> H2, whose hole a
+// stage refilled before any audit recorded it, so H2 is undercounted. A stage
+// stores P ahead of its child C, which lands while the walk waits out its
+// confirm delay. The walk reports H as unconfirmed and held, H2 as the one
+// undercount, and C as settled, and then refuses its scratch store to a
+// second run.
+func testAuditWalk(t *testing.T) {
+	// Build the hole, the undercount and the parent ahead of its child.
+	v, clk := newLivenessVolume(t, true)
+	swapCollector(v, v.newCollector(collectorStore{v: v}, true, 0))
+	ctx := t.Context()
+	tr := testTree{}
+	h := tr.add(t, "H")
+	tr.add(t, "R", "H")
+	tr.add(t, "H2")
+	tr.add(t, "R2", "H2")
+	tr.add(t, "C")
+	tr.add(t, "P", "C")
+	roots := []block.NamedRoot{{Name: "main", Ref: tr["R"].Ref}, {Name: "main2", Ref: tr["R2"].Ref}}
+	if err := v.SetBucketRoots(ctx, "b", tr.entries("H", "R", "H2", "R2"), roots); err != nil {
+		t.Fatal(err)
+	}
+	punchHole(t, v, h)
+	punchHole(t, v, tr["H2"].Ref)
+	refill, release, err := v.OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := v.PrepareStagedBlockBatch(ctx, refill, tr.entries("H2")); err != nil {
+		t.Fatal(err)
+	}
+	release()
+	stage, _, err := v.OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := v.PrepareStagedBlockBatch(ctx, stage, tr.entries("P")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Start the walk once the writer has written a root of each name and
+	// more than a check's copy of journal pairs, so the walk reads the roots
+	// in two views with writes between, and its first check sums journal
+	// records past its copy.
+	stop, started, errc := make(chan struct{}), make(chan struct{}), make(chan error, 1)
+	go func() { errc <- auditWalkWriter(ctx, v, stop, started) }()
+	<-started
+
+	// Walk, landing C while the walk waits out its delay.
+	scratch, err := store_kvtx_sqlite.Open(ctx, filepath.Join(t.TempDir(), "walk.db"), "walk")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer scratch.Close()
+	wait := func(ctx context.Context, d time.Duration) error {
+		if _, err := v.PrepareStagedBlockBatch(ctx, stage, tr.entries("C")); err != nil {
+			return err
+		}
+		clk.Add(d)
+		return nil
+	}
+	res, err := v.AuditWalk(ctx, scratch, block_gc.WalkOptions{Run: "first", Wait: wait})
+	close(stop)
+	if werr := <-errc; werr != nil {
+		t.Fatal(werr)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check the report.
+	c := res.Counts
+	if c.GetUndercount() != 1 || !slices.ContainsFunc(res.UndercountSample, tr["H2"].Ref.EqualsRef) {
+		t.Fatalf("walk found %d undercounts, sample %v, want H2 alone", c.GetUndercount(), res.UndercountSample)
+	}
+	if c.GetCandidates() != 2 || c.GetSettled() != 1 || c.GetUnconfirmed() != 1 || c.GetUnconfirmedHeld() != 1 {
+		t.Fatalf("walk counted %d candidates, %d settled, %d unconfirmed, %d of them held, want 2, 1, 1 and 1",
+			c.GetCandidates(), c.GetSettled(), c.GetUnconfirmed(), c.GetUnconfirmedHeld())
+	}
+	if len(res.UnconfirmedSample) != 1 || !res.UnconfirmedSample[0].Ref.EqualsRef(h) {
+		t.Fatalf("walk sampled %v unconfirmed, want H", res.UnconfirmedSample)
+	}
+
+	// A second run refuses the first run's scratch store.
+	if _, err := v.AuditWalk(ctx, scratch, block_gc.WalkOptions{Run: "second"}); !errors.Is(err, block_gc.ErrWalkTaken) {
+		t.Fatalf("second run on the scratch store returned %v, want ErrWalkTaken", err)
+	}
+}
+
+// auditWalkWrites is how many roots auditWalkWriter writes: two journal
+// pairs each past the first 300, so the 2500 before the walk starts leave
+// more than walkSliceEdges pairs of journal for the walk's first check.
+const auditWalkWrites = 3000
+
+// auditWalkWriter moves roots onto new three-block trees and runs a
+// collection pass after each. It cycles through 300 root names, more than
+// one view of a walk reads, closes started 500 writes before its last, and
+// returns once it has written auditWalkWrites roots and stop closes.
+func auditWalkWriter(ctx context.Context, v *Volume, stop, started chan struct{}) error {
+	prev := make([]*block.BlockRef, 300)
+	for i := 0; ; i++ {
+		// Stop when asked.
+		select {
+		case <-stop:
+			return nil
+		default:
+		}
+		switch i {
+		case auditWalkWrites - 500:
+			close(started)
+		case auditWalkWrites:
+			<-stop
+			return nil
+		}
+
+		// Write a leaf, one of eight shared leaves and their parent under the
+		// next root name, and collect. Each parent adds a journal up pair to
+		// its shared leaf, so the check of every slice sums pairs the walk
+		// copied in earlier slices and pairs past its last copy.
+		leaf := []byte("writer leaf " + strconv.Itoa(i))
+		leafRef, err := block.BuildBlockRef(leaf, nil)
+		if err != nil {
+			return err
+		}
+		shared := []byte("writer shared " + strconv.Itoa(i%8))
+		sharedRef, err := block.BuildBlockRef(shared, nil)
+		if err != nil {
+			return err
+		}
+		parent := append([]byte("writer parent "), leafRef.MarshalString()...)
+		parentRef, err := block.BuildBlockRef(parent, nil)
+		if err != nil {
+			return err
+		}
+		entries := []*block.PutBatchEntry{
+			{Ref: leafRef, Data: leaf, RefsKnown: true},
+			{Ref: sharedRef, Data: shared, RefsKnown: true},
+			{Ref: parentRef, Data: parent, Refs: []*block.BlockRef{leafRef, sharedRef}, RefsKnown: true},
+		}
+		name := i % 300
+		root := []block.NamedRoot{{Name: "w" + strconv.Itoa(name), Ref: parentRef, Previous: prev[name]}}
+		if err := v.SetBucketRoots(ctx, "w", entries, root); err != nil {
+			return err
+		}
+		prev[name] = parentRef
+		if _, err := v.Collect(ctx); err != nil {
+			return err
+		}
+	}
 }

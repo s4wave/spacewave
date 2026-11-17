@@ -369,24 +369,35 @@ func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[s
 		return nil, nil, err
 	}
 
-	// Add the fill ups not applied yet and the downs of the fill records not
-	// netted yet, which the counts do not include either.
-	err = rec.scanFillUps(ctx, func(_ []byte, children []*block.BlockRef) (bool, error) {
+	// Add the fill records not netted yet.
+	err = fillTail(ctx, rec, func(key []byte, d int64) {
+		delta[string(key)] += d
+	})
+	return delta, named, err
+}
+
+// fillTail calls add with each pair of the fill records not netted yet, which
+// the counts do not include: +1 for each fill up not applied yet and -1 for
+// each down of a fill record.
+func fillTail(ctx context.Context, rec *Records, add func(key []byte, d int64)) error {
+	// Add the fill ups not applied yet.
+	err := rec.scanFillUps(ctx, func(_ []byte, children []*block.BlockRef) (bool, error) {
 		for _, child := range children {
-			delta[string(BlockKey(child))]++
+			add(BlockKey(child), 1)
 		}
 		return true, nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	err = rec.scanFillRecords(ctx, 0, func(fr fillRecord) (bool, error) {
+
+	// Add the downs of the fill records not netted yet.
+	return rec.scanFillRecords(ctx, 0, func(fr fillRecord) (bool, error) {
 		for _, down := range fr.rec.GetDown() {
-			delta[string(down)]--
+			add(down, -1)
 		}
 		return true, nil
 	})
-	return delta, named, err
 }
 
 // holeCount is what an audit's snapshot gives the count of one hole.
