@@ -82,6 +82,10 @@ import (
 //     second runner on the same store fails instead of mixing its edges in.
 //     A run older than walkRunAge starts over: its edges miss every namer
 //     written since, and its clock for a hole's class is a day old.
+//     A progress record that does not unmarshal, such as one an older
+//     build wrote, names no run, so the walk deletes the scratch, the record
+//     last, and starts over. The scratch holds only what the walk derived
+//     from the Volume, so discarding it loses nothing.
 //
 // One view reads at most: walkSliceEdges journal pairs to copy, with the
 // record that passes them; walkBacklogPairs pairs past the copy, in the
@@ -182,6 +186,10 @@ var ErrWalkBehind = errors.New("audit walk fell behind the journal's writers")
 // errBadWalkRecord reports a scratch record the walk did not write.
 var errBadWalkRecord = errors.New("audit walk scratch record is malformed")
 
+// errUnreadableProgress reports a progress record that does not unmarshal,
+// such as one an older build wrote in another format.
+var errUnreadableProgress = errors.New("audit walk progress record is unreadable")
+
 // WalkStore is what the streaming audit reads of a Volume: views of its
 // liveness records and whether it holds a block's bytes. It has no write.
 type WalkStore interface {
@@ -275,12 +283,21 @@ func openWalk(ctx context.Context, store WalkStore, scratch kvtx.Store, opts Wal
 		res:     &WalkResult{LongestView: make(map[WalkPhase]time.Duration)},
 	}
 
-	// Resume the run's progress, unless it is too old.
+	// Resume the run's progress, unless it is too old or unreadable. The
+	// scratch holds only what the walk derived from the Volume, so
+	// discarding it loses nothing but the work to derive it again.
 	prog, err := w.readProgress(ctx)
-	if err != nil {
+	switch {
+	case errors.Is(err, errUnreadableProgress):
+		// No run can be told from an unreadable record, so delete it with
+		// the rest; a crash midway leaves it unreadable, to discard again.
+		if err := w.clear(ctx, w.updateAny, true); err != nil {
+			return nil, err
+		}
+		w.res.Restart = WalkRestartUnreadable
+	case err != nil:
 		return nil, err
-	}
-	if prog != nil {
+	case prog != nil:
 		if prog.GetRun() != opts.Run {
 			return nil, ErrWalkTaken
 		}
@@ -292,10 +309,10 @@ func openWalk(ctx context.Context, store WalkStore, scratch kvtx.Store, opts Wal
 			w.prog.Resumes++
 			return w, w.write(ctx, nil)
 		}
-		if err := w.clear(ctx); err != nil {
+		if err := w.clear(ctx, w.update, false); err != nil {
 			return nil, err
 		}
-		w.res.Restarted = true
+		w.res.Restart = WalkRestartAged
 	}
 
 	// Otherwise begin it.
@@ -309,12 +326,13 @@ func openWalk(ctx context.Context, store WalkStore, scratch kvtx.Store, opts Wal
 }
 
 // clear deletes the run's edges, candidates and journal copies from
-// scratch, walkClearRecords to a commit, leaving its progress record so a
-// second runner is still refused.
-func (w *walker) clear(ctx context.Context) error {
+// scratch, walkClearRecords to a commit through update. It leaves the
+// progress record, so a second runner is still refused, unless progress is
+// set, when it deletes that record last.
+func (w *walker) clear(ctx context.Context, update func(context.Context, func(kvtx.Tx) error) error, progress bool) error {
 	for _, kind := range []byte{walkEdge, walkCandidate, walkTail} {
 		for n := walkClearRecords; n == walkClearRecords; {
-			err := w.update(ctx, func(tx kvtx.Tx) error {
+			err := update(ctx, func(tx kvtx.Tx) error {
 				// Take the next keys of the kind, then delete them.
 				var keys [][]byte
 				err := NewRecords(tx, nil).scan(ctx, []byte{kind}, nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
@@ -337,7 +355,12 @@ func (w *walker) clear(ctx context.Context) error {
 			}
 		}
 	}
-	return nil
+	if !progress {
+		return nil
+	}
+	return update(ctx, func(tx kvtx.Tx) error {
+		return tx.Delete(ctx, []byte{walkProgressKind})
+	})
 }
 
 // waitTimer waits for d or until ctx ends.
@@ -364,12 +387,16 @@ func (w *walker) readProgress(ctx context.Context) (*WalkProgress, error) {
 
 // getProgress reads the progress record in tx, nil when none.
 func getProgress(ctx context.Context, tx kvtx.TxOps) (*WalkProgress, error) {
+	// Read and unmarshal the record.
 	value, found, err := tx.Get(ctx, []byte{walkProgressKind})
 	if err != nil || !found {
 		return nil, err
 	}
 	prog := &WalkProgress{}
-	return prog, prog.UnmarshalVT(value)
+	if err := prog.UnmarshalVT(value); err != nil {
+		return nil, errors.Wrapf(errUnreadableProgress, "%v", err)
+	}
+	return prog, nil
 }
 
 // write commits recs to scratch, walkCommitRecords at a time, with the
@@ -407,21 +434,28 @@ func (w *walker) write(ctx context.Context, recs []walkRecord) error {
 // update runs fn in one scratch write transaction that this run owns, and
 // commits it.
 func (w *walker) update(ctx context.Context, fn func(tx kvtx.Tx) error) error {
-	// Open the transaction and check the owner.
+	return w.updateAny(ctx, func(tx kvtx.Tx) error {
+		// Check the owner.
+		prog, err := getProgress(ctx, tx)
+		if err != nil {
+			return err
+		}
+		if prog != nil && prog.GetRun() != w.prog.GetRun() {
+			return ErrWalkTaken
+		}
+		return fn(tx)
+	})
+}
+
+// updateAny runs fn in one scratch write transaction, whoever owns it, and
+// commits it.
+func (w *walker) updateAny(ctx context.Context, fn func(tx kvtx.Tx) error) error {
+	// Open, write and commit.
 	tx, err := w.scratch.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
-	prog, err := getProgress(ctx, tx)
-	if err != nil {
-		return err
-	}
-	if prog != nil && prog.GetRun() != w.prog.GetRun() {
-		return ErrWalkTaken
-	}
-
-	// Write and commit.
 	if err := fn(tx); err != nil {
 		return err
 	}
@@ -1238,11 +1272,15 @@ func (w *walker) checkChild(
 		return nil, false, err
 	}
 	if listed {
-		unmarked, err := rec.Unmarked(ctx, key)
 		total := w.prog.GetCounts()
-		if err != nil || unmarked || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+		if state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+			total.Unadopted++
+			return ref, false, nil
+		}
+		unmarked, err := rec.Unmarked(ctx, key)
+		if err != nil || unmarked {
 			if err == nil {
-				total.Declined++
+				total.SweepOwned++
 			}
 			return ref, false, err
 		}

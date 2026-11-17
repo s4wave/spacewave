@@ -160,10 +160,13 @@ type WalkCounts struct {
 	// between the first and the last of the block's views, so the namers
 	// summed across them bound no one view's.
 	Wide uint64 `protobuf:"varint,14,opt,name=wide,proto3" json:"wide,omitempty"`
-	// Declined counts the listed blocks whose undercount went unchecked
-	// because the Volume was not adopted or the sweep owned the block: their
-	// counts are not in force.
-	Declined uint64 `protobuf:"varint,15,opt,name=declined,proto3" json:"declined,omitempty"`
+	// Unadopted counts the listed blocks whose undercount went unchecked
+	// because the Volume was not adopted: its counts are not in force.
+	Unadopted uint64 `protobuf:"varint,15,opt,name=unadopted,proto3" json:"unadopted,omitempty"`
+	// SweepOwned counts the listed blocks of an adopted Volume whose
+	// undercount went unchecked because the sweep owned them: they were
+	// unmarked, so the sweep may free them whatever their count.
+	SweepOwned uint64 `protobuf:"varint,16,opt,name=sweep_owned,json=sweepOwned,proto3" json:"sweepOwned,omitempty"`
 }
 
 func (x *WalkCounts) Reset() {
@@ -270,9 +273,16 @@ func (x *WalkCounts) GetWide() uint64 {
 	return 0
 }
 
-func (x *WalkCounts) GetDeclined() uint64 {
+func (x *WalkCounts) GetUnadopted() uint64 {
 	if x != nil {
-		return x.Declined
+		return x.Unadopted
+	}
+	return 0
+}
+
+func (x *WalkCounts) GetSweepOwned() uint64 {
+	if x != nil {
+		return x.SweepOwned
 	}
 	return 0
 }
@@ -487,7 +497,8 @@ func (m *WalkCounts) CloneVT() *WalkCounts {
 	r.UnconfirmedUnrooted = m.UnconfirmedUnrooted
 	r.TailPairs = m.TailPairs
 	r.Wide = m.Wide
-	r.Declined = m.Declined
+	r.Unadopted = m.Unadopted
+	r.SweepOwned = m.SweepOwned
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -593,7 +604,10 @@ func (this *WalkCounts) EqualVT(that *WalkCounts) bool {
 	if this.Wide != that.Wide {
 		return false
 	}
-	if this.Declined != that.Declined {
+	if this.Unadopted != that.Unadopted {
+		return false
+	}
+	if this.SweepOwned != that.SweepOwned {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -850,10 +864,15 @@ func (x *WalkCounts) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("wide")
 		s.WriteUint64(x.Wide)
 	}
-	if x.Declined != 0 || s.HasField("declined") {
+	if x.Unadopted != 0 || s.HasField("unadopted") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("declined")
-		s.WriteUint64(x.Declined)
+		s.WriteObjectField("unadopted")
+		s.WriteUint64(x.Unadopted)
+	}
+	if x.SweepOwned != 0 || s.HasField("sweepOwned") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sweepOwned")
+		s.WriteUint64(x.SweepOwned)
 	}
 	s.WriteObjectEnd()
 }
@@ -914,9 +933,12 @@ func (x *WalkCounts) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "wide":
 			s.AddField("wide")
 			x.Wide = s.ReadUint64()
-		case "declined":
-			s.AddField("declined")
-			x.Declined = s.ReadUint64()
+		case "unadopted":
+			s.AddField("unadopted")
+			x.Unadopted = s.ReadUint64()
+		case "sweep_owned", "sweepOwned":
+			s.AddField("sweep_owned")
+			x.SweepOwned = s.ReadUint64()
 		}
 	})
 }
@@ -1171,8 +1193,15 @@ func (m *WalkCounts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.Declined != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Declined))
+	if m.SweepOwned != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SweepOwned))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if m.Unadopted != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Unadopted))
 		i--
 		dAtA[i] = 0x78
 	}
@@ -1433,7 +1462,8 @@ func (m *WalkCounts) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.UnconfirmedUnrooted)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.TailPairs)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Wide)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Declined)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Unadopted)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.SweepOwned)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1551,9 +1581,13 @@ func (x *WalkCounts) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "wide")
 		protobuf_go_lite.TextWriteUint(&sb, x.Wide)
 	}
-	if x.Declined != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "declined")
-		protobuf_go_lite.TextWriteUint(&sb, x.Declined)
+	if x.Unadopted != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unadopted")
+		protobuf_go_lite.TextWriteUint(&sb, x.Unadopted)
+	}
+	if x.SweepOwned != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sweep_owned")
+		protobuf_go_lite.TextWriteUint(&sb, x.SweepOwned)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1798,10 +1832,19 @@ func (m *WalkCounts) UnmarshalVT(dAtA []byte) error {
 			}
 		case 15:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Declined", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Unadopted", wireType)
 			}
-			m.Declined = 0
-			m.Declined, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Unadopted = 0
+			m.Unadopted, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SweepOwned", wireType)
+			}
+			m.SweepOwned = 0
+			m.SweepOwned, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

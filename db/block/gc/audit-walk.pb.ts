@@ -175,11 +175,16 @@ export interface WalkCounts {
    */
   wide?: bigint
   /**
-   * Declined counts the listed blocks whose undercount went unchecked
-   * because the Volume was not adopted or the sweep owned the block: their
-   * counts are not in force.
+   * Unadopted counts the listed blocks whose undercount went unchecked
+   * because the Volume was not adopted: its counts are not in force.
    */
-  declined?: bigint
+  unadopted?: bigint
+  /**
+   * SweepOwned counts the listed blocks of an adopted Volume whose
+   * undercount went unchecked because the sweep owned them: they were
+   * unmarked, so the sweep may free them whatever their count.
+   */
+  sweepOwned?: bigint
 }
 
 export const WalkCounts: MessageType<WalkCounts> =
@@ -198,7 +203,8 @@ export const WalkCounts: MessageType<WalkCounts> =
     [12, 'unconfirmed_unrooted', 4],
     [13, 'tail_pairs', 4],
     [14, 'wide', 4],
-    [15, 'declined', 4],
+    [15, 'unadopted', 4],
+    [16, 'sweep_owned', 4],
   ])
 
 /**
