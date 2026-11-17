@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -136,32 +137,60 @@ func TestStoreCloseFlushesOrderedCommits(t *testing.T) {
 // arrived first.
 func TestBackgroundWriterYields(t *testing.T) {
 	// Hold the writer turn.
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*SyncDeadline)
+	defer cancel()
 	store := openOrderedTestStore(t)
 	held, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer held.Discard()
 
 	// Queue a background writer, then a foreground one, each recording its
 	// turn.
 	order := make(chan string, 2)
+	done := make(chan struct{}, 2)
+	started := 0
+	t.Cleanup(func() {
+		// Join every started call before the store's cleanup closes Bolt.
+		cancel()
+		for range started {
+			<-done
+		}
+	})
 	write := func(ctx context.Context, name string) {
+		// Report completion on acquisition failure as well as normal release.
+		defer func() { done <- struct{}{} }()
+
+		// Release the native transaction even when the ordering assertion fails.
 		tx, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			t.Error(err)
+			order <- "failed"
 			return
 		}
+		defer tx.Discard()
 		order <- name
-		tx.Discard()
 	}
-	go write(kvtx.WithBackgroundWriteContext(ctx), "background")
+	started++
+	go write(block.WithBackground(ctx), "background")
 	for !store.writers.Waiting(writerBackground) {
-		time.Sleep(time.Millisecond)
+		// Observe registration itself, with a deadline only for test failure.
+		select {
+		case <-ctx.Done():
+			t.Fatal(ctx.Err())
+		case <-time.After(time.Millisecond):
+		}
 	}
+	started++
 	go write(ctx, "foreground")
 	for !store.writers.Waiting(writerForeground) {
-		time.Sleep(time.Millisecond)
+		// Keep the holder until the foreground request is actually registered.
+		select {
+		case <-ctx.Done():
+			t.Fatal(ctx.Err())
+		case <-time.After(time.Millisecond):
+		}
 	}
 
 	// Release the turn: the foreground writer goes first.

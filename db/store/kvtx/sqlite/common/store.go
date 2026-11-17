@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/csync"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/sirupsen/logrus"
 )
@@ -73,7 +74,7 @@ type Store[T SQLiteDriverConfig] struct {
 	readTurns readTurns
 
 	// writeMtx admits one write transaction at a time: a transaction opened
-	// with kvtx.WithBackgroundWriteContext waits behind every waiting
+	// with block.WithBackground waits behind every waiting
 	// foreground writer, and each priority goes in arrival order. Without it
 	// a burst of background writes, such as upload marker clears, evictions
 	// or cache fills, queues ahead of a player's write and sets its wait.
@@ -491,7 +492,7 @@ func (s *Store[T]) initTableWithRetry(ctx context.Context) error {
 // Priorities of Store.writeMtx.
 const (
 	// writerBackground is the priority of write transactions opened with
-	// kvtx.WithBackgroundWriteContext.
+	// block.WithBackground.
 	writerBackground = iota - 1
 	// writerForeground is the priority of every other write transaction.
 	writerForeground
@@ -499,7 +500,7 @@ const (
 
 // NewTransaction returns a new transaction against the store. A write
 // transaction waits for the writer turn until ctx ends, behind every waiting
-// foreground writer when ctx carries kvtx.WithBackgroundWriteContext.
+// foreground writer when ctx carries block.WithBackground.
 func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Read transactions open their connection at their first read.
 	if !write {
@@ -513,7 +514,7 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 
 	// Queue for the writer turn, counted for WritersWaiting.
 	prio := writerForeground
-	if kvtx.IsBackgroundWriteContext(ctx) {
+	if block.IsBackground(ctx) {
 		prio = writerBackground
 	}
 	s.writersWaiting.Add(1)

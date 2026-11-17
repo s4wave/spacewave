@@ -243,8 +243,8 @@ func (s *Store) Evict(
 	// Commit the pass ordered: it drops only values the remote holds, so a
 	// crash that loses its commits leaves values the next pass drops again,
 	// and its writes must not each wait on a flush that other writes share.
-	// Its writes wait behind every foreground writer.
-	ctx = kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(ctx))
+	// Its writes use background admission.
+	ctx = block.WithBackground(kvtx.WithOrderedCommitContext(ctx))
 
 	// Keep one queue policy for the pass. With retry on, fillMtx is a barrier
 	// around the epoch advance only: a fill holds it from its queue
