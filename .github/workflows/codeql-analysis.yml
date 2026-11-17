@@ -9,11 +9,12 @@ on:
   schedule:
     - cron: '41 13 * * 6'
 
-# Pull requests group by number and stack pushes by branch, cancelling the
-# older run; master pushes and the schedule group by commit.
+# Pull requests group by number and cancel the older run. Stack pushes group
+# by branch without cancelling: a started run finishes and only the newest
+# waiting push runs after it. Master pushes and the schedule group by commit.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || (github.event_name == 'push' && endsWith(github.ref_name, '-stack') && github.ref_name) || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && endsWith(github.ref_name, '-stack')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

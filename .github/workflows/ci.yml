@@ -24,14 +24,15 @@ on:
       - 'CHANGELOG.org'
   workflow_dispatch:
 
-# Pull request runs group by pull request number and stack pushes by branch,
-# and a new push cancels the previous run: a newer stack head contains the
-# older one, so the older result has no use. Every other run groups by commit,
-# so each master push gets its own delta run and a burst of pushes cannot
-# cancel a pending one.
+# Pull request runs group by pull request number, and a new push cancels the
+# previous run. Stack pushes group by branch without cancelling: a started run
+# finishes, so a busy stack still produces results, and a newer push waits
+# behind it; of several waiting pushes GitHub keeps only the newest, which
+# contains the others. Every other run groups by commit, so each master push
+# gets its own delta run and a burst of pushes cannot cancel a pending one.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || (github.event_name == 'push' && endsWith(github.ref_name, '-stack') && github.ref_name) || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && endsWith(github.ref_name, '-stack')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
