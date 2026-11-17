@@ -142,6 +142,12 @@ func main() {
 			Action: args.runVerify,
 		},
 		{
+			Name:   "check-packs",
+			Usage:  "prove that removing the candidate packs loses no block the roots reach, from the packs' indexes and the cycle's catalog, reading only the blocks a candidate holds",
+			Flags:  args.checkFlags(),
+			Action: args.runCheck,
+		},
+		{
 			Name:   "copy-versions",
 			Usage:  "copy every version and hide marker under the prefixes to another bucket, server-side, each key's oldest first",
 			Flags:  args.copyFlags(),

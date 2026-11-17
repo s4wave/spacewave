@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/packsweep"
 	block_packsweep_admin "github.com/s4wave/spacewave/db/block/packsweep/admin"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/s4db"
 	"github.com/sirupsen/logrus"
 )
@@ -236,6 +237,14 @@ func (a *Args) verifyCycle(ctx context.Context, fresh []block.NamedRoot, ids map
 		return nil, "", err
 	}
 	defer db.Close()
+	return compareCycle(ctx, store, a.Mutant, fresh, ids)
+}
+
+// compareCycle compares the cycle's roots in store with the fresh roots, and
+// picks the mutant: none for an empty name.
+func compareCycle(ctx context.Context, store kvtx.Store, mutantName string, fresh []block.NamedRoot, ids map[string]bool) (*rootsComparison, string, error) {
+	// Read the cycle's roots.
+	c := &rootsComparison{}
 	head, err := packsweep.ReadHead(ctx, store)
 	if err != nil {
 		return nil, "", err
@@ -273,10 +282,10 @@ func (a *Args) verifyCycle(ctx context.Context, fresh []block.NamedRoot, ids map
 	slices.Sort(c.added)
 
 	// Pick the mutant.
-	if a.Mutant == "" {
+	if mutantName == "" {
 		return c, "", nil
 	}
-	mutant, err := pickMutant(ctx, store, a.Mutant, ids)
+	mutant, err := pickMutant(ctx, store, mutantName, ids)
 	return c, mutant, err
 }
 

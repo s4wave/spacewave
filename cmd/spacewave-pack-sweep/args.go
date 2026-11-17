@@ -125,6 +125,10 @@ type Args struct {
 	Candidates string
 	// Verdicts are the verdicts the candidate list takes.
 	Verdicts cli.StringSlice
+	// Sample is the fraction of reached blocks the check reads by value.
+	Sample float64
+	// SampleSeed chooses the blocks the check's sample takes.
+	SampleSeed uint64
 	// Mutant is a pack a check adds to the candidates and must then find
 	// live, or mutantAuto to pick one from the judgments.
 	Mutant string

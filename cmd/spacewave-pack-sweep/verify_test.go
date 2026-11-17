@@ -19,7 +19,9 @@ import (
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
 	"github.com/s4wave/spacewave/db/block/writelog"
+	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
+	"github.com/s4wave/spacewave/db/s4db"
 	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 	"github.com/sirupsen/logrus"
 )
@@ -430,5 +432,201 @@ func TestCommandVerifyCandidates(t *testing.T) {
 	}
 	if _, err = c.run(t, verify, func(a *Args) { a.Candidates = bad }); err == nil {
 		t.Fatal("a candidate line without an id was skipped")
+	}
+}
+
+// TestCommandCheckPacks checks the pack check by trying to make it pass a
+// candidate a live block needs. The real candidate passes reading one block,
+// and the same holes the verify catches fail it: a live pack named with it,
+// and the pack of a cycle root the fresh roots no longer reach. A hole fails
+// unless accepted. The automatic mutant is caught and a dead one is not. A
+// candidate the cycle never catalogued fails though its one block has another
+// copy, and so does one whose key the catalog does not list for it. A catalog
+// whose refs row hides the inner block passes the inner and deep packs
+// without the sample, so the full sample must catch it.
+func TestCommandCheckPacks(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	c := newCheckCycle(ctx, t)
+	check := func(a *Args) error { return a.runCheck(nil) }
+	badPacks := func(res *fastjson.Value, id string) (uint64, string) {
+		for _, b := range res.GetArray("bad_blocks") {
+			packs := b.GetArray("packs")
+			if len(packs) == 1 && string(packs[0].GetStringBytes()) == id {
+				return res.Get("bad_packs").GetUint64(id), string(b.GetStringBytes("reason"))
+			}
+		}
+		return res.Get("bad_packs").GetUint64(id), ""
+	}
+
+	// The real candidate passes, reading no value but the walk's.
+	res, err := c.run(t, check, func(a *Args) {})
+	if err != nil {
+		t.Fatalf("real candidate failed: %v (%s)", err, res)
+	}
+	if res.GetUint64("candidate_keys") != 1 || res.GetUint64("reached") != 4 || res.GetUint64("in_candidates") != 0 || res.GetUint64("bad") != 0 {
+		t.Fatalf("real candidate = %s, want 1 candidate key, 4 reached, none held or bad", res)
+	}
+
+	// Adversary: name the deep block's only pack as well.
+	res, err = c.run(t, check, func(a *Args) {
+		a.Candidates = c.writeCandidates(t, "deep.jsonl", c.packs[3], c.packs[2])
+	})
+	if err == nil {
+		t.Fatalf("a live pack in the candidates passed: %s", res)
+	}
+	if n, _ := badPacks(res, c.packs[2]); n != 1 || res.GetUint64("bad") != 1 || res.Get("bad_reasons").GetUint64(packsweep.ReasonCandidate) != 1 {
+		t.Fatalf("live candidate = %s, want the deep pack's one block named %s", res, packsweep.ReasonCandidate)
+	}
+
+	// Adversary: the fresh root moved to the inner block; the cycle's root is
+	// walked as well and fails its pack.
+	res, err = c.run(t, check, func(a *Args) {
+		a.Roots = *cli.NewStringSlice(c.inner.MarshalString())
+		a.Candidates = c.writeCandidates(t, "first.jsonl", c.packs[3], c.packs[0])
+	})
+	if n, _ := badPacks(res, c.packs[0]); err == nil || n == 0 || len(res.GetArray("roots_dropped")) != 1 {
+		t.Fatalf("the cycle root's pack passed as a candidate: %v (%s)", err, res)
+	}
+
+	// A root nothing holds fails, and passes once accepted as lost.
+	ghost, err := block.BuildBlockRef([]byte("ghost"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ghostRoots := func(a *Args) { a.Roots = *cli.NewStringSlice(c.root.MarshalString(), ghost.MarshalString()) }
+	if res, err = c.run(t, check, ghostRoots); err == nil {
+		t.Fatalf("an unaccepted hole passed: %s", res)
+	}
+	accept := filepath.Join(c.dir, "accept.txt")
+	if err := os.WriteFile(accept, []byte(ghost.MarshalString()+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	res, err = c.run(t, check, func(a *Args) {
+		ghostRoots(a)
+		a.AcceptMissing = accept
+	})
+	if err != nil || res.GetUint64("accepted") != 1 {
+		t.Fatalf("accepted hole: %v (%s)", err, res)
+	}
+
+	// The automatic mutant is caught; a mutant nothing reaches is not.
+	res, err = c.run(t, check, func(a *Args) { a.Mutant = mutantAuto })
+	if err != nil || !res.GetBool("mutant_caught") {
+		t.Fatalf("automatic mutant: %v (%s)", err, res)
+	}
+	none := c.writeCandidates(t, "none.jsonl")
+	res, err = c.run(t, check, func(a *Args) {
+		a.Candidates = none
+		a.Mutant = c.packs[3]
+	})
+	if err == nil || res.GetBool("mutant_caught") {
+		t.Fatalf("a dead mutant passed: %v (%s)", err, res)
+	}
+
+	// Adversary: the catalog's refs row of the root names no children, so the
+	// walk never reaches the inner and deep blocks, and their packs pass
+	// unsampled. The full sample reads the root and catches the lie.
+	tamper := func(fn func(ctx context.Context, tx kvtx.Tx)) {
+		db, err := s4db.Open(c.args.Scratch, s4db.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer db.Close()
+		tx, err := kvtx_prefixer.NewPrefixer(db, sweepPrefix).NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Discard()
+		fn(ctx, tx)
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rootRefs := append([]byte("c/r/"), packsweep.RefTail(c.root)...)
+	var saved []byte
+	tamper(func(ctx context.Context, tx kvtx.Tx) {
+		leafRefs, _, err := tx.Get(ctx, append([]byte("c/r/"), packsweep.RefTail(c.leaf)...))
+		if err == nil {
+			saved, _, err = tx.Get(ctx, rootRefs)
+		}
+		if err == nil {
+			err = tx.Set(ctx, rootRefs, leafRefs)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	hidden := func(a *Args) {
+		a.Candidates = c.writeCandidates(t, "hidden.jsonl", c.packs[3], c.packs[1], c.packs[2])
+	}
+	if res, err = c.run(t, check, hidden); err != nil {
+		t.Fatalf("the tampered catalog should fool the unsampled walk: %v (%s)", err, res)
+	}
+	res, err = c.run(t, check, func(a *Args) {
+		hidden(a)
+		a.Sample = 1
+	})
+	if err == nil || res.Get("bad_reasons").GetUint64(packsweep.ReasonRefsDiffer) != 1 {
+		t.Fatalf("the full sample missed a catalog hiding live blocks: %v (%s)", err, res)
+	}
+	tamper(func(ctx context.Context, tx kvtx.Tx) {
+		if err := tx.Set(ctx, rootRefs, saved); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	// Adversary: drop the dead block's member row, as if the mark never saw
+	// that key in the candidate.
+	member := append([]byte("c/m/"+c.packs[3]+"/"), packsweep.RefTail(c.dead)...)
+	tamper(func(ctx context.Context, tx kvtx.Tx) {
+		if err := tx.Delete(ctx, member); err != nil {
+			t.Fatal(err)
+		}
+	})
+	res, err = c.run(t, check, func(a *Args) {})
+	if n, reason := badPacks(res, c.packs[3]); err == nil || n != 1 || reason != packsweep.ReasonUncatalogued {
+		t.Fatalf("a key the catalog does not list passed: %v (%s)", err, res)
+	}
+
+	// Adversary: a pack written after the snapshot, holding a second copy of
+	// the deep block, fails as never catalogued though the copy is safe.
+	index, closeIndex, err := packcopy.OpenIndexFile(ctx, c.args.Index, &packcopy.IndexFileOptions{
+		Kind:   "sqlite",
+		Table:  defaultIndexTable,
+		SQLite: store_kvtx_sqlite.Pragmas{WithoutRowID: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	late := block_store_s3.NewPackStore(logrus.NewEntry(logrus.New()), c.client, s3test.BucketName, "world/", &block_store_s3.PackStoreOptions{
+		KeepPacks: true,
+		Index:     kvtx_prefixer.NewPrefixer(index, block_store_s3.PackIndexPrefix(c.args.StoreID)),
+	})
+	if _, err := late.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: c.deep, Data: []byte("deep"), RefsKnown: true}}); err != nil {
+		t.Fatal(err)
+	}
+	packs, err := late.Packs(ctx)
+	late.Close()
+	if err := closeIndex(); err != nil {
+		t.Fatal(err)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	var lateID string
+	for _, p := range packs {
+		if !slices.Contains(c.packs, p.GetId()) {
+			lateID = p.GetId()
+		}
+	}
+	if lateID == "" {
+		t.Fatalf("late packs = %v", packs)
+	}
+	res, err = c.run(t, check, func(a *Args) {
+		a.Candidates = c.writeCandidates(t, "late.jsonl", lateID)
+	})
+	if n, reason := badPacks(res, lateID); err == nil || n != 1 || reason != packsweep.ReasonUncatalogued {
+		t.Fatalf("an uncatalogued pack passed: %v (%s)", err, res)
 	}
 }

@@ -32,9 +32,13 @@ const (
 	// A verify keeps its rows in a scratch store of its own.
 	verifyVisitedPrefix  = "v/v/"
 	verifyFrontierPrefix = "v/f/"
-	logPullKey           = "y/l/pull"
-	cyclePrefix          = "y/"
-	packRecordPrefix     = "q/"
+	// A check keeps its rows in a scratch store of its own.
+	checkKeyPrefix      = "x/k/"
+	checkVisitedPrefix  = "x/v/"
+	checkFrontierPrefix = "x/f/"
+	logPullKey          = "y/l/pull"
+	cyclePrefix         = "y/"
+	packRecordPrefix    = "q/"
 	// The compaction's rows stay across cycles with the pack records: each
 	// new pack's row, and the pack each compacted key was placed in.
 	compactPackPrefix = "k/p/"

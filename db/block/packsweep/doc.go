@@ -107,6 +107,15 @@
 //	y/w/x/{tail}             a hole: reason, then its ref
 //	y/j/{pack id}            the judgment of a pack
 //
+// A verify and a check each keep their own scratch store, apart from any
+// cycle's:
+//
+//	v/v/{tail}               a key the verify read
+//	v/f/{tail}               a key on the verify's frontier: its ref
+//	x/k/{tail}               a key a candidate's index holds: the candidates, one id a line
+//	x/v/{tail}               a key the check reached
+//	x/f/{tail}               a key on the check's frontier: its ref
+//
 // A tail is the last 16 bytes of a block key, as the pack index's h rows key
 // blocks.
 package packsweep
