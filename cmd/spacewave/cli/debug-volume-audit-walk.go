@@ -126,6 +126,7 @@ func auditWalkFields(path string, res *block_gc.WalkResult) [][2]string {
 		{"Edges", strconv.FormatUint(n.GetEdges(), 10)},
 		{"Checked blocks", strconv.FormatUint(n.GetChecked(), 10)},
 		{"Undercounted blocks", strconv.FormatUint(n.GetUndercount(), 10)},
+		{"Wide blocks whose namers moved, unchecked", strconv.FormatUint(n.GetWide(), 10)},
 		{"Named without a child list", strconv.FormatUint(n.GetUnknown(), 10)},
 		{"Hole candidates", strconv.FormatUint(n.GetCandidates(), 10)},
 		{"Journal pairs copied", strconv.FormatUint(n.GetTailPairs(), 10)},
@@ -134,6 +135,21 @@ func auditWalkFields(path string, res *block_gc.WalkResult) [][2]string {
 		{"Unconfirmed, a held root reaches", strconv.FormatUint(n.GetUnconfirmedHeld(), 10)},
 		{"Unconfirmed, only lapsed roots reach", strconv.FormatUint(n.GetUnconfirmedLapsed(), 10)},
 		{"Unconfirmed, no root reaches", strconv.FormatUint(n.GetUnconfirmedUnrooted(), 10)},
+		{"Started", res.Started.Format(time.RFC3339)},
+		{"Resumes", strconv.FormatUint(uint64(res.Resumes), 10)},
+		{"Restarted a run older than a day", strconv.FormatBool(res.Restarted)},
+	}
+
+	// Give the longest view of the Volume in each phase.
+	for _, phase := range []block_gc.WalkPhase{
+		block_gc.WalkPhase_WALK_PHASE_ROOTS,
+		block_gc.WalkPhase_WALK_PHASE_LISTS,
+		block_gc.WalkPhase_WALK_PHASE_CHECK,
+		block_gc.WalkPhase_WALK_PHASE_CONFIRM,
+	} {
+		if d, ok := res.LongestView[phase]; ok {
+			fields = append(fields, [2]string{"Longest view, " + phase.String(), d.String()})
+		}
 	}
 
 	// Name a sample of the undercounted and unconfirmed blocks.

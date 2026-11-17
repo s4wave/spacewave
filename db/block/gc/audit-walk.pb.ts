@@ -5,6 +5,8 @@
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { Adoption } from './liveness.pb.js'
+import { Adoption_Enum, Release } from './liveness.pb.js'
 
 /**
  * WalkPhase is the step a streaming audit walk has reached, as
@@ -166,6 +168,13 @@ export interface WalkCounts {
    * store, so each check view reads only the journal written since the last.
    */
   tailPairs?: bigint
+  /**
+   * Wide counts the named blocks with more edges than one view reads whose
+   * undercount went unchecked: something that could change a namer moved
+   * between the first and the last of the block's views, so the namers
+   * summed across them bound no one view's.
+   */
+  wide?: bigint
 }
 
 export const WalkCounts: MessageType<WalkCounts> =
@@ -183,6 +192,7 @@ export const WalkCounts: MessageType<WalkCounts> =
     [11, 'unconfirmed_lapsed', 4],
     [12, 'unconfirmed_unrooted', 4],
     [13, 'tail_pairs', 4],
+    [14, 'wide', 4],
   ])
 
 /**
@@ -220,6 +230,32 @@ export interface WalkProgress {
    * its scratch store. The check copies from the later of it and the cursor.
    */
   tail?: bigint
+  /**
+   * EdgeAfter is the last edge key the views of the block past After have
+   * read, after the edge kind: the next view of that block resumes past it.
+   * Empty starts the block's edges.
+   */
+  edgeAfter?: Uint8Array
+  /**
+   * Resumes counts the times a process took up this run from scratch.
+   */
+  resumes?: number
+  /**
+   * WideMark is what the first view of the wide block past After read of
+   * the things that can change its namers, unset when no wide block is
+   * under way.
+   */
+  wideMark?: WalkMark
+  /**
+   * WideSeen counts the edges of the wide block past After that held in the
+   * view that read them.
+   */
+  wideSeen?: bigint
+  /**
+   * WideMoved reports that a view of the wide block past After read another
+   * mark than its first.
+   */
+  wideMoved?: boolean
 }
 
 export const WalkProgress: MessageType<WalkProgress> =
@@ -232,5 +268,75 @@ export const WalkProgress: MessageType<WalkProgress> =
       [4, 'started_unix_milli', 3],
       [5, 'counts', 11, 0, WalkCounts.codec],
       [6, 'tail', 4],
+      [7, 'edge_after', 12],
+      [8, 'resumes', 13],
+      [9, 'wide_mark', 11, 0, WalkMark.codec],
+      [10, 'wide_seen', 4],
+      [11, 'wide_moved', 8],
     ],
   )
+
+/**
+ * WalkMark is what one view reads of the things that can change the namers
+ * of one block: the journal's end, how far netting has gone, the paged
+ * release, and the block's own holders and pending pairs. Two views that
+ * read the same mark saw the same namers of the block.
+ *
+ * @generated from message block.gc.WalkMark
+ */
+export interface WalkMark {
+  /**
+   * Adoption is the Volume's adoption.
+   */
+  adoption?: Adoption
+  /**
+   * NextSeq is the sequence the next journal record takes.
+   */
+  nextSeq?: bigint
+  /**
+   * Cursor is the oldest journal record not netted.
+   */
+  cursor?: bigint
+  /**
+   * NetOffset is how much of the record at the cursor is netted.
+   */
+  netOffset?: bigint
+  /**
+   * Release is the paged release in progress, unset when none is.
+   */
+  release?: Release
+  /**
+   * Listed is whether the block has a child list.
+   */
+  listed?: boolean
+  /**
+   * Holders is the block's netted holders.
+   */
+  holders?: bigint
+  /**
+   * Journal is what the journal past the cursor does to its holders.
+   */
+  journal?: bigint
+  /**
+   * Fill is what the fill records not netted do to its holders.
+   */
+  fill?: bigint
+  /**
+   * Pending is what the paged release does to its namers.
+   */
+  pending?: bigint
+}
+
+export const WalkMark: MessageType<WalkMark> =
+  /* @__PURE__ */ createMessageType<WalkMark>('block.gc.WalkMark', () => [
+    [1, 'adoption', 14, 0, Adoption_Enum],
+    [2, 'next_seq', 4],
+    [3, 'cursor', 4],
+    [4, 'net_offset', 4],
+    [5, 'release', 11, 0, Release.codec],
+    [6, 'listed', 8],
+    [7, 'holders', 4],
+    [8, 'journal', 3],
+    [9, 'fill', 3],
+    [10, 'pending', 3],
+  ])

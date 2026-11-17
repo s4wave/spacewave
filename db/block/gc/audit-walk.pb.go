@@ -155,6 +155,11 @@ type WalkCounts struct {
 	// TailPairs counts the journal pairs the walk copied into its scratch
 	// store, so each check view reads only the journal written since the last.
 	TailPairs uint64 `protobuf:"varint,13,opt,name=tail_pairs,json=tailPairs,proto3" json:"tailPairs,omitempty"`
+	// Wide counts the named blocks with more edges than one view reads whose
+	// undercount went unchecked: something that could change a namer moved
+	// between the first and the last of the block's views, so the namers
+	// summed across them bound no one view's.
+	Wide uint64 `protobuf:"varint,14,opt,name=wide,proto3" json:"wide,omitempty"`
 }
 
 func (x *WalkCounts) Reset() {
@@ -254,6 +259,13 @@ func (x *WalkCounts) GetTailPairs() uint64 {
 	return 0
 }
 
+func (x *WalkCounts) GetWide() uint64 {
+	if x != nil {
+		return x.Wide
+	}
+	return 0
+}
+
 // WalkProgress is the one progress record of a streaming audit walk, kept in
 // its scratch store, so a restart of the same run resumes where it stopped.
 type WalkProgress struct {
@@ -274,6 +286,22 @@ type WalkProgress struct {
 	// Tail is the sequence past the last journal record the walk copied into
 	// its scratch store. The check copies from the later of it and the cursor.
 	Tail uint64 `protobuf:"varint,6,opt,name=tail,proto3" json:"tail,omitempty"`
+	// EdgeAfter is the last edge key the views of the block past After have
+	// read, after the edge kind: the next view of that block resumes past it.
+	// Empty starts the block's edges.
+	EdgeAfter []byte `protobuf:"bytes,7,opt,name=edge_after,json=edgeAfter,proto3" json:"edgeAfter,omitempty"`
+	// Resumes counts the times a process took up this run from scratch.
+	Resumes uint32 `protobuf:"varint,8,opt,name=resumes,proto3" json:"resumes,omitempty"`
+	// WideMark is what the first view of the wide block past After read of
+	// the things that can change its namers, unset when no wide block is
+	// under way.
+	WideMark *WalkMark `protobuf:"bytes,9,opt,name=wide_mark,json=wideMark,proto3" json:"wideMark,omitempty"`
+	// WideSeen counts the edges of the wide block past After that held in the
+	// view that read them.
+	WideSeen uint64 `protobuf:"varint,10,opt,name=wide_seen,json=wideSeen,proto3" json:"wideSeen,omitempty"`
+	// WideMoved reports that a view of the wide block past After read another
+	// mark than its first.
+	WideMoved bool `protobuf:"varint,11,opt,name=wide_moved,json=wideMoved,proto3" json:"wideMoved,omitempty"`
 }
 
 func (x *WalkProgress) Reset() {
@@ -324,6 +352,145 @@ func (x *WalkProgress) GetTail() uint64 {
 	return 0
 }
 
+func (x *WalkProgress) GetEdgeAfter() []byte {
+	if x != nil {
+		return x.EdgeAfter
+	}
+	return nil
+}
+
+func (x *WalkProgress) GetResumes() uint32 {
+	if x != nil {
+		return x.Resumes
+	}
+	return 0
+}
+
+func (x *WalkProgress) GetWideMark() *WalkMark {
+	if x != nil {
+		return x.WideMark
+	}
+	return nil
+}
+
+func (x *WalkProgress) GetWideSeen() uint64 {
+	if x != nil {
+		return x.WideSeen
+	}
+	return 0
+}
+
+func (x *WalkProgress) GetWideMoved() bool {
+	if x != nil {
+		return x.WideMoved
+	}
+	return false
+}
+
+// WalkMark is what one view reads of the things that can change the namers
+// of one block: the journal's end, how far netting has gone, the paged
+// release, and the block's own holders and pending pairs. Two views that
+// read the same mark saw the same namers of the block.
+type WalkMark struct {
+	unknownFields []byte
+	// Adoption is the Volume's adoption.
+	Adoption Adoption `protobuf:"varint,1,opt,name=adoption,proto3" json:"adoption,omitempty"`
+	// NextSeq is the sequence the next journal record takes.
+	NextSeq uint64 `protobuf:"varint,2,opt,name=next_seq,json=nextSeq,proto3" json:"nextSeq,omitempty"`
+	// Cursor is the oldest journal record not netted.
+	Cursor uint64 `protobuf:"varint,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	// NetOffset is how much of the record at the cursor is netted.
+	NetOffset uint64 `protobuf:"varint,4,opt,name=net_offset,json=netOffset,proto3" json:"netOffset,omitempty"`
+	// Release is the paged release in progress, unset when none is.
+	Release *Release `protobuf:"bytes,5,opt,name=release,proto3" json:"release,omitempty"`
+	// Listed is whether the block has a child list.
+	Listed bool `protobuf:"varint,6,opt,name=listed,proto3" json:"listed,omitempty"`
+	// Holders is the block's netted holders.
+	Holders uint64 `protobuf:"varint,7,opt,name=holders,proto3" json:"holders,omitempty"`
+	// Journal is what the journal past the cursor does to its holders.
+	Journal int64 `protobuf:"varint,8,opt,name=journal,proto3" json:"journal,omitempty"`
+	// Fill is what the fill records not netted do to its holders.
+	Fill int64 `protobuf:"varint,9,opt,name=fill,proto3" json:"fill,omitempty"`
+	// Pending is what the paged release does to its namers.
+	Pending int64 `protobuf:"varint,10,opt,name=pending,proto3" json:"pending,omitempty"`
+}
+
+func (x *WalkMark) Reset() {
+	*x = WalkMark{}
+}
+
+func (*WalkMark) ProtoMessage() {}
+
+func (x *WalkMark) GetAdoption() Adoption {
+	if x != nil {
+		return x.Adoption
+	}
+	return Adoption_ADOPTION_UNADOPTED
+}
+
+func (x *WalkMark) GetNextSeq() uint64 {
+	if x != nil {
+		return x.NextSeq
+	}
+	return 0
+}
+
+func (x *WalkMark) GetCursor() uint64 {
+	if x != nil {
+		return x.Cursor
+	}
+	return 0
+}
+
+func (x *WalkMark) GetNetOffset() uint64 {
+	if x != nil {
+		return x.NetOffset
+	}
+	return 0
+}
+
+func (x *WalkMark) GetRelease() *Release {
+	if x != nil {
+		return x.Release
+	}
+	return nil
+}
+
+func (x *WalkMark) GetListed() bool {
+	if x != nil {
+		return x.Listed
+	}
+	return false
+}
+
+func (x *WalkMark) GetHolders() uint64 {
+	if x != nil {
+		return x.Holders
+	}
+	return 0
+}
+
+func (x *WalkMark) GetJournal() int64 {
+	if x != nil {
+		return x.Journal
+	}
+	return 0
+}
+
+func (x *WalkMark) GetFill() int64 {
+	if x != nil {
+		return x.Fill
+	}
+	return 0
+}
+
+func (x *WalkMark) GetPending() int64 {
+	if x != nil {
+		return x.Pending
+	}
+	return 0
+}
+
 func (m *WalkCounts) CloneVT() *WalkCounts {
 	if m == nil {
 		return (*WalkCounts)(nil)
@@ -342,6 +509,7 @@ func (m *WalkCounts) CloneVT() *WalkCounts {
 	r.UnconfirmedLapsed = m.UnconfirmedLapsed
 	r.UnconfirmedUnrooted = m.UnconfirmedUnrooted
 	r.TailPairs = m.TailPairs
+	r.Wide = m.Wide
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -361,8 +529,13 @@ func (m *WalkProgress) CloneVT() *WalkProgress {
 	r.Phase = m.Phase
 	r.StartedUnixMilli = m.StartedUnixMilli
 	r.Tail = m.Tail
+	r.Resumes = m.Resumes
+	r.WideSeen = m.WideSeen
+	r.WideMoved = m.WideMoved
 	r.After = protobuf_go_lite.CloneBytes(m.After)
 	r.Counts = protobuf_go_lite.CloneVTValue(m.Counts)
+	r.EdgeAfter = protobuf_go_lite.CloneBytes(m.EdgeAfter)
+	r.WideMark = protobuf_go_lite.CloneVTValue(m.WideMark)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -370,6 +543,31 @@ func (m *WalkProgress) CloneVT() *WalkProgress {
 }
 
 func (m *WalkProgress) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WalkMark) CloneVT() *WalkMark {
+	if m == nil {
+		return (*WalkMark)(nil)
+	}
+	r := new(WalkMark)
+	r.Adoption = m.Adoption
+	r.NextSeq = m.NextSeq
+	r.Cursor = m.Cursor
+	r.NetOffset = m.NetOffset
+	r.Listed = m.Listed
+	r.Holders = m.Holders
+	r.Journal = m.Journal
+	r.Fill = m.Fill
+	r.Pending = m.Pending
+	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WalkMark) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -418,6 +616,9 @@ func (this *WalkCounts) EqualVT(that *WalkCounts) bool {
 	if this.TailPairs != that.TailPairs {
 		return false
 	}
+	if this.Wide != that.Wide {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -453,11 +654,73 @@ func (this *WalkProgress) EqualVT(that *WalkProgress) bool {
 	if this.Tail != that.Tail {
 		return false
 	}
+	if !protobuf_go_lite.EqualBytes(this.EdgeAfter, that.EdgeAfter) {
+		return false
+	}
+	if this.Resumes != that.Resumes {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.WideMark, that.WideMark) {
+		return false
+	}
+	if this.WideSeen != that.WideSeen {
+		return false
+	}
+	if this.WideMoved != that.WideMoved {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *WalkProgress) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WalkProgress)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WalkMark) EqualVT(that *WalkMark) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Adoption != that.Adoption {
+		return false
+	}
+	if this.NextSeq != that.NextSeq {
+		return false
+	}
+	if this.Cursor != that.Cursor {
+		return false
+	}
+	if this.NetOffset != that.NetOffset {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Release, that.Release) {
+		return false
+	}
+	if this.Listed != that.Listed {
+		return false
+	}
+	if this.Holders != that.Holders {
+		return false
+	}
+	if this.Journal != that.Journal {
+		return false
+	}
+	if this.Fill != that.Fill {
+		return false
+	}
+	if this.Pending != that.Pending {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WalkMark) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WalkMark)
 	if !ok {
 		return false
 	}
@@ -617,6 +880,11 @@ func (x *WalkCounts) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("tailPairs")
 		s.WriteUint64(x.TailPairs)
 	}
+	if x.Wide != 0 || s.HasField("wide") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("wide")
+		s.WriteUint64(x.Wide)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -673,6 +941,9 @@ func (x *WalkCounts) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "tail_pairs", "tailPairs":
 			s.AddField("tail_pairs")
 			x.TailPairs = s.ReadUint64()
+		case "wide":
+			s.AddField("wide")
+			x.Wide = s.ReadUint64()
 		}
 	})
 }
@@ -720,6 +991,31 @@ func (x *WalkProgress) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("tail")
 		s.WriteUint64(x.Tail)
 	}
+	if len(x.EdgeAfter) > 0 || s.HasField("edgeAfter") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("edgeAfter")
+		s.WriteBytes(x.EdgeAfter)
+	}
+	if x.Resumes != 0 || s.HasField("resumes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resumes")
+		s.WriteUint32(x.Resumes)
+	}
+	if x.WideMark != nil || s.HasField("wideMark") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("wideMark")
+		x.WideMark.MarshalProtoJSON(s.WithField("wideMark"))
+	}
+	if x.WideSeen != 0 || s.HasField("wideSeen") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("wideSeen")
+		s.WriteUint64(x.WideSeen)
+	}
+	if x.WideMoved || s.HasField("wideMoved") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("wideMoved")
+		s.WriteBool(x.WideMoved)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -759,12 +1055,149 @@ func (x *WalkProgress) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "tail":
 			s.AddField("tail")
 			x.Tail = s.ReadUint64()
+		case "edge_after", "edgeAfter":
+			s.AddField("edge_after")
+			x.EdgeAfter = s.ReadBytes()
+		case "resumes":
+			s.AddField("resumes")
+			x.Resumes = s.ReadUint32()
+		case "wide_mark", "wideMark":
+			if s.ReadNil() {
+				x.WideMark = nil
+				return
+			}
+			x.WideMark = &WalkMark{}
+			x.WideMark.UnmarshalProtoJSON(s.WithField("wide_mark", true))
+		case "wide_seen", "wideSeen":
+			s.AddField("wide_seen")
+			x.WideSeen = s.ReadUint64()
+		case "wide_moved", "wideMoved":
+			s.AddField("wide_moved")
+			x.WideMoved = s.ReadBool()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the WalkProgress from JSON.
 func (x *WalkProgress) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WalkMark message to JSON.
+func (x *WalkMark) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Adoption != 0 || s.HasField("adoption") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("adoption")
+		x.Adoption.MarshalProtoJSON(s)
+	}
+	if x.NextSeq != 0 || s.HasField("nextSeq") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nextSeq")
+		s.WriteUint64(x.NextSeq)
+	}
+	if x.Cursor != 0 || s.HasField("cursor") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cursor")
+		s.WriteUint64(x.Cursor)
+	}
+	if x.NetOffset != 0 || s.HasField("netOffset") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("netOffset")
+		s.WriteUint64(x.NetOffset)
+	}
+	if x.Release != nil || s.HasField("release") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("release")
+		x.Release.MarshalProtoJSON(s.WithField("release"))
+	}
+	if x.Listed || s.HasField("listed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("listed")
+		s.WriteBool(x.Listed)
+	}
+	if x.Holders != 0 || s.HasField("holders") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("holders")
+		s.WriteUint64(x.Holders)
+	}
+	if x.Journal != 0 || s.HasField("journal") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("journal")
+		s.WriteInt64(x.Journal)
+	}
+	if x.Fill != 0 || s.HasField("fill") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fill")
+		s.WriteInt64(x.Fill)
+	}
+	if x.Pending != 0 || s.HasField("pending") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pending")
+		s.WriteInt64(x.Pending)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WalkMark to JSON.
+func (x *WalkMark) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WalkMark message from JSON.
+func (x *WalkMark) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "adoption":
+			s.AddField("adoption")
+			x.Adoption.UnmarshalProtoJSON(s)
+		case "next_seq", "nextSeq":
+			s.AddField("next_seq")
+			x.NextSeq = s.ReadUint64()
+		case "cursor":
+			s.AddField("cursor")
+			x.Cursor = s.ReadUint64()
+		case "net_offset", "netOffset":
+			s.AddField("net_offset")
+			x.NetOffset = s.ReadUint64()
+		case "release":
+			if s.ReadNil() {
+				x.Release = nil
+				return
+			}
+			x.Release = &Release{}
+			x.Release.UnmarshalProtoJSON(s.WithField("release", true))
+		case "listed":
+			s.AddField("listed")
+			x.Listed = s.ReadBool()
+		case "holders":
+			s.AddField("holders")
+			x.Holders = s.ReadUint64()
+		case "journal":
+			s.AddField("journal")
+			x.Journal = s.ReadInt64()
+		case "fill":
+			s.AddField("fill")
+			x.Fill = s.ReadInt64()
+		case "pending":
+			s.AddField("pending")
+			x.Pending = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WalkMark from JSON.
+func (x *WalkMark) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -796,6 +1229,11 @@ func (m *WalkCounts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Wide != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Wide))
+		i--
+		dAtA[i] = 0x70
 	}
 	if m.TailPairs != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TailPairs))
@@ -894,6 +1332,36 @@ func (m *WalkProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.WideMoved {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.WideMoved)
+		i--
+		dAtA[i] = 0x58
+	}
+	if m.WideSeen != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WideSeen))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.WideMark != nil {
+		size, err := m.WideMark.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.Resumes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Resumes))
+		i--
+		dAtA[i] = 0x40
+	}
+	if len(m.EdgeAfter) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.EdgeAfter)
+		i--
+		dAtA[i] = 0x3a
+	}
 	if m.Tail != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Tail))
 		i--
@@ -932,6 +1400,93 @@ func (m *WalkProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *WalkMark) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WalkMark) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WalkMark) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Pending != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Pending))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.Fill != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Fill))
+		i--
+		dAtA[i] = 0x48
+	}
+	if m.Journal != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Journal))
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.Holders != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Holders))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Listed {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Listed)
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.Release != nil {
+		size, err := m.Release.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.NetOffset != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NetOffset))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Cursor != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cursor))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.NextSeq != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextSeq))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Adoption != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Adoption))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WalkCounts) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -951,6 +1506,7 @@ func (m *WalkCounts) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.UnconfirmedLapsed)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.UnconfirmedUnrooted)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.TailPairs)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Wide)
 	n += len(m.unknownFields)
 	return n
 }
@@ -970,6 +1526,37 @@ func (m *WalkProgress) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Tail)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.EdgeAfter)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Resumes)
+	if m.WideMark != nil {
+		l = m.WideMark.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.WideSeen)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.WideMoved)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WalkMark) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Adoption)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextSeq)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cursor)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NetOffset)
+	if m.Release != nil {
+		l = m.Release.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Listed)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Holders)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Journal)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Fill)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Pending)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1037,6 +1624,10 @@ func (x *WalkCounts) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tail_pairs")
 		protobuf_go_lite.TextWriteUint(&sb, x.TailPairs)
 	}
+	if x.Wide != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "wide")
+		protobuf_go_lite.TextWriteUint(&sb, x.Wide)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1071,10 +1662,80 @@ func (x *WalkProgress) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tail")
 		protobuf_go_lite.TextWriteUint(&sb, x.Tail)
 	}
+	if len(x.EdgeAfter) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "edge_after")
+		protobuf_go_lite.TextWriteBytes(&sb, x.EdgeAfter)
+	}
+	if x.Resumes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resumes")
+		protobuf_go_lite.TextWriteUint(&sb, x.Resumes)
+	}
+	if x.WideMark != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "wide_mark")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.WideMark)
+	}
+	if x.WideSeen != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "wide_seen")
+		protobuf_go_lite.TextWriteUint(&sb, x.WideSeen)
+	}
+	if x.WideMoved != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "wide_moved")
+		protobuf_go_lite.TextWriteBool(&sb, x.WideMoved)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *WalkProgress) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WalkMark) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WalkMark")
+	if x.Adoption != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "adoption")
+		protobuf_go_lite.TextWriteStringer(&sb, Adoption(x.Adoption))
+	}
+	if x.NextSeq != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_seq")
+		protobuf_go_lite.TextWriteUint(&sb, x.NextSeq)
+	}
+	if x.Cursor != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cursor")
+		protobuf_go_lite.TextWriteUint(&sb, x.Cursor)
+	}
+	if x.NetOffset != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "net_offset")
+		protobuf_go_lite.TextWriteUint(&sb, x.NetOffset)
+	}
+	if x.Release != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "release")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Release)
+	}
+	if x.Listed != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "listed")
+		protobuf_go_lite.TextWriteBool(&sb, x.Listed)
+	}
+	if x.Holders != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "holders")
+		protobuf_go_lite.TextWriteUint(&sb, x.Holders)
+	}
+	if x.Journal != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "journal")
+		protobuf_go_lite.TextWriteInt(&sb, x.Journal)
+	}
+	if x.Fill != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "fill")
+		protobuf_go_lite.TextWriteInt(&sb, x.Fill)
+	}
+	if x.Pending != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pending")
+		protobuf_go_lite.TextWriteInt(&sb, x.Pending)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WalkMark) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1215,6 +1876,15 @@ func (m *WalkCounts) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Wide", wireType)
+			}
+			m.Wide = 0
+			m.Wide, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1317,6 +1987,199 @@ func (m *WalkProgress) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Tail = 0
 			m.Tail, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EdgeAfter", wireType)
+			}
+			m.EdgeAfter, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.EdgeAfter, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Resumes", wireType)
+			}
+			m.Resumes = 0
+			m.Resumes, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WideMark", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.WideMark == nil {
+				m.WideMark = &WalkMark{}
+			}
+			if err := m.WideMark.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WideSeen", wireType)
+			}
+			m.WideSeen = 0
+			m.WideSeen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WideMoved", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.WideMoved = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WalkMark) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WalkMark: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WalkMark: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Adoption", wireType)
+			}
+			m.Adoption = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Adoption = Adoption(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextSeq", wireType)
+			}
+			m.NextSeq = 0
+			m.NextSeq, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cursor", wireType)
+			}
+			m.Cursor = 0
+			m.Cursor, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NetOffset", wireType)
+			}
+			m.NetOffset = 0
+			m.NetOffset, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Release", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Release == nil {
+				m.Release = &Release{}
+			}
+			if err := m.Release.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Listed", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Listed = bool(v)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Holders", wireType)
+			}
+			m.Holders = 0
+			m.Holders, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Journal", wireType)
+			}
+			m.Journal = 0
+			m.Journal, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Fill", wireType)
+			}
+			m.Fill = 0
+			m.Fill, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pending", wireType)
+			}
+			m.Pending = 0
+			m.Pending, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

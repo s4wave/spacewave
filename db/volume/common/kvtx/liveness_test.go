@@ -7903,9 +7903,11 @@ func b2u(b bool) int {
 // with its list: a hole a held root reaches. main2 -> R2 -> H2, whose hole a
 // stage refilled before any audit recorded it, so H2 is undercounted. A stage
 // stores P ahead of its child C, which lands while the walk waits out its
-// confirm delay. The walk reports H as unconfirmed and held, H2 as the one
-// undercount, and C as settled, and then refuses its scratch store to a
-// second run.
+// confirm delay. X is named by more roots than one view of a walk reads.
+// The walk reports H as unconfirmed and held, H2 as the one undercount, and
+// C as settled, and then refuses its scratch store to a second run. A walk
+// of the quiet Volume sums X's namers across its views, finds H2 alone
+// undercounted, and counts no block wide.
 func testAuditWalk(t *testing.T) {
 	// Build the hole, the undercount and the parent ahead of its child.
 	v, clk := newLivenessVolume(t, true)
@@ -7918,8 +7920,12 @@ func testAuditWalk(t *testing.T) {
 	tr.add(t, "R2", "H2")
 	tr.add(t, "C")
 	tr.add(t, "P", "C")
+	tr.add(t, "X")
 	roots := []block.NamedRoot{{Name: "main", Ref: tr["R"].Ref}, {Name: "main2", Ref: tr["R2"].Ref}}
-	if err := v.SetBucketRoots(ctx, "b", tr.entries("H", "R", "H2", "R2"), roots); err != nil {
+	for i := range 4100 {
+		roots = append(roots, block.NamedRoot{Name: "wide" + strconv.Itoa(i), Ref: tr["X"].Ref})
+	}
+	if err := v.SetBucketRoots(ctx, "b", tr.entries("H", "R", "H2", "R2", "X"), roots); err != nil {
 		t.Fatal(err)
 	}
 	punchHole(t, v, h)
@@ -7986,6 +7992,20 @@ func testAuditWalk(t *testing.T) {
 	// A second run refuses the first run's scratch store.
 	if _, err := v.AuditWalk(ctx, scratch, block_gc.WalkOptions{Run: "second"}); !errors.Is(err, block_gc.ErrWalkTaken) {
 		t.Fatalf("second run on the scratch store returned %v, want ErrWalkTaken", err)
+	}
+
+	// A walk of the quiet Volume checks the wide X soundly.
+	quiet, err := store_kvtx_sqlite.Open(ctx, filepath.Join(t.TempDir(), "quiet.db"), "walk")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer quiet.Close()
+	res, err = v.AuditWalk(ctx, quiet, block_gc.WalkOptions{Run: "quiet", Delay: -1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c := res.Counts; c.GetUndercount() != 1 || c.GetWide() != 0 || !slices.ContainsFunc(res.UndercountSample, tr["H2"].Ref.EqualsRef) {
+		t.Fatalf("quiet walk found %d undercounts, sample %v, and %d wide, want H2 alone and none", c.GetUndercount(), res.UndercountSample, c.GetWide())
 	}
 }
 
