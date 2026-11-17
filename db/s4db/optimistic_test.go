@@ -136,12 +136,12 @@ func TestOptimisticCommit(t *testing.T) {
 	// holding the writer lock, and its write counts every commit before.
 	locked := false
 	r = run(bump("a"), func(attempt int) {
-		release, available := db.w.mtx.TryLock()
+		available := db.w.admission.tryLock()
 		if !available {
 			locked = true
 			return
 		}
-		release()
+		db.w.admission.unlock()
 		set("a", 10*attempt)
 	})
 	if r.err != nil || r.attempts != 3 || !locked || read("a") != 21 {
