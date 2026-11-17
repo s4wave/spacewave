@@ -50,6 +50,8 @@ type Status struct {
 	DroppedFills int64
 	// Copy reports the latest copy of the stored blocks to a remote.
 	Copy CopyStatus
+	// Bound reports the bounded eviction passes, as EvictBounded runs them.
+	Bound EvictBoundStatus
 }
 
 // ResidentBytes is the size of the store's blocks the local store holds: the

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"crypto/sha256"
 	"io"
 	"slices"
 	"strings"
@@ -122,6 +123,8 @@ type PackStore struct {
 	exactReads bool
 	// readCache serves block extents before the bucket, or is nil.
 	readCache RangeCache
+	// uploadChecksum sends each packfile's SHA-256 with its upload.
+	uploadChecksum bool
 	// reads counts the blocks read by where their bytes came from.
 	reads readCounters
 	// linger is how long a short upload batch waits for more blocks.
@@ -236,6 +239,12 @@ type PackStoreOptions struct {
 	MaxPackBytes int64
 	// ReadCache serves block extents before the bucket. Nil reads the bucket.
 	ReadCache RangeCache
+	// UploadChecksum sends each packfile's SHA-256 in the
+	// X-Amz-Checksum-Sha256 header of its upload, so the service refuses a
+	// body that does not match it. Off by default until each service the
+	// store writes to is known to accept the header. The store records the
+	// SHA-256 in Index either way.
+	UploadChecksum bool
 	// SoleWriter says no other writer adds packfiles under the prefix, so the
 	// store lists the bucket only for its first load, and not even then when
 	// the index's table holds a pack: the store's own writes keep its entries
@@ -295,6 +304,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		indexOnly:       opts.IndexOnly && opts.Index != nil,
 		exactReads:      opts.ExactReads,
 		readCache:       opts.ReadCache,
+		uploadChecksum:  opts.UploadChecksum,
 		linger:          cmp.Or(max(opts.Linger, 0), packLinger),
 		mergeTailBytes:  max(opts.MergeTailBytes, 0),
 		maxPackBytes:    cmp.Or(max(opts.MaxPackBytes, 0), writer.DefaultMaxPackBytes),
@@ -568,7 +578,8 @@ func (s *PackStore) publishPack(ctx context.Context, entry *packfile.PackfileEnt
 		return err
 	}
 	id := entry.GetId()
-	if err := s.client.PutObject(ctx, s.bucket, s.prefix+packDir+id, data, "application/octet-stream"); err != nil {
+	sum := sha256.Sum256(data)
+	if err := s.putPackObject(ctx, s.prefix+packDir+id, data, sum[:]); err != nil {
 		return errors.Wrap(err, "write packfile")
 	}
 	if err := s.client.PutObject(ctx, s.bucket, s.prefix+entryDir+id, entryData, "application/octet-stream"); err != nil {
@@ -579,6 +590,9 @@ func (s *PackStore) publishPack(ctx context.Context, entry *packfile.PackfileEnt
 	// lists. A tail that does not read leaves rows of the pack alone.
 	if s.index == nil {
 		return nil
+	}
+	if err := s.index.putSum(ctx, id, sum[:]); err != nil {
+		return errors.Wrap(err, "record packfile sum")
 	}
 	size := uint64(len(data))
 	tail, err := packfile.ReadIndexTail(ctx, size, size, func(_ context.Context, off int64, length int) ([]byte, error) {

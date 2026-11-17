@@ -79,6 +79,9 @@ type Store struct {
 	// evictLimit is the block limit of the next eviction batch, guarded by
 	// evictMtx, as nextEvictLimit sets it; evictBatchStartBlocks on open.
 	evictLimit int
+	// droppedAheadLoaded reports the dropped-ahead count was read into the
+	// status, guarded by evictMtx.
+	droppedAheadLoaded bool
 	// bcast guards status, and wakes Upload and status watchers.
 	bcast broadcast.Broadcast
 	// status projects the committed markers and the upload policy.

@@ -610,6 +610,17 @@ func (p *placementState) evict(ctx context.Context, maxBytes int64) (block_store
 	// peer fills uploading, a peer fill the backend does not yet hold keeps
 	// its local value: it is refused until its upload queues it again. The
 	// check costs a backend existence probe per batch.
+	//
+	// Once SetEvictBudget was called the pass is bounded instead, and the
+	// backend's own packs, fetched and verified in the batch, are the proof;
+	// a backend that cannot verify its packs drops nothing.
+	if evictBounded.Load() {
+		bound, ok := evictBound(remote.store)
+		if !ok {
+			return result, nil
+		}
+		return p.wb.EvictBounded(ctx, bound, maxBytes, keep, admit)
+	}
 	return p.wb.Evict(ctx, remote.store, maxBytes, keep, admit)
 }
 

@@ -434,19 +434,9 @@ func (s *Store) Evict(
 	}
 
 	// Advance the epoch, so entries this pass queues sort after the walk.
-	var epoch uint64
-	err = retryBusy(ctx, func() error {
-		return kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
-			prev, err := readEpoch(ctx, tx)
-			if err != nil {
-				return err
-			}
-			epoch = prev + 1
-			return tx.Set(ctx, []byte(epochKey), []byte(strconv.FormatUint(epoch, 10)))
-		})
-	})
+	epoch, err := s.advanceEvictEpoch(ctx)
 	if err != nil {
-		return result, errors.Wrap(err, "advance eviction epoch")
+		return result, err
 	}
 
 	// Evict in batches until the byte target or the new epoch, each from
@@ -471,6 +461,90 @@ func (s *Store) Evict(
 	return result, nil
 }
 
+// advanceEvictEpoch advances the eviction epoch and returns the new one, so
+// the entries a pass queues sort after its walk.
+func (s *Store) advanceEvictEpoch(ctx context.Context) (uint64, error) {
+	var epoch uint64
+	err := retryBusy(ctx, func() error {
+		return kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+			prev, err := readEpoch(ctx, tx)
+			if err != nil {
+				return err
+			}
+			epoch = prev + 1
+			return tx.Set(ctx, []byte(epochKey), []byte(strconv.FormatUint(epoch, 10)))
+		})
+	})
+	if err != nil {
+		return 0, errors.Wrap(err, "advance eviction epoch")
+	}
+	return epoch, nil
+}
+
+// evictScan is one batch of eviction queue entries older than the pass
+// epoch, read in one snapshot with whether a marker awaits each upload.
+type evictScan struct {
+	// batch holds the entries in key order.
+	batch []evictEntry
+	// marked reports for each entry whether a marker awaits its upload.
+	marked []bool
+	// next is the key the batch after this one starts from.
+	next []byte
+	// done reports the walk reached the end of the older entries; next is
+	// then the start of the pass epoch.
+	done bool
+	// bounds and limit are the batch bounds and block limit in force.
+	bounds EvictBatch
+	limit  int
+}
+
+// scanEvictBatch reads one batch of entries older than epoch from the key
+// from, up to the block limit the last drop write set within the bounds in
+// force, and stops before the batch's bytes and evicted reach maxBytes.
+func (s *Store) scanEvictBatch(ctx context.Context, epoch uint64, maxBytes, evicted int64, from []byte) (evictScan, error) {
+	// Read the batch in one snapshot, at the limit in force.
+	scan := evictScan{bounds: loadEvictBatch()}
+	scan.limit = scan.bounds.clamp(s.evictLimit)
+	err := retryBusy(ctx, func() error {
+		return kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+			// Walk the older entries up to the batch and byte limits; the walk is
+			// done when it runs out of them.
+			scan.batch, scan.marked, scan.done = scan.batch[:0], scan.marked[:0], true
+			var batchBytes int64
+			scan.next = nil
+			err := scanEvictable(ctx, tx, from, func(entry evictEntry) error {
+				// Stop at the new epoch or a full batch, where the next batch
+				// starts. A batch takes its first entry whatever its size.
+				full := len(scan.batch) == scan.limit || (len(scan.batch) != 0 && batchBytes+entry.size > scan.bounds.MaxBytes)
+				if entry.epoch >= epoch || full || evicted+batchBytes >= maxBytes {
+					scan.done, scan.next = entry.epoch >= epoch, entry.key
+					return errScanDone
+				}
+
+				// Take the entry with whether a marker awaits its upload.
+				found, err := tx.Exists(ctx, markedKey(entry.hash))
+				if err != nil {
+					return err
+				}
+				scan.batch, scan.marked = append(scan.batch, entry), append(scan.marked, found)
+				batchBytes += entry.size
+				return nil
+			})
+			if errors.Is(err, errScanDone) {
+				return nil
+			}
+			return err
+		})
+	})
+	if err != nil {
+		return evictScan{}, errors.Wrap(err, "scan eviction queue")
+	}
+	if scan.done {
+		scan.next = evictEpochKey(epoch)
+	}
+	return scan, nil
+}
+
 // evictBatch reads one batch of entries older than epoch from the key from,
 // drops the values it may, and commits the entry changes. Returns the key the
 // next batch starts from, and true when the walk reached the end of the older
@@ -485,53 +559,13 @@ func (s *Store) evictBatch(
 	from []byte,
 	result *EvictResult,
 ) ([]byte, bool, error) {
-	// Read the batch with the markers of its blocks, up to the block limit the
-	// last drop write set within the bounds in force.
-	bounds := loadEvictBatch()
-	limit := bounds.clamp(s.evictLimit)
-	var (
-		batch  []evictEntry
-		marked []bool
-		next   []byte
-		done   bool
-	)
-	err := retryBusy(ctx, func() error {
-		return kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-			// Walk the older entries up to the batch and byte limits; the walk is
-			// done when it runs out of them.
-			batch, marked, done = batch[:0], marked[:0], true
-			var batchBytes int64
-			next = nil
-			err := scanEvictable(ctx, tx, from, func(entry evictEntry) error {
-				// Stop at the new epoch or a full batch, where the next batch
-				// starts. A batch takes its first entry whatever its size.
-				full := len(batch) == limit || (len(batch) != 0 && batchBytes+entry.size > bounds.MaxBytes)
-				if entry.epoch >= epoch || full || result.EvictedBytes+batchBytes >= maxBytes {
-					done, next = entry.epoch >= epoch, entry.key
-					return errScanDone
-				}
-
-				// Take the entry with whether a marker awaits its upload.
-				found, err := tx.Exists(ctx, markedKey(entry.hash))
-				if err != nil {
-					return err
-				}
-				batch, marked = append(batch, entry), append(marked, found)
-				batchBytes += entry.size
-				return nil
-			})
-			if errors.Is(err, errScanDone) {
-				return nil
-			}
-			return err
-		})
-	})
+	// Read the batch with the markers of its blocks.
+	scan, err := s.scanEvictBatch(ctx, epoch, maxBytes, result.EvictedBytes, from)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "scan eviction queue")
+		return nil, false, err
 	}
-	if done {
-		next = evictEpochKey(epoch)
-	}
+	batch, marked, next, done := scan.batch, scan.marked, scan.next, scan.done
+	bounds, limit := scan.bounds, scan.limit
 	if len(batch) == 0 {
 		return next, true, nil
 	}

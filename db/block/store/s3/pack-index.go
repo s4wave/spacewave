@@ -791,6 +791,9 @@ func (x *packIndex) remove(ctx context.Context, ids []string) error {
 		if err := tx.Delete(ctx, []byte(indexTailPrefix+id)); err != nil {
 			return err
 		}
+		if err := tx.Delete(ctx, []byte(indexSumPrefix+id)); err != nil {
+			return err
+		}
 	}
 	return tx.Commit(ctx)
 }
