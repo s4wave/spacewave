@@ -1,0 +1,38 @@
+[
+  {
+    "name": "the check counts an edge its namer no longer holds",
+    "replace": [["{e \\in edges : e[1] = c /\\ Valid(e)}", "{e \\in edges : e[1] = c}"]],
+    "expect": "NoFalsePositive",
+    "config": "AuditWalk.cfg"
+  },
+  {
+    "name": "the check ignores the journal past the cursor",
+    "replace": [["flagU == holders[c] + delta[c] < Seen(c)", "flagU == holders[c] < Seen(c)"]],
+    "expect": "NoFalsePositive",
+    "config": "AuditWalk.cfg"
+  },
+  {
+    "name": "the edges phase skips the roots",
+    "replace": [["THEN IF root[n] = None THEN {} ELSE {<<root[n], n>>}", "THEN {}"]],
+    "expect": "Detects",
+    "config": "AuditWalk.cfg"
+  },
+  {
+    "name": "the check makes no hole candidate",
+    "replace": [["flagH == Seen(c) > 0 /\\ Absent(c)", "flagH == FALSE"]],
+    "expect": "Detects",
+    "config": "AuditWalk.cfg"
+  },
+  {
+    "name": "the confirm does not wait for a put in flight",
+    "replace": [["/\\ c \\notin inflight   \\* the delay outlasts every put in flight", "/\\ TRUE"]],
+    "expect": "NoFalsePositive",
+    "config": "AuditWalk.cfg"
+  },
+  {
+    "name": "the walk ignores hole records",
+    "replace": [["Absent(c) == c \\notin stored /\\ c \\notin hole", "Absent(c) == c \\notin stored"]],
+    "expect": "NoFalsePositive",
+    "config": "AuditWalk-faults.cfg"
+  }
+]
