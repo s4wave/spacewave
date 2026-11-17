@@ -1227,6 +1227,17 @@ func (s *PackStore) readConcurrency() int {
 
 // readEntry reads the entry object of packfile id.
 func (s *PackStore) readEntry(ctx context.Context, id string) (*packfile.PackfileEntry, error) {
+	// Fetch the entry's bytes and decode them.
+	data, err := s.fetchEntry(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return decodeEntry(id, data)
+}
+
+// fetchEntry reads the bytes of the entry object of packfile id. An error is
+// the bucket's or the transfer's, ErrNotFound for an absent entry.
+func (s *PackStore) fetchEntry(ctx context.Context, id string) ([]byte, error) {
 	// Read and close the packfile entry object body.
 	body, err := s.client.GetObject(ctx, s.bucket, s.prefix+entryDir+id)
 	if err != nil {
@@ -1238,7 +1249,12 @@ func (s *PackStore) readEntry(ctx context.Context, id string) (*packfile.Packfil
 	if err != nil {
 		return nil, errors.Wrap(err, "read packfile entry")
 	}
+	return data, nil
+}
 
+// decodeEntry decodes data as the entry of packfile id, failing when it does
+// not decode or names another packfile.
+func decodeEntry(id string, data []byte) (*packfile.PackfileEntry, error) {
 	// Decode the packfile entry and verify it names the requested packfile.
 	entry := &packfile.PackfileEntry{}
 	if err := entry.UnmarshalVT(data); err != nil {

@@ -24,7 +24,8 @@ import (
 // placed store's passes are bounded: without a budget, over a backend that
 // cannot verify its packs, or over packs whose bucket entry is missing or
 // does not name their blocks, nothing drops, though the backend holds every
-// block; with one, the pass drops within it, and a read refills.
+// block; a failed entry GET drops nothing and keeps no refusal; with a budget,
+// the pass drops within it, and a read refills.
 func TestEvictBoundedProvider(t *testing.T) {
 	t.Cleanup(func() {
 		evictBounded.Store(false)
@@ -133,6 +134,19 @@ func TestEvictBoundedProvider(t *testing.T) {
 		maps.Copy(f.bucket.objects, entries)
 		f.bucket.mtx.Unlock()
 	}
+
+	// A failed GET of each entry refuses the packs as a fetch failure, which
+	// keeps no refusal: the next pass fetches and verifies them.
+	f.bucket.mtx.Lock()
+	f.bucket.failGet = func(key string) bool { return strings.Contains(key, "/entries/") }
+	f.bucket.mtx.Unlock()
+	before := f.status().Bound.Refused[block_store_s3.VerifyFetch]
+	if result, err := f.p.evict(f.ctx, 1<<20); err != nil || result.EvictedBytes != 0 || evictable() != count*size || f.status().Bound.Refused[block_store_s3.VerifyFetch] == before {
+		t.Fatalf("failed entry GET: %+v, %v, evictable %d, refusals %v", result, err, evictable(), f.status().Bound.Refused)
+	}
+	f.bucket.mtx.Lock()
+	f.bucket.failGet = nil
+	f.bucket.mtx.Unlock()
 
 	// The budget over the pack store drops at most its bytes.
 	result, err := f.p.evict(f.ctx, 1<<20)

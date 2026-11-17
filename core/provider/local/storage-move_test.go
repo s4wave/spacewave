@@ -32,6 +32,9 @@ type fakeS3 struct {
 	objects map[string][]byte
 	// unavailable fails every request with a server error.
 	unavailable bool
+	// failGet, when set, fails each GET of a key it accepts with a server
+	// error.
+	failGet func(key string) bool
 }
 
 // ServeHTTP handles one request against the single bucket.
@@ -52,6 +55,10 @@ func (f *fakeS3) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if key == "" {
 		f.list(w, r.URL.Query().Get("prefix"))
+		return
+	}
+	if r.Method == http.MethodGet && f.failGet != nil && f.failGet(key) {
+		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
 	data, ok := f.objects[key]

@@ -199,8 +199,17 @@ func (s *PackStore) VerifyPack(ctx context.Context, id string, size int64) ([]Ve
 	key := s.prefix + packDir + id
 
 	// Read the pack's entry from the bucket first: it is small, and a pack a
-	// listing reader cannot find is refused before its body is fetched.
-	entry, err := s.readEntry(ctx, id)
+	// listing reader cannot find is refused before its body is fetched. Only
+	// an entry the bucket answered for, absent or wrong, is an entry refusal,
+	// which lasts; a failed transfer is a fetch failure, retried next pass.
+	raw, err := s.fetchEntry(ctx, id)
+	switch {
+	case errors.Is(err, ErrNotFound):
+		return nil, verifyFailed(VerifyEntry, err)
+	case err != nil:
+		return nil, verifyFailed(VerifyFetch, err)
+	}
+	entry, err := decodeEntry(id, raw)
 	if err != nil {
 		return nil, verifyFailed(VerifyEntry, err)
 	}

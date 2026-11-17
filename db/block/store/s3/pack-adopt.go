@@ -107,7 +107,11 @@ func (s *PackStore) adopt(ctx context.Context, entry *packfile.PackfileEntry, ve
 	return true, nil
 }
 
-// KeepsBlocks reports that the store never reclaims a block it holds.
+// KeepsBlocks reports that the store keeps its packs: no compaction or
+// reclaim of its own deletes one. A pack sweep can still quarantine, trash
+// and remove dead packs, and a compaction can supersede one, so a caller that
+// drops another copy of a block reads the pack's state through Registered or
+// a locate that skips held packs, not through this.
 func (s *PackStore) KeepsBlocks() bool {
 	return s.keepPacks
 }
