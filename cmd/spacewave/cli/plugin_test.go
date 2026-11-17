@@ -12,6 +12,10 @@ import (
 	"github.com/aperturerobotics/cli"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/net/hash"
+	s4wave_plugin_approval "github.com/s4wave/spacewave/sdk/plugin/approval"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
@@ -236,5 +240,45 @@ func TestFormatPluginSwapStates(t *testing.T) {
 				t.Fatalf("formatted row = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+// TestPendingApprovalRowsNameTheAdmittedRoot checks that approvals list names
+// a waiting root by the key the scheduler admits it by, the hash of the
+// candidate manifest's root ref, so approving the listed root admits it.
+func TestPendingApprovalRowsNameTheAdmittedRoot(t *testing.T) {
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("glados-core rev 231"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := &bucket.ObjectRef{BucketId: "plugin", RootRef: &block.BlockRef{Hash: h}}
+	plugins := []*s4wave_space.SpacePluginStatus{
+		{PluginId: "glados-web"},
+		{PluginId: "glados-core", Swap: &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_AwaitingApproval{
+			AwaitingApproval: &bldr_plugin.PluginSwapAwaitingApproval{
+				CandidateManifestRef: ref.MarshalB58(),
+				CandidateManifestRev: 231,
+				PeerId:               "peer-a",
+			},
+		}}},
+	}
+	rows, err := pendingApprovalRows("glados-walk", plugins)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("rows = %d, want 1", len(rows))
+	}
+	if want := ref.GetRootRef().GetHash().MarshalString(); rows[0].manifestRoot != want {
+		t.Fatalf("root = %q, want %q", rows[0].manifestRoot, want)
+	}
+
+	// A decision for the root joins its pending row instead of adding one.
+	merged := mergeApprovalRows(rows, []*s4wave_plugin_approval.PluginApproval{
+		{PluginId: "glados-core", ManifestRoot: rows[0].manifestRoot, State: s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_DECLINED},
+		{PluginId: "glados-matrix", ManifestRoot: "other", State: s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED},
+	})
+	if len(merged) != 2 || !merged[0].pending || merged[0].state != s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_DECLINED {
+		t.Fatalf("merged rows = %+v", merged)
 	}
 }
