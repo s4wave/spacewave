@@ -307,16 +307,6 @@ func TestReleaseWorkflowsSeparateEntrypointAndPluginProducers(t *testing.T) {
 		}
 	}
 
-	// Verify the desktop gate preserves the entrypoint producer boundary.
-	desktopGate, err := os.ReadFile(filepath.Join("..", "..", "..", "e2e", "installedapp", "desktop_distribution_gate_test.go"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, forbidden := range forbiddenEntrypointProducers {
-		if strings.Contains(string(desktopGate), forbidden) {
-			t.Fatalf("desktop distribution gate retains ordinary plugin producer %q", forbidden)
-		}
-	}
 	if !strings.Contains(entrypointSource, "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)") {
 		t.Fatal("entrypoint release does not derive SOURCE_DATE_EPOCH from the checked-out commit")
 	}

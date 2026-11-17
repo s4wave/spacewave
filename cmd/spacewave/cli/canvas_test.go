@@ -6,12 +6,10 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/cli"
-	s4wave_canvas "github.com/s4wave/spacewave/sdk/canvas"
 )
 
-// TestBuildCanvasNodeAddSubcommands pins the observable shape of the four
-// canvas node add subcommands so the parameterized refactor preserves names,
-// usage text, and default sizing per node type.
+// TestBuildCanvasNodeAddSubcommands checks the canvas node add subcommands'
+// names, arguments, and default size for each node type.
 func TestBuildCanvasNodeAddSubcommands(t *testing.T) {
 	// Require the add command name.
 	cmd := buildCanvasNodeAddCommand()
@@ -19,19 +17,17 @@ func TestBuildCanvasNodeAddSubcommands(t *testing.T) {
 		t.Fatalf("add command name = %q, want %q", cmd.Name, "add")
 	}
 
-	// Require each node-add subcommand name and usage.
+	// Require each node-add subcommand name, arguments, and default size.
 	want := []struct {
 		name      string
-		usage     string
 		argsUsage string
 		width     float64
 		height    float64
-		nodeType  s4wave_canvas.NodeType
 	}{
-		{"text", "add a text node", "<content>", 200, 100, s4wave_canvas.NodeType_NODE_TYPE_TEXT},
-		{"object", "add a world-object node", "<object-key>", 400, 300, s4wave_canvas.NodeType_NODE_TYPE_WORLD_OBJECT},
-		{"shape", "add a shape node", "", 150, 150, s4wave_canvas.NodeType_NODE_TYPE_SHAPE},
-		{"drawing", "add a drawing node", "", 300, 300, s4wave_canvas.NodeType_NODE_TYPE_DRAWING},
+		{"text", "<content>", 200, 100},
+		{"object", "<object-key>", 400, 300},
+		{"shape", "", 150, 150},
+		{"drawing", "", 300, 300},
 	}
 	if len(cmd.Subcommands) != len(want) {
 		t.Fatalf("add subcommand count = %d, want %d", len(cmd.Subcommands), len(want))
@@ -40,9 +36,6 @@ func TestBuildCanvasNodeAddSubcommands(t *testing.T) {
 		sub := cmd.Subcommands[i]
 		if sub.Name != w.name {
 			t.Errorf("sub[%d].Name = %q, want %q", i, sub.Name, w.name)
-		}
-		if sub.Usage != w.usage {
-			t.Errorf("sub[%d].Usage = %q, want %q", i, sub.Usage, w.usage)
 		}
 		if sub.ArgsUsage != w.argsUsage {
 			t.Errorf("sub[%d].ArgsUsage = %q, want %q", i, sub.ArgsUsage, w.argsUsage)

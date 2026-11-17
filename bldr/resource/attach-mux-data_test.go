@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"io"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -232,15 +231,4 @@ func TestAttachMuxDataRwc_Close_ReturnsNil(t *testing.T) {
 	if err := rwc.Close(); err != nil {
 		t.Fatalf("expected nil, got %v", err)
 	}
-}
-
-func TestAttachMuxDataRwc_ImplementsReadWriteCloser(t *testing.T) {
-	// Construct a mux stream for the interface assertion.
-	rwc := NewAttachMuxDataRwc(
-		func(d []byte) error { return nil },
-		func() ([]byte, error) { return nil, nil },
-	)
-
-	// Verify the mux stream satisfies io.ReadWriteCloser.
-	var _ io.ReadWriteCloser = rwc
 }

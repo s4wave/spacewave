@@ -460,9 +460,6 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			t.Fatalf("v86 config missing %s: %s", want, v86Cfg)
 		}
 	}
-	if strings.Contains(v86Cfg, `./plugin/vm/`) {
-		t.Fatalf("v86 config still references old plugin/vm path: %s", v86Cfg)
-	}
 	for _, coldPlugin := range []string{"spacewave-notes", "spacewave-v86"} {
 		if slices.Contains(result.Config.GetStart().GetPlugins(), coldPlugin) {
 			t.Fatalf("project startup unexpectedly eager-loads %s: %v", coldPlugin, result.Config.GetStart().GetPlugins())

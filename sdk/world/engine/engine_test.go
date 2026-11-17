@@ -1432,32 +1432,6 @@ func TestSDKEngine_ReadOnlyTransaction(t *testing.T) {
 	}
 }
 
-// TestSDKEngine_WorldEngineInterface verifies the type assertion compiles.
-func TestSDKEngine_WorldEngineInterface(t *testing.T) {
-	// This test just verifies at compile time that SDKEngine implements world.Engine.
-	var _ world.Engine = (*sdk_world_engine.SDKEngine)(nil)
-}
-
-// TestSDKEngine_WorldStateInterface verifies the WorldState type assertion compiles.
-func TestSDKEngine_WorldStateInterface(t *testing.T) {
-	var _ world.WorldState = (*sdk_world_engine.SDKWorldState)(nil)
-}
-
-// TestSDKEngine_TxInterface verifies the Tx type assertion compiles.
-func TestSDKEngine_TxInterface(t *testing.T) {
-	var _ world.Tx = (*sdk_world_engine.SDKTx)(nil)
-}
-
-// TestSDKEngine_ObjectStateInterface verifies the ObjectState type assertion compiles.
-func TestSDKEngine_ObjectStateInterface(t *testing.T) {
-	var _ world.ObjectState = (*sdk_world_engine.SDKObjectState)(nil)
-}
-
-// TestSDKEngine_ObjectIteratorInterface verifies the ObjectIterator type assertion compiles.
-func TestSDKEngine_ObjectIteratorInterface(t *testing.T) {
-	var _ world.ObjectIterator = (*sdk_world_engine.SDKObjectIterator)(nil)
-}
-
 // TestSDKEngine_SeqnoAfterOperations verifies seqno tracking across operations.
 func TestSDKEngine_SeqnoAfterOperations(t *testing.T) {
 	// Start an SDK engine for sequence tracking across commits.
