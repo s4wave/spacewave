@@ -1535,8 +1535,9 @@ Delete(b, inline) ==
 
 \* Park is the free of a Dead block while the generation is open: it deletes
 \* nothing and parks the block, which keeps its list and count, so a recount
-\* that finds a list naming it revives it. The flip frees it if the proof
-\* still holds.
+\* that finds a list naming it revives it. The park also enters the block in
+\* the run, as Records.park writes its run entry, so the flip unmarks it with
+\* the old blocks unless it left zero first, which takes it out of parked.
 Park(b) ==
   /\ Gen /\ unverified /\ b \in stored \ parked /\ Freeable(b)
   /\ parked' = parked \cup {b}
@@ -1967,6 +1968,10 @@ Flippable ==
   /\ FlipFills => Unapplied = {}
   \* With RootWalk every push the pass did not decode is accounted for.
   /\ FlipFront /\ RootWalk /\ FrontPop # "unreached" => walk.front = {}
+  \* Every ripe Dead block is parked, so in the run, as ripeQueued finds no
+  \* queue entry at a ripe sequence: a marked block naming a child the front
+  \* popped is such a block, and the flip unmarks it with the child.
+  /\ \A b \in zero \cap stored : ripe[b] = 0 => b \in parked
 
 \* WalkEnd ends a pass whose front is empty. A dirty pass, or one that
 \* rewrote a list, starts again; with Recount a rewrite returns the Volume
@@ -1974,19 +1979,18 @@ Flippable ==
 \* that may flip does, in one state write: every old block still unverified
 \* is unmarked, absent to every step from here, and the generation settles,
 \* so frees open. Its count is zeroed; its list stays for SweepDel. The flip
-\* frees nothing: a parked block stays parked, present to writers since
-\* Hidden reads only the unmarked from here, until Delete frees it in a later
-\* step, as the code's requeue slice and the free slice after it do, with
-\* commits and fills between them. The requeue itself changes nothing a step
-\* reads, so the model has no step for it.
+\* frees nothing: a parked block is in the run, as Park describes, so it is
+\* unmarked with the old blocks, absent to every writer, and SweepDel
+\* releases its children outside the run. A marked Dead block left present
+\* could be held again after the flip took a child the front popped.
 WalkEnd ==
   /\ walk.st = "walking"
   /\ IF RootWalk
      THEN FrontPop \in {"push", "pushless"} \/ walk.scan = {}
      ELSE walk.front = {}
   /\ IF Flippable
-     THEN LET c == IF RunScan = "off" THEN Unverified
-                   ELSE walk.run \cap Unverified
+     THEN LET c == (IF RunScan = "off" THEN Unverified
+                    ELSE walk.run \cap Unverified) \cup parked
           IN /\ unverified' = FALSE
              \* A block the cascade released already took its holder from its
              \* children, so only the rest release by their lists.

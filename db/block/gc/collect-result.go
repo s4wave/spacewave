@@ -24,7 +24,7 @@ type CollectResult struct {
 	// Popped counts the front entries the pass took off because the free
 	// proof held for their blocks.
 	Popped uint64
-	// Seeded counts the unverified seeds the flip found and pushed onto the
+	// Seeded counts the unverified seeds the seeding found and pushed onto the
 	// front, which hold the flip until the walk decodes them.
 	Seeded uint64
 	// Returned counts the children a re-hold returned to the settle's front

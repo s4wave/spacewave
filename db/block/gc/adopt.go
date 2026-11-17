@@ -2,6 +2,7 @@ package block_gc
 
 import (
 	"context"
+	"math"
 
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
@@ -538,17 +539,48 @@ func claimedBy(state *LivenessState, run string) bool {
 	return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
 }
 
-// clearRun deletes every record of the adoptionKinds, then every fill
-// record, each with its index entries in the transaction that deletes it,
-// stopping, deleting nothing more, once the Volume leaves run's claim. A
-// fill that lands during the clear keeps its record, which the adoption then
-// treats as a birth.
+// clearRun takes each parked block out of the run, then deletes every
+// record of the adoptionKinds, then every fill record, each with its index
+// entries in the transaction that deletes it, stopping, deleting nothing
+// more, once the Volume leaves run's claim. A fill that lands during the
+// clear keeps its record, which the adoption then treats as a birth. A
+// parked block is in the run, as Records.park describes, and the recount may
+// find it held, so it leaves the run with its parked record; if it is Dead
+// again, the free parks it again.
 func clearRun(ctx context.Context, store Store, run string) error {
+	// Take the parked blocks out of the run while claimed. The recount gives
+	// a block Dead before it a new ripe sequence, so a pop mark covers every
+	// queued block from here.
 	claimed := func(state *LivenessState) bool { return claimedBy(state, run) }
+	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
+		state, err := rec.GetState(ctx)
+		if err != nil || !claimed(state) {
+			return err
+		}
+		if _, popped, err := rec.popMark(ctx); err != nil || !popped {
+			return err
+		}
+		return rec.raisePopMark(ctx, math.MaxUint64)
+	})
+	if err != nil {
+		return err
+	}
+	_, err = eachSlice(ctx, store.Update, []byte(nil), nil, func(rec *Records, _ block.StoreOps, after []byte) ([]byte, bool, error) {
+		state, err := rec.GetState(ctx)
+		if err != nil || !claimed(state) {
+			return nil, false, err
+		}
+		return rec.unrunParked(ctx, after)
+	})
+	if err != nil {
+		return err
+	}
+
+	// Clear the adoption's records, then the fills.
 	if err := clearKinds(ctx, store, claimed, adoptionKinds...); err != nil {
 		return err
 	}
-	_, err := eachSlice(ctx, store.Update, struct{}{}, nil, func(rec *Records, _ block.StoreOps, _ struct{}) (struct{}, bool, error) {
+	_, err = eachSlice(ctx, store.Update, struct{}{}, nil, func(rec *Records, _ block.StoreOps, _ struct{}) (struct{}, bool, error) {
 		state, err := rec.GetState(ctx)
 		if err != nil || !claimed(state) {
 			return struct{}{}, false, err

@@ -25,7 +25,8 @@ import (
 //
 // Invariants, while the generation is Open:
 //
-//   - Nothing is deleted: the free parks each block it would free.
+//   - Nothing is deleted: the free parks each block it would free, and
+//     enters it in the run, as Records.park describes.
 //   - The front holds every unverified listed child of a young or verified
 //     block. Land and LandFill push the unverified children of each block they
 //     write from content, and each unverified block a root moves onto; the walk
@@ -36,14 +37,15 @@ import (
 //     marks a list deletes the block's entry in the same transaction. No
 //     writer adds an unverified list, since PutChildren always marks.
 //
-// The flip is one state write, to Sweeping, in a transaction that finds the
-// Volume adopted with every cascade and fill up netted, no list rewrite
-// awaiting a recount, no recorded hole, the run complete and the front empty,
-// and that pushes every unverified block a named root or a down pair past
-// the cursor names, flipping only when it pushed none. That is the model's
-// WalkStart followed at once by WalkEnd. Every block still unverified is then
+// Before the flip the collector seeds the front, in slices: it pushes every
+// unverified block a named root or a down pair past the cursor names, as
+// seed describes, the model's WalkStart. The flip is one state write, to
+// Sweeping, in a transaction that finds the Volume adopted with every
+// cascade and fill up netted, no list rewrite awaiting a recount, no
+// recorded hole, the run complete, the front empty and every ripe Dead
+// block parked: the model's WalkEnd. Every block still unverified is then
 // unreachable: no seed names it, and no young or verified block does, since
-// the front is empty. The run names exactly those blocks.
+// the front is empty. The run names those blocks and the parked ones.
 //
 // While Sweeping, an empty run entry names an unmarked block,
 // which every site that asks whether a block is stored answers absent, as
@@ -219,12 +221,22 @@ func (r *Records) pushChildren(ctx context.Context, packed []byte, skip func(key
 
 // markedYoung finishes a write that marked the list of the block at key,
 // packed its children, while the generation is Open: the block leaves the
-// run and the front, and its unverified children join the front, which keeps
-// the front invariant.
+// front, and the run unless the free parked it, as Records.park describes,
+// and its unverified children join the front, which keeps the front
+// invariant. It reads the block's count and parked key.
 func (r *Records) markedYoung(ctx context.Context, key, packed []byte, skip func(key []byte) bool) error {
-	if err := r.tx.Delete(ctx, r.key(kindUnmarked, key)); err != nil {
+	// Leave the run unless parked.
+	parked, err := r.parked(ctx, key)
+	if err != nil {
 		return err
 	}
+	if !parked {
+		if err := r.tx.Delete(ctx, r.key(kindUnmarked, key)); err != nil {
+			return err
+		}
+	}
+
+	// Leave the front and push the children.
 	if err := r.tx.Delete(ctx, r.key(kindFront, key)); err != nil {
 		return err
 	}
@@ -336,21 +348,19 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 		})
 	}
 
-	// Build the run, resuming where the last pass stopped, take the
-	// free-proven entries off the front, then try the flip.
-	var reached []byte
-	more, err := eachSlice(ctx, c.update, c.runFrom, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
-		next, more, err := c.runSlice(ctx, rec, res, from)
-		reached = next
-		return next, more, err
+	// Build the run and seed the front, each resuming where the last pass
+	// stopped.
+	more, err := resumeSlices(ctx, c.update, &c.runFrom, past, func(rec *Records, from []byte) ([]byte, bool, error) {
+		return c.runSlice(ctx, rec, res, from)
 	})
-	if err != nil {
-		return false, err
+	if err != nil || more {
+		return more, err
 	}
-	c.runFrom = reached
-	if more {
-		return more, nil
+	if more, err := c.seed(ctx, past, res); err != nil || more {
+		return more, err
 	}
+
+	// Take the free-proven entries off the front, then try the flip.
 	more, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
 		return c.frontSlice(ctx, rec, res, from)
 	})
@@ -360,6 +370,141 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 	return false, c.update(ctx, func(rec *Records, _ block.StoreOps) error {
 		return c.flip(ctx, rec, res)
 	})
+}
+
+// seed pushes onto the front, once per collector while Open, each unverified
+// block a named root names and each block a down pair past the cursor
+// names, which a reader or writer may still hold: the named roots in slices,
+// then the journal records past the cursor in slices, resuming where the
+// last pass stopped. It reports whether it stopped at past with work left.
+//
+// Invariant: once the seeding is done, every unverified block such a seed
+// would name is on the front or was taken off it by the walk or the free
+// proof. A root a Land moves onto a block after its slice passed the root
+// pushes the block, as holdStored does while Open; a down pair it writes
+// names the block the root held, which a slice passed or a Land pushed; and
+// a record the cursor passes leaves the seeds. So the flip needs no seeding
+// of its own, only the empty front.
+//
+// Cost: one sequential read of the named roots and of the journal records
+// past the cursor, and one list read per root and per down pair, once per
+// collector; each slice holds the writer for at most sliceRecords roots or
+// records.
+func (c *Collector) seed(ctx context.Context, past func() bool, res *CollectResult) (bool, error) {
+	// Seed the named roots first.
+	if c.seeded {
+		return false, nil
+	}
+	if !c.seededRoots {
+		more, err := resumeSlices(ctx, c.update, &c.seedRoot, past, func(rec *Records, from []byte) ([]byte, bool, error) {
+			return c.seedRootSlice(ctx, rec, res, from)
+		})
+		if err != nil || more {
+			return more, err
+		}
+		c.seededRoots = true
+	}
+
+	// Then the journal records past the cursor.
+	more, err := resumeSlices(ctx, c.update, &c.seedSeq, past, func(rec *Records, from uint64) (uint64, bool, error) {
+		return c.seedJournalSlice(ctx, rec, res, from)
+	})
+	c.seeded = err == nil && !more
+	return more, err
+}
+
+// resumeSlices runs slice as eachSlice does, from the position at pos, and
+// on success stores at pos the position the last committed slice returned,
+// so a later call resumes there. It reports whether it stopped at past with
+// work left.
+func resumeSlices[P any](
+	ctx context.Context,
+	update func(context.Context, func(*Records, block.StoreOps) error) error,
+	pos *P,
+	past func() bool,
+	slice func(rec *Records, from P) (P, bool, error),
+) (bool, error) {
+	reached := *pos
+	more, err := eachSlice(ctx, update, *pos, past, func(rec *Records, _ block.StoreOps, from P) (P, bool, error) {
+		next, more, err := slice(rec, from)
+		reached = next
+		return next, more, err
+	})
+	if err == nil {
+		*pos = reached
+	}
+	return more, err
+}
+
+// seedRootSlice pushes the block of each of up to a slice of named roots
+// after the root key from onto the front when its list is unverified, while
+// the generation is Open, and returns the last root key it read and whether
+// more may follow.
+func (c *Collector) seedRootSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
+	// Read a slice of roots while Open.
+	gen, err := rec.generation(ctx)
+	if err != nil || gen != Generation_GENERATION_OPEN {
+		return from, false, err
+	}
+	budget := c.share(sliceRecords)
+	roots, err := rec.scanAfter(ctx, kindRoot, from, budget)
+	if err != nil {
+		return from, false, err
+	}
+
+	// Push each root's block when its list is unverified.
+	for _, root := range roots {
+		from = root.key
+		entry := &RootEntry{}
+		if err := entry.UnmarshalVT(root.value); err != nil {
+			return from, false, err
+		}
+		pushed, err := rec.pushUnverified(ctx, entry.GetRef())
+		if err != nil {
+			return from, false, err
+		}
+		if pushed {
+			res.Seeded++
+		}
+	}
+	return from, len(roots) == budget, nil
+}
+
+// seedJournalSlice pushes onto the front each unverified block a down pair
+// of up to a slice of journal records names, from the sequence from or the
+// cursor, whichever is later, while the generation is Open, and returns the
+// sequence after the last record it read and whether more may follow.
+func (c *Collector) seedJournalSlice(ctx context.Context, rec *Records, res *CollectResult, from uint64) (uint64, bool, error) {
+	// Start at the cursor or later, while Open.
+	state, err := rec.GetState(ctx)
+	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN {
+		return from, false, err
+	}
+	from = max(from, state.GetCursor())
+
+	// Push the unverified blocks each record's down pairs name.
+	budget, n := c.share(sliceRecords), 0
+	err = rec.ScanJournal(ctx, from, func(seq uint64, jr *JournalRecord) (bool, error) {
+		// Stop at the budget.
+		if n == budget {
+			return false, nil
+		}
+		n++
+		from = seq + 1
+
+		// Push each down pair's block.
+		for _, key := range jr.GetDown() {
+			pushed, err := rec.pushUnverified(ctx, key)
+			if err != nil {
+				return false, err
+			}
+			if pushed {
+				res.Seeded++
+			}
+		}
+		return true, nil
+	})
+	return from, n == budget, err
 }
 
 // runSlice adds a run entry for each unverified list of up to a slice of
@@ -440,7 +585,9 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 // that recount, which returns it to the front, as returnHeld describes. A
 // block a journal record past the cursor names stays, as the free keeps it
 // (T1): the pop reads the tail index, synced to the journal's end in the
-// slice's transaction, as the free does.
+// slice's transaction, as the free does. A slice that pops raises the pop
+// mark to the latest ripe sequence it popped, as kindPopMark describes, at
+// the cost of one key read and write per such slice.
 func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
 	// Pop only while Open, and while the free proof can hold.
 	state, err := rec.GetState(ctx)
@@ -483,6 +630,8 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectRe
 
 	// Pop each the proof holds for.
 	cursor := state.GetCursor()
+	var popped bool
+	var poppedRipe uint64
 	for _, key := range keys {
 		from = key
 		ref, _, err := ParseBlockKey(key)
@@ -503,20 +652,25 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectRe
 		if err := rec.tx.Delete(ctx, rec.key(kindFront, key)); err != nil {
 			return from, false, err
 		}
+		popped, poppedRipe = true, max(poppedRipe, ripe)
 		res.Popped++
 	}
-	return from, full, nil
+
+	// Raise the pop mark past what this slice popped.
+	if !popped {
+		return from, full, nil
+	}
+	return from, full, rec.raisePopMark(ctx, poppedRipe)
 }
 
 // flip moves an Open Volume to Sweeping when the flip's checks pass, as the
 // settle describes, or, when a list rewrite awaits a recount, returns the
-// Volume to unadopted. It pushes each unverified seed it finds, which holds
-// the flip until the walk decodes it.
+// Volume to unadopted. The settle calls it only once seed is done, so the
+// empty front covers every seed.
 //
-// Cost: one point read of the run's completion entry and three prefix
-// seeks; when those pass, every named root and every journal record past the
-// cursor with each block it names in a down pair, one list read each, in one
-// transaction, once per collector pass until the flip.
+// Cost: point reads of the run's completion entry and the pop mark and up
+// to four prefix seeks, in one transaction, once per collector pass until
+// the flip.
 func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) error {
 	// Require an Open, adopted Volume with every cascade and fill up netted.
 	// Collect nets to completion before the settle runs, and only netting
@@ -559,39 +713,30 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 		}
 	}
 
-	// Push each unverified seed: a named root's block, and each block a down
-	// pair past the cursor names, which a reader or writer may still hold.
-	var seeded uint64
-	err = rec.ScanRoots(ctx, func(_, _ string, entry *RootEntry) error {
-		pushed, err := rec.pushUnverified(ctx, entry.GetRef())
-		if pushed {
-			seeded++
-		}
-		return err
-	})
+	// Require every Dead block at or below the pop mark parked, and so in
+	// the run. A marked block that names a child the front popped is Dead at
+	// a ripe sequence no later than the child's; left present, a hold onto
+	// it would revive its list over children the sweep deletes. A queued
+	// block above the mark names no popped child, so a writer that keeps
+	// the hold mark ahead of the cursor, which keeps the free from parking,
+	// cannot hold the flip.
+	mark, popped, err := rec.popMark(ctx)
 	if err != nil {
 		return err
 	}
-	err = rec.ScanJournal(ctx, state.GetCursor(), func(_ uint64, jr *JournalRecord) (bool, error) {
-		for _, key := range jr.GetDown() {
-			pushed, err := rec.pushUnverified(ctx, key)
-			if err != nil {
-				return false, err
-			}
-			if pushed {
-				seeded++
-			}
+	if popped {
+		ripe, err := rec.ripeQueued(ctx, min(mark, state.GetCursor()))
+		if err != nil || ripe {
+			return err
 		}
-		return true, nil
-	})
-	if err != nil || seeded != 0 {
-		res.Seeded += seeded
-		return err
 	}
 
 	// Flip.
 	state.Generation = Generation_GENERATION_SWEEPING
 	res.Flipped = true
+	if err := rec.tx.Delete(ctx, rec.key(kindPopMark)); err != nil {
+		return err
+	}
 	return rec.SetState(ctx, state)
 }
 
