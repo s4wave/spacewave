@@ -162,8 +162,9 @@ func (s *Store) drainFills() {
 // entry. With refusal retry enabled, queueing commits before any value write,
 // and fillMtx holds a pass's epoch advance until every value write has
 // finished, as Evict describes. A failed queue commit writes no values; a
-// crash leaves only surplus queue entries, which a later pass cleans. A filled marked block retains its eviction
-// entry on refusal, including when a dropped upload later clears its marker.
+// crash leaves only surplus queue entries, which a later pass cleans. A filled
+// marked block retains its eviction entry on refusal, including when a dropped
+// upload later clears its marker.
 //
 // This store upkeep runs below Flowgraphs: it must work before a Space loads.
 // Retry off retains the former value-before-queue ordering.
