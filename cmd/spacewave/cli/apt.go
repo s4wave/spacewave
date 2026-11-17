@@ -16,12 +16,17 @@ import (
 	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
+// aptImportDebArgs selects the daemon session and Space receiving a Debian package.
 type aptImportDebArgs struct {
-	statePath  string
+	// statePath locates the daemon state directory.
+	statePath string
+	// sessionIdx selects the session that imports the package.
 	sessionIdx uint
-	spaceID    string
+	// spaceID selects the destination Space, or leaves it for auto-detection.
+	spaceID string
 }
 
+// BuildFlags binds the daemon, session, and destination Space flags.
 func (a *aptImportDebArgs) BuildFlags() []cli.Flag {
 	return append(clientFlags(&a.statePath, &a.sessionIdx), &cli.StringFlag{
 		Name:        "space",
@@ -32,11 +37,14 @@ func (a *aptImportDebArgs) BuildFlags() []cli.Flag {
 	})
 }
 
+// Run validates the package file before mounting the destination and importing it.
 func (a *aptImportDebArgs) Run(c *cli.Context) error {
 	// Require a repository key, package key, and deb path.
 	if c.NArg() != 3 {
 		return errors.New("repository key, package key, and deb path required")
 	}
+
+	// Resolve the repository, package, and file arguments before opening the package.
 	repositoryKey := c.Args().Get(0)
 	packageKey := c.Args().Get(1)
 	debPath := c.Args().Get(2)
@@ -86,6 +94,7 @@ func (a *aptImportDebArgs) Run(c *cli.Context) error {
 	return importAptDebPackage(ctx, engine, repositoryKey, packageKey, deb, os.Stdout)
 }
 
+// importAptDebPackage commits a Debian package to the World and prints its details.
 func importAptDebPackage(
 	ctx context.Context,
 	engine *sdk_engine.SDKEngine,
@@ -122,6 +131,7 @@ func importAptDebPackage(
 	return nil
 }
 
+// newAptCommand builds the Apt command group with its package import action.
 func newAptCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	args := &aptImportDebArgs{}
 	return &cli.Command{

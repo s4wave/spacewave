@@ -848,7 +848,7 @@ func printSpaceState(
 	backfill *s4wave_space.SpaceBackfillState,
 	health *sobject.SharedObjectHealth,
 ) {
-	// Write the Space state, storage, sync peers, and plugin list.
+	// Assemble the Space identity, readiness, and available storage and sync fields.
 	w := os.Stdout
 	stateStr := "loading"
 	if state.GetReady() {
@@ -867,8 +867,12 @@ func printSpaceState(
 	if health != nil {
 		fields = append(fields, [2]string{"Sync", formatSyncPeerCount(health.GetSyncPeers())})
 	}
+
+	// Print the Space fields and its detailed sync peers.
 	writeFields(w, fields)
 	writeSyncPeers(w, health.GetSyncPeers())
+
+	// List configured plugins once the Space settings are ready.
 	if state.GetReady() {
 		if settings := state.GetSettings(); settings != nil {
 			plugins := settings.GetPluginIds()
