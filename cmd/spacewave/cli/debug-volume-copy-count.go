@@ -26,11 +26,13 @@ const dropCountDepth = 8
 // dropCountClasses bounds the key families printed, largest first.
 const dropCountClasses = 60
 
-// The block families of a counted dropping copy.
 const (
+	// dropCountDropped names blocks a dropping copy omits because SQL holds them.
 	dropCountDropped = "blocks dropped: SQL holds"
-	dropCountMarked  = "blocks kept: upload marker"
-	dropCountLacks   = "blocks kept: SQL lacks"
+	// dropCountMarked names blocks retained because they have upload markers.
+	dropCountMarked = "blocks kept: upload marker"
+	// dropCountLacks names blocks retained because SQL does not hold them.
+	dropCountLacks = "blocks kept: SQL lacks"
 )
 
 // countVolumeDrop walks the stopped volume at src as a dropping copy would,
@@ -68,6 +70,7 @@ func countVolumeDrop(ctx context.Context, src string, drop *sqlDrop, out, w io.W
 	defer tx.Discard()
 	classes := make(map[string]*volumeKeyClass)
 	add := func(class string, keyLen, n int) {
+		// Accumulate key counts and byte lengths for this copy outcome.
 		kc := classes[class]
 		if kc == nil {
 			kc = &volumeKeyClass{class: class}
@@ -85,6 +88,7 @@ func countVolumeDrop(ctx context.Context, src string, drop *sqlDrop, out, w io.W
 	}
 	var held []heldBlock
 	checkHeld := func() error {
+		// Classify one bounded batch using the same SQL checks as the copy.
 		if len(held) == 0 {
 			return nil
 		}
@@ -115,16 +119,21 @@ func countVolumeDrop(ctx context.Context, src string, drop *sqlDrop, out, w io.W
 	last := start
 	var walked uint64
 	err = tx.(*s4db.Tx).ScanPrefixLens(ctx, nil, func(key []byte, n int) error {
+		// Report progress without changing the source snapshot.
 		walked++
 		if time.Since(last) >= copyReportInterval {
 			last = time.Now()
 			fmt.Fprintf(w, "%s: %d keys walked\n", time.Since(start).Round(time.Second), walked)
 		}
+
+		// Count non-block keys directly in their key families.
 		data, ok := bytes.CutPrefix(key, blockPrefix)
 		if !ok {
 			add(dropCountClassOf(key), len(key), n)
 			return nil
 		}
+
+		// Decode block keys and defer their SQL checks to a bounded batch.
 		ref := &block.BlockRef{}
 		if err := ref.UnmarshalVT(bytes.Clone(data)); err != nil {
 			return fmt.Errorf("decode block key %q: %w", key, err)

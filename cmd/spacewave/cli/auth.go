@@ -25,66 +25,88 @@ import (
 )
 
 const (
+	// localSessionThresholdShowMessage explains why local sessions have no threshold.
 	localSessionThresholdShowMessage = "auth threshold is not available for local sessions; local sessions manage entity keypairs directly"
-	localSessionThresholdSetMessage  = "auth threshold cannot be set for local sessions; local sessions manage entity keypairs directly"
+	// localSessionThresholdSetMessage directs local sessions to their entity keypairs.
+	localSessionThresholdSetMessage = "auth threshold cannot be set for local sessions; local sessions manage entity keypairs directly"
 )
 
+// authSessionHandle retains a mounted session for an authentication command.
 type authSessionHandle interface {
+	// Release drops the command's mounted session reference.
 	Release()
+	// GetSessionInfo reads the session's provider and account identity.
 	GetSessionInfo(context.Context) (*s4wave_session.GetSessionInfoResponse, error)
+	// GetSession returns the mounted session for credential and account operations.
 	GetSession() *s4wave_session.Session
 }
 
 // credentialAccount lists the account's entity keypairs and their lock state.
 type credentialAccount interface {
+	// WatchEntityKeypairs streams the account keypairs and their current lock state.
 	WatchEntityKeypairs(
 		context.Context,
 		*s4wave_account.WatchEntityKeypairsRequest,
 	) (s4wave_account.SRPCAccountResourceService_WatchEntityKeypairsClient, error)
 }
 
+// authAccountService exposes the keypair and authentication-method account watches.
 type authAccountService interface {
 	credentialAccount
+	// WatchAuthMethods streams the methods registered for this account.
 	WatchAuthMethods(
 		context.Context,
 		*s4wave_account.WatchAuthMethodsRequest,
 	) (s4wave_account.SRPCAccountResourceService_WatchAuthMethodsClient, error)
 }
 
+// authThresholdAccountService reads and changes the account signing threshold.
 type authThresholdAccountService interface {
 	credentialAccount
+	// WatchAccountInfo streams the account identity, keypair count, and signing threshold.
 	WatchAccountInfo(
 		context.Context,
 		*s4wave_account.WatchAccountInfoRequest,
 	) (s4wave_account.SRPCAccountResourceService_WatchAccountInfoClient, error)
+	// SetSecurityLevel requests a threshold change authorized by the supplied credential.
 	SetSecurityLevel(
 		context.Context,
 		*s4wave_account.SetSecurityLevelRequest,
 	) (*s4wave_account.SetSecurityLevelResponse, error)
 }
 
+// mountedAuthSession adapts a daemon session to authentication command operations.
 type mountedAuthSession struct {
-	client  *sdkClient
+	// client is the daemon connection managed by the command.
+	client *sdkClient
+	// session is the mounted reference released by Release.
 	session *s4wave_session.Session
 }
 
+// Release drops the mounted session reference without closing the daemon client.
 func (s *mountedAuthSession) Release() {
 	s.session.Release()
 }
 
+// GetSessionInfo reads the mounted session identity through its resource.
 func (s *mountedAuthSession) GetSessionInfo(ctx context.Context) (*s4wave_session.GetSessionInfoResponse, error) {
 	return s.session.GetSessionInfo(ctx)
 }
 
+// GetSession returns the mounted session used for credential operations.
 func (s *mountedAuthSession) GetSession() *s4wave_session.Session {
 	return s.session
 }
 
 var (
+	// authResolveStatePath resolves authentication commands against the selected daemon.
 	authResolveStatePath = resolveStatePathFromContext
-	authConnectDaemon    = connectDaemon
-	authCloseClient      = func(client *sdkClient) { client.close() }
-	authMountSession     = func(ctx context.Context, client *sdkClient, idx uint32) (authSessionHandle, error) {
+	// authConnectDaemon opens the selected daemon connection.
+	authConnectDaemon = connectDaemon
+	// authCloseClient releases the daemon connection after the command.
+	authCloseClient = func(client *sdkClient) { client.close() }
+	// authMountSession retains the session used by an authentication command.
+	authMountSession = func(ctx context.Context, client *sdkClient, idx uint32) (authSessionHandle, error) {
 		sess, err := client.mountSession(ctx, idx)
 		if err != nil {
 			return nil, err
@@ -94,9 +116,11 @@ var (
 			session: sess,
 		}, nil
 	}
+	// authAccessMethodAccount mounts the account watches used to list authentication methods.
 	authAccessMethodAccount = func(ctx context.Context, client *sdkClient, providerID, accountID string) (authAccountService, func(), error) {
 		return client.accessAccount(ctx, providerID, accountID)
 	}
+	// authAccessThresholdAccount mounts the account service used to read and change thresholds.
 	authAccessThresholdAccount = func(ctx context.Context, client *sdkClient, providerID, accountID string) (authThresholdAccountService, func(), error) {
 		return client.accessAccount(ctx, providerID, accountID)
 	}
@@ -774,7 +798,6 @@ func runAuthMethodRemove(c *cli.Context, statePath string, sessionIdx uint32, au
 	return nil
 }
 
-// newAuthMethodReplaceCommand builds the auth method replace command group.
 // --- auth passwd ---
 
 // newAuthPasswdCommand builds the auth passwd command.
@@ -1296,17 +1319,24 @@ func runAuthThresholdSet(c *cli.Context, statePath string, sessionIdx uint32, au
 	return nil
 }
 
+// authMethodOutput supplies the fields printed in an authentication method row.
 type authMethodOutput struct {
-	PeerID         string
-	Label          string
+	// PeerID identifies the entity keypair used by the method.
+	PeerID string
+	// Label is the method name shown in the table and structured output.
+	Label string
+	// SecondaryLabel is optional detail shown beside the method name.
 	SecondaryLabel string
-	Provider       string
+	// Provider identifies the authentication provider in structured output.
+	Provider string
 }
 
+// isLocalAuthSession reports whether the session uses daemon-local entity keypairs.
 func isLocalAuthSession(info *s4wave_session.GetSessionInfoResponse) bool {
 	return info.GetSessionRef().GetProviderResourceRef().GetProviderId() == provider_local.ProviderID
 }
 
+// buildLocalAuthMethodOutput formats local keypairs in their received order.
 func buildLocalAuthMethodOutput(states []*s4wave_account.EntityKeypairState) []*authMethodOutput {
 	methods := make([]*authMethodOutput, 0, len(states))
 	for _, state := range states {
@@ -1339,6 +1369,7 @@ func buildLocalAuthMethodOutput(states []*s4wave_account.EntityKeypairState) []*
 	return methods
 }
 
+// buildAccountAuthMethodOutput formats cloud methods in their received order.
 func buildAccountAuthMethodOutput(methods []*spacewave_api.AccountAuthMethod) []*authMethodOutput {
 	out := make([]*authMethodOutput, 0, len(methods))
 	for _, method := range methods {
@@ -1355,6 +1386,7 @@ func buildAccountAuthMethodOutput(methods []*spacewave_api.AccountAuthMethod) []
 	return out
 }
 
+// writeAuthMethodOutput emits authentication methods as structured data or table rows.
 func writeAuthMethodOutput(methods []*authMethodOutput, outputFormat string) error {
 	// Marshal the auth method outputs as JSON or YAML when requested.
 	if outputFormat == "json" || outputFormat == "yaml" {

@@ -60,14 +60,23 @@ func (a *devicePolicyNodeTypeArgs) BuildFlags() []cli.Flag {
 
 // RunAdd adds each named node type to the allow list.
 func (a *devicePolicyNodeTypeArgs) RunAdd(c *cli.Context) error {
+	// Validate the requested IDs before opening the policy for mutation.
 	typeIDs, err := nodeTypeIDArgs(c)
 	if err != nil {
 		return err
 	}
+
+	// Index existing IDs once and append each new ID in argument order.
 	return runDevicePolicyMutation(c, a.statePath, func(policy *device_policy.DevicePolicy) error {
+		// Track appended IDs too, so repeated arguments add only one entry.
+		allowed := make(map[string]struct{}, len(policy.GetNodeTypeId())+len(typeIDs))
+		for _, typeID := range policy.GetNodeTypeId() {
+			allowed[typeID] = struct{}{}
+		}
 		for _, typeID := range typeIDs {
-			if !slices.Contains(policy.GetNodeTypeId(), typeID) {
+			if _, ok := allowed[typeID]; !ok {
 				policy.NodeTypeId = append(policy.NodeTypeId, typeID)
+				allowed[typeID] = struct{}{}
 			}
 		}
 		return nil
@@ -76,18 +85,33 @@ func (a *devicePolicyNodeTypeArgs) RunAdd(c *cli.Context) error {
 
 // RunRemove removes each named node type from the allow list.
 func (a *devicePolicyNodeTypeArgs) RunRemove(c *cli.Context) error {
+	// Validate the requested IDs before opening the policy for mutation.
 	typeIDs, err := nodeTypeIDArgs(c)
 	if err != nil {
 		return err
 	}
+
+	// Require every requested ID before removing any entry from the policy.
 	return runDevicePolicyMutation(c, a.statePath, func(policy *device_policy.DevicePolicy) error {
+		// Index the current allow list without changing its order or duplicate entries.
+		allowed := make(map[string]struct{}, len(policy.GetNodeTypeId()))
+		for _, typeID := range policy.GetNodeTypeId() {
+			allowed[typeID] = struct{}{}
+		}
+
+		// Preserve the first missing argument error and collect IDs to remove.
+		removed := make(map[string]struct{}, len(typeIDs))
 		for _, typeID := range typeIDs {
-			if !slices.Contains(policy.GetNodeTypeId(), typeID) {
+			if _, ok := allowed[typeID]; !ok {
 				return errors.Errorf("node type %q is not allowed", typeID)
 			}
+			removed[typeID] = struct{}{}
 		}
+
+		// Filter in place so all matching entries leave and surviving IDs keep their order.
 		policy.NodeTypeId = slices.DeleteFunc(policy.NodeTypeId, func(typeID string) bool {
-			return slices.Contains(typeIDs, typeID)
+			_, ok := removed[typeID]
+			return ok
 		})
 		return nil
 	})

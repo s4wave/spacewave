@@ -14,8 +14,10 @@ import (
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
 )
 
+// statusMountSessionTimeoutEnvVar names the override for the status session mount bound.
 const statusMountSessionTimeoutEnvVar = "SPACEWAVE_STATUS_MOUNT_TIMEOUT"
 
+// defaultStatusMountSessionTimeout bounds status mounting when no override is set.
 var defaultStatusMountSessionTimeout = 10 * time.Second
 
 // newStatusCommand builds the status CLI command.
@@ -37,6 +39,7 @@ func getStatusMountSessionTimeout() (time.Duration, error) {
 	return dur, nil
 }
 
+// WatchRecoveryStatus returns the first recovery update and closes its watch stream.
 func (s *nativeSession) WatchRecoveryStatus(ctx context.Context) (*s4wave_status.RecoveryStatus, error) {
 	// Resolve the status resource client for the mounted session.
 	client, err := s.GetResourceRef().GetClient()
