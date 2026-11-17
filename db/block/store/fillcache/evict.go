@@ -88,13 +88,19 @@ func (e *evicter) next(ctx context.Context, evicting bool) (bool, error) {
 	return true, nil
 }
 
+// evictDeleted, when set by a test, runs after an eviction step's delete and
+// before its second report.
+var evictDeleted func()
+
 // step deletes about a chunk of adjacent rows, starting at the first
 // row at or after a random key and wrapping to the first row.
 //
 // The delete bypasses the cache's block store, so step reports each deleted
-// block to the decoded-block pool itself, after the delete, whether or not it
-// committed. The cache's one writer runs every step and every fill, so the
-// deleted range holds exactly the scanned keys.
+// block to the decoded-block pool itself: before the delete, so no lookup hits
+// a block once its row is gone, and again after, whether or not it committed,
+// so a read of the row between the two reports is not admitted. The cache's
+// one writer runs every step and every fill, so the deleted range holds
+// exactly the scanned keys.
 func (e *evicter) step(ctx context.Context) error {
 	// Find the run from a random start, or from the start of the table.
 	start, err := e.randomKey()
@@ -112,9 +118,14 @@ func (e *evicter) step(ctx context.Context) error {
 		}
 	}
 
-	// Delete the run in one statement, then report its blocks removed.
+	// Report the run's blocks removed, delete the run in one statement, and
+	// report them again.
+	e.reportRemoved(keys)
 	first, last := keys[0], keys[len(keys)-1]
 	_, err = e.db.ExecContext(ctx, "DELETE FROM "+e.table+" WHERE key >= ? AND key <= ?", first, last) //nolint:gosec // the table name is the cache's constant.
+	if evictDeleted != nil {
+		evictDeleted()
+	}
 	e.reportRemoved(keys)
 	return err
 }

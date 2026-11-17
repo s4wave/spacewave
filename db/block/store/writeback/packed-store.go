@@ -24,8 +24,7 @@ import (
 // order could leave a child list naming bytes the disk lost.
 //
 // With divert unset, writes go to local as they did before the Log, and the
-// Log's values stay readable and draining: the switch back to the old path. A
-// removal forgets the Log's copy in either mode.
+// Log's values stay readable and draining: the switch back to the old path.
 type PackedStore struct {
 	// log holds the new values.
 	log *packahead.Log
@@ -148,14 +147,9 @@ func (s *PackedStore) PutBlock(ctx context.Context, data []byte, opts *block.Put
 // in the local store as external entries, and reports whether each block was
 // stored before, in the Log or the local store.
 func (s *PackedStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Write to the local store while not diverting, and forget the Log's
-	// copies of the tombstoned blocks, as RmBlock does in either mode.
+	// Write to the local store while not diverting.
 	if !s.divert {
-		existed, err := s.local.PutBlockBatch(ctx, entries)
-		if err == nil {
-			s.forgetTombstones(entries)
-		}
-		return existed, err
+		return s.local.PutBlockBatch(ctx, entries)
 	}
 
 	// Append the values, then land the entries.
@@ -230,15 +224,13 @@ func (s *PackedStore) appendValues(ctx context.Context, entries []*block.PutBatc
 }
 
 // forgetTombstones forgets the Log's copies of the tombstoned blocks, once
-// the local store removed them, and then reports each as removed to the
-// decoded-block pool, which a Log read may have admitted it to.
+// the local store removed them.
 func (s *PackedStore) forgetTombstones(entries []*block.PutBatchEntry) {
 	for _, entry := range entries {
 		if entry != nil && entry.Tombstone && !entry.Ref.GetEmpty() {
 			s.log.Remove(packfile.BlockKey(entry.Ref.GetHash()))
 		}
 	}
-	block.InvalidateRemovedTombstones(entries)
 }
 
 // GetBlock returns the block's bytes from the Log or the local store.
@@ -252,18 +244,10 @@ func (s *PackedStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 
 // GetStoredBlock returns the block with its refs from the Log, checking its
 // bytes against ref, or from the local store.
-//
-// A Log hit the Log holds durably is marked durable, so it may enter the
-// shared decoded-block pool; a value not yet synced, or marked removed and
-// readable only until its pack uploads, is not. Every removal of a Log value
-// goes through RmBlock or a tombstone, which report it. Evict unlinks a pack
-// the remote holds, which moves its values rather than removing them.
 func (s *PackedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	// Read the Log's copy and check it, taking the removal generation
-	// before the lookup.
+	// Read the Log's copy and check it.
 	if !ref.GetEmpty() {
-		gen := block.DurableReadGeneration()
-		value, ok, durable, err := s.log.GetDurable(packfile.BlockKey(ref.GetHash()))
+		value, ok, err := s.log.Get(packfile.BlockKey(ref.GetHash()))
 		if err != nil {
 			return nil, err
 		}
@@ -274,9 +258,6 @@ func (s *PackedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 			}
 			if err := ref.VerifyData(stored.Data, false); err != nil {
 				return nil, errors.Wrap(err, ref.MarshalString())
-			}
-			if durable {
-				block.MarkDurableRead(ctx, ref, gen)
 			}
 			return stored, nil
 		}
@@ -331,15 +312,13 @@ func (s *PackedStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 }
 
 // RmBlock removes the block from the local store, which keeps its child list,
-// forgets the Log's copy, and then reports the removal to the decoded-block
-// pool, which a Log read may have admitted the block to.
+// and forgets the Log's copy.
 func (s *PackedStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if err := s.local.RmBlock(ctx, ref); err != nil {
 		return err
 	}
 	if !ref.GetEmpty() {
 		s.log.Remove(packfile.BlockKey(ref.GetHash()))
-		block.InvalidateRemovedBlock(ref)
 	}
 	return nil
 }

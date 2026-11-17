@@ -54,12 +54,15 @@ type Options struct {
 // One goroutine writes the file, in batched transactions, so fills never queue
 // behind each other for SQLite's write lock and a read never waits for a write.
 //
-// The cache's reads are durable reads, so their decoded blocks may enter the
-// shared decoded-block pool, and every way a block leaves the file reports it
-// removed: a tombstone for a block that failed its hash goes through the
-// block store, which reports it; an eviction deletes rows past the block
-// store and reports each itself; recreating an unusable file reports every
-// block removed. Close removes nothing: the file keeps its blocks.
+// The cache's reads are durable reads only over a durable store that keeps
+// every block it holds, see Reads, so only their decoded blocks may enter the
+// shared decoded-block pool. Every way a block leaves the file reports it
+// removed before the removal commits and again after: the writer reports a
+// tombstone for a block that failed its hash before its write, and the block
+// store reports it after; an eviction deletes rows past the block store and
+// reports each itself; opening the file, which may be new or replaced,
+// reports every block removed, and recreating an unusable one reports them
+// again after the delete. Close removes nothing: the file keeps its blocks.
 type Cache struct {
 	// le is the entry for the cache's log lines.
 	le *logrus.Entry
@@ -69,8 +72,12 @@ type Cache struct {
 	store store_kvtx_sqlite.Store
 	// blocks is the block store over the database.
 	blocks *block_store_kvtx.KVTxBlock
-	// view is the read-only view of blocks served by Reads.
+	// view is the read-only view of blocks served by Reads over a durable
+	// store that may remove blocks. Its reads are not durable.
 	view *view
+	// kept is the view served by Reads over a durable store that keeps every
+	// block, whose reads are durable.
+	kept *view
 	// evict deletes rows when the cache passes its size bound.
 	evict *evicter
 	// cancel stops the writer.
@@ -100,7 +107,8 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 	}
 
 	// Build the cache over the database. Its block store is durable, so its
-	// reads may enter the shared decoded-block pool.
+	// tombstones report their removals; only the kept view's reads mark
+	// themselves durable.
 	keys := store_kvkey.NewDefaultKVKey()
 	c := &Cache{
 		le:     le,
@@ -109,7 +117,8 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 		blocks: block_store_kvtx.NewDurableKVTxBlock(keys, store, 0, true),
 		exited: make(chan struct{}),
 	}
-	c.view = &view{StoreOps: block.NewReadOnlyStore(c.blocks), cache: c}
+	c.view = &view{StoreOps: block.NewReadOnlyStore(block_store_kvtx.NewKVTxBlock(keys, store, 0, true)), cache: c}
+	c.kept = &view{StoreOps: block.NewReadOnlyStore(c.blocks), cache: c}
 
 	// Bound the cache's rows and its queued fills.
 	limit := opts.LimitBytes
@@ -137,18 +146,39 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 // are known: the cache keeps no refs and serves every block with its refs
 // unknown. A nil lower yields a nil source, as no store holds the blocks to
 // copy.
+//
+// The cache's reads are durable, so their decoded blocks may enter the shared
+// decoded-block pool, only while lower declares with KeepsBlocks that it never
+// removes a block it holds. A store that removes blocks, as reclaim does,
+// cannot tell the cache, which would go on serving its copy; the pool then
+// keeps nothing the cache serves.
 func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
 	return func() block.StoreOps {
+		// Read nothing without a durable store to copy from.
 		store := lower()
 		if store == nil {
 			return nil
 		}
+
+		// Read the kept view, whose reads are durable, only over a store that
+		// keeps its blocks.
+		view := c.view
+		if keeper, ok := store.(blockKeeper); ok && keeper.KeepsBlocks() {
+			view = c.kept
+		}
 		return block_store.NewCacheReadThrough(
-			func() block.StoreOps { return c.view },
+			func() block.StoreOps { return view },
 			func() block.StoreOps { return store },
 			c.Fill,
 		)
 	}
+}
+
+// blockKeeper is a durable store that may declare it never removes a block it
+// holds, as a pack store without reclaim does.
+type blockKeeper interface {
+	// KeepsBlocks reports that the store never removes a block it holds.
+	KeepsBlocks() bool
 }
 
 // Fill queues a block read from the durable store to be copied into the cache.
@@ -217,8 +247,10 @@ func (c *Cache) run(ctx context.Context) error {
 			return nil
 		}
 
-		// Write the entries.
+		// Write the entries, reporting their tombstones removed before the
+		// write, as the block store reports them again after it.
 		if len(batch) != 0 {
+			block.InvalidateRemovedTombstones(batch)
 			if _, err := c.blocks.PutBlockBatch(wctx, batch); err != nil && ctx.Err() == nil {
 				c.warn.warn(err, "the block fill cache failed a write, dropping its fills")
 			}

@@ -29,16 +29,21 @@ const quickCheckBytes = 1 << 30
 // openStore opens the cache's database at path. A file that fails to open or to
 // pass the structure check is deleted with its log and recreated empty, as the
 // cache holds only copies.
+//
+// An earlier cache on the path in this process may have served its blocks
+// into the decoded-block pool, and the file may since be missing or replaced,
+// so opening reports every block removed first. Recreating reports them again
+// after the delete, as the earlier cache may read the file until then.
 func openStore(ctx context.Context, le *logrus.Entry, path string) (store_kvtx_sqlite.Store, error) {
-	// Open the file as it is.
+	// Report every block removed, then open the file as it is.
+	block.InvalidateAllRemovedBlocks()
 	store, err := tryOpenStore(ctx, path)
 	if err == nil {
 		return store, nil
 	}
 
-	// Delete the unusable file and open a new one. An earlier cache on the
-	// file in this process may have served its blocks into the decoded-block
-	// pool, so report them all removed.
+	// Delete the unusable file, report every block removed again, and open
+	// a new one.
 	le.WithError(err).Warn("the block fill cache file is unusable, recreating it")
 	err = removeFiles(path)
 	block.InvalidateAllRemovedBlocks()
