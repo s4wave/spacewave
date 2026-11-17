@@ -257,14 +257,15 @@ func NewVolume(
 			return nil, volume.Permanent(err)
 		}
 		// Record the frees switch as configured, which turns frees on by
-		// returning the Volume to unadopted for a recount (block_gc.SetFrees),
-		// then count under the stored rule or, unadopted, the configured one.
+		// returning the Volume to unadopted for a recount under the
+		// configured rule (block_gc.SetFrees), then count under the stored
+		// rule or, unadopted, the configured one.
 		state, parked, err := v.readLiveness(ctx)
 		if err != nil {
 			return nil, err
 		}
-		if !v.readOnly && state.GetFrees() != conf.GetCollectorFrees() {
-			state, err = block_gc.SetFrees(ctx, collectorStore{v: v}, conf.GetCollectorFrees())
+		if !v.readOnly {
+			state, err = block_gc.SetFrees(ctx, collectorStore{v: v}, conf.GetCollectorFrees(), v.holdRule)
 			if err != nil {
 				return nil, err
 			}

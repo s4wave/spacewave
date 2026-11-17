@@ -256,9 +256,26 @@ export interface LivenessState {
    * open, or at the birth of an empty Volume. The write that turns it on
    * also returns the Volume to unadopted, so an adoption counts every holder
    * again before the first free; a writable open with frees off clears it,
-   * so the next switch-on counts again (SetFrees).
+   * so the next switch-on counts again (SetFrees). It reads as off unless
+   * frees_mark matches the record.
    */
   frees?: boolean
+  /**
+   * FreesMark is a hash of the record's other known fields, which every
+   * write of this format computes. A build that predates it keeps it as an
+   * unknown field and cannot recompute it, so any state write by such a
+   * build leaves it stale, and the record then reads as frees off: the next
+   * switch-on counts again after a writer that knew nothing of the switch.
+   * It sees every write a recount would correct, because Land is the one
+   * writer of holders: a Land that adds or drops a holder outside the blocks
+   * its own batch stores first writes a journal record and this record,
+   * while a batch's new blocks carry exactly the counts any build's Land
+   * gives them. An older build's open of an adopted Volume writes nothing.
+   * A later field that is not zero changes the hash input, so a build that
+   * reads it as unknown sees the mark stale and forces one more recount,
+   * which fails safe.
+   */
+  freesMark?: bigint
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -277,6 +294,7 @@ export const LivenessState: MessageType<LivenessState> =
       [13, 'cascades', 4],
       [14, 'hold_rule', 14, 0, HoldRule_Enum],
       [15, 'frees', 8],
+      [16, 'frees_mark', 4],
     ],
   )
 

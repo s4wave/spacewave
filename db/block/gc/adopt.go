@@ -195,26 +195,35 @@ func ResetAdoption(ctx context.Context, store Store) error {
 // does, and returns the state it leaves. Turning them on is the switch: the
 // same write returns the Volume to unadopted, adopted or not, ending any
 // adoption or release in progress, so the next adoption counts every holder
-// again, under the rule of the process that turned them on, before the first
-// free. That recount gives each named block without a list one holder more
-// than its namers, a hole no audit recorded included, so the hole's next put
-// leaves it held. It is the one way to change an adopted Volume's hold rule,
+// again, under rule, the process's own, before the first free. That recount
+// gives each named block without a list one holder more than its namers, a
+// hole no audit recorded included, so the hole's next put leaves it held.
+// With frees on, a Volume adopted under another rule returns to unadopted
+// the same way: it is the one way to change an adopted Volume's hold rule,
 // which a process otherwise keeps as stored. Turning them off writes only
 // the field: the collector then frees nothing, and the next switch-on counts
-// again over whatever was written meanwhile.
-func SetFrees(ctx context.Context, store Store, frees bool) (*LivenessState, error) {
+// again over whatever was written meanwhile. A stored switch whose frees
+// mark is stale reads as off (Records.GetState), so a write by a build that
+// knew nothing of the switch also makes the next switch-on count again.
+func SetFrees(ctx context.Context, store Store, frees bool, rule HoldRule) (*LivenessState, error) {
 	var state *LivenessState
 	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Read the state; a switch already as asked writes nothing.
+		// Read the state; a switch already as asked, counted under rule
+		// when it frees, writes nothing.
 		var err error
 		state, err = rec.GetState(ctx)
-		if err != nil || state.GetFrees() == frees {
+		if err != nil {
 			return err
 		}
+		recount := frees && (!state.GetFrees() ||
+			state.GetAdoption() == Adoption_ADOPTION_ADOPTED && state.GetHoldRule() != rule)
+		if !recount && state.GetFrees() == frees {
+			return nil
+		}
 
-		// Record the switch, and on turning it on return to unadopted.
+		// Record the switch, and on a recount return to unadopted.
 		state.Frees = frees
-		if frees {
+		if recount {
 			state.Adoption = Adoption_ADOPTION_UNADOPTED
 			state.AdoptionRun = ""
 			state.Release = nil

@@ -61,10 +61,12 @@ export interface Config {
    * its last writable open. An open that turns them on returns the Volume to
    * unadopted and adopts it again in the background under
    * CollectorHoldUntilFree, and nothing frees until that recount finishes;
-   * an open with them already on recounts nothing, and one with them off
-   * clears the stored switch, so the next switch-on recounts again. Turn
-   * frees off with this switch, never with an older build, which may not
-   * read the lists this one writes. The default stays off, and spacewave
+   * an open with them already on recounts only a Volume adopted under
+   * another rule, and one with them off clears the stored switch, so the
+   * next switch-on recounts again. A state write by a build older than the
+   * switch also reads as frees off, so the next switch-on recounts after it.
+   * Turn frees off with this switch, never with an older build, which may
+   * not read the lists this one writes. The default stays off, and spacewave
    * serve turns it on only for the Volumes its --collector-frees flag names.
    * A Volume frees only after a rehearsal on a restored copy of it, covering
    * the switch-on recount, has shown the collector frees no live block, and

@@ -24,6 +24,7 @@ import (
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
+	"google.golang.org/protobuf/encoding/protowire"
 )
 
 // testClock is a clock a test moves by hand.
@@ -1057,6 +1058,59 @@ func punchHole(t *testing.T, v *Volume, ref *block.BlockRef) {
 		return p.blocks.RmBlock(t.Context(), ref)
 	})
 	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// writeOlderState rewrites the liveness state in store as a build that
+// predates the frees switch does on a state write: it reads the record into a
+// message without fields 15 and 16, keeps their bytes as unknown fields after
+// its own, and moves next_seq.
+func writeOlderState(t *testing.T, store kvtx.Store) {
+	t.Helper()
+	ctx := t.Context()
+	key := []byte{livenessPrefix[0], 'S'}
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, found, err := tx.Get(ctx, key)
+	if err != nil || !found {
+		t.Fatalf("read the state: found %v err %v", found, err)
+	}
+
+	// Split the fields the older message knows from the two it does not.
+	var known, unknown []byte
+	for b := value; len(b) != 0; {
+		num, _, n := protowire.ConsumeField(b)
+		if n < 0 {
+			t.Fatal(protowire.ParseError(n))
+		}
+		if num == 15 || num == 16 {
+			unknown = append(unknown, b[:n]...)
+		} else {
+			known = append(known, b[:n]...)
+		}
+		b = b[n:]
+	}
+	if len(unknown) == 0 {
+		t.Fatal("the state records no frees switch")
+	}
+
+	// Move next_seq and write the known fields, then the unknown ones.
+	state := &block_gc.LivenessState{}
+	if err := state.UnmarshalVT(known); err != nil {
+		t.Fatal(err)
+	}
+	state.NextSeq++
+	older, err := state.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, key, append(older, unknown...)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -2471,11 +2525,12 @@ func testLivenessAdversarial(t *testing.T) {
 	t.Run("second process under the other hold rule", func(t *testing.T) {
 		// A Volume adopted under this rule holds main -> R -> X and d -> D ->
 		// E, with d's release recorded and not yet netted. Partway through
-		// that run a second process opens it under the other rule, once with
-		// frees on, which finds them on already, and once with them off, as
-		// the debug command does. Each counts under the stored rule and
+		// that run a second process opens it under the other rule with frees
+		// off, as the debug command does. It counts under the stored rule and
 		// leaves the state as it was but for the frees switch, so the first
-		// process then frees D and E and keeps R and X.
+		// process then frees D and E and keeps R and X. With frees on, the
+		// other rule recounts instead (turning frees on recounts under
+		// another rule).
 		store := store_kvtx_inmem.NewStore()
 		v, clk := openLivenessVolume(t, store, true)
 		ctx := t.Context()
@@ -2495,23 +2550,23 @@ func testLivenessAdversarial(t *testing.T) {
 
 		// Open the second process under the other rule, ask it to adopt as
 		// its background adoption would, and close it.
-		for _, frees := range []bool{true, false} {
-			v2, _ := openRuleVolume(t, store, frees, !testHold)
-			res, err := v2.Adopt(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !res.Already {
-				t.Fatalf("second process with frees %v adopted the Volume again: %+v", frees, res)
-			}
-			if err := v2.Close(); err != nil {
-				t.Fatal(err)
-			}
-			want := before.CloneVT()
-			want.Frees = frees
-			if after := livenessState(t, v); !after.EqualVT(want) {
-				t.Fatalf("second process with frees %v changed the state to %v, want %v", frees, after, want)
-			}
+		v2, _ := openRuleVolume(t, store, false, !testHold)
+		res, err := v2.Adopt(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !res.Already {
+			t.Fatalf("second process adopted the Volume again: %+v", res)
+		}
+		if err := v2.Close(); err != nil {
+			t.Fatal(err)
+		}
+		// The switch's write moves the frees mark; compare the rest.
+		want := before.CloneVT()
+		want.Frees, want.FreesMark = false, 0
+		after := livenessState(t, v)
+		if after.FreesMark = 0; !after.EqualVT(want) {
+			t.Fatalf("second process changed the state to %v, want %v", after, want)
 		}
 
 		// The first process nets the release and frees D and E.
@@ -2657,6 +2712,44 @@ func testLivenessAdversarial(t *testing.T) {
 		}
 		if res.Undercount != 1 || !slices.ContainsFunc(res.UndercountSample, c.EqualsRef) {
 			t.Fatalf("audit found %d undercounts in %v, want C alone", res.Undercount, res.UndercountSample)
+		}
+	})
+
+	t.Run("turning frees on recounts after an older build writes", func(t *testing.T) {
+		// A Volume adopted with frees on is written by a build that knows
+		// neither the switch nor its mark, which keeps both as unknown fields
+		// and moves next_seq. Opened again with frees on, the stale mark
+		// reads as frees off, so the open returns the Volume to unadopted
+		// and counts again before any free.
+		store := store_kvtx_inmem.NewStore()
+		v1, _ := openLivenessVolume(t, store, true)
+		first := waitAdopted(t, v1)
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+		writeOlderState(t, store)
+		v, _ := openLivenessVolume(t, store, true)
+		state := waitAdopted(t, v)
+		if !state.GetFrees() || state.GetAdoptionRun() == "" || state.GetAdoptionRun() == first.GetAdoptionRun() {
+			t.Fatalf("frees on after an older build's write left the state %v, want them on and a new recount's run", state)
+		}
+	})
+
+	t.Run("turning frees on recounts under another rule", func(t *testing.T) {
+		// A Volume born with frees on under the other hold rule, opened with
+		// frees on under this one, returns to unadopted and counts again
+		// under this rule, which it then keeps.
+		store := store_kvtx_inmem.NewStore()
+		v1, _ := openRuleVolume(t, store, true, !testHold)
+		waitAdopted(t, v1)
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+		v, _ := openRuleVolume(t, store, true, testHold)
+		state := waitAdopted(t, v)
+		want := testRule()
+		if state.GetHoldRule() != want || state.GetAdoptionRun() == "" || v.holdRule != want {
+			t.Fatalf("frees on under %v left the state %v and the Volume counting under %v", want, state, v.holdRule)
 		}
 	})
 

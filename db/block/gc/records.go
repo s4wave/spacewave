@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/binary"
+	"hash/fnv"
 	"slices"
 
 	"github.com/pkg/errors"
@@ -1086,7 +1087,7 @@ func (r *Records) DeleteProof(ctx context.Context, ref *block.BlockRef) error {
 
 // GetState returns the state record, or the zero state when it is missing.
 func (r *Records) GetState(ctx context.Context) (*LivenessState, error) {
-	// Read the record, then note its generation.
+	// Read the record.
 	state := &LivenessState{}
 	value, found, err := r.tx.Get(ctx, r.key(kindState))
 	if err == nil && found {
@@ -1095,18 +1096,47 @@ func (r *Records) GetState(ctx context.Context) (*LivenessState, error) {
 	if err != nil {
 		return state, err
 	}
+
+	// Read a stale frees mark as frees off, then note the generation.
+	if state.GetFrees() {
+		mark, err := freesMark(state)
+		if err != nil {
+			return state, err
+		}
+		state.Frees = mark == state.GetFreesMark()
+	}
 	r.genKnown, r.gen = true, state.GetGeneration()
 	return state, nil
 }
 
-// SetState writes the state record.
+// SetState writes the state record with its frees mark.
 func (r *Records) SetState(ctx context.Context, state *LivenessState) error {
+	// Mark the record, write it, and note its generation.
+	mark, err := freesMark(state)
+	if err != nil {
+		return err
+	}
+	state.FreesMark = mark
 	value, err := state.MarshalVT()
 	if err != nil {
 		return err
 	}
 	r.genKnown, r.gen = true, state.GetGeneration()
 	return r.tx.Set(ctx, r.key(kindState), value)
+}
+
+// freesMark returns the frees mark of state: the FNV-1a hash of the record
+// without its mark and its unknown fields, as LivenessState.frees_mark
+// describes. It leaves state as it found it.
+func freesMark(state *LivenessState) (uint64, error) {
+	// Hash the known fields alone, then put the mark and the rest back.
+	mark, unknown := state.FreesMark, state.unknownFields
+	state.FreesMark, state.unknownFields = 0, nil
+	value, err := state.MarshalVT()
+	state.FreesMark, state.unknownFields = mark, unknown
+	h := fnv.New64a()
+	_, _ = h.Write(value)
+	return h.Sum64(), err
 }
 
 // releasePageKey returns the key of release page page.

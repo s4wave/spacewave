@@ -286,8 +286,23 @@ type LivenessState struct {
 	// open, or at the birth of an empty Volume. The write that turns it on
 	// also returns the Volume to unadopted, so an adoption counts every holder
 	// again before the first free; a writable open with frees off clears it,
-	// so the next switch-on counts again (SetFrees).
+	// so the next switch-on counts again (SetFrees). It reads as off unless
+	// frees_mark matches the record.
 	Frees bool `protobuf:"varint,15,opt,name=frees,proto3" json:"frees,omitempty"`
+	// FreesMark is a hash of the record's other known fields, which every
+	// write of this format computes. A build that predates it keeps it as an
+	// unknown field and cannot recompute it, so any state write by such a
+	// build leaves it stale, and the record then reads as frees off: the next
+	// switch-on counts again after a writer that knew nothing of the switch.
+	// It sees every write a recount would correct, because Land is the one
+	// writer of holders: a Land that adds or drops a holder outside the blocks
+	// its own batch stores first writes a journal record and this record,
+	// while a batch's new blocks carry exactly the counts any build's Land
+	// gives them. An older build's open of an adopted Volume writes nothing.
+	// A later field that is not zero changes the hash input, so a build that
+	// reads it as unknown sees the mark stale and forces one more recount,
+	// which fails safe.
+	FreesMark uint64 `protobuf:"varint,16,opt,name=frees_mark,json=freesMark,proto3" json:"freesMark,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -378,6 +393,13 @@ func (x *LivenessState) GetFrees() bool {
 		return x.Frees
 	}
 	return false
+}
+
+func (x *LivenessState) GetFreesMark() uint64 {
+	if x != nil {
+		return x.FreesMark
+	}
+	return 0
 }
 
 // Release is a cascade whose child list is longer than one collector slice
@@ -486,6 +508,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.Cascades = m.Cascades
 	r.HoldRule = m.HoldRule
 	r.Frees = m.Frees
+	r.FreesMark = m.FreesMark
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -608,6 +631,9 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 		return false
 	}
 	if this.Frees != that.Frees {
+		return false
+	}
+	if this.FreesMark != that.FreesMark {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -966,6 +992,11 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("frees")
 		s.WriteBool(x.Frees)
 	}
+	if x.FreesMark != 0 || s.HasField("freesMark") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("freesMark")
+		s.WriteUint64(x.FreesMark)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1023,6 +1054,9 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "frees":
 			s.AddField("frees")
 			x.Frees = s.ReadBool()
+		case "frees_mark", "freesMark":
+			s.AddField("frees_mark")
+			x.FreesMark = s.ReadUint64()
 		}
 	})
 }
@@ -1227,6 +1261,13 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.FreesMark != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FreesMark))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
 	if m.Frees {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Frees)
 		i--
@@ -1394,6 +1435,7 @@ func (m *LivenessState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cascades)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldRule)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Frees)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.FreesMark)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1530,6 +1572,10 @@ func (x *LivenessState) MarshalProtoText() string {
 	if x.Frees != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "frees")
 		protobuf_go_lite.TextWriteBool(&sb, x.Frees)
+	}
+	if x.FreesMark != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "frees_mark")
+		protobuf_go_lite.TextWriteUint(&sb, x.FreesMark)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1849,6 +1895,15 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Frees = bool(v)
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FreesMark", wireType)
+			}
+			m.FreesMark = 0
+			m.FreesMark, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
