@@ -40,6 +40,9 @@ type Bucket struct {
 	// failPut, when set, decides whether to refuse a PUT of the key with a
 	// server error before it is stored.
 	failPut func(key string) bool
+	// refuseVersions, when set, answers every version listing with 501, as
+	// a service without versioning or a key it cannot list does.
+	refuseVersions bool
 	// url is where the bucket serves.
 	url string
 	// uploads counts the multipart uploads begun.
@@ -94,6 +97,14 @@ func (b *Bucket) FailPut(fail func(key string) bool) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	b.failPut = fail
+}
+
+// RefuseVersions makes the bucket answer every version listing with 501 Not
+// Implemented while refuse is set, as a service without versioning does.
+func (b *Bucket) RefuseVersions(refuse bool) {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	b.refuseVersions = refuse
 }
 
 // Keys returns the sorted object keys under prefix.
@@ -152,6 +163,8 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := strings.TrimPrefix(r.URL.Path, "/"+BucketName+"/")
 	query := r.URL.Query()
 	switch {
+	case query.Has("versions") && b.refuseVersions:
+		http.Error(w, "<Error><Code>NotImplemented</Code></Error>", http.StatusNotImplemented)
 	case query.Has("versions"):
 		b.listVersions(w, query.Get("prefix"))
 	case query.Get("list-type") == "2":
