@@ -49,7 +49,7 @@ func (s *PackStore) BeginTrash(ctx context.Context, ids []string) error {
 	if err := s.loadEntries(ctx); err != nil {
 		return err
 	}
-	release, err := s.holdMtx.Lock(ctx)
+	release, err := s.lockHold(ctx, "trash")
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (s *PackStore) remove(ctx context.Context, ids []string, keys []KeyHolders,
 
 	// Under the lock, check again that each is trashing and no read missed it
 	// since.
-	release, err := s.holdMtx.Lock(ctx)
+	release, err := s.lockHold(ctx, "remove")
 	if err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func (s *PackStore) Restore(ctx context.Context, ids []string) error {
 	}
 
 	// Under the lock, check again that each is still trashing.
-	release, err := s.holdMtx.Lock(ctx)
+	release, err := s.lockHold(ctx, "restore")
 	if err != nil {
 		return err
 	}
