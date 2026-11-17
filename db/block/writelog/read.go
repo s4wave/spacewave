@@ -58,7 +58,9 @@ const (
 	ReadMore ReadState = iota
 	// ReadOpen read every line written so far of an epoch that is open.
 	ReadOpen
-	// ReadClosed read the epoch to its close line.
+	// ReadClosed read the epoch to its last close line. A writer that
+	// resumes the epoch continues it after that line, so a closed epoch is
+	// paused, not ended: a later read may go on past it.
 	ReadClosed
 	// ReadGap found lines missing: the epoch is gone, trimmed past the
 	// position, broken, or ended with no close line.
@@ -181,19 +183,29 @@ func readDir(ctx context.Context, dir string, from Position, live bool, upto uin
 		}
 	}
 
-	// Read the segments in order, each continuing the last.
+	// Read the segments in order, each continuing the last. A close line
+	// ends the read unless the next segment resumes the epoch at the line
+	// after it.
 	read := 0
-	for _, seg := range segs[start:] {
+	for i, seg := range segs[start:] {
 		if err := ctx.Err(); err != nil {
 			return res, err
 		}
 		state, err := readSegment(dir, seg, &res, live, upto, max, &read, fn)
-		if err != nil || state != nil {
-			if state != nil {
-				res = *state
-			}
+		if err != nil {
 			return res, err
 		}
+		if state == nil {
+			continue
+		}
+		res = *state
+		if res.State != ReadClosed || start+i+1 == len(segs) {
+			return res, nil
+		}
+		if segs[start+i+1].first != res.Next.Seq+1 {
+			return gap(res, "segment after the close line does not resume the epoch"), nil
+		}
+		res.State = ReadMore
 	}
 
 	// The epoch has no close line: open when live, else a gap.

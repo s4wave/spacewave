@@ -67,6 +67,13 @@ type Log struct {
 	le *logrus.Entry
 	// on is set while an epoch is open, read without mu by every record.
 	on atomic.Bool
+	// missed is set once a write may have escaped the log: one recorded
+	// while no epoch was open, or a store reporting writes it did not show.
+	// A set missed keeps the next start from resuming the closed epoch.
+	missed atomic.Bool
+	// resumeDir is the directory of the last epoch, whose resume marker a
+	// miss removes.
+	resumeDir atomic.Pointer[string]
 
 	// mu guards the fields below.
 	mu sync.Mutex
@@ -104,17 +111,27 @@ func (l *Log) Root(h *hash.Hash) { l.record(KindRoot, h) }
 // Fill records a block read back from the remote.
 func (l *Log) Fill(h *hash.Hash) { l.record(KindFill, h) }
 
-// record appends one line when the log is on.
+// record appends one line when the log is on, and records a miss when it is
+// off.
 func (l *Log) record(kind Kind, h *hash.Hash) {
-	// Skip at once while off.
-	if !l.on.Load() || h == nil {
+	// While off, record the miss, then check again: a resume turns the log on
+	// before it reads missed, so a write either sees the log on here or its
+	// miss stops the resume.
+	if h == nil {
 		return
+	}
+	if !l.on.Load() {
+		l.miss()
+		if !l.on.Load() {
+			return
+		}
 	}
 
 	// Append under the lock, unless the epoch ended since the check.
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.file == nil {
+		l.miss()
 		return
 	}
 	if err := l.appendLine(kind, h); err != nil {
@@ -153,12 +170,43 @@ func (l *Log) appendLine(kind Kind, h *hash.Hash) error {
 	return nil
 }
 
+// Missed records that the store may accept a write the log does not see, as
+// when its observer is set after the store's first write or detached before
+// its last. It ends an open epoch with no close line, so its readers see a
+// gap, and keeps a closed one from resuming.
+func (l *Log) Missed() {
+	l.miss()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.file != nil {
+		l.breakEpoch(errors.New("the store took a write the log did not see"))
+	}
+}
+
+// miss records a write the log did not see while no epoch was open. Only the
+// first miss after a close does any work: it removes the resume marker, so the
+// next start opens a new epoch. Every later call is one atomic load.
+func (l *Log) miss() {
+	// Skip once recorded.
+	if l.missed.Load() || !l.missed.CompareAndSwap(false, true) {
+		return
+	}
+
+	// Remove the marker, durably, so no later start resumes past this write.
+	if dir := l.resumeDir.Load(); dir != nil {
+		if err := os.Remove(markerPath(*dir)); err == nil {
+			_ = syncDir(*dir)
+		}
+	}
+}
+
 // Set switches the log: nil turns it off, closing the open epoch with its
-// close line; options turn it on, starting an epoch in their directory. Options
-// equal to the current ones change nothing, so a broken epoch stays ended until
-// the log is turned off and on again. A new directory, or a log turned on,
-// starts a new epoch and removes the segments of every other epoch there, which
-// no cycle can use once the epoch changed.
+// close line; options turn it on in their directory. Options equal to the
+// current ones change nothing, so a broken epoch stays ended until the log is
+// turned off and on again. Turning on resumes the directory's last epoch when
+// it closed cleanly and the log missed no write since, as resume describes;
+// otherwise it starts a new epoch and removes the segments of every other
+// epoch there, which no cycle can use once the epoch changed.
 func (l *Log) Set(opts *Options) error {
 	// Hold the log for the switch.
 	l.mu.Lock()
@@ -189,6 +237,7 @@ func (l *Log) Set(opts *Options) error {
 		l.le.WithError(err).Warn("write log: closing the epoch")
 	}
 	l.opts = next
+	l.resumeDir.Store(&next.Dir)
 	if err := l.startEpoch(); err != nil {
 		l.breakEpoch(err)
 		return err
@@ -232,35 +281,52 @@ func (l *Log) Position() (Position, bool) {
 	return Position{Epoch: l.epoch, Seq: l.seq}, true
 }
 
-// startEpoch opens a new epoch in the configured directory, removing the
-// segments of the other epochs there.
+// startEpoch opens an epoch in the configured directory: the last one
+// resumed, or a new one, removing the segments of the other epochs there.
 func (l *Log) startEpoch() error {
-	// Name the epoch.
-	var id [8]byte
-	if _, err := rand.Read(id[:]); err != nil {
-		return err
-	}
-	l.epoch, l.seq, l.broken = hex.EncodeToString(id[:]), 0, ""
-
-	// Remove the other epochs' segments, then open the first segment.
+	// Take the resume marker, durably, before turning on: a resumed epoch's
+	// lines then never follow a marker a crash could bring back.
 	if err := os.MkdirAll(l.opts.Dir, 0o755); err != nil {
 		return err
 	}
+	mark, marked, err := takeMarker(l.opts.Dir)
+	if err != nil {
+		return err
+	}
+
+	// Turn on before reading missed, so a write the log does not take is a
+	// miss this start sees; writes wait on the lock until the segment opens.
+	l.on.Store(true)
+	resume := marked && !l.missed.Load() && closedAt(l.opts.Dir, mark)
+	if resume {
+		l.epoch, l.seq, l.broken = mark.Epoch, mark.Seq, ""
+	} else {
+		var id [8]byte
+		if _, err := rand.Read(id[:]); err != nil {
+			return err
+		}
+		l.epoch, l.seq, l.broken = hex.EncodeToString(id[:]), 0, ""
+		l.missed.Store(false)
+	}
+
+	// Remove the other epochs' segments, and a resumed epoch's segment that
+	// holds no line but its close, which the next segment replaces under its
+	// name; count the kept ones, then open the next segment.
 	segs, err := listSegments(l.opts.Dir)
 	if err != nil {
 		return err
 	}
+	l.bytes = 0
 	for _, seg := range segs {
+		if seg.epoch == l.epoch && seg.first != l.seq+1 {
+			l.bytes += seg.size
+			continue
+		}
 		if err := os.Remove(seg.path(l.opts.Dir)); err != nil && !os.IsNotExist(err) {
 			return err
 		}
 	}
-	l.bytes = 0
-	if err := l.openSegment(); err != nil {
-		return err
-	}
-	l.on.Store(true)
-	return nil
+	return l.openSegment()
 }
 
 // openSegment opens the segment holding the next line and writes its epoch
@@ -339,8 +405,48 @@ func (l *Log) closeEpoch() error {
 	l.file = nil
 	if err != nil {
 		l.broken = err.Error()
+		return err
 	}
-	return err
+
+	// Leave the marker that lets the next start resume the epoch, unless a
+	// write may have escaped it.
+	return l.markResumable()
+}
+
+// markResumable makes the closed epoch's segments durable and writes the
+// marker naming its close line, so a start that finds it can continue the
+// epoch. A miss after the marker removes it, and one between the check and
+// the rename is caught by the check after it.
+func (l *Log) markResumable() error {
+	// Skip when a write escaped the epoch.
+	dir := l.opts.Dir
+	if l.missed.Load() {
+		return nil
+	}
+
+	// Sync every segment of the epoch, so the marker implies its lines.
+	segs, err := listSegments(dir)
+	if err != nil {
+		return err
+	}
+	for _, seg := range epochSegments(segs, l.epoch) {
+		if err := syncFile(seg.path(dir)); err != nil {
+			return err
+		}
+	}
+
+	// Write the marker beside them, then drop it if a miss raced or the
+	// directory cannot make it durable.
+	if err := writeMarker(dir, Position{Epoch: l.epoch, Seq: l.seq}); err != nil {
+		return err
+	}
+	if err := syncDir(dir); err != nil || l.missed.Load() {
+		if rerr := os.Remove(markerPath(dir)); rerr != nil && !os.IsNotExist(rerr) && err == nil {
+			err = rerr
+		}
+		return err
+	}
+	return nil
 }
 
 // breakEpoch ends the open epoch with no close line, so every reader sees a

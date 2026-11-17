@@ -591,10 +591,11 @@ type RecheckResult struct {
 // first, then pulls the log to its open end and walks W, so every write that
 // ended before the status is in W. A pack passes once it has waited out the
 // quarantine, no write or read operation open since before its quarantine
-// remains, the log covers the cycle in one epoch from R, and no key it holds
-// is in L or W. A pack a read lifted leaves the cycle, passed or not, and one
-// that gained a live key is lifted. A pack that passed stays passed through a
-// later gap: no log line after its recheck could keep it.
+// remains, the log covers the cycle in one epoch from R, which a clean restart
+// resumes, and no key it holds is in L or W. A pack a read lifted leaves the
+// cycle, passed or not, and one that gained a live key is lifted. A pack that
+// passed stays passed through a later gap: no log line after its recheck could
+// keep it.
 func Recheck(ctx context.Context, opts *RecheckOptions) (*RecheckResult, error) {
 	// Take the quarantined packs, and read their states first.
 	res := &RecheckResult{Waiting: make(map[string]uint64)}
