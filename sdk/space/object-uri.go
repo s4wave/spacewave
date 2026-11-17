@@ -38,10 +38,13 @@ type SpacewaveURI struct {
 //
 // A plain string without /-/ is treated as an object key only.
 //
-// The Space ID and each segment are percent-decoded after the structure is
-// parsed, so an escape carries what the structure would otherwise consume:
-// "%2F" is a slash beside an empty segment, "%2E" a dot of a "." or ".."
-// segment, and "%2D" a "-" segment.
+// This is the one reader of a Spacewave address, whose writer is
+// escapeObjectKey in object-uri.ts: the address is cleaned, split on /-/, and
+// then the Space ID and each segment are percent-decoded, so an escape carries
+// what the structure would otherwise consume: "%2F" is a slash beside an empty
+// segment, "%2E" a dot of a "." or ".." segment, and "%2D" a "-" segment. A
+// part that is not valid percent-encoding, such as a raw "100%", is taken as
+// written, as the web router takes a hash path it cannot decode.
 func ParseSpacewaveURI(uri string) (SpacewaveURI, error) {
 	// Normalize the Spacewave URI before interpreting its session prefix.
 	cleaned := path.Clean("/" + uri)
@@ -61,15 +64,21 @@ func ParseSpacewaveURI(uri string) (SpacewaveURI, error) {
 	}
 
 	// Decode the escapes the structure left in place.
-	if result.SpaceID, err = url.PathUnescape(result.SpaceID); err != nil {
-		return SpacewaveURI{}, err
-	}
+	result.SpaceID = UnescapeURIPart(result.SpaceID)
 	for i, seg := range result.Segments {
-		if result.Segments[i], err = url.PathUnescape(seg); err != nil {
-			return SpacewaveURI{}, err
-		}
+		result.Segments[i] = UnescapeURIPart(seg)
 	}
 	return result, nil
+}
+
+// UnescapeURIPart percent-decodes one part of a Spacewave address, such as a
+// Space ID or a segment, or returns it as written when it is not valid
+// percent-encoding. Every reader of the address decodes through it.
+func UnescapeURIPart(part string) string {
+	if dec, err := url.PathUnescape(part); err == nil {
+		return dec
+	}
+	return part
 }
 
 // parseFullURI parses the full /u/{idx}/so/{space_id}/... form.

@@ -4,7 +4,6 @@ package spacewave_cli
 
 import (
 	"math"
-	neturl "net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	git_remote "github.com/s4wave/spacewave/core/git/remote"
+	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
 // gitRemoteHelperName is the executable Git runs for spacewave:// remotes.
@@ -167,15 +167,7 @@ func parseGitRemoteURL(url string) (fsURI, error) {
 	if !ok || space == "" || objectKey == "" {
 		return fsURI{}, errors.Errorf("remote URL %q is not %s<space>/<object-key>", url, gitRemoteURLPrefix)
 	}
-	space, err := neturl.PathUnescape(space)
-	if err != nil {
-		return fsURI{}, errors.Wrapf(err, "remote URL %q", url)
-	}
-	objectKey, err = neturl.PathUnescape(objectKey)
-	if err != nil {
-		return fsURI{}, errors.Wrapf(err, "remote URL %q", url)
-	}
-	return fsURI{spaceID: space, objectKey: objectKey}, nil
+	return fsURI{spaceID: s4wave_space.UnescapeURIPart(space), objectKey: s4wave_space.UnescapeURIPart(objectKey)}, nil
 }
 
 // gitRemoteDir returns the local repository's Git directory, which Git passes
