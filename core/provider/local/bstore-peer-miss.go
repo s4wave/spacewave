@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/sirupsen/logrus"
 )
 
@@ -64,6 +65,8 @@ type peerMissLog struct {
 	le *logrus.Entry
 	// misses counts the misses between reports.
 	misses *peerMisses
+	// counts counts the outcomes of the peer reads, or is nil.
+	counts *peerReadCounts
 }
 
 // peerMisses counts the misses since the last report.
@@ -81,8 +84,9 @@ type peerMisses struct {
 // across a Session transport restart or before the next P2P sync lifecycle
 // publishes the bucket's store, waits for them through wait within the peer
 // read bound, rather than finding no peers and reporting a block missing
-// that a peer still holds.
-func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, wait func(context.Context) block.StoreOps) func() block.StoreOps {
+// that a peer still holds. Each peer read counts its outcome in counts, which
+// may be nil.
+func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, wait func(context.Context) block.StoreOps, counts *peerReadCounts) func() block.StoreOps {
 	misses := &peerMisses{}
 	var hadPeers atomic.Bool
 	return func() block.StoreOps {
@@ -95,7 +99,7 @@ func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, wait func(
 		default:
 			return nil
 		}
-		return &peerMissLog{StoreOps: store, le: le, misses: misses}
+		return &peerMissLog{StoreOps: store, le: le, misses: misses, counts: counts}
 	}
 }
 
@@ -113,22 +117,30 @@ func (p *returningPeers) BeginReadOperation(context.Context) (block.StoreOps, fu
 	return p, func() {}, nil
 }
 
-// GetBlock waits for the peers, then reads the block from them.
+// GetBlock waits for the peers, then reads the block from them. A wait that
+// ends with no peers fails with dex_solicit.ErrNoPeerSession.
 func (p *returningPeers) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	store := p.wait(ctx)
 	if store == nil {
-		return nil, false, context.Cause(ctx)
+		return nil, false, noPeersErr(ctx)
 	}
 	return store.GetBlock(ctx, ref)
 }
 
-// GetStoredBlock waits for the peers, then reads the block and its refs.
+// GetStoredBlock waits for the peers, then reads the block and its refs. A
+// wait that ends with no peers fails with dex_solicit.ErrNoPeerSession.
 func (p *returningPeers) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	store := p.wait(ctx)
 	if store == nil {
-		return nil, context.Cause(ctx)
+		return nil, noPeersErr(ctx)
 	}
 	return store.GetStoredBlock(ctx, ref)
+}
+
+// noPeersErr is the failure of a wait for peers that ended with ctx, which
+// still matches ctx's own error.
+func noPeersErr(ctx context.Context) error {
+	return fmt.Errorf("%w: %w", dex_solicit.ErrNoPeerSession, context.Cause(ctx))
 }
 
 // BeginReadOperation opens a read scope on the peers that keeps the miss log
@@ -139,7 +151,7 @@ func (p *peerMissLog) BeginReadOperation(ctx context.Context) (block.StoreOps, f
 	if err != nil {
 		return nil, nil, err
 	}
-	return &peerMissLog{StoreOps: scoped, le: p.le, misses: p.misses}, release, nil
+	return &peerMissLog{StoreOps: scoped, le: p.le, misses: p.misses, counts: p.counts}, release, nil
 }
 
 // GetBlock logs the miss and reads the block from peers.
@@ -155,15 +167,41 @@ func (p *peerMissLog) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 // asking again after a failure until peerReadLimit, as SetPeerReadWait
 // describes.
 func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	// Log the first miss of the block.
 	p.logMiss(ref)
+	return readPeers(ctx, p.le, p.StoreOps, ref, p.counts)
+}
 
-	// Ask the peers until one answers, or the bound ends.
+// readPeers asks the peers in store for ref until one answers, or
+// peerReadLimit ends, and counts the outcome once in counts, which may be nil.
+// A read that failed while its caller still waited warns through le, once per
+// block, as warnPeerFailed describes.
+func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts) (blk *block.StoredBlock, err error) {
+	// Count the read's outcome once it ends, and warn of a failure.
+	cause := peerTimeout
+	defer func() {
+		switch {
+		case err == nil:
+			counts.record(ref, blk)
+		case ctx.Err() != nil:
+			counts.recordCanceled()
+		default:
+			counts.recordFailed(cause)
+			warnPeerFailed(le, ref, cause)
+		}
+	}()
+
+	// Ask the peers until one answers, or the bound ends. A timeout keeps
+	// the cause an earlier attempt found.
 	readCtx, cancel := context.WithTimeout(ctx, peerReadLimit())
 	defer cancel()
 	pause := peerReadPauseMin
 	for {
-		blk, err := p.StoreOps.GetStoredBlock(readCtx, ref)
+		blk, err := store.GetStoredBlock(readCtx, ref)
+		if err != nil {
+			if c := peerFailCause(err); c != peerTimeout {
+				cause = c
+			}
+		}
 		// A corrupt answer is deterministic: asking again returns the same bytes.
 		if err == nil || readCtx.Err() != nil || errors.Is(err, block.ErrBlockCorrupt) {
 			return blk, peerReadErr(ctx, readCtx, ref, err)
@@ -177,6 +215,56 @@ func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 		case <-time.After(pause):
 		}
 		pause = min(pause*2, peerReadPauseMax)
+	}
+}
+
+// peerReadCounts counts a placed store's peer reads by outcome, and the
+// blocks they filled.
+type peerReadCounts struct {
+	// served counts the reads a peer served the block to.
+	served atomic.Uint64
+	// notHeld counts the reads every peer asked answered it lacks the block.
+	notHeld atomic.Uint64
+	// failed counts the reads that failed while their caller waited, by
+	// peerCause.
+	failed [peerCauseCount]atomic.Uint64
+	// canceled counts the reads whose caller went away first, which say
+	// nothing of the peers.
+	canceled atomic.Uint64
+	// filled counts the blocks a peer served that filled the local store.
+	filled atomic.Uint64
+	// classes counts the served blocks by peerClass.
+	classes [peerClassCount]atomic.Uint64
+	// queue takes the served blocks to classify, or is nil when the
+	// placement classifies none.
+	queue chan *block.BlockRef
+}
+
+// record counts one peer read of ref that ended without an error, and hands a
+// served block to the classifier. The peer store reports a block every peer
+// lacks as no block and no error.
+func (c *peerReadCounts) record(ref *block.BlockRef, blk *block.StoredBlock) {
+	switch {
+	case c == nil:
+	case blk != nil:
+		c.served.Add(1)
+		c.classify(ref)
+	default:
+		c.notHeld.Add(1)
+	}
+}
+
+// recordFailed counts one peer read that failed while its caller waited.
+func (c *peerReadCounts) recordFailed(cause peerCause) {
+	if c != nil {
+		c.failed[cause].Add(1)
+	}
+}
+
+// recordCanceled counts one peer read whose caller went away first.
+func (c *peerReadCounts) recordCanceled() {
+	if c != nil {
+		c.canceled.Add(1)
 	}
 }
 

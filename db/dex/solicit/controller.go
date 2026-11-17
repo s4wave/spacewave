@@ -2,6 +2,7 @@ package dex_solicit
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"slices"
 	"sync/atomic"
@@ -62,8 +63,17 @@ const (
 // renewLogAttempts is how many renewals of one recovery log at Info level.
 const renewLogAttempts = 3
 
+// ErrNoPeerSession reports a block request that no peer session was there to
+// answer: none was open before the request's context ended, or the session it
+// went out on closed.
+var ErrNoPeerSession = errors.New("no peer session")
+
+// ErrPeerError reports a peer's answer that its own lookup of the block
+// failed.
+var ErrPeerError = errors.New("peer lookup failed")
+
 // errSessionClosed reports a request that failed because its peer session closed.
-var errSessionClosed = errors.New("session closed")
+var errSessionClosed = fmt.Errorf("%w: session closed", ErrNoPeerSession)
 
 // Controller is the solicitation-based DEX controller.
 type Controller struct {
@@ -544,8 +554,11 @@ func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, ho
 // askPeers runs a block fanout over sessions. A peer that replaces its link
 // closes the session a request went out on while its new session comes up, so
 // a fanout that failed on a closed session waits up to sessionReplaceWait for
-// open sessions and asks again, at most maxSessionRetries times. Only a
-// session close is retried: a miss, a peer error or ctx ending returns at once.
+// open sessions and asks again, at most maxSessionRetries times. The fanout
+// keeps every peer's failure, so it asks again when any peer's session closed,
+// whatever the other peers answered and in whatever order. Only a session
+// close is retried: a fanout whose failures include no close returns at once,
+// as does a miss or ctx ending.
 func (c *Controller) askPeers(ctx context.Context, sessions []*peerSession, ref *block.BlockRef, hops uint32, exclude *peerSession) (*DexMessage, error) {
 	found, err := peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
 	for attempt := 0; attempt < maxSessionRetries && errors.Is(err, errSessionClosed) && ctx.Err() == nil; attempt++ {
@@ -674,7 +687,7 @@ type fanoutResult struct {
 // cancels the other requests, which tells their peers to stop serving them.
 // It returns nil and no error only when every peer answered that it does not
 // have the block. When no peer had the block and a request failed, it returns
-// an error wrapping block.ErrUnavailable, so a dropped link or a timeout is
+// an error wrapping block.ErrUnavailable and each peer's failure, so a dropped link or a timeout is
 // never mistaken for a missing block.
 func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
 	// Scope the peer requests to this fanout.
@@ -696,22 +709,22 @@ func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
 		}()
 	}
 
-	// Return the first successful peer response, remembering the first
-	// failure.
-	var firstErr error
+	// Return the first successful peer response, keeping every peer's
+	// failure so the caller can tell why each one did not serve it.
+	var errs []error
 	for range f.sessions {
 		res := <-results
 		if res.resp != nil {
 			return res.resp, nil
 		}
-		if firstErr == nil {
-			firstErr = res.err
+		if res.err != nil {
+			errs = append(errs, res.err)
 		}
 	}
 
 	// Report a failed exchange, or a miss every peer confirmed.
-	if firstErr != nil {
-		return nil, fmt.Errorf("%w: no peer served block %s: %w", block.ErrUnavailable, f.ref.MarshalString(), firstErr)
+	if len(errs) != 0 {
+		return nil, fmt.Errorf("%w: no peer served block %s: %w", block.ErrUnavailable, f.ref.MarshalString(), stderrors.Join(errs...))
 	}
 	return nil, nil
 }

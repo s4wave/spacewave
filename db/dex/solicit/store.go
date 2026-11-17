@@ -82,26 +82,26 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 // fetch requests a block from the settled peer sessions, first waiting for a
 // peer session when wantPeer is set and ctx allows waiting. Returns nil when
 // every peer answered that it does not have the block, and an error when the
-// exchange failed or no peer was there to ask.
+// exchange failed or no peer was there to ask, which wraps ErrNoPeerSession.
 func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (*DexMessage, error) {
 	// Settle the peer sessions, waiting for one only when ctx allows it.
 	peerWait := block.GetPeerWait(ctx)
 	skipWait := wantPeer && peerWait != nil
 	sessions, err := s.controller.waitSessions(ctx, nil, wantPeer && !skipWait)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrNoPeerSession, err)
 	}
 	if skipWait && len(sessions) == 0 {
 		// A peer whose session just ended is expected back within seconds,
 		// so wait for its recovery rather than report the block unavailable.
 		sessions, err = s.controller.waitRecovery(ctx)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %w", ErrNoPeerSession, err)
 		}
 	}
 	if skipWait && len(sessions) == 0 {
 		peerWait.Skip(ref)
-		return nil, fmt.Errorf("%w: no peer session to ask for block %s", block.ErrUnavailable, ref.MarshalString())
+		return nil, fmt.Errorf("%w: %w to ask for block %s", block.ErrUnavailable, ErrNoPeerSession, ref.MarshalString())
 	}
 
 	// Ask the settled peer sessions for the block.
