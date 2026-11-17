@@ -5,17 +5,17 @@ import (
 	"time"
 )
 
-// peerUnservedFor is how long a block the peers failed to serve with an error
-// is answered unavailable without asking them again. A peer that answers a
-// block with an error, rather than with a miss, has a tier of its own that
-// cannot read it, and a read that asks again waits out the whole peer read
-// bound before it fails the same way. Ten minutes outlasts the reconnects of
+// peerUnservedFor is how long a block the peers refused is answered
+// unavailable without asking them again. A peer that answers a block with its
+// own lookup error, rather than with a miss, has a tier of its own that cannot
+// read it, and a read that asks again waits out the whole peer read bound
+// before it fails the same way. A failed exchange is never remembered. Ten minutes outlasts the reconnects of
 // a page left open and an old owner's restart, so a reader that keeps coming
 // back fails at once instead of waiting each time, and still short enough
 // that a block a peer regains is served within ten minutes of its return.
 const peerUnservedFor = 10 * time.Minute
 
-// unservedRefs remembers the refs the peers failed to serve with an error,
+// unservedRefs remembers the refs the peers refused, as peerRefused proves,
 // keyed by their marshaled string, each until peerUnservedFor after its last
 // failure. It holds at most seenRefsCap refs and forgets the oldest first, so
 // a forgotten ref costs one more read from the peers.
@@ -31,7 +31,7 @@ func newUnservedRefs() *unservedRefs {
 	return &unservedRefs{until: make(map[string]time.Time)}
 }
 
-// remember records that the peers failed to serve key at now. A nil memory
+// remember records that the peers refused key at now. A nil memory
 // remembers nothing.
 func (u *unservedRefs) remember(key string, now time.Time) {
 	// Extend a ref the memory already holds.
@@ -56,8 +56,8 @@ func (u *unservedRefs) remember(key string, now time.Time) {
 	u.until[key] = now.Add(peerUnservedFor)
 }
 
-// holds reports whether the peers failed to serve key within peerUnservedFor
-// before now. A nil memory holds nothing.
+// holds reports whether the peers refused key within peerUnservedFor before
+// now. A nil memory holds nothing.
 func (u *unservedRefs) holds(key string, now time.Time) bool {
 	// Hold key until its last failure's memory expires.
 	if u == nil {

@@ -47,25 +47,28 @@ func TestPeerReadCountsNotHeld(t *testing.T) {
 }
 
 // TestPeerReadCountsFailed checks that a read failing until the bound ends
-// counts once as failed with a peer error, however many times it asked.
+// counts once as failed with its cause, however many times it asked.
 func TestPeerReadCountsFailed(t *testing.T) {
 	SetPeerReadWait(300 * time.Millisecond)
 	defer SetPeerReadWait(0)
 	peers := &flakyPeers{fails: 1 << 30}
 	st := countedPeerRead(t, peers)
-	if st.PeerServed != 0 || st.PeerNotHeld != 0 || st.PeerFailed != (PeerFailedCauses{PeerError: 1}) || peers.reads.Load() < 2 {
+	if st.PeerServed != 0 || st.PeerNotHeld != 0 || st.PeerFailed != (PeerFailedCauses{Exchange: 1}) || peers.reads.Load() < 2 {
 		t.Fatalf("counts: %+v after %d reads", st, peers.reads.Load())
 	}
 }
 
-// TestPeerReadRemembersUnserved checks that a block the peers failed to serve
-// with an error fails unavailable at once on the next read, asks no peer and
-// counts as remembered, not failed, and that the memory ends after
-// peerUnservedFor.
+// TestPeerReadRemembersUnserved checks that a block the peers refused fails
+// unavailable at once on the next read, asks no peer and counts as
+// remembered, not failed, and that the memory ends after peerUnservedFor. A
+// read that failed on an exchange, a blip, is not remembered: the next read
+// asks again and is served.
 func TestPeerReadRemembersUnserved(t *testing.T) {
+	// Fail a block on a peer's own refusal, shaped as the fanout returns it.
 	SetPeerReadWait(300 * time.Millisecond)
 	defer SetPeerReadWait(0)
-	peers := &flakyPeers{fails: 1 << 30}
+	refusal := fmt.Errorf("%w: no peer served block: %w", block.ErrUnavailable, fmt.Errorf("%w: tier away on the peer", dex_solicit.ErrPeerError))
+	peers := &flakyPeers{fails: 1 << 30, err: refusal}
 	p := &placementState{remote: &atomic.Pointer[openBackend]{}}
 	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, nil, &p.peerReads)
 	ref := block.NewBlockRef(nil)
@@ -74,6 +77,7 @@ func TestPeerReadRemembersUnserved(t *testing.T) {
 	}
 	asked := peers.reads.Load()
 
+	// The next read answers from memory.
 	started := time.Now()
 	blk, err := src().GetStoredBlock(context.Background(), ref)
 	st := p.readStatus()
@@ -83,10 +87,44 @@ func TestPeerReadRemembersUnserved(t *testing.T) {
 	if st.PeerRemembered != 1 || st.PeerFailed != (PeerFailedCauses{PeerError: 1}) {
 		t.Fatalf("counts: %+v", st)
 	}
-
 	mem := src().(*peerMissLog).unserved
 	if !mem.holds(ref.MarshalString(), time.Now().Add(peerUnservedFor-time.Second)) || mem.holds(ref.MarshalString(), time.Now().Add(peerUnservedFor)) {
 		t.Fatal("memory does not end after peerUnservedFor")
+	}
+
+	// A blip fails a read on its exchange, and the next read asks again and
+	// is served.
+	want := &block.StoredBlock{Data: []byte("served")}
+	blip := &flakyPeers{fails: 1 << 30, blk: want}
+	q := &placementState{remote: &atomic.Pointer[openBackend]{}}
+	src = newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return blip }, nil, &q.peerReads)
+	if _, err := src().GetStoredBlock(context.Background(), ref); !errors.Is(err, block.ErrUnavailable) {
+		t.Fatalf("blip read: %v", err)
+	}
+	blip.fails = 0
+	if blk, err := src().GetStoredBlock(context.Background(), ref); err != nil || blk != want {
+		t.Fatalf("read after the blip: %v %v", blk, err)
+	}
+	if st := q.readStatus(); st.PeerRemembered != 0 || st.PeerServed != 1 || st.PeerFailed != (PeerFailedCauses{Exchange: 1}) {
+		t.Fatalf("blip counts: %+v", st)
+	}
+
+	// Only a tree of refusals is proof: a refusal beside a failed exchange,
+	// a timeout or a closed session is not.
+	reset := errors.New("stream reset by the peer")
+	for _, tc := range []struct {
+		err  error
+		want bool
+	}{
+		{refusal, true},
+		{fmt.Errorf("%w: no peer served block: %w", block.ErrUnavailable, errors.Join(refusal, reset)), false},
+		{fmt.Errorf("%w: no peer served block: %w", block.ErrUnavailable, errors.Join(refusal, context.DeadlineExceeded)), false},
+		{fmt.Errorf("%w: %w", block.ErrUnavailable, dex_solicit.ErrNoPeerSession), false},
+		{reset, false},
+	} {
+		if got := peerRefused(tc.err); got != tc.want {
+			t.Errorf("peerRefused(%v) = %v", tc.err, got)
+		}
 	}
 }
 
@@ -196,6 +234,9 @@ const (
 	// causeNoSession waits for the read's bound as the solicit store does
 	// with no peer session, and fails as it does.
 	causeNoSession
+	// causeExchange fails as a reset stream does, with no answer from the
+	// peer.
+	causeExchange
 )
 
 // GetStoredBlock fails or serves by the mode.
@@ -211,14 +252,16 @@ func (c *causePeers) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	case causeNoSession:
 		<-ctx.Done()
 		return nil, fmt.Errorf("%w: %w", dex_solicit.ErrNoPeerSession, ctx.Err())
+	case causeExchange:
+		return nil, fmt.Errorf("%w: no peer served block: %w", block.ErrUnavailable, errors.New("stream reset by the peer"))
 	default:
 		return c.blk, nil
 	}
 }
 
 // TestPeerReadFailCauses tries to blur the failure causes: a peer error, a
-// timeout, a missing session and a caller that went away each count in their
-// own cause, the canceled read in no cause, and only a failure warns, once
+// timeout, a missing session, a failed exchange and a caller that went away
+// each count in their own cause, the canceled read in no cause, and only a failure warns, once
 // per block with its cause and reader. After each failure the same block is
 // still asked for again and served.
 func TestPeerReadFailCauses(t *testing.T) {
@@ -233,6 +276,7 @@ func TestPeerReadFailCauses(t *testing.T) {
 		{"peer_error", causePeerError, false, ReadStatus{PeerFailed: PeerFailedCauses{PeerError: 2}}},
 		{"timeout", causeTimeout, false, ReadStatus{PeerFailed: PeerFailedCauses{Timeout: 2}}},
 		{"no_session", causeNoSession, false, ReadStatus{PeerFailed: PeerFailedCauses{NoSession: 2}}},
+		{"exchange", causeExchange, false, ReadStatus{PeerFailed: PeerFailedCauses{Exchange: 2}}},
 		{"canceled", causeTimeout, true, ReadStatus{PeerCanceled: 2}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
