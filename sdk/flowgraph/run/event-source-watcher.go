@@ -211,6 +211,14 @@ func (w *eventSourceWatcher) watchEvents(ctx context.Context, client flowgraph_e
 			return nil
 		}
 		cursor = batch.GetNextCursor()
+
+		// Tell the source what the run now holds. A failed ack only delays
+		// the source's cleanup, and the next batch's ack covers it.
+		if len(cursor) != 0 {
+			if _, err := client.AckEvents(ctx, &flowgraph_eventsource.AckEventsRequest{Cursor: cursor}); err != nil {
+				w.c.le.WithError(err).Debugf("event source %q: ack failed", w.key.nodeID)
+			}
+		}
 	}
 }
 
@@ -251,6 +259,7 @@ func (w *eventSourceWatcher) deliver(ctx context.Context, cursor []byte, batch *
 			EventId:   event.GetEventId(),
 			Key:       event.GetKey(),
 			Port:      event.GetPort(),
+			Payload:   event.GetPayload(),
 		})
 	}
 

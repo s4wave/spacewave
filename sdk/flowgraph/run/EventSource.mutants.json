@@ -1,0 +1,6 @@
+[
+ {"name": "Deliver without naming the stored cursor", "replace": [["/\\ wstate[d] = \"Delivering\"\n  /\\ stored = wcursor[d]", "/\\ wstate[d] = \"Delivering\""]], "expect": "ExactlyOnce"},
+ {"name": "Ack the batch when it is read", "replace": [["/\\ wstate' = [wstate EXCEPT ![d] = \"Delivering\"]\n  /\\ UNCHANGED <<bound, wcursor, ackPending,", "/\\ wstate' = [wstate EXCEPT ![d] = \"Delivering\"]\n  /\\ ackPending' = [ackPending EXCEPT ![d] = batchEnd'[d]]\n  /\\ UNCHANGED <<bound, wcursor,"]], "expect": "AckBehindCursor"},
+ {"name": "Report a gap without moving the cursor past it", "replace": [["/\\ batchEnd' = [batchEnd EXCEPT ![d] = gapThrough]", "/\\ batchEnd' = [batchEnd EXCEPT ![d] = wcursor[d]]"]], "expect": "ArrivalBehindCursor"},
+ {"name": "Read past expired events without a gap", "replace": [["/\\ gapThrough <= wcursor[d]\n", "/\\ TRUE\n"]], "expect": "NoSilentLoss"}
+]

@@ -31,6 +31,11 @@ export interface SourceEvent {
    * Port selects one source output port, or every connection when empty.
    */
   port?: string
+  /**
+   * Payload is the event's data, at most MaxEventPayload bytes. It reaches the
+   * receiving Step with the arrival, without a World object per event.
+   */
+  payload?: Uint8Array
 }
 
 export const SourceEvent: MessageType<SourceEvent> =
@@ -41,6 +46,7 @@ export const SourceEvent: MessageType<SourceEvent> =
       [2, 'key', 9],
       [3, 'payload_object_key', 9],
       [4, 'port', 9],
+      [5, 'payload', 12],
     ],
   )
 
@@ -87,4 +93,35 @@ export const WatchEventsResponse: MessageType<WatchEventsResponse> =
       [1, 'events', 11, 1, SourceEvent.codec],
       [2, 'next_cursor', 12],
     ],
+  )
+
+/**
+ * AckEventsRequest acknowledges the events the run stored.
+ *
+ * @generated from message s4wave.flowgraph.eventsource.AckEventsRequest
+ */
+export interface AckEventsRequest {
+  /**
+   * Cursor is the run's stored cursor after the delivery.
+   */
+  cursor?: Uint8Array
+}
+
+export const AckEventsRequest: MessageType<AckEventsRequest> =
+  /* @__PURE__ */ createMessageType<AckEventsRequest>(
+    's4wave.flowgraph.eventsource.AckEventsRequest',
+    () => [[1, 'cursor', 12]],
+  )
+
+/**
+ * AckEventsResponse confirms an acknowledgement.
+ *
+ * @generated from message s4wave.flowgraph.eventsource.AckEventsResponse
+ */
+export interface AckEventsResponse {}
+
+export const AckEventsResponse: MessageType<AckEventsResponse> =
+  /* @__PURE__ */ createMessageType<AckEventsResponse>(
+    's4wave.flowgraph.eventsource.AckEventsResponse',
+    () => [],
   )

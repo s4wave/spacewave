@@ -13,6 +13,12 @@ service EventSourceService {
   // an event after a restart: the run applies a delivery only against its
   // stored cursor, so a repeat changes nothing.
   rpc WatchEvents(WatchEventsRequest) returns (stream WatchEventsResponse);
+  // AckEvents tells the source that the run stored every event up to the
+  // cursor, so a source that retains events may drop them. The watcher calls
+  // it after each delivery the run applied. Calls may arrive out of order from
+  // several Devices, so a source keeps the furthest cursor it was given. A
+  // source that retains nothing answers without work.
+  rpc AckEvents(AckEventsRequest) returns (AckEventsResponse);
 }
 
 // SourceEvent is one event of an event source.
@@ -29,6 +35,9 @@ message SourceEvent {
   string payload_object_key = 3;
   // Port selects one source output port, or every connection when empty.
   string port = 4;
+  // Payload is the event's data, at most MaxEventPayload bytes. It reaches the
+  // receiving Step with the arrival, without a World object per event.
+  bytes payload = 5;
 }
 
 // WatchEventsRequest opens a stream of events.
@@ -45,4 +54,14 @@ message WatchEventsResponse {
   // NextCursor is the position after the last event of the batch. A batch with
   // no events may still move the cursor.
   bytes next_cursor = 2;
+}
+
+// AckEventsRequest acknowledges the events the run stored.
+message AckEventsRequest {
+  // Cursor is the run's stored cursor after the delivery.
+  bytes cursor = 1;
+}
+
+// AckEventsResponse confirms an acknowledgement.
+message AckEventsResponse {
 }

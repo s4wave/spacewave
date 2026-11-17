@@ -465,7 +465,7 @@ func (a *flowgraphNodeSetArgs) buildNode() (*flowgraph.FlowgraphNode, error) {
 		if err := target.UnmarshalJSON(data); err != nil {
 			return nil, errors.Wrap(err, "decode Step Target")
 		}
-		node.Step.Target = target
+		node.Step.Exec = &flowgraph.FlowgraphStep_Target{Target: target}
 	}
 	return node, nil
 }

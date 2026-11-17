@@ -31,6 +31,9 @@ type counterSource struct {
 	// watching is the number of open WatchEvents streams. It is guarded by
 	// bcast.
 	watching int
+	// acked is the furthest event number a run acknowledged. It is guarded by
+	// bcast.
+	acked int
 }
 
 // emit adds n events.
@@ -92,7 +95,11 @@ func (s *counterSource) WatchEvents(req *flowgraph_eventsource.WatchEventsReques
 		if count > sent {
 			batch := &flowgraph_eventsource.WatchEventsResponse{NextCursor: []byte(strconv.Itoa(count))}
 			for n := sent + 1; n <= count; n++ {
-				batch.Events = append(batch.Events, &flowgraph_eventsource.SourceEvent{EventId: "e" + strconv.Itoa(n), Port: "event"})
+				batch.Events = append(batch.Events, &flowgraph_eventsource.SourceEvent{
+					EventId: "e" + strconv.Itoa(n),
+					Port:    "event",
+					Payload: []byte(strconv.Itoa(n)),
+				})
 			}
 			if err := strm.Send(batch); err != nil {
 				return err
@@ -102,6 +109,38 @@ func (s *counterSource) WatchEvents(req *flowgraph_eventsource.WatchEventsReques
 		select {
 		case <-strm.Context().Done():
 			return strm.Context().Err()
+		case <-wait:
+		}
+	}
+}
+
+// AckEvents records the furthest cursor a run has stored.
+func (s *counterSource) AckEvents(ctx context.Context, req *flowgraph_eventsource.AckEventsRequest) (*flowgraph_eventsource.AckEventsResponse, error) {
+	n, err := strconv.Atoi(string(req.GetCursor()))
+	if err != nil {
+		return nil, err
+	}
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.acked = max(s.acked, n)
+		broadcast()
+	})
+	return &flowgraph_eventsource.AckEventsResponse{}, nil
+}
+
+// waitAcked waits until a run acknowledged at least event n.
+func (s *counterSource) waitAcked(ctx context.Context, n int) error {
+	for {
+		var acked int
+		var wait <-chan struct{}
+		s.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+			acked, wait = s.acked, getWait()
+		})
+		if acked >= n {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
 		case <-wait:
 		}
 	}

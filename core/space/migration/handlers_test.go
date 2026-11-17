@@ -283,7 +283,7 @@ func TestFlowgraphHandlerRewritesTargetAndPlacementIdentities(t *testing.T) {
 				TypeId: s4wave_flowgraph.StepNodeTypeID,
 				Step: &s4wave_flowgraph.FlowgraphStep{
 					Prompt: "unchanged",
-					Target: &forge_target.Target{
+					Exec: &s4wave_flowgraph.FlowgraphStep_Target{Target: &forge_target.Target{
 						Inputs: []*forge_target.Input{
 							{
 								Name:        "object",
@@ -302,7 +302,7 @@ func TestFlowgraphHandlerRewritesTargetAndPlacementIdentities(t *testing.T) {
 							},
 						},
 					},
-				},
+					}},
 			},
 		},
 	}

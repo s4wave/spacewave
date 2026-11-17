@@ -1,0 +1,70 @@
+syntax = "proto3";
+package s4wave.flowgraph.pure;
+
+option go_package = "github.com/s4wave/spacewave/sdk/flowgraph/pure;flowgraph_pure";
+
+// PureFunctionService evaluates the pure functions a component registers for
+// pure Steps. An evaluation reads only its request: it never writes the World
+// and returns the same response for the same request, so the run controller of
+// any Device may evaluate it and discard a result that lost a race.
+service PureFunctionService {
+  // Evaluate computes a pure Step's result from its inputs and state.
+  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
+}
+
+// PureInput is one arrival a pure Step consumes.
+message PureInput {
+  // Port is the Step input port the arrival reached, or empty for a start.
+  string port = 1;
+  // Key is the arrival key. It selects the state object of a fold.
+  string key = 2;
+  // EventId identifies an event arrival within its source, and is empty for
+  // other arrivals.
+  string event_id = 3;
+  // SourcePort is the event-source or Step output port the arrival left by.
+  string source_port = 4;
+  // Value is the event payload or Step output the arrival carries.
+  bytes value = 5;
+}
+
+// EvaluateRequest is one evaluation of a pure function.
+message EvaluateRequest {
+  // FunctionId selects the registered function.
+  string function_id = 1;
+  // Config is the Step's configuration for the function.
+  bytes config = 2;
+  // Inputs are the consumed arrivals, one per connected input port in port
+  // order.
+  repeated PureInput inputs = 3;
+  // State is the state object's body, or empty when the Step keeps no state
+  // or the state object does not exist yet.
+  bytes state = 4;
+}
+
+// PureConcluded is a function result that routes one output port.
+message PureConcluded {
+  // Port is the chosen Step output port.
+  string port = 1;
+  // Output is the data routed along the port, at most MaxEventPayload bytes.
+  bytes output = 2;
+  // NextState replaces the state object's body. It is ignored when the Step
+  // keeps no state.
+  bytes next_state = 3;
+}
+
+// PureFault is a function result that pauses the run at the Step.
+message PureFault {
+  // Reason says why the function could not conclude.
+  string reason = 1;
+}
+
+// EvaluateResponse is the result of one evaluation.
+message EvaluateResponse {
+  // Result is the evaluation's outcome.
+  oneof result {
+    // Concluded routes a port and writes the next state.
+    PureConcluded concluded = 1;
+    // Fault pauses the run with the Step's inputs kept.
+    PureFault fault = 2;
+  }
+}

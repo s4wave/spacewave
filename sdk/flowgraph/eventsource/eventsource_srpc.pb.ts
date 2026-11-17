@@ -2,7 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/sdk/flowgraph/eventsource/eventsource.proto (package s4wave.flowgraph.eventsource, syntax proto3)
 /* eslint-disable */
 
-import { WatchEventsRequest, WatchEventsResponse } from './eventsource.pb.js'
+import {
+  AckEventsRequest,
+  AckEventsResponse,
+  WatchEventsRequest,
+  WatchEventsResponse,
+} from './eventsource.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
@@ -36,6 +41,21 @@ export const EventSourceServiceDefinition = {
       O: WatchEventsResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * AckEvents tells the source that the run stored every event up to the
+     * cursor, so a source that retains events may drop them. The watcher calls
+     * it after each delivery the run applied. Calls may arrive out of order from
+     * several Devices, so a source keeps the furthest cursor it was given. A
+     * source that retains nothing answers without work.
+     *
+     * @generated from rpc s4wave.flowgraph.eventsource.EventSourceService.AckEvents
+     */
+    AckEvents: {
+      name: 'AckEvents',
+      I: AckEventsRequest,
+      O: AckEventsResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -60,6 +80,20 @@ export interface EventSourceService {
     request: WatchEventsRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchEventsResponse>
+
+  /**
+   * AckEvents tells the source that the run stored every event up to the
+   * cursor, so a source that retains events may drop them. The watcher calls
+   * it after each delivery the run applied. Calls may arrive out of order from
+   * several Devices, so a source keeps the furthest cursor it was given. A
+   * source that retains nothing answers without work.
+   *
+   * @generated from rpc s4wave.flowgraph.eventsource.EventSourceService.AckEvents
+   */
+  AckEvents(
+    request: AckEventsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AckEventsResponse>
 }
 
 /**
@@ -84,6 +118,21 @@ export interface EventSourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): MessageStream<WatchEventsResponse>
+
+  /**
+   * AckEvents tells the source that the run stored every event up to the
+   * cursor, so a source that retains events may drop them. The watcher calls
+   * it after each delivery the run applied. Calls may arrive out of order from
+   * several Devices, so a source keeps the furthest cursor it was given. A
+   * source that retains nothing answers without work.
+   *
+   * @generated from rpc s4wave.flowgraph.eventsource.EventSourceService.AckEvents
+   */
+  AckEvents(
+    request: AckEventsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AckEventsResponse>
 }
 
 export const EventSourceServiceServiceName =
@@ -96,6 +145,7 @@ export class EventSourceServiceClient implements EventSourceService {
     this.service = opts?.service || EventSourceServiceServiceName
     this.rpc = rpc
     this.WatchEvents = this.WatchEvents.bind(this)
+    this.AckEvents = this.AckEvents.bind(this)
   }
   /**
    * WatchEvents streams the events the source holds after the cursor. It
@@ -118,5 +168,28 @@ export class EventSourceServiceClient implements EventSourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchEventsResponse)(result)
+  }
+
+  /**
+   * AckEvents tells the source that the run stored every event up to the
+   * cursor, so a source that retains events may drop them. The watcher calls
+   * it after each delivery the run applied. Calls may arrive out of order from
+   * several Devices, so a source keeps the furthest cursor it was given. A
+   * source that retains nothing answers without work.
+   *
+   * @generated from rpc s4wave.flowgraph.eventsource.EventSourceService.AckEvents
+   */
+  async AckEvents(
+    request: AckEventsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AckEventsResponse> {
+    const requestMsg = AckEventsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      EventSourceServiceDefinition.methods.AckEvents.name,
+      AckEventsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AckEventsResponse.fromBinary(result)
   }
 }

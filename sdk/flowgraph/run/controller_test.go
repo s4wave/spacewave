@@ -220,7 +220,7 @@ exec:
 	// Declare the input ports and both output ports.
 	node := &s4wave_flowgraph.FlowgraphNode{
 		TypeId: s4wave_flowgraph.StepNodeTypeID,
-		Step:   &s4wave_flowgraph.FlowgraphStep{Target: target, Bound: bound},
+		Step:   &s4wave_flowgraph.FlowgraphStep{Exec: &s4wave_flowgraph.FlowgraphStep_Target{Target: target}, Bound: bound},
 	}
 	for _, name := range inputs {
 		node.Ports = append(node.Ports, port(name, s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT))

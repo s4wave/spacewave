@@ -28,6 +28,9 @@ type SourceEvent struct {
 	PayloadObjectKey string `protobuf:"bytes,3,opt,name=payload_object_key,json=payloadObjectKey,proto3" json:"payloadObjectKey,omitempty"`
 	// Port selects one source output port, or every connection when empty.
 	Port string `protobuf:"bytes,4,opt,name=port,proto3" json:"port,omitempty"`
+	// Payload is the event's data, at most MaxEventPayload bytes. It reaches the
+	// receiving Step with the arrival, without a World object per event.
+	Payload []byte `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
 }
 
 func (x *SourceEvent) Reset() {
@@ -62,6 +65,13 @@ func (x *SourceEvent) GetPort() string {
 		return x.Port
 	}
 	return ""
+}
+
+func (x *SourceEvent) GetPayload() []byte {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
 }
 
 // WatchEventsRequest opens a stream of events.
@@ -115,6 +125,37 @@ func (x *WatchEventsResponse) GetNextCursor() []byte {
 	return nil
 }
 
+// AckEventsRequest acknowledges the events the run stored.
+type AckEventsRequest struct {
+	unknownFields []byte
+	// Cursor is the run's stored cursor after the delivery.
+	Cursor []byte `protobuf:"bytes,1,opt,name=cursor,proto3" json:"cursor,omitempty"`
+}
+
+func (x *AckEventsRequest) Reset() {
+	*x = AckEventsRequest{}
+}
+
+func (*AckEventsRequest) ProtoMessage() {}
+
+func (x *AckEventsRequest) GetCursor() []byte {
+	if x != nil {
+		return x.Cursor
+	}
+	return nil
+}
+
+// AckEventsResponse confirms an acknowledgement.
+type AckEventsResponse struct {
+	unknownFields []byte
+}
+
+func (x *AckEventsResponse) Reset() {
+	*x = AckEventsResponse{}
+}
+
+func (*AckEventsResponse) ProtoMessage() {}
+
 func (m *SourceEvent) CloneVT() *SourceEvent {
 	if m == nil {
 		return (*SourceEvent)(nil)
@@ -124,6 +165,7 @@ func (m *SourceEvent) CloneVT() *SourceEvent {
 	r.Key = m.Key
 	r.PayloadObjectKey = m.PayloadObjectKey
 	r.Port = m.Port
+	r.Payload = protobuf_go_lite.CloneBytes(m.Payload)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -167,6 +209,37 @@ func (m *WatchEventsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *AckEventsRequest) CloneVT() *AckEventsRequest {
+	if m == nil {
+		return (*AckEventsRequest)(nil)
+	}
+	r := new(AckEventsRequest)
+	r.Cursor = protobuf_go_lite.CloneBytes(m.Cursor)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AckEventsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AckEventsResponse) CloneVT() *AckEventsResponse {
+	if m == nil {
+		return (*AckEventsResponse)(nil)
+	}
+	r := new(AckEventsResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AckEventsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *SourceEvent) EqualVT(that *SourceEvent) bool {
 	if this == that {
 		return true
@@ -183,6 +256,9 @@ func (this *SourceEvent) EqualVT(that *SourceEvent) bool {
 		return false
 	}
 	if this.Port != that.Port {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Payload, that.Payload) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -239,6 +315,43 @@ func (this *WatchEventsResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *AckEventsRequest) EqualVT(that *AckEventsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Cursor, that.Cursor) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AckEventsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AckEventsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AckEventsResponse) EqualVT(that *AckEventsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AckEventsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AckEventsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 // MarshalProtoJSON marshals the SourceEvent message to JSON.
 func (x *SourceEvent) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -266,6 +379,11 @@ func (x *SourceEvent) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("port")
 		s.WriteString(x.Port)
+	}
+	if len(x.Payload) > 0 || s.HasField("payload") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payload")
+		s.WriteBytes(x.Payload)
 	}
 	s.WriteObjectEnd()
 }
@@ -296,6 +414,9 @@ func (x *SourceEvent) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "port":
 			s.AddField("port")
 			x.Port = s.ReadString()
+		case "payload":
+			s.AddField("payload")
+			x.Payload = s.ReadBytes()
 		}
 	})
 }
@@ -418,6 +539,78 @@ func (x *WatchEventsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the AckEventsRequest message to JSON.
+func (x *AckEventsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Cursor) > 0 || s.HasField("cursor") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cursor")
+		s.WriteBytes(x.Cursor)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AckEventsRequest to JSON.
+func (x *AckEventsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AckEventsRequest message from JSON.
+func (x *AckEventsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "cursor":
+			s.AddField("cursor")
+			x.Cursor = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AckEventsRequest from JSON.
+func (x *AckEventsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AckEventsResponse message to JSON.
+func (x *AckEventsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AckEventsResponse to JSON.
+func (x *AckEventsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AckEventsResponse message from JSON.
+func (x *AckEventsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the AckEventsResponse from JSON.
+func (x *AckEventsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *SourceEvent) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -446,6 +639,11 @@ func (m *SourceEvent) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Payload) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Payload)
+		i--
+		dAtA[i] = 0x2a
 	}
 	if len(m.Port) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Port)
@@ -556,6 +754,75 @@ func (m *WatchEventsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *AckEventsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AckEventsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AckEventsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Cursor) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Cursor)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AckEventsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AckEventsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AckEventsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SourceEvent) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -566,6 +833,7 @@ func (m *SourceEvent) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Key)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PayloadObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Port)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Payload)
 	n += len(m.unknownFields)
 	return n
 }
@@ -596,6 +864,27 @@ func (m *WatchEventsResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *AckEventsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Cursor)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AckEventsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x *SourceEvent) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SourceEvent")
@@ -614,6 +903,10 @@ func (x *SourceEvent) MarshalProtoText() string {
 	if x.Port != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "port")
 		protobuf_go_lite.TextWriteString(&sb, x.Port)
+	}
+	if len(x.Payload) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "payload")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Payload)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -659,6 +952,30 @@ func (x *WatchEventsResponse) MarshalProtoText() string {
 }
 
 func (x *WatchEventsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AckEventsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AckEventsRequest")
+	if len(x.Cursor) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cursor")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Cursor)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AckEventsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AckEventsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "AckEventsResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AckEventsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -722,6 +1039,14 @@ func (m *SourceEvent) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Port = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
+			}
+			m.Payload, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Payload, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -837,6 +1162,100 @@ func (m *WatchEventsResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AckEventsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AckEventsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AckEventsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cursor", wireType)
+			}
+			m.Cursor, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Cursor, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AckEventsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AckEventsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AckEventsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

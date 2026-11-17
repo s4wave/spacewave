@@ -78,8 +78,8 @@ message FlowgraphStep {
   string prompt = 1;
   // Skills lists the skills the actor may invoke.
   repeated FlowgraphSkill skills = 2;
-  // Target contains the execution definition for the Step. It declares one
-  // EXEC output per Step output port, named after the port, and its exec sets
+  // A Target Step's Target contains the execution definition for the Step. It
+  // declares one EXEC output per Step output port, named after the port, and its exec sets
   // exactly one of them. It may also set a spend output.
   //
   // A code Step's exec runs its code. An actor Step's exec is the runner
@@ -89,7 +89,15 @@ message FlowgraphStep {
   // output to a World object snapshot of the actor's conclusion, which records
   // a confidence and a reason for every output port. A runner whose actor
   // concludes nothing sets no port, so the run pauses with its inputs kept.
-  .forge.target.Target target = 3;
+  //
+  // Exec selects how the Step runs: as a Forge Task of a Target, or as a pure
+  // function the run controller evaluates itself.
+  oneof exec {
+    // Target contains the Forge execution definition of an actor or code Step.
+    .forge.target.Target target = 3;
+    // Pure makes the Step a pure function of its inputs and its state object.
+    PureStep pure = 6;
+  }
   // Bound limits this Step's activations within one run.
   FlowgraphBound bound = 4;
   // Keyed makes the Step hold one running activation per arrival key. Its
@@ -97,6 +105,27 @@ message FlowgraphStep {
   // arrival for a key that has a running activation reaches that activation's
   // inbox. An unkeyed Step ignores the key.
   bool keyed = 5;
+}
+
+// PureStep is a Step whose result depends only on its inputs and its state
+// object. The run controller of every Device hosting the run may evaluate it,
+// with no Forge Task, outside any World transaction; it then commits the
+// consumed arrivals, the next state and the routed output in one transaction
+// that applies only when the arrivals and the state object's revision are
+// still the ones it read. A function that faults pauses the run at the Step
+// with its inputs kept; a function no loaded plugin registers leaves the Step
+// ready until one does.
+message PureStep {
+  // FunctionId selects the registered pure function.
+  string function_id = 1;
+  // Config is the function's configuration, opaque to the run.
+  bytes config = 2;
+  // StatePrefix makes the Step a fold: the state object of an activation is
+  // the World object at StatePrefix plus the arrival key, created on the first
+  // commit. Empty means the function keeps no state.
+  string state_prefix = 3;
+  // StateTypeId is the World type given to a state object the Step creates.
+  string state_type_id = 4;
 }
 
 // FlowgraphBound limits the visits and the reported spend of a Step in a run.
@@ -407,6 +436,8 @@ message FlowgraphArrival {
     FlowgraphTaskOutput task_output = 4;
     // Event is an event on a World object.
     FlowgraphEvent event = 5;
+    // StepOutput is the output of a pure Step's evaluation.
+    FlowgraphStepOutput step_output = 6;
   }
 }
 
@@ -418,7 +449,7 @@ message FlowgraphTaskOutput {
   string output_name = 2;
 }
 
-// FlowgraphEvent names one event on a World object.
+// FlowgraphEvent names one event on a World object and carries its payload.
 message FlowgraphEvent {
   // ObjectKey is the World object the event happened on. The receiving Step's
   // Task reads it as a WORLD_OBJECT input.
@@ -427,6 +458,19 @@ message FlowgraphEvent {
   string event_id = 2;
   // Port is the source output port, or empty for every outgoing connection.
   string port = 3;
+  // Payload is the event's data, at most MaxEventPayload bytes. A Target Step
+  // reads a non-empty payload as a value input instead of the object.
+  bytes payload = 4;
+}
+
+// FlowgraphStepOutput is the output a pure Step routed along a chosen port.
+message FlowgraphStepOutput {
+  // NodeId is the pure Step that produced the output.
+  string node_id = 1;
+  // OutputName is the chosen output port.
+  string output_name = 2;
+  // Value is the output's data, at most MaxEventPayload bytes.
+  bytes value = 3;
 }
 
 // FlowgraphVisits counts one Step's activations in a run.

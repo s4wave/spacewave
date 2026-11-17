@@ -325,20 +325,6 @@ export interface FlowgraphStep {
    */
   skills?: FlowgraphSkill[]
   /**
-   * Target contains the execution definition for the Step. It declares one
-   * EXEC output per Step output port, named after the port, and its exec sets
-   * exactly one of them. It may also set a spend output.
-   *
-   * A code Step's exec runs its code. An actor Step's exec is the runner
-   * controller for the actor's object type, configured with the Step's prompt
-   * and each output port's condition. The runner gives the actor the prompt,
-   * the conditions and the activation inputs, and sets the chosen port's
-   * output to a World object snapshot of the actor's conclusion, which records
-   * a confidence and a reason for every output port. A runner whose actor
-   * concludes nothing sets no port, so the run pauses with its inputs kept.
-   */
-  target?: Target
-  /**
    * Bound limits this Step's activations within one run.
    */
   bound?: FlowgraphBound
@@ -349,6 +335,28 @@ export interface FlowgraphStep {
    * inbox. An unkeyed Step ignores the key.
    */
   keyed?: boolean
+  /**
+   * A Target Step's Target contains the execution definition for the Step. It
+   * declares one EXEC output per Step output port, named after the port, and its exec sets
+   * exactly one of them. It may also set a spend output.
+   *
+   * A code Step's exec runs its code. An actor Step's exec is the runner
+   * controller for the actor's object type, configured with the Step's prompt
+   * and each output port's condition. The runner gives the actor the prompt,
+   * the conditions and the activation inputs, and sets the chosen port's
+   * output to a World object snapshot of the actor's conclusion, which records
+   * a confidence and a reason for every output port. A runner whose actor
+   * concludes nothing sets no port, so the run pauses with its inputs kept.
+   *
+   * Exec selects how the Step runs: as a Forge Task of a Target, or as a pure
+   * function the run controller evaluates itself.
+   *
+   * @generated from oneof s4wave.flowgraph.FlowgraphStep.exec
+   */
+  exec?:
+    | { value?: undefined; case: undefined }
+    | { value: Target; case: 'target' }
+    | { value: PureStep; case: 'pure' }
 }
 
 export const FlowgraphStep: MessageType<FlowgraphStep> =
@@ -357,9 +365,54 @@ export const FlowgraphStep: MessageType<FlowgraphStep> =
     () => [
       [1, 'prompt', 9],
       [2, 'skills', 11, 1, FlowgraphSkill.codec],
-      [3, 'target', 11, 0, Target.codec],
+      [3, 'target', 11, 0, Target.codec, 'exec'],
       [4, 'bound', 11, 0, FlowgraphBound.codec],
       [5, 'keyed', 8],
+      [6, 'pure', 11, 0, PureStep.codec, 'exec'],
+    ],
+  )
+
+/**
+ * PureStep is a Step whose result depends only on its inputs and its state
+ * object. The run controller of every Device hosting the run may evaluate it,
+ * with no Forge Task, outside any World transaction; it then commits the
+ * consumed arrivals, the next state and the routed output in one transaction
+ * that applies only when the arrivals and the state object's revision are
+ * still the ones it read. A function that faults pauses the run at the Step
+ * with its inputs kept; a function no loaded plugin registers leaves the Step
+ * ready until one does.
+ *
+ * @generated from message s4wave.flowgraph.PureStep
+ */
+export interface PureStep {
+  /**
+   * FunctionId selects the registered pure function.
+   */
+  functionId?: string
+  /**
+   * Config is the function's configuration, opaque to the run.
+   */
+  config?: Uint8Array
+  /**
+   * StatePrefix makes the Step a fold: the state object of an activation is
+   * the World object at StatePrefix plus the arrival key, created on the first
+   * commit. Empty means the function keeps no state.
+   */
+  statePrefix?: string
+  /**
+   * StateTypeId is the World type given to a state object the Step creates.
+   */
+  stateTypeId?: string
+}
+
+export const PureStep: MessageType<PureStep> =
+  /* @__PURE__ */ createMessageType<PureStep>(
+    's4wave.flowgraph.PureStep',
+    () => [
+      [1, 'function_id', 9],
+      [2, 'config', 12],
+      [3, 'state_prefix', 9],
+      [4, 'state_type_id', 9],
     ],
   )
 
@@ -1041,6 +1094,7 @@ export interface FlowgraphArrival {
     | { value?: undefined; case: undefined }
     | { value: FlowgraphTaskOutput; case: 'taskOutput' }
     | { value: FlowgraphEvent; case: 'event' }
+    | { value: FlowgraphStepOutput; case: 'stepOutput' }
 }
 
 export const FlowgraphArrival: MessageType<FlowgraphArrival> =
@@ -1052,6 +1106,7 @@ export const FlowgraphArrival: MessageType<FlowgraphArrival> =
       [3, 'key', 9],
       [4, 'task_output', 11, 0, FlowgraphTaskOutput.codec, 'source'],
       [5, 'event', 11, 0, FlowgraphEvent.codec, 'source'],
+      [6, 'step_output', 11, 0, FlowgraphStepOutput.codec, 'source'],
     ],
   )
 
@@ -1081,7 +1136,7 @@ export const FlowgraphTaskOutput: MessageType<FlowgraphTaskOutput> =
   )
 
 /**
- * FlowgraphEvent names one event on a World object.
+ * FlowgraphEvent names one event on a World object and carries its payload.
  *
  * @generated from message s4wave.flowgraph.FlowgraphEvent
  */
@@ -1099,6 +1154,11 @@ export interface FlowgraphEvent {
    * Port is the source output port, or empty for every outgoing connection.
    */
   port?: string
+  /**
+   * Payload is the event's data, at most MaxEventPayload bytes. A Target Step
+   * reads a non-empty payload as a value input instead of the object.
+   */
+  payload?: Uint8Array
 }
 
 export const FlowgraphEvent: MessageType<FlowgraphEvent> =
@@ -1108,6 +1168,37 @@ export const FlowgraphEvent: MessageType<FlowgraphEvent> =
       [1, 'object_key', 9],
       [2, 'event_id', 9],
       [3, 'port', 9],
+      [4, 'payload', 12],
+    ],
+  )
+
+/**
+ * FlowgraphStepOutput is the output a pure Step routed along a chosen port.
+ *
+ * @generated from message s4wave.flowgraph.FlowgraphStepOutput
+ */
+export interface FlowgraphStepOutput {
+  /**
+   * NodeId is the pure Step that produced the output.
+   */
+  nodeId?: string
+  /**
+   * OutputName is the chosen output port.
+   */
+  outputName?: string
+  /**
+   * Value is the output's data, at most MaxEventPayload bytes.
+   */
+  value?: Uint8Array
+}
+
+export const FlowgraphStepOutput: MessageType<FlowgraphStepOutput> =
+  /* @__PURE__ */ createMessageType<FlowgraphStepOutput>(
+    's4wave.flowgraph.FlowgraphStepOutput',
+    () => [
+      [1, 'node_id', 9],
+      [2, 'output_name', 9],
+      [3, 'value', 12],
     ],
   )
 

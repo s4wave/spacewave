@@ -20,6 +20,12 @@ type SRPCEventSourceServiceClient interface {
 	// an event after a restart: the run applies a delivery only against its
 	// stored cursor, so a repeat changes nothing.
 	WatchEvents(ctx context.Context, in *WatchEventsRequest) (SRPCEventSourceService_WatchEventsClient, error)
+	// AckEvents tells the source that the run stored every event up to the
+	// cursor, so a source that retains events may drop them. The watcher calls
+	// it after each delivery the run applied. Calls may arrive out of order from
+	// several Devices, so a source keeps the furthest cursor it was given. A
+	// source that retains nothing answers without work.
+	AckEvents(ctx context.Context, in *AckEventsRequest) (*AckEventsResponse, error)
 }
 
 type srpcEventSourceServiceClient struct {
@@ -73,6 +79,15 @@ func (x *srpcEventSourceService_WatchEventsClient) RecvTo(m *WatchEventsResponse
 	return x.MsgRecv(m)
 }
 
+func (c *srpcEventSourceServiceClient) AckEvents(ctx context.Context, in *AckEventsRequest) (*AckEventsResponse, error) {
+	out := new(AckEventsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "AckEvents", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCEventSourceServiceServer interface {
 	// WatchEvents streams the events the source holds after the cursor. It
 	// sends the events already waiting as the first batch, then each batch as
@@ -80,6 +95,12 @@ type SRPCEventSourceServiceServer interface {
 	// an event after a restart: the run applies a delivery only against its
 	// stored cursor, so a repeat changes nothing.
 	WatchEvents(*WatchEventsRequest, SRPCEventSourceService_WatchEventsStream) error
+	// AckEvents tells the source that the run stored every event up to the
+	// cursor, so a source that retains events may drop them. The watcher calls
+	// it after each delivery the run applied. Calls may arrive out of order from
+	// several Devices, so a source keeps the furthest cursor it was given. A
+	// source that retains nothing answers without work.
+	AckEvents(context.Context, *AckEventsRequest) (*AckEventsResponse, error)
 }
 
 const SRPCEventSourceServiceServiceID = "s4wave.flowgraph.eventsource.EventSourceService"
@@ -109,6 +130,7 @@ func (d *SRPCEventSourceServiceHandler) GetServiceID() string { return d.service
 func (SRPCEventSourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchEvents",
+		"AckEvents",
 	}
 }
 
@@ -123,6 +145,8 @@ func (d *SRPCEventSourceServiceHandler) InvokeMethod(
 	switch methodID {
 	case "WatchEvents":
 		return true, d.InvokeMethod_WatchEvents(d.impl, strm)
+	case "AckEvents":
+		return true, d.InvokeMethod_AckEvents(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -135,6 +159,18 @@ func (SRPCEventSourceServiceHandler) InvokeMethod_WatchEvents(impl SRPCEventSour
 	}
 	serverStrm := &srpcEventSourceService_WatchEventsStream{strm}
 	return impl.WatchEvents(req, serverStrm)
+}
+
+func (SRPCEventSourceServiceHandler) InvokeMethod_AckEvents(impl SRPCEventSourceServiceServer, strm srpc.Stream) error {
+	req := new(AckEventsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.AckEvents(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 type SRPCEventSourceService_WatchEventsStream interface {
@@ -158,4 +194,12 @@ func (x *srpcEventSourceService_WatchEventsStream) SendAndClose(m *WatchEventsRe
 		}
 	}
 	return x.CloseSend()
+}
+
+type SRPCEventSourceService_AckEventsStream interface {
+	srpc.Stream
+}
+
+type srpcEventSourceService_AckEventsStream struct {
+	srpc.Stream
 }

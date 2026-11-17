@@ -127,8 +127,8 @@ func (e *env) requireDelivered(n int) {
 }
 
 // TestEventSourceRestart stops the controller, emits an event while it is
-// stopped, and starts it again. The event is delivered once, and the events
-// before it are not delivered again.
+// stopped, and starts it again. The event is delivered once, the events
+// before it are not delivered again, and the source is acked through it.
 func TestEventSourceRestart(t *testing.T) {
 	// Deliver an event through a running controller.
 	e := newEnv(t)
@@ -144,7 +144,10 @@ func TestEventSourceRestart(t *testing.T) {
 	e.waitWatching(src, 0)
 	src.emit(2)
 
-	// A restarted controller resumes from the stored cursor.
+	// A restarted controller resumes from the stored cursor and acks it.
 	e.startControllerOn(e.tb.EngineID, key)
 	e.requireDelivered(3)
+	if err := src.waitAcked(e.ctx, 3); err != nil {
+		t.Fatalf("waiting for the ack of event 3: %v", err)
+	}
 }

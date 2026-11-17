@@ -17,6 +17,10 @@ const (
 	KeyOutputName = "flowgraph/key"
 	// ActivationContextInputName is the reserved input carrying FlowgraphActivationContext.
 	ActivationContextInputName = "flowgraph/context"
+	// MaxEventPayload bounds an event payload or pure Step output carried on
+	// an arrival, in bytes. Arrivals live in the run's block, so the bound
+	// keeps each run write small.
+	MaxEventPayload = 64 << 10
 )
 
 // NewFlowgraphRunBlock constructs the stored run state.

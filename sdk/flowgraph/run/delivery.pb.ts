@@ -63,6 +63,10 @@ export interface DeliveredEvent {
    * Port selects one source output port, or every connection when empty.
    */
   port?: string
+  /**
+   * Payload is the event's data, at most MaxEventPayload bytes.
+   */
+  payload?: Uint8Array
 }
 
 export const DeliveredEvent: MessageType<DeliveredEvent> =
@@ -73,6 +77,7 @@ export const DeliveredEvent: MessageType<DeliveredEvent> =
       [2, 'event_id', 9],
       [3, 'key', 9],
       [4, 'port', 9],
+      [5, 'payload', 12],
     ],
   )
 

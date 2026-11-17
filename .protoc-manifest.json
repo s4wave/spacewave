@@ -3880,7 +3880,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/flowgraph": {
-      "hash": "096d0e22518582bfd51eaeb5263a233d32c6ce5e85ffd3283d5a3fa9491fca07",
+      "hash": "f09911ed340a1e1b6cc2b9c8b4107f9900c1f88cd6692a55f4ef183b05149976",
       "generatedFiles": [
         "sdk/flowgraph/flowgraph.pb.go",
         "sdk/flowgraph/flowgraph.pb.ts",
@@ -3894,7 +3894,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/flowgraph/eventsource": {
-      "hash": "a2579245b79c8e87f253976642f390adf05ddee102ba179a98f46e3e25ad5653",
+      "hash": "fb53b5c1455e7db384f0c3acb99ddd899bc5780ec88ec4b1aea9d7a1d004fab8",
       "generatedFiles": [
         "sdk/flowgraph/eventsource/eventsource.pb.go",
         "sdk/flowgraph/eventsource/eventsource.pb.ts",
@@ -3903,6 +3903,18 @@
       ],
       "protoFiles": [
         "sdk/flowgraph/eventsource/eventsource.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/sdk/flowgraph/pure": {
+      "hash": "f1112d97e9d1de1148e67caa716a486c673525bcbb60242295378c88b9632441",
+      "generatedFiles": [
+        "sdk/flowgraph/pure/pure.pb.go",
+        "sdk/flowgraph/pure/pure.pb.ts",
+        "sdk/flowgraph/pure/pure_srpc.pb.go",
+        "sdk/flowgraph/pure/pure_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/flowgraph/pure/pure.proto"
       ]
     },
     "github.com/s4wave/spacewave/sdk/flowgraph/registry": {
@@ -3918,7 +3930,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/flowgraph/run": {
-      "hash": "3e2839fd9082d53b468df4fe8fc61494b6209ce037eabba6422509f7bbd9115e",
+      "hash": "97fe751bcebed541619775f36721b70839e12a9ed2cc541de84a4945c0254b6f",
       "generatedFiles": [
         "sdk/flowgraph/run/config.pb.go",
         "sdk/flowgraph/run/config.pb.ts",

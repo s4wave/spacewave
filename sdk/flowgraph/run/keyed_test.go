@@ -271,7 +271,7 @@ exec:
 	// Connect each source to its own input port of the keyed Step.
 	step := &s4wave_flowgraph.FlowgraphNode{
 		TypeId: s4wave_flowgraph.StepNodeTypeID,
-		Step:   &s4wave_flowgraph.FlowgraphStep{Target: target, Keyed: true},
+		Step:   &s4wave_flowgraph.FlowgraphStep{Exec: &s4wave_flowgraph.FlowgraphStep_Target{Target: target}, Keyed: true},
 		Ports: []*s4wave_flowgraph.FlowgraphPort{
 			port("out", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT),
 			port("none", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT),

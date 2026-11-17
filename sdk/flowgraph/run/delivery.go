@@ -22,6 +22,9 @@ func (r *DeliverEventsRequest) Validate() error {
 		if event.GetEventId() == "" {
 			return errors.Errorf("deliver events: event %d has no event ID", i)
 		}
+		if len(event.GetPayload()) > s4wave_flowgraph.MaxEventPayload {
+			return errors.Errorf("deliver events: event %d payload is %d bytes, over %d", i, len(event.GetPayload()), s4wave_flowgraph.MaxEventPayload)
+		}
 	}
 	return nil
 }
@@ -101,6 +104,7 @@ func DeliverEvents(
 						ObjectKey: event.GetObjectKey(),
 						EventId:   event.GetEventId(),
 						Port:      event.GetPort(),
+						Payload:   event.GetPayload(),
 					},
 				},
 			})
