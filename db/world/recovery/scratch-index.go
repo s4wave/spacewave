@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 
+	"github.com/s4wave/spacewave/db/block"
 	sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 )
 
@@ -74,8 +75,8 @@ func (db *scratchIndex) View(fn func(*scratchTx) error) error {
 		return errors.Join(fn(scope), scope.err)
 	}
 
-	// Otherwise read one committed snapshot.
-	ctx := context.Background()
+	// Otherwise read one committed snapshot, as background work.
+	ctx := block.WithBackground(context.Background())
 	tx, err := db.store.NewTransaction(ctx, false)
 	if err != nil {
 		return err
@@ -88,9 +89,10 @@ func (db *scratchIndex) View(fn func(*scratchTx) error) error {
 // Update adds one step's rows, cursor and aggregate to the batch. A failed
 // step discards the whole batch, so no partial step can ever commit.
 func (db *scratchIndex) Update(fn func(*scratchTx) error) error {
-	// Keep cancellation of the scan separate from persisting its last durable report.
+	// Keep cancellation of the scan separate from persisting its last durable
+	// report, and queue the batch behind foreground writers as background work.
 	if db.batch == nil {
-		ctx := context.Background()
+		ctx := block.WithBackground(context.Background())
 		tx, err := db.store.NewTransaction(ctx, true)
 		if err != nil {
 			return err
