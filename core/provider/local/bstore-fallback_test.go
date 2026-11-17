@@ -653,21 +653,22 @@ func TestReadFallbackFillRacesEviction(t *testing.T) {
 	close(stop)
 	evicting.Wait()
 
-	// Wait for each fill to land or the block to be packed, then upload. Every
-	// block reaches the pack store and still reads.
+	// Upload until every block reaches the pack store, then read each. A fill
+	// holds its block once its transaction commits, a moment before the status
+	// counts its marker, so one upload started in that moment sees nothing
+	// pending and ends before the block uploads.
 	for ref := range datas {
-		for deadline := time.Now().Add(10 * time.Second); !f.held(ref) && !f.packHolds(ref); {
+		for deadline := time.Now().Add(10 * time.Second); !f.packHolds(ref); {
 			if time.Now().After(deadline) {
-				t.Fatalf("block %s neither filled nor packed", ref.MarshalString())
+				t.Fatalf("pack store lacks %s; held locally: %v", ref.MarshalString(), f.held(ref))
+			}
+			if f.held(ref) {
+				f.upload()
 			}
 			time.Sleep(5 * time.Millisecond)
 		}
 	}
-	f.upload()
 	for ref, data := range datas {
-		if !f.packHolds(ref) {
-			t.Fatalf("pack store lacks %s", ref.MarshalString())
-		}
 		f.read(ref, data)
 	}
 }
