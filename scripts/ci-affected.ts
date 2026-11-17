@@ -181,8 +181,8 @@ const dbChecks: DbEntry = {
 }
 const dbTests: DbEntry = { ...dbChecks, name: 'tests' }
 
-// SpecEntry is one TLA+ spec job matrix entry: the configs it checks, with
-// workers checker threads, within timeout minutes.
+// SpecEntry is one TLA+ spec job matrix entry: the configs and testdata
+// directories it checks, with workers checker threads, within timeout minutes.
 interface SpecEntry {
   name: string
   configs: string
@@ -464,12 +464,31 @@ function specConfigs(): string[] {
     .filter((file) => file !== '')
 }
 
+// configMutantDirs returns the testdata directories holding a config mutant
+// of a spec config selected allows. The checker judges a config mutant only
+// when a path names its testdata directory or its spec whole, and the spec
+// jobs name configs, so each directory is named once, in the models job.
+function configMutantDirs(selected: (config: string) => boolean): string[] {
+  const tlaFiles = trackedSpecs()
+  const dirs = run('git', ['ls-files', '*/testdata/*.cfg'])
+    .split('\n')
+    .filter(
+      (file) =>
+        basename(dirname(file)) === 'testdata' &&
+        specOf(file, tlaFiles) !== undefined &&
+        selected(file),
+    )
+    .map((file) => dirname(file))
+  return [...new Set(dirs)]
+}
+
 // specEntries returns the spec jobs that check a config selected allows: each
-// own job whose config it allows, and a models job of the other configs it
-// allows.
+// own job whose config it allows, and a models job of the other configs and
+// the config mutant directories it allows.
 function specEntries(selected: (config: string) => boolean): SpecEntry[] {
   const own = new Set(ownSpecJobs.map((job) => job.configs))
   const models = specConfigs().filter((cfg) => !own.has(cfg) && selected(cfg))
+  models.push(...configMutantDirs(selected))
   const entries = ownSpecJobs.filter((job) => selected(job.configs))
   if (models.length > 0) {
     entries.unshift({
@@ -494,10 +513,12 @@ function deltaSpecs(files: string[]): SpecEntry[] {
 }
 
 // specOf returns the spec the checker pairs config with: the .tla in its
-// directory with the longest stem that is the config's name or a dash
-// separated prefix of it, or undefined when none is, which the checker skips.
+// directory, or for a config mutant in testdata the directory above, with the
+// longest stem that is the config's name or a dash separated prefix of it, or
+// undefined when none is, which the checker skips.
 function specOf(config: string, tlaFiles: Set<string>): string | undefined {
-  const dir = dirname(config)
+  const near = dirname(config)
+  const dir = basename(near) === 'testdata' ? dirname(near) : near
   const name = basename(config, '.cfg')
   let best: string | undefined
   for (const file of tlaFiles) {
