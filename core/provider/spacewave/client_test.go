@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -487,24 +486,6 @@ func TestDoGet_ErrorStatus(t *testing.T) {
 	}
 }
 
-// TestDoGet_ServerError verifies doGet returns an error for 500 status.
-func TestDoGet_ServerError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("internal error"))
-	}))
-	defer srv.Close()
-
-	cli, _ := newTestSignedClient(t, srv.URL)
-	_, err := cli.doGet(context.Background(), "/fail", SeedReasonColdSeed)
-	if err == nil {
-		t.Fatal("expected error for 500 status")
-	}
-	if !strings.Contains(err.Error(), "500") {
-		t.Fatalf("error should contain status code 500: %v", err)
-	}
-}
-
 // TestUpdateSOMetadata_Success verifies UpdateSOMetadata posts the expected
 // payload.
 func TestUpdateSOMetadata_Success(t *testing.T) {
@@ -924,79 +905,6 @@ func TestRollbackSessionRegistration_Success(t *testing.T) {
 	cli := NewEntityClientDirect(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid)
 	if err := cli.RollbackSessionRegistration(context.Background(), sessionPID.String()); err != nil {
 		t.Fatalf("RollbackSessionRegistration: %v", err)
-	}
-}
-
-// TestIsBlockedCloudError verifies isBlockedCloudError returns true for
-// dmca_blocked.
-func TestIsBlockedCloudError(t *testing.T) {
-	tests := []struct {
-		name string
-		code string
-		want bool
-	}{
-		{"dmca_blocked", "dmca_blocked", true},
-		{"unknown_session", "unknown_session", false},
-		{"account_not_found", "account_not_found", false},
-		{"empty", "", false},
-		{"random", "some_other_error", false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := &cloudError{StatusCode: 451, Code: tt.code, Message: "test"}
-			got := isBlockedCloudError(err)
-			if got != tt.want {
-				t.Errorf("isBlockedCloudError(%q) = %v, want %v", tt.code, got, tt.want)
-			}
-		})
-	}
-}
-
-// TestIsBlockedCloudError_NonCloudError verifies isBlockedCloudError returns
-// false for non-cloud errors.
-func TestIsBlockedCloudError_NonCloudError(t *testing.T) {
-	err := errors.New("generic error")
-	if isBlockedCloudError(err) {
-		t.Error("isBlockedCloudError should return false for non-cloud errors")
-	}
-}
-
-// TestIsAccountDeletedCloudError verifies that only deletedCodes trigger the
-// account-deletion cascade, not arbitrary non-retryable cloud responses.
-func TestIsAccountDeletedCloudError(t *testing.T) {
-	tests := []struct {
-		name      string
-		code      string
-		retryable bool
-		want      bool
-	}{
-		{"account_not_found", "account_not_found", false, true},
-		{"invalid_peer_id", "invalid_peer_id", false, true},
-		{"unknown_entity", "unknown_entity", false, true},
-		{"unknown_session", "unknown_session", false, false},
-		{"dmca_blocked", "dmca_blocked", false, false},
-		{"duplicate_connection_non_retryable", "duplicate_connection", false, false},
-		{"duplicate_connection_retryable", "duplicate_connection", true, false},
-		{"empty", "", false, false},
-		{"random", "some_other_error", false, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := &cloudError{StatusCode: 409, Code: tt.code, Message: "test", Retryable: tt.retryable}
-			got := isAccountDeletedCloudError(err)
-			if got != tt.want {
-				t.Errorf("isAccountDeletedCloudError(%q, retryable=%v) = %v, want %v", tt.code, tt.retryable, got, tt.want)
-			}
-		})
-	}
-}
-
-// TestIsAccountDeletedCloudError_NonCloudError verifies that
-// isAccountDeletedCloudError returns false for non-cloud errors.
-func TestIsAccountDeletedCloudError_NonCloudError(t *testing.T) {
-	err := errors.New("generic error")
-	if isAccountDeletedCloudError(err) {
-		t.Error("isAccountDeletedCloudError should return false for non-cloud errors")
 	}
 }
 

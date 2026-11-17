@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/cdn"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -201,7 +202,7 @@ func TestRefreshSelfEnrollmentSummaryInvalidatesOnUnauthError(t *testing.T) {
 
 	// The refresh must fail with an unauth error and clear the summary.
 	err := acc.RefreshSelfEnrollmentSummary(context.Background())
-	if !isUnauthCloudError(err) {
+	if !clouderror.IsUnauth(err) {
 		t.Fatalf("RefreshSelfEnrollmentSummary() = %v, want unauth cloud error", err)
 	}
 	if got := acc.GetSelfEnrollmentSummary(); got != nil {

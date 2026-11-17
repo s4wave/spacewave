@@ -241,6 +241,7 @@ func runOnboardingTests(m *testing.M) int {
 
 	// Load session controller.
 	_, sessCtrlRef, err := tb.Bus.AddDirective(
+		ctx,
 		resolver.NewLoadControllerWithConfig(&session_controller.Config{
 			VolumeId: tb.Volume.GetID(),
 		}),
@@ -255,6 +256,7 @@ func runOnboardingTests(m *testing.M) int {
 	// Load local provider.
 	peerID := tb.Volume.GetPeerID()
 	_, localProvRef, err := tb.Bus.AddDirective(
+		ctx,
 		resolver.NewLoadControllerWithConfig(&provider_local.Config{
 			ProviderId: provider_local.ProviderID,
 			PeerId:     peerID.String(),
@@ -269,6 +271,7 @@ func runOnboardingTests(m *testing.M) int {
 
 	// Load spacewave provider.
 	_, swProvRef, err := tb.Bus.AddDirective(
+		ctx,
 		resolver.NewLoadControllerWithConfig(&provider_spacewave.Config{
 			Endpoint:        env.cloudURL,
 			AccountEndpoint: env.accountOrigin,
@@ -1310,17 +1313,7 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 		blocks[i].hash = h
 	}
 
-	// Write packfile to temp file with SHA-256 body hash.
-	tmpPath := filepath.Join(t.TempDir(), "sync.kvf")
-	tmpFile, err := os.Create(tmpPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = tmpFile.Close() })
-
-	// Hash the exact pack bytes submitted to cloud storage.
-	hashWriter := sha256.New()
-	multiWriter := io.MultiWriter(tmpFile, hashWriter)
+	// Pack the blocks in memory.
 
 	// Supply each block once to the pack writer.
 	idx := 0
@@ -1333,15 +1326,13 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 		return blk.hash, &block.StoredBlock{Data: blk.data, RefsKnown: true}, nil
 	}
 
-	// Close the pack before uploading its path and digest.
-	result, err := packfile_writer.PackBlocks(multiWriter, iter)
+	var packBuf bytes.Buffer
+	result, err := packfile_writer.PackBlocks(&packBuf, iter)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := tmpFile.Close(); err != nil {
-		t.Fatal(err)
-	}
-	bodyHash := hashWriter.Sum(nil)
+	packData := packBuf.Bytes()
+	bodyHash := sha256.Sum256(packData)
 	t.Logf("packed %d blocks, %d bytes, bloom %d bytes",
 		result.BlockCount, result.BytesWritten, len(result.BloomFilter))
 
@@ -1350,7 +1341,7 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := cli.SyncPush(ctx, bstoreID, packID, int(result.BlockCount), tmpPath, bodyHash, result.BloomFilter, packfile.BloomFormatVersionV1); err != nil {
+	if err := cli.SyncPushData(ctx, bstoreID, packID, int(result.BlockCount), packData, bodyHash[:], result.BloomFilter, packfile.BloomFormatVersionV1); err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("pushed pack %s", packID)

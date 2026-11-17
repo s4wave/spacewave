@@ -8,6 +8,7 @@ import (
 	"github.com/s4wave/spacewave/core/pairing"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 )
 
 var errAccountTransitionPending = errors.New("this Session is moving to its destination account")
@@ -57,7 +58,7 @@ func (s *Session) watchAccountTransition(ctx context.Context) error {
 		return err
 	}
 	info, err := client.GetAccountInfo(ctx)
-	for isUnauthCloudError(err) {
+	for clouderror.IsUnauth(err) {
 		// A revoked Session cannot read account info until reauthentication.
 		if err := a.waitReauth(ctx, err); err != nil {
 			return err

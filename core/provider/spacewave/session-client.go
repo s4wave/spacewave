@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -125,32 +124,6 @@ func (c *SessionClient) GetSessionTicket(ctx context.Context) (string, error) {
 		return "", errors.New("empty ticket in response")
 	}
 	return resp.GetTicket(), nil
-}
-
-// SyncPush uploads a packfile to a resource-scoped block store.
-// bodyHash is the pre-computed SHA-256 hash of the file contents.
-// bloomFormatVersion identifies the bloom encoding (currently
-// packfile.BloomFormatVersionV1).
-func (c *SessionClient) SyncPush(ctx context.Context, resourceID string, packID string, blockCount int, packfilePath string, bodyHash []byte, bloomFilter []byte, bloomFormatVersion uint32) error {
-	// Open the packfile and read its size.
-	f, err := os.Open(packfilePath)
-	if err != nil {
-		return errors.Wrap(err, "open packfile")
-	}
-	defer f.Close()
-	stat, err := f.Stat()
-	if err != nil {
-		return errors.Wrap(err, "stat packfile")
-	}
-
-	// Push the file contents.
-	return c.syncPush(ctx, resourceID, &syncPushPack{
-		packID:             packID,
-		blockCount:         blockCount,
-		bodyHash:           bodyHash,
-		bloomFilter:        bloomFilter,
-		bloomFormatVersion: bloomFormatVersion,
-	}, io.NewSectionReader(f, 0, stat.Size()), stat.Size())
 }
 
 // SyncPushData uploads an in-memory packfile to a resource-scoped block store.

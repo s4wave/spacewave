@@ -8,6 +8,7 @@ import (
 
 	ws "github.com/aperturerobotics/go-websocket"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 )
 
 // dialSessionWS dials the session WebSocket and returns the connection or a
@@ -26,6 +27,7 @@ func classifySessionWSDialError(
 	err error,
 	resp *http.Response,
 ) error {
+	// Decode a refused handshake's cloud error, or keep the dial error.
 	if err == nil || resp == nil || resp.StatusCode == http.StatusSwitchingProtocols {
 		return errors.Wrap(err, "dial session websocket")
 	}
@@ -33,7 +35,7 @@ func classifySessionWSDialError(
 	if bodyErr != nil {
 		return errors.Wrap(err, "dial session websocket")
 	}
-	cloudErr := parseCloudResponseError(resp, body)
+	cloudErr := clouderror.ParseResponse(resp, body)
 	if cloudErr.Code == "" {
 		return errors.Wrap(err, "dial session websocket")
 	}

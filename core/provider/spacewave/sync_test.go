@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -21,6 +20,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/broadcast"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	packfile_delta "github.com/s4wave/spacewave/core/provider/spacewave/packfile/delta"
 	packfile_manifest "github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	"github.com/s4wave/spacewave/db/block"
@@ -106,51 +106,21 @@ func TestSyncPull_WithSince(t *testing.T) {
 	}
 }
 
-// TestSyncPull_ServerError verifies SyncPull returns an error on server failure.
-func TestSyncPull_ServerError(t *testing.T) {
-	// Fail every request.
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("internal error"))
-	}))
-	defer srv.Close()
-
-	// The pull returns the failure.
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	_, err := cli.SyncPull(context.Background(), "test-res", 0)
-	if err == nil {
-		t.Fatal("expected error for 500 status")
-	}
-}
-
-// TestSyncPush verifies SyncPush admits the pack, uploads the file to the
-// signed URL, and commits it.
-func TestSyncPush(t *testing.T) {
+// TestSyncPushData verifies SyncPushData admits the pack, uploads its bytes
+// to the signed URL, and commits it.
+func TestSyncPushData(t *testing.T) {
 	// Serve the push protocol for a pack of known bytes.
-	fileContent := []byte("packfile-binary-data-for-testing")
-	h := sha256.Sum256(fileContent)
+	packData := []byte("packfile-binary-data-for-testing")
+	h := sha256.Sum256(packData)
 	bloomFilter := []byte("bloom-filter-bytes")
 	push := startTestPushServer(t)
 
-	// Write the test file.
-	tmpFile, err := os.CreateTemp(t.TempDir(), "test-pack-*.bin")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := tmpFile.Write(fileContent); err != nil {
-		t.Fatal(err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Push the file.
+	// Push the pack.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String())
-	err = cli.SyncPush(context.Background(), "test-res", "test-pack-id", 42, tmpFile.Name(), h[:], bloomFilter, packfile.BloomFormatVersionV1)
+	err := cli.SyncPushData(context.Background(), "test-res", "test-pack-id", 42, packData, h[:], bloomFilter, packfile.BloomFormatVersionV1)
 	if err != nil {
-		t.Fatalf("SyncPush: %v", err)
+		t.Fatalf("SyncPushData: %v", err)
 	}
 
 	// The cloud committed the admitted pack and its bytes.
@@ -163,14 +133,14 @@ func TestSyncPush(t *testing.T) {
 		BlockCount:         42,
 		BloomFilter:        bloomFilter,
 		BloomFormatVersion: packfile.BloomFormatVersionV1,
-		SizeBytes:          uint64(len(fileContent)),
+		SizeBytes:          uint64(len(packData)),
 		Sha256:             h[:],
 	}
 	if !packs[0].req.EqualVT(want) {
 		t.Fatalf("push request = %v, want %v", packs[0].req, want)
 	}
-	if !bytes.Equal(packs[0].data, fileContent) {
-		t.Fatalf("uploaded %q, want %q", packs[0].data, fileContent)
+	if !bytes.Equal(packs[0].data, packData) {
+		t.Fatalf("uploaded %q, want %q", packs[0].data, packData)
 	}
 }
 
@@ -223,121 +193,6 @@ func TestSyncPushData_UploadRefused(t *testing.T) {
 	// Nothing was committed.
 	if packs := push.committed(); len(packs) != 0 {
 		t.Fatalf("committed %d packs, want 0", len(packs))
-	}
-}
-
-// TestSyncPull_BlockedError verifies SyncPull returns an error classified as blocked.
-func TestSyncPull_BlockedError(t *testing.T) {
-	// Encode a DMCA block error.
-	errResp := &api.ErrorResponse{
-		Code:    "dmca_blocked",
-		Message: "This resource has been disabled in response to a DMCA takedown notice.",
-	}
-	respData, err := errResp.MarshalJSON()
-	if err != nil {
-		t.Fatalf("marshal error response: %v", err)
-	}
-
-	// Serve the error with status 451.
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(451)
-		_, _ = w.Write(respData)
-	}))
-	defer srv.Close()
-
-	// The pull fails as blocked and nothing else.
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	_, err = cli.SyncPull(context.Background(), "test-res", 0)
-	if err == nil {
-		t.Fatal("expected error for 451 status")
-	}
-	if !isBlockedCloudError(err) {
-		t.Fatalf("expected blocked cloud error, got: %v", err)
-	}
-	if isUnauthCloudError(err) {
-		t.Fatal("should not be classified as unauth")
-	}
-	if isIdleableCloudError(err) {
-		t.Fatal("should not be classified as idleable")
-	}
-}
-
-// TestSyncPull_BlockedError_NotRetryable verifies dmca_blocked errors are not retryable.
-func TestSyncPull_BlockedError_NotRetryable(t *testing.T) {
-	// Encode a DMCA block error.
-	errResp := &api.ErrorResponse{
-		Code:      "dmca_blocked",
-		Message:   "blocked",
-		Retryable: true, // server says retryable, but permanentCodes overrides
-	}
-	respData, err := errResp.MarshalJSON()
-	if err != nil {
-		t.Fatalf("marshal error response: %v", err)
-	}
-
-	// Serve the error with status 451.
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(451)
-		_, _ = w.Write(respData)
-	}))
-	defer srv.Close()
-
-	// The pull fails as not retryable.
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	_, err = cli.SyncPull(context.Background(), "test-res", 0)
-	if err == nil {
-		t.Fatal("expected error for 451 status")
-	}
-	if !isNonRetryableCloudError(err) {
-		t.Fatalf("expected non-retryable cloud error, got: %v", err)
-	}
-}
-
-// TestSyncPush_MissingFile verifies SyncPush returns an error for missing file.
-func TestSyncPush_MissingFile(t *testing.T) {
-	// Push a file that does not exist and require the failure.
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, "http://localhost", DefaultSigningEnvPrefix, priv, pid.String())
-	err := cli.SyncPush(context.Background(), "test-res", "test-pack-id", 1, "/nonexistent/file.bin", []byte("hash"), nil, packfile.BloomFormatVersionV1)
-	if err == nil {
-		t.Fatal("expected error for missing file")
-	}
-}
-
-// TestSyncPush_ServerError verifies SyncPush returns error on server failure.
-func TestSyncPush_ServerError(t *testing.T) {
-	// Serve every request with a 400.
-	fileContent := []byte("test-data")
-	h := sha256.Sum256(fileContent)
-	bloomFilter := []byte("bloom-filter-bytes")
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte("bad request"))
-	}))
-	defer srv.Close()
-
-	// Write the pack file.
-	tmpFile, err := os.CreateTemp(t.TempDir(), "test-pack-*.bin")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := tmpFile.Write(fileContent); err != nil {
-		t.Fatal(err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Push it and require the failure.
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	err = cli.SyncPush(context.Background(), "test-res", "test-pack-id", 1, tmpFile.Name(), h[:], bloomFilter, packfile.BloomFormatVersionV1)
-	if err == nil {
-		t.Fatal("expected error for server failure")
 	}
 }
 
@@ -638,7 +493,7 @@ func TestSyncControllerInitReturnsAccessGatedPullError(t *testing.T) {
 
 	// Require Init to return the denial after one pull.
 	err = s.Init(ctx)
-	if !isCloudAccessGatedError(err) {
+	if !clouderror.IsAccessGated(err) {
 		t.Fatalf("Init() = %v, want access-gated cloud error", err)
 	}
 	select {
@@ -2263,35 +2118,15 @@ func TestSyncControllerHeldMarkerSurvives(t *testing.T) {
 // chunk; it must hand the recheck back so the next flush reads the block and
 // uploads it rather than holding it unread.
 func TestSyncControllerFailedPushKeepsRecheck(t *testing.T) {
-	// Fail pushes while fail is set and count the ones accepted.
-	var fail atomic.Bool
-	var pushed atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/sync/push") {
-			if fail.Load() {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			pushed.Add(1)
-		}
-		w.Header().Set("Content-Type", "application/protobuf")
-		w.WriteHeader(http.StatusOK)
-	}))
-	t.Cleanup(server.Close)
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, server.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
-	// Queue five chunk-sized blocks that fill three chunks, then the held
-	// block, sound on disk, known and due a recheck. The flushes are
-	// unordered so the held block packs after the first chunk.
+	// Queue the held block, sound on disk, known and due a recheck, behind
+	// the chunks. The flushes are unordered so it packs after the first chunk.
 	ctx := t.Context()
-	s := newDirtySyncExecuteTestController(t, cli, nil)
-	addSyncChunkBlocks(t, ctx, s.store, s.upper, 5)
+	s, failFrom, pushes, upper := heldTestController(t)
 	wtx, err := s.store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	late := addSyncDirtyBlock(t, ctx, wtx, s.upper, "late block")
+	late := addSyncDirtyBlock(t, ctx, wtx, upper.StoreOps, "late block")
 	if err := wtx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -2303,7 +2138,7 @@ func TestSyncControllerFailedPushKeepsRecheck(t *testing.T) {
 	s.corruptRecheck.Store(true)
 
 	// The first push fails: the recheck survives and the hold stays.
-	fail.Store(true)
+	failFrom.Store(1)
 	var held *heldError
 	if err := s.FlushNowUnordered(ctx); err == nil || errors.As(err, &held) {
 		t.Fatalf("failing flush = %v; want the push error", err)
@@ -2315,13 +2150,14 @@ func TestSyncControllerFailedPushKeepsRecheck(t *testing.T) {
 	}
 
 	// The next flush reads the block, uploads it and clears the hold.
-	fail.Store(false)
+	failFrom.Store(0)
+	pushes.Store(0)
 	if err := s.FlushNowUnordered(ctx); err != nil {
 		t.Fatalf("flush after the failure = %v; want the block read and uploaded", err)
 	}
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { known = s.hold.blocks })
-	if len(known) != 0 || pushed.Load() == 0 {
-		t.Fatalf("after the flush: %d held, %d pushes; want none held", len(known), pushed.Load())
+	if len(known) != 0 || pushes.Load() == 0 {
+		t.Fatalf("after the flush: %d held, %d pushes; want none held", len(known), pushes.Load())
 	}
 }
 

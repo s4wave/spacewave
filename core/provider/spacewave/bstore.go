@@ -14,6 +14,7 @@ import (
 	"github.com/s4wave/spacewave/core/bstore"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	"github.com/s4wave/spacewave/core/provider"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	"github.com/s4wave/spacewave/core/space"
 	"github.com/s4wave/spacewave/db/block"
@@ -459,7 +460,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Run the initial pull. If access is gated, signal the error to mount
 	// callers and block to prevent keyed retry.
 	if err := sc.Init(ctx); err != nil {
-		if isCloudAccessGatedError(err) {
+		if clouderror.IsAccessGated(err) {
 			le.WithError(err).Warn("block store access gated, not mounting")
 			select {
 			case t.errCh <- err:

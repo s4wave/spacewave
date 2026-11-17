@@ -171,7 +171,7 @@ func (s *syncController) Init(ctx context.Context) error {
 	}
 
 	if err := s.pull(ctx); err != nil {
-		if isCloudAccessGatedError(err) {
+		if clouderror.IsAccessGated(err) {
 			s.le.WithError(err).Warn("initial pull gated, stopping sync")
 			return err
 		}
@@ -408,7 +408,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 			if ctx.Err() != nil {
 				return nil
 			}
-			if isDirtySyncGatedCloudError(err) {
+			if clouderror.IsAccessGated(err) {
 				bo.Reset()
 				s.le.WithError(err).Warn("block upload gated, waiting for account state change")
 				if err := s.waitDirtySyncGate(ctx); err != nil {

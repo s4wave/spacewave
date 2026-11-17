@@ -67,15 +67,3 @@ func TestParseDesktopResponse(t *testing.T) {
 		t.Fatalf("session peer id = %q", resp.SessionPeerID)
 	}
 }
-
-func TestHTTPContractConstants(t *testing.T) {
-	if Method != "POST" {
-		t.Fatalf("method = %q", Method)
-	}
-	if Path != "/api/auth/passkey/confirm" {
-		t.Fatalf("path = %q", Path)
-	}
-	if ContentType != "application/octet-stream" {
-		t.Fatalf("content type = %q", ContentType)
-	}
-}

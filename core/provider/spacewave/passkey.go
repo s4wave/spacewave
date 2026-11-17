@@ -3,11 +3,13 @@ package provider_spacewave
 import (
 	"bytes"
 	"context"
+	"maps"
 	"net/http"
 	"net/url"
 
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 )
 
 // StartDesktopPasskeyRegister calls POST /api/auth/passkey/register/start with
@@ -134,48 +136,34 @@ func (c *SessionClient) PasskeyRegisterVerify(
 	return resp.GetCredentialId(), nil
 }
 
-func doPasskeyPostBinary(
+// postUnsigned posts a binary protobuf body to an unauthenticated cloud
+// route. It returns the response body, or the decoded cloud error for a
+// status outside 2xx. header adds request headers, such as a Turnstile token.
+func postUnsigned(
 	ctx context.Context,
 	httpCli *http.Client,
 	endpoint string,
 	path string,
 	body []byte,
+	header http.Header,
 ) ([]byte, error) {
-	return doPasskeyPost(
-		ctx,
-		httpCli,
-		endpoint,
-		path,
-		body,
-		"application/octet-stream",
-	)
-}
-
-func doPasskeyPost(
-	ctx context.Context,
-	httpCli *http.Client,
-	endpoint string,
-	path string,
-	body []byte,
-	contentType string,
-) ([]byte, error) {
+	// Build the request with the binary protobuf headers.
 	reqURL, err := url.JoinPath(endpoint, path)
 	if err != nil {
 		return nil, errors.Wrap(err, "build URL")
 	}
-	httpReq, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		reqURL,
-		bytes.NewReader(body),
-	)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, errors.Wrap(err, "create request")
 	}
-	httpReq.Header.Set("Content-Type", contentType)
+	maps.Copy(httpReq.Header, header)
+	httpReq.Header.Set("Content-Type", "application/octet-stream")
+	httpReq.Header.Set("Accept", "application/octet-stream")
+
+	// Send it and decode a failure status.
 	resp, err := httpCli.Do(httpReq)
 	if err != nil {
-		return nil, errors.Wrap(err, "request")
+		return nil, errors.Wrapf(err, "post %s", path)
 	}
 	defer resp.Body.Close()
 	respBody, err := readResponseBody(resp)
@@ -183,7 +171,7 @@ func doPasskeyPost(
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
+		return nil, clouderror.ParseResponse(resp, respBody)
 	}
 	return respBody, nil
 }
@@ -195,21 +183,18 @@ func PasskeyCheckUsername(
 	endpoint string,
 	username string,
 ) (bool, error) {
+	// Post the username check.
 	req := &api.PasskeyCheckUsernameRequest{Username: username}
 	body, err := req.MarshalVT()
 	if err != nil {
 		return false, errors.Wrap(err, "marshal passkey check username request")
 	}
-	data, err := doPasskeyPostBinary(
-		ctx,
-		httpCli,
-		endpoint,
-		"/api/auth/passkey/check-username",
-		body,
-	)
+	data, err := postUnsigned(ctx, httpCli, endpoint, "/api/auth/passkey/check-username", body, nil)
 	if err != nil {
 		return false, errors.Wrap(err, "passkey check username")
 	}
+
+	// Decode its acknowledgment.
 	resp := &api.PasskeyCheckUsernameResponse{}
 	if err := resp.UnmarshalVT(data); err != nil {
 		return false, errors.Wrap(err, "unmarshal passkey check username response")
@@ -224,21 +209,18 @@ func PasskeyRegisterChallenge(
 	endpoint string,
 	username string,
 ) (string, error) {
+	// Post the registration challenge request.
 	req := &api.PasskeyRegisterChallengeRequest{Username: username}
 	body, err := req.MarshalVT()
 	if err != nil {
 		return "", errors.Wrap(err, "marshal passkey register challenge request")
 	}
-	data, err := doPasskeyPostBinary(
-		ctx,
-		httpCli,
-		endpoint,
-		"/api/auth/passkey/register/challenge",
-		body,
-	)
+	data, err := postUnsigned(ctx, httpCli, endpoint, "/api/auth/passkey/register/challenge", body, nil)
 	if err != nil {
 		return "", errors.Wrap(err, "passkey register challenge")
 	}
+
+	// Decode the registration options.
 	resp := &api.PasskeyOptionsResponse{}
 	if err := resp.UnmarshalVT(data); err != nil {
 		return "", errors.Wrap(err, "unmarshal passkey register challenge")
@@ -254,21 +236,18 @@ func PasskeyAuthOptions(
 	endpoint string,
 	username string,
 ) (string, error) {
+	// Post the authentication options request.
 	req := &api.PasskeyAuthOptionsRequest{Username: username}
 	body, err := req.MarshalVT()
 	if err != nil {
 		return "", errors.Wrap(err, "marshal passkey auth options request")
 	}
-	respBody, err := doPasskeyPostBinary(
-		ctx,
-		httpCli,
-		endpoint,
-		"/api/auth/passkey/auth/options",
-		body,
-	)
+	respBody, err := postUnsigned(ctx, httpCli, endpoint, "/api/auth/passkey/auth/options", body, nil)
 	if err != nil {
 		return "", errors.Wrap(err, "passkey auth options")
 	}
+
+	// Decode the authentication options.
 	result := &api.PasskeyOptionsResponse{}
 	if err := result.UnmarshalVT(respBody); err != nil {
 		return "", errors.Wrap(err, "unmarshal passkey auth options")
@@ -279,6 +258,7 @@ func PasskeyAuthOptions(
 // PasskeyAuthVerify verifies a WebAuthn authentication credential with the cloud.
 // Unauthenticated (no signing).
 func PasskeyAuthVerify(ctx context.Context, httpCli *http.Client, endpoint string, credentialJSON string) (*api.PasskeyAuthVerifyResponse, error) {
+	// Post the credential for verification.
 	req := &api.PasskeyAuthVerifyRequest{
 		CredentialJson: credentialJSON,
 	}
@@ -286,16 +266,12 @@ func PasskeyAuthVerify(ctx context.Context, httpCli *http.Client, endpoint strin
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal passkey auth verify request")
 	}
-	respBody, err := doPasskeyPostBinary(
-		ctx,
-		httpCli,
-		endpoint,
-		"/api/auth/passkey/auth/verify",
-		body,
-	)
+	respBody, err := postUnsigned(ctx, httpCli, endpoint, "/api/auth/passkey/auth/verify", body, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "passkey auth verify")
 	}
+
+	// Decode the verified sign-in.
 	var result api.PasskeyAuthVerifyResponse
 	if err := result.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal passkey auth verify response")
@@ -314,13 +290,7 @@ func RelayDesktopPasskey(
 	if err != nil {
 		return errors.Wrap(err, "marshal desktop passkey relay request")
 	}
-	if _, err := doPasskeyPostBinary(
-		ctx,
-		httpCli,
-		endpoint,
-		"/api/auth/passkey/desktop/relay",
-		body,
-	); err != nil {
+	if _, err := postUnsigned(ctx, httpCli, endpoint, "/api/auth/passkey/desktop/relay", body, nil); err != nil {
 		return errors.Wrap(err, "desktop passkey relay")
 	}
 	return nil

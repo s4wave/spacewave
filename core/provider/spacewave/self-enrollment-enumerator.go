@@ -9,6 +9,7 @@ import (
 
 	"github.com/s4wave/spacewave/core/cdn"
 	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -33,7 +34,7 @@ type selfEnrollmentEntry struct {
 func (a *ProviderAccount) RefreshSelfEnrollmentSummary(ctx context.Context) (rerr error) {
 	// Clear the summary when the cloud reports an unauthenticated error.
 	defer func() {
-		if isUnauthCloudError(rerr) {
+		if clouderror.IsUnauth(rerr) {
 			_ = a.setSelfEnrollmentSummary(nil)
 		}
 	}()

@@ -112,20 +112,42 @@ func TestRetryDelayKeepsLongerLocalBackoff(t *testing.T) {
 	}
 }
 
-// TestPackReplacementConflictIsFinal verifies a replacement conflict is never
-// retried, even when the server marks it retryable.
-func TestPackReplacementConflictIsFinal(t *testing.T) {
-	body, err := (&api.ErrorResponse{
-		Code:      PackReplacementConflictCode,
-		Message:   "conflict",
-		Retryable: true,
-	}).MarshalJSON()
-	if err != nil {
-		t.Fatalf("marshal error response: %v", err)
+// TestParseClassifiesCodes checks that Parse never retries a permanent code,
+// even when the server marks it retryable, and that each code answers exactly
+// one classifier.
+func TestParseClassifiesCodes(t *testing.T) {
+	for _, tc := range []struct {
+		code                               string
+		unauth, deleted, blocked, conflict bool
+	}{
+		{code: "unknown_session", unauth: true},
+		{code: "invalid_signature", unauth: true},
+		{code: "unknown_keypair", unauth: true},
+		{code: "account_not_found", deleted: true},
+		{code: "invalid_peer_id", deleted: true},
+		{code: "unknown_entity", deleted: true},
+		{code: "dmca_blocked", blocked: true},
+		{code: PackReplacementConflictCode, conflict: true},
+		{code: "duplicate_connection"},
+		{code: "rate_limited"},
+	} {
+		body, err := (&api.ErrorResponse{Code: tc.code, Message: "test", Retryable: true}).MarshalJSON()
+		if err != nil {
+			t.Fatalf("marshal error response: %v", err)
+		}
+		err = errors.Wrap(Parse(http.StatusConflict, body), "request")
+		permanent := tc.unauth || tc.deleted || tc.blocked || tc.conflict
+		if IsNonRetryable(err) != permanent || IsUnauth(err) != tc.unauth || IsAccountDeleted(err) != tc.deleted ||
+			IsBlocked(err) != tc.blocked || IsPackReplacementConflict(err) != tc.conflict {
+			t.Errorf("Parse(%q) = %v: final %v unauth %v deleted %v blocked %v conflict %v",
+				tc.code, err, IsNonRetryable(err), IsUnauth(err), IsAccountDeleted(err), IsBlocked(err), IsPackReplacementConflict(err))
+		}
 	}
-	err = Parse(http.StatusConflict, body)
-	if !IsPackReplacementConflict(err) || !IsNonRetryable(err) {
-		t.Fatalf("conflict = %v, want a final pack replacement conflict", err)
+
+	// An error from outside the cloud answers no classifier.
+	plain := errors.New("generic error")
+	if IsNonRetryable(plain) || IsUnauth(plain) || IsAccountDeleted(plain) || IsBlocked(plain) || IsPackReplacementConflict(plain) {
+		t.Fatal("a non-cloud error was classified")
 	}
 }
 

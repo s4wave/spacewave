@@ -1,10 +1,8 @@
 package provider_spacewave
 
 import (
-	"bytes"
 	"context"
 	"net/http"
-	"net/url"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider/spacewave/passkeyconfirm"
@@ -44,37 +42,12 @@ func postPasskeyConfirm(
 	endpoint string,
 	req *passkeyconfirm.Request,
 ) ([]byte, error) {
+	// Post the confirmation.
 	body, err := passkeyconfirm.MarshalRequest(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal passkey confirm request")
 	}
-	reqURL, err := url.JoinPath(endpoint, passkeyconfirm.Path)
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-	httpReq, err := http.NewRequestWithContext(
-		ctx,
-		passkeyconfirm.Method,
-		reqURL,
-		bytes.NewReader(body),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "create request")
-	}
-	httpReq.Header.Set("Content-Type", passkeyconfirm.ContentType)
-	resp, err := httpCli.Do(httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "passkey confirm request")
-	}
-	defer resp.Body.Close()
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	return respBody, nil
+	return postUnsigned(ctx, httpCli, endpoint, passkeyconfirm.Path, body, nil)
 }
 
 // ConfirmPasskeySignup posts the web passkey signup confirm request.

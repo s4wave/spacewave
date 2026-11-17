@@ -43,7 +43,7 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 	t.Cleanup(cancel)
 	env.tb.StaticResolver.AddFactory(space_world.NewFactory(env.tb.Bus, space_world.OpTypes{}))
 	env.tb.StaticResolver.AddFactory(space_sobject.NewFactory(env.tb.Bus))
-	_, controller, err := env.tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&space_sobject.Config{}), nil)
+	_, controller, err := env.tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&space_sobject.Config{}), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

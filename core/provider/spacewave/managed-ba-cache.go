@@ -5,6 +5,7 @@ import (
 
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/provider/spacewave/managedbacache"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
@@ -41,7 +42,7 @@ func (a *ProviderAccount) getManagedBAsCacheLocked() *managedbacache.Store {
 }
 
 func (a *ProviderAccount) handleManagedBAsFetchError(err error) {
-	if !isUnauthCloudError(err) {
+	if !clouderror.IsUnauth(err) {
 		return
 	}
 	var status provider.ProviderAccountStatus

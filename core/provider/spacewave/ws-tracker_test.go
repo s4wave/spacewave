@@ -15,6 +15,7 @@ import (
 	websocket "github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/util/broadcast"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,7 +34,7 @@ func TestClassifySessionWSDialErrorReturnsCloudError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !isUnauthCloudError(err) {
+	if !clouderror.IsUnauth(err) {
 		t.Fatal("expected unknown_session handshake to be treated as unauthenticated")
 	}
 	var cloudErr *cloudError

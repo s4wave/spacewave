@@ -1,12 +1,10 @@
 package provider_spacewave
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
-	"net/url"
 	"path"
 
 	"github.com/pkg/errors"
@@ -28,43 +26,21 @@ func SSOCodeExchange(
 	code string,
 	redirectUri string,
 ) (*api.SSOCodeExchangeResponse, error) {
-	req := &api.SSOCodeExchangeRequest{
+	// Post the code exchange.
+	body, err := (&api.SSOCodeExchangeRequest{
 		Provider:    provider,
 		Code:        code,
 		RedirectUri: redirectUri,
-	}
-	body, err := req.MarshalVT()
+	}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal sso callback request")
 	}
-
-	reqURL, err := url.JoinPath(endpoint, "/api/auth/sso/code/exchange")
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, errors.Wrap(err, "create request")
-	}
-	httpReq.Header.Set("Content-Type", "application/octet-stream")
-	httpReq.Header.Set("Accept", "application/octet-stream")
-
-	resp, err := httpCli.Do(httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "sso callback request")
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
+	respBody, err := postUnsigned(ctx, httpCli, endpoint, "/api/auth/sso/code/exchange", body, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-
+	// Decode the sign-in result.
 	var result api.SSOCodeExchangeResponse
 	if err := result.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal sso code exchange response")
@@ -84,39 +60,17 @@ func SSONonceExchange(
 	verifier []byte,
 	devicePrivateKey []byte,
 ) (*api.SSOCodeExchangeResponse, error) {
-	req := &api.AuthSessionResultExchangeRequest{Nonce: nonce, Verifier: verifier}
-	body, err := req.MarshalVT()
+	// Post the nonce exchange.
+	body, err := (&api.AuthSessionResultExchangeRequest{Nonce: nonce, Verifier: verifier}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal sso nonce exchange request")
 	}
-
-	reqURL, err := url.JoinPath(endpoint, "/api/auth/sso/result/exchange")
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, errors.Wrap(err, "create request")
-	}
-	httpReq.Header.Set("Content-Type", "application/octet-stream")
-	httpReq.Header.Set("Accept", "application/octet-stream")
-
-	resp, err := httpCli.Do(httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "sso nonce exchange request")
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
+	respBody, err := postUnsigned(ctx, httpCli, endpoint, "/api/auth/sso/result/exchange", body, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-
+	// Decode the result and decrypt a linked entity key for this device.
 	var result api.SSOCodeExchangeResponse
 	if err := result.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal sso nonce exchange response")
@@ -167,48 +121,8 @@ func (c *EntityClient) SSOCodeExchange(
 	code string,
 	redirectUri string,
 ) (*api.SSOCodeExchangeResponse, error) {
-	req := &api.SSOCodeExchangeRequest{
-		Provider:    provider,
-		Code:        code,
-		RedirectUri: redirectUri,
-	}
-	body, err := req.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal sso callback request")
-	}
-
-	reqURL, err := url.JoinPath(c.baseURL, "/api/auth/sso/code/exchange")
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, errors.Wrap(err, "create request")
-	}
-	httpReq.Header.Set("Content-Type", "application/octet-stream")
-	httpReq.Header.Set("Accept", "application/octet-stream")
-
-	resp, err := c.httpCli.Do(httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "sso callback request")
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-
-	var result api.SSOCodeExchangeResponse
-	if err := result.UnmarshalVT(respBody); err != nil {
-		return nil, errors.Wrap(err, "unmarshal sso code exchange response")
-	}
-	return &result, nil
+	// Exchange the code without an entity signature.
+	return SSOCodeExchange(ctx, c.httpCli, c.baseURL, provider, code, redirectUri)
 }
 
 // LinkSSO calls POST /api/account/:accountId/sso/link with multi-sig auth and
@@ -318,38 +232,17 @@ func ConfirmDesktopSSO(
 	endpoint string,
 	req *api.ConfirmSSORequest,
 ) (*api.ConfirmSSOResponse, error) {
+	// Post the confirmation.
 	body, err := req.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal desktop sso confirm request")
 	}
-
-	reqURL, err := url.JoinPath(endpoint, "/api/auth/sso/confirm")
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, errors.Wrap(err, "create request")
-	}
-	httpReq.Header.Set("Content-Type", "application/octet-stream")
-	httpReq.Header.Set("Accept", "application/octet-stream")
-
-	resp, err := httpCli.Do(httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "desktop sso confirm request")
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
+	respBody, err := postUnsigned(ctx, httpCli, endpoint, "/api/auth/sso/confirm", body, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-
+	// Decode the confirmed account.
 	var result api.ConfirmSSOResponse
 	if err := result.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal desktop sso confirm response")

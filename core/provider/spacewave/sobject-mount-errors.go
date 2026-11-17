@@ -3,6 +3,8 @@ package provider_spacewave
 import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 )
 
 var errSharedObjectInitialStateRejected = errors.New(
@@ -25,5 +27,5 @@ func isTerminalSharedObjectMountError(err error) bool {
 	if errors.Is(err, sobject.ErrNotParticipant) {
 		return true
 	}
-	return isCloudAccessGatedError(err)
+	return clouderror.IsAccessGated(err)
 }

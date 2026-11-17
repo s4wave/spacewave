@@ -2,14 +2,8 @@ package passkeyconfirm
 
 import api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 
-const (
-	// Method is the HTTP verb for passkey confirmation.
-	Method = "POST"
-	// Path is the cloud API path for passkey confirmation.
-	Path = "/api/auth/passkey/confirm"
-	// ContentType is the binary protobuf request content type.
-	ContentType = "application/octet-stream"
-)
+// Path is the cloud API path for passkey confirmation.
+const Path = "/api/auth/passkey/confirm"
 
 // Request is the passkey confirmation wire payload.
 type Request struct {

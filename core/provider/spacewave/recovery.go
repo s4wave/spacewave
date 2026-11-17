@@ -1,10 +1,8 @@
 package provider_spacewave
 
 import (
-	"bytes"
 	"context"
 	"net/http"
-	"net/url"
 
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
@@ -19,40 +17,17 @@ func RequestRecoveryEmail(
 	email string,
 	turnstileToken string,
 ) error {
+	// Post the recovery request with its Turnstile token.
 	body, err := (&api.RequestRecoveryEmailRequest{Email: email}).MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "marshal recover request")
 	}
-	reqURL, err := url.JoinPath(endpoint, "/api/account/recover/request")
-	if err != nil {
-		return errors.Wrap(err, "build URL")
-	}
-	httpReq, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		reqURL,
-		bytes.NewReader(body),
-	)
-	if err != nil {
-		return errors.Wrap(err, "create request")
-	}
-	httpReq.Header.Set("Content-Type", "application/octet-stream")
+	var header http.Header
 	if turnstileToken != "" {
-		httpReq.Header.Set("X-Turnstile-Token", turnstileToken)
+		header = http.Header{"X-Turnstile-Token": {turnstileToken}}
 	}
-	resp, err := httpCli.Do(httpReq)
-	if err != nil {
-		return errors.Wrap(err, "recover request")
-	}
-	defer resp.Body.Close()
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return parseCloudResponseError(resp, respBody)
-	}
-	return nil
+	_, err = postUnsigned(ctx, httpCli, endpoint, "/api/account/recover/request", body, header)
+	return err
 }
 
 // RequestEmailVerificationResult is the parsed response from a verify-request call.
@@ -84,32 +59,17 @@ func (c *SessionClient) RequestEmailVerification(ctx context.Context, email stri
 // RecoverVerify verifies a recovery token with the cloud.
 // Unauthenticated (no signing).
 func RecoverVerify(ctx context.Context, httpCli *http.Client, endpoint string, token string) (*api.RecoverVerifyResponse, error) {
-	req := &api.RecoverVerifyRequest{Token: token}
-	body, err := req.MarshalVT()
+	// Post the recovery token.
+	body, err := (&api.RecoverVerifyRequest{Token: token}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal recover verify request")
 	}
-	reqURL, err := url.JoinPath(endpoint, "/api/account/recover/verify")
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, errors.Wrap(err, "create request")
-	}
-	httpReq.Header.Set("Content-Type", "application/octet-stream")
-	resp, err := httpCli.Do(httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "recover verify request")
-	}
-	defer resp.Body.Close()
-	respBody, err := readResponseBody(resp)
+	respBody, err := postUnsigned(ctx, httpCli, endpoint, "/api/account/recover/verify", body, nil)
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
+
+	// Decode the verified recovery.
 	var result api.RecoverVerifyResponse
 	if err := result.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal recover verify response")
@@ -120,34 +80,15 @@ func RecoverVerify(ctx context.Context, httpCli *http.Client, endpoint string, t
 // RecoverExecute completes account recovery with the cloud.
 // Unauthenticated (no signing).
 func RecoverExecute(ctx context.Context, httpCli *http.Client, endpoint string, req *api.RecoverExecuteRequest) error {
+	// Post the recovery and check its acknowledgment.
 	body, err := req.MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "marshal recover execute request")
 	}
-	reqURL, err := url.JoinPath(endpoint, "/api/account/recover/execute")
-	if err != nil {
-		return errors.Wrap(err, "build URL")
-	}
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
-	if err != nil {
-		return errors.Wrap(err, "create request")
-	}
-	httpReq.Header.Set("Content-Type", "application/octet-stream")
-	resp, err := httpCli.Do(httpReq)
-	if err != nil {
-		return errors.Wrap(err, "recover execute request")
-	}
-	defer resp.Body.Close()
-	respBody, err := readResponseBody(resp)
+	respBody, err := postUnsigned(ctx, httpCli, endpoint, "/api/account/recover/execute", body, nil)
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return parseCloudResponseError(resp, respBody)
-	}
 	var result api.RecoverExecuteResponse
-	if err := result.UnmarshalVT(respBody); err != nil {
-		return errors.Wrap(err, "unmarshal recover execute response")
-	}
-	return nil
+	return errors.Wrap(result.UnmarshalVT(respBody), "unmarshal recover execute response")
 }

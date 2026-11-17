@@ -46,48 +46,6 @@ func readResponseBody(resp *http.Response) ([]byte, error) {
 
 type cloudError = clouderror.Error
 
-// parseCloudResponseError parses a cloud API error response and retry hints.
-func parseCloudResponseError(resp *http.Response, body []byte) *cloudError {
-	return clouderror.ParseResponse(resp, body)
-}
-
-// isNonRetryableCloudError checks if an error is a non-retryable cloud error.
-func isNonRetryableCloudError(err error) bool {
-	return clouderror.IsNonRetryable(err)
-}
-
-// isUnauthCloudError checks if an error indicates a stale session key
-// (recoverable via reauthentication) as opposed to a deleted account.
-func isUnauthCloudError(err error) bool {
-	return clouderror.IsUnauth(err)
-}
-
-// isAccountDeletedCloudError checks if an error indicates the account is gone
-// and the deletion cascade (GC sweep, status flip, routine restart) should
-// run. This is strictly narrower than isNonRetryableCloudError: only codes
-// in deletedCodes qualify, not arbitrary non-retryable responses.
-func isAccountDeletedCloudError(err error) bool {
-	return clouderror.IsAccountDeleted(err)
-}
-
-// isBlockedCloudError checks if an error indicates a resource is blocked
-// (e.g. DMCA takedown). These errors are permanent until the user manually
-// retries after the block is lifted.
-func isBlockedCloudError(err error) bool {
-	return clouderror.IsBlocked(err)
-}
-
-// isCloudAccessGatedError checks if a cloud error depends on account/resource
-// access state and should wait for an invalidation instead of retrying.
-func isCloudAccessGatedError(err error) bool {
-	return clouderror.IsAccessGated(err)
-}
-
-// isDirtySyncGatedCloudError checks if dirty sync should idle for access state.
-func isDirtySyncGatedCloudError(err error) bool {
-	return isCloudAccessGatedError(err)
-}
-
 // IsCloudErrorStatus returns true when err is a cloud error with the given HTTP status.
 func IsCloudErrorStatus(err error, statusCode int) bool {
 	return clouderror.IsStatus(err, statusCode)
@@ -285,7 +243,7 @@ func rateLimitDelay(resp *http.Response) (time.Duration, error) {
 	resp.Body = io.NopCloser(bytes.NewReader(body))
 
 	// Report the delay only for a retryable rate limit.
-	ce := parseCloudResponseError(resp, body)
+	ce := clouderror.ParseResponse(resp, body)
 	if ce.Code != "rate_limited" || !ce.Retryable {
 		return 0, nil
 	}
@@ -391,7 +349,7 @@ func (c *SignedHTTPClient) send(req *http.Request, reason SeedReason) ([]byte, e
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
+		return nil, clouderror.ParseResponse(resp, respBody)
 	}
 	return respBody, nil
 }
@@ -464,7 +422,7 @@ func (c *SignedHTTPClient) sendMultiSig(ctx context.Context, method, reqPath str
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, parseCloudResponseError(resp, respBody)
+		return nil, clouderror.ParseResponse(resp, respBody)
 	}
 
 	// Decode the action response; an empty body carries no result.

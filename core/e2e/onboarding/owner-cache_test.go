@@ -82,7 +82,7 @@ func TestCloudOwnerFreshCache(t *testing.T) {
 		&session_controller.Config{VolumeId: fresh.Volume.GetID()},
 		&provider_spacewave.Config{Endpoint: env.cloudURL},
 	} {
-		_, ref, err := fresh.Bus.AddDirective(resolver.NewLoadControllerWithConfig(conf), nil)
+		_, ref, err := fresh.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(conf), nil)
 		if err != nil {
 			t.Fatal(err)
 		}

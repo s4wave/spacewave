@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/sirupsen/logrus"
 )
@@ -120,7 +121,7 @@ func (t *wsTracker) shouldRetry(err error) bool {
 	if err == nil || errors.Is(err, context.Canceled) {
 		return false
 	}
-	if isUnauthCloudError(err) || isNonRetryableCloudError(err) {
+	if clouderror.IsUnauth(err) || clouderror.IsNonRetryable(err) {
 		t.le.WithError(err).Warn("session websocket stopped retrying")
 		return false
 	}
@@ -189,14 +190,14 @@ func (t *wsTracker) Execute(ctx context.Context) error {
 				}
 				continue
 			}
-			if isUnauthCloudError(err) {
+			if clouderror.IsUnauth(err) {
 				t.le.WithError(err).Warn("session key stale, marking unauthenticated")
 				if t.onSessionUnauthenticated != nil {
 					t.onSessionUnauthenticated()
 				}
 				return err
 			}
-			if isAccountDeletedCloudError(err) {
+			if clouderror.IsAccountDeleted(err) {
 				t.le.WithError(err).Warn("account deleted, tearing down account state")
 				if t.onAccountWasDeleted != nil {
 					t.onAccountWasDeleted()

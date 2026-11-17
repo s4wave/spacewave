@@ -10,6 +10,7 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/sirupsen/logrus"
@@ -106,8 +107,8 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			// Fetch account state for the current epoch.
 			state, err := cli.GetAccountState(ctx)
 			if err != nil {
-				if isNonRetryableCloudError(err) {
-					if isUnauthCloudError(err) {
+				if clouderror.IsNonRetryable(err) {
+					if clouderror.IsUnauth(err) {
 						if err := a.waitReauth(ctx, err); err != nil {
 							return err
 						}
