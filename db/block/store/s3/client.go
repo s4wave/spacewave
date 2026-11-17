@@ -425,6 +425,7 @@ func (c *Client) send(ctx context.Context, method, bucket, key string, query url
 	}
 
 	// Build the request for the object URL.
+	// #nosec G704 -- the URL is the configured endpoint's, for this bucket and key.
 	req, err := http.NewRequestWithContext(ctx, method, c.objectURL(bucket, key, query).String(), body)
 	if err != nil {
 		return nil, err
@@ -436,6 +437,7 @@ func (c *Client) send(ctx context.Context, method, bucket, key string, query url
 
 	// Sign and send the request.
 	c.signV4(req, payloadHash, time.Now())
+	// #nosec G704 -- the request goes to the configured endpoint.
 	return c.httpClient.Do(req)
 }
 
