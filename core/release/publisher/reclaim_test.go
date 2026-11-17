@@ -42,6 +42,8 @@ type reclaimClient struct {
 	replaced [][]string
 	// replacedKeys are the keys of each replacement pack.
 	replacedKeys [][]string
+	// replacedData are the bytes of each replacement pack.
+	replacedData [][]byte
 }
 
 // GetSOState returns the destination state.
@@ -64,6 +66,7 @@ func (c *reclaimClient) SyncPushData(_ context.Context, _, _ string, _ int, data
 func (c *reclaimClient) SyncReplaceData(_ context.Context, _, _ string, _ int, data, _, _ []byte, _ uint32, replaced []string) error {
 	c.replaced = append(c.replaced, slices.Clone(replaced))
 	c.replacedKeys = append(c.replacedKeys, packKeys(data))
+	c.replacedData = append(c.replacedData, slices.Clone(data))
 	return nil
 }
 
@@ -114,14 +117,14 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 		return entry
 	}
 	client.entries = []*packfile.PackfileEntry{supersede(mixed), supersede(dead), livePack}
-	client.replaced, client.replacedKeys = nil, nil
+	client.replaced, client.replacedKeys, client.replacedData = nil, nil, nil
 	if _, err := reclaim(t.Context(), opts, head, blocks, testRead); err != nil || len(client.replaced) != 0 {
 		t.Fatalf("superseded: err=%v replaced=%v", err, client.replaced)
 	}
 
 	// A group of dead packs borrows the smallest kept pack.
 	client.entries = []*packfile.PackfileEntry{dead, livePack}
-	client.replaced, client.replacedKeys = nil, nil
+	client.replaced, client.replacedKeys, client.replacedData = nil, nil, nil
 	if _, err := reclaim(t.Context(), opts, head, blocks, testRead); err != nil {
 		t.Fatal(err)
 	}
@@ -130,6 +133,9 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 		!slices.Equal(client.replaced[0], []string{dead.GetId(), livePack.GetId()}) ||
 		!slices.Equal(client.replacedKeys[0], []string{rootKey}) {
 		t.Fatalf("borrow: replaced=%v keys=%v", client.replaced, client.replacedKeys)
+	}
+	if refs := packBlockRefs(t, client.replacedData[0], root.ref); len(refs) != 1 || !refs[0].EqualsRef(leaf.ref) {
+		t.Fatalf("borrow: replacement root refs %v, want the leaf", refs)
 	}
 
 	// A moved head stops the pass before any replacement.
@@ -182,21 +188,23 @@ func newPackedBlock(t *testing.T, data []byte, refs ...*block.BlockRef) packedBl
 	if err != nil {
 		t.Fatal(err)
 	}
-	testBlockData.Store(string(packfile.BlockKey(h)), data)
+	testBlockData.Store(string(packfile.BlockKey(h)), &block.StoredBlock{Data: data, Refs: refs, RefsKnown: true})
 	return packedBlock{ref: block.NewBlockRef(h), refs: refs, decoded: true}
 }
 
-// testBlockData holds the data of every newPackedBlock by pack key. Blocks are
-// content addressed, so tests share it safely.
+// testBlockData holds the stored block of every newPackedBlock by pack key.
+// Blocks are content addressed, so tests share it safely.
 var testBlockData sync.Map
 
-// testRead reads a newPackedBlock's data by hash, as the World's store would.
+// testRead reads a newPackedBlock's data and refs by hash, as the closure
+// reader does.
 func testRead(_ context.Context, h *hash.Hash) (*block.StoredBlock, error) {
-	data, ok := testBlockData.Load(string(packfile.BlockKey(h)))
+	stored, ok := testBlockData.Load(string(packfile.BlockKey(h)))
 	if !ok {
 		return nil, nil
 	}
-	return &block.StoredBlock{Data: data.([]byte), RefsKnown: true}, nil
+	out := *stored.(*block.StoredBlock)
+	return &out, nil
 }
 
 // newPack writes blocks as one destination pack into packs.
@@ -211,9 +219,6 @@ func newPack(t *testing.T, packs map[string][]byte, blocks ...packedBlock) *pack
 		next := blocks[0]
 		blocks = blocks[1:]
 		stored, err := testRead(t.Context(), next.ref.GetHash())
-		if stored != nil {
-			stored.Refs = next.refs
-		}
 		return next.ref.GetHash(), stored, err
 	}, delta.DefaultMaxChunkBytes, func(_ context.Context, _ int, entry *packfile.PackfileEntry, data []byte) error {
 		out = entry.CloneVT()
@@ -242,6 +247,24 @@ func packKeys(data []byte) []string {
 		return nil
 	})
 	return keys
+}
+
+// packBlockRefs returns the refs a pack stores for ref's block.
+func packBlockRefs(t *testing.T, data []byte, ref *block.BlockRef) []*block.BlockRef {
+	t.Helper()
+	rd, err := kvfile.BuildReader(bytes.NewReader(data), uint64(len(data)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, found, err := rd.Get(packfile.BlockKey(ref.GetHash()))
+	if err != nil || !found {
+		t.Fatalf("pack block %s: found=%v err=%v", ref.MarshalString(), found, err)
+	}
+	obj := &block.BlockObject{}
+	if err := obj.UnmarshalVT(value); err != nil {
+		t.Fatal(err)
+	}
+	return obj.GetRefs()
 }
 
 // reclaimState encodes a destination state whose World is head.
