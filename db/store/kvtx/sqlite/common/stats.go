@@ -13,25 +13,32 @@ type StoreStats struct {
 	// File is the main database file, empty for one in memory or not yet
 	// read.
 	File string
-	// ForegroundWaits and BackgroundWaits count the write transactions that
-	// took the writer turn at each priority, and ForegroundWait and
-	// BackgroundWait sum their waits for it.
-	ForegroundWaits, BackgroundWaits uint64
-	ForegroundWait, BackgroundWait   time.Duration
-	// WaitsOver100ms and WaitsOver1s count the turns of either priority that
-	// waited at least that long.
-	WaitsOver100ms, WaitsOver1s uint64
-	// ForegroundHold and BackgroundHold sum how long the turns of each
-	// priority held the writer, from taking the turn to Commit or Discard
-	// returning it, and ForegroundHoldsOver1s and BackgroundHoldsOver1s
-	// count the turns that held it at least a second. Every writer queued
-	// meanwhile waits out a hold; a foreground writer goes first in the
-	// queue but cannot cut a background hold short.
-	ForegroundHold, BackgroundHold               time.Duration
-	ForegroundHoldsOver1s, BackgroundHoldsOver1s uint64
-	// Passives counts the passive checkpoints and Passive sums their time.
+	// ForegroundWaits counts write transactions that took a foreground turn.
+	ForegroundWaits uint64
+	// BackgroundWaits counts write transactions that took a background turn.
+	BackgroundWaits uint64
+	// ForegroundWait sums foreground writers' waits for their turn.
+	ForegroundWait time.Duration
+	// BackgroundWait sums background writers' waits for their turn.
+	BackgroundWait time.Duration
+	// WaitsOver100ms counts turns that waited at least 100 milliseconds.
+	WaitsOver100ms uint64
+	// WaitsOver1s counts turns that waited at least one second.
+	WaitsOver1s uint64
+	// ForegroundHold sums foreground turns from admission through release.
+	ForegroundHold time.Duration
+	// BackgroundHold sums background turns from admission through release.
+	// Every writer queued meanwhile waits out a hold; a foreground writer
+	// goes first in the queue but cannot cut a background hold short.
+	BackgroundHold time.Duration
+	// ForegroundHoldsOver1s counts foreground holds of at least one second.
+	ForegroundHoldsOver1s uint64
+	// BackgroundHoldsOver1s counts background holds of at least one second.
+	BackgroundHoldsOver1s uint64
+	// Passives counts passive checkpoints.
 	Passives uint64
-	Passive  time.Duration
+	// Passive sums the time spent in passive checkpoints.
+	Passive time.Duration
 }
 
 // storeStats is the atomic form of StoreStats a Store updates.
