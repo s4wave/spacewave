@@ -459,6 +459,25 @@ func testCommandQuarantine(t *testing.T, kind string, rehearsal bool, method pac
 				t.Fatalf("hidden version of %s = %q, %v", key, version, err)
 			}
 		}
+
+		// A whole read of the hidden pack, the snapshot's and compaction's
+		// read, serves its kept version.
+		packs, err := store.Packs(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var deadSize uint64
+		for _, entry := range packs {
+			if entry.GetId() == deadPack {
+				deadSize = entry.GetSizeBytes()
+			}
+		}
+		if deadSize == 0 {
+			t.Fatalf("the hidden pack %s is not among the %d listed packs", deadPack, len(packs))
+		}
+		if data, err := store.ReadPackFile(ctx, deadPack, deadSize); err != nil || uint64(len(data)) != deadSize {
+			t.Fatalf("whole read of the hidden pack = %d bytes, %v; want %d", len(data), err, deadSize)
+		}
 	}
 
 	// A read of the lost block finds its pack in the trash and records the

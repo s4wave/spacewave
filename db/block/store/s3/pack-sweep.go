@@ -38,9 +38,28 @@ func (s *PackStore) Packs(ctx context.Context) ([]*packfile.PackfileEntry, error
 }
 
 // ReadPackFile reads the whole of pack id, which must be size bytes, in one
-// streamed read.
+// streamed read. A trashing pack a hide covered reads from its kept version,
+// as a block read does, so the snapshot and the compaction see it.
 func (s *PackStore) ReadPackFile(ctx context.Context, id string, size uint64) ([]byte, error) {
-	return ReadPackObject(ctx, s.client, s.bucket, s.prefix, id, size)
+	// Read the current file.
+	data, err := ReadPackObject(ctx, s.client, s.bucket, s.prefix, id, size)
+	if !errors.Is(err, ErrNotFound) {
+		return data, err
+	}
+	transport := s.packTransport(id, nil)
+	if transport.hider == nil || !transport.hidden() {
+		return nil, err
+	}
+
+	// Read the kept version, one byte past the end to catch a longer file.
+	data, verr := transport.Fetch(ctx, 0, int(size)+1) //nolint:gosec // ReadPackObject bounded size by maxReadPackBytes.
+	if verr != nil {
+		return nil, errors.Wrap(verr, "read hidden pack "+id)
+	}
+	if uint64(len(data)) != size {
+		return nil, errors.Errorf("hidden pack %s is %d bytes, not the %d its entry describes", id, len(data), size)
+	}
+	return data, nil
 }
 
 // ReadPackObject reads the whole of pack id under prefix from client in one

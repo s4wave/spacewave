@@ -84,13 +84,16 @@ func (s *PackStore) indexPending(ctx context.Context, width int, pack, batch tim
 // object, writes its block keys to the index, and keeps the tail for the
 // pack's readers. It returns the keys written and the bytes read.
 func (s *PackStore) indexPack(ctx context.Context, entry *packfile.PackfileEntry, batch time.Duration) (uint64, uint64, error) {
-	// Read the index tail, counting the bytes fetched.
+	// Read the index tail, counting the bytes fetched. A trashing pack a
+	// hide covered reads from its kept version, as a block read does, so a
+	// pass over a hidden pack indexes its keys rather than skip it.
 	id := entry.GetId()
 	size := entry.GetSizeBytes()
+	transport := s.packTransport(id, nil)
 	var read uint64
 	tail, err := packfile.ReadIndexTail(ctx, size, packfile.IndexTailReadSize(entry.GetBlockCount()), func(ctx context.Context, off int64, length int) ([]byte, error) {
 		read += uint64(length) //nolint:gosec // length is a nonnegative read length.
-		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, length)
+		data, err := transport.Fetch(ctx, off, length)
 		s.reads.downloaded(readIndex, len(data))
 		return data, err
 	})

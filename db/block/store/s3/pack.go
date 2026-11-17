@@ -1375,9 +1375,20 @@ func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string
 
 // openPack opens a reader over the ranges of packfile id.
 func (s *PackStore) openPack(id string, size int64) (*packfile_store.PackReader, error) {
-	// Read the file, falling back to a hidden one's kept version on a
-	// bucket that keeps versions.
-	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id, reads: &s.reads}
+	eng := packfile_store.NewPackReader(id, size, s.packTransport(id, &s.reads))
+	if s.exactReads {
+		eng.SetExactReads()
+	}
+	return eng, nil
+}
+
+// packTransport reads ranges of packfile id, falling back to a hidden one's
+// kept version on a bucket that keeps versions, counting window reads in
+// reads when set. Every reader of a pack's bytes goes through it, so a pack
+// a hide covered reads the same for a block read, the index pass and a whole
+// pack read.
+func (s *PackStore) packTransport(id string, reads *readCounters) *rangeTransport {
+	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id, reads: reads}
 	if hider, ok := s.client.(ObjectHider); ok && s.index != nil {
 		transport.hider = hider
 		transport.hidden = func() bool {
@@ -1385,11 +1396,7 @@ func (s *PackStore) openPack(id string, size int64) (*packfile_store.PackReader,
 			return state == PackTrashing && hiddenReadsOn.Load()
 		}
 	}
-	eng := packfile_store.NewPackReader(id, size, transport)
-	if s.exactReads {
-		eng.SetExactReads()
-	}
-	return eng, nil
+	return transport
 }
 
 // hiddenReadsOn turns on the reads of hidden packs' kept versions; see
