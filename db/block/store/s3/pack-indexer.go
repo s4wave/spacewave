@@ -197,6 +197,13 @@ func (s *PackStore) LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([
 	return s.index.locateAll(ctx, keys)
 }
 
+// EntriesLoaded reports whether the pack table is loaded, after which
+// LocateBlocks reads only the local index and makes no bucket request. The
+// table stays loaded once it is.
+func (s *PackStore) EntriesLoaded() bool {
+	return s.loaded.Load()
+}
+
 func (p *IndexProgress) load() IndexProgress {
 	return IndexProgress{
 		Packs: atomic.LoadUint64(&p.Packs),

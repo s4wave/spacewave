@@ -18,17 +18,14 @@ const peerClassWait = time.Second
 type peerClass int
 
 const (
-	// peerUnclassified is a block left unclassified: the queue was full, a
+	// peerUnclassified is a block left unclassified: the queue was full, the
 	// lookup failed or outlived peerClassWait, or the placement has no open
-	// backend whose index keeps its blocks.
+	// backend whose loaded local index keeps its blocks.
 	peerUnclassified peerClass = iota
 	// peerNotIndexed is a block the backend's local index places nowhere.
 	peerNotIndexed
-	// peerIndexedMissing is a block the index places that the backend's packs
-	// did not confirm.
-	peerIndexedMissing
-	// peerIndexedHeld is a block the index places and the packs confirm.
-	peerIndexedHeld
+	// peerIndexed is a block the backend's local index places in a pack.
+	peerIndexed
 	// peerClassCount is the number of classes.
 	peerClassCount
 )
@@ -85,12 +82,19 @@ func (p *placementState) classifyServed(ctx context.Context, ref *block.BlockRef
 	return class
 }
 
-// locateBlock reports what the open backend of the current placement knows
-// of the block: whether its local pack index places it, and whether the
-// backend's existence check, which probes the packs' own indexes, confirms
-// it. A placement with no open backend, one whose backend has no index or
-// reclaims blocks, or a failed index lookup leaves it unclassified; a failed
-// existence check counts as one that did not confirm it.
+// localLocator is a BlockLocator that reports whether it can answer from
+// local state alone.
+type localLocator interface {
+	block_store_writeback.BlockLocator
+	// EntriesLoaded reports whether LocateBlocks reads only the local index.
+	EntriesLoaded() bool
+}
+
+// locateBlock reports whether the local pack index of the current
+// placement's open backend places the block. It makes no bucket request: a
+// placement with no open backend, one whose backend reclaims blocks or has
+// not loaded its pack table, or a failed lookup leaves the block
+// unclassified.
 func (p *placementState) locateBlock(ctx context.Context, ref *block.BlockRef) peerClass {
 	// Ask only the open backend of the current placement.
 	if p.remote == nil {
@@ -100,8 +104,10 @@ func (p *placementState) locateBlock(ctx context.Context, ref *block.BlockRef) p
 	if remote == nil || !remote.backend.EqualVT(p.backend.Load()) {
 		return peerUnclassified
 	}
-	locator, ok := remote.store.(block_store_writeback.BlockLocator)
-	if !ok || !locator.KeepsBlocks() {
+
+	// Ask only an index that keeps blocks and answers without the bucket.
+	locator, ok := remote.store.(localLocator)
+	if !ok || !locator.KeepsBlocks() || !locator.EntriesLoaded() {
 		return peerUnclassified
 	}
 
@@ -113,11 +119,5 @@ func (p *placementState) locateBlock(ctx context.Context, ref *block.BlockRef) p
 	if !placed[0] {
 		return peerNotIndexed
 	}
-
-	// Confirm the block in the backend's packs.
-	held, err := remote.store.GetBlockExists(ctx, ref)
-	if err != nil || !held {
-		return peerIndexedMissing
-	}
-	return peerIndexedHeld
+	return peerIndexed
 }
