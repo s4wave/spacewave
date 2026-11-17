@@ -592,3 +592,40 @@ func TestSharedObjectBlockStoreRetainsRoots(t *testing.T) {
 		t.Fatal("shared object block store hides the volume's roots")
 	}
 }
+
+// cancelStore answers every read the way the peer exchange answers one its
+// caller cancelled: it ends the read's context first, then reports the block
+// unavailable.
+type cancelStore struct {
+	block.StoreOps
+	cancel context.CancelFunc
+}
+
+// GetBlock cancels the read and reports the block unavailable.
+func (s *cancelStore) GetBlock(context.Context, *block.BlockRef) ([]byte, bool, error) {
+	s.cancel()
+	return nil, false, fmt.Errorf("%w: no peer served block: %w", block.ErrUnavailable, context.Canceled)
+}
+
+// TestWorldHolesProbeIgnoresCancelledRead checks that a probe whose wait a
+// newer head cancels records nothing: the reset that woke it may have made the
+// block servable, so the walk of the newer head must read it again.
+func TestWorldHolesProbeIgnoresCancelledRead(t *testing.T) {
+	ref, err := block.BuildBlockRef([]byte("hole"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	absent := &knownAbsent{}
+	absent.reset()
+	gen := absent.generation()
+	holes := &worldHolesError{refs: []*block.BlockRef{ref}}
+	arrived, err := holes.probe(ctx, &cancelStore{cancel: cancel}, absent, gen)
+	if arrived || !errors.Is(err, context.Canceled) {
+		t.Fatalf("probe = %v/%v, want false/%v", arrived, err, context.Canceled)
+	}
+	if absent.has(ref) {
+		t.Fatal("cancelled read recorded the block as known absent")
+	}
+}

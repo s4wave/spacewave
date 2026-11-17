@@ -280,10 +280,16 @@ func (e *worldHolesError) Unwrap() error {
 
 // probe reads each missing block through store and reports whether any
 // arrived. A block no source serves yet has not arrived, and is added to
-// absent under gen.
+// absent under gen. A read that ctx ended proves nothing about the block, and
+// the peer exchange reports it as unavailable, so it ends the probe without
+// adding the block: a newer head cancels the wait while the reset that woke it
+// is the one that can make the block servable.
 func (e *worldHolesError) probe(ctx context.Context, store block.StoreOps, absent *knownAbsent, gen uint64) (bool, error) {
 	for _, ref := range e.refs {
 		_, found, err := store.GetBlock(ctx, ref)
+		if ctx.Err() != nil {
+			return false, context.Cause(ctx)
+		}
 		if block.IsNotAvailable(err) || (err == nil && !found) {
 			absent.add(gen, ref)
 			continue
