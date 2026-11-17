@@ -3,15 +3,18 @@
 package spacewave_cli
 
 import (
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	storage_native "github.com/s4wave/spacewave/bldr/storage/native"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
+	"github.com/sirupsen/logrus"
 )
 
 // CollectorFrees names the Volumes whose collector frees unreachable blocks,
@@ -41,6 +44,30 @@ func (f *CollectorFrees) BuildFlags() []cli.Flag {
 			Destination: &f.volumes,
 		},
 	}
+}
+
+// Check logs the named Volumes and refuses a name with no Volume file under
+// root, the state root the bus opens its Volumes in, empty when the bus has
+// none: a mistyped name would otherwise leave every Volume's frees off while
+// the operator believes collection runs.
+func (f *CollectorFrees) Check(le *logrus.Entry, root string) error {
+	// Name no Volume, and check nothing, without the flag.
+	names := f.volumes.Value()
+	if len(names) == 0 {
+		return nil
+	}
+	le.WithField("volumes", names).Info("collector frees named")
+
+	// Refuse a name with no file, as work on the wrong target.
+	if root == "" {
+		return errors.New("collector-frees: the bus has no state root to find the volumes in")
+	}
+	for _, name := range names {
+		if _, err := os.Stat(filepath.Join(root, name+storage_native.VolumeExt)); err != nil {
+			return errors.Wrapf(err, "collector-frees %q", name)
+		}
+	}
+	return nil
 }
 
 // ConfigureVolume turns frees on, under the hold-until-free rule they run

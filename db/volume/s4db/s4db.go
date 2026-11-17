@@ -125,6 +125,9 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, 
 	if err != nil {
 		return nil, err
 	}
+	if !readOnly && conf.GetStoreConfig().GetCollectorFrees() {
+		le.WithField("path", path).Info("volume collector frees on")
+	}
 
 	// Coordinate writers across processes through the database file, log
 	// puts without references, measure the file and its disk for the volume's

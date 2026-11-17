@@ -110,6 +110,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 					takeover,
 					idleTimeout,
 					udpListen,
+					frees,
 				)
 			})
 		},
@@ -127,6 +128,7 @@ func runServeCommand(
 	takeover bool,
 	idleTimeout time.Duration,
 	udpListen string,
+	frees *CollectorFrees,
 ) (retErr error) {
 	// Resolve the command target before any writable bus is requested.
 	ctx := c.Context
@@ -214,6 +216,15 @@ func runServeCommand(
 	})
 	leaseOwned = false
 	setServeMemoryLimit(le)
+
+	// Log the Volumes that free, refusing a name no Volume file has.
+	var root string
+	if rooted, ok := cliBus.(interface{ GetStateRoot() string }); ok {
+		root = rooted.GetStateRoot()
+	}
+	if err := frees.Check(le, root); err != nil {
+		return err
+	}
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	defer serveCancel()
 
