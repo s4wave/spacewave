@@ -844,3 +844,86 @@ func TestFillReservationExcludesEviction(t *testing.T) {
 		t.Fatalf("eviction after completed fill = %+v, %v", result, err)
 	}
 }
+
+// evictProbeGate holds a pass in its remote existence probe.
+type evictProbeGate struct {
+	block.StoreOps
+	// entered closes when the probe starts.
+	entered chan struct{}
+	// release lets the probe answer.
+	release chan struct{}
+}
+
+// GetBlockExistsBatch waits for release before asking the wrapped store.
+func (g *evictProbeGate) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	close(g.entered)
+	select {
+	case <-g.release:
+		return g.StoreOps.GetBlockExistsBatch(ctx, refs)
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+// TestFillDuringEvictRemoteProbe writes a fill while a retry pass waits on
+// the remote: the pass excludes fills only around its epoch advance, and the
+// fill's entry, queued under the pass epoch, survives the pass and covers
+// the value for the next one.
+func TestFillDuringEvictRemoteProbe(t *testing.T) {
+	// Queue one filled value for a pass to probe.
+	SetEvictRefusedRetry(true)
+	t.Cleanup(func() { SetEvictRefusedRetry(false) })
+	ctx := t.Context()
+	s := newTestEnv(t).newStore(t, true)
+	remote := newInmemBlockStore()
+	fillOf := func(data []byte) fill {
+		ref, _, err := remote.PutBlock(ctx, data, leafOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return fill{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}, refill: true}
+	}
+	first, second := fillOf([]byte("value the pass probes")), fillOf([]byte("value filled mid-pass"))
+	if err := s.writeFills(ctx, []fill{first}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Hold the pass in its remote probe.
+	gate := &evictProbeGate{StoreOps: remote, entered: make(chan struct{}), release: make(chan struct{})}
+	passed := make(chan error, 1)
+	var result EvictResult
+	go func() {
+		var err error
+		result, err = s.Evict(ctx, gate, 1<<30, nil, nil)
+		passed <- err
+	}()
+	select {
+	case <-gate.entered:
+	case <-time.After(time.Second):
+		t.Fatal("pass did not reach its remote probe")
+	}
+
+	// The fill must not wait for the probe.
+	fillCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	if err := s.writeFills(fillCtx, []fill{second}); err != nil {
+		t.Fatalf("fill waited on the pass's remote probe: %v", err)
+	}
+
+	// The pass drops only the value it probed.
+	close(gate.release)
+	if err := <-passed; err != nil || result.Evicted != 1 {
+		t.Fatalf("pass = %+v, %v; want one eviction", result, err)
+	}
+	refs := []*block.BlockRef{first.ref, second.ref}
+	held, err := s.values.GetBlockExistsBatch(ctx, refs)
+	if err != nil || held[0] || !held[1] {
+		t.Fatalf("local values after pass = %v, %v; want only the mid-pass fill", held, err)
+	}
+
+	// The mid-pass fill kept its entry, so the next pass drops it.
+	result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
+	if err != nil || result != (EvictResult{Evicted: 1, EvictedBytes: int64(len(second.stored.Data))}) {
+		t.Fatalf("next pass = %+v, %v; want the mid-pass fill evicted", result, err)
+	}
+}

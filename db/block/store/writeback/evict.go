@@ -246,26 +246,35 @@ func (s *Store) Evict(
 	// Its writes wait behind every foreground writer.
 	ctx = kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(ctx))
 
-	// Keep one queue policy for the pass and exclude unfinished fills before
-	// taking the pass mutex. A pass waiting for a fill must not delay disable.
+	// Keep one queue policy for the pass. With retry on, fillMtx is a barrier
+	// around the epoch advance only: a fill holds it from its queue
+	// reservation through its value write and reserves under the epoch it
+	// reads, so every fill that held it before has written its value, and
+	// every later fill reserves under the new epoch, which this pass neither
+	// visits nor deletes. No fill waits on the pass's remote probes, pacing or
+	// slices. It is taken before the pass mutex, so a pass waiting for a fill
+	// does not delay disable.
 	var result EvictResult
 	retryRefused := evictRefusedRetry.Load()
+	releaseFill := func() {}
 	if retryRefused {
-		releaseFill, err := s.fillMtx.Lock(ctx)
+		var err error
+		releaseFill, err = s.fillMtx.Lock(ctx)
 		if err != nil {
 			return result, err
 		}
-		defer releaseFill()
 	}
 
 	// Serialize the pass with other passes and disabling uploads.
 	release, err := s.evictMtx.Lock(ctx)
 	if err != nil {
+		releaseFill()
 		return result, err
 	}
 	defer release()
 
-	// Advance the epoch, so entries this pass queues sort after the walk.
+	// Advance the epoch, so entries this pass or a later fill queues sort
+	// after the walk.
 	var epoch uint64
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		prev, err := readEpoch(ctx, tx)
@@ -275,6 +284,7 @@ func (s *Store) Evict(
 		epoch = prev + 1
 		return tx.Set(ctx, []byte(epochKey), []byte(strconv.FormatUint(epoch, 10)))
 	})
+	releaseFill()
 	if err != nil {
 		return result, errors.Wrap(err, "advance eviction epoch")
 	}
