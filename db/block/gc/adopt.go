@@ -191,6 +191,15 @@ func ResetAdoption(ctx context.Context, store Store) error {
 	return err
 }
 
+// Unadopt returns a Volume to unadopted, adopted or not, ending any adoption
+// or release in progress, so the next adoption counts every holder again
+// under the rule its caller names. It is the one way to change an adopted
+// Volume's hold rule, which a process otherwise keeps as stored.
+func Unadopt(ctx context.Context, store Store) error {
+	_, err := claimAdoption(ctx, store, "", func(*LivenessState) bool { return false })
+	return err
+}
+
 // claimAdoption returns a Volume that is not adopted, or is adopted but not
 // as keep accepts, to unadopted under run, superseding any run that marked or
 // claimed it, and reports whether it left the Volume adopted. An empty run

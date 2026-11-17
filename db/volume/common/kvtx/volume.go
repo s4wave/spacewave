@@ -129,9 +129,10 @@ type Volume struct {
 	// adoptWake holds one pending request for a background adoption pass,
 	// nil without a background adoption.
 	adoptWake chan struct{}
-	// holdRule is the hold rule the collector counts under, from
-	// CollectorHoldUntilFree, which an empty store starts adopted under and
-	// an adoption counts under.
+	// holdRule is the hold rule the collector counts under: the rule the
+	// stored adoption counted under while the Volume is adopted at open, and
+	// otherwise CollectorHoldUntilFree, which an empty store starts adopted
+	// under and an adoption of an unadopted Volume counts under.
 	holdRule block_gc.HoldRule
 	// proofMu guards the pending root proofs and the free count. It is never
 	// held across a volume transaction.
@@ -255,9 +256,14 @@ func NewVolume(
 		if err != nil {
 			return nil, volume.Permanent(err)
 		}
+		state, parked, err := v.readLiveness(ctx)
+		if err != nil {
+			return nil, err
+		}
+		v.holdRule = volumeHoldRule(state, v.holdRule)
 		v.collector = v.newCollector(collectorStore{v: v}, conf.GetCollectorFrees(), grace)
 		v.heldMode = rootHeldMode(conf.GetRootHeldCheck(), conf.GetCollectorFrees())
-		if err := v.startLiveness(ctx); err != nil {
+		if err := v.startLiveness(ctx, state, parked); err != nil {
 			return nil, err
 		}
 	}
@@ -321,13 +327,9 @@ func parseGrace(dur string) (time.Duration, error) {
 	return grace, nil
 }
 
-// startLiveness starts the renewal of this process's leased roots, returns a
-// Volume an adoption left adopting to unadopted and, when the format 7
-// upgrade left an old graph's records, starts their background sweep. A
-// read-only Volume only reads the liveness state.
-func (v *Volume) startLiveness(ctx context.Context) error {
-	// Read the liveness state, and return a Volume an adoption that died with
-	// its process left adopting to unadopted.
+// readLiveness reads the Volume's liveness state and, for a Volume whose
+// generation is Open, whether it parked any block.
+func (v *Volume) readLiveness(ctx context.Context) (*block_gc.LivenessState, bool, error) {
 	var state *block_gc.LivenessState
 	var parked bool
 	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
@@ -340,9 +342,28 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 		parked, err = rec.AnyParked(ctx)
 		return err
 	})
-	if err != nil {
-		return err
+	return state, parked, err
+}
+
+// volumeHoldRule returns the hold rule a Volume in state counts under. An
+// adopted Volume keeps the rule its adoption counted under, whatever the
+// process configured, so a process opened with another rule, such as a
+// debug command, neither adopts it again nor stops its netting. Only an
+// adoption of an unadopted Volume takes configured, the process's rule.
+func volumeHoldRule(state *block_gc.LivenessState, configured block_gc.HoldRule) block_gc.HoldRule {
+	if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED {
+		return state.GetHoldRule()
 	}
+	return configured
+}
+
+// startLiveness starts the renewal of this process's leased roots from state,
+// the liveness state readLiveness read, returns a Volume an adoption left
+// adopting to unadopted and, when the format 7 upgrade left an old graph's
+// records, starts their background sweep. parked reports whether an Open
+// Volume parked any block. A read-only Volume only reads the liveness state.
+func (v *Volume) startLiveness(ctx context.Context, state *block_gc.LivenessState, parked bool) error {
+	// Record whether the Volume settled and hides no block.
 	v.settled.Store(state.GetGeneration() == block_gc.Generation_GENERATION_SETTLED)
 	v.hidesNone.Store(!v.readOnly && !v.collector.Frees() &&
 		state.GetGeneration() == block_gc.Generation_GENERATION_OPEN && !parked)
@@ -363,16 +384,13 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 	// nothing reads the counts. Child lists an older format left unverified
 	// adopt as they are, and the old generation's settle verifies them
 	// before any free. The adoption also runs again whenever a list
-	// rebuild returns the Volume to unadopted. A Volume adopted under the
-	// other hold rule adopts again whether or not frees are on, since the
-	// collector nets nothing until its counts follow its own rule.
-	adopted := state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED
-	switched := adopted && state.GetHoldRule() != v.holdRule
-	if v.collector.Frees() || switched {
+	// rebuild returns the Volume to unadopted. An adopted Volume counts
+	// under its stored rule (volumeHoldRule), so it never adopts again here.
+	if v.collector.Frees() {
 		adoptCtx, cancelAdopt := context.WithCancel(context.WithoutCancel(ctx))
 		v.adoptCancel, v.adoptDone = cancelAdopt, make(chan struct{})
 		v.adoptWake = make(chan struct{}, 1)
-		if !adopted || switched {
+		if state.GetAdoption() != block_gc.Adoption_ADOPTION_ADOPTED {
 			v.wakeAdopt()
 		}
 		go v.runBackgroundAdopt(adoptCtx)

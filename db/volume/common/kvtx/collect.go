@@ -77,9 +77,9 @@ func (s collectorStore) ScanBlocks(ctx context.Context, fn func(refs []*block.Bl
 	}, fn)
 }
 
-// Adopt counts the holders of every block of a Volume that predates its
-// journal, or was counted under the other hold rule, under the Volume's hold
-// rule and marks it adopted, as block_gc.Adopt describes, reporting the
+// Adopt counts the holders of every block of an unadopted Volume, such as one
+// that predates its journal, under the Volume's hold rule and marks it
+// adopted, as block_gc.Adopt describes, reporting the
 // mark phase while it runs. It runs one adoption of this Volume at a time; an
 // adoption from another process on the same store supersedes it, as
 // block_gc.Adopt describes. Adopt a Volume only once every writer that uses

@@ -119,9 +119,11 @@ message LivenessState {
   // an earlier run left, and counts each block it settles Dying.
   uint64 cascades = 13;
   // HoldRule is the rule the counts were written under, set by the adoption
-  // that counted them or at the birth of an empty Volume. The collector nets
-  // and frees only a Volume whose rule matches its own; a mismatch adopts the
-  // Volume again, which counts every child list under the collector's rule.
+  // that counted them or at the birth of an empty Volume. It is the source of
+  // truth while the Volume is adopted: a process that opens it counts under
+  // this rule, whatever its own config names, and only an adoption of an
+  // unadopted Volume writes another. The collector nets and frees only a
+  // Volume whose rule matches its own.
   HoldRule hold_rule = 14;
 }
 

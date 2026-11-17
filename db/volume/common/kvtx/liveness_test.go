@@ -2397,8 +2397,9 @@ func testLivenessAdversarial(t *testing.T) {
 		// A Volume written under the other hold rule holds main -> R -> X,
 		// D -> E released, netted and then held again by d with no put, and
 		// G -> H released and netted, none freed. A collector under this
-		// rule nets and frees nothing on it; reopened under this rule, the
-		// Volume adopts again, and then R, X, D and E read and G and H go.
+		// rule nets and frees nothing on it; returned to unadopted and
+		// reopened under this rule, the Volume adopts again, and then R, X,
+		// D and E read and G and H go.
 		store := store_kvtx_inmem.NewStore()
 		v1, clk1 := openRuleVolume(t, store, false, !testHold)
 		ctx := t.Context()
@@ -2429,6 +2430,9 @@ func testLivenessAdversarial(t *testing.T) {
 			t.Fatalf("collect under this rule before the switch = %+v err %v, want nothing netted or freed", res, err)
 		}
 		requireStored(t, v1, tr, true, "X", "R", "E", "D", "H", "G")
+		if err := block_gc.Unadopt(ctx, collectorStore{v: v1}); err != nil {
+			t.Fatal(err)
+		}
 		if err := v1.Close(); err != nil {
 			t.Fatal(err)
 		}
@@ -2454,6 +2458,63 @@ func testLivenessAdversarial(t *testing.T) {
 		}
 		requireReads(t, v, tr, "X", "R", "E", "D")
 		requireStored(t, v, tr, false, "H", "G")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("second process under the other hold rule", func(t *testing.T) {
+		// A Volume adopted under this rule holds main -> R -> X and d -> D ->
+		// E, with d's release recorded and not yet netted. Partway through
+		// that run a second process opens it under the other rule, once with
+		// frees off, as the debug command does, and once with them on. Each
+		// counts under the stored rule and leaves the state as it was, so
+		// the first process then frees D and E and keeps R and X.
+		store := store_kvtx_inmem.NewStore()
+		v, clk := openLivenessVolume(t, store, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		tr.add(t, "E")
+		d := tr.add(t, "D", "E")
+		roots := []block.NamedRoot{{Name: "main", Ref: r}, {Name: "d", Ref: d}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "R", "E", "D"), roots); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "d", Previous: d}}); err != nil {
+			t.Fatal(err)
+		}
+		before := livenessState(t, v)
+
+		// Open the second process under the other rule, ask it to adopt as
+		// its background adoption would, and close it.
+		for _, frees := range []bool{false, true} {
+			v2, _ := openRuleVolume(t, store, frees, !testHold)
+			res, err := v2.Adopt(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !res.Already {
+				t.Fatalf("second process with frees %v adopted the Volume again: %+v", frees, res)
+			}
+			if err := v2.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if after := livenessState(t, v); !after.EqualVT(before) {
+				t.Fatalf("second process with frees %v changed the state to %v, want %v", frees, after, before)
+			}
+		}
+
+		// The first process nets the release and frees D and E.
+		var freed uint64
+		for range 3 {
+			clk.Add(3 * (block_gc.DefaultGrace + time.Second))
+			freed += collectAll(t, v).Freed
+		}
+		if freed != 2 {
+			t.Fatalf("freed %d after the second process, want D and E", freed)
+		}
+		requireReads(t, v, tr, "X", "R")
+		requireStored(t, v, tr, false, "E", "D")
 		requireAudit(t, v, 0)
 	})
 
