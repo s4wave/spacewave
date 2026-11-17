@@ -1048,3 +1048,69 @@ func TestRevisionCacheBehindRecursive(t *testing.T) {
 		t.Fatal("a part read from its own computation waited on itself")
 	}
 }
+
+// TestRevisionCachePanicReleasesClaim panics in a value's computation, once
+// for a value at the head and once for a part behind it. The caller gets an
+// error, and a second reader of the same value computes it afresh rather than
+// waiting on a claim that never ends.
+func TestRevisionCachePanicReleasesClaim(t *testing.T) {
+	// get reads the value, reporting a panic that escaped the cache.
+	get := func(cache *Cache, ctx context.Context, tx world.WorldState, name string, compute func(context.Context, world.WorldState) (any, error)) (got any, escaped bool, err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				escaped = true
+			}
+		}()
+		got, err = cache.Get(ctx, tx, name, compute)
+		return got, false, err
+	}
+	var calls atomic.Int32
+	compute := func(context.Context, world.WorldState) (any, error) {
+		if calls.Add(1) == 1 {
+			panic("boom")
+		}
+		return 9, nil
+	}
+	check := func(t *testing.T, cache *Cache, ctx context.Context, first, second world.WorldState, name string) {
+		calls.Store(0)
+		_, escaped, ownerErr := get(cache, ctx, first, name, compute)
+
+		// A second reader computes the value afresh.
+		readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+		got, _, err := get(cache, readCtx, second, name, compute)
+		if errors.Is(err, context.DeadlineExceeded) {
+			t.Fatal(name, ": a second reader waited on the claim of the computation that panicked")
+		}
+		if err != nil || got != 9 || calls.Load() != 2 {
+			t.Fatal(name, ": the second reader got", got, err, "after", calls.Load(), "computations")
+		}
+
+		// The caller whose computation panicked got an error.
+		if escaped || ownerErr == nil {
+			t.Fatal(name, ": the panicking caller got escaped =", escaped, "err =", ownerErr)
+		}
+		if len(cache.behind) != 0 {
+			t.Fatal(name, ": claims leaked:", len(cache.behind))
+		}
+	}
+
+	// A value computed at the head.
+	store, engine := readsStore(t)
+	ctx := t.Context()
+	tx, err := store.engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tx.Discard)
+	t.Run("head", func(t *testing.T) {
+		check(t, &Cache{engine: engine}, ctx, tx, tx, "head")
+	})
+
+	// A part computed behind the cache, while another value is kept under its
+	// name.
+	cache, _, old := behindSnapshots(t, "part", 2)
+	t.Run("behind", func(t *testing.T) {
+		check(t, cache, computingCtx(ctx), old[0], old[1], "part")
+	})
+}

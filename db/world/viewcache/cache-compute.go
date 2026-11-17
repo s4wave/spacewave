@@ -3,6 +3,8 @@ package viewcache
 import (
 	"context"
 	"errors"
+	"fmt"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -240,16 +242,35 @@ func (c *Cache) heldSinceLocked(entry *revisionEntry, seqno uint64) bool {
 // observe runs compute, counting it under name's family and path: "shared"
 // for a value the cache keeps, "stale" for a part computed in a snapshot the
 // cache moved past, and "retry" for a failed value retried alone.
+//
+// A panic in compute returns as its error. Every computation runs here, and a
+// claim on a value ends only once its computation returns, so a panic that
+// unwound past the cache would leave the claim's waiters, and every later
+// reader of the value, waiting on a computation that never ends. As an error,
+// it takes the path of any failure: the claim ends, its waiters retry alone,
+// and the caller gets the error, as callers that recover a compute's panic
+// into its error already expect.
 func (c *Cache) observe(name, path string, compute func() (any, error)) (any, error) {
 	// Report the completed computation only when an observer is configured.
 	if c.observer == nil {
-		return compute()
+		return recovered(name, compute)
 	}
 	family, _, _ := strings.Cut(name, ":")
 	started := time.Now()
-	value, err := compute()
+	value, err := recovered(name, compute)
 	c.observer.Computed(family, path, time.Since(started))
 	return value, err
+}
+
+// recovered runs compute, returning a panic in it as an error naming the
+// value, with the panic's stack.
+func recovered(name string, compute func() (any, error)) (value any, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			value, err = nil, fmt.Errorf("viewcache: computing %s panicked: %v\n%s", name, r, debug.Stack())
+		}
+	}()
+	return compute()
 }
 
 // countDrop counts a value a catch-up dropped for cause: "changed" when a
