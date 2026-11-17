@@ -239,15 +239,13 @@ func (o *ObjectState) WaitRev(
 			return 0, err
 		}
 
-		currSeqno, err := o.w.GetSeqno(ctx)
-		if err != nil {
-			return 0, err
-		}
+		// Count the state's changes before reading the revision.
+		changes := o.w.getChanges()
 
 		_, currRev, err := o.GetRootRef(ctx)
 		if err != nil {
 			if err == world.ErrObjectNotFound && ignoreNotFound {
-				_, err = o.w.WaitSeqno(ctx, currSeqno+1)
+				_, err = o.w.waitChanges(ctx, changes)
 				if err != nil {
 					return 0, err
 				}
@@ -260,7 +258,7 @@ func (o *ObjectState) WaitRev(
 			return currRev, nil
 		}
 
-		_, err = o.w.WaitSeqno(ctx, currSeqno+1)
+		_, err = o.w.waitChanges(ctx, changes)
 		if err != nil {
 			return 0, err
 		}
