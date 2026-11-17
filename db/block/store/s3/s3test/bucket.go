@@ -1,6 +1,8 @@
 // Package s3test serves an in-memory S3 bucket for tests of code that writes
-// objects: PUT, copy, ranged GET and HEAD, ListObjectsV2 by prefix, and the
-// versions of an overwritten or hidden key.
+// objects: PUT, copy of a key or of one version, ranged GET and HEAD,
+// ListObjectsV2 by prefix, and the versions of an overwritten or hidden key.
+// A delete with a version id removes that version; one without hides the key
+// under a delete marker, as a versioned bucket does.
 package s3test
 
 import (
@@ -116,9 +118,14 @@ func (b *Bucket) RefuseVersions(refuse bool) {
 // or a plain delete does in a versioned bucket: the key leaves the object
 // listing and plain reads, and its older versions stay readable by id.
 func (b *Bucket) Hide(key string) {
-	// Record the marker as the newest version and drop the object.
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
+	b.hide(key)
+}
+
+// hide records a delete marker as the newest version of key, as a delete
+// without a version id does, and drops the object.
+func (b *Bucket) hide(key string) {
 	b.versions++
 	b.history[key] = slices.Insert(b.history[key], 0, objectVersion{id: strconv.Itoa(b.versions), marker: true})
 	delete(b.objects, key)
@@ -220,8 +227,7 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		delete(b.parts, query.Get("uploadId"))
 		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodPut && r.Header.Get("X-Amz-Copy-Source") != "":
-		source, _ := url.PathUnescape(r.Header.Get("X-Amz-Copy-Source"))
-		data, ok := b.objects[strings.TrimPrefix(source, "/"+BucketName+"/")]
+		data, ok := b.copySource(r.Header.Get("X-Amz-Copy-Source"))
 		if !ok {
 			http.Error(w, "<Error><Code>NoSuchKey</Code></Error>", http.StatusNotFound)
 			return
@@ -239,6 +245,9 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		b.puts++
 	case r.Method == http.MethodDelete && query.Has("versionId"):
 		b.deleteVersion(key, query.Get("versionId"))
+		w.WriteHeader(http.StatusNoContent)
+	case r.Method == http.MethodDelete:
+		b.hide(key)
 		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodGet || r.Method == http.MethodHead:
 		history := b.history[key]
@@ -260,6 +269,52 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+// copySource returns the data a copy source names: a key's current version,
+// or the version its versionId names, which a delete marker does not hold.
+func (b *Bucket) copySource(header string) ([]byte, bool) {
+	// Split the key from the version.
+	path, query, _ := strings.Cut(header, "?")
+	path, _ = url.PathUnescape(path)
+	key := strings.TrimPrefix(path, "/"+BucketName+"/")
+	values, _ := url.ParseQuery(query)
+	version := values.Get("versionId")
+	if version == "" {
+		data, ok := b.objects[key]
+		return data, ok
+	}
+
+	// Find the version.
+	i := slices.IndexFunc(b.history[key], func(v objectVersion) bool { return v.id == version })
+	if i < 0 || b.history[key][i].marker {
+		return nil, false
+	}
+	return b.history[key][i].data, true
+}
+
+// Versions returns each version under prefix as the listing reports it, by
+// key, newest first: the key, and a marker flag or the content.
+func (b *Bucket) Versions(prefix string) []string {
+	// Hold the bucket while reading its history.
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+
+	// Describe each version of each key under the prefix, in key order.
+	var out []string
+	for _, key := range slices.Sorted(maps.Keys(b.history)) {
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+		for _, version := range b.history[key] {
+			if version.marker {
+				out = append(out, key+" hidden")
+				continue
+			}
+			out = append(out, key+" "+string(version.data))
+		}
+	}
+	return out
 }
 
 // store makes data the current version of key.
@@ -298,7 +353,7 @@ func (b *Bucket) listVersions(w io.Writer, prefix string) {
 			if version.marker {
 				element = "DeleteMarker"
 			}
-			_, _ = io.WriteString(w, "<"+element+"><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId></"+element+">")
+			_, _ = io.WriteString(w, "<"+element+"><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId><Size>"+strconv.Itoa(len(version.data))+"</Size></"+element+">")
 		}
 	}
 	_, _ = io.WriteString(w, "</ListVersionsResult>")
