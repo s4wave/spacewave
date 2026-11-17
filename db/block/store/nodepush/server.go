@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
@@ -128,21 +129,21 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 
 	// End the connection's work on the way out.
 	out := make(chan []byte, maxFramesQueued)
-	var running sync.WaitGroup
+	running := conc.NewConcurrentQueue(0)
 	defer func() {
 		cancel()
 		_ = conn.Close()
-		running.Wait()
+		_ = running.WaitIdle(context.Background(), nil)
 	}()
 
 	// Write frames until the connection ends.
-	running.Go(func() {
+	running.Enqueue(func() {
 		writeFrames(ctx, conn, out)
 		_ = conn.Close()
 	})
 
 	// Send the pending reports, one at a time.
-	running.Go(func() {
+	running.Enqueue(func() {
 		s.sendReports(ctx, out)
 	})
 
@@ -162,7 +163,7 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 			case <-ctx.Done():
 				return ctx.Err()
 			}
-			running.Go(func() {
+			running.Enqueue(func() {
 				defer func() { <-slots }()
 				send(ctx, out, s.hold(ctx, body.Push))
 			})

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/s4wave/spacewave/db/coord"
 	db_s4db "github.com/s4wave/spacewave/db/s4db"
 )
@@ -35,13 +36,16 @@ func newWatch(ctx context.Context, db *db_s4db.DB, scope coord.Scope, inner coor
 		events: make(chan coord.Event, 16),
 		done:   make(chan struct{}),
 	}
-	var wg sync.WaitGroup
-	wg.Go(func() { w.forward(ctx, db) })
-	wg.Go(func() { w.commits(ctx, db, scope, afterGeneration) })
+	streams := conc.NewConcurrentQueue(0,
+		func() { w.forward(ctx, db) },
+		func() { w.commits(ctx, db, scope, afterGeneration) },
+	)
 
-	// Close the stream once both end.
+	// Close the stream once both end. The wait outlives ctx's cancel, since
+	// the streams still send until they return.
+	idleCtx := context.WithoutCancel(ctx)
 	go func() {
-		wg.Wait()
+		_ = streams.WaitIdle(idleCtx, nil)
 		close(w.events)
 		close(w.done)
 	}()
