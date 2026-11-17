@@ -89,13 +89,15 @@ func (s *PackStore) LocatePacks(ctx context.Context, hashes []*hash.Hash) ([]Pac
 // VerifyPack fetches pack id whole from the bucket and verifies every value
 // it holds: it parses the pack's index from the fetched bytes, not from the
 // local index or a cached tail, and hashes each value against the block key
-// that index names. It reads with one range request of the recorded size,
-// never through the read cache or the pack readers, so no local copy can
-// answer for the bucket. An object larger than the recorded size plus
-// verifySlackBytes, or a recorded size past the largest pack this store
-// writes plus the slack, is refused before its body is read, so one call
-// holds at most that many bytes. Returns every value of the pack, or a
-// PackVerifyError when anything fails: a pack is good whole or not at all.
+// that index names. It reads with one range request of the recorded size
+// plus verifySlackBytes and one byte, never through the read cache or the
+// pack readers, so no local copy can answer for the bucket. An object larger
+// than the recorded size plus verifySlackBytes is refused, before its body is
+// read when the backend reports sizes, and a recorded size past the largest
+// pack this store writes plus the slack is refused without a read, so one
+// call holds at most the largest pack plus twice the slack and a byte: about
+// 63.1 MiB. Returns every value of the pack, or a PackVerifyError when
+// anything fails: a pack is good whole or not at all.
 func (s *PackStore) VerifyPack(ctx context.Context, id string, size int64) ([]VerifiedValue, error) {
 	// Refuse a recorded size no pack of this store reaches.
 	limit := max(s.maxPackBytes, writer.DefaultMaxPackBytes) + verifySlackBytes
@@ -118,17 +120,23 @@ func (s *PackStore) VerifyPack(ctx context.Context, id string, size int64) ([]Ve
 		}
 	}
 
-	// Fetch the recorded size from the bucket itself.
-	data, err := s.client.GetObjectRange(ctx, s.bucket, key, 0, int(size))
+	// Fetch the recorded size from the bucket itself, and as far as the
+	// slack and one byte past it, so a backend that reports no sizes, such
+	// as SFTP or FTPS, still shows an object past the recorded size plus the
+	// slack, which is refused.
+	data, err := s.client.GetObjectRange(ctx, s.bucket, key, 0, int(size+verifySlackBytes+1))
 	s.reads.downloaded(readWhole, len(data))
 	switch {
 	case errors.Is(err, ErrNotFound):
 		return nil, verifyFailed(VerifyMissing, err)
 	case err != nil:
 		return nil, verifyFailed(VerifyFetch, err)
-	case int64(len(data)) != size:
+	case int64(len(data)) > size+verifySlackBytes:
+		return nil, verifyFailed(VerifyOversize, errors.Errorf("object past %d bytes, recorded %d", size+verifySlackBytes, size))
+	case int64(len(data)) < size:
 		return nil, verifyFailed(VerifyShort, errors.Errorf("read %d of %d bytes", len(data), size))
 	}
+	data = data[:size]
 
 	// Match the SHA-256 recorded at upload, when the pack has one.
 	var want []byte
