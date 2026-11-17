@@ -446,7 +446,7 @@ func TestAdminBackend(t *testing.T) {
 	// pack with no time.
 	before := time.Now()
 	st, err := backend.Status(ctx, []string{id})
-	if err != nil || len(st.Packs) != 1 || st.Packs[0] != (packsweep.PackHold{ID: id, State: packsweep.PackRegistered}) {
+	if err != nil || len(st.Packs) != 1 || !registeredHold(st.Packs[0], id) {
 		t.Fatalf("status = %+v, %v", st, err)
 	}
 	pos, _ := b.log.Position()
@@ -488,4 +488,10 @@ func TestAdminBackend(t *testing.T) {
 			t.Fatalf("state %v numbers as %d in the store and %d on the wire", want, store, wire)
 		}
 	}
+}
+
+// registeredHold reports whether h is pack id registered, with no times, no
+// key and present.
+func registeredHold(h packsweep.PackHold, id string) bool {
+	return h.ID == id && h.State == packsweep.PackRegistered && h.Since.IsZero() && h.Event.IsZero() && len(h.Key) == 0 && !h.Absent
 }

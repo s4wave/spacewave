@@ -61,6 +61,9 @@ type PackStates interface {
 	// Restore registers again trashing packs whose entries and files are
 	// back in the store.
 	Restore(ctx context.Context, ids []string) error
+	// Forget clears the read a restore or a fallback read recorded on
+	// registered packs.
+	Forget(ctx context.Context, ids []string) error
 	// AdoptPack registers a pack another writer uploaded.
 	AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error
 }
@@ -262,6 +265,12 @@ func (s *Server) move(ctx context.Context, req *PacksRequest, fn func(context.Co
 // moved back from the trash.
 func (s *Server) Restore(ctx context.Context, req *PacksRequest) (*PacksResponse, error) {
 	return s.move(ctx, req, s.opts.Packs.Restore)
+}
+
+// Forget clears the read a restore or a fallback read recorded on registered
+// packs, so the sweep may move them again.
+func (s *Server) Forget(ctx context.Context, req *PacksRequest) (*PacksResponse, error) {
+	return s.move(ctx, req, s.opts.Packs.Forget)
 }
 
 // Adopt registers packs another writer uploaded.

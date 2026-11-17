@@ -1,6 +1,7 @@
 package packsweep
 
 import (
+	"encoding/hex"
 	"maps"
 	"slices"
 	"strconv"
@@ -135,7 +136,22 @@ func (r *QuarantineResult) JSON(a *fastjson.Arena) *fastjson.Value {
 		jsonField{"live", jsonUint(a, r.Live)},
 		jsonField{"unplaced", jsonUint(a, r.Unplaced)},
 		jsonField{"unmoved", jsonUint(a, r.Unmoved)},
+		jsonField{"read", jsonReadPacks(a, r.Read)},
 	)
+}
+
+// jsonReadPacks describes packs a read or a restore reached, each with the
+// key the read named in hex, empty for a restore no read missed.
+func jsonReadPacks(a *fastjson.Arena, holds []PackHold) *fastjson.Value {
+	arr := a.NewArray()
+	for i, h := range holds {
+		arr.SetArrayItem(i, jsonObject(a,
+			jsonField{"pack", a.NewString(h.ID)},
+			jsonField{"key", a.NewString(hex.EncodeToString(h.Key))},
+			jsonField{"event", jsonTime(a, h.Event)},
+		))
+	}
+	return arr
 }
 
 // JSON describes the removal.

@@ -283,6 +283,15 @@ func (s *sweepPacks) Restore(ctx context.Context, ids []string) error {
 	return p.Restore(ctx, ids)
 }
 
+// Forget clears the read recorded on registered packs.
+func (s *sweepPacks) Forget(ctx context.Context, ids []string) error {
+	p, err := s.packs()
+	if err != nil {
+		return err
+	}
+	return p.Forget(ctx, ids)
+}
+
 // AdoptPack registers a pack another writer uploaded.
 func (s *sweepPacks) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error {
 	p, err := s.packs()

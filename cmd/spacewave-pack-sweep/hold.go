@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"net/http"
 	"os"
+	"slices"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/fastjson"
@@ -224,6 +226,48 @@ func (a *Args) runRestore(*cli.Context) error {
 			return nil, err
 		}
 		return res.JSON, nil
+	})
+}
+
+// forgetFlags are the flags of the forget step.
+func (a *Args) forgetFlags() []cli.Flag {
+	return []cli.Flag{
+		a.adminURLFlag(),
+		&cli.StringSliceFlag{Name: "pack", Usage: "a registered pack whose recorded read to clear; repeat for each", Destination: &a.Packs, Required: true},
+	}
+}
+
+// runForget clears the read recorded on the named packs, and prints their
+// states after.
+func (a *Args) runForget(*cli.Context) error {
+	// Reach the backend until a signal stops the step.
+	ctx, cancel := signalContext()
+	defer cancel()
+	client, closeClient, err := a.dialAdminService(ctx)
+	if err != nil {
+		return err
+	}
+	defer closeClient()
+
+	// Forget a batch at a time, and print the states.
+	var holds []packsweep.PackHold
+	for batch := range slices.Chunk(a.Packs.Value(), packsweep.MaxBackendPacks) {
+		got, err := client.Backend().Forget(ctx, batch)
+		if err != nil {
+			return err
+		}
+		holds = append(holds, got...)
+	}
+	return a.print(func(arena *fastjson.Arena) *fastjson.Value {
+		arr := arena.NewArray()
+		for i, h := range holds {
+			o := arena.NewObject()
+			o.Set("pack", arena.NewString(h.ID))
+			o.Set("state", arena.NewNumberInt(int(h.State)))
+			o.Set("key", arena.NewString(hex.EncodeToString(h.Key)))
+			arr.SetArrayItem(i, o)
+		}
+		return arr
 	})
 }
 

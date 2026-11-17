@@ -2,32 +2,71 @@ package writelog
 
 import (
 	"bytes"
+	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
 )
 
-// markerName is the resume marker's file in a log directory. It holds the
-// position of a closed epoch's close line, as Position.String writes it, and
+// markerName is the resume marker's file in a log directory. Its first line is
+// the position of a closed epoch's close line, as Position.String writes it,
+// and its second, when the log had a witness at Close, the witness in hex. It
 // exists only while the epoch's segments are durable through that line and no
 // write has escaped the log since. Claim takes it before the store's first
 // write, so it never outlives the process that claims the directory.
 const markerName = "resume"
+
+// Witness returns a fingerprint of the store's files as they stand, such as
+// each file's size, modification time and inode, so a write no log observed
+// between one process's Close and the next one's Claim changes it. An error
+// means the files cannot be vouched for, and no epoch resumes.
+type Witness func() ([]byte, error)
+
+// marker is a parsed resume marker.
+type marker struct {
+	// pos is the closed epoch's close line.
+	pos Position
+	// witness is the store's fingerprint at Close, empty when none was taken.
+	witness []byte
+}
+
+// parseMarker parses a marker's contents. A marker of one line, as written
+// before witnesses, parses with no witness.
+func parseMarker(data []byte) (marker, error) {
+	// Split the position line from the witness line.
+	line, rest, _ := bytes.Cut(bytes.TrimSpace(data), []byte{'\n'})
+	pos, err := ParsePosition(string(line))
+	if err != nil {
+		return marker{}, err
+	}
+	witness, err := hex.DecodeString(string(bytes.TrimSpace(rest)))
+	if err != nil {
+		return marker{}, err
+	}
+	return marker{pos: pos, witness: witness}, nil
+}
 
 // markerPath returns the resume marker's path in dir.
 func markerPath(dir string) string {
 	return filepath.Join(dir, markerName)
 }
 
-// writeMarker durably writes the marker naming pos in dir, replacing any.
-func writeMarker(dir string, pos Position) error {
+// writeMarker durably writes the marker naming pos and witness in dir,
+// replacing any.
+func writeMarker(dir string, pos Position, witness []byte) error {
+	// Format the position line and any witness line.
+	data := pos.String() + "\n"
+	if len(witness) != 0 {
+		data += hex.EncodeToString(witness) + "\n"
+	}
+
 	// Write a temporary file and sync it.
 	tmp := markerPath(dir) + ".tmp"
 	f, err := os.Create(tmp)
 	if err != nil {
 		return err
 	}
-	_, err = f.WriteString(pos.String() + "\n")
+	_, err = f.WriteString(data)
 	if err == nil {
 		err = f.Sync()
 	}
@@ -53,24 +92,23 @@ func writeMarker(dir string, pos Position) error {
 // needs the access the removal lacked, so the operator removes the marker.
 const stuckMarker = "write log: the resume marker could be neither removed nor poisoned; remove it before the next start, which would otherwise resume past this process's writes"
 
-// takeMarker retires the marker of dir and returns the position it named,
-// whether the epoch there may resume at it, and whether the retirement is
-// durable, as retireMarker reports. The epoch may resume when the marker
-// parsed, its removal is durable, and the epoch's last segment ends at its
-// close line.
-func takeMarker(dir string) (Position, bool, bool) {
+// takeMarker retires the marker of dir and returns what it named, whether the
+// epoch there may resume at it, and whether the retirement is durable, as
+// retireMarker reports. The epoch may resume when the marker parsed, its
+// removal is durable, and the epoch's last segment ends at its close line.
+func takeMarker(dir string) (marker, bool, bool) {
 	// Retire the marker; only a durable removal may resume.
 	data, durable := retireMarker(dir)
 	if data == nil || !durable {
-		return Position{}, false, durable
+		return marker{}, false, durable
 	}
 
-	// Parse the position and check the epoch still ends there.
-	pos, err := ParsePosition(string(bytes.TrimSpace(data)))
+	// Parse the marker and check the epoch still ends there.
+	m, err := parseMarker(data)
 	if err != nil {
-		return Position{}, false, true
+		return marker{}, false, true
 	}
-	return pos, closedAt(dir, pos), true
+	return m, closedAt(dir, m.pos), true
 }
 
 // retireMarker removes the marker of dir, durably, returning its contents,
@@ -101,11 +139,11 @@ func retireMarker(dir string) ([]byte, bool) {
 	}
 
 	// Poison the epoch the marker names, when it can still be read.
-	pos, perr := ParsePosition(string(bytes.TrimSpace(data)))
+	m, perr := parseMarker(data)
 	if data == nil || perr != nil {
 		return data, false
 	}
-	return data, poisonEpoch(dir, pos) == nil
+	return data, poisonEpoch(dir, m.pos) == nil
 }
 
 // poisonEpoch durably appends a byte to the last segment of pos's epoch in

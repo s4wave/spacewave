@@ -369,6 +369,31 @@ func testTrashRemove(t *testing.T, kind string) {
 	s.Close()
 	s = openSweepStore(client, kv)
 	checkAdopted(s)
+
+	// A restore named on the adopted pack records it, and a quarantine
+	// leaves both restored packs registered until forget clears them.
+	if err := s.Restore(ctx, []string{packR}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Quarantine(ctx, []string{packD, packR}); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{packD, packR} {
+		if hold, _, err := s.index.readHold(ctx, id); err != nil || heldStateOf(t, s, id) != PackRegistered || hold.event == 0 {
+			t.Fatalf("restored pack %s after a quarantine: %+v, %v", id, hold, err)
+		}
+	}
+	if err := s.Forget(ctx, []string{packD, packR}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Quarantine(ctx, []string{packD, packR}); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{packD, packR} {
+		if heldStateOf(t, s, id) != PackQuarantined {
+			t.Fatalf("forgotten pack %s was not quarantined", id)
+		}
+	}
 }
 
 // trashGate is an ObjectStore whose reads of trash keys wait for gate to

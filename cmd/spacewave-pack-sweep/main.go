@@ -124,6 +124,12 @@ func main() {
 			Action: args.runRestore,
 		},
 		{
+			Name:   "forget",
+			Usage:  "clear the read a restore or a fallback read recorded on each named pack, once the root it reached is listed, so quarantine may take the pack again",
+			Flags:  args.forgetFlags(),
+			Action: args.runForget,
+		},
+		{
 			Name:   "verify",
 			Usage:  "read every block the roots reach from the bucket alone, checking each against its hash",
 			Flags:  args.verifyFlags(),

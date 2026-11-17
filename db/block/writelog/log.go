@@ -2,6 +2,7 @@ package writelog
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"io"
@@ -110,6 +111,9 @@ type Log struct {
 	// marker, or this log closed it cleanly, and no start used it since.
 	closed    Position
 	resumable bool
+	// witness fingerprints the store's files at Close, for the marker; nil
+	// writes a marker only a log claimed by Set resumes.
+	witness Witness
 	// scratch holds the encoded hash of the line being written.
 	scratch [hashScratchBytes]byte
 }
@@ -238,12 +242,24 @@ func (l *Log) Attached(on bool) {
 // and returns an error: nothing resumes and Close leaves no marker. No error
 // stops the store; the caller logs it. Set claims its directory when Claim
 // did not.
-func (l *Log) Claim(dir string) error {
-	// Take the marker.
+//
+// Opened is the witness of the store's files taken before the store opened,
+// with closing the Witness Close takes once the store has closed: the epoch
+// resumes only when the marker carries a witness equal to opened, so a write
+// no log saw between the two processes, such as a tool that opened the store
+// alone, starts a new epoch. An empty opened, a marker without a witness, and
+// a witness that differs all start a new epoch; so does a closing that fails.
+func (l *Log) Claim(dir string, opened []byte, closing Witness) error {
+	// Take the marker, and keep its epoch only for the same witness.
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if err := l.claim(dir); err != nil {
+	l.witness = closing
+	m, err := l.claim(dir)
+	if err != nil {
 		return err
+	}
+	if len(opened) == 0 || !bytes.Equal(m.witness, opened) {
+		l.resumable = false
 	}
 
 	// Refuse to resume what no store showed this log.
@@ -254,25 +270,26 @@ func (l *Log) Claim(dir string) error {
 	return nil
 }
 
-// claim binds the log to dir, taking its marker, unless it is bound to it.
-func (l *Log) claim(dir string) error {
+// claim binds the log to dir, taking its marker and returning it, unless it is
+// bound to it already, when it returns the marker this log would write.
+func (l *Log) claim(dir string) (marker, error) {
 	// Keep a directory already claimed.
 	if prev := l.claimed.Load(); prev != nil && *prev == dir {
-		return nil
+		return marker{pos: l.closed}, nil
 	}
 
 	// Take the marker, then bind; a miss before the bind finds no marker it
 	// could retire, and missed keeps the epoch from resuming.
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
+		return marker{}, err
 	}
-	var retired bool
-	l.closed, l.resumable, retired = takeMarker(dir)
+	m, resumable, retired := takeMarker(dir)
+	l.closed, l.resumable = m.pos, resumable
 	if !retired {
 		l.le.WithField("dir", dir).Error(stuckMarker)
 	}
 	l.claimed.Store(&dir)
-	return nil
+	return m, nil
 }
 
 // Set switches the log: nil turns it off, closing the open epoch with its
@@ -314,7 +331,7 @@ func (l *Log) Set(opts *Options) error {
 		l.le.WithError(err).Warn("write log: closing the epoch")
 	}
 	l.opts = next
-	if err := l.claim(next.Dir); err != nil {
+	if _, err := l.claim(next.Dir); err != nil {
 		l.breakEpoch(err)
 		return err
 	}
@@ -548,13 +565,22 @@ func (l *Log) markResumable() error {
 		return nil
 	}
 
+	// Fingerprint the closed store; one that cannot be read leaves no marker.
+	var witness []byte
+	if l.witness != nil {
+		var err error
+		if witness, err = l.witness(); err != nil || len(witness) == 0 {
+			return err
+		}
+	}
+
 	// Write the marker beside them unless a miss came first.
 	l.marker.Lock()
 	defer l.marker.Unlock()
 	if l.missed.Load() {
 		return nil
 	}
-	if err := writeMarker(*dir, l.closed); err != nil {
+	if err := writeMarker(*dir, l.closed, witness); err != nil {
 		_, _ = retireMarker(*dir)
 		return err
 	}
