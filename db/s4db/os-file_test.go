@@ -104,16 +104,15 @@ func TestStats(t *testing.T) {
 	}
 }
 
-// TestWriteSuperFollowsFile checks that a superblock write takes its
-// generation from the file, so a process whose copy is stale never writes
-// over a newer generation, and skips a superblock older than the file's.
-func TestWriteSuperFollowsFile(t *testing.T) {
-	// Plant a newer generation at a higher seq, as another process would.
+// TestWriteSuperFollowsPublisher checks monotonic generations and refusal of
+// an older publication inside the sole writable handle.
+func TestWriteSuperFollowsPublisher(t *testing.T) {
+	// Publish a generation at a higher seq through the sole publisher.
 	db := openTest(t, filepath.Join(t.TempDir(), "super.s4wave"), Options{})
 	defer db.Close()
 	planted := db.super
-	planted.gen, planted.seq = 7, 50
-	if _, err := db.s.WriteAt(planted.encode(), planted.page()*pageSize); err != nil {
+	planted.gen, planted.seq = db.super.gen+1, 50
+	if err := db.writeSuper(planted); err != nil {
 		t.Fatal(err)
 	}
 
@@ -124,7 +123,7 @@ func TestWriteSuperFollowsFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	order, err := db.readSupers()
-	if err != nil || order[0].gen != 7 || order[0].seq != 50 {
+	if err != nil || order[0].gen != planted.gen || order[0].seq != 50 {
 		t.Fatalf("after an older write: %+v, %v", order, err)
 	}
 
@@ -134,10 +133,10 @@ func TestWriteSuperFollowsFile(t *testing.T) {
 	if err := db.writeSuper(newer); err != nil {
 		t.Fatal(err)
 	}
-	if order, err = db.readSupers(); err != nil || order[0].gen != 8 || order[0].seq != 60 || order[1].gen != 7 {
+	if order, err = db.readSupers(); err != nil || order[0].gen != planted.gen+1 || order[0].seq != 60 || order[1].gen != planted.gen {
 		t.Fatalf("after a newer write: %+v, %v", order, err)
 	}
-	if db.super.gen != 8 {
-		t.Fatalf("db.super gen %d, want 8", db.super.gen)
+	if db.super.gen != planted.gen+1 {
+		t.Fatalf("db.super gen %d, want %d", db.super.gen, planted.gen+1)
 	}
 }

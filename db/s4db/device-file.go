@@ -68,7 +68,7 @@ func (deviceFile) held(_ int64) (bool, error) {
 }
 
 // watch returns a watcher that waits only for stop.
-func (deviceFile) watch(_ int) (watcher, error) {
+func (deviceFile) watch(_ int, _ bool) (watcher, error) {
 	return newStopWatcher(), nil
 }
 

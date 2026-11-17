@@ -8,8 +8,8 @@
     "name": "aged step stays aged",
     "replace": [
       [
-        "/\\ aged' = FALSE\n  /\\ UNCHANGED <<waiting, remoteWait, failed>>",
-        "/\\ aged' = aged\n  /\\ UNCHANGED <<waiting, remoteWait, failed>>"
+        "/\\ aged' = FALSE\n  /\\ UNCHANGED <<waiting, yielded>>",
+        "/\\ aged' = aged\n  /\\ UNCHANGED <<waiting, yielded>>"
       ]
     ],
     "expect": "BoundedWait"

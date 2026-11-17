@@ -255,7 +255,7 @@ func TestLogReserve(t *testing.T) {
 
 	// Resume the real scheduler for the checkpoint stage; a stopped idle worker
 	// cannot execute a flush job.
-	db.sched = newScheduler(db)
+	startScheduler(db)
 	tx, err = db.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)

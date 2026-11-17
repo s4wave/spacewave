@@ -15,7 +15,7 @@ type flushJob struct {
 }
 
 // run flushes the memtable through the published state's seq. The caller
-// holds lockFlush.
+// runs on the sole scheduler loop.
 func (j *flushJob) run(ctx context.Context) error {
 	// Take the snapshot: the memtable through its seq is the input, and its
 	// log point is where the superblock replays the memtable from.

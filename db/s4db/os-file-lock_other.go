@@ -1,4 +1,4 @@
-//go:build linux || windows
+//go:build darwin || linux || windows
 
 package s4db
 

@@ -105,8 +105,8 @@ const (
 // writerBlocks is the number of blocks each writer process puts.
 const writerBlocks = 20
 
-// TestMultiprocessBlocks runs block writers in three processes at once on one
-// volume file and checks that a fresh open reads every block.
+// TestMultiprocessBlocks hands the volume to three successive writing processes
+// and checks that a fresh open reads every block.
 func TestMultiprocessBlocks(t *testing.T) {
 	// Run as a writer when started by the parent test.
 	if n := os.Getenv(multiprocessEnv); n != "" {
@@ -128,17 +128,10 @@ func TestMultiprocessBlocks(t *testing.T) {
 
 	// Start the writers and wait for them.
 	const writers = 3
-	cmds := make([]*exec.Cmd, writers)
-	for i := range cmds {
+	for i := range writers {
 		cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestMultiprocessBlocks$", "-test.timeout=60s")
 		cmd.Env = append(os.Environ(), multiprocessEnv+"="+strconv.Itoa(i), multiprocessPathEnv+"="+conf.GetPath())
-		if err := cmd.Start(); err != nil {
-			t.Fatal(err)
-		}
-		cmds[i] = cmd
-	}
-	for i, cmd := range cmds {
-		if err := cmd.Wait(); err != nil {
+		if err := cmd.Run(); err != nil {
 			t.Fatalf("writer %d: %v", i, err)
 		}
 	}
