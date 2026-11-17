@@ -254,14 +254,36 @@ func TestTrashRemove(t *testing.T) {
 	if err := h.f.client.PutObject(ctx, s3test.BucketName, keptKey, []byte("an older version"), ""); err != nil {
 		t.Fatal(err)
 	}
-	popts := &PurgeOptions{Store: h.store, Purger: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Now: func() time.Time { return at.Add(time.Hour) }}
+	listRoots := func(context.Context) error { return nil }
+	popts := &PurgeOptions{Store: h.store, Purger: h.f.client, Backend: h.backend, CheckRoots: func(ctx context.Context) error { return listRoots(ctx) }, Bucket: s3test.BucketName, Prefix: prefix, Now: func() time.Time { return at.Add(time.Hour) }}
 	if got, err := Purge(ctx, popts); err != nil || got.Purged != 0 || got.Versions != 0 || got.Waiting != uint64(removed) { //nolint:gosec // test counts.
 		t.Fatalf("purge before the wait = %+v, %v", got, err)
 	}
+	// Past the wait, a roots listing that fails, as one does while a restore
+	// point names packs by a pack index, stops the purge before any version
+	// goes, and so does a first pack the backend holds again.
+	popts.Now = func() time.Time { return at.Add(DefaultPurgeAfter + time.Hour) }
+	listRoots = func(context.Context) error { return errors.New("a restore point names packs by a pack index") }
+	if got, err := Purge(ctx, popts); err == nil || got.Versions != 0 {
+		t.Fatalf("purge with a failing roots listing = %+v, %v", got, err)
+	}
+	listRoots = func(context.Context) error { return nil }
+	var removedIDs []string
+	for id, p := range recordsByID(t, h.store) {
+		if p.Stage == StageRemoved {
+			removedIDs = append(removedIDs, id)
+		}
+	}
+	first := slices.Min(removedIDs)
+	delete(h.backend.removed, first)
+	if got, err := Purge(ctx, popts); err == nil || got.Versions != 0 {
+		t.Fatalf("purge of a pack the backend holds again = %+v, %v", got, err)
+	}
+	h.backend.removed[first] = true
+
 	// Past the wait every version goes: two keys a pack, the older version
 	// written above, and the second copy of the one key the refused move
 	// copied before its delete failed.
-	popts.Now = func() time.Time { return at.Add(DefaultPurgeAfter + time.Hour) }
 	purged, err := Purge(ctx, popts)
 	versions := 2*removed + 2
 	if err != nil || purged.Purged != uint64(removed) || purged.Versions != uint64(versions) || purged.Waiting != 0 { //nolint:gosec // test counts.
@@ -470,7 +492,7 @@ func TestRestore(t *testing.T) {
 		t.Fatalf("the killed adoption's record = %+v", rec)
 	}
 	late := func() time.Time { return time.Now().Add(2 * DefaultPurgeAfter) }
-	popts := &PurgeOptions{Store: h.store, Purger: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Now: late}
+	popts := &PurgeOptions{Store: h.store, Purger: h.f.client, Backend: h.backend, CheckRoots: func(context.Context) error { return nil }, Bucket: s3test.BucketName, Prefix: prefix, Now: late}
 	if got, err := Purge(ctx, popts); err != nil || got.Purged != uint64(len(passed)-5) { //nolint:gosec // test counts.
 		t.Fatalf("purge during the adoption = %+v, %v", got, err)
 	}
@@ -500,5 +522,64 @@ func TestRestore(t *testing.T) {
 	}
 	if _, err := Restore(ctx, ropts); err == nil {
 		t.Fatal("adopted a pack twice")
+	}
+}
+
+// TestRemoveAfterKilledRestore removes a trashed pack that shares a key with
+// a pack whose restore was killed after its file moved back. The restoring
+// pack is coming back to serve its keys, so the removal names it as a holder
+// of the shared key: leaving it out, as it leaves out the trashed packs,
+// would have the backend delete or repoint the key's row away from the pack
+// the restore brings back.
+func TestRemoveAfterKilledRestore(t *testing.T) {
+	// Pick two passed packs that share a key.
+	ctx := t.Context()
+	h := newHoldFixture(t)
+	passed := h.passAll(t)
+	var restoring, other string
+	for _, a := range passed {
+		for _, b := range passed {
+			if a != b && restoring == "" && slices.ContainsFunc(h.f.packs[a], func(blk *fixtureBlock) bool {
+				return slices.Contains(h.f.packs[b], blk)
+			}) {
+				restoring, other = a, b
+			}
+		}
+	}
+	if restoring == "" {
+		t.Fatal("no two passed packs share a key")
+	}
+
+	// Trash every pack, then kill a restore of one after its file moved back.
+	const prefix = "v2/"
+	ropts := &RestoreOptions{TrashOptions: TrashOptions{CoverOptions: *h.opts, Mover: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Moves: 1}}
+	if _, err := Trash(ctx, &ropts.TrashOptions); err != nil {
+		t.Fatal(err)
+	}
+	h.backend.holds[restoring] = PackHold{ID: restoring, State: PackTrashing, Since: h.backend.now, Event: h.backend.now}
+	ropts.Mover = &failMover{ObjectMover: h.f.client, from: block_store_s3.TrashEntryKey(prefix, restoring)}
+	if _, err := Restore(ctx, ropts); err == nil {
+		t.Fatal("killed restore returned no error")
+	}
+	if rec := recordsByID(t, h.store)[restoring]; rec.Stage != StageRestoring {
+		t.Fatalf("the killed restore's record = %+v", rec)
+	}
+
+	// The removal removes the other pack and names the restoring one as a
+	// holder of their shared key.
+	if _, err := Remove(ctx, &RemoveOptions{CoverOptions: *h.opts}); err != nil {
+		t.Fatal(err)
+	}
+	if !h.backend.removed[other] || h.backend.removed[restoring] {
+		t.Fatalf("removed %v, want %s and not %s", h.backend.removed, other, restoring)
+	}
+	named := false
+	for _, r := range h.backend.removals {
+		for _, k := range r.keys {
+			named = named || slices.Contains(k.Others, restoring)
+		}
+	}
+	if !named {
+		t.Fatalf("no removal named the restoring pack %s as a holder", restoring)
 	}
 }

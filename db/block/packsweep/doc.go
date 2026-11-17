@@ -35,9 +35,12 @@
 //     the write-back's bounded eviction drops a block's local copy once its
 //     pack verifies in the bucket. So the sweep trashes only what the root
 //     walk and the log prove unreferenced, and no local copy is a fallback.
-//     While any pack is quarantined or trashing, the store's KeepsBlocks
-//     reports false, which halts that eviction until the sweep releases or
-//     removes the pack.
+//     The eviction confirms each block with the store's GetBlockExistsBatch,
+//     which answers from registered packs alone, so a block whose only
+//     bucket copy is in a held pack keeps its local copy. The store's
+//     KeepsBlocks reports false while any pack is quarantined or trashing,
+//     but the eviction does not read it yet; once it does, it halts while
+//     the sweep holds a pack, rather than confirming block by block.
 //   - A pack object under the store's prefix leaves the store's listing only
 //     when two things hold. First, no key in its tail index is reached from
 //     the roots the backend lists or from a root the write log names. The
@@ -47,6 +50,15 @@
 //     listing, and no pack moves. Second, since its
 //     quarantine began, no h row named the pack's number in a lookup that
 //     served a read, a Has or a write's dedupe.
+//   - A pack named by the pack index of any restore point is referenced
+//     until no listed restore point names it, since a restore point must
+//     rebuild from exactly the packs it names. The backend's listing reads
+//     every version of every restore point, and fails while any of them
+//     carries a pack index, so neither the sweep nor the compaction, whose
+//     victims come from the same judged walk, moves a pack then; the purge
+//     lists the roots again before it deletes.
+//   - The backend lists roots only from a store that records them in its
+//     ownership graph; a store that does not fails the listing.
 //   - A quarantined pack is invisible to the index's Locate and extent
 //     lookups, so a write that would dedupe against it stores the block again
 //     in a new pack. A read that finds the block only there lifts the pack, or
