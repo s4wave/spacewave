@@ -508,6 +508,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
 	placement := &placementState{wb: wb, local: local, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, done: ctx.Done()}
+	placement.fallbackFills.ctx, placement.fallbackFills.budget = ctx, &t.a.t.p.fillBudget
 	if packs != nil {
 		placement.drain = packs.drain
 	}

@@ -17,7 +17,8 @@ type FallbackStatus struct {
 	// FillFailed counts hits whose local store failed or whose bytes did not
 	// match their hash. The next read of the block tries again.
 	FillFailed uint64
-	// FillSkipped counts hits not stored because the fill queue was full. The
-	// next read of the block tries again.
+	// FillSkipped counts hits not stored because the fill queue or the
+	// Provider's fill budget was full, or the mount ended first. The next read
+	// of the block tries again.
 	FillSkipped uint64
 }

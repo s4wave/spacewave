@@ -13,14 +13,42 @@ import (
 // fallbackFillSlots bounds the fills of one placed store that run at once.
 const fallbackFillSlots = 64
 
-// fallbackFillQueueBlocks and fallbackFillQueueBytes bound the fills of one
-// placed store waiting for a slot. A restart's readers ask the old owner for
-// a burst of blocks the local store lacks; a block whose fill is dropped is
-// asked of it again at its next read, and at every start after.
+// fallbackFillQueueBlocks bounds the fills of one placed store waiting for a
+// slot, and fallbackFillBudgetBytes the block data waiting in the queues of
+// every placed store of a Provider, so a restart in which many Spaces miss
+// their local stores at once queues no more than one would. A restart's
+// readers ask the old owner for a burst of blocks the local store lacks; a
+// block whose fill is dropped is asked of it again at its next read, and at
+// every start after.
 const (
 	fallbackFillQueueBlocks = 16384
-	fallbackFillQueueBytes  = 128 << 20
+	fallbackFillBudgetBytes = 128 << 20
 )
+
+// fillBudget counts the block data queued for fallback fills across the
+// placed stores that share it, up to fallbackFillBudgetBytes.
+type fillBudget struct {
+	// queued is the size of the queued blocks.
+	queued atomic.Int64
+}
+
+// take charges n bytes to the budget, or reports false when they do not fit.
+func (b *fillBudget) take(n int) bool {
+	for {
+		queued := b.queued.Load()
+		if queued+int64(n) > fallbackFillBudgetBytes {
+			return false
+		}
+		if b.queued.CompareAndSwap(queued, queued+int64(n)) {
+			return true
+		}
+	}
+}
+
+// give returns n bytes taken from the budget.
+func (b *fillBudget) give(n int) {
+	b.queued.Add(-int64(n))
+}
 
 // readChains builds the read paths of a placed store: reads serve the blocks of
 // the local store, then the backend's packs, then the read fallback if any,
@@ -210,7 +238,18 @@ func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockR
 
 // fallbackFills is the state of a placed store's fallback fills, shared by the
 // read scopes of its fallback reads.
+//
+// A fill is Queued, then Filling on a worker, then gone: Filled, Failed, or
+// Skipped when the queue was full, the budget spent, or the mount ended
+// before its turn. FallbackFillQueue.tla models these states.
 type fallbackFills struct {
+	// ctx is the mount's context. The fills run under it, and once it ends
+	// the queue takes no fill and its workers drop the rest without running
+	// them.
+	ctx context.Context
+	// budget bounds the queued block data across the Provider's stores.
+	budget *fillBudget
+
 	// running counts the fills running.
 	running atomic.Int64
 	// packErrors counts backend errors that fell through to the fallback.
@@ -223,15 +262,14 @@ type fallbackFills struct {
 	filled atomic.Uint64
 	// failed counts fills that failed.
 	failed atomic.Uint64
-	// skipped counts fills dropped because the queue was full.
+	// skipped counts fills dropped because the queue or the budget was full,
+	// or the mount ended.
 	skipped atomic.Uint64
 
 	// mtx guards the queue.
 	mtx sync.Mutex
 	// queue holds the fills waiting for a slot, oldest first.
 	queue []fallbackFill
-	// queuedBytes is the size of the queued blocks.
-	queuedBytes int
 	// queued holds the refs queued or filling, by marshaled ref, so a block
 	// read again before its fill lands is not queued twice.
 	queued map[string]struct{}
@@ -239,7 +277,6 @@ type fallbackFills struct {
 
 // fallbackFill is one block waiting to fill the local store.
 type fallbackFill struct {
-	ctx    context.Context
 	key    string
 	ref    *block.BlockRef
 	stored *block.StoredBlock
@@ -261,20 +298,22 @@ func (f *fallbackFills) status() FallbackStatus {
 // start queues fill to run in the background, and starts a worker when a
 // slot is free; the workers run the queue in order, so a burst of fills waits
 // for a slot rather than being dropped. A block already queued or filling is
-// not queued again. When the queue is full it counts a skip and leaves the
-// block for the next read.
-func (f *fallbackFills) start(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock, fill func(context.Context, *block.BlockRef, *block.StoredBlock) error) {
+// not queued again. When the queue or the budget is full, or the mount has
+// ended, it counts a skip and leaves the block for the next read. The fill runs
+// under the mount's context, not the reader's, which ends with the read.
+func (f *fallbackFills) start(ref *block.BlockRef, stored *block.StoredBlock, fill func(context.Context, *block.BlockRef, *block.StoredBlock) error) {
 	// Key the fill by its block and size it by its data.
 	key := ref.MarshalString()
 	size := len(stored.Data)
 
-	// Queue the fill, unless it is queued or the queue is full.
+	// Queue the fill, unless it is queued, nothing has room, or the mount
+	// ended.
 	f.mtx.Lock()
 	if _, ok := f.queued[key]; ok {
 		f.mtx.Unlock()
 		return
 	}
-	if len(f.queue) >= fallbackFillQueueBlocks || f.queuedBytes+size > fallbackFillQueueBytes {
+	if f.ctx.Err() != nil || len(f.queue) >= fallbackFillQueueBlocks || !f.budget.take(size) {
 		f.mtx.Unlock()
 		f.skipped.Add(1)
 		return
@@ -284,13 +323,11 @@ func (f *fallbackFills) start(ctx context.Context, ref *block.BlockRef, stored *
 	}
 	f.queued[key] = struct{}{}
 	f.queue = append(f.queue, fallbackFill{
-		ctx:    context.WithoutCancel(ctx),
 		key:    key,
 		ref:    ref,
 		stored: stored,
 		fill:   fill,
 	})
-	f.queuedBytes += size
 
 	// Start a worker when a slot is free. A full set of workers drains the
 	// queue before any exits, so a queued fill always has one.
@@ -306,6 +343,7 @@ func (f *fallbackFills) start(ctx context.Context, ref *block.BlockRef, stored *
 
 // drain runs queued fills until the queue is empty, then frees its slot. The
 // fills run in the background so a read does not wait on the local writer.
+// Once the mount ends it drops each fill it takes without running it.
 func (f *fallbackFills) drain() {
 	for {
 		// Take the oldest fill, or free the slot.
@@ -319,19 +357,27 @@ func (f *fallbackFills) drain() {
 		job := f.queue[0]
 		f.queue[0] = fallbackFill{}
 		f.queue = f.queue[1:]
-		f.queuedBytes -= len(job.stored.Data)
+		f.budget.give(len(job.stored.Data))
 		f.mtx.Unlock()
 
-		// Fill it; a failed fill leaves the block to its next read.
-		err := job.fill(job.ctx, job.ref, job.stored)
+		// Fill it, unless the mount ended; a dropped or failed fill leaves
+		// the block to its next read.
+		ended := f.ctx.Err() != nil
+		var err error
+		if !ended {
+			err = job.fill(f.ctx, job.ref, job.stored)
+		}
 		f.mtx.Lock()
 		delete(f.queued, job.key)
 		f.mtx.Unlock()
-		if err != nil {
+		switch {
+		case ended:
+			f.skipped.Add(1)
+		case err != nil:
 			f.failed.Add(1)
-			continue
+		default:
+			f.filled.Add(1)
 		}
-		f.filled.Add(1)
 	}
 }
 
@@ -442,7 +488,7 @@ func (r *fallbackReads) fillHit(ctx context.Context, ref *block.BlockRef, stored
 		r.fills.refsUnknown.Add(1)
 		return
 	}
-	r.fills.start(ctx, ref, stored, r.fill)
+	r.fills.start(ref, stored, r.fill)
 }
 
 // GetBlockExists checks the sources, then the fallback.

@@ -45,8 +45,8 @@ func (r *peerDecodedReads) GetStoredBlock(ctx context.Context, ref *block.BlockR
 	// reader, which may hold the World's writer, never waits on the local
 	// writer.
 	p := r.p
-	block.KeepDecodedRefs(ctx, ref, stored.Data, func(ctx context.Context, data []byte, refs []*block.BlockRef) {
-		p.fallbackFills.start(ctx, ref, &block.StoredBlock{Data: data, Refs: refs, RefsKnown: true}, p.fillFromFallback)
+	block.KeepDecodedRefs(ctx, ref, stored.Data, func(_ context.Context, data []byte, refs []*block.BlockRef) {
+		p.fallbackFills.start(ref, &block.StoredBlock{Data: data, Refs: refs, RefsKnown: true}, p.fillFromFallback)
 	})
 	return stored, nil
 }

@@ -217,6 +217,7 @@ func newFallbackTestOn(t *testing.T, open func() backendStore) *fallbackTest {
 	f.sql = &countingStore{StoreOps: newLeafStore()}
 	f.tracked = &trackedSet{blocks: make(map[string]bool)}
 	f.p = &placementState{wb: wb, local: local, tracker: f.tracked}
+	f.p.fallbackFills.ctx, f.p.fallbackFills.budget = ctx, new(fillBudget)
 	f.p.backend.Store(&account_settings.StorageBackend{Id: "packs"})
 	recorded := &readRecorder{StoreOps: local, reads: &f.p.reads}
 	f.reads, f.copies = f.p.readChains(
@@ -583,22 +584,32 @@ func TestReadFallbackFailures(t *testing.T) {
 	f.waitHeld(busyRef)
 	f.waitHeld(freedRef)
 
-	// A hit with the queue full serves, counts the skip, and fills on the
+	// A hit with the budget spent serves, counts the skip, and fills on the
 	// next read.
-	full := []byte("read while the queue is full")
+	full := []byte("read while the budget is spent")
 	fullRef := f.putSQL(full)
-	fills.mtx.Lock()
-	fills.queuedBytes = fallbackFillQueueBytes
-	fills.mtx.Unlock()
+	fills.budget.queued.Store(fallbackFillBudgetBytes)
 	f.read(fullRef, full)
-	fills.mtx.Lock()
-	fills.queuedBytes = 0
-	fills.mtx.Unlock()
+	fills.budget.queued.Store(0)
 	if status := fills.status(); status.FillSkipped != 1 || f.held(fullRef) {
 		t.Fatalf("fallback status = %+v, held %v; want one skip and no fill", status, f.held(fullRef))
 	}
 	f.read(fullRef, full)
 	f.waitHeld(fullRef)
+
+	// Once the mount ends, a hit serves, takes no budget and fills nothing.
+	for fills.running.Load() != 0 {
+		runtime.Gosched()
+	}
+	ended, end := context.WithCancel(f.ctx)
+	end()
+	fills.ctx = ended
+	late := []byte("read after the mount ended")
+	lateRef := f.putSQL(late)
+	f.read(lateRef, late)
+	if status := fills.status(); status.FillSkipped != 2 || fills.budget.queued.Load() != 0 || fills.running.Load() != 0 {
+		t.Fatalf("fallback status = %+v, budget %d; want a second skip and nothing queued", status, fills.budget.queued.Load())
+	}
 }
 
 // TestReadFallbackFillRacesEviction fills blocks from the fallback while

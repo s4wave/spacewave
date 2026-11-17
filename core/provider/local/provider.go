@@ -72,6 +72,10 @@ type Provider struct {
 	// loses the stored key; the seed here keeps the session identity stable
 	// for the provider lifetime.
 	seedKeys map[string][]byte
+
+	// fillBudget bounds the block data queued for fallback fills across
+	// every placed store of the provider.
+	fillBudget fillBudget
 }
 
 // providerBackoff is the default backoff for provider services.
