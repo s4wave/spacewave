@@ -2740,7 +2740,7 @@ func testLivenessAdversarial(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("C"), nil); err != nil {
 			t.Fatal(err)
 		}
-		res, err := block_gc.Audit(ctx, collectorStore{v: v}, false)
+		res, err := block_gc.Audit(ctx, collectorStore{v: v}, v.now(), false)
 		if err != nil {
 			t.Fatal(err)
 		}
