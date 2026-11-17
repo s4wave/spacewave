@@ -708,6 +708,13 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 		return err
 	}
 
+	// Require the adoption's marker netted: a head a reader saw before the
+	// mark, which the walk does not seed, is unmarked only once it is Grace
+	// old. The mark is fixed, so no write can hold the flip here.
+	if state.GetCursor() < state.GetAdoptMark() {
+		return nil
+	}
+
 	// A rewritten list's new children lack their holders: recount first.
 	// This is the settle's one return to unadopted, and it runs only while
 	// Open. A readopt while Sweeping, such as a change of the hold rule,
