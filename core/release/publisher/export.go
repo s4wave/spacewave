@@ -25,23 +25,35 @@ func Export(ctx context.Context, eng world.Engine, metadata *release.ReleaseMeta
 	if err := metadata.Validate(); err != nil {
 		return nil, nil, err
 	}
-	head, blocks, err := collectBlocks(ctx, eng, metadata)
+	closure, err := collectBlocks(ctx, eng, metadata)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Preserve the same manifest-local ordering and pack limits as publication.
-	index := 0
-	entries, err := delta.EmitDeltaChunks(ctx, spaceID, func() (*hash.Hash, *block.StoredBlock, error) {
-		if index == len(blocks) {
-			return nil, nil, nil
-		}
-		entry := blocks[index]
-		index++
-		return entry.ref.GetHash(), entry.stored, nil
-	}, delta.DefaultMaxChunkBytes, emit)
+	// Preserve the same manifest-local ordering and pack limits as
+	// publication, reading each block's data back as its pack fills.
+	var entries []*packfile.PackfileEntry
+	err = closure.read(ctx, eng, func(read loadBlock) error {
+		index := 0
+		var err error
+		entries, err = delta.EmitDeltaChunks(ctx, spaceID, func() (*hash.Hash, *block.StoredBlock, error) {
+			// Pull the next closure block, reading its data only now.
+			if index == len(closure.blocks) {
+				return nil, nil, nil
+			}
+			entry := &closure.blocks[index]
+			index++
+			stored, err := read(ctx, entry)
+			if err != nil {
+				return nil, nil, err
+			}
+			return entry.ref.GetHash(), stored, nil
+		}, delta.DefaultMaxChunkBytes, emit)
+		return err
+	})
 	if err != nil {
 		return nil, nil, err
 	}
+	head := closure.head
 	return head, entries, nil
 }

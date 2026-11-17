@@ -45,10 +45,11 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	if err := metadata.Validate(); err != nil {
 		return nil, err
 	}
-	head, blocks, err := collectBlocks(ctx, eng, metadata)
+	closure, err := collectBlocks(ctx, eng, metadata)
 	if err != nil {
 		return nil, err
 	}
+	head, blocks := closure.head, closure.blocks
 	if opts.Logger != nil {
 		opts.Logger.WithField("blocks", len(blocks)).Info("verified release content")
 	}
@@ -75,42 +76,55 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	}
 
 	// Keep the missing blocks apart from the closure, which reclaim needs.
-	var missing []packedBlock
-	var missingBytes uint64
-	for i, entry := range blocks {
+	var missing []*packedBlock
+	for i := range blocks {
 		if !exists[i] {
-			missing = append(missing, entry)
-			missingBytes += uint64(len(entry.stored.Data))
+			missing = append(missing, &blocks[i])
 		}
 	}
 	if opts.Logger != nil {
-		opts.Logger.WithField("blocks", len(missing)).WithField("bytes", missingBytes).Info("publishing missing release content")
+		opts.Logger.WithField("blocks", len(missing)).Info("publishing missing release content")
 	}
 
 	// Encode packs with the standard writer and resource-scoped content
-	// identity, uploading up to packUploads at once. Each chunk owns its bytes.
-	uploads, uploadCtx := errgroup.WithContext(ctx)
-	uploads.SetLimit(packUploads)
-	index := 0
-	_, err = delta.EmitDeltaChunks(uploadCtx, opts.DstSpaceID, func() (*hash.Hash, *block.StoredBlock, error) {
-		if index == len(missing) {
-			return nil, nil, nil
-		}
-		entry := missing[index]
-		index++
-		return entry.ref.GetHash(), entry.stored, nil
-	}, delta.DefaultMaxChunkBytes, func(ctx context.Context, chunk int, entry *packfile.PackfileEntry, data []byte) error {
-		if opts.Logger != nil {
-			opts.Logger.WithField("pack", chunk).WithField("bytes", len(data)).Info("uploading release content")
-		}
-		uploads.Go(func() error {
-			return cdn_publish.PushPackData(uploadCtx, opts, data, entry.GetBloomFilter())
+	// identity, uploading up to packUploads at once. Each chunk owns its bytes,
+	// and each block's data is read back from the World as its pack fills.
+	err = closure.read(ctx, eng, func(read loadBlock) error {
+		// Bound the uploads in flight and count the bytes sent.
+		uploads, uploadCtx := errgroup.WithContext(ctx)
+		uploads.SetLimit(packUploads)
+		index := 0
+		var missingBytes uint64
+		_, err := delta.EmitDeltaChunks(uploadCtx, opts.DstSpaceID, func() (*hash.Hash, *block.StoredBlock, error) {
+			// Pull the next missing block, reading its data only now.
+			if index == len(missing) {
+				return nil, nil, nil
+			}
+			entry := missing[index]
+			index++
+			stored, err := read(uploadCtx, entry)
+			if err != nil {
+				return nil, nil, err
+			}
+			missingBytes += uint64(len(stored.Data))
+			return entry.ref.GetHash(), stored, nil
+		}, delta.DefaultMaxChunkBytes, func(ctx context.Context, chunk int, entry *packfile.PackfileEntry, data []byte) error {
+			if opts.Logger != nil {
+				opts.Logger.WithField("pack", chunk).WithField("bytes", len(data)).Info("uploading release content")
+			}
+			uploads.Go(func() error {
+				return cdn_publish.PushPackData(uploadCtx, opts, data, entry.GetBloomFilter())
+			})
+			return nil
 		})
-		return nil
+		if waitErr := uploads.Wait(); err == nil {
+			err = waitErr
+		}
+		if opts.Logger != nil && err == nil {
+			opts.Logger.WithField("bytes", missingBytes).Info("uploaded missing release content")
+		}
+		return err
 	})
-	if waitErr := uploads.Wait(); err == nil {
-		err = waitErr
-	}
 	if err != nil {
 		return nil, errors.Wrap(err, "upload release packs")
 	}
@@ -131,7 +145,12 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 
 	// Drop the content no longer reachable from the posted head. The release
 	// is already published, so a failed pass only delays the reclaim.
-	dropped, err := reclaim(ctx, opts, head, blocks)
+	var dropped uint64
+	err = closure.read(ctx, eng, func(read loadBlock) error {
+		var err error
+		dropped, err = reclaim(ctx, opts, head, blocks, closure.reader(read))
+		return err
+	})
 	if opts.Logger != nil {
 		log := opts.Logger.WithField("dropped-bytes", dropped)
 		if err != nil {
@@ -143,13 +162,87 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	return checkpoint, nil
 }
 
-// packedBlock retains a content-addressed block from the verified local
-// closure.
+// releaseClosure is the verified closure of a release World without block
+// data: it keeps each block's ref and refs, so its size is a small fraction
+// of the content's. read loads a block's data again from the World when a
+// pack needs it.
+type releaseClosure struct {
+	// head is the World root the closure was walked from.
+	head *bucket.ObjectRef
+	// blocks lists each block once, in walk order.
+	blocks []packedBlock
+	// index maps a block's pack key to its position in blocks.
+	index map[string]int
+	// sources holds one root per bucket that stores closure blocks; a
+	// block's source indexes it.
+	sources []*bucket.ObjectRef
+}
+
+// loadBlock reads one closure block's data back from the World, verified
+// against its ref, with the refs the walk recorded.
+type loadBlock func(ctx context.Context, entry *packedBlock) (*block.StoredBlock, error)
+
+// read runs fn with a loader of closure blocks from eng, verified against
+// their refs, valid until fn returns. The loader is not safe for concurrent
+// use. The caller still exclusively owns the World, as for the walk.
+func (c *releaseClosure) read(ctx context.Context, eng world.Engine, fn func(read loadBlock) error) error {
+	return eng.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		// Follow each source root once, on its first block.
+		buckets := make([]*bucket_lookup.Cursor, len(c.sources))
+		defer func() {
+			for _, b := range buckets {
+				if b != nil {
+					b.Release()
+				}
+			}
+		}()
+
+		// Read the stored bytes, check them, and attach the walked refs.
+		return fn(func(ctx context.Context, entry *packedBlock) (*block.StoredBlock, error) {
+			// Open the block's source bucket on first use.
+			if buckets[entry.source] == nil {
+				b, err := cursor.FollowRef(ctx, c.sources[entry.source])
+				if err != nil {
+					return nil, err
+				}
+				buckets[entry.source] = b
+			}
+			stored, err := buckets[entry.source].GetBucket().GetStoredBlock(ctx, entry.ref)
+			if err != nil {
+				return nil, err
+			}
+			if stored == nil {
+				return nil, errors.Errorf("release block %s is missing", entry.ref.MarshalString())
+			}
+			if err := entry.ref.VerifyData(stored.Data, true); err != nil {
+				return nil, err
+			}
+			return &block.StoredBlock{Data: stored.Data, Refs: entry.refs, RefsKnown: true}, nil
+		})
+	})
+}
+
+// reader adapts a closure loader to a read of blocks by hash. A hash outside
+// the closure reads as absent.
+func (c *releaseClosure) reader(read loadBlock) cdn_publish.ReadBlock {
+	return func(ctx context.Context, h *hash.Hash) (*block.StoredBlock, error) {
+		i, ok := c.index[string(packfile.BlockKey(h))]
+		if !ok {
+			return nil, nil
+		}
+		return read(ctx, &c.blocks[i])
+	}
+}
+
+// packedBlock is one block of the verified local closure, without its data.
 type packedBlock struct {
 	// ref identifies the bytes as stored, before read transformations.
 	ref *block.BlockRef
-	// stored holds the immutable block payload with its recorded refs.
-	stored *block.StoredBlock
+	// refs are the block's outgoing refs, as stored or as the typed walk
+	// recovered them.
+	refs []*block.BlockRef
+	// source indexes the releaseClosure source whose bucket stores it.
+	source int
 	// decoded reports that the walk decoded the block and visited its refs.
 	// The walk stops at a block it has no decoder for, such as an old Object
 	// root a changelog entry references, so the closure omits its children.
@@ -169,12 +262,13 @@ type walkedBlock struct {
 }
 
 // collectBlocks checks the World, object roots, and manifest filesystem closures.
-// Manifest refs can cross object boundaries and must be walked explicitly.
-func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.ReleaseMetadata) (*bucket.ObjectRef, []packedBlock, error) {
+// Manifest refs can cross object boundaries and must be walked explicitly. It
+// verifies every block's data as it walks and keeps none of it.
+func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.ReleaseMetadata) (*releaseClosure, error) {
 	// Collect object roots from one committed read transaction.
 	tx, err := eng.NewTransaction(ctx, false)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer tx.Discard()
 
@@ -186,7 +280,7 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 	objects := tx.IterateObjects(ctx, "", false)
 	defer objects.Close()
 	if err := objects.Seek(""); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Collect typed roots while releasing each loaded object state.
@@ -194,22 +288,22 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 		object, exists, err := tx.GetObject(ctx, objects.Key())
 		if err != nil {
 			world.ReleaseObjectState(object)
-			return nil, nil, err
+			return nil, err
 		}
 		if !exists {
-			return nil, nil, errors.New("release object disappeared during export")
+			return nil, errors.New("release object disappeared during export")
 		}
 		ref, _, err := object.GetRootRef(ctx)
 		world.ReleaseObjectState(object)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		if ref != nil && ref.GetRootRef() != nil {
 			key := ref.MarshalString()
 			roots[key] = ref
 			typeID, err := world_types.GetObjectType(ctx, tx, objects.Key())
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			switch {
 			case typeID == manifest_world.ManifestTypeID:
@@ -227,7 +321,7 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 
 	// Return errors reported by the object cursor.
 	if err := objects.Err(); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Selected manifests precede historical objects so their file closures stay
@@ -247,7 +341,8 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 	var head *bucket.ObjectRef
 	blocks := map[string]int{}
 	walked := map[walkedBlock]struct{}{}
-	var result []packedBlock
+	closure := &releaseClosure{index: blocks}
+	sources := map[string]int{}
 	err = eng.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
 		// Register the World root and append remaining object roots in stable order.
 		head = cursor.GetRefWithOpArgs()
@@ -273,6 +368,12 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 			}
 			transform := string(transformData)
 			bucketID := walk.GetOpArgs().GetBucketId()
+			source, ok := sources[bucketID]
+			if !ok {
+				source = len(closure.sources)
+				sources[bucketID] = source
+				closure.sources = append(closure.sources, ref)
+			}
 			transformer := walk.GetTransformer()
 			if transformer == nil {
 				transformer = block_transform.NewTransformerWithSteps(nil)
@@ -299,29 +400,31 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 						return false, err
 					}
 
-					// Add unseen verified blocks, recovering unknown refs from the
-					// block the typed walk decoded rather than exporting a leaf.
-					key := entry.Ref.MarshalString()
-					index, exists := blocks[key]
+					// Add unseen verified blocks with their refs but not their
+					// data, recovering unknown refs from the block the typed walk
+					// decoded rather than exporting a leaf.
+					packKey := string(packfile.BlockKey(entry.Ref.GetHash()))
+					index, exists := blocks[packKey]
 					if !exists {
 						stored, err := walk.GetBucket().GetStoredBlock(ctx, entry.Ref)
 						if err != nil {
 							return false, err
 						}
+						refs := stored.GetRefs()
 						if !stored.GetRefsKnown() {
-							refs, err := entry.BlockRefs(ctx, walk.GetBucket())
+							refs, err = entry.BlockRefs(ctx, walk.GetBucket())
 							if err != nil {
 								return false, err
 							}
-							stored = &block.StoredBlock{Data: entry.Data, Refs: refs, RefsKnown: true}
 						}
-						index = len(result)
-						blocks[key] = index
-						result = append(result, packedBlock{ref: entry.Ref.CloneVT(), stored: stored})
+						index = len(closure.blocks)
+						blocks[packKey] = index
+						closure.blocks = append(closure.blocks, packedBlock{ref: entry.Ref.CloneVT(), refs: refs, source: source})
 					}
 					if entry.Blk != nil {
-						result[index].decoded = true
+						closure.blocks[index].decoded = true
 					}
+					key := entry.Ref.MarshalString()
 
 					// Reused filesystem trees need one complete traversal. Keep the
 					// decoder and storage context in the key so a differently typed
@@ -341,13 +444,14 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if head == nil || head.GetEmpty() || len(blocks) == 0 {
-		return nil, nil, errors.New("release World has no content")
+		return nil, errors.New("release World has no content")
 	}
 
 	// The single-worker walk orders children by reference ID. Preserve that
 	// locality rather than scattering adjacent file blocks by content hash.
-	return head, result, nil
+	closure.head = head
+	return closure, nil
 }

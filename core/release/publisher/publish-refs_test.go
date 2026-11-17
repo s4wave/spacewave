@@ -39,10 +39,11 @@ func TestCollectBlocksUnknownRefs(t *testing.T) {
 	}
 
 	// Read the complete release closure before removing the root's GC edges.
-	head, before, err := collectBlocks(ctx, tb.Engine, &release.ReleaseMetadata{})
-	if err != nil || head == nil || len(before) == 0 {
-		t.Fatalf("initial closure = %v/%v/%v", head, before, err)
+	initial, err := collectBlocks(ctx, tb.Engine, &release.ReleaseMetadata{})
+	if err != nil || initial.head == nil || len(initial.blocks) == 0 {
+		t.Fatalf("initial closure = %v/%v", initial, err)
 	}
+	head, before := initial.head, initial.blocks
 	graph := tb.Volume.GetRefGraph()
 	node := block_gc.BlockIRI(head.GetRootRef())
 	outgoing, err := graph.GetOutgoingRefs(ctx, node)
@@ -66,18 +67,22 @@ func TestCollectBlocksUnknownRefs(t *testing.T) {
 	}
 
 	// Export the same closure with the typed root's own refs, not a false leaf.
-	_, after, err := collectBlocks(ctx, tb.Engine, &release.ReleaseMetadata{})
-	if err != nil || len(after) != len(before) {
-		t.Fatalf("untracked closure length = %d/%v, want %d", len(after), err, len(before))
+	untracked, err := collectBlocks(ctx, tb.Engine, &release.ReleaseMetadata{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := untracked.blocks
+	if len(after) != len(before) {
+		t.Fatalf("untracked closure length = %d, want %d", len(after), len(before))
 	}
 	for i, entry := range before {
 		got := after[i]
-		if !got.ref.EqualsRef(entry.ref) || !got.stored.RefsKnown || len(got.stored.Refs) != len(entry.stored.Refs) {
+		if !got.ref.EqualsRef(entry.ref) || len(got.refs) != len(entry.refs) {
 			t.Fatalf("untracked closure block %d = %+v, want %+v", i, got, entry)
 		}
-		for _, ref := range entry.stored.Refs {
-			if !slices.ContainsFunc(got.stored.Refs, func(candidate *block.BlockRef) bool { return candidate.EqualsRef(ref) }) {
-				t.Fatalf("untracked block %d refs = %v, want %v", i, got.stored.Refs, ref)
+		for _, ref := range entry.refs {
+			if !slices.ContainsFunc(got.refs, func(candidate *block.BlockRef) bool { return candidate.EqualsRef(ref) }) {
+				t.Fatalf("untracked block %d refs = %v, want %v", i, got.refs, ref)
 			}
 		}
 	}
