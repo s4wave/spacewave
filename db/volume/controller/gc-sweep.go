@@ -18,11 +18,15 @@ const stallWarnAfter = 2 * block_gc.DefaultGrace
 
 // stallWatch follows one kind of stalled free across collection passes. It
 // is clear until a pass reports the stall, then stalled since that pass's
-// time, until a pass that ran every step reports none: a pass that stopped
-// with work left may not have reached the free.
+// time, until a pass that ran every step reports none, or a pass that
+// stopped early reports none stallWarnAfter after the last report: a pass
+// that stopped with work left may not have reached the free, but a stall
+// no pass reported for that long has ended, and a later one starts anew.
 type stallWatch struct {
 	// since is when the stall began, zero while clear.
 	since time.Time
+	// last is when a pass last reported the stall.
+	last time.Time
 	// warned is when the sweep last warned of this stall.
 	warned time.Time
 }
@@ -31,10 +35,10 @@ type stallWatch struct {
 // how long the stall has lasted and whether to warn of it: once it has lasted
 // stallWarnAfter, then each stallWarnAfter while it lasts.
 func (s *stallWatch) observe(now time.Time, stalled, more bool) (time.Duration, bool) {
-	// Clear the stall on a pass that ran every step without it, and keep it
-	// through one that stopped early.
+	// Clear the stall on a pass that ran every step without it, and on one
+	// that stopped early once the last report aged.
 	if !stalled {
-		if !more {
+		if !more || now.Sub(s.last) >= stallWarnAfter {
 			*s = stallWatch{}
 		}
 		return 0, false
@@ -44,6 +48,7 @@ func (s *stallWatch) observe(now time.Time, stalled, more bool) (time.Duration, 
 	if s.since.IsZero() {
 		s.since = now
 	}
+	s.last = now
 	lasted := now.Sub(s.since)
 	if lasted < stallWarnAfter || now.Sub(s.warned) < stallWarnAfter {
 		return lasted, false

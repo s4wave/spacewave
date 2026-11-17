@@ -6151,69 +6151,88 @@ func TestLivenessSettle(t *testing.T) {
 		// capped at the journal's end. A write then moves the end before the
 		// cascade nets P and G Dead at the later end, above the capped mark,
 		// so the mark no longer covers P. What keeps G is the front: the
-		// readoption pushes G back as the unverified child of the verified P,
-		// and only a pop at G's later ripe sequence takes it off, which
-		// raises the mark past P again. The flip must not leave P stored
-		// without G.
-		tr := testTree{}
-		tr.add(t, "A")
-		tr.add(t, "G")
-		tr.add(t, "P", "G")
-		tr.add(t, "X", "P")
-		tr.add(t, "Z")
-		v, clk, store := oldStore(t, tr, "A", []string{"A", "G", "P", "X"})
-		ctx := t.Context()
-		if err := rootOnto(t, v, tr, "X"); err != nil {
-			t.Fatal(err)
-		}
-		clk.Add(block_gc.DefaultGrace + time.Second)
-		collectAll(t, v)
-		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: tr["X"].Ref}}); err != nil {
-			t.Fatal(err)
-		}
-		verify(t, v, tr, "X", "P")
-		var popped uint64
-		res := collectUntil(t, v, clk, func(res block_gc.CollectResult) bool {
-			popped += res.Popped
-			return popped != 0 || res.Flipped
-		})
-		if res.Flipped || has(t, store, front, tr["G"].Ref) {
-			t.Fatalf("collect = %+v, want G popped and the flip held by A", res)
-		}
-
-		// Readopt, and move the journal's end before the cascade nets.
-		frees := livenessState(t, v).GetFrees()
-		for _, on := range []bool{!frees, frees} {
-			if _, err := block_gc.SetFrees(ctx, collectorStore{v: v}, on, v.holdRule); err != nil {
-				t.Fatal(err)
+		// readoption pushes G back as the unverified child of P's list,
+		// written from content, and only a pop at G's later ripe sequence
+		// takes it off, which raises the mark past P again. In the young
+		// case a put writes P, never verified, and main holds P itself. The
+		// flip must not leave P stored without G.
+		for _, young := range []bool{false, true} {
+			name := "verified parent"
+			if young {
+				name = "young parent"
 			}
-		}
-		if _, err := v.Adopt(ctx); err != nil {
-			t.Fatal(err)
-		}
-		if !has(t, store, front, tr["G"].Ref) {
-			t.Fatal("the readoption left G, the unverified child of the verified P, off the front")
-		}
-		z := []block.NamedRoot{{Name: "z", Ref: tr["Z"].Ref}}
-		if err := v.SetBucketRoots(ctx, "b", tr.entries("Z"), z); err != nil {
-			t.Fatal(err)
-		}
-		collectAll(t, v)
-		_, pRipe := blockHolders(t, v, tr, "P")
-		if mark := livenessState(t, v).GetNextSeq(); pRipe < mark-1 {
-			t.Fatalf("P ripe at %d, want the end after the write, %d", pRipe, mark-1)
-		}
+			t.Run(name, func(t *testing.T) {
+				tr := testTree{}
+				tr.add(t, "A")
+				tr.add(t, "G")
+				tr.add(t, "Z")
+				top, listed, put := "X", []string{"A", "G", "P", "X"}, []string(nil)
+				if young {
+					top, listed, put = "P", []string{"A", "G"}, []string{"P"}
+				} else {
+					tr.add(t, "P", "G")
+					tr.add(t, "X", "P")
+				}
+				v, clk, store := oldStore(t, tr, "A", listed)
+				if young {
+					tr.add(t, "P", "G")
+				}
+				ctx := t.Context()
+				if err := rootOnto(t, v, tr, top, put...); err != nil {
+					t.Fatal(err)
+				}
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				collectAll(t, v)
+				if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: tr[top].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+				if !young {
+					verify(t, v, tr, "X", "P")
+				}
+				var popped uint64
+				res := collectUntil(t, v, clk, func(res block_gc.CollectResult) bool {
+					popped += res.Popped
+					return popped != 0 || res.Flipped
+				})
+				if res.Flipped || has(t, store, front, tr["G"].Ref) {
+					t.Fatalf("collect = %+v, want G popped and the flip held by A", res)
+				}
 
-		// Walk A within the grace: G on the front holds the flip until it
-		// pops, and its pop covers P.
-		verify(t, v, tr, "A")
-		if res := collectAll(t, v); res.Flipped {
-			t.Fatalf("collect flipped with G on the front: %+v", res)
+				// Readopt, and move the journal's end before the cascade nets.
+				frees := livenessState(t, v).GetFrees()
+				for _, on := range []bool{!frees, frees} {
+					if _, err := block_gc.SetFrees(ctx, collectorStore{v: v}, on, v.holdRule); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if _, err := v.Adopt(ctx); err != nil {
+					t.Fatal(err)
+				}
+				if !has(t, store, front, tr["G"].Ref) {
+					t.Fatal("the readoption left G, the unverified child of P's list, off the front")
+				}
+				z := []block.NamedRoot{{Name: "z", Ref: tr["Z"].Ref}}
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("Z"), z); err != nil {
+					t.Fatal(err)
+				}
+				collectAll(t, v)
+				_, pRipe := blockHolders(t, v, tr, "P")
+				if mark := livenessState(t, v).GetNextSeq(); pRipe < mark-1 {
+					t.Fatalf("P ripe at %d, want the end after the write, %d", pRipe, mark-1)
+				}
+
+				// Walk A within the grace: G on the front holds the flip until it
+				// pops, and its pop covers P.
+				verify(t, v, tr, "A")
+				if res := collectAll(t, v); res.Flipped {
+					t.Fatalf("collect flipped with G on the front: %+v", res)
+				}
+				settleAll(t, v, clk, store, tr)
+				requireStored(t, v, tr, true, "A", "Z")
+				requireStored(t, v, tr, false, top, "P", "G")
+				requireAudit(t, v, 0)
+			})
 		}
-		settleAll(t, v, clk, store, tr)
-		requireStored(t, v, tr, true, "A", "Z")
-		requireStored(t, v, tr, false, "X", "P", "G")
-		requireAudit(t, v, 0)
 	})
 
 	t.Run("front entry whose list and bytes are lost", func(t *testing.T) {

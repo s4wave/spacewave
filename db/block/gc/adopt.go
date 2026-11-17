@@ -160,10 +160,14 @@ func Adopt(ctx context.Context, store Store, rule HoldRule) (AdoptResult, error)
 
 		// Cap the pop mark clearRun raised at the journal's end. The recount
 		// gave each block it left at zero the journal's end when it settled
-		// that block as its ripe sequence, no later than the end now, and
-		// a cascade it started leaves the block Dead at that sequence, so
+		// that block as its ripe sequence, no later than the end now, so
 		// the capped mark still covers each, while a block that dies later
-		// cannot hold the flip.
+		// cannot hold the flip. A cascade the recount started nets after
+		// any later write, so the blocks it leaves Dead ripen above the
+		// mark. The recount returned each unverified child of a list
+		// written from content to the front, and only a pop at the child's
+		// later ripe sequence takes it off, which raises the mark past its
+		// parent again.
 		if err := rec.capPopMark(ctx, state.GetNextSeq()); err != nil {
 			return err
 		}
