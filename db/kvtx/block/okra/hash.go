@@ -3,7 +3,6 @@
 package kvtx_block_okra
 
 import (
-	"crypto/sha256"
 	"encoding/binary"
 	"hash"
 	"math"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/net/hash/sha256"
 )
 
 var okraHasherPool = sync.Pool{
