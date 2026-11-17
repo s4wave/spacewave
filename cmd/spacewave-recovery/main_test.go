@@ -197,6 +197,17 @@ func TestRecoveryResume(t *testing.T) {
 				t.Fatal(err)
 			}
 			_ = cmd.Wait()
+			if phase == recovery.Phase_PHASE_UNKNOWN {
+				// The kill landed inside a batch: none of its prepared steps
+				// may be durable.
+				killed, err := recovery.ReadResult(scratch)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if killed.GetCounts().GetPhysicalLocations() >= 5 {
+					t.Fatalf("killed batch left %d durable locations", killed.GetCounts().GetPhysicalLocations())
+				}
+			}
 			if err := runCount(t.Context(), io.Discard, fixture.source, scratch, countOptions()); err != nil {
 				t.Fatal(err)
 			}
@@ -264,8 +275,13 @@ func TestRecoveryResume(t *testing.T) {
 				t.Fatal(err)
 			}
 			result, err := scanner.Run(t.Context())
-			if !errors.Is(err, injected) || result.GetPhase() != recovery.Phase_PHASE_PAUSED || result.GetCounts().GetPhysicalLocations() == 0 {
+			if !errors.Is(err, injected) || result.GetPhase() != recovery.Phase_PHASE_PAUSED {
 				t.Fatalf("fault published nonprovisional result: %v %v", result, err)
+			}
+			// A scratch failure inside a batch rolls the whole batch back; the
+			// other faults strike after committed inventory.
+			if locations := result.GetCounts().GetPhysicalLocations(); (fault == "scratch-full") != (locations < 5) || locations != committed {
+				t.Fatalf("%s fault kept %d locations, last commit had %d", fault, locations, committed)
 			}
 			if err := scanner.Close(); err != nil {
 				t.Fatal(err)

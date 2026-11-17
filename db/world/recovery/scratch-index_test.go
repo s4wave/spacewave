@@ -50,6 +50,9 @@ func TestScratchBudget(t *testing.T) {
 	if err := index.Update(func(tx *scratchTx) error { return tx.Bucket([]byte("test")).Put([]byte("key"), []byte("value")) }); err != nil {
 		t.Fatal(err)
 	}
+	if err := index.Commit(); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := index.store.GetDB().ExecContext(context.Background(), "DROP TABLE recovery"); err != nil {
 		t.Fatal(err)
 	}

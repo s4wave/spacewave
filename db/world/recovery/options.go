@@ -18,12 +18,12 @@ type Options struct {
 	Witness func(context.Context, *WitnessInput, func([]byte) ([]byte, error)) (*WitnessEvidence, error)
 	// BeforeStep injects a fault before a durable scratch step; nil runs normally.
 	BeforeStep func(Phase) error
-	// Committed observes each durable step, for interruption run-throughs.
+	// Committed observes each durable batch commit, for interruption run-throughs.
 	Committed func(*Result) error
 	// BeforeRead injects an input read failure without adding source capabilities.
 	BeforeRead func() error
 	// BeforeDecode injects a transient decoder failure at a durable boundary.
 	BeforeDecode func() error
-	// BeforeCommit injects interruption after rows/result are prepared, before atomic commit.
+	// BeforeCommit injects interruption after a step's rows and result are prepared, before the step joins its uncommitted batch.
 	BeforeCommit func(*Result) error
 }

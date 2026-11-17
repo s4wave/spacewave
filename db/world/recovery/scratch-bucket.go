@@ -42,6 +42,7 @@ func (bucket *scratchBucket) Put(key, value []byte) error {
 	}
 	err := bucket.tx.tx.Set(bucket.tx.ctx, append(bytes.Clone(bucket.prefix), key...), value)
 	bucket.tx.fail(err)
+	bucket.tx.written += len(bucket.prefix) + len(key) + len(value)
 	return err
 }
 

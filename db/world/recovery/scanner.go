@@ -169,6 +169,9 @@ func NewScanner(ctx context.Context, source *Source, scratch string, opts Option
 		}
 		return s.save(tx)
 	})
+	if err == nil {
+		err = s.db.Commit()
+	}
 	if err != nil {
 		return nil, errors.Join(err, s.Close())
 	}
@@ -191,13 +194,14 @@ func (s *Scanner) Run(ctx context.Context) (*Result, error) {
 		s.result.Failure = ""
 	}
 
-	// Execute one bounded durable operation at a time.
+	// Execute one bounded operation at a time, committing them in batches.
 	for s.result.GetPhase() != Phase_PHASE_COUNTED {
+		unit := s.unit()
 		physical, identityErr := captureIdentity(s.source)
 		if identityErr != nil || !bytes.Equal(physical, s.capture) {
 			s.result.Phase = Phase_PHASE_STALE
 			s.result.Failure = "capture identity changed; preserve this report and start a new scratch file"
-			return s.Result(), errors.Join(errors.New(s.result.GetFailure()), s.db.Update(s.save))
+			return s.Result(), errors.Join(errors.New(s.result.GetFailure()), s.db.Update(s.save), s.db.Commit())
 		}
 		err := ctx.Err()
 		if err == nil && s.opts.BeforeStep != nil {
@@ -218,6 +222,16 @@ func (s *Scanner) Run(ctx context.Context) (*Result, error) {
 		if err != nil {
 			return s.pause(err)
 		}
+
+		// Commit at each phase, table or pack boundary, so typed readers
+		// see committed inventory and a pack or table range is the resume
+		// unit, and whenever the batch reaches its bound.
+		if s.unit() == unit && !s.db.Full() {
+			continue
+		}
+		if err := s.db.Commit(); err != nil {
+			return s.pause(err)
+		}
 		if s.opts.Committed != nil {
 			if err := s.opts.Committed(s.Result()); err != nil {
 				return s.pause(err)
@@ -228,7 +242,7 @@ func (s *Scanner) Run(ctx context.Context) (*Result, error) {
 	if identityErr != nil || !bytes.Equal(physical, s.capture) {
 		s.result.Phase = Phase_PHASE_STALE
 		s.result.Failure = "capture identity changed; preserve this report and start a new scratch file"
-		return s.Result(), errors.Join(errors.New(s.result.GetFailure()), s.db.Update(s.save))
+		return s.Result(), errors.Join(errors.New(s.result.GetFailure()), s.db.Update(s.save), s.db.Commit())
 	}
 	return s.Result(), nil
 }
@@ -270,9 +284,29 @@ func (s *Scanner) save(tx *scratchTx) error {
 	return nil
 }
 
+// resumeUnit is the phase, table and pack a step works in; a change of unit
+// ends a batch.
+type resumeUnit struct {
+	// phase is the durable phase.
+	phase Phase
+	// table indexes the source table inventory reads.
+	table uint32
+	// packDir indexes the declared pack directory inventory reads.
+	packDir uint32
+	// packAfter names the last pack read in packDir.
+	packAfter string
+}
+
+// unit returns the resume unit of the current result.
+func (s *Scanner) unit() resumeUnit {
+	return resumeUnit{s.result.GetPhase(), s.result.GetTable(), s.result.GetPackDir(), s.result.GetPackAfter()}
+}
+
 // pause preserves the last committed report even when scratch is full.
 func (s *Scanner) pause(cause error) (*Result, error) {
-	// Reload the durable cursor so a rolled-back transaction never advances it.
+	// Drop the uncommitted batch and reload the durable cursor, so a
+	// rolled-back step never advances it.
+	s.db.Discard()
 	durable := &Result{}
 	err := s.db.View(func(tx *scratchTx) error {
 		return durable.UnmarshalVT(tx.Bucket([]byte("state")).Get([]byte("result")))
@@ -294,6 +328,9 @@ func (s *Scanner) pause(cause error) (*Result, error) {
 
 	// A failed pause write leaves the earlier non-counted result resumable.
 	err = s.db.Update(s.save)
+	if err == nil {
+		err = s.db.Commit()
+	}
 	return s.Result(), errors.Join(cause, err)
 }
 
