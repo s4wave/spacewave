@@ -639,10 +639,17 @@ type quitConn struct {
 	net.Conn
 }
 
-// Close waits for the server's close, then closes.
+// Close waits for the server's close, then closes. It reads in a plain loop:
+// io.Copy would hand the connection to its WriteTo, whose generic fallback
+// recurses into itself under goscript.
 func (c quitConn) Close() error {
 	_ = c.SetReadDeadline(time.Now().Add(quitTimeout))
-	_, _ = io.Copy(io.Discard, c.Conn)
+	var buf [512]byte
+	for {
+		if _, err := c.Read(buf[:]); err != nil {
+			break
+		}
+	}
 	return c.Conn.Close()
 }
 
