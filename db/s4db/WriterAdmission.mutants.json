@@ -1,8 +1,14 @@
 [
   {
-    "name": "yielded background call never ages",
+    "name": "completed foreground cohort never ages background turn",
     "config": "WriterAdmission-liveness.cfg",
-    "replace": [["/\\ aged' = [aged EXCEPT ![b] = TRUE]", "/\\ aged' = [aged EXCEPT ![b] = FALSE]"]],
-    "expect": "BackgroundYieldBound"
+    "replace": [["/\\ aged' = [k \\in AgeKeys |-> TRUE]", "/\\ aged' = [k \\in AgeKeys |-> FALSE]"]],
+    "expect": "BackgroundFinishes"
+  },
+  {
+    "name": "foreground cohort gives each background call its own aged turn",
+    "config": "WriterAdmission.cfg",
+    "replace": [["SharedAging == TRUE", "SharedAging == FALSE"]],
+    "expect": "ForegroundPassedAtMostOnce"
   }
 ]
