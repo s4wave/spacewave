@@ -130,12 +130,12 @@ func TestAdminMoves(t *testing.T) {
 		t.Fatalf("status = %v, %v", status, err)
 	}
 
-	// A lift returns it, with the lift recorded.
+	// A lift returns it with no event, so a later cycle may quarantine it.
 	resp, err := b.admin.Lift(ctx, pack)
 	if err != nil || len(resp.GetPacks()) != 1 {
 		t.Fatalf("lift = %v, %v", resp, err)
 	}
-	if hold := resp.GetPacks()[0]; hold.GetState() != PackState_PACK_STATE_REGISTERED || hold.GetEventUnixNano() == 0 || len(hold.GetKey()) != 0 {
+	if hold := resp.GetPacks()[0]; hold.GetState() != PackState_PACK_STATE_REGISTERED || hold.GetEventUnixNano() != 0 || len(hold.GetKey()) != 0 {
 		t.Fatalf("lift record = %v", hold)
 	}
 	located, err = b.admin.Locate(ctx, &LocateRequest{Refs: []*block.BlockRef{ref}})
