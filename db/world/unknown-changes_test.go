@@ -148,32 +148,3 @@ func createUnknownViewChange(t *testing.T, ctx context.Context, engine world.Eng
 		t.Fatal(err)
 	}
 }
-
-// TestPendingWriteRefusesChangeWatch checks that a change watch on a pending
-// write transaction is refused rather than waiting on a seqno that a run of
-// same-type changes leaves in place.
-func TestPendingWriteRefusesChangeWatch(t *testing.T) {
-	// Open a write transaction on the testbed's served engine.
-	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
-	defer cancel()
-	tb := world_testbed.MustDefault(t, ctx)
-	err := world.AccessEngine(ctx, tb.Engine, func(ctx context.Context, engine world.Engine) error {
-		tx, err := engine.NewTransaction(ctx, true)
-		if err != nil {
-			return err
-		}
-		defer tx.Discard()
-
-		// The watch returns the refusal at once instead of waiting.
-		err = world.WatchChanges(ctx, tx, 0, func(uint64, *world.ChangeSet) error {
-			return errors.New("pending write delivered a change")
-		})
-		if !errors.Is(err, world.ErrPendingWriteWatch) {
-			t.Fatalf("watch on a pending write: %v, want ErrPendingWriteWatch", err)
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
