@@ -3,9 +3,9 @@ package s4db
 import (
 	"context"
 	"sync/atomic"
+	"time"
 
-	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/csync"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // writer appends commits and background records for one handle. Its fields
@@ -13,92 +13,73 @@ import (
 type writer struct {
 	// db is the database.
 	db *DB
-	// mtx excludes this handle's other writers.
-	mtx csync.Mutex
-	// unlockMtx releases mtx while the writer lock is held.
-	unlockMtx func()
-
-	// held is set while this handle holds the writer lock. It is safe
-	// without the writer lock.
+	// admission grants one transaction or scheduler slice at a time.
+	admission writerAdmission
+	// held reports native writer-lock ownership to diagnostics and tests.
 	held atomic.Bool
-	// requests guards local foreground announcements and completion wakes.
-	requests broadcast.Broadcast
-
-	// waiting counts this handle's foreground writers waiting for the writer lock. It
-	// is safe without the writer lock.
-	waiting atomic.Int32
-	// served counts this handle's foreground requests that stopped waiting,
-	// by acquiring the writer lock or cancelling. It is safe without the
-	// writer lock.
-	served atomic.Uint64
+	// backgroundSince starts this grant's background hold; zero is foreground.
+	backgroundSince time.Time
 }
 
-// lock announces foreground demand and takes the transaction writer lock.
-// ctx bounds the wait for this process's other transactions.
+// lock admits a transaction according to its background context marker.
 func (w *writer) lock(ctx context.Context) error {
-	// Announce this request before it can wait behind any background step.
-	if err := w.beginWait(); err != nil {
-		return err
-	}
-	defer w.endWait()
-	return w.take(ctx)
+	return w.take(ctx, block.IsBackground(ctx))
 }
 
-// take acquires the transaction writer locks. Foreground callers
-// announce their request first; background callers check announcements afterward.
-func (w *writer) take(ctx context.Context) error {
-	// Exclude concurrent transactions before taking the native commit byte.
-	release, err := w.mtx.Lock(ctx)
-	if err != nil {
+// take waits for this file's admission grant before taking its commit byte.
+func (w *writer) take(ctx context.Context, background bool) error {
+	// Wait for the shared grant before acquiring native writer exclusion.
+	if err := w.admission.lock(ctx, background); err != nil {
 		return err
 	}
-	_, err = w.db.s.lock(lockWriter, true)
-	if err != nil {
-		release()
-		return err
-	}
-	w.unlockMtx = release
-	w.held.Store(true)
 
+	// Return the grant if the native lock fails, so its successor can progress.
+	if _, err := w.db.s.lock(lockWriter, true); err != nil {
+		w.admission.unlock()
+		return err
+	}
+
+	// Attribute the hold to this grant after native exclusion succeeds.
+	w.backgroundSince = time.Time{}
+	if background {
+		w.backgroundSince = time.Now()
+	}
+	w.held.Store(true)
 	return nil
 }
 
-// tryLock takes the transaction writer lock only while foreground work is idle.
-func (w *writer) tryLock(ctx context.Context) (bool, error) {
-	// Exclude this handle's writers, then other processes, without
-	// waiting.
-	release, ok := w.mtx.TryLock()
-	if !ok {
+// tryLock admits a closing mark only while both request queues are empty.
+func (w *writer) tryLock(_ context.Context) (bool, error) {
+	// Optional close work never queues ahead of a real transaction.
+	if !w.admission.tryLock() {
 		return false, nil
 	}
+
+	// An unavailable or failed native lock also returns the optional grant.
 	ok, err := w.db.s.lock(lockWriter, false)
 	if err != nil || !ok {
-		release()
+		w.admission.unlock()
 		return false, err
 	}
-	w.unlockMtx = release
+
+	// Count optional marks as background holds for waiting foreground writers.
+	w.backgroundSince = time.Now()
 	w.held.Store(true)
-
-	// An optional closing mark yields to local foreground requests.
-	if slot, err := w.waitingSlot(); err != nil || slot >= 0 {
-		w.unlock()
-		return false, err
-	}
-
 	return true, nil
 }
 
-// unlock releases the writer lock and tells other processes the file
-// changed.
+// unlock releases the native commit byte before granting the next request.
 func (w *writer) unlock() {
-	// Release other processes and wake their watchers, then this handle's
-	// writers.
+	// Account for every background hold, including marked transactions.
+	if !w.backgroundSince.IsZero() && w.admission.waiting.Load() != 0 {
+		w.db.recordWait(time.Since(w.backgroundSince))
+	}
+
+	// Native exclusion ends before the next queue grant can begin.
 	w.held.Store(false)
 	_ = w.db.s.unlock(lockWriter)
 	w.db.watch.notify()
-	release := w.unlockMtx
-	w.unlockMtx = nil
-	release()
+	w.admission.unlock()
 }
 
 // create writes an empty database into an empty file: the header, zero

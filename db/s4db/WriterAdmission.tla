@@ -1,28 +1,24 @@
 ---- MODULE WriterAdmission ----
-\* Proposed shared arbiter, NOT native writer correspondence. Native s4db
-\* has process-local served/waiting counters and aggregate remote intent
-\* bytes; it has no shared request queue, cohort boundary or consumed turn.
-\* These atomic actions require a new cross-process coordination primitive.
-\*
-\* Two foreground actors repeatedly register/cancel; two background calls
-\* start queued behind W. Requests may belong to different processes: every
-\* actor uses this ONE abstract arbiter, not one arbiter per handle/process.
-\* A cohort snapshots the foreground queue. Later arrivals wait for the next
-\* cohort; after a cohort drains, exactly one background slice is reserved.
-\* Consuming that turn clears it for ALL background calls. With no foreground
-\* demand, background calls run directly. Neither class has priority levels.
-\*
-\* Cancellation removes a queued request, including a cohort member, without
-\* consuming a background turn. Finish represents release on success, failure
-\* or owner death after admission. Cancel also abstracts atomic removal of a
-\* dead queued process. Real crash detection, slot reuse, grant-vs-cancel
-\* linearization, notifications and OS-lock acquisition are obligations of
-\* the missing native primitive, not established by this abstract model.
-\* Refresh, transaction bodies, disk errors and durations are omitted. Weak
-\* fairness assumes every holder releases and every enabled arbiter action
-\* runs. Counters saturate at two; they witness violations, not scheduling.
-\* SharedAging=FALSE is the rejected per-call policy: cohort completion gives
-\* each background invocation an independent permission to bypass a waiter.
+\* Native single-process writerAdmission: one writable handle owns each file.
+\* W starts as an already-running background slice; it counts toward the bound.
+\* All queue changes are protected by writerAdmission.mtx; bodies and native
+\* writer-byte acquisition happen after that mutex releases.
+\* Want maps to lock's enqueue. StartCohort captures the foreground FIFO tail;
+\* the implementation keeps one linked FIFO and a boundary, not a queue copy.
+\* TakeForeground/TakeBackground map to grant, including close(ready).
+\* CloseCohort maps to dispatch observing a drained boundary after release.
+\* dispatch executes several of these abstract actions in one mutex hold.
+\* Cancel maps to unlink plus moving a cancelled tail to its predecessor.
+\* A cancellation after grant maps to Finish, just as native lock I/O failure,
+\* transaction commit/discard and scheduler-slice completion return the grant.
+\* Returning a grant and dispatching its successor share one mutex hold.
+\* The optional closing mark only grants when both queues are empty.
+\* Shutdown stops new transactions, drains counted writers, then cancels and
+\* joins scheduler callers. Process death drops ownership and all local queues.
+\* The model has two recurring foreground actors and two background slices.
+\* Caller bodies, storage, scheduling and memtable backpressure have no time
+\* bound. Weak fairness assumes granted holders eventually finish.
+\* SharedAging=FALSE retains the independent per-call-aging counterexample.
 EXTENDS Naturals, Sequences, FiniteSets
 Foreground == {"F1", "F2"}
 Background == {"B1", "B2"}
@@ -45,7 +41,7 @@ Want(f) ==
   /\ f \notin Waiting /\ holder # f
   /\ pending' = Append(pending, f)
   \* Count a slice already holding writer, as well as later grants.
-  /\ passed' = [passed EXCEPT ![f] = IF holder \in Background THEN 1 ELSE 0]
+  /\ passed' = [passed EXCEPT ![f] = IF holder \in Background \cup {"W"} THEN 1 ELSE 0]
   /\ UNCHANGED <<holder, cohort, backgrounds, stage, aged, done>>
 StartCohort ==
   /\ holder = "none" /\ stage = "open" /\ Len(pending) > 0

@@ -683,10 +683,10 @@ func (db *DB) drainWriters() {
 // closeDrainTimeout bounds how long Close waits for write transactions.
 const closeDrainTimeout = 10 * time.Second
 
-// WritersWaiting reports whether a writer of this handle waits for the writer
-// lock, so a holder doing deferrable work can commit early and let it in.
+// WritersWaiting reports queued foreground demand, so a holder doing
+// deferrable work can commit early and let it in.
 func (db *DB) WritersWaiting() bool {
-	return db.w.waiting.Load() != 0
+	return db.w.admission.waiting.Load() != 0
 }
 
 // SupportsAtomicCommit reports true: Commit applies a write transaction in
@@ -779,8 +779,7 @@ func (db *DB) Close() error {
 // writer lock without waiting, so the next open verifies no values and the
 // value chunks the last commits freed can be reused.
 func (db *DB) closingMark() {
-	// Take the lock only when it is free; another process's writer is
-	// writing marks of its own.
+	// Take an optional background turn only when this handle is idle.
 	ctx := context.Background()
 	ok, err := db.w.tryLock(ctx)
 	if err != nil || !ok {
