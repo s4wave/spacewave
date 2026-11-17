@@ -565,18 +565,16 @@ func (s *PendingStore) OpenStage(ctx context.Context) (StoreOps, func(), error) 
 	}, nil
 }
 
-// OpenOverflowStage opens a stage of the inner store for the puts past the
+// OpenOverflowStage returns a stage of the inner store for the puts past the
 // bound, as OpenStage does, but holds none of the kept blocks it puts
 // against Sweep. It suits a writer that passes Sweep every tree it still
 // needs and can compute the others again: a kept page it replaced leaves
 // memory at the next sweep, not at the release, and only the stored ones
-// wait for the stage.
-func (s *PendingStore) OpenOverflowStage(ctx context.Context) (*OverflowStage, error) {
-	stage, release, err := OpenStage(ctx, s.StoreOps)
-	if err != nil {
-		return nil, err
-	}
-	return &OverflowStage{pendingStage: &pendingStage{PendingStore: s, stage: stage}, release: release}, nil
+// wait for the stage. The inner stage opens on the first put past the bound,
+// before that put writes, so a writer whose puts fit opens none.
+func (s *PendingStore) OpenOverflowStage() *OverflowStage {
+	lazy := &lazyStage{StoreOps: s.StoreOps}
+	return &OverflowStage{pendingStage: &pendingStage{PendingStore: s, stage: lazy}, lazy: lazy}
 }
 
 // ReleaseRoots forwards staging release to the inner store.

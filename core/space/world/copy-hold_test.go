@@ -1,12 +1,14 @@
 package space_world
 
 import (
+	"bytes"
 	"errors"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // TestCopyHoldsWhatItSkips walks the fence and backfill copy through a Volume
@@ -208,13 +210,13 @@ func TestAdmitRepeatRewritesTree(t *testing.T) {
 	adm := func() *spaceAdmission {
 		return &spaceAdmission{payloads: []*block.BlockRef{p.Ref}, done: make(chan struct{})}
 	}
-	if err := a.holdAdmitted(ctx, adm()); !errors.Is(err, block.ErrRootNotHeld) {
+	if err := a.holdAdmitted(ctx, adm(), false); !errors.Is(err, block.ErrRootNotHeld) {
 		t.Fatalf("hold over a tree at zero = %v, want ErrRootNotHeld", err)
 	}
 	if _, err := a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{l, p}); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.holdAdmitted(ctx, adm()); err != nil {
+	if err := a.holdAdmitted(ctx, adm(), false); err != nil {
 		t.Fatalf("repeat: %v", err)
 	}
 
@@ -226,4 +228,113 @@ func TestAdmitRepeatRewritesTree(t *testing.T) {
 	if !stored() {
 		t.Fatal("a collection freed the admitted tree")
 	}
+}
+
+// TestAdmitHoldsOverflow admits candidates whose put stores a block past the
+// PendingStore's bound on a Volume that frees once a record is grace old, and
+// checks that collections past grace leave every block under the candidate's
+// root readable from the Volume: one admission whose overflow leaves the kept
+// pages under half the bound, and one whose hold waits on the root lock while
+// the collections run.
+func TestAdmitHoldsOverflow(t *testing.T) {
+	const (
+		bound = 64 << 10
+		grace = 300 * time.Millisecond
+	)
+
+	// page returns the entry of a block of at least size bytes naming children.
+	page := func(t *testing.T, name string, size int, children ...*block.BlockRef) *block.PutBatchEntry {
+		t.Helper()
+		data := []byte(name)
+		for _, c := range children {
+			data = append(data, c.MarshalString()...)
+		}
+		if len(data) < size {
+			data = append(data, bytes.Repeat([]byte{'.'}, size-len(data))...)
+		}
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &block.PutBatchEntry{Ref: ref, Data: data, Refs: children, RefsKnown: true}
+	}
+
+	// admission returns an admission of a candidate at the last entry.
+	admission := func(entries ...*block.PutBatchEntry) *spaceAdmission {
+		root := entries[len(entries)-1].Ref
+		return &spaceAdmission{candidate: world.Candidate{Root: root, Entries: entries}, done: make(chan struct{})}
+	}
+
+	// age collects past grace often enough to net and free an unheld block.
+	age := func(collect func()) {
+		for range 3 {
+			time.Sleep(grace)
+			collect()
+		}
+	}
+
+	// requireStored fails unless the Volume serves every entry.
+	requireStored := func(t *testing.T, a *Adapter, entries ...*block.PutBatchEntry) {
+		t.Helper()
+		for _, e := range entries {
+			_, ok, err := a.pages.StoreOps.GetBlock(t.Context(), e.Ref)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !ok {
+				t.Fatalf("a collection freed block %q of the admitted World", e.Data[:4])
+			}
+		}
+	}
+
+	t.Run("overflow with Full false", func(t *testing.T) {
+		a, collect := newVolumeAdapter(t, bound, grace)
+		leaf := page(t, "leaf", bound+1)
+		root := page(t, "root", 0, leaf.Ref)
+		if err := a.keepAdmitted(t.Context(), admission(leaf, root)); err != nil {
+			t.Fatal(err)
+		}
+		if a.pages.Full() {
+			t.Fatal("the kept pages reached half the bound")
+		}
+		age(collect)
+		requireStored(t, a, leaf, root)
+	})
+
+	t.Run("hold delayed past grace", func(t *testing.T) {
+		a, collect := newVolumeAdapter(t, bound, grace)
+		mid := page(t, "mid ", bound/2+1)
+		leaf := page(t, "leaf", bound+1)
+		root := page(t, "root", 0, mid.Ref, leaf.Ref)
+
+		// Admit while the test holds the root lock, so the hold waits.
+		unlock, err := a.rootMtx.Lock(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		errCh := make(chan error, 1)
+		go func() { errCh <- a.keepAdmitted(t.Context(), admission(mid, leaf, root)) }()
+		for {
+			ok, err := a.pages.StoreOps.GetBlockExists(t.Context(), leaf.Ref)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if ok {
+				break
+			}
+			time.Sleep(time.Millisecond)
+		}
+		if !a.pages.Full() {
+			t.Fatal("the kept pages stayed under half the bound")
+		}
+
+		// Collect past grace while the hold waits, then let it proceed.
+		age(collect)
+		unlock()
+		if err := <-errCh; err != nil {
+			t.Fatal(err)
+		}
+		age(collect)
+		requireStored(t, a, mid, leaf, root)
+	})
 }

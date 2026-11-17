@@ -127,9 +127,7 @@ func (w *floorWorld) open(maxPending int) {
 	if err := a.loadCursor(ctx); err != nil {
 		w.t.Fatal(err)
 	}
-	if a.replay.stage, err = newReplayStage(ctx, a.pages); err != nil {
-		w.t.Fatal(err)
-	}
+	a.replay.stage = newReplayStage(a.pages)
 	close(a.opened)
 	w.a = a
 	w.t.Cleanup(w.end)

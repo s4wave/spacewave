@@ -326,9 +326,7 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	if err := a.backfill.start(ctx); err != nil {
 		return err
 	}
-	if a.replay.stage, err = newReplayStage(ctx, a.pages); err != nil {
-		return err
-	}
+	a.replay.stage = newReplayStage(a.pages)
 	close(a.opened)
 
 	// Run the queue and the storage reclaim.
@@ -1220,13 +1218,32 @@ func (a *Adapter) admitLocked(adm *spaceAdmission) {
 	}
 }
 
+// keepAdmitted keeps the blocks of adm's candidate and holds what its queued
+// operation needs, through holdAdmitted.
+//
+// Invariant: a block of the candidate that the put stores past the bound is
+// held by the overflow stage from its write until holdAdmitted returns, and
+// holdAdmitted then holds the candidate's World under the pending root, so no
+// collection between the put and the queued operation's land frees it,
+// however long the hold waits on the root lock. The stage opens only on a put
+// past the bound, so a candidate that fits in memory pays no stage.
+func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
+	overflow := a.pages.OpenOverflowStage()
+	defer overflow.Release()
+	if _, err := overflow.PutBlockBatch(ctx, adm.candidate.Entries); err != nil {
+		return err
+	}
+	return a.holdAdmitted(ctx, adm, overflow.Stored())
+}
+
 // holdAdmitted holds what adm's queued operation needs once it is durable:
 // its payloads under the replay payloads root, and its candidate's World under
-// the pending root when the kept pages outgrew memory, so the pages its
-// writer's stage held stay held after the turn ends. Each hold is one swap
-// that stores the writer's own pages, and waits on the root lock only for
-// another swap, never for the driver's store of its pages.
-func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
+// the pending root when its put stored a block past the bound or the kept
+// pages outgrew memory, so the pages its writer's stage or the overflow stage
+// held stay held after they end. Each hold is one swap that stores the
+// writer's own pages, and waits on the root lock only for another swap, never
+// for the driver's store of its pages.
+func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored bool) error {
 	// Hold the payloads before the operation that names them is queued.
 	if len(adm.payloads) != 0 {
 		if err := a.addPayloads(ctx, adm.payloads, true); err != nil {
@@ -1234,8 +1251,8 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 		}
 	}
 
-	// Hold an outgrown candidate beside the earlier ones.
-	if !a.pages.Full() || adm.candidate.Root.GetEmpty() {
+	// Hold an overflowed or outgrown candidate beside the earlier ones.
+	if (!stored && !a.pages.Full()) || adm.candidate.Root.GetEmpty() {
 		return nil
 	}
 	release, err := a.lockRoots(ctx)

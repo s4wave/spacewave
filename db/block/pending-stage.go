@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 )
 
@@ -68,16 +69,99 @@ func (p *pendingStage) BeginReadOperation(context.Context) (StoreOps, func(), er
 
 // HoldCompleteRoots makes the inner stage hold each proved root.
 func (p *pendingStage) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	if l, ok := p.stage.(*lazyStage); ok {
+		return l.HoldCompleteRoots(ctx, refs)
+	}
 	return HoldCompleteRoots(ctx, p.stage, refs)
 }
 
+// lazyStage is a stage of an inner store opened on its first write, so a
+// writer whose puts all fit the bound opens none.
+//
+// Invariant: no block reaches the inner store through a lazyStage unless the
+// stage is open, since each write opens it first, under mtx, and writes
+// through the stage it opened. The stage then holds the block until end, as
+// an eagerly opened one would. A write after end fails with
+// ErrStageReleased instead of storing a block nothing holds.
+type lazyStage struct {
+	// StoreOps is the inner store, which serves the reads.
+	StoreOps
+	// mtx guards the fields below.
+	mtx sync.Mutex
+	// stage is the opened stage, or nil before the first write.
+	stage StoreOps
+	// release ends stage, or is nil before the first write.
+	release func()
+	// ended records that end ran.
+	ended bool
+}
+
+// open returns the stage, opening it on the first call.
+func (l *lazyStage) open(ctx context.Context) (StoreOps, error) {
+	// Refuse a write after end, and open the stage once.
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	if l.ended {
+		return nil, ErrStageReleased
+	}
+	if l.stage == nil {
+		stage, release, err := OpenStage(ctx, l.StoreOps)
+		if err != nil {
+			return nil, err
+		}
+		l.stage, l.release = stage, release
+	}
+	return l.stage, nil
+}
+
+// PutBlock opens the stage and puts the block through it.
+func (l *lazyStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	stage, err := l.open(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	return stage.PutBlock(ctx, data, opts)
+}
+
+// PutBlockBatch opens the stage and puts the entries through it.
+func (l *lazyStage) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
+	stage, err := l.open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return stage.PutBlockBatch(ctx, entries)
+}
+
+// HoldCompleteRoots opens the stage and makes it hold each proved root.
+func (l *lazyStage) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	stage, err := l.open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return HoldCompleteRoots(ctx, stage, refs)
+}
+
+// end ends the stage if it opened, and fails every later write.
+func (l *lazyStage) end() {
+	// Fail later writes, then end a stage that opened.
+	l.mtx.Lock()
+	release := l.release
+	l.ended, l.stage, l.release = true, nil, nil
+	l.mtx.Unlock()
+	if release != nil {
+		release()
+	}
+}
+
 // OverflowStage is a stage PendingStore.OpenOverflowStage opened: it takes
-// the puts past the bound and holds none of the kept blocks.
+// the puts past the bound and holds none of the kept blocks. The inner stage
+// opens on the first put past the bound, so a writer that stays within it
+// makes no call on the inner store.
 type OverflowStage struct {
 	// pendingStage keeps puts and stores the overflow.
 	*pendingStage
-	// release ends the inner stage.
-	release func()
+	// lazy is the inner stage.
+	lazy *lazyStage
 }
 
 // Stored reports whether a put went past the bound to the stage, so ending
@@ -87,9 +171,10 @@ func (s *OverflowStage) Stored() bool {
 }
 
 // Release ends the stage. A block only it held is then freed once the grace
-// period passes.
+// period passes, and a later put past the bound fails with ErrStageReleased.
+// Release of a stage no put went past ends nothing on the inner store.
 func (s *OverflowStage) Release() {
-	s.release()
+	s.lazy.end()
 }
 
 // _ is a type assertion

@@ -62,18 +62,15 @@ func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 	if err := a.admitWrite(ctx, adm); err != nil {
 		return nil, err
 	}
-	if _, err := a.pages.PutBlockBatch(ctx, candidate.Entries); err != nil {
-		a.fail(adm, err)
-		return nil, err
-	}
 
-	// Hold what the queued operation needs durably before queueing it: its
-	// payloads, which name every object root its apply set (Tx.PayloadRefs).
-	// The hold stores each kept page a root reaches, nested refs included, in
-	// one transaction with the root's move, so an appended operation never
-	// names a block the store may drop. A crash after the hold and before the
-	// append leaves only the hold, which the next resetPayloads drops.
-	if err := a.holdAdmitted(ctx, adm); err != nil {
+	// Keep its blocks and hold what the queued operation needs durably before
+	// queueing it: its payloads, which name every object root its apply set
+	// (Tx.PayloadRefs). The hold stores each kept page a root reaches, nested
+	// refs included, in one transaction with the root's move, so an appended
+	// operation never names a block the store may drop. A crash after the
+	// hold and before the append leaves only the hold, which the next
+	// resetPayloads drops.
+	if err := a.keepAdmitted(ctx, adm); err != nil {
 		a.fail(adm, err)
 		return nil, err
 	}

@@ -94,11 +94,7 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 	if !ok {
 		return nil
 	}
-	epochs, stored, err := r.stage.rotate(ctx)
-	if err != nil {
-		done()
-		return err
-	}
+	epochs, stored := r.stage.rotate()
 	r.saved = len(r.positions)
 	if stored {
 		r.floor = max(r.floor, r.saved-1)

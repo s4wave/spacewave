@@ -39,13 +39,9 @@ type replayStage struct {
 	unlanded []*block.OverflowStage
 }
 
-// newReplayStage opens the first epoch of a replay stage over pages.
-func newReplayStage(ctx context.Context, pages *block.PendingStore) (*replayStage, error) {
-	epoch, err := pages.OpenOverflowStage(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return &replayStage{PendingStore: pages, epoch: epoch}, nil
+// newReplayStage returns a replay stage over pages at its first epoch.
+func newReplayStage(pages *block.PendingStore) *replayStage {
+	return &replayStage{PendingStore: pages, epoch: pages.OpenOverflowStage()}
 }
 
 // PutBlock puts a block through the current epoch.
@@ -82,26 +78,20 @@ func (s *replayStage) ReleaseRoots(context.Context, []*block.BlockRef) error {
 // now, and returns the current epoch and the unlanded ones, which the save
 // ends once it lands, and whether any of them stored a page. A nil stage
 // returns none.
-func (s *replayStage) rotate(ctx context.Context) ([]*block.OverflowStage, bool, error) {
+func (s *replayStage) rotate() ([]*block.OverflowStage, bool) {
 	// A transient replay has no epochs.
 	if s == nil {
-		return nil, false, nil
+		return nil, false
 	}
 
-	// Open the next epoch before the current one ends.
-	epoch, err := s.OpenOverflowStage(ctx)
-	if err != nil {
-		return nil, false, err
-	}
-
-	// Hand the save every earlier epoch, and put through the new one.
+	// Hand the save every earlier epoch, and put through a new one.
 	epochs := append(s.unlanded, s.epoch)
-	s.unlanded, s.epoch = nil, epoch
+	s.unlanded, s.epoch = nil, s.OpenOverflowStage()
 	stored := false
 	for _, e := range epochs {
 		stored = stored || e.Stored()
 	}
-	return epochs, stored, nil
+	return epochs, stored
 }
 
 // keep returns the epochs of a save that did not land, for the next save.
