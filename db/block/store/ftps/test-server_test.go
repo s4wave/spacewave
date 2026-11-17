@@ -30,8 +30,8 @@ type testServer struct {
 	listener net.Listener
 	// mtx guards the counters below.
 	mtx sync.Mutex
-	// users maps each logged in session to its user.
-	users map[ftpserver.ClientContext]string
+	// users maps the client address of each logged in session to its user.
+	users map[string]string
 	// open is the sessions now logged in per user, and peak the most at once.
 	open, peak map[string]int
 	// total is the sessions logged in now and totalPeak the most at once.
@@ -87,11 +87,12 @@ func startCountingServer(t *testing.T) (string, *tls.Config, *testServer) {
 		fs:       afero.NewMemMapFs(),
 		tlsConf:  &tls.Config{Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}}},
 		listener: listener,
-		users:    make(map[ftpserver.ClientContext]string),
+		users:    make(map[string]string),
 		open:     make(map[string]int),
 		peak:     make(map[string]int),
 		logins:   make(map[string]int),
 	}
+	srv.listener = &sessionListener{Listener: listener, srv: srv}
 	ftp := ftpserver.NewFtpServer(srv)
 	go func() { _ = ftp.ListenAndServe() }()
 	t.Cleanup(func() { _ = ftp.Stop() })
@@ -112,20 +113,51 @@ func (s *testServer) ClientConnected(ftpserver.ClientContext) (string, error) {
 	return "test server", nil
 }
 
-// ClientDisconnected stops counting the session.
-func (s *testServer) ClientDisconnected(cc ftpserver.ClientContext) {
+// ClientDisconnected does nothing: the session stopped counting when its
+// connection closed.
+func (s *testServer) ClientDisconnected(ftpserver.ClientContext) {}
+
+// endSession stops counting the session of the client at addr, once.
+func (s *testServer) endSession(addr string) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	s.endSession(cc)
-}
-
-// endSession stops counting the session of cc, once. The caller holds mtx.
-func (s *testServer) endSession(cc ftpserver.ClientContext) {
-	if user, ok := s.users[cc]; ok {
+	if user, ok := s.users[addr]; ok {
 		s.open[user]--
 		s.total--
-		delete(s.users, cc)
+		delete(s.users, addr)
 	}
+}
+
+// sessionListener accepts control connections that stop counting their
+// session as the server closes them. The server library closes a connection
+// before it calls ClientDisconnected, after QUIT and after a spent download
+// alike, so a client that frees its session on seeing the close can log in
+// again before ClientDisconnected runs.
+type sessionListener struct {
+	net.Listener
+	srv *testServer
+}
+
+// Accept wraps the next control connection.
+func (l *sessionListener) Accept() (net.Conn, error) {
+	conn, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return &sessionConn{Conn: conn, srv: l.srv}, nil
+}
+
+// sessionConn is a control connection that stops counting its session before
+// it closes.
+type sessionConn struct {
+	net.Conn
+	srv *testServer
+}
+
+// Close stops counting the session, then closes the connection.
+func (c *sessionConn) Close() error {
+	c.srv.endSession(c.RemoteAddr().String())
+	return c.Conn.Close()
 }
 
 // AuthUser admits user1, user2 and user with password pass, counting their
@@ -136,7 +168,7 @@ func (s *testServer) AuthUser(cc ftpserver.ClientContext, user, pass string) (ft
 	}
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	s.users[cc] = user
+	s.users[cc.RemoteAddr().String()] = user
 	s.logins[user]++
 	s.open[user]++
 	s.peak[user] = max(s.peak[user], s.open[user])
@@ -190,17 +222,13 @@ func (f *spendFile) Read(p []byte) (int, error) {
 	return n, err
 }
 
-// Close closes the file. A spent session stops counting before its
-// connection closes: the client frees its tokens as soon as it sees the close,
-// and its next login can arrive before ClientDisconnected runs.
+// Close closes the file, and ends the session of a download closed before
+// its end when the server spends partial downloads.
 func (f *spendFile) Close() error {
 	err := f.File.Close()
 	srv := f.fs.srv
 	srv.mtx.Lock()
 	spend := srv.spendPartial && !f.eof
-	if spend {
-		srv.endSession(f.fs.cc)
-	}
 	srv.mtx.Unlock()
 	if spend {
 		_ = f.fs.cc.Close()
