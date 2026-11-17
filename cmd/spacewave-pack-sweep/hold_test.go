@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -304,6 +305,29 @@ func testCommandQuarantine(t *testing.T, kind string, rehearsal bool, method pac
 	}
 	if result := parse(t, out.Bytes()); result.GetUint("summary", "packs", "dead") != 3 || result.GetUint("blocking", packsweep.BlockLogUnread) != 1 {
 		t.Fatalf("judgment = %s", result)
+	}
+
+	// The candidate list holds the report's dead lines, exactly.
+	args.Candidates, args.Verdicts = filepath.Join(dir, "candidates.jsonl"), *cli.NewStringSlice("dead")
+	out.Reset()
+	if err := args.runCandidates(nil); err != nil {
+		t.Fatal(err)
+	}
+	if result := parse(t, out.Bytes()); result.GetUint("packs") != 3 || result.GetUint("size") == 0 {
+		t.Fatalf("candidates = %s", result)
+	}
+	report, err := os.ReadFile(args.Report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var deadLines []byte
+	for line := range bytes.Lines(report) {
+		if string(fastjson.MustParseBytes(line).GetStringBytes("verdict")) == "dead" {
+			deadLines = append(deadLines, line...)
+		}
+	}
+	if candidates, err := os.ReadFile(args.Candidates); err != nil || !bytes.Equal(candidates, deadLines) {
+		t.Fatalf("candidate list = %q, %v; want the report's dead lines %q", candidates, err, deadLines)
 	}
 
 	locatedBefore, err := store.LocatePacks(ctx, []*block.BlockRef{deadRef, sharedRef})

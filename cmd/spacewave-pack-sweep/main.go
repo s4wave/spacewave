@@ -82,6 +82,12 @@ func main() {
 			Action: args.runJudge,
 		},
 		{
+			Name:   "candidates",
+			Usage:  "write the last judgment's packs of each --verdict, dead by default, one JSON judgment a line",
+			Flags:  args.candidatesFlags(),
+			Action: args.runCandidates,
+		},
+		{
 			Name:   "quarantine",
 			Usage:  "quarantine through the backend each pack judged dead and still unreached",
 			Flags:  args.adminFlags(),

@@ -120,6 +120,10 @@ type Args struct {
 	Report string
 	// Holes is the holes file, one hole a line.
 	Holes string
+	// Candidates is the candidate list file, one judgment a line.
+	Candidates string
+	// Verdicts are the verdicts the candidate list takes.
+	Verdicts cli.StringSlice
 	// AcceptMissing lists missing blocks accepted as lost, one b58 ref a line.
 	AcceptMissing string
 	// AdminURL is the backend's pack sweep admin service, a ws or wss URL.
