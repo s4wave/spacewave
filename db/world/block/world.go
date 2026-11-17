@@ -3,6 +3,7 @@ package world_block
 import (
 	"context"
 	fmt "fmt"
+	"os"
 	"sync"
 	"sync/atomic"
 
@@ -15,6 +16,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
+	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 	kvtx_deferred "github.com/s4wave/spacewave/db/kvtx/deferred"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/kvtx/vlogger"
 	"github.com/s4wave/spacewave/db/tx"
@@ -474,9 +476,12 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		return nil, err
 	}
 
-	// Apply the held graph writes, then detach a copy of the World root the
-	// fork owns.
+	// Apply the held graph and object writes, then detach a copy of the World
+	// root the fork owns.
 	if err := t.flushGraphWrites(ctx); err != nil {
+		return nil, err
+	}
+	if err := t.flushObjectWrites(ctx); err != nil {
 		return nil, err
 	}
 	bcs := t.bcs.DetachTransaction()
@@ -692,6 +697,14 @@ func (t *WorldState) PrepareCommit(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("object mod seqno: %w", err)
 	}
+
+	// Apply the held object writes, the stamps included, as one batch.
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-object-writes")
+	err = t.flushObjectWrites(taskCtx)
+	subtask.End()
+	if err != nil {
+		return fmt.Errorf("object write flush: %w", err)
+	}
 	return nil
 }
 
@@ -735,9 +748,37 @@ func (t *WorldState) Commit(ctx context.Context) error {
 
 // buildObjectTree builds the object tree handle.
 func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, error) {
+	// Open the object tree on the World's object key-value store.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-object-tree")
 	defer task.End()
-	return kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), t.write)
+	tree, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), t.write)
+	if err != nil {
+		return nil, err
+	}
+
+	// Hold a write's okra object writes until the commit when the switch is on.
+	if packed, ok := tree.(*kvtx_block_okra.Tx); ok && t.write && objectWritesHeld {
+		packed.DeferCursorWrites()
+	}
+	return tree, nil
+}
+
+// ObjectWritesEnv names the environment variable that, set to "on", makes a
+// write's object tree hold its object writes until the commit instead of
+// applying each at once. It is off by default.
+const ObjectWritesEnv = "SPACEWAVE_WORLD_HELD_OBJECT_WRITES"
+
+// objectWritesHeld is read once at startup from ObjectWritesEnv.
+var objectWritesHeld = os.Getenv(ObjectWritesEnv) == "on"
+
+// flushObjectWrites applies the object writes the object tree holds. A write
+// holds them so a commit rebuilds each tree page it changes once, rather than
+// once per object write; see kvtx_block_okra.Tx.DeferCursorWrites.
+func (t *WorldState) flushObjectWrites(ctx context.Context) error {
+	if packed, ok := t.objTree.(*kvtx_block_okra.Tx); ok {
+		return packed.Flush(ctx)
+	}
+	return nil
 }
 
 // flushGraphWrites applies the held graph writes to the graph tree.
