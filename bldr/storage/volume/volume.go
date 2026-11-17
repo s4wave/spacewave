@@ -2,6 +2,7 @@ package storage_volume
 
 import (
 	"context"
+	"io/fs"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -112,4 +113,22 @@ func ExecVolumeController(ctx context.Context, b bus.Bus, conf *Config) (volume.
 	}
 
 	return volCtrl, ref, nil
+}
+
+// DeleteVolume removes the backing store of the volume conf names without
+// opening it, so it never creates one: it selects the storage
+// BuildVolumeControllerConfig would and calls its DeleteVolume. A volume
+// that is already gone is no error. The volume must not be open.
+func DeleteVolume(ctx context.Context, b bus.Bus, conf *Config) error {
+	// Select the storage that builds the volume.
+	_, st, err := BuildVolumeControllerConfig(ctx, nil, b, conf)
+	if err != nil {
+		return err
+	}
+
+	// Remove its backing store.
+	if err := st.DeleteVolume(conf.GetStorageVolumeId()); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return nil
 }

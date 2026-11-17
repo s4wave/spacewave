@@ -15,7 +15,6 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
-	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	"github.com/s4wave/spacewave/core/bstore"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
@@ -24,7 +23,6 @@ import (
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -173,31 +171,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	// Resolve provider and account identity.
-	providerID := t.p.info.GetProviderId()
-	accountID := t.accountInfo.GetProviderAccountId()
-
-	// Select the storage volume identity.
-	storageID := t.p.storageID
-	if storageID == "" {
-		storageID = "default"
-	}
-
-	// Storage volume id
-	storageVolumeID := StorageVolumeID(providerID, accountID)
-	volumeID := storageVolumeID
-
 	// Start the storage volume controller.
 	volCtrl, volCtrlRef, err := waitExecVolumeController(
 		ctx,
 		t.p.b,
-		resolver.NewLoadControllerWithConfig(&storage_volume.Config{
-			StorageId:       storageID,
-			StorageVolumeId: storageVolumeID,
-			VolumeConfig: &volume_controller.Config{
-				VolumeIdAlias: []string{volumeID},
-			},
-		}),
+		resolver.NewLoadControllerWithConfig(t.p.accountVolumeConfig(t.accountInfo.GetProviderAccountId())),
 		ctxCancel,
 	)
 	if err != nil {

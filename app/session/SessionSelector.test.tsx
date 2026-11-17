@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react'
 
 import { ProviderAccountStatus } from '@s4wave/core/provider/provider.pb.js'
+import { SessionListState } from '@s4wave/core/session/session.pb.js'
 import {
   SpaceRootRuntimeStatus,
   SpaceRootStatus,
@@ -39,8 +40,11 @@ const mockUseSpaceRootRuntime = vi.hoisted(() =>
   ),
 )
 
-vi.mock('@s4wave/app/hooks/useSessionList.js', () => ({
-  useSessionList: mockUseSessionList,
+vi.mock('@s4wave/app/hooks/useSessionList.js', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@s4wave/app/hooks/useSessionList.js')
+  >()),
+  useAllSessionList: mockUseSessionList,
 }))
 
 vi.mock('@s4wave/app/hooks/useSessionMetadata.js', () => ({
@@ -213,6 +217,29 @@ describe('SessionSelector', () => {
 
     expect(screen.getByText('Linked Local')).toBeTruthy()
     expect(screen.getByText('(linked)')).toBeTruthy()
+  })
+
+  it('shows a deleting account without opening it', () => {
+    mockUseSessionList.mockReturnValue({
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+      value: {
+        sessions: [{ sessionIndex: 14, state: SessionListState.UNLINKING }],
+      },
+    })
+    mockUseSessionMetadata.mockReturnValue({
+      providerId: 'local',
+      displayName: 'Gone',
+    })
+    mockUseSessionAccountStatuses.mockReturnValue(new Map())
+
+    render(<SessionSelector />)
+    fireEvent.click(screen.getByText('Gone'))
+
+    expect(screen.getByText('Deleting')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Gone/ })).toBeNull()
+    expect(mockNavigate).not.toHaveBeenCalled()
   })
 
   it('selects an account through the shared session route', () => {

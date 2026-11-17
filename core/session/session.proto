@@ -20,6 +20,24 @@ message SessionListEntry {
 
   // SessionRef is the reference to the session.
   SessionRef session_ref = 2;
+
+  // State is the session's state in the list.
+  SessionListState state = 3;
+}
+
+// SessionListState is the state of a session list entry.
+enum SessionListState {
+  // SESSION_LIST_STATE_ACTIVE is a session that opens.
+  SESSION_LIST_STATE_ACTIVE = 0;
+  // SESSION_LIST_STATE_DELETING is a session of an account whose delete
+  // started and has not removed the account's volume. It never opens; the
+  // next mount of it or the next startup finishes the delete.
+  SESSION_LIST_STATE_DELETING = 1;
+  // SESSION_LIST_STATE_UNLINKING is a session of an account whose volume
+  // delete started. It never opens; what remains is the volume delete, the
+  // cloud sessions' links to its index, and the entry itself, which goes
+  // last.
+  SESSION_LIST_STATE_UNLINKING = 2;
 }
 
 // SessionType identifies the type of session.

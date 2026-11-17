@@ -73,8 +73,15 @@ func (s *CoreRootServer) MountSessionByIdx(
 		return &s4wave_root.MountSessionByIdxResponse{NotFound: true}, nil
 	}
 
-	// Mount the Session.
+	// Mount the Session. An account whose delete stopped part way finishes
+	// it here instead, and its session is then gone.
 	sess, sessRef, err := session.ExMountSession(ctx, s.b, sessInfo.GetSessionRef(), false, nil)
+	if errors.Is(err, session.ErrAccountDeleting) {
+		if err := resource_session.ResumeAccountDelete(ctx, s.le, s.b, sessInfo.GetSessionRef()); err != nil {
+			return nil, errors.Wrap(err, "finish the account delete")
+		}
+		return &s4wave_root.MountSessionByIdxResponse{NotFound: true}, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +349,10 @@ func (s *CoreRootServer) WatchSessions(
 }
 
 type accountStatusWatcher interface {
+	// GetAccountBroadcast returns the broadcast that fires when the status
+	// changes.
 	GetAccountBroadcast() *broadcast.Broadcast
+	// GetAccountStatus returns the account's current status.
 	GetAccountStatus() provider.ProviderAccountStatus
 }
 

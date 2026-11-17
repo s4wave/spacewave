@@ -73,24 +73,10 @@ func (t *SpacewaveTransferTarget) GetBlockStore(ctx context.Context, ref *sobjec
 // listed Space with no config is arriving, since a write to it loses nothing
 // and the cloud refuses a second genesis.
 func (t *SpacewaveTransferTarget) ReadSharedObject(ctx context.Context, le *logrus.Entry, sharedObjectID string, origin *TransferOrigin) (*TargetSpace, error) {
-	// Read the account's list of Spaces.
-	ctr, rel, err := t.account.AccessSharedObjectList(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	list, err := ctr.WaitValue(ctx, nil)
-	rel()
-	if err != nil {
-		return nil, err
-	}
-
 	// Find the Space and judge it by how the cloud lists it.
-	var entry *sobject.SharedObjectListEntry
-	for _, e := range list.GetSharedObjects() {
-		if e.GetRef().GetProviderResourceRef().GetId() == sharedObjectID {
-			entry = e
-			break
-		}
+	entry, err := t.listed(ctx, sharedObjectID)
+	if err != nil {
+		return nil, err
 	}
 	switch {
 	case entry == nil:
@@ -118,6 +104,40 @@ func (t *SpacewaveTransferTarget) ReadSharedObject(ctx context.Context, le *logr
 		return &TargetSpace{Holds: TargetHoldsNoOrigin}, nil
 	}
 	return &TargetSpace{Holds: TargetHoldsWritten, Head: head}, nil
+}
+
+// WaitAuthor waits until the account's copy of the shared Space holds
+// peerID's operations through nonce, watching the mounted Space's state,
+// which the cloud pushes.
+func (t *SpacewaveTransferTarget) WaitAuthor(ctx context.Context, sharedObjectID, peerID string, nonce uint64) (bool, error) {
+	entry, err := t.listed(ctx, sharedObjectID)
+	if err != nil || entry == nil {
+		return false, err
+	}
+	return waitAuthor(ctx, t.account, entry.GetRef(), peerID, nonce)
+}
+
+// listed returns the account's list entry of the Space, nil when the account
+// does not list it.
+func (t *SpacewaveTransferTarget) listed(ctx context.Context, sharedObjectID string) (*sobject.SharedObjectListEntry, error) {
+	// Read the account's list of Spaces.
+	ctr, rel, err := t.account.AccessSharedObjectList(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	list, err := ctr.WaitValue(ctx, nil)
+	rel()
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the Space.
+	for _, e := range list.GetSharedObjects() {
+		if e.GetRef().GetProviderResourceRef().GetId() == sharedObjectID {
+			return e, nil
+		}
+	}
+	return nil, nil
 }
 
 // configured reports whether the cloud holds a config chain for the Space.

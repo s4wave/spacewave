@@ -705,6 +705,122 @@ func (c *Controller) deleteSessionRecords(ctx context.Context, ref *session.Sess
 	return nil
 }
 
+// sessionRefKey identifies a session ref by every field of its provider
+// resource ref, so two refs share a key exactly when they are equal.
+type sessionRefKey struct {
+	providerID, accountID, id string
+}
+
+// keyOfSessionRef returns the key of ref.
+func keyOfSessionRef(ref *session.SessionRef) sessionRefKey {
+	r := ref.GetProviderResourceRef()
+	return sessionRefKey{r.GetProviderId(), r.GetProviderAccountId(), r.GetId()}
+}
+
+// sessionRefSet returns the keys of refs.
+func sessionRefSet(refs []*session.SessionRef) map[sessionRefKey]struct{} {
+	set := make(map[sessionRefKey]struct{}, len(refs))
+	for _, ref := range refs {
+		set[keyOfSessionRef(ref)] = struct{}{}
+	}
+	return set
+}
+
+// SetSessionState sets the state of each listed entry whose ref is in refs,
+// in one transaction, and then, for any state but active, stops the entries'
+// tracked lifetimes, which releases what they hold open.
+func (c *Controller) SetSessionState(ctx context.Context, refs []*session.SessionRef, state session.SessionListState) error {
+	// Write the states; an active entry keeps its lifetime.
+	if err := c.setSessionStateRecords(ctx, refs, state); err != nil {
+		return err
+	}
+	if state == session.SessionListState_SESSION_LIST_STATE_ACTIVE {
+		return nil
+	}
+
+	// Collect the entries' lifetimes under the registry lock.
+	stopping := sessionRefSet(refs)
+	var lifetimes []*sessionLifetime
+	c.mtx.Lock()
+	for lifetime := range c.lifetimes {
+		if _, ok := stopping[keyOfSessionRef(lifetime.ref)]; ok {
+			lifetimes = append(lifetimes, lifetime)
+		}
+	}
+	c.mtx.Unlock()
+
+	// Stop them outside it.
+	var stopErrs []error
+	for _, lifetime := range lifetimes {
+		if err := lifetime.stop(ctx); err != nil {
+			stopErrs = append(stopErrs, err)
+		}
+	}
+	return errors.Join(stopErrs...)
+}
+
+// setSessionStateRecords rewrites the listed entries whose ref is in refs with
+// state.
+func (c *Controller) setSessionStateRecords(ctx context.Context, refs []*session.SessionRef, state session.SessionListState) error {
+	// Serialize registry writes.
+	c.writeMtx.Lock()
+	defer c.writeMtx.Unlock()
+	objStore, err := c.getObjectStore(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Rewrite each matching entry in one transaction.
+	want := sessionRefSet(refs)
+	var changed bool
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, otx kvtx.Tx) error {
+			// Collect the matching entries, then write them after the scan.
+			changed = false
+			var next []*session.SessionListEntry
+			err := otx.ScanPrefix(ctx, sessionListPrefix, func(_ []byte, value []byte) error {
+				entry := &session.SessionListEntry{}
+				if err := entry.UnmarshalVT(value); err != nil {
+					return nil
+				}
+				if _, ok := want[keyOfSessionRef(entry.GetSessionRef())]; ok && entry.GetState() != state {
+					entry.State = state
+					next = append(next, entry)
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+			for _, entry := range next {
+				data, err := entry.MarshalVT()
+				if err != nil {
+					return err
+				}
+				if err := otx.Set(ctx, sessionListEntryKey(entry.GetSessionIndex()), data); err != nil {
+					return err
+				}
+			}
+			changed = len(next) != 0
+			return nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	// Wake session list watchers.
+	if changed {
+		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			broadcast()
+		})
+	}
+	return nil
+}
+
 // getObjectStore returns the cached sessions object store, building it first
 // when needed. The build runs without c.mtx so a slow volume blocks only its
 // own caller. Concurrent builds keep the first store and release the others.

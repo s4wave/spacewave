@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	storage_inmem "github.com/s4wave/spacewave/bldr/storage/inmem"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
@@ -21,6 +22,7 @@ import (
 // testEnv is a testbed with a local provider and a Session controller.
 type testEnv struct {
 	tb       *testbed.Testbed
+	storage  *storage_inmem.InmemStorage
 	prov     *provider_local.Provider
 	sessCtrl session.SessionController
 }
@@ -29,7 +31,8 @@ type testEnv struct {
 func setupTestEnv(ctx context.Context, t *testing.T) *testEnv {
 	// Start the testbed.
 	t.Helper()
-	tb, err := testbed.Default(ctx)
+	store := storage_inmem.NewInmemStorage("default")
+	tb, err := testbed.Default(ctx, testbed.WithStorages(store))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,6 +85,7 @@ func setupTestEnv(ctx context.Context, t *testing.T) *testEnv {
 	t.Cleanup(sessCtrlLookupRef.Release)
 	return &testEnv{
 		tb:       tb,
+		storage:  store,
 		prov:     prov.(*provider_local.Provider),
 		sessCtrl: sessCtrl,
 	}
