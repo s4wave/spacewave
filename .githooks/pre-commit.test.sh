@@ -7,7 +7,8 @@
 # No test passes --no-verify; a commit that fails here fails because the real
 # hook rejected it.
 #
-# HOOK_UNDER_TEST overrides the hook file (default .githooks/pre-commit).
+# HOOK_UNDER_TEST overrides the hook file (default .githooks/pre-commit), and
+# PUSH_HOOK_UNDER_TEST the pre-push hook (default .githooks/pre-push).
 #
 # Run: ./.githooks/pre-commit.test.sh
 
@@ -15,6 +16,7 @@ set -u
 
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
 hook_under_test=${HOOK_UNDER_TEST:-"$repo_root/.githooks/pre-commit"}
+push_hook_under_test=${PUSH_HOOK_UNDER_TEST:-"$repo_root/.githooks/pre-push"}
 
 pass_count=0
 fail_count=0
@@ -50,6 +52,9 @@ new_repo() {
 	cat >"$test_dir/bun" <<'STUB'
 #!/bin/sh
 printf 'bun %s\n' "$*" >>"${HOOKTEST_LOG:?}"
+case " $* " in
+*" lint "*) [ -z "${HOOKTEST_LINT_FAIL:-}" ] || exit 1 ;;
+esac
 exit 0
 STUB
 
@@ -87,7 +92,8 @@ STUB
 	ln -sf "$test_dir/oxlint" "$test_dir/repo/node_modules/.bin/oxlint"
 
 	cp "$hook_under_test" "$test_dir/repo/.git/hooks/pre-commit"
-	chmod +x "$test_dir/repo/.git/hooks/pre-commit"
+	cp "$push_hook_under_test" "$test_dir/repo/.git/hooks/pre-push"
+	chmod +x "$test_dir/repo/.git/hooks/pre-commit" "$test_dir/repo/.git/hooks/pre-push"
 }
 
 seed_commit() {
@@ -342,6 +348,65 @@ test_commit_all_reads_temporary_index() {
 	cleanup
 }
 
+# try_push pushes HEAD to the bare remote's main and expects ok or fail.
+try_push() {
+	: >"$test_dir/hook.log"
+	commit_out="$test_dir/push.out"
+	(cd "$test_dir/repo" && PATH="$test_dir:$PATH" HOOKTEST_LOG="$test_dir/hook.log" \
+		git push -q "$test_dir/remote.git" HEAD:refs/heads/main >"$commit_out" 2>&1)
+	rc=$?
+	if [ "$1" = ok ] && [ "$rc" -ne 0 ]; then
+		sed 's/^/    unexpected push failure: /' "$commit_out"
+		return 1
+	fi
+	if [ "$1" = fail ] && [ "$rc" -eq 0 ]; then
+		sed 's/^/    unexpected push: /' "$commit_out"
+		return 1
+	fi
+	return 0
+}
+
+# pick_from_side commits $1 on a side branch from the seed, through the commit
+# hook, and cherry-picks it onto main, which runs no hook.
+pick_from_side() {
+	git -C "$test_dir/repo" switch -q -c "side-$1" seed
+	mkdir -p "$test_dir/repo/$1"
+	printf 'package %s\n' "$1" >"$test_dir/repo/$1/$1.go"
+	git -C "$test_dir/repo" add "$1"
+	try_commit ok || return 1
+	git -C "$test_dir/repo" switch -q main
+	git -C "$test_dir/repo" cherry-pick "side-$1" >/dev/null
+}
+
+test_push_checks_only_unseen_trees() {
+	label='pre-push: a committed tree pushes unchecked; a picked one is checked; a finding refuses'
+	new_repo
+	git -C "$test_dir/repo" switch -q -c main
+	printf 'package main\n' >"$test_dir/repo/root.go"
+	seed_commit
+	git -C "$test_dir/repo" tag seed
+	git init -q --bare "$test_dir/remote.git"
+	printf 'package main\nvar A = 1\n' >"$test_dir/repo/root.go"
+	git -C "$test_dir/repo" add root.go
+	try_commit ok &&
+		log_has 'bun run go:aptre -- lint ./.' &&
+		try_push ok &&
+		! grep -q 'aptre' "$test_dir/hook.log" &&
+		pick_from_side b &&
+		try_push ok &&
+		out_says 'no commit hook saw tree' &&
+		log_has 'bun run go:aptre -- lint ./b' &&
+		log_lacks 'bun run go:aptre -- lint ./.' &&
+		try_push ok &&
+		! grep -q 'aptre' "$test_dir/hook.log" &&
+		pick_from_side c &&
+		HOOKTEST_LINT_FAIL=1 try_push fail &&
+		out_says 'failed the commit checks' &&
+		[ "$(git -C "$test_dir/remote.git" rev-parse main)" = "$(git -C "$test_dir/repo" rev-parse main^)" ]
+	note_result $? "$label"
+	cleanup
+}
+
 # --- runner ------------------------------------------------------------------
 
 for t in \
@@ -356,7 +421,8 @@ for t in \
 	test_docs_skip_go_paragraphs \
 	test_worktree_go_without_git_dir \
 	test_worktree_links_main_node_modules \
-	test_commit_all_reads_temporary_index
+	test_commit_all_reads_temporary_index \
+	test_push_checks_only_unseen_trees
 do
 	"$t"
 done

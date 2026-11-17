@@ -23,6 +23,25 @@ git() {
 	GIT_INDEX_FILE=$index_file command git "$@"
 }
 
+# PRE_COMMIT_BASE names the revision the checks diff the index against, HEAD
+# when unset. The pre-push hook sets it to the parent of a pushed range, with
+# the range's tip as the index, to check a tree no commit hook saw.
+base=${PRE_COMMIT_BASE:-}
+
+# record_pass appends the tree this run checked, and the packages its lint
+# covered, to hook-passed in the common Git directory, which pre-push reads to
+# skip a tree that already passed. The file keeps roughly the last 256 passes.
+# Worktrees append to it concurrently; a pass lost to a race between them costs
+# one more check at push, never a skipped one.
+record_pass() {
+	tree=$(git write-tree) || return 0
+	passed=$(git rev-parse --path-format=absolute --git-common-dir)/hook-passed
+	printf '%s %s\n' "$tree" "$*" >>"$passed"
+	if [ "$(wc -l <"$passed")" -gt 512 ]; then
+		tail -n 256 "$passed" >"$passed.$$" && mv "$passed.$$" "$passed"
+	fi
+}
+
 # Every check runs even after one fails, so a commit reports all of its
 # findings at once and the hook exits 1 at the end. A later check reads the
 # same files and never depends on an earlier one passing. Setup steps, such as
@@ -42,13 +61,14 @@ check() {
 # A source an embedded file imports must be embedded too. The check reads the
 # worktree, takes well under a second and needs no Go build, so it runs on every
 # commit that adds, changes or removes a source or a dist.go.
-if git diff --cached --name-only --diff-filter=ACMRD | grep -Eq '\.(ts|tsx|css)$|(^|/)dist\.go$'; then
+if git diff --cached --name-only --diff-filter=ACMRD ${base:+"$base"} | grep -Eq '\.(ts|tsx|css)$|(^|/)dist\.go$'; then
 	check dist-closure bun .githooks/check-dist-closure.ts
 fi
 
-files=$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n')
+files=$(git diff --cached --name-only -z --diff-filter=ACMR ${base:+"$base"} | tr '\0' '\n')
 if [ -z "$files" ]; then
 	[ -z "$failed" ] || exit 1
+	record_pass
 	exit 0
 fi
 
@@ -142,7 +162,10 @@ if [ -n "$go_files" ]; then
 
 	# Functions this commit changes must be written as code paragraphs. The
 	# checker reads the index this commit records through its own variable,
-	# since GIT_INDEX_FILE would reach the git that go run may start.
+	# since GIT_INDEX_FILE would reach the git that go run may start. It diffs
+	# against HEAD, not PRE_COMMIT_BASE, so a pushed range, whose tip is HEAD,
+	# shows it no changed line: its commits passed it when they were made, and a
+	# replay keeps their lines unless a conflict was resolved by hand.
 	check go-paragraphs env GO_PARAGRAPHS_INDEX="$index_file" go run ./.githooks/go-paragraphs
 
 	go_pkg_dirs=$(printf "%s\n" "$go_files" | tr '\n' '\0' | xargs -0 -n1 dirname | sort -u | sed 's#^\.$#.#; s#^\./##; s#^#./#')
@@ -213,3 +236,4 @@ if printf "%s\n" "$files" | grep -Eq '^go\.mod$'; then
 fi
 
 [ -z "$failed" ] || exit 1
+record_pass "$@"
