@@ -40,8 +40,9 @@ type Tx struct {
 	write bool
 	// flusher counts a write transaction's commit and makes it durable.
 	flusher *kvtx.OrderedFlusher
-	// committed wakes the store's checkpointer after a commit.
-	committed func()
+	// flow wakes the store's checkpointer after a commit, and holds back a
+	// write transaction whose commit outran it.
+	flow *walFlow
 	// release ends a write transaction's writer turn.
 	release func()
 	// turns admits a snapshot read's statements into SQLite, nil for writes
@@ -58,14 +59,14 @@ type Tx struct {
 
 // newWriteTx returns a write transaction begun on conn during the writer turn
 // that release ends.
-func newWriteTx(conn *sql.Conn, queries *queries, flusher *kvtx.OrderedFlusher, committed, release func()) *Tx {
+func newWriteTx(conn *sql.Conn, queries *queries, flusher *kvtx.OrderedFlusher, flow *walFlow, release func()) *Tx {
 	return &Tx{
-		queries:   queries,
-		conn:      conn,
-		write:     true,
-		flusher:   flusher,
-		committed: committed,
-		release:   release,
+		queries: queries,
+		conn:    conn,
+		write:   true,
+		flusher: flusher,
+		flow:    flow,
+		release: release,
 	}
 }
 
@@ -313,27 +314,51 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 
 // Commit commits the transaction and returns once it is durable, or commits
 // it ordered when ctx carries kvtx.WithOrderedCommitContext. A read
-// transaction ends its snapshot.
+// transaction ends its snapshot. A commit that outran the checkpointer then
+// waits for it, as walFlow describes.
 func (t *Tx) Commit(ctx context.Context) error {
 	// Commit to the WAL, then flush it unless ordering is enough.
-	if err := t.CommitOrdered(ctx); err != nil || !t.write || kvtx.IsOrderedCommitContext(ctx) {
+	seq, err := t.commit()
+	if err != nil || !t.write {
 		return err
 	}
-	return t.flusher.Sync(ctx)
+	if !kvtx.IsOrderedCommitContext(ctx) {
+		if err := t.flusher.Sync(ctx); err != nil {
+			return err
+		}
+	}
+
+	// Wait for the checkpointer once the commit has landed.
+	if seq != 0 {
+		t.flow.wait(ctx, seq)
+	}
+	return nil
 }
 
 // CommitOrdered commits the transaction to the WAL without a flush. A crash
 // may lose it only with every commit after it; Sync, a later Commit or the
-// store's deadline flush makes it durable.
+// store's deadline flush makes it durable. A commit that outran the
+// checkpointer then waits for it, as walFlow describes.
 func (t *Tx) CommitOrdered(ctx context.Context) error {
+	seq, err := t.commit()
+	if err == nil && seq != 0 {
+		t.flow.wait(ctx, seq)
+	}
+	return err
+}
+
+// commit commits the transaction to the WAL and ends its writer turn, and
+// returns the commit's place for walFlow.wait when it outran the
+// checkpointer, or zero.
+func (t *Tx) commit() (uint64, error) {
 	// Let only the first Commit or Discard finish the transaction.
 	if !t.finalizeOnce.CompareAndSwap(false, true) {
-		return kvtx.ErrDiscarded
+		return 0, kvtx.ErrDiscarded
 	}
 	t.markClosed()
 	if !t.write {
 		t.endRead()
-		return nil
+		return 0, nil
 	}
 
 	// Commit on the transaction's connection, rolling back a refused commit
@@ -345,14 +370,19 @@ func (t *Tx) CommitOrdered(ctx context.Context) error {
 		clean = rerr == nil
 	}
 
-	// End the writer turn, then count the commit for the flusher.
+	// Measure the commit under the turn, end the turn, then count the commit
+	// for the flusher and the checkpointer.
+	outran := err == nil && t.flow.outran(t.conn)
 	t.endWrite(clean)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	t.flusher.Ordered()
-	t.committed()
-	return nil
+	seq := t.flow.committed()
+	if !outran {
+		return 0, nil
+	}
+	return seq, nil
 }
 
 // Discard cancels the transaction.

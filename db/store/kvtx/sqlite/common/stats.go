@@ -39,6 +39,15 @@ type StoreStats struct {
 	Passives uint64
 	// Passive sums the time spent in passive checkpoints.
 	Passive time.Duration
+	// FlowWaits counts commits that outran the checkpointer and waited for
+	// it, as walFlow describes.
+	FlowWaits uint64
+	// FlowWait sums those waits.
+	FlowWait time.Duration
+	// FlowWaitMax is the longest of them.
+	FlowWaitMax time.Duration
+	// LogPeakBytes is the largest log a commit left.
+	LogPeakBytes int64
 }
 
 // storeStats is the atomic form of StoreStats a Store updates.
@@ -46,6 +55,7 @@ type storeStats struct {
 	fgWaits, bgWaits, fgWait, bgWait, over100ms, over1s atomic.Uint64
 	fgHold, bgHold, fgHoldsOver1s, bgHoldsOver1s        atomic.Uint64
 	passives, passive                                   atomic.Uint64
+	flowWaits, flowWait, flowWaitMax, logPeak           atomic.Uint64
 }
 
 // addWait counts a turn taken at prio after waiting d.
@@ -86,6 +96,25 @@ func (s *storeStats) addPassive(d time.Duration) {
 	s.passive.Add(uint64(max(d, 0))) //nolint:gosec // d is not negative.
 }
 
+// addFlowWait counts a commit's wait d for the checkpointer.
+func (s *storeStats) addFlowWait(d time.Duration) {
+	ns := uint64(max(d, 0)) //nolint:gosec // d is not negative.
+	s.flowWaits.Add(1)
+	s.flowWait.Add(ns)
+	raise(&s.flowWaitMax, ns)
+}
+
+// addLog counts the log's size after a commit.
+func (s *storeStats) addLog(size int64) {
+	raise(&s.logPeak, uint64(max(size, 0))) //nolint:gosec // size is not negative.
+}
+
+// raise sets v to n when n is larger.
+func raise(v *atomic.Uint64, n uint64) {
+	for cur := v.Load(); n > cur && !v.CompareAndSwap(cur, n); cur = v.Load() {
+	}
+}
+
 // snapshot reads the counters.
 func (s *storeStats) snapshot() StoreStats {
 	d := func(v *atomic.Uint64) time.Duration { return time.Duration(v.Load()) } //nolint:gosec // sums of durations.
@@ -102,6 +131,10 @@ func (s *storeStats) snapshot() StoreStats {
 		BackgroundHoldsOver1s: s.bgHoldsOver1s.Load(),
 		Passives:              s.passives.Load(),
 		Passive:               d(&s.passive),
+		FlowWaits:             s.flowWaits.Load(),
+		FlowWait:              d(&s.flowWait),
+		FlowWaitMax:           d(&s.flowWaitMax),
+		LogPeakBytes:          int64(s.logPeak.Load()), //nolint:gosec // sizes fit.
 	}
 }
 
