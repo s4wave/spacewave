@@ -1,0 +1,100 @@
+[
+  {
+    "name": "verify trusts the local index's word that the block exists",
+    "replace": [
+      [
+        "                   ELSE IF PackGood THEN \"good\" ELSE \"bad\"]",
+        "                   ELSE \"good\"]"
+      ]
+    ],
+    "expect": "DropVerified"
+  },
+  {
+    "name": "verify compares sizes only, so a same-size copy with other bytes passes",
+    "replace": [
+      [
+        "PackGood == \\A b \\in BlocksOf(pack) : fetched[b] = \"good\"",
+        "PackGood == \\A b \\in BlocksOf(pack) : fetched[b] \\in {\"good\", \"wrong\"}"
+      ]
+    ],
+    "expect": "DropVerified"
+  },
+  {
+    "name": "a value that fails leaves the rest of its pack droppable",
+    "replace": [
+      [
+        "                   ELSE IF PackGood THEN \"good\" ELSE \"bad\"]",
+        "                   ELSE IF fetched[b] = \"good\" THEN \"good\" ELSE \"bad\"]"
+      ]
+    ],
+    "expect": "DropVerified"
+  },
+  {
+    "name": "a batch verifies from an earlier batch's fetch",
+    "replace": [
+      [
+        "    /\\ fetched' = [b \\in Blocks |-> \"none\"]\n    /\\ seen' = [b \\in Blocks |-> \"none\"]\n    /\\ elig' = [b \\in Blocks |->\n",
+        "    /\\ UNCHANGED fetched\n    /\\ seen' = [b \\in Blocks |-> \"none\"]\n    /\\ elig' = [b \\in Blocks |->\n"
+      ]
+    ],
+    "expect": "DropVerified"
+  },
+  {
+    "name": "the budget is charged after the tombstones, in the queue commit",
+    "replace": [
+      [
+        "             IN /\\ left' = [left EXCEPT ![i] = cur - c]",
+        "             IN /\\ left' = [left EXCEPT ![i] = cur]"
+      ],
+      [
+        "    /\\ left' = [left EXCEPT ![bid] = @ + (resv - spent)]",
+        "    /\\ left' = [left EXCEPT ![bid] = @ - spent]"
+      ],
+      [
+        "Total(i) == left[i] + (IF bid = i THEN resv - spent ELSE 0) + dropped[i]",
+        "Total(i) == left[i] - (IF bid = i THEN spent ELSE 0) + dropped[i]"
+      ]
+    ],
+    "expect": "BudgetDurable"
+  },
+  {
+    "name": "a restart refills a seen id from the file",
+    "replace": [
+      [
+        "                 cur == IF left[i] = Unseen THEN budget.bytes\n                        ELSE Min(left[i], budget.bytes)",
+        "                 cur == budget.bytes"
+      ]
+    ],
+    "expect": "SameIdNoRefill"
+  },
+  {
+    "name": "an absent or unreadable file keeps the last budget read",
+    "replace": [
+      [
+        "           budget == IF valid THEN file ELSE NoBudget",
+        "           budget == IF valid THEN file ELSE mem"
+      ]
+    ],
+    "expect": "NoBudgetNoDrop"
+  },
+  {
+    "name": "a batch drops past its reservation once the bytes left reach zero",
+    "replace": [
+      [
+        "    /\\ seen[b] = \"good\"\n    /\\ spent < resv\n",
+        "    /\\ seen[b] = \"good\"\n"
+      ]
+    ],
+    "expect": "DroppedWithinBudget"
+  },
+  {
+    "name": "the queue commit returns the whole reservation",
+    "replace": [
+      [
+        "    /\\ left' = [left EXCEPT ![bid] = @ + (resv - spent)]",
+        "    /\\ left' = [left EXCEPT ![bid] = @ + resv]"
+      ]
+    ],
+    "expect": "BudgetDurable"
+  }
+]
