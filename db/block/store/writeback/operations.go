@@ -120,3 +120,15 @@ func (o *openOps) releaseRead(n uint64, release func()) func() {
 func (m *MarkingStore) OldestOperations() OpenOperations {
 	return m.ops.oldest()
 }
+
+// openEvictPass records a bounded eviction pass as an open read operation on
+// the store and its copies and returns the function that ends it. A pack sweep
+// reads the oldest open read through OldestOperations and waits on a pack it
+// held after that read began, so a pass that verified a pack before the sweep
+// held it finishes its drops before the sweep can trash the pack. The record
+// lives in memory: a restart ends every pass with it, and a store not mounted
+// reports its operations unknown, which the sweep also waits on.
+func (s *Store) openEvictPass() func() {
+	n := s.ops.begin(true)
+	return func() { s.ops.end(n) }
+}

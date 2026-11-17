@@ -35,9 +35,12 @@
 //     the write-back's bounded eviction drops a block's local copy once its
 //     pack verifies in the bucket. So the sweep trashes only what the root
 //     walk and the log prove unreferenced, and no local copy is a fallback.
-//     The eviction confirms each block with the store's GetBlockExistsBatch,
-//     which answers from registered packs alone, so a block whose only
-//     bucket copy is in a held pack keeps its local copy. The write-back's
+//     The eviction stops dropping while the store holds or is quarantining
+//     any pack, and otherwise verifies each pack's object with VerifyPack
+//     and checks Registered before it drops the blocks that pack holds, so
+//     a block whose only bucket copy is in a held pack keeps its local copy.
+//     A pass is an open read operation from start to end, so a pack held
+//     during it waits for it before trashing (WaitOpenRead). The write-back's
 //     upload dedupe and ClearLocated decide block by block in the same way:
 //     the store's LocateBlocks skips the rows that name a held pack.
 //   - A pack object under the store's prefix leaves the store's listing only

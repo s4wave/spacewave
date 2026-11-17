@@ -284,7 +284,12 @@ func (s *PackStore) Quarantine(ctx context.Context, ids []string) error {
 		return nil
 	}
 
-	// Write their rows, then hold them out of the reads.
+	// Halt eviction before taking the hold time, so an eviction pass that
+	// saw no halt began before the time their q/ rows record.
+	s.quarantining.Add(1)
+	defer s.quarantining.Add(-1)
+
+	// Write their rows with the hold time.
 	now := time.Now().UnixNano()
 	holds := make([]packHold, len(move))
 	for i := range holds {
@@ -293,6 +298,8 @@ func (s *PackStore) Quarantine(ctx context.Context, ids []string) error {
 	if err := s.index.writeHolds(ctx, move, holds); err != nil {
 		return err
 	}
+
+	// Hold them out of the reads.
 	s.setHolds(move, PackQuarantined)
 	s.le.WithField("packs", len(move)).Info("quarantined packs")
 	return nil
@@ -533,6 +540,23 @@ func (s *PackStore) statHeld(ctx context.Context, ref *block.BlockRef) (*block.B
 		return nil, err
 	}
 	return stat, nil
+}
+
+// sweepHalt names the pack sweep while it holds any pack or is quarantining
+// one, or returns "", so eviction drops nothing during a sweep cycle.
+//
+// Invariant: a pass that read "" before verifying a pack opened its read
+// operation before any quarantine's hold time, so the sweep's recheck waits
+// for it (WaitOpenRead) before it can trash the pack. Quarantine raises
+// quarantining before it reads its hold time and lowers it after heldCount
+// counts the holds; trashing keeps a pack held until Remove forgets it; a
+// restart loads the holds and the table from one snapshot under mtx; and
+// before the table loads, Registered refuses every pack.
+func (s *PackStore) sweepHalt() string {
+	if s.index != nil && (s.quarantining.Load() != 0 || s.index.heldCount.Load() != 0) {
+		return "pack sweep"
+	}
+	return ""
 }
 
 // lockHold takes holdMtx for op and returns its release, which logs the hold

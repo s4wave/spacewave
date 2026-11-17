@@ -123,6 +123,10 @@ type PackStore struct {
 	// while one runs. A read that misses both manifests while it changed
 	// reads again, since the pack may have moved between the two lookups.
 	holdMoves atomic.Uint64
+	// quarantining counts the Quarantine calls between taking their hold
+	// time and publishing the holds in memory, so sweepHalt covers a hold
+	// whose q/ row is written but not yet counted in heldCount.
+	quarantining atomic.Int32
 	// compactor runs compact after writes.
 	compactor *routine.RoutineContainer
 	// refresher lists the entries every refreshInterval once a read started it.

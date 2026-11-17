@@ -403,6 +403,7 @@ func (x *packIndex) forgetRow(id string, row packRow) {
 		return
 	}
 	delete(x.rows, id)
+	x.setHeldLocked(id, PackRegistered)
 	x.version.Add(1)
 	if int(row.num) < len(x.ids) && x.ids[row.num] == id {
 		x.ids[row.num] = ""

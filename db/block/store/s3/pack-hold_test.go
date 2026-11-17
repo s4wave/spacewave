@@ -43,9 +43,9 @@ func locatedAny(t *testing.T, s *PackStore, refs []*block.BlockRef) bool {
 }
 
 // TestQuarantineReadLifts quarantines a pack, finds it skipped by the extent
-// read, the locate and the existence check, across a restart, and finds a
-// read of one of its blocks served by the fallback, which lifts the pack and
-// records the read.
+// read, the locate and the existence check and eviction halted, across a
+// restart, and finds a read of one of its blocks served by the fallback, which
+// lifts the pack, records the read and lets eviction run.
 func TestQuarantineReadLifts(t *testing.T) {
 	eachIndexVolume(t, func(t *testing.T, kind string) {
 		ctx := t.Context()
@@ -64,6 +64,9 @@ func TestQuarantineReadLifts(t *testing.T) {
 		}
 		if got := heldStateOf(t, s, deadPack); got != PackQuarantined {
 			t.Fatalf("state %v, want quarantined", got)
+		}
+		if halt := s.sweepHalt(); halt != "pack sweep" {
+			t.Fatalf("sweepHalt = %q while a pack is quarantined", halt)
 		}
 		s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
 			if s.entries[deadPack] != nil || s.heldEntries[deadPack] == nil {
@@ -98,6 +101,9 @@ func TestQuarantineReadLifts(t *testing.T) {
 		if got := heldStateOf(t, s, deadPack); got != PackQuarantined {
 			t.Fatalf("state after restart %v, want quarantined", got)
 		}
+		if halt := s.sweepHalt(); halt != "pack sweep" {
+			t.Fatalf("sweepHalt = %q after a restart", halt)
+		}
 
 		// A read falls back, lifts the pack and records the read.
 		if data, found, err := s.GetBlock(ctx, dead[0]); err != nil || !found || string(data) != "dead block 0" {
@@ -105,6 +111,9 @@ func TestQuarantineReadLifts(t *testing.T) {
 		}
 		if got := heldStateOf(t, s, deadPack); got != PackRegistered {
 			t.Fatalf("state after the read %v, want registered", got)
+		}
+		if halt := s.sweepHalt(); halt != "" {
+			t.Fatalf("sweepHalt = %q with nothing held", halt)
 		}
 		hold, ok, err := s.index.readHold(ctx, deadPack)
 		if err != nil || !ok || hold.state != PackRegistered || hold.event == 0 || !bytes.Equal(hold.key, packfile.BlockKey(dead[0].GetHash())) {
