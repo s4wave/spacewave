@@ -71,6 +71,9 @@ type peerMissLog struct {
 	misses *peerMisses
 	// counts counts the outcomes of the peer reads, or is nil.
 	counts *peerReadCounts
+	// unserved holds the refs the peers failed to serve with an error, or
+	// is nil to always ask.
+	unserved *unservedRefs
 }
 
 // peerMisses counts the misses since the last report.
@@ -91,7 +94,7 @@ type peerMisses struct {
 // that a peer still holds. Each peer read counts its outcome in counts, which
 // may be nil.
 func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, wait func(context.Context) block.StoreOps, counts *peerReadCounts) func() block.StoreOps {
-	misses := &peerMisses{}
+	misses, unserved := &peerMisses{}, newUnservedRefs()
 	var hadPeers atomic.Bool
 	return func() block.StoreOps {
 		store := peers()
@@ -103,7 +106,7 @@ func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, wait func(
 		default:
 			return nil
 		}
-		return &peerMissLog{StoreOps: store, le: le, misses: misses, counts: counts}
+		return &peerMissLog{StoreOps: store, le: le, misses: misses, counts: counts, unserved: unserved}
 	}
 }
 
@@ -155,7 +158,7 @@ func (p *peerMissLog) BeginReadOperation(ctx context.Context) (block.StoreOps, f
 	if err != nil {
 		return nil, nil, err
 	}
-	return &peerMissLog{StoreOps: scoped, le: p.le, misses: p.misses, counts: p.counts}, release, nil
+	return &peerMissLog{StoreOps: scoped, le: p.le, misses: p.misses, counts: p.counts, unserved: p.unserved}, release, nil
 }
 
 // GetBlock logs the miss and reads the block from peers.
@@ -172,15 +175,26 @@ func (p *peerMissLog) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 // describes.
 func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	p.logMiss(ref)
-	return readPeers(ctx, p.le, p.StoreOps, ref, p.counts)
+	return readPeers(ctx, p.le, p.StoreOps, ref, p.counts, p.unserved)
 }
 
 // readPeers asks the peers in store for ref until one answers, or
 // peerReadLimit ends, and counts the outcome once in counts, which may be nil.
 // A read that failed while its caller still waited warns through le, once per
-// block, as warnPeerFailed describes.
-func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts) (blk *block.StoredBlock, err error) {
-	// Count the read's outcome once it ends, and warn of a failure.
+// block, as warnPeerFailed describes. A read whose peers answered with an
+// error is remembered in unserved, which may be nil, and a read of a ref
+// unserved holds fails with block.ErrUnavailable at once, asks no peer and
+// counts as remembered instead.
+func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts, unserved *unservedRefs) (blk *block.StoredBlock, err error) {
+	// Answer a ref the peers recently failed to serve from memory.
+	key := ref.MarshalString()
+	if unserved.holds(key, time.Now()) {
+		counts.recordRemembered()
+		return nil, fmt.Errorf("%w: block %s recently failed on every peer", block.ErrUnavailable, key)
+	}
+
+	// Count the read's outcome once it ends, warn of a failure and remember
+	// a peer's error.
 	cause := peerTimeout
 	defer func() {
 		switch {
@@ -191,6 +205,9 @@ func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref 
 		default:
 			counts.recordFailed(cause)
 			warnPeerFailed(le, ref, cause)
+			if cause == peerError {
+				unserved.remember(key, time.Now())
+			}
 		}
 	}()
 
@@ -300,6 +317,9 @@ type peerReadCounts struct {
 	// canceled counts the reads whose caller went away first, which say
 	// nothing of the peers.
 	canceled atomic.Uint64
+	// remembered counts the reads answered unavailable from the memory of
+	// a recent peer error, which asked no peer.
+	remembered atomic.Uint64
 	// filled counts the blocks a peer served that filled the local store.
 	filled atomic.Uint64
 	// classes counts the served blocks by peerClass.
@@ -334,6 +354,14 @@ func (c *peerReadCounts) recordFailed(cause peerCause) {
 func (c *peerReadCounts) recordCanceled() {
 	if c != nil {
 		c.canceled.Add(1)
+	}
+}
+
+// recordRemembered counts one read answered from the memory of a recent peer
+// error.
+func (c *peerReadCounts) recordRemembered() {
+	if c != nil {
+		c.remembered.Add(1)
 	}
 }
 
