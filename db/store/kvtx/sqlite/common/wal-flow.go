@@ -56,23 +56,30 @@ import (
 //
 // Several writers: past walHoldMultiple times the bound the checkpointer
 // goes idle only once a pass copied the whole log, and each pass holds the
-// writers back from its start, letting each waiting writer one commit per
-// walTurnHold. A large writer that commits there waits, so once every large
-// writer waits, only small writers' commits land between passes; the first
-// caught-up pass after them finds new frames it can copy within
-// walFlowWaitMax, takes the turn ahead of the writers, since the log is past
-// walGapQueueMultiple times its bound, and closes the gap; the checkpointer
-// goes idle, and the next writer, small or released from its wait, resets
-// the log. The contract has two regimes:
-//   - The disk copies the frames the writers add during a pass within
-//     walFlowWaitMax: the gap closes, the log resets, and unless a reader
-//     pins it the log stays under walHoldMultiple times its bound plus one
-//     commit of each large writer in flight at once and one commit of each
-//     small writer per walTurnHold while the passes copy them.
-//   - The disk cannot: the gap pass is not tried or is cut at its deadline,
-//     the log grows until the writers pause, and every wait stays within
-//     its bound: a small commit's one hold of the turn, and a large
-//     commit's copy or walFlowWaitMax, whichever is longer.
+// writers back from its start. Between two slices of the hold it admits
+// waiting writers in arrival order until their commits spend a budget of the
+// frames the measured copy rate moves in one walTurnHold, and admits a
+// commit larger than that alone. A large writer that commits there waits, so
+// once every large writer waits, only small writers' commits land between
+// passes; the first caught-up pass after them finds new frames it can copy
+// within walFlowWaitMax, takes the turn ahead of the writers, since the log
+// is past walGapQueueMultiple times its bound, and closes the gap; the
+// checkpointer goes idle, and the next writer, small or released from its
+// wait, resets the log. The contract has two regimes:
+//   - The writers together add less than the disk copies: the gap closes,
+//     the log resets, and unless a reader pins it the log stays under
+//     walHoldMultiple times its bound plus one commit of each large writer
+//     in flight at once and one budget per walTurnHold while the passes copy
+//     them. A small commit waits behind at most one hold of the turn.
+//   - They add more: the slice budget paces every writer to the disk, so the
+//     frames that land during a held pass are no more than it copies and the
+//     log stays bounded by that pacing. A large commit waits in the flow at
+//     most the copy of its own frames plus walFlowWaitMax, under any number
+//     of small writers. A small commit waits for the frames queued ahead of it,
+//     at most one commit of each writer, at the copy rate, plus one hold.
+//     Without the budget each slice admitted one commit per writer, so many
+//     small writers outran the disk, every pass was longer than the last,
+//     and a large commit's wait grew without bound.
 type walFlow struct {
 	// size returns the log's size on this host, or zero when unknown.
 	size func() int64
@@ -104,6 +111,15 @@ type walFlow struct {
 	// idle is closed and replaced each time the checkpointer goes idle or
 	// copied moves.
 	idle chan struct{}
+	// left is the frame budget the commits since a held pass's last slice
+	// may still spend, and spent is closed once they spend it; spent is nil
+	// while no budget is armed.
+	left  int64
+	spent chan struct{}
+
+	// armed reports that spent is set, so a commit outside a held pass
+	// charges nothing but an atomic load.
+	armed atomic.Bool
 }
 
 // newWALFlow returns the flow of a store whose log is bound at bound bytes.
@@ -112,9 +128,11 @@ func newWALFlow(size func() int64, wake func(), bound int64, stats *storeStats) 
 }
 
 // outran reports whether the commit that conn just made left the log at
-// walHoldMultiple times its bound with more than walGapFrames frames added.
-// It runs under the writer turn, after COMMIT, and costs one stat of the log
-// and, on a store's first commit, one read of its page size.
+// walHoldMultiple times its bound with more than walGapFrames frames added,
+// and charges its frames to the slice budget armed while a held pass waits
+// for the turn. It runs under the writer turn, after COMMIT, and costs one
+// stat of the log, an atomic load, and, on a store's first commit, one read
+// of its page size.
 func (f *walFlow) outran(conn *sql.Conn) bool {
 	// Measure the commit against the log after the last one. A commit
 	// that SQLite restarted the log for wrote from its first frame, and
@@ -127,11 +145,8 @@ func (f *walFlow) outran(conn *sql.Conn) bool {
 	}
 	f.last = size
 	f.stats.addLog(size)
-	if size < f.hold {
-		return false
-	}
 
-	// Count the added bytes in frames of the store's page.
+	// Count the added bytes in frames of the store's page, rounding up.
 	if f.frameBytes == 0 {
 		var page int64
 		if err := conn.QueryRowContext(context.Background(), "PRAGMA page_size").Scan(&page); err != nil || page <= 0 {
@@ -139,7 +154,48 @@ func (f *walFlow) outran(conn *sql.Conn) bool {
 		}
 		f.frameBytes = page + walFrameHeaderBytes
 	}
-	return added > walGapFrames*f.frameBytes
+	frames := (added + f.frameBytes - 1) / f.frameBytes
+	f.charge(frames)
+	return size >= f.hold && frames > walGapFrames
+}
+
+// arm arms a slice budget of frames for the commits that follow and returns
+// the channel closed once they spend it.
+func (f *walFlow) arm(frames int64) <-chan struct{} {
+	// Set the budget and the channel its spending closes.
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	f.left, f.spent = frames, make(chan struct{})
+	f.armed.Store(true)
+	return f.spent
+}
+
+// disarm drops the armed budget, if any.
+func (f *walFlow) disarm() {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	f.spent = nil
+	f.armed.Store(false)
+}
+
+// charge spends frames of the armed budget, closing spent once it is used.
+func (f *walFlow) charge(frames int64) {
+	// Skip the lock while no budget is armed.
+	if !f.armed.Load() {
+		return
+	}
+
+	// Spend the frames, and close spent once the budget is used.
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	if f.spent == nil {
+		return
+	}
+	if f.left -= frames; f.left <= 0 {
+		close(f.spent)
+		f.spent = nil
+		f.armed.Store(false)
+	}
 }
 
 // walFrameHeaderBytes is the header SQLite writes before each page in the log.

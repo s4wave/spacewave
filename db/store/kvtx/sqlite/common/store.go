@@ -188,6 +188,13 @@ var checkpointHook func(step string)
 // the pass as one that ends during a copy does.
 var copyDelay time.Duration
 
+// copyFrameDelay, set only by tests, lengthens each pass by that long for
+// each frame it copied, standing in for a disk that copies at a known rate.
+// It waits after the copy, for the frames SQLite copied, so the rate a pass
+// measures is the one set; a deadline that ends during it fails the pass
+// and leaves the backfill mark where it was, as a cut copy does.
+var copyFrameDelay time.Duration
+
 // diskless, set only by tests before a store opens, keeps the device out of
 // every pass and commit: synchronous=OFF, and no flush or write-back, so a
 // pass takes copyDelay and the copy through the page cache on any host.
@@ -519,6 +526,10 @@ const (
 	writerBackground = iota - 1
 	// writerForeground is the priority of every other write transaction.
 	writerForeground
+	// writerSlice is the priority of a held pass's next slice once the
+	// commits admitted since its last slice spent their frame budget, as
+	// lockSlice describes.
+	writerSlice
 )
 
 // NewTransaction returns a new transaction against the store. A write
@@ -833,7 +844,8 @@ func (s *Store[T]) walSize() int64 {
 //
 //   - The checkpointer holds the writer turn at most walTurnHold at a time
 //     for a back-pressure slice, which releases the turn and queues behind
-//     every writer waiting, and at most walGapHold (walFlowWaitMax, 250 ms)
+//     every writer waiting until their commits spend the slice's frame
+//     budget, as lockSlice describes, and at most walGapHold (walFlowWaitMax, 250 ms)
 //     for the gap pass, which runs with that deadline. The gap pass is tried
 //     only for the frames the last pass measured it copies within
 //     walFlowWaitMax, so on a disk that copies them in 10 ms it holds the
@@ -847,12 +859,13 @@ func (s *Store[T]) walSize() int64 {
 //   - While the passes fall behind the writers, or a writer commits during
 //     every pass, the log passes walHoldMultiple times its bound only by
 //     what the writers commit while passes run with them held back: one
-//     commit per writer per walTurnHold, until a pass finds new frames that
-//     copy within walFlowWaitMax and the gap closes. That bound holds while
-//     the disk copies what the writers add during a pass within that time.
-//     On a disk too slow for that, each gap pass is cut at its deadline or
-//     never tried, and the log grows until the writers pause; every wait
-//     stays within its bound. Below walHoldMultiple times its bound, writers
+//     slice budget, the frames the copy rate moves in walTurnHold, per
+//     walTurnHold, until a pass finds new frames that copy within
+//     walFlowWaitMax and the gap closes. The budget paces the writers to
+//     the disk however many there are, so a held pass is never outrun; a
+//     small commit then waits for the frames queued ahead of it at the copy
+//     rate plus one hold, and a large commit at most its own copy plus
+//     walFlowWaitMax, as walFlow describes. Below walHoldMultiple times its bound, writers
 //     grow the log unchecked.
 //
 // A reader whose snapshot predates a pass limits how far it copies and keeps
@@ -927,16 +940,14 @@ func (s *Store[T]) fillWALGap(ctx context.Context, mode holdMode) (holdMode, boo
 			// Caught up with no new frame, or with the writers held back
 			// few enough to copy within walFlowWaitMax: close the gap in a
 			// free turn, or queue for one once the log is far past its
-			// bound, ahead of the writers once they are held back.
+			// bound, in arrival order behind the writers then waiting: a
+			// lower priority would yield to every writer arriving after it,
+			// and writers that never pause would leave the gap unclosed.
 			if release, ok := s.writeMtx.TryLock(); ok {
 				return holdOnFall, gap(release)
 			}
 			if size >= walGapQueueMultiple*s.walBound {
-				prio := writerBackground
-				if behind {
-					prio = writerForeground
-				}
-				release, err := s.writeMtx.Lock(ctx, prio)
+				release, err := s.writeMtx.Lock(ctx, writerForeground)
 				if err != nil {
 					return mode, true
 				}
@@ -1017,10 +1028,13 @@ func (s *Store[T]) passOnce(ctx context.Context, q rowQuerier) checkpoint {
 	// Run the pass; a busy or failed one judges no pin.
 	var c checkpoint
 	start := time.Now()
-	if c.err = waitCopyDelay(ctx); c.err != nil {
+	if c.err = waitCopyDelay(ctx, copyDelay); c.err != nil {
 		return c
 	}
 	c.err = q.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&c.busy, &c.logged, &c.copied)
+	if c.err == nil && !c.busy && c.copied > s.backfill {
+		c.err = waitCopyDelay(ctx, time.Duration(c.copied-s.backfill)*copyFrameDelay)
+	}
 	took := time.Since(start)
 	s.stats.addPassive(took)
 	if c.err != nil || c.busy {
@@ -1038,12 +1052,13 @@ func (s *Store[T]) passOnce(ctx context.Context, q rowQuerier) checkpoint {
 	return c
 }
 
-// waitCopyDelay waits out copyDelay, or returns ctx's error once it ends.
-func waitCopyDelay(ctx context.Context) error {
-	if copyDelay <= 0 {
+// waitCopyDelay waits out d, a test's stand-in for a slow disk, or returns
+// ctx's error once it ends.
+func waitCopyDelay(ctx context.Context, d time.Duration) error {
+	if d <= 0 {
 		return nil
 	}
-	delay := time.NewTimer(copyDelay)
+	delay := time.NewTimer(d)
 	defer delay.Stop()
 	select {
 	case <-ctx.Done():
@@ -1102,7 +1117,9 @@ const (
 // SQLite's flush of the log before it copies, behind the writer's I/O.
 func (s *Store[T]) pass(ctx context.Context, q rowQuerier, mode holdMode) (checkpoint, holdMode) {
 	// Run the pass beside the check, copying every commit counted so far.
+	// The slice budget reads the copy rate before the pass moves it.
 	s.flow.pass()
+	budget := s.sliceFrames()
 	done := make(chan checkpoint, 1)
 	go func() {
 		// Write the log back, copy, and write the database file back,
@@ -1141,6 +1158,7 @@ func (s *Store[T]) pass(ctx context.Context, q rowQuerier, mode holdMode) (check
 	if mode == holdNever {
 		return next(<-done)
 	}
+	defer s.flow.disarm()
 
 	// Wait for the pass; once it falls behind, hold the writers back. At
 	// once, the check fires at the start; on a fall, each commit during the
@@ -1152,12 +1170,18 @@ func (s *Store[T]) pass(ctx context.Context, q rowQuerier, mode holdMode) (check
 	start := s.walSize()
 	check := time.NewTimer(0)
 	defer check.Stop()
+
+	// Wake on each commit while holding on a fall.
 	var wake <-chan struct{}
 	if mode == holdOnFall {
 		check.Stop()
 		wake = s.checkpointWake
 	}
+
+	// Post back a wake taken here, and keep the armed budget's channel
+	// across slices.
 	woke := false
+	var spent <-chan struct{}
 	defer func() {
 		if woke {
 			s.wakeCheckpoint()
@@ -1183,7 +1207,12 @@ func (s *Store[T]) pass(ctx context.Context, q rowQuerier, mode holdMode) (check
 			held = true
 			tell("hold")
 		}
-		release, err := s.writeMtx.Lock(ctx, writerForeground)
+		if spent == nil {
+			spent = s.flow.arm(budget)
+		}
+		release, err := s.lockSlice(ctx, spent)
+		s.flow.disarm()
+		spent = nil
 		if err != nil {
 			return next(<-done)
 		}
@@ -1195,11 +1224,50 @@ func (s *Store[T]) pass(ctx context.Context, q rowQuerier, mode holdMode) (check
 			tell("free")
 			return next(c)
 		case <-check.C:
+			spent = s.flow.arm(budget)
 			release()
 			tell("free")
 			check.Reset(0)
 		}
 	}
+}
+
+// lockSlice takes the writer turn for the next slice of a held pass. It
+// queues as a foreground writer, behind every writer then waiting, until the
+// commits admitted since the last slice spend their frame budget, signalled
+// by spent; it then leaves the queue and takes the next turn at writerSlice,
+// ahead of the writers, who keep their arrival order. A commit larger than
+// the budget is still admitted, alone, so no writer waits for a turn that
+// never comes.
+func (s *Store[T]) lockSlice(ctx context.Context, spent <-chan struct{}) (func(), error) {
+	// Leave the foreground queue once the budget is spent.
+	queued, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		select {
+		case <-spent:
+			cancel()
+		case <-queued.Done():
+		}
+	}()
+	release, err := s.writeMtx.Lock(queued, writerForeground)
+	if err == nil || ctx.Err() != nil {
+		return release, err
+	}
+	return s.writeMtx.Lock(ctx, writerSlice)
+}
+
+// sliceFrames is the frame budget of the commits a held pass admits between
+// two slices: the frames the last pass's copy rate moves in one walTurnHold,
+// so the writers together add no more than the passes copy, or walGapFrames
+// before a pass has measured the rate, and at least one. The rate includes
+// each pass's fixed cost, so the budget errs small. Only the checkpointer
+// calls it, between passes.
+func (s *Store[T]) sliceFrames() int64 {
+	if s.copyFrame <= 0 {
+		return walGapFrames
+	}
+	return max(1, int64(walTurnHold/s.copyFrame))
 }
 
 // writeBackLog and writeBackDB write the dirty pages of the log and of the

@@ -689,6 +689,109 @@ func TestWALGapSmallWritersBoundWait(t *testing.T) {
 	}
 }
 
+// TestWALGapSmallWritersPacedToDisk runs 32 small writers beside large
+// commits on a disk of a known copy rate that the small writers together
+// outrun. The held passes admit commits up to the frames the rate copies in
+// one slice, so every writer is paced to the disk: a large commit waits in
+// the flow for the copy of its frames and walFlowWaitMax, and a small commit
+// for the frames queued ahead of it at that rate and one hold.
+func TestWALGapSmallWritersPacedToDisk(t *testing.T) {
+	// 500 us a frame copies 2,000 frames a second, 50 a slice; 32 writers
+	// of 16 frames a commit add 512 a slice, ten times that.
+	const perFrame = 500 * time.Microsecond
+	const writers, smallRows, largeRows = 32, 16, 2048
+	// Restore the disk after the store closes.
+	defer common.SetDiskRate(perFrame)()
+	db := openRestartStore(t, filepath.Join(t.TempDir(), "paced.db"))
+	defer db.Close()
+
+	// commit writes rows 4 KiB rows from first in one transaction, and
+	// returns how long it took from the wait for the turn.
+	ctx := context.Background()
+	value := make([]byte, 4096)
+	commit := func(ctx context.Context, first, rows int) (time.Duration, error) {
+		began := time.Now()
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			return 0, err
+		}
+		for j := range rows {
+			if err := tx.Set(ctx, restartKey(first+j), value); err != nil {
+				tx.Discard()
+				return 0, err
+			}
+		}
+		err = tx.Commit(ctx)
+		return time.Since(began), err
+	}
+
+	// Run the small writers, keeping each one's longest commit.
+	stop := make(chan struct{})
+	longest := make(chan time.Duration, writers)
+	for w := range writers {
+		go func() {
+			var most time.Duration
+			defer func() { longest <- most }()
+			for i := 0; ; i++ {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				took, err := commit(ctx, 1<<20+w*1<<14+i%1024*smallRows, smallRows)
+				if err != nil {
+					return
+				}
+				most = max(most, took)
+			}
+		}()
+	}
+
+	// Time five large commits under a deadline the wait must never reach.
+	for i := range 5 {
+		c, cancel := context.WithTimeout(ctx, 20*time.Second)
+		took, err := commit(c, i*largeRows, largeRows)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.Err() != nil {
+			t.Fatalf("an 8 MiB commit waited %v, until its deadline", took)
+		}
+		cancel()
+	}
+	close(stop)
+	var small time.Duration
+	for range writers {
+		small = max(small, <-longest)
+	}
+
+	// A large commit waits for its frames' copy and walFlowWaitMax.
+	st := db.(interface{ Stats() common.StoreStats }).Stats()
+	large := largeRows*perFrame + common.FlowWaitMax + waitSlack
+	if st.FlowWaitMax > large {
+		t.Errorf("a large commit waited %v in the flow, want at most %v", st.FlowWaitMax, large)
+	}
+
+	// A small commit waits for the frames queued ahead of it, the other
+	// small writers' and one large commit's, and one hold.
+	ahead := time.Duration((writers-1)*smallRows+largeRows) * perFrame
+	limit := ahead + common.FlowWaitMax + common.TurnHold + waitSlack
+	if small > limit {
+		t.Errorf("a small writer's longest commit took %v, want at most %v", small, limit)
+	}
+	t.Logf("longest flow wait %v of %d, small commit %v, log peak %d, %d passes in %v", st.FlowWaitMax, st.FlowWaits, small, st.LogPeakBytes, st.Passives, st.Passive)
+}
+
+// TestWALGapSmallWriterUnderDiskRate runs TestWALGapLargeCommits' writers on
+// a disk of a known copy rate that the small writer stays under, and checks
+// that the slice budget leaves its commits within one hold.
+func TestWALGapSmallWriterUnderDiskRate(t *testing.T) {
+	// Restore after the store closes, which runLargeCommits defers.
+	t.Cleanup(common.SetDiskRate(10 * time.Microsecond))
+	r := runLargeCommits(t, false)
+	r.checkSmall(t)
+}
+
 // openRestartStore opens the store at path with the restart tests' bound.
 func openRestartStore(t *testing.T, path string) store_kvtx_sqlite.Store {
 	db, err := store_kvtx_sqlite.OpenWithPragmas(context.Background(), path, "kv", store_kvtx_sqlite.Pragmas{WALCheckpointBytes: restartBound})

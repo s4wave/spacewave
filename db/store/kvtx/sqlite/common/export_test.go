@@ -27,6 +27,15 @@ func SetDiskless(delay time.Duration) (restore func()) {
 	return func() { diskless, copyDelay = false, 0 }
 }
 
+// SetDiskRate keeps the device out of the stores opened after it and makes
+// each of their passes copy at perFrame for each frame it has to copy,
+// standing in for a disk of a known copy rate, until the returned
+// func restores both.
+func SetDiskRate(perFrame time.Duration) (restore func()) {
+	diskless, copyFrameDelay = true, perFrame
+	return func() { diskless, copyFrameDelay = false, 0 }
+}
+
 // SetReadTurns gives s's snapshot reads n turns.
 func SetReadTurns[T SQLiteDriverConfig](s *Store[T], n int) {
 	s.readTurns = make(readTurns, n)
