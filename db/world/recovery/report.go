@@ -49,6 +49,10 @@ func WriteReport(writer io.Writer, result *Result) error {
 		{"Unbound structural candidates", count.GetStructuralCandidates()},
 		{"Unassigned blocks", count.GetUnassignedBlocks()},
 		{"Live missing blocks", count.GetLiveHoles()},
+		{"Pack files read", count.GetPackFiles()},
+		{"Unreadable pack files", count.GetUnreadablePacks()},
+		{"Unread pack tail bytes", count.GetUnreadTailBytes()},
+		{"Corrupt pack values", count.GetCorruptValues()},
 	} {
 		output.WriteString(row.label)
 		output.WriteString(strings.Repeat(" ", 32-len(row.label)))
@@ -56,7 +60,15 @@ func WriteReport(writer io.Writer, result *Result) error {
 	}
 
 	// Display every bounded source and interpretation gap beside the result.
-	output.WriteString("Coverage: immutable SQLite Volume records and captured typed Worlds\n")
+	output.WriteString("Coverage: immutable SQLite Volume records")
+	for _, p := range result.GetInput().GetPacks() {
+		tier := "local pack log"
+		if p.GetTier() == PackTier_PACK_TIER_REMOTE {
+			tier = "retained remote packs"
+		}
+		output.WriteString(", " + tier + " " + p.GetPath())
+	}
+	output.WriteString(" and captured typed Worlds\n")
 	output.WriteString("Confirmed losses and versions at observed delete keys are subsets of attributable absent versions.\nObserved deletes are key-level evidence, not proof each older exact version was intentionally deleted.\nUnbound candidates have no proven Space membership. Zero confirmed does not prove zero loss.\n")
 	for _, gap := range result.GetGaps() {
 		output.WriteString("Unknown: " + gap + "\n")

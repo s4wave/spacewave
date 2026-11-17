@@ -111,43 +111,55 @@ func encodeBatch(dst []byte, start int64, blocks []Block) []entry {
 // and the offset after its values. errBadRecord reports a record that is
 // incomplete or fails either checksum.
 func decodeBatch(pack []byte, start int64) ([]entry, int64, error) {
-	// Read the header and bound the record by the bytes present.
+	// Parse the record, then check the values against its checksum of them.
 	rec := pack[start:]
-	if len(rec) < recordHeaderLen+recordFixedBody+recordTrailerLen {
+	entries, recLen, n, dataCRC, end, err := parseRecord(rec, start, int64(len(rec)))
+	if err != nil {
+		return nil, 0, err
+	}
+	if crc32.Checksum(rec[recLen:recLen+n], crcTable) != dataCRC {
 		return nil, 0, errBadRecord
 	}
+	return entries, end, nil
+}
+
+// parseRecord reads the batch record at the front of rec, which begins at
+// offset start of a pack and is followed there by total bytes in all, rec's
+// included. It checks the record's own checksum and that its values fit in
+// total, but not the values themselves. It returns the entries, whose keys
+// point into rec, the record's length, the values' length and checksum, and
+// the offset after the values.
+func parseRecord(rec []byte, start, total int64) ([]entry, int, int, uint32, int64, error) {
+	// Read the header and bound the record by the bytes present.
+	if len(rec) < recordHeaderLen+recordFixedBody+recordTrailerLen {
+		return nil, 0, 0, 0, 0, errBadRecord
+	}
 	if binary.LittleEndian.Uint32(rec) != recordMagic {
-		return nil, 0, errBadRecord
+		return nil, 0, 0, 0, 0, errBadRecord
 	}
 	bodyLen := int(binary.LittleEndian.Uint32(rec[4:]))
 	recLen := recordHeaderLen + bodyLen + recordTrailerLen
 	if bodyLen < recordFixedBody || recLen > len(rec) {
-		return nil, 0, errBadRecord
+		return nil, 0, 0, 0, 0, errBadRecord
 	}
 
 	// Check the record's own checksum before trusting its fields.
 	sealed := rec[:recordHeaderLen+bodyLen]
 	if crc32.Checksum(sealed, crcTable) != binary.LittleEndian.Uint32(rec[len(sealed):]) {
-		return nil, 0, errBadRecord
+		return nil, 0, 0, 0, 0, errBadRecord
 	}
 	end := binary.LittleEndian.Uint64(rec[8:])
 	n := binary.LittleEndian.Uint64(rec[16:])
 	dataCRC := binary.LittleEndian.Uint32(rec[24:])
-	if n > uint64(len(rec)-recLen) || end != uint64(start)+uint64(recLen)+n { //nolint:gosec // offsets are non-negative.
-		return nil, 0, errBadRecord
-	}
-
-	// Check the values against the record's checksum of them.
-	data := rec[recLen : recLen+int(n)] //nolint:gosec // n is bounded by the bytes present.
-	if crc32.Checksum(data, crcTable) != dataCRC {
-		return nil, 0, errBadRecord
+	if n > uint64(total-int64(recLen)) || end != uint64(start)+uint64(recLen)+n { //nolint:gosec // offsets are non-negative.
+		return nil, 0, 0, 0, 0, errBadRecord
 	}
 
 	// Parse the entries and place each value.
 	body := rec[recordHeaderLen+recordFixedBody : recordHeaderLen+bodyLen]
 	count, body, err := readVarint(body)
 	if err != nil || count > uint64(len(body)) {
-		return nil, 0, errBadRecord
+		return nil, 0, 0, 0, 0, errBadRecord
 	}
 	entries := make([]entry, 0, count)
 	off := start + int64(recLen)
@@ -155,20 +167,20 @@ func decodeBatch(pack []byte, start int64) ([]entry, int64, error) {
 		var keyLen, size uint64
 		keyLen, body, err = readVarint(body)
 		if err != nil || keyLen > uint64(len(body)) {
-			return nil, 0, errBadRecord
+			return nil, 0, 0, 0, 0, errBadRecord
 		}
 		key := body[:keyLen:keyLen]
 		size, body, err = readVarint(body[keyLen:])
 		if err != nil || off+int64(size) > int64(end) { //nolint:gosec // bounded by end.
-			return nil, 0, errBadRecord
+			return nil, 0, 0, 0, 0, errBadRecord
 		}
 		entries = append(entries, entry{key: key, off: off, size: int64(size)}) //nolint:gosec // bounded by end.
 		off += int64(size)                                                      //nolint:gosec // bounded by end.
 	}
 	if len(body) != 0 || off != int64(end) { //nolint:gosec // end is bounded by the pack.
-		return nil, 0, errBadRecord
+		return nil, 0, 0, 0, 0, errBadRecord
 	}
-	return entries, int64(end), nil //nolint:gosec // end is bounded by the pack.
+	return entries, recLen, int(n), dataCRC, int64(end), nil //nolint:gosec // end and n are bounded by the pack.
 }
 
 // scanBatches decodes the batches of pack from its start until the first bad

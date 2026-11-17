@@ -10,6 +10,37 @@ import { BlockRef } from '../../block/block.pb.js'
 import { Object$ } from '../block/world.pb.js'
 
 /**
+ * PackTier names where a captured pack directory came from.
+ *
+ * @generated from enum world.recovery.PackTier
+ */
+export enum PackTier {
+  /**
+   * PACK_TIER_UNKNOWN is an invalid declaration.
+   */
+  UNKNOWN = 0,
+
+  /**
+   * PACK_TIER_LOCAL is a local pack log: finalized packs and open logs by name.
+   */
+  LOCAL = 1,
+
+  /**
+   * PACK_TIER_REMOTE is a retained copy of current, replaced or trash remote packs.
+   */
+  REMOTE = 2,
+}
+
+export const PackTier_Enum = /* @__PURE__ */ createEnumType(
+  'world.recovery.PackTier',
+  [
+    [0, 'PACK_TIER_UNKNOWN'],
+    [1, 'PACK_TIER_LOCAL'],
+    [2, 'PACK_TIER_REMOTE'],
+  ],
+)
+
+/**
  * Phase is the durable scratch lifecycle; every non-counted result is provisional.
  *
  * @generated from enum world.recovery.Phase
@@ -123,7 +154,7 @@ export const Pass_Enum = /* @__PURE__ */ createEnumType('world.recovery.Pass', [
 ])
 
 /**
- * Source declares one immutable, checkpointed SQLite Volume capture.
+ * Source declares one immutable, checkpointed SQLite Volume capture and its value tiers.
  * The operator supplies trusted typing context, never inferred Space membership.
  *
  * @generated from message world.recovery.Source
@@ -149,6 +180,10 @@ export interface Source {
    * Witnesses selects surviving native replay records in the first table.
    */
   witnesses?: WitnessInput[]
+  /**
+   * Packs declares captured pack directories holding values beside the Volume records.
+   */
+  packs?: PackSource[]
 }
 
 export const Source: MessageType<Source> =
@@ -158,7 +193,33 @@ export const Source: MessageType<Source> =
     [3, 'tables', 9, 1],
     [4, 'worlds', 11, 1, WorldInput.codec],
     [5, 'witnesses', 11, 1, WitnessInput.codec],
+    [6, 'packs', 11, 1, PackSource.codec],
   ])
+
+/**
+ * PackSource declares one immutable directory of captured packs.
+ *
+ * @generated from message world.recovery.PackSource
+ */
+export interface PackSource {
+  /**
+   * Path selects the directory; its entries are read in name order.
+   */
+  path?: string
+  /**
+   * Tier selects which file names hold packs and how each is read.
+   */
+  tier?: PackTier
+}
+
+export const PackSource: MessageType<PackSource> =
+  /* @__PURE__ */ createMessageType<PackSource>(
+    'world.recovery.PackSource',
+    () => [
+      [1, 'path', 9],
+      [2, 'tier', 14, 0, PackTier_Enum],
+    ],
+  )
 
 /**
  * WorldInput supplies a trusted typed parent path for object attribution.
@@ -277,6 +338,14 @@ export interface Result {
    * Progress is the atomic continuation of the count's current indexed pass.
    */
   progress?: Progress
+  /**
+   * PackDir is the current declared pack directory index, after every table.
+   */
+  packDir?: number
+  /**
+   * PackAfter is the name of the last pack file committed in PackDir.
+   */
+  packAfter?: string
 }
 
 export const Result: MessageType<Result> =
@@ -291,6 +360,8 @@ export const Result: MessageType<Result> =
     [8, 'failure', 9],
     [9, 'input', 11, 0, Source.codec],
     [10, 'progress', 11, 0, Progress.codec],
+    [11, 'pack_dir', 13],
+    [12, 'pack_after', 9],
   ])
 
 /**
@@ -509,6 +580,22 @@ export interface Counts {
    * UnknownReachability counts physical hashes whose non-reachability is unproven.
    */
   unknownReachability?: bigint
+  /**
+   * PackFiles counts captured pack files read, including unreadable ones.
+   */
+  packFiles?: bigint
+  /**
+   * UnreadablePacks counts pack files with neither a readable index nor a valid record.
+   */
+  unreadablePacks?: bigint
+  /**
+   * UnreadTailBytes sums retained bytes past the last valid open-log record.
+   */
+  unreadTailBytes?: bigint
+  /**
+   * CorruptValues counts pack values whose bytes fail their content reference.
+   */
+  corruptValues?: bigint
 }
 
 export const Counts: MessageType<Counts> =
@@ -530,6 +617,10 @@ export const Counts: MessageType<Counts> =
     [15, 'confirmed_refusal_losses', 4],
     [16, 'intentional_deletes', 4],
     [17, 'unknown_reachability', 4],
+    [18, 'pack_files', 4],
+    [19, 'unreadable_packs', 4],
+    [20, 'unread_tail_bytes', 4],
+    [21, 'corrupt_values', 4],
   ])
 
 /**
