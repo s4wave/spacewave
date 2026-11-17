@@ -83,6 +83,7 @@ func SharedReadCacheBudget() *ReadCacheBudget {
 
 // Join adds a member to the class and returns the function that removes it.
 func (b *ReadCacheBudget) Join(class ReadCacheClass, m ReadCacheMember) (leave func()) {
+	// Register this membership and return its identity-specific removal.
 	j := &readCacheJoin{m: m}
 	b.mtx.Lock()
 	b.members[class] = append(b.members[class], j)
@@ -122,6 +123,7 @@ func (b *ReadCacheBudget) Floor(class ReadCacheClass) int64 {
 
 // Used returns the bytes held by the class's members.
 func (b *ReadCacheBudget) Used(class ReadCacheClass) int64 {
+	// Sum the class while keeping its membership stable.
 	b.mtx.RLock()
 	defer b.mtx.RUnlock()
 	var n int64
@@ -201,6 +203,7 @@ func (b *ReadCacheBudget) reclaimLocked() int64 {
 
 // evict asks the class's members for want bytes in turn.
 func (b *ReadCacheBudget) evict(class ReadCacheClass, want int64) int64 {
+	// Snapshot membership so member eviction runs outside the budget lock.
 	b.mtx.RLock()
 	list := append([]*readCacheJoin(nil), b.members[class]...)
 	b.mtx.RUnlock()

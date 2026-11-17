@@ -331,16 +331,45 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 }
 
 // containsBlockRefs checks dependency coverage independently of ordering.
+// Empty requested refs are ignored; duplicate requests need only one match.
 func containsBlockRefs(have, want []*BlockRef) bool {
-	for _, ref := range want {
+	// Keep single-dependency merges allocation-free and ignore empty requests.
+	if len(want) == 0 {
+		return true
+	}
+	if len(want) == 1 {
+		return want[0].GetEmpty() || slices.ContainsFunc(have, want[0].EqualsRef)
+	}
+
+	// Index the smaller input using the buffered store's existing ref identity.
+	indexed, scanned := have, want
+	if len(want) < len(have) {
+		indexed, scanned = want, have
+	}
+	keys := make(map[string]struct{}, len(indexed))
+	for _, ref := range indexed {
+		if !ref.GetEmpty() {
+			key, _ := marshalRefKey(ref)
+			keys[key] = struct{}{}
+		}
+	}
+
+	// Match every requested ref, or remove requests as the larger input covers them.
+	for _, ref := range scanned {
 		if ref.GetEmpty() {
 			continue
 		}
-		if !slices.ContainsFunc(have, ref.EqualsRef) {
+		key, _ := marshalRefKey(ref)
+		if len(want) < len(have) {
+			delete(keys, key)
+			if len(keys) == 0 {
+				return true
+			}
+		} else if _, ok := keys[key]; !ok {
 			return false
 		}
 	}
-	return true
+	return len(want) >= len(have) || len(keys) == 0
 }
 
 // PutBlockBatch buffers verified entries without per-block existence probes.
@@ -374,6 +403,7 @@ func (s *BufferedStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEn
 
 // GetBlock gets a block by reference.
 func (s *BufferedStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
+	// Resolve buffered content and its staged-read status before reading storage.
 	pending, written, err := s.getStaged(ref)
 	if err != nil {
 		return nil, false, err
@@ -393,6 +423,7 @@ func (s *BufferedStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bo
 
 // GetStoredBlock gets a block and its references, preferring pending writes.
 func (s *BufferedStore) GetStoredBlock(ctx context.Context, ref *BlockRef) (*StoredBlock, error) {
+	// Resolve buffered content and refs before reading the inner store.
 	pending, written, err := s.getStaged(ref)
 	if err != nil {
 		return nil, err

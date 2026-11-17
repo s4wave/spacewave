@@ -430,6 +430,7 @@ func (p *decodedBlockPool) ReadCacheUsed() int64 {
 // shard is drained first. It takes one shard lock at a time and never the
 // lock of an entry being stored, which put and attachReadData hold.
 func (p *decodedBlockPool) ReadCacheEvict(want int64) int64 {
+	// Visit shards in rotating order until enough unprotected bytes are freed.
 	var freed int64
 	n := uint64(len(p.shards))
 	if n == 0 {
