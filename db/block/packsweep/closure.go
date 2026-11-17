@@ -201,15 +201,20 @@ func pullBatch(ctx context.Context, opts *PullOptions, pull *LogPull, lines int)
 }
 
 // pullGap returns why a read ends the log's cover of the cycle, empty when it
-// does not. A closed epoch is paused, not ended: a backend that restarts
-// cleanly resumes it, and one that cannot starts a new epoch, which the next
-// pull reads as a gap. Until then no pack moves, since a step that moves one
-// requires the backend's open epoch to be the cycle's.
+// does not. A cycle needs one epoch from R on, so a read that ends at a close
+// line ends it too: the store may take writes the log does not see from then
+// on. The reader itself continues past a close line into the segment a
+// resumed epoch opens right after it, so once that segment exists a read no
+// longer ends at the close line.
 func pullGap(res writelog.ReadResult) string {
-	if res.State == writelog.ReadGap {
+	switch res.State {
+	case writelog.ReadGap:
 		return res.Reason
+	case writelog.ReadClosed:
+		return "epoch closed: the log was turned off or its process stopped"
+	default:
+		return ""
 	}
-	return ""
 }
 
 // FollowLog pulls the log every interval, zero for DefaultPullEvery, until

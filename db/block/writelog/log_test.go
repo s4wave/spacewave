@@ -240,9 +240,43 @@ func TestResume(t *testing.T) {
 			put(next, 100)
 			return next
 		}, false},
+		{"run without the log", func(l *Log, _ *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+			// A process with its log off claims the directory, writes, and
+			// stops cleanly.
+			dir := *l.claimed.Load()
+			_ = l.Close()
+			between, store := newLog(), newStore()
+			store.SetObserver(between)
+			if err := between.Claim(dir); err != nil {
+				t.Fatal(err)
+			}
+			put(store, 100)
+			_ = between.Close()
+			return newStore()
+		}, false},
+		{"unremovable marker", func(l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+			// A write after Close misses, and the directory refuses the
+			// marker's removal.
+			dir := *l.claimed.Load()
+			_ = l.Close()
+			if err := os.Chmod(dir, 0o500); err != nil {
+				t.Fatal(err)
+			}
+			put(store, 100)
+			if err := os.Chmod(dir, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := os.Stat(markerPath(dir)); err != nil {
+				t.Fatalf("the marker went: %v", err)
+			}
+			return newStore()
+		}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// Log some writes, stop, then start another log.
+			if tc.name == "unremovable marker" && os.Geteuid() == 0 {
+				t.Skip("root removes the marker from a read-only directory")
+			}
 			dir := t.TempDir()
 			store := newStore()
 			l := open(dir, store)
@@ -276,11 +310,33 @@ func TestResume(t *testing.T) {
 		})
 	}
 
-	// A miss while the epoch is open ends it.
+	// Off and on in one process resumes, unless a write came between.
+	dir := t.TempDir()
 	store := newStore()
-	l := open(t.TempDir(), store)
+	l := open(dir, store)
 	put(store, 0)
 	pos, _ := l.Position()
+	for _, write := range []bool{false, true} {
+		if err := l.Set(nil); err != nil {
+			t.Fatal(err)
+		}
+		if write {
+			put(store, 1)
+		}
+		if err := l.Set(&Options{Dir: dir}); err != nil {
+			t.Fatal(err)
+		}
+		if at, _ := l.Position(); (at == pos) == write {
+			t.Fatalf("write %v: on again at %v, off at %v", write, at, pos)
+		}
+	}
+	_ = l.Close()
+
+	// A miss while the epoch is open ends it.
+	store = newStore()
+	l = open(t.TempDir(), store)
+	put(store, 0)
+	pos, _ = l.Position()
 	store.SetObserver(nil)
 	if st := l.Status(); st.On || st.Broken == "" {
 		t.Fatalf("status after a detach %+v", st)
