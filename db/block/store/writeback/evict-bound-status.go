@@ -19,7 +19,18 @@ const (
 var EvictRefusalLabels = []string{
 	EvictRefusedMarked, EvictRefusedUnlocated, EvictRefusedAbsent,
 	"missing", "oversize", "short", "index", "hash", "fetch", "entry",
-	EvictRefusedOther,
+	"unregistered", EvictRefusedOther,
+}
+
+// evictLastingRefusals are the verify failures that cannot heal while the
+// bucket holds the same pack and entry objects: each is a fact about those
+// bytes, or about the pack's recorded size and sum, which never change for a
+// pack id. A pass keeps such a refusal with the pack's identity and does not
+// fetch the pack again until the identity changes. A fetch failure, a pack
+// out of the plain registered state and an unknown reason heal on their own
+// and are tried again on the next pass.
+var evictLastingRefusals = map[string]bool{
+	"missing": true, "oversize": true, "short": true, "index": true, "hash": true, "entry": true,
 }
 
 // refusalLabel returns reason when it is one of EvictRefusalLabels, else

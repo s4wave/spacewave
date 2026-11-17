@@ -86,7 +86,7 @@ func TestEvictBoundedProvider(t *testing.T) {
 	// A budget over a pack store that compacts and reclaims: nothing drops,
 	// and the pass names the delete path.
 	f.p.remote.Store(&openBackend{store: deletingPacks{backendStore: f.packs, packVerifyStore: f.packs.(packVerifyStore)}})
-	if result, err := f.p.evict(f.ctx, 1<<20); err != nil || result.EvictedBytes != 0 || result.Halted != evictHaltCompaction || evictable() != count*size {
+	if result, err := f.p.evict(f.ctx, 1<<20); err != nil || result.EvictedBytes != 0 || result.Halted != block_store_s3.EvictHaltCompaction || evictable() != count*size {
 		t.Fatalf("deleting backend: %+v, %v, evictable %d", result, err, evictable())
 	}
 
@@ -192,5 +192,5 @@ type deletingPacks struct {
 	packVerifyStore
 }
 
-// KeepsBlocks reports that the store deletes its own packs.
-func (deletingPacks) KeepsBlocks() bool { return false }
+// EvictHalt reports that the store deletes its own packs.
+func (deletingPacks) EvictHalt() string { return block_store_s3.EvictHaltCompaction }

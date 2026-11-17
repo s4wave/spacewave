@@ -164,9 +164,12 @@ type ObjectStat struct {
 	// ChecksumSHA256 is the SHA-256 the service verified when the object was
 	// uploaded with one, or nil.
 	ChecksumSHA256 []byte
+	// ETag is the tag the service reports for the object's current bytes,
+	// quotes included, or empty when it reports none.
+	ETag string
 }
 
-// HeadObject returns the object's size and upload checksum.
+// HeadObject returns the object's size, tag and upload checksum.
 // Returns ErrNotFound if the object does not exist.
 func (c *Client) HeadObject(ctx context.Context, bucket, key string) (*ObjectStat, error) {
 	// Ask for the object's metadata with its stored checksum.
@@ -180,7 +183,7 @@ func (c *Client) HeadObject(ctx context.Context, bucket, key string) (*ObjectSta
 	}
 
 	// Read the size and decode the checksum when the service reports one.
-	stat := &ObjectStat{Size: resp.ContentLength}
+	stat := &ObjectStat{Size: resp.ContentLength, ETag: resp.Header.Get("ETag")}
 	if sum := resp.Header.Get(ChecksumSHA256Header); sum != "" {
 		stat.ChecksumSHA256, err = base64.StdEncoding.DecodeString(sum)
 		if err != nil {

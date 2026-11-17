@@ -1,6 +1,7 @@
 package block_store_s3
 
 import (
+	"crypto/md5"
 	"fmt"
 	"io"
 	"maps"
@@ -94,6 +95,7 @@ func (b *fakeBucket) serve(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "<Error><Code>NoSuchKey</Code></Error>", http.StatusNotFound)
 			return
 		}
+		w.Header().Set("ETag", fmt.Sprintf("%q", fmt.Sprintf("%x", md5.Sum([]byte(data)))))
 		http.ServeContent(w, r, key, time.Time{}, strings.NewReader(data))
 	case r.Method == http.MethodDelete:
 		b.delete(key, query.Get("versionId"))

@@ -60,30 +60,15 @@ func readEvictBudget() (block_store_writeback.EvictBudget, bool) {
 // packVerifyStore is a backend store that can fetch and verify its packs:
 // the S3 pack store.
 type packVerifyStore interface {
-	// LocatePacks names the pack the local index places each block in.
-	LocatePacks(ctx context.Context, hashes []*hash.Hash) ([]block_store_s3.PackLocation, error)
+	// EvictLocate names the pack the local index places each block in.
+	EvictLocate(ctx context.Context, hashes []*hash.Hash) ([]block_store_s3.PackLocation, error)
 	// VerifyPack fetches pack id whole from the bucket and verifies it.
 	VerifyPack(ctx context.Context, id string, size int64) ([]block_store_s3.VerifiedValue, error)
-	// KeepsBlocks reports that the store runs neither compaction nor
-	// reclaim, the two paths by which it deletes its own packs.
-	KeepsBlocks() bool
-}
-
-// evictHaltCompaction names the remote delete path of a pack store that does
-// not keep its packs.
-const evictHaltCompaction = "pack compaction and reclaim"
-
-// remoteDeletes names the delete path enabled on store that could remove a
-// pack a bounded pass verified, or returns "".
-//
-// It sees the store's own compaction and reclaim. A remote delete that runs
-// outside the store, through its own object client, is not visible here and
-// must be off for the run by configuration.
-func remoteDeletes(store packVerifyStore) string {
-	if !store.KeepsBlocks() {
-		return evictHaltCompaction
-	}
-	return ""
+	// PackIdentity names the bucket objects of pack id without their bodies.
+	PackIdentity(ctx context.Context, id string) (string, error)
+	// EvictHalt names a path by which the store itself could remove a pack
+	// a pass verified, or returns "".
+	EvictHalt() string
 }
 
 // packVerifier adapts a packVerifyStore to the writeback verifier.
@@ -94,7 +79,7 @@ type packVerifier struct {
 // LocatePacks names the pack the local index places each block in.
 func (v packVerifier) LocatePacks(ctx context.Context, hashes []*hash.Hash) ([]block_store_writeback.EvictPackLocation, error) {
 	// Convert the store's locations.
-	locs, err := v.store.LocatePacks(ctx, hashes)
+	locs, err := v.store.EvictLocate(ctx, hashes)
 	if err != nil {
 		return nil, err
 	}
@@ -129,9 +114,17 @@ func (v packVerifier) VerifyPack(ctx context.Context, id string, size int64) ([]
 	return out, "", nil
 }
 
+// PackIdentity names the pack's bucket objects.
+func (v packVerifier) PackIdentity(ctx context.Context, id string) (string, error) {
+	return v.store.PackIdentity(ctx, id)
+}
+
 // evictBound returns the bound of a pass to remote, and false when remote
 // cannot fetch and verify its packs, so a bounded process drops nothing. A
-// pass under the bound drops nothing while remote deletes its own packs.
+// pass under the bound drops nothing while remote could delete its own packs:
+// by compaction and reclaim, or by the pack sweep while it holds a pack. A
+// remote delete that runs outside the store, through its own object client,
+// is not visible here and must be off for the run by configuration.
 func evictBound(remote backendStore) (block_store_writeback.EvictBound, bool) {
 	store, ok := remote.(packVerifyStore)
 	if !ok {
@@ -140,6 +133,6 @@ func evictBound(remote backendStore) (block_store_writeback.EvictBound, bool) {
 	return block_store_writeback.EvictBound{
 		Budget:        readEvictBudget,
 		Verifier:      packVerifier{store: store},
-		RemoteDeletes: func() string { return remoteDeletes(store) },
+		RemoteDeletes: store.EvictHalt,
 	}, true
 }

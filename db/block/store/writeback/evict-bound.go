@@ -47,6 +47,12 @@ import (
 // meta store: evict-budget/<id> = decimal bytes.
 const evictBudgetPrefix = "evict-budget/"
 
+// evictRefusedPrefix prefixes the kept refusal of each pack refused for a
+// lasting reason in the meta store: evict-refused/<pack id> = label, a
+// newline, then the pack's identity when it was refused. A row is deleted
+// when its pack verifies; one row per bad pack the queue still names.
+const evictRefusedPrefix = "evict-refused/"
+
 // ErrEvictUnbounded is returned by EvictBounded without a budget source, a
 // verifier or a remote delete check.
 var ErrEvictUnbounded = errors.New("bounded eviction needs a budget, a verifier and a remote delete check")
@@ -63,6 +69,10 @@ type EvictVerifier interface {
 	// EvictRefusalLabels; err is for a failure that ends the pass, such as a
 	// canceled context.
 	VerifyPack(ctx context.Context, id string, size int64) (values []EvictVerifiedValue, reason string, err error)
+	// PackIdentity names the remote objects of pack id, without reading
+	// their bodies, so that equal answers mean the same bytes; "" names
+	// nothing, and keeps no refusal.
+	PackIdentity(ctx context.Context, id string) (string, error)
 }
 
 // EvictBound bounds an eviction pass.
@@ -108,14 +118,17 @@ func setInt(ctx context.Context, tx kvtx.Tx, key []byte, n int64) error {
 // batch when the local index places them in the pack and an entry of theirs
 // sits at an epoch of the batch's entries for it, in writes of at most the
 // adaptive batch limit; then, in one commit, deletes the batch's dropped
-// entries and those of the values dropped ahead, moves the entries
-// it did not drop to the new epoch, corrects evictable-bytes and returns the
-// unspent reservation. A pack that fails verification drops nothing; its entries
-// move to the new epoch and the pack is skipped for the rest of the pass, so
-// a bad oldest pack cannot hold the walk. An entry whose value is already
-// gone is deleted, without charging the budget or counting as evicted. While
-// bound.RemoteDeletes names a delete path, the pass drops nothing and sets the
-// result's Halted.
+// entries and those of the values dropped ahead, moves the entries it did not
+// drop to the new epoch, corrects evictable-bytes and returns the unspent
+// reservation. A pack that fails verification drops nothing; its entries move
+// to the new epoch and the pack is skipped for the rest of the pass, so a bad
+// oldest pack cannot hold the walk. A pack refused for a lasting reason is
+// kept refused with its identity, and is not fetched again until that
+// identity changes: each later pass pays two HEAD requests for it, not the
+// whole pack. An entry whose value is already gone is deleted, without
+// charging the budget or counting as evicted. The pass is open as a read
+// operation on the store from start to end. While bound.RemoteDeletes names a
+// delete path, the pass drops nothing and sets the result's Halted.
 func (s *Store) EvictBounded(
 	ctx context.Context,
 	bound EvictBound,
@@ -131,12 +144,14 @@ func (s *Store) EvictBounded(
 	}
 	ctx = kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(ctx))
 
-	// Serialize the pass with other passes.
+	// Serialize the pass with other passes, and keep it open as an
+	// operation on the store until it ends.
 	release, err := s.evictMtx.Lock(ctx)
 	if err != nil {
 		return result, err
 	}
 	defer release()
+	defer s.openEvictPass()()
 
 	// End before any write while a remote delete could remove a verified
 	// pack.
@@ -312,11 +327,38 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 		return true, nil
 	}
 
+	// Refuse again, without fetching it, a pack refused for a lasting reason
+	// whose remote objects are the ones refused.
+	ident, err := p.bound.Verifier.PackIdentity(ctx, id)
+	if err != nil {
+		if ctx.Err() != nil {
+			return false, ctx.Err()
+		}
+		ident = ""
+	}
+	kept, found, err := s.keptRefusal(ctx, id, ident)
+	if err != nil {
+		return false, err
+	}
+	if kept != "" {
+		p.skip[id] = kept
+		fates := make([]entryFate, len(batch))
+		for _, i := range group {
+			fates[i] = fateRequeue
+		}
+		p.result.Refused += len(group)
+		if err := p.commit(ctx, batch, fates, nil, "", 0, 0); err != nil {
+			return false, err
+		}
+		s.addEvictBoundStatus(0, false, 0, map[string]int64{kept: int64(len(group))}, 0)
+		return false, nil
+	}
+
 	// Reserve up to the pack's recorded size of the bytes left, before any
 	// tombstone.
 	budgetKey := []byte(evictBudgetPrefix + budget.ID)
 	var resv, left int64
-	err := retryBusy(ctx, func() error {
+	err = retryBusy(ctx, func() error {
 		return kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 			// A new id starts at its bytes; a seen id never rises past them.
 			cur, found, err := readInt(ctx, tx, budgetKey)
@@ -350,6 +392,9 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 	if reason != "" {
 		label := refusalLabel(reason)
 		p.skip[id] = label
+		if err := s.keepRefusal(ctx, id, label, ident, found); err != nil {
+			return false, err
+		}
 		for _, i := range group {
 			fates[i] = fateRequeue
 		}
@@ -359,6 +404,11 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 		}
 		s.addEvictBoundStatus(left+resv, true, 0, map[string]int64{label: int64(len(group))}, 0)
 		return false, nil
+	}
+
+	// A pack that verifies keeps no refusal.
+	if err := s.keepRefusal(ctx, id, "", ident, found); err != nil {
+		return false, err
 	}
 
 	// Size the verified values.

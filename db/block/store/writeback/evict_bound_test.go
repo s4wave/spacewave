@@ -30,11 +30,13 @@ type fakePacks struct {
 	fetches map[string]int
 	// afterVerify runs after a pack verifies, when set.
 	afterVerify func(id string)
+	// ident maps a pack id to its identity; a pack without one has none.
+	ident map[string]string
 }
 
 // newFakePacks returns an empty remote.
 func newFakePacks(remote block.StoreOps) *fakePacks {
-	return &fakePacks{remote: remote, packs: make(map[string][]*block.BlockRef), lie: make(map[string]string), index: make(map[string]string), fetches: make(map[string]int)}
+	return &fakePacks{remote: remote, packs: make(map[string][]*block.BlockRef), lie: make(map[string]string), index: make(map[string]string), fetches: make(map[string]int), ident: make(map[string]string)}
 }
 
 // packOf returns the pack id the index places h in.
@@ -89,6 +91,11 @@ func (f *fakePacks) VerifyPack(ctx context.Context, id string, _ int64) ([]Evict
 		f.afterVerify(id)
 	}
 	return values, "", nil
+}
+
+// PackIdentity names the pack by the test's identity.
+func (f *fakePacks) PackIdentity(_ context.Context, id string) (string, error) {
+	return f.ident[id], nil
 }
 
 // staticBudget returns a budget source with one budget, or none.
@@ -368,6 +375,48 @@ func TestBoundedEvictRemoteLies(t *testing.T) {
 			status, _ := e.s.GetStatus()
 			if status.Bound.Refused[reason] != 4 {
 				t.Fatalf("refused = %v, want 4 under %q", status.Bound.Refused, reason)
+			}
+		})
+	}
+}
+
+// TestBoundedEvictKeepsLastingRefusal checks that a pack refused for a
+// lasting reason is not fetched again while its identity stays, that its
+// entries are still refused and counted, that a changed identity fetches it
+// again and lets it verify, which deletes the kept row, and that a fetch
+// failure or a pack with no identity is fetched on every pass.
+func TestBoundedEvictKeepsLastingRefusal(t *testing.T) {
+	cases := []struct {
+		reason, ident string
+		kept          bool
+	}{{"hash", "a", true}, {"entry", "a", true}, {"fetch", "a", false}, {"hash", "", false}}
+	for _, c := range cases {
+		t.Run(c.reason+"/"+c.ident, func(t *testing.T) {
+			ctx := t.Context()
+			e := newBoundEnv(t, 8, 4)
+			e.packs.lie["p0"], e.packs.ident["p0"] = c.reason, c.ident
+			budget := &EvictBudget{ID: "b1", Bytes: 1 << 20}
+			e.evict(t, budget, 1<<30)
+			e.evict(t, budget, 1<<30)
+			want := 2
+			if c.kept {
+				want = 1
+			}
+			status, _ := e.s.GetStatus()
+			if e.packs.fetches["p0"] != want || e.held(t) != 4 || status.Bound.Refused[c.reason] != 8 {
+				t.Fatalf("two passes: %d fetches, want %d; %d held; refused %v", e.packs.fetches["p0"], want, e.held(t), status.Bound.Refused)
+			}
+			if !c.kept {
+				return
+			}
+
+			// The bucket's objects change and the pack verifies.
+			delete(e.packs.lie, "p0")
+			e.packs.ident["p0"] = "b"
+			e.evict(t, budget, 1<<30)
+			_, found, err := e.s.keptRefusal(ctx, "p0", "b")
+			if err != nil || found || e.packs.fetches["p0"] != 2 || e.held(t) != 0 {
+				t.Fatalf("after the change: row %v, %v; %d fetches; %d held", found, err, e.packs.fetches["p0"], e.held(t))
 			}
 		})
 	}

@@ -38,6 +38,20 @@ const (
 	// missing, does not read or decode, names another id or size, or has a
 	// bloom filter that lacks a value the pack holds.
 	VerifyEntry = "entry"
+	// VerifyUnregistered is the reason when the pack is not in the plain
+	// registered state: the local index lacks its entry, a compaction
+	// superseded it, a reclaim trashed it, or a pack sweep holds it out of
+	// the reads. It heals when the pack returns to the reads.
+	VerifyUnregistered = "unregistered"
+)
+
+// The delete paths EvictHalt names.
+const (
+	// EvictHaltCompaction names compaction and reclaim, the delete paths of
+	// a store that does not keep its packs.
+	EvictHaltCompaction = "pack compaction and reclaim"
+	// EvictHaltSweep names the pack sweep while it holds any pack.
+	EvictHaltSweep = "pack sweep"
 )
 
 // verifySlackBytes is how far past its recorded size a pack's object may be
@@ -49,13 +63,64 @@ func verifyFailed(reason string, err error) error {
 	return &PackVerifyError{Reason: reason, Err: err}
 }
 
-// LocatePacks names the pack the local index places each block in, reading
-// only the local index. Eviction groups blocks by these packs and verifies
-// each one with VerifyPack; the location itself proves nothing.
-func (s *PackStore) LocatePacks(ctx context.Context, hashes []*hash.Hash) ([]PackLocation, error) {
-	// Locate only through the local index.
+// EvictHalt names a path by which the store itself could remove a pack an
+// eviction pass verified, or returns "": compaction and reclaim on a store
+// that does not keep its packs, and the pack sweep while it holds any pack.
+// A pass drops nothing while it names one.
+func (s *PackStore) EvictHalt() string {
+	if !s.keepPacks {
+		return EvictHaltCompaction
+	}
+	return s.sweepHalt()
+}
+
+// evictCounts reports whether pack entry can prove a block safe to drop.
+//
+// Invariant: only a pack in the plain registered state counts for eviction,
+// as Registered reports it, with an entry no compaction superseded and no
+// reclaim trashed. A pack out of that state is on its way out of the bucket,
+// and a drop it proved would leave the block in no pack that stays.
+// EvictLocate and VerifyPack both read this one rule. A pack held after the
+// check is the sweep's to keep: once the local copy is gone, a read of the
+// block reaches the held pack, which lifts it or records the miss that keeps
+// it from removal.
+func (s *PackStore) evictCounts(entry *packfile.PackfileEntry) bool {
+	return entry.GetTrashedAt() == nil && entry.GetSupersededBy() == "" && s.Registered(entry.GetId())
+}
+
+// checkRegistered refuses pack id unless the local index holds its entry and
+// the entry counts for eviction.
+func (s *PackStore) checkRegistered(ctx context.Context, id string) error {
+	// Without an index no pack counts.
+	if s.index == nil {
+		return verifyFailed(VerifyUnregistered, errors.New("pack store has no local index"))
+	}
+
+	// Read the pack's entry once the table loads, and apply the rule.
+	if err := s.loadEntries(ctx); err != nil {
+		return err
+	}
+	entries, err := s.index.readEntries(ctx, []string{id})
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 || !s.evictCounts(entries[0]) {
+		return verifyFailed(VerifyUnregistered, errors.Errorf("pack %s is not registered", id))
+	}
+	return nil
+}
+
+// EvictLocate names the pack the local index places each block in, reading
+// only the local index, or none for a block whose pack does not count for
+// eviction. Eviction groups blocks by these packs and verifies each one with
+// VerifyPack; the location itself proves nothing.
+func (s *PackStore) EvictLocate(ctx context.Context, hashes []*hash.Hash) ([]PackLocation, error) {
+	// Locate only through the local index, once its table loads.
 	if s.index == nil {
 		return nil, errors.New("pack store has no local index to locate packs")
+	}
+	if err := s.loadEntries(ctx); err != nil {
+		return nil, err
 	}
 
 	// Read every block's row in one snapshot.
@@ -79,6 +144,9 @@ func (s *PackStore) LocatePacks(ctx context.Context, hashes []*hash.Hash) ([]Pac
 	}
 	sizes := make(map[string]int64, len(entries))
 	for _, entry := range entries {
+		if !s.evictCounts(entry) {
+			continue
+		}
 		sizes[entry.GetId()] = int64(entry.GetSizeBytes()) //nolint:gosec // pack sizes are far below MaxInt64.
 	}
 	out := make([]PackLocation, len(ids))
@@ -97,6 +165,10 @@ func (s *PackStore) LocatePacks(ctx context.Context, hashes []*hash.Hash) ([]Pac
 // that the entry names the pack at the recorded size and that its bloom
 // filter holds every value.
 //
+// The pack must count for eviction, as evictCounts describes, both before
+// the fetch and after it, so a pack the sweep held while it was read proves
+// nothing.
+//
 // Invariant: eviction drops a block's last local copy only when a reader with
 // no local index can find that block from the bucket alone. Such a reader
 // finds packs by listing entries/ and testing each entry's bloom filter, so a
@@ -104,22 +176,25 @@ func (s *PackStore) LocatePacks(ctx context.Context, hashes []*hash.Hash) ([]Pac
 // value hides that value from it. Any doubt about the entry refuses the pack,
 // and a refused pack keeps every block.
 //
-// Cost per verified pack: one GET of the entry object, a few KiB that grow
-// with the pack's block count, then one HEAD where the backend reports sizes
-// and one range GET of at most the recorded size plus the slack and a byte. It reads with one range request of the recorded size
-// plus verifySlackBytes and one byte, never through the read cache or the
-// pack readers, so no local copy can answer for the bucket. An object larger
-// than the recorded size plus verifySlackBytes is refused, before its body is
-// read when the backend reports sizes, and a recorded size past the largest
-// pack this store writes plus the slack is refused without a read, so one
-// call holds at most the largest pack plus twice the slack and a byte: about
-// 63.1 MiB. Returns every value of the pack, or a PackVerifyError when
+// Cost per verified pack: two point reads of the local index, one GET of the
+// entry object, a few KiB that grow with the pack's block count, then one
+// HEAD where the backend reports sizes and one range GET of at most the
+// recorded size plus verifySlackBytes and one byte, never through the read
+// cache or the pack readers, so no local copy can answer for the bucket. An
+// object larger than the recorded size plus verifySlackBytes is refused,
+// before its body is read when the backend reports sizes, and a recorded size
+// past the largest pack this store writes plus the slack is refused without a
+// read, so one call holds at most the largest pack plus twice the slack and a
+// byte: about 63.1 MiB. Returns every value of the pack, or a PackVerifyError when
 // anything fails: a pack is good whole or not at all.
 func (s *PackStore) VerifyPack(ctx context.Context, id string, size int64) ([]VerifiedValue, error) {
 	// Refuse a recorded size no pack of this store reaches.
 	limit := max(s.maxPackBytes, writer.DefaultMaxPackBytes) + verifySlackBytes
 	if size <= 0 || size > limit {
 		return nil, verifyFailed(VerifyOversize, errors.Errorf("recorded size %d", size))
+	}
+	if err := s.checkRegistered(ctx, id); err != nil {
+		return nil, err
 	}
 	key := s.prefix + packDir + id
 
@@ -209,6 +284,11 @@ func (s *PackStore) VerifyPack(ctx context.Context, id string, size int64) ([]Ve
 	// Every value must be one a listing reader finds through the entry.
 	if err := checkEntryBloom(entry, keys); err != nil {
 		return nil, verifyFailed(VerifyEntry, err)
+	}
+
+	// The pack must still count once its bytes are read.
+	if err := s.checkRegistered(ctx, id); err != nil {
+		return nil, err
 	}
 	return values, nil
 }

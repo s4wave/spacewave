@@ -4,7 +4,9 @@
 package s3test
 
 import (
+	"crypto/md5" //nolint:gosec // S3 defines a single-part ETag as the MD5 of the bytes.
 	"encoding/xml"
+	"fmt"
 	"io"
 	"maps"
 	"net/http"
@@ -202,6 +204,7 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "<Error><Code>NoSuchKey</Code></Error>", http.StatusNotFound)
 			return
 		}
+		w.Header().Set("ETag", fmt.Sprintf("%q", fmt.Sprintf("%x", md5.Sum(data)))) //nolint:gosec // S3 defines a single-part ETag as the MD5 of the bytes.
 		http.ServeContent(w, r, key, time.Time{}, strings.NewReader(string(data)))
 	default:
 		w.WriteHeader(http.StatusNoContent)

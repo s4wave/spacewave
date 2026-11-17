@@ -83,7 +83,7 @@ func TestVerifyPackReadsTheBucket(t *testing.T) {
 			for i, ref := range refs {
 				hashes[i] = ref.GetHash()
 			}
-			locs, err := s.LocatePacks(ctx, hashes)
+			locs, err := s.EvictLocate(ctx, hashes)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -129,7 +129,7 @@ func TestVerifyPackReadsTheBucket(t *testing.T) {
 			bucket.mtx.Unlock()
 
 			// The local index still places every block in the pack.
-			if after, err := s.LocatePacks(ctx, hashes); err != nil || after[0] != loc || after[1] != loc || after[2] != loc {
+			if after, err := s.EvictLocate(ctx, hashes); err != nil || after[0] != loc || after[1] != loc || after[2] != loc {
 				t.Fatalf("local index after the lie: %+v, %v", after, err)
 			}
 
@@ -184,7 +184,7 @@ func TestVerifyPackRefusesLongerObjectWithoutStat(t *testing.T) {
 		refs := adoptBlocks(ctx, t, s, "w", 3)
 
 		// Append past the recorded size.
-		locs, err := s.LocatePacks(ctx, []*hash.Hash{refs[0].GetHash()})
+		locs, err := s.EvictLocate(ctx, []*hash.Hash{refs[0].GetHash()})
 		if err != nil || locs[0].ID == "" {
 			t.Fatalf("locate: %+v, %v", locs, err)
 		}
@@ -235,7 +235,7 @@ func TestPublishPackSendsChecksum(t *testing.T) {
 		s := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, SoleWriter: true, UploadChecksum: on})
 		t.Cleanup(s.Close)
 		refs := adoptBlocks(ctx, t, s, "v", 3)
-		locs, err := s.LocatePacks(ctx, []*hash.Hash{refs[0].GetHash()})
+		locs, err := s.EvictLocate(ctx, []*hash.Hash{refs[0].GetHash()})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -268,4 +268,48 @@ func deleteKey(ctx context.Context, kv kvtx.Store, key string) error {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+// TestPackIdentityNamesTheObjects checks that a pack's identity stays while
+// its objects do, and changes when the entry is rewritten with other bytes or
+// the pack object goes.
+func TestPackIdentityNamesTheObjects(t *testing.T) {
+	ctx := t.Context()
+	bucket, client := newFakeBucket(t, nil)
+	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	s := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, SoleWriter: true})
+	t.Cleanup(s.Close)
+	refs := adoptBlocks(ctx, t, s, "i", 3)
+	locs, err := s.EvictLocate(ctx, []*hash.Hash{refs[0].GetHash()})
+	if err != nil || locs[0].ID == "" {
+		t.Fatalf("locate: %+v, %v", locs, err)
+	}
+	id := locs[0].ID
+	name := func() string {
+		t.Helper()
+		ident, err := s.PackIdentity(ctx, id)
+		if err != nil || ident == "" {
+			t.Fatalf("identity %q, %v", ident, err)
+		}
+		return ident
+	}
+
+	// The same objects name the same identity.
+	first := name()
+	if again := name(); again != first {
+		t.Fatalf("identity moved without a change: %q, %q", first, again)
+	}
+
+	// Other entry bytes, then a lost pack, each change it.
+	bucket.mtx.Lock()
+	bucket.objects["p/"+entryDir+id] += "x"
+	bucket.mtx.Unlock()
+	second := name()
+	bucket.mtx.Lock()
+	delete(bucket.objects, "p/"+packDir+id)
+	bucket.mtx.Unlock()
+	third := name()
+	if second == first || third == second || !strings.HasPrefix(third, identityAbsent+" ") {
+		t.Fatalf("identities %q, %q, %q", first, second, third)
+	}
 }
