@@ -10,14 +10,14 @@ import (
 // accountWorldRoot is the named root that holds the account World copy.
 const accountWorldRoot = "account-world"
 
-// copyWorldGraph copies the World graph under root into store under a stage,
-// then moves the account World root onto it. It skips each subtree the stage
+// copyWorldGraph copies the World graph under root from src into store under a
+// stage, then moves the account World root onto it. It skips each subtree the stage
 // holds, as block.StageCopy describes. visited observes each block the copy
 // reads; missing, when set, accepts a block no source serves as a hole, which
 // leaves its ancestors unproved and the root unmoved.
 func copyWorldGraph(
 	ctx context.Context,
-	store block.StoreOps,
+	store, src block.StoreOps,
 	root *block.BlockRef,
 	visited func(*block.BlockRef, []byte),
 	missing func(*block.BlockRef),
@@ -37,7 +37,7 @@ func copyWorldGraph(
 			return nil
 		}
 	}
-	if err := c.Copy(ctx, store, root, opts); err != nil {
+	if err := c.Copy(ctx, src, root, opts); err != nil {
 		return err
 	}
 	if err := c.Flush(ctx); err != nil {

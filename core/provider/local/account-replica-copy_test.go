@@ -133,7 +133,7 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 	}}
 	for i := range 2 {
 		progress := &AccountReplicaCopyState{Head: head}
-		if err := account.copyAccountWorld(ctx, destination, progress, func() {}); err != nil {
+		if err := account.copyAccountWorld(ctx, destination, progress, &knownAbsent{}, func() {}); err != nil {
 			t.Fatal(err)
 		}
 		if i == 0 && progress.GetBlocks() == 0 {
@@ -175,7 +175,7 @@ func TestAccountReplicaCopyBatchesProofReads(t *testing.T) {
 		store: counted, readStore: so.GetBlockStore(),
 	}}
 	progress := &AccountReplicaCopyState{Head: head}
-	if err := account.copyAccountWorld(ctx, destination, progress, func() {}); err != nil {
+	if err := account.copyAccountWorld(ctx, destination, progress, &knownAbsent{}, func() {}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -229,7 +229,7 @@ func TestAccountReplicaCopySkipsHeldSubtree(t *testing.T) {
 		store: block_store.NewStore("destination", dstSO.GetBlockStore()), readStore: source,
 	}}
 	progress := &AccountReplicaCopyState{Head: head}
-	if err := account.copyAccountWorld(ctx, destination, progress, func() {}); err != nil {
+	if err := account.copyAccountWorld(ctx, destination, progress, &knownAbsent{}, func() {}); err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("copied %d of %d blocks", progress.GetBlocks(), total)
@@ -307,7 +307,7 @@ func TestAccountReplicaCopyWaitsOnUnknownRefs(t *testing.T) {
 	latest := ccontainer.NewCContainer(cur)
 	done := make(chan error, 1)
 	go func() {
-		done <- account.copyAccountWorldHead(ctx, destination, &p2pSyncState{}, local, latest, cur, nil)
+		done <- account.copyAccountWorldHead(ctx, destination, &p2pSyncState{}, local, latest, cur, &knownAbsent{}, nil)
 	}()
 	select {
 	case err := <-done:
@@ -325,7 +325,9 @@ func TestAccountReplicaCopyWaitsOnUnknownRefs(t *testing.T) {
 
 // TestAccountReplicaCopyKeepsProofsAroundHoles copies from a source missing one
 // block, or whose peers all refuse it. The walk finishes and names the block,
-// and the next walk of the same head reads only the path to it.
+// and the next walk of the same head reads only the path to it. The block is
+// then known absent: the next walk names it without reading it, until a reset,
+// as on a peer session start, after which the probe reads it once.
 func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 	for name, holeErr := range map[string]error{
 		"missing": block.ErrNotFound,
@@ -343,12 +345,13 @@ func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 			}}
 
 			// Each walk finishes and names the leaf.
+			absent := &knownAbsent{}
 			walk := func() int32 {
 				// Copy the head, counting the source reads.
 				t.Helper()
 				source.reads.Store(0)
 				progress := &AccountReplicaCopyState{ObjectId: so.GetSharedObjectID(), Head: head}
-				err := account.copyAccountWorld(ctx, destination, progress, func() {})
+				err := account.copyAccountWorld(ctx, destination, progress, absent, func() {})
 				var holes *worldHolesError
 				if !errors.As(err, &holes) || !errors.Is(err, block.ErrNotFound) {
 					t.Fatalf("copy returned %v, want the leaf as a hole", err)
@@ -361,6 +364,21 @@ func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 			first, second := walk(), walk()
 			if second >= first {
 				t.Fatalf("second walk read %d blocks, first read %d", second, first)
+			}
+			if got := source.holeReads.Load(); got != 1 {
+				t.Fatalf("two walks read the hole %d times, want once", got)
+			}
+
+			// A peer session start resets the set; the probe reads the hole
+			// once and the walk after it not at all.
+			absent.reset()
+			holes := &worldHolesError{refs: []*block.BlockRef{leaf}}
+			if arrived, err := holes.probe(ctx, source, absent, absent.generation()); err != nil || arrived {
+				t.Fatalf("probe returned arrived=%v err=%v, want the hole still absent", arrived, err)
+			}
+			walk()
+			if got := source.holeReads.Load(); got != 2 {
+				t.Fatalf("hole read %d times after one reset, want twice", got)
 			}
 		})
 	}
@@ -375,15 +393,31 @@ type holeStore struct {
 	err error
 	// reads counts the stored block reads.
 	reads atomic.Int32
+	// holeReads counts the reads of hole, stored or plain.
+	holeReads atomic.Int32
 }
 
 // GetStoredBlock reads the inner block unless it is the hole.
 func (s *holeStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	s.reads.Add(1)
 	if ref.EqualVT(s.hole) {
+		s.holeReads.Add(1)
 		return nil, s.err
 	}
 	return s.StoreOps.GetStoredBlock(ctx, ref)
+}
+
+// GetBlock reads the inner block unless it is the hole, which a missing store
+// reports as not found and a refusing one as its error.
+func (s *holeStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	if !ref.EqualVT(s.hole) {
+		return s.StoreOps.GetBlock(ctx, ref)
+	}
+	s.holeReads.Add(1)
+	if errors.Is(s.err, block.ErrNotFound) {
+		return nil, false, nil
+	}
+	return nil, false, s.err
 }
 
 // refsUnknownStore serves its inner store's blocks without their refs.

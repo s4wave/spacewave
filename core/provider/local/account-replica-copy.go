@@ -64,11 +64,27 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 	}
 	defer releaseStates()
 
+	// Reset the known-absent blocks when a peer session starts, since the new
+	// peer may serve them.
+	absent := &knownAbsent{}
+	if exchange != nil {
+		watchCtx, cancelWatch := context.WithCancel(ctx)
+		watched := make(chan struct{})
+		go func() {
+			resetOnSessionStart(watchCtx, exchange, absent)
+			close(watched)
+		}()
+		defer func() {
+			cancelWatch()
+			<-watched
+		}()
+	}
+
 	// Copy the newest published graph in latest, then each newer one.
 	latest := ccontainer.NewCContainer[*replicaHead](nil)
 	copier := routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "copy-world-head"), routine.WithRetry(providerBackoff))
 	copier.SetRoutine(func(ctx context.Context) error {
-		err := publishErr(ctx, a.copyAccountWorldHeads(ctx, so, state, local, latest, exchange))
+		err := publishErr(ctx, a.copyAccountWorldHeads(ctx, so, state, local, latest, absent, exchange))
 		if errors.Is(err, volume.ErrReserve) {
 			// Retry once the volume leaves its disk reserve, not on a timer.
 			if werr := volume.WaitWritable(ctx, a.vol); werr != nil {
@@ -111,6 +127,9 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 		if root.EqualsRef(previous) && bytes.Equal(config.GetConfigChainHash(), configHead) {
 			continue
 		}
+		if !bytes.Equal(config.GetConfigChainHash(), configHead) {
+			absent.reset()
+		}
 		previous, configHead = root, bytes.Clone(config.GetConfigChainHash())
 		latest.SetValue(&replicaHead{span: span, head: &bucket.ObjectRef{RootRef: root}})
 	}
@@ -133,6 +152,7 @@ func (a *ProviderAccount) copyAccountWorldHeads(
 	state *p2pSyncState,
 	local kvtx.Store,
 	latest *ccontainer.CContainer[*replicaHead],
+	absent *knownAbsent,
 	exchange *dex_solicit.Controller,
 ) error {
 	var copied *replicaHead
@@ -149,7 +169,7 @@ func (a *ProviderAccount) copyAccountWorldHeads(
 				return err
 			}
 		}
-		if err := a.copyAccountWorldHead(ctx, so, state, local, latest, next, exchange); err != nil {
+		if err := a.copyAccountWorldHead(ctx, so, state, local, latest, next, absent, exchange); err != nil {
 			return err
 		}
 		copied = next
@@ -170,16 +190,14 @@ func (a *ProviderAccount) copyAccountWorldHead(
 	local kvtx.Store,
 	latest *ccontainer.CContainer[*replicaHead],
 	cur *replicaHead,
+	absent *knownAbsent,
 	exchange *dex_solicit.Controller,
 ) error {
 	for logged := false; ; logged = true {
-		// Count peer sessions first so one starting during the copy still
-		// wakes the wait.
-		var starts uint64
-		if exchange != nil {
-			starts = exchange.GetSessionStarts()
-		}
-		err := a.copyAndPersistAccountWorld(ctx, so, state, local, cur.head)
+		// Take the known-absent generation first so a peer session starting
+		// during the copy still wakes the wait.
+		gen := absent.generation()
+		err := a.copyAndPersistAccountWorld(ctx, so, state, local, cur.head, absent)
 		if !block.IsNotAvailable(err) && !errors.Is(err, block.ErrRefsUnknown) {
 			return err
 		}
@@ -197,7 +215,7 @@ func (a *ProviderAccount) copyAccountWorldHead(
 			cancel()
 		}()
 		if exchange != nil {
-			err = waitWorldHoles(waitCtx, so.GetBlockStore(), exchange, starts, holes)
+			err = waitWorldHoles(waitCtx, so.GetBlockStore(), absent, gen, holes)
 		} else {
 			<-waitCtx.Done()
 		}
@@ -214,29 +232,30 @@ func (a *ProviderAccount) copyAccountWorldHead(
 	}
 }
 
-// waitWorldHoles waits for a peer session to start on exchange. When holes
-// names the blocks a finished walk missed, it waits on until one of them
-// arrives; a walk stopped by a block without its refs walks again on the next
-// session.
+// waitWorldHoles waits for absent to reset after gen, on a peer session start
+// or a config change. When holes names the blocks a finished walk missed, it
+// reads each once and waits on until one of them arrives, keeping the rest in
+// absent so the next walk does not read them again; a walk stopped by a block
+// without its refs walks again on the next reset.
 func waitWorldHoles(
 	ctx context.Context,
 	store block.StoreOps,
-	exchange *dex_solicit.Controller,
-	starts uint64,
+	absent *knownAbsent,
+	gen uint64,
 	holes *worldHolesError,
 ) error {
 	for {
-		if err := exchange.WaitSessionStart(ctx, starts); err != nil {
+		if err := absent.waitReset(ctx, gen); err != nil {
 			return err
 		}
 		if holes == nil {
 			return nil
 		}
-		arrived, err := holes.probe(ctx, store)
+		gen = absent.generation()
+		arrived, err := holes.probe(ctx, store, absent, gen)
 		if err != nil || arrived {
 			return err
 		}
-		starts = exchange.GetSessionStarts()
 	}
 }
 
@@ -259,11 +278,13 @@ func (e *worldHolesError) Unwrap() error {
 }
 
 // probe reads each missing block through store and reports whether any
-// arrived. A block no source serves yet has not arrived.
-func (e *worldHolesError) probe(ctx context.Context, store block.StoreOps) (bool, error) {
+// arrived. A block no source serves yet has not arrived, and is added to
+// absent under gen.
+func (e *worldHolesError) probe(ctx context.Context, store block.StoreOps, absent *knownAbsent, gen uint64) (bool, error) {
 	for _, ref := range e.refs {
 		_, found, err := store.GetBlock(ctx, ref)
-		if block.IsNotAvailable(err) {
+		if block.IsNotAvailable(err) || (err == nil && !found) {
+			absent.add(gen, ref)
 			continue
 		}
 		if err != nil || found {
@@ -274,7 +295,14 @@ func (e *worldHolesError) probe(ctx context.Context, store block.StoreOps) (bool
 }
 
 // copyAndPersistAccountWorld records completion only after the block fence.
-func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sobject.SharedObject, state *p2pSyncState, local kvtx.Store, head *bucket.ObjectRef) error {
+func (a *ProviderAccount) copyAndPersistAccountWorld(
+	ctx context.Context,
+	so sobject.SharedObject,
+	state *p2pSyncState,
+	local kvtx.Store,
+	head *bucket.ObjectRef,
+	absent *knownAbsent,
+) error {
 	// Read the persisted progress record for this head.
 	progress := &AccountReplicaCopyState{}
 	openRead := func(ctx context.Context) (kvtx.Tx, error) { return local.NewTransaction(ctx, false) }
@@ -301,7 +329,7 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 	// Copy the World and hold its root on success.
 	progress = &AccountReplicaCopyState{ObjectId: so.GetSharedObjectID(), Head: head.CloneVT()}
 	state.publishCopyProgress(progress)
-	err = a.copyAccountWorld(ctx, so, progress, func() { state.publishCopyProgress(progress) })
+	err = a.copyAccountWorld(ctx, so, progress, absent, func() { state.publishCopyProgress(progress) })
 
 	// Record the outcome in the progress state.
 	if ctx.Err() != nil {
@@ -340,8 +368,9 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 // under the account World root, publishing progress while blocks copy. A
 // missing block does not stop the walk: the walk completes, keeps the proofs
 // of every complete subtree, and returns a worldHolesError without moving the
-// root.
-func (a *ProviderAccount) copyAccountWorld(ctx context.Context, so sobject.SharedObject, progress *AccountReplicaCopyState, changed func()) error {
+// root. A block in absent is recorded as a hole without a read; the holes
+// this walk finds become absent's set.
+func (a *ProviderAccount) copyAccountWorld(ctx context.Context, so sobject.SharedObject, progress *AccountReplicaCopyState, absent *knownAbsent, changed func()) error {
 	// Count the copied blocks, publishing progress at most every 250ms.
 	lastUpdate := time.Now()
 	visited := func(_ *block.BlockRef, data []byte) {
@@ -353,12 +382,19 @@ func (a *ProviderAccount) copyAccountWorld(ctx context.Context, so sobject.Share
 		}
 	}
 
-	// Copy the World, collecting the blocks no source serves.
+	// Read through the known-absent set, collecting the blocks no source
+	// serves.
+	gen := absent.generation()
 	holes := &worldHolesError{}
 	missing := func(ref *block.BlockRef) { holes.refs = append(holes.refs, ref.CloneVT()) }
-	if err := copyWorldGraph(ctx, so.GetBlockStore(), progress.GetHead().GetRootRef(), visited, missing); err != nil {
+	store := so.GetBlockStore()
+	src := &absentSource{StoreOps: store, absent: absent}
+
+	// Copy the World, then make its holes the known-absent set.
+	if err := copyWorldGraph(ctx, store, src, progress.GetHead().GetRootRef(), visited, missing); err != nil {
 		return err
 	}
+	absent.replace(gen, holes.refs)
 	if len(holes.refs) != 0 {
 		return holes
 	}
