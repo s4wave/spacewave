@@ -133,8 +133,9 @@ func TestMultiNodeDEX(
 		bridges[i+1].ConnectToInproc(ctx, bridges[i])
 	}
 
-	// HACK
-	// TODO
+	// Link the first node directly to the last: the callers' lookups between
+	// the two ends need it, and with only the chain of adjacent links the
+	// solicit and psecho DEX tests fail.
 	{
 		bridges[0].ConnectToInproc(ctx, bridges[len(bridges)-1])
 		bridges[len(bridges)-1].ConnectToInproc(ctx, bridges[0])

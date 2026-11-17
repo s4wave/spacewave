@@ -94,6 +94,8 @@ STUB
 	cp "$hook_under_test" "$test_dir/repo/.git/hooks/pre-commit"
 	cp "$push_hook_under_test" "$test_dir/repo/.git/hooks/pre-push"
 	chmod +x "$test_dir/repo/.git/hooks/pre-commit" "$test_dir/repo/.git/hooks/pre-push"
+	mkdir -p "$test_dir/repo/.githooks"
+	cp "$(dirname "$hook_under_test")/check-excuse-comments" "$test_dir/repo/.githooks/"
 }
 
 seed_commit() {
@@ -407,6 +409,49 @@ test_push_checks_only_unseen_trees() {
 	cleanup
 }
 
+# --- 8. excuse comments ------------------------------------------------------
+
+test_excuse_comment_refused() {
+	label='excuse: an added comment that excuses a workaround fails the commit'
+	new_repo
+	mkdir -p "$test_dir/repo/web"
+	printf 'export const a = 1\n' >"$test_dir/repo/web/a.ts"
+	seed_commit
+	printf 'export const a = 1\n// TODO: hack for now\nexport const b = 2\n' >"$test_dir/repo/web/a.ts"
+	git -C "$test_dir/repo" add web/a.ts
+	try_commit fail &&
+		out_says 'web/a.ts:2: hack: // TODO: hack for now' &&
+		out_says 'pre-commit: excuse-comments failed'
+	note_result $? "$label"
+	cleanup
+}
+
+test_excuse_comment_cited_passes() {
+	label='excuse: a comment that cites its outside constraint passes'
+	new_repo
+	printf 'package a\n' >"$test_dir/repo/a.go"
+	seed_commit
+	printf 'package a\n\n// The parser rejects tabs; work around it until it is fixed:\n// https://github.com/example/parser/issues/12\nvar A = 1\n' >"$test_dir/repo/a.go"
+	git -C "$test_dir/repo" add a.go
+	try_commit ok
+	note_result $? "$label"
+	cleanup
+}
+
+test_excuse_comment_context_passes() {
+	label='excuse: an existing excuse beside an added line does not fail the commit'
+	new_repo
+	printf 'package a\n\n// HACK: keep\nvar A = 1\n' >"$test_dir/repo/a.go"
+	# The seed stands for code that predates the check, so it skips the hook.
+	git -C "$test_dir/repo" add -A
+	git -C "$test_dir/repo" -c core.hooksPath=/dev/null commit -qm seed
+	printf 'package a\n\n// HACK: keep\nvar A = 2\n' >"$test_dir/repo/a.go"
+	git -C "$test_dir/repo" add a.go
+	try_commit ok
+	note_result $? "$label"
+	cleanup
+}
+
 # --- runner ------------------------------------------------------------------
 
 for t in \
@@ -422,7 +467,10 @@ for t in \
 	test_worktree_go_without_git_dir \
 	test_worktree_links_main_node_modules \
 	test_commit_all_reads_temporary_index \
-	test_push_checks_only_unseen_trees
+	test_push_checks_only_unseen_trees \
+	test_excuse_comment_refused \
+	test_excuse_comment_cited_passes \
+	test_excuse_comment_context_passes
 do
 	"$t"
 done

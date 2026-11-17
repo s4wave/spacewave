@@ -92,12 +92,18 @@ func DirentToFuseDirent(dirent unixfs.FSCursorDirent, out *fuse.Dirent) error {
 	return nil
 }
 
-// NodeTypeToDirentType converts a fstree node type into a fuse node type.
+// NodeTypeToDirentType converts a fstree node type into a fuse node type. An
+// unrecognized type is DT_Unknown, which makes the kernel read the entry's
+// mode from its attributes.
 func NodeTypeToDirentType(nodeType unixfs.FSCursorNodeType) fuse.DirentType {
-	if nodeType.GetIsDirectory() {
+	switch {
+	case nodeType.GetIsDirectory():
 		return fuse.DT_Dir
+	case nodeType.GetIsFile():
+		return fuse.DT_File
+	case nodeType.GetIsSymlink():
+		return fuse.DT_Link
+	default:
+		return fuse.DT_Unknown
 	}
-	// TODO default to file for now
-	// nodeType.GetIsFile()
-	return fuse.DT_File
 }

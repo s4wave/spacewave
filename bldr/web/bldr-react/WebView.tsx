@@ -213,13 +213,9 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   }))
   const webViewStateRef = useRef(webViewState)
   webViewStateRef.current = webViewState
+  // isComponentReady is reset by setRenderMode and resetView, which make every
+  // change to scriptPath and refreshNonce, before the new component mounts.
   const [isComponentReady, setIsComponentReady] = useState(false)
-
-  // TODO: hack: improve this
-
-  useEffect(() => {
-    setIsComponentReady(false)
-  }, [webViewState.scriptPath, webViewState.refreshNonce])
 
   // onRemoveRef is a ref to the latest onRemove callback
   const onRemoveRef = useLatestRef(props.onRemove)

@@ -194,12 +194,8 @@ export function buildResponseStream(
   it: AsyncIterator<Message<FetchResponse>>,
 ): ReadableStream {
   async function readResponse(
-    controller: ReadableStreamController<Uint8Array>,
+    controller: ReadableStreamDefaultController<Uint8Array>,
   ) {
-    // note: workaround type mismatch error here (types are fine)
-    const enqueue = (controller.enqueue as (data: Uint8Array) => void).bind(
-      controller,
-    )
     while (it) {
       const next = await it.next()
       if (next.done) {
@@ -219,7 +215,7 @@ export function buildResponseStream(
       const responseDataPkt = value.body.value
       const responseData = responseDataPkt?.data
       if (responseData && responseData.length) {
-        enqueue(responseData)
+        controller.enqueue(responseData)
       }
       if (responseDataPkt?.done) {
         controller.close()
@@ -228,7 +224,7 @@ export function buildResponseStream(
     }
   }
   // bodyInit is the streaming response body.
-  return new ReadableStream({
+  return new ReadableStream<Uint8Array>({
     start(controller) {
       readResponse(controller).catch((err) => {
         const error = castToError(err, 'fetch response data')

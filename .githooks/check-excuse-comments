@@ -1,0 +1,93 @@
+#!/bin/sh
+# check-excuse-comments refuses a commit that adds a comment excusing a
+# workaround instead of fixing it: one that says workaround, hack or kludge, a
+# TODO, FIXME or XXX that defers the fix ("for now", "later", "proper"), or one
+# that says a case should not happen. A comment block that cites its outside
+# constraint by a link or an issue reference passes, since the code then
+# follows a limit someone else owns.
+#
+# It reads only the lines this commit adds to handwritten Go and JavaScript
+# sources, with three lines of context so a citation already above an added
+# line counts, and it costs one git diff and one awk pass.
+#
+# PRE_COMMIT_BASE names the revision to diff the index against, as in
+# pre-commit; HEAD when unset.
+set -eu
+
+base=${PRE_COMMIT_BASE:-}
+git diff --cached -U3 --no-color --no-ext-diff --diff-filter=ACMR ${base:+"$base"} -- \
+	'*.go' '*.ts' '*.tsx' '*.js' '*.mjs' \
+	':(exclude)vendor/**' ':(exclude)*.pb.go' ':(exclude)*.pb.ts' \
+	':(exclude)*_pb.ts' ':(exclude)*.d.ts' |
+	awk '
+# excuse returns the name of the pattern the comment text matches, or "".
+function excuse(text,   low, padded) {
+	low = tolower(text)
+	padded = " " low " "
+	if (padded ~ /[^a-z]work ?arounds?[^a-z]/) return "workaround"
+	if (padded ~ /[^a-z](hacks?|hacky|hacked|kludges?)[^a-z]/) return "hack"
+	if (text ~ /(TODO|FIXME|XXX)/ && low ~ /(for now|hack|workaround|later|temporar|quick|proper|real fix|someday|eventually)/) return "todo-excuse"
+	if (padded ~ /[^a-z](should|can|could)(n.t| not| never) (ever )?happen[^a-z]/) return "should-not-happen"
+	return ""
+}
+
+# flush reports the hits of the comment block that just ended, unless the
+# block cites its constraint.
+function flush(   i) {
+	if (!cited)
+		for (i = 1; i <= nhit; i++) {
+			print hit[i] > "/dev/stderr"
+			bad = 1
+		}
+	nhit = 0
+	cited = 0
+}
+
+# visit adds one comment line to the current block.
+function visit(tag, comment,   name) {
+	if (comment ~ /https?:\/\/|(^|[^&a-z0-9])#[0-9]+|[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+#[0-9]+|([Ii]ssue|[Bb]ug) [0-9]+/)
+		cited = 1
+	if (tag != "+") return
+	name = excuse(comment)
+	if (name == "") return
+	sub(/^[ \t]+/, "", comment)
+	hit[++nhit] = file ":" line ": " name ": " comment
+}
+
+/^diff --git / { flush(); next }
+/^--- / { next }
+/^\+\+\+ / { flush(); file = substr($0, 7); next }
+/^@@/ {
+	flush()
+	split($0, field, " ")
+	start = field[3]
+	sub(/^\+/, "", start)
+	sub(/,.*/, "", start)
+	line = start + 0
+	next
+}
+{
+	tag = substr($0, 1, 1)
+	if (tag != "+" && tag != " ") next
+	text = substr($0, 2)
+	if (text ~ /^[ \t]*(\/\/|\/\*|\*)/) {
+		visit(tag, text)
+	} else {
+		flush()
+		at = index(text, "//")
+		if (at == 0) at = index(text, "/*")
+		if (at > 0) {
+			visit(tag, substr(text, at))
+			flush()
+		}
+	}
+	line++
+}
+END {
+	flush()
+	if (bad) {
+		print "excuse-comments: fix the code each comment excuses and drop the comment, or cite the outside constraint in the comment with a link or an issue reference" > "/dev/stderr"
+		exit 1
+	}
+}
+'

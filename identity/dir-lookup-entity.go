@@ -9,9 +9,8 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// IdentityLookupEntity is a directive to search for a entity record.
-// At least one of the search fields should be set.
-// TODO: For now the domain ID must be set.
+// IdentityLookupEntity is a directive to search for an entity record by its
+// domain ID and its domain-unique ID.
 //
 // The entity record contains the list of keypairs which may contain information
 // on how to derive the key, given a secret or local hardware private key. Note
@@ -25,9 +24,6 @@ type IdentityLookupEntity interface {
 	// IdentityLookupEntityDomainID is the domain identifier.
 	// Cannot be empty.
 	IdentityLookupEntityDomainID() string
-
-	// At least one of the below must be set.
-
 	// IdentityLookupEntityID is the domain-unique identifier (username).
 	IdentityLookupEntityID() string
 }
