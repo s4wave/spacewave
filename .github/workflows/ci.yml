@@ -29,7 +29,8 @@ on:
 # finishes, so a busy stack still produces results, and a newer push waits
 # behind it; of several waiting pushes GitHub keeps only the newest, which
 # contains the others. Every other run groups by commit, so each master push
-# gets its own delta run and a burst of pushes cannot cancel a pending one.
+# gets its own delta run and a burst of pushes cannot cancel a pending one. A
+# stack run whose result is already failed cancels itself; see stop-failed.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || (github.event_name == 'push' && endsWith(github.ref_name, '-stack') && github.ref_name) || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -104,9 +105,9 @@ jobs:
 
   # specs checks the TLA+ models Select lists, each on one core unless its
   # entry sets workers: every model on a full run, and on a delta run those
-  # whose config, spec or spec modules changed; see scripts/ci-affected.ts. A
-  # delta run that lists none skips the job, and the CI hourly workflow's full
-  # dispatch checks every model.
+  # whose config, spec or spec modules changed, less the specs too slow for a
+  # delta run; see scripts/ci-affected.ts. A delta run that lists none skips
+  # the job, and the CI hourly workflow's full dispatch checks every model.
   specs:
     name: TLA+ specs (${{ matrix.name }})
     needs: affected
@@ -670,3 +671,28 @@ jobs:
 
           puts "nightly release-WASM smoke contract: PASS"
           RUBY
+
+  # stop-failed cancels a stack run once a job other than the spec checks has
+  # failed. The run can no longer pass, and its spec jobs may run for hours, so
+  # it releases the branch's concurrency group to the newest waiting push.
+  stop-failed:
+    name: Stop a failed stack run
+    needs:
+      - affected
+      - member-ci
+      - member-ci-alpha
+      - member-ci-db
+      - lean
+      - python-resource
+      - licenses
+      - nightly-workflow-contract
+    if: ${{ failure() && github.event_name == 'push' && endsWith(github.ref_name, '-stack') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run cancel "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY"

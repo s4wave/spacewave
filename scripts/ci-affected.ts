@@ -7,8 +7,9 @@
 // tests depend on one, lints the changed Go packages, and runs the JavaScript
 // checks when a JavaScript or TypeScript input changed. A job with no selected
 // step passes after setup. The TLA+ spec jobs are the exception: a delta run
-// lists only the spec jobs whose models changed, and the workflow skips the
-// spec matrix when it lists none.
+// lists only the spec jobs whose models changed, other than those of
+// fullRunSpecs, even when a job definition selected the full suite, and the
+// workflow skips the spec matrix when it lists none.
 //
 // Usage: bun scripts/ci-affected.ts full
 //        bun scripts/ci-affected.ts delta <base-commit>
@@ -34,6 +35,16 @@ const fullRunPaths = [
   /^\.custom-gcl\.yml$/,
   /^lint\//,
 ]
+
+// checkerPaths are the full-run paths the spec jobs read: the checker and its
+// version, which bun.lock pins. Any other full-run path leaves a delta run's
+// spec jobs to the specs that changed.
+const checkerPaths = [/^package\.json$/, /^bun\.lock$/, /^patches\//]
+
+// fullRunSpecs are the specs a delta run leaves to the full runs, because their
+// models and mutants take longer than a delta run may hold its branch's queue.
+// The CI hourly workflow's full dispatch checks them on master.
+const fullRunSpecs = new Set(['db/block/gc/Journal.tla'])
 
 // jsInputs are the files the TypeScript typecheck, oxlint, and JavaScript
 // tests read.
@@ -471,6 +482,17 @@ function specEntries(selected: (config: string) => boolean): SpecEntry[] {
   return entries
 }
 
+// deltaSpecs returns the spec jobs a delta run checks: the models whose
+// config, spec or spec modules changed, less those of fullRunSpecs.
+function deltaSpecs(files: string[]): SpecEntry[] {
+  const changed = changedSpec(files)
+  const tlaFiles = trackedSpecs()
+  return specEntries((config) => {
+    const spec = specOf(config, tlaFiles)
+    return changed(config) && (spec === undefined || !fullRunSpecs.has(spec))
+  })
+}
+
 // specOf returns the spec the checker pairs config with: the .tla in its
 // directory with the longest stem that is the config's name or a dash
 // separated prefix of it, or undefined when none is, which the checker skips.
@@ -518,15 +540,20 @@ function specModules(spec: string): Set<string> {
   return seen
 }
 
-// changedSpec reports whether a model config is affected by files: the
-// config, its spec or a module the spec reads changed.
-function changedSpec(files: string[]): (config: string) => boolean {
-  const changed = new Set(files)
-  const tlaFiles = new Set(
+// trackedSpecs returns the tracked .tla files outside testdata.
+function trackedSpecs(): Set<string> {
+  return new Set(
     run('git', ['ls-files', '*.tla', ':!:**/testdata/**'])
       .split('\n')
       .filter((file) => file !== ''),
   )
+}
+
+// changedSpec reports whether a model config is affected by files: the
+// config, its spec or a module the spec reads changed.
+function changedSpec(files: string[]): (config: string) => boolean {
+  const changed = new Set(files)
+  const tlaFiles = trackedSpecs()
   return (config) => {
     if (changed.has(config)) {
       return true
@@ -589,7 +616,11 @@ function deltaSelection(base: string): Selection {
   )
   if (fullFile) {
     console.error(`ci-affected: ${fullFile} selects the full suite`)
-    return fullSelection()
+    const full = fullSelection()
+    if (files.some((file) => checkerPaths.some((re) => re.test(file)))) {
+      return full
+    }
+    return { ...full, specs: deltaSpecs(files) }
   }
 
   // Map changed files to changed packages, and changed module versions to the
@@ -704,8 +735,7 @@ function deltaSelection(base: string): Selection {
     },
   ]
 
-  // Check the models whose config, spec or spec modules changed.
-  const specs = specEntries(changedSpec(files))
+  const specs = deltaSpecs(files)
   console.error(`ci-affected: ${specs.length} spec jobs selected`)
 
   return {
