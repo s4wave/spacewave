@@ -384,8 +384,12 @@ func (h *WebHost) ExecutePlugin(
 		cleanupCtx, cleanupCtxCancel := context.WithTimeout(ctx, time.Second*3)
 		defer cleanupCtxCancel()
 
-		// Remove stale worker instances until the bounded cleanup window expires.
+		// Remove stale worker instances until the bounded cleanup window
+		// expires, waiting for the document's next status after each removal,
+		// which reports the workers that remain.
+		statusCtr := doc.GetWebDocumentStatusCtr()
 		for cleanupCtx.Err() == nil {
+			status := statusCtr.GetValue()
 			removedInstances, err := removeStaleWebWorkerInstances(ctx, doc, h.le, h.webRuntimeID, pluginWebWorkerID, pluginInstanceID)
 			if err != nil {
 				return err
@@ -393,11 +397,7 @@ func (h *WebHost) ExecutePlugin(
 			if len(removedInstances) == 0 {
 				break
 			}
-
-			select {
-			case <-cleanupCtx.Done():
-			case <-time.After(time.Millisecond * 100):
-			}
+			_, _ = statusCtr.WaitValueChange(cleanupCtx, status, nil)
 		}
 
 		// Stop cleanup if the parent context was canceled during the loop.
@@ -499,30 +499,33 @@ func (h *WebHost) ExecutePlugin(
 				return err
 			}
 
-			// Remove own worker instances on each document and count the removals.
+			// Remove own worker instances on each document, keeping the status
+			// each document reported before the removal that changed it.
 			var retErr error
-			var nOldInstances int
+			pending := make(map[web_document.WebDocument]*web_document.WebDocumentStatus)
 			for _, doc := range docs {
+				status := doc.GetWebDocumentStatusCtr().GetValue()
 				oldInstances, err := removeOwnWebWorkerInstances(ctx, doc, h.le, h.webRuntimeID, pluginWebWorkerID, pluginInstanceID)
 				if err != nil {
 					retErr = err
 				}
-				nOldInstances += len(oldInstances)
+				if len(oldInstances) != 0 {
+					pending[doc] = status
+				}
 			}
 			if retErr != nil {
 				return retErr
 			}
-
-			// Wait briefly before rechecking for remaining old instances.
-			if nOldInstances == 0 {
-				// success
+			if len(pending) == 0 {
 				return nil
 			}
 
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(time.Millisecond * 100):
+			// Wait for each changed document to report its next status before
+			// rechecking for remaining instances.
+			for doc, status := range pending {
+				if _, err := doc.GetWebDocumentStatusCtr().WaitValueChange(ctx, status, nil); err != nil {
+					return err
+				}
 			}
 		}
 	}
