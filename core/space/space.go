@@ -45,6 +45,16 @@ func SpaceEngineId(ref *sobject.SharedObjectRef) string {
 	}, "/")
 }
 
+// ParseSpaceEngineId returns the provider, account and shared object IDs a
+// Space world engine ID names, as SpaceEngineId builds it.
+func ParseSpaceEngineId(engineID string) (providerID, accountID, soID string, err error) {
+	parts := strings.Split(engineID, "/")
+	if len(parts) != 4 || parts[0] != SpaceBodyType || parts[1] == "" || parts[2] == "" || parts[3] == "" {
+		return "", "", "", errors.Errorf("not a space engine id: %q", engineID)
+	}
+	return parts[1], parts[2], parts[3], nil
+}
+
 // NewSpaceSoMeta constructs a new SpaceSoMeta.
 func NewSpaceSoMeta(name string) *SpaceSoMeta {
 	return &SpaceSoMeta{Name: name}

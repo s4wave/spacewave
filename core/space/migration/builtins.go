@@ -3,6 +3,7 @@ package space_migration
 import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	forge_dashboard "github.com/s4wave/spacewave/core/forge/dashboard"
+	"github.com/s4wave/spacewave/core/provider/spacewave/cloudinbox"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	volume_world "github.com/s4wave/spacewave/db/volume/world"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
@@ -69,6 +70,7 @@ func BuiltInRegistry() (*Registry, error) {
 		NewSchemaRefusalHandler(s4wave_org.OrgStateTypeID, ClassificationNonMigratable, "organization state is non-migratable"),
 		NewSchemaHandler(s4wave_secret_world.SecretTypeID, ClassificationRewrite, false, true, false, false, true, inspectSecret, rewriteSecret),
 		NewSchemaRefusalHandler(bldr_manifest_world.ManifestTypeID, ClassificationExternalRef, "manifest payload is external and not admitted for rewrite"),
+		NewSchemaRefusalHandler(cloudinbox.TypeID, ClassificationNonMigratable, "cloud inbox reads the owning account's inbox and is non-migratable"),
 	}
 
 	// Reject duplicate registrations before returning the complete inventory.

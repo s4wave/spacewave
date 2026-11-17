@@ -1,0 +1,109 @@
+syntax = "proto3";
+package provider.spacewave.cloudinbox;
+
+option go_package = "github.com/s4wave/spacewave/core/provider/spacewave/cloudinbox;cloudinbox";
+
+import "google/protobuf/timestamp.proto";
+
+// CloudInbox is the body of a spacewave/cloud-inbox object: an event source
+// that reads one Spacewave Cloud inbox of the account that owns the Space.
+message CloudInbox {
+  // InboxId is the inbox the source reads, in the owning account's namespace.
+  string inbox_id = 1;
+}
+
+// InboxGap is the payload of the event the source emits on its gap port when
+// the inbox shed events the run had not stored. The run's cursor moves past
+// the shed events in the same delivery, so each gap yields one event.
+message InboxGap {
+  // GapThrough is the highest seqno the inbox shed.
+  uint64 gap_through = 1;
+  // Cursor is the seqno the run had stored before the gap.
+  uint64 cursor = 2;
+}
+
+// The messages below are the Spacewave Cloud inbox wire contract. Each keeps
+// the field numbers and types the coordinator's inbox routes encode.
+
+// InboxEvent is one external event stored in an inbox. It is the payload of
+// each event the source emits on a kind port.
+message InboxEvent {
+  // AccountId is the account that owns the inbox that holds the event.
+  string account_id = 1;
+  // InboxId is the inbox that holds the event.
+  string inbox_id = 2;
+  // Seqno is the event's position in the inbox, assigned at append.
+  uint64 seqno = 3;
+  // Source names the adapter that produced the event, such as github.
+  string source = 4;
+  // DeliveryId is the source's idempotency key for the delivery.
+  string delivery_id = 5;
+  // Kind is the normalized event kind, such as check_suite.completed.
+  string kind = 6;
+  // Subject names what the event is about: owner/repo#number for a pull
+  // request, or owner/repo@sha for a check.
+  string subject = 7;
+  // Actor is the login that caused the event.
+  string actor = 8;
+  // Conclusion is the check conclusion or review state, or empty when the
+  // kind carries none.
+  string conclusion = 9;
+  // Url is the page of the run, review, comment or pull request.
+  string url = 10;
+  // ReceivedAt is when the delivery arrived.
+  google.protobuf.Timestamp received_at = 11;
+  // Summary is a one-line description of the event.
+  string summary = 12;
+  // Payload is the raw delivery body, or empty when the body exceeded the
+  // inbox's payload bound or the event payload bound of a Flowgraph event.
+  bytes payload = 13;
+}
+
+// ListInboxEventsResponse answers GET /api/inbox/{id}/events?since=N.
+message ListInboxEventsResponse {
+  // Events are the stored events after the seqno, oldest first, up to a page.
+  repeated InboxEvent events = 1;
+  // GapThrough is the highest seqno a cap shed, or zero when no cap has. A
+  // reader whose cursor is below it missed events.
+  uint64 gap_through = 2;
+  // LastSeqno is the seqno of the newest event the inbox has appended.
+  uint64 last_seqno = 3;
+}
+
+// InboxTicketRequest asks for a ticket that opens the inbox's event channel,
+// POST /api/inbox/{id}/ticket.
+message InboxTicketRequest {}
+
+// InboxTicketResponse carries the ticket for the event channel.
+message InboxTicketResponse {
+  // Ticket is the short-lived token the WebSocket URL carries in its tk
+  // parameter.
+  string ticket = 1;
+}
+
+// AckInboxRequest advances the inbox's ack cursor, POST /api/inbox/{id}/ack.
+message AckInboxRequest {
+  // Seqno is the highest seqno the reader has stored. It must not exceed the
+  // inbox's last seqno; a seqno at or below the cursor leaves it in place.
+  uint64 seqno = 1;
+}
+
+// AckInboxResponse acknowledges that the cursor is at or past the seqno.
+message AckInboxResponse {}
+
+// WsInboxServerFrame is a frame the server pushes on the event channel,
+// GET /api/inbox/{id}/ws.
+message WsInboxServerFrame {
+  oneof body {
+    // Head reports the newest seqno the inbox holds.
+    InboxHead head = 1;
+  }
+}
+
+// InboxHead reports the seqno of the newest appended event. The server sends
+// it when the channel opens and after each append; a burst of appends may
+// coalesce into the newest seqno.
+message InboxHead {
+  // Seqno is the seqno of the newest appended event.
+  uint64 seqno = 1;
+}

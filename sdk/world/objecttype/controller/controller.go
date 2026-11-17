@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
@@ -12,14 +13,26 @@ import (
 // Returns the ObjectType or nil if not found.
 type LookupObjectTypeFunc = func(ctx context.Context, typeID string) (objecttype.ObjectType, error)
 
-// Controller resolves LookupObjectType directives.
+// LookupMetadataFunc returns an object type's metadata, or nil if it has none.
+type LookupMetadataFunc = func(typeID string) *s4wave_objecttype_registry.ObjectTypeMetadata
+
+// Controller resolves LookupObjectType directives, and LookupObjectTypeMetadata
+// directives for the types its metadata lookup knows.
 type Controller struct {
-	lookupFunc LookupObjectTypeFunc
+	lookupFunc   LookupObjectTypeFunc
+	metadataFunc LookupMetadataFunc
 }
 
-// NewController creates a controller with a lookup function.
+// NewController creates a controller with a type lookup. It resolves no
+// metadata.
 func NewController(lookupFunc LookupObjectTypeFunc) *Controller {
 	return &Controller{lookupFunc: lookupFunc}
+}
+
+// NewControllerWithMetadata creates a controller with a type lookup and a
+// metadata lookup for the same types.
+func NewControllerWithMetadata(lookupFunc LookupObjectTypeFunc, metadataFunc LookupMetadataFunc) *Controller {
+	return &Controller{lookupFunc: lookupFunc, metadataFunc: metadataFunc}
 }
 
 // GetControllerInfo returns information about the controller.
@@ -43,12 +56,26 @@ func (c *Controller) Close() error {
 
 // HandleDirective asks if the handler can resolve the directive.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
-	dir, ok := di.GetDirective().(objecttype.LookupObjectType)
-	if !ok {
-		return nil, nil
+	switch dir := di.GetDirective().(type) {
+	case objecttype.LookupObjectType:
+		return directive.R(c.resolveObjectType(dir))
+	case s4wave_objecttype_registry.LookupObjectTypeMetadata:
+		return c.resolveMetadata(dir), nil
 	}
+	return nil, nil
+}
 
-	return directive.R(c.resolveObjectType(dir))
+// resolveMetadata resolves a LookupObjectTypeMetadata directive with the
+// metadata lookup's copy. Compiled metadata never changes, so it is one value.
+func (c *Controller) resolveMetadata(dir s4wave_objecttype_registry.LookupObjectTypeMetadata) []directive.Resolver {
+	if c.metadataFunc == nil {
+		return nil
+	}
+	metadata := c.metadataFunc(dir.LookupObjectTypeMetadataTypeID())
+	if metadata == nil {
+		return nil
+	}
+	return []directive.Resolver{directive.NewValueResolver([]s4wave_objecttype_registry.LookupObjectTypeMetadataValue{metadata})}
 }
 
 // resolveObjectType resolves a LookupObjectType directive.

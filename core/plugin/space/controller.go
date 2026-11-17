@@ -285,7 +285,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// Serve the Space's object type lookups.
-	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
+	objectTypeCtrl := objecttype_controller.NewControllerWithMetadata(space_world_objecttypes.LookupObjectType, space_world_objecttypes.LookupObjectTypeMetadata)
 	objectTypeRef, err := c.GetBus().AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
 		return err

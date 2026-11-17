@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
+	"github.com/s4wave/spacewave/core/provider/spacewave/cloudinbox"
 	"github.com/s4wave/spacewave/core/provider/spacewave/syncprogress"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -122,6 +123,42 @@ func (c *SessionClient) GetSessionTicket(ctx context.Context) (string, error) {
 	}
 	if resp.GetTicket() == "" {
 		return "", errors.New("empty ticket in response")
+	}
+	return resp.GetTicket(), nil
+}
+
+// inboxPath returns the path of one of an inbox's routes.
+func inboxPath(inboxID, route string) string {
+	return "/api/inbox/" + url.PathEscape(inboxID) + "/" + route
+}
+
+// ListInboxEvents returns the events of the account's inbox after the since
+// seqno, up to a page, with the inbox's gap marker and newest seqno.
+func (c *SessionClient) ListInboxEvents(ctx context.Context, inboxID string, since uint64) (*cloudinbox.ListInboxEventsResponse, error) {
+	resp := &cloudinbox.ListInboxEventsResponse{}
+	p := inboxPath(inboxID, "events") + "?since=" + strconv.FormatUint(since, 10)
+	if err := c.getMessage(ctx, p, resp, ""); err != nil {
+		return nil, errors.Wrap(err, "list inbox events")
+	}
+	return resp, nil
+}
+
+// AckInbox advances the account's inbox ack cursor to seqno, so the Cloud
+// drops the events at or below it.
+func (c *SessionClient) AckInbox(ctx context.Context, inboxID string, seqno uint64) error {
+	err := c.postMessage(ctx, inboxPath(inboxID, "ack"), &cloudinbox.AckInboxRequest{Seqno: seqno}, &cloudinbox.AckInboxResponse{}, "")
+	return errors.Wrap(err, "ack inbox events")
+}
+
+// GetInboxTicket requests the short-lived ticket that opens the account's
+// inbox event channel.
+func (c *SessionClient) GetInboxTicket(ctx context.Context, inboxID string) (string, error) {
+	resp := &cloudinbox.InboxTicketResponse{}
+	if err := c.postMessage(ctx, inboxPath(inboxID, "ticket"), &cloudinbox.InboxTicketRequest{}, resp, ""); err != nil {
+		return "", errors.Wrap(err, "get inbox ticket")
+	}
+	if resp.GetTicket() == "" {
+		return "", errors.New("empty inbox ticket in response")
 	}
 	return resp.GetTicket(), nil
 }
