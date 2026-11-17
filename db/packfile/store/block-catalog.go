@@ -84,6 +84,16 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 	return err
 }
 
+// indexLoadFailed reports whether the reader's last index load failed and no
+// index is loaded.
+func (e *PackReader) indexLoadFailed() bool {
+	var failed bool
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		failed = !e.indexLoaded && e.indexLoadErr != nil
+	})
+	return failed
+}
+
 // indexLoadContext returns the context an index load started by a read under
 // demand runs in: the reader's lifetime, urgent when the read is. A load
 // started by a less urgent read keeps the interactive class of the untagged

@@ -331,6 +331,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 
 	// Read blocks from the known packfiles within the shared cache budget.
 	s.packs = packfile_store.NewPackfileStore(s.openPack, tails)
+	s.packs.SetLogger(le)
 	s.leaveReadCache = s.packs.JoinReadCacheBudget(block.SharedReadCacheBudget())
 
 	// Start compaction; the refresher starts at the first read.
@@ -344,6 +345,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 	if s.index != nil {
 		s.packs.SetLocator(s.index)
 		s.held = packfile_store.NewPackfileStore(s.openPack, tails)
+		s.held.SetLogger(le.WithField("packs", "held"))
 		s.held.SetLocator(heldLocator{x: s.index})
 		s.leaveHeldCache = s.held.JoinReadCacheBudget(block.SharedReadCacheBudget())
 	}
