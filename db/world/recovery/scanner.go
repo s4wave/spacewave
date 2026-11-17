@@ -11,6 +11,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
@@ -64,10 +65,8 @@ func NewScanner(ctx context.Context, source *Source, scratch string, opts Option
 		}
 	}
 	for i, table := range source.GetTables() {
-		for _, other := range source.GetTables()[:i] {
-			if table == other {
-				return nil, errors.New("capture repeats the same table location")
-			}
+		if slices.Contains(source.GetTables()[:i], table) {
+			return nil, errors.New("capture repeats the same table location")
 		}
 	}
 
