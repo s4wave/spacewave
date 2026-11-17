@@ -42,8 +42,24 @@ const convertProgressInterval = 10 * time.Second
 // a host needs no manual step. A read-only open of such a file fails with
 // volume.ErrReadOnlyUpgrade instead.
 func Open(ctx context.Context, le *logrus.Entry, path string, opts s4db.Options) (*s4db.DB, error) {
-	// Open the file as it is.
-	db, err := s4db.Open(path, opts)
+	return openDatabase(ctx, le, path, opts, false)
+}
+
+// OpenWait is Open with a cancellable wait for the previous writable opener.
+func OpenWait(ctx context.Context, le *logrus.Entry, path string, opts s4db.Options) (*s4db.DB, error) {
+	return openDatabase(ctx, le, path, opts, true)
+}
+
+// openDatabase opens or converts the file with the caller's writer wait policy.
+func openDatabase(ctx context.Context, le *logrus.Entry, path string, opts s4db.Options, wait bool) (*s4db.DB, error) {
+	// Retain the wait policy when conversion needs to reopen the file.
+	open := func() (*s4db.DB, error) {
+		if wait {
+			return s4db.OpenWait(ctx, path, opts)
+		}
+		return s4db.Open(path, opts)
+	}
+	db, err := open()
 	if !errors.Is(err, s4db.ErrPreviousFormat) {
 		return db, err
 	}
@@ -55,7 +71,7 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts s4db.Options)
 	if err := convertPrevious(ctx, le, path); err != nil {
 		return nil, err
 	}
-	return s4db.Open(path, opts)
+	return open()
 }
 
 // convertPrevious replaces the previous-format database at path with one in

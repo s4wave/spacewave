@@ -29,10 +29,26 @@ func TestReleaseBacklog(t *testing.T) {
 		return
 	}
 
+	// Reader identities cannot substitute for the current writer's reservation.
+	// A release pass must keep its unfinished output even without foreign slots.
+	t.Run("live owner", func(t *testing.T) {
+		db := openTest(t, filepath.Join(t.TempDir(), "live.s4wave"), Options{})
+		defer db.Close()
+		db.sched.stop()
+		chunks, err := db.w.reserve(t.Context(), 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := db.sched.releaseStep(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+		if entry := db.cur.Load().m.table.get(chunks[0]); entry.kind != chunkReserved || entry.owner != db.id {
+			t.Fatalf("live reservation reclaimed: %+v", entry)
+		}
+	})
+
 	// Run a real second owner; its exit makes the reservation reclaimable.
 	path := filepath.Join(t.TempDir(), "backlog.s4wave")
-	db := openTest(t, path, Options{})
-	defer db.Close()
 	ctx, cancel := context.WithTimeout(t.Context(), 3*quietMark)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestReleaseBacklog$", "-test.timeout=10s")
@@ -40,6 +56,9 @@ func TestReleaseBacklog(t *testing.T) {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("producer: %v\n%s", err, out)
 	}
+
+	db := openTest(t, path, Options{})
+	defer db.Close()
 
 	// Start the first bounded batch. The scheduler must retain the continuation
 	// instead of making the remaining seven batches wait for quiet timers.

@@ -17,7 +17,12 @@ type fileWatcher struct {
 
 // newFileWatcher watches the file at path. Every write raises an inotify event,
 // so the slot is unused.
-func newFileWatcher(_ *os.File, path string, _ int) (*fileWatcher, error) {
+func newFileWatcher(_ *os.File, path string, _ int, readOnly bool) (watcher, error) {
+	// The sole writer never tails its own writes; the kernel notifies readers.
+	if !readOnly {
+		return newStopWatcher(), nil
+	}
+
 	w := &fileWatcher{changed: make(chan struct{}, 1), done: make(chan struct{})}
 	if err := processInotify.add(path, w); err != nil {
 		return nil, err

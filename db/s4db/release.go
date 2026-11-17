@@ -26,17 +26,15 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 	defer s.mtx.Unlock()
 	db := s.db
 	err := db.w.locked(ctx, func() error {
-		// Read the slots: the lowest pin and the live owners.
+		// Read every live reader pin; unreadable slots still prevent reclamation.
 		st := db.cur.Load()
 		pins, readable, err := db.liveSlots()
 		if err != nil {
 			return err
 		}
 		p := db.localPin()
-		owners := map[uint64]bool{db.id: true}
 		for _, sp := range pins {
 			p = p.lower(sp)
-			owners[sp.id] = true
 		}
 
 		// Read the marks: the logged mark and the durable superblock.
@@ -71,7 +69,9 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 					free = append(free, uint64(c)) // #nosec G115 -- a table index.
 				}
 			case chunkReserved:
-				if readable && !owners[e.owner] {
+				// Only this writable handle can own a live reservation.
+				// Older owners cannot write while its lifetime lock is held.
+				if readable && e.owner != db.id {
 					free = append(free, uint64(c)) // #nosec G115 -- a table index.
 				}
 			}

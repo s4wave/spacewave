@@ -90,6 +90,5 @@ func (w *writer) placeLog(base, next *state, r *record) (uint64, []byte, error) 
 		}
 	}
 	r.seq, r.spare = seq, spare
-	w.db.ownSeq.Store(seq)
 	return pos, link, nil
 }

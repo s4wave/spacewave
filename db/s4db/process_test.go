@@ -54,19 +54,27 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// runChurn rewrites the race test's "c" keys for a while beside the parent,
-// then closes.
+// runChurn checks the parent's changing "c" keys from a read-only process.
 func runChurn(path string) error {
-	// Open the file the parent holds open and churn until the timer fires.
-	db, err := Open(path, Options{CacheBytes: 8 << 20, memtable: 128 << 10})
+	// Observe the file until the bounded read workload ends.
+	db, err := Open(path, Options{ReadOnly: true, CacheBytes: 8 << 20, memtable: 128 << 10})
 	if err != nil {
 		return err
 	}
-	stop := time.After(3 * time.Second)
-	if err := churn(context.Background(), db, "c", 3, stop); err != nil {
-		_ = db.Close()
-		return err
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	for ctx.Err() == nil {
+		tx, err := db.NewTransaction(ctx, false)
+		if err != nil {
+			return err
+		}
+		err = tx.ScanPrefix(ctx, []byte("c/"), raceCheck)
+		tx.Discard()
+		if err != nil && ctx.Err() == nil {
+			return err
+		}
 	}
+
 	return db.Close()
 }
 
@@ -155,18 +163,9 @@ func runChild(path string) error {
 
 	// A flush past its record completes its checkpoint even when stop cancels it.
 	db.sched.stop()
-	if _, err := db.s.lock(lockFlush, true); err != nil {
+	sb, _, err := db.readSuper()
+	if err != nil {
 		return err
-	}
-
-	// Read the completed checkpoint while excluding the peer flusher.
-	sb, _, readErr := db.readSuper()
-	unlockErr := db.s.unlock(lockFlush)
-	if readErr != nil {
-		return readErr
-	}
-	if unlockErr != nil {
-		return unlockErr
 	}
 	if sb.through < target || sb.memSpare == 0 || sb.memSpare != db.cur.Load().spare || db.cur.Load().spare == initialSpare {
 		return fmt.Errorf("checkpoint did not follow the changed standby")
@@ -175,15 +174,24 @@ func runChild(path string) error {
 	return db.Close()
 }
 
-// TestTwoProcesses writes from this process and a child at once, then checks
-// that each sees the other's keys, that the file reports itself shared, and
-// that a reopen holds every key.
+// TestTwoProcesses watches the child writer from a read-only process, then
+// verifies standby replay and every key after a writable reopen.
 func TestTwoProcesses(t *testing.T) {
 	// Open the file.
 	ctx := context.Background()
 	opts := Options{memtable: 64 << 10}
 	path := filepath.Join(t.TempDir(), "two.s4wave")
 	db := openTest(t, path, opts)
+
+	// Seed the parent's keys, then retain a read-only snapshot stream while
+	// the child becomes the sole writer.
+	if err := writeKeys(ctx, db, "parent"); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	db = openTest(t, path, Options{ReadOnly: true, memtable: opts.memtable})
 
 	// Start the child writing to it.
 	cmd := exec.Command(os.Args[0], "-test.run=^$")
@@ -194,10 +202,6 @@ func TestTwoProcesses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Write the parent's keys while the child writes its own.
-	if err := writeKeys(ctx, db, "parent"); err != nil {
-		t.Fatal(err)
-	}
 	if err := cmd.Wait(); err != nil {
 		t.Fatalf("child: %v: %s", err, out.String())
 	}

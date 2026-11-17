@@ -1,9 +1,9 @@
 ---- MODULE Publication ----
 \* Composition of flushJob.run/mergeJob.run -> publishManifest -> writeSuper
-\* -> releaseStep. Two independent publishers replace successive manifests.
+\* -> releaseStep. Two successive jobs of one scheduler replace manifests.
 \* Each publication first has durable output runs (Durability.tla), appends
-\* its record under writer.lock (refreshes first), writes its manifest, syncs
-\* it, then serializes alternating superblocks with lockSuper. The release
+\* its record under writer.lock, writes its manifest, syncs
+\* it, then serializes alternating superblocks with superMtx. The release
 \* watermark advances only after the superblock sync succeeds. A snapshot
 \* pins the replaced manifest until Discard. Snapshot acquisition and process
 \* slots are abstracted by Pins.tla; this module checks their release boundary.
@@ -30,7 +30,7 @@ Init ==
 
 \* Each job's manifest write is a separate IO from its durable flush.
 ManifestWrite(p) ==
-  /\ pc[p] = "write"
+  /\ pc[p] = "write" /\ (p = 1 \/ pc[1] = "done")
   /\ pc' = [pc EXCEPT ![p] = "sync"]
   /\ UNCHANGED <<manifestDisk, candidates, newest, durableSuper, released, pin>>
 ManifestSync(p) ==
@@ -39,11 +39,10 @@ ManifestSync(p) ==
   /\ pc' = [pc EXCEPT ![p] = "super"]
   /\ UNCHANGED <<candidates, newest, durableSuper, released, pin>>
 
-\* lockSuper is held across write and sync. A stale job does not overwrite a
+\* superMtx is held across write and sync. A stale job does not overwrite a
 \* newer superblock; a newer job cannot enter while a superblock awaits sync.
 SuperWrite(p) ==
   /\ pc[p] = "super"
-  /\ \A q \in Publishers : pc[q] # "superSync"
   /\ IF p > newest
      THEN /\ newest' = p /\ candidates' = candidates \cup {p}
           /\ pc' = [pc EXCEPT ![p] = "superSync"]

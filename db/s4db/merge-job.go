@@ -156,7 +156,7 @@ func (m *manifest) topRun() (runMeta, bool) {
 	return runMeta{}, false
 }
 
-// run performs one merge. The caller holds lockMerge.
+// run performs one merge. The sole scheduler loop calls it.
 func (j *mergeJob) run(ctx context.Context) error {
 	// Choose the merge on a snapshot.
 	db := j.db

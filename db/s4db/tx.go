@@ -479,13 +479,6 @@ func (t *Tx) AtCommit(ctx context.Context, fn func(context.Context, kvtx.Tx) err
 	return nil
 }
 
-// _ is a type assertion
-var (
-	_ kvtx.OrderedCommitTx = (*Tx)(nil)
-	_ kvtx.BatchTxOps      = (*Tx)(nil)
-	_ kvtx.AtCommitTxOps   = (*Tx)(nil)
-)
-
 // raiseSeq raises v to seq unless it holds a newer one already. Commits
 // record their seq after leaving the writer lock, so they can arrive out of
 // order.
@@ -497,3 +490,10 @@ func raiseSeq(v *atomic.Uint64, seq uint64) {
 		}
 	}
 }
+
+// _ is a type assertion
+var (
+	_ kvtx.OrderedCommitTx = (*Tx)(nil)
+	_ kvtx.BatchTxOps      = (*Tx)(nil)
+	_ kvtx.AtCommitTxOps   = (*Tx)(nil)
+)

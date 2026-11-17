@@ -28,7 +28,7 @@ type fileWatcher struct {
 }
 
 // newFileWatcher creates the event of slot of the file f.
-func newFileWatcher(f *os.File, _ string, slot int) (*fileWatcher, error) {
+func newFileWatcher(f *os.File, _ string, slot int, _ bool) (*fileWatcher, error) {
 	// Name events by the file's identity, so every path to it agrees.
 	id, err := identify(f)
 	if err != nil {
