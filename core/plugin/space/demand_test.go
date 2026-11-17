@@ -701,14 +701,25 @@ func (r *loadRecorder) HandleDirective(
 	pluginID := load.LoadPluginID()
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, _ directive.ResolverHandler) error {
 		// Hold a load naming roots until one is admitted for its peer, then
-		// run only the admitted ones.
+		// run only the admitted ones. The resolver of a directive the Space
+		// already withdrew can still begin, with its context ended, and still
+		// read an admission another asker holds; it records nothing, since
+		// that load never reached the host, so each record checks ctx under
+		// the lock the withdrawal is ordered before.
 		refs, peerID := load.LoadPluginManifests(), load.LoadPluginPeerID()
 		if r.admit != nil && len(refs) != 0 {
+			var withdrawn bool
 			r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				if withdrawn = ctx.Err() != nil; withdrawn {
+					return
+				}
 				r.manifests[pluginID] = artifactKeys(refs)
 				r.peers[pluginID] = peerID
 				broadcast()
 			})
+			if withdrawn {
+				return nil
+			}
 			r.setAwaiting(pluginID, load.LoadPluginInstanceKey(), peerID, true)
 			admitted, err := r.awaitAdmitted(ctx, peerID, pluginID, refs)
 			r.setAwaiting(pluginID, load.LoadPluginInstanceKey(), peerID, false)
@@ -723,7 +734,11 @@ func (r *loadRecorder) HandleDirective(
 		keys := artifactKeys(refs)
 
 		// Mark the load live until the directive is released.
+		var withdrawn bool
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if withdrawn = ctx.Err() != nil; withdrawn {
+				return
+			}
 			key := loadKey(pluginID, keys)
 			if _, ok := r.firstStart[key]; !ok {
 				r.seq++
@@ -736,6 +751,9 @@ func (r *loadRecorder) HandleDirective(
 			r.peers[pluginID] = peerID
 			broadcast()
 		})
+		if withdrawn {
+			return nil
+		}
 		<-ctx.Done()
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			r.live[pluginID]--
