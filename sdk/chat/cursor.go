@@ -1,6 +1,10 @@
 package spacewave_chat
 
-import "context"
+import (
+	"context"
+	"maps"
+	"slices"
+)
 
 // CursorTailLen bounds the delivered keys a ChannelCursor remembers below its
 // position. A reorder whose lowest changed index lies within this many entries
@@ -60,6 +64,16 @@ func (c *ChannelCursor) Next() uint64 {
 	return c.next
 }
 
+// Clone returns a copy of the cursor, which a reader keeps to return to this
+// place when it cannot finish handling the entries a Read returns.
+func (c *ChannelCursor) Clone() *ChannelCursor {
+	clone := &ChannelCursor{next: c.next, tail: slices.Clone(c.tail)}
+	if c.skip != nil {
+		clone.skip = maps.Clone(c.skip)
+	}
+	return clone
+}
+
 // Read returns up to limit entries of a channel holding count entries that the
 // cursor has not delivered, with their indexes, in index order, and passes
 // them. It returns none when the cursor has delivered every entry. lost
@@ -67,7 +81,7 @@ func (c *ChannelCursor) Next() uint64 {
 // include ones delivered before.
 func (c *ChannelCursor) Read(ctx context.Context, count, limit uint64, keysAt ChannelKeys) (indexes []uint64, keys []string, lost bool, err error) {
 	// Move back to the lowest changed index.
-	lost, err = c.rebase(ctx, count, keysAt)
+	_, lost, err = c.Rebase(ctx, count, keysAt)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -100,9 +114,13 @@ func (c *ChannelCursor) Read(ctx context.Context, count, limit uint64, keysAt Ch
 	return indexes, keys, lost, nil
 }
 
-// rebase moves the cursor back to the lowest index whose key differs from its
-// tail, moving the delivered keys at and above it to skip.
-func (c *ChannelCursor) rebase(ctx context.Context, count uint64, keysAt ChannelKeys) (bool, error) {
+// Rebase moves the cursor back to the lowest index of a channel holding count
+// entries whose key differs from the one it delivered there, moving the
+// delivered keys at and above it to skip, and returns that index: Next when
+// nothing it delivered moved. lost reports a change that may reach below the
+// tail, after which the cursor is at zero. Read rebases first; a reader that
+// caches entries by index calls Rebase to learn which of them a replay moved.
+func (c *ChannelCursor) Rebase(ctx context.Context, count uint64, keysAt ChannelKeys) (uint64, bool, error) {
 	// Read the channel's keys under the tail.
 	base := c.next - uint64(len(c.tail))
 	var current []string
@@ -110,7 +128,7 @@ func (c *ChannelCursor) rebase(ctx context.Context, count uint64, keysAt Channel
 		var err error
 		current, err = keysAt(ctx, base, end)
 		if err != nil {
-			return false, err
+			return 0, false, err
 		}
 	}
 
@@ -120,13 +138,13 @@ func (c *ChannelCursor) rebase(ctx context.Context, count uint64, keysAt Channel
 		same++
 	}
 	if same == len(c.tail) {
-		return false, nil
+		return c.next, false, nil
 	}
 
 	// A change at the bottom of the tail may reach below it.
 	if same == 0 && base != 0 {
 		c.next, c.tail, c.skip = 0, nil, toSet(c.tail)
-		return true, nil
+		return 0, true, nil
 	}
 	if c.skip == nil {
 		c.skip = make(map[string]struct{}, len(c.tail)-same)
@@ -135,7 +153,7 @@ func (c *ChannelCursor) rebase(ctx context.Context, count uint64, keysAt Channel
 		c.skip[key] = struct{}{}
 	}
 	c.next, c.tail = base+uint64(same), c.tail[:same]
-	return false, nil
+	return c.next, false, nil
 }
 
 // pass advances the cursor past key, keeping the tail bounded.
