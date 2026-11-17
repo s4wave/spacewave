@@ -27,6 +27,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/s4db"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 	"github.com/sirupsen/logrus"
 )
@@ -166,7 +167,7 @@ func (a *Args) scratchFlags() []cli.Flag {
 // storeFlags binds the flags of the snapshot.
 func (a *Args) storeFlags() []cli.Flag {
 	return append(a.dialFlags(),
-		&cli.StringFlag{Name: "index", Usage: "copy of the store's pack index file, read for the pack list", Destination: &a.Index, Required: true},
+		&cli.StringFlag{Name: "index", Usage: "the store's pack index file, or a copy; the snapshot reads its pack table once, read-only, and a bbolt file only as a copy, since its writer holds its lock", Destination: &a.Index, Required: true},
 		&cli.StringFlag{Name: "index-type", Usage: "volume type of the pack index file: sqlite, bolt or s4db; detected when unset", Destination: &a.IndexType},
 		&cli.StringFlag{Name: "index-table", Usage: "table of a SQLite pack index file", Value: defaultIndexTable, Destination: &a.IndexTable},
 		&cli.StringFlag{Name: "index-bucket", Usage: "bucket of a bbolt pack index file", Value: packcopy.DefaultIndexBucket, Destination: &a.IndexBucket},
@@ -342,27 +343,18 @@ func (a *Args) runSnapshot(*cli.Context) error {
 		return err
 	}
 
-	// Open the store on the index copy, which lists the packs without a
+	// Read the pack table from the index, which lists the packs without a
 	// listing of the directory.
-	if _, err := os.Stat(a.Index); err != nil {
-		return errors.Wrap(err, "--index")
-	}
-	index, closeIndex, err := packcopy.OpenIndexFile(ctx, a.Index, &packcopy.IndexFileOptions{
-		Kind:   a.IndexType,
-		Table:  cmp.Or(a.IndexTable, defaultIndexTable),
-		Bucket: a.IndexBucket,
-		SQLite: store_kvtx_sqlite.Pragmas{WithoutRowID: true},
-	})
+	index, err := a.readPackTable(ctx, le)
 	if err != nil {
-		return errors.Wrap(err, "open --index")
+		return err
 	}
-	defer closeIndex()
 
 	// Read the store as its only writer would, exactly the bytes each pack
 	// row names.
 	packStore := block_store_s3.NewPackStore(le, client, root, a.Prefix, &block_store_s3.PackStoreOptions{
 		KeepPacks:  true,
-		Index:      kvtx_prefixer.NewPrefixer(index, block_store_s3.PackIndexPrefix(a.StoreID)),
+		Index:      index,
 		SoleWriter: true,
 		ExactReads: true,
 	})
@@ -402,6 +394,63 @@ func (a *Args) runSnapshot(*cli.Context) error {
 	}
 	le.WithFields(fields).Info("snapshot complete")
 	return a.print(result.JSON)
+}
+
+// readPackTable reads the pack table of the store's index at --index into
+// memory, in one read-only transaction, and closes the file. The file may be
+// the backend's own while it runs, so the read stays short and takes no
+// writer's lock: a SQLite file opens read-only beside its writer, and an s4db
+// file beside a writer in another process; a bbolt file's writer holds its
+// lock, so a bbolt index is read from a copy. The table is a few hundred
+// bytes a pack, and the block rows, nearly all of the file, stay on disk.
+func (a *Args) readPackTable(ctx context.Context, le *logrus.Entry) (kvtx.Store, error) {
+	// Open the file read-only.
+	start := time.Now()
+	if _, err := os.Stat(a.Index); err != nil {
+		return nil, errors.Wrap(err, "--index")
+	}
+	file, closeFile, err := packcopy.OpenIndexFile(ctx, a.Index, &packcopy.IndexFileOptions{
+		Kind:     a.IndexType,
+		Table:    cmp.Or(a.IndexTable, defaultIndexTable),
+		Bucket:   a.IndexBucket,
+		SQLite:   store_kvtx_sqlite.Pragmas{WithoutRowID: true},
+		ReadOnly: true,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "open --index")
+	}
+	defer closeFile()
+
+	// Open one read of the store's rows, so the table is one instant of the
+	// index.
+	prefix := block_store_s3.PackIndexPrefix(a.StoreID)
+	rtx, err := kvtx_prefixer.NewPrefixer(file, prefix).NewTransaction(ctx, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "read --index")
+	}
+	defer rtx.Discard()
+
+	// Copy the table into memory.
+	table := store_kvtx_inmem.NewStore()
+	wtx, err := table.NewTransaction(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	defer wtx.Discard()
+	rows, err := block_store_s3.CopyPackTable(ctx, rtx, wtx)
+	if err != nil {
+		return nil, errors.Wrap(err, "read --index")
+	}
+	if err := wtx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	// Log the rows and the time the read took.
+	le.WithFields(logrus.Fields{
+		"rows": rows,
+		"took": time.Since(start).String(),
+	}).Info("read the pack table")
+	return table, nil
 }
 
 // dialStore reaches the store, through the rehearsal's overlay when one is

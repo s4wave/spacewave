@@ -384,8 +384,9 @@ func (r *runThrough) checkReads(step string) {
 }
 
 // readRoots sets the cycle's root and log position, read at one instant
-// before its snapshot, and copies the pack index there, as an operator copies
-// it for --index; a step run again keeps them.
+// before its snapshot, and names the pack index for --index: the backend's
+// own file, which the snapshot reads beside it, or for bbolt, whose writer
+// holds its lock, a copy taken there; a step run again keeps them.
 func (r *runThrough) readRoots() {
 	// Read the roots and the position with the writer paused.
 	r.t.Helper()
@@ -403,7 +404,14 @@ func (r *runThrough) readRoots() {
 	r.prey = r.dropped
 	r.dropped = nil
 
-	// Copy the index in one read to a new file of its type.
+	// Name the backend's SQLite file, which opens read-only beside its writer.
+	// Copy the others in one read to a new file: bbolt's writer holds its
+	// lock, and s4db refuses a second open of a file in one process, as the
+	// backend's is here.
+	if r.kind == packcopy.IndexSQLite {
+		r.args.Index = r.index
+		return
+	}
 	r.copies++
 	r.args.Index = filepath.Join(r.dir, "index-copy-"+strconv.Itoa(r.copies)+".db")
 	if err := copyIndex(r.ctx, r.indexFile, r.kind, r.args.Index); err != nil {
