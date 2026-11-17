@@ -7,3 +7,8 @@ import "time"
 func SetCheckpointHook(hook func(step string), gapHold time.Duration) {
 	checkpointHook, walGapHold = hook, gapHold
 }
+
+// SetReadTurns gives s's snapshot reads n turns.
+func SetReadTurns[T SQLiteDriverConfig](s *Store[T], n int) {
+	s.readTurns = make(readTurns, n)
+}
