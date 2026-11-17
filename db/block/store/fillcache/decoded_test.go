@@ -153,7 +153,7 @@ func TestCacheDecodedPoolAdmission(t *testing.T) {
 	evicted := h.fill(c, "evicted")
 	h.admitted(c, evicted)
 	for i := 0; ; i++ {
-		if err := c.evict.step(ctx); err != nil {
+		if _, err := c.evict.step(ctx); err != nil {
 			t.Fatal(err)
 		}
 		held, err := c.blocks.GetBlockExists(ctx, evicted)

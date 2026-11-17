@@ -22,6 +22,10 @@ const evictChunkRows = 4096
 // paces eviction below the disk's speed.
 const evictPause = 100 * time.Millisecond
 
+// evictRoomSteps bounds the eviction steps the writer takes to make room for
+// one batch before it drops the batch's fills instead.
+const evictRoomSteps = 16
+
 // evictLowWater is the fraction of the size bound, in percent, that eviction
 // stops at once it has started.
 const evictLowWater = 90
@@ -43,6 +47,8 @@ type evicter struct {
 	// chunk is the block bytes one step deletes: evictChunkBytes, or a tenth of
 	// the limit when that is smaller, so a step never empties a small cache.
 	chunk int64
+	// pageSize is the database's page size, read on the first room check.
+	pageSize int64
 }
 
 // newEvicter builds an evicter for the table with the byte bound.
@@ -82,10 +88,56 @@ func (e *evicter) next(ctx context.Context, evicting bool) (bool, error) {
 	}
 
 	// Delete a run of rows.
-	if err := e.step(ctx); err != nil {
+	if _, err := e.step(ctx); err != nil {
 		return true, errors.Wrap(err, "evict from the fill cache")
 	}
 	return true, nil
+}
+
+// room deletes runs of rows until the rows and cost more bytes fit the limit,
+// and returns the bytes left under the limit. It gives up after
+// evictRoomSteps steps, or once a step finds no row to delete, so a batch
+// waits a bounded time for room.
+func (e *evicter) room(ctx context.Context, cost int64) (int64, error) {
+	for i := 0; ; i++ {
+		// Measure the rows, and stop once the cost fits.
+		used, err := e.used(ctx)
+		if err != nil {
+			return 0, errors.Wrap(err, "measure the fill cache")
+		}
+		if used+cost <= e.limit || i == evictRoomSteps {
+			return max(e.limit-used, 0), nil
+		}
+
+		// Delete a run of rows, and stop when none is left.
+		deleted, err := e.step(ctx)
+		if err != nil {
+			return 0, errors.Wrap(err, "evict from the fill cache")
+		}
+		if !deleted {
+			return max(e.limit-used, 0), nil
+		}
+	}
+}
+
+// readPageSize reads the database's page size once.
+func (e *evicter) readPageSize(ctx context.Context) error {
+	if e.pageSize != 0 {
+		return nil
+	}
+	err := e.db.QueryRowContext(ctx, "SELECT page_size FROM pragma_page_size()").Scan(&e.pageSize)
+	return errors.Wrap(err, "read the fill cache's page size")
+}
+
+// rowCost returns at most the bytes the entry's block may add to the rows:
+// its bytes and two pages, which cover its key and cell, the unused end of its
+// last overflow page, and its share of a leaf page a split left part empty. A
+// tombstone adds nothing. readPageSize must have succeeded.
+func (e *evicter) rowCost(entry *block.PutBatchEntry) int64 {
+	if entry.Tombstone {
+		return 0
+	}
+	return int64(len(entry.Data)) + 2*e.pageSize
 }
 
 // step deletes about a chunk of adjacent rows, starting at the first
@@ -95,26 +147,28 @@ func (e *evicter) next(ctx context.Context, evicting bool) (bool, error) {
 // block the durable store below holds, and the pool admits the cache's reads
 // only over a store that keeps every block it holds, see Cache.Reads, so the
 // block stays readable after its row is gone.
-func (e *evicter) step(ctx context.Context) error {
+//
+// It reports whether it found rows to delete.
+func (e *evicter) step(ctx context.Context) (bool, error) {
 	// Find the run from a random start, or from the start of the table.
 	start, err := e.randomKey()
 	if err != nil {
-		return err
+		return false, err
 	}
 	first, last, err := e.run(ctx, start)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if first == nil {
 		first, last, err = e.run(ctx, []byte{0})
 		if err != nil || first == nil {
-			return err
+			return false, err
 		}
 	}
 
 	// Delete the run in one statement.
 	_, err = e.db.ExecContext(ctx, "DELETE FROM "+e.table+" WHERE key >= ? AND key <= ?", first, last) //nolint:gosec // the table name is the cache's constant.
-	return err
+	return err == nil, err
 }
 
 // run returns the first and last key of the rows from start whose values sum

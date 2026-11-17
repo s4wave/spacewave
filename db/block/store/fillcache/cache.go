@@ -45,8 +45,11 @@ const DefaultQueueBytes = 128 << 20
 
 // Options configures a Cache.
 type Options struct {
-	// LimitBytes bounds the bytes of the cache's rows; past it, eviction
-	// deletes rows down to 90% of it. Zero uses DefaultLimitBytes.
+	// LimitBytes bounds the bytes of the cache's rows. The writer evicts rows
+	// to make room for each batch before writing it, and drops the batch's
+	// fills when it cannot; past the bound, eviction also deletes rows down to
+	// 90% of it. The file may be larger: rows deleted leave free pages, and the
+	// write-ahead log is not counted. Zero uses DefaultLimitBytes.
 	LimitBytes int64
 	// QueueBytes bounds the block bytes awaiting their write. A fill past it is
 	// dropped, and the next read of the block queues it again. Zero uses
@@ -260,8 +263,8 @@ func (c *Cache) run(ctx context.Context) {
 
 		// Write the entries. The block store reports their tombstones removed
 		// once the write commits.
-		if len(batch) != 0 {
-			if _, err := c.blocks.PutBlockBatch(wctx, batch); err != nil && ctx.Err() == nil {
+		if write := c.room(ctx, batch); len(write) != 0 {
+			if _, err := c.blocks.PutBlockBatch(wctx, write); err != nil && ctx.Err() == nil {
 				c.warn.warn(err, "the block fill cache failed a write, dropping its fills")
 			}
 		}
@@ -284,6 +287,53 @@ func (c *Cache) run(ctx context.Context) {
 			c.pause(ctx)
 		}
 	}
+}
+
+// room evicts rows until the batch's fills fit the size bound, and returns the
+// entries to write: the tombstones, which free rows, and the fills, in order,
+// while they fit. A dropped fill is only a later read of the durable store,
+// which queues it again.
+func (c *Cache) room(ctx context.Context, batch []*block.PutBatchEntry) []*block.PutBatchEntry {
+	// Sum the cost of the fills.
+	if len(batch) == 0 {
+		return nil
+	}
+	err := c.evict.readPageSize(ctx)
+	var cost int64
+	if err == nil {
+		for _, entry := range batch {
+			cost += c.evict.rowCost(entry)
+		}
+	}
+
+	// Make room for them. A failure leaves no room.
+	var avail int64
+	if err == nil && cost != 0 {
+		avail, err = c.evict.room(ctx, cost)
+	}
+	if err != nil {
+		if ctx.Err() == nil {
+			c.warn.warn(err, "the block fill cache failed to make room, dropping fills")
+		}
+		avail = 0
+	}
+	if cost <= avail {
+		return batch
+	}
+
+	// Keep the tombstones, and the fills while they fit.
+	write := make([]*block.PutBatchEntry, 0, len(batch))
+	var used int64
+	for _, entry := range batch {
+		if n := c.evict.rowCost(entry); entry.Tombstone || used+n <= avail {
+			write = append(write, entry)
+			used += n
+		}
+	}
+	if err == nil {
+		c.warn.warn(errors.New("no room under the size bound"), "the block fill cache dropped fills")
+	}
+	return write
 }
 
 // pause waits out evictPause, or less when a fill is queued meanwhile.
