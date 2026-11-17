@@ -2134,6 +2134,69 @@ func testLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("hole put again during an adoption", func(t *testing.T) {
+		// main holds R1 and other holds R3, and both name C, on an
+		// unadopted Volume. After the adoption counted the child lists, so
+		// C's tally is two, and before it settles, the store loses C with
+		// its list and count, and a writer puts C again with R1. The put
+		// counts C born with no holder from R1 or R3, and the settle leaves
+		// C to it. C must still count both parents: the audit reports no
+		// undercount, and C stays past the grace period while both roots
+		// reach it. A loss before the count tallies C is safe, since the
+		// count adds its tally to the born record.
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v, clk := openUnadoptedVolume(t, store)
+		ctx := t.Context()
+		tr := testTree{}
+		c := tr.add(t, "C")
+		r1 := tr.add(t, "R1", "C")
+		r3 := tr.add(t, "R3", "C")
+		roots := []block.NamedRoot{{Name: "main", Ref: r1}, {Name: "other", Ref: r3}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("C", "R1", "R3"), roots); err != nil {
+			t.Fatal(err)
+		}
+
+		// Punch and put C before the first adoption transaction that finds
+		// C's tally of two, which reads as three holders until the settle.
+		punched := false
+		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){}}
+		for n := adoptCountRoots; n < adoptCountRoots+40; n++ {
+			probe.at[n] = func() {
+				if h, _ := blockHolders(t, v, tr, "C"); punched || h != 3 {
+					return
+				}
+				punched = true
+				punchHole(t, v, c)
+				if _, err := v.PutBlockBatch(ctx, tr.entries("C", "R1")); err != nil {
+					t.Error(err)
+				}
+			}
+		}
+		if _, err := block_gc.Adopt(ctx, probe, testRule(), v.now); err != nil || !punched {
+			t.Fatalf("adopt = %v, punched C after its tally %v", err, punched)
+		}
+
+		// Both parents still name C: an audit finds its count whole, and
+		// a read of R1's tree past the grace period finds C.
+		res, err := v.Audit(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.Undercount != 0 {
+			t.Errorf("audit after the adoption: undercount %d (sample %v, C is %v), want 0",
+				res.Undercount, res.UndercountSample, c)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collected := collectAll(t, v)
+		for _, ref := range tr["R1"].Refs {
+			if _, found, err := v.GetBlock(ctx, ref); err != nil || !found {
+				t.Errorf("read of R1's tree past the grace period (collect freed %d): child %v found=%v err %v, want C stored",
+					collected.Freed, ref, found, err)
+			}
+		}
+	})
+
 	// main holds P naming B, which the Volume lacks, on an unadopted Volume,
 	// and a read fills B at a point of an adoption: while it counts the
 	// child lists, or between its clear and its mark. Either way B keeps
