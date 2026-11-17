@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -92,7 +93,7 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 	opts := cdn_publish.Options{Client: client, DstSpaceID: reclaimSpace, CdnBaseURL: server.URL}
 
 	// The live leaf supersedes both dead-heavy packs in one replacement.
-	dropped, err := reclaim(t.Context(), opts, head, blocks)
+	dropped, err := reclaim(t.Context(), opts, head, blocks, testRead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,14 +115,14 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 	}
 	client.entries = []*packfile.PackfileEntry{supersede(mixed), supersede(dead), livePack}
 	client.replaced, client.replacedKeys = nil, nil
-	if _, err := reclaim(t.Context(), opts, head, blocks); err != nil || len(client.replaced) != 0 {
+	if _, err := reclaim(t.Context(), opts, head, blocks, testRead); err != nil || len(client.replaced) != 0 {
 		t.Fatalf("superseded: err=%v replaced=%v", err, client.replaced)
 	}
 
 	// A group of dead packs borrows the smallest kept pack.
 	client.entries = []*packfile.PackfileEntry{dead, livePack}
 	client.replaced, client.replacedKeys = nil, nil
-	if _, err := reclaim(t.Context(), opts, head, blocks); err != nil {
+	if _, err := reclaim(t.Context(), opts, head, blocks, testRead); err != nil {
 		t.Fatal(err)
 	}
 	rootKey := string(packfile.BlockKey(root.ref.GetHash()))
@@ -134,12 +135,12 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 	// A moved head stops the pass before any replacement.
 	client.state = reclaimState(t, &bucket.ObjectRef{RootRef: leaf.ref})
 	client.replaced = nil
-	if _, err := reclaim(t.Context(), opts, head, blocks); err == nil || len(client.replaced) != 0 {
+	if _, err := reclaim(t.Context(), opts, head, blocks, testRead); err == nil || len(client.replaced) != 0 {
 		t.Fatalf("moved head: err=%v replaced=%v", err, client.replaced)
 	}
 
 	// A closure missing a referenced block judges nothing.
-	if _, err := reclaim(t.Context(), opts, head, []packedBlock{root}); err == nil {
+	if _, err := reclaim(t.Context(), opts, head, []packedBlock{root}, testRead); err == nil {
 		t.Fatal("reclaimed against an open closure")
 	}
 
@@ -148,7 +149,7 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 	opaque := root
 	opaque.decoded = false
 	client.state = reclaimState(t, head)
-	if _, err := reclaim(t.Context(), opts, head, []packedBlock{opaque}); err != nil {
+	if _, err := reclaim(t.Context(), opts, head, []packedBlock{opaque}, testRead); err != nil {
 		t.Fatalf("undecoded block: %v", err)
 	}
 }
@@ -166,7 +167,7 @@ func TestReclaimKeepsPacks(t *testing.T) {
 
 	// The pass refuses before it reads or replaces any pack.
 	opts := cdn_publish.Options{Client: client, DstSpaceID: reclaimSpace, CdnBaseURL: "http://unused.invalid", KeepPacks: true}
-	if _, err := reclaim(t.Context(), opts, head, []packedBlock{leaf}); err == nil {
+	if _, err := reclaim(t.Context(), opts, head, []packedBlock{leaf}, testRead); err == nil {
 		t.Fatal("reclaimed a destination that keeps every pack")
 	}
 	if len(client.pushed) != 0 || len(client.replaced) != 0 {
@@ -181,7 +182,21 @@ func newPackedBlock(t *testing.T, data []byte, refs ...*block.BlockRef) packedBl
 	if err != nil {
 		t.Fatal(err)
 	}
-	return packedBlock{ref: block.NewBlockRef(h), stored: &block.StoredBlock{Data: data, Refs: refs, RefsKnown: true}, decoded: true}
+	testBlockData.Store(string(packfile.BlockKey(h)), data)
+	return packedBlock{ref: block.NewBlockRef(h), refs: refs, decoded: true}
+}
+
+// testBlockData holds the data of every newPackedBlock by pack key. Blocks are
+// content addressed, so tests share it safely.
+var testBlockData sync.Map
+
+// testRead reads a newPackedBlock's data by hash, as the World's store would.
+func testRead(_ context.Context, h *hash.Hash) (*block.StoredBlock, error) {
+	data, ok := testBlockData.Load(string(packfile.BlockKey(h)))
+	if !ok {
+		return nil, nil
+	}
+	return &block.StoredBlock{Data: data.([]byte), RefsKnown: true}, nil
 }
 
 // newPack writes blocks as one destination pack into packs.
@@ -195,7 +210,11 @@ func newPack(t *testing.T, packs map[string][]byte, blocks ...packedBlock) *pack
 		}
 		next := blocks[0]
 		blocks = blocks[1:]
-		return next.ref.GetHash(), next.stored, nil
+		stored, err := testRead(t.Context(), next.ref.GetHash())
+		if stored != nil {
+			stored.Refs = next.refs
+		}
+		return next.ref.GetHash(), stored, err
 	}, delta.DefaultMaxChunkBytes, func(_ context.Context, _ int, entry *packfile.PackfileEntry, data []byte) error {
 		out = entry.CloneVT()
 		out.SizeBytes = uint64(len(data))
