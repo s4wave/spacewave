@@ -23,6 +23,15 @@ type PurgeOptions struct {
 	Store kvtx.Store
 	// Purger deletes every version of an object by its version id.
 	Purger block_store_s3.ObjectPurger
+	// Backend answers, just before a pack's versions go, whether the store's
+	// index still lacks the pack.
+	Backend Backend
+	// CheckRoots lists the backend's roots, every restore point's included,
+	// and returns the listing's error: it fails while a restore point names
+	// packs by a pack index. Purge calls it before the first deletion and
+	// again whenever the backend's log epoch changes, since a restore point
+	// of that kind appears only after a restart onto another store.
+	CheckRoots func(ctx context.Context) error
 	// Bucket is the store's bucket.
 	Bucket string
 	// Prefix starts the store's object keys.
@@ -67,10 +76,20 @@ func (r *PurgeResult) JSON(a *fastjson.Arena) *fastjson.Value {
 // current one, so the purger never falls back to it. The pack's record turns
 // purged only after every key's versions are gone, so a run killed anywhere
 // purges the rest when repeated, and a purged pack can no longer be restored.
+//
+// Immediately before deleting a pack's versions it checks again that the
+// pack's record is still removed, that the backend's index still lacks it,
+// and that the roots listing still succeeds, so no restore point names it;
+// the first check that fails stops the run with that pack and the rest kept.
+// That costs a scratch read and a status call per pack, and a roots listing
+// per run and per backend epoch.
 func Purge(ctx context.Context, opts *PurgeOptions) (*PurgeResult, error) {
-	// Read the pack records, refusing a store that cannot purge.
+	// Read the pack records, refusing a store that cannot purge or check.
 	if opts.Purger == nil {
 		return nil, errors.New("purge: the store deletes no version by id")
+	}
+	if opts.Backend == nil || opts.CheckRoots == nil {
+		return nil, errors.New("purge: no backend to check each pack against")
 	}
 	records, err := readPackRecords(ctx, opts.Store)
 	if err != nil {
@@ -102,8 +121,12 @@ func Purge(ctx context.Context, opts *PurgeOptions) (*PurgeResult, error) {
 		}
 	}
 
-	// Purge each pack's keys, then record it purged.
+	// Check each pack again, purge its keys, then record it purged.
+	check := &purgeCheck{opts: opts}
 	for _, p := range todo {
+		if err := check.pack(ctx, p.ID); err != nil {
+			return res, err
+		}
 		for _, key := range purgeKeys(opts.Prefix, p.ID) {
 			err := opts.Purger.PurgeObject(ctx, opts.Bucket, key, func(version string) {
 				res.Versions++
@@ -122,6 +145,47 @@ func Purge(ctx context.Context, opts *PurgeOptions) (*PurgeResult, error) {
 		res.Purged++
 	}
 	return res, nil
+}
+
+// purgeCheck rechecks each pack just before a purge deletes its versions,
+// listing the roots again when the backend's epoch changes.
+type purgeCheck struct {
+	opts *PurgeOptions
+	// listed is set once the roots listing succeeded on epoch.
+	listed bool
+	epoch  string
+}
+
+// pack checks that pack id's record is still removed, that the backend still
+// lacks it, and that the roots listing succeeds on the backend's epoch.
+func (c *purgeCheck) pack(ctx context.Context, id string) error {
+	// Read the record again.
+	p, err := readPackRecord(ctx, c.opts.Store, id)
+	if err != nil {
+		return err
+	}
+	if p == nil || p.Stage != StageRemoved {
+		return errors.Errorf("purge pack %s: its record left the removed stage", id)
+	}
+
+	// Ask the backend whether it holds the pack.
+	st, err := c.opts.Backend.Status(ctx, []string{id})
+	if err != nil {
+		return errors.Wrap(err, "status")
+	}
+	if len(st.Packs) != 1 || st.Packs[0].ID != id || !st.Packs[0].Absent {
+		return errors.Errorf("purge pack %s: the backend holds it", id)
+	}
+
+	// List the roots on a new epoch.
+	if c.listed && st.LogEpoch == c.epoch {
+		return nil
+	}
+	if err := c.opts.CheckRoots(ctx); err != nil {
+		return errors.Wrapf(err, "purge pack %s: list the roots and restore points", id)
+	}
+	c.listed, c.epoch = true, st.LogEpoch
+	return nil
 }
 
 // purgeKeys are the object keys of pack id a purge deletes every version of:

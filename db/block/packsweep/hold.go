@@ -161,6 +161,14 @@ const (
 	StageRestoring
 )
 
+// Trashed reports whether the stage is a pack whose entry and file the sweep
+// moved to the trash and that no restore has begun to bring back: moved,
+// removed or purged. A restoring pack is not trashed, although its stage is
+// numbered after them, so each test names the stages instead of ordering them.
+func (s Stage) Trashed() bool {
+	return s == StageMoved || s == StageRemoved || s == StagePurged
+}
+
 // String names the stage.
 func (s Stage) String() string {
 	switch s {
@@ -262,6 +270,21 @@ func PackRecords(ctx context.Context, store kvtx.Store, fn func(*PackRecord) err
 		}
 		return fn(p)
 	})
+}
+
+// readPackRecord reads the record of pack id, nil when there is none.
+func readPackRecord(ctx context.Context, store kvtx.Store, id string) (*PackRecord, error) {
+	// Read the row in its own transaction.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	value, ok, err := tx.Get(ctx, []byte(packRecordPrefix+id))
+	if err != nil || !ok {
+		return nil, err
+	}
+	return unmarshalPackRecord(id, value)
 }
 
 // readPackRecords reads every pack record.

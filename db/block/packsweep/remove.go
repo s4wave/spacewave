@@ -84,7 +84,7 @@ func Remove(ctx context.Context, opts *RemoveOptions) (*RemoveResult, error) {
 	trashed := make(map[string]bool)
 	var moved []*PackRecord
 	for _, p := range records {
-		if p.Stage >= StageMoved {
+		if p.Stage.Trashed() {
 			trashed[p.ID] = true
 		}
 		if p.Stage == StageMoved {

@@ -60,9 +60,11 @@ func (a *Args) removeFlags() []cli.Flag {
 	return a.adminFlags()
 }
 
-// purgeFlags configures the purge, which reaches the store only.
+// purgeFlags configures the purge, which reaches the store, and the backend
+// to check each pack against.
 func (a *Args) purgeFlags() []cli.Flag {
-	flags := append(a.scratchFlags(), a.dialFlags()...)
+	flags := append(a.scratchFlags(), a.adminURLFlag())
+	flags = append(flags, a.dialFlags()...)
 	return append(flags,
 		&cli.DurationFlag{Name: "after", Usage: "how long since its removal a pack stays in the trash before the purge deletes it", Value: packsweep.DefaultPurgeAfter, Destination: &a.After},
 		&cli.StringSliceFlag{Name: "pack", Usage: "a removed pack to purge; repeat for each; none purges every removed pack past --after", Destination: &a.Packs},
@@ -322,15 +324,28 @@ func (a *Args) runPurge(*cli.Context) error {
 		return err
 	}
 
+	// Reach the backend, which the purge checks each pack against.
+	client, closeClient, err := a.dialAdminService(ctx)
+	if err != nil {
+		return err
+	}
+	defer closeClient()
+	checkRoots := func(ctx context.Context) error {
+		_, _, err := client.WalkRoots(ctx)
+		return err
+	}
+
 	// Purge, printing each deleted version, then the result.
 	var printErr error
 	res, err := packsweep.Purge(ctx, &packsweep.PurgeOptions{
-		Store:  store,
-		Purger: purger,
-		Bucket: root,
-		Prefix: a.Prefix,
-		After:  a.After,
-		Packs:  a.Packs.Value(),
+		Store:      store,
+		Purger:     purger,
+		Backend:    client.Backend(),
+		CheckRoots: checkRoots,
+		Bucket:     root,
+		Prefix:     a.Prefix,
+		After:      a.After,
+		Packs:      a.Packs.Value(),
 		Deleted: func(key, version string) {
 			if printErr == nil {
 				printErr = a.print(func(ar *fastjson.Arena) *fastjson.Value {

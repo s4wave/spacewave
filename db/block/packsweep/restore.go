@@ -122,7 +122,7 @@ func sortRestore(ctx context.Context, opts *RestoreOptions, todo []*PackRecord, 
 		switch h := status.Packs[i]; {
 		case h.State == PackRegistered && !h.Absent:
 			drop = append(drop, p.ID)
-		case h.Absent && (begun || (named && p.Stage >= StageMoved)):
+		case h.Absent && (begun || (named && p.Stage.Trashed())):
 			adopt = append(adopt, p)
 		case h.State == PackTrashing && !h.Absent && (begun || named || p.Wait == MarkLive || !h.Event.IsZero()):
 			restore = append(restore, p)
