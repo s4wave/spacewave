@@ -18,7 +18,7 @@ const (
 // refusals above and the pack verify failures.
 var EvictRefusalLabels = []string{
 	EvictRefusedMarked, EvictRefusedUnlocated, EvictRefusedAbsent,
-	"missing", "oversize", "short", "index", "hash", "fetch",
+	"missing", "oversize", "short", "index", "hash", "fetch", "entry",
 	EvictRefusedOther,
 }
 

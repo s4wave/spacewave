@@ -40,12 +40,33 @@ func (s *PackStore) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry
 // keys come from the object itself, so the filter is what ties the object to
 // the entry: another pack of the same size and count at this key fails it.
 //
+// Once verified, entry is written to the bucket's entries/ before the pack's
+// index rows, as publishPack does, so a reader that lists the bucket finds
+// every pack the index names. A failure or a stop between the two leaves an
+// entry with no rows, which a listing reader adopts and an index-only store
+// ignores, and never rows with no entry, which would hide the pack's blocks
+// from any reader without this index once eviction drops their local copies.
+//
 // registered is true only when this call verified the pack and registered it.
-// For a pack the store held already it is false and nothing is checked, so the
-// caller must not treat entry as verified against the bucket.
+// For a pack the store held already it is false and nothing is checked or
+// written, so the caller must not treat entry as verified against the bucket.
 func (s *PackStore) AdoptBucketPack(ctx context.Context, entry *packfile.PackfileEntry) (registered bool, err error) {
 	return s.adopt(ctx, entry, func(ctx context.Context) ([][]byte, []byte, error) {
-		return s.verifyBucketPack(ctx, entry)
+		// Verify the pack against entry.
+		keys, tail, err := s.verifyBucketPack(ctx, entry)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// Write entry before the rows that name the pack.
+		data, err := entry.MarshalVT()
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := s.client.PutObject(ctx, s.bucket, s.prefix+entryDir+entry.GetId(), data, "application/octet-stream"); err != nil {
+			return nil, nil, errors.Wrap(err, "write packfile entry")
+		}
+		return keys, tail, nil
 	})
 }
 

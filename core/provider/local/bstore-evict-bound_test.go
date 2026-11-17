@@ -1,7 +1,9 @@
 package provider_local
 
 import (
+	"bytes"
 	"fmt"
+	"maps"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -9,15 +11,19 @@ import (
 	"github.com/aperturerobotics/util/csync"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/bloom"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
+	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/db/packfile/writer"
 	"github.com/sirupsen/logrus"
 )
 
 // TestEvictBoundedProvider checks that once SetEvictBudget is called, the
-// placed store's passes are bounded: without a budget, or over a backend that
-// cannot verify its packs, nothing drops, though the backend holds every
+// placed store's passes are bounded: without a budget, over a backend that
+// cannot verify its packs, or over packs whose bucket entry is missing or
+// does not name their blocks, nothing drops, though the backend holds every
 // block; with one, the pass drops within it, and a read refills.
 func TestEvictBoundedProvider(t *testing.T) {
 	t.Cleanup(func() {
@@ -84,8 +90,51 @@ func TestEvictBoundedProvider(t *testing.T) {
 		t.Fatalf("deleting backend: %+v, %v, evictable %d", result, err, evictable())
 	}
 
-	// The budget over the pack store drops at most its bytes.
+	// A pack a reader with no local index cannot find keeps every block:
+	// first with its bucket entry gone, then with an entry whose bloom filter
+	// lacks the pack's blocks, though the local index names the pack and its
+	// bytes verify.
 	f.p.remote.Store(&openBackend{store: f.packs})
+	entries := f.entryObjects()
+	if len(entries) == 0 {
+		t.Fatal("no pack entry in the bucket")
+	}
+	otherBloom := bloomOf(t, []byte("not a block of the pack"))
+	for name, lie := range map[string]func(key string, data []byte){
+		"no entry": func(key string, _ []byte) { delete(f.bucket.objects, key) },
+		"bloom lacks the blocks": func(key string, data []byte) {
+			entry := &packfile.PackfileEntry{}
+			if err := entry.UnmarshalVT(data); err != nil {
+				t.Fatal(err)
+			}
+			entry.BloomFilter = otherBloom
+			lied, err := entry.MarshalVT()
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.bucket.objects[key] = lied
+		},
+	} {
+		// Make the bucket lie about each entry.
+		f.bucket.mtx.Lock()
+		for key, data := range entries {
+			lie(key, data)
+		}
+		f.bucket.mtx.Unlock()
+
+		// Nothing drops, and the refusals name the entry.
+		before := refusedEntry(f)
+		if result, err := f.p.evict(f.ctx, 1<<20); err != nil || result.EvictedBytes != 0 || evictable() != count*size || refusedEntry(f) == before {
+			t.Fatalf("%s: %+v, %v, evictable %d, entry refusals %d", name, result, err, evictable(), refusedEntry(f))
+		}
+
+		// Put the true entries back.
+		f.bucket.mtx.Lock()
+		maps.Copy(f.bucket.objects, entries)
+		f.bucket.mtx.Unlock()
+	}
+
+	// The budget over the pack store drops at most its bytes.
 	result, err := f.p.evict(f.ctx, 1<<20)
 	if err != nil || result.EvictedBytes == 0 || result.EvictedBytes > 3*size {
 		t.Fatalf("budget: %+v, %v", result, err)
@@ -102,6 +151,39 @@ func TestEvictBoundedProvider(t *testing.T) {
 			t.Fatalf("read %s: %d bytes, %v, %v", ref.GetHash().MarshalString(), len(data), ok, err)
 		}
 	}
+}
+
+// entryObjects returns a copy of every pack entry object in the bucket, by
+// key.
+func (f *fallbackTest) entryObjects() map[string][]byte {
+	f.bucket.mtx.Lock()
+	defer f.bucket.mtx.Unlock()
+	out := make(map[string][]byte)
+	for key, data := range f.bucket.objects {
+		if strings.Contains(key, "/entries/") {
+			out[key] = bytes.Clone(data)
+		}
+	}
+	return out
+}
+
+// refusedEntry returns the bounded passes' refusals for a pack's entry.
+func refusedEntry(f *fallbackTest) int64 {
+	status, _ := f.wb.GetStatus()
+	return status.Bound.Refused[block_store_s3.VerifyEntry]
+}
+
+// bloomOf returns an encoded bloom filter holding only keys.
+func bloomOf(t *testing.T, keys ...[]byte) []byte {
+	bf := writer.DefaultPolicy().NewBloomFilter(uint64(len(keys)))
+	for _, k := range keys {
+		bf.Add(k)
+	}
+	data, err := bloom.NewBloom(bf).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }
 
 // deletingPacks is a pack store that reports compaction and reclaim enabled.

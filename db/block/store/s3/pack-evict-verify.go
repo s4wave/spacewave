@@ -34,6 +34,10 @@ const (
 	VerifyHash = "hash"
 	// VerifyFetch is the reason when the fetch failed with another error.
 	VerifyFetch = "fetch"
+	// VerifyEntry is the reason when the bucket's entry for the pack is
+	// missing, does not read or decode, names another id or size, or has a
+	// bloom filter that lacks a value the pack holds.
+	VerifyEntry = "entry"
 )
 
 // verifySlackBytes is how far past its recorded size a pack's object may be
@@ -89,7 +93,20 @@ func (s *PackStore) LocatePacks(ctx context.Context, hashes []*hash.Hash) ([]Pac
 // VerifyPack fetches pack id whole from the bucket and verifies every value
 // it holds: it parses the pack's index from the fetched bytes, not from the
 // local index or a cached tail, and hashes each value against the block key
-// that index names. It reads with one range request of the recorded size
+// that index names. It also reads the pack's entry from the bucket and checks
+// that the entry names the pack at the recorded size and that its bloom
+// filter holds every value.
+//
+// Invariant: eviction drops a block's last local copy only when a reader with
+// no local index can find that block from the bucket alone. Such a reader
+// finds packs by listing entries/ and testing each entry's bloom filter, so a
+// pack whose bytes are sound but whose entry is missing or does not name a
+// value hides that value from it. Any doubt about the entry refuses the pack,
+// and a refused pack keeps every block.
+//
+// Cost per verified pack: one GET of the entry object, a few KiB that grow
+// with the pack's block count, then one HEAD where the backend reports sizes
+// and one range GET of at most the recorded size plus the slack and a byte. It reads with one range request of the recorded size
 // plus verifySlackBytes and one byte, never through the read cache or the
 // pack readers, so no local copy can answer for the bucket. An object larger
 // than the recorded size plus verifySlackBytes is refused, before its body is
@@ -105,6 +122,16 @@ func (s *PackStore) VerifyPack(ctx context.Context, id string, size int64) ([]Ve
 		return nil, verifyFailed(VerifyOversize, errors.Errorf("recorded size %d", size))
 	}
 	key := s.prefix + packDir + id
+
+	// Read the pack's entry from the bucket first: it is small, and a pack a
+	// listing reader cannot find is refused before its body is fetched.
+	entry, err := s.readEntry(ctx, id)
+	if err != nil {
+		return nil, verifyFailed(VerifyEntry, err)
+	}
+	if entry.GetSizeBytes() != uint64(size) {
+		return nil, verifyFailed(VerifyEntry, errors.Errorf("bucket entry names %d bytes, recorded %d", entry.GetSizeBytes(), size))
+	}
 
 	// Refuse an object past the recorded size before reading it, when the
 	// bucket reports sizes.
@@ -161,6 +188,7 @@ func (s *PackStore) VerifyPack(ctx context.Context, id string, size int64) ([]Ve
 
 	// Hash every value against its key.
 	values := make([]VerifiedValue, 0, len(index))
+	keys := make([][]byte, 0, len(index))
 	for _, ie := range index {
 		off, n := ie.GetOffset(), ie.GetSize()
 		if off > uint64(size) || n > uint64(size)-off {
@@ -175,6 +203,12 @@ func (s *PackStore) VerifyPack(ctx context.Context, id string, size int64) ([]Ve
 			return nil, verifyFailed(VerifyHash, err)
 		}
 		values = append(values, VerifiedValue{Hash: h, Size: int64(len(stored.Data))})
+		keys = append(keys, ie.GetKey())
+	}
+
+	// Every value must be one a listing reader finds through the entry.
+	if err := checkEntryBloom(entry, keys); err != nil {
+		return nil, verifyFailed(VerifyEntry, err)
 	}
 	return values, nil
 }

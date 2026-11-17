@@ -180,10 +180,21 @@ func TestAdoptBucketPack(t *testing.T) {
 	}
 
 	// The true entry registers the pack with the keys its index lists, reading
-	// the index once, and a repeat reads nothing.
+	// the index once, and a repeat reads nothing. The bucket has lost the
+	// pack's entry, and adoption writes it back.
 	gets.Store(0)
+	entryKey := "p/" + entryDir + entry.GetId()
+	bucket.mtx.Lock()
+	delete(bucket.objects, entryKey)
+	bucket.mtx.Unlock()
 	if reg, err := local.AdoptBucketPack(ctx, entry); err != nil || !reg {
 		t.Fatalf("adoption registered = %v: %v", reg, err)
+	}
+	bucket.mtx.Lock()
+	written := bucket.objects[entryKey]
+	bucket.mtx.Unlock()
+	if got := (&packfile.PackfileEntry{}); got.UnmarshalVT([]byte(written)) != nil || !got.EqualVT(entry) {
+		t.Fatalf("bucket entry after adoption = %d bytes, want the adopted entry", len(written))
 	}
 	if gets.Load() != 1 {
 		t.Fatalf("adoption read the pack %d times, want once", gets.Load())
