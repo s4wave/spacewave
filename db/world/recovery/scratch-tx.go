@@ -16,6 +16,8 @@ type scratchTx struct {
 	ctx context.Context
 	// err keeps the first indexed read error, distinguishing failure from absence.
 	err error
+	// written counts the key and value bytes Put has written, to bound a batch.
+	written int
 }
 
 // Bucket selects one index's disjoint prefix in the single scratch table.
