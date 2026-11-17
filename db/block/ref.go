@@ -181,7 +181,7 @@ func (b *BlockRef) MarshalString() string {
 }
 
 // MarshalLog marshals the reference for logging.
-// If nil or empty returns <nil>
+// If nil or empty returns <nil>.
 func (b *BlockRef) MarshalLog() string {
 	ref := b.MarshalString()
 	if ref == "" {
@@ -206,7 +206,7 @@ func (b *BlockRef) ApplyBlockRef(id uint32, ptr *BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Note: this does not include pending references (in a cursor).
 func (b *BlockRef) GetBlockRefs() (map[uint32]*BlockRef, error) {
 	return nil, nil
 }
@@ -220,7 +220,7 @@ func (b *BlockRef) GetBlockRefCtor(id uint32) Ctor {
 // LessThan checks if the ref is less than another.
 // 1. Empty is sorted to the end.
 // 2. Hash type is sorted.
-// 3. Hash itself is sorted in bytes ordering
+// 3. Hash itself is sorted in bytes ordering.
 func (b *BlockRef) LessThan(other *BlockRef) bool {
 	// Order empty block references after populated references.
 	if b.GetEmpty() {

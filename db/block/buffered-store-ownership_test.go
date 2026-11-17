@@ -26,23 +26,44 @@ func TestBufferedStoreRetainsNewDependenciesForExistingBytes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Merge the second dependency into the parent and flush its reachable graph.
+	// Merge the second dependency into the parent.
 	if _, _, err := store.PutBlock(ctx, []byte("parent"), &PutOpts{Refs: []*BlockRef{second}}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Merge several dependencies, ignoring duplicate and absent requests.
+	third, _, err := store.PutBlock(ctx, []byte("third"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fourth, _, err := store.PutBlock(ctx, []byte("fourth"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, refs := range [][]*BlockRef{
+		{first, second, third, nil, third},
+		{third, first},
+		{third, fourth},
+	} {
+		if _, _, err := store.PutBlock(ctx, []byte("parent"), &PutOpts{Refs: refs}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Flush only the parent and the dependencies its merged references retain.
 	if _, err := store.SyncReachable(ctx, parent); err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify the parent retains both dependencies and both children persist.
+	// Verify every dependency survives, including later multi-reference puts.
 	key, err := marshalRefKey(parent)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := inner.recordTargets[key]; got != 2 {
-		t.Fatalf("later dependency was dropped: recorded=%d want=2", got)
+	if got := inner.recordTargets[key]; got != 4 {
+		t.Fatalf("later dependency was dropped: recorded=%d want=4", got)
 	}
-	for _, ref := range []*BlockRef{first, second} {
+	for _, ref := range []*BlockRef{first, second, third, fourth} {
 		if found, err := inner.GetBlockExists(ctx, ref); err != nil || !found {
 			t.Fatalf("reachable dependency discarded: %v %v", found, err)
 		}

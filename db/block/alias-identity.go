@@ -9,5 +9,6 @@ type AliasIdentityToken = hash.AliasIdentityToken
 // BlockWithAliasIdentity exposes stable in-memory identity for blocks that can
 // appear both as handles and inline sub-blocks.
 type BlockWithAliasIdentity interface {
+	// BlockAliasIdentity returns the stable token shared by aliases of this block.
 	BlockAliasIdentity() *AliasIdentityToken
 }

@@ -11,7 +11,9 @@ const transactionAttemptLimit = 10
 
 // TransactionLifecycle is the lifecycle a retryable transaction must expose.
 type TransactionLifecycle interface {
+	// Commit applies the transaction's writes before the attempt is discarded.
 	Commit(ctx context.Context) error
+	// Discard releases the attempt, including after a failed body or commit.
 	Discard()
 }
 
