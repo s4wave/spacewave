@@ -176,7 +176,7 @@ type runThrough struct {
 	// see, which the root links but no read checks until the cycle's end.
 	linked, late []*block.BlockRef
 	// dropped are the leaves the root dropped since the cycle's roots were
-	// read, and prey those it dropped before, dead to the cycle's walk.
+	// read, and prey those it dropped before them, dead to this cycle's walk.
 	dropped, prey []*block.BlockRef
 	// before is called before each step's first run, with its index.
 	before func(i int)
@@ -308,7 +308,10 @@ func (r *runThrough) readRoots() {
 	}
 	r.args.Roots = *cli.NewStringSlice(r.root.MarshalString())
 	r.args.LogPosition = pos.String()
-	r.prey = append(r.prey, r.dropped...)
+
+	// Prey are the blocks dead to this cycle's walk alone: one left from an
+	// earlier cycle may be in a pack that cycle removed.
+	r.prey = r.dropped
 	r.dropped = nil
 
 	// Copy the index in one read to a new file of its type.

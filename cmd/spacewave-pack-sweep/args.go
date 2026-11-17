@@ -241,13 +241,38 @@ func (a *Args) judgeFlags() []cli.Flag {
 	}
 }
 
-// openScratch opens the scratch file and the sweep's view of it.
-func (a *Args) openScratch() (*s4db.DB, kvtx.Store, error) {
-	db, err := s4db.Open(a.Scratch, s4db.Options{})
+// scratch is the scratch file open for one step, with the lock that keeps
+// other steps out.
+type scratch struct {
+	*s4db.DB
+	lock *os.File
+}
+
+// Close closes the scratch file, then releases the lock.
+func (s *scratch) Close() error {
+	err := s.DB.Close()
+	if cerr := s.lock.Close(); err == nil {
+		err = cerr
+	}
+	return err
+}
+
+// openScratch takes the scratch file's lock, then opens it and the sweep's
+// view of it.
+func (a *Args) openScratch() (*scratch, kvtx.Store, error) {
+	// Take the lock, so one step runs at a time.
+	lock, err := lockScratch(a.Scratch)
 	if err != nil {
 		return nil, nil, err
 	}
-	return db, kvtx_prefixer.NewPrefixer(db, sweepPrefix), nil
+
+	// Open the file.
+	db, err := s4db.Open(a.Scratch, s4db.Options{})
+	if err != nil {
+		_ = lock.Close()
+		return nil, nil, err
+	}
+	return &scratch{DB: db, lock: lock}, kvtx_prefixer.NewPrefixer(db, sweepPrefix), nil
 }
 
 // signalContext stops the step on a signal; it resumes from its last batch.

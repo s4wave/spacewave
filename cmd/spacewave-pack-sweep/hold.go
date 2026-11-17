@@ -34,10 +34,10 @@ func (a *Args) adminURLFlag() cli.Flag {
 	return &cli.StringFlag{Name: "admin-url", Usage: "the backend's pack sweep admin service, a ws or wss URL; the Authorization header comes from " + adminAuthEnv, Destination: &a.AdminURL, Required: true}
 }
 
-// trashFlags configures the trash, which reaches the backend and the store.
+// trashFlags configures the trash, which covers the cycle as the quarantine
+// does and reaches the store.
 func (a *Args) trashFlags() []cli.Flag {
-	flags := append(a.scratchFlags(), a.adminURLFlag())
-	flags = append(flags, a.dialFlags()...)
+	flags := append(a.adminFlags(), a.dialFlags()...)
 	return append(flags, &cli.IntFlag{Name: "moves", Usage: "packs moved to the trash at once, each two renames", Value: packsweep.DefaultMoves, Destination: &a.Moves})
 }
 
@@ -54,9 +54,10 @@ func (a *Args) compactFlags() []cli.Flag {
 	return append(flags, &cli.Int64Flag{Name: "max-pack-bytes", Usage: "most bytes of a pack the compaction writes", Value: writer.DefaultMaxPackBytes, Destination: &a.MaxPackBytes})
 }
 
-// removeFlags configures the removal, which reaches the backend only.
+// removeFlags configures the removal, which covers the cycle as the
+// quarantine does.
 func (a *Args) removeFlags() []cli.Flag {
-	return append(a.scratchFlags(), a.adminURLFlag())
+	return a.adminFlags()
 }
 
 // purgeFlags configures the purge, which reaches the store only.
@@ -251,19 +252,18 @@ func (a *Args) runMoves(step func(context.Context, *packsweep.TrashOptions) (fun
 		return err
 	}
 
-	// Reach the backend, run the step, and print the result.
-	client, closeClient, err := a.dialAdminService(ctx)
+	// Reach the backend and the refs, run the step, and print the result.
+	opts, closeOpts, err := a.coverOptions(ctx, store)
 	if err != nil {
 		return err
 	}
-	defer closeClient()
+	defer closeOpts()
 	res, err := step(ctx, &packsweep.TrashOptions{
-		Store:   store,
-		Backend: client.Backend(),
-		Mover:   mover,
-		Bucket:  root,
-		Prefix:  a.Prefix,
-		Moves:   a.Moves,
+		CoverOptions: *opts,
+		Mover:        mover,
+		Bucket:       root,
+		Prefix:       a.Prefix,
+		Moves:        a.Moves,
 	})
 	if err != nil {
 		return err
@@ -281,14 +281,14 @@ func (a *Args) runRemove(*cli.Context) error {
 		return err
 	}
 	defer db.Close()
-	client, closeClient, err := a.dialAdminService(ctx)
+	opts, closeOpts, err := a.coverOptions(ctx, store)
 	if err != nil {
 		return err
 	}
-	defer closeClient()
+	defer closeOpts()
 
 	// Remove, and print the result.
-	res, err := packsweep.Remove(ctx, &packsweep.RemoveOptions{Store: store, Backend: client.Backend()})
+	res, err := packsweep.Remove(ctx, &packsweep.RemoveOptions{CoverOptions: *opts})
 	if err != nil {
 		return err
 	}

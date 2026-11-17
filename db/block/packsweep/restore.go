@@ -48,8 +48,11 @@ func (r *RestoreResult) JSON(a *fastjson.Arena) *fastjson.Value {
 }
 
 // Restore returns packs from the trash to the store: each trashing pack a
-// read missed, which the trash and the removal leave at StageTrash or
-// StageMoved, and each pack opts.Packs names. It moves a pack's file, then its
+// read missed or a root reached after its pass, which the trash and the
+// removal leave at StageTrash or StageMoved, each pack a killed restore left
+// at StageRestoring, and each pack opts.Packs names. It records each pack
+// StageRestoring before its first move, so no removal or purge acts on a pack
+// a restore has begun to bring back. It moves a pack's file, then its
 // entry, back from the trash, has the backend register it again, a removed
 // pack by adopting it with the keys its own index lists, and drops its record,
 // so the pack leaves the cycle and a later one judges it again. Each step
@@ -65,7 +68,7 @@ func Restore(ctx context.Context, opts *RestoreOptions) (*RestoreResult, error) 
 	}
 	var todo []*PackRecord
 	for _, p := range records {
-		if p.Stage == StageTrash || p.Stage == StageMoved || (p.Stage == StageRemoved && slices.Contains(opts.Packs, p.ID)) {
+		if p.Stage == StageTrash || p.Stage == StageMoved || p.Stage == StageRestoring || (p.Stage == StageRemoved && slices.Contains(opts.Packs, p.ID)) {
 			todo = append(todo, p)
 		}
 	}
@@ -101,7 +104,8 @@ func Restore(ctx context.Context, opts *RestoreOptions) (*RestoreResult, error) 
 
 // sortRestore reads the states of the packs at the trash, drops the records
 // of the registered, and returns the trashing packs to restore, those a read
-// missed or opts.Packs names, and the removed packs opts.Packs names to adopt.
+// missed, a root reached, a killed restore began or opts.Packs names, and the
+// absent packs to adopt, those a killed restore began or opts.Packs names.
 func sortRestore(ctx context.Context, opts *RestoreOptions, todo []*PackRecord, res *RestoreResult) ([]*PackRecord, []*PackRecord, error) {
 	// Read the states.
 	status, err := backendStatus(ctx, opts.Backend, todo)
@@ -114,12 +118,13 @@ func sortRestore(ctx context.Context, opts *RestoreOptions, todo []*PackRecord, 
 	var drop []string
 	for i, p := range todo {
 		named := slices.Contains(opts.Packs, p.ID)
+		begun := p.Stage == StageRestoring
 		switch h := status.Packs[i]; {
 		case h.State == PackRegistered && !h.Absent:
 			drop = append(drop, p.ID)
-		case h.Absent && named && p.Stage >= StageMoved:
+		case h.Absent && (begun || (named && p.Stage >= StageMoved)):
 			adopt = append(adopt, p)
-		case h.State == PackTrashing && !h.Absent && (named || !h.Event.IsZero()):
+		case h.State == PackTrashing && !h.Absent && (begun || named || p.Wait == MarkLive || !h.Event.IsZero()):
 			restore = append(restore, p)
 		case named:
 			return nil, nil, errors.Errorf("restore pack %s: it is at %s in state %d", p.ID, p.Stage, h.State)
@@ -137,7 +142,10 @@ func sortRestore(ctx context.Context, opts *RestoreOptions, todo []*PackRecord, 
 // restoreBatch moves a batch of trashing packs back from the trash, then has
 // the backend register those that moved and drops their records.
 func restoreBatch(ctx context.Context, opts *RestoreOptions, batch []*PackRecord, res *RestoreResult) error {
-	// Move each pack's file, then its entry.
+	// Record the packs restoring, then move each pack's file, then its entry.
+	if err := beginRestore(ctx, opts, batch); err != nil {
+		return err
+	}
 	moved, moveErr := moveEach(ctx, &opts.TrashOptions, batch, restoreMoves)
 	if len(moved) == 0 {
 		return moveErr
@@ -173,7 +181,10 @@ func restoreBatch(ctx context.Context, opts *RestoreOptions, batch []*PackRecord
 // entry and the index of each that moved, has the backend adopt them, and
 // drops their records.
 func adoptBatch(ctx context.Context, opts *RestoreOptions, batch []*PackRecord, res *RestoreResult) error {
-	// Move each pack's file, then its entry.
+	// Record the packs restoring, then move each pack's file, then its entry.
+	if err := beginRestore(ctx, opts, batch); err != nil {
+		return err
+	}
 	moved, moveErr := moveEach(ctx, &opts.TrashOptions, batch, restoreMoves)
 	if len(moved) == 0 {
 		return moveErr
@@ -199,6 +210,15 @@ func adoptBatch(ctx context.Context, opts *RestoreOptions, batch []*PackRecord, 
 	}
 	res.Adopted += uint64(len(ids))
 	return moveErr
+}
+
+// beginRestore records the packs of batch StageRestoring, which only the
+// restore acts on, before any of their objects move.
+func beginRestore(ctx context.Context, opts *RestoreOptions, batch []*PackRecord) error {
+	for _, p := range batch {
+		p.Stage = StageRestoring
+	}
+	return writePackRecords(ctx, opts.Store, batch, nil)
 }
 
 // readAdopted reads the entry of pack id from the store's bucket and the keys

@@ -201,10 +201,19 @@ func resumeCompaction(ctx context.Context, opts *CompactOptions, res *CompactRes
 }
 
 // dropCompactPack deletes the file of a recorded pack whose entry never
-// landed, then its record.
+// landed, then its record. A store that deletes versions by id deletes every
+// version, and fails rather than fall back to a plain delete where it cannot
+// list them; a store with no versions deletes the file.
 func dropCompactPack(ctx context.Context, opts *CompactOptions, id string) error {
 	// Delete the file, which succeeds when it is missing.
-	if err := opts.Objects.DeleteObject(ctx, opts.Bucket, block_store_s3.PackObjectKey(opts.Prefix, id)); err != nil {
+	key := block_store_s3.PackObjectKey(opts.Prefix, id)
+	var err error
+	if purger, ok := opts.Objects.(block_store_s3.ObjectPurger); ok {
+		err = purger.PurgeObject(ctx, opts.Bucket, key, nil)
+	} else {
+		err = opts.Objects.DeleteObject(ctx, opts.Bucket, key)
+	}
+	if err != nil {
 		return errors.Wrap(err, "delete the unfinished pack "+id)
 	}
 
