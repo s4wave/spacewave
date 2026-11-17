@@ -45,6 +45,11 @@ const fullBackoff = 2 * time.Second
 // dialTimeout bounds connecting, the TLS handshake and each data connection.
 const dialTimeout = 30 * time.Second
 
+// quitTimeout bounds the wait for the server to end a session after QUIT. The
+// server answers and closes in one round trip; a server that does neither in
+// time is taken to have ended it, and the connection is dropped.
+const quitTimeout = 5 * time.Second
+
 // tempPrefix starts the name of an object being written. ListObjects skips
 // such names.
 const tempPrefix = ".tmp-"
@@ -75,6 +80,9 @@ type Client struct {
 	total chan struct{}
 	// tokens holds the same per login, which bounds the sessions on a login.
 	tokens []chan struct{}
+	// quits tracks the logouts released sessions run in the background,
+	// each until the server ends its session, so Close can wait for them.
+	quits sync.WaitGroup
 	// sizes holds the sizes of the objects seen by ListObjects and PutObject,
 	// which tell a range read whether it reaches the end of the object.
 	sizes sync.Map
@@ -156,6 +164,7 @@ func (c *Client) Close() {
 		c.drop(s)
 		held = append(held, s)
 	}
+	c.quits.Wait()
 	for _, s := range held {
 		c.pool.Put(s.lease)
 	}
@@ -363,7 +372,8 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 	conn := s.conn
 
 	// Retry on a fresh connection when the pooled one failed. The new
-	// connection keeps the slot's token.
+	// connection keeps the slot's token, so it dials once the server has
+	// ended the old session, or quitTimeout after QUIT.
 	err = fn(conn, s)
 	if err != nil && err != errSpent && !isReply(err) {
 		_ = conn.Quit()
@@ -441,16 +451,17 @@ func (c *Client) acquire(ctx context.Context) (*slot, error) {
 
 // release returns a slot to the pool, keeping its connection unless err shows
 // the connection failed or spent. A connection that outlived its range read
-// makes the spare dialed for it surplus.
+// makes the spare dialed for it surplus. Each logout runs in the background,
+// so the call does not wait for the server to end the session.
 func (c *Client) release(s *slot, err error) {
-	if s.conn != nil && err != nil && !isReply(err) {
-		_ = s.conn.Quit()
+	login := s.login
+	if conn := s.conn; conn != nil && err != nil && !isReply(err) {
 		s.conn = nil
-		c.free(s.login)
+		c.quits.Go(func() { c.quit(login, conn) })
 	}
-	if s.conn != nil && s.spare != nil {
-		go c.discard(s.login, s.spare)
+	if spare := s.spare; s.conn != nil && spare != nil {
 		s.spare = nil
+		c.quits.Go(func() { c.discard(login, spare) })
 	}
 	c.pool.Put(s.lease)
 }
@@ -492,12 +503,19 @@ func (c *Client) discard(login int, spare chan *ftp.ServerConn) {
 	c.free(login)
 }
 
+// quit logs out conn and frees its tokens. Quit returns once the server has
+// ended the session, or after quitTimeout, so the tokens are free at the
+// server too.
+func (c *Client) quit(login int, conn *ftp.ServerConn) {
+	_ = conn.Quit()
+	c.free(login)
+}
+
 // drop logs out the sessions of a slot held by the caller.
 func (c *Client) drop(s *slot) {
 	if s.conn != nil {
-		_ = s.conn.Quit()
+		c.quit(s.login, s.conn)
 		s.conn = nil
-		c.free(s.login)
 	}
 	if s.spare != nil {
 		c.discard(s.login, s.spare)
@@ -568,8 +586,7 @@ func (c *Client) dial(ctx context.Context, login int) (*ftp.ServerConn, error) {
 func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, error) {
 	// Connect and upgrade the control connection to TLS.
 	conn, err := ftp.Dial(c.conf.Addr,
-		ftp.DialWithContext(ctx),
-		ftp.DialWithTimeout(dialTimeout),
+		ftp.DialWithDialFunc(c.dialFunc(ctx)),
 		ftp.DialWithShutTimeout(dialTimeout),
 		ftp.DialWithExplicitTLS(c.tlsConf),
 	)
@@ -583,6 +600,50 @@ func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, erro
 		return nil, errors.Wrap(err, "log in to "+c.conf.Addr)
 	}
 	return conn, nil
+}
+
+// dialFunc returns the dial function of one session. Its first call dials the
+// control connection as a quitConn, so a token freed after Quit is free at the
+// server too. The library dials each data connection through the same
+// function and adds no TLS to what it returns, so later calls dial TCP and
+// wrap it in TLS as the library does without a dial function.
+func (c *Client) dialFunc(ctx context.Context) func(network, addr string) (net.Conn, error) {
+	dialer := net.Dialer{Timeout: dialTimeout}
+	control := true
+	return func(network, addr string) (net.Conn, error) {
+		// Dial a data connection.
+		if !control {
+			conn, err := dialer.Dial(network, addr)
+			if err != nil {
+				return nil, err
+			}
+			return tls.Client(conn, c.tlsConf), nil
+		}
+
+		// Dial the control connection.
+		control = false
+		conn, err := dialer.DialContext(ctx, network, addr)
+		if err != nil {
+			return nil, err
+		}
+		return quitConn{conn}, nil
+	}
+}
+
+// quitConn is the control connection of a session, below its TLS layer. The
+// library closes it right after it writes QUIT, without reading the reply.
+// Close reads until the server closes its end, which it does after it answers
+// QUIT and ends the session, so the session no longer counts against the
+// login's limit at the server when Close returns. quitTimeout bounds the wait.
+type quitConn struct {
+	net.Conn
+}
+
+// Close waits for the server's close, then closes.
+func (c quitConn) Close() error {
+	_ = c.SetReadDeadline(time.Now().Add(quitTimeout))
+	_, _ = io.Copy(io.Discard, c.Conn)
+	return c.Conn.Close()
 }
 
 // isFull reports whether err is the server's answer that it holds the most
