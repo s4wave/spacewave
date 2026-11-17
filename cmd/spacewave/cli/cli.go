@@ -19,11 +19,18 @@ import (
 
 // NewCliCommands builds the spacewave CLI commands. The yield broker is the
 // process-shared broker from the composition root; nil builds commands with
-// a private broker for tests and read-only command trees.
-func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker) []*cli.Command {
+// a private broker for tests and read-only command trees. Frees is the
+// collector frees switch serve's flags set, shared with the host storage; nil
+// keeps frees off.
+func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker, frees *CollectorFrees) []*cli.Command {
 	// Default to a private yield broker when none is provided.
 	if yieldBroker == nil {
 		yieldBroker = yield_policy.NewBroker()
+	}
+
+	// Default to frees off on every Volume when no switch is shared.
+	if frees == nil {
+		frees = NewCollectorFrees()
 	}
 
 	// Assemble the command tree in display order.
@@ -32,7 +39,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_poli
 		newLoginCommand(getBus),
 		newLogoutCommand(getBus),
 		newWhoamiCommand(getBus),
-		newServeCommand(getBus, yieldBroker),
+		newServeCommand(getBus, yieldBroker, frees),
 		newStopCommand(getBus),
 		newStatusCommand(getBus),
 		newWebCommand(getBus),

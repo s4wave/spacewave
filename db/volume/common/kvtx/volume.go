@@ -238,7 +238,7 @@ func NewVolume(
 	}
 
 	// Load or claim the Volume identity and initialize its storage.
-	v, err = initVolume(ctx, v, storeID, noGenerateKey, noWriteKey)
+	v, err = initVolume(ctx, v, storeID, conf.GetCollectorFrees(), noGenerateKey, noWriteKey)
 	if err != nil {
 		return nil, err
 	}
@@ -256,9 +256,18 @@ func NewVolume(
 		if err != nil {
 			return nil, volume.Permanent(err)
 		}
+		// Record the frees switch as configured, which turns frees on by
+		// returning the Volume to unadopted for a recount (block_gc.SetFrees),
+		// then count under the stored rule or, unadopted, the configured one.
 		state, parked, err := v.readLiveness(ctx)
 		if err != nil {
 			return nil, err
+		}
+		if !v.readOnly && state.GetFrees() != conf.GetCollectorFrees() {
+			state, err = block_gc.SetFrees(ctx, collectorStore{v: v}, conf.GetCollectorFrees())
+			if err != nil {
+				return nil, err
+			}
 		}
 		v.holdRule = volumeHoldRule(state, v.holdRule)
 		v.collector = v.newCollector(collectorStore{v: v}, conf.GetCollectorFrees(), grace)
@@ -349,7 +358,8 @@ func (v *Volume) readLiveness(ctx context.Context) (*block_gc.LivenessState, boo
 // adopted Volume keeps the rule its adoption counted under, whatever the
 // process configured, so a process opened with another rule, such as a
 // debug command, neither adopts it again nor stops its netting. Only an
-// adoption of an unadopted Volume takes configured, the process's rule.
+// adoption of an unadopted Volume takes configured, the process's rule, as
+// after the open that turns frees on (block_gc.SetFrees).
 func volumeHoldRule(state *block_gc.LivenessState, configured block_gc.HoldRule) block_gc.HoldRule {
 	if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED {
 		return state.GetHoldRule()
@@ -412,12 +422,14 @@ func (v *Volume) startLiveness(ctx context.Context, state *block_gc.LivenessStat
 }
 
 // initVolume brings the store to the current format and loads or claims the
-// Volume identity. A read-only Volume refuses a store that needs an upgrade
-// with volume.ErrReadOnlyUpgrade and never writes a generated identity.
+// Volume identity. An empty store is born with the frees switch as frees
+// sets it. A read-only Volume refuses a store that needs an upgrade with
+// volume.ErrReadOnlyUpgrade and never writes a generated identity.
 func initVolume(
 	ctx context.Context,
 	v *Volume,
 	storeID string,
+	frees,
 	noGenerateKey,
 	noWriteKey bool,
 ) (*Volume, error) {
@@ -436,7 +448,7 @@ func initVolume(
 
 	// Bring a writable store to the current format before any read.
 	if !v.readOnly {
-		if _, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey, v.holdRule); err != nil {
+		if _, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey, v.holdRule, frees); err != nil {
 			return nil, err
 		}
 	}

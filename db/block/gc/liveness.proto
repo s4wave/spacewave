@@ -125,6 +125,12 @@ message LivenessState {
   // unadopted Volume writes another. The collector nets and frees only a
   // Volume whose rule matches its own.
   HoldRule hold_rule = 14;
+  // Frees is whether the collector's frees were on at the last writable
+  // open, or at the birth of an empty Volume. The write that turns it on
+  // also returns the Volume to unadopted, so an adoption counts every holder
+  // again before the first free; a writable open with frees off clears it,
+  // so the next switch-on counts again (SetFrees).
+  bool frees = 15;
 }
 
 // Release is a cascade whose child list is longer than one collector slice

@@ -214,8 +214,12 @@ func BuildDistBus(
 	}
 
 	// attach the default storage controller
-	// this provides separate named volumes with the storage volume controller.
-	storageCtrl := default_storage.NewController(storageID, b, stateRoot)
+	// this provides separate named volumes with the storage volume controller,
+	// each configured by the composition.
+	storageCtrl := default_storage.NewControllerWithStorage(
+		storageID,
+		composition.ConfigureStorage(default_storage.BuildStorage(b, stateRoot)),
+	)
 	relStorageCtrl, err := b.AddController(ctx, storageCtrl, nil)
 	if err != nil {
 		rel()

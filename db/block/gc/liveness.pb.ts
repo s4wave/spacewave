@@ -244,11 +244,21 @@ export interface LivenessState {
   cascades?: bigint
   /**
    * HoldRule is the rule the counts were written under, set by the adoption
-   * that counted them or at the birth of an empty Volume. The collector nets
-   * and frees only a Volume whose rule matches its own; a mismatch adopts the
-   * Volume again, which counts every child list under the collector's rule.
+   * that counted them or at the birth of an empty Volume. It is the source of
+   * truth while the Volume is adopted: a process that opens it counts under
+   * this rule, whatever its own config names, and only an adoption of an
+   * unadopted Volume writes another. The collector nets and frees only a
+   * Volume whose rule matches its own.
    */
   holdRule?: HoldRule
+  /**
+   * Frees is whether the collector's frees were on at the last writable
+   * open, or at the birth of an empty Volume. The write that turns it on
+   * also returns the Volume to unadopted, so an adoption counts every holder
+   * again before the first free; a writable open with frees off clears it,
+   * so the next switch-on counts again (SetFrees).
+   */
+  frees?: boolean
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -266,6 +276,7 @@ export const LivenessState: MessageType<LivenessState> =
       [12, 'hold_mark', 4],
       [13, 'cascades', 4],
       [14, 'hold_rule', 14, 0, HoldRule_Enum],
+      [15, 'frees', 8],
     ],
   )
 

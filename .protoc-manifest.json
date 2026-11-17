@@ -1696,7 +1696,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/gc": {
-      "hash": "a4aa9a5b32638d9955447937bc4508fbb7d26143386ecd289e6fde347d392735",
+      "hash": "93cdc58dfc079f4c9ebb3edc90ad8612067696db21f03e274552c616d1ebf7ae",
       "generatedFiles": [
         "db/block/gc/liveness.pb.go",
         "db/block/gc/liveness.pb.ts"
@@ -2315,7 +2315,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/store/kvtx": {
-      "hash": "4efb8347b39b763b74accf03fc44b0dcb18383b78c1fadcb4354a83f6b513b27",
+      "hash": "4d8244fb818afb65ea5973d57f20838b8af5ecacc4b4b1c928c5362ca5af274c",
       "generatedFiles": [
         "db/store/kvtx/kvtx.pb.go",
         "db/store/kvtx/kvtx.pb.ts"

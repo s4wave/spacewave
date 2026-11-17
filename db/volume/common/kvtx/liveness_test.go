@@ -2396,10 +2396,11 @@ func testLivenessAdversarial(t *testing.T) {
 	t.Run("hold rule switched", func(t *testing.T) {
 		// A Volume written under the other hold rule holds main -> R -> X,
 		// D -> E released, netted and then held again by d with no put, and
-		// G -> H released and netted, none freed. A collector under this
-		// rule nets and frees nothing on it; returned to unadopted and
-		// reopened under this rule, the Volume adopts again, and then R, X,
-		// D and E read and G and H go.
+		// G -> H released and netted, none freed, with frees off. A
+		// collector under this rule nets and frees nothing on it; reopened
+		// with frees turned on under this rule, the Volume returns to
+		// unadopted and adopts again, and then R, X, D and E read and G and
+		// H go.
 		store := store_kvtx_inmem.NewStore()
 		v1, clk1 := openRuleVolume(t, store, false, !testHold)
 		ctx := t.Context()
@@ -2430,23 +2431,14 @@ func testLivenessAdversarial(t *testing.T) {
 			t.Fatalf("collect under this rule before the switch = %+v err %v, want nothing netted or freed", res, err)
 		}
 		requireStored(t, v1, tr, true, "X", "R", "E", "D", "H", "G")
-		if err := block_gc.Unadopt(ctx, collectorStore{v: v1}); err != nil {
-			t.Fatal(err)
-		}
 		if err := v1.Close(); err != nil {
 			t.Fatal(err)
 		}
 
-		// Reopen under this rule and wait for the adoption to record it.
+		// Turn frees on under this rule and wait for the adoption.
 		v, clk := openLivenessVolume(t, store, true)
-		for deadline := time.Now().Add(10 * time.Second); ; time.Sleep(time.Millisecond) {
-			state := livenessState(t, v)
-			if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED && state.GetHoldRule() == testRule() {
-				break
-			}
-			if time.Now().After(deadline) {
-				t.Fatalf("background adoption left the Volume %v under %v", state.GetAdoption(), state.GetHoldRule())
-			}
+		if rule := waitAdopted(t, v).GetHoldRule(); rule != testRule() {
+			t.Fatalf("frees turned on adopted the Volume under %v, want %v", rule, testRule())
 		}
 		var freed uint64
 		for range 3 {
@@ -2465,9 +2457,10 @@ func testLivenessAdversarial(t *testing.T) {
 		// A Volume adopted under this rule holds main -> R -> X and d -> D ->
 		// E, with d's release recorded and not yet netted. Partway through
 		// that run a second process opens it under the other rule, once with
-		// frees off, as the debug command does, and once with them on. Each
-		// counts under the stored rule and leaves the state as it was, so
-		// the first process then frees D and E and keeps R and X.
+		// frees on, which finds them on already, and once with them off, as
+		// the debug command does. Each counts under the stored rule and
+		// leaves the state as it was but for the frees switch, so the first
+		// process then frees D and E and keeps R and X.
 		store := store_kvtx_inmem.NewStore()
 		v, clk := openLivenessVolume(t, store, true)
 		ctx := t.Context()
@@ -2487,7 +2480,7 @@ func testLivenessAdversarial(t *testing.T) {
 
 		// Open the second process under the other rule, ask it to adopt as
 		// its background adoption would, and close it.
-		for _, frees := range []bool{false, true} {
+		for _, frees := range []bool{true, false} {
 			v2, _ := openRuleVolume(t, store, frees, !testHold)
 			res, err := v2.Adopt(ctx)
 			if err != nil {
@@ -2499,8 +2492,10 @@ func testLivenessAdversarial(t *testing.T) {
 			if err := v2.Close(); err != nil {
 				t.Fatal(err)
 			}
-			if after := livenessState(t, v); !after.EqualVT(before) {
-				t.Fatalf("second process with frees %v changed the state to %v, want %v", frees, after, before)
+			want := before.CloneVT()
+			want.Frees = frees
+			if after := livenessState(t, v); !after.EqualVT(want) {
+				t.Fatalf("second process with frees %v changed the state to %v, want %v", frees, after, want)
 			}
 		}
 
@@ -2512,6 +2507,67 @@ func testLivenessAdversarial(t *testing.T) {
 		}
 		if freed != 2 {
 			t.Fatalf("freed %d after the second process, want D and E", freed)
+		}
+		requireReads(t, v, tr, "X", "R")
+		requireStored(t, v, tr, false, "E", "D")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("frees switched off and on", func(t *testing.T) {
+		// A Volume born with frees on holds main -> R -> X and d -> D -> E,
+		// and d lets D go. Restarted with frees off, it nets the release
+		// and frees nothing, and records frees off. Restarted with them on
+		// again, it returns to unadopted and counts every holder again
+		// before its first free, then frees D and E and keeps R and X.
+		store := store_kvtx_inmem.NewStore()
+		v1, _ := openLivenessVolume(t, store, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		tr.add(t, "E")
+		d := tr.add(t, "D", "E")
+		roots := []block.NamedRoot{{Name: "main", Ref: r}, {Name: "d", Ref: d}}
+		if err := v1.SetBucketRoots(ctx, "b", tr.entries("X", "R", "E", "D"), roots); err != nil {
+			t.Fatal(err)
+		}
+		if err := v1.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "d", Previous: d}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Restart with frees off: the release nets and nothing frees.
+		v2, clk2 := openLivenessVolume(t, store, false)
+		var freed uint64
+		for range 3 {
+			clk2.Add(3 * (block_gc.DefaultGrace + time.Second))
+			freed += collectAll(t, v2).Freed
+		}
+		if freed != 0 {
+			t.Fatalf("freed %d with frees off, want 0", freed)
+		}
+		if state := livenessState(t, v2); state.GetFrees() {
+			t.Fatal("an open with frees off left them recorded on")
+		}
+		requireStored(t, v2, tr, true, "X", "R", "E", "D")
+		if err := v2.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Restart with frees on: the switch recounts, then D and E go.
+		v, clk := openLivenessVolume(t, store, true)
+		if state := waitAdopted(t, v); !state.GetFrees() || state.GetAdoptionRun() == "" {
+			t.Fatalf("frees turned on left the state %v, want them on and a recount's run", state)
+		}
+		freed = 0
+		for range 3 {
+			clk.Add(3 * (block_gc.DefaultGrace + time.Second))
+			freed += collectAll(t, v).Freed
+		}
+		if freed != 2 {
+			t.Fatalf("freed %d after frees turned on again, want D and E", freed)
 		}
 		requireReads(t, v, tr, "X", "R")
 		requireStored(t, v, tr, false, "E", "D")
@@ -4435,17 +4491,21 @@ func (p *adoptProbe) Update(ctx context.Context, fn func(rec *block_gc.Records, 
 	return p.Store.Update(ctx, fn)
 }
 
-// waitAdopted waits for the background adoption of v to mark it adopted.
-func waitAdopted(t *testing.T, v *Volume) {
+// waitAdopted waits for the background adoption of v to mark it adopted,
+// and returns the state it left.
+func waitAdopted(t *testing.T, v *Volume) *block_gc.LivenessState {
 	t.Helper()
 	if v.adoptDone == nil {
 		t.Fatal("the Volume runs no background adoption")
 	}
-	for deadline := time.Now().Add(10 * time.Second); livenessAdoption(t, v) != block_gc.Adoption_ADOPTION_ADOPTED; {
-		if time.Now().After(deadline) {
-			t.Fatalf("background adoption left the Volume %v", livenessAdoption(t, v))
+	for deadline := time.Now().Add(10 * time.Second); ; time.Sleep(time.Millisecond) {
+		state := livenessState(t, v)
+		if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED {
+			return state
 		}
-		time.Sleep(time.Millisecond)
+		if time.Now().After(deadline) {
+			t.Fatalf("background adoption left the Volume %v", state.GetAdoption())
+		}
 	}
 }
 
@@ -4457,10 +4517,10 @@ func waitAdopted(t *testing.T, v *Volume) {
 // each barrier a Land keeps and each clause the flip waits on, and that the
 // sweep deletes exactly the old blocks nothing reaches.
 func TestLivenessSettle(t *testing.T) {
-	// oldStoreOn writes a format 6 store into store holding the root A and,
-	// for each name in cut, the block's bytes with an empty child list, as a
-	// crash left them, then adopts it.
-	oldStoreOn := func(t *testing.T, store kvtx.Store, tr testTree, root string, listed []string, cut ...string) (*Volume, *testClock) {
+	// adoptOldStore writes a format 6 store into store holding the root A
+	// and, for each name in cut, the block's bytes with an empty child list,
+	// as a crash left them, then adopts it.
+	adoptOldStore := func(t *testing.T, store kvtx.Store, tr testTree, root string, listed []string, cut ...string) (*Volume, *testClock) {
 		t.Helper()
 		ctx := t.Context()
 		writeLegacyStore(t, store, store_kvkey.NewDefaultKVKey(), tr, root, true, listed...)
@@ -4481,6 +4541,12 @@ func TestLivenessSettle(t *testing.T) {
 		if _, err := v.Adopt(ctx); err != nil {
 			t.Fatal(err)
 		}
+		return v, clk
+	}
+	// oldStoreOn is adoptOldStore, checking the front when the test ends.
+	oldStoreOn := func(t *testing.T, store kvtx.Store, tr testTree, root string, listed []string, cut ...string) (*Volume, *testClock) {
+		t.Helper()
+		v, clk := adoptOldStore(t, store, tr, root, listed, cut...)
 		t.Cleanup(func() { requireFront(t, v) })
 		return v, clk
 	}
@@ -4613,6 +4679,51 @@ func TestLivenessSettle(t *testing.T) {
 			t.Fatal("the run built in one slice")
 		}
 	}
+
+	t.Run("frees off and on while the generation is open", func(t *testing.T) {
+		// B -> C -> D, with C's list cut, none reached, and one frees-on
+		// pass partway through the settle. Frees go off, and a writer roots
+		// main onto a new N naming one C. Frees come back on, which recounts.
+		// Land keeps the settle's barriers by the stored generation, not by
+		// the frees switch, so the walk still finds D below C, and the
+		// settle keeps N, C and D.
+		tr := testTree{}
+		listed, cut := pairs(t, tr, 150)
+		store := store_kvtx_inmem.NewStore()
+		v1, _ := adoptOldStore(t, store, tr, "A", listed, cut...)
+		verify(t, v1, tr, "A")
+		if gen := livenessGeneration(t, v1); gen != block_gc.Generation_GENERATION_OPEN {
+			t.Fatalf("the adoption left the generation %v, want it open", gen)
+		}
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Frees off: the writer lands N, and the passes free nothing.
+		v2, clk2 := openLivenessVolume(t, store, false)
+		tr.add(t, "N", "C7")
+		if err := rootOnto(t, v2, tr, "N", "N"); err != nil {
+			t.Fatal(err)
+		}
+		for range 3 {
+			clk2.Add(block_gc.DefaultGrace + time.Second)
+			if res := collectAll(t, v2); res.Freed != 0 || res.Swept != 0 {
+				t.Fatalf("a pass with frees off freed %d and swept %d", res.Freed, res.Swept)
+			}
+		}
+		requireFront(t, v2)
+		if err := v2.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Frees on again: the recount, then the settle.
+		v, clk := openLivenessVolume(t, store, true)
+		waitAdopted(t, v)
+		settleAll(t, v, clk, store, tr)
+		requireReads(t, v, tr, "N", "C7", "D7")
+		requireFront(t, v)
+		requireAudit(t, v, 0)
+	})
 
 	t.Run("put again while the run builds", func(t *testing.T) {
 		// B -> C -> D, with C's list cut, none reached. Between two slices

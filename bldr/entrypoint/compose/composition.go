@@ -5,6 +5,7 @@ package compose
 import (
 	"github.com/aperturerobotics/cli"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	"github.com/s4wave/spacewave/bldr/storage"
 )
 
 // Composition is the project-supplied part of a native host process.
@@ -18,4 +19,20 @@ type Composition struct {
 	Commands []cli_entrypoint.BuildCommandsFunc
 	// Flags are the project's root CLI flags, accepted before any command.
 	Flags []cli.Flag
+	// ConfigureVolume adjusts each Volume config the host's storage builds.
+	// The bus is built after the command line is parsed, so it may read the
+	// project's flags.
+	ConfigureVolume storage.ConfigureVolumeFunc
+}
+
+// ConfigureStorage returns storages with each Volume config they build passed
+// through ConfigureVolume. A nil composition or hook returns them unchanged.
+func (c *Composition) ConfigureStorage(storages []storage.Storage) []storage.Storage {
+	if c == nil || c.ConfigureVolume == nil {
+		return storages
+	}
+	for i, st := range storages {
+		storages[i] = storage.WithConfigureVolume(st, c.ConfigureVolume)
+	}
+	return storages
 }

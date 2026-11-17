@@ -26,12 +26,15 @@ import (
 //
 // The process owns one yield broker and one listener status broker, shared by
 // the resource listener, the root resource controller, the status projector and
-// the CLI commands.
+// the CLI commands, and one collector frees switch, which serve's flags set and
+// the host storage reads as each Volume opens.
 func composeNative(composition *compose.Composition) {
 	// Create the shared brokers and set the native desktop action.
 	yield := yield_policy.NewBroker()
 	status := resource_listener.NewStatusBroker()
+	frees := spacewave_cli.NewCollectorFrees()
 	composition.NativeAction = openDesktop
+	composition.ConfigureVolume = frees.ConfigureVolume
 
 	// Every provider installs the remote shell and replica factories on each
 	// Session's bus.
@@ -84,7 +87,7 @@ func composeNative(composition *compose.Composition) {
 			}
 			return getBus()
 		}
-		return spacewave_cli.NewCliCommands(protectedGetBus, yield)
+		return spacewave_cli.NewCliCommands(protectedGetBus, yield, frees)
 	})
 	composition.Flags = append(composition.Flags, spacewave_cli.NewRootFlags()...)
 }

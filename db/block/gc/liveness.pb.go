@@ -276,10 +276,18 @@ type LivenessState struct {
 	// an earlier run left, and counts each block it settles Dying.
 	Cascades uint64 `protobuf:"varint,13,opt,name=cascades,proto3" json:"cascades,omitempty"`
 	// HoldRule is the rule the counts were written under, set by the adoption
-	// that counted them or at the birth of an empty Volume. The collector nets
-	// and frees only a Volume whose rule matches its own; a mismatch adopts the
-	// Volume again, which counts every child list under the collector's rule.
+	// that counted them or at the birth of an empty Volume. It is the source of
+	// truth while the Volume is adopted: a process that opens it counts under
+	// this rule, whatever its own config names, and only an adoption of an
+	// unadopted Volume writes another. The collector nets and frees only a
+	// Volume whose rule matches its own.
 	HoldRule HoldRule `protobuf:"varint,14,opt,name=hold_rule,json=holdRule,proto3" json:"holdRule,omitempty"`
+	// Frees is whether the collector's frees were on at the last writable
+	// open, or at the birth of an empty Volume. The write that turns it on
+	// also returns the Volume to unadopted, so an adoption counts every holder
+	// again before the first free; a writable open with frees off clears it,
+	// so the next switch-on counts again (SetFrees).
+	Frees bool `protobuf:"varint,15,opt,name=frees,proto3" json:"frees,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -363,6 +371,13 @@ func (x *LivenessState) GetHoldRule() HoldRule {
 		return x.HoldRule
 	}
 	return HoldRule_HOLD_RULE_RELEASE_AT_ZERO
+}
+
+func (x *LivenessState) GetFrees() bool {
+	if x != nil {
+		return x.Frees
+	}
+	return false
 }
 
 // Release is a cascade whose child list is longer than one collector slice
@@ -470,6 +485,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.HoldMark = m.HoldMark
 	r.Cascades = m.Cascades
 	r.HoldRule = m.HoldRule
+	r.Frees = m.Frees
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -589,6 +605,9 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 		return false
 	}
 	if this.HoldRule != that.HoldRule {
+		return false
+	}
+	if this.Frees != that.Frees {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -942,6 +961,11 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("holdRule")
 		x.HoldRule.MarshalProtoJSON(s)
 	}
+	if x.Frees || s.HasField("frees") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("frees")
+		s.WriteBool(x.Frees)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -996,6 +1020,9 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "hold_rule", "holdRule":
 			s.AddField("hold_rule")
 			x.HoldRule.UnmarshalProtoJSON(s)
+		case "frees":
+			s.AddField("frees")
+			x.Frees = s.ReadBool()
 		}
 	})
 }
@@ -1200,6 +1227,11 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Frees {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Frees)
+		i--
+		dAtA[i] = 0x78
+	}
 	if m.HoldRule != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.HoldRule))
 		i--
@@ -1361,6 +1393,7 @@ func (m *LivenessState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldMark)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cascades)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldRule)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Frees)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1493,6 +1526,10 @@ func (x *LivenessState) MarshalProtoText() string {
 	if x.HoldRule != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hold_rule")
 		protobuf_go_lite.TextWriteStringer(&sb, HoldRule(x.HoldRule))
+	}
+	if x.Frees != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "frees")
+		protobuf_go_lite.TextWriteBool(&sb, x.Frees)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1802,6 +1839,16 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Frees", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Frees = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

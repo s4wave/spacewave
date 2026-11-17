@@ -3,6 +3,7 @@ package storage_default
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/s4wave/spacewave/bldr/storage"
 	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 )
 
@@ -20,7 +21,12 @@ type Controller = storage_controller.StorageController
 
 // NewController constructs the storage/default controller.
 func NewController(storageId string, b bus.Bus, rootDir string) *storage_controller.StorageController {
-	storages := BuildStorage(b, rootDir)
+	return NewControllerWithStorage(storageId, BuildStorage(b, rootDir))
+}
+
+// NewControllerWithStorage constructs the storage/default controller over
+// storages, such as BuildStorage's wrapped by the caller.
+func NewControllerWithStorage(storageId string, storages []storage.Storage) *storage_controller.StorageController {
 	return storage_controller.BuildStorageController(
 		storageId,
 		storages,

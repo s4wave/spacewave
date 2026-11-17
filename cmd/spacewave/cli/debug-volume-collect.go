@@ -52,7 +52,10 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 		}
 	}
 	path := c.Args().First()
-	conf := &store_kvtx.Config{CollectorFrees: a.frees, CollectorGraceDur: a.grace}
+
+	// Frees run only under the hold-until-free rule, which turning them on
+	// recounts the Volume under.
+	conf := &store_kvtx.Config{CollectorFrees: a.frees, CollectorHoldUntilFree: a.frees, CollectorGraceDur: a.grace}
 	res, passes, err := collectVolume(c.Context, logrus.NewEntry(logrus.New()), path, conf)
 
 	// Print the totals, including those a failed pass left.

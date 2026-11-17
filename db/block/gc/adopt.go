@@ -191,13 +191,37 @@ func ResetAdoption(ctx context.Context, store Store) error {
 	return err
 }
 
-// Unadopt returns a Volume to unadopted, adopted or not, ending any adoption
-// or release in progress, so the next adoption counts every holder again
-// under the rule its caller names. It is the one way to change an adopted
-// Volume's hold rule, which a process otherwise keeps as stored.
-func Unadopt(ctx context.Context, store Store) error {
-	_, err := claimAdoption(ctx, store, "", func(*LivenessState) bool { return false })
-	return err
+// SetFrees records whether the collector's frees are on, as a writable open
+// does, and returns the state it leaves. Turning them on is the switch: the
+// same write returns the Volume to unadopted, adopted or not, ending any
+// adoption or release in progress, so the next adoption counts every holder
+// again, under the rule of the process that turned them on, before the first
+// free. That recount gives each named block without a list one holder more
+// than its namers, a hole no audit recorded included, so the hole's next put
+// leaves it held. It is the one way to change an adopted Volume's hold rule,
+// which a process otherwise keeps as stored. Turning them off writes only
+// the field: the collector then frees nothing, and the next switch-on counts
+// again over whatever was written meanwhile.
+func SetFrees(ctx context.Context, store Store, frees bool) (*LivenessState, error) {
+	var state *LivenessState
+	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
+		// Read the state; a switch already as asked writes nothing.
+		var err error
+		state, err = rec.GetState(ctx)
+		if err != nil || state.GetFrees() == frees {
+			return err
+		}
+
+		// Record the switch, and on turning it on return to unadopted.
+		state.Frees = frees
+		if frees {
+			state.Adoption = Adoption_ADOPTION_UNADOPTED
+			state.AdoptionRun = ""
+			state.Release = nil
+		}
+		return rec.SetState(ctx, state)
+	})
+	return state, err
 }
 
 // claimAdoption returns a Volume that is not adopted, or is adopted but not

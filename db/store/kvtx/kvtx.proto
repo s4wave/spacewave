@@ -12,14 +12,21 @@ message Config {
   reserved 3;
   // CollectorFrees turns on the Volume collector's frees. Off, the collector
   // still releases lapsed leases and nets the journal, so its counts stay
-  // current, and frees nothing. Turning it on also adopts an unadopted
-  // Volume, such as one upgraded from an older format, in the background at
-  // its next open. It stays off until a rehearsal on a restored copy of the
-  // Volume, covering that adoption, has shown the collector frees no live
-  // block. On a Volume whose child lists an older format left unverified,
-  // the frees first settle the old generation: they free nothing until
-  // every such list is verified, and a block they hold back stays readable
-  // and is stored again by its next put.
+  // current, and frees nothing. The Volume stores whether frees were on at
+  // its last writable open. An open that turns them on returns the Volume to
+  // unadopted and adopts it again in the background under
+  // CollectorHoldUntilFree, and nothing frees until that recount finishes;
+  // an open with them already on recounts nothing, and one with them off
+  // clears the stored switch, so the next switch-on recounts again. Turn
+  // frees off with this switch, never with an older build, which may not
+  // read the lists this one writes. The default stays off, and spacewave
+  // serve turns it on only for the Volumes its --collector-frees flag names.
+  // A Volume frees only after a rehearsal on a restored copy of it, covering
+  // the switch-on recount, has shown the collector frees no live block, and
+  // after its owner approves. On a Volume whose child lists an older format
+  // left unverified, the frees first settle the old generation: they free
+  // nothing until every such list is verified, and a block they hold back
+  // stays readable and is stored again by its next put.
   bool collector_frees = 7;
   // CollectorGraceDur is how old a journal record must be before the
   // collector nets it, as a Go duration such as "15m". It must exceed the
@@ -31,8 +38,9 @@ message Config {
   RootHeldCheck root_held_check = 9;
   // CollectorHoldUntilFree keeps a block at zero holders a holder of each
   // child it lists until the collector frees it, so no child is freed while
-  // a stored parent names it. Changing it adopts the Volume again in the
-  // background, and nothing frees until that finishes.
+  // a stored parent names it. An adopted Volume keeps the rule its adoption
+  // counted under; this one applies when the Volume adopts again, as it does
+  // when CollectorFrees turns on, and frees run only under it.
   bool collector_hold_until_free = 10;
 
   // reserved: 1 mqueue_config
