@@ -2,7 +2,6 @@ package packsweep
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
@@ -223,8 +222,9 @@ func TestClosureKeepsRelinkedSubtree(t *testing.T) {
 	}
 }
 
-// TestPullGaps checks the pull refuses another R, and records a gap when the
-// log is turned off, its epoch changes, or the walk's R differs.
+// TestPullGaps checks the pull refuses another R, crosses a clean close the
+// log resumes, and records a gap when the log missed a write while off, its
+// epoch changes, or the walk's R differs.
 func TestPullGaps(t *testing.T) {
 	ctx := context.Background()
 	h, err := block.BuildBlockRef([]byte("gap"), nil)
@@ -248,15 +248,35 @@ func TestPullGaps(t *testing.T) {
 		t.Fatal("pull ran from another R")
 	}
 
-	// Closing the epoch ends its cover, read from the directory too.
+	// Closing the epoch pauses its cover, read from the directory too, and
+	// turning the log on again resumes it.
 	if err := log.Close(); err != nil {
 		t.Fatal(err)
 	}
 	pull, err := PullLog(ctx, &PullOptions{Store: store, Source: writelog.Dir(dir)})
-	if err != nil || !strings.Contains(pull.Gap, "closed") || pull.Lines != 1 {
+	if err != nil || pull.Gap != "" || pull.Lines != 1 {
 		t.Fatalf("pull after close = %+v, %v", pull, err)
 	}
-	if again, err := FollowLog(ctx, &PullOptions{Store: store, Source: writelog.Dir(dir)}, time.Millisecond); err != nil || *again != *pull {
+	if err := log.Set(&writelog.Options{Dir: dir, SegmentBytes: 1024}); err != nil {
+		t.Fatal(err)
+	}
+	log.Put(h.GetHash())
+	if pull, err = PullLog(ctx, &PullOptions{Store: store, Source: log}); err != nil || pull.Gap != "" || pull.Lines != 2 {
+		t.Fatalf("pull after resume = %+v, %v", pull, err)
+	}
+
+	// A write while the log is off ends its cover.
+	if err := log.Close(); err != nil {
+		t.Fatal(err)
+	}
+	log.Put(h.GetHash())
+	if err := log.Set(&writelog.Options{Dir: dir, SegmentBytes: 1024}); err != nil {
+		t.Fatal(err)
+	}
+	if pull, err = PullLog(ctx, &PullOptions{Store: store, Source: log}); err != nil || pull.Gap == "" || pull.Lines != 2 {
+		t.Fatalf("pull after a missed write = %+v, %v", pull, err)
+	}
+	if again, err := FollowLog(ctx, &PullOptions{Store: store, Source: log}, time.Millisecond); err != nil || *again != *pull {
 		t.Fatalf("follow after the gap = %+v, %v", again, err)
 	}
 

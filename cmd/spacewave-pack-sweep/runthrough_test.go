@@ -34,11 +34,12 @@ var runSteps = []string{"snapshot", "walk", "judge", "compact", "quarantine", "r
 // TestCommandRunThrough runs whole cycles, compaction included, while a writer
 // keeps putting blocks and moving its root, with the pack index in a file of
 // each volume type, on the store and as a rehearsal. Cycle k restarts the
-// backend once, before its step k, which opens a new log epoch the cycle
-// recovers from with a new walk, and fails the command's k-th object call in
-// each step that reaches the store, then runs the step again. After every
-// step, every block the root reaches reads, and no cycle lifts a pack. With
-// the writer stopped, a clean cycle leaves no dead or low pack.
+// backend once, before its step k, closing its log cleanly with the writer
+// paused, so the restarted log resumes the epoch and the cycle goes on with no
+// new walk; and it fails the command's k-th object call in each step that
+// reaches the store, then runs the step again. After every step, every block
+// the root reaches reads, and no cycle lifts a pack or meets a gap. With the
+// writer stopped, a clean cycle leaves no dead or low pack.
 func TestCommandRunThrough(t *testing.T) {
 	commandRuns(t, testCommandRunThrough)
 }
@@ -51,12 +52,16 @@ func testCommandRunThrough(t *testing.T, kind string, rehearsal bool) {
 	defer stopWriter()
 
 	// Run a cycle restarting the backend before each step, then a clean one.
-	var removed, compacted, lifted uint
+	var removed, compacted, lifted, gaps uint
 	for k := 0; k <= len(runSteps); k++ {
 		res := r.cycle(k, faults)
 		removed += res.removed
 		compacted += res.compacted
 		lifted += res.lifted
+		gaps += res.gaps
+	}
+	if gaps != 0 {
+		t.Fatalf("clean restarts sent the cycles back to a new walk %d times", gaps)
 	}
 
 	// No read or write reached a quarantined pack, since the writer reads none
@@ -90,6 +95,44 @@ func testCommandRunThrough(t *testing.T, kind string, rehearsal bool) {
 			t.Fatalf("the rehearsal wrote %d objects to the empty store", len(after))
 		}
 	}
+}
+
+// TestCommandRestartWindow restarts the backend after the recheck passed the
+// cycle's dead packs, and before the restart, once the log closed, the
+// stopping backend takes a write whose root links a block the walk found
+// dead. The restarted log must not resume the epoch that missed the write:
+// the trash meets a gap, the cycle walks again, and the linked block reads
+// after every later step.
+func TestCommandRestartWindow(t *testing.T) {
+	commandRuns(t, func(t *testing.T, kind string, rehearsal bool) {
+		// Restart with the write once, before the trash of the first cycle.
+		r, faults, _, stopWriter := newRunThrough(t, kind, rehearsal)
+		defer r.stop()
+		defer stopWriter()
+		trashAt := slices.Index(runSteps, "trash")
+		var linked *block.BlockRef
+		r.before = func(i int) {
+			r.mtx.Lock()
+			take := i == trashAt && linked == nil && len(r.prey) != 0
+			if take {
+				linked = r.prey[0]
+				r.prey = r.prey[1:]
+			}
+			r.mtx.Unlock()
+			if take {
+				r.restartWithWrite(linked)
+			}
+		}
+
+		// The cycle meets the gap and still keeps the linked block.
+		res := r.cycle(-1, faults)
+		r.before = nil
+		stopWriter()
+		r.checkReads("the cycle")
+		if linked == nil || res.gaps == 0 {
+			t.Fatalf("linked %v, gaps %d: want a link and a gap", linked != nil, res.gaps)
+		}
+	})
 }
 
 // newRunThrough serves an empty store, through an overlay for a rehearsal,
@@ -207,6 +250,25 @@ func (r *runThrough) stop() {
 
 // restart stops the backend and starts it again, with the writer paused.
 func (r *runThrough) restart() {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	r.stop()
+	r.start()
+}
+
+// restartWithWrite stops the backend, closing its log, then has the stopped
+// backend's store take a write whose root links ref, as a write landing after
+// the log closed in a process that is shutting down, and starts the backend
+// again.
+func (r *runThrough) restartWithWrite(ref *block.BlockRef) {
+	// Close the log, with the writer paused.
+	r.mtx.Lock()
+	r.backend.stop()
+	r.linked = append(r.linked, ref)
+	r.mtx.Unlock()
+
+	// Write through the old store, then start the backend again.
+	r.write()
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	r.stop()
@@ -381,7 +443,7 @@ func (r *runThrough) run(step string) (*fastjson.Value, error) {
 
 // cycleResult counts what a cycle did.
 type cycleResult struct {
-	removed, compacted, lifted uint
+	removed, compacted, lifted, gaps uint
 }
 
 // cycle runs one cycle, restarting the backend before step restartAt and
@@ -418,6 +480,7 @@ func (r *runThrough) cycle(restartAt int, faults *faultObjects) cycleResult {
 
 		// A gap sends the cycle back to a new walk.
 		if blocked := string(out.GetStringBytes("blocked")); blocked == packsweep.BlockLogGap {
+			res.gaps++
 			r.mustRun("new-cycle")
 			r.readRoots()
 			i = -1

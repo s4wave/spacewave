@@ -19,14 +19,28 @@ type WriteObserver interface {
 	Fill(h *hash.Hash)
 }
 
+// MissObserver is a WriteObserver told when the store may accept writes it
+// does not see: it was set after the store's first write, or replaced or
+// detached, after which the store's writes go elsewhere. A write log uses it
+// to refuse to continue across the writes it missed.
+type MissObserver interface {
+	WriteObserver
+	// Missed reports that writes may have escaped the observer. It must
+	// return at once.
+	Missed()
+}
+
 // observerSlot holds the observer of a MarkingStore and every copy of it, such
 // as its read operations and stages, so one SetObserver reaches them all.
 type observerSlot struct {
 	// p is the observer, nil for none.
 	p atomic.Pointer[WriteObserver]
+	// unseen is set once a write found no observer.
+	unseen atomic.Bool
 }
 
-// load returns the observer, nil for none.
+// load returns the observer for a write, nil for none, recording a write no
+// observer saw.
 func (s *observerSlot) load() WriteObserver {
 	if s == nil {
 		return nil
@@ -34,17 +48,34 @@ func (s *observerSlot) load() WriteObserver {
 	if p := s.p.Load(); p != nil {
 		return *p
 	}
+	if !s.unseen.Load() {
+		s.unseen.Store(true)
+	}
 	return nil
 }
 
 // SetObserver sets the observer of the store's writes, nil for none. With
-// none, a write costs one atomic load more.
+// none, a write costs two atomic loads more. The observer it replaces is told
+// it misses the writes from here on, and a new one is told it missed the
+// writes the store accepted with none set.
 func (m *MarkingStore) SetObserver(o WriteObserver) {
-	if o == nil {
-		m.observer.p.Store(nil)
-		return
+	// Swap the observer.
+	var next *WriteObserver
+	if o != nil {
+		next = &o
 	}
-	m.observer.p.Store(&o)
+	prev := m.observer.p.Swap(next)
+
+	// Tell each side what it misses; setting the same observer again tells
+	// it nothing.
+	if prev != nil && (next == nil || *prev != o) {
+		if mo, ok := (*prev).(MissObserver); ok {
+			mo.Missed()
+		}
+	}
+	if mo, ok := o.(MissObserver); ok && m.observer.unseen.Load() {
+		mo.Missed()
+	}
 }
 
 // observeRef sees a block written alone.

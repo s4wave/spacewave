@@ -152,25 +152,142 @@ func TestEpochs(t *testing.T) {
 		t.Fatalf("status bytes %d, directory %d", st.Bytes, dirBytes(t, dir))
 	}
 
-	// Close: the directory reads to the close line. On again: a new epoch,
-	// and the old one's segments are gone.
+	// Close: the directory reads to the close line. On again: the epoch
+	// resumes, and a read crosses the close line. Twice with no line between
+	// resumes again.
 	if err := l.Close(); err != nil {
 		t.Fatal(err)
 	}
 	if lines, res := readAll(t, Dir(dir), Position{Epoch: pos.Epoch, Seq: 190}); len(lines) != 10 || res.State != ReadClosed {
 		t.Fatalf("closed read: %d lines, %+v", len(lines), res)
 	}
+	for range 2 {
+		if err := l.Set(&Options{Dir: dir}); err != nil {
+			t.Fatal(err)
+		}
+		if next, _ := l.Position(); next != pos {
+			t.Fatalf("resumed at %v, closed at %v", next, pos)
+		}
+		if err := l.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := l.Set(&Options{Dir: dir}); err != nil {
 		t.Fatal(err)
 	}
-	next, _ := l.Position()
-	if next.Epoch == pos.Epoch || next.Seq != 0 {
-		t.Fatalf("new epoch %v", next)
-	}
-	if _, res := readAll(t, l, Position{Epoch: pos.Epoch, Seq: 190}); res.State != ReadGap {
-		t.Fatalf("old epoch read %+v", res)
+	l.Put(testHash(n))
+	if lines, res := readAll(t, l, Position{Epoch: pos.Epoch, Seq: 190}); len(lines) != 11 || res.State != ReadOpen {
+		t.Fatalf("read across the close: %d lines, %+v", len(lines), res)
 	}
 	_ = l.Close()
+}
+
+// TestResume checks a cleanly closed epoch resumes in a new log over its
+// directory and a new store, as after a process restart, and that a write the
+// log may have missed, a crash, an observer detached, or one attached after
+// the store's first write starts a new epoch instead, whose read from the old
+// one is a gap. A miss while the epoch is open ends it.
+func TestResume(t *testing.T) {
+	ctx := t.Context()
+	newStore := func() *block_store_writeback.MarkingStore {
+		return block_store_writeback.NewMarkingStore(
+			block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false),
+			func(context.Context, []block_store_writeback.Mark) error { return nil },
+		)
+	}
+	put := func(store *block_store_writeback.MarkingStore, i int) {
+		t.Helper()
+		if _, _, err := store.PutBlock(ctx, []byte("block "+strconv.Itoa(i)), nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// open turns on a new log over dir, observing store.
+	open := func(dir string, store *block_store_writeback.MarkingStore) *Log {
+		t.Helper()
+		l := newLog()
+		store.SetObserver(l)
+		if err := l.Set(&Options{Dir: dir}); err != nil {
+			t.Fatal(err)
+		}
+		return l
+	}
+	for _, tc := range []struct {
+		name string
+		// stop stops the first log and its store and returns the next store.
+		stop   func(l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore
+		resume bool
+	}{
+		{"clean", func(l *Log, _ *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+			_ = l.Close()
+			return newStore()
+		}, true},
+		{"crash", func(*Log, *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+			return newStore()
+		}, false},
+		{"write after close", func(l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+			_ = l.Close()
+			put(store, 100)
+			return newStore()
+		}, false},
+		{"detached", func(l *Log, store *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+			_ = l.Close()
+			store.SetObserver(nil)
+			return newStore()
+		}, false},
+		{"attached late", func(l *Log, _ *block_store_writeback.MarkingStore) *block_store_writeback.MarkingStore {
+			_ = l.Close()
+			next := newStore()
+			put(next, 100)
+			return next
+		}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Log some writes, stop, then start another log.
+			dir := t.TempDir()
+			store := newStore()
+			l := open(dir, store)
+			for i := range 10 {
+				put(store, i)
+			}
+			pos, _ := l.Position()
+			nextStore := tc.stop(l, store)
+			next := open(dir, nextStore)
+			defer next.Close()
+
+			// A resumed epoch reads across the close to the new line; a new
+			// one starts at zero and the old one reads as a gap.
+			at, _ := next.Position()
+			if resumed := at == pos; resumed != tc.resume {
+				t.Fatalf("resumed %v at %v, closed at %v", resumed, at, pos)
+			}
+			if !tc.resume {
+				if at.Seq != 0 {
+					t.Fatalf("new epoch at %v", at)
+				}
+				if _, res := readAll(t, next, pos); res.State != ReadGap {
+					t.Fatalf("read of the old epoch %+v", res)
+				}
+				return
+			}
+			put(nextStore, 10)
+			if lines, res := readAll(t, next, Position{Epoch: pos.Epoch}); len(lines) != 11 || res.State != ReadOpen {
+				t.Fatalf("read across the close: %d lines, %+v", len(lines), res)
+			}
+		})
+	}
+
+	// A miss while the epoch is open ends it.
+	store := newStore()
+	l := open(t.TempDir(), store)
+	put(store, 0)
+	pos, _ := l.Position()
+	store.SetObserver(nil)
+	if st := l.Status(); st.On || st.Broken == "" {
+		t.Fatalf("status after a detach %+v", st)
+	}
+	if _, res := readAll(t, l, pos); res.State != ReadGap {
+		t.Fatalf("read after a detach %+v", res)
+	}
 }
 
 // failAfter fails every write after n bytes.
