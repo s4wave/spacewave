@@ -63,8 +63,9 @@ func (h *holdFixture) objectAt(t *testing.T, key string) bool {
 // removal: a lifted pack leaves the cycle, a trash killed after the backend's
 // call and one killed mid-move resume, a bucket that cannot list versions
 // leaves every pack at its key, a pack a read missed after its move stays for
-// restore, and the removal, killed after the backend's first call, sends each
-// removed pack's keys with their other holders in bounded calls.
+// restore, a pack the backend lost before its removal is never purged, and
+// the removal, killed after the backend's first call, sends each removed
+// pack's keys with their other holders in bounded calls.
 func TestTrashRemove(t *testing.T) {
 	ctx := t.Context()
 	h := newHoldFixture(t)
@@ -127,6 +128,12 @@ func TestTrashRemove(t *testing.T) {
 		t.Fatalf("second trash = %+v, %v, %d calls", again, err, h.backend.calls["begin-trash"])
 	}
 
+	// The backend loses one moved pack before any removal asks for it, as
+	// an index rebuilt from an older backup would; the removal leaves it
+	// moved and marked absent rather than removed.
+	gone := passed[4]
+	h.backend.removed[gone] = true
+
 	// A read misses one moved pack, and small bounds split the removal into
 	// rounds and calls; the first call is killed after the backend's change.
 	missed := passed[3]
@@ -149,14 +156,17 @@ func TestTrashRemove(t *testing.T) {
 	}
 	before := len(h.backend.removals)
 	got, err := Remove(ctx, ropts)
-	removed := len(passed) - 2
-	if err != nil || got.Missed != 1 || got.Rounds < 2 {
+	removed := len(passed) - 3
+	if err != nil || got.Missed != 1 || got.Absent != 1 || got.Rounds < 2 {
 		t.Fatalf("removal = %+v, %v", got, err)
 	}
 	records = recordsByID(t, h.store)
+	if records[gone].Wait != MarkAbsent {
+		t.Fatalf("the lost pack after the removal: %+v", records[gone])
+	}
 	for _, id := range passed[1:] {
 		want := StageRemoved
-		if id == missed {
+		if id == missed || id == gone {
 			want = StageMoved
 		}
 		if p := records[id]; p.Stage != want || (want == StageRemoved && !p.Removed.Equal(at)) {
@@ -200,7 +210,7 @@ func TestTrashRemove(t *testing.T) {
 	for _, call := range h.backend.removals[before:] {
 		resent = resent || slices.Contains(call.ids, killed.ids[0])
 	}
-	if len(ids) != removed || ids[missed] || ids[lifted] || repairs == 0 || !resent {
+	if len(ids) != removed || ids[missed] || ids[gone] || ids[lifted] || repairs == 0 || !resent {
 		t.Fatalf("removal calls named %d packs, want %d, with %d repairs", len(ids), removed, repairs)
 	}
 	for id := range ids {
@@ -231,7 +241,8 @@ func TestTrashRemove(t *testing.T) {
 
 	// A purge before the wait deletes nothing. One past it deletes every
 	// version of each removed pack's objects, including an older version the
-	// bucket kept, and leaves the moved pack a read missed in the trash.
+	// bucket kept, and leaves the moved pack a read missed and the one the
+	// backend lost in the trash.
 	var kept string
 	for _, id := range passed[1:] {
 		if id != missed {
@@ -258,9 +269,9 @@ func TestTrashRemove(t *testing.T) {
 	}
 	records = recordsByID(t, h.store)
 	for _, id := range passed[1:] {
-		if id == missed {
+		if id == missed || id == gone {
 			if records[id].Stage != StageMoved || !h.objectAt(t, block_store_s3.TrashPackKey(prefix, id)) {
-				t.Fatalf("the missed pack %s after the purge: %+v", id, records[id])
+				t.Fatalf("the unremoved pack %s after the purge: %+v", id, records[id])
 			}
 			continue
 		}
