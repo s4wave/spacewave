@@ -22,7 +22,9 @@ message ExpectRootsOp {
 message ExpectedRoot {
   // ObjectKey is the object's key.
   string object_key = 1;
-  // RootRef is the object's root block, or empty when the object must not
-  // exist.
+  // RootRef is the object's root block, which may be empty, compared only
+  // when the object must exist.
   block.BlockRef root_ref = 2;
+  // Absent requires that the object does not exist.
+  bool absent = 3;
 }

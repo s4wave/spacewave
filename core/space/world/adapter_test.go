@@ -25,6 +25,7 @@ import (
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
+	world_expect "github.com/s4wave/spacewave/db/world/expect"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/testbed"
 )
@@ -128,7 +129,7 @@ func newAdapterFixtureOn(t *testing.T, opts fixtureOpts) *adapterFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	opTypes := space_world.OpTypes{Lookup: world_mock.LookupMockOp}
+	opTypes := space_world.OpTypes{Lookup: world.NewSchema(world_mock.MockTypes, world_expect.ExpectTypes).LookupOp}
 	if opts.opTypes != nil {
 		opTypes = *opts.opTypes
 	}

@@ -57,8 +57,6 @@ var (
 	// ErrUnexpectedChangeType is returned when a change with an unexpected
 	// ChangeType is encountered. Typically wrapped with name of type.
 	ErrUnexpectedChangeType = errors.New("change type was unexpected")
-	// ErrUnexpectedRev is returned if the revision field was unexpected.
-	ErrUnexpectedRev = errors.New("object rev unexpected")
 	// ErrGraphPathResultLimit is returned if a graph path query has no result limit.
 	ErrGraphPathResultLimit = errors.New("graph path result limit must be non-zero")
 	// ErrGraphPathStepLimit is returned if a graph path step has no per-key limit.

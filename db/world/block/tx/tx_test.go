@@ -79,8 +79,12 @@ func TestWorldState(t *testing.T) {
 
 	// Define the revision assertion used for the fork.
 	checkRev := func(obj world.ObjectState, expected uint64) {
-		if err := world.AssertObjectRev(ctx, obj, expected); err != nil {
+		_, rev, err := obj.GetRootRef(ctx)
+		if err != nil {
 			t.Fatal(err.Error())
+		}
+		if rev != expected {
+			t.Fatalf("object rev = %d, want %d", rev, expected)
 		}
 	}
 

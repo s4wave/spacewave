@@ -3,7 +3,6 @@ package world
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 )
@@ -57,15 +56,6 @@ func execTransactionOnce(
 		return nil
 	}
 	return wtx.Commit(ctx)
-}
-
-// AssertObjectRev asserts that an object is at a given rev.
-func AssertObjectRev(ctx context.Context, obj ObjectState, expected uint64) error {
-	_, rev, err := obj.GetRootRef(ctx)
-	if err == nil && rev != expected {
-		err = errors.Wrapf(ErrUnexpectedRev, "expected %d got %d", expected, rev)
-	}
-	return err
 }
 
 // LookupRootRef gets an object and returns its root reference and rev.

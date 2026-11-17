@@ -39,10 +39,14 @@ export interface ExpectedRoot {
    */
   objectKey?: string
   /**
-   * RootRef is the object's root block, or empty when the object must not
-   * exist.
+   * RootRef is the object's root block, which may be empty, compared only
+   * when the object must exist.
    */
   rootRef?: BlockRef
+  /**
+   * Absent requires that the object does not exist.
+   */
+  absent?: boolean
 }
 
 export const ExpectedRoot: MessageType<ExpectedRoot> =
@@ -51,5 +55,6 @@ export const ExpectedRoot: MessageType<ExpectedRoot> =
     () => [
       [1, 'object_key', 9],
       [2, 'root_ref', 11, 0, BlockRef.codec],
+      [3, 'absent', 8],
     ],
   )

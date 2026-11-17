@@ -43,9 +43,11 @@ type ExpectedRoot struct {
 	unknownFields []byte
 	// ObjectKey is the object's key.
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
-	// RootRef is the object's root block, or empty when the object must not
-	// exist.
+	// RootRef is the object's root block, which may be empty, compared only
+	// when the object must exist.
 	RootRef *block.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	// Absent requires that the object does not exist.
+	Absent bool `protobuf:"varint,3,opt,name=absent,proto3" json:"absent,omitempty"`
 }
 
 func (x *ExpectedRoot) Reset() {
@@ -66,6 +68,13 @@ func (x *ExpectedRoot) GetRootRef() *block.BlockRef {
 		return x.RootRef
 	}
 	return nil
+}
+
+func (x *ExpectedRoot) GetAbsent() bool {
+	if x != nil {
+		return x.Absent
+	}
+	return false
 }
 
 func (m *ExpectRootsOp) CloneVT() *ExpectRootsOp {
@@ -90,6 +99,7 @@ func (m *ExpectedRoot) CloneVT() *ExpectedRoot {
 	}
 	r := new(ExpectedRoot)
 	r.ObjectKey = m.ObjectKey
+	r.Absent = m.Absent
 	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -131,6 +141,9 @@ func (this *ExpectedRoot) EqualVT(that *ExpectedRoot) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
+		return false
+	}
+	if this.Absent != that.Absent {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -225,6 +238,11 @@ func (x *ExpectedRoot) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rootRef")
 		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
 	}
+	if x.Absent || s.HasField("absent") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("absent")
+		s.WriteBool(x.Absent)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -252,6 +270,9 @@ func (x *ExpectedRoot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.RootRef = &block.BlockRef{}
 			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		case "absent":
+			s.AddField("absent")
+			x.Absent = s.ReadBool()
 		}
 	})
 }
@@ -334,6 +355,11 @@ func (m *ExpectedRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Absent {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Absent)
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.RootRef != nil {
 		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -377,6 +403,7 @@ func (m *ExpectedRoot) SizeVT() (n int) {
 		l = m.RootRef.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Absent)
 	n += len(m.unknownFields)
 	return n
 }
@@ -413,6 +440,10 @@ func (x *ExpectedRoot) MarshalProtoText() string {
 	if x.RootRef != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
+	}
+	if x.Absent != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "absent")
+		protobuf_go_lite.TextWriteBool(&sb, x.Absent)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -522,6 +553,16 @@ func (m *ExpectedRoot) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Absent", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Absent = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

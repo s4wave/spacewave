@@ -2643,7 +2643,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/world/expect": {
-      "hash": "c1955e68c6c3db32a199715bbbef2ee5c8f39d9606b6d9306c7bf00945de5740",
+      "hash": "30b458ab58eaba4ef9df7b3dc7ad2155ad0f64aa6fee05f8d9bec4bb4f778d00",
       "generatedFiles": [
         "db/world/expect/expect.pb.go",
         "db/world/expect/expect.pb.ts",

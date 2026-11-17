@@ -1,10 +1,20 @@
+// Package world_expect provides world/expect-roots, a World operation that
+// makes a write transaction conditional on objects it read keeping their
+// roots. The condition is recorded in the transaction, so it holds where the
+// transaction was decided and is checked again on every Device that replays
+// it, including for objects the transaction reads but does not write.
+//
+// Replay waits at an operation whose type no handler resolves, rather than
+// refusing it, so every Device decides each position alike. A Device on a
+// build without this operation therefore stops applying a Space's operations
+// at the first transaction that records it, until it upgrades: every Device
+// of a Space rolls forward together.
 package world_expect
 
 import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -16,7 +26,8 @@ var ErrRootMoved = errors.New("object root moved")
 // ExpectCurrent applies an ExpectRootsOp in the write transaction ws that
 // expects each object to keep the root ws holds for it now. Call it after
 // reading the objects a change is decided from and before writing any of
-// them. Applied where ws was read, it always holds; a replay of the
+// them, naming every mutable object the decision read, whether or not the
+// transaction writes it; an object left out can move under a replay. Applied where ws was read, it always holds; a replay of the
 // transaction onto a World where another writer moved one of the objects
 // fails it, which refuses the transaction.
 func ExpectCurrent(ctx context.Context, ws world.WorldState, keys ...string) error {
@@ -27,7 +38,7 @@ func ExpectCurrent(ctx context.Context, ws world.WorldState, keys ...string) err
 		if err != nil {
 			return err
 		}
-		op.Roots = append(op.Roots, &ExpectedRoot{ObjectKey: key, RootRef: root})
+		op.Roots = append(op.Roots, root)
 	}
 
 	// Record the expectation in the transaction.
@@ -35,22 +46,33 @@ func ExpectCurrent(ctx context.Context, ws world.WorldState, keys ...string) err
 	return err
 }
 
-// ReadRoot returns the root block of an object, or nil when it does not
-// exist. It reads no block.
-func ReadRoot(ctx context.Context, ws world.WorldState, key string) (*block.BlockRef, error) {
+// ReadRoot returns the root an object holds now, which is Absent when it does
+// not exist. It reads no block.
+func ReadRoot(ctx context.Context, ws world.WorldState, key string) (*ExpectedRoot, error) {
 	// Look the object up and read its root reference.
 	obj, found, err := ws.GetObject(ctx, key)
 	defer world.ReleaseObjectState(obj)
-	if err != nil || !found {
+	if err != nil {
 		return nil, err
 	}
+	if !found {
+		return &ExpectedRoot{ObjectKey: key, Absent: true}, nil
+	}
 	ref, _, err := obj.GetRootRef(ctx)
-	return ref.GetRootRef(), err
+	if err != nil {
+		return nil, err
+	}
+	return &ExpectedRoot{ObjectKey: key, RootRef: ref.GetRootRef()}, nil
 }
 
-// SameRoot reports whether two roots are equal, where nil and empty roots
-// mean the object does not exist.
-func SameRoot(a, b *block.BlockRef) bool {
+// Matches reports whether two roots of one object are the same: both absent,
+// or both present with equal root blocks, where an empty root equals only an
+// empty root.
+func (r *ExpectedRoot) Matches(other *ExpectedRoot) bool {
+	if r.GetAbsent() || other.GetAbsent() {
+		return r.GetAbsent() == other.GetAbsent()
+	}
+	a, b := r.GetRootRef(), other.GetRootRef()
 	if a.GetEmpty() || b.GetEmpty() {
 		return a.GetEmpty() == b.GetEmpty()
 	}
@@ -78,7 +100,7 @@ func (o *ExpectRootsOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws wo
 		if err != nil {
 			return false, err
 		}
-		if !SameRoot(got, want.GetRootRef()) {
+		if !got.Matches(want) {
 			return false, errors.Wrap(ErrRootMoved, want.GetObjectKey())
 		}
 	}

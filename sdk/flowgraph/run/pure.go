@@ -68,8 +68,8 @@ type pureEval struct {
 	inputs []*s4wave_flowgraph.FlowgraphArrival
 	// stateKey is the state object's key, or empty when the Step keeps none.
 	stateKey string
-	// stateRoot is the state object's root block, or nil when it did not exist.
-	stateRoot *block.BlockRef
+	// stateRoot is the state object's root, Absent when it did not exist.
+	stateRoot *world_expect.ExpectedRoot
 	// req is the evaluation request.
 	req *flowgraph_pure.EvaluateRequest
 	// fault says why the inputs cannot be evaluated, or is empty.
@@ -166,12 +166,15 @@ func (r *runner) pureInput(ctx context.Context, arrival *s4wave_flowgraph.Flowgr
 
 // readState reads a state object's blob and root block. A missing object
 // reads as a nil root with no body.
-func (r *runner) readState(ctx context.Context, key string) ([]byte, *block.BlockRef, error) {
+func (r *runner) readState(ctx context.Context, key string) ([]byte, *world_expect.ExpectedRoot, error) {
 	// Look up the state object and its root.
 	obj, found, err := r.ws.GetObject(ctx, key)
 	defer world.ReleaseObjectState(obj)
-	if err != nil || !found {
+	if err != nil {
 		return nil, nil, err
+	}
+	if !found {
+		return nil, &world_expect.ExpectedRoot{ObjectKey: key, Absent: true}, nil
 	}
 	ref, _, err := obj.GetRootRef(ctx)
 	if err != nil {
@@ -185,7 +188,7 @@ func (r *runner) readState(ctx context.Context, key string) ([]byte, *block.Bloc
 		data, err = blob.FetchToBytes(ctx, cursor)
 		return err
 	})
-	return data, ref.GetRootRef(), err
+	return data, &world_expect.ExpectedRoot{ObjectKey: key, RootRef: ref.GetRootRef()}, err
 }
 
 // commitPure applies an evaluation's result in the caller's write
@@ -215,6 +218,9 @@ func commitPure(
 	if err != nil || taken == nil {
 		return false, err
 	}
+
+	// pureCurrent checked the evaluation's state root against this head;
+	// the expectation pins that root for a replay onto another head.
 	if eval.stateKey != "" {
 		if err := world_expect.ExpectCurrent(ctx, ws, eval.stateKey); err != nil {
 			return false, err
@@ -295,7 +301,7 @@ func (r *runner) pureCurrent(ctx context.Context, key pureKey, eval *pureEval) (
 	// Require the state object to hold the root read.
 	if eval.stateKey != "" {
 		root, err := world_expect.ReadRoot(ctx, r.ws, eval.stateKey)
-		if err != nil || !world_expect.SameRoot(root, eval.stateRoot) {
+		if err != nil || !root.Matches(eval.stateRoot) {
 			return nil, err
 		}
 	}

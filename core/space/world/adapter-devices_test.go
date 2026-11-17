@@ -16,6 +16,7 @@ import (
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
+	world_expect "github.com/s4wave/spacewave/db/world/expect"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -441,7 +442,8 @@ func runFollowsDevices(t *testing.T, f *adapterFixture) {
 // TestAdapterSupersedes checks that a local write whose operation replay
 // places after another device's conflicting operation, which the writer did
 // not build on, is superseded and runs again on the head that holds the other
-// operation.
+// operation: a conflicting create, and a world/expect-roots precondition on
+// an object the other device deleted.
 func TestAdapterSupersedes(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -499,6 +501,72 @@ func TestAdapterSupersedes(t *testing.T) {
 		t.Fatalf("write after %d attempts returned %v; want a second attempt that finds the object", attempts, err)
 	}
 	waitObjects(ctx, t, busEngine, "base", "contested")
+
+	// Write an object guarded by base's root while the other device deletes
+	// base, so replay refuses the guard on the moved head.
+	attempts = 0
+	built = make(chan struct{})
+	err = host.UpdateSOState(ctx, func(state *sobject.SOState) error {
+		// Build the guarded write.
+		go func() {
+			done <- world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
+				attempts++
+				if attempts == 1 {
+					defer close(built)
+				}
+				if err := world_expect.ExpectCurrent(ctx, ws, "base"); err != nil {
+					return err
+				}
+				obj, err := ws.CreateObject(ctx, "guarded-"+strconv.Itoa(attempts), nil)
+				world.ReleaseObjectState(obj)
+				return err
+			})
+		}()
+		select {
+		case <-built:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+
+		// Add the other device's delete of base.
+		return remote.add(t, so, state, deleteOp(t, "base"), false)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The replayed guard is superseded, not rejected or applied, and the
+	// second attempt lands on the head without base.
+	if err := <-done; attempts != 2 || err != nil {
+		t.Fatalf("guarded write after %d attempts returned %v; want it superseded once, then applied", attempts, err)
+	}
+	waitObjects(ctx, t, busEngine, "contested", "guarded-2")
+	err = world.ExecTransaction(ctx, busEngine, false, func(ctx context.Context, ws world.WorldState) error {
+		for _, key := range []string{"base", "guarded-1"} {
+			if root, err := world_expect.ReadRoot(ctx, ws, key); err != nil || !root.GetAbsent() {
+				return errors.Errorf("%s: root %v, err %v; want absent", key, root, err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// deleteOp encodes the World operation that deletes the object key.
+func deleteOp(t *testing.T, key string) []byte {
+	t.Helper()
+	op, err := (&space_world.WorldOp{Body: &space_world.WorldOp_ApplyTxOp{ApplyTxOp: &space_world.ApplyTxOp{
+		Tx: &world_block_tx.Tx{
+			TxType:         world_block_tx.TxType_TxType_DELETE_OBJECT,
+			TxDeleteObject: &world_block_tx.TxDeleteObject{ObjectKey: key},
+		},
+	}}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return op
 }
 
 // TestAdapterAdmitsOnMovedHead begins a write on the head H, lets replay
