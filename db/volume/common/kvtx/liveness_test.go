@@ -1070,19 +1070,37 @@ func punchHole(t *testing.T, v *Volume, ref *block.BlockRef) {
 // its own, and moves next_seq.
 func writeOlderState(t *testing.T, store kvtx.Store) {
 	t.Helper()
-	ctx := t.Context()
-	key := []byte{livenessPrefix[0], 'S'}
-	tx, err := store.NewTransaction(ctx, true)
+	known, unknown := splitStateFields(t, store)
+	if len(unknown) == 0 {
+		t.Fatal("the state records no frees switch")
+	}
+	state := &block_gc.LivenessState{}
+	if err := state.UnmarshalVT(known); err != nil {
+		t.Fatal(err)
+	}
+	state.NextSeq++
+	older, err := state.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
-	value, found, err := tx.Get(ctx, key)
+	setStateValue(t, store, append(older, unknown...))
+}
+
+// splitStateFields reads the liveness state in store and splits its encoding
+// into the fields a build older than the frees switch knows and the bytes of
+// fields 15 and 16, the switch and its mark, which it does not.
+func splitStateFields(t *testing.T, store kvtx.Store) (known, unknown []byte) {
+	t.Helper()
+	ctx := t.Context()
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	value, found, err := tx.Get(ctx, livenessStateKey)
 	if err != nil || !found {
 		t.Fatalf("read the state: found %v err %v", found, err)
 	}
-
-	// Split the fields the older message knows from the two it does not.
-	var known, unknown []byte
 	for b := value; len(b) != 0; {
 		num, _, n := protowire.ConsumeField(b)
 		if n < 0 {
@@ -1095,27 +1113,27 @@ func writeOlderState(t *testing.T, store kvtx.Store) {
 		}
 		b = b[n:]
 	}
-	if len(unknown) == 0 {
-		t.Fatal("the state records no frees switch")
-	}
+	return known, unknown
+}
 
-	// Move next_seq and write the known fields, then the unknown ones.
-	state := &block_gc.LivenessState{}
-	if err := state.UnmarshalVT(known); err != nil {
-		t.Fatal(err)
-	}
-	state.NextSeq++
-	older, err := state.MarshalVT()
+// setStateValue writes value as the liveness state in store.
+func setStateValue(t *testing.T, store kvtx.Store, value []byte) {
+	t.Helper()
+	ctx := t.Context()
+	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := tx.Set(ctx, key, append(older, unknown...)); err != nil {
+	if err := tx.Set(ctx, livenessStateKey, value); err != nil {
 		t.Fatal(err)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
 }
+
+// livenessStateKey is the store key of the liveness state record.
+var livenessStateKey = []byte{livenessPrefix[0], 'S'}
 
 // loseBlock loses ref from the store with its child list but keeps its count,
 // as damage no audit has seen yet does.
@@ -2737,6 +2755,136 @@ func testLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("two processes with frees on under two rules", func(t *testing.T) {
+		// Process A opens with frees on under the other rule and adopts
+		// main -> R -> X and d -> D -> E. Process B opens the same store
+		// with frees on under this rule and counts it again under this one.
+		// A, its rule fixed at its open, then releases d, lands main2 -> R2
+		// -> E and puts D again, so a pass of A's past the release's grace
+		// meets a netting due and D kept by the put past the cursor. A nets
+		// and frees nothing, since the counts are B's rule's; B nets and
+		// frees D, then R and X once main moves. Netting under one rule and
+		// freeing under the other would release E twice, or never.
+		store := store_kvtx_inmem.NewStore()
+		a, clkA := openRuleVolume(t, store, true, !testHold)
+		waitAdopted(t, a)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		tr.add(t, "E")
+		d := tr.add(t, "D", "E")
+		r2 := tr.add(t, "R2", "E")
+		roots := []block.NamedRoot{{Name: "main", Ref: r}, {Name: "d", Ref: d}}
+		if err := a.SetBucketRoots(ctx, "b", tr.entries("X", "R", "E", "D"), roots); err != nil {
+			t.Fatal(err)
+		}
+		b, clkB := openRuleVolume(t, store, true, testHold)
+		if state := waitAdopted(t, b); state.GetHoldRule() != testRule() {
+			t.Fatalf("B's open left the state %v, want it counted under %v", state, testRule())
+		}
+
+		// A releases d and lands main2, then puts D again inside the grace.
+		if err := a.SetBucketRoots(ctx, "b", tr.entries("R2"), []block.NamedRoot{{Name: "d", Previous: d}, {Name: "main2", Ref: r2}}); err != nil {
+			t.Fatal(err)
+		}
+		clkA.Add(block_gc.DefaultGrace + time.Second)
+		if err := a.SetBucketRoots(ctx, "b", tr.entries("D"), nil); err != nil {
+			t.Fatal(err)
+		}
+		clkA.Add(2 * time.Second)
+		if res := collectAll(t, a); res.Netted != 0 || res.Freed != 0 {
+			t.Fatalf("A's pass under the other rule = %+v, want nothing netted or freed", res)
+		}
+		if err := a.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r}}); err != nil {
+			t.Fatal(err)
+		}
+
+		// B collects past every grace; A's passes still change nothing.
+		for range 4 {
+			clkA.Add(block_gc.DefaultGrace + time.Second)
+			clkB.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, b)
+			if res := collectAll(t, a); res.Netted != 0 || res.Freed != 0 {
+				t.Fatalf("A's pass under the other rule = %+v, want nothing netted or freed", res)
+			}
+		}
+		requireReads(t, b, tr, "R2", "E")
+		requireStored(t, b, tr, false, "R", "X", "D")
+		requireAudit(t, b, 0)
+	})
+
+	t.Run("restart after a second process unadopts", func(t *testing.T) {
+		// A, with frees on, adopts a Volume holding main -> R -> X and an
+		// unheld G. B opens the same store writable with frees off, returns
+		// it to unadopted, as its reset of an adoption in progress or a list
+		// rebuild does, and closes. A restarts with frees on: its open
+		// counts the Volume again, and G goes while R and X stay.
+		store := store_kvtx_inmem.NewStore()
+		a, _ := openLivenessVolume(t, store, true)
+		waitAdopted(t, a)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		tr.add(t, "G")
+		if err := a.SetBucketRoots(ctx, "b", tr.entries("X", "R", "G"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Close(); err != nil {
+			t.Fatal(err)
+		}
+		b, _ := openLivenessVolume(t, store, false)
+		markUnadopted(t, b)
+		if err := b.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		v, clk := openLivenessVolume(t, store, true)
+		waitAdopted(t, v)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireReads(t, v, tr, "R", "X")
+		requireStored(t, v, tr, false, "G")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("restart between turning frees on and the recount", func(t *testing.T) {
+		// A Volume holding main -> R -> X and an unheld G turns frees on,
+		// which returns it to unadopted, and closes before its recount
+		// runs. Reopened with frees on, which writes nothing since the
+		// switch is on already, it counts again before any free, and G
+		// goes while R and X stay.
+		store := store_kvtx_inmem.NewStore()
+		v1, _ := openUnadoptedVolume(t, store)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		tr.add(t, "G")
+		if err := v1.SetBucketRoots(ctx, "b", tr.entries("X", "R", "G"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+		state, err := block_gc.SetFrees(ctx, collectorStore{v: v1}, true, testRule())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !state.GetFrees() || state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED {
+			t.Fatalf("turning frees on left the state %v, want frees on and a recount due", state)
+		}
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		v, clk := openLivenessVolume(t, store, true)
+		waitAdopted(t, v)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireReads(t, v, tr, "R", "X")
+		requireStored(t, v, tr, false, "G")
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("frees switched off and on", func(t *testing.T) {
 		// A Volume born with frees on holds main -> R -> X and d -> D -> E,
 		// and d lets D go. Restarted with frees off, it nets the release
@@ -2887,6 +3035,73 @@ func testLivenessAdversarial(t *testing.T) {
 		if !state.GetFrees() || state.GetAdoptionRun() == "" || state.GetAdoptionRun() == first.GetAdoptionRun() {
 			t.Fatalf("frees on after an older build's write left the state %v, want them on and a new recount's run", state)
 		}
+	})
+
+	t.Run("turning frees on recounts what an older build wrote", func(t *testing.T) {
+		// A Volume adopted with frees on names main -> R -> P -> C. A build
+		// that predates the switch then lands R2 -> P, releases main and
+		// leaves P one holder short, a count only a recount corrects. It
+		// keeps the switch and its mark as unknown fields, so the mark goes
+		// stale. Opened again with frees on, the Volume recounts before any
+		// free: R2, P and C read after collections past the grace, and R,
+		// which nothing names, frees.
+		store := store_kvtx_inmem.NewStore()
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "C")
+		p := tr.add(t, "P", "C")
+		r := tr.add(t, "R", "P")
+		r2 := tr.add(t, "R2", "P")
+		v1, _ := openLivenessVolume(t, store, true)
+		waitAdopted(t, v1)
+		if err := v1.SetBucketRoots(ctx, "b", tr.entries("C", "P", "R"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+		_, switched := splitStateFields(t, store)
+
+		// The older build's writes, made here by a frees-off open, with the
+		// switch and its mark put back as that build keeps them.
+		v2, clk2 := openLivenessVolume(t, store, false)
+		if err := v2.SetBucketRoots(ctx, "b", tr.entries("R2"), []block.NamedRoot{{Name: "main2", Ref: r2}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v2.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r}}); err != nil {
+			t.Fatal(err)
+		}
+		clk2.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v2)
+		err := v2.withDirectAtomic(ctx, func(tx *physicalTx) error {
+			holders, ripe, err := tx.rec.GetHolders(ctx, p)
+			if err != nil {
+				return err
+			}
+			if holders == 0 {
+				return errors.New("P counts no holder")
+			}
+			return tx.rec.SetHolders(ctx, p, holders-1, ripe)
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := v2.Close(); err != nil {
+			t.Fatal(err)
+		}
+		known, _ := splitStateFields(t, store)
+		setStateValue(t, store, append(known, switched...))
+
+		// Frees on again recounts, then collects.
+		v, clk := openLivenessVolume(t, store, true)
+		waitAdopted(t, v)
+		for range 4 {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+		}
+		requireReads(t, v, tr, "R2", "P", "C")
+		requireStored(t, v, tr, false, "R")
+		requireAudit(t, v, 0)
 	})
 
 	t.Run("turning frees on recounts under another rule", func(t *testing.T) {
@@ -5530,6 +5745,48 @@ func TestLivenessSettle(t *testing.T) {
 		})
 	})
 
+	t.Run("read-only open beside a writer that flips", func(t *testing.T) {
+		// A writer with frees on flips the generation to Sweeping with the
+		// old U unmarked, so U reads absent to a writer checking before it
+		// puts. A read-only Volume on the same store, as the debug commands
+		// open one, opened before the flip or after it, answers the same: a
+		// copy that trusted it would skip U's put and name a block the sweep
+		// then deletes. A Settled Volume never opens a generation again, so
+		// a reader that opened Settled has nothing to hide.
+		for _, before := range []bool{false, true} {
+			t.Run("before="+strconv.FormatBool(before), func(t *testing.T) {
+				v, clk, store, tr := oldU(t, false)
+				openRO := func() *Volume {
+					ro, err := NewVolume(t.Context(), "test/liveness", store_kvkey.NewDefaultKVKey(), readOnlyStore{store.(*store_kvtx_inmem.Store)}, &store_kvtx.Config{}, true, true, nil, nil)
+					if err != nil {
+						t.Fatal(err)
+					}
+					t.Cleanup(func() { _ = ro.Close() })
+					return ro
+				}
+				var ro *Volume
+				if before {
+					ro = openRO()
+				}
+				collectUntil(t, v, clk, flipped)
+				if !has(t, store, run, tr["U"].Ref) {
+					t.Fatal("U is not in the run")
+				}
+				if !before {
+					ro = openRO()
+				}
+				for _, vol := range []*Volume{v, ro} {
+					if found, err := vol.GetBlockExists(t.Context(), tr["U"].Ref); err != nil || found {
+						t.Fatalf("U exists=%v err %v on the read-only=%v Volume, want absent", found, err, vol.readOnly)
+					}
+					if found, err := vol.GetBlockExists(t.Context(), tr["A"].Ref); err != nil || !found {
+						t.Fatalf("A exists=%v err %v on the read-only=%v Volume, want present", found, err, vol.readOnly)
+					}
+				}
+			})
+		}
+	})
+
 	t.Run("unwalked root seeds the flip", func(t *testing.T) {
 		// The carried root names A, which no walk decoded. The flip pushes
 		// A onto the front rather than flip, and the walk then decodes A.
@@ -6994,6 +7251,18 @@ func livenessAdoption(t *testing.T, v *Volume) block_gc.Adoption {
 }
 
 // markUnadopted returns an adopted Volume to unadopted, as one that predates
+// readOnlyStore is an in-memory store that reports itself read-only, as an
+// s4db opened for reading does, so a Volume over it starts no writer. It
+// keeps the store's atomic commits, which a Volume needs for liveness.
+type readOnlyStore struct {
+	*store_kvtx_inmem.Store
+}
+
+// ReadOnly reports that the store refuses every write transaction.
+func (readOnlyStore) ReadOnly() bool {
+	return true
+}
+
 // adoption, keeping its records.
 func markUnadopted(t *testing.T, v *Volume) {
 	t.Helper()
