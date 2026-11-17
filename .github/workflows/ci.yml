@@ -673,8 +673,9 @@ jobs:
           RUBY
 
   # stop-failed cancels a stack run once a job other than the spec checks has
-  # failed. The run can no longer pass, and its spec jobs may run for hours, so
-  # it releases the branch's concurrency group to the newest waiting push.
+  # failed and another job still runs. The run can no longer pass, and its
+  # spec jobs may run for hours, so it releases the branch's concurrency group
+  # to the newest waiting push.
   stop-failed:
     name: Stop a failed stack run
     needs:
@@ -692,7 +693,15 @@ jobs:
     permissions:
       actions: write
     steps:
+      # A run with no other job left ends on its own and keeps its failure
+      # as its conclusion.
       - name: Cancel this run
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh run cancel "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY"
+        run: |
+          left=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --paginate \
+            --jq '[.jobs[] | select(.status != "completed" and .name != "Stop a failed stack run")] | length' |
+            awk '{n += $1} END {print n + 0}')
+          if [ "$left" -gt 0 ]; then
+            gh run cancel "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY"
+          fi
