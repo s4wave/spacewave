@@ -6057,6 +6057,91 @@ func TestLivenessSettle(t *testing.T) {
 		requireStored(t, v, tr, true, "A", "C", "F", "G")
 	})
 
+	t.Run("readoption after a pop with a writer ahead of the cursor", func(t *testing.T) {
+		// The free proof pops U while the unverified seed A holds the flip,
+		// and a readoption then recounts, which gives U and K new ripe
+		// sequences, and the free parks both. Root d holds the old D through
+		// the recount; its release nets D Dead behind a younger record that
+		// moves root z onto Z, so D is not yet ripe. Root e then moves onto the Dead D, which puts the
+		// hold mark ahead of the cursor until that move nets, so the free
+		// cannot park D once it ripens. The walk verifies A, and the flip
+		// must not wait for D: D died after the recount, so it names no
+		// popped child.
+		tr := testTree{}
+		tr.add(t, "A")
+		tr.add(t, "K")
+		tr.add(t, "U", "K")
+		tr.add(t, "D")
+		tr.add(t, "Z")
+		v, clk, store := oldStore(t, tr, "A", []string{"A", "K", "U", "D"})
+		ctx := t.Context()
+		d := []block.NamedRoot{{Name: "d", Ref: tr["D"].Ref}}
+		if err := v.SetBucketRoots(ctx, "b", nil, d); err != nil {
+			t.Fatal(err)
+		}
+		if err := rootOnto(t, v, tr, "U"); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: tr["U"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		var popped uint64
+		res := collectUntil(t, v, clk, func(res block_gc.CollectResult) bool {
+			popped += res.Popped
+			return popped != 0 || res.Flipped
+		})
+		if res.Flipped || has(t, store, front, tr["U"].Ref) {
+			t.Fatalf("collect = %+v, want U popped and the flip held by A", res)
+		}
+
+		// Readopt, and let the free park what the recount left at zero.
+		frees := livenessState(t, v).GetFrees()
+		for _, on := range []bool{!frees, frees} {
+			if _, err := block_gc.SetFrees(ctx, collectorStore{v: v}, on, v.holdRule); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		for range 2 {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			if res := collectAll(t, v); res.Flipped {
+				t.Fatalf("collect flipped with A unverified: %+v", res)
+			}
+		}
+
+		// Release D behind a younger record, net the release, then move root
+		// e onto the Dead D and walk A and D.
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "d", Previous: tr["D"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace - time.Second)
+		z := []block.NamedRoot{{Name: "z", Ref: tr["Z"].Ref}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("Z"), z); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(2 * time.Second)
+		if res := collectAll(t, v); res.Flipped {
+			t.Fatalf("collect flipped with A unverified: %+v", res)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "e", Ref: tr["D"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		verify(t, v, tr, "A", "D")
+
+		// The younger record nets, so D ripens, and the hold mark keeps it
+		// queued; the flip comes.
+		clk.Add(block_gc.DefaultGrace - 2*time.Second)
+		if res := collectAll(t, v); !res.Flipped || res.StallHoldMark == 0 {
+			t.Fatalf("collect with D held back by the hold mark = %+v, want the flip", res)
+		}
+		settleAll(t, v, clk, store, tr)
+		requireStored(t, v, tr, true, "A", "D", "Z")
+		requireStored(t, v, tr, false, "U", "K")
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("put again of a swept child before its unmarked parent", func(t *testing.T) {
 		// The old chain G -> P -> C is garbage, among 300 old leaves, and C's
 		// key sorts more than a sweep slice before P's. Between the slice

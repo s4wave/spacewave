@@ -157,6 +157,16 @@ func Adopt(ctx context.Context, store Store, rule HoldRule) (AdoptResult, error)
 		if err != nil {
 			return err
 		}
+
+		// Cap the pop mark clearRun raised at the journal's end. The recount
+		// gave each block it left at zero the journal's end when it settled
+		// that block as its ripe sequence, no later than the end now, and
+		// a cascade it started leaves the block Dead at that sequence, so
+		// the capped mark still covers each, while a block that dies later
+		// cannot hold the flip.
+		if err := rec.capPopMark(ctx, state.GetNextSeq()); err != nil {
+			return err
+		}
 		state.Adoption = Adoption_ADOPTION_ADOPTED
 		state.HoldRule = rule
 		state.Cursor = cursor
@@ -592,7 +602,7 @@ func claimedBy(state *LivenessState, run string) bool {
 func clearRun(ctx context.Context, store Store, run string) error {
 	// Take the parked blocks out of the run while claimed. The recount gives
 	// a block Dead before it a new ripe sequence, so a pop mark covers every
-	// queued block from here.
+	// queued block until Adopt caps it once the recount is done.
 	claimed := func(state *LivenessState) bool { return claimedBy(state, run) }
 	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
 		state, err := rec.GetState(ctx)

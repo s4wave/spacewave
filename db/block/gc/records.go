@@ -160,11 +160,13 @@ const (
 	kindRewritten byte = 'Y'
 	// kindPopMark is one record, with no key past the kind, whose value is
 	// the big-endian latest ripe sequence of a block the settle's front
-	// popped while Open, or the largest uint64 once a readoption recounted
-	// after a pop. A Dead block that names a popped child is Dead at a ripe
-	// sequence no later than the child's, so the flip waits only for the
-	// queued blocks at or below the mark, as Collector.flip describes. The
-	// flip deletes it.
+	// popped while Open. A Dead block that names a popped child is Dead at a
+	// ripe sequence no later than the child's, so the flip waits only for
+	// the queued blocks at or below the mark, as Collector.flip describes.
+	// A readoption after a pop gives such a block a new ripe sequence, so it
+	// raises the mark to the largest uint64 while it recounts and caps it at
+	// the journal's end once the recount is done, past every ripe sequence
+	// the recount gave, as Adopt describes. The flip deletes it.
 	kindPopMark byte = 'p'
 	// kindVerifiedRetired, kindLandedRetired, kindReachedRetired and
 	// kindSuspectRetired are the verified and landed marks, the walk's
@@ -980,6 +982,17 @@ func (r *Records) popMark(ctx context.Context) (uint64, bool, error) {
 func (r *Records) raisePopMark(ctx context.Context, seq uint64) error {
 	mark, found, err := r.popMark(ctx)
 	if err != nil || found && mark >= seq {
+		return err
+	}
+	return r.tx.Set(ctx, r.key(kindPopMark), binary.BigEndian.AppendUint64(nil, seq))
+}
+
+// capPopMark lowers a pop mark above seq to seq, reading one key and
+// writing it only when it lowers the mark. Only Adopt calls it, to end the
+// recount's largest mark, as kindPopMark describes.
+func (r *Records) capPopMark(ctx context.Context, seq uint64) error {
+	mark, found, err := r.popMark(ctx)
+	if err != nil || !found || mark <= seq {
 		return err
 	}
 	return r.tx.Set(ctx, r.key(kindPopMark), binary.BigEndian.AppendUint64(nil, seq))
