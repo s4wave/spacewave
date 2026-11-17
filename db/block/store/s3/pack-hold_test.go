@@ -9,8 +9,10 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/stamp"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/sirupsen/logrus"
@@ -40,6 +42,41 @@ func locatedAny(t *testing.T, s *PackStore, refs []*block.BlockRef) bool {
 		t.Fatal(err)
 	}
 	return slices.Contains(found, true)
+}
+
+// TestQuarantineRestartStampFloor loads a q/ row whose hold time is an hour
+// ahead of the wall clock, as after a clock stepped back across a restart, and
+// requires an operation stamped after the load to stamp past it, so the
+// sweep's recheck waits on a read opened after the restart. It writes the row
+// directly, so no earlier stamp has raised the floor; it fails if the load
+// does not raise it.
+func TestQuarantineRestartStampFloor(t *testing.T) {
+	ctx := t.Context()
+	_, client := newFakeBucket(t, nil)
+	kv := newIndexKV(t, "memory")
+	s := openSweepStore(client, kv)
+	pack := packOf(t, s, adoptBlocks(ctx, t, s, "held", 1)[0])
+	wall := time.Now().UnixNano()
+	since := wall + int64(time.Hour)
+	if err := s.index.writeHolds(ctx, []string{pack}, []packHold{{state: PackQuarantined, since: since}}); err != nil {
+		t.Fatal(err)
+	}
+	s.Close()
+
+	// Restart with the clock behind the hold, then open a read.
+	restore := stamp.SetClock(func() int64 { return wall })
+	defer restore()
+	s = openSweepStore(client, kv)
+	defer s.Close()
+	if err := s.loadEntries(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := heldStateOf(t, s, pack); got != PackQuarantined {
+		t.Fatalf("state after restart %v, want quarantined", got)
+	}
+	if at := stamp.Next(); at <= since {
+		t.Fatalf("a read opened after the restart stamps %d, not past the loaded hold %d", at, since)
+	}
 }
 
 // TestQuarantineReadLifts quarantines a pack, finds it skipped by the extent
