@@ -94,9 +94,10 @@ type Options struct {
 	Enabled func() bool
 	// Operations returns when the oldest open write and read operation of the
 	// backend's store began, each zero for none, as
-	// block_store_writeback.MarkingStore.OldestOperations reports them. Nil
-	// reports none recorded, and no pack passes a recheck.
-	Operations func() (write, read time.Time)
+	// block_store_writeback.MarkingStore.OldestOperations reports them, and
+	// false while they are unknown, such as while the store is not mounted.
+	// Nil, or false, reports none recorded, and no pack passes a recheck.
+	Operations func() (write, read time.Time, ok bool)
 }
 
 // Server serves PackSweepAdmin over a backend's pack store and write log.
@@ -134,8 +135,9 @@ func (s *Server) Status(ctx context.Context, req *StatusRequest) (*StatusRespons
 		resp.Log = &LogStatus{On: st.On, Epoch: st.Epoch, Seq: st.Seq, Bytes: st.Bytes, Broken: st.Broken}
 	}
 	if s.opts.Operations != nil {
-		write, read := s.opts.Operations()
-		resp.Operations = &OpenOperations{OldestWriteUnixNano: unixNano(write), OldestReadUnixNano: unixNano(read)}
+		if write, read, ok := s.opts.Operations(); ok {
+			resp.Operations = &OpenOperations{OldestWriteUnixNano: unixNano(write), OldestReadUnixNano: unixNano(read)}
+		}
 	}
 	return resp, nil
 }

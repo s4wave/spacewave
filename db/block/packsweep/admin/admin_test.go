@@ -456,9 +456,15 @@ func TestAdminBackend(t *testing.T) {
 
 	// The operations carry each start, and zero for none.
 	write := time.Unix(0, 12345)
-	b.server.opts.Operations = func() (time.Time, time.Time) { return write, time.Time{} }
+	b.server.opts.Operations = func() (time.Time, time.Time, bool) { return write, time.Time{}, true }
 	if st, err = backend.Status(ctx, []string{id}); err != nil || st.Operations == nil || !st.Operations.Write.Equal(write) || !st.Operations.Read.IsZero() {
 		t.Fatalf("status with operations = %+v, %v", st, err)
+	}
+
+	// Unknown operations, as of a store not mounted, report none recorded.
+	b.server.opts.Operations = func() (time.Time, time.Time, bool) { return time.Time{}, time.Time{}, false }
+	if st, err = backend.Status(ctx, []string{id}); err != nil || st.Operations != nil {
+		t.Fatalf("status with unknown operations = %+v, %v", st, err)
 	}
 
 	// A quarantine and a lift answer each pack's state and time.

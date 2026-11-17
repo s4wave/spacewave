@@ -46,14 +46,24 @@ func (m *MarkingStore) SetRetainedRoots(ctx context.Context, entries []*block.Pu
 	return m.markEntries(ctx, entries)
 }
 
-// PinRoot forwards a reader pin to the inner store. The observer sees the
-// pinned root, so a sweep keeps what a reader holds even when the pin
-// outlives the roots it listed.
+// PinRoot forwards a reader pin to the inner store, then lets the observer see
+// the pinned root. A sweep that lists the volume's pins after its log position
+// R lists a pin held then; one the observer saw before R was held before R, so
+// the listing finds it while it is held, and one seen after R is in the log
+// after R. Observing before the pin would leave a pin seen before R and set
+// after the listing in neither.
 func (m *MarkingStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
+	// Pin the root first.
+	release, err := block.PinRoot(ctx, m.store, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	// Then log it as a root.
 	if o := m.observer.load(); o != nil && !ref.GetEmpty() {
 		o.Root(ref.GetHash())
 	}
-	return block.PinRoot(ctx, m.store, ref)
+	return release, nil
 }
 
 // OpenStage wraps a stage opened on the inner store, so staged writes are
