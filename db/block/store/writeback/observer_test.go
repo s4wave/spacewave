@@ -1,6 +1,7 @@
 package block_store_writeback
 
 import (
+	"context"
 	"slices"
 	"sync"
 	"testing"
@@ -33,13 +34,41 @@ func (r *recordingObserver) take() []string {
 	return out
 }
 
+// retainingStore stands in for a store that retains roots: a root change
+// writes its entries as one batch, and a pin holds nothing. The other root
+// calls are not made.
+type retainingStore struct {
+	ownedStore
+	block.RootRetainer
+}
+
+// SupportsRootRetention reports that the store retains roots.
+func (retainingStore) SupportsRootRetention() bool { return true }
+
+// KeepsHoldCounts reports that the store keeps no shared counts.
+func (retainingStore) KeepsHoldCounts() bool { return false }
+
+// SetRetainedRoots writes the entries as one batch.
+func (r retainingStore) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
+	_, err := r.PutBlockBatch(ctx, entries)
+	return err
+}
+
+// PinRoot holds nothing.
+func (retainingStore) PinRoot(context.Context, *block.BlockRef) (func(), error) {
+	return func() {}, nil
+}
+
 // TestObserverSeesWrites checks the observer sees every accepted put, a put
 // of a held block, each root, and each fill, through the store and its read
 // copies, and nothing of a failed write or after it is cleared.
 func TestObserverSeesWrites(t *testing.T) {
 	ctx := t.Context()
 	env := newTestEnv(t)
-	s := env.newStore(t, true)
+	s, err := NewStore(ctx, retainingStore{ownedStore: ownedStore{env.vol}}, env.vol, env.markers(t), testMarkersID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
 	obs := &recordingObserver{}
 	s.SetObserver(obs)
 	entries, refs := batchOf(t, "a", "b")
