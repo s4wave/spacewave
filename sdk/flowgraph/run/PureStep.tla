@@ -59,13 +59,14 @@ Register(d) ==
   /\ dstate' = [dstate EXCEPT ![d] = "Idle"]
   /\ UNCHANGED <<phase, pending, arrived, consumed, rev, eval, fixed>>
 
-\* Evaluate: the Device reads the arrivals and the state revision.
+\* Evaluate: the Device reads a ready set of the arrivals, one per input port
+\* in the code, and the state revision.
 Evaluate(d) ==
   /\ phase = "Ready"
   /\ registered[d]
   /\ dstate[d] = "Idle"
-  /\ pending # {}
-  /\ eval' = [eval EXCEPT ![d] = [in |-> pending, rev |-> rev]]
+  /\ \E S \in SUBSET pending \ {{}} :
+       eval' = [eval EXCEPT ![d] = [in |-> S, rev |-> rev]]
   /\ dstate' = [dstate EXCEPT ![d] = "Evaluating"]
   /\ UNCHANGED <<phase, pending, arrived, consumed, rev, registered, fixed>>
 
@@ -77,7 +78,7 @@ Faults(in) == Poison \in in /\ ~fixed
 Commit(d) ==
   /\ dstate[d] = "Evaluating"
   /\ phase = "Ready"
-  /\ eval[d].in = pending /\ eval[d].rev = rev
+  /\ eval[d].in \subseteq pending /\ eval[d].rev = rev
   /\ ~Faults(eval[d].in)
   /\ consumed' = Append(consumed, eval[d].in)
   /\ pending' = pending \ eval[d].in
@@ -91,7 +92,7 @@ Commit(d) ==
 Fault(d) ==
   /\ dstate[d] = "Evaluating"
   /\ phase = "Ready"
-  /\ eval[d].in = pending /\ eval[d].rev = rev
+  /\ eval[d].in \subseteq pending /\ eval[d].rev = rev
   /\ Faults(eval[d].in)
   /\ phase' = "Faulted"
   /\ eval' = [eval EXCEPT ![d] = NoEval]
@@ -102,7 +103,7 @@ Fault(d) ==
 \* evaluation is discarded.
 LostRace(d) ==
   /\ dstate[d] = "Evaluating"
-  /\ \/ eval[d].in # pending
+  /\ \/ ~(eval[d].in \subseteq pending)
      \/ eval[d].rev # rev
      \/ phase # "Ready"
   /\ eval' = [eval EXCEPT ![d] = NoEval]

@@ -27,7 +27,8 @@ const ControllerID = "flowgraph/run"
 
 // Controller drives one run object. It watches the run and the Tasks of its
 // running activations, and advances the run in one World transaction per
-// change: it routes each completed activation and starts each ready Step.
+// change: it routes each completed activation and starts each ready Step. A
+// pure watcher per pure Step evaluates that Step and commits its result.
 type Controller struct {
 	// le is the root logger.
 	le *logrus.Entry
@@ -43,16 +44,21 @@ type Controller struct {
 	tasks *keyed.Keyed[string, *taskWatcher]
 	// sources reads the events of each event-source node of the standing run.
 	sources *keyed.Keyed[eventSourceKey, *eventSourceWatcher]
+	// pures evaluates each pure Step of the run.
+	pures *keyed.Keyed[pureKey, *pureWatcher]
 }
 
 // NewController constructs a run controller.
 func NewController(le *logrus.Entry, b bus.Bus, conf *Config) *Controller {
+	// Bind the controller to its World engine.
 	c := &Controller{
 		le:     le,
 		bus:    b,
 		conf:   conf,
 		engine: world.NewBusEngine(nil, b, conf.GetEngineId()),
 	}
+
+	// Watch the run, and keep a retried watcher per Task, source and pure Step.
 	c.loop = world_control.NewWatchLoop(
 		le.WithField("object-loop", "flowgraph-run"),
 		conf.GetObjectKey(),
@@ -67,6 +73,11 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) *Controller {
 		c.newEventSourceWatcher,
 		le,
 		keyed.WithRetry[eventSourceKey, *eventSourceWatcher](&backoff.Backoff{}),
+	)
+	c.pures = keyed.NewKeyedWithLogger(
+		c.newPureWatcher,
+		le,
+		keyed.WithRetry[pureKey, *pureWatcher](&backoff.Backoff{}),
 	)
 	return c
 }
@@ -109,6 +120,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Bind the Task watchers and the World engine to the controller context.
 	c.tasks.SetContext(ctx, true)
 	c.sources.SetContext(ctx, true)
+	c.pures.SetContext(ctx, true)
 	c.engine.SetContext(ctx)
 
 	// Watch the run object until the context ends.
@@ -133,22 +145,26 @@ func (c *Controller) processState(
 		le.Debug("run object does not exist, waiting")
 		c.tasks.SyncKeys(nil, true)
 		c.sources.SyncKeys(nil, true)
+		c.pures.SyncKeys(nil, true)
 		return true, nil
 	}
 
 	// Advance the run atomically; a concurrent writer replays the attempt.
 	var running []string
+	var pures []pureKey
 	err := world.ExecTransaction(ctx, c.engine, true, func(ctx context.Context, tx world.WorldState) error {
 		var err error
-		running, err = advance(ctx, tx, c.conf.GetObjectKey())
+		running, pures, err = advance(ctx, tx, c.conf.GetObjectKey())
 		return err
 	})
 	if err != nil {
 		return true, err
 	}
 
-	// Watch exactly the Tasks of the running activations.
+	// Watch exactly the Tasks of the running activations, and evaluate each
+	// pure Step.
 	c.tasks.SyncKeys(running, true)
+	c.pures.SyncKeys(pures, true)
 
 	// Read the events of each event-source node of a standing run.
 	sources, err := eventSourceKeys(ctx, ws, c.conf.GetObjectKey())

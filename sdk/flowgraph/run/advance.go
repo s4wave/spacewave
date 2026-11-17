@@ -34,22 +34,23 @@ type runner struct {
 }
 
 // advance routes the completed activations of a run, starts its ready Steps,
-// and settles its state. It returns the Task keys of the running activations.
-func advance(ctx context.Context, ws world.WorldState, runKey string) ([]string, error) {
+// and settles its state. It returns the Task keys of the running activations
+// and the pure Steps of the graph, which the pure watchers evaluate.
+func advance(ctx context.Context, ws world.WorldState, runKey string) ([]string, []pureKey, error) {
 	// Read the run and its pinned graph.
 	obj, previous, graph, err := readRun(ctx, ws, runKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Route outcomes, then start Steps and settle the state.
 	r := &runner{runKey: runKey, ws: ws, graph: graph, run: previous.CloneVT()}
 	if err := r.route(ctx); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := r.start(ctx); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	r.settle()
 
@@ -60,10 +61,10 @@ func advance(ctx context.Context, ws world.WorldState, runKey string) ([]string,
 			return nil
 		})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	return r.running(), nil
+	return r.running(), pureKeys(graph), nil
 }
 
 // readRun reads a run object and its pinned graph. The caller releases obj.
@@ -155,7 +156,11 @@ func (r *runner) route(ctx context.Context) error {
 		// Record the spend and deliver the chosen output.
 		activation.Output = port
 		r.visits(activation.GetNodeId()).Spend += spend
-		r.deliver(activation.GetNodeId(), port, activation.GetTaskKey(), key)
+		r.deliver(activation.GetNodeId(), port, key, &s4wave_flowgraph.FlowgraphArrival{
+			Source: &s4wave_flowgraph.FlowgraphArrival_TaskOutput{
+				TaskOutput: &s4wave_flowgraph.FlowgraphTaskOutput{TaskKey: activation.GetTaskKey(), OutputName: port},
+			},
+		})
 	}
 	return nil
 }
@@ -216,21 +221,19 @@ func (r *runner) readSpend(ctx context.Context, output *forge_value.Value) (uint
 	return spend, "", nil
 }
 
-// deliver queues an output for each Step input connected to a node's port, in
-// connection ID order, so a port with several connections forks the run.
-func (r *runner) deliver(nodeID, port, taskKey, key string) {
+// deliver queues a copy of the output arrival from for each Step input
+// connected to a node's port, in connection ID order, so a port with several
+// connections forks the run. from carries the arrival's source.
+func (r *runner) deliver(nodeID, port, key string, from *s4wave_flowgraph.FlowgraphArrival) {
 	for _, connection := range outgoing(r.graph, nodeID) {
 		if connection.GetOutputPort() != port {
 			continue
 		}
-		r.run.Arrivals = append(r.run.Arrivals, &s4wave_flowgraph.FlowgraphArrival{
-			NodeId: connection.GetInputNode(),
-			Port:   connection.GetInputPort(),
-			Key:    key,
-			Source: &s4wave_flowgraph.FlowgraphArrival_TaskOutput{
-				TaskOutput: &s4wave_flowgraph.FlowgraphTaskOutput{TaskKey: taskKey, OutputName: port},
-			},
-		})
+		arrival := from.CloneVT()
+		arrival.NodeId = connection.GetInputNode()
+		arrival.Port = connection.GetInputPort()
+		arrival.Key = key
+		r.run.Arrivals = append(r.run.Arrivals, arrival)
 	}
 }
 
@@ -253,7 +256,8 @@ func outgoing(graph *s4wave_flowgraph.Flowgraph, nodeID string) []*s4wave_flowgr
 // branches; a Step with no connected input is ready on a start arrival. A
 // keyed Step is ready per key: its ports are met by arrivals that carry one
 // key, and an arrival for a key with a running activation goes to that
-// activation's inbox, in any run state.
+// activation's inbox, in any run state. A pure Step is not activated here: its
+// pure watcher evaluates it, and start only pauses one held at its bound.
 func (r *runner) start(ctx context.Context) error {
 	nodes := r.graph.GetNodes()
 	for _, id := range slices.Sorted(maps.Keys(nodes)) {
@@ -263,8 +267,18 @@ func (r *runner) start(ctx context.Context) error {
 			continue
 		}
 
-		// Activate the Step once per complete set of inputs.
+		// Leave a ready pure Step to its watcher unless its bound holds it.
 		ports := inputPorts(r.graph, id)
+		if step.GetPure() != nil {
+			if r.pureReady(id, step, ports) {
+				if reason := r.blocked(id, step); reason != "" {
+					r.pause(id, reason)
+				}
+			}
+			continue
+		}
+
+		// Activate the Step once per complete set of inputs.
 		for {
 			if step.GetKeyed() {
 				r.deliverLive(id)
@@ -345,12 +359,18 @@ func (r *runner) consume(taken []int) []*s4wave_flowgraph.FlowgraphArrival {
 
 // blocked returns why a Step may not activate again, or empty when it may.
 func (r *runner) blocked(nodeID string, step *s4wave_flowgraph.FlowgraphStep) string {
-	// Require an executable Target.
-	if step.GetTarget() == nil {
+	// Require an executable Target or a named pure function.
+	switch exec := step.GetExec().(type) {
+	case *s4wave_flowgraph.FlowgraphStep_Target:
+		if err := exec.Target.Validate(); err != nil {
+			return "step target: " + err.Error()
+		}
+	case *s4wave_flowgraph.FlowgraphStep_Pure:
+		if exec.Pure.GetFunctionId() == "" {
+			return "pure step has no function"
+		}
+	default:
 		return "step has no target"
-	}
-	if err := step.GetTarget().Validate(); err != nil {
-		return "step target: " + err.Error()
 	}
 
 	// Pause at the Step's bound.
@@ -374,12 +394,20 @@ func (r *runner) activate(
 	key string,
 	inputs []*s4wave_flowgraph.FlowgraphArrival,
 ) error {
-	// Wire each arrival as a Forge input named after its port.
+	// Wire each arrival as a Forge input named after its port, collecting
+	// the values the Task must own.
 	target := step.GetTarget().CloneVT()
+	var values []*forge_value.Value
 	for _, arrival := range inputs {
-		input := arrivalInput(arrival)
+		input, value, err := r.arrivalInput(ctx, arrival)
+		if err != nil {
+			return err
+		}
 		if input == nil {
 			continue
+		}
+		if value != nil {
+			values = append(values, value)
 		}
 		target.Inputs = slices.DeleteFunc(target.Inputs, func(existing *forge_target.Input) bool {
 			return existing.GetName() == input.GetName()
@@ -409,10 +437,13 @@ func (r *runner) activate(
 		return err
 	}
 
-	// Retain the context as a scheduler-supplied Task input before publishing
+	// Retain the context and the arrival values as scheduler-supplied Task
+	// inputs before publishing
 	// the activation. Forge carries this ValueSet through its Pass and Execution.
 	update := task_tx.NewTxUpdateInputs(taskKey)
-	update.TxUpdateInputs.ValueSet = &forge_target.ValueSet{Inputs: []*forge_value.Value{contextValue}}
+	values = append(values, contextValue)
+	slices.SortFunc(values, func(a, b *forge_value.Value) int { return strings.Compare(a.GetName(), b.GetName()) })
+	update.TxUpdateInputs.ValueSet = &forge_target.ValueSet{Inputs: values}
 	if _, _, err := r.ws.ApplyWorldOp(ctx, update, ""); err != nil {
 		return err
 	}
@@ -467,35 +498,67 @@ func (r *runner) newTaskName(ctx context.Context, jobKey string) (string, string
 
 // arrivalInput returns the Forge input that reads an arrival at its port: the
 // Task output for a Task-output arrival, and the World object for an event
-// arrival, which the Task reads as it reads any WORLD_OBJECT input. The event
-// ID stays in the run's record of the activation's inputs. A start arrival has
-// no port and no input, so it returns nil.
-func arrivalInput(arrival *s4wave_flowgraph.FlowgraphArrival) *forge_target.Input {
+// arrival without a payload, which the Task reads as it reads any WORLD_OBJECT
+// input. An event payload or pure Step output is written as a blob in the
+// Task's World bucket and returned as the value the caller adds to the Task's
+// ValueSet, with an ALIAS input that resolves it. The event ID stays in the
+// run's record of the activation's inputs. A start arrival has no port and no
+// input, so it returns nil.
+func (r *runner) arrivalInput(ctx context.Context, arrival *s4wave_flowgraph.FlowgraphArrival) (*forge_target.Input, *forge_value.Value, error) {
+	// Resolve a start arrival to nothing and a Task output by reference.
 	port := arrival.GetPort()
 	if port == "" {
-		return nil
+		return nil, nil, nil
 	}
-	if event := arrival.GetEvent(); event != nil {
+	data, inline := inlineValue(arrival)
+	if !inline {
+		if event := arrival.GetEvent(); event != nil {
+			return &forge_target.Input{
+				Name:        port,
+				InputType:   forge_target.InputType_InputType_WORLD_OBJECT,
+				WorldObject: &forge_target.InputWorldObject{ObjectKey: event.GetObjectKey()},
+			}, nil, nil
+		}
 		return &forge_target.Input{
 			Name:      port,
-			InputType: forge_target.InputType_InputType_WORLD_OBJECT,
-			WorldObject: &forge_target.InputWorldObject{
-				ObjectKey: event.GetObjectKey(),
+			InputType: forge_target.InputType_InputType_TASK_OUTPUT,
+			TaskOutput: &forge_target.InputTaskOutput{
+				TaskKey:    arrival.GetTaskOutput().GetTaskKey(),
+				OutputName: arrival.GetTaskOutput().GetOutputName(),
 			},
-		}
+		}, nil, nil
 	}
-	return &forge_target.Input{
-		Name:      port,
-		InputType: forge_target.InputType_InputType_TASK_OUTPUT,
-		TaskOutput: &forge_target.InputTaskOutput{
-			TaskKey:    arrival.GetTaskOutput().GetTaskKey(),
-			OutputName: arrival.GetTaskOutput().GetOutputName(),
-		},
+
+	// Write the inline data as a blob the Task's ValueSet retains.
+	ref, err := world.AccessObject(ctx, r.ws.AccessWorldState, nil, func(cursor *block.Cursor) error {
+		_, err := blob.BuildBlobWithBytes(ctx, data, cursor)
+		return err
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	input := &forge_target.Input{Name: port, InputType: forge_target.InputType_InputType_ALIAS}
+	return input, forge_value.NewValueWithBlockRef(port, ref.GetRootRef()), nil
+}
+
+// inlineValue returns the data an arrival carries in the run: an event's
+// payload or a pure Step's output. It returns false for an arrival that names
+// its data elsewhere.
+func inlineValue(arrival *s4wave_flowgraph.FlowgraphArrival) ([]byte, bool) {
+	switch source := arrival.GetSource().(type) {
+	case *s4wave_flowgraph.FlowgraphArrival_Event:
+		payload := source.Event.GetPayload()
+		return payload, len(payload) != 0
+	case *s4wave_flowgraph.FlowgraphArrival_StepOutput:
+		return source.StepOutput.GetValue(), true
+	default:
+		return nil, false
 	}
 }
 
 // settle completes a running run with nothing running or waiting, and pauses
-// one whose waiting inputs can no longer meet. A standing run does neither:
+// one whose waiting inputs can no longer meet. A ready pure Step is work its
+// watcher has yet to commit, so the run keeps running while one waits. A standing run does neither:
 // it is never COMPLETE, and an arrival waiting at a joined Step is the next
 // event's partner, not a stuck input.
 func (r *runner) settle() {
@@ -503,7 +566,9 @@ func (r *runner) settle() {
 		return
 	}
 	if arrivals := r.run.GetArrivals(); len(arrivals) != 0 {
-		r.pause(arrivals[0].GetNodeId(), "step is missing inputs")
+		if !r.anyPureReady() {
+			r.pause(arrivals[0].GetNodeId(), "step is missing inputs")
+		}
 		return
 	}
 	r.run.State = s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_COMPLETE
