@@ -3,6 +3,7 @@
 package s4db
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -11,7 +12,10 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 )
 
 // admissionCall holds a controlled native call until release or cancellation.
@@ -358,4 +362,66 @@ func TestWriterAdmissionLockFailure(t *testing.T) {
 		t.Fatal("failed optional native lock retained the writer grant")
 	}
 	w.admission.unlock()
+}
+
+// TestWriterAdmissionSaveReads follows writeback's real marker through an
+// optimistic Commit to native background admission, then reads the saved chunk.
+func TestWriterAdmissionSaveReads(t *testing.T) {
+	// Use the native database for both local block storage and writeback metadata.
+	t.Setenv(kvtx.OptimisticEnv, "on")
+	ctx, db := openAdmissionTest(t)
+	local := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), db, 0)
+	store, err := block_store_writeback.NewStore(ctx, local, local, db, "markers", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	order := make(chan string, 2)
+	w := startAdmissionCall(t, ctx, db, order, "W", "slice")
+	waitAdmissionGrant(t, ctx, order, "W")
+
+	// SaveReads adds its own background marker; the test supplies a plain context.
+	saveCtx, cancel := context.WithCancel(ctx)
+	saved := make(chan struct{})
+	var saveErr error
+	t.Cleanup(func() {
+		// Join a cancelled metadata call before the native file closes.
+		cancel()
+		<-saved
+	})
+	generation := time.Unix(1234, 0)
+	keys := []byte("saved-read-keys")
+	go func() {
+		// Publish the result after the actual optimistic commit returns.
+		defer close(saved)
+		saveErr = store.SaveReads(saveCtx, generation, keys)
+	}()
+	waitAdmissionQueue(t, ctx, &db.w.admission, 0, 1)
+
+	// A later foreground writer must run before the queued history save.
+	f := startAdmissionCall(t, ctx, db, order, "F", "transaction")
+	waitAdmissionQueue(t, ctx, &db.w.admission, 1, 1)
+	close(w.release)
+	waitAdmissionGrant(t, ctx, order, "F")
+	waitAdmissionQueue(t, ctx, &db.w.admission, 0, 1)
+	close(f.release)
+	select {
+	case <-saved:
+		if saveErr != nil {
+			t.Fatal(saveErr)
+		}
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	for _, call := range []*admissionCall{w, f} {
+		waitAdmissionCall(t, ctx, call, nil)
+	}
+
+	// Check the real caller's data after its background grant completes.
+	chunks, err := store.LoadReads(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(chunks) != 1 || !chunks[0].Generation.Equal(generation) || !bytes.Equal(chunks[0].Keys, keys) {
+		t.Fatalf("saved read chunks: %+v", chunks)
+	}
 }

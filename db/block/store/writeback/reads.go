@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -74,9 +75,9 @@ func (s *Store) SaveReads(ctx context.Context, generation time.Time, keys []byte
 	key = append(key, '/')
 	key = appendReadsStamp(key, time.Now())
 
-	// Write the chunk behind every foreground writer, taking the writer lock
-	// only to commit.
-	ctx = kvtx.WithBackgroundWriteContext(ctx)
+	// Use background admission for the chunk, taking the writer lock only
+	// to commit.
+	ctx = block.WithBackground(ctx)
 	return kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		return tx.Set(ctx, key, bytes.Clone(keys))
 	}, kvtx.RetryInvalidSnapshot)
@@ -111,9 +112,9 @@ func (s *Store) LoadReads(ctx context.Context) ([]ReadChunk, error) {
 // DropReadsBefore deletes the saved reads of the generations started before
 // generation.
 func (s *Store) DropReadsBefore(ctx context.Context, generation time.Time) error {
-	// Delete the older chunks in one transaction, behind every foreground
-	// writer, scanning them without the writer lock.
-	ctx = kvtx.WithBackgroundWriteContext(ctx)
+	// Delete the older chunks with background admission, scanning them
+	// without the writer lock.
+	ctx = block.WithBackground(ctx)
 	return kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Collect the keys of the older generations, then delete them.
 		var drop [][]byte

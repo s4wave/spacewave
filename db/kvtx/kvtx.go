@@ -182,13 +182,11 @@ type AtomicCommitStore interface {
 	SupportsAtomicCommit() bool
 }
 
-// WriterQueueStore is a store whose write transactions exclude each other and
-// that reports when writers queue. A write transaction doing deferrable work,
-// such as garbage collection, commits early when one waits. It admits a
-// waiting writer before a write transaction that asks later, by arrival order
-// or by holding a WithBackgroundWriteContext transaction behind the others,
-// so background work that ends a transaction and begins the next queues
-// behind the writer that waited.
+// WriterQueueStore reports queued writer demand to a transaction doing
+// deferrable work, so it can commit early and release its writer hold.
+// The store's admission policy decides the next turn: native s4db uses finite
+// foreground cohorts and one shared background slice; Bolt and SQLite serve
+// queued foreground writes before writes marked by block.WithBackground.
 type WriterQueueStore interface {
 	Store
 	// WritersWaiting reports whether a write transaction waits to begin.

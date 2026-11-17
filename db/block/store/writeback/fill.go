@@ -117,10 +117,11 @@ func (s *Store) queueFill(f fill) {
 
 // drainFills writes the queued fills in bounded steps until none are left.
 // Fills are disposable copies of blocks the remote holds, so their commits
-// are ordered rather than flushed, and wait behind every foreground writer.
+// are ordered rather than flushed, and use background admission.
 // A failed step drops its fills.
 func (s *Store) drainFills() {
-	ctx := kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(context.Background()))
+	// Use background admission and ordered durability for remote copies.
+	ctx := block.WithBackground(kvtx.WithOrderedCommitContext(context.Background()))
 	q := &s.fills
 	for {
 		// Take the next step, or end the drain on an empty queue.
