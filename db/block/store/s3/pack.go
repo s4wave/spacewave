@@ -689,6 +689,12 @@ type ReadCounts struct {
 	// Packs counts the blocks read through the pack readers, from the bucket
 	// or the readers' own memory.
 	Packs uint64
+	// TrashMisses counts the reads a trashing pack answered or failed: each
+	// is a block a reader needed from a pack the sweep judged dead.
+	TrashMisses uint64
+	// Hidden counts the range reads served from the kept version of a
+	// trashing pack's hidden file.
+	Hidden uint64
 
 	// The bytes the store downloaded from the bucket, by read mode: Window
 	// through the pack readers' range windows, Extent by the one range read
@@ -720,6 +726,10 @@ type readCounters struct {
 	bucket atomic.Uint64
 	// packs counts the reads through the pack readers.
 	packs atomic.Uint64
+	// trashMisses counts the reads a trashing pack answered or failed.
+	trashMisses atomic.Uint64
+	// hidden counts the range reads served from a hidden pack's version.
+	hidden atomic.Uint64
 	// bytes counts the bytes downloaded from the bucket by read mode.
 	bytes [readModes]atomic.Uint64
 }
@@ -738,6 +748,8 @@ func (s *PackStore) ReadCounts() ReadCounts {
 		CacheRejected: s.reads.cacheRejected.Load(),
 		Bucket:        s.reads.bucket.Load(),
 		Packs:         s.reads.packs.Load(),
+		TrashMisses:   s.reads.trashMisses.Load(),
+		Hidden:        s.reads.hidden.Load(),
 		WindowBytes:   s.reads.bytes[readWindow].Load(),
 		ExtentBytes:   s.reads.bytes[readExtent].Load(),
 		IndexBytes:    s.reads.bytes[readIndex].Load(),
@@ -1363,12 +1375,38 @@ func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string
 
 // openPack opens a reader over the ranges of packfile id.
 func (s *PackStore) openPack(id string, size int64) (*packfile_store.PackReader, error) {
+	// Read the file, falling back to a hidden one's kept version on a
+	// bucket that keeps versions.
 	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id, reads: &s.reads}
+	if hider, ok := s.client.(ObjectHider); ok && s.index != nil {
+		transport.hider = hider
+		transport.hidden = func() bool {
+			state, _ := s.index.heldState(id)
+			return state == PackTrashing && hiddenReadsOn.Load()
+		}
+	}
 	eng := packfile_store.NewPackReader(id, size, transport)
 	if s.exactReads {
 		eng.SetExactReads()
 	}
 	return eng, nil
+}
+
+// hiddenReadsOn turns on the reads of hidden packs' kept versions; see
+// SetHiddenPackReads.
+var hiddenReadsOn atomic.Bool
+
+func init() {
+	hiddenReadsOn.Store(true)
+}
+
+// SetHiddenPackReads turns the reads of hidden packs on or off for every
+// PackStore. On, a read of a trashing pack whose file a hide covered reads the
+// version under the marker by its id, and the read is served and recorded as a
+// miss; off, the read fails as not found and records the miss, as a read of a
+// pack moved to the trash does.
+func SetHiddenPackReads(on bool) {
+	hiddenReadsOn.Store(on)
 }
 
 // rangeTransport reads byte ranges of one packfile object.
@@ -1378,10 +1416,23 @@ type rangeTransport struct {
 	key    string
 	// reads counts the bytes fetched as window downloads, when set.
 	reads *readCounters
+
+	// hider reads a hidden file's kept version, when the bucket keeps them.
+	hider ObjectHider
+	// hidden reports whether the pack is trashing and hidden reads are on,
+	// the only case in which a missing file may be a hidden one.
+	hidden func() bool
+	// versionMtx guards version.
+	versionMtx sync.Mutex
+	// version is the kept version found under the file's marker, or "".
+	version string
 }
 
-// Fetch reads bytes [off, off+length) of the object.
+// Fetch reads bytes [off, off+length) of the object. A file a hide covered
+// reads from the version the marker keeps, by its id, so the read never sees
+// a later write to the key.
 func (t *rangeTransport) Fetch(ctx context.Context, off int64, length int) ([]byte, error) {
+	// Read the current object, unless it may be a hidden one.
 	if length <= 0 {
 		return nil, nil
 	}
@@ -1389,7 +1440,47 @@ func (t *rangeTransport) Fetch(ctx context.Context, off int64, length int) ([]by
 	if t.reads != nil {
 		t.reads.downloaded(readWindow, len(data))
 	}
-	return data, err
+	if !errors.Is(err, ErrNotFound) || t.hider == nil || !t.hidden() {
+		return data, err
+	}
+
+	// Read the kept version of the hidden file.
+	version, verr := t.hiddenVersion(ctx)
+	if verr != nil || version == "" {
+		return data, err
+	}
+	data, verr = t.hider.GetObjectVersionRange(ctx, t.bucket, t.key, version, off, length)
+	if t.reads != nil {
+		t.reads.downloaded(readWindow, len(data))
+	}
+	if verr != nil {
+		// A version gone, as a purge leaves it, is found again next time.
+		t.versionMtx.Lock()
+		t.version = ""
+		t.versionMtx.Unlock()
+		return nil, err
+	}
+	if t.reads != nil {
+		t.reads.hidden.Add(1)
+	}
+	return data, nil
+}
+
+// hiddenVersion returns the version under the file's marker, listing the
+// key's versions once for the reads of the pack.
+func (t *rangeTransport) hiddenVersion(ctx context.Context) (string, error) {
+	// List the versions unless an earlier read found the kept one.
+	t.versionMtx.Lock()
+	defer t.versionMtx.Unlock()
+	if t.version != "" {
+		return t.version, nil
+	}
+	version, err := t.hider.HiddenObjectVersion(ctx, t.bucket, t.key)
+	if err != nil {
+		return "", err
+	}
+	t.version = version
+	return version, nil
 }
 
 // _ is a type assertion

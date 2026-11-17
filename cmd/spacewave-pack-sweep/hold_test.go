@@ -170,6 +170,14 @@ func commandRuns(t *testing.T, run func(t *testing.T, kind string, rehearsal boo
 	}
 }
 
+// hideRuns runs a test of the hiding trash with the pack index in a file of
+// each volume type. A rehearsal's overlay cannot hide, so none runs as one.
+func hideRuns(t *testing.T, run func(t *testing.T, kind string)) {
+	for _, kind := range []string{packcopy.IndexSQLite, packcopy.IndexBolt, packcopy.IndexS4DB} {
+		t.Run(kind, func(t *testing.T) { run(t, kind) })
+	}
+}
+
 // TestCommandQuarantine quarantines, rechecks, trashes and removes through a
 // backend's admin service over HTTP, its pack store on an index file of each
 // volume type and its open operations from a marking store over it. The
@@ -181,18 +189,35 @@ func commandRuns(t *testing.T, run func(t *testing.T, kind string, rehearsal boo
 // trash keeps it from the removal, and the restore returns it to the reads; a
 // restore naming the removed pack adopts it back.
 func TestCommandQuarantine(t *testing.T) {
-	commandRuns(t, testCommandQuarantine)
+	commandRuns(t, func(t *testing.T, kind string, rehearsal bool) {
+		testCommandQuarantine(t, kind, rehearsal, packsweep.TrashMove)
+	})
+}
+
+// TestCommandQuarantineHide is TestCommandQuarantine with the trash hiding
+// the packs under delete markers. A read of the lost block a hidden pack
+// holds fails as not found with hidden reads off, as for a moved pack; with
+// them on the kept version serves it and the store counts the read. Either
+// way the miss keeps the pack from the removal. The restore makes the exact
+// version the hide kept current again, and no step deletes a content
+// version.
+func TestCommandQuarantineHide(t *testing.T) {
+	hideRuns(t, func(t *testing.T, kind string) {
+		testCommandQuarantine(t, kind, false, packsweep.TrashHide)
+	})
 }
 
 // testCommandQuarantine runs the quarantine with the pack index in a file of
-// the volume type kind, as a rehearsal when rehearsal is set.
-func testCommandQuarantine(t *testing.T, kind string, rehearsal bool) {
+// the volume type kind, as a rehearsal when rehearsal is set, trashing by
+// method.
+func testCommandQuarantine(t *testing.T, kind string, rehearsal bool, method packsweep.TrashMethod) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	dir := t.TempDir()
+	hide := method == packsweep.TrashHide
 
 	// Write a live pack and three dead packs through an index file.
-	_, client := s3test.New(t)
+	bucket, client := s3test.New(t)
 	indexPath := filepath.Join(dir, "index.db")
 	var objects block_store_s3.ObjectStore = client
 	openStore := func() (*block_store_s3.PackStore, func() error) {
@@ -228,17 +253,18 @@ func testCommandQuarantine(t *testing.T, kind string, rehearsal bool) {
 	// Snapshot the store from its index file while no backend holds it.
 	var out bytes.Buffer
 	args := &Args{
-		Scratch:    filepath.Join(dir, "scratch"),
-		StoreID:    commandStoreID,
-		Index:      indexPath,
-		Prefix:     "world/",
-		Reads:      2,
-		Roots:      *cli.NewStringSlice(rootRef.MarshalString()),
-		Batch:      1,
-		MinAge:     time.Nanosecond,
-		LowPercent: packsweep.DefaultLowLivePercent,
-		Report:     filepath.Join(dir, "report.jsonl"),
-		Holes:      filepath.Join(dir, "holes.txt"),
+		Scratch:     filepath.Join(dir, "scratch"),
+		StoreID:     commandStoreID,
+		Index:       indexPath,
+		Prefix:      "world/",
+		Reads:       2,
+		Roots:       *cli.NewStringSlice(rootRef.MarshalString()),
+		Batch:       1,
+		MinAge:      time.Nanosecond,
+		LowPercent:  packsweep.DefaultLowLivePercent,
+		Report:      filepath.Join(dir, "report.jsonl"),
+		Holes:       filepath.Join(dir, "holes.txt"),
+		TrashMethod: method.String(),
 		dial: func() (block_store_s3.ObjectStore, string, func(), error) {
 			return client, s3test.BucketName, func() {}, nil
 		},
@@ -347,15 +373,19 @@ func testCommandQuarantine(t *testing.T, kind string, rehearsal bool) {
 		if err := args.runTrash(nil); err != nil {
 			t.Fatal(err)
 		}
-		if res := parse(t, out.Bytes()); res.GetUint("moved") != want || res.GetUint("missed") != 0 {
+		res := parse(t, out.Bytes())
+		if res.GetUint("moved") != want || res.GetUint("missed") != 0 {
 			t.Fatalf("trash = %s", res)
+		}
+		if hidden := res.GetUint("hidden"); (hide && hidden != want) || (!hide && hidden != 0) {
+			t.Fatalf("trash by %s = %s", method, res)
 		}
 	}
 	for key, want := range map[string]bool{
 		block_store_s3.EntryObjectKey("world/", deadPack): false,
 		block_store_s3.PackObjectKey("world/", deadPack):  false,
-		block_store_s3.TrashEntryKey("world/", deadPack):  true,
-		block_store_s3.TrashPackKey("world/", deadPack):   true,
+		block_store_s3.TrashEntryKey("world/", deadPack):  !hide,
+		block_store_s3.TrashPackKey("world/", deadPack):   !hide,
 	} {
 		_, err := objects.GetObjectRange(ctx, s3test.BucketName, key, 0, 1)
 		if found := err == nil; found != want || (err != nil && !errors.Is(err, block_store_s3.ErrNotFound)) {
@@ -364,10 +394,53 @@ func testCommandQuarantine(t *testing.T, kind string, rehearsal bool) {
 	}
 	unchanged()
 
+	// A hide keeps each object's version under a marker, the one a read by
+	// id serves.
+	if hide {
+		for _, key := range []string{block_store_s3.EntryObjectKey("world/", deadPack), block_store_s3.PackObjectKey("world/", deadPack)} {
+			if version, err := client.HiddenObjectVersion(ctx, s3test.BucketName, key); err != nil || version == "" {
+				t.Fatalf("hidden version of %s = %q, %v", key, version, err)
+			}
+		}
+	}
+
 	// A read of the lost block finds its pack in the trash and records the
-	// miss.
-	if _, _, err := store.GetBlock(ctx, lostRef); !errors.Is(err, block_store_s3.ErrNotFound) {
+	// miss; with hidden reads off, so does a read of a hidden pack.
+	block_store_s3.SetHiddenPackReads(false)
+	_, _, err = store.GetBlock(ctx, lostRef)
+	block_store_s3.SetHiddenPackReads(true)
+	if !errors.Is(err, block_store_s3.ErrNotFound) {
 		t.Fatalf("read of the trashed lost block = %v, want not found", err)
+	}
+	misses := store.ReadCounts().TrashMisses
+	if counts := store.ReadCounts(); counts.TrashMisses == 0 || counts.Hidden != 0 {
+		t.Fatalf("read counts after the trashed read = %+v", counts)
+	}
+
+	// With hidden reads on, the hidden pack's kept version serves the lost
+	// block, and the store counts the read and the miss.
+	var lostPack, lostVersion string
+	if hide {
+		data, found, err := store.GetBlock(ctx, lostRef)
+		counts := store.ReadCounts()
+		t.Logf("hidden read of the lost block: %q, found %v, err %v; hidden range reads %d, trash misses %d", data, found, err, counts.Hidden, counts.TrashMisses)
+		if err != nil || !found || string(data) != "lost" {
+			t.Fatalf("read of the hidden lost block = %q, %v, %v", data, found, err)
+		}
+		if counts.Hidden == 0 || counts.TrashMisses <= misses {
+			t.Fatalf("read counts after the hidden read = %+v", counts)
+		}
+		for _, line := range bucket.Versions("world/") {
+			if strings.HasSuffix(line, " hidden") && !strings.Contains(line, deadPack) && strings.Contains(line, "/packs/") {
+				lostPack = strings.TrimSuffix(line, " hidden")
+			}
+		}
+		if lostPack == "" {
+			t.Fatal("found no hidden pack file but the dead one")
+		}
+		if lostVersion, err = client.HiddenObjectVersion(ctx, s3test.BucketName, lostPack); err != nil || lostVersion == "" {
+			t.Fatalf("hidden version of %s = %q, %v", lostPack, lostVersion, err)
+		}
 	}
 
 	// The removal drops the dead pack, pointing the shared block's row at
@@ -402,6 +475,24 @@ func testCommandQuarantine(t *testing.T, kind string, rehearsal bool) {
 	}
 	if data, found, err := store.GetBlock(ctx, lostRef); err != nil || !found || string(data) != "lost" {
 		t.Fatalf("read of the restored lost block = %q, %v, %v", data, found, err)
+	}
+
+	// The unhide made the exact version the hide kept current.
+	if hide {
+		var current string
+		err := client.ListObjectVersions(ctx, s3test.BucketName, lostPack, func(v block_store_s3.ObjectVersion) error {
+			if v.Key == lostPack && current == "" {
+				current = v.VersionID
+				if v.DeleteMarker {
+					current = "marker"
+				}
+			}
+			return nil
+		})
+		t.Logf("unhide of %s: kept version %s, current version %s", lostPack, lostVersion, current)
+		if err != nil || current != lostVersion {
+			t.Fatalf("current version of %s after the restore = %q, %v; want %q", lostPack, current, err, lostVersion)
+		}
 	}
 	if located, err := store.LocatePacks(ctx, []*block.BlockRef{lostRef}); err != nil || located[0] == "" {
 		t.Fatalf("locate of the restored lost block = %v, %v", located, err)
@@ -445,6 +536,15 @@ func testCommandQuarantine(t *testing.T, kind string, rehearsal bool) {
 	t.Setenv(adminAuthEnv, "")
 	if err := args.runRecheck(nil); err == nil {
 		t.Fatal("rechecked without the credential")
+	}
+
+	// A hide deleted no content version on the way.
+	if hide {
+		deleted := bucket.ContentDeleted("world/")
+		t.Logf("hide: %d content versions deleted", deleted)
+		if deleted != 0 {
+			t.Fatalf("the hiding sweep deleted %d content versions", deleted)
+		}
 	}
 
 	// A rehearsal left the store as it was, and its scratch file refuses the

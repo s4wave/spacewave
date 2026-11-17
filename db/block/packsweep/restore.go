@@ -52,8 +52,9 @@ func (r *RestoreResult) JSON(a *fastjson.Arena) *fastjson.Value {
 // removal leave at StageTrash or StageMoved, each pack a killed restore left
 // at StageRestoring, and each pack opts.Packs names. It records each pack
 // StageRestoring before its first move, so no removal or purge acts on a pack
-// a restore has begun to bring back. It moves a pack's file, then its
-// entry, back from the trash, has the backend register it again, a removed
+// a restore has begun to bring back. It brings a pack's file, then its
+// entry, back by the method its trash used, from the trash or from under
+// their delete markers, has the backend register it again, a removed
 // pack by adopting it with the keys its own index lists, and drops its record,
 // so the pack leaves the cycle and a later one judges it again. Each step
 // repeats cleanly: a move whose source is gone and whose destination is there
@@ -142,11 +143,12 @@ func sortRestore(ctx context.Context, opts *RestoreOptions, todo []*PackRecord, 
 // restoreBatch moves a batch of trashing packs back from the trash, then has
 // the backend register those that moved and drops their records.
 func restoreBatch(ctx context.Context, opts *RestoreOptions, batch []*PackRecord, res *RestoreResult) error {
-	// Record the packs restoring, then move each pack's file, then its entry.
+	// Record the packs restoring, then bring back each pack's file, then its
+	// entry.
 	if err := beginRestore(ctx, opts, batch); err != nil {
 		return err
 	}
-	moved, moveErr := moveEach(ctx, &opts.TrashOptions, batch, restoreMoves)
+	moved, moveErr := moveEach(ctx, &opts.TrashOptions, batch, restorePack)
 	if len(moved) == 0 {
 		return moveErr
 	}
@@ -181,11 +183,12 @@ func restoreBatch(ctx context.Context, opts *RestoreOptions, batch []*PackRecord
 // entry and the index of each that moved, has the backend adopt them, and
 // drops their records.
 func adoptBatch(ctx context.Context, opts *RestoreOptions, batch []*PackRecord, res *RestoreResult) error {
-	// Record the packs restoring, then move each pack's file, then its entry.
+	// Record the packs restoring, then bring back each pack's file, then its
+	// entry.
 	if err := beginRestore(ctx, opts, batch); err != nil {
 		return err
 	}
-	moved, moveErr := moveEach(ctx, &opts.TrashOptions, batch, restoreMoves)
+	moved, moveErr := moveEach(ctx, &opts.TrashOptions, batch, restorePack)
 	if len(moved) == 0 {
 		return moveErr
 	}

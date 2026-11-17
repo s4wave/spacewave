@@ -533,4 +533,16 @@ func TestPackRecordRow(t *testing.T) {
 	if _, err := unmarshalPackRecord(p.ID, p.marshal()[:2]); err == nil {
 		t.Fatal("decoded a short row")
 	}
+
+	// A hidden pack's row carries the method and the versions its restore
+	// makes current; losing either would restore the wrong version.
+	h := *p
+	h.Method, h.EntryVersion, h.FileVersion = TrashHide, "4", "5"
+	got, err = unmarshalPackRecord(h.ID, h.marshal())
+	if err != nil || got.Method != TrashHide || got.EntryVersion != "4" || got.FileVersion != "5" || !got.Removed.Equal(h.Removed) {
+		t.Fatalf("hide round trip = %+v, %v, want %+v", got, err, h)
+	}
+	if _, err := unmarshalPackRecord(h.ID, h.marshal()[:len(h.marshal())-1]); err == nil {
+		t.Fatal("decoded a short hide row")
+	}
 }

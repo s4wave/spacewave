@@ -228,6 +228,41 @@ const (
 	MarkAbsent = "absent"
 )
 
+// TrashMethod is how the trash sets a pack's entry and file aside, recorded
+// on the pack when its trash begins so its restore undoes the same method.
+type TrashMethod byte
+
+// The trash methods.
+const (
+	// TrashMove copies each object to its trash key and deletes every
+	// version of the source by its id, as ObjectMover does.
+	TrashMove TrashMethod = iota
+	// TrashHide hides each object under a delete marker and records the
+	// version the marker covers, as ObjectHider does; it deletes no
+	// version, and the restore deletes the marker.
+	TrashHide
+)
+
+// String names the method as the --trash-method flag does.
+func (m TrashMethod) String() string {
+	if m == TrashHide {
+		return "hide"
+	}
+	return "move"
+}
+
+// ParseTrashMethod parses a method named as String names it.
+func ParseTrashMethod(name string) (TrashMethod, error) {
+	switch name {
+	case "move", "":
+		return TrashMove, nil
+	case "hide":
+		return TrashHide, nil
+	default:
+		return 0, errors.Errorf("unknown trash method %q: want move or hide", name)
+	}
+}
+
 // PackRecord is the command's record of a pack it moved. Records stay across
 // cycles: a gap sends the cycle back to its walk, and every quarantine stays.
 type PackRecord struct {
@@ -245,22 +280,43 @@ type PackRecord struct {
 	// Removed is when the backend removed the pack, on the command's clock,
 	// which the trash's retention counts from; zero until it did.
 	Removed time.Time
+	// Method is how the trash sets the pack aside, set when its trash
+	// begins.
+	Method TrashMethod
+	// EntryVersion is the content version of the pack's entry a hide kept
+	// under its marker, which the restore makes current again; empty for a
+	// move, and until the hide recorded it.
+	EntryVersion string
+	// FileVersion is EntryVersion for the pack's file.
+	FileVersion string
 }
 
-// marshal encodes the record row.
+// marshal encodes the record row. A moved pack's row ends at Removed, as
+// rows did before the hide, so a command that knows only the move reads it.
 func (p *PackRecord) marshal() []byte {
 	// Append each field in order.
 	b := []byte{byte(p.Stage)}
 	b = appendUvarints(b, uint64(p.Cycle)) //nolint:gosec // A cycle number is positive.
 	b = appendTime(b, p.Since)
 	b = appendString(b, p.Wait)
-	return appendTime(b, p.Removed)
+	b = appendTime(b, p.Removed)
+
+	// Append the hide's method and versions.
+	if p.Method == TrashMove {
+		return b
+	}
+	b = append(b, byte(p.Method))
+	b = appendString(b, p.EntryVersion)
+	return appendString(b, p.FileVersion)
 }
 
 // unmarshalPackRecord decodes a record row.
 func unmarshalPackRecord(id string, b []byte) (*PackRecord, error) {
 	r := &rowReader{b: b, ok: true}
 	p := &PackRecord{ID: id, Stage: Stage(r.byte()), Cycle: int(r.uvarint()), Since: r.time(), Wait: r.string(), Removed: r.time()} //nolint:gosec // The row holds a cycle number this command wrote.
+	if r.ok && len(r.b) != 0 {
+		p.Method, p.EntryVersion, p.FileVersion = TrashMethod(r.byte()), r.string(), r.string()
+	}
 	return p, r.finish("pack record row")
 }
 

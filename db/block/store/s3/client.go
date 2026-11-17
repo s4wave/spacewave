@@ -211,9 +211,15 @@ func (c *Client) GetObjectVersion(ctx context.Context, bucket, key, version stri
 // is shorter than length when the object ends first.
 // Returns ErrNotFound if the object does not exist.
 func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int64, length int) ([]byte, error) {
-	// Request the range, treating a range past the end as empty.
+	return c.getRange(ctx, bucket, key, nil, off, length)
+}
+
+// getRange reads a range of the object, of the version query names when
+// set, treating a range past the end as empty.
+func (c *Client) getRange(ctx context.Context, bucket, key string, query url.Values, off int64, length int) ([]byte, error) {
+	// Request the range.
 	rng := "bytes=" + strconv.FormatInt(off, 10) + "-" + strconv.FormatInt(off+int64(length)-1, 10)
-	resp, err := c.do(ctx, http.MethodGet, bucket, key, nil, nil, http.Header{"Range": {rng}})
+	resp, err := c.do(ctx, http.MethodGet, bucket, key, query, nil, http.Header{"Range": {rng}})
 	if err != nil {
 		return nil, err
 	}

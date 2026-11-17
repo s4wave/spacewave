@@ -113,5 +113,15 @@
     ],
     "expect": "MissRestored",
     "config": "PackSweep-restore.cfg"
+  },
+  {
+    "name": "A read of a hidden pack does not read its kept version",
+    "replace": [
+      [
+        "Kept(p) == state[p] = \"trash\" /\\ (~moved[p] \\/ hid[p])",
+        "Kept(p) == state[p] = \"trash\" /\\ ~moved[p]"
+      ]
+    ],
+    "expect": "HiddenServed"
   }
 ]

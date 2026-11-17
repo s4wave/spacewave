@@ -129,6 +129,8 @@ type Args struct {
 	Wait time.Duration
 	// Moves is the packs the trash moves at once.
 	Moves int
+	// TrashMethod is how the trash sets a pack aside: move or hide.
+	TrashMethod string
 	// Packs names packs the restore brings back besides those reads missed.
 	Packs cli.StringSlice
 	// MaxPackBytes bounds a pack the compaction writes.

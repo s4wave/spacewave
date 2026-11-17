@@ -20,17 +20,31 @@ import (
 // gone, as the sweep's model allows: a restore naming the cycle's removed
 // packs brings each such block back.
 func TestCommandAdversary(t *testing.T) {
-	commandRuns(t, testCommandAdversary)
+	commandRuns(t, func(t *testing.T, kind string, rehearsal bool) {
+		testCommandAdversary(t, kind, rehearsal, packsweep.TrashMove)
+	})
+}
+
+// TestCommandAdversaryHide is TestCommandAdversary with the trash hiding the
+// packs. A late read between the trash and the removal must find its block,
+// served from the hidden pack's kept version and counted as a miss, which
+// keeps the pack from the removal; and no step deletes a content version.
+func TestCommandAdversaryHide(t *testing.T) {
+	hideRuns(t, func(t *testing.T, kind string) {
+		testCommandAdversary(t, kind, false, packsweep.TrashHide)
+	})
 }
 
 // testCommandAdversary runs the adversary with the pack index in a file of
-// the volume type kind, as a rehearsal when rehearsal is set.
-func testCommandAdversary(t *testing.T, kind string, rehearsal bool) {
+// the volume type kind, as a rehearsal when rehearsal is set, trashing by
+// method.
+func testCommandAdversary(t *testing.T, kind string, rehearsal bool, method packsweep.TrashMethod) {
 	// Start the run-through with the adversary acting before each step.
 	r, faults, _, stopWriter := newRunThrough(t, kind, rehearsal)
 	defer r.stop()
 	defer stopWriter()
-	a := &adversary{r: r, trashAt: slices.Index(runSteps, "trash")}
+	r.args.TrashMethod = method.String()
+	a := &adversary{r: r, trashAt: slices.Index(runSteps, "trash"), hide: method == packsweep.TrashHide}
 	r.before = a.act
 
 	// Run cycles, settling the adversary's blocks after each.
@@ -46,6 +60,14 @@ func testCommandAdversary(t *testing.T, kind string, rehearsal bool) {
 	if removed == 0 || lifted == 0 || slices.Contains(a.acts[:], 0) {
 		t.Fatalf("removed %d, lifted %d, acts %v: want each nonzero", removed, lifted, a.acts)
 	}
+	if a.hide {
+		counts := r.store.ReadCounts()
+		deleted := len(r.bucket.HiddenDeleted("world/"))
+		t.Logf("hide: %d late reads before the removal, %d hidden range reads, %d trash misses, %d hidden keys lost a version", a.hiddenReads, counts.Hidden, counts.TrashMisses, deleted)
+		if a.hiddenReads == 0 || counts.Hidden == 0 || counts.TrashMisses == 0 || deleted != 0 {
+			t.Fatal("want late reads served from hidden packs and counted, and no content version deleted")
+		}
+	}
 }
 
 // adversary acts on dead blocks within a run-through's cycles.
@@ -60,6 +82,11 @@ type adversary struct {
 	// blocks a restore brought back.
 	acts [4]int
 	lost int
+	// hide is set when the trash hides the packs, and hiddenReads counts
+	// the late reads between the trash and the removal, each of which must
+	// find its block then.
+	hide        bool
+	hiddenReads int
 }
 
 // act takes a dead block and acts on it before step i: by the cycle and the
@@ -99,9 +126,13 @@ func (a *adversary) act(i int) {
 		r.linked = append(r.linked, ref)
 	case 2:
 		found, err := a.fill(ref)
-		if !late && (err != nil || !found) {
+		served := !late || (a.hide && i == a.trashAt+1)
+		if served && (err != nil || !found) {
 			r.mtx.Unlock()
 			r.t.Fatalf("read of dead block before %s = %v, %v", runSteps[i], found, err)
+		}
+		if late && served {
+			a.hiddenReads++
 		}
 		if late {
 			a.lateReads = append(a.lateReads, ref)

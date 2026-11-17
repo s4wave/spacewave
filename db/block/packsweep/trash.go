@@ -26,6 +26,13 @@ type TrashOptions struct {
 	CoverOptions
 	// Mover moves the packs' objects within the store's bucket.
 	Mover block_store_s3.ObjectMover
+	// Hider hides the packs' objects under delete markers, and brings them
+	// back. The trash needs it for Method TrashHide, and the restore for
+	// each pack whose record holds that method.
+	Hider block_store_s3.ObjectHider
+	// Method is how the trash sets aside each pack whose trash begins in
+	// this run; a pack already trashing keeps the method its record holds.
+	Method TrashMethod
 	// Bucket is the store's bucket.
 	Bucket string
 	// Prefix starts the store's object keys.
@@ -36,8 +43,11 @@ type TrashOptions struct {
 
 // TrashResult reports a trash step.
 type TrashResult struct {
-	// Moved is the packs whose entry and file this run moved to the trash.
+	// Moved is the packs whose entry and file this run set aside, moved to
+	// the trash or hidden.
 	Moved uint64
+	// Hidden is the packs of Moved this run hid rather than moved.
+	Hidden uint64
 	// Lifted is the packs a read lifted since their pass, dropped from the
 	// cycle.
 	Lifted uint64
@@ -57,6 +67,7 @@ type TrashResult struct {
 func (r *TrashResult) JSON(a *fastjson.Arena) *fastjson.Value {
 	return jsonObject(a,
 		jsonField{"moved", jsonUint(a, r.Moved)},
+		jsonField{"hidden", jsonUint(a, r.Hidden)},
 		jsonField{"lifted", jsonUint(a, r.Lifted)},
 		jsonField{"gone", jsonUint(a, r.Gone)},
 		jsonField{"missed", jsonUint(a, r.Missed)},
@@ -65,13 +76,16 @@ func (r *TrashResult) JSON(a *fastjson.Arena) *fastjson.Value {
 	)
 }
 
-// Trash moves each passed pack to the trash: it records the pack, has the
-// backend mark it trashing, reads its miss record, then moves its entry and
-// then its file to the trash and records the move. A read that falls back to
-// a trashing pack and finds it gone records a miss, which keeps the backend
-// from removing it; the pack goes back by restore. Every step repeats
+// Trash sets each passed pack aside: it records the pack with opts.Method,
+// has the backend mark it trashing, reads its miss record, then moves its
+// entry and then its file to the trash, or hides them under delete markers,
+// and records the move. A read that falls back to a trashing pack and finds
+// it gone records a miss, which keeps the backend from removing it; the pack
+// goes back by restore. A read of a hidden pack is served from the version
+// under its marker and records the miss the same way. Every step repeats
 // cleanly, so a run killed anywhere resumes: a move whose source is gone and
-// whose destination is there counts as done. A pack lifted between the status
+// whose destination is there counts as done, and a hide of a hidden key
+// returns the version under it. A pack lifted between the status
 // and the backend's call fails that call, and the next run drops it.
 //
 // A pass is not final. After reading the packs' states, Trash pulls the log
@@ -79,6 +93,11 @@ func (r *TrashResult) JSON(a *fastjson.Arena) *fastjson.Value {
 // pack holding a key in L or W is lifted, and a trashing one is marked live
 // and left for restore.
 func Trash(ctx context.Context, opts *TrashOptions) (*TrashResult, error) {
+	// Refuse a hide with no store to hide in.
+	if opts.Method == TrashHide && opts.Hider == nil {
+		return nil, errors.New("trash: the store cannot hide its objects")
+	}
+
 	// Take the passed and trashing packs, and read their states.
 	records, err := readPackRecords(ctx, opts.Store)
 	if err != nil {
@@ -198,10 +217,13 @@ func recheckTrash(ctx context.Context, opts *TrashOptions, status *BackendStatus
 // beginTrashBatch records a batch of passed packs as trashing, then has the
 // backend mark them trashing.
 func beginTrashBatch(ctx context.Context, opts *TrashOptions, batch []*PackRecord) error {
-	// Record the packs before the call.
+	// Record the packs and the trash method before the call. No object of
+	// a pack moves before the backend marks it trashing, so a pack recorded
+	// here by an earlier run takes this run's method.
 	ids := make([]string, len(batch))
 	for i, p := range batch {
-		p.Stage, ids[i] = StageTrash, p.ID
+		p.Stage, p.Method, ids[i] = StageTrash, opts.Method, p.ID
+		p.EntryVersion, p.FileVersion = "", ""
 	}
 	if err := writePackRecords(ctx, opts.Store, batch, nil); err != nil {
 		return err
@@ -226,12 +248,15 @@ func beginTrashBatch(ctx context.Context, opts *TrashOptions, batch []*PackRecor
 // moveBatch moves a batch of trashing packs to the trash, at most
 // opts.Moves at once, then records them moved.
 func moveBatch(ctx context.Context, opts *TrashOptions, batch []*PackRecord, res *TrashResult) error {
-	// Move each pack's entry, then its file.
-	moved, moveErr := moveEach(ctx, opts, batch, trashMoves)
+	// Set aside each pack's entry, then its file.
+	moved, moveErr := moveEach(ctx, opts, batch, trashPack)
 
 	// Record the packs moved, even when another move failed.
 	for _, p := range moved {
 		p.Stage = StageMoved
+		if p.Method == TrashHide {
+			res.Hidden++
+		}
 	}
 	if err := writePackRecords(ctx, opts.Store, moved, nil); err != nil {
 		return err
@@ -240,10 +265,10 @@ func moveBatch(ctx context.Context, opts *TrashOptions, batch []*PackRecord, res
 	return moveErr
 }
 
-// moveEach makes the moves of each pack of batch, at most opts.Moves packs at
-// once and each pack's moves in order, and returns the packs whose moves all
-// succeeded with the first failure.
-func moveEach(ctx context.Context, opts *TrashOptions, batch []*PackRecord, moves func(prefix, id string) [][2]string) ([]*PackRecord, error) {
+// moveEach runs step on each pack of batch, at most opts.Moves packs at once,
+// and returns the packs whose step succeeded with the first failure. A step
+// writes only its own pack's record fields.
+func moveEach(ctx context.Context, opts *TrashOptions, batch []*PackRecord, step func(context.Context, *TrashOptions, *PackRecord) error) ([]*PackRecord, error) {
 	// Bound the packs moved at once.
 	limit := opts.Moves
 	if limit <= 0 {
@@ -258,7 +283,7 @@ func moveEach(ctx context.Context, opts *TrashOptions, batch []*PackRecord, move
 	for _, p := range batch {
 		eg.Go(func() error {
 			// Move the pack, then keep it.
-			if err := movePack(egCtx, opts, moves(opts.Prefix, p.ID)); err != nil {
+			if err := step(egCtx, opts, p); err != nil {
 				return err
 			}
 			mtx.Lock()
@@ -269,6 +294,65 @@ func moveEach(ctx context.Context, opts *TrashOptions, batch []*PackRecord, move
 	}
 	err := eg.Wait()
 	return moved, err
+}
+
+// trashPack sets the entry and then the file of pack p aside by its
+// record's method, so the store lists no pack whose file is gone: it moves
+// them to the trash, or hides them and records the versions it kept.
+func trashPack(ctx context.Context, opts *TrashOptions, p *PackRecord) error {
+	if p.Method != TrashHide {
+		return movePack(ctx, opts, trashMoves(opts.Prefix, p.ID))
+	}
+	return hidePack(ctx, opts, p)
+}
+
+// restorePack brings the file and then the entry of pack p back by its
+// record's method: it moves them back from the trash, or deletes the
+// markers over the versions its hide kept.
+func restorePack(ctx context.Context, opts *TrashOptions, p *PackRecord) error {
+	if p.Method != TrashHide {
+		return movePack(ctx, opts, restoreMoves(opts.Prefix, p.ID))
+	}
+	return unhidePack(ctx, opts, p)
+}
+
+// hidePack hides the entry and then the file of pack p under delete markers,
+// recording on p the version each marker covers. Its only calls are
+// HideObjectVersion's, which deletes no version; a run killed between them
+// hides again, and a hide of a hidden key returns the version under it.
+func hidePack(ctx context.Context, opts *TrashOptions, p *PackRecord) error {
+	// Hide the entry, then the file, and record both versions.
+	if opts.Hider == nil {
+		return errors.Errorf("hide pack %s: the store cannot hide its objects", p.ID)
+	}
+	entry, err := opts.Hider.HideObjectVersion(ctx, opts.Bucket, block_store_s3.EntryObjectKey(opts.Prefix, p.ID))
+	if err != nil {
+		return errors.Wrap(err, "hide the entry of pack "+p.ID)
+	}
+	file, err := opts.Hider.HideObjectVersion(ctx, opts.Bucket, block_store_s3.PackObjectKey(opts.Prefix, p.ID))
+	if err != nil {
+		return errors.Wrap(err, "hide the file of pack "+p.ID)
+	}
+	p.EntryVersion, p.FileVersion = entry.Version, file.Version
+	return nil
+}
+
+// unhidePack makes current again the versions of the file and then the entry
+// of pack p that its hide kept, deleting only the markers over them. A record
+// killed before the hide recorded its versions restores each key's newest
+// content version, the one a pack key ever holds.
+func unhidePack(ctx context.Context, opts *TrashOptions, p *PackRecord) error {
+	// Restore the file, then the entry.
+	if opts.Hider == nil {
+		return errors.Errorf("unhide pack %s: the store cannot hide its objects", p.ID)
+	}
+	if err := opts.Hider.UnhideObjectVersion(ctx, opts.Bucket, block_store_s3.PackObjectKey(opts.Prefix, p.ID), p.FileVersion); err != nil {
+		return errors.Wrap(err, "unhide the file of pack "+p.ID)
+	}
+	if err := opts.Hider.UnhideObjectVersion(ctx, opts.Bucket, block_store_s3.EntryObjectKey(opts.Prefix, p.ID), p.EntryVersion); err != nil {
+		return errors.Wrap(err, "unhide the entry of pack "+p.ID)
+	}
+	return nil
 }
 
 // trashMoves are the moves of pack id to the trash: its entry, then its file,

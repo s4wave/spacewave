@@ -42,6 +42,11 @@ type Bucket struct {
 	puts int
 	// copies counts the accepted copies.
 	copies int
+	// deleted counts the content versions deleted, by key, a marker not
+	// among them.
+	deleted map[string]int
+	// marked holds each key that has carried a delete marker.
+	marked map[string]bool
 	// failPut, when set, decides whether to refuse a PUT of the key with a
 	// server error before it is stored.
 	failPut func(key string) bool
@@ -142,6 +147,7 @@ func (b *Bucket) Hide(key string) {
 func (b *Bucket) hide(key string) {
 	// Without versioning a delete removes the key outright.
 	if b.unversioned {
+		b.countDeleted(key, b.history[key])
 		delete(b.history, key)
 		delete(b.objects, key)
 		return
@@ -151,6 +157,10 @@ func (b *Bucket) hide(key string) {
 	b.versions++
 	b.history[key] = slices.Insert(b.history[key], 0, objectVersion{id: strconv.Itoa(b.versions), marker: true})
 	delete(b.objects, key)
+	if b.marked == nil {
+		b.marked = make(map[string]bool)
+	}
+	b.marked[key] = true
 }
 
 // Keys returns the sorted object keys under prefix.
@@ -321,6 +331,52 @@ func (b *Bucket) copySource(header string) ([]byte, bool) {
 	return b.history[key][i].data, true
 }
 
+// ContentDeleted returns the number of content versions of keys under
+// prefix the bucket deleted, by a delete naming the version or, without
+// versioning, by a delete or an overwrite. A delete marker's removal is not
+// counted.
+func (b *Bucket) ContentDeleted(prefix string) int {
+	// Sum the counts of the keys under the prefix.
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	n := 0
+	for key, count := range b.deleted {
+		if strings.HasPrefix(key, prefix) {
+			n += count
+		}
+	}
+	return n
+}
+
+// HiddenDeleted returns the keys under prefix that have carried a delete
+// marker and lost a content version, with the count each lost, so a check
+// that a hide never purges tells them from other deletes in the same run.
+func (b *Bucket) HiddenDeleted(prefix string) map[string]int {
+	// Collect the marked keys under the prefix that lost a version.
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	out := make(map[string]int)
+	for key, count := range b.deleted {
+		if b.marked[key] && strings.HasPrefix(key, prefix) {
+			out[key] = count
+		}
+	}
+	return out
+}
+
+// countDeleted counts the content versions of versions, deleted from key.
+func (b *Bucket) countDeleted(key string, versions []objectVersion) {
+	for _, v := range versions {
+		if v.marker {
+			continue
+		}
+		if b.deleted == nil {
+			b.deleted = make(map[string]int)
+		}
+		b.deleted[key]++
+	}
+}
+
 // Versions returns each version under prefix as the listing reports it, by
 // key, newest first: the key, and a marker flag or the content.
 func (b *Bucket) Versions(prefix string) []string {
@@ -352,6 +408,7 @@ func (b *Bucket) store(key string, data []byte) {
 	version := objectVersion{id: strconv.Itoa(b.versions), data: data, modified: time.Now()}
 	b.objects[key] = data
 	if b.unversioned {
+		b.countDeleted(key, b.history[key])
 		b.history[key] = nil
 	}
 	b.history[key] = slices.Insert(b.history[key], 0, version)
@@ -360,7 +417,13 @@ func (b *Bucket) store(key string, data []byte) {
 // deleteVersion removes one version of key, so the next newest becomes current.
 func (b *Bucket) deleteVersion(key, id string) {
 	// Remove the version from the history.
-	history := slices.DeleteFunc(b.history[key], func(v objectVersion) bool { return v.id == id })
+	history := slices.DeleteFunc(b.history[key], func(v objectVersion) bool {
+		if v.id != id {
+			return false
+		}
+		b.countDeleted(key, []objectVersion{v})
+		return true
+	})
 	b.history[key] = history
 
 	// Serve the newest version left, or nothing when none is left or the

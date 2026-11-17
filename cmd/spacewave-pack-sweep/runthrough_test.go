@@ -41,24 +41,37 @@ var runSteps = []string{"snapshot", "walk", "judge", "compact", "quarantine", "r
 // the root reaches reads, and no cycle lifts a pack or meets a gap. With the
 // writer stopped, a clean cycle leaves no dead or low pack.
 func TestCommandRunThrough(t *testing.T) {
-	commandRuns(t, testCommandRunThrough)
+	commandRuns(t, func(t *testing.T, kind string, rehearsal bool) {
+		testCommandRunThrough(t, kind, rehearsal, packsweep.TrashMove)
+	})
+}
+
+// TestCommandRunThroughHide is TestCommandRunThrough with the trash hiding
+// the packs under delete markers, on the store, and checks that no step
+// deleted a content version of the store's objects.
+func TestCommandRunThroughHide(t *testing.T) {
+	hideRuns(t, func(t *testing.T, kind string) {
+		testCommandRunThrough(t, kind, false, packsweep.TrashHide)
+	})
 }
 
 // testCommandRunThrough runs the cycles with the pack index in a file of the
-// volume type kind, as a rehearsal when rehearsal is set.
-func testCommandRunThrough(t *testing.T, kind string, rehearsal bool) {
+// volume type kind, as a rehearsal when rehearsal is set, trashing by method.
+func testCommandRunThrough(t *testing.T, kind string, rehearsal bool, method packsweep.TrashMethod) {
 	r, faults, client, stopWriter := newRunThrough(t, kind, rehearsal)
 	defer r.stop()
 	defer stopWriter()
+	r.args.TrashMethod = method.String()
 
 	// Run a cycle restarting the backend before each step, then a clean one.
-	var removed, compacted, lifted, gaps uint
+	var removed, compacted, lifted, gaps, hidden uint
 	for k := 0; k <= len(runSteps); k++ {
 		res := r.cycle(k, faults)
 		removed += res.removed
 		compacted += res.compacted
 		lifted += res.lifted
 		gaps += res.gaps
+		hidden += res.hidden
 	}
 	if gaps != 0 {
 		t.Fatalf("clean restarts sent the cycles back to a new walk %d times", gaps)
@@ -70,6 +83,18 @@ func testCommandRunThrough(t *testing.T, kind string, rehearsal bool) {
 	r.checkReads("the end")
 	if removed == 0 || compacted == 0 || lifted != 0 {
 		t.Fatalf("the cycles removed %d packs, compacted %d and lifted %d", removed, compacted, lifted)
+	}
+	if hide := method == packsweep.TrashHide; hide != (hidden != 0) {
+		t.Fatalf("the cycles hid %d packs by method %s", hidden, method)
+	}
+	if method == packsweep.TrashHide {
+		// The compaction drops its own unfinished packs, which no hide
+		// covered; a version of a key a hide covered must outlive the run.
+		deleted := r.bucket.HiddenDeleted("world/")
+		t.Logf("hide: removed %d packs, hid %d; %d content versions deleted in all, %d from hidden keys", removed, hidden, r.bucket.ContentDeleted("world/"), len(deleted))
+		if len(deleted) != 0 {
+			t.Fatalf("the hiding cycles deleted content versions of hidden keys: %v", deleted)
+		}
 	}
 
 	// With the writer stopped, a clean cycle leaves no dead or low pack, as a
@@ -145,7 +170,7 @@ func newRunThrough(t *testing.T, kind string, rehearsal bool) (*runThrough, *fau
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	t.Cleanup(cancel)
 	dir := t.TempDir()
-	_, client := s3test.New(t)
+	bucket, client := s3test.New(t)
 	var objects block_store_s3.ObjectMover = client
 	if rehearsal {
 		ov, err := block_store_s3_overlay.New(client, s3test.BucketName, filepath.Join(dir, "overlay"))
@@ -157,7 +182,7 @@ func newRunThrough(t *testing.T, kind string, rehearsal bool) (*runThrough, *fau
 	faults := &faultObjects{ObjectMover: objects}
 
 	// Start the backend and the writer, and seed the store.
-	r := &runThrough{t: t, ctx: ctx, kind: kind, index: filepath.Join(dir, "index.db"), objects: objects, dir: dir}
+	r := &runThrough{t: t, ctx: ctx, kind: kind, index: filepath.Join(dir, "index.db"), objects: objects, bucket: bucket, dir: dir}
 	r.start()
 	for range 12 {
 		r.write()
@@ -193,8 +218,10 @@ type runThrough struct {
 	ctx context.Context
 	// kind and index are the pack index file's volume type and path.
 	kind, index string
-	// objects is the store the backend reads.
+	// objects is the store the backend reads, and bucket the bucket
+	// under it.
 	objects block_store_s3.ObjectStore
+	bucket  *s3test.Bucket
 	// dir holds the test's files.
 	dir string
 
@@ -443,7 +470,7 @@ func (r *runThrough) run(step string) (*fastjson.Value, error) {
 
 // cycleResult counts what a cycle did.
 type cycleResult struct {
-	removed, compacted, lifted, gaps uint
+	removed, compacted, lifted, gaps, hidden uint
 }
 
 // cycle runs one cycle, restarting the backend before step restartAt and
@@ -504,6 +531,8 @@ func (r *runThrough) cycle(restartAt int, faults *faultObjects) cycleResult {
 			}
 		case "compact":
 			res.compacted += out.GetUint("victims")
+		case "trash":
+			res.hidden += out.GetUint("hidden")
 		case "remove":
 			res.removed += out.GetUint("removed")
 		}
@@ -591,4 +620,53 @@ func (f *faultObjects) MoveObject(ctx context.Context, bucket, from, to string) 
 		return err
 	}
 	return f.ObjectMover.MoveObject(ctx, bucket, from, to)
+}
+
+// hider returns the store as an ObjectHider, or an error when it is none, as
+// an overlay is not.
+func (f *faultObjects) hider() (block_store_s3.ObjectHider, error) {
+	if err := f.fault(); err != nil {
+		return nil, err
+	}
+	hider, ok := f.ObjectMover.(block_store_s3.ObjectHider)
+	if !ok {
+		return nil, errors.New("the store cannot hide its objects")
+	}
+	return hider, nil
+}
+
+// HideObjectVersion fails or hides.
+func (f *faultObjects) HideObjectVersion(ctx context.Context, bucket, key string) (block_store_s3.HiddenObject, error) {
+	hider, err := f.hider()
+	if err != nil {
+		return block_store_s3.HiddenObject{}, err
+	}
+	return hider.HideObjectVersion(ctx, bucket, key)
+}
+
+// UnhideObjectVersion fails or unhides.
+func (f *faultObjects) UnhideObjectVersion(ctx context.Context, bucket, key, version string) error {
+	hider, err := f.hider()
+	if err != nil {
+		return err
+	}
+	return hider.UnhideObjectVersion(ctx, bucket, key, version)
+}
+
+// HiddenObjectVersion fails or finds the hidden version.
+func (f *faultObjects) HiddenObjectVersion(ctx context.Context, bucket, key string) (string, error) {
+	hider, err := f.hider()
+	if err != nil {
+		return "", err
+	}
+	return hider.HiddenObjectVersion(ctx, bucket, key)
+}
+
+// GetObjectVersionRange fails or reads the version.
+func (f *faultObjects) GetObjectVersionRange(ctx context.Context, bucket, key, version string, off int64, length int) ([]byte, error) {
+	hider, err := f.hider()
+	if err != nil {
+		return nil, err
+	}
+	return hider.GetObjectVersionRange(ctx, bucket, key, version, off, length)
 }

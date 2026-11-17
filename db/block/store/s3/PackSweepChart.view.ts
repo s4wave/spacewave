@@ -5,6 +5,7 @@ type Sweep = {
   state: Record<string, string>
   cst: Record<string, string>
   moved: Record<string, boolean>
+  hid: Record<string, boolean>
   missed: Record<string, boolean>
 }
 
@@ -18,7 +19,7 @@ export const state = (v: Sweep) => {
   if (s === 'removed') return 'removed'
   if (s === 'trash') {
     if (v.missed[pack]) return 'trashing, a read missed'
-    if (v.moved[pack]) return 'in the trash'
+    if (v.moved[pack]) return v.hid[pack] ? 'hidden, kept by version' : 'in the trash'
     return c === 'move' ? 'trashing, checked for misses' : 'trashing'
   }
   if (s === 'quar') return c === 'pass' ? 'quarantined, rechecked' : 'quarantined'
@@ -39,7 +40,7 @@ export const step = (action: string, from: Sweep, to: Sweep) => {
     case 'MoveCheck':
       return 'no miss recorded'
     case 'MoveFile':
-      return 'the file moves'
+      return to.hid[pack] ? 'the file is hidden' : 'the file moves'
     case 'Remove':
       return 'Remove'
     case 'Restore':

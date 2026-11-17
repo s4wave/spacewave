@@ -374,23 +374,44 @@ func (s *PackStore) checkRestored(ctx context.Context, id string) error {
 	return nil
 }
 
-// checkTrashed checks that the entry and file of pack id are in the trash and
-// gone from their keys in the store, reading one byte of each.
+// checkTrashed checks that the entry and file of pack id are gone from their
+// keys in the store and kept: moved to the trash, or hidden under a delete
+// marker with a content version below it. It reads one byte of each key, and
+// lists the versions of a hidden one.
 func (s *PackStore) checkTrashed(ctx context.Context, id string) error {
 	// Each key in the store must be gone.
-	for _, key := range []string{s.prefix + entryDir + id, s.prefix + packDir + id} {
-		if _, err := s.client.GetObjectRange(ctx, s.bucket, key, 0, 1); !errors.Is(err, ErrNotFound) {
+	keys := [][2]string{
+		{s.prefix + entryDir + id, TrashEntryKey(s.prefix, id)},
+		{s.prefix + packDir + id, TrashPackKey(s.prefix, id)},
+	}
+	for _, k := range keys {
+		if _, err := s.client.GetObjectRange(ctx, s.bucket, k[0], 0, 1); !errors.Is(err, ErrNotFound) {
 			if err == nil {
-				return errors.Errorf("%s is still in the store", key)
+				return errors.Errorf("%s is still in the store", k[0])
 			}
 			return err
 		}
 	}
 
-	// Each key in the trash must be there.
-	for _, key := range []string{TrashEntryKey(s.prefix, id), TrashPackKey(s.prefix, id)} {
-		if _, err := s.client.GetObjectRange(ctx, s.bucket, key, 0, 1); err != nil {
-			return errors.Wrap(err, "find "+key)
+	// Each must be in the trash, or hidden over a version.
+	for _, k := range keys {
+		_, err := s.client.GetObjectRange(ctx, s.bucket, k[1], 0, 1)
+		if !errors.Is(err, ErrNotFound) {
+			if err != nil {
+				return errors.Wrap(err, "find "+k[1])
+			}
+			continue
+		}
+		hider, ok := s.client.(ObjectHider)
+		if !ok {
+			return errors.Wrap(err, "find "+k[1])
+		}
+		version, herr := hider.HiddenObjectVersion(ctx, s.bucket, k[0])
+		if herr != nil {
+			return errors.Wrap(herr, "find the hidden version of "+k[0])
+		}
+		if version == "" {
+			return errors.Errorf("%s is neither in the trash nor hidden over a version", k[0])
 		}
 	}
 	return nil

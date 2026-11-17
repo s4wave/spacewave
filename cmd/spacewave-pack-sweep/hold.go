@@ -40,7 +40,10 @@ func (a *Args) adminURLFlag() cli.Flag {
 // does and reaches the store.
 func (a *Args) trashFlags() []cli.Flag {
 	flags := append(a.adminFlags(), a.dialFlags()...)
-	return append(flags, &cli.IntFlag{Name: "moves", Usage: "packs moved to the trash at once, each two renames", Value: packsweep.DefaultMoves, Destination: &a.Moves})
+	return append(flags,
+		&cli.IntFlag{Name: "moves", Usage: "packs moved to the trash at once, each two renames", Value: packsweep.DefaultMoves, Destination: &a.Moves},
+		&cli.StringFlag{Name: "trash-method", Usage: "how the trash sets a pack aside: move copies it to the trash and deletes every version of the original; hide puts a delete marker over it, on a bucket that keeps old versions, and deletes nothing", Value: packsweep.TrashMove.String(), Destination: &a.TrashMethod},
+	)
 }
 
 // restoreFlags configures the restore: the trash's, and the packs to bring
@@ -294,6 +297,16 @@ func (a *Args) runMoves(step func(context.Context, *packsweep.TrashOptions) (fun
 	if !ok {
 		return errors.New("the store cannot move its objects")
 	}
+
+	// Refuse a hide on a store that cannot hide, and check the store.
+	method, err := packsweep.ParseTrashMethod(a.TrashMethod)
+	if err != nil {
+		return err
+	}
+	hider, _ := objects.(block_store_s3.ObjectHider)
+	if method == packsweep.TrashHide && hider == nil {
+		return errors.New("the store cannot hide its objects: --trash-method hide needs a versioned S3 bucket")
+	}
 	if err := checkStore(ctx, db, a.storeBinding(root)); err != nil {
 		return err
 	}
@@ -307,6 +320,8 @@ func (a *Args) runMoves(step func(context.Context, *packsweep.TrashOptions) (fun
 	res, err := step(ctx, &packsweep.TrashOptions{
 		CoverOptions: *opts,
 		Mover:        mover,
+		Hider:        hider,
+		Method:       method,
 		Bucket:       root,
 		Prefix:       a.Prefix,
 		Moves:        a.Moves,

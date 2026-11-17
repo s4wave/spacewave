@@ -370,6 +370,7 @@ func (s *PackStore) noteFallback(ctx context.Context, id string, ref *block.Bloc
 	key := packfile.BlockKey(ref.GetHash())
 	hold := packHold{state: PackRegistered, since: now, event: now, key: key}
 	if state == PackTrashing {
+		s.reads.trashMisses.Add(1)
 		prev, _, err := s.index.readHold(ctx, id)
 		if err != nil || prev.event != 0 {
 			return err
@@ -472,7 +473,8 @@ func (s *PackStore) publishHeld(ctx context.Context, ref *block.BlockRef) (strin
 
 // trashedRead records the read of ref as a miss when err is a read that
 // found the file of placed, the trashing pack the index places ref in, gone
-// to the trash, and returns err naming the pack. The command then restores
+// to the trash, or hidden while hidden reads are off, and returns err naming
+// the pack. The command then restores
 // the pack rather than remove it.
 func (s *PackStore) trashedRead(ctx context.Context, placed string, ref *block.BlockRef, err error) error {
 	// Leave any other failure as it is.
@@ -491,7 +493,10 @@ func (s *PackStore) trashedRead(ctx context.Context, placed string, ref *block.B
 }
 
 // readHeld reads a block every registered pack lacks from the held packs,
-// lifting the quarantined pack that serves it, or nil when none holds it.
+// lifting the quarantined pack that serves it, or nil when none holds it. A
+// trashing pack whose file a hide covered serves the block from the kept
+// version (rangeTransport), and the read records the miss, so the command
+// restores the pack rather than purge it.
 func (s *PackStore) readHeld(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Publish the held pack the index places the block in.
 	placed, holding, err := s.publishHeld(ctx, ref)

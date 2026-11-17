@@ -9,7 +9,8 @@ stateDiagram-v2
   s4: trashing, checked for misses
   s5: trashing, a read missed
   s6: in the trash
-  s7: removed
+  s7: hidden, kept by version
+  s8: removed
   [*] --> s0
   s0 --> s1: Quarantine
   s1 --> s2: the recheck passes
@@ -20,6 +21,9 @@ stateDiagram-v2
   s3 --> s5: a read misses
   s4 --> s5: a read misses
   s4 --> s6: the file moves
+  s4 --> s7: the file is hidden
   s5 --> s0: Restore
-  s6 --> s7: Remove
+  s6 --> s8: Remove
   s6 --> s5: a read misses
+  s7 --> s8: Remove
+  s7 --> s5: a read misses
