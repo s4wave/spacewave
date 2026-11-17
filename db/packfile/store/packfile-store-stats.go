@@ -49,11 +49,14 @@ type PackfileStoreStats struct {
 	CandidatePacks            uint64
 	OpenedPacks               uint64
 	NegativePacks             uint64
-	TargetHits                uint64
-	LastCandidatePacks        int
-	LastOpenedPacks           int
-	LastNegativePacks         int
-	LastTargetHit             bool
+	// PassedOverPacks counts the candidate packs a lookup could not read and
+	// passed over.
+	PassedOverPacks    uint64
+	TargetHits         uint64
+	LastCandidatePacks int
+	LastOpenedPacks    int
+	LastNegativePacks  int
+	LastTargetHit      bool
 	// IndexDrops counts indexes dropped above the index byte limit.
 	IndexDrops            uint64
 	IndexCacheHits        uint64
@@ -73,6 +76,9 @@ type packLookup struct {
 	opened int
 	// negative is the number of consulted engines that lacked the key.
 	negative int
+	// passedOver is the number of candidates that failed and were passed
+	// over.
+	passedOver int
 	// hit reports whether an engine held the key.
 	hit bool
 }
@@ -82,6 +88,7 @@ type packLookupStats struct {
 	CandidatePacks     uint64
 	OpenedPacks        uint64
 	NegativePacks      uint64
+	PassedOverPacks    uint64
 	TargetHits         uint64
 	LastCandidatePacks int
 	LastOpenedPacks    int
@@ -126,6 +133,7 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 		CandidatePacks:            stats.CandidatePacks,
 		OpenedPacks:               stats.OpenedPacks,
 		NegativePacks:             stats.NegativePacks,
+		PassedOverPacks:           stats.PassedOverPacks,
 		TargetHits:                stats.TargetHits,
 		LastCandidatePacks:        stats.LastCandidatePacks,
 		LastOpenedPacks:           stats.LastOpenedPacks,

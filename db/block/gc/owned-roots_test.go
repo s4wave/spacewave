@@ -61,7 +61,7 @@ func TestOwnedRoots(t *testing.T) {
 		return ok && id != "w"
 	}
 	var got []string
-	err := OwnedRoots(ctx, rg, skip, func(_ string, ref *block.BlockRef) error {
+	_, err := OwnedRoots(ctx, rg, skip, func(_ string, ref *block.BlockRef) error {
 		got = append(got, ref.MarshalString())
 		return nil
 	})
@@ -77,7 +77,7 @@ func TestOwnedRoots(t *testing.T) {
 
 	// An owner whose edges cannot be read fails the walk.
 	bad := &failingGraph{RefGraph: rg, fail: "head:replay-span"}
-	if err := OwnedRoots(ctx, bad, skip, func(string, *block.BlockRef) error { return nil }); err == nil {
+	if _, err := OwnedRoots(ctx, bad, skip, func(string, *block.BlockRef) error { return nil }); err == nil {
 		t.Fatal("a walk with an unreadable owner returned no error")
 	}
 }

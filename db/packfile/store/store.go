@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
@@ -64,6 +65,8 @@ type PackfileStore struct {
 	engines map[string]*PackReader
 	stats   packLookupStats
 	notify  func()
+	// failures tracks the packs a probe could not read.
+	failures packFailures
 
 	// bcast guards manifest, bloom, and close-completion state.
 	bcast broadcast.Broadcast
@@ -397,9 +400,13 @@ func (s *PackfileStore) getBlockExistsBatch(ctx context.Context, view *ManifestS
 		return out, nil
 	}
 
-	// Load candidate pack indexes before probing the block keys.
+	// Load candidate pack indexes before probing the block keys. The load is
+	// best effort, like the probe: a pack that fails to load is passed over
+	// by each probe that reaches it.
 	if err := s.loadCandidateIndexes(ctx, view, keys); err != nil {
-		return nil, err
+		if errors.Is(err, ErrPackReaderClosed) || ctx.Err() != nil {
+			return nil, err
+		}
 	}
 
 	// Probe each unique key and account for the complete batch lookup.
@@ -560,12 +567,15 @@ func (s *PackfileStore) probeCatalog(
 	if err != nil {
 		return err
 	}
-	if err := s.probeList(ctx, candidates, lookup, visit); err != nil || lookup.hit || !located {
+	err = s.probeList(ctx, candidates, lookup, visit)
+	if lookup.hit || !located || probeStopped(ctx, err) {
 		return err
 	}
 
-	// The locator placed the key in a pack that lacks it, so its answer rules
-	// nothing out: test every filter the first round skipped.
+	// The locator placed the key in a pack that lacks it or that failed, so
+	// its answer rules nothing out: test every filter the first round
+	// skipped, as the probe passes over any failing pack. The first round's
+	// failure stands when the rest find nothing.
 	tried := make(map[*manifestEntry]struct{}, len(candidates))
 	for _, item := range candidates {
 		tried[item] = struct{}{}
@@ -576,11 +586,25 @@ func (s *PackfileStore) probeCatalog(
 			rest = append(rest, item)
 		}
 	}
-	return s.probeList(ctx, rest, lookup, visit)
+	restErr := s.probeList(ctx, rest, lookup, visit)
+	if lookup.hit || err == nil || probeStopped(ctx, restErr) {
+		return restErr
+	}
+	return err
+}
+
+// probeStopped reports whether a probe error ends the lookup instead of
+// passing over one pack: a reader closed by a manifest change, which
+// restarts the lookup, or a stopped context.
+func probeStopped(ctx context.Context, err error) bool {
+	return err != nil && (errors.Is(err, ErrPackReaderClosed) || ctx.Err() != nil)
 }
 
 // probeList probes candidates in order until one holds the block, setting
-// lookup.hit when one does.
+// lookup.hit when one does. A candidate that fails to open or read is passed
+// over, so a lost or damaged pack hides only the blocks it held: the first
+// such error is returned only when no later candidate holds the block. A
+// closed reader or a stopped context ends the probe at once.
 func (s *PackfileStore) probeList(
 	ctx context.Context,
 	candidates []*manifestEntry,
@@ -589,31 +613,22 @@ func (s *PackfileStore) probeList(
 ) error {
 	lookup.candidates += len(candidates)
 
-	// Probe candidate pack readers until the requested block is found.
+	// Probe candidate pack readers until the requested block is found,
+	// keeping the first failure for a probe that finds it nowhere.
 	var misses int
+	var firstErr error
 	for i, item := range candidates {
-		// Validate the candidate pack size before opening its reader.
-		entry := item.entry
-		size, err := manifestPackSize(entry)
+		// Probe the candidate, passing over one that fails.
+		found, err := s.probeOne(ctx, item.entry, lookup, visit)
 		if err != nil {
-			return err
-		}
-		if size <= 0 {
+			if probeStopped(ctx, err) {
+				return err
+			}
+			lookup.passedOver++
+			if firstErr == nil {
+				firstErr = err
+			}
 			continue
-		}
-
-		// Borrow the candidate pack reader for this block probe.
-		eng, release, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
-		if err != nil {
-			return errors.Wrap(err, "opening packfile")
-		}
-
-		// Probe the block and release the candidate reader before handling the result.
-		lookup.opened++
-		found, err := visit(eng)
-		release()
-		if err != nil {
-			return err
 		}
 
 		// Record a successful block probe or count the negative pack.
@@ -634,7 +649,49 @@ func (s *PackfileStore) probeList(
 			s.loadBloomHitIndexes(ctx, candidates[i+1:])
 		}
 	}
-	return nil
+	return firstErr
+}
+
+// probeOne opens one candidate pack and visits it, reporting whether it holds
+// the block. An empty pack holds nothing. A pack waiting out a failed load's
+// backoff returns that failure without a fetch, and each failure and
+// recovery is noted in the store's pack failures.
+func (s *PackfileStore) probeOne(
+	ctx context.Context,
+	entry *packfile.PackfileEntry,
+	lookup *packLookup,
+	visit func(eng *PackReader) (bool, error),
+) (bool, error) {
+	// Validate the candidate pack size, and skip a pack backing off.
+	size, err := manifestPackSize(entry)
+	if err != nil || size <= 0 {
+		return false, err
+	}
+	id := entry.GetId()
+	if err := s.failures.backingOff(id, time.Now()); err != nil {
+		return false, err
+	}
+
+	// Borrow the candidate pack reader, and release it after the visit.
+	eng, release, err := s.getOrOpenEngine(id, size, entry.GetBlockCount())
+	if err != nil {
+		err = errors.Wrap(err, "opening packfile")
+		s.failures.failed(id, err, true, time.Now())
+		return false, err
+	}
+	lookup.opened++
+	defer release()
+	found, err := visit(eng)
+
+	// Note a failure, backing off a failed index load, or a recovery.
+	if err != nil {
+		if !probeStopped(ctx, err) {
+			s.failures.failed(id, err, eng.indexLoadFailed(), time.Now())
+		}
+		return false, err
+	}
+	s.failures.recovered(id)
+	return found, nil
 }
 
 // loadBloomHitIndexes loads the indexes of the bloom-filtered candidates
@@ -657,9 +714,10 @@ func (s *PackfileStore) recordLookupStats(lookup packLookup) {
 	var notify func()
 	s.mtx.Lock()
 	s.stats.LookupCount++
-	s.stats.CandidatePacks += uint64(lookup.candidates) //nolint:gosec // counts are non-negative loop lengths.
-	s.stats.OpenedPacks += uint64(lookup.opened)        //nolint:gosec // counts are non-negative loop lengths.
-	s.stats.NegativePacks += uint64(lookup.negative)    //nolint:gosec // counts are non-negative loop lengths.
+	s.stats.CandidatePacks += uint64(lookup.candidates)  //nolint:gosec // counts are non-negative loop lengths.
+	s.stats.OpenedPacks += uint64(lookup.opened)         //nolint:gosec // counts are non-negative loop lengths.
+	s.stats.NegativePacks += uint64(lookup.negative)     //nolint:gosec // counts are non-negative loop lengths.
+	s.stats.PassedOverPacks += uint64(lookup.passedOver) //nolint:gosec // counts are non-negative loop lengths.
 	if lookup.hit {
 		s.stats.TargetHits++
 	}

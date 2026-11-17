@@ -15,6 +15,12 @@ import (
 // out of the store, until the operator purges them.
 const trashDir = "trash/"
 
+// TrashPrefix returns the object prefix of the trash under prefix. A pack
+// store opened on it reads the trashed packs as its own.
+func TrashPrefix(prefix string) string {
+	return prefix + trashDir
+}
+
 // TrashPackKey returns the object key of pack id in the trash under prefix.
 func TrashPackKey(prefix, id string) string {
 	return prefix + trashDir + packDir + id
@@ -49,7 +55,7 @@ func (s *PackStore) BeginTrash(ctx context.Context, ids []string) error {
 	if err := s.loadEntries(ctx); err != nil {
 		return err
 	}
-	release, err := s.holdMtx.Lock(ctx)
+	release, err := s.lockHold(ctx, "trash")
 	if err != nil {
 		return err
 	}
@@ -140,7 +146,7 @@ func (s *PackStore) remove(ctx context.Context, ids []string, keys []KeyHolders,
 
 	// Under the lock, check again that each is trashing and no read missed it
 	// since.
-	release, err := s.holdMtx.Lock(ctx)
+	release, err := s.lockHold(ctx, "remove")
 	if err != nil {
 		return err
 	}
@@ -227,7 +233,7 @@ func (s *PackStore) Restore(ctx context.Context, ids []string) error {
 	}
 
 	// Under the lock, check again that each is still trashing.
-	release, err := s.holdMtx.Lock(ctx)
+	release, err := s.lockHold(ctx, "restore")
 	if err != nil {
 		return err
 	}

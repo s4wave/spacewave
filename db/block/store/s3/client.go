@@ -97,6 +97,64 @@ func (c *Client) CopyObject(ctx context.Context, srcBucket, srcKey, dstBucket, d
 	return nil
 }
 
+// CopyObjectVersion copies one version of an object to another key, in the
+// same or another bucket, without passing its bytes through the client. The
+// one request runs under the client's credentials, which must read the
+// source bucket and write the destination. Returns ErrNotFound if the
+// version does not exist.
+func (c *Client) CopyObjectVersion(ctx context.Context, srcBucket, srcKey, srcVersion, dstBucket, dstKey string) error {
+	// Copy the version.
+	value := uriEncode("/"+srcBucket+"/"+srcKey, false) + "?versionId=" + url.QueryEscape(srcVersion)
+	resp, err := c.do(ctx, http.MethodPut, dstBucket, dstKey, nil, nil, http.Header{"X-Amz-Copy-Source": {value}})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if err := checkStatus(resp, dstBucket, dstKey, http.MethodPut); err != nil {
+		return err
+	}
+
+	// The service may report a copy that failed after it began in the body
+	// of a successful response.
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "read copy result")
+	}
+	if bytes.Contains(body, []byte("<Error>")) {
+		return errors.Errorf("copy %s/%s@%s to %s/%s: %s", srcBucket, srcKey, srcVersion, dstBucket, dstKey, body)
+	}
+	return nil
+}
+
+// BucketVersioning returns the bucket's versioning status as the service
+// reports it: "Enabled", "Suspended", or empty for a bucket that never kept
+// versions.
+func (c *Client) BucketVersioning(ctx context.Context, bucket string) (string, error) {
+	// Read the bucket's versioning configuration.
+	resp, err := c.do(ctx, http.MethodGet, bucket, "", url.Values{"versioning": {""}}, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if err := checkStatus(resp, bucket, "", http.MethodGet); err != nil {
+		return "", err
+	}
+
+	// Return its status.
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", errors.Wrap(err, "read versioning")
+	}
+	return xmlElementText(string(body), "Status"), nil
+}
+
+// HideObject deletes the current version of key without a version id, which
+// on a versioned bucket adds a delete marker, B2's hide marker, and keeps
+// every version under it.
+func (c *Client) HideObject(ctx context.Context, bucket, key string) error {
+	return c.deleteObjectVersion(ctx, bucket, key, "")
+}
+
 // MoveObject copies the object to its new key within the bucket, then
 // deletes every version of the old one by its id; no byte passes through the
 // client. A copy that finds the source gone counts as done when the
@@ -341,8 +399,8 @@ func (c *Client) ObjectVersions(ctx context.Context, bucket, key string) ([]stri
 
 // ListObjectVersions calls fn with every version and delete marker of every
 // key under prefix, including keys whose newest version is a delete marker,
-// which ListObjects leaves out. Each page lists the versions, then the delete
-// markers, so the order within a key is not the age order. Each request lists
+// which ListObjects leaves out. It reports them in the listing's order: by
+// key, and each key's versions and markers newest first. Each request lists
 // up to 1000 entries.
 func (c *Client) ListObjectVersions(ctx context.Context, bucket, prefix string, fn func(ObjectVersion) error) error {
 	query := url.Values{"versions": {""}, "prefix": {prefix}}
@@ -362,19 +420,10 @@ func (c *Client) ListObjectVersions(ctx context.Context, bucket, prefix string, 
 			return err
 		}
 
-		// Report the versions, then the delete markers.
+		// Report its versions and delete markers in order.
 		doc := string(body)
-		for _, name := range []string{"Version", "DeleteMarker"} {
-			err := visitElements(doc, name, func(element string) error {
-				return fn(ObjectVersion{
-					Key:          html.UnescapeString(xmlElementText(element, "Key")),
-					VersionID:    html.UnescapeString(xmlElementText(element, "VersionId")),
-					DeleteMarker: name == "DeleteMarker",
-				})
-			})
-			if err != nil {
-				return err
-			}
+		if err := visitVersions(doc, fn); err != nil {
+			return err
 		}
 
 		// Continue from the next page, if any.
@@ -383,6 +432,40 @@ func (c *Client) ListObjectVersions(ctx context.Context, bucket, prefix string, 
 		}
 		query.Set("key-marker", html.UnescapeString(xmlElementText(doc, "NextKeyMarker")))
 		query.Set("version-id-marker", html.UnescapeString(xmlElementText(doc, "NextVersionIdMarker")))
+	}
+}
+
+// visitVersions calls fn with each Version and DeleteMarker element of a
+// version listing, in document order.
+func visitVersions(doc string, fn func(ObjectVersion) error) error {
+	for {
+		// Find the next element of either kind.
+		vi, di := strings.Index(doc, "<Version>"), strings.Index(doc, "<DeleteMarker>")
+		name := "Version"
+		switch {
+		case vi < 0 && di < 0:
+			return nil
+		case vi < 0 || (di >= 0 && di < vi):
+			name, vi = "DeleteMarker", di
+		}
+
+		// Decode it.
+		content, rest, ok := strings.Cut(doc[vi+len(name)+2:], "</"+name+">")
+		if !ok {
+			return errors.New("s3 list: unterminated " + name + " element")
+		}
+		size, _ := strconv.ParseInt(xmlElementText(content, "Size"), 10, 64)
+		err := fn(ObjectVersion{
+			Key:          html.UnescapeString(xmlElementText(content, "Key")),
+			VersionID:    html.UnescapeString(xmlElementText(content, "VersionId")),
+			DeleteMarker: name == "DeleteMarker",
+			Size:         size,
+			ETag:         html.UnescapeString(xmlElementText(content, "ETag")),
+		})
+		if err != nil {
+			return err
+		}
+		doc = rest
 	}
 }
 

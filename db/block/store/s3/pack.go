@@ -116,6 +116,9 @@ type PackStore struct {
 	// holdMtx serializes the moves of the packs' sweep states, each a q/ row
 	// write followed by the manifest move.
 	holdMtx csync.Mutex
+	// holdLongest is the longest holdMtx was held through lockHold, in
+	// nanoseconds; a hold past it logs and raises it.
+	holdLongest atomic.Int64
 	// holdMoves counts the halves of the manifest moves setHolds made: odd
 	// while one runs. A read that misses both manifests while it changed
 	// reads again, since the pack may have moved between the two lookups.
@@ -328,6 +331,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 
 	// Read blocks from the known packfiles within the shared cache budget.
 	s.packs = packfile_store.NewPackfileStore(s.openPack, tails)
+	s.packs.SetLogger(le)
 	s.leaveReadCache = s.packs.JoinReadCacheBudget(block.SharedReadCacheBudget())
 
 	// Start compaction; the refresher starts at the first read.
@@ -341,6 +345,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 	if s.index != nil {
 		s.packs.SetLocator(s.index)
 		s.held = packfile_store.NewPackfileStore(s.openPack, tails)
+		s.held.SetLogger(le.WithField("packs", "held"))
 		s.held.SetLocator(heldLocator{x: s.index})
 		s.leaveHeldCache = s.held.JoinReadCacheBudget(block.SharedReadCacheBudget())
 	}

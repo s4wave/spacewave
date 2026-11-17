@@ -1,9 +1,14 @@
 // Package s3test serves an in-memory S3 bucket for tests of code that writes
-// objects: PUT, copy, ranged GET and HEAD, ListObjectsV2 by prefix, and the
-// versions of an overwritten or hidden key.
+// objects: PUT, copy of a key or of one version, ranged GET and HEAD,
+// ListObjectsV2 by prefix, and the versions of an overwritten or hidden key.
+// A delete with a version id removes that version; one without hides the key
+// under a delete marker, as a versioned bucket does. The bucket reports its
+// versioning, and a bucket with versioning off keeps one version per key.
 package s3test
 
 import (
+	"crypto/md5" //nolint:gosec // S3 defines a single-part ETag as the MD5 of the bytes.
+	"encoding/hex"
 	"encoding/xml"
 	"io"
 	"maps"
@@ -43,6 +48,9 @@ type Bucket struct {
 	// refuseVersions, when set, answers every version listing with 501, as
 	// a service without versioning or a key it cannot list does.
 	refuseVersions bool
+	// unversioned, when set, keeps one version per key and reports
+	// versioning off.
+	unversioned bool
 	// url is where the bucket serves.
 	url string
 	// uploads counts the multipart uploads begun.
@@ -110,13 +118,34 @@ func (b *Bucket) RefuseVersions(refuse bool) {
 	b.refuseVersions = refuse
 }
 
+// SetVersioning turns versioning on, as a new bucket has it, or off, where
+// each write replaces the key's history with its one version.
+func (b *Bucket) SetVersioning(enabled bool) {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	b.unversioned = !enabled
+}
+
 // Hide puts a delete marker on key as its newest version, as a lifecycle rule
 // or a plain delete does in a versioned bucket: the key leaves the object
 // listing and plain reads, and its older versions stay readable by id.
 func (b *Bucket) Hide(key string) {
-	// Record the marker as the newest version and drop the object.
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
+	b.hide(key)
+}
+
+// hide records a delete marker as the newest version of key, as a delete
+// without a version id does, and drops the object.
+func (b *Bucket) hide(key string) {
+	// Without versioning a delete removes the key outright.
+	if b.unversioned {
+		delete(b.history, key)
+		delete(b.objects, key)
+		return
+	}
+
+	// Otherwise it adds a marker over the versions.
 	b.versions++
 	b.history[key] = slices.Insert(b.history[key], 0, objectVersion{id: strconv.Itoa(b.versions), marker: true})
 	delete(b.objects, key)
@@ -182,6 +211,12 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "<Error><Code>NotImplemented</Code></Error>", http.StatusNotImplemented)
 	case query.Has("versions"):
 		b.listVersions(w, query.Get("prefix"))
+	case r.Method == http.MethodGet && query.Has("versioning"):
+		status := "<Status>Enabled</Status>"
+		if b.unversioned {
+			status = ""
+		}
+		_, _ = io.WriteString(w, "<VersioningConfiguration>"+status+"</VersioningConfiguration>")
 	case query.Get("list-type") == "2":
 		prefix := query.Get("prefix")
 		var result listResult
@@ -218,8 +253,7 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		delete(b.parts, query.Get("uploadId"))
 		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodPut && r.Header.Get("X-Amz-Copy-Source") != "":
-		source, _ := url.PathUnescape(r.Header.Get("X-Amz-Copy-Source"))
-		data, ok := b.objects[strings.TrimPrefix(source, "/"+BucketName+"/")]
+		data, ok := b.copySource(r.Header.Get("X-Amz-Copy-Source"))
 		if !ok {
 			http.Error(w, "<Error><Code>NoSuchKey</Code></Error>", http.StatusNotFound)
 			return
@@ -237,6 +271,9 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		b.puts++
 	case r.Method == http.MethodDelete && query.Has("versionId"):
 		b.deleteVersion(key, query.Get("versionId"))
+		w.WriteHeader(http.StatusNoContent)
+	case r.Method == http.MethodDelete:
+		b.hide(key)
 		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodGet || r.Method == http.MethodHead:
 		data, ok := b.objects[key]
@@ -260,11 +297,61 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// copySource returns the data a copy source names: a key's current version,
+// or the version its versionId names, which a delete marker does not hold.
+func (b *Bucket) copySource(header string) ([]byte, bool) {
+	// Split the key from the version.
+	path, query, _ := strings.Cut(header, "?")
+	path, _ = url.PathUnescape(path)
+	key := strings.TrimPrefix(path, "/"+BucketName+"/")
+	values, _ := url.ParseQuery(query)
+	version := values.Get("versionId")
+	if version == "" {
+		data, ok := b.objects[key]
+		return data, ok
+	}
+
+	// Find the version.
+	i := slices.IndexFunc(b.history[key], func(v objectVersion) bool { return v.id == version })
+	if i < 0 || b.history[key][i].marker {
+		return nil, false
+	}
+	return b.history[key][i].data, true
+}
+
+// Versions returns each version under prefix as the listing reports it, by
+// key, newest first: the key, and a marker flag or the content.
+func (b *Bucket) Versions(prefix string) []string {
+	// Hold the bucket while reading its history.
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+
+	// Describe each version of each key under the prefix, in key order.
+	var out []string
+	for _, key := range slices.Sorted(maps.Keys(b.history)) {
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+		for _, version := range b.history[key] {
+			if version.marker {
+				out = append(out, key+" hidden")
+				continue
+			}
+			out = append(out, key+" "+string(version.data))
+		}
+	}
+	return out
+}
+
 // store makes data the current version of key.
 func (b *Bucket) store(key string, data []byte) {
+	// Make the data the newest version, or the only one without versioning.
 	b.versions++
 	version := objectVersion{id: strconv.Itoa(b.versions), data: data}
 	b.objects[key] = data
+	if b.unversioned {
+		b.history[key] = nil
+	}
 	b.history[key] = slices.Insert(b.history[key], 0, version)
 }
 
@@ -292,11 +379,12 @@ func (b *Bucket) listVersions(w io.Writer, prefix string) {
 			continue
 		}
 		for _, version := range b.history[key] {
-			element := "Version"
-			if version.marker {
-				element = "DeleteMarker"
+			element, etag := "DeleteMarker", ""
+			if !version.marker {
+				sum := md5.Sum(version.data) //nolint:gosec // S3 defines a single-part ETag as the MD5 of the bytes.
+				element, etag = "Version", "<ETag>&quot;"+hex.EncodeToString(sum[:])+"&quot;</ETag>"
 			}
-			_, _ = io.WriteString(w, "<"+element+"><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId></"+element+">")
+			_, _ = io.WriteString(w, "<"+element+"><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId>"+etag+"<Size>"+strconv.Itoa(len(version.data))+"</Size></"+element+">")
 		}
 	}
 	_, _ = io.WriteString(w, "</ListVersionsResult>")

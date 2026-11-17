@@ -124,6 +124,18 @@ func main() {
 			Action: args.runRestore,
 		},
 		{
+			Name:   "verify",
+			Usage:  "read every block the roots reach from the bucket alone, checking each against its hash",
+			Flags:  args.verifyFlags(),
+			Action: args.runVerify,
+		},
+		{
+			Name:   "copy-versions",
+			Usage:  "copy every version and hide marker under the prefixes to another bucket, server-side, each key's oldest first",
+			Flags:  args.copyFlags(),
+			Action: args.runCopyVersions,
+		},
+		{
 			Name:   "status",
 			Usage:  "print the cycle's state",
 			Flags:  args.scratchFlags(),

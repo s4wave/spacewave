@@ -133,9 +133,14 @@ type Args struct {
 	Packs cli.StringSlice
 	// MaxPackBytes bounds a pack the compaction writes.
 	MaxPackBytes int64
+	// MaxBad is the bad blocks a verify lists.
+	MaxBad int
 	// After is how long since its removal a pack stays in the trash before
 	// the purge deletes it.
 	After time.Duration
+
+	// copy configures the version copy.
+	versionCopy copyArgs
 
 	// dialAdmin reaches the admin service; nil dials AdminURL. Tests set it.
 	dialAdmin func(ctx context.Context) (*block_packsweep_admin.Client, func(), error)
