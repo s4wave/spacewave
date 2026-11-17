@@ -170,6 +170,9 @@ type EvictResult struct {
 	// or a checked remote does not report holding it, even if a later write
 	// fails. These entries move to the new epoch when refusal retry is enabled.
 	Refused int
+	// Halted names the remote delete path that stopped a bounded pass from
+	// dropping anything, as EvictBound.RemoteDeletes describes, or is empty.
+	Halted string
 }
 
 // evictEntry is a decoded eviction queue entry.

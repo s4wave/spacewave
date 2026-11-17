@@ -516,6 +516,10 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 	passLog := &evictPassLog{le: le}
 	defer func() { passLog.flush(time.Now()) }()
 
+	// halted is the remote delete path that stopped the last bounded pass,
+	// logged once when it changes rather than on every pass.
+	var halted string
+
 	// Count reads served from decoded-block caches and held by live values,
 	// which never reach the local store, unless CacheReadsEnv turns that off.
 	startCacheHits()
@@ -535,6 +539,14 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 		if want := p.evictLatch.Bytes(status); want > 0 && p.remote.Load() != nil {
 			result, err := p.evict(ctx, want)
 			passLog.add(result, time.Now())
+			if result.Halted != halted {
+				if result.Halted != "" {
+					le.WithField("path", result.Halted).Warn("bounded eviction drops nothing while a remote delete path is enabled")
+				} else {
+					le.WithField("path", halted).Info("bounded eviction resumed, the remote delete path is off")
+				}
+				halted = result.Halted
+			}
 			switch {
 			case err != nil && ctx.Err() == nil && block_store_writeback.IsBusyError(err):
 				le.WithError(err).WithField("evicted-bytes", result.EvictedBytes).Warn("eviction pass ended on a busy database, retrying")

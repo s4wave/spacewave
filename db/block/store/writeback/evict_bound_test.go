@@ -11,9 +11,10 @@ import (
 )
 
 // fakePacks is a remote of packs for bounded eviction tests. The local index
-// it answers LocatePacks from always places every block of a pack in it,
-// whatever the remote holds; VerifyPack answers for the remote, which may
-// have lost, cut short or changed a pack.
+// it answers LocatePacks from places every block in the first pack that
+// holds it, unless index names another, whatever the remote holds;
+// VerifyPack answers for the remote, which may have lost, cut short or
+// changed a pack.
 type fakePacks struct {
 	// remote holds the block values.
 	remote block.StoreOps
@@ -21,6 +22,9 @@ type fakePacks struct {
 	packs map[string][]*block.BlockRef
 	// lie maps a pack id to the reason its fetch fails.
 	lie map[string]string
+	// index maps a block hash to the pack the local index places it in,
+	// overriding the first pack that holds it.
+	index map[string]string
 	// fetches counts VerifyPack calls by pack.
 	fetches map[string]int
 	// afterVerify runs after a pack verifies, when set.
@@ -29,11 +33,14 @@ type fakePacks struct {
 
 // newFakePacks returns an empty remote.
 func newFakePacks(remote block.StoreOps) *fakePacks {
-	return &fakePacks{remote: remote, packs: make(map[string][]*block.BlockRef), lie: make(map[string]string), fetches: make(map[string]int)}
+	return &fakePacks{remote: remote, packs: make(map[string][]*block.BlockRef), lie: make(map[string]string), index: make(map[string]string), fetches: make(map[string]int)}
 }
 
 // packOf returns the pack id the index places h in.
 func (f *fakePacks) packOf(h *hash.Hash) (string, int64) {
+	if id, ok := f.index[h.MarshalString()]; ok {
+		return id, int64(64 * len(f.packs[id]))
+	}
 	for id, refs := range f.packs {
 		var size int64
 		found := false
@@ -100,6 +107,8 @@ type boundEnv struct {
 	packs *fakePacks
 	refs  []*block.BlockRef
 	size  int64
+	// deletes is the remote delete path the bound reports, or "".
+	deletes string
 }
 
 // newBoundEnv writes n blocks of 11 bytes, uploads them, and places them in
@@ -144,10 +153,19 @@ func (e *boundEnv) held(t *testing.T) int {
 	return n
 }
 
+// bound returns the bound of a pass under budget.
+func (e *boundEnv) bound(budget *EvictBudget) EvictBound {
+	return EvictBound{
+		Budget:        staticBudget(budget),
+		Verifier:      e.packs,
+		RemoteDeletes: func() string { return e.deletes },
+	}
+}
+
 // evict runs a bounded pass under budget.
 func (e *boundEnv) evict(t *testing.T, budget *EvictBudget, maxBytes int64) EvictResult {
 	t.Helper()
-	result, err := e.s.EvictBounded(t.Context(), EvictBound{Budget: staticBudget(budget), Verifier: e.packs}, maxBytes, nil, nil)
+	result, err := e.s.EvictBounded(t.Context(), e.bound(budget), maxBytes, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,6 +221,87 @@ func TestBoundedEvictWithinBudget(t *testing.T) {
 	}
 }
 
+// TestBoundedEvictRemoteDeletes checks that a pass drops nothing and fetches
+// nothing while a remote delete path is enabled, names the path, and drops
+// again once the path is off. A pack it verified could otherwise be deleted
+// by compaction or reclaim after its local values were gone.
+func TestBoundedEvictRemoteDeletes(t *testing.T) {
+	e := newBoundEnv(t, 8, 4)
+	budget := &EvictBudget{ID: "b1", Bytes: 1 << 20}
+	e.deletes = "compaction"
+	result := e.evict(t, budget, 1<<30)
+	if result.Evicted != 0 || result.Halted != "compaction" || e.held(t) != len(e.refs) {
+		t.Fatalf("pass = %+v, held %d of %d; want nothing dropped, halted on compaction", result, e.held(t), len(e.refs))
+	}
+	if len(e.packs.fetches) != 0 {
+		t.Fatalf("fetched %v while a delete path was enabled", e.packs.fetches)
+	}
+
+	// With the path off, the same budget drops.
+	e.deletes = ""
+	if result := e.evict(t, budget, 1<<30); result.Evicted != len(e.refs) || result.Halted != "" {
+		t.Fatalf("pass after the path is off = %+v, want every block dropped", result)
+	}
+}
+
+// TestBoundedEvictTwoPacks checks a value held in two packs whose local index
+// names the second: fetching the first proves nothing about the copy reads
+// use, so the value does not drop ahead of its entry, and when the indexed
+// pack fails it stays held.
+func TestBoundedEvictTwoPacks(t *testing.T) {
+	e := newBoundEnv(t, 5, 4)
+	b4 := e.refs[4]
+	e.packs.packs["p0"] = append(e.packs.packs["p0"], b4)
+	e.packs.index[b4.GetHash().MarshalString()] = "p1"
+	e.packs.lie["p1"] = "missing"
+	result := e.evict(t, &EvictBudget{ID: "b1", Bytes: 1 << 20}, 1<<30)
+	held, err := e.s.values.GetBlockExistsBatch(t.Context(), e.refs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, ok := range held {
+		if want := i == 4; ok != want {
+			t.Fatalf("block %d held=%v after %+v; want only block 4 held", i, ok, result)
+		}
+	}
+	if e.packs.fetches["p1"] != 1 {
+		t.Fatalf("indexed pack fetched %d times, want once", e.packs.fetches["p1"])
+	}
+}
+
+// sliceValues records the largest tombstone write.
+type sliceValues struct {
+	block.StoreOps
+	largest int
+}
+
+// PutBlockBatch records the size of a tombstone batch.
+func (v *sliceValues) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	if len(entries) != 0 && entries[0].Tombstone {
+		v.largest = max(v.largest, len(entries))
+	}
+	return v.StoreOps.PutBlockBatch(ctx, entries)
+}
+
+// TestBoundedEvictSlices checks that a pack holding more droppable values
+// than the batch limit is tombstoned in writes of at most the limit, and that
+// every value still drops.
+func TestBoundedEvictSlices(t *testing.T) {
+	const limit = 2
+	SetEvictBatch(EvictBatch{MinBlocks: limit, MaxBlocks: limit})
+	t.Cleanup(func() { SetEvictBatch(EvictBatch{}) })
+	e := newBoundEnv(t, 8, 8)
+	values := &sliceValues{StoreOps: e.s.values}
+	e.s.values = values
+	result := e.evict(t, &EvictBudget{ID: "b1", Bytes: 1 << 20}, 1<<30)
+	if result.Evicted != 8 || e.held(t) != 0 {
+		t.Fatalf("pass = %+v, held %d; want all 8 dropped", result, e.held(t))
+	}
+	if values.largest == 0 || values.largest > limit {
+		t.Fatalf("largest tombstone write = %d, want 1 to %d", values.largest, limit)
+	}
+}
+
 // crashValues fails the drop write after storing it, as a crash between the
 // tombstones and the queue commit leaves the store.
 type crashValues struct {
@@ -229,7 +328,7 @@ func TestBoundedEvictCrashAtBudget(t *testing.T) {
 	budget := &EvictBudget{ID: "b1", Bytes: 4 * e.size}
 	values := &crashValues{StoreOps: e.s.values, crash: true}
 	e.s.values = values
-	if _, err := e.s.EvictBounded(t.Context(), EvictBound{Budget: staticBudget(budget), Verifier: e.packs}, 1<<30, nil, nil); err == nil {
+	if _, err := e.s.EvictBounded(t.Context(), e.bound(budget), 1<<30, nil, nil); err == nil {
 		t.Fatal("pass did not fail on the crash")
 	}
 	crashed := len(e.refs) - e.held(t)

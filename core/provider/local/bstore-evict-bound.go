@@ -64,6 +64,26 @@ type packVerifyStore interface {
 	LocatePacks(ctx context.Context, hashes []*hash.Hash) ([]block_store_s3.PackLocation, error)
 	// VerifyPack fetches pack id whole from the bucket and verifies it.
 	VerifyPack(ctx context.Context, id string, size int64) ([]block_store_s3.VerifiedValue, error)
+	// KeepsBlocks reports that the store runs neither compaction nor
+	// reclaim, the two paths by which it deletes its own packs.
+	KeepsBlocks() bool
+}
+
+// evictHaltCompaction names the remote delete path of a pack store that does
+// not keep its packs.
+const evictHaltCompaction = "pack compaction and reclaim"
+
+// remoteDeletes names the delete path enabled on store that could remove a
+// pack a bounded pass verified, or returns "".
+//
+// It sees the store's own compaction and reclaim. A remote delete that runs
+// outside the store, through its own object client, is not visible here and
+// must be off for the run by configuration.
+func remoteDeletes(store packVerifyStore) string {
+	if !store.KeepsBlocks() {
+		return evictHaltCompaction
+	}
+	return ""
 }
 
 // packVerifier adapts a packVerifyStore to the writeback verifier.
@@ -110,11 +130,16 @@ func (v packVerifier) VerifyPack(ctx context.Context, id string, size int64) ([]
 }
 
 // evictBound returns the bound of a pass to remote, and false when remote
-// cannot fetch and verify its packs, so a bounded process drops nothing.
+// cannot fetch and verify its packs, so a bounded process drops nothing. A
+// pass under the bound drops nothing while remote deletes its own packs.
 func evictBound(remote backendStore) (block_store_writeback.EvictBound, bool) {
 	store, ok := remote.(packVerifyStore)
 	if !ok {
 		return block_store_writeback.EvictBound{}, false
 	}
-	return block_store_writeback.EvictBound{Budget: readEvictBudget, Verifier: packVerifier{store: store}}, true
+	return block_store_writeback.EvictBound{
+		Budget:        readEvictBudget,
+		Verifier:      packVerifier{store: store},
+		RemoteDeletes: func() string { return remoteDeletes(store) },
+	}, true
 }

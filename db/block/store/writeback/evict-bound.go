@@ -27,6 +27,12 @@ import (
 //   - SameIdNoRefill: a seen id's bytes left are min(left, the budget's
 //     bytes) at each batch, so rewriting the budget with the same id never
 //     raises them; only a new id grants new bytes.
+//
+// Two rules sit outside the model. A dropped value's only copy is its pack,
+// so the pass drops nothing while EvictBound.RemoteDeletes names a delete
+// path that could remove a verified pack. And a value of the fetched pack
+// with no entry in the batch drops ahead only when the local index places it
+// in that pack, since a read follows the index to the pack it names.
 
 // Persisted bounded-eviction keys of the meta store.
 const (
@@ -43,9 +49,9 @@ const (
 	evictDroppedCountKey = "evict-dropped-count"
 )
 
-// ErrEvictUnbounded is returned by EvictBounded without a budget source or a
-// verifier.
-var ErrEvictUnbounded = errors.New("bounded eviction needs a budget and a verifier")
+// ErrEvictUnbounded is returned by EvictBounded without a budget source, a
+// verifier or a remote delete check.
+var ErrEvictUnbounded = errors.New("bounded eviction needs a budget, a verifier and a remote delete check")
 
 // EvictVerifier fetches and verifies the remote's packs for a bounded pass.
 type EvictVerifier interface {
@@ -68,6 +74,11 @@ type EvictBound struct {
 	Budget func() (EvictBudget, bool)
 	// Verifier fetches and verifies the remote's packs.
 	Verifier EvictVerifier
+	// RemoteDeletes names a delete path enabled in the process that could
+	// remove a verified pack from the remote, such as compaction or reclaim,
+	// or returns "" when none is. It is read at the start of the pass and
+	// before each pack; while it names one, nothing drops.
+	RemoteDeletes func() string
 }
 
 // evictDroppedKey returns the evict-dropped key of a block.
@@ -101,13 +112,16 @@ func setInt(ctx context.Context, tx kvtx.Tx, key []byte, n int64) error {
 // every value, as EvictVerifier.VerifyPack describes; tombstones the pack's
 // values that are held locally, have no upload marker and are not kept, up
 // to the reservation, including values whose queue entries lie outside the
-// batch; then, in one commit, deletes the batch's dropped entries, records
-// each value dropped ahead of its entry, moves the entries it did not drop to
-// the new epoch, corrects evictable-bytes and returns the unspent
-// reservation. A pack that fails verification drops nothing; its entries
+// batch when the local index places them in the pack, in writes of at most
+// the adaptive batch limit; then, in one commit, deletes the batch's dropped
+// entries, records each value dropped ahead of its entry, moves the entries
+// it did not drop to the new epoch, corrects evictable-bytes and returns the
+// unspent reservation. A pack that fails verification drops nothing; its entries
 // move to the new epoch and the pack is skipped for the rest of the pass, so
 // a bad oldest pack cannot hold the walk. An entry whose value is already
-// gone is deleted, without charging the budget or counting as evicted.
+// gone is deleted, without charging the budget or counting as evicted. While
+// bound.RemoteDeletes names a delete path, the pass drops nothing and sets the
+// result's Halted.
 func (s *Store) EvictBounded(
 	ctx context.Context,
 	bound EvictBound,
@@ -118,7 +132,7 @@ func (s *Store) EvictBounded(
 	// Refuse a pass without a budget source or a verifier, and commit
 	// ordered in the background.
 	var result EvictResult
-	if bound.Budget == nil || bound.Verifier == nil {
+	if bound.Budget == nil || bound.Verifier == nil || bound.RemoteDeletes == nil {
 		return result, ErrEvictUnbounded
 	}
 	ctx = kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(ctx))
@@ -129,6 +143,13 @@ func (s *Store) EvictBounded(
 		return result, err
 	}
 	defer release()
+
+	// End before any write while a remote delete could remove a verified
+	// pack.
+	if path := bound.RemoteDeletes(); path != "" {
+		result.Halted = path
+		return result, nil
+	}
 
 	// End before any write without a budget.
 	if budget, ok := bound.Budget(); !ok || !budget.valid() {
@@ -319,6 +340,12 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 		return true, nil
 	}
 
+	// Drop nothing once a remote delete could remove a verified pack.
+	if path := p.bound.RemoteDeletes(); path != "" {
+		p.result.Halted = path
+		return true, nil
+	}
+
 	// Reserve up to the pack's recorded size of the bytes left, before any
 	// tombstone.
 	budgetKey := []byte(evictBudgetPrefix + budget.ID)
@@ -377,7 +404,7 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 	}
 
 	// Collect the candidates: the group's entries the pack holds, then the
-	// rest of the pack's values.
+	// rest of the pack's values that the local index places in it.
 	refused := make(map[string]int64)
 	type candidate struct {
 		hash  *hash.Hash
@@ -397,9 +424,27 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 		}
 		cands = append(cands, candidate{hash: batch[i].hash, size: vs, entry: i})
 	}
+	var rest []EvictVerifiedValue
 	for _, v := range values {
 		if !inGroup[v.Hash.MarshalString()] {
-			cands = append(cands, candidate{hash: v.Hash, size: v.Size, entry: -1})
+			rest = append(rest, v)
+		}
+	}
+	if len(rest) != 0 {
+		// A value also held in another pack reads through the one its index
+		// row names, which this fetch did not prove.
+		rhashes := make([]*hash.Hash, len(rest))
+		for i, v := range rest {
+			rhashes[i] = v.Hash
+		}
+		rlocs, err := p.bound.Verifier.LocatePacks(ctx, rhashes)
+		if err != nil {
+			return false, errors.Wrap(err, "locate remote packs")
+		}
+		for i, v := range rest {
+			if rlocs[i].ID == id {
+				cands = append(cands, candidate{hash: v.Hash, size: v.Size, entry: -1})
+			}
 		}
 	}
 
@@ -459,21 +504,26 @@ func (p *boundPass) pack(ctx context.Context, batch []evictEntry, group []int, i
 	}
 	p.result.Refused += countRefused(refused)
 
-	// Tombstone the values in one write, timed for the next batch's limit.
+	// Tombstone the values in writes of at most the adaptive limit, each
+	// timed for the next, so no background write holds a whole pack.
 	if len(drop) != 0 {
-		bounds := loadEvictBatch()
-		limit := bounds.clamp(s.evictLimit)
-		var took time.Duration
-		err := retryBusy(ctx, func() error {
-			start := time.Now()
-			_, err := s.values.PutBlockBatch(ctx, drop)
-			took = time.Since(start)
-			return err
-		})
-		if err != nil {
-			return false, errors.Wrap(err, "evict blocks")
+		for rest := drop; len(rest) != 0; {
+			bounds := loadEvictBatch()
+			limit := bounds.clamp(s.evictLimit)
+			slice := rest[:min(limit, len(rest))]
+			var took time.Duration
+			err := retryBusy(ctx, func() error {
+				start := time.Now()
+				_, err := s.values.PutBlockBatch(ctx, slice)
+				took = time.Since(start)
+				return err
+			})
+			if err != nil {
+				return false, errors.Wrap(err, "evict blocks")
+			}
+			s.evictLimit = nextEvictLimit(bounds, limit, len(slice), took)
+			rest = rest[len(slice):]
 		}
-		s.evictLimit = nextEvictLimit(bounds, limit, len(drop), took)
 		p.result.Evicted += len(drop)
 		p.result.EvictedBytes += spent
 	}
