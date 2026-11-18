@@ -98,7 +98,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 				Usage:       "serve other sessions of the account over UDP on this host:port; disables idle shutdown unless --idle-timeout is set",
 				Destination: &udpListen,
 			},
-		}, frees.BuildFlags()...),
+		}, append(frees.BuildFlags(), serveColdPackFlags()...)...),
 		Action: func(c *cli.Context) (retErr error) {
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
 				return runServeCommand(
@@ -203,10 +203,22 @@ func runServeCommand(
 		}
 	}()
 
-	// Transfer lease cleanup to the bus only after writable construction succeeds.
+	// Register the cold configuration before the bus starts the local provider.
+	releaseColdPacks, err := configureServeColdPacks(c)
+	if err != nil {
+		return err
+	}
+
+	// Transfer lease and cold configuration cleanup after bus construction.
 	cliBus := getBus()
 	if cliBus == nil {
+		if releaseColdPacks != nil {
+			releaseColdPacks()
+		}
 		return errors.New("bus not initialized")
+	}
+	if releaseColdPacks != nil {
+		cliBus.AddRelease(releaseColdPacks)
 	}
 	le := cliBus.GetLogger()
 	cliBus.AddRelease(func() {
@@ -231,6 +243,9 @@ func runServeCommand(
 	// Native core runs on the CLI bus; Dist core runs in the spacewave-core
 	// plugin process.
 	nativeCore := cliBus.GetPluginHostObjectKey() == ""
+	if releaseColdPacks != nil && !nativeCore {
+		return errors.New("cold packs require a native core in the same process as the Unix control socket")
+	}
 	invoker := newDaemonResourceInvoker(cliBus.GetBus())
 	if nativeCore {
 		var invokerRef directive.Reference
@@ -424,6 +439,11 @@ func runServeCommand(
 	}
 	if err := mux.Register(newDevicePolicyControlHandler(devicePolicy.Reload)); err != nil {
 		return err
+	}
+	if releaseColdPacks != nil {
+		if err := mux.Register(coldPackControlHandler{}); err != nil {
+			return err
+		}
 	}
 	if err := s4wave_trace.SRPCRegisterTraceService(mux, trace_service.NewService()); err != nil {
 		return err

@@ -36,6 +36,7 @@ func newDebugCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newDebugVolumePackIndexCommand(),
 			newDebugVolumePackIndexMergeCommand(),
 			newDebugVolumeUnpackedCommand(),
+			newDebugColdPacksCommand(),
 			newDebugFTPSSmokeCommand(),
 			newDebugVolumeSwitchCommand(),
 			newDebugPayloadRestoreCommand(),

@@ -184,10 +184,11 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 	if err != nil {
 		return err
 	}
-	bucket, err := tkr.openBackendStore(ctx, backend)
+	opened, err := tkr.openBackendStore(ctx, backend)
 	if err != nil {
 		return errors.Wrap(err, "open storage backend")
 	}
+	bucket := opened.store
 	defer bucket.Close()
 
 	// Read through the backend and peers, then list the blocks to fetch.

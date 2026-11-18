@@ -98,6 +98,26 @@ func TestAdoptPack(t *testing.T) {
 	}
 }
 
+// TestColdManifestRejectsKeyDisagreement checks the offline equivalent of an
+// adoption report: a valid bloom and matching count cannot authenticate a
+// different set of exported keys, and a truncated stream cannot publish.
+func TestColdManifestRejectsKeyDisagreement(t *testing.T) {
+	// Build a real pack whose all-ones bloom cannot reject any candidate.
+	v := coldValues(t, 3)
+	f := newColdFixture(t)
+	f.addPack(t, []coldValue{v[0], v[2]}, true)
+	f.manifest(t)
+
+	// A key inside the interval and accepted by the bloom still needs the tail.
+	bad := [][]byte{f.keys[0], packfile.BlockKey(v[1].ref.GetHash())}
+	if _, err := BuildColdPackManifest(t.Context(), f.root, coldTestKeys(bad)); err == nil {
+		t.Fatal("manifest accepted a same-count, same-interval bloom collision")
+	}
+	if _, err := BuildColdPackManifest(t.Context(), f.root, coldTestKeys(f.keys[:1])); err == nil {
+		t.Fatal("manifest accepted an incomplete export key stream")
+	}
+}
+
 // countingCache is a RangeCache that answers data, counting its reads.
 type countingCache struct {
 	data  func(id string, off int64, length int) ([]byte, bool)

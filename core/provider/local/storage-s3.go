@@ -35,11 +35,14 @@ func buildS3BlockStore(
 	blockStoreID string,
 	creds *block_store_s3.Credentials,
 	index kvtx.Store,
-) (backendStore, error) {
+) (*block_store_s3.PackStore, *block_store_s3.Client, error) {
+	// Build the signer shared by the hot store and its optional cold reader.
 	client, err := buildS3Client(location, creds)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+
+	// Bind the hot store to its own object prefix and pack index.
 	return block_store_s3.NewPackStore(le, client, location.GetBucket(), location.BlockStorePrefix(blockStoreID), &block_store_s3.PackStoreOptions{
 		Pricing:   location.GetPricing(),
 		KeepPacks: location.GetKeepPacks(),
@@ -49,7 +52,7 @@ func buildS3BlockStore(
 		MaxPackBytes:  int64(location.GetMaxPackBytes()), //nolint:gosec // see above.
 		Linger:        time.Duration(location.GetLingerSeconds()) * time.Second,
 		ReadOnlyIndex: serveOnly.Load(),
-	}), nil
+	}), client, nil
 }
 
 // deleteS3BlockStore deletes the block store's objects from the location's

@@ -216,6 +216,8 @@ type openBackend struct {
 	backend *account_settings.StorageBackend
 	// store is the block store on the backend's bucket.
 	store backendStore
+	// s3 is the bucket's range reader when the backend is S3.
+	s3 *block_store_s3.Client
 }
 
 // runUpload uploads the store's queued blocks, and the finalized packs drain
@@ -237,18 +239,18 @@ func (t *bstoreTracker) runUpload(
 	// Reopen the backend store when the placement changed.
 	remote := t.remote.Load()
 	if remote == nil || !remote.backend.EqualVT(backend) {
-		store, err := t.openBackendStore(ctx, backend)
+		opened, err := t.openBackendStore(ctx, backend)
 		if err != nil {
 			wb.SetError(err)
 			return err
 		}
-		remote = &openBackend{backend: backend, store: store}
+		remote = opened
 		t.swapRemote(remote)
 
 		// Read the store's packfile entries now, so the first read it serves
 		// after a start, often a commit holding the World writer, does not
 		// wait behind a cold read of them. A failed load retries on that read.
-		if pre, ok := store.(preloader); ok {
+		if pre, ok := remote.store.(preloader); ok {
 			go func() {
 				if err := pre.Preload(ctx); err != nil && ctx.Err() == nil {
 					t.a.le.WithError(err).Warn("unable to preload the backend's packfile entries")
@@ -314,27 +316,39 @@ func (t *bstoreTracker) runDrain(ctx context.Context, drain *packahead.Drain, re
 func (t *bstoreTracker) openBackendStore(
 	ctx context.Context,
 	backend *account_settings.StorageBackend,
-) (backendStore, error) {
+) (*openBackend, error) {
 	// An FTPS server logs in from its netrc file and has no credential Secret.
 	le := t.a.le.WithField("bstore-id", t.id)
 	if location := backend.GetFtps(); location != nil {
-		return buildFTPSBlockStore(le, location, nil, t.packIndexStore(), t.nodeReads())
+		store, err := buildFTPSBlockStore(le, location, nil, t.packIndexStore(), t.nodeReads())
+		if err != nil {
+			return nil, err
+		}
+		return &openBackend{backend: backend, store: store}, nil
 	}
 
-	// Open the backend's bucket with its credential Secret.
+	// Read the credentials of the placed S3 or SQL backend.
 	creds, err := t.a.ReadStorageCredentials(ctx, backend)
 	if err != nil {
 		return nil, err
 	}
+
+	// SQL needs no ranged-object reader.
 	if location := backend.GetSql(); location != nil {
-		return buildSQLBlockStore(ctx, le, location, t.id, creds)
+		store, err := buildSQLBlockStore(ctx, le, location, t.id, creds)
+		if err != nil {
+			return nil, err
+		}
+		return &openBackend{backend: backend, store: store}, nil
 	}
-	store, err := buildS3BlockStore(le, backend.GetS3(), t.id, creds, t.packIndexStore())
+
+	// Share the open S3 client with the optional cold tier on this placement.
+	store, client, err := buildS3BlockStore(le, backend.GetS3(), t.id, creds, t.packIndexStore())
 	if err != nil {
 		return nil, err
 	}
 	t.fillWindows(store)
-	return store, nil
+	return &openBackend{backend: backend, store: store, s3: client}, nil
 }
 
 // openFallbackStore opens the SQL backend the store reads after its own

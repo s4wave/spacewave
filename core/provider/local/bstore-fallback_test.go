@@ -236,7 +236,7 @@ func (f *fallbackTest) openPacks() backendStore {
 	if f.open != nil {
 		return f.open()
 	}
-	store, err := buildS3BlockStore(logrus.NewEntry(logrus.New()), &account_settings.S3Location{
+	store, _, err := buildS3BlockStore(logrus.NewEntry(logrus.New()), &account_settings.S3Location{
 		Endpoint:   strings.TrimPrefix(f.srv.URL, "http://"),
 		Region:     "us-east-1",
 		Bucket:     "spaces",

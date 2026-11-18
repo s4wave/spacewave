@@ -51,9 +51,9 @@ func (b *fillBudget) give(n int) {
 }
 
 // readChains builds the read paths of a placed store: reads serve the blocks of
-// the local store, then the backend's packs, then the read fallback if any,
-// then peers. The copy path serves the same sources without filling the local
-// store.
+// the local store, then the backend's packs, then cold packs, SQL, and peers
+// when those sources are available. Copies use the same lower tiers without
+// filling the local store.
 //
 // Each source fills the local store with its own function. A block read from
 // the backend refills the disk without a marker, as the backend holds it. A
@@ -81,7 +81,7 @@ func (p *placementState) readChains(
 	peers = p.peerDecoded(peers)
 
 	// Read the backend and then peers when the placement has no fallback.
-	if fallback == nil {
+	if fallback == nil && p.cold == nil {
 		lower := block_store.NewStoreReadThrough(remote, peers, nil)
 		if p.cache != nil || p.peerUpload {
 			packs := p.packReads(recorded, remote)
@@ -105,25 +105,33 @@ func (p *placementState) readChains(
 		return reads, copies
 	}
 
-	// Read the local store, then the backend, then the fallback, then peers.
-	// The fallback is read only: nothing writes SQL in this mode.
-	fallback = block.NewReadOnlyStore(fallback)
+	// Keep the legacy backend path when the placement had no SQL or peer
+	// upload policy and did not route reads through a fill cache.
 	packs := p.packReads(recorded, remote)
-	withFallback := &fallbackReads{StoreOps: packs, fallback: fallback, fills: &p.fallbackFills, fill: p.fillFromFallback}
+	if fallback == nil && p.cache == nil && !p.peerUpload {
+		packs = p.packReadsBehind(recorded, remote)
+	}
+
+	// Cold hits must bypass both the backend and the SQL migration fill.
+	primary := p.withColdPacks(packs)
+	if fallback != nil {
+		primary = &fallbackReads{
+			StoreOps: primary,
+			fallback: block.NewReadOnlyStore(fallback),
+			fills:    &p.fallbackFills,
+			fill:     p.fillFromFallback,
+		}
+	}
 	reads = block_store.NewStoreReadThrough(
-		func() block.StoreOps { return withFallback },
+		func() block.StoreOps { return primary },
 		peers,
 		p.peerFill(recorded),
 	)
 
-	// Copies read the same sources and write nothing.
-	copyPacks := block_store.NewStoreReadThrough(
-		func() block.StoreOps { return local },
-		remote,
-		nil,
-	)
+	// Copies use the same lower tiers as serving, with peers last.
+	copyPrimary := p.serveReads(local, remote, fallback)
 	copies = block_store.NewStoreReadThrough(
-		func() block.StoreOps { return &fallbackReads{StoreOps: copyPacks, fallback: fallback} },
+		func() block.StoreOps { return copyPrimary },
 		peers,
 		nil,
 	)
@@ -131,19 +139,30 @@ func (p *placementState) readChains(
 }
 
 // serveReads builds the reads that answer a peer's request for a block: the
-// local store, the backend, then the read fallback. They never ask peers, so
+// local store, the backend, cold packs, then SQL. They never ask peers, so
 // two backends that read each other cannot ask in a loop, and they fill
 // nothing, so serving a peer adds nothing to the local store.
 func (p *placementState) serveReads(local block.StoreOps, remote block_store.StoreSource, fallback block.StoreOps) block.StoreOps {
-	reads := block_store.NewStoreReadThrough(
+	// Serve resident and backend blocks before consulting cold packs.
+	reads := p.withColdPacks(block_store.NewStoreReadThrough(
 		func() block.StoreOps { return local },
 		remote,
 		nil,
-	)
+	))
+
+	// Serve legacy SQL blocks last without starting migration fills.
 	if fallback == nil {
 		return reads
 	}
 	return &fallbackReads{StoreOps: reads, fallback: block.NewReadOnlyStore(fallback)}
+}
+
+// withColdPacks adds the cold read-only tier without scheduling any fill.
+func (p *placementState) withColdPacks(primary block.StoreOps) block.StoreOps {
+	if p.cold == nil {
+		return primary
+	}
+	return &fallbackReads{StoreOps: primary, fallback: p.cold}
 }
 
 // packReads builds the reads of the local store over the backend. With a fill
