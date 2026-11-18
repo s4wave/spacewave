@@ -347,9 +347,7 @@ func (p *coldPromotions) appendBatch(f *os.File, first coldPromotion) error {
 
 	// Publish only records from the durable batch under a bounded map update.
 	p.mtx.Lock()
-	for key, rec := range admitted {
-		p.records[key] = rec
-	}
+	maps.Copy(p.records, admitted)
 	p.mtx.Unlock()
 	p.store.stats.promotedKeys.Add(uint64(len(admitted)))
 	p.store.stats.lastNewKeyUnix.Store(time.Now().Unix())
