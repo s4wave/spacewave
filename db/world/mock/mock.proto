@@ -2,6 +2,8 @@ syntax = "proto3";
 package world.mock;
 
 import "github.com/aperturerobotics/common/typeid/typeid.proto";
+import "github.com/s4wave/spacewave/db/world/world.proto";
+import "google/protobuf/timestamp.proto";
 
 // MockObjectOp is a mock object operation.
 message MockObjectOp {
@@ -19,4 +21,43 @@ message MockWorldOp {
   string object_key = 1;
   // NextMsg sets the next message on the mock object.
   string next_msg = 2;
+}
+
+// MockRefRecord is a mock record declaring World references in scalar,
+// repeated, unindexed and nested fields, and a time span.
+message MockRefRecord {
+  option (world.span) = {
+    start: "created_at"
+    end: "ended_at"
+  };
+
+  // ParentKey is the object key of the record's parent.
+  string parent_key = 1 [(world.ref) = {
+    predicate: "mock/parent"
+    index: true
+  }];
+  // InputKeys are the object keys of the record's inputs.
+  repeated string input_keys = 2 [(world.ref) = {
+    predicate: "mock/input"
+    index: true
+  }];
+  // NoteKey is the object key of a note the record mentions without an index.
+  string note_key = 3 [(world.ref) = {predicate: "mock/note"}];
+  // Source is the record's nested source reference.
+  MockRefSource source = 4;
+  // Steps are the record's nested step references.
+  repeated MockRefSource steps = 5;
+  // CreatedAt is when the record's span begins, in RFC 3339.
+  string created_at = 6;
+  // EndedAt is when the record's span ends.
+  google.protobuf.Timestamp ended_at = 7;
+}
+
+// MockRefSource is a mock nested message declaring one World reference.
+message MockRefSource {
+  // ObjectKey is the object key of the source.
+  string object_key = 1 [(world.ref) = {
+    predicate: "mock/source"
+    index: true
+  }];
 }

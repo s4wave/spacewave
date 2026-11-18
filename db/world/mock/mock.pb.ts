@@ -4,6 +4,7 @@
 
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
  * MockObjectOp is a mock object operation.
@@ -46,4 +47,73 @@ export const MockWorldOp: MessageType<MockWorldOp> =
       [1, 'object_key', 9],
       [2, 'next_msg', 9],
     ],
+  )
+
+/**
+ * MockRefRecord is a mock record declaring World references in scalar,
+ * repeated, unindexed and nested fields, and a time span.
+ *
+ * @generated from message world.mock.MockRefRecord
+ */
+export interface MockRefRecord {
+  /**
+   * ParentKey is the object key of the record's parent.
+   */
+  parentKey?: string
+  /**
+   * InputKeys are the object keys of the record's inputs.
+   */
+  inputKeys?: string[]
+  /**
+   * NoteKey is the object key of a note the record mentions without an index.
+   */
+  noteKey?: string
+  /**
+   * Source is the record's nested source reference.
+   */
+  source?: MockRefSource
+  /**
+   * Steps are the record's nested step references.
+   */
+  steps?: MockRefSource[]
+  /**
+   * CreatedAt is when the record's span begins, in RFC 3339.
+   */
+  createdAt?: string
+  /**
+   * EndedAt is when the record's span ends.
+   */
+  endedAt?: Date
+}
+
+export const MockRefRecord: MessageType<MockRefRecord> =
+  /* @__PURE__ */ createMessageType<MockRefRecord>(
+    'world.mock.MockRefRecord',
+    () => [
+      [1, 'parent_key', 9],
+      [2, 'input_keys', 9, 1],
+      [3, 'note_key', 9],
+      [4, 'source', 11, 0, MockRefSource.codec],
+      [5, 'steps', 11, 1, MockRefSource.codec],
+      [6, 'created_at', 9],
+      [7, 'ended_at', 11, 0, Timestamp.codec],
+    ],
+  )
+
+/**
+ * MockRefSource is a mock nested message declaring one World reference.
+ *
+ * @generated from message world.mock.MockRefSource
+ */
+export interface MockRefSource {
+  /**
+   * ObjectKey is the object key of the source.
+   */
+  objectKey?: string
+}
+
+export const MockRefSource: MessageType<MockRefSource> =
+  /* @__PURE__ */ createMessageType<MockRefSource>(
+    'world.mock.MockRefSource',
+    () => [[1, 'object_key', 9]],
   )

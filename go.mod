@@ -30,7 +30,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20261110052155-7ec2cb5f95c8
 	github.com/aperturerobotics/cli v1.1.1-0.20261024231437-afc764ba6d68 // master
-	github.com/aperturerobotics/common v0.38.4
+	github.com/aperturerobotics/common v0.38.5-0.20261118104114-901df9924d58
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20261117003208-0c6288548094 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20261024231300-09c82549af7a
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -59,7 +59,7 @@ require (
 	github.com/fclairamb/ftpserverlib v0.32.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261109134749-d67c9b5cfb14 // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261117095651-f203aa913cca // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261118101444-8a683b30129e // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.12.0
 	github.com/gomodule/redigo v2.0.0+incompatible
@@ -103,14 +103,14 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	github.com/zeebo/blake3 v0.2.4
 	go.starlark.net v0.0.0-20261021141710-4f4267fb140d
-	golang.org/x/crypto v0.58.0
+	golang.org/x/crypto v0.59.0
 	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
 	golang.org/x/mod v0.43.0 // latest
-	golang.org/x/sync v0.24.0
+	golang.org/x/sync v0.25.0
 	golang.org/x/sys v0.50.0
-	golang.org/x/term v0.47.0
+	golang.org/x/term v0.48.0
 	golang.org/x/time v0.16.0
-	golang.org/x/tools v0.52.0 // latest
+	golang.org/x/tools v0.53.0 // latest
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
@@ -190,9 +190,9 @@ require (
 	go.opentelemetry.io/otel v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/net v0.61.0 // indirect
-	golang.org/x/telemetry v0.0.0-20261009151841-97e8ea77aa2a // indirect
-	golang.org/x/text v0.43.0 // indirect
+	golang.org/x/net v0.63.0 // indirect
+	golang.org/x/telemetry v0.0.0-20261116191925-e77a43154acb // indirect
+	golang.org/x/text v0.44.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
