@@ -118,7 +118,7 @@ func TestRenderFullBootShell(t *testing.T) {
 	// Render the shell for a full listener.
 	metadata := &webListenerReleaseBootMetadata{importMapScript: `<script type="importmap">{"imports":{}}</script>`}
 	spec := &webListenSpec{full: true}
-	shell, err := renderWebListenerBootShell(metadata, spec, "/b/pa/spacewave-app/manifest/root/v/b/fe/", "/b/pa/spacewave-web/manifest/web-root/pkgs/")
+	shell, err := renderWebListenerBootShell(metadata, spec, "/b/pa/spacewave-app/manifest/root/v/b/fe/", "/b/pa/spacewave-web/manifest/web-root/pkgs/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

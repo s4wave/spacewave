@@ -512,10 +512,27 @@ func holdBoundAssets(ctx context.Context, b bus.Bus) (*boundAssets, error) {
 	return assets, nil
 }
 
+// webPkgListAttempts bounds how many times a canceled listing is retried.
+const webPkgListAttempts = 3
+
 // listWebPkgIDs lists the web packages in a mounted assets artifact: each
 // entry of its web packages directory, and each entry of a scope directory
 // such as @pierre. An artifact without the directory holds no packages.
+//
+// The assets filesystem's tracker can restart while a listing reads, which
+// cancels the open handle. A fresh access resolves the restarted filesystem,
+// so a canceled read is retried while ctx is live.
 func listWebPkgIDs(ctx context.Context, b bus.Bus, artifactID string) ([]string, error) {
+	for attempt := 1; ; attempt++ {
+		pkgIDs, err := readWebPkgIDs(ctx, b, artifactID)
+		if err == nil || ctx.Err() != nil || !errors.Is(err, context.Canceled) || attempt == webPkgListAttempts {
+			return pkgIDs, err
+		}
+	}
+}
+
+// readWebPkgIDs reads the package IDs of one access to the assets filesystem.
+func readWebPkgIDs(ctx context.Context, b bus.Bus, artifactID string) ([]string, error) {
 	// Open the artifact's assets filesystem while its mount is held.
 	access, accessRef, err := unixfs_access.ExAccessUnixFS(ctx, b, bldr_plugin.PluginAssetsFsId(artifactID), true, nil)
 	if err != nil {
@@ -720,7 +737,7 @@ func (l *webListener) serveBootShell(rw http.ResponseWriter, req *http.Request) 
 	}
 
 	// Render and serve the local bootstrap shell.
-	shell, err := renderWebListenerBootShell(metadata, l.spec, l.appFrontendPath, l.webPkgBasePath)
+	shell, err := renderWebListenerBootShell(metadata, l.spec, l.appFrontendPath, l.webPkgBasePath, l.webPkgBases)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -789,15 +806,26 @@ func webListenerReleaseBootMetadataFromHTML(html string) (*webListenerReleaseBoo
 // unregisters any service worker on the origin, such as one an unbound listener
 // on the same port left behind, which would answer the app's asset requests
 // with 503 for a WASM runtime that is not running.
-func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata, spec *webListenSpec, appFrontendPath, webPkgBasePath string) ([]byte, error) {
+func renderWebListenerBootShell(
+	metadata *webListenerReleaseBootMetadata,
+	spec *webListenSpec,
+	appFrontendPath, webPkgBasePath string,
+	pkgBases map[string]string,
+) ([]byte, error) {
 	// Bind package imports before the app loads any module. A bound app comes
 	// from the daemon's own build, which can import shared package modules the
 	// release lacks, so its map points every shared and emitted package at the
-	// pinned web packages instead of the release entrypoint.
+	// pinned web packages instead of the release entrypoint. A package another
+	// plugin holds, such as a code viewer's, gets its own longer prefix.
 	importMapScript := metadata.importMapScript
 	if webPkgBasePath != "" {
 		imports := web_pkg_external.BldrDistImportMap(webPkgBasePath)
 		imports["bldr-web-pkg/"] = webPkgBasePath
+		for pkgID, base := range pkgBases {
+			if base != webPkgBasePath {
+				imports["bldr-web-pkg/"+pkgID+"/"] = base + pkgID + "/"
+			}
+		}
 		importMapScript = "<script type=\"importmap\">" + web_entrypoint_index.ImportMap{Imports: imports}.String() + "</script>"
 	}
 

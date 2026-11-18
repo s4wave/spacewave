@@ -162,7 +162,9 @@ func TestRenderBoundBootShell(t *testing.T) {
 	// Render the shell for a listener bound to session 2 and one Space.
 	metadata := &webListenerReleaseBootMetadata{importMapScript: `<script type="importmap">{"imports":{"react":"/entrypoint/release/pkgs/react/index.mjs"}}</script>`}
 	spec := &webListenSpec{spaceID: "space/1", sessionIdx: 2}
-	shell, err := renderWebListenerBootShell(metadata, spec, "/b/pa/spacewave-app/manifest/root/v/b/fe/", "/b/pa/spacewave-web/manifest/web-root/pkgs/")
+	webBase := "/b/pa/spacewave-web/manifest/web-root/pkgs/"
+	pkgBases := map[string]string{"react": webBase, "@pierre/diffs": "/b/pa/spacewave-code/manifest/code-root/pkgs/"}
+	shell, err := renderWebListenerBootShell(metadata, spec, "/b/pa/spacewave-app/manifest/root/v/b/fe/", webBase, pkgBases)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,6 +175,7 @@ func TestRenderBoundBootShell(t *testing.T) {
 		`"/u/2/so/space%2F1"`,
 		`"/b/pa/spacewave-app/manifest/root/v/b/fe/"`,
 		`"bldr-web-pkg/":"/b/pa/spacewave-web/manifest/web-root/pkgs/"`,
+		`"bldr-web-pkg/@pierre/diffs/":"/b/pa/spacewave-code/manifest/code-root/pkgs/@pierre/diffs/"`,
 		`"react":"/b/pa/spacewave-web/manifest/web-root/pkgs/react/index.mjs"`,
 		`"react/jsx-runtime":"/b/pa/spacewave-web/manifest/web-root/pkgs/react/jsx-runtime.mjs"`,
 		`"@aptre/bldr-sdk/hooks/useSharedResource.js":"/b/pa/spacewave-web/manifest/web-root/pkgs/@aptre/bldr-sdk/hooks/useSharedResource.mjs"`,
@@ -184,6 +187,9 @@ func TestRenderBoundBootShell(t *testing.T) {
 		if !strings.Contains(text, want) {
 			t.Fatalf("bound boot shell missing %s: %s", want, text)
 		}
+	}
+	if strings.Contains(text, `"bldr-web-pkg/react/"`) {
+		t.Fatalf("bound boot shell should leave web packages under the web prefix: %s", text)
 	}
 	if strings.Contains(text, "/boot.mjs") {
 		t.Fatalf("bound boot shell should not start the WASM runtime: %s", text)
