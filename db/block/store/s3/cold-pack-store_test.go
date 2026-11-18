@@ -14,6 +14,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
@@ -303,6 +304,244 @@ func TestColdPackUnresolvedExistence(t *testing.T) {
 		t.Fatalf("fenced existence = %t, %v", yes, err)
 	}
 	assertColdBlock(t, s, v[2])
+}
+
+// TestColdPackMoveIsolation keeps two move ranges in flight and two queued
+// while foreground readers take the remaining slots or fail fast.
+func TestColdPackMoveIsolation(t *testing.T) {
+	// Use real writer bytes and a gated in-memory range reader so the scheduler
+	// can prove that a caller returned without any timer or range being released.
+	v := coldValues(t, 11)
+	f := newColdFixture(t)
+	key := f.addPack(t, v, false)
+	manifest := f.manifest(t)
+	raw := []byte(f.objects[key])
+
+	// Park every body request and advance only when all waiters are blocked.
+	synctest.Test(t, func(t *testing.T) {
+		// Load the tail before gating body I/O; nothing else reads the bucket.
+		ctx := t.Context()
+		release := make(chan struct{})
+		defer close(release)
+		var moves, users atomic.Int32
+		reader := coldRangeProbe(func(ctx context.Context, off int64, size int) ([]byte, error) {
+			// A tail GET for this small fixture covers the whole object.
+			if size != len(raw) {
+				if ctx.Value(coldMoveProbeKey{}) != nil {
+					moves.Add(1)
+				} else {
+					users.Add(1)
+				}
+				select {
+				case <-release:
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				}
+			}
+			return raw[off : off+int64(size)], nil
+		})
+		opts := f.opts
+		opts.PromotedLog = ""
+		s, err := NewColdPackStore(ctx, nil, reader, "bucket", opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(s.Close)
+		synctest.Wait()
+		catalog := s.catalog.Load()
+		if catalog == nil || len(manifest.Entries) != len(catalog.packs) {
+			t.Fatal("fixture manifest did not load")
+		}
+		if _, err := s.tails.read(ctx, catalog, 0, false); err != nil {
+			t.Fatal(err)
+		}
+
+		// Start four independent moves and verify only two enter the bucket.
+		moveCtx := context.WithValue(ctx, coldMoveProbeKey{}, true)
+		cancelCtx, cancel := context.WithCancel(moveCtx)
+		defer cancel()
+		movesDone := make(chan error, 4)
+		for i, value := range v[:4] {
+			go func() {
+				// The last caller has a cancellation independent of the move.
+				ctx := moveCtx
+				if i == 3 {
+					ctx = cancelCtx
+				}
+				_, err := s.GetStoredBlockForMove(ctx, value.ref)
+				movesDone <- err
+			}()
+		}
+		synctest.Wait()
+		if got := moves.Load(); got != 2 {
+			t.Errorf("moving ranges in flight = %d, want 2", got)
+		}
+
+		// Six later users must reach the bucket even with movers still waiting.
+		for _, value := range v[4:10] {
+			go func() { _, _ = s.GetStoredBlock(ctx, value.ref) }()
+		}
+		synctest.Wait()
+		if got := users.Load(); got != 6 {
+			t.Errorf("user ranges admitted behind moves = %d, want 6", got)
+		}
+
+		// A seventh user misses immediately, not after a held slot or deadline.
+		refused := make(chan bool, 1)
+		start := time.Now()
+		go func() {
+			stored, err := s.GetStoredBlock(ctx, v[10].ref)
+			refused <- stored == nil && err == nil
+		}()
+		synctest.Wait()
+		select {
+		case ok := <-refused:
+			if !ok || time.Since(start) != 0 {
+				t.Error("full demand lane did not report an immediate user miss")
+			}
+		default:
+			t.Error("user waited while the mover and all ranges were held")
+		}
+
+		// A canceled move is unresolved, not a successful skip.
+		cancel()
+		synctest.Wait()
+		select {
+		case err := <-movesDone:
+			if !errors.Is(err, block.ErrUnavailable) {
+				t.Errorf("canceled move = %v, want unavailable", err)
+			}
+		default:
+			t.Error("canceled move did not leave the permit wait")
+		}
+	})
+}
+
+// coldMoveProbeKey identifies a move's gated ranges without inspecting its refs.
+type coldMoveProbeKey struct{}
+
+// coldRangeProbe is an in-memory range reader for the scheduler test.
+type coldRangeProbe func(context.Context, int64, int) ([]byte, error)
+
+// GetColdPackRange returns a fixture range without an HTTP goroutine.
+func (r coldRangeProbe) GetColdPackRange(ctx context.Context, _, _ string, off int64, size int, _ uint64) ([]byte, []byte, error) {
+	// No whole-object proof is needed because the test reads and verifies bodies.
+	data, err := r(ctx, off, size)
+	return data, nil, err
+}
+
+// TestColdPackMoveKeepsUserTail holds a move after fetching a second tail.
+func TestColdPackMoveKeepsUserTail(t *testing.T) {
+	// The user budget fits either tail alone, but not both together.
+	v := coldValues(t, 2)
+	f := newColdFixture(t)
+	f.addPack(t, v[:1], false)
+	moveKey := f.addPack(t, v[1:], false)
+	m := f.manifest(t)
+	limit := max(coldTailCharge(m.Entries[0]), coldTailCharge(m.Entries[1]))
+	f.initBucket(t)
+
+	// Stall just the first moving body request, after its tail was loaded.
+	started, release := make(chan struct{}), make(chan struct{})
+	releaseMove := sync.OnceFunc(func() { close(release) })
+	defer releaseMove()
+	var gate sync.Once
+	f.reader.before = func(ctx context.Context, key string, _ int64, size int) {
+		if key == moveKey && size < int(m.Entries[1].Entry.SizeBytes) {
+			gate.Do(func() { close(started) })
+			select {
+			case <-release:
+			case <-ctx.Done():
+			}
+		}
+	}
+	s := f.open(t, func(opts *ColdPackOptions) {
+		opts.TailCacheBytes = int(limit)
+		opts.PromotedLog = ""
+	})
+	assertColdBlock(t, s, v[0])
+
+	// A user must still read through its old tail while the move is held.
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		_, err := s.GetStoredBlockForMove(ctx, v[1].ref)
+		done <- err
+	}()
+	awaitColdSignal(t, ctx, started)
+	before := s.Stats().TailFetches
+	assertColdBlock(t, s, v[0])
+	if got := s.Stats().TailFetches - before; got != 0 {
+		t.Fatalf("move evicted the user's tail: user read fetched %d more tails", got)
+	}
+
+	// Let the mover finish, then reuse its own tail without another tail GET.
+	releaseMove()
+	if err := awaitColdRead(t, ctx, done); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := s.GetStoredBlockForMove(ctx, v[1].ref)
+	if err != nil || !stored.GetRefsKnown() || !bytes.Equal(stored.GetData(), v[1].data) || s.Stats().TailFetches != before {
+		t.Fatalf("move did not reuse its verified tail: %v, %v, tails=%d", stored, err, s.Stats().TailFetches)
+	}
+}
+
+// TestColdPackTailFallbacks proves both raw-reader paths use full wire keys.
+func TestColdPackTailFallbacks(t *testing.T) {
+	t.Run("oversized", func(t *testing.T) {
+		// Put a real tail one charge byte above the resident budget.
+		v := coldValues(t, 1)[0]
+		f := newColdFixture(t)
+		f.addPack(t, []coldValue{v}, false)
+		m := f.manifest(t)
+		s := f.open(t, func(opts *ColdPackOptions) {
+			opts.TailCacheBytes = int(coldTailCharge(m.Entries[0])) - 1
+			opts.PromotedLog = ""
+		})
+		tail, err := s.tails.read(t.Context(), s.catalog.Load(), 0, false)
+		if tail == nil || err != nil || tail.reader == nil || tail.entries != nil || s.tails.get(0) != nil {
+			t.Fatalf("oversized tail not served through a transient raw reader: %v", err)
+		}
+
+		// A second body request reloads the raw tail and still verifies the block.
+		assertColdBlock(t, s, v)
+		if s.Stats().TailFetches != 2 || s.tails.get(0) != nil {
+			t.Fatalf("oversized tail did not stay uncached: %+v", s.Stats())
+		}
+	})
+
+	t.Run("extended-key", func(t *testing.T) {
+		// Store an unknown protobuf field on an interior SHA-256 key. An
+		// all-ones bloom makes the canonical key reach the exact raw lookup too.
+		v := coldValues(t, 3)
+		canonical := v[1].ref
+		h := &hash.Hash{}
+		if err := h.UnmarshalVT(append(packfile.BlockKey(canonical.GetHash()), 0x18, 1)); err != nil {
+			t.Fatal(err)
+		}
+		if n := h.SizeVT(); n <= coldKeySize {
+			t.Fatalf("extended key fits scratch: %d bytes", n)
+		}
+		v[1].ref = block.NewBlockRef(h)
+		f := newColdFixture(t)
+		f.addPack(t, v, true)
+		f.manifest(t)
+		s := f.open(t, func(opts *ColdPackOptions) { opts.PromotedLog = "" })
+
+		// The extended key must find and verify its body through a raw tail.
+		assertColdBlock(t, s, v[1])
+		tail := s.tails.get(0)
+		if tail == nil || tail.reader == nil || tail.entries != nil || s.Stats().TailFetches != 1 {
+			t.Fatalf("extended index did not retain its raw wire keys: %+v", s.Stats())
+		}
+
+		// A negative for the canonical wire key must not hide the extended one.
+		if yes, err := s.GetBlockExists(t.Context(), canonical); yes || err != nil {
+			t.Fatalf("exact lookup conflated canonical and extended keys: %v, %v", yes, err)
+		}
+		assertColdBlock(t, s, v[1])
+	})
 }
 
 // TestColdPackFlightCancellation checks that the first waiter's cancellation

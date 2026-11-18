@@ -26,6 +26,13 @@ import (
 // coldReadLimit bounds the complete foreground cold lookup and each tail fill.
 const coldReadLimit = 3 * time.Second
 
+const (
+	// coldDemandSlots bounds combined user and move ranges on this mount.
+	coldDemandSlots = 8
+	// coldMoveSlots leaves at least six demand slots beyond the mover's reach.
+	coldMoveSlots = 2
+)
+
 // errColdReadBusy is a cache miss when all demand range slots are in use.
 var errColdReadBusy = errors.New("cold range read slots busy")
 
@@ -70,6 +77,8 @@ type ColdPackStore struct {
 	negative *coldCache[[sha256.Size]byte, struct{}]
 	// ranges bounds user and move reads together. Only moves may queue.
 	ranges chan struct{}
+	// moveRanges caps moves waiting for or holding a shared range slot.
+	moveRanges chan struct{}
 	// reads deduplicates simultaneous reads of an exact block extent.
 	reads singleflight.Group
 	// bodyRanges remembers recent payload ranges, not their bytes.
@@ -113,7 +122,8 @@ func NewColdPackStore(ctx context.Context, le *logrus.Entry, client ColdPackRang
 	s := &ColdPackStore{
 		le: le, client: client, bucket: bucket, opts: opts, cancel: cancel,
 		done: make(chan struct{}), negative: newColdCache[[sha256.Size]byte, struct{}](opts.NegativeCacheKeys),
-		ranges: make(chan struct{}, 8), warnings: make(chan coldWarning, 64),
+		ranges: make(chan struct{}, coldDemandSlots), moveRanges: make(chan struct{}, coldMoveSlots),
+		warnings:   make(chan coldWarning, 64),
 		bodyRanges: newColdCache[coldExtent, struct{}](4096),
 	}
 	s.tails = newColdTailCache(s, opts.TailCacheBytes)
@@ -301,6 +311,8 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 		return nil, 0, false, true
 	}
 	digest := [sha256.Size]byte(h.GetHash())
+	keySize := h.SizeVT()
+	canonical := keySize == coldKeySize
 
 	// Bound user lookups end to end. A move can wait for a slot until its own
 	// context ends; its per-range I/O deadline starts only after admission.
@@ -310,11 +322,12 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 		defer cancel()
 	}
 
-	// Normal reads can use promoted hints and exact negatives. Moves consult
-	// the indexes again: a normal negative may have skipped a fenced pack.
+	// Only canonical keys can use digest-only shortcuts. An extended wire
+	// key can share the digest of a different index key. Moves consult the
+	// indexes again: a normal negative may have skipped a fenced pack.
 	var promoted coldPromotion
 	var ok bool
-	if mode != coldMoveBlock {
+	if canonical && mode != coldMoveBlock {
 		promoted, ok = s.promotions.get(digest)
 		if ok {
 			stored, size, found = s.readPromoted(ctx, catalog, ref, mode, digest, promoted)
@@ -331,12 +344,11 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 	// Keep the canonical wire key in caller scratch; retain any extension
 	// fields rather than silently changing which key the bloom and index see.
 	var scratch [coldKeySize]byte
-	n := h.SizeVT()
 	var key []byte
-	if n > len(scratch) {
-		key = make([]byte, n)
+	if keySize > len(scratch) {
+		key = make([]byte, keySize)
 	} else {
-		key = scratch[:n]
+		key = scratch[:keySize]
 	}
 	_, _ = h.MarshalToSizedBufferVT(key)
 
@@ -366,8 +378,14 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 		s.stats.bloomHits.Add(1)
 		tested = true
 
-		// On a put's existence path, load nothing and wait behind no fill.
-		tail := s.tails.get(pack)
+		// Moves cannot touch the user's LRU order. Existence probes only use
+		// resident evidence and never wait for a fill.
+		var tail *coldTail
+		if mode == coldMoveBlock {
+			tail = s.tails.getForMove(pack)
+		} else {
+			tail = s.tails.get(pack)
+		}
 		if tail == nil && mode == coldExists {
 			if s.tails.cacheable(coldTailCharge(candidate.meta)) {
 				s.tails.queue(pack)
@@ -418,14 +436,16 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 			return true
 		}
 		size, found = int64(len(stored.Data)), true
-		s.promotions.offer(digest, extent, size)
+		if canonical {
+			s.promotions.offer(digest, extent, size)
+		}
 		return false
 	})
 
 	// Do not poison negative membership with a transient failure or queued fill.
 	if found {
 		s.stats.trueHits.Add(1)
-	} else if tested && !unresolved && ctx.Err() == nil && mode != coldMoveBlock {
+	} else if canonical && tested && !unresolved && ctx.Err() == nil && mode != coldMoveBlock {
 		s.negative.put(digest, struct{}{}, 1, false)
 	}
 	if uncached && !found {
@@ -551,15 +571,22 @@ const (
 	coldBackgroundRange
 )
 
-// admitRange never queues a user read. A move acquires the same permit or
-// returns cancellation; lookup treats that cancellation as unresolved.
+// admitRange never queues a user read. A move must hold one of two move
+// reservations before it can queue for a shared permit. On cancellation it
+// keeps neither; lookup treats the interrupted read as unresolved.
 func (s *ColdPackStore) admitRange(ctx context.Context, lane coldRangeLane) error {
-	// Moves may wait, but only until their caller leaves.
+	// Reserve a move's share before joining the shared range lane.
 	if lane == coldMoveRange {
+		select {
+		case s.moveRanges <- struct{}{}:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 		select {
 		case s.ranges <- struct{}{}:
 			return nil
 		case <-ctx.Done():
+			<-s.moveRanges
 			return ctx.Err()
 		}
 	}
@@ -570,6 +597,15 @@ func (s *ColdPackStore) admitRange(ctx context.Context, lane coldRangeLane) erro
 		return nil
 	default:
 		return errColdReadBusy
+	}
+}
+
+// releaseRange returns the shared permit before letting another move reserve it.
+func (s *ColdPackStore) releaseRange(lane coldRangeLane) {
+	// Every admitted move holds both permits until its range ends.
+	<-s.ranges
+	if lane == coldMoveRange {
+		<-s.moveRanges
 	}
 }
 
@@ -584,7 +620,7 @@ func (s *ColdPackStore) readRange(ctx context.Context, pack *coldPack, off int64
 		if err := s.admitRange(ctx, lane); err != nil {
 			return nil, err
 		}
-		defer func() { <-s.ranges }()
+		defer s.releaseRange(lane)
 	}
 
 	// A move may be canceled, or the pack fenced, while it waits for a slot.

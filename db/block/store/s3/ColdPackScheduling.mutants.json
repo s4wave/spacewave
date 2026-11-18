@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Moves can reserve all demand slots",
+    "replace": [
+      [
+        "Cardinality(reserved \\cup moving) < MoveSlots",
+        "Cardinality(reserved \\cup moving) < Slots"
+      ]
+    ],
+    "expect": "MoveReservationsBounded"
+  },
+  {
+    "name": "A move fills the user cache",
+    "replace": [
+      [
+        "/\\ userTail' = userTail",
+        "/\\ userTail' = t"
+      ]
+    ],
+    "expect": "NoMoveEviction"
+  },
+  {
+    "name": "A user queues behind a full lane",
+    "replace": [
+      [
+        "/\\ userWaited' = FALSE",
+        "/\\ userWaited' = Full"
+      ]
+    ],
+    "expect": "NoUserWaiting"
+  }
+]

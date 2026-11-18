@@ -19,6 +19,10 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+// coldMoveTailLimit bounds the mover's extra cache without shrinking the
+// configured user cache or fetching the same stored tail for every block.
+const coldMoveTailLimit = 16 << 20
+
 // coldKeySize is the encoded SHA-256 hash without extension fields.
 const coldKeySize = 4 + sha256.Size
 
@@ -134,12 +138,12 @@ func (t *coldTail) locate(key []byte) (off, length uint64, hit bool, err error) 
 type coldTailCache struct {
 	// store supplies the cold bucket and counters.
 	store *ColdPackStore
-	// limit caps the bytes of retained indexes.
-	limit int
 	// mtx guards the pending fill set; it never guards I/O or parsing.
 	mtx sync.Mutex
-	// resident holds verified tails in LRU order.
+	// resident holds user and warming tails. A move never evicts or touches them.
 	resident *coldCache[uint16, *coldTail]
+	// moveResident retains move fills under an independent byte budget.
+	moveResident *coldCache[uint16, *coldTail]
 	// pending holds admitted pack numbers until the worker finishes each.
 	pending map[uint16]struct{}
 	// fillCh is the bounded queue for background-only requests.
@@ -151,8 +155,9 @@ type coldTailCache struct {
 // newColdTailCache creates the cache and its bounded background queue.
 func newColdTailCache(store *ColdPackStore, limit int) *coldTailCache {
 	return &coldTailCache{
-		store: store, limit: limit, resident: newColdCache[uint16, *coldTail](limit),
-		pending: make(map[uint16]struct{}), fillCh: make(chan uint16, 64),
+		store: store, resident: newColdCache[uint16, *coldTail](limit),
+		moveResident: newColdCache[uint16, *coldTail](min(limit, coldMoveTailLimit)),
+		pending:      make(map[uint16]struct{}), fillCh: make(chan uint16, 64),
 	}
 }
 
@@ -160,6 +165,17 @@ func newColdTailCache(store *ColdPackStore, limit int) *coldTailCache {
 func (c *coldTailCache) get(pack uint16) *coldTail {
 	// Retain a reference independent of later eviction.
 	tail, _ := c.resident.get(pack)
+	return tail
+}
+
+// getForMove reuses its own cached tail or borrows a user tail without
+// changing the user's eviction order.
+func (c *coldTailCache) getForMove(pack uint16) *coldTail {
+	// A move can use either immutable copy, but only touches its own LRU.
+	if tail, ok := c.moveResident.get(pack); ok {
+		return tail
+	}
+	tail, _ := c.resident.peek(pack)
 	return tail
 }
 
@@ -233,14 +249,14 @@ func (c *coldTailCache) backgroundFetch(ctx context.Context, catalog *coldPackCa
 
 // cacheable reports whether an index can ever fit the LRU.
 func (c *coldTailCache) cacheable(size uint64) bool {
-	return size <= uint64(c.limit) //nolint:gosec // The constructor requires a positive limit.
+	return size <= uint64(c.resident.limit) //nolint:gosec // The constructor requires a positive limit.
 }
 
 // read loads a tail on a foreground miss, never joining background work.
 func (c *coldTailCache) read(ctx context.Context, catalog *coldPackCatalog, pack uint16, moving bool) (*coldTail, error) {
 	// Moves may queue for I/O; never let a user flight join that wait.
 	if moving {
-		if tail := c.get(pack); tail != nil {
+		if tail := c.getForMove(pack); tail != nil {
 			return tail, nil
 		}
 		return c.fetch(ctx, &catalog.packs[pack], pack, coldMoveRange, false)
@@ -307,12 +323,16 @@ func (c *coldTailCache) fetch(ctx context.Context, pack *coldPack, num uint16, l
 		return nil, errors.New("cold index tail count does not match manifest")
 	}
 
-	// Do not expand an index too large to retain. The requested body can
-	// still use its authenticated raw tail without admitting it to the cache.
+	// A move's fill must never displace a user tail. Use the selected cache's
+	// budget before decoding; an oversized index uses the exact raw reader.
+	cache := c.resident
+	if lane == coldMoveRange {
+		cache = c.moveResident
+	}
 	base = size - uint64(len(raw))
 	tail := &coldTail{reader: reader, base: base}
 	charge := coldTailCharge(meta)
-	if !c.cacheable(charge) {
+	if charge > uint64(cache.limit) { //nolint:gosec // Both cache limits are positive.
 		return tail, nil
 	}
 
@@ -338,6 +358,6 @@ func (c *coldTailCache) fetch(ctx context.Context, pack *coldPack, num uint16, l
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	c.resident.put(num, tail, int(charge), spareOnly) //nolint:gosec // The charge did not grow after the cacheability check.
+	cache.put(num, tail, int(charge), spareOnly) //nolint:gosec // The charge did not grow after the cacheability check.
 	return tail, nil
 }

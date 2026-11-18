@@ -39,6 +39,16 @@ func newColdCache[K comparable, V any](limit int) *coldCache[K, V] {
 
 // get marks a hit used and returns the immutable value, even across eviction.
 func (c *coldCache[K, V]) get(key K) (V, bool) {
+	return c.lookup(key, true)
+}
+
+// peek borrows a value without changing its place in the eviction order.
+func (c *coldCache[K, V]) peek(key K) (V, bool) {
+	return c.lookup(key, false)
+}
+
+// lookup copies an immutable value under the lock; only its owner may touch it.
+func (c *coldCache[K, V]) lookup(key K, touch bool) (V, bool) {
 	// A miss does not create state or run an eviction.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
@@ -48,8 +58,10 @@ func (c *coldCache[K, V]) get(key K) (V, bool) {
 		return zero, false
 	}
 
-	// Keep the value alive through the caller's lookup.
-	c.order.MoveToFront(e)
+	// A move borrowing a user tail must not reorder that cache.
+	if touch {
+		c.order.MoveToFront(e)
+	}
 	return e.Value.(coldCacheEntry[K, V]).value, true
 }
 
