@@ -112,45 +112,52 @@ func (s *SharedObject) AccessLocalStateStore(ctx context.Context, storeID string
 	return prefixedObjStore, func() { relReleased() }, nil
 }
 
-// mountStore is the account object store as one mount sees it. A handle
-// writes keys under its object, such as its local state stores and join
-// requests, only while its mount runs and the object has stored state, so a
-// handle that outlives a delete writes nothing under the deleted prefix or
-// under an object relisted with the same id.
-type mountStore struct {
+// mountTransactions opens account store transactions for one mount. A
+// snapshot or writer belongs to the mount only if it is still live after open.
+type mountTransactions struct {
 	object.ObjectStore
-	// ctx is the mount's lifetime.
 	ctx context.Context
+}
+
+// NewTransaction checks the same mount before and after the store opens a
+// transaction. The first check avoids work for an ended mount; the second
+// rejects a snapshot or writer opened after retirement.
+func (m mountTransactions) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Do not open the store for an ended mount.
+	if err := m.ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	// Discard a transaction if the mount ended while the store opened it.
+	tx, err := m.ObjectStore.NewTransaction(ctx, write)
+	if mountErr := m.ctx.Err(); mountErr != nil {
+		if err == nil {
+			tx.Discard()
+		}
+		return nil, mountErr
+	}
+	return tx, err
+}
+
+// mountStore is the account object store as a mounted SharedObject sees it.
+// Writes also require stored state, including before a delete retires the mount.
+type mountStore struct {
+	mountTransactions
 	// hostKey is the object's stored state key.
 	hostKey []byte
 }
 
-// NewTransaction opens a transaction. A write fails with context.Canceled once
-// the mount has ended, and with ErrSharedObjectNotFound when the object has no
-// stored state. A write transaction holds the store's writer from open to
-// end, so no delete commits between the check and the write's commit.
+// NewTransaction refuses an ended mount. Writes also fail with
+// ErrSharedObjectNotFound when the host state key is gone; the writer holds
+// from open to commit or discard, so no delete can commit after that check.
 func (m mountStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	// Refuse a handle whose mount has ended, so it neither reads nor writes
-	// the keys of an object a later create lists under the same id.
-	if err := m.ctx.Err(); err != nil {
-		return nil, err
-	}
-	if !write {
-		return m.ObjectStore.NewTransaction(ctx, false)
+	// Validate the mount after pinning the snapshot or taking the writer.
+	tx, err := m.mountTransactions.NewTransaction(ctx, write)
+	if err != nil || !write {
+		return tx, err
 	}
 
-	// Take the writer before rechecking the mount and the host key. A
-	// delete and same-id create can both finish while we wait. The mount
-	// check rejects a recreated host key; the key check rejects a delete
-	// that has committed but has not yet retired the mount.
-	tx, err := m.ObjectStore.NewTransaction(ctx, true)
-	if err != nil {
-		return nil, err
-	}
-	if err := m.ctx.Err(); err != nil {
-		tx.Discard()
-		return nil, err
-	}
+	// Refuse a delete that has committed but has not yet retired the mount.
 	found, err := tx.Exists(ctx, m.hostKey)
 	if err == nil && !found {
 		err = sobject.ErrSharedObjectNotFound
@@ -626,8 +633,9 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	// awaitingState is set before the read, so a writer that stores state
 	// after the read finds it set and restarts this routine.
 	objStore := objStoreHandle.GetObjectStore()
+	mountTxs := mountTransactions{ObjectStore: objStore, ctx: ctx}
 	run.setAwaitingState(true)
-	if err := t.loadSharedObjectState(ctx, objStore, sharedObjectID); err != nil {
+	if err := t.loadSharedObjectState(ctx, mountTxs, sharedObjectID); err != nil {
 		if !errors.Is(err, sobject.ErrSharedObjectNotFound) && !errors.Is(err, sobject.ErrSharedObjectArriving) {
 			return err
 		}
@@ -670,7 +678,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	if err != nil {
 		return err
 	}
-	joinRequests, err := readJoinRequests(ctx, objStore, sharedObjectID)
+	joinRequests, err := readJoinRequests(ctx, mountTxs, sharedObjectID)
 	if err != nil {
 		return err
 	}
@@ -681,7 +689,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		blkStore:     blkStore,
 		soHost:       soHost,
 		lsoHost:      lsoHost,
-		objStore:     mountStore{ObjectStore: objStore, ctx: ctx, hostKey: SobjectObjectStoreHostStateKey(sharedObjectID)},
+		objStore:     mountStore{mountTransactions: mountTxs, hostKey: SobjectObjectStoreHostStateKey(sharedObjectID)},
 		objStoreID:   objectStoreID,
 		localPriv:    localPriv,
 		localPid:     localPeerID,
@@ -970,13 +978,13 @@ func (a *ProviderAccount) RefreshSharedObjectList(context.Context) error {
 // unlisted object with none was deleted or never created and returns
 // ErrSharedObjectNotFound. Under DeleteStateEnv's old behavior any object with
 // no stored state gets a genesis.
-func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, objStore object.ObjectStore, sharedObjectID string) error {
+func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, store mountTransactions, sharedObjectID string) error {
 	// Validate the stored state, or learn whether the object is listed.
 	key := SobjectObjectStoreHostStateKey(sharedObjectID)
 	var found, listed bool
 	err := kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
-			return objStore.NewTransaction(ctx, false)
+			return store.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
 			// Refuse an object a transfer is still filling.
@@ -1008,7 +1016,7 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, objStore obj
 	}
 
 	// Store a genesis while the object is still listed, after clearing keys
-	// an earlier lifetime left.
+	// an earlier lifetime left. This is initialization, not a mounted write.
 	if hook := testHookStateListed.Load(); hook != nil {
 		(*hook)(sharedObjectID)
 	}
@@ -1019,7 +1027,7 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, objStore obj
 	return t.a.withClearedSOKeys(ctx, sharedObjectID, t.a.clearStaleSOKeys, func() error {
 		return kvtx.RunTransaction(ctx, true,
 			func(ctx context.Context) (kvtx.Tx, error) {
-				return objStore.NewTransaction(ctx, true)
+				return store.ObjectStore.NewTransaction(ctx, true)
 			},
 			func(ctx context.Context, tx kvtx.Tx) error {
 				if !deleteStateOff {

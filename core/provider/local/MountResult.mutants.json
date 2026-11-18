@@ -52,5 +52,16 @@
       ]
     ],
     "expect": "NoCrossLifetimeWrite"
+  },
+  {
+    "name": "a retired mount accepts the recreated object's snapshot",
+    "replace": [
+      [
+        "readPhase' = IF MountLive THEN \"accepted\" ELSE \"refused\"",
+        "readPhase' = \"accepted\""
+      ]
+    ],
+    "expect": "NoCrossLifetimeRead",
+    "config": "MountResult-snapshot.cfg"
   }
 ]

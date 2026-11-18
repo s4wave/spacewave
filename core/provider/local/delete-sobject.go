@@ -376,15 +376,13 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 //     create can proceed. A mount after the delete returns gets the refusal
 //     rather than the ended handle. A write checking under the writer after
 //     a same-id create sees the ended mount even though the host key exists.
-//   - No holder of an old handle reads the deleted state after the delete
-//     returns. The restart retires the run, which clears the host's state
-//     snapshot under its lock, and ends the mount's context, both before the
-//     delete returns. From then on a state watchable taken earlier holds
-//     nil, the ended handle's state and local state reads return
-//     context.Canceled, and MountSharedObject calls each resolver's released
-//     callback, so the bus drops the ended handle and resolves again to the
-//     refusal. A read that took its snapshot before the commit keeps that
-//     snapshot; nothing reads one after.
+//   - A mount can open a read snapshot only while live. The restart clears
+//     the host's published state and ends the mount before a same-id create
+//     can proceed. Local state and host history check the mount again after
+//     the account store pins its snapshot, so a read paused at open cannot
+//     take a recreated object's data. A snapshot already returned while the
+//     mount was live keeps only the state it pinned. MountSharedObject calls
+//     each resolver's released callback so the bus drops the ended handle.
 //   - Every caller removes only the generation it planned against, decided
 //     under mtx through onListedGeneration: a delete removes the generation
 //     its tombstone names, and the catalog reconcile removes a local object

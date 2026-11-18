@@ -49,11 +49,12 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 	syncFuncs *sobject.SOHostSyncFuncs,
 ) {
 	// Load one state per retained object without reading its complete history.
+	reads := mountTransactions{ObjectStore: objStore, ctx: rctx}
 	soRc := keyed.NewKeyedRefCount(
 		func(sharedObjectID string) (keyed.Routine, *soStateEntry) {
 			ent := newSOStateEntry(SobjectObjectStoreHostStateKey(sharedObjectID))
 			return func(ctx context.Context) error {
-				return ent.execute(ctx, objStore, runs, sharedObjectID)
+				return ent.execute(ctx, reads, runs, sharedObjectID)
 			}, ent
 		},
 		keyed.WithExitCb(func(sharedObjectID string, _ keyed.Routine, ent *soStateEntry, err error) {
@@ -119,7 +120,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		if rerr == nil {
 			rerr = kvtx.RunTransaction(rctx, false,
 				func(ctx context.Context) (kvtx.Tx, error) {
-					return objStore.NewTransaction(ctx, false)
+					return reads.NewTransaction(ctx, false)
 				},
 				func(ctx context.Context, tx kvtx.Tx) error {
 					var err error
@@ -297,7 +298,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 	lockFn = func(ctx context.Context, id string) (sobject.SOStateLock, error) {
 		return newLock(ctx, id, false, false)
 	}
-	syncFuncs = NewSOHostSyncFuncs(objStore)
+	syncFuncs = NewSOHostSyncFuncs(reads)
 	syncFuncs.Lock = func(ctx context.Context, id string) (sobject.SOStateLock, error) {
 		return newLock(ctx, id, false, true)
 	}

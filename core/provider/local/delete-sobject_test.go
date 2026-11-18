@@ -801,16 +801,17 @@ func (p *mountCapturePromise) AwaitWithCancelCh(ctx context.Context, replaced <-
 	}
 }
 
-// mountWriteOpenGate pauses a write after the mount's first check but before
-// the account store grants its writer.
-type mountWriteOpenGate struct {
+// mountOpenGate pauses the selected transaction after the mount's first
+// check but before the underlying store opens it.
+type mountOpenGate struct {
 	object.ObjectStore
+	write   bool
 	entered chan struct{}
 	resume  chan struct{}
 }
 
-func (g *mountWriteOpenGate) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	if write {
+func (g *mountOpenGate) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if write == g.write {
 		close(g.entered)
 		select {
 		case <-g.resume:
@@ -835,7 +836,7 @@ func TestRetiredLocalWriteCannotCrossRecreate(t *testing.T) {
 	// Wrap only this write's copy of the mount store; leave the real mount
 	// and every other user of the account store alone.
 	store := old.objStore.(mountStore)
-	gate := &mountWriteOpenGate{ObjectStore: store.ObjectStore, entered: make(chan struct{}), resume: make(chan struct{})}
+	gate := &mountOpenGate{ObjectStore: store.ObjectStore, write: true, entered: make(chan struct{}), resume: make(chan struct{})}
 	store.ObjectStore = gate
 	gated := &SharedObject{ctx: old.ctx, tkr: old.tkr, objStore: store}
 	writeCtx, cancelWrite := context.WithCancel(ctx)
@@ -888,6 +889,137 @@ func TestRetiredLocalWriteCannotCrossRecreate(t *testing.T) {
 	got, found, err := tx.Get(ctx, key)
 	if err != nil || !found || !bytes.Equal(got, want) {
 		t.Fatalf("fresh value = %q (found %t, err %v), want %q", got, found, err, want)
+	}
+}
+
+// TestRetiredLocalReadCannotCrossRecreate pauses the old read before the
+// store can pin a snapshot of the new lifetime.
+func TestRetiredLocalReadCannotCrossRecreate(t *testing.T) {
+	// Retain the first mount and give the test's read its own gate.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	const id, storeID = "gated-read", "fake-store"
+	key := []byte("fake-key-0000")
+	old, releaseOld := mountTestSharedObject(ctx, t, a, createTestSharedObject(ctx, t, a, id))
+	defer releaseOld()
+	store := old.objStore.(mountStore)
+	gate := &mountOpenGate{ObjectStore: store.ObjectStore, entered: make(chan struct{}), resume: make(chan struct{})}
+	store.ObjectStore = gate
+	gated := &SharedObject{ctx: old.ctx, tkr: old.tkr, objStore: store}
+	local, releaseLocal, err := gated.AccessLocalStateStore(ctx, storeID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseLocal()
+
+	// Start the old read with a caller that stays live through retirement.
+	readCtx, cancelRead := context.WithCancel(ctx)
+	defer cancelRead()
+	type readResult struct {
+		value []byte
+		found bool
+		err   error
+	}
+	result := make(chan readResult, 1)
+	go func() {
+		// Read the value if the mount admits the transaction.
+		tx, err := local.NewTransaction(readCtx, false)
+		if err != nil {
+			result <- readResult{err: err}
+			return
+		}
+		defer tx.Discard()
+		value, found, err := tx.Get(readCtx, key)
+		result <- readResult{value: bytes.Clone(value), found: found, err: err}
+	}()
+	select {
+	case <-gate.entered:
+	case <-ctx.Done():
+		t.Fatal("the old read did not reach the snapshot boundary")
+	}
+
+	// Commit a fresh local value before the old read opens its snapshot.
+	if err := a.DeleteSharedObject(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	fresh, releaseFresh := mountTestSharedObject(ctx, t, a, createTestSharedObject(ctx, t, a, id))
+	defer releaseFresh()
+	if old.ctx.Err() == nil || fresh == old {
+		t.Fatal("recreate did not retire the old mount")
+	}
+	if err := tryWriteTestLocalKeys(ctx, fresh, 1); err != nil {
+		t.Fatal(err)
+	}
+	close(gate.resume)
+
+	// The old read must not return any value from that snapshot.
+	select {
+	case got := <-result:
+		if !errors.Is(got.err, context.Canceled) || got.found || got.value != nil || readCtx.Err() != nil {
+			t.Fatalf("old read returned %q (found %t, err %v, caller err %v), want mount cancellation only", got.value, got.found, got.err, readCtx.Err())
+		}
+	case <-ctx.Done():
+		t.Fatal("the old read did not return")
+	}
+}
+
+// TestRetiredHostCannotReadRecreatedHistory asks a retained SOHost for signed
+// entries and a suffix that are present in the recreated object's history.
+func TestRetiredHostCannotReadRecreatedHistory(t *testing.T) {
+	// Keep the old host across a delete and same-id create.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	const id = "retired-history"
+	old, releaseOld := mountTestSharedObject(ctx, t, a, createTestSharedObject(ctx, t, a, id))
+	defer releaseOld()
+	oldHost := old.GetSOHost()
+	if err := a.DeleteSharedObject(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	fresh, releaseFresh := mountTestSharedObject(ctx, t, a, createTestSharedObject(ctx, t, a, id))
+	defer releaseFresh()
+	if old.ctx.Err() == nil || fresh.GetSOHost() == oldHost {
+		t.Fatal("recreate did not retire the old host")
+	}
+
+	// Give the new host a retained transition so both history routes read rows.
+	host := fresh.GetSOHost()
+	state, err := host.GetHostState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := state.GetConfig()
+	genesis := cfg.GetConfigChainHash()
+	change, err := sobject.BuildSOConfigChange(id, cfg, cfg, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, fresh.GetPrivKey(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := host.ApplyConfigChange(ctx, change, nil); err != nil {
+		t.Fatal(err)
+	}
+	head, err := sobject.HashSOConfigChange(change)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// First prove the new host can read the signed entry and suffix.
+	if entry, err := host.ReadConfigEntry(ctx, genesis); err != nil || entry == nil {
+		t.Fatalf("new host did not read its genesis: %v", err)
+	}
+	if suffix, err := host.ReadConfigHistory(ctx, genesis, head); err != nil || len(suffix) != 1 || !suffix[0].EqualVT(change) {
+		t.Fatalf("new host returned %d history entries, err %v; want the retained transition", len(suffix), err)
+	}
+
+	// Neither history route on the old host may open a fresh snapshot.
+	if entry, err := oldHost.ReadConfigEntry(ctx, genesis); !errors.Is(err, context.Canceled) || entry != nil {
+		t.Errorf("old host returned a genesis entry: %t, err %v; want mount cancellation", entry != nil, err)
+	}
+	if suffix, err := oldHost.ReadConfigHistory(ctx, genesis, head); !errors.Is(err, context.Canceled) || len(suffix) != 0 {
+		t.Errorf("old host returned %d history entries, err %v; want mount cancellation", len(suffix), err)
 	}
 }
 

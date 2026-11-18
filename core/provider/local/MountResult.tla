@@ -184,7 +184,31 @@ NextAll == \/ Next /\ UNCHANGED <<resultVars, loadVars, writeVars>>
            \/ NextResult /\ UNCHANGED <<vars, loadVars, writeVars>>
            \/ NextLoad /\ UNCHANGED <<vars, resultVars, writeVars>>
            \/ NextWrite /\ UNCHANGED <<vars, resultVars, loadVars>>
-Spec == InitAll /\ [][NextAll]_allVars
+NewestOwns == scheduled = 3 => owner \in {0, 3}
+MountBecomesReady == <>[](ready = 3)
+(* Read admission shares the delete/recreate schedule with the writer but does
+   not hold it. Pin and acceptance are separate: a delete can retire the mount
+   at either boundary. An accepted snapshot retains what it pinned. *)
+VARIABLES readPhase, snapshot
+readVars == <<readPhase, snapshot>>
+InitRead == /\ readPhase = "idle"
+            /\ snapshot = "none"
+PreflightRead == /\ readPhase = "idle"
+                 /\ readPhase' = IF MountLive THEN "opening" ELSE "refused"
+                 /\ UNCHANGED snapshot
+PinRead == /\ readPhase = "opening"
+           /\ readPhase' = "pinned"
+           /\ snapshot' = lifetime
+AcceptRead == /\ readPhase = "pinned"
+              /\ readPhase' = IF MountLive THEN "accepted" ELSE "refused"
+              /\ UNCHANGED snapshot
+NextRead == PreflightRead \/ PinRead \/ AcceptRead
+NoCrossLifetimeRead == readPhase = "accepted" => snapshot # "fresh"
+
+fullVars == <<allVars, readVars>>
+MainInit == InitAll /\ InitRead
+MainNext == NextAll /\ UNCHANGED readVars
+Spec == MainInit /\ [][MainNext]_fullVars
         /\ WF_vars(Retire) /\ WF_vars(CancelFirst) /\ WF_vars(SkipMiddle)
         /\ WF_vars(EnterThird) /\ WF_vars(Claim(3)) /\ WF_vars(Publish(3))
         /\ WF_resultVars(CaptureResult) /\ WF_resultVars(RetireResult)
@@ -192,6 +216,15 @@ Spec == InitAll /\ [][NextAll]_allVars
         /\ WF_resultVars(CancelResult)
         /\ WF_loadVars(RefuseAfterDelete) /\ WF_loadVars(CommitPlaceholder)
         /\ WF_loadVars(Revive)
-NewestOwns == scheduled = 3 => owner \in {0, 3}
-MountBecomesReady == <>[](ready = 3)
+
+StorageInit == MainInit
+StorageDone == /\ lifetime = "fresh"
+               /\ writePhase \in {"idle", "refused", "committed"}
+               /\ readPhase \in {"accepted", "refused"}
+               /\ UNCHANGED fullVars
+StorageNext == \/ NextWrite /\ UNCHANGED <<vars, resultVars, loadVars, readVars>>
+               \/ NextRead /\ UNCHANGED allVars
+               \/ StorageDone
+StorageSpec == StorageInit /\ [][StorageNext]_fullVars
+
 ==============================================================================
