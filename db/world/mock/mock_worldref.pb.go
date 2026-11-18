@@ -7,21 +7,30 @@ import (
 	time "time"
 )
 
+const (
+	// MockRefRecord_ParentKeyPredicate is the World predicate of MockRefRecord.ParentKey.
+	MockRefRecord_ParentKeyPredicate = "mock/parent"
+	// MockRefRecord_InputKeysPredicate is the World predicate of MockRefRecord.InputKeys.
+	MockRefRecord_InputKeysPredicate = "mock/input"
+	// MockRefRecord_NoteKeyPredicate is the World predicate of MockRefRecord.NoteKey.
+	MockRefRecord_NoteKeyPredicate = "mock/note"
+)
+
 // RangeWorldRefs calls cb with each World reference MockRefRecord declares,
 // including those of its message fields, until cb returns false.
 // Empty references are skipped.
 //
 // Returns false if cb stopped the walk.
 func (m *MockRefRecord) RangeWorldRefs(cb func(predicate, target string, indexed bool) bool) bool {
-	if v := m.GetParentKey(); v != "" && !cb("mock/parent", v, true) {
+	if v := m.GetParentKey(); v != "" && !cb(MockRefRecord_ParentKeyPredicate, v, true) {
 		return false
 	}
 	for _, v := range m.GetInputKeys() {
-		if v != "" && !cb("mock/input", v, true) {
+		if v != "" && !cb(MockRefRecord_InputKeysPredicate, v, true) {
 			return false
 		}
 	}
-	if v := m.GetNoteKey(); v != "" && !cb("mock/note", v, false) {
+	if v := m.GetNoteKey(); v != "" && !cb(MockRefRecord_NoteKeyPredicate, v, false) {
 		return false
 	}
 	if !m.GetSource().RangeWorldRefs(cb) {
@@ -50,13 +59,18 @@ func (m *MockRefRecord) WorldSpan() (start, end time.Time, err error) {
 	return start, end, nil
 }
 
+const (
+	// MockRefSource_ObjectKeyPredicate is the World predicate of MockRefSource.ObjectKey.
+	MockRefSource_ObjectKeyPredicate = "mock/source"
+)
+
 // RangeWorldRefs calls cb with each World reference MockRefSource declares,
 // including those of its message fields, until cb returns false.
 // Empty references are skipped.
 //
 // Returns false if cb stopped the walk.
 func (m *MockRefSource) RangeWorldRefs(cb func(predicate, target string, indexed bool) bool) bool {
-	if v := m.GetObjectKey(); v != "" && !cb("mock/source", v, true) {
+	if v := m.GetObjectKey(); v != "" && !cb(MockRefSource_ObjectKeyPredicate, v, true) {
 		return false
 	}
 	return true
