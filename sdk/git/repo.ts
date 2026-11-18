@@ -31,6 +31,9 @@ export class GitRepoHandle extends Resource {
     signal?: AbortSignal,
   ): Promise<{ commitHash: string; treeHash: string }> {
     const resp = await this.service.ResolveRef({ refName }, signal)
+    if (resp.notFound) {
+      throw new Error(`resolve ref ${refName}: reference not found`)
+    }
     return {
       commitHash: resp.commitHash ?? '',
       treeHash: resp.treeHash ?? '',

@@ -186,12 +186,20 @@ func (x *ResolveRefRequest) GetRefName() string {
 }
 
 // ResolveRefResponse is the response for ResolveRef.
+//
+// A full ref name (HEAD or refs/...) the repository does not hold sets
+// not_found and leaves the hashes empty. Every other failure, including a
+// failed storage read, is an RPC error, so a caller can retry it. An
+// abbreviated revision reports a missing name as an RPC error too, because
+// revision parsing cannot tell a missing name from a failed read.
 type ResolveRefResponse struct {
 	unknownFields []byte
 	// CommitHash is the resolved commit hash.
 	CommitHash string `protobuf:"bytes,1,opt,name=commit_hash,json=commitHash,proto3" json:"commitHash,omitempty"`
 	// TreeHash is the tree hash of the resolved commit.
 	TreeHash string `protobuf:"bytes,2,opt,name=tree_hash,json=treeHash,proto3" json:"treeHash,omitempty"`
+	// NotFound reports that the repository holds no such full ref.
+	NotFound bool `protobuf:"varint,3,opt,name=not_found,json=notFound,proto3" json:"notFound,omitempty"`
 }
 
 func (x *ResolveRefResponse) Reset() {
@@ -212,6 +220,13 @@ func (x *ResolveRefResponse) GetTreeHash() string {
 		return x.TreeHash
 	}
 	return ""
+}
+
+func (x *ResolveRefResponse) GetNotFound() bool {
+	if x != nil {
+		return x.NotFound
+	}
+	return false
 }
 
 // GetRepoInfoRequest is the request for GetRepoInfo.
@@ -754,6 +769,7 @@ func (m *ResolveRefResponse) CloneVT() *ResolveRefResponse {
 	r := new(ResolveRefResponse)
 	r.CommitHash = m.CommitHash
 	r.TreeHash = m.TreeHash
+	r.NotFound = m.NotFound
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1154,6 +1170,9 @@ func (this *ResolveRefResponse) EqualVT(that *ResolveRefResponse) bool {
 		return false
 	}
 	if this.TreeHash != that.TreeHash {
+		return false
+	}
+	if this.NotFound != that.NotFound {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1849,6 +1868,11 @@ func (x *ResolveRefResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("treeHash")
 		s.WriteString(x.TreeHash)
 	}
+	if x.NotFound || s.HasField("notFound") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("notFound")
+		s.WriteBool(x.NotFound)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1872,6 +1896,9 @@ func (x *ResolveRefResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "tree_hash", "treeHash":
 			s.AddField("tree_hash")
 			x.TreeHash = s.ReadString()
+		case "not_found", "notFound":
+			s.AddField("not_found")
+			x.NotFound = s.ReadBool()
 		}
 	})
 }
@@ -2955,6 +2982,11 @@ func (m *ResolveRefResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.NotFound {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.NotFound)
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.TreeHash) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.TreeHash)
 		i--
@@ -3704,6 +3736,7 @@ func (m *ResolveRefResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CommitHash)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TreeHash)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.NotFound)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4033,6 +4066,10 @@ func (x *ResolveRefResponse) MarshalProtoText() string {
 	if x.TreeHash != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tree_hash")
 		protobuf_go_lite.TextWriteString(&sb, x.TreeHash)
+	}
+	if x.NotFound != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "not_found")
+		protobuf_go_lite.TextWriteBool(&sb, x.NotFound)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4721,6 +4758,16 @@ func (m *ResolveRefResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.TreeHash = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotFound", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NotFound = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

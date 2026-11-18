@@ -129,7 +129,11 @@ func (r *GitRepoResource) ResolveRef(ctx context.Context, req *s4wave_git.Resolv
 		nil, nil, nil,
 		func(repo *git.Repository) error {
 			// Read the commit and tree hashes for the requested revision.
-			commit, err := resolveRefToCommitObject(repo, refName)
+			commit, err := resolveRefNameToCommitObject(repo, refName)
+			if errors.Is(err, errRefNameNotFound) {
+				resp.NotFound = true
+				return nil
+			}
 			if err != nil {
 				return err
 			}
@@ -581,6 +585,46 @@ func resolveRefToCommitObject(repo *git.Repository, refName string) (*object.Com
 		return nil, err
 	}
 	commit, err := repo.CommitObject(hash)
+	if err != nil {
+		return nil, errors.Wrap(err, "commit object")
+	}
+	return commit, nil
+}
+
+// errRefNameNotFound reports a full ref name that the repository does not hold.
+var errRefNameNotFound = errors.New("ref not found")
+
+// resolveRefNameToCommitObject resolves a revision to its commit object. A
+// full ref name (HEAD or refs/...) is read exactly, so errRefNameNotFound means
+// the repository holds no such ref, and a failed read stays an error. go-git's
+// revision parser reports every failure while resolving a name, including a
+// failed storage read, as plumbing.ErrReferenceNotFound, so other revisions go
+// through it and never report errRefNameNotFound.
+func resolveRefNameToCommitObject(repo *git.Repository, refName string) (*object.Commit, error) {
+	// Leave abbreviated revisions to the revision parser.
+	name := plumbing.ReferenceName(refName)
+	if name != plumbing.HEAD && !strings.HasPrefix(refName, "refs/") {
+		return resolveRefToCommitObject(repo, refName)
+	}
+
+	// Follow symbolic refs exactly; only the storer's own not-found is absence.
+	ref, err := repo.Reference(name, true)
+	if errors.Is(err, plumbing.ErrReferenceNotFound) {
+		return nil, errRefNameNotFound
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "resolve ref "+refName)
+	}
+
+	// The ref names this object, so a failure to load it is a read failure.
+	// The block store reports a type mismatch as not found, so try a tag.
+	commit, err := repo.CommitObject(ref.Hash())
+	if errors.Is(err, plumbing.ErrObjectNotFound) {
+		tag, tagErr := repo.TagObject(ref.Hash())
+		if tagErr == nil {
+			commit, err = tag.Commit()
+		}
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "commit object")
 	}
