@@ -822,7 +822,7 @@
     },
     {
       "name": "github.com/aperturerobotics/common",
-      "version": "v0.38.5-0.20261118104114-901df9924d58",
+      "version": "v0.38.5-0.20261118130830-7f36ed926d1b",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/common",

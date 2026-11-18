@@ -26,10 +26,8 @@ github.com/aperturerobotics/circl v1.6.4-0.20261026102657-7415ab3046b7 h1:9MoBgD
 github.com/aperturerobotics/circl v1.6.4-0.20261026102657-7415ab3046b7/go.mod h1:h5LNyxAc5nTue9DS5jT+48en2PSDYt3zdGnz5OstK6c=
 github.com/aperturerobotics/cli v1.1.1-0.20261024231437-afc764ba6d68 h1:rtXExSFsl0x9FN+MfC8L3cKsgCzC1RteeqmTwlsuAps=
 github.com/aperturerobotics/cli v1.1.1-0.20261024231437-afc764ba6d68/go.mod h1:1SZzsdyfNK4sMviqdMDvKFukCrtTK6XLvtSfqaSE/s8=
-github.com/aperturerobotics/common v0.38.5-0.20261118102912-13c470a86045 h1:0a21PSk4PtmoG60IGB/+yPgMUSVayNUxgaXqiYDwkgM=
-github.com/aperturerobotics/common v0.38.5-0.20261118102912-13c470a86045/go.mod h1:qTU3Pbmy9QeuoFCO6/MhIFMydydzuXMzmjg63Jhvg/s=
-github.com/aperturerobotics/common v0.38.5-0.20261118104114-901df9924d58 h1:BzGXdeACfWIl2z7Wcp/1gPENMuFOV5CNgstE3qTAFoA=
-github.com/aperturerobotics/common v0.38.5-0.20261118104114-901df9924d58/go.mod h1:qTU3Pbmy9QeuoFCO6/MhIFMydydzuXMzmjg63Jhvg/s=
+github.com/aperturerobotics/common v0.38.5-0.20261118130830-7f36ed926d1b h1:ecpMMD99dpHn3R9vo0xD0+CF73qY1Qbp0dJCxI0u4vM=
+github.com/aperturerobotics/common v0.38.5-0.20261118130830-7f36ed926d1b/go.mod h1:qTU3Pbmy9QeuoFCO6/MhIFMydydzuXMzmjg63Jhvg/s=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20261117003208-0c6288548094 h1:p4piXqbDZisd1C7UajzOgSMeck6Zes81ajP54LT4ZWM=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20261117003208-0c6288548094/go.mod h1:60X5k6b9DYA+RmSwBmxrZ8O81CUrLojTzAld//Vz9xU=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20261024231300-09c82549af7a h1:1+aqnPBdCps2DXBoiQ9q586iwJSacGXdK3QI3Rk+Wg8=
