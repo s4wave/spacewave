@@ -37,6 +37,9 @@ type IndexProgress struct {
 // so no read waits for it. A restart resumes from the packs whose p/ row is not
 // indexed.
 func (s *PackStore) runIndexer(ctx context.Context) error {
+	// Index at background priority, so a foreground writer takes the
+	// index's writer turn ahead of every queued indexer step.
+	ctx = block.WithBackground(ctx)
 	for {
 		var progress IndexProgress
 		if err := s.indexPending(ctx, 1, indexPackPause, indexBatchPause, &progress); err != nil {
