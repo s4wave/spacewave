@@ -180,7 +180,7 @@ const members: Member[] = [
 ]
 
 const alphaRoots = ['cmd', 'core', 'plugin', 'sdk']
-const dbRoots = ['db', 'runtimeenv']
+const dbRoots = ['db', 'bldr/util/runtimeenv']
 const startupTraceRoots = ['bldr', 'db']
 
 // MemberEntry is one member matrix entry. go_packages and lint_packages are

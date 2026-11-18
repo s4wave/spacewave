@@ -56,7 +56,7 @@ linters:
         runtimeenv-layering:
           list-mode: strict
           files:
-            - '**/runtimeenv/**'
+            - '**/bldr/util/runtimeenv/**'
           allow:
             - $gostd
         sobject-layering:
@@ -79,10 +79,10 @@ linters:
           allow:
             - github.com/s4wave/spacewave/db
             - github.com/s4wave/spacewave/net
-            - github.com/s4wave/spacewave/runtimeenv
+            - github.com/s4wave/spacewave/bldr/util/runtimeenv
           deny:
             - pkg: github.com/s4wave/spacewave
-              desc: db imports only db, lower-layer net packages, and the standard-library-only runtimeenv policy inside the Spacewave module.
+              desc: db imports only db, lower-layer net packages, and the standard-library-only bldr/util/runtimeenv policy inside the Spacewave module.
     gosec:
       excludes:
         - G306

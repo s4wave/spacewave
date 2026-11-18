@@ -6,13 +6,13 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/s4wave/spacewave/bldr/util/runtimeenv"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/byteslice"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_mock "github.com/s4wave/spacewave/db/bucket/mock"
 	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/runtimeenv"
 )
 
 // copyDestination observes the copy's storage boundary and injects failures.

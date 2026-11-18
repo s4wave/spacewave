@@ -6,11 +6,11 @@ import (
 	"sync/atomic"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/util/runtimeenv"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	trace "github.com/s4wave/spacewave/db/traceutil"
-	"github.com/s4wave/spacewave/runtimeenv"
 )
 
 // CopyObjectToBucket copies an object from srcCursor to destCursor.
