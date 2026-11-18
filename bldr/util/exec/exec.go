@@ -24,9 +24,11 @@ var NewCmd = uexec.NewCmd
 func StartAndWait(ctx context.Context, le *logrus.Entry, ecmd *exec.Cmd) error {
 	// Capture the child's complete stderr while configuring its output streams.
 	var stderrBuf bytes.Buffer
+	stderrLogger := NewLogWriter(le, logrus.DebugLevel)
+	stdoutLogger := NewLogWriter(le, logrus.DebugLevel)
+	defer stdoutLogger.Flush()
+	defer stderrLogger.Flush()
 	if ecmd.Process == nil {
-		stderrLogger := le.WriterLevel(logrus.DebugLevel)
-		stdoutLogger := le.WriterLevel(logrus.DebugLevel)
 		ecmd.Stderr = io.MultiWriter(&stderrBuf, stderrLogger)
 		if ecmd.Stdout == nil || writerIsStdout(ecmd.Stdout) {
 			ecmd.Stdout = stdoutLogger
