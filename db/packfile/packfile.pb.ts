@@ -112,6 +112,10 @@ export interface ColdPackEntry {
    * IndexTailBytes bounds reads of the verified tail.
    */
   indexTailBytes?: bigint
+  /**
+   * PackSha256 is the SHA-256 of the whole pack whose payloads the builder verified.
+   */
+  packSha256?: Uint8Array
 }
 
 export const ColdPackEntry: MessageType<ColdPackEntry> =
@@ -124,6 +128,7 @@ export const ColdPackEntry: MessageType<ColdPackEntry> =
       [4, 'last_key', 12],
       [5, 'index_sha256', 12],
       [6, 'index_tail_bytes', 4],
+      [7, 'pack_sha256', 12],
     ],
   )
 

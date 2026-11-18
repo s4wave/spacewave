@@ -133,7 +133,7 @@ func (c *coldTailCache) fill(ctx context.Context, catalog *coldPackCatalog, warm
 func (c *coldTailCache) backgroundFetch(ctx context.Context, catalog *coldPackCatalog, num uint16, spareOnly bool) {
 	// Never fetch a gone, already cached, disabled, or oversized pack tail.
 	pack := &catalog.packs[num]
-	if coldPackReadsOff.Load() || pack.gone.Load() || c.get(num) != nil || !c.cacheable(pack.meta.IndexTailBytes) {
+	if coldPackReadsOff.Load() || pack.unusable() || c.get(num) != nil || !c.cacheable(pack.meta.IndexTailBytes) {
 		return
 	}
 	ctx, cancel := context.WithTimeout(ctx, coldReadLimit)
@@ -156,7 +156,11 @@ func (c *coldTailCache) read(ctx context.Context, catalog *coldPackCatalog, pack
 		if tail := c.get(pack); tail != nil {
 			return tail, nil
 		}
-		return c.fetch(ctx, &catalog.packs[pack], pack, false, false)
+
+		// The first waiter does not own the lifetime of the shared request.
+		flight, cancel := context.WithTimeout(context.WithoutCancel(ctx), coldReadLimit)
+		defer cancel()
+		return c.fetch(flight, &catalog.packs[pack], pack, false, false)
 	})
 	select {
 	case <-ctx.Done():
@@ -192,7 +196,7 @@ func (c *coldTailCache) fetch(ctx context.Context, pack *coldPack, num uint16, b
 		return nil, err
 	}
 
-	// Only the tail checked by the offline builder can authorize a positive.
+	// Only the tail checked by the offline builder can locate an extent.
 	digest := sha256.Sum256(raw)
 	if uint64(len(raw)) != meta.IndexTailBytes || !bytes.Equal(digest[:], meta.IndexSha256) {
 		return nil, errors.New("cold index tail does not match manifest")

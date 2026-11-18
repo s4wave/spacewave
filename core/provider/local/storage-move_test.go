@@ -3,10 +3,14 @@ package provider_local
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
+	"iter"
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -19,7 +23,11 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/db/packfile/identity"
+	"github.com/s4wave/spacewave/db/packfile/writer"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // fakeS3 is an in-memory S3-compatible bucket serving object PUT, GET, HEAD,
@@ -68,10 +76,7 @@ func (f *fakeS3) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-		if r.Method == http.MethodGet {
-			_, _ = w.Write(data)
-		}
+		http.ServeContent(w, r, key, time.Time{}, bytes.NewReader(data))
 	case http.MethodDelete:
 		delete(f.objects, key)
 		w.WriteHeader(http.StatusNoContent)
@@ -211,6 +216,111 @@ func setupPlacedStore(ctx context.Context, t *testing.T) *placedStoreTest {
 	return p
 }
 
+// prepareColdMove writes a separate pack set and attaches a real cold reader.
+func (p *placedStoreTest) prepareColdMove(ctx context.Context, t *testing.T, bs *BlockStore) {
+	// Pack the root and child with the same refs the local store recorded.
+	t.Helper()
+	refs := []*block.BlockRef{p.rootRef, p.childRef}
+	var buf bytes.Buffer
+	i := 0
+	res, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
+		// Supply the World edge only on the root.
+		if i == len(refs) {
+			return nil, nil, nil
+		}
+		ref := refs[i]
+		i++
+		stored := &block.StoredBlock{Data: p.blocks[ref], RefsKnown: true}
+		if ref == p.rootRef {
+			stored.Refs = refs[1:]
+		}
+		return ref.GetHash(), stored, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Mirror the objects exactly as they exist under the separate bucket prefix.
+	id := identity.NewPackID()
+	entry := &packfile.PackfileEntry{Id: id, BlockCount: res.BlockCount, SizeBytes: res.BytesWritten, BloomFilter: res.BloomFilter, BloomFormatVersion: packfile.BloomFormatVersionV1}
+	encoded, err := entry.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mirror := t.TempDir()
+	for name, data := range map[string][]byte{"packs": buf.Bytes(), "entries": encoded} {
+		if err := os.Mkdir(filepath.Join(mirror, name), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(mirror, name, id), data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		p.bucket.mtx.Lock()
+		p.bucket.objects["cold/"+name+"/"+id] = data
+		p.bucket.mtx.Unlock()
+	}
+
+	// Build the manifest offline, without any bucket access.
+	keys := [][]byte{packfile.BlockKey(p.rootRef.GetHash()), packfile.BlockKey(p.childRef.GetHash())}
+	slices.SortFunc(keys, bytes.Compare)
+	exported := iter.Seq2[[]byte, error](func(yield func([]byte, error) bool) {
+		for _, key := range keys {
+			if !yield(key, nil) {
+				return
+			}
+		}
+	})
+	manifest, err := block_store_s3.BuildColdPackManifest(ctx, mirror, exported)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err = manifest.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(mirror, "manifest.pb")
+	if err := os.WriteFile(file, encoded, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Use the placement's own fake-bucket client. The move uses this reader,
+	// which the fixture attaches directly instead of restarting the provider.
+	opened := p.tkr.remote.Load()
+	if opened == nil || opened.s3 == nil {
+		t.Fatal("hot placement has no bucket client")
+	}
+	cold, err := block_store_s3.NewColdPackStore(ctx, nil, opened.s3, "spaces", block_store_s3.ColdPackOptions{Prefix: "cold/", ManifestFile: file})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cold.Close)
+	bs.placement.cold = cold
+
+	// Delete only the test objects under the hot placement's prefix.
+	p.bucket.mtx.Lock()
+	for key := range p.bucket.objects {
+		if strings.HasPrefix(key, "p/") {
+			delete(p.bucket.objects, key)
+		}
+	}
+	p.bucket.mtx.Unlock()
+
+	// Make sure a cold-only body can actually be read before attempting a move.
+	tick := time.NewTicker(time.Millisecond)
+	defer tick.Stop()
+	for !cold.Stats().Ready {
+		select {
+		case <-ctx.Done():
+			t.Fatal("cold manifest did not load")
+		case <-tick.C:
+		}
+	}
+	data, ok, err := cold.GetBlock(ctx, p.childRef)
+	if err != nil || !ok || !bytes.Equal(data, p.blocks[p.childRef]) {
+		t.Fatalf("cold-only child before move = %q/%t/%v", data, ok, err)
+	}
+}
+
 // loseLocalBlocks removes the local copies of the blocks.
 func (p *placedStoreTest) loseLocalBlocks(ctx context.Context, t *testing.T) *BlockStore {
 	// Delete the local blocks and require the cache to miss them.
@@ -284,16 +394,27 @@ func (p *placedStoreTest) dropRootList(ctx context.Context, t *testing.T) {
 // not reach through the root's fetched refs, before the switch releases the
 // bucket's copy.
 func TestMoveSpaceStorageRoundTrip(t *testing.T) {
-	for _, listless := range []bool{false, true} {
-		t.Run("listless="+strconv.FormatBool(listless), func(t *testing.T) {
+	for _, name := range []string{"listless=false", "listless=true", "cold-only"} {
+		t.Run(name, func(t *testing.T) {
 			// Bound the round trip and move the space back to local storage.
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 			defer cancel()
 
 			// Drop the local cache, move the space home, and require the graph.
 			p := setupPlacedStore(ctx, t)
-			p.loseLocalBlocks(ctx, t)
-			if listless {
+			placed := p.loseLocalBlocks(ctx, t)
+			if name == "cold-only" {
+				// A disabled or unreachable cold tier must not let the move switch.
+				p.prepareColdMove(ctx, t, placed)
+				p.phases = nil
+				block_store_s3.SetColdPackReads(false)
+				err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record)
+				block_store_s3.SetColdPackReads(true)
+				if !errors.Is(err, block.ErrUnavailable) || slices.Contains(p.phases, MovePhaseDone) {
+					t.Fatalf("move with cold tier disabled = %v, phases %v", err, p.phases)
+				}
+			}
+			if name == "listless=true" {
 				p.dropRootList(ctx, t)
 			}
 			p.phases = nil

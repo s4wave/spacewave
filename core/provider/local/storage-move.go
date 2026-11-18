@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -160,13 +161,13 @@ func (a *ProviderAccount) lookupSharedObjectBlockStoreID(sharedObjectID string) 
 }
 
 // fetchPlacedBlocks copies every block of the store the account's own storage
-// lacks from the backend's bucket or peers, with the refs the source recorded,
-// one batch write per chunk.
+// lacks from the backend's hot bucket, its cold tier or peers, with the refs
+// the source recorded, one batch write per chunk.
 //
 // The fetch opens its own store on the backend's bucket, so a backend that
 // cannot be reached fails the move before the placement changes and releases
-// the bucket's objects. A block neither the bucket nor a peer holds is
-// skipped: the backend did not hold it either. The walk stops at a block
+// the bucket's objects. It skips only blocks those sources do not hold;
+// an unresolved cold read aborts the move. The walk stops at a block
 // without a child list, such as a hole or a block a store before format 7
 // wrote, so the fetch also checks each child a fetched block names that the
 // walk did not reach: the bucket may hold the only copy.
@@ -191,10 +192,26 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 	bucket := opened.store
 	defer bucket.Close()
 
-	// Read through the backend and peers, then list the blocks to fetch.
+	// Refuse to leave the configured backend unless its cold mount is present.
 	bucketID := BlockStoreBucketID(a.t.p.info.GetProviderId(), a.t.accountInfo.GetProviderAccountId(), tkr.id)
+	cold, _ := bs.placement.cold.(*block_store_s3.ColdPackStore)
+	if config := configuredColdPacks.Load(); config != nil && config.config.BlockStoreLocalID == bucketID {
+		if config.config.BackendID != backend.GetId() {
+			cold = nil // A host-local cold manifest does not follow a move.
+		} else if cold == nil {
+			return errors.Wrap(block.ErrUnavailable, "cold tier must be mounted before moving storage")
+		}
+	}
+
+	// Read the opened backend and the old placement's cold tier before peers.
+	source := block.StoreOps(bucket)
+	fetchConcurrency := moveFetchConcurrency
+	if cold != nil {
+		source = &fallbackReads{StoreOps: source, fallback: &coldMoveReads{ColdPackStore: cold}}
+		fetchConcurrency = 4 // Leave room in the eight-slot lane for user reads.
+	}
 	remote := block_store.NewStoreReadThrough(
-		func() block.StoreOps { return bucket },
+		func() block.StoreOps { return source },
 		func() block.StoreOps { return a.getP2PStore(bucketID) },
 		nil,
 	)
@@ -227,7 +244,7 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 		// Read the missing blocks concurrently, then store them together.
 		entries := make([]*block.PutBatchEntry, len(chunk))
 		eg, egCtx := errgroup.WithContext(ctx)
-		eg.SetLimit(moveFetchConcurrency)
+		eg.SetLimit(fetchConcurrency)
 		for i, ref := range chunk {
 			if found[i] {
 				continue
@@ -276,6 +293,18 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 		}
 	}
 	return nil
+}
+
+// coldMoveReads keeps unresolved cold reads from looking like a missing block
+// to the storage mover. This adapter is used only for GetStoredBlock.
+type coldMoveReads struct {
+	// ColdPackStore supplies the placement's immutable pack catalog.
+	*block_store_s3.ColdPackStore
+}
+
+// GetStoredBlock reports unverified absence as unavailable during a move.
+func (s *coldMoveReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return s.GetStoredBlockForMove(ctx, ref)
 }
 
 // waitUnplaced waits until the store leaves its backend and stops queueing

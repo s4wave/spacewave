@@ -5,6 +5,7 @@ package block_store_s3
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"iter"
 	"os"
 	"path/filepath"
@@ -77,6 +78,76 @@ func TestColdPackBloomCollision(t *testing.T) {
 
 // TestColdPackRejectsCorruption exercises the verified bytes and gone fences.
 func TestColdPackRejectsCorruption(t *testing.T) {
+	// Damage on the local mirror must stop publication, even with an intact tail.
+	t.Run("corrupt-mirror", func(t *testing.T) {
+		// Build a writer pack, then flip its only block's data without touching the index.
+		v := coldValues(t, 1)[0]
+		f := newColdFixture(t)
+		key := f.addPack(t, []coldValue{v}, false)
+		raw := []byte(f.objects[key])
+		i := bytes.Index(raw, v.data)
+		if i < 0 {
+			t.Fatal("fixture does not contain its payload")
+		}
+		raw[i] ^= 1
+		if err := os.WriteFile(filepath.Join(f.root, key[len(f.opts.Prefix):]), raw, 0o600); err != nil {
+			t.Fatal(err)
+		}
+
+		// The exact key stream is intact; only payload verification can reject it.
+		manifest, err := BuildColdPackManifest(t.Context(), f.root, coldTestKeys(f.keys))
+		if manifest != nil || !errors.Is(err, block.ErrBlockCorrupt) {
+			t.Fatalf("corrupt mirror produced a manifest: %t, %v", manifest != nil, err)
+		}
+	})
+
+	// A new length fences a pack even if the old range and index still match.
+	t.Run("bucket-length", func(t *testing.T) {
+		// Append bytes after the good mirror's authenticated index.
+		v := coldValues(t, 1)[0]
+		f := newColdFixture(t)
+		key := f.addPack(t, []coldValue{v}, false)
+		m := f.manifest(t)
+		want := sha256.Sum256([]byte(f.objects[key]))
+		if !bytes.Equal(m.Entries[0].PackSha256, want[:]) {
+			t.Fatal("manifest did not hash the exact pack bytes")
+		}
+		f.objects[key] += "extra"
+		s := f.open(t, nil)
+		assertColdAbsent(t, s, v.ref)
+		if !s.catalog.Load().packs[0].wrongObject.Load() || f.reader.calls.Load() != 1 {
+			t.Fatal("wrong length did not fence the pack after its first range")
+		}
+	})
+
+	// A tail without whole-object evidence cannot make a put discard good bytes.
+	t.Run("unbound-tail", func(t *testing.T) {
+		// Use a payload larger than the first index range, on a server with no checksum.
+		data := bytes.Repeat([]byte("unbound cold body"), 1024)
+		ref, err := block.BuildBlockRef(data, &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		f := newColdFixture(t)
+		key := f.addPack(t, []coldValue{{ref: ref, data: data}}, false)
+		f.manifest(t)
+		corrupt := []byte(f.objects[key])
+		i := bytes.Index(corrupt, data)
+		if i < 0 {
+			t.Fatal("fixture does not contain its payload")
+		}
+		corrupt[i] ^= 1
+		f.objects[key] = string(corrupt)
+		s := f.open(t, nil)
+		if yes, err := s.GetBlockExists(t.Context(), ref); err != nil || yes {
+			t.Fatalf("uncached extent: %t, %v", yes, err)
+		}
+		waitCold(t, func() bool { return s.tails.get(0) != nil })
+		if yes, err := s.GetBlockExists(t.Context(), ref); err != nil || yes || f.reader.calls.Load() != 1 {
+			t.Fatalf("authenticated tail with unreadable payload: %t, %v (%d ranges)", yes, err, f.reader.calls.Load())
+		}
+		assertColdAbsent(t, s, ref)
+	})
 	// A modified payload can decode, but its SHA-256 cannot match the ref.
 	t.Run("payload-and-tail", func(t *testing.T) {
 		// Authenticate the correct tail before corrupting only an encoded payload.
@@ -172,9 +243,143 @@ func TestColdPackOverlappingIntervals(t *testing.T) {
 		t.Fatalf("overlap did not traverse the first tail miss; false positives = %d", n)
 	}
 
+	// A repeat range counts once, apart from the first read or any tail GETs.
+	if got := s.Stats().RepeatExtentReads; got != 0 {
+		t.Fatalf("first body read counted as repeated: %d", got)
+	}
+	before := f.reader.calls.Load()
+	assertColdBlock(t, s, v[3])
+	if got := s.Stats().RepeatExtentReads; got != 1 || f.reader.calls.Load() != before+1 {
+		t.Fatalf("repeated body ranges = %d, requests = %d", got, f.reader.calls.Load()-before)
+	}
+
 	// The exact first and last key of each pack remain addressable.
 	for _, i := range []int{0, 2, 4, 5, 6, 7} {
 		assertColdBlock(t, s, v[i])
+	}
+}
+
+// TestColdPackUnresolvedExistence keeps a good body reachable after another
+// extent in its pack has failed verification and a second tail misses the key.
+func TestColdPackUnresolvedExistence(t *testing.T) {
+	// Mount two overlapping packs; the second has an all-ones bloom.
+	v := coldValues(t, 5)
+	f := newColdFixture(t)
+	key := f.addPack(t, []coldValue{v[0], v[2], v[4]}, false)
+	f.addPack(t, []coldValue{v[1], v[3]}, true)
+	f.manifest(t)
+	s := f.open(t, nil)
+	assertColdBlock(t, s, v[3])
+	assertColdBlock(t, s, v[0])
+
+	// Disprove one known extent after caching the original tails.
+	raw := []byte(f.objects[key])
+	i := bytes.Index(raw, v[4].data)
+	if i < 0 {
+		t.Fatal("fixture does not contain its payload")
+	}
+	raw[i] ^= 1
+	f.setObject(key, string(raw))
+	if stored, err := s.GetStoredBlock(t.Context(), v[4].ref); stored != nil || err != nil {
+		t.Fatalf("bad body = %v, %v", stored, err)
+	}
+	if !s.catalog.Load().packs[0].badPayload.Load() {
+		t.Fatal("failed body did not fence existence")
+	}
+
+	// Existence skips the fenced pack; its body can still verify a good key.
+	if yes, err := s.GetBlockExists(t.Context(), v[2].ref); yes || err != nil {
+		t.Fatalf("fenced existence = %t, %v", yes, err)
+	}
+	assertColdBlock(t, s, v[2])
+}
+
+// TestColdPackFlightCancellation checks that the first waiter's cancellation
+// does not cancel a demand tail or payload GET that a second waiter joined.
+func TestColdPackFlightCancellation(t *testing.T) {
+	for _, lane := range []string{"tail", "extent"} {
+		t.Run(lane, func(t *testing.T) {
+			// Gate one fake-bucket request until both callers are waiting.
+			v := coldValues(t, 1)[0]
+			f := newColdFixture(t)
+			f.addPack(t, []coldValue{v}, false)
+			m := f.manifest(t)
+			f.initBucket(t)
+			started, release, joined := make(chan struct{}), make(chan struct{}), make(chan struct{})
+			var once sync.Once
+			f.reader.before = func(ctx context.Context, _ string, _ int64, _ int) {
+				once.Do(func() { close(started) })
+				select {
+				case <-release:
+				case <-ctx.Done():
+				}
+			}
+			s := f.open(t, nil)
+			catalog := s.catalog.Load()
+			extent := coldExtent{size: m.Entries[0].Entry.SizeBytes - m.Entries[0].IndexTailBytes}
+			read := func(ctx context.Context) error {
+				if lane == "tail" {
+					_, err := s.tails.read(ctx, catalog, 0)
+					return err
+				}
+				_, err := s.readExtent(ctx, catalog, v.ref, extent)
+				return err
+			}
+
+			// Join before canceling the leader and release only after it returns.
+			ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+			defer cancel()
+			leader, stop := context.WithCancel(ctx)
+			defer stop()
+			first, second := make(chan error, 1), make(chan error, 1)
+			go func() { first <- read(leader) }()
+			awaitColdSignal(t, ctx, started)
+			go func() { second <- read(&coldJoinContext{Context: ctx, joined: joined}) }()
+			awaitColdSignal(t, ctx, joined)
+			stop()
+			if err := awaitColdRead(t, ctx, first); !errors.Is(err, context.Canceled) {
+				t.Fatalf("leader = %v, want cancellation", err)
+			}
+			close(release)
+			if err := awaitColdRead(t, ctx, second); err != nil || f.reader.calls.Load() != 1 {
+				t.Fatalf("joined read = %v, ranges = %d", err, f.reader.calls.Load())
+			}
+		})
+	}
+}
+
+// coldJoinContext observes the select after the waiter joined the flight.
+type coldJoinContext struct {
+	context.Context
+	// joined closes when the waiter first asks for its cancellation channel.
+	joined chan struct{}
+}
+
+// Done marks when the caller reached the wait, not when a goroutine started.
+func (c *coldJoinContext) Done() <-chan struct{} {
+	close(c.joined)
+	return c.Context.Done()
+}
+
+// awaitColdSignal bounds the wait for a fixture milestone.
+func awaitColdSignal(t *testing.T, ctx context.Context, signal <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-signal:
+	case <-ctx.Done():
+		t.Fatal("cold flight did not reach the expected state")
+	}
+}
+
+// awaitColdRead bounds the wait for a flight caller to return.
+func awaitColdRead(t *testing.T, ctx context.Context, result <-chan error) error {
+	t.Helper()
+	select {
+	case err := <-result:
+		return err
+	case <-ctx.Done():
+		t.Fatal("cold flight caller did not return")
+		return ctx.Err()
 	}
 }
 
@@ -215,6 +420,12 @@ func TestColdPackPromotionRecovery(t *testing.T) {
 			}
 			if yes, _ := s.GetBlockExists(t.Context(), v[0].ref); !yes {
 				t.Fatal("verified promoted identity did not answer from RAM")
+			}
+
+			// Stat uses the promoted decoded size without another GET.
+			stat, err := s.StatBlock(t.Context(), v[0].ref)
+			if err != nil || stat == nil || stat.Size != int64(len(v[0].data)) || f.reader.calls.Load() != before+1 {
+				t.Fatalf("promoted stat = %v, %v; requests=%d", stat, err, f.reader.calls.Load()-before)
 			}
 
 			// The torn key can be found through its tail and appended again.
@@ -496,14 +707,14 @@ type coldTestReader struct {
 	calls atomic.Uint64
 }
 
-// GetObjectRange exposes a gate before calling the real reader.
-func (r *coldTestReader) GetObjectRange(ctx context.Context, bucket, key string, off int64, size int) ([]byte, error) {
+// GetColdPackRange exposes a gate before calling the real reader.
+func (r *coldTestReader) GetColdPackRange(ctx context.Context, bucket, key string, off int64, size int, total uint64) ([]byte, []byte, error) {
 	// Count attempted requests even while their network is stalled.
 	r.calls.Add(1)
 	if r.before != nil {
 		r.before(ctx, key, off, size)
 	}
-	return r.client.GetObjectRange(ctx, bucket, key, off, size)
+	return r.client.GetColdPackRange(ctx, bucket, key, off, size, total)
 }
 
 // coldTestKeys exposes the fixture key list as an iterator.

@@ -142,6 +142,8 @@ type ColdPackEntry struct {
 	IndexSha256 []byte `protobuf:"bytes,5,opt,name=index_sha256,json=indexSha256,proto3" json:"indexSha256,omitempty"`
 	// IndexTailBytes bounds reads of the verified tail.
 	IndexTailBytes uint64 `protobuf:"varint,6,opt,name=index_tail_bytes,json=indexTailBytes,proto3" json:"indexTailBytes,omitempty"`
+	// PackSha256 is the SHA-256 of the whole pack whose payloads the builder verified.
+	PackSha256 []byte `protobuf:"bytes,7,opt,name=pack_sha256,json=packSha256,proto3" json:"packSha256,omitempty"`
 }
 
 func (x *ColdPackEntry) Reset() {
@@ -190,6 +192,13 @@ func (x *ColdPackEntry) GetIndexTailBytes() uint64 {
 		return x.IndexTailBytes
 	}
 	return 0
+}
+
+func (x *ColdPackEntry) GetPackSha256() []byte {
+	if x != nil {
+		return x.PackSha256
+	}
+	return nil
 }
 
 // ColdPackManifest bundles the verified entries for a read-only cold pack set.
@@ -661,6 +670,7 @@ func (m *ColdPackEntry) CloneVT() *ColdPackEntry {
 	r.FirstKey = protobuf_go_lite.CloneBytes(m.FirstKey)
 	r.LastKey = protobuf_go_lite.CloneBytes(m.LastKey)
 	r.IndexSha256 = protobuf_go_lite.CloneBytes(m.IndexSha256)
+	r.PackSha256 = protobuf_go_lite.CloneBytes(m.PackSha256)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -935,6 +945,9 @@ func (this *ColdPackEntry) EqualVT(that *ColdPackEntry) bool {
 		return false
 	}
 	if this.IndexTailBytes != that.IndexTailBytes {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.PackSha256, that.PackSha256) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1389,6 +1402,11 @@ func (x *ColdPackEntry) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("indexTailBytes")
 		s.WriteUint64(x.IndexTailBytes)
 	}
+	if len(x.PackSha256) > 0 || s.HasField("packSha256") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packSha256")
+		s.WriteBytes(x.PackSha256)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1428,6 +1446,9 @@ func (x *ColdPackEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "index_tail_bytes", "indexTailBytes":
 			s.AddField("index_tail_bytes")
 			x.IndexTailBytes = s.ReadUint64()
+		case "pack_sha256", "packSha256":
+			s.AddField("pack_sha256")
+			x.PackSha256 = s.ReadBytes()
 		}
 	})
 }
@@ -2358,6 +2379,11 @@ func (m *ColdPackEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.PackSha256) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.PackSha256)
+		i--
+		dAtA[i] = 0x3a
+	}
 	if m.IndexTailBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IndexTailBytes))
 		i--
@@ -3007,6 +3033,7 @@ func (m *ColdPackEntry) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.LastKey)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.IndexSha256)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.IndexTailBytes)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.PackSha256)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3253,6 +3280,10 @@ func (x *ColdPackEntry) MarshalProtoText() string {
 	if x.IndexTailBytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index_tail_bytes")
 		protobuf_go_lite.TextWriteUint(&sb, x.IndexTailBytes)
+	}
+	if len(x.PackSha256) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_sha256")
+		protobuf_go_lite.TextWriteBytes(&sb, x.PackSha256)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3799,6 +3830,14 @@ func (m *ColdPackEntry) UnmarshalVT(dAtA []byte) error {
 			}
 			m.IndexTailBytes = 0
 			m.IndexTailBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackSha256", wireType)
+			}
+			m.PackSha256, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.PackSha256, dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

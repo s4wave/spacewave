@@ -91,6 +91,7 @@ func coldPackStatsResponse(stats block_store_s3.ColdPackStats) (*structpb.Struct
 		"cold_tail_fetches":              stats.TailFetches,
 		"cold_false_positives":           stats.FalsePositives,
 		"cold_true_hits":                 stats.TrueHits,
+		"cold_repeat_extent_reads":       stats.RepeatExtentReads,
 		"cold_promoted_keys":             stats.PromotedKeys,
 		"cold_promote_dropped":           stats.PromoteDropped,
 		"cold_promote_cap_dropped":       stats.PromoteCapDropped,

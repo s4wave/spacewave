@@ -30,9 +30,16 @@ type coldPack struct {
 	filter *bloom.Filter
 	// gone permanently fences membership after an authoritative bucket miss.
 	gone atomic.Bool
+	// wrongObject fences a length or full-object checksum mismatch.
+	wrongObject atomic.Bool
+	// verifiedBytes records a full-object digest match for the immutable pack.
+	verifiedBytes atomic.Bool
 	// badPayload fences cached positive answers after disproving a known extent.
 	badPayload atomic.Bool
 }
+
+// unusable reports whether observed bucket evidence rules out this pack.
+func (p *coldPack) unusable() bool { return p.gone.Load() || p.wrongObject.Load() }
 
 // coldInterval names a pack and the greatest last key at or before its position.
 type coldInterval struct {
@@ -79,7 +86,7 @@ func newColdPackCatalog(prefix string, manifest *packfile.ColdPackManifest) (*co
 			return nil, errors.Errorf("invalid cold key bounds for %q", entry.Id)
 		}
 		if entry.BlockCount == 0 || entry.SizeBytes > math.MaxInt64 || meta.IndexTailBytes == 0 ||
-			meta.IndexTailBytes >= entry.SizeBytes || len(meta.IndexSha256) != sha256.Size {
+			meta.IndexTailBytes >= entry.SizeBytes || len(meta.IndexSha256) != sha256.Size || len(meta.PackSha256) != sha256.Size {
 			return nil, errors.Errorf("invalid cold index metadata for %q", entry.Id)
 		}
 

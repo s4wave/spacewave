@@ -116,6 +116,21 @@ func TestColdManifestRejectsKeyDisagreement(t *testing.T) {
 	if _, err := BuildColdPackManifest(t.Context(), f.root, coldTestKeys(f.keys[:1])); err == nil {
 		t.Fatal("manifest accepted an incomplete export key stream")
 	}
+
+	// The two pack indexes share a key, but the export lists the union once.
+	f.addPack(t, []coldValue{v[0], v[1]}, false)
+	keys := make([][]byte, len(v))
+	for i, value := range v {
+		keys[i] = packfile.BlockKey(value.ref.GetHash())
+	}
+	manifest, err := BuildColdPackManifest(t.Context(), f.root, coldTestKeys(keys))
+	if err != nil || len(manifest.GetEntries()) != 2 {
+		t.Fatalf("manifest rejected overlapping pack copies: %v", err)
+	}
+	duplicates := append([][]byte{keys[0]}, keys...)
+	if _, err := BuildColdPackManifest(t.Context(), f.root, coldTestKeys(duplicates)); err == nil {
+		t.Fatal("manifest accepted a duplicate exported key")
+	}
 }
 
 // countingCache is a RangeCache that answers data, counting its reads.

@@ -2244,7 +2244,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/packfile": {
-      "hash": "9664cadbbec143c0ce44b2cd34237d2c4a8846105e7f0106dbddc7da5ad55acc",
+      "hash": "0339d8b9f21d74c60bc8b9b6165c35a2f4c3d0c01334c354cff2fc2800a13efb",
       "generatedFiles": [
         "db/packfile/packfile.pb.go",
         "db/packfile/packfile.pb.ts"

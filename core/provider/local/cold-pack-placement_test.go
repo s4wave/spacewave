@@ -69,6 +69,13 @@ func TestPlacedColdPackFallback(t *testing.T) {
 		})
 	}
 
+	// Stat on the serving chain delegates to cold metadata, not a body read.
+	before := cold.reads.Load()
+	stat, err := serve.StatBlock(f.ctx, coldRef)
+	if err != nil || stat == nil || stat.Size != int64(len(coldData)) || cold.reads.Load() != before {
+		t.Fatalf("cold stat = %v, %v; body reads = %d", stat, err, cold.reads.Load()-before)
+	}
+
 	// A cold hit must not consult SQL, fill the disk or mark an upload.
 	if f.sql.reads.Load() != 0 || f.p.fallbackFills.status().Hits != 0 || f.held(coldRef) || f.status().Pending != 0 {
 		t.Fatalf("cold hit touched SQL or filled the local store (SQL reads %d; fills %+v)", f.sql.reads.Load(), f.p.fallbackFills.status())

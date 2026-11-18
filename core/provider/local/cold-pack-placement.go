@@ -14,8 +14,9 @@ import (
 
 // ColdPackPlacementConfig opts one placed block store into reading cold packs
 // in its existing S3 backend's bucket. It is host-local, not account state.
-// Do not move or delete a placement with live blocks held only by cold packs:
-// storage moves copy from the hot backend and do not carry this configuration.
+// A storage move copies blocks from the old mount's cold reader before switching.
+// The manifest configuration stays with its original backend; do not delete the
+// cold objects while a mount may still depend on them.
 type ColdPackPlacementConfig struct {
 	// BlockStoreLocalID identifies the provider, account and block store.
 	BlockStoreLocalID string

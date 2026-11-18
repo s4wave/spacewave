@@ -3,6 +3,9 @@ EXTENDS Naturals, FiniteSets, TLC
 
 (***************************************************************************
  The mounted manifest names one pack, whose exact index contains Live.
+ Its mirror was verified, but the bucket pack may have an unreadable body.
+ Only a matching whole-object checksum binds a bucket tail to that mirror;
+ a tail without that proof can only locate a body for individual verification.
  Absent shares Live's persisted suffix and passes its bloom. A range read
  can fail or return not-found; the latter fences cached evidence for the
  mount. A crash discards all in-memory proof. Bytes and CRC checks are
@@ -14,12 +17,14 @@ EXTENDS Naturals, FiniteSets, TLC
  still relied on: unobserved deletion is deliberately not modeled as gone.
 ***************************************************************************)
 CONSTANTS Live, Absent, PromoteCap, QueueCap, TrustSuffix, IgnoreGone
+CONSTANTS Readable, Checksum
 VARIABLES ready, enabled, present, gone, tail, durable, verified, queue,
           answer
 vars == <<ready, enabled, present, gone, tail, durable, verified, queue, answer>>
 
 Keys == {Live, Absent}
 Actual == {Live}
+Bound == Checksum /\ Readable = Actual
 
 Init == /\ ready = FALSE /\ enabled = TRUE /\ present = TRUE /\ gone = FALSE
         /\ tail = {} /\ durable = {} /\ verified = {} /\ queue = {}
@@ -43,7 +48,7 @@ Fill == /\ ready /\ enabled /\ present /\ ~gone /\ tail' = Actual
 Evict == /\ tail # {} /\ tail' = {}
          /\ UNCHANGED <<ready, enabled, present, gone, durable, verified, queue, answer>>
 
-Read(k) == /\ ready /\ enabled /\ present /\ ~gone /\ k \in Actual
+Read(k) == /\ ready /\ enabled /\ present /\ ~gone /\ k \in Readable
            /\ verified' = IF k \in durable THEN verified \cup {k} ELSE verified
            /\ queue' = IF k \notin durable /\ Cardinality(queue) < QueueCap
                        THEN queue \cup {k} ELSE queue
@@ -60,7 +65,8 @@ Crash == /\ ready' = FALSE /\ gone' = FALSE /\ tail' = {}
 
 Exists(k) == /\ answer' = [key |-> k, wasGone |-> gone,
                             yes |-> ready /\ enabled /\ (~gone \/ IgnoreGone) /\
-                                    (k \in (tail \cup verified) \/ (TrustSuffix /\ durable # {}))]
+                                    (k \in verified \/ (Bound /\ k \in tail) \/
+                                     (TrustSuffix /\ durable # {}))]
              /\ UNCHANGED <<ready, enabled, present, gone, tail, durable, verified, queue>>
 
 Next == Preload \/ Toggle \/ Delete \/ Observed404 \/ Fill \/ Evict \/ Crash
@@ -69,7 +75,8 @@ Next == Preload \/ Toggle \/ Delete \/ Observed404 \/ Fill \/ Evict \/ Crash
 Spec == Init /\ [][Next]_vars
 
 NoFalseYes == answer.yes => answer.key \in Actual
+NoUnreadableYes == answer.yes /\ answer.key \in Actual => answer.key \in Readable
 NoGoneYes == answer.yes => ~answer.wasGone
-VerifiedIsDurable == verified \subseteq durable /\ durable \subseteq Actual
+VerifiedIsDurable == verified \subseteq durable /\ durable \subseteq Readable
 LogAndQueueBounded == Cardinality(durable) <= PromoteCap /\ Cardinality(queue) <= QueueCap
 =============================================================================

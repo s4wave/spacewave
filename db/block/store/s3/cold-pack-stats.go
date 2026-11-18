@@ -24,6 +24,9 @@ type ColdPackStats struct {
 	FalsePositives uint64
 	// TrueHits counts successful cold lookups.
 	TrueHits uint64
+	// RepeatExtentReads counts successful payload range GETs that repeat one of
+	// the last 4096 distinct payload ranges in this mount. It excludes joins.
+	RepeatExtentReads uint64
 	// PromotedKeys counts durable records recovered or written in this mount.
 	PromotedKeys uint64
 	// PromoteDropped counts offers dropped by a full promotion queue.
@@ -50,6 +53,8 @@ type coldPackCounters struct {
 	falsePositives atomic.Uint64
 	// trueHits counts successful block, stat and existence lookups.
 	trueHits atomic.Uint64
+	// repeatExtentReads counts repeated payload range responses, not lookup hits.
+	repeatExtentReads atomic.Uint64
 	// promotedKeys counts the durable log prefix in records.
 	promotedKeys atomic.Uint64
 	// promoteDropped counts full-queue drops.
@@ -74,6 +79,7 @@ func (s *ColdPackStore) Stats() ColdPackStats {
 		TailFetches:             s.stats.tailFetches.Load(),
 		FalsePositives:          s.stats.falsePositives.Load(),
 		TrueHits:                s.stats.trueHits.Load(),
+		RepeatExtentReads:       s.stats.repeatExtentReads.Load(),
 		PromotedKeys:            s.stats.promotedKeys.Load(),
 		PromoteDropped:          s.stats.promoteDropped.Load(),
 		PromoteCapDropped:       s.stats.promoteCapDropped.Load(),

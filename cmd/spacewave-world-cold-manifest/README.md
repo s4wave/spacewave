@@ -10,10 +10,17 @@ per line, in strictly increasing key order. It needs no bucket credentials.
 spacewave-world-cold-manifest --source ./cold-copy --keys ./exported-keys.hex --output ./cold.pb
 ```
 
-The command refuses to publish if the local indexes do not contain exactly
-the exported keys or if a pack's original bloom filter rejects one of its keys.
-The resulting manifest also binds the exact bytes of each verified index tail.
-Keep the bucket packs immutable and their layout identical to the mirror.
+The command verifies every local block against its index key. It refuses to
+publish if a block fails verification, the pack indexes disagree with the
+exported set, or a pack's original bloom filter rejects one of its keys.
+Export each key once, even if more than one pack holds it.
+
+On each range response the mount checks the object size. It also checks the
+pack SHA-256 when it receives the entire object or the bucket supplies a
+whole-object SHA-256. Without that proof, the index can locate a block but only
+verified bytes can establish presence. Keep the packs immutable: a cached proof
+cannot see a replacement or deletion until a range read observes it. Rebuild
+manifests made before whole-pack SHA-256 was recorded.
 
 Start a native daemon with `spacewave serve --cold-pack-store <local-store-id>
 --cold-pack-backend <id> --cold-pack-prefix <prefix> --cold-pack-manifest
@@ -22,8 +29,8 @@ Start a native daemon with `spacewave serve --cold-pack-store <local-store-id>
 `spacewave debug cold-packs off` disables lookups on the running daemon, and
 `on` re-enables them. A changed manifest needs a new mount or process restart.
 
-Do not move or delete a placement while it still relies on cold-only live
-blocks. Do not hide or delete a cold pack while an enabled mount's manifest
-names it. First verify its live blocks are held elsewhere, remove it from the
+Before moving a placement, keep its old cold mount enabled and readable so the
+move can copy cold-only blocks. Do not hide or delete a cold pack while an
+enabled mount's manifest names it. First verify its live blocks are held elsewhere, remove it from the
 manifest, and replace every old mount that used that manifest; alternatively,
 adopt the live blocks in the main index and keep the cold tier off.

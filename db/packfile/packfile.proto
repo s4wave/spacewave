@@ -52,6 +52,8 @@ message ColdPackEntry {
   bytes index_sha256 = 5;
   // IndexTailBytes bounds reads of the verified tail.
   uint64 index_tail_bytes = 6;
+  // PackSha256 is the SHA-256 of the whole pack whose payloads the builder verified.
+  bytes pack_sha256 = 7;
 }
 
 // ColdPackManifest bundles the verified entries for a read-only cold pack set.

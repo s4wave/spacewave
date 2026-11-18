@@ -3,6 +3,7 @@
 package block_store_s3
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"math"
@@ -71,6 +72,8 @@ type ColdPackStore struct {
 	ranges chan struct{}
 	// reads deduplicates simultaneous reads of an exact block extent.
 	reads singleflight.Group
+	// bodyRanges remembers recent payload ranges, not their bytes.
+	bodyRanges *coldCache[coldExtent, struct{}]
 	// promotions owns the bounded log and detached promoter.
 	promotions *coldPromotions
 	// warnings carries best-effort error reporting off the read path.
@@ -111,6 +114,7 @@ func NewColdPackStore(ctx context.Context, le *logrus.Entry, client ColdPackRang
 		le: le, client: client, bucket: bucket, opts: opts, cancel: cancel,
 		done: make(chan struct{}), negative: newColdCache[[sha256.Size]byte, struct{}](opts.NegativeCacheKeys),
 		ranges: make(chan struct{}, 8), warnings: make(chan coldWarning, 64),
+		bodyRanges: newColdCache[coldExtent, struct{}](4096),
 	}
 	s.tails = newColdTailCache(s, opts.TailCacheBytes)
 	s.promotions = newColdPromotions(s, opts.PromotedLog, opts.PromoteCap)
@@ -152,14 +156,25 @@ func (s *ColdPackStore) PutBlockBatch(context.Context, []*block.PutBatchEntry) (
 // GetBlock returns only verified bytes from cold storage.
 func (s *ColdPackStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Share the stored-block lookup, including its verification and promotion.
-	stored, _, _ := s.lookup(ctx, ref, coldReadBlock)
+	stored, _, _, _ := s.lookup(ctx, ref, coldReadBlock)
 	return stored.GetData(), stored != nil, nil
 }
 
 // GetStoredBlock returns a verified block and its outgoing refs.
 func (s *ColdPackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// The cold tier converts even unexpected errors to misses.
-	stored, _, _ := s.lookup(ctx, ref, coldReadBlock)
+	stored, _, _, _ := s.lookup(ctx, ref, coldReadBlock)
+	return stored, nil
+}
+
+// GetStoredBlockForMove treats an unresolved cold read as unavailable. A
+// storage move must not switch placements if a cold-only block may be missing.
+func (s *ColdPackStore) GetStoredBlockForMove(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Use the manifest indexes, not a promotion hint that may be unverified.
+	stored, _, found, unresolved := s.lookup(ctx, ref, coldMoveBlock)
+	if !found && unresolved {
+		return nil, block.ErrUnavailable
+	}
 	return stored, nil
 }
 
@@ -167,7 +182,7 @@ func (s *ColdPackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 // or issues a bucket request, including when a World writer holds its slot.
 func (s *ColdPackStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	// An unconfirmed presence costs another put, not a skipped write.
-	_, _, found := s.lookup(ctx, ref, coldExists)
+	_, _, found, _ := s.lookup(ctx, ref, coldExists)
 	return found, nil
 }
 
@@ -176,7 +191,7 @@ func (s *ColdPackStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 	// A miss or cold failure affects only that ref and never prevents a put.
 	out := make([]bool, len(refs))
 	for i, ref := range refs {
-		_, _, out[i] = s.lookup(ctx, ref, coldExists)
+		_, _, out[i], _ = s.lookup(ctx, ref, coldExists)
 	}
 	return out, nil
 }
@@ -187,7 +202,7 @@ func (s *ColdPackStore) RmBlock(context.Context, *block.BlockRef) error { return
 // StatBlock reports the decoded length after confirming the requested ref.
 func (s *ColdPackStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	// Check the full identity before returning size or claiming presence.
-	_, size, found := s.lookup(ctx, ref, coldStat)
+	_, size, found, _ := s.lookup(ctx, ref, coldStat)
 	if !found {
 		return nil, nil
 	}
@@ -269,16 +284,21 @@ const (
 	coldStat
 	// coldReadBlock reads and verifies the requested block body.
 	coldReadBlock
+	// coldMoveBlock distinguishes an unresolved source from a confirmed miss.
+	coldMoveBlock
 )
 
 // lookup tries promoted extents, then intervals, bloom filters and exact tails.
 // No cold error is returned to the caller or remembered as a negative result.
-func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode coldLookupMode) (stored *block.StoredBlock, size int64, found bool) {
+func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode coldLookupMode) (stored *block.StoredBlock, size int64, found, unresolved bool) {
 	// Off, warming, closed, canceled, or using another hash: miss immediately.
 	catalog := s.catalog.Load()
 	h := ref.GetHash()
-	if coldPackReadsOff.Load() || catalog == nil || ctx.Err() != nil || h.GetHashType() != hash.RecommendedHashType || len(h.GetHash()) != sha256.Size {
-		return nil, 0, false
+	if h.GetHashType() != hash.RecommendedHashType || len(h.GetHash()) != sha256.Size {
+		return nil, 0, false, false
+	}
+	if coldPackReadsOff.Load() || catalog == nil || ctx.Err() != nil {
+		return nil, 0, false, true
 	}
 	digest := [sha256.Size]byte(h.GetHash())
 
@@ -289,29 +309,40 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 		defer cancel()
 	}
 
-	// Try the promoted extent, which may be only a hint after a restart.
-	promoted, ok := s.promotions.get(digest)
-	if ok {
-		stored, size, found = s.readPromoted(ctx, catalog, ref, mode, digest, promoted)
-		if found {
-			s.stats.trueHits.Add(1)
-			return stored, size, true
+	// Normal reads can use promoted hints and exact negatives. Moves consult
+	// the indexes again: a normal negative may have skipped a fenced pack.
+	var promoted coldPromotion
+	var ok bool
+	if mode != coldMoveBlock {
+		promoted, ok = s.promotions.get(digest)
+		if ok {
+			stored, size, found = s.readPromoted(ctx, catalog, ref, mode, digest, promoted)
+			if found {
+				s.stats.trueHits.Add(1)
+				return stored, size, true, false
+			}
+		}
+		if _, missing := s.negative.get(digest); missing {
+			return nil, 0, false, false
 		}
 	}
 
-	// A confirmed negative uses the full digest, not a probabilistic suffix.
-	if _, missing := s.negative.get(digest); missing {
-		return nil, 0, false
-	}
+	// Test only blooms that cover this full key.
 	key := packfile.BlockKey(h)
 	bkey := bloom.NewKey(key)
-	var tested, unresolved, uncached bool
+	var tested, uncached bool
 
 	// Probe every covering interval, continuing after an exact miss or failure.
 	catalog.candidates(key, func(pack uint16) bool {
 		// A missing pack or known bad payload cannot justify skipping a put.
 		candidate := &catalog.packs[pack]
-		if candidate.gone.Load() || mode == coldExists && candidate.badPayload.Load() {
+		if candidate.unusable() {
+			// A move cannot discard a block a fenced pack may have held.
+			unresolved = unresolved || mode == coldMoveBlock && candidate.filter.TestKey(bkey)
+			return true
+		}
+		if mode == coldExists && candidate.badPayload.Load() {
+			unresolved = true // A body read can still verify a different extent.
 			return true
 		}
 
@@ -342,7 +373,7 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 			}
 		}
 
-		// Only a confirmed full index key can answer existence from the tail.
+		// Locate the full index key; only a bound pack can prove presence.
 		off, length, hit, err := tail.locate(key)
 		if err != nil {
 			s.warn(ctx, err, "search cold pack index tail")
@@ -354,7 +385,8 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 			return true
 		}
 		if mode == coldExists {
-			found = !candidate.gone.Load() && !candidate.badPayload.Load()
+			found = candidate.verifiedBytes.Load() && !candidate.unusable() && !candidate.badPayload.Load()
+			unresolved = unresolved || !found
 			return !found
 		}
 
@@ -381,13 +413,13 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 	// Do not poison negative membership with a transient failure or queued fill.
 	if found {
 		s.stats.trueHits.Add(1)
-	} else if tested && !unresolved && ctx.Err() == nil {
+	} else if tested && !unresolved && ctx.Err() == nil && mode != coldMoveBlock {
 		s.negative.put(digest, struct{}{}, 1, false)
 	}
 	if uncached && !found {
 		s.stats.uncachedExistenceMisses.Add(1)
 	}
-	return stored, size, found
+	return stored, size, found, unresolved || ctx.Err() != nil
 }
 
 // readPromoted distinguishes exact in-memory evidence from a restored hint.
@@ -397,11 +429,11 @@ func (s *ColdPackStore) readPromoted(
 ) (*block.StoredBlock, int64, bool) {
 	// A random absent key has at most PromoteCap / 2^96 chance of matching
 	// a suffix (about 6.3e-24 at 500,000). That match never answers yes: only
-	// a full digest verified against the payload in this mount, or a matching
-	// authenticated tail entry, proves membership. A restored hint requires
+	// a full digest verified against the payload in this mount, or an exact
+	// index key from a bound pack, proves membership. A restored hint requires
 	// one verified extent read before it can answer existence from RAM.
 	pack := &catalog.packs[rec.extent.pack]
-	if pack.gone.Load() {
+	if pack.unusable() {
 		return nil, 0, false
 	}
 	exact := rec.exact && rec.digest == digest
@@ -433,7 +465,21 @@ func (s *ColdPackStore) readExtent(ctx context.Context, catalog *coldPackCatalog
 	// Deduplicate only on the immutable pack range, not on a shortened hash.
 	pack := &catalog.packs[extent.pack]
 	ch := s.reads.DoChan(extent.flightKey(), func() (any, error) {
-		return s.readRange(ctx, pack, int64(extent.off), int(extent.size), false, false) //nolint:gosec // Catalog and tail bounds constrain off and size.
+		// Bound shared work independently of either caller's wait.
+		flight, cancel := context.WithTimeout(context.WithoutCancel(ctx), coldReadLimit)
+		defer cancel()
+		data, err := s.readRange(flight, pack, int64(extent.off), int(extent.size), false, false) //nolint:gosec // Catalog and tail bounds constrain off and size.
+		if err != nil {
+			return nil, err
+		}
+
+		// Count once per successful bucket GET, not once per joined waiter.
+		if _, repeated := s.bodyRanges.get(extent); repeated {
+			s.stats.repeatExtentReads.Add(1)
+		} else {
+			s.bodyRanges.put(extent, struct{}{}, 1, false)
+		}
+		return data, nil
 	})
 	var result singleflight.Result
 	select {
@@ -453,7 +499,7 @@ func (s *ColdPackStore) readExtent(ctx context.Context, catalog *coldPackCatalog
 
 	// Recheck the gone fence after the shared request and SHA-256 verification.
 	stored, err := verifiedBlock(ref, raw)
-	if pack.gone.Load() {
+	if pack.unusable() {
 		return nil, ErrNotFound
 	}
 	if err != nil {
@@ -463,11 +509,11 @@ func (s *ColdPackStore) readExtent(ctx context.Context, catalog *coldPackCatalog
 }
 
 // readRange bounds demand I/O and fences membership after an authoritative
-// not-found response. Only the tail worker can make a background range read;
+// size mismatch, checksum mismatch, or not-found response. Only the tail worker can make a background range read;
 // its single slot is separate so it cannot displace a foreground reader.
 func (s *ColdPackStore) readRange(ctx context.Context, pack *coldPack, off int64, size int, background, tail bool) ([]byte, error) {
-	// Refuse stale packs and do not wait to enter a saturated demand lane.
-	if pack.gone.Load() {
+	// Refuse fenced packs and do not wait to enter a saturated demand lane.
+	if pack.unusable() {
 		return nil, ErrNotFound
 	}
 	if err := ctx.Err(); err != nil {
@@ -482,15 +528,30 @@ func (s *ColdPackStore) readRange(ctx context.Context, pack *coldPack, off int64
 		}
 	}
 
-	// The first authoritative miss makes this mount's verdict permanent.
+	// Compare the mirror's verified size and SHA-256 with the range response.
+	// Size alone cannot catch equal-length damage. Without a whole-object
+	// checksum, only individually verified extents authorize presence. A
+	// cached proof still cannot detect an unobserved replacement or deletion.
 	if tail {
 		s.stats.tailFetches.Add(1)
 	}
-	data, err := s.client.GetObjectRange(ctx, s.bucket, pack.key, off, size)
+	data, sum, err := s.client.GetColdPackRange(ctx, s.bucket, pack.key, off, size, pack.meta.Entry.SizeBytes)
+	if err == nil && len(sum) != 0 {
+		if bytes.Equal(sum, pack.meta.PackSha256) {
+			pack.verifiedBytes.Store(true)
+		} else {
+			err = errColdObjectMismatch
+		}
+	}
+
+	// The first authoritative mismatch or miss fences even cached evidence.
 	if errors.Is(err, ErrNotFound) && pack.gone.CompareAndSwap(false, true) {
 		s.offerWarning(coldWarning{key: pack.key, message: "cold pack is gone; ignoring its cached entries"})
 	}
-	if pack.gone.Load() {
+	if errors.Is(err, errColdObjectMismatch) && pack.wrongObject.CompareAndSwap(false, true) {
+		s.offerWarning(coldWarning{key: pack.key, message: "cold pack size or digest changed; ignoring its cached entries"})
+	}
+	if pack.unusable() {
 		return nil, ErrNotFound
 	}
 	return data, err

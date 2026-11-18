@@ -157,7 +157,9 @@ func (p *placementState) serveReads(local block.StoreOps, remote block_store.Sto
 	return &fallbackReads{StoreOps: reads, fallback: block.NewReadOnlyStore(fallback)}
 }
 
-// withColdPacks adds the cold read-only tier without scheduling any fill.
+// withColdPacks adds the cold read-only tier. A cold fill must never make the
+// hot index or uploader claim the block. Even an unmarked local cache fill
+// can be queued by writeback.Backfill, so these reads only count repeated GETs.
 func (p *placementState) withColdPacks(primary block.StoreOps) block.StoreOps {
 	if p.cold == nil {
 		return primary
@@ -574,13 +576,29 @@ func (r *fallbackReads) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 	return out, nil
 }
 
-// StatBlock follows the same source order as GetBlock.
+// StatBlock uses each tier's metadata path, without writing a cache fill.
 func (r *fallbackReads) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	data, found, err := r.GetBlock(ctx, ref)
-	if err != nil || !found {
+	// Prefer the local and hot sources, as for a body read.
+	stat, err := r.StoreOps.StatBlock(ctx, ref)
+	if err == nil && stat != nil {
+		return stat, nil
+	}
+	if ctx.Err() != nil {
+		return nil, context.Cause(ctx)
+	}
+
+	// A fallback hit can answer past a primary failure, but a miss cannot.
+	fallbackStat, fallbackErr := r.fallback.StatBlock(ctx, ref)
+	if fallbackErr == nil && fallbackStat != nil {
+		return fallbackStat, nil
+	}
+	if errors.Is(fallbackErr, block.ErrBlockCorrupt) {
+		return nil, errors.Wrap(fallbackErr, "stat fallback block")
+	}
+	if err != nil {
 		return nil, err
 	}
-	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
+	return nil, fallbackErr
 }
 
 // _ is a type assertion

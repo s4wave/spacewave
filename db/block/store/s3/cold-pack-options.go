@@ -7,8 +7,9 @@ import "context"
 // ColdPackRangeReader reads immutable object ranges. ColdPackStore has no
 // capability to list, upload, or delete either hot or cold objects.
 type ColdPackRangeReader interface {
-	// GetObjectRange reads length bytes at off in the named object.
-	GetObjectRange(ctx context.Context, bucket, key string, off int64, length int) ([]byte, error)
+	// GetColdPackRange reads length bytes at off, rejecting a different object
+	// size. It also returns an optional SHA-256 of the entire object.
+	GetColdPackRange(ctx context.Context, bucket, key string, off int64, length int, size uint64) ([]byte, []byte, error)
 }
 
 // ColdPackOptions describes a mounted immutable pack set and its cache bounds.

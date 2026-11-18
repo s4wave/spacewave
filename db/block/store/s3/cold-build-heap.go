@@ -27,7 +27,14 @@ type coldBuildCursor struct {
 // openColdBuildCursor reopens a tail and detects a change since inspection.
 func openColdBuildCursor(root *os.Root, pack *coldPack) (*coldBuildCursor, error) {
 	// Verify the local mirror did not change between the two passes.
-	tail, err := readLocalColdTail(root, pack.meta)
+	f, err := root.Open(pack.key)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close() // Read-only pack handle.
+
+	// Rebuild the index only from the authenticated tail.
+	tail, err := readLocalColdTail(f, pack.meta)
 	if err != nil {
 		return nil, err
 	}
@@ -82,10 +89,6 @@ func (h *coldBuildHeap) consume() error {
 	meta := c.pack.meta
 	if bytes.Compare(key, meta.FirstKey) < 0 || bytes.Compare(key, meta.LastKey) > 0 || !c.pack.filter.Test(key) {
 		return errors.Errorf("cold pack %q bounds or bloom reject its index key %x", meta.Entry.Id, key)
-	}
-	base := meta.Entry.SizeBytes - meta.IndexTailBytes
-	if c.entry.Size == 0 || c.entry.Offset >= base || c.entry.Size > base-c.entry.Offset {
-		return errors.Errorf("cold pack %q index extent is outside payloads", meta.Entry.Id)
 	}
 
 	// Move the cursor forward or release the completed pack tail.

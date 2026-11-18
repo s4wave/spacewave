@@ -17,15 +17,15 @@ type coldPackRangeReader struct {
 	backend *account_settings.StorageBackend
 }
 
-// GetObjectRange reads a cold extent using the matching open backend. Unlike
+// GetColdPackRange reads a cold extent using the matching open backend. Unlike
 // the main read path, it never waits for an unavailable backend to open.
-func (r *coldPackRangeReader) GetObjectRange(ctx context.Context, bucket, key string, off int64, length int) ([]byte, error) {
+func (r *coldPackRangeReader) GetColdPackRange(ctx context.Context, bucket, key string, off int64, length int, size uint64) ([]byte, []byte, error) {
 	// A missing or changed placement cannot read this manifest's objects.
 	opened := r.tracker.remote.Load()
 	if opened == nil || opened.s3 == nil || !opened.backend.EqualVT(r.backend) {
-		return nil, block.ErrUnavailable
+		return nil, nil, block.ErrUnavailable
 	}
-	return opened.s3.GetObjectRange(ctx, bucket, key, off, length)
+	return opened.s3.GetColdPackRange(ctx, bucket, key, off, length, size)
 }
 
 // _ checks that the cold store only receives ranged object reads.

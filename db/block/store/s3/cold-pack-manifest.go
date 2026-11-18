@@ -3,7 +3,9 @@
 package block_store_s3
 
 import (
+	"bufio"
 	"bytes"
+	"cmp"
 	"container/heap"
 	"context"
 	"crypto/sha256"
@@ -26,7 +28,7 @@ import (
 // It needs no bucket access. The mirror is rooted at the configured cold
 // prefix and uses the writer's layout: XNN/entries/<id> and XNN/packs/<id>,
 // with no extension. exported yields the canonical block keys in strict order.
-// The builder matches the exported set exactly, including counts. It holds raw
+// The builder matches the exported set exactly, allowing copies in distinct packs. It holds raw
 // tails only for intervals active in the merge, not one row per exported key.
 func BuildColdPackManifest(ctx context.Context, dir string, exported iter.Seq2[[]byte, error]) (*packfile.ColdPackManifest, error) {
 	// Open the local mirror without following paths outside it.
@@ -53,8 +55,8 @@ func BuildColdPackManifest(ctx context.Context, dir string, exported iter.Seq2[[
 			return nil
 		}
 
-		// Read one entry and the tail of its pack, then release their bytes.
-		meta, err := inspectColdEntry(root, name)
+		// Verify one pack before retaining only its manifest entry.
+		meta, err := inspectColdEntry(ctx, root, name)
 		if err != nil {
 			return errors.Wrap(err, name)
 		}
@@ -81,7 +83,7 @@ func BuildColdPackManifest(ctx context.Context, dir string, exported iter.Seq2[[
 }
 
 // inspectColdEntry pairs the writer's metadata object with its local pack.
-func inspectColdEntry(root *os.Root, name string) (*packfile.ColdPackEntry, error) {
+func inspectColdEntry(ctx context.Context, root *os.Root, name string) (*packfile.ColdPackEntry, error) {
 	// Derive the subpath from the on-disk object key, not from a caller's guess.
 	id := path.Base(name)
 	if err := identity.ValidatePackID(id); err != nil {
@@ -107,9 +109,16 @@ func inspectColdEntry(root *os.Root, name string) (*packfile.ColdPackEntry, erro
 		return nil, errors.New("entry pack ID or count disagrees with its object")
 	}
 
-	// Bind the manifest to the pack's exact tail and inclusive endpoints.
+	// Open the pack paired with this entry; one handle supplies tail and payloads.
 	meta := &packfile.ColdPackEntry{Subpath: subpath, Entry: entry}
-	tail, err := readLocalColdTail(root, meta)
+	f, err := root.Open(subpath + packDir + id)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close() // Read-only pack handle.
+
+	// Bind the manifest to the pack's exact tail and count.
+	tail, err := readLocalColdTail(f, meta)
 	if err != nil {
 		return nil, err
 	}
@@ -136,25 +145,25 @@ func inspectColdEntry(root *os.Root, name string) (*packfile.ColdPackEntry, erro
 	meta.FirstKey, meta.LastKey = first.Key, last.Key
 	meta.IndexSha256 = digest[:]
 	meta.IndexTailBytes = uint64(len(tail))
+
+	// Publish a whole-pack digest only after verifying every indexed payload.
+	meta.PackSha256, err = verifyColdPayloads(ctx, f, reader, tail, entry.SizeBytes-meta.IndexTailBytes)
+	if err != nil {
+		return nil, err
+	}
 	return meta, nil
 }
 
 // readLocalColdTail reads just the raw index of a verified local file size.
-func readLocalColdTail(root *os.Root, meta *packfile.ColdPackEntry) ([]byte, error) {
-	// Open the immutable mirror's pack, not a path from within its metadata.
-	key := meta.Subpath + packDir + meta.Entry.Id
-	f, err := root.Open(key)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close() // Read-only pack handle.
+func readLocalColdTail(f *os.File, meta *packfile.ColdPackEntry) ([]byte, error) {
+	// Read only regular files that match the writer's recorded pack length.
 	info, err := f.Stat()
 	if err != nil {
 		return nil, err
 	}
 	size := meta.Entry.SizeBytes
 	if !info.Mode().IsRegular() || size > math.MaxInt64 || info.Size() != int64(size) {
-		return nil, errors.Errorf("pack %q does not match its declared file size", key)
+		return nil, errors.Errorf("pack %q does not match its declared file size", f.Name())
 	}
 
 	// Refuse a corrupt trailer that would include the payload or allocate
@@ -170,13 +179,63 @@ func readLocalColdTail(root *os.Root, meta *packfile.ColdPackEntry) ([]byte, err
 	return io.ReadAll(io.NewSectionReader(f, int64(base), int64(size-base))) //nolint:gosec // base and length fit the checked file size.
 }
 
+// verifyColdPayloads reads each extent once in physical order, hashing the
+// exact bytes it checks. The kvfile writer lays extents end-to-end, with the
+// sorted index after them. Only one pack's offsets and one value are live.
+func verifyColdPayloads(ctx context.Context, f *os.File, r *kvfile.Reader, tail []byte, base uint64) ([]byte, error) {
+	// Gather this pack's physical order; the index is sorted by key instead.
+	extents := make([]*kvfile.IndexEntry, 0, r.Size())
+	for pos := range r.Size() {
+		e, err := r.ReadIndexEntry(pos)
+		if err != nil {
+			return nil, err
+		}
+		extents = append(extents, e)
+	}
+	slices.SortFunc(extents, func(a, b *kvfile.IndexEntry) int { return cmp.Compare(a.Offset, b.Offset) })
+
+	// Hash the same sequential payload stream the block decoder consumes.
+	digest := sha256.New()
+	section := io.NewSectionReader(f, 0, int64(base)) //nolint:gosec // The tail bounds fit the checked file size.
+	payload := io.TeeReader(bufio.NewReaderSize(section, 128<<10), digest)
+	var buf []byte
+	var off uint64
+	for _, e := range extents {
+		// Refuse overlapping, gapped or out-of-bounds writer extents.
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if e.Offset != off || e.Size == 0 || e.Size > math.MaxInt || e.Size > base-off {
+			return nil, errors.Errorf("invalid cold pack extent at %d (size %d, expected offset %d)", e.Offset, e.Size, off)
+		}
+
+		// Decode the stored block and VerifyRead against its full index hash.
+		n := int(e.Size) //nolint:gosec // The extent fits in an int.
+		buf = slices.Grow(buf[:0], n)[:n]
+		if _, err := io.ReadFull(payload, buf); err != nil {
+			return nil, err
+		}
+		if _, _, err := packfile.DecodeBlockValue(e.Key, buf); err != nil {
+			return nil, errors.Wrapf(err, "verify cold extent at %d", off)
+		}
+		off += e.Size
+	}
+
+	// The digest includes the exact index bytes used for the verification.
+	if off != base {
+		return nil, errors.New("cold extents do not cover the pack payload")
+	}
+	_, _ = digest.Write(tail)
+	return digest.Sum(nil), nil
+}
+
 // verifyColdExport merge-joins the sorted export with all pack indexes. An
 // interval and a bloom positive alone are not proof that a key was exported.
 func verifyColdExport(ctx context.Context, root *os.Root, catalog *coldPackCatalog, exported iter.Seq2[[]byte, error]) error {
 	// Keep only the current record of each overlapping pack and its raw tail.
 	var active coldBuildHeap
 	var next int
-	var seen, expected uint64
+	var seen, duplicates, expected uint64
 	var previous []byte
 	for i := range catalog.packs {
 		expected += catalog.packs[i].meta.Entry.BlockCount
@@ -214,16 +273,22 @@ func verifyColdExport(ctx context.Context, root *os.Root, catalog *coldPackCatal
 		if len(active) == 0 || !bytes.Equal(active[0].entry.Key, key) {
 			return errors.Errorf("exported key %x (line %d) does not match the pack set", key, seen+1)
 		}
-		if err := active.consume(); err != nil {
-			return err
+		for copies := 0; len(active) != 0 && bytes.Equal(active[0].entry.Key, key); copies++ {
+			// Verify every pack's copy; the exported key names the set, not its multiplicity.
+			if err := active.consume(); err != nil {
+				return err
+			}
+			if copies != 0 {
+				duplicates++
+			}
 		}
 		previous = append(previous[:0], key...)
 		seen++
 	}
 
 	// No pack may contain a key missing from the exported set, nor vice versa.
-	if seen != expected || len(active) != 0 || next != len(catalog.packs) {
-		return errors.Errorf("exported %d keys; packs declare %d", seen, expected)
+	if seen+duplicates != expected || len(active) != 0 || next != len(catalog.packs) {
+		return errors.Errorf("exported %d keys with %d duplicate pack entries; packs declare %d", seen, duplicates, expected)
 	}
 	return nil
 }
