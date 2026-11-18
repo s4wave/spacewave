@@ -119,11 +119,14 @@ function useObjectLinkActions({
 }
 
 // ObjectLinkPrimary renders the button that opens the object, with its icon,
-// label, and kind.
+// label, and kind. The full form sets the kind and status under the label; the
+// compact form keeps one line and leads the label with the kind, so a row of
+// links still says what each one is.
 function ObjectLinkPrimary({
   objectType,
   displayLabel,
   accessibleLabel,
+  leadKind,
   detail,
   missing,
   compact,
@@ -132,6 +135,7 @@ function ObjectLinkPrimary({
   objectType?: string
   displayLabel: string
   accessibleLabel: string
+  leadKind: string
   detail: string
   missing: boolean
   compact: boolean
@@ -144,22 +148,27 @@ function ObjectLinkPrimary({
       aria-label={'Open ' + accessibleLabel}
       onClick={onOpen}
       className={cn(
-        'inline-flex min-w-0 flex-1 items-center gap-1.5 rounded-l-md text-left transition-colors',
-        compact ? 'px-1.5 py-0.5' : 'px-2 py-1',
+        'inline-flex min-w-0 flex-1 items-center gap-2 self-stretch rounded-l-md px-2 text-left transition-colors',
+        !compact && 'py-1',
         missing
           ? 'cursor-not-allowed'
           : 'hover:bg-foreground/5 text-foreground',
       )}
     >
-      <span className="text-foreground-alt/60 shrink-0">
+      <span aria-hidden className="text-foreground-alt/60 shrink-0">
         {getObjectTypeIcon(objectType ?? '')}
       </span>
       <span className="min-w-0">
-        <span className="micro-text block truncate font-mono leading-4">
+        <span className="block truncate font-mono text-xs leading-4">
+          {leadKind ? (
+            <span className="text-foreground-alt/60 font-sans">
+              {leadKind}{' '}
+            </span>
+          ) : null}
           {missing ? displayLabel || 'Missing ref' : displayLabel}
         </span>
         {detail && !compact ? (
-          <span className="text-foreground-alt/50 micro-fine block truncate leading-3">
+          <span className="text-foreground-alt/50 block truncate text-xs leading-4">
             {detail}
           </span>
         ) : null}
@@ -191,12 +200,10 @@ export function ObjectLink({
     componentID,
     path,
   })
-  const displayLabel = useMemo(
-    () => objectLinkDisplayLabel({ objectKey: targetKey, label }),
-    [targetKey, label],
+  const { displayLabel, kindLabel, leadKind, accessibleLabel } = useMemo(
+    () => objectLinkLabels({ targetKey, label, kind, objectType, compact }),
+    [targetKey, label, kind, objectType, compact],
   )
-  const kindLabel = kind || (objectType ? getObjectTypeLabel(objectType) : '')
-  const accessibleLabel = displayLabel || targetKey || 'missing object ref'
   const buttonSize = compact ? 'h-6 w-6' : 'h-7 w-7'
 
   return (
@@ -214,6 +221,7 @@ export function ObjectLink({
         objectType={objectType}
         displayLabel={displayLabel}
         accessibleLabel={accessibleLabel}
+        leadKind={leadKind}
         detail={[kindLabel, status].filter(Boolean).join(' / ')}
         missing={missing}
         compact={compact}
@@ -233,9 +241,9 @@ export function ObjectLink({
                 )}
               >
                 {actions.copied ? (
-                  <LuCheck className="text-success size-3.5" />
+                  <LuCheck aria-hidden className="text-success size-3.5" />
                 ) : (
-                  <LuCopy className="size-3.5" />
+                  <LuCopy aria-hidden className="size-3.5" />
                 )}
               </button>
             </TooltipTrigger>
@@ -257,7 +265,7 @@ export function ObjectLink({
                   buttonSize,
                 )}
               >
-                <LuExternalLink className="size-3.5" />
+                <LuExternalLink aria-hidden className="size-3.5" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Open in new tab</TooltipContent>
@@ -266,6 +274,33 @@ export function ObjectLink({
       )}
     </span>
   )
+}
+
+// objectLinkLabels derives the texts a link shows and announces. The compact
+// label leads with the kind unless the label already says it.
+function objectLinkLabels({
+  targetKey,
+  label,
+  kind,
+  objectType,
+  compact,
+}: {
+  targetKey: string
+  label?: string
+  kind?: string
+  objectType?: string
+  compact: boolean
+}) {
+  const displayLabel = objectLinkDisplayLabel({ objectKey: targetKey, label })
+  const kindLabel = kind || (objectType ? getObjectTypeLabel(objectType) : '')
+  const leadKind =
+    compact && kindLabel.toLowerCase() !== displayLabel.toLowerCase()
+      ? kindLabel
+      : ''
+  const accessibleLabel =
+    (leadKind ? leadKind + ' ' : '') +
+    (displayLabel || targetKey || 'missing object ref')
+  return { displayLabel, kindLabel, leadKind, accessibleLabel }
 }
 
 export function createObjectLinkAddTabRequest(
