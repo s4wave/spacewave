@@ -390,16 +390,9 @@ func nextRow(db *scratchIndex, bucket string, after []byte) ([]byte, []byte, err
 	// Copy at most one row before any dependent read or write scope opens.
 	var key, value []byte
 	err := db.View(func(tx *scratchTx) error {
-		// Seek and copy one indexed row before releasing its snapshot.
-		cursor := tx.Bucket([]byte(bucket)).Cursor()
-		k, v := cursor.First()
-		if len(after) != 0 {
-			k, v = cursor.Seek(after)
-			if bytes.Equal(k, after) {
-				k, v = cursor.Next()
-			}
-		}
-		key, value = bytes.Clone(k), bytes.Clone(v)
+		// Read the one row after the cursor, or the first row when there is
+		// none, in a single keyset query; the cursor already returns copies.
+		key, value = tx.Bucket([]byte(bucket)).Cursor().seek(after, len(after) != 0)
 		return nil
 	})
 	return key, value, err

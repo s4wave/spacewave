@@ -37,12 +37,14 @@ func (cursor *scratchCursor) seek(key []byte, strict bool) ([]byte, []byte) {
 	iterator := bucket.tx.tx.Iterate(bucket.tx.ctx, bucket.prefix, true, false)
 	defer iterator.Close()
 
-	// Seek by key without keeping a SQL row open across callback work.
+	// Seek by key without keeping a SQL row open across callback work. Keys
+	// compare as bytes, so key||0x00 is the least key strictly beyond key, and
+	// one LIMIT 1 read returns the next row without rereading the current one.
 	full := append(bytes.Clone(bucket.prefix), key...)
-	err := iterator.Seek(full)
-	if err == nil && strict && iterator.Valid() && bytes.Equal(iterator.Key(), full) {
-		iterator.Next()
+	if strict {
+		full = append(full, 0)
 	}
+	err := iterator.Seek(full)
 	if err == nil {
 		err = iterator.Err()
 	}
