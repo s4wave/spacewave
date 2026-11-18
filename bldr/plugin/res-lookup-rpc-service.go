@@ -123,15 +123,23 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		serverDone <- writeServerToClient()
 	}()
 
-	// Relay each client message to the server stream until EOF.
+	// Relay each client message to the server stream until the client ends
+	// its side, then half-close the server stream. Only the client's own
+	// failure is returned. A failed write to the server means the server has
+	// already answered and closed its end, as a service that fails without
+	// reading does, so the server's relay carries the call's result.
 	writeClientToServer := func() error {
 		clientMsg := &srpc.RawMessage{}
 		for {
 			if err := strm.MsgRecv(clientMsg); err != nil {
-				return err
+				if err != io.EOF && !stderrors.Is(err, srpc.ErrCompleted) {
+					return err
+				}
+				_ = outgoingStream.CloseSend()
+				return nil
 			}
-			if err := outgoingStream.MsgSend(clientMsg); err != nil {
-				return err
+			if outgoingStream.MsgSend(clientMsg) != nil {
+				return nil
 			}
 			clientMsg.Clear()
 		}
@@ -151,23 +159,15 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		return err
 	}
 
-	// Return when either relay finishes, closing the send side on clean client EOF.
-	for {
-		select {
-		case writeErr := <-clientDone:
-			if writeErr == nil || writeErr == io.EOF {
-				if err := outgoingStream.CloseSend(); err != nil && !stderrors.Is(err, srpc.ErrCompleted) {
-					return true, err
-				}
-				return true, normalizeDone(<-serverDone)
-			}
-			if stderrors.Is(writeErr, srpc.ErrCompleted) {
-				return true, normalizeDone(<-serverDone)
-			}
+	// Return when the client fails or the server's relay finishes.
+	select {
+	case writeErr := <-clientDone:
+		if writeErr != nil {
 			return true, writeErr
-		case srvErr := <-serverDone:
-			return true, normalizeDone(srvErr)
 		}
+		return true, normalizeDone(<-serverDone)
+	case srvErr := <-serverDone:
+		return true, normalizeDone(srvErr)
 	}
 }
 
