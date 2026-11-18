@@ -6,12 +6,14 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"runtime"
 	"slices"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/promise"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -760,6 +762,181 @@ func TestRestartChainKeepsNewestMount(t *testing.T) {
 	}
 }
 
+// mountCaptureKey marks the one caller whose promise selection the test gates.
+type mountCaptureKey struct{}
+
+// mountCapturePromise forces the completion arm of the resolved promise after
+// retirement, an outcome allowed when both completion and replacement are ready.
+type mountCapturePromise struct {
+	// PromiseLike supplies the captured mount, already resolved.
+	promise.PromiseLike[*SharedObject]
+	// captured tells the test that the caller took the old promise.
+	captured chan struct{}
+	// resume lets it select the old completion before returning to the tracker.
+	resume chan struct{}
+}
+
+// AwaitWithCancelCh gates only the marked waiter and requires replacement
+// before forcing its other ready arm. Background callers use the real select.
+func (p *mountCapturePromise) AwaitWithCancelCh(ctx context.Context, replaced <-chan struct{}) (*SharedObject, error) {
+	// Preserve normal behavior for every other waiter on the tracker.
+	if ctx.Value(mountCaptureKey{}) == nil {
+		return p.PromiseLike.AwaitWithCancelCh(ctx, replaced)
+	}
+
+	// Wait until the test retires the result and releases this waiter.
+	close(p.captured)
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-p.resume:
+	}
+
+	// Force the result arm only after both arms became ready.
+	select {
+	case <-replaced:
+		return p.Await(ctx)
+	default:
+		return nil, errors.New("captured promise was not replaced")
+	}
+}
+
+// TestMountWaiterDiscardsRetiredResult holds an in-flight mount after it
+// captures the ready promise, then deletes and recreates the same id.
+func TestMountWaiterDiscardsRetiredResult(t *testing.T) {
+	// Retain the first generation and gate the promise one caller captures.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	const id = "captured-mount"
+	ref := createTestSharedObject(ctx, t, a, id)
+	old, releaseOld := mountTestSharedObject(ctx, t, a, ref)
+	defer releaseOld()
+	res := old.tkr.res
+	res.mtx.Lock()
+	original, _ := res.prom.GetPromise()
+	gate := &mountCapturePromise{PromiseLike: original, captured: make(chan struct{}), resume: make(chan struct{})}
+	res.prom.SetPromise(gate)
+	res.mtx.Unlock()
+
+	// Pause one mount while its captured result is still the first generation.
+	waiter := context.WithValue(ctx, mountCaptureKey{}, true)
+	result := make(chan error, 1)
+	mounted := make(chan sobject.SharedObject, 1)
+	go func() {
+		so, release, err := a.MountSharedObject(waiter, ref, nil)
+		if err == nil {
+			defer release()
+		}
+		mounted <- so
+		result <- err
+	}()
+	select {
+	case <-gate.captured:
+	case <-ctx.Done():
+		t.Fatal("mount did not capture the old promise")
+	}
+
+	// Retire the old promise and publish the new mount before selecting the old one.
+	if err := a.DeleteSharedObject(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	createTestSharedObject(ctx, t, a, id)
+	fresh, releaseFresh := mountTestSharedObject(ctx, t, a, ref)
+	defer releaseFresh()
+	if fresh == old || old.ctx.Err() == nil {
+		t.Fatal("recreate did not retire the captured mount")
+	}
+	close(gate.resume)
+
+	// A successful mount must return the new live handle, not the ended one.
+	select {
+	case err := <-result:
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := <-mounted; got != fresh {
+			t.Fatal("mount returned the retired handle")
+		}
+	case <-ctx.Done():
+		t.Fatal("mount did not return the recreated result")
+	}
+}
+
+// TestRetiredLoadKeepsPlaceholderRevive holds a completed load across two
+// restarts. The old load must not clear the new run's refusal to be revived.
+func TestRetiredLoadKeepsPlaceholderRevive(t *testing.T) {
+	// Keep the tracker retained even while there is no mounted handle.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	const id = "retired-load"
+	ref := createTestSharedObject(ctx, t, a, id)
+	_, releaseHealth, err := a.AccessSharedObjectHealth(ctx, ref, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseHealth()
+	old, releaseOld := mountTestSharedObject(ctx, t, a, ref)
+	releaseOld()
+
+	// Hold the first successful reload after its read and join its completion.
+	reached, resume, completed := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	var once sync.Once
+	var resumeOnce sync.Once
+	resumeLoad := func() { resumeOnce.Do(func() { close(resume) }) }
+	defer resumeLoad()
+	testHookStateLoaded.Store(new(func(objectID string, complete func()) {
+		held := false
+		if objectID == id {
+			once.Do(func() { held = true })
+		}
+		if !held {
+			complete()
+			return
+		}
+		close(reached)
+		<-resume
+		complete()
+		close(completed)
+	}))
+	defer testHookStateLoaded.Store(nil)
+	replaceTestState(ctx, t, a, id, old.GetPrivKey(), []byte("held"))
+	select {
+	case <-reached:
+	case <-ctx.Done():
+		t.Fatal("replacement did not load the state")
+	}
+
+	// The delete supersedes the middle restart while it waits for the held load.
+	replaceTestState(ctx, t, a, id, old.GetPrivKey(), []byte("middle"))
+	if err := a.DeleteSharedObject(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	expectTestMountNotFound(ctx, t, a, ref)
+	resumeLoad()
+	select {
+	case <-completed:
+	case <-ctx.Done():
+		t.Fatal("retired load did not finish")
+	}
+
+	// Use the real enrollment placeholder path, keeping the refusal retained.
+	if err := a.writeGenesisSOState(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	fresh, releaseFresh, err := a.MountSharedObject(ctx, ref, nil)
+	if err != nil {
+		t.Fatalf("mount after placeholder commit with health retained: %v", err)
+	}
+	defer releaseFresh()
+	if got := readTestStateData(ctx, t, fresh.(*SharedObject)); len(got) != 0 {
+		t.Fatalf("enrollment placeholder took state from a retired run: %q", got)
+	}
+}
+
 // TestRecreatedMountSurvivesCanceledStart checks that a delayed tracker
 // callback canceled by a restart cannot clear the recreated object's mount.
 func TestRecreatedMountSurvivesCanceledStart(t *testing.T) {
@@ -798,6 +975,69 @@ func TestRecreatedMountSurvivesCanceledStart(t *testing.T) {
 	writeTestStateData(ctx, t, mounted, []byte("after-late-start"))
 }
 
+// TestCanceledMountStartCannotClaimAfterLockWait makes cancellation observable
+// only after a live start has blocked on the result lock. Moving the check
+// before the lock would let the canceled start replace the published result.
+func TestCanceledMountStartCannotClaimAfterLockWait(t *testing.T) {
+	// Publish one result, then hold its lock while starting the other callback.
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	res := newSobjectResult()
+	live, err := res.start(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ready := newTestRunSharedObject()
+	health := sobject.NewSharedObjectReadyHealth(sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
+	live.publish(health, ready, nil)
+	result := make(chan error, 1)
+	res.mtx.Lock()
+	go func() {
+		_, err := res.start(ctx)
+		result <- err
+	}()
+
+	// Cancel while the callback is parked at the claim, not before entry.
+	blocked := waitTestMountClaimBlocked()
+	cancel()
+	res.mtx.Unlock()
+	if err := <-result; !blocked || !errors.Is(err, context.Canceled) {
+		t.Fatalf("mount claim did not reject cancellation under contention: blocked=%t err=%v", blocked, err)
+	}
+
+	// A rejected claim changes neither generation nor the ready publication.
+	waitCtx, cancelWait := context.WithTimeout(t.Context(), time.Second)
+	defer cancelWait()
+	got, err := res.await(waitCtx)
+	if err != nil || got != ready || res.gen != live.gen || res.watchHealth().GetValue() != health {
+		t.Fatalf("canceled claim changed the current generation, result or health: mount error %v", err)
+	}
+}
+
+// waitTestMountClaimBlocked observes the stack of this test's callback at the
+// actual mutex wait. A launch signal alone cannot distinguish an early check
+// followed by blocking; the deadline bounds the observation, not the race.
+func waitTestMountClaimBlocked() bool {
+	// Read enough of the runtime dump to include the waiting test goroutine.
+	deadline := time.Now().Add(5 * time.Second)
+	buf := make([]byte, 64*1024)
+	for time.Now().Before(deadline) {
+		n := runtime.Stack(buf, true)
+		for goroutine := range bytes.SplitSeq(buf[:n], []byte("\n\n")) {
+			if bytes.Contains(goroutine, []byte("TestCanceledMountStartCannotClaimAfterLockWait.func")) &&
+				bytes.Contains(goroutine, []byte("(*sobjectResult).start")) &&
+				bytes.Contains(goroutine, []byte("sync.(*Mutex).Lock")) {
+				return true
+			}
+		}
+		if n == len(buf) {
+			buf = make([]byte, 2*len(buf))
+		}
+		runtime.Gosched()
+	}
+	return false
+}
+
 // TestRetiredRunWritesNothing checks that a run a retire or a later run has
 // replaced cannot publish, change health or clear the result, even while its
 // context is live.
@@ -813,7 +1053,7 @@ func TestRetiredRunWritesNothing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.retire()
+	res.retire(false)
 	old.publish(sobject.NewSharedObjectReadyHealth(layer), newTestRunSharedObject(), nil)
 	expectTestResultCleared(ctx, t, &sobjectTracker{res: res})
 	if res.watchHealth().GetValue().GetStatus() == ready {
@@ -841,7 +1081,7 @@ func TestRetiredRunWritesNothing(t *testing.T) {
 
 	// A retire clears the result and reports loading, so a watcher does not
 	// see the retired run's ready health before the next run starts.
-	res.retire()
+	res.retire(false)
 	expectTestResultCleared(ctx, t, &sobjectTracker{res: res})
 	if res.watchHealth().GetValue().GetStatus() != sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_LOADING {
 		t.Fatal("a retire left the retired run's health")
@@ -854,7 +1094,7 @@ func TestRetiredRunWritesNothing(t *testing.T) {
 // newTestRunSharedObject returns a SharedObject with only the host a run's
 // result ends on retire.
 func newTestRunSharedObject() *SharedObject {
-	return &SharedObject{lsoHost: &LocalSOHost{
+	return &SharedObject{ctx: context.Background(), lsoHost: &LocalSOHost{
 		stateSnapCtr: ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](nil),
 	}}
 }

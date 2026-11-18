@@ -71,6 +71,9 @@ var (
 	// testHookStateRefused runs after a mount finds no state it may use,
 	// before it publishes the refusal.
 	testHookStateRefused atomic.Pointer[func(id string)]
+	// testHookStateLoaded runs after a successful read, in place of marking
+	// the load complete. It must call complete.
+	testHookStateLoaded atomic.Pointer[func(id string, complete func())]
 	// testHookResumeMark runs as the start resume reaches a release mark,
 	// before it takes mtx.
 	testHookResumeMark atomic.Pointer[func(id string)]

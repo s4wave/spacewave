@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -234,10 +233,6 @@ type sobjectTracker struct {
 	ref *promise.Promise[*sobject.SharedObjectRef]
 	// res holds the mount result and health the runs publish.
 	res *sobjectResult
-	// awaitingState is set from before the routine reads the stored state
-	// until the read finds it, and stays set while the routine refuses the
-	// mount for lack of state; reviveRefusedSharedObject restarts it while set.
-	awaitingState atomic.Bool
 	// runs joins the state funcs of this tracker's mount runs.
 	runs SOStateRuns
 	// reloadMtx guards reloadPending, reloadDelay and reloadLast.
@@ -339,6 +334,9 @@ type sobjectResult struct {
 	mtx sync.Mutex
 	// gen is the generation of the only run that may write.
 	gen uint64
+	// awaitingState records that the current run is reading stored state or
+	// has refused the mount. A placeholder commit restarts only that run.
+	awaitingState bool
 	// prom holds the newest run's mount result.
 	prom *promise.PromiseContainer[*SharedObject]
 	// so is the SharedObject prom holds, if any; reset ends its host.
@@ -368,9 +366,43 @@ func newSobjectResult() *sobjectResult {
 	}
 }
 
-// await waits for the newest run's mount result.
+// await accepts a mount result only while its publication is current and the
+// handle is live. Retirement may follow acceptance, but cannot precede it.
 func (r *sobjectResult) await(ctx context.Context) (*SharedObject, error) {
-	return r.prom.Await(ctx)
+	for {
+		// Capture the result and its replacement signal without holding mtx
+		// across a wait. A result already ready can win even after replacement.
+		p, replaced := r.prom.GetPromise()
+		if p == nil {
+			select {
+			case <-ctx.Done():
+				return nil, context.Canceled
+			case <-replaced:
+				continue
+			}
+		}
+		so, err := p.AwaitWithCancelCh(ctx, replaced)
+
+		// The replacement signal is the publication token. Revalidate it
+		// under the lock that orders retirement, including ending the host.
+		r.mtx.Lock()
+		if ctx.Err() != nil {
+			r.mtx.Unlock()
+			return nil, context.Canceled
+		}
+		select {
+		case <-replaced:
+			r.mtx.Unlock()
+			continue
+		default:
+		}
+		if so != nil && so.ctx.Err() != nil {
+			r.mtx.Unlock()
+			return nil, context.Canceled
+		}
+		r.mtx.Unlock()
+		return so, err
+	}
 }
 
 // watchHealth returns the health snapshot for reading and watching.
@@ -399,12 +431,20 @@ func (r *sobjectResult) start(ctx context.Context) (*sobjectRun, error) {
 // retire retires the current run, clears the mount result and reports
 // loading, so a waiter waits for the next run and a health watcher does not
 // see the retired run's health. restartSharedObject calls it before each
-// restart.
-func (r *sobjectResult) retire() {
+// restart. A placeholder commit requires the current generation to be awaiting
+// state; deciding that and retiring it happen under the same lock.
+func (r *sobjectResult) retire(awaitingOnly bool) bool {
+	// A placeholder need not restart a run that will see or has loaded it.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
+	if awaitingOnly && !r.awaitingState {
+		return false
+	}
+
+	// Clear only the generation this decision observed.
 	r.gen++
 	r.reset()
+	return true
 }
 
 // reset ends the published SharedObject's state snapshot, clears the mount
@@ -414,6 +454,7 @@ func (r *sobjectResult) reset() {
 		r.so.lsoHost.end()
 		r.so = nil
 	}
+	r.awaitingState = false
 	r.prom.SetPromise(nil)
 	r.health.SetValue(sobject.NewSharedObjectLoadingHealth(
 		sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
@@ -423,6 +464,16 @@ func (r *sobjectResult) reset() {
 // current reports whether the run may write. The caller holds res.mtx.
 func (h *sobjectRun) current() bool {
 	return h.res.gen == h.gen
+}
+
+// setAwaitingState changes the restart condition only for a current live run.
+// A retired load cannot clear or set the condition for its successor.
+func (h *sobjectRun) setAwaitingState(awaiting bool) {
+	h.res.mtx.Lock()
+	defer h.res.mtx.Unlock()
+	if h.current() && h.ctx.Err() == nil {
+		h.res.awaitingState = awaiting
+	}
 }
 
 // publish sets the run's health and mount result while the run is current
@@ -553,7 +604,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	// awaitingState is set before the read, so a writer that stores state
 	// after the read finds it set and restarts this routine.
 	objStore := objStoreHandle.GetObjectStore()
-	t.awaitingState.Store(true)
+	run.setAwaitingState(true)
 	if err := t.loadSharedObjectState(ctx, objStore, sharedObjectID); err != nil {
 		if !errors.Is(err, sobject.ErrSharedObjectNotFound) && !errors.Is(err, sobject.ErrSharedObjectArriving) {
 			return err
@@ -568,7 +619,13 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		<-ctx.Done()
 		return context.Canceled
 	}
-	t.awaitingState.Store(false)
+
+	// Only this generation may mark its successful read complete.
+	if hook := testHookStateLoaded.Load(); hook != nil {
+		(*hook)(sharedObjectID, func() { run.setAwaitingState(false) })
+	} else {
+		run.setAwaitingState(false)
+	}
 
 	// Share the accepted-state watch and lock with the local persistence owner.
 	// State writes share the account volume, which reports their durability.
@@ -988,19 +1045,18 @@ func (a *ProviderAccount) restartSharedObject(id string, cond func(*sobjectTrack
 		if cond != nil && !cond(t) {
 			return false
 		}
-		t.res.retire()
-		return true
+		return t.res.retire(false)
 	})
 }
 
 // reviveRefusedSharedObject restarts the tracker of id if it refused a mount
 // for lack of stored state, or is reading the state and might, so its waiters
 // and watchers load the state just stored. A caller that stores state for id
-// calls it after the commit. The tracker sets awaitingState before its read,
-// so either the read sees the commit or this call sees the flag.
+// calls it after the commit. The run marks itself awaiting before reading, so
+// either the read sees the commit or this call sees the current run awaiting.
 func (a *ProviderAccount) reviveRefusedSharedObject(id string) {
-	a.restartSharedObject(id, func(t *sobjectTracker) bool {
-		return t.awaitingState.Load()
+	a.sobjects.RestartRoutine(id, func(_ string, t *sobjectTracker) bool {
+		return t.res.retire(true)
 	})
 }
 
