@@ -220,7 +220,7 @@ func (s *SharedObject) SetBody(ctx context.Context, body sobject.Body) (func(), 
 
 // QueueOperation signs op as the local participant and adds it to the
 // operation set. Returns the local operation ID.
-func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, error) {
+func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, *sobject.SOOperationPosition, error) {
 	return s.lsoHost.QueueOperation(ctx, op)
 }
 

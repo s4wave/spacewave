@@ -288,11 +288,11 @@ func (s *testSessionPresentationSharedObject) SetBody(context.Context, sobject.B
 func (s *testSessionPresentationSharedObject) QueueOperation(
 	ctx context.Context,
 	op []byte,
-) (string, error) {
+) (string, *sobject.SOOperationPosition, error) {
 	// Record the removal.
 	msg := &account_settings.AccountSettingsOp{}
 	if err := msg.UnmarshalVT(op); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	rm := msg.GetRemoveSessionPresentation()
 	if rm == nil {
@@ -303,29 +303,29 @@ func (s *testSessionPresentationSharedObject) QueueOperation(
 	// Encrypt the operation and link it after the owner's last one.
 	xfrm, err := s.snaps.GetValue().GetTransformer(ctx)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	set, err := s.state.OperationSet(s.GetSharedObjectID())
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	link := s.state.NextOperationLink(set, s.peerID.String())
 	data, err := xfrm.EncodeBlock(op)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	// Sign the operation, add it, and publish the state.
 	localID := sobject.NewSOOperationLocalID()
 	signed, err := sobject.BuildSOOperation(s.GetSharedObjectID(), s.priv, data, link, localID)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if _, err := s.state.AddOperation(s.GetSharedObjectID(), signed); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	s.snaps.SetValue(s.snapshot())
-	return localID, nil
+	return localID, nil, nil
 }
 
 // snapshot returns the owner's handle over a copy of the current state.

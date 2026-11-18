@@ -1659,6 +1659,12 @@ export interface SOCheckpointInner {
    * none.
    */
   sequence?: SOSequenceHead
+  /**
+   * Outcomes are the outcomes of the operations this checkpoint newly covers.
+   * A signer that sets it declares that it records them; unset, an admission
+   * covered by the checkpoint learns no outcome from it.
+   */
+  outcomes?: SOCheckpointOutcomes
 }
 
 export const SOCheckpointInner: MessageType<SOCheckpointInner> =
@@ -1674,7 +1680,27 @@ export const SOCheckpointInner: MessageType<SOCheckpointInner> =
       [8, 'key_epoch', 4],
       [9, 'authors', 11, 1, SOOperationPosition.codec],
       [10, 'sequence', 11, 0, SOSequenceHead.codec],
+      [11, 'outcomes', 11, 0, SOCheckpointOutcomes.codec],
     ],
+  )
+
+/**
+ * SOCheckpointOutcomes are the outcomes of the operations a checkpoint covers
+ * beyond the previous checkpoint. A covered operation not listed applied.
+ *
+ * @generated from message sobject.SOCheckpointOutcomes
+ */
+export interface SOCheckpointOutcomes {
+  /**
+   * Refused are the covered operations replay refused, in order.
+   */
+  refused?: SOOperationPosition[]
+}
+
+export const SOCheckpointOutcomes: MessageType<SOCheckpointOutcomes> =
+  /* @__PURE__ */ createMessageType<SOCheckpointOutcomes>(
+    'sobject.SOCheckpointOutcomes',
+    () => [[1, 'refused', 11, 1, SOOperationPosition.codec]],
   )
 
 /**

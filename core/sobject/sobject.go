@@ -54,9 +54,9 @@ type SharedObject interface {
 	AccessSharedObjectState(ctx context.Context, released func()) (ccontainer.Watchable[SharedObjectStateSnapshot], func(), error)
 
 	// QueueOperation signs op as the local peer and adds it to the operation
-	// set. Returns the local operation id once the local state holds it
-	// durably.
-	QueueOperation(ctx context.Context, op []byte) (string, error)
+	// set. Returns the local operation id and the operation's position in the
+	// local peer's chain once the local state holds it durably.
+	QueueOperation(ctx context.Context, op []byte) (string, *SOOperationPosition, error)
 
 	// SetBody waits until no body is attached, then claims it for body.
 	// stop cancels and joins the BodyDriver and voting work, retaining the claim

@@ -70,7 +70,7 @@ func (a *ProviderAccount) queueAddPairedDevice(
 	}
 
 	// Queue the paired-device operation.
-	if _, err := so.QueueOperation(ctx, opData); err != nil {
+	if _, _, err := so.QueueOperation(ctx, opData); err != nil {
 		return errors.Wrap(err, "queue add paired device operation")
 	}
 
@@ -89,7 +89,7 @@ func (a *ProviderAccount) queueAddPairedDevice(
 	if err != nil {
 		return errors.Wrap(err, "marshal session presentation op")
 	}
-	if _, err := so.QueueOperation(ctx, presData); err != nil {
+	if _, _, err := so.QueueOperation(ctx, presData); err != nil {
 		return errors.Wrap(err, "queue session presentation operation")
 	}
 	return nil

@@ -123,7 +123,7 @@ func TestNativeOwnerTransfer(t *testing.T) {
 	waitSOOwner(ctx, t, remaining, secondSession.GetPeerId().String())
 
 	// The new host receives and replays the remaining writer's operation.
-	localID, err := remaining.QueueOperation(ctx, []byte("after transfer"))
+	localID, _, err := remaining.QueueOperation(ctx, []byte("after transfer"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -326,23 +326,36 @@ func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 		return err
 	}
 
+	// Record the operations of the prefix the body refused, which the
+	// checkpoint carries as its outcomes.
+	prefix := ev.Order[:ev.Stable]
+	var refused [][]byte
+	for i, pos := range d.positions[:ev.Stable] {
+		if !bytes.Equal(pos.hash, prefix[i]) {
+			return nil
+		}
+		if pos.reason != "" {
+			refused = append(refused, pos.hash)
+		}
+	}
+
 	// Store, sign and adopt it in the background.
 	d.storing = true
-	prefix := ev.Order[:ev.Stable]
 	height := ev.Checkpoint.GetHeight()
-	go d.storeCheckpoint(ctx, c, store, prefix, data, height)
+	go d.storeCheckpoint(ctx, c, store, prefix, refused, data, height)
 	return nil
 }
 
 // storeCheckpoint stores the body's state for the checkpoint over prefix,
-// then signs and adopts it on the held state, and wakes the driver to step
-// again. It runs beside the driver's apply loop.
-func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *bodyCheckpointer, store func(context.Context) error, prefix [][]byte, data []byte, height uint64) {
+// then signs and adopts it on the held state with refused, the operations of
+// prefix the body refused, and wakes the driver to step again. It runs beside
+// the driver's apply loop.
+func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *bodyCheckpointer, store func(context.Context) error, prefix, refused [][]byte, data []byte, height uint64) {
 	// Store the state, then sign and adopt the checkpoint.
 	err := store(ctx)
 	if err == nil {
 		err = c.host.UpdateSOState(kvtx.WithOrderedCommitContext(ctx), func(state *SOState) error {
-			return c.adopt(ctx, d.le, d.so, state, prefix, data, height)
+			return c.adopt(ctx, d.le, d.so, state, prefix, refused, data, height)
 		})
 	}
 	if err != nil && !errors.Is(err, errCheckpointStale) && ctx.Err() == nil {

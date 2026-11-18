@@ -102,7 +102,7 @@ func (s *SOState) BuildNextCheckpoint(sharedObjectID string, privKey crypto.Priv
 	for key := range set.ops {
 		held = append(held, []byte(key))
 	}
-	return s.signStableCheckpoint(sharedObjectID, set, privKey, held, stateDataEnc)
+	return s.signStableCheckpoint(sharedObjectID, set, privKey, held, stateDataEnc, nil)
 }
 
 // UnmarshalInner decodes and checks the checkpoint body.

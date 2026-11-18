@@ -176,15 +176,15 @@ func (l *LocalSOHost) detach(ctx context.Context) (context.Context, context.Canc
 }
 
 // QueueOperation signs op as the local participant and adds it to the
-// operation set. It returns the local operation id once the committed snapshot
-// holds the operation, or a later checkpoint covers it.
-func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, error) {
+// operation set. It returns the local operation id and position once the
+// committed snapshot holds the operation, or a later checkpoint covers it.
+func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, *sobject.SOOperationPosition, error) {
 	// Sign the operation and add it to the host state.
 	ctx, task := trace.NewTask(ctx, "alpha/local-so/queue-operation")
 	defer task.End()
-	localID, nonce, err := l.soHost.AddLocalOperation(ctx, l.le, l.sfs, l.privKey, op)
+	localID, pos, err := l.soHost.AddLocalOperation(ctx, l.le, l.sfs, l.privKey, op)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	// Wait for the snapshot that holds the operation. The state write
@@ -201,10 +201,10 @@ func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, er
 		if err != nil {
 			return false, err
 		}
-		return set.Find(peerID, localID) != nil || set.Covers(peerID, nonce), nil
+		return set.Find(peerID, localID) != nil || set.Covers(peerID, pos.GetNonce()), nil
 	}, nil)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return localID, nil
+	return localID, pos, nil
 }

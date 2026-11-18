@@ -45,6 +45,9 @@ type spaceAdmission struct {
 	state spaceAdmissionState
 	// localID is the operation's local ID once QueueOperation returned.
 	localID string
+	// pos is the operation's position in this device's chain once
+	// QueueOperation returned, which an installed checkpoint decides.
+	pos *sobject.SOOperationPosition
 	// hash identifies the operation once the driver applied it.
 	hash []byte
 	// decision is the decision once decided.

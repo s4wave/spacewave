@@ -58,7 +58,7 @@ func TestInviteeWriteReachesOwner(t *testing.T) {
 
 	// The invitee writes an operation.
 	want := []byte("written on the joined device")
-	localID, err := inviteeObject.QueueOperation(ctx, want)
+	localID, _, err := inviteeObject.QueueOperation(ctx, want)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -207,7 +207,7 @@ func WaitOperation(ctx context.Context, so SharedObject, localID string, process
 // WriteOperation queues opData as the local peer and waits for its replay
 // outcome. It returns the folded state that holds the operation.
 func WriteOperation(ctx context.Context, so SharedObject, opData []byte, process ProcessOpsFunc) (*FoldResult, error) {
-	localID, err := so.QueueOperation(ctx, opData)
+	localID, _, err := so.QueueOperation(ctx, opData)
 	if err != nil {
 		return nil, err
 	}

@@ -752,6 +752,18 @@ message SOCheckpointInner {
   // Sequence is the last position the checkpoint covers. Unset when it covers
   // none.
   SOSequenceHead sequence = 10;
+
+  // Outcomes are the outcomes of the operations this checkpoint newly covers.
+  // A signer that sets it declares that it records them; unset, an admission
+  // covered by the checkpoint learns no outcome from it.
+  SOCheckpointOutcomes outcomes = 11;
+}
+
+// SOCheckpointOutcomes are the outcomes of the operations a checkpoint covers
+// beyond the previous checkpoint. A covered operation not listed applied.
+message SOCheckpointOutcomes {
+  // Refused are the covered operations replay refused, in order.
+  repeated SOOperationPosition refused = 1;
 }
 
 // SOOperationPosition is an operation at one position of its author's chain.

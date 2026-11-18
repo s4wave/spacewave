@@ -827,7 +827,7 @@ func (r *SpacewaveSessionResource) queueOrgUpdateOp(ctx context.Context, orgID s
 		le.WithError(err).Warn("failed to marshal update org op")
 		return
 	}
-	if _, err := so.QueueOperation(ctx, opData); err != nil {
+	if _, _, err := so.QueueOperation(ctx, opData); err != nil {
 		le.WithError(err).Debug("failed to queue update org op")
 	}
 }

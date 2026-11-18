@@ -162,6 +162,9 @@ type Adapter struct {
 	// unmatched are this device's refused operations no admission matched,
 	// by local ID, until a checkpoint covers them. Guarded by bcast.
 	unmatched map[string]spacePosition
+	// cover is what the installed checkpoint says about this device's
+	// operations, or nil before the first install. Guarded by bcast.
+	cover *checkpointCover
 	// watchers receive each installed head. Guarded by bcast.
 	watchers []*headWatch
 	// installed is set once the driver installed the first checkpoint.
@@ -936,11 +939,15 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		return false, err
 	}
 
-	// Record the install and drop the pages no live World reaches.
+	// Record the install, and the admissions its coverage decides, then drop
+	// the pages no live World reaches.
+	var refused, unknown []*spaceAdmission
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.installed, a.checkpoint, a.checkpointSeqno = true, base, seqno
+		refused, unknown = a.installCoverLocked(checkpoint, a.so.GetPeerID().String())
 		broadcast()
 	})
+	a.decideCovered(refused, unknown)
 	a.sweep()
 	if len(a.missing) == 0 {
 		if err := a.installHead(ctx); err != nil {
@@ -1337,11 +1344,57 @@ func (a *Adapter) place(adm *spaceAdmission, pos spacePosition, ranAgain bool) {
 	a.decide([]*spaceAdmission{adm}, decision, pos.reason, err)
 }
 
+// installCoverLocked installs the cover checkpoint gives peerID's operations
+// and applies it to every pending admission. It returns the refused and the
+// unknown admissions for the caller to decide after it releases bcast; every
+// other covered admission is placed. The caller holds bcast.
+func (a *Adapter) installCoverLocked(checkpoint *sobject.SOCheckpointInner, peerID string) (refused, unknown []*spaceAdmission) {
+	a.cover = nextCover(a.cover, checkpoint, peerID)
+	for _, adm := range a.pending {
+		switch a.coverLocked(adm) {
+		case coverRefused:
+			refused = append(refused, adm)
+		case coverUnknown:
+			unknown = append(unknown, adm)
+		}
+	}
+	return refused, unknown
+}
+
+// coverLocked applies the installed checkpoint's cover to adm, a queued
+// admission whose position is known, and returns the outcome: an applied one
+// becomes placed, for installHead to decide at the installed head, and the
+// caller decides a refused or unknown one. The caller holds bcast.
+func (a *Adapter) coverLocked(adm *spaceAdmission) coverOutcome {
+	if adm.state != admissionQueued {
+		return coverNone
+	}
+	outcome := a.cover.outcome(adm.pos)
+	if outcome == coverApplied {
+		adm.state = admissionPlaced
+	}
+	return outcome
+}
+
+// decideCovered decides the admissions an installed checkpoint covers without
+// replay placing them: refused ones as Rejected, and unknown ones as
+// Undecided with ErrDurabilityUnknown, since the SharedObject holds them.
+func (a *Adapter) decideCovered(refused, unknown []*spaceAdmission) {
+	const reason = "refused before the installed checkpoint"
+	if len(refused) != 0 {
+		a.decide(refused, world.Rejected, reason, errors.Wrap(sobject.ErrRejectedOp, reason))
+	}
+	if len(unknown) != 0 {
+		a.decide(unknown, world.Undecided, "", errors.Wrap(world.ErrDurabilityUnknown, "checkpoint covers the operation without its outcome"))
+	}
+}
+
 // queued ends an admission QueueOperation failed, an acknowledgment, which
 // applies nothing for the driver to decide, and an operation the driver
 // already refused before QueueOperation returned, which it could not find by
-// data a refused operation does not carry.
-func (a *Adapter) queued(adm *spaceAdmission, localID string, err error) {
+// data a refused operation does not carry. It decides one the installed
+// checkpoint already covers as Install would have.
+func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOperationPosition, err error) {
 	// End a failure or an acknowledgment. A write whose outcome is unknown
 	// may hold the operation, so it ends as durability unknown, like one
 	// in flight at unmount: the next open replays it if the SharedObject
@@ -1358,17 +1411,32 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, err error) {
 		return
 	}
 
-	// Record the local ID, and decide an operation the driver already refused.
+	// Record the local ID and position, and decide an operation the driver
+	// already refused or the installed checkpoint covers. An applied one is
+	// decided now when the installed head already holds the checkpoint, and
+	// otherwise by the install that moves the head there.
 	var refused *spacePosition
+	var outcome coverOutcome
+	var installedHead bool
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		adm.localID = localID
+		adm.localID, adm.pos = localID, pos
 		if pos, ok := a.unmatched[localID]; ok {
 			delete(a.unmatched, localID)
 			refused = &pos
+			return
 		}
+		outcome = a.coverLocked(adm)
+		installedHead = outcome == coverApplied && a.headHeight >= a.cover.height
 	})
-	if refused != nil {
+	switch {
+	case refused != nil:
 		a.decide([]*spaceAdmission{adm}, world.Rejected, refused.reason, errors.Wrap(sobject.ErrRejectedOp, refused.reason))
+	case outcome == coverRefused:
+		a.decideCovered([]*spaceAdmission{adm}, nil)
+	case outcome == coverUnknown:
+		a.decideCovered(nil, []*spaceAdmission{adm})
+	case outcome == coverApplied && installedHead:
+		a.decide([]*spaceAdmission{adm}, world.Accepted, "", nil)
 	}
 }
 

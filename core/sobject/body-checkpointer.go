@@ -26,10 +26,11 @@ type bodyCheckpointer struct {
 }
 
 // adopt signs the checkpoint covering prefix with the body state data after
-// it, encrypted with state's current key epoch, and adopts it into state. It
-// returns errCheckpointStale when state no longer holds the checkpoint at
-// height or prefix is no longer its stable prefix.
-func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so SharedObject, state *SOState, prefix [][]byte, data []byte, height uint64) error {
+// it, encrypted with state's current key epoch, and the outcomes of prefix:
+// refused lists the operations of prefix the body refused. It adopts the
+// checkpoint into state. It returns errCheckpointStale when state no longer
+// holds the checkpoint at height or prefix is no longer its stable prefix.
+func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so SharedObject, state *SOState, prefix, refused [][]byte, data []byte, height uint64) error {
 	// The held checkpoint is unchanged and prefix is still stable.
 	current, err := state.GetCheckpointInner()
 	if err != nil {
@@ -54,8 +55,12 @@ func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so Share
 		return err
 	}
 
-	// Sign and adopt the checkpoint.
-	checkpoint, err := state.signStableCheckpoint(soID, held, c.privKey, prefix, dataEnc)
+	// Sign and adopt the checkpoint with the outcomes it covers.
+	outcomes, err := held.outcomes(refused)
+	if err != nil {
+		return err
+	}
+	checkpoint, err := state.signStableCheckpoint(soID, held, c.privKey, prefix, dataEnc, outcomes)
 	if err != nil {
 		return err
 	}

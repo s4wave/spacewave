@@ -76,8 +76,8 @@ func (a *ProviderAccount) bootstrapOrgSharedObjects(ctx context.Context) {
 // caller did not already pass it) and creates a local org SO seeded with the
 // real members, spaces, and creator.
 func (a *ProviderAccount) createOrgSOForBootstrap(ctx context.Context, orgID string, info *api.GetOrgResponse) {
+	// Fetch the org state unless the caller passed it.
 	le := a.le.WithField("org-id", orgID)
-
 	if info == nil {
 		var err error
 		info, err = a.getOrganizationInfo(ctx, orgID)
@@ -96,6 +96,7 @@ func (a *ProviderAccount) createOrgSOForBootstrap(ctx context.Context, orgID str
 		}
 	}
 
+	// Create the org SO, which another device may have created first.
 	ref, err := a.CreateSharedObject(ctx, orgID, s4wave_org.NewOrgSharedObjectMeta(info.GetDisplayName()), sobject.OwnerTypeOrganization, orgID)
 	if err != nil {
 		var ce *cloudError
@@ -107,6 +108,7 @@ func (a *ProviderAccount) createOrgSOForBootstrap(ctx context.Context, orgID str
 		return
 	}
 
+	// Mount it to queue its first operations.
 	so, relSO, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {
 		le.WithError(err).Debug("bootstrap: failed to mount org SO")
@@ -126,7 +128,7 @@ func (a *ProviderAccount) createOrgSOForBootstrap(ctx context.Context, orgID str
 		le.WithError(err).Warn("bootstrap: failed to marshal init org op")
 		return
 	}
-	if _, err := so.QueueOperation(ctx, opData); err != nil {
+	if _, _, err := so.QueueOperation(ctx, opData); err != nil {
 		le.WithError(err).Debug("bootstrap: failed to queue init org op")
 		return
 	}
@@ -161,7 +163,7 @@ func (a *ProviderAccount) createOrgSOForBootstrap(ctx context.Context, orgID str
 			le.WithError(err).Warn("bootstrap: failed to marshal add member op")
 			continue
 		}
-		if _, err := so.QueueOperation(ctx, addData); err != nil {
+		if _, _, err := so.QueueOperation(ctx, addData); err != nil {
 			le.WithError(err).Debug("bootstrap: failed to queue add member op")
 		}
 	}
@@ -181,7 +183,7 @@ func (a *ProviderAccount) createOrgSOForBootstrap(ctx context.Context, orgID str
 			le.WithError(err).Warn("bootstrap: failed to marshal add child SO op")
 			continue
 		}
-		if _, err := so.QueueOperation(ctx, childData); err != nil {
+		if _, _, err := so.QueueOperation(ctx, childData); err != nil {
 			le.WithError(err).Debug("bootstrap: failed to queue add child SO op")
 		}
 	}

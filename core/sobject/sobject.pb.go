@@ -2119,6 +2119,10 @@ type SOCheckpointInner struct {
 	// Sequence is the last position the checkpoint covers. Unset when it covers
 	// none.
 	Sequence *SOSequenceHead `protobuf:"bytes,10,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	// Outcomes are the outcomes of the operations this checkpoint newly covers.
+	// A signer that sets it declares that it records them; unset, an admission
+	// covered by the checkpoint learns no outcome from it.
+	Outcomes *SOCheckpointOutcomes `protobuf:"bytes,11,opt,name=outcomes,proto3" json:"outcomes,omitempty"`
 }
 
 func (x *SOCheckpointInner) Reset() {
@@ -2186,6 +2190,34 @@ func (x *SOCheckpointInner) GetAuthors() []*SOOperationPosition {
 func (x *SOCheckpointInner) GetSequence() *SOSequenceHead {
 	if x != nil {
 		return x.Sequence
+	}
+	return nil
+}
+
+func (x *SOCheckpointInner) GetOutcomes() *SOCheckpointOutcomes {
+	if x != nil {
+		return x.Outcomes
+	}
+	return nil
+}
+
+// SOCheckpointOutcomes are the outcomes of the operations a checkpoint covers
+// beyond the previous checkpoint. A covered operation not listed applied.
+type SOCheckpointOutcomes struct {
+	unknownFields []byte
+	// Refused are the covered operations replay refused, in order.
+	Refused []*SOOperationPosition `protobuf:"bytes,1,rep,name=refused,proto3" json:"refused,omitempty"`
+}
+
+func (x *SOCheckpointOutcomes) Reset() {
+	*x = SOCheckpointOutcomes{}
+}
+
+func (*SOCheckpointOutcomes) ProtoMessage() {}
+
+func (x *SOCheckpointOutcomes) GetRefused() []*SOOperationPosition {
+	if x != nil {
+		return x.Refused
 	}
 	return nil
 }
@@ -3870,6 +3902,7 @@ func (m *SOCheckpointInner) CloneVT() *SOCheckpointInner {
 	r.StateData = protobuf_go_lite.CloneBytes(m.StateData)
 	r.Authors = protobuf_go_lite.CloneVTSlice(m.Authors)
 	r.Sequence = protobuf_go_lite.CloneVTValue(m.Sequence)
+	r.Outcomes = protobuf_go_lite.CloneVTValue(m.Outcomes)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3877,6 +3910,22 @@ func (m *SOCheckpointInner) CloneVT() *SOCheckpointInner {
 }
 
 func (m *SOCheckpointInner) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOCheckpointOutcomes) CloneVT() *SOCheckpointOutcomes {
+	if m == nil {
+		return (*SOCheckpointOutcomes)(nil)
+	}
+	r := new(SOCheckpointOutcomes)
+	r.Refused = protobuf_go_lite.CloneVTSlice(m.Refused)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOCheckpointOutcomes) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -5299,11 +5348,34 @@ func (this *SOCheckpointInner) EqualVT(that *SOCheckpointInner) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Sequence, that.Sequence) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Outcomes, that.Outcomes) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SOCheckpointInner) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SOCheckpointInner)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOCheckpointOutcomes) EqualVT(that *SOCheckpointOutcomes) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Refused, that.Refused, func() *SOOperationPosition { return &SOOperationPosition{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOCheckpointOutcomes) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOCheckpointOutcomes)
 	if !ok {
 		return false
 	}
@@ -8829,6 +8901,11 @@ func (x *SOCheckpointInner) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sequence")
 		x.Sequence.MarshalProtoJSON(s.WithField("sequence"))
 	}
+	if x.Outcomes != nil || s.HasField("outcomes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcomes")
+		x.Outcomes.MarshalProtoJSON(s.WithField("outcomes"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -8892,12 +8969,82 @@ func (x *SOCheckpointInner) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Sequence = &SOSequenceHead{}
 			x.Sequence.UnmarshalProtoJSON(s.WithField("sequence", true))
+		case "outcomes":
+			if s.ReadNil() {
+				x.Outcomes = nil
+				return
+			}
+			x.Outcomes = &SOCheckpointOutcomes{}
+			x.Outcomes.UnmarshalProtoJSON(s.WithField("outcomes", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SOCheckpointInner from JSON.
 func (x *SOCheckpointInner) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOCheckpointOutcomes message to JSON.
+func (x *SOCheckpointOutcomes) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Refused) > 0 || s.HasField("refused") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refused")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Refused {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("refused"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOCheckpointOutcomes to JSON.
+func (x *SOCheckpointOutcomes) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOCheckpointOutcomes message from JSON.
+func (x *SOCheckpointOutcomes) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "refused":
+			s.AddField("refused")
+			if s.ReadNil() {
+				x.Refused = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Refused = append(x.Refused, nil)
+					return
+				}
+				v := &SOOperationPosition{}
+				v.UnmarshalProtoJSON(s.WithField("refused", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Refused = append(x.Refused, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOCheckpointOutcomes from JSON.
+func (x *SOCheckpointOutcomes) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -12399,6 +12546,16 @@ func (m *SOCheckpointInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Outcomes != nil {
+		size, err := m.Outcomes.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x5a
+	}
 	if m.Sequence != nil {
 		size, err := m.Sequence.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -12455,6 +12612,50 @@ func (m *SOCheckpointInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOCheckpointOutcomes) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOCheckpointOutcomes) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOCheckpointOutcomes) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Refused) > 0 {
+		for iNdEx := len(m.Refused) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Refused[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -14281,6 +14482,24 @@ func (m *SOCheckpointInner) SizeVT() (n int) {
 		l = m.Sequence.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Outcomes != nil {
+		l = m.Outcomes.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOCheckpointOutcomes) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Refused {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -15674,10 +15893,36 @@ func (x *SOCheckpointInner) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequence")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Sequence)
 	}
+	if x.Outcomes != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcomes")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Outcomes)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SOCheckpointInner) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOCheckpointOutcomes) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOCheckpointOutcomes")
+	if len(x.Refused) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "refused")
+		for i, v := range x.Refused {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOOperationPosition{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOCheckpointOutcomes) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -19043,6 +19288,77 @@ func (m *SOCheckpointInner) UnmarshalVT(dAtA []byte) error {
 				m.Sequence = &SOSequenceHead{}
 			}
 			if err := m.Sequence.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcomes", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Outcomes == nil {
+				m.Outcomes = &SOCheckpointOutcomes{}
+			}
+			if err := m.Outcomes.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOCheckpointOutcomes) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOCheckpointOutcomes: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOCheckpointOutcomes: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refused", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Refused = append(m.Refused, &SOOperationPosition{})
+			if err := m.Refused[len(m.Refused)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

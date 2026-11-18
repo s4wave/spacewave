@@ -1385,7 +1385,7 @@ func queueTxs(ctx context.Context, t *testing.T, so *SharedObject, txs ...*world
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := so.QueueOperation(ctx, data); err != nil {
+		if _, _, err := so.QueueOperation(ctx, data); err != nil {
 			t.Fatal(err)
 		}
 	}

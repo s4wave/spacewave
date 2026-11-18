@@ -117,7 +117,7 @@ func TestMetadataSurface(t *testing.T) {
 func TestWritePathsRejected(t *testing.T) {
 	ctx := context.Background()
 	so := newTestSharedObject(t, nil)
-	if _, err := so.QueueOperation(ctx, []byte("x")); err == nil {
+	if _, _, err := so.QueueOperation(ctx, []byte("x")); err == nil {
 		t.Fatal("expected QueueOperation to error")
 	}
 	if _, _, err := so.AccessLocalStateStore(ctx, "state", nil); err == nil {

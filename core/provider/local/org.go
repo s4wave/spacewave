@@ -50,7 +50,7 @@ func (a *ProviderAccount) initOrgSO(ctx context.Context, le *logrus.Entry, soID,
 		le.WithError(err).Warn("failed to marshal init org op")
 		return err
 	}
-	if _, err := so.QueueOperation(ctx, opData); err != nil {
+	if _, _, err := so.QueueOperation(ctx, opData); err != nil {
 		le.WithError(err).Warn("failed to queue init org op")
 		return err
 	}
@@ -81,7 +81,7 @@ func (a *ProviderAccount) QueueOrgUpdateOp(ctx context.Context, orgID string, op
 		le.WithError(err).Warn("failed to marshal update org op")
 		return err
 	}
-	if _, err := so.QueueOperation(ctx, opData); err != nil {
+	if _, _, err := so.QueueOperation(ctx, opData); err != nil {
 		le.WithError(err).Debug("failed to queue update org op")
 		return err
 	}

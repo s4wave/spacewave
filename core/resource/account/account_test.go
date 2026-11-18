@@ -899,7 +899,7 @@ func queueAccountSettingsOp(
 	t.Helper()
 
 	// Queue the settings operation and wait for its processing result.
-	localID, err := so.QueueOperation(ctx, opData)
+	localID, _, err := so.QueueOperation(ctx, opData)
 	if err != nil {
 		t.Fatal(err)
 	}

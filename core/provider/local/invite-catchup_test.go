@@ -103,7 +103,7 @@ func TestInvitedProviderCatchup(t *testing.T) {
 
 	// Write new content as an operation while the reader is offline.
 	want := []byte("readable content written while the other device is offline")
-	localID, err := ownerObject.QueueOperation(ctx, want)
+	localID, _, err := ownerObject.QueueOperation(ctx, want)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -135,7 +135,7 @@ func queueOpAndWaitState(
 	defer relStateCtr()
 
 	// Queue the encoded account settings operation.
-	_, err = so.QueueOperation(ctx, opData)
+	_, _, err = so.QueueOperation(ctx, opData)
 	if err != nil {
 		t.Fatal(err)
 	}

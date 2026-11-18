@@ -265,6 +265,7 @@ func (a *ProviderAccount) populateOrganizationSharedObject(
 	orgID string,
 	info *api.GetOrgResponse,
 ) error {
+	// Mount the org SO to queue its operations.
 	if info == nil {
 		return errors.New("organization info is required")
 	}
@@ -274,6 +275,7 @@ func (a *ProviderAccount) populateOrganizationSharedObject(
 	}
 	defer relSO()
 
+	// Determine the creator (org:owner member) for InitOrganizationOp.
 	creatorID := a.accountID
 	for _, member := range info.GetMembers() {
 		if member.GetRoleId() == "org:owner" {
@@ -282,6 +284,7 @@ func (a *ProviderAccount) populateOrganizationSharedObject(
 		}
 	}
 
+	// Queue InitOrganizationOp with the creator.
 	initOp := &s4wave_org.InitOrganizationOp{
 		OrgObjectKey:     s4wave_org.OrgObjectKey,
 		DisplayName:      info.GetDisplayName(),
@@ -292,10 +295,11 @@ func (a *ProviderAccount) populateOrganizationSharedObject(
 	if err != nil {
 		return errors.Wrap(err, "marshal init org op")
 	}
-	if _, err := so.QueueOperation(ctx, initData); err != nil {
+	if _, _, err := so.QueueOperation(ctx, initData); err != nil {
 		return errors.Wrap(err, "queue init org op")
 	}
 
+	// Add every other member with its role and join time.
 	for _, member := range info.GetMembers() {
 		if member.GetSubjectId() == creatorID {
 			continue
@@ -324,11 +328,12 @@ func (a *ProviderAccount) populateOrganizationSharedObject(
 		if err != nil {
 			return errors.Wrap(err, "marshal add member op")
 		}
-		if _, err := so.QueueOperation(ctx, opData); err != nil {
+		if _, _, err := so.QueueOperation(ctx, opData); err != nil {
 			return errors.Wrap(err, "queue add member op")
 		}
 	}
 
+	// Add every org Space as a child SO.
 	for _, space := range info.GetSpaces() {
 		op := &s4wave_org.UpdateOrgOp{
 			OrgObjectKey: s4wave_org.OrgObjectKey,
@@ -342,7 +347,7 @@ func (a *ProviderAccount) populateOrganizationSharedObject(
 		if err != nil {
 			return errors.Wrap(err, "marshal add child shared object op")
 		}
-		if _, err := so.QueueOperation(ctx, opData); err != nil {
+		if _, _, err := so.QueueOperation(ctx, opData); err != nil {
 			return errors.Wrap(err, "queue add child shared object op")
 		}
 	}

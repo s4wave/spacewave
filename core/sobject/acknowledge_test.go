@@ -36,13 +36,13 @@ func (o *ackTestObject) AccessSharedObjectState(context.Context, func()) (cconta
 }
 
 // QueueOperation writes op as the local peer and publishes the state.
-func (o *ackTestObject) QueueOperation(_ context.Context, op []byte) (string, error) {
+func (o *ackTestObject) QueueOperation(_ context.Context, op []byte) (string, *SOOperationPosition, error) {
 	writeTestOp(o.t, o.state, o.priv, string(op))
 	if len(op) == 0 {
 		o.acks <- struct{}{}
 	}
 	o.publish()
-	return "", nil
+	return "", nil, nil
 }
 
 // publish sets a snapshot of the held state.
@@ -74,7 +74,7 @@ func TestAcknowledge(t *testing.T) {
 	defer cancel()
 	done := make(chan error, 1)
 	write := func(ctx context.Context) error {
-		_, err := so.QueueOperation(ctx, nil)
+		_, _, err := so.QueueOperation(ctx, nil)
 		return err
 	}
 	go func() { done <- Acknowledge(ctx, so, write) }()
@@ -84,7 +84,7 @@ func TestAcknowledge(t *testing.T) {
 	writeTestOp(t, state, keys[0], "edit")
 	so.publish()
 	<-so.acks
-	if _, err := so.QueueOperation(ctx, []byte("edit")); err != nil {
+	if _, _, err := so.QueueOperation(ctx, []byte("edit")); err != nil {
 		t.Fatal(err)
 	}
 	select {

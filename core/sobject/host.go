@@ -564,8 +564,8 @@ func retryConfigChange[T any](ctx context.Context, host *SOHost, change func() (
 
 // AddLocalOperation signs opData as the owner of privKey and adds it to the
 // operation set, encoded with the key of the epoch the operation names. It
-// returns the operation's local ID and nonce once the state holding it is
-// written. Empty opData writes an acknowledgment. A write whose outcome
+// returns the operation's local ID and its position in the peer's chain once
+// the state holding it is written. Empty opData writes an acknowledgment. A write whose outcome
 // cannot be settled returns ErrStateWriteUnknown: the state may hold the
 // operation, so a caller looks for it before adding it again.
 func (s *SOHost) AddLocalOperation(
@@ -574,15 +574,15 @@ func (s *SOHost) AddLocalOperation(
 	sfs *block_transform.StepFactorySet,
 	privKey crypto.PrivKey,
 	opData []byte,
-) (string, uint64, error) {
+) (string, *SOOperationPosition, error) {
 	// Serialize nonce selection and admission under the provider lock.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 	lk, err := s.lockFn(ctx, s.sharedObjectID)
 	if err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 	defer lk.Release()
 
@@ -591,7 +591,7 @@ func (s *SOHost) AddLocalOperation(
 	next := lk.GetSOState().Clone()
 	set, err := s.verifier.OperationSet(next)
 	if err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 	link := next.NextOperationLink(set, peerID.String())
 	var opDataEnc []byte
@@ -599,11 +599,11 @@ func (s *SOHost) AddLocalOperation(
 		handle := NewSOStateParticipantHandle(le, sfs, s.sharedObjectID, next, privKey, peerID).WithGrantKeyring(s.keyring)
 		xfrm, err := handle.epochTransformer(link.KeyEpoch)
 		if err != nil {
-			return "", 0, err
+			return "", nil, err
 		}
 		opDataEnc, err = xfrm.EncodeBlock(opData)
 		if err != nil {
-			return "", 0, err
+			return "", nil, err
 		}
 	}
 
@@ -611,19 +611,19 @@ func (s *SOHost) AddLocalOperation(
 	localID := NewSOOperationLocalID()
 	op, err := BuildSOOperation(s.sharedObjectID, privKey, opDataEnc, link, localID)
 	if err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 	if _, err := next.AddOperation(s.sharedObjectID, op); err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 
 	// Place it in the same write when this peer is the sequencer, so the
 	// sequencer never takes the lock again for its own operations.
 	if _, err := next.sequenceOperations(s.verifier, privKey); err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 	if err := lk.WriteSOState(ctx, next); err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
-	return localID, link.Nonce, nil
+	return localID, &SOOperationPosition{PeerId: peerID.String(), Nonce: link.Nonce, OpHash: op.Hash()}, nil
 }

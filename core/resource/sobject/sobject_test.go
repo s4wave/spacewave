@@ -240,8 +240,8 @@ func (s *testMountedSharedObject) SetBody(context.Context, sobject.Body) (func()
 	return func() {}, func() {}, nil
 }
 
-func (s *testMountedSharedObject) QueueOperation(context.Context, []byte) (string, error) {
-	return "", errors.New("not implemented")
+func (s *testMountedSharedObject) QueueOperation(context.Context, []byte) (string, *sobject.SOOperationPosition, error) {
+	return "", nil, errors.New("not implemented")
 }
 
 func (s *testMountedSharedObject) WaitOperation(

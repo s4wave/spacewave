@@ -54,9 +54,9 @@ func (q *opQueue) remove(adm *spaceAdmission) bool {
 
 // execute passes each waiting admission's operation to QueueOperation until
 // ctx ends, then calls queued with the admission, the operation's local ID
-// and the error. The driver decides the admission of an operation with data
+// and position, and the error. The driver decides the admission of an operation with data
 // once it applies it.
-func (q *opQueue) execute(ctx context.Context, queued func(*spaceAdmission, string, error)) error {
+func (q *opQueue) execute(ctx context.Context, queued func(*spaceAdmission, string, *sobject.SOOperationPosition, error)) error {
 	for {
 		// Take the oldest waiting admission, waiting for one.
 		var adm *spaceAdmission
@@ -72,10 +72,10 @@ func (q *opQueue) execute(ctx context.Context, queued func(*spaceAdmission, stri
 		}
 
 		// Queue it.
-		localID, err := q.so.QueueOperation(ctx, adm.op)
+		localID, pos, err := q.so.QueueOperation(ctx, adm.op)
 		if err != nil && ctx.Err() != nil {
 			return context.Canceled
 		}
-		queued(adm, localID, err)
+		queued(adm, localID, pos, err)
 	}
 }

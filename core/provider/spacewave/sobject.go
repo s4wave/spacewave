@@ -137,11 +137,10 @@ func (s *SharedObject) SetBody(ctx context.Context, body sobject.Body) (func(), 
 }
 
 // QueueOperation signs op as the session peer and adds it to the operation
-// set. It returns the operation's local ID once the state holding it is
-// durably accepted for publication.
-func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, error) {
-	localID, _, err := s.host.GetSOHost().AddLocalOperation(ctx, s.tkr.a.le, s.tkr.a.sfs, s.privKey, op)
-	return localID, err
+// set. It returns the operation's local ID and position once the state
+// holding it is durably accepted for publication.
+func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, *sobject.SOOperationPosition, error) {
+	return s.host.GetSOHost().AddLocalOperation(ctx, s.tkr.a.le, s.tkr.a.sfs, s.privKey, op)
 }
 
 // sobjectTracker tracks a SharedObject in the ProviderAccount.

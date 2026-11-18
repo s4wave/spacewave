@@ -138,7 +138,7 @@ func (a *ProviderAccount) queueRemoveSessionPresentation(
 	if err != nil {
 		return errors.Wrap(err, "marshal remove session presentation op")
 	}
-	if _, err := so.QueueOperation(ctx, opData); err != nil {
+	if _, _, err := so.QueueOperation(ctx, opData); err != nil {
 		return errors.Wrap(err, "queue remove session presentation operation")
 	}
 	return nil
@@ -165,7 +165,7 @@ func (a *ProviderAccount) queueRemovePairedDevice(
 	}
 
 	// Queue the remove-paired-device operation on the mounted shared object.
-	if _, err := so.QueueOperation(ctx, opData); err != nil {
+	if _, _, err := so.QueueOperation(ctx, opData); err != nil {
 		return errors.Wrap(err, "queue remove paired device operation")
 	}
 	return nil

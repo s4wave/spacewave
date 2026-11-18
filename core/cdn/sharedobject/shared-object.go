@@ -212,8 +212,8 @@ func (s *CdnSharedObject) SetBody(ctx context.Context, body sobject.Body) (func(
 }
 
 // QueueOperation is not supported on a read-only CDN mount.
-func (s *CdnSharedObject) QueueOperation(_ context.Context, _ []byte) (string, error) {
-	return "", ErrCdnReadOnly
+func (s *CdnSharedObject) QueueOperation(_ context.Context, _ []byte) (string, *sobject.SOOperationPosition, error) {
+	return "", nil, ErrCdnReadOnly
 }
 
 // cdnStateSnapshot is a minimal sobject.SharedObjectStateSnapshot tied to a

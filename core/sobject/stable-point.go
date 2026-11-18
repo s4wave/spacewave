@@ -283,23 +283,40 @@ func (s *SOState) BuildStableCheckpoint(
 	if err != nil {
 		return nil, err
 	}
-	return s.signStableCheckpoint(sharedObjectID, set, privKey, prefix, stateDataEnc)
+	return s.signStableCheckpoint(sharedObjectID, set, privKey, prefix, stateDataEnc, nil)
 }
 
 // signStableCheckpoint signs, as the owner of privKey, the checkpoint
-// stableCheckpointInner returns.
+// stableCheckpointInner returns, with outcomes, which is nil when the signer
+// records none.
 func (s *SOState) signStableCheckpoint(
 	sharedObjectID string,
 	set *SOOperationSet,
 	privKey crypto.PrivKey,
 	prefix [][]byte,
 	stateDataEnc []byte,
+	outcomes *SOCheckpointOutcomes,
 ) (*SOCheckpoint, error) {
 	inner, err := s.stableCheckpointInner(sharedObjectID, set, prefix, stateDataEnc)
 	if err != nil {
 		return nil, err
 	}
+	inner.Outcomes = outcomes
 	return BuildSOCheckpoint(privKey, inner)
+}
+
+// outcomes returns the outcomes of covered operations whose hashes are
+// refused, each an operation the set holds, in the order given.
+func (s *SOOperationSet) outcomes(refused [][]byte) (*SOCheckpointOutcomes, error) {
+	out := &SOCheckpointOutcomes{Refused: make([]*SOOperationPosition, 0, len(refused))}
+	for _, h := range refused {
+		inner := s.Get(h)
+		if inner == nil {
+			return nil, errors.New("checkpoint refuses an operation the state does not hold")
+		}
+		out.Refused = append(out.Refused, &SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: slices.Clone(h)})
+	}
+	return out, nil
 }
 
 // stableCheckpointInner returns the body of the checkpoint after the held one

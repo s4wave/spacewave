@@ -65,7 +65,7 @@ func TestQueueOperationFencesPublishedSnapshot(t *testing.T) {
 	}
 	done := make(chan queued, 1)
 	go func() {
-		localID, err := host.QueueOperation(ctx, []byte("op"))
+		localID, _, err := host.QueueOperation(ctx, []byte("op"))
 		done <- queued{localID, err}
 	}()
 
@@ -117,7 +117,7 @@ func TestQueueOperationEndsWithLifetime(t *testing.T) {
 	// The operation is added, and the wait for its snapshot ends with the lifetime.
 	ctx, cancelCaller := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancelCaller()
-	if _, err := host.QueueOperation(ctx, []byte("op")); !errors.Is(err, context.Canceled) {
+	if _, _, err := host.QueueOperation(ctx, []byte("op")); !errors.Is(err, context.Canceled) {
 		t.Fatalf("queue after lifetime ended = %v; want context.Canceled", err)
 	}
 }

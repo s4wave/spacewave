@@ -386,7 +386,7 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 		return err
 	}))
 	t.Cleanup(func() { testHookStateSettling.Store(nil) })
-	if _, err := moved.QueueOperation(ctx, []byte("op-unknown")); !errors.Is(err, sobject.ErrStateWriteUnknown) {
+	if _, _, err := moved.QueueOperation(ctx, []byte("op-unknown")); !errors.Is(err, sobject.ErrStateWriteUnknown) {
 		t.Fatalf("the unsettled operation returned %v", err)
 	}
 	testHookStateCommitted.Store(nil)
@@ -421,7 +421,7 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 		})
 		return err
 	}))
-	if _, err := reloaded.QueueOperation(ctx, []byte("op-successor")); !errors.Is(err, sobject.ErrStateWriteUnknown) {
+	if _, _, err := reloaded.QueueOperation(ctx, []byte("op-successor")); !errors.Is(err, sobject.ErrStateWriteUnknown) {
 		t.Fatalf("the operation under a successor returned %v", err)
 	}
 	testHookStateCommitted.Store(nil)
