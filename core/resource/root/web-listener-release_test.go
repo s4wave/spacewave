@@ -38,13 +38,23 @@ func TestBoundListenerRetainsManifest(t *testing.T) {
 	publish := func(rev uint64, text string) {
 		t.Helper()
 		for _, pluginID := range BoundPluginIDs {
+			// The code plugin holds a scoped package and a second copy of a
+			// shared one, which the web plugin's copy must win over.
 			files := memfs.New()
-			filePath := "v/b/fe/entry.mjs"
-			if pluginID == webPkgPluginID {
-				filePath = bldr_plugin.PluginAssetsWebPkgsDir + "/sonner/chunk.mjs"
+			contents := map[string]string{"v/b/fe/entry.mjs": text}
+			switch pluginID {
+			case webPkgPluginID:
+				contents = map[string]string{bldr_plugin.PluginAssetsWebPkgsDir + "/sonner/chunk.mjs": text}
+			case webCodePluginID:
+				contents = map[string]string{
+					bldr_plugin.PluginAssetsWebPkgsDir + "/@pierre/diffs/chunk.mjs": text,
+					bldr_plugin.PluginAssetsWebPkgsDir + "/sonner/chunk.mjs":        "code plugin copy",
+				}
 			}
-			if err := util.WriteFile(files, filePath, []byte(text), 0o644); err != nil {
-				t.Fatal(err)
+			for filePath, content := range contents {
+				if err := util.WriteFile(files, filePath, []byte(content), 0o644); err != nil {
+					t.Fatal(err)
+				}
 			}
 			meta := bldr_manifest.NewManifestMeta(pluginID, bldr_manifest.BuildType_DEV, "js", rev)
 			_, ref, err := tb.CreateManifestWithBilly(ctx, meta, "entry.mjs", files, files, nil)
@@ -108,7 +118,7 @@ func TestBoundListenerRetainsManifest(t *testing.T) {
 		{oldListener, oldCookie, "old release"},
 		{newListener, newCookie, "new release"},
 	} {
-		for _, assetPath := range []string{test.listener.appFrontendPath + "entry.mjs", "/b/pkg/sonner/chunk.mjs"} {
+		for _, assetPath := range []string{test.listener.appFrontendPath + "entry.mjs", "/b/pkg/sonner/chunk.mjs", "/b/pkg/@pierre/diffs/chunk.mjs"} {
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, test.listener.url+assetPath, nil)
 			if err != nil {
 				t.Fatal(err)

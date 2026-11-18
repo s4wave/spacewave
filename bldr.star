@@ -886,9 +886,10 @@ build("release-web-e2e-goscript",
 )
 build("cli-plugin",  manifests=["spacewave-cli-plugin"], targets=["browser"])
 # The app frontend builds alone for import into a CLI daemon's plugin store,
-# where it serves a Space bound with spacewave web --space.
+# where it serves a Space bound with spacewave web --space. spacewave-code
+# holds the code and diff packages that the app's Repo viewer imports.
 build("cli-web",
-    manifests=["spacewave-app", "spacewave-web"],
+    manifests=["spacewave-app", "spacewave-web", "spacewave-code"],
     platform_ids=["js"],
 )
 # Targeted build for the materializer plugin: the build CLI selects whole build

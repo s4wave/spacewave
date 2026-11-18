@@ -13,6 +13,8 @@ export interface FileViewerProps {
   inlineFileURL?: string
   // readOnly says why the file cannot be written, such as a commit's files.
   readOnly?: string
+  // line is the 1-based line to scroll to and highlight.
+  line?: number
 }
 
 // commitReadOnly is why a file in a commit offers no Edit.
@@ -27,6 +29,7 @@ export function FileViewer({
   objectKey,
   inlineFileURL,
   readOnly,
+  line,
 }: FileViewerProps) {
   return (
     <UnixFSFileViewer
@@ -37,6 +40,7 @@ export function FileViewer({
       hideToolbar
       inlineFileURL={inlineFileURL}
       readOnly={readOnly}
+      line={line}
     />
   )
 }

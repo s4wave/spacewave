@@ -501,6 +501,7 @@ function WorktreeSourceStatus({
           objectKey={`${controller.objectKey}/${route.mode === 'workdir' ? 'workdir' : 'files'}`}
           inlineFileURL={source.inlineFileURL}
           readOnly={route.mode === 'workdir' ? undefined : commitReadOnly}
+          line={route.line}
         />
       </GitViewerFrame>
     )

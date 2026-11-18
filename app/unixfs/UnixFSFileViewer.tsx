@@ -62,6 +62,8 @@ export interface UnixFSFileViewerProps {
   // readOnly says why the file cannot be written, such as a commit's files;
   // the text viewer then offers no Edit.
   readOnly?: string
+  // line is the 1-based line a text file scrolls to and highlights.
+  line?: number
 }
 
 // FileIcon returns the appropriate icon for a mime type.
@@ -454,6 +456,7 @@ export function UnixFSFileViewer({
   hideToolbar,
   inlineFileURL,
   readOnly,
+  line,
 }: UnixFSFileViewerProps) {
   // A text file puts its presses in the navigator, the pane's one bar, or
   // draws its own bar where an outer component owns navigation. The key ends
@@ -475,6 +478,7 @@ export function UnixFSFileViewer({
           rootHandle={rootHandle}
           path={path}
           readOnly={readOnly}
+          line={line}
           description={stat.mimeType}
           renderBar={hideToolbar ? undefined : renderToolbar}
         />

@@ -312,6 +312,7 @@ function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
           objectKey={controller.objectKey}
           inlineFileURL={inlineFileURL}
           readOnly={commitReadOnly}
+          line={route.line}
         />
       </GitViewerFrame>
     )

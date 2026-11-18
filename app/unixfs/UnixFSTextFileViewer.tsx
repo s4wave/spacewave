@@ -46,6 +46,8 @@ export interface UnixFSTextFileViewerProps {
   // readOnly says why the file cannot be written, such as a commit's files;
   // Edit then never shows.
   readOnly?: string
+  // line is the 1-based line the read file scrolls to and highlights.
+  line?: number
   // description is one muted line of what the file is, for the viewer's own
   // bar.
   description?: string
@@ -196,6 +198,7 @@ export function UnixFSTextFileViewer({
   rootHandle,
   path,
   readOnly,
+  line,
   description,
   renderBar,
 }: UnixFSTextFileViewerProps) {
@@ -305,6 +308,7 @@ export function UnixFSTextFileViewer({
       view={view}
       path={path}
       readOnly={readOnly}
+      line={line}
       saveHold={saveHold}
       description={description}
       renderBar={renderBar}
@@ -323,6 +327,7 @@ export interface TextFileFrameProps {
   view: TextFileView
   path: string
   readOnly?: string
+  line?: number
   // saveHold says why the Space takes no save now; Save waits, the draft stays.
   saveHold?: string | null
   description?: string
@@ -341,6 +346,7 @@ export function TextFileFrame({
   view,
   path,
   readOnly,
+  line,
   saveHold,
   description,
   renderBar,
@@ -423,6 +429,7 @@ export function TextFileFrame({
       <TextFileBody
         view={view}
         readOnly={readOnly}
+        line={line}
         retryRead={retryRead}
         readBack={readBack}
         onType={(text) => dispatch({ type: 'type', text })}
@@ -437,6 +444,7 @@ export function TextFileFrame({
 interface TextFileBodyProps {
   view: TextFileView
   readOnly?: string
+  line?: number
   retryRead: () => void
   readBack: () => void
   onType: (text: string) => void
@@ -488,6 +496,7 @@ function TextFileBody({ view, ...props }: TextFileBodyProps) {
 function ReadBody({
   view,
   readOnly,
+  line,
   retryRead,
 }: Omit<TextFileBodyProps, 'view'> & {
   view: Exclude<TextFileView, { state: 'editing' }>
@@ -527,9 +536,53 @@ function ReadBody({
           Reading the file again
         </p>
       )}
-      <pre className={textClass}>{view.text}</pre>
+      <ReadText text={view.text} line={line} />
     </>
   )
+}
+
+/**
+ * ReadText draws the read file. With a line inside the text it marks that
+ * line and scrolls it to the middle, as a link to one line of a file asks.
+ */
+function ReadText({ text, line }: { text: string; line?: number }) {
+  const lineRef = useRef<HTMLSpanElement>(null)
+  const at = line ? lineRange(text, line) : null
+  const start = at?.start
+  useEffect(() => {
+    lineRef.current?.scrollIntoView({ block: 'center' })
+  }, [start])
+  if (!at) return <pre className={textClass}>{text}</pre>
+  return (
+    <pre className={textClass}>
+      {text.slice(0, Math.max(0, at.start - 1))}
+      <span
+        ref={lineRef}
+        data-line={line}
+        aria-current="location"
+        className="bg-brand/15 border-brand/60 block border-l-2"
+      >
+        {text.slice(at.start, at.end) || ' '}
+      </span>
+      {text.slice(at.end + 1)}
+    </pre>
+  )
+}
+
+/**
+ * lineRange returns the offsets of a 1-based line without its newline, or
+ * null when the text has fewer lines.
+ */
+function lineRange(text: string, line: number) {
+  let start = 0
+  for (let n = 1; n < line; n++) {
+    const next = text.indexOf('\n', start)
+    if (next < 0) return null
+    start = next + 1
+  }
+  if (start >= text.length && line > 1) return null
+  const end = text.indexOf('\n', start)
+  return { start, end: end < 0 ? text.length : end }
 }
 
 /**

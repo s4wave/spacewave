@@ -13,7 +13,13 @@ export interface RouteInfo {
   ref: string | null
   subpath: string
   commitHash: string | null
+  // line is the 1-based line a file route names with a #L<n> suffix, as
+  // GitHub does, so a link can open a file at one line.
+  line?: number
 }
+
+// lineSuffix matches a file route's #L<n> line anchor.
+const lineSuffix = /#L([1-9][0-9]*)$/
 
 // parseViewerRoute parses a GitHub-style viewer path into route components.
 export function parseViewerRoute(viewerPath: string): RouteInfo {
@@ -23,12 +29,15 @@ export function parseViewerRoute(viewerPath: string): RouteInfo {
   }
   const action = segments[0]
   if ((action === 'tree' || action === 'blob') && segments.length >= 2) {
-    const sub = segments.slice(2).join('/')
+    const joined = segments.slice(2).join('/')
+    const anchor = lineSuffix.exec(joined)
+    const sub = anchor ? joined.slice(0, anchor.index) : joined
     return {
       mode: 'files',
       ref: segments[1],
       subpath: sub ? '/' + sub : '/',
       commitHash: null,
+      ...(anchor && { line: Number(anchor[1]) }),
     }
   }
   if (action === 'readme' && segments.length >= 2) {

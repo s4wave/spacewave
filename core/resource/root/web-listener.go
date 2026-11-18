@@ -7,9 +7,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/url"
+	"path"
 	"regexp"
 	"slices"
 	"strconv"
@@ -30,6 +32,9 @@ import (
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	web_pkg_http "github.com/s4wave/spacewave/bldr/web/pkg/http"
 	web_runtime_http "github.com/s4wave/spacewave/bldr/web/runtime/http"
+	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
+	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	"github.com/sirupsen/logrus"
@@ -51,8 +56,17 @@ const webAppPluginID = "spacewave-app"
 // build excludes and imports from /b/pkg/.
 const webPkgPluginID = "spacewave-web"
 
+// webCodePluginID is the plugin whose assets hold the code highlighting and
+// diff packages, such as @pierre/diffs, that the other plugins exclude.
+const webCodePluginID = "spacewave-code"
+
+// webPkgPluginIDs are the plugins that serve web packages, in precedence
+// order: a package that several of them hold is served by the first, so the
+// app shares one copy of each shared module.
+var webPkgPluginIDs = []string{webPkgPluginID, webCodePluginID}
+
 // BoundPluginIDs are the plugins whose browser files a native listener serves.
-var BoundPluginIDs = []string{webAppPluginID, webPkgPluginID}
+var BoundPluginIDs = []string{webAppPluginID, webPkgPluginID, webCodePluginID}
 
 // AccessWebListener creates or reuses a localhost web listener.
 func (s *CoreRootServer) AccessWebListener(
@@ -257,6 +271,9 @@ type webListener struct {
 	appFrontendPath string
 	// webPkgBasePath pins package modules to the listener's web manifest.
 	webPkgBasePath string
+	// webPkgBases maps each package ID that webPkgPluginIDs hold to the
+	// pinned base of the first plugin that holds it.
+	webPkgBases map[string]string
 	// resources serves the bound or full Resource service, or is nil when unbound.
 	resources *srpc.HTTPServer
 	// releaseAssets releases the native app files and their web packages.
@@ -362,12 +379,16 @@ func newWebListener(
 		capabilities:    make(map[string]struct{}),
 	}
 	if spec.native() && b != nil {
-		listener.appFrontendPath, listener.webPkgBasePath, listener.releaseAssets, err = holdBoundAssets(ctx, b)
+		assets, err := holdBoundAssets(ctx, b)
 		if err != nil {
 			cancel()
 			_ = lis.Close()
 			return nil, err
 		}
+		listener.appFrontendPath = assets.appFrontendPath
+		listener.webPkgBasePath = assets.webPkgBasePath
+		listener.webPkgBases = assets.pkgBases
+		listener.releaseAssets = assets.release
 	}
 	listener.server = &http.Server{
 		Handler:           listener,
@@ -426,9 +447,22 @@ func (l *webListener) Close() {
 	}
 }
 
+// boundAssets are the pinned browser files a native listener serves.
+type boundAssets struct {
+	// appFrontendPath is the app's frontend module prefix.
+	appFrontendPath string
+	// webPkgBasePath is the web package plugin's package prefix.
+	webPkgBasePath string
+	// pkgBases maps each package ID to the prefix of the first plugin in
+	// webPkgPluginIDs that holds it.
+	pkgBases map[string]string
+	// release releases the mounted files.
+	release func()
+}
+
 // holdBoundAssets mounts the files of BoundPluginIDs without running them and
-// serves the web packages that a running webPkgPluginID would register.
-func holdBoundAssets(ctx context.Context, b bus.Bus) (string, string, func(), error) {
+// serves the web packages that running webPkgPluginIDs would register.
+func holdBoundAssets(ctx context.Context, b bus.Bus) (*boundAssets, error) {
 	// Mount each plugin's browser files.
 	var refs []directive.Reference
 	release := func() {
@@ -441,22 +475,107 @@ func holdBoundAssets(ctx context.Context, b bus.Bus) (string, string, func(), er
 		root, _, ref, err := bus.ExecWaitValue[string](ctx, b, bldr_plugin.NewLoadPluginAssets(pluginID), nil, nil, nil)
 		if err != nil {
 			release()
-			return "", "", nil, err
+			return nil, err
 		}
 		_, _, pinnedRef, err := bus.ExecWaitValue[string](ctx, b, bldr_plugin.NewLoadPluginAssetsAtManifest(pluginID, root), nil, nil, nil)
 		ref.Release()
 		if err != nil {
 			release()
-			return "", "", nil, err
+			return nil, err
 		}
 		refs = append(refs, pinnedRef)
 		artifacts[pluginID] = bldr_plugin.PluginArtifactID(pluginID, root)
 	}
 
-	// Keep both immutable URL prefixes with the listener's asset demand.
-	return bldr_plugin.PluginAssetsHttpPrefix + artifacts[webAppPluginID] + "/v/b/fe/",
-		bldr_plugin.PluginAssetsHttpPrefix + artifacts[webPkgPluginID] + "/" + bldr_plugin.PluginAssetsWebPkgsDir + "/",
-		release, nil
+	// Route each package to the first plugin that holds it.
+	assets := &boundAssets{
+		appFrontendPath: bldr_plugin.PluginAssetsHttpPrefix + artifacts[webAppPluginID] + "/v/b/fe/",
+		pkgBases:        make(map[string]string),
+		release:         release,
+	}
+	for _, pluginID := range webPkgPluginIDs {
+		base := bldr_plugin.PluginAssetsHttpPrefix + artifacts[pluginID] + "/" + bldr_plugin.PluginAssetsWebPkgsDir + "/"
+		if pluginID == webPkgPluginID {
+			assets.webPkgBasePath = base
+		}
+		pkgIDs, err := listWebPkgIDs(ctx, b, artifacts[pluginID])
+		if err != nil {
+			release()
+			return nil, errors.Wrapf(err, "list %s web packages", pluginID)
+		}
+		for _, pkgID := range pkgIDs {
+			if _, ok := assets.pkgBases[pkgID]; !ok {
+				assets.pkgBases[pkgID] = base
+			}
+		}
+	}
+	return assets, nil
+}
+
+// listWebPkgIDs lists the web packages in a mounted assets artifact: each
+// entry of its web packages directory, and each entry of a scope directory
+// such as @pierre. An artifact without the directory holds no packages.
+func listWebPkgIDs(ctx context.Context, b bus.Bus, artifactID string) ([]string, error) {
+	// Open the artifact's assets filesystem while its mount is held.
+	access, accessRef, err := unixfs_access.ExAccessUnixFS(ctx, b, bldr_plugin.PluginAssetsFsId(artifactID), true, nil)
+	if err != nil {
+		return nil, err
+	}
+	if accessRef == nil {
+		return nil, errors.Wrap(unixfs_errors.ErrFsNotFound, artifactID)
+	}
+	defer accessRef.Release()
+	handle, releaseHandle, err := access(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer releaseHandle()
+	fsys := unixfs_iofs.NewFS(ctx, handle)
+
+	// Read the package directory and one level below each scope.
+	entries, err := fs.ReadDir(fsys, bldr_plugin.PluginAssetsWebPkgsDir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var pkgIDs []string
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasPrefix(name, "@") {
+			pkgIDs = append(pkgIDs, name)
+			continue
+		}
+		scoped, err := fs.ReadDir(fsys, path.Join(bldr_plugin.PluginAssetsWebPkgsDir, name))
+		if err != nil {
+			return nil, err
+		}
+		for _, pkg := range scoped {
+			if pkg.IsDir() {
+				pkgIDs = append(pkgIDs, name+"/"+pkg.Name())
+			}
+		}
+	}
+	return pkgIDs, nil
+}
+
+// webPkgBase returns the pinned base that serves the package file at pkgPath,
+// a path such as "@scope/name/file.mjs". A package no bound plugin lists falls
+// to the web package plugin.
+func (l *webListener) webPkgBase(pkgPath string) string {
+	pkgID, rest, _ := strings.Cut(pkgPath, "/")
+	if strings.HasPrefix(pkgID, "@") {
+		name, _, _ := strings.Cut(rest, "/")
+		pkgID += "/" + name
+	}
+	if base, ok := l.webPkgBases[pkgID]; ok {
+		return base
+	}
+	return l.webPkgBasePath
 }
 
 // ServeHTTP serves the boot shell and bootstrap exchange to anyone, and every
@@ -768,7 +887,7 @@ func quoteWebListenerScriptString(value string) string {
 func (l *webListener) serveNativeRuntimeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Redirect bound package modules before relative imports choose their base URL.
 	if pkgPath, ok := strings.CutPrefix(req.URL.Path, bldr_plugin.PluginWebPkgHttpPrefix); ok && l.webPkgBasePath != "" {
-		web_pkg_http.RedirectToPinnedBase(rw, req, l.webPkgBasePath, pkgPath)
+		web_pkg_http.RedirectToPinnedBase(rw, req, l.webPkgBase(pkgPath), pkgPath)
 		return
 	}
 
