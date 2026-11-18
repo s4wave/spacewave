@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/store/kvtx/sqlite/cgo"
 	"github.com/s4wave/spacewave/db/store/kvtx/sqlite/common"
@@ -89,3 +90,55 @@ func TestReadTurnsLeaveForCallbacks(t *testing.T) {
 
 // _ is a type assertion.
 var _ kvtx.Store = (*cgo.Store)(nil)
+
+// TestUrgentReadTakesNoTurn proves a read under the World's writer, of class
+// block.ReadUrgent, finishes while other readers hold every turn, and that an
+// ordinary read waits for a turn meanwhile.
+func TestUrgentReadTakesNoTurn(t *testing.T) {
+	ctx := context.Background()
+	store, err := cgo.Open(ctx, filepath.Join(t.TempDir(), "urgent.db"), "kv")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer store.Close()
+	write, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := write.Set(ctx, []byte("key"), []byte("value")); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := write.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	common.SetReadTurns(store, 1)
+	release := common.HoldReadTurns(store)
+	defer release()
+
+	// Read once as the writer would and once as any reader.
+	read := func(ctx context.Context) error {
+		tx, err := store.NewTransaction(ctx, false)
+		if err != nil {
+			return err
+		}
+		defer tx.Discard()
+		_, found, err := tx.Get(ctx, []byte("key"))
+		if err == nil && !found {
+			err = os.ErrNotExist
+		}
+		return err
+	}
+	for range 3 {
+		urgentCtx, cancel := context.WithTimeout(block.WithReadClass(ctx, block.ReadUrgent), 5*time.Second)
+		err := read(urgentCtx)
+		cancel()
+		if err != nil {
+			t.Fatalf("urgent read: %v", err)
+		}
+	}
+	plainCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer cancel()
+	if err := read(plainCtx); err == nil {
+		t.Fatal("ordinary read finished without a turn")
+	}
+}

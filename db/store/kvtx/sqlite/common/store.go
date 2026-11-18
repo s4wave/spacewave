@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/csync"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -69,6 +70,13 @@ type Store[T SQLiteDriverConfig] struct {
 	// readTurns admits the snapshot reads' statements into SQLite, nil
 	// without snapshot reads, whose statements wait for the pool instead.
 	readTurns readTurns
+	// urgentReads keeps the connections of urgent snapshot reads, see
+	// NewTransaction. It and writeConn are nil on a pool with a bound on its
+	// open connections, which kept connections could exhaust.
+	urgentReads *connKeep
+	// writeConn keeps the write transactions' connection; one write
+	// transaction runs at a time, under writeMtx.
+	writeConn *connKeep
 
 	// writeMtx admits one write transaction at a time: a transaction opened
 	// with kvtx.WithBackgroundWriteContext waits behind every waiting
@@ -153,6 +161,12 @@ func newStore[T SQLiteDriverConfig](db *sql.DB, table string, config T, walBound
 	}
 	if s.snapshotReads {
 		s.readTurns = newReadTurns()
+	}
+	if db.Stats().MaxOpenConnections == 0 {
+		// Keep connections only from a pool without a bound, which they
+		// cannot exhaust.
+		s.urgentReads = newConnKeep(db, urgentReadConns)
+		s.writeConn = newConnKeep(db, 1)
 	}
 	s.flusher = kvtx.NewOrderedFlusher(s.flushWAL, SyncDeadline)
 	go s.runCheckpoints(ctx)
@@ -467,10 +481,20 @@ const (
 // NewTransaction returns a new transaction against the store. A write
 // transaction waits for the writer turn until ctx ends, behind every waiting
 // foreground writer when ctx carries kvtx.WithBackgroundWriteContext.
+//
+// A read under ctx of class block.ReadUrgent, made while holding something
+// every write waits for, such as the World's writer lock, takes no read turn
+// and reads on a kept connection, as connKeep describes, so a burst of other
+// readers delays it neither in the turns nor in opening a connection. Past
+// urgentReadConns at once, an urgent read takes a pool connection, still
+// without a turn.
 func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Read transactions open their connection at their first read.
 	if !write {
-		return newReadTx(s.db, s.queries, s.snapshotReads, s.readTurns), nil
+		if s.snapshotReads && s.urgentReads != nil && block.ReadClassOf(ctx) == block.ReadUrgent {
+			return newReadTx(s.db, s.queries, true, nil, s.urgentReads), nil
+		}
+		return newReadTx(s.db, s.queries, s.snapshotReads, s.readTurns, nil), nil
 	}
 
 	// A read-only store never takes the writer's lock from the file's writer.
@@ -478,11 +502,13 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 		return nil, ErrReadOnly
 	}
 
-	// Queue for the writer turn, counted for WritersWaiting.
+	// Queue background writes behind foreground ones.
 	prio := writerForeground
 	if kvtx.IsBackgroundWriteContext(ctx) {
 		prio = writerBackground
 	}
+
+	// Wait for the writer turn, counted for WritersWaiting.
 	s.writersWaiting.Add(1)
 	queued := time.Now()
 	release, err := s.writeMtx.Lock(ctx, prio)
@@ -493,19 +519,21 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	s.stats.addWait(prio, time.Since(queued))
 	release = s.countTurn(release)
 
-	// Begin on a connection of its own, taking SQLite's write lock at once so
-	// the transaction never waits to upgrade from a read.
-	conn, err := s.db.Conn(ctx)
+	// Begin on the kept write connection, taking SQLite's write lock at once
+	// so the transaction never waits to upgrade from a read.
+	tx := newWriteTx(s.db, s.writeConn, s.queries, s.flusher, s.wakeCheckpoint, release)
+	conn, err := tx.takeConn(ctx)
 	if err != nil {
 		release()
 		return nil, err
 	}
 	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
-		discardConn(conn)
+		tx.dropConn(conn)
 		release()
 		return nil, err
 	}
-	return newWriteTx(conn, s.queries, s.flusher, s.wakeCheckpoint, release), nil
+	tx.conn = conn
+	return tx, nil
 }
 
 // countTurn returns release counting the writer turn in writeTurns first.
@@ -552,9 +580,14 @@ func (s *Store[T]) Execute(ctx context.Context) error {
 // Close stops the checkpointer, flushes pending ordered commits, and closes
 // the database.
 func (s *Store[T]) Close() error {
+	// Stop the checkpointer and wait for it.
 	openStores.Delete(s)
 	s.stopCheckpoints()
 	<-s.checkpointsDone
+
+	// Close the kept connections, then the pool.
+	s.urgentReads.close()
+	s.writeConn.close()
 	return errors.Join(s.flusher.Close(), s.db.Close())
 }
 
