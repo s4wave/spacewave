@@ -153,7 +153,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 		HeadRef:       &bucket.ObjectRef{RootRef: head},
 		RetainedRoots: []*RetainedRoot{{Name: "export", RootRef: retained}},
 	}}
-	adm := &spaceAdmission{state: admissionPlaced, done: make(chan struct{})}
+	adm := &spaceAdmission{state: admissionCovered, done: make(chan struct{})}
 	a.pending = []*spaceAdmission{adm}
 	var reports []world.Head
 	a.watchers = []*headWatch{{fn: func(h world.Head) { reports = append(reports, h) }}}
@@ -176,6 +176,28 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 		t.Fatalf("a failed install reported %d heads and decided %v, the late one %v", len(reports), adm.state == admissionDecided, lateAdm.state == admissionDecided)
 	}
 
+	// A replay-placed admission of this device's next operation, which the
+	// retry would accept at the head its position is in.
+	forked := &sobject.SOOperationPosition{PeerId: "local-peer", Nonce: 2, OpHash: []byte("placed")}
+	placed := &spaceAdmission{a: a, state: admissionPlaced, hash: forked.GetOpHash(), pos: forked, done: make(chan struct{})}
+	a.pending = append(a.pending, placed)
+
+	// Before the retry, a checkpoint from another chain of the same identity
+	// covers nonce 2 with its own operation, and its install keeps none of
+	// the replay positions. The placed admission lost the only evidence that
+	// a head holds it, and the cover does not prove it, so the retry must not
+	// accept it.
+	other := &sobject.SOOperationPosition{PeerId: "local-peer", Nonce: 2, OpHash: []byte("fork-2")}
+	otherChain := map[string]*sobject.SOOperationInner{"fork-2": {PeerId: "local-peer", Nonce: 2, PrevOpHash: []byte("late")}}
+	var refused, unknown []*spaceAdmission
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		refused, unknown = a.installCoverLocked(
+			&sobject.SOCheckpointInner{Height: 2, Authors: []*sobject.SOOperationPosition{other}, Outcomes: &sobject.SOCheckpointOutcomes{}},
+			nil, nil, "local-peer", func(h []byte) *sobject.SOOperationInner { return otherChain[string(h)] },
+		)
+	})
+	a.decideCovered(refused, unknown)
+
 	// The next install holds them, reports the head once, then decides both.
 	if err := a.installHead(ctx); err != nil {
 		t.Fatal(err)
@@ -188,6 +210,9 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	}
 	if lateAdm.state != admissionDecided || lateAdm.decision != world.Accepted {
 		t.Fatalf("the retry left the late admission %v with decision %v, want Accepted", lateAdm.state, lateAdm.decision)
+	}
+	if placed.decision == world.Accepted || !errors.Is(placed.err, world.ErrDurabilityUnknown) {
+		t.Fatalf("the retry decided the admission the other chain's install dropped %v with %v, want durability unknown", placed.decision, placed.err)
 	}
 
 	// An install whose retained set the root holds already stores nothing
@@ -1698,7 +1723,7 @@ func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 	install := func(a *Adapter, c *sobject.SOCheckpointInner) {
 		var refused, unknown []*spaceAdmission
 		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			refused, unknown = a.installCoverLocked(c, peer, get)
+			refused, unknown = a.installCoverLocked(c, nil, nil, peer, get)
 		})
 		a.decideCovered(refused, unknown)
 		a.headHeight, a.acceptHeight = c.GetHeight(), c.GetHeight()
@@ -1723,9 +1748,9 @@ func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 	a := newAdapter()
 	applied, refused, head, above := admit(a, 2), admit(a, 3), admit(a, 4), admit(a, 5)
 	install(a, checkpoint(2, pos(4), &sobject.SOCheckpointOutcomes{Refused: []*sobject.SOOperationPosition{pos(3)}}))
-	expect("applied", applied, admissionPlaced, 0, nil)
+	expect("applied", applied, admissionCovered, 0, nil)
 	expect("refused", refused, admissionDecided, world.Rejected, sobject.ErrRejectedOp)
-	expect("covered head", head, admissionPlaced, 0, nil)
+	expect("covered head", head, admissionCovered, 0, nil)
 	expect("above the cover", above, admissionQueued, 0, nil)
 
 	// An admission whose QueueOperation returns after that install is decided
@@ -1785,7 +1810,7 @@ func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 	delete(held, string(hash(3)))
 	install(a, checkpoint(2, pos(4), &sobject.SOCheckpointOutcomes{}))
 	expect("below a missing link", gap, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
-	expect("on the walk above a missing link", proven, admissionPlaced, 0, nil)
+	expect("on the walk above a missing link", proven, admissionCovered, 0, nil)
 
 	// An admission queued before any install waits for replay.
 	a = &Adapter{}

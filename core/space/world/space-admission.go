@@ -16,9 +16,18 @@ const (
 	// admissionQueued means the operation waits in the queue or in
 	// QueueOperation.
 	admissionQueued spaceAdmissionState = iota
-	// admissionPlaced means the driver applied the operation's position, which
-	// the installed head does not hold yet.
+	// admissionPlaced means replay applied the operation at a position the
+	// replay holds above the installed checkpoint, or one a reorder put back
+	// and the missing set holds until replay applies it again, so the head
+	// installHead builds holds it. The evidence is that position alone: an
+	// install that drops it returns the admission to admissionQueued or
+	// proves it admissionCovered (reconcilePlacedLocked).
 	admissionPlaced
+	// admissionCovered means an installed checkpoint is proven to hold the
+	// operation: its position is on the checkpoint's covered chain, or it was
+	// placed at a position the checkpoint's World covers. Every later head
+	// descends from that checkpoint, so installHead accepts it.
+	admissionCovered
 	// admissionDecided means the decision and the head are final.
 	admissionDecided
 )

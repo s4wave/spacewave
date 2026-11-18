@@ -917,7 +917,9 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		kept = state.EqualVT(base)
 	}
 	paid := kept && slices.ContainsFunc(r.positions[:covered], func(pos spacePosition) bool { return len(pos.payloads) != 0 })
+	var inCheckpoint []spacePosition
 	if kept {
+		inCheckpoint = r.positions[:covered]
 		r.positions = slices.Clone(r.positions[covered:])
 		r.floor, r.saved = max(0, r.floor-covered), max(0, r.saved-covered)
 	} else {
@@ -951,7 +953,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 	var refused, unknown []*spaceAdmission
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.installed, a.checkpoint, a.checkpointSeqno = true, base, seqno
-		refused, unknown = a.installCoverLocked(checkpoint, a.so.GetPeerID().String(), held.Get)
+		refused, unknown = a.installCoverLocked(checkpoint, inCheckpoint, r.positions, a.so.GetPeerID().String(), held.Get)
 		broadcast()
 	})
 	a.decideCovered(refused, unknown)
@@ -1333,7 +1335,7 @@ func (a *Adapter) place(adm *spaceAdmission, pos spacePosition, ranAgain bool) {
 	// Keep an applied operation for the install.
 	if pos.reason == "" {
 		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			if adm.state != admissionDecided {
+			if adm.state == admissionQueued {
 				adm.state = admissionPlaced
 			}
 		})
@@ -1354,13 +1356,18 @@ func (a *Adapter) place(adm *spaceAdmission, pos spacePosition, ranAgain bool) {
 // installCoverLocked installs the cover checkpoint gives peerID's operations,
 // proving chain membership from the operations held returns, and applies it
 // to every pending admission. It returns the refused and the unknown
-// admissions for the caller to decide after it releases bcast; every other
-// covered admission is placed. The caller holds bcast.
+// admissions for the caller to decide after it releases bcast; an applied one
+// becomes covered. It first moves the placed admissions off the
+// replay positions the install drops, as reconcilePlacedLocked does, given
+// the positions the checkpoint covers and those the replay keeps above it.
+// The caller holds bcast.
 func (a *Adapter) installCoverLocked(
 	checkpoint *sobject.SOCheckpointInner,
+	inCheckpoint, kept []spacePosition,
 	peerID string,
 	held func(h []byte) *sobject.SOOperationInner,
 ) (refused, unknown []*spaceAdmission) {
+	a.reconcilePlacedLocked(inCheckpoint, kept)
 	a.cover = nextCover(a.cover, checkpoint, peerID, held)
 	for _, adm := range a.pending {
 		switch a.coverLocked(adm) {
@@ -1375,7 +1382,7 @@ func (a *Adapter) installCoverLocked(
 
 // coverLocked applies the installed checkpoint's cover to adm, a queued
 // admission whose position is known, and returns the outcome: an applied one
-// becomes placed, for installHead to decide at the installed head, and the
+// becomes covered, for installHead to decide at the installed head, and the
 // caller decides a refused or unknown one. The caller holds bcast.
 func (a *Adapter) coverLocked(adm *spaceAdmission) coverOutcome {
 	if adm.state != admissionQueued {
@@ -1383,9 +1390,41 @@ func (a *Adapter) coverLocked(adm *spaceAdmission) coverOutcome {
 	}
 	outcome := a.cover.outcome(adm.pos)
 	if outcome == coverApplied {
-		adm.state = admissionPlaced
+		adm.state = admissionCovered
 	}
 	return outcome
+}
+
+// reconcilePlacedLocked moves each placed admission off the replay positions
+// an install drops, before the install's cover applies: one placed at a
+// position in inCheckpoint, whose World the installed checkpoint's equals, is
+// covered; one placed at a position in kept stays placed; any other lost the
+// only evidence that a head holds its operation, so it is queued again, for
+// the cover's proof to decide or replay to place again.
+//
+// Invariant: installHead accepts an admission only when the head it installs
+// holds the operation. A placed admission's position is in the replay
+// positions that head is built from, or in the missing set that holds the
+// install back until replay applies it again; a covered one is proven held by
+// an installed checkpoint. The caller holds bcast.
+func (a *Adapter) reconcilePlacedLocked(inCheckpoint, kept []spacePosition) {
+	holds := func(positions []spacePosition, hash []byte) bool {
+		return slices.ContainsFunc(positions, func(pos spacePosition) bool {
+			return pos.reason == "" && bytes.Equal(pos.op.Hash, hash)
+		})
+	}
+	for _, adm := range a.pending {
+		if adm.state != admissionPlaced {
+			continue
+		}
+		switch {
+		case holds(inCheckpoint, adm.hash):
+			adm.state = admissionCovered
+		case holds(kept, adm.hash):
+		default:
+			adm.state = admissionQueued
+		}
+	}
 }
 
 // decideCovered decides the admissions an installed checkpoint covers without
@@ -1553,7 +1592,7 @@ func (a *Adapter) installHead(ctx context.Context) error {
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		a.acceptHeight = height
 		for _, adm := range a.pending {
-			if adm.state == admissionPlaced {
+			if adm.state == admissionPlaced || adm.state == admissionCovered {
 				placed = append(placed, adm)
 			}
 		}
