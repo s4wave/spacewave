@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/db/block"
@@ -36,7 +36,7 @@ import (
 // changelog when enableChangelog is set; each edit then adjusts its config.
 func newEngineTestbed(
 	t *testing.T,
-) (context.Context, *logrus.Entry, *testbed.Testbed, func(enableChangelog bool, edits ...func(*world_block_engine.Config)) (*world.BusEngine, directive.Reference)) {
+) (context.Context, *logrus.Entry, *testbed.Testbed, func(enableChangelog bool, edits ...func(*world_block_engine.Config)) (*world.BusEngine, func())) {
 	// Report failures at the caller and configure debug logging.
 	t.Helper()
 	ctx := t.Context()
@@ -74,7 +74,7 @@ func newEngineTestbed(
 		BucketId:      tb.BucketId,
 		TransformConf: stateTransformConf,
 	}
-	startEngine := func(enableChangelog bool, edits ...func(*world_block_engine.Config)) (*world.BusEngine, directive.Reference) {
+	startEngine := func(enableChangelog bool, edits ...func(*world_block_engine.Config)) (*world.BusEngine, func()) {
 		// Build the config.
 		engineConf := world_block_engine.NewConfig(
 			"test-world-engine",
@@ -89,11 +89,7 @@ func newEngineTestbed(
 		for _, edit := range edits {
 			edit(engineConf)
 		}
-		eng, engRef, err := world.StartEngine(ctx, tb.Bus, engineConf, nil)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		return eng, engRef
+		return attachEngine(ctx, t, tb, engineConf)
 	}
 	return ctx, le, tb, startEngine
 }
@@ -104,8 +100,8 @@ func TestWorldEngineController(t *testing.T) {
 	// Start the engine with a changelog.
 	ctx, le, tb, startEngine := newEngineTestbed(t)
 	engineID := "test-world-engine"
-	eng, engRef := startEngine(true)
-	defer engRef.Release()
+	eng, releaseEng := startEngine(true)
+	defer releaseEng()
 
 	// Provide the mock object op handlers to the bus.
 	opc := world.NewLookupOpController("test-world-engine-ops", engineID, world_mock.LookupMockOp)
@@ -139,9 +135,9 @@ func TestWorldEngineController(t *testing.T) {
 	}
 
 	// Remount the World.
-	engRef.Release()
-	eng, engRef = startEngine(true)
-	defer engRef.Release()
+	releaseEng()
+	eng, releaseEng = startEngine(true)
+	defer releaseEng()
 
 	// Check that the suite's object survived the remount.
 	engTx, err = eng.NewTransaction(ctx, true)
@@ -285,6 +281,41 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	}
 }
 
+// attachEngine attaches the World engine controller for conf to tb's bus and
+// waits for its engine. The release it returns detaches the controller and
+// closes its engine before returning, so an engine started after it cannot
+// resolve the one being closed. Releasing the reference world.StartEngine
+// returns only begins that removal: a restart that follows at once can look
+// up the old engine and then find it closed.
+func attachEngine(
+	ctx context.Context,
+	t *testing.T,
+	tb *testbed.Testbed,
+	conf *world_block_engine.Config,
+) (*world.BusEngine, func()) {
+	// Report failures at the caller and construct the controller.
+	t.Helper()
+	if err := conf.Validate(); err != nil {
+		t.Fatal(err.Error())
+	}
+	ctrl, err := world_block_engine.NewFactory(tb.Bus).Construct(ctx, conf, controller.ConstructOpts{Logger: tb.Logger})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Attach it and wait for its first engine.
+	release, err := tb.Bus.AddController(ctx, ctrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	eng := world.NewBusEngine(ctx, tb.Bus, conf.GetEngineId())
+	if _, err := eng.GetSeqno(ctx); err != nil {
+		release()
+		t.Fatal(err.Error())
+	}
+	return eng, release
+}
+
 // startHeadWatchEngine starts a World engine on objectStoreID with an
 // untransformed state and returns it with its release function.
 func startHeadWatchEngine(
@@ -313,11 +344,11 @@ func startHeadWatchEngine(
 		nil,
 		false,
 	)
-	eng, engRef, err := world.StartEngine(ctx, tb.Bus, engineConf, nil)
+	eng, releaseEng, err := world.StartEngine(ctx, tb.Bus, engineConf, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	return eng, engRef.Release
+	return eng, releaseEng.Release
 }
 
 // createObjectTx opens a write transaction on eng and creates the object key
@@ -488,8 +519,8 @@ func readObjectsFound(ctx context.Context, t *testing.T, eng world.Engine, keys 
 func TestWorldEngineController_DisableChangelog(t *testing.T) {
 	// Start the engine without a changelog.
 	ctx, le, tb, startEngine := newEngineTestbed(t)
-	eng, engRef := startEngine(false)
-	defer engRef.Release()
+	eng, releaseEng := startEngine(false)
+	defer releaseEng()
 
 	// Open and discard a write transaction on the engine.
 	engTx, err := eng.NewTransaction(ctx, true)

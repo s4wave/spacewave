@@ -22,10 +22,10 @@ func TestWorldEngineControllerGraphSettings(t *testing.T) {
 	// Start the engine with a predicate index.
 	settings := predicateSettings(t)
 	ctx, _, _, startEngine := newEngineTestbed(t)
-	eng, engRef := startEngine(true, func(c *world_block_engine.Config) {
+	eng, releaseEng := startEngine(true, func(c *world_block_engine.Config) {
 		c.GraphSettings = settings
 	})
-	defer engRef.Release()
+	defer releaseEng()
 
 	// The World root records the settings.
 	if got := rootGraphSettings(t, ctx, eng); !got.EqualVT(settings) {
@@ -40,7 +40,7 @@ func TestWorldEngineControllerGraphSettings(t *testing.T) {
 func TestWorldEngineControllerChangesGraphSettings(t *testing.T) {
 	// Start a default World.
 	ctx, _, _, startEngine := newEngineTestbed(t)
-	eng, engRef := startEngine(true)
+	eng, releaseEng := startEngine(true)
 	tx, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -68,18 +68,18 @@ func TestWorldEngineControllerChangesGraphSettings(t *testing.T) {
 	if len(want) != 66 {
 		t.Fatalf("wrote %d links", len(want))
 	}
-	engRef.Release()
+	releaseEng()
 
 	// Restart with the predicate index and wait for the World to reach it.
 	settings := predicateSettings(t)
-	eng, engRef = startEngine(true, func(c *world_block_engine.Config) {
+	eng, releaseEng = startEngine(true, func(c *world_block_engine.Config) {
 		c.GraphSettings = settings
 	})
 	waitRootGraphSettings(t, ctx, eng, settings)
 	if got := lookupPredicates(t, ctx, eng); !slices.Equal(got, want) {
 		t.Fatalf("lookups with the index: %v", got)
 	}
-	engRef.Release()
+	releaseEng()
 
 	// Restart with the default indexes listed and wait for the World to drop
 	// the index.
@@ -87,10 +87,10 @@ func TestWorldEngineControllerChangesGraphSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	eng, engRef = startEngine(true, func(c *world_block_engine.Config) {
+	eng, releaseEng = startEngine(true, func(c *world_block_engine.Config) {
 		c.GraphSettings = &world_block.GraphSettings{Indexes: defaults}
 	})
-	defer engRef.Release()
+	defer releaseEng()
 	waitRootGraphSettings(t, ctx, eng, nil)
 	if got := lookupPredicates(t, ctx, eng); !slices.Equal(got, want) {
 		t.Fatalf("lookups after the drop: %v", got)
