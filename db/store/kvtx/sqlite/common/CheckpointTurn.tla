@@ -58,6 +58,8 @@ Passive == /\ ckpt = "idle" /\ log > 0
            /\ copied' = log /\ dirty' = FALSE /\ ckpt' = "copied"
            /\ UNCHANGED <<turn, locked, log, reading>>
 \* It queues for the writer turn, which it takes at once when the turn is free.
+\* It takes its database connection before it queues, so it never holds the
+\* turn while it waits for one; the connection pool is not modeled.
 Ask == /\ ckpt = "copied"
        /\ IF turn = "none" THEN turn' = "ckpt" /\ ckpt' = "holding"
           ELSE ckpt' = "queued" /\ UNCHANGED turn

@@ -192,7 +192,7 @@ func TestPackStoreIndex(t *testing.T) {
 
 	// Re-index more than a batch of distinct keys another live pack holds.
 	// Preserving every row must still release the writer for foreground work.
-	duplicates := putPack(4, indexBatchKeys+1)
+	duplicates := putPack(4, indexScanBatchKeys+1)
 	waitFor(t, "duplicate pack indexed", func() bool {
 		return store.index.Indexed(packOf(t, store, duplicates[0]))
 	})
@@ -210,7 +210,7 @@ func TestPackStoreIndex(t *testing.T) {
 	}, func(ctx context.Context) error {
 		// A batch ends after inspected rows, even when none needed writing.
 		pauses++
-		if want := min(pauses*indexBatchKeys, len(duplicates)); scanned != want {
+		if want := min(pauses*indexScanBatchKeys, len(duplicates)); scanned != want {
 			return fmt.Errorf("yield after %d inspected keys, want %d", scanned, want)
 		}
 

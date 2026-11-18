@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
 	"golang.org/x/sync/errgroup"
 )
@@ -37,6 +38,9 @@ type IndexProgress struct {
 // so no read waits for it. A restart resumes from the packs whose p/ row is not
 // indexed.
 func (s *PackStore) runIndexer(ctx context.Context) error {
+	// Index at background priority, so a foreground writer takes the
+	// index's writer turn ahead of every queued indexer step.
+	ctx = kvtx.WithBackgroundWriteContext(ctx)
 	for {
 		var progress IndexProgress
 		if err := s.indexPending(ctx, 1, indexPackPause, indexBatchPause, &progress); err != nil {
