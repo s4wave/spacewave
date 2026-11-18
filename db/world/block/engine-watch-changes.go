@@ -14,10 +14,17 @@ import (
 // change subscriber can compare the head it last saw against a later one.
 const changeWatchHeads = 128
 
+// maxWatchComparisons bounds the per-span tree comparisons. Beyond it, an
+// unknown change lets subscribers reread rather than making them wait for
+// an arbitrarily long history walk.
+const maxWatchComparisons = 8
+
 // watchedHead is a published head recorded for change watchers.
 type watchedHead struct {
 	// seqno is the World seqno of the head.
 	seqno uint64
+	// publication is the local publication number, independent of the seqno.
+	publication uint64
 	// root is the root cursor of the head.
 	root *bucket_lookup.Cursor
 }
@@ -113,7 +120,7 @@ func (e *Engine) WatchIndexedChanges(
 	caughtUp := afterSeqno >= w.baseSeqno
 	var spans []changeSpan
 	if base := e.watchedHeadLocked(afterSeqno); !caughtUp && base != nil {
-		spans, caughtUp = w.spansSinceLocked(afterSeqno, base.GetRef())
+		spans, caughtUp = w.spansSinceLocked(afterSeqno, base.root.GetRef())
 	}
 	baseSeqno := w.baseSeqno
 	locked.Unlock()
@@ -271,19 +278,19 @@ func (e *Engine) leaveChangeWatch(w *engineChangeWatch, sub *changeSubscriber) {
 // watchedHeadLocked returns the one recorded root at seqno, or nil when the
 // seqno is below the floor, unrecorded, or shared by different roots. The
 // caller must hold bcast.
-func (e *Engine) watchedHeadLocked(seqno uint64) *bucket_lookup.Cursor {
+func (e *Engine) watchedHeadLocked(seqno uint64) *watchedHead {
 	if seqno < e.watchedFloor {
 		return nil
 	}
-	var found *bucket_lookup.Cursor
+	var found *watchedHead
 	for _, h := range e.watchedHeads {
 		if h.seqno != seqno {
 			continue
 		}
-		if found != nil && !found.GetRef().EqualsRef(h.root.GetRef()) {
+		if found != nil && !found.root.GetRef().EqualsRef(h.root.GetRef()) {
 			return nil
 		}
-		found = h.root
+		found = h
 	}
 	return found
 }
@@ -311,8 +318,33 @@ func (e *Engine) recordWatchedHeadLocked(root *bucket_lookup.Cursor, seqno uint6
 		e.watchedFloor = max(e.watchedFloor, evicted.seqno+1)
 		e.watchedHeads = slices.Delete(e.watchedHeads, 0, 1)
 	}
-	e.watchedHeads = append(e.watchedHeads, &watchedHead{seqno: seqno, root: root.Clone()})
+	// signalHeadLocked assigns this publication number before releasing bcast.
+	e.watchedHeads = append(e.watchedHeads, &watchedHead{seqno: seqno, publication: e.published + 1, root: root.Clone()})
 	return evicted
+}
+
+// watchIntermediatesLocked clones the retained heads strictly between two
+// local publications. A gap in the retained history cannot certify a span.
+// The caller holds bcast and releases the clones after comparing them.
+func (e *Engine) watchIntermediatesLocked(first, last uint64) ([]*bucket_lookup.Cursor, bool) {
+	// An adjacent pair needs no recorded intermediate head.
+	if last <= first || last-first > maxWatchComparisons {
+		return nil, false
+	}
+	if last-first == 1 {
+		return nil, true
+	}
+
+	// The ring records one entry per publication in order.
+	oldest := e.watchedHeads[0].publication
+	if first+1 < oldest || last-1-oldest >= uint64(len(e.watchedHeads)) {
+		return nil, false
+	}
+	middle := make([]*bucket_lookup.Cursor, 0, last-first-1)
+	for _, head := range e.watchedHeads[first+1-oldest : last-oldest] {
+		middle = append(middle, head.root.Clone())
+	}
+	return middle, true
 }
 
 // add merges the changes up to the head at seqno and wakes the subscriber.

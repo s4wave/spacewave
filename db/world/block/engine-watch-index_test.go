@@ -204,6 +204,53 @@ func TestWatchIndexWriteNotBlocked(t *testing.T) {
 	expectIndexedWait(t, ctx, joining, after)
 }
 
+// TestWatchChangesKeepsIntermediateDeletion proves that the change feed
+// reports a deletion even when its object was absent at both ends of a span.
+func TestWatchChangesKeepsIntermediateDeletion(t *testing.T) {
+	// Start a watcher that names the object which will be created and deleted.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	e := newRetirementTestEngine(t, ctx, nil)
+	ws := world.NewEngineWorldState(e, true)
+	const marker, key = "gap/marker", "gap/transient"
+	reads := world.NewReadSet()
+	readWatchTestObject(t, ctx, reads.Track(ws), key)
+	result := startIndexedWait(ctx, e, reads, headSeqno(t, ctx, e))
+	waitIndexedSubscriber(t, ctx, e)
+
+	// Stall change delivery after the marker head has been compared. The
+	// watch cannot compare another head while the index is held.
+	locked := e.bcast.Lock()
+	w, markerWake, err := e.watchObjectKeyLocked(marker)
+	locked.Unlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer e.unwatchObjectKey(w, marker, markerWake)
+	func() {
+		// Both writes must publish before the watch can compare again.
+		w.indexMtx.Lock()
+		defer w.indexMtx.Unlock()
+		compared := markerWake.state.Load().ch
+		createWatchTestObject(t, ctx, ws, marker)
+		select {
+		case <-compared:
+		case <-ctx.Done():
+			t.Fatal("the watch did not compare the marker head")
+		}
+		createWatchTestObject(t, ctx, ws, key)
+		if exists, err := ws.HasObject(ctx, key); err != nil || !exists {
+			t.Fatalf("intermediate object exists = %t, err %v", exists, err)
+		}
+		if deleted, err := ws.DeleteObject(ctx, key); err != nil || !deleted {
+			t.Fatalf("deleted = %t, err %v", deleted, err)
+		}
+	}()
+
+	// The already registered reader must wake for the transient key.
+	expectIndexedWait(t, ctx, result, headSeqno(t, ctx, e))
+}
+
 // indexedWait is the result of a ReadSet wait.
 type indexedWait struct {
 	seqno uint64

@@ -82,6 +82,28 @@ func TestWatchChanges(t *testing.T) {
 	checkQuads(t, changes.Quads, linked, unlinked)
 }
 
+// TestWatchChangesCatchUpKeepsIntermediateDeletion checks a subscriber that
+// joins after both commits rather than receiving a live span.
+func TestWatchChangesCatchUpKeepsIntermediateDeletion(t *testing.T) {
+	// Create and delete an object before the first subscriber joins.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	e := newRetirementTestEngine(t, ctx, nil)
+	ws := world.NewEngineWorldState(e, true)
+	after := headSeqno(t, ctx, e)
+	const key = "catch-up/transient"
+	createWatchTestObject(t, ctx, ws, key)
+	if deleted, err := ws.DeleteObject(ctx, key); err != nil || !deleted {
+		t.Fatalf("deleted = %t, err %v", deleted, err)
+	}
+
+	// The retained history contains the key even though neither endpoint does.
+	seqno, changes := readChangeWindow(t, ctx, e, after)
+	if seqno != headSeqno(t, ctx, e) || changes.Unknown || !slices.Equal(changes.Keys, []string{key}) {
+		t.Fatalf("catch-up at %d gave %+v, want %q", seqno, changes, key)
+	}
+}
+
 // TestWatchChangesImportedRoot checks that a head installed from outside the
 // Engine, as a SharedObject replay or a snapshot import installs it, yields a
 // precise ChangeSet when it shares the head's format, and an unknown one when

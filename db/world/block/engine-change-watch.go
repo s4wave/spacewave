@@ -35,9 +35,9 @@ func (e *Engine) GetUnknownChangeCount() uint64 {
 // revision waiters of the changed keys, hands the ChangeSet to the change
 // subscribers whose interests name it and accept it, and records it so a
 // subscriber starting behind merges the recorded ChangeSets instead of
-// comparing heads again. A changed object record never returns to an earlier
-// value, because its revision grows with every change, so comparing the last
-// compared head with the newest one covers every head published between them.
+// comparing heads again. A complete change set covers every publication in
+// its span: a reader may have seen an object at an intermediate head even
+// if it is absent at both ends. Missing history is an unknown change.
 // The Engine starts the watch for the first watcher and it exits when the last
 // watcher leaves or the Engine closes. Its fields are guarded by the Engine
 // bcast lock, except index, which indexMtx guards.
@@ -50,6 +50,8 @@ type engineChangeWatch struct {
 	base *bucket_lookup.Cursor
 	// baseSeqno is the seqno of base.
 	baseSeqno uint64
+	// basePublication identifies the base in the local publication order.
+	basePublication uint64
 	// baseRelease releases the retention hold on base.
 	baseRelease func()
 	// waiters maps each watched object key to its wake channel.
@@ -238,15 +240,16 @@ func (e *Engine) startChangeWatchLocked() (*engineChangeWatch, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	base, release := e.holdHeadLocked()
 	w := &engineChangeWatch{
-		ctx:         ctx,
-		cancel:      cancel,
-		base:        base,
-		baseSeqno:   e.headSeqnoLocked(),
-		baseRelease: release,
-		waiters:     make(map[string]*objectKeyWake),
-		subs:        make(map[*changeSubscriber]struct{}),
-		index:       world.NewChangeIndex[*changeSubscriber](),
-		idle:        make(chan struct{}),
+		ctx:             ctx,
+		cancel:          cancel,
+		base:            base,
+		baseSeqno:       e.headSeqnoLocked(),
+		basePublication: e.published,
+		baseRelease:     release,
+		waiters:         make(map[string]*objectKeyWake),
+		subs:            make(map[*changeSubscriber]struct{}),
+		index:           world.NewChangeIndex[*changeSubscriber](),
+		idle:            make(chan struct{}),
 	}
 	w.handed.Store(w.baseSeqno)
 	e.changeWatch = w
@@ -293,6 +296,12 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 		nextSeqno := e.headSeqnoLocked()
 		nextHead := e.published
 		listChanges := len(w.subs) != 0
+		skipped := nextHead != w.basePublication+1
+		var middle []*bucket_lookup.Cursor
+		var complete bool
+		if skipped && listChanges {
+			middle, complete = e.watchIntermediatesLocked(w.basePublication, nextHead)
+		}
 		locked.Unlock()
 
 		// Compare the World trees outside the publication lock. Every
@@ -301,7 +310,16 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 		// bounded link (block.ReadUrgent), and a block only an absent peer
 		// could serve fails it instead of waiting for the peer.
 		compareCtx, _ := block.WithoutPeerWait(block.WithReadClass(w.ctx, block.ReadUrgent))
-		keys, changes, err := e.compareChangeWatchHeads(compareCtx, w, w.base, next, listChanges)
+		var keys []string
+		var changes *world.ChangeSet
+		var err error
+		if !skipped {
+			keys, changes, err = e.compareChangeWatchHeads(compareCtx, w, w.base, next, listChanges)
+		} else if complete {
+			changes, err = e.compareWatchSpan(compareCtx, w.base, next, middle)
+		} else {
+			changes = world.NewUnknownChangeSet()
+		}
 		if err != nil && w.ctx.Err() == nil {
 			e.le.WithError(err).Warn("world change comparison failed; waking every watcher")
 		}
@@ -330,7 +348,7 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 			changes:  changes,
 		}, listChanges && err == nil)
 		prevRelease := w.baseRelease
-		w.base, w.baseSeqno, w.baseRelease = next, nextSeqno, nextRelease
+		w.base, w.baseSeqno, w.basePublication, w.baseRelease = next, nextSeqno, nextHead, nextRelease
 		locked.Unlock()
 
 		// Find the subscribers the changes name after the record. A
