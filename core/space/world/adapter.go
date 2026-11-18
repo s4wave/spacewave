@@ -844,6 +844,9 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	case err != nil:
 		return "", err
 	}
+	if diagReplayAdopt && adopt != nil {
+		a.diagCompareAdopted(ctx, op, prev, pos.state)
+	}
 	r.positions = append(r.positions, pos)
 	delete(a.missing, string(op.Hash))
 
@@ -907,6 +910,9 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 	if covered >= 0 && covered <= len(r.positions) {
 		state, _ := r.stateBefore(covered)
 		kept = state.EqualVT(base)
+		if diagReplayAdopt && !kept {
+			a.diagLogInstallMismatch(checkpoint.GetHeight(), covered, state, base)
+		}
 	}
 	paid := kept && slices.ContainsFunc(r.positions[:covered], func(pos spacePosition) bool { return len(pos.payloads) != 0 })
 	if kept {
