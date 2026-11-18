@@ -22,11 +22,15 @@ type ReadCounts struct {
 	BatchBytes uint64
 
 	// The other bytes the store downloaded from the bucket, by read mode:
-	// Window through the pack readers' range windows, Extent by the one range
-	// read of a block's extent, Index for pack index tails and entry objects,
-	// Whole for packs read whole, as a compaction does, and Other for the
-	// rest, such as the reclaim state.
-	WindowBytes, ExtentBytes, IndexBytes, WholeBytes, OtherBytes uint64
+	// Window through the pack readers' range windows of block payloads, Tail
+	// for the index tails the pack readers load, Extent by the one range read
+	// of a block's extent, Index for the tails and entry objects the indexer
+	// and adoption read, Whole for packs read whole, as a compaction does,
+	// and Other for the rest, such as the reclaim state.
+	WindowBytes, TailBytes, ExtentBytes, IndexBytes, WholeBytes, OtherBytes uint64
+	// WindowFetches and TailFetches count the range reads behind WindowBytes
+	// and TailBytes.
+	WindowFetches, TailFetches uint64
 }
 
 // readMode names what a bucket download was for, in ReadCounts' byte counts.
@@ -35,6 +39,7 @@ type readMode int
 const (
 	readBatch readMode = iota
 	readWindow
+	readTail
 	readExtent
 	readIndex
 	readWhole

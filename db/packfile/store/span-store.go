@@ -250,7 +250,7 @@ func (e *PackReader) planFetchLocked(off, readEnd int64, readAhead int) fetchKey
 	}
 
 	// An exact reader fetches the required extent alone.
-	if e.exactReads {
+	if e.exactReads || (e.exactSwitch != nil && e.exactSwitch.Load()) {
 		return fetchKey{off: off, size: int(mustEnd - off)}
 	}
 

@@ -342,7 +342,12 @@ func (e *PackReader) fetchIndexTail(ctx context.Context, off int64, length int) 
 	if err != nil {
 		return nil, err
 	}
-	data, err := e.transport.Fetch(ctx, off, length)
+	var data []byte
+	if tails, ok := e.transport.(IndexTransport); ok {
+		data, err = tails.FetchIndex(ctx, off, length)
+	} else {
+		data, err = e.transport.Fetch(ctx, off, length)
+	}
 	leave()
 	if err != nil {
 		return nil, err

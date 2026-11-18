@@ -575,6 +575,8 @@ type readCounters struct {
 	batchBlocks, batchReads atomic.Uint64
 	// bytes counts the bytes downloaded from the bucket by read mode.
 	bytes [readModes]atomic.Uint64
+	// fetches counts the pack readers' range reads by read mode.
+	fetches [readModes]atomic.Uint64
 }
 
 // downloaded counts n bytes downloaded from the bucket for mode.
@@ -595,6 +597,9 @@ func (s *PackStore) ReadCounts() ReadCounts {
 		BatchReads:    s.reads.batchReads.Load(),
 		BatchBytes:    s.reads.bytes[readBatch].Load(),
 		WindowBytes:   s.reads.bytes[readWindow].Load(),
+		TailBytes:     s.reads.bytes[readTail].Load(),
+		WindowFetches: s.reads.fetches[readWindow].Load(),
+		TailFetches:   s.reads.fetches[readTail].Load(),
 		ExtentBytes:   s.reads.bytes[readExtent].Load(),
 		IndexBytes:    s.reads.bytes[readIndex].Load(),
 		WholeBytes:    s.reads.bytes[readWhole].Load(),
@@ -639,6 +644,20 @@ func init() {
 // held extents.
 func SetIndexExtentReads(on bool) {
 	extentReadsOn.Store(on)
+}
+
+// packExactReads makes the pack readers of every PackStore without
+// ExactReads read exactly while it holds true; see SetPackExactReads.
+var packExactReads atomic.Bool
+
+// SetPackExactReads turns exact reads on or off for the pack readers of every
+// PackStore that does not set ExactReads, including the readers already open.
+// On, a block the pack readers read fetches only its own bytes, which suits a
+// bucket that bills each byte read over packs whose neighboring blocks are
+// seldom read together; off, the default, a read fetches a window of at least
+// 1 MiB around the block. A pack's index tail reads the same either way.
+func SetPackExactReads(on bool) {
+	packExactReads.Store(on)
 }
 
 // readExtent reads the block with one range read of its pack when its h row
@@ -1198,6 +1217,8 @@ func (s *PackStore) openPack(id string, size int64) (*packfile_store.PackReader,
 	eng := packfile_store.NewPackReader(id, size, transport)
 	if s.exactReads {
 		eng.SetExactReads()
+	} else {
+		eng.SetExactReadsSwitch(&packExactReads)
 	}
 	return eng, nil
 }
@@ -1207,25 +1228,36 @@ type rangeTransport struct {
 	client ObjectStore
 	bucket string
 	key    string
-	// reads counts the bytes fetched as window downloads, when set.
+	// reads counts the fetches and their bytes, when set.
 	reads *readCounters
 }
 
-// Fetch reads bytes [off, off+length) of the object.
+// Fetch reads bytes [off, off+length) of the object's block payloads.
 func (t *rangeTransport) Fetch(ctx context.Context, off int64, length int) ([]byte, error) {
+	return t.fetch(ctx, readWindow, off, length)
+}
+
+// FetchIndex reads bytes [off, off+length) of the object's index tail.
+func (t *rangeTransport) FetchIndex(ctx context.Context, off int64, length int) ([]byte, error) {
+	return t.fetch(ctx, readTail, off, length)
+}
+
+// fetch reads bytes [off, off+length) of the object, counted as mode.
+func (t *rangeTransport) fetch(ctx context.Context, mode readMode, off int64, length int) ([]byte, error) {
 	if length <= 0 {
 		return nil, nil
 	}
 	data, err := t.client.GetObjectRange(ctx, t.bucket, t.key, off, length)
 	if t.reads != nil {
-		t.reads.downloaded(readWindow, len(data))
+		t.reads.fetches[mode].Add(1)
+		t.reads.downloaded(mode, len(data))
 	}
 	return data, err
 }
 
 // _ is a type assertion
 var (
-	_ block.StoreOps           = (*PackStore)(nil)
-	_ block.BatchSizer         = (*PackStore)(nil)
-	_ packfile_store.Transport = (*rangeTransport)(nil)
+	_ block.StoreOps                = (*PackStore)(nil)
+	_ block.BatchSizer              = (*PackStore)(nil)
+	_ packfile_store.IndexTransport = (*rangeTransport)(nil)
 )
