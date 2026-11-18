@@ -3,11 +3,11 @@ package world_block
 import (
 	"context"
 
+	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/graph/iterator"
 	"github.com/aperturerobotics/cayley/graph/refs"
 	"github.com/aperturerobotics/cayley/quad"
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
@@ -121,6 +121,28 @@ func (t *WorldState) accessCayleyGraph(ctx context.Context, write bool, cb func(
 	return cb(ctx, graphHd)
 }
 
+// beginGraphRead opens the graph outside the read operation, whose store the
+// handle must not keep, then, for a read-only World, begins the storage read
+// operation that the returned context carries until release.
+func (t *WorldState) beginGraphRead(ctx context.Context) (context.Context, *cayley.Handle, func(), error) {
+	// Open the graph, then the read operation when the World is read-only.
+	if err := t.discardErr(); err != nil {
+		return ctx, nil, nil, err
+	}
+	graphHd, err := t.graph(ctx)
+	if err != nil {
+		return ctx, nil, nil, err
+	}
+	if t.write || t.store == nil {
+		return ctx, graphHd, func() {}, nil
+	}
+	store, release, err := t.store.BeginReadOperation(ctx)
+	if err != nil {
+		return ctx, nil, nil, err
+	}
+	return block.WithReadOperationStore(ctx, store), graphHd, release, nil
+}
+
 // lookupGraphQuadsOnWorld resolves one filter through the batch lookup path.
 func (t *WorldState) lookupGraphQuadsOnWorld(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	// Resolve the single filter through the shared batch implementation.
@@ -134,23 +156,12 @@ func (t *WorldState) lookupGraphQuadsOnWorld(ctx context.Context, filter world.G
 
 // lookupGraphQuadsBatchOnWorld shares a storage read scope for read-only Worlds.
 func (t *WorldState) lookupGraphQuadsBatchOnWorld(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
-	// Open the graph outside the read operation, whose store the handle must
-	// not keep, then hold the read operation for the entire lookup.
-	if err := t.discardErr(); err != nil {
-		return nil, err
-	}
-	worldGraph, err := t.graph(ctx)
+	// Hold one storage read operation for the entire read.
+	ctx, worldGraph, release, err := t.beginGraphRead(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if !t.write && t.store != nil {
-		store, release, err := t.store.BeginReadOperation(ctx)
-		if err != nil {
-			return nil, err
-		}
-		defer release()
-		ctx = block.WithReadOperationStore(ctx, store)
-	}
+	defer release()
 
 	// Use the store's own collector, or share a cached handle across filters.
 	var graphHd world.CayleyHandle = worldGraph
@@ -208,23 +219,12 @@ func lookupGraphQuadsBatch(
 
 // queryGraphPathOnWorld retains one storage read scope for the traversal.
 func (t *WorldState) queryGraphPathOnWorld(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
-	// Open the graph outside the read operation, then hold the read operation
-	// for the entire traversal.
-	if err := t.discardErr(); err != nil {
-		return nil, err
-	}
-	graphHd, err := t.graph(ctx)
+	// Hold one storage read operation for the entire read.
+	ctx, graphHd, release, err := t.beginGraphRead(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if !t.write && t.store != nil {
-		store, release, err := t.store.BeginReadOperation(ctx)
-		if err != nil {
-			return nil, err
-		}
-		defer release()
-		ctx = block.WithReadOperationStore(ctx, store)
-	}
+	defer release()
 	return t.queryGraphPath(ctx, graphHd, query)
 }
 
@@ -387,30 +387,47 @@ func (t *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQ
 
 // ListObjectsWithType reads one bounded subject page from the existing type index.
 func (t *WorldState) ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) ([]string, bool, error) {
-	// Open the graph, then retain one storage read scope while resolving and
-	// scanning the type index.
-	if err := t.discardErr(); err != nil {
-		return nil, false, err
-	}
-	graphHd, err := t.graph(ctx)
+	// Hold one storage read operation for the entire read.
+	ctx, graphHd, release, err := t.beginGraphRead(ctx)
 	if err != nil {
 		return nil, false, err
 	}
-	if !t.write && t.store != nil {
-		store, release, err := t.store.BeginReadOperation(ctx)
-		if err != nil {
-			return nil, false, err
-		}
-		defer release()
-		ctx = block.WithReadOperationStore(ctx, store)
-	}
+	defer release()
 
 	// Enumerate distinct subjects directly in the store's order.
-	pager := world_types.NewSubjectPager(graphHd.QuadStore)
-	if pager == nil {
-		return nil, false, errors.Errorf("graph store %T cannot page subjects", graphHd.QuadStore)
+	return world_types.ListObjectsWithTypeOnGraph(ctx, graphHd.QuadStore, typeID, startAfter, limit)
+}
+
+// ListGraphEdgeBuckets pages a single predicate's edges through the graph
+// store when it is a world.EdgePager, reading only each page, and otherwise
+// collects and orders every matching edge. This is the one place that picks
+// the path, so a store always serves a query, and the After cursors it
+// issues, through the same one.
+func (t *WorldState) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
+	// Collect through the batch lookup, which holds its own read operation,
+	// unless the store pages the query's predicate.
+	if query == nil {
+		return nil, nil
 	}
-	return world_types.ListObjectsWithTypeOnGraph(ctx, pager, typeID, startAfter, limit)
+	if err := t.discardErr(); err != nil {
+		return nil, err
+	}
+	graphHd, err := t.graph(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pager, ok := graphHd.QuadStore.(world.EdgePager)
+	if !ok || query.Predicate == "" {
+		return world.CollectGraphEdgeBuckets(ctx, t, query)
+	}
+
+	// Hold one storage read operation for every page.
+	ctx, _, release, err := t.beginGraphRead(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	return world.PageGraphEdgeBuckets(ctx, pager, query)
 }
 
 // SetGraphQuad sets a quad in the graph store.

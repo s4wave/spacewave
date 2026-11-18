@@ -309,13 +309,18 @@ export async function readKeyedSet<T>(
 }
 
 // EntitySetSpec names a set of World objects: those a link joins to an
-// origin, or those of one type.
+// origin, or those of one type. A link set with a limit is one page of the
+// link's endpoints: at most limit of them, starting just past after, newest
+// first when reverse.
 export type EntitySetSpec =
   | {
       readonly case: 'link'
       readonly origin: string
       readonly predicate: string
       readonly direction: 'out' | 'in'
+      readonly after?: string
+      readonly reverse?: boolean
+      readonly limit?: number
     }
   | { readonly case: 'type'; readonly typeId: string }
 
@@ -348,13 +353,31 @@ export function messageDecoder<T extends Message<T>>(
   }
 }
 
-// entitySetLinkLimit bounds a link listing, which reads in one response.
+// entitySetLinkLimit bounds a link listing without a page limit, which reads
+// in one response.
 const entitySetLinkLimit = 100_000
+
+// afterGoneMessage is the message of world.ErrGraphEdgeBucketAfterGone,
+// which reports that a link page's after endpoint no longer has any edge.
+const afterGoneMessage = 'graph edge bucket after endpoint is gone'
+
+// isAfterGone reports whether err is the World's after-gone error.
+function isAfterGone(err: unknown): boolean {
+  return err instanceof Error && err.message.includes(afterGoneMessage)
+}
 
 // entitySetKey names a spec in the share key.
 export function entitySetKey(spec: EntitySetSpec): string {
   return spec.case === 'link'
-    ? JSON.stringify(['link', spec.origin, spec.predicate, spec.direction])
+    ? JSON.stringify([
+        'link',
+        spec.origin,
+        spec.predicate,
+        spec.direction,
+        spec.after ?? '',
+        spec.reverse ?? false,
+        spec.limit || 0,
+      ])
     : JSON.stringify(['type', spec.typeId])
 }
 
@@ -394,24 +417,31 @@ async function listEntitySet(
   if (spec.case === 'type') {
     return tx.listObjectsWithType(spec.typeId, signal)
   }
-  const resp = await tx.listGraphEdgeBuckets(
-    [spec.origin],
-    entitySetLinkLimit,
-    {
+  // A limit of zero means no page limit, as an unset proto field does.
+  const limit = spec.limit || undefined
+  const read = (after: string | undefined) =>
+    tx.listGraphEdgeBuckets([spec.origin], limit ?? entitySetLinkLimit, {
       predicate: spec.predicate,
       direction:
         spec.direction === 'out'
           ? GraphEdgeBucketDirection.OUT
           : GraphEdgeBucketDirection.IN,
+      after,
+      reverse: spec.reverse,
       abortSignal: signal,
-    },
-  )
+    })
+  // Restart from the first page when the cursor's endpoint lost every edge,
+  // since the World no longer has its place in the order.
+  const resp = await read(spec.after).catch((err: unknown) => {
+    if (!spec.after || !isAfterGone(err)) throw err
+    return read(undefined)
+  })
   const bucket = resp.buckets?.[0]
   const truncated =
     spec.direction === 'out'
       ? bucket?.outgoingTruncated
       : bucket?.incomingTruncated
-  if (truncated) {
+  if (truncated && limit === undefined) {
     throw new Error(`More than ${entitySetLinkLimit} linked objects.`)
   }
   const iris =

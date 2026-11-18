@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -22,12 +24,14 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	world_vlogger "github.com/s4wave/spacewave/db/world/vlogger"
 	"github.com/s4wave/spacewave/identity"
 	identity_world "github.com/s4wave/spacewave/identity/world"
 	spacewave_crypto "github.com/s4wave/spacewave/net/crypto"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
+	"github.com/sirupsen/logrus"
 )
 
 // setupWorldTestbed creates a hydra world testbed and returns it.
@@ -263,8 +267,8 @@ func TestWorldStateListGraphEdgeBuckets(t *testing.T) {
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
-	// setupWorldResourceClient _,engine,cleanup.
-	_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
+	// setupWorldResourceClient resClient,engine,cleanup.
+	resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 	defer cleanup()
 
 	// newTransaction tx,err via engine.
@@ -342,6 +346,141 @@ func TestWorldStateListGraphEdgeBuckets(t *testing.T) {
 	if got := bucket.Incoming[0].GetSubject(); got != "<bucket/source-a>" {
 		t.Fatalf("expected sorted incoming first subject <bucket/source-a>, got %q", got)
 	}
+
+	// Page one predicate's edges through the node graph, on a World state
+	// that reaches the Engine through the SDK, then through a wrapper of it.
+	sdkRef := resClient.CreateResourceReference(engine.GetResourceRef().GetResourceID())
+	sdkEngine, err := sdk_world_engine.NewSDKEngine(resClient, sdkRef)
+	if err != nil {
+		sdkRef.Release()
+		t.Fatal(err.Error())
+	}
+	defer sdkEngine.Release()
+
+	// Link six endpoints in an order unlike their text order. page/e1 also
+	// has a labeled edge and page/e4 only labeled ones, so its unlabeled key
+	// is absent. Node IDs, and so the pager's order, follow creation.
+	writeTx, err := sdkEngine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer writeTx.Discard()
+	const origin, pred = "page/origin", "<page/link>"
+	edges := [][2]string{
+		{"page/e3", ""},
+		{"page/e1", ""},
+		{"page/e1", "<page/la>"},
+		{"page/e5", ""},
+		{"page/e0", ""},
+		{"page/e4", "<page/la>"},
+		{"page/e4", "<page/lb>"},
+		{"page/e2", ""},
+	}
+	for _, key := range []string{origin, "page/e3", "page/e1", "page/e5", "page/e0", "page/e4", "page/e2"} {
+		obj, err := writeTx.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	for _, edge := range edges {
+		if err := writeTx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(origin, pred, edge[0], edge[1])); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	want := make([]string, len(edges))
+	for i, edge := range edges {
+		want[i] = edge[0] + " " + edge[1]
+	}
+	wantReverse := slices.Clone(want)
+	slices.Reverse(wantReverse)
+
+	// Page each limit in both directions, uncommitted inside the write
+	// transaction, then committed on a read transaction and its wrapper.
+	checkPages := func(name string, ws world.WorldStateGraph) {
+		for limit := uint32(1); limit <= 3; limit++ {
+			for _, reverse := range []bool{false, true} {
+				got, err := pageLinkEdges(ctx, ws, origin, pred, limit, reverse)
+				if err != nil {
+					t.Fatalf("%s limit %d reverse %v: %v", name, limit, reverse, err)
+				}
+				expect := want
+				if reverse {
+					expect = wantReverse
+				}
+				if !slices.Equal(got, expect) {
+					t.Fatalf("%s limit %d reverse %v paged %q, want %q", name, limit, reverse, got, expect)
+				}
+			}
+		}
+	}
+	checkPages("uncommitted", writeTx)
+	if err := writeTx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	pageTx, err := sdkEngine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	checkPages("committed", pageTx)
+	checkPages("wrapped", world_vlogger.NewWorldState(logrus.NewEntry(logrus.New()), pageTx))
+	pageTx.Discard()
+
+	// A cursor whose endpoint lost every edge reports that it is gone.
+	deleteTx, err := sdkEngine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer deleteTx.Discard()
+	if err := deleteTx.DeleteGraphQuad(ctx, world.NewGraphQuadWithKeys(origin, pred, "page/e5", "")); err != nil {
+		t.Fatal(err.Error())
+	}
+	_, err = deleteTx.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
+		OriginObjectKeys: []string{origin},
+		Predicate:        pred,
+		LimitPerOrigin:   2,
+		Direction:        world.GraphEdgeBucketDirectionOut,
+		After:            "page/e5",
+	})
+	if err == nil || !strings.Contains(err.Error(), world.ErrGraphEdgeBucketAfterGone.Error()) {
+		t.Fatalf("expected after gone error, got %v", err)
+	}
+}
+
+// pageLinkEdges pages origin's outgoing pred edges at limit per page until
+// the last page, resuming each after the previous page's last endpoint, and
+// returns each edge as its endpoint key and label.
+func pageLinkEdges(
+	ctx context.Context,
+	ws world.WorldStateGraph,
+	origin, pred string,
+	limit uint32,
+	reverse bool,
+) ([]string, error) {
+	var edges []string
+	var after string
+	for range 16 {
+		buckets, err := ws.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
+			OriginObjectKeys: []string{origin},
+			Predicate:        pred,
+			LimitPerOrigin:   limit,
+			Direction:        world.GraphEdgeBucketDirectionOut,
+			After:            after,
+			Reverse:          reverse,
+		})
+		if err != nil {
+			return nil, err
+		}
+		bucket := buckets[0]
+		for _, q := range bucket.Outgoing {
+			after = strings.Trim(q.GetObj(), "<>")
+			edges = append(edges, after+" "+q.GetLabel())
+		}
+		if !bucket.OutgoingTruncated {
+			return edges, nil
+		}
+	}
+	return nil, errors.New("paging did not end")
 }
 
 func TestGraphPathQueryResourceReturnsQuadsWithoutObjectKeys(t *testing.T) {

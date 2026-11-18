@@ -15,33 +15,12 @@ import (
 // ObjectTypePageLimit bounds typed pages, including the default traversal page.
 const ObjectTypePageLimit uint32 = 1000
 
-// SubjectPager is a quad store that lists the distinct subjects of an object
-// and predicate in a stable order, resuming after a subject.
-type SubjectPager interface {
-	graph.QuadStore
-	// IterateSubjectsAfter calls cb with each distinct subject of the quads
-	// with obj and pred, in the store's order, after the subject after, or
-	// from the first when after is nil. An error from cb stops the walk and
-	// is returned.
-	IterateSubjectsAfter(ctx context.Context, obj, pred, after graph.Ref, cb func(subject graph.Ref) error) error
-}
-
-// NewSubjectPager returns the pager of qs, or nil when qs cannot page.
-func NewSubjectPager(qs graph.QuadStore) SubjectPager {
-	switch s := qs.(type) {
-	case SubjectPager:
-		return s
-	case *cayley_kv.QuadStore:
-		return kvSubjectPager{s}
-	}
-	return nil
-}
-
-// ListObjectsWithTypeOnGraph returns distinct subjects in graph-index order.
+// ListObjectsWithTypeOnGraph returns distinct subjects in the store's order:
+// creation order on a world.EdgePager, index order on a Cayley kv store.
 // startAfter is the previous page's last key; empty begins the listing.
 // limit must be non-zero and is capped at ObjectTypePageLimit. The World must
 // remain unchanged to retain exactly-once traversal across pages.
-func ListObjectsWithTypeOnGraph(ctx context.Context, h SubjectPager, typeID, startAfter string, limit uint32) ([]string, bool, error) {
+func ListObjectsWithTypeOnGraph(ctx context.Context, h graph.QuadStore, typeID, startAfter string, limit uint32) ([]string, bool, error) {
 	// Validate the page before reading the graph.
 	if typeID == "" {
 		return nil, false, ErrTypeIDEmpty
@@ -76,41 +55,54 @@ func ListObjectsWithTypeOnGraph(ctx context.Context, h SubjectPager, typeID, sta
 	// Read at most one page plus its lookahead.
 	keys := make([]string, 0, limit)
 	var more bool
-	err = h.IterateSubjectsAfter(ctx, typeRef, predRef, after, func(ref graph.Ref) error {
+	err = iterateSubjectsAfter(ctx, h, typeRef, predRef, after, func(ref graph.Ref) (bool, error) {
 		// Detect a following page without decoding its first subject.
 		if len(keys) == int(limit) {
 			more = true
-			return io.EOF
+			return false, nil
 		}
 
 		// Decode the subject from its node reference.
 		value, err := h.NameOf(ctx, ref)
 		if err != nil {
-			return err
+			return false, err
 		}
 		key, ok := value.(quad.IRI)
 		if !ok {
-			return errors.New("type subject is not an object key")
+			return false, errors.New("type subject is not an object key")
 		}
 		keys = append(keys, string(key))
-		return nil
+		return true, nil
 	})
-	if err == io.EOF {
-		err = nil
-	}
 	return keys, more, err
 }
 
-// kvSubjectPager pages the subjects of a Cayley kv store through its reverse
-// index, skipping postings whose quads have all been deleted.
-type kvSubjectPager struct {
-	*cayley_kv.QuadStore
+// iterateSubjectsAfter calls cb with each distinct subject of the quads with
+// obj and pred, in the store's order, after the subject after, or from the
+// first when after is nil, until cb returns false or an error.
+func iterateSubjectsAfter(ctx context.Context, h graph.QuadStore, obj, pred, after graph.Ref, cb func(subject graph.Ref) (bool, error)) error {
+	switch s := h.(type) {
+	case world.EdgePager:
+		// Report each subject once, though labels repeat its edge.
+		var last graph.Ref
+		return s.IterateEdges(ctx, obj, pred, quad.Object, after, false, func(subject, _ graph.Ref) (bool, error) {
+			if last != nil && subject.Key() == last.Key() {
+				return true, nil
+			}
+			last = subject
+			return cb(subject)
+		})
+	case *cayley_kv.QuadStore:
+		return iterateKvSubjectsAfter(ctx, s, obj, pred, after, cb)
+	}
+	return errors.Errorf("graph store %T cannot page subjects", h)
 }
 
-// IterateSubjectsAfter walks the subjects of the reverse index's posting.
-func (s kvSubjectPager) IterateSubjectsAfter(ctx context.Context, obj, pred, after graph.Ref, cb func(subject graph.Ref) error) error {
+// iterateKvSubjectsAfter walks the subjects of a Cayley kv store's reverse
+// index posting, skipping postings whose quads have all been deleted.
+func iterateKvSubjectsAfter(ctx context.Context, s *cayley_kv.QuadStore, obj, pred, after graph.Ref, cb func(subject graph.Ref) (bool, error)) error {
 	// Find the reverse index in the open layout.
-	ind, err := findCompleteIndex(s.QuadStore, typePageDirs)
+	ind, err := findCompleteIndex(s, typePageDirs)
 	if err != nil {
 		return err
 	}
@@ -121,13 +113,22 @@ func (s kvSubjectPager) IterateSubjectsAfter(ctx context.Context, obj, pred, aft
 		start = after.(cayley_kv.Int64Value)
 	}
 	values := []uint64{uint64(obj.(cayley_kv.Int64Value)), uint64(pred.(cayley_kv.Int64Value))}
-	return s.IterateIndexPrefixNextRefsAfter(ctx, ind, values, start, func(ref cayley_kv.Int64Value, hasLive func() (bool, error)) error {
+	err = s.IterateIndexPrefixNextRefsAfter(ctx, ind, values, start, func(ref cayley_kv.Int64Value, hasLive func() (bool, error)) error {
+		// Report live postings until cb stops the walk.
 		live, err := hasLive()
 		if err != nil || !live {
 			return err
 		}
-		return cb(ref)
+		more, err := cb(ref)
+		if err == nil && !more {
+			err = io.EOF
+		}
+		return err
 	})
+	if err == io.EOF {
+		err = nil
+	}
+	return err
 }
 
 // typePageDirs are the directions of the reverse index a typed page walks:

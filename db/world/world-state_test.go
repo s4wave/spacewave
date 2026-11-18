@@ -764,6 +764,10 @@ func (txs *staleRetryTx) LookupGraphQuadsBatch(ctx context.Context, filters []wo
 	panic("unexpected LookupGraphQuadsBatch call")
 }
 
+func (txs *staleRetryTx) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
+	panic("unexpected ListGraphEdgeBuckets call")
+}
+
 func (txs *staleRetryTx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	panic("unexpected QueryGraphPath call")
 }

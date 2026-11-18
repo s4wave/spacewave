@@ -186,6 +186,13 @@ func (e *EngineTx) LookupGraphQuadsBatch(ctx context.Context, filters []world.Gr
 	})
 }
 
+// ListGraphEdgeBuckets lists edge buckets in one transaction operation.
+func (e *EngineTx) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
+	return performOpValue(ctx, e, func(tx *Tx) ([]*world.GraphEdgeBucket, error) {
+		return tx.ListGraphEdgeBuckets(ctx, query)
+	})
+}
+
 // QueryGraphPath executes a bounded graph traversal.
 func (e *EngineTx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	return performOpValue(ctx, e, func(tx *Tx) (*world.GraphPathQueryResult, error) {

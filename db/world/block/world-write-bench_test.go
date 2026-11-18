@@ -384,8 +384,11 @@ func seedWorldObjects(ctx context.Context, ws world.WorldState, start, end int) 
 
 // worldSeedObjectKey returns the key of seed object i.
 func worldSeedObjectKey(i int) string {
-	return "bench/seeded/object/" + strconv.Itoa(i)
+	return worldSeedObjectPrefix + strconv.Itoa(i)
 }
+
+// worldSeedObjectPrefix starts each seed object key.
+const worldSeedObjectPrefix = "bench/seeded/object/"
 
 // worldSeedTypeKey returns the type hub of seed object i.
 func worldSeedTypeKey(i int) string {

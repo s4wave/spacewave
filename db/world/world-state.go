@@ -204,6 +204,13 @@ type WorldStateGraph interface {
 	// filter index and applies the limit independently.
 	LookupGraphQuadsBatch(ctx context.Context, filters []GraphQuad, limitPerFilter uint32) ([][]GraphQuad, error)
 
+	// ListGraphEdgeBuckets lists grouped inbound and outbound graph edges for
+	// object keys, one page per origin direction. A store that cannot page
+	// natively uses CollectGraphEdgeBuckets. Each store keeps its own endpoint
+	// order, creation order in a node graph and quad text order otherwise, so
+	// an After cursor is valid only on the store that issued it.
+	ListGraphEdgeBuckets(ctx context.Context, query *GraphEdgeBucketQuery) ([]*GraphEdgeBucket, error)
+
 	// QueryGraphPath executes a bounded graph traversal without exposing a Cayley handle.
 	QueryGraphPath(ctx context.Context, query *GraphPathQuery) (*GraphPathQueryResult, error)
 

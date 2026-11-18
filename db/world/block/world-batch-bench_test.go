@@ -121,7 +121,7 @@ func BenchmarkWorldStateListGraphEdgeBucketsRelationshipFanout(b *testing.B) {
 	var readCount, readBytes uint64
 	for range b.N {
 		opCtx, counter := block.WithReadCounter(ctx)
-		buckets, err := world.ListGraphEdgeBuckets(opCtx, ws, query)
+		buckets, err := ws.ListGraphEdgeBuckets(opCtx, query)
 		if err != nil {
 			b.Fatal(err.Error())
 		}

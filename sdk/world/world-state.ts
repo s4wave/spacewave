@@ -54,6 +54,11 @@ export interface RenameObjectOptions {
 export interface ListGraphEdgeBucketsOptions {
   predicate?: string
   direction?: GraphEdgeBucketDirection
+  // after resumes just past all edges of this endpoint object key, the
+  // previous page's last endpoint. It requires a predicate.
+  after?: string
+  // reverse lists edges last first: newest first in creation order.
+  reverse?: boolean
   abortSignal?: AbortSignal
 }
 
@@ -595,6 +600,8 @@ export class WorldStateResource extends Resource implements IWorldState {
         predicate: options.predicate,
         limitPerOrigin,
         direction: options.direction,
+        after: options.after,
+        reverse: options.reverse,
       },
       options.abortSignal,
     )

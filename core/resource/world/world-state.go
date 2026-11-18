@@ -662,11 +662,13 @@ func (r *WorldStateResource) ListGraphEdgeBuckets(ctx context.Context, req *s4wa
 	}
 
 	// Read the indexed edge buckets for the requested origins.
-	buckets, err := world.ListGraphEdgeBuckets(ctx, r.ws, &world.GraphEdgeBucketQuery{
+	buckets, err := r.ws.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
 		OriginObjectKeys: req.GetOriginObjectKeys(),
 		Predicate:        req.GetPredicate(),
 		LimitPerOrigin:   req.GetLimitPerOrigin(),
 		Direction:        direction,
+		After:            req.GetAfter(),
+		Reverse:          req.GetReverse(),
 	})
 	if err != nil {
 		retErr = err

@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/cayley/graph/iterator"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/shape"
+	"github.com/pkg/errors"
 )
 
 // nameCache resolves each node's value once.
@@ -112,7 +113,7 @@ func (qs *QuadStore) CollectFilteredQuadsBatch(ctx context.Context, filters []qu
 		if err != nil {
 			return nil, err
 		}
-		err = qs.walk(ctx, r, nil, func(q quadRef) (bool, error) {
+		err = qs.walk(ctx, r, nil, false, func(q quadRef) (bool, error) {
 			cq, err := names.quad(ctx, q)
 			if err != nil {
 				return false, err
@@ -127,12 +128,25 @@ func (qs *QuadStore) CollectFilteredQuadsBatch(ctx context.Context, filters []qu
 	return results, nil
 }
 
-// IterateSubjectsAfter calls cb with each distinct subject of the quads with
-// obj and pred, in ID order, after the subject after, or from the first when
-// after is nil.
-func (qs *QuadStore) IterateSubjectsAfter(ctx context.Context, obj, pred, after graph.Ref, cb func(subject graph.Ref) error) error {
+// IterateEdges calls cb with the endpoint and label of each quad that joins
+// origin by pred: its object when origin is its subject (dir is
+// quad.Subject), its subject when origin is its object (quad.Object). The
+// label is nil when the quad has none. Edges come in endpoint ID order, which
+// is the order the endpoint nodes were created, oldest first, or newest first
+// when reverse, and an endpoint's labeled edges follow its unlabeled one in
+// label ID order, or precede it in reverse. The walk starts just past all
+// edges of the endpoint after, or at the first edge when after is nil, and
+// stops when cb returns false or an error, which it returns.
+func (qs *QuadStore) IterateEdges(
+	ctx context.Context,
+	origin, pred graph.Ref,
+	dir quad.Direction,
+	after graph.Ref,
+	reverse bool,
+	cb func(endpoint, label graph.Ref) (bool, error),
+) error {
 	// Refs from another store name nothing here.
-	o, ok := asNodeID(obj)
+	o, ok := asNodeID(origin)
 	if !ok {
 		return nil
 	}
@@ -141,22 +155,39 @@ func (qs *QuadStore) IterateSubjectsAfter(ctx context.Context, obj, pred, after 
 		return nil
 	}
 
-	// Walk the object's in range for pred, from just past after.
-	r := edgeRange{node: o, tag: tagIn, narrow: []uint64{p}, filter: quadRef{p: p, o: o}}
-	var start []byte
-	var last uint64
-	if a, ok := asNodeID(after); ok {
-		start, last = rangeKey(o, tagIn, p, a+1), a
+	// Walk the origin's out or in range for pred.
+	r := edgeRange{node: o, narrow: []uint64{p}}
+	switch dir {
+	case quad.Subject:
+		r.tag, r.filter = tagOut, quadRef{s: o, p: p}
+	case quad.Object:
+		r.tag, r.filter = tagIn, quadRef{p: p, o: o}
+	default:
+		return errors.Errorf("edge origin direction %v is neither subject nor object", dir)
 	}
-	return qs.walk(ctx, r, start, func(q quadRef) (bool, error) {
-		if q.s == last {
+
+	// Seek to after's unlabeled key and skip after's edges: forward they
+	// start there, and in reverse only that one is reached, since its
+	// labeled keys sort after it.
+	var start []byte
+	var skip uint64
+	if a, ok := asNodeID(after); ok {
+		start, skip = rangeKey(o, r.tag, p, a), a
+	}
+	return qs.walk(ctx, r, start, reverse, func(q quadRef) (bool, error) {
+		// Report the endpoint at the far end from origin with its label.
+		endpoint := q.o
+		if dir == quad.Object {
+			endpoint = q.s
+		}
+		if endpoint == skip {
 			return true, nil
 		}
-		last = q.s
-		if err := cb(nodeID(q.s)); err != nil {
-			return false, err
+		var label graph.Ref
+		if q.l != 0 {
+			label = nodeID(q.l)
 		}
-		return true, nil
+		return cb(nodeID(endpoint), label)
 	})
 }
 

@@ -2,6 +2,7 @@ package world_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/world"
@@ -22,7 +23,7 @@ func TestListGraphEdgeBucketsOrdersLimitsAndTruncates(t *testing.T) {
 	}
 
 	// List bounded edge buckets for both graph directions.
-	buckets, err := world.ListGraphEdgeBuckets(ctx, graph, &world.GraphEdgeBucketQuery{
+	buckets, err := graph.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
 		OriginObjectKeys: []string{"origin-a", "origin-b"},
 		LimitPerOrigin:   2,
 		Direction:        world.GraphEdgeBucketDirectionBoth,
@@ -84,7 +85,7 @@ func TestListGraphEdgeBucketsLimitsAfterOrdering(t *testing.T) {
 	}
 
 	// Request a bounded outgoing edge bucket for the origin.
-	buckets, err := world.ListGraphEdgeBuckets(ctx, graph, &world.GraphEdgeBucketQuery{
+	buckets, err := graph.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
 		OriginObjectKeys: []string{"origin-a"},
 		LimitPerOrigin:   2,
 		Direction:        world.GraphEdgeBucketDirectionOut,
@@ -109,6 +110,68 @@ func TestListGraphEdgeBucketsLimitsAfterOrdering(t *testing.T) {
 	}
 	if got := bucket.Outgoing[1].GetPredicate(); got != "<rel-b>" {
 		t.Fatalf("second ordered predicate: got %q want <rel-b>", got)
+	}
+}
+
+func TestListGraphEdgeBucketsResumesAfter(t *testing.T) {
+	// Link the origin to four targets by one predicate, one by two labels.
+	ctx := context.Background()
+	graph := &edgeBucketTestGraph{
+		quads: []world.GraphQuad{
+			world.NewGraphQuadWithKeys("origin", "<rel>", "target-d", ""),
+			world.NewGraphQuadWithKeys("origin", "<rel>", "target-b", "<l2>"),
+			world.NewGraphQuadWithKeys("origin", "<rel>", "target-a", ""),
+			world.NewGraphQuadWithKeys("origin", "<rel>", "target-b", "<l1>"),
+			world.NewGraphQuadWithKeys("origin", "<rel>", "target-c", ""),
+		},
+	}
+
+	// page lists one page and returns its endpoints and labels.
+	page := func(after string, reverse bool) ([]string, bool) {
+		buckets, err := graph.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
+			OriginObjectKeys: []string{"origin"},
+			Predicate:        "<rel>",
+			LimitPerOrigin:   1,
+			Direction:        world.GraphEdgeBucketDirectionOut,
+			After:            after,
+			Reverse:          reverse,
+		})
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		var got []string
+		for _, q := range buckets[0].Outgoing {
+			got = append(got, q.GetObj()+q.GetLabel())
+		}
+		return got, buckets[0].OutgoingTruncated
+	}
+
+	// A page past an endpoint holds every edge of its one endpoint, either way.
+	if got, more := page("target-a", false); !slices.Equal(got, []string{"<target-b><l1>", "<target-b><l2>"}) || !more {
+		t.Fatalf("page after target-a: got %v more=%v", got, more)
+	}
+	if got, more := page("target-c", true); !slices.Equal(got, []string{"<target-b><l2>", "<target-b><l1>"}) || !more {
+		t.Fatalf("reverse page after target-c: got %v more=%v", got, more)
+	}
+	if got, more := page("target-c", false); !slices.Equal(got, []string{"<target-d>"}) || more {
+		t.Fatalf("last page: got %v more=%v", got, more)
+	}
+
+	// Resuming needs a predicate to page.
+	_, err := graph.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
+		OriginObjectKeys: []string{"origin"}, LimitPerOrigin: 1, After: "target-a",
+	})
+	if err != world.ErrGraphEdgeBucketAfter {
+		t.Fatalf("after without predicate: got %v", err)
+	}
+
+	// Resuming after an endpoint no quad names reports it gone, as the
+	// node graph pager does.
+	_, err = graph.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
+		OriginObjectKeys: []string{"origin"}, Predicate: "<rel>", LimitPerOrigin: 1, After: "target-gone",
+	})
+	if err != world.ErrGraphEdgeBucketAfterGone {
+		t.Fatalf("after a gone endpoint: got %v", err)
 	}
 }
 
@@ -139,6 +202,10 @@ func (g *edgeBucketTestGraph) LookupGraphQuadsBatch(ctx context.Context, filters
 		results[i] = g.filterGraphQuads(filter, limitPerFilter)
 	}
 	return results, nil
+}
+
+func (g *edgeBucketTestGraph) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
+	return world.CollectGraphEdgeBuckets(ctx, g, query)
 }
 
 func (g *edgeBucketTestGraph) filterGraphQuads(filter world.GraphQuad, limit uint32) []world.GraphQuad {
