@@ -1,6 +1,7 @@
 package space_world
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"maps"
@@ -21,6 +22,7 @@ import (
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -115,6 +117,36 @@ func (s *flakyRootStore) SetRoots(ctx context.Context, entries []*block.PutBatch
 	return nil
 }
 
+// advancedSpace is a SharedObject whose state has moved past the checkpoint
+// a body installs, as when the provider publishes a later state mid-install.
+type advancedSpace struct {
+	sobject.SharedObject
+	// peerID is the device's peer ID.
+	peerID peer.ID
+	// latest is the SharedObject's current state.
+	latest sobject.SharedObjectStateSnapshot
+}
+
+// GetPeerID returns the device's peer ID.
+func (s *advancedSpace) GetPeerID() peer.ID { return s.peerID }
+
+// GetSharedObjectState returns the current state.
+func (s *advancedSpace) GetSharedObjectState(context.Context) (sobject.SharedObjectStateSnapshot, error) {
+	return s.latest, nil
+}
+
+// setSnapshot is a state whose operations above its checkpoint are set.
+type setSnapshot struct {
+	sobject.SharedObjectStateSnapshot
+	// set holds the operations above the checkpoint.
+	set *sobject.SOOperationSet
+}
+
+// GetOperationSet returns set.
+func (s *setSnapshot) GetOperationSet(context.Context) (*sobject.SOOperationSet, error) {
+	return s.set, nil
+}
+
 // trimNow runs a background trim of a and waits for it.
 func trimNow(t *testing.T, a *Adapter) {
 	t.Helper()
@@ -129,8 +161,9 @@ func trimNow(t *testing.T, a *Adapter) {
 // its placed candidate is decided only then, as is one whose QueueOperation
 // returns after the failed install with a position the installed checkpoint
 // covers, that a later install of the same retained set reads and moves
-// nothing, and that a kept install forgets a missing operation the
-// checkpoint covers but keeps one replay still applies.
+// nothing, that a kept install forgets a missing operation the checkpoint
+// covers but keeps one replay still applies, and that it judges which from
+// the operations above the checkpoint it installs, not a later state's.
 func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	// Build an adapter whose replay head retains a root, over a store that
 	// fails the first root move.
@@ -245,6 +278,54 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	a.dropPositions(0, true, held)
 	if len(a.missing) != 0 {
 		t.Fatalf("a kept install over no operations left missing %v, gating installHead", a.missing)
+	}
+
+	// A reorder noted M missing. While the body installs checkpoint C1,
+	// which does not cover M, the provider moves to C2, which does. The
+	// install judges M against C1's operations, so M stays missing and C1's
+	// World, which lacks M, is not installed as the head.
+	p, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	priv, err := p.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := sobject.BuildSOOperation("space", priv, []byte("m"), &sobject.SOOperationLink{Nonce: 1, ConfigHash: bytes.Repeat([]byte{3}, 32)}, sobject.NewSOOperationLocalID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	c1Data, err := (&InnerState{}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	c1 := &sobject.SOCheckpointInner{Height: 1, StateData: c1Data}
+	c1Set := sobject.NewSOOperationSet("space", c1)
+	if _, err := c1Set.Add(m); err != nil {
+		t.Fatal(err)
+	}
+	c2 := &sobject.SOCheckpointInner{Height: 2, Authors: []*sobject.SOOperationPosition{{PeerId: p.GetPeerID().String(), Nonce: 1, OpHash: m.Hash()}}}
+	b := &Adapter{
+		opened:           openedNow(),
+		replayState:      newReplayOpening(),
+		le:               logrus.NewEntry(logrus.New()),
+		pages:            block.NewPendingStore(block_mock.NewMockStore(0), 1<<20),
+		held:             make(map[string]*block.BlockRef),
+		checkpointWorlds: rootSet{name: RootCheckpoint},
+		cursorWorlds:     rootSet{name: RootReplayCursor},
+		pendingWorlds:    rootSet{name: RootPending},
+		missing:          map[string]struct{}{string(m.Hash()): {}},
+		so:               &advancedSpace{peerID: p.GetPeerID(), latest: &setSnapshot{set: sobject.NewSOOperationSet("space", c2)}},
+	}
+	b.replay = &spaceReplay{a: b, base: &InnerState{}}
+	kept, err := b.Install(ctx, &sobject.OrderEvent{Checkpoint: c1, Set: c1Set}, 0, nil)
+	b.waitBackground()
+	if err != nil || !kept {
+		t.Fatalf("the kept install of C1 returned kept %v, error %v", kept, err)
+	}
+	if _, ok := b.missing[string(m.Hash())]; !ok || b.headHeight != 0 {
+		t.Fatalf("installing C1 while the provider held C2 left missing %v and installed the head at height %d", b.missing, b.headHeight)
 	}
 }
 

@@ -886,15 +886,17 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	return pos.reason, nil
 }
 
-// Install moves the replay base to checkpoint's World and trims the
-// histories, keeping the positions after the covered ones when the World
-// after them is the checkpoint's. It decides the admissions checkpoint covers
-// from the operations held, as installCoverLocked does.
-func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointInner, covered int, held *sobject.SOOperationSet) (bool, error) {
+// Install moves the replay base to the World of ev's checkpoint and trims
+// the histories, keeping the positions after the covered ones when the World
+// after them is the checkpoint's. It decides the admissions the checkpoint
+// covers from the operations held, as installCoverLocked does, and updates
+// the missing set from ev's operations above it, as noteMissing does.
+func (a *Adapter) Install(ctx context.Context, ev *sobject.OrderEvent, covered int, held *sobject.SOOperationSet) (bool, error) {
 	// Wait for the claim.
 	if err := a.waitOpened(ctx); err != nil {
 		return false, err
 	}
+	checkpoint := ev.Checkpoint
 
 	// Decode the checkpoint's World.
 	r := a.replay
@@ -917,15 +919,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		kept = state.EqualVT(base)
 	}
 	paid := kept && slices.ContainsFunc(r.positions[:covered], func(pos spacePosition) bool { return len(pos.payloads) != 0 })
-	var above func(h []byte) *sobject.SOOperationInner
-	if !kept || len(a.missing) != 0 {
-		set, err := a.opsAbove(ctx)
-		if err != nil {
-			return false, err
-		}
-		above = set.Get
-	}
-	inCheckpoint := a.dropPositions(covered, kept, above)
+	inCheckpoint := a.dropPositions(covered, kept, ev.Set.Get)
 	r.base, r.baseSeqno, r.height = base, seqno, checkpoint.GetHeight()
 	if len(r.restored) != 0 && !kept && !r.restoredFrom.EqualVT(base) {
 		r.restored = nil
@@ -1149,22 +1143,11 @@ func (a *Adapter) runTrim(ctx context.Context, p *trimPlan) error {
 	})
 }
 
-// opsAbove reads the operations above the SharedObject's checkpoint now.
-func (a *Adapter) opsAbove(ctx context.Context) (*sobject.SOOperationSet, error) {
-	snap, err := a.so.GetSharedObjectState(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return snap.GetOperationSet(ctx)
-}
-
 // dropPositions drops the replay positions an install covers and returns
 // them: the first covered when kept, as the World after them is the
 // checkpoint's, and none when not, as every position is dropped. It updates
-// the missing set as noteMissing does from held, which returns an operation
-// above the installed checkpoint by its hash; held may be nil only for a
-// kept install with nothing missing.
-func (a *Adapter) dropPositions(covered int, kept bool, held func(h []byte) *sobject.SOOperationInner) []spacePosition {
+// the missing set as noteMissing does from above.
+func (a *Adapter) dropPositions(covered int, kept bool, above func(h []byte) *sobject.SOOperationInner) []spacePosition {
 	// Keep the positions after the covered ones, and forget the missing
 	// operations the checkpoint covers.
 	r := a.replay
@@ -1172,40 +1155,42 @@ func (a *Adapter) dropPositions(covered int, kept bool, held func(h []byte) *sob
 		inCheckpoint := r.positions[:covered]
 		r.positions = slices.Clone(r.positions[covered:])
 		r.floor, r.saved = max(0, r.floor-covered), max(0, r.saved-covered)
-		if held != nil {
-			a.noteMissing(nil, held)
-		}
+		a.noteMissing(nil, above)
 		return inCheckpoint
 	}
 
 	// Drop them all, noting those replay applies again.
-	a.noteMissing(r.positions, held)
+	a.noteMissing(r.positions, above)
 	r.positions, r.floor, r.saved = nil, 0, 0
 	return nil
 }
 
 // noteMissing updates the missing set for an install, given the replay
-// positions it drops and held, which returns an operation above the
-// installed checkpoint by its hash, or nil. It notes each dropped applied
-// position whose operation held returns, so the installed head stays until
-// replay applies it again, and forgets each missing hash held lacks.
+// positions it drops and above, which returns an operation above the
+// checkpoint being installed by its hash, or nil. It notes each dropped
+// applied position whose operation above returns, so the installed head
+// stays until replay applies it again, and forgets each missing hash above
+// lacks.
 //
 // Invariant: a hash leaves the missing set only when replay applies its
-// operation again (Apply) or the operations above the installed checkpoint
-// no longer hold it. An operation leaves them only when a checkpoint covers
-// it, after which replay never applies it, so a forgotten hash cannot hold
+// operation again (Apply) or the operations above the checkpoint being
+// installed, read from the same snapshot as that checkpoint, no longer hold
+// it. An operation leaves them only when that checkpoint covers it, so the
+// head installed from it holds the operation: a forgotten hash cannot hold
 // installHead back forever, and a hash whose operation can still replay
-// stays until replay applies it, so installHead never runs ahead of it. A
-// kept install drops no positions and still forgets: a reorder may have
-// noted an operation the checkpoint covers.
-func (a *Adapter) noteMissing(dropped []spacePosition, held func(h []byte) *sobject.SOOperationInner) {
+// stays until replay applies it, so installHead never runs ahead of it. The
+// operations above a later checkpoint do not qualify: that checkpoint may
+// cover an operation the one being installed does not, so Install takes
+// both from one OrderEvent. A kept install drops no positions and still
+// forgets: a reorder may have noted an operation the checkpoint covers.
+func (a *Adapter) noteMissing(dropped []spacePosition, above func(h []byte) *sobject.SOOperationInner) {
 	for _, pos := range dropped {
-		if pos.reason == "" && held(pos.op.Hash) != nil {
+		if pos.reason == "" && above(pos.op.Hash) != nil {
 			a.missing[string(pos.op.Hash)] = struct{}{}
 		}
 	}
 	for key := range a.missing {
-		if held([]byte(key)) == nil {
+		if above([]byte(key)) == nil {
 			delete(a.missing, key)
 		}
 	}

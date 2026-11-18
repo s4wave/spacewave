@@ -485,7 +485,7 @@ func (d *BodyDriver) install(ctx context.Context, ev *OrderEvent) error {
 	}
 
 	// Install it.
-	kept, err := d.body.Install(ctx, ev.Checkpoint, covered, d.set)
+	kept, err := d.body.Install(ctx, ev, covered, d.set)
 	if err != nil {
 		return err
 	}
@@ -514,7 +514,7 @@ func (d *BodyDriver) follow(ctx context.Context, ev *OrderEvent) error {
 	}
 
 	// Reset the body to the checkpoint.
-	if _, err := d.body.Install(ctx, ev.Checkpoint, -1, d.set); err != nil {
+	if _, err := d.body.Install(ctx, ev, -1, d.set); err != nil {
 		return err
 	}
 	d.positions = nil

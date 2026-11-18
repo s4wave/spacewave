@@ -32,20 +32,21 @@ type Body interface {
 	// an error is never a refusal: a canceled read or a missing block returns
 	// an error.
 	Apply(ctx context.Context, index int, op *OrderedOperation) (string, error)
-	// Install resets the body to the state checkpoint carries in its
-	// StateData.
+	// Install resets the body to the state ev's checkpoint carries in its
+	// StateData. ev's Set holds the operations above that checkpoint, read
+	// from the same snapshot, which the body replays next.
 	// covered is how many of the operations the body applied above its
 	// previous checkpoint the new one covers, or -1 when they are not the
 	// first operations the body applied.
 	// held is the operation set the body applied from before this install,
-	// which still holds the operations checkpoint newly covers, or nil before
+	// which still holds the operations the checkpoint newly covers, or nil before
 	// the first order. The body reads which covered operations it holds, and
 	// how they link, from it.
 	// Returns whether the body kept the operations it applied after the
 	// covered ones. It keeps them only when covered is not -1 and its state
 	// after the covered operations equals the checkpoint's; otherwise the
 	// driver applies every operation above checkpoint again.
-	Install(ctx context.Context, checkpoint *SOCheckpointInner, covered int, held *SOOperationSet) (bool, error)
+	Install(ctx context.Context, ev *OrderEvent, covered int, held *SOOperationSet) (bool, error)
 	// Hold keeps what the operations of ev above its checkpoint read, such as
 	// their payloads, readable on this device whether or not the body applies
 	// them, until the body's state covers them. The driver calls it for each

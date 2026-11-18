@@ -99,9 +99,9 @@ func (b *testBody) Hold(context.Context, *OrderEvent) error {
 
 // Install resets the state to the checkpoint's, keeping the later states
 // when the state after covered equals it.
-func (b *testBody) Install(_ context.Context, checkpoint *SOCheckpointInner, covered int, _ *SOOperationSet) (bool, error) {
+func (b *testBody) Install(_ context.Context, ev *OrderEvent, covered int, _ *SOOperationSet) (bool, error) {
 	b.installs = append(b.installs, covered)
-	data := string(checkpoint.GetStateData())
+	data := string(ev.Checkpoint.GetStateData())
 	kept := covered >= 0 && covered <= len(b.states) && b.stateAt(covered) == data
 	if kept {
 		b.states = slices.Clone(b.states[covered:])
