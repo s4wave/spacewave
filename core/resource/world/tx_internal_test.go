@@ -35,9 +35,10 @@ func (tx *failedCommitTx) Discard() {
 // TestTxResourceCommitRefusalRestoredByType sends a commit the World refuses
 // across SRPC through CommitRemote, the decode both SDK Txs use, and checks
 // that the client restores the refusal by type with the server's message, that
-// an unknown outcome arrives as an RPC error and never as a refusal, that the
-// replaced Commit method fails, and that the server discarded the transaction
-// and released the writer.
+// an unknown outcome arrives as ErrDurabilityUnknown and never as a refusal,
+// that a client that does not decode its code gets only the bare durability
+// unknown text, that the replaced Commit method fails, and that the server
+// discarded the transaction and released the writer.
 func TestTxResourceCommitRefusalRestoredByType(t *testing.T) {
 	ctx := t.Context()
 	tb := world_testbed.MustDefault(t, ctx)
@@ -47,19 +48,28 @@ func TestTxResourceCommitRefusalRestoredByType(t *testing.T) {
 		// refused is false for an error that must arrive as an RPC error.
 		refused bool
 		is      func(error) bool
+		// old commits as a client built before DURABILITY_UNKNOWN, naming
+		// no known_error_code.
+		old bool
 	}{
-		{"superseded", errors.Join(errors.New("head moved to seqno 3"), world.ErrSuperseded), true, world.IsSuperseded},
+		{"superseded", errors.Join(errors.New("head moved to seqno 3"), world.ErrSuperseded), true, world.IsSuperseded, false},
 		{"stale generation", errors.Join(errors.New("lease at generation 4"), coord.ErrStaleGeneration), true, func(err error) bool {
 			return errors.Is(err, coord.ErrStaleGeneration) && world.IsSuperseded(err)
-		}},
+		}, false},
 		{"root not held", errors.Join(errors.New("set roots of bucket b"), block.ErrRootNotHeld), true, func(err error) bool {
 			return errors.Is(err, block.ErrRootNotHeld) && !world.IsSuperseded(err)
-		}},
+		}, false},
 		// An unknown outcome may be durable, so it is never a refusal, even
 		// when its error also wraps a supersession.
 		{"durability unknown", errors.Join(world.ErrDurabilityUnknown, world.ErrSuperseded), false, func(err error) bool {
-			return !world.IsSuperseded(err)
-		}},
+			return errors.Is(err, world.ErrDurabilityUnknown) && !world.IsSuperseded(err)
+		}, false},
+		// A client that does not decode the code reads errors by their text,
+		// so it gets the sentinel's text alone, naming no supersession it
+		// might read as a write to send again.
+		{"durability unknown to an old client", errors.Join(world.ErrDurabilityUnknown, world.ErrSuperseded), false, func(err error) bool {
+			return err.Error() == world.ErrDurabilityUnknown.Error()
+		}, true},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -82,7 +92,11 @@ func TestTxResourceCommitRefusalRestoredByType(t *testing.T) {
 
 			// A refusal arrives by type, reading as the server's error; any
 			// other failure arrives as an RPC error.
-			err = s4wave_world.CommitRemote(ctx, client)
+			if c.old {
+				err = rpc.ExecCall(ctx, s4wave_world.SRPCTxResourceServiceServiceID, "CommitTx", &s4wave_world.CommitRequest{}, &s4wave_world.CommitResponse{})
+			} else {
+				err = s4wave_world.CommitRemote(ctx, client)
+			}
 			var refusal *s4wave_world.CommitRefusal
 			if err == nil || errors.As(err, &refusal) != c.refused || !c.is(err) {
 				t.Fatalf("commit = %v, want refused=%v for %s", err, c.refused, c.name)

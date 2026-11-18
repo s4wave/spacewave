@@ -415,22 +415,29 @@ service TxResourceService {
 }
 
 // CommitRequest is the request type for CommitTx.
-message CommitRequest {}
+message CommitRequest {
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns DURABILITY_UNKNOWN to a client that does not decode it as
+  // an RPC error carrying only the durability unknown text.
+  WorldErrorCode known_error_code = 1;
+}
 
 // CommitResponse is the response type for CommitTx.
 //
 // The zero value means the transaction committed. A commit the World refused
 // with a typed result returns it here with no RPC error: error_code is
-// SUPERSEDED, STALE_GENERATION or ROOT_NOT_HELD, and nothing was committed.
-// Any other commit failure returns as an RPC error. After every CommitTx,
+// SUPERSEDED, STALE_GENERATION or ROOT_NOT_HELD, and nothing was committed. A
+// commit whose outcome is unknown returns DURABILITY_UNKNOWN here to a client
+// that decodes it. Any other commit failure returns as an RPC error. After every CommitTx,
 // refused or not, the server has discarded the transaction: a later CommitTx
 // fails as closed, and a repeat needs a new transaction. A client turns a
 // non-zero error_code into its typed error before any caller sees the
 // response.
 message CommitResponse {
-  // ErrorCode is the typed refusal, or UNSPECIFIED when the commit published.
+  // ErrorCode is the typed refusal or DURABILITY_UNKNOWN, or UNSPECIFIED when
+  // the commit published.
   WorldErrorCode error_code = 1;
-  // ErrorMessage is the server's full error text for a typed refusal.
+  // ErrorMessage is the server's full error text for a non-zero error_code.
   string error_message = 2;
 }
 
@@ -956,6 +963,12 @@ enum WorldErrorCode {
   // replay state in SharedObjectHealth.replay; the caller may write again
   // once it is caught_up.
   WORLD_ERROR_CODE_REPLAY_WAITS = 10;
+  // WORLD_ERROR_CODE_DURABILITY_UNKNOWN indicates that the World may or may
+  // not hold the write: its outcome is unknown, so it is not a refusal. The
+  // caller must not send the same write again as if nothing was written; it
+  // reads the World to learn the outcome. A client that does not decode this
+  // code gets the bare durability unknown text as the call's error.
+  WORLD_ERROR_CODE_DURABILITY_UNKNOWN = 11;
 }
 
 // ApplyWorldOpResponse is the response type for ApplyWorldOp.
@@ -1055,6 +1068,10 @@ message WorldMutationResult {
 message ExecuteWorldBatchRequest {
   // Mutations apply in order in one write transaction.
   repeated WorldMutation mutations = 1;
+  // KnownErrorCode is the highest WorldErrorCode the client decodes. The
+  // server returns DURABILITY_UNKNOWN to a client that does not decode it as
+  // an RPC error carrying only the durability unknown text.
+  WorldErrorCode known_error_code = 2;
 }
 
 // ExecuteWorldBatchResponse is the response type for ExecuteWorldBatch.

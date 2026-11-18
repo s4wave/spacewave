@@ -124,8 +124,32 @@ export class ReplayWaitError extends Error {
   }
 }
 
-// typedError returns the typed error for a plugin's built-in code or a
-// replay wait, or undefined for any other code.
+// DurabilityUnknownError reports a write whose outcome is unknown: the World
+// may or may not hold it. It is not a refusal, so the caller must not send the
+// same write again as if nothing was written; it reads the World to learn the
+// outcome.
+const durabilityUnknownBrand = Symbol.for('spacewave.DurabilityUnknownError')
+
+export class DurabilityUnknownError extends Error {
+  override readonly name = 'DurabilityUnknownError'
+  readonly [durabilityUnknownBrand] = true
+
+  // Client and plugin builds recognize the same public error across bundles.
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return (
+      value instanceof Error &&
+      durabilityUnknownBrand in value &&
+      value[durabilityUnknownBrand] === true
+    )
+  }
+
+  constructor(message?: string) {
+    super(message || 'world commit durability unknown')
+  }
+}
+
+// typedError returns the typed error for a plugin's built-in code, a replay
+// wait or an unknown outcome, or undefined for any other code.
 export function typedError(
   code: WorldErrorCode | undefined,
 ): Error | undefined {
@@ -138,6 +162,8 @@ export function typedError(
       return new PluginExecutableMissingError()
     case WorldErrorCode.REPLAY_WAITS:
       return new ReplayWaitError()
+    case WorldErrorCode.DURABILITY_UNKNOWN:
+      return new DurabilityUnknownError()
   }
   return undefined
 }
@@ -188,6 +214,8 @@ export interface CommitErrorResponse {
 // throwCommitError throws the typed refusal a CommitTx response carries as
 // WorldCommitError, and returns when the commit published.
 export function throwCommitError(response: CommitErrorResponse): void {
+  if (response.errorCode === WorldErrorCode.DURABILITY_UNKNOWN)
+    throw new DurabilityUnknownError(response.errorMessage)
   if (response.errorCode)
     throw new WorldCommitError(response.errorCode, response.errorMessage ?? '')
 }

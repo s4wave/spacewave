@@ -78,7 +78,17 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 		return nil
 	})
 	if err != nil && !errors.Is(err, errBatchRefused) {
-		return batchOpRefusal(err)
+		resp, err = batchOpRefusal(err)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Return an unknown outcome to a client that cannot decode its code as
+	// the bare durability unknown error.
+	unknown := s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_DURABILITY_UNKNOWN
+	if resp.GetErrorCode() == unknown && !s4wave_world.Decodes(req.GetKnownErrorCode(), unknown) {
+		return nil, world.ErrDurabilityUnknown
 	}
 	return resp, nil
 }

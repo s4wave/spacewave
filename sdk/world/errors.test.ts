@@ -5,6 +5,7 @@ import {
   PluginOpTimeoutError,
   PluginUnavailableError,
   ReplayWaitError,
+  DurabilityUnknownError,
   throwBatchError,
   throwCommitError,
   throwOperationError,
@@ -33,6 +34,7 @@ const errorFor: Record<
   [WorldErrorCode.STALE_GENERATION]: WorldCommitError,
   [WorldErrorCode.ROOT_NOT_HELD]: WorldCommitError,
   [WorldErrorCode.REPLAY_WAITS]: ReplayWaitError,
+  [WorldErrorCode.DURABILITY_UNKNOWN]: DurabilityUnknownError,
 }
 
 // replyWith returns a World state and an object state whose services answer
@@ -178,6 +180,24 @@ describe('throwBatchError', () => {
 describe('throwCommitError', () => {
   it('returns for a published commit', () => {
     expect(() => throwCommitError({})).not.toThrow()
+  })
+
+  it('restores an unknown outcome as not a refusal', () => {
+    let caught: unknown
+    try {
+      throwCommitError({
+        errorCode: WorldErrorCode.DURABILITY_UNKNOWN,
+        errorMessage:
+          'world candidate superseded: world commit durability unknown',
+      })
+    } catch (err) {
+      caught = err
+    }
+    expect(caught).toBeInstanceOf(DurabilityUnknownError)
+    expect(caught).not.toBeInstanceOf(WorldCommitError)
+    expect(caught).toMatchObject({
+      message: 'world candidate superseded: world commit durability unknown',
+    })
   })
 
   it('restores a superseded commit with its message', () => {

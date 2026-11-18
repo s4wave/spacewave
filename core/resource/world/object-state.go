@@ -70,7 +70,7 @@ func (r *ObjectStateResource) GetModSeqno(ctx context.Context, _ *s4wave_world.G
 func (r *ObjectStateResource) SetRootRef(ctx context.Context, req *s4wave_world.SetRootRefRequest) (*s4wave_world.SetRootRefResponse, error) {
 	// Write the new root reference and read back the revision.
 	rev, err := r.obj.SetRootRef(ctx, req.GetRootRef())
-	code, err := replayWaitCode(req.GetKnownErrorCode(), err)
+	code, err := writeErrorCode(req.GetKnownErrorCode(), err)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (r *ObjectStateResource) applyObjectOp(ctx context.Context, req *s4wave_wor
 func (r *ObjectStateResource) IncrementRev(ctx context.Context, req *s4wave_world.IncrementRevRequest) (*s4wave_world.IncrementRevResponse, error) {
 	// Increment the revision; a replay wait answers as its code.
 	rev, err := r.obj.IncrementRev(ctx)
-	code, err := replayWaitCode(req.GetKnownErrorCode(), err)
+	code, err := writeErrorCode(req.GetKnownErrorCode(), err)
 	if err != nil {
 		return nil, err
 	}

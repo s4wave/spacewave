@@ -157,6 +157,12 @@ const (
 	// replay state in SharedObjectHealth.replay; the caller may write again
 	// once it is caught_up.
 	WorldErrorCode_WORLD_ERROR_CODE_REPLAY_WAITS WorldErrorCode = 10
+	// WORLD_ERROR_CODE_DURABILITY_UNKNOWN indicates that the World may or may
+	// not hold the write: its outcome is unknown, so it is not a refusal. The
+	// caller must not send the same write again as if nothing was written; it
+	// reads the World to learn the outcome. A client that does not decode this
+	// code gets the bare durability unknown text as the call's error.
+	WorldErrorCode_WORLD_ERROR_CODE_DURABILITY_UNKNOWN WorldErrorCode = 11
 )
 
 // Enum value maps for WorldErrorCode.
@@ -173,6 +179,7 @@ var (
 		8:  "WORLD_ERROR_CODE_STALE_GENERATION",
 		9:  "WORLD_ERROR_CODE_ROOT_NOT_HELD",
 		10: "WORLD_ERROR_CODE_REPLAY_WAITS",
+		11: "WORLD_ERROR_CODE_DURABILITY_UNKNOWN",
 	}
 	WorldErrorCode_value = map[string]int32{
 		"WORLD_ERROR_CODE_UNSPECIFIED":                0,
@@ -186,6 +193,7 @@ var (
 		"WORLD_ERROR_CODE_STALE_GENERATION":           8,
 		"WORLD_ERROR_CODE_ROOT_NOT_HELD":              9,
 		"WORLD_ERROR_CODE_REPLAY_WAITS":               10,
+		"WORLD_ERROR_CODE_DURABILITY_UNKNOWN":         11,
 	}
 )
 
@@ -1087,6 +1095,10 @@ func (x *AccessWorldStateResponse) GetResourceId() uint32 {
 // CommitRequest is the request type for CommitTx.
 type CommitRequest struct {
 	unknownFields []byte
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns DURABILITY_UNKNOWN to a client that does not decode it as
+	// an RPC error carrying only the durability unknown text.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,1,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *CommitRequest) Reset() {
@@ -1095,21 +1107,30 @@ func (x *CommitRequest) Reset() {
 
 func (*CommitRequest) ProtoMessage() {}
 
+func (x *CommitRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
 // CommitResponse is the response type for CommitTx.
 //
 // The zero value means the transaction committed. A commit the World refused
 // with a typed result returns it here with no RPC error: error_code is
-// SUPERSEDED, STALE_GENERATION or ROOT_NOT_HELD, and nothing was committed.
-// Any other commit failure returns as an RPC error. After every CommitTx,
+// SUPERSEDED, STALE_GENERATION or ROOT_NOT_HELD, and nothing was committed. A
+// commit whose outcome is unknown returns DURABILITY_UNKNOWN here to a client
+// that decodes it. Any other commit failure returns as an RPC error. After every CommitTx,
 // refused or not, the server has discarded the transaction: a later CommitTx
 // fails as closed, and a repeat needs a new transaction. A client turns a
 // non-zero error_code into its typed error before any caller sees the
 // response.
 type CommitResponse struct {
 	unknownFields []byte
-	// ErrorCode is the typed refusal, or UNSPECIFIED when the commit published.
+	// ErrorCode is the typed refusal or DURABILITY_UNKNOWN, or UNSPECIFIED when
+	// the commit published.
 	ErrorCode WorldErrorCode `protobuf:"varint,1,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
-	// ErrorMessage is the server's full error text for a typed refusal.
+	// ErrorMessage is the server's full error text for a non-zero error_code.
 	ErrorMessage string `protobuf:"bytes,2,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
 }
 
@@ -3013,6 +3034,10 @@ type ExecuteWorldBatchRequest struct {
 	unknownFields []byte
 	// Mutations apply in order in one write transaction.
 	Mutations []*WorldMutation `protobuf:"bytes,1,rep,name=mutations,proto3" json:"mutations,omitempty"`
+	// KnownErrorCode is the highest WorldErrorCode the client decodes. The
+	// server returns DURABILITY_UNKNOWN to a client that does not decode it as
+	// an RPC error carrying only the durability unknown text.
+	KnownErrorCode WorldErrorCode `protobuf:"varint,2,opt,name=known_error_code,json=knownErrorCode,proto3" json:"knownErrorCode,omitempty"`
 }
 
 func (x *ExecuteWorldBatchRequest) Reset() {
@@ -3026,6 +3051,13 @@ func (x *ExecuteWorldBatchRequest) GetMutations() []*WorldMutation {
 		return x.Mutations
 	}
 	return nil
+}
+
+func (x *ExecuteWorldBatchRequest) GetKnownErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.KnownErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
 }
 
 // ExecuteWorldBatchResponse is the response type for ExecuteWorldBatch.
@@ -4583,6 +4615,7 @@ func (m *CommitRequest) CloneVT() *CommitRequest {
 		return (*CommitRequest)(nil)
 	}
 	r := new(CommitRequest)
+	r.KnownErrorCode = m.KnownErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5687,6 +5720,7 @@ func (m *ExecuteWorldBatchRequest) CloneVT() *ExecuteWorldBatchRequest {
 		return (*ExecuteWorldBatchRequest)(nil)
 	}
 	r := new(ExecuteWorldBatchRequest)
+	r.KnownErrorCode = m.KnownErrorCode
 	r.Mutations = protobuf_go_lite.CloneVTSlice(m.Mutations)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -7151,6 +7185,9 @@ func (this *CommitRequest) EqualVT(that *CommitRequest) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.KnownErrorCode != that.KnownErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8653,6 +8690,9 @@ func (this *ExecuteWorldBatchRequest) EqualVT(that *ExecuteWorldBatchRequest) bo
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Mutations, that.Mutations, func() *WorldMutation { return &WorldMutation{} }) {
+		return false
+	}
+	if this.KnownErrorCode != that.KnownErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -11330,6 +11370,12 @@ func (x *CommitRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11344,7 +11390,13 @@ func (x *CommitRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -14605,6 +14657,11 @@ func (x *ExecuteWorldBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.KnownErrorCode != 0 || s.HasField("knownErrorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("knownErrorCode")
+		x.KnownErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -14640,6 +14697,9 @@ func (x *ExecuteWorldBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Mutations = append(x.Mutations, v)
 			})
+		case "known_error_code", "knownErrorCode":
+			s.AddField("known_error_code")
+			x.KnownErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -18017,6 +18077,11 @@ func (m *CommitRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -20790,6 +20855,11 @@ func (m *ExecuteWorldBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.KnownErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KnownErrorCode))
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.Mutations) > 0 {
 		for iNdEx := len(m.Mutations) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Mutations[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -22893,6 +22963,7 @@ func (m *CommitRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23795,6 +23866,7 @@ func (m *ExecuteWorldBatchRequest) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.KnownErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -24894,7 +24966,11 @@ func (x *AccessWorldStateResponse) String() string {
 
 func (x *CommitRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "CommitRequest")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CommitRequest")
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -26133,6 +26209,10 @@ func (x *ExecuteWorldBatchRequest) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.KnownErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "known_error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.KnownErrorCode))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -28866,6 +28946,17 @@ func (m *CommitRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: CommitRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -32724,6 +32815,17 @@ func (m *ExecuteWorldBatchRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KnownErrorCode", wireType)
+			}
+			m.KnownErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.KnownErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -311,7 +311,7 @@ func (r *WorldStateResource) CreateObject(ctx context.Context, req *s4wave_world
 	obj, err := r.ws.CreateObject(ctx, req.GetObjectKey(), req.GetRootRef())
 	if err != nil {
 		world.ReleaseObjectState(obj)
-		code, err := replayWaitCode(req.GetKnownErrorCode(), err)
+		code, err := writeErrorCode(req.GetKnownErrorCode(), err)
 		if err != nil {
 			return nil, err
 		}
@@ -522,7 +522,7 @@ func (r *WorldStateResource) RenameObject(ctx context.Context, req *s4wave_world
 	obj, err := r.ws.RenameObject(ctx, req.GetOldObjectKey(), req.GetNewObjectKey(), req.GetDescendants())
 	if err != nil {
 		world.ReleaseObjectState(obj)
-		code, err := replayWaitCode(req.GetKnownErrorCode(), err)
+		code, err := writeErrorCode(req.GetKnownErrorCode(), err)
 		if err != nil {
 			return nil, err
 		}
@@ -544,7 +544,7 @@ func (r *WorldStateResource) RenameObject(ctx context.Context, req *s4wave_world
 // DeleteObject deletes an object and associated graph quads by ID.
 func (r *WorldStateResource) DeleteObject(ctx context.Context, req *s4wave_world.DeleteObjectRequest) (*s4wave_world.DeleteObjectResponse, error) {
 	deleted, err := r.ws.DeleteObject(ctx, req.GetObjectKey())
-	code, err := replayWaitCode(req.GetKnownErrorCode(), err)
+	code, err := writeErrorCode(req.GetKnownErrorCode(), err)
 	if err != nil {
 		return nil, err
 	}
@@ -556,7 +556,7 @@ func (r *WorldStateResource) SetGraphQuad(ctx context.Context, req *s4wave_world
 	// Apply the requested quad to the mounted World graph.
 	q := req.GetQuad()
 	gq := world.NewGraphQuad(q.GetSubject(), q.GetPredicate(), q.GetObj(), q.GetLabel())
-	code, err := replayWaitCode(req.GetKnownErrorCode(), r.ws.SetGraphQuad(ctx, gq))
+	code, err := writeErrorCode(req.GetKnownErrorCode(), r.ws.SetGraphQuad(ctx, gq))
 	if err != nil {
 		return nil, err
 	}
@@ -568,7 +568,7 @@ func (r *WorldStateResource) DeleteGraphQuad(ctx context.Context, req *s4wave_wo
 	// Remove the requested quad from the mounted World graph.
 	q := req.GetQuad()
 	gq := world.NewGraphQuad(q.GetSubject(), q.GetPredicate(), q.GetObj(), q.GetLabel())
-	code, err := replayWaitCode(req.GetKnownErrorCode(), r.ws.DeleteGraphQuad(ctx, gq))
+	code, err := writeErrorCode(req.GetKnownErrorCode(), r.ws.DeleteGraphQuad(ctx, gq))
 	if err != nil {
 		return nil, err
 	}
@@ -1009,7 +1009,7 @@ func (r *WorldStateResource) QueryGraphPath(ctx context.Context, req *s4wave_wor
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 func (r *WorldStateResource) DeleteGraphObject(ctx context.Context, req *s4wave_world.DeleteGraphObjectRequest) (*s4wave_world.DeleteGraphObjectResponse, error) {
-	code, err := replayWaitCode(req.GetKnownErrorCode(), r.ws.DeleteGraphObject(ctx, req.GetObjectKey()))
+	code, err := writeErrorCode(req.GetKnownErrorCode(), r.ws.DeleteGraphObject(ctx, req.GetObjectKey()))
 	if err != nil {
 		return nil, err
 	}
@@ -1109,8 +1109,9 @@ func applyResolvedWorldOp(
 	return &s4wave_world.ApplyWorldOpResponse{Seqno: seqno, SysErr: sysErr}, nil
 }
 
-// opErrorRefusal classifies the error of an applied operation as a refusal:
-// a domain rejection, an unhandled operation, a pinned plugin with no build
+// opErrorRefusal classifies the error of an applied operation as an unknown
+// outcome, which matches first whatever else its error wraps, since the World
+// may hold the write, or as a refusal: a domain rejection, an unhandled operation, a pinned plugin with no build
 // for this device, which was never sent the operation, an unavailable plugin
 // that was never sent it or failed it when atomic reports that the failed
 // operation's transaction is discarded, a plugin timeout under the same
@@ -1118,6 +1119,11 @@ func applyResolvedWorldOp(
 // which ends a write only after discarding its last attempt and reads as a
 // plugin timeout. ok is false for any other error.
 func opErrorRefusal(err error, atomic bool) (code s4wave_world.WorldErrorCode, rejection *world.OperationRejection, ok bool) {
+	// Match a write whose outcome is unknown before any refusal it wraps.
+	if errors.Is(err, world.ErrDurabilityUnknown) {
+		return s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_DURABILITY_UNKNOWN, nil, true
+	}
+
 	// Match the operation's own rejection.
 	if errors.As(err, &rejection) {
 		return 0, rejection, true

@@ -20,20 +20,32 @@ var commitRefusals = []struct {
 }
 
 // NewCommitResponse returns the Commit result for a transaction's commit
-// error. A nil error and a typed refusal return a response with a nil error;
-// any other error returns as the RPC error.
+// error, for a client whose request names known as its known_error_code. A nil
+// error and a typed refusal return a response with a nil error; any other
+// error returns as the RPC error.
 //
 // A typed refusal means nothing was committed. A commit whose outcome is
-// unknown is never a refusal, whatever else its error wraps, so
-// world.ErrDurabilityUnknown returns as the RPC error before any refusal
-// matches.
-func NewCommitResponse(err error) (*CommitResponse, error) {
+// unknown is never a refusal, whatever else its error wraps, so it matches
+// before any refusal: it returns DURABILITY_UNKNOWN to a client that decodes
+// it, and otherwise the bare world.ErrDurabilityUnknown as the RPC error. The
+// bare text keeps an older client, which classifies the error by its text,
+// from reading a superseded commit the error wraps as one it may run again.
+func NewCommitResponse(known WorldErrorCode, err error) (*CommitResponse, error) {
+	// Answer a published commit with the zero response.
 	if err == nil {
 		return &CommitResponse{}, nil
 	}
+
+	// Answer an unknown outcome before any refusal it wraps.
 	if errors.Is(err, world.ErrDurabilityUnknown) {
-		return nil, err
+		code := WorldErrorCode_WORLD_ERROR_CODE_DURABILITY_UNKNOWN
+		if !Decodes(known, code) {
+			return nil, world.ErrDurabilityUnknown
+		}
+		return &CommitResponse{ErrorCode: code, ErrorMessage: err.Error()}, nil
 	}
+
+	// Answer a typed refusal with its code, and any other error as the call's.
 	for _, r := range commitRefusals {
 		if errors.Is(err, r.sentinel) {
 			return &CommitResponse{ErrorCode: r.code, ErrorMessage: err.Error()}, nil
@@ -42,14 +54,21 @@ func NewCommitResponse(err error) (*CommitResponse, error) {
 	return nil, err
 }
 
-// commitResponseError restores the typed refusal a Commit response carries,
-// or nil when the commit published. CommitRemote is its only caller, so every
-// client reads a refusal as an error before it sees the response.
+// commitResponseError restores the typed refusal or unknown outcome a Commit
+// response carries, or nil when the commit published. CommitRemote is its only
+// caller, so every client reads a refusal as an error before it sees the
+// response.
 func commitResponseError(resp *CommitResponse) error {
+	// Restore a published commit and an unknown outcome.
 	code := resp.GetErrorCode()
-	if code == WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED {
+	switch code {
+	case WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED:
 		return nil
+	case WorldErrorCode_WORLD_ERROR_CODE_DURABILITY_UNKNOWN:
+		return &durabilityUnknownError{message: resp.GetErrorMessage()}
 	}
+
+	// Restore a typed refusal, and fail closed on a code this build lacks.
 	for _, c := range commitRefusals {
 		if c.code == code {
 			return &CommitRefusal{Code: code, Message: resp.GetErrorMessage(), sentinel: c.sentinel}
@@ -81,4 +100,25 @@ func (e *CommitRefusal) Error() string {
 // Unwrap returns the sentinel the refusal's code stands for.
 func (e *CommitRefusal) Unwrap() error {
 	return e.sentinel
+}
+
+// durabilityUnknownError is a remote commit whose outcome is unknown. It reads
+// as the server's error and unwraps to world.ErrDurabilityUnknown, so a caller
+// that matches the sentinel treats it as final.
+type durabilityUnknownError struct {
+	// message is the server's full error text.
+	message string
+}
+
+// Error returns the server's error text.
+func (e *durabilityUnknownError) Error() string {
+	if e.message == "" {
+		return world.ErrDurabilityUnknown.Error()
+	}
+	return e.message
+}
+
+// Unwrap returns world.ErrDurabilityUnknown.
+func (e *durabilityUnknownError) Unwrap() error {
+	return world.ErrDurabilityUnknown
 }

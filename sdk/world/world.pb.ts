@@ -169,6 +169,15 @@ export enum WorldErrorCode {
    * once it is caught_up.
    */
   REPLAY_WAITS = 10,
+
+  /**
+   * WORLD_ERROR_CODE_DURABILITY_UNKNOWN indicates that the World may or may
+   * not hold the write: its outcome is unknown, so it is not a refusal. The
+   * caller must not send the same write again as if nothing was written; it
+   * reads the World to learn the outcome. A client that does not decode this
+   * code gets the bare durability unknown text as the call's error.
+   */
+  DURABILITY_UNKNOWN = 11,
 }
 
 export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
@@ -185,6 +194,7 @@ export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
     [8, 'WORLD_ERROR_CODE_STALE_GENERATION'],
     [9, 'WORLD_ERROR_CODE_ROOT_NOT_HELD'],
     [10, 'WORLD_ERROR_CODE_REPLAY_WAITS'],
+    [11, 'WORLD_ERROR_CODE_DURABILITY_UNKNOWN'],
   ],
 )
 
@@ -947,12 +957,19 @@ export const AccessWorldStateResponse: MessageType<AccessWorldStateResponse> =
  *
  * @generated from message s4wave.world.CommitRequest
  */
-export interface CommitRequest {}
+export interface CommitRequest {
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns DURABILITY_UNKNOWN to a client that does not decode it as
+   * an RPC error carrying only the durability unknown text.
+   */
+  knownErrorCode?: WorldErrorCode
+}
 
 export const CommitRequest: MessageType<CommitRequest> =
   /* @__PURE__ */ createMessageType<CommitRequest>(
     's4wave.world.CommitRequest',
-    () => [],
+    () => [[1, 'known_error_code', 14, 0, WorldErrorCode_Enum]],
   )
 
 /**
@@ -960,8 +977,9 @@ export const CommitRequest: MessageType<CommitRequest> =
  *
  * The zero value means the transaction committed. A commit the World refused
  * with a typed result returns it here with no RPC error: error_code is
- * SUPERSEDED, STALE_GENERATION or ROOT_NOT_HELD, and nothing was committed.
- * Any other commit failure returns as an RPC error. After every CommitTx,
+ * SUPERSEDED, STALE_GENERATION or ROOT_NOT_HELD, and nothing was committed. A
+ * commit whose outcome is unknown returns DURABILITY_UNKNOWN here to a client
+ * that decodes it. Any other commit failure returns as an RPC error. After every CommitTx,
  * refused or not, the server has discarded the transaction: a later CommitTx
  * fails as closed, and a repeat needs a new transaction. A client turns a
  * non-zero error_code into its typed error before any caller sees the
@@ -971,11 +989,12 @@ export const CommitRequest: MessageType<CommitRequest> =
  */
 export interface CommitResponse {
   /**
-   * ErrorCode is the typed refusal, or UNSPECIFIED when the commit published.
+   * ErrorCode is the typed refusal or DURABILITY_UNKNOWN, or UNSPECIFIED when
+   * the commit published.
    */
   errorCode?: WorldErrorCode
   /**
-   * ErrorMessage is the server's full error text for a typed refusal.
+   * ErrorMessage is the server's full error text for a non-zero error_code.
    */
   errorMessage?: string
 }
@@ -2436,12 +2455,21 @@ export interface ExecuteWorldBatchRequest {
    * Mutations apply in order in one write transaction.
    */
   mutations?: WorldMutation[]
+  /**
+   * KnownErrorCode is the highest WorldErrorCode the client decodes. The
+   * server returns DURABILITY_UNKNOWN to a client that does not decode it as
+   * an RPC error carrying only the durability unknown text.
+   */
+  knownErrorCode?: WorldErrorCode
 }
 
 export const ExecuteWorldBatchRequest: MessageType<ExecuteWorldBatchRequest> =
   /* @__PURE__ */ createMessageType<ExecuteWorldBatchRequest>(
     's4wave.world.ExecuteWorldBatchRequest',
-    () => [[1, 'mutations', 11, 1, WorldMutation.codec]],
+    () => [
+      [1, 'mutations', 11, 1, WorldMutation.codec],
+      [2, 'known_error_code', 14, 0, WorldErrorCode_Enum],
+    ],
   )
 
 /**

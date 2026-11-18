@@ -122,7 +122,10 @@ export class Engine extends Resource {
     mutations: WorldMutation[],
     abortSignal?: AbortSignal,
   ) {
-    return this.service.ExecuteWorldBatch({ mutations }, abortSignal)
+    return this.service.ExecuteWorldBatch(
+      { mutations, knownErrorCode: KNOWN_ERROR_CODE },
+      abortSignal,
+    )
   }
 
   // GetSeqno returns the current sequence number of the world state.

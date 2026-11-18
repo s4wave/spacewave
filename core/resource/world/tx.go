@@ -90,7 +90,7 @@ func (r *TxResource) CommitTx(ctx context.Context, req *s4wave_world.CommitReque
 	if r.typedResource != nil {
 		r.typedResource.Close()
 	}
-	return s4wave_world.NewCommitResponse(r.tx.Commit(ctx))
+	return s4wave_world.NewCommitResponse(req.GetKnownErrorCode(), r.tx.Commit(ctx))
 }
 
 // Discard discards the transaction without committing changes.

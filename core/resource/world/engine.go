@@ -261,7 +261,7 @@ func (r *EngineResource) NewTransaction(ctx context.Context, req *s4wave_world.N
 	// A write the World refuses before its turn opens returns as its code to
 	// a client that decodes it, and as the call's error otherwise.
 	wtx, err := r.engine.NewTransaction(ctx, req.GetWrite())
-	code, err := replayWaitCode(req.GetKnownErrorCode(), err)
+	code, err := writeErrorCode(req.GetKnownErrorCode(), err)
 	if err != nil {
 		return nil, err
 	}

@@ -97,6 +97,9 @@ func TestApplyOpErrorCodes(t *testing.T) {
 		s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_REPLAY_WAITS: func(err error) bool {
 			return errors.Is(err, sobject.ErrReplayWaits)
 		},
+		s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_DURABILITY_UNKNOWN: func(err error) bool {
+			return errors.Is(err, world.ErrDurabilityUnknown)
+		},
 	}
 
 	// A code past the enum stands for one a newer server defines.

@@ -71,7 +71,7 @@ func (tx *Tx) Commit(ctx context.Context) error {
 // that started. The server discards the transaction after every CommitTx,
 // refused or not, so a retry needs a new transaction.
 func CommitRemote(ctx context.Context, svc SRPCTxResourceServiceClient) error {
-	resp, err := svc.CommitTx(context.WithoutCancel(ctx), &CommitRequest{})
+	resp, err := svc.CommitTx(context.WithoutCancel(ctx), &CommitRequest{KnownErrorCode: KnownErrorCode})
 	if err != nil {
 		return err
 	}

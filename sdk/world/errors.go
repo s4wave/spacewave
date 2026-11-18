@@ -64,6 +64,8 @@ func ErrorFromCode(code WorldErrorCode) error {
 		return &world.PluginExecutableMissingError{}
 	case WorldErrorCode_WORLD_ERROR_CODE_REPLAY_WAITS:
 		return sobject.ErrReplayWaits
+	case WorldErrorCode_WORLD_ERROR_CODE_DURABILITY_UNKNOWN:
+		return world.ErrDurabilityUnknown
 	}
 	for _, c := range commitRefusals {
 		if c.code == code {

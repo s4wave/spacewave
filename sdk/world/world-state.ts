@@ -791,9 +791,16 @@ export class Tx extends WorldStateResource {
   // Commit commits the transaction.
   // After commit, the transaction should be discarded.
   // A commit the World refused throws WorldCommitError; its superseded field
-  // says whether another writer advanced the World first.
+  // says whether another writer advanced the World first. A commit whose
+  // outcome is unknown throws DurabilityUnknownError, which is never one to
+  // send again.
   public async commit(abortSignal?: AbortSignal): Promise<void> {
-    throwCommitError(await this.txService.CommitTx({}, abortSignal))
+    throwCommitError(
+      await this.txService.CommitTx(
+        { knownErrorCode: KNOWN_ERROR_CODE },
+        abortSignal,
+      ),
+    )
   }
 
   // Discard discards the transaction without committing changes.
