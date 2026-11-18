@@ -59,7 +59,7 @@ type heldInstallBody struct {
 }
 
 // Install holds the body across cancellation to expose an unjoined teardown.
-func (b *heldInstallBody) Install(ctx context.Context, _ *SOCheckpointInner, _ int) (bool, error) {
+func (b *heldInstallBody) Install(ctx context.Context, _ *SOCheckpointInner, _ int, _ *SOOperationSet) (bool, error) {
 	// Keep the body's resources until the test permits the call to finish.
 	close(b.entered)
 	<-ctx.Done()

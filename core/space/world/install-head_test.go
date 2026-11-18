@@ -126,8 +126,10 @@ func trimNow(t *testing.T, a *Adapter) {
 
 // TestInstallHeadRetriesRetainedHold checks that a head whose retained-root
 // hold failed is held and reported to the watchers by the next install, that
-// its placed candidate is decided only then, and that a later install of the
-// same retained set reads and moves nothing.
+// its placed candidate is decided only then, as is one whose QueueOperation
+// returns after the failed install with a position the installed checkpoint
+// covers, and that a later install of the same retained set reads and moves
+// nothing.
 func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	// Build an adapter whose replay head retains a root, over a store that
 	// fails the first root move.
@@ -156,15 +158,25 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	var reports []world.Head
 	a.watchers = []*headWatch{{fn: func(h world.Head) { reports = append(reports, h) }}}
 
-	// The first install fails its hold, reports nothing and decides nothing.
+	// The installed checkpoint at height 1 covers this device's operation
+	// late and records that it applied.
+	late := &sobject.SOOperationPosition{PeerId: "local-peer", Nonce: 1, OpHash: []byte("late")}
+	a.replay.height = 1
+	a.cover = &checkpointCover{height: 1, head: late, refused: map[string]struct{}{}, chain: map[string]struct{}{"late": {}}}
+	lateAdm := &spaceAdmission{a: a, op: []byte("op"), done: make(chan struct{})}
+	a.pending = append(a.pending, lateAdm)
+
+	// The first install fails its hold, reports nothing and decides nothing,
+	// and the late QueueOperation that returns after it waits for the head.
 	if err := a.installHead(ctx); err == nil {
 		t.Fatal("the first install held the retained roots through a failing store")
 	}
-	if len(reports) != 0 || adm.state == admissionDecided {
-		t.Fatalf("a failed install reported %d heads and decided %v", len(reports), adm.state == admissionDecided)
+	a.queued(lateAdm, "late", late, nil)
+	if len(reports) != 0 || adm.state == admissionDecided || lateAdm.state == admissionDecided {
+		t.Fatalf("a failed install reported %d heads and decided %v, the late one %v", len(reports), adm.state == admissionDecided, lateAdm.state == admissionDecided)
 	}
 
-	// The next install holds them, reports the head once, then decides.
+	// The next install holds them, reports the head once, then decides both.
 	if err := a.installHead(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -173,6 +185,9 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	}
 	if len(reports) != 1 || !reports[0].Root.EqualsRef(head) || adm.state != admissionDecided {
 		t.Fatalf("the retry reported %v and decided %v", reports, adm.state == admissionDecided)
+	}
+	if lateAdm.state != admissionDecided || lateAdm.decision != world.Accepted {
+		t.Fatalf("the retry left the late admission %v with decision %v, want Accepted", lateAdm.state, lateAdm.decision)
 	}
 
 	// An install whose retained set the root holds already stores nothing
@@ -1653,14 +1668,24 @@ func TestTrimReleasesImportedPayloadOnceHeld(t *testing.T) {
 // decides every admission of this device it covers, so none waits queued for
 // a replay that will never place it: a refused one is Rejected, an applied one
 // is placed for installHead to accept, and one covered by a checkpoint that
-// records no outcomes, skips an installed height, or names another chain is
-// Undecided with durability unknown. It covers admissions queued before the
-// install and those whose QueueOperation returns after it.
+// records no outcomes, skips an installed height, or that this device cannot
+// prove is on the covered chain is Undecided with durability unknown. It
+// covers admissions queued before the install and those whose QueueOperation
+// returns after it.
 func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 	const peer = "local-peer"
+	hash := func(nonce uint64) []byte { return []byte("op-" + strconv.FormatUint(nonce, 10)) }
 	pos := func(nonce uint64) *sobject.SOOperationPosition {
-		return &sobject.SOOperationPosition{PeerId: peer, Nonce: nonce, OpHash: []byte("op-" + strconv.FormatUint(nonce, 10))}
+		return &sobject.SOOperationPosition{PeerId: peer, Nonce: nonce, OpHash: hash(nonce)}
 	}
+
+	// held is the operations this device holds: one chain op-1 to op-9, each
+	// linking the one below it, unless a case adds a fork.
+	held := make(map[string]*sobject.SOOperationInner)
+	for n := uint64(1); n <= 9; n++ {
+		held[string(hash(n))] = &sobject.SOOperationInner{PeerId: peer, Nonce: n, PrevOpHash: hash(n - 1)}
+	}
+	get := func(h []byte) *sobject.SOOperationInner { return held[string(h)] }
 	checkpoint := func(height uint64, head *sobject.SOOperationPosition, outcomes *sobject.SOCheckpointOutcomes) *sobject.SOCheckpointInner {
 		other := &sobject.SOOperationPosition{PeerId: "other-peer", Nonce: 9, OpHash: []byte("other")}
 		return &sobject.SOCheckpointInner{Height: height, Authors: []*sobject.SOOperationPosition{other, head}, Outcomes: outcomes}
@@ -1673,10 +1698,10 @@ func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 	install := func(a *Adapter, c *sobject.SOCheckpointInner) {
 		var refused, unknown []*spaceAdmission
 		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			refused, unknown = a.installCoverLocked(c, peer)
+			refused, unknown = a.installCoverLocked(c, peer, get)
 		})
 		a.decideCovered(refused, unknown)
-		a.headHeight = c.GetHeight()
+		a.headHeight, a.acceptHeight = c.GetHeight(), c.GetHeight()
 	}
 	expect := func(name string, adm *spaceAdmission, state spaceAdmissionState, decision world.Decision, sentinel error) {
 		t.Helper()
@@ -1736,6 +1761,31 @@ func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 	other.OpHash = []byte("forked")
 	install(a, checkpoint(2, other, &sobject.SOCheckpointOutcomes{}))
 	expect("forked head", forked, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+
+	// A restore of the same identity signs a second chain from nonce 2. A
+	// checkpoint covering that fork's tip covers neither this chain's
+	// operations below it nor one queued late on this chain, even at a nonce
+	// the cover passes: none is on the walk from the fork's tip.
+	a = newAdapter()
+	held["fork-2"] = &sobject.SOOperationInner{PeerId: peer, Nonce: 2, PrevOpHash: hash(1)}
+	held["fork-3"] = &sobject.SOOperationInner{PeerId: peer, Nonce: 3, PrevOpHash: []byte("fork-2")}
+	nonTip := admit(a, 2)
+	forkTip := &sobject.SOOperationPosition{PeerId: peer, Nonce: 3, OpHash: []byte("fork-3")}
+	install(a, checkpoint(2, forkTip, &sobject.SOCheckpointOutcomes{}))
+	expect("non-tip after a restore", nonTip, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+	late = &spaceAdmission{a: a, op: []byte("op"), done: make(chan struct{})}
+	a.pending = append(a.pending, late)
+	a.queued(late, "late-non-tip", pos(3), nil)
+	expect("non-tip queued after a restore", late, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+
+	// A link the device does not hold ends the proof: the operations below
+	// it are Undecided, and those on the walk still decide.
+	a = newAdapter()
+	gap, proven := admit(a, 2), admit(a, 4)
+	delete(held, string(hash(3)))
+	install(a, checkpoint(2, pos(4), &sobject.SOCheckpointOutcomes{}))
+	expect("below a missing link", gap, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+	expect("on the walk above a missing link", proven, admissionPlaced, 0, nil)
 
 	// An admission queued before any install waits for replay.
 	a = &Adapter{}

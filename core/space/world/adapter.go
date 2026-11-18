@@ -179,6 +179,12 @@ type Adapter struct {
 	// bcast.
 	headHeight    uint64
 	headPositions int
+	// acceptHeight is the checkpoint height of the last head installHead
+	// finished: it held the head's retained roots and reported the head to
+	// every watcher. A candidate the installed cover places is accepted at
+	// once only at or below it; otherwise the install finishing there
+	// accepts it. Guarded by bcast.
+	acceptHeight uint64
 	// replayState is the replay state the body driver last reached, opening
 	// before its first step. It alone decides whether the Space takes writes
 	// (gateWrite). Guarded by bcast.
@@ -882,8 +888,9 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 
 // Install moves the replay base to checkpoint's World and trims the
 // histories, keeping the positions after the covered ones when the World
-// after them is the checkpoint's.
-func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointInner, covered int) (bool, error) {
+// after them is the checkpoint's. It decides the admissions checkpoint covers
+// from the operations held, as installCoverLocked does.
+func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointInner, covered int, held *sobject.SOOperationSet) (bool, error) {
 	// Wait for the claim.
 	if err := a.waitOpened(ctx); err != nil {
 		return false, err
@@ -944,7 +951,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 	var refused, unknown []*spaceAdmission
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.installed, a.checkpoint, a.checkpointSeqno = true, base, seqno
-		refused, unknown = a.installCoverLocked(checkpoint, a.so.GetPeerID().String())
+		refused, unknown = a.installCoverLocked(checkpoint, a.so.GetPeerID().String(), held.Get)
 		broadcast()
 	})
 	a.decideCovered(refused, unknown)
@@ -1344,12 +1351,17 @@ func (a *Adapter) place(adm *spaceAdmission, pos spacePosition, ranAgain bool) {
 	a.decide([]*spaceAdmission{adm}, decision, pos.reason, err)
 }
 
-// installCoverLocked installs the cover checkpoint gives peerID's operations
-// and applies it to every pending admission. It returns the refused and the
-// unknown admissions for the caller to decide after it releases bcast; every
-// other covered admission is placed. The caller holds bcast.
-func (a *Adapter) installCoverLocked(checkpoint *sobject.SOCheckpointInner, peerID string) (refused, unknown []*spaceAdmission) {
-	a.cover = nextCover(a.cover, checkpoint, peerID)
+// installCoverLocked installs the cover checkpoint gives peerID's operations,
+// proving chain membership from the operations held returns, and applies it
+// to every pending admission. It returns the refused and the unknown
+// admissions for the caller to decide after it releases bcast; every other
+// covered admission is placed. The caller holds bcast.
+func (a *Adapter) installCoverLocked(
+	checkpoint *sobject.SOCheckpointInner,
+	peerID string,
+	held func(h []byte) *sobject.SOOperationInner,
+) (refused, unknown []*spaceAdmission) {
+	a.cover = nextCover(a.cover, checkpoint, peerID, held)
 	for _, adm := range a.pending {
 		switch a.coverLocked(adm) {
 		case coverRefused:
@@ -1413,8 +1425,8 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOpe
 
 	// Record the local ID and position, and decide an operation the driver
 	// already refused or the installed checkpoint covers. An applied one is
-	// decided now when the installed head already holds the checkpoint, and
-	// otherwise by the install that moves the head there.
+	// decided now when an install that holds the checkpoint finished, and
+	// otherwise by the install that finishes there.
 	var refused *spacePosition
 	var outcome coverOutcome
 	var installedHead bool
@@ -1426,7 +1438,7 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOpe
 			return
 		}
 		outcome = a.coverLocked(adm)
-		installedHead = outcome == coverApplied && a.headHeight >= a.cover.height
+		installedHead = outcome == coverApplied && a.acceptHeight >= a.cover.height
 	})
 	switch {
 	case refused != nil:
@@ -1492,22 +1504,14 @@ func (a *Adapter) writerHeadLocked() world.Head {
 
 // installHead installs the World after the last position as the head, moves
 // the writer head with it, holds its retained roots, reports it to every head
-// watcher, then decides the candidates it holds.
+// watcher, then finishes the install and decides the candidates it holds.
 func (a *Adapter) installHead(ctx context.Context) error {
-	// Install the head and collect the placed candidates.
+	// Install the head.
 	state, seqno := a.replay.head()
 	height, positions := a.replay.height, len(a.replay.positions)
 	head := world.Head{Root: state.GetHeadRef().GetRootRef().Clone(), Seqno: seqno, Durable: true}
-	var placed []*spaceAdmission
 	var watchers []*headWatch
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// Collect the placed candidates.
-		for _, adm := range a.pending {
-			if adm.state == admissionPlaced {
-				placed = append(placed, adm)
-			}
-		}
-
 		// Move the head when it changed. A refused position moves only the
 		// place, which serve waits on.
 		moved := a.headHeight != height || a.headPositions != positions
@@ -1541,6 +1545,19 @@ func (a *Adapter) installHead(ctx context.Context) error {
 		}
 		a.watchMtx.Unlock()
 	}
+
+	// Finish the install and collect the placed candidates in one hold, so a
+	// candidate queued places after it either is collected here or sees the
+	// finished height and is accepted at once.
+	var placed []*spaceAdmission
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		a.acceptHeight = height
+		for _, adm := range a.pending {
+			if adm.state == admissionPlaced {
+				placed = append(placed, adm)
+			}
+		}
+	})
 	if len(placed) != 0 {
 		a.decide(placed, world.Accepted, "", nil)
 	}

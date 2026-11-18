@@ -409,8 +409,12 @@ func (s *SOOperationSet) AuthorAt(peerID string, nonce uint64) ([]byte, error) {
 	}
 }
 
-// Get returns the verified body of the operation with hash h, or nil.
+// Get returns the verified body of the operation with hash h, or nil. A nil
+// set holds none.
 func (s *SOOperationSet) Get(h []byte) *SOOperationInner {
+	if s == nil {
+		return nil
+	}
 	return s.ops[string(h)]
 }
 
