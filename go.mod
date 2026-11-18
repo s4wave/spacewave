@@ -58,8 +58,8 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/fclairamb/ftpserverlib v0.32.7
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261109134749-d67c9b5cfb14 // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261118124353-ffdcbdb3eef9 // main
+	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261118131511-ef69bf247300 // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261118141311-5623eedcb968 // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.12.0
 	github.com/gomodule/redigo v2.0.0+incompatible
