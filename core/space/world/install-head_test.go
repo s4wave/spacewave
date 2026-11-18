@@ -128,8 +128,9 @@ func trimNow(t *testing.T, a *Adapter) {
 // hold failed is held and reported to the watchers by the next install, that
 // its placed candidate is decided only then, as is one whose QueueOperation
 // returns after the failed install with a position the installed checkpoint
-// covers, and that a later install of the same retained set reads and moves
-// nothing.
+// covers, that a later install of the same retained set reads and moves
+// nothing, and that a kept install forgets a missing operation the
+// checkpoint covers but keeps one replay still applies.
 func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	// Build an adapter whose replay head retains a root, over a store that
 	// fails the first root move.
@@ -223,6 +224,27 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	}
 	if n := store.existsCalls() - exists; n != 0 || len(store.moved) != moved {
 		t.Fatalf("an install of a held retained set asked the store %d times and moved %d roots", n, len(store.moved)-moved)
+	}
+
+	// A reorder noted two applied operations missing. A kept install moves
+	// to a checkpoint that covers one of them, so the operations above it
+	// hold only the other. The install forgets the covered one, which replay
+	// never applies again, and keeps the one replay still applies, which
+	// alone holds the next installHead back. Once that one leaves the
+	// operations too, the next kept install leaves nothing missing.
+	a.missing = map[string]struct{}{"covered-by-fork": {}, "still-above": {}}
+	above := map[string]*sobject.SOOperationInner{"still-above": {PeerId: "other-peer", Nonce: 1}}
+	held := func(h []byte) *sobject.SOOperationInner { return above[string(h)] }
+	if dropped := a.dropPositions(0, true, held); len(dropped) != 0 {
+		t.Fatalf("a kept install covering no positions dropped %d", len(dropped))
+	}
+	if _, ok := a.missing["still-above"]; !ok || len(a.missing) != 1 {
+		t.Fatalf("a kept install left missing %v, want only the operation replay still applies", a.missing)
+	}
+	delete(above, "still-above")
+	a.dropPositions(0, true, held)
+	if len(a.missing) != 0 {
+		t.Fatalf("a kept install over no operations left missing %v, gating installHead", a.missing)
 	}
 }
 

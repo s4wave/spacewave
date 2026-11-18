@@ -917,17 +917,15 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		kept = state.EqualVT(base)
 	}
 	paid := kept && slices.ContainsFunc(r.positions[:covered], func(pos spacePosition) bool { return len(pos.payloads) != 0 })
-	var inCheckpoint []spacePosition
-	if kept {
-		inCheckpoint = r.positions[:covered]
-		r.positions = slices.Clone(r.positions[covered:])
-		r.floor, r.saved = max(0, r.floor-covered), max(0, r.saved-covered)
-	} else {
-		if err := a.missAbove(ctx); err != nil {
+	var above func(h []byte) *sobject.SOOperationInner
+	if !kept || len(a.missing) != 0 {
+		set, err := a.opsAbove(ctx)
+		if err != nil {
 			return false, err
 		}
-		r.positions, r.floor, r.saved = nil, 0, 0
+		above = set.Get
 	}
+	inCheckpoint := a.dropPositions(covered, kept, above)
 	r.base, r.baseSeqno, r.height = base, seqno, checkpoint.GetHeight()
 	if len(r.restored) != 0 && !kept && !r.restoredFrom.EqualVT(base) {
 		r.restored = nil
@@ -1151,32 +1149,66 @@ func (a *Adapter) runTrim(ctx context.Context, p *trimPlan) error {
 	})
 }
 
-// missAbove notes as missing every applied position whose operation is still
-// above the checkpoint, so the installed head stays until replay applies
-// them again.
-func (a *Adapter) missAbove(ctx context.Context) error {
-	// Read the operations above the checkpoint now.
+// opsAbove reads the operations above the SharedObject's checkpoint now.
+func (a *Adapter) opsAbove(ctx context.Context) (*sobject.SOOperationSet, error) {
 	snap, err := a.so.GetSharedObjectState(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	set, err := snap.GetOperationSet(ctx)
-	if err != nil {
-		return err
+	return snap.GetOperationSet(ctx)
+}
+
+// dropPositions drops the replay positions an install covers and returns
+// them: the first covered when kept, as the World after them is the
+// checkpoint's, and none when not, as every position is dropped. It updates
+// the missing set as noteMissing does from held, which returns an operation
+// above the installed checkpoint by its hash; held may be nil only for a
+// kept install with nothing missing.
+func (a *Adapter) dropPositions(covered int, kept bool, held func(h []byte) *sobject.SOOperationInner) []spacePosition {
+	// Keep the positions after the covered ones, and forget the missing
+	// operations the checkpoint covers.
+	r := a.replay
+	if kept {
+		inCheckpoint := r.positions[:covered]
+		r.positions = slices.Clone(r.positions[covered:])
+		r.floor, r.saved = max(0, r.floor-covered), max(0, r.saved-covered)
+		if held != nil {
+			a.noteMissing(nil, held)
+		}
+		return inCheckpoint
 	}
 
-	// Note those the replay applied.
-	for _, pos := range a.replay.positions {
-		if pos.reason == "" && set.Get(pos.op.Hash) != nil {
+	// Drop them all, noting those replay applies again.
+	a.noteMissing(r.positions, held)
+	r.positions, r.floor, r.saved = nil, 0, 0
+	return nil
+}
+
+// noteMissing updates the missing set for an install, given the replay
+// positions it drops and held, which returns an operation above the
+// installed checkpoint by its hash, or nil. It notes each dropped applied
+// position whose operation held returns, so the installed head stays until
+// replay applies it again, and forgets each missing hash held lacks.
+//
+// Invariant: a hash leaves the missing set only when replay applies its
+// operation again (Apply) or the operations above the installed checkpoint
+// no longer hold it. An operation leaves them only when a checkpoint covers
+// it, after which replay never applies it, so a forgotten hash cannot hold
+// installHead back forever, and a hash whose operation can still replay
+// stays until replay applies it, so installHead never runs ahead of it. A
+// kept install drops no positions and still forgets: a reorder may have
+// noted an operation the checkpoint covers.
+func (a *Adapter) noteMissing(dropped []spacePosition, held func(h []byte) *sobject.SOOperationInner) {
+	for _, pos := range dropped {
+		if pos.reason == "" && held(pos.op.Hash) != nil {
 			a.missing[string(pos.op.Hash)] = struct{}{}
 		}
 	}
 	for key := range a.missing {
-		if set.Get([]byte(key)) == nil {
+		if held([]byte(key)) == nil {
 			delete(a.missing, key)
 		}
 	}
-	return nil
 }
 
 // newAdmission returns the admission of op, with candidate when a local
