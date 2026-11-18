@@ -15,6 +15,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//codemap:umbrella db title="Storage stack" layer=storage
+//codemap:contains db/volume.Volume db/kvtx.Store db/block/store.Store db/world.Engine
+
 // Constructor constructs a volume with common parameters.
 type Constructor func(
 	ctx context.Context,
@@ -22,6 +25,8 @@ type Constructor func(
 ) (Volume, error)
 
 // Volume stores data with an associated peer ID.
+//
+//codemap:default db/volume/common/kvtx.Volume
 type Volume interface {
 	// GetID returns the volume ID.
 	// Usually this is derived from the peer ID and volume type.

@@ -12,6 +12,8 @@ import (
 	"github.com/s4wave/spacewave/db/volume/paylog"
 )
 
+//codemap:umbrella db/browser title="Browser storage" parent=db entry=openVolume
+
 // ControllerID identifies the browser volume controller.
 const ControllerID = "hydra/volume/browser"
 
