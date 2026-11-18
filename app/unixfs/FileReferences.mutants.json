@@ -1,0 +1,32 @@
+[
+  {
+    "name": "More shows when nothing is past the page",
+    "replace": [
+      [
+        "(IF hasMore THEN {\"more\"} ELSE {})",
+        "{\"more\"}"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a failed read offers no Retry",
+    "replace": [
+      [
+        "IF load = \"failed\" THEN {\"retry\"}",
+        "IF load = \"failed\" THEN {}"
+      ]
+    ],
+    "expect": "NobodyIsStuck"
+  },
+  {
+    "name": "Open shows on an empty page",
+    "replace": [
+      [
+        "ELSE (IF refs = \"found\" THEN {\"open\"} ELSE {})",
+        "ELSE {\"open\"}"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  }
+]

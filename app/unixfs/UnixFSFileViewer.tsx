@@ -57,6 +57,9 @@ export interface UnixFSFileViewerProps {
   // hideToolbar suppresses the built-in toolbar when an outer component
   // (e.g. GitToolbar) already provides navigation.
   hideToolbar?: boolean
+  // footer is drawn under the file at every size, such as the references
+  // strip of a file that is its own World object.
+  footer?: ReactNode
   // inlineFileURL is the projected raw file URL for inline previews.
   inlineFileURL?: string
   // readOnly says why the file cannot be written, such as a commit's files;
@@ -452,6 +455,7 @@ export function UnixFSFileViewer({
   rootHandle,
   objectKey,
   hideToolbar,
+  footer,
   inlineFileURL,
   readOnly,
 }: UnixFSFileViewerProps) {
@@ -478,6 +482,7 @@ export function UnixFSFileViewer({
           description={stat.mimeType}
           renderBar={hideToolbar ? undefined : renderToolbar}
         />
+        {footer}
       </div>
     )
   }
@@ -493,6 +498,7 @@ export function UnixFSFileViewer({
       <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
         <FileBody path={path} stat={stat} rootHandle={rootHandle} body={body} />
       </div>
+      {footer}
     </div>
   )
 }
