@@ -56,6 +56,8 @@ type coldPackCatalog struct {
 	packs []coldPack
 	// intervals orders the manifest's pack numbers by first key.
 	intervals []coldInterval
+	// promotionScope binds the log to the loaded manifest and bucket namespace.
+	promotionScope [sha256.Size]byte
 }
 
 // newColdPackCatalog validates the manifest and prepares its interval search.

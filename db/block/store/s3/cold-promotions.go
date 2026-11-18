@@ -24,10 +24,12 @@ import (
 )
 
 const (
-	// coldPromotionBytes is the fixed record size, including the checksum.
-	coldPromotionBytes = 32
-	// coldSuffixBytes is the 96-bit key suffix kept in each record.
-	coldSuffixBytes = 12
+	// coldPromotionMagic names the manifest-bound, full-key format.
+	coldPromotionMagic = "SWCPLOG2"
+	// coldPromotionHeaderBytes holds the magic and SHA-256 of the mount scope.
+	coldPromotionHeaderBytes = len(coldPromotionMagic) + sha256.Size
+	// coldPromotionBytes holds the full digest, compact extent and scoped CRC.
+	coldPromotionBytes = 48
 	// coldPromoteBatch bounds the number of records written in one sync step.
 	coldPromoteBatch = 64
 )
@@ -52,12 +54,12 @@ func (e coldExtent) flightKey() string {
 type coldPromotion struct {
 	// extent supplies the pack, offset and encoded length.
 	extent coldExtent
-	// dataSize is the decoded length, untrusted until exact is set.
+	// dataSize is the decoded length, known only after body verification.
 	dataSize uint32
-	// digest is a full SHA-256 from a verified block in this mount.
+	// digest names the full canonical wire key in the bound manifest.
 	digest [sha256.Size]byte
-	// exact distinguishes a fully verified digest from a restored suffix hint.
-	exact bool
+	// verified means this mount has verified the body, not just recovered the key.
+	verified bool
 }
 
 // coldPromotions owns a single append-only log and an in-memory read index.
@@ -75,54 +77,66 @@ type coldPromotions struct {
 	promoteCh chan coldPromotion
 	// mtx guards records. It never guards filesystem operations.
 	mtx sync.RWMutex
-	// records maps each suffix to its latest durable record.
-	records map[[coldSuffixBytes]byte]coldPromotion
+	// records maps each full canonical key digest to its latest durable record.
+	records map[[sha256.Size]byte]coldPromotion
+	// recordCRC seeds record checksums with the header, set before publication.
+	recordCRC uint32
 }
 
 // newColdPromotions creates the in-memory promotion index and queue.
 func newColdPromotions(store *ColdPackStore, path string, cap int) *coldPromotions {
 	return &coldPromotions{
 		store: store, path: path, cap: uint64(cap), //nolint:gosec // The store constructor checked cap is non-negative.
-		promoteCh: make(chan coldPromotion, 1024), records: make(map[[coldSuffixBytes]byte]coldPromotion),
+		promoteCh: make(chan coldPromotion, 1024), records: make(map[[sha256.Size]byte]coldPromotion),
 	}
 }
 
-// coldSuffix extracts the final 96 bits of a SHA-256 digest.
-func coldSuffix(digest [sha256.Size]byte) [coldSuffixBytes]byte {
-	return [coldSuffixBytes]byte(digest[sha256.Size-coldSuffixBytes:])
+// coldPromotionScope binds pack ordinals to the exact manifest and object names.
+func coldPromotionScope(bucket, prefix string, manifest []byte) [sha256.Size]byte {
+	// Frame both path components so no other bucket/prefix split can alias.
+	h := sha256.New()
+	var size [8]byte
+	for _, part := range []string{bucket, prefix} {
+		binary.BigEndian.PutUint64(size[:], uint64(len(part)))
+		_, _ = h.Write(size[:])
+		_, _ = h.Write([]byte(part))
+	}
+	_, _ = h.Write(manifest)
+	return [sha256.Size]byte(h.Sum(nil))
 }
 
-// get copies one candidate; callers must independently check exact and digest.
+// get copies the record for one exact canonical key without waiting.
 func (p *coldPromotions) get(digest [sha256.Size]byte) (coldPromotion, bool) {
 	// Do not wait behind a promoter publishing a durable batch.
 	if !p.mtx.TryRLock() {
 		return coldPromotion{}, false
 	}
 	defer p.mtx.RUnlock()
-	record, found := p.records[coldSuffix(digest)]
+	record, found := p.records[digest]
 	return record, found
 }
 
-// confirm recovers a full digest and decoded length for an existing record.
+// confirm publishes the verified body length for an existing record.
 func (p *coldPromotions) confirm(digest [sha256.Size]byte, extent coldExtent, size uint32) {
 	// Keep the newer record if the promoter replaced the hint mid-read.
-	key := coldSuffix(digest)
 	if !p.mtx.TryLock() {
 		return
 	}
 	defer p.mtx.Unlock()
-	if rec, ok := p.records[key]; ok && rec.extent == extent {
-		p.records[key] = coldPromotion{extent: extent, dataSize: size, digest: digest, exact: true}
+	if rec, ok := p.records[digest]; ok && rec.extent == extent {
+		rec.dataSize = size
+		rec.verified = true
+		p.records[digest] = rec
 	}
 }
 
-// offer submits an extent only after the lookup has verified the block.
+// offer submits only an authenticated canonical index hit with a verified body.
 func (p *coldPromotions) offer(digest [sha256.Size]byte, extent coldExtent, size int64) {
 	// Keep reading extents that cannot be represented in this log format.
 	if !p.active.Load() || extent.off >= 1<<48 || extent.size > math.MaxUint32 || size < 0 || size > math.MaxUint32 {
 		return
 	}
-	if old, ok := p.get(digest); ok && old.exact && old.digest == digest && old.extent == extent {
+	if old, ok := p.get(digest); ok && old.verified && old.extent == extent {
 		return
 	}
 
@@ -131,7 +145,7 @@ func (p *coldPromotions) offer(digest [sha256.Size]byte, extent coldExtent, size
 		p.store.stats.promoteCapDropped.Add(1)
 		return
 	}
-	rec := coldPromotion{extent: extent, dataSize: uint32(size), digest: digest, exact: true} //nolint:gosec // size passed the bounds check.
+	rec := coldPromotion{extent: extent, dataSize: uint32(size), digest: digest, verified: true} //nolint:gosec // size passed the bounds check.
 	select {
 	case p.promoteCh <- rec:
 	default:
@@ -185,10 +199,25 @@ func lockPromotionFile(f *os.File, manifest os.FileInfo) error {
 	return err
 }
 
-// recover keeps the valid prefix and discards a partial or bad-CRC suffix.
+// recover keeps only records in the current format and mount scope. A recovered
+// hint cannot recover its wire identity from a body hash or a pack ordinal alone.
+// A missing or different header discards the cache instead of migrating it.
 func (p *coldPromotions) recover(f *os.File, catalog *coldPackCatalog) error {
-	// Read at most the configured bound, even with an old oversized log.
+	// Fence stale ordinals before decoding any record as a canonical key.
 	reader := bufio.NewReader(f)
+	var header, actual [coldPromotionHeaderBytes]byte
+	copy(header[:], coldPromotionMagic)
+	copy(header[len(coldPromotionMagic):], catalog.promotionScope[:])
+	_, err := io.ReadFull(reader, actual[:])
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+		return err
+	}
+	p.recordCRC = crc32.ChecksumIEEE(header[:])
+	if err != nil || actual != header {
+		return replaceColdPromotionHeader(f, header)
+	}
+
+	// Read at most the configured bound, even with an oversized log.
 	var raw [coldPromotionBytes]byte
 	var kept uint64
 	for kept < p.cap {
@@ -200,16 +229,16 @@ func (p *coldPromotions) recover(f *os.File, catalog *coldPackCatalog) error {
 		if err != nil {
 			return err
 		}
-		if crc32.ChecksumIEEE(raw[:28]) != binary.BigEndian.Uint32(raw[28:]) {
+		if crc32.Update(p.recordCRC, crc32.IEEETable, raw[:44]) != binary.BigEndian.Uint32(raw[44:]) {
 			break
 		}
 
-		// A changed manifest can make a sound record stale. Keep the record's
-		// physical slot but never admit an out-of-bounds range as a read hint.
-		key, rec := decodeColdPromotion(raw)
-		if rec.extent.fits(catalog) {
-			p.records[key] = rec
+		// Discard a record and its suffix if its extent cannot fit this pack.
+		rec := decodeColdPromotion(raw)
+		if !rec.extent.fits(catalog) {
+			break
 		}
+		p.records[rec.digest] = rec
 		kept++
 	}
 
@@ -218,7 +247,7 @@ func (p *coldPromotions) recover(f *os.File, catalog *coldPackCatalog) error {
 	if err != nil {
 		return err
 	}
-	end := int64(kept * coldPromotionBytes) // The constructor bounded the record count.
+	end := int64(uint64(coldPromotionHeaderBytes) + kept*coldPromotionBytes) // The constructor bounded the record count.
 	if info.Size() != end {
 		if err := f.Truncate(end); err != nil {
 			return err
@@ -229,6 +258,18 @@ func (p *coldPromotions) recover(f *os.File, catalog *coldPackCatalog) error {
 	}
 	p.store.stats.promotedKeys.Store(kept)
 	return nil
+}
+
+// replaceColdPromotionHeader empties the dedicated log and commits its new scope.
+func replaceColdPromotionHeader(f *os.File, header [coldPromotionHeaderBytes]byte) error {
+	// Repair a missing, obsolete or torn header under the existing inode lock.
+	if err := f.Truncate(0); err != nil {
+		return err
+	}
+	if _, err := f.Write(header[:]); err != nil {
+		return err
+	}
+	return f.Sync()
 }
 
 // fits reports whether the extent points entirely inside the pack's payloads.
@@ -243,31 +284,27 @@ func (e coldExtent) fits(catalog *coldPackCatalog) bool {
 }
 
 // decodeColdPromotion decodes the fixed fields after recovery checks the CRC.
-func decodeColdPromotion(raw [coldPromotionBytes]byte) ([coldSuffixBytes]byte, coldPromotion) {
-	return [coldSuffixBytes]byte(raw[:12]), coldPromotion{
+func decodeColdPromotion(raw [coldPromotionBytes]byte) coldPromotion {
+	return coldPromotion{
+		digest: [sha256.Size]byte(raw[:32]),
 		extent: coldExtent{
-			pack: binary.BigEndian.Uint16(raw[12:14]),
-			off:  uint64(binary.BigEndian.Uint16(raw[14:16]))<<32 | uint64(binary.BigEndian.Uint32(raw[16:20])),
-			size: uint64(binary.BigEndian.Uint32(raw[20:24])),
+			pack: binary.BigEndian.Uint16(raw[32:34]),
+			off:  uint64(binary.BigEndian.Uint16(raw[34:36]))<<32 | uint64(binary.BigEndian.Uint32(raw[36:40])),
+			size: uint64(binary.BigEndian.Uint32(raw[40:44])),
 		},
-		dataSize: binary.BigEndian.Uint32(raw[24:28]),
 	}
 }
 
-// encodeColdPromotion appends one fixed record and its CRC32 to the batch.
-func encodeColdPromotion(dst []byte, rec coldPromotion) []byte {
-	// Pack the 48-bit offset without allocating another buffer.
-	key := coldSuffix(rec.digest)
+// encodeColdPromotion appends a fixed record with a scope-seeded checksum.
+func encodeColdPromotion(dst []byte, rec coldPromotion, seed uint32) []byte {
+	// Persist the whole canonical digest and the extent, not a decoded size.
 	start := len(dst)
-	dst = append(dst, key[:]...)
+	dst = append(dst, rec.digest[:]...)
 	dst = binary.BigEndian.AppendUint16(dst, rec.extent.pack)
 	dst = binary.BigEndian.AppendUint16(dst, uint16(rec.extent.off>>32)) //nolint:gosec // offer bounds offsets to 48 bits.
 	dst = binary.BigEndian.AppendUint32(dst, uint32(rec.extent.off))     //nolint:gosec // The low 32 bits of the 48-bit offset.
-
-	// Finish with the encoded and decoded sizes, then the record checksum.
-	dst = binary.BigEndian.AppendUint32(dst, uint32(rec.extent.size)) //nolint:gosec // offer bounds length to uint32.
-	dst = binary.BigEndian.AppendUint32(dst, rec.dataSize)
-	return binary.BigEndian.AppendUint32(dst, crc32.ChecksumIEEE(dst[start:]))
+	dst = binary.BigEndian.AppendUint32(dst, uint32(rec.extent.size))    //nolint:gosec // offer bounds length to uint32.
+	return binary.BigEndian.AppendUint32(dst, crc32.Update(seed, crc32.IEEETable, dst[start:]))
 }
 
 // run appends batches with one fsync each and yields between batches. Only the
@@ -305,18 +342,18 @@ func (p *coldPromotions) run(ctx context.Context, f *os.File) {
 // appendBatch drains a bounded batch and publishes it only after fsync.
 func (p *coldPromotions) appendBatch(f *os.File, first coldPromotion) error {
 	// Filter duplicates and check physical capacity before writing any bytes.
-	admitted := make(map[[coldSuffixBytes]byte]coldPromotion, coldPromoteBatch)
+	admitted := make(map[[sha256.Size]byte]coldPromotion, coldPromoteBatch)
 	var buf [coldPromotionBytes * coldPromoteBatch]byte
 	data := buf[:0]
 	rec := first
 	for i := range coldPromoteBatch {
-		// Choose at most one extent per suffix in this slice of worker time.
-		key := coldSuffix(rec.digest)
-		old, exists := p.get(rec.digest)
-		if _, duplicate := admitted[key]; !duplicate && (!exists || !old.exact || old.digest != rec.digest || old.extent != rec.extent) {
+		// Choose at most one extent per canonical key in this batch.
+		key := rec.digest
+		old, exists := p.get(key)
+		if _, duplicate := admitted[key]; !duplicate && (!exists || !old.verified || old.extent != rec.extent) {
 			if p.store.stats.promotedKeys.Load()+uint64(len(admitted)) < p.cap {
 				admitted[key] = rec
-				data = encodeColdPromotion(data, rec)
+				data = encodeColdPromotion(data, rec, p.recordCRC)
 			} else {
 				p.store.stats.promoteCapDropped.Add(1)
 			}

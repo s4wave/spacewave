@@ -3,8 +3,8 @@
     "name": "Moves can reserve all demand slots",
     "replace": [
       [
-        "Cardinality(reserved \\cup moving) < MoveSlots",
-        "Cardinality(reserved \\cup moving) < Slots"
+        "movePermits < MoveSlots",
+        "movePermits < Slots"
       ]
     ],
     "expect": "MoveReservationsBounded"
@@ -28,5 +28,15 @@
       ]
     ],
     "expect": "NoUserWaiting"
+  },
+  {
+    "name": "A cancelled mover keeps its reservation",
+    "replace": [
+      [
+        "movePermits' = IF m \\in reserved THEN movePermits - 1 ELSE movePermits",
+        "movePermits' = movePermits"
+      ]
+    ],
+    "expect": "PermitOwnersMatch"
   }
 ]

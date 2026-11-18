@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
+	"hash/crc32"
 	"iter"
 	"os"
 	"path/filepath"
@@ -417,6 +419,230 @@ func TestColdPackMoveIsolation(t *testing.T) {
 	})
 }
 
+// TestColdPackMoveReturnsPermits checks releases before and after range admission.
+func TestColdPackMoveReturnsPermits(t *testing.T) {
+	for _, fault := range []string{"cancelled-waiter", "range-error", "deadline", "panic"} {
+		t.Run(fault, func(t *testing.T) {
+			// Test with the production scheduler, but no network or real deadlines.
+			v := coldValues(t, coldDemandSlots+1)
+			f := newColdFixture(t)
+			key := f.addPack(t, v, false)
+			f.manifest(t)
+			raw := []byte(f.objects[key])
+			f.opts.PromotedLog = ""
+			synctest.Test(t, func(t *testing.T) {
+				checkColdPermitReturn(t, f.opts, v, raw, fault)
+			})
+		})
+	}
+}
+
+// coldPermitGateKey carries a test-only range gate through a demand flight.
+type coldPermitGateKey struct{}
+
+// coldPermitFaultKey makes only the selected move encounter a range fault.
+type coldPermitFaultKey struct{}
+
+// coldPermitGate holds admitted calls and records which lane reached the reader.
+type coldPermitGate struct {
+	// entered reports one true value for a move and one false for a user range.
+	entered chan bool
+	// release lets the wave leave the fake reader before another wave starts.
+	release chan struct{}
+}
+
+// checkColdPermitReturn saturates and refills the real lanes in one synctest bubble.
+func checkColdPermitReturn(t *testing.T, opts ColdPackOptions, v []coldValue, raw []byte, fault string) {
+	// Use the real tail once; all later calls exercise only body admission.
+	t.Helper()
+	reader := coldRangeProbe(func(ctx context.Context, off int64, size int) ([]byte, error) {
+		if gate, ok := ctx.Value(coldPermitGateKey{}).(*coldPermitGate); ok {
+			gate.entered <- ctx.Value(coldMoveProbeKey{}) != nil
+			select {
+			case <-gate.release:
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+		if ctx.Value(coldPermitFaultKey{}) != nil {
+			return nil, coldPermitFault(ctx, fault)
+		}
+		return raw[off : off+int64(size)], nil
+	})
+	s, err := NewColdPackStore(t.Context(), nil, reader, "bucket", opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	synctest.Wait()
+	catalog := s.catalog.Load()
+	if catalog == nil {
+		t.Fatal("fixture catalog did not load")
+	}
+	if _, err := s.tails.read(t.Context(), catalog, 0, false); err != nil {
+		t.Fatal(err)
+	}
+
+	// Saturate with users, then hold a move at its second admission step.
+	drain := startColdPermitWave(t, s, v[:coldDemandSlots], 0)
+	waiting, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	queued := make(chan error, 1)
+	ref := v[coldDemandSlots].ref
+	go func() {
+		_, err := s.GetStoredBlockForMove(waiting, ref)
+		queued <- err
+	}()
+	synctest.Wait()
+	if len(s.ranges) != coldDemandSlots || len(s.moveRanges) != 1 || len(queued) != 0 {
+		t.Fatal("fixture did not park a reserved move behind a full shared lane")
+	}
+
+	// Request the identical extent; a user cannot inherit the move's wait.
+	start := time.Now()
+	miss := make(chan bool, 1)
+	go func() {
+		stored, err := s.GetStoredBlock(t.Context(), ref)
+		miss <- stored == nil && err == nil
+	}()
+	synctest.Wait()
+	select {
+	case ok := <-miss:
+		if !ok || time.Since(start) != 0 {
+			t.Error("user did not miss immediately on the queued move's extent")
+		}
+	default:
+		t.Error("user joined a move waiting for admission")
+	}
+
+	// The canceled waiter returns its reservation without consuming a shared slot.
+	cancel()
+	synctest.Wait()
+	select {
+	case err := <-queued:
+		if !errors.Is(err, block.ErrUnavailable) {
+			t.Errorf("canceled waiter = %v, want unavailable", err)
+		}
+	default:
+		t.Error("canceled waiter did not leave admission")
+	}
+	drain()
+	assertColdPermitsEmpty(t, s)
+
+	// A failure after admission returns both permits too, even on panic unwind.
+	if fault != "cancelled-waiter" {
+		checkColdAdmittedFault(t, s, ref, fault)
+		assertColdPermitsEmpty(t, s)
+	}
+	drain = startColdPermitWave(t, s, v[:coldDemandSlots], coldMoveSlots)
+	drain()
+	assertColdPermitsEmpty(t, s)
+}
+
+// startColdPermitWave holds a full wave inside the reader and returns its drain.
+func startColdPermitWave(t *testing.T, s *ColdPackStore, v []coldValue, movers int) func() {
+	// Start all reads, giving each a distinct extent so nothing coalesces.
+	t.Helper()
+	gate := &coldPermitGate{entered: make(chan bool, len(v)), release: make(chan struct{})}
+	release := sync.OnceFunc(func() { close(gate.release) })
+	t.Cleanup(release)
+	ctx := context.WithValue(t.Context(), coldPermitGateKey{}, gate)
+	moveCtx := context.WithValue(ctx, coldMoveProbeKey{}, true)
+	done := make(chan bool, len(v))
+	for i, value := range v {
+		go func() {
+			var stored *block.StoredBlock
+			var err error
+			if i < movers {
+				stored, err = s.GetStoredBlockForMove(moveCtx, value.ref)
+			} else {
+				stored, err = s.GetStoredBlock(ctx, value.ref)
+			}
+			done <- err == nil && bytes.Equal(stored.GetData(), value.data)
+		}()
+	}
+
+	// Wait for the fake ranges to park without releasing a permit or a timer.
+	synctest.Wait()
+	if got := len(gate.entered); got != len(v) {
+		t.Fatalf("fresh wave admitted %d of %d ranges", got, len(v))
+	}
+	var enteredMoves int
+	for range v {
+		if <-gate.entered {
+			enteredMoves++
+		}
+	}
+	if enteredMoves != movers {
+		t.Fatalf("fresh wave admitted %d move ranges, want %d", enteredMoves, movers)
+	}
+
+	// Release only this wave and check every read returned verified data.
+	return func() {
+		release()
+		synctest.Wait()
+		for range v {
+			select {
+			case ok := <-done:
+				if !ok {
+					t.Error("admitted wave lost a verified body")
+				}
+			default:
+				t.Fatal("released wave did not leave the reader")
+			}
+		}
+	}
+}
+
+// coldPermitFault injects an error, an expired range context or a reader panic.
+func coldPermitFault(ctx context.Context, fault string) error {
+	switch fault {
+	case "range-error":
+		return errors.New("fake range error")
+	case "deadline":
+		<-ctx.Done()
+		return ctx.Err()
+	default:
+		panic("fake range panic")
+	}
+}
+
+// checkColdAdmittedFault observes failure outside the synchronous move read.
+func checkColdAdmittedFault(t *testing.T, s *ColdPackStore, ref *block.BlockRef, fault string) {
+	// A test recovers the fake reader's panic only after the move has unwound.
+	t.Helper()
+	ctx := context.WithValue(t.Context(), coldPermitFaultKey{}, true)
+	var err error
+	var recovered any
+	start := time.Now()
+	func() {
+		defer func() { recovered = recover() }()
+		_, err = s.GetStoredBlockForMove(ctx, ref)
+	}()
+	if fault == "panic" {
+		if recovered != "fake range panic" {
+			t.Fatalf("fake range panic = %v", recovered)
+		}
+		return
+	}
+
+	// A failed range never becomes a clean miss, including when its timer ends.
+	if recovered != nil || !errors.Is(err, block.ErrUnavailable) {
+		t.Fatalf("move fault %s = %v, panic %v; want unavailable", fault, err, recovered)
+	}
+	if fault == "deadline" && time.Since(start) != coldReadLimit {
+		t.Fatalf("move range deadline took %v, want %v", time.Since(start), coldReadLimit)
+	}
+}
+
+// assertColdPermitsEmpty checks reservations as well as the shared range lane.
+func assertColdPermitsEmpty(t *testing.T, s *ColdPackStore) {
+	t.Helper()
+	if shared, moves := len(s.ranges), len(s.moveRanges); shared != 0 || moves != 0 {
+		t.Fatalf("returned calls kept permits: shared=%d move=%d", shared, moves)
+	}
+}
+
 // coldMoveProbeKey identifies a move's gated ranges without inspecting its refs.
 type coldMoveProbeKey struct{}
 
@@ -487,6 +713,46 @@ func TestColdPackMoveKeepsUserTail(t *testing.T) {
 	}
 }
 
+// TestColdPackMoveKeepsUserTailOrder checks that borrowing cannot touch the user LRU.
+func TestColdPackMoveKeepsUserTailOrder(t *testing.T) {
+	// Fit two decoded tails, but not three, and leave room to admit each raw tail.
+	const count = 16
+	v := coldValues(t, 3*count)
+	f := newColdFixture(t)
+	for i := range 3 {
+		f.addPack(t, v[i*count:(i+1)*count], false)
+	}
+	m := f.manifest(t)
+	const budget = 2 * count * coldTailEntryBytes
+	for _, meta := range m.Entries {
+		if coldTailCharge(meta) > budget {
+			t.Fatal("fixture raw tail must fit the two decoded tail budget")
+		}
+	}
+	s := f.open(t, func(opts *ColdPackOptions) {
+		opts.TailCacheBytes = budget
+		opts.PromotedLog = ""
+	})
+
+	// Fill A then B, then have the mover borrow A without issuing a tail GET.
+	assertColdBlock(t, s, v[0])
+	assertColdBlock(t, s, v[count])
+	before := s.Stats().TailFetches
+	stored, err := s.GetStoredBlockForMove(t.Context(), v[0].ref)
+	if err != nil || !bytes.Equal(stored.GetData(), v[0].data) || s.Stats().TailFetches != before {
+		t.Fatalf("move did not borrow A: %v, %v", stored, err)
+	}
+
+	// C replaces the oldest user tail, which must still be A, not B.
+	assertColdBlock(t, s, v[2*count])
+	_, a := s.tails.resident.peek(0)
+	_, b := s.tails.resident.peek(1)
+	_, c := s.tails.resident.peek(2)
+	if a || !b || !c {
+		t.Fatalf("move reordered user eviction: resident A=%t B=%t C=%t, want false true true", a, b, c)
+	}
+}
+
 // TestColdPackTailFallbacks proves both raw-reader paths use full wire keys.
 func TestColdPackTailFallbacks(t *testing.T) {
 	t.Run("oversized", func(t *testing.T) {
@@ -516,14 +782,7 @@ func TestColdPackTailFallbacks(t *testing.T) {
 		// all-ones bloom makes the canonical key reach the exact raw lookup too.
 		v := coldValues(t, 3)
 		canonical := v[1].ref
-		h := &hash.Hash{}
-		if err := h.UnmarshalVT(append(packfile.BlockKey(canonical.GetHash()), 0x18, 1)); err != nil {
-			t.Fatal(err)
-		}
-		if n := h.SizeVT(); n <= coldKeySize {
-			t.Fatalf("extended key fits scratch: %d bytes", n)
-		}
-		v[1].ref = block.NewBlockRef(h)
+		v[1] = coldExtendedValue(t, v[1])
 		f := newColdFixture(t)
 		f.addPack(t, v, true)
 		f.manifest(t)
@@ -542,6 +801,21 @@ func TestColdPackTailFallbacks(t *testing.T) {
 		}
 		assertColdBlock(t, s, v[1])
 	})
+}
+
+// coldExtendedValue adds a wire field without changing the block's body digest.
+func coldExtendedValue(t *testing.T, v coldValue) coldValue {
+	// Retain the unknown field in the packed key instead of changing the payload.
+	t.Helper()
+	h := &hash.Hash{}
+	if err := h.UnmarshalVT(append(packfile.BlockKey(v.ref.GetHash()), 0x18, 1)); err != nil {
+		t.Fatal(err)
+	}
+	if n := h.SizeVT(); n <= coldKeySize {
+		t.Fatalf("extended key fits scratch: %d bytes", n)
+	}
+	v.ref = block.NewBlockRef(h)
+	return v
 }
 
 // TestColdPackFlightCancellation checks that the first waiter's cancellation
@@ -646,27 +920,27 @@ func TestColdPackPromotionRecovery(t *testing.T) {
 			assertColdBlock(t, s, v[0])
 			waitCold(t, func() bool { return s.Stats().PromotedKeys == 1 })
 			s.Close()
-			f.appendTear(t, key, manifest.Entries[0], v[1], kind)
+			f.appendTear(t, key, manifest.Entries[0], v[1], kind, s.promotions.recordCRC)
 
 			// Keep warming out of this branch to measure an exact promoted GET.
 			s = f.open(t, func(opts *ColdPackOptions) { opts.TailCacheBytes = 1 })
 			checkColdLog(t, f.opts.PromotedLog, 1)
 			before := f.reader.calls.Load()
 			if yes, err := s.GetBlockExists(t.Context(), v[0].ref); yes || err != nil {
-				t.Fatalf("restored suffix alone said present: %v, %v", yes, err)
+				t.Fatalf("unverified restored key said present: %v, %v", yes, err)
 			}
 			collisionHash := v[0].ref.GetHash().Clone()
 			collisionHash.Hash[0] ^= 1
 			collision := block.NewBlockRef(collisionHash)
 			if yes, err := s.GetBlockExists(t.Context(), collision); yes || err != nil || f.reader.calls.Load() != before {
-				t.Fatalf("suffix collision answered %v, %v with %d reads", yes, err, f.reader.calls.Load()-before)
+				t.Fatalf("different key with the old suffix answered %v, %v with %d reads", yes, err, f.reader.calls.Load()-before)
 			}
 			assertColdBlock(t, s, v[0])
 			if s.Stats().TailFetches != 0 || f.reader.calls.Load() != before+1 {
 				t.Fatalf("restored extent did not cost one exact read: %+v", s.Stats())
 			}
 			if yes, _ := s.GetBlockExists(t.Context(), collision); yes {
-				t.Fatal("full proof authorized different key with same suffix")
+				t.Fatal("verified promotion authorized a different key with the old suffix")
 			}
 			if yes, _ := s.GetBlockExists(t.Context(), v[0].ref); !yes {
 				t.Fatal("verified promoted identity did not answer from RAM")
@@ -692,6 +966,52 @@ func TestColdPackPromotionRecovery(t *testing.T) {
 			}
 		})
 	}
+	t.Run("legacy-extended-key", func(t *testing.T) {
+		// Put E in an authenticated index whose canonical interior key C is absent.
+		v := coldValues(t, 3)
+		canonical := v[1].ref
+		v[1] = coldExtendedValue(t, v[1])
+		f := newColdFixture(t)
+		key := f.addPack(t, v, true)
+		f.manifest(t)
+		f.seedLegacyPromotion(t, key, v[1])
+
+		// A payload hash proves the data, not the distinct canonical wire key.
+		s := f.open(t, func(opts *ColdPackOptions) { opts.TailCacheBytes = 1 })
+		assertColdBlock(t, s, v[1])
+		if stored, err := s.GetStoredBlock(t.Context(), canonical); stored != nil || err != nil {
+			t.Errorf("legacy promotion returned the extended block for the canonical key: %v, %v", stored, err)
+		}
+		if yes, err := s.GetBlockExists(t.Context(), canonical); yes || err != nil {
+			t.Errorf("legacy promotion authorized a canonical presence: %t, %v", yes, err)
+		}
+		if got := s.Stats().PromotedKeys; got != 0 {
+			t.Errorf("retained %d records from an unqualified format", got)
+		}
+	})
+
+	t.Run("manifest-change", func(t *testing.T) {
+		// Persist a canonical record from a manifest with one pack.
+		v := coldValues(t, 2)
+		f := newColdFixture(t)
+		f.addPack(t, v[:1], false)
+		f.manifest(t)
+		s := f.open(t, nil)
+		assertColdBlock(t, s, v[0])
+		waitCold(t, func() bool { return s.Stats().PromotedKeys == 1 })
+		s.Close()
+
+		// Replace the manifest without changing the old key's pack or ordinal.
+		key := f.addPack(t, v[1:], false)
+		f.setObject(key, f.objects[key])
+		f.manifest(t)
+		s = f.open(t, nil)
+		if got := s.Stats().PromotedKeys; got != 0 {
+			t.Errorf("recovered %d records from a different manifest", got)
+		}
+		assertColdBlock(t, s, v[0])
+		waitCold(t, func() bool { return s.Stats().PromotedKeys == 1 })
+	})
 }
 
 // TestColdPackPromotionBackpressure proves a paused writer cannot stall a read.
@@ -913,8 +1233,35 @@ func (f *coldFixture) setObject(key, body string) {
 	f.bucket.objects[key] = body
 }
 
+// seedLegacyPromotion writes the retired 32-byte format independently of the writer.
+func (f *coldFixture) seedLegacyPromotion(t *testing.T, key string, v coldValue) {
+	// Read the actual extended entry so both its extent and CRC are valid.
+	t.Helper()
+	body := []byte(f.objects[key])
+	r, err := kvfile.BuildReader(bytes.NewReader(body), uint64(len(body)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, _, err := r.SearchIndexEntryWithKey(packfile.BlockKey(v.ref.GetHash()))
+	if err != nil || e == nil {
+		t.Fatalf("find extended key in fixture: %v, %v", e, err)
+	}
+
+	// The old headerless row contains a suffix and the ordinal-zero extent.
+	var raw [32]byte
+	copy(raw[:12], v.ref.GetHash().GetHash()[20:])
+	binary.BigEndian.PutUint16(raw[14:16], uint16(e.Offset>>32)) //nolint:gosec // The fixture pack fits 48 bits.
+	binary.BigEndian.PutUint32(raw[16:20], uint32(e.Offset))     //nolint:gosec // The fixture pack fits 32 bits.
+	binary.BigEndian.PutUint32(raw[20:24], uint32(e.Size))       //nolint:gosec // The fixture pack fits 32 bits.
+	binary.BigEndian.PutUint32(raw[24:28], uint32(len(v.data)))  //nolint:gosec // The fixture block is short.
+	binary.BigEndian.PutUint32(raw[28:], crc32.ChecksumIEEE(raw[:28]))
+	if err := os.WriteFile(f.opts.PromotedLog, raw[:], 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // appendTear writes an incomplete or bad-CRC record for v after a durable prefix.
-func (f *coldFixture) appendTear(t *testing.T, key string, meta *packfile.ColdPackEntry, v coldValue, kind string) {
+func (f *coldFixture) appendTear(t *testing.T, key string, meta *packfile.ColdPackEntry, v coldValue, kind string, seed uint32) {
 	// Use the real extent so a valid-looking partial record is understood.
 	t.Helper()
 	body := []byte(f.objects[key])
@@ -927,7 +1274,7 @@ func (f *coldFixture) appendTear(t *testing.T, key string, meta *packfile.ColdPa
 		t.Fatalf("find torn key in fixture: %v, %v", e, err)
 	}
 	digest := [32]byte(v.ref.GetHash().GetHash())
-	record := encodeColdPromotion(nil, coldPromotion{extent: coldExtent{off: e.Offset, size: e.Size}, digest: digest, dataSize: uint32(len(v.data))})
+	record := encodeColdPromotion(nil, coldPromotion{extent: coldExtent{off: e.Offset, size: e.Size}, digest: digest}, seed)
 	if kind == "partial" {
 		record = record[:15]
 	} else {
@@ -1034,8 +1381,8 @@ func checkColdLog(t *testing.T, path string, records int64) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Size() != records*coldPromotionBytes {
-		t.Fatalf("promoted log size %d; wanted %d", info.Size(), records*coldPromotionBytes)
+	if want := int64(coldPromotionHeaderBytes) + records*coldPromotionBytes; info.Size() != want {
+		t.Fatalf("promoted log size %d; wanted %d", info.Size(), want)
 	}
 }
 

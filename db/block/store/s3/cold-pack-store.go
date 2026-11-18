@@ -99,7 +99,8 @@ func NewColdPackStore(ctx context.Context, le *logrus.Entry, client ColdPackRang
 	if client == nil || bucket == "" || !coldPackSubpath(opts.Prefix) || opts.ManifestFile == "" {
 		return nil, errors.New("cold packs require a bucket, a dedicated prefix and a manifest")
 	}
-	if opts.PromoteCap < 0 || int64(opts.PromoteCap) > math.MaxInt64/coldPromotionBytes || opts.TailCacheBytes < 0 || opts.NegativeCacheKeys < 0 {
+	const maxRecords = (math.MaxInt64 - int64(coldPromotionHeaderBytes)) / coldPromotionBytes
+	if opts.PromoteCap < 0 || int64(opts.PromoteCap) > maxRecords || opts.TailCacheBytes < 0 || opts.NegativeCacheKeys < 0 {
 		return nil, errors.New("invalid cold pack cache or promotion limit")
 	}
 	if opts.PromotedLog != "" && filepath.Clean(opts.ManifestFile) == filepath.Clean(opts.PromotedLog) {
@@ -281,7 +282,16 @@ func (s *ColdPackStore) loadCatalog() (*coldPackCatalog, error) {
 	if err := manifest.UnmarshalVT(data); err != nil {
 		return nil, err
 	}
-	return newColdPackCatalog(s.opts.Prefix, manifest)
+
+	// Bind promotion ordinals to precisely the catalog bytes this mount loaded.
+	catalog, err := newColdPackCatalog(s.opts.Prefix, manifest)
+	if err != nil {
+		return nil, err
+	}
+	if s.opts.PromotedLog != "" && s.opts.PromoteCap != 0 {
+		catalog.promotionScope = coldPromotionScope(s.bucket, s.opts.Prefix, data)
+	}
+	return catalog, nil
 }
 
 // coldLookupMode says which evidence a read can obtain on the request path.
@@ -422,7 +432,7 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 
 		// Return only the result of a verified block read, then queue its extent.
 		extent := coldExtent{pack: pack, off: off, size: length}
-		if ok && promoted.exact && promoted.digest == digest && promoted.extent == extent {
+		if ok && promoted.verified && promoted.extent == extent {
 			unresolved = true // The read of this exact extent already failed.
 			return true
 		}
@@ -436,6 +446,9 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 			return true
 		}
 		size, found = int64(len(stored.Data)), true
+
+		// The authenticated index chose this exact wire key. A full digest
+		// names that key only for the canonical encoding without extensions.
 		if canonical {
 			s.promotions.offer(digest, extent, size)
 		}
@@ -454,39 +467,34 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 	return stored, size, found, unresolved || ctx.Err() != nil
 }
 
-// readPromoted distinguishes exact in-memory evidence from a restored hint.
+// readPromoted uses a hint only for the exact canonical wire key that the
+// authenticated index located, in the same manifest and bucket namespace.
+// A recovered record must also verify the body in this mount before it can
+// answer existence or stat from memory.
 func (s *ColdPackStore) readPromoted(
 	ctx context.Context, catalog *coldPackCatalog, ref *block.BlockRef,
 	mode coldLookupMode, digest [sha256.Size]byte, rec coldPromotion,
 ) (*block.StoredBlock, int64, bool) {
-	// A random absent key has at most PromoteCap / 2^96 chance of matching
-	// a suffix (about 6.3e-24 at 500,000). That match never answers yes: only
-	// a full digest verified against the payload in this mount, or an exact
-	// index key from a bound pack, proves membership. A restored hint requires
-	// one verified extent read before it can answer existence from RAM.
+	// The full-key lookup found this record; honor the mount's bucket fences.
 	pack := &catalog.packs[rec.extent.pack]
 	if pack.unusable() {
 		return nil, 0, false
 	}
-	exact := rec.exact && rec.digest == digest
-	if mode == coldExists || mode == coldStat && exact && !pack.badPayload.Load() {
-		return nil, int64(rec.dataSize), exact && !pack.badPayload.Load()
+	if mode == coldExists || mode == coldStat && rec.verified && !pack.badPayload.Load() {
+		return nil, int64(rec.dataSize), rec.verified && !pack.badPayload.Load()
 	}
 
-	// Treat a known different digest as a suffix collision, not a read target.
-	if rec.exact && !exact {
-		return nil, 0, false
-	}
+	// Recovery proves the wire key and extent, but not today's payload bytes.
 	stored, err := s.readExtent(ctx, catalog, ref, rec.extent, false)
 	if err != nil {
-		if exact && errors.Is(err, errColdInvalidExtent) {
+		if rec.verified && errors.Is(err, errColdInvalidExtent) {
 			pack.badPayload.Store(true)
 		}
 		s.warn(ctx, err, "read promoted cold block extent")
 		return nil, 0, false
 	}
 
-	// Recover the full digest and actual decoded size, not the log's hint.
+	// Publish the decoded size only after this mount verifies the body.
 	s.promotions.confirm(digest, rec.extent, uint32(len(stored.Data))) //nolint:gosec // Decoded data fits the record's uint32 encoded extent.
 	return stored, int64(len(stored.Data)), true
 }
@@ -601,6 +609,8 @@ func (s *ColdPackStore) admitRange(ctx context.Context, lane coldRangeLane) erro
 }
 
 // releaseRange returns the shared permit before letting another move reserve it.
+// readRange defers this release across every admitted exit, including panic
+// unwind. A mover canceled before admission returns only its reservation.
 func (s *ColdPackStore) releaseRange(lane coldRangeLane) {
 	// Every admitted move holds both permits until its range ends.
 	<-s.ranges

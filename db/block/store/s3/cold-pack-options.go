@@ -20,7 +20,8 @@ type ColdPackOptions struct {
 	ManifestFile string
 	// PromotedLog is a dedicated, exclusively owned local log path. Empty disables promotion.
 	PromotedLog string
-	// PromoteCap bounds the log to this many 32-byte records. Zero disables promotion.
+	// PromoteCap bounds the log to a 40-byte header plus this many 48-byte
+	// records. Zero disables promotion.
 	PromoteCap int
 	// TailCacheBytes bounds resident user indexes. Zero uses 64 MiB. Storage
 	// moves retain separate indexes up to this budget or 16 MiB, whichever
