@@ -22,6 +22,16 @@ type Transport interface {
 	Fetch(ctx context.Context, off int64, length int) ([]byte, error)
 }
 
+// IndexTransport is a Transport that takes a pack's index tail reads apart
+// from its payload reads, as to count the bytes of each. A reader whose
+// transport implements it reads the tail with FetchIndex.
+type IndexTransport interface {
+	Transport
+	// FetchIndex returns bytes [off, off+length) of the pack's index tail,
+	// as Fetch does.
+	FetchIndex(ctx context.Context, off int64, length int) ([]byte, error)
+}
+
 // maxRetryWait bounds the delay a rate-limited response can ask for.
 const maxRetryWait = time.Minute
 
