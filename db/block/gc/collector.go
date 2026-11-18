@@ -509,7 +509,7 @@ func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.
 	for _, bucketID := range slices.Sorted(maps.Keys(lapsed)) {
 		moves = append(moves, BucketRoots{BucketID: bucketID, Roots: lapsed[bucketID]})
 	}
-	if _, err := Land(ctx, rec, blocks, now, nil, moves...); err != nil {
+	if _, err := Land(ctx, rec, blocks, now, nil, PutHold{Mode: HeldOff}, moves...); err != nil {
 		return 0, false, err
 	}
 	res.Lapsed += uint64(len(found)) //nolint:gosec // counts are never negative.
@@ -982,7 +982,16 @@ func (r *Records) freeable(ctx context.Context, state *LivenessState) (bool, err
 // HoldUntilFree, the free gives each child its down through f; when the list
 // does not fit the moves f has left after an earlier free, it changes
 // nothing and reports false, so the next slice frees it first.
-func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, state *LivenessState, ripe uint64, ref *block.BlockRef, res *CollectResult, f *freeing) (bool, error) {
+func (c *Collector) freeBlock(
+	ctx context.Context,
+	rec *Records,
+	blocks block.StoreOps,
+	state *LivenessState,
+	ripe uint64,
+	ref *block.BlockRef,
+	res *CollectResult,
+	f *freeing,
+) (bool, error) {
 	// Check the block is stored.
 	key := BlockKey(ref)
 	queued := rec.queueKey(ripe, key)

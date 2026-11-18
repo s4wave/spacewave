@@ -71,6 +71,24 @@ func (t *TxStoreTx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bo
 	return GetBatch(ctx, t.tx, keys)
 }
 
+// ExistsBatch reports the presence of multiple keys.
+func (t *TxStoreTx) ExistsBatch(ctx context.Context, keys [][]byte) ([]bool, error) {
+	// Validate the requested keys and hold the virtual transaction lifecycle lock.
+	for _, key := range keys {
+		if len(key) == 0 {
+			return nil, ErrEmptyKey
+		}
+	}
+	t.rmtx.RLock()
+	defer t.rmtx.RUnlock()
+
+	// Reject access through a discarded virtual transaction.
+	if t.discarded {
+		return nil, tx.ErrDiscarded
+	}
+	return ExistsBatch(ctx, t.tx, keys)
+}
+
 // Prefetch forwards the prefetch to the transaction.
 func (t *TxStoreTx) Prefetch(ctx context.Context, keys [][]byte) error {
 	// Hold the virtual transaction lifecycle lock.

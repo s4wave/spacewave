@@ -3,6 +3,7 @@ package kvtx_kvtest
 import (
 	"bytes"
 	"context"
+	"slices"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -93,8 +94,17 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
-	// Verify every committed fixture value in a fresh read transaction.
+	// Verify every committed fixture value in a fresh read transaction, and
+	// their presence, with an absent key, in one batch.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		// Check the keys' presence in one batch.
+		found, err := kvtx.ExistsBatch(ctx, tx, append(slices.Clone(keys), []byte("b")))
+		if err != nil {
+			return err
+		}
+		if want := append(slices.Repeat([]bool{true}, len(keys)), false); !slices.Equal(found, want) {
+			return errors.Errorf("ExistsBatch = %v, want %v", found, want)
+		}
 		for i, k := range keys {
 			v := []byte(strconv.Itoa(i))
 			val, ok, err := tx.Get(ctx, k)

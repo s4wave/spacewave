@@ -117,7 +117,16 @@ func decodeRecord(b []byte, seq uint64, prev uint32, prevWriter uint64) (*record
 	}
 
 	// Decode the body by kind.
-	r := &record{seq: seq, kind: b[16], writer: binary.LittleEndian.Uint64(b[17:]), prevWriter: prevWriter, durable: binary.LittleEndian.Uint64(b[33:]), spare: binary.LittleEndian.Uint64(b[41:]), size: n, crc: crc}
+	r := &record{
+		seq:        seq,
+		kind:       b[16],
+		writer:     binary.LittleEndian.Uint64(b[17:]),
+		prevWriter: prevWriter,
+		durable:    binary.LittleEndian.Uint64(b[33:]),
+		spare:      binary.LittleEndian.Uint64(b[41:]),
+		size:       n,
+		crc:        crc,
+	}
 	d := decoder{b: b[recordHeader:n]}
 	switch r.kind {
 	case kindCommit:

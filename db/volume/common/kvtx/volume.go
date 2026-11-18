@@ -172,10 +172,11 @@ type Volume struct {
 	// storageFlows fills in the flows the storage counts, may be nil.
 	storageFlows func(*volume.VolumeFlows)
 	// heldMode is what Land does with a root move that requires its blocks
-	// held when one is not, from Config.RootHeldCheck.
+	// held when one is not, and with a put of a block nothing holds, from
+	// Config.RootHeldCheck.
 	heldMode block_gc.HeldMode
 	// notHeld counts the blocks observed not held, by block_gc.NotHeldReason.
-	notHeld [block_gc.NotHeldChild + 1]atomic.Uint64
+	notHeld [block_gc.NotHeldPut + 1]atomic.Uint64
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.

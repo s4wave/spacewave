@@ -34,3 +34,30 @@ func GetBatchFallback(ctx context.Context, ops TxOps, keys [][]byte) ([][]byte, 
 	}
 	return values, found, nil
 }
+
+// BatchExistsTxOps tests multiple keys for presence in one transaction
+// operation, without reading their values.
+type BatchExistsTxOps interface {
+	// ExistsBatch returns found flags aligned with keys.
+	ExistsBatch(ctx context.Context, keys [][]byte) ([]bool, error)
+}
+
+// ExistsBatch tests multiple keys with BatchExistsTxOps.ExistsBatch when ops
+// implements it and with one Exists per key when it does not.
+func ExistsBatch(ctx context.Context, ops TxOps, keys [][]byte) ([]bool, error) {
+	if batch, ok := ops.(BatchExistsTxOps); ok {
+		return batch.ExistsBatch(ctx, keys)
+	}
+	found := make([]bool, len(keys))
+	for i, key := range keys {
+		if len(key) == 0 {
+			return nil, ErrEmptyKey
+		}
+		ok, err := ops.Exists(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		found[i] = ok
+	}
+	return found, nil
+}

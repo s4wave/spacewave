@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // BucketRoots are the root moves of one bucket a Land makes.
@@ -27,7 +28,7 @@ type BucketRoots struct {
 	// reason when any is nonzero, or no counts and the error when the check
 	// failed or was cancelled, before the Land's transaction commits, so it
 	// also counts a Land that later fails. Nil drops them.
-	Observed func(notHeld [NotHeldChild + 1]uint64, err error)
+	Observed func(notHeld [NotHeldPut + 1]uint64, err error)
 }
 
 // HeldMode is what Land does with a move that requires its blocks held when
@@ -55,6 +56,10 @@ const (
 	// one the writer stored in an earlier batch, or never did. Land cannot
 	// tell which, so a repeat lands only if it stores the child again.
 	NotHeldChild
+	// NotHeldPut is a block the batch gives birth to and gives no holder: no
+	// root moves onto it, no block the batch stores names it, and its count
+	// records no holder from before.
+	NotHeldPut
 )
 
 // Land stores entries and moves the roots of each bucket in moves in one
@@ -132,11 +137,13 @@ const (
 // block each root it moves held when the adoption began, as Adopt reads.
 //
 // Cost per call: the state record and, when an entry has no list, whether the
-// Volume records any hole; per entry, its child list record and, for one
-// without a list in a Volume that records a hole, its hole record; per child a born block names outside
-// its batch, its child list record and, for an unlisted child, a block
-// existence read, with one up pair appended for each, a blind append on reads
-// it already makes; per moved root, its entry and its lease index record.
+// Volume records any hole; one batched read of the entries' child list
+// records and one of the count records of those without a list, and, for one
+// without a list in a Volume that records a hole, its hole record; one
+// batched read of the child list records of the distinct children the born
+// blocks name outside the batch and, when any is unlisted, one batched block
+// existence read, with one up pair appended per naming; per moved root, its
+// entry and its lease index record.
 // While the generation is not Settled, each child list record it reads
 // returns its value, and per stored block it puts while Open, its list
 // record, which it may rewrite, with one list read per child of a rewritten
@@ -157,6 +164,7 @@ func Land(
 	blocks block.StoreOps,
 	now time.Time,
 	entries []*block.PutBatchEntry,
+	puts PutHold,
 	moves ...BucketRoots,
 ) ([]bool, error) {
 	// Read the journal position and adoption.
@@ -219,6 +227,11 @@ func Land(
 		}
 	}
 
+	// Refuse or count the born blocks nothing holds.
+	if err := l.requirePutsHeld(puts); err != nil {
+		return nil, err
+	}
+
 	// Append the journal record, then write the state if anything changed it.
 	if err := l.appendJournal(ctx, now); err != nil {
 		return nil, err
@@ -239,6 +252,8 @@ type bornBlock struct {
 	children []*block.BlockRef
 	// holders counts the holders the batch gives it.
 	holders int
+	// counted reports that its count records holders from before the put.
+	counted bool
 	// reput reports that the store held its bytes without a child list, so
 	// holders the store cannot see may name it.
 	reput bool
@@ -341,7 +356,13 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			l.stored = append(l.stored, entry)
 			l.touched[key] = entry.Refs
 		default:
-			b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs), reborn: kind == putReborn, repark: kind == putRepark}
+			b := &bornBlock{
+				ref:      entry.Ref,
+				children: normalizeChildren(entry.Refs),
+				counted:  kind == putCounted,
+				reborn:   kind == putReborn,
+				repark:   kind == putRepark,
+			}
 			l.born[key] = b
 			l.order = append(l.order, b)
 		}
@@ -417,6 +438,11 @@ type putKind int
 const (
 	// putBorn is a block without a child list: the put gives birth to it.
 	putBorn putKind = iota
+	// putCounted is a block without a child list whose count outlived it
+	// with holders, as when the store lost its bytes and list while a
+	// parent still names it: the put gives birth to it, and the count holds
+	// it.
+	putCounted
 	// putStored is a block with a child list, stored already.
 	putStored
 	// putRefill is a hole the audit recorded, stored too: the put writes its
@@ -432,18 +458,20 @@ const (
 )
 
 // classifyPuts checks and names each put entry, building an empty ref from
-// its data, and calls fn with the first entry of each block the entries
-// put and what the records hold for it, skipping nil entries and
-// tombstones. It reads whether the Volume records any hole once, at the
-// first block without a child list, and a block's hole record only when one
-// does, so a put into a Volume without a hole, the usual case, reads no hole
-// record per block. Until the generation is Settled it reads whether each
-// listed block is hidden, as Records.Hidden describes.
+// its data, and calls fn, in entry order, with the first entry of each block
+// the entries put and what the records hold for it, skipping nil entries and
+// tombstones. It reads the blocks' child lists in one batch, whether the
+// Volume records any hole once, at the first block without a child list, and
+// a block's hole record only when one does, so a put into a Volume without a
+// hole, the usual case, reads no hole record per block; then the counts of
+// the blocks without a list in one batch. Until the generation is Settled it
+// reads whether each listed block is hidden, as Records.Hidden describes.
 func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entries []*block.PutBatchEntry, fn func(entry *block.PutBatchEntry, kind putKind)) error {
+	// Check and name each entry, once per block.
 	seen := make(map[string]struct{}, len(entries))
-	var holesRead, holes bool
+	puts := make([]*block.PutBatchEntry, 0, len(entries))
+	keys := make([][]byte, 0, len(entries))
 	for _, entry := range entries {
-		// Check and name the entry, once per block.
 		if entry == nil || entry.Tombstone {
 			continue
 		}
@@ -465,18 +493,34 @@ func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entr
 			continue
 		}
 		seen[string(key)] = struct{}{}
+		puts = append(puts, entry)
+		keys = append(keys, key)
+	}
+	if len(puts) == 0 {
+		return nil
+	}
 
-		// Read its child list, then whether it is a recorded hole.
-		listed, err := rec.HasChildren(ctx, entry.Ref)
-		if err != nil {
-			return err
-		}
-		if listed {
-			kind, err := listedPut(ctx, rec, entry.Ref)
-			if err != nil {
+	// Read the child lists in one batch.
+	reads := make([][]byte, len(keys))
+	for i, key := range keys {
+		reads[i] = rec.key(kindChildren, key)
+	}
+	listed, err := kvtx.ExistsBatch(ctx, rec.tx, reads)
+	if err != nil {
+		return err
+	}
+
+	// Sort each block by its list, then by whether it is a recorded hole or
+	// unmarked, leaving the rest to their counts.
+	kinds := make([]putKind, len(puts))
+	counted := reads[:0]
+	var countedAt []int
+	var holesRead, holes bool
+	for i, key := range keys {
+		if listed[i] {
+			if kinds[i], err = listedPut(ctx, rec, puts[i].Ref); err != nil {
 				return err
 			}
-			fn(entry, kind)
 			continue
 		}
 		if !holesRead {
@@ -492,49 +536,63 @@ func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entr
 			}
 		}
 		if hole {
-			fn(entry, putRefill)
+			kinds[i] = putRefill
 			continue
 		}
-		kind, err := unlistedPut(ctx, rec, key)
+		unmarked, err := rec.Unmarked(ctx, key)
 		if err != nil {
 			return err
 		}
-		fn(entry, kind)
+		if unmarked {
+			kinds[i] = putReborn
+			continue
+		}
+		counted = append(counted, rec.key(kindCount, key))
+		countedAt = append(countedAt, i)
+	}
+
+	// Read the counts in one batch.
+	if len(counted) != 0 {
+		values, found, err := kvtx.GetBatch(ctx, rec.tx, counted)
+		if err != nil {
+			return err
+		}
+		for j, i := range countedAt {
+			if kinds[i], err = unlistedPut(values[j], found[j]); err != nil {
+				return err
+			}
+		}
+	}
+	for i, entry := range puts {
+		fn(entry, kinds[i])
 	}
 	return nil
 }
 
-// unlistedPut returns what a put of the block at key, which has neither a
-// child list nor a hole record, does. It keeps this invariant: a put leaves
-// no record that lets the collector free or sweep the block it stores
-// without a later release. Two records can outlive a lost list and do so.
-// An empty run entry while Sweeping is one, since the sweep deletes every
-// block it names whatever the block's list or count, so the put gives an
-// unmarked block birth again, as Records.rebirth describes, whatever its
-// count. A zero count is the other, left when the store lost a Dead block's
-// list while its count, queue entry, front entry, parked key and run entry
-// outlived it, so the put reparks such a block, as Records.repark
-// describes. Neither takes an extra holder for bytes stored without a
-// list, since the block's count recorded what holds it.
-//
-// Cost per block: the generation, which Records reads once and caches, and
-// only while Sweeping one run entry; then the count record. Each is an
-// indexed point read.
-func unlistedPut(ctx context.Context, rec *Records, key []byte) (putKind, error) {
-	// An unmarked block is born again, whatever its count.
-	unmarked, err := rec.Unmarked(ctx, key)
-	if err != nil || unmarked {
-		return putReborn, err
+// unlistedPut returns what a put of a block with neither a child list, a
+// hole record nor an empty run entry does, from its count record value. It
+// keeps this invariant: a put leaves no record that lets the collector free
+// or sweep the block it stores without a later release. Two records can
+// outlive a lost list and do so. An empty run entry while Sweeping is one,
+// since the sweep deletes every block it names whatever the block's list or
+// count, so classifyPuts gives an unmarked block birth again, as
+// Records.rebirth describes, whatever its count. A zero count is the other,
+// left when the store lost a Dead block's list while its count, queue entry,
+// front entry, parked key and run entry outlived it, so the put reparks such
+// a block, as Records.repark describes. Neither takes an extra holder for
+// bytes stored without a list, since the block's count recorded what holds
+// it.
+func unlistedPut(count []byte, found bool) (putKind, error) {
+	// A block with no count is born, and one with holders is born held.
+	if !found {
+		return putBorn, nil
 	}
-
-	// Read the count; a block with none or with holders is born.
-	value, found, err := rec.tx.Get(ctx, rec.key(kindCount, key))
-	if err != nil || !found {
+	holders, _, err := decodeHolders(count)
+	if err != nil {
 		return putBorn, err
 	}
-	holders, _, err := decodeHolders(value)
-	if err != nil || holders != 0 {
-		return putBorn, err
+	if holders != 0 {
+		return putCounted, nil
 	}
 	return putRepark, nil
 }
@@ -601,11 +659,80 @@ func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) err
 	return l.rec.markedYoung(ctx, key, packed, nil)
 }
 
+// holdChildren counts the holder each born block gives each child: an
+// implied holder of a child the batch stores too, and an up pair for any
+// other. It reads the lists of the other children in one batch, and, on a
+// Volume that keeps a journal, whether the store holds the bytes of those
+// without a list in one more.
+func (l *lander) holdChildren(ctx context.Context) error {
+	// Give each child the batch stores its batch holder, and gather each
+	// naming of the others: each gains its child a holder, one up pair, when
+	// the Volume keeps a journal. A child two blocks name is read twice in
+	// the batch, which costs less than a map to find it.
+	n := 0
+	for _, b := range l.order {
+		n += len(b.children)
+	}
+	outside := make([]*block.BlockRef, 0, n)
+	keys := make([][]byte, 0, n)
+	for _, b := range l.order {
+		for _, child := range b.children {
+			key := BlockKey(child)
+			if c, ok := l.born[string(key)]; ok {
+				c.holders++
+				continue
+			}
+			outside, keys = append(outside, child), append(keys, key)
+		}
+	}
+	if l.journal {
+		l.up = append(l.up, keys...)
+	}
+	if len(outside) == 0 {
+		return nil
+	}
+
+	// Pass each the settle's check, and require the unlisted ones absent.
+	listed, err := l.holdOutside(ctx, outside, keys)
+	if err != nil || !l.journal {
+		return err
+	}
+	return l.requireListed(ctx, outside, listed)
+}
+
+// holdOutside checks the holds the born blocks give refs, children outside
+// the batch whose block keys are keys, and reports whether the store lists
+// each: one batched existence read while Settled, and otherwise one batched
+// list read and holdStored's checks for each listed block.
+func (l *lander) holdOutside(ctx context.Context, refs []*block.BlockRef, keys [][]byte) ([]bool, error) {
+	// Read the lists in one batch.
+	reads := make([][]byte, len(keys))
+	for i, key := range keys {
+		reads[i] = l.rec.key(kindChildren, key)
+	}
+	if l.gen == Generation_GENERATION_SETTLED {
+		return kvtx.ExistsBatch(ctx, l.rec.tx, reads)
+	}
+	values, listed, err := kvtx.GetBatch(ctx, l.rec.tx, reads)
+	if err != nil {
+		return nil, err
+	}
+
+	// Pass each listed block the settle's check.
+	for i, ok := range listed {
+		if !ok {
+			continue
+		}
+		if err := l.holdListed(ctx, refs[i], keys[i], listMarked(values[i])); err != nil {
+			return nil, err
+		}
+	}
+	return listed, nil
+}
+
 // holdStored checks a hold onto ref, a block the batch does not store, and
-// reports whether the store lists it: it refuses a hidden one with an
-// AbsentError, as Records.Hidden describes, and while Open it pushes an
-// unverified ref onto the front. While Settled it reads only whether the
-// list exists.
+// reports whether the store lists it, as holdListed checks it. While Settled
+// it reads only whether the list exists.
 func (l *lander) holdStored(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	// Read the list, and while Settled no more.
 	key := BlockKey(ref)
@@ -616,67 +743,58 @@ func (l *lander) holdStored(ctx context.Context, ref *block.BlockRef) (bool, err
 	if err != nil || !listed {
 		return listed, err
 	}
+	return true, l.holdListed(ctx, ref, key, marked)
+}
 
+// holdListed checks a hold onto ref, a listed block at key the batch does not
+// store, while the generation is not Settled: it refuses a hidden one with an
+// AbsentError, as Records.Hidden describes, and while Open it pushes an
+// unverified one onto the front.
+func (l *lander) holdListed(ctx context.Context, ref *block.BlockRef, key []byte, marked bool) error {
 	// Refuse a hidden block. A marked block may die and park, and the flip
 	// unmarks a parked one.
 	hidden, err := l.rec.Hidden(ctx, ref)
 	if err != nil {
-		return true, err
+		return err
 	}
 	if hidden {
-		return true, &AbsentError{Ref: ref}
+		return &AbsentError{Ref: ref}
 	}
 
 	// Push an unverified block while Open, which the hold mark covers.
 	if marked || l.gen != Generation_GENERATION_OPEN {
-		return true, nil
+		return nil
 	}
 	l.onStored = append(l.onStored, key)
-	return true, l.rec.tx.Set(ctx, l.rec.key(kindFront, key), nil)
+	return l.rec.tx.Set(ctx, l.rec.key(kindFront, key), nil)
 }
 
-// holdChildren counts the holder each born block gives each child: an
-// implied holder of a child the batch stores too, and an up pair for any
-// other.
-func (l *lander) holdChildren(ctx context.Context) error {
-	for _, b := range l.order {
-		for _, child := range b.children {
-			// A child the batch stores takes the parent as a batch holder.
-			if c, ok := l.born[string(BlockKey(child))]; ok {
-				c.holders++
-				continue
-			}
-
-			// Any other child passes the settle's check, and gains a holder
-			// unless the Volume keeps no journal.
-			listed, err := l.holdStored(ctx, child)
-			if err != nil {
-				return err
-			}
-			if !l.journal {
-				continue
-			}
-			if !listed {
-				if err := l.requireListed(ctx, child); err != nil {
-					return err
-				}
-			}
-			l.up = append(l.up, BlockKey(child))
+// requireListed refuses the first of refs listed reports without a child
+// list whose bytes the store holds: the children it names would hold
+// nothing. A block the store lacks, such as a child stored after its
+// parent, passes; its holders count from its birth. It reads the unlisted
+// blocks' bytes in one batch, and nothing when every one is listed.
+func (l *lander) requireListed(ctx context.Context, refs []*block.BlockRef, listed []bool) error {
+	// Gather the unlisted blocks, and read their bytes in one batch.
+	var unlisted []*block.BlockRef
+	for i, ok := range listed {
+		if !ok {
+			unlisted = append(unlisted, refs[i])
+		}
+	}
+	if len(unlisted) == 0 {
+		return nil
+	}
+	found, err := l.blocks.GetBlockExistsBatch(ctx, unlisted)
+	if err != nil {
+		return err
+	}
+	for i, ok := range found {
+		if ok {
+			return errors.Wrap(block.ErrRefsUnknown, unlisted[i].MarshalString())
 		}
 	}
 	return nil
-}
-
-// requireListed refuses ref, a block without a child list, when the store
-// holds its bytes: the children it names would hold nothing. A block the
-// store lacks, such as a child stored after its parent, passes; its holders
-// count from its birth.
-func (l *lander) requireListed(ctx context.Context, ref *block.BlockRef) error {
-	found, err := l.blocks.GetBlockExists(ctx, ref)
-	if err == nil && found {
-		err = errors.Wrap(block.ErrRefsUnknown, ref.MarshalString())
-	}
-	return err
 }
 
 // moveRoot moves one named root from held to root.Ref, counting the holder it
@@ -764,7 +882,7 @@ func (l *lander) requireMoveHeld(ctx context.Context, move BucketRoots, held []*
 	// Walk each strict root that moves onto a new block, refusing the first
 	// block not held, or counting each one while observing, until a read
 	// fails.
-	var counts [NotHeldChild + 1]uint64
+	var counts [NotHeldPut + 1]uint64
 	notHeld := func(reason NotHeldReason, ref *block.BlockRef) error {
 		if move.Mode == HeldEnforce {
 			return errors.Wrap(block.ErrRootNotHeld, ref.MarshalString())
@@ -787,9 +905,9 @@ func (l *lander) requireMoveHeld(ctx context.Context, move BucketRoots, held []*
 		return err
 	}
 	if err != nil {
-		counts = [NotHeldChild + 1]uint64{}
+		counts = [NotHeldPut + 1]uint64{}
 	}
-	if move.Observed != nil && (err != nil || counts != [NotHeldChild + 1]uint64{}) {
+	if move.Observed != nil && (err != nil || counts != [NotHeldPut + 1]uint64{}) {
 		move.Observed(counts, err)
 	}
 	return nil

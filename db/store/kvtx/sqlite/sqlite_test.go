@@ -86,6 +86,22 @@ func TestSQLite(t *testing.T) {
 		t.Fatalf("Expected 'value', got '%s'", string(val))
 	}
 
+	// Find the written key among absent ones, past one batch query's keys.
+	batch := make([][]byte, 2000)
+	for i := range batch {
+		batch[i] = []byte("absent-" + strconv.Itoa(i))
+	}
+	batch[1500] = []byte("test")
+	present, err := kvtx.ExistsBatch(ctx, tx, batch)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for i, ok := range present {
+		if ok != (i == 1500) {
+			t.Fatalf("ExistsBatch found key %d = %v", i, ok)
+		}
+	}
+
 	// Commit the basic key-value operation to the SQLite store.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())

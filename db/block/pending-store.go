@@ -20,8 +20,11 @@ import (
 // entries every kept block a moved root reaches, so the root and its tree land
 // in one transaction, and drops them from memory once the inner store holds
 // them. Sweep drops the kept blocks no live root reaches. A put past the
-// memory bound goes to the inner store, or to the stage a writer opened
-// through OpenStage, which holds it until its writer's root does.
+// memory bound goes to the stage a writer opened through OpenStage or
+// OpenOverflowStage, which holds it until its writer's root does. An unstaged
+// put past the bound goes to the inner store, which holds it only when the
+// inner store is itself a stage: a Volume refuses it with ErrUnheldPut while
+// its frees are on.
 //
 // Invariants:
 //   - A kept block carries its complete child list, and each child is kept or

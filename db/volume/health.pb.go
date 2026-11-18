@@ -150,6 +150,10 @@ type VolumeHealth struct {
 	// CorruptRefs lists the first blocks those reads found, at most 16, as block
 	// ref strings.
 	CorruptRefs []string `protobuf:"bytes,16,rep,name=corrupt_refs,json=corruptRefs,proto3" json:"corruptRefs,omitempty"`
+	// NotHeldPutBlocks counts the blocks stored by puts that nothing held, no
+	// root, parent in their batch or stage, that landed while the volume
+	// observed rather than refused, since it opened.
+	NotHeldPutBlocks uint64 `protobuf:"varint,17,opt,name=not_held_put_blocks,json=notHeldPutBlocks,proto3" json:"notHeldPutBlocks,omitempty"`
 }
 
 func (x *VolumeHealth) Reset() {
@@ -256,6 +260,13 @@ func (x *VolumeHealth) GetCorruptRefs() []string {
 	return nil
 }
 
+func (x *VolumeHealth) GetNotHeldPutBlocks() uint64 {
+	if x != nil {
+		return x.NotHeldPutBlocks
+	}
+	return 0
+}
+
 func (m *VolumeHealth) CloneVT() *VolumeHealth {
 	if m == nil {
 		return (*VolumeHealth)(nil)
@@ -272,6 +283,7 @@ func (m *VolumeHealth) CloneVT() *VolumeHealth {
 	r.NotHeldRootBlocks = m.NotHeldRootBlocks
 	r.NotHeldChildBlocks = m.NotHeldChildBlocks
 	r.CorruptReads = m.CorruptReads
+	r.NotHeldPutBlocks = m.NotHeldPutBlocks
 	r.GcPhaseStart = protobuf_go_lite.CloneVTValue(m.GcPhaseStart)
 	r.SizesAt = protobuf_go_lite.CloneVTValue(m.SizesAt)
 	r.CorruptRefs = protobuf_go_lite.CloneSlice(m.CorruptRefs)
@@ -331,6 +343,9 @@ func (this *VolumeHealth) EqualVT(that *VolumeHealth) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.CorruptRefs, that.CorruptRefs) {
+		return false
+	}
+	if this.NotHeldPutBlocks != that.NotHeldPutBlocks {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -502,6 +517,11 @@ func (x *VolumeHealth) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("corruptRefs")
 		s.WriteStringArray(x.CorruptRefs)
 	}
+	if x.NotHeldPutBlocks != 0 || s.HasField("notHeldPutBlocks") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("notHeldPutBlocks")
+		s.WriteUint64(x.NotHeldPutBlocks)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -573,6 +593,9 @@ func (x *VolumeHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.CorruptRefs = s.ReadStringArray()
+		case "not_held_put_blocks", "notHeldPutBlocks":
+			s.AddField("not_held_put_blocks")
+			x.NotHeldPutBlocks = s.ReadUint64()
 		}
 	})
 }
@@ -610,6 +633,13 @@ func (m *VolumeHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.NotHeldPutBlocks != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NotHeldPutBlocks))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
 	}
 	if len(m.CorruptRefs) > 0 {
 		for iNdEx := len(m.CorruptRefs) - 1; iNdEx >= 0; iNdEx-- {
@@ -724,6 +754,7 @@ func (m *VolumeHealth) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NotHeldChildBlocks)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CorruptReads)
 	n += protobuf_go_lite.SizeStringSlice(2, m.CorruptRefs)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.NotHeldPutBlocks)
 	n += len(m.unknownFields)
 	return n
 }
@@ -798,6 +829,10 @@ func (x *VolumeHealth) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.NotHeldPutBlocks != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "not_held_put_blocks")
+		protobuf_go_lite.TextWriteUint(&sb, x.NotHeldPutBlocks)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -971,6 +1006,15 @@ func (m *VolumeHealth) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.CorruptRefs = append(m.CorruptRefs, v)
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotHeldPutBlocks", wireType)
+			}
+			m.NotHeldPutBlocks = 0
+			m.NotHeldPutBlocks, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

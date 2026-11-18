@@ -50,7 +50,7 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 	hidden := make(map[string]putKind)
 	err := classifyPuts(ctx, rec, blocks, entries, func(entry *block.PutBatchEntry, kind putKind) {
 		switch kind {
-		case putBorn:
+		case putBorn, putCounted:
 			born = append(born, entry)
 		case putReborn, putRepark:
 			born = append(born, entry)
