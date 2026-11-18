@@ -1,5 +1,7 @@
 package store
 
+import "sync/atomic"
+
 // setTransportFetchMaxBytes caps every transport fetch at the platform limit.
 func (e *PackReader) setTransportFetchMaxBytes(maxBytes int) {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -47,6 +49,15 @@ func (e *PackReader) normalizeTransportLocked() {
 func (e *PackReader) SetExactReads() {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		e.exactReads = true
+	})
+}
+
+// SetExactReadsSwitch makes each miss planned while sw holds true read as
+// SetExactReads does, and as the window allows otherwise, so the switch's
+// owner can turn exact reads on and off while the reader is open.
+func (e *PackReader) SetExactReadsSwitch(sw *atomic.Bool) {
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		e.exactSwitch = sw
 	})
 }
 

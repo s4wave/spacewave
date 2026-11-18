@@ -92,6 +92,9 @@ type PackReader struct {
 	// exactReads fetches only the bytes a miss needs: no minimum window, no
 	// alignment, no adaptive growth and no read-ahead.
 	exactReads bool
+	// exactSwitch, when set, turns exact reads on for each miss planned while
+	// it holds true, so its owner can switch them at runtime.
+	exactSwitch *atomic.Bool
 
 	// Span store. spans are sorted by offset and disjoint. lru orders the
 	// spans from least to most recently used. A fetch hands its span to its
