@@ -169,6 +169,16 @@ func (s *readSetWorldState) LookupGraphQuadsBatch(ctx context.Context, filters [
 	return s.WorldState.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
 }
 
+// ListGraphEdgeBuckets records the edges it lists and lists them through the
+// wrapped state.
+func (s *readSetWorldState) ListGraphEdgeBuckets(ctx context.Context, query *GraphEdgeBucketQuery) ([]*GraphEdgeBucket, error) {
+	if query != nil {
+		filters, _ := graphEdgeBucketFilters(query, newGraphEdgeBuckets(query))
+		s.reads.addPatterns(filters...)
+	}
+	return s.WorldState.ListGraphEdgeBuckets(ctx, query)
+}
+
 // QueryGraphPath records a graph read that patterns cannot describe.
 func (s *readSetWorldState) QueryGraphPath(ctx context.Context, query *GraphPathQuery) (*GraphPathQueryResult, error) {
 	s.reads.markGraph()

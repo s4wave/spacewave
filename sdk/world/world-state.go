@@ -580,6 +580,8 @@ func GraphEdgeBucketQueryToProto(query *world.GraphEdgeBucketQuery) *ListGraphEd
 		Predicate:        query.Predicate,
 		LimitPerOrigin:   query.LimitPerOrigin,
 		Direction:        graphEdgeBucketDirectionToProto(query.Direction),
+		After:            query.After,
+		Reverse:          query.Reverse,
 	}
 }
 

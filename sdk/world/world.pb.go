@@ -1911,11 +1911,23 @@ type ListGraphEdgeBucketsRequest struct {
 	// Predicate optionally restricts the grouped edges.
 	Predicate string `protobuf:"bytes,2,opt,name=predicate,proto3" json:"predicate,omitempty"`
 	// LimitPerOrigin is the maximum edge count returned per origin direction.
-	// It must be non-zero.
+	// It must be non-zero. A page ends at an endpoint boundary, so the labeled
+	// edges of its last endpoint may carry it past the limit.
 	LimitPerOrigin uint32 `protobuf:"varint,3,opt,name=limit_per_origin,json=limitPerOrigin,proto3" json:"limitPerOrigin,omitempty"`
 	// Direction selects which edge directions are included.
 	// Unspecified means both incoming and outgoing.
 	Direction GraphEdgeBucketDirection `protobuf:"varint,4,opt,name=direction,proto3" json:"direction,omitempty"`
+	// After resumes each listing just past all edges of this endpoint object
+	// key: pass the endpoint of the previous page's last edge. It requires a
+	// predicate. Empty starts at the first edge.
+	//
+	// With a predicate on a node graph World, edges come in endpoint creation
+	// order and each page reads only itself; otherwise every matching edge is
+	// read and ordered by quad text.
+	After string `protobuf:"bytes,5,opt,name=after,proto3" json:"after,omitempty"`
+	// Reverse lists each direction's edges last first: newest first in
+	// creation order.
+	Reverse bool `protobuf:"varint,6,opt,name=reverse,proto3" json:"reverse,omitempty"`
 }
 
 func (x *ListGraphEdgeBucketsRequest) Reset() {
@@ -1950,6 +1962,20 @@ func (x *ListGraphEdgeBucketsRequest) GetDirection() GraphEdgeBucketDirection {
 		return x.Direction
 	}
 	return GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED
+}
+
+func (x *ListGraphEdgeBucketsRequest) GetAfter() string {
+	if x != nil {
+		return x.After
+	}
+	return ""
+}
+
+func (x *ListGraphEdgeBucketsRequest) GetReverse() bool {
+	if x != nil {
+		return x.Reverse
+	}
+	return false
 }
 
 // GraphEdgeBucket contains grouped graph edges for one origin object key.
@@ -5102,6 +5128,8 @@ func (m *ListGraphEdgeBucketsRequest) CloneVT() *ListGraphEdgeBucketsRequest {
 	r.Predicate = m.Predicate
 	r.LimitPerOrigin = m.LimitPerOrigin
 	r.Direction = m.Direction
+	r.After = m.After
+	r.Reverse = m.Reverse
 	r.OriginObjectKeys = protobuf_go_lite.CloneSlice(m.OriginObjectKeys)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -7837,6 +7865,12 @@ func (this *ListGraphEdgeBucketsRequest) EqualVT(that *ListGraphEdgeBucketsReque
 		return false
 	}
 	if this.Direction != that.Direction {
+		return false
+	}
+	if this.After != that.After {
+		return false
+	}
+	if this.Reverse != that.Reverse {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -12878,6 +12912,16 @@ func (x *ListGraphEdgeBucketsRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("direction")
 		x.Direction.MarshalProtoJSON(s)
 	}
+	if x.After != "" || s.HasField("after") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("after")
+		s.WriteString(x.After)
+	}
+	if x.Reverse || s.HasField("reverse") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reverse")
+		s.WriteBool(x.Reverse)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -12911,6 +12955,12 @@ func (x *ListGraphEdgeBucketsRequest) UnmarshalProtoJSON(s *json.UnmarshalState)
 		case "direction":
 			s.AddField("direction")
 			x.Direction.UnmarshalProtoJSON(s)
+		case "after":
+			s.AddField("after")
+			x.After = s.ReadString()
+		case "reverse":
+			s.AddField("reverse")
+			x.Reverse = s.ReadBool()
 		}
 	})
 }
@@ -19307,6 +19357,16 @@ func (m *ListGraphEdgeBucketsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Reverse {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Reverse)
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.After) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.After)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.Direction != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Direction))
 		i--
@@ -23333,6 +23393,8 @@ func (m *ListGraphEdgeBucketsRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Predicate)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.LimitPerOrigin)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Direction)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.After)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Reverse)
 	n += len(m.unknownFields)
 	return n
 }
@@ -25516,6 +25578,14 @@ func (x *ListGraphEdgeBucketsRequest) MarshalProtoText() string {
 	if x.Direction != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "direction")
 		protobuf_go_lite.TextWriteStringer(&sb, GraphEdgeBucketDirection(x.Direction))
+	}
+	if x.After != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "after")
+		protobuf_go_lite.TextWriteString(&sb, x.After)
+	}
+	if x.Reverse != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reverse")
+		protobuf_go_lite.TextWriteBool(&sb, x.Reverse)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -30762,6 +30832,26 @@ func (m *ListGraphEdgeBucketsRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field After", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.After = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reverse", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Reverse = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

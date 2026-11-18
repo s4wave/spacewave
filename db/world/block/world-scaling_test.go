@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -133,6 +134,20 @@ func TestWorldScaling(t *testing.T) {
 			}
 			return err
 		}},
+		{"page a type's objects oldest first", false, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
+			return expectEdgePage(ctx, ws, worldSeedTypeKey(i), "", false)
+		}},
+		{"page a type's objects newest first", false, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
+			return expectEdgePage(ctx, ws, worldSeedTypeKey(i), "", true)
+		}},
+		{"page a type's objects after one", false, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
+			k := w.pick(i) % (w.objects / 2)
+			return expectEdgePage(ctx, ws, worldSeedTypeKey(k), worldSeedObjectKey(k), false)
+		}},
+		{"page a type's objects before one", false, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
+			k := w.objects/2 + w.pick(i)%(w.objects/2)
+			return expectEdgePage(ctx, ws, worldSeedTypeKey(k), worldSeedObjectKey(k), true)
+		}},
 		{"create an object", true, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
 			obj, err := ws.CreateObject(ctx, "bench/scale/new/"+strconv.Itoa(i), nil)
 			world.ReleaseObjectState(obj)
@@ -197,6 +212,61 @@ func expectQuads(quads []world.GraphQuad, err error) func(want int) error {
 		}
 		return err
 	}
+}
+
+// expectEdgePage lists one page of the type edges into hub through
+// ListGraphEdgeBuckets and checks that it is full and truncated, and that it
+// holds the hub's objects in creation order, or its reverse, starting just
+// past after. The seed creates hub objects worldSeedTypes indexes apart.
+func expectEdgePage(ctx context.Context, ws world.WorldState, hub, after string, reverse bool) error {
+	buckets, err := ws.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
+		OriginObjectKeys: []string{hub},
+		Predicate:        worldSeedTypePred,
+		LimitPerOrigin:   worldSeedResultBatch,
+		Direction:        world.GraphEdgeBucketDirectionIn,
+		After:            after,
+		Reverse:          reverse,
+	})
+	if err != nil {
+		return err
+	}
+	b := buckets[0]
+	if len(b.Incoming) != worldSeedResultBatch || !b.IncomingTruncated {
+		return errors.Errorf("page listed %d edges truncated %v, want %d truncated", len(b.Incoming), b.IncomingTruncated, worldSeedResultBatch)
+	}
+
+	// Check that each endpoint follows the previous one, or after, by one
+	// hub step in the page's direction.
+	step := worldSeedTypes
+	if reverse {
+		step = -step
+	}
+	prev := -1
+	if after != "" {
+		if prev, err = seedObjectIndex(after); err != nil {
+			return err
+		}
+	}
+	for _, q := range b.Incoming {
+		n, err := seedObjectIndex(strings.Trim(q.GetSubject(), "<>"))
+		if err != nil {
+			return err
+		}
+		if prev >= 0 && n != prev+step {
+			return errors.Errorf("page listed object %d after %d, want %d", n, prev, prev+step)
+		}
+		prev = n
+	}
+	return nil
+}
+
+// seedObjectIndex returns the index of a seed object key.
+func seedObjectIndex(key string) (int, error) {
+	index, ok := strings.CutPrefix(key, worldSeedObjectPrefix)
+	if !ok {
+		return 0, errors.Errorf("%s is not a seed object", key)
+	}
+	return strconv.Atoi(index)
 }
 
 // measureWorld runs op scaleCalls times on w and returns the average cost of

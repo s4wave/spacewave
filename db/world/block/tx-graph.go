@@ -32,6 +32,13 @@ func (t *Tx) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQua
 	})
 }
 
+// ListGraphEdgeBuckets lists edge buckets in one locked read.
+func (t *Tx) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
+	return lockedValue(ctx, t, false, func() ([]*world.GraphEdgeBucket, error) {
+		return t.state.ListGraphEdgeBuckets(ctx, query)
+	})
+}
+
 // QueryGraphPath executes a bounded graph traversal.
 func (t *Tx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	return lockedValue(ctx, t, false, func() (*world.GraphPathQueryResult, error) {
@@ -76,4 +83,6 @@ func (t *Tx) DeleteGraphObject(ctx context.Context, value string) error {
 }
 
 // _ is a type assertion
-var _ world.WorldStateGraph = (*Tx)(nil)
+var (
+	_ world.WorldStateGraph = (*Tx)(nil)
+)

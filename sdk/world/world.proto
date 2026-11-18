@@ -694,11 +694,23 @@ message ListGraphEdgeBucketsRequest {
   // Predicate optionally restricts the grouped edges.
   string predicate = 2;
   // LimitPerOrigin is the maximum edge count returned per origin direction.
-  // It must be non-zero.
+  // It must be non-zero. A page ends at an endpoint boundary, so the labeled
+  // edges of its last endpoint may carry it past the limit.
   uint32 limit_per_origin = 3;
   // Direction selects which edge directions are included.
   // Unspecified means both incoming and outgoing.
   GraphEdgeBucketDirection direction = 4;
+  // After resumes each listing just past all edges of this endpoint object
+  // key: pass the endpoint of the previous page's last edge. It requires a
+  // predicate. Empty starts at the first edge.
+  //
+  // With a predicate on a node graph World, edges come in endpoint creation
+  // order and each page reads only itself; otherwise every matching edge is
+  // read and ordered by quad text.
+  string after = 5;
+  // Reverse lists each direction's edges last first: newest first in
+  // creation order.
+  bool reverse = 6;
 }
 
 // GraphEdgeBucket contains grouped graph edges for one origin object key.

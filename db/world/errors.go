@@ -66,6 +66,13 @@ var (
 	ErrGraphEdgeBucketLimit = errors.New("graph edge bucket limit must be non-zero")
 	// ErrGraphEdgeBucketDirection is returned if a grouped edge query direction is invalid.
 	ErrGraphEdgeBucketDirection = errors.New("graph edge bucket direction is invalid")
+	// ErrGraphEdgeBucketAfter is returned if a grouped edge query resumes after
+	// an endpoint without a predicate to page.
+	ErrGraphEdgeBucketAfter = errors.New("graph edge bucket after requires a predicate")
+	// ErrGraphEdgeBucketAfterGone is returned if a grouped edge query resumes
+	// after an endpoint that no graph quad names any longer, so its place in
+	// the order is lost. The reader restarts from the first page.
+	ErrGraphEdgeBucketAfterGone = errors.New("graph edge bucket after endpoint is gone")
 
 	// ErrNilQuad is returned if the quad is nil and cannot be.
 	ErrNilQuad = errors.New("quad cannot be nil")

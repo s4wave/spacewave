@@ -790,6 +790,11 @@ func (s *guardedWorldState) WaitSeqno(ctx context.Context, value uint64) (uint64
 	return s.ws.WaitSeqno(ctx, value)
 }
 
+// ListGraphEdgeBuckets reads through the wrapped state.
+func (s *guardedWorldState) ListGraphEdgeBuckets(ctx context.Context, query *GraphEdgeBucketQuery) ([]*GraphEdgeBucket, error) {
+	return s.ws.ListGraphEdgeBuckets(ctx, query)
+}
+
 // GetObjectRootRefsBatch reads through the wrapped state's batcher.
 func (s *guardedWorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*ObjectRootRef, error) {
 	return GetObjectRootRefsBatch(ctx, s.ws, keys)

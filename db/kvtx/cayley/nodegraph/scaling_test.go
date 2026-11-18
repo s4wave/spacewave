@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/cayley"
+	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
@@ -14,7 +15,9 @@ import (
 )
 
 // Seeded graph shape of the scaling test: each object links to one of a few
-// type hubs and to an earlier parent, so the hubs hold thousands of edges.
+// type hubs and to an earlier parent, so the hubs hold thousands of incoming
+// edges, and one list links out to every object, so it holds as many
+// outgoing edges as the graph has objects.
 const (
 	scaleObjects = 2000
 	scaleHubs    = 4
@@ -41,6 +44,8 @@ func scaleHub(i int) quad.Value    { return quad.IRI("type/" + strconv.Itoa(i%sc
 var (
 	scaleTypePred   = quad.IRI("type")
 	scaleParentPred = quad.IRI("parent")
+	scaleList       = quad.IRI("list")
+	scaleMemberPred = quad.IRI("member")
 )
 
 // newScaleGraph seeds a graph of objects objects in one write transaction of a
@@ -58,9 +63,10 @@ func newScaleGraph(t *testing.T, objects int) *scaleGraph {
 	if err != nil {
 		t.Fatal(err)
 	}
-	quads := make([]quad.Quad, 0, 2*objects)
+	quads := make([]quad.Quad, 0, 3*objects)
 	for i := range objects {
 		quads = append(quads, quad.Make(scaleObject(i), scaleTypePred, scaleHub(i), nil))
+		quads = append(quads, quad.Make(scaleList, scaleMemberPred, scaleObject(i), nil))
 		if i != 0 {
 			quads = append(quads, quad.Make(scaleObject(i), scaleParentPred, scaleObject(i/2), nil))
 		}
@@ -83,6 +89,50 @@ func (g *scaleGraph) lookup(ctx context.Context, filter quad.Quad, limit uint32,
 	quads, err := g.h.QuadStore.(*QuadStore).CollectFilteredQuadsBatch(ctx, []quad.Quad{filter}, limit)
 	if err == nil && len(quads[0]) != want {
 		err = errors.Errorf("lookup returned %d quads, want %d", len(quads[0]), want)
+	}
+	return err
+}
+
+// page reads one page of origin's edges with pred through IterateEdges, as
+// the World's single-predicate edge listing does: it resolves the values, then
+// decodes scaleResults endpoints and stops at the one past them. It checks
+// that the endpoints are distinct and in the requested order.
+func (g *scaleGraph) page(ctx context.Context, origin, pred quad.Value, dir quad.Direction, after quad.Value, reverse bool) error {
+	qs := g.h.QuadStore.(*QuadStore)
+	originRef, err := qs.ValueOf(ctx, origin)
+	if err != nil {
+		return err
+	}
+	predRef, err := qs.ValueOf(ctx, pred)
+	if err != nil {
+		return err
+	}
+	var afterRef graph.Ref
+	if after != nil {
+		if afterRef, err = qs.ValueOf(ctx, after); err != nil {
+			return err
+		}
+	}
+	var n int
+	var last uint64
+	err = qs.IterateEdges(ctx, originRef, predRef, dir, afterRef, reverse, func(endpoint, _ graph.Ref) (bool, error) {
+		if n == scaleResults {
+			n++
+			return false, nil
+		}
+		id := uint64(endpoint.(nodeID))
+		if last != 0 && (id > last) == reverse {
+			return false, errors.Errorf("endpoint %d follows %d out of order", id, last)
+		}
+		last = id
+		if _, err := qs.NameOf(ctx, endpoint); err != nil {
+			return false, err
+		}
+		n++
+		return true, nil
+	})
+	if err == nil && n != scaleResults+1 {
+		err = errors.Errorf("page returned %d endpoints, want %d", n, scaleResults+1)
 	}
 	return err
 }
@@ -119,6 +169,32 @@ func TestScaling(t *testing.T) {
 		{"look up one exact quad", func(g *scaleGraph, i int) error {
 			k := g.pick(i)
 			return g.lookup(ctx, quad.Make(scaleObject(k), scaleTypePred, scaleHub(k), nil), 0, 1)
+		}},
+		{"page incoming edges oldest first", func(g *scaleGraph, i int) error {
+			return g.page(ctx, scaleHub(i), scaleTypePred, quad.Object, nil, false)
+		}},
+		{"page incoming edges newest first", func(g *scaleGraph, i int) error {
+			return g.page(ctx, scaleHub(i), scaleTypePred, quad.Object, nil, true)
+		}},
+		{"page incoming edges after an endpoint", func(g *scaleGraph, i int) error {
+			k := g.pick(i) % (g.objects / 2)
+			return g.page(ctx, scaleHub(k), scaleTypePred, quad.Object, scaleObject(k), false)
+		}},
+		{"page incoming edges before an endpoint", func(g *scaleGraph, i int) error {
+			k := g.objects/2 + g.pick(i)%(g.objects/2)
+			return g.page(ctx, scaleHub(k), scaleTypePred, quad.Object, scaleObject(k), true)
+		}},
+		{"page outgoing edges oldest first", func(g *scaleGraph, i int) error {
+			return g.page(ctx, scaleList, scaleMemberPred, quad.Subject, nil, false)
+		}},
+		{"page outgoing edges newest first", func(g *scaleGraph, i int) error {
+			return g.page(ctx, scaleList, scaleMemberPred, quad.Subject, nil, true)
+		}},
+		{"page outgoing edges after an endpoint", func(g *scaleGraph, i int) error {
+			return g.page(ctx, scaleList, scaleMemberPred, quad.Subject, scaleObject(g.pick(i)%(g.objects/2)), false)
+		}},
+		{"page outgoing edges before an endpoint", func(g *scaleGraph, i int) error {
+			return g.page(ctx, scaleList, scaleMemberPred, quad.Subject, scaleObject(g.objects/2+g.pick(i)%(g.objects/2)), true)
 		}},
 	}
 	for _, o := range ops {

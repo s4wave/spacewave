@@ -154,6 +154,18 @@ func (w *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.
 	return w.WorldState.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
 }
 
+// ListGraphEdgeBuckets lists grouped graph edge buckets for object keys.
+func (w *WorldState) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) (buckets []*world.GraphEdgeBucket, err error) {
+	defer func() {
+		var total int
+		for _, bucket := range buckets {
+			total += len(bucket.Outgoing) + len(bucket.Incoming)
+		}
+		w.le.Debugf("ListGraphEdgeBuckets(buckets=%d) => found(%d) err(%v)", len(buckets), total, err)
+	}()
+	return w.WorldState.ListGraphEdgeBuckets(ctx, query)
+}
+
 // SetGraphQuad sets a quad in the graph store.
 // Subject: must be an existing object IRI: <object-key>
 // Predicate: a predicate string, e.x. IRI: <ref>

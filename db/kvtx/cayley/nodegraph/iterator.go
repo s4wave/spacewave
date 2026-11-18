@@ -79,31 +79,42 @@ func (r edgeRange) prefix() []byte {
 	return rangeKey(r.node, r.tag, r.narrow...)
 }
 
-// edgeCursor walks the quads of an edge range in key order over one open
-// iterator.
+// edgeCursor walks the quads of an edge range in key order, or in reverse key
+// order, over one open iterator.
 type edgeCursor struct {
 	r  edgeRange
 	it kvtx.Iterator
-	// seek is the key the next step seeks to, or nil to step to the next key.
-	seek []byte
-	err  error
+	// reverse is set when it walks from the range's last key down.
+	reverse bool
+	// seeking is set when the next step seeks to seek instead of stepping.
+	// A nil seek is the end of a reverse range.
+	seeking bool
+	seek    []byte
+	err     error
 }
 
-// openCursor opens a cursor on r that starts at the first key at or after
-// start, or at the range's start when start is nil.
-func (qs *QuadStore) openCursor(ctx context.Context, r edgeRange, start []byte) *edgeCursor {
+// openCursor opens a cursor on r that starts at the first key at or past
+// start in the walk's direction, or at the range's first key in that
+// direction when start is nil.
+func (qs *QuadStore) openCursor(ctx context.Context, r edgeRange, start []byte, reverse bool) *edgeCursor {
 	prefix := r.prefix()
-	if start == nil {
+	if start == nil && !reverse {
 		start = prefix
 	}
-	return &edgeCursor{r: r, it: qs.tx.Iterate(ctx, prefix, true, false), seek: start}
+	return &edgeCursor{
+		r:       r,
+		it:      qs.tx.Iterate(ctx, prefix, true, reverse),
+		reverse: reverse,
+		seeking: true,
+		seek:    start,
+	}
 }
 
 // next advances to the next quad that matches the range's filter.
 func (c *edgeCursor) next() (quadRef, bool) {
 	for c.err == nil {
-		if c.seek != nil {
-			c.err, c.seek = c.it.Seek(c.seek), nil
+		if c.seeking {
+			c.err, c.seeking, c.seek = c.it.Seek(c.seek), false, nil
 			if c.err != nil {
 				break
 			}
@@ -116,13 +127,15 @@ func (c *edgeCursor) next() (quadRef, bool) {
 		}
 		k := c.it.Key()
 		if c.r.node == 0 {
-			// Walk only out keys: step past a meta key, seek past in keys.
+			// Walk only out keys: step past a meta key, and seek past in
+			// keys to the next node forward, or to this node's out keys in
+			// reverse, which sort just below its in keys.
 			id, tag, ok := parseNodeKey(k)
 			if !ok || tag == tagMeta {
 				continue
 			}
 			if tag != tagOut {
-				c.seek = nodeKey(make([]byte, 0, nodeKeyLen), id+1)
+				c.seeking, c.seek = true, c.pastInKeys(id)
 				continue
 			}
 		}
@@ -133,12 +146,29 @@ func (c *edgeCursor) next() (quadRef, bool) {
 	return quadRef{}, false
 }
 
+// pastInKeys returns the seek key that skips the in keys of node id in the
+// cursor's direction: the next node's first key forward, and in reverse the
+// bare in tag, which sorts above every out key and below every in key.
+func (c *edgeCursor) pastInKeys(id uint64) []byte {
+	if c.reverse {
+		return append(nodeKey(make([]byte, 0, nodeKeyLen+1), id), tagIn)
+	}
+	return nodeKey(make([]byte, 0, nodeKeyLen), id+1)
+}
+
 // close closes the iterator.
 func (c *edgeCursor) close() { c.it.Close() }
 
-// walk calls cb with each quad in the range until cb returns false.
-func (qs *QuadStore) walk(ctx context.Context, r edgeRange, start []byte, cb func(q quadRef) (bool, error)) error {
-	c := qs.openCursor(ctx, r, start)
+// walk calls cb with each quad in the range, in key order or in reverse,
+// until cb returns false.
+func (qs *QuadStore) walk(
+	ctx context.Context,
+	r edgeRange,
+	start []byte,
+	reverse bool,
+	cb func(q quadRef) (bool, error),
+) error {
+	c := qs.openCursor(ctx, r, start, reverse)
 	defer c.close()
 	for {
 		q, ok := c.next()
@@ -158,7 +188,7 @@ func (qs *QuadStore) probeSize(ctx context.Context, r edgeRange) (refs.Size, err
 		return refs.Size{Value: worldSizeEstimate}, nil
 	}
 	var n int64
-	err := qs.walk(ctx, r, nil, func(quadRef) (bool, error) {
+	err := qs.walk(ctx, r, nil, false, func(quadRef) (bool, error) {
 		n++
 		return n < sizeProbeLimit, nil
 	})
@@ -224,7 +254,7 @@ func (it *edgeScanner) Next(ctx context.Context) bool {
 		if it.err != nil {
 			return false
 		}
-		it.c = it.s.qs.openCursor(ctx, it.s.r, nil)
+		it.c = it.s.qs.openCursor(ctx, it.s.r, nil, false)
 	}
 
 	// Step it, keeping its error at the end.

@@ -1671,7 +1671,8 @@ export interface ListGraphEdgeBucketsRequest {
   predicate?: string
   /**
    * LimitPerOrigin is the maximum edge count returned per origin direction.
-   * It must be non-zero.
+   * It must be non-zero. A page ends at an endpoint boundary, so the labeled
+   * edges of its last endpoint may carry it past the limit.
    */
   limitPerOrigin?: number
   /**
@@ -1679,6 +1680,21 @@ export interface ListGraphEdgeBucketsRequest {
    * Unspecified means both incoming and outgoing.
    */
   direction?: GraphEdgeBucketDirection
+  /**
+   * After resumes each listing just past all edges of this endpoint object
+   * key: pass the endpoint of the previous page's last edge. It requires a
+   * predicate. Empty starts at the first edge.
+   *
+   * With a predicate on a node graph World, edges come in endpoint creation
+   * order and each page reads only itself; otherwise every matching edge is
+   * read and ordered by quad text.
+   */
+  after?: string
+  /**
+   * Reverse lists each direction's edges last first: newest first in
+   * creation order.
+   */
+  reverse?: boolean
 }
 
 export const ListGraphEdgeBucketsRequest: MessageType<ListGraphEdgeBucketsRequest> =
@@ -1689,6 +1705,8 @@ export const ListGraphEdgeBucketsRequest: MessageType<ListGraphEdgeBucketsReques
       [2, 'predicate', 9],
       [3, 'limit_per_origin', 13],
       [4, 'direction', 14, 0, GraphEdgeBucketDirection_Enum],
+      [5, 'after', 9],
+      [6, 'reverse', 8],
     ],
   )
 
