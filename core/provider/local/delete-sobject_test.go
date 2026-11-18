@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"runtime"
 	"slices"
 	"sync"
 	"testing"
@@ -1147,8 +1146,8 @@ func TestRecreatedMountSurvivesCanceledStart(t *testing.T) {
 }
 
 // TestCanceledMountStartCannotClaimAfterLockWait makes cancellation observable
-// only after a live start has blocked on the result lock. Moving the check
-// before the lock would let the canceled start replace the published result.
+// only after a live start finds the result lock held. Moving the check before
+// the lock would let the canceled start replace the published result.
 func TestCanceledMountStartCannotClaimAfterLockWait(t *testing.T) {
 	// Publish one result, then hold its lock while starting the other callback.
 	ctx, cancel := context.WithCancel(t.Context())
@@ -1161,6 +1160,14 @@ func TestCanceledMountStartCannotClaimAfterLockWait(t *testing.T) {
 	ready := newTestRunSharedObject()
 	health := sobject.NewSharedObjectReadyHealth(sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
 	live.publish(health, ready, nil)
+
+	// Hold the real result lock and let the failed acquisition signal when
+	// the live callback has reached it. Keep the callback there until canceled.
+	waiting, resume := make(chan struct{}), make(chan struct{})
+	res.testClaimWait = func() {
+		close(waiting)
+		<-resume
+	}
 	result := make(chan error, 1)
 	res.mtx.Lock()
 	go func() {
@@ -1168,12 +1175,20 @@ func TestCanceledMountStartCannotClaimAfterLockWait(t *testing.T) {
 		result <- err
 	}()
 
-	// Cancel while the callback is parked at the claim, not before entry.
-	blocked := waitTestMountClaimBlocked()
+	// Cancel after contention is observed but before releasing the mutex.
+	select {
+	case <-waiting:
+	case <-time.After(5 * time.Second):
+		cancel()
+		close(resume)
+		res.mtx.Unlock()
+		t.Fatal("mount claim did not reach the held result lock")
+	}
 	cancel()
+	close(resume)
 	res.mtx.Unlock()
-	if err := <-result; !blocked || !errors.Is(err, context.Canceled) {
-		t.Fatalf("mount claim did not reject cancellation under contention: blocked=%t err=%v", blocked, err)
+	if err := <-result; !errors.Is(err, context.Canceled) {
+		t.Errorf("mount claim returned %v after cancellation under contention", err)
 	}
 
 	// A rejected claim changes neither generation nor the ready publication.
@@ -1183,30 +1198,6 @@ func TestCanceledMountStartCannotClaimAfterLockWait(t *testing.T) {
 	if err != nil || got != ready || res.gen != live.gen || res.watchHealth().GetValue() != health {
 		t.Fatalf("canceled claim changed the current generation, result or health: mount error %v", err)
 	}
-}
-
-// waitTestMountClaimBlocked observes the stack of this test's callback at the
-// actual mutex wait. A launch signal alone cannot distinguish an early check
-// followed by blocking; the deadline bounds the observation, not the race.
-func waitTestMountClaimBlocked() bool {
-	// Read enough of the runtime dump to include the waiting test goroutine.
-	deadline := time.Now().Add(5 * time.Second)
-	buf := make([]byte, 64*1024)
-	for time.Now().Before(deadline) {
-		n := runtime.Stack(buf, true)
-		for goroutine := range bytes.SplitSeq(buf[:n], []byte("\n\n")) {
-			if bytes.Contains(goroutine, []byte("TestCanceledMountStartCannotClaimAfterLockWait.func")) &&
-				bytes.Contains(goroutine, []byte("(*sobjectResult).start")) &&
-				bytes.Contains(goroutine, []byte("sync.(*Mutex).Lock")) {
-				return true
-			}
-		}
-		if n == len(buf) {
-			buf = make([]byte, 2*len(buf))
-		}
-		runtime.Gosched()
-	}
-	return false
 }
 
 // TestRetiredRunWritesNothing checks that a run a retire or a later run has

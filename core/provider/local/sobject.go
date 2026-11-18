@@ -350,6 +350,8 @@ type sobjectResult struct {
 	so *SharedObject
 	// health holds the newest run's health snapshot.
 	health *ccontainer.CContainer[*sobject.SharedObjectHealth]
+	// testClaimWait runs in tests only, after a start first finds mtx held.
+	testClaimWait func()
 }
 
 // sobjectRun is one run's write access to its tracker's sobjectResult. Every
@@ -423,7 +425,7 @@ func (r *sobjectResult) watchHealth() ccontainer.Watchable[*sobject.SharedObject
 func (r *sobjectResult) start(ctx context.Context) (*sobjectRun, error) {
 	// Check liveness and claim the result under the same lock. A keyed
 	// callback can reach here late after two restarts let a newer run pass it.
-	r.mtx.Lock()
+	r.lockForStart()
 	defer r.mtx.Unlock()
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -433,6 +435,19 @@ func (r *sobjectResult) start(ctx context.Context) (*sobjectRun, error) {
 	r.gen++
 	r.reset()
 	return &sobjectRun{res: r, gen: r.gen, ctx: ctx}, nil
+}
+
+// lockForStart takes the result lock. A test can pause after a failed attempt
+// to take the same mutex so it can cancel the callback before it acquires it.
+func (r *sobjectResult) lockForStart() {
+	// Only a test tries the lock first. Notify it without holding the lock.
+	if hook := r.testClaimWait; hook != nil {
+		if r.mtx.TryLock() {
+			return
+		}
+		hook()
+	}
+	r.mtx.Lock()
 }
 
 // retire retires the current run, clears the mount result and reports
