@@ -52,6 +52,10 @@ func (p *placementState) readChains(
 	// Keep a peer's block served without refs once its reader decodes them.
 	peers = p.peerDecoded(peers)
 
+	// A read under the World's writer defers a backend read too, as it does a
+	// peer read; see backendDefer.
+	remote = deferBackendReads(remote)
+
 	// Read the backend and then peers when the placement has no fallback.
 	if fallback == nil {
 		lower := block_store.NewStoreReadThrough(remote, peers, nil)
@@ -422,9 +426,13 @@ func (r *fallbackReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 // or failed with primaryErr. A fallback hit is filled into the local store.
 // Without a hit, it returns primaryErr, else the fallback's error, else a miss.
 func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, primaryErr error) (*block.StoredBlock, error) {
-	// A failure of the caller's own context is not the sources' failure.
+	// A failure of the caller's own context is not the sources' failure, and
+	// a deferred backend read asks the fallback only once the backend missed.
 	if ctx.Err() != nil {
 		return nil, context.Cause(ctx)
+	}
+	if errors.Is(primaryErr, errBackendDeferred) {
+		return nil, primaryErr
 	}
 	if primaryErr != nil && r.fills != nil {
 		r.fills.packErrors.Add(1)

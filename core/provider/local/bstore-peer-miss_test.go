@@ -152,6 +152,57 @@ func TestPeerReadDeferred(t *testing.T) {
 	}
 }
 
+// TestBackendReadDeferred checks that a backend read under PeerReads defers
+// its block, answers it once fetched, and passes a block the backend lacks on
+// to the tiers below without failing the round.
+func TestBackendReadDeferred(t *testing.T) {
+	want := &block.StoredBlock{Data: []byte("served")}
+	backend := &flakyPeers{blk: want}
+	src := deferBackendReads(func() block.StoreOps { return backend })
+	ref := block.NewBlockRef(nil)
+	reads := block.NewPeerReads()
+	ctx := block.WithPeerReads(context.Background(), reads)
+
+	// A deferred read asks nothing and ends the read.
+	blk, err := src().GetStoredBlock(ctx, ref)
+	if blk != nil || !errors.Is(err, errBackendDeferred) || backend.reads.Load() != 0 || !reads.Pending() {
+		t.Fatalf("deferred read: %v %v, %d backend reads, pending %v", blk, err, backend.reads.Load(), reads.Pending())
+	}
+	ok, err := reads.Fetch(context.Background())
+	if !ok || err != nil || backend.reads.Load() != 1 {
+		t.Fatalf("fetch: %v %v, %d backend reads", ok, err, backend.reads.Load())
+	}
+	blk, err = src().GetStoredBlock(ctx, ref)
+	if blk != want || err != nil || backend.reads.Load() != 1 {
+		t.Fatalf("read after fetch: %v %v, %d backend reads", blk, err, backend.reads.Load())
+	}
+
+	// A block the backend lacks passes to the tiers below, and a block a
+	// lower tier fetched never answers as the backend's.
+	backend.blk = nil
+	missing, err := block.BuildBlockRef([]byte("missing"), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := src().GetStoredBlock(ctx, missing); !errors.Is(err, errBackendDeferred) {
+		t.Fatalf("deferred miss: %v", err)
+	}
+	if ok, err := reads.Fetch(context.Background()); !ok || err != nil {
+		t.Fatalf("fetch of a miss: %v %v", ok, err)
+	}
+	reads.Defer(missing, func(context.Context) (*block.StoredBlock, error) { return want, nil })
+	if ok, err := reads.Fetch(context.Background()); !ok || err != nil {
+		t.Fatalf("lower tier fetch: %v %v", ok, err)
+	}
+	blk, err = src().GetStoredBlock(ctx, missing)
+	if blk != nil || err != nil || reads.Pending() {
+		t.Fatalf("read of a backend miss: %v %v, pending %v", blk, err, reads.Pending())
+	}
+	if reads.Lookup(missing) != want {
+		t.Fatal("lower tier lost its fetched block")
+	}
+}
+
 // countedPeerRead reads ref through a peerMissLog over peers that counts in a
 // placement's peer read counts, and returns the placement's read status.
 func countedPeerRead(t *testing.T, peers block.StoreOps) ReadStatus {
