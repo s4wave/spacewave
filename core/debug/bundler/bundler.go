@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	bldr_exec "github.com/s4wave/spacewave/bldr/util/exec"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
@@ -251,8 +252,8 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 	}
 	cmd.Env = os.Environ()
 	cmd.Dir = filepath.Dir(viteScriptPath)
-	cmd.Stdout = b.le.WriterLevel(logrus.DebugLevel)
-	cmd.Stderr = b.le.WriterLevel(logrus.DebugLevel)
+	cmd.Stdout = bldr_exec.NewLogWriter(b.le, logrus.DebugLevel)
+	cmd.Stderr = bldr_exec.NewLogWriter(b.le, logrus.DebugLevel)
 
 	// Start the Bun subprocess and report startup failures.
 	if err := cmd.Start(); err != nil {

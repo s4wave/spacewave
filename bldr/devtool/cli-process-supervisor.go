@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	bldr_exec "github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,7 +26,7 @@ type cliSubprocessSupervisor struct {
 
 	killTimeout time.Duration
 	cmd         *exec.Cmd
-	stderr      io.Closer
+	stderr      *bldr_exec.LogWriter
 	done        chan error
 }
 
@@ -116,18 +117,18 @@ func (s *cliSubprocessSupervisor) terminateAfter(timeout time.Duration) error {
 	}
 }
 
-// newStderrWriter returns a logrus-backed writer for the subprocess
-// stderr.
+// newStderrWriter returns a writer that logs each line of the
+// subprocess stderr.
 func (s *cliSubprocessSupervisor) newStderrWriter() io.Writer {
-	stderr := s.le.WriterLevel(logrus.DebugLevel)
+	stderr := bldr_exec.NewLogWriter(s.le, logrus.DebugLevel)
 	s.stderr = stderr
 	return stderr
 }
 
-// closeStderr closes the subprocess stderr writer.
+// closeStderr logs the subprocess stderr writer's unterminated last line.
 func (s *cliSubprocessSupervisor) closeStderr() {
 	if s.stderr != nil {
-		_ = s.stderr.Close()
+		s.stderr.Flush()
 		s.stderr = nil
 	}
 }

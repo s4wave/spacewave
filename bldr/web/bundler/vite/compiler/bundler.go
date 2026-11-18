@@ -20,6 +20,7 @@ import (
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 	bldr_util_buildcache "github.com/s4wave/spacewave/bldr/util/buildcache"
+	bldr_exec "github.com/s4wave/spacewave/bldr/util/exec"
 	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
@@ -166,8 +167,8 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	}
 	cmd.Env = slices.Clone(os.Environ())
 	cmd.Dir = filepath.Dir(viteScriptPath)
-	cmd.Stdout = t.le.WriterLevel(logrus.DebugLevel)
-	cmd.Stderr = t.le.WriterLevel(logrus.DebugLevel)
+	cmd.Stdout = bldr_exec.NewLogWriter(t.le, logrus.DebugLevel)
+	cmd.Stderr = bldr_exec.NewLogWriter(t.le, logrus.DebugLevel)
 
 	// Env vars
 

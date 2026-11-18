@@ -10,7 +10,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -67,37 +66,6 @@ func TestCliSubprocessSupervisorStartContextCancelUsesTerminatePath(t *testing.T
 	if err := supervisor.terminateAfter(5 * time.Second); err != nil {
 		t.Fatalf("terminate after context cancel: %v", err)
 	}
-}
-
-func TestCliSubprocessSupervisorClosesStderrAfterWait(t *testing.T) {
-	// Run a helper to completion with a recording stderr writer.
-	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
-	stderr := newCliSubprocessSupervisorCloseRecorder()
-	supervisor.stderr = stderr
-	cmd := cliSubprocessSupervisorTestCommand(t, "exit", "0")
-	if err := supervisor.startCommand(cmd); err != nil {
-		t.Fatalf("start helper: %v", err)
-	}
-	if err := <-supervisor.wait(); err != nil {
-		t.Fatalf("wait helper: %v", err)
-	}
-
-	// Expect the stderr writer to be closed after the wait.
-	stderr.expectClosed(t)
-}
-
-func TestCliSubprocessSupervisorClosesStderrAfterStartError(t *testing.T) {
-	// Attempt to start a missing helper with a recording stderr writer.
-	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
-	stderr := newCliSubprocessSupervisorCloseRecorder()
-	supervisor.stderr = stderr
-	err := supervisor.startCommand(exec.Command(filepath.Join(t.TempDir(), "missing"))) //nolint:gosec // G204: test path is a temp dir under test control
-	if err == nil {
-		t.Fatal("start missing helper returned nil, want error")
-	}
-
-	// Expect the stderr writer to be closed after the start error.
-	stderr.expectClosed(t)
 }
 
 func TestCliSubprocessSupervisorTerminateWaitsForSignalExit(t *testing.T) {
@@ -220,32 +188,6 @@ func markCliSubprocessHelperReady(path string) {
 	// Write the ready marker file at the given path.
 	if err := os.WriteFile(path, []byte("ready"), 0o644); err != nil {
 		os.Exit(2)
-	}
-}
-
-type cliSubprocessSupervisorCloseRecorder struct {
-	once   sync.Once
-	closed chan struct{}
-}
-
-func newCliSubprocessSupervisorCloseRecorder() *cliSubprocessSupervisorCloseRecorder {
-	return &cliSubprocessSupervisorCloseRecorder{closed: make(chan struct{})}
-}
-
-func (r *cliSubprocessSupervisorCloseRecorder) Close() error {
-	r.once.Do(func() {
-		close(r.closed)
-	})
-	return nil
-}
-
-func (r *cliSubprocessSupervisorCloseRecorder) expectClosed(t *testing.T) {
-	t.Helper()
-
-	select {
-	case <-r.closed:
-	case <-time.After(time.Second):
-		t.Fatal("stderr writer was not closed")
 	}
 }
 

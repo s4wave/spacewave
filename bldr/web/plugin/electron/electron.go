@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/exec"
+	bldr_exec "github.com/s4wave/spacewave/bldr/util/exec"
 	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	"github.com/sirupsen/logrus"
@@ -80,8 +81,8 @@ func RunElectron(
 	}
 
 	// Wire Electron output into the debug log.
-	cmd.Stdout = le.WriterLevel(logrus.DebugLevel)
-	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)
+	cmd.Stdout = bldr_exec.NewLogWriter(le, logrus.DebugLevel)
+	cmd.Stderr = bldr_exec.NewLogWriter(le, logrus.DebugLevel)
 
 	// Start the Electron process.
 	le.Debugf("starting electron: %s", cmd.String())

@@ -24,6 +24,7 @@ import (
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
+	bldr_exec "github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/s4wave/spacewave/bldr/util/wazerofs"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
@@ -417,10 +418,10 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 
 		// Log stdout at debug and stderr, where the plugin writes errors and
 		// warnings, at warn. The last stderr line names why the plugin failed.
-		stdout := le.WriterLevel(logrus.DebugLevel)
-		defer stdout.Close()
-		stderrLog := le.WriterLevel(logrus.WarnLevel)
-		defer stderrLog.Close()
+		stdout := bldr_exec.NewLogWriter(le, logrus.DebugLevel)
+		defer stdout.Flush()
+		stderrLog := bldr_exec.NewLogWriter(le, logrus.WarnLevel)
+		defer stderrLog.Flush()
 		stderr := &lastLineWriter{w: stderrLog}
 		moduleConfig := wazero.NewModuleConfig().
 			WithStdin(stdinBuf).

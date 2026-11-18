@@ -16,6 +16,7 @@ import (
 
 	"github.com/aperturerobotics/util/exec"
 	"github.com/pkg/errors"
+	bldr_exec "github.com/s4wave/spacewave/bldr/util/exec"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
@@ -77,18 +78,15 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		le.Infof("bldr sources: running go mod %s", cmd)
 		goVendorCmd := exec.NewCmd(ctx, "go", "mod", cmd)
 		goVendorCmd.Dir = conf.DistRoot
-		goModWriter := le.WriterLevel(logrus.DebugLevel)
+		goModWriter := bldr_exec.NewLogWriter(le, logrus.DebugLevel)
 		goVendorCmd.Stderr = goModWriter
 		goVendorCmd.Stdout = goModWriter
 		goVendorCmd.Env = os.Environ()
 
-		// Run the command and report the run or writer-close error.
-		runErr := goVendorCmd.Run()
-		closeErr := goModWriter.Close()
-		if runErr != nil {
-			return runErr
-		}
-		return closeErr
+		// Run the command and log any unterminated last line.
+		err := goVendorCmd.Run()
+		goModWriter.Flush()
+		return err
 	}
 
 	// Parse the repository go.mod and retarget its module path for the dist copy.

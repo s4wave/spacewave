@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/util/bun"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	bldr_exec "github.com/s4wave/spacewave/bldr/util/exec"
 	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
@@ -87,8 +88,8 @@ func RunOneShot(
 	}
 	cmd.Env = slices.Clone(os.Environ())
 	cmd.Dir = filepath.Dir(viteScriptPath)
-	cmd.Stdout = le.WriterLevel(logrus.DebugLevel)
-	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)
+	cmd.Stdout = bldr_exec.NewLogWriter(le, logrus.DebugLevel)
+	cmd.Stderr = bldr_exec.NewLogWriter(le, logrus.DebugLevel)
 
 	// Configure the color and root environment variables.
 	cmd.Env = append(
