@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
@@ -1023,32 +1024,47 @@ func TestRetiredHostCannotReadRecreatedHistory(t *testing.T) {
 	}
 }
 
-// TestMountWaitEndsWithAccount stops the account with one producer gated
-// before publication and then mounts a different, untracked object.
-func TestMountWaitEndsWithAccount(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
-	defer cancel()
-	accountCtx, stopAccount := context.WithCancel(ctx)
-	defer stopAccount()
-	_, _, a, _, release := setupProviderAndSessionInternal(accountCtx, t)
-	defer release()
-	const pendingID, untrackedID = "pending-at-stop", "untracked-at-stop"
-	pending := createTestSharedObject(ctx, t, a, pendingID)
-	untracked := createTestSharedObject(ctx, t, a, untrackedID)
-	entered, resume := make(chan struct{}), make(chan struct{})
-	testHookRunStarting.Store(new(func(id string) {
-		if id == pendingID {
-			close(entered)
-			<-resume
-		}
-	}))
-	defer func() {
-		testHookRunStarting.Store(nil)
-		close(resume)
-	}()
+// mountWaitPromise signals that the caller is awaiting the pending result.
+type mountWaitPromise struct {
+	promise.PromiseLike[*SharedObject]
+	waiting chan struct{}
+}
 
-	startMount := func(ref *sobject.SharedObjectRef) (context.Context, func(), <-chan error) {
-		caller, cancel := context.WithCancel(ctx)
+// AwaitWithCancelCh observes the wait, then uses the real promise's select.
+func (p *mountWaitPromise) AwaitWithCancelCh(ctx context.Context, replaced <-chan struct{}) (*SharedObject, error) {
+	close(p.waiting)
+	return p.PromiseLike.AwaitWithCancelCh(ctx, replaced)
+}
+
+// TestMountWaitEndsWithAccount requires account shutdown to end a pending
+// mount without a publisher or caller cancellation, and refuse a later mount.
+func TestMountWaitEndsWithAccount(t *testing.T) {
+	// Give the account its real tracker and a promise that never resolves.
+	// Do not start a Session or let a background mount publish a result.
+	accountCtx, stopAccount := context.WithCancel(t.Context())
+	defer stopAccount()
+	const pendingID, untrackedID = "pending-at-stop", "untracked-at-stop"
+	waiting := make(chan struct{})
+	a := &ProviderAccount{lifecycleCtx: accountCtx}
+	a.sobjects = keyed.NewKeyedRefCount(func(id string) (keyed.Routine, *sobjectTracker) {
+		// Install the pending result before AddKeyRef exposes the tracker.
+		_, tracker := a.buildSharedObjectTracker(id)
+		if id == pendingID {
+			tracker.res.prom.SetPromise(&mountWaitPromise{PromiseLike: promise.NewPromise[*SharedObject](), waiting: waiting})
+		}
+		return nil, tracker
+	})
+	a.sobjects.SetContext(accountCtx, true)
+	defer a.sobjects.ClearContext()
+
+	// Keep the caller live independently of both the account and the test's
+	// failure deadline, and always release an unexpected successful mount.
+	caller, cancelCaller := context.WithCancel(t.Context())
+	defer cancelCaller()
+	limit, cancelLimit := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancelLimit()
+	startMount := func(id string) <-chan error {
+		ref := sobject.NewSharedObjectRef("local", "test-account", id, SobjectBlockStoreID(id))
 		result := make(chan error, 1)
 		go func() {
 			_, release, err := a.MountSharedObject(caller, ref, nil)
@@ -1057,50 +1073,45 @@ func TestMountWaitEndsWithAccount(t *testing.T) {
 			}
 			result <- err
 		}()
-		return caller, cancel, result
+		return result
 	}
-	checkMount := func(id string, caller context.Context, cancel func(), result <-chan error) {
+	checkMount := func(id string, result <-chan error) {
 		t.Helper()
-		defer cancel()
 		select {
 		case err := <-result:
 			if !errors.Is(err, context.Canceled) || caller.Err() != nil {
 				t.Errorf("mount %s returned %v with caller error %v, want account cancellation only", id, err, caller.Err())
 			}
-		case <-time.After(2 * time.Second):
+		case <-limit.Done():
 			_, retained := a.sobjects.GetKey(id)
-			t.Errorf("mount %s did not return on account stop (tracker retained: %t)", id, retained)
-			cancel()
-			select {
-			case <-result:
-			case <-ctx.Done():
-				t.Fatal("the mount did not return even after caller cancellation")
-			}
+			t.Fatalf("mount %s did not return on account stop (tracker retained: %t)", id, retained)
 		}
 		if _, retained := a.sobjects.GetKey(id); retained {
 			t.Errorf("mount %s retained a tracker after returning", id)
 		}
 	}
 
-	caller, cancelCaller, result := startMount(pending)
-	defer cancelCaller()
+	// Stop only after the caller has entered the unresolved result's wait.
+	result := startMount(pendingID)
 	select {
-	case <-entered:
-	case <-ctx.Done():
-		t.Fatal("the pending producer did not start")
+	case <-waiting:
+	case err := <-result:
+		t.Fatalf("mount returned before waiting for its pending result: %v", err)
+	case <-limit.Done():
+		t.Fatal("mount did not enter the result wait")
+	}
+	if _, retained := a.sobjects.GetKey(pendingID); !retained {
+		t.Fatal("pending mount did not retain its tracker")
 	}
 	stopAccount()
-	select {
-	case <-a.lifecycleCtx.Done():
-	case <-ctx.Done():
-		t.Fatal("the account did not stop")
-	}
-	checkMount(pendingID, caller, cancelCaller, result)
+	a.sobjects.ClearContext()
+	checkMount(pendingID, result)
+
+	// A new call on the stopped account has no result or producer either.
 	if _, retained := a.sobjects.GetKey(untrackedID); retained {
 		t.Fatal("the second object already had a tracker before the mount")
 	}
-	caller, cancelCaller, result = startMount(untracked)
-	checkMount(untrackedID, caller, cancelCaller, result)
+	checkMount(untrackedID, startMount(untrackedID))
 }
 
 // TestMountWaiterDiscardsRetiredResult holds an in-flight mount after it
