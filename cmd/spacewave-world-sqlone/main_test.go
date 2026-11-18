@@ -4,11 +4,18 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
+	"errors"
 	"os"
 	"path/filepath"
+	"slices"
+	"sort"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/hash"
@@ -125,5 +132,125 @@ func TestReadEnvNoEcho(t *testing.T) {
 	_, err := readEnv(p)
 	if err == nil || bytes.Contains([]byte(err.Error()), []byte("SECRET")) {
 		t.Fatalf("err %v", err)
+	}
+}
+
+// fakePages serves the sorted keys a page at a time, as the keyset query
+// does, counting the queries and failing the query numbered failAt.
+type fakePages struct {
+	// keys is the store's keys in order.
+	keys [][]byte
+	// calls counts the queries served.
+	calls int
+	// failAt is the query number that fails, 0 for none.
+	failAt int
+	// slowAt is the query number reported as slow, 0 for none.
+	slowAt int
+}
+
+func (f *fakePages) page(_ context.Context, after []byte, n int) ([][]byte, time.Duration, error) {
+	// Fail or slow the chosen query.
+	f.calls++
+	if f.calls == f.failAt {
+		return nil, 0, errors.New("server gone")
+	}
+	took := time.Millisecond
+	if f.calls == f.slowAt {
+		took = time.Minute
+	}
+
+	// Return the next n keys above after.
+	i := sort.Search(len(f.keys), func(i int) bool { return bytes.Compare(f.keys[i], after) > 0 })
+	return f.keys[i:min(i+n, len(f.keys))], took, nil
+}
+
+// TestListKeysResume lists 25 keys in pages of 10, stopped by an error after
+// two pages and with a torn ledger line, then resumes, and checks the list
+// holds each key once in order, that a slow query stops the listing after
+// recording its page, and that a done listing makes no query.
+func TestListKeysResume(t *testing.T) {
+	// Build 25 keys in order.
+	dir := t.TempDir()
+	var keys [][]byte
+	for i := range 25 {
+		keys = append(keys, testKey([]byte{byte(i)}))
+	}
+	slices.SortFunc(keys, bytes.Compare)
+
+	// Stop at the third query, then tear the ledger's end.
+	f := &fakePages{keys: keys, failAt: 3}
+	o, err := openKeyOutput(dir, "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code, err := listKeys(t.Context(), f.page, o, 10, 0, time.Second, ""); code != exitStop || err == nil {
+		t.Fatalf("first run code %d err %v", code, err)
+	}
+	if _, err := o.ledger.WriteString("page 2 keys 2"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := o.list.WriteString("torn\n"); err != nil {
+		t.Fatal(err)
+	}
+	o.close()
+
+	// Resume with a slow third page: it is recorded, then the run stops.
+	f = &fakePages{keys: keys, slowAt: 1}
+	o, err = openKeyOutput(dir, "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if o.pages != 2 || o.keys != 20 || o.end {
+		t.Fatalf("resume pages %d keys %d end %v", o.pages, o.keys, o.end)
+	}
+	if code, err := listKeys(t.Context(), f.page, o, 10, 0, time.Second, ""); code != exitStop || err == nil {
+		t.Fatalf("slow run code %d err %v", code, err)
+	}
+	o.close()
+
+	// Reopen the finished listing: it is done and queries nothing.
+	f = &fakePages{keys: keys}
+	o, err = openKeyOutput(dir, "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code, err := listKeys(t.Context(), f.page, o, 10, 0, time.Second, ""); code != 0 || err != nil || f.calls != 0 {
+		t.Fatalf("done run code %d err %v calls %d", code, err, f.calls)
+	}
+	o.close()
+
+	// The list holds every key once, in order.
+	data, _ := os.ReadFile(filepath.Join(dir, "k.keys"))
+	var want strings.Builder
+	for _, k := range keys {
+		want.WriteString(hex.EncodeToString(k) + "\n")
+	}
+	if string(data) != want.String() {
+		t.Fatalf("list %d bytes, want %d", len(data), want.Len())
+	}
+}
+
+// TestListKeysRate checks the listing waits the interval between queries.
+func TestListKeysRate(t *testing.T) {
+	// List 3 pages at 20 queries a second.
+	var keys [][]byte
+	for i := range 5 {
+		keys = append(keys, testKey([]byte{byte(i)}))
+	}
+	slices.SortFunc(keys, bytes.Compare)
+	o, err := openKeyOutput(t.TempDir(), "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer o.close()
+
+	// Three queries take at least the two intervals between them.
+	f := &fakePages{keys: keys}
+	start := time.Now()
+	if code, err := listKeys(t.Context(), f.page, o, 2, 50*time.Millisecond, time.Second, ""); code != 0 || err != nil {
+		t.Fatalf("code %d err %v", code, err)
+	}
+	if f.calls != 3 || time.Since(start) < 100*time.Millisecond || o.keys != 5 {
+		t.Fatalf("calls %d keys %d in %v", f.calls, o.keys, time.Since(start))
 	}
 }

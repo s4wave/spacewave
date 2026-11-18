@@ -13,6 +13,14 @@
 // SQL error gets one reconnect after a minute, then the run stops; a refused,
 // too-many or auth error stops it at once. It never writes the database and
 // never prints the credentials it reads.
+//
+// With --list-keys it reads no bodies: it lists every key of the store in key
+// order, a page of at most --batch (up to 10,000) keys per query and at most 2
+// queries per second, into a hex key list whose line count is the store's
+// exact count. It first logs the server's information_schema estimate of the
+// table. It refuses a session the server does not make read only, and stops
+// on any error or on a query over 10 s; a ledger lets a later run resume after
+// the last key.
 package main
 
 import (
@@ -57,18 +65,29 @@ func logf(format string, args ...any) {
 }
 
 func run() (int, error) {
-	// Declare the flags.
+	// Declare the inputs and outputs.
 	keysPath := flag.String("keys", "", "file of hex keys, one per line (the last field of a line is used)")
 	envPath := flag.String("env", "", "file of HYPERLINE_WORLD_SQL_* NAME=VALUE lines")
 	storeID := flag.String("store-id", "", "block store id of the rows")
 	outDir := flag.String("out", "", "output directory")
 	name := flag.String("name", "sqlone", "base name of the output files")
+
+	// Declare the pace and the mode.
 	batch := flag.Int("batch", 500, "keys per query, at most 500")
 	rate := flag.Float64("rate", 5, "queries per second, at most 5")
 	stopFile := flag.String("stop-file", "", "stop cleanly when this file exists")
+	list := flag.Bool("list-keys", false, "list the store's keys instead of reading --keys; --batch up to 10000, --rate up to 2")
 
-	// Parse them and require the inputs.
+	// Parse them; the key listing takes its own path.
 	flag.Parse()
+	if *list {
+		if *keysPath != "" || *envPath == "" || *storeID == "" || *outDir == "" {
+			return 1, errors.New("--list-keys needs --env, --store-id and --out, and no --keys")
+		}
+		return runList(*envPath, *storeID, *outDir, *name, *batch, *rate, *stopFile)
+	}
+
+	// Require the inputs.
 	if *keysPath == "" || *envPath == "" || *storeID == "" || *outDir == "" {
 		return 1, errors.New("--keys, --env, --store-id and --out are required")
 	}
@@ -168,6 +187,47 @@ func run() (int, error) {
 	// Report the end.
 	logf("done: found %d missed %d hashbad %d bytes %d", out.found, out.missed, out.hashBad, out.bytes)
 	return 0, nil
+}
+
+// runList lists the store's keys over one read-only session.
+func runList(envPath, storeID, outDir, name string, batch int, rate float64, stopFile string) (int, error) {
+	// Bound the page and the rate.
+	if batch < 1 || batch > listBatchMax {
+		return 1, fmt.Errorf("--batch must be 1-%d with --list-keys", listBatchMax)
+	}
+	if rate <= 0 || rate > listRateMax {
+		return 1, fmt.Errorf("--rate must be above 0 and at most %d with --list-keys", listRateMax)
+	}
+
+	// Read the database location, for one connection, and open the output.
+	conf, err := readEnv(envPath)
+	if err != nil {
+		return 1, err
+	}
+	conf.MaxConns = 1
+	out, err := openKeyOutput(outDir, name)
+	if err != nil {
+		return 1, err
+	}
+	defer out.close()
+
+	// Open the one session, refusing one that is not read only.
+	ctx := context.Background()
+	r := &reader{conf: conf, table: "`" + strings.ReplaceAll(conf.Table, "`", "``") + "`", storeID: []byte(storeID)}
+	if err := r.connect(ctx); err != nil {
+		return exitStop, err
+	}
+	defer r.close()
+	if !r.readOnly {
+		return exitStop, errNotReadOnly
+	}
+
+	// Log the estimate, then list the keys at the rate.
+	if err := r.estimate(ctx); err != nil {
+		return exitStop, fmt.Errorf("estimate: %w", err)
+	}
+	time.Sleep(time.Duration(float64(time.Second) / rate))
+	return listKeys(ctx, r.page, out, batch, time.Duration(float64(time.Second)/rate), listQueryMax, stopFile)
 }
 
 // readKeys reads the unique keys of a list, keeping their order.
@@ -278,11 +338,18 @@ func fatal(err error) bool {
 
 // reader holds the one database session.
 type reader struct {
-	conf    *block_store_sql.Config
-	table   string
+	// conf is the database location and login.
+	conf *block_store_sql.Config
+	// table is the quoted blocks table name.
+	table string
+	// storeID is the block store id of the rows.
 	storeID []byte
-	db      *sql.DB
-	conn    *sql.Conn
+	// db is the pool, held to one connection.
+	db *sql.DB
+	// conn is the one session.
+	conn *sql.Conn
+	// readOnly records that the server accepted the session as read only.
+	readOnly bool
 }
 
 func (r *reader) connect(ctx context.Context) error {
@@ -307,7 +374,9 @@ func (r *reader) connect(ctx context.Context) error {
 	r.db, r.conn = db, conn
 
 	// Ask the server to make the session read only.
-	if _, err := conn.ExecContext(cctx, "SET SESSION TRANSACTION READ ONLY"); err != nil {
+	_, err = conn.ExecContext(cctx, "SET SESSION TRANSACTION READ ONLY")
+	r.readOnly = err == nil
+	if err != nil {
 		logf("session read only: not accepted (%v)", scrub(err))
 	} else {
 		logf("session read only: accepted")
