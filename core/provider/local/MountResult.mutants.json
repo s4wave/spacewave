@@ -28,5 +28,29 @@
       ]
     ],
     "expect": "RefusalKeepsRevive"
+  },
+  {
+    "name": "a waiter ignores a stopped account",
+    "replace": [
+      [
+        "\\/ StopAccount \\/ CancelResult",
+        "\\/ StopAccount"
+      ],
+      [
+        "        /\\ WF_resultVars(CancelResult)\n",
+        ""
+      ]
+    ],
+    "expect": "AccountWaitEnds"
+  },
+  {
+    "name": "a retired mount trusts a recreated host key",
+    "replace": [
+      [
+        "IF (HostPresent /\\ MountLive) THEN \"held\" ELSE \"refused\"",
+        "IF HostPresent THEN \"held\" ELSE \"refused\""
+      ]
+    ],
+    "expect": "NoCrossLifetimeWrite"
   }
 ]

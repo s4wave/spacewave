@@ -17,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/net/crypto"
 )
 
@@ -799,6 +800,176 @@ func (p *mountCapturePromise) AwaitWithCancelCh(ctx context.Context, replaced <-
 	default:
 		return nil, errors.New("captured promise was not replaced")
 	}
+}
+
+// mountWriteOpenGate pauses a write after the mount's first check but before
+// the account store grants its writer.
+type mountWriteOpenGate struct {
+	object.ObjectStore
+	entered chan struct{}
+	resume  chan struct{}
+}
+
+func (g *mountWriteOpenGate) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if write {
+		close(g.entered)
+		select {
+		case <-g.resume:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	return g.ObjectStore.NewTransaction(ctx, write)
+}
+
+// TestRetiredLocalWriteCannotCrossRecreate opens the real account writer only
+// after a delete and same-id recreate have completed.
+func TestRetiredLocalWriteCannotCrossRecreate(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	const id = "gated-relist"
+	old, releaseOld := mountTestSharedObject(ctx, t, a, createTestSharedObject(ctx, t, a, id))
+	defer releaseOld()
+
+	// Wrap only this write's copy of the mount store; leave the real mount
+	// and every other user of the account store alone.
+	store := old.objStore.(mountStore)
+	gate := &mountWriteOpenGate{ObjectStore: store.ObjectStore, entered: make(chan struct{}), resume: make(chan struct{})}
+	store.ObjectStore = gate
+	gated := &SharedObject{ctx: old.ctx, tkr: old.tkr, objStore: store}
+	writeCtx, cancelWrite := context.WithCancel(ctx)
+	defer cancelWrite()
+	result := make(chan error, 1)
+	go func() { result <- tryWriteTestLocalKeys(writeCtx, gated, 1) }()
+	select {
+	case <-gate.entered:
+	case <-ctx.Done():
+		t.Fatal("the old write did not reach the account writer boundary")
+	}
+
+	if err := a.DeleteSharedObject(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	fresh, releaseFresh := mountTestSharedObject(ctx, t, a, createTestSharedObject(ctx, t, a, id))
+	defer releaseFresh()
+	if old.ctx.Err() == nil || fresh == old {
+		t.Fatal("recreate did not retire the old mount")
+	}
+	local, releaseLocal, err := fresh.AccessLocalStateStore(ctx, "fake-store", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseLocal()
+	key, want := []byte("fake-key-0000"), []byte("new mount's value")
+	if err := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
+		return local.NewTransaction(ctx, true)
+	}, func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.Set(ctx, key, want)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	close(gate.resume)
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) || writeCtx.Err() != nil {
+			t.Errorf("old write returned %v with caller error %v, want mount cancellation only", err, writeCtx.Err())
+		}
+	case <-ctx.Done():
+		t.Fatal("the old write did not return")
+	}
+
+	// Take the writer again to check that the refusal did not retain it.
+	tx, err := local.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	got, found, err := tx.Get(ctx, key)
+	if err != nil || !found || !bytes.Equal(got, want) {
+		t.Fatalf("fresh value = %q (found %t, err %v), want %q", got, found, err, want)
+	}
+}
+
+// TestMountWaitEndsWithAccount stops the account with one producer gated
+// before publication and then mounts a different, untracked object.
+func TestMountWaitEndsWithAccount(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancel()
+	accountCtx, stopAccount := context.WithCancel(ctx)
+	defer stopAccount()
+	_, _, a, _, release := setupProviderAndSessionInternal(accountCtx, t)
+	defer release()
+	const pendingID, untrackedID = "pending-at-stop", "untracked-at-stop"
+	pending := createTestSharedObject(ctx, t, a, pendingID)
+	untracked := createTestSharedObject(ctx, t, a, untrackedID)
+	entered, resume := make(chan struct{}), make(chan struct{})
+	testHookRunStarting.Store(new(func(id string) {
+		if id == pendingID {
+			close(entered)
+			<-resume
+		}
+	}))
+	defer func() {
+		testHookRunStarting.Store(nil)
+		close(resume)
+	}()
+
+	startMount := func(ref *sobject.SharedObjectRef) (context.Context, func(), <-chan error) {
+		caller, cancel := context.WithCancel(ctx)
+		result := make(chan error, 1)
+		go func() {
+			_, release, err := a.MountSharedObject(caller, ref, nil)
+			if release != nil {
+				release()
+			}
+			result <- err
+		}()
+		return caller, cancel, result
+	}
+	checkMount := func(id string, caller context.Context, cancel func(), result <-chan error) {
+		t.Helper()
+		defer cancel()
+		select {
+		case err := <-result:
+			if !errors.Is(err, context.Canceled) || caller.Err() != nil {
+				t.Errorf("mount %s returned %v with caller error %v, want account cancellation only", id, err, caller.Err())
+			}
+		case <-time.After(2 * time.Second):
+			_, retained := a.sobjects.GetKey(id)
+			t.Errorf("mount %s did not return on account stop (tracker retained: %t)", id, retained)
+			cancel()
+			select {
+			case <-result:
+			case <-ctx.Done():
+				t.Fatal("the mount did not return even after caller cancellation")
+			}
+		}
+		if _, retained := a.sobjects.GetKey(id); retained {
+			t.Errorf("mount %s retained a tracker after returning", id)
+		}
+	}
+
+	caller, cancelCaller, result := startMount(pending)
+	defer cancelCaller()
+	select {
+	case <-entered:
+	case <-ctx.Done():
+		t.Fatal("the pending producer did not start")
+	}
+	stopAccount()
+	select {
+	case <-a.lifecycleCtx.Done():
+	case <-ctx.Done():
+		t.Fatal("the account did not stop")
+	}
+	checkMount(pendingID, caller, cancelCaller, result)
+	if _, retained := a.sobjects.GetKey(untrackedID); retained {
+		t.Fatal("the second object already had a tracker before the mount")
+	}
+	caller, cancelCaller, result = startMount(untracked)
+	checkMount(untrackedID, caller, cancelCaller, result)
 }
 
 // TestMountWaiterDiscardsRetiredResult holds an in-flight mount after it

@@ -371,12 +371,11 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 //     transaction RunOptimisticTransaction opens; none here does. One
 //     before is removed with the prefix. One after finds no stored state and
 //     fails: state writes check the host key in their transaction, and a
-//     mount's other writes check it when their transaction opens. The live
-//     mount is restarted after the commit, still under mtx, through
-//     restartSharedObject, so a mount after the delete returns gets the
-//     refusal rather than the ended handle; a handle of the ended mount fails
-//     every write, so it cannot write into an object a later create lists
-//     under the same id.
+//     mount's other writes check it after taking the writer. The live mount
+//     is retired after the commit, still under mtx and before a same-id
+//     create can proceed. A mount after the delete returns gets the refusal
+//     rather than the ended handle. A write checking under the writer after
+//     a same-id create sees the ended mount even though the host key exists.
 //   - No holder of an old handle reads the deleted state after the delete
 //     returns. The restart retires the run, which clears the host's state
 //     snapshot under its lock, and ends the mount's context, both before the

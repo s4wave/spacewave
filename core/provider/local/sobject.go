@@ -139,9 +139,16 @@ func (m mountStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, er
 		return m.ObjectStore.NewTransaction(ctx, false)
 	}
 
-	// Refuse a write to an object deleted since the mount began.
+	// Take the writer before rechecking the mount and the host key. A
+	// delete and same-id create can both finish while we wait. The mount
+	// check rejects a recreated host key; the key check rejects a delete
+	// that has committed but has not yet retired the mount.
 	tx, err := m.ObjectStore.NewTransaction(ctx, true)
 	if err != nil {
+		return nil, err
+	}
+	if err := m.ctx.Err(); err != nil {
+		tx.Discard()
 		return nil, err
 	}
 	found, err := tx.Exists(ctx, m.hostKey)
@@ -865,17 +872,31 @@ func (a *ProviderAccount) UpdateSharedObjectMeta(ctx context.Context, id string,
 }
 
 // MountSharedObject retains a ready SharedObject until the returned release runs.
+// Waiting ends when either the caller or this account instance stops.
 func (a *ProviderAccount) MountSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, released func()) (sobject.SharedObject, func(), error) {
 	// Retain the tracker for the validated SharedObject identity.
 	if err := ref.Validate(); err != nil {
 		return nil, nil, err
 	}
+	if a.lifecycleCtx.Err() != nil {
+		return nil, nil, context.Canceled
+	}
 	sobjectID := ref.GetProviderResourceRef().GetId()
 	tkrRef, tkr, _ := a.sobjects.AddKeyRef(sobjectID)
 	tkr.ref.SetResult(ref, nil)
 
-	// Await mount readiness while preserving the caller's tracker reference.
-	ws, err := tkr.res.await(ctx)
+	// A stopped account cannot publish another result. Bound the wait to
+	// that lifetime without changing the returned handle's ownership.
+	waitCtx, cancel := context.WithCancel(ctx)
+	stopWait := context.AfterFunc(a.lifecycleCtx, cancel)
+	defer cancel()
+	defer stopWait()
+	ws, err := tkr.res.await(waitCtx)
+
+	// Account cancellation can precede its AfterFunc callback.
+	if a.lifecycleCtx.Err() != nil {
+		err = context.Canceled
+	}
 	if err != nil {
 		tkrRef.Release()
 		return nil, nil, err

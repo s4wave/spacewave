@@ -74,30 +74,43 @@ Next == Retire \/ CancelFirst \/ SkipMiddle \/ EnterThird
    interleave with the delayed-claim schedule without sharing its tracker.
    Publication models the promise's replacement token, including a resolved
    error; read and validation are separate steps of one await. *)
-VARIABLES publication, captured, returned, staleReturn
-resultVars == <<publication, captured, returned, staleReturn>>
+(* Account stop is terminal: a result can no longer publish, and a pending
+   wait releases its reference independently of the caller's lifetime. Here
+   returned = 3 represents cancellation rather than a publication. *)
+VARIABLES publication, captured, returned, staleReturn, stopped
+resultVars == <<publication, captured, returned, staleReturn, stopped>>
 InitResult == /\ publication = 1
               /\ captured = 0
               /\ returned = 0
               /\ staleReturn = FALSE
+              /\ stopped = FALSE
 
-CaptureResult == /\ publication # 0 /\ captured = 0 /\ returned = 0
+CaptureResult == /\ ~stopped /\ publication # 0 /\ captured = 0 /\ returned = 0
                  /\ captured' = publication
-                 /\ UNCHANGED <<publication, returned, staleReturn>>
+                 /\ UNCHANGED <<publication, returned, staleReturn, stopped>>
 RetireResult == /\ publication = 1
                 /\ publication' = 0
-                /\ UNCHANGED <<captured, returned, staleReturn>>
-PublishSuccessor == /\ publication = 0
+                /\ UNCHANGED <<captured, returned, staleReturn, stopped>>
+PublishSuccessor == /\ ~stopped /\ publication = 0
                     /\ publication' = 2
-                    /\ UNCHANGED <<captured, returned, staleReturn>>
-ValidateResult == /\ captured # 0
+                    /\ UNCHANGED <<captured, returned, staleReturn, stopped>>
+ValidateResult == /\ ~stopped /\ captured # 0
                   /\ returned' = IF captured = publication THEN captured ELSE 0
                   /\ staleReturn' = (returned' # 0 /\ captured # publication)
                   /\ captured' = 0
-                  /\ UNCHANGED publication
-NextResult == CaptureResult \/ RetireResult \/ PublishSuccessor \/ ValidateResult
+                  /\ UNCHANGED <<publication, stopped>>
+StopAccount == /\ ~stopped
+               /\ stopped' = TRUE
+               /\ UNCHANGED <<publication, captured, returned, staleReturn>>
+CancelResult == /\ stopped /\ returned = 0
+                /\ returned' = 3
+                /\ captured' = 0
+                /\ UNCHANGED <<publication, staleReturn, stopped>>
+NextResult == \/ CaptureResult \/ RetireResult \/ PublishSuccessor \/ ValidateResult
+              \/ StopAccount \/ CancelResult
 NoRetiredResult == ~staleReturn
-ResultWaitEnds == <>(returned # 0)
+AccountWaitEnds == (stopped /\ returned = 0) ~> (returned = 3)
+ResultWaitEnds == <>(returned # 0 \/ stopped)
 
 (* A has read state; replace and delete bypass the intermediate callback as
    above. C starts reading and then publishes a refusal. The enrollment commits
@@ -132,16 +145,51 @@ NextLoad == RefuseAfterDelete \/ CompleteOldLoad \/ CommitPlaceholder \/ Revive
 RefusalKeepsRevive == enrollment = "placeholder committed" => awaiting
 PlaceholderMounts == <>(enrollment = "mounted")
 
-allVars == <<vars, resultVars, loadVars>>
-InitAll == Init /\ InitResult /\ InitLoad
-NextAll == \/ Next /\ UNCHANGED <<resultVars, loadVars>>
-           \/ NextResult /\ UNCHANGED <<vars, loadVars>>
-           \/ NextLoad /\ UNCHANGED <<vars, resultVars>>
+(* The same-id create is serialized after retirement by the account lock.
+   The store serializes delete and create commits against a held writer.
+   A preflight can pass before storage changes; the check inside OpenWrite
+   must distinguish a canceled mount from a host key that exists again. *)
+VARIABLES lifetime, writePhase, wrongWrite
+writeVars == <<lifetime, writePhase, wrongWrite>>
+InitWrite == /\ lifetime = "old"
+             /\ writePhase = "idle"
+             /\ wrongWrite = FALSE
+HostPresent == lifetime \in {"old", "fresh"}
+MountLive == lifetime \in {"old", "deleted"}
+Preflight == /\ writePhase = "idle" /\ MountLive
+             /\ writePhase' = "waiting"
+             /\ UNCHANGED <<lifetime, wrongWrite>>
+OpenWrite == /\ writePhase = "waiting"
+             /\ writePhase' = IF (HostPresent /\ MountLive) THEN "held" ELSE "refused"
+             /\ UNCHANGED <<lifetime, wrongWrite>>
+CommitWrite == /\ writePhase = "held"
+               /\ writePhase' = "committed"
+               /\ wrongWrite' = (lifetime = "fresh")
+               /\ UNCHANGED lifetime
+DeleteCommit == /\ lifetime = "old" /\ writePhase # "held"
+                /\ lifetime' = "deleted"
+                /\ UNCHANGED <<writePhase, wrongWrite>>
+RetireMount == /\ lifetime = "deleted"
+               /\ lifetime' = "retired"
+               /\ UNCHANGED <<writePhase, wrongWrite>>
+CreateCommit == /\ lifetime = "retired" /\ writePhase # "held"
+                /\ lifetime' = "fresh"
+                /\ UNCHANGED <<writePhase, wrongWrite>>
+NextWrite == Preflight \/ OpenWrite \/ CommitWrite \/ DeleteCommit \/ RetireMount \/ CreateCommit
+NoCrossLifetimeWrite == ~wrongWrite
+
+allVars == <<vars, resultVars, loadVars, writeVars>>
+InitAll == Init /\ InitResult /\ InitLoad /\ InitWrite
+NextAll == \/ Next /\ UNCHANGED <<resultVars, loadVars, writeVars>>
+           \/ NextResult /\ UNCHANGED <<vars, loadVars, writeVars>>
+           \/ NextLoad /\ UNCHANGED <<vars, resultVars, writeVars>>
+           \/ NextWrite /\ UNCHANGED <<vars, resultVars, loadVars>>
 Spec == InitAll /\ [][NextAll]_allVars
         /\ WF_vars(Retire) /\ WF_vars(CancelFirst) /\ WF_vars(SkipMiddle)
         /\ WF_vars(EnterThird) /\ WF_vars(Claim(3)) /\ WF_vars(Publish(3))
         /\ WF_resultVars(CaptureResult) /\ WF_resultVars(RetireResult)
         /\ WF_resultVars(PublishSuccessor) /\ WF_resultVars(ValidateResult)
+        /\ WF_resultVars(CancelResult)
         /\ WF_loadVars(RefuseAfterDelete) /\ WF_loadVars(CommitPlaceholder)
         /\ WF_loadVars(Revive)
 NewestOwns == scheduled = 3 => owner \in {0, 3}
