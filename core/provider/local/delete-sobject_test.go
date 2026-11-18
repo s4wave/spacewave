@@ -760,6 +760,44 @@ func TestRestartChainKeepsNewestMount(t *testing.T) {
 	}
 }
 
+// TestRecreatedMountSurvivesCanceledStart checks that a delayed tracker
+// callback canceled by a restart cannot clear the recreated object's mount.
+func TestRecreatedMountSurvivesCanceledStart(t *testing.T) {
+	// Keep the tracker live across the delete and recreate.
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	const id = "late-start"
+	ref := createTestSharedObject(ctx, t, a, id)
+	_, releaseOld := mountTestSharedObject(ctx, t, a, ref)
+	defer releaseOld()
+	if err := a.DeleteSharedObject(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	createTestSharedObject(ctx, t, a, id)
+	fresh, releaseFresh := mountTestSharedObject(ctx, t, a, ref)
+	defer releaseFresh()
+
+	// Run the entry point as if an older keyed callback reached it only
+	// after cancellation and the newer run had already published.
+	staleCtx, cancelStale := context.WithCancel(ctx)
+	cancelStale()
+	if err := fresh.tkr.executeSharedObjectTracker(staleCtx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled tracker callback returned %v", err)
+	}
+
+	// A new waiter must get the current handle and its write must survive.
+	mountCtx, cancelMount := context.WithTimeout(ctx, time.Second)
+	defer cancelMount()
+	mounted, releaseMounted := mountTestSharedObject(mountCtx, t, a, ref)
+	defer releaseMounted()
+	if mounted != fresh {
+		t.Fatal("a canceled start replaced the current mount")
+	}
+	writeTestStateData(ctx, t, mounted, []byte("after-late-start"))
+}
+
 // TestRetiredRunWritesNothing checks that a run a retire or a later run has
 // replaced cannot publish, change health or clear the result, even while its
 // context is live.
@@ -771,7 +809,10 @@ func TestRetiredRunWritesNothing(t *testing.T) {
 	res := newSobjectResult()
 
 	// A retired run's publish is dropped.
-	old := res.start(t.Context())
+	old, err := res.start(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
 	res.retire()
 	old.publish(sobject.NewSharedObjectReadyHealth(layer), newTestRunSharedObject(), nil)
 	expectTestResultCleared(ctx, t, &sobjectTracker{res: res})
@@ -780,7 +821,10 @@ func TestRetiredRunWritesNothing(t *testing.T) {
 	}
 
 	// The newest run publishes, and the retired run cannot change or clear it.
-	run := res.start(t.Context())
+	run, err := res.start(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
 	want := newTestRunSharedObject()
 	run.publish(sobject.NewSharedObjectReadyHealth(layer), want, nil)
 	old.swapHealth(func(*sobject.SharedObjectHealth) *sobject.SharedObjectHealth {

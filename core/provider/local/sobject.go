@@ -378,15 +378,22 @@ func (r *sobjectResult) watchHealth() ccontainer.Watchable[*sobject.SharedObject
 	return r.health
 }
 
-// start retires every earlier run, clears the mount result, reports loading
-// and returns the new run's handle, bound to the run's context.
-func (r *sobjectResult) start(ctx context.Context) *sobjectRun {
-	// Move the generation on and reset under the lock, retiring earlier runs.
+// start claims the next mount generation only for a live run. A callback
+// canceled before it claims the result must leave the current generation,
+// promise and health intact, even if a later run has already published.
+func (r *sobjectResult) start(ctx context.Context) (*sobjectRun, error) {
+	// Check liveness and claim the result under the same lock. A keyed
+	// callback can reach here late after two restarts let a newer run pass it.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	// Retire the earlier generation and report the new live run as loading.
 	r.gen++
 	r.reset()
-	return &sobjectRun{res: r, gen: r.gen, ctx: ctx}
+	return &sobjectRun{res: r, gen: r.gen, ctx: ctx}, nil
 }
 
 // retire retires the current run, clears the mount result and reports
@@ -460,7 +467,10 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	if hook := testHookRunStarting.Load(); hook != nil {
 		(*hook)(t.id)
 	}
-	run := t.res.start(rctx)
+	run, err := t.res.start(rctx)
+	if err != nil {
+		return err
+	}
 	defer func() {
 		if rerr != nil && rerr != context.Canceled {
 			run.publish(sobject.BuildSharedObjectHealthFromError(

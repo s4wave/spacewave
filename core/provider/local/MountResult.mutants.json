@@ -1,0 +1,12 @@
+[
+  {
+    "name": "a canceled callback claims the mount result",
+    "replace": [
+      [
+        "            /\\ r \\in live\n            /\\ phase' = [phase EXCEPT ![r] = \"claimed\"]",
+        "            /\\ phase' = [phase EXCEPT ![r] = \"claimed\"]"
+      ]
+    ],
+    "expect": "NewestOwns"
+  }
+]
