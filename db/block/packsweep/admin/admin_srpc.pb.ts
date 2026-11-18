@@ -3,6 +3,8 @@
 /* eslint-disable */
 
 import {
+  AdmitRequest,
+  AdmitResponse,
   AdoptRequest,
   AdoptResponse,
   LocateRequest,
@@ -44,6 +46,20 @@ export const PackSweepAdminDefinition = {
       name: 'Status',
       I: StatusRequest,
       O: StatusResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Admit waits until the backend admits a batch of a sweep step's reads:
+     * while its own background passes would wait, on the World database's pace,
+     * write-back lag or disk floor. It returns at once when the backend sets no
+     * gate, and holds nothing a request waits on.
+     *
+     * @generated from rpc block.packsweep.admin.PackSweepAdmin.Admit
+     */
+    Admit: {
+      name: 'Admit',
+      I: AdmitRequest,
+      O: AdmitResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -210,6 +226,19 @@ export interface PackSweepAdmin {
   ): Promise<StatusResponse>
 
   /**
+   * Admit waits until the backend admits a batch of a sweep step's reads:
+   * while its own background passes would wait, on the World database's pace,
+   * write-back lag or disk floor. It returns at once when the backend sets no
+   * gate, and holds nothing a request waits on.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Admit
+   */
+  Admit(
+    request: AdmitRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AdmitResponse>
+
+  /**
    * Roots reads every named root, every ref the process pins, and the write
    * log's position R, so every root and pin set since R is in the log after
    * R.
@@ -352,6 +381,20 @@ export interface PackSweepAdminHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<StatusResponse>
+
+  /**
+   * Admit waits until the backend admits a batch of a sweep step's reads:
+   * while its own background passes would wait, on the World database's pace,
+   * write-back lag or disk floor. It returns at once when the backend sets no
+   * gate, and holds nothing a request waits on.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Admit
+   */
+  Admit(
+    request: AdmitRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AdmitResponse>
 
   /**
    * Roots reads every named root, every ref the process pins, and the write
@@ -504,6 +547,7 @@ export class PackSweepAdminClient implements PackSweepAdmin {
     this.service = opts?.service || PackSweepAdminServiceName
     this.rpc = rpc
     this.Status = this.Status.bind(this)
+    this.Admit = this.Admit.bind(this)
     this.Roots = this.Roots.bind(this)
     this.Locate = this.Locate.bind(this)
     this.Refs = this.Refs.bind(this)
@@ -534,6 +578,28 @@ export class PackSweepAdminClient implements PackSweepAdmin {
       abortSignal || undefined,
     )
     return StatusResponse.fromBinary(result)
+  }
+
+  /**
+   * Admit waits until the backend admits a batch of a sweep step's reads:
+   * while its own background passes would wait, on the World database's pace,
+   * write-back lag or disk floor. It returns at once when the backend sets no
+   * gate, and holds nothing a request waits on.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Admit
+   */
+  async Admit(
+    request: AdmitRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AdmitResponse> {
+    const requestMsg = AdmitRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      PackSweepAdminDefinition.methods.Admit.name,
+      AdmitRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AdmitResponse.fromBinary(result)
   }
 
   /**

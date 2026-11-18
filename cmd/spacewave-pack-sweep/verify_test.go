@@ -468,6 +468,27 @@ func TestCommandCheckPacks(t *testing.T) {
 		t.Fatalf("real candidate = %s, want 1 candidate key, 4 reached, none held or bad", res)
 	}
 
+	// Paced through the gate, the full sample reads each reached block once
+	// more by value; log what each costs, the figure a production run's cost
+	// is projected from.
+	for _, sample := range []float64{0, 1} {
+		counted := &countingStore{ObjectStore: c.client}
+		admits := 0
+		res, err := c.run(t, check, func(a *Args) {
+			a.Sample = sample
+			a.dial = func() (block_store_s3.ObjectStore, string, func(), error) {
+				return counted, s3test.BucketName, func() {}, nil
+			}
+			a.dialGate = func(context.Context) (func(context.Context) error, func(), error) {
+				return func(context.Context) error { admits++; return nil }, func() {}, nil
+			}
+		})
+		if err != nil || admits == 0 {
+			t.Fatalf("paced check with sample %v: %v, %d admissions (%s)", sample, err, admits, res)
+		}
+		t.Logf("check sample %v: %d reached, %d sampled, %d gets, %d bytes, %d admissions", sample, res.GetUint64("reached"), res.GetUint64("sampled"), counted.gets.Load(), counted.bytes.Load(), admits)
+	}
+
 	// Adversary: name the deep block's only pack as well.
 	res, err = c.run(t, check, func(a *Args) {
 		a.Candidates = c.writeCandidates(t, "deep.jsonl", c.packs[3], c.packs[2])

@@ -12,6 +12,11 @@ import "github.com/s4wave/spacewave/net/hash/hash.proto";
 service PackSweepAdmin {
   // Status reports the switch, the packs' sweep states and the write log.
   rpc Status(StatusRequest) returns (StatusResponse);
+  // Admit waits until the backend admits a batch of a sweep step's reads:
+  // while its own background passes would wait, on the World database's pace,
+  // write-back lag or disk floor. It returns at once when the backend sets no
+  // gate, and holds nothing a request waits on.
+  rpc Admit(AdmitRequest) returns (AdmitResponse);
   // Roots reads every named root, every ref the process pins, and the write
   // log's position R, so every root and pin set since R is in the log after
   // R.
@@ -62,6 +67,15 @@ message StatusRequest {
   // PackIds names the packs to report, in order. Empty reports every pack
   // the sweep moved.
   repeated string pack_ids = 1;
+}
+
+// AdmitRequest asks to be admitted for a batch of reads.
+message AdmitRequest {}
+
+// AdmitResponse admits a batch of reads.
+message AdmitResponse {
+  // WaitedNano is how long the backend held the call before admitting it.
+  int64 waited_nano = 1;
 }
 
 // StatusResponse is the backend's sweep state.

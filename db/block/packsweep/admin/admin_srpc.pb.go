@@ -16,6 +16,11 @@ type SRPCPackSweepAdminClient interface {
 
 	// Status reports the switch, the packs' sweep states and the write log.
 	Status(ctx context.Context, in *StatusRequest) (*StatusResponse, error)
+	// Admit waits until the backend admits a batch of a sweep step's reads:
+	// while its own background passes would wait, on the World database's pace,
+	// write-back lag or disk floor. It returns at once when the backend sets no
+	// gate, and holds nothing a request waits on.
+	Admit(ctx context.Context, in *AdmitRequest) (*AdmitResponse, error)
 	// Roots reads every named root, every ref the process pins, and the write
 	// log's position R, so every root and pin set since R is in the log after
 	// R.
@@ -72,6 +77,15 @@ func (c *srpcPackSweepAdminClient) SRPCClient() srpc.Client { return c.cc }
 func (c *srpcPackSweepAdminClient) Status(ctx context.Context, in *StatusRequest) (*StatusResponse, error) {
 	out := new(StatusResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "Status", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcPackSweepAdminClient) Admit(ctx context.Context, in *AdmitRequest) (*AdmitResponse, error) {
+	out := new(AdmitResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Admit", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -189,6 +203,11 @@ func (c *srpcPackSweepAdminClient) TrimLog(ctx context.Context, in *TrimLogReque
 type SRPCPackSweepAdminServer interface {
 	// Status reports the switch, the packs' sweep states and the write log.
 	Status(context.Context, *StatusRequest) (*StatusResponse, error)
+	// Admit waits until the backend admits a batch of a sweep step's reads:
+	// while its own background passes would wait, on the World database's pace,
+	// write-back lag or disk floor. It returns at once when the backend sets no
+	// gate, and holds nothing a request waits on.
+	Admit(context.Context, *AdmitRequest) (*AdmitResponse, error)
 	// Roots reads every named root, every ref the process pins, and the write
 	// log's position R, so every root and pin set since R is in the log after
 	// R.
@@ -251,6 +270,7 @@ func (d *SRPCPackSweepAdminHandler) GetServiceID() string { return d.serviceID }
 func (SRPCPackSweepAdminHandler) GetMethodIDs() []string {
 	return []string{
 		"Status",
+		"Admit",
 		"Roots",
 		"Locate",
 		"Refs",
@@ -277,6 +297,8 @@ func (d *SRPCPackSweepAdminHandler) InvokeMethod(
 	switch methodID {
 	case "Status":
 		return true, d.InvokeMethod_Status(d.impl, strm)
+	case "Admit":
+		return true, d.InvokeMethod_Admit(d.impl, strm)
 	case "Roots":
 		return true, d.InvokeMethod_Roots(d.impl, strm)
 	case "Locate":
@@ -312,6 +334,18 @@ func (SRPCPackSweepAdminHandler) InvokeMethod_Status(impl SRPCPackSweepAdminServ
 		return err
 	}
 	out, err := impl.Status(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCPackSweepAdminHandler) InvokeMethod_Admit(impl SRPCPackSweepAdminServer, strm srpc.Stream) error {
+	req := new(AdmitRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Admit(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -467,6 +501,14 @@ type SRPCPackSweepAdmin_StatusStream interface {
 }
 
 type srpcPackSweepAdmin_StatusStream struct {
+	srpc.Stream
+}
+
+type SRPCPackSweepAdmin_AdmitStream interface {
+	srpc.Stream
+}
+
+type srpcPackSweepAdmin_AdmitStream struct {
 	srpc.Stream
 }
 

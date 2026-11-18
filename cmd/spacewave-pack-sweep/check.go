@@ -26,7 +26,7 @@ func (a *Args) checkFlags() []cli.Flag {
 	flags := slices.DeleteFunc(a.dialFlags(), func(f cli.Flag) bool {
 		return slices.Contains(f.Names(), "store-id")
 	})
-	return append(flags,
+	return append(append(flags,
 		&cli.StringFlag{Name: "scratch", Usage: "the judged cycle's scratch file: its catalog gives each block's children, and its roots are walked with the fresh ones", Destination: &a.Scratch, Required: true},
 		&cli.StringFlag{Name: "candidates", Usage: "candidate list, one JSON judgment a line, whose removal the check proves loses nothing", Destination: &a.Candidates, Required: true},
 		&cli.StringSliceFlag{Name: "root", Usage: "root block, as a b58 ref; repeat for each", Destination: &a.Roots},
@@ -40,7 +40,7 @@ func (a *Args) checkFlags() []cli.Flag {
 		&cli.IntFlag{Name: "batch", Usage: "frontier keys per transaction", Value: packsweep.DefaultVerifyBatch, Destination: &a.Batch},
 		&cli.IntFlag{Name: "reads", Usage: "reads at once", Value: packsweep.DefaultVerifyReads, Destination: &a.Reads},
 		&cli.IntFlag{Name: "max-bad", Usage: "bad blocks listed; every one is counted", Value: packsweep.DefaultVerifyMaxBad, Destination: &a.MaxBad},
-	)
+	), a.pacingFlags()...)
 }
 
 // runCheck proves that removing the candidates loses no block the roots
@@ -95,7 +95,7 @@ func (a *Args) runCheck(*cli.Context) error {
 
 	// Reach the bucket, read-only, and open the packs with the candidates
 	// left out.
-	objects, bucket, closeStore, err := a.dialStore()
+	objects, bucket, closeStore, err := a.dialPacedStore(ctx)
 	if err != nil {
 		return err
 	}

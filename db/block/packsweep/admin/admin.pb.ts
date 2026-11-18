@@ -60,6 +60,37 @@ export const StatusRequest: MessageType<StatusRequest> =
   )
 
 /**
+ * AdmitRequest asks to be admitted for a batch of reads.
+ *
+ * @generated from message block.packsweep.admin.AdmitRequest
+ */
+export interface AdmitRequest {}
+
+export const AdmitRequest: MessageType<AdmitRequest> =
+  /* @__PURE__ */ createMessageType<AdmitRequest>(
+    'block.packsweep.admin.AdmitRequest',
+    () => [],
+  )
+
+/**
+ * AdmitResponse admits a batch of reads.
+ *
+ * @generated from message block.packsweep.admin.AdmitResponse
+ */
+export interface AdmitResponse {
+  /**
+   * WaitedNano is how long the backend held the call before admitting it.
+   */
+  waitedNano?: bigint
+}
+
+export const AdmitResponse: MessageType<AdmitResponse> =
+  /* @__PURE__ */ createMessageType<AdmitResponse>(
+    'block.packsweep.admin.AdmitResponse',
+    () => [[1, 'waited_nano', 3]],
+  )
+
+/**
  * StatusResponse is the backend's sweep state.
  *
  * @generated from message block.packsweep.admin.StatusResponse

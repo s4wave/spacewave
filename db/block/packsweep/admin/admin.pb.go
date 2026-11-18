@@ -78,6 +78,37 @@ func (x *StatusRequest) GetPackIds() []string {
 	return nil
 }
 
+// AdmitRequest asks to be admitted for a batch of reads.
+type AdmitRequest struct {
+	unknownFields []byte
+}
+
+func (x *AdmitRequest) Reset() {
+	*x = AdmitRequest{}
+}
+
+func (*AdmitRequest) ProtoMessage() {}
+
+// AdmitResponse admits a batch of reads.
+type AdmitResponse struct {
+	unknownFields []byte
+	// WaitedNano is how long the backend held the call before admitting it.
+	WaitedNano int64 `protobuf:"varint,1,opt,name=waited_nano,json=waitedNano,proto3" json:"waitedNano,omitempty"`
+}
+
+func (x *AdmitResponse) Reset() {
+	*x = AdmitResponse{}
+}
+
+func (*AdmitResponse) ProtoMessage() {}
+
+func (x *AdmitResponse) GetWaitedNano() int64 {
+	if x != nil {
+		return x.WaitedNano
+	}
+	return 0
+}
+
 // StatusResponse is the backend's sweep state.
 type StatusResponse struct {
 	unknownFields []byte
@@ -820,6 +851,37 @@ func (m *StatusRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *AdmitRequest) CloneVT() *AdmitRequest {
+	if m == nil {
+		return (*AdmitRequest)(nil)
+	}
+	r := new(AdmitRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AdmitRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AdmitResponse) CloneVT() *AdmitResponse {
+	if m == nil {
+		return (*AdmitResponse)(nil)
+	}
+	r := new(AdmitResponse)
+	r.WaitedNano = m.WaitedNano
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AdmitResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *StatusResponse) CloneVT() *StatusResponse {
 	if m == nil {
 		return (*StatusResponse)(nil)
@@ -1243,6 +1305,43 @@ func (this *StatusRequest) EqualVT(that *StatusRequest) bool {
 
 func (this *StatusRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*StatusRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AdmitRequest) EqualVT(that *AdmitRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AdmitRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AdmitRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AdmitResponse) EqualVT(that *AdmitResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.WaitedNano != that.WaitedNano {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AdmitResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AdmitResponse)
 	if !ok {
 		return false
 	}
@@ -1887,6 +1986,78 @@ func (x *StatusRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the StatusRequest from JSON.
 func (x *StatusRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AdmitRequest message to JSON.
+func (x *AdmitRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AdmitRequest to JSON.
+func (x *AdmitRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AdmitRequest message from JSON.
+func (x *AdmitRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the AdmitRequest from JSON.
+func (x *AdmitRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AdmitResponse message to JSON.
+func (x *AdmitResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.WaitedNano != 0 || s.HasField("waitedNano") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("waitedNano")
+		s.WriteInt64(x.WaitedNano)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AdmitResponse to JSON.
+func (x *AdmitResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AdmitResponse message from JSON.
+func (x *AdmitResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "waited_nano", "waitedNano":
+			s.AddField("waited_nano")
+			x.WaitedNano = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AdmitResponse from JSON.
+func (x *AdmitResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3396,6 +3567,75 @@ func (m *StatusRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *AdmitRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AdmitRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AdmitRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AdmitResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AdmitResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AdmitResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.WaitedNano != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WaitedNano))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *StatusResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4532,6 +4772,27 @@ func (m *StatusRequest) SizeVT() (n int) {
 	return n
 }
 
+func (m *AdmitRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AdmitResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.WaitedNano)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *StatusResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4888,6 +5149,30 @@ func (x *StatusRequest) MarshalProtoText() string {
 }
 
 func (x *StatusRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AdmitRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "AdmitRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AdmitRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AdmitResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AdmitResponse")
+	if x.WaitedNano != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "waited_nano")
+		protobuf_go_lite.TextWriteInt(&sb, x.WaitedNano)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AdmitResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5465,6 +5750,101 @@ func (m *StatusRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PackIds = append(m.PackIds, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AdmitRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AdmitRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AdmitRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AdmitResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AdmitResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AdmitResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WaitedNano", wireType)
+			}
+			m.WaitedNano = 0
+			m.WaitedNano, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

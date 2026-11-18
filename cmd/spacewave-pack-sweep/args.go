@@ -136,6 +136,11 @@ type Args struct {
 	AcceptMissing string
 	// AdminURL is the backend's pack sweep admin service, a ws or wss URL.
 	AdminURL string
+	// RateMiB caps a step's bulk reads of the store, in MiB a second; zero
+	// is no cap.
+	RateMiB float64
+	// GateURL is the admin service whose gate each bulk read waits on.
+	GateURL string
 	// Wait is how long a pack stays quarantined before its recheck can pass
 	// it.
 	Wait time.Duration
@@ -166,6 +171,9 @@ type Args struct {
 	// b2API, when set, is where the hide reads the bucket's lifecycle rules
 	// through B2's native API, as on a B2 endpoint. Tests set it.
 	b2API string
+	// dialGate returns the wait on the backend's gate; nil dials GateURL.
+	// Tests set it.
+	dialGate func(ctx context.Context) (func(ctx context.Context) error, func(), error)
 	// dial reaches the store; nil dials S3 or SFTP. Tests set it.
 	dial func() (block_store_s3.ObjectStore, string, func(), error)
 	// out receives the printed results; nil prints to stdout.
@@ -181,14 +189,14 @@ func (a *Args) scratchFlags() []cli.Flag {
 
 // storeFlags binds the flags of the snapshot.
 func (a *Args) storeFlags() []cli.Flag {
-	return append(a.dialFlags(),
+	return append(append(a.dialFlags(),
 		&cli.StringFlag{Name: "index", Usage: "the store's pack index file, or a copy; the snapshot reads its pack table once, read-only, and a bbolt file only as a copy, since its writer holds its lock", Destination: &a.Index, Required: true},
 		&cli.StringFlag{Name: "index-type", Usage: "volume type of the pack index file: sqlite, bolt or s4db; detected when unset", Destination: &a.IndexType},
 		&cli.StringFlag{Name: "index-table", Usage: "table of a SQLite pack index file", Value: defaultIndexTable, Destination: &a.IndexTable},
 		&cli.StringFlag{Name: "index-bucket", Usage: "bucket of a bbolt pack index file", Value: packcopy.DefaultIndexBucket, Destination: &a.IndexBucket},
 		&cli.StringFlag{Name: "local-packs", Usage: "directory of pack copies named by id, read before the store", Destination: &a.LocalPacks},
 		&cli.IntFlag{Name: "reads", Usage: "packs read at once, each held whole in memory", Value: packsweep.DefaultPackReads, Destination: &a.Reads},
-	)
+	), a.pacingFlags()...)
 }
 
 // dialFlags binds the flags that name and reach the store, over S3 when
@@ -349,7 +357,7 @@ func (a *Args) runSnapshot(*cli.Context) error {
 
 	// Reach the store, and refuse a scratch file another store's catalog
 	// fills: its keys would judge this store's packs.
-	client, root, closeClient, err := a.dialStore()
+	client, root, closeClient, err := a.dialPacedStore(ctx)
 	if err != nil {
 		return err
 	}

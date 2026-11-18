@@ -101,6 +101,10 @@ type Options struct {
 	// false while they are unknown, such as while the store is not mounted.
 	// Nil, or false, reports none recorded, and no pack passes a recheck.
 	Operations func() (write, read time.Time, ok bool)
+	// Gate waits until the backend admits a batch of a sweep step's reads, as
+	// its own background passes wait, and holds nothing a request waits on;
+	// nil admits at once.
+	Gate func(ctx context.Context) error
 }
 
 // Server serves PackSweepAdmin over a backend's pack store and write log.
@@ -143,6 +147,21 @@ func (s *Server) Status(ctx context.Context, req *StatusRequest) (*StatusRespons
 		}
 	}
 	return resp, nil
+}
+
+// Admit waits on the backend's gate, then reports how long it waited.
+func (s *Server) Admit(ctx context.Context, _ *AdmitRequest) (*AdmitResponse, error) {
+	// Admit at once when the backend sets no gate.
+	if s.opts.Gate == nil {
+		return &AdmitResponse{}, nil
+	}
+
+	// Wait on the gate.
+	start := time.Now()
+	if err := s.opts.Gate(ctx); err != nil {
+		return nil, err
+	}
+	return &AdmitResponse{WaitedNano: time.Since(start).Nanoseconds()}, nil
 }
 
 // Locate returns the registered pack the index places each block in.

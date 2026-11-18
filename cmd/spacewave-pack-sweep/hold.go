@@ -88,11 +88,17 @@ func (a *Args) dialAdminService(ctx context.Context) (*block_packsweep_admin.Cli
 	if a.dialAdmin != nil {
 		return a.dialAdmin(ctx)
 	}
+	return dialAdminURL(ctx, a.AdminURL)
+}
+
+// dialAdminURL reaches the admin service at url, with the Authorization
+// header from adminAuthEnv.
+func dialAdminURL(ctx context.Context, url string) (*block_packsweep_admin.Client, func(), error) {
 	header := http.Header{}
 	if auth := os.Getenv(adminAuthEnv); auth != "" {
 		header.Set("Authorization", auth)
 	}
-	return block_packsweep_admin.DialHTTP(ctx, a.AdminURL, header)
+	return block_packsweep_admin.DialHTTP(ctx, url, header)
 }
 
 // coverOptions opens what a step that moves packs reads: the backend, the

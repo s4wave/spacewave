@@ -28,7 +28,7 @@ func (a *Args) verifyFlags() []cli.Flag {
 	flags := slices.DeleteFunc(a.dialFlags(), func(f cli.Flag) bool {
 		return slices.Contains(f.Names(), "store-id")
 	})
-	return append(flags,
+	return append(append(flags,
 		&cli.StringSliceFlag{Name: "root", Usage: "root block, as a b58 ref; repeat for each", Destination: &a.Roots},
 		&cli.StringFlag{Name: "roots-file", Usage: "file listing more roots, one b58 ref a line", Destination: &a.RootsFile},
 		&cli.StringFlag{Name: "admin-url", Usage: "read every named root and pin from the backend's pack sweep admin service, a ws or wss URL; the Authorization header comes from " + adminAuthEnv, Destination: &a.AdminURL},
@@ -38,7 +38,7 @@ func (a *Args) verifyFlags() []cli.Flag {
 		&cli.IntFlag{Name: "batch", Usage: "frontier keys per transaction", Value: packsweep.DefaultVerifyBatch, Destination: &a.Batch},
 		&cli.IntFlag{Name: "reads", Usage: "blocks read at once", Value: packsweep.DefaultVerifyReads, Destination: &a.Reads},
 		&cli.IntFlag{Name: "max-bad", Usage: "bad blocks listed; every one is counted", Value: packsweep.DefaultVerifyMaxBad, Destination: &a.MaxBad},
-	)
+	), a.pacingFlags()...)
 }
 
 // runVerify reads every block the roots reach from the bucket alone, through
@@ -76,7 +76,7 @@ func (a *Args) runVerify(*cli.Context) error {
 	}
 
 	// Reach the bucket.
-	objects, bucket, closeStore, err := a.dialStore()
+	objects, bucket, closeStore, err := a.dialPacedStore(ctx)
 	if err != nil {
 		return err
 	}

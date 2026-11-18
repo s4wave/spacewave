@@ -495,3 +495,53 @@ func TestAdminBackend(t *testing.T) {
 func registeredHold(h packsweep.PackHold, id string) bool {
 	return h.ID == id && h.State == packsweep.PackRegistered && h.Since.IsZero() && h.Event.IsZero() && len(h.Key) == 0 && !h.Absent
 }
+
+// TestAdminAdmit checks Admit admits at once with no gate, and with one
+// waits until the gate opens, reports the wait, and returns the gate's
+// failure when the caller gives up.
+func TestAdminAdmit(t *testing.T) {
+	ctx := t.Context()
+	b := newTestBackend(t)
+
+	// With no gate, Admit admits at once.
+	resp, err := b.admin.Admit(ctx, &AdmitRequest{})
+	if err != nil || resp.GetWaitedNano() != 0 {
+		t.Fatalf("admit with no gate = %v, %v", resp, err)
+	}
+
+	// With a closed gate, Admit waits until it opens.
+	open := make(chan struct{})
+	b.server.opts.Gate = func(ctx context.Context) error {
+		select {
+		case <-open:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	done := make(chan *AdmitResponse, 1)
+	go func() {
+		resp, err := b.admin.Admit(ctx, &AdmitRequest{})
+		if err != nil {
+			t.Error(err)
+		}
+		done <- resp
+	}()
+	select {
+	case <-done:
+		t.Fatal("admitted through a closed gate")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(open)
+	if resp := <-done; resp.GetWaitedNano() < (50 * time.Millisecond).Nanoseconds() {
+		t.Fatalf("admit waited %v, want at least 50ms", time.Duration(resp.GetWaitedNano()))
+	}
+
+	// A caller that gives up while the gate is closed gets the failure.
+	open = make(chan struct{})
+	short, cancel := context.WithTimeout(ctx, 20*time.Millisecond)
+	defer cancel()
+	if _, err := b.admin.Admit(short, &AdmitRequest{}); err == nil {
+		t.Fatal("admit through a closed gate after the caller gave up")
+	}
+}
