@@ -3,7 +3,79 @@ package resource_git
 import (
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/object"
+	"github.com/go-git/go-git/v6/storage/memory"
+	"github.com/pkg/errors"
 )
+
+// faultRefStorage fails every reference read, as a failed block read would.
+type faultRefStorage struct {
+	*memory.Storage
+}
+
+// errRefRead is the injected reference read failure.
+var errRefRead = errors.New("injected reference read failure")
+
+// Reference fails the read.
+func (s *faultRefStorage) Reference(plumbing.ReferenceName) (*plumbing.Reference, error) {
+	return nil, errRefRead
+}
+
+// TestResolveRefNameSeparatesMissingFromFailedReads checks that only a full
+// ref the repository lacks reports errRefNameNotFound.
+func TestResolveRefNameSeparatesMissingFromFailedReads(t *testing.T) {
+	// Commit one empty tree on refs/heads/main.
+	store := memory.NewStorage()
+	repo, err := git.Init(store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree := &object.Tree{}
+	treeObj := store.NewEncodedObject()
+	if err := tree.Encode(treeObj); err != nil {
+		t.Fatal(err)
+	}
+	treeHash, err := store.SetEncodedObject(treeObj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sig := object.Signature{Name: "t", Email: "t@t", When: time.Unix(1, 0)}
+	commit := &object.Commit{Author: sig, Committer: sig, Message: "m", TreeHash: treeHash}
+	commitObj := store.NewEncodedObject()
+	if err := commit.Encode(commitObj); err != nil {
+		t.Fatal(err)
+	}
+	commitHash, err := store.SetEncodedObject(commitObj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SetReference(plumbing.NewHashReference("refs/heads/main", commitHash)); err != nil {
+		t.Fatal(err)
+	}
+
+	// A held ref resolves and a missing full ref is absent.
+	got, err := resolveRefNameToCommitObject(repo, "refs/heads/main")
+	if err != nil || got.Hash != commitHash {
+		t.Fatalf("resolve main = %v, %v", got, err)
+	}
+	if _, err := resolveRefNameToCommitObject(repo, "refs/heads/gone"); !errors.Is(err, errRefNameNotFound) {
+		t.Fatalf("missing ref error = %v, want errRefNameNotFound", err)
+	}
+
+	// A failed reference read stays a read failure.
+	faulty, err := git.Open(&faultRefStorage{Storage: store}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = resolveRefNameToCommitObject(faulty, "refs/heads/main")
+	if !errors.Is(err, errRefRead) || errors.Is(err, errRefNameNotFound) {
+		t.Fatalf("failed read error = %v, want the read failure", err)
+	}
+}
 
 func TestBoundedDiffPatchLeavesSmallPatchWhole(t *testing.T) {
 	// Prepare a patch that fits within the response byte limit.

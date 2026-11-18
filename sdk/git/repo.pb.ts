@@ -138,6 +138,12 @@ export const ResolveRefRequest: MessageType<ResolveRefRequest> =
 /**
  * ResolveRefResponse is the response for ResolveRef.
  *
+ * A full ref name (HEAD or refs/...) the repository does not hold sets
+ * not_found and leaves the hashes empty. Every other failure, including a
+ * failed storage read, is an RPC error, so a caller can retry it. An
+ * abbreviated revision reports a missing name as an RPC error too, because
+ * revision parsing cannot tell a missing name from a failed read.
+ *
  * @generated from message s4wave.git.ResolveRefResponse
  */
 export interface ResolveRefResponse {
@@ -149,6 +155,10 @@ export interface ResolveRefResponse {
    * TreeHash is the tree hash of the resolved commit.
    */
   treeHash?: string
+  /**
+   * NotFound reports that the repository holds no such full ref.
+   */
+  notFound?: boolean
 }
 
 export const ResolveRefResponse: MessageType<ResolveRefResponse> =
@@ -157,6 +167,7 @@ export const ResolveRefResponse: MessageType<ResolveRefResponse> =
     () => [
       [1, 'commit_hash', 9],
       [2, 'tree_hash', 9],
+      [3, 'not_found', 8],
     ],
   )
 

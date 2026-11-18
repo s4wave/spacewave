@@ -70,11 +70,19 @@ message ResolveRefRequest {
 }
 
 // ResolveRefResponse is the response for ResolveRef.
+//
+// A full ref name (HEAD or refs/...) the repository does not hold sets
+// not_found and leaves the hashes empty. Every other failure, including a
+// failed storage read, is an RPC error, so a caller can retry it. An
+// abbreviated revision reports a missing name as an RPC error too, because
+// revision parsing cannot tell a missing name from a failed read.
 message ResolveRefResponse {
   // CommitHash is the resolved commit hash.
   string commit_hash = 1;
   // TreeHash is the tree hash of the resolved commit.
   string tree_hash = 2;
+  // NotFound reports that the repository holds no such full ref.
+  bool not_found = 3;
 }
 
 // GetRepoInfoRequest is the request for GetRepoInfo.
