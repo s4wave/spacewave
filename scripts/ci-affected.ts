@@ -48,23 +48,25 @@ const checkerPaths = [/^package\.json$/, /^bun\.lock$/, /^patches\//]
 const fullRunSpecs = new Set(['db/block/gc/Journal.tla'])
 
 // stackConfigs are the Journal configs a delta run checks when the spec
-// changes: each finishes in under five minutes and 6 GB on one core. The
-// checker also runs every mutant of the spec in that job, and checks no
-// testdata config mutant, until a release of it separates the two.
+// changes, with their times on a GitHub runner on one core; they sum to about
+// 11 minutes. The Journal-stack job checks them through check:tla:configs,
+// which judges only the spec mutants that name one of them, about 30 s more;
+// aptre-tla would also judge every other spec mutant and every testdata config
+// mutant, well over an hour. A config that grows past its time moves to the
+// full run, which checks every config and mutant.
 const stackConfigs = [
-  'db/block/gc/Journal-collect-notail.cfg',
-  'db/block/gc/Journal-rogue-hold.cfg',
-  'db/block/gc/Journal-stage.cfg',
-  'db/block/gc/Journal-writers-staged.cfg',
-  'db/block/gc/Journal-hole.cfg',
-  'db/block/gc/Journal-adopt-revive-hold.cfg',
-  'db/block/gc/Journal-lease-notail.cfg',
-  'db/block/gc/Journal-adopt.cfg',
-  'db/block/gc/Journal-collect.cfg',
-  'db/block/gc/Journal-fill.cfg',
-  'db/block/gc/Journal-revive-hold.cfg',
-  'db/block/gc/Journal-adopt-cut-onerun.cfg',
-  'db/block/gc/Journal-fill-adopt.cfg',
+  'db/block/gc/Journal-collect-notail.cfg', // 6 s
+  'db/block/gc/Journal-rogue-hold.cfg', // 15 s
+  'db/block/gc/Journal-stage.cfg', // 38 s
+  'db/block/gc/Journal-writers-staged.cfg', // 96 s
+  'db/block/gc/Journal-hole.cfg', // 107 s
+  'db/block/gc/Journal-adopt-revive-hold.cfg', // 148 s
+  'db/block/gc/Journal-lease-notail.cfg', // 179 s
+  'db/block/gc/Journal-collect.cfg', // 6 s
+  'db/block/gc/Journal-fill.cfg', // 6 s
+  'db/block/gc/Journal-revive-hold.cfg', // 1 s
+  'db/block/gc/Journal-adopt-cut-onerun.cfg', // 42 s
+  'db/block/gc/Journal-fill-adopt.cfg', // 8 s
 ]
 
 // unrunConfigs are the model configs no CI run checks, each with its reason.
@@ -221,12 +223,14 @@ const dbChecks: DbEntry = {
 const dbTests: DbEntry = { ...dbChecks, name: 'tests' }
 
 // SpecEntry is one TLA+ spec job matrix entry: the configs it checks, with
-// workers checker threads, within timeout minutes.
+// workers checker threads, within timeout minutes, through script, check:tla
+// when unset.
 interface SpecEntry {
   name: string
   configs: string
   workers: number
   timeout: number
+  script?: string
 }
 
 // ownSpecJobs are the models that take minutes, each checked in its own job so
@@ -573,7 +577,8 @@ function deltaSpecs(files: string[]): SpecEntry[] {
       name: 'Journal-stack',
       configs: stack.join(' '),
       workers: 1,
-      timeout: 60,
+      timeout: 25,
+      script: 'check:tla:configs',
     })
   }
   return entries

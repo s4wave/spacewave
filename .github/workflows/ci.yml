@@ -129,12 +129,13 @@ jobs:
         env:
           CONFIGS: ${{ matrix.configs }}
           WORKERS: ${{ matrix.workers }}
+          SCRIPT: ${{ matrix.script || 'check:tla' }}
           # tla-ts keeps the whole state space in the Node heap; Journal.cfg
           # needs about 8 GB of the runner's 16.
           NODE_OPTIONS: --max-old-space-size=12288
         run: |
           read -ra configs <<<"$CONFIGS"
-          bun run check:tla -workers "$WORKERS" "${configs[@]}"
+          bun run "$SCRIPT" -workers "$WORKERS" "${configs[@]}"
 
   member-ci:
     name: CI (${{ matrix.name }})
