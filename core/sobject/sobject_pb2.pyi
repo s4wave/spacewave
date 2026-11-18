@@ -520,7 +520,7 @@ class SOControlMessageInner(_message.Message):
     def __init__(self, shared_object_id: _Optional[str] = ..., peer_id: _Optional[str] = ..., kind: _Optional[_Union[SODecisionKind, str]] = ..., height: _Optional[int] = ..., config_hash: _Optional[bytes] = ..., round: _Optional[int] = ..., type: _Optional[_Union[SOControlMessageType, str]] = ..., value_hash: _Optional[bytes] = ..., valid_round: _Optional[int] = ..., value: _Optional[bytes] = ...) -> None: ...
 
 class SOCheckpointInner(_message.Message):
-    __slots__ = ("shared_object_id", "height", "prev_checkpoint_hash", "config_hash", "state_data", "replay_version", "key_epoch", "authors", "sequence")
+    __slots__ = ("shared_object_id", "height", "prev_checkpoint_hash", "config_hash", "state_data", "replay_version", "key_epoch", "authors", "sequence", "outcomes")
     SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
     HEIGHT_FIELD_NUMBER: _ClassVar[int]
     PREV_CHECKPOINT_HASH_FIELD_NUMBER: _ClassVar[int]
@@ -530,6 +530,7 @@ class SOCheckpointInner(_message.Message):
     KEY_EPOCH_FIELD_NUMBER: _ClassVar[int]
     AUTHORS_FIELD_NUMBER: _ClassVar[int]
     SEQUENCE_FIELD_NUMBER: _ClassVar[int]
+    OUTCOMES_FIELD_NUMBER: _ClassVar[int]
     shared_object_id: str
     height: int
     prev_checkpoint_hash: bytes
@@ -539,7 +540,14 @@ class SOCheckpointInner(_message.Message):
     key_epoch: int
     authors: _containers.RepeatedCompositeFieldContainer[SOOperationPosition]
     sequence: SOSequenceHead
-    def __init__(self, shared_object_id: _Optional[str] = ..., height: _Optional[int] = ..., prev_checkpoint_hash: _Optional[bytes] = ..., config_hash: _Optional[bytes] = ..., state_data: _Optional[bytes] = ..., replay_version: _Optional[int] = ..., key_epoch: _Optional[int] = ..., authors: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., sequence: _Optional[_Union[SOSequenceHead, _Mapping]] = ...) -> None: ...
+    outcomes: SOCheckpointOutcomes
+    def __init__(self, shared_object_id: _Optional[str] = ..., height: _Optional[int] = ..., prev_checkpoint_hash: _Optional[bytes] = ..., config_hash: _Optional[bytes] = ..., state_data: _Optional[bytes] = ..., replay_version: _Optional[int] = ..., key_epoch: _Optional[int] = ..., authors: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., sequence: _Optional[_Union[SOSequenceHead, _Mapping]] = ..., outcomes: _Optional[_Union[SOCheckpointOutcomes, _Mapping]] = ...) -> None: ...
+
+class SOCheckpointOutcomes(_message.Message):
+    __slots__ = ("refused",)
+    REFUSED_FIELD_NUMBER: _ClassVar[int]
+    refused: _containers.RepeatedCompositeFieldContainer[SOOperationPosition]
+    def __init__(self, refused: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ...) -> None: ...
 
 class SOOperationPosition(_message.Message):
     __slots__ = ("peer_id", "nonce", "op_hash")
