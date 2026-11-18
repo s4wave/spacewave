@@ -272,27 +272,6 @@ const ownSpecJobs: SpecEntry[] = [
     timeout: 25,
   },
   {
-    // Unfinished after 19 minutes at 2.6 GB on one core.
-    name: 'Journal-adopt-hold',
-    configs: 'db/block/gc/Journal-adopt-hold.cfg',
-    workers: 1,
-    timeout: 120,
-  },
-  {
-    // Unfinished after 19 minutes at 5.4 GB on one core.
-    name: 'Journal-adopt-revive',
-    configs: 'db/block/gc/Journal-adopt-revive.cfg',
-    workers: 1,
-    timeout: 120,
-  },
-  {
-    // Unfinished after 19 minutes at 3.1 GB on one core.
-    name: 'Journal-adopt-revive-fillnew',
-    configs: 'db/block/gc/Journal-adopt-revive-fillnew.cfg',
-    workers: 1,
-    timeout: 120,
-  },
-  {
     name: 'Journal',
     configs: 'db/block/gc/Journal.cfg',
     workers: 4,
@@ -315,12 +294,6 @@ const ownSpecJobs: SpecEntry[] = [
     configs: 'db/block/gc/Journal-adopt-cut-open.cfg',
     workers: 1,
     timeout: 30,
-  },
-  {
-    name: 'Journal-adopt-cut-r2',
-    configs: 'db/block/gc/Journal-adopt-cut-r2.cfg',
-    workers: 1,
-    timeout: 45,
   },
   {
     name: 'Journal-adopt-revive-fill',
@@ -389,6 +362,43 @@ const ownSpecJobs: SpecEntry[] = [
     timeout: 25,
   },
 ]
+
+// nightlyConfigJobs are the models that take longer than 25 minutes on a CI
+// runner, too long for a run that gates a landing; the nightly TLA+ mutants
+// workflow checks each in its own job, and no gating run checks them.
+const nightlyConfigJobs: SpecEntry[] = [
+  {
+    // Unfinished after 19 minutes at 2.6 GB on one core.
+    name: 'Journal-adopt-hold',
+    configs: 'db/block/gc/Journal-adopt-hold.cfg',
+    workers: 1,
+    timeout: 120,
+  },
+  {
+    // Unfinished after 19 minutes at 5.4 GB on one core.
+    name: 'Journal-adopt-revive',
+    configs: 'db/block/gc/Journal-adopt-revive.cfg',
+    workers: 1,
+    timeout: 120,
+  },
+  {
+    // Unfinished after 19 minutes at 3.1 GB on one core.
+    name: 'Journal-adopt-revive-fillnew',
+    configs: 'db/block/gc/Journal-adopt-revive-fillnew.cfg',
+    workers: 1,
+    timeout: 120,
+  },
+  {
+    // Exceeded its 45-minute timeout on a CI runner.
+    name: 'Journal-adopt-cut-r2',
+    configs: 'db/block/gc/Journal-adopt-cut-r2.cfg',
+    workers: 1,
+    timeout: 120,
+  },
+]
+
+// nightlyConfigs are the configs of nightlyConfigJobs.
+const nightlyConfigs = new Set(nightlyConfigJobs.map((job) => job.configs))
 
 // MutantEntry is one nightly TLA+ mutant job matrix entry: the mutant sources
 // it judges through check:tla:mutants, on one checker thread within timeout
@@ -661,11 +671,14 @@ function gitFiles(pathspecs: string[]): string[] {
 }
 
 // specConfigs returns every model config the spec jobs check: the tracked
-// .cfg files outside testdata, less unrunConfigs.
+// .cfg files outside testdata, less unrunConfigs and nightlyConfigs.
 function specConfigs(): string[] {
   return run('git', ['ls-files', '*.cfg', ':!:**/testdata/**'])
     .split('\n')
-    .filter((file) => file !== '' && !unrunConfigs.has(file))
+    .filter(
+      (file) =>
+        file !== '' && !unrunConfigs.has(file) && !nightlyConfigs.has(file),
+    )
 }
 
 // specEntries returns the spec jobs that check a config selected allows: each
@@ -1009,7 +1022,10 @@ if (mode === 'full') {
 } else if (mode === 'delta' && base) {
   writeSelection(deltaSelection(base))
 } else if (mode === 'mutants') {
-  writeOutputs({ mutants: matrix(mutantEntries()) })
+  writeOutputs({
+    mutants: matrix(mutantEntries()),
+    configs: matrix(nightlyConfigJobs),
+  })
 } else {
   console.error('usage: ci-affected.ts full | delta <base-commit> | mutants')
   process.exit(2)

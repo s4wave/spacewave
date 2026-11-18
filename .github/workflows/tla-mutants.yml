@@ -4,7 +4,8 @@ name: TLA+ mutants
 # mutants take hours and those jobs gate a landing. This workflow judges every
 # mutant of the specs CI checks, nightly on master: each spec's Foo.mutants.json
 # and each testdata config mutant. scripts/ci-affected.ts mutants lists the
-# jobs, splitting the specs whose mutants take hours into one job per source.
+# jobs, splitting the specs whose mutants take hours into one job per source,
+# and the models too slow for a gating run, which it checks here instead.
 on:
   schedule:
     - cron: '43 10 * * *'
@@ -24,6 +25,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       mutants: ${{ steps.select.outputs.mutants }}
+      configs: ${{ steps.select.outputs.configs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -57,3 +59,29 @@ jobs:
         run: |
           read -ra targets <<<"$TARGETS"
           bun run check:tla:mutants -workers 1 "${targets[@]}"
+
+  configs:
+    name: TLA+ configs (${{ matrix.name }})
+    needs: select
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.configs) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Check configs
+        env:
+          CONFIGS: ${{ matrix.configs }}
+          WORKERS: ${{ matrix.workers }}
+          # tla-ts keeps the whole state space in the Node heap.
+          NODE_OPTIONS: --max-old-space-size=12288
+        run: |
+          read -ra configs <<<"$CONFIGS"
+          bun run check:tla:configs -workers "$WORKERS" "${configs[@]}"
