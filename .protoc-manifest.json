@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "b5f7c87919a73157c296d8d4595340b098ad9dab5ee36d84f3adfad490f138ee",
+  "protocFlagsHash": "5dac0f8c99d265a7892173b0eaa0dae8fda9aa6b6d56177e7ada33d9670fd55f",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -2602,6 +2602,16 @@
         "db/volume/world/volume.proto"
       ]
     },
+    "github.com/s4wave/spacewave/db/world": {
+      "hash": "76355777e5d001ad32d4a3e659b6f45b37d182e627a908db99e2a87a7b03aca2",
+      "generatedFiles": [
+        "db/world/world.pb.go",
+        "db/world/world.pb.ts"
+      ],
+      "protoFiles": [
+        "db/world/world.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/db/world/block": {
       "hash": "55d2d7d626cb2dd6b65f9fa501bd0e618a8fa7759b7a58865502e82ba90d7318",
       "generatedFiles": [
@@ -2636,12 +2646,13 @@
       ]
     },
     "github.com/s4wave/spacewave/db/world/mock": {
-      "hash": "4ba2e4494b82213cba43f2f2599c82d4b0b87bac916df345ddc68daed6284886",
+      "hash": "5228eb04641261606e448882180618531615628fa7edae5d1c1e7c0aacd02078",
       "generatedFiles": [
         "db/world/mock/mock.pb.go",
         "db/world/mock/mock.pb.ts",
         "db/world/mock/mock_typeid.pb.go",
-        "db/world/mock/mock_typeid.pb.ts"
+        "db/world/mock/mock_typeid.pb.ts",
+        "db/world/mock/mock_worldref.pb.go"
       ],
       "protoFiles": [
         "db/world/mock/mock.proto"

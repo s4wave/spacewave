@@ -11,6 +11,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // MockObjectOp is a mock object operation.
@@ -62,6 +63,101 @@ func (x *MockWorldOp) GetNextMsg() string {
 	return ""
 }
 
+// MockRefRecord is a mock record declaring World references in scalar,
+// repeated, unindexed and nested fields, and a time span.
+type MockRefRecord struct {
+	unknownFields []byte
+	// ParentKey is the object key of the record's parent.
+	ParentKey string `protobuf:"bytes,1,opt,name=parent_key,json=parentKey,proto3" json:"parentKey,omitempty"`
+	// InputKeys are the object keys of the record's inputs.
+	InputKeys []string `protobuf:"bytes,2,rep,name=input_keys,json=inputKeys,proto3" json:"inputKeys,omitempty"`
+	// NoteKey is the object key of a note the record mentions without an index.
+	NoteKey string `protobuf:"bytes,3,opt,name=note_key,json=noteKey,proto3" json:"noteKey,omitempty"`
+	// Source is the record's nested source reference.
+	Source *MockRefSource `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
+	// Steps are the record's nested step references.
+	Steps []*MockRefSource `protobuf:"bytes,5,rep,name=steps,proto3" json:"steps,omitempty"`
+	// CreatedAt is when the record's span begins, in RFC 3339.
+	CreatedAt string `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
+	// EndedAt is when the record's span ends.
+	EndedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=ended_at,json=endedAt,proto3" json:"endedAt,omitempty"`
+}
+
+func (x *MockRefRecord) Reset() {
+	*x = MockRefRecord{}
+}
+
+func (*MockRefRecord) ProtoMessage() {}
+
+func (x *MockRefRecord) GetParentKey() string {
+	if x != nil {
+		return x.ParentKey
+	}
+	return ""
+}
+
+func (x *MockRefRecord) GetInputKeys() []string {
+	if x != nil {
+		return x.InputKeys
+	}
+	return nil
+}
+
+func (x *MockRefRecord) GetNoteKey() string {
+	if x != nil {
+		return x.NoteKey
+	}
+	return ""
+}
+
+func (x *MockRefRecord) GetSource() *MockRefSource {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+func (x *MockRefRecord) GetSteps() []*MockRefSource {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+func (x *MockRefRecord) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *MockRefRecord) GetEndedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndedAt
+	}
+	return nil
+}
+
+// MockRefSource is a mock nested message declaring one World reference.
+type MockRefSource struct {
+	unknownFields []byte
+	// ObjectKey is the object key of the source.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+}
+
+func (x *MockRefSource) Reset() {
+	*x = MockRefSource{}
+}
+
+func (*MockRefSource) ProtoMessage() {}
+
+func (x *MockRefSource) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
 func (m *MockObjectOp) CloneVT() *MockObjectOp {
 	if m == nil {
 		return (*MockObjectOp)(nil)
@@ -92,6 +188,44 @@ func (m *MockWorldOp) CloneVT() *MockWorldOp {
 }
 
 func (m *MockWorldOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *MockRefRecord) CloneVT() *MockRefRecord {
+	if m == nil {
+		return (*MockRefRecord)(nil)
+	}
+	r := new(MockRefRecord)
+	r.ParentKey = m.ParentKey
+	r.NoteKey = m.NoteKey
+	r.CreatedAt = m.CreatedAt
+	r.InputKeys = protobuf_go_lite.CloneSlice(m.InputKeys)
+	r.Source = protobuf_go_lite.CloneVTValue(m.Source)
+	r.Steps = protobuf_go_lite.CloneVTSlice(m.Steps)
+	r.EndedAt = protobuf_go_lite.CloneVTValue(m.EndedAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MockRefRecord) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *MockRefSource) CloneVT() *MockRefSource {
+	if m == nil {
+		return (*MockRefSource)(nil)
+	}
+	r := new(MockRefSource)
+	r.ObjectKey = m.ObjectKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MockRefSource) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -132,6 +266,64 @@ func (this *MockWorldOp) EqualVT(that *MockWorldOp) bool {
 
 func (this *MockWorldOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*MockWorldOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MockRefRecord) EqualVT(that *MockRefRecord) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ParentKey != that.ParentKey {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.InputKeys, that.InputKeys) {
+		return false
+	}
+	if this.NoteKey != that.NoteKey {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Source, that.Source) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Steps, that.Steps, func() *MockRefSource { return &MockRefSource{} }) {
+		return false
+	}
+	if this.CreatedAt != that.CreatedAt {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.EndedAt, that.EndedAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MockRefRecord) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MockRefRecord)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MockRefSource) EqualVT(that *MockRefSource) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MockRefSource) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MockRefSource)
 	if !ok {
 		return false
 	}
@@ -230,6 +422,171 @@ func (x *MockWorldOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the MockRefRecord message to JSON.
+func (x *MockRefRecord) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ParentKey != "" || s.HasField("parentKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("parentKey")
+		s.WriteString(x.ParentKey)
+	}
+	if len(x.InputKeys) > 0 || s.HasField("inputKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("inputKeys")
+		s.WriteStringArray(x.InputKeys)
+	}
+	if x.NoteKey != "" || s.HasField("noteKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("noteKey")
+		s.WriteString(x.NoteKey)
+	}
+	if x.Source != nil || s.HasField("source") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("source")
+		x.Source.MarshalProtoJSON(s.WithField("source"))
+	}
+	if len(x.Steps) > 0 || s.HasField("steps") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("steps")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Steps {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("steps"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.CreatedAt != "" || s.HasField("createdAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("createdAt")
+		s.WriteString(x.CreatedAt)
+	}
+	if x.EndedAt != nil || s.HasField("endedAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("endedAt")
+		x.EndedAt.MarshalProtoJSON(s.WithField("endedAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MockRefRecord to JSON.
+func (x *MockRefRecord) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MockRefRecord message from JSON.
+func (x *MockRefRecord) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "parent_key", "parentKey":
+			s.AddField("parent_key")
+			x.ParentKey = s.ReadString()
+		case "input_keys", "inputKeys":
+			s.AddField("input_keys")
+			if s.ReadNil() {
+				x.InputKeys = nil
+				return
+			}
+			x.InputKeys = s.ReadStringArray()
+		case "note_key", "noteKey":
+			s.AddField("note_key")
+			x.NoteKey = s.ReadString()
+		case "source":
+			if s.ReadNil() {
+				x.Source = nil
+				return
+			}
+			x.Source = &MockRefSource{}
+			x.Source.UnmarshalProtoJSON(s.WithField("source", true))
+		case "steps":
+			s.AddField("steps")
+			if s.ReadNil() {
+				x.Steps = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Steps = append(x.Steps, nil)
+					return
+				}
+				v := &MockRefSource{}
+				v.UnmarshalProtoJSON(s.WithField("steps", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Steps = append(x.Steps, v)
+			})
+		case "created_at", "createdAt":
+			s.AddField("created_at")
+			x.CreatedAt = s.ReadString()
+		case "ended_at", "endedAt":
+			if s.ReadNil() {
+				x.EndedAt = nil
+				return
+			}
+			x.EndedAt = &timestamppb.Timestamp{}
+			x.EndedAt.UnmarshalProtoJSON(s.WithField("ended_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the MockRefRecord from JSON.
+func (x *MockRefRecord) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the MockRefSource message to JSON.
+func (x *MockRefSource) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MockRefSource to JSON.
+func (x *MockRefSource) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MockRefSource message from JSON.
+func (x *MockRefSource) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the MockRefSource from JSON.
+func (x *MockRefSource) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *MockObjectOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -309,6 +666,129 @@ func (m *MockWorldOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *MockRefRecord) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MockRefRecord) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MockRefRecord) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.EndedAt != nil {
+		size, err := m.EndedAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.CreatedAt) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CreatedAt)
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Steps) > 0 {
+		for iNdEx := len(m.Steps) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Steps[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if m.Source != nil {
+		size, err := m.Source.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.NoteKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.NoteKey)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.InputKeys) > 0 {
+		for iNdEx := len(m.InputKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.InputKeys[iNdEx])
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.ParentKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ParentKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MockRefSource) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MockRefSource) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MockRefSource) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MockObjectOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -328,6 +808,43 @@ func (m *MockWorldOp) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NextMsg)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MockRefRecord) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ParentKey)
+	n += protobuf_go_lite.SizeStringSlice(1, m.InputKeys)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NoteKey)
+	if m.Source != nil {
+		l = m.Source.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Steps {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CreatedAt)
+	if m.EndedAt != nil {
+		l = m.EndedAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MockRefSource) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -361,6 +878,70 @@ func (x *MockWorldOp) MarshalProtoText() string {
 }
 
 func (x *MockWorldOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MockRefRecord) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "MockRefRecord")
+	if x.ParentKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "parent_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ParentKey)
+	}
+	if len(x.InputKeys) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "input_keys")
+		for i, v := range x.InputKeys {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.NoteKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "note_key")
+		protobuf_go_lite.TextWriteString(&sb, x.NoteKey)
+	}
+	if x.Source != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Source)
+	}
+	if len(x.Steps) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "steps")
+		for i, v := range x.Steps {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &MockRefSource{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.CreatedAt != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "created_at")
+		protobuf_go_lite.TextWriteString(&sb, x.CreatedAt)
+	}
+	if x.EndedAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ended_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.EndedAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *MockRefRecord) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MockRefSource) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "MockRefSource")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *MockRefSource) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -457,6 +1038,185 @@ func (m *MockWorldOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.NextMsg = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MockRefRecord) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MockRefRecord: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MockRefRecord: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ParentKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ParentKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InputKeys", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.InputKeys = append(m.InputKeys, v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NoteKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NoteKey = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Source == nil {
+				m.Source = &MockRefSource{}
+			}
+			if err := m.Source.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Steps", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Steps = append(m.Steps, &MockRefSource{})
+			if err := m.Steps[len(m.Steps)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreatedAt", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CreatedAt = v
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EndedAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.EndedAt == nil {
+				m.EndedAt = &timestamppb.Timestamp{}
+			}
+			if err := m.EndedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MockRefSource) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MockRefSource: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MockRefSource: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
