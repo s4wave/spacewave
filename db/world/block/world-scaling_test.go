@@ -3,6 +3,7 @@ package world_block_test
 import (
 	"context"
 	"runtime"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 )
 
 // scaleObjects is the smaller seeded World of the scaling test; the larger
@@ -26,10 +28,16 @@ type scaleCost struct {
 	reads, writes, writeBytes, allocs float64
 }
 
+// scaleBatch is the number of adjacent objects one batch read names.
+const scaleBatch = 32
+
 // scaledWorld is one seeded World of the scaling test.
 type scaledWorld struct {
 	eng     *world_block.Engine
 	objects int
+	// runs holds, for each call, scaleBatch seed object keys adjacent in the
+	// object tree, as the records of one owner are.
+	runs [][]string
 }
 
 // pick returns a seed object for call i, spread over the World and distinct
@@ -64,6 +72,7 @@ func TestWorldScaling(t *testing.T) {
 		eng, cleanup := openSeededEngine(ctx, t, tbed, rootRef)
 		t.Cleanup(cleanup)
 		worlds[i] = &scaledWorld{eng: eng, objects: objects}
+		worlds[i].runs = adjacentRuns(t, ctx, worlds[i])
 	}
 
 	// Each entry point, as a call on one World. A write commits its own
@@ -110,6 +119,20 @@ func TestWorldScaling(t *testing.T) {
 			filter := world.NewGraphQuadWithKeys(worldSeedObjectKey(k), worldSeedTypePred, worldSeedTypeKey(k), "")
 			return expectQuads(ws.LookupGraphQuads(ctx, filter, 0))(1)
 		}},
+		{"read the bodies of adjacent objects", false, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
+			bodies, _, err := world.GetObjectBodiesBatchPage(ctx, ws, w.runs[i], world.ObjectBodiesBatchByteBudget)
+			if err == nil && len(bodies) != scaleBatch {
+				err = errors.Errorf("batch read %d bodies, want %d", len(bodies), scaleBatch)
+			}
+			return err
+		}},
+		{"read the types of adjacent objects", false, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
+			metadata, err := world_types.GetObjectMetadataBatch(ctx, ws, w.runs[i])
+			if err == nil && len(metadata) != scaleBatch {
+				err = errors.Errorf("batch read %d types, want %d", len(metadata), scaleBatch)
+			}
+			return err
+		}},
 		{"create an object", true, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
 			obj, err := ws.CreateObject(ctx, "bench/scale/new/"+strconv.Itoa(i), nil)
 			world.ReleaseObjectState(obj)
@@ -134,6 +157,36 @@ func TestWorldScaling(t *testing.T) {
 		costs[wi] = measureWorldDiff(t, ctx, w)
 	}
 	worldFlat(t, "diff two roots", costs[0], costs[1])
+}
+
+// adjacentRuns returns, for each call and the warming call, scaleBatch seed
+// object keys that follow one another in the object tree.
+func adjacentRuns(t *testing.T, ctx context.Context, w *scaledWorld) [][]string {
+	t.Helper()
+	tx, err := w.eng.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	runs := make([][]string, scaleCalls+1)
+	for i := range runs {
+		iter := tx.IterateObjects(ctx, "bench/seeded/object/", false)
+		if err := iter.Seek(worldSeedObjectKey(w.pick(i) % (w.objects / 2))); err != nil {
+			t.Fatal(err)
+		}
+		for ; iter.Valid() && len(runs[i]) < scaleBatch; iter.Next() {
+			runs[i] = append(runs[i], iter.Key())
+		}
+		err := iter.Err()
+		iter.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(runs[i]) != scaleBatch || !slices.IsSorted(runs[i]) {
+			t.Fatalf("run %d holds %d keys", i, len(runs[i]))
+		}
+	}
+	return runs
 }
 
 // expectQuads returns a check that the lookup returned want quads.
