@@ -173,7 +173,7 @@ func (ws *SDKWorldState) CreateObject(ctx context.Context, key string, rootRef *
 		objRef.Release()
 		return nil, err
 	}
-	return obj, nil
+	return &sdkWorldObjectState{SDKObjectState: obj, ws: ws}, nil
 }
 
 // GetObject looks up an object by key.
@@ -197,7 +197,7 @@ func (ws *SDKWorldState) GetObject(ctx context.Context, key string) (world.Objec
 		objRef.Release()
 		return nil, false, err
 	}
-	return obj, true, nil
+	return &sdkWorldObjectState{SDKObjectState: obj, ws: ws}, true, nil
 }
 
 // IterateObjects returns an iterator with the given object key prefix.
@@ -277,7 +277,7 @@ func (ws *SDKWorldState) RenameObject(ctx context.Context, oldKey, newKey string
 		objRef.Release()
 		return nil, err
 	}
-	return obj, nil
+	return &sdkWorldObjectState{SDKObjectState: obj, ws: ws}, nil
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.
@@ -643,5 +643,22 @@ func (ws *SDKWorldState) HasObject(ctx context.Context, key string) (bool, error
 	return found, err
 }
 
+// sdkWorldObjectState is an object handle that ws returned. Its writes share
+// ws's transaction, so it names ws as the World that holds it.
+type sdkWorldObjectState struct {
+	*SDKObjectState
+	// ws is the World state the handle came from.
+	ws *SDKWorldState
+}
+
+// GetWorldState returns the World state the handle came from.
+func (o *sdkWorldObjectState) GetWorldState() world.WorldState {
+	return o.ws
+}
+
 // _ is a type assertion.
-var _ world.WorldState = (*SDKWorldState)(nil)
+var (
+	_ world.WorldState       = (*SDKWorldState)(nil)
+	_ world.ObjectState      = (*sdkWorldObjectState)(nil)
+	_ world.WorldStateGetter = (*sdkWorldObjectState)(nil)
+)
