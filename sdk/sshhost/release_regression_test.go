@@ -23,6 +23,14 @@ func (c *countingWorldState) GetObject(ctx context.Context, key string) (world.O
 	return &countingObjectState{ObjectState: obj, released: c.released}, true, nil
 }
 
+// GetObjectBodiesBatchPage uses the cursor-backed page reader on this wrapper,
+// so the test observes every acquired state and the reader's release of it.
+func (c *countingWorldState) GetObjectBodiesBatchPage(
+	ctx context.Context, keys []string, byteBudget int,
+) ([]*world.ObjectBody, uint32, uint64, error) {
+	return world.LookupObjectBodiesPage(ctx, c, keys, byteBudget)
+}
+
 // countingObjectState delegates to the wrapped state and counts Release calls.
 type countingObjectState struct {
 	world.ObjectState

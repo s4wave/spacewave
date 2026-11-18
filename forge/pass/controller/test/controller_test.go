@@ -84,14 +84,15 @@ func TestBodiesMatchUnmarshal(t *testing.T) {
 	}
 }
 
-// readBodyAndUnmarshal returns the object's body as GetObjectBodiesBatch reads
-// it, and the bytes the block cursor resource returns for Unmarshal with
+// readBodyAndUnmarshal returns the body from the World's required page method
+// and the bytes the block cursor resource returns for Unmarshal with
 // typeID: the block decoded by the type's constructor and marshaled again.
 // It returns nil, nil when typeID has no registered block type.
 func readBodyAndUnmarshal(t *testing.T, ws world.WorldState, key, typeID string) ([]byte, []byte) {
+	// Read the object's body through the same page method as the batch reader.
 	t.Helper()
 	ctx := t.Context()
-	bodies, _, err := world.GetObjectBodiesBatchPage(ctx, ws, []string{key}, 1<<20)
+	bodies, _, _, err := ws.GetObjectBodiesBatchPage(ctx, []string{key}, 1<<20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,6 +100,7 @@ func readBodyAndUnmarshal(t *testing.T, ws world.WorldState, key, typeID string)
 		t.Fatalf("%s: bodies = %v", key, bodies)
 	}
 
+	// Open the comparison object only when the cursor can decode its type.
 	bt, err := space_world_optypes.LookupBlockType(ctx, typeID)
 	if err != nil || bt == nil {
 		return nil, nil
@@ -108,6 +110,8 @@ func readBodyAndUnmarshal(t *testing.T, ws world.WorldState, key, typeID string)
 		t.Fatalf("%s: found %v, %v", key, found, err)
 	}
 	defer world.ReleaseObjectState(obj)
+
+	// Decode the root block with the same constructor as the cursor resource.
 	rootRef, _, err := obj.GetRootRef(ctx)
 	if err != nil {
 		t.Fatal(err)
