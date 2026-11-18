@@ -1,10 +1,21 @@
 [
   {
-    "name": "A restored 96-bit suffix authorizes a different key",
+    "name": "Recovery accepts an unqualified legacy row",
     "replace": [
       [
-        "(TrustSuffix /\\ durable # {})",
-        "(durable # {})"
+        "r.current /\\ r.scope = s",
+        "r.scope = s"
+      ]
+    ],
+    "expect": "NoFalseYes",
+    "config": "ColdPackReads.cfg"
+  },
+  {
+    "name": "Recovery accepts a row from a different scope",
+    "replace": [
+      [
+        "r.current /\\ r.scope = s",
+        "r.current"
       ]
     ],
     "expect": "NoFalseYes",
@@ -14,8 +25,8 @@
     "name": "Cached proof outlives an observed 404",
     "replace": [
       [
-        "(~gone \\/ IgnoreGone)",
-        "TRUE"
+        "Observation(k, ready /\\ enabled /\\ ~gone",
+        "Observation(k, ready /\\ enabled /\\ TRUE"
       ]
     ],
     "expect": "NoGoneYes",

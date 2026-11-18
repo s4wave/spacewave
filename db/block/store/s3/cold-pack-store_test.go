@@ -966,6 +966,46 @@ func TestColdPackPromotionRecovery(t *testing.T) {
 			}
 		})
 	}
+	t.Run("stat-first", func(t *testing.T) {
+		// A restored row has an extent, not evidence of a decoded size.
+		for _, outcome := range []string{"verified", "range-failed"} {
+			t.Run(outcome, func(t *testing.T) {
+				// Persist a real record, then discard this mount's verification.
+				v := coldValues(t, 1)[0]
+				f := newColdFixture(t)
+				key := f.addPack(t, []coldValue{v}, false)
+				f.manifest(t)
+				s := f.open(t, nil)
+				assertColdBlock(t, s, v)
+				waitCold(t, func() bool { return s.Stats().PromotedKeys == 1 })
+				s.Close()
+
+				// Make the body range fail authoritatively, so no fallback can hide it.
+				if outcome == "range-failed" {
+					f.setObject(key, "")
+				}
+				s = f.open(t, func(opts *ColdPackOptions) { opts.TailCacheBytes = 1 })
+				if s.Stats().PromotedKeys != 1 || s.tails.get(0) != nil {
+					t.Fatal("fixture must recover one record with no resident tail")
+				}
+
+				// Stat is the first read. One range and no tail fetch means it read the extent.
+				before := f.reader.calls.Load()
+				stat, err := s.StatBlock(t.Context(), v.ref)
+				ranges := f.reader.calls.Load() - before
+				if err != nil || ranges != 1 || s.Stats().TailFetches != 0 {
+					t.Errorf("first stat must read the recovered extent: ranges=%d, tails=%d, err=%v", ranges, s.Stats().TailFetches, err)
+				}
+				if outcome == "range-failed" {
+					if stat != nil {
+						t.Errorf("first stat after failed range = %v; want no stat", stat)
+					}
+				} else if want := int64(len(v.data)); stat == nil || stat.Size != want {
+					t.Errorf("first stat = %v; want verified size %d", stat, want)
+				}
+			})
+		}
+	})
 	t.Run("legacy-extended-key", func(t *testing.T) {
 		// Put E in an authenticated index whose canonical interior key C is absent.
 		v := coldValues(t, 3)
