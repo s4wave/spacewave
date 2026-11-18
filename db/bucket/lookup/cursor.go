@@ -406,6 +406,32 @@ func (c *Cursor) FollowRef(
 	return c.FollowRefWithOpArgs(ctx, objRef, opArgs)
 }
 
+// FollowsInPlace reports whether FollowRef(objRef) keeps this cursor's bucket,
+// store and transformer. A transaction c builds at objRef's root block then
+// reads what one built from the followed cursor would, without the followed
+// cursor's allocations or bucket lookup.
+func (c *Cursor) FollowsInPlace(objRef *bucket.ObjectRef) bool {
+	// Following into another bucket acquires that bucket's handle.
+	bucketID := objRef.GetBucketId()
+	if c.bucketIDOverride != "" {
+		bucketID = c.bucketIDOverride
+	}
+	if bucketID != "" && bucketID != c.opArgs.GetBucketId() {
+		return false
+	}
+
+	// Following a different transform config builds another transformer.
+	if tconf := objRef.GetTransformConf(); !tconf.GetEmpty() {
+		return c.transformConf.EqualVT(tconf)
+	}
+	tconfRef := objRef.GetTransformConfRef()
+	if tconfRef.GetEmpty() {
+		return true
+	}
+	cur := c.ref.GetTransformConfRef()
+	return !cur.GetEmpty() && cur.EqualsRef(tconfRef)
+}
+
 // FollowRefWithOpArgs attempts to follow a object reference.
 //
 // The op args are used to control which bucket and volume ID are used.
