@@ -30,9 +30,20 @@ EXTENDS Naturals, Sequences, FiniteSets
 \*   block's hash from long ago, so any block may be linked or read at any time.
 \* - The log: it breaks on a failed write, the cap or a backend crash, and the
 \*   operator turns it on again in a new epoch (LogBreak, LogOn).
-\* - The command: Position and Roots (step 3), Quarantine (steps 5 and 7),
-\*   Recheck (step 8), BeginTrash and MoveFile (step 9), Remove (step 10),
-\*   Restore, and Gap, which sends the cycle back to step 3.
+\* - The command: Position and Roots (step 3), Check, Quarantine (steps 5
+\*   and 7), Recheck (step 8), BeginTrash and MoveFile (step 9), Remove (step
+\*   10), Restore, and Gap, which sends the cycle back to step 3.
+\*
+\* The mark may judge from a catalog whose child list of a reached block
+\* leaves out a child (Omit), so the judgment and the recheck take that child
+\* for dead. The check walks the roots afresh and passes only when every
+\* reached block a candidate holds has a copy outside the candidates; it
+\* writes the receipt (proved), and the trash begins only a pack the receipt
+\* covers (packsweep.Trash's receipt check). The check stands here for the
+\* key-level check with its value sample finding the omission; the sample's
+\* chance of missing it is outside the model. PackSweep-receipt.cfg omits
+\* block 3, at a smaller bound for the state space; Start makes the blocks
+\* interchangeable.
 \* Left out: the snapshot, since candidates are the snapshot's packs and a pack
 \* never changes; the closure, which W abstracts as the blocks the log names,
 \* and closure_test.go checks; a crash of the command, since each step commits
@@ -55,7 +66,7 @@ EXTENDS Naturals, Sequences, FiniteSets
 \* records the miss that restores it; the invariants cover every other block.
 
 \* Start: the sets of blocks the roots may reach when the cycle begins.
-CONSTANTS MaxWrites, MaxBreaks, Start
+CONSTANTS MaxWrites, MaxBreaks, Start, Omit
 
 Blocks == {1, 2, 3}
 Packs == {"p1", "p2"}
@@ -82,14 +93,15 @@ VARIABLES
   failed,   \* a read of a block the invariants cover found no copy
   hidFailed, \* a read found no copy while a hidden pack held the block
   rule,     \* the bucket has a lifecycle rule that deletes hidden versions
-  expired   \* each hidden pack whose kept version a lifecycle rule deleted
+  expired,  \* each hidden pack whose kept version a lifecycle rule deleted
+  proved    \* the packs the last check's receipt covers
 
 vars == <<reached, needed, state, moved, hid, missed, fresh, log, logOn,
           epoch, breaks, writes, phase, R, REpoch, L, cst, late, failed,
-          hidFailed, rule, expired>>
+          hidFailed, rule, expired, proved>>
 life == <<rule, expired>>
 store == <<state, moved, hid, missed, fresh>>
-cmd == <<phase, R, REpoch, L, cst>>
+cmd == <<phase, R, REpoch, L, cst, proved>>
 logv == <<log, logOn, epoch, breaks>>
 
 Init ==
@@ -105,6 +117,7 @@ Init ==
   /\ cst = [p \in Packs |-> "none"]
   /\ late = {} /\ failed = FALSE /\ hidFailed = FALSE
   /\ rule \in BOOLEAN /\ expired = [p \in Packs |-> FALSE]
+  /\ proved = {}
 
 \* W: the blocks the log names since R, in the walk's epoch.
 W == IF epoch = REpoch THEN {log[i] : i \in (R + 1)..Len(log)} ELSE {}
@@ -113,7 +126,7 @@ W == IF epoch = REpoch THEN {log[i] : i \in (R + 1)..Len(log)} ELSE {}
 Elsewhere(b, p) ==
   (b \in fresh) \/ \E q \in Packs \ {p} : b \in Holds(q) /\ state[q] = "reg"
 
-Removable(p) == \A b \in Holds(p) : b \notin (L \cup W) \/ Elsewhere(b, p)
+Removable(p) == \A b \in Holds(p) : b \notin ((L \ Omit) \cup W) \/ Elsewhere(b, p)
 
 \* The log covers the cycle from R on.
 Covered == phase = "walked" /\ logOn /\ epoch = REpoch
@@ -207,35 +220,53 @@ Position ==
   /\ phase = "idle" /\ logOn
   /\ phase' = "pos"
   /\ R' = Len(log) /\ REpoch' = epoch /\ L' = L
-  /\ needed' = {}
+  /\ needed' = {} /\ proved' = {}
   /\ UNCHANGED <<life, reached, store, logv, writes, cst, late, failed, hidFailed>>
 
 Roots ==
   /\ phase = "pos"
   /\ phase' = "walked"
-  /\ L' = reached /\ R' = R /\ REpoch' = REpoch
+  /\ L' = reached /\ R' = R /\ REpoch' = REpoch /\ proved' = {}
   /\ UNCHANGED <<life, reached, needed, store, logv, writes, cst, late, failed, hidFailed>>
+
+\* The check proves the removal of every pack that passed its recheck (the
+\* trash set, packsweep.TrashSet), or of none: each reached block one holds
+\* has a fresh copy or a registered holder outside them. Its receipt covers
+\* that set.
+\* With no omission the judgment is right and the check adds nothing the
+\* recheck does not, so a config with Omit = {} leaves the check out and
+\* trashes without a receipt, for the state space.
+Checked == Omit # {}
+TrashSet == {p \in Packs : cst[p] = "pass"}
+Check ==
+  /\ Checked /\ phase = "walked"
+  /\ proved' = IF \A b \in reached :
+                     (\E p \in TrashSet : b \in Holds(p)) =>
+                       (b \in fresh \/ \E q \in Packs \ TrashSet : b \in Holds(q) /\ state[q] = "reg")
+                THEN TrashSet ELSE {}
+  /\ UNCHANGED <<life, reached, needed, store, logv, writes, phase, R, REpoch, L, cst,
+                 late, failed, hidFailed>>
 
 Quarantine(p) ==
   /\ Covered /\ state[p] = "reg" /\ cst[p] = "none" /\ Removable(p)
   /\ state' = [state EXCEPT ![p] = "quar"]
   /\ cst' = [cst EXCEPT ![p] = "quar"]
   /\ UNCHANGED <<life, reached, needed, moved, hid, missed, fresh, logv, writes,
-                 phase, R, REpoch, L, late, failed, hidFailed>>
+                 phase, R, REpoch, L, proved, late, failed, hidFailed>>
 
 Recheck(p) ==
   /\ cst[p] = "quar" /\ state[p] = "quar"
   /\ Covered /\ Removable(p)
   /\ cst' = [cst EXCEPT ![p] = "pass"]
   /\ UNCHANGED <<life, reached, needed, store, logv, writes, phase, R, REpoch, L,
-                 late, failed, hidFailed>>
+                 proved, late, failed, hidFailed>>
 
 \* The command finds a lift and drops the pack from its cycle.
 Dropped(p) ==
   /\ cst[p] \in {"quar", "pass"} /\ state[p] = "reg"
   /\ cst' = [cst EXCEPT ![p] = "none"]
   /\ UNCHANGED <<life, reached, needed, store, logv, writes, phase, R, REpoch, L,
-                 late, failed, hidFailed>>
+                 proved, late, failed, hidFailed>>
 
 \* A gap sends the cycle back to step 3, and every quarantine stays. A pack
 \* that already passed goes on: no log line after its recheck could keep it.
@@ -243,15 +274,16 @@ Gap ==
   /\ phase # "idle" /\ (~logOn \/ epoch # REpoch)
   /\ phase' = "idle"
   /\ UNCHANGED <<life, reached, needed, store, logv, writes, R, REpoch, L, cst,
-                 late, failed, hidFailed>>
+                 proved, late, failed, hidFailed>>
 
-\* BeginTrash in the pack store moves only a pack still quarantined.
+\* BeginTrash in the pack store moves only a pack still quarantined, and the
+\* command begins only a pack the check's receipt covers.
 BeginTrash(p) ==
-  /\ cst[p] = "pass" /\ state[p] = "quar"
+  /\ cst[p] = "pass" /\ state[p] = "quar" /\ (~Checked \/ p \in proved)
   /\ state' = [state EXCEPT ![p] = "trash"]
   /\ cst' = [cst EXCEPT ![p] = "trash"]
   /\ UNCHANGED <<life, reached, needed, moved, hid, missed, fresh, logv, writes,
-                 phase, R, REpoch, L, late, failed, hidFailed>>
+                 phase, R, REpoch, L, proved, late, failed, hidFailed>>
 
 \* The command reads the pack's miss record, then sets its file aside, by a
 \* move or a hide; reads run between the two.
@@ -259,7 +291,7 @@ MoveCheck(p) ==
   /\ cst[p] = "trash" /\ state[p] = "trash" /\ ~missed[p]
   /\ cst' = [cst EXCEPT ![p] = "move"]
   /\ UNCHANGED <<life, reached, needed, store, logv, writes, phase, R, REpoch, L,
-                 late, failed, hidFailed>>
+                 proved, late, failed, hidFailed>>
 
 MoveFile(p) ==
   /\ cst[p] = "move" /\ state[p] = "trash" /\ ~moved[p]
@@ -273,7 +305,7 @@ Remove(p) ==
   /\ state' = [state EXCEPT ![p] = "removed"]
   /\ cst' = [cst EXCEPT ![p] = "done"]
   /\ UNCHANGED <<life, reached, needed, moved, hid, missed, fresh, logv, writes,
-                 phase, R, REpoch, L, late, failed, hidFailed>>
+                 phase, R, REpoch, L, proved, late, failed, hidFailed>>
 
 \* A recorded miss restores the pack before anything else: the file comes
 \* back, then the entry, by a move back or the deletion of the markers over
@@ -292,7 +324,7 @@ Restore(p) ==
   /\ missed' = [missed EXCEPT ![p] = FALSE]
   /\ cst' = [cst EXCEPT ![p] = "none"]
   /\ UNCHANGED <<life, reached, needed, fresh, logv, writes, phase, R, REpoch, L,
-                 late, failed, hidFailed>>
+                 proved, late, failed, hidFailed>>
 
 \* A lifecycle rule deletes the version a hide kept.
 Expire(p) ==
@@ -309,7 +341,7 @@ Done ==
 Next ==
   \/ \E b \in Blocks : Link(b) \/ Unlink(b) \/ RePut(b) \/ Read(b)
   \/ LogBreak \/ LogOn
-  \/ Position \/ Roots \/ Gap
+  \/ Position \/ Roots \/ Check \/ Gap
   \/ \E p \in Packs : \/ Quarantine(p) \/ Recheck(p) \/ Dropped(p)
                       \/ BeginTrash(p) \/ MoveCheck(p) \/ MoveFile(p)
                       \/ Remove(p)
@@ -346,4 +378,5 @@ TypeOK ==
   /\ phase \in {"idle", "pos", "walked"}
   /\ hid \in [Packs -> BOOLEAN]
   /\ rule \in BOOLEAN /\ expired \in [Packs -> BOOLEAN]
+  /\ proved \subseteq Packs
 ==============================================================================

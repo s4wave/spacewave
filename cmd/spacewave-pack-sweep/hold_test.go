@@ -424,6 +424,19 @@ func testCommandQuarantine(t *testing.T, kind string, rehearsal bool, method pac
 		refuse("a refused read", nil)
 		bucket.FailB2(0)
 		bucket.SetLifecycleRules(`[{"fileNamePrefix":"other/","daysFromHidingToDeleting":1,"daysFromUploadingToHiding":null},{"fileNamePrefix":"","daysFromStartingToCancelingUnfinishedLargeFiles":7,"daysFromHidingToDeleting":null,"daysFromUploadingToHiding":null}]`)
+
+		// With the rules clear, a hide still refuses until a check of the
+		// cycle's trash set passed and wrote its receipt.
+		refuse("no receipt", packsweep.ErrNoReceipt)
+		check := *args
+		check.Candidates, check.Sample, check.AdminURL = "", 1, ""
+		out.Reset()
+		if err := check.runCheck(nil); err != nil {
+			t.Fatalf("check: %v (%s)", err, out.String())
+		}
+		if res := parse(t, out.Bytes()); res.GetUint("receipt", "packs") != 2 {
+			t.Fatalf("check = %s, want a receipt over the two passed packs", res)
+		}
 	}
 	for _, want := range []uint{2, 0} {
 		out.Reset()

@@ -24,8 +24,14 @@ type CheckResult struct {
 	BadReasons map[string]uint64
 	// BadPacks counts, for each candidate, its bad keys and its own failure.
 	BadPacks map[string]uint64
+	// LivePacks counts, for each candidate, its keys found live: reached,
+	// and readable from no pack left after the candidates. A mutant is
+	// caught by these alone.
+	LivePacks map[string]uint64
 	// BadBlocks lists the first bad found, up to the check's MaxBad.
 	BadBlocks []CheckBad
+	// Receipt is the receipt the pass wrote, nil when it wrote none.
+	Receipt *Receipt
 }
 
 // JSON returns the result as a JSON object: the totals, then the bad by
@@ -48,8 +54,8 @@ func (r *CheckResult) JSON(a *fastjson.Arena) *fastjson.Value {
 		bad.SetArrayItem(i, o)
 	}
 
-	// Join them with the totals.
-	return jsonObject(a,
+	// Join them with the totals and the receipt.
+	o := jsonObject(a,
 		jsonField{"candidates", a.NewNumberInt(r.Candidates)},
 		jsonField{"candidate_keys", jsonUint(a, r.CandidateKeys)},
 		jsonField{"reached", jsonUint(a, r.Reached)},
@@ -60,6 +66,11 @@ func (r *CheckResult) JSON(a *fastjson.Arena) *fastjson.Value {
 		jsonField{"bad", jsonUint(a, r.Bad)},
 		jsonField{"bad_reasons", JSONCounts(a, r.BadReasons)},
 		jsonField{"bad_packs", JSONCounts(a, r.BadPacks)},
+		jsonField{"live_packs", JSONCounts(a, r.LivePacks)},
 		jsonField{"bad_blocks", bad},
 	)
+	if r.Receipt != nil {
+		o.Set("receipt", r.Receipt.JSON(a))
+	}
+	return o
 }

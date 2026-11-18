@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -33,8 +34,8 @@ func (a *Args) verifyFlags() []cli.Flag {
 		&cli.StringFlag{Name: "roots-file", Usage: "file listing more roots, one b58 ref a line", Destination: &a.RootsFile},
 		&cli.StringFlag{Name: "admin-url", Usage: "read every named root and pin from the backend's pack sweep admin service, a ws or wss URL; the Authorization header comes from " + adminAuthEnv, Destination: &a.AdminURL},
 		&cli.StringFlag{Name: "scratch", Usage: "a cycle's scratch file: walk its roots too, report the roots it lacks or the others lack, and pick --mutant auto from its judgments", Destination: &a.Scratch},
-		&cli.StringFlag{Name: "candidates", Usage: "candidate list, one JSON judgment a line: leave its packs out of the store read, naming a block only they hold " + packsweep.ReasonCandidate, Destination: &a.Candidates},
-		&cli.StringFlag{Name: "mutant", Usage: "pack id, or " + mutantAuto + " for the judged pack with the most live blocks, to leave out as well; the verify then passes only when it names a block only that pack holds", Destination: &a.Mutant},
+		&cli.StringFlag{Name: "candidates", Usage: "candidate list, one JSON judgment a line, of packs the bucket holds and --scratch's catalog when named: leave its packs out of the store read, naming a block only they hold " + packsweep.ReasonCandidate, Destination: &a.Candidates},
+		&cli.StringFlag{Name: "mutant", Usage: "pack id --scratch's catalog holds, or " + mutantAuto + " for the judged pack with the most live blocks, to leave out as well; the verify then passes only when it names a block only that pack holds " + packsweep.ReasonMutant + " and finds nothing else bad", Destination: &a.Mutant},
 		&cli.IntFlag{Name: "batch", Usage: "frontier keys per transaction", Value: packsweep.DefaultVerifyBatch, Destination: &a.Batch},
 		&cli.IntFlag{Name: "reads", Usage: "blocks read at once", Value: packsweep.DefaultVerifyReads, Destination: &a.Reads},
 		&cli.IntFlag{Name: "max-bad", Usage: "bad blocks listed; every one is counted", Value: packsweep.DefaultVerifyMaxBad, Destination: &a.MaxBad},
@@ -46,9 +47,10 @@ func (a *Args) verifyFlags() []cli.Flag {
 // With --candidates the store leaves those packs out, so a pass proves that
 // removing them loses no block the roots reach. It prints the counts per root
 // and the first bad blocks, and fails when any block is missing, unreadable,
-// corrupt or without its refs. With --mutant it inverts: it fails unless it
-// names a block only the mutant holds, since a check that passes with a live
-// pack left out proves nothing.
+// corrupt or without its refs. With --mutant it tests itself: it fails unless
+// it names a block only the mutant holds, since a check that passes with a
+// live pack left out proves nothing, and fails as well on any other bad
+// block, so a mutant run proves the candidates too.
 func (a *Args) runVerify(*cli.Context) error {
 	// Run until a signal stops the verify.
 	ctx, cancel := signalContext()
@@ -82,31 +84,39 @@ func (a *Args) runVerify(*cli.Context) error {
 	}
 	defer closeStore()
 
-	// Leave out the candidates and the mutant, naming only the mutant's
-	// blocks candidate in its run, so its pass cannot rest on a real
-	// candidate's block.
+	// Refuse a candidate the bucket lacks, which leaving out would prove
+	// nothing about.
+	ro := readOnly{objects}
+	if err := requirePacks(ctx, ro, bucket, a.Prefix, ids); err != nil {
+		return errors.Wrap(err, "--candidates")
+	}
+
+	// Leave out the candidates and the mutant.
 	left := maps.Clone(ids)
-	named := ids
 	if mutant != "" {
 		if left == nil {
 			left = make(map[string]bool, 1)
 		}
 		left[mutant] = true
-		named = map[string]bool{mutant: true}
 	}
 
 	// Open the live packs with those left out, the trashed ones, and the
-	// left-out ones to name a block only they hold, all read-only.
-	ro := readOnly{objects}
+	// candidates and the mutant apart to name a block only they hold, all
+	// read-only.
 	store := block_store_s3.NewPackStore(le, newPackView(ro, a.Prefix, left, false), bucket, a.Prefix, &block_store_s3.PackStoreOptions{KeepPacks: true})
 	defer store.Close()
 	trash := block_store_s3.NewPackStore(le.WithField("packs", "trash"), ro, bucket, block_store_s3.TrashPrefix(a.Prefix), &block_store_s3.PackStoreOptions{KeepPacks: true})
 	defer trash.Close()
-	var candidates packcopy.Source
-	if len(named) != 0 {
-		cs := block_store_s3.NewPackStore(le.WithField("packs", "candidates"), newPackView(ro, a.Prefix, named, true), bucket, a.Prefix, &block_store_s3.PackStoreOptions{KeepPacks: true})
+	var candidates, mutantSrc packcopy.Source
+	if len(ids) != 0 {
+		cs := block_store_s3.NewPackStore(le.WithField("packs", "candidates"), newPackView(ro, a.Prefix, ids, true), bucket, a.Prefix, &block_store_s3.PackStoreOptions{KeepPacks: true})
 		defer cs.Close()
 		candidates = cs
+	}
+	if mutant != "" {
+		ms := block_store_s3.NewPackStore(le.WithField("packs", "mutant"), newPackView(ro, a.Prefix, map[string]bool{mutant: true}, true), bucket, a.Prefix, &block_store_s3.PackStoreOptions{KeepPacks: true})
+		defer ms.Close()
+		mutantSrc = ms
 	}
 
 	// Keep the blocks read and the frontier in a scratch file of the
@@ -129,6 +139,7 @@ func (a *Args) runVerify(*cli.Context) error {
 		Source:     store,
 		Trash:      trash,
 		Candidates: candidates,
+		Mutant:     mutantSrc,
 		Roots:      roots,
 		Batch:      a.Batch,
 		Reads:      a.Reads,
@@ -147,7 +158,8 @@ func (a *Args) runVerify(*cli.Context) error {
 	le.WithField("took", time.Since(start).String()).Info("verify complete")
 
 	// Print the result with what was left out and how the roots compared.
-	caught := res.BadReasons[packsweep.ReasonCandidate] != 0
+	caught := res.BadReasons[packsweep.ReasonMutant] != 0
+	rest := res.Bad - res.BadReasons[packsweep.ReasonMutant]
 	if err := a.print(func(arena *fastjson.Arena) *fastjson.Value {
 		// Add the counts to the verify's result.
 		o := res.JSON(arena)
@@ -165,15 +177,41 @@ func (a *Args) runVerify(*cli.Context) error {
 		return err
 	}
 
-	// Fail a mutant run that missed its mutant, and a run with a bad block.
-	if mutant != "" {
-		if !caught {
-			return errors.Errorf("mutant %s left out and no block only it holds was found: the check proves nothing", mutant)
-		}
+	// Fail a mutant run that missed its mutant, and any run with a bad block
+	// beside the mutant's.
+	if mutant != "" && !caught {
+		return errors.Errorf("mutant %s left out and no block only it holds was found: the check proves nothing", mutant)
+	}
+	if rest != 0 {
+		return errors.Errorf("%d blocks missing, trashed, only in a candidate, unreadable, corrupt or without their refs", rest)
+	}
+	return nil
+}
+
+// requirePacks fails unless the bucket holds the entry of every pack of ids,
+// listing the entries under prefix once.
+func requirePacks(ctx context.Context, objects block_store_s3.ObjectStore, bucket, prefix string, ids map[string]bool) error {
+	// List the entries, counting the packs found.
+	if len(ids) == 0 {
 		return nil
 	}
-	if res.Bad != 0 {
-		return errors.Errorf("%d blocks missing, trashed, only in a candidate, unreadable, corrupt or without their refs", res.Bad)
+	dir := block_store_s3.EntryObjectKey(prefix, "")
+	found := make(map[string]bool, len(ids))
+	err := objects.ListObjects(ctx, bucket, dir, func(key string, _ int64) error {
+		if id := strings.TrimPrefix(key, dir); ids[id] {
+			found[id] = true
+		}
+		return nil
+	})
+	if err != nil {
+		return errors.Wrap(err, "list the packs")
+	}
+
+	// Name the first missing.
+	for _, id := range slices.Sorted(maps.Keys(ids)) {
+		if !found[id] {
+			return errors.Errorf("pack %s is not in the bucket", id)
+		}
 	}
 	return nil
 }
@@ -281,7 +319,16 @@ func compareCycle(ctx context.Context, store kvtx.Store, mutantName string, fres
 	}
 	slices.Sort(c.added)
 
-	// Pick the mutant.
+	// Refuse a candidate the catalog lacks, then pick the mutant.
+	for _, id := range slices.Sorted(maps.Keys(ids)) {
+		found, err := packsweep.Catalogued(ctx, store, id)
+		if err != nil {
+			return nil, "", err
+		}
+		if !found {
+			return nil, "", errors.Errorf("candidate %s is not in the cycle's catalog", id)
+		}
+	}
 	if mutantName == "" {
 		return c, "", nil
 	}

@@ -93,6 +93,12 @@ type adversary struct {
 // act takes a dead block and acts on it before step i: by the cycle and the
 // step, it links it, puts it again and links it, or reads it.
 func (a *adversary) act(i int) {
+	// Leave the check alone: a block linked just before it is one it must
+	// find, which fails the check and stops the cycle, as it should.
+	if runSteps[i] == "check" {
+		return
+	}
+
 	// Take the next dead block.
 	r := a.r
 	r.mtx.Lock()

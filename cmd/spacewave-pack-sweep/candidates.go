@@ -23,12 +23,13 @@ var verdictNames = []string{
 func (a *Args) candidatesFlags() []cli.Flag {
 	return append(a.scratchFlags(),
 		&cli.StringFlag{Name: "candidates", Usage: "candidate list to write, one JSON judgment a line", Value: "candidates.jsonl", Destination: &a.Candidates},
-		&cli.StringSliceFlag{Name: "verdict", Usage: "verdict a candidate carries: kept, dead, low or young; repeat for each", Value: cli.NewStringSlice(packsweep.VerdictDead.String()), Destination: &a.Verdicts},
+		&cli.StringSliceFlag{Name: "verdict", Usage: "verdict a candidate carries: kept, dead, low or young; repeat for each; none writes the trash set, the packs that passed their recheck, which the check proves and the trash acts on", Destination: &a.Verdicts},
 	)
 }
 
 // runCandidates writes the last judgment's packs whose verdict is one of
-// --verdict, each line the report's, and prints their count and bytes. It
+// --verdict, or with none its trash set (see packsweep.TrashSet), each line
+// the report's, and prints their count and bytes. It
 // reads the scratch file alone and writes only the list, so it runs between
 // any two steps and repeats as often as wanted.
 func (a *Args) runCandidates(*cli.Context) error {
@@ -64,11 +65,16 @@ func (a *Args) runCandidates(*cli.Context) error {
 	}
 	var packs, size uint64
 	if err := writeLines(a.Candidates, func(w *bufio.Writer) error {
+		// Read the trash set, or every judgment when verdicts are named.
 		var arena fastjson.Arena
 		var line []byte
-		return packsweep.Judgments(ctx, store, func(j *packsweep.Judgment) error {
+		each := packsweep.TrashSet
+		if len(verdicts) != 0 {
+			each = packsweep.Judgments
+		}
+		return each(ctx, store, func(j *packsweep.Judgment) error {
 			// Skip a judgment whose verdict was not named.
-			if !verdicts[j.Verdict.String()] {
+			if len(verdicts) != 0 && !verdicts[j.Verdict.String()] {
 				return nil
 			}
 

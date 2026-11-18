@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	block_packsweep_admin "github.com/s4wave/spacewave/db/block/packsweep/admin"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
 )
 
@@ -17,6 +18,15 @@ import (
 // reads after it. A read starts at most this long after the gate last
 // admitted, so a gate that closes holds every read within this time.
 const admitEvery = time.Second
+
+// gateWaitNotice is how long a wait on the backend's gate runs before the
+// step says it is waiting, and gateWaitRepeat how often it says so again. The
+// wait has no deadline: a gate that never answers holds the step, which says
+// so, rather than letting a read pass unadmitted.
+const (
+	gateWaitNotice = 5 * time.Second
+	gateWaitRepeat = time.Minute
+)
 
 // paceBurst is the most bytes a read takes from the rate cap at once.
 const paceBurst = 1 << 20
@@ -135,12 +145,40 @@ func (p *pacedStore) wait(ctx context.Context) error {
 		return nil
 	}
 
-	// Wait for the gate.
-	if err := p.admit(ctx); err != nil {
+	// Wait for the gate, saying so while the wait goes on.
+	if err := admitLogged(ctx, p.admit); err != nil {
 		return errors.Wrap(err, "backend gate")
 	}
 	p.admitted = time.Now()
 	return nil
+}
+
+// admitLogged waits on admit, logging a line once the wait passes
+// gateWaitNotice, one each gateWaitRepeat after, and one when a logged wait
+// ends.
+func admitLogged(ctx context.Context, admit func(context.Context) error) error {
+	// Wait in the background.
+	done := make(chan error, 1)
+	go func() { done <- admit(ctx) }()
+
+	// Log while it runs.
+	start := time.Now()
+	timer := time.NewTimer(gateWaitNotice)
+	defer timer.Stop()
+	logged := false
+	for {
+		select {
+		case err := <-done:
+			if logged {
+				logrus.WithField("waited", time.Since(start).Round(time.Second).String()).Info("backend gate admitted")
+			}
+			return err
+		case <-timer.C:
+			logged = true
+			logrus.WithField("waited", time.Since(start).Round(time.Second).String()).Warn("waiting on the backend gate, which has not admitted")
+			timer.Reset(gateWaitRepeat)
+		}
+	}
 }
 
 // take takes n bytes from the rate cap, a burst at a time.

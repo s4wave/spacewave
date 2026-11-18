@@ -87,7 +87,8 @@ func (v packView) ListObjects(ctx context.Context, bucket, prefix string, fn fun
 
 // readCandidateIDs reads the pack ids of a candidate list, one JSON judgment
 // a line as the candidates step writes it. A line without an id is refused,
-// since skipping it would leave a candidate in the store the check reads.
+// since skipping it would leave a candidate in the store the check reads, and
+// so is a list of none, which proves nothing.
 func readCandidateIDs(path string) (map[string]bool, error) {
 	// Open the list.
 	f, err := os.Open(path)
@@ -116,25 +117,63 @@ func readCandidateIDs(path string) (map[string]bool, error) {
 		}
 		ids[id] = true
 	}
-	return ids, sc.Err()
+	if err := sc.Err(); err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return nil, errors.New("the list names no pack")
+	}
+	return ids, nil
+}
+
+// errEmptyTrashSet is the refusal of a check with nothing to prove.
+var errEmptyTrashSet = errors.New("no pack passed its recheck; run quarantine and recheck first")
+
+// trashSetIDs returns the ids of the cycle's trash set, refusing an empty
+// one: see packsweep.TrashSet.
+func trashSetIDs(ctx context.Context, store kvtx.Store) (map[string]bool, error) {
+	// Collect the set, then refuse it empty.
+	ids := make(map[string]bool)
+	err := packsweep.TrashSet(ctx, store, func(j *packsweep.Judgment) error {
+		ids[j.ID] = true
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return nil, errEmptyTrashSet
+	}
+	return ids, nil
 }
 
 // pickMutant returns the pack a mutant run adds to the candidates: the one
-// named, or for mutantAuto the judged pack outside the candidates with the
-// most live blocks, which a correct check must then find live.
+// named, which the cycle's catalog must hold, or for mutantAuto the judged
+// pack outside the candidates with the most live blocks, which a correct
+// check must then find live. A name no pack has would pass a broken check as
+// caught, through the failed read of its index.
 func pickMutant(ctx context.Context, store kvtx.Store, name string, candidates map[string]bool) (string, error) {
-	// Take a named pack as it is.
+	// Refuse a mutant with no cycle to find it in, or among the candidates.
+	if store == nil {
+		return "", errors.New("--mutant needs --scratch, whose catalog holds the mutant")
+	}
+	if candidates[name] {
+		return "", errors.Errorf("mutant %s is already a candidate", name)
+	}
+
+	// Take a named pack the catalog holds.
 	if name != mutantAuto {
-		if candidates[name] {
-			return "", errors.Errorf("mutant %s is already a candidate", name)
+		found, err := packsweep.Catalogued(ctx, store, name)
+		if err != nil {
+			return "", err
+		}
+		if !found {
+			return "", errors.Errorf("mutant %s is not in the cycle's catalog", name)
 		}
 		return name, nil
 	}
 
 	// Pick the judged pack with the most live blocks.
-	if store == nil {
-		return "", errors.New("--mutant auto needs --scratch to read the judgments")
-	}
 	var best string
 	var most uint64
 	err := packsweep.Judgments(ctx, store, func(j *packsweep.Judgment) error {

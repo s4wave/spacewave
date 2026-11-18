@@ -37,8 +37,8 @@
     "name": "A quarantined holder counts as placed elsewhere",
     "replace": [
       [
-        "b \\in Holds(q) /\\ state[q] = \"reg\"",
-        "b \\in Holds(q) /\\ state[q] \\in {\"reg\", \"quar\"}"
+        "\\E q \\in Packs \\ {p} : b \\in Holds(q) /\\ state[q] = \"reg\"",
+        "\\E q \\in Packs \\ {p} : b \\in Holds(q) /\\ state[q] \\in {\"reg\", \"quar\"}"
       ]
     ],
     "expect": "Served"
@@ -57,8 +57,8 @@
     "name": "BeginTrash moves a lifted pack",
     "replace": [
       [
-        "/\\ cst[p] = \"pass\" /\\ state[p] = \"quar\"\n  /\\ state' = [state EXCEPT ![p] = \"trash\"]",
-        "/\\ cst[p] = \"pass\" /\\ state[p] \\in {\"quar\", \"reg\"}\n  /\\ state' = [state EXCEPT ![p] = \"trash\"]"
+        "/\\ cst[p] = \"pass\" /\\ state[p] = \"quar\" /\\ (~Checked",
+        "/\\ cst[p] = \"pass\" /\\ state[p] \\in {\"quar\", \"reg\"} /\\ (~Checked"
       ]
     ],
     "expect": "Served"
@@ -133,5 +133,16 @@
       ]
     ],
     "expect": "HiddenServed"
+  },
+  {
+    "name": "The trash begins a pack no check proved",
+    "replace": [
+      [
+        "/\\ cst[p] = \"pass\" /\\ state[p] = \"quar\" /\\ (~Checked \\/ p \\in proved)",
+        "/\\ cst[p] = \"pass\" /\\ state[p] = \"quar\""
+      ]
+    ],
+    "expect": "Served",
+    "config": "PackSweep-receipt.cfg"
   }
 ]

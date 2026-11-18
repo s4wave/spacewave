@@ -19,6 +19,11 @@ const ReasonTrashed = "trashed"
 // that candidate would lose it.
 const ReasonCandidate = "candidate"
 
+// ReasonMutant names a block only the mutant pack holds among the packs left
+// out: a pack the caller left out to test the verify, which a correct verify
+// must find live.
+const ReasonMutant = "mutant"
+
 // Verify defaults.
 const (
 	// DefaultVerifyBatch is the frontier keys one verify transaction takes.
@@ -52,6 +57,11 @@ type VerifyOptions struct {
 	// sweep would remove them, or is nil. A block Source lacks and Candidates
 	// holds is named ReasonCandidate and still counts as bad.
 	Candidates packcopy.Source
+	// Mutant serves the blocks of a pack Source leaves out to test the
+	// verify, or is nil. A block Source lacks and Mutant holds is named
+	// ReasonMutant before Candidates is asked, so a mutant run's finding is
+	// told from a real candidate's.
+	Mutant packcopy.Source
 	// Roots are the named roots, walked in order. A block an earlier root
 	// reached counts for that root alone.
 	Roots []block.NamedRoot
@@ -91,7 +101,7 @@ func Verify(ctx context.Context, opts *VerifyOptions) (*VerifyResult, error) {
 	// Walk each root in turn, sharing the set of blocks read.
 	res := &VerifyResult{BadReasons: make(map[string]uint64)}
 	v := &verifier{store: opts.Store, src: opts.Source, reads: reads, maxBad: maxBad, res: res}
-	for _, fb := range []verifyFallback{{opts.Trash, ReasonTrashed}, {opts.Candidates, ReasonCandidate}} {
+	for _, fb := range []verifyFallback{{opts.Trash, ReasonTrashed}, {opts.Mutant, ReasonMutant}, {opts.Candidates, ReasonCandidate}} {
 		if fb.src != nil {
 			v.fallbacks = append(v.fallbacks, fb)
 		}
@@ -152,7 +162,8 @@ type verifyRead struct {
 	tail []byte
 	// ref is the block.
 	ref *block.BlockRef
-	// stored is the block when reason is empty.
+	// stored is the block when reason is empty, or the fallback's copy
+	// when a fallback holds it.
 	stored *block.StoredBlock
 	// reason is why the block could not be used, empty when it could.
 	reason string
@@ -214,14 +225,29 @@ func (v *verifier) take(ctx context.Context, tx kvtx.TxOps, rr *VerifyRootResult
 	}
 	if k.reason != "" {
 		v.bad(rr, k)
-		return nil
+		return v.walkMutant(ctx, tx, k)
 	}
 
 	// Count it, and add its children.
 	size := uint64(len(k.stored.Data))
 	rr.Blocks, rr.Bytes = rr.Blocks+1, rr.Bytes+size
 	v.res.Blocks, v.res.Bytes = v.res.Blocks+1, v.res.Bytes+size
-	for _, child := range k.stored.Refs {
+	return v.addChildren(ctx, tx, k.stored)
+}
+
+// walkMutant adds the children of a block only the mutant holds, so the
+// mutant sets aside its own findings alone: the walk goes on under it, and a
+// candidate's block it reaches there is still found.
+func (v *verifier) walkMutant(ctx context.Context, tx kvtx.TxOps, k *verifyRead) error {
+	if k.reason != ReasonMutant || k.stored == nil || !k.stored.RefsKnown {
+		return nil
+	}
+	return v.addChildren(ctx, tx, k.stored)
+}
+
+// addChildren adds the block's children the set has not reached.
+func (v *verifier) addChildren(ctx context.Context, tx kvtx.TxOps, stored *block.StoredBlock) error {
+	for _, child := range stored.Refs {
 		if child.GetEmpty() {
 			continue
 		}
@@ -284,12 +310,12 @@ func (v *verifier) read(ctx context.Context, ref *block.BlockRef) (*block.Stored
 
 	// Name a missing block by the first fallback that holds it intact.
 	for _, fb := range v.fallbacks {
-		_, fbReason, err := packcopy.ReadVerified(ctx, fb.src, ref)
+		fbStored, fbReason, err := packcopy.ReadVerified(ctx, fb.src, ref)
 		if err != nil {
 			return nil, reason, err
 		}
 		if fbReason == "" {
-			return nil, fb.reason, nil
+			return fbStored, fb.reason, nil
 		}
 	}
 	return nil, reason, nil

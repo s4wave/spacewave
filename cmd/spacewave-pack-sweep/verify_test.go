@@ -13,6 +13,7 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/fastjson"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/packcopy"
 	"github.com/s4wave/spacewave/db/block/packsweep"
@@ -339,6 +340,16 @@ func (c *checkCycle) writeCandidates(t *testing.T, name string, ids ...string) s
 	return path
 }
 
+// receipt reads the cycle's receipt.
+func (c *checkCycle) receipt(ctx context.Context, t *testing.T) (*packsweep.Receipt, bool, error) {
+	db, err := s4db.Open(c.args.Scratch, s4db.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	return packsweep.ReadReceipt(ctx, kvtx_prefixer.NewPrefixer(db, sweepPrefix))
+}
+
 // TestCommandVerifyCandidates checks the verify with candidate packs left
 // out, by trying to make it pass a candidate a live block needs. The real
 // candidate passes, with the cycle's roots matching the fresh ones. A list
@@ -346,7 +357,9 @@ func (c *checkCycle) writeCandidates(t *testing.T, name string, ids ...string) s
 // block candidate. A fresh root that no longer reaches the first pack still
 // fails when that pack is a candidate, because the cycle's root is walked too.
 // The automatic mutant is caught, a mutant nothing reaches is not and fails
-// the run, and a list line without an id is refused rather than skipped.
+// the run, a missing mutant is refused, and a mutant run over a live
+// candidate fails. A list of none, a candidate no pack has and a list line
+// without an id are refused rather than skipped.
 func TestCommandVerifyCandidates(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -420,9 +433,32 @@ func TestCommandVerifyCandidates(t *testing.T) {
 		t.Fatalf("a dead mutant passed: %v (%s)", err, res)
 	}
 
-	// A mutant already among the candidates is refused.
+	// A mutant already among the candidates is refused, and so is one no pack
+	// has.
 	if _, err = c.run(t, verify, func(a *Args) { a.Mutant = c.packs[3] }); err == nil {
 		t.Fatal("a mutant among the candidates was taken")
+	}
+	if _, err = c.run(t, verify, func(a *Args) { a.Mutant = "no-such-pack" }); err == nil {
+		t.Fatal("a missing mutant was taken")
+	}
+
+	// Adversary: a mutant run over a live candidate fails, though the mutant
+	// is caught.
+	res, err = c.run(t, verify, func(a *Args) {
+		a.Candidates = c.writeCandidates(t, "deep.jsonl", c.packs[3], c.packs[2])
+		a.Mutant = mutantAuto
+	})
+	if err == nil || !res.GetBool("mutant_caught") || badReason(res, c.deep) != packsweep.ReasonCandidate {
+		t.Fatalf("a mutant run over a live candidate passed: %v (%s)", err, res)
+	}
+
+	// A list of none is refused, and so is a candidate the bucket or the
+	// catalog lacks.
+	if _, err = c.run(t, verify, func(a *Args) { a.Candidates = c.writeCandidates(t, "none.jsonl") }); err == nil {
+		t.Fatal("a list of none was taken")
+	}
+	if _, err = c.run(t, verify, func(a *Args) { a.Candidates = c.writeCandidates(t, "ghost.jsonl", "no-such-pack") }); err == nil {
+		t.Fatal("a candidate no pack has was taken")
 	}
 
 	// A line without an id is refused, not skipped.
@@ -439,9 +475,12 @@ func TestCommandVerifyCandidates(t *testing.T) {
 // candidate a live block needs. The real candidate passes reading one block,
 // and the same holes the verify catches fail it: a live pack named with it,
 // and the pack of a cycle root the fresh roots no longer reach. A hole fails
-// unless accepted. The automatic mutant is caught and a dead one is not. A
-// candidate the cycle never catalogued fails though its one block has another
-// copy, and so does one whose key the catalog does not list for it. A catalog
+// unless accepted. The real candidate's pass writes no receipt, since no pack
+// passed a recheck, and with no list the check refuses. The automatic mutant
+// is caught and a dead one is not, a mutant run over a live candidate fails,
+// and a missing mutant and a list of none are refused. A candidate the cycle
+// never catalogued is refused though its one block has another copy, and one
+// whose key the catalog does not list for it fails. A catalog
 // whose refs row hides the inner block passes the inner and deep packs
 // without the sample, so the full sample must catch it.
 func TestCommandCheckPacks(t *testing.T) {
@@ -466,6 +505,15 @@ func TestCommandCheckPacks(t *testing.T) {
 	}
 	if res.GetUint64("candidate_keys") != 1 || res.GetUint64("reached") != 4 || res.GetUint64("in_candidates") != 0 || res.GetUint64("bad") != 0 {
 		t.Fatalf("real candidate = %s, want 1 candidate key, 4 reached, none held or bad", res)
+	}
+
+	// No pack of the cycle passed a recheck, so the list is not its trash
+	// set: the pass writes no receipt, and with no list the check refuses.
+	if _, found, err := c.receipt(ctx, t); err != nil || found || res.Get("receipt") != nil {
+		t.Fatalf("receipt found = %v, %v, want none (%s)", found, err, res)
+	}
+	if res, err = c.run(t, check, func(a *Args) { a.Candidates = "" }); !errors.Is(err, errEmptyTrashSet) {
+		t.Fatalf("check of an empty trash set: %v (%s), want %v", err, res, errEmptyTrashSet)
 	}
 
 	// Paced through the gate, the full sample reads each reached block once
@@ -531,18 +579,39 @@ func TestCommandCheckPacks(t *testing.T) {
 		t.Fatalf("accepted hole: %v (%s)", err, res)
 	}
 
-	// The automatic mutant is caught; a mutant nothing reaches is not.
+	// The automatic mutant is caught, and its run writes no receipt.
 	res, err = c.run(t, check, func(a *Args) { a.Mutant = mutantAuto })
-	if err != nil || !res.GetBool("mutant_caught") {
+	if err != nil || !res.GetBool("mutant_caught") || res.Get("receipt") != nil {
 		t.Fatalf("automatic mutant: %v (%s)", err, res)
 	}
-	none := c.writeCandidates(t, "none.jsonl")
+
+	// Adversary: a mutant run over a live candidate fails, though the mutant
+	// is caught.
 	res, err = c.run(t, check, func(a *Args) {
-		a.Candidates = none
+		a.Candidates = c.writeCandidates(t, "deep.jsonl", c.packs[3], c.packs[2])
+		a.Mutant = mutantAuto
+	})
+	if err == nil || !res.GetBool("mutant_caught") {
+		t.Fatalf("a mutant run over a live candidate passed: %v (%s)", err, res)
+	}
+
+	// A mutant nothing reaches is not caught, though the deep pack's block is
+	// bad: only the mutant's own findings count as caught.
+	res, err = c.run(t, check, func(a *Args) {
+		a.Candidates = c.writeCandidates(t, "deep-only.jsonl", c.packs[2])
 		a.Mutant = c.packs[3]
 	})
-	if err == nil || res.GetBool("mutant_caught") {
+	if err == nil || !strings.Contains(err.Error(), "not found live") || res.GetBool("mutant_caught") {
 		t.Fatalf("a dead mutant passed: %v (%s)", err, res)
+	}
+
+	// A mutant no pack has, and a list of none, are refused.
+	if res, err = c.run(t, check, func(a *Args) { a.Mutant = "no-such-pack" }); err == nil {
+		t.Fatalf("a missing mutant was taken: %s", res)
+	}
+	none := c.writeCandidates(t, "none.jsonl")
+	if res, err = c.run(t, check, func(a *Args) { a.Candidates = none }); err == nil {
+		t.Fatalf("a list of none was taken: %s", res)
 	}
 
 	// Adversary: the catalog's refs row of the root names no children, so the
@@ -611,7 +680,7 @@ func TestCommandCheckPacks(t *testing.T) {
 	}
 
 	// Adversary: a pack written after the snapshot, holding a second copy of
-	// the deep block, fails as never catalogued though the copy is safe.
+	// the deep block, is refused as never catalogued though the copy is safe.
 	index, closeIndex, err := packcopy.OpenIndexFile(ctx, c.args.Index, &packcopy.IndexFileOptions{
 		Kind:   "sqlite",
 		Table:  defaultIndexTable,
@@ -647,7 +716,7 @@ func TestCommandCheckPacks(t *testing.T) {
 	res, err = c.run(t, check, func(a *Args) {
 		a.Candidates = c.writeCandidates(t, "late.jsonl", lateID)
 	})
-	if n, reason := badPacks(res, lateID); err == nil || n != 1 || reason != packsweep.ReasonUncatalogued {
-		t.Fatalf("an uncatalogued pack passed: %v (%s)", err, res)
+	if err == nil || !strings.Contains(err.Error(), "not in the cycle's catalog") {
+		t.Fatalf("an uncatalogued pack was taken: %v (%s)", err, res)
 	}
 }

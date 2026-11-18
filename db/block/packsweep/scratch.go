@@ -37,6 +37,8 @@ const (
 	checkVisitedPrefix  = "x/v/"
 	checkFrontierPrefix = "x/f/"
 	logPullKey          = "y/l/pull"
+	receiptKey          = "y/r/head"
+	receiptPackPrefix   = "y/r/p/"
 	cyclePrefix         = "y/"
 	packRecordPrefix    = "q/"
 	// The compaction's rows stay across cycles with the pack records: each

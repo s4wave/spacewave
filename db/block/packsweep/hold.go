@@ -1,6 +1,7 @@
 package packsweep
 
 import (
+	"bytes"
 	"context"
 	"maps"
 	"slices"
@@ -495,6 +496,131 @@ func removablePacks(ctx context.Context, store kvtx.Store, ids []string) ([]bool
 	return out, nil
 }
 
+// sweepSetBatch is the judgments SweepSet reads in one transaction before
+// checking their packs in another.
+const sweepSetBatch = 1024
+
+// sweepVerdict reports whether a pack of verdict v is one the sweep removes
+// once removable: dead, or low with its live keys placed elsewhere.
+func sweepVerdict(v Verdict) bool {
+	return v == VerdictDead || v == VerdictLow
+}
+
+// SweepSet calls fn, in id order, with each judgment of the packs the sweep
+// would remove now: every pack judged dead or low that is removable. The
+// quarantine draws from it; the trash acts on the TrashSet, the part of it
+// that passed quarantine and recheck. It reads a batch of judgments at a time, then checks their
+// packs, so it holds one batch however many packs the cycle judged.
+func SweepSet(ctx context.Context, store kvtx.Store, fn func(*Judgment) error) error {
+	for after := []byte(judgmentPrefix); after != nil; {
+		// Read the next batch of dead and low judgments.
+		batch, next, err := sweepBatch(ctx, store, after)
+		if err != nil {
+			return err
+		}
+		after = next
+
+		// Pass on the removable among them.
+		ids := make([]string, len(batch))
+		for i, j := range batch {
+			ids[i] = j.ID
+		}
+		ok, err := removablePacks(ctx, store, ids)
+		if err != nil {
+			return err
+		}
+		for i, j := range batch {
+			if !ok[i] {
+				continue
+			}
+			if err := fn(j); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// TrashSet calls fn, in id order, with the judgment of each pack the trash
+// would begin to hide or move now: every pack that passed its recheck. It is
+// the one source of that set: the candidate list and the check take it
+// whole, and the trash begins only packs drawn from it, so the set a check
+// proves is the set a hide acts on. A passed pack the backend no longer holds
+// quarantined is in the set, and the trash leaves it be.
+func TrashSet(ctx context.Context, store kvtx.Store, fn func(*Judgment) error) error {
+	// Open one read for the records and their judgments.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	// Pass on the judgment of each passed record.
+	return tx.ScanPrefix(ctx, []byte(packRecordPrefix), func(key, value []byte) error {
+		// Skip a record outside the set.
+		p, err := unmarshalPackRecord(string(key[len(packRecordPrefix):]), value)
+		if err != nil || !p.inTrashSet() {
+			return err
+		}
+
+		// Read and pass on its judgment.
+		data, found, err := tx.Get(ctx, []byte(judgmentPrefix+p.ID))
+		if err != nil {
+			return err
+		}
+		if !found {
+			return errors.Errorf("passed pack %s has no judgment in this cycle", p.ID)
+		}
+		j, err := unmarshalJudgment(p.ID, data)
+		if err != nil {
+			return err
+		}
+		return fn(j)
+	})
+}
+
+// inTrashSet reports whether the record is of a pack in the TrashSet.
+func (p *PackRecord) inTrashSet() bool {
+	return p.Stage == StagePass
+}
+
+// sweepBatch reads up to sweepSetBatch dead and low judgments from the first
+// key at or after from, and returns the key to read from next, nil at the end.
+func sweepBatch(ctx context.Context, store kvtx.Store, from []byte) ([]*Judgment, []byte, error) {
+	// Open a read positioned at from.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer tx.Discard()
+	it := tx.Iterate(ctx, []byte(judgmentPrefix), true, false)
+	defer it.Close()
+	if err := it.Seek(from); err != nil {
+		return nil, nil, err
+	}
+
+	// Take the dead and low until the batch is full.
+	var batch []*Judgment
+	for ; it.Valid(); it.Next() {
+		key := it.Key()
+		if len(batch) == sweepSetBatch {
+			return batch, bytes.Clone(key), nil
+		}
+		value, err := it.Value()
+		if err != nil {
+			return nil, nil, err
+		}
+		j, err := unmarshalJudgment(string(key[len(judgmentPrefix):]), value)
+		if err != nil {
+			return nil, nil, err
+		}
+		if sweepVerdict(j.Verdict) {
+			batch = append(batch, j)
+		}
+	}
+	return batch, nil, it.Err()
+}
+
 // QuarantineResult reports a quarantine.
 type QuarantineResult struct {
 	// Blocked is why the cycle may not move a pack, empty when it may.
@@ -517,9 +643,9 @@ type QuarantineResult struct {
 }
 
 // Quarantine pulls the log and walks W, then quarantines through the backend
-// every pack judged dead that is still removable, and every pack judged low
-// whose live keys a compaction placed in packs the backend adopted, a batch at
-// a time. Each
+// every pack of SweepSet with no record yet: each judged dead that is still
+// removable, and each judged low whose live keys a compaction placed in packs
+// the backend adopted, a batch at a time. Each
 // batch's records are written before the call and their quarantine times
 // after it, so a run killed between the two calls the backend again for the
 // same packs, which keeps each held pack's first quarantine time. Those packs
@@ -550,7 +676,7 @@ func Quarantine(ctx context.Context, opts *CoverOptions) (*QuarantineResult, err
 	}
 	var candidates []*Judgment
 	err = Judgments(ctx, opts.Store, func(j *Judgment) error {
-		if (j.Verdict == VerdictDead || j.Verdict == VerdictLow) && !recorded[j.ID] {
+		if sweepVerdict(j.Verdict) && !recorded[j.ID] {
 			candidates = append(candidates, j)
 		}
 		return nil

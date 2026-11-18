@@ -43,6 +43,8 @@ type TrashOptions struct {
 	Prefix string
 	// Moves is the packs moved at once. Zero uses DefaultMoves.
 	Moves int
+	// Receipt is what a hide asks of the receipt of the cycle's check.
+	Receipt ReceiptPolicy
 }
 
 // TrashResult reports a trash step.
@@ -96,6 +98,11 @@ func (r *TrashResult) JSON(a *fastjson.Arena) *fastjson.Value {
 // and walks W, as the recheck does, and checks each pack again: a quarantined
 // pack holding a key in L or W is lifted, and a trashing one is marked live
 // and left for restore.
+//
+// Invariant: no pack begins a hide unless a check of the cycle's judgment
+// proved it removable, as the cycle's Receipt records, under opts.Receipt's
+// bounds. A run that would begin to hide a pack the receipt lacks sets
+// nothing aside and returns ErrNoReceipt.
 func Trash(ctx context.Context, opts *TrashOptions) (*TrashResult, error) {
 	// Refuse a hide with no store to hide in.
 	if opts.Method == TrashHide && opts.Hider == nil {
@@ -112,7 +119,7 @@ func Trash(ctx context.Context, opts *TrashOptions) (*TrashResult, error) {
 	}
 	var todo []*PackRecord
 	for _, p := range records {
-		if p.Stage == StagePass || p.Stage == StageTrash {
+		if p.inTrashSet() || p.Stage == StageTrash {
 			todo = append(todo, p)
 		}
 	}
@@ -159,7 +166,11 @@ func Trash(ctx context.Context, opts *TrashOptions) (*TrashResult, error) {
 		return res, err
 	}
 
-	// Begin trashing a batch at a time, then move every trashing pack.
+	// Refuse a hide no check proved, then begin trashing a batch at a time
+	// and move every trashing pack.
+	if err := checkHides(ctx, opts, begin); err != nil {
+		return nil, err
+	}
 	for batch := range slices.Chunk(begin, MaxBackendPacks) {
 		if err := beginTrashBatch(ctx, opts, batch); err != nil {
 			return nil, err
@@ -172,6 +183,21 @@ func Trash(ctx context.Context, opts *TrashOptions) (*TrashResult, error) {
 		}
 	}
 	return res, nil
+}
+
+// checkHides refuses unless the cycle's receipt covers every pack the run
+// would begin to hide. A pack whose hide began already was proved when it
+// began, by the receipt of the cycle that began it, and its move goes on
+// whatever cycle runs now, so a gap cannot strand it half hidden.
+func checkHides(ctx context.Context, opts *TrashOptions, begin []*PackRecord) error {
+	if opts.Method != TrashHide || len(begin) == 0 {
+		return nil
+	}
+	ids := make([]string, len(begin))
+	for i, p := range begin {
+		ids[i] = p.ID
+	}
+	return checkReceipt(ctx, opts.Store, opts.Receipt, ids)
 }
 
 // recheckTrash checks the packs to begin and to move against the log pulled

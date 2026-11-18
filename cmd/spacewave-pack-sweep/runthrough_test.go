@@ -29,7 +29,7 @@ import (
 )
 
 // runSteps are the steps of a cycle after new-cycle, in order.
-var runSteps = []string{"snapshot", "walk", "judge", "compact", "quarantine", "recheck", "trash", "remove", "restore"}
+var runSteps = []string{"snapshot", "walk", "judge", "compact", "quarantine", "recheck", "check", "trash", "remove", "restore"}
 
 // TestCommandRunThrough runs whole cycles, compaction included, while a writer
 // keeps putting blocks and moving its root, with the pack index in a file of
@@ -204,6 +204,7 @@ func newRunThrough(t *testing.T, kind string, rehearsal bool) (*runThrough, *fau
 		Holes:        filepath.Join(dir, "holes.txt"),
 		MaxPackBytes: 1 << 20,
 		AdminURL:     r.backend.url,
+		Sample:       1,
 		dial: func() (block_store_s3.ObjectStore, string, func(), error) {
 			return faults, s3test.BucketName, func() {}, nil
 		},
@@ -458,11 +459,15 @@ func (r *runThrough) run(step string) (*fastjson.Value, error) {
 	actions := map[string]func(*cli.Context) error{
 		"new-cycle": r.args.runNewCycle, "snapshot": r.args.runSnapshot, "walk": r.args.runWalk,
 		"judge": r.args.runJudge, "compact": r.args.runCompact, "quarantine": r.args.runQuarantine,
-		"recheck": r.args.runRecheck, "trash": r.args.runTrash, "remove": r.args.runRemove,
-		"restore": r.args.runRestore,
+		"recheck": r.args.runRecheck, "check": r.runCheck, "trash": r.args.runTrash,
+		"remove": r.args.runRemove, "restore": r.args.runRestore,
 	}
 	r.out.Reset()
 	if err := actions[step](nil); err != nil {
+		// A check with nothing to prove has nothing for the trash to hide.
+		if step == "check" && errors.Is(err, errEmptyTrashSet) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -475,6 +480,19 @@ func (r *runThrough) run(step string) (*fastjson.Value, error) {
 		return nil, nil
 	}
 	return fastjson.ParseBytes(out)
+}
+
+// runCheck runs the check with the writer's root now as its fresh root,
+// since the test backend's admin service lists no roots.
+func (r *runThrough) runCheck(c *cli.Context) error {
+	r.mtx.Lock()
+	args := *r.args
+	args.AdminURL, args.Roots = "", *cli.NewStringSlice(r.root.MarshalString())
+	r.mtx.Unlock()
+	if err := args.runCheck(c); err != nil {
+		return errors.Wrap(err, r.out.String())
+	}
+	return nil
 }
 
 // cycleResult counts what a cycle did.
@@ -503,7 +521,12 @@ func (r *runThrough) cycle(restartAt int, faults *faultObjects) cycleResult {
 		if r.before != nil {
 			r.before(i)
 		}
-		faults.failAt(restartAt + 1)
+		// The check reads every candidate's index, and a failed read is a
+		// finding that fails it rather than an error to retry, so it runs
+		// without a fault.
+		if step != "check" {
+			faults.failAt(restartAt + 1)
+		}
 		out, err := r.run(step)
 		faults.failAt(0)
 		if err != nil {

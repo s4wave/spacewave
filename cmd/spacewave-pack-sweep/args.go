@@ -129,6 +129,9 @@ type Args struct {
 	Sample float64
 	// SampleSeed chooses the blocks the check's sample takes.
 	SampleSeed uint64
+	// CycleRootsOnly lets a check walk the cycle's roots with no fresh one,
+	// which its receipt records and a hide refuses.
+	CycleRootsOnly bool
 	// Mutant is a pack a check adds to the candidates and must then find
 	// live, or mutantAuto to pick one from the judgments.
 	Mutant string

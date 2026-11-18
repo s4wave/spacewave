@@ -143,7 +143,7 @@ func main() {
 		},
 		{
 			Name:   "check-packs",
-			Usage:  "prove that removing the candidate packs loses no block the roots reach, from the packs' indexes and the cycle's catalog, reading only the blocks a candidate holds",
+			Usage:  "prove that removing the candidate packs, by default the packs that passed their recheck, loses no block the roots reach, from the packs' indexes and the cycle's catalog, reading only the blocks a candidate holds; a pass over the passed packs writes the receipt a hide needs, so run it after recheck and before trash",
 			Flags:  args.checkFlags(),
 			Action: args.runCheck,
 		},

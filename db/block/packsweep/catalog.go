@@ -394,3 +394,13 @@ func writeCatalogPack(ctx context.Context, tx kvtx.TxOps, rp *readPack) error {
 	}
 	return tx.Set(ctx, []byte(catalogPackPrefix+rp.id), rp.row.marshal())
 }
+
+// Catalogued reports whether the cycle's catalog holds pack id.
+func Catalogued(ctx context.Context, store kvtx.Store, id string) (bool, error) {
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Discard()
+	return tx.Exists(ctx, []byte(catalogPackPrefix+id))
+}

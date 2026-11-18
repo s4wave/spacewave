@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"math"
 	"slices"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -37,14 +38,19 @@ var checkSet = walkSet{
 
 // CheckOptions configures Check.
 type CheckOptions struct {
-	// Cycle is the judged cycle's scratch store, only read: its catalog
-	// gives each pack's key count and members and each key's refs.
+	// Cycle is the judged cycle's scratch store: its catalog gives each
+	// pack's key count and members and each key's refs, and a pass writes
+	// the cycle's receipt into it.
 	Cycle kvtx.Store
 	// Store is an empty scratch store of the check's own, holding the
 	// candidates' keys, the blocks reached and the frontier.
 	Store kvtx.Store
-	// Candidates are the packs a sweep would remove.
+	// Candidates are the packs a sweep would remove, Mutant among them when
+	// set.
 	Candidates []string
+	// Mutant is a pack the caller added to the candidates to test the check,
+	// one some root reaches, or empty. A run with a mutant writes no receipt.
+	Mutant string
 	// PackKeys calls fn with each key of a candidate's own index, read from
 	// the bucket rather than the catalog.
 	PackKeys func(ctx context.Context, id string, fn func(key []byte) error) error
@@ -55,6 +61,10 @@ type CheckOptions struct {
 	Refs RefSource
 	// Roots are the roots walked.
 	Roots []block.NamedRoot
+	// CycleRootsOnly is set when Roots are the cycle's own, with no root
+	// read fresh when the check began; the receipt records it, and a hide
+	// refuses such a receipt.
+	CycleRootsOnly bool
 	// Accepted are missing blocks, as b58 refs, accepted as lost: the walk
 	// counts them and goes on.
 	Accepted map[string]bool
@@ -73,6 +83,8 @@ type CheckOptions struct {
 	MaxBad int
 	// Progress observes the check after each batch, nil for none.
 	Progress func(*CheckResult)
+	// Now reads the clock the receipt's time comes from; nil uses time.Now.
+	Now func() time.Time
 }
 
 // Check proves that removing the candidate packs loses no block the roots
@@ -96,12 +108,17 @@ type CheckOptions struct {
 // index cannot be read, a hole not accepted, and a block whose refs are
 // unknown each count bad. An error is a failed scratch store or a stop; a bad
 // block or pack is a result.
+//
+// A pass with no mutant, over candidates that are the cycle's TrashSet when
+// the check began, writes the cycle's Receipt for them, which a hide needs:
+// see Trash. It fails when the cycle's judgment changed while the check ran.
 func Check(ctx context.Context, opts *CheckOptions) (*CheckResult, error) {
 	// Apply the defaults.
 	c := &checker{opts: opts, res: &CheckResult{
 		Candidates: len(opts.Candidates),
 		BadReasons: make(map[string]uint64),
 		BadPacks:   make(map[string]uint64),
+		LivePacks:  make(map[string]uint64),
 	}}
 	c.batch, c.reads, c.maxBad = opts.Batch, opts.Reads, opts.MaxBad
 	if c.batch <= 0 {
@@ -114,7 +131,16 @@ func Check(ctx context.Context, opts *CheckOptions) (*CheckResult, error) {
 		c.maxBad = DefaultVerifyMaxBad
 	}
 
-	// Record every candidate's keys, then seed the roots.
+	// Read the judgment the check proves, then record every candidate's
+	// keys and seed the roots.
+	head, err := ReadHead(ctx, opts.Cycle)
+	if err != nil {
+		return nil, err
+	}
+	proves, err := c.provesTrashSet(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if err := c.loadKeys(ctx); err != nil {
 		return nil, err
 	}
@@ -125,13 +151,70 @@ func Check(ctx context.Context, opts *CheckOptions) (*CheckResult, error) {
 	// Walk a batch at a time until the frontier is empty.
 	for {
 		done, err := c.walkBatch(ctx)
-		if err != nil || done {
+		if err != nil {
 			return c.res, err
+		}
+		if done {
+			break
 		}
 		if opts.Progress != nil {
 			opts.Progress(c.res)
 		}
 	}
+
+	// Give the cycle its receipt when the check passed over the trash set.
+	if c.res.Bad != 0 || !proves {
+		return c.res, nil
+	}
+	return c.res, c.writeReceipt(ctx, head)
+}
+
+// provesTrashSet reports whether a pass would prove the cycle's TrashSet: no
+// mutant, and the candidates are that set exactly.
+func (c *checker) provesTrashSet(ctx context.Context) (bool, error) {
+	// A mutant run proves the check, not the set.
+	if c.opts.Mutant != "" {
+		return false, nil
+	}
+
+	// Compare the candidates with the set, which TrashSet gives in id order.
+	d := newLineDigest()
+	err := TrashSet(ctx, c.opts.Cycle, func(j *Judgment) error {
+		d.add(j.ID)
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	n, digest := d.sum()
+	m, want := digestLines(c.opts.Candidates)
+	return n == m && digest == want, nil
+}
+
+// writeReceipt writes the receipt of the check's pass over the judgment of
+// head.
+func (c *checker) writeReceipt(ctx context.Context, head *Head) error {
+	// Take the time, the digests and the sample.
+	now := time.Now
+	if c.opts.Now != nil {
+		now = c.opts.Now
+	}
+	rec := &Receipt{
+		Cycle:          head.Cycle,
+		JudgedAt:       head.JudgedAt,
+		CheckedAt:      now(),
+		Sample:         c.opts.Sample,
+		CycleRootsOnly: c.opts.CycleRootsOnly,
+	}
+	rec.Packs, rec.PacksDigest = digestLines(c.opts.Candidates)
+	rec.Roots, rec.RootsDigest = digestLines(rootRefs(c.opts.Roots))
+
+	// Write it with a row for each pack proved.
+	if err := writeReceipt(ctx, c.opts.Cycle, rec, c.opts.Candidates); err != nil {
+		return err
+	}
+	c.res.Receipt = rec
+	return nil
 }
 
 // checker is one check.
@@ -614,6 +697,7 @@ func (c *checker) bad(k *checkKey, reason string) {
 	if reason == ReasonCandidate {
 		for _, id := range k.holders {
 			c.res.BadPacks[id]++
+			c.res.LivePacks[id]++
 		}
 	}
 	if len(c.res.BadBlocks) < c.maxBad {
