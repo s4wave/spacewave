@@ -122,7 +122,13 @@ func TestPluginCompilerJs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	buildWorkingPath := filepath.Join(testDir, ".test")
+	// The working path sits under the package so module resolution finds the
+	// repository's node_modules; a unique name keeps concurrent runs apart.
+	buildWorkingPath, err := os.MkdirTemp(testDir, ".test-")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(buildWorkingPath) })
 	distSrcPath := filepath.Join(testDir, "../../../..")
 	staleEntryPath := filepath.Join(buildWorkingPath, "dist", "plugin-stale.mjs")
 	if err := os.MkdirAll(filepath.Dir(staleEntryPath), 0o755); err != nil {

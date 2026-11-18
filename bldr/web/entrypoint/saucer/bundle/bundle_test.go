@@ -122,9 +122,10 @@ func TestBuildSaucerJSBundle(t *testing.T) {
 		t.Skipf("skipping: entrypoint not found at %s", entrypointPath)
 	}
 
-	// Create a temporary build directory
-	buildDir := filepath.Join(testDir, ".test-build")
-	if err := os.MkdirAll(buildDir, 0o755); err != nil {
+	// The build directory sits under the package so module resolution finds
+	// the repository's node_modules; a unique name keeps concurrent runs apart.
+	buildDir, err := os.MkdirTemp(testDir, ".test-build-")
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(buildDir)
