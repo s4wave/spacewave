@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -217,10 +218,24 @@ func setupPlacedStore(ctx context.Context, t *testing.T) *placedStoreTest {
 }
 
 // prepareColdMove writes a separate pack set and attaches a real cold reader.
-func (p *placedStoreTest) prepareColdMove(ctx context.Context, t *testing.T, bs *BlockStore) {
+func (p *placedStoreTest) prepareColdMove(ctx context.Context, t *testing.T, bs *BlockStore, gate *coldMoveGate) (*block_store_s3.ColdPackStore, []*block.BlockRef) {
 	// Pack the root and child with the same refs the local store recorded.
 	t.Helper()
 	refs := []*block.BlockRef{p.rootRef, p.childRef}
+	dataByRef := map[*block.BlockRef][]byte{p.rootRef: p.blocks[p.rootRef], p.childRef: p.blocks[p.childRef]}
+	if gate != nil {
+		for i := range cap(gate.started) {
+			data := []byte("foreground block " + strconv.Itoa(i))
+			ref, err := block.BuildBlockRef(data, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			refs = append(refs, ref)
+			dataByRef[ref] = data
+		}
+	}
+
+	// Write disjoint extents so foreground readers cannot share a flight.
 	var buf bytes.Buffer
 	i := 0
 	res, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
@@ -230,9 +245,9 @@ func (p *placedStoreTest) prepareColdMove(ctx context.Context, t *testing.T, bs 
 		}
 		ref := refs[i]
 		i++
-		stored := &block.StoredBlock{Data: p.blocks[ref], RefsKnown: true}
+		stored := &block.StoredBlock{Data: dataByRef[ref], RefsKnown: true}
 		if ref == p.rootRef {
-			stored.Refs = refs[1:]
+			stored.Refs = refs[1:2]
 		}
 		return ref.GetHash(), stored, nil
 	})
@@ -261,7 +276,10 @@ func (p *placedStoreTest) prepareColdMove(ctx context.Context, t *testing.T, bs 
 	}
 
 	// Build the manifest offline, without any bucket access.
-	keys := [][]byte{packfile.BlockKey(p.rootRef.GetHash()), packfile.BlockKey(p.childRef.GetHash())}
+	keys := make([][]byte, 0, len(refs))
+	for _, ref := range refs {
+		keys = append(keys, packfile.BlockKey(ref.GetHash()))
+	}
 	slices.SortFunc(keys, bytes.Compare)
 	exported := iter.Seq2[[]byte, error](func(yield func([]byte, error) bool) {
 		for _, key := range keys {
@@ -289,7 +307,12 @@ func (p *placedStoreTest) prepareColdMove(ctx context.Context, t *testing.T, bs 
 	if opened == nil || opened.s3 == nil {
 		t.Fatal("hot placement has no bucket client")
 	}
-	cold, err := block_store_s3.NewColdPackStore(ctx, nil, opened.s3, "spaces", block_store_s3.ColdPackOptions{Prefix: "cold/", ManifestFile: file})
+	reader := block_store_s3.ColdPackRangeReader(opened.s3)
+	if gate != nil {
+		gate.ColdPackRangeReader = reader
+		reader = gate
+	}
+	cold, err := block_store_s3.NewColdPackStore(ctx, nil, reader, "spaces", block_store_s3.ColdPackOptions{Prefix: "cold/", ManifestFile: file})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -319,6 +342,7 @@ func (p *placedStoreTest) prepareColdMove(ctx context.Context, t *testing.T, bs 
 	if err != nil || !ok || !bytes.Equal(data, p.blocks[p.childRef]) {
 		t.Fatalf("cold-only child before move = %q/%t/%v", data, ok, err)
 	}
+	return cold, refs[2:]
 }
 
 // loseLocalBlocks removes the local copies of the blocks.
@@ -405,7 +429,7 @@ func TestMoveSpaceStorageRoundTrip(t *testing.T) {
 			placed := p.loseLocalBlocks(ctx, t)
 			if name == "cold-only" {
 				// A disabled or unreachable cold tier must not let the move switch.
-				p.prepareColdMove(ctx, t, placed)
+				p.prepareColdMove(ctx, t, placed, nil)
 				p.phases = nil
 				block_store_s3.SetColdPackReads(false)
 				err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record)
@@ -431,6 +455,117 @@ func TestMoveSpaceStorageRoundTrip(t *testing.T) {
 			p.checkLocalGraph(ctx, t, bs)
 		})
 	}
+}
+
+// coldMoveGate holds each of eight foreground GETs after it gained admission.
+type coldMoveGate struct {
+	// ColdPackRangeReader reads the actual range from the fake bucket.
+	block_store_s3.ColdPackRangeReader
+	// armed is set only after the fixture has warmed the tail.
+	armed atomic.Bool
+	// ordinal is the number of armed requests that reached the range reader.
+	ordinal atomic.Int32
+	// finished counts foreground calls that left the gate.
+	finished atomic.Int32
+	// started counts requests that hold a demand slot.
+	started chan struct{}
+	// release lets exactly one admitted read complete per send.
+	release chan struct{}
+}
+
+// GetColdPackRange keeps the first eight armed calls in the demand lane.
+func (g *coldMoveGate) GetColdPackRange(ctx context.Context, bucket, key string, off int64, length int, size uint64) ([]byte, []byte, error) {
+	// The fake read never outlives the store's read deadline.
+	if g.armed.Load() && int(g.ordinal.Add(1)) <= cap(g.started) {
+		g.started <- struct{}{}
+		defer g.finished.Add(1)
+		select {
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		case <-g.release:
+		}
+	}
+	return g.ColdPackRangeReader.GetColdPackRange(ctx, bucket, key, off, length, size)
+}
+
+// TestMoveSpaceStorageWaitsForColdSlot fills all demand slots with live reads
+// and releases only one. The move must copy both cold-only blocks through it.
+func TestMoveSpaceStorageWaitsForColdSlot(t *testing.T) {
+	// Keep unrelated foreground extents busy on the same loaded pack.
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancel()
+	p := setupPlacedStore(ctx, t)
+	placed := p.loseLocalBlocks(ctx, t)
+	gate := &coldMoveGate{started: make(chan struct{}, 8), release: make(chan struct{})}
+	cold, refs := p.prepareColdMove(ctx, t, placed, gate)
+	gate.armed.Store(true)
+	defer close(gate.release)
+	for _, ref := range refs {
+		go func() { _, _ = cold.GetStoredBlock(ctx, ref) }()
+	}
+	for range refs {
+		select {
+		case <-gate.started:
+		case <-ctx.Done():
+			t.Fatal("foreground reads did not occupy all eight slots")
+		}
+	}
+
+	// A canceled wait must report an unresolved block and claim no permit.
+	short, stop := context.WithTimeout(ctx, 25*time.Millisecond)
+	stored, err := cold.GetStoredBlockForMove(short, p.rootRef)
+	stop()
+	if stored != nil || !errors.Is(err, block.ErrUnavailable) || gate.finished.Load() != 0 {
+		t.Fatalf("canceled cold read = %v, %v, %d released ranges", stored, err, gate.finished.Load())
+	}
+
+	// While the lane is full the move reaches fetch, but cannot finish it.
+	fetching, done := make(chan struct{}, 1), make(chan error, 1)
+	go func() {
+		done <- p.acc.MoveSpaceStorage(ctx, p.soID, "", func(progress MoveProgress) error {
+			if progress.Phase == MovePhaseFetch && progress.Fetched == 0 {
+				fetching <- struct{}{}
+			}
+			return nil
+		})
+	}()
+	select {
+	case <-fetching:
+	case err := <-done:
+		t.Fatalf("move did not reach its fetch phase: %v", err)
+	case <-ctx.Done():
+		t.Fatal("move did not reach its fetch phase")
+	}
+	select {
+	case err := <-done:
+		t.Fatalf("move finished with all eight slots held: %v", err)
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	// The other seven reads stay held through the destination check.
+	select {
+	case gate.release <- struct{}{}:
+	case <-ctx.Done():
+		t.Fatal("the fake bucket lost its held ranges")
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-ctx.Done():
+		t.Fatal("move did not finish after a slot was released")
+	}
+	if finished := gate.finished.Load(); finished != 1 {
+		t.Fatalf("move finished after %d foreground slots freed, want 1", finished)
+	}
+
+	// Confirm the move wrote the two blocks and their edge into the destination.
+	bs, err := p.tkr.bstoreCtr.WaitValue(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.checkLocalGraph(ctx, t, bs)
 }
 
 // TestPlacedStoreGraphCopyAfterCacheLoss loses the local blocks of a placed

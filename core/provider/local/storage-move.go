@@ -256,6 +256,7 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 				}
 				if stored != nil {
 					if !stored.RefsKnown {
+						// A verified body is not a proof that the block is a leaf.
 						return errors.Wrapf(block.ErrRefsUnknown, "fetch block %s", ref.MarshalString())
 					}
 					entries[i] = &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}

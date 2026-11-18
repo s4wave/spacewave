@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"math"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -14,27 +15,114 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/net/hash"
 	"golang.org/x/sync/singleflight"
 )
 
-// coldTail is an authenticated, immutable kvfile index reader.
+// coldKeySize is the encoded SHA-256 hash without extension fields.
+const coldKeySize = 4 + sha256.Size
+
+// coldKeyPrefix is the generated writer encoding before the SHA-256 bytes.
+var coldKeyPrefix = [coldKeySize - sha256.Size]byte(packfile.BlockKey(&hash.Hash{
+	HashType: hash.RecommendedHashType, Hash: make([]byte, sha256.Size),
+}))
+
+// coldTailEntryBytes is the size of a retained digest and two uint64s.
+const coldTailEntryBytes = sha256.Size + 8 + 8
+
+// coldTailEntry pairs an entire SHA-256 digest with its verified index extent.
+type coldTailEntry struct {
+	// digest excludes only the identical prefix of each canonical SHA-256 key.
+	digest [sha256.Size]byte
+	// off is the byte offset of the encoded block value in the pack.
+	off uint64
+	// size is the length of the encoded value.
+	size uint64
+}
+
+// coldTail is an authenticated, immutable index. It keeps the decoded index
+// or the raw reader, never both. Only complete keys can authorize presence.
 type coldTail struct {
-	// reader searches the raw tail in place; it owns the only copy of those bytes.
+	// entries contains exact canonical digests in sorted order.
+	entries []coldTailEntry
+	// reader is used when a pack is too large or has an extended key encoding.
 	reader *kvfile.Reader
-	// bytes counts raw tail bytes for cache accounting.
-	bytes int
-	// base is the boundary between payload extents and tail metadata.
+	// base is the payload boundary for the raw reader.
 	base uint64
 }
 
-// locate requires an exact, in-bounds key and extent.
+// coldTailCharge bounds both the compact index and the raw fallback.
+func coldTailCharge(meta *packfile.ColdPackEntry) uint64 {
+	// A hostile declared count must never wrap and admit a huge allocation.
+	count := meta.Entry.BlockCount
+	if count > math.MaxUint64/coldTailEntryBytes {
+		return math.MaxUint64
+	}
+	return max(meta.IndexTailBytes, count*coldTailEntryBytes)
+}
+
+// decodeColdTail builds a compact index using kvfile's decoder. It returns nil
+// without error for an extended key so those packs keep their exact wire keys.
+func decodeColdTail(ctx context.Context, r *kvfile.Reader, base uint64) ([]coldTailEntry, error) {
+	// This runs only for a charge-bounded tail. No parsed entry retains raw bytes.
+	entries := make([]coldTailEntry, r.Size())
+	for i := range entries {
+		// A corrupt extent or canceled fill must not publish a partial index.
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		e, err := r.ReadIndexEntry(uint64(i)) //nolint:gosec // i is a nonnegative slice index.
+		if err != nil {
+			return nil, err
+		}
+		if !coldTailExtentOK(e, base) {
+			return nil, errors.New("cold pack index points outside the payloads")
+		}
+
+		// Canonical keys share one prefix, so their digest order is wire-key order.
+		if len(e.Key) != coldKeySize || !bytes.Equal(e.Key[:len(coldKeyPrefix)], coldKeyPrefix[:]) {
+			return nil, nil
+		}
+		digest := [sha256.Size]byte(e.Key[len(coldKeyPrefix):])
+		if i != 0 && bytes.Compare(entries[i-1].digest[:], digest[:]) >= 0 {
+			return nil, errors.New("cold pack index keys are not strictly ordered")
+		}
+		entries[i] = coldTailEntry{digest: digest, off: e.Offset, size: e.Size}
+	}
+	return entries, nil
+}
+
+// coldTailExtentOK requires a nonempty extent inside the pack body.
+func coldTailExtentOK(e *kvfile.IndexEntry, base uint64) bool {
+	return e.Size != 0 && e.Size <= math.MaxInt && e.Offset < base && e.Size <= base-e.Offset
+}
+
+// locate searches the resident immutable index without allocating. Oversized
+// and extended-key tails fall back to the original exact kvfile search.
 func (t *coldTail) locate(key []byte) (off, length uint64, hit bool, err error) {
-	// Use the same kvfile index search as packfile readers, over resident bytes.
+	// Never equate an extended wire key with a canonical full digest.
+	if t.entries != nil {
+		if len(key) != coldKeySize || !bytes.Equal(key[:len(coldKeyPrefix)], coldKeyPrefix[:]) {
+			return 0, 0, false, nil
+		}
+		// Pass the digest by value so the comparator cannot retain caller scratch.
+		digest := [sha256.Size]byte(key[len(coldKeyPrefix):])
+		i, ok := slices.BinarySearchFunc(t.entries, digest, func(e coldTailEntry, key [sha256.Size]byte) int {
+			return bytes.Compare(e.digest[:], key[:])
+		})
+		if !ok {
+			return 0, 0, false, nil
+		}
+		e := t.entries[i]
+		return e.off, e.size, true, nil
+	}
+
+	// The raw reader still verifies the selected extent before returning it.
 	e, _, err := t.reader.SearchIndexEntryWithKey(key)
 	if err != nil || e == nil {
 		return 0, 0, false, err
 	}
-	if e.Size == 0 || e.Size > math.MaxInt || e.Offset >= t.base || e.Size > t.base-e.Offset {
+	if !coldTailExtentOK(e, t.base) {
 		return 0, 0, false, errors.New("cold pack index points outside the payloads")
 	}
 	return e.Offset, e.Size, true, nil
@@ -46,7 +134,7 @@ func (t *coldTail) locate(key []byte) (off, length uint64, hit bool, err error) 
 type coldTailCache struct {
 	// store supplies the cold bucket and counters.
 	store *ColdPackStore
-	// limit caps retained raw tail bytes.
+	// limit caps the bytes of retained indexes.
 	limit int
 	// mtx guards the pending fill set; it never guards I/O or parsing.
 	mtx sync.Mutex
@@ -113,7 +201,7 @@ func (c *coldTailCache) fill(ctx context.Context, catalog *coldPackCatalog, warm
 		case <-tick:
 			start := time.Now()
 			if !coldPackReadsOff.Load() && len(c.fillCh) == 0 && len(c.store.ranges) == 0 {
-				if !c.resident.room(catalog.packs[warm[0]].meta.IndexTailBytes) {
+				if !c.resident.room(coldTailCharge(catalog.packs[warm[0]].meta)) {
 					tick = nil // Startup warming never evicts a resident tail.
 					continue
 				}
@@ -133,23 +221,31 @@ func (c *coldTailCache) fill(ctx context.Context, catalog *coldPackCatalog, warm
 func (c *coldTailCache) backgroundFetch(ctx context.Context, catalog *coldPackCatalog, num uint16, spareOnly bool) {
 	// Never fetch a gone, already cached, disabled, or oversized pack tail.
 	pack := &catalog.packs[num]
-	if coldPackReadsOff.Load() || pack.unusable() || c.get(num) != nil || !c.cacheable(pack.meta.IndexTailBytes) {
+	if coldPackReadsOff.Load() || pack.unusable() || c.get(num) != nil || !c.cacheable(coldTailCharge(pack.meta)) {
 		return
 	}
 	ctx, cancel := context.WithTimeout(ctx, coldReadLimit)
 	defer cancel()
-	if _, err := c.fetch(ctx, pack, num, true, spareOnly); err != nil {
+	if _, err := c.fetch(ctx, pack, num, coldBackgroundRange, spareOnly); err != nil {
 		c.store.warn(ctx, err, "fill cold pack index tail")
 	}
 }
 
-// cacheable reports whether a raw tail can ever fit the LRU.
+// cacheable reports whether an index can ever fit the LRU.
 func (c *coldTailCache) cacheable(size uint64) bool {
 	return size <= uint64(c.limit) //nolint:gosec // The constructor requires a positive limit.
 }
 
 // read loads a tail on a foreground miss, never joining background work.
-func (c *coldTailCache) read(ctx context.Context, catalog *coldPackCatalog, pack uint16) (*coldTail, error) {
+func (c *coldTailCache) read(ctx context.Context, catalog *coldPackCatalog, pack uint16, moving bool) (*coldTail, error) {
+	// Moves may queue for I/O; never let a user flight join that wait.
+	if moving {
+		if tail := c.get(pack); tail != nil {
+			return tail, nil
+		}
+		return c.fetch(ctx, &catalog.packs[pack], pack, coldMoveRange, false)
+	}
+
 	// Coalesce foreground requests for this immutable pack's tail.
 	ch := c.demand.DoChan(strconv.Itoa(int(pack)), func() (any, error) {
 		// Recheck the cache after a preceding demand or background load.
@@ -160,7 +256,7 @@ func (c *coldTailCache) read(ctx context.Context, catalog *coldPackCatalog, pack
 		// The first waiter does not own the lifetime of the shared request.
 		flight, cancel := context.WithTimeout(context.WithoutCancel(ctx), coldReadLimit)
 		defer cancel()
-		return c.fetch(flight, &catalog.packs[pack], pack, false, false)
+		return c.fetch(flight, &catalog.packs[pack], pack, coldUserRange, false)
 	})
 	select {
 	case <-ctx.Done():
@@ -174,7 +270,7 @@ func (c *coldTailCache) read(ctx context.Context, catalog *coldPackCatalog, pack
 }
 
 // fetch uses packfile's suffix reader, with a cold-specific first-read cap.
-func (c *coldTailCache) fetch(ctx context.Context, pack *coldPack, num uint16, background, spareOnly bool) (*coldTail, error) {
+func (c *coldTailCache) fetch(ctx context.Context, pack *coldPack, num uint16, lane coldRangeLane, spareOnly bool) (*coldTail, error) {
 	// Size the first read without overflow; forbid a corrupt trailer from
 	// requesting bytes outside the verified tail or the fixed first read.
 	meta := pack.meta
@@ -190,7 +286,7 @@ func (c *coldTailCache) fetch(ctx context.Context, pack *coldPack, num uint16, b
 		if off < 0 || uint64(off) < base {
 			return nil, errors.New("cold index tail exceeds manifest bounds")
 		}
-		return c.store.readRange(ctx, pack, off, length, background, true)
+		return c.store.readRange(ctx, pack, off, length, lane, true)
 	})
 	if err != nil {
 		return nil, err
@@ -201,16 +297,47 @@ func (c *coldTailCache) fetch(ctx context.Context, pack *coldPack, num uint16, b
 	if uint64(len(raw)) != meta.IndexTailBytes || !bytes.Equal(digest[:], meta.IndexSha256) {
 		return nil, errors.New("cold index tail does not match manifest")
 	}
-	reader, err := kvfile.BuildReaderWithIndexTail(bytes.Clone(raw), size)
+
+	// Check the reader agrees with the manifest on the number of extents.
+	reader, err := kvfile.BuildReaderWithIndexTail(raw, size)
 	if err != nil {
 		return nil, err
 	}
 	if reader.Size() != count {
 		return nil, errors.New("cold index tail count does not match manifest")
 	}
-	tail := &coldTail{reader: reader, bytes: len(raw), base: size - uint64(len(raw))}
 
-	// Keep a tail only when it fits the LRU; a foreground caller may still use it.
-	c.resident.put(num, tail, tail.bytes, spareOnly)
+	// Do not expand an index too large to retain. The requested body can
+	// still use its authenticated raw tail without admitting it to the cache.
+	base = size - uint64(len(raw))
+	tail := &coldTail{reader: reader, base: base}
+	charge := coldTailCharge(meta)
+	if !c.cacheable(charge) {
+		return tail, nil
+	}
+
+	// Decode the authenticated bytes once, outside the cache lock. Retained
+	// indexes carry every exact key and its checked extent, not the raw tail.
+	entries, err := decodeColdTail(ctx, reader, base)
+	if err != nil {
+		return nil, err
+	}
+	if entries != nil {
+		tail = &coldTail{entries: entries}
+		charge = count * coldTailEntryBytes
+	} else {
+		// Copy just this tail; the ranged response backing it can be larger.
+		tail.reader, err = kvfile.BuildReaderWithIndexTail(bytes.Clone(raw), size)
+		if err != nil {
+			return nil, err
+		}
+		charge = uint64(len(raw))
+	}
+
+	// A canceled load must not publish even a completely decoded index.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	c.resident.put(num, tail, int(charge), spareOnly) //nolint:gosec // The charge did not grow after the cacheability check.
 	return tail, nil
 }

@@ -68,7 +68,7 @@ type ColdPackStore struct {
 	tails *coldTailCache
 	// negative remembers full digests after all matching tails miss.
 	negative *coldCache[[sha256.Size]byte, struct{}]
-	// ranges admits at most eight foreground range reads without queueing.
+	// ranges bounds user and move reads together. Only moves may queue.
 	ranges chan struct{}
 	// reads deduplicates simultaneous reads of an exact block extent.
 	reads singleflight.Group
@@ -302,8 +302,9 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 	}
 	digest := [sha256.Size]byte(h.GetHash())
 
-	// Bound lookup latency, including overlapping intervals and the exact read.
-	if mode != coldExists {
+	// Bound user lookups end to end. A move can wait for a slot until its own
+	// context ends; its per-range I/O deadline starts only after admission.
+	if mode != coldExists && mode != coldMoveBlock {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, coldReadLimit)
 		defer cancel()
@@ -327,8 +328,19 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 		}
 	}
 
+	// Keep the canonical wire key in caller scratch; retain any extension
+	// fields rather than silently changing which key the bloom and index see.
+	var scratch [coldKeySize]byte
+	n := h.SizeVT()
+	var key []byte
+	if n > len(scratch) {
+		key = make([]byte, n)
+	} else {
+		key = scratch[:n]
+	}
+	_, _ = h.MarshalToSizedBufferVT(key)
+
 	// Test only blooms that cover this full key.
-	key := packfile.BlockKey(h)
 	bkey := bloom.NewKey(key)
 	var tested, uncached bool
 
@@ -357,7 +369,7 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 		// On a put's existence path, load nothing and wait behind no fill.
 		tail := s.tails.get(pack)
 		if tail == nil && mode == coldExists {
-			if s.tails.cacheable(catalog.packs[pack].meta.IndexTailBytes) {
+			if s.tails.cacheable(coldTailCharge(candidate.meta)) {
 				s.tails.queue(pack)
 			}
 			uncached, unresolved = true, true
@@ -365,7 +377,7 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 		}
 		if tail == nil {
 			var err error
-			tail, err = s.tails.read(ctx, catalog, pack)
+			tail, err = s.tails.read(ctx, catalog, pack, mode == coldMoveBlock)
 			if err != nil {
 				s.warn(ctx, err, "read cold pack index tail")
 				unresolved = true
@@ -396,7 +408,7 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 			unresolved = true // The read of this exact extent already failed.
 			return true
 		}
-		stored, err = s.readExtent(ctx, catalog, ref, extent)
+		stored, err = s.readExtent(ctx, catalog, ref, extent, mode == coldMoveBlock)
 		if err != nil {
 			if errors.Is(err, errColdInvalidExtent) {
 				candidate.badPayload.Store(true)
@@ -445,7 +457,7 @@ func (s *ColdPackStore) readPromoted(
 	if rec.exact && !exact {
 		return nil, 0, false
 	}
-	stored, err := s.readExtent(ctx, catalog, ref, rec.extent)
+	stored, err := s.readExtent(ctx, catalog, ref, rec.extent, false)
 	if err != nil {
 		if exact && errors.Is(err, errColdInvalidExtent) {
 			pack.badPayload.Store(true)
@@ -459,40 +471,23 @@ func (s *ColdPackStore) readPromoted(
 	return stored, int64(len(stored.Data)), true
 }
 
-// readExtent shares a single exact ranged GET, then verifies the requested
-// SHA-256 before returning any block. It never retains or aliases caller refs.
-func (s *ColdPackStore) readExtent(ctx context.Context, catalog *coldPackCatalog, ref *block.BlockRef, extent coldExtent) (*block.StoredBlock, error) {
-	// Deduplicate only on the immutable pack range, not on a shortened hash.
+// readExtent waits for the requested bytes, then verifies their SHA-256. A
+// move's separately admitted read must never make foreground waiters queue.
+func (s *ColdPackStore) readExtent(ctx context.Context, catalog *coldPackCatalog, ref *block.BlockRef, extent coldExtent, moving bool) (*block.StoredBlock, error) {
+	// Isolate a move's admission wait from the foreground singleflight.
 	pack := &catalog.packs[extent.pack]
-	ch := s.reads.DoChan(extent.flightKey(), func() (any, error) {
-		// Bound shared work independently of either caller's wait.
-		flight, cancel := context.WithTimeout(context.WithoutCancel(ctx), coldReadLimit)
-		defer cancel()
-		data, err := s.readRange(flight, pack, int64(extent.off), int(extent.size), false, false) //nolint:gosec // Catalog and tail bounds constrain off and size.
-		if err != nil {
-			return nil, err
-		}
-
-		// Count once per successful bucket GET, not once per joined waiter.
-		if _, repeated := s.bodyRanges.get(extent); repeated {
-			s.stats.repeatExtentReads.Add(1)
-		} else {
-			s.bodyRanges.put(extent, struct{}{}, 1, false)
-		}
-		return data, nil
-	})
-	var result singleflight.Result
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case result = <-ch:
-		if result.Err != nil {
-			return nil, result.Err
-		}
+	var raw []byte
+	var err error
+	if moving {
+		raw, err = s.fetchExtent(ctx, pack, extent, coldMoveRange)
+	} else {
+		raw, err = s.waitExtent(ctx, pack, extent)
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	// Reject short or oversized responses before decoding and hashing.
-	raw := result.Val.([]byte)
 	if uint64(len(raw)) != extent.size {
 		return nil, errors.Wrap(errColdInvalidExtent, "cold pack returned a wrong-sized extent")
 	}
@@ -508,24 +503,101 @@ func (s *ColdPackStore) readExtent(ctx context.Context, catalog *coldPackCatalog
 	return stored, nil
 }
 
-// readRange bounds demand I/O and fences membership after an authoritative
-// size mismatch, checksum mismatch, or not-found response. Only the tail worker can make a background range read;
-// its single slot is separate so it cannot displace a foreground reader.
-func (s *ColdPackStore) readRange(ctx context.Context, pack *coldPack, off int64, size int, background, tail bool) ([]byte, error) {
-	// Refuse fenced packs and do not wait to enter a saturated demand lane.
+// waitExtent shares in-flight I/O, not the first waiter's cancellation.
+func (s *ColdPackStore) waitExtent(ctx context.Context, pack *coldPack, extent coldExtent) ([]byte, error) {
+	// User flights never wait behind the demand limit.
+	ch := s.reads.DoChan(extent.flightKey(), func() (any, error) {
+		flight, cancel := context.WithTimeout(context.WithoutCancel(ctx), coldReadLimit)
+		defer cancel()
+		return s.fetchExtent(flight, pack, extent, coldUserRange)
+	})
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case result := <-ch:
+		if result.Err != nil {
+			return nil, result.Err
+		}
+		return result.Val.([]byte), nil
+	}
+}
+
+// fetchExtent counts a successful GET once, not once per joined waiter.
+func (s *ColdPackStore) fetchExtent(ctx context.Context, pack *coldPack, extent coldExtent, lane coldRangeLane) ([]byte, error) {
+	// The catalog and tail constrain the extent to the pack and to int bounds.
+	data, err := s.readRange(ctx, pack, int64(extent.off), int(extent.size), lane, false) //nolint:gosec // Catalog and tail bounds constrain off and size.
+	if err != nil {
+		return nil, err
+	}
+
+	// Track repeated ranges without retaining any of their bytes.
+	if _, repeated := s.bodyRanges.get(extent); repeated {
+		s.stats.repeatExtentReads.Add(1)
+	} else {
+		s.bodyRanges.put(extent, struct{}{}, 1, false)
+	}
+	return data, nil
+}
+
+// coldRangeLane determines whether and how a GET uses a demand permit.
+type coldRangeLane uint8
+
+const (
+	// coldUserRange attempts admission without waiting.
+	coldUserRange coldRangeLane = iota
+	// coldMoveRange waits under the mover's context, not a user flight's.
+	coldMoveRange
+	// coldBackgroundRange is private to the single tail worker.
+	coldBackgroundRange
+)
+
+// admitRange never queues a user read. A move acquires the same permit or
+// returns cancellation; lookup treats that cancellation as unresolved.
+func (s *ColdPackStore) admitRange(ctx context.Context, lane coldRangeLane) error {
+	// Moves may wait, but only until their caller leaves.
+	if lane == coldMoveRange {
+		select {
+		case s.ranges <- struct{}{}:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
+	// Fail fast before a user read could wait behind background work.
+	select {
+	case s.ranges <- struct{}{}:
+		return nil
+	default:
+		return errColdReadBusy
+	}
+}
+
+// readRange bounds I/O and fences membership after an authoritative mismatch
+// or not-found response. Only moves may wait for the shared demand lane.
+func (s *ColdPackStore) readRange(ctx context.Context, pack *coldPack, off int64, size int, lane coldRangeLane, tail bool) ([]byte, error) {
+	// Do not admit stale work, and release the permit on every exit.
 	if pack.unusable() {
 		return nil, ErrNotFound
 	}
+	if lane != coldBackgroundRange {
+		if err := s.admitRange(ctx, lane); err != nil {
+			return nil, err
+		}
+		defer func() { <-s.ranges }()
+	}
+
+	// A move may be canceled, or the pack fenced, while it waits for a slot.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if !background {
-		select {
-		case s.ranges <- struct{}{}:
-			defer func() { <-s.ranges }()
-		default:
-			return nil, errColdReadBusy
-		}
+	if pack.unusable() {
+		return nil, ErrNotFound
+	}
+	if lane == coldMoveRange {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, coldReadLimit)
+		defer cancel()
 	}
 
 	// Compare the mirror's verified size and SHA-256 with the range response.

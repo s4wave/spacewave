@@ -74,6 +74,17 @@ func TestColdPackBloomCollision(t *testing.T) {
 	if yes, err := s.GetBlockExists(t.Context(), values[0].ref); err != nil || !yes || f.reader.calls.Load() != 1 {
 		t.Fatalf("resident exact existence = %v, %v; calls=%d", yes, err, f.reader.calls.Load())
 	}
+
+	// A positive through the resident index needs neither allocation nor I/O.
+	ctx := t.Context()
+	allocs := testing.AllocsPerRun(100, func() {
+		if yes, err := s.GetBlockExists(ctx, values[0].ref); err != nil || !yes {
+			t.Fatalf("warm probe = %t, %v", yes, err)
+		}
+	})
+	if allocs != 0 || f.reader.calls.Load() != 1 {
+		t.Fatalf("warm probe allocations = %g, total ranges = %d", allocs, f.reader.calls.Load())
+	}
 }
 
 // TestColdPackRejectsCorruption exercises the verified bytes and gone fences.
@@ -319,10 +330,10 @@ func TestColdPackFlightCancellation(t *testing.T) {
 			extent := coldExtent{size: m.Entries[0].Entry.SizeBytes - m.Entries[0].IndexTailBytes}
 			read := func(ctx context.Context) error {
 				if lane == "tail" {
-					_, err := s.tails.read(ctx, catalog, 0)
+					_, err := s.tails.read(ctx, catalog, 0, false)
 					return err
 				}
-				_, err := s.readExtent(ctx, catalog, v.ref, extent)
+				_, err := s.readExtent(ctx, catalog, v.ref, extent, false)
 				return err
 			}
 

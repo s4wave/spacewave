@@ -22,7 +22,7 @@ type ColdPackOptions struct {
 	PromotedLog string
 	// PromoteCap bounds the log to this many 32-byte records. Zero disables promotion.
 	PromoteCap int
-	// TailCacheBytes bounds resident raw index tails. Zero uses 64 MiB.
+	// TailCacheBytes bounds resident cold indexes. Zero uses 64 MiB.
 	TailCacheBytes int
 	// NegativeCacheKeys bounds remembered exact misses. Zero uses 65,536 full digests.
 	NegativeCacheKeys int
