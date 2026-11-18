@@ -226,8 +226,12 @@ type WorldStateGraph interface {
 	// SetGraphQuad sets a quad in the graph store.
 	// Subject: must be an existing object IRI: <object-key>
 	// Predicate: a predicate string, e.x. IRI: <ref>
-	// Object: an existing object IRI: <object-key>
+	// Object: an object IRI: <object-key>, whose object may be written later
 	// If already exists, returns nil.
+	// The subject holds the relationship, so it must exist; the target may be
+	// created later in the transaction or after it, so a record can name an
+	// object not yet written. DeleteObject removes the key's quads in both
+	// directions, including those written before its object existed.
 	SetGraphQuad(ctx context.Context, q GraphQuad) error
 
 	// DeleteGraphQuad deletes a quad from the graph store.

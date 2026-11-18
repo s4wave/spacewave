@@ -240,7 +240,7 @@ func (ws *WorldState) DeleteObject(ctx context.Context, key string) (bool, error
 // SetGraphQuad adds or updates a quad in the graph store.
 // Subject: must be an existing object IRI: <object-key>
 // Predicate: a predicate string, e.g. IRI: <ref>
-// Object: an existing object IRI: <object-key>
+// Object: an object IRI: <object-key>, whose object may be written later
 // If already exists, returns nil.
 func (ws *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	protoQuad := &quad.Quad{

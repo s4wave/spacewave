@@ -13,10 +13,15 @@ import (
 
 // InsertGraphQuads inserts new, unique relationships in one graph index update.
 // It validates all endpoints before writing and records the same World changes
-// as individual SetGraphQuad calls. It writes only the graph: the records of the
-// objects a relationship names keep their revisions. An existing or
-// repeated relationship is an error; discard the enclosing transaction on error.
-// Like other mutable WorldState operations, calls must be serialized by its owner.
+// as individual SetGraphQuad calls. Each subject must name an existing object,
+// the holder of the relationship; an object may name a key not written yet, so
+// a record can reference a target created later in the transaction or after
+// it. DeleteObject removes the quads of a key in both directions, including
+// those written before the key's object existed. It writes only the graph: the
+// records of the objects a relationship names keep their revisions. An
+// existing or repeated relationship is an error; discard the enclosing
+// transaction on error. Like other mutable WorldState operations, calls must
+// be serialized by its owner.
 func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQuad) error {
 	// Reject a non-write, discarded state, or canceled context.
 	if !t.write {
@@ -34,7 +39,8 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 		return err
 	}
 
-	// Build the Cayley deltas and require each endpoint once.
+	// Build the Cayley deltas, require both endpoints to be object keys, and
+	// require each subject to exist once.
 	deltas := make([]graph.Delta, len(quads))
 	checked := make(map[string]struct{})
 	for i, q := range quads {
@@ -46,23 +52,24 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 			return err
 		}
 		deltas[i] = graph.Delta{Quad: cq, Action: graph.Add}
-		for _, value := range [2]string{q.GetSubject(), q.GetObj()} {
-			key, err := world.GraphValueToKey(value)
-			if err != nil {
-				return err
-			}
-			if _, ok := checked[key]; ok {
-				continue
-			}
-			found, err := t.HasObject(ctx, key)
-			if err != nil {
-				return err
-			}
-			if !found {
-				return world.ErrObjectNotFound
-			}
-			checked[key] = struct{}{}
+		if _, err := world.GraphValueToKey(q.GetObj()); err != nil {
+			return err
 		}
+		subject, err := world.GraphValueToKey(q.GetSubject())
+		if err != nil {
+			return err
+		}
+		if _, ok := checked[subject]; ok {
+			continue
+		}
+		found, err := t.HasObject(ctx, subject)
+		if err != nil {
+			return err
+		}
+		if !found {
+			return world.ErrObjectNotFound
+		}
+		checked[subject] = struct{}{}
 	}
 
 	// Apply the deltas to the graph index.
