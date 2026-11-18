@@ -68,6 +68,11 @@ type GraphEdgeBucket struct {
 	OutgoingTruncated bool
 	// IncomingTruncated indicates more incoming edges matched than were returned.
 	IncomingTruncated bool
+	// CreationOrder reports that each direction's edges come in the order
+	// their endpoint objects were created, oldest first or newest first when
+	// the query is Reverse. Otherwise they come in endpoint key text order, and
+	// a reader that needs creation order must read every page.
+	CreationOrder bool
 }
 
 // newGraphEdgeBuckets returns one empty bucket per origin, in query order.

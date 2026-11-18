@@ -7,7 +7,6 @@ import (
 	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
-	world_types "github.com/s4wave/spacewave/db/world/types"
 )
 
 // WorldState implements the World state operations over WorldStateResourceService.
@@ -369,6 +368,7 @@ func (ws *WorldState) ListGraphEdgeBuckets(ctx context.Context, query *world.Gra
 			Incoming:          incoming,
 			OutgoingTruncated: bucket.GetOutgoingTruncated(),
 			IncomingTruncated: bucket.GetIncomingTruncated(),
+			CreationOrder:     bucket.GetCreationOrder(),
 		}
 	}
 	return buckets, nil
@@ -408,28 +408,6 @@ func (ws *WorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string)
 		}
 	}
 	return refs, nil
-}
-
-// GetObjectMetadataBatch returns graph metadata for object keys.
-func (ws *WorldState) GetObjectMetadataBatch(ctx context.Context, keys []string) ([]*world_types.ObjectMetadata, error) {
-	// Retrieve graph metadata for the requested World objects.
-	resp, err := ws.service.GetObjectMetadataBatch(ctx, &GetObjectMetadataBatchRequest{
-		ObjectKeys: keys,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert the returned metadata to World object records.
-	metadata := make([]*world_types.ObjectMetadata, len(resp.GetMetadata()))
-	for i, md := range resp.GetMetadata() {
-		metadata[i] = &world_types.ObjectMetadata{
-			ObjectKey:       md.GetObjectKey(),
-			TypeID:          md.GetTypeId(),
-			ParentObjectKey: md.GetParentObjectKey(),
-		}
-	}
-	return metadata, nil
 }
 
 // ForEachObjectBodyPage calls cb with each page of serialized object bodies.

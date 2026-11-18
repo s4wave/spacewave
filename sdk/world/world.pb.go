@@ -1991,6 +1991,10 @@ type GraphEdgeBucket struct {
 	OutgoingTruncated bool `protobuf:"varint,4,opt,name=outgoing_truncated,json=outgoingTruncated,proto3" json:"outgoingTruncated,omitempty"`
 	// IncomingTruncated indicates more incoming edges matched than were returned.
 	IncomingTruncated bool `protobuf:"varint,5,opt,name=incoming_truncated,json=incomingTruncated,proto3" json:"incomingTruncated,omitempty"`
+	// CreationOrder reports that each direction's edges come in the order their
+	// endpoint objects were created, newest first when the query is reversed.
+	// Otherwise they come in endpoint key text order.
+	CreationOrder bool `protobuf:"varint,6,opt,name=creation_order,json=creationOrder,proto3" json:"creationOrder,omitempty"`
 }
 
 func (x *GraphEdgeBucket) Reset() {
@@ -2030,6 +2034,13 @@ func (x *GraphEdgeBucket) GetOutgoingTruncated() bool {
 func (x *GraphEdgeBucket) GetIncomingTruncated() bool {
 	if x != nil {
 		return x.IncomingTruncated
+	}
+	return false
+}
+
+func (x *GraphEdgeBucket) GetCreationOrder() bool {
+	if x != nil {
+		return x.CreationOrder
 	}
 	return false
 }
@@ -2315,6 +2326,10 @@ type ObjectBody struct {
 	// BodyJson is body rendered as JSON, set when the request asked for JSON
 	// and the type's owner, the host or its plugin, can render it.
 	BodyJson string `protobuf:"bytes,7,opt,name=body_json,json=bodyJson,proto3" json:"bodyJson,omitempty"`
+	// WithheldSize is the length of a body left out of its page because the
+	// entry alone exceeds the page budget; body and body_json are then empty.
+	// The object read returns a withheld body.
+	WithheldSize uint64 `protobuf:"varint,8,opt,name=withheld_size,json=withheldSize,proto3" json:"withheldSize,omitempty"`
 }
 
 func (x *ObjectBody) Reset() {
@@ -2372,6 +2387,13 @@ func (x *ObjectBody) GetBodyJson() string {
 	return ""
 }
 
+func (x *ObjectBody) GetWithheldSize() uint64 {
+	if x != nil {
+		return x.WithheldSize
+	}
+	return 0
+}
+
 // GetObjectBodiesBatchRequest is the request type for
 // GetObjectBodiesBatch.
 type GetObjectBodiesBatchRequest struct {
@@ -2380,6 +2402,11 @@ type GetObjectBodiesBatchRequest struct {
 	ObjectKeys []string `protobuf:"bytes,1,rep,name=object_keys,json=objectKeys,proto3" json:"objectKeys,omitempty"`
 	// Json asks for each body's type ID and JSON rendering.
 	Json bool `protobuf:"varint,2,opt,name=json,proto3" json:"json,omitempty"`
+	// PageBudget, when set, asks for one page of at most this many encoded body
+	// bytes, capped at the default budget; the stream ends after it, and its
+	// bodies answer a prefix of object_keys. Zero streams every key in pages of
+	// the default budget.
+	PageBudget uint32 `protobuf:"varint,3,opt,name=page_budget,json=pageBudget,proto3" json:"pageBudget,omitempty"`
 }
 
 func (x *GetObjectBodiesBatchRequest) Reset() {
@@ -2400,6 +2427,13 @@ func (x *GetObjectBodiesBatchRequest) GetJson() bool {
 		return x.Json
 	}
 	return false
+}
+
+func (x *GetObjectBodiesBatchRequest) GetPageBudget() uint32 {
+	if x != nil {
+		return x.PageBudget
+	}
+	return 0
 }
 
 // GetObjectBodiesBatchResponse is one page of GetObjectBodiesBatch.
@@ -5149,6 +5183,7 @@ func (m *GraphEdgeBucket) CloneVT() *GraphEdgeBucket {
 	r.OriginObjectKey = m.OriginObjectKey
 	r.OutgoingTruncated = m.OutgoingTruncated
 	r.IncomingTruncated = m.IncomingTruncated
+	r.CreationOrder = m.CreationOrder
 	r.Outgoing = protobuf_go_lite.CloneVTSlice(m.Outgoing)
 	r.Incoming = protobuf_go_lite.CloneVTSlice(m.Incoming)
 	if len(m.unknownFields) > 0 {
@@ -5324,6 +5359,7 @@ func (m *ObjectBody) CloneVT() *ObjectBody {
 	r.ModSeqno = m.ModSeqno
 	r.TypeId = m.TypeId
 	r.BodyJson = m.BodyJson
+	r.WithheldSize = m.WithheldSize
 	r.Body = protobuf_go_lite.CloneBytes(m.Body)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -5341,6 +5377,7 @@ func (m *GetObjectBodiesBatchRequest) CloneVT() *GetObjectBodiesBatchRequest {
 	}
 	r := new(GetObjectBodiesBatchRequest)
 	r.Json = m.Json
+	r.PageBudget = m.PageBudget
 	r.ObjectKeys = protobuf_go_lite.CloneSlice(m.ObjectKeys)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -7905,6 +7942,9 @@ func (this *GraphEdgeBucket) EqualVT(that *GraphEdgeBucket) bool {
 	if this.IncomingTruncated != that.IncomingTruncated {
 		return false
 	}
+	if this.CreationOrder != that.CreationOrder {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -8147,6 +8187,9 @@ func (this *ObjectBody) EqualVT(that *ObjectBody) bool {
 	if this.BodyJson != that.BodyJson {
 		return false
 	}
+	if this.WithheldSize != that.WithheldSize {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -8168,6 +8211,9 @@ func (this *GetObjectBodiesBatchRequest) EqualVT(that *GetObjectBodiesBatchReque
 		return false
 	}
 	if this.Json != that.Json {
+		return false
+	}
+	if this.PageBudget != that.PageBudget {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -13015,6 +13061,11 @@ func (x *GraphEdgeBucket) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("incomingTruncated")
 		s.WriteBool(x.IncomingTruncated)
 	}
+	if x.CreationOrder || s.HasField("creationOrder") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("creationOrder")
+		s.WriteBool(x.CreationOrder)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -13077,6 +13128,9 @@ func (x *GraphEdgeBucket) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "incoming_truncated", "incomingTruncated":
 			s.AddField("incoming_truncated")
 			x.IncomingTruncated = s.ReadBool()
+		case "creation_order", "creationOrder":
+			s.AddField("creation_order")
+			x.CreationOrder = s.ReadBool()
 		}
 	})
 }
@@ -13650,6 +13704,11 @@ func (x *ObjectBody) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("bodyJson")
 		s.WriteString(x.BodyJson)
 	}
+	if x.WithheldSize != 0 || s.HasField("withheldSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("withheldSize")
+		s.WriteUint64(x.WithheldSize)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -13688,6 +13747,9 @@ func (x *ObjectBody) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "body_json", "bodyJson":
 			s.AddField("body_json")
 			x.BodyJson = s.ReadString()
+		case "withheld_size", "withheldSize":
+			s.AddField("withheld_size")
+			x.WithheldSize = s.ReadUint64()
 		}
 	})
 }
@@ -13714,6 +13776,11 @@ func (x *GetObjectBodiesBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("json")
 		s.WriteBool(x.Json)
+	}
+	if x.PageBudget != 0 || s.HasField("pageBudget") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pageBudget")
+		s.WriteUint32(x.PageBudget)
 	}
 	s.WriteObjectEnd()
 }
@@ -13742,6 +13809,9 @@ func (x *GetObjectBodiesBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState)
 		case "json":
 			s.AddField("json")
 			x.Json = s.ReadBool()
+		case "page_budget", "pageBudget":
+			s.AddField("page_budget")
+			x.PageBudget = s.ReadUint32()
 		}
 	})
 }
@@ -19421,6 +19491,11 @@ func (m *GraphEdgeBucket) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.CreationOrder {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CreationOrder)
+		i--
+		dAtA[i] = 0x30
+	}
 	if m.IncomingTruncated {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.IncomingTruncated)
 		i--
@@ -19897,6 +19972,11 @@ func (m *ObjectBody) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.WithheldSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WithheldSize))
+		i--
+		dAtA[i] = 0x40
+	}
 	if len(m.BodyJson) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.BodyJson)
 		i--
@@ -19963,6 +20043,11 @@ func (m *GetObjectBodiesBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.PageBudget != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PageBudget))
+		i--
+		dAtA[i] = 0x18
 	}
 	if m.Json {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Json)
@@ -23416,6 +23501,7 @@ func (m *GraphEdgeBucket) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.OutgoingTruncated)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.IncomingTruncated)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.CreationOrder)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23552,6 +23638,7 @@ func (m *ObjectBody) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ModSeqno)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TypeId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BodyJson)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.WithheldSize)
 	n += len(m.unknownFields)
 	return n
 }
@@ -23564,6 +23651,7 @@ func (m *GetObjectBodiesBatchRequest) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringSlice(1, m.ObjectKeys)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Json)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PageBudget)
 	n += len(m.unknownFields)
 	return n
 }
@@ -25633,6 +25721,10 @@ func (x *GraphEdgeBucket) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "incoming_truncated")
 		protobuf_go_lite.TextWriteBool(&sb, x.IncomingTruncated)
 	}
+	if x.CreationOrder != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "creation_order")
+		protobuf_go_lite.TextWriteBool(&sb, x.CreationOrder)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -25865,6 +25957,10 @@ func (x *ObjectBody) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "body_json")
 		protobuf_go_lite.TextWriteString(&sb, x.BodyJson)
 	}
+	if x.WithheldSize != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "withheld_size")
+		protobuf_go_lite.TextWriteUint(&sb, x.WithheldSize)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -25886,6 +25982,10 @@ func (x *GetObjectBodiesBatchRequest) MarshalProtoText() string {
 	if x.Json != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "json")
 		protobuf_go_lite.TextWriteBool(&sb, x.Json)
+	}
+	if x.PageBudget != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "page_budget")
+		protobuf_go_lite.TextWriteUint(&sb, x.PageBudget)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -30951,6 +31051,16 @@ func (m *GraphEdgeBucket) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.IncomingTruncated = bool(v)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationOrder", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CreationOrder = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -31629,6 +31739,15 @@ func (m *ObjectBody) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.BodyJson = v
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WithheldSize", wireType)
+			}
+			m.WithheldSize = 0
+			m.WithheldSize, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -31692,6 +31811,15 @@ func (m *GetObjectBodiesBatchRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Json = bool(v)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PageBudget", wireType)
+			}
+			m.PageBudget = 0
+			m.PageBudget, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

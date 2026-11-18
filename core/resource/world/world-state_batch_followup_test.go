@@ -23,24 +23,14 @@ type bodyPageRaceWorldState struct {
 	updated   bool
 }
 
-// GetObjectBodiesBatchPage reads one body page, then commits the change once.
+// GetObjectBodiesBatchPage reads one body page with its seqno, then commits the
+// change once.
 func (w *bodyPageRaceWorldState) GetObjectBodiesBatchPage(
 	ctx context.Context,
 	keys []string,
 	byteBudget int,
-) ([]*world.ObjectBody, uint32, error) {
-	bodies, consumed, _, err := w.GetObjectBodiesBatchPageWithSeqno(ctx, keys, byteBudget)
-	return bodies, consumed, err
-}
-
-// GetObjectBodiesBatchPageWithSeqno reads one body page with its seqno, then
-// commits the change once.
-func (w *bodyPageRaceWorldState) GetObjectBodiesBatchPageWithSeqno(
-	ctx context.Context,
-	keys []string,
-	byteBudget int,
 ) ([]*world.ObjectBody, uint32, uint64, error) {
-	bodies, consumed, seqno, err := world.GetObjectBodiesBatchPageWithSeqno(ctx, w.WorldState, keys, byteBudget)
+	bodies, consumed, seqno, err := w.WorldState.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -254,9 +244,9 @@ func TestReadSetBatchedBodyReadSeesRacingCommit(t *testing.T) {
 		engine:     tb.Engine,
 		objectKey:  objectKey,
 	})
-	bodies, _, _, err := world.GetObjectBodiesBatchPageWithSeqno(ctx, tracked, []string{objectKey}, world.ObjectBodiesBatchByteBudget)
+	bodies, _, _, err := tracked.GetObjectBodiesBatchPage(ctx, []string{objectKey}, world.ObjectBodiesBatchByteBudget)
 	if err != nil {
-		t.Fatalf("GetObjectBodiesBatchPageWithSeqno: %v", err)
+		t.Fatalf("GetObjectBodiesBatchPage: %v", err)
 	}
 	if len(bodies) != 1 || string(bodies[0].Body) != string(initialBody) {
 		t.Fatalf("body page = %+v, want initial body", bodies)

@@ -17,6 +17,7 @@ type bodyOnlyWorld struct {
 	inner        world.WorldState
 	batches      int
 	bodyError    error
+	withhold     bool
 	allowHandles bool
 	handles      int
 }
@@ -29,12 +30,19 @@ func (w *bodyOnlyWorld) GetObject(ctx context.Context, key string) (world.Object
 	return w.inner.GetObject(ctx, key)
 }
 
-func (w *bodyOnlyWorld) GetObjectBodiesBatch(ctx context.Context, keys []string) ([]*world.ObjectBody, error) {
+func (w *bodyOnlyWorld) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
 	w.batches++
 	if w.bodyError != nil {
-		return nil, w.bodyError
+		return nil, 0, 0, w.bodyError
 	}
-	return world.GetObjectBodiesBatch(ctx, w.inner, keys)
+	bodies, consumed, seqno, err := w.inner.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+	if err != nil || !w.withhold {
+		return bodies, consumed, seqno, err
+	}
+	for _, body := range bodies {
+		body.WithheldSize, body.Body = uint64(len(body.Body)), nil
+	}
+	return bodies, consumed, seqno, nil
 }
 
 // TestLookupObjectBodyUsesBodyRead preserves values and missing errors without resource allocation.
@@ -69,18 +77,19 @@ func TestLookupObjectBodyUsesBodyRead(t *testing.T) {
 		t.Fatalf("missing object error = %v", err)
 	}
 
-	// A smaller unary envelope cannot make an otherwise readable object unavailable.
+	// A body the transport withholds or rejects is read through the object.
 	reader.allowHandles = true
-	for index, transportError := range []error{
-		&world.ObjectBodyTooLargeError{ObjectKey: "example/body", EncodedSize: 200, ByteBudget: 100},
-		errors.New("remote response exceeds unary envelope"),
-	} {
-		reader.bodyError = transportError
-		value, err = world.LookupObjectBody[block_mock.Example](ctx, reader, "example/body")
-		if err != nil || value.GetMsg() != "retained value" || reader.handles != index+1 {
-			t.Fatalf("oversized body = %v, handles = %d, error = %v", value, reader.handles, err)
-		}
+	reader.withhold = true
+	value, err = world.LookupObjectBody[block_mock.Example](ctx, reader, "example/body")
+	if err != nil || value.GetMsg() != "retained value" || reader.handles != 1 {
+		t.Fatalf("withheld body = %v, handles = %d, error = %v", value, reader.handles, err)
+	}
+	reader.withhold = false
+	reader.bodyError = errors.New("remote response exceeds unary envelope")
+	value, err = world.LookupObjectBody[block_mock.Example](ctx, reader, "example/body")
+	if err != nil || value.GetMsg() != "retained value" || reader.handles != 2 {
+		t.Fatalf("rejected body = %v, handles = %d, error = %v", value, reader.handles, err)
 	}
 }
 
-var _ world.ObjectBodyBatcher = (*bodyOnlyWorld)(nil)
+var _ world.WorldState = (*bodyOnlyWorld)(nil)

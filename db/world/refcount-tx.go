@@ -41,23 +41,6 @@ func (r *RefCountTx) Discard() {
 	r.tx.Discard()
 }
 
-// GetObjectBodiesBatch returns object bodies through the wrapped transaction.
-func (r *RefCountTx) GetObjectBodiesBatch(ctx context.Context, keys []string) ([]*ObjectBody, error) {
-	return GetObjectBodiesBatch(ctx, r.tx, keys)
-}
-
-// GetObjectBodiesBatchPage returns one budgeted page through the wrapped
-// transaction.
-func (r *RefCountTx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*ObjectBody, uint32, error) {
-	return GetObjectBodiesBatchPage(ctx, r.tx, keys, byteBudget)
-}
-
-// GetObjectBodiesBatchPageWithSeqno returns one budgeted page and its World
-// sequence number through the wrapped transaction.
-func (r *RefCountTx) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*ObjectBody, uint32, uint64, error) {
-	return GetObjectBodiesBatchPageWithSeqno(ctx, r.tx, keys, byteBudget)
-}
-
 // GetObjectRootRefsBatch returns object root refs through the wrapped
 // transaction.
 func (r *RefCountTx) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*ObjectRootRef, error) {
@@ -66,9 +49,6 @@ func (r *RefCountTx) GetObjectRootRefsBatch(ctx context.Context, keys []string) 
 
 // _ is a type assertion
 var (
-	_ Tx                         = (*RefCountTx)(nil)
-	_ ObjectBodyBatcher          = (*RefCountTx)(nil)
-	_ ObjectBodyPageBatcher      = (*RefCountTx)(nil)
-	_ ObjectBodyPageSeqnoBatcher = (*RefCountTx)(nil)
-	_ ObjectRootRefBatcher       = (*RefCountTx)(nil)
+	_ Tx                   = (*RefCountTx)(nil)
+	_ ObjectRootRefBatcher = (*RefCountTx)(nil)
 )

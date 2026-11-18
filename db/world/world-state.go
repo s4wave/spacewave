@@ -151,6 +151,15 @@ type WorldStateObject interface {
 	// answer from transaction-local knowledge without a storage read; on a miss
 	// they fall back to the underlying object lookup.
 	HasObject(ctx context.Context, key string) (bool, error)
+
+	// GetObjectBodiesBatchPage reads one page of root bodies for a prefix of
+	// keys, in key order, with the World seqno the page was read at. A page
+	// holds entries until the next would pass byteBudget encoded bytes and
+	// always holds at least one; an entry that alone exceeds the budget is
+	// withheld (see ObjectBody.WithheldSize). Consumed is the number of keys
+	// the page answers, or zero when it answers all. A store without a batch
+	// read implements it with LookupObjectBodiesPage.
+	GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) (bodies []*ObjectBody, consumed uint32, seqno uint64, err error)
 }
 
 // ObjectIterator iterates over objects in a WorldState.

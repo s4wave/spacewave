@@ -22,9 +22,6 @@ func (t *readTrackingTx) Discard() {
 
 // _ checks the tracked transaction's contract.
 var (
-	_ Tx                         = (*readTrackingTx)(nil)
-	_ ObjectRootRefBatcher       = (*readTrackingTx)(nil)
-	_ ObjectBodyBatcher          = (*readTrackingTx)(nil)
-	_ ObjectBodyPageBatcher      = (*readTrackingTx)(nil)
-	_ ObjectBodyPageSeqnoBatcher = (*readTrackingTx)(nil)
+	_ Tx                   = (*readTrackingTx)(nil)
+	_ ObjectRootRefBatcher = (*readTrackingTx)(nil)
 )

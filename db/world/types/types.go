@@ -68,15 +68,6 @@ func LimitNodesToTypes(path *cayley.Path, typeIDs ...string) *cayley.Path {
 // GetObjectType returns the type of a given object.
 // Returns "" if the object has no type.
 func GetObjectType(ctx context.Context, ws world.WorldState, key string) (string, error) {
-	// Read the object type through the World metadata batch API when available.
-	if batcher, ok := ws.(ObjectMetadataBatcher); ok {
-		metadata, err := batcher.GetObjectMetadataBatch(ctx, []string{key})
-		if err != nil || len(metadata) == 0 {
-			return "", err
-		}
-		return metadata[0].TypeID, nil
-	}
-
 	// Find the object type key among its outgoing type quads.
 	var typeKey string
 	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, TypePred.String(), "", ""), typeGraphLookupLimit)

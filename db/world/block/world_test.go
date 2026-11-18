@@ -1791,12 +1791,6 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 	}
 	versions := map[uint64]string{initialSeqno: string(initialBody)}
 
-	// Require sequence-numbered body page batching on the transaction.
-	pager, ok := tx.(world.ObjectBodyPageSeqnoBatcher)
-	if !ok {
-		t.Fatal("transaction does not expose body page seqno batching")
-	}
-
 	// Build repeated object keys to exercise body page reads.
 	const (
 		keyCount = 2048
@@ -1823,7 +1817,7 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 		defer wg.Done()
 		<-start
 		for range rounds {
-			bodies, _, seqno, err := pager.GetObjectBodiesBatchPageWithSeqno(
+			bodies, _, seqno, err := tx.GetObjectBodiesBatchPage(
 				ctx,
 				keys,
 				world.ObjectBodiesBatchByteBudget,

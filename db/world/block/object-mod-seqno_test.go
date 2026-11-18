@@ -94,7 +94,7 @@ func testObjectModSeqno(t *testing.T, impl kvtx_block.KVImplType) {
 	check := func(step string) uint64 {
 		// Read every key in one page with its seqno.
 		t.Helper()
-		bodies, _, seqno, err := world.GetObjectBodiesBatchPageWithSeqno(ctx, reader, keys, 1<<20)
+		bodies, _, seqno, err := reader.GetObjectBodiesBatchPage(ctx, keys, 1<<20)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -167,7 +167,7 @@ func testObjectModSeqno(t *testing.T, impl kvtx_block.KVImplType) {
 		}
 	})
 	s3 := seqno()
-	bodies, _, _, err := world.GetObjectBodiesBatchPageWithSeqno(ctx, reader, []string{"d"}, 1<<20)
+	bodies, _, _, err := reader.GetObjectBodiesBatchPage(ctx, []string{"d"}, 1<<20)
 	if err != nil || len(bodies) != 1 {
 		t.Fatalf("read d: %v", err)
 	}

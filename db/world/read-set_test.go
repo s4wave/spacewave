@@ -54,14 +54,15 @@ func (*countingBodyBatcher) GetObject(context.Context, string) (ObjectState, boo
 	return nil, false, nil
 }
 
-// GetObjectBodiesBatch records one native batch and returns a body per key.
-func (b *countingBodyBatcher) GetObjectBodiesBatch(_ context.Context, keys []string) ([]*ObjectBody, error) {
+// GetObjectBodiesBatchPage records one native batch and returns every key's
+// body in one page.
+func (b *countingBodyBatcher) GetObjectBodiesBatchPage(_ context.Context, keys []string, _ int) ([]*ObjectBody, uint32, uint64, error) {
 	b.calls++
 	out := make([]*ObjectBody, len(keys))
 	for i, key := range keys {
 		out[i] = &ObjectBody{ObjectKey: key, Body: []byte(key), Exists: true}
 	}
-	return out, nil
+	return out, 0, 1, nil
 }
 
 // TestReadSetTouched checks which ChangeSets touch the reads of a view.

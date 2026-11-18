@@ -2,15 +2,15 @@ package world
 
 import (
 	"context"
+	"errors"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
 
 // ObjectBodiesBatchByteBudget is the encoded-size budget shared by body batch
 // requests and responses. One page must fit in a single starpc frame, which is
-// capped at 10,000,000 bytes, with room for the packet envelope. A body larger
-// than the budget is reported as ObjectBodyTooLargeError.
+// capped at 10,000,000 bytes, with room for the packet envelope. A body whose
+// entry alone exceeds the budget is withheld; see ObjectBody.WithheldSize.
 const ObjectBodiesBatchByteBudget = 8 << 20
 
 // ObjectBody contains the serialized root body for one object key.
@@ -26,6 +26,10 @@ type ObjectBody struct {
 	ModSeqno uint64
 	// Exists reports whether the object key exists.
 	Exists bool
+	// WithheldSize is the length of a body left out of its page because the
+	// entry alone exceeds the page budget; Body is then empty. Zero for a body
+	// the page carries. LookupObjectBodyEntry reads a withheld body alone.
+	WithheldSize uint64
 
 	// keep stores the body's block once its decoder knows the block's refs,
 	// set when the store served the block without them; see
@@ -45,86 +49,93 @@ func (b *ObjectBody) keepDecoded(ctx context.Context, blk any) {
 	}
 }
 
-// ObjectBodyBatcher returns serialized object bodies for object keys.
-type ObjectBodyBatcher interface {
-	// GetObjectBodiesBatch returns object bodies for object keys.
-	GetObjectBodiesBatch(ctx context.Context, keys []string) ([]*ObjectBody, error)
-}
-
-// ObjectBodyPageBatcher returns one budgeted page of serialized object bodies.
-type ObjectBodyPageBatcher interface {
-	// GetObjectBodiesBatchPage returns bodies and the number of keys consumed.
-	GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*ObjectBody, uint32, error)
-}
-
-// ObjectBodyPageSeqnoBatcher returns one budgeted page and its World sequence number.
-type ObjectBodyPageSeqnoBatcher interface {
-	// GetObjectBodiesBatchPageWithSeqno returns bodies, consumed keys, and the
-	// World sequence number observed by the read transaction.
-	GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*ObjectBody, uint32, uint64, error)
-}
-
-// ObjectBodyTooLargeError reports a body that cannot fit in one response page.
-type ObjectBodyTooLargeError struct {
-	// ObjectKey is the key whose encoded entry exceeds the page budget.
-	ObjectKey string
-	// EncodedSize is the serialized size of the object body response entry.
-	EncodedSize int
-	// ByteBudget is the maximum encoded size allowed for one page.
-	ByteBudget int
-}
-
-// Error returns the oversized object body details.
-func (e *ObjectBodyTooLargeError) Error() string {
-	return errors.Errorf(
-		"object body %q encoded size %d exceeds page budget %d",
-		e.ObjectKey,
-		e.EncodedSize,
-		e.ByteBudget,
-	).Error()
-}
-
-// GetObjectBodiesBatch returns serialized object bodies for object keys.
-// Results preserve the requested key order and include one missing marker per
-// key that does not exist.
+// GetObjectBodiesBatch returns serialized object bodies for object keys, all
+// read at one World seqno. Results preserve the requested key order and
+// include one missing marker per key that does not exist. Every existing body
+// is whole: a body its page withholds is read alone through the object.
+// Returns ObjectBodiesBatchRevisionError when writes keep landing between
+// pages.
 func GetObjectBodiesBatch(ctx context.Context, ws WorldState, keys []string) ([]*ObjectBody, error) {
-	// Use native object body batching when requests contain keys.
+	// Collect pages from one World revision, restarting when it moves.
 	if len(keys) == 0 {
 		return nil, nil
 	}
-	if batcher, ok := ws.(ObjectBodyBatcher); ok {
-		return batcher.GetObjectBodiesBatch(ctx, keys)
+	var bodies []*ObjectBody
+	for retry := 0; ; retry++ {
+		var err error
+		bodies, err = collectObjectBodyPages(ctx, ws, keys)
+		if err == nil {
+			break
+		}
+		var revisionErr *ObjectBodiesBatchRevisionError
+		if !errors.As(err, &revisionErr) {
+			return nil, err
+		}
+		revisionErr.Retries = retry
+		if retry == MaxObjectBodiesBatchRevisionRetries {
+			return nil, revisionErr
+		}
 	}
 
-	// Read each object body and preserve the requested key order.
-	out := make([]*ObjectBody, len(keys))
-	for i, key := range keys {
-		body, err := LookupObjectBodyEntry(ctx, ws, key)
+	// Read each withheld body alone.
+	for i, body := range bodies {
+		if body.WithheldSize == 0 {
+			continue
+		}
+		whole, err := LookupObjectBodyEntry(ctx, ws, body.ObjectKey)
 		if err != nil {
 			return nil, err
 		}
-		out[i] = body
+		bodies[i] = whole
+	}
+	return bodies, nil
+}
+
+// collectObjectBodyPages reads every page of keys and requires one seqno.
+func collectObjectBodyPages(ctx context.Context, ws WorldState, keys []string) ([]*ObjectBody, error) {
+	out := make([]*ObjectBody, 0, len(keys))
+	var worldSeqno uint64
+	for start := 0; start < len(keys); {
+		page, consumed, seqno, err := ws.GetObjectBodiesBatchPage(ctx, keys[start:], ObjectBodiesBatchByteBudget)
+		if err != nil {
+			return nil, err
+		}
+		if start == 0 {
+			worldSeqno = seqno
+		} else if seqno != worldSeqno {
+			return nil, &ObjectBodiesBatchRevisionError{Expected: worldSeqno, Got: seqno}
+		}
+		out = append(out, page...)
+		if consumed == 0 {
+			break
+		}
+		start += int(consumed)
 	}
 	return out, nil
 }
 
-// GetObjectBodiesBatchPage returns one encoded-size-bounded page of bodies.
-func GetObjectBodiesBatchPage(
+// LookupObjectBodiesPage implements WorldStateObject.GetObjectBodiesBatchPage
+// for a store without a batch read: it reads the seqno, then each body
+// through LookupObjectBodyEntry. Call it only on a store that reads one
+// revision, such as a transaction.
+func LookupObjectBodiesPage(
 	ctx context.Context,
 	ws WorldState,
 	keys []string,
 	byteBudget int,
-) ([]*ObjectBody, uint32, error) {
+) ([]*ObjectBody, uint32, uint64, error) {
+	// Read the seqno, then each body until the page is full.
 	if len(keys) == 0 {
-		return nil, 0, nil
+		return nil, 0, 0, nil
 	}
-	if pager, ok := ws.(ObjectBodyPageBatcher); ok {
-		return pager.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+	seqno, err := ws.GetSeqno(ctx)
+	if err != nil {
+		return nil, 0, 0, err
 	}
-
-	return getObjectBodiesBatchPage(ctx, keys, byteBudget, func(ctx context.Context, key string) (*ObjectBody, error) {
+	bodies, consumed, err := getObjectBodiesBatchPage(ctx, keys, byteBudget, func(ctx context.Context, key string) (*ObjectBody, error) {
 		return LookupObjectBodyEntry(ctx, ws, key)
 	})
+	return bodies, consumed, seqno, err
 }
 
 func getObjectBodiesBatchPage(
@@ -145,11 +156,8 @@ func getObjectBodiesBatchPage(
 		}
 		resultSize := objectBodyEncodedSize(result)
 		if resultSize > byteBudget {
-			return nil, 0, &ObjectBodyTooLargeError{
-				ObjectKey:   key,
-				EncodedSize: resultSize,
-				ByteBudget:  byteBudget,
-			}
+			result.WithheldSize, result.Body, result.keep = uint64(len(result.Body)), nil, nil
+			resultSize = objectBodyEncodedSize(result)
 		}
 		if len(out) > 0 && encodedSize+resultSize > byteBudget {
 			return out, uint32(i), nil
@@ -160,25 +168,11 @@ func getObjectBodiesBatchPage(
 	return out, 0, nil
 }
 
-// GetObjectBodiesBatchPageWithSeqno returns one page and its World sequence number.
-func GetObjectBodiesBatchPageWithSeqno(
-	ctx context.Context,
-	ws WorldState,
-	keys []string,
-	byteBudget int,
-) ([]*ObjectBody, uint32, uint64, error) {
-	if pager, ok := ws.(ObjectBodyPageSeqnoBatcher); ok {
-		return pager.GetObjectBodiesBatchPageWithSeqno(ctx, keys, byteBudget)
-	}
-	bodies, consumed, err := GetObjectBodiesBatchPage(ctx, ws, keys, byteBudget)
-	return bodies, consumed, 0, err
-}
-
 // objectBodyEncodedSize matches the generated protobuf size of one repeated
 // ObjectBody response entry, including its key, body, exists flag, revision,
-// ModSeqno, and the enclosing repeated-message tag and length.
+// ModSeqno, withheld size, and the enclosing repeated-message tag and length.
 func objectBodyEncodedSize(body *ObjectBody) int {
-	// Measure the object body fields and their enclosing protobuf entry.
+	// Measure the length-delimited key and body fields.
 	if body == nil {
 		return 0
 	}
@@ -189,6 +183,8 @@ func objectBodyEncodedSize(body *ObjectBody) int {
 	if len(body.Body) > 0 {
 		bodySize += 1 + protoVarintSize(uint64(len(body.Body))) + len(body.Body)
 	}
+
+	// Measure the scalar fields, then the enclosing protobuf entry.
 	if body.Exists {
 		bodySize += 2
 	}
@@ -197,6 +193,9 @@ func objectBodyEncodedSize(body *ObjectBody) int {
 	}
 	if body.ModSeqno != 0 {
 		bodySize += 1 + protoVarintSize(body.ModSeqno)
+	}
+	if body.WithheldSize != 0 {
+		bodySize += 1 + protoVarintSize(body.WithheldSize)
 	}
 	return 1 + protoVarintSize(uint64(bodySize)) + bodySize
 }
@@ -255,10 +254,3 @@ func LookupObjectBodies[T any, PT block.Ptr[T]](
 	}
 	return results, nil
 }
-
-// _ is a type assertion.
-var (
-	_ ObjectBodyBatcher          = (*engineWorldState)(nil)
-	_ ObjectBodyPageBatcher      = (*engineWorldState)(nil)
-	_ ObjectBodyPageSeqnoBatcher = (*engineWorldState)(nil)
-)
