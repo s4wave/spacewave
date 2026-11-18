@@ -1248,7 +1248,7 @@ func (pausedBody) Apply(ctx context.Context, _ int, _ *sobject.OrderedOperation)
 }
 
 // Install keeps no checkpoint.
-func (pausedBody) Install(context.Context, *sobject.SOCheckpointInner, int, *sobject.SOOperationSet) (bool, error) {
+func (pausedBody) Install(context.Context, *sobject.OrderEvent, int, *sobject.SOOperationSet) (bool, error) {
 	return false, nil
 }
 
