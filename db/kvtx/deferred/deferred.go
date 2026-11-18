@@ -28,6 +28,10 @@ const (
 // that rehashes the path to its root on every batch. Callers must Flush before
 // they read the underlying transaction directly or write it out.
 //
+// When the batch is a kvtx.WriteBatchPrefetcher, a held write reads the pages
+// its batch will read under the writer's context, so a Flush that must not
+// wait on storage, such as one under a writer lock, finds them in memory.
+//
 // A failed flush leaves the underlying transaction partly written. Ops returns
 // the error from every later call; discard the underlying transaction.
 type Ops struct {
@@ -35,6 +39,8 @@ type Ops struct {
 	underlying kvtx.TxOps
 	// batch applies write batches to underlying.
 	batch kvtx.WriteBatchTxOps
+	// prefetch reads the pages a batch of held keys will read, or is nil.
+	prefetch kvtx.WriteBatchPrefetcher
 	// maxEntries and maxBytes bound the held writes.
 	maxEntries, maxBytes int
 
@@ -69,9 +75,11 @@ func NewOps(underlying kvtx.TxOps, batch kvtx.WriteBatchTxOps, maxEntries, maxBy
 	if maxBytes <= 0 {
 		maxBytes = DefaultMaxBytes
 	}
+	prefetch, _ := batch.(kvtx.WriteBatchPrefetcher)
 	return &Ops{
 		underlying: underlying,
 		batch:      batch,
+		prefetch:   prefetch,
 		maxEntries: maxEntries,
 		maxBytes:   maxBytes,
 		held:       btree.NewBTreeGOptions(entryLess, btree.Options{NoLocks: true}),
@@ -124,6 +132,16 @@ func (o *Ops) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntr
 		if len(e.Key) == 0 {
 			return kvtx.ErrEmptyKey
 		}
+	}
+
+	// Read the pages the batch applying the entries will read, leaving a
+	// failed read to the batch.
+	if o.prefetch != nil {
+		keys := make([][]byte, len(entries))
+		for i, e := range entries {
+			keys[i] = e.Key
+		}
+		_ = o.prefetch.PrefetchWriteBatch(ctx, keys)
 	}
 
 	// Hold copies of the entries, the last entry for a key winning.

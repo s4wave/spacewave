@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -18,7 +19,7 @@ import (
 // DeferUpper and returns errBackendDeferred at once, since its caller may hold
 // the World's writer. The fill cache over the backend then fills with only
 // what the backend served. Any other read passes through to the backend
-// unchanged.
+// unchanged, and is counted in the context's block.ReadCounter.
 type backendDefer struct {
 	// StoreOps is the backend store.
 	block.StoreOps
@@ -61,6 +62,7 @@ func (b *backendDefer) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 // GetBlock reads the block, deferring it as GetStoredBlock does.
 func (b *backendDefer) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if block.GetPeerReads(ctx) == nil {
+		defer recordBackendRead(ctx, time.Now())
 		return b.StoreOps.GetBlock(ctx, ref)
 	}
 	stored, err := b.GetStoredBlock(ctx, ref)
@@ -76,6 +78,7 @@ func (b *backendDefer) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 	// Read in place outside PeerReads.
 	reads := block.GetPeerReads(ctx)
 	if reads == nil {
+		defer recordBackendRead(ctx, time.Now())
 		return b.StoreOps.GetStoredBlock(ctx, ref)
 	}
 
@@ -93,6 +96,7 @@ func (b *backendDefer) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 // StatBlock stats the block, deferring it as GetStoredBlock does.
 func (b *backendDefer) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	if block.GetPeerReads(ctx) == nil {
+		defer recordBackendRead(ctx, time.Now())
 		return b.StoreOps.StatBlock(ctx, ref)
 	}
 	stored, err := b.GetStoredBlock(ctx, ref)
@@ -100,6 +104,11 @@ func (b *backendDefer) StatBlock(ctx context.Context, ref *block.BlockRef) (*blo
 		return nil, err
 	}
 	return &block.BlockStat{Ref: ref, Size: int64(len(stored.Data))}, nil
+}
+
+// recordBackendRead counts a read the backend served in place since started.
+func recordBackendRead(ctx context.Context, started time.Time) {
+	block.RecordBackendRead(ctx, time.Since(started))
 }
 
 // fetch returns the deferred read of ref from the unscoped backend, outside

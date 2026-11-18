@@ -18,6 +18,11 @@ type ReadCounter struct {
 	misses atomic.Uint64
 	// nanos is the time spent in the store reads counted by count.
 	nanos atomic.Int64
+	// backendReads is the number of reads a placed store's storage backend
+	// served in place, over the network.
+	backendReads atomic.Uint64
+	// backendNanos is the time spent in the reads backendReads counts.
+	backendNanos atomic.Int64
 	// resourceGetBlockCount is the number of Resource SDK GetBlock calls.
 	resourceGetBlockCount atomic.Uint64
 	// resourceGetBlockRefs is the number of non-empty Resource SDK GetBlock refs.
@@ -78,6 +83,8 @@ func (c *ReadCounter) Snapshot() ReadCounterSnapshot {
 		BlockReadBytes:                 c.bytes.Load(),
 		BlockReadMissCount:             c.misses.Load(),
 		BlockReadTime:                  time.Duration(c.nanos.Load()),
+		BackendReadCount:               c.backendReads.Load(),
+		BackendReadTime:                time.Duration(c.backendNanos.Load()),
 		ResourceGetBlockCount:          c.resourceGetBlockCount.Load(),
 		ResourceGetBlockRefCount:       c.resourceGetBlockRefs.Load(),
 		ResourceGetBlockBytes:          c.resourceGetBlockBytes.Load(),
@@ -113,6 +120,17 @@ func (c *ReadCounter) recordRead(found bool, bytes int, elapsed time.Duration) {
 		return
 	}
 	c.misses.Add(1)
+}
+
+// RecordBackendRead records a read a placed store's storage backend served in
+// place, which took elapsed.
+func RecordBackendRead(ctx context.Context, elapsed time.Duration) {
+	counter := ContextReadCounter(ctx)
+	if counter == nil {
+		return
+	}
+	counter.backendReads.Add(1)
+	counter.backendNanos.Add(int64(elapsed))
 }
 
 // RecordResourceGetBlock records a Resource SDK GetBlock call.

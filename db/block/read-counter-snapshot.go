@@ -12,6 +12,11 @@ type ReadCounterSnapshot struct {
 	BlockReadMissCount uint64
 	// BlockReadTime is the time spent in the reads BlockReadCount counts.
 	BlockReadTime time.Duration
+	// BackendReadCount is the number of reads a placed store's storage
+	// backend served in place, over the network.
+	BackendReadCount uint64
+	// BackendReadTime is the time spent in the reads BackendReadCount counts.
+	BackendReadTime time.Duration
 	// ResourceGetBlockCount is the number of Resource SDK GetBlock calls.
 	ResourceGetBlockCount uint64
 	// ResourceGetBlockRefCount is the number of non-empty refs passed to Resource SDK GetBlock.
