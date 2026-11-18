@@ -36,3 +36,16 @@ func SetReadTurns[T SQLiteDriverConfig](s *Store[T], n int) {
 func WakeCheckpoint(s any) {
 	s.(interface{ wakeCheckpoint() }).wakeCheckpoint()
 }
+
+// HoldReadTurns takes every read turn of s until the returned func runs.
+func HoldReadTurns[T SQLiteDriverConfig](s *Store[T]) func() {
+	n := cap(s.readTurns)
+	for range n {
+		s.readTurns <- struct{}{}
+	}
+	return func() {
+		for range n {
+			<-s.readTurns
+		}
+	}
+}

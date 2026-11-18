@@ -1,0 +1,12 @@
+[
+  {
+    "name": "an urgent reader takes turns like any reader",
+    "replace": [
+      [
+        "UrgentTakesTurns == FALSE",
+        "UrgentTakesTurns == TRUE"
+      ]
+    ],
+    "expect": "UrgentNeverWaits"
+  }
+]
