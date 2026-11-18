@@ -11,6 +11,9 @@ import (
 	"github.com/zeebo/blake3"
 )
 
+// NewEngineTransformConfig returns the testbed block transform: gzip, then
+// encryption under a key derived from the engine bucket ID, so each testbed
+// World stores its blocks as production does.
 func NewEngineTransformConfig(engineBucketID string) (*block_transform.Config, error) {
 	key := make([]byte, 32)
 	blake3.DeriveKey("hydra/world/testbed "+engineBucketID, []byte("testbed"), key)

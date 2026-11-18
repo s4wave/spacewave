@@ -4,7 +4,10 @@
 package world_mock
 
 import (
+	fmt "fmt"
 	time "time"
+
+	protowire "github.com/aperturerobotics/protobuf-go-lite/encoding/protowire"
 )
 
 const (
@@ -55,6 +58,89 @@ func (m *MockRefRecord) WorldSpan() (start, end time.Time, err error) {
 	}
 	if v := m.GetEndedAt(); v != nil {
 		end = v.AsTime()
+	}
+	return start, end, nil
+}
+
+// ScanWorldSpan returns the span WorldSpan returns for the MockRefRecord encoded
+// in data. It reads only the span fields and skips the others undecoded, so
+// it allocates nothing for them.
+// Returns an error if a span field is malformed or a string time is not
+// RFC 3339.
+func (*MockRefRecord) ScanWorldSpan(data []byte) (start, end time.Time, err error) {
+	var startText []byte
+	var endSet bool
+	var endSeconds, endNanos int64
+	for len(data) > 0 {
+		num, typ, n := protowire.ConsumeTag(data)
+		if n < 0 {
+			return start, end, protowire.ParseError(n)
+		}
+		data = data[n:]
+		switch num {
+		case 6:
+			if typ != protowire.BytesType {
+				return start, end, fmt.Errorf("proto: wrong wireType = %d for field CreatedAt", typ)
+			}
+			v, n := protowire.ConsumeBytes(data)
+			if n < 0 {
+				return start, end, protowire.ParseError(n)
+			}
+			data = data[n:]
+			startText = v
+		case 7:
+			if typ != protowire.BytesType {
+				return start, end, fmt.Errorf("proto: wrong wireType = %d for field EndedAt", typ)
+			}
+			v, n := protowire.ConsumeBytes(data)
+			if n < 0 {
+				return start, end, protowire.ParseError(n)
+			}
+			data = data[n:]
+			endSet = true
+			for len(v) > 0 {
+				tnum, ttyp, tn := protowire.ConsumeTag(v)
+				if tn < 0 {
+					return start, end, protowire.ParseError(tn)
+				}
+				v = v[tn:]
+				if tnum != 1 && tnum != 2 {
+					tn = protowire.ConsumeFieldValue(tnum, ttyp, v)
+					if tn < 0 {
+						return start, end, protowire.ParseError(tn)
+					}
+					v = v[tn:]
+					continue
+				}
+				if ttyp != protowire.VarintType {
+					return start, end, fmt.Errorf("proto: wrong wireType = %d for field EndedAt", ttyp)
+				}
+				x, tn := protowire.ConsumeVarint(v)
+				if tn < 0 {
+					return start, end, protowire.ParseError(tn)
+				}
+				v = v[tn:]
+				if tnum == 1 {
+					endSeconds = int64(x)
+				} else {
+					endNanos = int64(int32(x))
+				}
+			}
+		default:
+			n = protowire.ConsumeFieldValue(num, typ, data)
+			if n < 0 {
+				return start, end, protowire.ParseError(n)
+			}
+			data = data[n:]
+		}
+	}
+	if len(startText) != 0 {
+		if start, err = time.Parse(time.RFC3339Nano, string(startText)); err != nil {
+			return start, end, err
+		}
+	}
+	if endSet {
+		end = time.Unix(endSeconds, endNanos).UTC()
 	}
 	return start, end, nil
 }

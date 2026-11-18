@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "20edf72219060dec80e2bf51977673202942179b892223eebe847286d11ffc31",
+  "protocFlagsHash": "2016a1e638be9b553c888e551dc0e95ce77192b09ea1233b6b1fd297cf2d6e7d",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
   "packages": {
     "github.com/s4wave/spacewave/bldr/web/plugin": {

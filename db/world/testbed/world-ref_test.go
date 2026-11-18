@@ -98,6 +98,20 @@ func TestRefQuads(t *testing.T) {
 	if err != nil || !start.Equal(created) || !end.Equal(created.Add(time.Hour)) {
 		t.Fatalf("WorldSpan = %v, %v, %v", start, end, err)
 	}
+
+	// ScanWorldSpan reads the same span from the encoded record, and rejects a
+	// truncated one.
+	data, err := rec.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	scanStart, scanEnd, err := rec.ScanWorldSpan(data)
+	if err != nil || !scanStart.Equal(start) || !scanEnd.Equal(end) {
+		t.Fatalf("ScanWorldSpan = %v, %v, %v", scanStart, scanEnd, err)
+	}
+	if _, _, err := rec.ScanWorldSpan(data[:len(data)-1]); err == nil {
+		t.Fatal("ScanWorldSpan of a truncated record succeeded")
+	}
 }
 
 // readRecordQuads returns the sorted quads from the object "record", each as
