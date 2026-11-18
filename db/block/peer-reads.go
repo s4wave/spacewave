@@ -24,14 +24,31 @@ type PeerFetch func(ctx context.Context) (*StoredBlock, error)
 // no lock held, then runs again under the same PeerReads, whose reads of the
 // fetched blocks answer from it. One PeerReads lives across a caller's
 // attempts and is safe for concurrent use.
+//
+// A tier with tiers below it, such as a storage backend above the peers,
+// defers with DeferUpper and answers with LookupUpper. A block its fetch
+// finds absent is not a failed fetch but a miss of that tier, which Missed
+// reports, so the next attempt's read passes it and reaches the tiers below,
+// which may defer it in turn.
 type PeerReads struct {
 	mtx sync.Mutex
 	// pending are the blocks deferred and not fetched yet, by marshaled ref.
-	pending map[string]PeerFetch
+	pending map[string]pendingRead
 	// fetched are the blocks Fetch read, by marshaled ref.
 	fetched map[string]*StoredBlock
+	// missed are the blocks an upper tier's fetch found absent, by marshaled
+	// ref.
+	missed map[string]struct{}
 	// rounds counts the Fetch calls.
 	rounds int
+}
+
+// pendingRead is a deferred block's fetch.
+type pendingRead struct {
+	// fetch reads the block.
+	fetch PeerFetch
+	// upper marks a fetch of a tier with tiers below it, see DeferUpper.
+	upper bool
 }
 
 // NewPeerReads constructs an empty PeerReads.
@@ -60,18 +77,59 @@ func (r *PeerReads) Lookup(ref *BlockRef) *StoredBlock {
 }
 
 // Defer records ref as a block to fetch with fetch, unless it is recorded.
+// A fetch that finds the block absent fails the round, as Fetch describes.
 func (r *PeerReads) Defer(ref *BlockRef, fetch PeerFetch) {
-	key := ref.MarshalString()
+	r.deferRead(ref.MarshalString(), pendingRead{fetch: fetch})
+}
+
+// DeferUpper records ref as a block to fetch with fetch, the read of a tier
+// with tiers below it, unless it is recorded. A fetch that finds the block
+// absent records it for Missed instead of failing the round. The upper tier's
+// blocks are kept apart from the other tiers': LookupUpper answers only what
+// its fetches read, so a block a lower tier fetched never reads as the upper
+// tier's.
+func (r *PeerReads) DeferUpper(ref *BlockRef, fetch PeerFetch) {
+	r.deferRead(upperKey(ref), pendingRead{fetch: fetch, upper: true})
+}
+
+// LookupUpper returns the block an upper tier's fetch read for ref, or nil.
+func (r *PeerReads) LookupUpper(ref *BlockRef) *StoredBlock {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	return r.fetched[upperKey(ref)]
+}
+
+// Missed reports whether an upper tier's fetch found ref absent.
+func (r *PeerReads) Missed(ref *BlockRef) bool {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	_, ok := r.missed[upperKey(ref)]
+	return ok
+}
+
+// upperKey is the key of ref's upper tier read.
+func upperKey(ref *BlockRef) string {
+	return "upper/" + ref.MarshalString()
+}
+
+// deferRead records read under key unless key is recorded.
+func (r *PeerReads) deferRead(key string, read pendingRead) {
+	// Skip a key whose fetch already answered.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	if _, ok := r.fetched[key]; ok {
 		return
 	}
+	if _, ok := r.missed[key]; ok {
+		return
+	}
+
+	// Keep the first read deferred for the key.
 	if r.pending == nil {
-		r.pending = make(map[string]PeerFetch)
+		r.pending = make(map[string]pendingRead)
 	}
 	if _, ok := r.pending[key]; !ok {
-		r.pending[key] = fetch
+		r.pending[key] = read
 	}
 }
 
@@ -92,7 +150,8 @@ func (r *PeerReads) Rounds() int {
 // Fetch reads every pending block from peers, a few at a time, and keeps
 // them for Lookup. It reports whether every block was found. A block no peer
 // holds, or a fetch that failed, is dropped from pending, and the first such
-// failure is returned; ok is false then too.
+// failure is returned; ok is false then too. A block an upper tier's fetch
+// found absent is kept for Missed and leaves ok true.
 func (r *PeerReads) Fetch(ctx context.Context) (ok bool, err error) {
 	// Take the pending fetches.
 	r.mtx.Lock()
@@ -106,24 +165,46 @@ func (r *PeerReads) Fetch(ctx context.Context) (ok bool, err error) {
 	eg.SetLimit(peerReadFetchers)
 	var mtx sync.Mutex
 	ok = true
-	for key, fetch := range pending {
+	for key, read := range pending {
 		eg.Go(func() error {
-			stored, err := fetch(ctx)
+			// Fetch the block and keep what the fetch answered.
+			stored, err := read.fetch(ctx)
+			if r.record(key, read, stored, err) {
+				return nil
+			}
+
+			// A fetch that answered nothing fails the round.
 			mtx.Lock()
-			defer mtx.Unlock()
-			if err != nil || stored == nil {
-				ok = false
-				return err
-			}
-			r.mtx.Lock()
-			if r.fetched == nil {
-				r.fetched = make(map[string]*StoredBlock)
-			}
-			r.fetched[key] = stored
-			r.mtx.Unlock()
-			return nil
+			ok = false
+			mtx.Unlock()
+			return err
 		})
 	}
 	err = eg.Wait()
 	return ok && err == nil, err
+}
+
+// record keeps the result of key's fetch and reports whether it answered:
+// a block found, or an upper tier's block found absent.
+func (r *PeerReads) record(key string, read pendingRead, stored *StoredBlock, err error) bool {
+	// A failed fetch, or a peer that lacks the block, answers nothing.
+	if err != nil || (stored == nil && !read.upper) {
+		return false
+	}
+
+	// Keep a block an upper tier lacks for Missed, and any other for Lookup.
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	if stored == nil {
+		if r.missed == nil {
+			r.missed = make(map[string]struct{})
+		}
+		r.missed[key] = struct{}{}
+		return true
+	}
+	if r.fetched == nil {
+		r.fetched = make(map[string]*StoredBlock)
+	}
+	r.fetched[key] = stored
+	return true
 }
