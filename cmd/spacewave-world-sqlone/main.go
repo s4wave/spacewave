@@ -9,10 +9,11 @@
 //
 // It reads with the store's own batch query, at most --batch keys per query
 // and --rate queries per second. An append-only ledger records each batch and
-// the output sizes after it, so a stopped run resumes where it stopped. Any
-// SQL error gets one reconnect after a minute, then the run stops; a refused,
-// too-many or auth error stops it at once. It never writes the database and
-// never prints the credentials it reads.
+// the output sizes after it, so a stopped run resumes where it stopped. It
+// stops on any SQL error and on a query over 10 s, after recording the slow
+// batch, so a server under strain is left alone until someone resumes the
+// run. It never writes the database and never prints the credentials it
+// reads.
 //
 // With --list-keys it reads no bodies: it lists every key of the store in key
 // order, a page of at most --batch (up to 10,000) keys per query and at most 2
@@ -51,6 +52,9 @@ var keyPrefix = []byte{0x08, 0x01, 0x12, 0x20}
 
 // exitStop is the exit code of a stop on an error.
 const exitStop = 2
+
+// readQueryMax is the longest batch query a read run accepts before it stops.
+const readQueryMax = 10 * time.Second
 
 func main() {
 	code, err := run()
@@ -136,11 +140,11 @@ func run() (int, error) {
 	}
 	defer r.close()
 
-	// Read the batches in order at the rate, reconnecting once on an error.
+	// Read the batches in order at the rate.
 	interval := time.Duration(float64(time.Second) / *rate)
 	last := time.Time{}
 	lastLog := time.Now()
-	reconnected := false
+	var maxMs int64
 	for b := out.next; b < nb; b++ {
 		// Stop cleanly on the stop file.
 		if *stopFile != "" {
@@ -157,30 +161,24 @@ func run() (int, error) {
 		last = time.Now()
 		chunk := keys[b**batch : min((b+1)**batch, len(keys))]
 		rows, ms, err := r.read(ctx, chunk)
-
-		// Stop on a fatal or second error; otherwise reconnect once and retry.
 		if err != nil {
-			if fatal(err) || reconnected {
-				return exitStop, fmt.Errorf("batch %d: %w", b, err)
-			}
-			logf("batch %d: %v; one reconnect in 60 s", b, err)
-			r.close()
-			time.Sleep(time.Minute)
-			reconnected = true
-			if err := r.connect(ctx); err != nil {
-				return exitStop, err
-			}
-			b--
-			continue
+			return exitStop, fmt.Errorf("batch %d: %w", b, err)
 		}
 
-		// Record the batch, then report progress.
+		// Record the batch, then stop on a slow query.
 		if err := out.write(b, chunk, rows); err != nil {
 			return 1, err
 		}
+		if ms > readQueryMax.Milliseconds() {
+			return exitStop, fmt.Errorf("batch %d took %d ms, over %d ms", b, ms, readQueryMax.Milliseconds())
+		}
+
+		// Report progress with the slowest query since the last report.
+		maxMs = max(maxMs, ms)
 		if b == out.first || time.Since(lastLog) >= 30*time.Second || b == nb-1 {
 			lastLog = time.Now()
-			logf("batch %d/%d query_ms %d found %d missed %d hashbad %d bytes %d", b+1, nb, ms, out.found, out.missed, out.hashBad, out.bytes)
+			logf("batch %d/%d query_ms %d max_ms %d found %d missed %d hashbad %d bytes %d", b+1, nb, ms, maxMs, out.found, out.missed, out.hashBad, out.bytes)
+			maxMs = 0
 		}
 	}
 
@@ -316,26 +314,6 @@ func readEnv(path string) (*block_store_sql.Config, error) {
 	return conf, nil
 }
 
-// fatal reports an error that stops the run without a reconnect: a refused
-// connection, too many connections, or a refused login.
-func fatal(err error) bool {
-	// Match the server's refusal numbers.
-	var me *mysql.MySQLError
-	if errors.As(err, &me) {
-		switch me.Number {
-		case 1040, 1044, 1045, 1129, 1130, 1203, 1226, 1698:
-			return true
-		}
-	}
-
-	// Match a refused dial or the same words in other errors.
-	if errors.Is(err, syscall.ECONNREFUSED) {
-		return true
-	}
-	s := strings.ToLower(err.Error())
-	return strings.Contains(s, "refused") || strings.Contains(s, "too many") || strings.Contains(s, "access denied")
-}
-
 // reader holds the one database session.
 type reader struct {
 	// conf is the database location and login.
@@ -415,7 +393,7 @@ func (r *reader) read(ctx context.Context, keys [][]byte) (map[string]row, int64
 		strings.TrimSuffix(strings.Repeat("?,", len(keys)), ",") + ")"
 
 	// Run it.
-	qctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	qctx, cancel := context.WithTimeout(ctx, readQueryMax+5*time.Second)
 	defer cancel()
 	start := time.Now()
 	rows, err := r.conn.QueryContext(qctx, query, args...)
