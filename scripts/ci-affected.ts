@@ -9,10 +9,14 @@
 // step passes after setup. The TLA+ spec jobs are the exception: a delta run
 // lists only the spec jobs whose models changed, other than those of
 // fullRunSpecs, even when a job definition selected the full suite, and the
-// workflow skips the spec matrix when it lists none.
+// workflow skips the spec matrix when it lists none. Every spec job checks its
+// configs through check:tla:configs and judges no mutant: the mutants take
+// hours, so they leave the runs that gate a landing, and the mutants mode
+// lists the nightly jobs that judge them.
 //
 // Usage: bun scripts/ci-affected.ts full
 //        bun scripts/ci-affected.ts delta <base-commit>
+//        bun scripts/ci-affected.ts mutants
 //
 // Outside GitHub Actions the outputs print to stdout.
 
@@ -42,18 +46,14 @@ const fullRunPaths = [
 const checkerPaths = [/^package\.json$/, /^bun\.lock$/, /^patches\//]
 
 // fullRunSpecs are the specs a delta run leaves to the full runs, because their
-// models and mutants take longer than a delta run may hold its branch's queue.
+// models take longer than a delta run may hold its branch's queue.
 // The CI hourly workflow's full dispatch checks them on master. A delta run
 // that changes one checks only its stackConfigs, in one job.
 const fullRunSpecs = new Set(['db/block/gc/Journal.tla'])
 
 // stackConfigs are the Journal configs a delta run checks when the spec
 // changes, with their times on a GitHub runner on one core; they sum to about
-// 11 minutes. The Journal-stack job checks them through check:tla:configs,
-// which judges only the spec mutants that name one of them, about 30 s more;
-// aptre-tla would also judge every other spec mutant and every testdata config
-// mutant, well over an hour. A config that grows past its time moves to the
-// full run, which checks every config and mutant.
+// 11 minutes. A config that grows past its time moves to the full run.
 const stackConfigs = [
   'db/block/gc/Journal-collect-notail.cfg', // 6 s
   'db/block/gc/Journal-rogue-hold.cfg', // 15 s
@@ -84,6 +84,10 @@ const unrunConfigs = new Map([
   [
     'db/block/gc/Journal-adopt-revive-hole.cfg',
     'fails CountsCover, which stays open until the adoption window is decided',
+  ],
+  [
+    'db/block/gc/Journal-adopt-revive-hole-accept.cfg',
+    'fails CountsCover as Journal-adopt-revive-hole does, at depth 29',
   ],
 ])
 
@@ -223,28 +227,76 @@ const dbChecks: DbEntry = {
 const dbTests: DbEntry = { ...dbChecks, name: 'tests' }
 
 // SpecEntry is one TLA+ spec job matrix entry: the configs it checks, with
-// workers checker threads, within timeout minutes, through script, check:tla
-// when unset.
+// workers checker threads, within timeout minutes. In ownSpecJobs a config
+// may be a Git pathspec glob that names a family of configs.
 interface SpecEntry {
   name: string
   configs: string
   workers: number
   timeout: number
-  script?: string
 }
 
 // ownSpecJobs are the models that take minutes, each checked in its own job so
-// no job nears its timeout; every other config, including a new one, checks
-// in the models job. A model that needs longer than 25 minutes sets its own
-// timeout, and one that needs hours checks with the runner's four cores.
-// Journal.cfg, which composes every rule with concurrent writers, reaches 17.5
-// million states in 4.8 hours on one core.
+// no job nears its timeout, alone or with a family of configs whose times sum
+// within it; every other config, including a new one, checks in the models
+// job, whose configs take about 13 minutes on one core. A model that needs
+// longer than 25 minutes sets its own timeout. Journal.cfg, which composes
+// every rule with concurrent writers, reaches 293,186 states in 8 minutes on
+// the runner's four cores. The times are on one core of a build host, which
+// runs as fast as a GitHub runner.
 const ownSpecJobs: SpecEntry[] = [
+  {
+    // Sixteen configs, 563 s together.
+    name: 'Transfer',
+    configs: 'core/provider/transfer/Transfer-*.cfg',
+    workers: 1,
+    timeout: 25,
+  },
+  {
+    // AuditWalk takes 264 s and its siblings 41 s.
+    name: 'AuditWalk',
+    configs: 'db/block/gc/AuditWalk*.cfg',
+    workers: 1,
+    timeout: 25,
+  },
+  {
+    name: 'ReplaySkip-Stale',
+    configs: 'core/space/world/ReplaySkip-Stale.cfg',
+    workers: 1,
+    timeout: 25,
+  },
+  {
+    name: 'Journal-rogue',
+    configs: 'db/block/gc/Journal-rogue.cfg',
+    workers: 1,
+    timeout: 25,
+  },
+  {
+    // Unfinished after 19 minutes at 2.6 GB on one core.
+    name: 'Journal-adopt-hold',
+    configs: 'db/block/gc/Journal-adopt-hold.cfg',
+    workers: 1,
+    timeout: 120,
+  },
+  {
+    // Unfinished after 19 minutes at 5.4 GB on one core.
+    name: 'Journal-adopt-revive',
+    configs: 'db/block/gc/Journal-adopt-revive.cfg',
+    workers: 1,
+    timeout: 120,
+  },
+  {
+    // Unfinished after 19 minutes at 3.1 GB on one core.
+    name: 'Journal-adopt-revive-fillnew',
+    configs: 'db/block/gc/Journal-adopt-revive-fillnew.cfg',
+    workers: 1,
+    timeout: 120,
+  },
   {
     name: 'Journal',
     configs: 'db/block/gc/Journal.cfg',
     workers: 4,
-    timeout: 240,
+    timeout: 25,
   },
   {
     name: 'Journal-adopt',
@@ -337,6 +389,61 @@ const ownSpecJobs: SpecEntry[] = [
     timeout: 25,
   },
 ]
+
+// MutantEntry is one nightly TLA+ mutant job matrix entry: the mutant sources
+// it judges through check:tla:mutants, on one checker thread within timeout
+// minutes. A source is a spec, for all of its mutants, its Foo.mutants.json,
+// or one testdata config mutant.
+interface MutantEntry {
+  name: string
+  targets: string
+  timeout: number
+}
+
+// splitMutantSpecs are the specs whose mutants take hours, each source of which
+// is judged in its own job: Foo.mutants.json, and each testdata config mutant.
+// The mutants of every other spec a CI run checks share one job. One thread
+// judges faster than four: Journal's spec mutants take 12 minutes on one and
+// 31 on four.
+const splitMutantSpecs = ['db/block/gc/Journal.tla']
+
+// mutantEntries returns the nightly mutant jobs: one of the specs whose
+// configs the spec jobs check, less splitMutantSpecs, and one per mutant
+// source of each of those.
+function mutantEntries(): MutantEntry[] {
+  const split = new Set(splitMutantSpecs)
+  const tlaFiles = trackedSpecs()
+  const specs = new Set<string>()
+  for (const config of specConfigs()) {
+    const spec = specOf(config, tlaFiles)
+    if (spec !== undefined && !split.has(spec)) {
+      specs.add(spec)
+    }
+  }
+  const entries: MutantEntry[] = [
+    { name: 'specs', targets: [...specs].sort().join(' '), timeout: 120 },
+  ]
+  for (const spec of splitMutantSpecs) {
+    const stem = basename(spec, '.tla')
+    const list = spec.replace(/\.tla$/, '.mutants.json')
+    if (existsSync(list)) {
+      entries.push({ name: stem, targets: list, timeout: 60 })
+    }
+    const testdata = run('git', [
+      'ls-files',
+      `${dirname(spec)}/testdata/${stem}.cfg`,
+      `${dirname(spec)}/testdata/${stem}-*.cfg`,
+    ])
+    for (const config of testdata.split('\n').filter((f) => f !== '')) {
+      entries.push({
+        name: basename(config, '.cfg'),
+        targets: config,
+        timeout: 360,
+      })
+    }
+  }
+  return entries
+}
 
 // Selection is the work one run performs.
 interface Selection {
@@ -535,6 +642,13 @@ function goscriptPackages(graph: Graph): Set<string> {
   return out
 }
 
+// gitFiles returns the tracked files the pathspecs name.
+function gitFiles(pathspecs: string[]): string[] {
+  return run('git', ['ls-files', '--', ...pathspecs])
+    .split('\n')
+    .filter((file) => file !== '')
+}
+
 // specConfigs returns every model config the spec jobs check: the tracked
 // .cfg files outside testdata, less unrunConfigs.
 function specConfigs(): string[] {
@@ -544,12 +658,26 @@ function specConfigs(): string[] {
 }
 
 // specEntries returns the spec jobs that check a config selected allows: each
-// own job whose config it allows, and a models job of the other configs it
-// allows.
+// own job, holding those of its configs it allows, and a models job of the
+// other configs it allows.
 function specEntries(selected: (config: string) => boolean): SpecEntry[] {
-  const own = new Set(ownSpecJobs.map((job) => job.configs))
-  const models = specConfigs().filter((cfg) => !own.has(cfg) && selected(cfg))
-  const entries = ownSpecJobs.filter((job) => selected(job.configs))
+  const all = specConfigs()
+  const runnable = new Set(all)
+  const jobs = ownSpecJobs.map((job) => ({
+    job,
+    configs: gitFiles(job.configs.split(' ')).filter((cfg) =>
+      runnable.has(cfg),
+    ),
+  }))
+  const own = new Set(jobs.flatMap((j) => j.configs))
+  const models = all.filter((cfg) => !own.has(cfg) && selected(cfg))
+  const entries: SpecEntry[] = []
+  for (const { job, configs } of jobs) {
+    const chosen = configs.filter(selected)
+    if (chosen.length > 0) {
+      entries.push({ ...job, configs: chosen.join(' ') })
+    }
+  }
   if (models.length > 0) {
     entries.unshift({
       name: 'models',
@@ -578,7 +706,6 @@ function deltaSpecs(files: string[]): SpecEntry[] {
       configs: stack.join(' '),
       workers: 1,
       timeout: 25,
-      script: 'check:tla:configs',
     })
   }
   return entries
@@ -838,17 +965,22 @@ function deltaSelection(base: string): Selection {
   }
 }
 
-// writeOutputs publishes the selection as job outputs. Each matrix output is
-// a JSON matrix value.
-function writeOutputs(selection: Selection) {
-  const matrix = (include: object[]) => JSON.stringify({ include })
-  const outputs: Record<string, string> = {
+// matrix returns a JSON matrix value of include.
+const matrix = (include: object[]) => JSON.stringify({ include })
+
+// writeSelection publishes the selection as job outputs.
+function writeSelection(selection: Selection) {
+  writeOutputs({
     mode: selection.mode,
     members: matrix(selection.members),
     alpha: matrix(selection.alpha),
     db: matrix(selection.db),
     specs: matrix(selection.specs),
-  }
+  })
+}
+
+// writeOutputs publishes outputs as job outputs.
+function writeOutputs(outputs: Record<string, string>) {
   const text = Object.entries(outputs)
     .map(([key, value]) => `${key}=${value}\n`)
     .join('')
@@ -862,10 +994,12 @@ function writeOutputs(selection: Selection) {
 
 const [mode, base] = process.argv.slice(2)
 if (mode === 'full') {
-  writeOutputs(fullSelection())
+  writeSelection(fullSelection())
 } else if (mode === 'delta' && base) {
-  writeOutputs(deltaSelection(base))
+  writeSelection(deltaSelection(base))
+} else if (mode === 'mutants') {
+  writeOutputs({ mutants: matrix(mutantEntries()) })
 } else {
-  console.error('usage: ci-affected.ts full | delta <base-commit>')
+  console.error('usage: ci-affected.ts full | delta <base-commit> | mutants')
   process.exit(2)
 }

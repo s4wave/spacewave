@@ -46,6 +46,7 @@
     "check": "bun run typecheck && bun run lint && bun run check:tla",
     "check:tla": "aptre-tla",
     "check:tla:configs": "bun scripts/check-tla-configs.ts",
+    "check:tla:mutants": "bun scripts/check-tla-configs.ts -mutants",
     "fecheck": "bun scripts/fecheck.js",
     "clean": "rimraf ./dist ./.bldr/{devtool.db*,logs,src,plugin,build,cli,cache} ./.bldr-dist ./.tools ./bin ./bldr/bin",
     "clean:full": "bun run clean && rimraf ./.bldr ./.tmp",

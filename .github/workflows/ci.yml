@@ -108,6 +108,7 @@ jobs:
   # whose config, spec or spec modules changed, less the specs too slow for a
   # delta run; see scripts/ci-affected.ts. A delta run that lists none skips
   # the job, and the CI hourly workflow's full dispatch checks every model.
+  # It judges no mutant; the TLA+ mutants workflow judges them nightly.
   specs:
     name: TLA+ specs (${{ matrix.name }})
     needs: affected
@@ -129,13 +130,12 @@ jobs:
         env:
           CONFIGS: ${{ matrix.configs }}
           WORKERS: ${{ matrix.workers }}
-          SCRIPT: ${{ matrix.script || 'check:tla' }}
           # tla-ts keeps the whole state space in the Node heap; Journal.cfg
           # needs about 8 GB of the runner's 16.
           NODE_OPTIONS: --max-old-space-size=12288
         run: |
           read -ra configs <<<"$CONFIGS"
-          bun run "$SCRIPT" -workers "$WORKERS" "${configs[@]}"
+          bun run check:tla:configs -workers "$WORKERS" "${configs[@]}"
 
   member-ci:
     name: CI (${{ matrix.name }})
