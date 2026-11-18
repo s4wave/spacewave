@@ -472,13 +472,17 @@ func holdBoundAssets(ctx context.Context, b bus.Bus) (*boundAssets, error) {
 	}
 	artifacts := make(map[string]string, len(BoundPluginIDs))
 	for _, pluginID := range BoundPluginIDs {
+		// Select the current root, then pin it. The current load and the pinned
+		// mount each publish the root's files under one artifact ID, and a reader
+		// may open either copy, so the current load is held until the package
+		// listing below has read through it.
 		root, _, ref, err := bus.ExecWaitValue[string](ctx, b, bldr_plugin.NewLoadPluginAssets(pluginID), nil, nil, nil)
 		if err != nil {
 			release()
 			return nil, err
 		}
+		defer ref.Release()
 		_, _, pinnedRef, err := bus.ExecWaitValue[string](ctx, b, bldr_plugin.NewLoadPluginAssetsAtManifest(pluginID, root), nil, nil, nil)
-		ref.Release()
 		if err != nil {
 			release()
 			return nil, err
@@ -512,27 +516,10 @@ func holdBoundAssets(ctx context.Context, b bus.Bus) (*boundAssets, error) {
 	return assets, nil
 }
 
-// webPkgListAttempts bounds how many times a canceled listing is retried.
-const webPkgListAttempts = 3
-
 // listWebPkgIDs lists the web packages in a mounted assets artifact: each
 // entry of its web packages directory, and each entry of a scope directory
 // such as @pierre. An artifact without the directory holds no packages.
-//
-// The assets filesystem's tracker can restart while a listing reads, which
-// cancels the open handle. A fresh access resolves the restarted filesystem,
-// so a canceled read is retried while ctx is live.
 func listWebPkgIDs(ctx context.Context, b bus.Bus, artifactID string) ([]string, error) {
-	for attempt := 1; ; attempt++ {
-		pkgIDs, err := readWebPkgIDs(ctx, b, artifactID)
-		if err == nil || ctx.Err() != nil || !errors.Is(err, context.Canceled) || attempt == webPkgListAttempts {
-			return pkgIDs, err
-		}
-	}
-}
-
-// readWebPkgIDs reads the package IDs of one access to the assets filesystem.
-func readWebPkgIDs(ctx context.Context, b bus.Bus, artifactID string) ([]string, error) {
 	// Open the artifact's assets filesystem while its mount is held.
 	access, accessRef, err := unixfs_access.ExAccessUnixFS(ctx, b, bldr_plugin.PluginAssetsFsId(artifactID), true, nil)
 	if err != nil {
