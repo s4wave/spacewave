@@ -240,10 +240,13 @@ interface SpecEntry {
 // no job nears its timeout, alone or with a family of configs whose times sum
 // within it; every other config, including a new one, checks in the models
 // job, whose configs take about 13 minutes on one core. A model that needs
-// longer than 25 minutes sets its own timeout. Journal.cfg, which composes
-// every rule with concurrent writers, reaches 293,186 states in 8 minutes on
-// the runner's four cores. The times are on one core of a build host, which
-// runs as fast as a GitHub runner.
+// longer than 25 minutes on one core checks on the runner's four cores when
+// tla-ts spreads it across them and that fits 25 minutes, and otherwise moves
+// to nightlyConfigJobs. Journal.cfg, which composes every rule with concurrent
+// writers, reaches 293,186 states in 8 minutes on the runner's four cores and
+// in 167 s on four build host cores, so four build host cores run about three
+// times as fast as a runner's four. Unless an entry says otherwise, the times
+// are on one core of a build host, which runs as fast as a GitHub runner.
 const ownSpecJobs: SpecEntry[] = [
   {
     // Sixteen configs, 563 s together.
@@ -284,22 +287,20 @@ const ownSpecJobs: SpecEntry[] = [
     timeout: 25,
   },
   {
+    // 28 to 43 minutes on a runner's one core; 385 s on four build host
+    // cores, about 19 minutes on a runner's four.
     name: 'Journal-adopt-cut',
     configs: 'db/block/gc/Journal-adopt-cut.cfg',
-    workers: 1,
+    workers: 4,
     timeout: 45,
   },
   {
+    // 14 to 25 minutes on a runner's one core; 224 s on four build host
+    // cores, about 11 minutes on a runner's four.
     name: 'Journal-adopt-cut-open',
     configs: 'db/block/gc/Journal-adopt-cut-open.cfg',
-    workers: 1,
+    workers: 4,
     timeout: 30,
-  },
-  {
-    name: 'Journal-adopt-revive-fill',
-    configs: 'db/block/gc/Journal-adopt-revive-fill.cfg',
-    workers: 1,
-    timeout: 90,
   },
   {
     name: 'Journal-adopt-revive-reader',
@@ -318,12 +319,6 @@ const ownSpecJobs: SpecEntry[] = [
     configs: 'db/block/gc/Journal-hole.cfg',
     workers: 1,
     timeout: 25,
-  },
-  {
-    name: 'Journal-hole-fill',
-    configs: 'db/block/gc/Journal-hole-fill.cfg',
-    workers: 1,
-    timeout: 90,
   },
   {
     name: 'Journal-lease',
@@ -393,6 +388,23 @@ const nightlyConfigJobs: SpecEntry[] = [
     name: 'Journal-adopt-cut-r2',
     configs: 'db/block/gc/Journal-adopt-cut-r2.cfg',
     workers: 1,
+    timeout: 120,
+  },
+  {
+    // Exceeded its 90-minute timeout on a CI runner twice. Given four workers,
+    // tla-ts still checks it on one thread, and it was unfinished after 20
+    // minutes on a build host.
+    name: 'Journal-adopt-revive-fill',
+    configs: 'db/block/gc/Journal-adopt-revive-fill.cfg',
+    workers: 1,
+    timeout: 180,
+  },
+  {
+    // 47 to 81 minutes on a runner's one core; 693 s on four build host
+    // cores, about 35 minutes on a runner's four.
+    name: 'Journal-hole-fill',
+    configs: 'db/block/gc/Journal-hole-fill.cfg',
+    workers: 4,
     timeout: 120,
   },
 ]
