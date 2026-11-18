@@ -7,6 +7,8 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 )
@@ -28,6 +30,10 @@ func (w *bodyOnlyWorld) GetObject(ctx context.Context, key string) (world.Object
 		return nil, false, errors.New("body lookup allocated an object handle")
 	}
 	return w.inner.GetObject(ctx, key)
+}
+
+func (w *bodyOnlyWorld) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
+	return w.inner.AccessWorldState(ctx, ref, cb)
 }
 
 func (w *bodyOnlyWorld) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {

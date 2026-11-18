@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/s4wave/spacewave/db/block"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 )
 
 // ObjectBodiesBatchByteBudget is the encoded-size budget shared by body batch
@@ -116,8 +117,8 @@ func collectObjectBodyPages(ctx context.Context, ws WorldState, keys []string) (
 
 // LookupObjectBodiesPage implements WorldStateObject.GetObjectBodiesBatchPage
 // for a store without a batch read: it reads the seqno, then each body
-// through LookupObjectBodyEntry. Call it only on a store that reads one
-// revision, such as a transaction.
+// through one World storage cursor held for the page. Call it only on a store
+// that reads one revision, such as a transaction.
 func LookupObjectBodiesPage(
 	ctx context.Context,
 	ws WorldState,
@@ -132,10 +133,19 @@ func LookupObjectBodiesPage(
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	bodies, consumed, err := getObjectBodiesBatchPage(ctx, keys, byteBudget, func(ctx context.Context, key string) (*ObjectBody, error) {
-		return LookupObjectBodyEntry(ctx, ws, key)
+	var bodies []*ObjectBody
+	var consumed uint32
+	err = ws.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		var err error
+		bodies, consumed, err = getObjectBodiesBatchPage(ctx, keys, byteBudget, func(ctx context.Context, key string) (*ObjectBody, error) {
+			return lookupObjectBodyFrom(ctx, ws, root, key)
+		})
+		return err
 	})
-	return bodies, consumed, seqno, err
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	return bodies, consumed, seqno, nil
 }
 
 func getObjectBodiesBatchPage(

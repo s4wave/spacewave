@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 )
 
 // ExecTransaction runs cb in a transaction and commits it when write is set
@@ -175,7 +176,20 @@ func LookupObjectBodyBytes(
 // LookupObjectBodyEntry looks up the transformed root body of an object with
 // its revision and, when the object state reports it, its ModSeqno. A missing
 // object returns a body with Exists unset.
-func LookupObjectBodyEntry(ctx context.Context, ws WorldState, objKey string) (*ObjectBody, error) {
+func LookupObjectBodyEntry(ctx context.Context, ws WorldState, objKey string) (out *ObjectBody, err error) {
+	err = ws.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		out, err = lookupObjectBodyFrom(ctx, ws, root, objKey)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// lookupObjectBodyFrom reads one object's body entry, fetching its root block
+// through root, the World storage cursor the caller holds for the read.
+func lookupObjectBodyFrom(ctx context.Context, ws WorldState, root *bucket_lookup.Cursor, objKey string) (*ObjectBody, error) {
 	// Acquire the requested object state for the body read.
 	out := &ObjectBody{ObjectKey: objKey}
 	obj, found, err := ws.GetObject(ctx, objKey)
@@ -199,16 +213,23 @@ func LookupObjectBodyEntry(ctx context.Context, ws WorldState, objKey string) (*
 		return nil, err
 	}
 
-	// Fetch the root block bytes through the object storage cursor.
-	_, err = AccessObject(ctx, obj.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
-		body, keep, found, err := bcs.FetchWithKeep(ctx)
-		if found {
-			out.Body, out.keep = body, keep
+	// Follow the root only when it leaves the storage cursor's bucket or
+	// transform; otherwise read the root block in place.
+	if !root.FollowsInPlace(rootRef) {
+		followed, err := root.FollowRef(ctx, rootRef)
+		if err != nil {
+			return nil, err
 		}
-		return err
-	})
+		defer followed.Release()
+		root = followed
+	}
+	_, bcs := root.BuildTransactionAtRef(nil, rootRef.GetRootRef())
+	body, keep, found, err := bcs.FetchWithKeep(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if found {
+		out.Body, out.keep = body, keep
 	}
 	return out, nil
 }
