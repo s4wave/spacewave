@@ -99,6 +99,8 @@ type placementState struct {
 	// front is read after the local store misses and before the fill cache
 	// and the backend, or nil.
 	front block.StoreOps
+	// cold is the read-only cold pack tier behind the backend, or nil.
+	cold block.StoreOps
 	// drain uploads the finalized packs of the store's packahead log, or is
 	// nil when the store has no log.
 	drain *packahead.Drain
@@ -543,15 +545,36 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// the mount.
 	var sqlStore backendStore
 	if t.a.sqlPrimary.Load() && backend.GetSql() != nil {
-		sqlStore, err = t.openBackendStore(ctx, backend)
+		opened, err := t.openBackendStore(ctx, backend)
 		if err != nil {
 			return err
 		}
-		t.swapRemote(&openBackend{backend: backend, store: sqlStore})
+		sqlStore = opened.store
+		t.swapRemote(opened)
 		defer t.swapRemote(nil)
 		placement.sqlPrimary = true
 	}
 	le.WithField("sql-primary", sqlStore != nil).Info("mounting bstore")
+
+	// Load cold packs in the background for the configured placement. An
+	// unusable cold set leaves the backend and the SQL fallback available.
+	coldPlacement := configuredColdPacks.Load()
+	if coldPlacement != nil && coldPlacement.config.BlockStoreLocalID != blockStoreLocalID {
+		coldPlacement = nil
+	}
+	if coldPlacement != nil {
+		cold, err := t.openColdPacks(ctx, le, coldPlacement, backend, placement.serveOnly)
+		if err != nil {
+			le.WithError(err).Warn("cold pack tier unavailable")
+		} else if cold != nil {
+			placement.cold = cold
+			coldPlacement.store.Store(cold)
+			defer func() {
+				coldPlacement.store.CompareAndSwap(cold, nil)
+				cold.Close()
+			}()
+		}
+	}
 
 	// Open the read fallback, which connects on its first read, so an
 	// unreachable database never fails the mount.
@@ -582,8 +605,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	defer t.swapRemote(nil)
 	defer upload.ClearContext()
 
-	// Read the local store first, then the backend's bucket, then the read
-	// fallback, then peers.
+	// Read the local store first, then the backend's bucket, cold packs,
+	// the SQL fallback, and peers.
 	localStore := block_store.NewStore(blockStoreLocalID, wb)
 	var recorded block.StoreOps = &hitCounter{StoreOps: local, hits: &placement.localHits}
 	if !placement.serveOnly {
@@ -703,6 +726,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 			return errors.New("read fallback of the store changed, remounting")
 		}
 		if !next.EqualVT(backend) {
+			if coldPlacement != nil {
+				return errors.New("placement of a cold-pack store changed, remounting")
+			}
 			t.setPlacementBackend(placement, next)
 			if err := wb.SetEnabled(ctx, next != nil); err != nil {
 				return err

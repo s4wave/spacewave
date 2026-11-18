@@ -59,7 +59,7 @@ func TestPackaheadPlacedStore(t *testing.T) {
 	t.Cleanup(srv.Close)
 	openRemote := func() backendStore {
 		t.Helper()
-		store, err := buildS3BlockStore(logrus.NewEntry(logrus.New()), &account_settings.S3Location{
+		store, _, err := buildS3BlockStore(logrus.NewEntry(logrus.New()), &account_settings.S3Location{
 			Endpoint:   strings.TrimPrefix(srv.URL, "http://"),
 			Region:     "us-east-1",
 			Bucket:     "spaces",

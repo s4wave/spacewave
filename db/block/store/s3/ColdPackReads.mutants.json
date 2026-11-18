@@ -1,0 +1,14 @@
+[
+  {
+    "name": "A restored 96-bit suffix authorizes a different key",
+    "replace": [["(TrustSuffix /\\ durable # {})", "(durable # {})"]],
+    "expect": "NoFalseYes",
+    "config": "ColdPackReads.cfg"
+  },
+  {
+    "name": "Cached proof outlives an observed 404",
+    "replace": [["(~gone \\/ IgnoreGone)", "TRUE"]],
+    "expect": "NoGoneYes",
+    "config": "ColdPackReads.cfg"
+  }
+]

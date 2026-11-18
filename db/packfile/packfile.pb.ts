@@ -83,6 +83,69 @@ export const PackfileEntry: MessageType<PackfileEntry> =
   )
 
 /**
+ * ColdPackEntry locates one immutable cold pack and its inclusive key interval.
+ *
+ * @generated from message packfile.ColdPackEntry
+ */
+export interface ColdPackEntry {
+  /**
+   * Entry describes the pack and carries its v1 bloom filter.
+   */
+  entry?: PackfileEntry
+  /**
+   * Subpath is the relative directory containing packs/ and entries/.
+   */
+  subpath?: string
+  /**
+   * FirstKey is the first encoded block key in the pack's index tail.
+   */
+  firstKey?: Uint8Array
+  /**
+   * LastKey is the last encoded block key in the pack's index tail.
+   */
+  lastKey?: Uint8Array
+  /**
+   * IndexSha256 is the SHA-256 of the exact index tail verified by the builder.
+   */
+  indexSha256?: Uint8Array
+  /**
+   * IndexTailBytes bounds reads of the verified tail.
+   */
+  indexTailBytes?: bigint
+}
+
+export const ColdPackEntry: MessageType<ColdPackEntry> =
+  /* @__PURE__ */ createMessageType<ColdPackEntry>(
+    'packfile.ColdPackEntry',
+    () => [
+      [1, 'entry', 11, 0, PackfileEntry.codec],
+      [2, 'subpath', 9],
+      [3, 'first_key', 12],
+      [4, 'last_key', 12],
+      [5, 'index_sha256', 12],
+      [6, 'index_tail_bytes', 4],
+    ],
+  )
+
+/**
+ * ColdPackManifest bundles the verified entries for a read-only cold pack set.
+ *
+ * @generated from message packfile.ColdPackManifest
+ */
+export interface ColdPackManifest {
+  /**
+   * Entries are ordered by subpath and pack ID; positions number promoted packs.
+   */
+  entries?: ColdPackEntry[]
+}
+
+export const ColdPackManifest: MessageType<ColdPackManifest> =
+  /* @__PURE__ */ createMessageType<ColdPackManifest>(
+    'packfile.ColdPackManifest',
+    () => [[1, 'entries', 11, 1, ColdPackEntry.codec]],
+  )
+
+/**
  * PackReplacementEvent describes one atomic replacement sequence.
  *
  * @generated from message packfile.PackReplacementEvent

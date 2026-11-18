@@ -38,6 +38,28 @@ message PackfileEntry {
   .google.protobuf.Timestamp trashed_at = 10;
 }
 
+// ColdPackEntry locates one immutable cold pack and its inclusive key interval.
+message ColdPackEntry {
+  // Entry describes the pack and carries its v1 bloom filter.
+  PackfileEntry entry = 1;
+  // Subpath is the relative directory containing packs/ and entries/.
+  string subpath = 2;
+  // FirstKey is the first encoded block key in the pack's index tail.
+  bytes first_key = 3;
+  // LastKey is the last encoded block key in the pack's index tail.
+  bytes last_key = 4;
+  // IndexSha256 is the SHA-256 of the exact index tail verified by the builder.
+  bytes index_sha256 = 5;
+  // IndexTailBytes bounds reads of the verified tail.
+  uint64 index_tail_bytes = 6;
+}
+
+// ColdPackManifest bundles the verified entries for a read-only cold pack set.
+message ColdPackManifest {
+  // Entries are ordered by subpath and pack ID; positions number promoted packs.
+  repeated ColdPackEntry entries = 1;
+}
+
 // PackReplacementEvent describes one atomic replacement sequence.
 message PackReplacementEvent {
   // Sequence is the monotonic cursor anchor assigned to the replacement event.

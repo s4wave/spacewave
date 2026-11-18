@@ -127,6 +127,91 @@ func (x *PackfileEntry) GetTrashedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// ColdPackEntry locates one immutable cold pack and its inclusive key interval.
+type ColdPackEntry struct {
+	unknownFields []byte
+	// Entry describes the pack and carries its v1 bloom filter.
+	Entry *PackfileEntry `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+	// Subpath is the relative directory containing packs/ and entries/.
+	Subpath string `protobuf:"bytes,2,opt,name=subpath,proto3" json:"subpath,omitempty"`
+	// FirstKey is the first encoded block key in the pack's index tail.
+	FirstKey []byte `protobuf:"bytes,3,opt,name=first_key,json=firstKey,proto3" json:"firstKey,omitempty"`
+	// LastKey is the last encoded block key in the pack's index tail.
+	LastKey []byte `protobuf:"bytes,4,opt,name=last_key,json=lastKey,proto3" json:"lastKey,omitempty"`
+	// IndexSha256 is the SHA-256 of the exact index tail verified by the builder.
+	IndexSha256 []byte `protobuf:"bytes,5,opt,name=index_sha256,json=indexSha256,proto3" json:"indexSha256,omitempty"`
+	// IndexTailBytes bounds reads of the verified tail.
+	IndexTailBytes uint64 `protobuf:"varint,6,opt,name=index_tail_bytes,json=indexTailBytes,proto3" json:"indexTailBytes,omitempty"`
+}
+
+func (x *ColdPackEntry) Reset() {
+	*x = ColdPackEntry{}
+}
+
+func (*ColdPackEntry) ProtoMessage() {}
+
+func (x *ColdPackEntry) GetEntry() *PackfileEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
+func (x *ColdPackEntry) GetSubpath() string {
+	if x != nil {
+		return x.Subpath
+	}
+	return ""
+}
+
+func (x *ColdPackEntry) GetFirstKey() []byte {
+	if x != nil {
+		return x.FirstKey
+	}
+	return nil
+}
+
+func (x *ColdPackEntry) GetLastKey() []byte {
+	if x != nil {
+		return x.LastKey
+	}
+	return nil
+}
+
+func (x *ColdPackEntry) GetIndexSha256() []byte {
+	if x != nil {
+		return x.IndexSha256
+	}
+	return nil
+}
+
+func (x *ColdPackEntry) GetIndexTailBytes() uint64 {
+	if x != nil {
+		return x.IndexTailBytes
+	}
+	return 0
+}
+
+// ColdPackManifest bundles the verified entries for a read-only cold pack set.
+type ColdPackManifest struct {
+	unknownFields []byte
+	// Entries are ordered by subpath and pack ID; positions number promoted packs.
+	Entries []*ColdPackEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+}
+
+func (x *ColdPackManifest) Reset() {
+	*x = ColdPackManifest{}
+}
+
+func (*ColdPackManifest) ProtoMessage() {}
+
+func (x *ColdPackManifest) GetEntries() []*ColdPackEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
 // PackReplacementEvent describes one atomic replacement sequence.
 type PackReplacementEvent struct {
 	unknownFields []byte
@@ -565,6 +650,43 @@ func (m *PackfileEntry) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *ColdPackEntry) CloneVT() *ColdPackEntry {
+	if m == nil {
+		return (*ColdPackEntry)(nil)
+	}
+	r := new(ColdPackEntry)
+	r.Subpath = m.Subpath
+	r.IndexTailBytes = m.IndexTailBytes
+	r.Entry = protobuf_go_lite.CloneVTValue(m.Entry)
+	r.FirstKey = protobuf_go_lite.CloneBytes(m.FirstKey)
+	r.LastKey = protobuf_go_lite.CloneBytes(m.LastKey)
+	r.IndexSha256 = protobuf_go_lite.CloneBytes(m.IndexSha256)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ColdPackEntry) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ColdPackManifest) CloneVT() *ColdPackManifest {
+	if m == nil {
+		return (*ColdPackManifest)(nil)
+	}
+	r := new(ColdPackManifest)
+	r.Entries = protobuf_go_lite.CloneVTSlice(m.Entries)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ColdPackManifest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *PackReplacementEvent) CloneVT() *PackReplacementEvent {
 	if m == nil {
 		return (*PackReplacementEvent)(nil)
@@ -785,6 +907,61 @@ func (this *PackfileEntry) EqualVT(that *PackfileEntry) bool {
 
 func (this *PackfileEntry) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PackfileEntry)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ColdPackEntry) EqualVT(that *ColdPackEntry) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Entry, that.Entry) {
+		return false
+	}
+	if this.Subpath != that.Subpath {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.FirstKey, that.FirstKey) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.LastKey, that.LastKey) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.IndexSha256, that.IndexSha256) {
+		return false
+	}
+	if this.IndexTailBytes != that.IndexTailBytes {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ColdPackEntry) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ColdPackEntry)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ColdPackManifest) EqualVT(that *ColdPackManifest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Entries, that.Entries, func() *ColdPackEntry { return &ColdPackEntry{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ColdPackManifest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ColdPackManifest)
 	if !ok {
 		return false
 	}
@@ -1171,6 +1348,155 @@ func (x *PackfileEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the PackfileEntry from JSON.
 func (x *PackfileEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ColdPackEntry message to JSON.
+func (x *ColdPackEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Entry != nil || s.HasField("entry") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entry")
+		x.Entry.MarshalProtoJSON(s.WithField("entry"))
+	}
+	if x.Subpath != "" || s.HasField("subpath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("subpath")
+		s.WriteString(x.Subpath)
+	}
+	if len(x.FirstKey) > 0 || s.HasField("firstKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("firstKey")
+		s.WriteBytes(x.FirstKey)
+	}
+	if len(x.LastKey) > 0 || s.HasField("lastKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastKey")
+		s.WriteBytes(x.LastKey)
+	}
+	if len(x.IndexSha256) > 0 || s.HasField("indexSha256") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("indexSha256")
+		s.WriteBytes(x.IndexSha256)
+	}
+	if x.IndexTailBytes != 0 || s.HasField("indexTailBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("indexTailBytes")
+		s.WriteUint64(x.IndexTailBytes)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ColdPackEntry to JSON.
+func (x *ColdPackEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ColdPackEntry message from JSON.
+func (x *ColdPackEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "entry":
+			if s.ReadNil() {
+				x.Entry = nil
+				return
+			}
+			x.Entry = &PackfileEntry{}
+			x.Entry.UnmarshalProtoJSON(s.WithField("entry", true))
+		case "subpath":
+			s.AddField("subpath")
+			x.Subpath = s.ReadString()
+		case "first_key", "firstKey":
+			s.AddField("first_key")
+			x.FirstKey = s.ReadBytes()
+		case "last_key", "lastKey":
+			s.AddField("last_key")
+			x.LastKey = s.ReadBytes()
+		case "index_sha256", "indexSha256":
+			s.AddField("index_sha256")
+			x.IndexSha256 = s.ReadBytes()
+		case "index_tail_bytes", "indexTailBytes":
+			s.AddField("index_tail_bytes")
+			x.IndexTailBytes = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ColdPackEntry from JSON.
+func (x *ColdPackEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ColdPackManifest message to JSON.
+func (x *ColdPackManifest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Entries) > 0 || s.HasField("entries") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entries")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Entries {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("entries"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ColdPackManifest to JSON.
+func (x *ColdPackManifest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ColdPackManifest message from JSON.
+func (x *ColdPackManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "entries":
+			s.AddField("entries")
+			if s.ReadNil() {
+				x.Entries = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Entries = append(x.Entries, nil)
+					return
+				}
+				v := &ColdPackEntry{}
+				v.UnmarshalProtoJSON(s.WithField("entries", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Entries = append(x.Entries, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ColdPackManifest from JSON.
+func (x *ColdPackManifest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2003,6 +2329,117 @@ func (m *PackfileEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ColdPackEntry) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ColdPackEntry) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ColdPackEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.IndexTailBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IndexTailBytes))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.IndexSha256) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.IndexSha256)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.LastKey) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.LastKey)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.FirstKey) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.FirstKey)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Subpath) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Subpath)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Entry != nil {
+		size, err := m.Entry.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ColdPackManifest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ColdPackManifest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ColdPackManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Entries) > 0 {
+		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Entries[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PackReplacementEvent) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2555,6 +2992,39 @@ func (m *PackfileEntry) SizeVT() (n int) {
 	return n
 }
 
+func (m *ColdPackEntry) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Entry != nil {
+		l = m.Entry.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Subpath)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.FirstKey)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.LastKey)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.IndexSha256)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.IndexTailBytes)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ColdPackManifest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Entries {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *PackReplacementEvent) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2754,6 +3224,62 @@ func (x *PackfileEntry) MarshalProtoText() string {
 }
 
 func (x *PackfileEntry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ColdPackEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ColdPackEntry")
+	if x.Entry != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "entry")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Entry)
+	}
+	if x.Subpath != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "subpath")
+		protobuf_go_lite.TextWriteString(&sb, x.Subpath)
+	}
+	if len(x.FirstKey) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "first_key")
+		protobuf_go_lite.TextWriteBytes(&sb, x.FirstKey)
+	}
+	if len(x.LastKey) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_key")
+		protobuf_go_lite.TextWriteBytes(&sb, x.LastKey)
+	}
+	if len(x.IndexSha256) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index_sha256")
+		protobuf_go_lite.TextWriteBytes(&sb, x.IndexSha256)
+	}
+	if x.IndexTailBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index_tail_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.IndexTailBytes)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ColdPackEntry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ColdPackManifest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ColdPackManifest")
+	if len(x.Entries) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "entries")
+		for i, v := range x.Entries {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ColdPackEntry{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ColdPackManifest) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3172,6 +3698,163 @@ func (m *PackfileEntry) UnmarshalVT(dAtA []byte) error {
 				m.TrashedAt = &timestamppb.Timestamp{}
 			}
 			if err := m.TrashedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ColdPackEntry) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ColdPackEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ColdPackEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entry", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Entry == nil {
+				m.Entry = &PackfileEntry{}
+			}
+			if err := m.Entry.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Subpath", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Subpath = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FirstKey", wireType)
+			}
+			m.FirstKey, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.FirstKey, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastKey", wireType)
+			}
+			m.LastKey, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.LastKey, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IndexSha256", wireType)
+			}
+			m.IndexSha256, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.IndexSha256, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IndexTailBytes", wireType)
+			}
+			m.IndexTailBytes = 0
+			m.IndexTailBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ColdPackManifest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ColdPackManifest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ColdPackManifest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entries", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Entries = append(m.Entries, &ColdPackEntry{})
+			if err := m.Entries[len(m.Entries)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
