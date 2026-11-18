@@ -80,7 +80,10 @@ func IsGuardSysErr(err error) bool {
 }
 
 // WorldStateGetter is an ObjectState that returns the WorldState holding it,
-// so a component that receives only the object can guard writes through it.
+// so a component that receives only the object can guard writes through it
+// and write beside the object in the same transaction. A handle whose writes
+// commit in a transaction of their own, such as an engine's object, does not
+// implement it.
 type WorldStateGetter interface {
 	// GetWorldState returns the WorldState that holds the object, guarded as
 	// the object is.

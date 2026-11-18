@@ -21,6 +21,11 @@ func (o *budgetObjectState) Release() {
 	world.ReleaseObjectState(o.ObjectState)
 }
 
+// GetWorldState returns the budgeted World state that returned the object.
+func (o *budgetObjectState) GetWorldState() world.WorldState {
+	return o.w
+}
+
 // ApplyObjectOp applies an object operation if it fits in the budget.
 func (o *budgetObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opSender peer.ID) (uint64, bool, error) {
 	// Size the batch entry the transaction will record for the op.
@@ -34,4 +39,7 @@ func (o *budgetObjectState) ApplyObjectOp(ctx context.Context, op world.Operatio
 }
 
 // _ is a type assertion
-var _ world.ObjectState = (*budgetObjectState)(nil)
+var (
+	_ world.ObjectState      = (*budgetObjectState)(nil)
+	_ world.WorldStateGetter = (*budgetObjectState)(nil)
+)

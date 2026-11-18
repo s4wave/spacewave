@@ -35,6 +35,11 @@ func (t *TxObjectState) GetKey() string {
 	return t.key
 }
 
+// GetWorldState returns the transaction that holds the object.
+func (t *TxObjectState) GetWorldState() world.WorldState {
+	return t.tx
+}
+
 // GetRootRef returns the root reference of the object.
 func (t *TxObjectState) GetRootRef(ctx context.Context) (ref *bucket.ObjectRef, rev uint64, err error) {
 	err = t.tx.lockedLive(ctx, func() error {
@@ -106,4 +111,7 @@ func (t *TxObjectState) WaitRev(
 }
 
 // _ is a type assertion
-var _ world.ObjectState = (*TxObjectState)(nil)
+var (
+	_ world.ObjectState      = (*TxObjectState)(nil)
+	_ world.WorldStateGetter = (*TxObjectState)(nil)
+)

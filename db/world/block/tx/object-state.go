@@ -30,6 +30,12 @@ func (t *ObjectState) Release() {
 	world.ReleaseObjectState(t.o)
 }
 
+// GetWorldState returns the World state that holds the object, which
+// records the operations applied through it.
+func (t *ObjectState) GetWorldState() world.WorldState {
+	return t.w
+}
+
 // GetKey returns the key this state object is for.
 func (t *ObjectState) GetKey() string {
 	return t.key
@@ -187,4 +193,7 @@ func (t *ObjectState) WaitRev(
 }
 
 // _ is a type assertion
-var _ world.ObjectState = (*ObjectState)(nil)
+var (
+	_ world.ObjectState      = (*ObjectState)(nil)
+	_ world.WorldStateGetter = (*ObjectState)(nil)
+)
