@@ -401,22 +401,17 @@ jobs:
 
       - name: Verify generated bindings
         run: |
-          manifests=(
-            .protoc-python-resource-manifest.json
-            .protoc-python-session-journey-manifest.json
-            .protoc-python-web-plugin-manifest.json
-          )
-          mapfile -t python_generated < <(
-            jq -r '.packages[].generatedFiles[]' "${manifests[@]}"
-          )
+          python_generated=$(jq -er '
+            .runs[].packages[].generatedFiles[]? | select(endswith(".py") or endswith(".pyi"))
+          ' .protoc-manifest.json)
+          mapfile -t python_paths <<< "$python_generated"
           paths=(
             .protoc-manifest.json
-            "${manifests[@]}"
             bldr/resource/resource.pb.go
             bldr/resource/resource.pb.ts
             bldr/resource/resource_srpc.pb.go
             bldr/resource/resource_srpc.pb.ts
-            "${python_generated[@]}"
+            "${python_paths[@]}"
           )
           if ! git diff --exit-code -- "${paths[@]}" ||
             [ -n "$(git status --porcelain -- "${paths[@]}")" ]; then
@@ -460,15 +455,16 @@ jobs:
           from pathlib import Path
           from zipfile import ZipFile
 
-          manifests = (
-              Path(".protoc-python-resource-manifest.json"),
-              Path(".protoc-python-session-journey-manifest.json"),
-          )
+          # Select the Python Resource and Session runs by their root schemas.
+          roots = {"bldr/resource/resource.proto", "sdk/root/root.proto", "sdk/session/session.proto"}
+          manifest = json.loads(Path(".protoc-manifest.json").read_text())
           expected = {
               generated
-              for manifest in manifests
-              for package in json.loads(manifest.read_text())["packages"].values()
-              for generated in package["generatedFiles"]
+              for run in manifest["runs"].values()
+              if any(roots.intersection(package["protoFiles"]) for package in run["packages"].values())
+              for package in run["packages"].values()
+              for generated in package["generatedFiles"] or ()
+              if generated.endswith((".py", ".pyi"))
           }
           expected.update(
               {
