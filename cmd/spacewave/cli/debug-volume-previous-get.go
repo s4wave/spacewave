@@ -1,4 +1,4 @@
-//go:build !js
+//go:build darwin || linux || windows
 
 package spacewave_cli
 

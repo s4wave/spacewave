@@ -1,3 +1,5 @@
+//go:build darwin || linux || windows
+
 package s4dbv1
 
 // Checkpoint describes the checkpoint a Reader reads from.
