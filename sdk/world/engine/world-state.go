@@ -451,6 +451,7 @@ func (ws *SDKWorldState) ListGraphEdgeBuckets(ctx context.Context, query *world.
 			Incoming:          incoming,
 			OutgoingTruncated: bucket.GetOutgoingTruncated(),
 			IncomingTruncated: bucket.GetIncomingTruncated(),
+			CreationOrder:     bucket.GetCreationOrder(),
 		}
 	}
 	return buckets, nil
@@ -492,18 +493,6 @@ func (ws *SDKWorldState) GetObjectRootRefsBatch(ctx context.Context, keys []stri
 	return refs, nil
 }
 
-// GetObjectMetadataBatch returns graph metadata for object keys.
-func (ws *SDKWorldState) GetObjectMetadataBatch(ctx context.Context, keys []string) ([]*world_types.ObjectMetadata, error) {
-	resp, err := ws.service.GetObjectMetadataBatch(ctx, &s4wave_world.GetObjectMetadataBatchRequest{
-		ObjectKeys: keys,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return objectMetadataFromProto(resp.GetMetadata()), nil
-}
-
 // objectMetadataFromProto decodes object metadata from the World resource.
 func objectMetadataFromProto(in []*s4wave_world.ObjectMetadata) []*world_types.ObjectMetadata {
 	metadata := make([]*world_types.ObjectMetadata, len(in))
@@ -538,9 +527,10 @@ func (ws *SDKWorldState) ForEachObjectBodyJSONPage(
 	return s4wave_world.ForEachObjectBodyJSONPage(ctx, ws.service, keys, cb)
 }
 
-// GetObjectBodiesBatch returns serialized object bodies for object keys.
-func (ws *SDKWorldState) GetObjectBodiesBatch(ctx context.Context, keys []string) ([]*world.ObjectBody, error) {
-	return s4wave_world.GetObjectBodiesBatch(ctx, ws.service, keys)
+// GetObjectBodiesBatchPage reads one budgeted page of object bodies and the
+// World seqno it read in one call.
+func (ws *SDKWorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
+	return s4wave_world.GetObjectBodiesPage(ctx, ws.service, keys, byteBudget)
 }
 
 // QueryGraphPath executes a bounded server-side graph path query.

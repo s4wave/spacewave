@@ -124,8 +124,8 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 	if remote.queryGraphPathCalls != 1 {
 		t.Fatalf("expected one QueryGraphPath call, got %d", remote.queryGraphPathCalls)
 	}
-	if remote.getObjectMetadataBatchCalls != 1 {
-		t.Fatalf("expected one GetObjectMetadataBatch call, got %d", remote.getObjectMetadataBatchCalls)
+	if remote.lookupGraphQuadsBatchCalls != 1 {
+		t.Fatalf("expected one LookupGraphQuadsBatch call, got %d", remote.lookupGraphQuadsBatchCalls)
 	}
 
 	// Verify the reference graph excludes non-Forge objects.
@@ -161,9 +161,9 @@ func TestListKeypairObjectsLocalSDKParity(t *testing.T) {
 
 type countingWorldState struct {
 	world.WorldState
-	accessCayleyGraphCalls      int
-	queryGraphPathCalls         int
-	getObjectMetadataBatchCalls int
+	accessCayleyGraphCalls     int
+	queryGraphPathCalls        int
+	lookupGraphQuadsBatchCalls int
 }
 
 func (w *countingWorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(context.Context, world.CayleyHandle) error) error {
@@ -176,9 +176,9 @@ func (w *countingWorldState) QueryGraphPath(ctx context.Context, query *world.Gr
 	return w.WorldState.QueryGraphPath(ctx, query)
 }
 
-func (w *countingWorldState) GetObjectMetadataBatch(ctx context.Context, keys []string) ([]*world_types.ObjectMetadata, error) {
-	w.getObjectMetadataBatchCalls++
-	return world_types.GetObjectMetadataBatch(ctx, w.WorldState, keys)
+func (w *countingWorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	w.lookupGraphQuadsBatchCalls++
+	return w.WorldState.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
 }
 
 func seedKeypairObjects(t *testing.T, ctx context.Context, ws world.WorldState) {

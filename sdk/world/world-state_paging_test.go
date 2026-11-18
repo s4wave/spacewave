@@ -317,7 +317,7 @@ func TestWorldStateGetObjectBodiesBatchReturnsTypedRevisionError(t *testing.T) {
 
 	// Fetch the bodies and expect a typed revision error after retries.
 	_, err := ws.GetObjectBodiesBatch(context.Background(), []string{"body/one", "body/two"})
-	var revisionErr *ObjectBodiesBatchRevisionError
+	var revisionErr *world.ObjectBodiesBatchRevisionError
 	if !errors.As(err, &revisionErr) {
 		t.Fatalf("error = %v, want ObjectBodiesBatchRevisionError", err)
 	}
@@ -347,7 +347,7 @@ func TestWorldStateForEachObjectBodyPageReturnsRevisionError(t *testing.T) {
 	})
 
 	// Assert the revision error reports expected and got sequence numbers.
-	var revisionErr *ObjectBodiesBatchRevisionError
+	var revisionErr *world.ObjectBodiesBatchRevisionError
 	if !errors.As(err, &revisionErr) {
 		t.Fatalf("error = %v, want ObjectBodiesBatchRevisionError", err)
 	}

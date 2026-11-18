@@ -9,11 +9,10 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-const maxObjectBodiesBatchRevisionRetries = 3
-
 // ObjectBodiesBatchService streams pages of object bodies from a WorldState
 // resource.
 type ObjectBodiesBatchService interface {
+	// GetObjectBodiesBatch streams pages of the requested object bodies.
 	GetObjectBodiesBatch(
 		context.Context,
 		*GetObjectBodiesBatchRequest,
@@ -21,8 +20,9 @@ type ObjectBodiesBatchService interface {
 }
 
 // ForEachObjectBodyPage calls cb with each page of serialized object bodies.
+// A body over the page budget arrives withheld; see world.ObjectBody.
 // The callback must finish with the page before the next page is read.
-// Returns ObjectBodiesBatchRevisionError when pages come from different World
+// Returns world.ObjectBodiesBatchRevisionError when pages come from different World
 // revisions.
 func ForEachObjectBodyPage(
 	ctx context.Context,
@@ -38,11 +38,12 @@ func ForEachObjectBodyPage(
 		page := make([]*world.ObjectBody, len(resp.GetBodies()))
 		for i, body := range resp.GetBodies() {
 			page[i] = &world.ObjectBody{
-				ObjectKey: body.GetObjectKey(),
-				Body:      append([]byte(nil), body.GetBody()...),
-				Exists:    body.GetExists(),
-				Rev:       body.GetRev(),
-				ModSeqno:  body.GetModSeqno(),
+				ObjectKey:    body.GetObjectKey(),
+				Body:         append([]byte(nil), body.GetBody()...),
+				Exists:       body.GetExists(),
+				Rev:          body.GetRev(),
+				ModSeqno:     body.GetModSeqno(),
+				WithheldSize: body.GetWithheldSize(),
 			}
 		}
 		return cb(page)
@@ -51,7 +52,7 @@ func ForEachObjectBodyPage(
 
 // ForEachObjectBodyJSONPage calls cb with each page of object bodies carrying
 // their type IDs and, where the host or the type's plugin can render them,
-// JSON. The page belongs to cb. Returns ObjectBodiesBatchRevisionError when
+// JSON. The page belongs to cb. Returns world.ObjectBodiesBatchRevisionError when
 // pages come from different World revisions.
 func ForEachObjectBodyJSONPage(
 	ctx context.Context,
@@ -116,7 +117,7 @@ func forEachObjectBodiesResponse(
 					worldSeqno = pageSeqno
 					haveWorldSeqno = true
 				} else if pageSeqno != worldSeqno {
-					return &ObjectBodiesBatchRevisionError{
+					return &world.ObjectBodiesBatchRevisionError{
 						Expected: worldSeqno,
 						Got:      pageSeqno,
 					}
@@ -133,9 +134,65 @@ func forEachObjectBodiesResponse(
 	return nil
 }
 
-// GetObjectBodiesBatch collects all pages from a WorldState resource.
+// GetObjectBodiesPage reads one page of at most byteBudget encoded body bytes
+// for a prefix of keys in one call, with the World seqno it read. It follows
+// world.WorldStateObject.GetObjectBodiesBatchPage: consumed is the number of
+// keys the page answers, or zero when it answers all, and a body over the
+// budget arrives withheld. The budget is capped at world.ObjectBodiesBatchByteBudget.
+func GetObjectBodiesPage(
+	ctx context.Context,
+	service ObjectBodiesBatchService,
+	keys []string,
+	byteBudget int,
+) ([]*world.ObjectBody, uint32, uint64, error) {
+	// Ask for one page of the keys that fit one request.
+	if len(keys) == 0 {
+		return nil, 0, 0, nil
+	}
+	chunks, err := chunkObjectBodyKeys(keys)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	pageBudget := uint32(max(1, min(byteBudget, world.ObjectBodiesBatchByteBudget)))
+	strm, err := service.GetObjectBodiesBatch(ctx, &GetObjectBodiesBatchRequest{
+		ObjectKeys: chunks[0],
+		PageBudget: pageBudget,
+	})
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer strm.Close()
+
+	// Copy the one page out of the stream buffer and count the keys it answers.
+	resp, err := strm.Recv()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	page := make([]*world.ObjectBody, len(resp.GetBodies()))
+	for i, body := range resp.GetBodies() {
+		page[i] = &world.ObjectBody{
+			ObjectKey:    body.GetObjectKey(),
+			Body:         append([]byte(nil), body.GetBody()...),
+			Exists:       body.GetExists(),
+			Rev:          body.GetRev(),
+			ModSeqno:     body.GetModSeqno(),
+			WithheldSize: body.GetWithheldSize(),
+		}
+	}
+	if len(page) == 0 {
+		return nil, 0, 0, errors.New("object body page is empty")
+	}
+	var consumed uint32
+	if len(page) < len(keys) {
+		consumed = uint32(len(page)) //nolint:gosec // one request chunk of keys
+	}
+	return page, consumed, resp.GetWorldSeqno(), nil
+}
+
+// GetObjectBodiesBatch collects all pages from a WorldState resource. A body
+// over the page budget arrives withheld; world.GetObjectBodiesBatch reads it.
 func GetObjectBodiesBatch(ctx context.Context, service ObjectBodiesBatchService, keys []string) ([]*world.ObjectBody, error) {
-	for retry := 0; retry <= maxObjectBodiesBatchRevisionRetries; retry++ {
+	for retry := 0; retry <= world.MaxObjectBodiesBatchRevisionRetries; retry++ {
 		// Collect all object body pages from a consistent World revision.
 		bodies := make([]*world.ObjectBody, 0, len(keys))
 		err := ForEachObjectBodyPage(ctx, service, keys, func(page []*world.ObjectBody) error {
@@ -147,16 +204,16 @@ func GetObjectBodiesBatch(ctx context.Context, service ObjectBodiesBatchService,
 		}
 
 		// Retry collection only when pages span different World revisions.
-		var revisionErr *ObjectBodiesBatchRevisionError
+		var revisionErr *world.ObjectBodiesBatchRevisionError
 		if !errors.As(err, &revisionErr) {
 			return nil, err
 		}
 		revisionErr.Retries = retry
-		if retry == maxObjectBodiesBatchRevisionRetries {
+		if retry == world.MaxObjectBodiesBatchRevisionRetries {
 			return nil, revisionErr
 		}
 	}
-	return nil, &ObjectBodiesBatchRevisionError{Retries: maxObjectBodiesBatchRevisionRetries}
+	return nil, &world.ObjectBodiesBatchRevisionError{Retries: world.MaxObjectBodiesBatchRevisionRetries}
 }
 
 func chunkObjectBodyKeys(keys []string) ([][]string, error) {

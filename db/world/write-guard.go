@@ -800,31 +800,9 @@ func (s *guardedWorldState) GetObjectRootRefsBatch(ctx context.Context, keys []s
 	return GetObjectRootRefsBatch(ctx, s.ws, keys)
 }
 
-// GetObjectBodiesBatch reads through the wrapped state's batcher.
-func (s *guardedWorldState) GetObjectBodiesBatch(ctx context.Context, keys []string) ([]*ObjectBody, error) {
-	return GetObjectBodiesBatch(ctx, s.ws, keys)
-}
-
-// GetObjectBodiesBatchPage reads through the wrapped state's batcher.
-func (s *guardedWorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*ObjectBody, uint32, error) {
-	return GetObjectBodiesBatchPage(ctx, s.ws, keys, byteBudget)
-}
-
-// GetObjectBodiesBatchPageWithSeqno reads through the wrapped state's batcher,
-// or reads the seqno and then the page.
-func (s *guardedWorldState) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*ObjectBody, uint32, uint64, error) {
-	// Read through the wrapped pager when it has one.
-	if pager, ok := s.ws.(ObjectBodyPageSeqnoBatcher); ok {
-		return pager.GetObjectBodiesBatchPageWithSeqno(ctx, keys, byteBudget)
-	}
-
-	// Otherwise read the seqno, then the page.
-	seqno, err := s.ws.GetSeqno(ctx)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	bodies, consumed, err := GetObjectBodiesBatchPage(ctx, s.ws, keys, byteBudget)
-	return bodies, consumed, seqno, err
+// GetObjectBodiesBatchPage reads through the wrapped state.
+func (s *guardedWorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*ObjectBody, uint32, uint64, error) {
+	return s.ws.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
 }
 
 // WaitObjectRev waits through the wrapped state.
@@ -962,19 +940,16 @@ func (o *guardedObjectState) Release() {
 
 // _ is a type assertion
 var (
-	_ WorldState                 = (*guardedWorldState)(nil)
-	_ ObjectPurger               = (*guardedWorldState)(nil)
-	_ ObjectRootRefBatcher       = (*guardedWorldState)(nil)
-	_ ObjectBodyBatcher          = (*guardedWorldState)(nil)
-	_ ObjectBodyPageBatcher      = (*guardedWorldState)(nil)
-	_ ObjectBodyPageSeqnoBatcher = (*guardedWorldState)(nil)
-	_ ObjectRevWaiter            = (*guardedWorldState)(nil)
-	_ IndexedChangeWatcher       = (*guardedWorldState)(nil)
-	_ ObjectState                = (*guardedObjectState)(nil)
-	_ WorldStateGetter           = (*guardedObjectState)(nil)
-	_ WorldStage                 = (*guardedStage)(nil)
-	_ Engine                     = (*guardedEngine)(nil)
-	_ IndexedChangeWatcher       = (*guardedEngine)(nil)
-	_ Tx                         = (*guardedTx)(nil)
-	_ RehearsalEngine            = (*guardedRehearsalEngine)(nil)
+	_ WorldState           = (*guardedWorldState)(nil)
+	_ ObjectPurger         = (*guardedWorldState)(nil)
+	_ ObjectRootRefBatcher = (*guardedWorldState)(nil)
+	_ ObjectRevWaiter      = (*guardedWorldState)(nil)
+	_ IndexedChangeWatcher = (*guardedWorldState)(nil)
+	_ ObjectState          = (*guardedObjectState)(nil)
+	_ WorldStateGetter     = (*guardedObjectState)(nil)
+	_ WorldStage           = (*guardedStage)(nil)
+	_ Engine               = (*guardedEngine)(nil)
+	_ IndexedChangeWatcher = (*guardedEngine)(nil)
+	_ Tx                   = (*guardedTx)(nil)
+	_ RehearsalEngine      = (*guardedRehearsalEngine)(nil)
 )

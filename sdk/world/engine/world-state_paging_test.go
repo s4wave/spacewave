@@ -43,41 +43,38 @@ func (c *objectBodiesBatchClient) Close() error {
 	return nil
 }
 
-func TestSDKWorldStateGetObjectBodiesBatchCollectsStreamedPages(t *testing.T) {
-	// Prepare object body pages containing a missing key and a repeated key.
+func TestSDKWorldStateGetObjectBodiesBatchPageReadsOnePage(t *testing.T) {
+	// Script two pages; a one-page read must stop after the first.
 	service := &objectBodiesBatchService{
 		pages: []*s4wave_world.GetObjectBodiesBatchResponse{
-			{Bodies: []*s4wave_world.ObjectBody{{ObjectKey: "body/large", Body: []byte("12345"), Exists: true}}},
 			{
 				Bodies: []*s4wave_world.ObjectBody{
-					{ObjectKey: "body/missing", Exists: false},
-					{ObjectKey: "body/large", Body: []byte("12345"), Exists: true},
+					{ObjectKey: "body/large", Exists: true, WithheldSize: 9 << 20},
+					{ObjectKey: "body/missing"},
 				},
+				WorldSeqno: 7,
 			},
+			{Bodies: []*s4wave_world.ObjectBody{{ObjectKey: "body/small", Body: []byte("1"), Exists: true}}},
 		},
 	}
 	ws := &SDKWorldState{service: service}
-	keys := []string{"body/large", "body/missing", "body/large"}
+	keys := []string{"body/large", "body/missing", "body/small"}
 
-	// Collect the object bodies through the World state batch API.
-	bodies, err := ws.GetObjectBodiesBatch(context.Background(), keys)
+	// Read one page through the World state page method.
+	bodies, consumed, seqno, err := ws.GetObjectBodiesBatchPage(context.Background(), keys, 1<<20)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify one batch request preserves object count, order, and missing-body markers.
-	if len(service.requests) != 1 {
-		t.Fatalf("request count = %d, want 1", len(service.requests))
+	// One request carries the page budget; the page answers two keys and
+	// keeps the withheld entry's size.
+	if len(service.requests) != 1 || service.requests[0].GetPageBudget() != 1<<20 {
+		t.Fatalf("requests = %+v, want one with page budget %d", service.requests, 1<<20)
 	}
-	if len(bodies) != len(keys) {
-		t.Fatalf("body count = %d, want %d", len(bodies), len(keys))
+	if len(bodies) != 2 || consumed != 2 || seqno != 7 {
+		t.Fatalf("page = %d bodies, consumed %d, seqno %d; want 2, 2, 7", len(bodies), consumed, seqno)
 	}
-	for i, want := range keys {
-		if bodies[i].ObjectKey != want {
-			t.Fatalf("body %d key = %q, want %q", i, bodies[i].ObjectKey, want)
-		}
-	}
-	if bodies[1].Exists || bodies[1].Body != nil {
-		t.Fatalf("missing body = %+v, want an empty missing marker", bodies[1])
+	if bodies[0].WithheldSize != 9<<20 || bodies[0].Body != nil || bodies[1].Exists {
+		t.Fatalf("bodies = %+v, want a withheld entry and a missing marker", bodies)
 	}
 }

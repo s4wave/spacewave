@@ -337,6 +337,9 @@ func TestWorldStateListGraphEdgeBuckets(t *testing.T) {
 	if len(bucket.Outgoing) != 2 || len(bucket.Incoming) != 2 {
 		t.Fatalf("expected limited outgoing/incoming buckets, got outgoing=%d incoming=%d", len(bucket.Outgoing), len(bucket.Incoming))
 	}
+	if bucket.CreationOrder {
+		t.Fatal("collected edges in key order report creation order")
+	}
 	if !bucket.OutgoingTruncated || bucket.IncomingTruncated {
 		t.Fatalf("unexpected truncation outgoing=%v incoming=%v", bucket.OutgoingTruncated, bucket.IncomingTruncated)
 	}

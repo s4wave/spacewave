@@ -23,7 +23,7 @@ func (w *objectBodyPageWorld) GetObjectBodiesBatchPage(
 	_ context.Context,
 	keys []string,
 	byteBudget int,
-) ([]*world.ObjectBody, uint32, error) {
+) ([]*world.ObjectBody, uint32, uint64, error) {
 
 	// make byKey.
 	byKey := make(map[string]*world.ObjectBody, len(w.bodies))
@@ -37,33 +37,22 @@ func (w *objectBodyPageWorld) GetObjectBodiesBatchPage(
 		body := byKey[key]
 		candidate := append(append([]*world.ObjectBody(nil), page...), body)
 		if len(page) > 0 && encodedBodyResponseSize(candidate) > byteBudget {
-			w.pageSizes = append(w.pageSizes, len(page))
-			w.readSizes = append(w.readSizes, readCount)
-			return page, uint32(i), nil
+			return page, uint32(i), w.recordPage(len(page), readCount), nil
 		}
 		page = append(page, body)
 	}
-	w.pageSizes = append(w.pageSizes, len(page))
-	w.readSizes = append(w.readSizes, readCount)
-	return page, 0, nil
+	return page, 0, w.recordPage(len(page), readCount), nil
 }
 
-func (w *objectBodyPageWorld) GetObjectBodiesBatchPageWithSeqno(
-	ctx context.Context,
-	keys []string,
-	byteBudget int,
-) ([]*world.ObjectBody, uint32, uint64, error) {
-
-	// getObjectBodiesBatchPage bodies,next,err.
-	bodies, next, err := w.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
-	if err != nil {
-		return nil, 0, 0, err
-	}
+// recordPage records one page's size and read count and returns its seqno.
+func (w *objectBodyPageWorld) recordPage(size, readCount int) uint64 {
+	w.pageSizes = append(w.pageSizes, size)
+	w.readSizes = append(w.readSizes, readCount)
 	var seqno uint64
-	if page := len(w.readSizes) - 1; page >= 0 && page < len(w.seqnos) {
+	if page := len(w.readSizes) - 1; page < len(w.seqnos) {
 		seqno = w.seqnos[page]
 	}
-	return bodies, next, seqno, nil
+	return seqno
 }
 
 func encodedBodyResponseSize(bodies []*world.ObjectBody) int {
@@ -111,7 +100,7 @@ func TestStreamObjectBodyPagesSendsBoundedPagesInOrder(t *testing.T) {
 
 	// Perform the action.
 	var pages []*s4wave_world.GetObjectBodiesBatchResponse
-	err := streamObjectBodyPages(context.Background(), ws, keys, 100, func(resp *s4wave_world.GetObjectBodiesBatchResponse) error {
+	err := streamObjectBodyPages(context.Background(), ws, keys, 100, false, func(resp *s4wave_world.GetObjectBodiesBatchResponse) error {
 		pages = append(pages, resp)
 		return nil
 	})
@@ -206,7 +195,4 @@ func TestGetObjectBodiesBatchCarriesObjectRevisions(t *testing.T) {
 	}
 }
 
-var (
-	_ world.ObjectBodyPageBatcher      = (*objectBodyPageWorld)(nil)
-	_ world.ObjectBodyPageSeqnoBatcher = (*objectBodyPageWorld)(nil)
-)
+var _ world.WorldState = (*objectBodyPageWorld)(nil)

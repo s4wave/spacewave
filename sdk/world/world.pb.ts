@@ -1736,6 +1736,12 @@ export interface GraphEdgeBucket {
    * IncomingTruncated indicates more incoming edges matched than were returned.
    */
   incomingTruncated?: boolean
+  /**
+   * CreationOrder reports that each direction's edges come in the order their
+   * endpoint objects were created, newest first when the query is reversed.
+   * Otherwise they come in endpoint key text order.
+   */
+  creationOrder?: boolean
 }
 
 export const GraphEdgeBucket: MessageType<GraphEdgeBucket> =
@@ -1747,6 +1753,7 @@ export const GraphEdgeBucket: MessageType<GraphEdgeBucket> =
       [3, 'incoming', 11, 1, Quad.codec],
       [4, 'outgoing_truncated', 8],
       [5, 'incoming_truncated', 8],
+      [6, 'creation_order', 8],
     ],
   )
 
@@ -2006,6 +2013,12 @@ export interface ObjectBody {
    * and the type's owner, the host or its plugin, can render it.
    */
   bodyJson?: string
+  /**
+   * WithheldSize is the length of a body left out of its page because the
+   * entry alone exceeds the page budget; body and body_json are then empty.
+   * The object read returns a withheld body.
+   */
+  withheldSize?: bigint
 }
 
 export const ObjectBody: MessageType<ObjectBody> =
@@ -2019,6 +2032,7 @@ export const ObjectBody: MessageType<ObjectBody> =
       [5, 'mod_seqno', 4],
       [6, 'type_id', 9],
       [7, 'body_json', 9],
+      [8, 'withheld_size', 4],
     ],
   )
 
@@ -2037,6 +2051,13 @@ export interface GetObjectBodiesBatchRequest {
    * Json asks for each body's type ID and JSON rendering.
    */
   json?: boolean
+  /**
+   * PageBudget, when set, asks for one page of at most this many encoded body
+   * bytes, capped at the default budget; the stream ends after it, and its
+   * bodies answer a prefix of object_keys. Zero streams every key in pages of
+   * the default budget.
+   */
+  pageBudget?: number
 }
 
 export const GetObjectBodiesBatchRequest: MessageType<GetObjectBodiesBatchRequest> =
@@ -2045,6 +2066,7 @@ export const GetObjectBodiesBatchRequest: MessageType<GetObjectBodiesBatchReques
     () => [
       [1, 'object_keys', 9, 1],
       [2, 'json', 8],
+      [3, 'page_budget', 13],
     ],
   )
 

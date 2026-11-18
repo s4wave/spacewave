@@ -18,16 +18,10 @@ type ObjectMetadata struct {
 	ParentObjectKey string
 }
 
-// ObjectMetadataBatcher returns metadata for object keys without requiring a
-// Cayley handle.
-type ObjectMetadataBatcher interface {
-	// GetObjectMetadataBatch returns graph metadata for object keys.
-	GetObjectMetadataBatch(ctx context.Context, keys []string) ([]*ObjectMetadata, error)
-}
-
 // GetObjectMetadataBatch returns the type and parent metadata for a list of
-// object keys using exact graph lookups. This intentionally avoids the local
-// Cayley handle API so remote and TinyGo callers can use the same path.
+// object keys in one batched graph lookup. It avoids the local Cayley handle
+// API so remote and TinyGo callers use the same path, and a remote World
+// answers it in one call.
 //
 // The result slice preserves the input key order.
 func GetObjectMetadataBatch(ctx context.Context, ws world.WorldState, keys []string) ([]*ObjectMetadata, error) {
@@ -36,59 +30,40 @@ func GetObjectMetadataBatch(ctx context.Context, ws world.WorldState, keys []str
 		return nil, nil
 	}
 
-	// Delegate metadata lookup to the World batch API when available.
-	if batcher, ok := ws.(ObjectMetadataBatcher); ok {
-		return batcher.GetObjectMetadataBatch(ctx, keys)
-	}
-
-	// Preserve input order while grouping metadata records by unique object key.
+	// Preserve input order while grouping metadata records by unique object
+	// key, and ask for the type and parent edges of each unique key.
 	result := make([]*ObjectMetadata, len(keys))
-	uniqueKeys := make([]string, 0, len(keys))
-	seen := make(map[string]struct{}, len(keys))
 	resultByKey := make(map[string][]*ObjectMetadata, len(keys))
+	filters := make([]world.GraphQuad, 0, 2*len(keys))
 	for i, key := range keys {
 		md := &ObjectMetadata{ObjectKey: key}
 		result[i] = md
-		if _, ok := seen[key]; !ok {
-			seen[key] = struct{}{}
-			uniqueKeys = append(uniqueKeys, key)
+		if _, ok := resultByKey[key]; !ok {
+			filters = append(filters,
+				world.NewGraphQuadWithKeys(key, TypePred.String(), "", ""),
+				world.NewGraphQuadWithKeys(key, world_parent.ParentPred.String(), "", ""),
+			)
 		}
 		resultByKey[key] = append(resultByKey[key], md)
 	}
 
-	// Read type and parent graph metadata once for each unique object key.
-	for _, key := range uniqueKeys {
-		// Apply the object type edges to every corresponding metadata record.
-		typeQuads, err := ws.LookupGraphQuads(
-			ctx,
-			world.NewGraphQuadWithKeys(key, TypePred.String(), "", ""),
-			typeGraphLookupLimit,
-		)
-		if err != nil {
-			return nil, err
-		}
-		for _, q := range typeQuads {
+	// Apply each key's type edges, then its parent edges.
+	quads, err := ws.LookupGraphQuadsBatch(ctx, filters, typeGraphLookupLimit)
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i+1 < len(quads); i += 2 {
+		for _, q := range quads[i] {
 			if err := setTypeBatch(q, resultByKey); err != nil {
 				return nil, err
 			}
 		}
-
-		// Apply the parent edges to every corresponding metadata record.
-		parentQuads, err := ws.LookupGraphQuads(
-			ctx,
-			world.NewGraphQuadWithKeys(key, world_parent.ParentPred.String(), "", ""),
-			typeGraphLookupLimit,
-		)
-		if err != nil {
-			return nil, err
-		}
-		for _, q := range parentQuads {
+		for _, q := range quads[i+1] {
 			if err := setParentBatch(q, resultByKey); err != nil {
 				return nil, err
 			}
 		}
 	}
-
 	return result, nil
 }
 

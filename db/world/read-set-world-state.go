@@ -105,40 +105,11 @@ func (s *readSetWorldState) GetObjectRootRefsBatch(ctx context.Context, keys []s
 	return GetObjectRootRefsBatch(ctx, s.WorldState, keys)
 }
 
-// GetObjectBodiesBatch records the requested keys and reads their bodies
-// through the wrapped state's batcher when it has one.
-func (s *readSetWorldState) GetObjectBodiesBatch(ctx context.Context, keys []string) ([]*ObjectBody, error) {
-	s.reads.addKeys(keys...)
-	return GetObjectBodiesBatch(ctx, s.WorldState, keys)
-}
-
 // GetObjectBodiesBatchPage records the requested keys and pages their bodies
 // through the wrapped state.
-func (s *readSetWorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*ObjectBody, uint32, error) {
+func (s *readSetWorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*ObjectBody, uint32, uint64, error) {
 	s.reads.addKeys(keys...)
-	return GetObjectBodiesBatchPage(ctx, s.WorldState, keys, byteBudget)
-}
-
-// GetObjectBodiesBatchPageWithSeqno records the requested keys and pages their
-// bodies with the wrapped state's seqno.
-func (s *readSetWorldState) GetObjectBodiesBatchPageWithSeqno(
-	ctx context.Context,
-	keys []string,
-	byteBudget int,
-) ([]*ObjectBody, uint32, uint64, error) {
-	// Page through the wrapped state's batcher when it has one.
-	s.reads.addKeys(keys...)
-	if pager, ok := s.WorldState.(ObjectBodyPageSeqnoBatcher); ok {
-		return pager.GetObjectBodiesBatchPageWithSeqno(ctx, keys, byteBudget)
-	}
-
-	// Read the seqno, then the page.
-	seqno, err := s.GetSeqno(ctx)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	bodies, consumed, err := GetObjectBodiesBatchPage(ctx, s.WorldState, keys, byteBudget)
-	return bodies, consumed, seqno, err
+	return s.WorldState.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
 }
 
 // HasObject records the object key.
@@ -211,9 +182,6 @@ func (s *readSetWorldState) DeleteGraphObject(ctx context.Context, value string)
 
 // _ is a type assertion
 var (
-	_ WorldState                 = (*readSetWorldState)(nil)
-	_ ObjectRootRefBatcher       = (*readSetWorldState)(nil)
-	_ ObjectBodyBatcher          = (*readSetWorldState)(nil)
-	_ ObjectBodyPageBatcher      = (*readSetWorldState)(nil)
-	_ ObjectBodyPageSeqnoBatcher = (*readSetWorldState)(nil)
+	_ WorldState           = (*readSetWorldState)(nil)
+	_ ObjectRootRefBatcher = (*readSetWorldState)(nil)
 )

@@ -611,7 +611,7 @@ export class WorldStateResource extends Resource implements IWorldState {
    * getObjectBodies reads object root bodies from one World revision, in
    * request order. A body reports exists=false for a missing object. The
    * server streams large responses in pages; a write between pages restarts
-   * the read.
+   * the read. A body too large for one page fails the read.
    */
   public async getObjectBodies(
     objectKeys: string[],
@@ -641,14 +641,22 @@ export class WorldStateResource extends Resource implements IWorldState {
       const pageSeqno = page.worldSeqno ?? 0n
       worldSeqno ??= pageSeqno
       if (pageSeqno !== worldSeqno) return null
-      bodies.push(...(page.bodies ?? []))
+      for (const body of page.bodies ?? []) {
+        if (body.withheldSize) {
+          throw new Error(
+            `Object ${body.objectKey} has a ${body.withheldSize}-byte body, too large for one page.`,
+          )
+        }
+        bodies.push(body)
+      }
     }
     return bodies
   }
 
   /**
    * getObjectBodyPages streams object root bodies in request order, one
-   * budgeted page at a time, each with the World seqno it read. On a read
+   * budgeted page at a time, each with the World seqno it read. A body over
+   * the page budget arrives withheld, with withheldSize set and no body. On a read
    * transaction every page reads the transaction's one revision.
    */
   public getObjectBodyPages(

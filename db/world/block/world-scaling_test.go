@@ -121,7 +121,7 @@ func TestWorldScaling(t *testing.T) {
 			return expectQuads(ws.LookupGraphQuads(ctx, filter, 0))(1)
 		}},
 		{"read the bodies of adjacent objects", false, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
-			bodies, _, err := world.GetObjectBodiesBatchPage(ctx, ws, w.runs[i], world.ObjectBodiesBatchByteBudget)
+			bodies, _, _, err := ws.GetObjectBodiesBatchPage(ctx, w.runs[i], world.ObjectBodiesBatchByteBudget)
 			if err == nil && len(bodies) != scaleBatch {
 				err = errors.Errorf("batch read %d bodies, want %d", len(bodies), scaleBatch)
 			}
@@ -217,7 +217,7 @@ func expectQuads(quads []world.GraphQuad, err error) func(want int) error {
 // expectEdgePage lists one page of the type edges into hub through
 // ListGraphEdgeBuckets and checks that it is full and truncated, and that it
 // holds the hub's objects in creation order, or its reverse, starting just
-// past after. The seed creates hub objects worldSeedTypes indexes apart.
+// past after, and says so. The seed creates hub objects worldSeedTypes indexes apart.
 func expectEdgePage(ctx context.Context, ws world.WorldState, hub, after string, reverse bool) error {
 	buckets, err := ws.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
 		OriginObjectKeys: []string{hub},
@@ -233,6 +233,9 @@ func expectEdgePage(ctx context.Context, ws world.WorldState, hub, after string,
 	b := buckets[0]
 	if len(b.Incoming) != worldSeedResultBatch || !b.IncomingTruncated {
 		return errors.Errorf("page listed %d edges truncated %v, want %d truncated", len(b.Incoming), b.IncomingTruncated, worldSeedResultBatch)
+	}
+	if !b.CreationOrder {
+		return errors.New("paged edges do not report creation order")
 	}
 
 	// Check that each endpoint follows the previous one, or after, by one

@@ -725,6 +725,10 @@ message GraphEdgeBucket {
   bool outgoing_truncated = 4;
   // IncomingTruncated indicates more incoming edges matched than were returned.
   bool incoming_truncated = 5;
+  // CreationOrder reports that each direction's edges come in the order their
+  // endpoint objects were created, newest first when the query is reversed.
+  // Otherwise they come in endpoint key text order.
+  bool creation_order = 6;
 }
 
 // ListGraphEdgeBucketsResponse returns grouped graph edge buckets.
@@ -825,6 +829,10 @@ message ObjectBody {
   // BodyJson is body rendered as JSON, set when the request asked for JSON
   // and the type's owner, the host or its plugin, can render it.
   string body_json = 7;
+  // WithheldSize is the length of a body left out of its page because the
+  // entry alone exceeds the page budget; body and body_json are then empty.
+  // The object read returns a withheld body.
+  uint64 withheld_size = 8;
 }
 
 // GetObjectBodiesBatchRequest is the request type for
@@ -834,6 +842,11 @@ message GetObjectBodiesBatchRequest {
   repeated string object_keys = 1;
   // Json asks for each body's type ID and JSON rendering.
   bool json = 2;
+  // PageBudget, when set, asks for one page of at most this many encoded body
+  // bytes, capped at the default budget; the stream ends after it, and its
+  // bodies answer a prefix of object_keys. Zero streams every key in pages of
+  // the default budget.
+  uint32 page_budget = 3;
 }
 
 // GetObjectBodiesBatchResponse is one page of GetObjectBodiesBatch.

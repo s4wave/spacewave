@@ -73,28 +73,15 @@ func (t *Tx) GetSeqno(ctx context.Context) (uint64, error) {
 	})
 }
 
-// GetObjectBodiesBatchPage returns one budgeted page from the transaction state.
-func (t *Tx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) (bodies []*world.ObjectBody, consumed uint32, err error) {
-	err = t.locked(ctx, false, func() error {
-		bodies, consumed, err = t.state.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
-		return err
-	})
-	return bodies, consumed, err
-}
-
-// GetObjectBodiesBatchPageWithSeqno returns one budgeted page and its transaction seqno.
-func (t *Tx) GetObjectBodiesBatchPageWithSeqno(
+// GetObjectBodiesBatchPage reads one page of object bodies and the
+// transaction seqno under one read lock.
+func (t *Tx) GetObjectBodiesBatchPage(
 	ctx context.Context,
 	keys []string,
 	byteBudget int,
 ) (bodies []*world.ObjectBody, consumed uint32, seqno uint64, err error) {
-	// Read the seqno and one page of object bodies under one read lock.
 	err = t.locked(ctx, false, func() error {
-		seqno, err = t.state.GetSeqno(ctx)
-		if err != nil {
-			return err
-		}
-		bodies, consumed, err = t.state.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+		bodies, consumed, seqno, err = t.state.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
 		return err
 	})
 	return bodies, consumed, seqno, err

@@ -45,6 +45,17 @@ import (
 // SetupResourceClient creates pipes, muxed connections, and resource client for testing.
 // Returns the resource client and a cleanup function.
 func SetupResourceClient(ctx context.Context, t testing.TB, tb *world_testbed.Testbed) (*resource_client.Client, func()) {
+	return SetupResourceClientWrapped(ctx, t, tb, nil)
+}
+
+// SetupResourceClientWrapped is SetupResourceClient with the resource service
+// client wrapped as SetupResourceClientWithService describes.
+func SetupResourceClientWrapped(
+	ctx context.Context,
+	t testing.TB,
+	tb *world_testbed.Testbed,
+	wrap func(resource.SRPCResourceServiceClient) resource.SRPCResourceServiceClient,
+) (*resource_client.Client, func()) {
 	// Configure the resource client logger for RPC diagnostics.
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
@@ -52,13 +63,26 @@ func SetupResourceClient(ctx context.Context, t testing.TB, tb *world_testbed.Te
 
 	// Serve the testbed resource server as the root.
 	testbedResource := NewTestbedResourceServer(ctx, le, tb.Bus, tb.Volume.GetID(), tb.BucketId)
-	return SetupResourceClientWithRoot(ctx, t, testbedResource.GetMux())
+	return SetupResourceClientWithService(ctx, t, testbedResource.GetMux(), wrap)
 }
 
 // SetupResourceClientWithRoot creates pipes, muxed connections, and a resource
 // client whose root resource is served by root.
 // Returns the resource client and a cleanup function.
 func SetupResourceClientWithRoot(ctx context.Context, t testing.TB, root srpc.Invoker) (*resource_client.Client, func()) {
+	return SetupResourceClientWithService(ctx, t, root, nil)
+}
+
+// SetupResourceClientWithService creates a resource client whose root
+// resource is served by root, sending its calls through the service client
+// wrap returns, such as one that counts them. A nil wrap uses the service
+// client as is. Returns the resource client and a cleanup function.
+func SetupResourceClientWithService(
+	ctx context.Context,
+	t testing.TB,
+	root srpc.Invoker,
+	wrap func(resource.SRPCResourceServiceClient) resource.SRPCResourceServiceClient,
+) (*resource_client.Client, func()) {
 	// Create pipes for in-memory communication
 	clientPipe, serverPipe := net.Pipe()
 
@@ -91,6 +115,9 @@ func SetupResourceClientWithRoot(ctx context.Context, t testing.TB, root srpc.In
 
 	// Create resource client
 	resourceServiceClient := resource.NewSRPCResourceServiceClient(srpcClient)
+	if wrap != nil {
+		resourceServiceClient = wrap(resourceServiceClient)
+	}
 	resClient, err := resource_client.NewClient(ctx, resourceServiceClient)
 	if err != nil {
 		clientPipe.Close()

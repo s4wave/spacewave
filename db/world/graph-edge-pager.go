@@ -15,8 +15,9 @@ type EdgePager interface {
 	// IterateEdges calls cb with the endpoint and label of each quad that
 	// joins origin by pred: its object when origin is its subject (dir is
 	// quad.Subject), its subject when origin is its object (quad.Object). The
-	// label is nil when the quad has none. Edges come in a stable endpoint
-	// order, reversed when reverse, with each endpoint's edges together. The
+	// label is nil when the quad has none. Edges come in the order the
+	// endpoint nodes were created, reversed when reverse, with each
+	// endpoint's edges together. The
 	// walk starts just past all edges of the endpoint after, or at the first
 	// edge when after is nil, and stops when cb returns false or an error,
 	// which it returns.
@@ -24,7 +25,8 @@ type EdgePager interface {
 }
 
 // PageGraphEdgeBuckets lists the query's edge buckets through pager, reading
-// one page per origin direction. The query must name a predicate.
+// one page per origin direction, in endpoint creation order. The query must
+// name a predicate.
 func PageGraphEdgeBuckets(ctx context.Context, pager EdgePager, query *GraphEdgeBucketQuery) ([]*GraphEdgeBucket, error) {
 	// Resolve the cursor and predicate: an after with no node is gone, and a
 	// predicate with no node has no edges.
@@ -54,6 +56,7 @@ func PageGraphEdgeBuckets(ctx context.Context, pager EdgePager, query *GraphEdge
 	// Page each origin's requested directions.
 	p := edgePage{pager: pager, pred: query.Predicate, predRef: predRef, after: afterRef, reverse: query.Reverse, limit: query.LimitPerOrigin}
 	for _, bucket := range buckets {
+		bucket.CreationOrder = true
 		if bucket.OriginObjectKey == "" {
 			continue
 		}

@@ -230,7 +230,7 @@ func TestWorldStateGetObjectBodiesBatchPageAfterDiscard(t *testing.T) {
 	txState.Discard()
 
 	// Expect a batched body read on the discarded fork to fail.
-	_, _, err = txState.GetObjectBodiesBatchPage(ctx, []string{"discarded"}, world.ObjectBodiesBatchByteBudget)
+	_, _, _, err = txState.GetObjectBodiesBatchPage(ctx, []string{"discarded"}, world.ObjectBodiesBatchByteBudget)
 	if err != dbtx.ErrDiscarded {
 		t.Fatalf("GetObjectBodiesBatchPage error = %v, want %v", err, dbtx.ErrDiscarded)
 	}

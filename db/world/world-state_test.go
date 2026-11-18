@@ -540,6 +540,16 @@ func (ws *releaseCountingWorldState) GetObject(
 	}, true, nil
 }
 
+// GetObjectBodiesBatchPage reads each body through the counted GetObject, as
+// a store without a batch read does.
+func (ws *releaseCountingWorldState) GetObjectBodiesBatchPage(
+	ctx context.Context,
+	keys []string,
+	byteBudget int,
+) ([]*world.ObjectBody, uint32, uint64, error) {
+	return world.LookupObjectBodiesPage(ctx, ws, keys, byteBudget)
+}
+
 func (ws *releaseCountingWorldState) CreateObject(
 	ctx context.Context,
 	key string,
@@ -703,6 +713,10 @@ func (txs *staleRetryTx) AccessWorldState(
 
 func (txs *staleRetryTx) ApplyWorldOp(ctx context.Context, op world.Operation, opSender peer.ID) (uint64, bool, error) {
 	panic("unexpected ApplyWorldOp call")
+}
+
+func (txs *staleRetryTx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
+	return world.LookupObjectBodiesPage(ctx, txs, keys, byteBudget)
 }
 
 func (txs *staleRetryTx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {

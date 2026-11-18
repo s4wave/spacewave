@@ -4,18 +4,27 @@ package sdk_world_engine_test
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"maps"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/starpc/srpc"
+	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
+	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
@@ -1636,4 +1645,176 @@ func TestSDKEngine_WaitObjectRev(t *testing.T) {
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
+}
+
+// rpcCounter counts the calls a resource client starts, by method.
+type rpcCounter struct {
+	mtx   sync.Mutex
+	calls map[string]int
+}
+
+// add records one call of method.
+func (c *rpcCounter) add(method string) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	c.calls[method]++
+}
+
+// take returns the calls counted since the last take and resets them.
+func (c *rpcCounter) take() map[string]int {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	calls := c.calls
+	c.calls = make(map[string]int)
+	return calls
+}
+
+// countingResourceService counts each call routed through ResourceRpc.
+type countingResourceService struct {
+	resource.SRPCResourceServiceClient
+	counter *rpcCounter
+}
+
+// ResourceRpc opens a route whose first call start is counted.
+func (s *countingResourceService) ResourceRpc(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
+	strm, err := s.SRPCResourceServiceClient.ResourceRpc(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &countingResourceRpc{SRPCResourceService_ResourceRpcClient: strm, counter: s.counter}, nil
+}
+
+// countingResourceRpc counts the method of the call one route carries.
+type countingResourceRpc struct {
+	resource.SRPCResourceService_ResourceRpcClient
+	counter *rpcCounter
+	started bool
+}
+
+// Send counts the route's call when its first SRPC packet starts it.
+func (s *countingResourceRpc) Send(pkt *resource.ResourceRpcPacket) error {
+	if data := pkt.GetData(); !s.started && len(data) != 0 {
+		var srpcPkt srpc.Packet
+		if err := srpcPkt.UnmarshalVT(data); err == nil && srpcPkt.GetCallStart() != nil {
+			s.started = true
+			s.counter.add(srpcPkt.GetCallStart().GetRpcMethod())
+		}
+	}
+	return s.SRPCResourceService_ResourceRpcClient.Send(pkt)
+}
+
+// mountedTx hides every method of the transaction outside world.Tx, as a
+// daemon's mounted wrapper does.
+type mountedTx struct {
+	world.Tx
+}
+
+// TestSDKEngine_BodyPageCalls counts the resource calls one 50-object body
+// page costs over a real resource client and server, with one body over the
+// page budget, read directly, through a wrapper that embeds world.Tx, and
+// through the per-key object reads a page replaces.
+func TestSDKEngine_BodyPageCalls(t *testing.T) {
+	// Serve a World through a resource client that counts its calls.
+	ctx := context.Background()
+	counter := &rpcCounter{calls: make(map[string]int)}
+	tb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	resClient, clientCleanup := resource_testbed.SetupResourceClientWrapped(ctx, t, tb, func(c resource.SRPCResourceServiceClient) resource.SRPCResourceServiceClient {
+		return &countingResourceService{SRPCResourceServiceClient: c, counter: counter}
+	})
+	defer clientCleanup()
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	srpcClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	createResp, err := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient).CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine, err := sdk_world_engine.NewSDKEngine(resClient, resClient.CreateResourceReference(createResp.ResourceId))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer engine.Release()
+
+	// Seed 50 objects, the eleventh with a body over the page budget.
+	const pageBudget = 1 << 20
+	keys := make([]string, 50)
+	oversize := make([]byte, 600<<10)
+	if _, err := rand.Read(oversize); err != nil {
+		t.Fatal(err)
+	}
+	writeTx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range keys {
+		keys[i] = fmt.Sprintf("page/%02d", i)
+		msg := keys[i]
+		if i == 10 {
+			msg = hex.EncodeToString(oversize)
+		}
+		obj, _, err := world.CreateWorldObject(ctx, writeTx, keys[i], func(bcs *block.Cursor) error {
+			bcs.SetBlock(block_mock.NewExample(msg), true)
+			return nil
+		})
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			writeTx.Discard()
+			t.Fatal(err)
+		}
+	}
+	if err := writeTx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readTx.Discard()
+	counter.take()
+
+	// readPage reads one page through ws, then the withheld body through the
+	// object, and returns the calls each step cost.
+	readPage := func(name string, ws world.WorldState) (page, withheld map[string]int) {
+		t.Helper()
+		bodies, consumed, _, err := ws.GetObjectBodiesBatchPage(ctx, keys, pageBudget)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if len(bodies) != len(keys) || consumed != 0 || bodies[10].WithheldSize == 0 || bodies[10].Body != nil {
+			t.Fatalf("%s: page of %d bodies, consumed %d, entry 10 withheld %d", name, len(bodies), consumed, bodies[10].WithheldSize)
+		}
+		page = counter.take()
+		body, err := world.LookupObjectBodyEntry(ctx, ws, keys[10])
+		if err != nil {
+			t.Fatalf("%s: withheld body: %v", name, err)
+		}
+		if uint64(len(body.Body)) != bodies[10].WithheldSize {
+			t.Fatalf("%s: withheld body read %d bytes, want %d", name, len(body.Body), bodies[10].WithheldSize)
+		}
+		return page, counter.take()
+	}
+
+	// One batch call answers the page, directly and through the wrapper.
+	page, withheld := readPage("sdk", readTx)
+	if !maps.Equal(page, map[string]int{"GetObjectBodiesBatch": 1}) {
+		t.Fatalf("page calls = %v, want one GetObjectBodiesBatch", page)
+	}
+	mountedPage, mountedWithheld := readPage("mounted", mountedTx{Tx: readTx})
+	if !maps.Equal(mountedPage, page) || !maps.Equal(mountedWithheld, withheld) {
+		t.Fatalf("mounted calls = %v then %v, want %v then %v", mountedPage, mountedWithheld, page, withheld)
+	}
+
+	// The per-key object reads cost the same withheld read for every key.
+	if _, _, _, err := world.LookupObjectBodiesPage(ctx, readTx, keys, pageBudget); err != nil {
+		t.Fatal(err)
+	}
+	perKey := counter.take()
+	t.Logf("page calls %v; withheld body calls %v; per-key page calls %v", page, withheld, perKey)
 }

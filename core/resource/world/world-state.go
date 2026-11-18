@@ -685,6 +685,7 @@ func (r *WorldStateResource) ListGraphEdgeBuckets(ctx context.Context, req *s4wa
 			Incoming:          graphQuadsToProto(bucket.Incoming),
 			OutgoingTruncated: bucket.OutgoingTruncated,
 			IncomingTruncated: bucket.IncomingTruncated,
+			CreationOrder:     bucket.CreationOrder,
 		}
 	}
 	record.ResultSetCount = len(out)
@@ -794,11 +795,16 @@ func (r *WorldStateResource) GetObjectBodiesBatch(
 	}
 
 	// Stream object body pages and count existing objects.
+	bodyBudget, onePage := objectBodiesBatchBudget, req.GetPageBudget() != 0
+	if onePage {
+		bodyBudget = min(bodyBudget, int(req.GetPageBudget()))
+	}
 	retErr = streamObjectBodyPages(
 		ctx,
 		r.ws,
 		req.GetObjectKeys(),
-		objectBodiesBatchBudget,
+		bodyBudget,
+		onePage,
 		func(resp *s4wave_world.GetObjectBodiesBatchResponse) error {
 			for _, body := range resp.GetBodies() {
 				if body.GetExists() {
@@ -843,7 +849,7 @@ func (r *WorldStateResource) renderBodiesJSON(ctx context.Context, bodies []*s4w
 	for j, md := range metadata {
 		body := bodies[idx[j]]
 		body.TypeId = md.TypeID
-		if md.TypeID == "" {
+		if md.TypeID == "" || body.GetWithheldSize() != 0 {
 			continue
 		}
 		if _, ok := byType[md.TypeID]; !ok {
@@ -913,16 +919,18 @@ func renderTypeJSON(ctx context.Context, le *logrus.Entry, b bus.Bus, typeID str
 const objectBodiesBatchBudget = world.ObjectBodiesBatchByteBudget
 
 // streamObjectBodyPages reads keys in pages of at most bodyBudget encoded
-// body bytes and passes each page to send in request order.
+// body bytes and passes each page to send in request order, stopping after the
+// first page when onePage is set.
 func streamObjectBodyPages(
 	ctx context.Context,
 	ws world.WorldState,
 	keys []string,
 	bodyBudget int,
+	onePage bool,
 	send func(*s4wave_world.GetObjectBodiesBatchResponse) error,
 ) error {
 	for start := 0; start < len(keys); {
-		bodies, consumed, worldSeqno, err := world.GetObjectBodiesBatchPageWithSeqno(ctx, ws, keys[start:], bodyBudget)
+		bodies, consumed, worldSeqno, err := ws.GetObjectBodiesBatchPage(ctx, keys[start:], bodyBudget)
 		if err != nil {
 			return err
 		}
@@ -930,11 +938,12 @@ func streamObjectBodyPages(
 		out := make([]*s4wave_world.ObjectBody, len(bodies))
 		for i, body := range bodies {
 			out[i] = &s4wave_world.ObjectBody{
-				ObjectKey: body.ObjectKey,
-				Body:      body.Body,
-				Exists:    body.Exists,
-				Rev:       body.Rev,
-				ModSeqno:  body.ModSeqno,
+				ObjectKey:    body.ObjectKey,
+				Body:         body.Body,
+				Exists:       body.Exists,
+				Rev:          body.Rev,
+				ModSeqno:     body.ModSeqno,
+				WithheldSize: body.WithheldSize,
 			}
 		}
 		err = send(&s4wave_world.GetObjectBodiesBatchResponse{
@@ -945,7 +954,7 @@ func streamObjectBodyPages(
 			return err
 		}
 
-		if consumed == 0 {
+		if consumed == 0 || onePage {
 			return nil
 		}
 		start += int(consumed)

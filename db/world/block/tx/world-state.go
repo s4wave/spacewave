@@ -76,47 +76,18 @@ func (w *WorldState) GetSeqno(ctx context.Context) (uint64, error) {
 	return w.world.GetSeqno(ctx)
 }
 
-// GetObjectBodiesBatchPage returns one budgeted page from the wrapped state.
-func (w *WorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, error) {
+// GetObjectBodiesBatchPage reads one page of object bodies and the seqno from
+// the wrapped state.
+func (w *WorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
 	// Hold the WorldState lock while reading the page.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
 	// Reject page reads after the WorldState is discarded.
 	if w.discarded {
-		return nil, 0, tx.ErrDiscarded
-	}
-
-	// Read the object page through the native reader when available.
-	if pager, ok := w.world.(world.ObjectBodyPageBatcher); ok {
-		return pager.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
-	}
-	return world.GetObjectBodiesBatchPage(ctx, w.world, keys, byteBudget)
-}
-
-// GetObjectBodiesBatchPageWithSeqno returns one budgeted page and its transaction seqno.
-func (w *WorldState) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
-	// Hold the WorldState lock while reading the page and sequence number.
-	w.mtx.Lock()
-	defer w.mtx.Unlock()
-
-	// Reject sequence-aware page reads after the WorldState is discarded.
-	if w.discarded {
 		return nil, 0, 0, tx.ErrDiscarded
 	}
-
-	// Use the native reader when it supplies the page and sequence number together.
-	if pager, ok := w.world.(world.ObjectBodyPageSeqnoBatcher); ok {
-		return pager.GetObjectBodiesBatchPageWithSeqno(ctx, keys, byteBudget)
-	}
-
-	// Read the wrapped World sequence number and its budgeted object page.
-	seqno, err := w.world.GetSeqno(ctx)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	bodies, consumed, err := world.GetObjectBodiesBatchPage(ctx, w.world, keys, byteBudget)
-	return bodies, consumed, seqno, err
+	return w.world.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.
