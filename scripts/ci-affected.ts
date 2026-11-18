@@ -407,6 +407,16 @@ interface MutantEntry {
 // 31 on four.
 const splitMutantSpecs = ['db/block/gc/Journal.tla']
 
+// slowConfigMutants are the testdata config mutants not yet judged within 100
+// minutes on one core of a build host; each keeps a 360-minute job until its
+// time is known. Every other config mutant is judged within 39 minutes, and
+// its job stops at 60.
+const slowConfigMutants = new Set([
+  'Journal-adopt-cut-norecount',
+  'Journal-adopt-revive-fill-nofillbarrier',
+  'Journal-adopt-revive-fill-nofilllanded',
+])
+
 // mutantEntries returns the nightly mutant jobs: one of the specs whose
 // configs the spec jobs check, less splitMutantSpecs, and one per mutant
 // source of each of those.
@@ -435,10 +445,11 @@ function mutantEntries(): MutantEntry[] {
       `${dirname(spec)}/testdata/${stem}-*.cfg`,
     ])
     for (const config of testdata.split('\n').filter((f) => f !== '')) {
+      const name = basename(config, '.cfg')
       entries.push({
-        name: basename(config, '.cfg'),
+        name,
         targets: config,
-        timeout: 360,
+        timeout: slowConfigMutants.has(name) ? 360 : 60,
       })
     }
   }
