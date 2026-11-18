@@ -215,8 +215,10 @@ export interface Config {
   verbose?: boolean
   /**
    * ReaderPinDelay is how long a replaced World head a reader still holds
-   * waits before the engine pins it, as a duration string. It must stay
-   * below the Volume collector's grace. Empty uses the engine's default.
+   * waits before the engine pins it, as a duration string. The pin lands
+   * within this delay plus the head watch's lag, on whichever goroutine
+   * installs the replacing head, so the Volume collector's grace must cover
+   * both. Empty uses the engine's default.
    */
   readerPinDelay?: string
   /**

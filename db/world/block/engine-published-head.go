@@ -108,7 +108,11 @@ func (p *publishedHead) release() {
 
 // retire drops the Engine's reference to a replaced head. When readers still
 // hold it, the root is pinned in store if they still do after delay. A delay
-// of zero pins at once, before the commit that replaced the head returns.
+// of zero pins at once. The pin runs in the drain of whichever goroutine
+// installed the replacing head: the commit, or the Authority's head watch,
+// which may install it first and drain after the commit returns. The pin thus
+// lands within delay plus the head watch's lag, and the collector's grace must
+// cover both.
 func (p *publishedHead) retire(le *logrus.Entry, store block.StoreOps, delay time.Duration) {
 	// Pin at once when the delay is zero.
 	if delay == 0 && p.refs.Load() > 1 {

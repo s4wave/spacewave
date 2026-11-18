@@ -249,8 +249,10 @@ type Config struct {
 	// Verbose logs every operation's outcome.
 	Verbose bool `protobuf:"varint,7,opt,name=verbose,proto3" json:"verbose,omitempty"`
 	// ReaderPinDelay is how long a replaced World head a reader still holds
-	// waits before the engine pins it, as a duration string. It must stay
-	// below the Volume collector's grace. Empty uses the engine's default.
+	// waits before the engine pins it, as a duration string. The pin lands
+	// within this delay plus the head watch's lag, on whichever goroutine
+	// installs the replacing head, so the Volume collector's grace must cover
+	// both. Empty uses the engine's default.
 	ReaderPinDelay string `protobuf:"bytes,8,opt,name=reader_pin_delay,json=readerPinDelay,proto3" json:"readerPinDelay,omitempty"`
 	// MaxPendingBytes bounds the World pages the adapter keeps in memory
 	// before it stores them. Zero uses the adapter's default.
