@@ -168,15 +168,18 @@ var lockedBackendReadLog = rate.Sometimes{Interval: 10 * time.Second}
 // backend under the writer lock. A write body defers such reads to a fetch
 // outside the lock, and warms the pages its commit reads, so each one here is a
 // read the warming missed, and every write queued behind it waits for it.
-func warnLockedBackendReads(reads *block.ReadCounter) {
-	snap := reads.Snapshot()
-	if snap.BackendReadCount == 0 {
+// It counts only the reads made since before, so a counter the caller shares
+// with an outer operation warns on this commit's reads alone.
+func warnLockedBackendReads(reads *block.ReadCounter, before block.ReadCounterSnapshot) {
+	after := reads.Snapshot()
+	count := after.BackendReadCount - before.BackendReadCount
+	if count == 0 {
 		return
 	}
 	lockedBackendReadLog.Do(func() {
 		logrus.WithFields(logrus.Fields{
-			"reads":   snap.BackendReadCount,
-			"elapsed": snap.BackendReadTime.Round(time.Millisecond).String(),
+			"reads":   count,
+			"elapsed": (after.BackendReadTime - before.BackendReadTime).Round(time.Millisecond).String(),
 		}).Warn("World commit read blocks from the storage backend under the writer lock")
 	})
 }
@@ -184,9 +187,13 @@ func warnLockedBackendReads(reads *block.ReadCounter) {
 // admit adds the operation and installs the World after it, then releases
 // the writer lock. It records the World seqno and its durable position.
 func (t *soEngineWriteTx) admit(ctx context.Context) error {
-	// Count the reads the storage backend serves under the writer lock.
-	ctx, reads := block.WithReadCounter(ctx)
-	defer warnLockedBackendReads(reads)
+	// Count the reads the storage backend serves under the writer lock, on
+	// the caller's counter when it has one, so its total keeps these reads.
+	reads := block.ContextReadCounter(ctx)
+	if reads == nil {
+		ctx, reads = block.WithReadCounter(ctx)
+	}
+	defer warnLockedBackendReads(reads, reads.Snapshot())
 
 	// End the callback stage, and report the later stages to the write
 	// queue's batch when one admits this write.
