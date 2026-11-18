@@ -1,3 +1,5 @@
+//go:build darwin || linux || windows
+
 // Package s4dbv1 reads a database file the previous s4db engine wrote: a
 // commit log over a copy-on-write B+tree with values over the inline bound
 // packed into page-allocated extents. It only reads: a Reader streams every
