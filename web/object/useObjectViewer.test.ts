@@ -262,6 +262,22 @@ describe('resolveObjectViewerSelection', () => {
     expect(selection.missingComponentID).toBe('missing.viewer')
   })
 
+  it('opens the declared default unless the person chose a viewer', () => {
+    const viewers = [
+      component('gizmo.inspection', 'Inspection'),
+      { ...component('gizmo.map', 'Map'), defaultForType: true },
+    ]
+
+    expect(
+      resolveObjectViewerSelection(viewers, undefined, undefined)
+        .selectedComponent?.componentID,
+    ).toBe('gizmo.map')
+    expect(
+      resolveObjectViewerSelection(viewers, 'gizmo.inspection', undefined)
+        .selectedComponent?.componentID,
+    ).toBe('gizmo.inspection')
+  })
+
   it('uses the authored component when a plugin reload makes it visible', () => {
     const beforeReload = [component('spacewave.debug.viewer', 'Debug')]
     const afterReload = [

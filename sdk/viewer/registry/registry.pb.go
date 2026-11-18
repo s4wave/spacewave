@@ -71,6 +71,11 @@ type ViewerRegistration struct {
 	ComponentId string `protobuf:"bytes,6,opt,name=component_id,json=componentId,proto3" json:"componentId,omitempty"`
 	// Surface is the host surface that can render this viewer.
 	Surface ViewerSurface `protobuf:"varint,7,opt,name=surface,proto3" json:"surface,omitempty"`
+	// DefaultForType declares this viewer the one an object of type_id opens
+	// with when the person has not chosen a viewer. When several viewers of a
+	// type declare it, the first in list order wins; when none does, the first
+	// viewer of the type opens.
+	DefaultForType bool `protobuf:"varint,8,opt,name=default_for_type,json=defaultForType,proto3" json:"defaultForType,omitempty"`
 }
 
 func (x *ViewerRegistration) Reset() {
@@ -126,6 +131,13 @@ func (x *ViewerRegistration) GetSurface() ViewerSurface {
 		return x.Surface
 	}
 	return ViewerSurface_VIEWER_SURFACE_UNKNOWN
+}
+
+func (x *ViewerRegistration) GetDefaultForType() bool {
+	if x != nil {
+		return x.DefaultForType
+	}
+	return false
 }
 
 // RegisterViewerRequest is the request type for RegisterViewer.
@@ -278,6 +290,7 @@ func (m *ViewerRegistration) CloneVT() *ViewerRegistration {
 	r.DevModeOnly = m.DevModeOnly
 	r.ComponentId = m.ComponentId
 	r.Surface = m.Surface
+	r.DefaultForType = m.DefaultForType
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -411,6 +424,9 @@ func (this *ViewerRegistration) EqualVT(that *ViewerRegistration) bool {
 		return false
 	}
 	if this.Surface != that.Surface {
+		return false
+	}
+	if this.DefaultForType != that.DefaultForType {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -633,6 +649,11 @@ func (x *ViewerRegistration) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("surface")
 		x.Surface.MarshalProtoJSON(s)
 	}
+	if x.DefaultForType || s.HasField("defaultForType") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("defaultForType")
+		s.WriteBool(x.DefaultForType)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -671,6 +692,9 @@ func (x *ViewerRegistration) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "surface":
 			s.AddField("surface")
 			x.Surface.UnmarshalProtoJSON(s)
+		case "default_for_type", "defaultForType":
+			s.AddField("default_for_type")
+			x.DefaultForType = s.ReadBool()
 		}
 	})
 }
@@ -1023,6 +1047,11 @@ func (m *ViewerRegistration) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.DefaultForType {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DefaultForType)
+		i--
+		dAtA[i] = 0x40
+	}
 	if m.Surface != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Surface))
 		i--
@@ -1325,6 +1354,7 @@ func (m *ViewerRegistration) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DevModeOnly)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ComponentId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Surface)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.DefaultForType)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1440,6 +1470,10 @@ func (x *ViewerRegistration) MarshalProtoText() string {
 	if x.Surface != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "surface")
 		protobuf_go_lite.TextWriteStringer(&sb, ViewerSurface(x.Surface))
+	}
+	if x.DefaultForType != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "default_for_type")
+		protobuf_go_lite.TextWriteBool(&sb, x.DefaultForType)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1647,6 +1681,16 @@ func (m *ViewerRegistration) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DefaultForType", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DefaultForType = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -115,15 +115,26 @@ export function resolveObjectViewerSelection(
       return { selectedComponent: found, missingComponentID: undefined }
     }
     return {
-      selectedComponent: visibleComponents[0],
+      selectedComponent: defaultComponent(visibleComponents),
       missingComponentID: requestedComponentID,
     }
   }
 
   return {
-    selectedComponent: visibleComponents[0],
+    selectedComponent: defaultComponent(visibleComponents),
     missingComponentID: undefined,
   }
+}
+
+// defaultComponent returns the first component that declares itself its
+// type's default, or else the first component.
+function defaultComponent(
+  visibleComponents: ObjectViewerComponent[],
+): ObjectViewerComponent | undefined {
+  return (
+    visibleComponents.find((component) => component.defaultForType) ??
+    visibleComponents[0]
+  )
 }
 
 export function getDefaultStateNamespace(

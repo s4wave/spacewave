@@ -4452,7 +4452,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/viewer/registry": {
-      "hash": "6dfae8c1e05ba0494fabd44474aa47d09107221747b60a647ccb5b4158f2d204",
+      "hash": "0198b0abef4799640be4f8c14b32eef9e1f88ab01a14aa4e33e50250ebbe797c",
       "generatedFiles": [
         "sdk/viewer/registry/registry.pb.go",
         "sdk/viewer/registry/registry.pb.ts",

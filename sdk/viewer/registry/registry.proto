@@ -33,6 +33,11 @@ message ViewerRegistration {
   string component_id = 6;
   // Surface is the host surface that can render this viewer.
   ViewerSurface surface = 7;
+  // DefaultForType declares this viewer the one an object of type_id opens
+  // with when the person has not chosen a viewer. When several viewers of a
+  // type declare it, the first in list order wins; when none does, the first
+  // viewer of the type opens.
+  bool default_for_type = 8;
 }
 
 // RegisterViewerRequest is the request type for RegisterViewer.

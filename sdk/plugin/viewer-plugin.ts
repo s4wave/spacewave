@@ -33,6 +33,8 @@ export interface PluginViewer {
   readonly entry: string
   /** category groups the viewer in the selector. */
   readonly category?: string
+  /** defaultForType opens this viewer for its type when none is chosen. */
+  readonly defaultForType?: boolean
 }
 
 /**
@@ -99,6 +101,7 @@ export function defineViewerPlugin(
                 viewerName: viewer.viewerName,
                 componentId: viewer.componentId,
                 category: viewer.category,
+                defaultForType: viewer.defaultForType,
                 scriptPath: await resolveViewerPath(
                   api,
                   viewer.entry,

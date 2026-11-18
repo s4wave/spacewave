@@ -49,6 +49,9 @@ export interface ObjectViewerComponent {
   name: string
   // category is the grouping category for the component selector dropdown.
   category?: string
+  // defaultForType opens this component for its type when the person has
+  // chosen none; without one, the first component of the type opens.
+  defaultForType?: boolean
   // disablePadding removes the default 5px viewer content padding.
   disablePadding?: boolean
   // requiresObjectState indicates whether the component needs the generic

@@ -71,6 +71,13 @@ export interface ViewerRegistration {
    * Surface is the host surface that can render this viewer.
    */
   surface?: ViewerSurface
+  /**
+   * DefaultForType declares this viewer the one an object of type_id opens
+   * with when the person has not chosen a viewer. When several viewers of a
+   * type declare it, the first in list order wins; when none does, the first
+   * viewer of the type opens.
+   */
+  defaultForType?: boolean
 }
 
 export const ViewerRegistration: MessageType<ViewerRegistration> =
@@ -84,6 +91,7 @@ export const ViewerRegistration: MessageType<ViewerRegistration> =
       [5, 'dev_mode_only', 8],
       [6, 'component_id', 9],
       [7, 'surface', 14, 0, ViewerSurface_Enum],
+      [8, 'default_for_type', 8],
     ],
   )
 
