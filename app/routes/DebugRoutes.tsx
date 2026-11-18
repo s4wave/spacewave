@@ -56,6 +56,10 @@ const WizardShellDebug = debugPage(
   () => import('@s4wave/app/debug/wizard/WizardShellDebug.js'),
   'WizardShellDebug',
 )
+const FileReferencesDebug = debugPage(
+  () => import('@s4wave/app/debug/unixfs/FileReferencesDebug.js'),
+  'FileReferencesDebug',
+)
 const TextFileStatesDebug = debugPage(
   () => import('@s4wave/app/debug/unixfs/TextFileStatesDebug.js'),
   'TextFileStatesDebug',
@@ -225,6 +229,12 @@ const debugRouteEntries = [
     element: <TextFileStatesDebug />,
   },
   {
+    path: '/debug/ui/file-references',
+    title: 'File references',
+    description: 'Open a file with its references; add /none, /more...',
+    element: <FileReferencesDebug />,
+  },
+  {
     path: '/debug/ui/table',
     title: 'Table',
     description: 'Open the table in one state; add /selected, /by-latency...',
@@ -333,6 +343,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/text-file/:state">
       <TextFileStatesDebug />
+    </Route>
+    <Route path="/debug/ui/file-references/:state">
+      <FileReferencesDebug />
     </Route>
     <Route path="/debug/ui/table/:state">
       <TableDebug />

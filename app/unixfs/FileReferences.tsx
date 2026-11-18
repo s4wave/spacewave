@@ -9,6 +9,7 @@ import {
   type IWorldState,
 } from '@s4wave/sdk/world/world-state.js'
 import { ObjectLink } from '@s4wave/web/object/ObjectLink.js'
+import { getObjectTypeLabel } from '@s4wave/web/space/object-tree.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
@@ -146,12 +147,13 @@ export function FileReferencesStrip({
   return (
     <section aria-label="References" className={stripClass}>
       <span className="text-foreground-alt shrink-0">Referenced by</span>
-      <ul className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+      <ul className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
         {view.refs.map(([key, ref]) => (
           <li key={key} className="shrink-0">
             <ObjectLink
               objectKey={key}
               objectType={ref.typeId || undefined}
+              kind={referrerKind(ref.typeId)}
               compact
             />
           </li>
@@ -164,4 +166,13 @@ export function FileReferencesStrip({
       ) : null}
     </section>
   )
+}
+
+// referrerKind names a referrer's type in a few words: its registered label, or
+// the last segment of a type ID no plugin registers, such as "observation" for
+// "glados/observation". An untyped referrer has no kind.
+function referrerKind(typeId: string): string {
+  if (!typeId) return ''
+  const label = getObjectTypeLabel(typeId)
+  return label === typeId ? (typeId.split('/').at(-1) ?? typeId) : label
 }
