@@ -20,6 +20,7 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
+	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
@@ -108,6 +109,14 @@ func openRuleVolume(t *testing.T, store kvtx.Store, frees, hold bool) (*Volume, 
 		}
 	})
 	return v, clk
+}
+
+// observePuts lets v store blocks nothing holds, counting them as a Volume
+// with frees off does, for a scenario that leaves garbage on purpose: data a
+// Volume stored before it refused unheld puts, or a writer that dies before
+// its root lands.
+func observePuts(v *Volume) {
+	v.heldMode = block_gc.HeldObserve
 }
 
 // auditCollector gives v a collector, frees on when frees is set, that checks
@@ -514,6 +523,7 @@ func measureLivenessPaths(t *testing.T, n int) livenessCosts {
 	}
 	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
 	v.clock = clk.Now
+	observePuts(v)
 	t.Cleanup(func() { _ = v.Close() })
 
 	// Store n leaves, a hundred under each parent and each parent under a
@@ -1309,8 +1319,9 @@ func testLivenessAdversarial(t *testing.T) {
 			// behind more records than one net slice holds; a pass that nets
 			// only the first move leaves R1 and E Dead, and must not free
 			// them, since they ripen at the journal's end, past the move
-			// back.
+			// back. The churn root holds X alone, so Y is stored unheld.
 			v, clk := newLivenessVolume(t, true)
+			observePuts(v)
 			ctx := t.Context()
 			tr := testTree{}
 			tr.add(t, "E")
@@ -2873,6 +2884,7 @@ func testLivenessAdversarial(t *testing.T) {
 		// counts the Volume again, and G goes while R and X stay.
 		store := store_kvtx_inmem.NewStore()
 		a, _ := openLivenessVolume(t, store, true)
+		observePuts(a)
 		waitAdopted(t, a)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3044,8 +3056,10 @@ func testLivenessAdversarial(t *testing.T) {
 		// After the recount, the store loses C with its list, and a put of
 		// C alone comes before any audit records the hole. That put leaves
 		// C one holder short of P, its namer, the residual window, and an
-		// audit run before the grace reports it.
+		// audit run before the grace reports it. Nothing the Volume records
+		// holds C, so the put stores it unheld.
 		v, _ := newLivenessVolume(t, true)
+		observePuts(v)
 		waitAdopted(t, v)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3854,12 +3868,19 @@ func testLivenessAdversarial(t *testing.T) {
 
 	t.Run("abandoned write", func(t *testing.T) {
 		// A writer puts P -> C in two batches, child first, and never lands
-		// a root on them. Once the grace period passes both are garbage.
+		// a root on them. A Volume with frees on refuses the first batch
+		// and stores nothing; one that lets the puts in finds both garbage
+		// once the grace period passes.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
 		tr.add(t, "C")
 		tr.add(t, "P", "C")
+		if _, err := v.PutBlockBatch(ctx, tr.entries("C")); !errors.Is(err, block.ErrUnheldPut) {
+			t.Fatalf("unheld put returned %v, want ErrUnheldPut", err)
+		}
+		requireStored(t, v, tr, false, "C")
+		observePuts(v)
 		for _, name := range []string{"C", "P"} {
 			if _, err := v.PutBlockBatch(ctx, tr.entries(name)); err != nil {
 				t.Fatal(err)
@@ -3874,8 +3895,9 @@ func testLivenessAdversarial(t *testing.T) {
 	t.Run("parent put before its child", func(t *testing.T) {
 		// A buffered drain puts P under main before its child C, and C lands
 		// alone within the grace period. Both stay, and releasing main frees
-		// both.
+		// both. C's put alone is unheld in its own batch.
 		v, clk := newLivenessVolume(t, true)
+		observePuts(v)
 		ctx := t.Context()
 		tr := testTree{}
 		tr.add(t, "C")
@@ -3906,6 +3928,7 @@ func testLivenessAdversarial(t *testing.T) {
 		// takes C2's holder although C2 has no list yet. C2 then lands alone
 		// and nothing holds it, so it goes after the grace period.
 		v, clk := newLivenessVolume(t, true)
+		observePuts(v)
 		ctx := t.Context()
 		tr := testTree{}
 		tr.add(t, "C2")
@@ -8629,4 +8652,66 @@ func auditWalkWriter(ctx context.Context, v *Volume, stop, started chan struct{}
 			return err
 		}
 	}
+}
+
+// BenchmarkLandCommit times one World-shaped commit on s4db: a new parent
+// naming fanout stored leaves, put with the move of its root, so its Land
+// checks fanout outside children, as a commit that rewrites a tree page
+// does. It reports the store reads each commit makes, a batched read
+// counting once.
+func BenchmarkLandCommit(b *testing.B) {
+	const fanout = 250
+
+	// Open the Volume over a counting s4db store, frees off as on the Mac.
+	ctx := b.Context()
+	db, err := s4db.Open(filepath.Join(b.TempDir(), "bench.s4db"), s4db.Options{})
+	if err != nil {
+		b.Fatal(err)
+	}
+	cs := kvtx_kvtest.NewCountingStore(db)
+	v, err := NewVolume(ctx, "test/land-commit", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{}, false, false, nil, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(func() {
+		_ = v.Close()
+		_ = db.Close()
+	})
+	if v.adoptDone != nil {
+		<-v.adoptDone
+	}
+
+	// Store the leaves under one root.
+	entry := func(data []byte, refs []*block.BlockRef) *block.PutBatchEntry {
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+		return &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true}
+	}
+	var leaves []*block.PutBatchEntry
+	var refs []*block.BlockRef
+	for i := range fanout {
+		e := entry([]byte("leaf "+strconv.Itoa(i)), nil)
+		leaves, refs = append(leaves, e), append(refs, e.Ref)
+	}
+	base := entry([]byte("base"), refs)
+	if err := v.SetBucketRoots(ctx, "b", append(leaves, base), []block.NamedRoot{{Name: "base", Ref: base.Ref}}); err != nil {
+		b.Fatal(err)
+	}
+
+	// Commit a new parent of the leaves under main each iteration.
+	var prev *block.BlockRef
+	start := cs.Counts().Reads
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := range b.N {
+		p := entry([]byte("parent "+strconv.Itoa(i)), refs)
+		if err := v.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{p}, []block.NamedRoot{{Name: "main", Ref: p.Ref, Previous: prev}}); err != nil {
+			b.Fatal(err)
+		}
+		prev = p.Ref
+	}
+	b.StopTimer()
+	b.ReportMetric(float64(cs.Counts().Reads-start)/float64(b.N), "reads/op")
 }

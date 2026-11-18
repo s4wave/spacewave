@@ -7,7 +7,8 @@ type Counts struct {
 	Txns uint64
 	// WriteTxns counts the write transactions among them.
 	WriteTxns uint64
-	// Reads counts the point reads: Get and Exists.
+	// Reads counts the point reads, Get and Exists, and the batched reads,
+	// GetBatch and ExistsBatch, one per batch.
 	Reads uint64
 	// Steps counts the keys a scan or an iterator visited, and its seeks.
 	Steps uint64

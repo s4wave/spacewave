@@ -161,6 +161,12 @@ export interface VolumeHealth {
    * ref strings.
    */
   corruptRefs?: string[]
+  /**
+   * NotHeldPutBlocks counts the blocks stored by puts that nothing held, no
+   * root, parent in their batch or stage, that landed while the volume
+   * observed rather than refused, since it opened.
+   */
+  notHeldPutBlocks?: bigint
 }
 
 export const VolumeHealth: MessageType<VolumeHealth> =
@@ -179,4 +185,5 @@ export const VolumeHealth: MessageType<VolumeHealth> =
     [14, 'not_held_child_blocks', 4],
     [15, 'corrupt_reads', 4],
     [16, 'corrupt_refs', 9, 1],
+    [17, 'not_held_put_blocks', 4],
   ])

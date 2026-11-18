@@ -2750,7 +2750,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/volume": {
-          "hash": "2c42cfa5031c81d31dbc5ebe8cf1a8f3900bf30770486ad705f89c9334aa6b5f",
+          "hash": "eb824ae5bc623b024b7c4657b5d9dcfbcd768ff7c8c6270ba8756a000319d1ca",
           "generatedFiles": [
             "db/volume/health.pb.go",
             "db/volume/health.pb.ts",

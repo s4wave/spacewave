@@ -100,7 +100,13 @@ var (
 	)
 	volumeNotHeldChildBlocksDesc = prometheus.NewDesc(
 		"spacewave_volume_not_held_child_blocks_total",
-		"Children outside their batch, not held, that root moves requiring their blocks held landed over while the volume observed, counted per move, since it opened; a missing block counts too.",
+		"Children outside their batch, not held, that root moves requiring their blocks held landed over "+
+			"while the volume observed, counted per move, since it opened; a missing block counts too.",
+		[]string{volumeLabel}, nil,
+	)
+	volumeNotHeldPutBlocksDesc = prometheus.NewDesc(
+		"spacewave_volume_not_held_put_blocks_total",
+		"Blocks stored by puts that no root, parent in their batch or stage held, landed while the volume observed, since it opened.",
 		[]string{volumeLabel}, nil,
 	)
 	volumeCorruptReadsDesc = prometheus.NewDesc(
@@ -128,7 +134,7 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, d := range []*prometheus.Desc{
 		volumeGCPhaseDesc, volumeGCPhaseSecondsDesc, volumeFileBytesDesc,
 		volumeLiveValueBytesDesc, volumeFreeDiskBytesDesc, volumeSizesAgeSecondsDesc,
-		volumeWriteReserveDesc, volumeNotHeldRootBlocksDesc, volumeNotHeldChildBlocksDesc,
+		volumeWriteReserveDesc, volumeNotHeldRootBlocksDesc, volumeNotHeldChildBlocksDesc, volumeNotHeldPutBlocksDesc,
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc, volumePutExistingDesc,
 		volumePutRefusedDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
 		volumeBackgroundWaitMaxSecondsDesc, volumeCorruptReadsDesc, volumeCorruptRefsDesc,
@@ -187,6 +193,7 @@ func collectVolume(ch chan<- prometheus.Metric, h *volume.VolumeHealth, now time
 	// Report the blocks root moves landed over while observing.
 	ch <- prometheus.MustNewConstMetric(volumeNotHeldRootBlocksDesc, prometheus.CounterValue, float64(h.GetNotHeldRootBlocks()), id)
 	ch <- prometheus.MustNewConstMetric(volumeNotHeldChildBlocksDesc, prometheus.CounterValue, float64(h.GetNotHeldChildBlocks()), id)
+	ch <- prometheus.MustNewConstMetric(volumeNotHeldPutBlocksDesc, prometheus.CounterValue, float64(h.GetNotHeldPutBlocks()), id)
 
 	// Report the reads that failed their hash.
 	ch <- prometheus.MustNewConstMetric(volumeCorruptReadsDesc, prometheus.CounterValue, float64(h.GetCorruptReads()), id)

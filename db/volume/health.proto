@@ -75,4 +75,8 @@ message VolumeHealth {
   // CorruptRefs lists the first blocks those reads found, at most 16, as block
   // ref strings.
   repeated string corrupt_refs = 16;
+  // NotHeldPutBlocks counts the blocks stored by puts that nothing held, no
+  // root, parent in their batch or stage, that landed while the volume
+  // observed rather than refused, since it opened.
+  uint64 not_held_put_blocks = 17;
 }

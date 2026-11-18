@@ -207,16 +207,19 @@ func (v *Volume) land(ctx context.Context, p *physicalTx, bucketID string, entri
 // admit over a released stage counts a child. The health snapshot reports the counts.
 // The reason names which block failed, the root or a child outside the batch;
 // it does not tell whether a repeat cures it.
-func (v *Volume) observeNotHeld(notHeld [block_gc.NotHeldChild + 1]uint64, err error) {
+func (v *Volume) observeNotHeld(notHeld [block_gc.NotHeldPut + 1]uint64, err error) {
 	for reason, n := range notHeld {
 		v.notHeld[reason].Add(n)
 	}
 	if v.le != nil {
-		le := v.le.WithField("root-blocks", notHeld[block_gc.NotHeldRoot]).WithField("child-blocks", notHeld[block_gc.NotHeldChild])
+		le := v.le.
+			WithField("root-blocks", notHeld[block_gc.NotHeldRoot]).
+			WithField("child-blocks", notHeld[block_gc.NotHeldChild]).
+			WithField("put-blocks", notHeld[block_gc.NotHeldPut])
 		if err != nil {
 			le = le.WithError(err)
 		}
-		le.Debug("root move landed over blocks not held or unchecked")
+		le.Debug("land stored or named blocks not held, or left them unchecked")
 	}
 }
 
@@ -269,7 +272,8 @@ func (v *Volume) heldByStage(ctx context.Context, p *physicalTx, ref *block.Bloc
 // landMoves stores entries and moves the roots of each bucket in p in one
 // Land, as block_gc.Land describes, at the Volume's clock.
 func (v *Volume) landMoves(ctx context.Context, p *physicalTx, entries []*block.PutBatchEntry, moves ...block_gc.BucketRoots) ([]bool, error) {
-	return block_gc.Land(ctx, p.rec, p.blocks, v.now(), entries, moves...)
+	puts := block_gc.PutHold{Mode: v.heldMode, Observed: v.observeNotHeld}
+	return block_gc.Land(ctx, p.rec, p.blocks, v.now(), entries, puts, moves...)
 }
 
 // now returns the Volume's clock.

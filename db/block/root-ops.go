@@ -26,6 +26,12 @@ var ErrRootsUnheld = errors.New("store holds no named roots")
 // batch is refused again until they are stored.
 var ErrRootNotHeld = errors.New("root names a block nothing holds")
 
+// ErrUnheldPut is returned for a put that stores a block no root, parent in
+// its batch, stage or recorded count holds: the collector would free it once
+// its record ages past the grace period. A writer stores a block under a stage, or in the
+// batch that moves the root naming it.
+var ErrUnheldPut = errors.New("put stores a block nothing holds")
+
 // NamedRoot moves one named root of a store.
 type NamedRoot struct {
 	// Name is the root name, unique within the store's bucket.

@@ -136,6 +136,23 @@ func (t *countingTx) Exists(ctx context.Context, key []byte) (bool, error) {
 	return t.Tx.Exists(ctx, key)
 }
 
+// GetBatch counts one read: the batch is one query to a store that batches,
+// and a loop of Get to one that does not.
+func (t *countingTx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	t.count(&t.s.reads)
+	values, found, err := kvtx.GetBatch(ctx, t.Tx, keys)
+	for _, value := range values {
+		t.readBytes.Add(uint64(len(value)))
+	}
+	return values, found, err
+}
+
+// ExistsBatch counts one read, as GetBatch does.
+func (t *countingTx) ExistsBatch(ctx context.Context, keys [][]byte) ([]bool, error) {
+	t.count(&t.s.reads)
+	return kvtx.ExistsBatch(ctx, t.Tx, keys)
+}
+
 // Set counts a write.
 func (t *countingTx) Set(ctx context.Context, key, value []byte) error {
 	t.count(&t.s.writes)

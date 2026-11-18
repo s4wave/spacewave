@@ -100,6 +100,7 @@ func (v *Volume) GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struc
 
 		NotHeldRootBlocks:  v.notHeld[block_gc.NotHeldRoot].Load(),
 		NotHeldChildBlocks: v.notHeld[block_gc.NotHeldChild].Load(),
+		NotHeldPutBlocks:   v.notHeld[block_gc.NotHeldPut].Load(),
 	}
 	if st.reserve {
 		h.WriteState = volume.VolumeWriteState_VOLUME_WRITE_STATE_RESERVE

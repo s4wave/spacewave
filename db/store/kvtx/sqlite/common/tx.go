@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -310,6 +312,69 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// existsBatchKeys bounds the keys one ExistsBatch query names, below
+// SQLite's oldest default limit of 999 bound parameters.
+const existsBatchKeys = 900
+
+// ExistsBatch reports the presence of keys in caller order, with one query
+// per existsBatchKeys keys.
+func (t *Tx) ExistsBatch(ctx context.Context, keys [][]byte) ([]bool, error) {
+	// Require keys and an open SQLite transaction.
+	for _, key := range keys {
+		if len(key) == 0 {
+			return nil, kvtx.ErrEmptyKey
+		}
+	}
+	q, err := t.queryer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Query each chunk, then mark the keys it returned.
+	present := make(map[string]struct{}, len(keys))
+	for chunk := range slices.Chunk(keys, existsBatchKeys) {
+		if err := t.existsChunk(ctx, q, chunk, present); err != nil {
+			return nil, err
+		}
+	}
+	found := make([]bool, len(keys))
+	for i, key := range keys {
+		_, found[i] = present[string(key)]
+	}
+	return found, nil
+}
+
+// existsChunk adds to present each of keys the table holds, in one query
+// and one read turn.
+func (t *Tx) existsChunk(ctx context.Context, q sqliteQueryer, keys [][]byte, present map[string]struct{}) error {
+	// Build the query over the chunk's keys.
+	args := make([]any, len(keys))
+	for i, key := range keys {
+		args[i] = key
+	}
+	query := "SELECT key FROM " + t.queries.table + " WHERE key IN (" + // #nosec G202 -- the table name is built in, and the keys are placeholders.
+		strings.TrimSuffix(strings.Repeat("?,", len(keys)), ",") + ")"
+
+	// Read the present keys in one turn.
+	if err := t.turns.enter(ctx); err != nil {
+		return err
+	}
+	defer t.turns.leave()
+	rows, err := q.QueryContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var key []byte
+		if err := rows.Scan(&key); err != nil {
+			return err
+		}
+		present[string(key)] = struct{}{}
+	}
+	return rows.Err()
 }
 
 // Commit commits the transaction and returns once it is durable, or commits
