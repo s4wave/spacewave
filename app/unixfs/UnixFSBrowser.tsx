@@ -11,7 +11,10 @@ import {
 } from 'react'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
-import { getUnixFSParentPath } from '@s4wave/sdk/unixfs/path.js'
+import {
+  getUnixFSParentPath,
+  normalizeUnixFSLookupPath,
+} from '@s4wave/sdk/unixfs/path.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 import { useFileListState } from '@s4wave/web/editors/file-browser/FileList.js'
@@ -21,6 +24,7 @@ import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { useSaveHold } from '@s4wave/app/sobject/space-replay.js'
 import { useSessionUploadManager } from '@s4wave/app/session/SessionUploadManagerContext.js'
 import { useSessionSyncStatus } from '../session/SessionSyncStatusContext.js'
+import { FileReferences } from './FileReferences.js'
 import { UnixFSFileViewer } from './UnixFSFileViewer.js'
 import { UnixFSBrowserDialogs } from './UnixFSBrowserDialogs.js'
 import { UnixFSBrowserDropSurface } from './UnixFSBrowserDropSurface.js'
@@ -607,6 +611,16 @@ export function UnixFSBrowser(props: UnixFSBrowserProps) {
         rootHandle={rootHandle}
         objectKey={unixfsId}
         inlineFileURL={model.inlineFileURL}
+        footer={
+          // Only the object's root file is a World object edges can name.
+          normalizeUnixFSLookupPath(displayPath) === '' ? (
+            <FileReferences
+              key={unixfsId}
+              worldState={props.worldState}
+              fileKey={unixfsId}
+            />
+          ) : undefined
+        }
       />
     )
   }

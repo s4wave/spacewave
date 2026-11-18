@@ -1,0 +1,21 @@
+---
+title: "UnixFS file viewer: references strip"
+---
+stateDiagram-v2
+  s0: Reading references
+  s1: Read failed: Retry
+  s2: References listed
+  s3: No references
+  s4: References listed, more exist
+  s5: No references, more exist
+  [*] --> s0
+  s0 --> s1: read fails
+  s0 --> s2: first page arrives
+  s0 --> s3: first page arrives
+  s0 --> s4: first page arrives
+  s0 --> s5: first page arrives
+  s1 --> s0: reader presses Retry
+  s3 --> s2: a reference commits
+  s4 --> s2: reader shows more
+  s5 --> s2: reader shows more
+  s5 --> s4: a reference commits or reader shows more
