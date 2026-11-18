@@ -822,7 +822,7 @@
     },
     {
       "name": "github.com/aperturerobotics/common",
-      "version": "v0.38.5-0.20261118130830-7f36ed926d1b",
+      "version": "v0.38.5-0.20261118151149-492290841f91",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/common",
@@ -1098,7 +1098,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-beta.1.0.20261109134749-d67c9b5cfb14",
+      "version": "v6.0.0-beta.1.0.20261118131511-ef69bf247300",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
