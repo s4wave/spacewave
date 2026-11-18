@@ -273,7 +273,7 @@ func (e *engineWorldState) ListObjectsWithType(ctx context.Context, typeID, star
 // SetGraphQuad sets a quad in the graph store.
 // Subject: must be an existing object IRI: <object-key>
 // Predicate: a predicate string, e.x. IRI: <ref>
-// Object: an existing object IRI: <object-key>
+// Object: an object IRI: <object-key>, whose object may be written later
 // If already exists, returns nil.
 func (e *engineWorldState) SetGraphQuad(ctx context.Context, q GraphQuad) error {
 	return e.performOp(ctx, true, func(tx Tx) error {

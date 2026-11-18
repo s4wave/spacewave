@@ -105,11 +105,11 @@ func TestGraphInsertionValidatesBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Reject a batch with a missing endpoint without inserting any of it.
+	// Reject a batch with a missing subject without inserting any of it.
 	valid := world.NewGraphQuadWithKeys("from", "<edge>", "from", "")
-	invalid := world.NewGraphQuadWithKeys("from", "<edge>", "missing", "")
+	invalid := world.NewGraphQuadWithKeys("missing", "<edge>", "from", "")
 	if err := ws.InsertGraphQuads(ctx, []world.GraphQuad{valid, invalid}); err == nil {
-		t.Fatal("accepted missing endpoint")
+		t.Fatal("accepted missing subject")
 	}
 	found, err := ws.LookupGraphQuads(ctx, valid, 0)
 	if err != nil || len(found) != 0 {
