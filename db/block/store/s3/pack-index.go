@@ -64,6 +64,11 @@ const (
 
 	// indexBatchKeys bounds the keys inspected by one background write transaction.
 	indexBatchKeys = 2048
+	// indexScanBatchKeys bounds the rows a background step point-reads while
+	// it holds the index's writer turn. Each read can miss the page cache, so
+	// a foreground writer queued behind the step waits for up to this many
+	// disk reads.
+	indexScanBatchKeys = 256
 	// indexFlushEntries bounds the entries read from the listing that wait for
 	// their write transaction.
 	indexFlushEntries = 32
@@ -497,7 +502,7 @@ func putPackRows(ctx context.Context, tx kvtx.Tx, entry *packfile.PackfileEntry,
 //
 // Invariant: an h row written with an extent holds exactly the offset and
 // size the tail lists for its key in this pack of entry's size, the values
-// upgradeHashRows would write. An extent read verifies the block's hash, so a
+// planTailUpgrades would plan. An extent read verifies the block's hash, so a
 // row that is wrong anyway costs one range read and the lookup through the
 // pack readers, never a wrong block.
 func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte, tail []byte) error {
@@ -987,7 +992,7 @@ func (x *packIndex) pendingEntry(id string) *packfile.PackfileEntry {
 }
 
 // writeKeys writes h rows of the pack for the keys scan yields, in
-// transactions of indexBatchKeys inspected keys with pause after each, then marks
+// transactions of indexScanBatchKeys inspected keys with pause after each, then marks
 // the pack indexed. Preserved rows count toward the bound: checking a row still
 // holds the transaction. scan may reuse the key slice it passes. It returns the
 // keys written, excluding preserved rows.
@@ -1049,7 +1054,7 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 			total++
 		}
 		inTx++
-		if inTx >= indexBatchKeys {
+		if inTx >= indexScanBatchKeys {
 			return commit()
 		}
 		return nil

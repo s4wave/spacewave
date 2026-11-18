@@ -729,7 +729,25 @@ func (s *Store[T]) walPastBound(factor int64) bool {
 // since the passive checkpoint, kept writers waiting through the database
 // file's fsync; restarts on be-7 took up to 13.8 s on a busy disk. It reports
 // whether it is done, false when it gave the turn back for a writer.
+//
+// The connection is taken before the turn, so the turn is never held while
+// the pool is empty: readers that hold every connection would otherwise keep
+// all writers waiting for as long as the slowest read.
 func (s *Store[T]) restartWAL(ctx context.Context, turns uint64, force bool) bool {
+	// Take a connection and shorten its busy wait, restoring the pool's busy
+	// wait before the connection returns to it.
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return true
+	}
+	defer func() {
+		_, _ = conn.ExecContext(context.Background(), "PRAGMA busy_timeout=5000")
+		_ = conn.Close()
+	}()
+	if _, err := conn.ExecContext(ctx, "PRAGMA busy_timeout="+strconv.FormatInt(truncateBusyTimeout.Milliseconds(), 10)); err != nil {
+		return true
+	}
+
 	// Take the writer turn, then give it back if a writer ended since the
 	// passive checkpoint began.
 	release, err := s.writeMtx.Lock(ctx, writerForeground)
@@ -749,23 +767,11 @@ func (s *Store[T]) restartWAL(ctx context.Context, turns uint64, force bool) boo
 		s.stats.addForcedRestart()
 	}
 
-	// Take a connection and shorten its busy wait.
-	conn, err := s.db.Conn(ctx)
-	if err != nil {
-		return true
-	}
-	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "PRAGMA busy_timeout="+strconv.FormatInt(truncateBusyTimeout.Milliseconds(), 10)); err != nil {
-		return true
-	}
-
-	// Restart, then restore the pool's busy wait before the connection
-	// returns to it.
+	// Restart the log.
 	var busy, frames, copied int
 	start := time.Now()
 	_ = conn.QueryRowContext(ctx, "PRAGMA wal_checkpoint(RESTART)").Scan(&busy, &frames, &copied)
 	s.stats.addTruncate(time.Since(start))
-	_, _ = conn.ExecContext(context.Background(), "PRAGMA busy_timeout=5000")
 	return true
 }
 
