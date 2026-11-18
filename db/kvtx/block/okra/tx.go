@@ -383,7 +383,7 @@ func (t *Tx) SetCursorAtKey(ctx context.Context, key []byte, bcs *block.Cursor, 
 
 	// Hold the entry when the tree defers its cursor writes.
 	if t.deferCursors {
-		t.hold(key, heldWrite{ref: valueRef, isBlob: isBlob})
+		t.hold(ctx, key, heldWrite{ref: valueRef, isBlob: isBlob})
 		return nil
 	}
 
@@ -408,7 +408,7 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 
 	// Hold the delete when the tree defers its cursor writes.
 	if t.deferCursors {
-		t.hold(key, heldWrite{del: true})
+		t.hold(ctx, key, heldWrite{del: true})
 		return nil
 	}
 
@@ -442,7 +442,7 @@ func (t *Tx) DeleteCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, 
 		if err != nil || cursor == nil {
 			return nil, err
 		}
-		t.hold(key, heldWrite{del: true})
+		t.hold(ctx, key, heldWrite{del: true})
 		return cursor, nil
 	}
 

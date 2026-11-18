@@ -505,7 +505,7 @@ type okraFixture struct {
 	refs   []*block.BlockRef
 }
 
-func newOkraFixture(t *testing.T, ctx context.Context, store block.StoreOps, size int) *okraFixture {
+func newOkraFixture(t testing.TB, ctx context.Context, store block.StoreOps, size int) *okraFixture {
 	t.Helper()
 	out := &okraFixture{
 		keys:   make([][]byte, size),

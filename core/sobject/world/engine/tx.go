@@ -17,6 +17,8 @@ import (
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/db/world/writequeue"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
 )
 
 // soEngineWriteTx holds the writer lock until its operation is placed or
@@ -158,9 +160,34 @@ func (t *soEngineWriteTx) CommitAdmit(ctx context.Context) (world.Admission, err
 	return world.DurableAdmission(t.seqno), nil
 }
 
+// lockedBackendReadLog limits the warning of reads the storage backend served
+// under the writer lock to one every ten seconds.
+var lockedBackendReadLog = rate.Sometimes{Interval: 10 * time.Second}
+
+// warnLockedBackendReads warns when a commit read blocks from the storage
+// backend under the writer lock. A write body defers such reads to a fetch
+// outside the lock, and warms the pages its commit reads, so each one here is a
+// read the warming missed, and every write queued behind it waits for it.
+func warnLockedBackendReads(reads *block.ReadCounter) {
+	snap := reads.Snapshot()
+	if snap.BackendReadCount == 0 {
+		return
+	}
+	lockedBackendReadLog.Do(func() {
+		logrus.WithFields(logrus.Fields{
+			"reads":   snap.BackendReadCount,
+			"elapsed": snap.BackendReadTime.Round(time.Millisecond).String(),
+		}).Warn("World commit read blocks from the storage backend under the writer lock")
+	})
+}
+
 // admit adds the operation and installs the World after it, then releases
 // the writer lock. It records the World seqno and its durable position.
 func (t *soEngineWriteTx) admit(ctx context.Context) error {
+	// Count the reads the storage backend serves under the writer lock.
+	ctx, reads := block.WithReadCounter(ctx)
+	defer warnLockedBackendReads(reads)
+
 	// End the callback stage, and report the later stages to the write
 	// queue's batch when one admits this write.
 	t.clock.end(stageCallback)

@@ -60,8 +60,10 @@ func (t *Tx) Flush(ctx context.Context) error {
 	return nil
 }
 
-// hold records a cursor write to key.
-func (t *Tx) hold(key []byte, h heldWrite) {
+// hold records a cursor write to key, reading now the pages Flush reads to
+// apply it, so a Flush that must not wait on a read finds them in memory.
+func (t *Tx) hold(ctx context.Context, key []byte, h heldWrite) {
+	t.prefetchHeld(ctx, key)
 	if t.held == nil {
 		t.held = make(map[string]heldWrite)
 	}
