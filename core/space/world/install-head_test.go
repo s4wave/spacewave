@@ -22,6 +22,7 @@ import (
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	"github.com/s4wave/spacewave/db/world"
+	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -1498,9 +1499,11 @@ func holdOrder(a *Adapter, w *block.BlockRef, refs []*block.BlockRef, unresolved
 
 // TestResetPayloadsKeepsUnresolved checks, on a Volume that frees at once,
 // that a cursor save at a held checkpoint World drops no payload while an
-// operation of the order is unresolved, as after a restart before a plugin
-// registers, since the payload may be that operation's; and that it drops the
-// payloads no operation names once every operation resolved.
+// operation of the order is unresolved, since the payload may be that
+// operation's: here one whose transaction type this build does not declare,
+// alone or in a nested batch, as when replay waits for an upgrade. It then
+// checks that the save drops the payloads no operation names once every
+// operation resolved.
 func TestResetPayloadsKeepsUnresolved(t *testing.T) {
 	// Hold a named payload and one only an unresolved operation names.
 	ctx := t.Context()
@@ -1525,8 +1528,27 @@ func TestResetPayloadsKeepsUnresolved(t *testing.T) {
 		}
 	}
 
+	// An unknown transaction type does not resolve, alone or in a nested
+	// batch beside a create that names a payload, which it still holds.
+	unknown := &world_block_tx.Tx{TxType: 99}
+	create := &world_block_tx.Tx{
+		TxType:         world_block_tx.TxType_TxType_CREATE_OBJECT,
+		TxCreateObject: &world_block_tx.TxCreateObject{ObjectKey: "named", RootRef: &bucket.ObjectRef{RootRef: named}},
+	}
+	batch := func(txs ...*world_block_tx.Tx) *world_block_tx.Tx {
+		return &world_block_tx.Tx{TxType: world_block_tx.TxType_TxType_BATCH, TxBatch: &world_block_tx.TxBatch{Txs: txs}}
+	}
+	resolved := false
+	for _, tx := range []*world_block_tx.Tx{unknown, batch(create, batch(unknown))} {
+		op, known := a.txHold(ctx, tx)
+		resolved = resolved || known
+		if known || (tx != unknown && (len(op.refs) != 1 || !op.refs[0].EqualsRef(named))) {
+			t.Fatalf("an unknown transaction type held %v, resolved %v; want unresolved holding the create's payload", op.refs, known)
+		}
+	}
+
 	// A save while an operation is unresolved keeps both.
-	holdOrder(a, w, []*block.BlockRef{named}, true)
+	holdOrder(a, w, []*block.BlockRef{named}, !resolved)
 	if err := a.resetPayloads(ctx, true); err != nil {
 		t.Fatal(err)
 	}

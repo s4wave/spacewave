@@ -38,13 +38,15 @@ func (t *TxBatch) GetTxType() TxType {
 	return TxType_TxType_BATCH
 }
 
-// GetEmpty checks if the tx is empty.
+// GetEmpty checks if the batch is empty: it has no transactions, or one of
+// them is empty. A transaction of a type this build does not declare is not
+// empty; Validate returns its error, so replay waits at it.
 func (t *TxBatch) GetEmpty() bool {
 	if len(t.GetTxs()) == 0 {
 		return true
 	}
 	for _, tx := range t.GetTxs() {
-		if empty, err := tx.GetEmpty(); empty || err != nil {
+		if empty, err := tx.GetEmpty(); empty && err == nil {
 			return true
 		}
 	}
