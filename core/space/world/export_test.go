@@ -24,15 +24,19 @@ func StopRegenBuild(e *Engine) {
 	e.a.regenBuild.routine.SetStateRoutine(func(context.Context, *bucket.ObjectRef) error { return nil })
 }
 
-// WriteRegenOp orders op through e, with its quad list as a payload, and
-// waits for its decision.
+// WriteRegenOp orders op through e and waits for its decision.
 func WriteRegenOp(ctx context.Context, e *Engine, op *RegenerateWorldOp) error {
-	var payloads []*block.BlockRef
-	if !op.GetQuads().GetEmpty() {
-		payloads = []*block.BlockRef{op.GetQuads()}
-	}
-	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: op}}, payloads...)
+	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: op}})
 }
+
+// WriteCarriedQuads sets the quads of the quad list at quads in e's World as
+// RegenerateWorld does before it pins.
+func WriteCarriedQuads(ctx context.Context, e *Engine, quads *block.BlockRef) error {
+	return e.writeCarriedQuads(ctx, quads)
+}
+
+// RegenCarryQuads is the most quads one carried-quad write sets.
+const RegenCarryQuads = regenCarryQuads
 
 // WaitRegenBuild waits until e's installed head holds a pin and e built it
 // off the replay path, and returns the refusal the build met, or "".

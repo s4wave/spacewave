@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"slices"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -100,26 +99,24 @@ func TestRegenerateWorldStallBound(t *testing.T) {
 	})
 	t.Logf("graph settings step of 65536 links: call %v, writes %v", took, stats)
 
-	// A pin carrying more quads than the bound is refused with the count.
+	// Write the bound's quads, all missing from the World, as RegenerateWorld
+	// carries them, then pin with none, build off the replay path, and
+	// switch. The carry's longest write is its largest chunk's hold.
 	bound := space_world.MaxGraphSettingsStep
-	carried := make([]world.GraphQuad, 0, bound+1)
-	for i := range bound + 1 {
+	carried := make([]world.GraphQuad, 0, bound)
+	for i := range bound {
 		carried = append(carried, world.NewGraphQuadWithKeys(fmt.Sprintf("o-%d", i%objects), fmt.Sprintf("<carried%d>", i/(objects*objects)), fmt.Sprintf("o-%d", (i/objects)%objects), ""))
 	}
 	graphFormat := world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH
-	over := writeHeldQuadList(ctx, t, so.GetBlockStore(), eng, carried...)
-	err = space_world.WriteRegenOp(ctx, served, &space_world.RegenerateWorldOp{Target: graphFormat, Quads: over})
-	if want := fmt.Sprintf("carries %d quads, over the bound of %d", bound+1, bound); err == nil || !strings.Contains(err.Error(), want) {
-		t.Fatalf("pin over the bound: got %v, want a refusal naming %q", err, want)
-	}
-
-	// Pin carrying the bound's quads, all missing from the World, then build
-	// off the replay path and switch.
-	list := writeHeldQuadList(ctx, t, so.GetBlockStore(), eng, carried[:bound]...)
-	took, stats = measureWrites(ctx, t, eng, "pin", func() error {
-		return space_world.WriteRegenOp(ctx, served, &space_world.RegenerateWorldOp{Target: graphFormat, Quads: list})
+	list := writeHeldQuadList(ctx, t, so.GetBlockStore(), eng, carried...)
+	took, stats = measureWrites(ctx, t, eng, "carry", func() error {
+		return space_world.WriteCarriedQuads(ctx, served, list)
 	})
-	t.Logf("pin carrying %d quads: call %v, writes %v", bound, took, stats)
+	t.Logf("carry of %d quads in writes of at most %d: call %v, writes %v", bound, space_world.RegenCarryQuads, took, stats)
+	took, stats = measureWrites(ctx, t, eng, "pin", func() error {
+		return space_world.WriteRegenOp(ctx, served, &space_world.RegenerateWorldOp{Target: graphFormat})
+	})
+	t.Logf("empty pin: call %v, writes %v", took, stats)
 	took, stats = measureWrites(ctx, t, eng, "build", func() error {
 		invalid, err := space_world.WaitRegenBuild(ctx, served)
 		if err == nil && invalid != "" {

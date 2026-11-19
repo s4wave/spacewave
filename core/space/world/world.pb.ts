@@ -388,9 +388,9 @@ export const WorldOp: MessageType<WorldOp> =
 /**
  * RegenerateWorldOp rebuilds the World in the target format. To the node
  * graph from cayley_kv it runs in two steps, so each replica builds off its
- * replay path. With base empty it pins: it adds the carried quads to the
- * World and holds the result as world-regen/pin, moving a pin already held;
- * each replica then builds the pin as a node graph in the background. With
+ * replay path. With base empty it pins: it holds the World as
+ * world-regen/pin, moving a pin already held; each replica then builds the
+ * pin as a node graph in the background. With
  * base naming the held pin it switches: within the bound on the quad changes
  * from the pin to the head, it carries the pin's build forward by them,
  * installs the result, holds the head before as world-regen/base and the
@@ -407,12 +407,6 @@ export interface RegenerateWorldOp {
    */
   target?: WorldFormat
   /**
-   * Quads is the root of a quad list a pin adds before the build, or empty.
-   * The list is uvarint-length-prefixed block/quad.Quad messages in a blob,
-   * sorted as CompareQuads orders them.
-   */
-  quads?: BlockRef
-  /**
    * Base is the pin a switch builds from, or empty for a pin.
    */
   base?: BlockRef
@@ -423,7 +417,6 @@ export const RegenerateWorldOp: MessageType<RegenerateWorldOp> =
     'space.world.RegenerateWorldOp',
     () => [
       [1, 'target', 14, 0, WorldFormat_Enum],
-      [2, 'quads', 11, 0, BlockRef.codec],
       [3, 'base', 11, 0, BlockRef.codec],
     ],
   )

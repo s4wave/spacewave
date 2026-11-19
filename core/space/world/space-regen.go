@@ -2,7 +2,6 @@ package space_world
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -10,8 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	bquad "github.com/s4wave/spacewave/db/block/quad"
-	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
@@ -25,10 +22,10 @@ const (
 	regenBuiltName  = regenRootPrefix + "built"
 )
 
-// regenSwitchChanges bounds the quads a pin carries and the quad changes a
-// switch carries the pin's build forward by, both written on the replay path.
-// A graph settings step of this many links held a concurrent write 387 ms on
-// a testbed Space, so neither holds the writers longer than a step does.
+// regenSwitchChanges bounds the quad changes a switch carries the pin's build
+// forward by on the replay path. A graph settings step of this many links held
+// a concurrent write 387 ms on a testbed Space, so a switch holds the writers
+// no longer than a step does.
 const regenSwitchChanges = maxGraphSettingsStep
 
 // reasonRegenMoved refuses a switch whose head moved past regenSwitchChanges
@@ -56,16 +53,15 @@ const defaultRegenBudget = 64 << 20
 // Invariants of applyRegenerateWorld and applyReleaseWorldRegen:
 //
 //  1. The World after a switch holds exactly the object records and quads of
-//     the head before it. The pin is the kv World plus the carried quads,
-//     written as an ordinary commit, and stays the head; the switch builds
-//     the pin, or takes this replica's prebuilt build of the same pin, and
-//     carries it forward by every quad change from the pin to the head.
+//     the head before it. The pin is the kv World as it stands, which the
+//     engine's carried quads reached as ordinary writes ordered before it, and
+//     stays the head; the switch builds the pin, or takes this replica's
+//     prebuilt build of the same pin, and carries it forward by every quad
+//     change from the pin to the head.
 //  2. The World after an operation is a function of the World before and the
-//     operation's bytes alone. The carried quads come from the list the
-//     operation names, and the pin refuses a list longer than
-//     regenSwitchChanges. The switch refuses, alike on every replica, when the
-//     pin it names is not the held one, when the changes from the pin to the
-//     head exceed regenSwitchChanges, or when the pin's build is
+//     operation's bytes alone. The switch refuses, alike on every replica,
+//     when the pin it names is not the held one, when the changes from the
+//     pin to the head exceed regenSwitchChanges, or when the pin's build is
 //     world_block.ErrRegenInvalid; each is read from the state and the
 //     content-addressed Worlds. A prebuilt root and an inline build of one
 //     pin are the same root, since a build is a function of its input, so
@@ -90,10 +86,6 @@ const defaultRegenBudget = 64 << 20
 //  5. A switch back keeps every write ordered after the switch: base is the
 //     head at the switch, not the pin, so the writes between the pin and the
 //     switch are in it, and a write after the switch is carried back.
-//  6. The quad list is a payload of the pin: the writer holds it before the
-//     operation is queued, and every device holds it from the order's hold
-//     until the checkpoint passes the operation, as it holds a transaction's
-//     payloads.
 //
 // Producers into the apply: the replay of an ordered operation; a restored
 // replay cursor or a checkpoint install, each a World another replica
@@ -198,7 +190,8 @@ func (r *spaceReplay) applyRegenerateWorld(ctx context.Context, regenOp *Regener
 			return nil, "world regeneration: a regeneration is already held", nil
 		}
 		if regenOp.GetBase().GetEmpty() {
-			return r.regenPin(ctx, regenOp.GetQuads(), prev)
+			next, reason := regenPin(prev)
+			return next, reason, nil
 		}
 		if pin == nil || !pin.EqualsRef(regenOp.GetBase()) {
 			return nil, reasonRegenPinDiffers, nil
@@ -219,63 +212,14 @@ func (r *spaceReplay) applyRegenerateWorld(ctx context.Context, regenOp *Regener
 	return nil, "world regeneration: no step from " + format.String() + " to " + target.String(), nil
 }
 
-// readPinQuads reads the quad list a pin carries, refusing a list over
-// regenSwitchChanges: the pin writes the list in one graph update on the
-// replay path, so the bound that keeps a switch's hold under a graph
-// settings step's keeps the pin's there too.
-func (r *spaceReplay) readPinQuads(ctx context.Context, quads *block.BlockRef) ([]world.GraphQuad, string, error) {
-	// Collect the list up to the bound, counting past it.
-	var out []world.GraphQuad
-	var count int
-	_, bcs := r.cursor.BuildTransactionAtRefWithStore(nil, quads, r.store())
-	err := RangeQuadList(ctx, bcs, func(q *bquad.Quad) error {
-		if count++; count <= regenSwitchChanges {
-			out = append(out, world.QuadToGraphQuad(q))
-		}
-		return nil
-	})
-
-	// Stop for a gap, and refuse an unreadable or overlong list.
-	if cerr := ctx.Err(); cerr != nil {
-		return nil, "", cerr
-	}
-	if isReplayGap(err) {
-		return nil, "", err
-	}
-	if err != nil {
-		return nil, "world regeneration failed: " + err.Error(), nil
-	}
-	if count > regenSwitchChanges {
-		return nil, fmt.Sprintf("world regeneration: the list carries %d quads, over the bound of %d", count, regenSwitchChanges), nil
-	}
-	return out, "", nil
-}
-
-// regenPin adds the carried quads to the kv World prev and holds the result,
-// which stays the head, as the pin; a pin while only a pin is held moves it.
-func (r *spaceReplay) regenPin(ctx context.Context, quads *block.BlockRef, prev *InnerState) (*InnerState, string, error) {
-	// Commit the carried quads on the World before.
-	out := prev
-	if !quads.GetEmpty() {
-		gquads, reason, err := r.readPinQuads(ctx, quads)
-		if err != nil || reason != "" {
-			return nil, reason, err
-		}
-		out, reason, err = r.commitOn(ctx, prev, "world regeneration failed", func(btx *world_block.EngineTx) (bool, error) {
-			err := btx.SetGraphQuads(ctx, gquads)
-			return err == nil, err
-		})
-		if err != nil || reason != "" {
-			return nil, reason, err
-		}
-	}
-
-	// Hold it as the pin.
-	out, reason := setRetainedRoot(out, regenPinName, out.GetHeadRef().GetRootRef())
+// regenPin holds the kv World prev, which stays the head, as the pin; a pin
+// while only a pin is held moves it.
+func regenPin(prev *InnerState) (*InnerState, string) {
+	out, reason := setRetainedRoot(prev, regenPinName, prev.GetHeadRef().GetRootRef())
 	if reason != "" {
-		return nil, "world regeneration: " + reason, nil
+		return nil, "world regeneration: " + reason
 	}
-	return out, "", nil
+	return out, ""
 }
 
 // regenSwitch installs the node graph of the head of prev: this device's
