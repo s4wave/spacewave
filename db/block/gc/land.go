@@ -432,12 +432,17 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		}
 		b.written = true
 		b.reput = i < len(existed) && existed[i] && !b.reborn && !b.repark
+
+		// A block parked or unmarked again releases the holders its old list
+		// gave. While adopting, the count skips a born block, so the tally
+		// holds those holders only if the count passed its list already.
+		release := l.logs && (!l.adopting || adoptCounted(l.state, BlockKey(b.ref)))
 		if b.repark {
 			released, err := l.rec.repark(ctx, l.state, BlockKey(b.ref))
 			if err != nil {
 				return nil, err
 			}
-			if l.logs {
+			if release {
 				l.down = append(l.down, released...)
 			}
 		}
@@ -447,7 +452,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 				return nil, err
 			}
 			l.dirty = true
-			if l.logs {
+			if release {
 				l.down = append(l.down, released...)
 			}
 		}
