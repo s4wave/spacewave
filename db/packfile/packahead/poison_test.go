@@ -299,12 +299,7 @@ func TestPackAheadFailedWriteCannotAcknowledgeCorruptBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := l.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-		for _, pack := range l.packs {
-			if pack.seq == 1 {
-				return false, nil
-			}
-		}
-		return true, nil
+		return l.packs[1] == nil, nil
 	}); err != nil {
 		t.Fatal(err)
 	}

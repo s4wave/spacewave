@@ -2,16 +2,17 @@ package packahead
 
 import (
 	"bytes"
+	"container/list"
 	"crypto/sha256"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile/writer"
 )
@@ -43,6 +44,8 @@ type pack struct {
 	// buf holds the pack's bytes [0, written) until it is finalized, and is
 	// nil after: the open pack's hot cache.
 	buf []byte
+	// bufReaders pins buf against recycling while a reader copies its bytes.
+	bufReaders atomic.Int32
 	// written is the pack's length: every batch written to f.
 	written int64
 	// synced is the durable end of the batch data, excluding the index.
@@ -77,7 +80,17 @@ type pack struct {
 	uploaded bool
 	// removed tracks locations freed before upload. They remain readable
 	// until upload and a put can revive them.
-	removed map[keyTail]block.BlockRemovalStripe
+	removed map[keyTail]*list.Element
+	// removals orders deferred locations for bounded invalidation batches.
+	removals list.List
+	// order links the pack in the rotated queue or the finalized list.
+	order *list.Element
+	// pending links this finalized pack in the upload queue, if pending.
+	pending *list.Element
+	// held links this pack among the packs holding unuploaded data.
+	held *list.Element
+	// evicting claims the pack for one unlink and table cleanup.
+	evicting bool
 	// renamed is what finalize made of the pack once its rename succeeded,
 	// so a retry after a failed directory sync only syncs the directory. Only
 	// the goroutine finalizing the pack uses it.

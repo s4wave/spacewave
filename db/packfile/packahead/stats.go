@@ -1,7 +1,5 @@
 package packahead
 
-import "slices"
-
 // Stats counts what a Log holds and has done.
 type Stats struct {
 	// Packs counts the local packs, the open one included.
@@ -27,17 +25,9 @@ type Stats struct {
 func (l *Log) GetStats() Stats {
 	var s Stats
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		// Count the packs, the open one included.
-		s.Packs = len(l.packs) + 1
-		for _, p := range append(slices.Clone(l.packs), l.open) {
-			if p.state == packFinal {
-				s.Finalized++
-			}
-			if p.poisoned {
-				s.Poisoned++
-			}
-			s.LocalBytes += p.written
-		}
+		// Count the tracked packs and the open writer.
+		s.Packs, s.Finalized, s.Poisoned = len(l.packs)+1, l.finals.Len(), l.poisoned
+		s.LocalBytes = l.localBytes + l.open.written
 
 		// Read the Log's counters.
 		s.Entries, s.Syncs, s.SyncFailures, s.MaintainError = len(l.table), l.syncs, l.syncFailures, l.maintErr
