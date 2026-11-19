@@ -213,8 +213,10 @@ type LivenessState struct {
 	// so the next switch-on counts again (SetFrees). It reads as off unless
 	// frees_mark matches the record.
 	Frees bool `protobuf:"varint,15,opt,name=frees,proto3" json:"frees,omitempty"`
-	// FreesMark is a hash of the record's other known fields, which every
-	// write of this format computes. A build that predates it keeps it as an
+	// FreesMark is a hash of the record's other known fields, salted with
+	// the build's frees epoch, which every write of this format computes. A
+	// build that raises the epoch reads every earlier mark as stale, so it
+	// counts again at the next switch-on after a defect only a recount fixes. A build that predates it keeps it as an
 	// unknown field and cannot recompute it, so any state write by such a
 	// build leaves it stale, and the record then reads as frees off: the next
 	// switch-on counts again after a writer that knew nothing of the switch.
