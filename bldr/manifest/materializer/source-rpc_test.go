@@ -121,6 +121,7 @@ func TestMaterializeManifestSourceRpcService(t *testing.T) {
 		SourceServiceId:          "plugin-host/fixture-source",
 		Destination:              &bucket.BucketOpArgs{BucketId: "materializer-rpc-dest", VolumeId: destTB.Volume.GetID()},
 		DestinationTransformConf: destTransformConf,
+		DestinationServiceId:     serveTestDestination(t, ctx, le, destTB),
 	})
 	if err != nil {
 		t.Fatal(err.Error())

@@ -21,7 +21,9 @@ export interface MaterializeManifestRequest {
    */
   source?: ObjectRef
   /**
-   * Destination is the bucket and volume to materialize into.
+   * Destination is the bucket to materialize into. Its volume ID is where
+   * a source without SourceServiceId is looked up; the copy writes only
+   * through DestinationServiceId.
    */
   destination?: BucketOpArgs
   /**
@@ -43,6 +45,14 @@ export interface MaterializeManifestRequest {
    * the native bus source lookup.
    */
   sourceServiceId?: string
+  /**
+   * DestinationServiceId is the full bus RPC service ID of a BlockStore
+   * service that stores the destination encoded blocks. Required: the caller
+   * serves it over storage that holds every block it stores, such as a World
+   * stage, until the caller names the copied root, so a collector cannot free
+   * a block the copy wrote before that root holds it.
+   */
+  destinationServiceId?: string
 }
 
 export const MaterializeManifestRequest: MessageType<MaterializeManifestRequest> =
@@ -54,6 +64,7 @@ export const MaterializeManifestRequest: MessageType<MaterializeManifestRequest>
       [3, 'destination_transform_conf', 11, 0, Config.codec],
       [4, 'concurrency', 13],
       [5, 'source_service_id', 9],
+      [6, 'destination_service_id', 9],
     ],
   )
 

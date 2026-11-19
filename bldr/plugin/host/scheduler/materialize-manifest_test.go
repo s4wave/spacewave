@@ -21,18 +21,22 @@ import (
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/testbed"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	"github.com/s4wave/spacewave/db/volume"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	volume_rpc_client "github.com/s4wave/spacewave/db/volume/rpc/client"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
-// TestMaterializeManifestThroughPluginHostVolumeProxy exercises browser
-// worker demand, copy completion, and release with and without an instance key.
-func TestMaterializeManifestThroughPluginHostVolumeProxy(t *testing.T) {
+// TestMaterializeManifestThroughPluginHost exercises browser worker demand,
+// copy completion, and release with and without an instance key, and that
+// every block the plugin copies is held by the host's stage.
+func TestMaterializeManifestThroughPluginHost(t *testing.T) {
 	t.Run("empty instance key", func(t *testing.T) {
 		runBrowserCopyFixture(t, "")
 	})
@@ -43,10 +47,13 @@ func TestMaterializeManifestThroughPluginHostVolumeProxy(t *testing.T) {
 
 // runBrowserCopyFixture copies a manifest from a source testbed to a host
 // testbed through the real Materializer service running on a third plugin
-// bus, exercising the production wiring end to end: request-scoped source
-// BlockStore RPC (plugin-scoped server filter), plugin-host/ prefix routing,
-// and the destination ProxyVolume mapping. instanceKey selects the browser
-// worker identity the source filter must accept.
+// bus, exercising the production wiring end to end: request-scoped source and
+// destination BlockStore RPC (plugin-scoped server filter), plugin-host/
+// prefix routing, and the destination ProxyVolume mapping the plugin mounts.
+// The host Volume frees, so it refuses a put nothing holds: the copy succeeds
+// only if every block the plugin writes lands under the host's stage.
+// instanceKey selects the browser worker identity the store filter must
+// accept.
 func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	// Bind the test context and logger.
 	t.Helper()
@@ -60,8 +67,12 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	}
 	t.Cleanup(srcTB.Release)
 
-	// Build the host and plugin worker testbeds.
-	hostTB, err := testbed.NewTestbed(ctx, le)
+	// Build the host and plugin worker testbeds. The host Volume frees, so
+	// it refuses an unheld put.
+	hostTB, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(&volume_kvtxinmem.Config{
+		VolumeConfig: &volume_controller.Config{},
+		StoreConfig:  &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"},
+	}))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -116,6 +127,18 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(destCursor.Release)
+
+	// Write the destination under a stage, as the scheduler's World stage
+	// does.
+	var releaseStage func()
+	if err := destCursor.WrapTransactionStore(ctx, func(ctx context.Context, store block.StoreOps) (block.StoreOps, error) {
+		staged, release, err := block.OpenStage(ctx, store)
+		releaseStage = release
+		return staged, err
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(releaseStage)
 
 	// Small valid manifest: one nested FS directory node referenced by both
 	// dist and assets, so the graph is exactly two blocks.

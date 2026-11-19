@@ -25,13 +25,16 @@ const materializerReadAhead = 10 << 20
 // materializeManifest copies the selected manifest from src to dest through
 // the materializer plugin's typed streaming service.
 //
-// The caller retains both cursors for the whole call. The scheduler serves the
-// source encoded blocks to the plugin over a request-scoped BlockStore RPC
-// service registered on the scheduler bus under a random service ID, restricted
-// to RPCs originating from the named plugin. The request carries the resolved
-// source transform configuration inline and the destination transform
-// configuration; the destination volume ID selects the existing plugin-host
-// ProxyVolume mounted inside the plugin.
+// The caller retains both cursors for the whole call, and dest writes through
+// storage that holds what it stores, such as a World stage, until the caller
+// names the copied root. The scheduler serves the source encoded blocks to the
+// plugin, and stores the destination encoded blocks for it into dest, over two
+// request-scoped BlockStore RPC services registered on the scheduler bus under
+// random service IDs, restricted to RPCs originating from the named plugin.
+// The plugin writes only through the destination service, so every block it
+// copies is held by dest's storage from its put on. The request carries the
+// resolved source transform configuration inline and the destination
+// transform configuration.
 //
 // The response stream carries coalesced logical statistics and exactly one
 // terminal successful message with the copied root. The helper requires that
@@ -53,13 +56,14 @@ func (c *Controller) materializeManifest(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Serve the source encoded blocks over a request-scoped BlockStore RPC
-	// service, reachable only by this plugin for the duration of the copy.
-	// Every read it serves is background work, so the copy yields to
-	// foreground reads on the source store.
+	// Serve the source encoded blocks, and the destination store, over
+	// request-scoped BlockStore RPC services, reachable only by this plugin
+	// for the duration of the copy. Every source read it serves is background
+	// work, so the copy yields to foreground reads on the source store.
 	sourceID := randstring.RandomIdentifier(16)
-	sourceMux := srpc.NewMux()
-	if err := sourceMux.Register(block_rpc.NewSRPCBlockStoreHandler(
+	destID := randstring.RandomIdentifier(16)
+	mux := srpc.NewMux()
+	if err := mux.Register(block_rpc.NewSRPCBlockStoreHandler(
 		block_rpc_server.NewBlockStoreWithPolicy(src.GetBucket(), block_rpc_server.ReadPolicy{
 			ReadAheadBytes: materializerReadAhead,
 			Background:     true,
@@ -67,6 +71,9 @@ func (c *Controller) materializeManifest(
 		sourceID,
 	)); err != nil {
 		return nil, stats, errors.Wrap(err, "register source block store rpc handler")
+	}
+	if err := mux.Register(block_rpc.NewSRPCBlockStoreHandler(block_rpc_server.NewBlockStore(dest.GetBlockStore()), destID)); err != nil {
+		return nil, stats, errors.Wrap(err, "register destination block store rpc handler")
 	}
 
 	// Accept the plugin's direct server identity and, when the plugin runs in
@@ -79,30 +86,31 @@ func (c *Controller) materializeManifest(
 			regexp.QuoteMeta("web-worker/"+bldr_plugin.PluginServerID(pluginID, c.conf.GetInstanceKey())) +
 			")$",
 	)
-	sourceCtrl := bifrost_rpc.NewRpcServiceController(
+	storeCtrl := bifrost_rpc.NewRpcServiceController(
 		controller.NewInfo(
 			ControllerID+"/materialize-manifest/"+sourceID,
 			Version,
-			"request-scoped source block store for the materializer plugin",
+			"request-scoped block stores for the materializer plugin",
 		),
 		func(_ context.Context, _ func()) (srpc.Invoker, func(), error) {
-			return sourceMux, nil, nil
+			return mux, nil, nil
 		},
 		nil,
 		false,
 		nil,
-		[]string{sourceID},
+		[]string{sourceID, destID},
 		serverIDRe,
 	)
-	relSourceCtrl, err := c.bus.AddController(ctx, sourceCtrl, nil)
+	relStoreCtrl, err := c.bus.AddController(ctx, storeCtrl, nil)
 	if err != nil {
-		return nil, stats, errors.Wrap(err, "add source block store rpc controller")
+		return nil, stats, errors.Wrap(err, "add block store rpc controller")
 	}
-	defer relSourceCtrl()
+	defer relStoreCtrl()
 
 	// Build the typed request. The source ref carries its resolved inline
 	// transform configuration instead of a transform conf ref, and the
-	// destination keeps its bucket while selecting the plugin-host volume.
+	// destination keeps its bucket while selecting the plugin-host volume
+	// for lookups.
 	sourceRef := src.GetRefWithOpArgs()
 	sourceRef.TransformConfRef = nil
 	sourceRef.TransformConf = src.GetTransformConf().CloneVT()
@@ -119,6 +127,7 @@ func (c *Controller) materializeManifest(
 		DestinationTransformConf: dest.GetTransformConf().CloneVT(),
 		Concurrency:              uint32(concurrency), //nolint:gosec // concurrency comes from the uint32 scheduler setting and the positive default.
 		SourceServiceId:          bldr_plugin.HostServiceIDPrefix + sourceID,
+		DestinationServiceId:     bldr_plugin.HostServiceIDPrefix + destID,
 	}
 
 	// Resolve the materializer plugin's RPC client. The lookup demands the

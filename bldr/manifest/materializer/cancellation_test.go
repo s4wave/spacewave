@@ -160,9 +160,10 @@ func TestMaterializeManifestCancelActiveCopy(t *testing.T) {
 	// Start the MaterializeManifest stream against the source ref.
 	client := NewSRPCMaterializerClient(srpcClient)
 	strm, err := client.MaterializeManifest(ctx, &MaterializeManifestRequest{
-		Source:      srcRef,
-		Destination: &bucket.BucketOpArgs{BucketId: "materializer-rpc-dest", VolumeId: tb.Volume.GetID()},
-		Concurrency: 1,
+		Source:               srcRef,
+		Destination:          &bucket.BucketOpArgs{BucketId: "materializer-rpc-dest", VolumeId: tb.Volume.GetID()},
+		Concurrency:          1,
+		DestinationServiceId: serveTestDestination(t, ctx, le, tb),
 	})
 	if err != nil {
 		t.Fatal(err.Error())

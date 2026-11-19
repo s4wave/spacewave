@@ -15,7 +15,9 @@ service Materializer {
 message MaterializeManifestRequest {
   // Source is the immutable manifest object reference to follow.
   .bucket.ObjectRef source = 1;
-  // Destination is the bucket and volume to materialize into.
+  // Destination is the bucket to materialize into. Its volume ID is where
+  // a source without SourceServiceId is looked up; the copy writes only
+  // through DestinationServiceId.
   .bucket.BucketOpArgs destination = 2;
   // DestinationTransformConf is the transform configuration for the
   // destination bucket root.
@@ -30,6 +32,12 @@ message MaterializeManifestRequest {
   // configuration (source.transform_conf_ref must be empty). Empty retains
   // the native bus source lookup.
   string source_service_id = 5;
+  // DestinationServiceId is the full bus RPC service ID of a BlockStore
+  // service that stores the destination encoded blocks. Required: the caller
+  // serves it over storage that holds every block it stores, such as a World
+  // stage, until the caller names the copied root, so a collector cannot free
+  // a block the copy wrote before that root holds it.
+  string destination_service_id = 6;
 }
 
 // CopyStats reports logical copy accounting for one materialization.

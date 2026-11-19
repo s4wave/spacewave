@@ -20,7 +20,9 @@ type MaterializeManifestRequest struct {
 	unknownFields []byte
 	// Source is the immutable manifest object reference to follow.
 	Source *bucket.ObjectRef `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
-	// Destination is the bucket and volume to materialize into.
+	// Destination is the bucket to materialize into. Its volume ID is where
+	// a source without SourceServiceId is looked up; the copy writes only
+	// through DestinationServiceId.
 	Destination *bucket.BucketOpArgs `protobuf:"bytes,2,opt,name=destination,proto3" json:"destination,omitempty"`
 	// DestinationTransformConf is the transform configuration for the
 	// destination bucket root.
@@ -35,6 +37,12 @@ type MaterializeManifestRequest struct {
 	// configuration (source.transform_conf_ref must be empty). Empty retains
 	// the native bus source lookup.
 	SourceServiceId string `protobuf:"bytes,5,opt,name=source_service_id,json=sourceServiceId,proto3" json:"sourceServiceId,omitempty"`
+	// DestinationServiceId is the full bus RPC service ID of a BlockStore
+	// service that stores the destination encoded blocks. Required: the caller
+	// serves it over storage that holds every block it stores, such as a World
+	// stage, until the caller names the copied root, so a collector cannot free
+	// a block the copy wrote before that root holds it.
+	DestinationServiceId string `protobuf:"bytes,6,opt,name=destination_service_id,json=destinationServiceId,proto3" json:"destinationServiceId,omitempty"`
 }
 
 func (x *MaterializeManifestRequest) Reset() {
@@ -74,6 +82,13 @@ func (x *MaterializeManifestRequest) GetConcurrency() uint32 {
 func (x *MaterializeManifestRequest) GetSourceServiceId() string {
 	if x != nil {
 		return x.SourceServiceId
+	}
+	return ""
+}
+
+func (x *MaterializeManifestRequest) GetDestinationServiceId() string {
+	if x != nil {
+		return x.DestinationServiceId
 	}
 	return ""
 }
@@ -189,6 +204,7 @@ func (m *MaterializeManifestRequest) CloneVT() *MaterializeManifestRequest {
 	r := new(MaterializeManifestRequest)
 	r.Concurrency = m.Concurrency
 	r.SourceServiceId = m.SourceServiceId
+	r.DestinationServiceId = m.DestinationServiceId
 	r.Source = protobuf_go_lite.CloneVTValue(m.Source)
 	r.Destination = protobuf_go_lite.CloneVTValue(m.Destination)
 	r.DestinationTransformConf = protobuf_go_lite.CloneVTValue(m.DestinationTransformConf)
@@ -260,6 +276,9 @@ func (this *MaterializeManifestRequest) EqualVT(that *MaterializeManifestRequest
 		return false
 	}
 	if this.SourceServiceId != that.SourceServiceId {
+		return false
+	}
+	if this.DestinationServiceId != that.DestinationServiceId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -367,6 +386,11 @@ func (x *MaterializeManifestRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sourceServiceId")
 		s.WriteString(x.SourceServiceId)
 	}
+	if x.DestinationServiceId != "" || s.HasField("destinationServiceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("destinationServiceId")
+		s.WriteString(x.DestinationServiceId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -411,6 +435,9 @@ func (x *MaterializeManifestRequest) UnmarshalProtoJSON(s *json.UnmarshalState) 
 		case "source_service_id", "sourceServiceId":
 			s.AddField("source_service_id")
 			x.SourceServiceId = s.ReadString()
+		case "destination_service_id", "destinationServiceId":
+			s.AddField("destination_service_id")
+			x.DestinationServiceId = s.ReadString()
 		}
 	})
 }
@@ -597,6 +624,11 @@ func (m *MaterializeManifestRequest) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.DestinationServiceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DestinationServiceId)
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.SourceServiceId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SourceServiceId)
 		i--
@@ -779,6 +811,7 @@ func (m *MaterializeManifestRequest) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Concurrency)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SourceServiceId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DestinationServiceId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -840,6 +873,10 @@ func (x *MaterializeManifestRequest) MarshalProtoText() string {
 	if x.SourceServiceId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source_service_id")
 		protobuf_go_lite.TextWriteString(&sb, x.SourceServiceId)
+	}
+	if x.DestinationServiceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "destination_service_id")
+		protobuf_go_lite.TextWriteString(&sb, x.DestinationServiceId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -988,6 +1025,16 @@ func (m *MaterializeManifestRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SourceServiceId = v
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DestinationServiceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DestinationServiceId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

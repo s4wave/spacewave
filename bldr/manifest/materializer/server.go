@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -44,16 +45,18 @@ func NewMaterializer(le *logrus.Entry, b bus.Bus, sfs *block_transform.StepFacto
 // request source into the request destination bucket, streaming coalesced
 // progress snapshots and one terminal response carrying the copied root.
 //
-// The source is followed read-only and the destination is opened for writes
-// through the bus; the service performs no World mutation, so publication and
-// durability remain the caller's responsibility.
+// The source is followed read-only, and every destination block is written
+// through the BlockStore RPC service DestinationServiceId names, over storage
+// the caller holds until it names the copied root. The service performs no
+// World mutation, so publication and durability remain the caller's
+// responsibility.
 //
 // When SourceServiceId is set, the source blocks are read through the
 // BlockStore RPC service with that ID instead of the host-local source
 // lookup; the source ref carries its resolved inline transform configuration.
 //
 // The handler runs on a child of the RPC stream context: the child cancels
-// when the stream ends or the resolved source service disappears, which ends
+// when the stream ends or a resolved block store service disappears, which ends
 // the copy and releases the RPC client and cursors with it.
 func (m *Materializer) MaterializeManifest(
 	req *MaterializeManifestRequest,
@@ -70,18 +73,24 @@ func (m *Materializer) MaterializeManifest(
 	if req.GetDestination().GetBucketId() == "" {
 		return errors.New("destination bucket id cannot be empty")
 	}
+	if req.GetDestinationServiceId() == "" {
+		return errors.New("destination service id cannot be empty")
+	}
 
-	// Build the destination cursor from the request parameters.
-	dest, _, err := bucket_lookup.BuildEmptyCursor(
-		ctx,
-		m.b,
-		m.le,
-		m.sfs,
-		req.GetDestination().GetBucketId(),
-		req.GetDestination().GetVolumeId(),
-		req.GetDestinationTransformConf(),
-		nil,
-	)
+	// Write the destination through the caller's BlockStore RPC service, so
+	// every block lands in storage the caller holds; there is no fallback to
+	// a bucket handle of this process, whose writes nothing would hold.
+	destStore, destRef, err := m.lookupBlockStore(ctx, req.GetDestinationServiceId(), false, cancel)
+	if err != nil {
+		return errors.Wrap(err, "resolve destination block store rpc client")
+	}
+	defer destRef.Release()
+	destBase := bucket_lookup.NewCursor(ctx, m.b, m.le, m.sfs, destStore, nil, nil, req.GetDestination(), nil)
+	defer destBase.Release()
+	dest, err := destBase.FollowRef(ctx, &bucket.ObjectRef{
+		BucketId:      req.GetDestination().GetBucketId(),
+		TransformConf: req.GetDestinationTransformConf().CloneVT(),
+	})
 	if err != nil {
 		return errors.Wrap(err, "build destination cursor")
 	}
@@ -107,22 +116,13 @@ func (m *Materializer) MaterializeManifest(
 		}
 
 		// Resolve the BlockStore RPC client for the request-scoped service ID.
-		// The lookup is bound to the handler cancel func so the service is
-		// released when the copy finishes or the stream ends. There is no
-		// fallback to the host-local source lookup: if the service is
-		// unavailable the copy fails.
-		serviceID := req.GetSourceServiceId()
-		clientSet, _, clientsRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, m.b, serviceID, "", true, cancel)
+		// There is no fallback to the host-local source lookup: if the
+		// service is unavailable the copy fails.
+		rawStore, srcRef, err := m.lookupBlockStore(ctx, req.GetSourceServiceId(), true, cancel)
 		if err != nil {
 			return errors.Wrap(err, "resolve source block store rpc client")
 		}
-		defer clientsRef.Release()
-
-		rawStore := block_rpc_client.NewBlockStore(
-			block_rpc.NewSRPCBlockStoreClientWithServiceID(clientSet, serviceID),
-			0,
-			true,
-		)
+		defer srcRef.Release()
 
 		// The raw base cursor preserves the source-encoded bytes as delivered
 		// by the RPC store; the inline transform conf in the source ref is
@@ -183,6 +183,24 @@ func (m *Materializer) MaterializeManifest(
 
 	// Send the terminal response with the final stats and copied root.
 	return strm.Send(newMaterializeManifestResponse(&stats, copiedRef))
+}
+
+// lookupBlockStore resolves the BlockStore RPC service with serviceID and
+// returns a store over it, read-only when readOnly is set, with the reference
+// that keeps the service. The lookup is bound to cancel, so the handler ends
+// when the service disappears.
+func (m *Materializer) lookupBlockStore(
+	ctx context.Context,
+	serviceID string,
+	readOnly bool,
+	cancel func(),
+) (*block_rpc_client.BlockStore, directive.Reference, error) {
+	clientSet, _, ref, err := bifrost_rpc.ExLookupRpcClientSet(ctx, m.b, serviceID, "", true, cancel)
+	if err != nil {
+		return nil, nil, err
+	}
+	client := block_rpc.NewSRPCBlockStoreClientWithServiceID(clientSet, serviceID)
+	return block_rpc_client.NewBlockStore(client, 0, readOnly), ref, nil
 }
 
 // newMaterializeManifestResponse builds a response from a stats snapshot and

@@ -500,7 +500,7 @@
           ]
         },
         "github.com/s4wave/spacewave/bldr/manifest/materializer": {
-          "hash": "e76a1ffb40c421e30cbec065cd11f03ae7d2e5d7e8be14cf122fd526a4e9714a",
+          "hash": "31bbe74ab8a561ae95fbfe822b5fa7e4bb23c2b88b92ff84dab5bfcc43e21c06",
           "generatedFiles": [
             "bldr/manifest/materializer/config.pb.go",
             "bldr/manifest/materializer/config.pb.ts",

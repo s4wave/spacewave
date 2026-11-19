@@ -8,10 +8,13 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	block "github.com/s4wave/spacewave/db/block"
+	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
+	block_rpc_server "github.com/s4wave/spacewave/db/block/rpc/server"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
@@ -19,8 +22,42 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
+
+// serveTestDestination serves the raw store of tb's materializer-rpc-dest
+// bucket as a BlockStore RPC service on tb's bus, as the plugin host serves
+// its staged destination, and returns the service ID a request names.
+func serveTestDestination(t *testing.T, ctx context.Context, le *logrus.Entry, tb *testbed.Testbed) string {
+	t.Helper()
+
+	// Open the destination bucket's raw store.
+	dest, _, err := bucket_lookup.BuildEmptyCursor(ctx, tb.Bus, le, tb.StepFactorySet, "materializer-rpc-dest", tb.Volume.GetID(), nil, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(dest.Release)
+
+	// Serve it over a pipe bridged into the bus under the test-dest/ prefix.
+	mux := srpc.NewMux()
+	if err := mux.Register(block_rpc.NewSRPCBlockStoreHandler(block_rpc_server.NewBlockStore(dest.GetBlockStore()), "dest")); err != nil {
+		t.Fatal(err.Error())
+	}
+	ctrl := bifrost_rpc.NewClientController(
+		le,
+		tb.Bus,
+		controller.NewInfo("test-dest", controller.MustParseVersion("0.0.1"), "destination block store"),
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))),
+		[]string{"test-dest/"},
+	)
+	rel, err := tb.Bus.AddController(ctx, ctrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(rel)
+	return "test-dest/dest"
+}
 
 // buildTestTransformConfs builds the source (gzip) and destination (s2)
 // transform configurations.
@@ -248,6 +285,7 @@ func TestMaterializeManifestRPCCopy(t *testing.T) {
 		Source:                   srcRef,
 		Destination:              &bucket.BucketOpArgs{BucketId: "materializer-rpc-dest", VolumeId: tb.Volume.GetID()},
 		DestinationTransformConf: destTransformConf,
+		DestinationServiceId:     serveTestDestination(t, ctx, le, tb),
 	})
 	if err != nil {
 		t.Fatal(err.Error())

@@ -68,8 +68,9 @@ func TestMaterializeManifestMissingChildBlock(t *testing.T) {
 	// Open the materialize stream over the in-memory client.
 	client := NewSRPCMaterializerClient(srpcClient)
 	strm, err := client.MaterializeManifest(ctx, &MaterializeManifestRequest{
-		Source:      srcRef,
-		Destination: &bucket.BucketOpArgs{BucketId: "materializer-rpc-dest", VolumeId: tb.Volume.GetID()},
+		Source:               srcRef,
+		Destination:          &bucket.BucketOpArgs{BucketId: "materializer-rpc-dest", VolumeId: tb.Volume.GetID()},
+		DestinationServiceId: serveTestDestination(t, ctx, le, tb),
 	})
 	if err != nil {
 		t.Fatal(err.Error())
