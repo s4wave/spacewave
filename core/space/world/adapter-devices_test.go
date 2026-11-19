@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -678,5 +679,121 @@ func TestWriteWaitsThroughOpening(t *testing.T) {
 		return hasObjects(ctx, eng, append(keys, "local")...)
 	}); err != nil {
 		t.Fatalf("the write committed ahead of the held order: %v", err)
+	}
+}
+
+// TestInspectOrderReportsUndecodableOps has another device order a body this
+// build does not declare, data that does not decode and a transaction, and
+// checks that InspectOrder reports each operation with what this build reads
+// of it and the outcome the saved cursor records there, counts the order, and
+// writes nothing.
+func TestInspectOrderReportsUndecodableOps(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	f := newAdapterFixture(t)
+	_, engRef := f.start(t)
+	so := f.space(t)
+	health := spaceHealth(ctx, t, so)
+	waitHealth(ctx, t, health, "caught up", func(h *sobject.SharedObjectHealth) bool {
+		return h.GetReplay().GetCaughtUp() != nil
+	})
+
+	// Stop the engine, which the inspection does not need, so nothing else
+	// writes. Another device then orders a newer build's body, invalid data
+	// and a create.
+	engRef.Release()
+	remote := addDevice(t, so)
+	newer := "a body only a newer build reads"
+	remote.write(t, so, append([]byte{0x9a, 0x06, byte(len(newer))}, newer...), false, false)
+	remote.write(t, so, []byte{0xff}, false, false)
+	remote.write(t, so, createOp(t, "after-object"), false, false)
+
+	// Wait for the state to order the three operations, then save a cursor
+	// that refused the newer body as an unknown operation type.
+	ctr, rel, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel()
+	var ev *sobject.OrderEvent
+	_, err = ctr.WaitValueWithValidator(ctx, func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
+		if snap == nil {
+			return false, nil
+		}
+		var err error
+		ev, err = sobject.ReadOrder(ctx, snap)
+		return err == nil && ev.Set.CountAbove(remote.id.String(), 0) == 3, err
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cursor := &space_world.ReplayCursor{Height: ev.Checkpoint.GetHeight()}
+	for _, h := range ev.Order {
+		reason := ""
+		if inner := ev.Set.Get(h); inner.GetPeerId() == remote.id.String() && inner.GetNonce() == 1 {
+			reason = "unknown operation type"
+		}
+		cursor.Outcomes = append(cursor.Outcomes, &space_world.ReplayCursorOutcome{Hash: h, Reason: reason})
+	}
+	if err := space_world.WriteSavedCursor(ctx, so, cursor); err != nil {
+		t.Fatal(err)
+	}
+
+	// Inspect the order.
+	var unreadable, invalid []*space_world.OrderOperation
+	var seen int
+	summary, err := space_world.InspectOrder(ctx, so, func(op *space_world.OrderOperation) error {
+		if int(op.GetPosition()) != seen {
+			t.Fatalf("operation at position %d, want %d", op.GetPosition(), seen)
+		}
+		seen++
+		switch {
+		case op.GetUnreadable() != nil:
+			unreadable = append(unreadable, op)
+		case op.GetInvalid() != nil:
+			invalid = append(invalid, op)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Each undecodable operation is the other device's, and only the newer
+	// body carries the saved refusal.
+	if len(unreadable) != 1 || !slices.Equal(unreadable[0].GetUnreadable().GetFields(), []uint32{99}) {
+		t.Fatalf("unreadable operations = %v, want one with field 99", unreadable)
+	}
+	if op := unreadable[0]; op.GetPeerId() != remote.id.String() || !op.SavedUnknownType() || !op.Undecodable() {
+		t.Fatalf("unreadable operation = %v, want the other device's, saved as an unknown operation type", op)
+	}
+	if len(invalid) != 1 || invalid[0].GetSavedReason() != "" || !invalid[0].Undecodable() {
+		t.Fatalf("invalid operations = %v, want one with no saved refusal", invalid)
+	}
+
+	// The summary counts the whole order and the saved refusal.
+	var applyTx uint32
+	for _, k := range summary.GetKinds() {
+		if k.GetKind() == space_world.WorldOpKind_WORLD_OP_KIND_APPLY_TX {
+			applyTx = k.GetCount()
+		}
+	}
+	if int(summary.GetOperations()) != len(ev.Order) || seen != len(ev.Order) {
+		t.Fatalf("summary counts %d operations and the walk %d, want %d", summary.GetOperations(), seen, len(ev.Order))
+	}
+	if summary.GetUnreadable() != 1 || summary.GetInvalid() != 1 || applyTx == 0 {
+		t.Fatalf("summary = %v, want one unreadable, one invalid and the create", summary)
+	}
+	if summary.GetCursor().GetUnknownOperationType() != 1 {
+		t.Fatalf("saved cursor summary = %v, want one unknown operation type", summary.GetCursor())
+	}
+
+	// The inspection left the saved cursor as it was.
+	after, err := space_world.ReadSavedCursor(ctx, so)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !after.EqualVT(cursor) {
+		t.Fatal("the inspection changed the saved cursor")
 	}
 }

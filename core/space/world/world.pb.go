@@ -60,6 +60,66 @@ func (x ReplayRefusalRule) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// WorldOpKind names the body of a WorldOp by its field in the body oneof.
+type WorldOpKind int32
+
+const (
+	// WORLD_OP_KIND_UNKNOWN is no body this build declares.
+	WorldOpKind_WORLD_OP_KIND_UNKNOWN WorldOpKind = 0
+	// WORLD_OP_KIND_INIT_WORLD is an InitWorldOp.
+	WorldOpKind_WORLD_OP_KIND_INIT_WORLD WorldOpKind = 1
+	// WORLD_OP_KIND_APPLY_TX is an ApplyTxOp.
+	WorldOpKind_WORLD_OP_KIND_APPLY_TX WorldOpKind = 2
+	// WORLD_OP_KIND_SET_RETAINED_ROOT is a SetRetainedRootOp.
+	WorldOpKind_WORLD_OP_KIND_SET_RETAINED_ROOT WorldOpKind = 4
+	// WORLD_OP_KIND_SET_TRANSFORM_CONF is a SetTransformConfOp.
+	WorldOpKind_WORLD_OP_KIND_SET_TRANSFORM_CONF WorldOpKind = 5
+	// WORLD_OP_KIND_GRAPH_SETTINGS_STEP is a GraphSettingsStepOp.
+	WorldOpKind_WORLD_OP_KIND_GRAPH_SETTINGS_STEP WorldOpKind = 6
+	// WORLD_OP_KIND_FENCE is a FenceOp.
+	WorldOpKind_WORLD_OP_KIND_FENCE WorldOpKind = 7
+	// WORLD_OP_KIND_ROOT_SET is a RootSetOp.
+	WorldOpKind_WORLD_OP_KIND_ROOT_SET WorldOpKind = 8
+)
+
+// Enum value maps for WorldOpKind.
+var (
+	WorldOpKind_name = map[int32]string{
+		0: "WORLD_OP_KIND_UNKNOWN",
+		1: "WORLD_OP_KIND_INIT_WORLD",
+		2: "WORLD_OP_KIND_APPLY_TX",
+		4: "WORLD_OP_KIND_SET_RETAINED_ROOT",
+		5: "WORLD_OP_KIND_SET_TRANSFORM_CONF",
+		6: "WORLD_OP_KIND_GRAPH_SETTINGS_STEP",
+		7: "WORLD_OP_KIND_FENCE",
+		8: "WORLD_OP_KIND_ROOT_SET",
+	}
+	WorldOpKind_value = map[string]int32{
+		"WORLD_OP_KIND_UNKNOWN":             0,
+		"WORLD_OP_KIND_INIT_WORLD":          1,
+		"WORLD_OP_KIND_APPLY_TX":            2,
+		"WORLD_OP_KIND_SET_RETAINED_ROOT":   4,
+		"WORLD_OP_KIND_SET_TRANSFORM_CONF":  5,
+		"WORLD_OP_KIND_GRAPH_SETTINGS_STEP": 6,
+		"WORLD_OP_KIND_FENCE":               7,
+		"WORLD_OP_KIND_ROOT_SET":            8,
+	}
+)
+
+func (x WorldOpKind) Enum() *WorldOpKind {
+	p := new(WorldOpKind)
+	*p = x
+	return p
+}
+
+func (x WorldOpKind) String() string {
+	name, valid := WorldOpKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // WorldContents contains a list of world objects and types.
 type WorldContents struct {
 	unknownFields []byte
@@ -1051,6 +1111,435 @@ func (x *BackfillState) GetSeqno() uint64 {
 	return 0
 }
 
+// OrderOperation is one operation of a Space's agreed order above its
+// checkpoint, as this build reads it.
+type OrderOperation struct {
+	unknownFields []byte
+	// Position is the operation's index above the checkpoint.
+	Position uint32 `protobuf:"varint,1,opt,name=position,proto3" json:"position,omitempty"`
+	// Hash identifies the operation.
+	Hash []byte `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	// PeerId identifies the operation's author.
+	PeerId string `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// Nonce is the author's nonce of the operation.
+	Nonce uint64 `protobuf:"varint,4,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	// Read is what this build reads of the operation.
+	//
+	// Types that are assignable to Read:
+	//	*OrderOperation_Body
+	//	*OrderOperation_Unreadable
+	//	*OrderOperation_Empty
+	//	*OrderOperation_Invalid
+	//	*OrderOperation_Refused
+	//	*OrderOperation_Acknowledgment
+	Read isOrderOperation_Read `protobuf_oneof:"read"`
+	// SavedReason is the reason the saved replay cursor records at this
+	// position for this operation, or empty when it records it as applied or
+	// records another operation there.
+	SavedReason string `protobuf:"bytes,11,opt,name=saved_reason,json=savedReason,proto3" json:"savedReason,omitempty"`
+}
+
+func (x *OrderOperation) Reset() {
+	*x = OrderOperation{}
+}
+
+func (*OrderOperation) ProtoMessage() {}
+
+func (x *OrderOperation) GetPosition() uint32 {
+	if x != nil {
+		return x.Position
+	}
+	return 0
+}
+
+func (x *OrderOperation) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+func (x *OrderOperation) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+func (x *OrderOperation) GetNonce() uint64 {
+	if x != nil {
+		return x.Nonce
+	}
+	return 0
+}
+
+func (m *OrderOperation) GetRead() isOrderOperation_Read {
+	if m != nil {
+		return m.Read
+	}
+	return nil
+}
+
+func (x *OrderOperation) GetBody() *OrderOperationBody {
+	if x, ok := x.GetRead().(*OrderOperation_Body); ok {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *OrderOperation) GetUnreadable() *OrderOperationUnreadable {
+	if x, ok := x.GetRead().(*OrderOperation_Unreadable); ok {
+		return x.Unreadable
+	}
+	return nil
+}
+
+func (x *OrderOperation) GetEmpty() *OrderOperationEmpty {
+	if x, ok := x.GetRead().(*OrderOperation_Empty); ok {
+		return x.Empty
+	}
+	return nil
+}
+
+func (x *OrderOperation) GetInvalid() *OrderOperationInvalid {
+	if x, ok := x.GetRead().(*OrderOperation_Invalid); ok {
+		return x.Invalid
+	}
+	return nil
+}
+
+func (x *OrderOperation) GetRefused() *OrderOperationRefused {
+	if x, ok := x.GetRead().(*OrderOperation_Refused); ok {
+		return x.Refused
+	}
+	return nil
+}
+
+func (x *OrderOperation) GetAcknowledgment() *OrderOperationAcknowledgment {
+	if x, ok := x.GetRead().(*OrderOperation_Acknowledgment); ok {
+		return x.Acknowledgment
+	}
+	return nil
+}
+
+func (x *OrderOperation) GetSavedReason() string {
+	if x != nil {
+		return x.SavedReason
+	}
+	return ""
+}
+
+type isOrderOperation_Read interface {
+	isOrderOperation_Read()
+}
+
+type OrderOperation_Body struct {
+	// Body is a body this build decodes.
+	Body *OrderOperationBody `protobuf:"bytes,5,opt,name=body,proto3,oneof"`
+}
+
+type OrderOperation_Unreadable struct {
+	// Unreadable is a body this build does not declare.
+	Unreadable *OrderOperationUnreadable `protobuf:"bytes,6,opt,name=unreadable,proto3,oneof"`
+}
+
+type OrderOperation_Empty struct {
+	// Empty is a WorldOp with no body at all.
+	Empty *OrderOperationEmpty `protobuf:"bytes,7,opt,name=empty,proto3,oneof"`
+}
+
+type OrderOperation_Invalid struct {
+	// Invalid is data that does not decode as a WorldOp.
+	Invalid *OrderOperationInvalid `protobuf:"bytes,8,opt,name=invalid,proto3,oneof"`
+}
+
+type OrderOperation_Refused struct {
+	// Refused is an operation every member refuses before its body is read.
+	Refused *OrderOperationRefused `protobuf:"bytes,9,opt,name=refused,proto3,oneof"`
+}
+
+type OrderOperation_Acknowledgment struct {
+	// Acknowledgment is an acknowledgment, which carries no body.
+	Acknowledgment *OrderOperationAcknowledgment `protobuf:"bytes,10,opt,name=acknowledgment,proto3,oneof"`
+}
+
+func (*OrderOperation_Body) isOrderOperation_Read() {}
+
+func (*OrderOperation_Unreadable) isOrderOperation_Read() {}
+
+func (*OrderOperation_Empty) isOrderOperation_Read() {}
+
+func (*OrderOperation_Invalid) isOrderOperation_Read() {}
+
+func (*OrderOperation_Refused) isOrderOperation_Read() {}
+
+func (*OrderOperation_Acknowledgment) isOrderOperation_Read() {}
+
+// OrderOperationBody is an operation whose body this build decodes.
+type OrderOperationBody struct {
+	unknownFields []byte
+	// Kind names the body.
+	Kind WorldOpKind `protobuf:"varint,1,opt,name=kind,proto3" json:"kind,omitempty"`
+}
+
+func (x *OrderOperationBody) Reset() {
+	*x = OrderOperationBody{}
+}
+
+func (*OrderOperationBody) ProtoMessage() {}
+
+func (x *OrderOperationBody) GetKind() WorldOpKind {
+	if x != nil {
+		return x.Kind
+	}
+	return WorldOpKind_WORLD_OP_KIND_UNKNOWN
+}
+
+// OrderOperationUnreadable is an operation whose WorldOp decodes with no body
+// this build declares and with fields it skipped, as a newer build writes.
+type OrderOperationUnreadable struct {
+	unknownFields []byte
+	// Fields are the numbers of the top-level fields this build skipped.
+	Fields []uint32 `protobuf:"varint,1,rep,packed,name=fields,proto3" json:"fields,omitempty"`
+}
+
+func (x *OrderOperationUnreadable) Reset() {
+	*x = OrderOperationUnreadable{}
+}
+
+func (*OrderOperationUnreadable) ProtoMessage() {}
+
+func (x *OrderOperationUnreadable) GetFields() []uint32 {
+	if x != nil {
+		return x.Fields
+	}
+	return nil
+}
+
+// OrderOperationEmpty is an operation whose WorldOp has no fields.
+type OrderOperationEmpty struct {
+	unknownFields []byte
+}
+
+func (x *OrderOperationEmpty) Reset() {
+	*x = OrderOperationEmpty{}
+}
+
+func (*OrderOperationEmpty) ProtoMessage() {}
+
+// OrderOperationInvalid is an operation whose data does not decode.
+type OrderOperationInvalid struct {
+	unknownFields []byte
+	// Error is the decode error.
+	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+}
+
+func (x *OrderOperationInvalid) Reset() {
+	*x = OrderOperationInvalid{}
+}
+
+func (*OrderOperationInvalid) ProtoMessage() {}
+
+func (x *OrderOperationInvalid) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+// OrderOperationRefused is an operation every member refuses before its body
+// is read, such as a skipped or equivocated operation.
+type OrderOperationRefused struct {
+	unknownFields []byte
+	// Reason is the refusal.
+	Reason string `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+}
+
+func (x *OrderOperationRefused) Reset() {
+	*x = OrderOperationRefused{}
+}
+
+func (*OrderOperationRefused) ProtoMessage() {}
+
+func (x *OrderOperationRefused) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// OrderOperationAcknowledgment is an acknowledgment of the order.
+type OrderOperationAcknowledgment struct {
+	unknownFields []byte
+}
+
+func (x *OrderOperationAcknowledgment) Reset() {
+	*x = OrderOperationAcknowledgment{}
+}
+
+func (*OrderOperationAcknowledgment) ProtoMessage() {}
+
+// OrderInspection counts the operations of a Space's agreed order above its
+// checkpoint by what this build reads of them.
+type OrderInspection struct {
+	unknownFields []byte
+	// CheckpointHeight is the height of the checkpoint the order starts from.
+	CheckpointHeight uint64 `protobuf:"varint,1,opt,name=checkpoint_height,json=checkpointHeight,proto3" json:"checkpointHeight,omitempty"`
+	// Operations is the number of operations in the order.
+	Operations uint32 `protobuf:"varint,2,opt,name=operations,proto3" json:"operations,omitempty"`
+	// Kinds counts the decoded bodies by kind, in kind order.
+	Kinds []*OrderKindCount `protobuf:"bytes,3,rep,name=kinds,proto3" json:"kinds,omitempty"`
+	// Unreadable counts the bodies this build does not declare.
+	Unreadable uint32 `protobuf:"varint,4,opt,name=unreadable,proto3" json:"unreadable,omitempty"`
+	// Empty counts the WorldOps with no fields.
+	Empty uint32 `protobuf:"varint,5,opt,name=empty,proto3" json:"empty,omitempty"`
+	// Invalid counts the data that does not decode.
+	Invalid uint32 `protobuf:"varint,6,opt,name=invalid,proto3" json:"invalid,omitempty"`
+	// Refused counts the operations every member refuses before the body.
+	Refused uint32 `protobuf:"varint,7,opt,name=refused,proto3" json:"refused,omitempty"`
+	// Acknowledgments counts the acknowledgments.
+	Acknowledgments uint32 `protobuf:"varint,8,opt,name=acknowledgments,proto3" json:"acknowledgments,omitempty"`
+	// Cursor describes the saved replay cursor, or is unset when none is saved.
+	Cursor *OrderCursor `protobuf:"bytes,9,opt,name=cursor,proto3" json:"cursor,omitempty"`
+}
+
+func (x *OrderInspection) Reset() {
+	*x = OrderInspection{}
+}
+
+func (*OrderInspection) ProtoMessage() {}
+
+func (x *OrderInspection) GetCheckpointHeight() uint64 {
+	if x != nil {
+		return x.CheckpointHeight
+	}
+	return 0
+}
+
+func (x *OrderInspection) GetOperations() uint32 {
+	if x != nil {
+		return x.Operations
+	}
+	return 0
+}
+
+func (x *OrderInspection) GetKinds() []*OrderKindCount {
+	if x != nil {
+		return x.Kinds
+	}
+	return nil
+}
+
+func (x *OrderInspection) GetUnreadable() uint32 {
+	if x != nil {
+		return x.Unreadable
+	}
+	return 0
+}
+
+func (x *OrderInspection) GetEmpty() uint32 {
+	if x != nil {
+		return x.Empty
+	}
+	return 0
+}
+
+func (x *OrderInspection) GetInvalid() uint32 {
+	if x != nil {
+		return x.Invalid
+	}
+	return 0
+}
+
+func (x *OrderInspection) GetRefused() uint32 {
+	if x != nil {
+		return x.Refused
+	}
+	return 0
+}
+
+func (x *OrderInspection) GetAcknowledgments() uint32 {
+	if x != nil {
+		return x.Acknowledgments
+	}
+	return 0
+}
+
+func (x *OrderInspection) GetCursor() *OrderCursor {
+	if x != nil {
+		return x.Cursor
+	}
+	return nil
+}
+
+// OrderKindCount is the number of decoded bodies of one kind.
+type OrderKindCount struct {
+	unknownFields []byte
+	// Kind names the body.
+	Kind WorldOpKind `protobuf:"varint,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Count is the number of operations with it.
+	Count uint32 `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+}
+
+func (x *OrderKindCount) Reset() {
+	*x = OrderKindCount{}
+}
+
+func (*OrderKindCount) ProtoMessage() {}
+
+func (x *OrderKindCount) GetKind() WorldOpKind {
+	if x != nil {
+		return x.Kind
+	}
+	return WorldOpKind_WORLD_OP_KIND_UNKNOWN
+}
+
+func (x *OrderKindCount) GetCount() uint32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+// OrderCursor summarizes the replay cursor this device saved.
+type OrderCursor struct {
+	unknownFields []byte
+	// Height is the height of the checkpoint the cursor replayed from.
+	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	// Outcomes is the number of outcomes it records.
+	Outcomes uint32 `protobuf:"varint,2,opt,name=outcomes,proto3" json:"outcomes,omitempty"`
+	// UnknownOperationType counts its outcomes refused as "unknown operation
+	// type", the refusal older builds gave a body they did not declare.
+	UnknownOperationType uint32 `protobuf:"varint,3,opt,name=unknown_operation_type,json=unknownOperationType,proto3" json:"unknownOperationType,omitempty"`
+}
+
+func (x *OrderCursor) Reset() {
+	*x = OrderCursor{}
+}
+
+func (*OrderCursor) ProtoMessage() {}
+
+func (x *OrderCursor) GetHeight() uint64 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *OrderCursor) GetOutcomes() uint32 {
+	if x != nil {
+		return x.Outcomes
+	}
+	return 0
+}
+
+func (x *OrderCursor) GetUnknownOperationType() uint32 {
+	if x != nil {
+		return x.UnknownOperationType
+	}
+	return 0
+}
+
 type SpaceSettings_PluginInstallationsEntry struct {
 	unknownFields []byte
 	Key           string                   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -1589,6 +2078,260 @@ func (m *BackfillState) CloneVT() *BackfillState {
 }
 
 func (m *BackfillState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OrderOperation) CloneVT() *OrderOperation {
+	if m == nil {
+		return (*OrderOperation)(nil)
+	}
+	r := new(OrderOperation)
+	r.Position = m.Position
+	r.PeerId = m.PeerId
+	r.Nonce = m.Nonce
+	r.SavedReason = m.SavedReason
+	r.Hash = protobuf_go_lite.CloneBytes(m.Hash)
+	if m.Read != nil {
+		r.Read = m.Read.(interface{ CloneOneofVT() isOrderOperation_Read }).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OrderOperation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OrderOperation_Body) CloneVT() *OrderOperation_Body {
+	if m == nil {
+		return (*OrderOperation_Body)(nil)
+	}
+	r := new(OrderOperation_Body)
+	r.Body = protobuf_go_lite.CloneVTValue(m.Body)
+	return r
+}
+
+func (m *OrderOperation_Body) CloneOneofVT() isOrderOperation_Read {
+	return m.CloneVT()
+}
+
+func (m *OrderOperation_Unreadable) CloneVT() *OrderOperation_Unreadable {
+	if m == nil {
+		return (*OrderOperation_Unreadable)(nil)
+	}
+	r := new(OrderOperation_Unreadable)
+	r.Unreadable = protobuf_go_lite.CloneVTValue(m.Unreadable)
+	return r
+}
+
+func (m *OrderOperation_Unreadable) CloneOneofVT() isOrderOperation_Read {
+	return m.CloneVT()
+}
+
+func (m *OrderOperation_Empty) CloneVT() *OrderOperation_Empty {
+	if m == nil {
+		return (*OrderOperation_Empty)(nil)
+	}
+	r := new(OrderOperation_Empty)
+	r.Empty = protobuf_go_lite.CloneVTValue(m.Empty)
+	return r
+}
+
+func (m *OrderOperation_Empty) CloneOneofVT() isOrderOperation_Read {
+	return m.CloneVT()
+}
+
+func (m *OrderOperation_Invalid) CloneVT() *OrderOperation_Invalid {
+	if m == nil {
+		return (*OrderOperation_Invalid)(nil)
+	}
+	r := new(OrderOperation_Invalid)
+	r.Invalid = protobuf_go_lite.CloneVTValue(m.Invalid)
+	return r
+}
+
+func (m *OrderOperation_Invalid) CloneOneofVT() isOrderOperation_Read {
+	return m.CloneVT()
+}
+
+func (m *OrderOperation_Refused) CloneVT() *OrderOperation_Refused {
+	if m == nil {
+		return (*OrderOperation_Refused)(nil)
+	}
+	r := new(OrderOperation_Refused)
+	r.Refused = protobuf_go_lite.CloneVTValue(m.Refused)
+	return r
+}
+
+func (m *OrderOperation_Refused) CloneOneofVT() isOrderOperation_Read {
+	return m.CloneVT()
+}
+
+func (m *OrderOperation_Acknowledgment) CloneVT() *OrderOperation_Acknowledgment {
+	if m == nil {
+		return (*OrderOperation_Acknowledgment)(nil)
+	}
+	r := new(OrderOperation_Acknowledgment)
+	r.Acknowledgment = protobuf_go_lite.CloneVTValue(m.Acknowledgment)
+	return r
+}
+
+func (m *OrderOperation_Acknowledgment) CloneOneofVT() isOrderOperation_Read {
+	return m.CloneVT()
+}
+
+func (m *OrderOperationBody) CloneVT() *OrderOperationBody {
+	if m == nil {
+		return (*OrderOperationBody)(nil)
+	}
+	r := new(OrderOperationBody)
+	r.Kind = m.Kind
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OrderOperationBody) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OrderOperationUnreadable) CloneVT() *OrderOperationUnreadable {
+	if m == nil {
+		return (*OrderOperationUnreadable)(nil)
+	}
+	r := new(OrderOperationUnreadable)
+	r.Fields = protobuf_go_lite.CloneSlice(m.Fields)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OrderOperationUnreadable) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OrderOperationEmpty) CloneVT() *OrderOperationEmpty {
+	if m == nil {
+		return (*OrderOperationEmpty)(nil)
+	}
+	r := new(OrderOperationEmpty)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OrderOperationEmpty) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OrderOperationInvalid) CloneVT() *OrderOperationInvalid {
+	if m == nil {
+		return (*OrderOperationInvalid)(nil)
+	}
+	r := new(OrderOperationInvalid)
+	r.Error = m.Error
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OrderOperationInvalid) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OrderOperationRefused) CloneVT() *OrderOperationRefused {
+	if m == nil {
+		return (*OrderOperationRefused)(nil)
+	}
+	r := new(OrderOperationRefused)
+	r.Reason = m.Reason
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OrderOperationRefused) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OrderOperationAcknowledgment) CloneVT() *OrderOperationAcknowledgment {
+	if m == nil {
+		return (*OrderOperationAcknowledgment)(nil)
+	}
+	r := new(OrderOperationAcknowledgment)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OrderOperationAcknowledgment) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OrderInspection) CloneVT() *OrderInspection {
+	if m == nil {
+		return (*OrderInspection)(nil)
+	}
+	r := new(OrderInspection)
+	r.CheckpointHeight = m.CheckpointHeight
+	r.Operations = m.Operations
+	r.Unreadable = m.Unreadable
+	r.Empty = m.Empty
+	r.Invalid = m.Invalid
+	r.Refused = m.Refused
+	r.Acknowledgments = m.Acknowledgments
+	r.Kinds = protobuf_go_lite.CloneVTSlice(m.Kinds)
+	r.Cursor = protobuf_go_lite.CloneVTValue(m.Cursor)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OrderInspection) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OrderKindCount) CloneVT() *OrderKindCount {
+	if m == nil {
+		return (*OrderKindCount)(nil)
+	}
+	r := new(OrderKindCount)
+	r.Kind = m.Kind
+	r.Count = m.Count
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OrderKindCount) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OrderCursor) CloneVT() *OrderCursor {
+	if m == nil {
+		return (*OrderCursor)(nil)
+	}
+	r := new(OrderCursor)
+	r.Height = m.Height
+	r.Outcomes = m.Outcomes
+	r.UnknownOperationType = m.UnknownOperationType
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OrderCursor) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2312,6 +3055,359 @@ func (this *BackfillState) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *OrderOperation) EqualVT(that *OrderOperation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Read == nil && that.Read != nil {
+		return false
+	} else if this.Read != nil {
+		if that.Read == nil {
+			return false
+		}
+		if !this.Read.(interface {
+			EqualVT(isOrderOperation_Read) bool
+		}).EqualVT(that.Read) {
+			return false
+		}
+	}
+	if this.Position != that.Position {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Hash, that.Hash) {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	if this.Nonce != that.Nonce {
+		return false
+	}
+	if this.SavedReason != that.SavedReason {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OrderOperation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OrderOperation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OrderOperation_Body) EqualVT(thatIface isOrderOperation_Read) bool {
+	that, ok := thatIface.(*OrderOperation_Body)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Body, that.Body, func() *OrderOperationBody { return &OrderOperationBody{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *OrderOperation_Unreadable) EqualVT(thatIface isOrderOperation_Read) bool {
+	that, ok := thatIface.(*OrderOperation_Unreadable)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Unreadable, that.Unreadable, func() *OrderOperationUnreadable { return &OrderOperationUnreadable{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *OrderOperation_Empty) EqualVT(thatIface isOrderOperation_Read) bool {
+	that, ok := thatIface.(*OrderOperation_Empty)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Empty, that.Empty, func() *OrderOperationEmpty { return &OrderOperationEmpty{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *OrderOperation_Invalid) EqualVT(thatIface isOrderOperation_Read) bool {
+	that, ok := thatIface.(*OrderOperation_Invalid)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Invalid, that.Invalid, func() *OrderOperationInvalid { return &OrderOperationInvalid{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *OrderOperation_Refused) EqualVT(thatIface isOrderOperation_Read) bool {
+	that, ok := thatIface.(*OrderOperation_Refused)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Refused, that.Refused, func() *OrderOperationRefused { return &OrderOperationRefused{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *OrderOperation_Acknowledgment) EqualVT(thatIface isOrderOperation_Read) bool {
+	that, ok := thatIface.(*OrderOperation_Acknowledgment)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Acknowledgment, that.Acknowledgment, func() *OrderOperationAcknowledgment { return &OrderOperationAcknowledgment{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *OrderOperationBody) EqualVT(that *OrderOperationBody) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OrderOperationBody) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OrderOperationBody)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OrderOperationUnreadable) EqualVT(that *OrderOperationUnreadable) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Fields, that.Fields) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OrderOperationUnreadable) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OrderOperationUnreadable)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OrderOperationEmpty) EqualVT(that *OrderOperationEmpty) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OrderOperationEmpty) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OrderOperationEmpty)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OrderOperationInvalid) EqualVT(that *OrderOperationInvalid) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OrderOperationInvalid) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OrderOperationInvalid)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OrderOperationRefused) EqualVT(that *OrderOperationRefused) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Reason != that.Reason {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OrderOperationRefused) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OrderOperationRefused)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OrderOperationAcknowledgment) EqualVT(that *OrderOperationAcknowledgment) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OrderOperationAcknowledgment) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OrderOperationAcknowledgment)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OrderInspection) EqualVT(that *OrderInspection) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CheckpointHeight != that.CheckpointHeight {
+		return false
+	}
+	if this.Operations != that.Operations {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Kinds, that.Kinds, func() *OrderKindCount { return &OrderKindCount{} }) {
+		return false
+	}
+	if this.Unreadable != that.Unreadable {
+		return false
+	}
+	if this.Empty != that.Empty {
+		return false
+	}
+	if this.Invalid != that.Invalid {
+		return false
+	}
+	if this.Refused != that.Refused {
+		return false
+	}
+	if this.Acknowledgments != that.Acknowledgments {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Cursor, that.Cursor) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OrderInspection) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OrderInspection)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OrderKindCount) EqualVT(that *OrderKindCount) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if this.Count != that.Count {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OrderKindCount) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OrderKindCount)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OrderCursor) EqualVT(that *OrderCursor) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Height != that.Height {
+		return false
+	}
+	if this.Outcomes != that.Outcomes {
+		return false
+	}
+	if this.UnknownOperationType != that.UnknownOperationType {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OrderCursor) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OrderCursor)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 // MarshalProtoJSON marshals the ReplayRefusalRule to JSON.
 func (x ReplayRefusalRule) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), ReplayRefusalRule_name)
@@ -2349,6 +3445,46 @@ func (x *ReplayRefusalRule) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the ReplayRefusalRule from JSON.
 func (x *ReplayRefusalRule) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WorldOpKind to JSON.
+func (x WorldOpKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), WorldOpKind_name)
+}
+
+// MarshalText marshals the WorldOpKind to text.
+func (x WorldOpKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), WorldOpKind_name)), nil
+}
+
+// MarshalJSON marshals the WorldOpKind to JSON.
+func (x WorldOpKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WorldOpKind from JSON.
+func (x *WorldOpKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(WorldOpKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read WorldOpKind enum: %v", err)
+		return
+	}
+	*x = WorldOpKind(v)
+}
+
+// UnmarshalText unmarshals the WorldOpKind from text.
+func (x *WorldOpKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), WorldOpKind_value)
+	if err != nil {
+		return err
+	}
+	*x = WorldOpKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the WorldOpKind from JSON.
+func (x *WorldOpKind) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -4137,6 +5273,633 @@ func (x *BackfillState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the OrderOperation message to JSON.
+func (x *OrderOperation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Position != 0 || s.HasField("position") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("position")
+		s.WriteUint32(x.Position)
+	}
+	if len(x.Hash) > 0 || s.HasField("hash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hash")
+		s.WriteBytes(x.Hash)
+	}
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	if x.Nonce != 0 || s.HasField("nonce") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nonce")
+		s.WriteUint64(x.Nonce)
+	}
+	if x.Read != nil {
+		switch ov := x.Read.(type) {
+		case *OrderOperation_Body:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("body")
+			ov.Body.MarshalProtoJSON(s.WithField("body"))
+		case *OrderOperation_Unreadable:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("unreadable")
+			ov.Unreadable.MarshalProtoJSON(s.WithField("unreadable"))
+		case *OrderOperation_Empty:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("empty")
+			ov.Empty.MarshalProtoJSON(s.WithField("empty"))
+		case *OrderOperation_Invalid:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("invalid")
+			ov.Invalid.MarshalProtoJSON(s.WithField("invalid"))
+		case *OrderOperation_Refused:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("refused")
+			ov.Refused.MarshalProtoJSON(s.WithField("refused"))
+		case *OrderOperation_Acknowledgment:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("acknowledgment")
+			ov.Acknowledgment.MarshalProtoJSON(s.WithField("acknowledgment"))
+		}
+	}
+	if x.SavedReason != "" || s.HasField("savedReason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("savedReason")
+		s.WriteString(x.SavedReason)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OrderOperation to JSON.
+func (x *OrderOperation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OrderOperation message from JSON.
+func (x *OrderOperation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "position":
+			s.AddField("position")
+			x.Position = s.ReadUint32()
+		case "hash":
+			s.AddField("hash")
+			x.Hash = s.ReadBytes()
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		case "nonce":
+			s.AddField("nonce")
+			x.Nonce = s.ReadUint64()
+		case "body":
+			ov := &OrderOperation_Body{}
+			x.Read = ov
+			if s.ReadNil() {
+				ov.Body = nil
+				return
+			}
+			ov.Body = &OrderOperationBody{}
+			ov.Body.UnmarshalProtoJSON(s.WithField("body", true))
+		case "unreadable":
+			ov := &OrderOperation_Unreadable{}
+			x.Read = ov
+			if s.ReadNil() {
+				ov.Unreadable = nil
+				return
+			}
+			ov.Unreadable = &OrderOperationUnreadable{}
+			ov.Unreadable.UnmarshalProtoJSON(s.WithField("unreadable", true))
+		case "empty":
+			ov := &OrderOperation_Empty{}
+			x.Read = ov
+			if s.ReadNil() {
+				ov.Empty = nil
+				return
+			}
+			ov.Empty = &OrderOperationEmpty{}
+			ov.Empty.UnmarshalProtoJSON(s.WithField("empty", true))
+		case "invalid":
+			ov := &OrderOperation_Invalid{}
+			x.Read = ov
+			if s.ReadNil() {
+				ov.Invalid = nil
+				return
+			}
+			ov.Invalid = &OrderOperationInvalid{}
+			ov.Invalid.UnmarshalProtoJSON(s.WithField("invalid", true))
+		case "refused":
+			ov := &OrderOperation_Refused{}
+			x.Read = ov
+			if s.ReadNil() {
+				ov.Refused = nil
+				return
+			}
+			ov.Refused = &OrderOperationRefused{}
+			ov.Refused.UnmarshalProtoJSON(s.WithField("refused", true))
+		case "acknowledgment":
+			ov := &OrderOperation_Acknowledgment{}
+			x.Read = ov
+			if s.ReadNil() {
+				ov.Acknowledgment = nil
+				return
+			}
+			ov.Acknowledgment = &OrderOperationAcknowledgment{}
+			ov.Acknowledgment.UnmarshalProtoJSON(s.WithField("acknowledgment", true))
+		case "saved_reason", "savedReason":
+			s.AddField("saved_reason")
+			x.SavedReason = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OrderOperation from JSON.
+func (x *OrderOperation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OrderOperationBody message to JSON.
+func (x *OrderOperationBody) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OrderOperationBody to JSON.
+func (x *OrderOperationBody) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OrderOperationBody message from JSON.
+func (x *OrderOperationBody) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OrderOperationBody from JSON.
+func (x *OrderOperationBody) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OrderOperationUnreadable message to JSON.
+func (x *OrderOperationUnreadable) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Fields) > 0 || s.HasField("fields") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fields")
+		s.WriteUint32Array(x.Fields)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OrderOperationUnreadable to JSON.
+func (x *OrderOperationUnreadable) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OrderOperationUnreadable message from JSON.
+func (x *OrderOperationUnreadable) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "fields":
+			s.AddField("fields")
+			if s.ReadNil() {
+				x.Fields = nil
+				return
+			}
+			x.Fields = s.ReadUint32Array()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OrderOperationUnreadable from JSON.
+func (x *OrderOperationUnreadable) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OrderOperationEmpty message to JSON.
+func (x *OrderOperationEmpty) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OrderOperationEmpty to JSON.
+func (x *OrderOperationEmpty) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OrderOperationEmpty message from JSON.
+func (x *OrderOperationEmpty) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the OrderOperationEmpty from JSON.
+func (x *OrderOperationEmpty) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OrderOperationInvalid message to JSON.
+func (x *OrderOperationInvalid) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Error != "" || s.HasField("error") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("error")
+		s.WriteString(x.Error)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OrderOperationInvalid to JSON.
+func (x *OrderOperationInvalid) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OrderOperationInvalid message from JSON.
+func (x *OrderOperationInvalid) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "error":
+			s.AddField("error")
+			x.Error = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OrderOperationInvalid from JSON.
+func (x *OrderOperationInvalid) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OrderOperationRefused message to JSON.
+func (x *OrderOperationRefused) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Reason != "" || s.HasField("reason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reason")
+		s.WriteString(x.Reason)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OrderOperationRefused to JSON.
+func (x *OrderOperationRefused) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OrderOperationRefused message from JSON.
+func (x *OrderOperationRefused) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "reason":
+			s.AddField("reason")
+			x.Reason = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OrderOperationRefused from JSON.
+func (x *OrderOperationRefused) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OrderOperationAcknowledgment message to JSON.
+func (x *OrderOperationAcknowledgment) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OrderOperationAcknowledgment to JSON.
+func (x *OrderOperationAcknowledgment) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OrderOperationAcknowledgment message from JSON.
+func (x *OrderOperationAcknowledgment) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the OrderOperationAcknowledgment from JSON.
+func (x *OrderOperationAcknowledgment) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OrderInspection message to JSON.
+func (x *OrderInspection) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CheckpointHeight != 0 || s.HasField("checkpointHeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkpointHeight")
+		s.WriteUint64(x.CheckpointHeight)
+	}
+	if x.Operations != 0 || s.HasField("operations") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("operations")
+		s.WriteUint32(x.Operations)
+	}
+	if len(x.Kinds) > 0 || s.HasField("kinds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kinds")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Kinds {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("kinds"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Unreadable != 0 || s.HasField("unreadable") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unreadable")
+		s.WriteUint32(x.Unreadable)
+	}
+	if x.Empty != 0 || s.HasField("empty") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("empty")
+		s.WriteUint32(x.Empty)
+	}
+	if x.Invalid != 0 || s.HasField("invalid") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invalid")
+		s.WriteUint32(x.Invalid)
+	}
+	if x.Refused != 0 || s.HasField("refused") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refused")
+		s.WriteUint32(x.Refused)
+	}
+	if x.Acknowledgments != 0 || s.HasField("acknowledgments") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acknowledgments")
+		s.WriteUint32(x.Acknowledgments)
+	}
+	if x.Cursor != nil || s.HasField("cursor") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cursor")
+		x.Cursor.MarshalProtoJSON(s.WithField("cursor"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OrderInspection to JSON.
+func (x *OrderInspection) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OrderInspection message from JSON.
+func (x *OrderInspection) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "checkpoint_height", "checkpointHeight":
+			s.AddField("checkpoint_height")
+			x.CheckpointHeight = s.ReadUint64()
+		case "operations":
+			s.AddField("operations")
+			x.Operations = s.ReadUint32()
+		case "kinds":
+			s.AddField("kinds")
+			if s.ReadNil() {
+				x.Kinds = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Kinds = append(x.Kinds, nil)
+					return
+				}
+				v := &OrderKindCount{}
+				v.UnmarshalProtoJSON(s.WithField("kinds", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Kinds = append(x.Kinds, v)
+			})
+		case "unreadable":
+			s.AddField("unreadable")
+			x.Unreadable = s.ReadUint32()
+		case "empty":
+			s.AddField("empty")
+			x.Empty = s.ReadUint32()
+		case "invalid":
+			s.AddField("invalid")
+			x.Invalid = s.ReadUint32()
+		case "refused":
+			s.AddField("refused")
+			x.Refused = s.ReadUint32()
+		case "acknowledgments":
+			s.AddField("acknowledgments")
+			x.Acknowledgments = s.ReadUint32()
+		case "cursor":
+			if s.ReadNil() {
+				x.Cursor = nil
+				return
+			}
+			x.Cursor = &OrderCursor{}
+			x.Cursor.UnmarshalProtoJSON(s.WithField("cursor", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OrderInspection from JSON.
+func (x *OrderInspection) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OrderKindCount message to JSON.
+func (x *OrderKindCount) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if x.Count != 0 || s.HasField("count") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("count")
+		s.WriteUint32(x.Count)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OrderKindCount to JSON.
+func (x *OrderKindCount) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OrderKindCount message from JSON.
+func (x *OrderKindCount) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "count":
+			s.AddField("count")
+			x.Count = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OrderKindCount from JSON.
+func (x *OrderKindCount) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OrderCursor message to JSON.
+func (x *OrderCursor) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Height != 0 || s.HasField("height") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("height")
+		s.WriteUint64(x.Height)
+	}
+	if x.Outcomes != 0 || s.HasField("outcomes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcomes")
+		s.WriteUint32(x.Outcomes)
+	}
+	if x.UnknownOperationType != 0 || s.HasField("unknownOperationType") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unknownOperationType")
+		s.WriteUint32(x.UnknownOperationType)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OrderCursor to JSON.
+func (x *OrderCursor) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OrderCursor message from JSON.
+func (x *OrderCursor) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "height":
+			s.AddField("height")
+			x.Height = s.ReadUint64()
+		case "outcomes":
+			s.AddField("outcomes")
+			x.Outcomes = s.ReadUint32()
+		case "unknown_operation_type", "unknownOperationType":
+			s.AddField("unknown_operation_type")
+			x.UnknownOperationType = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OrderCursor from JSON.
+func (x *OrderCursor) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *WorldContents) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -5578,6 +7341,606 @@ func (m *BackfillState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *OrderOperation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OrderOperation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.Read.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if len(m.SavedReason) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SavedReason)
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.Nonce != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Nonce))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Hash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Hash)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Position != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Position))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperation_Body) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperation_Body) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Body != nil {
+		size, err := m.Body.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x2a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperation_Unreadable) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperation_Unreadable) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Unreadable != nil {
+		size, err := m.Unreadable.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x32
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperation_Empty) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperation_Empty) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Empty != nil {
+		size, err := m.Empty.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x3a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperation_Invalid) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperation_Invalid) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Invalid != nil {
+		size, err := m.Invalid.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x42
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperation_Refused) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperation_Refused) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Refused != nil {
+		size, err := m.Refused.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x4a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperation_Acknowledgment) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperation_Acknowledgment) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Acknowledgment != nil {
+		size, err := m.Acknowledgment.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x52
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperationBody) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OrderOperationBody) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperationBody) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperationUnreadable) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OrderOperationUnreadable) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperationUnreadable) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Fields) > 0 {
+		i = protobuf_go_lite.EncodeVarintPacked(dAtA, i, m.Fields)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperationEmpty) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OrderOperationEmpty) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperationEmpty) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperationInvalid) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OrderOperationInvalid) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperationInvalid) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Error) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Error)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperationRefused) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OrderOperationRefused) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperationRefused) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Reason) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Reason)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderOperationAcknowledgment) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OrderOperationAcknowledgment) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderOperationAcknowledgment) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderInspection) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OrderInspection) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderInspection) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Cursor != nil {
+		size, err := m.Cursor.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.Acknowledgments != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Acknowledgments))
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.Refused != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Refused))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Invalid != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Invalid))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.Empty != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Empty))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Unreadable != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Unreadable))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Kinds) > 0 {
+		for iNdEx := len(m.Kinds) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Kinds[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if m.Operations != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Operations))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.CheckpointHeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CheckpointHeight))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderKindCount) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OrderKindCount) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderKindCount) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Count != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Count))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OrderCursor) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OrderCursor) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OrderCursor) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.UnknownOperationType != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UnknownOperationType))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Outcomes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Outcomes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Height != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Height))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WorldContents) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -6086,7 +8449,233 @@ func (m *BackfillState) SizeVT() (n int) {
 	return n
 }
 
+func (m *OrderOperation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Position)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Hash)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Nonce)
+	if vtmsg, ok := m.Read.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SavedReason)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OrderOperation_Body) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Body != nil {
+		l = m.Body.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *OrderOperation_Unreadable) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Unreadable != nil {
+		l = m.Unreadable.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *OrderOperation_Empty) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Empty != nil {
+		l = m.Empty.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *OrderOperation_Invalid) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Invalid != nil {
+		l = m.Invalid.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *OrderOperation_Refused) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Refused != nil {
+		l = m.Refused.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *OrderOperation_Acknowledgment) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Acknowledgment != nil {
+		l = m.Acknowledgment.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *OrderOperationBody) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Kind)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OrderOperationUnreadable) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintPacked(1, m.Fields)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OrderOperationEmpty) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OrderOperationInvalid) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OrderOperationRefused) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Reason)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OrderOperationAcknowledgment) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OrderInspection) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CheckpointHeight)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Operations)
+	for _, e := range m.Kinds {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Unreadable)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Empty)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Invalid)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Refused)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Acknowledgments)
+	if m.Cursor != nil {
+		l = m.Cursor.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OrderKindCount) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Kind)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Count)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OrderCursor) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Height)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Outcomes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.UnknownOperationType)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x ReplayRefusalRule) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x WorldOpKind) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -6747,6 +9336,254 @@ func (x *BackfillState) MarshalProtoText() string {
 }
 
 func (x *BackfillState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OrderOperation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OrderOperation")
+	if x.Position != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "position")
+		protobuf_go_lite.TextWriteUint(&sb, x.Position)
+	}
+	if len(x.Hash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Hash)
+	}
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if x.Nonce != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "nonce")
+		protobuf_go_lite.TextWriteUint(&sb, x.Nonce)
+	}
+	switch body := x.Read.(type) {
+	case *OrderOperation_Body:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "body")
+		if body.Body == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &OrderOperationBody{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Body)
+		}
+	case *OrderOperation_Unreadable:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unreadable")
+		if body.Unreadable == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &OrderOperationUnreadable{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Unreadable)
+		}
+	case *OrderOperation_Empty:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "empty")
+		if body.Empty == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &OrderOperationEmpty{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Empty)
+		}
+	case *OrderOperation_Invalid:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "invalid")
+		if body.Invalid == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &OrderOperationInvalid{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Invalid)
+		}
+	case *OrderOperation_Refused:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refused")
+		if body.Refused == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &OrderOperationRefused{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Refused)
+		}
+	case *OrderOperation_Acknowledgment:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "acknowledgment")
+		if body.Acknowledgment == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &OrderOperationAcknowledgment{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Acknowledgment)
+		}
+	}
+	if x.SavedReason != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "saved_reason")
+		protobuf_go_lite.TextWriteString(&sb, x.SavedReason)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OrderOperation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OrderOperationBody) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OrderOperationBody")
+	if x.Kind != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "kind")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldOpKind(x.Kind))
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OrderOperationBody) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OrderOperationUnreadable) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OrderOperationUnreadable")
+	if len(x.Fields) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "fields")
+		for i, v := range x.Fields {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteUint(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OrderOperationUnreadable) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OrderOperationEmpty) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "OrderOperationEmpty")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OrderOperationEmpty) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OrderOperationInvalid) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OrderOperationInvalid")
+	if x.Error != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
+		protobuf_go_lite.TextWriteString(&sb, x.Error)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OrderOperationInvalid) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OrderOperationRefused) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OrderOperationRefused")
+	if x.Reason != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reason")
+		protobuf_go_lite.TextWriteString(&sb, x.Reason)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OrderOperationRefused) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OrderOperationAcknowledgment) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "OrderOperationAcknowledgment")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OrderOperationAcknowledgment) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OrderInspection) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OrderInspection")
+	if x.CheckpointHeight != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_height")
+		protobuf_go_lite.TextWriteUint(&sb, x.CheckpointHeight)
+	}
+	if x.Operations != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "operations")
+		protobuf_go_lite.TextWriteUint(&sb, x.Operations)
+	}
+	if len(x.Kinds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "kinds")
+		for i, v := range x.Kinds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &OrderKindCount{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Unreadable != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unreadable")
+		protobuf_go_lite.TextWriteUint(&sb, x.Unreadable)
+	}
+	if x.Empty != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "empty")
+		protobuf_go_lite.TextWriteUint(&sb, x.Empty)
+	}
+	if x.Invalid != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "invalid")
+		protobuf_go_lite.TextWriteUint(&sb, x.Invalid)
+	}
+	if x.Refused != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refused")
+		protobuf_go_lite.TextWriteUint(&sb, x.Refused)
+	}
+	if x.Acknowledgments != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "acknowledgments")
+		protobuf_go_lite.TextWriteUint(&sb, x.Acknowledgments)
+	}
+	if x.Cursor != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cursor")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Cursor)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OrderInspection) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OrderKindCount) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OrderKindCount")
+	if x.Kind != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "kind")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldOpKind(x.Kind))
+	}
+	if x.Count != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "count")
+		protobuf_go_lite.TextWriteUint(&sb, x.Count)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OrderKindCount) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OrderCursor) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OrderCursor")
+	if x.Height != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "height")
+		protobuf_go_lite.TextWriteUint(&sb, x.Height)
+	}
+	if x.Outcomes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcomes")
+		protobuf_go_lite.TextWriteUint(&sb, x.Outcomes)
+	}
+	if x.UnknownOperationType != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unknown_operation_type")
+		protobuf_go_lite.TextWriteUint(&sb, x.UnknownOperationType)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OrderCursor) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -8661,6 +11498,801 @@ func (m *BackfillState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Seqno = 0
 			m.Seqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OrderOperation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OrderOperation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OrderOperation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Position", wireType)
+			}
+			m.Position = 0
+			m.Position, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			m.Hash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Hash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			m.Nonce = 0
+			m.Nonce, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Body", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Read.(*OrderOperation_Body); ok {
+				if err := oneof.Body.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &OrderOperationBody{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Read = &OrderOperation_Body{Body: v}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Unreadable", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Read.(*OrderOperation_Unreadable); ok {
+				if err := oneof.Unreadable.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &OrderOperationUnreadable{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Read = &OrderOperation_Unreadable{Unreadable: v}
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Empty", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Read.(*OrderOperation_Empty); ok {
+				if err := oneof.Empty.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &OrderOperationEmpty{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Read = &OrderOperation_Empty{Empty: v}
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invalid", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Read.(*OrderOperation_Invalid); ok {
+				if err := oneof.Invalid.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &OrderOperationInvalid{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Read = &OrderOperation_Invalid{Invalid: v}
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refused", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Read.(*OrderOperation_Refused); ok {
+				if err := oneof.Refused.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &OrderOperationRefused{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Read = &OrderOperation_Refused{Refused: v}
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Acknowledgment", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Read.(*OrderOperation_Acknowledgment); ok {
+				if err := oneof.Acknowledgment.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &OrderOperationAcknowledgment{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Read = &OrderOperation_Acknowledgment{Acknowledgment: v}
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SavedReason", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SavedReason = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OrderOperationBody) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OrderOperationBody: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OrderOperationBody: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = WorldOpKind(_v)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OrderOperationUnreadable) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OrderOperationUnreadable: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OrderOperationUnreadable: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType == 0 {
+				var v uint32
+				v, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				m.Fields = append(m.Fields, v)
+			} else if wireType == 2 {
+				packedStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				iNdEx = packedStart
+				var elementCount int
+				elementCount = protobuf_go_lite.PackedVarintElementCount(dAtA[iNdEx:postIndex])
+				if elementCount != 0 && len(m.Fields) == 0 {
+					m.Fields = make([]uint32, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v uint32
+					v, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					m.Fields = append(m.Fields, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Fields", wireType)
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OrderOperationEmpty) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OrderOperationEmpty: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OrderOperationEmpty: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OrderOperationInvalid) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OrderOperationInvalid: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OrderOperationInvalid: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Error = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OrderOperationRefused) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OrderOperationRefused: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OrderOperationRefused: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Reason = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OrderOperationAcknowledgment) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OrderOperationAcknowledgment: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OrderOperationAcknowledgment: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OrderInspection) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OrderInspection: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OrderInspection: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointHeight", wireType)
+			}
+			m.CheckpointHeight = 0
+			m.CheckpointHeight, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Operations", wireType)
+			}
+			m.Operations = 0
+			m.Operations, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kinds", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Kinds = append(m.Kinds, &OrderKindCount{})
+			if err := m.Kinds[len(m.Kinds)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Unreadable", wireType)
+			}
+			m.Unreadable = 0
+			m.Unreadable, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Empty", wireType)
+			}
+			m.Empty = 0
+			m.Empty, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invalid", wireType)
+			}
+			m.Invalid = 0
+			m.Invalid, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refused", wireType)
+			}
+			m.Refused = 0
+			m.Refused, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Acknowledgments", wireType)
+			}
+			m.Acknowledgments = 0
+			m.Acknowledgments, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cursor", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Cursor == nil {
+				m.Cursor = &OrderCursor{}
+			}
+			if err := m.Cursor.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OrderKindCount) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OrderKindCount: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OrderKindCount: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = WorldOpKind(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Count", wireType)
+			}
+			m.Count = 0
+			m.Count, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OrderCursor) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OrderCursor: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OrderCursor: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
+			}
+			m.Height = 0
+			m.Height, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcomes", wireType)
+			}
+			m.Outcomes = 0
+			m.Outcomes, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnknownOperationType", wireType)
+			}
+			m.UnknownOperationType = 0
+			m.UnknownOperationType, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

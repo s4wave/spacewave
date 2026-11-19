@@ -2,6 +2,7 @@ syntax = "proto3";
 package s4wave.sobject;
 
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+import "github.com/s4wave/spacewave/core/space/world/world.proto";
 
 // SharedObjectResourceService exposes retained native state independently of readable body access.
 service SharedObjectResourceService {
@@ -17,6 +18,12 @@ service SharedObjectResourceService {
   // GetSharedObjectTrim reports, from this device's state, how far the history
   // can be trimmed and which members hold it back.
   rpc GetSharedObjectTrim(GetSharedObjectTrimRequest) returns (SharedObjectTrim);
+
+  // InspectSharedObjectOrder walks the mounted Space's agreed order from its
+  // checkpoint to the head and reports what this build reads of each
+  // operation. It reads the state and the saved replay cursor and writes
+  // nothing.
+  rpc InspectSharedObjectOrder(InspectSharedObjectOrderRequest) returns (stream InspectSharedObjectOrderResponse);
 }
 
 // GetSharedObjectTrimRequest selects the already mounted SharedObject.
@@ -110,4 +117,24 @@ message OpenReadCheckpointResponse {
   uint32 resource_id = 1;
   // Config is the historical audience at the retained root, not current authority.
   .sobject.SharedObjectConfig config = 2;
+}
+
+// InspectSharedObjectOrderRequest selects which operations of the mounted
+// Space's order the inspection sends.
+message InspectSharedObjectOrderRequest {
+  // All sends every operation. Otherwise only the operations this build
+  // cannot decode, and those the saved cursor refused as an unknown operation
+  // type, are sent.
+  bool all = 1;
+}
+
+// InspectSharedObjectOrderResponse is one message of an order inspection.
+message InspectSharedObjectOrderResponse {
+  // Body is an operation, or the summary that ends the inspection.
+  oneof body {
+    // Operation is one operation of the order, in order.
+    .space.world.OrderOperation operation = 1;
+    // Summary counts the whole order and is the last message.
+    .space.world.OrderInspection summary = 2;
+  }
 }

@@ -45,6 +45,67 @@ export const ReplayRefusalRule_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * WorldOpKind names the body of a WorldOp by its field in the body oneof.
+ *
+ * @generated from enum space.world.WorldOpKind
+ */
+export enum WorldOpKind {
+  /**
+   * WORLD_OP_KIND_UNKNOWN is no body this build declares.
+   */
+  UNKNOWN = 0,
+
+  /**
+   * WORLD_OP_KIND_INIT_WORLD is an InitWorldOp.
+   */
+  INIT_WORLD = 1,
+
+  /**
+   * WORLD_OP_KIND_APPLY_TX is an ApplyTxOp.
+   */
+  APPLY_TX = 2,
+
+  /**
+   * WORLD_OP_KIND_SET_RETAINED_ROOT is a SetRetainedRootOp.
+   */
+  SET_RETAINED_ROOT = 4,
+
+  /**
+   * WORLD_OP_KIND_SET_TRANSFORM_CONF is a SetTransformConfOp.
+   */
+  SET_TRANSFORM_CONF = 5,
+
+  /**
+   * WORLD_OP_KIND_GRAPH_SETTINGS_STEP is a GraphSettingsStepOp.
+   */
+  GRAPH_SETTINGS_STEP = 6,
+
+  /**
+   * WORLD_OP_KIND_FENCE is a FenceOp.
+   */
+  FENCE = 7,
+
+  /**
+   * WORLD_OP_KIND_ROOT_SET is a RootSetOp.
+   */
+  ROOT_SET = 8,
+}
+
+export const WorldOpKind_Enum = /* @__PURE__ */ createEnumType(
+  'space.world.WorldOpKind',
+  [
+    [0, 'WORLD_OP_KIND_UNKNOWN'],
+    [1, 'WORLD_OP_KIND_INIT_WORLD'],
+    [2, 'WORLD_OP_KIND_APPLY_TX'],
+    [4, 'WORLD_OP_KIND_SET_RETAINED_ROOT'],
+    [5, 'WORLD_OP_KIND_SET_TRANSFORM_CONF'],
+    [6, 'WORLD_OP_KIND_GRAPH_SETTINGS_STEP'],
+    [7, 'WORLD_OP_KIND_FENCE'],
+    [8, 'WORLD_OP_KIND_ROOT_SET'],
+  ],
+)
+
+/**
  * WorldContents contains a list of world objects and types.
  *
  * @generated from message space.world.WorldContents
@@ -756,5 +817,284 @@ export const BackfillState: MessageType<BackfillState> =
       [1, 'root', 11, 0, BlockRef.codec],
       [2, 'holes', 13],
       [3, 'seqno', 4],
+    ],
+  )
+
+/**
+ * OrderOperation is one operation of a Space's agreed order above its
+ * checkpoint, as this build reads it.
+ *
+ * @generated from message space.world.OrderOperation
+ */
+export interface OrderOperation {
+  /**
+   * Position is the operation's index above the checkpoint.
+   */
+  position?: number
+  /**
+   * Hash identifies the operation.
+   */
+  hash?: Uint8Array
+  /**
+   * PeerId identifies the operation's author.
+   */
+  peerId?: string
+  /**
+   * Nonce is the author's nonce of the operation.
+   */
+  nonce?: bigint
+  /**
+   * SavedReason is the reason the saved replay cursor records at this
+   * position for this operation, or empty when it records it as applied or
+   * records another operation there.
+   */
+  savedReason?: string
+  /**
+   * Read is what this build reads of the operation.
+   *
+   * @generated from oneof space.world.OrderOperation.read
+   */
+  read?:
+    | { value?: undefined; case: undefined }
+    | { value: OrderOperationBody; case: 'body' }
+    | { value: OrderOperationUnreadable; case: 'unreadable' }
+    | { value: OrderOperationEmpty; case: 'empty' }
+    | { value: OrderOperationInvalid; case: 'invalid' }
+    | { value: OrderOperationRefused; case: 'refused' }
+    | { value: OrderOperationAcknowledgment; case: 'acknowledgment' }
+}
+
+export const OrderOperation: MessageType<OrderOperation> =
+  /* @__PURE__ */ createMessageType<OrderOperation>(
+    'space.world.OrderOperation',
+    () => [
+      [1, 'position', 13],
+      [2, 'hash', 12],
+      [3, 'peer_id', 9],
+      [4, 'nonce', 4],
+      [5, 'body', 11, 0, OrderOperationBody.codec, 'read'],
+      [6, 'unreadable', 11, 0, OrderOperationUnreadable.codec, 'read'],
+      [7, 'empty', 11, 0, OrderOperationEmpty.codec, 'read'],
+      [8, 'invalid', 11, 0, OrderOperationInvalid.codec, 'read'],
+      [9, 'refused', 11, 0, OrderOperationRefused.codec, 'read'],
+      [10, 'acknowledgment', 11, 0, OrderOperationAcknowledgment.codec, 'read'],
+      [11, 'saved_reason', 9],
+    ],
+  )
+
+/**
+ * OrderOperationBody is an operation whose body this build decodes.
+ *
+ * @generated from message space.world.OrderOperationBody
+ */
+export interface OrderOperationBody {
+  /**
+   * Kind names the body.
+   */
+  kind?: WorldOpKind
+}
+
+export const OrderOperationBody: MessageType<OrderOperationBody> =
+  /* @__PURE__ */ createMessageType<OrderOperationBody>(
+    'space.world.OrderOperationBody',
+    () => [[1, 'kind', 14, 0, WorldOpKind_Enum]],
+  )
+
+/**
+ * OrderOperationUnreadable is an operation whose WorldOp decodes with no body
+ * this build declares and with fields it skipped, as a newer build writes.
+ *
+ * @generated from message space.world.OrderOperationUnreadable
+ */
+export interface OrderOperationUnreadable {
+  /**
+   * Fields are the numbers of the top-level fields this build skipped.
+   */
+  fields?: number[]
+}
+
+export const OrderOperationUnreadable: MessageType<OrderOperationUnreadable> =
+  /* @__PURE__ */ createMessageType<OrderOperationUnreadable>(
+    'space.world.OrderOperationUnreadable',
+    () => [[1, 'fields', 13, 3]],
+  )
+
+/**
+ * OrderOperationEmpty is an operation whose WorldOp has no fields.
+ *
+ * @generated from message space.world.OrderOperationEmpty
+ */
+export interface OrderOperationEmpty {}
+
+export const OrderOperationEmpty: MessageType<OrderOperationEmpty> =
+  /* @__PURE__ */ createMessageType<OrderOperationEmpty>(
+    'space.world.OrderOperationEmpty',
+    () => [],
+  )
+
+/**
+ * OrderOperationInvalid is an operation whose data does not decode.
+ *
+ * @generated from message space.world.OrderOperationInvalid
+ */
+export interface OrderOperationInvalid {
+  /**
+   * Error is the decode error.
+   */
+  error?: string
+}
+
+export const OrderOperationInvalid: MessageType<OrderOperationInvalid> =
+  /* @__PURE__ */ createMessageType<OrderOperationInvalid>(
+    'space.world.OrderOperationInvalid',
+    () => [[1, 'error', 9]],
+  )
+
+/**
+ * OrderOperationRefused is an operation every member refuses before its body
+ * is read, such as a skipped or equivocated operation.
+ *
+ * @generated from message space.world.OrderOperationRefused
+ */
+export interface OrderOperationRefused {
+  /**
+   * Reason is the refusal.
+   */
+  reason?: string
+}
+
+export const OrderOperationRefused: MessageType<OrderOperationRefused> =
+  /* @__PURE__ */ createMessageType<OrderOperationRefused>(
+    'space.world.OrderOperationRefused',
+    () => [[1, 'reason', 9]],
+  )
+
+/**
+ * OrderOperationAcknowledgment is an acknowledgment of the order.
+ *
+ * @generated from message space.world.OrderOperationAcknowledgment
+ */
+export interface OrderOperationAcknowledgment {}
+
+export const OrderOperationAcknowledgment: MessageType<OrderOperationAcknowledgment> =
+  /* @__PURE__ */ createMessageType<OrderOperationAcknowledgment>(
+    'space.world.OrderOperationAcknowledgment',
+    () => [],
+  )
+
+/**
+ * OrderInspection counts the operations of a Space's agreed order above its
+ * checkpoint by what this build reads of them.
+ *
+ * @generated from message space.world.OrderInspection
+ */
+export interface OrderInspection {
+  /**
+   * CheckpointHeight is the height of the checkpoint the order starts from.
+   */
+  checkpointHeight?: bigint
+  /**
+   * Operations is the number of operations in the order.
+   */
+  operations?: number
+  /**
+   * Kinds counts the decoded bodies by kind, in kind order.
+   */
+  kinds?: OrderKindCount[]
+  /**
+   * Unreadable counts the bodies this build does not declare.
+   */
+  unreadable?: number
+  /**
+   * Empty counts the WorldOps with no fields.
+   */
+  empty?: number
+  /**
+   * Invalid counts the data that does not decode.
+   */
+  invalid?: number
+  /**
+   * Refused counts the operations every member refuses before the body.
+   */
+  refused?: number
+  /**
+   * Acknowledgments counts the acknowledgments.
+   */
+  acknowledgments?: number
+  /**
+   * Cursor describes the saved replay cursor, or is unset when none is saved.
+   */
+  cursor?: OrderCursor
+}
+
+export const OrderInspection: MessageType<OrderInspection> =
+  /* @__PURE__ */ createMessageType<OrderInspection>(
+    'space.world.OrderInspection',
+    () => [
+      [1, 'checkpoint_height', 4],
+      [2, 'operations', 13],
+      [3, 'kinds', 11, 1, OrderKindCount.codec],
+      [4, 'unreadable', 13],
+      [5, 'empty', 13],
+      [6, 'invalid', 13],
+      [7, 'refused', 13],
+      [8, 'acknowledgments', 13],
+      [9, 'cursor', 11, 0, OrderCursor.codec],
+    ],
+  )
+
+/**
+ * OrderKindCount is the number of decoded bodies of one kind.
+ *
+ * @generated from message space.world.OrderKindCount
+ */
+export interface OrderKindCount {
+  /**
+   * Kind names the body.
+   */
+  kind?: WorldOpKind
+  /**
+   * Count is the number of operations with it.
+   */
+  count?: number
+}
+
+export const OrderKindCount: MessageType<OrderKindCount> =
+  /* @__PURE__ */ createMessageType<OrderKindCount>(
+    'space.world.OrderKindCount',
+    () => [
+      [1, 'kind', 14, 0, WorldOpKind_Enum],
+      [2, 'count', 13],
+    ],
+  )
+
+/**
+ * OrderCursor summarizes the replay cursor this device saved.
+ *
+ * @generated from message space.world.OrderCursor
+ */
+export interface OrderCursor {
+  /**
+   * Height is the height of the checkpoint the cursor replayed from.
+   */
+  height?: bigint
+  /**
+   * Outcomes is the number of outcomes it records.
+   */
+  outcomes?: number
+  /**
+   * UnknownOperationType counts its outcomes refused as "unknown operation
+   * type", the refusal older builds gave a body they did not declare.
+   */
+  unknownOperationType?: number
+}
+
+export const OrderCursor: MessageType<OrderCursor> =
+  /* @__PURE__ */ createMessageType<OrderCursor>(
+    'space.world.OrderCursor',
+    () => [
+      [1, 'height', 4],
+      [2, 'outcomes', 13],
+      [3, 'unknown_operation_type', 13],
     ],
   )

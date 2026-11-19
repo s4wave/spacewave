@@ -7,10 +7,13 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	s4wave_sobject "github.com/s4wave/spacewave/sdk/sobject"
 	"github.com/sirupsen/logrus"
 )
@@ -187,6 +190,35 @@ func (r *SharedObjectResource) GetSharedObjectTrim(
 		})
 	}
 	return trim, nil
+}
+
+// InspectSharedObjectOrder walks the mounted Space's agreed order from its
+// checkpoint to the head and sends what this build reads of each operation the
+// request selects, then the summary. It writes nothing.
+func (r *SharedObjectResource) InspectSharedObjectOrder(
+	req *s4wave_sobject.InspectSharedObjectOrderRequest,
+	strm s4wave_sobject.SRPCSharedObjectResourceService_InspectSharedObjectOrderStream,
+) error {
+	// Only a Space's body is a World order.
+	if bodyType := r.meta.GetBodyType(); bodyType != space.SpaceBodyType {
+		return errors.Wrap(sobject.ErrUnsupportedBodyType, bodyType)
+	}
+
+	// Send each selected operation as the walk reads it, then the summary.
+	summary, err := space_world.InspectOrder(strm.Context(), r.sharedObject, func(op *space_world.OrderOperation) error {
+		if !req.GetAll() && !op.Undecodable() && !op.SavedUnknownType() {
+			return nil
+		}
+		return strm.Send(&s4wave_sobject.InspectSharedObjectOrderResponse{
+			Body: &s4wave_sobject.InspectSharedObjectOrderResponse_Operation{Operation: op},
+		})
+	})
+	if err != nil {
+		return err
+	}
+	return strm.Send(&s4wave_sobject.InspectSharedObjectOrderResponse{
+		Body: &s4wave_sobject.InspectSharedObjectOrderResponse_Summary{Summary: summary},
+	})
 }
 
 // watchSharedObjectHealthWatchable streams SharedObject health from a watchable.

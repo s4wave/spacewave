@@ -52,6 +52,27 @@ func ReadOrder(ctx context.Context, snap SharedObjectStateSnapshot) (*OrderEvent
 	}, nil
 }
 
+// Operation prepares the operation at index i of ev's order as every member
+// replays it: refused before its body sees it, an acknowledgment with no
+// data, or authorized with its data decoded. It writes nothing.
+func (ev *OrderEvent) Operation(ctx context.Context, i int) (*OrderedOperation, error) {
+	// Refuse it before its body, or take an acknowledgment as it is.
+	h := ev.Order[i]
+	inner := ev.Set.Get(h)
+	op := &OrderedOperation{Hash: h, Inner: inner, Refused: replayRefusal(ev.Set, ev.Config, h, inner)}
+	if op.Refused != "" || inner.IsAcknowledgment() {
+		return op, nil
+	}
+
+	// Authorize the author and decode the data.
+	author, data, reason, err := PrepareReplayOp(ctx, ev.Snapshot, inner)
+	if err != nil {
+		return nil, err
+	}
+	op.Author, op.Data, op.Refused = author, data, reason
+	return op, nil
+}
+
 // SharedPrefix returns how many leading hashes a and b share.
 func SharedPrefix(a, b [][]byte) int {
 	n := min(len(a), len(b))

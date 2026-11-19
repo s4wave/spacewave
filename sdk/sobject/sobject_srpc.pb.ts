@@ -4,6 +4,8 @@
 
 import {
   GetSharedObjectTrimRequest,
+  InspectSharedObjectOrderRequest,
+  InspectSharedObjectOrderResponse,
   MountSharedObjectBodyRequest,
   MountSharedObjectBodyResponse,
   OpenReadCheckpointRequest,
@@ -82,6 +84,20 @@ export const SharedObjectResourceServiceDefinition = {
       O: SharedObjectTrim,
       kind: MethodKind.Unary,
     },
+    /**
+     * InspectSharedObjectOrder walks the mounted Space's agreed order from its
+     * checkpoint to the head and reports what this build reads of each
+     * operation. It reads the state and the saved replay cursor and writes
+     * nothing.
+     *
+     * @generated from rpc s4wave.sobject.SharedObjectResourceService.InspectSharedObjectOrder
+     */
+    InspectSharedObjectOrder: {
+      name: 'InspectSharedObjectOrder',
+      I: InspectSharedObjectOrderRequest,
+      O: InspectSharedObjectOrderResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -137,6 +153,19 @@ export interface SharedObjectResourceService {
     request: GetSharedObjectTrimRequest,
     abortSignal?: AbortSignal,
   ): Promise<SharedObjectTrim>
+
+  /**
+   * InspectSharedObjectOrder walks the mounted Space's agreed order from its
+   * checkpoint to the head and reports what this build reads of each
+   * operation. It reads the state and the saved replay cursor and writes
+   * nothing.
+   *
+   * @generated from rpc s4wave.sobject.SharedObjectResourceService.InspectSharedObjectOrder
+   */
+  InspectSharedObjectOrder(
+    request: InspectSharedObjectOrderRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<InspectSharedObjectOrderResponse>
 }
 
 /**
@@ -196,6 +225,20 @@ export interface SharedObjectResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<SharedObjectTrim>
+
+  /**
+   * InspectSharedObjectOrder walks the mounted Space's agreed order from its
+   * checkpoint to the head and reports what this build reads of each
+   * operation. It reads the state and the saved replay cursor and writes
+   * nothing.
+   *
+   * @generated from rpc s4wave.sobject.SharedObjectResourceService.InspectSharedObjectOrder
+   */
+  InspectSharedObjectOrder(
+    request: InspectSharedObjectOrderRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<InspectSharedObjectOrderResponse>
 }
 
 export const SharedObjectResourceServiceServiceName =
@@ -213,6 +256,7 @@ export class SharedObjectResourceServiceClient implements SharedObjectResourceSe
     this.OpenReadCheckpoint = this.OpenReadCheckpoint.bind(this)
     this.MountSharedObjectBody = this.MountSharedObjectBody.bind(this)
     this.GetSharedObjectTrim = this.GetSharedObjectTrim.bind(this)
+    this.InspectSharedObjectOrder = this.InspectSharedObjectOrder.bind(this)
   }
   /**
    * @generated from rpc s4wave.sobject.SharedObjectResourceService.WatchSharedObjectHealth
@@ -306,5 +350,28 @@ export class SharedObjectResourceServiceClient implements SharedObjectResourceSe
       abortSignal || undefined,
     )
     return SharedObjectTrim.fromBinary(result)
+  }
+
+  /**
+   * InspectSharedObjectOrder walks the mounted Space's agreed order from its
+   * checkpoint to the head and reports what this build reads of each
+   * operation. It reads the state and the saved replay cursor and writes
+   * nothing.
+   *
+   * @generated from rpc s4wave.sobject.SharedObjectResourceService.InspectSharedObjectOrder
+   */
+  InspectSharedObjectOrder(
+    request: InspectSharedObjectOrderRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<InspectSharedObjectOrderResponse> {
+    const requestMsg = InspectSharedObjectOrderRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SharedObjectResourceServiceDefinition.methods.InspectSharedObjectOrder
+        .name,
+      InspectSharedObjectOrderRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(InspectSharedObjectOrderResponse)(result)
   }
 }

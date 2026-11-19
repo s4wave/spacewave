@@ -317,3 +317,131 @@ message BackfillState {
   // Seqno is the World seqno of Root. A later copy never covers a lower one.
   uint64 seqno = 3;
 }
+
+// WorldOpKind names the body of a WorldOp by its field in the body oneof.
+enum WorldOpKind {
+  // WORLD_OP_KIND_UNKNOWN is no body this build declares.
+  WORLD_OP_KIND_UNKNOWN = 0;
+  // WORLD_OP_KIND_INIT_WORLD is an InitWorldOp.
+  WORLD_OP_KIND_INIT_WORLD = 1;
+  // WORLD_OP_KIND_APPLY_TX is an ApplyTxOp.
+  WORLD_OP_KIND_APPLY_TX = 2;
+  // WORLD_OP_KIND_SET_RETAINED_ROOT is a SetRetainedRootOp.
+  WORLD_OP_KIND_SET_RETAINED_ROOT = 4;
+  // WORLD_OP_KIND_SET_TRANSFORM_CONF is a SetTransformConfOp.
+  WORLD_OP_KIND_SET_TRANSFORM_CONF = 5;
+  // WORLD_OP_KIND_GRAPH_SETTINGS_STEP is a GraphSettingsStepOp.
+  WORLD_OP_KIND_GRAPH_SETTINGS_STEP = 6;
+  // WORLD_OP_KIND_FENCE is a FenceOp.
+  WORLD_OP_KIND_FENCE = 7;
+  // WORLD_OP_KIND_ROOT_SET is a RootSetOp.
+  WORLD_OP_KIND_ROOT_SET = 8;
+}
+
+// OrderOperation is one operation of a Space's agreed order above its
+// checkpoint, as this build reads it.
+message OrderOperation {
+  // Position is the operation's index above the checkpoint.
+  uint32 position = 1;
+  // Hash identifies the operation.
+  bytes hash = 2;
+  // PeerId identifies the operation's author.
+  string peer_id = 3;
+  // Nonce is the author's nonce of the operation.
+  uint64 nonce = 4;
+  // Read is what this build reads of the operation.
+  oneof read {
+    // Body is a body this build decodes.
+    OrderOperationBody body = 5;
+    // Unreadable is a body this build does not declare.
+    OrderOperationUnreadable unreadable = 6;
+    // Empty is a WorldOp with no body at all.
+    OrderOperationEmpty empty = 7;
+    // Invalid is data that does not decode as a WorldOp.
+    OrderOperationInvalid invalid = 8;
+    // Refused is an operation every member refuses before its body is read.
+    OrderOperationRefused refused = 9;
+    // Acknowledgment is an acknowledgment, which carries no body.
+    OrderOperationAcknowledgment acknowledgment = 10;
+  }
+  // SavedReason is the reason the saved replay cursor records at this
+  // position for this operation, or empty when it records it as applied or
+  // records another operation there.
+  string saved_reason = 11;
+}
+
+// OrderOperationBody is an operation whose body this build decodes.
+message OrderOperationBody {
+  // Kind names the body.
+  WorldOpKind kind = 1;
+}
+
+// OrderOperationUnreadable is an operation whose WorldOp decodes with no body
+// this build declares and with fields it skipped, as a newer build writes.
+message OrderOperationUnreadable {
+  // Fields are the numbers of the top-level fields this build skipped.
+  repeated uint32 fields = 1;
+}
+
+// OrderOperationEmpty is an operation whose WorldOp has no fields.
+message OrderOperationEmpty {
+}
+
+// OrderOperationInvalid is an operation whose data does not decode.
+message OrderOperationInvalid {
+  // Error is the decode error.
+  string error = 1;
+}
+
+// OrderOperationRefused is an operation every member refuses before its body
+// is read, such as a skipped or equivocated operation.
+message OrderOperationRefused {
+  // Reason is the refusal.
+  string reason = 1;
+}
+
+// OrderOperationAcknowledgment is an acknowledgment of the order.
+message OrderOperationAcknowledgment {
+}
+
+// OrderInspection counts the operations of a Space's agreed order above its
+// checkpoint by what this build reads of them.
+message OrderInspection {
+  // CheckpointHeight is the height of the checkpoint the order starts from.
+  uint64 checkpoint_height = 1;
+  // Operations is the number of operations in the order.
+  uint32 operations = 2;
+  // Kinds counts the decoded bodies by kind, in kind order.
+  repeated OrderKindCount kinds = 3;
+  // Unreadable counts the bodies this build does not declare.
+  uint32 unreadable = 4;
+  // Empty counts the WorldOps with no fields.
+  uint32 empty = 5;
+  // Invalid counts the data that does not decode.
+  uint32 invalid = 6;
+  // Refused counts the operations every member refuses before the body.
+  uint32 refused = 7;
+  // Acknowledgments counts the acknowledgments.
+  uint32 acknowledgments = 8;
+  // Cursor describes the saved replay cursor, or is unset when none is saved.
+  OrderCursor cursor = 9;
+}
+
+// OrderKindCount is the number of decoded bodies of one kind.
+message OrderKindCount {
+  // Kind names the body.
+  WorldOpKind kind = 1;
+  // Count is the number of operations with it.
+  uint32 count = 2;
+}
+
+// OrderCursor summarizes the replay cursor this device saved.
+message OrderCursor {
+  // Height is the height of the checkpoint the cursor replayed from.
+  uint64 height = 1;
+  // Outcomes is the number of outcomes it records.
+  uint32 outcomes = 2;
+  // UnknownOperationType counts its outcomes refused as "unknown operation
+  // type", the refusal older builds gave a body they did not declare.
+  uint32 unknown_operation_type = 3;
+}
