@@ -806,13 +806,21 @@ func (l *Log) maintain(ctx context.Context) {
 				l.maintErr = err
 				broadcast()
 			})
-			if err == nil {
-				continue
+			if err != nil {
+				// Error publication closes the watch. Backoff waits on its
+				// own deadline so that publication and new writes cannot bypass it.
+				timer := time.NewTimer(retryDelay)
+				select {
+				case <-ctx.Done():
+					timer.Stop()
+					return
+				case <-timer.C:
+				}
 			}
-			due = time.Now().Add(retryDelay)
+			continue
 		}
 
-		// Wait for a change, the linger deadline or the retry.
+		// Wait for a change or the linger deadline.
 		var timer *time.Timer
 		var expired <-chan time.Time
 		if !due.IsZero() {
