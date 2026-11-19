@@ -42,7 +42,16 @@
 \*   replica's held roots off the replay path and passes only when built
 \*   holds exactly what base holds; the release names both roots.
 \* - A full disk: modeled. A replica whose disk is below the build's floor
-\*   cannot build; it waits at the operation and never refuses it.
+\*   cannot build, and one whose disk fills partway through the build loses
+\*   the build; either waits at the operation and never refuses it.
+\* - A malformed operation: modeled. A quad list that does not decode, or a
+\*   base whose graph does not decode, is a property of the operation and the
+\*   World before it, so every replica meets it alike and refuses the
+\*   operation instead of waiting at it forever.
+\* - The collector: modeled. Replay may apply operations past the installed
+\*   head, as after a reorder that leaves a position unresolved, and a sweep
+\*   may run before the head installs. Live roots include the retained roots
+\*   of every applied position, so the sweep keeps an uninstalled base.
 \* - Checkpoints, the adopt path and older builds: left out. Each installs a
 \*   state another replica computed by the same apply, which Agree covers.
 \*
@@ -68,7 +77,7 @@ Apply(set, from, to) == (set \ (from \ to)) \cup (to \ from)
 
 Ops ==
   [t: {"write"}, i: Items, add: BOOLEAN]
-    \cup [t: {"regen"}, skip: 0..N]
+    \cup [t: {"regen"}, skip: 0..N, bad: BOOLEAN]
     \cup [t: {"back"}]
     \cup [t: {"release"}, base: SUBSET Items, built: SUBSET Items]
 
@@ -80,13 +89,14 @@ VARIABLES
   built,    \* per replica: world-regen/built
   verdict,  \* per replica: the verdict of each applied operation
   phase,    \* per replica: "idle", "building" or "down"
+  pending,  \* per replica: an applied regeneration not yet installed as head
   full,     \* per replica: whether its disk is below the floor
   crashes,  \* crashes and disk fills so far
   exp,      \* ghost per replica: the content the operations define
   faulted   \* ghost: whether a faulty regeneration was ordered
 
-vars == <<log, cur, world, base, built, verdict, phase, full, crashes,
-          exp, faulted>>
+vars == <<log, cur, world, base, built, verdict, phase, pending, full,
+          crashes, exp, faulted>>
 
 Init ==
   /\ log = <<>>
@@ -96,6 +106,7 @@ Init ==
   /\ built = [r \in Replicas |-> NoRoot]
   /\ verdict = [r \in Replicas |-> <<>>]
   /\ phase = [r \in Replicas |-> "idle"]
+  /\ pending = [r \in Replicas |-> FALSE]
   /\ full = [r \in Replicas |-> FALSE]
   /\ crashes = 0
   /\ exp = [r \in Replicas |-> {}]
@@ -107,7 +118,7 @@ Init ==
 Propose(op) ==
   /\ Len(log) < MaxOps
   /\ log' = Append(log, op)
-  /\ UNCHANGED <<cur, world, base, built, verdict, phase, full, crashes,
+  /\ UNCHANGED <<cur, world, base, built, verdict, phase, pending, full, crashes,
                  exp>>
 
 ProposeWrite ==
@@ -116,9 +127,9 @@ ProposeWrite ==
     /\ UNCHANGED faulted
 
 ProposeRegen ==
-  \E skip \in (IF Faults THEN 0..N ELSE {0}) :
-    /\ Propose([t |-> "regen", skip |-> skip])
-    /\ faulted' = (faulted \/ skip # 0)
+  \E skip \in (IF Faults THEN 0..N ELSE {0}), bad \in BOOLEAN :
+    /\ Propose([t |-> "regen", skip |-> skip, bad |-> bad])
+    /\ faulted' = (faulted \/ (skip # 0 /\ ~bad))
 
 ProposeBack ==
   /\ Propose([t |-> "back"])
@@ -155,22 +166,23 @@ ApplyWrite(r) ==
   /\ world' = [world EXCEPT ![r].items = set(@)]
   /\ exp' = [exp EXCEPT ![r] = set(@)]
   /\ Done(r, "applied")
-  /\ UNCHANGED <<log, base, built, phase, full, crashes, faulted>>
+  /\ UNCHANGED <<log, base, built, phase, pending, full, crashes, faulted>>
 
 \* Whether replica r refuses the next operation, by the World and the held
 \* roots alone, so every replica computes the same verdict.
 RegenRefused(r) == world[r].fmt # "old" \/ base[r] # NoRoot
 BackRefused(r) == world[r].fmt # "new" \/ base[r] = NoRoot
 
-\* Refuse an operation that does not apply to this World.
+\* Refuse an operation that does not apply to this World, or a malformed
+\* regeneration, which every replica meets alike.
 Refuse(r) ==
   LET op == Next1(r) IN
   /\ phase[r] = "idle"
   /\ cur[r] < Len(log)
-  /\ \/ op.t = "regen" /\ RegenRefused(r)
+  /\ \/ op.t = "regen" /\ (RegenRefused(r) \/ op.bad)
      \/ op.t = "back" /\ BackRefused(r)
   /\ Done(r, "refused")
-  /\ UNCHANGED <<log, world, base, built, phase, full, crashes,
+  /\ UNCHANGED <<log, world, base, built, phase, pending, full, crashes,
                  exp, faulted>>
 
 \* Start the build. A replica whose disk is below the floor waits here: the
@@ -181,10 +193,11 @@ StartBuild(r) ==
   /\ cur[r] < Len(log)
   /\ op.t = "regen"
   /\ ~RegenRefused(r)
+  /\ ~op.bad
   /\ ~full[r]
   /\ phase' = [phase EXCEPT ![r] = "building"]
-  /\ UNCHANGED <<log, cur, world, base, built, verdict, full, crashes,
-                 exp, faulted>>
+  /\ UNCHANGED <<log, cur, world, base, built, verdict, pending, full,
+                 crashes, exp, faulted>>
 
 \* Commit the build with the replay cursor: base is the World before it plus
 \* the carried quads, and the new-format head is the build of base, less the
@@ -195,13 +208,45 @@ FinishBuild(r) ==
       new == old \ {op.skip}
   IN
   /\ phase[r] = "building"
+  /\ ~full[r]
   /\ world' = [world EXCEPT ![r] = [fmt |-> "new", items |-> new]]
   /\ base' = [base EXCEPT ![r] = [fmt |-> "old", items |-> old]]
   /\ built' = [built EXCEPT ![r] = [fmt |-> "new", items |-> new]]
   /\ exp' = [exp EXCEPT ![r] = @ \cup Carry]
   /\ phase' = [phase EXCEPT ![r] = "idle"]
+  /\ pending' = [pending EXCEPT ![r] = TRUE]
   /\ Done(r, "applied")
   /\ UNCHANGED <<log, full, crashes, faulted>>
+
+\* A disk that fills partway through the build fails it: the replica writes
+\* nothing and waits at the operation, a replay gap, until the disk frees.
+FailBuild(r) ==
+  /\ phase[r] = "building"
+  /\ full[r]
+  /\ phase' = [phase EXCEPT ![r] = "idle"]
+  /\ UNCHANGED <<log, cur, world, base, built, verdict, pending, full,
+                 crashes, exp, faulted>>
+
+\* The applied state installs as the head.
+Install(r) ==
+  /\ pending[r]
+  /\ pending' = [pending EXCEPT ![r] = FALSE]
+  /\ UNCHANGED <<log, cur, world, base, built, verdict, phase, full,
+                 crashes, exp, faulted>>
+
+\* Whether the collector counts replica r's base among the live roots: it
+\* reads the retained roots of every applied position, installed or not.
+Live(r) == TRUE
+
+\* The collector frees a base it does not count as live. A freed base cannot
+\* be read again, so a switch back from it waits forever.
+Sweep(r) ==
+  /\ base[r] \notin {NoRoot}
+  /\ base[r].fmt = "old"
+  /\ ~Live(r)
+  /\ base' = [base EXCEPT ![r].fmt = "freed"]
+  /\ UNCHANGED <<log, cur, world, built, verdict, phase, pending, full,
+                 crashes, exp, faulted>>
 
 \* Switch back: carry base forward by the new format's changes since built,
 \* and release both names.
@@ -210,12 +255,13 @@ ApplyBack(r) ==
   /\ cur[r] < Len(log)
   /\ Next1(r).t = "back"
   /\ ~BackRefused(r)
+  /\ base[r].fmt = "old"
   /\ world' = [world EXCEPT ![r] =
        [fmt |-> "old", items |-> Apply(base[r].items, built[r].items, world[r].items)]]
   /\ base' = [base EXCEPT ![r] = NoRoot]
   /\ built' = [built EXCEPT ![r] = NoRoot]
   /\ Done(r, "applied")
-  /\ UNCHANGED <<log, phase, full, crashes, exp, faulted>>
+  /\ UNCHANGED <<log, phase, pending, full, crashes, exp, faulted>>
 
 \* Release the held roots when they are the ones the comparison named; a
 \* stale release, ordered before a switch back and a new regeneration, is
@@ -230,7 +276,7 @@ ApplyRelease(r) ==
   /\ base' = [base EXCEPT ![r] = IF ok THEN NoRoot ELSE @]
   /\ built' = [built EXCEPT ![r] = IF ok THEN NoRoot ELSE @]
   /\ Done(r, IF ok THEN "applied" ELSE "refused")
-  /\ UNCHANGED <<log, world, phase, full, crashes, exp, faulted>>
+  /\ UNCHANGED <<log, world, phase, pending, full, crashes, exp, faulted>>
 
 \* A crash loses the build and nothing the replay cursor holds.
 Crash(r) ==
@@ -238,14 +284,14 @@ Crash(r) ==
   /\ phase[r] # "down"
   /\ phase' = [phase EXCEPT ![r] = "down"]
   /\ crashes' = crashes + 1
-  /\ UNCHANGED <<log, cur, world, base, built, verdict, full,
+  /\ UNCHANGED <<log, cur, world, base, built, verdict, pending, full,
                  exp, faulted>>
 
 Recover(r) ==
   /\ phase[r] = "down"
   /\ phase' = [phase EXCEPT ![r] = "idle"]
-  /\ UNCHANGED <<log, cur, world, base, built, verdict, full, crashes,
-                 exp, faulted>>
+  /\ UNCHANGED <<log, cur, world, base, built, verdict, pending, full,
+                 crashes, exp, faulted>>
 
 \* The disk falls below the floor, then frees.
 Fill(r) ==
@@ -253,18 +299,18 @@ Fill(r) ==
   /\ ~full[r]
   /\ full' = [full EXCEPT ![r] = TRUE]
   /\ crashes' = crashes + 1
-  /\ UNCHANGED <<log, cur, world, base, built, verdict, phase,
+  /\ UNCHANGED <<log, cur, world, base, built, verdict, phase, pending,
                  exp, faulted>>
 
 Free(r) ==
   /\ full[r]
   /\ full' = [full EXCEPT ![r] = FALSE]
-  /\ UNCHANGED <<log, cur, world, base, built, verdict, phase, crashes,
-                 exp, faulted>>
+  /\ UNCHANGED <<log, cur, world, base, built, verdict, phase, pending,
+                 crashes, exp, faulted>>
 
 Replay(r) ==
   \/ ApplyWrite(r) \/ Refuse(r) \/ StartBuild(r) \/ FinishBuild(r)
-  \/ ApplyBack(r) \/ ApplyRelease(r)
+  \/ ApplyBack(r) \/ ApplyRelease(r) \/ FailBuild(r)
 
 \* The order is complete and every replica applied it.
 Terminated ==
@@ -276,12 +322,14 @@ Next ==
   \/ Terminated
   \/ ProposeWrite \/ ProposeRegen \/ ProposeBack \/ ProposeRelease
   \/ \E r \in Replicas :
-       Replay(r) \/ Crash(r) \/ Recover(r) \/ Fill(r) \/ Free(r)
+       \/ Replay(r) \/ Crash(r) \/ Recover(r) \/ Fill(r) \/ Free(r)
+       \/ Install(r) \/ Sweep(r)
 
 Spec ==
   /\ Init /\ [][Next]_vars
   /\ \A r \in Replicas :
-       WF_vars(Replay(r)) /\ WF_vars(Recover(r)) /\ WF_vars(Free(r))
+       /\ WF_vars(Replay(r)) /\ WF_vars(Recover(r)) /\ WF_vars(Free(r))
+       /\ WF_vars(Install(r))
 
 ----
 \* Properties.
@@ -289,6 +337,7 @@ Spec ==
 TypeOK ==
   /\ cur \in [Replicas -> 0..MaxOps]
   /\ phase \in [Replicas -> {"idle", "building", "down"}]
+  /\ pending \in [Replicas -> BOOLEAN]
   /\ \A r \in Replicas : cur[r] <= Len(log)
 
 \* Replicas that applied the same operations hold the same World, roots and

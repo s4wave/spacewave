@@ -1,16 +1,21 @@
 package space_world
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"slices"
 	"strconv"
+	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 	bquad "github.com/s4wave/spacewave/db/block/quad"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
@@ -18,11 +23,23 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/encoding/protowire"
 )
 
 // newWorldReplay returns a transient replay over an in-memory Volume that
 // runs World transactions, and the World it initialized.
 func newWorldReplay(t *testing.T) (*spaceReplay, *InnerState) {
+	conf, err := buildDefaultTransformConf()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newWorldReplayOn(t, conf, nil, 1<<20)
+}
+
+// newWorldReplayOn returns a replay as newWorldReplay does, of a World with
+// the transform conf, whose kept pages past bound bytes go to the Volume
+// through wrap when it is set.
+func newWorldReplayOn(t *testing.T, conf *block_transform.Config, wrap func(block.StoreOps) block.StoreOps, bound int) (*spaceReplay, *InnerState) {
 	// Open the bucket.
 	ctx := t.Context()
 	log := logrus.New()
@@ -40,23 +57,23 @@ func newWorldReplay(t *testing.T) (*spaceReplay, *InnerState) {
 		t.Fatal(err)
 	}
 	t.Cleanup(cursor.Release)
+	var store block.StoreOps = cursor.GetBucket()
+	if wrap != nil {
+		store = wrap(store)
+	}
 
 	// Build the adapter and its replay.
 	a := &Adapter{
 		le:       logrus.NewEntry(log),
 		opts:     AdapterOptions{Bus: tb.Bus, StepFactorySet: tb.StepFactorySet},
 		bucketID: tb.BucketId,
-		pages:    block.NewPendingStore(cursor.GetBucket(), 1<<20),
+		pages:    block.NewPendingStore(store, bound),
 		decoded:  block.NewDecodedBlockCache(),
 	}
 	r := &spaceReplay{a: a, stage: newReplayStage(a.pages)}
 	t.Cleanup(r.close)
 
 	// Initialize a World; its first commit writes its root.
-	conf, err := buildDefaultTransformConf()
-	if err != nil {
-		t.Fatal(err)
-	}
 	start, reason, err := r.applyInit(ctx, &InitWorldOp{TransformConf: conf}, &InnerState{})
 	if err != nil || reason != "" {
 		t.Fatal(reason, err)
@@ -226,7 +243,7 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 	keys := []string{"a", "b", "c", "d"}
 	format := func(state *InnerState) world_block.WorldFormat {
 		t.Helper()
-		got, err := world_block.NewOrderedRegen(r.cursor, r.store(), r.a.regenConfig()).Format(ctx, state.GetHeadRef().GetRootRef())
+		got, err := world_block.NewOrderedRegen(r.cursor, r.store(), r.a.regenConfig(regenSpillReplay)).Format(ctx, state.GetHeadRef().GetRootRef())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -252,22 +269,7 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 	// Carry a quad the World holds and one it lacks.
 	carried := []*bquad.Quad{world.GraphQuadToQuad(link("a", "p", "b")), world.GraphQuadToQuad(link("a", "q", "b"))}
 	slices.SortFunc(carried, CompareQuads)
-	btx, bcs := r.cursor.BuildTransactionWithStore(nil, r.store())
-	err := WriteQuadList(ctx, bcs, func(cb func(*bquad.Quad) error) error {
-		for _, q := range carried {
-			if err := cb(q); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	list, _, err := btx.Write(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
+	list := writeQuadListOn(ctx, t, r, carried)
 	forward := &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Quads: list}
 
 	// A step that cannot finish stops replay and refuses nothing.
@@ -290,7 +292,7 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 	if base == nil || !built.EqualsRef(graph.GetHeadRef().GetRootRef()) {
 		t.Fatalf("the regeneration holds base %v and built %v", base, built)
 	}
-	if err := world_block.NewOrderedRegen(r.cursor, r.store(), r.a.regenConfig()).Compare(ctx, base, built); err != nil {
+	if err := world_block.NewOrderedRegen(r.cursor, r.store(), r.a.regenConfig(regenSpillReplay)).Compare(ctx, base, built); err != nil {
 		t.Fatal(err)
 	}
 	want := []string{"<a> <p> <b>", "<a> <p> <c>", "<a> <q> <b>"}
@@ -313,6 +315,13 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 	if _, reason := applySetRetainedRoot(&SetRetainedRootOp{Name: regenBaseName}, graph); reason != reasonReservedRoot {
 		t.Fatalf("a retained root op on a regeneration's name gave reason %q", reason)
 	}
+
+	// A sweep while the regeneration's World waits to install, as when
+	// replay applied past a missing operation, keeps base, which only the
+	// position's state retains.
+	r.a.replay = r
+	r.positions = []spacePosition{{state: graph}}
+	r.a.sweep()
 
 	// Write on the node graph: set the carried quad again, drop a quad, add
 	// d with a quad, and delete and create c again.
@@ -365,5 +374,222 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 	}
 	if got := quadsFrom(ctx, t, r, released, keys...); !slices.Equal(got, want) {
 		t.Fatalf("the released World holds %v, want %v", got, want)
+	}
+}
+
+// writeQuadListOn writes quads, in CompareQuads order, as a quad list in r's
+// store and returns its root.
+func writeQuadListOn(ctx context.Context, t *testing.T, r *spaceReplay, quads []*bquad.Quad) *block.BlockRef {
+	t.Helper()
+	return writeListOn(ctx, t, r, func(bcs *block.Cursor) error {
+		return WriteQuadList(ctx, bcs, func(cb func(*bquad.Quad) error) error {
+			for _, q := range quads {
+				if err := cb(q); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	})
+}
+
+// rawListOn writes data as a quad list blob in r's store and returns its root.
+func rawListOn(ctx context.Context, t *testing.T, r *spaceReplay, data []byte) *block.BlockRef {
+	t.Helper()
+	return writeListOn(ctx, t, r, func(bcs *block.Cursor) error {
+		_, err := blob.BuildBlobWithReader(ctx, bytes.NewReader(data), bcs, nil)
+		return err
+	})
+}
+
+// writeListOn writes a blob with write in r's store and returns its root.
+func writeListOn(ctx context.Context, t *testing.T, r *spaceReplay, write func(*block.Cursor) error) *block.BlockRef {
+	t.Helper()
+	btx, bcs := r.cursor.BuildTransactionWithStore(nil, r.store())
+	if err := write(bcs); err != nil {
+		t.Fatal(err)
+	}
+	ref, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ref
+}
+
+// faultStore is a store whose puts fail with a full disk from the failAt-th
+// put on, counting from one; zero fails none. The stages it opens count and
+// fail with it.
+type faultStore struct {
+	block.StoreOps
+	*faults
+}
+
+// faults counts a faultStore's puts and sets where they fail.
+type faults struct {
+	// puts counts the puts.
+	puts atomic.Int64
+	// failAt is the first put that fails, or zero.
+	failAt atomic.Int64
+}
+
+// put counts a put and returns its failure.
+func (f *faults) put() error {
+	n := f.puts.Add(1)
+	if at := f.failAt.Load(); at != 0 && n >= at {
+		return syscall.ENOSPC
+	}
+	return nil
+}
+
+// PutBlock puts a block unless the disk is full.
+func (s *faultStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	if err := s.put(); err != nil {
+		return nil, false, err
+	}
+	return s.StoreOps.PutBlock(ctx, data, opts)
+}
+
+// PutBlockBatch puts entries unless the disk is full.
+func (s *faultStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	if err := s.put(); err != nil {
+		return nil, err
+	}
+	return s.StoreOps.PutBlockBatch(ctx, entries)
+}
+
+// HoldsRoots reports whether the inner store holds roots.
+func (s *faultStore) HoldsRoots() bool {
+	return block.HoldsRoots(s.StoreOps)
+}
+
+// PinRoot pins ref on the inner store.
+func (s *faultStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
+	return block.PinRoot(ctx, s.StoreOps, ref)
+}
+
+// OpenStage opens a stage on the inner store whose puts fail with s's.
+func (s *faultStore) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	stage, release, err := block.OpenStage(ctx, s.StoreOps)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &faultStore{StoreOps: stage, faults: s.faults}, release, nil
+}
+
+// ReleaseRoots releases roots on the inner stage.
+func (s *faultStore) ReleaseRoots(ctx context.Context, roots []*block.BlockRef) error {
+	return s.StoreOps.(block.LeasedRoots).ReleaseRoots(ctx, roots)
+}
+
+// TestRegenerateWorldReplicasAgreeThroughFaults runs one regeneration on
+// replicas of one World whose stores spill every page. A replica whose disk
+// fills in the carried-quad commit or partway through the build waits at the
+// operation and refuses nothing, then reaches the healthy replica's World
+// once the disk frees. A quad list every replica reads alike as malformed is
+// refused on each, so replay does not wait at it forever.
+func TestRegenerateWorldReplicasAgreeThroughFaults(t *testing.T) {
+	ctx := t.Context()
+	link := func(subj, pred, obj string) world.GraphQuad {
+		return world.NewGraphQuadWithKeys(subj, "<"+pred+">", obj, "")
+	}
+	carried := []*bquad.Quad{world.GraphQuadToQuad(link("a", "q", "b"))}
+	conf, err := buildDefaultTransformConf()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Build the same kv World and quad list on each replica.
+	type replica struct {
+		r     *spaceReplay
+		store *faultStore
+		kv    *InnerState
+		list  *block.BlockRef
+	}
+	newReplica := func() *replica {
+		t.Helper()
+		var fs *faultStore
+		r, start := newWorldReplayOn(t, conf, func(inner block.StoreOps) block.StoreOps {
+			fs = &faultStore{StoreOps: inner, faults: &faults{}}
+			return fs
+		}, 1)
+		r.a.opts.Regen.SpillDir = t.TempDir()
+		kv := createOn(ctx, t, r, start, "a")
+		kv = createOn(ctx, t, r, kv, "b")
+		kv = changeOn(ctx, t, r, kv, func(btx *world_block.EngineTx) error {
+			return btx.SetGraphQuad(ctx, link("a", "p", "b"))
+		})
+		return &replica{r: r, store: fs, kv: kv, list: writeQuadListOn(ctx, t, r, carried)}
+	}
+	forward := func(rep *replica) *RegenerateWorldOp {
+		return &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Quads: rep.list}
+	}
+
+	// The healthy replica regenerates, counting its puts.
+	healthy := newReplica()
+	before := healthy.store.puts.Load()
+	want, reason, err := healthy.r.applyRegenerateWorld(ctx, forward(healthy), healthy.kv)
+	if err != nil || reason != "" {
+		t.Fatal(reason, err)
+	}
+	puts := healthy.store.puts.Load() - before
+	if puts < 2 {
+		t.Fatalf("the regeneration put %d times through the spilling store", puts)
+	}
+
+	// A disk that fills at the carried-quad commit's first put, or at the
+	// build's last put, stops replay there; once it frees, the replica
+	// reaches the healthy replica's World.
+	for _, fill := range []struct {
+		name  string
+		at    int64
+		build bool
+	}{{"the carried-quad commit", 1, false}, {"the build", puts, true}} {
+		rep := newReplica()
+		rep.store.failAt.Store(rep.store.puts.Load() + fill.at)
+		_, reason, err := rep.r.applyRegenerateWorld(ctx, forward(rep), rep.kv)
+		if reason != "" || !isReplayGap(err) || !errors.Is(err, syscall.ENOSPC) {
+			t.Fatalf("a disk full in %s gave reason %q and error %v, want a replay gap", fill.name, reason, err)
+		}
+		var gap *regenGapError
+		if errors.As(err, &gap) != fill.build {
+			t.Fatalf("a disk full in %s failed outside it: %v", fill.name, err)
+		}
+		rep.store.failAt.Store(0)
+		got, reason, err := rep.r.applyRegenerateWorld(ctx, forward(rep), rep.kv)
+		if err != nil || reason != "" {
+			t.Fatalf("after a disk full in %s, the retry gave %q, %v", fill.name, reason, err)
+		}
+		if !got.EqualVT(want) {
+			t.Fatalf("after a disk full in %s, the replica holds %v, want %v", fill.name, got, want)
+		}
+	}
+
+	// A malformed list or a quad the World refuses is refused alike on every
+	// replica, with no wait.
+	for _, bad := range []struct {
+		name  string
+		write func(*replica) *block.BlockRef
+	}{
+		{"a truncated entry", func(rep *replica) *block.BlockRef { return rawListOn(ctx, t, rep.r, []byte{5, 1, 2}) }},
+		{"an oversized entry", func(rep *replica) *block.BlockRef {
+			return rawListOn(ctx, t, rep.r, protowire.AppendVarint(nil, maxQuadListEntry+1))
+		}},
+		{"an entry that does not decode", func(rep *replica) *block.BlockRef { return rawListOn(ctx, t, rep.r, []byte{2, 0xff, 0xff}) }},
+		{"a quad without a subject", func(rep *replica) *block.BlockRef {
+			return writeQuadListOn(ctx, t, rep.r, []*bquad.Quad{{Predicate: "<p>", Obj: "<b>"}})
+		}},
+	} {
+		var reasons []string
+		for _, rep := range []*replica{healthy, newReplica()} {
+			op := &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Quads: bad.write(rep)}
+			_, reason, err := rep.r.applyRegenerateWorld(ctx, op, rep.kv)
+			if err != nil || reasonCode(reason) != "world regeneration failed" {
+				t.Fatalf("%s gave reason %q and error %v, want a refusal", bad.name, reason, err)
+			}
+			reasons = append(reasons, reason)
+		}
+		if reasons[0] != reasons[1] {
+			t.Fatalf("%s was refused differently: %q", bad.name, reasons)
+		}
 	}
 }
