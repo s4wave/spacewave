@@ -13,8 +13,9 @@ import (
 
 // OpenHeadOptions adjusts OpenHead.
 type OpenHeadOptions struct {
-	// Initial returns the root of a new World, for a World with no head.
-	Initial func(context.Context) (*block.BlockRef, error)
+	// Initial returns the root of a new World, for a World with no head, and
+	// the release of what holds it until the Install.
+	Initial func(context.Context) (*block.BlockRef, func(), error)
 	// RecoverMissing replaces an adopted head whose root block is missing
 	// with a new World instead of failing.
 	RecoverMissing bool
@@ -77,9 +78,11 @@ func OpenHead(
 
 	// Install the old head, or a new World.
 	if root.GetEmpty() {
-		if root, err = opts.Initial(ctx); err != nil {
+		var held func()
+		if root, held, err = opts.Initial(ctx); err != nil {
 			return world.Head{}, err
 		}
+		defer held()
 	}
 	head, err = authority.Install(ctx, nil, root, release...)
 	if err != nil {

@@ -83,17 +83,14 @@ type spaceReplay struct {
 	cursor *bucket_lookup.Cursor
 	// bound is the World engine serves.
 	bound *bucket.ObjectRef
-	// stage holds what a serving adapter's replay stores until a cursor save
-	// lands, or is nil for a transient replay, whose kept pages already go
-	// to a stage the caller holds. Its methods do nothing on nil.
+	// stage holds what the replay stores: for a serving adapter until a
+	// cursor save lands, and for a transient replay in its one epoch until its
+	// caller releases it. It is set before the replay runs.
 	stage *replayStage
 }
 
 // store returns the store the replay writes through.
 func (r *spaceReplay) store() block.StoreOps {
-	if r.stage == nil {
-		return r.a.pages
-	}
 	return r.stage
 }
 

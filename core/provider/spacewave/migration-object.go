@@ -165,11 +165,18 @@ func (a *ProviderAccount) copyMigrationSpace(ctx context.Context, client *Sessio
 	}
 	defer release()
 
-	// The cloud store holds no roots, so the copy returns no stage and
-	// nothing holds the copy until the Space's Adapter does. Pack reclaim,
-	// off by default, is what keeps a pass from trashing it meanwhile.
-	if _, err := provider_migration.CopyRoots(ctx, src, roots, store, nil); err != nil {
+	// Copy under a stage in the local cache bucket, which holds the copy until
+	// the flush has uploaded it; the cloud's packs hold it from then on. The
+	// stage is nil on a cache that holds no roots, which frees nothing.
+	stage, err := provider_migration.CopyRoots(ctx, src, roots, store, nil)
+	if err != nil {
 		return err
+	}
+	if stage != nil {
+		defer stage.Release()
+		if err := stage.CheckHeld(ctx, roots...); err != nil {
+			return err
+		}
 	}
 	if err := store.(*BlockStore).ForceSync(ctx); err != nil {
 		return err

@@ -8,10 +8,12 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/db/bucket"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 )
 
 // TestPinRootUnknownRefs checks that fetching an untracked root cannot write it
@@ -44,8 +46,10 @@ func TestPinRootUnknownRefs(t *testing.T) {
 // TestSetRootsBringsRemoteRootBlock checks on a Volume that frees with a 1ns
 // grace that a root moving onto a block only the read path holds, as a
 // follower's replay base on another device's World does, stores the block
-// with its refs in the same change, so collection keeps it; and that a block
-// the read path holds without refs refuses the move.
+// with its refs in the same change, so collection keeps it; that a block the
+// read path holds without refs refuses the move; and that a pin on such a
+// block stores it under a stage, which the Volume takes where it refuses an
+// unheld put, so collection keeps it while pinned.
 func TestSetRootsBringsRemoteRootBlock(t *testing.T) {
 	// Serve a root block with a child from the read path only.
 	ctx := t.Context()
@@ -89,5 +93,23 @@ func TestSetRootsBringsRemoteRootBlock(t *testing.T) {
 	}
 	if held, err := vol.GetRoot(ctx, "replay-base"); err != nil || !held.EqualsRef(root) {
 		t.Fatalf("root after the refused move = %v, %v; want the first root", held, err)
+	}
+	// A pin stores the block it lacks under a stage, then holds it.
+	leaf, _, err := source.PutBlock(ctx, []byte("remote pinned"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bkt := volume_controller.NewBucketStore(vol, &bucket.Config{Id: "dest", Rev: 1})
+	pinned := &BlockStore{store: block_store.NewStore("dest", bkt), readStore: source}
+	release, err := pinned.PinRoot(ctx, leaf)
+	if err != nil {
+		t.Fatalf("pin of a block only the read path holds: %v", err)
+	}
+	defer release()
+	if _, err := vol.Collect(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if found, err := vol.GetBlockExists(ctx, leaf); err != nil || !found {
+		t.Fatalf("pinned block after collection = %v, %v; want stored", found, err)
 	}
 }

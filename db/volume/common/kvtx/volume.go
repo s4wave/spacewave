@@ -95,6 +95,9 @@ type Volume struct {
 	directClosed bool
 	// fills groups concurrent cache fills into shared transactions.
 	fills fillQueue
+	// fillHold is how long a fill's leased root holds the block it gives
+	// birth to, the collector's grace period; zero for the default grace.
+	fillHold time.Duration
 	// closeErr stores the error from Close.
 	closeErr error
 	// rootPinMu guards reader pin counts and stages. Direct transactions take
@@ -273,6 +276,7 @@ func NewVolume(
 		}
 		v.holdRule = volumeHoldRule(state, v.holdRule)
 		v.collector = v.newCollector(collectorStore{v: v}, conf.GetCollectorFrees(), grace)
+		v.fillHold = grace
 		v.heldMode = rootHeldMode(conf.GetRootHeldCheck(), conf.GetCollectorFrees())
 		if err := v.startLiveness(ctx, state, parked); err != nil {
 			return nil, err

@@ -37,8 +37,8 @@ func ReplayWorld(
 }
 
 // replayOnce replays snap on a transient adapter whose pages stay in memory
-// up to maxPending bytes and go to a stage on so's block store past it. The
-// stage holds them until release. It waits for the trims its installs
+// up to maxPending bytes and go to its replay stage on so's block store past
+// it. The stage holds them until release. It waits for the trims its installs
 // start.
 func replayOnce(
 	ctx context.Context,
@@ -51,13 +51,8 @@ func replayOnce(
 	snap sobject.SharedObjectStateSnapshot,
 	maxPending int,
 ) (*Adapter, func(), error) {
-	// Hold what the replay writes under a stage.
-	staged, release, err := block.OpenStage(ctx, so.GetBlockStore())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Replay through a transient adapter over it.
+	// Replay through a transient adapter, which holds what it writes under
+	// its replay stage until release.
 	a, err := NewAdapter(le, so, AdapterOptions{
 		Bus:             b,
 		StepFactorySet:  sfs,
@@ -65,12 +60,11 @@ func replayOnce(
 		OpTypes:         opTypes,
 		MaxPendingBytes: maxPending,
 		transient:       true,
-		pagesStore:      staged,
 	})
 	if err != nil {
-		release()
 		return nil, nil, err
 	}
+	release := a.replay.stage.end
 	defer a.replay.close()
 	err = sobject.NewBodyDriver(le, so, a, nil).Step(ctx, snap)
 	a.waitBackground()

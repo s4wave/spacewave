@@ -111,7 +111,7 @@ const (
 	// kindFront keys a block on the settle's front, by the block: a stored
 	// block whose list may lack a child, named by a young or verified block,
 	// a root or a recent down pair, which the walk still has to decode. It
-	// holds no value. Land, LandFill and the walk push onto it while the
+	// holds no value. Land and the walk push onto it while the
 	// generation is Open, as Generation_GENERATION_OPEN describes; a write
 	// that marks the block's list takes its entry off, and so does the
 	// collector once its free proof holds for the block. An entry whose block

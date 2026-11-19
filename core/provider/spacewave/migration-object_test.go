@@ -16,6 +16,12 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
+	"github.com/s4wave/spacewave/db/bucket"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 )
 
 // TestCloudMigrationFlushBeforeTransfer keeps pending writes under their source
@@ -188,5 +194,67 @@ func TestCloudMigrationSpaceCopyHeldFails(t *testing.T) {
 	}
 	if found, err := syncer.upper.GetBlockExists(t.Context(), root); err != nil || !found {
 		t.Fatalf("copied root: found = %v, err = %v", found, err)
+	}
+}
+
+// TestCloudMigrationSpaceCopyHeld checks that a copy into a cloud store lands
+// held in the local cache bucket: the bucket's Volume frees, so an unheld put
+// fails, and a collection during the flush keeps the copied root.
+func TestCloudMigrationSpaceCopyHeld(t *testing.T) {
+	var checkpoints atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/checkpoint") {
+			checkpoints.Add(1)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	// The destination is the production chain over a bucket of a Volume that
+	// frees: source tracker, marking upper, cloud overlay, block store.
+	ctx := t.Context()
+	vol, err := volume_kvtx.NewVolume(ctx, "test/cloud-cache", store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(),
+		&store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}, false, false, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = vol.Close() })
+	key, pid := generateTestKeypair(t)
+	client := newTestPublicationClient(server, key, pid)
+	syncer := newDirtySyncExecuteTestController(t, client, nil)
+	upper := &sourceTrackingStore{StoreOps: volume_controller.NewBucketStore(vol, &bucket.Config{Id: "cloud-cache", Rev: 1})}
+	overlay := newCloudOverlay(ctx, syncer.le, newSyncTestBlockStore(), block_store_writeback.NewMarkingStore(upper, syncer.MarkDirty))
+	src := newSyncTestBlockStore()
+	root, _, err := src.PutBlock(ctx, []byte("space root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The flush collects first: only the copy's stage keeps the root.
+	var keptRoot bool
+	flush := func(ctx context.Context) error {
+		if _, err := vol.Collect(ctx); err != nil {
+			return err
+		}
+		found, err := vol.GetBlockExists(ctx, root)
+		keptRoot = found
+		return err
+	}
+	destination := NewTestProviderAccount(t, server.URL)
+	dst := &BlockStore{store: block_store.NewStore("held-space", overlay), forceSync: flush}
+	destination.bstores = keyed.NewKeyedRefCount(func(id string) (keyed.Routine, *bstoreTracker) {
+		return nil, &bstoreTracker{a: destination, id: id, bstoreCtr: ccontainer.NewCContainer(dst), errCh: make(chan error, 1)}
+	})
+
+	// Copy the root: it lands held, survives the flush and posts the checkpoint.
+	err = destination.copyMigrationSpace(ctx, client, "held-space", src, []*block.BlockRef{root}, &sobject.SOCheckpoint{Inner: []byte("state")})
+	if err != nil {
+		t.Fatalf("copy into a freeing cache bucket: %v", err)
+	}
+	if !keptRoot {
+		t.Fatal("collection during the flush freed the copied root")
+	}
+	if checkpoints.Load() != 1 {
+		t.Fatalf("checkpoints = %d; want one", checkpoints.Load())
 	}
 }

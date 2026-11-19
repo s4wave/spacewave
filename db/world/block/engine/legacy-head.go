@@ -157,11 +157,13 @@ func (c *Controller) legacyHead(stateStore object.ObjectStore, stateStoreID stri
 }
 
 // initialRoot returns the configured initial root, or writes a new empty
-// World with the configured settings and returns its root.
-func (c *Controller) initialRoot(ctx context.Context, cursor *bucket_lookup.Cursor) (*block.BlockRef, error) {
+// World with the configured settings under a stage and returns its root. The
+// stage holds the new World until release, so call release once a root or
+// pin holds it.
+func (c *Controller) initialRoot(ctx context.Context, cursor *bucket_lookup.Cursor) (*block.BlockRef, func(), error) {
 	// Use the configured initial root.
 	if root := c.conf.GetInitHeadRef().GetRootRef(); !root.GetEmpty() {
-		return root, nil
+		return root, func() {}, nil
 	}
 
 	// Open an empty cursor on the World's bucket.
@@ -170,14 +172,24 @@ func (c *Controller) initialRoot(ctx context.Context, cursor *bucket_lookup.Curs
 	defer init.Release()
 	init.SetRootRef(nil)
 
-	// Write a new empty World. The authority's Install holds it.
-	btx, bcs := init.BuildTransaction(nil)
+	// Open a stage to hold the new World.
+	stage, release, err := block.OpenStage(ctx, init.GetBlockStore())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Write a new empty World under the stage.
+	btx, bcs := init.BuildTransactionWithStore(nil, stage)
 	worldRoot := world_block.NewWorld(c.conf.GetFormat(), c.conf.GetDisableChangelog())
 	worldRoot.GraphSettings = c.conf.GetGraphSettings().CloneVT()
 	bcs.ClearAllRefs()
 	bcs.SetBlock(worldRoot, true)
 	root, _, err := btx.Write(ctx, true)
-	return root, err
+	if err != nil {
+		release()
+		return nil, nil, err
+	}
+	return root, release, nil
 }
 
 // objectStoreHeadKey returns the HeadState record's key in the object store.

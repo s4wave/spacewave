@@ -54,8 +54,8 @@ func copyWorldGraph(
 // holdAccountWorld moves the account World root onto the copied World. The
 // copy routine is the root's only writer, so it reads the root it moves from;
 // a move that loses a race returns ErrRootMoved and the next copy tries again.
-// A store that holds no roots keeps every block it stores, so it needs no
-// hold.
+// A store that holds no roots frees nothing by liveness, so the copy needs
+// no hold there.
 func holdAccountWorld(ctx context.Context, store block.StoreOps, root *block.BlockRef) error {
 	// Read what the root holds.
 	held, err := store.GetRoot(ctx, accountWorldRoot)

@@ -353,7 +353,8 @@ func TestControllerEphemeralWorldStartsEmpty(t *testing.T) {
 		}
 	}
 
-	// Commit an object in the first open.
+	// Commit an object in the first open, whose new World a stage holds.
+	unheld := controllerTestUnheldPuts(tb.Volume)
 	eng, stop := open()
 	ws := world.NewEngineWorldState(eng, true)
 	obj, err := ws.CreateObject(ctx, "first-open", nil)
@@ -372,6 +373,18 @@ func TestControllerEphemeralWorldStartsEmpty(t *testing.T) {
 	if root := controllerTestWorldRoot(t, ctx, tb, "test-world-engine-ephemeral"); root != nil {
 		t.Fatalf("an ephemeral World holds a head root %v", root)
 	}
+	if n := controllerTestUnheldPuts(tb.Volume) - unheld; n != 0 {
+		t.Fatalf("the opens stored %d blocks nothing held", n)
+	}
+}
+
+// controllerTestUnheldPuts returns the count of blocks vol stored that
+// nothing held.
+func controllerTestUnheldPuts(vol volume.Volume) uint64 {
+	health, _ := vol.(interface {
+		GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struct{})
+	}).GetHealthSnapshotWithWait()
+	return health.GetNotHeldPutBlocks()
 }
 
 // TestControllerEngineSurvivesExecuteRestartUntilClose checks retained handles keep their storage through execution restarts.

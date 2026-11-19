@@ -28,8 +28,8 @@ var ErrRootNotHeld = errors.New("root names a block nothing holds")
 
 // ErrUnheldPut is returned for a put that stores a block no root, parent in
 // its batch, stage or recorded count holds: the collector would free it once
-// its record ages past the grace period. A writer stores a block under a stage, or in the
-// batch that moves the root naming it.
+// its record ages past the grace period. A writer stores a block under a
+// stage, or in the batch that moves the root naming it.
 var ErrUnheldPut = errors.New("put stores a block nothing holds")
 
 // NamedRoot moves one named root of a store.
@@ -64,8 +64,10 @@ type NamedRoot struct {
 // held root reaches it through child lists, and the store decides that alone.
 // A store that never frees by liveness may hold no roots: it reports none,
 // and SetRoots refuses a root that would hold a block, as SetRootsUnheld
-// does. Its blocks need no hold, since it keeps every block it stores, but a
-// caller that reads a root back needs the store to keep it.
+// does. Liveness frees none of its blocks, though a store may drop them by
+// other means, such as a Spacewave cloud store's pack reclaim, which judges
+// packs by the roots writers report to a fence. A caller that reads a root
+// back needs a store that holds it.
 type RootOps interface {
 	// GetRoot returns the block the name holds, or nil when the name is free.
 	GetRoot(ctx context.Context, name string) (*BlockRef, error)

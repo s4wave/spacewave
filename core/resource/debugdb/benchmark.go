@@ -75,16 +75,25 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 		}
 	}()
 
+	// The put suites write under a stage held until the collection suite,
+	// as every writer holds its puts.
+	staged, releaseStage, err := block.OpenStage(ctx, vol)
+	if err != nil {
+		r.le.WithError(err).Warn("benchmark: failed to open a stage")
+		r.finish(results, start)
+		return
+	}
+
 	// Engine suites benchmark the volume's block store without the GC wrapper.
 	sr := newSuiteRunner(ctx, r)
-	putSuite, engineRefs := sr.runEnginePutSingle(vol)
+	putSuite, engineRefs := sr.runEnginePutSingle(staged)
 	results.Suites = append(results.Suites, putSuite)
-	results.Suites = append(results.Suites, sr.runEnginePutBatch(vol))
-	results.Suites = append(results.Suites, sr.runEngineGet(vol, engineRefs))
+	results.Suites = append(results.Suites, sr.runEnginePutBatch(staged))
+	results.Suites = append(results.Suites, sr.runEngineGet(staged, engineRefs))
 
 	// Block store suites: through the Volume's StoreOps, which keeps the
 	// blocks' liveness in each put.
-	results.Suites = append(results.Suites, sr.runBlockStorePut(vol))
+	results.Suites = append(results.Suites, sr.runBlockStorePut(staged))
 
 	// Collect block refs for get benchmark.
 	var refs []*block.BlockRef
@@ -92,13 +101,14 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 		data := make([]byte, 4096)
 		data[0] = byte(i)
 		runtime.Gosched()
-		ref, _, err := vol.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
+		ref, _, err := staged.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			break
 		}
 		refs = append(refs, ref)
 	}
-	results.Suites = append(results.Suites, sr.runBlockStoreGet(vol, refs))
+	results.Suites = append(results.Suites, sr.runBlockStoreGet(staged, refs))
+	releaseStage()
 
 	// Collection suite.
 	results.Suites = append(results.Suites, sr.runCollect(vol, vol))

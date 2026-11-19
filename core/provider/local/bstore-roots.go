@@ -86,26 +86,22 @@ func (b *BlockStore) localRootEntry(ctx context.Context, ref *block.BlockRef) (*
 // PinRoot forwards a reader pin to the underlying store.
 func (b *BlockStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	// A peer-backed root may not be local yet. Bring its bytes and refs into
-	// the destination before acquiring a local pin; full graph retention
-	// remains the copier's responsibility.
-	found, err := b.store.GetBlockExists(ctx, ref)
+	// the destination under a stage that holds the block until the pin does;
+	// full graph retention remains the copier's responsibility.
+	entry, err := b.localRootEntry(ctx, ref)
+	if err != nil {
+		return nil, errors.Wrap(err, "local provider root pin")
+	}
+	if entry == nil {
+		return block.PinRoot(ctx, b.store, ref)
+	}
+	staged, release, err := block.OpenStage(ctx, b.store)
 	if err != nil {
 		return nil, err
 	}
-	if !found {
-		stored, err := b.readOwner().GetStoredBlock(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		if stored == nil {
-			return nil, fmt.Errorf("local provider root pin: %w", block.NotFoundError(ref))
-		}
-		if !stored.RefsKnown {
-			return nil, errors.Wrap(block.ErrRefsUnknown, ref.MarshalString())
-		}
-		if _, _, err := b.store.PutBlock(ctx, stored.Data, stored.PutOpts(ref)); err != nil {
-			return nil, err
-		}
+	defer release()
+	if _, err := staged.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
+		return nil, err
 	}
 	return block.PinRoot(ctx, b.store, ref)
 }

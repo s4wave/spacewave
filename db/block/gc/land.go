@@ -177,6 +177,7 @@ func Land(
 		blocks:   blocks,
 		state:    state,
 		journal:  state.GetAdoption() != Adoption_ADOPTION_UNADOPTED,
+		partial:  puts.Partial,
 		adopting: state.GetAdoption() == Adoption_ADOPTION_ADOPTING,
 		gen:      state.GetGeneration(),
 		born:     make(map[string]*bornBlock),
@@ -279,6 +280,9 @@ type lander struct {
 	dirty bool
 	// journal reports that the Volume is adopting or adopted.
 	journal bool
+	// partial lets a born block hold a hidden child, as PutHold.Partial
+	// describes.
+	partial bool
 	// adopting reports that an adoption is counting the Volume, so Land marks
 	// the blocks it gives birth to and the roots it moves, as Adopt reads.
 	adopting bool
@@ -723,7 +727,7 @@ func (l *lander) holdOutside(ctx context.Context, refs []*block.BlockRef, keys [
 		if !ok {
 			continue
 		}
-		if err := l.holdListed(ctx, refs[i], keys[i], listMarked(values[i])); err != nil {
+		if err := l.holdListed(ctx, refs[i], keys[i], listMarked(values[i]), !l.partial); err != nil {
 			return nil, err
 		}
 	}
@@ -743,22 +747,24 @@ func (l *lander) holdStored(ctx context.Context, ref *block.BlockRef) (bool, err
 	if err != nil || !listed {
 		return listed, err
 	}
-	return true, l.holdListed(ctx, ref, key, marked)
+	return true, l.holdListed(ctx, ref, key, marked, true)
 }
 
 // holdListed checks a hold onto ref, a listed block at key the batch does not
-// store, while the generation is not Settled: it refuses a hidden one with an
-// AbsentError, as Records.Hidden describes, and while Open it pushes an
-// unverified one onto the front.
-func (l *lander) holdListed(ctx context.Context, ref *block.BlockRef, key []byte, marked bool) error {
+// store, while the generation is not Settled: when refuseHidden is set it
+// refuses a hidden one with an AbsentError, as Records.Hidden describes, and
+// while Open it pushes an unverified one onto the front.
+func (l *lander) holdListed(ctx context.Context, ref *block.BlockRef, key []byte, marked, refuseHidden bool) error {
 	// Refuse a hidden block. A marked block may die and park, and the flip
 	// unmarks a parked one.
-	hidden, err := l.rec.Hidden(ctx, ref)
-	if err != nil {
-		return err
-	}
-	if hidden {
-		return &AbsentError{Ref: ref}
+	if refuseHidden {
+		hidden, err := l.rec.Hidden(ctx, ref)
+		if err != nil {
+			return err
+		}
+		if hidden {
+			return &AbsentError{Ref: ref}
+		}
 	}
 
 	// Push an unverified block while Open, which the hold mark covers.

@@ -172,8 +172,9 @@ type replicaHead struct {
 }
 
 // copyAccountWorldHeads copies the head in latest, then each newer one, until
-// ctx ends or a copy fails. It stores the span block on each attempt, so a
-// sweep between attempts cannot leave the copy without its root.
+// ctx ends or a copy fails. A stage holds the span block across the head's
+// attempts, so a sweep between attempts cannot leave the copy without its
+// root.
 func (a *ProviderAccount) copyAccountWorldHeads(
 	ctx context.Context,
 	so sobject.SharedObject,
@@ -191,13 +192,24 @@ func (a *ProviderAccount) copyAccountWorldHeads(
 			return err
 		}
 
-		// Store its span block and copy it.
+		// Store its span block under a stage held across the copy's attempts,
+		// and copy it. The copy puts the span again under its own stage, and
+		// the moved root holds it after that.
+		release := func() {}
 		if next.span != nil {
-			if _, err := so.GetBlockStore().PutBlockBatch(ctx, []*block.PutBatchEntry{next.span}); err != nil {
+			staged, rel, err := block.OpenStage(ctx, so.GetBlockStore())
+			if err != nil {
+				return err
+			}
+			release = rel
+			if _, err := staged.PutBlockBatch(ctx, []*block.PutBatchEntry{next.span}); err != nil {
+				release()
 				return err
 			}
 		}
-		if err := a.copyAccountWorldHead(ctx, so, state, local, latest, next, absent, exchange); err != nil {
+		err = a.copyAccountWorldHead(ctx, so, state, local, latest, next, absent, exchange)
+		release()
+		if err != nil {
 			return err
 		}
 		copied = next

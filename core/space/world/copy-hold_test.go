@@ -47,9 +47,7 @@ func TestCopyHoldsWhatItSkips(t *testing.T) {
 	put := func(name string, children ...*block.BlockRef) *block.BlockRef {
 		t.Helper()
 		e := build(name, children...)
-		if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{e}); err != nil {
-			t.Fatal(err)
-		}
+		putUnheld(t, store, e)
 		return e.Ref
 	}
 
@@ -194,14 +192,14 @@ func TestAdmitRepeatRewritesTree(t *testing.T) {
 		return true
 	}
 
-	// Store the tree with no holder and net it to zero, not ripe.
-	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{l, p}); err != nil {
-		t.Fatal(err)
-	}
+	// Store the tree with no holder and net it to zero, not ripe: the
+	// stage's release nets once a record landed after it is grace old too.
+	putUnheld(t, store, l, p)
 	time.Sleep(grace)
-	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry("tick")}); err != nil {
-		t.Fatal(err)
-	}
+	putUnheld(t, store, entry("tick"))
+	collect()
+	time.Sleep(grace)
+	putUnheld(t, store, entry("tock"))
 	collect()
 	if !stored() {
 		t.Fatal("the tree was freed before it ripened")
@@ -399,4 +397,19 @@ func (s *cancelStageStore) OpenStage(ctx context.Context) (block.StoreOps, func(
 		return nil, nil, err
 	}
 	return s.LeasedRoots.OpenStage(ctx)
+}
+
+// putUnheld stores entries on store and leaves nothing holding them, as a
+// writer that abandons its stage does: a Volume that frees refuses a raw put
+// no root holds, so the put goes under a stage released at once.
+func putUnheld(t *testing.T, store block.StoreOps, entries ...*block.PutBatchEntry) {
+	t.Helper()
+	staged, release, err := block.OpenStage(t.Context(), store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	if _, err := staged.PutBlockBatch(t.Context(), entries); err != nil {
+		t.Fatal(err)
+	}
 }

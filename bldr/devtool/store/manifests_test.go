@@ -13,6 +13,7 @@ import (
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/peer"
@@ -162,6 +163,22 @@ func TestExportManifestSetsRoundTrip(t *testing.T) {
 	defer srcEng.Close()
 	ws := world.NewEngineWorldState(srcEng, true)
 
+	// Copy a revision onto an open Volume, which counts each put no root,
+	// stage or parent holds.
+	held := writeWorldManifest(t, ctx, srcEng, &manifest.ManifestMeta{ManifestId: "gizmo-held", BuildType: "production", PlatformId: "js", Rev: 1})
+	dstVol, err := OpenVolumeFile(ctx, le, filepath.Join(t.TempDir(), FileName), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dstVol.Close()
+	unheld := unheldPuts(t, dstVol)
+	if err := copyManifestSets(ctx, le, ws, []*manifest.ManifestRef{held}, dstVol); err != nil {
+		t.Fatal(err)
+	}
+	if n := unheldPuts(t, dstVol) - unheld; n != 0 {
+		t.Fatalf("the export stored %d blocks nothing held", n)
+	}
+
 	// Export each revision and read it back from the closed file.
 	dir := t.TempDir()
 	for rev := uint64(1); rev <= 2; rev++ {
@@ -197,6 +214,20 @@ func TestExportManifestSetsRoundTrip(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+// unheldPuts returns the count of blocks vol observed put with no holder,
+// which a Volume that frees refuses with block.ErrUnheldPut.
+func unheldPuts(t *testing.T, vol volume.Volume) uint64 {
+	t.Helper()
+	hv, ok := vol.(interface {
+		GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struct{})
+	})
+	if !ok {
+		t.Fatalf("%T reports no health", vol)
+	}
+	health, _ := hv.GetHealthSnapshotWithWait()
+	return health.GetNotHeldPutBlocks()
 }
 
 // writeWorldManifest writes a manifest block into the World's bucket through a

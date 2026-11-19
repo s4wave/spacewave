@@ -82,7 +82,11 @@ var heldRootNames = []string{
 //  4. It never moves an Adapter's own roots.
 //
 // It skips a root the replay base or the chain holds already, and does
-// nothing on a store that holds no roots, which keeps every block it stores.
+// nothing on a store that holds no roots, which frees nothing by liveness. A
+// Spacewave cloud store holds its roots in its local cache bucket, so the
+// import holds the copy there. Its pack reclaim judges packs by the roots
+// writers report to a fence, which this hold does not reach, so pack reclaim
+// stays off until a fence reports it.
 // An append that loses to an Adapter's move reads the roots again and retries
 // after a short backoff, at most holdImportTries times: an Adapter moves the
 // root once per install, so a run of lost appends means the Space is busy,
