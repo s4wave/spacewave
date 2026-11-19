@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
@@ -37,13 +38,14 @@ func TestNormalizeChildrenAllocs(t *testing.T) {
 }
 
 // TestSettleWaitsForNetting checks that neither the front pop nor the flip
-// runs while netting owes a write: a due down or up cascade or a paged
-// release (the model's FlipSettled, mutant rps-noflipsettled), or an
-// unapplied fill up (FlipFills, mutant adopt-revive-fill-noflipfills). Each
-// blocker leaves a counted block at zero on a ripe sequence past nothing, so
+// runs while the free could not: a paged release in progress (the model's
+// FlipSettled, mutant rps-noflipsettled), an adoption younger than the grace
+// period, or a rewritten list awaiting its recount. Each blocker leaves a
+// listed block at zero, queued at a ripe sequence the up cursor passed, so
 // the free proof would pop it and the flip would follow, unless the check
-// holds. Collect nets before the settle runs, so no writer reaches these
-// states today; the test writes them as a netting step cut short would.
+// holds; otherwise the free parks it, which the flip requires. Collect nets
+// before the settle runs, so no writer reaches these states with work owed;
+// the test writes them as a netting step cut short would.
 func TestSettleWaitsForNetting(t *testing.T) {
 	ctx := context.Background()
 	ref, err := block.BuildBlockRef([]byte("front block"), nil)
@@ -55,18 +57,16 @@ func TestSettleWaitsForNetting(t *testing.T) {
 		name  string
 		block func(rec *Records, state *LivenessState) error
 	}{
-		{"a down cascade", func(rec *Records, state *LivenessState) error {
-			return rec.addCascade(ctx, state, key, cascadeDown)
-		}},
-		{"an up cascade", func(rec *Records, state *LivenessState) error {
-			return rec.addCascade(ctx, state, key, cascadeUp)
-		}},
 		{"a paged release", func(_ *Records, state *LivenessState) error {
 			state.Release = &Release{Block: key}
 			return nil
 		}},
-		{"an unapplied fill up", func(rec *Records, _ *LivenessState) error {
-			return rec.tx.Set(ctx, rec.key(kindFillUps, key), []byte{0})
+		{"an adoption younger than the grace period", func(_ *Records, state *LivenessState) error {
+			state.AdoptAtUnixMilli = time.Now().UnixMilli()
+			return nil
+		}},
+		{"a list rewrite awaiting a recount", func(rec *Records, _ *LivenessState) error {
+			return rec.tx.Set(ctx, rec.key(kindRewritten), nil)
 		}},
 		{"nothing", nil},
 	}
@@ -83,11 +83,12 @@ func TestSettleWaitsForNetting(t *testing.T) {
 			state := &LivenessState{
 				Adoption:   Adoption_ADOPTION_ADOPTED,
 				Generation: Generation_GENERATION_OPEN,
-				Cursor:     10,
+				UpCursor:   10,
 			}
 			for _, err := range []error{
 				rec.PutChildren(ctx, ref, nil),
 				rec.SetHolders(ctx, ref, 0, 5),
+				tx.Set(ctx, rec.queueKey(5, key), nil),
 				tx.Set(ctx, rec.key(kindFront, key), nil),
 				tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil),
 			} {
@@ -104,10 +105,13 @@ func TestSettleWaitsForNetting(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// Pop the front, then try the flip.
+			// Pop the front, park what the free finds, then try the flip.
 			c := NewCollector(nil, CollectorOptions{Frees: true})
 			var res CollectResult
 			if _, _, err := c.frontSlice(ctx, rec, nil, &res, nil); err != nil {
+				t.Fatal(err)
+			}
+			if _, _, _, err := c.freeSlice(ctx, rec, nil, &res, nil); err != nil {
 				t.Fatal(err)
 			}
 			if err := c.flip(ctx, rec, &res); err != nil {

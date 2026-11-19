@@ -1,6 +1,7 @@
 package kvtx
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"errors"
@@ -47,7 +48,7 @@ type Volume struct {
 	kvKey *store_kvkey.KVKey
 	// procID names this process's reader pins and stages, unique per open.
 	procID string
-	// clock returns the time journal records, leases and the grace period are
+	// clock returns the time log pages, leases and the grace period are
 	// read on, nil for time.Now.
 	clock func() time.Time
 	// statsFn returns storage stats, may be nil.
@@ -121,10 +122,10 @@ type Volume struct {
 	renewCancel context.CancelFunc
 	// renewDone closes when the renewal has stopped.
 	renewDone chan struct{}
-	// legacyCancel stops the legacy graph sweep, nil without one.
-	legacyCancel context.CancelFunc
-	// legacyDone closes when the legacy graph sweep has stopped.
-	legacyDone chan struct{}
+	// obsoleteCancel stops the obsolete records sweep, nil without one.
+	obsoleteCancel context.CancelFunc
+	// obsoleteDone closes when the obsolete records sweep has stopped.
+	obsoleteDone chan struct{}
 	// adoptCancel stops the background adoption, nil without one.
 	adoptCancel context.CancelFunc
 	// adoptDone closes when the background adoption has stopped.
@@ -132,11 +133,6 @@ type Volume struct {
 	// adoptWake holds one pending request for a background adoption pass,
 	// nil without a background adoption.
 	adoptWake chan struct{}
-	// holdRule is the hold rule the collector counts under: the rule the
-	// stored adoption counted under while the Volume is adopted at open, and
-	// otherwise CollectorHoldUntilFree, which an empty store starts adopted
-	// under and an adoption of an unadopted Volume counts under.
-	holdRule block_gc.HoldRule
 	// proofMu guards the pending root proofs and the free count. It is never
 	// held across a volume transaction.
 	proofMu sync.Mutex
@@ -229,10 +225,6 @@ func NewVolume(
 		statsFn:   statsFn,
 		closeFn:   closeFn,
 		health:    healthState{phase: volume.VolumeGCPhase_VOLUME_GC_PHASE_IDLE, phaseStart: time.Now()},
-		holdRule:  block_gc.HoldRule_HOLD_RULE_RELEASE_AT_ZERO,
-	}
-	if conf.GetCollectorHoldUntilFree() {
-		v.holdRule = block_gc.HoldRule_HOLD_RULE_HOLD_UNTIL_FREE
 	}
 	if !conf.GetStageOneTransaction() {
 		v.stageSlice = stageSliceEntries
@@ -267,20 +259,17 @@ func NewVolume(
 			return nil, volume.Permanent(err)
 		}
 		// Record the frees switch as configured, which turns frees on by
-		// returning the Volume to unadopted for a recount under the
-		// configured rule (block_gc.SetFrees), then count under the stored
-		// rule or, unadopted, the configured one.
+		// returning the Volume to unadopted for a recount (block_gc.SetFrees).
 		state, parked, err := v.ReadLiveness(ctx)
 		if err != nil {
 			return nil, err
 		}
 		if !v.readOnly {
-			state, err = block_gc.SetFrees(ctx, collectorStore{v: v}, conf.GetCollectorFrees(), v.holdRule)
+			state, err = block_gc.SetFrees(ctx, collectorStore{v: v}, conf.GetCollectorFrees())
 			if err != nil {
 				return nil, err
 			}
 		}
-		v.holdRule = volumeHoldRule(state, v.holdRule)
 		v.collector = v.newCollector(collectorStore{v: v}, conf.GetCollectorFrees(), grace)
 		v.fillHold = grace
 		v.heldMode = rootHeldMode(conf.GetRootHeldCheck(), conf.GetCollectorFrees())
@@ -306,15 +295,13 @@ func rootHeldMode(check store_kvtx.RootHeldCheck, frees bool) block_gc.HeldMode 
 }
 
 // newCollector returns the collector of the Volume over store, which frees
-// when frees is set, under the Volume's hold rule, with grace as its grace
-// period, zero for the default.
+// when frees is set, with grace as its grace period, zero for the default.
 func (v *Volume) newCollector(store block_gc.Store, frees bool, grace time.Duration) *block_gc.Collector {
 	opts := block_gc.CollectorOptions{
-		Frees:         frees,
-		HoldUntilFree: v.holdRule == block_gc.HoldRule_HOLD_RULE_HOLD_UNTIL_FREE,
-		Grace:         grace,
-		Now:           v.now,
-		Phase:         v.collectorPhase,
+		Frees: frees,
+		Grace: grace,
+		Now:   v.now,
+		Phase: v.collectorPhase,
 	}
 	if w, ok := v.kvtxStore.(kvtx.WriterQueueStore); ok {
 		opts.WritersWaiting = w.WritersWaiting
@@ -367,23 +354,10 @@ func (v *Volume) ReadLiveness(ctx context.Context) (*block_gc.LivenessState, boo
 	return state, parked, err
 }
 
-// volumeHoldRule returns the hold rule a Volume in state counts under. An
-// adopted Volume keeps the rule its adoption counted under, whatever the
-// process configured, so a process opened with another rule, such as a
-// debug command, neither adopts it again nor stops its netting. Only an
-// adoption of an unadopted Volume takes configured, the process's rule, as
-// after the open that turns frees on (block_gc.SetFrees).
-func volumeHoldRule(state *block_gc.LivenessState, configured block_gc.HoldRule) block_gc.HoldRule {
-	if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED {
-		return state.GetHoldRule()
-	}
-	return configured
-}
-
 // startLiveness starts the renewal of this process's leased roots from state,
 // the liveness state ReadLiveness read, returns a Volume an adoption left
-// adopting to unadopted and, when the format 7 upgrade left an old graph's
-// records, starts their background sweep. parked reports whether an Open
+// adopting to unadopted and, when a format upgrade left records of obsolete
+// kinds, starts their background sweep. parked reports whether an Open
 // Volume parked any block. A read-only Volume only reads the liveness state.
 func (v *Volume) startLiveness(ctx context.Context, state *block_gc.LivenessState, parked bool) error {
 	// Record whether the Volume settled and hides no block.
@@ -407,8 +381,8 @@ func (v *Volume) startLiveness(ctx context.Context, state *block_gc.LivenessStat
 	// nothing reads the counts. Child lists an older format left unverified
 	// adopt as they are, and the old generation's settle verifies them
 	// before any free. The adoption also runs again whenever a list
-	// rebuild returns the Volume to unadopted. An adopted Volume counts
-	// under its stored rule (volumeHoldRule), so it never adopts again here.
+	// rebuild returns the Volume to unadopted. An adopted Volume never
+	// adopts again here.
 	if v.collector.Frees() {
 		adoptCtx, cancelAdopt := context.WithCancel(context.WithoutCancel(ctx))
 		v.adoptCancel, v.adoptDone = cancelAdopt, make(chan struct{})
@@ -419,11 +393,11 @@ func (v *Volume) startLiveness(ctx context.Context, state *block_gc.LivenessStat
 		go v.runBackgroundAdopt(adoptCtx)
 	}
 
-	// Sweep an old graph's records when they remain.
-	if state.GetLegacyGraph() {
+	// Sweep the records of the kinds an upgrade left obsolete.
+	if kinds := state.GetObsoleteKinds(); len(kinds) != 0 {
 		sweepCtx, cancelSweep := context.WithCancel(context.WithoutCancel(ctx))
-		v.legacyCancel, v.legacyDone = cancelSweep, make(chan struct{})
-		go v.runLegacySweep(sweepCtx)
+		v.obsoleteCancel, v.obsoleteDone = cancelSweep, make(chan struct{})
+		go v.runObsoleteSweep(sweepCtx, bytes.Clone(kinds))
 	}
 
 	// Renew the leased roots this process will hold, last, so a failed open
@@ -461,7 +435,7 @@ func initVolume(
 
 	// Bring a writable store to the current format before any read.
 	if !v.readOnly {
-		if _, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey, v.holdRule, frees); err != nil {
+		if _, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey, frees); err != nil {
 			return nil, err
 		}
 	}
@@ -847,9 +821,9 @@ func (v *Volume) Close() error {
 
 	// Stop the background liveness work, release root pins and join direct
 	// Volume transactions before closing storage.
-	if v.legacyCancel != nil {
-		v.legacyCancel()
-		<-v.legacyDone
+	if v.obsoleteCancel != nil {
+		v.obsoleteCancel()
+		<-v.obsoleteDone
 	}
 	if v.adoptCancel != nil {
 		v.adoptCancel()

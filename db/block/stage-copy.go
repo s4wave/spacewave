@@ -24,15 +24,14 @@ const stageCopyBatchEntries = 1024
 //     itself queued the block's write through the stage, ahead of every
 //     parent that names it. A stored block nothing holds is not reported,
 //     whether or not it has a proof.
-//  2. A proved block's whole subtree is stored: the collector deletes the
-//     proof of a block with children in the cascade that releases them, and a
-//     leaf's proof with its free. So the stage root on a proved block holds
-//     its subtree. A block at zero that the stage root holds is Holding: the
-//     hold mark the move sets stops every free until its record nets, and the
-//     re-hold then gives its children their holder back.
+//  2. A proved block's whole subtree is stored: the collector deletes a
+//     block's proof with its free, and the block's list holds each child
+//     until that free. So the stage root on a proved block holds its
+//     subtree. A block at zero that the stage root holds leaves the free
+//     queue in the move's Land and stays off it until the move's up nets.
 //  3. A block Known does not report is read and put again through the stage,
 //     which holds it from its put. A put of a stored block the collector may
-//     have at zero sets the hold mark the same way.
+//     have at zero takes it off the free queue the same way.
 //  4. A proof is recorded only after a durability fence covers the writes of
 //     its whole subtree, and never for a block with a hole under it.
 //  5. A store that holds no roots keeps a block because its storage is

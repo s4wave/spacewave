@@ -17,23 +17,18 @@ type AuditResult struct {
 	// Leaked counts the stored blocks no root reaches that have holders and
 	// that the paged release in progress does not name. After a pass that
 	// left nothing to do, that is garbage a hole, a put outside a batch or a
-	// lost release keeps; while a cascade is due it also counts the children
-	// of blocks still Dying, under HoldUntilFree the children of blocks at
-	// zero not freed yet, and while the journal past the cursor holds downs,
-	// the blocks they release.
+	// lost release keeps; it also counts the children of blocks at zero not
+	// freed yet, and while down pages wait to net, the blocks they release.
 	Leaked uint64
 	// LiveQueued counts the blocks a root reaches that the collector would
-	// free now: Dead, ripe, with no cascade due, no fill up unapplied, the
-	// cursor past the hold mark, and no up or again entry past the cursor
-	// naming it, which the free's tail check keeps it for. It ignores the
-	// collector's saturated tail index, which keeps every block while the
-	// tail passes CollectorOptions.TailEntries, so it can count a block a
-	// collector at that bound would keep. Any is an error in the counts.
+	// free now: at zero, queued at a ripe sequence the up cursor passed, in
+	// an adopted Volume with no paged release in progress. Any is an error in
+	// the counts.
 	LiveQueued uint64
 	// LiveQueuedSample names up to sampleSize of them.
 	LiveQueuedSample []*block.BlockRef
 	// Undercount counts the stored blocks whose netted holders, with the
-	// journal past the cursor, are fewer than the roots, child lists and
+	// logs not netted yet, are fewer than the roots, child lists and
 	// release in progress that name them, such as a hole put again before an
 	// audit recorded it. Each may be freed while a root still reaches it.
 	Undercount uint64
@@ -52,16 +47,9 @@ type AuditResult struct {
 	Unlisted uint64
 	// UnlistedSample names up to sampleSize of them.
 	UnlistedSample []*block.BlockRef
-	// CascadeMiscount is the cascade records less the state's count of them,
-	// while the Volume keeps the count. Any is an error in the counts: a
-	// count below its records lets a free run while a cascade is due.
-	CascadeMiscount int64
-	// UnlistedCascades counts the cascade records due on blocks without a
-	// child list, which no cascade can run. The next pass drops a down one;
-	// an up one, a Holding block the store lost, keeps every free waiting
-	// until a put refills the block.
-	UnlistedCascades uint64
 }
+
+// Audit walks}
 
 // Audit walks from the named roots of the Volume in one snapshot and compares
 // the walk with the counts and the free queue, as AuditResult describes. It
@@ -93,17 +81,13 @@ func Audit(ctx context.Context, store AdoptStore, now time.Time, record bool) (A
 			return err
 		}
 
-		// Read what the journal past the cursor does to each block and which
-		// blocks it names, and whether the collector would free now.
-		delta, named, err := journalTail(ctx, rec, state)
+		// Read what the logs not netted yet do to each block, and whether the
+		// collector may free.
+		delta, err := logTail(ctx, rec, state)
 		if err != nil {
 			return err
 		}
-		frees, err := rec.freeable(ctx, state)
-		if err != nil {
-			return err
-		}
-		frees = frees && state.GetCursor() >= state.GetHoldMark()
+		frees := state.GetAdoption() == Adoption_ADOPTION_ADOPTED && state.GetRelease() == nil
 
 		// Compare each stored block's liveness with the queue, and its count
 		// once the Volume keeps counts.
@@ -113,7 +97,7 @@ func Audit(ctx context.Context, store AdoptStore, now time.Time, record bool) (A
 		}
 		releasing := newReleaseCursor(rec, state.GetRelease())
 		err = rec.ScanChildren(ctx, func(ref *block.BlockRef, _ []*block.BlockRef) error {
-			return res.checkStored(ctx, rec, state, ref, mark, counted, releasing, frees, delta, named)
+			return res.checkStored(ctx, rec, state, ref, mark, counted, releasing, frees, delta)
 		})
 		if err != nil {
 			return err
@@ -126,22 +110,6 @@ func Audit(ctx context.Context, store AdoptStore, now time.Time, record bool) (A
 		}
 		lapsed, err := holeCounts(ctx, rec, state, mark.LapsedRefs, true, tally, delta)
 		holes = append(holes, lapsed...)
-		if err != nil || !cascadesCounted(state) {
-			return err
-		}
-
-		// Compare the cascade records with their count, and count those on
-		// blocks without a list.
-		var due int64
-		err = rec.scanCascades(ctx, nil, func(key []byte, _ byte) (bool, error) {
-			due++
-			listed, err := rec.tx.Exists(ctx, rec.key(kindChildren, key))
-			if !listed {
-				res.UnlistedCascades++
-			}
-			return true, err
-		})
-		res.CascadeMiscount = due - int64(state.GetCascades()) //nolint:gosec // counts stay far below the int64 range.
 		return err
 	})
 	if err != nil {
@@ -188,8 +156,7 @@ func (res *AuditResult) countUnlisted(ctx context.Context, store AdoptStore) err
 // checkStored compares one stored block with the walk, the queue and the
 // holders that name it, taking the stored blocks in block key order. A block
 // a paged release names is no leak: the release takes its parent's holder
-// later. named holds the blocks the journal past the cursor names, which the
-// free keeps.
+// later.
 func (res *AuditResult) checkStored(
 	ctx context.Context,
 	rec *Records,
@@ -200,7 +167,6 @@ func (res *AuditResult) checkStored(
 	releasing *releaseCursor,
 	frees bool,
 	delta map[string]int64,
-	named map[string]struct{},
 ) error {
 	// Skip an unmarked block, which the sweep deletes: it is absent from
 	// the flip on, and its holders since then are checked once it leaves
@@ -219,12 +185,16 @@ func (res *AuditResult) checkStored(
 	if err != nil {
 		return err
 	}
-	pending = pending && !state.GetRelease().GetRehold()
 
 	// Count a live block the collector would free, and a leak.
-	_, kept := named[string(key)]
+	queued := false
+	if mark.Has(ref) && holders == 0 && frees && ripe <= state.GetUpCursor() {
+		if queued, err = rec.tx.Exists(ctx, rec.queueKey(ripe, key)); err != nil {
+			return err
+		}
+	}
 	switch {
-	case mark.Has(ref) && holders == 0 && frees && ripe <= state.GetCursor() && !kept:
+	case queued:
 		res.LiveQueued++
 		res.LiveQueuedSample = sample(res.LiveQueuedSample, ref)
 	case !mark.Has(ref) && holders != 0 && !pending:
@@ -242,37 +212,10 @@ func (res *AuditResult) checkStored(
 	return nil
 }
 
-// counts reports whether the children of the stored block ref count it as a
-// holder in an adopted Volume: it is Live or Dying, its rel flag clear. An
-// unmarked block's old list counts as the flip froze it, as oldListHolds
-// reads.
-func counts(ctx context.Context, rec *Records, state *LivenessState, ref *block.BlockRef) (bool, error) {
-	// Read an unmarked block's old list as frozen.
-	key := BlockKey(ref)
-	unmarked, err := rec.Unmarked(ctx, key)
-	if err != nil {
-		return false, err
-	}
-	if unmarked {
-		holds, err := rec.oldListHolds(ctx, state, key)
-		return holds, err
-	}
-
-	// Otherwise compare its holders with its due cascade.
-	holders, _, err := rec.GetHolders(ctx, ref)
-	if err != nil {
-		return false, err
-	}
-	_, due, err := rec.getCascade(ctx, key)
-	return (holders == 0) == due, err
-}
-
 // tallyHolders counts, for each named block, the roots, the child lists and
-// the paged cascade in progress that name it, in rec. Once the Volume is
-// adopted under the release-at-zero rule, a block's list counts only while
-// its children count it, Live or Dying; under HoldUntilFree every stored
-// list counts; a child a paged release has not reached yet still counts its
-// parent, and one a paged re-hold has not reached does not yet. Leaving the
+// the paged release in progress that name it, in rec. A stored block holds
+// its children until its free, so every stored list counts, and a child a
+// paged release has not reached yet still counts its parent. Leaving the
 // release's children out would restore a hole's count one too low and free
 // the hole while a root still reaches it.
 func tallyHolders(ctx context.Context, rec *Records, state *LivenessState) (map[string]uint64, error) {
@@ -286,17 +229,8 @@ func tallyHolders(ctx context.Context, rec *Records, state *LivenessState) (map[
 		return nil, err
 	}
 
-	// Count the child lists of the blocks their children count: every one
-	// under HoldUntilFree, where a stored block holds its children until it
-	// is freed.
-	released := state.GetAdoption() == Adoption_ADOPTION_ADOPTED && state.GetHoldRule() != HoldRule_HOLD_RULE_HOLD_UNTIL_FREE
-	err = rec.ScanChildren(ctx, func(ref *block.BlockRef, children []*block.BlockRef) error {
-		if released {
-			held, err := counts(ctx, rec, state, ref)
-			if err != nil || !held {
-				return err
-			}
-		}
+	// Count the child lists.
+	err = rec.ScanChildren(ctx, func(_ *block.BlockRef, children []*block.BlockRef) error {
 		for _, child := range children {
 			tally[string(BlockKey(child))]++
 		}
@@ -306,98 +240,36 @@ func tallyHolders(ctx context.Context, rec *Records, state *LivenessState) (map[
 		return nil, err
 	}
 
-	// Count the children a paged release has not moved, and take back the
-	// ones a paged re-hold has not.
-	rehold := state.GetRelease().GetRehold()
+	// Count the children a paged release has not moved.
 	err = rec.scanReleasePending(ctx, state.GetRelease(), func(child *block.BlockRef) error {
-		key := string(BlockKey(child))
-		switch {
-		case !rehold:
-			tally[key]++
-		case tally[key] != 0:
-			tally[key]--
-		}
+		tally[string(BlockKey(child))]++
 		return nil
 	})
 	return tally, err
 }
 
-// journalTail reads the journal past the cursor and the fill records not
-// netted yet: each block's pairs the counts do not include yet, skipping the
-// entries of the record at the cursor its net offset already applied, and
-// the blocks the records name in an up pair or an again list, whole, as the
-// free's tail index counts them. A record's again list moves no holder.
-// The named set holds every distinct key of the tail, with no TailEntries
-// bound: 524,288 distinct keys keep about 24.5 MiB of key bytes and string
-// headers before the map's own overhead, which suits a copy host, as Audit
-// says.
-func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[string]int64, map[string]struct{}, error) {
-	// Sum the journal records past the cursor, noting the blocks they name.
+// logTail sums what the logs not netted yet do to each block: +1 for each
+// key of the up pages from the up cursor, and -1 for each key of the down
+// pages left, which netting deletes as it nets them.
+func logTail(ctx context.Context, rec *Records, state *LivenessState) (map[string]int64, error) {
+	// Add +1 for each up key from the up cursor.
 	delta := make(map[string]int64)
-	named := make(map[string]struct{})
-	err := rec.ScanJournal(ctx, state.GetCursor(), func(seq uint64, r *JournalRecord) (bool, error) {
-		// Note every block the record names to the tail index, whole.
-		for _, keys := range tailNames(r) {
-			for _, key := range keys {
-				named[string(key)] = struct{}{}
-			}
-		}
-
-		// Skip the entries of the cursor's record that the counts include.
-		skip := uint64(0)
-		if seq == state.GetCursor() {
-			skip = state.GetNetOffset()
-		}
-
-		// Add the record's up pairs, then its down pairs.
-		var i uint64
-		for _, up := range r.GetUp() {
-			if i >= skip {
-				delta[string(up)]++
-			}
-			i++
-		}
-		for _, down := range r.GetDown() {
-			if i >= skip {
-				delta[string(down)]--
-			}
-			i++
-		}
-		return true, nil
+	add := func(keys []byte, d int64) error {
+		return eachKey(keys, func(key []byte) error {
+			delta[string(key)] += d
+			return nil
+		})
+	}
+	err := rec.scanUps(ctx, state.GetUpCursor(), func(_ uint64, keys []byte) (bool, error) {
+		return true, add(keys, 1)
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	// Add the fill records not netted yet.
-	err = fillTail(ctx, rec, func(key []byte, d int64) {
-		delta[string(key)] += d
+	err = rec.scanDowns(ctx, 0, func(p downPage) (bool, error) {
+		return true, add(p.keys, -1)
 	})
-	return delta, named, err
-}
-
-// fillTail calls add with each pair of the fill records not netted yet, which
-// the counts do not include: +1 for each fill up not applied yet and -1 for
-// each down of a fill record.
-func fillTail(ctx context.Context, rec *Records, add func(key []byte, d int64)) error {
-	// Add the fill ups not applied yet.
-	err := rec.scanFillUps(ctx, func(_ []byte, children []*block.BlockRef) (bool, error) {
-		for _, child := range children {
-			add(BlockKey(child), 1)
-		}
-		return true, nil
-	})
-	if err != nil {
-		return err
-	}
-
-	// Add the downs of the fill records not netted yet.
-	return rec.scanFillRecords(ctx, 0, func(fr fillRecord) (bool, error) {
-		for _, down := range fr.rec.GetDown() {
-			add(down, -1)
-		}
-		return true, nil
-	})
+	return delta, err
 }
 
 // holeCount is what an audit's snapshot gives the count of one hole.
@@ -405,7 +277,7 @@ type holeCount struct {
 	// ref is the hole.
 	ref *block.BlockRef
 	// add is the holders the snapshot tallied beyond the hole's netted
-	// holders and the journal past the cursor, none when those hold as many.
+	// holders and the logs not netted yet, none when those hold as many.
 	add uint64
 	// floor is the least netted holders the hole keeps, in a Volume the
 	// collector does not net yet, whose counts change only by an adoption.
@@ -415,18 +287,17 @@ type holeCount struct {
 }
 
 // holeCounts returns, from the snapshot in rec, what each hole in absent that
-// a holder names lacks in its count, using the tally and journal delta of the
+// a holder names lacks in its count, using the tally and log delta of the
 // same snapshot, and marks each lapsed when only lapsed roots reach it.
 //
 // Invariant: in an adopted Volume, a hole's netted holders change after the
-// snapshot only by netting a journal or fill record, a fill up or a cascade,
-// each by the change to its true holders, or by an underflow's floor at one,
-// which leaves them higher. Land names a hole only through an
-// up pair in the journal. So the holders the snapshot found missing are still
-// missing when the hole is recorded, and adding them to its netted holders
-// then counts every holder once, including one a Land gave the hole after
-// the snapshot, which the counts or the journal past the cursor carry and the
-// tally lacks.
+// snapshot only by netting a log page or a free's release, each by the
+// change to its true holders, or by an underflow's floor at one, which
+// leaves them higher. Land names a hole only through an up in the up log. So
+// the holders the snapshot found missing are still missing when the hole is
+// recorded, and adding them to its netted holders then counts every holder
+// once, including one a Land gave the hole after the snapshot, which the
+// counts or the logs not netted yet carry and the tally lacks.
 func holeCounts(
 	ctx context.Context,
 	rec *Records,
@@ -519,42 +390,16 @@ func recordHole(ctx context.Context, rec *Records, h holeCount, res *AuditResult
 		return nil
 	}
 
-	// A hole at zero holders leaves the queue, or its due cascade, and is
-	// Live. A refill writes its list back without giving its children a
-	// holder, which is right for a hole a Live or Dying block left, whose
-	// children still count it. A Dead block's children no longer count it,
-	// so a refill of a Dead hole leaves them one holder short; a Dead block
-	// loses its list only to a free, and a root reaching a freed block is
-	// the error LiveQueued reports.
+	// A hole at zero holders leaves the queue. A refill writes its list back
+	// without giving its children a holder, which is right: a stored block
+	// holds its children until its free, and a root reaching a freed block
+	// is the error LiveQueued reports.
 	if holders == 0 {
-		key := BlockKey(h.ref)
-		_, dying, err := rec.getCascade(ctx, key)
-		if err != nil {
-			return err
-		}
-		if dying {
-			err = uncountCascade(ctx, rec, key)
-		} else {
-			err = rec.tx.Delete(ctx, rec.queueKey(ripe, key))
-		}
-		if err != nil {
+		if err := rec.tx.Delete(ctx, rec.queueKey(ripe, BlockKey(h.ref))); err != nil {
 			return err
 		}
 	}
 	return rec.SetHolders(ctx, h.ref, next, 0)
-}
-
-// uncountCascade deletes the cascade record of the block at key, which has
-// one, and uncounts it in the state.
-func uncountCascade(ctx context.Context, rec *Records, key []byte) error {
-	state, err := rec.GetState(ctx)
-	if err != nil {
-		return err
-	}
-	if err := rec.deleteCascade(ctx, state, key); err != nil {
-		return err
-	}
-	return rec.SetState(ctx, state)
 }
 
 // AuditFront checks what kindFront documents while the generation is Open on

@@ -20,7 +20,7 @@ import (
 func RefillBlocks(ctx context.Context, rec *Records, blocks block.StoreOps, entries []*block.PutBatchEntry) ([]*block.PutBatchEntry, []bool, error) {
 	// Sort the blocks by what the records hold for each.
 	listed := make(map[string]bool, len(entries))
-	err := classifyPuts(ctx, rec, blocks, entries, func(entry *block.PutBatchEntry, kind putKind) {
+	err := classifyPuts(ctx, rec, blocks, entries, nil, func(entry *block.PutBatchEntry, kind putKind) {
 		listed[string(BlockKey(entry.Ref))] = kind == putStored
 	})
 	if err != nil {

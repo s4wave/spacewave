@@ -12,46 +12,17 @@ message RootEntry {
   int64 expires_unix_milli = 2;
 }
 
-// JournalRecord is one write transaction's change to the holders of blocks.
-// The collector nets it after the fact; nothing else reads it.
-message JournalRecord {
-  // AtUnixMilli is when the transaction committed, in Unix milliseconds. It
-  // never decreases from one record to the next.
-  int64 at_unix_milli = 1;
-  // Up names a block once for each holder the transaction added to it beyond
-  // the one a block stored by the transaction implies.
-  repeated bytes up = 2;
-  // Down names a block once for each named root that moved off it.
-  repeated bytes down = 3;
-  // Again names each block the transaction put again while the store held
-  // it. It changes no holder, but a block still at zero holders once the
-  // record nets takes the journal's end as its ripe sequence again, so the
-  // put restarts the block's grace.
-  repeated bytes again = 4;
-}
-
 // Adoption is whether a Volume's counts describe its blocks.
 enum Adoption {
   // ADOPTION_UNADOPTED is a Volume written before its child lists were
-  // complete. It keeps no journal and frees nothing.
+  // complete. It keeps no logs and frees nothing.
   ADOPTION_UNADOPTED = 0;
   // ADOPTION_ADOPTING is a Volume whose counts an adoption is building. It
-  // keeps a journal and frees nothing.
+  // keeps the logs and frees nothing.
   ADOPTION_ADOPTING = 1;
-  // ADOPTION_ADOPTED is a Volume whose counts and journal describe every
+  // ADOPTION_ADOPTED is a Volume whose counts and logs describe every
   // holder. Its collector frees when its switch is on.
   ADOPTION_ADOPTED = 2;
-}
-
-// HoldRule is the rule a Volume's counts were written under: when a block at
-// zero holders stops counting as a holder of its children.
-enum HoldRule {
-  // HOLD_RULE_RELEASE_AT_ZERO releases a block's children when it reaches
-  // zero holders, through a cascade, before the block itself is freed.
-  HOLD_RULE_RELEASE_AT_ZERO = 0;
-  // HOLD_RULE_HOLD_UNTIL_FREE keeps a block a holder of each child it lists
-  // until the transaction that frees it, which gives each child its down.
-  HOLD_RULE_HOLD_UNTIL_FREE = 1;
 }
 
 // Generation is how far a Volume has settled the blocks an older store
@@ -74,21 +45,20 @@ enum Generation {
   GENERATION_SWEEPING = 2;
 }
 
-// LivenessState is the one record of a Volume's journal position and
+// LivenessState is the one record of a Volume's log positions and
 // adoption.
+//
+// The up log ('u') holds pages of blocks that gained a holder beyond the
+// one a stored block implies, one sequence each. The down log ('d') holds
+// pages of blocks that lost one, keyed by sequence, each carrying its commit
+// time. The collector nets the up log promptly and a down page once it is
+// Grace old, only in a slice that drained the up log, so a down never lands
+// before an up that preceded it.
 message LivenessState {
-  reserved 4, 9, 10;
+  reserved 2, 3, 4, 5, 8, 9, 10, 12, 13, 14, 17;
+  reserved "next_seq", "cursor", "net_offset", "legacy_graph", "hold_mark", "cascades", "hold_rule", "adopt_mark";
   // Adoption is whether the counts describe the Volume's blocks.
   Adoption adoption = 1;
-  // NextSeq is the sequence number the next journal record takes.
-  uint64 next_seq = 2;
-  // Cursor is the sequence number of the oldest record the collector has not
-  // netted.
-  uint64 cursor = 3;
-  // LegacyGraph reports that records of the reference graph of a store
-  // format before 7 remain, which a background sweep deletes in slices.
-  // Nothing reads them.
-  bool legacy_graph = 5;
   // AdoptionRun names the adoption that marked the Volume adopting, or the
   // one that abandoned it. Each transaction of an adoption refuses to write
   // unless the Volume is still in its run, so a run another superseded writes
@@ -98,33 +68,9 @@ message LivenessState {
   // fill or walk that writes a child list from content marks it so, as
   // Records describes, while the generation is not Settled.
   Generation generation = 7;
-  // NetOffset is how much of the record at the cursor the collector has
-  // netted: its up pairs, then its down pairs, then its again entries. A
-  // slice does a bounded amount, so it splits a large record across slices.
-  uint64 net_offset = 8;
-  // Release is the paged release or re-hold in progress of one block's
-  // children, unset when none is.
+  // Release is the paged release in progress of the children of one freed
+  // block, unset when none is.
   Release release = 11;
-  // HoldMark is one past the sequence of the last journal record of a Land
-  // that held a block at zero holders, or one whose children were released,
-  // or any block while a cascade was due: a block below it may have no
-  // holder until that record nets and the re-hold it brings runs. The
-  // collector frees nothing, and the settle pops no front entry, until its
-  // cursor reaches the mark.
-  uint64 hold_mark = 12;
-  // Cascades counts the cascade records, the blocks whose cascade is due,
-  // so a Land and the free learn whether any is due from this record rather
-  // than a seek past the deleted ones. It is exact while the Volume is
-  // adopted: the adoption zeroes it once its clear has deleted the records
-  // an earlier run left, and counts each block it settles Dying.
-  uint64 cascades = 13;
-  // HoldRule is the rule the counts were written under, set by the adoption
-  // that counted them or at the birth of an empty Volume. It is the source of
-  // truth while the Volume is adopted: a process that opens it counts under
-  // this rule, whatever its own config names, and only an adoption of an
-  // unadopted Volume writes another. The collector nets and frees only a
-  // Volume whose rule matches its own.
-  HoldRule hold_rule = 14;
   // Frees is whether the collector's frees were on at the last writable
   // open, or at the birth of an empty Volume. The write that turns it on
   // also returns the Volume to unadopted, so an adoption counts every holder
@@ -139,44 +85,50 @@ message LivenessState {
   // switch-on counts again after a writer that knew nothing of the switch.
   // It sees every write a recount would correct, because Land is the one
   // writer of holders: a Land that adds or drops a holder outside the blocks
-  // its own batch stores first writes a journal record and this record,
-  // while a batch's new blocks carry exactly the counts any build's Land
-  // gives them. An older build's open of an adopted Volume writes nothing.
-  // A later field that is not zero changes the hash input, so a build that
-  // reads it as unknown sees the mark stale and forces one more recount,
-  // which fails safe.
+  // its own batch stores first writes a log page and this record, while a
+  // batch's new blocks carry exactly the counts any build's Land gives them.
+  // An older build's open of an adopted Volume writes nothing. A later field
+  // that is not zero changes the hash input, so a build that reads it as
+  // unknown sees the mark stale and forces one more recount, which fails
+  // safe.
   uint64 frees_mark = 16;
-  // AdoptMark is one past the sequence of the empty record the last
-  // adoption wrote at its mark. A block the adoption settles may be a head a
-  // reader saw before the mark, whose move off it the dropped journal
-  // carried, so the settle's flip, its only reader, unmarks nothing until
-  // the cursor reaches this mark and the record is Grace old. Nothing clears
-  // it: once reached, the cursor stays past it, and an adoption after the
-  // flip sets a mark that no flip reads.
-  //
-  // Invariant: only Adopt's mark transaction writes it; no Land, fill,
-  // netting, free or flip does. So no write a steady writer lands can move
-  // it, and the flip waits at most Grace past the mark plus the time to net
-  // the records before it, unlike frees, which a writer can hold off through
-  // HoldMark.
-  uint64 adopt_mark = 17;
+  // UpSeq is the sequence the next up page takes. A block that reaches zero
+  // holders takes it as its ripe sequence.
+  uint64 up_seq = 18;
+  // UpCursor is the sequence of the oldest up page the collector has not
+  // netted. A block at zero frees only once the cursor reaches its ripe
+  // sequence, so every up written before it reached zero has netted.
+  uint64 up_cursor = 19;
+  // DownSeq is the sequence the next down page takes. It orders pages that
+  // share a commit time and lets the adoption drop the pages before its
+  // mark.
+  uint64 down_seq = 20;
+  // AdoptAtUnixMilli is the wall time of the last adoption's mark, in Unix
+  // milliseconds. A block the adoption settles may be a head a reader saw
+  // before the mark, whose move off it the dropped logs carried, so the
+  // collector frees, pops and flips nothing until Grace has passed since
+  // this time. Only Adopt's mark transaction writes it.
+  int64 adopt_at_unix_milli = 21;
+  // ObsoleteKinds are the record kinds under the liveness prefix that an
+  // older store format wrote and this one neither writes nor reads, one
+  // byte each, which a background sweep deletes in slices, dropping each
+  // kind once none of its records remain. None is a block, a block's bytes
+  // or a child list.
+  bytes obsolete_kinds = 22;
 }
 
-// Release is a cascade whose child list is longer than one collector slice
-// moves: the release of the children of a block that lost its last holder,
-// or under HOLD_RULE_HOLD_UNTIL_FREE of a block the collector freed, or the
-// re-hold of the children of one that gained a holder after its release. The slice that starts it moves the list to release pages and
-// marks the block released or held; each later slice moves the next
+// Release is the release of the children of a freed block whose child list
+// is longer than one collector slice moves. The slice that frees the block
+// moves the list to release pages; each later slice drops the next
 // children's holders by one and moves Next in the same transaction, and the
 // last deletes the pages and clears the release.
 message Release {
+  reserved 4;
+  reserved "rehold";
   // Block is the block, as its hash type byte and digest.
   bytes block = 1;
   // Next is the index in the list of the first child not moved yet.
   uint64 next = 2;
   // Children is how many children the list names.
   uint64 children = 3;
-  // Rehold reports a re-hold: each child gains a holder rather than losing
-  // one.
-  bool rehold = 4;
 }

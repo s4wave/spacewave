@@ -152,8 +152,8 @@ type WalkCounts struct {
 	// UnconfirmedUnrooted counts the unconfirmed candidates of
 	// HOLE_CLASS_UNROOTED.
 	UnconfirmedUnrooted uint64 `protobuf:"varint,12,opt,name=unconfirmed_unrooted,json=unconfirmedUnrooted,proto3" json:"unconfirmedUnrooted,omitempty"`
-	// TailPairs counts the journal pairs the walk copied into its scratch
-	// store, so each check view reads only the journal written since the last.
+	// TailPairs counts the log entries the walk copied into its scratch
+	// store, so each check view reads only the log pages written since the last.
 	TailPairs uint64 `protobuf:"varint,13,opt,name=tail_pairs,json=tailPairs,proto3" json:"tailPairs,omitempty"`
 	// Wide counts the named blocks with more edges than one view reads whose
 	// undercount went unchecked: something that could change a namer moved
@@ -294,9 +294,9 @@ type WalkProgress struct {
 	StartedUnixMilli int64 `protobuf:"varint,4,opt,name=started_unix_milli,json=startedUnixMilli,proto3" json:"startedUnixMilli,omitempty"`
 	// Counts is what the walk has counted.
 	Counts *WalkCounts `protobuf:"bytes,5,opt,name=counts,proto3" json:"counts,omitempty"`
-	// Tail is the sequence past the last journal record the walk copied into
-	// its scratch store. The check copies from the later of it and the cursor.
-	Tail uint64 `protobuf:"varint,6,opt,name=tail,proto3" json:"tail,omitempty"`
+	// UpTail is the sequence past the last up page the walk copied into its
+	// scratch store. The check copies from the later of it and the up cursor.
+	UpTail uint64 `protobuf:"varint,6,opt,name=up_tail,json=upTail,proto3" json:"upTail,omitempty"`
 	// EdgeAfter is the last edge key the views of the block past After have
 	// read, after the edge kind: the next view of that block resumes past it.
 	// Empty starts the block's edges.
@@ -313,6 +313,10 @@ type WalkProgress struct {
 	// WideMoved reports that a view of the wide block past After read another
 	// mark than its first.
 	WideMoved bool `protobuf:"varint,11,opt,name=wide_moved,json=wideMoved,proto3" json:"wideMoved,omitempty"`
+	// DownTail is the sequence past the last down page the walk copied into
+	// its scratch store. The check copies from the later of it and the first
+	// down page left.
+	DownTail uint64 `protobuf:"varint,12,opt,name=down_tail,json=downTail,proto3" json:"downTail,omitempty"`
 }
 
 func (x *WalkProgress) Reset() {
@@ -356,9 +360,9 @@ func (x *WalkProgress) GetCounts() *WalkCounts {
 	return nil
 }
 
-func (x *WalkProgress) GetTail() uint64 {
+func (x *WalkProgress) GetUpTail() uint64 {
 	if x != nil {
-		return x.Tail
+		return x.UpTail
 	}
 	return 0
 }
@@ -398,24 +402,29 @@ func (x *WalkProgress) GetWideMoved() bool {
 	return false
 }
 
+func (x *WalkProgress) GetDownTail() uint64 {
+	if x != nil {
+		return x.DownTail
+	}
+	return 0
+}
+
 // WalkMark is what one view reads of the things that can change the namers
 // of one block: the Volume's liveness state, and the block's own listing,
 // holders and pending pairs. Two views that read the same mark saw the same
 // namers of the block.
 type WalkMark struct {
 	unknownFields []byte
-	// State is the Volume's liveness state record: the journal's end, how far
-	// netting has gone, the paged release, the adoption and its run, the hold
-	// rule and the generation.
+	// State is the Volume's liveness state record: the logs' ends, how far
+	// netting has gone, the paged release, the adoption and its run, and the
+	// generation.
 	State *LivenessState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
 	// Listed is whether the block has a child list.
 	Listed bool `protobuf:"varint,2,opt,name=listed,proto3" json:"listed,omitempty"`
 	// Holders is the block's netted holders.
 	Holders uint64 `protobuf:"varint,3,opt,name=holders,proto3" json:"holders,omitempty"`
-	// Journal is what the journal past the cursor does to its holders.
-	Journal int64 `protobuf:"varint,4,opt,name=journal,proto3" json:"journal,omitempty"`
-	// Fill is what the fill records not netted do to its holders.
-	Fill int64 `protobuf:"varint,5,opt,name=fill,proto3" json:"fill,omitempty"`
+	// Logs is what the logs not netted yet do to its holders.
+	Logs int64 `protobuf:"varint,4,opt,name=logs,proto3" json:"logs,omitempty"`
 	// Pending is what the paged release does to its namers.
 	Pending int64 `protobuf:"varint,6,opt,name=pending,proto3" json:"pending,omitempty"`
 }
@@ -447,16 +456,9 @@ func (x *WalkMark) GetHolders() uint64 {
 	return 0
 }
 
-func (x *WalkMark) GetJournal() int64 {
+func (x *WalkMark) GetLogs() int64 {
 	if x != nil {
-		return x.Journal
-	}
-	return 0
-}
-
-func (x *WalkMark) GetFill() int64 {
-	if x != nil {
-		return x.Fill
+		return x.Logs
 	}
 	return 0
 }
@@ -506,10 +508,11 @@ func (m *WalkProgress) CloneVT() *WalkProgress {
 	r.Run = m.Run
 	r.Phase = m.Phase
 	r.StartedUnixMilli = m.StartedUnixMilli
-	r.Tail = m.Tail
+	r.UpTail = m.UpTail
 	r.Resumes = m.Resumes
 	r.WideSeen = m.WideSeen
 	r.WideMoved = m.WideMoved
+	r.DownTail = m.DownTail
 	r.After = protobuf_go_lite.CloneBytes(m.After)
 	r.Counts = protobuf_go_lite.CloneVTValue(m.Counts)
 	r.EdgeAfter = protobuf_go_lite.CloneBytes(m.EdgeAfter)
@@ -531,8 +534,7 @@ func (m *WalkMark) CloneVT() *WalkMark {
 	r := new(WalkMark)
 	r.Listed = m.Listed
 	r.Holders = m.Holders
-	r.Journal = m.Journal
-	r.Fill = m.Fill
+	r.Logs = m.Logs
 	r.Pending = m.Pending
 	r.State = protobuf_go_lite.CloneVTValue(m.State)
 	if len(m.unknownFields) > 0 {
@@ -628,7 +630,7 @@ func (this *WalkProgress) EqualVT(that *WalkProgress) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Counts, that.Counts) {
 		return false
 	}
-	if this.Tail != that.Tail {
+	if this.UpTail != that.UpTail {
 		return false
 	}
 	if !protobuf_go_lite.EqualBytes(this.EdgeAfter, that.EdgeAfter) {
@@ -644,6 +646,9 @@ func (this *WalkProgress) EqualVT(that *WalkProgress) bool {
 		return false
 	}
 	if this.WideMoved != that.WideMoved {
+		return false
+	}
+	if this.DownTail != that.DownTail {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -672,10 +677,7 @@ func (this *WalkMark) EqualVT(that *WalkMark) bool {
 	if this.Holders != that.Holders {
 		return false
 	}
-	if this.Journal != that.Journal {
-		return false
-	}
-	if this.Fill != that.Fill {
+	if this.Logs != that.Logs {
 		return false
 	}
 	if this.Pending != that.Pending {
@@ -959,10 +961,10 @@ func (x *WalkProgress) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("counts")
 		x.Counts.MarshalProtoJSON(s.WithField("counts"))
 	}
-	if x.Tail != 0 || s.HasField("tail") {
+	if x.UpTail != 0 || s.HasField("upTail") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("tail")
-		s.WriteUint64(x.Tail)
+		s.WriteObjectField("upTail")
+		s.WriteUint64(x.UpTail)
 	}
 	if len(x.EdgeAfter) > 0 || s.HasField("edgeAfter") {
 		s.WriteMoreIf(&wroteField)
@@ -988,6 +990,11 @@ func (x *WalkProgress) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("wideMoved")
 		s.WriteBool(x.WideMoved)
+	}
+	if x.DownTail != 0 || s.HasField("downTail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("downTail")
+		s.WriteUint64(x.DownTail)
 	}
 	s.WriteObjectEnd()
 }
@@ -1025,9 +1032,9 @@ func (x *WalkProgress) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Counts = &WalkCounts{}
 			x.Counts.UnmarshalProtoJSON(s.WithField("counts", true))
-		case "tail":
-			s.AddField("tail")
-			x.Tail = s.ReadUint64()
+		case "up_tail", "upTail":
+			s.AddField("up_tail")
+			x.UpTail = s.ReadUint64()
 		case "edge_after", "edgeAfter":
 			s.AddField("edge_after")
 			x.EdgeAfter = s.ReadBytes()
@@ -1047,6 +1054,9 @@ func (x *WalkProgress) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "wide_moved", "wideMoved":
 			s.AddField("wide_moved")
 			x.WideMoved = s.ReadBool()
+		case "down_tail", "downTail":
+			s.AddField("down_tail")
+			x.DownTail = s.ReadUint64()
 		}
 	})
 }
@@ -1079,15 +1089,10 @@ func (x *WalkMark) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("holders")
 		s.WriteUint64(x.Holders)
 	}
-	if x.Journal != 0 || s.HasField("journal") {
+	if x.Logs != 0 || s.HasField("logs") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("journal")
-		s.WriteInt64(x.Journal)
-	}
-	if x.Fill != 0 || s.HasField("fill") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("fill")
-		s.WriteInt64(x.Fill)
+		s.WriteObjectField("logs")
+		s.WriteInt64(x.Logs)
 	}
 	if x.Pending != 0 || s.HasField("pending") {
 		s.WriteMoreIf(&wroteField)
@@ -1124,12 +1129,9 @@ func (x *WalkMark) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "holders":
 			s.AddField("holders")
 			x.Holders = s.ReadUint64()
-		case "journal":
-			s.AddField("journal")
-			x.Journal = s.ReadInt64()
-		case "fill":
-			s.AddField("fill")
-			x.Fill = s.ReadInt64()
+		case "logs":
+			s.AddField("logs")
+			x.Logs = s.ReadInt64()
 		case "pending":
 			s.AddField("pending")
 			x.Pending = s.ReadInt64()
@@ -1278,6 +1280,11 @@ func (m *WalkProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.DownTail != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DownTail))
+		i--
+		dAtA[i] = 0x60
+	}
 	if m.WideMoved {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.WideMoved)
 		i--
@@ -1308,8 +1315,8 @@ func (m *WalkProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x3a
 	}
-	if m.Tail != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Tail))
+	if m.UpTail != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UpTail))
 		i--
 		dAtA[i] = 0x30
 	}
@@ -1380,13 +1387,8 @@ func (m *WalkMark) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x30
 	}
-	if m.Fill != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Fill))
-		i--
-		dAtA[i] = 0x28
-	}
-	if m.Journal != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Journal))
+	if m.Logs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Logs))
 		i--
 		dAtA[i] = 0x20
 	}
@@ -1452,7 +1454,7 @@ func (m *WalkProgress) SizeVT() (n int) {
 		l = m.Counts.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Tail)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.UpTail)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.EdgeAfter)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Resumes)
 	if m.WideMark != nil {
@@ -1461,6 +1463,7 @@ func (m *WalkProgress) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WideSeen)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.WideMoved)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.DownTail)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1477,8 +1480,7 @@ func (m *WalkMark) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Listed)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Holders)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Journal)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Fill)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Logs)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Pending)
 	n += len(m.unknownFields)
 	return n
@@ -1585,9 +1587,9 @@ func (x *WalkProgress) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "counts")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Counts)
 	}
-	if x.Tail != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tail")
-		protobuf_go_lite.TextWriteUint(&sb, x.Tail)
+	if x.UpTail != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "up_tail")
+		protobuf_go_lite.TextWriteUint(&sb, x.UpTail)
 	}
 	if len(x.EdgeAfter) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "edge_after")
@@ -1608,6 +1610,10 @@ func (x *WalkProgress) MarshalProtoText() string {
 	if x.WideMoved != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "wide_moved")
 		protobuf_go_lite.TextWriteBool(&sb, x.WideMoved)
+	}
+	if x.DownTail != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "down_tail")
+		protobuf_go_lite.TextWriteUint(&sb, x.DownTail)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1631,13 +1637,9 @@ func (x *WalkMark) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "holders")
 		protobuf_go_lite.TextWriteUint(&sb, x.Holders)
 	}
-	if x.Journal != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "journal")
-		protobuf_go_lite.TextWriteInt(&sb, x.Journal)
-	}
-	if x.Fill != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "fill")
-		protobuf_go_lite.TextWriteInt(&sb, x.Fill)
+	if x.Logs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "logs")
+		protobuf_go_lite.TextWriteInt(&sb, x.Logs)
 	}
 	if x.Pending != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pending")
@@ -1903,10 +1905,10 @@ func (m *WalkProgress) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 6:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Tail", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field UpTail", wireType)
 			}
-			m.Tail = 0
-			m.Tail, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.UpTail = 0
+			m.UpTail, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
@@ -1961,6 +1963,15 @@ func (m *WalkProgress) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.WideMoved = bool(v)
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DownTail", wireType)
+			}
+			m.DownTail = 0
+			m.DownTail, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2040,19 +2051,10 @@ func (m *WalkMark) UnmarshalVT(dAtA []byte) error {
 			}
 		case 4:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Journal", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Logs", wireType)
 			}
-			m.Journal = 0
-			m.Journal, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Fill", wireType)
-			}
-			m.Fill = 0
-			m.Fill, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			m.Logs = 0
+			m.Logs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

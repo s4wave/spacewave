@@ -31,7 +31,13 @@ import (
 // record with its ripe sequence and a key in the ripe queue, a due cascade
 // keeps a cascade record, and the journal keeps no up index, so a version 7
 // or 8 store opens unadopted and its adoption counts in the new encoding.
-const FormatVersion = 9
+// Version 10 keys are those of version 9. Liveness keeps an up log and a
+// down log of pages in place of the journal, cascade and fill records, a
+// block holds its children until its free, and a zero count record carries
+// its ripe sequence in eight big-endian bytes, so a version 7, 8 or 9 store
+// opens unadopted, has its zero records carried across and its retired
+// kinds swept in the background, and its adoption counts again.
+const FormatVersion = 10
 
 // formatVersionKey names the key holding the store's format version.
 var formatVersionKey = []byte("format")

@@ -27,7 +27,7 @@ type PutHold struct {
 // blocks the batch gives no holder once the children and roots are counted
 // and whose count records none from before. A born block that a stored or
 // refilled entry of the batch names is held: that parent's list counted it
-// when the parent was born, through an up pair a child stored after its
+// when the parent was born, through an up a child stored after its
 // parent nets at the settle, so its count is only not recorded yet.
 // It reads nothing: the holders are the batch's, in memory.
 func (l *lander) requirePutsHeld(puts PutHold) error {

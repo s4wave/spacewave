@@ -8,10 +8,10 @@
 \* child's birth count, each other edge from a born parent and a stored root
 \* target appends an entry to U, and every stored block it names leaves the
 \* queue at once (dequeue on name). Moving a root off a block appends a
-\* release to D marked with the U position of its commit. NetUps nets U in
-\* order. NetDowns nets a release once it is Grace old and U has netted past
-\* its mark (the release mark), and queues a listed block it brings to zero at
-\* the current U position (its ripe position). FreeStart deletes a queued block
+\* release to D. NetUps nets U in order. NetDowns nets a release once it is
+\* Grace old and U has fully netted, as the collector nets downs only in a
+\* slice that drained the up log, and queues a listed block it brings to zero
+\* at the current U position (its ripe position). FreeStart deletes a queued block
 \* at zero once U has netted past its ripe position, and FreeStep releases its
 \* children one transaction at a time, which covers the inline free as the
 \* case where the steps follow at once. A listed block holds its children
@@ -55,7 +55,7 @@ VARIABLES
   roots,     \* each root's target, or None
   upLog,     \* U past upCursor: the blocks of unnetted increments
   upCursor,  \* the U position netted so far
-  downLog,   \* D: unnetted releases [b, age, mark]
+  downLog,   \* D: unnetted releases [b, age]
   rel,       \* the free in progress: its block and the children it still
              \* releases, todo empty when none is
   seen,      \* the reader's observation: [b, age], b None when idle
@@ -140,7 +140,7 @@ LandTx(n, t, batch) ==
   /\ queued' = queued \ named
   /\ ripe' = [b \in Blocks |-> IF b \in named THEN 0 ELSE ripe[b]]
   /\ downLog' = IF move /\ roots[n] # None
-                  THEN Append(downLog, [b |-> roots[n], age |-> 0, mark |-> upSeq + Len(ups)])
+                  THEN Append(downLog, [b |-> roots[n], age |-> 0])
                   ELSE downLog
   /\ roots' = [roots EXCEPT ![n] = t]
   /\ txns' = txns + 1
@@ -182,9 +182,9 @@ NetUps ==
 
 NetDowns ==
   /\ downLog # <<>>
+  /\ upLog = <<>>
   /\ LET e == Head(downLog) IN
        /\ e.age >= Grace
-       /\ upCursor >= e.mark
        /\ Decrement(e.b)
   /\ downLog' = Tail(downLog)
   /\ UNCHANGED <<listed, roots, upLog, upCursor, rel, seen, freed, txns>>

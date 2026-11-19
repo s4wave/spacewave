@@ -1978,7 +1978,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/block/gc": {
-          "hash": "1b2191e8eaf828151debf7f1c126bf9ec705366e37b84e60427aadd83b2cb5c2",
+          "hash": "0701a7d0b7045bdb65411b573ca05becb2652745dd6b4ac00724d6bb8038769c",
           "generatedFiles": [
             "db/block/gc/audit-walk.pb.go",
             "db/block/gc/audit-walk.pb.ts",
@@ -2600,7 +2600,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/store/kvtx": {
-          "hash": "2692bf8fc1e06d053518fb39837f6543aef25f1eb2aa18510b399546fdef835d",
+          "hash": "8bb8fe74af2a4c51039697efcf80b15b9603fef840b2ae833bfef8c19722488b",
           "generatedFiles": [
             "db/store/kvtx/kvtx.pb.go",
             "db/store/kvtx/kvtx.pb.ts"

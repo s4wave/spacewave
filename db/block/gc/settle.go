@@ -19,7 +19,7 @@ import (
 // Settled, and never back.
 //
 // A list is young or verified when it was written from its block's content:
-// by a Land or a fill, or by the typed walk, which decodes the block. Its
+// by a Land or a refill, or by the typed walk, which decodes the block. Its
 // value begins with listMark. Every other list is unverified.
 //
 // Invariants, while the generation is Open:
@@ -37,24 +37,24 @@ import (
 //     writer adds an unverified list, since PutChildren always marks.
 //
 // Before the flip the collector seeds the front, in slices: it pushes every
-// unverified block a named root or a down pair past the cursor names, as
+// unverified block a named root or a down page not netted yet names, as
 // seed describes, the model's WalkStart. The flip is one state write, to
-// Sweeping, in a transaction that finds the Volume adopted with every
-// cascade and fill up netted, no list rewrite awaiting a recount, no
+// Sweeping, in a transaction that finds the Volume freeable, as
+// Collector.freeable describes, no list rewrite awaiting a recount, no
 // recorded hole, the run complete, the front empty and every ripe Dead
 // block parked: the model's WalkEnd. Every block still unverified is then
 // unreachable: no seed names it, and no young or verified block does, since
 // the front is empty. The run names those blocks and the parked ones.
 //
-// While Sweeping, an empty run entry names an unmarked block,
-// which every site that asks whether a block is stored answers absent, as
-// Unmarked describes. The flip, which requires no cascade due, freezes each
-// unmarked block's count record, which says whether its old list still holds
-// its children,
-// and counts its holders from the flip on apart, as kindUnmarkedCount
-// describes, so no later write changes what the old list holds. The sweep
-// deletes each unmarked block, releasing the holder its old list gave each
-// child outside the run when it still holds, as releaseOld decides. A put
+// While Sweeping, an empty run entry names an unmarked block, which every
+// site that asks whether a block is stored answers absent, as Unmarked
+// describes. The flip, which requires no paged release in progress, freezes
+// each unmarked block's count record and counts its holders from the flip on
+// apart, as kindUnmarkedCount describes. A stored block holds its children
+// until its free, and the free skips an unmarked block, so its old list
+// still holds them. The sweep deletes each unmarked block, releasing the
+// holder its old list gave each child outside the run, as releaseOld
+// decides. A put
 // of an unmarked block gives birth to it again: its entry turns reborn, its
 // old list releases the same way, and it keeps the holders it gained since
 // the flip. The sweep marks each entry it deletes swept rather than
@@ -105,53 +105,23 @@ func (r *Records) countKind(ctx context.Context, key []byte) (byte, error) {
 	return kindUnmarkedCount, nil
 }
 
-// oldListHolds reports whether the old list of the unmarked block at key
-// still holds its children, from its kindCount record as the flip froze it:
-// a held block's children count it, and a Dead one's cascade already
-// released them, so releasing them again would take a holder from a child
-// something else still holds. No cascade is due on an unmarked block: the
-// flip requires none due, and netting writes none for an unmarked block,
-// which it reads as unlisted. Under HoldUntilFree a stored block holds its
-// children until its free whatever its count, and the free skips an
-// unmarked block, so its old list always holds them.
-func (r *Records) oldListHolds(ctx context.Context, state *LivenessState, key []byte) (bool, error) {
-	// Under HoldUntilFree a stored block's list holds until its free.
-	if state.GetHoldRule() == HoldRule_HOLD_RULE_HOLD_UNTIL_FREE {
-		return true, nil
-	}
-
-	// Read the count the flip froze; a block with none is unmarked.
-	value, found, err := r.tx.Get(ctx, r.key(kindCount, key))
-	if err != nil || !found {
-		return err == nil, err
-	}
-	holders, _, err := decodeHolders(value)
-	return holders != 0, err
-}
-
 // releaseOld ends the old generation's records of the unmarked block at
 // key as it leaves the run, by the sweep or a rebirth, and returns the block
-// keys of the children outside the run its old list still holds, as
-// oldListHolds decides, which lose that holder. It moves its
+// keys of the children outside the run its old list holds, which lose that
+// holder: a stored block holds its children until its free, and the free
+// skips an unmarked block, so its old list holds them still. It moves its
 // kindUnmarkedCount record, the holders it gained and lost since the flip,
-// over its frozen kindCount record. A child
-// inside the run keeps no holder from it, since the flip dropped the
-// holders of every unmarked block.
-func (r *Records) releaseOld(ctx context.Context, state *LivenessState, key []byte) ([][]byte, error) {
-	// Read whether the old list holds.
-	holds, err := r.oldListHolds(ctx, state, key)
+// over its frozen kindCount record. A child inside the run keeps no holder
+// from it, since the flip dropped the holders of every unmarked block.
+func (r *Records) releaseOld(ctx context.Context, key []byte) ([][]byte, error) {
+	// Release the old list's children outside the run.
+	value, _, err := r.tx.Get(ctx, r.key(kindChildren, key))
 	if err != nil {
 		return nil, err
 	}
-	var released [][]byte
-	if holds {
-		value, _, err := r.tx.Get(ctx, r.key(kindChildren, key))
-		if err != nil {
-			return nil, err
-		}
-		if released, err = r.outsideRun(ctx, bytes.Clone(listKeys(value))); err != nil {
-			return nil, err
-		}
+	released, err := r.outsideRun(ctx, bytes.Clone(listKeys(value)))
+	if err != nil {
+		return nil, err
 	}
 
 	// Move the count since the flip over the frozen one.
@@ -188,9 +158,8 @@ func (r *Records) pushUnverified(ctx context.Context, key []byte) (bool, error) 
 // returnHeld keeps the rule for a block that gains a holder while Open: its
 // list unverified, it returns to the front, since the free proof may have
 // popped it while it was Dead, and the walk must verify it before the flip.
-// The re-hold of a cascade and the recount of a readoption both call it. It
-// reports whether the block has a list and whether it pushed it; outside Open
-// it only reads the list.
+// The recount of a readoption calls it. It reports whether the block has a
+// list and whether it pushed it; outside Open it only reads the list.
 func (r *Records) returnHeld(ctx context.Context, key []byte, open bool) (listed, pushed bool, err error) {
 	listed, marked, err := r.listState(ctx, key)
 	if err != nil || !listed || marked || !open {
@@ -247,8 +216,8 @@ func (r *Records) markedYoung(ctx context.Context, key, packed []byte, skip func
 // keys and whether the list gained a child. With strict, refs that lack a
 // child the list names write nothing and report dropped: a stored list can
 // only miss children, so such refs come from a wrong decoder. A list that
-// gains a child journals no holder for it, so the caller records that the
-// counts owe a recount.
+// gains a child logs no holder for it, so the caller records that the counts
+// owe a recount.
 func (r *Records) mergeList(ctx context.Context, key, value []byte, refs []*block.BlockRef, strict bool) (packed []byte, gained, dropped bool, err error) {
 	// Refuse refs that drop a child, then write the marked union.
 	old, encoded := listKeys(value), EncodeChildren(refs)
@@ -263,7 +232,7 @@ func (r *Records) mergeList(ctx context.Context, key, value []byte, refs []*bloc
 	return union, gained, false, r.tx.Set(ctx, r.key(kindChildren, key), markList(union))
 }
 
-// noteRewrite records, on a Volume that keeps a journal, that a list gained
+// noteRewrite records, on a Volume that keeps the logs, that a list gained
 // a child no holder counts, so the flip returns the Volume to unadopted and
 // an adoption recounts the lists first.
 func (r *Records) noteRewrite(ctx context.Context, state *LivenessState) error {
@@ -278,9 +247,9 @@ func (r *Records) noteRewrite(ctx context.Context, state *LivenessState) error {
 // holders it gained since the flip, its run entry turns reborn, and it
 // returns the block keys of the children its old list still held, which
 // lose that holder. The caller writes the new list.
-func (r *Records) rebirth(ctx context.Context, state *LivenessState, ref *block.BlockRef) ([][]byte, error) {
+func (r *Records) rebirth(ctx context.Context, ref *block.BlockRef) ([][]byte, error) {
 	key := BlockKey(ref)
-	released, err := r.releaseOld(ctx, state, key)
+	released, err := r.releaseOld(ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -372,23 +341,21 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 }
 
 // seed pushes onto the front, once per collector while Open, each unverified
-// block a named root names and each block a down pair past the cursor
-// names, which a reader or writer may still hold: the named roots in slices,
-// then the journal records past the cursor in slices, resuming where the
-// last pass stopped. It reports whether it stopped at past with work left.
+// block a named root names and each block a down page not netted yet names,
+// which a reader or writer may still hold: the named roots in slices, then
+// the down pages in slices, resuming where the last pass stopped. It reports whether it stopped at past with work left.
 //
 // Invariant: once the seeding is done, every unverified block such a seed
 // would name is on the front or was taken off it by the walk or the free
 // proof. A root a Land moves onto a block after its slice passed the root
-// pushes the block, as holdStored does while Open; a down pair it writes
-// names the block the root held, which a slice passed or a Land pushed; and
-// a record the cursor passes leaves the seeds. So the flip needs no seeding
+// pushes the block, as holdStored does while Open; a down it writes names
+// the block the root held, which a slice passed or a Land pushed; and a page
+// the netting deletes leaves the seeds. So the flip needs no seeding
 // of its own, only the empty front.
 //
-// Cost: one sequential read of the named roots and of the journal records
-// past the cursor, and one list read per root and per down pair, once per
-// collector; each slice holds the writer for at most sliceRecords roots or
-// records.
+// Cost: one sequential read of the named roots and of the down pages left,
+// and one list read per root and per down, once per collector; each slice
+// holds the writer for at most sliceRecords roots or pages.
 func (c *Collector) seed(ctx context.Context, past func() bool, res *CollectResult) (bool, error) {
 	// Seed the named roots first.
 	if c.seeded {
@@ -404,9 +371,9 @@ func (c *Collector) seed(ctx context.Context, past func() bool, res *CollectResu
 		c.seededRoots = true
 	}
 
-	// Then the journal records past the cursor.
-	more, err := resumeSlices(ctx, c.update, &c.seedSeq, past, func(rec *Records, from uint64) (uint64, bool, error) {
-		return c.seedJournalSlice(ctx, rec, res, from)
+	// Then the down pages not netted yet.
+	more, err := resumeSlices(ctx, c.update, &c.seedDown, past, func(rec *Records, from uint64) (uint64, bool, error) {
+		return c.seedDownSlice(ctx, rec, res, from)
 	})
 	c.seeded = err == nil && !more
 	return more, err
@@ -469,39 +436,34 @@ func (c *Collector) seedRootSlice(ctx context.Context, rec *Records, res *Collec
 	return from, len(roots) == budget, nil
 }
 
-// seedJournalSlice pushes onto the front each unverified block a down pair
-// of up to a slice of journal records names, from the sequence from or the
-// cursor, whichever is later, while the generation is Open, and returns the
-// sequence after the last record it read and whether more may follow.
-func (c *Collector) seedJournalSlice(ctx context.Context, rec *Records, res *CollectResult, from uint64) (uint64, bool, error) {
-	// Start at the cursor or later, while Open.
-	state, err := rec.GetState(ctx)
-	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN {
+// seedDownSlice pushes onto the front each unverified block up to a slice of
+// down pages names, from the down sequence from, while the generation is
+// Open, and returns the sequence after the last page it read and whether
+// more may follow. Netting deletes each page it nets, so every page left
+// names a block a root or list let go of within Grace, which a reader may
+// still pin.
+func (c *Collector) seedDownSlice(ctx context.Context, rec *Records, res *CollectResult, from uint64) (uint64, bool, error) {
+	// Read only while Open.
+	gen, err := rec.generation(ctx)
+	if err != nil || gen != Generation_GENERATION_OPEN {
 		return from, false, err
 	}
-	from = max(from, state.GetCursor())
 
-	// Push the unverified blocks each record's down pairs name.
+	// Push the unverified blocks each page names.
 	budget, n := c.share(sliceRecords), 0
-	err = rec.ScanJournal(ctx, from, func(seq uint64, jr *JournalRecord) (bool, error) {
-		// Stop at the budget.
+	err = rec.scanDowns(ctx, from, func(p downPage) (bool, error) {
 		if n == budget {
 			return false, nil
 		}
 		n++
-		from = seq + 1
-
-		// Push each down pair's block.
-		for _, key := range jr.GetDown() {
+		from = p.seq + 1
+		return true, eachKey(p.keys, func(key []byte) error {
 			pushed, err := rec.pushUnverified(ctx, key)
-			if err != nil {
-				return false, err
-			}
 			if pushed {
 				res.Seeded++
 			}
-		}
-		return true, nil
+			return err
+		})
 	})
 	return from, n == budget, err
 }
@@ -570,48 +532,42 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 
 // frontSlice takes off the front each of up to a slice of entries after the
 // key position from whose block the free proof holds for, while the
-// generation is Open: Dead at a ripe sequence the cursor passed, with no
-// cascade due and every fill up applied, as the free checks. Nothing holds
-// such a block or can within the grace period. Its count misses only a
-// holder whose list is unverified and short; that holder, if anything holds
-// it, is a seed the flip pushes or a block below a front entry, which holds
-// the flip until the walk decodes it. A list that gained a child journaled
-// no holder for it, so while kindRewritten exists the counts may miss a
-// holder whose list is marked, and nothing pops. The record lasts until the
-// next flip attempt returns the Volume to unadopted and the adoption that
-// follows deletes it, so the front waits for one recount at most. A block
-// popped before the rewrite that the rewritten list names gains a holder in
-// that recount, which returns it to the front, as returnHeld describes. A
-// block a journal record past the cursor names stays, as the free keeps it
-// (T1): the pop reads the tail index, synced to the journal's end in the
-// slice's transaction, as the free does. A slice that pops raises the pop
-// mark to the latest ripe sequence it popped, as kindPopMark describes, at
-// the cost of one key read and write per such slice. A list lasts from the
-// block's put to its free, and the free parks while Open, so an entry the
-// store does not list is damage that lost the list. While the bytes remain
-// it stays, for the walk decodes them and writes the list again; once they
-// are gone too nothing can decode the block, which names no child the walk
-// could still find, and it pops under the same proof, so damage cannot keep
-// the generation Open.
+// generation is Open: at zero and queued or parked at a ripe sequence the up
+// cursor passed, as the free takes it. Nothing holds such a block or can
+// within the grace period: a Land that names it dequeues it until its up
+// nets, so a queue entry proves no Land holds it, and the free parks only a
+// queued block, after which every Land reads it absent, as Records.Hidden
+// describes. Its
+// count misses only a holder whose list is unverified and short; that
+// holder, if anything holds it, is a seed the flip pushes or a block below a
+// front entry, which holds the flip until the walk decodes it. A list that
+// gained a child logged no holder for it, so while kindRewritten exists the
+// counts may miss a holder whose list is marked, and nothing pops. The
+// record lasts until the next flip attempt returns the Volume to unadopted
+// and the adoption that follows deletes it, so the front waits for one
+// recount at most. A block popped before the rewrite that the rewritten list
+// names gains a holder in that recount, which returns it to the front, as
+// returnHeld describes. A slice that pops raises the pop mark to the latest
+// ripe sequence it popped, as kindPopMark describes, at the cost of one key
+// read and write per such slice. A list lasts from the block's put to its
+// free, and the free parks while Open, so an entry the store does not list
+// is damage that lost the list. While the bytes remain it stays, for the
+// walk decodes them and writes the list again; once they are gone too
+// nothing can decode the block, which names no child the walk could still
+// find, and it pops at zero with a ripe sequence the cursor passed, without
+// its queue entry, which the free deletes as stale once the list is gone, so
+// damage cannot keep the generation Open.
 func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, error) {
 	// Pop only while Open, and while the free proof can hold.
 	state, err := rec.GetState(ctx)
 	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN {
 		return from, false, err
 	}
-	if ok, err := rec.freeable(ctx, state); err != nil || !ok {
-		return from, false, err
+	if !c.freeable(state) {
+		return from, false, nil
 	}
 	if recount, err := rec.tx.Exists(ctx, rec.key(kindRewritten)); err != nil || recount {
 		return from, false, err
-	}
-	reached, err := c.tail.sync(ctx, rec, state, c.share(slicePairs), c.waiting)
-	if err != nil {
-		return from, false, err
-	}
-	if !reached {
-		res.TailReading++
-		return from, true, nil
 	}
 
 	// Take the next entries.
@@ -634,8 +590,8 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 	}
 
 	// Pop each the proof holds for.
-	cursor := state.GetCursor()
-	var popped, stalled bool
+	cursor := state.GetUpCursor()
+	var popped bool
 	var poppedRipe uint64
 	for _, key := range keys {
 		from = key
@@ -651,10 +607,21 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 		if err != nil {
 			return from, false, err
 		}
-		if holders != 0 || ripe > cursor || c.tail.has(key) {
+		if holders != 0 || ripe > cursor {
 			continue
 		}
-		if !listed {
+		if listed {
+			proven, err := rec.tx.Exists(ctx, rec.queueKey(ripe, key))
+			if err == nil && !proven {
+				proven, err = rec.tx.Exists(ctx, rec.parkedKey(ripe, key))
+			}
+			if err != nil {
+				return from, false, err
+			}
+			if !proven {
+				continue
+			}
+		} else {
 			stored, err := blocks.GetBlockExists(ctx, ref)
 			if err != nil {
 				return from, false, err
@@ -663,10 +630,6 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 				continue
 			}
 		}
-		if cursor < state.GetHoldMark() {
-			stalled = true
-			continue
-		}
 		if err := rec.tx.Delete(ctx, rec.key(kindFront, key)); err != nil {
 			return from, false, err
 		}
@@ -674,11 +637,7 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 		res.Popped++
 	}
 
-	// Report a wait on the hold mark, and raise the pop mark past what this
-	// slice popped.
-	if stalled {
-		res.StallHoldMark++
-	}
+	// Raise the pop mark past what this slice popped.
 	if !popped {
 		return from, full, nil
 	}
@@ -694,33 +653,24 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 // to four prefix seeks, in one transaction, once per collector pass until
 // the flip.
 func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) error {
-	// Require an Open, adopted Volume with every cascade and fill up netted.
-	// Collect nets to completion before the settle runs, and only netting
-	// writes a cascade or a paged release, so today the cascade half never
-	// refuses; it is the model's FlipSettled, kept because a step that leads
-	// to deletes waits when unsure.
+	// Require an Open Volume the free may run in: adopted Grace ago, so a
+	// head a reader saw before the mark, which the walk does not seed, is
+	// unmarked only once it is Grace old, and with no paged release left.
 	state, err := rec.GetState(ctx)
 	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN {
 		return err
 	}
-	if ok, err := rec.freeable(ctx, state); err != nil || !ok {
-		return err
-	}
-
-	// Require the adoption's marker netted: a head a reader saw before the
-	// mark, which the walk does not seed, is unmarked only once it is Grace
-	// old. The mark is fixed, so no write can hold the flip here.
-	if state.GetCursor() < state.GetAdoptMark() {
+	if !c.freeable(state) {
 		return nil
 	}
 
 	// A rewritten list's new children lack their holders: recount first.
 	// This is the settle's one return to unadopted, and it runs only while
-	// Open. A readopt while Sweeping, such as a change of the hold rule,
-	// clears both count records of each unmarked block and counts every
-	// stored list again: SetHolders writes an unmarked block's count to
-	// kindUnmarkedCount, and with no kindCount record oldListHolds reports
-	// that its old list holds the children the recount gave it.
+	// Open. A readopt while Sweeping, such as frees turning on or a format
+	// upgrade, clears both count records of each unmarked block and counts
+	// every stored list again: SetHolders writes an unmarked block's count
+	// to kindUnmarkedCount, and its old list holds the children the recount
+	// gave it.
 	recount, err := rec.tx.Exists(ctx, rec.key(kindRewritten))
 	if err != nil {
 		return err
@@ -746,15 +696,14 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 	// the run. A marked block that names a child the front popped is Dead at
 	// a ripe sequence no later than the child's; left present, a hold onto
 	// it would revive its list over children the sweep deletes. A queued
-	// block above the mark names no popped child, so a writer that keeps
-	// the hold mark ahead of the cursor, which keeps the free from parking,
-	// cannot hold the flip.
+	// block above the mark names no popped child, so a block that dies
+	// later cannot hold the flip.
 	mark, popped, err := rec.popMark(ctx)
 	if err != nil {
 		return err
 	}
 	if popped {
-		ripe, err := rec.ripeQueued(ctx, min(mark, state.GetCursor()))
+		ripe, err := rec.ripeQueued(ctx, min(mark, state.GetUpCursor()))
 		if err != nil || ripe {
 			return err
 		}
@@ -771,20 +720,20 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 
 // sweepSlice deletes each unmarked block of up to a slice of run entries
 // after the key position from, while the generation is Sweeping and the
-// Volume adopted: its bytes, list and proof, with one journal down pair for
-// each child its old list still holds, as releaseOld decides, as a free's
-// cascade releases them, and marks its run entry swept. Its count keeps the
+// Volume adopted: its bytes, list and proof, with one down for each child
+// its old list still holds, as releaseOld decides, and marks its run entry
+// swept. Its count keeps the
 // holders it gained since the flip, as a free keeps a block's netted
 // holders. It skips a reborn or swept entry. A child inside the run at the
 // flip keeps no holder from the old list, so the sweep of an unmarked
 // parent releases nothing to it, even after a put stored it again. It
 // reports whether it reached the run's end.
 //
-// Cost: per unmarked block, its two count reads and cascade read, its list
-// read, the deletes, and one run entry read per child; per slice, one
-// journal record and the state write.
+// Cost: per unmarked block, its two count reads, its list read, the
+// deletes, and one run entry read per child; per slice, one down page and
+// the state write.
 func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, bool, error) {
-	// Sweep only an adopted Volume, since the down pairs need its journal.
+	// Sweep only an adopted Volume, since the downs need its logs.
 	state, err := rec.GetState(ctx)
 	if err != nil || state.GetGeneration() != Generation_GENERATION_SWEEPING {
 		return from, false, false, err
@@ -799,7 +748,7 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 		return from, false, false, err
 	}
 
-	// Delete each unmarked block, and journal the release of its children.
+	// Delete each unmarked block, and log the release of its children.
 	var down [][]byte
 	for i, key := range keys {
 		from = key
@@ -810,7 +759,7 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 		if err != nil {
 			return from, false, false, err
 		}
-		children, err := rec.releaseOld(ctx, state, key)
+		children, err := rec.releaseOld(ctx, key)
 		if err != nil {
 			return from, false, false, err
 		}
@@ -899,18 +848,11 @@ func (c *Collector) runEntries(ctx context.Context, rec *Records, from []byte, b
 	return keys, unmarked, full, err
 }
 
-// appendDowns appends down, block keys losing one holder each, to the
-// journal at now, in pages of journalPagePairs, advancing state's next
-// sequence, and writes state.
+// appendDowns appends down, block keys losing one holder each, to the down
+// log at now, and writes state.
 func (r *Records) appendDowns(ctx context.Context, state *LivenessState, now time.Time, down [][]byte) error {
-	for len(down) != 0 {
-		n := min(len(down), journalPagePairs)
-		page := &JournalRecord{AtUnixMilli: now.UnixMilli(), Down: down[:n]}
-		if err := r.PutJournal(ctx, state.GetNextSeq(), page); err != nil {
-			return err
-		}
-		state.NextSeq++
-		down = down[n:]
+	if err := r.appendLogs(ctx, state, now, nil, down); err != nil {
+		return err
 	}
 	return r.SetState(ctx, state)
 }

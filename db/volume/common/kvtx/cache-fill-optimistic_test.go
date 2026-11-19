@@ -14,7 +14,7 @@ import (
 // TestCacheFillOptimistic runs cache fills on a store with optimistic
 // transactions while other writers commit. A fill reading without the writer
 // lets another write commit meanwhile. A fill lands through Land, which
-// reads and advances the journal position, so any journaling commit meanwhile
+// reads and advances the log positions, so any commit that logs meanwhile
 // forces one rerun; a commit that stores the block a fill found absent forces
 // a rerun that finds it stored, so two writers never both give birth to one
 // block, and the block keeps its child list.
@@ -88,7 +88,7 @@ func TestCacheFillOptimistic(t *testing.T) {
 		return attempts, existed
 	}
 
-	// A commit that journals holders meanwhile forces one rerun, which
+	// A commit that logs holders meanwhile forces one rerun, which
 	// lands the fill naming a stored child.
 	child := put("other", []byte("stored child"))
 	moved := put("other", []byte("moved root"))
@@ -98,7 +98,7 @@ func TestCacheFillOptimistic(t *testing.T) {
 		}
 	})
 	if attempts != 2 || existed {
-		t.Fatalf("fill beside a journaling commit ran %d attempts, existed %v; want 2 attempts giving birth", attempts, existed)
+		t.Fatalf("fill beside a logging commit ran %d attempts, existed %v; want 2 attempts giving birth", attempts, existed)
 	}
 
 	// A block another writer stores after the fill found it absent makes the

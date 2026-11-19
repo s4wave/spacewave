@@ -68,7 +68,7 @@ type Volume interface {
 // held named root reaches.
 type Collector interface {
 	// Collect runs one bounded collection pass: it releases lapsed leases,
-	// nets the journal and frees what died, in slices that yield to waiting
+	// nets the logs and frees what died, in slices that yield to waiting
 	// writers. CollectResult.More reports work left.
 	Collect(ctx context.Context) (block_gc.CollectResult, error)
 }

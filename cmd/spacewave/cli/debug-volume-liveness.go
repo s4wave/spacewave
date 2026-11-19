@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
@@ -67,8 +68,6 @@ func auditFields(path string, res block_gc.AuditResult) [][2]string {
 		{"Unlisted garbage", strconv.FormatUint(res.Unlisted, 10)},
 		{"Live blocks queued to free", strconv.FormatUint(res.LiveQueued, 10)},
 		{"Undercounted blocks", strconv.FormatUint(res.Undercount, 10)},
-		{"Cascade records less their count", strconv.FormatInt(res.CascadeMiscount, 10)},
-		{"Cascade records without a child list", strconv.FormatUint(res.UnlistedCascades, 10)},
 	}
 
 	// Name a sample of the blocks behind each finding.
@@ -179,16 +178,14 @@ func stateFields(path string, state *block_gc.LivenessState, parked bool) [][2]s
 		{"Volume", path},
 		{"Adoption", state.GetAdoption().String()},
 		{"Adoption run", state.GetAdoptionRun()},
-		{"Hold rule", state.GetHoldRule().String()},
 		{"Generation", state.GetGeneration().String()},
 		{"Frees", strconv.FormatBool(state.GetFrees())},
 		{"Frees mark", strconv.FormatUint(state.GetFreesMark(), 10)},
-		{"Next sequence", strconv.FormatUint(state.GetNextSeq(), 10)},
-		{"Cursor", strconv.FormatUint(state.GetCursor(), 10)},
-		{"Net offset", strconv.FormatUint(state.GetNetOffset(), 10)},
-		{"Hold mark", strconv.FormatUint(state.GetHoldMark(), 10)},
-		{"Cascades", strconv.FormatUint(state.GetCascades(), 10)},
-		{"Legacy graph", strconv.FormatBool(state.GetLegacyGraph())},
+		{"Up sequence", strconv.FormatUint(state.GetUpSeq(), 10)},
+		{"Up cursor", strconv.FormatUint(state.GetUpCursor(), 10)},
+		{"Down sequence", strconv.FormatUint(state.GetDownSeq(), 10)},
+		{"Adopted at", time.UnixMilli(state.GetAdoptAtUnixMilli()).UTC().Format(time.RFC3339)},
+		{"Obsolete kinds", string(state.GetObsoleteKinds())},
 	}
 	if state.GetGeneration() == block_gc.Generation_GENERATION_OPEN {
 		fields = append(fields, [2]string{"Parked blocks", strconv.FormatBool(parked)})
@@ -200,7 +197,6 @@ func stateFields(path string, state *block_gc.LivenessState, parked bool) [][2]s
 			[2]string{"Release block", hex.EncodeToString(rel.GetBlock())},
 			[2]string{"Release next", strconv.FormatUint(rel.GetNext(), 10)},
 			[2]string{"Release children", strconv.FormatUint(rel.GetChildren(), 10)},
-			[2]string{"Release re-hold", strconv.FormatBool(rel.GetRehold())},
 		)
 	}
 	return fields
@@ -241,7 +237,7 @@ func newDebugVolumeAdoptCommand() *cli.Command {
 		Usage:     "count the holders of every block of a stopped, unadopted volume and mark it adopted",
 		ArgsUsage: "<volume-file>",
 		Description: "Counts each block's holders from the volume's named roots and child lists alone, writes the count " +
-			"records and the free queue, and marks the volume adopted, after which its collector nets the journal and, " +
+			"records and the free queue, and marks the volume adopted, after which its collector nets the logs and, " +
 			"with frees on, frees what no root reaches. It refuses while the child lists come from a store format " +
 			"before 7 until debug ref-repair verifies them, and refuses when a holder names a block stored without a " +
 			"child list. An adopted volume reports Already adopted and changes nothing. Adopt a volume only once every " +
@@ -256,12 +252,12 @@ func newDebugVolumeStateCommand() *cli.Command {
 	args := &debugVolumeStateArgs{}
 	return &cli.Command{
 		Name:      "volume-state",
-		Usage:     "print a stopped volume's liveness state record: adoption, hold rule, generation and frees",
+		Usage:     "print a stopped volume's liveness state record: adoption, generation and frees",
 		ArgsUsage: "<volume-file>",
 		Description: "Opens the volume read-only and prints its liveness state record: the adoption and its run, " +
-			"the hold rule the counts were written under, the generation, whether frees were on at the last " +
-			"writable open (off when the frees mark is stale), the journal position, the hold mark, the cascade " +
-			"count and any release in progress. It writes nothing. A file that needs a conversion or a format " +
+			"the generation, whether frees were on at the last writable open (off when the frees mark is " +
+			"stale), the up and down log positions, when the adoption finished, the record kinds an obsolete " +
+			"sweep still owes and any release in progress. It writes nothing. A file that needs a conversion or a format " +
 			"upgrade is reported with its format and left unchanged; a file another process holds is refused.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,

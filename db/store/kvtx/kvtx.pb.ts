@@ -56,14 +56,12 @@ export interface Config {
   hashType?: HashType
   /**
    * CollectorFrees turns on the Volume collector's frees. Off, the collector
-   * still releases lapsed leases and nets the journal, so its counts stay
+   * still releases lapsed leases and nets the logs, so its counts stay
    * current, and frees nothing. The Volume stores whether frees were on at
    * its last writable open. An open that turns them on returns the Volume to
-   * unadopted and adopts it again in the background under
-   * CollectorHoldUntilFree, and nothing frees until that recount finishes;
-   * an open with them already on recounts only a Volume adopted under
-   * another rule, and one with them off clears the stored switch, so the
-   * next switch-on recounts again. A state write by a build older than the
+   * unadopted and adopts it again in the background, and nothing frees until
+   * that recount finishes; an open with them off clears the stored switch,
+   * so the next switch-on recounts again. A state write by a build older than the
    * switch also reads as frees off, so the next switch-on recounts after it.
    * Turn frees off with this switch, never with an older build, which may
    * not read the lists this one writes. The default stays off, and spacewave
@@ -77,7 +75,7 @@ export interface Config {
    */
   collectorFrees?: boolean
   /**
-   * CollectorGraceDur is how old a journal record must be before the
+   * CollectorGraceDur is how old a down page must be before the
    * collector nets it, as a Go duration such as "15m". It must exceed the
    * time a reader takes to pin a head it saw and the lease of a leased root.
    * Empty uses the collector's default of 15 minutes.
@@ -88,14 +86,6 @@ export interface Config {
    * blocks held when a block it reaches is not.
    */
   rootHeldCheck?: RootHeldCheck
-  /**
-   * CollectorHoldUntilFree keeps a block at zero holders a holder of each
-   * child it lists until the collector frees it, so no child is freed while
-   * a stored parent names it. An adopted Volume keeps the rule its adoption
-   * counted under; this one applies when the Volume adopts again, as it does
-   * when CollectorFrees turns on, and frees run only under it.
-   */
-  collectorHoldUntilFree?: boolean
   /**
    * StageOneTransaction lands each batch a stage puts in one transaction, as
    * the Volume did before it landed them in slices, and on the browser's
@@ -118,6 +108,5 @@ export const Config: MessageType<Config> =
     [7, 'collector_frees', 8],
     [8, 'collector_grace_dur', 9],
     [9, 'root_held_check', 14, 0, RootHeldCheck_Enum],
-    [10, 'collector_hold_until_free', 8],
     [11, 'stage_one_transaction', 8],
   ])

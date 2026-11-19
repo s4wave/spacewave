@@ -14,18 +14,18 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export enum Adoption {
   /**
    * ADOPTION_UNADOPTED is a Volume written before its child lists were
-   * complete. It keeps no journal and frees nothing.
+   * complete. It keeps no logs and frees nothing.
    */
   UNADOPTED = 0,
 
   /**
    * ADOPTION_ADOPTING is a Volume whose counts an adoption is building. It
-   * keeps a journal and frees nothing.
+   * keeps the logs and frees nothing.
    */
   ADOPTING = 1,
 
   /**
-   * ADOPTION_ADOPTED is a Volume whose counts and journal describe every
+   * ADOPTION_ADOPTED is a Volume whose counts and logs describe every
    * holder. Its collector frees when its switch is on.
    */
   ADOPTED = 2,
@@ -37,34 +37,6 @@ export const Adoption_Enum = /* @__PURE__ */ createEnumType(
     [0, 'ADOPTION_UNADOPTED'],
     [1, 'ADOPTION_ADOPTING'],
     [2, 'ADOPTION_ADOPTED'],
-  ],
-)
-
-/**
- * HoldRule is the rule a Volume's counts were written under: when a block at
- * zero holders stops counting as a holder of its children.
- *
- * @generated from enum block.gc.HoldRule
- */
-export enum HoldRule {
-  /**
-   * HOLD_RULE_RELEASE_AT_ZERO releases a block's children when it reaches
-   * zero holders, through a cascade, before the block itself is freed.
-   */
-  RELEASE_AT_ZERO = 0,
-
-  /**
-   * HOLD_RULE_HOLD_UNTIL_FREE keeps a block a holder of each child it lists
-   * until the transaction that frees it, which gives each child its down.
-   */
-  HOLD_UNTIL_FREE = 1,
-}
-
-export const HoldRule_Enum = /* @__PURE__ */ createEnumType(
-  'block.gc.HoldRule',
-  [
-    [0, 'HOLD_RULE_RELEASE_AT_ZERO'],
-    [1, 'HOLD_RULE_HOLD_UNTIL_FREE'],
   ],
 )
 
@@ -135,49 +107,15 @@ export const RootEntry: MessageType<RootEntry> =
   ])
 
 /**
- * JournalRecord is one write transaction's change to the holders of blocks.
- * The collector nets it after the fact; nothing else reads it.
- *
- * @generated from message block.gc.JournalRecord
- */
-export interface JournalRecord {
-  /**
-   * AtUnixMilli is when the transaction committed, in Unix milliseconds. It
-   * never decreases from one record to the next.
-   */
-  atUnixMilli?: bigint
-  /**
-   * Up names a block once for each holder the transaction added to it beyond
-   * the one a block stored by the transaction implies.
-   */
-  up?: Uint8Array[]
-  /**
-   * Down names a block once for each named root that moved off it.
-   */
-  down?: Uint8Array[]
-  /**
-   * Again names each block the transaction put again while the store held
-   * it. It changes no holder, but a block still at zero holders once the
-   * record nets takes the journal's end as its ripe sequence again, so the
-   * put restarts the block's grace.
-   */
-  again?: Uint8Array[]
-}
-
-export const JournalRecord: MessageType<JournalRecord> =
-  /* @__PURE__ */ createMessageType<JournalRecord>(
-    'block.gc.JournalRecord',
-    () => [
-      [1, 'at_unix_milli', 3],
-      [2, 'up', 12, 1],
-      [3, 'down', 12, 1],
-      [4, 'again', 12, 1],
-    ],
-  )
-
-/**
- * LivenessState is the one record of a Volume's journal position and
+ * LivenessState is the one record of a Volume's log positions and
  * adoption.
+ *
+ * The up log ('u') holds pages of blocks that gained a holder beyond the
+ * one a stored block implies, one sequence each. The down log ('d') holds
+ * pages of blocks that lost one, keyed by sequence, each carrying its commit
+ * time. The collector nets the up log promptly and a down page once it is
+ * Grace old, only in a slice that drained the up log, so a down never lands
+ * before an up that preceded it.
  *
  * @generated from message block.gc.LivenessState
  */
@@ -186,21 +124,6 @@ export interface LivenessState {
    * Adoption is whether the counts describe the Volume's blocks.
    */
   adoption?: Adoption
-  /**
-   * NextSeq is the sequence number the next journal record takes.
-   */
-  nextSeq?: bigint
-  /**
-   * Cursor is the sequence number of the oldest record the collector has not
-   * netted.
-   */
-  cursor?: bigint
-  /**
-   * LegacyGraph reports that records of the reference graph of a store
-   * format before 7 remain, which a background sweep deletes in slices.
-   * Nothing reads them.
-   */
-  legacyGraph?: boolean
   /**
    * AdoptionRun names the adoption that marked the Volume adopting, or the
    * one that abandoned it. Each transaction of an adoption refuses to write
@@ -215,42 +138,10 @@ export interface LivenessState {
    */
   generation?: Generation
   /**
-   * NetOffset is how much of the record at the cursor the collector has
-   * netted: its up pairs, then its down pairs, then its again entries. A
-   * slice does a bounded amount, so it splits a large record across slices.
-   */
-  netOffset?: bigint
-  /**
-   * Release is the paged release or re-hold in progress of one block's
-   * children, unset when none is.
+   * Release is the paged release in progress of the children of one freed
+   * block, unset when none is.
    */
   release?: Release
-  /**
-   * HoldMark is one past the sequence of the last journal record of a Land
-   * that held a block at zero holders, or one whose children were released,
-   * or any block while a cascade was due: a block below it may have no
-   * holder until that record nets and the re-hold it brings runs. The
-   * collector frees nothing, and the settle pops no front entry, until its
-   * cursor reaches the mark.
-   */
-  holdMark?: bigint
-  /**
-   * Cascades counts the cascade records, the blocks whose cascade is due,
-   * so a Land and the free learn whether any is due from this record rather
-   * than a seek past the deleted ones. It is exact while the Volume is
-   * adopted: the adoption zeroes it once its clear has deleted the records
-   * an earlier run left, and counts each block it settles Dying.
-   */
-  cascades?: bigint
-  /**
-   * HoldRule is the rule the counts were written under, set by the adoption
-   * that counted them or at the birth of an empty Volume. It is the source of
-   * truth while the Volume is adopted: a process that opens it counts under
-   * this rule, whatever its own config names, and only an adoption of an
-   * unadopted Volume writes another. The collector nets and frees only a
-   * Volume whose rule matches its own.
-   */
-  holdRule?: HoldRule
   /**
    * Frees is whether the collector's frees were on at the last writable
    * open, or at the birth of an empty Volume. The write that turns it on
@@ -268,30 +159,47 @@ export interface LivenessState {
    * switch-on counts again after a writer that knew nothing of the switch.
    * It sees every write a recount would correct, because Land is the one
    * writer of holders: a Land that adds or drops a holder outside the blocks
-   * its own batch stores first writes a journal record and this record,
-   * while a batch's new blocks carry exactly the counts any build's Land
-   * gives them. An older build's open of an adopted Volume writes nothing.
-   * A later field that is not zero changes the hash input, so a build that
-   * reads it as unknown sees the mark stale and forces one more recount,
-   * which fails safe.
+   * its own batch stores first writes a log page and this record, while a
+   * batch's new blocks carry exactly the counts any build's Land gives them.
+   * An older build's open of an adopted Volume writes nothing. A later field
+   * that is not zero changes the hash input, so a build that reads it as
+   * unknown sees the mark stale and forces one more recount, which fails
+   * safe.
    */
   freesMark?: bigint
   /**
-   * AdoptMark is one past the sequence of the empty record the last
-   * adoption wrote at its mark. A block the adoption settles may be a head a
-   * reader saw before the mark, whose move off it the dropped journal
-   * carried, so the settle's flip, its only reader, unmarks nothing until
-   * the cursor reaches this mark and the record is Grace old. Nothing clears
-   * it: once reached, the cursor stays past it, and an adoption after the
-   * flip sets a mark that no flip reads.
-   *
-   * Invariant: only Adopt's mark transaction writes it; no Land, fill,
-   * netting, free or flip does. So no write a steady writer lands can move
-   * it, and the flip waits at most Grace past the mark plus the time to net
-   * the records before it, unlike frees, which a writer can hold off through
-   * HoldMark.
+   * UpSeq is the sequence the next up page takes. A block that reaches zero
+   * holders takes it as its ripe sequence.
    */
-  adoptMark?: bigint
+  upSeq?: bigint
+  /**
+   * UpCursor is the sequence of the oldest up page the collector has not
+   * netted. A block at zero frees only once the cursor reaches its ripe
+   * sequence, so every up written before it reached zero has netted.
+   */
+  upCursor?: bigint
+  /**
+   * DownSeq is the sequence the next down page takes. It orders pages that
+   * share a commit time and lets the adoption drop the pages before its
+   * mark.
+   */
+  downSeq?: bigint
+  /**
+   * AdoptAtUnixMilli is the wall time of the last adoption's mark, in Unix
+   * milliseconds. A block the adoption settles may be a head a reader saw
+   * before the mark, whose move off it the dropped logs carried, so the
+   * collector frees, pops and flips nothing until Grace has passed since
+   * this time. Only Adopt's mark transaction writes it.
+   */
+  adoptAtUnixMilli?: bigint
+  /**
+   * ObsoleteKinds are the record kinds under the liveness prefix that an
+   * older store format wrote and this one neither writes nor reads, one
+   * byte each, which a background sweep deletes in slices, dropping each
+   * kind once none of its records remain. None is a block, a block's bytes
+   * or a child list.
+   */
+  obsoleteKinds?: Uint8Array
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -299,28 +207,23 @@ export const LivenessState: MessageType<LivenessState> =
     'block.gc.LivenessState',
     () => [
       [1, 'adoption', 14, 0, Adoption_Enum],
-      [2, 'next_seq', 4],
-      [3, 'cursor', 4],
-      [5, 'legacy_graph', 8],
       [6, 'adoption_run', 9],
       [7, 'generation', 14, 0, Generation_Enum],
-      [8, 'net_offset', 4],
       [11, 'release', 11, 0, Release.codec],
-      [12, 'hold_mark', 4],
-      [13, 'cascades', 4],
-      [14, 'hold_rule', 14, 0, HoldRule_Enum],
       [15, 'frees', 8],
       [16, 'frees_mark', 4],
-      [17, 'adopt_mark', 4],
+      [18, 'up_seq', 4],
+      [19, 'up_cursor', 4],
+      [20, 'down_seq', 4],
+      [21, 'adopt_at_unix_milli', 3],
+      [22, 'obsolete_kinds', 12],
     ],
   )
 
 /**
- * Release is a cascade whose child list is longer than one collector slice
- * moves: the release of the children of a block that lost its last holder,
- * or under HOLD_RULE_HOLD_UNTIL_FREE of a block the collector freed, or the
- * re-hold of the children of one that gained a holder after its release. The slice that starts it moves the list to release pages and
- * marks the block released or held; each later slice moves the next
+ * Release is the release of the children of a freed block whose child list
+ * is longer than one collector slice moves. The slice that frees the block
+ * moves the list to release pages; each later slice drops the next
  * children's holders by one and moves Next in the same transaction, and the
  * last deletes the pages and clears the release.
  *
@@ -339,11 +242,6 @@ export interface Release {
    * Children is how many children the list names.
    */
   children?: bigint
-  /**
-   * Rehold reports a re-hold: each child gains a holder rather than losing
-   * one.
-   */
-  rehold?: boolean
 }
 
 export const Release: MessageType<Release> =
@@ -351,5 +249,4 @@ export const Release: MessageType<Release> =
     [1, 'block', 12],
     [2, 'next', 4],
     [3, 'children', 4],
-    [4, 'rehold', 8],
   ])

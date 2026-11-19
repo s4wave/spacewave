@@ -28,12 +28,12 @@ func (a *debugVolumeCollectArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{
 			Name:        "frees",
-			Usage:       "free what no named root reaches; off, the passes only net the journal",
+			Usage:       "free what no named root reaches; off, the passes only net the logs",
 			Destination: &a.frees,
 		},
 		&cli.StringFlag{
 			Name:        "grace",
-			Usage:       "how old a journal record must be before a pass nets it, such as 15m; empty uses the collector's default",
+			Usage:       "how long a block waits at zero before a pass frees it, such as 15m; empty uses the collector's default",
 			Destination: &a.grace,
 		},
 	}
@@ -53,9 +53,8 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 	}
 	path := c.Args().First()
 
-	// Frees run only under the hold-until-free rule, which turning them on
-	// recounts the Volume under.
-	conf := &store_kvtx.Config{CollectorFrees: a.frees, CollectorHoldUntilFree: a.frees, CollectorGraceDur: a.grace}
+	// Turning frees on recounts the Volume.
+	conf := &store_kvtx.Config{CollectorFrees: a.frees, CollectorGraceDur: a.grace}
 	res, passes, err := collectVolume(c.Context, logrus.NewEntry(logrus.New()), path, conf)
 
 	// Print the totals, including those a failed pass left.
@@ -93,12 +92,9 @@ func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *sto
 		sum.Queued += res.Queued
 		sum.Freed += res.Freed
 		sum.Kept += res.Kept
-		sum.TailSaturated += res.TailSaturated
-		sum.StallHoldMark += res.StallHoldMark
 		sum.Parked += res.Parked
 		sum.Requeued += res.Requeued
 		sum.Leaked += res.Leaked
-		sum.Stranded += res.Stranded
 		sum.Underflows += res.Underflows
 		sum.Lapsed += res.Lapsed
 		sum.Duration = time.Since(start)
@@ -114,17 +110,14 @@ func collectFields(path string, frees bool, passes int, res block_gc.CollectResu
 		{"Volume", path},
 		{"Frees", strconv.FormatBool(frees)},
 		{"Passes", strconv.Itoa(passes)},
-		{"Netted records", strconv.FormatUint(res.Netted, 10)},
+		{"Netted pages", strconv.FormatUint(res.Netted, 10)},
 		{"Counted blocks", strconv.FormatUint(res.Counted, 10)},
 		{"Queued to free", strconv.FormatUint(res.Queued, 10)},
 		{"Freed", strconv.FormatUint(res.Freed, 10)},
 		{"Kept", strconv.FormatUint(res.Kept, 10)},
-		{"Free slices, tail saturated", strconv.FormatUint(res.TailSaturated, 10)},
-		{"Slices waiting on hold mark", strconv.FormatUint(res.StallHoldMark, 10)},
 		{"Parked older blocks", strconv.FormatUint(res.Parked, 10)},
 		{"Requeued parked blocks", strconv.FormatUint(res.Requeued, 10)},
 		{"Leaked", strconv.FormatUint(res.Leaked, 10)},
-		{"Stranded releases", strconv.FormatUint(res.Stranded, 10)},
 		{"Underflows refused", strconv.FormatUint(res.Underflows, 10)},
 		{"Lapsed leases", strconv.FormatUint(res.Lapsed, 10)},
 		{"Duration", res.Duration.String()},
@@ -139,7 +132,7 @@ func newDebugVolumeCollectCommand() *cli.Command {
 		Usage:     "run collection passes on a stopped volume until one leaves no work",
 		ArgsUsage: "<volume-file>",
 		Description: "Runs the volume's collector as the daemon's sweep does, pass after pass until one reports no work " +
-			"left, and prints the totals. Without --frees the passes release lapsed leases and net the journal and free " +
+			"left, and prints the totals. Without --frees the passes release lapsed leases and net the logs and free " +
 			"nothing. With --frees the volume is first counted again, as turning frees on requires, and then frees what " +
 			"lost its last holder; this deletes blocks, so run it on a copy for a rehearsal, and compare a volume-audit " +
 			"before and after. Run it only on a stopped volume.",

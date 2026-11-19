@@ -131,7 +131,7 @@ func auditWalkFields(path string, res *block_gc.WalkResult) [][2]string {
 		{"Declined, the sweep's or counts not in force", strconv.FormatUint(n.GetDeclined(), 10)},
 		{"Named without a child list", strconv.FormatUint(n.GetUnknown(), 10)},
 		{"Hole candidates", strconv.FormatUint(n.GetCandidates(), 10)},
-		{"Journal pairs copied", strconv.FormatUint(n.GetTailPairs(), 10)},
+		{"Log entries copied", strconv.FormatUint(n.GetTailPairs(), 10)},
 		{"Settled after the delay", strconv.FormatUint(n.GetSettled(), 10)},
 		{"Unconfirmed after the delay", strconv.FormatUint(n.GetUnconfirmed(), 10)},
 		{"Unconfirmed, a held root reaches", strconv.FormatUint(n.GetUnconfirmedHeld(), 10)},

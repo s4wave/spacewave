@@ -239,12 +239,12 @@ const fillRootPrefix = "fill:"
 // through Land as a partial tree, so a block may name a child the settle
 // hides, with a leased root on each block no other entry names, which
 // expires the collector's grace period from now: the fill holds what it gives
-// birth to as long as a fill record once did, and the collector frees it once
-// the root lapses unless something else holds it. It returns, for each entry,
+// birth to for a grace period, and the collector frees it once the root
+// lapses unless something else holds it. It returns, for each entry,
 // whether blocks held its bytes before.
 //
 // RefillBlocks reads each block's child list, and Land the state record and
-// the journal position, so an optimistic fill conflicts with each commit that
+// the log positions, so an optimistic fill conflicts with each commit that
 // lands before it; the fill transaction falls back to the store's writer
 // after repeated conflicts.
 func (v *Volume) landFill(ctx context.Context, p *physicalTx, owner string, entries []*block.PutBatchEntry) ([]bool, error) {

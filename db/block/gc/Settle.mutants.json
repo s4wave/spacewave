@@ -1,0 +1,99 @@
+[
+  {
+    "name": "the free deletes while Open instead of parking",
+    "replace": [
+      [
+        "  /\\ IF gen = \"open\"\n       THEN /\\ parked' = parked \\cup {b}",
+        "  /\\ IF FALSE\n       THEN /\\ parked' = parked \\cup {b}"
+      ]
+    ],
+    "expect": "LiveStored",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the flip does not wait for the front to empty",
+    "replace": [
+      [
+        "  /\\ front = {}\n  /\\ \\A b \\in parked",
+        "  /\\ TRUE\n  /\\ \\A b \\in parked"
+      ]
+    ],
+    "expect": "HeldPresent",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the flip does not wait for the roots to be seeded",
+    "replace": [
+      ["  /\\ complete\n  /\\ seeded\n", "  /\\ complete\n  /\\ TRUE\n"]
+    ],
+    "expect": "HeldPresent",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the flip does not wait for the run to be complete",
+    "replace": [
+      [
+        "  /\\ gen = \"open\"\n  /\\ complete\n",
+        "  /\\ gen = \"open\"\n  /\\ TRUE\n"
+      ]
+    ],
+    "expect": "SelfRetiring",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the flip unmarks a parked block that gained a holder",
+    "replace": [["  /\\ \\A b \\in parked : Count(b) = 0\n", "  /\\ TRUE\n"]],
+    "expect": "LiveStored",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "an unparked block does not return to the front",
+    "replace": [
+      [
+        "  /\\ front' = front \\cup Unverified({b})\n",
+        "  /\\ UNCHANGED front\n"
+      ]
+    ],
+    "expect": "LiveStored",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "a root moved onto an unverified block does not push it",
+    "replace": [
+      [
+        "  /\\ front' = IF gen = \"open\" THEN front \\cup Unverified({t}) ELSE front",
+        "  /\\ UNCHANGED front"
+      ]
+    ],
+    "expect": "HeldPresent",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the settle finishes before the sweep does",
+    "replace": [
+      [
+        "  /\\ gen = \"sweeping\"\n  /\\ unmarked = {}\n",
+        "  /\\ gen = \"sweeping\"\n  /\\ TRUE\n"
+      ]
+    ],
+    "expect": "SelfRetiring",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "an upgrade mid-Sweeping drops the run instead of finishing the sweep",
+    "replace": [
+      [
+        "  /\\ fmt' = 10\n  /\\ UNCHANGED <<gen, stored, verified, front, seeded, run, complete, parked, unmarked, root, txns>>",
+        "  /\\ fmt' = 10\n  /\\ gen' = IF gen = \"sweeping\" THEN \"settled\" ELSE gen\n  /\\ unmarked' = IF gen = \"sweeping\" THEN {} ELSE unmarked\n  /\\ run' = IF gen = \"sweeping\" THEN {} ELSE run\n  /\\ UNCHANGED <<stored, verified, front, seeded, complete, parked, root, txns>>"
+      ]
+    ],
+    "expect": "SelfRetiring",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the walk is not bound to run",
+    "replace": [["WF_vars(Walk(b)) /\\ ", ""]],
+    "expect": "EventuallySettled",
+    "config": "Settle.cfg"
+  }
+]

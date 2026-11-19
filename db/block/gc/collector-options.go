@@ -6,37 +6,25 @@ import "time"
 type Phase int
 
 const (
-	// PhaseNet nets the journal into the counts and runs the cascades.
+	// PhaseNet nets the up and down logs into the counts.
 	PhaseNet Phase = iota
-	// PhaseSweep frees the ripe Dead blocks.
+	// PhaseSweep frees the ripe blocks at zero.
 	PhaseSweep
 )
 
 // CollectorOptions adjusts a Collector.
 type CollectorOptions struct {
 	// Frees turns freeing on. With it off, a pass releases lapsed leases and
-	// nets the journal, and frees nothing. A Volume whose collector frees
+	// nets the logs, and frees nothing. A Volume whose collector frees
 	// adopts itself in the background when it opens unadopted, such as one
 	// upgraded from an older format; with Frees off it stays unadopted, since
 	// nothing reads exact counts until frees turn on.
 	Frees bool
-	// HoldUntilFree keeps a block at zero holders a holder of each child it
-	// lists until the transaction that frees it, as Collector describes. Off,
-	// a block releases its children when it reaches zero. The collector nets
-	// and frees only a Volume whose counts were written under its own rule,
-	// LivenessState.HoldRule; a Volume under the other rule waits for an
-	// adoption, which counts it again under this one.
-	HoldUntilFree bool
-	// Grace is how old a journal record must be before a pass nets it. It
-	// must exceed the time a reader takes to pin a head it saw and the lease
-	// of a leased root, so a reader whose process stalled past its lease
-	// still finds its blocks. Zero uses DefaultGrace.
+	// Grace is how old a down page must be before a pass nets it. It must
+	// exceed the time a reader takes to pin a head it saw and the lease of a
+	// leased root, so a reader whose process stalled past its lease still
+	// finds its blocks. Zero uses DefaultGrace.
 	Grace time.Duration
-	// TailEntries bounds the up and again entries of the journal past the
-	// cursor the free indexes in memory to keep the blocks they name. Past
-	// it the free keeps every block until netting trims the journal below
-	// it. Zero uses DefaultTailEntries.
-	TailEntries int
 	// Now returns the time records and leases are read on; nil is time.Now.
 	Now func() time.Time
 	// Budget bounds the time one Collect spends before it reports More; zero
@@ -47,16 +35,8 @@ type CollectorOptions struct {
 	Phase func(Phase) func()
 	// WritersWaiting reports that a foreground writer waits on the store, as
 	// kvtx.WriterQueueStore does; nil reports none. The free loop stops at the
-	// next block, and a paged cascade at the next page, once one waits.
+	// next block, and a paged release at the next page, once one waits.
 	WritersWaiting func() bool
-}
-
-// rule returns the hold rule the options name.
-func (o *CollectorOptions) rule() HoldRule {
-	if o.HoldUntilFree {
-		return HoldRule_HOLD_RULE_HOLD_UNTIL_FREE
-	}
-	return HoldRule_HOLD_RULE_RELEASE_AT_ZERO
 }
 
 // sliceTarget is how long the collector's own work in one transaction aims
@@ -74,36 +54,33 @@ const DefaultGrace = 15 * time.Minute
 // DefaultBudget is the time budget of a Collect that sets none.
 const DefaultBudget = time.Second
 
-// sliceRecords bounds the journal records one net transaction nets, and the
-// cascade records it loads.
+// sliceRecords bounds the down pages one net transaction restamps, and the
+// roots and pages one settle slice reads.
 const sliceRecords = 256
 
-// slicePairs bounds the journal entries one net transaction applies, and
-// the fill ups, so one large commit's record splits across slices instead of
-// making one long one.
+// slicePairs bounds the log keys one net transaction applies, in whole
+// pages, so a backlog splits across slices instead of making one long one.
 const slicePairs = 4096
 
-// sliceFrees bounds the Dead blocks one free transaction frees.
+// sliceFrees bounds the blocks one free transaction frees.
 const sliceFrees = 128
 
-// sliceReleases bounds the children one net transaction's cascades move. A
-// block with more children moves them across transactions, through release
-// pages, as continueRelease describes. A moved child costs about five
-// operations when it reaches zero, its count, cascade and list reads and
-// its zero record and queue key, so a slice of moves is about 15,400.
+// sliceReleases bounds the children one transaction's frees move down. A
+// freed block with more children moves them across transactions, through
+// release pages, as continueRelease describes. A moved child costs about
+// three operations, its count read and, at zero, its list read and its
+// count and queue writes, so a slice of moves is about 9,200.
 const sliceReleases = 3072
 
 // releasePageChildren is how many children one release page holds, so a
-// net transaction that resumes a paged cascade reads only the pages it
-// moves. It is also the slice's moves while a writer waits: a cascade
-// beside a waiting writer moves one page, about 5,100 operations, per
-// transaction.
+// net transaction that resumes a paged release reads only the pages it
+// moves. It is also the slice's moves while a writer waits.
 const releasePageChildren = 1024
 
-// journalPagePairs bounds the entries of one journal record: a Land with
-// more writes its record in pages, so a net slice decodes only the pages it
-// works on.
-const journalPagePairs = 2048
+// logPageKeys bounds the block keys of one up or down page: a Land with
+// more writes more pages, so a net slice decodes only the pages it works
+// on.
+const logPageKeys = 2048
 
 // sliceLeases bounds the lapsed leased roots one transaction releases.
 const sliceLeases = 256
@@ -113,6 +90,3 @@ const sliceLeases = 256
 // below that mark, as by a clock that stepped back, is released at most this
 // late.
 const leaseRescan = time.Hour
-
-// DefaultTailEntries is the tail index bound of a Collector that sets none.
-const DefaultTailEntries = 1 << 19
