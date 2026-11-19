@@ -409,23 +409,87 @@ func regenOn(ctx context.Context, t *testing.T, r *spaceReplay, prev *InnerState
 }
 
 // carryOn applies quads to prev as the engine writes carried quads: one
-// SET_GRAPH_QUADS transaction, which replay applies in one graph update.
+// SetGraphQuads operation, which replay applies in one graph update.
 func carryOn(ctx context.Context, t *testing.T, r *spaceReplay, prev *InnerState, quads ...world.GraphQuad) *InnerState {
 	t.Helper()
-	next, reason, err := r.applyTx(ctx, &ApplyTxOp{Tx: carryTx(quads...)}, prev, "")
+	next, reason, err := r.applySetGraphQuads(ctx, carryList(quads...), prev)
 	if err != nil || reason != "" {
 		t.Fatal(reason, err)
 	}
 	return next
 }
 
-// carryTx returns the SET_GRAPH_QUADS transaction that sets quads in order.
-func carryTx(quads ...world.GraphQuad) *world_block_tx.Tx {
+// carryList returns the graph quad list that sets quads in order.
+func carryList(quads ...world.GraphQuad) *world_block_tx.TxSetGraphQuads {
 	list := make([]*bquad.Quad, len(quads))
 	for i, q := range quads {
 		list[i] = world.GraphQuadToQuad(q)
 	}
-	return world_block_tx.NewTxSetGraphQuads(list)
+	return &world_block_tx.TxSetGraphQuads{Quads: list}
+}
+
+// TestReplayWaitsAtAnUnreadableWrite tries to make a replica that cannot read
+// a write apply or refuse it, which would part it from the replicas that can.
+// A build without the SetGraphQuads body reads a carry write as a WorldOp
+// field it does not declare, and a build without a transaction type reads an
+// ApplyTxOp of it, alone or in a batch, as an unknown type: each is
+// ErrUnreadableOp, on which replay waits for a build that reads it. A build
+// that reads the carry write applies it to the World its writer reached.
+func TestReplayWaitsAtAnUnreadableWrite(t *testing.T) {
+	ctx := t.Context()
+	r, base := newWorldReplay(t)
+	base = createOn(ctx, t, r, base, "a")
+	base = createOn(ctx, t, r, base, "b")
+	quads := []world.GraphQuad{
+		world.NewGraphQuadWithKeys("a", "<p>", "b", ""),
+		world.NewGraphQuadWithKeys("a", "<q>", "b", ""),
+		world.NewGraphQuadWithKeys("b", "<p>", "a", ""),
+	}
+
+	// A build without the body holds the whole carry write as unknown fields.
+	data, err := (&WorldOp{Body: &WorldOp_SetGraphQuads{SetGraphQuads: carryList(quads...)}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	older := &WorldOp{unknownFields: data}
+	if reason, err := readUnknownFields(older); reason != "" || !errors.Is(err, ErrUnreadableOp) {
+		t.Fatalf("carry write on a build without its body = %q, %v, want ErrUnreadableOp", reason, err)
+	}
+
+	// A build that reads it reaches the writer's World: the same list set in
+	// one graph update.
+	wop := &WorldOp{}
+	if err := wop.UnmarshalVT(data); err != nil {
+		t.Fatal(err)
+	}
+	if reason, err := readUnknownFields(wop); reason != "" || err != nil {
+		t.Fatalf("carry write on this build = %q, %v, want readable", reason, err)
+	}
+	replayed := carryOn(ctx, t, r, base, quads...)
+	written := changeOn(ctx, t, r, base, func(btx *world_block.EngineTx) error {
+		return btx.SetGraphQuads(ctx, quads)
+	})
+	if !replayed.GetHeadRef().GetRootRef().EqualsRef(written.GetHeadRef().GetRootRef()) {
+		t.Fatal("the replayed carry write reached another World than its writer")
+	}
+
+	// A transaction type this build does not declare waits, alone or batched.
+	unknown := &world_block_tx.Tx{TxType: 99}
+	batched := &world_block_tx.Tx{
+		TxType:  world_block_tx.TxType_TxType_BATCH,
+		TxBatch: &world_block_tx.TxBatch{Txs: []*world_block_tx.Tx{carryTx(quads...), unknown}},
+	}
+	for _, tx := range []*world_block_tx.Tx{unknown, batched} {
+		next, reason, err := r.applyTx(ctx, &ApplyTxOp{Tx: tx}, base, "")
+		if next != nil || reason != "" || !errors.Is(err, ErrUnreadableOp) {
+			t.Fatalf("unknown transaction type = %v, %q, %v, want ErrUnreadableOp", next, reason, err)
+		}
+	}
+}
+
+// carryTx returns the SET_GRAPH_QUADS transaction that sets quads in order.
+func carryTx(quads ...world.GraphQuad) *world_block_tx.Tx {
+	return world_block_tx.NewTxSetGraphQuads(carryList(quads...).GetQuads())
 }
 
 // faultStore is a store whose puts fail with a full disk from the failAt-th

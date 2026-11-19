@@ -8,6 +8,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
 import { SharedObjectRef } from '../../sobject/sobject.pb.js'
 import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
+import { Tx, TxSetGraphQuads } from '../../../db/world/block/tx/tx.pb.js'
 import type { WorldFormat } from '../../../db/world/block/world.pb.js'
 import {
   GraphSettings,
@@ -15,7 +16,6 @@ import {
 } from '../../../db/world/block/world.pb.js'
 import { BlockRef } from '../../../db/block/block.pb.js'
 import { Config as Config$1 } from '../../../db/block/transform/transform.pb.js'
-import { Tx } from '../../../db/world/block/tx/tx.pb.js'
 
 /**
  * ReplayRefusalRule is the rule that decided a cursor's refusals.
@@ -107,6 +107,11 @@ export enum WorldOpKind {
    * WORLD_OP_KIND_RELEASE_WORLD_REGEN is a ReleaseWorldRegenOp.
    */
   RELEASE_WORLD_REGEN = 10,
+
+  /**
+   * WORLD_OP_KIND_SET_GRAPH_QUADS is a graph quad list set in one update.
+   */
+  SET_GRAPH_QUADS = 11,
 }
 
 export const WorldOpKind_Enum = /* @__PURE__ */ createEnumType(
@@ -122,6 +127,7 @@ export const WorldOpKind_Enum = /* @__PURE__ */ createEnumType(
     [8, 'WORLD_OP_KIND_ROOT_SET'],
     [9, 'WORLD_OP_KIND_REGENERATE_WORLD'],
     [10, 'WORLD_OP_KIND_RELEASE_WORLD_REGEN'],
+    [11, 'WORLD_OP_KIND_SET_GRAPH_QUADS'],
   ],
 )
 
@@ -370,6 +376,7 @@ export interface WorldOp {
     | { value: RootSetOp; case: 'rootSet' }
     | { value: RegenerateWorldOp; case: 'regenerateWorld' }
     | { value: ReleaseWorldRegenOp; case: 'releaseWorldRegen' }
+    | { value: TxSetGraphQuads; case: 'setGraphQuads' }
 }
 
 export const WorldOp: MessageType<WorldOp> =
@@ -383,6 +390,7 @@ export const WorldOp: MessageType<WorldOp> =
     [8, 'root_set', 11, 0, RootSetOp.codec, 'body'],
     [9, 'regenerate_world', 11, 0, RegenerateWorldOp.codec, 'body'],
     [10, 'release_world_regen', 11, 0, ReleaseWorldRegenOp.codec, 'body'],
+    [11, 'set_graph_quads', 11, 0, TxSetGraphQuads.codec, 'body'],
   ])
 
 /**

@@ -33,6 +33,12 @@ type Transaction interface {
 	) (sysErr bool, err error)
 }
 
+// ErrUnknownTxType is returned for a transaction whose type this build does
+// not declare, which a newer build may have written. It is a
+// world.ErrUnhandledOp. A replica that meets one waits for a build that reads
+// it, since applying or refusing it would part it from the replicas that can.
+var ErrUnknownTxType = errors.Wrap(world.ErrUnhandledOp, "transaction type unknown to this build")
+
 // Validate checks the execution tx type is in range.
 func (t TxType) Validate() error {
 	switch t {
@@ -48,7 +54,7 @@ func (t TxType) Validate() error {
 	case TxType_TxType_SET_GRAPH_QUADS:
 	case TxType_TxType_BATCH:
 	default:
-		return errors.Wrap(world.ErrUnhandledOp, t.String())
+		return errors.Wrap(ErrUnknownTxType, t.String())
 	}
 	return nil
 }
@@ -114,7 +120,7 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	case TxType_TxType_BATCH:
 		return t.GetTxBatch(), nil
 	default:
-		return nil, errors.Wrap(world.ErrUnhandledOp, t.GetTxType().String())
+		return nil, errors.Wrap(ErrUnknownTxType, t.GetTxType().String())
 	}
 }
 

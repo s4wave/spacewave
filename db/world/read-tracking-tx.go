@@ -24,4 +24,5 @@ func (t *readTrackingTx) Discard() {
 var (
 	_ Tx                   = (*readTrackingTx)(nil)
 	_ ObjectRootRefBatcher = (*readTrackingTx)(nil)
+	_ GraphQuadsSetter     = (*readTrackingTx)(nil)
 )

@@ -239,8 +239,8 @@ func nextCarrySize(n int, hold time.Duration) int {
 }
 
 // writeCarriedQuads sets the quads of the quad list at quads in the World as
-// ordinary writes through the Space's order, each one SET_GRAPH_QUADS
-// transaction of at most sobject.MaxBatchSize bytes and of as many quads as
+// ordinary writes through the Space's order, each one SetGraphQuads operation
+// of at most sobject.MaxBatchSize bytes and of as many quads as
 // nextCarrySize gives from the last write's replay hold, in list order. Every
 // replica, this device included, applies each write by replay, so all reach
 // the same World. Between writes it yields to this device's writers. A user's
@@ -268,10 +268,10 @@ func (e *Engine) writeCarriedQuads(ctx context.Context, quads *block.BlockRef) e
 		}
 
 		// Write it, sizing the next one from how long it held replay.
-		tx := world_block_tx.NewTxSetGraphQuads(batch)
+		body := &WorldOp_SetGraphQuads{SetGraphQuads: &world_block_tx.TxSetGraphQuads{Quads: batch}}
 		n := len(batch)
 		batch, size = nil, 0
-		hold, err := e.a.writeOpHold(ctx, &WorldOp{Body: &WorldOp_ApplyTxOp{ApplyTxOp: &ApplyTxOp{Tx: tx}}})
+		hold, err := e.a.writeOpHold(ctx, &WorldOp{Body: body})
 		if err != nil {
 			return err
 		}
@@ -373,6 +373,12 @@ func (t *spaceWriteTx) ApplyWorldOp(ctx context.Context, op world.Operation, sen
 		ctx = withOperationAuthor(ctx, participant)
 	}
 	return t.Tx.ApplyWorldOp(ctx, op, sender)
+}
+
+// SetGraphQuads sets quads as one list through the engine's write
+// transaction, which records it as one list.
+func (t *spaceWriteTx) SetGraphQuads(ctx context.Context, quads []world.GraphQuad) error {
+	return world.SetGraphQuads(ctx, t.Tx, quads)
 }
 
 // WaitObjectRev waits through the engine's write transaction.

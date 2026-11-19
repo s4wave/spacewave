@@ -28,7 +28,8 @@ import (
 // none, so its replay builds each switch inline. A switch past the bound is
 // refused on both. Every object and quad either device wrote, and the quad
 // the regeneration carried, survive on both replicas, and the replicas reach
-// the same root, as they do after a multi-quad transaction and a carry write.
+// the same root, as they do after a multi-quad transaction, a transaction
+// that sets a quad list, and a carry write.
 func TestRegenerateWorldReplicasWhileWriting(t *testing.T) {
 	// Start a testbed with the local provider and the Space World engine.
 	ctx, cancel := context.WithTimeout(t.Context(), 4*time.Minute)
@@ -128,6 +129,24 @@ func TestRegenerateWorldReplicasWhileWriting(t *testing.T) {
 
 	// The owner adopted each bulk transaction's candidate, and the writer
 	// replayed it: both reach the same root.
+	waitSameHead(ctx, t, ownerServed, writerServed)
+
+	// A transaction that sets a quad list records it as one list, which the
+	// owner set in one graph update and the writer replays alike: both reach
+	// the same root.
+	if err := world.ExecTransaction(ctx, ownerEngine, true, func(ctx context.Context, ws world.WorldState) error {
+		setter, ok := ws.(world.GraphQuadsSetter)
+		if !ok {
+			return errors.New("the recorded transaction cannot set a quad list")
+		}
+		list := make([]world.GraphQuad, 64)
+		for i := range list {
+			list[i] = world.NewGraphQuadWithKeys(keys[i%len(keys)], fmt.Sprintf("<listed-%d>", i), "seed-0", "")
+		}
+		return setter.SetGraphQuads(ctx, list)
+	}); err != nil {
+		t.Fatal(err)
+	}
 	waitSameHead(ctx, t, ownerServed, writerServed)
 
 	// Write the carried quad's list on the owner, under a stage that holds it

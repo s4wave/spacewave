@@ -47,8 +47,15 @@ func (r *RefCountTx) GetObjectRootRefsBatch(ctx context.Context, keys []string) 
 	return GetObjectRootRefsBatch(ctx, r.tx, keys)
 }
 
+// SetGraphQuads sets a quad list through the wrapped transaction, so a
+// recorder below records it as one operation.
+func (r *RefCountTx) SetGraphQuads(ctx context.Context, quads []GraphQuad) error {
+	return SetGraphQuads(ctx, r.tx, quads)
+}
+
 // _ is a type assertion
 var (
 	_ Tx                   = (*RefCountTx)(nil)
 	_ ObjectRootRefBatcher = (*RefCountTx)(nil)
+	_ GraphQuadsSetter     = (*RefCountTx)(nil)
 )

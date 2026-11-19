@@ -154,6 +154,8 @@ func worldOpKind(wop *WorldOp) WorldOpKind {
 		return WorldOpKind_WORLD_OP_KIND_REGENERATE_WORLD
 	case *WorldOp_ReleaseWorldRegen:
 		return WorldOpKind_WORLD_OP_KIND_RELEASE_WORLD_REGEN
+	case *WorldOp_SetGraphQuads:
+		return WorldOpKind_WORLD_OP_KIND_SET_GRAPH_QUADS
 	default:
 		return WorldOpKind_WORLD_OP_KIND_UNKNOWN
 	}

@@ -178,6 +178,14 @@ func (s *readSetWorldState) SetGraphQuad(ctx context.Context, q GraphQuad) error
 	return s.WorldState.SetGraphQuad(ctx, q)
 }
 
+// SetGraphQuads records the quads and sets them as one list.
+func (s *readSetWorldState) SetGraphQuads(ctx context.Context, quads []GraphQuad) error {
+	for _, q := range quads {
+		s.reads.addPatterns(q)
+	}
+	return SetGraphQuads(ctx, s.WorldState, quads)
+}
+
 // DeleteGraphQuad records the quad.
 func (s *readSetWorldState) DeleteGraphQuad(ctx context.Context, q GraphQuad) error {
 	s.reads.addPatterns(q)
@@ -194,4 +202,5 @@ func (s *readSetWorldState) DeleteGraphObject(ctx context.Context, value string)
 var (
 	_ WorldState           = (*readSetWorldState)(nil)
 	_ ObjectRootRefBatcher = (*readSetWorldState)(nil)
+	_ GraphQuadsSetter     = (*readSetWorldState)(nil)
 )

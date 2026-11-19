@@ -15,6 +15,7 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -293,6 +294,8 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 		next, reason, err = r.applyRegenerateWorld(ctx, body.RegenerateWorld, prev)
 	case *WorldOp_ReleaseWorldRegen:
 		next, reason = applyReleaseWorldRegen(body.ReleaseWorldRegen, prev)
+	case *WorldOp_SetGraphQuads:
+		next, reason, err = r.applySetGraphQuads(ctx, body.SetGraphQuads, prev)
 	case *WorldOp_Fence, *WorldOp_RootSet:
 		next = prev
 	default:
@@ -359,9 +362,11 @@ func (r *spaceReplay) applyInit(ctx context.Context, initOp *InitWorldOp, prev *
 	return next, "", nil
 }
 
-// applyTx runs a World transaction as its signer on the World prev.
+// applyTx runs a World transaction as its signer on the World prev. A
+// transaction type this build does not declare fails with ErrUnreadableOp, so
+// replay waits at it for a build that reads it.
 func (r *spaceReplay) applyTx(ctx context.Context, txOp *ApplyTxOp, prev *InnerState, peerID peer.ID) (*InnerState, string, error) {
-	return r.commitOn(ctx, prev, "transaction apply failed", func(btx *world_block.EngineTx) (bool, error) {
+	next, reason, err := r.commitOn(ctx, prev, "transaction apply failed", func(btx *world_block.EngineTx) (bool, error) {
 		// Decode the transaction and run it as its signer.
 		ttx, err := txOp.GetTx().LocateTx()
 		if err != nil {
@@ -370,6 +375,20 @@ func (r *spaceReplay) applyTx(ctx context.Context, txOp *ApplyTxOp, prev *InnerS
 		_, err = ttx.ExecuteTx(ctx, peerID, waitingLookup(r.a.lookupOp, btx), btx)
 		return err == nil, err
 	})
+	if errors.Is(err, world_block_tx.ErrUnknownTxType) {
+		err = errors.Wrap(ErrUnreadableOp, err.Error())
+	}
+	return next, reason, err
+}
+
+// applySetGraphQuads sets a list of graph quads on the World prev in one graph
+// update, the call its writer's write ran.
+func (r *spaceReplay) applySetGraphQuads(ctx context.Context, op *world_block_tx.TxSetGraphQuads, prev *InnerState) (*InnerState, string, error) {
+	return r.commitOn(ctx, prev, "graph quad set failed", func(btx *world_block.EngineTx) (bool, error) {
+		_, err := op.ExecuteTx(ctx, "", nil, btx)
+		return err == nil, err
+	})
+
 }
 
 // applyGraphSettingsStep moves the World prev one step toward the step's
@@ -656,6 +675,8 @@ func opTypeOf(wop *WorldOp) string {
 		return "regenerate-world"
 	case *WorldOp_ReleaseWorldRegen:
 		return "release-world-regen"
+	case *WorldOp_SetGraphQuads:
+		return "set-graph-quads"
 	}
 	return "unknown"
 }
@@ -671,6 +692,7 @@ func reasonCode(reason string) string {
 		"invalid world init",
 		"world is not initialized",
 		"transaction apply failed",
+		"graph quad set failed",
 		"graph settings step failed",
 		"invalid operation data",
 		"empty operation",
