@@ -514,11 +514,13 @@ func (f *qemuGitea) requireGuestBindings(original, replacement string) {
 
 // configDigest reads only a hash, keeping generated application keys out of receipts.
 func (f *qemuGitea) configDigest(log, marker string) string {
-	// The next nonempty line after the marker is BusyBox's sha256sum result.
+	// BusyBox's sha256sum line follows the marker; a shell prompt may precede it.
 	for _, tail := range strings.Split(log, marker)[1:] {
 		fields := strings.Fields(tail)
-		if len(fields) > 0 && len(fields[0]) == 64 {
-			return fields[0]
+		for i := 1; i < len(fields); i++ {
+			if fields[i] == "/data/config/app.ini" && len(fields[i-1]) == 64 {
+				return fields[i-1]
+			}
 		}
 	}
 	f.t.Fatalf("configuration digest missing after %s", marker)
