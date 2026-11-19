@@ -230,14 +230,19 @@ func sleep(ctx context.Context, d time.Duration) error {
 const memoryLogInterval = 5 * time.Second
 
 // logMemory logs, every interval until ctx ends, the decoded-block pool's
-// retained cost against its budget and the Go heap's live object bytes, so a
-// run log shows how much of the heap the pool holds. The heap figure comes
-// from runtime/metrics, which reads it without stopping the world.
+// retained cost against its budget, its hits and misses, the Go heap's live
+// object bytes and the CPU the collector has used, so a run log shows how much
+// of the heap the pool holds and what the build costs the commits beside it.
+// The runtime figures come from runtime/metrics, which reads them without
+// stopping the world.
 func logMemory(ctx context.Context, interval time.Duration) {
 	// Read the process-wide pool through a scope of its own.
 	pool := block.NewDecodedBlockCache()
 	defer pool.Close()
-	sample := []metrics.Sample{{Name: "/memory/classes/heap/objects:bytes"}}
+	sample := []metrics.Sample{
+		{Name: "/memory/classes/heap/objects:bytes"},
+		{Name: "/cpu/classes/gc/total:cpu-seconds"},
+	}
 
 	// Log one line each interval.
 	t := time.NewTicker(interval) //gostyle:timer deadline
@@ -251,7 +256,11 @@ func logMemory(ctx context.Context, interval time.Duration) {
 		st := pool.Snapshot()
 		metrics.Read(sample)
 		heap := int64(sample[0].Value.Uint64()) //nolint:gosec // the live heap is far below 2^63 bytes.
-		logf("memory heap %d pool %d of %d (%d entries) beyond %d", heap, st.RetainedCost, st.MaxCost, st.Entries, heap-st.RetainedCost)
+		gcCPU := sample[1].Value.Float64()
+		logf(
+			"memory heap %d pool %d of %d (%d entries) beyond %d hits %d misses %d gc %.1fs",
+			heap, st.RetainedCost, st.MaxCost, st.Entries, heap-st.RetainedCost, st.Hits, st.Misses, gcCPU,
+		)
 	}
 }
 
