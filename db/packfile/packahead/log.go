@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
@@ -46,6 +47,9 @@ type Log struct {
 	opts Options
 	// writeMtx serializes writers to the open pack for one encode and write.
 	writeMtx csync.Mutex
+	// failureVersion advances when a pack first fails. Append samples it
+	// across its waits to detect failure in any pack it touched.
+	failureVersion atomic.Uint64
 	// bcast guards the fields below and every pack's fields, and wakes
 	// writers waiting on a sync and the maintainer.
 	bcast broadcast.Broadcast
@@ -307,6 +311,7 @@ func (l *Log) Append(ctx context.Context, blocks []Block) error {
 	if err != nil {
 		return err
 	}
+	version := l.failureVersion.Load()
 	waits, err := l.writeBlocks(ctx, blocks)
 	release()
 	if err != nil {
@@ -318,6 +323,33 @@ func (l *Log) Append(ctx context.Context, blocks []Block) error {
 		if err := l.waitSynced(ctx, w.p, w.end); err != nil {
 			return err
 		}
+		if err := l.checkAppendFailures(waits, &version); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkAppendFailures confirms all touched packs stayed healthy through a
+// single failure version. The common path needs only one atomic load.
+func (l *Log) checkAppendFailures(waits []syncWait, version *uint64) error {
+	for current := l.failureVersion.Load(); current != *version; current = l.failureVersion.Load() {
+		// Failures are permanent. Read every touched pack in bounded holds,
+		// then repeat if a pack could have failed while the scan was running.
+		for batch := range slices.Chunk(waits, locationBatchSize) {
+			var err error
+			l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+				for _, w := range batch {
+					if err = w.p.err; err != nil {
+						return
+					}
+				}
+			})
+			if err != nil {
+				return errors.Wrap(err, "sync pack")
+			}
+		}
+		*version = current
 	}
 	return nil
 }
@@ -573,6 +605,7 @@ func (l *Log) growBuf(p *pack, end int64) []byte {
 func (l *Log) failLocked(p *pack, err error) {
 	if p.err == nil {
 		p.err = err
+		l.failureVersion.Add(1)
 	}
 }
 

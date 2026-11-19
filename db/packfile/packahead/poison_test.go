@@ -305,6 +305,83 @@ func TestPackAheadFailedWriteCannotAcknowledgeCorruptBatch(t *testing.T) {
 	}
 }
 
+// TestPackAheadMultiPackAppendRejectsFailure fails the newer pack while
+// the same append is waiting for the older pack's sync.
+func TestPackAheadMultiPackAppendRejectsFailure(t *testing.T) {
+	// Gate the older pack's sync so the mixed append drives it.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	syncing, resume := make(chan struct{}), make(chan struct{})
+	l, err := Open(ctx, t.TempDir(), Options{MaxPackBlocks: 2, SyncData: func(f *os.File) error {
+		if filepath.Base(f.Name()) == openName(1) {
+			close(syncing)
+			select {
+			case <-resume:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+		return f.Sync()
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		cancel()
+		l.Close()
+	}()
+	l.cancel()
+	if err := l.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return l.maintDone, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Stage the full older pack without syncing it, then rotate and sync a
+	// block in the newer pack.
+	older, newer := testBlock(t, 1, 64), testBlock(t, 3, 64)
+	release, err := l.writeMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = l.writeBlocks(ctx, []Block{older, testBlock(t, 2, 64)})
+	release()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(ctx, []Block{newer}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The mixed append accepts the newer sync first and leads the older sync.
+	result := make(chan error, 1)
+	go func() { result <- l.Append(ctx, []Block{newer, older}) }()
+	select {
+	case <-syncing:
+	case <-ctx.Done():
+		t.Fatal("mixed append never reached the older sync")
+	}
+
+	// Damage the newer batch on disk and fail the next write to that pack.
+	if _, err := l.open.f.WriteAt([]byte{0}, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := FailAppendWrite(t, l, []Block{testBlock(t, 4, 64)}); !errors.Is(err, syscall.EBADF) {
+		t.Fatalf("later write returned %v", err)
+	}
+
+	// The successful older sync cannot acknowledge the failed newer pack.
+	close(resume)
+	select {
+	case err := <-result:
+		if !errors.Is(err, syscall.EBADF) {
+			t.Fatalf("mixed append returned %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatal("mixed append never finished")
+	}
+}
+
 // TestPackAheadRecoveryKeepsAcknowledgedBatches tests live and startup
 // recovery after damage to a batch's data or its record header.
 func TestPackAheadRecoveryKeepsAcknowledgedBatches(t *testing.T) {
