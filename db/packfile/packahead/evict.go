@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
 )
 
@@ -91,9 +92,20 @@ func (l *Log) MarkUploaded(seq uint64) {
 // dropRemovedLocked forgets the values of uploaded pack p that Remove
 // marked, which the remote now serves. The caller holds bcast.
 func (l *Log) dropRemovedLocked(p *pack) {
-	for t := range p.removed {
-		l.dropLocationLocked(t, l.table[t])
+	// A pack with no deferred locations has nothing to invalidate.
+	if len(p.removed) == 0 {
+		return
 	}
+
+	// Remove the locations and collect their stripes under the same lock.
+	var removals block.BlockRemovalBatch
+	for t, stripe := range p.removed {
+		removals.Add(stripe)
+		delete(l.table, t)
+	}
+
+	// Publish one generation before any log reader can observe the deletion.
+	removals.Publish()
 	p.removed = nil
 }
 
