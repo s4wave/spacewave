@@ -15,7 +15,7 @@ type worldReaders interface {
 // what is live.
 type liveWorlds struct {
 	// memory are the Worlds whose pages may be kept in memory: the positions'
-	// above the floor, the installed head, the writer head, the Worlds a
+	// above the floor and the roots their states retain, the installed head, the writer head, the Worlds a
 	// checkpoint is storing and the Worlds the served engine's readers may
 	// still read. A trim holds them under the replay cursor root, and a sweep
 	// keeps their pages.
@@ -24,8 +24,8 @@ type liveWorlds struct {
 	// the pending root, and a sweep keeps their pages.
 	candidates []*block.BlockRef
 	// stored are the Worlds whose pages left memory: the positions' below the
-	// floor and the restored positions', which replay computes again or
-	// adopts. A trim keeps them where a history holds them but holds none
+	// floor and the restored positions', with the roots their states retain,
+	// which replay computes again or adopts. A trim keeps them where a history holds them but holds none
 	// anew, and a sweep drops their pages.
 	stored []*block.BlockRef
 	// payloads are the payload roots of the positions above the floor and of
@@ -37,20 +37,23 @@ type liveWorlds struct {
 
 // gatherLive gathers the live Worlds. The driver goroutine calls it.
 func (a *Adapter) gatherLive() liveWorlds {
-	// Gather the positions' and the restored positions' Worlds.
+	// Gather the positions' and the restored positions' Worlds, with the
+	// roots each state retains. An applied state may stay uninstalled while
+	// replay waits at a missing operation, and a sweep or trim meanwhile must
+	// not free a root only it retains, such as a regeneration's base, which
+	// the installed head's retained roots do not name yet.
 	var l liveWorlds
 	r := a.replay
 	for i, pos := range r.positions {
-		root := pos.state.GetHeadRef().GetRootRef()
 		if i < r.floor {
-			l.stored = append(l.stored, root)
+			l.stored = appendStateRoots(l.stored, pos.state)
 			continue
 		}
-		l.memory = append(l.memory, root)
+		l.memory = appendStateRoots(l.memory, pos.state)
 		l.payloads = append(l.payloads, pos.payloads...)
 	}
 	for _, pos := range r.restored {
-		l.stored = append(l.stored, pos.state.GetHeadRef().GetRootRef())
+		l.stored = appendStateRoots(l.stored, pos.state)
 	}
 
 	// Add the heads, the candidates and the retained roots.
@@ -71,6 +74,16 @@ func (a *Adapter) gatherLive() liveWorlds {
 	// Add the engine readers' Worlds.
 	l.memory = append(l.memory, a.readRoots()...)
 	return l
+}
+
+// appendStateRoots appends the World of state and the roots it retains to
+// roots.
+func appendStateRoots(roots []*block.BlockRef, state *InnerState) []*block.BlockRef {
+	roots = append(roots, state.GetHeadRef().GetRootRef())
+	for _, root := range state.GetRetainedRoots() {
+		roots = append(roots, root.GetRootRef())
+	}
+	return roots
 }
 
 // readRoots returns the Worlds the served engine's readers may still read,

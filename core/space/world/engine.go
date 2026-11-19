@@ -153,8 +153,16 @@ func (e *Engine) StepGraphSettings(ctx context.Context, target *world_block.Grap
 // world_block.WorldRegenerator says, and waits for the operation's outcome.
 // Every replica, this one included, adds the quads of the quad list at quads
 // and builds the new World in replay; a refusal returns sobject.ErrRejectedOp.
+// The Space holds the list from before the operation is queued until its
+// checkpoint passes the operation, as it holds a transaction's payloads, so
+// the caller must hold the list, as an open stage does, until RegenerateWorld
+// returns; a list nothing holds is refused with block.ErrRootNotHeld.
 func (e *Engine) RegenerateWorld(ctx context.Context, target world_block.WorldFormat, quads *block.BlockRef) error {
-	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: &RegenerateWorldOp{Target: target, Quads: quads}}})
+	var payloads []*block.BlockRef
+	if !quads.GetEmpty() {
+		payloads = []*block.BlockRef{quads}
+	}
+	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: &RegenerateWorldOp{Target: target, Quads: quads}}}, payloads...)
 }
 
 // ReleaseWorldRegen compares the old World a regeneration holds with the new
@@ -171,8 +179,15 @@ func (e *Engine) ReleaseWorldRegen(ctx context.Context) error {
 		return errors.New("no world regeneration is held")
 	}
 
-	// Compare them, then queue the release and wait.
-	if err := world_block.NewOrderedRegen(e.cursor, nil, e.a.regenConfig()).Compare(ctx, base, built); err != nil {
+	// Compare them, one comparison at a time, then queue the release and
+	// wait.
+	unlock, err := e.a.regenCompare.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	err = world_block.NewOrderedRegen(e.cursor, nil, e.a.regenConfig(regenSpillCompare)).Compare(ctx, base, built)
+	unlock()
+	if err != nil {
 		return err
 	}
 	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_ReleaseWorldRegen{ReleaseWorldRegen: &ReleaseWorldRegenOp{Base: base, Built: built}}})
@@ -231,15 +246,20 @@ func (a *Adapter) participant(ctx context.Context) (*sobject.SOParticipantConfig
 // writeOp queues op after this device's admitted operations and waits for
 // replay to decide it. Like Admit, it waits while replay opens and returns
 // replay's wait while replay waits, since its caller chose op from the
-// installed head.
-func (a *Adapter) writeOp(ctx context.Context, op *WorldOp) error {
-	// Queue it unless replay is not caught up.
+// installed head. payloads are the roots op names, which writeOp holds before
+// queueing op, refusing one nothing holds now with block.ErrRootNotHeld.
+func (a *Adapter) writeOp(ctx context.Context, op *WorldOp, payloads ...*block.BlockRef) error {
+	// Queue it unless replay is not caught up, holding its payloads first.
 	data, err := op.MarshalVT()
 	if err != nil {
 		return err
 	}
-	adm := a.newAdmission(world.Candidate{}, data, nil, nil)
+	adm := a.newAdmission(world.Candidate{}, data, payloads, nil)
 	if err := a.admitWrite(ctx, adm); err != nil {
+		return err
+	}
+	if err := a.holdAdmitted(ctx, adm, false); err != nil {
+		a.fail(adm, err)
 		return err
 	}
 	a.queue.push(adm)

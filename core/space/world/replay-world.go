@@ -165,12 +165,13 @@ func ImportRoots(
 		saved = nil
 
 		// Name the payloads of an operation replay has not reached. One that
-		// runs no transaction names none; the World after one that changes it
-		// another way is not known here.
-		tx, leaves, err := replayedTx(ctx, snap, set, h)
+		// runs no transaction names only those its body names; the World
+		// after one that changes it another way is not known here.
+		tx, bodyRefs, leaves, err := replayedTx(ctx, snap, set, h)
 		if err != nil {
 			return nil, err
 		}
+		roots = append(roots, bodyRefs...)
 		if tx == nil {
 			if !leaves {
 				prev = nil
@@ -316,10 +317,11 @@ func opPayloads(
 	h []byte,
 	lookupOp world.LookupOp,
 ) (refs []*block.BlockRef, known bool, err error) {
-	// Skip the operations that apply nothing.
-	tx, _, err := replayedTx(ctx, snap, set, h)
+	// Skip the operations that apply nothing, and name what a body that
+	// runs no transaction names.
+	tx, bodyRefs, _, err := replayedTx(ctx, snap, set, h)
 	if err != nil || tx == nil {
-		return nil, err == nil, err
+		return bodyRefs, err == nil, err
 	}
 
 	// Read the roots the transaction names.
@@ -328,43 +330,55 @@ func opPayloads(
 }
 
 // replayedTx returns the World transaction operation h of set, read from
-// snap, runs, or nil for one that runs none. leaves reports one that leaves
+// snap, runs, or nil for one that runs none. refs are the payload roots a body
+// that runs no transaction names, such as a regeneration's quad list, which
+// the Space holds from the admit until the checkpoint passes the operation,
+// as it holds a transaction's. leaves reports one that leaves
 // the World: an acknowledgment, one replay refuses before its body, such as
 // an equivocated or skipped one, one its config does not authorize, one that
 // does not decode, a removed body, a fence and a root set. err is a failure
 // to read snap, or ErrUnreadableOp at a body this build cannot read, which
 // may name payloads and change the World.
-func replayedTx(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet, h []byte) (tx *world_block_tx.Tx, leaves bool, err error) {
+func replayedTx(
+	ctx context.Context,
+	snap sobject.SharedObjectStateSnapshot,
+	set *sobject.SOOperationSet,
+	h []byte,
+) (tx *world_block_tx.Tx, refs []*block.BlockRef, leaves bool, err error) {
 	// Skip what replay skips whole, under the config replay reads.
 	inner := set.Get(h)
 	if inner.IsAcknowledgment() {
-		return nil, true, nil
+		return nil, nil, true, nil
 	}
 	cfg, err := snap.GetConfig(ctx)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, false, err
 	}
 	if sobject.ReplayRefusal(set, cfg, h, inner) != "" {
-		return nil, true, nil
+		return nil, nil, true, nil
 	}
 	_, opData, reason, err := sobject.PrepareReplayOp(ctx, snap, inner)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, false, err
 	}
 
 	// Decide it by the fields this build does not declare, then by its body.
 	op := &WorldOp{}
 	if reason != "" || op.UnmarshalVT(opData) != nil {
-		return nil, true, nil
+		return nil, nil, true, nil
 	}
 	if reason, err := readUnknownFields(op); err != nil || reason != "" {
-		return nil, reason != "", err
+		return nil, nil, reason != "", err
 	}
 	switch op.GetBody().(type) {
 	case *WorldOp_ApplyTxOp:
-		return op.GetApplyTxOp().GetTx(), false, nil
+		return op.GetApplyTxOp().GetTx(), nil, false, nil
+	case *WorldOp_RegenerateWorld:
+		if quads := op.GetRegenerateWorld().GetQuads(); !quads.GetEmpty() {
+			return nil, []*block.BlockRef{quads}, false, nil
+		}
 	case *WorldOp_Fence, *WorldOp_RootSet:
-		return nil, true, nil
+		return nil, nil, true, nil
 	}
-	return nil, false, nil
+	return nil, nil, false, nil
 }

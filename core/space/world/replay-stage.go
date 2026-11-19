@@ -44,14 +44,51 @@ func newReplayStage(pages *block.PendingStore) *replayStage {
 	return &replayStage{PendingStore: pages, epoch: pages.OpenOverflowStage()}
 }
 
-// PutBlock puts a block through the current epoch.
+// PutBlock puts a block through the current epoch. A failure is this device's
+// store's, as storeError says.
 func (s *replayStage) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return s.epoch.PutBlock(ctx, data, opts)
+	ref, existed, err := s.epoch.PutBlock(ctx, data, opts)
+	return ref, existed, localStoreError(err)
 }
 
-// PutBlockBatch puts entries through the current epoch.
+// PutBlockBatch puts entries through the current epoch. A failure is this
+// device's store's, as storeError says.
 func (s *replayStage) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	return s.epoch.PutBlockBatch(ctx, entries)
+	existed, err := s.epoch.PutBlockBatch(ctx, entries)
+	return existed, localStoreError(err)
+}
+
+// GetBlock reads a kept page or a stored block. A failure, as against a
+// block that is not found, is this device's store's, as storeError says.
+func (s *replayStage) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	data, found, err := s.PendingStore.GetBlock(ctx, ref)
+	return data, found, localStoreError(err)
+}
+
+// storeError is a failure of the store a replay reads and writes, such as a
+// full disk or a read error. It belongs to this device and not to the
+// operation replay applies, so replay waits at the operation, a replay gap,
+// instead of refusing it on this replica alone.
+type storeError struct {
+	err error
+}
+
+// localStoreError wraps a non-nil err as a storeError.
+func localStoreError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &storeError{err: err}
+}
+
+// Error returns the store's failure.
+func (e *storeError) Error() string {
+	return e.err.Error()
+}
+
+// Unwrap returns the store's failure.
+func (e *storeError) Unwrap() error {
+	return e.err
 }
 
 // BeginReadOperation returns the store itself, so a scoped read still serves

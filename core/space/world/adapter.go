@@ -115,6 +115,9 @@ type Adapter struct {
 	// local writer that holds a root never waits on a store of the driver's
 	// pages.
 	rootMtx csync.Mutex
+	// regenCompare serializes the World regeneration comparisons, which
+	// share one spill directory.
+	regenCompare csync.Mutex
 	// held are the named roots this adapter holds, by name. Guarded by
 	// rootMtx.
 	held map[string]*block.BlockRef

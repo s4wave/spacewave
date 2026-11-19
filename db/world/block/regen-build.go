@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"os"
 
 	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
 	"github.com/aperturerobotics/cayley/graph/proto"
@@ -67,10 +68,23 @@ type RegenConfig struct {
 	FloorBytes uint64
 }
 
-// newSorter removes the runs a killed regeneration left in SpillDir and opens
-// a sort there. A regeneration's build and comparison never sort at once, so
-// no live sort loses its runs.
+// ErrRegenInvalid marks a build failure that depends only on the World the
+// build reads, which content addresses name: a World not in the source format,
+// or a graph record that does not decode. Every replica that builds the same
+// root fails the same way, so a Space refuses the regeneration instead of
+// waiting at it. A failure without it, such as a missing block, a full disk
+// or a canceled build, belongs to the device that met it.
+var ErrRegenInvalid = errors.New("world regeneration input is invalid")
+
+// newSorter creates SpillDir, removes the runs a killed regeneration left in
+// it, and opens a sort there. One SpillDir has one sort at a time: a local
+// regeneration's build and comparison never sort at once, and a Space gives
+// its replay and its comparisons a directory each, so no live sort loses its
+// runs.
 func (c RegenConfig) newSorter() (*extsort.Sorter, error) {
+	if err := os.MkdirAll(c.SpillDir, 0o700); err != nil {
+		return nil, errors.Wrap(err, "create spill directory")
+	}
 	if err := extsort.RemoveRuns(c.SpillDir); err != nil {
 		return nil, errors.Wrap(err, "remove stale sort runs")
 	}
@@ -108,7 +122,7 @@ func buildNodeGraphRoot(
 		return nil, errors.Wrap(err, "load pinned World")
 	}
 	if f := w.GetFormat(); f != WorldFormat_WORLD_FORMAT_CAYLEY_KV {
-		return nil, errors.Errorf("regenerate a %v World", f)
+		return nil, errors.Wrapf(ErrRegenInvalid, "regenerate a %v World", f)
 	}
 
 	// Refuse a disk already below the floor.
@@ -297,7 +311,7 @@ func addPrimitive(builder *kvtx_cayley_nodegraph.Builder, p *proto.Primitive) er
 	}
 	v := &pquads.Value{}
 	if err := v.UnmarshalVT(p.GetValue()); err != nil {
-		return errors.Wrapf(err, "node %d", p.GetID())
+		return errors.Wrapf(ErrRegenInvalid, "node %d: %v", p.GetID(), err)
 	}
 	return builder.AddNode(p.GetID(), v)
 }

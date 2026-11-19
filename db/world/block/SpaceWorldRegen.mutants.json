@@ -3,8 +3,8 @@
     "name": "A full disk refuses the operation",
     "replace": [
       [
-        "\\/ op.t = \"regen\" /\\ RegenRefused(r)",
-        "\\/ op.t = \"regen\" /\\ (RegenRefused(r) \\/ full[r])"
+        "\\/ op.t = \"regen\" /\\ (RegenRefused(r) \\/ op.bad)",
+        "\\/ op.t = \"regen\" /\\ (RegenRefused(r) \\/ op.bad \\/ full[r])"
       ]
     ],
     "expect": "Agree"
@@ -60,5 +60,35 @@
       ]
     ],
     "expect": "HeldTogether"
+  },
+  {
+    "name": "A malformed regeneration waits instead of refusing",
+    "replace": [
+      [
+        "\\/ op.t = \"regen\" /\\ (RegenRefused(r) \\/ op.bad)",
+        "\\/ op.t = \"regen\" /\\ RegenRefused(r)"
+      ]
+    ],
+    "expect": "Finishes"
+  },
+  {
+    "name": "A disk that fills partway refuses the operation",
+    "replace": [
+      [
+        "  /\\ phase' = [phase EXCEPT ![r] = \"idle\"]\n  /\\ UNCHANGED <<log, cur, world, base, built, verdict, pending, full,\n                 crashes, exp, faulted>>\n\n\\* The applied",
+        "  /\\ phase' = [phase EXCEPT ![r] = \"idle\"]\n  /\\ Done(r, \"refused\")\n  /\\ UNCHANGED <<log, world, base, built, pending, full,\n                 crashes, exp, faulted>>\n\n\\* The applied"
+      ]
+    ],
+    "expect": "Agree"
+  },
+  {
+    "name": "The collector counts only the installed head's roots",
+    "replace": [
+      [
+        "Live(r) == TRUE",
+        "Live(r) == ~pending[r]"
+      ]
+    ],
+    "expect": "Agree"
   }
 ]

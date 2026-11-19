@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	bquad "github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/world"
@@ -50,16 +51,24 @@ const defaultRegenBudget = 64 << 20
 //     world-regen/built, until a switch back or an ordered release that
 //     names both roots. A release applies only while both names hold the
 //     roots it names, and a device orders one only after its comparison of
-//     the two passed.
+//     the two passed. From the apply until the head that retains them
+//     installs, the position's state retains them, and the collector counts
+//     every position's retained roots as live.
 //  4. A replica that cannot complete the operation, for want of disk, a block
-//     or its context, stops replay before it and retries; it never records a
-//     refusal. Replay refuses only on the World and the held roots, which
-//     every replica reads alike: a target equal to the current format, a
-//     regeneration already held, a switch back with nothing held, or a
-//     carried quad the World refuses.
+//     or its context, or for a failure of its store, stops replay before it
+//     and retries; it never records a refusal. Replay refuses only on the
+//     operation, the World and the held roots, which every replica reads
+//     alike: a target equal to the current format, a regeneration already
+//     held, a switch back with nothing held, a quad list that does not
+//     decode, a carried quad the World refuses, or a base the build refuses
+//     as world_block.ErrRegenInvalid.
 //  5. A switch back keeps every write ordered after the regeneration: base
 //     holds the carried quads, so a write that set one of them, a no-op on the
 //     node graph, is not lost when base comes back.
+//  6. The quad list is a payload of the operation: the writer holds it before
+//     the operation is queued, and every device holds it from the order's
+//     hold until the checkpoint passes the operation, as it holds a
+//     transaction's payloads.
 //
 // Producers into the apply: the replay of an ordered operation; a restored
 // replay cursor or a checkpoint install, each a World another replica
@@ -83,9 +92,20 @@ func (e *regenGapError) Unwrap() error {
 	return e.err
 }
 
-// regenConfig returns the adapter's build configuration, with a spill
-// directory of its own and the default budget where its options set none.
-func (a *Adapter) regenConfig() world_block.RegenConfig {
+// Spill directories of the two sorters a Space runs. A sorter removes every
+// run in its directory as it opens, so each directory has one sorter at a
+// time: replay's builds and switch backs run on the driver goroutine, and
+// the comparisons run one at a time under the adapter's regenCompare.
+const (
+	regenSpillReplay  = "replay"
+	regenSpillCompare = "compare"
+)
+
+// regenConfig returns the adapter's build configuration for the sorter of
+// role, with a spill directory of its own and the default budget where its
+// options set none.
+func (a *Adapter) regenConfig(role string) world_block.RegenConfig {
+	// Default the spill directory to one per Space under the temp dir.
 	cfg := a.opts.Regen
 	if cfg.SpillDir == "" {
 		dir := url.PathEscape(a.bucketID)
@@ -94,6 +114,10 @@ func (a *Adapter) regenConfig() world_block.RegenConfig {
 		}
 		cfg.SpillDir = filepath.Join(os.TempDir(), "spacewave-world-regen", dir)
 	}
+
+	// Give each sorter role its own directory, since a sorter clears its
+	// directory's runs when it starts.
+	cfg.SpillDir = filepath.Join(cfg.SpillDir, role)
 	if cfg.Budget == 0 {
 		cfg.Budget = defaultRegenBudget
 	}
@@ -126,7 +150,7 @@ func (r *spaceReplay) applyRegenerateWorld(ctx context.Context, regenOp *Regener
 	if _, err := r.bind(ctx, prev.GetHeadRef()); err != nil {
 		return nil, "", err
 	}
-	steps := world_block.NewOrderedRegen(r.cursor, r.store(), r.a.regenConfig())
+	steps := world_block.NewOrderedRegen(r.cursor, r.store(), r.a.regenConfig(regenSpillReplay))
 	head := prev.GetHeadRef().GetRootRef()
 	format, err := steps.Format(ctx, head)
 	if err != nil {
@@ -180,8 +204,12 @@ func (r *spaceReplay) regenerateForward(ctx context.Context, steps *world_block.
 	}
 	base := baseState.GetHeadRef().GetRootRef()
 
-	// Build base as a node graph.
+	// Build base as a node graph. A base every replica fails to build alike
+	// refuses the operation; any other failure waits at it.
 	built, err := steps.Build(ctx, base)
+	if err != nil && errors.Is(err, world_block.ErrRegenInvalid) && !isReplayGap(err) {
+		return nil, "world regeneration failed: " + err.Error(), nil
+	}
 	if err != nil {
 		return nil, "", &regenGapError{err: err}
 	}
