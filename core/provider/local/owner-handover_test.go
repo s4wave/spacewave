@@ -59,12 +59,14 @@ func TestNativeOwnerHandoverRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The owner restarts the object before the successor commits.
+	// The owner restarts the object before the successor commits, and forgets
+	// the peers it retained, as a process restart does.
 	left, err := object.GetSOHostState(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	releaseObject()
+	owner.ForgetP2PPeers()
 	object, _ = mountOwned(ctx, t, owner, ref)
 
 	// It reads handing over, with itself departing and the successor owning.
@@ -81,6 +83,16 @@ func TestNativeOwnerHandoverRestart(t *testing.T) {
 	}
 	if !slices.Contains(own.Owners(), successor) || !slices.Contains(own.SigningOwners(), self) {
 		t.Fatalf("restarted owner reads owners %v signing %v", own.Owners(), own.SigningOwners())
+	}
+
+	// The restarted departing owner demands no link to its successor. The
+	// successor commits the departure without it and holds no link back, so a
+	// demand here closes after the link hold-open and redials forever.
+	if err := owner.AutoStartP2PSyncIfNeeded(ctx, owner.GetSessionTransport()); err != nil {
+		t.Fatal(err)
+	}
+	if owner.RetainsP2PPeer(successor) {
+		t.Fatalf("departing owner retains a link to its successor %s", successor)
 	}
 
 	// A second leave is refused instead of transferring again.

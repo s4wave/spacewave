@@ -107,8 +107,11 @@ func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, s
 		}
 	}
 
-	// Keep a link to every other owner. A storage identity never connects and
-	// waits in signaling.
+	// Keep a link to every other owner while the storage identity serves so. A
+	// storage identity never connects and waits in signaling.
+	if !soLinksWanted(config, own, so.localPid.String()) {
+		return nil
+	}
 	for _, owner := range owners {
 		if _, local := keys[owner]; local {
 			continue
@@ -135,7 +138,9 @@ func (a *ProviderAccount) enrollSOSession(ctx context.Context, soID string, so *
 		if err != nil {
 			return err
 		}
-		if _, _, _, err := sobject.AddSOParticipant(ctx, so.soHost, soID, so.localPriv, so.localPid.String(), session.String(), pub, sobject.SOParticipantRole_SOParticipantRole_OWNER, "", ""); err != nil {
+		role := sobject.SOParticipantRole_SOParticipantRole_OWNER
+		_, _, _, err = sobject.AddSOParticipant(ctx, so.soHost, soID, so.localPriv, so.localPid.String(), session.String(), pub, role, "", "")
+		if err != nil {
 			return err
 		}
 	}
@@ -143,4 +148,19 @@ func (a *ProviderAccount) enrollSOSession(ctx context.Context, soID string, so *
 	// Drop the Session from the trimming roster.
 	_, err := sobject.DropFromSORoster(ctx, so.soHost, []string{session.String()}, so.localPriv)
 	return err
+}
+
+// soLinksWanted reports whether the storage identity self still serves so and
+// keeps links to its peers. An owner that departs hands so to its successor,
+// which commits the departure after the leaver has lost access, so the leaver
+// reads its departure as pending forever. Its copy stays listed, but a link it
+// demanded would be one-sided: the peer holds none, closes it after the link
+// hold-open and the leaver redials at once, forever. The successor keeps the
+// link while the hand-over is pending.
+func soLinksWanted(config *sobject.SharedObjectConfig, own *sobject.SOOwnership, self string) bool {
+	if own.Departing(self) {
+		return false
+	}
+	_, ok := participantSet(config.GetParticipants())[self]
+	return ok
 }
