@@ -555,14 +555,22 @@ func TestRegenerateWorldReplicasAgreeThroughFaults(t *testing.T) {
 		})
 		return &replica{r: r, store: fs, kv: kv, list: writeQuadListOn(ctx, t, r, carried)}
 	}
-	forward := func(rep *replica) *RegenerateWorldOp {
-		return &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Quads: rep.list}
+	// forward pins the replica's kv World with its list and switches to the
+	// pin, building it inline.
+	forward := func(rep *replica) (*InnerState, string, error) {
+		target := world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH
+		pinned, reason, err := rep.r.applyRegenerateWorld(ctx, &RegenerateWorldOp{Target: target, Quads: rep.list}, rep.kv)
+		if err != nil || reason != "" {
+			return nil, reason, err
+		}
+		pin, _, _ := heldRegen(pinned)
+		return rep.r.applyRegenerateWorld(ctx, &RegenerateWorldOp{Target: target, Base: pin}, pinned)
 	}
 
 	// The healthy replica regenerates, counting its puts.
 	healthy := newReplica()
 	before := healthy.store.puts.Load()
-	want, reason, err := healthy.r.applyRegenerateWorld(ctx, forward(healthy), healthy.kv)
+	want, reason, err := forward(healthy)
 	if err != nil || reason != "" {
 		t.Fatal(reason, err)
 	}
@@ -581,7 +589,7 @@ func TestRegenerateWorldReplicasAgreeThroughFaults(t *testing.T) {
 	}{{"the carried-quad commit", 1, false}, {"the build", puts, true}} {
 		rep := newReplica()
 		rep.store.failAt.Store(rep.store.puts.Load() + fill.at)
-		_, reason, err := rep.r.applyRegenerateWorld(ctx, forward(rep), rep.kv)
+		_, reason, err := forward(rep)
 		if reason != "" || !isReplayGap(err) || !errors.Is(err, syscall.ENOSPC) {
 			t.Fatalf("a disk full in %s gave reason %q and error %v, want a replay gap", fill.name, reason, err)
 		}
@@ -590,7 +598,7 @@ func TestRegenerateWorldReplicasAgreeThroughFaults(t *testing.T) {
 			t.Fatalf("a disk full in %s failed outside it: %v", fill.name, err)
 		}
 		rep.store.failAt.Store(0)
-		got, reason, err := rep.r.applyRegenerateWorld(ctx, forward(rep), rep.kv)
+		got, reason, err := forward(rep)
 		if err != nil || reason != "" {
 			t.Fatalf("after a disk full in %s, the retry gave %q, %v", fill.name, reason, err)
 		}
