@@ -216,8 +216,8 @@ func (r *Records) markedYoung(ctx context.Context, key, packed []byte, skip func
 // keys and whether the list gained a child. With strict, refs that lack a
 // child the list names write nothing and report dropped: a stored list can
 // only miss children, so such refs come from a wrong decoder. A list that
-// gains a child logs no holder for it, so the caller records that the counts
-// owe a recount.
+// gains a child logs no holder for it, so the caller logs the holder or
+// records that the counts owe a recount.
 func (r *Records) mergeList(ctx context.Context, key, value []byte, refs []*block.BlockRef, strict bool) (packed []byte, gained, dropped bool, err error) {
 	// Refuse refs that drop a child, then write the marked union.
 	old, encoded := listKeys(value), EncodeChildren(refs)

@@ -4517,9 +4517,9 @@ func TestLivenessAdversarial(t *testing.T) {
 		// format 7 upgrade, with a walk that verified A and F. Adoption A
 		// marks the Volume adopting, then B claims it and counts the lists,
 		// C's still lacking F. Before B settles, a put of C rewrites C's
-		// list. A is superseded by B's claim; B settles, and the recount
-		// record the put left makes the flip unadopt and recount. The settle
-		// then takes G, which nothing names, and F keeps its holder.
+		// list, and since B counted it, logs F's new holder. A is superseded
+		// by B's claim; B settles owing no recount, the settle takes G,
+		// which nothing names, and F keeps its holder.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
 		store := store_kvtx_inmem.NewStore()
@@ -4559,8 +4559,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		if !errors.Is(errA, block_gc.ErrAdoptSuperseded) || errB != nil {
 			t.Fatalf("adoptions = %v and %v with %d and %d hooks left, want A superseded and B adopted", errA, errB, len(probeA.at), len(probeB.at))
 		}
-		if n := countPrefix(t, store, slices.Concat(livenessPrefix, []byte{'Y'})); n != 1 {
-			t.Fatalf("the put of C left %d recount records, want 1", n)
+		if n := countPrefix(t, store, slices.Concat(livenessPrefix, []byte{'Y'})); n != 0 {
+			t.Fatalf("the put of C left %d recount records, want none", n)
 		}
 		verify := func(names ...string) {
 			rb, err := v.OpenListRebuild(ctx)
@@ -4577,8 +4577,8 @@ func TestLivenessAdversarial(t *testing.T) {
 			}
 		}
 		verify("A", "F")
-		if res := settleAll(t, v, clk, store, tr); !res.Unadopted {
-			t.Fatalf("settle = %+v, want the rewrite to unadopt the Volume", res)
+		if res := settleAll(t, v, clk, store, tr); res.Unadopted {
+			t.Fatalf("settle = %+v, want no recount", res)
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
@@ -5841,108 +5841,138 @@ func TestLivenessSettle(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	// slotted builds the root A naming C and a hub of 300 leaves, then the
+	// block name naming C, unreached, whose content places its list at rank
+	// among the lists, and returns the tree, the listed names and the
+	// first slice's last list key, at which a readoption's cursor stops.
+	slotted := func(t *testing.T, name string, rank int) (testTree, []string, []byte) {
+		t.Helper()
+		tr := testTree{}
+		tr.add(t, "C")
+		listed := []string{"C"}
+		for i := range 300 {
+			leaf := "F" + strconv.Itoa(i)
+			tr.add(t, leaf)
+			listed = append(listed, leaf)
+		}
+		tr.add(t, "H", listed[1:]...)
+		tr.add(t, "A", "C", "H")
+		listed = append(listed, "H", "A")
+		for i := 0; tr[name] == nil; i++ {
+			try := name + strconv.Itoa(i)
+			key := block_gc.BlockKey(tr.add(t, try, "C"))
+			below := 0
+			for _, other := range listed {
+				if bytes.Compare(block_gc.BlockKey(tr[other].Ref), key) < 0 {
+					below++
+				}
+			}
+			if below == rank {
+				tr[name] = tr[try]
+			}
+			delete(tr, try)
+		}
+		listed = append(listed, name)
+		keys := make([][]byte, 0, len(listed))
+		for _, other := range listed {
+			keys = append(keys, block_gc.BlockKey(tr[other].Ref))
+		}
+		slices.SortFunc(keys, bytes.Compare)
+		return tr, listed, keys[255]
+	}
+	// readoptTo readopts v, stopping once the list count's cursor reaches
+	// stop.
+	readoptTo := func(t *testing.T, v *Volume, stop []byte) {
+		t.Helper()
+		markUnadopted(t, v)
+		ctx, cancel := context.WithCancel(t.Context())
+		var stopped bool
+		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+			cur := livenessState(t, v).GetAdoptCursor()
+			if cur.GetPhase() == block_gc.AdoptPhase_ADOPT_PHASE_CHILDREN && bytes.Equal(cur.GetAfter(), stop) {
+				stopped = true
+				cancel()
+			}
+		}}
+		_, err := block_gc.Adopt(ctx, probe, v.now)
+		cancel()
+		if !errors.Is(err, context.Canceled) || !stopped {
+			t.Fatalf("adopt = %v, stopped %v, want canceled at the cursor", err, stopped)
+		}
+	}
+	// requireClean finishes the adoption of v, nets its logs and checks its
+	// counts against a clean recount of a copy.
+	requireClean := func(t *testing.T, v *Volume, clk *testClock, store kvtx.Store) {
+		t.Helper()
+		ctx := t.Context()
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		clean := copyAll(t, store)
+		vc, cclk := openUnadoptedVolume(t, clean)
+		markUnadopted(t, vc)
+		if _, err := vc.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		cclk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		collectAll(t, vc)
+		if got, want := adoptedRecords(t, store), adoptedRecords(t, clean); !maps.Equal(got, want) {
+			t.Fatalf("adoption differs from a clean one: %q", recordsDiff(got, want))
+		}
+	}
+	// cursorCases stop a readoption exactly at a block's list, which the
+	// count passed, and just below it, which it has not.
+	cursorCases := []struct {
+		name string
+		rank int
+	}{{"at its list", 255}, {"below its list", 256}}
+
 	t.Run("rebirth while a readoption counts the lists", func(t *testing.T) {
 		// The root A names C, and the unreached U names C too, so after the
 		// flip U is in the run and C outside it. A readoption counts the
-		// lists, and a put of U under its own root gives birth to U again
-		// while the cursor stands exactly at U's list, which the count
-		// passed, or just below it, which it has not. The rebirth releases
-		// U's old hold of C only where the count gave it, so the adoption
-		// agrees with a clean recount. U's content places its list at the
-		// end of the first slice or the start of the second.
-		for _, tc := range []struct {
-			name    string
-			counted bool
-		}{{"at U's list", true}, {"below U's list", false}} {
+		// lists, and a put of U under its own root gives birth to U again.
+		// The rebirth releases U's old hold of C only where the count gave
+		// it, so the adoption agrees with a clean recount.
+		for _, tc := range cursorCases {
 			t.Run(tc.name, func(t *testing.T) {
-				ctx := t.Context()
-				tr := testTree{}
-				tr.add(t, "C")
-				listed := []string{"C"}
-				for i := range 300 {
-					name := "F" + strconv.Itoa(i)
-					tr.add(t, name)
-					listed = append(listed, name)
-				}
-				tr.add(t, "H", listed[1:]...)
-				tr.add(t, "A", "C", "H")
-				listed = append(listed, "H", "A")
-
-				// Pick U's content so that the first slice ends at U's list, or
-				// at the list before it.
-				rank := 255
-				if !tc.counted {
-					rank = 256
-				}
-				var u []byte
-				for i := 0; ; i++ {
-					u = block_gc.BlockKey(tr.add(t, "U"+strconv.Itoa(i), "C"))
-					below := 0
-					for _, name := range listed {
-						if bytes.Compare(block_gc.BlockKey(tr[name].Ref), u) < 0 {
-							below++
-						}
-					}
-					if below == rank {
-						tr["U"] = tr["U"+strconv.Itoa(i)]
-						break
-					}
-					delete(tr, "U"+strconv.Itoa(i))
-				}
-				listed = append(listed, "U")
+				tr, listed, stop := slotted(t, "U", tc.rank)
 				v, clk, store := oldStore(t, tr, "A", listed)
 				verify(t, v, tr, listed[:len(listed)-1]...)
 				collectUntil(t, v, clk, flipped)
-
-				// Readopt, stopping where the first slice of lists left the
-				// cursor.
-				keys := make([][]byte, 0, len(listed))
-				for _, name := range listed {
-					keys = append(keys, block_gc.BlockKey(tr[name].Ref))
-				}
-				slices.SortFunc(keys, bytes.Compare)
-				stop := keys[255]
-				markUnadopted(t, v)
-				adoptCtx, cancel := context.WithCancel(ctx)
-				var stopped bool
-				probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
-					cur := livenessState(t, v).GetAdoptCursor()
-					if cur.GetPhase() == block_gc.AdoptPhase_ADOPT_PHASE_CHILDREN && bytes.Equal(cur.GetAfter(), stop) {
-						stopped = true
-						cancel()
-					}
-				}}
-				_, err := block_gc.Adopt(adoptCtx, probe, v.now)
-				cancel()
-				if !errors.Is(err, context.Canceled) || !stopped {
-					t.Fatalf("adopt = %v, stopped %v, want canceled after the first slice", err, stopped)
-				}
-				if got := bytes.Equal(stop, u); got != tc.counted {
-					t.Fatalf("the first slice ends at U %v, want %v", got, tc.counted)
-				}
-
-				// Put U again under its own root, then finish the adoption.
+				readoptTo(t, v, stop)
 				roots := []block.NamedRoot{{Name: "u", Ref: tr["U"].Ref}}
-				if err := v.SetBucketRoots(ctx, "b", tr.entries("U"), roots); err != nil {
+				if err := v.SetBucketRoots(t.Context(), "b", tr.entries("U"), roots); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := v.Adopt(ctx); err != nil {
-					t.Fatal(err)
-				}
+				requireClean(t, v, clk, store)
+			})
+		}
+	})
 
-				// Once the logs net, the counts match a clean recount's.
-				clean := copyAll(t, store)
-				vc, cclk := openUnadoptedVolume(t, clean)
-				markUnadopted(t, vc)
-				if _, err := vc.Adopt(ctx); err != nil {
+	t.Run("put again of a short list while a readoption counts the lists", func(t *testing.T) {
+		// The root A names C, and the unreached P names C too, but a crash
+		// cut P's list. While Open, a readoption counts the lists, and a
+		// put of P under its own root adds C to P's list. Where the count
+		// passed P's list the put logs C's holder, and where it has not the
+		// count reads the new list, so the adoption agrees with a clean
+		// recount and owes no second one.
+		for _, tc := range cursorCases {
+			t.Run(tc.name, func(t *testing.T) {
+				tr, listed, stop := slotted(t, "P", tc.rank)
+				v, clk, store := oldStore(t, tr, "A", listed, "P")
+				readoptTo(t, v, stop)
+				roots := []block.NamedRoot{{Name: "p", Ref: tr["P"].Ref}}
+				if err := v.SetBucketRoots(t.Context(), "b", tr.entries("P"), roots); err != nil {
 					t.Fatal(err)
 				}
-				clk.Add(block_gc.DefaultGrace + time.Second)
-				cclk.Add(block_gc.DefaultGrace + time.Second)
-				collectAll(t, v)
-				collectAll(t, vc)
-				if got, want := adoptedRecords(t, store), adoptedRecords(t, clean); !maps.Equal(got, want) {
-					t.Fatalf("adoption over a rebirth differs from a clean one: %q", recordsDiff(got, want))
+				if gen := livenessGeneration(t, v); gen != block_gc.Generation_GENERATION_OPEN {
+					t.Fatalf("generation %v at the put, want Open", gen)
+				}
+				requireClean(t, v, clk, store)
+				if owed := livenessRecords(t, store, 'Y'); len(owed) != 0 {
+					t.Fatal("the adoption left a recount owed")
 				}
 			})
 		}
