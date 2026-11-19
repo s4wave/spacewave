@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"slices"
 	"testing"
 	"time"
 
@@ -14,14 +13,14 @@ import (
 
 // TestCopyHoldsWhatItSkips walks the fence and backfill copy through a Volume
 // that frees once a record is grace old. Each case names blocks stored with no
-// holder, netted to zero and ripe, which the next collection past grace frees
-// unless the copy holds them: a cache fill the copy is asked for as a root, a
-// proved block a collection runs beside between the copy's check and the Land
-// of its parent, and a stored parent with no proof over a proved child. A
-// collection right after the copy, and another once the copy's own records
-// aged, keep every block the copy holds. No run-through reaches these: they
-// need a grace that separates netting from the free, and blocks nothing holds
-// under a copied root.
+// holder whose downs are past grace, which the next collection nets to zero
+// and frees unless the copy holds them: a cache fill the copy is asked for as
+// a root, a proved block a collection runs beside between the copy's check and
+// the Land of its parent, and a stored parent with no proof over a proved
+// child. A collection right after the copy, and another once the copy's own
+// records aged, keep every block the copy holds. No run-through reaches these:
+// they need a grace that ages the downs before the copy, and blocks nothing
+// holds under a copied root.
 func TestCopyHoldsWhatItSkips(t *testing.T) {
 	// Build an adapter over a Volume with a grace long enough to step through.
 	ctx := t.Context()
@@ -71,33 +70,22 @@ func TestCopyHoldsWhatItSkips(t *testing.T) {
 		return found
 	}
 
-	// copyCase stores a case's blocks with no holder, nets them to zero and
-	// ripe, and copies its root under its own fence root while a collection
-	// past grace may free them. A collection right after the copy keeps every
-	// block the copy holds, since the hold mark the copy set stops every free;
-	// one after the copy's records aged frees a loose block nothing names and
-	// keeps them, since the re-hold gave each its holder back.
+	// copyCase stores a case's blocks with no holder and lets their downs
+	// age past grace, so the next collection nets them to zero and frees them
+	// in the same pass, and copies its root under its own fence root while
+	// such a collection may run. A collection right after the copy keeps
+	// every block the copy holds, since the stage the copy held them under
+	// stops every free; one after the copy's records aged frees a loose block
+	// nothing names and keeps them, since the fence root holds them.
 	copyCase := func(name string, build func() (root *block.BlockRef, held []*block.BlockRef, visited func(*block.BlockRef, []byte))) {
 		t.Helper()
 		// Store the blocks, and a loose block nothing names.
 		root, held, visited := build()
 		loose := put(name + " loose")
-		dead := slices.DeleteFunc(append(slices.Clone(held), loose), func(ref *block.BlockRef) bool {
-			return !stored(ref)
-		})
 
-		// Net them to zero once their records are grace old. They ripen at
-		// the journal's end past the record landed after them, which a
-		// collection passes once the record landed after it ages too.
-		time.Sleep(grace)
-		put(name + " tick")
-		collect()
-		put(name + " tock")
-		for _, ref := range dead {
-			if !stored(ref) {
-				t.Fatalf("%s: the first collection freed %s before it ripened", name, ref.MarshalString())
-			}
-		}
+		// Age their downs past grace: a down nets once grace old, and a
+		// block it takes to zero is ripe at once, so the next collection
+		// frees each one the copy does not hold first.
 		time.Sleep(grace)
 
 		// Copy the root and hold it.
@@ -158,9 +146,8 @@ func TestCopyHoldsWhatItSkips(t *testing.T) {
 }
 
 // TestAdmitRepeatRewritesTree holds an admitted payload P -> L whose blocks
-// are stored and netted to zero, as after the stage that stored them was
-// released, through the adapter's payload hold with frees on. The hold is
-// refused, and a repeat that keeps the tree in the pages again, as a
+// a collection freed, as after the stage that stored them was released,
+// through the adapter's payload hold with frees on. The hold is refused, and a repeat that keeps the tree in the pages again, as a
 // transaction written again does, lands it in the hold's own batch and
 // commits; collections past grace keep every block.
 func TestAdmitRepeatRewritesTree(t *testing.T) {
@@ -192,20 +179,21 @@ func TestAdmitRepeatRewritesTree(t *testing.T) {
 		return true
 	}
 
-	// Store the tree with no holder and net it to zero, not ripe: the
-	// stage's release nets once a record landed after it is grace old too.
+	// Store the tree with no holder, as a stage released before the admit
+	// leaves it, and let the release's downs age past grace: the next
+	// collection nets the tree to zero and frees it in the same pass. A
+	// released stage's downs land with the Volume's next changing
+	// transaction, so a tick lands them before the wait.
 	putUnheld(t, store, l, p)
-	time.Sleep(grace)
 	putUnheld(t, store, entry("tick"))
-	collect()
 	time.Sleep(grace)
-	putUnheld(t, store, entry("tock"))
 	collect()
-	if !stored() {
-		t.Fatal("the tree was freed before it ripened")
+	if stored() {
+		t.Fatal("a collection past grace kept a tree nothing holds, so it checked no free")
 	}
 
-	// The hold is refused, then a repeat that keeps the tree commits.
+	// The hold over the freed tree is refused, then a repeat that keeps the
+	// tree in the pages again stores it in the hold's own batch and commits.
 	adm := func() *spaceAdmission {
 		return &spaceAdmission{payloads: []*block.BlockRef{p.Ref}, done: make(chan struct{})}
 	}
