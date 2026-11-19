@@ -3,6 +3,7 @@ package kvtx
 import (
 	"bytes"
 	"context"
+	"slices"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -89,13 +90,10 @@ func (v *Volume) withDirect(ctx context.Context, durable bool, fn func(p *physic
 // it again. After repeated conflicts, or while kvtx.OptimisticEnv is "off", it
 // holds the writer throughout as withDirectAtomic does.
 //
-// A fill lands through block_gc.LandFill, which reads only the child list of
-// each block it puts, the Volume's hole records and the count of each block
-// it gives birth to, and writes its pairs to a fill record of its own, blind,
-// so it conflicts only with a commit that stores or frees one of its blocks
-// or changes the count of one it gives birth to, or with a write of a hole
-// record, and, until the Volume's old generation settles, with a write of the
-// state.
+// A fill lands through Volume.landFill: a refill reads only the child lists
+// of the blocks it puts, and a new fill lands through Land, which reads and
+// advances the journal position, so it conflicts with every journaling commit
+// after its snapshot and holds the writer once conflicts repeat.
 //
 // It carries no deferred edits: they reserve in-memory pins once per
 // transaction, and the writers holding the store's writer carry them. fn runs
@@ -314,10 +312,15 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 
 // PrepareOwnedBlockBatch stores a batch in one physical transaction, as
 // PrepareOwnedBlock does for one block.
-func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, _ string, entries []*block.PutBatchEntry) (existed []bool, err error) {
+func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, entries []*block.PutBatchEntry) (existed []bool, err error) {
 	// An empty batch writes nothing.
 	if len(entries) == 0 && v.HoldsRoots() {
 		return nil, nil
+	}
+
+	// Send a batch of cache fills to the fill writer, which counts it.
+	if len(entries) != 0 && !slices.ContainsFunc(entries, notCacheFill) {
+		return v.prepareFillBatch(ctx, bucketID, entries)
 	}
 
 	// Store the entries and count them.

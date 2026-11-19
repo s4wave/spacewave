@@ -287,17 +287,19 @@ func (c *Controller) openReadOnly(
 
 // openEphemeral opens a World that persists no head at the configured
 // initial root, or a new empty World: its commits stay in memory and the next
-// open starts from the same root again.
+// open starts from the same root again. The engine pins its root until it
+// closes, so the stage of a new World's root ends with the open.
 func (c *Controller) openEphemeral(
 	ctx context.Context,
 	cursor *bucket_lookup.Cursor,
 	lookupWorldOp world.LookupOp,
 ) (*world_block.Engine, error) {
 	// Start at the initial root.
-	root, err := c.initialRoot(ctx, cursor)
+	root, held, err := c.initialRoot(ctx, cursor)
 	if err != nil {
 		return nil, err
 	}
+	defer held()
 	cursor.SetRootRef(root)
 
 	// Open the engine with no authority, holding commits in memory.
@@ -337,7 +339,7 @@ func (c *Controller) openWritable(
 
 	// Read the head, adopting or creating it when the root is free.
 	head, err := OpenHead(ctx, c.le, authority, cursor, c.legacyHead(stateStore, stateStoreID), OpenHeadOptions{
-		Initial:        func(ctx context.Context) (*block.BlockRef, error) { return c.initialRoot(ctx, cursor) },
+		Initial:        func(ctx context.Context) (*block.BlockRef, func(), error) { return c.initialRoot(ctx, cursor) },
 		RecoverMissing: c.conf.GetRecoverMissingPersistedHead(),
 	})
 	if err != nil {
@@ -355,11 +357,13 @@ func (c *Controller) openWritable(
 		}
 		c.le.WithError(err).Warn("world head is missing blocks; rebuilding world")
 		recovered = true
-		root, err := c.initialRoot(ctx, cursor)
+		root, held, err := c.initialRoot(ctx, cursor)
 		if err != nil {
 			return nil, err
 		}
-		if head, err = authority.Install(ctx, head.Root, root); err != nil {
+		head, err = authority.Install(ctx, head.Root, root)
+		held()
+		if err != nil {
 			return nil, err
 		}
 	}

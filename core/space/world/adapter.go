@@ -242,15 +242,9 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		opts.MaxPendingBytes = defaultMaxPendingBytes
 	}
 
-	// Choose the store the kept pages land in: the SharedObject's block
-	// store, or the one the options give.
+	// Front the SharedObject's block store with the kept pages and the shared
+	// decoded block cache.
 	store := so.GetBlockStore()
-	var pagesStore block.StoreOps = store
-	if opts.pagesStore != nil {
-		pagesStore = opts.pagesStore
-	}
-
-	// Front it with the kept pages and the shared decoded block cache.
 	decoded := store.GetDecodedBlockCache()
 	if decoded == nil {
 		decoded = block.NewDecodedBlockCache()
@@ -262,7 +256,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		opts:      opts,
 		bucketID:  store.GetID(),
 		decoded:   decoded,
-		pages:     block.NewPendingStore(pagesStore, opts.MaxPendingBytes),
+		pages:     block.NewPendingStore(store, opts.MaxPendingBytes),
 		queue:     &opQueue{so: so},
 		missing:   make(map[string]struct{}),
 		unmatched: make(map[string]spacePosition),
@@ -282,8 +276,9 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 	a.backfill = newSpaceBackfill(a)
 
 	// A transient replay claims nothing and reads no roots, so its driver
-	// steps it at once.
+	// steps it at once, holding what it stores in one epoch its caller ends.
 	if opts.transient {
+		a.replay.stage = newReplayStage(a.pages)
 		close(a.opened)
 	}
 	return a, nil

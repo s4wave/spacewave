@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -14,12 +13,11 @@ import (
 
 // TestCacheFillOptimistic runs cache fills on a store with optimistic
 // transactions while other writers commit. A fill reading without the writer
-// lets another write commit meanwhile; an unrelated write forces no rerun,
-// even a commit that journals holders while the fill stores a block naming a
-// stored child, since a fill reads no liveness bookkeeping; and a commit that
-// stores the block a fill found absent forces a rerun that finds it stored,
-// so two writers never both give birth to one block, and the block keeps its
-// child list.
+// lets another write commit meanwhile. A fill lands through Land, which
+// reads and advances the journal position, so any journaling commit meanwhile
+// forces one rerun; a commit that stores the block a fill found absent forces
+// a rerun that finds it stored, so two writers never both give birth to one
+// block, and the block keeps its child list.
 func TestCacheFillOptimistic(t *testing.T) {
 	// Open a Volume over a store with optimistic transactions.
 	ctx := t.Context()
@@ -52,7 +50,7 @@ func TestCacheFillOptimistic(t *testing.T) {
 			entry := &block.PutBatchEntry{Data: data, Refs: refs, RefsKnown: true}
 			done <- v.withDirectFill(ctx, func(p *physicalTx) error {
 				attempts++
-				found, err := block_gc.LandFill(ctx, p.rec, p.blocks, v.now(), []*block.PutBatchEntry{entry})
+				found, err := v.landFill(ctx, p, "b", []*block.PutBatchEntry{entry})
 				if err != nil || attempts != 1 {
 					if err == nil {
 						existed = found[0]
@@ -90,29 +88,24 @@ func TestCacheFillOptimistic(t *testing.T) {
 		return attempts, existed
 	}
 
-	// An unrelated write meanwhile forces no rerun.
-	if attempts, _ := fill([]byte("filled alone"), nil, func() { put("other", []byte("written meanwhile")) }); attempts != 1 {
-		t.Fatalf("fill beside an unrelated write ran %d attempts, want 1", attempts)
-	}
-
-	// Nor does a commit that journals holders while the fill stores a block
-	// naming a stored child.
+	// A commit that journals holders meanwhile forces one rerun, which
+	// lands the fill naming a stored child.
 	child := put("other", []byte("stored child"))
 	moved := put("other", []byte("moved root"))
-	attempts, _ := fill([]byte("filled interior"), []*block.BlockRef{child}, func() {
+	attempts, existed := fill([]byte("filled interior"), []*block.BlockRef{child}, func() {
 		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Ref: moved}}); err != nil {
 			t.Error(err)
 		}
 	})
-	if attempts != 1 {
-		t.Fatalf("fill beside a journaling commit ran %d attempts, want 1", attempts)
+	if attempts != 2 || existed {
+		t.Fatalf("fill beside a journaling commit ran %d attempts, existed %v; want 2 attempts giving birth", attempts, existed)
 	}
 
 	// A block another writer stores after the fill found it absent makes the
 	// fill run again and find it stored.
 	data := []byte("absent then stored")
 	var ref *block.BlockRef
-	attempts, existed := fill(data, nil, func() { ref = put("other", data) })
+	attempts, existed = fill(data, nil, func() { ref = put("other", data) })
 	if attempts != 2 || !existed {
 		t.Fatalf("fill of a block stored meanwhile ran %d attempts, existed %v; want 2 attempts finding it stored", attempts, existed)
 	}

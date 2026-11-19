@@ -258,7 +258,8 @@ func TestAccountMergeCopyHeldPastGrace(t *testing.T) {
 	target.migrationHook = nil
 
 	// Mount the migrated object without opening its Space, and store a
-	// block nothing holds beside its World.
+	// block beside its World under a stage released at once, so nothing
+	// holds it.
 	id := ref.GetProviderResourceRef().GetId()
 	destinationRef := sobject.NewSharedObjectRef(target.GetProviderID(), target.GetAccountID(), id, SobjectBlockStoreID(id))
 	copied, releaseCopied, err := target.MountSharedObject(ctx, destinationRef, nil)
@@ -267,7 +268,12 @@ func TestAccountMergeCopyHeldPastGrace(t *testing.T) {
 	}
 	defer releaseCopied()
 	store := copied.GetBlockStore().(*BlockStore)
-	unheld, _, err := store.store.PutBlock(ctx, []byte("unheld beside the migrated World"), &block.PutOpts{RefsKnown: true})
+	staged, releaseStage, err := block.OpenStage(ctx, store.store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unheld, _, err := staged.PutBlock(ctx, []byte("unheld beside the migrated World"), &block.PutOpts{RefsKnown: true})
+	releaseStage()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -13,10 +13,12 @@ import (
 //
 // An operation applied to it reads the blocks its locked apply will read, so
 // the locked apply finds them in the store's cache. Its writes stay in the
-// fork's buffer, which nothing drains. Commit folds the writes into the World
-// tree, reading the pages the locked commit reads, then discards the fork and
-// returns world.ErrRehearsalCommit. The fork's result is advisory: the locked
-// write applies the operation again on the head its turn starts from.
+// fork's buffer until the buffer fills; a rehearsal too large for it drains
+// early under a stage the fork holds until Discard, as a write transaction
+// does. Commit folds the writes into the World tree, reading the pages the
+// locked commit reads, then discards the fork and returns
+// world.ErrRehearsalCommit. The fork's result is advisory: the locked write
+// applies the operation again on the head its turn starts from.
 func (e *Engine) NewRehearsalTransaction(ctx context.Context) (world.Tx, error) {
 	// Fork from the head the next turn starts from, read without a turn.
 	var base world.Head
@@ -49,24 +51,33 @@ func (e *Engine) NewRehearsalTransaction(ctx context.Context) (world.Tx, error) 
 		}
 	}
 
-	// Buffer every write, recording them so Discard releases them, and never
-	// drain the buffer.
-	buffered := block.NewBufferedStoreWithSettings(ctx, e.writeBlockStore, &block.BufferedStoreSettings{
-		RecordWrites:    true,
-		WithoutPeerWait: true,
-	})
-	ws, err := e.newWorldState(ctx, false, root, buffered, func() {}, rootBlock)
+	// Open the stage an early drain writes under, and buffer every write
+	// over it, recording them so Discard releases them.
+	staged, releaseStage, err := block.OpenStage(ctx, e.writeBlockStore)
 	if err != nil {
 		if private != nil {
 			private.Release()
 		}
 		return nil, err
 	}
+	buffered := block.NewBufferedStoreWithSettings(ctx, staged, &block.BufferedStoreSettings{
+		RecordWrites:    true,
+		WithoutPeerWait: true,
+	})
+	ws, err := e.newWorldState(ctx, false, root, buffered, func() {}, rootBlock)
+	if err != nil {
+		releaseStage()
+		if private != nil {
+			private.Release()
+		}
+		return nil, err
+	}
 
-	// Hold the published head and the private base until Discard.
+	// Hold the published head, the private base and the stage until Discard.
 	ws.ownedStore, ws.releaseOwned = buffered, true
 	held := e.pub.Load().hold()
 	ws.readRelease = func() {
+		releaseStage()
 		held()
 		if private != nil {
 			private.Release()

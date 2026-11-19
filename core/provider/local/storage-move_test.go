@@ -27,6 +27,7 @@ import (
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
 	"github.com/s4wave/spacewave/db/packfile/writer"
+	"github.com/s4wave/spacewave/db/volume"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -368,6 +369,15 @@ func (p *placedStoreTest) loseLocalBlocks(ctx context.Context, t *testing.T) *Bl
 	return bs
 }
 
+// unheldPuts returns the count of blocks vol observed put with no holder,
+// which a Volume that frees refuses with ErrUnheldPut.
+func unheldPuts(vol volume.Volume) uint64 {
+	health, _ := vol.(interface {
+		GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struct{})
+	}).GetHealthSnapshotWithWait()
+	return health.GetNotHeldPutBlocks()
+}
+
 // checkLocalGraph checks that the local store holds both blocks and the edge
 // from the root to the child.
 func (p *placedStoreTest) checkLocalGraph(ctx context.Context, t *testing.T, bs *BlockStore) {
@@ -442,11 +452,15 @@ func TestMoveSpaceStorageRoundTrip(t *testing.T) {
 				p.dropRootList(ctx, t)
 			}
 			p.phases = nil
+			unheld := unheldPuts(p.acc.GetVolume())
 			if err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record); err != nil {
 				t.Fatal(err)
 			}
 			if !slices.Equal(p.phases, []MovePhase{MovePhaseFetch, MovePhaseDone}) {
 				t.Fatalf("phases = %v, want fetch then done", p.phases)
+			}
+			if n := unheldPuts(p.acc.GetVolume()) - unheld; n != 0 {
+				t.Fatalf("the fetch stored %d blocks nothing held", n)
 			}
 			bs, err := p.tkr.bstoreCtr.WaitValue(ctx, nil)
 			if err != nil {

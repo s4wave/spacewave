@@ -227,12 +227,21 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 		seen[ref.MarshalString()] = struct{}{}
 	}
 
-	// Report fetch progress, then copy each missing chunk into local storage.
+	// Report fetch progress.
 	progress := MoveProgress{Phase: MovePhaseFetch, Total: len(refs)}
 	if err := fn(progress); err != nil {
 		return err
 	}
-	local := bs.placement.local
+
+	// Hold the copies under a stage until the copy ends: a block may arrive
+	// before the parent that counts it.
+	local, release, err := block.OpenStage(ctx, bs.placement.local)
+	if err != nil {
+		return errors.Wrap(err, "open fetch stage")
+	}
+	defer release()
+
+	// Copy each missing chunk.
 	for len(refs) != 0 {
 		chunk := refs[:min(len(refs), moveProgressInterval)]
 		refs = refs[len(chunk):]

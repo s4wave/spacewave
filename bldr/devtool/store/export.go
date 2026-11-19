@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/volume"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -66,7 +67,7 @@ func writeManifestSets(
 	refs []*bldr_manifest.ManifestRef,
 	path string,
 ) (rerr error) {
-	// Create the database and its World.
+	// Create the database.
 	vol, err := OpenVolumeFile(ctx, le, path, true)
 	if err != nil {
 		return err
@@ -76,13 +77,34 @@ func writeManifestSets(
 			rerr = errors.Wrap(err, "close export volume")
 		}
 	}()
+	return copyManifestSets(ctx, le, src, refs, vol)
+}
+
+// copyManifestSets creates the devtool World on vol, copies the block graph of
+// each ref into it and stores each ref under the plugin host. Each copy is
+// staged until the World op that names it lands, so every put is held.
+func copyManifestSets(
+	ctx context.Context,
+	le *logrus.Entry,
+	src world.WorldState,
+	refs []*bldr_manifest.ManifestRef,
+	vol volume.Volume,
+) error {
+	// Create the World.
 	eng, err := OpenWorld(ctx, le, vol, true)
 	if err != nil {
 		return err
 	}
 	defer eng.Close()
 	dst := world.NewEngineWorldState(eng, true)
-	dstBlocks := volume_controller.NewBucketStore(vol, &bucket.Config{Id: BucketID, Rev: 1})
+
+	// Stage the copies until the World ops that name them land.
+	dstStore := volume_controller.NewBucketStore(vol, &bucket.Config{Id: BucketID, Rev: 1})
+	dstBlocks, releaseStage, err := block.OpenStage(ctx, dstStore)
+	if err != nil {
+		return err
+	}
+	defer releaseStage()
 
 	// Copy each manifest's stored blocks without decoding them, then store
 	// the manifest under the plugin host as a build does.

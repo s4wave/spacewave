@@ -28,8 +28,8 @@ import (
 //   - Nothing is deleted: the free parks each block it would free, and
 //     enters it in the run, as Records.park describes.
 //   - The front holds every unverified listed child of a young or verified
-//     block. Land and LandFill push the unverified children of each block they
-//     write from content, and each unverified block a root moves onto; the walk
+//     block. Land pushes the unverified children of each block it writes
+//     from content, and each unverified block a root moves onto; the walk
 //     pushes the unverified children of each block it decodes. So the walk
 //     never descends below a verified block, and no young block needs seeding.
 //   - Once its completion entry exists, the unmarked run names every block

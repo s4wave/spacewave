@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -138,7 +139,7 @@ func (v *Volume) writeCacheFills(ctx context.Context, owner string, fills []*cac
 
 // prepareCacheFills writes fills of one owner in one transaction and records
 // each fill's ref and existence.
-func (v *Volume) prepareCacheFills(ctx context.Context, _ string, fills []*cacheFill) error {
+func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*cacheFill) error {
 	// Name each fill's block and refuse new data below the disk reserve.
 	size := 0
 	direct := v.withDirectFill
@@ -166,7 +167,7 @@ func (v *Volume) prepareCacheFills(ctx context.Context, _ string, fills []*cache
 	// writer unless one marks its block.
 	err := direct(ctx, func(p *physicalTx) error {
 		for i, fill := range fills {
-			existed, err := block_gc.LandFill(kvtx.WithBlockMarkRequest(ctx, fill.mark), p.rec, p.blocks, v.now(), entries[i:i+1])
+			existed, err := v.landFill(kvtx.WithBlockMarkRequest(ctx, fill.mark), p, owner, entries[i:i+1])
 			if err != nil {
 				return err
 			}
@@ -183,4 +184,121 @@ func (v *Volume) prepareCacheFills(ctx context.Context, _ string, fills []*cache
 	}
 	v.countRefused(putFill, err)
 	return err
+}
+
+// prepareFillBatch writes a batch of cache fills that owner's bucket read, such
+// as a pack's neighbors, in one fill transaction, holding each block as
+// landFill does. The caller already batched the fills, so they skip the fill
+// queue; the batch runs with background admission, since a fill is a copy the
+// next read can redo.
+func (v *Volume) prepareFillBatch(ctx context.Context, owner string, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Refuse new data below the disk reserve, and blocks without their child
+	// lists.
+	v.noteUnknownRefsBatch(putFill, entries)
+	if err := v.checkReserve(ctx, v.gateBytes(batchBytes(entries))); err != nil {
+		return nil, err
+	}
+	if err := requireRefsKnown(entries); err != nil {
+		v.countRefused(putFill, err)
+		return nil, err
+	}
+
+	// Store the fills under the bucket's fill roots, through the caller's
+	// marker if it has one, and count them.
+	direct := v.withDirectFill
+	if kvtx.GetBlockMarkRequest(ctx) != nil {
+		direct = v.withDirectAtomic
+	}
+	ctx = block.WithBackground(ctx)
+	var existed []bool
+	err := direct(ctx, func(p *physicalTx) error {
+		var err error
+		existed, err = v.landFill(ctx, p, owner, entries)
+		return err
+	})
+	if err == nil {
+		v.countPutBatch(putFill, entries, existed)
+	}
+	v.countRefused(putFill, err)
+	return existed, err
+}
+
+// notCacheFill reports whether entry is not a cache fill.
+func notCacheFill(entry *block.PutBatchEntry) bool {
+	return !entry.CacheFill
+}
+
+// fillRootPrefix prefixes the leased roots that hold the blocks a cache fill
+// gives birth to, in the Volume's bucket with the empty ID. A fill root's name
+// is the prefix, the bucket the fill came through, a slash and a ULID.
+const fillRootPrefix = "fill:"
+
+// landFill stores the entries of a cache fill through p, a copy of blocks a
+// peer or remote store holds, which owner's bucket read. A block the records
+// list gets its bytes back alone, through block_gc.RefillBlocks. The rest land
+// through Land as a partial tree, so a block may name a child the settle
+// hides, with a leased root on each block no other entry names, which
+// expires the collector's grace period from now: the fill holds what it gives
+// birth to as long as a fill record once did, and the collector frees it once
+// the root lapses unless something else holds it. It returns, for each entry,
+// whether blocks held its bytes before.
+//
+// RefillBlocks reads each block's child list, and Land the state record and
+// the journal position, so an optimistic fill conflicts with each commit that
+// lands before it; the fill transaction falls back to the store's writer
+// after repeated conflicts.
+func (v *Volume) landFill(ctx context.Context, p *physicalTx, owner string, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Refill the listed blocks' bytes.
+	rest, existed, err := block_gc.RefillBlocks(ctx, p.rec, p.blocks, entries)
+	if err != nil || len(rest) == 0 {
+		return existed, err
+	}
+
+	// Hold each block of the rest no other names, then land them.
+	hold := v.fillHold
+	if hold == 0 {
+		hold = block_gc.DefaultGrace
+	}
+	expires := v.now().Add(hold)
+	var roots []block.NamedRoot
+	for _, ref := range unnamedRefs(rest) {
+		roots = append(roots, block.NamedRoot{Name: fillRootPrefix + owner + "/" + ulid.NewULID(), Ref: ref, Expires: expires})
+	}
+	puts := block_gc.PutHold{Mode: v.heldMode, Observed: v.observeNotHeld, Partial: true}
+	landed, err := block_gc.Land(ctx, p.rec, p.blocks, v.now(), rest, puts, block_gc.BucketRoots{Roots: roots})
+	if err != nil {
+		return nil, err
+	}
+
+	// Merge the landed entries' existence back in entry order.
+	j := 0
+	for i, entry := range entries {
+		if j < len(rest) && entry == rest[j] {
+			existed[i] = j < len(landed) && landed[j]
+			j++
+		}
+	}
+	return existed, nil
+}
+
+// unnamedRefs returns the refs of the entries no other entry names, once
+// each, in entry order.
+func unnamedRefs(entries []*block.PutBatchEntry) []*block.BlockRef {
+	// Note every name, then keep the entries none names.
+	named := make(map[string]struct{})
+	for _, entry := range entries {
+		for _, ref := range entry.Refs {
+			named[ref.MarshalString()] = struct{}{}
+		}
+	}
+	var refs []*block.BlockRef
+	for _, entry := range entries {
+		key := entry.Ref.MarshalString()
+		if _, ok := named[key]; ok {
+			continue
+		}
+		named[key] = struct{}{}
+		refs = append(refs, entry.Ref)
+	}
+	return refs
 }

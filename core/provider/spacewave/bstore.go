@@ -569,15 +569,51 @@ func (s *sourceTrackingStore) BeginReadOperation(ctx context.Context) (block.Sto
 	if err != nil {
 		return nil, nil, err
 	}
-	return &sourceTrackingStore{
-		StoreOps:       scoped,
-		account:        s.account,
-		bstoreID:       s.bstoreID,
-		source:         s.source,
-		upperCache:     s.upperCache,
-		demandStarted:  s.demandStarted,
-		demandFinished: s.demandFinished,
-	}, release, nil
+	return s.with(scoped), release, nil
+}
+
+// with returns a tracker of the same source over ops.
+func (s *sourceTrackingStore) with(ops block.StoreOps) *sourceTrackingStore {
+	scoped := *s
+	scoped.StoreOps = ops
+	return &scoped
+}
+
+// HoldsRoots reports whether the observed store holds roots.
+func (s *sourceTrackingStore) HoldsRoots() bool { return block.HoldsRoots(s.StoreOps) }
+
+// PinRoot pins a root on the observed store.
+func (s *sourceTrackingStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
+	return block.PinRoot(ctx, s.StoreOps, ref)
+}
+
+// OpenStage opens a stage on the observed store and observes its reads.
+func (s *sourceTrackingStore) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	staged, release, err := block.OpenStage(ctx, s.StoreOps)
+	if err != nil {
+		return nil, nil, err
+	}
+	return s.with(staged), release, nil
+}
+
+// ReleaseRoots drops a stage's holds on the observed store.
+func (s *sourceTrackingStore) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
+	return block.ReleaseRoots(ctx, s.StoreOps, refs)
+}
+
+// MarkRootsComplete records completion proofs in the observed store.
+func (s *sourceTrackingStore) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
+	return block.MarkRootsComplete(ctx, s.StoreOps, roots)
+}
+
+// RootsComplete reads completion proofs from the observed store.
+func (s *sourceTrackingStore) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.RootsComplete(ctx, s.StoreOps, refs)
+}
+
+// HoldCompleteRoots holds proved roots under the observed store's stage.
+func (s *sourceTrackingStore) HoldCompleteRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HoldCompleteRoots(ctx, s.StoreOps, refs)
 }
 
 // GetBlock records the cache, direct, or Cloud source of a successful read.
@@ -804,10 +840,57 @@ func (b *BlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntr
 	return b.store.SetRoots(ctx, entries, roots)
 }
 
+// HoldsRoots reports whether the local cache bucket below holds roots. It
+// holds the Space's roots there: every write lands in that bucket first, and
+// only there can a local collector free it.
+func (b *BlockStore) HoldsRoots() bool { return block.HoldsRoots(b.store) }
+
+// PinRoot pins a root in the local cache bucket.
+func (b *BlockStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
+	return block.PinRoot(ctx, b.store, ref)
+}
+
+// OpenStage returns a handle whose writes a stage in the local cache bucket
+// holds, sharing the cache, sync and retention state.
+func (b *BlockStore) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	// Open the stage in the cache bucket.
+	staged, release, err := block.OpenStage(ctx, b.store)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Swap the store for the staged one in a copy of the handle.
+	scoped := *b
+	scoped.store = staged.(block_store.Store)
+	return &scoped, release, nil
+}
+
+// ReleaseRoots drops a stage's holds in the local cache bucket.
+func (b *BlockStore) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
+	return block.ReleaseRoots(ctx, b.store, refs)
+}
+
+// MarkRootsComplete records completion proofs in the local cache bucket.
+func (b *BlockStore) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
+	return block.MarkRootsComplete(ctx, b.store, roots)
+}
+
+// RootsComplete reads completion proofs from the local cache bucket.
+func (b *BlockStore) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.RootsComplete(ctx, b.store, refs)
+}
+
+// HoldCompleteRoots holds proved roots under the local cache bucket's stage.
+func (b *BlockStore) HoldCompleteRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HoldCompleteRoots(ctx, b.store, refs)
+}
+
 // Interface assertions.
 var (
 	_ bstore.BlockStoreProvider = (*ProviderAccount)(nil)
 	_ bstore.BlockStore         = (*BlockStore)(nil)
 	_ block.StoreOps            = (*BlockStore)(nil)
 	_ block.StoreParts          = (*BlockStore)(nil)
+	_ block.LeasedRoots         = (*BlockStore)(nil)
+	_ block.RootProofs          = (*BlockStore)(nil)
 )

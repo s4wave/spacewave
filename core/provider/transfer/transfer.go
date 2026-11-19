@@ -361,13 +361,14 @@ func (t *Transfer) sourceHead(ctx context.Context, le *logrus.Entry, soRef *sobj
 //  5. The hold releases nothing. A retained root the target's Adapter never
 //     takes from the import root stays held until the Space is deleted.
 //
-// A target that holds no roots, such as a cloud block store, takes the copy
-// with no stage and no hold. Such a copy is safe today only because Spacewave
-// pack reclaim is off by default (SetPackReclaim). A reclaim pass trashes a
-// pack at least half dead by the roots a fence reports, and this copy holds
-// nothing a fence reports; a trashed pack stays readable, and a pass retires
-// it only after packfile.TrashAge, rescuing first the blocks that are live
-// again.
+// A target that holds no roots takes the copy with no stage and no hold. A
+// cloud block store holds roots in its local cache bucket, so the stage and
+// the import root hold the copy there. Its uploaded packs are safe only
+// because Spacewave pack reclaim is off by default (SetPackReclaim): a reclaim
+// pass trashes a pack at least half dead by the roots a fence reports, and
+// neither hold reaches a fence; a trashed pack stays readable, and a pass
+// retires it only after packfile.TrashAge, rescuing first the blocks that are
+// live again.
 func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.SharedObjectListEntry) ([]byte, string, error) {
 	// Name the Space and its source.
 	soRef := entry.GetRef()

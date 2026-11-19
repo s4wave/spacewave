@@ -24,7 +24,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
-	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
@@ -137,15 +136,13 @@ func runPluginImportManifest(
 	}
 
 	// Open the destination volume and World engine.
-	var dest volume.Volume
 	var destEngine world.Engine
 	var destClose func() error
 	destBucketID := cliBus.GetWorldEngineID()
 	if targetDBPath == "" {
-		dest = cliBus.GetVolume()
 		destEngine = cliBus.GetWorldEngine()
 	} else {
-		dest, err = devtool_store.OpenVolume(ctx, le, targetDBPath)
+		dest, err := devtool_store.OpenVolume(ctx, le, targetDBPath)
 		if err != nil {
 			return errors.Wrap(err, "open target devtool storage")
 		}
@@ -162,10 +159,21 @@ func runPluginImportManifest(
 		defer destClose()
 	}
 
-	// Copy each manifest block DAG into the destination.
+	// Copy each manifest block DAG into the destination under a stage, which
+	// holds the copies until the transaction below links them.
+	stage, err := destEngine.StageWorldState(ctx)
+	if err != nil {
+		return errors.Wrap(err, "stage world state")
+	}
+	defer stage.Release()
+	cursor, err := stage.BuildStorageCursor(ctx)
+	if err != nil {
+		return errors.Wrap(err, "build storage cursor")
+	}
+	defer cursor.Release()
 	for _, collected := range collectedManifests {
 		rootRef := collected.ManifestRef.GetRootRef()
-		if err := copyManifestBlockDAG(ctx, rootRef, src, dest, xfrm); err != nil {
+		if err := copyManifestBlockDAG(ctx, rootRef, src, cursor.GetBlockStore(), xfrm); err != nil {
 			return errors.Wrap(err, "copy manifest blocks")
 		}
 	}

@@ -108,10 +108,24 @@ type Engine struct {
 	// where only Sync advances it. Guarded by bcast.
 	durableSeqno uint64
 	// writeBlockStore is the long-lived block store backing transactions. It
-	// is the bucket store, or, in deferred-durability mode, a BufferedStore
-	// wrapping it, so commits accumulate in memory until Sync. Stable for the
-	// engine lifetime because the world cursor never switches buckets.
+	// is the bucket store, or, in deferred-durability mode, a stage of it
+	// that a BufferedStore wraps, so commits accumulate in memory until Sync.
+	// Stable for the engine lifetime because the world cursor never switches
+	// buckets.
 	writeBlockStore block.StoreOps
+	// releaseStage releases the stage that holds the commits of an engine
+	// without an Authority, which no root names, until Close: in deferred
+	// mode the stage writeBlockStore writes through, and otherwise
+	// callerStage once a commit opened it. Nil until opened. Guarded by bcast.
+	releaseStage func()
+	// callerStage is the stage a callerTurn stores a durable commit through,
+	// opened by the first such commit, so an engine that only reads opens
+	// none. Guarded by bcast.
+	callerStage block.StoreOps
+	// unpinBase releases, in deferred-durability mode, the pin on the base
+	// head the commits build on: the head NewEngine or the last SetRootRef
+	// installed. Nil otherwise. Guarded by bcast.
+	unpinBase func()
 	// deferDurability enables deferred durability for an engine without an
 	// Authority: commits stay in memory until Sync.
 	deferDurability bool
@@ -242,12 +256,16 @@ func NewEngine(
 	}
 
 	// Without an Authority, deferred durability keeps commits in one
-	// long-lived BufferedStore until Sync. A self-buffered store owns its own
-	// intake and Sync fence.
+	// long-lived BufferedStore until Sync, under a stage and over a pinned
+	// base head that hold them until Close, since no root names them. A
+	// self-buffered store owns its own intake and Sync fence.
 	rawWriteStore := e.head.root.GetBucket()
 	e.writeBlockStore = rawWriteStore
-	if e.deferredDurability() && rawWriteStore.GetSupportedFeatures()&block.StoreFeatureSelfBuffered == 0 {
-		e.writeBlockStore = block.NewBufferedStore(ctx, rawWriteStore)
+	if e.deferredDurability() {
+		if err := e.holdDeferred(ctx, rawWriteStore); err != nil {
+			_ = e.Close()
+			return nil, err
+		}
 	}
 
 	// Publish a complete read head before returning the engine.
@@ -282,6 +300,29 @@ func NewEngine(
 		locked.Unlock()
 	}
 	return e, nil
+}
+
+// holdDeferred makes writeBlockStore a stage of raw, buffered unless raw
+// buffers itself, until Close, and pins the base head until SetRootRef
+// replaces it or Close. The caller must hold the base head while the pin is
+// taken.
+func (e *Engine) holdDeferred(ctx context.Context, raw block.StoreOps) error {
+	// Pin the base head, then open the stage the commits land under.
+	unpin, err := block.PinRoot(ctx, raw, e.head.root.GetRef().GetRootRef())
+	if err != nil {
+		return err
+	}
+	staged, release, err := block.OpenStage(ctx, raw)
+	if err != nil {
+		unpin()
+		return err
+	}
+	e.releaseStage, e.unpinBase = release, unpin
+	e.writeBlockStore = staged
+	if raw.GetSupportedFeatures()&block.StoreFeatureSelfBuffered == 0 {
+		e.writeBlockStore = block.NewBufferedStore(ctx, staged)
+	}
+	return nil
 }
 
 // deferredDurability reports whether commits stay in memory until Sync: an
@@ -391,14 +432,28 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 		return err
 	}
 
+	// In deferred mode pin the new base, which the caller holds now, for the
+	// commits to build on; installed, it replaces the old base's pin.
+	unpin := func() {}
+	if e.deferredDurability() {
+		if unpin, err = block.PinRoot(ctx, e.baseRoot.GetBucket(), ref.GetRootRef()); err != nil {
+			return err
+		}
+	}
+
 	// Install the head under the Engine lock.
 	locked := e.bcast.Lock()
 	if e.closed {
 		locked.Unlock()
+		unpin()
 		return e.closedErr()
 	}
 	retirement, err := e.installRootRefLocked(ctx, ref, true, rootBlock)
+	if err == nil && e.unpinBase != nil {
+		e.unpinBase, unpin = unpin, e.unpinBase
+	}
 	locked.Unlock()
+	unpin()
 
 	// Retired readers may reenter the engine during cleanup.
 	e.drainRetirement(ctx, retirement)
@@ -1405,9 +1460,17 @@ func (e *Engine) Close() error {
 	}
 	e.snapMu.Unlock()
 
-	// Release the block-store authority only after every dependent user exits.
-	baseRoot := e.baseRoot
+	// Release the deferred holds and the block-store authority only after
+	// every dependent user exits.
+	baseRoot, releaseStage, unpinBase := e.baseRoot, e.releaseStage, e.unpinBase
+	e.releaseStage, e.unpinBase = nil, nil
 	locked.Unlock()
+	if releaseStage != nil {
+		releaseStage()
+	}
+	if unpinBase != nil {
+		unpinBase()
+	}
 	if baseRoot != nil {
 		baseRoot.Release()
 	}

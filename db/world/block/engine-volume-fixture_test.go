@@ -206,7 +206,7 @@ func fixtureWriter(t *testing.T, engine *Engine) *EngineTx {
 
 // fixturePayload writes a payload block through w's storage and returns its
 // reference in the World's bucket.
-func fixturePayload(t *testing.T, w *EngineTx, data string) *bucket.ObjectRef {
+func fixturePayload(t *testing.T, w world.WorldStorage, data string) *bucket.ObjectRef {
 	// Write the payload through the transaction's store.
 	t.Helper()
 	c, err := w.BuildStorageCursor(t.Context())

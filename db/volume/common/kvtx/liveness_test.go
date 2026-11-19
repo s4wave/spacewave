@@ -611,7 +611,7 @@ func measureLivenessPaths(t *testing.T, n int) livenessCosts {
 	tr.add(t, "F")
 	measure("fill", func() error {
 		return v.withDirectFill(ctx, func(p *physicalTx) error {
-			_, err := block_gc.LandFill(ctx, p.rec, p.blocks, v.now(), tr.entries("F"))
+			_, err := v.landFill(ctx, p, "b", tr.entries("F"))
 			return err
 		})
 	})
@@ -1776,7 +1776,7 @@ func testLivenessAdversarial(t *testing.T) {
 		fill := func(name string) {
 			t.Helper()
 			err := v.withDirectFill(ctx, func(p *physicalTx) error {
-				_, err := block_gc.LandFill(ctx, p.rec, p.blocks, v.now(), tr.entries(name))
+				_, err := v.landFill(ctx, p, "b", tr.entries(name))
 				return err
 			})
 			if err != nil {
@@ -1809,14 +1809,23 @@ func testLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("unheld fill", func(t *testing.T) {
-		// A read fills E, which nothing holds: it stays for the grace period
-		// and then goes, as an unheld put does.
+		// A read fills E, which nothing else holds. Landed with no root it is
+		// refused; the fill's leased root holds it for the grace period, and
+		// once the root lapses it goes after the grace period, as an unheld
+		// put does.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
 		tr.add(t, "E")
 		err := v.withDirectFill(ctx, func(p *physicalTx) error {
-			_, err := block_gc.LandFill(ctx, p.rec, p.blocks, v.now(), tr.entries("E"))
+			_, err := v.land(ctx, p, "", tr.entries("E"), nil)
+			return err
+		})
+		if !errors.Is(err, block.ErrUnheldPut) {
+			t.Fatalf("fill with no root returned %v, want ErrUnheldPut", err)
+		}
+		err = v.withDirectFill(ctx, func(p *physicalTx) error {
+			_, err := v.landFill(ctx, p, "b", tr.entries("E"))
 			return err
 		})
 		if err != nil {
@@ -1824,6 +1833,9 @@ func testLivenessAdversarial(t *testing.T) {
 		}
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "E")
+		requireAudit(t, v, 0)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
 		requireStored(t, v, tr, false, "E")
@@ -2200,7 +2212,7 @@ func testLivenessAdversarial(t *testing.T) {
 						t.Errorf("adoption at position %d is %v, want %v", at.pos, got, at.state)
 					}
 					err := v.withDirectFill(ctx, func(px *physicalTx) error {
-						_, err := block_gc.LandFill(ctx, px.rec, px.blocks, v.now(), tr.entries("B"))
+						_, err := v.landFill(ctx, px, "b", tr.entries("B"))
 						return err
 					})
 					if err != nil {
@@ -2226,7 +2238,8 @@ func testLivenessAdversarial(t *testing.T) {
 		})
 	}
 
-	// A Volume reopens with fill records not netted yet: adopted, they net
+	// A Volume reopens with fill records an older build wrote, not netted
+	// yet: adopted, they net
 	// after the reopen; unadopted with frees on, the background adoption
 	// clears them and counts the lists. Either way B keeps P's holder, and
 	// the unheld fill G goes.
@@ -2247,8 +2260,7 @@ func testLivenessAdversarial(t *testing.T) {
 				t.Fatal(err)
 			}
 			err := v1.withDirectFill(ctx, func(px *physicalTx) error {
-				_, err := block_gc.LandFill(ctx, px.rec, px.blocks, v1.now(), tr.entries("B", "G"))
-				return err
+				return putOldFills(ctx, px, v1.now(), tr.entries("B", "G"))
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -2318,7 +2330,7 @@ func testLivenessAdversarial(t *testing.T) {
 		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
 			adoptSettle: func() {
 				err := v.withDirectFill(ctx, func(px *physicalTx) error {
-					_, err := block_gc.LandFill(ctx, px.rec, px.blocks, v.now(), tr.entries("B"))
+					_, err := v.landFill(ctx, px, "b", tr.entries("B"))
 					return err
 				})
 				if err != nil {
@@ -3759,7 +3771,7 @@ func testLivenessAdversarial(t *testing.T) {
 			if p == block_gc.PhaseSweep && !filled {
 				filled = true
 				err := v.withDirectFill(ctx, func(px *physicalTx) error {
-					_, err := block_gc.LandFill(ctx, px.rec, px.blocks, v.now(), tr.entries("P"))
+					_, err := v.landFill(ctx, px, "b", tr.entries("P"))
 					return err
 				})
 				if err != nil {
@@ -3941,6 +3953,30 @@ func testLivenessAdversarial(t *testing.T) {
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
 		requireStored(t, v, tr, false, "P", "C")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("child put again with its stored parent", func(t *testing.T) {
+		// A staged copy puts P under main before its child C, then puts C in
+		// a batch with P again. P's list holds C, so a Volume with frees on
+		// lets the batch in; C alone it refuses.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "C")
+		p := tr.add(t, "P", "C")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := v.PutBlockBatch(ctx, tr.entries("C")); !errors.Is(err, block.ErrUnheldPut) {
+			t.Fatalf("unheld put returned %v, want ErrUnheldPut", err)
+		}
+		if _, err := v.PutBlockBatch(ctx, tr.entries("P", "C")); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "P", "C")
 		requireAudit(t, v, 0)
 	})
 
@@ -5223,7 +5259,7 @@ func TestLivenessSettle(t *testing.T) {
 	fill := func(t *testing.T, v *Volume, tr testTree, names ...string) {
 		t.Helper()
 		err := v.withDirectFill(t.Context(), func(p *physicalTx) error {
-			_, err := block_gc.LandFill(t.Context(), p.rec, p.blocks, v.now(), tr.entries(names...))
+			_, err := v.landFill(t.Context(), p, "b", tr.entries(names...))
 			return err
 		})
 		if err != nil {
@@ -6225,8 +6261,8 @@ func TestLivenessSettle(t *testing.T) {
 		tr := testTree{}
 		tr.add(t, "A")
 		tr.add(t, "C")
-		tr.add(t, "B", "C")
 		v, clk, store := oldStore(t, tr, "A", []string{"A", "C"})
+		tr.add(t, "B", "C")
 		verify(t, v, tr, "A")
 		collectUntil(t, v, clk, flipped)
 		if !has(t, store, run, tr["C"].Ref) {
@@ -8907,4 +8943,43 @@ func testStageSliceResult(t *testing.T, mode sliceMode, writes int, err error) {
 	if writes != want {
 		t.Fatalf("batch opened %d write transactions, want %d", writes, want)
 	}
+}
+
+// putOldFills stores entries as an older build's cache fill did, in its
+// stored format: the bytes and child list of each block, and a fill record
+// keyed 'L' by its stamp and block holding a down pair for the block's
+// implied holder, its fill-born index entry keyed 'M' by block and stamp, and
+// for a block with children the up pairs keyed 'N' by stamp and block. No
+// writer stores these records now; the collector still nets them.
+func putOldFills(ctx context.Context, p *physicalTx, now time.Time, entries []*block.PutBatchEntry) error {
+	// Store the bytes and the child lists.
+	if _, err := p.blocks.PutBlockBatch(ctx, entries); err != nil {
+		return err
+	}
+	stamp := binary.BigEndian.AppendUint64(nil, uint64(now.UnixMilli())) //nolint:gosec // times after 1970.
+	for _, entry := range entries {
+		if err := p.rec.PutChildren(ctx, entry.Ref, entry.Refs); err != nil {
+			return err
+		}
+
+		// Write the fill record, its index entry and its up pairs.
+		key := block_gc.BlockKey(entry.Ref)
+		value, err := (&block_gc.JournalRecord{AtUnixMilli: now.UnixMilli(), Down: [][]byte{key}}).MarshalVT()
+		if err != nil {
+			return err
+		}
+		if err := p.tx.Set(ctx, slices.Concat(livenessPrefix, []byte{'L'}, stamp, key), value); err != nil {
+			return err
+		}
+		if err := p.tx.Set(ctx, slices.Concat(livenessPrefix, []byte{'M'}, key, stamp), nil); err != nil {
+			return err
+		}
+		if len(entry.Refs) == 0 {
+			continue
+		}
+		if err := p.tx.Set(ctx, slices.Concat(livenessPrefix, []byte{'N'}, stamp, key), block_gc.EncodeChildren(entry.Refs)); err != nil {
+			return err
+		}
+	}
+	return nil
 }

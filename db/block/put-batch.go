@@ -19,4 +19,8 @@ type PutBatchEntry struct {
 	// put without External stores them. A store that keeps no liveness stores
 	// the bytes as for any entry, which loses nothing.
 	External bool
+	// CacheFill marks a copy of a block read from another store, as
+	// PutOpts.CacheFill does. A Volume that keeps liveness lands a batch of
+	// fills under the bucket's leased fill roots.
+	CacheFill bool
 }

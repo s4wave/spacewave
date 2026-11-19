@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
 
 func TestCacheFillsShareTransactions(t *testing.T) {
@@ -98,5 +99,25 @@ func TestCacheFillsShareTransactions(t *testing.T) {
 	raw.mu.Unlock()
 	if count != 2 {
 		t.Fatalf("%d fills used %d commits, want 2", n, count)
+	}
+
+	// A batch of fills, such as a pack's neighbors, lands under the fill
+	// roots in one commit, held as the queued fills are.
+	batch := make([]*block.PutBatchEntry, 3)
+	for i := range batch {
+		batch[i] = &block.PutBatchEntry{Data: fmt.Appendf(nil, "pack neighbor %d", i), Refs: []*block.BlockRef{leaf}, RefsKnown: true, CacheFill: true}
+	}
+	unheld := v.notHeld[block_gc.NotHeldPut].Load()
+	existed, err := v.PrepareOwnedBlockBatch(t.Context(), "bucket", batch)
+	if err != nil || len(existed) != len(batch) {
+		t.Fatalf("fill batch: existed=%v err=%v", existed, err)
+	}
+	if got := v.notHeld[block_gc.NotHeldPut].Load() - unheld; got != 0 {
+		t.Fatalf("fill batch stored %d blocks unheld", got)
+	}
+	for i, entry := range batch {
+		if got, found, err := v.GetBlock(t.Context(), entry.Ref); err != nil || !found || string(got) != string(entry.Data) {
+			t.Fatalf("batch fill %d stored found=%v err=%v", i, found, err)
+		}
 	}
 }

@@ -66,7 +66,7 @@ func measureAdmitWait(t *testing.T, mib int) (wait, store time.Duration) {
 	}
 	world := put([]byte("checkpoint World"), nodes...)
 	payload := put([]byte("payload"))
-	a.replay = &spaceReplay{a: a, base: &InnerState{}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{}}
 	a.replay.positions = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: world}}}}
 
 	// Start the checkpoint's store, then hold the payload during it.

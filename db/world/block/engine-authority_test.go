@@ -683,6 +683,38 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 		}
 	})
 
+	// A rehearsal too large for its buffer drains early under its own
+	// stage, which holds the drained blocks across collections until Discard.
+	t.Run("long rehearsal", func(t *testing.T) {
+		// Fill a rehearsal past the buffer's 4096 entries.
+		rtx, err := f.engine.NewRehearsalTransaction(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rtx.Discard()
+		var first *bucket.ObjectRef
+		for i, key := range fixtureKeys("rehearsal-", 4200) {
+			ref := fixturePayload(t, rtx, key)
+			if i == 0 {
+				first = ref
+			}
+		}
+		if !f.stored(t, first.GetRootRef()) {
+			t.Fatal("the rehearsal did not drain early")
+		}
+
+		// The stage keeps the drained blocks until Discard, then they go.
+		f.collect(t)
+		if !f.stored(t, first.GetRootRef()) {
+			t.Fatal("collection freed an early drain of an open rehearsal")
+		}
+		rtx.Discard()
+		f.collect(t)
+		if f.stored(t, first.GetRootRef()) {
+			t.Fatal("a discarded rehearsal's early drain survived collection")
+		}
+	})
+
 	// A World read and a small commit grow at most with the depth of the
 	// object tree from 1x to 10x objects, as the Phase 2 path walk says: a
 	// commit stays one Volume transaction, and neither scans the World.

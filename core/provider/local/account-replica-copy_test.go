@@ -197,7 +197,7 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	account, so, head, leaf, payload := mountSeededReplicaSource(ctx, t)
-	dstSO := mountEmptyReplicaDestination(ctx, t)
+	dstSO, _ := mountEmptyReplicaDestination(ctx, t)
 
 	// Copying twice copies the graph once.
 	local := dstSO.GetBlockStore()
@@ -240,7 +240,7 @@ func TestAccountReplicaCopyBatchesProofReads(t *testing.T) {
 	account, so, head, leaf, payload := mountSeededReplicaSource(ctx, t)
 
 	// Mount an empty destination Space in a separate volume.
-	dstSO := mountEmptyReplicaDestination(ctx, t)
+	dstSO, _ := mountEmptyReplicaDestination(ctx, t)
 
 	// Copy the source graph into the destination, counting proof reads.
 	counted := &proofCountingStore{Store: block_store.NewStore("destination", dstSO.GetBlockStore())}
@@ -274,7 +274,7 @@ func TestAccountReplicaCopySkipsHeldSubtree(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	account, so, head, _, _ := mountSeededReplicaSource(ctx, t)
-	dstSO := mountEmptyReplicaDestination(ctx, t)
+	dstSO, _ := mountEmptyReplicaDestination(ctx, t)
 
 	// Hold back the first child of the head root.
 	source := so.GetBlockStore()
@@ -335,8 +335,9 @@ func countGraphBlocks(ctx context.Context, t *testing.T, src block.StoreOps, roo
 	return n
 }
 
-// mountEmptyReplicaDestination mounts an empty Space in its own volume.
-func mountEmptyReplicaDestination(ctx context.Context, t *testing.T) sobject.SharedObject {
+// mountEmptyReplicaDestination mounts an empty Space in its own volume, and
+// returns it with its account.
+func mountEmptyReplicaDestination(ctx context.Context, t *testing.T) (sobject.SharedObject, *ProviderAccount) {
 	// Start a provider account and create a Space.
 	t.Helper()
 	_, _, account, _, release := setupProviderAndSessionInternal(ctx, t)
@@ -352,7 +353,7 @@ func mountEmptyReplicaDestination(ctx context.Context, t *testing.T) sobject.Sha
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseSO)
-	return so
+	return so, account
 }
 
 // TestAccountReplicaCopyWaitsOnUnknownRefs copies from a source that holds
@@ -415,7 +416,7 @@ func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
 			account, so, head, leaf, _ := mountSeededReplicaSource(ctx, t)
-			dstSO := mountEmptyReplicaDestination(ctx, t)
+			dstSO, _ := mountEmptyReplicaDestination(ctx, t)
 			source := &holeStore{StoreOps: so.GetBlockStore(), hole: leaf, err: holeErr}
 			destination := &replicaDestination{SharedObject: so, store: &BlockStore{
 				store: block_store.NewStore("destination", dstSO.GetBlockStore()), copyStore: source,
@@ -488,7 +489,8 @@ func TestAccountReplicaCopyBlockedWaitsOutHeads(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	account, so, head, leaf, _ := mountSeededReplicaSource(ctx, t)
-	dstSO := mountEmptyReplicaDestination(ctx, t)
+	dstSO, dstAccount := mountEmptyReplicaDestination(ctx, t)
+	unheld := unheldPuts(dstAccount.GetVolume())
 	source := &holeStore{StoreOps: so.GetBlockStore(), hole: leaf, err: block.ErrNotFound}
 	destination := &replicaDestination{SharedObject: so, store: &BlockStore{
 		store:     block_store.NewStore("destination", dstSO.GetBlockStore()),
@@ -501,7 +503,8 @@ func TestAccountReplicaCopyBlockedWaitsOutHeads(t *testing.T) {
 	}
 	defer releaseLocal()
 
-	// newer publishes a head whose root names the blocked World and a new leaf.
+	// newer publishes a head whose root, its span block, names the blocked World
+	// and a new leaf.
 	var heads int
 	newer := func() *replicaHead {
 		t.Helper()
@@ -517,13 +520,13 @@ func TestAccountReplicaCopyBlockedWaitsOutHeads(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		span := &block.PutBatchEntry{Ref: rootRef, Data: data, Refs: refs, RefsKnown: true}
 		if _, err := so.GetBlockStore().PutBlockBatch(ctx, []*block.PutBatchEntry{
-			{Ref: freshRef, Data: fresh, RefsKnown: true},
-			{Ref: rootRef, Data: data, Refs: refs, RefsKnown: true},
+			{Ref: freshRef, Data: fresh, RefsKnown: true}, span,
 		}); err != nil {
 			t.Fatal(err)
 		}
-		return &replicaHead{head: &bucket.ObjectRef{RootRef: rootRef}}
+		return &replicaHead{span: span, head: &bucket.ObjectRef{RootRef: rootRef}}
 	}
 
 	// run copies the heads in latest until stop is called, as one process
@@ -614,6 +617,11 @@ func TestAccountReplicaCopyBlockedWaitsOutHeads(t *testing.T) {
 	}
 	if blocks < 4 {
 		t.Fatalf("newest head has %d blocks, want its root, new leaf and the World", blocks)
+	}
+
+	// The copy stored each head's span block, and every other block, held.
+	if n := unheldPuts(dstAccount.GetVolume()) - unheld; n != 0 {
+		t.Fatalf("the copy stored %d blocks nothing held", n)
 	}
 }
 

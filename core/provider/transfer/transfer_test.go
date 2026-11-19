@@ -857,11 +857,18 @@ func putTestWorld(ctx context.Context, t *testing.T, acc *provider_local.Provide
 		t.Fatal(err)
 	}
 	defer rel()
-	leaf, _, err := bs.PutBlock(ctx, payload, &block.PutOpts{RefsKnown: true})
+
+	// Write the World under a stage, which holds it until the root does.
+	staged, endStage, err := block.OpenStage(ctx, bs)
 	if err != nil {
 		t.Fatal(err)
 	}
-	root, _, err := block.PutBlock(ctx, bs, &block_mock.Root{ExampleSubBlock: &block_mock.SubBlock{ExamplePtr: leaf}})
+	defer endStage()
+	leaf, _, err := staged.PutBlock(ctx, payload, &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, _, err := block.PutBlock(ctx, staged, &block_mock.Root{ExampleSubBlock: &block_mock.SubBlock{ExamplePtr: leaf}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -911,14 +918,20 @@ func TestLocalTransferHoldsWorldPastGrace(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Without mounting the Space, store a block nothing holds beside its
-	// World, and collect.
+	// Without mounting the Space, store a block beside its World under a
+	// stage, release the stage so nothing holds it, and collect. The Volume
+	// refuses a put nothing holds.
 	tgtBS, tgtBSRel, err := tgtAcc.MountBlockStore(ctx, provider_local.NewBlockStoreRef(providerID, tgtAccountID, soRef.GetBlockStoreId()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tgtBSRel()
-	unheld, _, err := tgtBS.PutBlock(ctx, []byte("unheld beside the transferred World"), &block.PutOpts{RefsKnown: true})
+	staged, endStage, err := block.OpenStage(ctx, tgtBS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unheld, _, err := staged.PutBlock(ctx, []byte("unheld beside the transferred World"), &block.PutOpts{RefsKnown: true})
+	endStage()
 	if err != nil {
 		t.Fatal(err)
 	}

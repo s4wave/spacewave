@@ -183,7 +183,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 		pages:  block.NewPendingStore(store, 1<<20),
 		held:   make(map[string]*block.BlockRef),
 	}
-	a.replay = &spaceReplay{a: a, base: &InnerState{
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{
 		HeadRef:       &bucket.ObjectRef{RootRef: head},
 		RetainedRoots: []*RetainedRoot{{Name: "export", RootRef: retained}},
 	}}
@@ -318,7 +318,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 		missing:          map[string]struct{}{string(m.Hash()): {}},
 		so:               &advancedSpace{peerID: p.GetPeerID(), latest: &setSnapshot{set: sobject.NewSOOperationSet("space", c2)}},
 	}
-	b.replay = &spaceReplay{a: b, base: &InnerState{}}
+	b.replay = &spaceReplay{a: b, stage: newReplayStage(b.pages), base: &InnerState{}}
 	kept, err := b.Install(ctx, &sobject.OrderEvent{Checkpoint: c1, Set: c1Set}, 0, nil)
 	b.waitBackground()
 	if err != nil || !kept {
@@ -341,7 +341,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	// Build an adapter with no replayed positions over the Volume.
 	ctx := t.Context()
 	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
-	a.replay = &spaceReplay{a: a, base: &InnerState{}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{}}
 	// The state it follows holds no operations above the checkpoint the base
 	// holds, so a reset holds only the admissions' payloads.
 	a.stateHold = &payloadState{}
@@ -661,7 +661,7 @@ func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: earlier}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: earlier}}}
 	a.replay.positions = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: later}}}}
 	release, err := a.rootMtx.Lock(ctx)
 	if err != nil {
@@ -755,7 +755,7 @@ func runTrimHoldsPagesLiveWorldsName(t *testing.T, name string) {
 
 	// A checkpoint installs at the base, with the head the only kept
 	// position.
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
 	a.replay.positions = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: head}}}}
 	trimNow(t, a)
 
@@ -903,7 +903,7 @@ func TestTrimKeepsRestoredWorlds(t *testing.T) {
 		t.Fatal(err)
 	}
 	release()
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
 	a.replay.restored = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: saved}}}}
 
 	// The install at mount keeps it.
@@ -949,7 +949,7 @@ func TestTrimMovesRootsTogether(t *testing.T) {
 		t.Fatal(err)
 	}
 	release()
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
 	a.replay.positions = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: head}}}}
 	a.head, a.writer = world.Head{Root: head}, world.Head{Root: candidate}
 	a.pending = []*spaceAdmission{{candidate: world.Candidate{Root: candidate}}}
@@ -1023,7 +1023,7 @@ func TestTrimKeepsItsBaseAndSkipsOlderPlans(t *testing.T) {
 
 	// The first install gathers a trim onto the first World, which waits for
 	// the trim turn.
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: first}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: first}}}
 	turn, err := a.trimMtx.Lock(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -1167,7 +1167,7 @@ func TestTrimKeepsWorldHeldOutside(t *testing.T) {
 	// stale, so its first move fails, and the trim reads again and
 	// completes.
 	base := put(a.pages, "base World")
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
 	trimCtx, cancelTrim := context.WithCancel(ctx)
 	defer cancelTrim()
 	trimmed := make(chan error, 1)
@@ -1266,7 +1266,7 @@ func TestTrimKeepsImportGatheredBefore(t *testing.T) {
 	// The install of the placeholder checkpoint gathers its trim, the
 	// writer's stage ends, and the trim lands: the World stays held.
 	placeholder := put(a.pages, "placeholder World")
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: placeholder}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: placeholder}}}
 	plan, err := a.gatherTrim(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -1282,7 +1282,7 @@ func TestTrimKeepsImportGatheredBefore(t *testing.T) {
 
 	// The install of the migrated checkpoint moves the base onto the World
 	// and releases it from the import root in the same move.
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: migrated}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: migrated}}}
 	plan, err = a.gatherTrim(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -1335,7 +1335,7 @@ func TestStaleAdapterTrimFails(t *testing.T) {
 	}
 	trim := func(a *Adapter, base *block.BlockRef) error {
 		t.Helper()
-		a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
+		a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
 		plan, err := a.gatherTrim(ctx)
 		if err != nil {
 			t.Fatal(err)
@@ -1442,7 +1442,7 @@ func TestStaleAdapterHistoryRewriteFails(t *testing.T) {
 	}
 
 	// A's trim onto Wc fails and moves nothing.
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: wc}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: wc}}}
 	plan, err := a.gatherTrim(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -1506,13 +1506,18 @@ func TestResetPayloadsKeepsUnresolved(t *testing.T) {
 	ctx := t.Context()
 	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
 	store := a.so.GetBlockStore()
-	refs := putPayloads(ctx, t, store, "payload ", 2)
+	staged, endStage, err := block.OpenStage(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	refs := putPayloads(ctx, t, staged, "payload ", 2)
 	named, unnamed := refs[0], refs[1]
 	if err := a.addPayloads(ctx, refs, false); err != nil {
 		t.Fatal(err)
 	}
+	endStage()
 	w := putPayloads(ctx, t, a.pages, "World ", 1)[0]
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: w}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: w}}}
 	requireRead := func(step string, ref *block.BlockRef, want bool) {
 		t.Helper()
 		if _, found, err := store.GetBlock(ctx, ref); err != nil || found != want {
@@ -1592,12 +1597,17 @@ type admittedPayloads struct {
 func newAdmittedPayloads(t *testing.T) *admittedPayloads {
 	ctx := t.Context()
 	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
-	refs := putPayloads(ctx, t, a.so.GetBlockStore(), "payload ", 3)
+	staged, endStage, err := block.OpenStage(ctx, a.so.GetBlockStore())
+	if err != nil {
+		t.Fatal(err)
+	}
+	refs := putPayloads(ctx, t, staged, "payload ", 3)
 	if err := a.addPayloads(ctx, refs, false); err != nil {
 		t.Fatal(err)
 	}
+	endStage()
 	w := putPayloads(ctx, t, a.pages, "World ", 1)[0]
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: w}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: w}}}
 	return &admittedPayloads{a: a, collect: collect, world: w, named: refs[0], admitted: refs[1], unnamed: refs[2]}
 }
 
@@ -1656,16 +1666,20 @@ func timeResetPayloads(t *testing.T, n, drop int) {
 	// Hold the order's payloads and the ones no operation names.
 	ctx := t.Context()
 	a, _ := newVolumeAdapter(t, 1<<20, time.Hour)
-	store := a.so.GetBlockStore()
-	named := putPayloads(ctx, t, store, "named ", n)
-	dropped := putPayloads(ctx, t, store, "dropped ", drop)
+	staged, endStage, err := block.OpenStage(ctx, a.so.GetBlockStore())
+	if err != nil {
+		t.Fatal(err)
+	}
+	named := putPayloads(ctx, t, staged, "named ", n)
+	dropped := putPayloads(ctx, t, staged, "dropped ", drop)
 	for chunk := range slices.Chunk(slices.Concat(named, dropped), 4096) {
 		if err := a.addPayloads(ctx, chunk, false); err != nil {
 			t.Fatal(err)
 		}
 	}
+	endStage()
 	w := putPayloads(ctx, t, a.pages, "World ", 1)[0]
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: w}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: w}}}
 	holdOrder(a, w, named, false)
 
 	// Wait for rootMtx in a loop while the save runs, as a writer would.
@@ -1692,7 +1706,7 @@ func timeResetPayloads(t *testing.T, n, drop int) {
 		}
 	}()
 	start := time.Now()
-	err := a.resetPayloads(ctx, true)
+	err = a.resetPayloads(ctx, true)
 	total := time.Since(start)
 	close(done)
 	longest := <-waited
@@ -1739,7 +1753,7 @@ func TestTrimReleasesImportedPayloadOnceHeld(t *testing.T) {
 	}
 	endStage()
 	placeholder := putPayloads(ctx, t, a.pages, "placeholder World ", 1)[0]
-	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: placeholder}}}
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: placeholder}}}
 	trim := func() {
 		t.Helper()
 		plan, err := a.gatherTrim(ctx)

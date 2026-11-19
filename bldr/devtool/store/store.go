@@ -215,19 +215,29 @@ func openHead(
 		RootName: world_block_engine.LegacyRootName(ObjectStoreID, headKey),
 	}
 	return world_block_engine.OpenHead(ctx, le, authority, cursor, legacy, world_block_engine.OpenHeadOptions{
-		Initial: func(ctx context.Context) (*block.BlockRef, error) {
+		Initial: func(ctx context.Context) (*block.BlockRef, func(), error) {
 			// Refuse an empty World unless creating one.
 			if !create {
-				return nil, errors.New("devtool world is empty")
+				return nil, nil, errors.New("devtool world is empty")
 			}
 
-			// Write a new empty World.
-			btx, bcs := cursor.BuildTransaction(nil)
+			// Open a stage the Install outlives to hold the new World.
+			stage, release, err := block.OpenStage(ctx, cursor.GetBlockStore())
+			if err != nil {
+				return nil, nil, errors.Wrap(err, "open initial world stage")
+			}
+
+			// Write a new empty World under the stage.
+			btx, bcs := cursor.BuildTransactionWithStore(nil, stage)
 			bcs.ClearAllRefs()
 			initial := world_block.NewWorld(world_block.NewestWorldFormat, false)
 			bcs.SetBlock(initial, true)
 			root, _, err := btx.Write(ctx, true)
-			return root, errors.Wrap(err, "write initial world")
+			if err != nil {
+				release()
+				return nil, nil, errors.Wrap(err, "write initial world")
+			}
+			return root, release, nil
 		},
 	})
 }

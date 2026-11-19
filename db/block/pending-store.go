@@ -22,9 +22,8 @@ import (
 // them. Sweep drops the kept blocks no live root reaches. A put past the
 // memory bound goes to the stage a writer opened through OpenStage or
 // OpenOverflowStage, which holds it until its writer's root does. An unstaged
-// put past the bound goes to the inner store, which holds it only when the
-// inner store is itself a stage: a Volume refuses it with ErrUnheldPut while
-// its frees are on.
+// put the store cannot keep, past the bound or without its child list, fails
+// whole with ErrUnheldPut: nothing would hold it in the inner store.
 //
 // Invariants:
 //   - A kept block carries its complete child list, and each child is kept or
@@ -80,7 +79,7 @@ type PendingStore struct {
 	seq uint64
 	// keptBytes is the total data length of kept.
 	keptBytes int
-	// maxBytes bounds keptBytes. A put past it goes to the inner store.
+	// maxBytes bounds keptBytes. A put past it goes to its stage.
 	maxBytes int
 }
 
@@ -98,7 +97,7 @@ func NewPendingStore(inner StoreOps, maxBytes int) *PendingStore {
 }
 
 // Full reports whether the kept blocks reached half the bound, so the writer
-// names a tree before more puts must go to the inner store.
+// names a tree before more puts must go to a stage.
 func (s *PendingStore) Full() bool {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -125,12 +124,12 @@ func (s *PendingStore) BeginReadOperation(context.Context) (StoreOps, func(), er
 	return s, func() {}, nil
 }
 
-// PutBlock keeps a block whose refs are known, and puts any other to the
-// inner store.
+// PutBlock keeps a block whose refs are known while the bound allows, and
+// refuses any other with ErrUnheldPut: only a stage holds a stored one.
 func (s *PendingStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	// Hand a block without its child list to the inner store.
+	// Refuse a block that cannot be kept.
 	if !opts.GetRefsKnown() || opts.GetSync() {
-		return s.StoreOps.PutBlock(ctx, data, opts)
+		return nil, false, errors.Wrap(ErrUnheldPut, "pending store keeps only a block with its child list, unsynced")
 	}
 
 	// Keep it.
@@ -138,21 +137,22 @@ func (s *PendingStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	if err != nil {
 		return nil, false, err
 	}
-	existed, _, err := s.put(ctx, s.StoreOps, nil, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
+	existed, _, err := s.put(ctx, nil, nil, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
 	if err != nil {
 		return nil, false, err
 	}
 	return ref, existed[0], nil
 }
 
-// PutBlockBatch keeps each entry with a complete child list while the bound
-// allows, and puts the rest to the inner store. A kept entry reports whether
-// it was kept already.
+// PutBlockBatch keeps the entries, each with a complete child list, while the
+// bound allows, and refuses the batch whole with ErrUnheldPut otherwise: only
+// a stage holds a stored one. A kept entry reports whether it was kept
+// already.
 func (s *PendingStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
 	if err := verifyKeepable(entries); err != nil {
 		return nil, err
 	}
-	existed, _, err := s.put(ctx, s.StoreOps, nil, entries)
+	existed, _, err := s.put(ctx, nil, nil, entries)
 	return existed, err
 }
 
@@ -172,8 +172,9 @@ func verifyKeepable(entries []*PutBatchEntry) error {
 }
 
 // put keeps the entries it can and puts the rest to dst, reporting whether
-// it put any. Each entry kept through hold, when set, is held until the hold
-// is released. The kept blocks an entry past the bound names are stored with
+// it put any. With no dst it keeps all of them or, when any cannot be kept,
+// none, and returns ErrUnheldPut. Each entry kept through hold, when set, is
+// held until the hold is released. The kept blocks an entry past the bound names are stored with
 // it and stay kept, so the Worlds that name them still find them here.
 // Tombstones are refused: a kept block may be reached by any kept World. The
 // caller has hashed each entry put may keep: PutBlock builds its ref from the
@@ -186,11 +187,16 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 		}
 	}
 
-	// Keep each entry with a child list that fits, in order.
+	// Keep each entry with a child list that fits, in order, or with no dst
+	// refuse a batch that does not fit whole.
 	out := make([]bool, len(entries))
 	var rest []*PutBatchEntry
 	var restIdx []int
 	s.mtx.Lock()
+	if dst == nil && !s.fitsLocked(entries) {
+		s.mtx.Unlock()
+		return nil, false, errors.Wrap(ErrUnheldPut, "pending store is full and the put has no stage")
+	}
 	for i, e := range entries {
 		key := pendingKey(e.Ref)
 		switch {
@@ -230,6 +236,22 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 		out[i] = found[len(tree)+j]
 	}
 	return out, true, nil
+}
+
+// fitsLocked reports whether every entry is kept already or has its child
+// list and fits the bound with the others. The caller holds mtx.
+func (s *PendingStore) fitsLocked(entries []*PutBatchEntry) bool {
+	size := s.keptBytes
+	for _, e := range entries {
+		if s.kept[pendingKey(e.Ref)] != nil {
+			continue
+		}
+		if !e.RefsKnown {
+			return false
+		}
+		size += len(e.Data)
+	}
+	return size <= s.maxBytes
 }
 
 // pendingKey returns the key of ref in kept: its hash type and digest. A read

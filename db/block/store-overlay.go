@@ -451,17 +451,92 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 	}
 }
 
-// GetRoot reports that no name is held: the overlay layers stores and holds no
-// roots of its own.
-func (o *StoreOverlay) GetRoot(context.Context, string) (*BlockRef, error) { return nil, nil }
+// writeStore returns the field of the one store the mode writes to, or nil
+// for a cache mode that writes to both.
+func (o *StoreOverlay) writeStore() *StoreOps {
+	switch o.mode {
+	case OverlayMode_UPPER_CACHE, OverlayMode_LOWER_CACHE:
+		return nil
+	case OverlayMode_LOWER_ONLY, OverlayMode_UPPER_READ_CACHE, OverlayMode_LOWER_WRITE_CACHE:
+		return &o.lower
+	default:
+		return &o.upper
+	}
+}
 
-// ListRoots reports no roots.
-func (o *StoreOverlay) ListRoots(context.Context, string, func(NamedRoot) error) error { return nil }
+// held returns the store that holds the overlay's roots: the one store the
+// mode writes to, when that store holds roots. It returns nil otherwise, and
+// the overlay then holds none.
+func (o *StoreOverlay) held() StoreOps {
+	if w := o.writeStore(); w != nil && HoldsRoots(*w) {
+		return *w
+	}
+	return nil
+}
 
-// SetRoots stores the entries and refuses a root that would hold a block:
-// this store holds no roots.
+// HoldsRoots reports whether the store the mode writes to holds roots. Its
+// roots, pins and stages are the overlay's: a block written through the
+// overlay lands there, so only there can a root hold it.
+func (o *StoreOverlay) HoldsRoots() bool { return o.held() != nil }
+
+// GetRoot reads the root from the held store, or reports none.
+func (o *StoreOverlay) GetRoot(ctx context.Context, name string) (*BlockRef, error) {
+	if h := o.held(); h != nil {
+		return h.GetRoot(ctx, name)
+	}
+	return nil, nil
+}
+
+// ListRoots lists the roots of the held store, or none.
+func (o *StoreOverlay) ListRoots(ctx context.Context, prefix string, fn func(NamedRoot) error) error {
+	if h := o.held(); h != nil {
+		return h.ListRoots(ctx, prefix, fn)
+	}
+	return nil
+}
+
+// SetRoots moves the roots on the held store. With none it stores the entries
+// and refuses a root that would hold a block.
 func (o *StoreOverlay) SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
+	if h := o.held(); h != nil {
+		return h.SetRoots(ctx, entries, roots)
+	}
 	return SetRootsUnheld(ctx, o, entries, roots)
+}
+
+// PinRoot pins a root on the held store.
+func (o *StoreOverlay) PinRoot(ctx context.Context, ref *BlockRef) (func(), error) {
+	if h := o.held(); h != nil {
+		return PinRoot(ctx, h, ref)
+	}
+	return func() {}, nil
+}
+
+// OpenStage returns an overlay whose writes go to a stage opened on the held
+// store, reading through the other store as the overlay does.
+func (o *StoreOverlay) OpenStage(ctx context.Context) (StoreOps, func(), error) {
+	// Open the stage on the held store, or write through when none holds.
+	h := o.held()
+	if h == nil {
+		return o, func() {}, nil
+	}
+	staged, release, err := OpenStage(ctx, h)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Swap the write store for the stage in a copy of the overlay.
+	scoped := *o
+	*scoped.writeStore() = staged
+	return &scoped, release, nil
+}
+
+// ReleaseRoots drops a stage's holds on the held store.
+func (o *StoreOverlay) ReleaseRoots(ctx context.Context, refs []*BlockRef) error {
+	if h := o.held(); h != nil {
+		return ReleaseRoots(ctx, h, refs)
+	}
+	return nil
 }
 
 // Sync fences both overlay stores; it reports fenced only when both did.
@@ -474,8 +549,25 @@ func (o *StoreOverlay) Sync(ctx context.Context) (bool, error) {
 	return upperFenced && lowerFenced, err
 }
 
+// MarkRootsComplete records completion proofs in the write store.
+func (o *StoreOverlay) MarkRootsComplete(ctx context.Context, roots []*BlockRef) error {
+	return MarkRootsComplete(ctx, o.held(), roots)
+}
+
+// RootsComplete reads completion proofs from the write store.
+func (o *StoreOverlay) RootsComplete(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	return RootsComplete(ctx, o.held(), refs)
+}
+
+// HoldCompleteRoots holds proved roots under the write store's stage.
+func (o *StoreOverlay) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	return HoldCompleteRoots(ctx, o.held(), refs)
+}
+
 // _ is a type assertion
 var (
-	_ StoreOps   = (*StoreOverlay)(nil)
-	_ StoreParts = (*StoreOverlay)(nil)
+	_ StoreOps    = (*StoreOverlay)(nil)
+	_ StoreParts  = (*StoreOverlay)(nil)
+	_ LeasedRoots = (*StoreOverlay)(nil)
+	_ RootProofs  = (*StoreOverlay)(nil)
 )

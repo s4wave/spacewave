@@ -46,7 +46,7 @@ func newWorldReplay(t *testing.T) (*spaceReplay, *InnerState) {
 		pages:    block.NewPendingStore(cursor.GetBucket(), 1<<20),
 		decoded:  block.NewDecodedBlockCache(),
 	}
-	r := &spaceReplay{a: a}
+	r := &spaceReplay{a: a, stage: newReplayStage(a.pages)}
 	t.Cleanup(r.close)
 
 	// Initialize a World; its first commit writes its root.

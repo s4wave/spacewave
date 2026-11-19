@@ -2,7 +2,6 @@ package volume_controller
 
 import (
 	"context"
-	"errors"
 	"slices"
 
 	"github.com/aperturerobotics/util/ccontainer"
@@ -209,16 +208,14 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		return ref, existed, err
 	}
 
-	// Store the block with its child list in one physical transaction when
-	// the volume supports it, preserving PutBlock's existence result.
-	if prepare, ok := b.v.(block.AtomicBlockPreparer); ok && b.preparesOwned() {
+	// Send a cache fill to the Volume's fill writer, which lands it with the
+	// bucket's leased fill root. A plain write stores it unheld.
+	if prepare, ok := b.v.(block.AtomicBlockPreparer); ok && putOpts.GetCacheFill() && b.HoldsRoots() {
 		ref, existed, err := prepare.PrepareOwnedBlock(ctx, b.GetID(), data, putOpts)
-		if !errors.Is(err, block.ErrAtomicCommitUnsupported) {
-			if err == nil && syncRequested {
-				_, err = b.Sync(ctx)
-			}
-			return ref, existed, err
+		if err == nil && syncRequested {
+			_, err = b.Sync(ctx)
 		}
+		return ref, existed, err
 	}
 
 	// Write through the volume otherwise.
@@ -464,16 +461,6 @@ func (b *bucketHandle) Sync(ctx context.Context) (bool, error) {
 		return b.readOps.Sync(ctx)
 	}
 	return b.v.Sync(ctx)
-}
-
-// preparesOwned reports whether the handle stores a block with its bucket
-// ownership in one Volume transaction: its normal write domain, not a
-// transient read scope, on a Volume that keeps liveness.
-func (b *bucketHandle) preparesOwned() bool {
-	if b.err != nil || b.readOps != nil || b.v == nil {
-		return false
-	}
-	return block.HoldsRoots(b.v)
 }
 
 // _ asserts the bucket contracts.

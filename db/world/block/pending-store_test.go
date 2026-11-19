@@ -303,6 +303,16 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	small := block.NewPendingStore(f.store, len(tr.add(t, "X").Data))
 	tr.add(t, "C4", "X")
 	tr.add(t, "R4", "C4")
+
+	// The same tree put with no stage is refused whole, storing and keeping
+	// nothing: no stage would hold the overflow in the inner store.
+	if _, err := small.PutBlockBatch(ctx, []*block.PutBatchEntry{tr["X"], tr["C4"], tr["R4"]}); !errors.Is(err, block.ErrUnheldPut) {
+		t.Fatalf("unstaged overflow returned %v, want ErrUnheldPut", err)
+	}
+	stored(false, "X", "C4", "R4")
+	if n := small.KeptBytes(); n != 0 {
+		t.Fatalf("the refused overflow kept %d bytes", n)
+	}
 	stage, releaseStage, err := small.OpenStage(ctx)
 	if err != nil {
 		t.Fatal(err)

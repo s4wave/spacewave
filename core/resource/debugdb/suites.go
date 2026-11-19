@@ -266,18 +266,24 @@ func (s *suiteRunner) runCollect(vol volume.Collector, store block.StoreOps) *s4
 	timer := s.timer(idx)
 	m := NewMetricCollector("collect", "ms")
 
-	// Put ten blocks, then time a pass.
+	// Put ten blocks under a stage released at once, so nothing holds
+	// them, then time a pass.
 	for timer.Running() {
+		staged, release, err := block.OpenStage(s.ctx, store)
+		if err != nil {
+			break
+		}
 		for range 10 {
 			data := make([]byte, 4096)
 			runtime.Gosched()
-			if _, _, err := store.PutBlock(s.ctx, data, &block.PutOpts{RefsKnown: true}); err != nil {
+			if _, _, err := staged.PutBlock(s.ctx, data, &block.PutOpts{RefsKnown: true}); err != nil {
 				break
 			}
 		}
+		release()
 		runtime.Gosched()
 		m.Start()
-		_, err := vol.Collect(s.ctx)
+		_, err = vol.Collect(s.ctx)
 		m.Stop()
 		if err != nil {
 			break

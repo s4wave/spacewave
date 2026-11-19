@@ -101,7 +101,7 @@ func (e *PackReader) writeback(ctx context.Context, target block.StoreOps, block
 			failed = append(failed, b.key)
 			continue
 		}
-		entries = append(entries, &block.PutBatchEntry{Ref: b.ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsKnown})
+		entries = append(entries, &block.PutBatchEntry{Ref: b.ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsKnown, CacheFill: true})
 	}
 
 	// Persist the verified blocks in one target-store batch.
