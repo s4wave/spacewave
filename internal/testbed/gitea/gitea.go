@@ -15,12 +15,14 @@ import (
 	"time"
 )
 
-// WaitReady waits for the real HTTP health check within the test's deadline.
+// WaitReady waits for the real HTTP health check until ctx ends.
+//
+// A cold start has no fixed duration: a VM boot and a first migration can take
+// minutes on a loaded host. The caller ends ctx, with a cause, when the server
+// can no longer become ready, such as when its process or VM exits.
 func WaitReady(t *testing.T, ctx context.Context, base, logPath string) {
-	// Bound readiness separately so an exited server produces a useful log.
+	// Bound each probe so a stalled connection cannot outlast the next tick.
 	t.Helper()
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
-	defer cancel()
 	client := &http.Client{Timeout: time.Second}
 
 	// Gitea is an external process whose only readiness signal is its HTTP check.
@@ -38,7 +40,7 @@ func WaitReady(t *testing.T, ctx context.Context, base, logPath string) {
 		select {
 		case <-ctx.Done():
 			log, _ := os.ReadFile(logPath)
-			t.Fatalf("Gitea readiness: %v\n%s", ctx.Err(), log)
+			t.Fatalf("Gitea readiness: %v\n%s", context.Cause(ctx), log)
 		case <-ticker.C:
 		}
 	}

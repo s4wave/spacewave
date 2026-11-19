@@ -5,6 +5,7 @@ package s4wave_sql_world_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net"
 	"os"
 	"os/exec"
@@ -123,7 +124,18 @@ func TestGiteaMySQLWorld(t *testing.T) {
 	go func() { webErr = command.Wait(); close(webDone) }()
 	defer func() { stopWeb(); <-webDone }()
 	base := "http://" + httpAddr
-	gitea_testbed.WaitReady(t, ctx, base, filepath.Join(dir, "gitea.log"))
+
+	// Wait for readiness until the server answers or exits.
+	readyCtx, readyCancel := context.WithCancelCause(ctx)
+	go func() {
+		select {
+		case <-webDone:
+			readyCancel(errors.New("gitea web exited before it answered"))
+		case <-readyCtx.Done():
+		}
+	}()
+	gitea_testbed.WaitReady(t, readyCtx, base, filepath.Join(dir, "gitea.log"))
+	readyCancel(nil)
 
 	// Create a repository and issue through Gitea's authenticated HTTP API.
 	gitea_testbed.Request(t, ctx, base+"/api/v1/user/repos", password, "POST", `{"name":"proof","auto_init":false}`)

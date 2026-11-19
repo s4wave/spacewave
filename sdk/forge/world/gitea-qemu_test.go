@@ -101,7 +101,7 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 	f.createGraph(startup)
 	firstRun := "flowgraph-run/gitea-first"
 	f.startRun(firstRun)
-	gitea_testbed.WaitReady(t, h.ctx, f.base, "")
+	f.waitReady(firstRun)
 	first := f.reservation(firstRun, "vm")
 	firstLogs := f.docker("logs", first.Runtime.ID)
 	if !strings.Contains(firstLogs, "SPACEWAVE_OS_APP_STARTED pid=") {
@@ -201,7 +201,7 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 	updates <- h.declaration()
 	secondRun := "flowgraph-run/gitea-replacement"
 	f.startRun(secondRun)
-	gitea_testbed.WaitReady(t, h.ctx, f.base, "")
+	f.waitReady(secondRun)
 	second := f.reservation(secondRun, "vm")
 	if first.ExecutionObjectKey == second.ExecutionObjectKey || first.Runtime.ID == second.Runtime.ID {
 		t.Fatal("replacement reused its execution identity")
@@ -328,6 +328,66 @@ func (f *qemuGitea) wait(what string, ready func() bool) {
 			f.t.Fatalf("waiting for %s: %v", what, err)
 		}
 	}
+}
+
+// waitReady waits for Gitea's health check until the run's VM Task ends.
+// Docker start, a cold boot and the first migration have no fixed duration on a
+// loaded host; the harness timeout bounds the whole proof.
+func (f *qemuGitea) waitReady(run string) {
+	// Watch World revisions for the VM Task's completion beside the health check.
+	ctx, cancel := context.WithCancelCause(f.ctx)
+	defer cancel(nil)
+	go func() {
+		cancel(f.watchTaskEnd(ctx, run, "vm"))
+	}()
+	gitea_testbed.WaitReady(f.t, ctx, f.base, "")
+}
+
+// watchTaskEnd returns why the node's Task can no longer serve, or ctx's error.
+func (f *qemuGitea) watchTaskEnd(ctx context.Context, run, node string) error {
+	for {
+		seq, err := f.tb.WorldState.GetSeqno(ctx)
+		if err != nil {
+			return err
+		}
+		if err := f.taskEnded(ctx, run, node); err != nil {
+			return err
+		}
+		if _, err := f.tb.WorldState.WaitSeqno(ctx, seq+1); err != nil {
+			return err
+		}
+	}
+}
+
+// taskEnded returns a non-nil error once the node's Task is complete.
+func (f *qemuGitea) taskEnded(ctx context.Context, run, node string) error {
+	obj, err := world.MustGetObject(ctx, f.tb.WorldState, run)
+	if err != nil {
+		return err
+	}
+	defer world.ReleaseObjectState(obj)
+	var state *s4wave_flowgraph.FlowgraphRun
+	_, _, err = world.AccessObjectState(ctx, obj, false, func(cursor *block.Cursor) error {
+		var err error
+		state, err = s4wave_flowgraph.UnmarshalFlowgraphRun(ctx, cursor)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	for _, a := range state.GetActivations() {
+		if a.GetNodeId() != node {
+			continue
+		}
+		task, err := forge_task.LookupTaskBody(ctx, f.tb.WorldState, a.GetTaskKey())
+		if err != nil {
+			return err
+		}
+		if task.GetTaskState() == forge_task.State_TaskState_COMPLETE {
+			return fmt.Errorf("%s Task completed before Gitea answered: %s", node, task.GetResult().GetFailError())
+		}
+	}
+	return nil
 }
 
 // readRun releases the object handle after decoding the bounded fixture run.
