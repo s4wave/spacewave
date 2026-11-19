@@ -41,11 +41,6 @@ func (r *RefCountTx) CommitAdmit(ctx context.Context) (Admission, error) {
 	return &releaseAdmission{Admission: adm, release: r.ref.Release}, nil
 }
 
-// BaseAdmission returns the underlying transaction's base receipt.
-func (r *RefCountTx) BaseAdmission(seqno uint64) Admission {
-	return BaseAdmission(r.tx, seqno)
-}
-
 // Discard cancels the transaction.
 // If called after Commit, does nothing.
 // Cannot return an error.

@@ -94,9 +94,6 @@ type Queue struct {
 type committingBatch struct {
 	// writes are the batch's writes.
 	writes []*queuedWrite
-	// baseOnly reports whether the receipt belongs to the write fork's base
-	// and this attempt contributed no changes to it.
-	baseOnly bool
 	// oldest is when its oldest write queued.
 	oldest time.Time
 	// seqno is the World revision the engine admitted, or zero before.

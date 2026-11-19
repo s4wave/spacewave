@@ -11,8 +11,6 @@ CONSTANTS EarlyApply, HoldSQL, DiscardOnRetry
 FetchReleasesWriter == TRUE
 ActorGuard == TRUE
 RoundGuard == TRUE
-EarlyBodyError == FALSE
-KeepDiscardedError == FALSE
 \* The fetches one write may run before it reads from peers under the lock.
 MaxRounds == 2
 Writes == {1, 2}
@@ -24,8 +22,7 @@ Init == s = [pc |-> [i \in Writes |-> "queued"],
              sql |-> [i \in Writes |-> FALSE],
              rounds |-> [i \in Writes |-> 0],
              lock |-> 0, durable |-> {}, answered |-> {}, read |-> {},
-             badRead |-> FALSE, badError |-> FALSE, errorValid |-> FALSE, failed |-> FALSE,
-             cancelled |-> {}]
+             badRead |-> FALSE, failed |-> FALSE, cancelled |-> {}]
 \* Enumerate the caller kinds and whether each body uses SQL independently.
 Start ==
   /\ \A i \in Writes : s.pc[i] = "queued"
@@ -44,11 +41,6 @@ Body(i) ==
   /\ \A j \in Writes : s.pc[j] \notin Writer
   /\ ActorGuard => ~ActorFetching(i)
   /\ s' = [s EXCEPT !.pc[i] = "body", !.lock = IF s.sql[i] THEN i ELSE 0]
-\* An unadmitted discard also forgets the body error that read its prefix.
-DiscardCandidate(i, next) ==
-  [j \in Writes |-> IF j = i THEN next
-                    ELSE IF i = 1 /\ s.pc[j] = "errorWaiting" /\ ~KeepDiscardedError THEN "ready"
-                    ELSE s.pc[j]]
 \* A read only a peer serves defers: the batch is discarded, releasing the
 \* writer and any SQL writer, and the write fetches. An answered replay may
 \* have been seen, so it never moves behind later writes. A write that used
@@ -56,8 +48,7 @@ DiscardCandidate(i, next) ==
 Defer(i) ==
   /\ s.pc[i] = "body" /\ i \notin s.answered
   /\ RoundGuard => s.rounds[i] < MaxRounds
-  /\ s' = [s EXCEPT !.pc = DiscardCandidate(i, "fetching"), !.rounds[i] = @ + 1,
-                    !.errorValid = IF i = 1 THEN FALSE ELSE @,
+  /\ s' = [s EXCEPT !.pc[i] = "fetching", !.rounds[i] = @ + 1,
                     !.lock = IF s.lock = i /\ FetchReleasesWriter THEN 0 ELSE @]
 Fetched(i) ==
   /\ s.pc[i] = "fetching"
@@ -69,9 +60,7 @@ Admit(i) ==
 \* A full publisher or busy state owner returns without admitting anything.
 RetryPreparation(i) ==
   /\ s.pc[i] = "body"
-  /\ s' = [s EXCEPT !.pc = DiscardCandidate(i, "preparing"),
-                    !.errorValid = IF i = 1 THEN FALSE ELSE @,
-                    !.lock = IF DiscardOnRetry THEN 0 ELSE @]
+  /\ s' = [s EXCEPT !.pc[i] = "preparing", !.lock = IF DiscardOnRetry THEN 0 ELSE @]
 Prepared(i) ==
   /\ s.pc[i] = "preparing"
   /\ s' = [s EXCEPT !.pc[i] = "ready"]
@@ -91,39 +80,30 @@ Settle(i) ==
 AnswerDurable(i) ==
   /\ s.pc[i] = "durable" /\ i \notin s.answered
   /\ s' = [s EXCEPT !.answered = @ \cup {i}]
-\* Write 2 reads write 1's candidate before the batch or its base is durable.
-ObserveBodyError ==
-  /\ s.pc[2] = "ready" /\ s.pc[1] \in {"body", "sql", "waiting"}
-  /\ s' = [s EXCEPT !.pc[2] = "errorWaiting", !.errorValid = TRUE]
-AnswerBodyError ==
-  /\ s.pc[2] = "errorWaiting" /\ (s.pc[1] = "durable" \/ EarlyBodyError)
-  /\ s' = [s EXCEPT !.pc[2] = "error", !.answered = @ \cup {2},
-                    !.badError = @ \/ s.pc[1] # "durable" \/ ~s.errorValid]
 ReadOwn(i) ==
-  /\ i \in s.answered /\ s.kind[i] = "apply" /\ i \notin s.read /\ s.pc[i] # "error"
+  /\ i \in s.answered /\ s.kind[i] = "apply" /\ i \notin s.read
   /\ s' = [s EXCEPT !.read = @ \cup {i},
                     !.badRead = @ \/ i \notin s.durable]
-\* A failed publication reinstalls the durable head and queues its writes
-\* and unreturned body errors again. Acknowledged reports replay alone.
+\* A failed publication reinstalls the durable head. Pending apply callers
+\* hear failure; acknowledged reports replay independently of their callers.
 Drop ==
   /\ ~s.failed /\ s.lock = 0
   /\ \E i \in Writes : s.pc[i] = "waiting"
-  /\ s' = [s EXCEPT !.failed = TRUE, !.errorValid = FALSE,
-       !.pc = [i \in Writes |-> IF s.pc[i] \in {"waiting", "errorWaiting"}
-          THEN "ready" ELSE s.pc[i]]]
+  /\ s' = [s EXCEPT !.failed = TRUE,
+       !.pc = [i \in Writes |-> IF s.pc[i] = "waiting"
+          THEN IF s.kind[i] = "report" /\ i \in s.answered THEN "ready" ELSE "error"
+          ELSE s.pc[i]]]
 Cancel(i) ==
   /\ i \notin s.answered /\ i \notin s.cancelled
   /\ s.pc[i] \in {"ready", "preparing", "fetching", "waiting", "durable"}
   /\ s' = [s EXCEPT !.cancelled = @ \cup {i},
        !.pc[i] = IF @ \in {"ready", "preparing"} THEN "cancelled" ELSE @]
-Next == Start \/ Drop \/ ObserveBodyError \/ AnswerBodyError
-        \/ (\E i \in Writes : Body(i) \/ Defer(i) \/ Fetched(i) \/ Admit(i) \/ RetryPreparation(i) \/ Prepared(i) \/ CommitSQL(i)
+Next == Start \/ Drop \/ (\E i \in Writes : Body(i) \/ Defer(i) \/ Fetched(i) \/ Admit(i) \/ RetryPreparation(i) \/ Prepared(i) \/ CommitSQL(i)
         \/ AnswerEarly(i) \/ Settle(i) \/ AnswerDurable(i) \/ ReadOwn(i) \/ Cancel(i))
         \/ UNCHANGED s
 Spec == Init /\ [][Next]_s
 NoWaitUnderSQLWriter == \A i \in Writes : s.pc[i] \in {"waiting", "preparing"} => s.lock # i
 ReadYourWrites == ~s.badRead
-BodyErrorsReadDurable == ~s.badError
 \* A fetching write holds neither the SQL writer nor the engine's writer.
 NoFetchUnderWriter == \A i \in Writes : s.pc[i] = "fetching" => s.lock # i
 \* No write runs while an earlier write of its actor fetches, and no write

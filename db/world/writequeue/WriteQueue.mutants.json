@@ -38,25 +38,5 @@
       ]
     ],
     "expect": "BoundedFetches"
-  },
-  {
-    "name": "a body error answers before the write it read is durable",
-    "replace": [
-      [
-        "EarlyBodyError == FALSE",
-        "EarlyBodyError == TRUE"
-      ]
-    ],
-    "expect": "BodyErrorsReadDurable"
-  },
-  {
-    "name": "a later commit releases an error from a discarded attempt",
-    "replace": [
-      [
-        "KeepDiscardedError == FALSE",
-        "KeepDiscardedError == TRUE"
-      ]
-    ],
-    "expect": "BodyErrorsReadDurable"
   }
 ]

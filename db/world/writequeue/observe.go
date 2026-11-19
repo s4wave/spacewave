@@ -82,7 +82,7 @@ func (q *Queue) recordOwners(batch []*queuedWrite, seqno uint64) {
 	}
 	var actors []uint64
 	for _, w := range batch {
-		if w.bodyErr != nil || (!w.acked && w.ended()) {
+		if !w.acked && w.ended() {
 			continue
 		}
 		if w.actor != 0 {

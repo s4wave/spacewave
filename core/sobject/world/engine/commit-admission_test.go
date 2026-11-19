@@ -83,14 +83,12 @@ func TestCommitForksFromAdmittedWorld(t *testing.T) {
 // TestCommitReceiptFailure fails the held publication of one write after a
 // second write was admitted after it. Both writes fail, the engine reinstalls
 // the World from before them and reports its seqno to the reinstall hooks
-// once, and the next write builds on that World. A receipt for the discarded
-// base still fails if a later publication reuses its sequence number.
+// once, and the next write builds on that World.
 func TestCommitReceiptFailure(t *testing.T) {
 	// Watch the reinstalls through a wrapper, as a bus engine's user does.
 	w, so := startGatedWorld(t, t.TempDir(), nil)
 	reinstalled := make(chan uint64, 8)
-	tracked := world.NewReadTrackingEngine(w.eng)
-	unhook, err := world.OnReinstall(t.Context(), tracked, func(seqno uint64) {
+	unhook, err := world.OnReinstall(t.Context(), world.NewReadTrackingEngine(w.eng), func(seqno uint64) {
 		reinstalled <- seqno
 	})
 	if err != nil {
@@ -113,18 +111,6 @@ func TestCommitReceiptFailure(t *testing.T) {
 	}
 	defer first.Release()
 	waitReached(t, applying)
-
-	// Capture the exact admitted base through the same wrapper as a queued write.
-	fork, err := tracked.NewTransaction(t.Context(), true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	base := world.BaseAdmission(fork, first.Seqno())
-	fork.Discard()
-	if base == nil {
-		t.Fatal("publication still pending, got a durable base")
-	}
-	defer base.Release()
 
 	// Admit the second after it.
 	second := commitAsync(t, w.newWrite(t, "fail/2"))
@@ -160,11 +146,6 @@ func TestCommitReceiptFailure(t *testing.T) {
 
 	// The next write commits on it, and nothing else was reinstalled.
 	w.create(t, "fail/3")
-	if seqno, err := base.WaitDurable(t.Context()); seqno != durable || !errors.Is(err, injected) {
-		t.Fatalf("base WaitDurable = %d, %v, want %d and the injected failure", seqno, err, durable)
-	}
-
-	// A new commit publishes only the surviving writes.
 	read = newRead(t, w)
 	defer read.Discard()
 	for _, key := range []string{"fail/0", "fail/3"} {

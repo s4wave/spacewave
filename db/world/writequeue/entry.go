@@ -59,9 +59,6 @@ type queuedWrite struct {
 	// acked is set under the queue's mtx once the write succeeded at
 	// admission.
 	acked bool
-	// bodyErr is the current attempt's error, delivered only after the World
-	// it read is durable. A new attempt replaces it.
-	bodyErr error
 	// seqno is the World revision the write committed, set before done
 	// closes on success.
 	seqno uint64
