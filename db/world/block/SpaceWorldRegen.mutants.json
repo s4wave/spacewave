@@ -13,8 +13,8 @@
     "name": "The switch holds the pin as base, not the head",
     "replace": [
       [
-        "  /\\ base' = [base EXCEPT ![r] = [fmt |-> \"old\", items |-> world[r].items]]",
-        "  /\\ base' = [base EXCEPT ![r] = [fmt |-> \"old\", items |-> pin[r].items]]"
+        "  /\\ base' = [base EXCEPT ![r] = [fmt |-> \"old\", items |-> world[r].items, shape |-> world[r].shape]]",
+        "  /\\ base' = [base EXCEPT ![r] = [fmt |-> \"old\", items |-> pin[r].items, shape |-> world[r].shape]]"
       ]
     ],
     "expect": "NoLoss"
@@ -23,8 +23,8 @@
     "name": "Switch back installs base without the new format's changes",
     "replace": [
       [
-        "[fmt |-> \"old\", items |-> Apply(base[r].items, built[r].items, world[r].items)]",
-        "[fmt |-> \"old\", items |-> base[r].items]"
+        "[fmt |-> \"old\", items |-> Apply(base[r].items, built[r].items, world[r].items),",
+        "[fmt |-> \"old\", items |-> base[r].items,"
       ]
     ],
     "expect": "NoLoss"
@@ -45,8 +45,8 @@
     "config": "SpaceWorldRegen-stale.cfg",
     "replace": [
       [
-        "ok == base[r] # NoRoot /\\ base[r].items = op.base /\\ built[r].items = op.built",
-        "ok == base[r] # NoRoot /\\ base[r].items = op.base"
+        "ok == base[r] # NoRoot /\\ Ref(base[r]) = op.base /\\ Ref(built[r]) = op.built",
+        "ok == base[r] # NoRoot /\\ Ref(base[r]) = op.base"
       ]
     ],
     "expect": "ReleasedOnlyEqual"
@@ -75,8 +75,8 @@
     "name": "A disk that fills partway refuses the switch",
     "replace": [
       [
-        "  /\\ phase' = [phase EXCEPT ![r] = \"idle\"]\n  /\\ UNCHANGED <<log, cur, world, pin, prebuilt, base, built, verdict,\n                 pending, full, crashes, stall, exp, faulted>>\n\n\\* The applied",
-        "  /\\ phase' = [phase EXCEPT ![r] = \"idle\"]\n  /\\ Done(r, \"refused\")\n  /\\ UNCHANGED <<log, world, pin, prebuilt, base, built,\n                 pending, full, crashes, stall, exp, faulted>>\n\n\\* The applied"
+        "  /\\ phase' = [phase EXCEPT ![r] = \"idle\"]\n  /\\ UNCHANGED <<log, cur, world, pin, prebuilt, buildHeld, base,\n                 built, verdict, pending, full, crashes, stall, exp, faulted>>\n\n\\* The applied",
+        "  /\\ phase' = [phase EXCEPT ![r] = \"idle\"]\n  /\\ Done(r, \"refused\")\n  /\\ UNCHANGED <<log, world, pin, prebuilt, buildHeld, base,\n                 built, pending, full, crashes, stall, exp, faulted>>\n\n\\* The applied"
       ]
     ],
     "expect": "Agree"
@@ -130,5 +130,25 @@
       ]
     ],
     "expect": "ReplayUnblocked"
+  },
+  {
+    "name": "A replica's replay grouping changes its root",
+    "replace": [
+      [
+        "grouped == IF op.list THEN",
+        "grouped == IF op.list /\\ r = CHOOSE s \\in Replicas : TRUE THEN"
+      ]
+    ],
+    "expect": "Agree"
+  },
+  {
+    "name": "The builder publishes a build before the regen-build root holds it",
+    "replace": [
+      [
+        "  /\\ buildHeld' = [buildHeld EXCEPT ![r] = TRUE]\n  /\\ prebuilt'",
+        "  /\\ UNCHANGED buildHeld\n  /\\ prebuilt'"
+      ]
+    ],
+    "expect": "BuildHeld"
   }
 ]

@@ -645,7 +645,8 @@ func (s *gatedRoots) SetRoots(ctx context.Context, entries []*block.PutBatchEntr
 // the save and the collection, before the install, keeps base too. It fails
 // when the retained root holds only the installed head's roots. The switch
 // takes the pin's build made off the replay path, which a collection, and a
-// restart that reads it again, keep.
+// restart that starts the builder and follows the head, keep until the head
+// installs. A restart whose build root is unreadable opens with no build.
 func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
 	for _, restart := range []bool{false, true} {
 		t.Run(map[bool]string{false: "install", true: "restart"}[restart], func(t *testing.T) {
@@ -709,24 +710,39 @@ func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
 			}
 			w.collect()
 
-			// Install the head, or restart and replay the saved positions.
+			// Install the head, or restart, start the builder and follow the
+			// head as Execute does, and replay the saved positions behind
+			// the still missing operation. Until the head installs, follow
+			// keeps the build the earlier run held.
 			if restart {
 				w.open(1 << 20)
 				w.a.opts.Regen.SpillDir = t.TempDir()
-				if err := w.a.regenBuild.load(ctx); err != nil {
+				followCtx, stopFollow := context.WithCancel(ctx)
+				if err := w.a.regenBuild.start(followCtx); err != nil {
 					t.Fatal(err)
 				}
-				if built, _ := w.a.regenBuild.lookup(pin); !built.EqualsRef(prebuilt) {
-					t.Fatalf("the restart reads build %v, want %v", built, prebuilt)
-				}
+				followed := make(chan error, 1)
+				go func() { followed <- w.a.regenBuild.follow(followCtx) }()
+				defer func() {
+					stopFollow()
+					if err := <-followed; err != nil {
+						t.Error(err)
+					}
+				}()
+				w.a.missing["missing"] = struct{}{}
 				for i, op := range ops {
+					if built, _ := w.a.regenBuild.lookup(pin); !built.EqualsRef(prebuilt) {
+						t.Fatalf("before position %d the restart holds build %v, want %v", i, built, prebuilt)
+					}
 					w.apply(i, op)
 				}
-			} else {
-				delete(w.a.missing, "missing")
-				if err := w.a.installHead(ctx, time.Now()); err != nil {
-					t.Fatalf("the install after the save: %v", err)
+				if w.a.regenBuild.routine.GetState() != nil {
+					t.Fatal("follow set the build before the head installed")
 				}
+			}
+			delete(w.a.missing, "missing")
+			if err := w.a.installHead(ctx, time.Now()); err != nil {
+				t.Fatalf("the install after the save: %v", err)
 			}
 			w.collect()
 
@@ -734,6 +750,25 @@ func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
 			w.apply(7, regen("back", world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV, nil))
 			state, _ := w.a.replay.head()
 			w.requireKeys("the World switched back", state, 4)
+			if !restart {
+				return
+			}
+
+			// A restart whose regen-build root names an unreadable block
+			// opens with no build, and keeps the root for the next build to
+			// replace.
+			gone, err := block.BuildBlockRef([]byte("an unstored regeneration build"), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			w.open(1 << 20)
+			w.a.held[RootRegenBuild] = gone
+			if err := w.a.regenBuild.start(ctx); err != nil {
+				t.Fatalf("an unreadable build failed the start: %v", err)
+			}
+			if w.a.regenBuild.get() != nil || !w.a.held[RootRegenBuild].EqualsRef(gone) {
+				t.Fatalf("an unreadable build published %v and left root %v", w.a.regenBuild.get(), w.a.held[RootRegenBuild])
+			}
 		})
 	}
 }

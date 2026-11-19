@@ -38,6 +38,9 @@ message Tx {
   TxSetGraphQuad tx_set_graph_quad = 8;
   // TxDeleteGraphQuad deletes a graph quad.
   TxDeleteGraphQuad tx_delete_graph_quad = 9;
+  // TxSetGraphQuads sets a list of graph quads in one graph update.
+  // TxType_SET_GRAPH_QUADS
+  TxSetGraphQuads tx_set_graph_quads = 13;
 
   // TxBatch is a batch of multiple txs.
   TxBatch tx_batch = 10;
@@ -70,6 +73,8 @@ enum TxType {
   TxType_SET_GRAPH_QUAD = 7;
   // TxType_DELETE_GRAPH_QUAD deletes a graph quad from the store.
   TxType_DELETE_GRAPH_QUAD = 8;
+  // TxType_SET_GRAPH_QUADS sets a list of graph quads in one graph update.
+  TxType_SET_GRAPH_QUADS = 12;
 
   // TxType_BATCH applies multiple sub-transactions.
   TxType_BATCH = 9;
@@ -163,6 +168,17 @@ message TxRenameObject {
 message TxSetGraphQuad {
   // Quad is the graph quad to create.
   .quad.Quad quad = 1;
+}
+
+// TxSetGraphQuads sets the quads of a list the graph lacks in one graph
+// update, skipping existing and repeated ones. The World it reaches depends on
+// the list as a whole, not only on its quads: the same quads set one at a time
+// or in other lists reach another root. Every replica applies the list as
+// written, so all reach the same World.
+// TxType: TxType_SET_GRAPH_QUADS
+message TxSetGraphQuads {
+  // Quads are the graph quads to set, in order.
+  repeated .quad.Quad quads = 1;
 }
 
 // TxDeleteGraphQuad deletes a graph quad.

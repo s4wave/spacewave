@@ -1878,7 +1878,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/space/world": {
-          "hash": "6caf603083152205776a2198f23c733c47d748d0e134dba14dea416cc02aebd6",
+          "hash": "7bf4cdb1d268b3608ccbbf2012a683e7390b587346c3a708d289427fa89330ab",
           "generatedFiles": [
             "core/space/world/world.pb.go",
             "core/space/world/world.pb.ts",
@@ -2954,7 +2954,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/world/block/tx": {
-          "hash": "361d90276ef2d20aca9c2627d1cab1316f33161f0f0ac277af5c78cec9e6c673",
+          "hash": "49378310625e1f214fe43bd408b80cefa62f9a231ba954601223922e07cf05a4",
           "generatedFiles": [
             "db/world/block/tx/tx.pb.go",
             "db/world/block/tx/tx.pb.ts"

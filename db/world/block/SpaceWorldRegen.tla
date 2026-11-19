@@ -14,10 +14,15 @@
 \*   before it as world-regen/pin, the pin, which already holds the carried
 \*   quads. The head stays in the old format. A second pin while only a pin
 \*   is held moves it to the newer World.
-\* - building: off the replay path, each replica builds the pin in the new
-\*   format into a prebuilt root it keeps locally and does not persist. A
-\*   crash loses the prebuilt root, and the build resumes in the background
-\*   after the restart while replay goes on.
+\* - building: off the replay path, each replica builds the pin its
+\*   installed head holds in the new format into a prebuilt root, held
+\*   locally under the regen-build root from before it is published until
+\*   the installed head holds no pin. A restart reads it again; one it
+\*   cannot read is no build, and the root stays held until a new build
+\*   replaces it. The builder acts only on an installed head: until the
+\*   head installs after a restart its pin is unknown, and the builder
+\*   keeps what it holds. The build resumes in the background while replay
+\*   goes on.
 \* - switched: a RegenerateWorldOp naming the pin applied. It counts the quad
 \*   changes from the pin to the head and refuses past the bound, a function
 \*   of the World and the order that every replica computes alike. Within the
@@ -30,6 +35,8 @@
 \* - switched back: a RegenerateWorldOp back to the old format applied while
 \*   base was held. The head is base carried forward by the new format's
 \*   changes since built; both names are released.
+\* - unpinned: an ordered release named the held pin, as a device sends when
+\*   no replica can build it. A release of another pin is refused.
 \* - released: an ordered release named the held base and built after one
 \*   device's comparison of the two passed. The head stays in the new
 \*   format. The release names both roots and applies only while both are
@@ -47,6 +54,13 @@
 \* write adds or deletes one item. Carry is the set the engine writes before
 \* the pin, which may hold items the World already holds. Bound is the
 \* largest count of item changes a switch applies.
+\*
+\* A root names its content and its shape, the grouping of the writes that
+\* made it: one quad list set in one update reaches another root than the
+\* same quads set one at a time. The code compares roots, so the model
+\* compares Ref, items and shape. One bit, flipped by each list write,
+\* stands for the shape: any grouping that differs changes it. A carried quad's write is a list, and
+\* every replica applies a list as written, so all reach the same shape.
 \*
 \* Actors:
 \* - Proposers: modeled. Any device appends any operation to the order at any
@@ -68,7 +82,8 @@
 \*   property of the operation, so every replica refuses it alike.
 \* - The collector: modeled. The apply holds the pin and the switch's roots
 \*   under the retained root before it appends the position, so the
-\*   collector never frees a pin or base an uninstalled head needs.
+\*   collector never frees a pin or base an uninstalled head needs. It frees
+\*   a prebuilt root the regen-build root does not hold.
 \* - Checkpoints, the adopt path and older builds: left out. Each installs a
 \*   state another replica computed by the same apply, which Agree covers.
 \*
@@ -82,9 +97,13 @@ EXTENDS Naturals, Sequences, FiniteSets
 CONSTANTS Replicas, N, Carry, Bound, MaxOps, MaxCrashes, Faults
 
 Items == 1..N
-NoRoot == [fmt |-> "none", items |-> {}]
-NoPin == [fmt |-> "none", items |-> {}, skip |-> 0]
-NoBuild == [ok |-> FALSE, of |-> NoPin, items |-> {}]
+NoRoot == [fmt |-> "none", items |-> {}, shape |-> 0]
+NoPin == [fmt |-> "none", items |-> {}, shape |-> 0, skip |-> 0]
+NoBuild == [ok |-> FALSE, of |-> NoPin, items |-> {}, freed |-> FALSE]
+
+\* The root of a World, a pin, base or built: its content and its shape.
+Ref(x) == [items |-> x.items, shape |-> x.shape]
+Refs == [items: SUBSET Items, shape: 0..1]
 
 \* Apply moves set by the change from one content to another. The switch back
 \* applies it leniently: a delete of an item set lacks, or an add of one it
@@ -96,18 +115,20 @@ Apply(set, from, to) == (set \ (from \ to)) \cup (to \ from)
 Diff(from, to) == (from \ to) \cup (to \ from)
 
 Ops ==
-  [t: {"write"}, i: Items, add: BOOLEAN]
+  [t: {"write"}, i: Items, add: BOOLEAN, list: BOOLEAN]
     \cup [t: {"pin"}, skip: 0..N, bad: BOOLEAN]
-    \cup [t: {"switch"}, base: SUBSET Items]
+    \cup [t: {"switch"}, base: Refs]
     \cup [t: {"back"}]
-    \cup [t: {"release"}, base: SUBSET Items, built: SUBSET Items]
+    \cup [t: {"unpin"}, base: Refs]
+    \cup [t: {"release"}, base: Refs, built: Refs]
 
 VARIABLES
   log,      \* the agreed order
   cur,      \* per replica: operations applied
   world,    \* per replica: the head's format and content
   pin,      \* per replica: world-regen/base while only the pin is held
-  prebuilt, \* per replica: the local build of the pin, not persisted
+  prebuilt, \* per replica: the local build of a pin
+  buildHeld, \* per replica: whether the regen-build root is held
   base,     \* per replica: world-regen/base after the switch
   built,    \* per replica: world-regen/built
   verdict,  \* per replica: the verdict of each applied operation
@@ -119,15 +140,16 @@ VARIABLES
   exp,      \* ghost per replica: the content the operations define
   faulted   \* ghost: whether a faulty pin was ordered
 
-vars == <<log, cur, world, pin, prebuilt, base, built, verdict, phase,
-          pending, full, crashes, stall, exp, faulted>>
+vars == <<log, cur, world, pin, prebuilt, buildHeld, base,
+          built, verdict, phase, pending, full, crashes, stall, exp, faulted>>
 
 Init ==
   /\ log = <<>>
   /\ cur = [r \in Replicas |-> 0]
-  /\ world = [r \in Replicas |-> [fmt |-> "old", items |-> {}]]
+  /\ world = [r \in Replicas |-> [fmt |-> "old", items |-> {}, shape |-> 0]]
   /\ pin = [r \in Replicas |-> NoPin]
   /\ prebuilt = [r \in Replicas |-> NoBuild]
+  /\ buildHeld = [r \in Replicas |-> FALSE]
   /\ base = [r \in Replicas |-> NoRoot]
   /\ built = [r \in Replicas |-> NoRoot]
   /\ verdict = [r \in Replicas |-> <<>>]
@@ -145,18 +167,19 @@ Init ==
 Propose(op) ==
   /\ Len(log) < MaxOps
   /\ log' = Append(log, op)
-  /\ UNCHANGED <<cur, world, pin, prebuilt, base, built, verdict, phase,
-                 pending, full, crashes, stall, exp>>
+  /\ UNCHANGED <<cur, world, pin, prebuilt, buildHeld, base,
+                 built, verdict, phase, pending, full, crashes, stall, exp>>
 
 ProposeWrite ==
   \E i \in Items, add \in BOOLEAN :
-    /\ Propose([t |-> "write", i |-> i, add |-> add])
+    /\ Propose([t |-> "write", i |-> i, add |-> add, list |-> FALSE])
     /\ UNCHANGED faulted
 
-\* The engine writes a carried quad as an ordinary write before the pin.
+\* The engine writes carried quads as an ordinary write before the pin: one
+\* list, set in one update.
 ProposeCarry ==
   \E i \in Carry :
-    /\ Propose([t |-> "write", i |-> i, add |-> TRUE])
+    /\ Propose([t |-> "write", i |-> i, add |-> TRUE, list |-> TRUE])
     /\ UNCHANGED faulted
 
 ProposePin ==
@@ -168,12 +191,19 @@ ProposePin ==
 ProposeSwitch ==
   \E r \in Replicas :
     /\ pin[r] # NoPin
-    /\ Propose([t |-> "switch", base |-> pin[r].items])
+    /\ Propose([t |-> "switch", base |-> Ref(pin[r])])
     /\ UNCHANGED faulted
 
 ProposeBack ==
   /\ Propose([t |-> "back"])
   /\ UNCHANGED faulted
+
+\* A device releases the pin it saw applied on its own replica.
+ProposeUnpin ==
+  \E r \in Replicas :
+    /\ pin[r] # NoPin
+    /\ Propose([t |-> "unpin", base |-> Ref(pin[r])])
+    /\ UNCHANGED faulted
 
 \* The comparison runs on one replica off the replay path and passes only
 \* when built holds what base holds; the release names both.
@@ -182,7 +212,7 @@ ProposeRelease ==
     /\ phase[r] # "down"
     /\ base[r] # NoRoot
     /\ built[r].items = base[r].items
-    /\ Propose([t |-> "release", base |-> base[r].items, built |-> built[r].items])
+    /\ Propose([t |-> "release", base |-> Ref(base[r]), built |-> Ref(built[r])])
     /\ UNCHANGED faulted
 
 ----
@@ -207,17 +237,20 @@ Build(p) == p.items \ {p.skip}
 \* Whether replica r holds a prebuilt root of its current pin.
 Ready(r) == prebuilt[r].ok /\ prebuilt[r].of = pin[r]
 
-\* Apply a write: the head changes; the held roots stay as they were.
+\* Apply a write: the head changes; the held roots stay as they were. A list
+\* is applied as written, so its root's shape is the same on every replica.
 ApplyWrite(r) ==
   LET op == Next1(r)
       set(s) == IF op.add THEN s \cup {op.i} ELSE s \ {op.i}
+      grouped == IF op.list THEN 1 - world[r].shape ELSE world[r].shape
   IN
   /\ At(r, "write")
-  /\ world' = [world EXCEPT ![r].items = set(@)]
+  /\ world' = [world EXCEPT ![r] =
+       [fmt |-> world[r].fmt, items |-> set(world[r].items), shape |-> grouped]]
   /\ exp' = [exp EXCEPT ![r] = set(@)]
   /\ Done(r, "applied")
-  /\ UNCHANGED <<log, pin, prebuilt, base, built, phase, pending, full,
-                 crashes, stall, faulted>>
+  /\ UNCHANGED <<log, pin, prebuilt, buildHeld, base, built,
+                 phase, pending, full, crashes, stall, faulted>>
 
 \* Whether replica r refuses the next operation, by the World, the held roots
 \* and the order alone, so every replica computes the same verdict.
@@ -226,7 +259,7 @@ SwitchRefused(r) ==
   \/ world[r].fmt # "old"
   \/ base[r] # NoRoot
   \/ pin[r] = NoPin
-  \/ pin[r].items # Next1(r).base
+  \/ Ref(pin[r]) # Next1(r).base
   \/ Cardinality(Diff(pin[r].items, world[r].items)) > Bound
 BackRefused(r) == world[r].fmt # "new" \/ base[r] = NoRoot
 
@@ -240,8 +273,8 @@ Refuse(r) ==
      \/ op.t = "switch" /\ SwitchRefused(r)
      \/ op.t = "back" /\ BackRefused(r)
   /\ Done(r, "refused")
-  /\ UNCHANGED <<log, world, pin, prebuilt, base, built, phase, pending, full,
-                 crashes, stall, exp, faulted>>
+  /\ UNCHANGED <<log, world, pin, prebuilt, buildHeld, base,
+                 built, phase, pending, full, crashes, stall, exp, faulted>>
 
 \* Pin the World before, in the old format; a pin while only a pin is held
 \* moves it. The World and what the operations define stay as they were.
@@ -250,34 +283,54 @@ ApplyPin(r) ==
   /\ At(r, "pin")
   /\ ~PinRefused(r)
   /\ ~op.bad
-  /\ pin' = [pin EXCEPT ![r] = [fmt |-> "old", items |-> world[r].items, skip |-> op.skip]]
+  /\ pin' = [pin EXCEPT ![r] =
+       [fmt |-> "old", items |-> world[r].items, shape |-> world[r].shape, skip |-> op.skip]]
   /\ pending' = [pending EXCEPT ![r] = TRUE]
   /\ Done(r, "applied")
-  /\ UNCHANGED <<log, world, prebuilt, base, built, phase, full, crashes,
-                 stall, exp, faulted>>
+  /\ UNCHANGED <<log, world, prebuilt, buildHeld, base, built,
+                 phase, full, crashes, stall, exp, faulted>>
 
-\* The background builder builds the current pin off the replay path. It
-\* reads only the pin, so replay goes on beside it.
+\* The background builder builds the pin the installed head holds off the
+\* replay path, and holds the result under the regen-build root before it
+\* publishes it. It reads only the pin, so replay goes on beside it. It acts
+\* only on an installed head, whose pin is the applied one; while the head
+\* is pending, after a restart above all, it waits.
 BuildOffPath(r) ==
+  LET p == pin[r] IN
   /\ phase[r] # "down"
+  /\ ~pending[r]
   /\ ~full[r]
-  /\ pin[r].fmt = "old"
-  /\ ~Ready(r)
+  /\ p.fmt = "old"
+  /\ ~(prebuilt[r].ok /\ prebuilt[r].of = p)
+  /\ buildHeld' = [buildHeld EXCEPT ![r] = TRUE]
   /\ prebuilt' = [prebuilt EXCEPT ![r] =
-       [ok |-> TRUE, of |-> pin[r], items |-> Build(pin[r])]]
-  /\ UNCHANGED <<log, cur, world, pin, base, built, verdict, phase, pending,
-                 full, crashes, stall, exp, faulted>>
+       [ok |-> TRUE, of |-> p, items |-> Build(p), freed |-> FALSE]]
+  /\ UNCHANGED <<log, cur, world, pin, base, built, verdict,
+                 phase, pending, full, crashes, stall, exp, faulted>>
+
+\* Once the installed head holds no pin, the builder releases the
+\* regen-build root and the build it holds. While the head is pending it
+\* keeps them.
+ReleaseBuild(r) ==
+  /\ phase[r] # "down"
+  /\ ~pending[r]
+  /\ pin[r] = NoPin
+  /\ buildHeld[r]
+  /\ buildHeld' = [buildHeld EXCEPT ![r] = FALSE]
+  /\ prebuilt' = [prebuilt EXCEPT ![r] = NoBuild]
+  /\ UNCHANGED <<log, cur, world, pin, base, built, verdict,
+                 phase, pending, full, crashes, stall, exp, faulted>>
 
 \* Switch to img, the build of the pin: carry it forward by the changes from
 \* the pin to the head, install it, and hold the head before as base and the
-\* installed head as built.
+\* installed head as built. The builder releases its build once the head
+\* installs.
 SwitchTo(r, img) ==
   LET new == Apply(img, pin[r].items, world[r].items) IN
-  /\ world' = [world EXCEPT ![r] = [fmt |-> "new", items |-> new]]
-  /\ base' = [base EXCEPT ![r] = [fmt |-> "old", items |-> world[r].items]]
-  /\ built' = [built EXCEPT ![r] = [fmt |-> "new", items |-> new]]
+  /\ world' = [world EXCEPT ![r] = [fmt |-> "new", items |-> new, shape |-> world[r].shape]]
+  /\ base' = [base EXCEPT ![r] = [fmt |-> "old", items |-> world[r].items, shape |-> world[r].shape]]
+  /\ built' = [built EXCEPT ![r] = [fmt |-> "new", items |-> new, shape |-> world[r].shape]]
   /\ pin' = [pin EXCEPT ![r] = NoPin]
-  /\ prebuilt' = [prebuilt EXCEPT ![r] = NoBuild]
   /\ stall' = [stall EXCEPT ![r] =
        IF Cardinality(Diff(pin[r].items, world[r].items)) > @
        THEN Cardinality(Diff(pin[r].items, world[r].items)) ELSE @]
@@ -292,7 +345,8 @@ ApplySwitch(r) ==
   /\ pin[r].fmt = "old"
   /\ Ready(r)
   /\ SwitchTo(r, prebuilt[r].items)
-  /\ UNCHANGED <<log, full, crashes, exp, faulted>>
+  /\ UNCHANGED <<log, prebuilt, buildHeld, full, crashes, exp,
+                 faulted>>
 
 \* A replica with no prebuilt root of the pin builds it inline. A replica
 \* whose disk is below the floor waits here: the failure is local, so it is
@@ -304,8 +358,8 @@ StartInline(r) ==
   /\ ~Ready(r)
   /\ ~full[r]
   /\ phase' = [phase EXCEPT ![r] = "building"]
-  /\ UNCHANGED <<log, cur, world, pin, prebuilt, base, built, verdict,
-                 pending, full, crashes, stall, exp, faulted>>
+  /\ UNCHANGED <<log, cur, world, pin, prebuilt, buildHeld, base,
+                 built, verdict, pending, full, crashes, stall, exp, faulted>>
 
 \* The inline build runs the same steps as the background one, build then
 \* diff, and commits with the replay cursor.
@@ -313,7 +367,8 @@ FinishInline(r) ==
   /\ phase[r] = "building"
   /\ ~full[r]
   /\ SwitchTo(r, Build(pin[r]))
-  /\ UNCHANGED <<log, full, crashes, exp, faulted>>
+  /\ UNCHANGED <<log, prebuilt, buildHeld, full, crashes, exp,
+                 faulted>>
 
 \* A disk that fills partway through the inline build fails it: the replica
 \* writes nothing and waits at the operation, a replay gap, until it frees.
@@ -321,33 +376,42 @@ FailInline(r) ==
   /\ phase[r] = "building"
   /\ full[r]
   /\ phase' = [phase EXCEPT ![r] = "idle"]
-  /\ UNCHANGED <<log, cur, world, pin, prebuilt, base, built, verdict,
-                 pending, full, crashes, stall, exp, faulted>>
+  /\ UNCHANGED <<log, cur, world, pin, prebuilt, buildHeld, base,
+                 built, verdict, pending, full, crashes, stall, exp, faulted>>
 
 \* The applied state installs as the head.
 Install(r) ==
+  /\ phase[r] # "down"
   /\ pending[r]
   /\ pending' = [pending EXCEPT ![r] = FALSE]
-  /\ UNCHANGED <<log, cur, world, pin, prebuilt, base, built, verdict, phase,
-                 full, crashes, stall, exp, faulted>>
+  /\ UNCHANGED <<log, cur, world, pin, prebuilt, buildHeld, base, built,
+                 verdict, phase, full, crashes, stall, exp, faulted>>
 
 \* Whether replica r's held roots are live: the apply holds the pin, base
 \* and built under the retained root, installed or not, until the positions
 \* move past their release.
 Live(r) == TRUE
 
-\* The collector frees a root it does not count as live. A freed root cannot
-\* be read again, so a switch or switch back from it waits forever.
+\* The collector frees a root it does not count as live: the pin, base or
+\* built the retained root no longer holds, or a prebuilt root the
+\* regen-build root does not hold. A freed root cannot be read again, so a
+\* switch or switch back from it waits forever.
 Sweep(r) ==
-  /\ ~Live(r)
-  /\ \/ /\ base[r].fmt = "old"
+  /\ \/ /\ ~Live(r)
+        /\ base[r].fmt = "old"
         /\ base' = [base EXCEPT ![r].fmt = "freed"]
-        /\ UNCHANGED pin
-     \/ /\ pin[r].fmt = "old"
+        /\ UNCHANGED <<pin, prebuilt>>
+     \/ /\ ~Live(r)
+        /\ pin[r].fmt = "old"
         /\ pin' = [pin EXCEPT ![r].fmt = "freed"]
-        /\ UNCHANGED base
-  /\ UNCHANGED <<log, cur, world, prebuilt, built, verdict, phase, pending,
-                 full, crashes, stall, exp, faulted>>
+        /\ UNCHANGED <<base, prebuilt>>
+     \/ /\ ~buildHeld[r]
+        /\ prebuilt[r].ok
+        /\ ~prebuilt[r].freed
+        /\ prebuilt' = [prebuilt EXCEPT ![r].freed = TRUE]
+        /\ UNCHANGED <<base, pin>>
+  /\ UNCHANGED <<log, cur, world, buildHeld, built, verdict,
+                 phase, pending, full, crashes, stall, exp, faulted>>
 
 \* Switch back: carry base forward by the new format's changes since built,
 \* and release both names.
@@ -356,43 +420,59 @@ ApplyBack(r) ==
   /\ ~BackRefused(r)
   /\ base[r].fmt = "old"
   /\ world' = [world EXCEPT ![r] =
-       [fmt |-> "old", items |-> Apply(base[r].items, built[r].items, world[r].items)]]
+       [fmt |-> "old", items |-> Apply(base[r].items, built[r].items, world[r].items),
+        shape |-> world[r].shape]]
   /\ base' = [base EXCEPT ![r] = NoRoot]
   /\ built' = [built EXCEPT ![r] = NoRoot]
   /\ Done(r, "applied")
-  /\ UNCHANGED <<log, pin, prebuilt, phase, pending, full, crashes, stall,
-                 exp, faulted>>
+  /\ UNCHANGED <<log, pin, prebuilt, buildHeld, phase, pending,
+                 full, crashes, stall, exp, faulted>>
+
+\* Release the held pin when it is the one the operation names; the head
+\* installs without it.
+ApplyUnpin(r) ==
+  LET ok == pin[r] # NoPin /\ Ref(pin[r]) = Next1(r).base IN
+  /\ At(r, "unpin")
+  /\ pin' = [pin EXCEPT ![r] = IF ok THEN NoPin ELSE @]
+  /\ pending' = [pending EXCEPT ![r] = @ \/ ok]
+  /\ Done(r, IF ok THEN "applied" ELSE "refused")
+  /\ UNCHANGED <<log, world, prebuilt, buildHeld, base, built,
+                 phase, full, crashes, stall, exp, faulted>>
 
 \* Release the held roots when they are the ones the comparison named; a
 \* stale release, ordered after a switch back and a new regeneration, is
 \* refused so it cannot free a base no comparison passed.
 ApplyRelease(r) ==
   LET op == Next1(r)
-      ok == base[r] # NoRoot /\ base[r].items = op.base /\ built[r].items = op.built
+      ok == base[r] # NoRoot /\ Ref(base[r]) = op.base /\ Ref(built[r]) = op.built
   IN
   /\ At(r, "release")
   /\ base' = [base EXCEPT ![r] = IF ok THEN NoRoot ELSE @]
   /\ built' = [built EXCEPT ![r] = IF ok THEN NoRoot ELSE @]
   /\ Done(r, IF ok THEN "applied" ELSE "refused")
-  /\ UNCHANGED <<log, world, pin, prebuilt, phase, pending, full, crashes,
-                 stall, exp, faulted>>
+  /\ UNCHANGED <<log, world, pin, prebuilt, buildHeld, phase,
+                 pending, full, crashes, stall, exp, faulted>>
 
-\* A crash loses the inline build and the prebuilt root, and nothing the
-\* replay cursor holds.
+\* A crash loses the inline build and nothing the replay cursor holds. The
+\* restart reads the prebuilt root again, or finds it unreadable and holds
+\* no build while the regen-build root stays held; the head is pending until
+\* it installs again.
 Crash(r) ==
   /\ crashes < MaxCrashes
   /\ phase[r] # "down"
   /\ phase' = [phase EXCEPT ![r] = "down"]
-  /\ prebuilt' = [prebuilt EXCEPT ![r] = NoBuild]
+  /\ \E lost \in BOOLEAN :
+       prebuilt' = [prebuilt EXCEPT ![r] = IF lost THEN NoBuild ELSE @]
+  /\ pending' = [pending EXCEPT ![r] = TRUE]
   /\ crashes' = crashes + 1
-  /\ UNCHANGED <<log, cur, world, pin, base, built, verdict, pending, full,
+  /\ UNCHANGED <<log, cur, world, pin, buildHeld, base, built, verdict, full,
                  stall, exp, faulted>>
 
 Recover(r) ==
   /\ phase[r] = "down"
   /\ phase' = [phase EXCEPT ![r] = "idle"]
-  /\ UNCHANGED <<log, cur, world, pin, prebuilt, base, built, verdict,
-                 pending, full, crashes, stall, exp, faulted>>
+  /\ UNCHANGED <<log, cur, world, pin, prebuilt, buildHeld, base,
+                 built, verdict, pending, full, crashes, stall, exp, faulted>>
 
 \* The disk falls below the floor, then frees.
 Fill(r) ==
@@ -400,19 +480,19 @@ Fill(r) ==
   /\ ~full[r]
   /\ full' = [full EXCEPT ![r] = TRUE]
   /\ crashes' = crashes + 1
-  /\ UNCHANGED <<log, cur, world, pin, prebuilt, base, built, verdict, phase,
-                 pending, stall, exp, faulted>>
+  /\ UNCHANGED <<log, cur, world, pin, prebuilt, buildHeld, base,
+                 built, verdict, phase, pending, stall, exp, faulted>>
 
 Free(r) ==
   /\ full[r]
   /\ full' = [full EXCEPT ![r] = FALSE]
-  /\ UNCHANGED <<log, cur, world, pin, prebuilt, base, built, verdict, phase,
-                 pending, crashes, stall, exp, faulted>>
+  /\ UNCHANGED <<log, cur, world, pin, prebuilt, buildHeld, base,
+                 built, verdict, phase, pending, crashes, stall, exp, faulted>>
 
 Replay(r) ==
   \/ ApplyWrite(r) \/ Refuse(r) \/ ApplyPin(r) \/ ApplySwitch(r)
   \/ StartInline(r) \/ FinishInline(r) \/ FailInline(r)
-  \/ ApplyBack(r) \/ ApplyRelease(r)
+  \/ ApplyBack(r) \/ ApplyUnpin(r) \/ ApplyRelease(r)
 
 \* The order is complete and every replica applied it.
 Terminated ==
@@ -423,19 +503,21 @@ Terminated ==
 Next ==
   \/ Terminated
   \/ ProposeWrite \/ ProposeCarry \/ ProposePin \/ ProposeSwitch
-  \/ ProposeBack
+  \/ ProposeBack \/ ProposeUnpin
   \/ ProposeRelease
   \/ \E r \in Replicas :
-       \/ Replay(r) \/ BuildOffPath(r) \/ Crash(r) \/ Recover(r) \/ Fill(r)
-       \/ Free(r) \/ Install(r) \/ Sweep(r)
+       \/ Replay(r) \/ BuildOffPath(r) \/ ReleaseBuild(r) \/ Crash(r)
+       \/ Recover(r) \/ Fill(r) \/ Free(r) \/ Install(r) \/ Sweep(r)
 
 \* A state constraint for the stale configuration: the order carries no
-\* writes but the carried quads' and no malformed pin, so seven operations
-\* reach a release ordered after a switch back and a second regeneration.
+\* writes but the carried quads', no malformed pin and no pin release, so
+\* seven operations reach a release ordered after a switch back and a second
+\* regeneration.
 RegenOnly ==
   \A i \in 1..Len(log) :
     /\ log[i].t = "write" => log[i].i \in Carry /\ log[i].add
     /\ log[i].t = "pin" => ~log[i].bad
+    /\ log[i].t # "unpin"
 
 Spec ==
   /\ Init /\ [][Next]_vars
@@ -448,6 +530,7 @@ Spec ==
 
 TypeOK ==
   /\ cur \in [Replicas -> 0..MaxOps]
+  /\ buildHeld \in [Replicas -> BOOLEAN]
   /\ phase \in [Replicas -> {"idle", "building", "down"}]
   /\ pending \in [Replicas -> BOOLEAN]
   /\ \A r \in Replicas : cur[r] <= Len(log)
@@ -485,6 +568,10 @@ HeldTogether ==
 ReleasedOnlyEqual ==
   \A r \in Replicas :
     (world[r].fmt = "new" /\ base[r] = NoRoot) => world[r].items = exp[r]
+
+\* A published build is held under the regen-build root, so the collector
+\* never frees a build a switch may read.
+BuildHeld == \A r \in Replicas : prebuilt[r].ok => buildHeld[r] /\ ~prebuilt[r].freed
 
 \* No switch applies more item changes than the bound on the replay path.
 WithinBound == \A r \in Replicas : stall[r] <= Bound

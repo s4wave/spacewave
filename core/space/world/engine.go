@@ -239,27 +239,28 @@ func nextCarrySize(n int, hold time.Duration) int {
 }
 
 // writeCarriedQuads sets the quads of the quad list at quads in the World as
-// ordinary writes through the Space's order, each of at most
-// sobject.MaxBatchSize bytes and of as many quads as nextCarrySize gives from
-// the last write's replay hold, in list order. Between writes it
-// yields to this device's writers. A user's write ordered between two of them
-// stands, as one ordered before or after the regeneration does. A list
-// another regeneration already set adds nothing, since a write skips the
-// quads the World holds.
+// ordinary writes through the Space's order, each one SET_GRAPH_QUADS
+// transaction of at most sobject.MaxBatchSize bytes and of as many quads as
+// nextCarrySize gives from the last write's replay hold, in list order. Every
+// replica, this device included, applies each write by replay, so all reach
+// the same World. Between writes it yields to this device's writers. A user's
+// write ordered between two of them stands, as one ordered before or after the
+// regeneration does. A list another regeneration already set adds nothing,
+// since a write skips the quads the World holds.
 func (e *Engine) writeCarriedQuads(ctx context.Context, quads *block.BlockRef) error {
 	// An empty list carries nothing.
 	if quads.GetEmpty() {
 		return nil
 	}
 
-	// flush writes the batch gathered so far, after this device's waiting
+	// flush writes the quads gathered so far, after this device's waiting
 	// writers.
-	var txs []*world_block_tx.Tx
+	var batch []*bquad.Quad
 	var size int
 	limit := regenCarryStart
 	flush := func() error {
 		// Skip an empty batch, and let the waiting writers go first.
-		if len(txs) == 0 {
+		if len(batch) == 0 {
 			return nil
 		}
 		if err := e.a.turns.Yield(ctx); err != nil {
@@ -267,12 +268,9 @@ func (e *Engine) writeCarriedQuads(ctx context.Context, quads *block.BlockRef) e
 		}
 
 		// Write it, sizing the next one from how long it held replay.
-		tx, err := world_block_tx.NewTxBatch(&world_block_tx.TxBatch{Txs: txs})
-		if err != nil {
-			return err
-		}
-		n := len(txs)
-		txs, size = nil, 0
+		tx := world_block_tx.NewTxSetGraphQuads(batch)
+		n := len(batch)
+		batch, size = nil, 0
 		hold, err := e.a.writeOpHold(ctx, &WorldOp{Body: &WorldOp_ApplyTxOp{ApplyTxOp: &ApplyTxOp{Tx: tx}}})
 		if err != nil {
 			return err
@@ -286,17 +284,13 @@ func (e *Engine) writeCarriedQuads(ctx context.Context, quads *block.BlockRef) e
 	_, bcs := e.cursor.BuildTransactionAtRef(nil, quads)
 	err := RangeQuadList(ctx, bcs, func(q *bquad.Quad) error {
 		// Write the batch first when this quad would overfill it.
-		tx, err := world_block_tx.NewTxSetGraphQuad(q)
-		if err != nil {
-			return err
-		}
-		n := tx.SizeVT() + 8
-		if len(txs) >= limit || size+n > sobject.MaxBatchSize {
+		n := q.SizeVT() + 8
+		if len(batch) >= limit || size+n > sobject.MaxBatchSize {
 			if err := flush(); err != nil {
 				return err
 			}
 		}
-		txs, size = append(txs, tx), size+n
+		batch, size = append(batch, q), size+n
 		return nil
 	})
 	if err != nil {
