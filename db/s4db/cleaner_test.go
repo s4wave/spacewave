@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -125,6 +126,153 @@ func TestCleaner(t *testing.T) {
 	db = openTest(t, path, opts)
 	defer db.Close()
 	m.check(t, db)
+}
+
+// moveValue returns the value of key i in TestCleanerOwnsMoves: past
+// inlineMax, so it lives in a value chunk, and following from i.
+func moveValue(i int) []byte {
+	b := make([]byte, inlineMax+88+i%300)
+	for j := range b {
+		b[j] = byte(i*13 + j)
+	}
+	return b
+}
+
+// checkMoves reads every live key of TestCleanerOwnsMoves, each fourth of n,
+// by Get and by a scan, and fails on a missing, extra or wrong value.
+func checkMoves(t *testing.T, db *DB, n int) {
+	t.Helper()
+	ctx := context.Background()
+	tx, err := db.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	for i := 0; i < n; i += 4 {
+		v, ok, err := tx.Get(ctx, fmt.Appendf(nil, "m/%06d", i))
+		if err != nil || !ok || !bytes.Equal(v, moveValue(i)) {
+			t.Fatalf("key %d: found %v err %v, value intact %v", i, ok, err, bytes.Equal(v, moveValue(i)))
+		}
+	}
+	seen := 0
+	err = tx.ScanPrefix(ctx, []byte("m/"), func(k, v []byte) error {
+		var i int
+		if _, err := fmt.Sscanf(string(k), "m/%06d", &i); err != nil || i%4 != 0 || !bytes.Equal(v, moveValue(i)) {
+			return fmt.Errorf("scan found key %q with a wrong value", k)
+		}
+		seen++
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seen != (n+3)/4 {
+		t.Fatalf("scan saw %d keys, want %d", seen, (n+3)/4)
+	}
+}
+
+// TestCleanerOwnsMoves fills about 48 value chunks with small out-of-line
+// values, deletes three in four, and lets the cleaner move the rest with no
+// flush between, so every moved key stays in the memtable. It fails if a moved
+// key or value refers into the chunk the cleaner read: the cleaner reads each
+// victim into the same buffer, so such a key is overwritten by the next victim
+// and its value is lost, and a fresh buffer per victim instead keeps one chunk
+// alive for each victim moved, which the heap bound catches.
+func TestCleanerOwnsMoves(t *testing.T) {
+	// Fill with keys whose entries pack about 1,500 to a chunk, under a
+	// memtable budget no flush reaches.
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "moves.s4wave")
+	opts := Options{CacheBytes: 8 << 20}
+	db := openTest(t, path, opts)
+	const n = 72000
+	for i := 0; i < n; i += 1000 {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for j := i; j < i+1000; j++ {
+			if err := tx.Set(ctx, fmt.Appendf(nil, "m/%06d", j), moveValue(j)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var ms runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&ms)
+	filled := ms.HeapInuse
+
+	// Delete three keys in four, leaving every chunk a victim.
+	for i := 0; i < n; i += 1000 {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for j := i; j < i+1000; j++ {
+			if j%4 != 0 {
+				if err := tx.Delete(ctx, fmt.Appendf(nil, "m/%06d", j)); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Wait for the cleaner to move the live values out of the victims: the
+	// dead bytes fall under a chunk. The log chunks the commits appended sit
+	// above the freed chunks, so the free slack stays.
+	// Partway, once a few chunks moved, read the moved values back, so a
+	// move that kept a slice of the reused read buffer fails here, naming
+	// the key, instead of stalling the cleaner until the deadline.
+	deadline := time.Now().Add(60 * time.Second)
+	firstDead, checked := int64(-1), false
+	for {
+		s, err := db.Stats(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if firstDead < 0 {
+			firstDead = s.DeadBytes
+		}
+		if !checked && s.DeadBytes+4*chunkSize < firstDead {
+			checkMoves(t, db, n)
+			checked = true
+		}
+		if s.DeadBytes < chunkSize {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("dead bytes stayed at %d for live %d", s.DeadBytes, s.LiveBytes)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if runs := len(db.cur.Load().m.runs); runs != 0 {
+		t.Fatalf("a flush wrote %d runs; the memtable must keep the moves", runs)
+	}
+
+	// The moved values read back, and the heap grew by the memtable's moved
+	// and deleted entries and one chunk buffer, not by a chunk per victim.
+	checkMoves(t, db, n)
+	runtime.GC()
+	runtime.ReadMemStats(&ms)
+	grew := int64(ms.HeapInuse) - int64(filled) // #nosec G115 -- heap sizes fit.
+	t.Logf("heap in use: %d MiB filled, %d MiB after the moves", filled>>20, ms.HeapInuse>>20)
+	if grew > 16<<20 {
+		t.Fatalf("heap grew %d MiB across the moves", grew>>20)
+	}
+
+	// Replay reads the same values.
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	db = openTest(t, path, opts)
+	defer db.Close()
+	checkMoves(t, db, n)
 }
 
 // raceKeys is the number of keys each race writer churns.
