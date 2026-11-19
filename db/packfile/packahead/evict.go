@@ -48,7 +48,9 @@ func (l *Log) Evict(ctx context.Context, seq uint64) error {
 		// Fence cached reads of blocks GC removed while upload was pending.
 		l.dropRemovedLocked(p)
 
-		// Forget the local copies still backed by the uploaded pack.
+		// I2: Eviction skips invalidation because the uploaded pack keeps a
+		// copy. This requires that remote reclaim cannot delete that copy
+		// before the decoded cache entry is invalidated.
 		for _, e := range index {
 			tail := tailOf(e.GetKey())
 			if loc, ok := l.table[tail]; ok && loc.p == p {
