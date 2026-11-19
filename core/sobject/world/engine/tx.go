@@ -123,11 +123,11 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 // blocks, the operation and the accepted World in one physical transaction:
 // CommitAdmit releases the writer lock and returns once the publication
 // admits the write and the engine installs its World, so the next write forks
-// from it. The Admission waits for the receipt. Without a publication the
-// write is durable when CommitAdmit returns. A write whose World follows a
-// publication that failed before its admission fails with that failure; it
-// is never replayed onto the reinstalled World, and CommitAdmit runs no
-// reinstall hook.
+// from it. The Admission waits for the receipt. Without a publication it waits
+// for any pending install of the inherited World. A write whose World follows
+// a publication that failed before its admission fails with that failure; it
+// is never replayed onto the reinstalled World, and CommitAdmit runs no reinstall
+// hook.
 func (t *soEngineWriteTx) CommitAdmit(ctx context.Context) (world.Admission, error) {
 	// Admit the write.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/commit")
@@ -149,13 +149,11 @@ func (t *soEngineWriteTx) CommitAdmit(ctx context.Context) (world.Admission, err
 			return nil, fmt.Errorf("world publication receipt: %w", rerr)
 		}
 	}
-	if err == nil {
-		waitCtx, cancel := t.eng.detach(ctx)
-		_, _, err = t.eng.waitDurable(waitCtx, t.durable)
-		cancel()
-	}
 	if err != nil {
 		return nil, err
+	}
+	if base := t.eng.baseAdmission(t.durable, t.seqno); base != nil {
+		return base, nil
 	}
 	return world.DurableAdmission(t.seqno), nil
 }
@@ -214,12 +212,13 @@ func (t *soEngineWriteTx) admit(ctx context.Context) error {
 		}
 	}
 
-	// Empty transactions have no operation to add.
+	// Empty transactions inherit the current install without publishing an operation.
 	txBatch := t.GetTxBatch()
 	txns := txBatch.GetTxs()
 	if len(txns) == 0 {
 		var err error
 		t.seqno, err = t.eng.admitted.GetSeqno(ctx)
+		t.durable = t.eng.lastDurable()
 		return err
 	}
 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -48,6 +49,39 @@ func TestCommitForksFromAdmittedWorld(t *testing.T) {
 		t.Fatalf("durable seqno %d before the publication, want %d", seqno, durable)
 	}
 
+	// A rehearsal can read the admitted object and retain the same receipt after discard.
+	rehearsals := w.eng.(sobject_world_engine.RehearsalAdmissionEngine)
+	rehearsal, rehearsalBase, err := rehearsals.NewRehearsalTransactionWithBase(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rehearsal.Discard()
+	defer rehearsalBase.Release()
+	if !worldHas(t, rehearsal, "admit/1") || rehearsalBase.Seqno() != first.Seqno() {
+		t.Fatal("rehearsal and its receipt do not name the admitted World")
+	}
+	rehearsal.Discard()
+
+	// An empty write also returns a pending receipt, and releases the writer.
+	empty, err := w.eng.NewTransaction(t.Context(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !worldHas(t, empty, "admit/1") {
+		empty.Discard()
+		t.Fatal("empty write does not see the admitted first write")
+	}
+	emptyBase, err := world.CommitAdmit(t.Context(), empty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer emptyBase.Release()
+	for _, base := range []world.Admission{rehearsalBase, emptyBase} {
+		if _, durable := base.(world.DurableAdmission); durable || base.Seqno() != first.Seqno() {
+			t.Fatalf("base receipt = %T at %d, want pending at %d", base, base.Seqno(), first.Seqno())
+		}
+	}
+
 	// The second write forks from the first's admitted World.
 	tx := w.newWrite(t, "admit/2")
 	if found := worldHas(t, tx, "admit/1"); !found {
@@ -70,6 +104,11 @@ func TestCommitForksFromAdmittedWorld(t *testing.T) {
 	}
 	if err := <-second; err != nil {
 		t.Fatalf("second Commit: %v", err)
+	}
+	for _, base := range []world.Admission{rehearsalBase, emptyBase} {
+		if seqno, err := base.WaitDurable(t.Context()); err != nil || seqno != first.Seqno() {
+			t.Fatalf("base WaitDurable = %d, %v, want %d", seqno, err, first.Seqno())
+		}
 	}
 	read = newRead(t, w)
 	defer read.Discard()
@@ -126,6 +165,24 @@ func TestCommitReceiptFailure(t *testing.T) {
 	}
 	defer base.Release()
 
+	// Capture the same base through an empty commit and an admitted rehearsal.
+	empty, err := tracked.NewTransaction(t.Context(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	emptyBase, err := world.CommitAdmit(t.Context(), empty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer emptyBase.Release()
+	rehearsals := w.eng.(sobject_world_engine.RehearsalAdmissionEngine)
+	rehearsal, rehearsalBase, err := rehearsals.NewRehearsalTransactionWithBase(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rehearsalBase.Release()
+	rehearsal.Discard()
+
 	// Admit the second after it.
 	second := commitAsync(t, w.newWrite(t, "fail/2"))
 	waitAdmittedOps(t, so, before+2)
@@ -160,8 +217,10 @@ func TestCommitReceiptFailure(t *testing.T) {
 
 	// The next write commits on it, and nothing else was reinstalled.
 	w.create(t, "fail/3")
-	if seqno, err := base.WaitDurable(t.Context()); seqno != durable || !errors.Is(err, injected) {
-		t.Fatalf("base WaitDurable = %d, %v, want %d and the injected failure", seqno, err, durable)
+	for _, receipt := range []world.Admission{base, emptyBase, rehearsalBase} {
+		if seqno, err := receipt.WaitDurable(t.Context()); seqno != durable || !errors.Is(err, injected) {
+			t.Fatalf("base WaitDurable = %d, %v, want %d and the injected failure", seqno, err, durable)
+		}
 	}
 
 	// A new commit publishes only the surviving writes.

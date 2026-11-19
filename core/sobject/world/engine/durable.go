@@ -80,21 +80,27 @@ func (e *soEngine) lastDurable() *durableInstall {
 // The transaction still holds the writer, so the engine cannot fork again
 // or install a different base until this returns.
 func (t *soEngineWriteTx) BaseAdmission(seqno uint64) world.Admission {
+	return t.eng.baseAdmission(t.eng.lastDurable(), seqno)
+}
+
+// baseAdmission returns a receipt if install is pending or was dropped.
+func (e *soEngine) baseAdmission(install *durableInstall, seqno uint64) world.Admission {
+	// A single-head engine has no durable install to wait on.
+	if install == nil {
+		return nil
+	}
+
 	// Skip a base that the reader head already installed successfully.
-	e := t.eng
-	var pending *durableInstall
+	var pending bool
 	e.durable.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		last := e.durable.last
-		if last != nil && (e.durable.done < last.pos || last.dropped) {
-			pending = last
-		}
+		pending = e.durable.done < install.pos || install.dropped
 	})
-	if pending == nil {
+	if !pending {
 		return nil
 	}
 
 	// A later install may reuse a dropped install's sequence number.
-	return &baseAdmission{engine: e, install: pending, seqno: seqno}
+	return &baseAdmission{engine: e, install: install, seqno: seqno}
 }
 
 // baseAdmission observes an install without owning its publication receipt.
