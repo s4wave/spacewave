@@ -23,6 +23,18 @@ type SRPCEngineResourceServiceClient interface {
 	// shared state, so storage reclaim keeps its blocks. An empty root releases
 	// the name.
 	SetRetainedRoot(ctx context.Context, in *SetRetainedRootRequest) (*SetRetainedRootResponse, error)
+	// RegenerateWorld moves the World between stored formats, as
+	// world.block.WorldRegenerator says, and returns once the step is decided.
+	// A Space World orders it for every replica. The caller holds the quad
+	// list, as an open stage does, until the call returns. A mount with a write
+	// guard may not regenerate.
+	RegenerateWorld(ctx context.Context, in *RegenerateWorldRequest) (*RegenerateWorldResponse, error)
+	// CompareWorldRegen compares the old World a regeneration holds with the
+	// new one and fails when they differ, releasing nothing.
+	CompareWorldRegen(ctx context.Context, in *CompareWorldRegenRequest) (*CompareWorldRegenResponse, error)
+	// ReleaseWorldRegen compares the old World a regeneration holds with the
+	// new one and releases the old one when they are equal.
+	ReleaseWorldRegen(ctx context.Context, in *ReleaseWorldRegenRequest) (*ReleaseWorldRegenResponse, error)
 
 	NewTransaction(ctx context.Context, in *NewTransactionRequest) (*NewTransactionResponse, error)
 	// ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
@@ -132,6 +144,33 @@ func (x *srpcEngineResourceService_WatchWorldRootSnapshotsClient) RecvTo(m *Worl
 func (c *srpcEngineResourceServiceClient) SetRetainedRoot(ctx context.Context, in *SetRetainedRootRequest) (*SetRetainedRootResponse, error) {
 	out := new(SetRetainedRootResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "SetRetainedRoot", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcEngineResourceServiceClient) RegenerateWorld(ctx context.Context, in *RegenerateWorldRequest) (*RegenerateWorldResponse, error) {
+	out := new(RegenerateWorldResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RegenerateWorld", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcEngineResourceServiceClient) CompareWorldRegen(ctx context.Context, in *CompareWorldRegenRequest) (*CompareWorldRegenResponse, error) {
+	out := new(CompareWorldRegenResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CompareWorldRegen", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcEngineResourceServiceClient) ReleaseWorldRegen(ctx context.Context, in *ReleaseWorldRegenRequest) (*ReleaseWorldRegenResponse, error) {
+	out := new(ReleaseWorldRegenResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ReleaseWorldRegen", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -286,6 +325,18 @@ type SRPCEngineResourceServiceServer interface {
 	// shared state, so storage reclaim keeps its blocks. An empty root releases
 	// the name.
 	SetRetainedRoot(context.Context, *SetRetainedRootRequest) (*SetRetainedRootResponse, error)
+	// RegenerateWorld moves the World between stored formats, as
+	// world.block.WorldRegenerator says, and returns once the step is decided.
+	// A Space World orders it for every replica. The caller holds the quad
+	// list, as an open stage does, until the call returns. A mount with a write
+	// guard may not regenerate.
+	RegenerateWorld(context.Context, *RegenerateWorldRequest) (*RegenerateWorldResponse, error)
+	// CompareWorldRegen compares the old World a regeneration holds with the
+	// new one and fails when they differ, releasing nothing.
+	CompareWorldRegen(context.Context, *CompareWorldRegenRequest) (*CompareWorldRegenResponse, error)
+	// ReleaseWorldRegen compares the old World a regeneration holds with the
+	// new one and releases the old one when they are equal.
+	ReleaseWorldRegen(context.Context, *ReleaseWorldRegenRequest) (*ReleaseWorldRegenResponse, error)
 
 	NewTransaction(context.Context, *NewTransactionRequest) (*NewTransactionResponse, error)
 	// ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
@@ -353,6 +404,9 @@ func (SRPCEngineResourceServiceHandler) GetMethodIDs() []string {
 		"GetWorldRootSnapshot",
 		"WatchWorldRootSnapshots",
 		"SetRetainedRoot",
+		"RegenerateWorld",
+		"CompareWorldRegen",
+		"ReleaseWorldRegen",
 		"NewTransaction",
 		"ExecuteWorldOp",
 		"ExecuteWorldBatch",
@@ -385,6 +439,12 @@ func (d *SRPCEngineResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchWorldRootSnapshots(d.impl, strm)
 	case "SetRetainedRoot":
 		return true, d.InvokeMethod_SetRetainedRoot(d.impl, strm)
+	case "RegenerateWorld":
+		return true, d.InvokeMethod_RegenerateWorld(d.impl, strm)
+	case "CompareWorldRegen":
+		return true, d.InvokeMethod_CompareWorldRegen(d.impl, strm)
+	case "ReleaseWorldRegen":
+		return true, d.InvokeMethod_ReleaseWorldRegen(d.impl, strm)
 	case "NewTransaction":
 		return true, d.InvokeMethod_NewTransaction(d.impl, strm)
 	case "ExecuteWorldOp":
@@ -453,6 +513,42 @@ func (SRPCEngineResourceServiceHandler) InvokeMethod_SetRetainedRoot(impl SRPCEn
 		return err
 	}
 	out, err := impl.SetRetainedRoot(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_RegenerateWorld(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(RegenerateWorldRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RegenerateWorld(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_CompareWorldRegen(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(CompareWorldRegenRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CompareWorldRegen(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_ReleaseWorldRegen(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(ReleaseWorldRegenRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ReleaseWorldRegen(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -640,6 +736,30 @@ type SRPCEngineResourceService_SetRetainedRootStream interface {
 }
 
 type srpcEngineResourceService_SetRetainedRootStream struct {
+	srpc.Stream
+}
+
+type SRPCEngineResourceService_RegenerateWorldStream interface {
+	srpc.Stream
+}
+
+type srpcEngineResourceService_RegenerateWorldStream struct {
+	srpc.Stream
+}
+
+type SRPCEngineResourceService_CompareWorldRegenStream interface {
+	srpc.Stream
+}
+
+type srpcEngineResourceService_CompareWorldRegenStream struct {
+	srpc.Stream
+}
+
+type SRPCEngineResourceService_ReleaseWorldRegenStream interface {
+	srpc.Stream
+}
+
+type srpcEngineResourceService_ReleaseWorldRegenStream struct {
 	srpc.Stream
 }
 

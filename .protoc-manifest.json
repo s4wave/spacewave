@@ -17,6 +17,24 @@
         }
       }
     },
+    "39dd748e55aea326b62b35b1178ae027a39480eed4ba3e3751a9f5c4d98bf26f": {
+      "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
+      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+      "packages": {
+        "github.com/s4wave/spacewave/sdk/world": {
+          "hash": "154889bbb1d7d307c4946127424effed879719593426762df01dc17e24ee7040",
+          "generatedFiles": [
+            "sdk/world/world.pb.go",
+            "sdk/world/world.pb.ts",
+            "sdk/world/world_srpc.pb.go",
+            "sdk/world/world_srpc.pb.ts"
+          ],
+          "protoFiles": [
+            "sdk/world/world.proto"
+          ]
+        }
+      }
+    },
     "4296f3bf02e85c1667d296809a03f1f3ba1cd95901b7beded849974a8bc58a81": {
       "protocFlagsHash": "641054ce8cacc6009c9e5e7b7a0f04a99a13b3f78d4959e5ee499fe353b65951",
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6,uv.lock=e4c4bd2b1b09f2f90e1d7b987a9b18c5bf9158758fbd55f3b5d3d46656bd88be",

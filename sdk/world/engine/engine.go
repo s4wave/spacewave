@@ -8,6 +8,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
@@ -216,6 +217,28 @@ func (e *SDKEngine) SetRetainedRoot(ctx context.Context, name string, ref *block
 	return err
 }
 
+// RegenerateWorld moves the remote World between stored formats, as
+// world_block.WorldRegenerator says. The caller holds the quad list, as an
+// open stage does, until it returns.
+func (e *SDKEngine) RegenerateWorld(ctx context.Context, target world_block.WorldFormat, quads *block.BlockRef) error {
+	_, err := e.service.RegenerateWorld(ctx, &s4wave_world.RegenerateWorldRequest{Target: target, Quads: quads})
+	return err
+}
+
+// CompareWorldRegen compares the remote regeneration's old and new Worlds,
+// releasing nothing.
+func (e *SDKEngine) CompareWorldRegen(ctx context.Context) error {
+	_, err := e.service.CompareWorldRegen(ctx, &s4wave_world.CompareWorldRegenRequest{})
+	return err
+}
+
+// ReleaseWorldRegen compares the remote regeneration's old and new Worlds and
+// releases the old one when they are equal.
+func (e *SDKEngine) ReleaseWorldRegen(ctx context.Context) error {
+	_, err := e.service.ReleaseWorldRegen(ctx, &s4wave_world.ReleaseWorldRegenRequest{})
+	return err
+}
+
 // WatchWorldRootSnapshots streams committed World root snapshots.
 func (e *SDKEngine) WatchWorldRootSnapshots(ctx context.Context) (s4wave_world.SRPCEngineResourceService_WatchWorldRootSnapshotsClient, error) {
 	return e.service.WatchWorldRootSnapshots(ctx, &s4wave_world.WatchWorldRootSnapshotsRequest{})
@@ -250,5 +273,6 @@ func (e *SDKEngine) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef,
 
 // _ are type assertions.
 var (
-	_ world.Engine = (*SDKEngine)(nil)
+	_ world.Engine                 = (*SDKEngine)(nil)
+	_ world_block.WorldRegenerator = (*SDKEngine)(nil)
 )

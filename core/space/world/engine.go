@@ -165,32 +165,44 @@ func (e *Engine) RegenerateWorld(ctx context.Context, target world_block.WorldFo
 	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: &RegenerateWorldOp{Target: target, Quads: quads}}}, payloads...)
 }
 
+// CompareWorldRegen compares the old World a regeneration holds with the new
+// one on this device, off replay, and releases nothing.
+func (e *Engine) CompareWorldRegen(ctx context.Context) error {
+	_, _, err := e.compareRegen(ctx)
+	return err
+}
+
 // ReleaseWorldRegen compares the old World a regeneration holds with the new
 // one on this device, off replay, and when they are equal releases both
 // through the Space's order. The release names the roots compared, so replay
 // refuses it if another regeneration holds others by then.
 func (e *Engine) ReleaseWorldRegen(ctx context.Context) error {
-	// Read the held roots.
-	var base, built *block.BlockRef
-	e.a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		base, built = heldRegen(e.a.headState)
-	})
-	if base == nil || built == nil {
-		return errors.New("no world regeneration is held")
-	}
-
-	// Compare them, one comparison at a time, then queue the release and
-	// wait.
-	unlock, err := e.a.regenCompare.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	err = world_block.NewOrderedRegen(e.cursor, nil, e.a.regenConfig(regenSpillCompare)).Compare(ctx, base, built)
-	unlock()
+	base, built, err := e.compareRegen(ctx)
 	if err != nil {
 		return err
 	}
 	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_ReleaseWorldRegen{ReleaseWorldRegen: &ReleaseWorldRegenOp{Base: base, Built: built}}})
+}
+
+// compareRegen compares the roots a regeneration holds, one comparison at a
+// time, and returns them when they hold the same World.
+func (e *Engine) compareRegen(ctx context.Context) (base, built *block.BlockRef, err error) {
+	// Read the held roots.
+	e.a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		base, built = heldRegen(e.a.headState)
+	})
+	if base == nil || built == nil {
+		return nil, nil, errors.New("no world regeneration is held")
+	}
+
+	// Compare them under the comparison lock.
+	unlock, err := e.a.regenCompare.Lock(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = world_block.NewOrderedRegen(e.cursor, nil, e.a.regenConfig(regenSpillCompare)).Compare(ctx, base, built)
+	unlock()
+	return base, built, err
 }
 
 // GetHead returns the installed World root and its seqno.

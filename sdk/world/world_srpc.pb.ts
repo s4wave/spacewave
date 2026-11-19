@@ -21,6 +21,8 @@ import {
   CommitResponse,
   CompareObjectRecordsRequest,
   CompareObjectRecordsResponse,
+  CompareWorldRegenRequest,
+  CompareWorldRegenResponse,
   CreateObjectRequest,
   CreateObjectResponse,
   DeleteGraphObjectRequest,
@@ -84,8 +86,12 @@ import {
   OpenOuterWorldResponse,
   QueryGraphPathRequest,
   QueryGraphPathResponse,
+  RegenerateWorldRequest,
+  RegenerateWorldResponse,
   ReleaseRootsRequest,
   ReleaseRootsResponse,
+  ReleaseWorldRegenRequest,
+  ReleaseWorldRegenResponse,
   RenameObjectRequest,
   RenameObjectResponse,
   SeekRequest,
@@ -172,6 +178,45 @@ export const EngineResourceServiceDefinition = {
       name: 'SetRetainedRoot',
       I: SetRetainedRootRequest,
       O: SetRetainedRootResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * RegenerateWorld moves the World between stored formats, as
+     * world.block.WorldRegenerator says, and returns once the step is decided.
+     * A Space World orders it for every replica. The caller holds the quad
+     * list, as an open stage does, until the call returns. A mount with a write
+     * guard may not regenerate.
+     *
+     * @generated from rpc s4wave.world.EngineResourceService.RegenerateWorld
+     */
+    RegenerateWorld: {
+      name: 'RegenerateWorld',
+      I: RegenerateWorldRequest,
+      O: RegenerateWorldResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * CompareWorldRegen compares the old World a regeneration holds with the
+     * new one and fails when they differ, releasing nothing.
+     *
+     * @generated from rpc s4wave.world.EngineResourceService.CompareWorldRegen
+     */
+    CompareWorldRegen: {
+      name: 'CompareWorldRegen',
+      I: CompareWorldRegenRequest,
+      O: CompareWorldRegenResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ReleaseWorldRegen compares the old World a regeneration holds with the
+     * new one and releases the old one when they are equal.
+     *
+     * @generated from rpc s4wave.world.EngineResourceService.ReleaseWorldRegen
+     */
+    ReleaseWorldRegen: {
+      name: 'ReleaseWorldRegen',
+      I: ReleaseWorldRegenRequest,
+      O: ReleaseWorldRegenResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -349,6 +394,42 @@ export interface EngineResourceService {
   ): Promise<SetRetainedRootResponse>
 
   /**
+   * RegenerateWorld moves the World between stored formats, as
+   * world.block.WorldRegenerator says, and returns once the step is decided.
+   * A Space World orders it for every replica. The caller holds the quad
+   * list, as an open stage does, until the call returns. A mount with a write
+   * guard may not regenerate.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.RegenerateWorld
+   */
+  RegenerateWorld(
+    request: RegenerateWorldRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RegenerateWorldResponse>
+
+  /**
+   * CompareWorldRegen compares the old World a regeneration holds with the
+   * new one and fails when they differ, releasing nothing.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.CompareWorldRegen
+   */
+  CompareWorldRegen(
+    request: CompareWorldRegenRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CompareWorldRegenResponse>
+
+  /**
+   * ReleaseWorldRegen compares the old World a regeneration holds with the
+   * new one and releases the old one when they are equal.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.ReleaseWorldRegen
+   */
+  ReleaseWorldRegen(
+    request: ReleaseWorldRegenRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseWorldRegenResponse>
+
+  /**
    * @generated from rpc s4wave.world.EngineResourceService.NewTransaction
    */
   NewTransaction(
@@ -510,6 +591,45 @@ export interface EngineResourceServiceHandler {
   ): Promise<SetRetainedRootResponse>
 
   /**
+   * RegenerateWorld moves the World between stored formats, as
+   * world.block.WorldRegenerator says, and returns once the step is decided.
+   * A Space World orders it for every replica. The caller holds the quad
+   * list, as an open stage does, until the call returns. A mount with a write
+   * guard may not regenerate.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.RegenerateWorld
+   */
+  RegenerateWorld(
+    request: RegenerateWorldRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RegenerateWorldResponse>
+
+  /**
+   * CompareWorldRegen compares the old World a regeneration holds with the
+   * new one and fails when they differ, releasing nothing.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.CompareWorldRegen
+   */
+  CompareWorldRegen(
+    request: CompareWorldRegenRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CompareWorldRegenResponse>
+
+  /**
+   * ReleaseWorldRegen compares the old World a regeneration holds with the
+   * new one and releases the old one when they are equal.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.ReleaseWorldRegen
+   */
+  ReleaseWorldRegen(
+    request: ReleaseWorldRegenRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReleaseWorldRegenResponse>
+
+  /**
    * @generated from rpc s4wave.world.EngineResourceService.NewTransaction
    */
   NewTransaction(
@@ -654,6 +774,9 @@ export class EngineResourceServiceClient implements EngineResourceService {
     this.GetWorldRootSnapshot = this.GetWorldRootSnapshot.bind(this)
     this.WatchWorldRootSnapshots = this.WatchWorldRootSnapshots.bind(this)
     this.SetRetainedRoot = this.SetRetainedRoot.bind(this)
+    this.RegenerateWorld = this.RegenerateWorld.bind(this)
+    this.CompareWorldRegen = this.CompareWorldRegen.bind(this)
+    this.ReleaseWorldRegen = this.ReleaseWorldRegen.bind(this)
     this.NewTransaction = this.NewTransaction.bind(this)
     this.ExecuteWorldOp = this.ExecuteWorldOp.bind(this)
     this.ExecuteWorldBatch = this.ExecuteWorldBatch.bind(this)
@@ -737,6 +860,69 @@ export class EngineResourceServiceClient implements EngineResourceService {
       abortSignal || undefined,
     )
     return SetRetainedRootResponse.fromBinary(result)
+  }
+
+  /**
+   * RegenerateWorld moves the World between stored formats, as
+   * world.block.WorldRegenerator says, and returns once the step is decided.
+   * A Space World orders it for every replica. The caller holds the quad
+   * list, as an open stage does, until the call returns. A mount with a write
+   * guard may not regenerate.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.RegenerateWorld
+   */
+  async RegenerateWorld(
+    request: RegenerateWorldRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RegenerateWorldResponse> {
+    const requestMsg = RegenerateWorldRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      EngineResourceServiceDefinition.methods.RegenerateWorld.name,
+      RegenerateWorldRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RegenerateWorldResponse.fromBinary(result)
+  }
+
+  /**
+   * CompareWorldRegen compares the old World a regeneration holds with the
+   * new one and fails when they differ, releasing nothing.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.CompareWorldRegen
+   */
+  async CompareWorldRegen(
+    request: CompareWorldRegenRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CompareWorldRegenResponse> {
+    const requestMsg = CompareWorldRegenRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      EngineResourceServiceDefinition.methods.CompareWorldRegen.name,
+      CompareWorldRegenRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CompareWorldRegenResponse.fromBinary(result)
+  }
+
+  /**
+   * ReleaseWorldRegen compares the old World a regeneration holds with the
+   * new one and releases the old one when they are equal.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.ReleaseWorldRegen
+   */
+  async ReleaseWorldRegen(
+    request: ReleaseWorldRegenRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseWorldRegenResponse> {
+    const requestMsg = ReleaseWorldRegenRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      EngineResourceServiceDefinition.methods.ReleaseWorldRegen.name,
+      ReleaseWorldRegenRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReleaseWorldRegenResponse.fromBinary(result)
   }
 
   /**
