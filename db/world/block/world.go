@@ -597,8 +597,7 @@ func (t *WorldState) failWrite(err error) error {
 // the graph unchanged when it rejected a delta: the call checks every delta
 // before it writes.
 func (t *WorldState) failGraphCall(err error) error {
-	var rejected *graph.DeltaError
-	if errors.As(err, &rejected) {
+	if _, ok := errors.AsType[*graph.DeltaError](err); ok {
 		return err
 	}
 	return t.failWrite(err)
