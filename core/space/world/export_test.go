@@ -24,9 +24,14 @@ func StopRegenBuild(e *Engine) {
 	e.a.regenBuild.routine.SetStateRoutine(func(context.Context, *bucket.ObjectRef) error { return nil })
 }
 
-// WriteRegenOp orders op through e and waits for its decision.
+// WriteRegenOp orders op through e, with its quad list as a payload, and
+// waits for its decision.
 func WriteRegenOp(ctx context.Context, e *Engine, op *RegenerateWorldOp) error {
-	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: op}})
+	var payloads []*block.BlockRef
+	if !op.GetQuads().GetEmpty() {
+		payloads = []*block.BlockRef{op.GetQuads()}
+	}
+	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: op}}, payloads...)
 }
 
 // WaitRegenBuild waits until e's installed head holds a pin and e built it

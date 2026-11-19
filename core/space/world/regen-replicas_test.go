@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -367,9 +368,10 @@ func writeObjectQuad(ctx context.Context, eng world.Engine, key string, quad wor
 	})
 }
 
-// writeHeldQuadList writes quad as a quad list in store, in the World's
-// encoding, under a stage held until the test ends, and returns its root.
-func writeHeldQuadList(ctx context.Context, t *testing.T, store block.StoreOps, eng world.Engine, quad world.GraphQuad) *block.BlockRef {
+// writeHeldQuadList writes quads, which hold no repeats, as a quad list in
+// store, in the World's encoding, under a stage held until the test ends, and
+// returns its root.
+func writeHeldQuadList(ctx context.Context, t *testing.T, store block.StoreOps, eng world.Engine, quads ...world.GraphQuad) *block.BlockRef {
 	t.Helper()
 	stage, release, err := block.OpenStage(ctx, store)
 	if err != nil {
@@ -382,16 +384,26 @@ func writeHeldQuadList(ctx context.Context, t *testing.T, store block.StoreOps, 
 	}
 	defer storage.Release()
 	btx, bcs := storage.BuildTransactionWithStore(nil, stage)
+	list := make([]*bquad.Quad, len(quads))
+	for i, q := range quads {
+		list[i] = world.GraphQuadToQuad(q)
+	}
+	slices.SortFunc(list, space_world.CompareQuads)
 	if err := space_world.WriteQuadList(ctx, bcs, func(cb func(*bquad.Quad) error) error {
-		return cb(world.GraphQuadToQuad(quad))
+		for _, q := range list {
+			if err := cb(q); err != nil {
+				return err
+			}
+		}
+		return nil
 	}); err != nil {
 		t.Fatal(err)
 	}
-	list, _, err := btx.Write(ctx, true)
+	root, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return list
+	return root
 }
 
 // waitReplicas waits until every engine holds every key and quad.

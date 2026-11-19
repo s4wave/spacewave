@@ -66,6 +66,14 @@ func (t *Tx) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	})
 }
 
+// SetGraphQuads sets the quads the graph store lacks in one graph update.
+// Existing and repeated quads are skipped, as SetGraphQuad skips them.
+func (t *Tx) SetGraphQuads(ctx context.Context, quads []world.GraphQuad) error {
+	return t.locked(ctx, true, func() error {
+		return t.state.SetGraphQuads(ctx, quads)
+	})
+}
+
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
 func (t *Tx) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {

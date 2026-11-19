@@ -3,19 +3,23 @@ package world_block
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// TestGraphInsertionBatchMatchesIndividualWrites verifies graph contents,
-// endpoint revisions, duplicate handling, and retained World change records.
+// TestGraphInsertionBatchMatchesIndividualWrites verifies that InsertGraphQuads
+// and SetGraphQuads, given some quads already present and repeated, match
+// individual SetGraphQuad calls in graph contents, endpoint revisions,
+// duplicate handling, and retained World change records.
 func TestGraphInsertionBatchMatchesIndividualWrites(t *testing.T) {
 	ctx := t.Context()
 	var wantRevisions []uint64
 	var wantChanges []*WorldChange
-	for _, batch := range []bool{false, true} {
+	for _, mode := range []string{"individual", "insert", "set"} {
+		batch := mode != "individual"
 		ws, cursor, cleanup := newTestWorld(t, ctx)
 		defer cleanup()
 		ref := writeTestBlock(t, ctx, cursor, "body")
@@ -33,18 +37,26 @@ func TestGraphInsertionBatchMatchesIndividualWrites(t *testing.T) {
 		}
 		quads = append(quads, world.NewGraphQuadWithKeys("from", "<edge>", "from", ""))
 		start := time.Now()
-		if batch {
+		switch mode {
+		case "insert":
 			if err := ws.InsertGraphQuads(ctx, quads); err != nil {
 				t.Fatal(err)
 			}
-		} else {
+		case "set":
+			if err := ws.SetGraphQuads(ctx, quads[:16]); err != nil {
+				t.Fatal(err)
+			}
+			if err := ws.SetGraphQuads(ctx, append(slices.Clone(quads), quads[3], quads[20])); err != nil {
+				t.Fatal(err)
+			}
+		default:
 			for _, q := range quads {
 				if err := ws.SetGraphQuad(ctx, q); err != nil {
 					t.Fatal(err)
 				}
 			}
 		}
-		t.Logf("batch=%v insertion=%s", batch, time.Since(start))
+		t.Logf("%s insertion=%s", mode, time.Since(start))
 		found, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad("", "", "", ""), 0)
 		if err != nil || len(found) != len(quads) {
 			t.Fatalf("graph contains %d quads, want %d: %v", len(found), len(quads), err)
@@ -86,7 +98,7 @@ func TestGraphInsertionBatchMatchesIndividualWrites(t *testing.T) {
 		if !batch {
 			wantRevisions, wantChanges = revisions, changes
 		} else if !reflect.DeepEqual(revisions, wantRevisions) || !reflect.DeepEqual(changes, wantChanges) {
-			t.Fatal("batch differs from individual endpoint revisions or World changes")
+			t.Fatalf("%s differs from individual endpoint revisions or World changes", mode)
 		}
 	}
 }
