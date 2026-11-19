@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
+	"github.com/s4wave/spacewave/db/coord/filelock"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/writer"
 )
@@ -43,6 +44,8 @@ const retryDelay = time.Second
 type Log struct {
 	// dir holds the pack files.
 	dir string
+	// releaseDir releases exclusive ownership of dir after the pack files close.
+	releaseDir func()
 	// opts are the options with their defaults.
 	opts Options
 	// writeMtx serializes writers to the open pack for one encode and write.
@@ -103,32 +106,42 @@ type Log struct {
 	cancel context.CancelFunc
 }
 
-// Open opens the Log in dir, creating dir if needed. It recovers every pack a
-// crash left unfinalized and finalizes its verified batches, loads the
-// table from every finalized pack, and opens a new pack. ctx bounds the
-// opening and the Log's background work, which also ends at Close.
+// Open opens the Log in dir, creating dir if needed. It requires exclusive
+// ownership of dir until Close and returns immediately if dir is locked.
+// Open recovers the verified batches from unfinalized packs, loads the table
+// from finalized packs, and opens a new pack. ctx bounds the opening and the
+// Log's background work, which also ends at Close.
 func Open(ctx context.Context, dir string, opts Options) (*Log, error) {
-	// Prepare removal tracking and list the packs in the directory, oldest first.
-	block.PrepareBlockRemovalTracking()
+	// Own the directory before recovery can remove or finalize any pack.
 	if err := os.MkdirAll(dir, 0o700); err != nil { // #nosec G703 -- the caller chooses the directory.
 		return nil, err
 	}
-	names, err := os.ReadDir(dir)
+	release, err := filelock.TryOpen(filepath.Join(dir, ".packahead.lock"))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "lock packahead directory %q", dir)
+	}
+	if release == nil {
+		return nil, errors.Errorf("packahead directory %q is already open", dir)
 	}
 	l := &Log{
-		dir: dir, opts: opts.withDefaults(), nextSeq: 1,
+		dir: dir, releaseDir: release, opts: opts.withDefaults(), nextSeq: 1,
 		packs: make(map[uint64]*pack), table: make(map[keyTail]location),
 	}
 
-	// Recover or load each pack, closing what was opened on failure.
+	// Release ownership on failure after closing any opened packs.
 	ok := false
 	defer func() {
 		if !ok {
 			l.closeFiles()
 		}
 	}()
+
+	// Recover or load each pack in name order.
+	block.PrepareBlockRemovalTracking()
+	names, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
 	for _, ent := range names {
 		seq, ext, id, valid := parseName(ent.Name())
 		if !valid {
@@ -1238,9 +1251,9 @@ func (l *Log) dropEmpty(p *pack) error {
 }
 
 // Close stops the background work, waits for the writer in progress and the
-// syncs running, and closes the pack files. A writer waiting for a sync that
-// has not started returns ErrClosed. Batches written stay in their packs, and the next
-// Open finalizes the pack that was open.
+// syncs running, then closes the pack files and releases the directory lock.
+// A writer waiting for a sync that has not started returns ErrClosed. Written
+// batches stay in their packs for the next Open to recover.
 func (l *Log) Close() {
 	// Refuse new work and stop the maintainer.
 	var waitCh <-chan struct{}
@@ -1278,8 +1291,8 @@ func (l *Log) Close() {
 	l.closeFiles()
 }
 
-// closeFiles closes the registry after all its writers have stopped, or
-// during Open before the registry is shared.
+// closeFiles closes the registry and releases directory ownership, after all
+// writers have stopped or during Open before the registry is shared.
 func (l *Log) closeFiles() {
 	// The registry no longer changes, so disk closes need no log lock.
 	for _, p := range l.packs {
@@ -1289,5 +1302,11 @@ func (l *Log) closeFiles() {
 		if p != nil {
 			_ = p.f.Close()
 		}
+	}
+
+	// Leave the lock file in place so all openers lock the same inode.
+	if l.releaseDir != nil {
+		l.releaseDir()
+		l.releaseDir = nil
 	}
 }
