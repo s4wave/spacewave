@@ -2,6 +2,8 @@ package packahead
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -9,6 +11,10 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // failingSync is a SyncData that fails the sync numbered fail, counting from
@@ -225,4 +231,137 @@ func TestPackAheadFinalizeSyncPoisons(t *testing.T) {
 	if !l2.HasDurable(a.Key) || !l2.HasDurable(c.Key) {
 		t.Fatal("value lost after reopen")
 	}
+}
+
+// TestPackAheadRecoveryDropsCachedSyncedSuffix corrupts a synced batch before
+// an intact synced batch. Recovery must fence the latter's cached bytes even
+// while syncing the truncation and if that sync fails.
+func TestPackAheadRecoveryDropsCachedSyncedSuffix(t *testing.T) {
+	// Stop recovery at the sync of the truncated first pack, then fail it.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	dir := t.TempDir()
+	path := filepath.Join(dir, openName(1))
+	syncing := make(chan struct{})
+	failSync := make(chan struct{})
+	var armed atomic.Bool
+	l, err := Open(ctx, dir, Options{SyncData: func(f *os.File) error {
+		if armed.Load() && f.Name() == path {
+			close(syncing)
+			select {
+			case <-failSync:
+			case <-ctx.Done():
+			}
+			return syscall.EIO
+		}
+		return f.Sync()
+	}})
+	if err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	defer func() {
+		cancel()
+		l.Close()
+	}()
+
+	// Sync two batches and admit the later intact block to the shared pool.
+	early := testBlock(t, 1, 64)
+	if err := l.Append(ctx, []Block{early}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := block_mock.NewExample("intact synced suffix").MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(ctx, []Block{{Key: packfile.BlockKey(ref.GetHash()), Value: data}}); err != nil {
+		t.Fatal(err)
+	}
+	store := recoveryCacheStore{log: l}
+	cache := block.NewDecodedBlockCache()
+	defer cache.Close()
+	read := func() (block.ReadCounterSnapshot, error) {
+		ctx, counter := block.WithReadCounter(ctx)
+		tx, cursor := block.NewTransaction(store, nil, ref, &block.PutOpts{HashType: block.DefaultHashType})
+		tx.SetDecodedBlockCache(cache)
+		_, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock)
+		return counter.Snapshot(), err
+	}
+	if got, err := read(); err != nil || got.DecodedBlockStoreAcceptedCount != 1 {
+		t.Fatalf("intact block admission = %+v, %v", got, err)
+	}
+
+	// Damage bytes in the first batch on disk, then fail an append by giving
+	// its writer a read-only file for the duration of the call.
+	var p *pack
+	var off uint32
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		p, off = l.open, l.table[tailOf(early.Key)].off
+	})
+	if _, err := p.f.WriteAt([]byte{^early.Value[0]}, int64(off)); err != nil {
+		t.Fatal(err)
+	}
+	readOnly, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readOnly.Close()
+	writable := p.f
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { p.f = readOnly })
+	appendErr := l.Append(ctx, []Block{testBlock(t, 2, 64)})
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { p.f = writable })
+	if !errors.Is(appendErr, syscall.EBADF) {
+		t.Fatalf("append through read-only file: %v", appendErr)
+	}
+
+	// Rotate the failed pack and check a fresh transaction while truncation
+	// is waiting for sync. The old cache entry and the log must both miss.
+	armed.Store(true)
+	if err := l.Append(ctx, []Block{testBlock(t, 3, 64)}); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-syncing:
+	case <-ctx.Done():
+		t.Fatal("recovery never synced its truncation")
+	}
+	if got, err := read(); !errors.Is(err, block.ErrNotFound) || got.BlockReadMissCount != 1 || got.DecodedBlockCacheHitCount != 0 {
+		t.Fatalf("read while syncing truncation = %+v, %v", got, err)
+	}
+
+	// The poison path must keep that suffix unreadable after sync fails.
+	close(failSync)
+	if err := l.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return p.poisoned, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := read(); !errors.Is(err, block.ErrNotFound) || got.BlockReadMissCount != 1 || got.DecodedBlockCacheHitCount != 0 {
+		t.Fatalf("read after failed truncation sync = %+v, %v", got, err)
+	}
+}
+
+// recoveryCacheStore passes pack locations to a block transaction, with
+// the same durability marking as the packed store.
+type recoveryCacheStore struct {
+	block.StoreOps
+	log *Log
+}
+
+// GetBlock marks a read according to the sync state captured by the log.
+func (s recoveryCacheStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Sample the generation before the log lookup.
+	gen := block.DurableReadGeneration()
+	data, found, synced, err := s.log.GetWithDurability(packfile.BlockKey(ref.GetHash()))
+
+	// Only the durable copy can enter the shared cache.
+	if found && synced {
+		block.MarkDurableRead(ctx, ref, gen)
+	} else if found {
+		block.MarkStagedRead(ctx)
+	}
+	return data, found, err
 }

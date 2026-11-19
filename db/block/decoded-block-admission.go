@@ -29,10 +29,9 @@ import (
 // decodedBlockRemovalStripes is the number of removal generations. A removal
 // invalidates every entry whose ref hashes to its stripe, so the table is
 // large enough that a sweep of many blocks leaves most entries current. It is
-// one process-wide table of 512 KiB, allocated at the first removal: a process
-// that never removes a block, such as a browser worker that only reads, never
-// pays for it, and a GoScript build would otherwise build each slot as an
-// object at package load.
+// one process-wide table of 512 KiB. Cache and pack log construction prepare
+// it outside request locks. GoScript would build each slot as an object if
+// the table were initialized at package load.
 const decodedBlockRemovalStripes = 1 << 16
 
 // decodedBlockRemovalTable holds the generation of the latest removal hashing
@@ -43,7 +42,7 @@ type decodedBlockRemovalTable [decodedBlockRemovalStripes]atomic.Uint64
 var decodedBlockRemovals struct {
 	// gen advances on every removal.
 	gen atomic.Uint64
-	// stripes is nil until the first removal of a single block.
+	// stripes is initialized by PrepareBlockRemovalTracking or the first removal.
 	stripes atomic.Pointer[decodedBlockRemovalTable]
 	// cleared holds the generation of the latest removal of a whole store.
 	cleared atomic.Uint64
@@ -97,6 +96,12 @@ func InvalidateAllRemovedBlocks() {
 	raiseRemovalGeneration(&decodedBlockRemovals.cleared, decodedBlockRemovals.gen.Add(1))
 }
 
+// PrepareBlockRemovalTracking allocates the process-wide removal table before
+// a store starts recording removals under its lock.
+func PrepareBlockRemovalTracking() {
+	decodedBlockRemovalStripesTable()
+}
+
 // invalidateRemovedStripe advances the global removal generation and raises
 // the affected stripe to it. The table exists before the stripe rises.
 func invalidateRemovedStripe(stripe uint64) {
@@ -106,7 +111,7 @@ func invalidateRemovedStripe(stripe uint64) {
 }
 
 // decodedBlockRemovalStripesTable returns the stripe table, allocating it on
-// first use.
+// first use by a constructor or a store without a decoded cache.
 func decodedBlockRemovalStripesTable() *decodedBlockRemovalTable {
 	if stripes := decodedBlockRemovals.stripes.Load(); stripes != nil {
 		return stripes

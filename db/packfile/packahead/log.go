@@ -81,7 +81,8 @@ type Log struct {
 // table from every finalized pack, and opens a new pack. ctx bounds the
 // opening and the Log's background work, which also ends at Close.
 func Open(ctx context.Context, dir string, opts Options) (*Log, error) {
-	// Create the directory and list the packs in it, oldest first.
+	// Prepare removal tracking and list the packs in the directory, oldest first.
+	block.PrepareBlockRemovalTracking()
 	if err := os.MkdirAll(dir, 0o700); err != nil { // #nosec G703 -- the caller chooses the directory.
 		return nil, err
 	}
@@ -165,7 +166,7 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		return err
 	}
 	p := &pack{seq: seq, path: path, f: f, state: packRotated}
-	data, entries, err := p.recoverFile(l.opts.SyncData)
+	data, entries, err := p.recoverFile(l.opts.SyncData, nil)
 	if err != nil {
 		_ = f.Close()
 		return err
@@ -910,14 +911,21 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 		return context.Cause(ctx)
 	}
 
-	// Take the pack's bytes: its buffer, or its file after a failure.
+	// Wait out any sync that was still running when a write failed. The
+	// recovery scan must see its outcome before retracting the watermark.
 	var data []byte
 	var entries []entry
 	var failed, poisoned bool
-	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	if err := l.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		if p.syncing {
+			return false, nil
+		}
 		failed, poisoned = p.err != nil, p.poisoned
 		data, entries = p.buf[:p.written], p.entries
-	})
+		return true, nil
+	}); err != nil {
+		return err
+	}
 	if syncErr != nil && !failed {
 		return syncErr
 	}
@@ -954,12 +962,19 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	// pack an earlier try dropped has no file left to recover.
 	if failed && p.renamed == nil && !p.dropped {
 		var err error
-		data, entries, err = p.recoverFile(opts.SyncData)
+		data, entries, err = p.recoverFile(opts.SyncData, func(end int64) {
+			// Retract durability and invalidate the suffix before truncation
+			// can block or fail. The poison path inherits this watermark.
+			l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				p.synced = min(p.synced, end)
+				l.forgetTruncatedLocked(p, end)
+				broadcast()
+			})
+		})
 		if err != nil {
 			return poison(err)
 		}
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			l.forgetTruncatedLocked(p, int64(len(data)))
 			p.entries = entries
 		})
 	}
@@ -992,7 +1007,7 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 }
 
 // forgetTruncatedLocked drops the locations in a pack's discarded suffix.
-// Until this point Get still serves them from the buffer. The caller holds bcast.
+// The caller holds bcast.
 func (l *Log) forgetTruncatedLocked(p *pack, end int64) {
 	for i := len(p.entries) - 1; i >= 0 && p.entries[i].off >= end; i-- {
 		t := tailOf(p.entries[i].key)

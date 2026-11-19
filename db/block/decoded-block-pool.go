@@ -183,8 +183,9 @@ func (p *decodedBlockPool) get(key string) (decodedBlockCacheEntry, bool) {
 }
 
 // put stores value under key with cost, evicting older entries to stay within
-// the shard's budget. It returns false only when cost exceeds that budget.
-func (p *decodedBlockPool) put(key string, value decodedBlockCacheEntry, cost int64) bool {
+// the shard's budget. It rejects oversized entries and reads older than a
+// removal of refKey. An empty refKey denotes an entry with no block ref.
+func (p *decodedBlockPool) put(key, refKey string, value decodedBlockCacheEntry, cost int64) bool {
 	// Refuse an entry larger than a whole shard.
 	s := p.shard(key)
 	budget := p.shardBudget()
@@ -193,8 +194,17 @@ func (p *decodedBlockPool) put(key string, value decodedBlockCacheEntry, cost in
 		return false
 	}
 
-	// Replace an existing entry in place, or append a new one to probation.
+	// Check removal under the same lock as insertion, so a stale read
+	// cannot replace a newer admission. A removal after this check still
+	// makes the entry a miss at lookup.
 	s.mtx.Lock()
+	if refKey != "" && removedSince(refKey, value.durableGen) {
+		s.mtx.Unlock()
+		s.rejections.Add(1)
+		return false
+	}
+
+	// Replace an existing entry in place, or append a new one to probation.
 	e := s.entries[key]
 	if e != nil {
 		s.retireReadData(e)

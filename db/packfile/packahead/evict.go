@@ -41,13 +41,17 @@ func (l *Log) Evict(ctx context.Context, seq uint64) error {
 		return err
 	}
 
-	// Forget the values this pack still locates, then drop the pack. A Get
-	// that located a value before this sees the pack gone and misses.
+	// Apply any deferred removals, then forget the local copies that the
+	// remote still serves. A Get that lost its local copy can fall back.
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Fence cached reads of blocks GC removed while upload was pending.
+		l.dropRemovedLocked(p)
+
+		// Forget the local copies still backed by the uploaded pack.
 		for _, e := range index {
 			tail := tailOf(e.GetKey())
 			if loc, ok := l.table[tail]; ok && loc.p == p {
-				l.dropLocationLocked(tail, loc)
+				delete(l.table, tail)
 			}
 		}
 		l.packs = slices.DeleteFunc(l.packs, func(q *pack) bool { return q == p })
