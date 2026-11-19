@@ -847,13 +847,6 @@ func (r *Records) tally(ctx context.Context, ref *block.BlockRef) (uint64, error
 	return n, nil
 }
 
-// setTally writes the holders an adoption counted for ref so far, as a plain
-// uvarint, above zero. The adoption's settle step rewrites each into the
-// count record GetHolders reads.
-func (r *Records) setTally(ctx context.Context, ref *block.BlockRef, n uint64) error {
-	return r.tx.Set(ctx, r.key(kindCount, BlockKey(ref)), binary.AppendUvarint(nil, n))
-}
-
 // rootKey returns the key of the root named name in bucketID.
 func (r *Records) rootKey(bucketID, name string) []byte {
 	return r.namedKey(kindRoot, bucketID, name)

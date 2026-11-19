@@ -147,7 +147,7 @@ type Collector struct {
 	// transaction while it reads the generation Open: a Land's hold of an
 	// unverified block (lander.holdListed), the seeding and the walk's
 	// children (Records.pushOwed) and the adoption's recount
-	// (Records.returnHeld). An entry one of them adds behind the cursor
+	// (adoption.hold). An entry one of them adds behind the cursor
 	// during a scan therefore holds the flip until a later scan, which
 	// starts at the head, pops it or the walk takes it off; an entry added
 	// ahead is read in this scan; an entry removed, by the walk, a free or a
