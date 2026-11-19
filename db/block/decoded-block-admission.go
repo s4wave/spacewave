@@ -197,11 +197,16 @@ func RemovedSince(ref *BlockRef, gen uint64) bool {
 // removedSince reports whether a removal of refKey's stripe or of a whole
 // store happened after generation gen.
 func removedSince(refKey string, gen uint64) bool {
+	return removedStripeSince(decodedBlockRemovalStripe(blockRefDigestKey(refKey)), gen)
+}
+
+// removedStripeSince checks a precomputed stripe and whole-store removals.
+func removedStripeSince(stripe BlockRemovalStripe, gen uint64) bool {
 	if decodedBlockRemovals.cleared.Load() > gen {
 		return true
 	}
 	stripes := decodedBlockRemovals.stripes.Load()
-	return stripes != nil && stripes[decodedBlockRemovalStripe(blockRefDigestKey(refKey))].Load() > gen
+	return stripes != nil && stripes[stripe].Load() > gen
 }
 
 // blockRefDigestKey returns the hash field of a marshaled BlockRef. The

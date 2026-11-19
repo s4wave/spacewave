@@ -194,27 +194,49 @@ func (p *decodedBlockPool) put(key, refKey string, value decodedBlockCacheEntry,
 		return false
 	}
 
-	// Check removal under the same lock as insertion, so a stale read
-	// cannot replace a newer admission. A removal after this check still
-	// makes the entry a miss at lookup.
+	// Resolve the stripe once and reject reads already stale at lock entry.
+	var stripe BlockRemovalStripe
+	if refKey != "" {
+		stripe = decodedBlockRemovalStripe(blockRefDigestKey(refKey))
+	}
 	s.mtx.Lock()
-	if refKey != "" && removedSince(refKey, value.durableGen) {
+	if refKey != "" && removedStripeSince(stripe, value.durableGen) {
 		s.mtx.Unlock()
 		s.rejections.Add(1)
 		return false
 	}
 
-	// Replace an existing entry in place, or append a new one to probation.
+	// Stage the value in the shard where other readers cannot see it yet.
 	e := s.entries[key]
-	if e != nil {
-		s.retireReadData(e)
-		e.value = value
+	existing := e != nil
+	var previous decodedBlockCacheEntry
+	if existing {
+		previous, e.value = e.value, value
+	} else {
+		e = &decodedBlockPoolEntry{key: key, value: value, cost: cost}
+		s.entries[key] = e
+	}
+
+	// Recheck after insertion. A concurrent removal can reject the slot
+	// before it charges the budget or displaces another entry.
+	if refKey != "" && removedStripeSince(stripe, value.durableGen) {
+		if existing {
+			e.value = previous
+		} else {
+			delete(s.entries, key)
+		}
+		s.mtx.Unlock()
+		s.rejections.Add(1)
+		return false
+	}
+
+	// Commit the replacement or add the accepted entry to probation.
+	if existing {
+		s.retireReadData(previous.read)
 		e.queue.cost += cost - e.cost
 		s.retained.Add(cost - e.cost)
 		e.cost = cost
 	} else {
-		e = &decodedBlockPoolEntry{key: key, value: value, cost: cost}
-		s.entries[key] = e
 		s.count.Add(1)
 		s.probation.push(e)
 		s.retained.Add(cost)
@@ -288,7 +310,7 @@ func (s *decodedBlockShard) evictOne(budget int64, keep *decodedBlockPoolEntry) 
 		}
 		delete(s.entries, e.key)
 		s.count.Add(-1)
-		s.retireReadData(e)
+		s.retireReadData(e.value.read)
 		return e
 	}
 	return nil
@@ -303,7 +325,7 @@ func (p *decodedBlockPool) del(key string) {
 	if e != nil {
 		delete(s.entries, key)
 		s.count.Add(-1)
-		s.retireReadData(e)
+		s.retireReadData(e.value.read)
 		e.queue.remove(e)
 		s.retained.Add(-e.cost)
 	}
@@ -317,7 +339,7 @@ func (p *decodedBlockPool) clear() {
 		s.mtx.Lock()
 		s.retained.Add(-(s.probation.cost + s.main.cost))
 		for _, entry := range s.entries {
-			s.retireReadData(entry)
+			s.retireReadData(entry.value.read)
 		}
 		s.entries = make(map[string]*decodedBlockPoolEntry)
 		s.count.Store(0)
@@ -365,11 +387,11 @@ func (q *decodedBlockQueue) remove(e *decodedBlockPoolEntry) {
 // retireReadData releases decoded payloads and child links before an entry leaves,
 // and uncounts the metadata it had charged. The caller holds the shard lock;
 // existing readers may finish with local data.
-func (s *decodedBlockShard) retireReadData(e *decodedBlockPoolEntry) {
-	if e.value.read == nil {
+func (s *decodedBlockShard) retireReadData(slot *decodedBlockReadSlot) {
+	if slot == nil {
 		return
 	}
-	if data := e.value.read.data.Swap(nil); data != nil {
+	if data := slot.data.Swap(nil); data != nil {
 		s.readCost.Add(-data.cost)
 		s.readSlots.Add(-1)
 	}
