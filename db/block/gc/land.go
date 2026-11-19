@@ -824,15 +824,29 @@ func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) err
 		return err
 	}
 
-	// Write the union, marked, and keep the front invariant.
+	// Write the union, marked, and keep the front invariant. An adoption
+	// compares the union with the old list after the write.
+	var old []byte
+	if l.adopting {
+		old = bytes.Clone(listKeys(value))
+	}
 	packed, gained, _, err := l.rec.mergeList(ctx, key, value, entry.Refs, false)
 	if err != nil {
 		return err
 	}
-	if gained && l.logs {
+
+	// A gained child lacks the holder the list now gives it. While
+	// adopting, the count reads the union where it has not passed the
+	// list, and the put logs the holder where it has; otherwise the counts
+	// owe a recount.
+	switch {
+	case !gained || !l.logs:
+	case !l.adopting:
 		if err := l.rec.noteRewrite(ctx, l.state); err != nil {
 			return err
 		}
+	case adoptCounted(l.state, key):
+		l.up = appendGained(l.up, old, packed)
 	}
 	return l.rec.markedYoung(ctx, key, packed, nil)
 }
