@@ -118,14 +118,14 @@ func Adopt(ctx context.Context, store Store, now func() time.Time) (AdoptResult,
 	// for a new run.
 	var res AdoptResult
 	run := ulid.NewULID()
-	start, err := claimAdoption(ctx, store, run, true)
+	start, owner, err := claimAdoption(ctx, store, run, true)
 	if err != nil {
 		return res, err
 	}
 	switch start {
 	case adoptAdopted:
 		res.Already = true
-		return res, clearKinds(ctx, store, nil, kindAdoptBorn, kindAdoptRoot)
+		return res, clearMarks(ctx, store, owner)
 	case adoptClaimed:
 		if err := markAdopting(ctx, store, run, now); err != nil {
 			return res, err
@@ -140,7 +140,18 @@ func Adopt(ctx context.Context, store Store, now func() time.Time) (AdoptResult,
 	}
 
 	// Delete the run's marks.
-	return res, clearKinds(ctx, store, nil, kindAdoptBorn, kindAdoptRoot)
+	return res, clearMarks(ctx, store, run)
+}
+
+// clearMarks deletes the born and moved-root marks of run once it marked the
+// Volume adopted, stopping, deleting nothing more, once the Volume leaves
+// that state: a newer run's marks are not run's to delete, and its settle
+// counts a born block as old without its mark.
+func clearMarks(ctx context.Context, store Store, run string) error {
+	adopted := func(state *LivenessState) bool {
+		return state.GetAdoption() == Adoption_ADOPTION_ADOPTED && state.GetAdoptionRun() == run
+	}
+	return clearKinds(ctx, store, adopted, kindAdoptBorn, kindAdoptRoot)
 }
 
 // markAdopting clears what an earlier run and the logs left while run's
@@ -198,7 +209,7 @@ func ownCursor(state *LivenessState) bool {
 // run over there, and the switch that turns frees on returns the Volume to
 // unadopted anyway.
 func ResetAdoption(ctx context.Context, store Store) error {
-	_, err := claimAdoption(ctx, store, "", false)
+	_, _, err := claimAdoption(ctx, store, "", false)
 	return err
 }
 
@@ -253,17 +264,20 @@ const (
 // set it takes over an adoption in progress at its cursor, keeping its
 // mark, logs and counts, under run's name; otherwise it returns that Volume
 // to unadopted. A claim drops the cursor and ends any release in progress.
-// An empty run claims the Volume for none.
-func claimAdoption(ctx context.Context, store Store, run string, resume bool) (adoptStart, error) {
+// An empty run claims the Volume for none. It returns the run that owns the
+// Volume after it: run, or for an adopted Volume the run that adopted it.
+func claimAdoption(ctx context.Context, store Store, run string, resume bool) (adoptStart, string, error) {
 	var start adoptStart
+	var owner string
 	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
 		// Leave an adopted Volume.
+		start, owner = adoptClaimed, run
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
 		if state.GetAdoption() == Adoption_ADOPTION_ADOPTED {
-			start = adoptAdopted
+			start, owner = adoptAdopted, state.GetAdoptionRun()
 			return nil
 		}
 
@@ -279,7 +293,6 @@ func claimAdoption(ctx context.Context, store Store, run string, resume bool) (a
 
 		// Claim it, ending any release in progress: the run recounts every
 		// holder, and the claim's clear deletes the release pages.
-		start = adoptClaimed
 		if claimedBy(state, run) {
 			return nil
 		}
@@ -289,7 +302,7 @@ func claimAdoption(ctx context.Context, store Store, run string, resume bool) (a
 		state.Release = nil
 		return rec.SetState(ctx, state)
 	})
-	return start, err
+	return start, owner, err
 }
 
 // abandonAdopt ends run after it failed or was interrupted, and returns
