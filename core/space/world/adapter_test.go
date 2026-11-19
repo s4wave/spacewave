@@ -947,14 +947,16 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 		}
 	}
 	if f.frees {
-		deleteSpace(ctx, t, f, engRef)
+		deleteSpace(ctx, t, f, se, engRef)
 	}
 }
 
 // deleteSpace deletes f's Space beside a second Space on the account, and
 // checks that a collection frees the deleted Space's blocks and keeps every
-// object of the other.
-func deleteSpace(ctx context.Context, t *testing.T, f *adapterFixture, engRef directive.Reference) {
+// object of the other. served is the engine engRef holds; the collection
+// waits for it to retire, since until then its replay may hold the Space's
+// blocks.
+func deleteSpace(ctx context.Context, t *testing.T, f *adapterFixture, served *space_world.Engine, engRef directive.Reference) {
 	// Write an object to a second Space.
 	t.Helper()
 	other, err := f.acc.CreateSharedObject(ctx, "other-space", &sobject.SharedObjectMeta{BodyType: "test"}, "", "")
@@ -980,6 +982,9 @@ func deleteSpace(ctx context.Context, t *testing.T, f *adapterFixture, engRef di
 		t.Fatalf("replay base before the deletion: %v, %v", base, err)
 	}
 	engRef.Release()
+	if _, err := served.WaitSeqno(ctx, math.MaxUint64); !world.IsSuperseded(err) {
+		t.Fatalf("waiting for the released engine to retire: %v", err)
+	}
 	if err := f.acc.DeleteSharedObject(ctx, f.ref.GetProviderResourceRef().GetId()); err != nil {
 		t.Fatal(err)
 	}
