@@ -5255,6 +5255,139 @@ func TestLivenessSettle(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("front scan resumes across passes", func(t *testing.T) {
+		// A front larger than one pass reads takes several passes to scan,
+		// each resuming where the last stopped. Fillers are block keys that
+		// sort after the old U, each listed with no queue entry, so they stay
+		// held and the scan is past U once it reads one. Mid-scan
+		// a root moves onto U, pushing it behind the cursor, an entry lands
+		// ahead of it and one ahead is removed: the scan that ends reads
+		// every entry ahead and none behind, and the front it leaves holds
+		// U, so it must not flip, or the sweep would take U and K under
+		// main. A collector that restarts mid-scan begins again at the head
+		// and counts no partial scan as done.
+		v, clk, store, tr := oldU(t, false)
+		ctx := t.Context()
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		ukey := block_gc.BlockKey(tr["U"].Ref)
+		// after returns a block key past U's whose low two bytes are n, so
+		// the keys sort by n.
+		if ukey[len(ukey)-3] == 0xff {
+			t.Fatal("U's key leaves no room after it")
+		}
+		after := func(n uint16) []byte {
+			key := slices.Clone(ukey)
+			key[len(key)-3]++
+			binary.BigEndian.PutUint16(key[len(key)-2:], n)
+			return key
+		}
+		children := slices.Concat(livenessPrefix, []byte{'c'})
+		write := func(key []byte, del bool) {
+			t.Helper()
+			tx, err := store.NewTransaction(ctx, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Discard()
+			for _, k := range [][]byte{slices.Concat(front, key), slices.Concat(children, key)} {
+				if del {
+					err = tx.Delete(ctx, k)
+				} else {
+					err = tx.Set(ctx, k, nil)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := tx.Commit(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}
+		filler := func(i int) []byte { return after(uint16(i)) }
+		const fillers = 300
+		for i := range fillers {
+			write(filler(i), false)
+		}
+		ahead := after(0xffff)
+
+		// newCollector returns a collector whose every slice outlasts the
+		// pass's budget and the slice target, so each pass runs one slice
+		// and the pace shrinks the slices to their least.
+		newCollector := func() *block_gc.Collector {
+			var n time.Duration
+			return block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{
+				Frees:  true,
+				Budget: time.Nanosecond,
+				Now: func() time.Time {
+					n++
+					return clk.Now().Add(n * 3 * time.Millisecond)
+				},
+			})
+		}
+		// scan runs passes of c until stop reports true of a pass, and
+		// returns the front entries the passes read.
+		scan := func(c *block_gc.Collector, stop func(block_gc.CollectResult) bool) (uint64, block_gc.CollectResult) {
+			t.Helper()
+			var read uint64
+			for range 10000 {
+				res, err := c.Collect(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if res.Flipped {
+					t.Fatalf("pass = %+v flipped with U on the front", res)
+				}
+				if read += res.FrontScanned; stop(res) {
+					return read, res
+				}
+			}
+			t.Fatal("the front scan never stopped")
+			return 0, block_gc.CollectResult{}
+		}
+		done := func(res block_gc.CollectResult) bool { return res.FrontDone }
+
+		// Read part of the front, then change it around the cursor.
+		c := newCollector()
+		read, res := scan(c, func(res block_gc.CollectResult) bool { return res.FrontScanned != 0 })
+		if res.FrontDone || read >= fillers {
+			t.Fatalf("first front pass read %d of %d (%+v), want part", read, fillers, res)
+		}
+		if err := rootOnto(t, v, tr, "U"); err != nil {
+			t.Fatal(err)
+		}
+		if !has(t, store, front, tr["U"].Ref) {
+			t.Fatal("the hold left U off the front")
+		}
+		write(ahead, false)
+		write(filler(fillers-1), true)
+
+		// The scan ends having read each entry ahead once and U not at all.
+		rest, res := scan(c, done)
+		if read+rest != fillers || res.Front != fillers {
+			t.Fatalf("scan read %d and kept %d, want each of %d entries once", read+rest, res.Front, fillers)
+		}
+
+		// A restart mid-scan reads from the head, U included, and only a
+		// whole scan reports done.
+		_, res = scan(newCollector(), func(res block_gc.CollectResult) bool { return res.FrontScanned != 0 })
+		if res.FrontDone {
+			t.Fatalf("first pass after a restart = %+v, want a part of the front", res)
+		}
+		c = newCollector()
+		read, res = scan(c, done)
+		if read != fillers+1 || res.Front != fillers+1 {
+			t.Fatalf("scan after a restart read %d and kept %d, want all %d entries from the head", read, res.Front, fillers+1)
+		}
+
+		// Once the fillers go, the settle walks U and keeps K under main.
+		for i := range fillers - 1 {
+			write(filler(i), true)
+		}
+		write(ahead, true)
+		requireKept(t, v, clk, store, tr, "K", "U")
+		requireStored(t, v, tr, true, "A", "U", "K")
+	})
+
 	t.Run("hold of an unmarked block while Sweeping", func(t *testing.T) {
 		// Once the generation flips, U and K are unmarked: the existence
 		// check answers absent, a root onto U is refused as unmarked, which

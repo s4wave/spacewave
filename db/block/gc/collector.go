@@ -132,6 +132,34 @@ type Collector struct {
 	seedDown    uint64
 	seededRoots bool
 	seeded      bool
+	// front is the front scan's position, as frontPos describes. A scan that
+	// reaches the front's end returns it to the head. A pass that stops at its
+	// budget mid-front keeps it, so each pass reads entries the scan has not
+	// yet reached, and one scan of the whole front takes as many passes as its
+	// size needs instead of restarting at the head each pass, which on a
+	// front larger than one pass reads never reaches the end.
+	//
+	// Invariant: the cursor decides only where the next front slice reads,
+	// never what may be freed or when the flip may come. A front slice pops
+	// an entry only on that entry's own free proof, read in the slice's
+	// transaction, and the flip requires the whole front empty, read in the
+	// flip's transaction. Every producer writes its entry in its own
+	// transaction while it reads the generation Open: a Land's hold of an
+	// unverified block (lander.holdListed), the seeding and the walk's
+	// children (Records.pushOwed) and the adoption's recount
+	// (Records.returnHeld). An entry one of them adds behind the cursor
+	// during a scan therefore holds the flip until a later scan, which
+	// starts at the head, pops it or the walk takes it off; an entry added
+	// ahead is read in this scan; an entry removed, by the walk, a free or a
+	// pop, leaves a position the next seek passes over. A position made
+	// stale by any of these costs at most one partial scan. A restart begins
+	// at the head, and only a scan that reached the front's end reports
+	// FrontDone.
+	front frontPos
+	// frontKeys and frontEnds are the front slice's scratch: the keys it
+	// read, packed end to end, and the end of each, reused across slices.
+	frontKeys []byte
+	frontEnds []int
 }
 
 // pace scales a slice's budgets by how long the slices before it took: one

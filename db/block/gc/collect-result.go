@@ -27,6 +27,13 @@ type CollectResult struct {
 	// Seeded counts the unverified seeds the seeding found and pushed onto the
 	// front, which hold the flip until the walk decodes them.
 	Seeded uint64
+	// FrontScanned counts the front entries the pass read.
+	FrontScanned uint64
+	// Front is the entries left on the front by the scan of the whole front
+	// the pass finished, valid when FrontDone is set.
+	Front uint64
+	// FrontDone reports that the pass finished a scan of the whole front.
+	FrontDone bool
 	// Flipped reports that the pass moved the generation to Sweeping.
 	Flipped bool
 	// Unadopted reports that the flip returned the Volume to unadopted

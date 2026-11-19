@@ -331,7 +331,7 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 
 	// Build the run and seed the front, each resuming where the last pass
 	// stopped.
-	more, err := resumeSlices(ctx, c.update, &c.runFrom, past, func(rec *Records, from []byte) ([]byte, bool, error) {
+	more, err := resumeSlices(ctx, c.update, &c.runFrom, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
 		return c.runSlice(ctx, rec, res, from)
 	})
 	if err != nil || more {
@@ -341,12 +341,18 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 		return more, err
 	}
 
-	// Take the free-proven entries off the front, then try the flip.
-	more, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
+	// Take the free-proven entries off the front, resuming where the last
+	// pass stopped, then, at the front's end, try the flip, which reads the
+	// whole front itself.
+	more, err = resumeSlices(ctx, c.update, &c.front, past, func(rec *Records, blocks block.StoreOps, from frontPos) (frontPos, bool, error) {
 		return c.frontSlice(ctx, rec, blocks, res, from)
 	})
 	if err != nil || more {
 		return more, err
+	}
+	if c.front.done {
+		res.Front, res.FrontDone = c.front.kept, true
+		c.front = frontPos{}
 	}
 	return false, c.update(ctx, func(rec *Records, _ block.StoreOps) error {
 		return c.flip(ctx, rec, res)
@@ -376,7 +382,7 @@ func (c *Collector) seed(ctx context.Context, past func() bool, res *CollectResu
 		return false, nil
 	}
 	if !c.seededRoots {
-		more, err := resumeSlices(ctx, c.update, &c.seedRoot, past, func(rec *Records, from []byte) ([]byte, bool, error) {
+		more, err := resumeSlices(ctx, c.update, &c.seedRoot, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
 			return c.seedRootSlice(ctx, rec, res, from)
 		})
 		if err != nil || more {
@@ -386,7 +392,7 @@ func (c *Collector) seed(ctx context.Context, past func() bool, res *CollectResu
 	}
 
 	// Then the down pages not netted yet.
-	more, err := resumeSlices(ctx, c.update, &c.seedDown, past, func(rec *Records, from uint64) (uint64, bool, error) {
+	more, err := resumeSlices(ctx, c.update, &c.seedDown, past, func(rec *Records, _ block.StoreOps, from uint64) (uint64, bool, error) {
 		return c.seedDownSlice(ctx, rec, res, from)
 	})
 	c.seeded = err == nil && !more
@@ -402,11 +408,11 @@ func resumeSlices[P any](
 	update func(context.Context, func(*Records, block.StoreOps) error) error,
 	pos *P,
 	past func() bool,
-	slice func(rec *Records, from P) (P, bool, error),
+	slice func(rec *Records, blocks block.StoreOps, from P) (P, bool, error),
 ) (bool, error) {
 	reached := *pos
-	more, err := eachSlice(ctx, update, *pos, past, func(rec *Records, _ block.StoreOps, from P) (P, bool, error) {
-		next, more, err := slice(rec, from)
+	more, err := eachSlice(ctx, update, *pos, past, func(rec *Records, blocks block.StoreOps, from P) (P, bool, error) {
+		next, more, err := slice(rec, blocks, from)
 		reached = next
 		return next, more, err
 	})
@@ -506,13 +512,16 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 		return from, false, err
 	}
 
-	// Take the next lists within the slice's budget.
+	// Take the next lists within the slice's budget, noting each unmarked
+	// list's key, packed end to end, and the last key read, so a slice
+	// allocates nothing per list.
 	seek := from
 	if from != nil {
 		seek = append(bytes.Clone(from), 0)
 	}
 	budget, n, full := c.share(sliceRecords), 0, false
-	var unverified [][]byte
+	var last, unverified []byte
+	var ends []int
 	err = rec.scan(ctx, rec.key(kindChildren), seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
 		// Stop at a full slice; note each unmarked list.
 		if n == budget {
@@ -520,34 +529,52 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 			return false, nil
 		}
 		n++
-		from = bytes.Clone(key)
+		last = append(last[:0], key...)
 		v, err := value()
 		if err == nil && !listMarked(v) {
-			unverified = append(unverified, from)
+			unverified = append(unverified, key...)
+			ends = append(ends, len(unverified))
 		}
 		return true, err
 	})
 	if err != nil {
 		return from, false, err
 	}
+	if n != 0 {
+		from = last
+	}
 
 	// Enter each unmarked list in the run, and complete the run past the last.
-	for _, key := range unverified {
-		if err := rec.tx.Set(ctx, rec.key(kindUnmarked, key), nil); err != nil {
+	start := 0
+	for _, end := range ends {
+		if err := rec.tx.Set(ctx, rec.key(kindUnmarked, unverified[start:end]), nil); err != nil {
 			return from, false, err
 		}
+		start = end
 	}
-	res.Unmarked += uint64(len(unverified))
+	res.Unmarked += uint64(len(ends))
 	if full {
 		return from, true, nil
 	}
 	return from, false, rec.tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil)
 }
 
+// frontPos is the front scan's position: the key after which it resumes,
+// nil at the head, the entries it kept since it left the head, and whether
+// it reached the front's end. It moves only with a committed slice, so the
+// count matches the entries the cursor passed.
+type frontPos struct {
+	key  []byte
+	kept uint64
+	done bool
+}
+
 // frontSlice takes off the front each of up to a slice of entries after the
-// key position from whose block the free proof holds for, while the
-// generation is Open: at zero and queued or parked at a ripe sequence the up
-// cursor passed, as the free takes it. Nothing holds such a block or can
+// position pos, whose block the free proof holds for, and returns the
+// position the next slice resumes at, done once it read the front's end, and
+// whether more may follow. It pops only while the
+// generation is Open, and only a block at zero and queued or parked at a
+// ripe sequence the up cursor passed, as the free takes it. Nothing holds such a block or can
 // within the grace period: a Land that names it dequeues it until its up
 // nets, so a queue entry proves no Land holds it, and the free parks only a
 // queued block, after which every Land reads it absent, as Records.Hidden
@@ -571,91 +598,110 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 // find, and it pops at zero with a ripe sequence the cursor passed, without
 // its queue entry, which the free deletes as stale once the list is gone, so
 // damage cannot keep the generation Open.
-func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, error) {
+func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, pos frontPos) (frontPos, bool, error) {
 	// Pop only while Open, and while the free proof can hold.
 	state, err := rec.GetState(ctx)
 	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN {
-		return from, false, err
+		return pos, false, err
 	}
 	if !c.freeable(state) {
-		return from, false, nil
+		return pos, false, nil
 	}
 	if recount, err := rec.tx.Exists(ctx, rec.key(kindRewritten)); err != nil || recount {
-		return from, false, err
+		return pos, false, err
 	}
 
-	// Take the next entries.
-	seek := from
-	if from != nil {
-		seek = append(bytes.Clone(from), 0)
+	// Read the next entries' keys into the scratch, packed end to end, so a
+	// slice allocates nothing per entry.
+	var seek []byte
+	if pos.key != nil {
+		seek = append(bytes.Clone(pos.key), 0)
 	}
 	budget, full := c.share(sliceRecords), false
-	var keys [][]byte
+	packed, ends := c.frontKeys[:0], c.frontEnds[:0]
 	err = rec.scan(ctx, rec.key(kindFront), seek, func(key []byte, _ func() ([]byte, error)) (bool, error) {
-		if len(keys) == budget {
+		if len(ends) == budget {
 			full = true
 			return false, nil
 		}
-		keys = append(keys, bytes.Clone(key))
+		packed = append(packed, key...)
+		ends = append(ends, len(packed))
 		return true, nil
 	})
-	if err != nil || len(keys) == 0 {
-		return from, false, err
+	c.frontKeys, c.frontEnds = packed, ends
+	if err != nil {
+		return pos, false, err
 	}
+	res.FrontScanned += uint64(len(ends))
 
 	// Pop each the proof holds for.
 	cursor := state.GetUpCursor()
-	var popped bool
 	var poppedRipe uint64
-	for _, key := range keys {
-		from = key
-		ref, _, err := ParseBlockKey(key)
+	popped, start, last, kept := false, 0, 0, pos.kept
+	for _, end := range ends {
+		key := packed[start:end:end]
+		last, start = start, end
+		pop, ripe, err := c.frontProven(ctx, rec, blocks, cursor, key)
 		if err != nil {
-			return from, false, err
+			return pos, false, err
 		}
-		listed, err := rec.HasChildren(ctx, ref)
-		if err != nil {
-			return from, false, err
-		}
-		holders, ripe, err := rec.GetHolders(ctx, ref)
-		if err != nil {
-			return from, false, err
-		}
-		if holders != 0 || ripe > cursor {
+		if !pop {
+			kept++
 			continue
 		}
-		if listed {
-			proven, err := rec.tx.Exists(ctx, rec.queueKey(ripe, key))
-			if err == nil && !proven {
-				proven, err = rec.tx.Exists(ctx, rec.parkedKey(ripe, key))
-			}
-			if err != nil {
-				return from, false, err
-			}
-			if !proven {
-				continue
-			}
-		} else {
-			stored, err := blocks.GetBlockExists(ctx, ref)
-			if err != nil {
-				return from, false, err
-			}
-			if stored {
-				continue
-			}
-		}
 		if err := rec.tx.Delete(ctx, rec.key(kindFront, key)); err != nil {
-			return from, false, err
+			return pos, false, err
 		}
 		popped, poppedRipe = true, max(poppedRipe, ripe)
 		res.Popped++
 	}
 
-	// Raise the pop mark past what this slice popped.
-	if !popped {
-		return from, full, nil
+	// Resume after the last key, copied out of the scratch, or at the head
+	// once the scan reached the front's end. Then raise the pop mark past
+	// what this slice popped.
+	next := frontPos{kept: kept, done: !full}
+	if full {
+		next.key = bytes.Clone(packed[last:])
 	}
-	return from, full, rec.raisePopMark(ctx, poppedRipe)
+	if !popped {
+		return next, full, nil
+	}
+	return next, full, rec.raisePopMark(ctx, poppedRipe)
+}
+
+// frontProven reports whether the free proof holds for the front entry of
+// the block at key, as frontSlice describes, and its ripe sequence. It reads
+// the count first, since most entries a scan meets are held.
+func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.StoreOps, cursor uint64, key []byte) (bool, uint64, error) {
+	// Require exactly a block key, then zero holders, ripe at a sequence the
+	// cursor reached.
+	if bkey, ok := nextBlockKey(key); !ok || len(bkey) != len(key) {
+		return false, 0, errBadBlockKey
+	}
+	holders, ripe, err := rec.holders(ctx, key)
+	if err != nil || holders != 0 || ripe > cursor {
+		return false, 0, err
+	}
+
+	// A listed block needs its queue or parked entry, and one the store
+	// does not list needs its bytes gone.
+	listed, err := rec.listed(ctx, key)
+	if err != nil {
+		return false, 0, err
+	}
+	if listed {
+		proven, err := rec.tx.Exists(ctx, rec.queueKey(ripe, key))
+		if err == nil && !proven {
+			proven, err = rec.tx.Exists(ctx, rec.parkedKey(ripe, key))
+		}
+		return proven, ripe, err
+	}
+	ref, _, err := ParseBlockKey(key)
+	if err != nil {
+		return false, 0, err
+	}
+	stored, err := blocks.GetBlockExists(ctx, ref)
+	return !stored, ripe, err
 }
 
 // flip moves an Open Volume to Sweeping when the flip's checks pass, as the

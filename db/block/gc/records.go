@@ -308,16 +308,12 @@ func appendBlockKey(dst []byte, ref *block.BlockRef) []byte {
 // ParseBlockKey returns the ref a BlockKey encodes and the bytes after it.
 func ParseBlockKey(key []byte) (*block.BlockRef, []byte, error) {
 	// Read a known hash type followed by a digest of its length.
-	if len(key) == 0 {
+	bkey, ok := nextBlockKey(key)
+	if !ok {
 		return nil, nil, errBadBlockKey
 	}
-	t := hash.HashType(key[0])
-	size := t.GetHashLen()
-	if size <= 0 || len(key)-1 < size {
-		return nil, nil, errBadBlockKey
-	}
-	digest := bytes.Clone(key[1 : 1+size])
-	return block.NewBlockRef(&hash.Hash{HashType: t, Hash: digest}), key[1+size:], nil
+	digest := bytes.Clone(bkey[1:])
+	return block.NewBlockRef(&hash.Hash{HashType: hash.HashType(bkey[0]), Hash: digest}), key[len(bkey):], nil
 }
 
 // errBadBlockKey reports a record naming a block in an unknown encoding.
@@ -421,7 +417,12 @@ func (r *Records) GetChildren(ctx context.Context, ref *block.BlockRef) ([]*bloc
 
 // HasChildren reports whether the child list of ref exists.
 func (r *Records) HasChildren(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	return r.tx.Exists(ctx, r.key(kindChildren, BlockKey(ref)))
+	return r.listed(ctx, BlockKey(ref))
+}
+
+// listed reports whether the child list of the block at key exists.
+func (r *Records) listed(ctx context.Context, key []byte) (bool, error) {
+	return r.tx.Exists(ctx, r.key(kindChildren, key))
 }
 
 // PutChildren writes the child list of ref from its content, with listMark.
@@ -573,8 +574,12 @@ func DecodeChildren(value []byte) ([]*block.BlockRef, error) {
 // unmarked block's holders are the ones since the flip, as
 // kindUnmarkedCount describes.
 func (r *Records) GetHolders(ctx context.Context, ref *block.BlockRef) (holders, ripe uint64, err error) {
+	return r.holders(ctx, BlockKey(ref))
+}
+
+// holders returns GetHolders of the block at key.
+func (r *Records) holders(ctx context.Context, key []byte) (holders, ripe uint64, err error) {
 	// Read the record of the kind the block's state picks.
-	key := BlockKey(ref)
 	kind, err := r.countKind(ctx, key)
 	if err != nil {
 		return 0, 0, err

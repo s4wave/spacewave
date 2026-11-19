@@ -108,7 +108,7 @@ func TestSettleWaitsForNetting(t *testing.T) {
 			// Pop the front, park what the free finds, then try the flip.
 			c := NewCollector(nil, CollectorOptions{Frees: true})
 			var res CollectResult
-			if _, _, err := c.frontSlice(ctx, rec, nil, &res, nil); err != nil {
+			if _, _, err := c.frontSlice(ctx, rec, nil, &res, frontPos{}); err != nil {
 				t.Fatal(err)
 			}
 			if _, _, _, err := c.freeSlice(ctx, rec, nil, &res, nil); err != nil {
