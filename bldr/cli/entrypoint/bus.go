@@ -40,6 +40,8 @@ type CliBusImpl struct {
 	storageID string
 	// worldEngineID identifies the CLI world engine.
 	worldEngineID string
+	// stateRoot is the state directory the bus opens its volumes in.
+	stateRoot string
 	// vol stores CLI state.
 	vol volume.Volume
 	// worldEngine manages the CLI world.
@@ -179,6 +181,7 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, projectID, stateRoot st
 		sr:            sr,
 		storageID:     storageID,
 		worldEngineID: engineID,
+		stateRoot:     stateRoot,
 		vol:           vol,
 		worldEngine:   eng,
 		worldState:    worldState,
@@ -209,6 +212,11 @@ func (c *CliBusImpl) GetStaticResolver() *static.Resolver {
 // GetVolume returns the volume used for state.
 func (c *CliBusImpl) GetVolume() volume.Volume {
 	return c.vol
+}
+
+// GetStateRoot returns the state directory the bus opens its volumes in.
+func (c *CliBusImpl) GetStateRoot() string {
+	return c.stateRoot
 }
 
 // GetWorldEngineID returns the world engine ID.

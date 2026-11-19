@@ -230,11 +230,7 @@ func runServeCommand(
 	setServeMemoryLimit(le)
 
 	// Log the Volumes that free, refusing a name no Volume file has.
-	var root string
-	if rooted, ok := cliBus.(interface{ GetStateRoot() string }); ok {
-		root = rooted.GetStateRoot()
-	}
-	if err := frees.Check(le, root); err != nil {
+	if err := frees.Check(le, cliBus.GetStateRoot()); err != nil {
 		return err
 	}
 	serveCtx, serveCancel := context.WithCancel(ctx)

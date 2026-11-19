@@ -22,6 +22,8 @@ type CliBus interface {
 	GetLogger() *logrus.Entry
 	// GetVolume returns the volume used for state.
 	GetVolume() volume.Volume
+	// GetStateRoot returns the state directory the bus opens its volumes in.
+	GetStateRoot() string
 	// GetWorldEngineID returns the world engine ID.
 	GetWorldEngineID() string
 	// GetWorldEngine returns the world engine instance.
