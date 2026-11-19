@@ -16,6 +16,7 @@ import (
 	block "github.com/s4wave/spacewave/db/block"
 	quad "github.com/s4wave/spacewave/db/block/quad"
 	bucket "github.com/s4wave/spacewave/db/bucket"
+	block1 "github.com/s4wave/spacewave/db/world/block"
 )
 
 // GraphEdgeBucketDirection indicates which edge directions to list.
@@ -532,6 +533,91 @@ func (x *SetRetainedRootResponse) Reset() {
 }
 
 func (*SetRetainedRootResponse) ProtoMessage() {}
+
+// RegenerateWorldRequest is the request type for RegenerateWorld.
+type RegenerateWorldRequest struct {
+	unknownFields []byte
+	// Target is the format to move the World to.
+	Target block1.WorldFormat `protobuf:"varint,1,opt,name=target,proto3" json:"target,omitempty"`
+	// Quads is the root of a sorted quad list to add on the way to the node
+	// graph, or empty.
+	Quads *block.BlockRef `protobuf:"bytes,2,opt,name=quads,proto3" json:"quads,omitempty"`
+}
+
+func (x *RegenerateWorldRequest) Reset() {
+	*x = RegenerateWorldRequest{}
+}
+
+func (*RegenerateWorldRequest) ProtoMessage() {}
+
+func (x *RegenerateWorldRequest) GetTarget() block1.WorldFormat {
+	if x != nil {
+		return x.Target
+	}
+	return block1.WorldFormat(0)
+}
+
+func (x *RegenerateWorldRequest) GetQuads() *block.BlockRef {
+	if x != nil {
+		return x.Quads
+	}
+	return nil
+}
+
+// RegenerateWorldResponse is the response type for RegenerateWorld.
+type RegenerateWorldResponse struct {
+	unknownFields []byte
+}
+
+func (x *RegenerateWorldResponse) Reset() {
+	*x = RegenerateWorldResponse{}
+}
+
+func (*RegenerateWorldResponse) ProtoMessage() {}
+
+// CompareWorldRegenRequest is the request type for CompareWorldRegen.
+type CompareWorldRegenRequest struct {
+	unknownFields []byte
+}
+
+func (x *CompareWorldRegenRequest) Reset() {
+	*x = CompareWorldRegenRequest{}
+}
+
+func (*CompareWorldRegenRequest) ProtoMessage() {}
+
+// CompareWorldRegenResponse is the response type for CompareWorldRegen.
+type CompareWorldRegenResponse struct {
+	unknownFields []byte
+}
+
+func (x *CompareWorldRegenResponse) Reset() {
+	*x = CompareWorldRegenResponse{}
+}
+
+func (*CompareWorldRegenResponse) ProtoMessage() {}
+
+// ReleaseWorldRegenRequest is the request type for ReleaseWorldRegen.
+type ReleaseWorldRegenRequest struct {
+	unknownFields []byte
+}
+
+func (x *ReleaseWorldRegenRequest) Reset() {
+	*x = ReleaseWorldRegenRequest{}
+}
+
+func (*ReleaseWorldRegenRequest) ProtoMessage() {}
+
+// ReleaseWorldRegenResponse is the response type for ReleaseWorldRegen.
+type ReleaseWorldRegenResponse struct {
+	unknownFields []byte
+}
+
+func (x *ReleaseWorldRegenResponse) Reset() {
+	*x = ReleaseWorldRegenResponse{}
+}
+
+func (*ReleaseWorldRegenResponse) ProtoMessage() {}
 
 // NewTransactionRequest is the request type for NewTransaction.
 type NewTransactionRequest struct {
@@ -4323,6 +4409,98 @@ func (m *SetRetainedRootResponse) CloneMessageVT() protobuf_go_lite.CloneMessage
 	return m.CloneVT()
 }
 
+func (m *RegenerateWorldRequest) CloneVT() *RegenerateWorldRequest {
+	if m == nil {
+		return (*RegenerateWorldRequest)(nil)
+	}
+	r := new(RegenerateWorldRequest)
+	r.Target = m.Target
+	r.Quads = protobuf_go_lite.CloneVTValue(m.Quads)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RegenerateWorldRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RegenerateWorldResponse) CloneVT() *RegenerateWorldResponse {
+	if m == nil {
+		return (*RegenerateWorldResponse)(nil)
+	}
+	r := new(RegenerateWorldResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RegenerateWorldResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CompareWorldRegenRequest) CloneVT() *CompareWorldRegenRequest {
+	if m == nil {
+		return (*CompareWorldRegenRequest)(nil)
+	}
+	r := new(CompareWorldRegenRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CompareWorldRegenRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CompareWorldRegenResponse) CloneVT() *CompareWorldRegenResponse {
+	if m == nil {
+		return (*CompareWorldRegenResponse)(nil)
+	}
+	r := new(CompareWorldRegenResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CompareWorldRegenResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReleaseWorldRegenRequest) CloneVT() *ReleaseWorldRegenRequest {
+	if m == nil {
+		return (*ReleaseWorldRegenRequest)(nil)
+	}
+	r := new(ReleaseWorldRegenRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseWorldRegenRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReleaseWorldRegenResponse) CloneVT() *ReleaseWorldRegenResponse {
+	if m == nil {
+		return (*ReleaseWorldRegenResponse)(nil)
+	}
+	r := new(ReleaseWorldRegenResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseWorldRegenResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *NewTransactionRequest) CloneVT() *NewTransactionRequest {
 	if m == nil {
 		return (*NewTransactionRequest)(nil)
@@ -6778,6 +6956,114 @@ func (this *SetRetainedRootResponse) EqualVT(that *SetRetainedRootResponse) bool
 
 func (this *SetRetainedRootResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetRetainedRootResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RegenerateWorldRequest) EqualVT(that *RegenerateWorldRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Target != that.Target {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Quads, that.Quads) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RegenerateWorldRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RegenerateWorldRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RegenerateWorldResponse) EqualVT(that *RegenerateWorldResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RegenerateWorldResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RegenerateWorldResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CompareWorldRegenRequest) EqualVT(that *CompareWorldRegenRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CompareWorldRegenRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CompareWorldRegenRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CompareWorldRegenResponse) EqualVT(that *CompareWorldRegenResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CompareWorldRegenResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CompareWorldRegenResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReleaseWorldRegenRequest) EqualVT(that *ReleaseWorldRegenRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseWorldRegenRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseWorldRegenRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReleaseWorldRegenResponse) EqualVT(that *ReleaseWorldRegenResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseWorldRegenResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseWorldRegenResponse)
 	if !ok {
 		return false
 	}
@@ -10441,6 +10727,210 @@ func (x *SetRetainedRootResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SetRetainedRootResponse from JSON.
 func (x *SetRetainedRootResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RegenerateWorldRequest message to JSON.
+func (x *RegenerateWorldRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Target != 0 || s.HasField("target") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("target")
+		x.Target.MarshalProtoJSON(s)
+	}
+	if x.Quads != nil || s.HasField("quads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quads")
+		x.Quads.MarshalProtoJSON(s.WithField("quads"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RegenerateWorldRequest to JSON.
+func (x *RegenerateWorldRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RegenerateWorldRequest message from JSON.
+func (x *RegenerateWorldRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "target":
+			s.AddField("target")
+			x.Target.UnmarshalProtoJSON(s)
+		case "quads":
+			if s.ReadNil() {
+				x.Quads = nil
+				return
+			}
+			x.Quads = &block.BlockRef{}
+			x.Quads.UnmarshalProtoJSON(s.WithField("quads", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RegenerateWorldRequest from JSON.
+func (x *RegenerateWorldRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RegenerateWorldResponse message to JSON.
+func (x *RegenerateWorldResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RegenerateWorldResponse to JSON.
+func (x *RegenerateWorldResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RegenerateWorldResponse message from JSON.
+func (x *RegenerateWorldResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the RegenerateWorldResponse from JSON.
+func (x *RegenerateWorldResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CompareWorldRegenRequest message to JSON.
+func (x *CompareWorldRegenRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CompareWorldRegenRequest to JSON.
+func (x *CompareWorldRegenRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CompareWorldRegenRequest message from JSON.
+func (x *CompareWorldRegenRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the CompareWorldRegenRequest from JSON.
+func (x *CompareWorldRegenRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CompareWorldRegenResponse message to JSON.
+func (x *CompareWorldRegenResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CompareWorldRegenResponse to JSON.
+func (x *CompareWorldRegenResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CompareWorldRegenResponse message from JSON.
+func (x *CompareWorldRegenResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the CompareWorldRegenResponse from JSON.
+func (x *CompareWorldRegenResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseWorldRegenRequest message to JSON.
+func (x *ReleaseWorldRegenRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseWorldRegenRequest to JSON.
+func (x *ReleaseWorldRegenRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseWorldRegenRequest message from JSON.
+func (x *ReleaseWorldRegenRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseWorldRegenRequest from JSON.
+func (x *ReleaseWorldRegenRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseWorldRegenResponse message to JSON.
+func (x *ReleaseWorldRegenResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseWorldRegenResponse to JSON.
+func (x *ReleaseWorldRegenResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseWorldRegenResponse message from JSON.
+func (x *ReleaseWorldRegenResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseWorldRegenResponse from JSON.
+func (x *ReleaseWorldRegenResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -17311,6 +17801,213 @@ func (m *SetRetainedRootResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *RegenerateWorldRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RegenerateWorldRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RegenerateWorldRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Quads != nil {
+		size, err := m.Quads.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Target != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Target))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RegenerateWorldResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RegenerateWorldResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RegenerateWorldResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CompareWorldRegenRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CompareWorldRegenRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CompareWorldRegenRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CompareWorldRegenResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CompareWorldRegenResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CompareWorldRegenResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReleaseWorldRegenRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseWorldRegenRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseWorldRegenRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReleaseWorldRegenResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseWorldRegenResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseWorldRegenResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *NewTransactionRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -22833,6 +23530,71 @@ func (m *SetRetainedRootResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *RegenerateWorldRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Target)
+	if m.Quads != nil {
+		l = m.Quads.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RegenerateWorldResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CompareWorldRegenRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CompareWorldRegenResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReleaseWorldRegenRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReleaseWorldRegenResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *NewTransactionRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -24745,6 +25507,74 @@ func (x *SetRetainedRootResponse) MarshalProtoText() string {
 }
 
 func (x *SetRetainedRootResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RegenerateWorldRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RegenerateWorldRequest")
+	if x.Target != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target")
+		protobuf_go_lite.TextWriteStringer(&sb, block1.WorldFormat(x.Target))
+	}
+	if x.Quads != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "quads")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Quads)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RegenerateWorldRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RegenerateWorldResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "RegenerateWorldResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RegenerateWorldResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CompareWorldRegenRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "CompareWorldRegenRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CompareWorldRegenRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CompareWorldRegenResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "CompareWorldRegenResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CompareWorldRegenResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReleaseWorldRegenRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "ReleaseWorldRegenRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReleaseWorldRegenRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReleaseWorldRegenResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "ReleaseWorldRegenResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReleaseWorldRegenResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -27896,6 +28726,290 @@ func (m *SetRetainedRootResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: SetRetainedRootResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RegenerateWorldRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RegenerateWorldRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RegenerateWorldRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Target", wireType)
+			}
+			m.Target = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Target = block1.WorldFormat(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Quads", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Quads == nil {
+				m.Quads = &block.BlockRef{}
+			}
+			if err := m.Quads.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RegenerateWorldResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RegenerateWorldResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RegenerateWorldResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CompareWorldRegenRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CompareWorldRegenRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CompareWorldRegenRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CompareWorldRegenResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CompareWorldRegenResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CompareWorldRegenResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReleaseWorldRegenRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseWorldRegenRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseWorldRegenRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReleaseWorldRegenResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseWorldRegenResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseWorldRegenResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

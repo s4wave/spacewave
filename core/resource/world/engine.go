@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
 )
@@ -31,6 +32,9 @@ type EngineResource struct {
 	// retainer is the unguarded engine, used only to retain roots: retaining a
 	// root writes no World object, so the write guard does not cover it.
 	retainer world.Engine
+	// guarded reports whether the mount has a write guard, which refuses a
+	// regeneration: it rewrites every object and adds the quads it carries.
+	guarded bool
 	// lookupOp resolves World operations under the granting mount.
 	lookupOp world.LookupOp
 	// engineInfo describes the engine selected by the granting mount.
@@ -67,6 +71,7 @@ func NewEngineResource(
 		b:                 b,
 		engine:            w,
 		retainer:          retainer,
+		guarded:           access.writeGuard != nil,
 		lookupOp:          lookupOp,
 		engineInfo:        engineInfo,
 		worldStateOptions: opts,
@@ -149,6 +154,57 @@ func (r *EngineResource) SetRetainedRoot(ctx context.Context, req *s4wave_world.
 		return nil, err
 	}
 	return &s4wave_world.SetRetainedRootResponse{}, nil
+}
+
+// RegenerateWorld moves the World between stored formats through an engine
+// that regenerates, and returns once the step is decided.
+func (r *EngineResource) RegenerateWorld(ctx context.Context, req *s4wave_world.RegenerateWorldRequest) (*s4wave_world.RegenerateWorldResponse, error) {
+	err := r.accessRegenerator(ctx, func(ctx context.Context, g world_block.WorldRegenerator) error {
+		return g.RegenerateWorld(ctx, req.GetTarget(), req.GetQuads())
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_world.RegenerateWorldResponse{}, nil
+}
+
+// CompareWorldRegen compares a regeneration's old and new Worlds, releasing
+// nothing.
+func (r *EngineResource) CompareWorldRegen(ctx context.Context, req *s4wave_world.CompareWorldRegenRequest) (*s4wave_world.CompareWorldRegenResponse, error) {
+	err := r.accessRegenerator(ctx, func(ctx context.Context, g world_block.WorldRegenerator) error {
+		return g.CompareWorldRegen(ctx)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_world.CompareWorldRegenResponse{}, nil
+}
+
+// ReleaseWorldRegen compares a regeneration's old and new Worlds and releases
+// the old one when they are equal.
+func (r *EngineResource) ReleaseWorldRegen(ctx context.Context, req *s4wave_world.ReleaseWorldRegenRequest) (*s4wave_world.ReleaseWorldRegenResponse, error) {
+	err := r.accessRegenerator(ctx, func(ctx context.Context, g world_block.WorldRegenerator) error {
+		return g.ReleaseWorldRegen(ctx)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_world.ReleaseWorldRegenResponse{}, nil
+}
+
+// accessRegenerator calls cb with the mount's engine as a regenerator,
+// refusing a mount with a write guard or an engine that cannot regenerate.
+func (r *EngineResource) accessRegenerator(ctx context.Context, cb func(context.Context, world_block.WorldRegenerator) error) error {
+	if r.guarded {
+		return errors.New("a World mount with a write guard cannot regenerate the World")
+	}
+	return world.AccessEngine(ctx, r.retainer, func(ctx context.Context, eng world.Engine) error {
+		g, ok := eng.(world_block.WorldRegenerator)
+		if !ok {
+			return errors.New("world engine does not regenerate")
+		}
+		return cb(ctx, g)
+	})
 }
 
 // WatchWorldRootSnapshots streams committed World root snapshots.

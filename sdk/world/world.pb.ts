@@ -8,6 +8,8 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { SOParticipantConfig } from '../../core/sobject/sobject.pb.js'
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
+import type { WorldFormat } from '../../db/world/block/world.pb.js'
+import { WorldFormat_Enum } from '../../db/world/block/world.pb.js'
 import { Quad } from '../../db/block/quad/quad.pb.js'
 
 /**
@@ -493,6 +495,97 @@ export interface SetRetainedRootResponse {}
 export const SetRetainedRootResponse: MessageType<SetRetainedRootResponse> =
   /* @__PURE__ */ createMessageType<SetRetainedRootResponse>(
     's4wave.world.SetRetainedRootResponse',
+    () => [],
+  )
+
+/**
+ * RegenerateWorldRequest is the request type for RegenerateWorld.
+ *
+ * @generated from message s4wave.world.RegenerateWorldRequest
+ */
+export interface RegenerateWorldRequest {
+  /**
+   * Target is the format to move the World to.
+   */
+  target?: WorldFormat
+  /**
+   * Quads is the root of a sorted quad list to add on the way to the node
+   * graph, or empty.
+   */
+  quads?: BlockRef
+}
+
+export const RegenerateWorldRequest: MessageType<RegenerateWorldRequest> =
+  /* @__PURE__ */ createMessageType<RegenerateWorldRequest>(
+    's4wave.world.RegenerateWorldRequest',
+    () => [
+      [1, 'target', 14, 0, WorldFormat_Enum],
+      [2, 'quads', 11, 0, BlockRef.codec],
+    ],
+  )
+
+/**
+ * RegenerateWorldResponse is the response type for RegenerateWorld.
+ *
+ * @generated from message s4wave.world.RegenerateWorldResponse
+ */
+export interface RegenerateWorldResponse {}
+
+export const RegenerateWorldResponse: MessageType<RegenerateWorldResponse> =
+  /* @__PURE__ */ createMessageType<RegenerateWorldResponse>(
+    's4wave.world.RegenerateWorldResponse',
+    () => [],
+  )
+
+/**
+ * CompareWorldRegenRequest is the request type for CompareWorldRegen.
+ *
+ * @generated from message s4wave.world.CompareWorldRegenRequest
+ */
+export interface CompareWorldRegenRequest {}
+
+export const CompareWorldRegenRequest: MessageType<CompareWorldRegenRequest> =
+  /* @__PURE__ */ createMessageType<CompareWorldRegenRequest>(
+    's4wave.world.CompareWorldRegenRequest',
+    () => [],
+  )
+
+/**
+ * CompareWorldRegenResponse is the response type for CompareWorldRegen.
+ *
+ * @generated from message s4wave.world.CompareWorldRegenResponse
+ */
+export interface CompareWorldRegenResponse {}
+
+export const CompareWorldRegenResponse: MessageType<CompareWorldRegenResponse> =
+  /* @__PURE__ */ createMessageType<CompareWorldRegenResponse>(
+    's4wave.world.CompareWorldRegenResponse',
+    () => [],
+  )
+
+/**
+ * ReleaseWorldRegenRequest is the request type for ReleaseWorldRegen.
+ *
+ * @generated from message s4wave.world.ReleaseWorldRegenRequest
+ */
+export interface ReleaseWorldRegenRequest {}
+
+export const ReleaseWorldRegenRequest: MessageType<ReleaseWorldRegenRequest> =
+  /* @__PURE__ */ createMessageType<ReleaseWorldRegenRequest>(
+    's4wave.world.ReleaseWorldRegenRequest',
+    () => [],
+  )
+
+/**
+ * ReleaseWorldRegenResponse is the response type for ReleaseWorldRegen.
+ *
+ * @generated from message s4wave.world.ReleaseWorldRegenResponse
+ */
+export interface ReleaseWorldRegenResponse {}
+
+export const ReleaseWorldRegenResponse: MessageType<ReleaseWorldRegenResponse> =
+  /* @__PURE__ */ createMessageType<ReleaseWorldRegenResponse>(
+    's4wave.world.ReleaseWorldRegenResponse',
     () => [],
   )
 

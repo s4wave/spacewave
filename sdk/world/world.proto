@@ -5,6 +5,7 @@ import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "github.com/s4wave/spacewave/db/block/quad/quad.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+import "github.com/s4wave/spacewave/db/world/block/world.proto";
 
 service EngineResourceService {
   rpc GetEngineInfo(GetEngineInfoRequest) returns (GetEngineInfoResponse);
@@ -17,6 +18,21 @@ service EngineResourceService {
   // shared state, so storage reclaim keeps its blocks. An empty root releases
   // the name.
   rpc SetRetainedRoot(SetRetainedRootRequest) returns (SetRetainedRootResponse);
+
+  // RegenerateWorld moves the World between stored formats, as
+  // world.block.WorldRegenerator says, and returns once the step is decided.
+  // A Space World orders it for every replica. The caller holds the quad
+  // list, as an open stage does, until the call returns. A mount with a write
+  // guard may not regenerate.
+  rpc RegenerateWorld(RegenerateWorldRequest) returns (RegenerateWorldResponse);
+
+  // CompareWorldRegen compares the old World a regeneration holds with the
+  // new one and fails when they differ, releasing nothing.
+  rpc CompareWorldRegen(CompareWorldRegenRequest) returns (CompareWorldRegenResponse);
+
+  // ReleaseWorldRegen compares the old World a regeneration holds with the
+  // new one and releases the old one when they are equal.
+  rpc ReleaseWorldRegen(ReleaseWorldRegenRequest) returns (ReleaseWorldRegenResponse);
 
   rpc NewTransaction(NewTransactionRequest) returns (NewTransactionResponse);
 
@@ -161,6 +177,30 @@ message SetRetainedRootRequest {
 
 // SetRetainedRootResponse is the response type for SetRetainedRoot.
 message SetRetainedRootResponse {}
+
+// RegenerateWorldRequest is the request type for RegenerateWorld.
+message RegenerateWorldRequest {
+  // Target is the format to move the World to.
+  .world.block.WorldFormat target = 1;
+  // Quads is the root of a sorted quad list to add on the way to the node
+  // graph, or empty.
+  .block.BlockRef quads = 2;
+}
+
+// RegenerateWorldResponse is the response type for RegenerateWorld.
+message RegenerateWorldResponse {}
+
+// CompareWorldRegenRequest is the request type for CompareWorldRegen.
+message CompareWorldRegenRequest {}
+
+// CompareWorldRegenResponse is the response type for CompareWorldRegen.
+message CompareWorldRegenResponse {}
+
+// ReleaseWorldRegenRequest is the request type for ReleaseWorldRegen.
+message ReleaseWorldRegenRequest {}
+
+// ReleaseWorldRegenResponse is the response type for ReleaseWorldRegen.
+message ReleaseWorldRegenResponse {}
 
 // NewTransactionRequest is the request type for NewTransaction.
 message NewTransactionRequest {

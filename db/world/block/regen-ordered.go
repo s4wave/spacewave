@@ -74,6 +74,11 @@ type WorldRegenerator interface {
 	// adding the quads of the quad list at quads, which may be empty; back to
 	// cayley kv while the old World is held.
 	RegenerateWorld(ctx context.Context, target WorldFormat, quads *block.BlockRef) error
+	// CompareWorldRegen compares the held old World with the new one and
+	// returns ErrRegenMismatch when they differ, releasing nothing, so a
+	// caller can act on the proof while the old World is still held to go
+	// back to.
+	CompareWorldRegen(ctx context.Context) error
 	// ReleaseWorldRegen compares the held old World with the new one and
 	// releases the old one when they are equal, or returns ErrRegenMismatch.
 	ReleaseWorldRegen(ctx context.Context) error
@@ -92,6 +97,18 @@ func (r *Regenerator) RegenerateWorld(ctx context.Context, target WorldFormat, q
 		return r.SwitchBack(ctx)
 	}
 	return errors.Errorf("regenerate a World into %v", target)
+}
+
+// CompareWorldRegen verifies a switched World, releasing nothing.
+func (r *Regenerator) CompareWorldRegen(ctx context.Context) error {
+	s, err := r.read(ctx)
+	if err != nil {
+		return err
+	}
+	if s.stage != RegenSwitched {
+		return errors.Errorf("compare a World regeneration at stage %v", s.stage)
+	}
+	return r.verify(regenBackground(ctx), s)
 }
 
 // ReleaseWorldRegen verifies a switched World and releases its old root.
