@@ -55,6 +55,15 @@ func (t *Tx) ListObjectsWithType(ctx context.Context, typeID, startAfter string,
 	return keys, more, err
 }
 
+// ListTypeCounts retains the transaction lock to read the type counts.
+func (t *Tx) ListTypeCounts(ctx context.Context) (counts []*world.TypeCount, err error) {
+	err = t.locked(ctx, false, func() error {
+		counts, err = t.state.ListTypeCounts(ctx)
+		return err
+	})
+	return counts, err
+}
+
 // SetGraphQuad sets a quad in the graph store.
 // Subject: must be an existing object IRI: <object-key>
 // Predicate: a predicate string, e.x. IRI: <ref>

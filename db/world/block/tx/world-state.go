@@ -431,6 +431,16 @@ func (w *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQ
 	return w.world.QueryGraphPath(ctx, query)
 }
 
+// ListTypeCounts retains the transaction lock to read the type counts.
+func (w *WorldState) ListTypeCounts(ctx context.Context) ([]*world.TypeCount, error) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	if w.discarded {
+		return nil, tx.ErrDiscarded
+	}
+	return w.world.ListTypeCounts(ctx)
+}
+
 // ListObjectsWithType retains the transaction lock for one typed subject page.
 func (w *WorldState) ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) ([]string, bool, error) {
 	// Reject a discarded transaction before reading its World.

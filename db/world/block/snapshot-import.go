@@ -175,6 +175,7 @@ func importWorld(
 	if err := writeGraphIndex(ctx, worldCursor, index); err != nil {
 		return nil, errors.Wrap(err, "write graph index")
 	}
+	worldRoot.TypeCounts = world.CountTypeQuads(quads)
 	worldCursor.FollowSubBlock(3).SetBlock(&ChangeLogLL{Seqno: count + uint64(len(quads))}, true)
 	root, _, err := transaction.Write(ctx, true)
 	if err != nil {

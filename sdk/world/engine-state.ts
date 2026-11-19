@@ -29,7 +29,9 @@ import {
   type ApplyObjectOpResponse,
   type IncrementRevResponse,
   type WaitRevResponse,
+  type WatchTypeCountsResponse,
 } from './world.pb.js'
+import type { TypeCount } from '@go/github.com/s4wave/spacewave/db/world/world.pb.js'
 
 // runReadOp performs a read with a short-lived read transaction on the engine
 // owned by state.
@@ -371,6 +373,18 @@ export class EngineWorldState implements IWorldState {
     return this.performRead(abortSignal, async (tx) => {
       return await tx.listObjectsWithType(typeID, abortSignal, limit)
     })
+  }
+
+  // listTypeCounts returns the number of objects of each type.
+  public async listTypeCounts(abortSignal?: AbortSignal): Promise<TypeCount[]> {
+    return this.performRead(abortSignal, (tx) => tx.listTypeCounts(abortSignal))
+  }
+
+  // watchTypeCounts streams the type counts of the Engine's committed World.
+  public watchTypeCounts(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchTypeCountsResponse> {
+    return this.engine.watchTypeCounts(abortSignal)
   }
 
   // listObjects returns one page of objects under prefix in key order.

@@ -9,7 +9,11 @@ import {
   WatchWorldStateResourceServiceClient,
   TypedObjectResourceServiceClient,
 } from './world_srpc.pb.js'
-import { WorldErrorCode, type WorldMutation } from './world.pb.js'
+import {
+  WorldErrorCode,
+  type WatchTypeCountsResponse,
+  type WorldMutation,
+} from './world.pb.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import { WorldStage } from './stage.js'
 import {
@@ -140,6 +144,15 @@ export class Engine extends Resource {
   // If seqno == 0, this might return immediately unconditionally.
   public async waitSeqno(seqno: bigint, abortSignal?: AbortSignal) {
     return await this.service.WaitSeqno({ seqno }, abortSignal)
+  }
+
+  // watchTypeCounts streams the World's type counts: every count first, then
+  // the counts each commit moves, with a zero count for a type whose last
+  // object went.
+  public watchTypeCounts(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchTypeCountsResponse> {
+    return this.service.WatchTypeCounts({}, abortSignal)
   }
 
   // BuildStorageCursor builds a cursor to the world storage with an empty ref.

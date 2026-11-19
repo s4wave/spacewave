@@ -9,6 +9,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { SOParticipantConfig } from '../../core/sobject/sobject.pb.js'
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
 import { Quad } from '../../db/block/quad/quad.pb.js'
+import { TypeCount } from '../../db/world/world.pb.js'
 
 /**
  * GraphEdgeBucketDirection indicates which edge directions to list.
@@ -1832,6 +1833,77 @@ export const ListObjectsWithTypeResponse: MessageType<ListObjectsWithTypeRespons
     () => [
       [1, 'object_keys', 9, 1],
       [2, 'more', 8],
+    ],
+  )
+
+/**
+ * ListTypeCountsRequest requests the World's type counts.
+ *
+ * @generated from message s4wave.world.ListTypeCountsRequest
+ */
+export interface ListTypeCountsRequest {}
+
+export const ListTypeCountsRequest: MessageType<ListTypeCountsRequest> =
+  /* @__PURE__ */ createMessageType<ListTypeCountsRequest>(
+    's4wave.world.ListTypeCountsRequest',
+    () => [],
+  )
+
+/**
+ * ListTypeCountsResponse holds the World's type counts.
+ *
+ * @generated from message s4wave.world.ListTypeCountsResponse
+ */
+export interface ListTypeCountsResponse {
+  /**
+   * TypeCounts holds each type with at least one object, sorted by type ID.
+   */
+  typeCounts?: TypeCount[]
+}
+
+export const ListTypeCountsResponse: MessageType<ListTypeCountsResponse> =
+  /* @__PURE__ */ createMessageType<ListTypeCountsResponse>(
+    's4wave.world.ListTypeCountsResponse',
+    () => [[1, 'type_counts', 11, 1, TypeCount.codec]],
+  )
+
+/**
+ * WatchTypeCountsRequest starts a watch of the World's type counts.
+ *
+ * @generated from message s4wave.world.WatchTypeCountsRequest
+ */
+export interface WatchTypeCountsRequest {}
+
+export const WatchTypeCountsRequest: MessageType<WatchTypeCountsRequest> =
+  /* @__PURE__ */ createMessageType<WatchTypeCountsRequest>(
+    's4wave.world.WatchTypeCountsRequest',
+    () => [],
+  )
+
+/**
+ * WatchTypeCountsResponse is one step of a type count watch. The first
+ * response holds every count; each later one holds only the counts that
+ * changed, with a zero count for a type whose last object went.
+ *
+ * @generated from message s4wave.world.WatchTypeCountsResponse
+ */
+export interface WatchTypeCountsResponse {
+  /**
+   * TypeCounts holds the counts, sorted by type ID.
+   */
+  typeCounts?: TypeCount[]
+  /**
+   * Seqno is the World seqno the counts were read at.
+   */
+  seqno?: bigint
+}
+
+export const WatchTypeCountsResponse: MessageType<WatchTypeCountsResponse> =
+  /* @__PURE__ */ createMessageType<WatchTypeCountsResponse>(
+    's4wave.world.WatchTypeCountsResponse',
+    () => [
+      [1, 'type_counts', 11, 1, TypeCount.codec],
+      [2, 'seqno', 4],
     ],
   )
 

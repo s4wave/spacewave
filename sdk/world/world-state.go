@@ -387,6 +387,15 @@ func (ws *WorldState) ListObjectsWithType(ctx context.Context, typeID, startAfte
 	return resp.GetObjectKeys(), resp.GetMore(), nil
 }
 
+// ListTypeCounts returns the number of objects of each type.
+func (ws *WorldState) ListTypeCounts(ctx context.Context) ([]*world.TypeCount, error) {
+	resp, err := ws.service.ListTypeCounts(ctx, &ListTypeCountsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetTypeCounts(), nil
+}
+
 // GetObjectRootRefsBatch returns root references for object keys.
 func (ws *WorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*world.ObjectRootRef, error) {
 	// Retrieve the root references for the requested World objects.

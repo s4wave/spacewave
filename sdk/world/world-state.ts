@@ -30,7 +30,9 @@ import type {
   ListObjectsResponse,
   LookupGraphQuadsResponse,
   ObjectMetadata,
+  WatchTypeCountsResponse,
 } from './world.pb.js'
+import type { TypeCount } from '@go/github.com/s4wave/spacewave/db/world/world.pb.js'
 
 // maxObjectBodiesRevisionRetries bounds restarts when writes land between body pages.
 const maxObjectBodiesRevisionRetries = 3
@@ -219,6 +221,18 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
     limit?: number,
   ): Promise<string[]>
+
+  /** listTypeCounts returns the number of objects of each type, sorted by type ID. */
+  listTypeCounts(abortSignal?: AbortSignal): Promise<TypeCount[]>
+
+  /**
+   * watchTypeCounts streams the type counts: every count first, then the
+   * counts each change moves, with a zero count for a type whose last object
+   * went.
+   */
+  watchTypeCounts(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchTypeCountsResponse>
 
   /**
    * listObjects returns one page of objects under the request prefix in key
@@ -689,6 +703,19 @@ export class WorldStateResource extends Resource implements IWorldState {
       if (!response.more || (limit > 0 && keys.length >= limit)) return keys
       startAfter = page[page.length - 1]!
     }
+  }
+
+  /** listTypeCounts returns the number of objects of each type. */
+  public async listTypeCounts(abortSignal?: AbortSignal): Promise<TypeCount[]> {
+    const response = await this.service.ListTypeCounts({}, abortSignal)
+    return response.typeCounts ?? []
+  }
+
+  /** watchTypeCounts streams the type counts and then the moved counts. */
+  public watchTypeCounts(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchTypeCountsResponse> {
+    return this.service.WatchTypeCounts({}, abortSignal)
   }
 
   /** listObjects returns one page of objects under prefix in key order. */

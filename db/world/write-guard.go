@@ -605,6 +605,11 @@ func (s *guardedWorldState) ListObjectsWithType(ctx context.Context, typeID, sta
 	return s.ws.ListObjectsWithType(ctx, typeID, startAfter, limit)
 }
 
+// ListTypeCounts reads the wrapped state's type counts.
+func (s *guardedWorldState) ListTypeCounts(ctx context.Context) ([]*TypeCount, error) {
+	return s.ws.ListTypeCounts(ctx)
+}
+
 // BuildStorageCursor builds a guarded cursor on the wrapped state's storage.
 func (s *guardedWorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	return guardedStorageCursor(ctx, s.unscoped(), s.ws.BuildStorageCursor)

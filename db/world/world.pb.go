@@ -84,6 +84,36 @@ func (x *SpanOption) GetEnd() string {
 	return ""
 }
 
+// TypeCount is the number of objects of one type in a World: the number of
+// <type> edges to the key types/<type_id>.
+type TypeCount struct {
+	unknownFields []byte
+	// TypeId is the object type ID.
+	TypeId string `protobuf:"bytes,1,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
+	// Count is the number of objects with the type.
+	Count uint64 `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+}
+
+func (x *TypeCount) Reset() {
+	*x = TypeCount{}
+}
+
+func (*TypeCount) ProtoMessage() {}
+
+func (x *TypeCount) GetTypeId() string {
+	if x != nil {
+		return x.TypeId
+	}
+	return ""
+}
+
+func (x *TypeCount) GetCount() uint64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
 func (m *RefOption) CloneVT() *RefOption {
 	if m == nil {
 		return (*RefOption)(nil)
@@ -115,6 +145,23 @@ func (m *SpanOption) CloneVT() *SpanOption {
 }
 
 func (m *SpanOption) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TypeCount) CloneVT() *TypeCount {
+	if m == nil {
+		return (*TypeCount)(nil)
+	}
+	r := new(TypeCount)
+	r.TypeId = m.TypeId
+	r.Count = m.Count
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TypeCount) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -158,6 +205,29 @@ func (this *SpanOption) EqualVT(that *SpanOption) bool {
 
 func (this *SpanOption) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SpanOption)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TypeCount) EqualVT(that *TypeCount) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.TypeId != that.TypeId {
+		return false
+	}
+	if this.Count != that.Count {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TypeCount) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TypeCount)
 	if !ok {
 		return false
 	}
@@ -264,6 +334,56 @@ func (x *SpanOption) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the TypeCount message to JSON.
+func (x *TypeCount) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.TypeId != "" || s.HasField("typeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("typeId")
+		s.WriteString(x.TypeId)
+	}
+	if x.Count != 0 || s.HasField("count") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("count")
+		s.WriteUint64(x.Count)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TypeCount to JSON.
+func (x *TypeCount) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TypeCount message from JSON.
+func (x *TypeCount) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "type_id", "typeId":
+			s.AddField("type_id")
+			x.TypeId = s.ReadString()
+		case "count":
+			s.AddField("count")
+			x.Count = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TypeCount from JSON.
+func (x *TypeCount) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *RefOption) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -348,6 +468,48 @@ func (m *SpanOption) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *TypeCount) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TypeCount) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TypeCount) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Count != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Count))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.TypeId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TypeId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *RefOption) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -368,6 +530,18 @@ func (m *SpanOption) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Start)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.End)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TypeCount) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TypeId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Count)
 	n += len(m.unknownFields)
 	return n
 }
@@ -405,6 +579,24 @@ func (x *SpanOption) MarshalProtoText() string {
 }
 
 func (x *SpanOption) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TypeCount) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TypeCount")
+	if x.TypeId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "type_id")
+		protobuf_go_lite.TextWriteString(&sb, x.TypeId)
+	}
+	if x.Count != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "count")
+		protobuf_go_lite.TextWriteUint(&sb, x.Count)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TypeCount) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -511,6 +703,68 @@ func (m *SpanOption) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.End = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TypeCount) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TypeCount: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TypeCount: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypeId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TypeId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Count", wireType)
+			}
+			m.Count = 0
+			m.Count, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

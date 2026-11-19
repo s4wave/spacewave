@@ -209,6 +209,15 @@ func (e *EngineTx) ListObjectsWithType(ctx context.Context, typeID, startAfter s
 	return keys, more, err
 }
 
+// ListTypeCounts reads the type counts through the transaction.
+func (e *EngineTx) ListTypeCounts(ctx context.Context) (counts []*world.TypeCount, err error) {
+	err = e.performOp(ctx, func(tx *Tx) error {
+		counts, err = tx.ListTypeCounts(ctx)
+		return err
+	})
+	return counts, err
+}
+
 // SetGraphQuad sets a quad in the graph store.
 // Subject: must be an existing object IRI: <object-key>
 // Predicate: a predicate string, e.x. IRI: <ref>

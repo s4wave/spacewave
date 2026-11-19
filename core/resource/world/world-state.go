@@ -703,6 +703,23 @@ func (r *WorldStateResource) ListObjectsWithType(ctx context.Context, req *s4wav
 	return &s4wave_world.ListObjectsWithTypeResponse{ObjectKeys: objKeys, More: more}, nil
 }
 
+// ListTypeCounts returns the number of objects of each type.
+func (r *WorldStateResource) ListTypeCounts(ctx context.Context, req *s4wave_world.ListTypeCountsRequest) (*s4wave_world.ListTypeCountsResponse, error) {
+	counts, err := r.ws.ListTypeCounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_world.ListTypeCountsResponse{TypeCounts: counts}, nil
+}
+
+// WatchTypeCounts streams every type count, then the counts each World change
+// moves.
+func (r *WorldStateResource) WatchTypeCounts(req *s4wave_world.WatchTypeCountsRequest, strm s4wave_world.SRPCWorldStateResourceService_WatchTypeCountsStream) error {
+	return world.WatchTypeCounts(strm.Context(), r.ws, func(seqno uint64, counts []*world.TypeCount) error {
+		return strm.Send(&s4wave_world.WatchTypeCountsResponse{TypeCounts: counts, Seqno: seqno})
+	})
+}
+
 // GetObjectRootRefsBatch returns root references for object keys.
 func (r *WorldStateResource) GetObjectRootRefsBatch(ctx context.Context, req *s4wave_world.GetObjectRootRefsBatchRequest) (*s4wave_world.GetObjectRootRefsBatchResponse, error) {
 	// Account for object root reads through the mounted World.

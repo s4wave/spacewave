@@ -42,6 +42,9 @@ type SRPCEngineResourceServiceClient interface {
 	GetSeqno(ctx context.Context, in *GetSeqnoRequest) (*GetSeqnoResponse, error)
 
 	WaitSeqno(ctx context.Context, in *WaitSeqnoRequest) (*WaitSeqnoResponse, error)
+	// WatchTypeCounts streams the World's type counts: all of them, then the
+	// changed ones after each commit that moves any.
+	WatchTypeCounts(ctx context.Context, in *WatchTypeCountsRequest) (SRPCEngineResourceService_WatchTypeCountsClient, error)
 	// WatchChanges streams each later World revision with the objects and graph
 	// quads it changed since the previous message. The first request opens the
 	// stream; a stream opened with an interest takes later requests that change
@@ -201,6 +204,39 @@ func (c *srpcEngineResourceServiceClient) WaitSeqno(ctx context.Context, in *Wai
 	return out, nil
 }
 
+func (c *srpcEngineResourceServiceClient) WatchTypeCounts(ctx context.Context, in *WatchTypeCountsRequest) (SRPCEngineResourceService_WatchTypeCountsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchTypeCounts", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcEngineResourceService_WatchTypeCountsClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCEngineResourceService_WatchTypeCountsClient interface {
+	srpc.Stream
+	Recv() (*WatchTypeCountsResponse, error)
+	RecvTo(*WatchTypeCountsResponse) error
+}
+
+type srpcEngineResourceService_WatchTypeCountsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcEngineResourceService_WatchTypeCountsClient) Recv() (*WatchTypeCountsResponse, error) {
+	m := new(WatchTypeCountsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcEngineResourceService_WatchTypeCountsClient) RecvTo(m *WatchTypeCountsResponse) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcEngineResourceServiceClient) WatchChanges(ctx context.Context) (SRPCEngineResourceService_WatchChangesClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchChanges", nil)
 	if err != nil {
@@ -305,6 +341,9 @@ type SRPCEngineResourceServiceServer interface {
 	GetSeqno(context.Context, *GetSeqnoRequest) (*GetSeqnoResponse, error)
 
 	WaitSeqno(context.Context, *WaitSeqnoRequest) (*WaitSeqnoResponse, error)
+	// WatchTypeCounts streams the World's type counts: all of them, then the
+	// changed ones after each commit that moves any.
+	WatchTypeCounts(*WatchTypeCountsRequest, SRPCEngineResourceService_WatchTypeCountsStream) error
 	// WatchChanges streams each later World revision with the objects and graph
 	// quads it changed since the previous message. The first request opens the
 	// stream; a stream opened with an interest takes later requests that change
@@ -360,6 +399,7 @@ func (SRPCEngineResourceServiceHandler) GetMethodIDs() []string {
 		"SyncThrough",
 		"GetSeqno",
 		"WaitSeqno",
+		"WatchTypeCounts",
 		"WatchChanges",
 		"WaitObjectRev",
 		"BuildStorageCursor",
@@ -399,6 +439,8 @@ func (d *SRPCEngineResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetSeqno(d.impl, strm)
 	case "WaitSeqno":
 		return true, d.InvokeMethod_WaitSeqno(d.impl, strm)
+	case "WatchTypeCounts":
+		return true, d.InvokeMethod_WatchTypeCounts(d.impl, strm)
 	case "WatchChanges":
 		return true, d.InvokeMethod_WatchChanges(d.impl, strm)
 	case "WaitObjectRev":
@@ -541,6 +583,15 @@ func (SRPCEngineResourceServiceHandler) InvokeMethod_WaitSeqno(impl SRPCEngineRe
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_WatchTypeCounts(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchTypeCountsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcEngineResourceService_WatchTypeCountsStream{strm}
+	return impl.WatchTypeCounts(req, serverStrm)
 }
 
 func (SRPCEngineResourceServiceHandler) InvokeMethod_WatchChanges(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
@@ -697,6 +748,29 @@ type SRPCEngineResourceService_WaitSeqnoStream interface {
 
 type srpcEngineResourceService_WaitSeqnoStream struct {
 	srpc.Stream
+}
+
+type SRPCEngineResourceService_WatchTypeCountsStream interface {
+	srpc.Stream
+	Send(*WatchTypeCountsResponse) error
+	SendAndClose(*WatchTypeCountsResponse) error
+}
+
+type srpcEngineResourceService_WatchTypeCountsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcEngineResourceService_WatchTypeCountsStream) Send(m *WatchTypeCountsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcEngineResourceService_WatchTypeCountsStream) SendAndClose(m *WatchTypeCountsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCEngineResourceService_WatchChangesStream interface {
@@ -998,6 +1072,11 @@ type SRPCWorldStateResourceServiceClient interface {
 	ListGraphEdgeBuckets(ctx context.Context, in *ListGraphEdgeBucketsRequest) (*ListGraphEdgeBucketsResponse, error)
 
 	ListObjectsWithType(ctx context.Context, in *ListObjectsWithTypeRequest) (*ListObjectsWithTypeResponse, error)
+	// ListTypeCounts returns the number of objects of each type.
+	ListTypeCounts(ctx context.Context, in *ListTypeCountsRequest) (*ListTypeCountsResponse, error)
+	// WatchTypeCounts streams the type counts: all of them, then the changed
+	// ones after each World change that moves any.
+	WatchTypeCounts(ctx context.Context, in *WatchTypeCountsRequest) (SRPCWorldStateResourceService_WatchTypeCountsClient, error)
 
 	GetObjectRootRefsBatch(ctx context.Context, in *GetObjectRootRefsBatchRequest) (*GetObjectRootRefsBatchResponse, error)
 
@@ -1228,6 +1307,48 @@ func (c *srpcWorldStateResourceServiceClient) ListObjectsWithType(ctx context.Co
 	return out, nil
 }
 
+func (c *srpcWorldStateResourceServiceClient) ListTypeCounts(ctx context.Context, in *ListTypeCountsRequest) (*ListTypeCountsResponse, error) {
+	out := new(ListTypeCountsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ListTypeCounts", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcWorldStateResourceServiceClient) WatchTypeCounts(ctx context.Context, in *WatchTypeCountsRequest) (SRPCWorldStateResourceService_WatchTypeCountsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchTypeCounts", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcWorldStateResourceService_WatchTypeCountsClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCWorldStateResourceService_WatchTypeCountsClient interface {
+	srpc.Stream
+	Recv() (*WatchTypeCountsResponse, error)
+	RecvTo(*WatchTypeCountsResponse) error
+}
+
+type srpcWorldStateResourceService_WatchTypeCountsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcWorldStateResourceService_WatchTypeCountsClient) Recv() (*WatchTypeCountsResponse, error) {
+	m := new(WatchTypeCountsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcWorldStateResourceService_WatchTypeCountsClient) RecvTo(m *WatchTypeCountsResponse) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcWorldStateResourceServiceClient) GetObjectRootRefsBatch(ctx context.Context, in *GetObjectRootRefsBatchRequest) (*GetObjectRootRefsBatchResponse, error) {
 	out := new(GetObjectRootRefsBatchResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "GetObjectRootRefsBatch", in, out)
@@ -1355,6 +1476,11 @@ type SRPCWorldStateResourceServiceServer interface {
 	ListGraphEdgeBuckets(context.Context, *ListGraphEdgeBucketsRequest) (*ListGraphEdgeBucketsResponse, error)
 
 	ListObjectsWithType(context.Context, *ListObjectsWithTypeRequest) (*ListObjectsWithTypeResponse, error)
+	// ListTypeCounts returns the number of objects of each type.
+	ListTypeCounts(context.Context, *ListTypeCountsRequest) (*ListTypeCountsResponse, error)
+	// WatchTypeCounts streams the type counts: all of them, then the changed
+	// ones after each World change that moves any.
+	WatchTypeCounts(*WatchTypeCountsRequest, SRPCWorldStateResourceService_WatchTypeCountsStream) error
 
 	GetObjectRootRefsBatch(context.Context, *GetObjectRootRefsBatchRequest) (*GetObjectRootRefsBatchResponse, error)
 
@@ -1417,6 +1543,8 @@ func (SRPCWorldStateResourceServiceHandler) GetMethodIDs() []string {
 		"LookupGraphQuadsBatch",
 		"ListGraphEdgeBuckets",
 		"ListObjectsWithType",
+		"ListTypeCounts",
+		"WatchTypeCounts",
 		"GetObjectRootRefsBatch",
 		"GetObjectMetadataBatch",
 		"GetObjectBodiesBatch",
@@ -1479,6 +1607,10 @@ func (d *SRPCWorldStateResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_ListGraphEdgeBuckets(d.impl, strm)
 	case "ListObjectsWithType":
 		return true, d.InvokeMethod_ListObjectsWithType(d.impl, strm)
+	case "ListTypeCounts":
+		return true, d.InvokeMethod_ListTypeCounts(d.impl, strm)
+	case "WatchTypeCounts":
+		return true, d.InvokeMethod_WatchTypeCounts(d.impl, strm)
 	case "GetObjectRootRefsBatch":
 		return true, d.InvokeMethod_GetObjectRootRefsBatch(d.impl, strm)
 	case "GetObjectMetadataBatch":
@@ -1760,6 +1892,27 @@ func (SRPCWorldStateResourceServiceHandler) InvokeMethod_ListObjectsWithType(imp
 	return strm.MsgSend(out)
 }
 
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_ListTypeCounts(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(ListTypeCountsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ListTypeCounts(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_WatchTypeCounts(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchTypeCountsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcWorldStateResourceService_WatchTypeCountsStream{strm}
+	return impl.WatchTypeCounts(req, serverStrm)
+}
+
 func (SRPCWorldStateResourceServiceHandler) InvokeMethod_GetObjectRootRefsBatch(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
 	req := new(GetObjectRootRefsBatchRequest)
 	if err := strm.MsgRecv(req); err != nil {
@@ -2003,6 +2156,37 @@ type SRPCWorldStateResourceService_ListObjectsWithTypeStream interface {
 
 type srpcWorldStateResourceService_ListObjectsWithTypeStream struct {
 	srpc.Stream
+}
+
+type SRPCWorldStateResourceService_ListTypeCountsStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStateResourceService_ListTypeCountsStream struct {
+	srpc.Stream
+}
+
+type SRPCWorldStateResourceService_WatchTypeCountsStream interface {
+	srpc.Stream
+	Send(*WatchTypeCountsResponse) error
+	SendAndClose(*WatchTypeCountsResponse) error
+}
+
+type srpcWorldStateResourceService_WatchTypeCountsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWorldStateResourceService_WatchTypeCountsStream) Send(m *WatchTypeCountsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcWorldStateResourceService_WatchTypeCountsStream) SendAndClose(m *WatchTypeCountsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCWorldStateResourceService_GetObjectRootRefsBatchStream interface {

@@ -470,6 +470,15 @@ func (ws *SDKWorldState) ListObjectsWithType(ctx context.Context, typeID, startA
 	return resp.GetObjectKeys(), resp.GetMore(), nil
 }
 
+// ListTypeCounts returns the number of objects of each type.
+func (ws *SDKWorldState) ListTypeCounts(ctx context.Context) ([]*world.TypeCount, error) {
+	resp, err := ws.service.ListTypeCounts(ctx, &s4wave_world.ListTypeCountsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetTypeCounts(), nil
+}
+
 // GetObjectRootRefsBatch returns root references for object keys.
 func (ws *SDKWorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*world.ObjectRootRef, error) {
 	// Request root references for the specified remote World objects.

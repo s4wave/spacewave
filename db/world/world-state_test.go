@@ -731,6 +731,10 @@ func (txs *staleRetryTx) ListObjectsWithType(ctx context.Context, typeID, startA
 	panic("unexpected ListObjectsWithType call")
 }
 
+func (txs *staleRetryTx) ListTypeCounts(ctx context.Context) ([]*world.TypeCount, error) {
+	panic("unexpected ListTypeCounts call")
+}
+
 func (txs *staleRetryTx) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
 	panic("unexpected IterateObjects call")
 }

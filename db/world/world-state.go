@@ -68,6 +68,12 @@ type WorldState interface {
 	// The World must remain unchanged for exactly-once traversal across pages.
 	ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) ([]string, bool, error)
 
+	// ListTypeCounts returns the number of objects of each type that has any,
+	// sorted by type ID. It reads the World root alone, so its cost grows with
+	// the number of types and never with the number of objects. A write
+	// transaction's counts include its own uncommitted writes.
+	ListTypeCounts(ctx context.Context) ([]*TypeCount, error)
+
 	// WorldStorage accesses the world storage.
 	WorldStorage
 

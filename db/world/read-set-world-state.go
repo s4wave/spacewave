@@ -162,6 +162,13 @@ func (s *readSetWorldState) ListObjectsWithType(ctx context.Context, typeID, sta
 	return s.WorldState.ListObjectsWithType(ctx, typeID, startAfter, limit)
 }
 
+// ListTypeCounts records a read of the whole graph, since any type edge moves
+// a count.
+func (s *readSetWorldState) ListTypeCounts(ctx context.Context) ([]*TypeCount, error) {
+	s.reads.markGraph()
+	return s.WorldState.ListTypeCounts(ctx)
+}
+
 // SetGraphQuad records the quad.
 func (s *readSetWorldState) SetGraphQuad(ctx context.Context, q GraphQuad) error {
 	s.reads.addPatterns(q)

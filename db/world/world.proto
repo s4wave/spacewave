@@ -32,6 +32,15 @@ message SpanOption {
   string end = 2;
 }
 
+// TypeCount is the number of objects of one type in a World: the number of
+// <type> edges to the key types/<type_id>.
+message TypeCount {
+  // TypeId is the object type ID.
+  string type_id = 1;
+  // Count is the number of objects with the type.
+  uint64 count = 2;
+}
+
 extend google.protobuf.FieldOptions {
   // ref declares the World edge a reference field forms.
   RefOption ref = 51701;

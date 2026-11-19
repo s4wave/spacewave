@@ -68,6 +68,8 @@ import {
   ListObjectsResponse,
   ListObjectsWithTypeRequest,
   ListObjectsWithTypeResponse,
+  ListTypeCountsRequest,
+  ListTypeCountsResponse,
   LookupGraphQuadsBatchRequest,
   LookupGraphQuadsBatchResponse,
   LookupGraphQuadsRequest,
@@ -112,6 +114,8 @@ import {
   WaitSeqnoResponse,
   WatchChangesRequest,
   WatchChangesResponse,
+  WatchTypeCountsRequest,
+  WatchTypeCountsResponse,
   WatchTypedObjectRequest,
   WatchTypedObjectResponse,
   WatchWorldRootSnapshotsRequest,
@@ -247,6 +251,18 @@ export const EngineResourceServiceDefinition = {
       I: WaitSeqnoRequest,
       O: WaitSeqnoResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * WatchTypeCounts streams the World's type counts: all of them, then the
+     * changed ones after each commit that moves any.
+     *
+     * @generated from rpc s4wave.world.EngineResourceService.WatchTypeCounts
+     */
+    WatchTypeCounts: {
+      name: 'WatchTypeCounts',
+      I: WatchTypeCountsRequest,
+      O: WatchTypeCountsResponse,
+      kind: MethodKind.ServerStreaming,
     },
     /**
      * WatchChanges streams each later World revision with the objects and graph
@@ -411,6 +427,17 @@ export interface EngineResourceService {
     request: WaitSeqnoRequest,
     abortSignal?: AbortSignal,
   ): Promise<WaitSeqnoResponse>
+
+  /**
+   * WatchTypeCounts streams the World's type counts: all of them, then the
+   * changed ones after each commit that moves any.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.WatchTypeCounts
+   */
+  WatchTypeCounts(
+    request: WatchTypeCountsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchTypeCountsResponse>
 
   /**
    * WatchChanges streams each later World revision with the objects and graph
@@ -584,6 +611,18 @@ export interface EngineResourceServiceHandler {
   ): Promise<WaitSeqnoResponse>
 
   /**
+   * WatchTypeCounts streams the World's type counts: all of them, then the
+   * changed ones after each commit that moves any.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.WatchTypeCounts
+   */
+  WatchTypeCounts(
+    request: WatchTypeCountsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchTypeCountsResponse>
+
+  /**
    * WatchChanges streams each later World revision with the objects and graph
    * quads it changed since the previous message. The first request opens the
    * stream; a stream opened with an interest takes later requests that change
@@ -661,6 +700,7 @@ export class EngineResourceServiceClient implements EngineResourceService {
     this.SyncThrough = this.SyncThrough.bind(this)
     this.GetSeqno = this.GetSeqno.bind(this)
     this.WaitSeqno = this.WaitSeqno.bind(this)
+    this.WatchTypeCounts = this.WatchTypeCounts.bind(this)
     this.WatchChanges = this.WatchChanges.bind(this)
     this.WaitObjectRev = this.WaitObjectRev.bind(this)
     this.BuildStorageCursor = this.BuildStorageCursor.bind(this)
@@ -867,6 +907,26 @@ export class EngineResourceServiceClient implements EngineResourceService {
       abortSignal || undefined,
     )
     return WaitSeqnoResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchTypeCounts streams the World's type counts: all of them, then the
+   * changed ones after each commit that moves any.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.WatchTypeCounts
+   */
+  WatchTypeCounts(
+    request: WatchTypeCountsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchTypeCountsResponse> {
+    const requestMsg = WatchTypeCountsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      EngineResourceServiceDefinition.methods.WatchTypeCounts.name,
+      WatchTypeCountsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchTypeCountsResponse)(result)
   }
 
   /**
@@ -1363,6 +1423,29 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ListTypeCounts returns the number of objects of each type.
+     *
+     * @generated from rpc s4wave.world.WorldStateResourceService.ListTypeCounts
+     */
+    ListTypeCounts: {
+      name: 'ListTypeCounts',
+      I: ListTypeCountsRequest,
+      O: ListTypeCountsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * WatchTypeCounts streams the type counts: all of them, then the changed
+     * ones after each World change that moves any.
+     *
+     * @generated from rpc s4wave.world.WorldStateResourceService.WatchTypeCounts
+     */
+    WatchTypeCounts: {
+      name: 'WatchTypeCounts',
+      I: WatchTypeCountsRequest,
+      O: WatchTypeCountsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
      * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectRootRefsBatch
      */
     GetObjectRootRefsBatch: {
@@ -1609,6 +1692,27 @@ export interface WorldStateResourceService {
     request: ListObjectsWithTypeRequest,
     abortSignal?: AbortSignal,
   ): Promise<ListObjectsWithTypeResponse>
+
+  /**
+   * ListTypeCounts returns the number of objects of each type.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.ListTypeCounts
+   */
+  ListTypeCounts(
+    request: ListTypeCountsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListTypeCountsResponse>
+
+  /**
+   * WatchTypeCounts streams the type counts: all of them, then the changed
+   * ones after each World change that moves any.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.WatchTypeCounts
+   */
+  WatchTypeCounts(
+    request: WatchTypeCountsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchTypeCountsResponse>
 
   /**
    * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectRootRefsBatch
@@ -1876,6 +1980,29 @@ export interface WorldStateResourceServiceHandler {
   ): Promise<ListObjectsWithTypeResponse>
 
   /**
+   * ListTypeCounts returns the number of objects of each type.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.ListTypeCounts
+   */
+  ListTypeCounts(
+    request: ListTypeCountsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListTypeCountsResponse>
+
+  /**
+   * WatchTypeCounts streams the type counts: all of them, then the changed
+   * ones after each World change that moves any.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.WatchTypeCounts
+   */
+  WatchTypeCounts(
+    request: WatchTypeCountsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchTypeCountsResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectRootRefsBatch
    */
   GetObjectRootRefsBatch(
@@ -1961,6 +2088,8 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.LookupGraphQuadsBatch = this.LookupGraphQuadsBatch.bind(this)
     this.ListGraphEdgeBuckets = this.ListGraphEdgeBuckets.bind(this)
     this.ListObjectsWithType = this.ListObjectsWithType.bind(this)
+    this.ListTypeCounts = this.ListTypeCounts.bind(this)
+    this.WatchTypeCounts = this.WatchTypeCounts.bind(this)
     this.GetObjectRootRefsBatch = this.GetObjectRootRefsBatch.bind(this)
     this.GetObjectMetadataBatch = this.GetObjectMetadataBatch.bind(this)
     this.GetObjectBodiesBatch = this.GetObjectBodiesBatch.bind(this)
@@ -2354,6 +2483,45 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return ListObjectsWithTypeResponse.fromBinary(result)
+  }
+
+  /**
+   * ListTypeCounts returns the number of objects of each type.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.ListTypeCounts
+   */
+  async ListTypeCounts(
+    request: ListTypeCountsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListTypeCountsResponse> {
+    const requestMsg = ListTypeCountsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.ListTypeCounts.name,
+      ListTypeCountsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ListTypeCountsResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchTypeCounts streams the type counts: all of them, then the changed
+   * ones after each World change that moves any.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.WatchTypeCounts
+   */
+  WatchTypeCounts(
+    request: WatchTypeCountsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchTypeCountsResponse> {
+    const requestMsg = WatchTypeCountsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.WatchTypeCounts.name,
+      WatchTypeCountsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchTypeCountsResponse)(result)
   }
 
   /**

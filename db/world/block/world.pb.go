@@ -17,6 +17,7 @@ import (
 	quad "github.com/s4wave/spacewave/db/block/quad"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	block "github.com/s4wave/spacewave/db/kvtx/block"
+	world "github.com/s4wave/spacewave/db/world"
 )
 
 // WorldFormat is the stored layout of a World.
@@ -138,6 +139,10 @@ type World struct {
 	GraphSettings *GraphSettings `protobuf:"bytes,8,opt,name=graph_settings,json=graphSettings,proto3" json:"graphSettings,omitempty"`
 	// Format is the stored layout of graph_key_value.
 	Format WorldFormat `protobuf:"varint,9,opt,name=format,proto3" json:"format,omitempty"`
+	// TypeCounts holds the number of objects of each type with at least one,
+	// sorted by type ID. Each commit that adds or removes a type edge updates
+	// it, so a count reads from the root alone, whatever the World's size.
+	TypeCounts []*world.TypeCount `protobuf:"bytes,10,rep,name=type_counts,json=typeCounts,proto3" json:"typeCounts,omitempty"`
 }
 
 func (x *World) Reset() {
@@ -193,6 +198,13 @@ func (x *World) GetFormat() WorldFormat {
 		return x.Format
 	}
 	return WorldFormat_WORLD_FORMAT_CAYLEY_KV
+}
+
+func (x *World) GetTypeCounts() []*world.TypeCount {
+	if x != nil {
+		return x.TypeCounts
+	}
+	return nil
 }
 
 // GraphSettings are the settings of a World's graph store.
@@ -478,6 +490,7 @@ func (m *World) CloneVT() *World {
 	r.LastChange = protobuf_go_lite.CloneVTValue(m.LastChange)
 	r.PrevChanges = protobuf_go_lite.CloneVTValue(m.PrevChanges)
 	r.GraphSettings = protobuf_go_lite.CloneVTValue(m.GraphSettings)
+	r.TypeCounts = protobuf_go_lite.CloneVTSlice(m.TypeCounts)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -609,6 +622,9 @@ func (this *World) EqualVT(that *World) bool {
 		return false
 	}
 	if this.Format != that.Format {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.TypeCounts, that.TypeCounts, func() *world.TypeCount { return &world.TypeCount{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -893,6 +909,17 @@ func (x *World) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("format")
 		x.Format.MarshalProtoJSON(s)
 	}
+	if len(x.TypeCounts) > 0 || s.HasField("typeCounts") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("typeCounts")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.TypeCounts {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("typeCounts"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -951,6 +978,24 @@ func (x *World) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "format":
 			s.AddField("format")
 			x.Format.UnmarshalProtoJSON(s)
+		case "type_counts", "typeCounts":
+			s.AddField("type_counts")
+			if s.ReadNil() {
+				x.TypeCounts = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.TypeCounts = append(x.TypeCounts, nil)
+					return
+				}
+				v := &world.TypeCount{}
+				v.UnmarshalProtoJSON(s.WithField("type_counts", false))
+				if s.Err() != nil {
+					return
+				}
+				x.TypeCounts = append(x.TypeCounts, v)
+			})
 		}
 	})
 }
@@ -1401,6 +1446,18 @@ func (m *World) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.TypeCounts) > 0 {
+		for iNdEx := len(m.TypeCounts) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.TypeCounts[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x52
+		}
+	}
 	if m.Format != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Format))
 		i--
@@ -1811,6 +1868,10 @@ func (m *World) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Format)
+	for _, e := range m.TypeCounts {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1954,6 +2015,18 @@ func (x *World) MarshalProtoText() string {
 	if x.Format != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "format")
 		protobuf_go_lite.TextWriteStringer(&sb, WorldFormat(x.Format))
+	}
+	if len(x.TypeCounts) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "type_counts")
+		for i, v := range x.TypeCounts {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &world.TypeCount{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2228,6 +2301,19 @@ func (m *World) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypeCounts", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TypeCounts = append(m.TypeCounts, &world.TypeCount{})
+			if err := m.TypeCounts[len(m.TypeCounts)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

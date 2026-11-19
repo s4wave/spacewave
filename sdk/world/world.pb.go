@@ -16,6 +16,7 @@ import (
 	block "github.com/s4wave/spacewave/db/block"
 	quad "github.com/s4wave/spacewave/db/block/quad"
 	bucket "github.com/s4wave/spacewave/db/bucket"
+	world "github.com/s4wave/spacewave/db/world"
 )
 
 // GraphEdgeBucketDirection indicates which edge directions to list.
@@ -2135,6 +2136,79 @@ func (x *ListObjectsWithTypeResponse) GetMore() bool {
 		return x.More
 	}
 	return false
+}
+
+// ListTypeCountsRequest requests the World's type counts.
+type ListTypeCountsRequest struct {
+	unknownFields []byte
+}
+
+func (x *ListTypeCountsRequest) Reset() {
+	*x = ListTypeCountsRequest{}
+}
+
+func (*ListTypeCountsRequest) ProtoMessage() {}
+
+// ListTypeCountsResponse holds the World's type counts.
+type ListTypeCountsResponse struct {
+	unknownFields []byte
+	// TypeCounts holds each type with at least one object, sorted by type ID.
+	TypeCounts []*world.TypeCount `protobuf:"bytes,1,rep,name=type_counts,json=typeCounts,proto3" json:"typeCounts,omitempty"`
+}
+
+func (x *ListTypeCountsResponse) Reset() {
+	*x = ListTypeCountsResponse{}
+}
+
+func (*ListTypeCountsResponse) ProtoMessage() {}
+
+func (x *ListTypeCountsResponse) GetTypeCounts() []*world.TypeCount {
+	if x != nil {
+		return x.TypeCounts
+	}
+	return nil
+}
+
+// WatchTypeCountsRequest starts a watch of the World's type counts.
+type WatchTypeCountsRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchTypeCountsRequest) Reset() {
+	*x = WatchTypeCountsRequest{}
+}
+
+func (*WatchTypeCountsRequest) ProtoMessage() {}
+
+// WatchTypeCountsResponse is one step of a type count watch. The first
+// response holds every count; each later one holds only the counts that
+// changed, with a zero count for a type whose last object went.
+type WatchTypeCountsResponse struct {
+	unknownFields []byte
+	// TypeCounts holds the counts, sorted by type ID.
+	TypeCounts []*world.TypeCount `protobuf:"bytes,1,rep,name=type_counts,json=typeCounts,proto3" json:"typeCounts,omitempty"`
+	// Seqno is the World seqno the counts were read at.
+	Seqno uint64 `protobuf:"varint,2,opt,name=seqno,proto3" json:"seqno,omitempty"`
+}
+
+func (x *WatchTypeCountsResponse) Reset() {
+	*x = WatchTypeCountsResponse{}
+}
+
+func (*WatchTypeCountsResponse) ProtoMessage() {}
+
+func (x *WatchTypeCountsResponse) GetTypeCounts() []*world.TypeCount {
+	if x != nil {
+		return x.TypeCounts
+	}
+	return nil
+}
+
+func (x *WatchTypeCountsResponse) GetSeqno() uint64 {
+	if x != nil {
+		return x.Seqno
+	}
+	return 0
 }
 
 // ObjectRootRef contains root reference metadata for one object key.
@@ -5247,6 +5321,69 @@ func (m *ListObjectsWithTypeResponse) CloneMessageVT() protobuf_go_lite.CloneMes
 	return m.CloneVT()
 }
 
+func (m *ListTypeCountsRequest) CloneVT() *ListTypeCountsRequest {
+	if m == nil {
+		return (*ListTypeCountsRequest)(nil)
+	}
+	r := new(ListTypeCountsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListTypeCountsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListTypeCountsResponse) CloneVT() *ListTypeCountsResponse {
+	if m == nil {
+		return (*ListTypeCountsResponse)(nil)
+	}
+	r := new(ListTypeCountsResponse)
+	r.TypeCounts = protobuf_go_lite.CloneVTSlice(m.TypeCounts)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListTypeCountsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchTypeCountsRequest) CloneVT() *WatchTypeCountsRequest {
+	if m == nil {
+		return (*WatchTypeCountsRequest)(nil)
+	}
+	r := new(WatchTypeCountsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchTypeCountsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchTypeCountsResponse) CloneVT() *WatchTypeCountsResponse {
+	if m == nil {
+		return (*WatchTypeCountsResponse)(nil)
+	}
+	r := new(WatchTypeCountsResponse)
+	r.Seqno = m.Seqno
+	r.TypeCounts = protobuf_go_lite.CloneVTSlice(m.TypeCounts)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchTypeCountsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *ObjectRootRef) CloneVT() *ObjectRootRef {
 	if m == nil {
 		return (*ObjectRootRef)(nil)
@@ -8019,6 +8156,83 @@ func (this *ListObjectsWithTypeResponse) EqualVT(that *ListObjectsWithTypeRespon
 
 func (this *ListObjectsWithTypeResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ListObjectsWithTypeResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListTypeCountsRequest) EqualVT(that *ListTypeCountsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListTypeCountsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListTypeCountsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListTypeCountsResponse) EqualVT(that *ListTypeCountsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.TypeCounts, that.TypeCounts, func() *world.TypeCount { return &world.TypeCount{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListTypeCountsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListTypeCountsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchTypeCountsRequest) EqualVT(that *WatchTypeCountsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchTypeCountsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchTypeCountsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchTypeCountsResponse) EqualVT(that *WatchTypeCountsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.TypeCounts, that.TypeCounts, func() *world.TypeCount { return &world.TypeCount{} }) {
+		return false
+	}
+	if this.Seqno != that.Seqno {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchTypeCountsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchTypeCountsResponse)
 	if !ok {
 		return false
 	}
@@ -13312,6 +13526,200 @@ func (x *ListObjectsWithTypeResponse) UnmarshalProtoJSON(s *json.UnmarshalState)
 
 // UnmarshalJSON unmarshals the ListObjectsWithTypeResponse from JSON.
 func (x *ListObjectsWithTypeResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListTypeCountsRequest message to JSON.
+func (x *ListTypeCountsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListTypeCountsRequest to JSON.
+func (x *ListTypeCountsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListTypeCountsRequest message from JSON.
+func (x *ListTypeCountsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ListTypeCountsRequest from JSON.
+func (x *ListTypeCountsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListTypeCountsResponse message to JSON.
+func (x *ListTypeCountsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.TypeCounts) > 0 || s.HasField("typeCounts") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("typeCounts")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.TypeCounts {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("typeCounts"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListTypeCountsResponse to JSON.
+func (x *ListTypeCountsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListTypeCountsResponse message from JSON.
+func (x *ListTypeCountsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "type_counts", "typeCounts":
+			s.AddField("type_counts")
+			if s.ReadNil() {
+				x.TypeCounts = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.TypeCounts = append(x.TypeCounts, nil)
+					return
+				}
+				v := &world.TypeCount{}
+				v.UnmarshalProtoJSON(s.WithField("type_counts", false))
+				if s.Err() != nil {
+					return
+				}
+				x.TypeCounts = append(x.TypeCounts, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListTypeCountsResponse from JSON.
+func (x *ListTypeCountsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchTypeCountsRequest message to JSON.
+func (x *WatchTypeCountsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchTypeCountsRequest to JSON.
+func (x *WatchTypeCountsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchTypeCountsRequest message from JSON.
+func (x *WatchTypeCountsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchTypeCountsRequest from JSON.
+func (x *WatchTypeCountsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchTypeCountsResponse message to JSON.
+func (x *WatchTypeCountsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.TypeCounts) > 0 || s.HasField("typeCounts") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("typeCounts")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.TypeCounts {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("typeCounts"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Seqno != 0 || s.HasField("seqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("seqno")
+		s.WriteUint64(x.Seqno)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchTypeCountsResponse to JSON.
+func (x *WatchTypeCountsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchTypeCountsResponse message from JSON.
+func (x *WatchTypeCountsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "type_counts", "typeCounts":
+			s.AddField("type_counts")
+			if s.ReadNil() {
+				x.TypeCounts = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.TypeCounts = append(x.TypeCounts, nil)
+					return
+				}
+				v := &world.TypeCount{}
+				v.UnmarshalProtoJSON(s.WithField("type_counts", false))
+				if s.Err() != nil {
+					return
+				}
+				x.TypeCounts = append(x.TypeCounts, v)
+			})
+		case "seqno":
+			s.AddField("seqno")
+			x.Seqno = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchTypeCountsResponse from JSON.
+func (x *WatchTypeCountsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -19673,6 +20081,163 @@ func (m *ListObjectsWithTypeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *ListTypeCountsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListTypeCountsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListTypeCountsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListTypeCountsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListTypeCountsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListTypeCountsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.TypeCounts) > 0 {
+		for iNdEx := len(m.TypeCounts) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.TypeCounts[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchTypeCountsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchTypeCountsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchTypeCountsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchTypeCountsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchTypeCountsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchTypeCountsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Seqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Seqno))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.TypeCounts) > 0 {
+		for iNdEx := len(m.TypeCounts) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.TypeCounts[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ObjectRootRef) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -23545,6 +24110,55 @@ func (m *ListObjectsWithTypeResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *ListTypeCountsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListTypeCountsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.TypeCounts {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchTypeCountsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchTypeCountsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.TypeCounts {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Seqno)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ObjectRootRef) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -25795,6 +26409,74 @@ func (x *ListObjectsWithTypeResponse) MarshalProtoText() string {
 }
 
 func (x *ListObjectsWithTypeResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListTypeCountsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "ListTypeCountsRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ListTypeCountsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListTypeCountsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ListTypeCountsResponse")
+	if len(x.TypeCounts) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "type_counts")
+		for i, v := range x.TypeCounts {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &world.TypeCount{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ListTypeCountsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchTypeCountsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "WatchTypeCountsRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchTypeCountsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchTypeCountsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchTypeCountsResponse")
+	if len(x.TypeCounts) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "type_counts")
+		for i, v := range x.TypeCounts {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &world.TypeCount{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Seqno != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "seqno")
+		protobuf_go_lite.TextWriteUint(&sb, x.Seqno)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchTypeCountsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -31252,6 +31934,213 @@ func (m *ListObjectsWithTypeResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.More = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListTypeCountsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListTypeCountsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListTypeCountsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListTypeCountsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListTypeCountsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListTypeCountsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypeCounts", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TypeCounts = append(m.TypeCounts, &world.TypeCount{})
+			if err := m.TypeCounts[len(m.TypeCounts)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchTypeCountsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchTypeCountsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchTypeCountsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchTypeCountsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchTypeCountsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchTypeCountsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypeCounts", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TypeCounts = append(m.TypeCounts, &world.TypeCount{})
+			if err := m.TypeCounts[len(m.TypeCounts)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Seqno", wireType)
+			}
+			m.Seqno = 0
+			m.Seqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -40,6 +40,7 @@ func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*blo
 	}
 	t.pendingChanges = append(t.pendingChanges, changeBcs)
 	t.pendingType = w.GetChangeType()
+	t.noteTypeChange(w)
 
 	// Update the sequence number, wake the waiters of the keys the change
 	// names and return the change cursor.
@@ -116,13 +117,17 @@ func (t *WorldState) flushWorldChanges(ctx context.Context, w *World) error {
 	queue := t.pendingChanges
 	t.pendingChanges, t.pendingEntries = nil, 0
 
-	// Advance a disabled changelog's seqno without recording entries.
+	// Load the root and add the queue's type edges to its counts. The root is
+	// written with the changelog head below, which every non-empty queue sets.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/flush-world-changes/get-root")
 	r, err := t.GetRoot(taskCtx)
 	subtask.End()
 	if err != nil {
 		return err
 	}
+	t.flushTypeCounts(r)
+
+	// Advance a disabled changelog's seqno without recording entries.
 	if r.GetLastChangeDisable() {
 		if r.LastChange == nil {
 			r.LastChange = &ChangeLogLL{}

@@ -61,3 +61,26 @@ export const SpanOption: MessageType<SpanOption> =
     [1, 'start', 9],
     [2, 'end', 9],
   ])
+
+/**
+ * TypeCount is the number of objects of one type in a World: the number of
+ * <type> edges to the key types/<type_id>.
+ *
+ * @generated from message world.TypeCount
+ */
+export interface TypeCount {
+  /**
+   * TypeId is the object type ID.
+   */
+  typeId?: string
+  /**
+   * Count is the number of objects with the type.
+   */
+  count?: bigint
+}
+
+export const TypeCount: MessageType<TypeCount> =
+  /* @__PURE__ */ createMessageType<TypeCount>('world.TypeCount', () => [
+    [1, 'type_id', 9],
+    [2, 'count', 4],
+  ])

@@ -6,6 +6,7 @@ import "github.com/s4wave/spacewave/db/block/quad/quad.proto";
 import "github.com/s4wave/spacewave/db/kvtx/block/kvtx.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "github.com/aperturerobotics/cayley/graph/kv/indexing.proto";
+import "github.com/s4wave/spacewave/db/world/world.proto";
 
 // World contains a key/value Object store, and a graph database with quads
 // <subject, predicate, object, value>. Optionally a bounded 2D changelog
@@ -36,6 +37,10 @@ message World {
   GraphSettings graph_settings = 8;
   // Format is the stored layout of graph_key_value.
   WorldFormat format = 9;
+  // TypeCounts holds the number of objects of each type with at least one,
+  // sorted by type ID. Each commit that adds or removes a type edge updates
+  // it, so a count reads from the root alone, whatever the World's size.
+  repeated .world.TypeCount type_counts = 10;
 
   // The volume owns block reachability. Fields 5 and 6 held a World-local
   // reference graph and its journal.

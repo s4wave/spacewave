@@ -5,6 +5,7 @@
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
 import { BlockRef } from '../../block/block.pb.js'
+import { TypeCount } from '../world.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { QuadIndexMeta } from '@go/github.com/aperturerobotics/cayley/graph/kv/indexing.pb.js'
@@ -121,6 +122,12 @@ export interface World {
    * Format is the stored layout of graph_key_value.
    */
   format?: WorldFormat
+  /**
+   * TypeCounts holds the number of objects of each type with at least one,
+   * sorted by type ID. Each commit that adds or removes a type edge updates
+   * it, so a count reads from the root alone, whatever the World's size.
+   */
+  typeCounts?: TypeCount[]
 }
 
 export const World: MessageType<World> =
@@ -132,6 +139,7 @@ export const World: MessageType<World> =
     [7, 'prev_changes', 11, 0, BlockRef.codec],
     [8, 'graph_settings', 11, 0, GraphSettings.codec],
     [9, 'format', 14, 0, WorldFormat_Enum],
+    [10, 'type_counts', 11, 1, TypeCount.codec],
   ])
 
 /**

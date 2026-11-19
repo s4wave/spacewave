@@ -257,6 +257,17 @@ func (e *engineWorldState) QueryGraphPath(ctx context.Context, query *GraphPathQ
 	return result, err
 }
 
+// ListTypeCounts reads the type counts in a short-lived transaction.
+func (e *engineWorldState) ListTypeCounts(ctx context.Context) ([]*TypeCount, error) {
+	var counts []*TypeCount
+	err := e.performOp(ctx, false, func(tx Tx) error {
+		var err error
+		counts, err = tx.ListTypeCounts(ctx)
+		return err
+	})
+	return counts, err
+}
+
 // ListObjectsWithType reads one typed subject page in a short-lived transaction.
 func (e *engineWorldState) ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) ([]string, bool, error) {
 	// Resolve this page through the engine's existing read operation.

@@ -108,6 +108,10 @@ type WorldState struct {
 	pendingEntries uint64
 	// pendingType is the type of the last pending change.
 	pendingType WorldChangeType
+	// typeDeltas holds, per type ID, the type edges the pending changes add
+	// less those they remove. The flush of pendingChanges adds them to the
+	// root's type counts.
+	typeDeltas map[string]int64
 	// modObjects holds the record cursors of each object written since the last
 	// Commit, which stamps them with the seqno it reaches. The last cursor of a
 	// key holds the record in the tree; earlier ones back changelog entries.
