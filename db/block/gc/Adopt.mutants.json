@@ -1,49 +1,177 @@
 [
   {
-    "name": "Land writes no born mark, so the scan counts a born list again",
-    "replace": [["              /\\ bmark' = bmark \\cup born", "              /\\ bmark' = bmark"]],
+    "name": "a count slice commits its counts without the cursor's advance, so a resume counts it again",
+    "replace": [
+      [
+        "  /\\ cursor' = [cursor EXCEPT !.at = @ + 1]\n  /\\ UNCHANGED <<adoption, owner, runs, listed, holes, marked, raw,",
+        "  /\\ cursor' \\in {cursor, [cursor EXCEPT !.at = @ + 1]}\n  /\\ UNCHANGED <<adoption, owner, runs, listed, holes, marked, raw,"
+      ]
+    ],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
   {
-    "name": "the scan counts a moved root's current target, not its target at the mark",
-    "replace": [["THEN LET v == IF amark[r.n] # Unset THEN amark[r.n] ELSE roots[r.n] IN", "THEN LET v == roots[r.n] IN"]],
+    "name": "the settle ends one slice early, leaving the last block's tally raw",
+    "replace": [
+      [
+        "  /\\ cursor.at = Len(Lists)",
+        "  /\\ cursor.at >= Len(Lists) - 1"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "a run deletes its marks without the owner fence, under a later run's adoption",
+    "replace": [
+      [
+        "IF adoption = \"adopted\" /\\ owner = r",
+        "IF TRUE"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "a takeover accepts a cursor another run left",
+    "replace": [
+      [
+        "AdoptTakeover ==\n  /\\ Owned",
+        "AdoptTakeover ==\n  /\\ Adopting"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "a refill logs its children's holders whatever the count passed",
+    "replace": [
+      [
+        "lacks(q) == IF Adopting THEN Counted(q) ELSE q \\in marked",
+        "lacks(q) == TRUE"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "the settle leaves a hole unmarked, so a refill once adopted logs no holder",
+    "replace": [
+      [
+        "              /\\ marked' = marked \\cup {p}",
+        "              /\\ marked' = marked"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "the settle skips the hole records",
+    "replace": [
+      [
+        "CASE p \\in bmark \\/ p \\notin listed \\cup holes ->",
+        "CASE p \\in bmark \\/ p \\notin listed ->"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "Land writes no born mark, so the count reads a born list again",
+    "replace": [
+      [
+        "THEN /\\ bmark' = bmark \\cup born",
+        "THEN /\\ bmark' = bmark"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "the count reads a moved root's current target, not its target at the mark",
+    "replace": [
+      [
+        "THEN LET v == IF amark[r.n] # Unset THEN amark[r.n] ELSE roots[r.n] IN",
+        "THEN LET v == roots[r.n] IN"
+      ]
+    ],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
   {
     "name": "the mark does not wait for the stale counts to clear",
-    "replace": [["  /\\ cleared\n  /\\ phase' = \"scan\"", "  /\\ TRUE\n  /\\ phase' = \"scan\""]],
+    "replace": [
+      [
+        "  /\\ cleared\n  /\\ adoption' = \"adopting\"",
+        "  /\\ TRUE\n  /\\ adoption' = \"adopting\""
+      ]
+    ],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
   {
     "name": "a run keeps the logs of the run it replaces",
-    "replace": [["  /\\ upLog' = <<>>\n  /\\ downLog' = <<>>", "  /\\ upLog' = upLog\n  /\\ downLog' = downLog"]],
+    "replace": [
+      [
+        "  /\\ cursor' = [run |-> owner, pass |-> \"count\", at |-> 0]\n  /\\ upLog' = <<>>\n  /\\ downLog' = <<>>",
+        "  /\\ cursor' = [run |-> owner, pass |-> \"count\", at |-> 0]\n  /\\ upLog' = upLog\n  /\\ downLog' = downLog"
+      ]
+    ],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
   {
-    "name": "adoption ends once the roots are counted, before any list",
-    "replace": [["  /\\ cursor = Len(Scan)\n  /\\ phase' = \"adopted\"", "  /\\ cursor >= 2\n  /\\ phase' = \"adopted\""]],
+    "name": "the count pass ends once the roots are counted, before any list",
+    "replace": [
+      [
+        "  /\\ cursor.at = Len(Scan)",
+        "  /\\ cursor.at >= 2"
+      ]
+    ],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
   {
-    "name": "a resumed run starts at the cursor's record, counting it again",
-    "replace": [["  /\\ cursor' = cursor\n", "  /\\ cursor' = IF cursor > 0 THEN cursor - 1 ELSE 0\n"]],
+    "name": "a takeover resumes at the cursor's record, counting it again",
+    "replace": [
+      [
+        "  /\\ cursor' = [cursor EXCEPT !.run = runs + 1]",
+        "  /\\ cursor' = [cursor EXCEPT !.run = runs + 1, !.at = IF @ > 0 THEN @ - 1 ELSE 0]"
+      ]
+    ],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
   {
-    "name": "a new run keeps the cursor of the run it clears",
-    "replace": [["  /\\ cleared' = TRUE\n  /\\ cursor' = 0\n", "  /\\ cleared' = TRUE\n  /\\ cursor' = cursor\n"]],
-    "expect": "CountsExact",
+    "name": "a claim keeps the cursor of the run it supersedes",
+    "replace": [
+      [
+        "  /\\ cleared' = FALSE\n  /\\ cursor' = NoCursor\n  /\\ UNCHANGED <<listed",
+        "  /\\ cleared' = FALSE\n  /\\ cursor' = cursor\n  /\\ UNCHANGED <<listed"
+      ]
+    ],
+    "expect": "CursorLife",
     "config": "Adopt.cfg"
   },
   {
-    "name": "adoption queues no block at zero",
-    "replace": [["  /\\ queued' = {b \\in listed : H[b] = 0}", "  /\\ queued' = {}"]],
+    "name": "the adoption's end keeps the cursor",
+    "replace": [
+      [
+        "  /\\ cursor' = NoCursor\n  /\\ cleanup' = cleanup \\cup {owner}",
+        "  /\\ cursor' = cursor\n  /\\ cleanup' = cleanup \\cup {owner}"
+      ]
+    ],
+    "expect": "CursorLife",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "the settle queues no block at zero",
+    "replace": [
+      [
+        "              /\\ queued' = IF H[p] = 0 THEN queued \\cup {p} ELSE queued",
+        "              /\\ queued' = queued"
+      ]
+    ],
     "expect": "ZeroQueued",
     "config": "Adopt.cfg"
   }
