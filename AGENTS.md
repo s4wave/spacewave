@@ -153,6 +153,15 @@ Resolvers use `directive.NewValueResolver` for static values and `directive.NewF
 
 Use the existing `Ex*` and `loader.WaitExecControllerRunning*` helpers. Keep a returned live `directive.Reference` until the caller's resource or lifecycle releases it.
 
+## World layout
+
+A World object is something a person or another object addresses by itself: it has its own identity, type, graph relations, permissions or lifecycle. Everything one owner keeps for itself lives in that owner's block DAG, under the object's root ref. Each World object costs a key, a revision and a tree entry, and every listing, walk, backup and type query pays for it, so a World should hold thousands of meaningful objects rather than millions of fragments.
+
+- A stream or sequence that one owner appends, such as process output, transcript pages, log lines or raw payloads, is one object. Keep bytes in a `db/block/blob` blob and grow it with `Blob.AppendData`, which stores only the new bytes as a tail chunk. Keep records in a block tree in the object's root, such as the `db/kvtx/block` indexed log. Never write one World object per chunk, page or entry. A reader gets the owner once, then reads block ranges.
+- Name an object `<type-root>/<id>`, where the id is the object's own identity: an opaque id or a natural external one such as `owner/repo`. A key never contains another object's key; relate objects with a typed object-key field or a graph quad. A bounded child `<key>/<role>` suits an owned singleton with its own lifecycle. An unbounded family of children under one key belongs in the owner's block DAG.
+- Give every object a type, so a type query and the object browser can find and render it.
+- Before adding an object family, ask whether anyone opens, links or grants access to one member by itself. If not, it belongs in its owner's block DAG.
+
 ## World writes and reads
 
 Express each World change as a typed, registered `world.Operation` that records intent, applied through `ApplyWorldOp` or an object's `ApplyObjectOp`. Do not use an operation that only carries a list of final values. The operation carries every input its apply needs: the actor, timestamps, generated identities and payload refs. That way validation, the locked apply and a replica's replay decide alike. An apply reads only the World and the operation. Write the blocks an operation publishes before applying it, and run network calls, clock reads and other external effects outside the apply.
