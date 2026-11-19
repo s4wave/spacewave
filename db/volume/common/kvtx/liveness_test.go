@@ -4999,6 +4999,65 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("adoption after a stale cleanup differs from a clean one: %v", recordsDiff(got, want))
 		}
 	})
+
+	t.Run("adoption counts a hole refilled behind its scan", func(t *testing.T) {
+		// P names X, which names C, and a root holds C too. The store loses
+		// X and an audit records the hole. An adoption counts the child
+		// lists while X has none, and a put refills X before the settle:
+		// X's list gives C a holder the scan never counted, so the refill
+		// logs it, and the adoption agrees with a clean recount.
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v, vclk := openUnadoptedVolume(t, store)
+		ctx := t.Context()
+		tr := testTree{}
+		c := tr.add(t, "C")
+		x := tr.add(t, "X", "C")
+		p := tr.add(t, "P", "X")
+		roots := []block.NamedRoot{{Name: "main", Ref: p}, {Name: "c", Ref: c}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("C", "X", "P"), roots); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		punchHole(t, v, x)
+		if res, err := v.Audit(ctx); err != nil || res.Holes != 1 {
+			t.Fatalf("audit recorded %d holes err %v, want 1", res.Holes, err)
+		}
+
+		// Count the lists with X missing, then refill X before the settle.
+		markUnadopted(t, v)
+		adoptCtx, cancel := context.WithCancel(ctx)
+		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){adoptSettle: cancel}}
+		_, err := block_gc.Adopt(adoptCtx, probe, v.now)
+		cancel()
+		if !errors.Is(err, context.Canceled) || len(probe.at) != 0 {
+			t.Fatalf("adopt = %v with %d cancels left, want canceled", err, len(probe.at))
+		}
+		if _, err := v.PutBlockBatch(ctx, tr.entries("X")); err != nil {
+			t.Fatal(err)
+		}
+
+		// The adoption settles, and once the logs net, the refill's own
+		// hold of X included, its counts match a clean recount's.
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		clean := copyAll(t, store)
+		vc, clk := openUnadoptedVolume(t, clean)
+		markUnadopted(t, vc)
+		if _, err := vc.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		vclk.Add(block_gc.DefaultGrace + time.Second)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		collectAll(t, vc)
+		if got, want := adoptedRecords(t, store), adoptedRecords(t, clean); !maps.Equal(got, want) {
+			t.Fatalf("adoption over a refilled hole differs from a clean one: %q", recordsDiff(got, want))
+		}
+	})
 }
 
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
