@@ -129,21 +129,10 @@ func (t *TxBatch) ExecuteTx(
 		return false, err
 	}
 
-	// Apply the sub-transactions in order, a run of graph quad sets in one
-	// graph update where the World offers it.
-	setter, batched := worldInstance.(graphQuadsSetter)
-	txs := t.GetTxs()
-	for i := 0; i < len(txs); i++ {
-		if batched {
-			if run := setGraphQuadRun(txs[i:]); len(run) > 1 {
-				if err := setter.SetGraphQuads(ctx, run); err != nil {
-					return false, errors.Wrapf(err, "tx_batch[%d:%d]", i, i+len(run))
-				}
-				i += len(run) - 1
-				continue
-			}
-		}
-		txo, err := txs[i].LocateTx()
+	// Apply the sub-transactions one at a time, as the writer that recorded
+	// them did, so every replica reaches the writer's World.
+	for i, tx := range t.GetTxs() {
+		txo, err := tx.LocateTx()
 		if err != nil {
 			return false, errors.Wrapf(err, "tx_batch[%d]", i)
 		}
@@ -154,26 +143,6 @@ func (t *TxBatch) ExecuteTx(
 	}
 
 	return false, nil
-}
-
-// graphQuadsSetter is a World that sets many graph quads in one graph update,
-// with the effect of setting each in order, as world_block.EngineTx does.
-type graphQuadsSetter interface {
-	// SetGraphQuads sets the quads the graph lacks, skipping existing and
-	// repeated ones.
-	SetGraphQuads(ctx context.Context, quads []world.GraphQuad) error
-}
-
-// setGraphQuadRun returns the quads of the graph quad sets that lead txs.
-func setGraphQuadRun(txs []*Tx) []world.GraphQuad {
-	var run []world.GraphQuad
-	for _, tx := range txs {
-		if tx.GetTxType() != TxType_TxType_SET_GRAPH_QUAD {
-			break
-		}
-		run = append(run, world.QuadToGraphQuad(tx.GetTxSetGraphQuad().GetQuad()))
-	}
-	return run
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

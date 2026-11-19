@@ -40,6 +40,8 @@ const (
 	TxType_TxType_SET_GRAPH_QUAD TxType = 7
 	// TxType_DELETE_GRAPH_QUAD deletes a graph quad from the store.
 	TxType_TxType_DELETE_GRAPH_QUAD TxType = 8
+	// TxType_SET_GRAPH_QUADS sets a list of graph quads in one graph update.
+	TxType_TxType_SET_GRAPH_QUADS TxType = 12
 	// TxType_BATCH applies multiple sub-transactions.
 	TxType_TxType_BATCH TxType = 9
 )
@@ -57,6 +59,7 @@ var (
 		11: "TxType_RENAME_OBJECT",
 		7:  "TxType_SET_GRAPH_QUAD",
 		8:  "TxType_DELETE_GRAPH_QUAD",
+		12: "TxType_SET_GRAPH_QUADS",
 		9:  "TxType_BATCH",
 	}
 	TxType_value = map[string]int32{
@@ -70,6 +73,7 @@ var (
 		"TxType_RENAME_OBJECT":     11,
 		"TxType_SET_GRAPH_QUAD":    7,
 		"TxType_DELETE_GRAPH_QUAD": 8,
+		"TxType_SET_GRAPH_QUADS":   12,
 		"TxType_BATCH":             9,
 	}
 )
@@ -118,6 +122,9 @@ type Tx struct {
 	TxSetGraphQuad *TxSetGraphQuad `protobuf:"bytes,8,opt,name=tx_set_graph_quad,json=txSetGraphQuad,proto3" json:"txSetGraphQuad,omitempty"`
 	// TxDeleteGraphQuad deletes a graph quad.
 	TxDeleteGraphQuad *TxDeleteGraphQuad `protobuf:"bytes,9,opt,name=tx_delete_graph_quad,json=txDeleteGraphQuad,proto3" json:"txDeleteGraphQuad,omitempty"`
+	// TxSetGraphQuads sets a list of graph quads in one graph update.
+	// TxType_SET_GRAPH_QUADS
+	TxSetGraphQuads *TxSetGraphQuads `protobuf:"bytes,13,opt,name=tx_set_graph_quads,json=txSetGraphQuads,proto3" json:"txSetGraphQuads,omitempty"`
 	// TxBatch is a batch of multiple txs.
 	TxBatch *TxBatch `protobuf:"bytes,10,opt,name=tx_batch,json=txBatch,proto3" json:"txBatch,omitempty"`
 }
@@ -194,6 +201,13 @@ func (x *Tx) GetTxSetGraphQuad() *TxSetGraphQuad {
 func (x *Tx) GetTxDeleteGraphQuad() *TxDeleteGraphQuad {
 	if x != nil {
 		return x.TxDeleteGraphQuad
+	}
+	return nil
+}
+
+func (x *Tx) GetTxSetGraphQuads() *TxSetGraphQuads {
+	if x != nil {
+		return x.TxSetGraphQuads
 	}
 	return nil
 }
@@ -495,6 +509,31 @@ func (x *TxSetGraphQuad) GetQuad() *quad.Quad {
 	return nil
 }
 
+// TxSetGraphQuads sets the quads of a list the graph lacks in one graph
+// update, skipping existing and repeated ones. The World it reaches depends on
+// the list as a whole, not only on its quads: the same quads set one at a time
+// or in other lists reach another root. Every replica applies the list as
+// written, so all reach the same World.
+// TxType: TxType_SET_GRAPH_QUADS
+type TxSetGraphQuads struct {
+	unknownFields []byte
+	// Quads are the graph quads to set, in order.
+	Quads []*quad.Quad `protobuf:"bytes,1,rep,name=quads,proto3" json:"quads,omitempty"`
+}
+
+func (x *TxSetGraphQuads) Reset() {
+	*x = TxSetGraphQuads{}
+}
+
+func (*TxSetGraphQuads) ProtoMessage() {}
+
+func (x *TxSetGraphQuads) GetQuads() []*quad.Quad {
+	if x != nil {
+		return x.Quads
+	}
+	return nil
+}
+
 // TxDeleteGraphQuad deletes a graph quad.
 // TxType: TxType_DELETE_GRAPH_QUAD
 type TxDeleteGraphQuad struct {
@@ -531,6 +570,7 @@ func (m *Tx) CloneVT() *Tx {
 	r.TxRenameObject = protobuf_go_lite.CloneVTValue(m.TxRenameObject)
 	r.TxSetGraphQuad = protobuf_go_lite.CloneVTValue(m.TxSetGraphQuad)
 	r.TxDeleteGraphQuad = protobuf_go_lite.CloneVTValue(m.TxDeleteGraphQuad)
+	r.TxSetGraphQuads = protobuf_go_lite.CloneVTValue(m.TxSetGraphQuads)
 	r.TxBatch = protobuf_go_lite.CloneVTValue(m.TxBatch)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -697,6 +737,22 @@ func (m *TxSetGraphQuad) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *TxSetGraphQuads) CloneVT() *TxSetGraphQuads {
+	if m == nil {
+		return (*TxSetGraphQuads)(nil)
+	}
+	r := new(TxSetGraphQuads)
+	r.Quads = protobuf_go_lite.CloneVTSlice(m.Quads)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TxSetGraphQuads) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *TxDeleteGraphQuad) CloneVT() *TxDeleteGraphQuad {
 	if m == nil {
 		return (*TxDeleteGraphQuad)(nil)
@@ -750,6 +806,9 @@ func (this *Tx) EqualVT(that *Tx) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.TxRenameObject, that.TxRenameObject) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.TxSetGraphQuads, that.TxSetGraphQuads) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -976,6 +1035,26 @@ func (this *TxSetGraphQuad) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *TxSetGraphQuads) EqualVT(that *TxSetGraphQuads) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Quads, that.Quads, func() *quad.Quad { return &quad.Quad{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TxSetGraphQuads) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TxSetGraphQuads)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *TxDeleteGraphQuad) EqualVT(that *TxDeleteGraphQuad) bool {
 	if this == that {
 		return true
@@ -1099,6 +1178,11 @@ func (x *Tx) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("txRenameObject")
 		x.TxRenameObject.MarshalProtoJSON(s.WithField("txRenameObject"))
 	}
+	if x.TxSetGraphQuads != nil || s.HasField("txSetGraphQuads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("txSetGraphQuads")
+		x.TxSetGraphQuads.MarshalProtoJSON(s.WithField("txSetGraphQuads"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1189,6 +1273,13 @@ func (x *Tx) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.TxRenameObject = &TxRenameObject{}
 			x.TxRenameObject.UnmarshalProtoJSON(s.WithField("tx_rename_object", true))
+		case "tx_set_graph_quads", "txSetGraphQuads":
+			if s.ReadNil() {
+				x.TxSetGraphQuads = nil
+				return
+			}
+			x.TxSetGraphQuads = &TxSetGraphQuads{}
+			x.TxSetGraphQuads.UnmarshalProtoJSON(s.WithField("tx_set_graph_quads", true))
 		}
 	})
 }
@@ -1739,6 +1830,69 @@ func (x *TxSetGraphQuad) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the TxSetGraphQuads message to JSON.
+func (x *TxSetGraphQuads) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Quads) > 0 || s.HasField("quads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quads")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Quads {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("quads"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TxSetGraphQuads to JSON.
+func (x *TxSetGraphQuads) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TxSetGraphQuads message from JSON.
+func (x *TxSetGraphQuads) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "quads":
+			s.AddField("quads")
+			if s.ReadNil() {
+				x.Quads = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Quads = append(x.Quads, nil)
+					return
+				}
+				v := &quad.Quad{}
+				v.UnmarshalProtoJSON(s.WithField("quads", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Quads = append(x.Quads, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TxSetGraphQuads from JSON.
+func (x *TxSetGraphQuads) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the TxDeleteGraphQuad message to JSON.
 func (x *TxDeleteGraphQuad) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1813,6 +1967,16 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.TxSetGraphQuads != nil {
+		size, err := m.TxSetGraphQuads.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x6a
 	}
 	if m.TxRenameObject != nil {
 		size, err := m.TxRenameObject.MarshalToSizedBufferVT(dAtA[:i])
@@ -2346,6 +2510,50 @@ func (m *TxSetGraphQuad) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *TxSetGraphQuads) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TxSetGraphQuads) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TxSetGraphQuads) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Quads) > 0 {
+		for iNdEx := len(m.Quads) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Quads[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *TxDeleteGraphQuad) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2433,6 +2641,10 @@ func (m *Tx) SizeVT() (n int) {
 	}
 	if m.TxRenameObject != nil {
 		l = m.TxRenameObject.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.TxSetGraphQuads != nil {
+		l = m.TxSetGraphQuads.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -2567,6 +2779,20 @@ func (m *TxSetGraphQuad) SizeVT() (n int) {
 	return n
 }
 
+func (m *TxSetGraphQuads) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Quads {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *TxDeleteGraphQuad) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2631,6 +2857,10 @@ func (x *Tx) MarshalProtoText() string {
 	if x.TxRenameObject != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_rename_object")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxRenameObject)
+	}
+	if x.TxSetGraphQuads != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_set_graph_quads")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxSetGraphQuads)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2833,6 +3063,28 @@ func (x *TxSetGraphQuad) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *TxSetGraphQuads) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TxSetGraphQuads")
+	if len(x.Quads) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "quads")
+		for i, v := range x.Quads {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &quad.Quad{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TxSetGraphQuads) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *TxDeleteGraphQuad) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TxDeleteGraphQuad")
@@ -3025,6 +3277,21 @@ func (m *Tx) UnmarshalVT(dAtA []byte) error {
 				m.TxRenameObject = &TxRenameObject{}
 			}
 			if err := m.TxRenameObject.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxSetGraphQuads", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TxSetGraphQuads == nil {
+				m.TxSetGraphQuads = &TxSetGraphQuads{}
+			}
+			if err := m.TxSetGraphQuads.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3632,6 +3899,62 @@ func (m *TxSetGraphQuad) UnmarshalVT(dAtA []byte) error {
 				m.Quad = &quad.Quad{}
 			}
 			if err := m.Quad.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TxSetGraphQuads) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TxSetGraphQuads: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TxSetGraphQuads: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Quads", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Quads = append(m.Quads, &quad.Quad{})
+			if err := m.Quads[len(m.Quads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

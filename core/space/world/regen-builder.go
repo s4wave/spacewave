@@ -68,18 +68,26 @@ func (b *regenBuilder) start(ctx context.Context) error {
 
 // follow sets the build to the installed head's pin until ctx ends. Execute
 // runs it beside the driver, so start-up replay goes on while a build resumes.
+// Until the first head installs, the pin is unknown, and follow leaves the
+// build an earlier run held: releasing it then would drop a build the head
+// still pins.
 func (b *regenBuilder) follow(ctx context.Context) error {
 	for {
 		var head *bucket.ObjectRef
 		var waitCh <-chan struct{}
 		b.a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			waitCh = getWaitCh()
-			head = b.a.bucketRef(nil)
-			if pin, _, _ := heldRegen(b.a.headState); pin != nil {
+			switch pin, _, _ := heldRegen(b.a.headState); {
+			case b.a.headState == nil:
+			case pin != nil:
 				head = b.a.bucketRef(withRoot(b.a.headState, pin).GetHeadRef())
+			default:
+				head = b.a.bucketRef(nil)
 			}
 		})
-		b.routine.SetState(head)
+		if head != nil {
+			b.routine.SetState(head)
+		}
 		select {
 		case <-ctx.Done():
 			return nil
@@ -88,7 +96,9 @@ func (b *regenBuilder) follow(ctx context.Context) error {
 	}
 }
 
-// load publishes the build the regen-build root holds.
+// load publishes the build the regen-build root holds. An unreadable root is
+// no build: load logs it and leaves the root held, so the Space opens and the
+// next build of a pin replaces the root.
 func (b *regenBuilder) load(ctx context.Context) error {
 	// Read the root's block under the root lock.
 	release, err := b.a.rootMtx.Lock(ctx)
@@ -97,15 +107,21 @@ func (b *regenBuilder) load(ctx context.Context) error {
 	}
 	data, err := b.a.readRootBlock(ctx, RootRegenBuild, b.a.held[RootRegenBuild])
 	release()
-	if err != nil || data == nil {
-		return err
+	if ctx.Err() != nil {
+		return context.Cause(ctx)
 	}
 
-	// Publish the pin and build it names.
+	// Decode the pin and build it names.
 	msg := &HeldRoots{}
-	if err := msg.UnmarshalVT(data); err != nil {
-		return errors.Wrap(err, "regeneration build root")
+	if err == nil {
+		err = msg.UnmarshalVT(data)
 	}
+	if err != nil {
+		b.a.le.WithError(err).Warn("held regeneration build is not readable, holding no build")
+		return nil
+	}
+
+	// Publish them.
 	if roots := msg.GetRoots(); len(roots) == 2 {
 		b.set(&regenBuild{pin: roots[0], built: roots[1]})
 	}

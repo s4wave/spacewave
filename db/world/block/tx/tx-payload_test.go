@@ -168,6 +168,14 @@ var txPayloadRefsGolden = map[world_block_tx.TxType]struct {
 			return tx
 		},
 	},
+	world_block_tx.TxType_TxType_SET_GRAPH_QUADS: {
+		tx: func(*testing.T, func(string) *block.BlockRef) *world_block_tx.Tx {
+			return world_block_tx.NewTxSetGraphQuads([]*quad.Quad{
+				{Subject: "<s>", Predicate: "<p>", Obj: "<o>"},
+				{Subject: "<s>", Predicate: "<p>", Obj: "<o2>"},
+			})
+		},
+	},
 	world_block_tx.TxType_TxType_DELETE_GRAPH_QUAD: {
 		tx: func(t *testing.T, _ func(string) *block.BlockRef) *world_block_tx.Tx {
 			tx, err := world_block_tx.NewTxDeleteGraphQuad(&quad.Quad{Subject: "<s>", Predicate: "<p>", Obj: "<o>"})

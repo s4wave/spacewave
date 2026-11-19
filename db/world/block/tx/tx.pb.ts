@@ -63,6 +63,11 @@ export enum TxType {
   TxType_DELETE_GRAPH_QUAD = 8,
 
   /**
+   * TxType_SET_GRAPH_QUADS sets a list of graph quads in one graph update.
+   */
+  TxType_SET_GRAPH_QUADS = 12,
+
+  /**
    * TxType_BATCH applies multiple sub-transactions.
    */
   TxType_BATCH = 9,
@@ -81,6 +86,7 @@ export const TxType_Enum = /* @__PURE__ */ createEnumType(
     [11, 'TxType_RENAME_OBJECT'],
     [7, 'TxType_SET_GRAPH_QUAD'],
     [8, 'TxType_DELETE_GRAPH_QUAD'],
+    [12, 'TxType_SET_GRAPH_QUADS'],
     [9, 'TxType_BATCH'],
   ],
 )
@@ -139,6 +145,11 @@ export interface Tx {
    */
   txDeleteGraphQuad?: TxDeleteGraphQuad
   /**
+   * TxSetGraphQuads sets a list of graph quads in one graph update.
+   * TxType_SET_GRAPH_QUADS
+   */
+  txSetGraphQuads?: TxSetGraphQuads
+  /**
    * TxBatch is a batch of multiple txs.
    */
   txBatch?: TxBatch
@@ -158,6 +169,7 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType<Tx>(
     [9, 'tx_delete_graph_quad', 11, 0, TxDeleteGraphQuad.codec],
     [10, 'tx_batch', 11, 0, TxBatch.codec],
     [12, 'tx_rename_object', 11, 0, TxRenameObject.codec],
+    [13, 'tx_set_graph_quads', 11, 0, TxSetGraphQuads.codec],
   ],
 )
 
@@ -398,6 +410,29 @@ export const TxSetGraphQuad: MessageType<TxSetGraphQuad> =
   /* @__PURE__ */ createMessageType<TxSetGraphQuad>(
     'world.block.tx.TxSetGraphQuad',
     () => [[1, 'quad', 11, 0, Quad.codec]],
+  )
+
+/**
+ * TxSetGraphQuads sets the quads of a list the graph lacks in one graph
+ * update, skipping existing and repeated ones. The World it reaches depends on
+ * the list as a whole, not only on its quads: the same quads set one at a time
+ * or in other lists reach another root. Every replica applies the list as
+ * written, so all reach the same World.
+ * TxType: TxType_SET_GRAPH_QUADS
+ *
+ * @generated from message world.block.tx.TxSetGraphQuads
+ */
+export interface TxSetGraphQuads {
+  /**
+   * Quads are the graph quads to set, in order.
+   */
+  quads?: Quad[]
+}
+
+export const TxSetGraphQuads: MessageType<TxSetGraphQuads> =
+  /* @__PURE__ */ createMessageType<TxSetGraphQuads>(
+    'world.block.tx.TxSetGraphQuads',
+    () => [[1, 'quads', 11, 1, Quad.codec]],
   )
 
 /**

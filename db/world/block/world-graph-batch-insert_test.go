@@ -13,12 +13,14 @@ import (
 // TestGraphInsertionBatchMatchesIndividualWrites verifies that InsertGraphQuads
 // and SetGraphQuads, given some quads already present and repeated, match
 // individual SetGraphQuad calls in graph contents, endpoint revisions,
-// duplicate handling, and retained World change records.
+// duplicate handling, and retained World change records, and that repeating one
+// grouping reaches the same World root.
 func TestGraphInsertionBatchMatchesIndividualWrites(t *testing.T) {
 	ctx := t.Context()
 	var wantRevisions []uint64
 	var wantChanges []*WorldChange
-	for _, mode := range []string{"individual", "insert", "set"} {
+	roots := make(map[string]string)
+	for _, mode := range []string{"individual", "insert", "set", "set-again"} {
 		batch := mode != "individual"
 		ws, cursor, cleanup := newTestWorld(t, ctx)
 		defer cleanup()
@@ -42,7 +44,7 @@ func TestGraphInsertionBatchMatchesIndividualWrites(t *testing.T) {
 			if err := ws.InsertGraphQuads(ctx, quads); err != nil {
 				t.Fatal(err)
 			}
-		case "set":
+		case "set", "set-again":
 			if err := ws.SetGraphQuads(ctx, quads[:16]); err != nil {
 				t.Fatal(err)
 			}
@@ -82,6 +84,7 @@ func TestGraphInsertionBatchMatchesIndividualWrites(t *testing.T) {
 		if err := ws.Commit(ctx); err != nil {
 			t.Fatal(err)
 		}
+		roots[mode] = ws.bcs.GetRef().MarshalString()
 		entries, err := ReadChangeLogEntriesFromCursor(ctx, ws.bcs, ChangeLogReadOptions{Limit: 1})
 		if err != nil || len(entries) != 1 {
 			t.Fatalf("read retained changes: count=%d err=%v", len(entries), err)
@@ -100,6 +103,14 @@ func TestGraphInsertionBatchMatchesIndividualWrites(t *testing.T) {
 		} else if !reflect.DeepEqual(revisions, wantRevisions) || !reflect.DeepEqual(changes, wantChanges) {
 			t.Fatalf("%s differs from individual endpoint revisions or World changes", mode)
 		}
+	}
+
+	// The same grouping must reach the same root, so a replica that replays a
+	// list as written agrees with its author. Grouping itself changes the
+	// root (individual, insert and set each reach a different one), which is
+	// why a transaction records its grouping and replay keeps it.
+	if roots["set-again"] != roots["set"] {
+		t.Fatalf("repeated set reached root %s, want %s", roots["set-again"], roots["set"])
 	}
 }
 

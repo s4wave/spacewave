@@ -45,6 +45,7 @@ func (t TxType) Validate() error {
 	case TxType_TxType_RENAME_OBJECT:
 	case TxType_TxType_SET_GRAPH_QUAD:
 	case TxType_TxType_DELETE_GRAPH_QUAD:
+	case TxType_TxType_SET_GRAPH_QUADS:
 	case TxType_TxType_BATCH:
 	default:
 		return errors.Wrap(world.ErrUnhandledOp, t.String())
@@ -108,6 +109,8 @@ func (t *Tx) LocateTx() (Transaction, error) {
 		return t.GetTxSetGraphQuad(), nil
 	case TxType_TxType_DELETE_GRAPH_QUAD:
 		return t.GetTxDeleteGraphQuad(), nil
+	case TxType_TxType_SET_GRAPH_QUADS:
+		return t.GetTxSetGraphQuads(), nil
 	case TxType_TxType_BATCH:
 		return t.GetTxBatch(), nil
 	default:
@@ -236,6 +239,8 @@ func (t *Tx) ApplySubBlock(id uint32, next block.SubBlock) error {
 		return block.ApplySubBlock(&t.TxSetGraphQuad, next)
 	case 9:
 		return block.ApplySubBlock(&t.TxDeleteGraphQuad, next)
+	case 13:
+		return block.ApplySubBlock(&t.TxSetGraphQuads, next)
 	case 10:
 		return block.ApplySubBlock(&t.TxBatch, next)
 	}
@@ -264,6 +269,8 @@ func (t *Tx) GetSubBlocks() map[uint32]block.SubBlock {
 		m[8] = t.GetTxSetGraphQuad()
 	case TxType_TxType_DELETE_GRAPH_QUAD:
 		m[9] = t.GetTxDeleteGraphQuad()
+	case TxType_TxType_SET_GRAPH_QUADS:
+		m[13] = t.GetTxSetGraphQuads()
 	case TxType_TxType_BATCH:
 		m[10] = t.GetTxBatch()
 	}
@@ -292,6 +299,8 @@ func (t *Tx) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 		return block.NewSubBlockCtor(&t.TxSetGraphQuad, func() *TxSetGraphQuad { return &TxSetGraphQuad{} })
 	case 9:
 		return block.NewSubBlockCtor(&t.TxDeleteGraphQuad, func() *TxDeleteGraphQuad { return &TxDeleteGraphQuad{} })
+	case 13:
+		return block.NewSubBlockCtor(&t.TxSetGraphQuads, func() *TxSetGraphQuads { return &TxSetGraphQuads{} })
 	case 10:
 		return block.NewSubBlockCtor(&t.TxBatch, func() *TxBatch { return &TxBatch{} })
 	}

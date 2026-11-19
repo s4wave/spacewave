@@ -28,7 +28,7 @@ import (
 // none, so its replay builds each switch inline. A switch past the bound is
 // refused on both. Every object and quad either device wrote, and the quad
 // the regeneration carried, survive on both replicas, and the replicas reach
-// the same root.
+// the same root, as they do after a multi-quad transaction and a carry write.
 func TestRegenerateWorldReplicasWhileWriting(t *testing.T) {
 	// Start a testbed with the local provider and the Space World engine.
 	ctx, cancel := context.WithTimeout(t.Context(), 4*time.Minute)
@@ -126,12 +126,24 @@ func TestRegenerateWorldReplicasWhileWriting(t *testing.T) {
 	}
 	waitPin(ctx, t, writerServed, pin)
 
+	// The owner adopted each bulk transaction's candidate, and the writer
+	// replayed it: both reach the same root.
+	waitSameHead(ctx, t, ownerServed, writerServed)
+
 	// Write the carried quad's list on the owner, under a stage that holds it
 	// until the regeneration returns, and copy it to the writer's store.
 	list := writeHeldQuadList(ctx, t, ownerObject.GetBlockStore(), ownerEngine, carried)
 	if err := block.CopyGraph(ctx, ownerObject.GetBlockStore(), writerObject.GetBlockStore(), list, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Carry the list once now, as the regeneration will again: every replica,
+	// the owner included, applies the carry write by replay, and both reach
+	// the same root.
+	if err := space_world.WriteCarriedQuads(ctx, ownerServed, list); err != nil {
+		t.Fatal(err)
+	}
+	waitSameHead(ctx, t, ownerServed, writerServed)
 
 	// A writer on each device writes an object and a quad at a time until
 	// stopped, recording each write its replica accepted. A write a
@@ -277,21 +289,27 @@ func TestRegenerateWorldReplicasWhileWriting(t *testing.T) {
 	t.Logf("both replicas hold checkpoint %d", agreed.GetHeight())
 
 	// The replicas reach the same root at the same seqno.
+	waitSameHead(ctx, t, ownerServed, writerServed)
+}
+
+// waitSameHead waits until a and b hold the same root at the same seqno.
+func waitSameHead(ctx context.Context, t *testing.T, a, b *space_world.Engine) {
+	t.Helper()
 	for {
-		ownerRoot, ownerSeqno, err := ownerServed.GetHead(ctx)
+		aRoot, aSeqno, err := a.GetHead(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
-		writerRoot, writerSeqno, err := writerServed.GetHead(ctx)
+		bRoot, bSeqno, err := b.GetHead(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if ownerSeqno == writerSeqno && ownerRoot.EqualVT(writerRoot) {
+		if aSeqno == bSeqno && aRoot.EqualVT(bRoot) {
 			return
 		}
 		select {
 		case <-ctx.Done():
-			t.Fatalf("the replicas hold %s at %d and %s at %d", ownerRoot.MarshalString(), ownerSeqno, writerRoot.MarshalString(), writerSeqno)
+			t.Fatalf("the replicas hold %s at %d and %s at %d", aRoot.MarshalString(), aSeqno, bRoot.MarshalString(), bSeqno)
 		case <-time.After(20 * time.Millisecond):
 		}
 	}

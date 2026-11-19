@@ -12,6 +12,7 @@ import (
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	bquad "github.com/s4wave/spacewave/db/block/quad"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
@@ -408,33 +409,23 @@ func regenOn(ctx context.Context, t *testing.T, r *spaceReplay, prev *InnerState
 }
 
 // carryOn applies quads to prev as the engine writes carried quads: one
-// transaction batch of graph quad sets, which replay applies in one graph
-// update.
+// SET_GRAPH_QUADS transaction, which replay applies in one graph update.
 func carryOn(ctx context.Context, t *testing.T, r *spaceReplay, prev *InnerState, quads ...world.GraphQuad) *InnerState {
 	t.Helper()
-	next, reason, err := r.applyTx(ctx, &ApplyTxOp{Tx: carryTx(t, quads...)}, prev, "")
+	next, reason, err := r.applyTx(ctx, &ApplyTxOp{Tx: carryTx(quads...)}, prev, "")
 	if err != nil || reason != "" {
 		t.Fatal(reason, err)
 	}
 	return next
 }
 
-// carryTx returns the transaction batch that sets quads in order.
-func carryTx(t *testing.T, quads ...world.GraphQuad) *world_block_tx.Tx {
-	t.Helper()
-	txs := make([]*world_block_tx.Tx, len(quads))
+// carryTx returns the SET_GRAPH_QUADS transaction that sets quads in order.
+func carryTx(quads ...world.GraphQuad) *world_block_tx.Tx {
+	list := make([]*bquad.Quad, len(quads))
 	for i, q := range quads {
-		tx, err := world_block_tx.NewTxSetGraphQuad(world.GraphQuadToQuad(q))
-		if err != nil {
-			t.Fatal(err)
-		}
-		txs[i] = tx
+		list[i] = world.GraphQuadToQuad(q)
 	}
-	tx, err := world_block_tx.NewTxBatch(&world_block_tx.TxBatch{Txs: txs})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return tx
+	return world_block_tx.NewTxSetGraphQuads(list)
 }
 
 // faultStore is a store whose puts fail with a full disk from the failAt-th
@@ -587,7 +578,7 @@ func TestRegenerateWorldReplicasAgreeThroughFaults(t *testing.T) {
 	var reasons []string
 	for _, rep := range []*replica{healthy, newReplica()} {
 		bad := []world.GraphQuad{link("a", "r", "b"), world.NewGraphQuad("", "<p>", "<b>", "")}
-		_, reason, err := rep.r.applyTx(ctx, &ApplyTxOp{Tx: carryTx(t, bad...)}, rep.kv, "")
+		_, reason, err := rep.r.applyTx(ctx, &ApplyTxOp{Tx: carryTx(bad...)}, rep.kv, "")
 		if err != nil || reasonCode(reason) != "transaction apply failed" {
 			t.Fatalf("a quad without a subject gave reason %q and error %v, want a refusal", reason, err)
 		}

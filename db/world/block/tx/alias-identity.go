@@ -52,6 +52,11 @@ func (t *TxRenameObject) BlockAliasIdentity() *block.AliasIdentityToken {
 	return &t.unknownFields
 }
 
+// BlockAliasIdentity returns the in-memory alias token for TxSetGraphQuads.
+func (t *TxSetGraphQuads) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &t.unknownFields
+}
+
 // BlockAliasIdentity returns the in-memory alias token for TxSetGraphQuad.
 func (t *TxSetGraphQuad) BlockAliasIdentity() *block.AliasIdentityToken {
 	return &t.unknownFields
