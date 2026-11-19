@@ -310,114 +310,144 @@ func TestPackAheadFailedWriteCannotAcknowledgeCorruptBatch(t *testing.T) {
 	}
 }
 
-// TestPackAheadRecoveryDropsCachedSyncedSuffix corrupts a synced batch before
-// an intact synced batch. Recovery must fence the latter's cached bytes even
-// while syncing the truncation and if that sync fails.
-func TestPackAheadRecoveryDropsCachedSyncedSuffix(t *testing.T) {
-	// Stop recovery at the sync of the truncated first pack, then fail it.
+// TestPackAheadRecoveryKeepsAcknowledgedBatches tests live and startup
+// recovery after damage to a batch's data or its record header.
+func TestPackAheadRecoveryKeepsAcknowledgedBatches(t *testing.T) {
+	for _, damage := range []string{"data", "header"} {
+		for _, recovery := range []string{"live", "startup"} {
+			t.Run(damage+"/"+recovery, func(t *testing.T) {
+				checkRecoveryKeepsAcknowledgedBatches(t, damage, recovery)
+			})
+		}
+	}
+}
+
+// checkRecoveryKeepsAcknowledgedBatches verifies local and indexed reads of
+// the intact batch, and I2 for the corrupt batch's existing decoded entry.
+func checkRecoveryKeepsAcknowledgedBatches(t *testing.T, damage, recovery string) {
+	// Gate a live recovery between removal of the bad location and publication
+	// of the finalized pack.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, openName(1))
-	syncing := make(chan struct{})
-	failSync := make(chan struct{})
+	syncing, resume := make(chan struct{}), make(chan struct{})
 	var armed atomic.Bool
 	l, err := Open(ctx, dir, Options{SyncData: func(f *os.File) error {
-		if armed.Load() && f.Name() == path {
+		if f.Name() == path && armed.CompareAndSwap(true, false) {
 			close(syncing)
 			select {
-			case <-failSync:
+			case <-resume:
 			case <-ctx.Done():
+				return ctx.Err()
 			}
-			return syscall.EIO
 		}
 		return f.Sync()
 	}})
 	if err != nil {
-		cancel()
 		t.Fatal(err)
 	}
 	defer func() {
 		cancel()
-		l.Close()
+		if l != nil {
+			l.Close()
+		}
 	}()
 
-	// Sync two batches and admit the later intact block to the shared pool.
-	early := testBlock(t, 1, 64)
-	if err := l.Append(ctx, []Block{early}); err != nil {
-		t.Fatal(err)
+	// Store two decoded values in separate acknowledged batches.
+	write := func(label string) (*block.BlockRef, Block) {
+		bytes, err := block_mock.NewExample(label).MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		ref, err := block.BuildBlockRef(bytes, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		value := Block{Key: packfile.BlockKey(ref.GetHash()), Value: bytes}
+		if err := l.Append(ctx, []Block{value}); err != nil {
+			t.Fatal(err)
+		}
+		return ref, value
 	}
-	data, err := block_mock.NewExample("intact synced suffix").MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	ref, err := block.BuildBlockRef(data, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := l.Append(ctx, []Block{{Key: packfile.BlockKey(ref.GetHash()), Value: data}}); err != nil {
-		t.Fatal(err)
-	}
-	store := recoveryCacheStore{log: l}
+	badRef, bad := write("damaged batch")
+	goodRef, good := write("intact acknowledged batch")
+
+	// Prime the shared cache from both synced entries.
 	cache := block.NewDecodedBlockCache()
 	defer cache.Close()
-	read := func() (block.ReadCounterSnapshot, error) {
+	read := func(ref *block.BlockRef) (block.ReadCounterSnapshot, error) {
 		ctx, counter := block.WithReadCounter(ctx)
-		tx, cursor := block.NewTransaction(store, nil, ref, &block.PutOpts{HashType: block.DefaultHashType})
+		tx, cursor := block.NewTransaction(recoveryCacheStore{log: l}, nil, ref, &block.PutOpts{HashType: block.DefaultHashType})
 		tx.SetDecodedBlockCache(cache)
 		_, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock)
 		return counter.Snapshot(), err
 	}
-	if got, err := read(); err != nil || got.DecodedBlockStoreAcceptedCount != 1 {
-		t.Fatalf("intact block admission = %+v, %v", got, err)
+	for _, ref := range []*block.BlockRef{badRef, goodRef} {
+		if got, err := read(ref); err != nil || got.DecodedBlockStoreAcceptedCount != 1 {
+			t.Fatalf("cache admission = %+v, %v", got, err)
+		}
 	}
 
-	// Damage bytes in the first batch on disk, then fail an append by giving
-	// its writer a read-only file for the duration of the call.
-	var p *pack
-	var off uint32
+	// Damage the first batch on disk. The second record and data remain intact.
+	var loc location
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		p, off = l.open, l.table[tailOf(early.Key)].off
+		loc = l.table[tailOf(bad.Key)]
 	})
-	if _, err := p.f.WriteAt([]byte{^early.Value[0]}, int64(off)); err != nil {
-		t.Fatal(err)
+	at, replacement := int64(loc.off), ^bad.Value[0]
+	if damage == "header" {
+		at, replacement = 0, 0
 	}
-	readOnly, err := os.Open(path)
-	if err != nil {
+	if _, err := loc.p.f.WriteAt([]byte{replacement}, at); err != nil {
 		t.Fatal(err)
-	}
-	defer readOnly.Close()
-	writable := p.f
-	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { p.f = readOnly })
-	appendErr := l.Append(ctx, []Block{testBlock(t, 2, 64)})
-	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { p.f = writable })
-	if !errors.Is(appendErr, syscall.EBADF) {
-		t.Fatalf("append through read-only file: %v", appendErr)
 	}
 
-	// Rotate the failed pack and check a fresh transaction while truncation
-	// is waiting for sync. The old cache entry and the log must both miss.
-	armed.Store(true)
-	if err := l.Append(ctx, []Block{testBlock(t, 3, 64)}); err != nil {
-		t.Fatal(err)
+	// Restart from the open file or trigger and pause live recovery.
+	if recovery == "startup" {
+		l.Close()
+		l, err = Open(ctx, dir, Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
-	select {
-	case <-syncing:
-	case <-ctx.Done():
-		t.Fatal("recovery never synced its truncation")
-	}
-	if got, err := read(); !errors.Is(err, block.ErrNotFound) || got.BlockReadMissCount != 1 || got.DecodedBlockCacheHitCount != 0 {
-		t.Fatalf("read while syncing truncation = %+v, %v", got, err)
+	if recovery == "live" {
+		if err := FailAppendWrite(t, l, []Block{testBlock(t, 2, 64)}); !errors.Is(err, syscall.EBADF) {
+			t.Fatalf("failed write returned %v", err)
+		}
+		armed.Store(true)
+		if err := l.Append(ctx, []Block{testBlock(t, 3, 64)}); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case <-syncing:
+		case <-ctx.Done():
+			t.Fatal("recovery never reached sync")
+		}
+
+		// A fresh transaction must miss the bad block while finalization is
+		// still paused. The intact block remains readable throughout.
+		if got, err := read(badRef); !errors.Is(err, block.ErrNotFound) || got.DecodedBlockCacheHitCount != 0 {
+			t.Fatalf("read of bad block during recovery = %+v, %v", got, err)
+		}
+		if got, err := read(goodRef); err != nil || got.DecodedBlockCacheHitCount != 1 {
+			t.Fatalf("read of intact block during recovery = %+v, %v", got, err)
+		}
+		close(resume)
 	}
 
-	// The poison path must keep that suffix unreadable after sync fails.
-	close(failSync)
-	if err := l.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-		return p.poisoned, nil
-	}); err != nil {
-		t.Fatal(err)
+	// A fresh transaction misses the bad block even after an in-process reopen.
+	if got, err := read(badRef); !errors.Is(err, block.ErrNotFound) || got.DecodedBlockCacheHitCount != 0 {
+		t.Fatalf("read of bad block after recovery = %+v, %v", got, err)
 	}
-	if got, err := read(); !errors.Is(err, block.ErrNotFound) || got.BlockReadMissCount != 1 || got.DecodedBlockCacheHitCount != 0 {
-		t.Fatalf("read after failed truncation sync = %+v, %v", got, err)
+
+	// A finalized pack reader sees exactly the intact batch's original bytes.
+	infos := waitFinalized(t, l, 1)
+	checkPack(t, infos[0], map[string][]byte{string(good.Key): good.Value}, Options{})
+	if value, found, err := l.Get(good.Key); err != nil || !found || !bytes.Equal(value, good.Value) {
+		t.Fatalf("intact block after recovery: found=%v err=%v", found, err)
+	}
+	if l.Has(bad.Key) {
+		t.Fatal("bad batch still has a location")
 	}
 }
 

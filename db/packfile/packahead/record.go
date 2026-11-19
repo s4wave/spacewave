@@ -1,6 +1,7 @@
 package packahead
 
 import (
+	"bytes"
 	"encoding/binary"
 	"hash/crc32"
 
@@ -9,8 +10,8 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// recordMagic begins every batch record: "PAH1".
-const recordMagic uint32 = 0x50414831
+// recordMagic is the "PAH1" marker in its on-disk little-endian byte order.
+const recordMagic = "1HAP"
 
 // recordHeaderLen is the bytes of magic and bodyLen.
 const recordHeaderLen = 8
@@ -24,7 +25,7 @@ const recordTrailerLen = 4
 // crcTable is the CRC32C table shared by both record checksums.
 var crcTable = crc32.MakeTable(crc32.Castagnoli)
 
-// errBadRecord ends a scan at a record that is torn, missing or not a record.
+// errBadRecord marks a record that is torn, corrupt or missing.
 var errBadRecord = errors.New("bad batch record")
 
 // Block is one value to append, under its pack index key.
@@ -45,6 +46,8 @@ type entry struct {
 	off int64
 	// size is the value's length.
 	size int64
+	// batch is the offset of the record describing this value.
+	batch int64
 	// stripe fences decoded reads when the log loses this location.
 	stripe block.BlockRemovalStripe
 }
@@ -80,14 +83,14 @@ func encodeBatch(dst []byte, start int64, blocks []Block) []entry {
 	var pos int
 	for i, b := range blocks {
 		copy(data[pos:], b.Value)
-		entries[i] = entry{off: start + int64(recLen+pos), size: int64(len(b.Value))}
+		entries[i] = entry{batch: start, off: start + int64(recLen+pos), size: int64(len(b.Value))}
 		pos += len(b.Value)
 	}
 	dataCRC := crc32.Checksum(data[:pos], crcTable)
 
 	// Write the header and the fixed body.
 	bodyLen := recLen - recordHeaderLen - recordTrailerLen
-	binary.LittleEndian.PutUint32(dst[0:], recordMagic)
+	copy(dst, recordMagic)
 	binary.LittleEndian.PutUint32(dst[4:], uint32(bodyLen))                  //nolint:gosec // a record is bounded by the pack size.
 	binary.LittleEndian.PutUint64(dst[8:], uint64(start)+uint64(recLen+pos)) //nolint:gosec // offsets are non-negative.
 	binary.LittleEndian.PutUint64(dst[16:], uint64(pos))                     //nolint:gosec // lengths are non-negative.
@@ -112,83 +115,94 @@ func encodeBatch(dst []byte, start int64, blocks []Block) []entry {
 
 // decodeBatch reads the batch at offset start of pack, the pack's bytes as far
 // as they reach. It returns the batch's entries, whose keys point into pack,
-// and the offset after its values. errBadRecord reports a record that is
-// incomplete or fails either checksum.
+// and the offset after its values. On a bad record, a nonzero end means
+// the record checksum still verified the extent to skip.
 func decodeBatch(pack []byte, start int64) ([]entry, int64, error) {
 	// Read the header and bound the record by the bytes present.
 	rec := pack[start:]
 	if len(rec) < recordHeaderLen+recordFixedBody+recordTrailerLen {
 		return nil, 0, errBadRecord
 	}
-	if binary.LittleEndian.Uint32(rec) != recordMagic {
+	if !bytes.HasPrefix(rec, []byte(recordMagic)) {
 		return nil, 0, errBadRecord
 	}
-	bodyLen := int(binary.LittleEndian.Uint32(rec[4:]))
+	bodySize := uint64(binary.LittleEndian.Uint32(rec[4:]))
+	if bodySize < recordFixedBody || bodySize > uint64(len(rec)-recordHeaderLen-recordTrailerLen) { //nolint:gosec // minimum record length checked above.
+		return nil, 0, errBadRecord
+	}
+	bodyLen := int(bodySize) //nolint:gosec // bounded by the slice length.
 	recLen := recordHeaderLen + bodyLen + recordTrailerLen
-	if bodyLen < recordFixedBody || recLen > len(rec) {
-		return nil, 0, errBadRecord
-	}
 
-	// Check the record's own checksum before trusting its fields.
+	// Check the stored end before hashing a candidate found inside a damaged
+	// span. Trust it as a boundary only after the record checksum verifies.
 	sealed := rec[:recordHeaderLen+bodyLen]
-	if crc32.Checksum(sealed, crcTable) != binary.LittleEndian.Uint32(rec[len(sealed):]) {
-		return nil, 0, errBadRecord
-	}
 	end := binary.LittleEndian.Uint64(rec[8:])
 	n := binary.LittleEndian.Uint64(rec[16:])
 	dataCRC := binary.LittleEndian.Uint32(rec[24:])
-	if n > uint64(len(rec)-recLen) || end != uint64(start)+uint64(recLen)+n { //nolint:gosec // offsets are non-negative.
+	if n > uint64(len(rec)-recLen) || end != uint64(start)+uint64(recLen)+n || //nolint:gosec // offsets are non-negative.
+		crc32.Checksum(sealed, crcTable) != binary.LittleEndian.Uint32(rec[len(sealed):]) {
 		return nil, 0, errBadRecord
 	}
 
 	// Check the values against the record's checksum of them.
 	data := rec[recLen : recLen+int(n)] //nolint:gosec // n is bounded by the bytes present.
 	if crc32.Checksum(data, crcTable) != dataCRC {
-		return nil, 0, errBadRecord
+		return nil, int64(end), errBadRecord //nolint:gosec // end is bounded by the pack.
 	}
 
 	// Parse the entries and place each value.
 	body := rec[recordHeaderLen+recordFixedBody : recordHeaderLen+bodyLen]
 	count, body, err := readVarint(body)
 	if err != nil || count > uint64(len(body)) {
-		return nil, 0, errBadRecord
+		return nil, int64(end), errBadRecord //nolint:gosec // end is bounded by the pack.
 	}
 	entries := make([]entry, 0, count)
 	off := start + int64(recLen)
 	for range count {
 		var keyLen, size uint64
 		keyLen, body, err = readVarint(body)
-		if err != nil || keyLen > uint64(len(body)) {
-			return nil, 0, errBadRecord
+		if err != nil || keyLen < block.BlockDigestTailLen || keyLen > uint64(len(body)) {
+			return nil, int64(end), errBadRecord //nolint:gosec // end is bounded by the pack.
 		}
 		key := body[:keyLen:keyLen]
 		size, body, err = readVarint(body[keyLen:])
-		if err != nil || off+int64(size) > int64(end) { //nolint:gosec // bounded by end.
-			return nil, 0, errBadRecord
+		if err != nil || size > end-uint64(off) { //nolint:gosec // offsets are non-negative.
+			return nil, int64(end), errBadRecord //nolint:gosec // end is bounded by the pack.
 		}
-		entries = append(entries, entry{key: key, off: off, size: int64(size), stripe: block.BlockRemovalStripeForDigest(key)}) //nolint:gosec // bounded by end.
-		off += int64(size)                                                                                                      //nolint:gosec // bounded by end.
+		entries = append(entries, entry{key: key, batch: start, off: off, size: int64(size), stripe: block.BlockRemovalStripeForDigest(key)}) //nolint:gosec // bounded by end.
+		off += int64(size)                                                                                                                    //nolint:gosec // bounded by end.
 	}
 	if len(body) != 0 || off != int64(end) { //nolint:gosec // end is bounded by the pack.
-		return nil, 0, errBadRecord
+		return nil, int64(end), errBadRecord //nolint:gosec // end is bounded by the pack.
 	}
 	return entries, int64(end), nil //nolint:gosec // end is bounded by the pack.
 }
 
-// scanBatches decodes the batches of pack from its start until the first bad
-// record, returning their entries and the offset where the good batches end.
-func scanBatches(pack []byte) ([]entry, int64) {
-	var entries []entry
-	var at int64
-	for at < int64(len(pack)) {
+// scanBatches implements D2: preserve each verified batch at its original
+// offset. Finalized readers consult the index, so damaged spans between
+// verified batches can remain in the file without exposing their values.
+func scanBatches(pack []byte) (entries []entry, keptEnd int64, damaged bool) {
+	// Decode adjacent records, jumping a damaged record when its extent is
+	// sealed. If its header is damaged, find the next candidate marker and
+	// require both checksums and the absolute end offset before keeping it.
+	for at := int64(0); at < int64(len(pack)); {
 		batch, end, err := decodeBatch(pack, at)
-		if err != nil {
+		if err == nil {
+			entries = append(entries, batch...)
+			keptEnd = end
+		}
+		damaged = damaged || err != nil
+		if end != 0 {
+			at = end
+			continue
+		}
+		skip := bytes.Index(pack[at+1:], []byte(recordMagic))
+		if skip < 0 {
 			break
 		}
-		entries = append(entries, batch...)
-		at = end
+		at += int64(skip) + 1
 	}
-	return entries, at
+	return entries, keptEnd, damaged
 }
 
 // readVarint reads one uvarint from the front of b.
