@@ -618,6 +618,16 @@ func decodeHolders(value []byte) (holders, ripe uint64, err error) {
 // errCountMalformed reports a count record that decodes to nothing.
 var errCountMalformed = errors.New("liveness count record is malformed")
 
+// parseCount decodes the holders a count record of the plain uvarint
+// encoding holds.
+func parseCount(value []byte) (uint64, error) {
+	n, size := binary.Uvarint(value)
+	if size <= 0 {
+		return 0, errCountMalformed
+	}
+	return n, nil
+}
+
 // SetHolders writes the count record of ref with holders, deleting it at one,
 // the implied holder, and writing a zero record with ripe at none. Only a
 // block with a child list may be set to zero. An unmarked block's record is
