@@ -87,7 +87,12 @@ function createMutableDataTransfer(): DataTransfer {
   } as unknown as DataTransfer
 }
 
-vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
+vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', async (importOriginal) => ({
+  getMimeType: (
+    await importOriginal<
+      typeof import('@s4wave/web/hooks/useUnixFSHandle.js')
+    >()
+  ).getMimeType,
   useUnixFSRootHandle: () =>
     buildResource({
       clone: h.mockRootClone,

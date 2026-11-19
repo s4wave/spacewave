@@ -21,6 +21,10 @@ import { useFileListState } from '@s4wave/web/editors/file-browser/FileList.js'
 import { UnixFSPathLoadingCard } from '@s4wave/app/loading/wrappers/UnixFSPathLoadingCard.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
+import {
+  getMimeType,
+  type StatResult,
+} from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { useSaveHold } from '@s4wave/app/sobject/space-replay.js'
 import { useSessionUploadManager } from '@s4wave/app/session/SessionUploadManagerContext.js'
 import { useSessionSyncStatus } from '../session/SessionSyncStatusContext.js'
@@ -120,6 +124,23 @@ function UnixFSLoadingDiagnostics({ stageLabel }: { stageLabel: string }) {
       </div>
     </div>
   )
+}
+
+/**
+ * fileViewerStat returns the stat the file viewer shows, with the MIME type
+ * the object carries, or else the one its name implies. The object's root file
+ * has no name of its own, so its object key names it.
+ */
+function fileViewerStat(
+  stat: StatResult,
+  unixfsId: string,
+  displayPath: string,
+  mimeTypeOverride: string | undefined,
+): StatResult {
+  const isRoot = normalizeUnixFSLookupPath(displayPath) === ''
+  const mimeType =
+    mimeTypeOverride || (isRoot ? getMimeType(unixfsId) : stat.mimeType)
+  return { ...stat, mimeType }
 }
 
 /** inlineFileURLFor returns the inline URL of the file at the display path. */
@@ -604,10 +625,12 @@ export function UnixFSBrowser(props: UnixFSBrowserProps) {
     return (
       <UnixFSFileViewer
         path={displayPath}
-        stat={{
-          ...statResource.value,
-          mimeType: mimeTypeOverride || statResource.value.mimeType,
-        }}
+        stat={fileViewerStat(
+          statResource.value,
+          unixfsId,
+          displayPath,
+          mimeTypeOverride,
+        )}
         rootHandle={rootHandle}
         objectKey={unixfsId}
         inlineFileURL={model.inlineFileURL}

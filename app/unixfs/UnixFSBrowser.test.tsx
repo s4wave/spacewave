@@ -161,7 +161,12 @@ function buildDisposableHandle<T extends object>(
   }
 }
 
-vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
+vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', async (importOriginal) => ({
+  getMimeType: (
+    await importOriginal<
+      typeof import('@s4wave/web/hooks/useUnixFSHandle.js')
+    >()
+  ).getMimeType,
   useUnixFSRootHandle: () =>
     h.mockRootHandleResource ??
     buildResource({
