@@ -27,8 +27,9 @@ func (l location) end() int64 {
 	return int64(l.off) + int64(l.size)
 }
 
-// synced reports whether a successful sync covered this location's bytes.
+// synced implements I1: admit only locations synced at lookup. A failed
+// pack must verify its batches before its bytes are eligible again.
 // The caller holds the log lock.
 func (l location) synced() bool {
-	return l.p.state == packFinal || l.end() <= l.p.synced
+	return l.p.state == packFinal || (l.p.err == nil && l.end() <= l.p.synced)
 }

@@ -445,7 +445,7 @@ func (l *Log) planBatchLocked(p *pack, blocks []Block, addWait func(*pack, int64
 // skip writing. The caller holds bcast.
 func (l *Log) holdsLocked(t keyTail) bool {
 	loc, ok := l.table[t]
-	return ok && !loc.p.poisoned
+	return ok && (loc.p.state == packFinal || loc.p.err == nil)
 }
 
 // dropLocationLocked forgets the table's current location for t. The caller
@@ -534,11 +534,10 @@ func (l *Log) failLocked(p *pack, err error) {
 	l.forgetTruncatedLocked(p, p.synced)
 }
 
-// waitSynced returns success only for bytes in the durable batch prefix that
-// the pack will upload. Recovery retracts that prefix before discarding bytes,
-// and finalization never counts index bytes toward it. The first waiter to find
-// no sync running runs one covering every batch written so far, and the rest
-// wait for it.
+// waitSynced implements D1: a waiter can acknowledge a synced batch only
+// while its pack has no known failure. A failed write sends the pack through
+// recovery, which can discard bytes covered by the old sync watermark.
+// The first waiter without a running sync syncs the written batches.
 func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 	for {
 		// Read the pack's sync state and lead a sync if none runs.
@@ -548,10 +547,10 @@ func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 		var waitCh <-chan struct{}
 		l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			switch {
-			case p.synced >= end:
-				done = true
 			case p.err != nil:
 				err = p.err
+			case p.synced >= end:
+				done = true
 			case l.closed:
 				err = ErrClosed
 			case !p.syncing:

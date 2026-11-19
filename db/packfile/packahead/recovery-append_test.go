@@ -147,11 +147,11 @@ func TestPackAheadRecoveredIndexCannotAcknowledgeAppend(t *testing.T) {
 	}
 	select {
 	case err := <-prefixDone:
-		if err != nil {
-			t.Fatalf("kept append: %v", err)
+		if !errors.Is(err, syscall.EBADF) {
+			t.Fatalf("pending append to failed pack returned %v", err)
 		}
 	case <-ctx.Done():
-		t.Fatal("kept append never finished")
+		t.Fatal("pending append never finished")
 	}
 
 	// Wait for finalization and prove the index spans the vanished batch end.
