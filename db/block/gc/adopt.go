@@ -464,16 +464,16 @@ func (a *adoption) report(cur *AdoptCursor) {
 // countChildren counts a holder of each child of the blocks of the next
 // child lists, skipping a block born since the adoption began.
 func (a *adoption) countChildren(ctx context.Context, rec *Records, _ block.StoreOps, _ *LivenessState, cur *AdoptCursor) ([]byte, bool, error) {
-	return scanLists(ctx, rec, cur.GetAfter(), func(recs []adoptRecord) error {
+	return scanLists(ctx, rec, cur.GetAfter(), func(sl *listSlice) error {
 		// Read the generation once for the slice.
 		gen, err := rec.generation(ctx)
 		if err != nil {
 			return err
 		}
 		h := make(holds)
-		for _, r := range recs {
+		for _, r := range sl.recs {
 			// Skip a block born since the adoption began.
-			ref, born, err := a.listed(ctx, rec, r)
+			ref, born, err := listed(r, &sl.born)
 			if err != nil {
 				return err
 			}
@@ -521,6 +521,20 @@ func (a *adoption) settleLists(ctx context.Context, rec *Records, blocks block.S
 	}
 	lists, holes, counts := scans[0], scans[1], scans[2]
 
+	// Read the birth marks of the slice's range: through the smallest last
+	// key of a scan that may have more, past which no step reaches, or to
+	// the kind's end.
+	var through []byte
+	for _, recs := range scans {
+		if len(recs) == sliceRecords && (through == nil || bytes.Compare(recs[len(recs)-1].key, through) < 0) {
+			through = recs[len(recs)-1].key
+		}
+	}
+	born, err := rec.scanThrough(ctx, kindAdoptBorn, cur.GetAfter(), through)
+	if err != nil {
+		return nil, false, err
+	}
+
 	// Settle the smallest, in key order, with the tally of its count record,
 	// and gather the count records the lists and holes lack. Each step takes
 	// at most one record of each kind, so no scan runs out before the last
@@ -553,7 +567,7 @@ func (a *adoption) settleLists(ctx context.Context, rec *Records, blocks block.S
 		if len(counts) != 0 && bytes.Equal(counts[0].key, r.key) {
 			tally, counts = counts[0].value, counts[1:]
 		}
-		if err := a.settle(ctx, rec, state, cur, r, hole, tally); err != nil {
+		if err := a.settle(ctx, rec, state, cur, r, hole, tally, &born); err != nil {
 			return nil, false, err
 		}
 		last = r.key
@@ -588,9 +602,9 @@ func (a *adoption) unlisted(ctx context.Context, blocks block.StoreOps, cur *Ado
 		if !ok {
 			continue
 		}
-		n, size := binary.Uvarint(lacking[i].value)
-		if size <= 0 {
-			return errCountMalformed
+		n, err := parseCount(lacking[i].value)
+		if err != nil {
+			return err
 		}
 		cur.Unknown += n
 		a.res.UnknownSample = sample(a.res.UnknownSample, refs[i])
@@ -598,30 +612,54 @@ func (a *adoption) unlisted(ctx context.Context, blocks block.StoreOps, cur *Ado
 	return nil
 }
 
+// listSlice is one slice of the child list records the count reads, with
+// the adoption's birth marks of the slice's key range.
+type listSlice struct {
+	// recs are the child list records, in key order.
+	recs []adoptRecord
+	// born is the birth marks in the range, which listed walks once.
+	born sortedRecords
+}
+
 // scanLists calls fn with up to sliceRecords child list records after the
-// key after, in key order, and returns the last key and whether more may
-// follow.
-func scanLists(ctx context.Context, rec *Records, after []byte, fn func(recs []adoptRecord) error) ([]byte, bool, error) {
+// key after, in key order, beside the birth marks of their range, and
+// returns the last key and whether more may follow. Two range scans replace
+// a point read of each record's mark.
+func scanLists(ctx context.Context, rec *Records, after []byte, fn func(sl *listSlice) error) ([]byte, bool, error) {
+	// Read the slice's lists.
 	recs, err := rec.scanAfter(ctx, kindChildren, after, sliceRecords)
 	if err != nil || len(recs) == 0 {
 		return nil, false, err
 	}
-	if err := fn(recs); err != nil {
+	last, more := recs[len(recs)-1].key, len(recs) == sliceRecords
+
+	// Read the birth marks of the slice's range, to the kind's end for the
+	// pass's last slice.
+	sl := &listSlice{recs: recs}
+	var through []byte
+	if more {
+		through = last
+	}
+	if sl.born, err = rec.scanThrough(ctx, kindAdoptBorn, after, through); err != nil {
 		return nil, false, err
 	}
-	return recs[len(recs)-1].key, len(recs) == sliceRecords, nil
+	if err := fn(sl); err != nil {
+		return nil, false, err
+	}
+	return last, more, nil
 }
 
 // settle writes the holders the count gave the block of the list or hole
 // record r, as its count record's value tally holds them, or settles it at
 // zero on the free queue, ripe at the up log's end in state, when it has
-// none. It skips a block born since the adoption began. A hole no holder
-// names is forgotten: its count and hole records go, and a later put of it
-// is a birth.
-func (a *adoption) settle(ctx context.Context, rec *Records, state *LivenessState, cur *AdoptCursor, r adoptRecord, hole bool, tally []byte) error {
+// none. It skips a block born since the adoption began, which the birth
+// marks born of the slice's range name. A hole no holder names is
+// forgotten: its count and hole records go, and a later put of it is a
+// birth.
+func (a *adoption) settle(ctx context.Context, rec *Records, state *LivenessState, cur *AdoptCursor, r adoptRecord, hole bool, tally []byte, born *sortedRecords) error {
 	// Skip a block born since the adoption began.
-	ref, born, err := a.listed(ctx, rec, r)
-	if err != nil || born {
+	ref, marked, err := listed(r, born)
+	if err != nil || marked {
 		return err
 	}
 
@@ -630,9 +668,8 @@ func (a *adoption) settle(ctx context.Context, rec *Records, state *LivenessStat
 	cur.Blocks++
 	var n uint64
 	if tally != nil {
-		var size int
-		if n, size = binary.Uvarint(tally); size <= 0 {
-			return errCountMalformed
+		if n, err = parseCount(tally); err != nil {
+			return err
 		}
 	}
 	if hole && n == 0 {
@@ -703,16 +740,17 @@ func (a *adoption) countRoots(ctx context.Context, rec *Records, _ block.StoreOp
 	return names[len(names)-1], len(names) == sliceRecords, nil
 }
 
-// listed returns the block of a child list record and whether Land gave
-// birth to it since the mark, so its holders come from the logs and the
-// adoption neither counts its children nor settles it.
-func (a *adoption) listed(ctx context.Context, rec *Records, r adoptRecord) (*block.BlockRef, bool, error) {
+// listed returns the block of a list or hole record r, asked in key order,
+// and whether Land gave birth to it since the mark, as the birth marks born
+// of its range say, so its holders come from the logs and the adoption
+// neither counts its children nor settles it.
+func listed(r adoptRecord, born *sortedRecords) (*block.BlockRef, bool, error) {
 	ref, rest, err := ParseBlockKey(r.key)
 	if err != nil || len(rest) != 0 {
 		return nil, false, errBadBlockKey
 	}
-	born, err := rec.tx.Exists(ctx, rec.key(kindAdoptBorn, BlockKey(ref)))
-	return ref, born, err
+	_, marked := born.find(r.key)
+	return ref, marked, nil
 }
 
 // holds is the holders one slice of the count gives each block, by block
@@ -761,9 +799,8 @@ func (a *adoption) hold(ctx context.Context, rec *Records, h holds) error {
 	for i, key := range keys {
 		var n uint64
 		if counted[i] {
-			var size int
-			if n, size = binary.Uvarint(counts[i]); size <= 0 {
-				return errCountMalformed
+			if n, err = parseCount(counts[i]); err != nil {
+				return err
 			}
 		}
 		if err := rec.tx.Set(ctx, reads[i], binary.AppendUvarint(nil, n+h[key].n)); err != nil {
