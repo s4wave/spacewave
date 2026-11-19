@@ -359,9 +359,9 @@ func (v *Volume) ReadLiveness(ctx context.Context) (*block_gc.LivenessState, boo
 }
 
 // startLiveness starts the renewal of this process's leased roots from state,
-// the liveness state ReadLiveness read, returns a Volume an adoption left
-// adopting to unadopted and, when a format upgrade left records of obsolete
-// kinds, starts their background sweep. parked reports whether an Open
+// the liveness state ReadLiveness read, starts or resets an adoption left
+// in progress and, when a format upgrade left records of obsolete kinds,
+// starts their background sweep. parked reports whether an Open
 // Volume parked any block. A read-only Volume only reads the liveness state.
 func (v *Volume) startLiveness(ctx context.Context, state *block_gc.LivenessState, parked bool) error {
 	// Record whether the Volume settled and hides no block.
@@ -374,7 +374,13 @@ func (v *Volume) startLiveness(ctx context.Context, state *block_gc.LivenessStat
 	if v.readOnly {
 		return nil
 	}
-	if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTING {
+
+	// Reset an adoption left in progress when the collector does not free:
+	// no background adoption runs to take it over, and the switch that turns
+	// frees on returns the Volume to unadopted anyway, while each Land would
+	// keep logging and marking for it. With frees on, the background adoption
+	// below takes the run over at its cursor.
+	if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTING && !v.collector.Frees() {
 		if err := block_gc.ResetAdoption(ctx, collectorStore{v: v}); err != nil {
 			return err
 		}
@@ -382,9 +388,10 @@ func (v *Volume) startLiveness(ctx context.Context, state *block_gc.LivenessStat
 
 	// Adopt an unadopted Volume in the background when its collector frees,
 	// as CollectorFrees describes: frees need exact counts, and without them
-	// nothing reads the counts. Child lists an older format left unverified
-	// adopt as they are, and the old generation's settle verifies them
-	// before any free. The adoption also runs again whenever a list
+	// nothing reads the counts. An adoption a closed or crashed process left
+	// in progress continues at its cursor. Child lists an older format left
+	// unverified adopt as they are, and the old generation's settle verifies
+	// them before any free. The adoption also runs again whenever a list
 	// rebuild returns the Volume to unadopted. An adopted Volume never
 	// adopts again here.
 	if v.collector.Frees() {

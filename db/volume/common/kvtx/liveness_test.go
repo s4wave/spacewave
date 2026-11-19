@@ -8,6 +8,7 @@ import (
 	"errors"
 	"maps"
 	"math"
+	"math/rand/v2"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -4037,7 +4038,7 @@ func TestLivenessAdversarial(t *testing.T) {
 
 		// An adoption interrupted while it settles the counts, with main
 		// moving onto a new R3 naming E while it counts, leaves the Volume
-		// unadopted.
+		// adopting at its cursor, and a reset returns it to unadopted.
 		r3 := tr.add(t, "R3", "E")
 		probe := &adoptProbe{Store: collectorStore{v: v}}
 		probeCtx, cancel := context.WithCancel(ctx)
@@ -4052,11 +4053,16 @@ func TestLivenessAdversarial(t *testing.T) {
 		if _, err := block_gc.Adopt(probeCtx, probe, v.now); !errors.Is(err, context.Canceled) || len(probe.at) != 0 {
 			t.Fatalf("interrupted adopt = %v with %d writes left, want canceled after both", err, len(probe.at))
 		}
-		if adoption := livenessAdoption(t, v); adoption != block_gc.Adoption_ADOPTION_UNADOPTED {
-			t.Fatalf("interrupted adopt left %v, want unadopted", adoption)
+		if state := livenessState(t, v); state.GetAdoption() != block_gc.Adoption_ADOPTION_ADOPTING ||
+			state.GetAdoptCursor().GetPhase() != block_gc.AdoptPhase_ADOPT_PHASE_SETTLE {
+			t.Fatalf("interrupted adopt left %v at %v, want adopting at the settle", state.GetAdoption(), state.GetAdoptCursor())
 		}
-		// It leaves its counts for the next claim to clear, so a Close that
-		// cancels it waits for one transaction.
+		if err := block_gc.ResetAdoption(ctx, collectorStore{v: v}); err != nil {
+			t.Fatal(err)
+		}
+		if state := livenessState(t, v); state.GetAdoption() != block_gc.Adoption_ADOPTION_UNADOPTED || state.GetAdoptCursor() != nil {
+			t.Fatalf("reset left %v at %v, want unadopted without a cursor", state.GetAdoption(), state.GetAdoptCursor())
+		}
 
 		// A rerun counts every holder once while main moves onto a new R4
 		// naming E before it counts the roots; a root aux moves onto R1 and
@@ -4536,11 +4542,11 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 		v, clk := openUnadoptedVolume(t, store)
 
-		// B runs inside A, after A's mark; the put of C lands inside B,
-		// after B counted the lists.
+		// B runs inside A, after A's mark, and takes A's run over; the put of
+		// C lands inside B, after B counted the lists.
 		var errB error
 		probeB := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
-			adoptSettle: func() {
+			resumeSettle: func() {
 				if err := v.SetBucketRoots(ctx, "b", tr.entries("C"), []block.NamedRoot{{Name: "c", Ref: c}}); err != nil {
 					t.Error(err)
 				}
@@ -4644,9 +4650,9 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	t.Run("overlapping adoptions", func(t *testing.T) {
 		// main -> R -> X on an unadopted Volume. Adoption A counts the
-		// holders, and before it settles them a second adoption B runs to
-		// the end. A must not settle B's counts again: it refuses, B's
-		// adoption stands, and nothing main reaches is freed.
+		// holders, and before it settles them a second adoption B takes A's
+		// run over and finishes it. A must not settle the counts again: it
+		// refuses, B's adoption stands, and nothing main reaches is freed.
 		store := store_kvtx_inmem.NewStore()
 		setUnadopted(t, store)
 		v, clk := openUnadoptedVolume(t, store)
@@ -4675,6 +4681,198 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireStored(t, v, tr, true, "R", "X")
 		requireAudit(t, v, 0)
 	})
+
+	t.Run("adoption resumed across reopens", func(t *testing.T) {
+		// An unadopted Volume holds about twenty slices of records across the
+		// passes. Adoptions are cancelled at random slices three times, each
+		// taking over the cursor the one before left, with the Volume
+		// reopening and Land moving, adding and releasing roots in each gap;
+		// a reopen's background adoption then finishes the run. Its counts,
+		// queue and front equal those a clean adoption reaches on a copy.
+		seed := uint64(time.Now().UnixNano())
+		rng := rand.New(rand.NewPCG(seed, 0))
+		t.Logf("seed %d", seed)
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v, clk := openLivenessVolume(t, store, true)
+		waitAdopted(t, v)
+		ctx := t.Context()
+
+		// Fifty roots each hold a parent of forty leaves of its own and two
+		// of twenty shared ones, beside a hundred blocks no holder names.
+		tr := testTree{}
+		var names []string
+		leaf := func(name string) string {
+			tr.add(t, name)
+			names = append(names, name)
+			return name
+		}
+		for i := range 20 {
+			leaf("S" + strconv.Itoa(i))
+		}
+		var roots []block.NamedRoot
+		for i := range 50 {
+			kids := []string{"S" + strconv.Itoa(i%20), "S" + strconv.Itoa((i+7)%20)}
+			for j := range 40 {
+				kids = append(kids, leaf("L"+strconv.Itoa(i)+"."+strconv.Itoa(j)))
+			}
+			p := tr.add(t, "P"+strconv.Itoa(i), kids...)
+			names = append(names, "P"+strconv.Itoa(i))
+			roots = append(roots, block.NamedRoot{Name: "r" + strconv.Itoa(i), Ref: p})
+		}
+		for i := range 100 {
+			leaf("G" + strconv.Itoa(i))
+		}
+		observePuts(v)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(names...), roots); err != nil {
+			t.Fatal(err)
+		}
+		markUnadopted(t, v)
+
+		// Each round stops the reopened Volume's background adoption, which
+		// took the run left at the previous cancel over, and cancels the run
+		// before a random slice, then lands a move, an add and a release
+		// before the next reopen. A run the background finished, or one that
+		// finishes before its cancel, is marked unadopted so a fresh run is
+		// cancelled instead.
+		for round := range 3 {
+			// Stop the background adoption, which leaves the run at its
+			// cursor if it did not finish it.
+			v.adoptCancel()
+			<-v.adoptDone
+			first := resumeCountRoots
+			if livenessState(t, v).GetAdoption() != block_gc.Adoption_ADOPTION_ADOPTING {
+				markUnadopted(t, v)
+				first = adoptCountRoots
+			}
+
+			// Cancel before a random slice of the passes.
+			for {
+				at := first + 1 + rng.IntN(16)
+				adoptCtx, cancel := context.WithCancel(ctx)
+				probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){at: cancel}}
+				_, err := block_gc.Adopt(adoptCtx, probe, v.now)
+				cancel()
+				if livenessState(t, v).GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED && first == resumeCountRoots {
+					// The resumed run finished before the cancel, which at
+					// most interrupted its deletion of the marks.
+					t.Logf("round %d: resumed run finished before transaction %d", round, at)
+					markUnadopted(t, v)
+					first = adoptCountRoots
+					continue
+				}
+				if !errors.Is(err, context.Canceled) || len(probe.at) != 0 {
+					t.Fatalf("round %d: adopt = %v with %d cancels left, want canceled", round, err, len(probe.at))
+				}
+				t.Logf("round %d: canceled before transaction %d of a run from transaction %d", round, at, first)
+				break
+			}
+			state := livenessState(t, v)
+			if state.GetAdoption() != block_gc.Adoption_ADOPTION_ADOPTING || state.GetAdoptCursor() == nil {
+				t.Fatalf("round %d: cancel left %v at %v, want adopting at a cursor", round, state.GetAdoption(), state.GetAdoptCursor())
+			}
+
+			// Move a root onto a new parent of a new leaf and two stored
+			// leaves, name an unheld block, and release another root.
+			r := strconv.Itoa(round)
+			tr.add(t, "N"+r)
+			m := tr.add(t, "M"+r, "N"+r, "L"+r+".0", "S"+r)
+			err := v.SetBucketRoots(ctx, "b", tr.entries("N"+r, "M"+r), []block.NamedRoot{
+				{Name: "r" + r, Ref: m, Previous: tr["P"+r].Ref},
+				{Name: "g" + r, Ref: tr["G"+r].Ref},
+				{Name: "r" + strconv.Itoa(49-round), Previous: tr["P"+strconv.Itoa(49-round)].Ref},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Reopen; the next round takes the run over.
+			if err := v.Close(); err != nil {
+				t.Fatal(err)
+			}
+			v, clk = openLivenessVolume(t, store, true)
+		}
+
+		// The reopened Volume's background adoption finishes the run, and
+		// the logs net once Grace has passed.
+		waitAdopted(t, v)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireAudit(t, v, 0)
+		resumed := adoptedRecords(t, store)
+
+		// A clean adoption of a copy reaches the same counts, queue and
+		// front.
+		cp := copyAll(t, store)
+		vc, _ := openLivenessVolume(t, cp, true)
+		markUnadopted(t, vc)
+		if _, err := vc.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if clean := adoptedRecords(t, cp); !maps.Equal(clean, resumed) {
+			t.Fatalf("resumed adoption left %d records, a clean one %d; differing: %v",
+				len(resumed), len(clean), recordsDiff(resumed, clean))
+		}
+	})
+
+	t.Run("adoption resumed at a phase change", func(t *testing.T) {
+		// An adoption cancelled after the last slice of the child list count
+		// commits and before the settle's first resumes at the settle: the
+		// taken-over run counts no child list again, so its counts equal a
+		// clean adoption's.
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v, _ := openUnadoptedVolume(t, store)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		tr.add(t, "Y")
+		r := tr.add(t, "R", "X", "Y")
+		tr.add(t, "G")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "Y", "R", "G"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+		clean := copyAll(t, store)
+
+		// Cancel before the settle's first slice.
+		adoptCtx, cancel := context.WithCancel(ctx)
+		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){adoptSettle: cancel}}
+		_, err := block_gc.Adopt(adoptCtx, probe, v.now)
+		cancel()
+		if !errors.Is(err, context.Canceled) || len(probe.at) != 0 {
+			t.Fatalf("adopt = %v with %d cancels left, want canceled", err, len(probe.at))
+		}
+		cur := livenessState(t, v).GetAdoptCursor()
+		if cur.GetPhase() != block_gc.AdoptPhase_ADOPT_PHASE_SETTLE || len(cur.GetAfter()) != 0 {
+			t.Fatalf("cancel left the cursor at %v, want the settle's start", cur)
+		}
+		counted := livenessRecords(t, store, 'H')
+
+		// The run taken over leaves the counts alone until it settles.
+		probe = &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+			resumeSettle: func() {
+				if got := livenessRecords(t, store, 'H'); !maps.Equal(got, counted) {
+					t.Errorf("resume changed the counts before the settle: %v, want %v", got, counted)
+				}
+			},
+		}}
+		res, err := block_gc.Adopt(ctx, probe, v.now)
+		if err != nil || len(probe.at) != 0 {
+			t.Fatalf("resumed adopt = %v with %d hooks left", err, len(probe.at))
+		}
+		if res.Roots != 1 || res.Blocks != 4 || res.Queued != 1 {
+			t.Fatalf("resumed adopt counted %+v, want 1 root, 4 blocks and 1 queued", res)
+		}
+
+		// A clean adoption of the copy reaches the same records.
+		vc, _ := openUnadoptedVolume(t, clean)
+		if _, err := vc.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := adoptedRecords(t, store), adoptedRecords(t, clean); !maps.Equal(got, want) {
+			t.Fatalf("resumed adoption differs from a clean one: %v", recordsDiff(got, want))
+		}
+	})
 }
 
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
@@ -4692,8 +4890,20 @@ const (
 	adoptCountRoots = 15
 	// adoptCountChildren counts the child lists' holders.
 	adoptCountChildren = 16
-	// adoptSettle settles the stored blocks' counts.
+	// adoptSettle settles the stored blocks' counts and marks the Volume
+	// adopted.
 	adoptSettle = 17
+)
+
+// The transactions of a block_gc.Adopt that takes over a run whose cursor is
+// at its roots, on a Volume whose records each fit in one slice: the
+// take-over, then the root count, the child list count (3) and the settle. A
+// pass the cursor has passed still takes its one transaction.
+const (
+	// resumeCountRoots counts the roots.
+	resumeCountRoots = 2
+	// resumeSettle settles the stored blocks' counts.
+	resumeSettle = 4
 )
 
 // auditProbe runs before, once, when an audit scans the stored bytes, which
@@ -6792,6 +7002,69 @@ type walkProbe struct {
 func (p *walkProbe) Update(ctx context.Context, fn func(rec *block_gc.Records, blocks block.StoreOps) error) error {
 	p.before()
 	return p.Store.Update(ctx, fn)
+}
+
+// copyAll returns an in-memory copy of every key of store.
+func copyAll(t *testing.T, store kvtx.Store) kvtx.Store {
+	t.Helper()
+	ctx := t.Context()
+	src, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer src.Discard()
+	cp := store_kvtx_inmem.NewStore()
+	dst, err := cp.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dst.Discard()
+	err = src.ScanPrefix(ctx, nil, func(key, value []byte) error {
+		return dst.Set(ctx, bytes.Clone(key), bytes.Clone(value))
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := dst.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	return cp
+}
+
+// adoptedRecords returns the count, queue and front records of store, with
+// each zero count's and queued block's ripe sequence dropped: two adoptions
+// of the same holders agree on them, while the sequence is the up log's end
+// at each settle.
+func adoptedRecords(t *testing.T, store kvtx.Store) map[string]string {
+	t.Helper()
+	out := livenessRecords(t, store, 'H', 'G')
+	for key, value := range out {
+		if len(value) == 9 && value[0] == 0 {
+			out[key] = "zero"
+		}
+	}
+	queueAt := len(livenessPrefix) + 1
+	for key := range livenessRecords(t, store, 'Q') {
+		out[key[:queueAt]+key[queueAt+8:]] = "queued"
+	}
+	return out
+}
+
+// recordsDiff returns the keys whose values differ between a and b, with
+// each side's value.
+func recordsDiff(a, b map[string]string) map[string][2]string {
+	out := make(map[string][2]string)
+	for key, value := range a {
+		if b[key] != value {
+			out[base64.RawURLEncoding.EncodeToString([]byte(key))] = [2]string{value, b[key]}
+		}
+	}
+	for key, value := range b {
+		if _, ok := a[key]; !ok {
+			out[base64.RawURLEncoding.EncodeToString([]byte(key))] = [2]string{"", value}
+		}
+	}
+	return out
 }
 
 // livenessRecords returns the liveness records of the kinds in store, by key.

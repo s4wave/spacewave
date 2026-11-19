@@ -373,8 +373,10 @@ func NewRecords(tx kvtx.TxOps, prefix []byte) *Records {
 // does, ending any release in progress, and notes it for Unadopted. The
 // caller writes state.
 func (r *Records) unadopt(state *LivenessState) {
+	// End any run and release, dropping the run's cursor.
 	state.Adoption = Adoption_ADOPTION_UNADOPTED
 	state.AdoptionRun = ""
+	state.AdoptCursor = nil
 	state.Release = nil
 	r.unadopted = true
 }

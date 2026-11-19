@@ -41,7 +41,8 @@ type AdoptResult struct {
 	// Unknown counts the holders naming a block whose bytes the Volume stores
 	// without a child list. Any refuses the adoption.
 	Unknown uint64
-	// UnknownSample names up to sampleSize of the blocks.
+	// UnknownSample names up to sampleSize of the blocks, from the slices
+	// this run counted: a resumed run does not sample the ones before.
 	UnknownSample []*block.BlockRef
 }
 
@@ -90,40 +91,69 @@ var ErrAdoptSuperseded = errors.New("another adoption superseded this one")
 // root or a stored block names a block stored without a child list. It counts
 // child lists an older store format left unverified as they are: such a list
 // may lack a child, which then counts too few holders, and the settle
-// generation keeps those blocks, as Collector describes. An adoption that
-// fails or is interrupted returns the Volume to unadopted, as does reopening
-// the Volume after a crash, and a later Adopt starts over and reaches the
-// same counts. Each run first claims the unadopted Volume under its name,
-// clears only while its claim stands, and marks it adopting only from its own
-// claim; every later transaction refuses to write unless the Volume is still
-// adopting in its run. A run another claimed or superseded writes nothing
-// more and returns ErrAdoptSuperseded.
+// generation keeps those blocks, as Collector describes.
+//
+// Each slice's transaction moves the Volume's adoption cursor
+// (LivenessState.adopt_cursor) past the records it counted, beside their
+// counts, so the cursor and the counts always agree. An adoption that is
+// interrupted, by its context or a crash, leaves the Volume adopting at its
+// cursor, and the next Adopt takes the run over under its own name and
+// continues strictly after the cursor: the marks and logs since the mark
+// cover every Land between the slices. One that fails returns the Volume to
+// unadopted and deletes what it wrote, and the next Adopt starts over and
+// reaches the same counts. A new run first claims the unadopted Volume under
+// its name, clears only while its claim stands, and marks it adopting only
+// from its own claim; every later transaction of a run refuses to write
+// unless the Volume is still adopting in that run. A run another claimed,
+// took over or superseded writes nothing more and returns
+// ErrAdoptSuperseded.
 //
 // Adoption counts only child lists and named roots. A block that older code
 // held another way, such as through a bucket's ownership, has no holder here,
 // so adopt a Volume only once every writer that uses it holds what it needs
 // under named roots.
 func Adopt(ctx context.Context, store Store, now func() time.Time) (AdoptResult, error) {
-	// Report an adopted Volume, after deleting what a finished adoption may
-	// have left; otherwise claim it unadopted for a new run.
+	// Take over an adoption in progress, report an adopted Volume after
+	// deleting what a finished adoption may have left, or claim it unadopted
+	// for a new run.
 	var res AdoptResult
 	run := ulid.NewULID()
-	adopted, err := claimAdoption(ctx, store, run)
+	start, err := claimAdoption(ctx, store, run, true)
 	if err != nil {
 		return res, err
 	}
-	if adopted {
+	switch start {
+	case adoptAdopted:
 		res.Already = true
 		return res, clearKinds(ctx, store, nil, kindAdoptBorn, kindAdoptRoot)
+	case adoptClaimed:
+		if err := markAdopting(ctx, store, run, now); err != nil {
+			return res, err
+		}
 	}
 
-	// Clear what an earlier run and the logs left while the claim stands.
+	// Count the holders, refuse a block stored without a child list, and
+	// settle the stored blocks' counts, marking the Volume adopted.
+	a := &adoption{store: store, run: run, res: &res}
+	if err := a.count(ctx); err != nil {
+		return res, abandonAdopt(ctx, store, run, err)
+	}
+
+	// Delete the run's marks.
+	return res, clearKinds(ctx, store, nil, kindAdoptBorn, kindAdoptRoot)
+}
+
+// markAdopting clears what an earlier run and the logs left while run's
+// claim stands, then marks the Volume adopting in run with a fresh cursor,
+// starting fresh logs.
+func markAdopting(ctx context.Context, store Store, run string, now func() time.Time) error {
+	// Clear while the claim stands.
 	if err := clearRun(ctx, store, run); err != nil {
-		return res, err
+		return err
 	}
 
-	// Mark the Volume adopting in the run, starting fresh logs.
-	err = store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
+	// Mark the Volume adopting from the claim.
+	return store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
 		// Refuse a lost claim.
 		state, err := rec.GetState(ctx)
 		if err != nil {
@@ -132,71 +162,37 @@ func Adopt(ctx context.Context, store Store, now func() time.Time) (AdoptResult,
 		if !claimedBy(state, run) {
 			return ErrAdoptSuperseded
 		}
+
+		// Start the run at the first record of its first pass.
 		state.Adoption = Adoption_ADOPTION_ADOPTING
 		state.AdoptionRun = run
+		state.AdoptCursor = &AdoptCursor{}
 		state.UpCursor = state.GetUpSeq()
 		state.AdoptAtUnixMilli = now().UnixMilli()
 		return rec.SetState(ctx, state)
 	})
-	if err != nil {
-		return res, err
-	}
-
-	// Count the holders, refuse a block stored without a child list, and
-	// settle the stored blocks' counts.
-	a := &adoption{store: store, run: run, res: &res}
-	if err := a.count(ctx); err != nil {
-		return res, abandonAdopt(ctx, store, run, err)
-	}
-
-	// Mark the Volume adopted while the run still holds it.
-	err = store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Read the state, refusing it once another run replaced this one.
-		state, err := inRun(ctx, rec, run)
-		if err != nil {
-			return err
-		}
-
-		// Cap the pop mark clearRun raised at the up log's end. The recount
-		// gave each block it left at zero the up log's end when it settled
-		// that block as its ripe sequence, no later than the end now, so the
-		// capped mark still covers each, while a block that dies later
-		// cannot hold the flip. The recount returned each unverified child
-		// of a list written from content to the front, and only a pop at the
-		// child's later ripe sequence takes it off, which raises the mark
-		// past its parent again.
-		if err := rec.capPopMark(ctx, state.GetUpSeq()); err != nil {
-			return err
-		}
-		state.Adoption = Adoption_ADOPTION_ADOPTED
-		return rec.SetState(ctx, state)
-	})
-	if err != nil {
-		return res, abandonAdopt(ctx, store, run, err)
-	}
-
-	// Delete the run's marks.
-	return res, clearKinds(ctx, store, nil, kindAdoptBorn, kindAdoptRoot)
 }
 
-// inRun returns the state of a Volume still adopting in run, or
-// ErrAdoptSuperseded.
+// inRun returns the state of a Volume still adopting in run, whose cursor
+// is set, or ErrAdoptSuperseded.
 func inRun(ctx context.Context, rec *Records, run string) (*LivenessState, error) {
 	state, err := rec.GetState(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if state.GetAdoption() != Adoption_ADOPTION_ADOPTING || state.GetAdoptionRun() != run {
+	if state.GetAdoption() != Adoption_ADOPTION_ADOPTING || state.GetAdoptionRun() != run || state.GetAdoptCursor() == nil {
 		return nil, ErrAdoptSuperseded
 	}
 	return state, nil
 }
 
-// ResetAdoption returns a Volume an adoption left adopting to unadopted, so
-// it logs nothing more. A Volume calls it when it opens: the adoption
-// that marked it ended with the process.
+// ResetAdoption returns a Volume an adoption left adopting to unadopted,
+// dropping its cursor, so it logs nothing more. A Volume whose collector
+// does not free calls it when it opens: no background adoption takes the
+// run over there, and the switch that turns frees on returns the Volume to
+// unadopted anyway.
 func ResetAdoption(ctx context.Context, store Store) error {
-	_, err := claimAdoption(ctx, store, "")
+	_, err := claimAdoption(ctx, store, "", false)
 	return err
 }
 
@@ -226,6 +222,7 @@ func SetFrees(ctx context.Context, store Store, frees bool) (*LivenessState, err
 		if frees {
 			state.Adoption = Adoption_ADOPTION_UNADOPTED
 			state.AdoptionRun = ""
+			state.AdoptCursor = nil
 			state.Release = nil
 		}
 		return rec.SetState(ctx, state)
@@ -233,47 +230,75 @@ func SetFrees(ctx context.Context, store Store, frees bool) (*LivenessState, err
 	return state, err
 }
 
-// claimAdoption returns a Volume that is not adopted to unadopted under run,
-// superseding any run that marked or claimed it, and reports whether it left
-// the Volume adopted. An empty run claims it for none.
-func claimAdoption(ctx context.Context, store Store, run string) (bool, error) {
-	var adopted bool
+// adoptStart is the state in which an Adopt finds the Volume.
+type adoptStart int
+
+const (
+	// adoptClaimed is a Volume claimed unadopted under the run.
+	adoptClaimed adoptStart = iota
+	// adoptResumed is a Volume adopting at its cursor, taken over by the run.
+	adoptResumed
+	// adoptAdopted is an adopted Volume, left as it was.
+	adoptAdopted
+)
+
+// claimAdoption claims a Volume that is not adopted for run, superseding any
+// run that marked or claimed it, and reports where it started. With resume
+// set it takes over an adoption in progress at its cursor, keeping its
+// mark, logs and counts, under run's name; otherwise it returns that Volume
+// to unadopted. A claim drops the cursor and ends any release in progress.
+// An empty run claims the Volume for none.
+func claimAdoption(ctx context.Context, store Store, run string, resume bool) (adoptStart, error) {
+	var start adoptStart
 	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Leave an adopted Volume, and one already in the claim.
+		// Leave an adopted Volume.
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
-		if adopted = state.GetAdoption() == Adoption_ADOPTION_ADOPTED; adopted {
+		if state.GetAdoption() == Adoption_ADOPTION_ADOPTED {
+			start = adoptAdopted
 			return nil
 		}
-		if state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run {
-			return nil
+
+		// Take over an adoption in progress at its cursor. One a build
+		// without the cursor left adopting starts over.
+		if resume && state.GetAdoption() == Adoption_ADOPTION_ADOPTING && state.GetAdoptCursor() != nil {
+			start = adoptResumed
+			state.AdoptionRun = run
+			return rec.SetState(ctx, state)
 		}
 
 		// Claim it, ending any release in progress: the run recounts every
 		// holder, and the claim's clear deletes the release pages.
+		start = adoptClaimed
+		if claimedBy(state, run) {
+			return nil
+		}
 		state.Adoption = Adoption_ADOPTION_UNADOPTED
 		state.AdoptionRun = run
+		state.AdoptCursor = nil
 		state.Release = nil
 		return rec.SetState(ctx, state)
 	})
-	return adopted, err
+	return start, err
 }
 
-// abandonAdopt returns the Volume to unadopted after run failed or was
-// interrupted, deletes the counts, queue and marks it wrote
-// after a failure, and returns cause. An interrupted run only returns the
-// Volume to unadopted, in one transaction, so a Close that cancels a large
-// adoption does not wait for its cleanup: nothing reads those records while
-// the Volume is unadopted, and the next run's claim clears them. It touches
+// abandonAdopt ends run after it failed or was interrupted, and returns
+// cause. An interrupted run writes nothing: the Volume stays adopting at the
+// cursor its last slice committed, and the next Adopt takes it over, so a
+// Close that cancels a large adoption neither waits for a cleanup nor loses
+// the counting done. A failed run returns the Volume to unadopted, dropping
+// its cursor, and deletes the counts, queue and marks it wrote. It touches
 // nothing once another run holds the Volume: a run superseded it, and the
 // records are that run's.
 func abandonAdopt(ctx context.Context, store Store, run string, cause error) error {
-	// Mark the Volume unadopted, abandoned by run, while run still holds it,
-	// even after ctx ended.
-	interrupted := ctx.Err() != nil
-	ctx = context.WithoutCancel(ctx)
+	// Leave an interrupted run at its cursor.
+	if ctx.Err() != nil {
+		return cause
+	}
+
+	// Mark the Volume unadopted, abandoned by run, while run still holds it.
 	var ours bool
 	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
 		// Leave a Volume another run holds.
@@ -286,11 +311,12 @@ func abandonAdopt(ctx context.Context, store Store, run string, cause error) err
 		}
 		ours = true
 		state.Adoption = Adoption_ADOPTION_UNADOPTED
+		state.AdoptCursor = nil
 		return rec.SetState(ctx, state)
 	})
 
-	// Delete what a failed run wrote, stopping once another run starts.
-	if err == nil && ours && !interrupted {
+	// Delete what the run wrote, stopping once another run starts.
+	if err == nil && ours {
 		err = clearRun(ctx, store, run)
 	}
 	if err != nil {
@@ -309,16 +335,110 @@ type adoption struct {
 	res *AdoptResult
 }
 
-// count counts every holder into the count records, refuses a block stored
-// without a child list, then settles each stored block's count.
+// count runs the adoption's passes from the cursor: it counts every holder
+// into the count records, refuses a block stored without a child list, then
+// settles each stored block's count, marking the Volume adopted.
 func (a *adoption) count(ctx context.Context) error {
 	// Count each root at the block it held when the adoption began.
-	if err := a.countRoots(ctx); err != nil {
+	err := a.pass(ctx, AdoptPhase_ADOPT_PHASE_ROOTS, a.countRoots, func(_ *Records, _ *LivenessState, cur *AdoptCursor) error {
+		cur.Phase = AdoptPhase_ADOPT_PHASE_CHILDREN
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 
-	// Count the children of each block stored when the adoption began.
-	err := forSlices(ctx, a.store, a.run, kindChildren, func(rec *Records, blocks block.StoreOps, recs []adoptRecord) error {
+	// Count the children of each block stored when the adoption began, then
+	// refuse when a holder names a block stored without a child list.
+	err = a.pass(ctx, AdoptPhase_ADOPT_PHASE_CHILDREN, a.countChildren, func(_ *Records, _ *LivenessState, cur *AdoptCursor) error {
+		if cur.GetUnknown() != 0 {
+			return errors.Wrapf(ErrAdoptUnknown, "%d holders, sample %v", cur.GetUnknown(), a.res.UnknownSample)
+		}
+		cur.Phase = AdoptPhase_ADOPT_PHASE_SETTLE
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Settle each stored block: one holder is implied, and a block with none
+	// is at zero with children that count it, on the free queue, so the free
+	// releases them. The last slice marks the Volume adopted.
+	return a.pass(ctx, AdoptPhase_ADOPT_PHASE_SETTLE, a.settleLists, func(rec *Records, state *LivenessState, _ *AdoptCursor) error {
+		// Cap the pop mark clearRun raised at the up log's end. The recount
+		// gave each block it left at zero the up log's end when it settled
+		// that block as its ripe sequence, no later than the end now, so the
+		// capped mark still covers each, while a block that dies later
+		// cannot hold the flip. The recount returned each unverified child
+		// of a list written from content to the front, and only a pop at the
+		// child's later ripe sequence takes it off, which raises the mark
+		// past its parent again.
+		if err := rec.capPopMark(ctx, state.GetUpSeq()); err != nil {
+			return err
+		}
+		state.Adoption = Adoption_ADOPTION_ADOPTED
+		state.AdoptCursor = nil
+		return nil
+	})
+}
+
+// adoptSlice handles the records of one pass after the cursor's key in one
+// slice's transaction, adding what it counts to cur, and returns the last
+// key it handled and whether more may follow.
+type adoptSlice func(ctx context.Context, rec *Records, blocks block.StoreOps, state *LivenessState, cur *AdoptCursor) ([]byte, bool, error)
+
+// pass runs the slices of phase p from the cursor while the run holds the
+// Volume, sliceRecords records per transaction, yielding to waiting writers
+// between them. Each slice's transaction moves the cursor past the records
+// it handled, in the state record it writes beside their counts; the last
+// one calls end, which moves the cursor on, refuses or finishes, in the same
+// transaction. A cursor past p skips the pass.
+func (a *adoption) pass(ctx context.Context, p AdoptPhase, slice adoptSlice, end func(rec *Records, state *LivenessState, cur *AdoptCursor) error) error {
+	_, err := eachSlice(ctx, a.store.Update, struct{}{}, nil, func(rec *Records, blocks block.StoreOps, _ struct{}) (struct{}, bool, error) {
+		// Read the cursor while the run holds the Volume.
+		state, err := inRun(ctx, rec, a.run)
+		if err != nil {
+			return struct{}{}, false, err
+		}
+		cur := state.GetAdoptCursor()
+		if cur.GetPhase() != p {
+			return struct{}{}, false, nil
+		}
+
+		// Handle the slice, then move the cursor past it, or end the pass.
+		last, more, err := slice(ctx, rec, blocks, state, cur)
+		if err != nil {
+			return struct{}{}, false, err
+		}
+		if more {
+			cur.After = last
+		} else {
+			cur.After = nil
+			if err := end(rec, state, cur); err != nil {
+				a.report(cur)
+				return struct{}{}, false, err
+			}
+		}
+		a.report(cur)
+		return struct{}{}, more, rec.SetState(ctx, state)
+	})
+	return err
+}
+
+// report copies what the cursor counted into the result.
+func (a *adoption) report(cur *AdoptCursor) {
+	// Copy the counters the cursor carries across runs.
+	a.res.Blocks = cur.GetBlocks()
+	a.res.Roots = cur.GetRoots()
+	a.res.Counted = cur.GetCounted()
+	a.res.Queued = cur.GetQueued()
+	a.res.Unknown = cur.GetUnknown()
+}
+
+// countChildren counts a holder of each child of the blocks of the next
+// child lists, skipping a block born since the adoption began.
+func (a *adoption) countChildren(ctx context.Context, rec *Records, blocks block.StoreOps, _ *LivenessState, cur *AdoptCursor) ([]byte, bool, error) {
+	return scanLists(ctx, rec, cur.GetAfter(), func(recs []adoptRecord) error {
 		// Read the generation once for the slice.
 		gen, err := rec.generation(ctx)
 		if err != nil {
@@ -350,23 +470,15 @@ func (a *adoption) count(ctx context.Context) error {
 				h.add(key, returns)
 			}
 		}
-		return a.hold(ctx, rec, blocks, h)
+		return a.hold(ctx, rec, blocks, cur, h)
 	})
-	if err != nil {
-		return err
-	}
+}
 
-	// Refuse when a holder names a block stored without a child list.
-	if a.res.Unknown != 0 {
-		return errors.Wrapf(ErrAdoptUnknown, "%d holders, sample %v", a.res.Unknown, a.res.UnknownSample)
-	}
-
-	// Settle each stored block: one holder is implied, and a block with none
-	// is at zero with children that count it, on the free queue, so the free
-	// releases them.
-	return forSlices(ctx, a.store, a.run, kindChildren, func(rec *Records, _ block.StoreOps, recs []adoptRecord) error {
+// settleLists settles the blocks of the next child lists.
+func (a *adoption) settleLists(ctx context.Context, rec *Records, _ block.StoreOps, state *LivenessState, cur *AdoptCursor) ([]byte, bool, error) {
+	return scanLists(ctx, rec, cur.GetAfter(), func(recs []adoptRecord) error {
 		for _, r := range recs {
-			if err := a.settle(ctx, rec, r); err != nil {
+			if err := a.settle(ctx, rec, state, cur, r); err != nil {
 				return err
 			}
 		}
@@ -374,10 +486,24 @@ func (a *adoption) count(ctx context.Context) error {
 	})
 }
 
+// scanLists calls fn with up to sliceRecords child list records after the
+// key after, in key order, and returns the last key and whether more may
+// follow.
+func scanLists(ctx context.Context, rec *Records, after []byte, fn func(recs []adoptRecord) error) ([]byte, bool, error) {
+	recs, err := rec.scanAfter(ctx, kindChildren, after, sliceRecords)
+	if err != nil || len(recs) == 0 {
+		return nil, false, err
+	}
+	if err := fn(recs); err != nil {
+		return nil, false, err
+	}
+	return recs[len(recs)-1].key, len(recs) == sliceRecords, nil
+}
+
 // settle writes the holders the count gave the block of the list record r,
-// or settles it at zero on the free queue when it has none. It skips a block
-// born since the adoption began.
-func (a *adoption) settle(ctx context.Context, rec *Records, r adoptRecord) error {
+// or settles it at zero on the free queue, ripe at the up log's end in
+// state, when it has none. It skips a block born since the adoption began.
+func (a *adoption) settle(ctx context.Context, rec *Records, state *LivenessState, cur *AdoptCursor, r adoptRecord) error {
 	// Skip a block born since the adoption began.
 	ref, born, err := a.listed(ctx, rec, r)
 	if err != nil || born {
@@ -385,24 +511,20 @@ func (a *adoption) settle(ctx context.Context, rec *Records, r adoptRecord) erro
 	}
 
 	// Write the holders of a block a holder names.
-	a.res.Blocks++
+	cur.Blocks++
 	n, err := rec.tally(ctx, ref)
 	if err != nil {
 		return err
 	}
 	if n != 0 {
 		if n > 1 {
-			a.res.Counted++
+			cur.Counted++
 		}
 		return rec.SetHolders(ctx, ref, n, 0)
 	}
 
 	// Settle a block no holder names at zero, ripe at the up log's end.
-	state, err := rec.GetState(ctx)
-	if err != nil {
-		return err
-	}
-	a.res.Queued++
+	cur.Queued++
 	ripe := state.GetUpSeq()
 	if err := rec.SetHolders(ctx, ref, 0, ripe); err != nil {
 		return err
@@ -410,57 +532,50 @@ func (a *adoption) settle(ctx context.Context, rec *Records, r adoptRecord) erro
 	return rec.tx.Set(ctx, rec.queueKey(ripe, BlockKey(ref)), nil)
 }
 
-// countRoots counts each name that held a root when the adoption began at
-// the block it held then. It scans the root table and the moved roots' marks
-// as one sequence of names in key order, sliceRecords names per transaction,
-// so it reads each name once: a name a Land moved before the scan reached it
-// has a mark holding its starting block, and one moved after had none to
-// read, so the scan read its starting block from the table.
-func (a *adoption) countRoots(ctx context.Context) error {
-	_, err := eachSlice(ctx, a.store.Update, []byte(nil), nil, func(rec *Records, blocks block.StoreOps, after []byte) ([]byte, bool, error) {
-		// Read the next names of either kind while the run holds the Volume.
-		if _, err := inRun(ctx, rec, a.run); err != nil {
-			return nil, false, err
-		}
-		names, err := rec.scanNamesAfter(ctx, after, sliceRecords, kindRoot, kindAdoptRoot)
+// countRoots counts each name after the cursor's that held a root when the
+// adoption began at the block it held then. It scans the root table and the
+// moved roots' marks as one sequence of names in key order, so it reads each
+// name once: a name a Land moved before the scan reached it has a mark
+// holding its starting block, and one moved after had none to read, so the
+// scan read its starting block from the table.
+func (a *adoption) countRoots(ctx context.Context, rec *Records, blocks block.StoreOps, _ *LivenessState, cur *AdoptCursor) ([]byte, bool, error) {
+	// Read the next names of either kind.
+	names, err := rec.scanNamesAfter(ctx, cur.GetAfter(), sliceRecords, kindRoot, kindAdoptRoot)
+	if err != nil || len(names) == 0 {
+		return nil, false, err
+	}
+	h := make(holds)
+	for _, name := range names {
+		// Read the starting block from the mark, or else the table.
+		start, moved, err := rec.tx.Get(ctx, rec.key(kindAdoptRoot, name))
 		if err != nil {
 			return nil, false, err
 		}
-		h := make(holds)
-		for _, name := range names {
-			// Read the starting block from the mark, or else the table.
-			start, moved, err := rec.tx.Get(ctx, rec.key(kindAdoptRoot, name))
+		if !moved {
+			value, _, err := rec.tx.Get(ctx, rec.key(kindRoot, name))
 			if err != nil {
 				return nil, false, err
 			}
-			if !moved {
-				value, _, err := rec.tx.Get(ctx, rec.key(kindRoot, name))
-				if err != nil {
-					return nil, false, err
-				}
-				entry := &RootEntry{}
-				if err := entry.UnmarshalVT(value); err != nil {
-					return nil, false, err
-				}
-				start = entry.GetRef()
+			entry := &RootEntry{}
+			if err := entry.UnmarshalVT(value); err != nil {
+				return nil, false, err
 			}
+			start = entry.GetRef()
+		}
 
-			// Count the holder of a name that held a block.
-			if len(start) != 0 {
-				if _, rest, err := ParseBlockKey(start); err != nil || len(rest) != 0 {
-					return nil, false, errBadBlockKey
-				}
-				a.res.Roots++
-				h.add(start, false)
+		// Count the holder of a name that held a block.
+		if len(start) != 0 {
+			if _, rest, err := ParseBlockKey(start); err != nil || len(rest) != 0 {
+				return nil, false, errBadBlockKey
 			}
-			after = name
+			cur.Roots++
+			h.add(start, false)
 		}
-		if err := a.hold(ctx, rec, blocks, h); err != nil {
-			return nil, false, err
-		}
-		return after, len(names) == sliceRecords, nil
-	})
-	return err
+	}
+	if err := a.hold(ctx, rec, blocks, cur, h); err != nil {
+		return nil, false, err
+	}
+	return names[len(names)-1], len(names) == sliceRecords, nil
 }
 
 // listed returns the block of a child list record and whether Land gave
@@ -494,14 +609,14 @@ func (h holds) add(key []byte, open bool) {
 	h[string(key)] = e
 }
 
-// hold adds the holders h counts to the count records, and notes each holder
-// of a block the Volume stores without a child list as unknown. While Open a
+// hold adds the holders h counts to the count records, and adds each holder
+// of a block the Volume stores without a child list to cur's unknown. While Open a
 // block a holder opens returns to the front unless its list is from content:
 // the free proof may have popped it while it was Dead, and the walk must
 // verify it before the flip. It reads the counts, the lists and the unlisted
 // blocks in three batches in key order, so a slice costs batched reads
 // rather than a random point read per holder.
-func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps, h holds) error {
+func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps, cur *AdoptCursor, h holds) error {
 	// Order the blocks by key.
 	keys := slices.Sorted(maps.Keys(h))
 	if len(keys) == 0 {
@@ -579,32 +694,11 @@ func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps
 	}
 	for i, ok := range found {
 		if ok {
-			a.res.Unknown += unlistedHolders[i]
+			cur.Unknown += unlistedHolders[i]
 			a.res.UnknownSample = sample(a.res.UnknownSample, unlisted[i])
 		}
 	}
 	return nil
-}
-
-// forSlices calls fn with every record of kind in key order, a slice of up
-// to sliceRecords per transaction while run holds the Volume, yielding to
-// waiting writers between transactions.
-func forSlices(ctx context.Context, store Store, run string, kind byte, fn func(rec *Records, blocks block.StoreOps, recs []adoptRecord) error) error {
-	_, err := eachSlice(ctx, store.Update, []byte(nil), nil, func(rec *Records, blocks block.StoreOps, after []byte) ([]byte, bool, error) {
-		// Read the slice while the run holds the Volume, then handle it.
-		if _, err := inRun(ctx, rec, run); err != nil {
-			return nil, false, err
-		}
-		recs, err := rec.scanAfter(ctx, kind, after, sliceRecords)
-		if err != nil || len(recs) == 0 {
-			return after, false, err
-		}
-		if err := fn(rec, blocks, recs); err != nil {
-			return nil, false, err
-		}
-		return recs[len(recs)-1].key, len(recs) == sliceRecords, nil
-	})
-	return err
 }
 
 // adoptionKinds are the kinds of record an adoption writes or replaces, which

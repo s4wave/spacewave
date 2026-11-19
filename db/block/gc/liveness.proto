@@ -115,6 +115,43 @@ message LivenessState {
   // kind once none of its records remain. None is a block, a block's bytes
   // or a child list.
   bytes obsolete_kinds = 22;
+  // AdoptCursor is how far the adoption in progress has counted, set only
+  // while the Volume is adopting. Each slice of the count writes it in the
+  // transaction that writes the slice's counts, so a run that takes the
+  // Volume over continues strictly after the last key it names.
+  AdoptCursor adopt_cursor = 23;
+}
+
+// AdoptPhase is the pass an adoption is in. The passes run in this order.
+enum AdoptPhase {
+  // ADOPT_PHASE_ROOTS counts each root at the block it held at the mark.
+  ADOPT_PHASE_ROOTS = 0;
+  // ADOPT_PHASE_CHILDREN counts the children of each block stored at the
+  // mark.
+  ADOPT_PHASE_CHILDREN = 1;
+  // ADOPT_PHASE_SETTLE writes each stored block's holders, queuing a block
+  // with none. Its last slice marks the Volume adopted.
+  ADOPT_PHASE_SETTLE = 2;
+}
+
+// AdoptCursor is the position of an adoption and what it has counted so
+// far, as AdoptResult reports it.
+message AdoptCursor {
+  // Phase is the pass in progress.
+  AdoptPhase phase = 1;
+  // After is the last key the pass finished: a root name in the roots pass,
+  // a block key in the others. Empty starts the pass at its first key.
+  bytes after = 2;
+  // Blocks counts the stored blocks settled so far.
+  uint64 blocks = 3;
+  // Roots counts the named roots counted so far.
+  uint64 roots = 4;
+  // Counted counts the settled blocks with more than one holder.
+  uint64 counted = 5;
+  // Queued counts the settled blocks queued at zero.
+  uint64 queued = 6;
+  // Unknown counts the holders of blocks stored without a child list.
+  uint64 unknown = 7;
 }
 
 // Release is the release of the children of a freed block whose child list

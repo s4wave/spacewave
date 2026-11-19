@@ -10,12 +10,16 @@
 \* clear and starts fresh logs. From the mark Land keeps counts as Liveness.tla
 \* does, and also writes a born mark ('B') on each block it gives birth to and,
 \* the first time it moves a root, the root's target at the mark ('A').
-\* AdoptRoot counts one root's target at the mark, and AdoptList counts the
-\* children of one listed block that has no born mark, so the scan counts the
-\* state at the mark and the logs count each change after it. AdoptEnd flips
-\* the Volume to adopted once every root and list is counted, queuing each
-\* listed block at zero. AdoptCrash loses a run at any point, and the next
-\* run clears again.
+\* AdoptStep scans the next record in key order, roots first and then child
+\* lists: it counts a root's target at the mark, or the children of a listed
+\* block that has no born mark, so the scan counts the state at the mark and
+\* the logs count each change after it. The scan's cursor commits with the
+\* counts it covers. AdoptEnd flips the Volume to adopted once the cursor has
+\* passed every record, queuing each listed block at zero. AdoptResume is a
+\* process that dies mid-scan and a later one that takes the run over: it
+\* continues after the cursor. AdoptCrash loses a run at any point, returning
+\* the Volume to unadopted, and the next run clears the counts and the
+\* cursor again.
 \*
 \* At adoption the counts are those Liveness.tla starts from: CountsExact and
 \* HoldUntilFree hold, and every block at zero is queued. Frees and the
@@ -54,16 +58,21 @@ VARIABLES
   cleared,   \* whether this run cleared the stale counts
   bmark,     \* born marks: blocks born since the mark
   amark,     \* each root's target at the mark, Unset until it moves
-  rootsDone, \* roots the scan has counted
-  listsDone, \* listed blocks whose children the scan has counted
+  cursor,    \* the records the scan has counted, a prefix of Scan
   txns,      \* Land transactions so far
   crashes    \* runs lost so far
-vars == <<phase, listed, H, queued, roots, upLog, downLog, cleared, bmark, amark, rootsDone, listsDone, txns, crashes>>
+vars == <<phase, listed, H, queued, roots, upLog, downLog, cleared, bmark, amark, cursor, txns, crashes>>
 
 RECURSIVE SeqOf(_)
 SeqOf(S) ==
   IF S = {} THEN <<>>
   ELSE LET x == CHOOSE x \in S : TRUE IN <<x>> \o SeqOf(S \ {x})
+
+\* Scan is the scan's records in key order: the root names, then the child
+\* list keys of every block that may be listed.
+Scan == <<[k |-> "root", n |-> "main"], [k |-> "root", n |-> "stg"],
+          [k |-> "list", p |-> "a"], [k |-> "list", p |-> "b"],
+          [k |-> "list", p |-> "c"], [k |-> "list", p |-> "d"]>>
 
 Count(s, b) == Cardinality({i \in 1..Len(s) : s[i] = b})
 Holders(b) ==
@@ -82,8 +91,7 @@ Init ==
   /\ cleared = FALSE
   /\ bmark = {}
   /\ amark = [n \in RootNames |-> Unset]
-  /\ rootsDone = {}
-  /\ listsDone = {}
+  /\ cursor = 0
   /\ txns = 0
   /\ crashes = 0
 
@@ -120,19 +128,20 @@ Land ==
               /\ amark' = IF move /\ amark[n] = Unset
                             THEN [amark EXCEPT ![n] = roots[n]] ELSE amark
          ELSE UNCHANGED <<H, upLog, downLog, queued, bmark, amark>>
-    /\ UNCHANGED <<phase, cleared, rootsDone, listsDone, crashes>>
+    /\ UNCHANGED <<phase, cleared, cursor, crashes>>
 
 AdoptStart ==
   /\ phase = "off"
   /\ phase' = "clear"
-  /\ UNCHANGED <<listed, H, queued, roots, upLog, downLog, cleared, bmark, amark, rootsDone, listsDone, txns, crashes>>
+  /\ UNCHANGED <<listed, H, queued, roots, upLog, downLog, cleared, bmark, amark, cursor, txns, crashes>>
 
 AdoptClear ==
   /\ phase = "clear"
   /\ ~cleared
   /\ H' = [b \in Blocks |-> 0]
   /\ cleared' = TRUE
-  /\ UNCHANGED <<phase, listed, queued, roots, upLog, downLog, bmark, amark, rootsDone, listsDone, txns, crashes>>
+  /\ cursor' = 0
+  /\ UNCHANGED <<phase, listed, queued, roots, upLog, downLog, bmark, amark, txns, crashes>>
 
 AdoptMark ==
   /\ phase = "clear"
@@ -143,33 +152,26 @@ AdoptMark ==
   /\ queued' = {}
   /\ bmark' = {}
   /\ amark' = [n \in RootNames |-> Unset]
-  /\ rootsDone' = {}
-  /\ listsDone' = {}
-  /\ UNCHANGED <<listed, H, roots, cleared, txns, crashes>>
+  /\ UNCHANGED <<listed, H, roots, cleared, cursor, txns, crashes>>
 
-AdoptRoot(n) ==
+AdoptStep ==
   /\ phase = "scan"
-  /\ n \notin rootsDone
-  /\ LET v == IF amark[n] # Unset THEN amark[n] ELSE roots[n] IN
-       H' = IF v = None THEN H ELSE [H EXCEPT ![v] = @ + 1]
-  /\ rootsDone' = rootsDone \cup {n}
-  /\ UNCHANGED <<phase, listed, queued, roots, upLog, downLog, cleared, bmark, amark, listsDone, txns, crashes>>
-
-AdoptList(p) ==
-  /\ phase = "scan"
-  /\ p \in listed \ listsDone
-  /\ H' = IF p \in bmark THEN H
-          ELSE [b \in Blocks |-> IF b \in Kids(p) THEN H[b] + 1 ELSE H[b]]
-  /\ listsDone' = listsDone \cup {p}
-  /\ UNCHANGED <<phase, listed, queued, roots, upLog, downLog, cleared, bmark, amark, rootsDone, txns, crashes>>
+  /\ cursor < Len(Scan)
+  /\ LET r == Scan[cursor + 1] IN
+       IF r.k = "root"
+         THEN LET v == IF amark[r.n] # Unset THEN amark[r.n] ELSE roots[r.n] IN
+                H' = IF v = None THEN H ELSE [H EXCEPT ![v] = @ + 1]
+         ELSE H' = IF r.p \notin listed \/ r.p \in bmark THEN H
+                   ELSE [b \in Blocks |-> IF b \in Kids(r.p) THEN H[b] + 1 ELSE H[b]]
+  /\ cursor' = cursor + 1
+  /\ UNCHANGED <<phase, listed, queued, roots, upLog, downLog, cleared, bmark, amark, txns, crashes>>
 
 AdoptEnd ==
   /\ phase = "scan"
-  /\ rootsDone = RootNames
-  /\ listed \subseteq listsDone
+  /\ cursor = Len(Scan)
   /\ phase' = "adopted"
   /\ queued' = {b \in listed : H[b] = 0}
-  /\ UNCHANGED <<listed, H, roots, upLog, downLog, cleared, bmark, amark, rootsDone, listsDone, txns, crashes>>
+  /\ UNCHANGED <<listed, H, roots, upLog, downLog, cleared, bmark, amark, cursor, txns, crashes>>
 
 AdoptCrash ==
   /\ phase \in {"clear", "scan"}
@@ -177,7 +179,16 @@ AdoptCrash ==
   /\ phase' = "clear"
   /\ cleared' = FALSE
   /\ crashes' = crashes + 1
-  /\ UNCHANGED <<listed, H, queued, roots, upLog, downLog, bmark, amark, rootsDone, listsDone, txns>>
+  /\ UNCHANGED <<listed, H, queued, roots, upLog, downLog, bmark, amark, cursor, txns>>
+
+\* A process dies mid-scan and another takes the run over. The counts and the
+\* cursor committed together, so it continues after the cursor.
+AdoptResume ==
+  /\ phase = "scan"
+  /\ crashes < MaxCrashes
+  /\ crashes' = crashes + 1
+  /\ cursor' = cursor
+  /\ UNCHANGED <<phase, listed, H, queued, roots, upLog, downLog, cleared, bmark, amark, txns>>
 
 NetUps ==
   /\ Counting
@@ -185,12 +196,11 @@ NetUps ==
   /\ H' = [H EXCEPT ![Head(upLog)] = @ + 1]
   /\ queued' = queued \ {Head(upLog)}
   /\ upLog' = Tail(upLog)
-  /\ UNCHANGED <<phase, listed, roots, downLog, cleared, bmark, amark, rootsDone, listsDone, txns, crashes>>
+  /\ UNCHANGED <<phase, listed, roots, downLog, cleared, bmark, amark, cursor, txns, crashes>>
 
 Next ==
-  \/ Land \/ AdoptStart \/ AdoptClear \/ AdoptMark \/ AdoptEnd \/ AdoptCrash \/ NetUps
-  \/ \E n \in RootNames : AdoptRoot(n)
-  \/ \E p \in Blocks : AdoptList(p)
+  \/ Land \/ AdoptStart \/ AdoptClear \/ AdoptMark \/ AdoptStep \/ AdoptEnd
+  \/ AdoptCrash \/ AdoptResume \/ NetUps
 
 Spec == Init /\ [][Next]_vars
 
