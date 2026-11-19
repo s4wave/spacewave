@@ -137,13 +137,33 @@ func (s *cursorStore) BeginReadOperation(context.Context) (block.StoreOps, func(
 	return s, func() {}, nil
 }
 
-// GetBlock returns stored bytes without applying the cursor transform.
+// GetBlock returns stored bytes without applying the cursor transform, and
+// lets the reading transaction keep the decoded block.
+//
+// Invariant: a decoded block this read admits is served only to the
+// transaction that read it, and only for the ref whose bytes it decoded. The
+// RPC client checks the served bytes against ref, and a ref names its content,
+// so an entry is never a page of another snapshot nor a page whose block
+// changed. The cursor borrows no decoded-block scope, so a read-only
+// transaction keeps the block in its own private scope, which no other
+// transaction or cursor reads and which ends with the transaction. This
+// process never sees the serving process remove a block; the private scope
+// bounds that to blocks the transaction already read, as its cursor positions
+// already hold them. A writable transaction has no scope here and decodes
+// each read.
 func (s *cursorStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Take the removal generation before the read, so a removal racing it
+	// keeps the decoded block out of the cache.
+	gen := block.DurableReadGeneration()
 	data, found, err := s.StoreOps.GetBlock(ctx, ref)
-	if err == nil {
-		block.RecordResourceGetBlock(ctx, ref, found, len(data))
+	if err != nil {
+		return nil, false, err
 	}
-	return data, found, err
+	block.RecordResourceGetBlock(ctx, ref, found, len(data))
+	if found {
+		block.MarkDurableRead(ctx, ref, gen)
+	}
+	return data, found, nil
 }
 
 // StatBlock reports the transformed size, or nil when the block is absent.

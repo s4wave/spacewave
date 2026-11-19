@@ -199,3 +199,58 @@ func TestSDKBucketLookupStoreReadOperationReusesDecodedBlocks(t *testing.T) {
 		t.Fatalf("unexpected resource decoded cache counters: %+v", snapshot)
 	}
 }
+
+// TestSDKBucketLookupStoreReadOnlyTransactionReusesDecodedBlocks checks that a
+// read-only transaction over the remote cursor store keeps the blocks it
+// decodes, so a second cursor of that transaction reads without decoding.
+func TestSDKBucketLookupStoreReadOnlyTransactionReusesDecodedBlocks(t *testing.T) {
+	// Store an encoded block behind the remote cursor store, over a store
+	// that marks no reads, as the RPC client marks none.
+	ctx := context.Background()
+	encoded, err := (&block_mock.Example{Msg: "remote decoded"}).MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	store := &cursorStore{StoreOps: &unmarkedStore{StoreOps: block_mock.NewMockStore(0)}}
+	ref, _, err := store.PutBlock(ctx, encoded, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Open a read-only transaction with two cursors at the block.
+	tx, first := block.NewTransaction(store, nil, ref, nil)
+	tx.SetReadOnly()
+	second := first.Detach(false)
+	ctor := func() block.Block { return &block_mock.Example{} }
+
+	// Decode the block through each cursor.
+	opCtx, counter := block.WithReadCounter(ctx)
+	for _, cs := range []*block.Cursor{first, second} {
+		blk, err := cs.Unmarshal(opCtx, ctor)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if msg := blk.(*block_mock.Example).GetMsg(); msg != "remote decoded" {
+			t.Fatalf("decoded message = %q, want remote decoded", msg)
+		}
+	}
+
+	// Verify the second cursor took the decoded block from the transaction.
+	snapshot := counter.Snapshot()
+	if snapshot.ResourceGetBlockCount != 1 ||
+		snapshot.DecodedBlockUnmarshalCount != 1 ||
+		snapshot.DecodedBlockCacheHitCount != 1 {
+		t.Fatalf("unexpected remote decoded cache counters: %+v", snapshot)
+	}
+}
+
+// unmarkedStore serves blocks without marking the reads durable, as the RPC
+// block store client does.
+type unmarkedStore struct {
+	block.StoreOps
+}
+
+// GetBlock reads ref without the caller's read mark.
+func (s *unmarkedStore) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	return s.StoreOps.GetBlock(context.Background(), ref)
+}

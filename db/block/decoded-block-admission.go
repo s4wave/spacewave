@@ -20,7 +20,11 @@ import (
 // MarkDurableRead. Every other source, a write buffer, a publication being
 // prepared, a write transaction, or a store nobody taught to mark, leaves the
 // read unmarked, and its decoded block stays in the read operation's front
-// cache. A store that forgets to mark costs hit rate, never correctness.
+// cache. A store that forgets to mark costs hit rate, never correctness. A
+// client of another process's store, such as the SDK's remote cursor, marks
+// its reads too, though it never learns of that process's removals: its
+// cursor borrows no scope, so the reads it admits stay in the reading
+// transaction's private scope.
 //
 // Removal is the other half. A store that marks reads must call
 // InvalidateRemovedBlock after each removal it makes durable, and after it
@@ -195,7 +199,8 @@ func blockReadMarkFromContext(ctx context.Context) *blockReadMark {
 // opened after DurableReadGeneration returned gen. Only a store whose served
 // bytes are committed, or kept in memory as immutable pages, may call it, and
 // only for a block it found; a store that calls it must also report its
-// removals with InvalidateRemovedBlock.
+// removals with InvalidateRemovedBlock, or, for a client of a remote store,
+// admit only to the reading transaction's private scope.
 func MarkDurableRead(ctx context.Context, ref *BlockRef, gen uint64) {
 	// Ignore reads nobody tracks and durable reads of other blocks.
 	mark := blockReadMarkFromContext(ctx)
