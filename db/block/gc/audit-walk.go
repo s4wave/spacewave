@@ -627,7 +627,7 @@ func (w *walker) check(ctx context.Context) error {
 		}
 		return w.checkWide(ctx, BlockKey(ref))
 	}
-	keys, wide, done, err := w.nextChildren(ctx)
+	keys, namers, wide, done, err := w.nextChildren(ctx)
 	if err != nil {
 		return err
 	}
@@ -650,15 +650,19 @@ func (w *walker) check(ctx context.Context) error {
 				return err
 			}
 
-			// Check each block. The slice holds at most walkSliceEdges
-			// edges, so each block's edges fit the view.
-			for _, key := range keys {
-				seen, _, _, more, err := scanNamers(ctx, edges, rec, state, key, nil, walkSliceEdges, false)
-				if err != nil {
-					return err
-				}
-				if more {
-					return errBadWalkRecord
+			// Check each block against the namers nextChildren read. The
+			// slice holds at most walkSliceEdges edges, so each block's
+			// edges fit the view.
+			for i, key := range keys {
+				var seen uint64
+				for _, namer := range namers[i] {
+					valid, err := edgeHolds(ctx, rec, state, key, namer)
+					if err != nil {
+						return err
+					}
+					if valid {
+						seen++
+					}
 				}
 				check, ok, err := w.checkChild(ctx, rec, state, key, seen, true, t.delta(key), t.pending[string(key)])
 				if err != nil {
@@ -1093,45 +1097,53 @@ func tailDelta(
 
 // nextChildren returns the block keys of the next named blocks past the
 // progress, in key order, at most walkSliceChildren of them with at most
-// walkSliceEdges edges in all, and whether they end the edges. A block with
-// more edges than walkSliceEdges comes alone, reported wide.
-func (w *walker) nextChildren(ctx context.Context) (keys [][]byte, wide, done bool, err error) {
+// walkSliceEdges edges in all, with each block's namers, and whether they
+// end the edges. A block with more edges than walkSliceEdges comes alone,
+// reported wide, with no namers.
+//
+// The walker is the only writer of scratch and writes it only between
+// slices, so the namers are the edges any view of scratch reads until the
+// next write.
+func (w *walker) nextChildren(ctx context.Context) (keys [][]byte, namers [][][]byte, wide, done bool, err error) {
 	// Start past the progress.
 	from, more := past(w.prog.GetAfter())
 	if !more {
-		return nil, false, true, nil
+		return nil, nil, false, true, nil
 	}
 	var n int
 	done = true
 	err = w.viewScratch(ctx, func(edges *Records) error {
 		return edges.scan(ctx, []byte{walkEdge}, from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
 			// Take each block once, up to the bound.
-			ref, _, err := ParseBlockKey(key)
-			if err != nil {
-				return false, err
+			child, ok := nextBlockKey(key)
+			if !ok {
+				return false, errBadBlockKey
 			}
-			child := BlockKey(ref)
+			namer := key[len(child):]
 			if len(keys) == 0 || !bytes.Equal(keys[len(keys)-1], child) {
 				if len(keys) == walkSliceChildren {
 					done = false
 					return false, nil
 				}
-				keys = append(keys, child)
+				keys, namers = append(keys, bytes.Clone(child)), append(namers, nil)
 			}
 
 			// Stop at the edge that passes the bound: a block alone is
 			// wide, and any other waits for the next slice.
 			if n++; n <= walkSliceEdges {
+				namers[len(namers)-1] = append(namers[len(namers)-1], bytes.Clone(namer))
 				return true, nil
 			}
 			done = false
-			if wide = len(keys) == 1; !wide {
-				keys = keys[:len(keys)-1]
+			if wide = len(keys) == 1; wide {
+				namers = nil
+			} else {
+				keys, namers = keys[:len(keys)-1], namers[:len(namers)-1]
 			}
 			return false, nil
 		})
 	})
-	return keys, wide, done, err
+	return keys, namers, wide, done, err
 }
 
 // releasePending counts, for each of keys, in key order, how many times the
