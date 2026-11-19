@@ -115,8 +115,13 @@ func buildNodeGraphRoot(
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/regen/build")
 	defer task.End()
 
-	// Open the pinned root and check it is a kv World.
+	// Open the pinned root and check it is a kv World. A build beside writers
+	// lands its blocks in slices, since each land holds the store's write
+	// transaction that a writer's commit needs.
 	transaction, worldCursor := bucketCursor.BuildTransactionAtRefWithStore(nil, root, store)
+	if yield != nil {
+		transaction.SetBufferedStoreSettings(&block.BufferedStoreSettings{DrainBatchEntries: regenLandBlocks})
+	}
 	w, err := UnmarshalWorld(ctx, worldCursor)
 	if err != nil {
 		return nil, errors.Wrap(err, "load pinned World")
@@ -165,6 +170,11 @@ func buildNodeGraphRoot(
 // the World's writers: well under a millisecond of work, so a writer that
 // begins mid-slice waits for little of it.
 const regenSliceKeys = 256
+
+// regenLandBlocks is how many blocks a build beside writers lands in one store
+// write transaction. A land of 4096 blocks held a writer's commit 330 ms on
+// a Space's volume, so this many hold it about 20 ms.
+const regenLandBlocks = 256
 
 // regenPacer yields background regeneration work to the World's writers once a
 // slice.
