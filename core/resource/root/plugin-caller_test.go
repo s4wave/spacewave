@@ -456,6 +456,7 @@ var pluginCallerAllowed = map[string][]string{
 	s4wave_sobject.SRPCSharedObjectResourceServiceServiceID: {
 		"WatchSharedObjectHealth", "WatchSharedObjectParticipation",
 		"OpenReadCheckpoint", "MountSharedObjectBody", "GetSharedObjectTrim",
+		"InspectSharedObjectOrder",
 	},
 	s4wave_space.SRPCSpaceResourceServiceServiceID: {
 		"WatchSpaceState", "WatchProcessBindings", "WatchSpaceSharingState",
