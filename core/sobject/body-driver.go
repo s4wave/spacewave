@@ -524,19 +524,11 @@ func (d *BodyDriver) follow(ctx context.Context, ev *OrderEvent) error {
 // apply applies the operation at index i of ev's order.
 func (d *BodyDriver) apply(ctx context.Context, ev *OrderEvent, i int) error {
 	// Prepare the operation as every member does.
-	h := ev.Order[i]
-	inner := ev.Set.Get(h)
-	op := &OrderedOperation{Hash: h, Inner: inner, Refused: replayRefusal(ev.Set, ev.Config, h, inner)}
-	switch {
-	case op.Refused != "":
-	case inner.IsAcknowledgment():
-	default:
-		author, data, reason, err := PrepareReplayOp(ctx, ev.Snapshot, inner)
-		if err != nil {
-			return err
-		}
-		op.Author, op.Data, op.Refused = author, data, reason
+	op, err := ev.Operation(ctx, i)
+	if err != nil {
+		return err
 	}
+	h := op.Hash
 
 	// Apply it and record its outcome.
 	reason, err := d.body.Apply(ctx, i, op)

@@ -12,6 +12,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	sobject "github.com/s4wave/spacewave/core/sobject"
+	world "github.com/s4wave/spacewave/core/space/world"
 )
 
 // GetSharedObjectTrimRequest selects the already mounted SharedObject.
@@ -373,6 +374,85 @@ func (x *OpenReadCheckpointResponse) GetConfig() *sobject.SharedObjectConfig {
 	return nil
 }
 
+// InspectSharedObjectOrderRequest selects which operations of the mounted
+// Space's order the inspection sends.
+type InspectSharedObjectOrderRequest struct {
+	unknownFields []byte
+	// All sends every operation. Otherwise only the operations this build
+	// cannot decode, and those the saved cursor refused as an unknown operation
+	// type, are sent.
+	All bool `protobuf:"varint,1,opt,name=all,proto3" json:"all,omitempty"`
+}
+
+func (x *InspectSharedObjectOrderRequest) Reset() {
+	*x = InspectSharedObjectOrderRequest{}
+}
+
+func (*InspectSharedObjectOrderRequest) ProtoMessage() {}
+
+func (x *InspectSharedObjectOrderRequest) GetAll() bool {
+	if x != nil {
+		return x.All
+	}
+	return false
+}
+
+// InspectSharedObjectOrderResponse is one message of an order inspection.
+type InspectSharedObjectOrderResponse struct {
+	unknownFields []byte
+	// Body is an operation, or the summary that ends the inspection.
+	//
+	// Types that are assignable to Body:
+	//	*InspectSharedObjectOrderResponse_Operation
+	//	*InspectSharedObjectOrderResponse_Summary
+	Body isInspectSharedObjectOrderResponse_Body `protobuf_oneof:"body"`
+}
+
+func (x *InspectSharedObjectOrderResponse) Reset() {
+	*x = InspectSharedObjectOrderResponse{}
+}
+
+func (*InspectSharedObjectOrderResponse) ProtoMessage() {}
+
+func (m *InspectSharedObjectOrderResponse) GetBody() isInspectSharedObjectOrderResponse_Body {
+	if m != nil {
+		return m.Body
+	}
+	return nil
+}
+
+func (x *InspectSharedObjectOrderResponse) GetOperation() *world.OrderOperation {
+	if x, ok := x.GetBody().(*InspectSharedObjectOrderResponse_Operation); ok {
+		return x.Operation
+	}
+	return nil
+}
+
+func (x *InspectSharedObjectOrderResponse) GetSummary() *world.OrderInspection {
+	if x, ok := x.GetBody().(*InspectSharedObjectOrderResponse_Summary); ok {
+		return x.Summary
+	}
+	return nil
+}
+
+type isInspectSharedObjectOrderResponse_Body interface {
+	isInspectSharedObjectOrderResponse_Body()
+}
+
+type InspectSharedObjectOrderResponse_Operation struct {
+	// Operation is one operation of the order, in order.
+	Operation *world.OrderOperation `protobuf:"bytes,1,opt,name=operation,proto3,oneof"`
+}
+
+type InspectSharedObjectOrderResponse_Summary struct {
+	// Summary counts the whole order and is the last message.
+	Summary *world.OrderInspection `protobuf:"bytes,2,opt,name=summary,proto3,oneof"`
+}
+
+func (*InspectSharedObjectOrderResponse_Operation) isInspectSharedObjectOrderResponse_Body() {}
+
+func (*InspectSharedObjectOrderResponse_Summary) isInspectSharedObjectOrderResponse_Body() {}
+
 func (m *GetSharedObjectTrimRequest) CloneVT() *GetSharedObjectTrimRequest {
 	if m == nil {
 		return (*GetSharedObjectTrimRequest)(nil)
@@ -587,6 +667,68 @@ func (m *OpenReadCheckpointResponse) CloneVT() *OpenReadCheckpointResponse {
 }
 
 func (m *OpenReadCheckpointResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *InspectSharedObjectOrderRequest) CloneVT() *InspectSharedObjectOrderRequest {
+	if m == nil {
+		return (*InspectSharedObjectOrderRequest)(nil)
+	}
+	r := new(InspectSharedObjectOrderRequest)
+	r.All = m.All
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InspectSharedObjectOrderRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *InspectSharedObjectOrderResponse) CloneVT() *InspectSharedObjectOrderResponse {
+	if m == nil {
+		return (*InspectSharedObjectOrderResponse)(nil)
+	}
+	r := new(InspectSharedObjectOrderResponse)
+	if m.Body != nil {
+		r.Body = m.Body.(interface {
+			CloneOneofVT() isInspectSharedObjectOrderResponse_Body
+		}).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InspectSharedObjectOrderResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *InspectSharedObjectOrderResponse_Operation) CloneVT() *InspectSharedObjectOrderResponse_Operation {
+	if m == nil {
+		return (*InspectSharedObjectOrderResponse_Operation)(nil)
+	}
+	r := new(InspectSharedObjectOrderResponse_Operation)
+	r.Operation = protobuf_go_lite.CloneVTValue(m.Operation)
+	return r
+}
+
+func (m *InspectSharedObjectOrderResponse_Operation) CloneOneofVT() isInspectSharedObjectOrderResponse_Body {
+	return m.CloneVT()
+}
+
+func (m *InspectSharedObjectOrderResponse_Summary) CloneVT() *InspectSharedObjectOrderResponse_Summary {
+	if m == nil {
+		return (*InspectSharedObjectOrderResponse_Summary)(nil)
+	}
+	r := new(InspectSharedObjectOrderResponse_Summary)
+	r.Summary = protobuf_go_lite.CloneVTValue(m.Summary)
+	return r
+}
+
+func (m *InspectSharedObjectOrderResponse_Summary) CloneOneofVT() isInspectSharedObjectOrderResponse_Body {
 	return m.CloneVT()
 }
 
@@ -884,6 +1026,89 @@ func (this *OpenReadCheckpointResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+func (this *InspectSharedObjectOrderRequest) EqualVT(that *InspectSharedObjectOrderRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.All != that.All {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InspectSharedObjectOrderRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InspectSharedObjectOrderRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InspectSharedObjectOrderResponse) EqualVT(that *InspectSharedObjectOrderResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Body == nil && that.Body != nil {
+		return false
+	} else if this.Body != nil {
+		if that.Body == nil {
+			return false
+		}
+		if !this.Body.(interface {
+			EqualVT(isInspectSharedObjectOrderResponse_Body) bool
+		}).EqualVT(that.Body) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InspectSharedObjectOrderResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InspectSharedObjectOrderResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InspectSharedObjectOrderResponse_Operation) EqualVT(thatIface isInspectSharedObjectOrderResponse_Body) bool {
+	that, ok := thatIface.(*InspectSharedObjectOrderResponse_Operation)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Operation, that.Operation, func() *world.OrderOperation { return &world.OrderOperation{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *InspectSharedObjectOrderResponse_Summary) EqualVT(thatIface isInspectSharedObjectOrderResponse_Body) bool {
+	that, ok := thatIface.(*InspectSharedObjectOrderResponse_Summary)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Summary, that.Summary, func() *world.OrderInspection { return &world.OrderInspection{} }) {
+		return false
+	}
+	return true
 }
 
 // MarshalProtoJSON marshals the GetSharedObjectTrimRequest message to JSON.
@@ -1513,6 +1738,112 @@ func (x *OpenReadCheckpointResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the InspectSharedObjectOrderRequest message to JSON.
+func (x *InspectSharedObjectOrderRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.All || s.HasField("all") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("all")
+		s.WriteBool(x.All)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InspectSharedObjectOrderRequest to JSON.
+func (x *InspectSharedObjectOrderRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InspectSharedObjectOrderRequest message from JSON.
+func (x *InspectSharedObjectOrderRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "all":
+			s.AddField("all")
+			x.All = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InspectSharedObjectOrderRequest from JSON.
+func (x *InspectSharedObjectOrderRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InspectSharedObjectOrderResponse message to JSON.
+func (x *InspectSharedObjectOrderResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Body != nil {
+		switch ov := x.Body.(type) {
+		case *InspectSharedObjectOrderResponse_Operation:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("operation")
+			ov.Operation.MarshalProtoJSON(s.WithField("operation"))
+		case *InspectSharedObjectOrderResponse_Summary:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("summary")
+			ov.Summary.MarshalProtoJSON(s.WithField("summary"))
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InspectSharedObjectOrderResponse to JSON.
+func (x *InspectSharedObjectOrderResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InspectSharedObjectOrderResponse message from JSON.
+func (x *InspectSharedObjectOrderResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "operation":
+			ov := &InspectSharedObjectOrderResponse_Operation{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Operation = nil
+				return
+			}
+			ov.Operation = &world.OrderOperation{}
+			ov.Operation.UnmarshalProtoJSON(s.WithField("operation", true))
+		case "summary":
+			ov := &InspectSharedObjectOrderResponse_Summary{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Summary = nil
+				return
+			}
+			ov.Summary = &world.OrderInspection{}
+			ov.Summary.UnmarshalProtoJSON(s.WithField("summary", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InspectSharedObjectOrderResponse from JSON.
+func (x *InspectSharedObjectOrderResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *GetSharedObjectTrimRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2057,6 +2388,132 @@ func (m *OpenReadCheckpointResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *InspectSharedObjectOrderRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InspectSharedObjectOrderRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InspectSharedObjectOrderRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.All {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.All)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InspectSharedObjectOrderResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InspectSharedObjectOrderResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InspectSharedObjectOrderResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.Body.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InspectSharedObjectOrderResponse_Operation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InspectSharedObjectOrderResponse_Operation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Operation != nil {
+		size, err := m.Operation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InspectSharedObjectOrderResponse_Summary) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InspectSharedObjectOrderResponse_Summary) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Summary != nil {
+		size, err := m.Summary.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GetSharedObjectTrimRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2234,6 +2691,60 @@ func (m *OpenReadCheckpointResponse) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InspectSharedObjectOrderRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.All)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InspectSharedObjectOrderResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InspectSharedObjectOrderResponse_Operation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Operation != nil {
+		l = m.Operation.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *InspectSharedObjectOrderResponse_Summary) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Summary != nil {
+		l = m.Summary.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
 	return n
 }
 
@@ -2464,6 +2975,46 @@ func (x *OpenReadCheckpointResponse) MarshalProtoText() string {
 }
 
 func (x *OpenReadCheckpointResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InspectSharedObjectOrderRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "InspectSharedObjectOrderRequest")
+	if x.All != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "all")
+		protobuf_go_lite.TextWriteBool(&sb, x.All)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *InspectSharedObjectOrderRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InspectSharedObjectOrderResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "InspectSharedObjectOrderResponse")
+	switch body := x.Body.(type) {
+	case *InspectSharedObjectOrderResponse_Operation:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "operation")
+		if body.Operation == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &world.OrderOperation{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Operation)
+		}
+	case *InspectSharedObjectOrderResponse_Summary:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "summary")
+		if body.Summary == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &world.OrderInspection{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Summary)
+		}
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *InspectSharedObjectOrderResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3178,6 +3729,142 @@ func (m *OpenReadCheckpointResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			if err := m.Config.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InspectSharedObjectOrderRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InspectSharedObjectOrderRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InspectSharedObjectOrderRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field All", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.All = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InspectSharedObjectOrderResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InspectSharedObjectOrderResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InspectSharedObjectOrderResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Operation", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*InspectSharedObjectOrderResponse_Operation); ok {
+				if err := oneof.Operation.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &world.OrderOperation{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &InspectSharedObjectOrderResponse_Operation{Operation: v}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Summary", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*InspectSharedObjectOrderResponse_Summary); ok {
+				if err := oneof.Summary.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &world.OrderInspection{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &InspectSharedObjectOrderResponse_Summary{Summary: v}
 			}
 			iNdEx = postIndex
 		default:

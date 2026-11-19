@@ -24,6 +24,11 @@ type SRPCSharedObjectResourceServiceClient interface {
 	// GetSharedObjectTrim reports, from this device's state, how far the history
 	// can be trimmed and which members hold it back.
 	GetSharedObjectTrim(ctx context.Context, in *GetSharedObjectTrimRequest) (*SharedObjectTrim, error)
+	// InspectSharedObjectOrder walks the mounted Space's agreed order from its
+	// checkpoint to the head and reports what this build reads of each
+	// operation. It reads the state and the saved replay cursor and writes
+	// nothing.
+	InspectSharedObjectOrder(ctx context.Context, in *InspectSharedObjectOrderRequest) (SRPCSharedObjectResourceService_InspectSharedObjectOrderClient, error)
 }
 
 type srpcSharedObjectResourceServiceClient struct {
@@ -137,6 +142,39 @@ func (c *srpcSharedObjectResourceServiceClient) GetSharedObjectTrim(ctx context.
 	return out, nil
 }
 
+func (c *srpcSharedObjectResourceServiceClient) InspectSharedObjectOrder(ctx context.Context, in *InspectSharedObjectOrderRequest) (SRPCSharedObjectResourceService_InspectSharedObjectOrderClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "InspectSharedObjectOrder", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSharedObjectResourceService_InspectSharedObjectOrderClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCSharedObjectResourceService_InspectSharedObjectOrderClient interface {
+	srpc.Stream
+	Recv() (*InspectSharedObjectOrderResponse, error)
+	RecvTo(*InspectSharedObjectOrderResponse) error
+}
+
+type srpcSharedObjectResourceService_InspectSharedObjectOrderClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSharedObjectResourceService_InspectSharedObjectOrderClient) Recv() (*InspectSharedObjectOrderResponse, error) {
+	m := new(InspectSharedObjectOrderResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSharedObjectResourceService_InspectSharedObjectOrderClient) RecvTo(m *InspectSharedObjectOrderResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCSharedObjectResourceServiceServer interface {
 	WatchSharedObjectHealth(*WatchSharedObjectHealthRequest, SRPCSharedObjectResourceService_WatchSharedObjectHealthStream) error
 	// WatchSharedObjectParticipation observes held native authority without mounting content.
@@ -148,6 +186,11 @@ type SRPCSharedObjectResourceServiceServer interface {
 	// GetSharedObjectTrim reports, from this device's state, how far the history
 	// can be trimmed and which members hold it back.
 	GetSharedObjectTrim(context.Context, *GetSharedObjectTrimRequest) (*SharedObjectTrim, error)
+	// InspectSharedObjectOrder walks the mounted Space's agreed order from its
+	// checkpoint to the head and reports what this build reads of each
+	// operation. It reads the state and the saved replay cursor and writes
+	// nothing.
+	InspectSharedObjectOrder(*InspectSharedObjectOrderRequest, SRPCSharedObjectResourceService_InspectSharedObjectOrderStream) error
 }
 
 const SRPCSharedObjectResourceServiceServiceID = "s4wave.sobject.SharedObjectResourceService"
@@ -181,6 +224,7 @@ func (SRPCSharedObjectResourceServiceHandler) GetMethodIDs() []string {
 		"OpenReadCheckpoint",
 		"MountSharedObjectBody",
 		"GetSharedObjectTrim",
+		"InspectSharedObjectOrder",
 	}
 }
 
@@ -203,6 +247,8 @@ func (d *SRPCSharedObjectResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_MountSharedObjectBody(d.impl, strm)
 	case "GetSharedObjectTrim":
 		return true, d.InvokeMethod_GetSharedObjectTrim(d.impl, strm)
+	case "InspectSharedObjectOrder":
+		return true, d.InvokeMethod_InspectSharedObjectOrder(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -260,6 +306,15 @@ func (SRPCSharedObjectResourceServiceHandler) InvokeMethod_GetSharedObjectTrim(i
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+func (SRPCSharedObjectResourceServiceHandler) InvokeMethod_InspectSharedObjectOrder(impl SRPCSharedObjectResourceServiceServer, strm srpc.Stream) error {
+	req := new(InspectSharedObjectOrderRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSharedObjectResourceService_InspectSharedObjectOrderStream{strm}
+	return impl.InspectSharedObjectOrder(req, serverStrm)
 }
 
 type SRPCSharedObjectResourceService_WatchSharedObjectHealthStream interface {
@@ -330,4 +385,27 @@ type SRPCSharedObjectResourceService_GetSharedObjectTrimStream interface {
 
 type srpcSharedObjectResourceService_GetSharedObjectTrimStream struct {
 	srpc.Stream
+}
+
+type SRPCSharedObjectResourceService_InspectSharedObjectOrderStream interface {
+	srpc.Stream
+	Send(*InspectSharedObjectOrderResponse) error
+	SendAndClose(*InspectSharedObjectOrderResponse) error
+}
+
+type srpcSharedObjectResourceService_InspectSharedObjectOrderStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSharedObjectResourceService_InspectSharedObjectOrderStream) Send(m *InspectSharedObjectOrderResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSharedObjectResourceService_InspectSharedObjectOrderStream) SendAndClose(m *InspectSharedObjectOrderResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }

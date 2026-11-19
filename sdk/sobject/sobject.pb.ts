@@ -10,6 +10,10 @@ import {
   SOConfigChange,
   SOOperationPosition,
 } from '../../core/sobject/sobject.pb.js'
+import {
+  OrderInspection,
+  OrderOperation,
+} from '../../core/space/world/world.pb.js'
 
 /**
  * GetSharedObjectTrimRequest selects the already mounted SharedObject.
@@ -281,5 +285,52 @@ export const OpenReadCheckpointResponse: MessageType<OpenReadCheckpointResponse>
     () => [
       [1, 'resource_id', 13],
       [2, 'config', 11, 0, SharedObjectConfig.codec],
+    ],
+  )
+
+/**
+ * InspectSharedObjectOrderRequest selects which operations of the mounted
+ * Space's order the inspection sends.
+ *
+ * @generated from message s4wave.sobject.InspectSharedObjectOrderRequest
+ */
+export interface InspectSharedObjectOrderRequest {
+  /**
+   * All sends every operation. Otherwise only the operations this build
+   * cannot decode, and those the saved cursor refused as an unknown operation
+   * type, are sent.
+   */
+  all?: boolean
+}
+
+export const InspectSharedObjectOrderRequest: MessageType<InspectSharedObjectOrderRequest> =
+  /* @__PURE__ */ createMessageType<InspectSharedObjectOrderRequest>(
+    's4wave.sobject.InspectSharedObjectOrderRequest',
+    () => [[1, 'all', 8]],
+  )
+
+/**
+ * InspectSharedObjectOrderResponse is one message of an order inspection.
+ *
+ * @generated from message s4wave.sobject.InspectSharedObjectOrderResponse
+ */
+export interface InspectSharedObjectOrderResponse {
+  /**
+   * Body is an operation, or the summary that ends the inspection.
+   *
+   * @generated from oneof s4wave.sobject.InspectSharedObjectOrderResponse.body
+   */
+  body?:
+    | { value?: undefined; case: undefined }
+    | { value: OrderOperation; case: 'operation' }
+    | { value: OrderInspection; case: 'summary' }
+}
+
+export const InspectSharedObjectOrderResponse: MessageType<InspectSharedObjectOrderResponse> =
+  /* @__PURE__ */ createMessageType<InspectSharedObjectOrderResponse>(
+    's4wave.sobject.InspectSharedObjectOrderResponse',
+    () => [
+      [1, 'operation', 11, 0, OrderOperation.codec, 'body'],
+      [2, 'summary', 11, 0, OrderInspection.codec, 'body'],
     ],
   )

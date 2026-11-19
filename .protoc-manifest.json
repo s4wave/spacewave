@@ -1842,7 +1842,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/space/world": {
-          "hash": "ce8571ba5a766fa611e53600844b6786e295f46a3a216283c81368288dd534c2",
+          "hash": "8310d911140bd4714739a763ee6f13d14d6adfa506edf0aa6a9b8d90bb771025",
           "generatedFiles": [
             "core/space/world/world.pb.go",
             "core/space/world/world.pb.ts",
@@ -4480,7 +4480,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/sobject": {
-          "hash": "b9b3c60de1ca040c75350ca0955aae1faa555962181665e4b52c21cf4e28382f",
+          "hash": "8d2e8ed6bb9579e0f3fa0f55c78e2d0bd772812d1a232fcd38f90f814d433b62",
           "generatedFiles": [
             "sdk/sobject/sobject.pb.go",
             "sdk/sobject/sobject.pb.ts",
