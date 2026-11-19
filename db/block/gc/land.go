@@ -1,6 +1,7 @@
 package block_gc
 
 import (
+	"bytes"
 	"context"
 	"maps"
 	"slices"
@@ -395,7 +396,9 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 	}
 
 	// Store the bytes, which also evicts the tombstones' bytes, then write the
-	// child lists of the refilled holes back.
+	// child lists of the refilled holes back. A list an adoption's count
+	// already passed gives its children holders the count never saw, so it
+	// logs them as a birth does.
 	existed, err := l.blocks.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
@@ -403,6 +406,11 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 	for _, entry := range l.refills {
 		if err := l.rec.refill(ctx, entry); err != nil {
 			return nil, err
+		}
+		if l.adopting && l.logs && adoptCounted(l.state, BlockKey(entry.Ref)) {
+			for _, child := range normalizeChildren(entry.Refs) {
+				l.up = append(l.up, BlockKey(child))
+			}
 		}
 	}
 
@@ -783,6 +791,22 @@ func (r *Records) refill(ctx context.Context, entry *block.PutBatchEntry) error 
 		return err
 	}
 	return r.markedYoung(ctx, key, packChildren(nil, children), nil)
+}
+
+// adoptCounted reports whether the adoption state names has counted the
+// child list of the block at key: the count passes the lists in key order
+// after the roots, and its cursor moves in the transaction that counts them,
+// so a Land's transaction reads exactly which lists it holds.
+func adoptCounted(state *LivenessState, key []byte) bool {
+	cur := state.GetAdoptCursor()
+	switch cur.GetPhase() {
+	case AdoptPhase_ADOPT_PHASE_CHILDREN:
+		return bytes.Compare(key, cur.GetAfter()) <= 0
+	case AdoptPhase_ADOPT_PHASE_SETTLE:
+		return true
+	default:
+		return false
+	}
 }
 
 // markStored marks the unverified list of the stored block entry puts
