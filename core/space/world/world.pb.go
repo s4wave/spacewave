@@ -32,6 +32,10 @@ const (
 	// REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER waits at a missing handler, so a
 	// refusal is a verdict on the operation and the World before it.
 	ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER ReplayRefusalRule = 1
+	// REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE also waits at a WorldOp field this
+	// build does not declare, so a refusal of an unknown operation type saved
+	// under an older rule is a fact about the device that saved it.
+	ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE ReplayRefusalRule = 2
 )
 
 // Enum value maps for ReplayRefusalRule.
@@ -39,10 +43,12 @@ var (
 	ReplayRefusalRule_name = map[int32]string{
 		0: "REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER",
 		1: "REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER",
+		2: "REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE",
 	}
 	ReplayRefusalRule_value = map[string]int32{
 		"REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER": 0,
 		"REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER":       1,
+		"REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE":       2,
 	}
 )
 

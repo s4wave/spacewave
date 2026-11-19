@@ -281,22 +281,6 @@
         }
       }
     },
-    "947d3b486b524079c225feae3b29f6888c5f1797ad01d011603b39cca4cceb99": {
-      "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
-      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
-      "packages": {
-        "github.com/s4wave/spacewave/core/sobject": {
-          "hash": "7533c49843b50b7567c9c5a2454749cc71bccba94dcb8cd049ca31606e85af58",
-          "generatedFiles": [
-            "core/sobject/sobject.pb.go",
-            "core/sobject/sobject.pb.ts"
-          ],
-          "protoFiles": [
-            "core/sobject/sobject.proto"
-          ]
-        }
-      }
-    },
     "c9b81e69067b0bac0e03a23b65cd1874b9ed5dce242520e76901735a93638066": {
       "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
@@ -1858,7 +1842,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/space/world": {
-          "hash": "8310d911140bd4714739a763ee6f13d14d6adfa506edf0aa6a9b8d90bb771025",
+          "hash": "9230c5ae9061ad554538016e90a48e6c43b95295e5dc32e39a29f1d87bd2e1ce",
           "generatedFiles": [
             "core/space/world/world.pb.go",
             "core/space/world/world.pb.ts",

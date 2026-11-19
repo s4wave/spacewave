@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/protobuf-go-lite/encoding/protowire"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -115,21 +116,54 @@ func (e *unresolvedOpError) Error() string {
 }
 
 // ErrUnreadableOp is returned at an operation whose body this build cannot
-// read: a World operation a newer build wrote, with a body this build's
-// WorldOp does not declare, or with the removed body an older build wrote.
-// Replay waits at it for a build that reads it, and ImportRoots cannot name
-// its payloads.
+// read: a World operation a newer build wrote, with a field this build's
+// WorldOp does not declare. Replay waits at it for a build that reads it, and
+// ImportRoots cannot name its payloads.
 var ErrUnreadableOp = errors.New("this build cannot read the operation's body")
 
 // neverWakes is the Wake of a replay wait only a restart ends. Nothing closes
 // it.
 var neverWakes = make(chan struct{})
 
-// unreadable reports whether wop decoded without a body this build declares
-// but with fields it does not: a body this build cannot read. An empty
-// WorldOp decodes alike on every build, so replay refuses it instead.
-func unreadable(wop *WorldOp) bool {
-	return wop.GetBody() == nil && len(wop.unknownFields) != 0
+// removedOpField is the WorldOp field of AdvanceStorageGenerationOp, a body
+// releases v0.57.20 through v0.57.22 wrote and no build reads now. WorldOp
+// reserves it.
+const removedOpField protowire.Number = 3
+
+// reasonRemovedOp is the refusal of an operation with a removed body.
+const reasonRemovedOp = "removed operation"
+
+// readUnknownFields decides a WorldOp by the fields this build does not
+// declare, before its body: the reason every replica refuses it with, an
+// error, or neither when it has no such field.
+//
+// A removed body is refused: every build since its removal decodes it alike,
+// and no later build may read the field again. Any other unknown field, beside
+// a body or without one, fails with ErrUnreadableOp: a newer build may read
+// it as a body that changes the World, or as a field that changes how the
+// body applies, so replicas would diverge if this build applied the body
+// without it. Unknown fields nested inside a known body stay silent here; the
+// body's own message holds them.
+func readUnknownFields(wop *WorldOp) (string, error) {
+	fields := wop.unknownFields
+	if len(fields) == 0 {
+		return "", nil
+	}
+	for len(fields) != 0 {
+		num, typ, n := protowire.ConsumeTag(fields)
+		if n < 0 {
+			break
+		}
+		if num == removedOpField {
+			return reasonRemovedOp, nil
+		}
+		m := protowire.ConsumeFieldValue(num, typ, fields[n:])
+		if m < 0 {
+			break
+		}
+		fields = fields[n+m:]
+	}
+	return "", ErrUnreadableOp
 }
 
 // isReplayGap reports whether err stops replay at its operation instead of

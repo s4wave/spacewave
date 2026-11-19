@@ -34,6 +34,13 @@ export enum ReplayRefusalRule {
    * refusal is a verdict on the operation and the World before it.
    */
   WAITS_FOR_HANDLER = 1,
+
+  /**
+   * REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE also waits at a WorldOp field this
+   * build does not declare, so a refusal of an unknown operation type saved
+   * under an older rule is a fact about the device that saved it.
+   */
+  WAITS_FOR_UPGRADE = 2,
 }
 
 export const ReplayRefusalRule_Enum = /* @__PURE__ */ createEnumType(
@@ -41,6 +48,7 @@ export const ReplayRefusalRule_Enum = /* @__PURE__ */ createEnumType(
   [
     [0, 'REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER'],
     [1, 'REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER'],
+    [2, 'REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE'],
   ],
 )
 

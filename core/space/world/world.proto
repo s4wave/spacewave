@@ -103,6 +103,11 @@ message InnerState {
 
 // WorldOp is one operation of a Space's agreed order against its World.
 message WorldOp {
+  // Field 3 held AdvanceStorageGenerationOp, written by releases v0.57.20
+  // through v0.57.22. Replay refuses an operation that carries it as a
+  // removed operation, so no later body may take the number.
+  reserved 3;
+
   // Body is the operation.
   oneof body {
     // InitWorld initializes an empty World.
@@ -240,6 +245,10 @@ enum ReplayRefusalRule {
   // REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER waits at a missing handler, so a
   // refusal is a verdict on the operation and the World before it.
   REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER = 1;
+  // REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE also waits at a WorldOp field this
+  // build does not declare, so a refusal of an unknown operation type saved
+  // under an older rule is a fact about the device that saved it.
+  REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE = 2;
 }
 
 // ReplayCursor is the replay a Space engine last saved on this device, so a

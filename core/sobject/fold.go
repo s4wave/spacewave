@@ -84,7 +84,7 @@ func (r *FoldResult) apply(
 ) (string, error) {
 	// Authorize and decode the operation as every member does. An
 	// acknowledgment applies nothing.
-	if reason := replayRefusal(set, cfg, h, inner); reason != "" {
+	if reason := ReplayRefusal(set, cfg, h, inner); reason != "" {
 		return reason, nil
 	}
 	if inner.IsAcknowledgment() {

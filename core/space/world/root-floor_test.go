@@ -297,11 +297,14 @@ func TestRootRecomputesThroughTheFloor(t *testing.T) {
 }
 
 // TestCursorRefusalRulePreservesPositions loads each rule twice without a save.
-// Only hashes of old-rule refusals change; the stored cursor stays byte-identical.
+// Only hashes of refusals an old rule may have made about the device change:
+// any refusal under REFUSES_MISSING_HANDLER, and an unknown operation type
+// under WAITS_FOR_HANDLER. The stored cursor stays byte-identical.
 func TestCursorRefusalRulePreservesPositions(t *testing.T) {
 	for _, rule := range []ReplayRefusalRule{
 		ReplayRefusalRule_REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER,
 		ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER,
+		ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE,
 	} {
 		t.Run(rule.String(), func(t *testing.T) {
 			// Save applied and refused positions over real in-memory storage.
@@ -313,7 +316,7 @@ func TestCursorRefusalRulePreservesPositions(t *testing.T) {
 			// Persist a successful prefix followed by a refusal.
 			w.apply(0, ops[0])
 			w.apply(1, ops[1])
-			ops[2].Refused = "a saved verdict"
+			ops[2].Refused = "unknown operation type"
 			if reason, err := w.a.Apply(ctx, 2, ops[2]); err != nil || reason == "" {
 				t.Fatalf("historical refusal = %q, %v", reason, err)
 			}
@@ -327,7 +330,7 @@ func TestCursorRefusalRulePreservesPositions(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if cursor.GetRefusalRule() != ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER {
+			if cursor.GetRefusalRule() != ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE {
 				t.Fatal("a newly encoded cursor did not record the current rule")
 			}
 
@@ -357,7 +360,7 @@ func TestCursorRefusalRulePreservesPositions(t *testing.T) {
 				for i, pos := range w.a.replay.restored {
 					outcome := cursor.GetOutcomes()[i]
 					hash := outcome.GetHash()
-					if rule == ReplayRefusalRule_REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER && outcome.GetReason() != "" {
+					if rule != ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE && outcome.GetReason() != "" {
 						hash = nil
 					}
 					if !bytes.Equal(pos.op.Hash, hash) || pos.reason != outcome.GetReason() || pos.seqno != outcome.GetSeqno() || !pos.state.EqualVT(states[i]) || !slices.EqualFunc(pos.payloads, outcome.GetPayloads(), (*block.BlockRef).EqualVT) || !pos.handlers.EqualVT(outcome.GetPayloadHandlers()) {
@@ -529,7 +532,7 @@ func TestCursorRerunSurvivesRestart(t *testing.T) {
 			}
 			w.a.waitBackground()
 			current, err := readSavedCursor(ctx, w.so)
-			if err != nil || current.GetRefusalRule() != ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER {
+			if err != nil || current.GetRefusalRule() != ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE {
 				t.Fatalf("current-rule save = %v, %v", current, err)
 			}
 		}
