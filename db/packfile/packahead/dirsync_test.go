@@ -14,11 +14,19 @@ import (
 func TestPackAheadDirSyncRetry(t *testing.T) {
 	ctx := t.Context()
 	dir := t.TempDir()
-	var failed atomic.Bool
+	var failureAt time.Time
+	retried := make(chan time.Duration, 1)
 	dirSync = func(d string) error {
 		names, _ := filepath.Glob(filepath.Join(d, "*"+packExt))
-		if len(names) != 0 && failed.CompareAndSwap(false, true) {
+		if len(names) != 0 && failureAt.IsZero() {
+			failureAt = time.Now()
 			return syscall.EIO
+		}
+		if len(names) != 0 {
+			select {
+			case retried <- time.Since(failureAt):
+			default:
+			}
 		}
 		return syncDir(d)
 	}
@@ -32,8 +40,13 @@ func TestPackAheadDirSyncRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitFinalized(t, l, 1)
-	if !failed.Load() {
-		t.Fatal("the directory sync never failed")
+	select {
+	case delay := <-retried:
+		if delay < retryDelay {
+			t.Fatalf("directory sync retried after %v, want at least %v", delay, retryDelay)
+		}
+	default:
+		t.Fatal("the directory sync never retried")
 	}
 }
 
