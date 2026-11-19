@@ -20,6 +20,7 @@ import (
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/net/peer"
@@ -634,4 +635,82 @@ func (s *gatedRoots) SetRoots(ctx context.Context, entries []*block.PutBatchEntr
 		}
 	}
 	return s.bucketStore.SetRoots(ctx, entries, roots)
+}
+
+// TestRegenerateWorldKeepsBaseThroughTheFloor checks that a regeneration
+// whose head waits behind a missing operation keeps its base when the pages
+// fill, the next operation's cursor save moves the floor past the
+// regeneration's position, the save's epoch ends and the Volume collects:
+// the head then installs, and the switch back reads base. A restart after
+// the save and the collection, before the install, keeps base too. It fails
+// when the retained root holds only the installed head's roots.
+func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
+	for _, restart := range []bool{false, true} {
+		t.Run(map[bool]string{false: "install", true: "restart"}[restart], func(t *testing.T) {
+			// Initialize a World with two objects; the head installs.
+			ctx := t.Context()
+			w := newFloorWorld(t)
+			w.open(1 << 20)
+			w.a.opts.Regen.SpillDir = t.TempDir()
+			regen := func(target world_block.WorldFormat) *sobject.OrderedOperation {
+				return w.op("regen-"+target.String(), &WorldOp{Body: &WorldOp_RegenerateWorld{
+					RegenerateWorld: &RegenerateWorldOp{Target: target},
+				}})
+			}
+			link, err := world_block_tx.NewTxSetGraphQuad(world.GraphQuadToQuad(world.NewGraphQuadWithKeys("k1", "<p>", "k2", "")))
+			if err != nil {
+				t.Fatal(err)
+			}
+			ops := append(w.ops(3),
+				w.op("link", &WorldOp{Body: &WorldOp_ApplyTxOp{ApplyTxOp: &ApplyTxOp{Tx: link}}}),
+				regen(world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH),
+				w.createOp("k3"),
+			)
+			for i, op := range ops[:3] {
+				w.apply(i, op)
+			}
+
+			// Link them and regenerate while a missing operation holds the
+			// head back, so only the positions name base, then fill the
+			// pages, so the next operation's save moves the floor past the
+			// regeneration and ends the epoch that held base.
+			w.a.missing["missing"] = struct{}{}
+			w.apply(3, ops[3])
+			w.apply(4, ops[4])
+			filler := make([]byte, 1<<19)
+			ref, err := block.BuildBlockRef(filler, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := w.a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: filler, RefsKnown: true}}); err != nil {
+				t.Fatal(err)
+			}
+			w.apply(5, ops[5])
+			w.a.waitBackground()
+			if w.a.replay.floor <= 4 {
+				t.Fatalf("the floor is %d, want past the regeneration at 4", w.a.replay.floor)
+			}
+			w.collect()
+
+			// Install the head, or restart and replay the saved positions.
+			if restart {
+				w.open(1 << 20)
+				w.a.opts.Regen.SpillDir = t.TempDir()
+				for i, op := range ops {
+					w.apply(i, op)
+				}
+			} else {
+				delete(w.a.missing, "missing")
+				if err := w.a.installHead(ctx); err != nil {
+					t.Fatalf("the install after the save: %v", err)
+				}
+			}
+			w.collect()
+
+			// The switch back reads base and keeps every object.
+			w.apply(6, regen(world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV))
+			state, _ := w.a.replay.head()
+			w.requireKeys("the World switched back", state, 4)
+		})
+	}
 }

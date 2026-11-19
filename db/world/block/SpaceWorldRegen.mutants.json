@@ -82,7 +82,7 @@
     "expect": "Agree"
   },
   {
-    "name": "The collector counts only the installed head's roots",
+    "name": "The retained root holds only the installed head's roots",
     "replace": [
       [
         "Live(r) == TRUE",

@@ -168,11 +168,12 @@ func readUnknownFields(wop *WorldOp) (string, error) {
 
 // isReplayGap reports whether err stops replay at its operation instead of
 // deciding the operation: a block that is not available, a canceled read, a
-// put through a replay stage that was released or lost, an operation whose
-// type no handler resolves yet, or a plugin this device could not reach or
-// has no build of, a failure of this device's store, or a World
-// regeneration step this device could not complete. None is a property of the operation, so refusing it would
-// split replicas.
+// put through a replay stage that was released or lost, a read through a
+// cursor with no store, an operation whose type no handler resolves yet, a
+// plugin this device could not reach or has no build of, a failure of this
+// device's store, or a World regeneration step this device could not
+// complete. None is a property of the operation, so refusing it would split
+// replicas.
 func isReplayGap(err error) bool {
 	// Match each failure that belongs to this device, not to the operation.
 	var unresolved *unresolvedOpError
@@ -184,6 +185,7 @@ func isReplayGap(err error) bool {
 		errors.As(err, &regen) ||
 		errors.As(err, &store) ||
 		errors.Is(err, block.ErrStageReleased) ||
+		errors.Is(err, block.ErrBlockStoreUnavailable) ||
 		errors.As(err, &unresolved) ||
 		errors.As(err, &unavailable) ||
 		errors.As(err, &missing) ||

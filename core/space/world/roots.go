@@ -32,8 +32,9 @@ const (
 	// roots of the operations above the checkpoint, and of the local
 	// candidates queued after them.
 	RootReplayPayloads = "replay-payloads"
-	// RootRetained holds the RetainedRootSet block of the installed head's
-	// retained roots.
+	// RootRetained holds the RetainedRootSet block of the roots every World
+	// replay may install retains: the replay base's, the positions' and the
+	// installed head's (see Adapter.retainedRoots).
 	RootRetained = "retained"
 	// RootPending holds the HeldRoots block of every local candidate whose
 	// pages outgrew memory since a checkpoint covered them, so the pages its

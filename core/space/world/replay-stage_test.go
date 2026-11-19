@@ -3,6 +3,7 @@ package space_world
 import (
 	"bytes"
 	"context"
+	"syscall"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // localStateSpace is a SharedObject that serves only its local state, from
@@ -284,5 +286,64 @@ func TestReplayStageFloorCoversReleasedEpoch(t *testing.T) {
 	r.positions = append(r.positions, pos)
 	if r.floor < len(r.positions) {
 		f.requireFound("the acknowledgment's World", world, stored, kept)
+	}
+}
+
+// TestReplayStageGapsOnlyStoreFailures checks that the replay stage stops
+// replay only at a failure of this device's store. A failure the content
+// decides, which every replica meets alike, is not a gap, so replay refuses
+// its operation instead of waiting at it forever: a tombstone, bytes that do
+// not hash to their ref, and a ref that does not validate. A full disk and a
+// read through a cursor with no store are gaps.
+func TestReplayStageGapsOnlyStoreFailures(t *testing.T) {
+	f := newReplayFixture(t, 1<<20)
+	stage, ctx := f.a.replay.stage, t.Context()
+
+	// Build a tombstone, a page under another page's ref, and a bad ref.
+	tomb := f.entry("tombstone", 0)
+	tomb.Tombstone = true
+	mismatch := f.entry("mismatch", 0)
+	mismatch.Ref = f.entry("other", 0).Ref
+	bad := &block.BlockRef{Hash: hash.NewHash(hash.HashType_HashType_SHA256, []byte{1, 2, 3})}
+	badPut := f.entry("bad ref", 0)
+	badPut.Ref = bad
+
+	// Each content failure fails, and none is a gap.
+	for _, c := range []struct {
+		name string
+		put  func() error
+	}{
+		{"a tombstone", func() error {
+			_, err := stage.PutBlockBatch(ctx, []*block.PutBatchEntry{tomb})
+			return err
+		}},
+		{"bytes that do not hash to their ref", func() error {
+			_, err := stage.PutBlockBatch(ctx, []*block.PutBatchEntry{mismatch})
+			return err
+		}},
+		{"a put of a ref that does not validate", func() error {
+			_, err := stage.PutBlockBatch(ctx, []*block.PutBatchEntry{badPut})
+			return err
+		}},
+		{"a read of a ref that does not validate", func() error {
+			_, _, err := stage.GetBlock(ctx, bad)
+			return err
+		}},
+	} {
+		err := c.put()
+		if err == nil {
+			t.Fatalf("%s succeeded", c.name)
+		}
+		if isReplayGap(err) {
+			t.Fatalf("%s is a replay gap: %v", c.name, err)
+		}
+	}
+
+	// A full disk and a read with no store are gaps.
+	if !isReplayGap(localStoreError(syscall.ENOSPC)) {
+		t.Fatal("a full disk is not a replay gap")
+	}
+	if !isReplayGap(block.ErrBlockStoreUnavailable) {
+		t.Fatal("a read through a cursor with no store is not a replay gap")
 	}
 }

@@ -843,6 +843,9 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	// restart or the owner's skip of the operation ends. A transient replay
 	// has no driver to wait in.
 	pos, err := r.run(ctx, index, op, adopt)
+	if err == nil {
+		err = a.holdApplied(ctx, pos)
+	}
 	var unresolved *unresolvedOpError
 	switch {
 	case errors.As(err, &unresolved) && a.opts.transient:
@@ -1607,7 +1610,7 @@ func (a *Adapter) installHead(ctx context.Context) error {
 
 	// Hold the retained roots unless they are held already, so a failed hold
 	// is tried again by the next install.
-	if err := a.holdRetained(ctx, state.GetRetainedRoots()); err != nil {
+	if err := a.holdRetained(ctx, a.retainedRoots(nil)); err != nil {
 		return err
 	}
 
@@ -1929,6 +1932,58 @@ func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef, requ
 	}
 	defer release()
 	return a.appendRoots(ctx, &a.payloads, extra, requireHeld)
+}
+
+// holdApplied holds the roots pos retains beside the ones the replay's
+// Worlds retain already, before replay appends pos, when its operation
+// changed the retained set. The World pos names may stay uninstalled behind a
+// missing operation while a cursor save moves the floor past it and releases
+// its epoch, and a checkpoint may cover it before it installs; a root only
+// its state retains, such as a regeneration's base, must outlive both, and a
+// restart after them. A failed hold is this device's store's, so replay waits
+// at the operation and applies it again.
+func (a *Adapter) holdApplied(ctx context.Context, pos spacePosition) error {
+	prev, _ := a.replay.head()
+	if pos.reason != "" || sameRetained(prev, pos.state) {
+		return nil
+	}
+	if err := a.holdRetained(ctx, a.retainedRoots(pos.state)); err != nil {
+		return &storeError{err: err}
+	}
+	return nil
+}
+
+// retainedRoots returns, each once, the roots retained by every World replay
+// may yet install: the replay base's, each position's, each restored
+// position's, the installed head's and next's when it is set. The set shrinks
+// only when the base and the positions move past a release, so a root stays
+// held from the apply that retained it until a checkpoint covers its release.
+// The driver goroutine calls it.
+func (a *Adapter) retainedRoots(next *InnerState) []*RetainedRoot {
+	// Gather every World replay may install.
+	r := a.replay
+	states := []*InnerState{r.base}
+	for _, pos := range r.positions {
+		states = append(states, pos.state)
+	}
+	for _, pos := range r.restored {
+		states = append(states, pos.state)
+	}
+	states = append(states, a.headState, next)
+
+	// Take each root once by its name and ref.
+	var out []*RetainedRoot
+	seen := make(map[string]struct{})
+	for _, state := range states {
+		for _, root := range state.GetRetainedRoots() {
+			key := root.GetName() + "\x00" + root.GetRootRef().MarshalString()
+			if _, ok := seen[key]; !ok {
+				seen[key] = struct{}{}
+				out = append(out, root)
+			}
+		}
+	}
+	return out
 }
 
 // holdRetained holds the retained roots under the retained root, or releases
