@@ -93,10 +93,12 @@ func auditWalkVolume(ctx context.Context, le *logrus.Entry, path, scratch string
 }
 
 // openWalkScratch creates or reopens the scratch store of an audit walk at
-// path. Its cache and log are bounded, and it syncs without fsync on each
-// commit: a commit lost to a crash costs the walk one slice on resume.
+// path. Its cache and log are bounded, and its commits never wait on the
+// disk: a process crash loses none, and a power loss that loses or corrupts
+// the store costs the walk a restart with a new scratch store.
 func openWalkScratch(ctx context.Context, path string) (store_kvtx_sqlite.Store, error) {
 	return store_kvtx_sqlite.OpenWithPragmas(ctx, path, "walk", store_kvtx_sqlite.Pragmas{
+		Sync:               store_kvtx_sqlite.SyncOff,
 		CacheSize:          -2048,
 		DisableMmap:        true,
 		TempStore:          1,

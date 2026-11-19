@@ -57,7 +57,14 @@ func openScratch(path string, readOnly bool) (*scratchIndex, error) {
 	}
 
 	// Configure every connection before opening any read or write transaction.
-	store, err := sqlite.OpenWithPragmas(context.Background(), canonical, "recovery", sqlite.Pragmas{FullSync: true, CacheSize: -2048, DisableMmap: true, TempStore: 1, ReadOnly: readOnly, WALCheckpointBytes: 8 << 20})
+	store, err := sqlite.OpenWithPragmas(context.Background(), canonical, "recovery", sqlite.Pragmas{
+		Sync:               sqlite.SyncFull,
+		CacheSize:          -2048,
+		DisableMmap:        true,
+		TempStore:          1,
+		ReadOnly:           readOnly,
+		WALCheckpointBytes: 8 << 20,
+	})
 	if err != nil {
 		return nil, err
 	}

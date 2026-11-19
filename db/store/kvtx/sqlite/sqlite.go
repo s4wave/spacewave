@@ -13,6 +13,19 @@ import (
 // Pragmas re-exports common.Pragmas for callers of this package.
 type Pragmas = common.Pragmas
 
+// Sync re-exports common.Sync, how a store's commits reach the disk.
+type Sync = common.Sync
+
+// The Sync levels, as common.Sync describes them.
+const (
+	// SyncNormal re-exports common.SyncNormal, the default.
+	SyncNormal = common.SyncNormal
+	// SyncFull re-exports common.SyncFull.
+	SyncFull = common.SyncFull
+	// SyncOff re-exports common.SyncOff, for a scratch store.
+	SyncOff = common.SyncOff
+)
+
 // ErrReadOnly is returned for a write transaction on a store opened with
 // Pragmas.ReadOnly.
 var ErrReadOnly = common.ErrReadOnly

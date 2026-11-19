@@ -202,7 +202,8 @@ func (a *Args) open(ctx context.Context) (_ *run, rerr error) {
 	if r.sourceIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.SourceIndex, table, store_kvtx_sqlite.Pragmas{WithoutRowID: true}); err != nil {
 		return nil, errors.Wrap(err, "open --source-index")
 	}
-	if r.targetIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.TargetIndex, table, store_kvtx_sqlite.Pragmas{FullSync: true, WithoutRowID: true}); err != nil {
+	pragmas := store_kvtx_sqlite.Pragmas{Sync: store_kvtx_sqlite.SyncFull, WithoutRowID: true}
+	if r.targetIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.TargetIndex, table, pragmas); err != nil {
 		return nil, errors.Wrap(err, "open --target-index")
 	}
 	indexPrefix := block_store_s3.PackIndexPrefix(a.StoreID)

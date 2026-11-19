@@ -4,9 +4,9 @@ package common
 // of a table Open creates. A zero value leaves SQLite's compiled default in
 // place.
 type Pragmas struct {
-	// FullSync selects synchronous=FULL; the existing default is NORMAL.
-	// Connectors that open several physical connections must configure each one.
-	FullSync bool
+	// Sync selects how a commit reaches the disk. Connectors that open
+	// several physical connections must configure each one.
+	Sync Sync
 	// CacheSize sets the SQLite cache_size pragma. Positive = pages,
 	// negative = KiB. 0 leaves the SQLite default.
 	CacheSize int32
@@ -45,3 +45,21 @@ type Pragmas struct {
 	// ignored.
 	ReadOnly bool
 }
+
+// Sync is how a store's commits reach the disk.
+type Sync int32
+
+const (
+	// SyncNormal runs synchronous=NORMAL, and Commit waits for a grouped
+	// flush of the WAL, as Store describes: a crash loses no committed
+	// write.
+	SyncNormal Sync = iota
+	// SyncFull runs synchronous=FULL, which also syncs the WAL at each
+	// commit inside SQLite.
+	SyncFull
+	// SyncOff runs synchronous=OFF and never flushes the WAL, so a commit
+	// waits on no disk. A process crash loses nothing, but a power loss or
+	// an operating system crash may lose any commit and can corrupt the
+	// file. It suits a scratch store whose owner can rebuild it.
+	SyncOff
+)
