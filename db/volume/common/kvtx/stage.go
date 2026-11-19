@@ -208,6 +208,7 @@ func listStageRoots(ctx context.Context, p *physicalTx, stage string) ([]block.N
 // block.ErrStageReleased after the stage is released.
 func (v *Volume) PrepareStagedBlock(ctx context.Context, stage string, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Name the block, then store it under the stage.
+	ctx = block.WithPutOpts(ctx, opts)
 	putOpts, _ := block.PutOptsWithoutSync(opts)
 	v.noteUnknownRefs(putStaged, data, putOpts)
 	entry, err := putEntry(data, putOpts, v.GetHashType())

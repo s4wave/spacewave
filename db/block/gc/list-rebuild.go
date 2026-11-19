@@ -173,7 +173,8 @@ func (r *ListRebuild) flush(ctx context.Context) error {
 // marked, while the generation is Open: a missing list from the refs, an
 // unverified one as the union, as mergeList describes. A missing list is
 // written whether or not the Volume stores the bytes, and ends the block's
-// hole record, since the list now holds its children. A marked list is
+// hole record, since the list now holds its children; the audit walk counts
+// such a block as ListedAbsent, the refill's input. A marked list is
 // skipped, and a refused one is left, on the front.
 func verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry) (listVerdict, error) {
 	// Skip a marked list, which leaves the front when it is marked.

@@ -76,6 +76,8 @@ type Walker struct {
 	typesEngine *world_block.Engine
 	// typesTx reads object types from typesWorld.
 	typesTx world.Tx
+	// keepBytes reads every block's bytes, leaves included, into its Visit.
+	keepBytes bool
 }
 
 // NewWalker constructs a Walker reading store, typing objects' roots with
@@ -91,6 +93,13 @@ func NewWalker(le *logrus.Entry, store block.StoreOps, lookup LookupBlockType) *
 		types:   make(map[string]string),
 		xfrms:   make(map[string]block.Transformer),
 	}
+}
+
+// KeepBytes makes the walk read every block's stored bytes, leaves included,
+// into Visit.Data, as a caller that rewrites each block needs. Call it before
+// the first Walk.
+func (w *Walker) KeepBytes() {
+	w.keepBytes = true
 }
 
 // Untyped returns the refs whose type the walk could not name, by reason. The
@@ -232,24 +241,36 @@ func (w *Walker) Close() {
 	w.typesWorld, w.typesEngine, w.typesTx = nil, nil, nil
 }
 
-// read reads, decodes and extracts the refs of one block. It touches no walk
+// read reads, decodes and extracts the refs of one block; of a leaf it reads
+// only presence, or the bytes when the walker keeps them. It touches no walk
 // state, so reads run concurrently.
 func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
-	// Check only the presence of a block whose type holds no refs.
-	rd := Visit{Node: n}
-	if !holdsRefs(n.Ctor()) {
+	// Check only the presence of a block whose type holds no refs, unless
+	// the walker keeps bytes.
+	rd := Visit{Node: n, Leaf: !holdsRefs(n.Ctor())}
+	if rd.Leaf && !w.keepBytes {
 		var err error
-		rd.Leaf = true
 		rd.Found, err = w.store.GetBlockExists(ctx, n.Ref)
 		return rd, err
 	}
 
-	// Read and decode the stored bytes.
+	// Read the stored bytes, keeping a copy the decode cannot overwrite.
 	data, found, err := w.store.GetBlock(ctx, n.Ref)
 	if err != nil || !found {
 		return rd, err
 	}
 	rd.Found = true
+	if w.keepBytes {
+		rd.Data = data
+		if n.Xfrm != nil {
+			data = slices.Clone(data)
+		}
+	}
+	if rd.Leaf {
+		return rd, nil
+	}
+
+	// Decode the block as its type.
 	if n.Xfrm != nil {
 		data, rd.DecodeErr = n.Xfrm.DecodeBlock(data)
 	}

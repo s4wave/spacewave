@@ -73,6 +73,11 @@ message PutOpts {
   // store then records the child list of a block it already held without one.
   // Unset, refs may be partial, and an existing block keeps its list.
   bool refs_known = 6;
+  // Background marks the write as work no person waits for, as
+  // WithBackground does for a caller in the store's process. A store that
+  // schedules background writes queues it behind foreground writes; the field
+  // carries the mark across a process boundary, where a context does not.
+  bool background = 7;
 }
 
 // StoreFeature is a bitmask of native block store capabilities.

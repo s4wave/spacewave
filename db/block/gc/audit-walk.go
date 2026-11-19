@@ -638,7 +638,7 @@ func (w *walker) check(ctx context.Context) error {
 	// Check each against the counts in one view, copying the log pages
 	// written since the last slice.
 	var t *tally
-	var found []*block.BlockRef
+	var found []bytesCheck
 	err = w.viewScratch(ctx, func(edges *Records) error {
 		return w.view(ctx, func(rec *Records) error {
 			// Read the log and release sums of the slice's blocks.
@@ -660,12 +660,12 @@ func (w *walker) check(ctx context.Context) error {
 				if more {
 					return errBadWalkRecord
 				}
-				ref, absent, err := w.checkChild(ctx, rec, state, key, seen, true, t.delta(key), t.pending[string(key)])
+				check, ok, err := w.checkChild(ctx, rec, state, key, seen, true, t.delta(key), t.pending[string(key)])
 				if err != nil {
 					return err
 				}
-				if absent {
-					found = append(found, ref)
+				if ok {
+					found = append(found, check)
 				}
 			}
 			return nil
@@ -718,7 +718,7 @@ func (w *walker) checkWide(ctx context.Context, key []byte) error {
 		seen        uint64
 		last        []byte
 		more, moved bool
-		found       []*block.BlockRef
+		found       []bytesCheck
 	)
 	err := w.viewScratch(ctx, func(edges *Records) error {
 		return w.view(ctx, func(rec *Records) error {
@@ -746,9 +746,9 @@ func (w *walker) checkWide(ctx context.Context, key []byte) error {
 				return err
 			}
 			sound := !moved && !w.prog.GetWideMoved()
-			ref, absent, err := w.checkChild(ctx, rec, state, key, w.prog.GetWideSeen()+seen, sound, t.delta(key), t.pending[string(key)])
-			if absent {
-				found = append(found, ref)
+			check, ok, err := w.checkChild(ctx, rec, state, key, w.prog.GetWideSeen()+seen, sound, t.delta(key), t.pending[string(key)])
+			if ok {
+				found = append(found, check)
 			}
 			return err
 		})
@@ -802,22 +802,38 @@ func (w *walker) behindOr(ctx context.Context, t *tally) error {
 	return w.opts.Wait(ctx, walkBehindWait)
 }
 
-// candidates appends to recs a candidate for each block of found whose bytes
-// the Volume lacks too, counting the rest as unknown.
-func (w *walker) candidates(ctx context.Context, found []*block.BlockRef, recs []walkRecord) ([]walkRecord, error) {
+// bytesCheck is a named block whose bytes the walk reads after the view
+// that checked it.
+type bytesCheck struct {
+	// ref is the block.
+	ref *block.BlockRef
+	// listed is set when the block has a child list; otherwise it has neither
+	// a list nor a hole record.
+	listed bool
+}
+
+// candidates appends to recs a candidate for each unlisted block of found
+// whose bytes the Volume lacks too, counting the rest as unknown, and counts
+// each listed block of found whose bytes the Volume lacks.
+func (w *walker) candidates(ctx context.Context, found []bytesCheck, recs []walkRecord) ([]walkRecord, error) {
 	total := w.prog.GetCounts()
 	now := millis(w.opts.Now().UnixMilli())
-	for _, ref := range found {
-		stored, err := w.store.BlockStored(ctx, ref)
+	for _, check := range found {
+		stored, err := w.store.BlockStored(ctx, check.ref)
 		if err != nil {
 			return nil, err
 		}
-		if stored {
+		switch {
+		case stored && check.listed:
+		case check.listed:
+			total.ListedAbsent++
+			w.res.ListedAbsentSample = sample(w.res.ListedAbsentSample, check.ref)
+		case stored:
 			total.Unknown++
-			continue
+		default:
+			total.Candidates++
+			recs = append(recs, walkRecord{key: walkKey(walkCandidate, BlockKey(check.ref)), value: now})
 		}
-		total.Candidates++
-		recs = append(recs, walkRecord{key: walkKey(walkCandidate, BlockKey(ref)), value: now})
 	}
 	return recs, nil
 }
@@ -1172,8 +1188,9 @@ func releasePending(ctx context.Context, rec *Records, state *LivenessState, key
 }
 
 // checkChild checks the named block at key in the view rec, given seen, the
-// count of its edges that held, and returns its ref and whether it is named
-// with neither a list nor a hole record. When sound, it counts an
+// count of its edges that held, and returns the bytes check the walk makes
+// after the view, and whether it makes one: for a listed block, and for a
+// named block with neither a list nor a hole record. When sound, it counts an
 // undercount; otherwise, where it would compare, it counts the block wide.
 // delta is what the logs not netted yet do to its holders, and pending
 // what the paged release does to its namers.
@@ -1185,12 +1202,12 @@ func (w *walker) checkChild(
 	seen uint64,
 	sound bool,
 	delta, pending int64,
-) (*block.BlockRef, bool, error) {
+) (bytesCheck, bool, error) {
 	// Count the namers still valid, with the paged release, as tallyHolders
 	// does.
 	ref, _, err := ParseBlockKey(key)
 	if err != nil {
-		return nil, false, err
+		return bytesCheck{}, false, err
 	}
 	named := max(int64(seen)+pending, 0) //nolint:gosec // counts stay far below the int64 range.
 
@@ -1198,38 +1215,39 @@ func (w *walker) checkChild(
 	// keeps counts and unless the sweep owns the block, as checkStored does.
 	listed, err := rec.HasChildren(ctx, ref)
 	if err != nil {
-		return nil, false, err
+		return bytesCheck{}, false, err
 	}
 	if listed {
+		check := bytesCheck{ref: ref, listed: true}
 		unmarked, err := rec.Unmarked(ctx, key)
 		total := w.prog.GetCounts()
 		if err != nil || unmarked || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
 			if err == nil {
 				total.Declined++
 			}
-			return ref, false, err
+			return check, err == nil, err
 		}
 		if !sound {
 			total.Wide++
-			return ref, false, nil
+			return check, true, nil
 		}
 		holders, _, err := rec.GetHolders(ctx, ref)
 		if err != nil {
-			return nil, false, err
+			return bytesCheck{}, false, err
 		}
 		if int64(holders)+delta < named { //nolint:gosec // counts stay far below the int64 range.
 			total.Undercount++
 			w.res.UndercountSample = sample(w.res.UndercountSample, ref)
 		}
-		return ref, false, nil
+		return check, true, nil
 	}
 
 	// A named block without a list or a hole record may be a hole.
 	if seen == 0 {
-		return ref, false, nil
+		return bytesCheck{}, false, nil
 	}
 	hole, err := rec.tx.Exists(ctx, rec.key(kindHole, key))
-	return ref, err == nil && !hole, err
+	return bytesCheck{ref: ref}, err == nil && !hole, err
 }
 
 // scanNamers reads the edges of the block at key from the namer from on, at

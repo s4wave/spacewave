@@ -89,6 +89,15 @@ func WithBackground(ctx context.Context) context.Context {
 	return WithReadClass(ctx, ReadBackground)
 }
 
+// WithPutOpts returns ctx marked as background work when opts asks for it, so
+// a put handed in from another process keeps the priority its writer gave it.
+func WithPutOpts(ctx context.Context, opts *PutOpts) context.Context {
+	if opts.GetBackground() {
+		return WithBackground(ctx)
+	}
+	return ctx
+}
+
 // IsBackground reports whether ctx carries the background read/write marker.
 // Other read classes retain foreground write admission.
 func IsBackground(ctx context.Context) bool {

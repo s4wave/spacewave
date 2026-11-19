@@ -164,6 +164,11 @@ type WalkCounts struct {
 	// the Volume was not adopted, so no count was in force, or the sweep owned
 	// the block.
 	Declined uint64 `protobuf:"varint,15,opt,name=declined,proto3" json:"declined,omitempty"`
+	// ListedAbsent counts the named blocks with a child list whose bytes the
+	// Volume lacks when checked, as after a repair wrote the list of a lost
+	// block. The settle no longer waits on them, so a refill reads them from
+	// a peer by this count's sample.
+	ListedAbsent uint64 `protobuf:"varint,16,opt,name=listed_absent,json=listedAbsent,proto3" json:"listedAbsent,omitempty"`
 }
 
 func (x *WalkCounts) Reset() {
@@ -273,6 +278,13 @@ func (x *WalkCounts) GetWide() uint64 {
 func (x *WalkCounts) GetDeclined() uint64 {
 	if x != nil {
 		return x.Declined
+	}
+	return 0
+}
+
+func (x *WalkCounts) GetListedAbsent() uint64 {
+	if x != nil {
+		return x.ListedAbsent
 	}
 	return 0
 }
@@ -490,6 +502,7 @@ func (m *WalkCounts) CloneVT() *WalkCounts {
 	r.TailPairs = m.TailPairs
 	r.Wide = m.Wide
 	r.Declined = m.Declined
+	r.ListedAbsent = m.ListedAbsent
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -596,6 +609,9 @@ func (this *WalkCounts) EqualVT(that *WalkCounts) bool {
 		return false
 	}
 	if this.Declined != that.Declined {
+		return false
+	}
+	if this.ListedAbsent != that.ListedAbsent {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -857,6 +873,11 @@ func (x *WalkCounts) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("declined")
 		s.WriteUint64(x.Declined)
 	}
+	if x.ListedAbsent != 0 || s.HasField("listedAbsent") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("listedAbsent")
+		s.WriteUint64(x.ListedAbsent)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -919,6 +940,9 @@ func (x *WalkCounts) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "declined":
 			s.AddField("declined")
 			x.Declined = s.ReadUint64()
+		case "listed_absent", "listedAbsent":
+			s.AddField("listed_absent")
+			x.ListedAbsent = s.ReadUint64()
 		}
 	})
 }
@@ -1172,6 +1196,13 @@ func (m *WalkCounts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ListedAbsent != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ListedAbsent))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
 	if m.Declined != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Declined))
@@ -1436,6 +1467,7 @@ func (m *WalkCounts) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.TailPairs)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Wide)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Declined)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.ListedAbsent)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1556,6 +1588,10 @@ func (x *WalkCounts) MarshalProtoText() string {
 	if x.Declined != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "declined")
 		protobuf_go_lite.TextWriteUint(&sb, x.Declined)
+	}
+	if x.ListedAbsent != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "listed_absent")
+		protobuf_go_lite.TextWriteUint(&sb, x.ListedAbsent)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1804,6 +1840,15 @@ func (m *WalkCounts) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Declined = 0
 			m.Declined, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ListedAbsent", wireType)
+			}
+			m.ListedAbsent = 0
+			m.ListedAbsent, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

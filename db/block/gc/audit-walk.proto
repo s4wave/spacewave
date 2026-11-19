@@ -84,6 +84,11 @@ message WalkCounts {
   // the Volume was not adopted, so no count was in force, or the sweep owned
   // the block.
   uint64 declined = 15;
+  // ListedAbsent counts the named blocks with a child list whose bytes the
+  // Volume lacks when checked, as after a repair wrote the list of a lost
+  // block. The settle no longer waits on them, so a refill reads them from
+  // a peer by this count's sample.
+  uint64 listed_absent = 16;
 }
 
 // WalkProgress is the one progress record of a streaming audit walk, kept in

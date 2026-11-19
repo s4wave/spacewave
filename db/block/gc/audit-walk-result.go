@@ -29,4 +29,7 @@ type WalkResult struct {
 	// UnconfirmedSample names up to sampleSize of the unconfirmed candidates
 	// this process found.
 	UnconfirmedSample []UnconfirmedHole
+	// ListedAbsentSample names up to sampleSize of the listed blocks without
+	// bytes this process found.
+	ListedAbsentSample []*block.BlockRef
 }

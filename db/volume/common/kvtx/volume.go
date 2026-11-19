@@ -632,6 +632,7 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 // block.ErrRefsUnknown for a block written without its child list.
 func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Store a block that asked for marking with its marker in one transaction.
+	ctx = block.WithPutOpts(ctx, opts)
 	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 	if kvtx.GetBlockMarkRequest(ctx) != nil {
 		ref, existed, err := v.PrepareOwnedBlock(ctx, "", data, putOpts)

@@ -300,6 +300,13 @@ export interface PutOpts {
    * Unset, refs may be partial, and an existing block keeps its list.
    */
   refsKnown?: boolean
+  /**
+   * Background marks the write as work no person waits for, as
+   * WithBackground does for a caller in the store's process. A store that
+   * schedules background writes queues it behind foreground writes; the field
+   * carries the mark across a process boundary, where a context does not.
+   */
+  background?: boolean
 }
 
 export const PutOpts: MessageType<PutOpts> =
@@ -310,4 +317,5 @@ export const PutOpts: MessageType<PutOpts> =
     [4, 'sync', 8],
     [5, 'cache_fill', 8],
     [6, 'refs_known', 8],
+    [7, 'background', 8],
   ])

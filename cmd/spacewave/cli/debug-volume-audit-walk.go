@@ -133,6 +133,7 @@ func auditWalkFields(path string, res *block_gc.WalkResult) [][2]string {
 		{"Declined, the sweep's or counts not in force", strconv.FormatUint(n.GetDeclined(), 10)},
 		{"Named without a child list", strconv.FormatUint(n.GetUnknown(), 10)},
 		{"Hole candidates", strconv.FormatUint(n.GetCandidates(), 10)},
+		{"Listed without bytes", strconv.FormatUint(n.GetListedAbsent(), 10)},
 		{"Log entries copied", strconv.FormatUint(n.GetTailPairs(), 10)},
 		{"Settled after the delay", strconv.FormatUint(n.GetSettled(), 10)},
 		{"Unconfirmed after the delay", strconv.FormatUint(n.GetUnconfirmed(), 10)},
@@ -156,8 +157,10 @@ func auditWalkFields(path string, res *block_gc.WalkResult) [][2]string {
 		}
 	}
 
-	// Name a sample of the undercounted and unconfirmed blocks.
+	// Name a sample of the undercounted, listed-without-bytes and unconfirmed
+	// blocks.
 	fields = appendRefSample(fields, "Undercount sample", res.UndercountSample)
+	fields = appendRefSample(fields, "Listed without bytes sample", res.ListedAbsentSample)
 	for _, h := range res.UnconfirmedSample {
 		fields = append(fields, [2]string{"Unconfirmed sample", h.Ref.MarshalString() + " " + h.Class.String()})
 	}

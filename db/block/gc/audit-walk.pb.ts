@@ -180,6 +180,13 @@ export interface WalkCounts {
    * the block.
    */
   declined?: bigint
+  /**
+   * ListedAbsent counts the named blocks with a child list whose bytes the
+   * Volume lacks when checked, as after a repair wrote the list of a lost
+   * block. The settle no longer waits on them, so a refill reads them from
+   * a peer by this count's sample.
+   */
+  listedAbsent?: bigint
 }
 
 export const WalkCounts: MessageType<WalkCounts> =
@@ -199,6 +206,7 @@ export const WalkCounts: MessageType<WalkCounts> =
     [13, 'tail_pairs', 4],
     [14, 'wide', 4],
     [15, 'declined', 4],
+    [16, 'listed_absent', 4],
   ])
 
 /**

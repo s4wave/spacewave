@@ -289,6 +289,7 @@ func (v *Volume) now() time.Time {
 // audit finds it.
 func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
 	// Send a cache fill to the fill writer, which counts it.
+	ctx = block.WithPutOpts(ctx, opts)
 	putOpts, _ := block.PutOptsWithoutSync(opts)
 	if putOpts.GetCacheFill() {
 		v.noteUnknownRefs(putFill, data, putOpts)

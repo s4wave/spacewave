@@ -321,6 +321,11 @@ type PutOpts struct {
 	// store then records the child list of a block it already held without one.
 	// Unset, refs may be partial, and an existing block keeps its list.
 	RefsKnown bool `protobuf:"varint,6,opt,name=refs_known,json=refsKnown,proto3" json:"refsKnown,omitempty"`
+	// Background marks the write as work no person waits for, as
+	// WithBackground does for a caller in the store's process. A store that
+	// schedules background writes queues it behind foreground writes; the field
+	// carries the mark across a process boundary, where a context does not.
+	Background bool `protobuf:"varint,7,opt,name=background,proto3" json:"background,omitempty"`
 }
 
 func (x *PutOpts) Reset() {
@@ -367,6 +372,13 @@ func (x *PutOpts) GetCacheFill() bool {
 func (x *PutOpts) GetRefsKnown() bool {
 	if x != nil {
 		return x.RefsKnown
+	}
+	return false
+}
+
+func (x *PutOpts) GetBackground() bool {
+	if x != nil {
+		return x.Background
 	}
 	return false
 }
@@ -448,6 +460,7 @@ func (m *PutOpts) CloneVT() *PutOpts {
 	r.Sync = m.Sync
 	r.CacheFill = m.CacheFill
 	r.RefsKnown = m.RefsKnown
+	r.Background = m.Background
 	r.ForceBlockRef = protobuf_go_lite.CloneVTValue(m.ForceBlockRef)
 	r.Refs = protobuf_go_lite.CloneVTSlice(m.Refs)
 	if len(m.unknownFields) > 0 {
@@ -574,6 +587,9 @@ func (this *PutOpts) EqualVT(that *PutOpts) bool {
 		return false
 	}
 	if this.RefsKnown != that.RefsKnown {
+		return false
+	}
+	if this.Background != that.Background {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -915,6 +931,11 @@ func (x *PutOpts) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("refsKnown")
 		s.WriteBool(x.RefsKnown)
 	}
+	if x.Background || s.HasField("background") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("background")
+		s.WriteBool(x.Background)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -969,6 +990,9 @@ func (x *PutOpts) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "refs_known", "refsKnown":
 			s.AddField("refs_known")
 			x.RefsKnown = s.ReadBool()
+		case "background":
+			s.AddField("background")
+			x.Background = s.ReadBool()
 		}
 	})
 }
@@ -1199,6 +1223,11 @@ func (m *PutOpts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Background {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Background)
+		i--
+		dAtA[i] = 0x38
+	}
 	if m.RefsKnown {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RefsKnown)
 		i--
@@ -1322,6 +1351,7 @@ func (m *PutOpts) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Sync)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.CacheFill)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.RefsKnown)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Background)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1456,6 +1486,10 @@ func (x *PutOpts) MarshalProtoText() string {
 	if x.RefsKnown != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refs_known")
 		protobuf_go_lite.TextWriteBool(&sb, x.RefsKnown)
+	}
+	if x.Background != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "background")
+		protobuf_go_lite.TextWriteBool(&sb, x.Background)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1817,6 +1851,16 @@ func (m *PutOpts) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RefsKnown = bool(v)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Background", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Background = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
