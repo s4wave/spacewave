@@ -76,9 +76,16 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 				continue
 			}
 			state, err := local.soHost.GetHostState(ctx)
+			var own *sobject.SOOwnership
+			if err == nil {
+				own, err = sobject.ReadSOOwnership(ctx, state.GetConfig(), local.soHost.ReadConfigEntry)
+			}
 			release()
 			if err != nil {
 				return errors.Wrap(err, "inspect invitation state")
+			}
+			if !soLinksWanted(state.GetConfig(), own, local.GetPeerID().String()) {
+				continue
 			}
 			// Retain every other grant holder: a participant's own dial does not
 			// keep the link past its hold-open. A grant peer that never connects,
