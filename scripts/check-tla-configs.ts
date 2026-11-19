@@ -2,7 +2,7 @@
 // check-tla-configs splits what aptre-tla does in one pass into the two tiers
 // CI runs it in. aptre-tla checks each config and then judges every mutant of
 // each spec it checked, spec mutants and testdata/ config mutants alike, which
-// for Journal.tla takes hours; a job that gates a landing cannot wait for that.
+// for a large spec can take hours; a job that gates a landing cannot wait for that.
 //
 // usage: bun scripts/check-tla-configs.ts [-workers N] config.cfg...
 //        bun scripts/check-tla-configs.ts -mutants [-workers N] target...

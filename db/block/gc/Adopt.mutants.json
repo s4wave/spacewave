@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Land writes no born mark, so the scan counts a born list again",
+    "replace": [["              /\\ bmark' = bmark \\cup born", "              /\\ bmark' = bmark"]],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "the scan counts a moved root's current target, not its target at the mark",
+    "replace": [["LET v == IF amark[n] # Unset THEN amark[n] ELSE roots[n] IN", "LET v == roots[n] IN"]],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "the mark does not wait for the stale counts to clear",
+    "replace": [["  /\\ cleared\n  /\\ phase' = \"scan\"", "  /\\ TRUE\n  /\\ phase' = \"scan\""]],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "a run keeps the logs of the run it replaces",
+    "replace": [["  /\\ upLog' = <<>>\n  /\\ downLog' = <<>>", "  /\\ upLog' = upLog\n  /\\ downLog' = downLog"]],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "adoption ends before every list is counted",
+    "replace": [["  /\\ listed \\subseteq listsDone\n", "  /\\ TRUE\n"]],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "adoption queues no block at zero",
+    "replace": [["  /\\ queued' = {b \\in listed : H[b] = 0}", "  /\\ queued' = {}"]],
+    "expect": "ZeroQueued",
+    "config": "Adopt.cfg"
+  }
+]

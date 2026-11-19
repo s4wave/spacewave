@@ -67,7 +67,7 @@ const (
 // blocks, appending one journal record for all of them, in pages of
 // journalPagePairs entries when it has more. It returns,
 // for each entry, whether blocks held its bytes before. It is the one write
-// path that changes holders, so Journal.tla's Land action is this function.
+// path that changes holders.
 //
 // A block is stored, in the liveness sense, while its child list exists. An
 // entry whose block has no child list is born: Land writes its list. A born
@@ -126,7 +126,6 @@ const (
 // refuses a hold onto an unmarked block with an AbsentError, and a put of
 // one gives birth to it again, as Records.rebirth describes: its old list's
 // children outside the run lose the holder it gave them, through down pairs.
-// Journal.tla models this with its FrontPop, Stop and RootWalk constants.
 //
 // A Volume that is not adopted keeps no journal: Land writes the child lists
 // and roots and appends nothing, and an adoption counts every holder from
@@ -154,7 +153,7 @@ const (
 // again, it also seeks the cascade records and reads each such block's count
 // record until one is at zero, to set the hold mark Collector describes. It
 // writes each born block's list, one journal record and the state record. The
-// pairs are eager, as Journal.tla models them: the collector nets each later,
+// pairs are eager: the collector nets each later,
 // and a shared child's up cancels the down its old parent's cascade gives it
 // when both net in one slice. A move that requires its blocks held adds the
 // reads requireTree describes.

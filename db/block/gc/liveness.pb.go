@@ -315,8 +315,7 @@ type LivenessState struct {
 	// netting, free or flip does. So no write a steady writer lands can move
 	// it, and the flip waits at most Grace past the mark plus the time to net
 	// the records before it, unlike frees, which a writer can hold off through
-	// HoldMark. Journal.tla models it as amark, which only AdoptMark raises
-	// (AdoptMarkFixed).
+	// HoldMark.
 	AdoptMark uint64 `protobuf:"varint,17,opt,name=adopt_mark,json=adoptMark,proto3" json:"adoptMark,omitempty"`
 }
 

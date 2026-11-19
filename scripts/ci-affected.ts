@@ -7,9 +7,9 @@
 // tests depend on one, lints the changed Go packages, and runs the JavaScript
 // checks when a JavaScript or TypeScript input changed. A job with no selected
 // step passes after setup. The TLA+ spec jobs are the exception: a delta run
-// lists only the spec jobs whose models changed, other than those of
-// fullRunSpecs, even when a job definition selected the full suite, and the
-// workflow skips the spec matrix when it lists none. Every spec job checks its
+// lists only the spec jobs whose models changed, even when a job definition
+// selected the full suite, and the workflow skips the spec matrix when it
+// lists none. Every spec job checks its
 // configs through check:tla:configs and judges no mutant: the mutants take
 // hours, so they leave the runs that gate a landing, and the mutants mode
 // lists the nightly jobs that judge them.
@@ -44,52 +44,6 @@ const fullRunPaths = [
 // version, which bun.lock pins. Any other full-run path leaves a delta run's
 // spec jobs to the specs that changed.
 const checkerPaths = [/^package\.json$/, /^bun\.lock$/, /^patches\//]
-
-// fullRunSpecs are the specs a delta run leaves to the full runs, because their
-// models take longer than a delta run may hold its branch's queue.
-// The CI hourly workflow's full dispatch checks them on master. A delta run
-// that changes one checks only its stackConfigs, in one job.
-const fullRunSpecs = new Set(['db/block/gc/Journal.tla'])
-
-// stackConfigs are the Journal configs a delta run checks when the spec
-// changes, with their times on a GitHub runner on one core; they sum to about
-// 11 minutes. A config that grows past its time moves to the full run.
-const stackConfigs = [
-  'db/block/gc/Journal-collect-notail.cfg', // 6 s
-  'db/block/gc/Journal-rogue-hold.cfg', // 15 s
-  'db/block/gc/Journal-stage.cfg', // 38 s
-  'db/block/gc/Journal-writers-staged.cfg', // 96 s
-  'db/block/gc/Journal-hole.cfg', // 107 s
-  'db/block/gc/Journal-adopt-revive-hold.cfg', // 148 s
-  'db/block/gc/Journal-lease-notail.cfg', // 179 s
-  'db/block/gc/Journal-collect.cfg', // 6 s
-  'db/block/gc/Journal-fill.cfg', // 6 s
-  'db/block/gc/Journal-revive-hold.cfg', // 1 s
-  'db/block/gc/Journal-adopt-cut-onerun.cfg', // 42 s
-  'db/block/gc/Journal-fill-adopt.cfg', // 8 s
-]
-
-// unrunConfigs are the model configs no CI run checks, each with its reason.
-// The host-only ones need more memory than the runner's 16 GB and are checked
-// on a build host.
-const unrunConfigs = new Map([
-  [
-    'db/block/gc/Journal-adopt-cut-n.cfg',
-    'host-only: 6.0 million states, 44 minutes and a 14.5 GB peak',
-  ],
-  [
-    'db/block/gc/Journal-adopt-cut-nostage.cfg',
-    'host-only: unfinished after 53 minutes at 14.7 GB',
-  ],
-  [
-    'db/block/gc/Journal-adopt-revive-hole.cfg',
-    'fails CountsCover, which stays open until the adoption window is decided',
-  ],
-  [
-    'db/block/gc/Journal-adopt-revive-hole-accept.cfg',
-    'fails CountsCover as Journal-adopt-revive-hole does, at depth 29',
-  ],
-])
 
 // jsInputs are the files the TypeScript typecheck, oxlint, and JavaScript
 // tests read.
@@ -241,12 +195,9 @@ interface SpecEntry {
 // within it; every other config, including a new one, checks in the models
 // job, whose configs take about 13 minutes on one core. A model that needs
 // longer than 25 minutes on one core checks on the runner's four cores when
-// tla-ts spreads it across them and that fits 25 minutes, and otherwise moves
-// to nightlyConfigJobs. Journal.cfg, which composes every rule with concurrent
-// writers, reaches 293,186 states in 8 minutes on the runner's four cores and
-// in 167 s on four build host cores, so four build host cores run about three
-// times as fast as a runner's four. Unless an entry says otherwise, the times
-// are on one core of a build host, which runs as fast as a GitHub runner.
+// tla-ts spreads it across them and that fits 25 minutes, and otherwise is
+// made smaller. The times are on one core of a build host, which runs as fast
+// as a GitHub runner.
 const ownSpecJobs: SpecEntry[] = [
   {
     // Sixteen configs, 563 s together.
@@ -268,149 +219,7 @@ const ownSpecJobs: SpecEntry[] = [
     workers: 1,
     timeout: 25,
   },
-  {
-    name: 'Journal-rogue',
-    configs: 'db/block/gc/Journal-rogue.cfg',
-    workers: 1,
-    timeout: 25,
-  },
-  {
-    name: 'Journal',
-    configs: 'db/block/gc/Journal.cfg',
-    workers: 4,
-    timeout: 25,
-  },
-  {
-    name: 'Journal-adopt',
-    configs: 'db/block/gc/Journal-adopt.cfg',
-    workers: 1,
-    timeout: 25,
-  },
-  {
-    // 28 to 43 minutes on a runner's one core; 385 s on four build host
-    // cores, about 19 minutes on a runner's four.
-    name: 'Journal-adopt-cut',
-    configs: 'db/block/gc/Journal-adopt-cut.cfg',
-    workers: 4,
-    timeout: 45,
-  },
-  {
-    // 14 to 25 minutes on a runner's one core; 224 s on four build host
-    // cores, about 11 minutes on a runner's four.
-    name: 'Journal-adopt-cut-open',
-    configs: 'db/block/gc/Journal-adopt-cut-open.cfg',
-    workers: 4,
-    timeout: 30,
-  },
-  {
-    name: 'Journal-adopt-revive-reader',
-    configs: 'db/block/gc/Journal-adopt-revive-reader.cfg',
-    workers: 1,
-    timeout: 30,
-  },
-  {
-    name: 'Journal-adopt-revive-replaced',
-    configs: 'db/block/gc/Journal-adopt-revive-replaced.cfg',
-    workers: 1,
-    timeout: 25,
-  },
-  {
-    name: 'Journal-hole',
-    configs: 'db/block/gc/Journal-hole.cfg',
-    workers: 1,
-    timeout: 25,
-  },
-  {
-    name: 'Journal-lease',
-    configs: 'db/block/gc/Journal-lease.cfg',
-    workers: 1,
-    timeout: 45,
-  },
-  {
-    name: 'Journal-notail',
-    configs: 'db/block/gc/Journal-notail.cfg',
-    workers: 1,
-    timeout: 30,
-  },
-  {
-    name: 'Journal-stage',
-    configs: 'db/block/gc/Journal-stage.cfg',
-    workers: 1,
-    timeout: 60,
-  },
-  {
-    name: 'Journal-fill-staged',
-    configs: 'db/block/gc/Journal-fill-staged.cfg',
-    workers: 1,
-    timeout: 60,
-  },
-  {
-    name: 'Journal-fill-writers',
-    configs: 'db/block/gc/Journal-fill-writers.cfg',
-    workers: 1,
-    timeout: 60,
-  },
-  {
-    name: 'Journal-writers-staged',
-    configs: 'db/block/gc/Journal-writers-staged.cfg',
-    workers: 1,
-    timeout: 25,
-  },
 ]
-
-// nightlyConfigJobs are the models that take longer than 25 minutes on a CI
-// runner, too long for a run that gates a landing; the nightly TLA+ mutants
-// workflow checks each in its own job, and no gating run checks them.
-const nightlyConfigJobs: SpecEntry[] = [
-  {
-    // Unfinished after 19 minutes at 2.6 GB on one core.
-    name: 'Journal-adopt-hold',
-    configs: 'db/block/gc/Journal-adopt-hold.cfg',
-    workers: 1,
-    timeout: 120,
-  },
-  {
-    // Unfinished after 19 minutes at 5.4 GB on one core.
-    name: 'Journal-adopt-revive',
-    configs: 'db/block/gc/Journal-adopt-revive.cfg',
-    workers: 1,
-    timeout: 120,
-  },
-  {
-    // Unfinished after 19 minutes at 3.1 GB on one core.
-    name: 'Journal-adopt-revive-fillnew',
-    configs: 'db/block/gc/Journal-adopt-revive-fillnew.cfg',
-    workers: 1,
-    timeout: 120,
-  },
-  {
-    // Exceeded its 45-minute timeout on a CI runner.
-    name: 'Journal-adopt-cut-r2',
-    configs: 'db/block/gc/Journal-adopt-cut-r2.cfg',
-    workers: 1,
-    timeout: 120,
-  },
-  {
-    // Exceeded its 90-minute timeout on a CI runner twice. Given four workers,
-    // tla-ts still checks it on one thread, and it was unfinished after 20
-    // minutes on a build host.
-    name: 'Journal-adopt-revive-fill',
-    configs: 'db/block/gc/Journal-adopt-revive-fill.cfg',
-    workers: 1,
-    timeout: 180,
-  },
-  {
-    // 47 to 81 minutes on a runner's one core; 693 s on four build host
-    // cores, about 35 minutes on a runner's four.
-    name: 'Journal-hole-fill',
-    configs: 'db/block/gc/Journal-hole-fill.cfg',
-    workers: 4,
-    timeout: 120,
-  },
-]
-
-// nightlyConfigs are the configs of nightlyConfigJobs.
-const nightlyConfigs = new Set(nightlyConfigJobs.map((job) => job.configs))
 
 // MutantEntry is one nightly TLA+ mutant job matrix entry: the mutant sources
 // it judges through check:tla:mutants, on one checker thread within timeout
@@ -422,60 +231,18 @@ interface MutantEntry {
   timeout: number
 }
 
-// splitMutantSpecs are the specs whose mutants take hours, each source of which
-// is judged in its own job: Foo.mutants.json, and each testdata config mutant.
-// The mutants of every other spec a CI run checks share one job. One thread
-// judges faster than four: Journal's spec mutants take 12 minutes on one and
-// 31 on four.
-const splitMutantSpecs = ['db/block/gc/Journal.tla']
-
-// slowConfigMutants are the testdata config mutants not yet judged within 100
-// minutes on one core of a build host; each keeps a 360-minute job until its
-// time is known. Every other config mutant is judged within 39 minutes, and
-// its job stops at 60.
-const slowConfigMutants = new Set([
-  'Journal-adopt-cut-norecount',
-  'Journal-adopt-revive-fill-nofillbarrier',
-  'Journal-adopt-revive-fill-nofilllanded',
-])
-
-// mutantEntries returns the nightly mutant jobs: one of the specs whose
-// configs the spec jobs check, less splitMutantSpecs, and one per mutant
-// source of each of those.
+// mutantEntries returns the nightly mutant job: one of every spec whose
+// configs the spec jobs check.
 function mutantEntries(): MutantEntry[] {
-  const split = new Set(splitMutantSpecs)
   const tlaFiles = trackedSpecs()
   const specs = new Set<string>()
   for (const config of specConfigs()) {
     const spec = specOf(config, tlaFiles)
-    if (spec !== undefined && !split.has(spec)) {
+    if (spec !== undefined) {
       specs.add(spec)
     }
   }
-  const entries: MutantEntry[] = [
-    { name: 'specs', targets: [...specs].sort().join(' '), timeout: 120 },
-  ]
-  for (const spec of splitMutantSpecs) {
-    const stem = basename(spec, '.tla')
-    const list = spec.replace(/\.tla$/, '.mutants.json')
-    if (existsSync(list)) {
-      entries.push({ name: stem, targets: list, timeout: 60 })
-    }
-    const testdata = run('git', [
-      'ls-files',
-      `${dirname(spec)}/testdata/${stem}.cfg`,
-      `${dirname(spec)}/testdata/${stem}-*.cfg`,
-    ])
-    for (const config of testdata.split('\n').filter((f) => f !== '')) {
-      const name = basename(config, '.cfg')
-      entries.push({
-        name,
-        targets: config,
-        timeout: slowConfigMutants.has(name) ? 360 : 60,
-      })
-    }
-  }
-  return entries
+  return [{ name: 'specs', targets: [...specs].sort().join(' '), timeout: 120 }]
 }
 
 // Selection is the work one run performs.
@@ -683,14 +450,11 @@ function gitFiles(pathspecs: string[]): string[] {
 }
 
 // specConfigs returns every model config the spec jobs check: the tracked
-// .cfg files outside testdata, less unrunConfigs and nightlyConfigs.
+// .cfg files outside testdata.
 function specConfigs(): string[] {
   return run('git', ['ls-files', '*.cfg', ':!:**/testdata/**'])
     .split('\n')
-    .filter(
-      (file) =>
-        file !== '' && !unrunConfigs.has(file) && !nightlyConfigs.has(file),
-    )
+    .filter((file) => file !== '')
 }
 
 // specEntries returns the spec jobs that check a config selected allows: each
@@ -726,25 +490,9 @@ function specEntries(selected: (config: string) => boolean): SpecEntry[] {
 }
 
 // deltaSpecs returns the spec jobs a delta run checks: the models whose
-// config, spec or spec modules changed, less those of fullRunSpecs, and one
-// Journal-stack job of the changed stackConfigs.
+// config, spec or spec modules changed.
 function deltaSpecs(files: string[]): SpecEntry[] {
-  const changed = changedSpec(files)
-  const tlaFiles = trackedSpecs()
-  const entries = specEntries((config) => {
-    const spec = specOf(config, tlaFiles)
-    return changed(config) && (spec === undefined || !fullRunSpecs.has(spec))
-  })
-  const stack = stackConfigs.filter(changed)
-  if (stack.length > 0) {
-    entries.push({
-      name: 'Journal-stack',
-      configs: stack.join(' '),
-      workers: 1,
-      timeout: 25,
-    })
-  }
-  return entries
+  return specEntries(changedSpec(files))
 }
 
 // specOf returns the spec the checker pairs config with: the .tla in its
@@ -1036,7 +784,6 @@ if (mode === 'full') {
 } else if (mode === 'mutants') {
   writeOutputs({
     mutants: matrix(mutantEntries()),
-    configs: matrix(nightlyConfigJobs),
   })
 } else {
   console.error('usage: ci-affected.ts full | delta <base-commit> | mutants')

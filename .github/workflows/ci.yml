@@ -130,8 +130,7 @@ jobs:
         env:
           CONFIGS: ${{ matrix.configs }}
           WORKERS: ${{ matrix.workers }}
-          # tla-ts keeps the whole state space in the Node heap; Journal.cfg
-          # needs about 8 GB of the runner's 16.
+          # tla-ts keeps the whole state space in the Node heap.
           NODE_OPTIONS: --max-old-space-size=12288
         run: |
           read -ra configs <<<"$CONFIGS"

@@ -1978,7 +1978,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/block/gc": {
-          "hash": "8c4d9ff7c27ebf323478392fd1a05e17e517e3716f8e36d1041d8c3beff9624c",
+          "hash": "1b2191e8eaf828151debf7f1c126bf9ec705366e37b84e60427aadd83b2cb5c2",
           "generatedFiles": [
             "db/block/gc/audit-walk.pb.go",
             "db/block/gc/audit-walk.pb.ts",

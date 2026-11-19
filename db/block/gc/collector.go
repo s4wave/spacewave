@@ -14,11 +14,6 @@ import (
 // Collector frees the blocks of a Volume that no held named root reaches. It
 // nets the journal Land appends after the fact, cascades through child lists
 // as blocks cross zero holders, and frees the Dead blocks once they ripen.
-// Journal.tla models it: Collect's lease sweep is Sweep, netSlice is Net(k)
-// with the Cascade and Release steps its resolve runs, netFillSlice is
-// NetFill, the fill ups startNetting applies are ApplyFill, freeBlock is
-// Delete(b), a block without a child list is the model's hole, and the
-// landed marks are the model's young set under Gen.
 //
 // Between two transactions a pass checks only that ctx is live. The store
 // admits a writer that waited before the pass's next transaction, as
@@ -113,7 +108,7 @@ import (
 //     children no down until the free that follows its requeue.
 //
 // The states and invariants above are the release-at-zero rule. Under
-// HoldUntilFree, Journal.tla with HoldToFree, a stored block is Live (holders)
+// HoldUntilFree, a stored block is Live (holders)
 // or Zero (no holders, on the free queue at its ripe sequence), and its
 // children count it in both, so Dying, Dead and Holding cannot be reached
 // and no cascade record is written. The free moves a Zero block to freed and

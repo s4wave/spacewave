@@ -79,8 +79,8 @@ func (v *Volume) runRootRenewal(ctx context.Context) {
 // holds a lease forward, in one transaction. A pin or stage root a collector
 // released for a lapsed lease while this process still holds it, after a
 // stall longer than the lease, is held again while its block is stored. A
-// stage whose released root's block is gone is lost, as Journal.tla's
-// StageRenew fails it: its later writes would name a freed block. It returns
+// stage whose released root's block is gone is lost: its later writes would
+// name a freed block. It returns
 // the time the written leases count from, which precedes the write, or now
 // when there was nothing to renew.
 func (v *Volume) renewRoots(ctx context.Context) (time.Time, error) {

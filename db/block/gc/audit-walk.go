@@ -16,8 +16,8 @@ import (
 // slice it is checking. It reads the Volume in short views and keeps its
 // edges, candidates and progress in a scratch store of its own.
 //
-// Invariants, which the TLA+ models AuditWalk.tla and AuditWalkTail.tla
-// check, except the wide block's mark, which neither models:
+// Invariants, which the TLA+ model AuditWalk.tla checks, except the wide
+// block's mark and the journal tail, which it does not model:
 //
 //   - The walk never writes the Volume. It reads it through WalkStore, which
 //     has no write, and writes only the scratch store.

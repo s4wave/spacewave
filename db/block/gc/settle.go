@@ -15,9 +15,8 @@ import (
 // batches, and a crash between two batches left the list cut. A count drawn
 // from a cut list misses a holder, so a free could take a block a live block
 // still names. The settle proves which old blocks are live before anything
-// frees, as Journal.tla's WalkStart, WalkStep, FrontFree, WalkEnd and
-// SweepDel actions model it. The generation, in the state record, moves
-// Open, Sweeping, Settled, and never back.
+// frees. The generation, in the state record, moves Open, Sweeping,
+// Settled, and never back.
 //
 // A list is young or verified when it was written from its block's content:
 // by a Land or a fill, or by the typed walk, which decodes the block. Its

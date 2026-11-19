@@ -1,0 +1,101 @@
+[
+  {
+    "name": "a free does not wait for U to net past its ripe position",
+    "replace": [
+      [
+        "  /\\ ripe[b] <= upCursor",
+        "  /\\ TRUE"
+      ]
+    ],
+    "expect": "NoFreedRead",
+    "config": "Liveness.cfg"
+  },
+  {
+    "name": "Land leaves a block it names on the queue",
+    "replace": [
+      [
+        "  /\\ queued' = queued \\ named",
+        "  /\\ queued' = queued"
+      ]
+    ],
+    "expect": "NoLateNamer",
+    "config": "Liveness.cfg"
+  },
+  {
+    "name": "review R4: a parked block put again and named stays on the queue",
+    "replace": [
+      [
+        "  /\\ queued' = queued \\ named",
+        "  /\\ queued' = queued"
+      ]
+    ],
+    "expect": "NoLateNamer",
+    "config": "Liveness-hole.cfg"
+  },
+  {
+    "name": "a release nets before the increments committed with it",
+    "replace": [
+      [
+        "       /\\ upCursor >= e.mark",
+        "       /\\ TRUE"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Liveness.cfg"
+  },
+  {
+    "name": "an edge to a stored child the batch repeats gets no count",
+    "replace": [
+      [
+        "k \\in Kids(p) \\ born}",
+        "k \\in Kids(p) \\ batch}"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Liveness.cfg"
+  },
+  {
+    "name": "a release nets before it is Grace old",
+    "replace": [
+      [
+        "       /\\ e.age >= Grace",
+        "       /\\ TRUE"
+      ]
+    ],
+    "expect": "ReaderWindow",
+    "config": "Liveness-reader.cfg"
+  },
+  {
+    "name": "the collector is not bound to free",
+    "replace": [
+      [
+        "WF_vars(NetDowns) /\\ WF_vars(Free)",
+        "WF_vars(NetDowns)"
+      ]
+    ],
+    "expect": "FreesProgress",
+    "config": "Liveness.cfg"
+  },
+  {
+    "name": "U is not bound to net",
+    "replace": [
+      [
+        "  /\\ WF_vars(NetUps) /\\ WF_vars(NetDowns)",
+        "  /\\ WF_vars(NetDowns)"
+      ]
+    ],
+    "expect": "FreesProgress",
+    "config": "Liveness.cfg"
+  },
+  {
+    "name": "releases are not bound to age",
+    "replace": [
+      [
+        "  /\\ WF_vars(Tick)",
+        "  /\\ TRUE"
+      ]
+    ],
+    "expect": "EventuallyCollected",
+    "config": "Liveness.cfg"
+  }
+]
