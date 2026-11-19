@@ -128,8 +128,9 @@ const (
 	kindReleasePage byte = 'D'
 	// kindRewritten is one record, with no key past the kind and no value,
 	// that a list rebuild or a Land writes when a list gains a child on a
-	// Volume that keeps logs: it logs no holder for the child, so the counts
-	// lack those holders until an adoption recounts the lists. The settle's
+	// Volume that keeps logs and no adoption counts: it logs no holder for
+	// the child, so the counts lack those holders until an adoption
+	// recounts the lists. The settle's
 	// flip returns the Volume to unadopted when it finds it, and the adoption
 	// that follows deletes it with the counts.
 	kindRewritten byte = 'Y'
