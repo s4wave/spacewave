@@ -332,9 +332,11 @@ func accessClient(client srpc.Client, accessServiceID, serviceID, serverID strin
 // forwarder carries the old unanchored "web-view/.*" pattern a target built
 // before the anchored one sends; a "web-view/" server ID another plugin or the
 // host names through it is refused at once, while the web plugin's own web
-// view still reaches core. Core and the web plugin
-// run in process with the real entrypoint controller and root mux, each on its
-// own bus, with its host client bound to the scheduler's mux for it.
+// view still reaches core, also by core's plugin service ID, which a third
+// plugin's forwarder takes and refuses to relay. Core, the third plugin and
+// the web plugin run in process with the real entrypoint controller and root
+// mux, each on its own bus, with its host client bound to the scheduler's mux
+// for it.
 func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -347,22 +349,33 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 	// The app bus serves a host-only probe; core's bus serves its own. The web
 	// plugin forwards its web views' calls to core, as HandleRpcViaPlugin does
 	// for the Go compiler's handle-rpc config.
-	const corePluginID, webPluginID = "spacewave-core", "web"
+	// A third plugin with a web frontend also takes the web plugin's web view
+	// calls, as the Go compiler's handle-rpc config makes every such plugin
+	// do, and refuses to relay those meant for core.
+	const corePluginID, webPluginID, debugPluginID = "spacewave-core", "web", "spacewave-debug"
 	hostSvc, coreSvc := "probe.HostService", "probe.CoreService"
-	sched := NewController(le, tb.Bus, &Config{HostExportPluginIds: []string{corePluginID, webPluginID}})
+	sched := NewController(le, tb.Bus, &Config{HostExportPluginIds: []string{corePluginID, webPluginID, debugPluginID}})
 	bed := &fallbackBed{sched: sched, loads: make(chan string, 8)}
 	_, coreRoot := inProcessPlugin(ctx, t, le, sched, corePluginID, &probeServices{bus: "core", ids: []string{coreSvc}})
+	_, debugRoot := inProcessPlugin(ctx, t, le, sched, debugPluginID)
 	webBus, webRoot := inProcessPlugin(ctx, t, le, sched, webPluginID)
-	addControllers(ctx, t, webBus, bldr_web_plugin_controller.NewRpcForwarder(le, webBus, &plugin_forward_rpc_service.Config{
-		PluginId:   corePluginID,
-		ServerIdRe: "web-view/.*",
-	}))
+	addControllers(ctx, t, webBus,
+		bldr_web_plugin_controller.NewRpcForwarder(le, webBus, &plugin_forward_rpc_service.Config{
+			PluginId:   corePluginID,
+			ServerIdRe: "web-view/.*",
+		}),
+		bldr_web_plugin_controller.NewRpcForwarder(le, webBus, &plugin_forward_rpc_service.Config{
+			PluginId:   debugPluginID,
+			ServerIdRe: "^web-view/",
+		}),
+	)
 	addControllers(ctx, t, tb.Bus,
 		&relayLoads{
 			loadSpy: loadSpy{sched: sched, loads: bed.loads},
 			plugins: map[string]bldr_plugin.RunningPlugin{
-				corePluginID: bldr_plugin.NewRunningPlugin(coreRoot),
-				webPluginID:  bldr_plugin.NewRunningPlugin(webRoot),
+				corePluginID:  bldr_plugin.NewRunningPlugin(coreRoot),
+				webPluginID:   bldr_plugin.NewRunningPlugin(webRoot),
+				debugPluginID: bldr_plugin.NewRunningPlugin(debugRoot),
 			},
 		},
 		&schedulerLookups{sched},
@@ -413,10 +426,12 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 	}
 
 	// The host's own calls: a web view of the web plugin still reaches core,
-	// and a root mux names a "web-view/" server ID as the host's, so neither
+	// promptly, though the third plugin's forwarder fails its share of the
+	// lookup; and a root mux names a "web-view/" server ID as the host's, so neither
 	// core nor the web plugin's forwarder relays it.
 	webView := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux(bifrost_rpc.NewInvoker(webBus, web_view.WebViewServerID("1"), true)))))
 	bed.expect(t, "web plugin's own web view", bed.timedExec(ctx, webView, coreSvc), shipped)
+	bed.expect(t, "web plugin's own web view, by core's plugin service ID", bed.timedExec(ctx, webView, via(corePluginID, coreSvc)), shipped)
 	rootBody := accessClient(coreRoot, bifrost_rpc_access.SRPCAccessRpcServiceServiceID, hostCall, "web-view/x")
 	bed.expect(t, "root AccessRpcService body, web view server", bed.timedExec(ctx, rootBody, hostCall), relayed)
 	webRootBody := accessClient(webRoot, bifrost_rpc_access.SRPCAccessRpcServiceServiceID, coreSvc, "web-view/x")

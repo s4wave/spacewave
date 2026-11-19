@@ -84,7 +84,7 @@ func (r *LookupRpcServiceResolver) resolveClient(
 	for {
 		resp, err := strm.Recv()
 		if err != nil {
-			return nil
+			return r.remoteLookupEnded(ctx, handler)
 		}
 
 		// Remove the published invoker when the remote service disappears.
@@ -104,6 +104,23 @@ func (r *LookupRpcServiceResolver) resolveClient(
 			handler.MarkIdle(true)
 		}
 	}
+}
+
+// remoteLookupEnded handles a lookup stream that ended while its client is
+// still held: the remote failed the lookup, for example a plugin refusing to
+// relay it, or disposed it.
+//
+// The remote then offers no service, so the resolver publishes none and is
+// idle until the client is released, when it acquires the next one. Neither a
+// failure nor an immediate reopen fits: the bus holds a lookup open until
+// every resolver is idle and fails it on any resolver error, so either one
+// would let a remote that serves nothing hold or fail a lookup that another
+// resolver answers.
+func (r *LookupRpcServiceResolver) remoteLookupEnded(ctx context.Context, handler directive.ResolverHandler) error {
+	handler.ClearValues()
+	handler.MarkIdle(true)
+	<-ctx.Done()
+	return nil
 }
 
 // _ is a type assertion
