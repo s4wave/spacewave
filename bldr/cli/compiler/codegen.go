@@ -297,7 +297,7 @@ func commentGroup(lines ...string) *gast.CommentGroup {
 // Compose once and registers its factories before discovered defaults.
 func mainDecl(appName, projectID string, composed bool) (gast.Decl, error) {
 	// Start from the plain factories and cliCommands sources.
-	factoriesSrc, commandsSrc, flagsSrc := "factories", "cliCommands", "nil"
+	factoriesSrc, commandsSrc, flagsSrc, configureSrc := "factories", "cliCommands", "nil", "nil"
 	var stmts []gast.Stmt
 	if composed {
 		stmts = append(stmts, &gast.AssignStmt{
@@ -311,6 +311,7 @@ func mainDecl(appName, projectID string, composed bool) (gast.Decl, error) {
 		factoriesSrc = "append(composition.Factories, factories...)"
 		commandsSrc = "append(cliCommands, composition.Commands...)"
 		flagsSrc = "composition.Flags"
+		configureSrc = "composition.ConfigureVolume"
 	}
 
 	// Parse the cli_entrypoint.Main call expression and return the main decl.
@@ -319,7 +320,8 @@ func mainDecl(appName, projectID string, composed bool) (gast.Decl, error) {
 		strconv.Quote(projectID) + ", " +
 		factoriesSrc + ", configSets, " +
 		commandsSrc + ", " +
-		flagsSrc + ")")
+		flagsSrc + ", " +
+		configureSrc + ")")
 	if err != nil {
 		return nil, errors.Wrap(err, "parse generated main call")
 	}

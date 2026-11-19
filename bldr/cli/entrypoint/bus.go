@@ -13,6 +13,7 @@ import (
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	"github.com/pkg/errors"
 	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
+	"github.com/s4wave/spacewave/bldr/storage"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
@@ -54,12 +55,10 @@ type CliBusImpl struct {
 	releaseOnce sync.Once
 }
 
-// _ is a type assertion.
-var _ CliBus = (*CliBusImpl)(nil)
-
-// BuildCliBus opens the shared project state for a native CLI daemon.
-// The caller must hold the state-root lease until Release finishes.
-func BuildCliBus(rctx context.Context, le *logrus.Entry, projectID, stateRoot string) (*CliBusImpl, error) {
+// BuildCliBus opens the shared project state for a native CLI daemon, with
+// each Volume config the storage builds passed through configureVolume, nil
+// for none. The caller must hold the state-root lease until Release finishes.
+func BuildCliBus(rctx context.Context, le *logrus.Entry, projectID, stateRoot string, configureVolume storage.ConfigureVolumeFunc) (*CliBusImpl, error) {
 	// Cancel bus work before releasing controller and storage references.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	var rels []func()
@@ -100,9 +99,12 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, projectID, stateRoot st
 	}
 	rels = append(rels, relConfigSetCtrl)
 
-	// Attach the default storage controller.
+	// Attach the default storage controller, its Volumes configured.
 	storageID := default_storage.StorageID
-	storageCtrl := default_storage.NewController(storageID, b, stateRoot)
+	storageCtrl := default_storage.NewControllerWithStorage(
+		storageID,
+		storage.ConfigureAll(default_storage.BuildStorage(b, stateRoot), configureVolume),
+	)
 	relStorageCtrl, err := b.AddController(ctx, storageCtrl, nil)
 	if err != nil {
 		rel()
@@ -255,3 +257,6 @@ func (c *CliBusImpl) Release() {
 		}
 	})
 }
+
+// _ is a type assertion.
+var _ CliBus = (*CliBusImpl)(nil)

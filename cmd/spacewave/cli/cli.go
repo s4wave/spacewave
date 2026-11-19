@@ -21,8 +21,10 @@ import (
 // process-shared broker from the composition root; nil builds commands with
 // a private broker for tests and read-only command trees. Frees is the
 // collector frees switch serve's flags set, shared with the host storage; nil
-// keeps frees off.
-func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker, frees *CollectorFrees) []*cli.Command {
+// keeps frees off. Upgrade is the format upgrade decision serve's and the
+// debug commands' flags set, shared with the host storage; nil refuses
+// upgrades unless a flag opts in.
+func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker, frees *CollectorFrees, upgrade *FormatUpgrade) []*cli.Command {
 	// Default to a private yield broker when none is provided.
 	if yieldBroker == nil {
 		yieldBroker = yield_policy.NewBroker()
@@ -32,6 +34,9 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_poli
 	if frees == nil {
 		frees = NewCollectorFrees()
 	}
+	if upgrade == nil {
+		upgrade = NewFormatUpgrade(nil)
+	}
 
 	// Assemble the command tree in display order.
 	commands := []*cli.Command{
@@ -39,7 +44,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_poli
 		newLoginCommand(getBus),
 		newLogoutCommand(getBus),
 		newWhoamiCommand(getBus),
-		newServeCommand(getBus, yieldBroker, frees),
+		newServeCommand(getBus, yieldBroker, frees, upgrade),
 		newStopCommand(getBus),
 		newStatusCommand(getBus),
 		newWebCommand(getBus),
@@ -67,7 +72,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_poli
 		newForgeCommand(getBus),
 		newVmCommand(getBus),
 		newPluginCommand(getBus),
-		newDebugCommand(getBus),
+		newDebugCommand(getBus, upgrade),
 		newBifrostCommand(),
 		newHydraCommand(),
 		newEvalBldrStarCommand(),

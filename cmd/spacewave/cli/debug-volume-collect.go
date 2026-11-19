@@ -21,11 +21,13 @@ type debugVolumeCollectArgs struct {
 	frees bool
 	// grace is the collector's grace period, empty for its default.
 	grace string
+	// upgrade decides whether the open upgrades the volume's format.
+	upgrade *FormatUpgrade
 }
 
 // BuildFlags returns the collect flags.
 func (a *debugVolumeCollectArgs) BuildFlags() []cli.Flag {
-	return []cli.Flag{
+	return append([]cli.Flag{
 		&cli.BoolFlag{
 			Name:        "frees",
 			Usage:       "free what no named root reaches; off, the passes only net the logs",
@@ -36,7 +38,7 @@ func (a *debugVolumeCollectArgs) BuildFlags() []cli.Flag {
 			Usage:       "how long a block waits at zero before a pass frees it, such as 15m; empty uses the collector's default",
 			Destination: &a.grace,
 		},
-	}
+	}, a.upgrade.BuildFlags()...)
 }
 
 // Run collects the stopped volume until a pass leaves no work and prints the
@@ -54,7 +56,7 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 	path := c.Args().First()
 
 	// Turning frees on recounts the Volume.
-	conf := &store_kvtx.Config{CollectorFrees: a.frees, CollectorGraceDur: a.grace}
+	conf := a.upgrade.StoreConfig(&store_kvtx.Config{CollectorFrees: a.frees, CollectorGraceDur: a.grace})
 	res, passes, err := collectVolume(c.Context, logrus.NewEntry(logrus.New()), path, conf)
 
 	// Print the totals, including those a failed pass left.
@@ -125,8 +127,8 @@ func collectFields(path string, frees bool, passes int, res block_gc.CollectResu
 }
 
 // newDebugVolumeCollectCommand returns the offline collection command.
-func newDebugVolumeCollectCommand() *cli.Command {
-	args := &debugVolumeCollectArgs{}
+func newDebugVolumeCollectCommand(upgrade *FormatUpgrade) *cli.Command {
+	args := &debugVolumeCollectArgs{upgrade: upgrade}
 	return &cli.Command{
 		Name:      "volume-collect",
 		Usage:     "run collection passes on a stopped volume until one leaves no work",

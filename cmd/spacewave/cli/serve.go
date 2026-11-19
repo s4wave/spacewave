@@ -50,9 +50,9 @@ func serveSocketPath(c *cli.Context, statePath string) string {
 }
 
 // newServeCommand builds the serve command that starts the daemon
-// with a resource service socket listener. Its flags set frees, which the
-// bus's storage reads as each Volume opens.
-func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker, frees *CollectorFrees) *cli.Command {
+// with a resource service socket listener. Its flags set frees and the format
+// upgrade decision, which the bus's storage reads as each Volume opens.
+func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker, frees *CollectorFrees, upgrade *FormatUpgrade) *cli.Command {
 	// Keep serve flags scoped to this command's startup and idle policy.
 	var startupPipeID string
 	var launcher string
@@ -98,7 +98,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 				Usage:       "serve other sessions of the account over UDP on this host:port; disables idle shutdown unless --idle-timeout is set",
 				Destination: &udpListen,
 			},
-		}, append(frees.BuildFlags(), serveColdPackFlags()...)...),
+		}, append(append(frees.BuildFlags(), upgrade.BuildFlags()...), serveColdPackFlags()...)...),
 		Action: func(c *cli.Context) (retErr error) {
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
 				return runServeCommand(

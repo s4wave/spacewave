@@ -159,7 +159,7 @@ func TestDebugPayloadRestore(t *testing.T) {
 
 	// Refuse a digest the file does not reproduce.
 	data := bytes.Repeat([]byte("package imports\n"), 1024)
-	_, _, _, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, make([]byte, 32))
+	_, _, _, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, make([]byte, 32), nil)
 	if err == nil || !strings.Contains(err.Error(), "rebuilds digest") {
 		t.Fatalf("expected a digest mismatch, got %v", err)
 	}
@@ -169,7 +169,7 @@ func TestDebugPayloadRestore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ref, _, restored, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, want.GetHash().GetHash())
+	ref, _, restored, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, want.GetHash().GetHash(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestDebugPayloadRestore(t *testing.T) {
 	}
 
 	// Find the payload present on a second restore.
-	if _, _, restored, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, want.GetHash().GetHash()); err != nil || restored != 0 {
+	if _, _, restored, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, want.GetHash().GetHash(), nil); err != nil || restored != 0 {
 		t.Fatalf("second restore wrote %d blocks, err %v", restored, err)
 	}
 
@@ -257,7 +257,7 @@ func TestDebugPayloadRestoreSourceTree(t *testing.T) {
 	wantMissing := 1 + len(largeBlocks)
 
 	// Report the missing blocks without writing them.
-	res, err := restoreSourceTree(ctx, f.le, f.path, restoreTestSpace, "", root, true)
+	res, err := restoreSourceTree(ctx, f.le, f.path, restoreTestSpace, "", root, true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,14 +266,14 @@ func TestDebugPayloadRestoreSourceTree(t *testing.T) {
 	}
 
 	// Restore them, then find nothing missing.
-	res, err = restoreSourceTree(ctx, f.le, f.path, restoreTestSpace, "", root, false)
+	res, err = restoreSourceTree(ctx, f.le, f.path, restoreTestSpace, "", root, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if res.restored != wantMissing {
 		t.Fatalf("restored %d blocks, expected %d", res.restored, wantMissing)
 	}
-	res, err = restoreSourceTree(ctx, f.le, f.path, restoreTestSpace, "", root, true)
+	res, err = restoreSourceTree(ctx, f.le, f.path, restoreTestSpace, "", root, true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -99,6 +99,9 @@ func FormatDistEntrypoint(
 		mainLines = append(mainLines, "composition.Commands = append(composition.Commands, cliCommands...)")
 	}
 
+	// Tell the composition a distribution entrypoint runs it.
+	mainLines = append(mainLines, "composition.Distribution = true")
+
 	// Select the main call and add the native runner import.
 	mainCall := "dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, composition)"
 	if nativeBuild && nativeRunnerPackage != "" {

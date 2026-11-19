@@ -5,6 +5,7 @@ package spacewave_compose
 import (
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
@@ -26,15 +27,21 @@ import (
 //
 // The process owns one yield broker and one listener status broker, shared by
 // the resource listener, the root resource controller, the status projector and
-// the CLI commands, and one collector frees switch, which serve's flags set and
-// the host storage reads as each Volume opens.
+// the CLI commands, and one collector frees switch and one format upgrade
+// decision, which serve's flags set and the host storage reads as each Volume
+// opens. The app upgrades formats on its own, since a person cannot pass it a
+// flag; the development CLI asks the operator to opt in.
 func composeNative(composition *compose.Composition) {
 	// Create the shared brokers and set the native desktop action.
 	yield := yield_policy.NewBroker()
 	status := resource_listener.NewStatusBroker()
 	frees := spacewave_cli.NewCollectorFrees()
+	upgrade := spacewave_cli.NewFormatUpgrade(func() bool { return composition.Distribution })
 	composition.NativeAction = openDesktop
-	composition.ConfigureVolume = frees.ConfigureVolume
+	composition.ConfigureVolume = func(id string, conf config.Config) {
+		frees.ConfigureVolume(id, conf)
+		upgrade.ConfigureVolume(id, conf)
+	}
 
 	// Every provider installs the remote shell and replica factories on each
 	// Session's bus.
@@ -87,7 +94,7 @@ func composeNative(composition *compose.Composition) {
 			}
 			return getBus()
 		}
-		return spacewave_cli.NewCliCommands(protectedGetBus, yield, frees)
+		return spacewave_cli.NewCliCommands(protectedGetBus, yield, frees, upgrade)
 	})
 	composition.Flags = append(composition.Flags, spacewave_cli.NewRootFlags()...)
 }

@@ -41,10 +41,13 @@ const (
 	legacyTextNode    byte = 0
 )
 
-// upgradeFormat brings the store to store_kvkey.FormatVersion and returns the
-// version it found. A store at that version costs one read. A store newer than
-// this binary supports fails with a permanent error, since only a newer binary
-// can open it.
+// upgradeFormat brings the store to store_kvkey.FormatVersion. It returns the
+// version it found, and whether it upgraded data: false for a store at the
+// current version, which costs one read, and for an empty store. A store
+// newer than this binary supports fails with a permanent error, since only a
+// newer binary can open it. With refuse set, a store that holds data at an
+// older version fails with a permanent volume.ErrFormatUpgradeRefused and is
+// left as it was.
 //
 // Format 10 keeps liveness in child lists, named roots, count records with
 // zero records for blocks at zero, the ripe queue, and the up and down logs.
@@ -62,7 +65,7 @@ const (
 // reads it, so the upgrade at open reads the graph's edges once and writes
 // only the roots. A crash at any point leaves a store a rerun upgrades
 // again.
-func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, frees bool) (uint64, error) {
+func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, frees, refuse bool) (uint64, bool, error) {
 	// A migration's commits are background work, which waits for a
 	// checkpoint the store's writes outpaced.
 	ctx = block.WithBackground(ctx)
@@ -70,24 +73,29 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	// Read the stored version. A store without one predates versioning.
 	version, err := readFormatVersion(ctx, store, keys)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	if version == store_kvkey.FormatVersion {
-		return version, nil
+		return version, false, nil
 	}
 	if version > store_kvkey.FormatVersion {
-		return 0, volume.Permanent(errors.Errorf("store format version %d is newer than supported version %d", version, store_kvkey.FormatVersion))
+		return 0, false, volume.Permanent(errors.Errorf("store format version %d is newer than supported version %d", version, store_kvkey.FormatVersion))
 	}
 
 	// Start an empty store adopted at the current format, with frees as
 	// configured: it has no holder to count again.
 	empty, err := storeEmpty(ctx, store)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	if empty {
 		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED, Frees: frees}
-		return version, writeFormat(ctx, store, keys, state, nil)
+		return version, false, writeFormat(ctx, store, keys, state, nil)
+	}
+
+	// Leave a store with data as it was when this build may not upgrade it.
+	if refuse {
+		return version, false, volume.Permanent(errors.Wrapf(volume.ErrFormatUpgradeRefused, "store format version %d, current %d", version, store_kvkey.FormatVersion))
 	}
 
 	// Leave a format 7, 8 or 9 store unadopted: its counts and queue
@@ -95,20 +103,20 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	// fill mark and gave its block's children no holder, so the adoption
 	// counts every list again and clears the old records.
 	if version >= 7 {
-		return version, unadoptFormat(ctx, store, keys, version)
+		return version, true, unadoptFormat(ctx, store, keys, version)
 	}
 
 	// Rekey the blocks of a store that keyed them by base58 text, and delete
 	// the graph formats 1 and 2 kept outside the liveness prefix.
 	if version == 0 {
 		if err := migrateBase58BlockKeys(ctx, store, keys); err != nil {
-			return 0, errors.Wrap(err, "migrate store format version 0 block keys")
+			return 0, false, errors.Wrap(err, "migrate store format version 0 block keys")
 		}
 	}
 	if version < 3 {
 		for _, prefix := range legacyGraphPrefixes {
 			if err := deletePrefix(ctx, store, prefix); err != nil {
-				return 0, errors.Wrapf(err, "delete the reference graph of store format version %d", version)
+				return 0, false, errors.Wrapf(err, "delete the reference graph of store format version %d", version)
 			}
 		}
 	}
@@ -116,7 +124,7 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	// Carry the named roots of a format 5 or 6 graph into the root table.
 	if version >= 5 {
 		if err := carryLegacyRoots(ctx, store); err != nil {
-			return 0, errors.Wrapf(err, "carry the named roots of store format version %d", version)
+			return 0, false, errors.Wrapf(err, "carry the named roots of store format version %d", version)
 		}
 	}
 
@@ -129,7 +137,7 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		ObsoleteKinds: legacyGraphKinds,
 		Generation:    block_gc.Generation_GENERATION_OPEN,
 	}
-	return version, writeFormat(ctx, store, keys, state, nil)
+	return version, true, writeFormat(ctx, store, keys, state, nil)
 }
 
 // unadoptFormat returns a format 7, 8 or 9 store's liveness state to

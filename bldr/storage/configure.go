@@ -15,6 +15,18 @@ func WithConfigureVolume(st Storage, configure ConfigureVolumeFunc) Storage {
 	return &configuredStorage{Storage: st, configure: configure}
 }
 
+// ConfigureAll returns storages with each Volume config they build passed
+// through configure. A nil configure returns them unchanged.
+func ConfigureAll(storages []Storage, configure ConfigureVolumeFunc) []Storage {
+	if configure == nil {
+		return storages
+	}
+	for i, st := range storages {
+		storages[i] = WithConfigureVolume(st, configure)
+	}
+	return storages
+}
+
 // configuredStorage is a Storage whose Volume configs pass through configure.
 type configuredStorage struct {
 	Storage

@@ -23,7 +23,7 @@ func TestReleaseClosesStorage(t *testing.T) {
 			// Build the CLI bus and resolve its s4db database.
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
-			b, err := BuildCliBus(ctx, logrus.NewEntry(logrus.New()), "test", t.TempDir())
+			b, err := BuildCliBus(ctx, logrus.NewEntry(logrus.New()), "test", t.TempDir(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}

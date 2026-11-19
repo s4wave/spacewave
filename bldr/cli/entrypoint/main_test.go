@@ -75,6 +75,7 @@ func TestMainLogsTerminalCommandError(t *testing.T) {
 				return []*cli.Command{command}
 			}},
 			nil,
+			nil,
 		)
 		return
 	}

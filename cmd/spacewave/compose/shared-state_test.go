@@ -31,7 +31,7 @@ func TestSharedSessionCatalogSurvivesEntrypointChange(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	root := t.TempDir()
-	cliBus, err := cli_entrypoint.BuildCliBus(ctx, le, "spacewave", root)
+	cliBus, err := cli_entrypoint.BuildCliBus(ctx, le, "spacewave", root, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestSharedSessionCatalogSurvivesEntrypointChange(t *testing.T) {
 	}
 
 	// Reopen the persisted catalog through a fresh CLI bus.
-	reopened, err := cli_entrypoint.BuildCliBus(ctx, le, "spacewave", root)
+	reopened, err := cli_entrypoint.BuildCliBus(ctx, le, "spacewave", root, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

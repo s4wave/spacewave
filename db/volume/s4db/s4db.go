@@ -127,6 +127,14 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, 
 	if err != nil {
 		return nil, err
 	}
+	if from, upgraded := vol.FormatUpgrade(); upgraded {
+		le.WithFields(logrus.Fields{
+			"volume-id": vol.GetID(),
+			"path":      path,
+			"from":      from,
+			"to":        store_kvkey.FormatVersion,
+		}).Info("volume format upgraded")
+	}
 	if !readOnly && conf.GetStoreConfig().GetCollectorFrees() {
 		le.WithField("path", path).Info("volume collector frees on")
 	}

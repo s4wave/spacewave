@@ -23,16 +23,18 @@ type Composition struct {
 	// The bus is built after the command line is parsed, so it may read the
 	// project's flags.
 	ConfigureVolume storage.ConfigureVolumeFunc
+	// Distribution is set by a distribution entrypoint's generated main, the
+	// app a person runs in dev and release builds alike, after Compose
+	// returns and before the process runs, so the project's hooks read it
+	// when they run and not when Compose builds them.
+	Distribution bool
 }
 
 // ConfigureStorage returns storages with each Volume config they build passed
 // through ConfigureVolume. A nil composition or hook returns them unchanged.
 func (c *Composition) ConfigureStorage(storages []storage.Storage) []storage.Storage {
-	if c == nil || c.ConfigureVolume == nil {
+	if c == nil {
 		return storages
 	}
-	for i, st := range storages {
-		storages[i] = storage.WithConfigureVolume(st, c.ConfigureVolume)
-	}
-	return storages
+	return storage.ConfigureAll(storages, c.ConfigureVolume)
 }

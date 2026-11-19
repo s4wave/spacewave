@@ -19,8 +19,9 @@ import (
 
 const debugTraceStopTimeout = 10 * time.Second
 
-// newDebugCommand builds daemon debugging commands.
-func newDebugCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
+// newDebugCommand builds daemon debugging commands. The commands that write a
+// stopped volume upgrade its format only as upgrade allows.
+func newDebugCommand(_ func() cli_entrypoint.CliBus, upgrade *FormatUpgrade) *cli.Command {
 	return &cli.Command{
 		Name:  "debug",
 		Usage: "debug a running daemon or its volume",
@@ -39,13 +40,13 @@ func newDebugCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newDebugColdPacksCommand(),
 			newDebugFTPSSmokeCommand(),
 			newDebugVolumeSwitchCommand(),
-			newDebugPayloadRestoreCommand(),
-			newDebugRefRepairCommand(),
+			newDebugPayloadRestoreCommand(upgrade),
+			newDebugRefRepairCommand(upgrade),
 			newDebugVolumeStateCommand(),
 			newDebugVolumeAuditCommand(),
 			newDebugVolumeAuditWalkCommand(),
-			newDebugVolumeAdoptCommand(),
-			newDebugVolumeCollectCommand(),
+			newDebugVolumeAdoptCommand(upgrade),
+			newDebugVolumeCollectCommand(upgrade),
 		},
 	}
 }

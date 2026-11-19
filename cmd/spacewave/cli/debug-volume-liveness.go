@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -78,11 +79,14 @@ func auditFields(path string, res block_gc.AuditResult) [][2]string {
 }
 
 // debugVolumeAdoptArgs are the arguments of the offline adoption.
-type debugVolumeAdoptArgs struct{}
+type debugVolumeAdoptArgs struct {
+	// upgrade decides whether the open upgrades the volume's format.
+	upgrade *FormatUpgrade
+}
 
 // BuildFlags returns the adopt flags.
 func (a *debugVolumeAdoptArgs) BuildFlags() []cli.Flag {
-	return nil
+	return a.upgrade.BuildFlags()
 }
 
 // Run adopts the stopped volume and prints the counts. A refusal prints the
@@ -93,7 +97,7 @@ func (a *debugVolumeAdoptArgs) Run(c *cli.Context) error {
 		return errors.New("expected one volume file argument")
 	}
 	path := c.Args().First()
-	res, err := adoptVolume(c.Context, logrus.NewEntry(logrus.New()), path)
+	res, err := adoptVolume(c.Context, logrus.NewEntry(logrus.New()), path, a.upgrade.StoreConfig(nil))
 
 	// Print the counts, then name the step a refusal waits on.
 	writeFields(os.Stdout, adoptFields(path, res))
@@ -104,11 +108,12 @@ func (a *debugVolumeAdoptArgs) Run(c *cli.Context) error {
 	return err
 }
 
-// adoptVolume adopts the stopped volume at path. A refusal returns the counts
+// adoptVolume adopts the stopped volume at path, opened with the store
+// configuration storeConf, nil for the default. A refusal returns the counts
 // the adoption reached with its error.
-func adoptVolume(ctx context.Context, le *logrus.Entry, path string) (block_gc.AdoptResult, error) {
+func adoptVolume(ctx context.Context, le *logrus.Entry, path string, storeConf *store_kvtx.Config) (block_gc.AdoptResult, error) {
 	// Open the stopped volume and adopt it.
-	vol, err := openStoppedVolume(ctx, le, path, volumeWritable)
+	vol, err := openStoppedVolumeStore(ctx, le, path, volumeWritable, storeConf)
 	if err != nil {
 		return block_gc.AdoptResult{}, err
 	}
@@ -230,8 +235,8 @@ func newDebugVolumeAuditCommand() *cli.Command {
 }
 
 // newDebugVolumeAdoptCommand returns the offline adoption command.
-func newDebugVolumeAdoptCommand() *cli.Command {
-	args := &debugVolumeAdoptArgs{}
+func newDebugVolumeAdoptCommand(upgrade *FormatUpgrade) *cli.Command {
+	args := &debugVolumeAdoptArgs{upgrade: upgrade}
 	return &cli.Command{
 		Name:      "volume-adopt",
 		Usage:     "count the holders of every block of a stopped, unadopted volume and mark it adopted",

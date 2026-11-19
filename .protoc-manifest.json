@@ -2600,7 +2600,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/store/kvtx": {
-          "hash": "8bb8fe74af2a4c51039697efcf80b15b9603fef840b2ae833bfef8c19722488b",
+          "hash": "1f7ef59e4df68b7a8868b7ae16d3a9a56ee5aa8d6fc3dc3f54133f677ec63a63",
           "generatedFiles": [
             "db/store/kvtx/kvtx.pb.go",
             "db/store/kvtx/kvtx.pb.ts"

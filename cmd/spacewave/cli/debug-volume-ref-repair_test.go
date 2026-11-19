@@ -261,7 +261,7 @@ func TestDebugRefRepair(t *testing.T) {
 	before := sum()
 
 	// A dry run counts the missing edges and writes none.
-	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{})
+	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,7 +321,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// The dry run left the child lists as they were.
-	again, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{})
+	again, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +356,7 @@ func TestDebugRefRepair(t *testing.T) {
 	// Applying writes every missing child list, those of the leaves the dry
 	// run only checks for presence too, and verifies every walked block's
 	// list, which leaves no reached block on the settle's front.
-	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{})
+	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -389,14 +389,14 @@ func TestDebugRefRepair(t *testing.T) {
 	asBytes := func(_ context.Context, typeID string) (blocktype.BlockType, error) {
 		return blocktype.New[byteslice.ByteSlice](typeID), nil
 	}
-	wrong, err := repairVolumeRefs(ctx, le, path, "", false, asBytes, refRepairStub{})
+	wrong, err := repairVolumeRefs(ctx, le, path, "", false, asBytes, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if wrong.rebuild.Dropped == 0 || wrong.rebuild.Rewritten != 0 || wrong.rebuild.Front == 0 {
 		t.Fatalf("rebuild with a wrong root type: %+v", wrong.rebuild)
 	}
-	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{})
+	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -405,7 +405,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// Nothing is missing afterward.
-	after, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{})
+	after, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -415,7 +415,7 @@ func TestDebugRefRepair(t *testing.T) {
 
 	// Adoption refuses while a stored child list names a block stored
 	// without one: the raw block only a parent's list names.
-	refused, err := adoptVolume(ctx, le, path)
+	refused, err := adoptVolume(ctx, le, path, nil)
 	if !errors.Is(err, block_gc.ErrAdoptUnknown) || !slices.ContainsFunc(refused.UnknownSample, listed.EqualVT) {
 		t.Fatalf("adopt with a listless child: %+v, %v", refused, err)
 	}
@@ -431,14 +431,14 @@ func TestDebugRefRepair(t *testing.T) {
 	if err := fixVol.Close(); err != nil {
 		t.Fatal(err)
 	}
-	adopted, err := adoptVolume(ctx, le, path)
+	adopted, err := adoptVolume(ctx, le, path, nil)
 	if err != nil {
 		t.Fatalf("adopt the repaired volume: %v (%+v)", err, adopted)
 	}
 	if adopted.Already || adopted.Unknown != 0 || adopted.Roots != 1 || adopted.Queued == 0 {
 		t.Fatalf("adopt: %+v", adopted)
 	}
-	if again, err := adoptVolume(ctx, le, path); err != nil || !again.Already {
+	if again, err := adoptVolume(ctx, le, path, nil); err != nil || !again.Already {
 		t.Fatalf("adopt again: %+v, %v", again, err)
 	}
 

@@ -26,6 +26,7 @@ import (
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	"github.com/s4wave/spacewave/db/s4db"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
@@ -51,11 +52,13 @@ type debugPayloadRestoreArgs struct {
 	bucketID string
 	// dryRun reports the missing blocks without writing them.
 	dryRun bool
+	// upgrade decides whether the open upgrades the volume's format.
+	upgrade *FormatUpgrade
 }
 
 // BuildFlags returns the payload restore flags.
 func (a *debugPayloadRestoreArgs) BuildFlags() []cli.Flag {
-	return []cli.Flag{
+	return append([]cli.Flag{
 		&cli.StringFlag{
 			Name:        "space",
 			Usage:       "SharedObject ID of the Space whose World references the payload",
@@ -87,7 +90,7 @@ func (a *debugPayloadRestoreArgs) BuildFlags() []cli.Flag {
 			Usage:       "with --source-root, report the missing blocks without writing them",
 			Destination: &a.dryRun,
 		},
-	}
+	}, a.upgrade.BuildFlags()...)
 }
 
 // Run restores the payloads into the stopped volume and reports them.
@@ -119,7 +122,7 @@ func (a *debugPayloadRestoreArgs) Run(c *cli.Context) error {
 	}
 
 	// Restore the payload and print what was written.
-	ref, total, restored, err := restorePayload(c.Context, le, path, a.spaceID, a.bucketID, data, want)
+	ref, total, restored, err := restorePayload(c.Context, le, path, a.spaceID, a.bucketID, data, want, a.upgrade.StoreConfig(nil))
 	if err != nil {
 		return err
 	}
@@ -138,7 +141,7 @@ func (a *debugPayloadRestoreArgs) Run(c *cli.Context) error {
 func (a *debugPayloadRestoreArgs) runSourceRoot(ctx context.Context, le *logrus.Entry, path string) error {
 	// Walk the tree, then label the missing blocks by whether they were
 	// written.
-	res, err := restoreSourceTree(ctx, le, path, a.spaceID, a.bucketID, a.sourceRoot, a.dryRun)
+	res, err := restoreSourceTree(ctx, le, path, a.spaceID, a.bucketID, a.sourceRoot, a.dryRun, a.upgrade.StoreConfig(nil))
 	if err != nil {
 		return err
 	}
@@ -158,8 +161,8 @@ func (a *debugPayloadRestoreArgs) runSourceRoot(ctx context.Context, le *logrus.
 }
 
 // newDebugPayloadRestoreCommand builds the offline payload restore.
-func newDebugPayloadRestoreCommand() *cli.Command {
-	args := &debugPayloadRestoreArgs{}
+func newDebugPayloadRestoreCommand(upgrade *FormatUpgrade) *cli.Command {
+	args := &debugPayloadRestoreArgs{upgrade: upgrade}
 	return &cli.Command{
 		Name:      "payload-restore",
 		Usage:     "rebuild lost operation payloads from their source files",
@@ -181,11 +184,18 @@ func newDebugPayloadRestoreCommand() *cli.Command {
 // restorePayload rebuilds the extent blobs of data with the World transform
 // of spaceID, selects the one whose root digest is want, and writes the blocks
 // the volume at path lacks, owned by bucketID, or by the one bucket named for
-// the Space when bucketID is empty. It returns the root ref, the blob's block
+// the Space when bucketID is empty, opening it with the store configuration
+// storeConf, nil for the default. It returns the root ref, the blob's block
 // count, and the number of blocks written.
-func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string, data, want []byte) (*block.BlockRef, int, int, error) {
+func restorePayload(
+	ctx context.Context,
+	le *logrus.Entry,
+	path, spaceID, bucketID string,
+	data, want []byte,
+	storeConf *store_kvtx.Config,
+) (*block.BlockRef, int, int, error) {
 	// Open the stopped volume with the World transform and owning bucket.
-	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID, volumeWritable)
+	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID, volumeWritable, storeConf)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -260,10 +270,17 @@ type sourceTreeResult struct {
 
 // restoreSourceTree rebuilds the extent payload blobs of every regular file
 // under root and writes each block the volume at path lacks, owned by the
-// Space's bucket. A dry run only counts the missing blocks.
-func restoreSourceTree(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID, root string, dryRun bool) (*sourceTreeResult, error) {
+// Space's bucket, opening it with the store configuration storeConf, nil for
+// the default. A dry run only counts the missing blocks.
+func restoreSourceTree(
+	ctx context.Context,
+	le *logrus.Entry,
+	path, spaceID, bucketID, root string,
+	dryRun bool,
+	storeConf *store_kvtx.Config,
+) (*sourceTreeResult, error) {
 	// Open the stopped volume with the World transform and owning bucket.
-	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID, dryRun)
+	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID, dryRun, storeConf)
 	if err != nil {
 		return nil, err
 	}
@@ -365,9 +382,15 @@ type restoreVolume struct {
 // run, and resolves the World transform and owning bucket of spaceID. An
 // empty bucketID selects the one bucket named for the Space. The caller
 // closes the volume.
-func openRestoreVolume(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string, readOnly bool) (*restoreVolume, error) {
+func openRestoreVolume(
+	ctx context.Context,
+	le *logrus.Entry,
+	path, spaceID, bucketID string,
+	readOnly bool,
+	storeConf *store_kvtx.Config,
+) (*restoreVolume, error) {
 	// Open the stopped volume.
-	vol, err := openStoppedVolume(ctx, le, path, readOnly)
+	vol, err := openStoppedVolumeStore(ctx, le, path, readOnly, storeConf)
 	if err != nil {
 		return nil, err
 	}

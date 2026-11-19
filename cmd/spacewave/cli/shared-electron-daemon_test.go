@@ -151,7 +151,7 @@ func newSharedElectronDaemon(t *testing.T, app sharedElectronApp, opts sharedEle
 	le := logrus.NewEntry(logger)
 
 	// Build the native state bus and retain its lifetime through the test.
-	cliBus, err := cli_entrypoint.BuildCliBus(ctx, le, "spacewave", statePath)
+	cliBus, err := cli_entrypoint.BuildCliBus(ctx, le, "spacewave", statePath, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

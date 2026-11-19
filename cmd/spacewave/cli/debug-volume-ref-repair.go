@@ -18,6 +18,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/block/packcopy"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world/refwalk"
 	"github.com/sirupsen/logrus"
@@ -36,11 +37,13 @@ type debugRefRepairArgs struct {
 	// syntheticEmpty is a file of B58 refs, one per line, listed with no
 	// children when no read decodes them.
 	syntheticEmpty string
+	// upgrade decides whether the open upgrades the volume's format.
+	upgrade *FormatUpgrade
 }
 
 // BuildFlags returns the ref repair flags.
 func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
-	return []cli.Flag{
+	return append([]cli.Flag{
 		&cli.StringFlag{
 			Name:        "space",
 			Usage:       "SharedObject ID of the one Space to repair",
@@ -61,7 +64,7 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 			Usage:       "file of B58 refs to list with no children when no read decodes them, for a rehearsal on a copy",
 			Destination: &a.syntheticEmpty,
 		},
-	}
+	}, a.upgrade.BuildFlags()...)
 }
 
 // Run repairs the stopped volume and prints the counts.
@@ -76,7 +79,7 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, space_world_optypes.LookupBlockType, stub)
+	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, space_world_optypes.LookupBlockType, stub, a.upgrade.StoreConfig(nil))
 	if err != nil {
 		return err
 	}
@@ -199,9 +202,10 @@ func repairVolumeRefs(
 	dryRun bool,
 	lookup refwalk.LookupBlockType,
 	stub refRepairStub,
+	storeConf *store_kvtx.Config,
 ) (refRepairResult, error) {
 	// Open the stopped volume.
-	vol, err := openStoppedVolume(ctx, le, path, dryRun)
+	vol, err := openStoppedVolumeStore(ctx, le, path, dryRun, storeConf)
 	if err != nil {
 		return refRepairResult{}, err
 	}
@@ -258,8 +262,8 @@ func repairVolumeRefs(
 }
 
 // newDebugRefRepairCommand returns the offline child list repair command.
-func newDebugRefRepairCommand() *cli.Command {
-	args := &debugRefRepairArgs{}
+func newDebugRefRepairCommand(upgrade *FormatUpgrade) *cli.Command {
+	args := &debugRefRepairArgs{upgrade: upgrade}
 	return &cli.Command{
 		Name:      "ref-repair",
 		Usage:     "rebuild the child lists a stopped volume's Spaces reach",

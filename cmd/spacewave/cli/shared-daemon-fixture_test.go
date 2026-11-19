@@ -137,7 +137,7 @@ func runSharedDaemonFixture() error {
 		if buildErr = os.WriteFile(filepath.Join(statePath, "runtime-executable"), []byte(executable), 0o600); buildErr != nil {
 			return nil
 		}
-		cliBus, buildErr = cli_entrypoint.BuildCliBus(ctx, le, "spacewave", statePath)
+		cliBus, buildErr = cli_entrypoint.BuildCliBus(ctx, le, "spacewave", statePath, nil)
 		if buildErr != nil {
 			return nil
 		}
@@ -233,7 +233,7 @@ func runSharedDaemonFixture() error {
 	// Use the same flags and daemon lifetime for both host shapes.
 	app := cli.NewApp()
 	app.Flags = []cli.Flag{statePathFlag(nil), socketPathFlag()}
-	app.Commands = []*cli.Command{newServeCommand(getBus, yield_policy.NewBroker(), NewCollectorFrees())}
+	app.Commands = []*cli.Command{newServeCommand(getBus, yield_policy.NewBroker(), NewCollectorFrees(), NewFormatUpgrade(nil))}
 	err := app.RunContext(ctx, os.Args)
 	if buildErr != nil {
 		return buildErr

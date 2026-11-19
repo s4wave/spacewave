@@ -22,7 +22,7 @@ import (
 
 func TestServeCommandTraceFlag(t *testing.T) {
 	// Require the serve command to advertise the trace flag.
-	cmd := newServeCommand(nil, yield_policy.NewBroker(), NewCollectorFrees())
+	cmd := newServeCommand(nil, yield_policy.NewBroker(), NewCollectorFrees(), NewFormatUpgrade(nil))
 	set := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
 	set.SetOutput(io.Discard)
 	for _, fl := range cmd.Flags {
@@ -38,7 +38,7 @@ func TestServeCommandTraceFlag(t *testing.T) {
 func TestServeCommandIdleTimeoutFlag(t *testing.T) {
 	// Clear the idle-timeout environment and find the flag.
 	t.Setenv(daemonIdleTimeoutEnvVar, "")
-	cmd := newServeCommand(nil, yield_policy.NewBroker(), NewCollectorFrees())
+	cmd := newServeCommand(nil, yield_policy.NewBroker(), NewCollectorFrees(), NewFormatUpgrade(nil))
 	idleFlag := findServeIdleTimeoutFlag(t, cmd)
 
 	// Require the default idle timeout and its usage.
@@ -57,7 +57,7 @@ func TestServeCommandIdleTimeoutFlag(t *testing.T) {
 func TestServeCommandIdleTimeoutFlagDefersEnvironmentParsing(t *testing.T) {
 	// Apply the idle-timeout flag without parsing the invalid environment value.
 	t.Setenv(daemonIdleTimeoutEnvVar, "not-a-duration")
-	cmd := newServeCommand(nil, yield_policy.NewBroker(), NewCollectorFrees())
+	cmd := newServeCommand(nil, yield_policy.NewBroker(), NewCollectorFrees(), NewFormatUpgrade(nil))
 	idleFlag := findServeIdleTimeoutFlag(t, cmd)
 	set := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
 	set.SetOutput(io.Discard)
@@ -74,7 +74,7 @@ func TestServeCommandIdleTimeoutFlagDefersEnvironmentParsing(t *testing.T) {
 func TestServeCommandIdleTimeoutFlagOverridesEnvironment(t *testing.T) {
 	// Set a 45s environment timeout and parse a 0s flag.
 	t.Setenv(daemonIdleTimeoutEnvVar, "45s")
-	cmd := newServeCommand(nil, yield_policy.NewBroker(), NewCollectorFrees())
+	cmd := newServeCommand(nil, yield_policy.NewBroker(), NewCollectorFrees(), NewFormatUpgrade(nil))
 	idleFlag := findServeIdleTimeoutFlag(t, cmd)
 	set := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
 	set.SetOutput(io.Discard)

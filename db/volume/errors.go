@@ -19,4 +19,9 @@ var (
 	// storage needs a conversion or a format upgrade, which only a writable
 	// open makes.
 	ErrReadOnlyUpgrade = errors.New("volume needs a format upgrade, which a read-only open cannot write")
+	// ErrFormatUpgradeRefused is returned by a writable open of a volume
+	// whose data is at an older format when its configuration refuses the
+	// upgrade, as the spacewave development CLI does unless the operator
+	// opts in.
+	ErrFormatUpgradeRefused = errors.New("volume needs a format upgrade, which this build makes only with --upgrade-format or SPACEWAVE_UPGRADE_FORMAT=1")
 )

@@ -19,12 +19,15 @@ import (
 	"github.com/pkg/errors"
 	entrypoint_fatal "github.com/s4wave/spacewave/bldr/entrypoint/fatal"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
+	"github.com/s4wave/spacewave/bldr/storage"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/sirupsen/logrus"
 )
 
 // Main boots the CliBus and runs the CLI application. flags are added to the
-// root flags, so they are accepted before any command.
+// root flags, so they are accepted before any command. configureVolume, nil
+// for none, adjusts each Volume config the bus's storage builds; the bus is
+// built after the command line is parsed, so it may read the flags.
 func Main(
 	appName string,
 	projectID string,
@@ -32,6 +35,7 @@ func Main(
 	configSets []BuildConfigSetFunc,
 	commandBuilders []BuildCommandsFunc,
 	flags []cli.Flag,
+	configureVolume storage.ConfigureVolumeFunc,
 ) {
 	// Run until the process is interrupted.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -72,7 +76,7 @@ func Main(
 			}
 
 			// Build the CliBus against the resolved state root.
-			b, err := BuildCliBus(ctx, le, projectID, root)
+			b, err := BuildCliBus(ctx, le, projectID, root, configureVolume)
 			if err != nil {
 				busInitErr = err
 				return

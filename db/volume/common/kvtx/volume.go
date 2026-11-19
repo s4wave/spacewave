@@ -176,6 +176,10 @@ type Volume struct {
 	heldMode block_gc.HeldMode
 	// notHeld counts the blocks observed not held, by block_gc.NotHeldReason.
 	notHeld [block_gc.NotHeldPut + 1]atomic.Uint64
+	// upgraded is set when this open upgraded the store's data, from the
+	// format version upgradedFrom.
+	upgraded     bool
+	upgradedFrom uint64
 	// stageSlice bounds the entries one transaction of a staged batch lands,
 	// as prepareStaged describes; zero lands each batch in one transaction.
 	stageSlice int
@@ -240,7 +244,7 @@ func NewVolume(
 	}
 
 	// Load or claim the Volume identity and initialize its storage.
-	v, err = initVolume(ctx, v, storeID, conf.GetCollectorFrees(), noGenerateKey, noWriteKey)
+	v, err = initVolume(ctx, v, storeID, conf.GetCollectorFrees(), conf.GetRefuseFormatUpgrade(), noGenerateKey, noWriteKey)
 	if err != nil {
 		return nil, err
 	}
@@ -408,15 +412,25 @@ func (v *Volume) startLiveness(ctx context.Context, state *block_gc.LivenessStat
 	return nil
 }
 
+// FormatUpgrade returns the format version the open upgraded the store's data
+// from, and whether it upgraded any: false for an empty store, a store at the
+// current version, and a read-only open.
+func (v *Volume) FormatUpgrade() (from uint64, upgraded bool) {
+	return v.upgradedFrom, v.upgraded
+}
+
 // initVolume brings the store to the current format and loads or claims the
 // Volume identity. An empty store is born with the frees switch as frees
-// sets it. A read-only Volume refuses a store that needs an upgrade with
-// volume.ErrReadOnlyUpgrade and never writes a generated identity.
+// sets it. A writable Volume refuses a store with data at an older format,
+// as upgradeFormat describes, when refuseUpgrade is set. A read-only Volume
+// refuses a store that needs an upgrade with volume.ErrReadOnlyUpgrade and
+// never writes a generated identity.
 func initVolume(
 	ctx context.Context,
 	v *Volume,
 	storeID string,
 	frees,
+	refuseUpgrade,
 	noGenerateKey,
 	noWriteKey bool,
 ) (*Volume, error) {
@@ -435,9 +449,11 @@ func initVolume(
 
 	// Bring a writable store to the current format before any read.
 	if !v.readOnly {
-		if _, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey, frees); err != nil {
+		from, upgraded, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey, frees, refuseUpgrade)
+		if err != nil {
 			return nil, err
 		}
+		v.upgraded, v.upgradedFrom = upgraded, from
 	}
 
 	// Load the stored identity.

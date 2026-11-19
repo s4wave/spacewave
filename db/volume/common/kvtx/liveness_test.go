@@ -25,6 +25,7 @@ import (
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
+	"github.com/s4wave/spacewave/db/volume"
 	"google.golang.org/protobuf/encoding/protowire"
 )
 
@@ -6913,8 +6914,23 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	r1 := tr.add(t, "R1", "C")
 	writeLegacyStore(t, store, keys, tr, "R1", true, "C", "R1")
 
+	// An open that refuses the upgrade fails and leaves the store at format
+	// 6, while an empty store opens under the same refusal.
+	refuse := &store_kvtx.Config{RefuseFormatUpgrade: true}
+	_, err := NewVolume(ctx, "test/liveness", keys, store, refuse, false, false, nil, nil)
+	if !errors.Is(err, volume.ErrFormatUpgradeRefused) || !volume.IsPermanent(err) {
+		t.Fatalf("refused upgrade = %v, want a permanent ErrFormatUpgradeRefused", err)
+	}
+	if version, err := readFormatVersion(ctx, store, keys); err != nil || version != 6 {
+		t.Fatalf("version after a refused upgrade = %d err %v, want 6", version, err)
+	}
+	openConfVolume(t, store_kvtx_inmem.NewStore(), refuse)
+
 	// Open it: the lists and the root carry over, and it is unadopted.
 	v, _ := openUnadoptedVolume(t, store)
+	if from, upgraded := v.FormatUpgrade(); !upgraded || from != 6 {
+		t.Fatalf("format upgrade = %d %v, want from 6", from, upgraded)
+	}
 	if v.obsoleteDone != nil {
 		<-v.obsoleteDone
 	}
@@ -6924,7 +6940,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	if children, listed, err := v.GetChildren(ctx, r1); err != nil || !listed || len(children) != 1 || !children[0].EqualsRef(tr["C"].Ref) {
 		t.Fatalf("carried child list = %v listed %v err %v", children, listed, err)
 	}
-	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
+	err = v.readRecords(ctx, func(rec *block_gc.Records) error {
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err

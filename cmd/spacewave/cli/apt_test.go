@@ -26,7 +26,7 @@ import (
 )
 
 func TestAptImportDebCommandRegistered(t *testing.T) {
-	for _, cmd := range NewCliCommands(nil, nil, nil) {
+	for _, cmd := range NewCliCommands(nil, nil, nil, nil) {
 		if cmd.Name != "apt" {
 			continue
 		}

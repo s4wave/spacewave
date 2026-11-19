@@ -33,7 +33,7 @@ func TestDeviceCommandExposesDaemonFlags(t *testing.T) {
 }
 
 func TestDeviceCommandRegistered(t *testing.T) {
-	for _, cmd := range NewCliCommands(nil, nil, nil) {
+	for _, cmd := range NewCliCommands(nil, nil, nil, nil) {
 		if cmd.Name == "device" {
 			return
 		}

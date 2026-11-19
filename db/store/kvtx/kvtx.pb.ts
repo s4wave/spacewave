@@ -100,6 +100,16 @@ export interface Config {
    * it once slicing has run in production.
    */
   stageOneTransaction?: boolean
+  /**
+   * RefuseFormatUpgrade refuses a writable open of a store that holds data
+   * at an older format, failing it with volume.ErrFormatUpgradeRefused and
+   * leaving the store as it was, instead of upgrading it: an upgrade is one
+   * way, and a development build may write a format no release reads. An
+   * empty store and a store at the current format open as before. The default
+   * upgrades; only the spacewave development CLI sets it, unless the operator
+   * passes --upgrade-format or SPACEWAVE_UPGRADE_FORMAT=1.
+   */
+  refuseFormatUpgrade?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -109,4 +119,5 @@ export const Config: MessageType<Config> =
     [8, 'collector_grace_dur', 9],
     [9, 'root_held_check', 14, 0, RootHeldCheck_Enum],
     [11, 'stage_one_transaction', 8],
+    [12, 'refuse_format_upgrade', 8],
   ])

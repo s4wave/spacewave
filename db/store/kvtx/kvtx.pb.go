@@ -103,6 +103,14 @@ type Config struct {
 	// writes. This switch goes back to the old landing without a build; remove
 	// it once slicing has run in production.
 	StageOneTransaction bool `protobuf:"varint,11,opt,name=stage_one_transaction,json=stageOneTransaction,proto3" json:"stageOneTransaction,omitempty"`
+	// RefuseFormatUpgrade refuses a writable open of a store that holds data
+	// at an older format, failing it with volume.ErrFormatUpgradeRefused and
+	// leaving the store as it was, instead of upgrading it: an upgrade is one
+	// way, and a development build may write a format no release reads. An
+	// empty store and a store at the current format open as before. The default
+	// upgrades; only the spacewave development CLI sets it, unless the operator
+	// passes --upgrade-format or SPACEWAVE_UPGRADE_FORMAT=1.
+	RefuseFormatUpgrade bool `protobuf:"varint,12,opt,name=refuse_format_upgrade,json=refuseFormatUpgrade,proto3" json:"refuseFormatUpgrade,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -146,6 +154,13 @@ func (x *Config) GetStageOneTransaction() bool {
 	return false
 }
 
+func (x *Config) GetRefuseFormatUpgrade() bool {
+	if x != nil {
+		return x.RefuseFormatUpgrade
+	}
+	return false
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -156,6 +171,7 @@ func (m *Config) CloneVT() *Config {
 	r.CollectorGraceDur = m.CollectorGraceDur
 	r.RootHeldCheck = m.RootHeldCheck
 	r.StageOneTransaction = m.StageOneTransaction
+	r.RefuseFormatUpgrade = m.RefuseFormatUpgrade
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -185,6 +201,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.StageOneTransaction != that.StageOneTransaction {
+		return false
+	}
+	if this.RefuseFormatUpgrade != that.RefuseFormatUpgrade {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -271,6 +290,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("stageOneTransaction")
 		s.WriteBool(x.StageOneTransaction)
 	}
+	if x.RefuseFormatUpgrade || s.HasField("refuseFormatUpgrade") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refuseFormatUpgrade")
+		s.WriteBool(x.RefuseFormatUpgrade)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -303,6 +327,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "stage_one_transaction", "stageOneTransaction":
 			s.AddField("stage_one_transaction")
 			x.StageOneTransaction = s.ReadBool()
+		case "refuse_format_upgrade", "refuseFormatUpgrade":
+			s.AddField("refuse_format_upgrade")
+			x.RefuseFormatUpgrade = s.ReadBool()
 		}
 	})
 }
@@ -340,6 +367,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RefuseFormatUpgrade {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RefuseFormatUpgrade)
+		i--
+		dAtA[i] = 0x60
 	}
 	if m.StageOneTransaction {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.StageOneTransaction)
@@ -380,6 +412,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CollectorGraceDur)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RootHeldCheck)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.StageOneTransaction)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.RefuseFormatUpgrade)
 	n += len(m.unknownFields)
 	return n
 }
@@ -410,6 +443,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.StageOneTransaction != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "stage_one_transaction")
 		protobuf_go_lite.TextWriteBool(&sb, x.StageOneTransaction)
+	}
+	if x.RefuseFormatUpgrade != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refuse_format_upgrade")
+		protobuf_go_lite.TextWriteBool(&sb, x.RefuseFormatUpgrade)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -490,6 +527,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.StageOneTransaction = bool(v)
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RefuseFormatUpgrade", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RefuseFormatUpgrade = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
