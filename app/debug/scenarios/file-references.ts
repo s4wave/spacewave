@@ -18,27 +18,17 @@ const fileKey = 'docking-arm.md'
 const observationType = 'glados/observation'
 const refersPred = '<glados/evidence>'
 
-// putObject stores one block as a new World object of typeId, with any quads
-// the object declares, in one batch.
+// putObject stores a new World object of typeId, with its root block when
+// given one and any quads the object declares, in one batch.
 async function putObject(
   world: EngineWorldState,
   key: string,
   typeId: string,
-  data: Uint8Array,
-  blockType: string,
+  root: { data: Uint8Array; blockType: string } | null,
   quads: { predicate: string; obj: string }[],
   signal: AbortSignal,
 ) {
-  using stage = await world.stageWorldState(signal)
-  using cursor = await stage.buildStorageCursor(signal)
-  const rootRef = await accessObject(
-    cursor,
-    undefined,
-    async (block) => {
-      await block.setBlock({ data, blockType, markDirty: true }, signal)
-    },
-    signal,
-  )
+  const rootRef = root ? await putRootBlock(world, root, signal) : undefined
   throwBatchError(
     await world.getEngine().executeWorldBatch([
       {
@@ -54,6 +44,24 @@ async function putObject(
         },
       })),
     ]),
+  )
+}
+
+// putRootBlock writes one typed block and returns its reference.
+async function putRootBlock(
+  world: EngineWorldState,
+  root: { data: Uint8Array; blockType: string },
+  signal: AbortSignal,
+) {
+  using stage = await world.stageWorldState(signal)
+  using cursor = await stage.buildStorageCursor(signal)
+  return await accessObject(
+    cursor,
+    undefined,
+    async (block) => {
+      await block.setBlock({ ...root, markDirty: true }, signal)
+    },
+    signal,
   )
 }
 
@@ -85,19 +93,22 @@ export async function fileReferences(
     world,
     fileKey,
     FSNodeTypeID,
-    FSNode.toBinary({
-      nodeType: NodeType.NodeType_FILE,
-      permissions: 0o644,
-      file: {
-        totalSize: size,
-        rootBlob: {
-          blobType: BlobType.BlobType_RAW,
+    {
+      blockType: FSNodeTypeID,
+      data: FSNode.toBinary({
+        nodeType: NodeType.NodeType_FILE,
+        permissions: 0o644,
+        modTime: new Date(),
+        file: {
           totalSize: size,
-          rawData: content,
+          rootBlob: {
+            blobType: BlobType.BlobType_RAW,
+            totalSize: size,
+            rawData: content,
+          },
         },
-      },
-    }),
-    FSNodeTypeID,
+      }),
+    },
     [],
     signal,
   )
@@ -109,8 +120,7 @@ export async function fileReferences(
       world,
       key,
       observationType,
-      new TextEncoder().encode(`The docking arm reaches bay ${observations}.`),
-      '',
+      null,
       [{ predicate: refersPred, obj: keyToIRI(fileKey) }],
       signal,
     )
