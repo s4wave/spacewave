@@ -90,13 +90,15 @@ func (t *taskTracker) processState(
 	// observations, changing its result without changing the observed state.
 	t.jt.objLoop.Wake()
 
-	// Assign unclaimed tasks to this cluster.
+	// Assign unclaimed tasks to this cluster. A Task can complete before any
+	// cluster claims it, as when it fails resolving its inputs; it needs no
+	// peer, and its Job may be complete, which refuses assignment.
 	taskPeerID := task.GetPeerId()
 	if taskPeerID != "" && taskPeerID != t.jt.c.peerIDStr {
 		// Leave tasks assigned to another cluster untouched.
 		return true, nil
 	}
-	if taskPeerID == "" {
+	if taskPeerID == "" && taskState != forge_task.State_TaskState_COMPLETE {
 		le.
 			WithField("cluster-key", clusterKey).
 			WithField("job-key", jobKey).

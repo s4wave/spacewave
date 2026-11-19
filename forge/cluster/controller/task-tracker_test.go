@@ -22,7 +22,8 @@ import (
 
 // TestTaskTrackerRetriesTransientWorldError verifies that a task tracker
 // retries after a World error and wakes its parent when the first task state it
-// observes is COMPLETE.
+// observes is COMPLETE, and that it leaves an unclaimed completed Task of a
+// completed Job unclaimed.
 func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
 	// Bound the tracker test and retain control of tracker shutdown.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
@@ -203,5 +204,41 @@ func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
 	err = <-parentDone
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("parent tracker returned %v after cancellation, want %v", err, context.Canceled)
+	}
+
+	// Leave the completed Task unclaimed, as a Task that fails before any
+	// cluster claims it is.
+	if _, _, err := world.AccessWorldObject(ctx, tb.WorldState, taskKey, true, func(bcs *block.Cursor) error {
+		task, err := forge_task.UnmarshalTask(ctx, bcs)
+		if err != nil {
+			return err
+		}
+		task.PeerId = ""
+		bcs.SetBlock(task, true)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Reconcile it under the completed Job: the tracker must leave it
+	// unclaimed instead of failing to assign it on every World change.
+	taskObj, found, err := tb.WorldState.GetObject(ctx, taskKey)
+	if err != nil || !found {
+		t.Fatalf("lookup completed task: found=%v err=%v", found, err)
+	}
+	defer world.ReleaseObjectState(taskObj)
+	taskRootRef, taskRev, err := taskObj.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := taskTracker.processState(ctx, tb.Logger, tb.WorldState, taskObj, taskRootRef, taskRev); err != nil {
+		t.Fatalf("reconcile completed unclaimed task: %v", err)
+	}
+	completedTask, err := forge_task.LookupTaskBody(ctx, tb.WorldState, taskKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if peerID := completedTask.GetPeerId(); peerID != "" {
+		t.Fatalf("completed task assigned to %s, want unclaimed", peerID)
 	}
 }
