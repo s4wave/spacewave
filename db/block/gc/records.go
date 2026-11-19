@@ -1239,9 +1239,19 @@ func (r *Records) SetState(ctx context.Context, state *LivenessState) error {
 	return r.tx.Set(ctx, r.key(kindState), value)
 }
 
-// freesMark returns the frees mark of state: the FNV-1a hash of the record
-// without its mark and its unknown fields, as LivenessState.frees_mark
-// describes. It leaves state as it found it.
+// freesEpoch salts every frees mark. Raising it makes each mark an earlier
+// build wrote read as stale, so every Volume whose frees that build turned on
+// reads as off and counts again at the next switch-on. Raise it when a build
+// fixes a defect that left the records of a Volume adopted with frees on
+// wrong in a way only a recount corrects.
+//
+// Epoch 1 follows the adoption's settle of holes: an earlier build left a
+// hole punched behind the settle cursor uncounted and unmarked.
+const freesEpoch = 1
+
+// freesMark returns the frees mark of state: the FNV-1a hash of freesEpoch
+// and the record without its mark and its unknown fields, as
+// LivenessState.frees_mark describes. It leaves state as it found it.
 func freesMark(state *LivenessState) (uint64, error) {
 	// Hash the known fields alone, then put the mark and the rest back.
 	mark, unknown := state.FreesMark, state.unknownFields
@@ -1249,6 +1259,7 @@ func freesMark(state *LivenessState) (uint64, error) {
 	value, err := state.MarshalVT()
 	state.FreesMark, state.unknownFields = mark, unknown
 	h := fnv.New64a()
+	_, _ = h.Write([]byte{freesEpoch})
 	_, _ = h.Write(value)
 	return h.Sum64(), err
 }

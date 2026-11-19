@@ -297,6 +297,22 @@
         }
       }
     },
+    "777a7eafce266e027ae7da68377c1b76b1da72236e210742ff5895c54b1037b4": {
+      "protocFlagsHash": "288cd7ea466ca646a28b138e8bb617dc10d77541e4c489e3ff858dbbd8ccbfa0",
+      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+      "packages": {
+        "github.com/s4wave/spacewave/db/block/gc": {
+          "hash": "85356c82e5dce5ca4a27965d981902490f3224decd3d3593c0338d24ea6a0f9a",
+          "generatedFiles": [
+            "db/block/gc/liveness.pb.go",
+            "db/block/gc/liveness.pb.ts"
+          ],
+          "protoFiles": [
+            "db/block/gc/liveness.proto"
+          ]
+        }
+      }
+    },
     "c9b81e69067b0bac0e03a23b65cd1874b9ed5dce242520e76901735a93638066": {
       "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
