@@ -366,6 +366,11 @@ type AdoptCursor struct {
 	Queued uint64 `protobuf:"varint,6,opt,name=queued,proto3" json:"queued,omitempty"`
 	// Unknown counts the holders of blocks stored without a child list.
 	Unknown uint64 `protobuf:"varint,7,opt,name=unknown,proto3" json:"unknown,omitempty"`
+	// Run is the adoption run that wrote the cursor. A run takes the cursor
+	// over only when it names the run the state names in the same
+	// transaction: a build without the cursor carries it through a claim of
+	// its own as an unknown field, and its counts are not the cursor's.
+	Run string `protobuf:"bytes,8,opt,name=run,proto3" json:"run,omitempty"`
 }
 
 func (x *AdoptCursor) Reset() {
@@ -421,6 +426,13 @@ func (x *AdoptCursor) GetUnknown() uint64 {
 		return x.Unknown
 	}
 	return 0
+}
+
+func (x *AdoptCursor) GetRun() string {
+	if x != nil {
+		return x.Run
+	}
+	return ""
 }
 
 // Release is the release of the children of a freed block whose child list
@@ -520,6 +532,7 @@ func (m *AdoptCursor) CloneVT() *AdoptCursor {
 	r.Counted = m.Counted
 	r.Queued = m.Queued
 	r.Unknown = m.Unknown
+	r.Run = m.Run
 	r.After = protobuf_go_lite.CloneBytes(m.After)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -650,6 +663,9 @@ func (this *AdoptCursor) EqualVT(that *AdoptCursor) bool {
 		return false
 	}
 	if this.Unknown != that.Unknown {
+		return false
+	}
+	if this.Run != that.Run {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1040,6 +1056,11 @@ func (x *AdoptCursor) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("unknown")
 		s.WriteUint64(x.Unknown)
 	}
+	if x.Run != "" || s.HasField("run") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("run")
+		s.WriteString(x.Run)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1078,6 +1099,9 @@ func (x *AdoptCursor) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "unknown":
 			s.AddField("unknown")
 			x.Unknown = s.ReadUint64()
+		case "run":
+			s.AddField("run")
+			x.Run = s.ReadString()
 		}
 	})
 }
@@ -1332,6 +1356,11 @@ func (m *AdoptCursor) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Run) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Run)
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.Unknown != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Unknown))
 		i--
@@ -1470,6 +1499,7 @@ func (m *AdoptCursor) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Counted)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Queued)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Unknown)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Run)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1605,6 +1635,10 @@ func (x *AdoptCursor) MarshalProtoText() string {
 	if x.Unknown != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unknown")
 		protobuf_go_lite.TextWriteUint(&sb, x.Unknown)
+	}
+	if x.Run != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "run")
+		protobuf_go_lite.TextWriteString(&sb, x.Run)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1947,6 +1981,16 @@ func (m *AdoptCursor) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Run", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Run = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

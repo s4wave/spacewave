@@ -297,6 +297,13 @@ export interface AdoptCursor {
    * Unknown counts the holders of blocks stored without a child list.
    */
   unknown?: bigint
+  /**
+   * Run is the adoption run that wrote the cursor. A run takes the cursor
+   * over only when it names the run the state names in the same
+   * transaction: a build without the cursor carries it through a claim of
+   * its own as an unknown field, and its counts are not the cursor's.
+   */
+  run?: string
 }
 
 export const AdoptCursor: MessageType<AdoptCursor> =
@@ -308,6 +315,7 @@ export const AdoptCursor: MessageType<AdoptCursor> =
     [5, 'counted', 4],
     [6, 'queued', 4],
     [7, 'unknown', 4],
+    [8, 'run', 9],
   ])
 
 /**
