@@ -298,8 +298,12 @@ func (s *PackedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 			if err := block.VerifyRead(ref, stored.Data, ""); err != nil {
 				return nil, err
 			}
+			// Admit only bytes synced at the lookup. The earlier generation
+			// fences any drop of the location after this read began.
 			if durable {
 				block.MarkDurableRead(ctx, ref, gen)
+			} else {
+				block.MarkStagedRead(ctx)
 			}
 			return stored, nil
 		}

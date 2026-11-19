@@ -74,8 +74,9 @@ type pack struct {
 	bloom []byte
 	// uploaded is set once the Log's remote holds the finalized pack.
 	uploaded bool
-	// removed counts the table's locations in this pack that Remove marked.
-	removed int
+	// removed tracks locations freed before upload. They remain readable
+	// until upload and a put can revive them.
+	removed map[keyTail]struct{}
 	// renamed is what finalize made of the pack once its rename succeeded,
 	// so a retry after a failed directory sync only syncs the directory. Only
 	// the goroutine finalizing the pack uses it.

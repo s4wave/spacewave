@@ -1,0 +1,12 @@
+[
+  {
+    "name": "admit before the batch syncs",
+    "replace": [["(~RequireSync /\\ location = \"unsynced\")", "(location = \"unsynced\")"]],
+    "expect": "CacheBacked"
+  },
+  {
+    "name": "drop a location without invalidating it",
+    "replace": [["DroppedGeneration == IF InvalidateDrop THEN generation + 1 ELSE generation", "DroppedGeneration == generation"]],
+    "expect": "CacheBacked"
+  }
+]

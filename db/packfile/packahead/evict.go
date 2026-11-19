@@ -128,7 +128,7 @@ func (l *Log) unlink(p *pack, index []*kvfile.IndexEntry) error {
 		for _, e := range index {
 			tail := tailOf(e.GetKey())
 			if loc, ok := l.table[tail]; ok && loc.p == p {
-				delete(l.table, tail)
+				l.dropLocationLocked(tail, loc)
 			}
 		}
 		l.packs = slices.DeleteFunc(l.packs, func(q *pack) bool { return q == p })
@@ -168,15 +168,10 @@ func (l *Log) MarkUploaded(seq uint64) {
 // dropRemovedLocked forgets the values of uploaded pack p that Remove
 // marked, which the remote now serves. The caller holds bcast.
 func (l *Log) dropRemovedLocked(p *pack) {
-	if p.removed <= 0 {
-		return
+	for t := range p.removed {
+		l.dropLocationLocked(t, l.table[t])
 	}
-	for t, loc := range l.table {
-		if loc.p == p && loc.removed {
-			delete(l.table, t)
-		}
-	}
-	p.removed = 0
+	p.removed = nil
 }
 
 // HoldsBefore reports whether a pack not marked uploaded holds a value whose

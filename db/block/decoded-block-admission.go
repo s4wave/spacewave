@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"encoding/binary"
 	"sync"
 	"sync/atomic"
 )
@@ -67,16 +68,24 @@ func DurableReadGeneration() uint64 {
 	return decodedBlockRemovals.gen.Load()
 }
 
+// BlockDigestTailLen is the number of trailing bytes a packed block lookup
+// uses from the protobuf encoding of its hash. Removal stripes use the same
+// identity so every ref that could read that location is invalidated.
+const BlockDigestTailLen = 16
+
 // InvalidateRemovedBlock records that a durable store removed ref. Call it
 // after the removal is durable, such as after the transaction that deleted the
-// block commits; calling it for a removal that did not happen only costs a
-// miss.
+// block commits. Calling it for a removal that did not happen only costs a miss.
 func InvalidateRemovedBlock(ref *BlockRef) {
-	refKey, ok := decodedBlockCacheRefKey(ref)
-	if !ok {
-		return
+	if !ref.GetEmpty() {
+		InvalidateRemovedBlockDigest(ref.GetHash().MarshalDigest())
 	}
-	invalidateRemovedRefKey(refKey)
+}
+
+// InvalidateRemovedBlockDigest records a removal by the encoded hash used in
+// a pack index or its BlockDigestTailLen-byte lookup key.
+func InvalidateRemovedBlockDigest(digest []byte) {
+	invalidateRemovedStripe(decodedBlockRemovalStripe(string(digest)))
 }
 
 // InvalidateRemovedTombstones records each tombstone entry of a batch a
@@ -99,13 +108,12 @@ func InvalidateAllRemovedBlocks() {
 	raiseRemovalGeneration(&decodedBlockRemovals.cleared, decodedBlockRemovals.gen.Add(1))
 }
 
-// invalidateRemovedRefKey advances the removal generation and raises refKey's
-// stripe to it. The table exists before the stripe rises, so a reader that
-// finds no table has no stripe removal to miss.
-func invalidateRemovedRefKey(refKey string) {
+// invalidateRemovedStripe advances the global removal generation and raises
+// the affected stripe to it. The table exists before the stripe rises.
+func invalidateRemovedStripe(stripe uint64) {
 	stripes := decodedBlockRemovalStripesTable()
 	gen := decodedBlockRemovals.gen.Add(1)
-	raiseRemovalGeneration(&stripes[decodedBlockRefHash(refKey)%decodedBlockRemovalStripes], gen)
+	raiseRemovalGeneration(&stripes[stripe], gen)
 }
 
 // decodedBlockRemovalStripesTable returns the stripe table, allocating it on
@@ -145,7 +153,27 @@ func removedSince(refKey string, gen uint64) bool {
 		return true
 	}
 	stripes := decodedBlockRemovals.stripes.Load()
-	return stripes != nil && stripes[decodedBlockRefHash(refKey)%decodedBlockRemovalStripes].Load() > gen
+	return stripes != nil && stripes[decodedBlockRemovalStripe(blockRefDigestKey(refKey))].Load() > gen
+}
+
+// blockRefDigestKey returns the hash field of a marshaled BlockRef. The
+// generated marshaler writes field 1 first, followed by any unknown fields.
+func blockRefDigestKey(refKey string) string {
+	if len(refKey) != 0 && refKey[0] == 0x0a {
+		size, n := binary.Uvarint([]byte(refKey[1:]))
+		if n > 0 {
+			digest := refKey[1+n:]
+			if size <= uint64(len(digest)) {
+				return digest[:size]
+			}
+		}
+	}
+	return refKey
+}
+
+// decodedBlockRemovalStripe maps a packed lookup key to its removal stripe.
+func decodedBlockRemovalStripe(digest string) uint64 {
+	return decodedBlockRefHash(digest[max(0, len(digest)-BlockDigestTailLen):]) % decodedBlockRemovalStripes
 }
 
 // decodedBlockRefHash hashes a ref key with unseeded FNV-1a. Ref keys encode
@@ -251,10 +279,12 @@ func KeepDecodedRefs(ctx context.Context, ref *BlockRef, data []byte, keep func(
 
 // takeKeep returns and clears the read's keep, or nil.
 func (m *blockReadMark) takeKeep() func(context.Context, []*BlockRef) {
-	// Transfer the callback to one reader while holding the read-mark lock.
+	// An untracked read cannot have a callback.
 	if m == nil {
 		return nil
 	}
+
+	// Transfer the callback to its sole consumer.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	keep := m.keep

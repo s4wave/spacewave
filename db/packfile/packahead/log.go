@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/writer"
@@ -291,7 +292,7 @@ func (l *Log) AppendUnsynced(ctx context.Context, blocks []Block) error {
 func (l *Log) write(ctx context.Context, blocks []Block, replace *pack) ([]syncWait, error) {
 	// Check every key and size before writing any block.
 	for _, b := range blocks {
-		if len(b.Key) < keyTailLen {
+		if len(b.Key) < block.BlockDigestTailLen {
 			return nil, ErrKeyTooShort
 		}
 		if int64(recordLen([]Block{b})+len(b.Value)+len(b.Key)+indexEntryReserve+indexTrailerReserve) > l.opts.MaxPackBytes {
@@ -435,9 +436,7 @@ func (l *Log) planBatchLocked(p *pack, blocks []Block, replace *pack, addWait fu
 		b := blocks[plan.consumed]
 		if t := tailOf(b.Key); l.holdsLocked(t) && (replace == nil || l.table[t].p != replace) {
 			loc := l.table[t]
-			if loc.removed {
-				l.reviveLocked(t, loc)
-			}
+			delete(loc.p.removed, t)
 			if loc.p.state != packFinal {
 				addWait(loc.p, loc.end())
 			}
@@ -470,12 +469,16 @@ func (l *Log) holdsLocked(t keyTail) bool {
 	return ok && !loc.p.poisoned
 }
 
-// reviveLocked clears the removed mark of t's location loc, which a put
-// stores again. The caller holds bcast.
-func (l *Log) reviveLocked(t keyTail, loc location) {
-	loc.removed = false
-	loc.p.removed--
-	l.table[t] = loc
+// dropLocationLocked drops the table's current location for t. Advancing
+// the decoded cache's removal generation under bcast, before the location
+// becomes unreadable, fences both existing entries and in-flight reads.
+func (l *Log) dropLocationLocked(t keyTail, loc location) {
+	// Invalidate every ref that could have read this location.
+	block.InvalidateRemovedBlockDigest(t[:])
+
+	// Forget the location and its deferred removal.
+	delete(loc.p.removed, t)
+	delete(l.table, t)
 }
 
 // writeBatch encodes batch at the end of open pack p, writes it, and locates
@@ -512,7 +515,11 @@ func (l *Log) writeBatch(p *pack, batch []Block) (int64, error) {
 		p.entries = append(p.entries, entries...)
 		for _, e := range entries {
 			p.keyBytes += int64(len(e.key))
-			l.table[tailOf(e.key)] = location{p: p, off: uint32(e.off), size: uint32(e.size)} //nolint:gosec // bounded by the pack size.
+			t := tailOf(e.key)
+			if loc, ok := l.table[t]; ok {
+				l.dropLocationLocked(t, loc)
+			}
+			l.table[t] = location{p: p, off: uint32(e.off), size: uint32(e.size)} //nolint:gosec // bounded by the pack size.
 		}
 	})
 	if werr != nil {
@@ -543,18 +550,13 @@ func (l *Log) growBuf(p *pack, end int64) []byte {
 // failLocked records p's first failure and forgets the values of its batches
 // not yet durable, which recovery may drop. The caller holds bcast.
 func (l *Log) failLocked(p *pack, err error) {
+	// Keep the failure that stopped writes to the pack.
 	if p.err == nil {
 		p.err = err
 	}
-	for i := len(p.entries) - 1; i >= 0 && p.entries[i].off >= p.synced; i-- {
-		t := tailOf(p.entries[i].key)
-		if loc, ok := l.table[t]; ok && loc.p == p {
-			if loc.removed {
-				p.removed--
-			}
-			delete(l.table, t)
-		}
-	}
+
+	// Forget the suffix the failed pack never synced.
+	l.forgetTruncatedLocked(p, p.synced)
 }
 
 // waitSynced returns once p is durable through end. The first waiter to find
@@ -673,7 +675,7 @@ func (l *Log) Get(key []byte) ([]byte, bool, error) {
 // EvictCarry keeps a value by.
 func (l *Log) GetDurable(key []byte) ([]byte, bool, bool, error) {
 	// Locate the value, copying it out of a pack buffer.
-	if len(key) < keyTailLen {
+	if len(key) < block.BlockDigestTailLen {
 		return nil, false, false, ErrKeyTooShort
 	}
 	var loc location
@@ -690,7 +692,7 @@ func (l *Log) GetDurable(key []byte) ([]byte, bool, bool, error) {
 			loc.read = true
 			l.table[t] = loc
 		}
-		durable = loc.end() <= loc.p.synced
+		durable = loc.synced()
 		if loc.p.buf != nil {
 			out, copied = slices.Clone(loc.p.buf[loc.off:loc.end()]), true
 		}
@@ -717,7 +719,7 @@ func (l *Log) GetDurable(key []byte) ([]byte, bool, bool, error) {
 
 // Has reports whether a local pack holds the value under key.
 func (l *Log) Has(key []byte) bool {
-	if len(key) < keyTailLen {
+	if len(key) < block.BlockDigestTailLen {
 		return false
 	}
 	var found bool
@@ -732,13 +734,17 @@ func (l *Log) Has(key []byte) bool {
 // storing a value only on this, since Has also reports a value whose batch is
 // written and not yet synced, which a crash or a failed sync loses.
 func (l *Log) HasDurable(key []byte) bool {
-	if len(key) < keyTailLen {
+	if len(key) < block.BlockDigestTailLen {
 		return false
 	}
 	var durable bool
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		loc, ok := l.table[tailOf(key)]
-		durable = ok && !loc.removed && !loc.p.poisoned && (loc.p.state == packFinal || loc.end() <= loc.p.synced)
+		t := tailOf(key)
+		loc, ok := l.table[t]
+		if ok && !loc.p.poisoned {
+			_, removed := loc.p.removed[t]
+			durable = !removed && loc.synced()
+		}
 	})
 	return durable
 }
@@ -751,21 +757,31 @@ func (l *Log) HasDurable(key []byte) bool {
 // copy, so a put of it again appends it, which clears the mark and keeps it
 // past the upload.
 func (l *Log) Remove(key []byte) {
-	if len(key) < keyTailLen {
+	// A short key cannot name a location.
+	if len(key) < block.BlockDigestTailLen {
 		return
 	}
+
+	// Drop the location now if its pack uploaded, or defer to the upload.
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// A missed location has nothing to remove.
 		t := tailOf(key)
 		loc, ok := l.table[t]
-		switch {
-		case !ok || loc.removed:
-		case loc.p.uploaded:
-			delete(l.table, t)
-		default:
-			loc.removed = true
-			loc.p.removed++
-			l.table[t] = loc
+		if !ok {
+			return
 		}
+
+		// An uploaded pack can release its location now.
+		if loc.p.uploaded {
+			l.dropLocationLocked(t, loc)
+			return
+		}
+
+		// Remember the deferred removal in the pack that holds it.
+		if loc.p.removed == nil {
+			loc.p.removed = make(map[keyTail]struct{})
+		}
+		loc.p.removed[t] = struct{}{}
 	})
 }
 
@@ -976,6 +992,7 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 			return poison(err)
 		}
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			l.forgetTruncatedLocked(p, int64(len(data)))
 			p.entries = entries
 		})
 	}
@@ -1007,6 +1024,17 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	return nil
 }
 
+// forgetTruncatedLocked drops the locations in a pack's discarded suffix.
+// Until this point Get still serves them from the buffer. The caller holds bcast.
+func (l *Log) forgetTruncatedLocked(p *pack, end int64) {
+	for i := len(p.entries) - 1; i >= 0 && p.entries[i].off >= end; i-- {
+		t := tailOf(p.entries[i].key)
+		if loc, ok := l.table[t]; ok && loc.p == p && loc.end() > end {
+			l.dropLocationLocked(t, loc)
+		}
+	}
+}
+
 // locateRecoveredLocked locates the values recovery kept in pack p that the
 // table has no other copy of, after failLocked forgot those not yet durable.
 // The caller holds bcast.
@@ -1014,7 +1042,7 @@ func (l *Log) locateRecoveredLocked(p *pack, entries []entry) {
 	for _, e := range entries {
 		t := tailOf(e.key)
 		if loc, ok := l.table[t]; !ok || loc.p == p {
-			l.table[t] = location{p: p, off: uint32(e.off), size: uint32(e.size), removed: ok && loc.removed} //nolint:gosec // bounded by the pack size.
+			l.table[t] = location{p: p, off: uint32(e.off), size: uint32(e.size)} //nolint:gosec // bounded by the pack size.
 		}
 	}
 }
