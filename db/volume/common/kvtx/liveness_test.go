@@ -4941,6 +4941,64 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("adoption over a foreign cursor differs from a clean one: %v", recordsDiff(got, want))
 		}
 	})
+
+	t.Run("adoption cleanup spares a newer run's marks", func(t *testing.T) {
+		// An Adopt that finds the Volume adopted deletes the marks a
+		// finished run left. Before its cleanup runs, the Volume returns to
+		// unadopted and a newer run passes its roots, and a Land gives birth
+		// to X under a new root, marking X born. The stale cleanup must
+		// leave that mark, or the newer run's settle counts X as an old
+		// block no list names and queues it.
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v, _ := openUnadoptedVolume(t, store)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "Y")
+		r := tr.add(t, "R", "Y")
+		x := tr.add(t, "X")
+		main := block.NamedRoot{Name: "main", Ref: r}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("Y", "R"), []block.NamedRoot{main}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		// Run the newer run to its child lists and give birth to X before
+		// the stale run's first cleanup transaction.
+		newer := func() {
+			markUnadopted(t, v)
+			newerCtx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){adoptCountChildren: cancel}}
+			if _, err := block_gc.Adopt(newerCtx, probe, v.now); !errors.Is(err, context.Canceled) {
+				t.Fatalf("newer adopt = %v, want canceled", err)
+			}
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("X"), []block.NamedRoot{{Name: "x", Ref: x}}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		stale := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){2: newer}}
+		res, err := block_gc.Adopt(ctx, stale, v.now)
+		if err != nil || !res.Already || len(stale.at) != 0 {
+			t.Fatalf("stale adopt = %+v, %v with %d probes left", res, err, len(stale.at))
+		}
+
+		// The newer run finishes and agrees with a clean recount.
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		clean := copyAll(t, store)
+		vc, _ := openUnadoptedVolume(t, clean)
+		markUnadopted(t, vc)
+		if _, err := vc.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := adoptedRecords(t, store), adoptedRecords(t, clean); !maps.Equal(got, want) {
+			t.Fatalf("adoption after a stale cleanup differs from a clean one: %v", recordsDiff(got, want))
+		}
+	})
 }
 
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
