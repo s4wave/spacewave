@@ -1,6 +1,9 @@
 package resource_server_test
 
-import "github.com/s4wave/spacewave/bldr/resource"
+import (
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/bldr/resource"
+)
 
 // failedResourceRPCStream carries the real request and refuses response data.
 type failedResourceRPCStream struct {
@@ -10,12 +13,10 @@ type failedResourceRPCStream struct {
 	err error
 }
 
-// Send accepts the route acknowledgement and refuses subsequent response data.
-func (s *failedResourceRPCStream) Send(packet *resource.ResourceRpcPacket) error {
-	if _, ok := packet.GetBody().(*resource.ResourceRpcPacket_Data); ok {
-		return s.err
-	}
-	return s.SRPCResourceService_ResourceRpcStream.Send(packet)
+// MsgSend refuses response data. Route controls are sent with the embedded Send
+// and reach the transport.
+func (s *failedResourceRPCStream) MsgSend(srpc.Message) error {
+	return s.err
 }
 
 // _ is a type assertion
