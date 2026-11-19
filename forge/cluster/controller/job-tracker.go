@@ -3,7 +3,6 @@ package cluster_controller
 import (
 	"context"
 
-	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -24,8 +23,6 @@ type jobTracker struct {
 	objKey string
 	// objLoop is the object watcher loop.
 	objLoop *world_control.WatchLoop
-	// taskTrackers manages the list of task tracker routines.
-	taskTrackers *keyed.Keyed[string, *taskTracker]
 }
 
 // newJobTracker constructs a new job tracker routine.
@@ -39,12 +36,6 @@ func (c *Controller) newJobTracker(key string) (keyed.Routine, *jobTracker) {
 		key,
 		skipUnhandledOperation(tr.processState),
 	)
-	// Retry World watch errors so task assignment and parent wakeups resume.
-	tr.taskTrackers = keyed.NewKeyedWithLogger(
-		tr.newTaskTracker,
-		c.le,
-		keyed.WithRetry[string, *taskTracker](&backoff.Backoff{}),
-	)
 	return tr.execute, tr
 }
 
@@ -53,7 +44,6 @@ func (jt *jobTracker) execute(ctx context.Context) error {
 	objKey, le := jt.objKey, jt.c.le
 
 	le.Debugf("starting job tracker: %s", objKey)
-	jt.taskTrackers.SetContext(ctx, true)
 	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		jt.c.bus,
@@ -126,7 +116,6 @@ func (jt *jobTracker) processState(
 
 	// Cancellation remains terminal until an explicit restart.
 	if job.GetResult().GetCanceled() {
-		jt.taskTrackers.SyncKeys(nil, true)
 		return true, nil
 	}
 
@@ -136,27 +125,38 @@ func (jt *jobTracker) processState(
 		return true, err
 	}
 
-	// Collect tasks that still need completion.
-	var pendingTasks []string
+	// Collect the Tasks that still need completion, and the unclaimed ones
+	// among them. A Task can complete before any cluster claims it, as when it
+	// fails resolving its inputs; it needs no peer.
+	var pendingTasks, unclaimedTasks []string
 	for i, task := range tasks {
-		taskState := task.GetTaskState()
-		if taskState != forge_task.State_TaskState_COMPLETE {
-			pendingTasks = append(pendingTasks, taskKeys[i])
+		if task.GetTaskState() == forge_task.State_TaskState_COMPLETE {
+			continue
+		}
+		pendingTasks = append(pendingTasks, taskKeys[i])
+		if task.GetPeerId() == "" {
+			unclaimedTasks = append(unclaimedTasks, taskKeys[i])
 		}
 	}
 
-	// Reopen a completed Job before tracking its new Tasks: a Task tracker
-	// assigns only Tasks of a running Job, and the Job's new revision brings
-	// this tracker back to start them.
-	jt.c.le.Debugf("found %d pending tasks: %v", len(pendingTasks), pendingTasks)
+	// Reopen a completed Job with unfinished Tasks: assignment needs a running
+	// Job, and the Job's new revision brings this tracker back to assign them.
+	le.Debugf("found %d pending tasks: %v", len(pendingTasks), pendingTasks)
 	if jobState == forge_job.State_JobState_COMPLETE && len(pendingTasks) != 0 {
 		_, _, err = forge_cluster.StartJob(ctx, ws, clusterKey, jobKey, jt.c.peerID)
 		return true, err
 	}
 
-	// Retain task watches after completion so input changes or explicit retries
-	// make the Job running again. The Task controller owns input resolution.
-	jt.taskTrackers.SyncKeys(taskKeys, true)
+	// Assign the unclaimed Tasks to this cluster. Tasks another cluster claimed
+	// stay with it. The reads above cover every Task body, so a Task that
+	// changes, as a retry does, brings this tracker back.
+	for _, taskKey := range unclaimedTasks {
+		le.WithField("task-key", taskKey).Debug("assigning task to cluster")
+		_, _, err = forge_cluster.AssignTaskToCluster(ctx, ws, clusterKey, jobKey, taskKey, jt.c.peerID)
+		if err != nil {
+			return true, err
+		}
+	}
 
 	// Reconcile changed results without admitting a writer for completed replays.
 	// The operation rechecks current tasks after writer admission.
