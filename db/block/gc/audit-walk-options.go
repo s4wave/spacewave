@@ -3,6 +3,8 @@ package block_gc
 import (
 	"context"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // WalkOptions configure one streaming audit walk.
@@ -19,4 +21,7 @@ type WalkOptions struct {
 	Now func() time.Time
 	// Wait waits for d or until ctx ends. Nil waits on a timer.
 	Wait func(ctx context.Context, d time.Duration) error
+	// Log receives a line at each phase change, about once a walkLogEvery
+	// within a phase, and before each confirm wait. Nil logs nothing.
+	Log *logrus.Entry
 }

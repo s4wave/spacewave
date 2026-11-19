@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/sirupsen/logrus"
 )
 
 // The streaming audit walk checks a Volume's counts and finds its holes while
@@ -162,6 +163,9 @@ const (
 	// it, which lowers the bound, and a lease is held past an older start
 	// longer, so a hole is classed HELD more often, not less.
 	walkRunAge = 24 * time.Hour
+	// walkLogEvery is about how often the walk logs its progress within a
+	// phase.
+	walkLogEvery = time.Minute
 	// walkClearRecords bounds the records one commit of a restart deletes.
 	// They lie together in key order, so a commit dirties few pages.
 	walkClearRecords = 4096
@@ -200,7 +204,9 @@ func Walk(ctx context.Context, store WalkStore, scratch kvtx.Store, opts WalkOpt
 	if err != nil {
 		return nil, err
 	}
+	l := w.newWalkLog()
 	for {
+		l.step(w)
 		switch w.prog.GetPhase() {
 		case WalkPhase_WALK_PHASE_ROOTS:
 			err = w.roots(ctx)
@@ -226,6 +232,68 @@ func Walk(ctx context.Context, store WalkStore, scratch kvtx.Store, opts WalkOpt
 			return nil, err
 		}
 	}
+}
+
+// walkLog logs a walk's progress through WalkOptions.Log.
+type walkLog struct {
+	// le is the log, nil for none.
+	le *logrus.Entry
+	// phase is the phase last logged.
+	phase WalkPhase
+	// begun is when this process began the walk; entered when it entered
+	// the phase; logged when it last logged.
+	begun, entered, logged time.Time
+}
+
+// newWalkLog begins the log of w at its resumed or first phase.
+func (w *walker) newWalkLog() *walkLog {
+	now := w.opts.Now()
+	l := &walkLog{le: w.opts.Log, phase: w.prog.GetPhase(), begun: now, entered: now, logged: now}
+	l.log(w, now, "audit walk begins its phase")
+	return l
+}
+
+// step logs the walk's progress before its next step: a line when the
+// phase changed, or when walkLogEvery passed since the last line.
+func (l *walkLog) step(w *walker) {
+	if l.le == nil {
+		return
+	}
+	now := w.opts.Now()
+	if phase := w.prog.GetPhase(); phase != l.phase {
+		l.log(w, now, "audit walk finished its phase")
+		l.phase, l.entered = phase, now
+		if phase == WalkPhase_WALK_PHASE_DONE {
+			l.log(w, now, "audit walk done")
+		} else {
+			l.log(w, now, "audit walk begins its phase")
+		}
+		return
+	}
+	if now.Sub(l.logged) >= walkLogEvery {
+		l.log(w, now, "audit walk progress")
+	}
+}
+
+// log writes one line with the phase, its elapsed time, and the counts.
+func (l *walkLog) log(w *walker, now time.Time, msg string) {
+	// Write nothing without a log.
+	if l.le == nil {
+		return
+	}
+
+	// Write the line, noting when.
+	l.logged = now
+	fields := logrus.Fields{
+		"phase":         l.phase.String(),
+		"phase-elapsed": now.Sub(l.entered).Round(time.Millisecond),
+		"elapsed":       now.Sub(l.begun).Round(time.Millisecond),
+		"counts":        w.prog.GetCounts().String(),
+	}
+	if l.phase == WalkPhase_WALK_PHASE_CONFIRM {
+		fields["delay"] = w.opts.Delay
+	}
+	l.le.WithFields(fields).Info(msg)
 }
 
 // walker is one run of the walk.
@@ -1333,6 +1401,12 @@ func (w *walker) confirm(ctx context.Context) error {
 	if len(keys) != 0 {
 		until := time.UnixMilli(latest).Add(w.opts.Delay)
 		if d := until.Sub(w.opts.Now()); d > 0 {
+			if d >= time.Second && w.opts.Log != nil {
+				w.opts.Log.WithFields(logrus.Fields{
+					"delay": w.opts.Delay,
+					"wait":  d.Round(time.Millisecond),
+				}).Info("audit walk waits out the confirm delay")
+			}
 			if err := w.opts.Wait(ctx, d); err != nil {
 				return err
 			}

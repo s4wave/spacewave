@@ -56,7 +56,8 @@ func (a *debugVolumeAuditWalkArgs) Run(c *cli.Context) error {
 		return errors.New("expected one volume file argument")
 	}
 	path := c.Args().First()
-	res, err := auditWalkVolume(c.Context, logrus.NewEntry(logrus.New()), path, a.scratch, block_gc.WalkOptions{Run: a.run, Delay: a.delay})
+	le := logrus.NewEntry(logrus.New())
+	res, err := auditWalkVolume(c.Context, le, path, a.scratch, block_gc.WalkOptions{Run: a.run, Delay: a.delay, Log: le})
 	if err != nil {
 		return err
 	}
