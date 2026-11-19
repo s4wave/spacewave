@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/cayley/quad/pquads"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_cayley_nodegraph "github.com/s4wave/spacewave/db/kvtx/cayley/nodegraph"
@@ -103,9 +104,19 @@ func (s RegenStage) String() string {
 	return "unknown"
 }
 
+// regenRoots opens the World roots of one bucket for a regeneration: the
+// local Regenerator's, and those an ordered regeneration of a Space World
+// applies on every replica.
+type regenRoots struct {
+	// root is a cursor on the bucket, with the World's transform.
+	root *bucket_lookup.Cursor
+}
+
 // Regenerator moves a World on a LocalAuthority from the cayley kv format to
 // the node graph while writers commit. Only one Regenerator runs per World.
 type Regenerator struct {
+	// regenRoots reads and writes the World's roots.
+	regenRoots
 	// a is the World's authority.
 	a *LocalAuthority
 	// cfg is the build and swap configuration.
@@ -117,10 +128,11 @@ type Regenerator struct {
 // NewRegenerator returns the Regenerator of the World a governs.
 func NewRegenerator(a *LocalAuthority, cfg RegenConfig) *Regenerator {
 	return &Regenerator{
-		a:         a,
-		cfg:       cfg,
-		baseName:  a.name + "/regen/base",
-		builtName: a.name + "/regen/built",
+		regenRoots: regenRoots{root: a.root},
+		a:          a,
+		cfg:        cfg,
+		baseName:   a.name + "/regen/base",
+		builtName:  a.name + "/regen/built",
 	}
 }
 
@@ -429,7 +441,7 @@ func (r *Regenerator) advance(ctx context.Context, s regenState, way regenWay, l
 	if !install {
 		pace.yield = r.a.YieldToWriters
 	}
-	next, changes, err := r.applyDiff(ctx, store, trail.Previous, lead.Previous, s.head.Root, limit, pace)
+	next, changes, err := r.applyDiff(ctx, store, trail.Previous, lead.Previous, s.head.Root, limit, graph.IgnoreOpts{}, pace)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -454,8 +466,9 @@ func (r *Regenerator) advance(ctx context.Context, s regenState, way regenWay, l
 // diff of from's and to's graphs deletes, then those it adds. The deletes go
 // first since a quad deleted and added again can show in the diff as an add
 // that sorts before its delete. Memory holds one chunk of keys and changes.
-// It yields through pace once a slice of changes.
-func (r *Regenerator) applyDiff(ctx context.Context, store block.StoreOps, target, from, to *block.BlockRef, limit int, pace *regenPacer) (*block.BlockRef, int, error) {
+// It yields through pace once a slice of changes. ignore sets which changes
+// that do not apply exactly are skipped; with none, such a change fails it.
+func (r regenRoots) applyDiff(ctx context.Context, store block.StoreOps, target, from, to *block.BlockRef, limit int, ignore graph.IgnoreOpts, pace *regenPacer) (*block.BlockRef, int, error) {
 	// An unmoved head needs no catch-up.
 	if to.EqualsRef(from) {
 		return target, 0, nil
@@ -466,7 +479,7 @@ func (r *Regenerator) applyDiff(ctx context.Context, store block.StoreOps, targe
 	if err != nil {
 		return nil, 0, err
 	}
-	g.limit = limit
+	g.limit, g.ignore = limit, ignore
 
 	// Open both source Worlds so their graph sub-blocks resolve.
 	var cursors [2]*block.Cursor
@@ -553,7 +566,7 @@ func walkQuadChanges(ctx context.Context, format WorldFormat, before, after *blo
 // graft writes the head's World with target's graph tree, format and graph
 // settings, its object tree tagged for that format, and returns the delta
 // writer on it.
-func (r *Regenerator) graft(ctx context.Context, store block.StoreOps, head, target *block.BlockRef) (*regenGraft, error) {
+func (r regenRoots) graft(ctx context.Context, store block.StoreOps, head, target *block.BlockRef) (*regenGraft, error) {
 	// Read target's graph tree and the head's World.
 	_, tw, err := r.readWorld(ctx, store, target)
 	if err != nil {
@@ -576,13 +589,13 @@ func (r *Regenerator) graft(ctx context.Context, store block.StoreOps, head, tar
 	if err != nil {
 		return nil, errors.Wrap(err, "write grafted World")
 	}
-	return &regenGraft{r: r, store: store, ref: ref, format: w.Format, settings: w.GraphSettings}, nil
+	return &regenGraft{roots: r, store: store, ref: ref, format: w.Format, settings: w.GraphSettings}, nil
 }
 
 // openWorld opens a transaction on the World root at ref, writing through
 // store, or the bucket's transaction store when store is nil, and decodes it.
-func (r *Regenerator) openWorld(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.Transaction, *block.Cursor, *World, error) {
-	tx, cursor := r.a.root.BuildTransactionAtRefWithStore(nil, ref, store)
+func (r regenRoots) openWorld(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.Transaction, *block.Cursor, *World, error) {
+	tx, cursor := r.root.BuildTransactionAtRefWithStore(nil, ref, store)
 	w, err := decodeWorld(ctx, cursor, ref)
 	return tx, cursor, w, err
 }
@@ -591,8 +604,8 @@ func (r *Regenerator) openWorld(ctx context.Context, store block.StoreOps, ref *
 // through store as openWorld does, and decodes it. A walk of its graph tree
 // follows stored pages through ReadCursor, bounded by the decoded-block cache;
 // on a writable transaction each page it loaded would stay on the cursor tree.
-func (r *Regenerator) readWorld(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.Cursor, *World, error) {
-	tx, cursor := r.a.root.BuildTransactionAtRefWithStore(nil, ref, store)
+func (r regenRoots) readWorld(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.Cursor, *World, error) {
+	tx, cursor := r.root.BuildTransactionAtRefWithStore(nil, ref, store)
 	tx.SetReadOnly()
 	w, err := decodeWorld(ctx, cursor, ref)
 	return cursor, w, err
@@ -635,8 +648,8 @@ func walkChangedKeys(ctx context.Context, before, after *block.Cursor, prefix []
 // regenGraft applies quad changes to a World in chunks, writing the World
 // after each, so its memory holds one chunk.
 type regenGraft struct {
-	// r is the regenerator.
-	r *Regenerator
+	// roots opens the World.
+	roots regenRoots
 	// store is the stage the World is written to.
 	store block.StoreOps
 	// ref is the World's last written root.
@@ -646,6 +659,8 @@ type regenGraft struct {
 	settings *GraphSettings
 	// limit is the most changes to apply, or negative for no bound.
 	limit int
+	// ignore sets the changes that do not apply exactly which are skipped.
+	ignore graph.IgnoreOpts
 	// changes counts the changes applied or held.
 	changes int
 	// deltas are the changes not yet applied.
@@ -669,8 +684,8 @@ func (g *regenGraft) apply(ctx context.Context, delta graph.Delta) error {
 }
 
 // write applies the held changes and writes the World, returning its root.
-// The changes must apply exactly: a quad deleted that the graph lacks, or
-// added that it holds, is a fault in the catch-up and fails it.
+// Unless ignore skips it, a quad deleted that the graph lacks, or added that
+// it holds, is a fault in the catch-up and fails it.
 func (g *regenGraft) write(ctx context.Context) (*block.BlockRef, error) {
 	// Nothing held leaves the root as written.
 	if len(g.deltas) == 0 {
@@ -678,7 +693,7 @@ func (g *regenGraft) write(ctx context.Context) (*block.BlockRef, error) {
 	}
 
 	// Open the graph tree through deferred writes, so the tree rehashes once.
-	tx, worldCursor, _, err := g.r.openWorld(ctx, g.store, g.ref)
+	tx, worldCursor, _, err := g.roots.openWorld(ctx, g.store, g.ref)
 	if err != nil {
 		return nil, err
 	}
@@ -699,7 +714,7 @@ func (g *regenGraft) write(ctx context.Context) (*block.BlockRef, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = handle.ApplyDeltas(ctx, g.deltas, graph.IgnoreOpts{})
+	err = handle.ApplyDeltas(ctx, g.deltas, g.ignore)
 	_ = handle.Close()
 	if err == nil && deferred != nil {
 		err = deferred.Flush(ctx)

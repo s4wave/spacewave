@@ -170,13 +170,17 @@ func readUnknownFields(wop *WorldOp) (string, error) {
 // deciding the operation: a block that is not available, a canceled read, a
 // put through a replay stage that was released or lost, an operation whose
 // type no handler resolves yet, or a plugin this device could not reach or
-// has no build of. None is a property of the operation, so refusing it would
+// has no build of, or a World regeneration step this device could not
+// complete. None is a property of the operation, so refusing it would
 // split replicas.
 func isReplayGap(err error) bool {
+	// Match each failure that belongs to this device, not to the operation.
 	var unresolved *unresolvedOpError
 	var unavailable *world.PluginUnavailableError
 	var missing *world.PluginExecutableMissingError
+	var regen *regenGapError
 	return block.IsNotAvailable(err) ||
+		errors.As(err, &regen) ||
 		errors.Is(err, block.ErrStageReleased) ||
 		errors.As(err, &unresolved) ||
 		errors.As(err, &unavailable) ||
