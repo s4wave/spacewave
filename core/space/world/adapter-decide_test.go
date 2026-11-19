@@ -67,13 +67,15 @@ func TestAdapterDecidesWhileCheckpointStores(t *testing.T) {
 	height := checkpointHeight(ctx, t, so)
 
 	// Time single-object writes with no checkpoint running, then grow the
-	// kept World with large writes.
+	// kept World with large writes. Each stays well under the write buffer's
+	// 4,096 entries: a larger one drains to its stage and is stored before
+	// the checkpoint, which would leave the checkpoint little to store.
 	var base []time.Duration
 	for range 8 {
 		base = append(base, write(1))
 	}
-	for range 4 {
-		write(5000)
+	for range 20 {
+		write(1000)
 	}
 	if above() >= sobject.MinCheckpointOperations {
 		t.Fatalf("%d operations above the checkpoint before the timed one", above())
