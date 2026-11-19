@@ -54,11 +54,6 @@ func (t *Tx) GetReadOnly() bool {
 	return t.state.GetReadOnly()
 }
 
-// GetRootRef returns the root of the transaction's World.
-func (t *Tx) GetRootRef() *block.BlockRef {
-	return t.state.GetRootRef()
-}
-
 // Sync fences the block writes made through this tx's world state durable.
 func (t *Tx) Sync(ctx context.Context) (bool, error) {
 	return t.state.Sync(ctx)

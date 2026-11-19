@@ -21,14 +21,6 @@ type RehearsalEngine interface {
 	NewRehearsalTransaction(ctx context.Context) (world.Tx, error)
 }
 
-// RehearsalAdmissionEngine can identify the base of an admitted-World rehearsal.
-type RehearsalAdmissionEngine interface {
-	// NewRehearsalTransactionWithBase returns a rehearsal and its base receipt.
-	// It fails when a concurrent install prevents identifying the base.
-	// Discard the rehearsal when done and release the receipt after use.
-	NewRehearsalTransactionWithBase(ctx context.Context) (world.Tx, world.Admission, error)
-}
-
 // NewRehearsalTransaction opens a write fork of the newest World without the
 // writer lock. An operation applied to it reads every block its locked apply
 // will read, also after its first write, so the locked apply finds them in
@@ -37,47 +29,6 @@ type RehearsalAdmissionEngine interface {
 // read, applies the graph writes and the change log to the fork, then
 // discards it and returns ErrRehearsalCommit.
 func (e *soEngine) NewRehearsalTransaction(ctx context.Context) (world.Tx, error) {
-	tx, err := e.newRehearsalTransaction(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return tx, nil
-}
-
-// NewRehearsalTransactionWithBase forks a World and identifies the install of
-// that fork by its content-addressed root, without taking the writer lock.
-func (e *soEngine) NewRehearsalTransactionWithBase(ctx context.Context) (world.Tx, world.Admission, error) {
-	// Capture an install before forking so a later install cannot replace its receipt.
-	install := e.lastDurable()
-	tx, err := e.newRehearsalTransaction(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// An install between these reads can change the fork's root before it queues
-	// its receipt. In that case the caller evaluates the operation in the queue.
-	if e.splitHeads() && (install == nil || !install.ref.GetRootRef().EqualVT(tx.btx.GetRootRef())) {
-		tx.Discard()
-		return nil, nil, errors.New("rehearsal World changed while identifying its base")
-	}
-
-	// Name the fork's revision and whether it needs a durability wait.
-	seqno, err := tx.GetSeqno(ctx)
-	if err != nil {
-		tx.Discard()
-		return nil, nil, err
-	}
-
-	// A completed install needs no wait.
-	base := e.baseAdmission(install, seqno)
-	if base == nil {
-		base = world.DurableAdmission(seqno)
-	}
-	return tx, base, nil
-}
-
-// newRehearsalTransaction builds the concrete fork shared by both entry points.
-func (e *soEngine) newRehearsalTransaction(ctx context.Context) (*rehearsalTx, error) {
 	// Fork the newest World with buffered writes.
 	if e.admitted == nil {
 		return nil, errors.New("the world engine is not ready")
@@ -143,7 +94,6 @@ func (t *rehearsalTx) Discard() {
 
 // _ is a type assertion
 var (
-	_ RehearsalEngine          = (*soEngine)(nil)
-	_ RehearsalAdmissionEngine = (*soEngine)(nil)
-	_ world.Tx                 = (*rehearsalTx)(nil)
+	_ RehearsalEngine = (*soEngine)(nil)
+	_ world.Tx        = (*rehearsalTx)(nil)
 )
