@@ -1,0 +1,64 @@
+[
+  {
+    "name": "A full disk refuses the operation",
+    "replace": [
+      [
+        "\\/ op.t = \"regen\" /\\ RegenRefused(r)",
+        "\\/ op.t = \"regen\" /\\ (RegenRefused(r) \\/ full[r])"
+      ]
+    ],
+    "expect": "Agree"
+  },
+  {
+    "name": "Base holds the World before the carried quads",
+    "replace": [
+      [
+        "/\\ base' = [base EXCEPT ![r] = [fmt |-> \"old\", items |-> old]]",
+        "/\\ base' = [base EXCEPT ![r] = [fmt |-> \"old\", items |-> world[r].items]]"
+      ]
+    ],
+    "expect": "NoLoss"
+  },
+  {
+    "name": "Switch back installs base without the new format's changes",
+    "replace": [
+      [
+        "[fmt |-> \"old\", items |-> Apply(base[r].items, built[r].items, world[r].items)]",
+        "[fmt |-> \"old\", items |-> base[r].items]"
+      ]
+    ],
+    "expect": "NoLoss"
+  },
+  {
+    "name": "The release skips the comparison",
+    "config": "SpaceWorldRegen-faults.cfg",
+    "replace": [
+      [
+        "    /\\ built[r].items = base[r].items\n",
+        "    /\\ TRUE\n"
+      ]
+    ],
+    "expect": "ReleasedOnlyEqual"
+  },
+  {
+    "name": "The release names only base",
+    "config": "SpaceWorldRegen-faults.cfg",
+    "replace": [
+      [
+        "ok == base[r] # NoRoot /\\ base[r].items = op.base /\\ built[r].items = op.built",
+        "ok == base[r] # NoRoot /\\ base[r].items = op.base"
+      ]
+    ],
+    "expect": "ReleasedOnlyEqual"
+  },
+  {
+    "name": "A switch back keeps the build held",
+    "replace": [
+      [
+        "  /\\ built' = [built EXCEPT ![r] = NoRoot]\n  /\\ Done(r, \"applied\")",
+        "  /\\ built' = built\n  /\\ Done(r, \"applied\")"
+      ]
+    ],
+    "expect": "HeldTogether"
+  }
+]
