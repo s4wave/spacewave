@@ -49,9 +49,11 @@
 \*   World before it, so every replica meets it alike and refuses the
 \*   operation instead of waiting at it forever.
 \* - The collector: modeled. Replay may apply operations past the installed
-\*   head, as after a reorder that leaves a position unresolved, and a sweep
-\*   may run before the head installs. Live roots include the retained roots
-\*   of every applied position, so the sweep keeps an uninstalled base.
+\*   head, as behind a missing operation, and before the head installs a
+\*   cursor save may move the floor past the position and release the pages
+\*   that held base, or a checkpoint may cover the operation. The apply holds
+\*   every root a replay World retains under the retained root before it
+\*   appends the position, so the collector never frees an uninstalled base.
 \* - Checkpoints, the adopt path and older builds: left out. Each installs a
 \*   state another replica computed by the same apply, which Agree covers.
 \*
@@ -234,8 +236,9 @@ Install(r) ==
   /\ UNCHANGED <<log, cur, world, base, built, verdict, phase, full,
                  crashes, exp, faulted>>
 
-\* Whether the collector counts replica r's base among the live roots: it
-\* reads the retained roots of every applied position, installed or not.
+\* Whether replica r's base is held: the apply holds it under the retained
+\* root, installed or not, until the base and the positions move past its
+\* release.
 Live(r) == TRUE
 
 \* The collector frees a base it does not count as live. A freed base cannot

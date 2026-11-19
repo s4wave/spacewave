@@ -51,9 +51,11 @@ const defaultRegenBudget = 64 << 20
 //     world-regen/built, until a switch back or an ordered release that
 //     names both roots. A release applies only while both names hold the
 //     roots it names, and a device orders one only after its comparison of
-//     the two passed. From the apply until the head that retains them
-//     installs, the position's state retains them, and the collector counts
-//     every position's retained roots as live.
+//     the two passed. The apply holds them under the retained root before
+//     replay appends its position (Adapter.holdApplied), and that root holds
+//     every root the replay base, a position or the head retains, so neither
+//     a cursor save that moves the floor past the position, a checkpoint
+//     that covers it before it installs, nor a restart frees them.
 //  4. A replica that cannot complete the operation, for want of disk, a block
 //     or its context, or for a failure of its store, stops replay before it
 //     and retries; it never records a refusal. Replay refuses only on the

@@ -2,6 +2,7 @@ package space_world
 
 import (
 	"context"
+	"errors"
 
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -44,39 +45,68 @@ func newReplayStage(pages *block.PendingStore) *replayStage {
 	return &replayStage{PendingStore: pages, epoch: pages.OpenOverflowStage()}
 }
 
-// PutBlock puts a block through the current epoch. A failure is this device's
-// store's, as storeError says.
+// PutBlock puts a block through the current epoch. A ref or hash type that
+// does not validate fails as the content's; any other failure is this
+// device's store's, as storeError says.
 func (s *replayStage) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	if err := opts.GetForceBlockRef().Validate(true); err != nil {
+		return nil, false, err
+	}
+	if err := opts.SelectHashType(0).Validate(); err != nil {
+		return nil, false, err
+	}
 	ref, existed, err := s.epoch.PutBlock(ctx, data, opts)
 	return ref, existed, localStoreError(err)
 }
 
-// PutBlockBatch puts entries through the current epoch. A failure is this
-// device's store's, as storeError says.
+// PutBlockBatch puts entries through the current epoch. A ref that does not
+// validate fails as the content's; any other failure is this device's
+// store's, as storeError says.
 func (s *replayStage) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	for _, e := range entries {
+		if err := e.Ref.Validate(false); err != nil {
+			return nil, err
+		}
+	}
 	existed, err := s.epoch.PutBlockBatch(ctx, entries)
 	return existed, localStoreError(err)
 }
 
-// GetBlock reads a kept page or a stored block. A failure, as against a
-// block that is not found, is this device's store's, as storeError says.
+// GetBlock reads a kept page or a stored block. A ref that does not validate
+// fails as the content's; any other failure, as against a block that is not
+// found, is this device's store's, as storeError says.
 func (s *replayStage) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	if err := ref.Validate(false); err != nil {
+		return nil, false, err
+	}
 	data, found, err := s.PendingStore.GetBlock(ctx, ref)
-	return data, found, localStoreError(err)
+	if err != nil {
+		return nil, false, &storeError{err: err}
+	}
+	return data, found, nil
 }
 
 // storeError is a failure of the store a replay reads and writes, such as a
 // full disk or a read error. It belongs to this device and not to the
 // operation replay applies, so replay waits at the operation, a replay gap,
 // instead of refusing it on this replica alone.
+//
+// A failure the content decides is not one: every replica meets it alike,
+// so replay refuses the operation instead of waiting at it forever. The
+// stage checks refs and hash types before the store sees them, and
+// localStoreError passes on the two failures the store decides from the
+// content, a tombstone a pending store refuses and bytes that do not hash to
+// their ref. A stored block whose bytes do not hash to its ref is the store's
+// corruption, a storeError.
 type storeError struct {
 	err error
 }
 
-// localStoreError wraps a non-nil err as a storeError.
+// localStoreError wraps a non-nil put err as a storeError, unless the
+// content put decides it.
 func localStoreError(err error) error {
-	if err == nil {
-		return nil
+	if err == nil || errors.Is(err, block.ErrPendingTombstone) || errors.Is(err, block.ErrBlockRefMismatch) {
+		return err
 	}
 	return &storeError{err: err}
 }

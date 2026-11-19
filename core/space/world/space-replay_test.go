@@ -22,6 +22,7 @@ import (
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/encoding/protowire"
 )
@@ -316,13 +317,6 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 		t.Fatalf("a retained root op on a regeneration's name gave reason %q", reason)
 	}
 
-	// A sweep while the regeneration's World waits to install, as when
-	// replay applied past a missing operation, keeps base, which only the
-	// position's state retains.
-	r.a.replay = r
-	r.positions = []spacePosition{{state: graph}}
-	r.a.sweep()
-
 	// Write on the node graph: set the carried quad again, drop a quad, add
 	// d with a quad, and delete and create c again.
 	graph = changeOn(ctx, t, r, graph, func(btx *world_block.EngineTx) error {
@@ -575,6 +569,9 @@ func TestRegenerateWorldReplicasAgreeThroughFaults(t *testing.T) {
 			return rawListOn(ctx, t, rep.r, protowire.AppendVarint(nil, maxQuadListEntry+1))
 		}},
 		{"an entry that does not decode", func(rep *replica) *block.BlockRef { return rawListOn(ctx, t, rep.r, []byte{2, 0xff, 0xff}) }},
+		{"a list whose ref does not validate", func(*replica) *block.BlockRef {
+			return &block.BlockRef{Hash: hash.NewHash(hash.HashType_HashType_SHA256, []byte{1, 2, 3})}
+		}},
 		{"a quad without a subject", func(rep *replica) *block.BlockRef {
 			return writeQuadListOn(ctx, t, rep.r, []*bquad.Quad{{Predicate: "<p>", Obj: "<b>"}})
 		}},
