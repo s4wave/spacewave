@@ -15,7 +15,10 @@ type BodyWait struct {
 	// CheckpointHeight and Position.
 	Wait *SOReplayWait
 	// Wake is closed once the body may apply the operation. Nil when only a
-	// retry after a backoff can tell.
+	// retry after a backoff can tell. A wait only a restart can end, such as
+	// for a build that reads the operation, carries one that never closes:
+	// the driver then steps again only on a new state, such as the owner's
+	// skip of the operation.
 	Wake <-chan struct{}
 	// Err is the failure the wait stands for, or nil.
 	Err error
@@ -26,6 +29,8 @@ func (w *BodyWait) Error() string {
 	switch w.Wait.GetState().(type) {
 	case *SOReplayWait_Handler, *SOReplayWait_Approval:
 		return "replay waits for a handler of operation type " + w.Wait.GetOpTypeId()
+	case *SOReplayWait_Upgrade:
+		return "replay waits for a build that reads the operation"
 	}
 	if w.Err != nil {
 		return ErrReplayWaits.Error() + ": " + w.Err.Error()

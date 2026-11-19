@@ -135,7 +135,7 @@
     "name": "a restart forgets the ops it applied",
     "replace": [
       [
-        "           /\\ todo' = SelectSeq(LogOrder, LAMBDA o : o \\in applied \\cup refused) \\o todo",
+        "           /\\ todo' = SelectSeq(log, LAMBDA o : o \\in applied \\cup refused) \\o todo",
         "           /\\ todo' = todo"
       ]
     ],
@@ -174,5 +174,60 @@
     ],
     "expect": "SkippedNeverApplied",
     "config": "ReplayWriteGate-Skip.cfg"
+  },
+  {
+    "name": "an unreadable body is refused as an unknown operation type",
+    "replace": [
+      [
+        "                  [] op = \"newer\" /\\ ~upgraded ->\n                       /\\ replay' = \"waitUpgrade\"\n                       /\\ UNCHANGED <<todo, failed, applied, refused>>",
+        "                  [] op = \"newer\" /\\ ~upgraded ->\n                       /\\ refused' = refused \\cup {op} /\\ todo' = Tail(todo)\n                       /\\ replay' = Next1\n                       /\\ UNCHANGED <<failed, applied>>"
+      ]
+    ],
+    "expect": "OpsKept",
+    "config": "ReplayWriteGate-NoUpgrade.cfg"
+  },
+  {
+    "name": "replay applies the op after an unreadable body and keeps waiting at it",
+    "replace": [
+      [
+        "                  [] op = \"newer\" /\\ ~upgraded ->\n                       /\\ replay' = \"waitUpgrade\"\n                       /\\ UNCHANGED <<todo, failed, applied, refused>>",
+        "                  [] op = \"newer\" /\\ ~upgraded /\\ Len(todo) > 1 ->\n                       /\\ applied' = applied \\cup {todo[2]}\n                       /\\ todo' = <<\"newer\">> \\o SubSeq(todo, 3, Len(todo))\n                       /\\ replay' = \"waitUpgrade\"\n                       /\\ UNCHANGED <<failed, refused>>\n                  [] op = \"newer\" /\\ ~upgraded ->\n                       /\\ replay' = \"waitUpgrade\"\n                       /\\ UNCHANGED <<todo, failed, applied, refused>>"
+      ]
+    ],
+    "expect": "NeverPastUnreadable",
+    "config": "ReplayWriteGate-NoUpgrade.cfg"
+  },
+  {
+    "name": "an unreadable body waits as a gap",
+    "replace": [
+      [
+        "                  [] op = \"newer\" /\\ ~upgraded ->\n                       /\\ replay' = \"waitUpgrade\"\n                       /\\ UNCHANGED <<todo, failed, applied, refused>>",
+        "                  [] op = \"newer\" /\\ ~upgraded ->\n                       /\\ replay' = \"waitGap\"\n                       /\\ UNCHANGED <<todo, failed, applied, refused>>"
+      ]
+    ],
+    "expect": "OwnOpNeverWaits",
+    "config": "ReplayWriteGate-NoUpgrade.cfg"
+  },
+  {
+    "name": "a restart on a newer build keeps the upgrade wait",
+    "replace": [
+      [
+        "           /\\ upgraded' = (upgraded \\/ Upgrades)\n",
+        "           /\\ upgraded' = upgraded\n"
+      ]
+    ],
+    "expect": "deadlock",
+    "config": "ReplayWriteGate-Upgrade.cfg"
+  },
+  {
+    "name": "an owner's skip never ends an upgrade wait",
+    "replace": [
+      [
+        "Skip == /\\ OwnerSkips /\\ replay \\in Waits /\\ Head(todo) \\notin skipped",
+        "Skip == /\\ OwnerSkips /\\ replay \\in Waits \\ {\"waitUpgrade\"} /\\ Head(todo) \\notin skipped"
+      ]
+    ],
+    "expect": "StallExits",
+    "config": "ReplayWriteGate-SkipNoHandler.cfg"
   }
 ]

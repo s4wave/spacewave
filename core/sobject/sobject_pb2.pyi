@@ -260,7 +260,7 @@ class SOReplayCaughtUp(_message.Message):
     def __init__(self) -> None: ...
 
 class SOReplayWait(_message.Message):
-    __slots__ = ("checkpoint_height", "position", "op_type_id", "plugin_id", "handler", "approval", "gap", "retry")
+    __slots__ = ("checkpoint_height", "position", "op_type_id", "plugin_id", "handler", "approval", "gap", "retry", "upgrade")
     CHECKPOINT_HEIGHT_FIELD_NUMBER: _ClassVar[int]
     POSITION_FIELD_NUMBER: _ClassVar[int]
     OP_TYPE_ID_FIELD_NUMBER: _ClassVar[int]
@@ -269,6 +269,7 @@ class SOReplayWait(_message.Message):
     APPROVAL_FIELD_NUMBER: _ClassVar[int]
     GAP_FIELD_NUMBER: _ClassVar[int]
     RETRY_FIELD_NUMBER: _ClassVar[int]
+    UPGRADE_FIELD_NUMBER: _ClassVar[int]
     checkpoint_height: int
     position: int
     op_type_id: str
@@ -277,7 +278,8 @@ class SOReplayWait(_message.Message):
     approval: SOReplayWaitApproval
     gap: SOReplayWaitGap
     retry: SOReplayWaitRetry
-    def __init__(self, checkpoint_height: _Optional[int] = ..., position: _Optional[int] = ..., op_type_id: _Optional[str] = ..., plugin_id: _Optional[str] = ..., handler: _Optional[_Union[SOReplayWaitHandler, _Mapping]] = ..., approval: _Optional[_Union[SOReplayWaitApproval, _Mapping]] = ..., gap: _Optional[_Union[SOReplayWaitGap, _Mapping]] = ..., retry: _Optional[_Union[SOReplayWaitRetry, _Mapping]] = ...) -> None: ...
+    upgrade: SOReplayWaitUpgrade
+    def __init__(self, checkpoint_height: _Optional[int] = ..., position: _Optional[int] = ..., op_type_id: _Optional[str] = ..., plugin_id: _Optional[str] = ..., handler: _Optional[_Union[SOReplayWaitHandler, _Mapping]] = ..., approval: _Optional[_Union[SOReplayWaitApproval, _Mapping]] = ..., gap: _Optional[_Union[SOReplayWaitGap, _Mapping]] = ..., retry: _Optional[_Union[SOReplayWaitRetry, _Mapping]] = ..., upgrade: _Optional[_Union[SOReplayWaitUpgrade, _Mapping]] = ...) -> None: ...
 
 class SOReplayWaitHandler(_message.Message):
     __slots__ = ()
@@ -290,6 +292,10 @@ class SOReplayWaitApproval(_message.Message):
     def __init__(self, plugin_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SOReplayWaitGap(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class SOReplayWaitUpgrade(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 

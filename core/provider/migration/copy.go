@@ -23,7 +23,8 @@ import (
 // (Account.SpaceBus), so a running plugin's operations name their payloads.
 // It fails with space_world.ErrUnresolvedOp while an operation's type
 // resolves nowhere on an initialized World, such as a plugin's that is not
-// running (space_world.ImportRoots).
+// running, and with space_world.ErrUnreadableOp at an operation whose body
+// this build cannot read (space_world.ImportRoots).
 func Roots(
 	ctx context.Context,
 	le *logrus.Entry,

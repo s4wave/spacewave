@@ -836,6 +836,7 @@ export interface SOReplayWait {
     | { value: SOReplayWaitApproval; case: 'approval' }
     | { value: SOReplayWaitGap; case: 'gap' }
     | { value: SOReplayWaitRetry; case: 'retry' }
+    | { value: SOReplayWaitUpgrade; case: 'upgrade' }
 }
 
 export const SOReplayWait: MessageType<SOReplayWait> =
@@ -850,6 +851,7 @@ export const SOReplayWait: MessageType<SOReplayWait> =
       [6, 'approval', 11, 0, SOReplayWaitApproval.codec, 'state'],
       [7, 'gap', 11, 0, SOReplayWaitGap.codec, 'state'],
       [8, 'retry', 11, 0, SOReplayWaitRetry.codec, 'state'],
+      [9, 'upgrade', 11, 0, SOReplayWaitUpgrade.codec, 'state'],
     ],
   )
 
@@ -897,6 +899,21 @@ export interface SOReplayWaitGap {}
 export const SOReplayWaitGap: MessageType<SOReplayWaitGap> =
   /* @__PURE__ */ createMessageType<SOReplayWaitGap>(
     'sobject.SOReplayWaitGap',
+    () => [],
+  )
+
+/**
+ * SOReplayWaitUpgrade waits for a build of this device that reads the
+ * operation's body. Only a restart on such a build, or the owner's skip of the
+ * operation, ends it.
+ *
+ * @generated from message sobject.SOReplayWaitUpgrade
+ */
+export interface SOReplayWaitUpgrade {}
+
+export const SOReplayWaitUpgrade: MessageType<SOReplayWaitUpgrade> =
+  /* @__PURE__ */ createMessageType<SOReplayWaitUpgrade>(
+    'sobject.SOReplayWaitUpgrade',
     () => [],
   )
 
