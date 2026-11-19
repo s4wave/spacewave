@@ -25,8 +25,9 @@ type establishedLink struct {
 	tpt transport.Transport
 	// di is the directive instance
 	di directive.Instance
-	// cancel closes any goroutines related to the link
-	cancel context.CancelFunc
+	// cancel stops the goroutines of the link and drops its directive dispose
+	// callback. It is safe to call more than once.
+	cancel func()
 }
 
 // newEstablishedLink constructs the new EstablishedLink object.
@@ -52,21 +53,27 @@ func newEstablishedLink(
 		return nil, err
 	}
 
-	// Start the close goroutine
+	// Close the link when the directive is disposed. The directive outlives the
+	// link while anyone holds a link to the peer, so cancel drops the callback:
+	// a callback left registered keeps the closed link and its connection
+	// reachable for as long as the directive lives.
 	ctx, ctxCancel := context.WithCancel(rctx)
-	el := &establishedLink{
-		le:     le.WithField("peer-id", lnk.GetRemotePeer().String()),
-		lnk:    lnk,
-		mlnk:   mlnk,
-		tpt:    tpt,
-		di:     di,
-		cancel: ctxCancel,
-		c:      ctrl,
-	}
-	di.AddDisposeCallback(func() {
+	relDispose := di.AddDisposeCallback(func() {
 		go lnk.Close()
 		ctxCancel()
 	})
+	el := &establishedLink{
+		le:   le.WithField("peer-id", lnk.GetRemotePeer().String()),
+		lnk:  lnk,
+		mlnk: mlnk,
+		tpt:  tpt,
+		di:   di,
+		cancel: func() {
+			relDispose()
+			ctxCancel()
+		},
+		c: ctrl,
+	}
 	go el.acceptStreamPump(ctx)
 
 	// Remove the directive instance immediately.
