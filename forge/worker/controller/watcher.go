@@ -93,23 +93,22 @@ func (c *Controller) ProcessState(
 		workerKeypairKeys = []string{workerKeypairKeys[matched]}
 	}
 
-	// sync the list of keypairs
-	c.keypairTrackers.SyncKeys(workerKeypairKeys, true)
-
-	// lookup all object assigned to the keypairs
+	// Look up the objects assigned to the keypairs. The read set records the
+	// keypair bodies and their assignment edges, so this handler runs again
+	// only when the Worker, its keypairs or their assignments change.
 	assignedObjs, err := forge_world.ListKeypairObjects(ctx, ws, workerKeypairKeys...)
 	if err != nil {
 		return true, err
 	}
-	c.le.Infof(
-		"matched %d objects for %d keypairs to worker: %v",
-		len(assignedObjs),
-		len(workerKeypairKeys),
-		assignedObjs,
-	)
 
-	// Reconcile object trackers with the Worker keypair assignments.
-	c.objectTrackers.SyncKeys(assignedObjs, true)
+	// Reconcile object trackers with the assignments, logging what changed.
+	added, removed := c.objectTrackers.SyncKeys(assignedObjs, true)
+	le = le.WithField("assigned", len(assignedObjs))
+	if len(added) == 0 && len(removed) == 0 {
+		le.Debug("worker assignments unchanged")
+		return true, nil
+	}
+	le.Infof("worker assignments changed: added %v, removed %v", added, removed)
 	return true, nil
 }
 
