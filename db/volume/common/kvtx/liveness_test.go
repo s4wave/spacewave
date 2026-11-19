@@ -2786,6 +2786,73 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 	})
 
+	t.Run("hole audited after the recount that missed it", func(t *testing.T) {
+		// With frees off, main -> P -> X -> C and aux -> C, and the store
+		// loses X with its list. Turning frees on recounts, which reads no
+		// list for X, so C counts aux alone. An audit then records X's hole,
+		// and a put refills it: the refill gives C back X's holder, so C
+		// matches a clean recount and outlives aux.
+		store := store_kvtx_inmem.NewStore()
+		v1, _ := openLivenessVolume(t, store, true)
+		waitAdopted(t, v1)
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+		v2, _ := openLivenessVolume(t, store, false)
+		ctx := t.Context()
+		tr := testTree{}
+		c := tr.add(t, "C")
+		x := tr.add(t, "X", "C")
+		p := tr.add(t, "P", "X")
+		roots := []block.NamedRoot{{Name: "main", Ref: p}, {Name: "aux", Ref: c}}
+		if err := v2.SetBucketRoots(ctx, "b", tr.entries("C", "X", "P"), roots); err != nil {
+			t.Fatal(err)
+		}
+		loseBlock(t, v2, x)
+		if err := v2.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Turn frees on, audit, and refill X.
+		v, clk := openLivenessVolume(t, store, true)
+		waitAdopted(t, v)
+		if res, err := v.Audit(ctx); err != nil || res.Holes != 1 {
+			t.Fatalf("audit recorded %d holes err %v, want X's", res.Holes, err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("X"), nil); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+
+		// The counts match a clean recount of a copy, but for X's own: the
+		// recount that missed X left its count a raw tally, one high.
+		cp := copyAll(t, store)
+		vc, _ := openLivenessVolume(t, cp, true)
+		markUnadopted(t, vc)
+		if _, err := vc.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		got, want := adoptedRecords(t, store), adoptedRecords(t, cp)
+		xKey := string(livenessPrefix) + "H" + string(block_gc.BlockKey(x))
+		delete(got, xKey)
+		delete(want, xKey)
+		if !maps.Equal(got, want) {
+			t.Fatalf("refill of an audited hole differs from a clean recount: %q", recordsDiff(got, want))
+		}
+
+		// Releasing aux leaves C held by X.
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "aux", Previous: c}}); err != nil {
+			t.Fatal(err)
+		}
+		for range 3 {
+			clk.Add(3 * (block_gc.DefaultGrace + time.Second))
+			collectAll(t, v)
+		}
+		requireReads(t, v, tr, "P", "X", "C")
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("turning frees on recounts after an older build writes", func(t *testing.T) {
 		// A Volume adopted with frees on is written by a build that knows
 		// neither the switch nor its mark, which keeps both as unknown fields

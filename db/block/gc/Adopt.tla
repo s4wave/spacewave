@@ -33,16 +33,22 @@
 \* run, returning the Volume to unadopted under no claim. Reset is frees
 \* turning on, which returns an adopted Volume to unadopted for a recount.
 \*
-\* A hole ("b") is a block a list names that the store lost with its list.
-\* The count gives it a tally from the lists that name it, and the settle
-\* settles it with the lists, in key order. The count reads no list for it,
-\* so its children lose its holder: the settle marks the hole uncounted, and
-\* forgets a hole nothing names. Land's put of a hole is a refill, not a
-\* birth: it writes the list back with no born mark, and logs a holder for
-\* each child where the children lack it, which while adopting is where the
-\* count passed the hole's key, and otherwise is where the hole is marked.
-\* A hole the audit records after an adoption, whose children still count
-\* it, and a rebirth, which needs the Sweeping generation, are left out.
+\* A hole ("b") is a block a list names that the store lost with its list,
+\* and that an audit recorded. The count gives it a tally from the lists that
+\* name it, and the settle settles it with the lists, in key order, and
+\* forgets a hole nothing names. The count reads no list for a hole, so its
+\* children lack its holder. Land's put of a hole is a refill, not a birth:
+\* it writes the list back with no born mark, and logs a holder for each
+\* child where the children lack it, which while adopting is where the count
+\* passed the hole's key, and otherwise is always.
+\*
+\* Lose is the store losing a block with its list while the Volume keeps no
+\* counts, so the next recount reads no list for it and leaves its own
+\* tally raw, one holder high. AuditHole is an audit after that adoption
+\* recording the loss as a hole: it cannot tell whether a recount read the
+\* lost list, so the refill gives the children the hole's holder. A loss
+\* after a count, whose refill leaves the children one holder high until a
+\* recount, and a rebirth, which needs the Sweeping generation, are left out.
 \*
 \* At adoption the counts are those Liveness.tla starts from: CountsExact and
 \* HoldUntilFree hold, and every block at zero is queued. Frees and the down
@@ -81,7 +87,6 @@ VARIABLES
   runs,      \* runs claimed or taken over so far, each named by its number
   listed,    \* blocks stored with their child list
   holes,     \* blocks a list names whose bytes and list the store lost
-  marked,    \* holes marked uncounted: their children's counts lack them
   H,         \* each block's count record: a raw tally while in raw
   raw,       \* blocks whose count record holds a raw tally
   queued,    \* blocks at zero that hold a 'Q' entry
@@ -94,9 +99,11 @@ VARIABLES
   cursor,    \* NoCursor, or the run, pass and records passed of the run's passes
   cleanup,   \* runs that adopted and still owe the deletion of their marks
   txns,      \* Land transactions so far
-  fails      \* runs failed so far
-vars == <<adoption, owner, runs, listed, holes, marked, marked, H, raw, queued, roots, upLog,
-          downLog, cleared, bmark, amark, cursor, cleanup, txns, fails>>
+  fails,     \* runs failed so far
+  lost,      \* blocks the store lost with their lists that no audit recorded
+  audited    \* holes AuditHole recorded: a ghost naming whose tally stays raw
+vars == <<adoption, owner, runs, listed, holes, H, raw, queued, roots, upLog,
+          downLog, cleared, bmark, amark, cursor, cleanup, txns, fails, lost, audited>>
 
 RECURSIVE SeqOf(_)
 SeqOf(S) ==
@@ -135,7 +142,6 @@ Init ==
   /\ runs = 0
   /\ listed = {"a", "c", "d"}
   /\ holes = {"b"}
-  /\ marked = {}
   /\ H = Stale
   /\ raw = {}
   /\ queued = {}
@@ -149,18 +155,20 @@ Init ==
   /\ cleanup = {}
   /\ txns = 0
   /\ fails = 0
+  /\ lost = {}
+  /\ audited = {}
 
 \* Land stores batch and moves root n to t in one transaction; it keeps
 \* counts only from the mark on, and marks only while adopting. A hole in
 \* the batch is refilled.
 Land ==
-  \E n \in RootNames, t \in Blocks \cup {None}, batch \in SUBSET Blocks :
+  \E n \in RootNames, t \in Blocks \cup {None}, batch \in SUBSET (Blocks \ lost) :
     LET born == batch \ (listed \cup holes)
         refill == batch \cap holes
         move == t # roots[n]
         edges == UNION {{<<p, k>> : k \in Kids(p) \ born} : p \in born}
         tUp == move /\ t # None /\ t \notin born
-        lacks(q) == IF Adopting THEN Counted(q) ELSE q \in marked
+        lacks(q) == ~Adopting \/ Counted(q)
         refillUps == UNION {{<<p, k>> : k \in Kids(p)} : p \in {q \in refill : lacks(q)}}
         ups == [i \in 1..Cardinality(edges) |-> SeqOf(edges)[i][2]]
                  \o [i \in 1..Cardinality(refillUps) |-> SeqOf(refillUps)[i][2]]
@@ -177,7 +185,6 @@ Land ==
     /\ Counting => \A b \in born : (move /\ b = t) \/ \E p \in batch : b \in Kids(p)
     /\ listed' = listed \cup batch
     /\ holes' = holes \ batch
-    /\ marked' = marked \ batch
     /\ roots' = [roots EXCEPT ![n] = t]
     /\ txns' = txns + 1
     /\ IF Counting
@@ -193,7 +200,7 @@ Land ==
               /\ amark' = IF move /\ amark[n] = Unset
                             THEN [amark EXCEPT ![n] = roots[n]] ELSE amark
          ELSE UNCHANGED <<bmark, amark>>
-    /\ UNCHANGED <<adoption, owner, runs, cleared, cursor, cleanup, fails>>
+    /\ UNCHANGED <<adoption, owner, runs, cleared, cursor, cleanup, fails, lost, audited>>
 
 \* A run claims a Volume that is not adopted, superseding the run that held
 \* it, and drops its cursor.
@@ -205,7 +212,7 @@ Claim ==
   /\ adoption' = "unadopted"
   /\ cleared' = FALSE
   /\ cursor' = NoCursor
-  /\ UNCHANGED <<listed, holes, marked, H, raw, queued, roots, upLog, downLog, bmark, amark, cleanup, txns, fails>>
+  /\ UNCHANGED <<listed, holes, H, raw, queued, roots, upLog, downLog, bmark, amark, cleanup, txns, fails, lost, audited>>
 
 AdoptClear ==
   /\ adoption = "unadopted"
@@ -214,7 +221,7 @@ AdoptClear ==
   /\ H' = [b \in Blocks |-> 0]
   /\ raw' = Blocks
   /\ cleared' = TRUE
-  /\ UNCHANGED <<adoption, owner, runs, listed, holes, marked, queued, roots, upLog, downLog, bmark, amark, cursor, cleanup, txns, fails>>
+  /\ UNCHANGED <<adoption, owner, runs, listed, holes, queued, roots, upLog, downLog, bmark, amark, cursor, cleanup, txns, fails, lost, audited>>
 
 AdoptMark ==
   /\ adoption = "unadopted"
@@ -227,7 +234,7 @@ AdoptMark ==
   /\ queued' = {}
   /\ bmark' = {}
   /\ amark' = [n \in RootNames |-> Unset]
-  /\ UNCHANGED <<owner, runs, listed, holes, marked, H, raw, roots, cleared, cleanup, txns, fails>>
+  /\ UNCHANGED <<owner, runs, listed, holes, H, raw, roots, cleared, cleanup, txns, fails, lost, audited>>
 
 \* The run counts the next record and moves the cursor past it, in one
 \* transaction.
@@ -242,41 +249,36 @@ AdoptCount ==
          ELSE H' = IF r.p \notin listed \/ r.p \in bmark THEN H
                    ELSE [b \in Blocks |-> IF b \in Kids(r.p) THEN H[b] + 1 ELSE H[b]]
   /\ cursor' = [cursor EXCEPT !.at = @ + 1]
-  /\ UNCHANGED <<adoption, owner, runs, listed, holes, marked, raw, queued, roots, upLog, downLog, cleared, bmark, amark, cleanup, txns, fails>>
+  /\ UNCHANGED <<adoption, owner, runs, listed, holes, raw, queued, roots, upLog, downLog, cleared, bmark, amark, cleanup, txns, fails, lost, audited>>
 
 AdoptCountEnd ==
   /\ Owned
   /\ cursor.pass = "count"
   /\ cursor.at = Len(Scan)
   /\ cursor' = [cursor EXCEPT !.pass = "settle", !.at = 0]
-  /\ UNCHANGED <<adoption, owner, runs, listed, holes, marked, H, raw, queued, roots, upLog, downLog, cleared, bmark, amark, cleanup, txns, fails>>
+  /\ UNCHANGED <<adoption, owner, runs, listed, holes, H, raw, queued, roots, upLog, downLog, cleared, bmark, amark, cleanup, txns, fails, lost, audited>>
 
 \* The run settles the block of the next list or hole record and moves the
 \* cursor past it, in one transaction. A hole's tally is settled too, so a
-\* refill behind the cursor finds its record settled; the hole is marked
-\* uncounted, or, named by nothing, forgotten.
+\* refill behind the cursor finds its record settled; a hole named by
+\* nothing is forgotten.
 AdoptSettle ==
   /\ Owned
   /\ cursor.pass = "settle"
   /\ cursor.at < Len(Lists)
   /\ LET p == Lists[cursor.at + 1] IN
        CASE p \in bmark \/ p \notin listed \cup holes ->
-              UNCHANGED <<raw, queued, holes, marked>>
+              UNCHANGED <<raw, queued, holes>>
          [] p \in holes /\ H[p] = 0 ->
               /\ raw' = raw \ {p}
               /\ holes' = holes \ {p}
-              /\ marked' = marked \ {p}
               /\ UNCHANGED queued
-         [] p \in holes ->
-              /\ raw' = raw \ {p}
-              /\ marked' = marked \cup {p}
-              /\ UNCHANGED <<queued, holes>>
          [] OTHER ->
               /\ raw' = raw \ {p}
               /\ queued' = IF H[p] = 0 THEN queued \cup {p} ELSE queued
-              /\ UNCHANGED <<holes, marked>>
+              /\ UNCHANGED holes
   /\ cursor' = [cursor EXCEPT !.at = @ + 1]
-  /\ UNCHANGED <<adoption, owner, runs, listed, H, roots, upLog, downLog, cleared, bmark, amark, cleanup, txns, fails>>
+  /\ UNCHANGED <<adoption, owner, runs, listed, H, roots, upLog, downLog, cleared, bmark, amark, cleanup, txns, fails, lost, audited>>
 
 AdoptEnd ==
   /\ Owned
@@ -285,7 +287,7 @@ AdoptEnd ==
   /\ adoption' = "adopted"
   /\ cursor' = NoCursor
   /\ cleanup' = cleanup \cup {owner}
-  /\ UNCHANGED <<owner, runs, listed, holes, marked, H, raw, queued, roots, upLog, downLog, cleared, bmark, amark, txns, fails>>
+  /\ UNCHANGED <<owner, runs, listed, holes, H, raw, queued, roots, upLog, downLog, cleared, bmark, amark, txns, fails, lost, audited>>
 
 \* Run r deletes its marks while the Volume is adopted in its name, and
 \* touches nothing once another run holds it.
@@ -296,7 +298,7 @@ AdoptCleanup ==
          THEN /\ bmark' = {}
               /\ amark' = [n \in RootNames |-> Unset]
          ELSE UNCHANGED <<bmark, amark>>
-    /\ UNCHANGED <<adoption, owner, runs, listed, holes, marked, H, raw, queued, roots, upLog, downLog, cleared, cursor, txns, fails>>
+    /\ UNCHANGED <<adoption, owner, runs, listed, holes, H, raw, queued, roots, upLog, downLog, cleared, cursor, txns, fails, lost, audited>>
 
 \* A process dies mid-run and another takes the run over at the cursor,
 \* restamping it, since the counts and the cursor committed together.
@@ -306,7 +308,7 @@ AdoptTakeover ==
   /\ runs' = runs + 1
   /\ owner' = runs + 1
   /\ cursor' = [cursor EXCEPT !.run = runs + 1]
-  /\ UNCHANGED <<adoption, listed, holes, marked, H, raw, queued, roots, upLog, downLog, cleared, bmark, amark, cleanup, txns, fails>>
+  /\ UNCHANGED <<adoption, listed, holes, H, raw, queued, roots, upLog, downLog, cleared, bmark, amark, cleanup, txns, fails, lost, audited>>
 
 \* A build that predates the cursor claims, clears and marks the Volume in a
 \* run of its own and dies, leaving the cursor it never read.
@@ -322,7 +324,7 @@ OldClaim ==
   /\ queued' = {}
   /\ bmark' = {}
   /\ amark' = [n \in RootNames |-> Unset]
-  /\ UNCHANGED <<adoption, listed, holes, marked, roots, cleared, cursor, cleanup, txns, fails>>
+  /\ UNCHANGED <<adoption, listed, holes, roots, cleared, cursor, cleanup, txns, fails, lost, audited>>
 
 \* A run fails, returning the Volume to unadopted under no claim.
 AdoptFail ==
@@ -334,7 +336,29 @@ AdoptFail ==
   /\ owner' = 0
   /\ cleared' = FALSE
   /\ cursor' = NoCursor
-  /\ UNCHANGED <<runs, listed, holes, marked, H, raw, queued, roots, upLog, downLog, bmark, amark, cleanup, txns>>
+  /\ UNCHANGED <<runs, listed, holes, H, raw, queued, roots, upLog, downLog, bmark, amark, cleanup, txns, lost, audited>>
+
+\* The store loses a listed block with its list before the first run, while
+\* the Volume keeps no counts, so every recount misses it.
+Lose ==
+  \E p \in listed :
+    /\ runs = 0
+    /\ lost = {}
+    /\ listed' = listed \ {p}
+    /\ lost' = {p}
+    /\ UNCHANGED <<adoption, owner, runs, holes, H, raw, queued, roots, upLog, downLog, cleared, bmark, amark, cursor, cleanup, txns, fails, audited>>
+
+\* An audit of the adopted Volume records a lost block a listed block names
+\* as a hole. Its own count already reads at least its namers, so the audit
+\* adds none.
+AuditHole ==
+  \E p \in lost :
+    /\ adoption = "adopted"
+    /\ \E q \in listed : p \in Kids(q)
+    /\ lost' = lost \ {p}
+    /\ holes' = holes \cup {p}
+    /\ audited' = audited \cup {p}
+    /\ UNCHANGED <<adoption, owner, runs, listed, H, raw, queued, roots, upLog, downLog, cleared, bmark, amark, cursor, cleanup, txns, fails>>
 
 \* Frees turn on: an adopted Volume returns to unadopted for a recount.
 Reset ==
@@ -343,7 +367,7 @@ Reset ==
   /\ adoption' = "unadopted"
   /\ owner' = 0
   /\ cleared' = FALSE
-  /\ UNCHANGED <<runs, listed, holes, marked, H, raw, queued, roots, upLog, downLog, bmark, amark, cursor, cleanup, txns, fails>>
+  /\ UNCHANGED <<runs, listed, holes, H, raw, queued, roots, upLog, downLog, bmark, amark, cursor, cleanup, txns, fails, lost, audited>>
 
 NetUps ==
   /\ adoption = "adopted"
@@ -351,20 +375,24 @@ NetUps ==
   /\ H' = [H EXCEPT ![Head(upLog)] = @ + 1]
   /\ queued' = queued \ {Head(upLog)}
   /\ upLog' = Tail(upLog)
-  /\ UNCHANGED <<adoption, owner, runs, listed, holes, marked, raw, roots, downLog, cleared, bmark, amark, cursor, cleanup, txns, fails>>
+  /\ UNCHANGED <<adoption, owner, runs, listed, holes, raw, roots, downLog, cleared, bmark, amark, cursor, cleanup, txns, fails, lost, audited>>
 
 Next ==
   \/ Land \/ Claim \/ AdoptClear \/ AdoptMark \/ AdoptCount \/ AdoptCountEnd
   \/ AdoptSettle \/ AdoptEnd \/ AdoptCleanup \/ AdoptTakeover \/ OldClaim
-  \/ AdoptFail \/ Reset \/ NetUps
+  \/ AdoptFail \/ Reset \/ NetUps \/ Lose \/ AuditHole
 
 Spec == Init /\ [][Next]_vars
 
 \* Adopted counts, with the unnetted logs, equal the roots and listed parents
-\* that name each listed block.
+\* that name each listed block, but for a refilled audited hole whose tally
+\* the recount that missed it left raw, which reads one holder high until
+\* the next recount.
 CountsExact ==
   adoption = "adopted" =>
-    \A b \in listed : Read(b) + Count(upLog, b) = Holders(b) + Count(downLog, b)
+    \A b \in listed :
+      Read(b) + Count(upLog, b)
+        = Holders(b) + Count(downLog, b) + (IF b \in raw \cap audited THEN 1 ELSE 0)
 
 \* Each child of a listed block counts at least that parent.
 HoldUntilFree ==
