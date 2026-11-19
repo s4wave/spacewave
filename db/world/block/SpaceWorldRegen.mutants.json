@@ -1,20 +1,20 @@
 [
   {
-    "name": "A full disk refuses the operation",
+    "name": "A full disk refuses the switch",
     "replace": [
       [
-        "\\/ op.t = \"regen\" /\\ (RegenRefused(r) \\/ op.bad)",
-        "\\/ op.t = \"regen\" /\\ (RegenRefused(r) \\/ op.bad \\/ full[r])"
+        "\\/ op.t = \"switch\" /\\ SwitchRefused(r)",
+        "\\/ op.t = \"switch\" /\\ (SwitchRefused(r) \\/ full[r])"
       ]
     ],
     "expect": "Agree"
   },
   {
-    "name": "Base holds the World before the carried quads",
+    "name": "The switch holds the pin as base, not the head",
     "replace": [
       [
-        "/\\ base' = [base EXCEPT ![r] = [fmt |-> \"old\", items |-> old]]",
-        "/\\ base' = [base EXCEPT ![r] = [fmt |-> \"old\", items |-> world[r].items]]"
+        "  /\\ base' = [base EXCEPT ![r] = [fmt |-> \"old\", items |-> world[r].items]]",
+        "  /\\ base' = [base EXCEPT ![r] = [fmt |-> \"old\", items |-> pin[r].items]]"
       ]
     ],
     "expect": "NoLoss"
@@ -42,7 +42,7 @@
   },
   {
     "name": "The release names only base",
-    "config": "SpaceWorldRegen-faults.cfg",
+    "config": "SpaceWorldRegen-stale.cfg",
     "replace": [
       [
         "ok == base[r] # NoRoot /\\ base[r].items = op.base /\\ built[r].items = op.built",
@@ -62,21 +62,21 @@
     "expect": "HeldTogether"
   },
   {
-    "name": "A malformed regeneration waits instead of refusing",
+    "name": "A malformed pin waits instead of refusing",
     "replace": [
       [
-        "\\/ op.t = \"regen\" /\\ (RegenRefused(r) \\/ op.bad)",
-        "\\/ op.t = \"regen\" /\\ RegenRefused(r)"
+        "\\/ op.t = \"pin\" /\\ (PinRefused(r) \\/ op.bad)",
+        "\\/ op.t = \"pin\" /\\ PinRefused(r)"
       ]
     ],
     "expect": "Finishes"
   },
   {
-    "name": "A disk that fills partway refuses the operation",
+    "name": "A disk that fills partway refuses the switch",
     "replace": [
       [
-        "  /\\ phase' = [phase EXCEPT ![r] = \"idle\"]\n  /\\ UNCHANGED <<log, cur, world, base, built, verdict, pending, full,\n                 crashes, exp, faulted>>\n\n\\* The applied",
-        "  /\\ phase' = [phase EXCEPT ![r] = \"idle\"]\n  /\\ Done(r, \"refused\")\n  /\\ UNCHANGED <<log, world, base, built, pending, full,\n                 crashes, exp, faulted>>\n\n\\* The applied"
+        "  /\\ phase' = [phase EXCEPT ![r] = \"idle\"]\n  /\\ UNCHANGED <<log, cur, world, pin, prebuilt, base, built, verdict,\n                 pending, full, crashes, stall, exp, faulted>>\n\n\\* The applied",
+        "  /\\ phase' = [phase EXCEPT ![r] = \"idle\"]\n  /\\ Done(r, \"refused\")\n  /\\ UNCHANGED <<log, world, pin, prebuilt, base, built,\n                 pending, full, crashes, stall, exp, faulted>>\n\n\\* The applied"
       ]
     ],
     "expect": "Agree"
@@ -90,5 +90,45 @@
       ]
     ],
     "expect": "Agree"
+  },
+  {
+    "name": "A switch past the bound applies",
+    "replace": [
+      [
+        "  \\/ Cardinality(Diff(pin[r].items, world[r].items)) > Bound\n",
+        ""
+      ]
+    ],
+    "expect": "WithinBound"
+  },
+  {
+    "name": "The bound counts from the local prebuilt root",
+    "replace": [
+      [
+        "  \\/ Cardinality(Diff(pin[r].items, world[r].items)) > Bound\n",
+        "  \\/ Cardinality(Diff(prebuilt[r].items, world[r].items)) > Bound\n"
+      ]
+    ],
+    "expect": "WithinBound"
+  },
+  {
+    "name": "The switch uses a prebuilt root of a moved pin",
+    "replace": [
+      [
+        "Ready(r) == prebuilt[r].ok /\\ prebuilt[r].of = pin[r]",
+        "Ready(r) == prebuilt[r].ok"
+      ]
+    ],
+    "expect": "NoLoss"
+  },
+  {
+    "name": "A pending build holds replay up",
+    "replace": [
+      [
+        "  /\\ At(r, \"write\")\n  /\\ world'",
+        "  /\\ At(r, \"write\")\n  /\\ (pin[r] = NoPin \\/ Ready(r))\n  /\\ world'"
+      ]
+    ],
+    "expect": "ReplayUnblocked"
   }
 ]
