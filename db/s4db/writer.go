@@ -223,8 +223,10 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 		case !found:
 			r.delta++
 		}
+		// A move always places its value, so a moved value is a reference and
+		// never carries an inline payload; values in a chunk exceed inlineMax.
 		v := value{kind: valueInline, inline: c.data}
-		if len(c.data) > inlineMax {
+		if len(c.data) > inlineMax || moves {
 			v, writes = w.place(next.m, r, c.key, c.data, writes, moves)
 			if flows != nil {
 				flows[db.family(c.key)].Written += int64(len(c.data))
@@ -237,6 +239,15 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	}
 	if len(r.ops) == 0 {
 		return nil
+	}
+
+	// Invariant: the memtable owns every key it holds. A transaction's changes
+	// are its own copies (Tx.Set) and replay owns its records, but a cleaner's
+	// move keys point into the chunk it read, which a kept slice would pin
+	// whole until a flush, and which the cleaner reads the next victim into.
+	// A move carries no inline value, so own copies only its keys.
+	if moves {
+		r.own()
 	}
 
 	// Reserve the log and its standby before writing values or publishing.

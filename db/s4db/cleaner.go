@@ -30,6 +30,11 @@ type cleaner struct {
 	// the cleaner is not due again until the key changes, so a due cleaner
 	// with nothing to take does not walk the table on every wake.
 	missed victimKey
+	// buf is the chunk read buffer, reused by every step and dropped when a
+	// step finds no victim. Nothing a step publishes may refer into it: the
+	// move commit copies its keys and inline values out (record.own), so the
+	// cleaner holds one chunk however much it has moved.
+	buf []byte
 }
 
 // victimKey names what decides whether a table holds a victim: the manifest
@@ -146,6 +151,7 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 	victim, ok := c.victim(st.m)
 	if !ok {
 		c.missed = victimKeyOf(st.m)
+		c.buf = nil
 		db.release(st, stripe)
 		return false, nil
 	}
@@ -157,23 +163,32 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 		return true, c.seal(ctx, victim)
 	}
 
-	// Read and parse the victim off the lock, on the idle thread, and find
-	// the entries the snapshot still points at.
+	// Take the chunk buffer, which the entries refer into until the next
+	// step overwrites it.
+	if c.buf == nil {
+		c.buf = make([]byte, chunkSize)
+	}
+
+	// Read and parse the victim off the lock, on the idle thread. A context
+	// that ends before the thread takes the read fails the step.
 	var entries []valueEntry
 	var readErr error
-	db.sched.idle.do(ctx, func() {
-		b := make([]byte, chunkSize)
-		n, err := db.s.ReadAt(b, fileOff(chunkStart(victim)))
+	if err := db.sched.idle.do(ctx, func() {
+		n, err := db.s.ReadAt(c.buf, fileOff(chunkStart(victim)))
 		if err != nil && n == 0 {
 			readErr = err
 			return
 		}
-		entries = parseValueEntries(b[:n], chunkStart(victim))
-	})
+		entries = parseValueEntries(c.buf[:n], chunkStart(victim))
+	}); err != nil {
+		readErr = err
+	}
 	if readErr != nil {
 		db.release(st, stripe)
 		return true, readErr
 	}
+
+	// Find the entries the snapshot still points at.
 	live, err := c.liveEntries(st, entries)
 	db.release(st, stripe)
 	if err != nil {
