@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"hash/fnv"
 	"maps"
 	"math"
 	"math/rand/v2"
@@ -2802,6 +2803,33 @@ func TestLivenessAdversarial(t *testing.T) {
 		state := waitAdopted(t, v)
 		if !state.GetFrees() || state.GetAdoptionRun() == "" || state.GetAdoptionRun() == first.GetAdoptionRun() {
 			t.Fatalf("frees on after an older build's write left the state %v, want them on and a new recount's run", state)
+		}
+
+		// A mark from before the frees epoch, the unsalted hash of the
+		// other fields, also reads as off and counts again.
+		if err := v.Close(); err != nil {
+			t.Fatal(err)
+		}
+		known, unknown := splitStateFields(t, store)
+		pre := &block_gc.LivenessState{}
+		if err := pre.UnmarshalVT(append(known, unknown...)); err != nil {
+			t.Fatal(err)
+		}
+		pre.FreesMark = 0
+		value, err := pre.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		h := fnv.New64a()
+		_, _ = h.Write(value)
+		pre.FreesMark = h.Sum64()
+		if value, err = pre.MarshalVT(); err != nil {
+			t.Fatal(err)
+		}
+		setStateValue(t, store, value)
+		v3, _ := openLivenessVolume(t, store, true)
+		if rerun := waitAdopted(t, v3); rerun.GetAdoptionRun() == state.GetAdoptionRun() {
+			t.Fatalf("frees on over a pre-epoch mark kept run %q, want a new recount", rerun.GetAdoptionRun())
 		}
 	})
 
