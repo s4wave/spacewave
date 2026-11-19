@@ -83,15 +83,15 @@ const (
 	// moves each back onto the free queue, where the free drops it as
 	// unmarked and the sweep deletes it.
 	kindParked byte = 'X'
-	// kindFront keys a block on the settle's front, by the block: a stored
-	// block whose list may lack a child, named by a young or verified block,
-	// a root or a down page not netted yet, which the walk still has to
-	// decode. It holds no value. Land and the walk push onto it while the
-	// generation is Open, as Generation_GENERATION_OPEN describes; a write
-	// that marks the block's list takes its entry off, and so does the
-	// collector once its free proof holds for the block. An entry whose block
-	// the store does not list stays while its bytes remain, for the walk to
-	// list it again; with the bytes gone too the proof pops it.
+	// kindFront keys a block on the settle's front, by the block: a block
+	// with no list from content, stored or absent, named by a young or
+	// verified block, a root or a down page not netted yet, which the walk
+	// still has to decode. It holds no value. Land and the walk push onto it
+	// while the generation is Open, as Generation_GENERATION_OPEN describes;
+	// a write that marks the block's list takes its entry off, and so does
+	// the collector once its free proof holds for the block. An entry whose
+	// block the store does not list stays while it has holders or its bytes
+	// remain, for the walk to list it; with neither the proof pops it.
 	kindFront byte = 'G'
 	// kindUnmarked keys an entry of the unmarked run, by the block: a block
 	// whose bytes or list the store holds without a list from content, or
@@ -286,16 +286,23 @@ const (
 // BlockKey returns the key encoding of ref: its hash type byte, never zero,
 // and its digest, whose length the type fixes. An empty ref has none.
 func BlockKey(ref *block.BlockRef) []byte {
-	// An empty ref has no key.
 	if ref.GetEmpty() {
 		return nil
 	}
+	return appendBlockKey(make([]byte, 0, blockKeyLen(ref)), ref)
+}
 
-	// Append the hash type byte and the digest.
+// blockKeyLen returns the length of the BlockKey of a non-empty ref.
+func blockKeyLen(ref *block.BlockRef) int {
+	return 1 + len(ref.GetHash().GetHash())
+}
+
+// appendBlockKey appends the BlockKey of a non-empty ref to dst, so a caller
+// building many keys can share one allocation.
+func appendBlockKey(dst []byte, ref *block.BlockRef) []byte {
 	h := ref.GetHash()
-	key := make([]byte, 0, 1+len(h.GetHash()))
-	key = append(key, byte(h.GetHashType())) //nolint:gosec // hash types fit in a byte.
-	return append(key, h.GetHash()...)
+	dst = append(dst, byte(h.GetHashType())) //nolint:gosec // hash types fit in a byte.
+	return append(dst, h.GetHash()...)
 }
 
 // ParseBlockKey returns the ref a BlockKey encodes and the bytes after it.
@@ -419,7 +426,7 @@ func (r *Records) HasChildren(ctx context.Context, ref *block.BlockRef) (bool, e
 
 // PutChildren writes the child list of ref from its content, with listMark.
 func (r *Records) PutChildren(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef) error {
-	return r.tx.Set(ctx, r.key(kindChildren, BlockKey(ref)), markList(EncodeChildren(children)))
+	return r.tx.Set(ctx, r.key(kindChildren, BlockKey(ref)), packChildren([]byte{listMark}, normalizeChildren(children)))
 }
 
 // markList returns the packed block keys as a list value written from
@@ -498,22 +505,20 @@ func decodeValue(value func() ([]byte, error)) ([]*block.BlockRef, error) {
 // EncodeChildren packs the block keys of children, sorted and distinct, as a
 // child list value.
 func EncodeChildren(children []*block.BlockRef) []byte {
-	// Sort the children's keys.
-	keys := make([][]byte, 0, len(children))
-	for _, child := range children {
-		if k := BlockKey(child); k != nil {
-			keys = append(keys, k)
-		}
-	}
-	slices.SortFunc(keys, bytes.Compare)
+	return packChildren(nil, normalizeChildren(children))
+}
 
-	// Pack each distinct key.
-	value := make([]byte, 0, len(keys)*33)
-	for i, k := range keys {
-		if i != 0 && bytes.Equal(keys[i-1], k) {
-			continue
-		}
-		value = append(value, k...)
+// packChildren returns head followed by the keys of children, which
+// normalizeChildren returned, in one allocation.
+func packChildren(head []byte, children []*block.BlockRef) []byte {
+	// Size the value, then append each key after head.
+	size := len(head)
+	for _, child := range children {
+		size += blockKeyLen(child)
+	}
+	value := append(make([]byte, 0, size), head...)
+	for _, child := range children {
+		value = appendBlockKey(value, child)
 	}
 	return value
 }

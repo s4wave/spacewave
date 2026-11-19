@@ -4,15 +4,20 @@ package spacewave_cli
 
 import (
 	"context"
+	"io/fs"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/block/packcopy"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world/refwalk"
 	"github.com/sirupsen/logrus"
@@ -25,6 +30,12 @@ type debugRefRepairArgs struct {
 	spaceID string
 	// dryRun counts the missing edges without writing them.
 	dryRun bool
+	// peerBlocks is a directory of blocks named by their B58 refs, read in
+	// place of the peer for the blocks the volume lacks.
+	peerBlocks string
+	// syntheticEmpty is a file of B58 refs, one per line, listed with no
+	// children when no read decodes them.
+	syntheticEmpty string
 }
 
 // BuildFlags returns the ref repair flags.
@@ -40,6 +51,16 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 			Usage:       "count the blocks lacking edges without writing them",
 			Destination: &a.dryRun,
 		},
+		&cli.StringFlag{
+			Name:        "peer-blocks",
+			Usage:       "directory of blocks named by B58 ref, read for the blocks the volume lacks without filling it",
+			Destination: &a.peerBlocks,
+		},
+		&cli.StringFlag{
+			Name:        "synthetic-empty",
+			Usage:       "file of B58 refs to list with no children when no read decodes them, for a rehearsal on a copy",
+			Destination: &a.syntheticEmpty,
+		},
 	}
 }
 
@@ -51,7 +72,11 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 	}
 	path := c.Args().First()
 	le := logrus.NewEntry(logrus.New())
-	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, space_world_optypes.LookupBlockType)
+	stub, err := a.stub()
+	if err != nil {
+		return err
+	}
+	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, space_world_optypes.LookupBlockType, stub)
 	if err != nil {
 		return err
 	}
@@ -59,6 +84,52 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 	// Print the repair findings and the volume-wide inventory.
 	writeFields(os.Stdout, refRepairFields(path, a.dryRun, res))
 	return nil
+}
+
+// stub reads the peer and synthetic stand-ins the flags name.
+func (a *debugRefRepairArgs) stub() (refRepairStub, error) {
+	var stub refRepairStub
+	if a.peerBlocks != "" {
+		stub.peer = packcopy.NewSourceStore([]packcopy.Source{dirBlocks(a.peerBlocks)})
+	}
+	if a.syntheticEmpty != "" {
+		data, err := os.ReadFile(a.syntheticEmpty)
+		if err != nil {
+			return stub, err
+		}
+		stub.synthetic = make(map[string]bool)
+		for line := range strings.Lines(string(data)) {
+			if key := strings.TrimSpace(line); key != "" {
+				stub.synthetic[key] = false
+			}
+		}
+	}
+	return stub, nil
+}
+
+// refRepairStub stands in for what a stopped volume cannot reach offline.
+type refRepairStub struct {
+	// peer reads the blocks the volume lacks, as the serve reads them from
+	// the Space's peers. Nil reads the volume alone.
+	peer block.StoreOps
+	// synthetic names blocks to list with no children when no read decodes
+	// them, as refRepair.synthetic describes.
+	synthetic map[string]bool
+}
+
+// dirBlocks is a directory of blocks named by their B58 refs.
+type dirBlocks string
+
+// GetStoredBlock reads the block's file, or returns nil when there is none.
+func (d dirBlocks) GetStoredBlock(_ context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	data, err := os.ReadFile(filepath.Join(string(d), ref.MarshalString()))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &block.StoredBlock{Data: data}, nil
 }
 
 // refRepairFields formats the repair findings in the command's field table.
@@ -70,6 +141,8 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Spaces", strconv.Itoa(res.spaces)},
 		{"Blocks walked", strconv.FormatUint(res.blocks, 10)},
 		{"Blocks absent", strconv.FormatUint(res.absent, 10)},
+		{"Blocks read from the peer", strconv.FormatUint(res.peerRead, 10)},
+		{"Blocks listed synthetically empty", strconv.FormatUint(res.synthetic, 10)},
 		{"Blocks undecodable", strconv.FormatUint(res.undecodable, 10)},
 		{"Blocks without a child list", strconv.FormatUint(res.lacking, 10)},
 		{"Children they name", strconv.FormatUint(res.edges, 10)},
@@ -119,7 +192,14 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 // walk of the settle of the volume's old generation, so the collector can
 // settle it once nothing more is owed. Once the old generation has left Open
 // the rebuild refuses the volume and the run only walks it.
-func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID string, dryRun bool, lookup refwalk.LookupBlockType) (refRepairResult, error) {
+func repairVolumeRefs(
+	ctx context.Context,
+	le *logrus.Entry,
+	path, spaceID string,
+	dryRun bool,
+	lookup refwalk.LookupBlockType,
+	stub refRepairStub,
+) (refRepairResult, error) {
 	// Open the stopped volume.
 	vol, err := openStoppedVolume(ctx, le, path, dryRun)
 	if err != nil {
@@ -138,7 +218,8 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 
 	// Start the list rebuild unless this is a dry run, then walk each Space
 	// and release the walker.
-	rr := newRefRepair(le, vol, lookup)
+	rr := newRefRepair(le, vol, stub.peer, lookup)
+	rr.synthetic = stub.synthetic
 	defer rr.close()
 	if !dryRun {
 		rr.rebuild, err = vol.OpenListRebuild(ctx)
@@ -150,6 +231,11 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 	for _, sc := range cursors {
 		if err := rr.walkSpace(ctx, sc); err != nil {
 			return refRepairResult{}, errors.Wrapf(err, "walk space %s", sc.spaceID)
+		}
+	}
+	if rr.rebuild != nil {
+		if err := rr.listUnwalkedSynthetic(ctx); err != nil {
+			return refRepairResult{}, err
 		}
 	}
 	rr.close()

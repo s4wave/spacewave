@@ -187,7 +187,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	}
 	olds := make([]value, len(changes))
 	founds := make([]bool, len(changes))
-	err := db.lookupEach(base, keys, !moves, func(i int, v value, found bool) error {
+	err := db.lookupEach(base, keys, nil, !moves, func(i int, v value, found bool) error {
 		v.inline = nil
 		olds[i], founds[i] = v, found
 		return nil

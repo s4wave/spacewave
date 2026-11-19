@@ -261,7 +261,7 @@ func TestDebugRefRepair(t *testing.T) {
 	before := sum()
 
 	// A dry run counts the missing edges and writes none.
-	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType)
+	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,7 +321,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// The dry run left the child lists as they were.
-	again, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType)
+	again, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +356,7 @@ func TestDebugRefRepair(t *testing.T) {
 	// Applying writes every missing child list, those of the leaves the dry
 	// run only checks for presence too, and verifies every walked block's
 	// list, which leaves no reached block on the settle's front.
-	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType)
+	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -389,14 +389,14 @@ func TestDebugRefRepair(t *testing.T) {
 	asBytes := func(_ context.Context, typeID string) (blocktype.BlockType, error) {
 		return blocktype.New[byteslice.ByteSlice](typeID), nil
 	}
-	wrong, err := repairVolumeRefs(ctx, le, path, "", false, asBytes)
+	wrong, err := repairVolumeRefs(ctx, le, path, "", false, asBytes, refRepairStub{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if wrong.rebuild.Dropped == 0 || wrong.rebuild.Rewritten != 0 || wrong.rebuild.Front == 0 {
 		t.Fatalf("rebuild with a wrong root type: %+v", wrong.rebuild)
 	}
-	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType)
+	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -405,7 +405,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// Nothing is missing afterward.
-	after, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType)
+	after, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{})
 	if err != nil {
 		t.Fatal(err)
 	}

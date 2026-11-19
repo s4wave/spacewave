@@ -24,7 +24,10 @@
   {
     "name": "the flip does not wait for the roots to be seeded",
     "replace": [
-      ["  /\\ complete\n  /\\ seeded\n", "  /\\ complete\n  /\\ TRUE\n"]
+      [
+        "  /\\ complete\n  /\\ seeded\n",
+        "  /\\ complete\n  /\\ TRUE\n"
+      ]
     ],
     "expect": "HeldPresent",
     "config": "Settle.cfg"
@@ -42,7 +45,12 @@
   },
   {
     "name": "the flip unmarks a parked block that gained a holder",
-    "replace": [["  /\\ \\A b \\in parked : Count(b) = 0\n", "  /\\ TRUE\n"]],
+    "replace": [
+      [
+        "  /\\ \\A b \\in parked : Count(b) = 0\n",
+        "  /\\ TRUE\n"
+      ]
+    ],
     "expect": "LiveStored",
     "config": "Settle.cfg"
   },
@@ -50,7 +58,7 @@
     "name": "an unparked block does not return to the front",
     "replace": [
       [
-        "  /\\ front' = front \\cup Unverified({b})\n",
+        "  /\\ front' = front \\cup Owed({b})\n",
         "  /\\ UNCHANGED front\n"
       ]
     ],
@@ -61,7 +69,7 @@
     "name": "a root moved onto an unverified block does not push it",
     "replace": [
       [
-        "  /\\ front' = IF gen = \"open\" THEN front \\cup Unverified({t}) ELSE front",
+        "  /\\ front' = IF gen = \"open\" THEN front \\cup Owed({t}) ELSE front",
         "  /\\ UNCHANGED front"
       ]
     ],
@@ -92,8 +100,46 @@
   },
   {
     "name": "the walk is not bound to run",
-    "replace": [["WF_vars(Walk(b)) /\\ ", ""]],
+    "replace": [
+      [
+        "WF_vars(Walk(b)) /\\ ",
+        ""
+      ]
+    ],
     "expect": "EventuallySettled",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the walk pushes only stored children, not an absent one",
+    "replace": [
+      [
+        "               \\cup (IF gen = \"open\" THEN Owed(UNION {True[b] : b \\in V}) \\ V ELSE {})",
+        "               \\cup (IF gen = \"open\" THEN Unverified(UNION {True[b] : b \\in V}) \\ V ELSE {})"
+      ]
+    ],
+    "expect": "LiveStored",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the walk pops an absent block no read resolves while it is held",
+    "replace": [
+      [
+        "       [] Hidden(b) \\/ Count(b) = 0 ->",
+        "       [] TRUE ->"
+      ]
+    ],
+    "expect": "LiveStored",
+    "config": "Settle-lost.cfg"
+  },
+  {
+    "name": "the walk passes an absent block without writing its list",
+    "replace": [
+      [
+        "            /\\ stored' = stored \\cup {b}\n            /\\ Verify({b})",
+        "            /\\ front' = front \\ {b}\n            /\\ UNCHANGED <<stored, verified, run>>"
+      ]
+    ],
+    "expect": "LiveStored",
     "config": "Settle.cfg"
   }
 ]

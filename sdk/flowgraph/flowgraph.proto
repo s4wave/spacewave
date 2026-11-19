@@ -10,6 +10,8 @@ option go_package = "github.com/s4wave/spacewave/sdk/flowgraph;s4wave_flowgraph"
 
 // Flowgraph holds an authored composition of Device nodes and Steps.
 message Flowgraph {
+  option (typeid.id) = "flowgraph";
+
   // Name is the display name of this graph.
   string name = 1;
   // Nodes contains nodes keyed by their graph-local ID.

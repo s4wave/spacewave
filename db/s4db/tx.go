@@ -132,7 +132,7 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 	// Answer the buffered changes, and order the rest by key.
 	values := make([][]byte, len(keys))
 	found := make([]bool, len(keys))
-	order, sorted, err := t.batchSnapshot(ctx, keys, func(i int, c tentry) {
+	order, err := t.batchSnapshot(ctx, keys, func(i int, c tentry) {
 		values[i], found[i] = bytes.Clone(c.data), !c.del
 	})
 	if err != nil {
@@ -142,7 +142,7 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 	// Look the rest up and read their values into the caller's slots. A
 	// reference is read into a new buffer, and an inline value is copied out
 	// of the shared memory.
-	err = t.db.lookupEach(t.st, sorted, true, func(j int, v value, ok bool) error {
+	err = t.db.lookupEach(t.st, keys, order, true, func(i int, v value, ok bool) error {
 		// Read a found key's value; an absent key keeps its empty slot.
 		if !ok {
 			return nil
@@ -154,7 +154,7 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 		if !v.isRef() {
 			data = bytes.Clone(data)
 		}
-		values[order[j]], found[order[j]] = data, true
+		values[i], found[i] = data, true
 		return nil
 	})
 	if err != nil {
@@ -168,14 +168,14 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 func (t *Tx) ExistsBatch(ctx context.Context, keys [][]byte) ([]bool, error) {
 	// Answer the buffered changes, then look the rest up in key order.
 	found := make([]bool, len(keys))
-	order, sorted, err := t.batchSnapshot(ctx, keys, func(i int, c tentry) {
+	order, err := t.batchSnapshot(ctx, keys, func(i int, c tentry) {
 		found[i] = !c.del
 	})
 	if err != nil {
 		return nil, err
 	}
-	err = t.db.lookupEach(t.st, sorted, true, func(j int, _ value, ok bool) error {
-		found[order[j]] = ok
+	err = t.db.lookupEach(t.st, keys, order, true, func(i int, _ value, ok bool) error {
+		found[i] = ok
 		return nil
 	})
 	if err != nil {
@@ -186,15 +186,15 @@ func (t *Tx) ExistsBatch(ctx context.Context, keys [][]byte) ([]bool, error) {
 
 // batchSnapshot checks a batch read, passes each key a buffered change
 // decides to change with its caller index, records a snapshot read of the
-// rest, and returns the rest's caller indices and keys sorted by key.
-func (t *Tx) batchSnapshot(ctx context.Context, keys [][]byte, change func(i int, c tentry)) ([]int, [][]byte, error) {
+// rest, and returns the rest's caller indices in key order.
+func (t *Tx) batchSnapshot(ctx context.Context, keys [][]byte, change func(i int, c tentry)) ([]int, error) {
 	// Check the transaction and keys.
 	if t.done {
-		return nil, nil, kvtx.ErrDiscarded
+		return nil, kvtx.ErrDiscarded
 	}
 	for _, key := range keys {
 		if len(key) == 0 {
-			return nil, nil, kvtx.ErrEmptyKey
+			return nil, kvtx.ErrEmptyKey
 		}
 	}
 
@@ -211,14 +211,12 @@ func (t *Tx) batchSnapshot(ctx context.Context, keys [][]byte, change func(i int
 	}
 	slices.SortFunc(order, func(i, j int) int { return bytes.Compare(keys[i], keys[j]) })
 	if err := ctx.Err(); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	sorted := make([][]byte, len(order))
-	for j, i := range order {
-		sorted[j] = keys[i]
+	for _, i := range order {
 		t.read(keys[i])
 	}
-	return order, sorted, nil
+	return order, nil
 }
 
 // Exists reports whether key is present.

@@ -26,18 +26,26 @@ import (
 //
 //   - Nothing is deleted: the free parks each block it would free, and
 //     enters it in the run, as Records.park describes.
-//   - The front holds every unverified listed child of a young or verified
-//     block. Land pushes the unverified children of each block it writes
-//     from content, and each unverified block a root moves onto; the walk
-//     pushes the unverified children of each block it decodes. So the walk
-//     never descends below a verified block, and no young block needs seeding.
+//   - The front holds every child of a young or verified block that has no
+//     list from content, stored or not. Land pushes those children of each
+//     block it writes from content, and each such block a root moves onto;
+//     the walk pushes those children of each block it decodes. So the walk
+//     never descends below a verified block, and no young block needs
+//     seeding.
+//   - A block the Volume lacks, as a peer's cache lacks what it never read,
+//     has no list, so no count holds a stored block only it names. The walk
+//     reads it through the full read chain, peers included, without filling
+//     the Volume, and writes its list from content without its bytes, as an
+//     evicted block keeps its list; the list then holds what lies below. An
+//     absent block no read resolves stays on the front while it has holders,
+//     and holds the flip.
 //   - Once its completion entry exists, the unmarked run names every block
 //     whose list is unverified: the run build adds each, and every write that
 //     marks a list deletes the block's entry in the same transaction. No
 //     writer adds an unverified list, since PutChildren always marks.
 //
 // Before the flip the collector seeds the front, in slices: it pushes every
-// unverified block a named root or a down page not netted yet names, as
+// owed block a named root or a down page not netted yet names, as
 // seed describes, the model's WalkStart. The flip is one state write, to
 // Sweeping, in a transaction that finds the Volume freeable, as
 // Collector.freeable describes, no list rewrite awaiting a recount, no
@@ -145,11 +153,15 @@ func (r *Records) listState(ctx context.Context, key []byte) (listed, marked boo
 	return found, found && listMarked(value), err
 }
 
-// pushUnverified pushes the block at key onto the front when its list is
-// unverified, and reports whether it did.
-func (r *Records) pushUnverified(ctx context.Context, key []byte) (bool, error) {
-	listed, marked, err := r.listState(ctx, key)
-	if err != nil || !listed || marked {
+// pushOwed pushes the block at key onto the front when the walk owes it a
+// decode, as its list is not from content or it has none, whether or not
+// the Volume stores its bytes, and reports whether it did. An absent block
+// has no list, so no count holds a stored block only it names: it stays on
+// the front while it has holders, until the walk reads it through the full
+// read chain and writes its list, as ListRebuild describes.
+func (r *Records) pushOwed(ctx context.Context, key []byte) (bool, error) {
+	_, marked, err := r.listState(ctx, key)
+	if err != nil || marked {
 		return false, err
 	}
 	return true, r.tx.Set(ctx, r.key(kindFront, key), nil)
@@ -168,8 +180,9 @@ func (r *Records) returnHeld(ctx context.Context, key []byte, open bool) (listed
 	return true, true, r.tx.Set(ctx, r.key(kindFront, key), nil)
 }
 
-// pushChildren pushes each unverified child in packed, block keys as a list
-// holds them, onto the front, skipping a child skip reports.
+// pushChildren pushes each child in packed, block keys as a list holds
+// them, that the walk owes a decode onto the front, skipping a child skip
+// reports.
 func (r *Records) pushChildren(ctx context.Context, packed []byte, skip func(key []byte) bool) error {
 	for len(packed) != 0 {
 		key, ok := nextBlockKey(packed)
@@ -180,7 +193,7 @@ func (r *Records) pushChildren(ctx context.Context, packed []byte, skip func(key
 		if skip != nil && skip(key) {
 			continue
 		}
-		if _, err := r.pushUnverified(ctx, key); err != nil {
+		if _, err := r.pushOwed(ctx, key); err != nil {
 			return err
 		}
 	}
@@ -190,7 +203,7 @@ func (r *Records) pushChildren(ctx context.Context, packed []byte, skip func(key
 // markedYoung finishes a write that marked the list of the block at key,
 // packed its children, while the generation is Open: the block leaves the
 // front, and the run unless the free parked it, as Records.park describes,
-// and its unverified children join the front, which keeps the front
+// and the children the walk owes join the front, which keeps the front
 // invariant. It reads the block's count and parked key.
 func (r *Records) markedYoung(ctx context.Context, key, packed []byte, skip func(key []byte) bool) error {
 	// Leave the run unless parked.
@@ -340,15 +353,16 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 	})
 }
 
-// seed pushes onto the front, once per collector while Open, each unverified
-// block a named root names and each block a down page not netted yet names,
+// seed pushes onto the front, once per collector while Open, each block the
+// walk owes a decode that a named root or a down page not netted yet names,
 // which a reader or writer may still hold: the named roots in slices, then
-// the down pages in slices, resuming where the last pass stopped. It reports whether it stopped at past with work left.
+// the down pages in slices, resuming where the last pass stopped. It
+// reports whether it stopped at past with work left.
 //
-// Invariant: once the seeding is done, every unverified block such a seed
-// would name is on the front or was taken off it by the walk or the free
-// proof. A root a Land moves onto a block after its slice passed the root
-// pushes the block, as holdStored does while Open; a down it writes names
+// Invariant: once the seeding is done, every owed block such a seed would
+// name is on the front or was taken off it by the walk or the free proof.
+// A root a Land moves onto a block after its slice passed the root pushes
+// the block, as holdStored does while Open; a down it writes names
 // the block the root held, which a slice passed or a Land pushed; and a page
 // the netting deletes leaves the seeds. So the flip needs no seeding
 // of its own, only the empty front.
@@ -403,9 +417,9 @@ func resumeSlices[P any](
 }
 
 // seedRootSlice pushes the block of each of up to a slice of named roots
-// after the root key from onto the front when its list is unverified, while
-// the generation is Open, and returns the last root key it read and whether
-// more may follow.
+// after the root key from onto the front when the walk owes it a decode,
+// while the generation is Open, and returns the last root key it read and
+// whether more may follow.
 func (c *Collector) seedRootSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
 	// Read a slice of roots while Open.
 	gen, err := rec.generation(ctx)
@@ -418,14 +432,14 @@ func (c *Collector) seedRootSlice(ctx context.Context, rec *Records, res *Collec
 		return from, false, err
 	}
 
-	// Push each root's block when its list is unverified.
+	// Push each root's block when the walk owes it a decode.
 	for _, root := range roots {
 		from = root.key
 		entry := &RootEntry{}
 		if err := entry.UnmarshalVT(root.value); err != nil {
 			return from, false, err
 		}
-		pushed, err := rec.pushUnverified(ctx, entry.GetRef())
+		pushed, err := rec.pushOwed(ctx, entry.GetRef())
 		if err != nil {
 			return from, false, err
 		}
@@ -436,10 +450,10 @@ func (c *Collector) seedRootSlice(ctx context.Context, rec *Records, res *Collec
 	return from, len(roots) == budget, nil
 }
 
-// seedDownSlice pushes onto the front each unverified block up to a slice of
-// down pages names, from the down sequence from, while the generation is
-// Open, and returns the sequence after the last page it read and whether
-// more may follow. Netting deletes each page it nets, so every page left
+// seedDownSlice pushes onto the front each block the walk owes a decode
+// that up to a slice of down pages names, from the down sequence from,
+// while the generation is Open, and returns the sequence after the last
+// page it read and whether more may follow. Netting deletes each page it nets, so every page left
 // names a block a root or list let go of within Grace, which a reader may
 // still pin.
 func (c *Collector) seedDownSlice(ctx context.Context, rec *Records, res *CollectResult, from uint64) (uint64, bool, error) {
@@ -449,7 +463,7 @@ func (c *Collector) seedDownSlice(ctx context.Context, rec *Records, res *Collec
 		return from, false, err
 	}
 
-	// Push the unverified blocks each page names.
+	// Push the owed blocks each page names.
 	budget, n := c.share(sliceRecords), 0
 	err = rec.scanDowns(ctx, from, func(p downPage) (bool, error) {
 		if n == budget {
@@ -458,7 +472,7 @@ func (c *Collector) seedDownSlice(ctx context.Context, rec *Records, res *Collec
 		n++
 		from = p.seq + 1
 		return true, eachKey(p.keys, func(key []byte) error {
-			pushed, err := rec.pushUnverified(ctx, key)
+			pushed, err := rec.pushOwed(ctx, key)
 			if pushed {
 				res.Seeded++
 			}

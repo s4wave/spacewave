@@ -208,6 +208,8 @@ message RetainedRoot {
 // RetainedRootSet is the block the retained root holds: every retained World
 // root of the installed head. Its outgoing refs are the retained roots.
 message RetainedRootSet {
+  option (typeid.id) = "space/retained-root-set";
+
   // Roots are the retained roots, sorted by name.
   repeated RetainedRoot roots = 1;
 }
@@ -216,6 +218,8 @@ message RetainedRootSet {
 // as the payloads above the checkpoint, a backfill copy or a fence's live
 // roots. Its outgoing refs are the roots.
 message HeldRoots {
+  option (typeid.id) = "space/held-roots";
+
   // Roots are the held roots, in the order the holder gave them.
   repeated .block.BlockRef roots = 1;
   // Prev is an earlier HeldRoots block whose roots, and its own earlier
@@ -229,6 +233,8 @@ message HeldRoots {
 // checkpoint and their payloads, in a chain. The adapter writes none; the
 // child list repair of a Volume written before it reads them.
 message ReplaySpan {
+  option (typeid.id) = "space/replay-span";
+
   // Worlds are the World root blocks in replay order.
   repeated .block.BlockRef worlds = 1;
   // Payloads are the operation payload roots in replay order.

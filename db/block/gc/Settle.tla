@@ -24,6 +24,16 @@
 \* A format upgrade recounts and keeps the generation and the run, so an
 \* upgrade that lands mid-Sweeping finishes its sweep first.
 \*
+\* A Volume may lack a block its lists name, as a peer's cache lacks what it
+\* never read. Such a block has no list, so no count holds what lies below
+\* it, and a stored block reached only through it would read unreachable.
+\* The front therefore holds every child a list from content names that has
+\* no list from content, stored or not. The walk decodes an absent block
+\* through the full read chain, peers included, and writes its list without
+\* its bytes, as an evicted block keeps its list; the list then holds the
+\* stored blocks below. An absent block no read resolves stays on the front
+\* while anything holds it, and so holds the flip.
+\*
 \* Counts here are derived from the stored lists, which hold until free
 \* makes exact; Liveness.tla models how the logs keep them. Callers found
 \* from source: the settle slices (db/block/gc/settle.go), the free and its
@@ -34,17 +44,21 @@ EXTENDS Naturals, FiniteSets
 
 CONSTANTS
   MaxTxns,  \* bounds the Land transactions, so the model is finite
-  Upgrade   \* whether the format upgrade may run
+  Upgrade,  \* whether the format upgrade may run
+  Lost      \* whether no read resolves the absent block h
 
 \* r is the root's block; a's old list was cut and lacks b; g is an old,
-\* unreachable block whose list was cut too; n is a block a writer may write.
-Blocks == {"r", "a", "b", "g", "n"}
-True == [r |-> {"a"}, a |-> {"b"}, b |-> {}, g |-> {"b"}, n |-> {"a"}]
-Cut == [r |-> {"a"}, a |-> {}, b |-> {}, g |-> {}, n |-> {"a"}]
+\* unreachable block whose list was cut too; n is a block a writer may write;
+\* h is a block the Volume lacks, and k a stored block only h names.
+Blocks == {"r", "a", "b", "g", "n", "h", "k"}
+True == [r |-> {"a", "h"}, a |-> {"b"}, b |-> {}, g |-> {"b"}, n |-> {"a"},
+         h |-> {"k"}, k |-> {}]
+Cut == [r |-> {"a", "h"}, a |-> {}, b |-> {}, g |-> {}, n |-> {"a"},
+        h |-> {}, k |-> {}]
 
 VARIABLES
   gen,       \* "open", "sweeping" or "settled"
-  stored,    \* blocks with a child list
+  stored,    \* blocks with a child list, bytes or not
   verified,  \* stored blocks whose list was written from content
   front,     \* blocks the walk still has to decode
   seeded,    \* the roots' blocks were pushed onto the front
@@ -70,6 +84,10 @@ Present(b) == b \in stored /\ ~Hidden(b)
 
 Unverified(S) == {b \in S : b \in stored /\ b \notin verified}
 
+\* The blocks of S the walk still owes a decode: those without a list from
+\* content, whether or not the Volume stores them.
+Owed(S) == {b \in S : b \notin verified}
+
 RECURSIVE Reach(_)
 Reach(S) ==
   LET next == S \cup UNION {True[b] : b \in S}
@@ -77,7 +95,7 @@ Reach(S) ==
 
 Init ==
   /\ gen = "open"
-  /\ stored = {"r", "a", "b", "g"}
+  /\ stored = {"r", "a", "b", "g", "k"}
   /\ verified = {}
   /\ front = {}
   /\ seeded = FALSE
@@ -90,12 +108,12 @@ Init ==
   /\ txns = 0
 
 \* Verify gives the blocks V lists from content, takes them off the front
-\* and out of the run unless parked, and, while Open, pushes their unverified
-\* children.
+\* and out of the run unless parked, and, while Open, pushes the children
+\* it still owes.
 Verify(V) ==
   /\ verified' = verified \cup V
   /\ front' = (front \ V)
-               \cup (IF gen = "open" THEN Unverified(UNION {True[b] : b \in V}) \ V ELSE {})
+               \cup (IF gen = "open" THEN Owed(UNION {True[b] : b \in V}) \ V ELSE {})
   /\ run' = run \ (V \ parked)
 
 \* Put writes b from its content. A block without a list, or a hidden one,
@@ -112,7 +130,7 @@ Put(b) ==
        ELSE /\ stored' = stored \cup {b}
             /\ verified' = verified \cup {b}
             /\ front' = (front \ {b})
-                         \cup (IF gen = "open" THEN Unverified(True[b]) ELSE {})
+                         \cup (IF gen = "open" THEN Owed(True[b]) ELSE {})
             /\ parked' = parked \ {b}
             /\ unmarked' = unmarked \ {b}
             /\ run' = IF gen = "sweeping" THEN run ELSE run \ {b}
@@ -126,7 +144,7 @@ Move(t) ==
   /\ t # root
   /\ Present(t)
   /\ root' = t
-  /\ front' = IF gen = "open" THEN front \cup Unverified({t}) ELSE front
+  /\ front' = IF gen = "open" THEN front \cup Owed({t}) ELSE front
   /\ txns' = txns + 1
   /\ UNCHANGED <<gen, stored, verified, seeded, run, complete, parked, unmarked, fmt>>
 
@@ -136,16 +154,27 @@ Seed ==
   /\ gen = "open"
   /\ ~seeded
   /\ seeded' = TRUE
-  /\ front' = front \cup Unverified({root})
+  /\ front' = front \cup Owed({root})
   /\ UNCHANGED <<gen, stored, verified, run, complete, parked, unmarked, root, fmt, txns>>
 
+\* Walk decodes a front block. A present block's list is verified. An
+\* absent block that a peer's read resolves gets its list from content
+\* without its bytes, while Open. A hidden block leaves, since the run holds it and an
+\* unpark returns it. A block nothing holds leaves as the free proof pops
+\* it; any other absent block stays.
 Walk(b) ==
   /\ b \in front
-  /\ IF b \in stored /\ ~Hidden(b)
-       THEN Verify({b})
-       ELSE /\ front' = front \ {b}
-            /\ UNCHANGED <<verified, run>>
-  /\ UNCHANGED <<gen, stored, seeded, complete, parked, unmarked, root, fmt, txns>>
+  /\ CASE b \in stored /\ ~Hidden(b) ->
+            /\ Verify({b})
+            /\ UNCHANGED stored
+       [] gen = "open" /\ b \notin stored /\ ~(Lost /\ b = "h") ->
+            /\ stored' = stored \cup {b}
+            /\ Verify({b})
+       [] Hidden(b) \/ Count(b) = 0 ->
+            /\ front' = front \ {b}
+            /\ UNCHANGED <<stored, verified, run>>
+       [] OTHER -> FALSE
+  /\ UNCHANGED <<gen, seeded, complete, parked, unmarked, root, fmt, txns>>
 
 BuildRun ==
   /\ gen = "open"
@@ -175,7 +204,7 @@ Unpark(b) ==
   /\ Count(b) > 0
   /\ parked' = parked \ {b}
   /\ run' = IF b \in verified THEN run \ {b} ELSE run
-  /\ front' = front \cup Unverified({b})
+  /\ front' = front \cup Owed({b})
   /\ UNCHANGED <<gen, stored, verified, seeded, complete, unmarked, root, fmt, txns>>
 
 Flip ==
@@ -220,8 +249,9 @@ Spec ==
   /\ WF_vars(Seed) /\ WF_vars(BuildRun) /\ WF_vars(Flip) /\ WF_vars(Settle)
   /\ \A b \in Blocks : WF_vars(Walk(b)) /\ WF_vars(Unpark(b)) /\ WF_vars(Sweep(b))
 
-\* Every block the root reaches through its content is stored.
-LiveStored == Reach({root}) \subseteq stored
+\* Every block the root reaches through its content is stored, except the
+\* block the Volume lacks.
+LiveStored == Reach({root}) \ {"h"} \subseteq stored
 
 \* The root's block reads present.
 HeldPresent == ~Hidden(root)
