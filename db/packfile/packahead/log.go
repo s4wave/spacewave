@@ -172,7 +172,7 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		return err
 	}
 
-	// Remove a pack with no good batch: no write in it was acknowledged.
+	// Remove a pack with no good batch. No append waiter survives Open.
 	if len(entries) == 0 {
 		_ = f.Close()
 		if err := os.Remove(path); err != nil { // #nosec G703 -- a pack name listed in the caller's directory.
@@ -217,7 +217,7 @@ func (l *Log) loadPack(seq uint64, path, id string) error {
 	}
 
 	// Locate the values and rebuild the bloom filter the upload sends.
-	p := &pack{seq: seq, path: path, f: f, state: packFinal, id: id, written: info.Size(), synced: info.Size(), blocks: len(index)}
+	p := &pack{seq: seq, path: path, f: f, state: packFinal, id: id, written: info.Size(), blocks: len(index)}
 	bf := writer.DefaultPolicy().NewBloomFilter(uint64(len(index)))
 	for _, e := range index {
 		bf.Add(e.GetKey())
@@ -255,7 +255,7 @@ func (l *Log) createPack(seq uint64) (*pack, error) {
 // not shared the Log.
 func (l *Log) applyFinal(p *pack, fin *finalized) {
 	p.state, p.id, p.path = packFinal, fin.id, fin.path
-	p.written, p.synced, p.blocks, p.bloom = fin.size, fin.size, fin.blocks, fin.bloom
+	p.written, p.synced, p.blocks, p.bloom = fin.size, fin.dataEnd, fin.blocks, fin.bloom
 }
 
 // Append writes blocks and returns once every one is durable in a local
@@ -538,7 +538,9 @@ func (l *Log) failLocked(p *pack, err error) {
 	l.forgetTruncatedLocked(p, p.synced)
 }
 
-// waitSynced returns once p is durable through end. The first waiter to find
+// waitSynced returns success only for bytes in the durable batch prefix that
+// the pack will upload. Recovery retracts that prefix before discarding bytes,
+// and finalization never counts index bytes toward it. The first waiter to find
 // no sync running runs one covering every batch written so far, and the rest
 // wait for it.
 func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
@@ -974,12 +976,13 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 		if err != nil {
 			return poison(err)
 		}
+		// A finalization retry must use the same recovered bytes and offsets.
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			p.entries = entries
+			p.buf, p.entries, p.written = data, entries, int64(len(data))
 		})
 	}
 
-	// A pack with no good batch holds no acknowledged write: remove it.
+	// A pack with no good batch has nothing to finalize.
 	if len(entries) == 0 {
 		return l.dropEmpty(p)
 	}
