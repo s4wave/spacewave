@@ -6,6 +6,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // recordMagic begins every batch record: "PAH1".
@@ -44,6 +45,8 @@ type entry struct {
 	off int64
 	// size is the value's length.
 	size int64
+	// stripe fences decoded reads when the log loses this location.
+	stripe block.BlockRemovalStripe
 }
 
 // recordLen returns the encoded length of the record for blocks.
@@ -98,6 +101,7 @@ func encodeBatch(dst []byte, start int64, blocks []Block) []entry {
 		keyAt := len(body)
 		body = append(body, b.Key...)
 		entries[i].key = dst[keyAt:len(body):len(body)]
+		entries[i].stripe = block.BlockRemovalStripeForDigest(b.Key)
 		body = protobuf_go_lite.AppendVarint(body, uint64(len(b.Value)))
 	}
 
@@ -174,8 +178,8 @@ func parseRecord(rec []byte, start, total int64) ([]entry, int, int, uint32, int
 		if err != nil || off+int64(size) > int64(end) { //nolint:gosec // bounded by end.
 			return nil, 0, 0, 0, 0, errBadRecord
 		}
-		entries = append(entries, entry{key: key, off: off, size: int64(size)}) //nolint:gosec // bounded by end.
-		off += int64(size)                                                      //nolint:gosec // bounded by end.
+		entries = append(entries, entry{key: key, off: off, size: int64(size), stripe: block.BlockRemovalStripeForDigest(key)}) //nolint:gosec // bounded by end.
+		off += int64(size)                                                                                                      //nolint:gosec // bounded by end.
 	}
 	if len(body) != 0 || off != int64(end) { //nolint:gosec // end is bounded by the pack.
 		return nil, 0, 0, 0, 0, errBadRecord

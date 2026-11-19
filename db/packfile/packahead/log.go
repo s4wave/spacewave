@@ -470,14 +470,9 @@ func (l *Log) holdsLocked(t keyTail) bool {
 	return ok && !loc.p.poisoned
 }
 
-// dropLocationLocked drops the table's current location for t. Advancing
-// the decoded cache's removal generation under bcast, before the location
-// becomes unreadable, fences both existing entries and in-flight reads.
+// dropLocationLocked forgets the table's current location for t. The caller
+// holds bcast and fences decoded reads before releasing it.
 func (l *Log) dropLocationLocked(t keyTail, loc location) {
-	// Invalidate every ref that could have read this location.
-	block.InvalidateRemovedBlockDigest(t[:])
-
-	// Forget the location and its deferred removal.
 	delete(loc.p.removed, t)
 	delete(l.table, t)
 }
@@ -518,6 +513,7 @@ func (l *Log) writeBatch(p *pack, batch []Block) (int64, error) {
 			p.keyBytes += int64(len(e.key))
 			t := tailOf(e.key)
 			if loc, ok := l.table[t]; ok {
+				block.InvalidateRemovedBlockStripe(e.stripe)
 				l.dropLocationLocked(t, loc)
 			}
 			l.table[t] = location{p: p, off: uint32(e.off), size: uint32(e.size)} //nolint:gosec // bounded by the pack size.
@@ -765,10 +761,13 @@ func (l *Log) Remove(key []byte) {
 		return
 	}
 
+	// Prepare the stripe before taking the lock shared with reads and writes.
+	t := tailOf(key)
+	stripe := block.BlockRemovalStripeForDigest(key)
+
 	// Drop the location now if its pack uploaded, or defer to the upload.
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		// A missed location has nothing to remove.
-		t := tailOf(key)
 		loc, ok := l.table[t]
 		if !ok {
 			return
@@ -776,15 +775,16 @@ func (l *Log) Remove(key []byte) {
 
 		// An uploaded pack can release its location now.
 		if loc.p.uploaded {
+			block.InvalidateRemovedBlockStripe(stripe)
 			l.dropLocationLocked(t, loc)
 			return
 		}
 
 		// Remember the deferred removal in the pack that holds it.
 		if loc.p.removed == nil {
-			loc.p.removed = make(map[keyTail]struct{})
+			loc.p.removed = make(map[keyTail]block.BlockRemovalStripe)
 		}
-		loc.p.removed[t] = struct{}{}
+		loc.p.removed[t] = stripe
 	})
 }
 
@@ -1045,12 +1045,19 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 // forgetTruncatedLocked drops the locations in a pack's discarded suffix.
 // The caller holds bcast.
 func (l *Log) forgetTruncatedLocked(p *pack, end int64) {
+	// Forget the locations that still point at bytes in the discarded suffix.
+	var removals block.BlockRemovalBatch
 	for i := len(p.entries) - 1; i >= 0 && p.entries[i].off >= end; i-- {
-		t := tailOf(p.entries[i].key)
+		e := p.entries[i]
+		t := tailOf(e.key)
 		if loc, ok := l.table[t]; ok && loc.p == p && loc.end() > end {
+			removals.Add(e.stripe)
 			l.dropLocationLocked(t, loc)
 		}
 	}
+
+	// Fence the removed locations before unlocking or truncating the file.
+	removals.Publish()
 }
 
 // locateRecoveredLocked locates the values recovery kept in pack p that the

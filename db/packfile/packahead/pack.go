@@ -12,6 +12,7 @@ import (
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile/writer"
 )
@@ -77,7 +78,7 @@ type pack struct {
 	uploaded bool
 	// removed tracks locations freed before upload. They remain readable
 	// until upload and a put can revive them.
-	removed map[keyTail]struct{}
+	removed map[keyTail]block.BlockRemovalStripe
 	// renamed is what finalize made of the pack once its rename succeeded,
 	// so a retry after a failed directory sync only syncs the directory. Only
 	// the goroutine finalizing the pack uses it.
