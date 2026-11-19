@@ -20,9 +20,10 @@ const scanChunk = 1 << 20
 // never truncates, finalizes or removes the pack, so the bytes past that
 // offset stay for the caller to report. It holds one record of at most
 // maxBytes and one value at a time, and checks a batch's values against the
-// record's checksum of them before passing any to fn. A finalized pack keeps
-// its batch records, so its values read this way too. fn must copy what it
-// keeps.
+// record's checksum of them before passing any to fn. It steps over a skip
+// record, the seal recovery writes over a damaged batch, as Open does. A
+// finalized pack keeps its batch records, so its values read this way too. fn
+// must copy what it keeps.
 func ScanRecords(ctx context.Context, ra io.ReaderAt, size, maxBytes int64, fn func(key, value []byte) error) (int64, error) {
 	var at int64
 	for size-at >= recordHeaderLen+recordFixedBody+recordTrailerLen {
@@ -47,6 +48,10 @@ func ScanRecords(ctx context.Context, ra io.ReaderAt, size, maxBytes int64, fn f
 			return at, errors.Wrap(err, "read batch record")
 		}
 		entries, _, n, dataCRC, end, err := parseRecord(rec, at, size-at)
+		if err == errSkippedRecord {
+			at = end
+			continue
+		}
 		if err != nil {
 			break
 		}

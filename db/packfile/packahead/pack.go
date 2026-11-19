@@ -247,12 +247,11 @@ func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, erro
 }
 
 // recoverFile reads an unfinalized pack, keeps the batches scan verifies at
-// their original offsets, and truncates the tail after the last one. Before
-// truncating, publish removes discarded locations from a live Log.
+// their original offsets, and truncates the tail after the last one. It syncs
+// any repairs made by scan together with the truncation before returning.
 func (p *pack) recoverFile(
 	sync func(*os.File) error,
-	scan func([]byte) ([]entry, int64, bool),
-	publish func([]entry, int64, bool),
+	scan func([]byte) ([]entry, int64, bool, error),
 ) ([]byte, []entry, error) {
 	// Read the whole file: a pack is bounded by MaxPackBytes.
 	info, err := p.f.Stat()
@@ -265,14 +264,21 @@ func (p *pack) recoverFile(
 	}
 
 	// Keep the batches whose records and values both check, and drop the rest.
-	entries, end, damaged := scan(data)
-	publish(entries, end, damaged)
+	entries, end, changed, err := scan(data)
+	if err != nil {
+		return nil, nil, err
+	}
 	if end < info.Size() {
 		if err := p.f.Truncate(end); err != nil {
 			return nil, nil, errors.Wrap(err, "truncate pack")
 		}
+		changed = true
+	}
+
+	// Reopening the old name must see the same verified boundaries.
+	if changed {
 		if err := sync(p.f); err != nil {
-			return nil, nil, errors.Wrap(err, "sync truncated pack")
+			return nil, nil, errors.Wrap(err, "sync recovered pack")
 		}
 	}
 	return data[:end], entries, nil
@@ -287,4 +293,40 @@ func readAtFull(f io.ReaderAt, buf []byte, off int64) error {
 		return nil
 	}
 	return err
+}
+
+// sealRecoveryGaps repairs only discarded batches before the last kept batch.
+// It changes no kept record or value. The caller syncs the pack before making
+// the recovered locations available.
+func (p *pack) sealRecoveryGaps(data []byte, original, kept []entry, keptEnd int64) (bool, error) {
+	// Walk only boundaries the writer recorded, including across adjacent gaps.
+	var changed bool
+	for len(original) != 0 {
+		n, start, end := firstBatchExtent(original)
+		original = original[n:]
+		if end > keptEnd {
+			break
+		}
+		if len(kept) != 0 && kept[0].batch == start {
+			kept = kept[n:]
+			continue
+		}
+
+		// Keep existing framing when startup can already skip the batch.
+		// A previous attempt may have written its skip record before failing.
+		if _, next, err := decodeBatch(data[:end], start); err != nil && next == end {
+			changed = changed || err == errSkippedRecord
+			continue
+		}
+
+		// Seal this gap without moving any later batch. The old bytes behind
+		// the skip record remain opaque to startup and to the final index.
+		rec := encodeSkipRecord(start, end)
+		if _, err := p.f.WriteAt(rec[:], start); err != nil {
+			return false, errors.Wrap(err, "write pack skip record")
+		}
+		copy(data[start:], rec[:])
+		changed = true
+	}
+	return changed, nil
 }
