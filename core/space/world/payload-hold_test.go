@@ -17,7 +17,6 @@ import (
 	"github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	bquad "github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
@@ -75,36 +74,6 @@ func TestPayloadHoldCoversUnappliedOps(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Write a regeneration's quad list in the World's encoding, under a stage
-	// of its own.
-	listStage, releaseList, err := block.OpenStage(ctx, store)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer releaseList()
-	storage, err := eng.BuildStorageCursor(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer storage.Release()
-	ltx, lcs := storage.BuildTransactionWithStore(nil, listStage)
-	if err := space_world.WriteQuadList(ctx, lcs, func(cb func(*bquad.Quad) error) error {
-		return cb(world.GraphQuadToQuad(world.NewGraphQuadWithKeys("plugin-object", "<p>", "plugin-object", "")))
-	}); err != nil {
-		t.Fatal(err)
-	}
-	list, _, err := ltx.Write(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	regen, err := (&space_world.WorldOp{Body: &space_world.WorldOp_RegenerateWorld{RegenerateWorld: &space_world.RegenerateWorldOp{
-		Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH,
-		Quads:  list,
-	}}}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// Add the device's operations in one state change: n creates naming a
 	// payload each, an operation only the plugin resolves, and n more.
 	keys := []string{"plugin-object"}
@@ -117,7 +86,7 @@ func TestPayloadHoldCoversUnappliedOps(t *testing.T) {
 					OperationTypeId: world_mock.MockWorldOpTypeID,
 					OperationBody:   marshalOp(t, world_mock.NewMockWorldOp("plugin-object", "hello")),
 				},
-			}), regen)
+			}))
 		}
 		key := "payload-" + strconv.Itoa(i)
 		keys = append(keys, key)
@@ -169,7 +138,6 @@ func TestPayloadHoldCoversUnappliedOps(t *testing.T) {
 	if err := store.SetRoots(ctx, nil, []block.NamedRoot{{Name: "test-stage", Previous: stageRef}}); err != nil {
 		t.Fatal(err)
 	}
-	releaseList()
 	f.collect(t)
 	requirePayloads := func(step string) {
 		t.Helper()
@@ -180,13 +148,9 @@ func TestPayloadHoldCoversUnappliedOps(t *testing.T) {
 		}
 	}
 	requirePayloads("after the stage released")
-	if _, found, err := store.GetBlock(ctx, list); err != nil || !found {
-		t.Fatalf("after the stage released: quad list freed: %v, %v", found, err)
-	}
 
 	// Register the plugin: replay applies every operation. The World then
-	// holds each transaction's payload; the quad list's quads are in the
-	// World, so the list itself may go.
+	// holds each transaction's payload.
 	close(start)
 	waitObjects(ctx, t, eng, keys...)
 	f.collect(t)

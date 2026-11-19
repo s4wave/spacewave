@@ -7,10 +7,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	bquad "github.com/s4wave/spacewave/db/block/quad"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -152,35 +154,30 @@ func (e *Engine) StepGraphSettings(ctx context.Context, target *world_block.Grap
 
 // RegenerateWorld moves the World to target through the Space's order, as
 // world_block.WorldRegenerator says, and waits for the outcome. To the node
-// graph it orders a pin, which adds the quads of the quad list at quads to
-// the kv World, waits until this device built the pin off the replay path,
-// and orders the switch, which every replica, this one included, applies by
-// carrying its build of the pin forward to the head; the writers wait only
-// for that carry. A refusal returns sobject.ErrRejectedOp.
-// The Space holds the list from before the operation is queued until its
-// checkpoint passes the operation, as it holds a transaction's payloads, so
-// the caller must hold the list, as an open stage does, until RegenerateWorld
-// returns; a list nothing holds is refused with block.ErrRootNotHeld.
+// graph it first sets the quads of the quad list at quads in the kv World as
+// ordinary bounded writes, then orders a pin of the World, waits until this
+// device built the pin off the replay path, and orders the switch, which every
+// replica, this one included, applies by carrying its build of the pin forward
+// to the head; the writers wait only for one bounded write or that carry. A
+// refusal returns sobject.ErrRejectedOp. The caller must hold the list, as an
+// open stage does, until RegenerateWorld returns.
 func (e *Engine) RegenerateWorld(ctx context.Context, target world_block.WorldFormat, quads *block.BlockRef) error {
 	// A switch back is one operation.
 	if target != world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH {
 		return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: &RegenerateWorldOp{Target: target}}})
 	}
 
-	// Pin the World with the carried quads, wait for this device's build of
-	// the pin, and switch to it. A head that moved too far, or a pin another
-	// device moved, pins again with no quads, since the first pin committed
-	// them.
+	// Set the carried quads, then pin the World, wait for this device's build
+	// of the pin, and switch to it. A head that moved too far, or a pin
+	// another device moved, pins again.
+	if err := e.writeCarriedQuads(ctx, quads); err != nil {
+		return err
+	}
 	for try := 0; ; try++ {
-		var payloads []*block.BlockRef
-		if !quads.GetEmpty() {
-			payloads = []*block.BlockRef{quads}
-		}
-		pinOp := &RegenerateWorldOp{Target: target, Quads: quads}
-		if err := e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: pinOp}}, payloads...); err != nil {
+		pinOp := &RegenerateWorldOp{Target: target}
+		if err := e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: pinOp}}); err != nil {
 			return err
 		}
-		quads = nil
 		res, err := e.a.regenBuild.waitPinned(ctx)
 		if err != nil {
 			return err
@@ -213,6 +210,71 @@ func (e *Engine) RegenerateWorld(ctx context.Context, target world_block.WorldFo
 // maxRegenPins bounds the pins RegenerateWorld writes before it returns the
 // switch's refusal.
 const maxRegenPins = 3
+
+// regenCarryQuads bounds the quads one write of RegenerateWorld's carried
+// quads sets, so that no write holds the writers longer than a graph settings
+// step. On thumper (TestRegenerateWorldStallBound, -regen-bound, 65,536 quads)
+// one write held a concurrent write about 28 ms plus 38 us a quad: 1,024
+// quads held it at most 141 ms where the run's 65,536-link step took 129 ms,
+// and 1,536 held it 177 ms against 141 ms.
+const regenCarryQuads = 1024
+
+// writeCarriedQuads sets the quads of the quad list at quads in the World as
+// ordinary writes through the Space's order, each of at most regenCarryQuads
+// quads and sobject.MaxBatchSize bytes, in list order. Between writes it
+// yields to this device's writers. A user's write ordered between two of them
+// stands, as one ordered before or after the regeneration does. A list
+// another regeneration already set adds nothing, since a write skips the
+// quads the World holds.
+func (e *Engine) writeCarriedQuads(ctx context.Context, quads *block.BlockRef) error {
+	// An empty list carries nothing.
+	if quads.GetEmpty() {
+		return nil
+	}
+
+	// flush writes the batch gathered so far, after this device's waiting
+	// writers.
+	var txs []*world_block_tx.Tx
+	var size int
+	flush := func() error {
+		// Skip an empty batch, and let the waiting writers go first.
+		if len(txs) == 0 {
+			return nil
+		}
+		if err := e.a.turns.Yield(ctx); err != nil {
+			return err
+		}
+		tx, err := world_block_tx.NewTxBatch(&world_block_tx.TxBatch{Txs: txs})
+		if err != nil {
+			return err
+		}
+		txs, size = nil, 0
+		return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_ApplyTxOp{ApplyTxOp: &ApplyTxOp{Tx: tx}}})
+	}
+
+	// Gather the list into batches within both bounds, writing each full one,
+	// then the rest. A quad's size counts its entry's tag and length too.
+	_, bcs := e.cursor.BuildTransactionAtRef(nil, quads)
+	err := RangeQuadList(ctx, bcs, func(q *bquad.Quad) error {
+		// Write the batch first when this quad would overfill it.
+		tx, err := world_block_tx.NewTxSetGraphQuad(q)
+		if err != nil {
+			return err
+		}
+		n := tx.SizeVT() + 8
+		if len(txs) == regenCarryQuads || size+n > sobject.MaxBatchSize {
+			if err := flush(); err != nil {
+				return err
+			}
+		}
+		txs, size = append(txs, tx), size+n
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return flush()
+}
 
 // CompareWorldRegen compares the old World a regeneration holds with the new
 // one on this device, off replay, and releases nothing.

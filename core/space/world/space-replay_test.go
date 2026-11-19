@@ -1,7 +1,6 @@
 package space_world
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"slices"
@@ -13,8 +12,6 @@ import (
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/blob"
-	bquad "github.com/s4wave/spacewave/db/block/quad"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
@@ -22,9 +19,8 @@ import (
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
-	"github.com/s4wave/spacewave/net/hash"
+	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/encoding/protowire"
 )
 
 // newWorldReplay returns a transient replay over an in-memory Volume that
@@ -268,23 +264,24 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 		return errors.Join(btx.SetGraphQuad(ctx, link("a", "p", "b")), btx.SetGraphQuad(ctx, link("a", "p", "c")))
 	})
 
-	// Carry a quad the World holds and one it lacks.
-	carried := []*bquad.Quad{world.GraphQuadToQuad(link("a", "p", "b")), world.GraphQuadToQuad(link("a", "q", "b"))}
-	slices.SortFunc(carried, CompareQuads)
-	list := writeQuadListOn(ctx, t, r, carried)
-	forward := &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Quads: list}
-
-	// A step that cannot finish stops replay and refuses nothing.
-	canceled, cancel := context.WithCancel(ctx)
-	cancel()
-	if _, reason, err := r.applyRegenerateWorld(canceled, forward, kv); reason != "" || !isReplayGap(err) {
-		t.Fatalf("a canceled regeneration returned reason %q and error %v, want a replay gap", reason, err)
-	}
+	// Carry a quad the World holds and one it lacks, as the engine writes
+	// them before the pin.
+	uncarried := kv
+	kv = carryOn(ctx, t, r, kv, link("a", "p", "b"), link("a", "q", "b"))
 
 	// Pin and switch: the node graph holds every record and quad, and the
 	// carried one, with the head at the switch as base and built held and
 	// the pin released.
-	pinned, graph := regenOn(ctx, t, r, kv, list)
+	pinned, graph := regenOn(ctx, t, r, kv)
+
+	// A switch that cannot finish stops replay and refuses nothing.
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	pinRoot, _, _ := heldRegen(pinned)
+	switchOp := &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Base: pinRoot}
+	if _, reason, err := r.applyRegenerateWorld(canceled, switchOp, pinned); reason != "" || !isReplayGap(err) {
+		t.Fatalf("a canceled switch returned reason %q and error %v, want a replay gap", reason, err)
+	}
 	if got := format(pinned); got != world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV {
 		t.Fatalf("the pinned World is %v", got)
 	}
@@ -309,12 +306,10 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 	// Every replica builds the same World, whether it built the pin ahead
 	// or holds a build of another pin, and none regenerates it twice or
 	// names its roots outside the operation.
-	if _, again := regenOn(ctx, t, r, kv, list); !again.EqualVT(graph) {
+	if _, again := regenOn(ctx, t, r, kv); !again.EqualVT(graph) {
 		t.Fatalf("a second replica's regeneration gave %v", again.GetHeadRef())
 	}
-	pinRoot, _, _ := heldRegen(pinned)
-	r.a.regenBuild.set(&regenBuild{pin: kv.GetHeadRef().GetRootRef(), built: kv.GetHeadRef().GetRootRef()})
-	switchOp := &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Base: pinRoot}
+	r.a.regenBuild.set(&regenBuild{pin: uncarried.GetHeadRef().GetRootRef(), built: uncarried.GetHeadRef().GetRootRef()})
 	if again, reason, err := r.applyRegenerateWorld(ctx, switchOp, pinned); err != nil || reason != "" || !again.EqualVT(graph) {
 		t.Fatalf("a replica holding another pin's build gave %v, %q, %v", again.GetHeadRef(), reason, err)
 	}
@@ -330,11 +325,11 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 
 	// A switch naming another pin is refused; TestRegenerateWorldReplicasWhileWriting
 	// refuses one past the bound.
-	stale := &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Base: kv.GetHeadRef().GetRootRef()}
+	stale := &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Base: uncarried.GetHeadRef().GetRootRef()}
 	if _, reason, _ := r.applyRegenerateWorld(ctx, stale, pinned); reason != reasonRegenPinDiffers {
 		t.Fatalf("a switch naming another pin gave reason %q", reason)
 	}
-	if _, reason, _ := r.applyRegenerateWorld(ctx, forward, graph); reasonCode(reason) != "world regeneration" {
+	if _, reason, _ := r.applyRegenerateWorld(ctx, &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH}, graph); reasonCode(reason) != "world regeneration" {
 		t.Fatalf("a held regeneration's second run gave reason %q", reason)
 	}
 	if _, reason := applySetRetainedRoot(&SetRetainedRootOp{Name: regenBaseName}, graph); reason != reasonReservedRoot {
@@ -378,7 +373,7 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 	}
 
 	// Regenerate again and release: both roots go, and the World stays.
-	_, graph = regenOn(ctx, t, r, back, nil)
+	_, graph = regenOn(ctx, t, r, back)
 	_, base, built = heldRegen(graph)
 	released, reason := applyReleaseWorldRegen(&ReleaseWorldRegenOp{Base: base, Built: built}, graph)
 	if reason != "" {
@@ -392,12 +387,12 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 	}
 }
 
-// regenOn pins prev with the carried quads and switches the pin to the node
-// graph, as every replica applies the two operations.
-func regenOn(ctx context.Context, t *testing.T, r *spaceReplay, prev *InnerState, quads *block.BlockRef) (pinned, graph *InnerState) {
+// regenOn pins prev and switches the pin to the node graph, as every replica
+// applies the two operations.
+func regenOn(ctx context.Context, t *testing.T, r *spaceReplay, prev *InnerState) (pinned, graph *InnerState) {
 	t.Helper()
 	target := world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH
-	pinned, reason, err := r.applyRegenerateWorld(ctx, &RegenerateWorldOp{Target: target, Quads: quads}, prev)
+	pinned, reason, err := r.applyRegenerateWorld(ctx, &RegenerateWorldOp{Target: target}, prev)
 	if err != nil || reason != "" {
 		t.Fatal(reason, err)
 	}
@@ -412,43 +407,34 @@ func regenOn(ctx context.Context, t *testing.T, r *spaceReplay, prev *InnerState
 	return pinned, graph
 }
 
-// writeQuadListOn writes quads, in CompareQuads order, as a quad list in r's
-// store and returns its root.
-func writeQuadListOn(ctx context.Context, t *testing.T, r *spaceReplay, quads []*bquad.Quad) *block.BlockRef {
+// carryOn applies quads to prev as the engine writes carried quads: one
+// transaction batch of graph quad sets, which replay applies in one graph
+// update.
+func carryOn(ctx context.Context, t *testing.T, r *spaceReplay, prev *InnerState, quads ...world.GraphQuad) *InnerState {
 	t.Helper()
-	return writeListOn(ctx, t, r, func(bcs *block.Cursor) error {
-		return WriteQuadList(ctx, bcs, func(cb func(*bquad.Quad) error) error {
-			for _, q := range quads {
-				if err := cb(q); err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-	})
-}
-
-// rawListOn writes data as a quad list blob in r's store and returns its root.
-func rawListOn(ctx context.Context, t *testing.T, r *spaceReplay, data []byte) *block.BlockRef {
-	t.Helper()
-	return writeListOn(ctx, t, r, func(bcs *block.Cursor) error {
-		_, err := blob.BuildBlobWithReader(ctx, bytes.NewReader(data), bcs, nil)
-		return err
-	})
-}
-
-// writeListOn writes a blob with write in r's store and returns its root.
-func writeListOn(ctx context.Context, t *testing.T, r *spaceReplay, write func(*block.Cursor) error) *block.BlockRef {
-	t.Helper()
-	btx, bcs := r.cursor.BuildTransactionWithStore(nil, r.store())
-	if err := write(bcs); err != nil {
-		t.Fatal(err)
+	next, reason, err := r.applyTx(ctx, &ApplyTxOp{Tx: carryTx(t, quads...)}, prev, "")
+	if err != nil || reason != "" {
+		t.Fatal(reason, err)
 	}
-	ref, _, err := btx.Write(ctx, true)
+	return next
+}
+
+// carryTx returns the transaction batch that sets quads in order.
+func carryTx(t *testing.T, quads ...world.GraphQuad) *world_block_tx.Tx {
+	t.Helper()
+	txs := make([]*world_block_tx.Tx, len(quads))
+	for i, q := range quads {
+		tx, err := world_block_tx.NewTxSetGraphQuad(world.GraphQuadToQuad(q))
+		if err != nil {
+			t.Fatal(err)
+		}
+		txs[i] = tx
+	}
+	tx, err := world_block_tx.NewTxBatch(&world_block_tx.TxBatch{Txs: txs})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return ref
+	return tx
 }
 
 // faultStore is a store whose puts fail with a full disk from the failAt-th
@@ -518,27 +504,25 @@ func (s *faultStore) ReleaseRoots(ctx context.Context, roots []*block.BlockRef) 
 
 // TestRegenerateWorldReplicasAgreeThroughFaults runs one regeneration on
 // replicas of one World whose stores spill every page. A replica whose disk
-// fills in the carried-quad commit or partway through the build waits at the
-// operation and refuses nothing, then reaches the healthy replica's World
-// once the disk frees. A quad list every replica reads alike as malformed is
-// refused on each, so replay does not wait at it forever.
+// fills partway through the build waits at the operation and refuses
+// nothing, then reaches the healthy replica's World once the disk frees. A
+// carried quad every replica's World refuses is refused alike on each, so
+// replay does not wait at it forever.
 func TestRegenerateWorldReplicasAgreeThroughFaults(t *testing.T) {
 	ctx := t.Context()
 	link := func(subj, pred, obj string) world.GraphQuad {
 		return world.NewGraphQuadWithKeys(subj, "<"+pred+">", obj, "")
 	}
-	carried := []*bquad.Quad{world.GraphQuadToQuad(link("a", "q", "b"))}
 	conf, err := buildDefaultTransformConf()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Build the same kv World and quad list on each replica.
+	// Build the same kv World, with the carried quad, on each replica.
 	type replica struct {
 		r     *spaceReplay
 		store *faultStore
 		kv    *InnerState
-		list  *block.BlockRef
 	}
 	newReplica := func() *replica {
 		t.Helper()
@@ -553,13 +537,14 @@ func TestRegenerateWorldReplicasAgreeThroughFaults(t *testing.T) {
 		kv = changeOn(ctx, t, r, kv, func(btx *world_block.EngineTx) error {
 			return btx.SetGraphQuad(ctx, link("a", "p", "b"))
 		})
-		return &replica{r: r, store: fs, kv: kv, list: writeQuadListOn(ctx, t, r, carried)}
+		kv = carryOn(ctx, t, r, kv, link("a", "q", "b"))
+		return &replica{r: r, store: fs, kv: kv}
 	}
-	// forward pins the replica's kv World with its list and switches to the
-	// pin, building it inline.
+	// forward pins the replica's kv World and switches to the pin, building
+	// it inline.
 	forward := func(rep *replica) (*InnerState, string, error) {
 		target := world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH
-		pinned, reason, err := rep.r.applyRegenerateWorld(ctx, &RegenerateWorldOp{Target: target, Quads: rep.list}, rep.kv)
+		pinned, reason, err := rep.r.applyRegenerateWorld(ctx, &RegenerateWorldOp{Target: target}, rep.kv)
 		if err != nil || reason != "" {
 			return nil, reason, err
 		}
@@ -575,67 +560,40 @@ func TestRegenerateWorldReplicasAgreeThroughFaults(t *testing.T) {
 		t.Fatal(reason, err)
 	}
 	puts := healthy.store.puts.Load() - before
-	if puts < 2 {
+	if puts < 1 {
 		t.Fatalf("the regeneration put %d times through the spilling store", puts)
 	}
 
-	// A disk that fills at the carried-quad commit's first put, or at the
-	// build's last put, stops replay there; once it frees, the replica
-	// reaches the healthy replica's World.
-	for _, fill := range []struct {
-		name  string
-		at    int64
-		build bool
-	}{{"the carried-quad commit", 1, false}, {"the build", puts, true}} {
-		rep := newReplica()
-		rep.store.failAt.Store(rep.store.puts.Load() + fill.at)
-		_, reason, err := forward(rep)
-		if reason != "" || !isReplayGap(err) || !errors.Is(err, syscall.ENOSPC) {
-			t.Fatalf("a disk full in %s gave reason %q and error %v, want a replay gap", fill.name, reason, err)
-		}
-		var gap *regenGapError
-		if errors.As(err, &gap) != fill.build {
-			t.Fatalf("a disk full in %s failed outside it: %v", fill.name, err)
-		}
-		rep.store.failAt.Store(0)
-		got, reason, err := forward(rep)
-		if err != nil || reason != "" {
-			t.Fatalf("after a disk full in %s, the retry gave %q, %v", fill.name, reason, err)
-		}
-		if !got.EqualVT(want) {
-			t.Fatalf("after a disk full in %s, the replica holds %v, want %v", fill.name, got, want)
-		}
+	// A disk that fills at the build's last put stops replay there; once it
+	// frees, the replica reaches the healthy replica's World.
+	rep := newReplica()
+	rep.store.failAt.Store(rep.store.puts.Load() + puts)
+	_, reason, err = forward(rep)
+	var gap *regenGapError
+	if reason != "" || !errors.As(err, &gap) || !isReplayGap(err) || !errors.Is(err, syscall.ENOSPC) {
+		t.Fatalf("a disk full in the build gave reason %q and error %v, want a replay gap", reason, err)
+	}
+	rep.store.failAt.Store(0)
+	got, reason, err := forward(rep)
+	if err != nil || reason != "" {
+		t.Fatalf("after a disk full in the build, the retry gave %q, %v", reason, err)
+	}
+	if !got.EqualVT(want) {
+		t.Fatalf("after a disk full in the build, the replica holds %v, want %v", got, want)
 	}
 
-	// A malformed list or a quad the World refuses is refused alike on every
-	// replica, with no wait.
-	for _, bad := range []struct {
-		name  string
-		write func(*replica) *block.BlockRef
-	}{
-		{"a truncated entry", func(rep *replica) *block.BlockRef { return rawListOn(ctx, t, rep.r, []byte{5, 1, 2}) }},
-		{"an oversized entry", func(rep *replica) *block.BlockRef {
-			return rawListOn(ctx, t, rep.r, protowire.AppendVarint(nil, maxQuadListEntry+1))
-		}},
-		{"an entry that does not decode", func(rep *replica) *block.BlockRef { return rawListOn(ctx, t, rep.r, []byte{2, 0xff, 0xff}) }},
-		{"a list whose ref does not validate", func(*replica) *block.BlockRef {
-			return &block.BlockRef{Hash: hash.NewHash(hash.HashType_HashType_SHA256, []byte{1, 2, 3})}
-		}},
-		{"a quad without a subject", func(rep *replica) *block.BlockRef {
-			return writeQuadListOn(ctx, t, rep.r, []*bquad.Quad{{Predicate: "<p>", Obj: "<b>"}})
-		}},
-	} {
-		var reasons []string
-		for _, rep := range []*replica{healthy, newReplica()} {
-			op := &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Quads: bad.write(rep)}
-			_, reason, err := rep.r.applyRegenerateWorld(ctx, op, rep.kv)
-			if err != nil || reasonCode(reason) != "world regeneration failed" {
-				t.Fatalf("%s gave reason %q and error %v, want a refusal", bad.name, reason, err)
-			}
-			reasons = append(reasons, reason)
+	// A carried quad the World refuses, in a run of quad sets the batched
+	// path applies, is refused alike on every replica, with no wait.
+	var reasons []string
+	for _, rep := range []*replica{healthy, newReplica()} {
+		bad := []world.GraphQuad{link("a", "r", "b"), world.NewGraphQuad("", "<p>", "<b>", "")}
+		_, reason, err := rep.r.applyTx(ctx, &ApplyTxOp{Tx: carryTx(t, bad...)}, rep.kv, "")
+		if err != nil || reasonCode(reason) != "transaction apply failed" {
+			t.Fatalf("a quad without a subject gave reason %q and error %v, want a refusal", reason, err)
 		}
-		if reasons[0] != reasons[1] {
-			t.Fatalf("%s was refused differently: %q", bad.name, reasons)
-		}
+		reasons = append(reasons, reason)
+	}
+	if reasons[0] != reasons[1] {
+		t.Fatalf("a quad without a subject was refused differently: %q", reasons)
 	}
 }

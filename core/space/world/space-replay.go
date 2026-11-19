@@ -291,10 +291,6 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 		next, reason, err = r.applyGraphSettingsStep(ctx, body.GraphSettingsStep, prev)
 	case *WorldOp_RegenerateWorld:
 		next, reason, err = r.applyRegenerateWorld(ctx, body.RegenerateWorld, prev)
-		if quads := body.RegenerateWorld.GetQuads(); err == nil && reason == "" && !quads.GetEmpty() {
-			// Hold the quad list, which a replica replaying the operation reads.
-			pos.payloads = []*block.BlockRef{quads}
-		}
 	case *WorldOp_ReleaseWorldRegen:
 		next, reason = applyReleaseWorldRegen(body.ReleaseWorldRegen, prev)
 	case *WorldOp_Fence, *WorldOp_RootSet:

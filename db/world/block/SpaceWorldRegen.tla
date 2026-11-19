@@ -10,10 +10,10 @@
 \*
 \* The lifecycle, by the reserved retained roots the checkpoint carries:
 \* - idle: no root is held.
-\* - pinned: a RegenerateWorldOp naming no base applied. It added the carried
-\*   quads to the World before it, in that World's format, and holds the
-\*   result as world-regen/base, the pin. The head stays in the old format.
-\*   A second pin while only a pin is held moves it to the newer World.
+\* - pinned: a RegenerateWorldOp naming no base applied. It holds the World
+\*   before it as world-regen/pin, the pin, which already holds the carried
+\*   quads. The head stays in the old format. A second pin while only a pin
+\*   is held moves it to the newer World.
 \* - building: off the replay path, each replica builds the pin in the new
 \*   format into a prebuilt root it keeps locally and does not persist. A
 \*   crash loses the prebuilt root, and the build resumes in the background
@@ -36,20 +36,23 @@
 \*   held: one ordered before a switch back and a second regeneration must
 \*   not free that regeneration's base, which no comparison passed.
 \*
-\* The pin holds the carried quads, not the World before the operation,
-\* because a switch back from that World loses a write: a write after the
-\* operation that sets a carried quad changes nothing in the new format, so
-\* the diff since built cannot carry it back.
+\* The carried quads reach the World as ordinary writes, each bounded, that
+\* the engine orders before the pin, so no step that carries them holds
+\* replay longer than one write. The pin then carries nothing: a delete
+\* ordered between two of those writes, or between them and the pin, stands
+\* as any write does, and the switch's diff is what it would be had the pin
+\* carried them.
 \*
 \* A World's content is a set of items, object records and quads alike. A
-\* write adds or deletes one item. Carry is the set the operation carries,
-\* which may hold items the World already holds. Bound is the largest count
-\* of item changes a switch applies.
+\* write adds or deletes one item. Carry is the set the engine writes before
+\* the pin, which may hold items the World already holds. Bound is the
+\* largest count of item changes a switch applies.
 \*
 \* Actors:
 \* - Proposers: modeled. Any device appends any operation to the order at any
-\*   time, so a write, a pin, a switch, a switch back or a release can follow
-\*   every state of every replica. A switch names a pin some replica held.
+\*   time, so a write, a carried quad's write, a pin, a switch, a switch back
+\*   or a release can follow every state of every replica. A switch names a
+\*   pin some replica held.
 \* - Replicas: modeled, two. Each applies the order in sequence. An inline
 \*   build commits its result with the replay cursor in one step; a crash
 \*   during it loses only the build.
@@ -150,6 +153,12 @@ ProposeWrite ==
     /\ Propose([t |-> "write", i |-> i, add |-> add])
     /\ UNCHANGED faulted
 
+\* The engine writes a carried quad as an ordinary write before the pin.
+ProposeCarry ==
+  \E i \in Carry :
+    /\ Propose([t |-> "write", i |-> i, add |-> TRUE])
+    /\ UNCHANGED faulted
+
 ProposePin ==
   \E skip \in (IF Faults THEN 0..N ELSE {0}), bad \in BOOLEAN :
     /\ Propose([t |-> "pin", skip |-> skip, bad |-> bad])
@@ -234,22 +243,18 @@ Refuse(r) ==
   /\ UNCHANGED <<log, world, pin, prebuilt, base, built, phase, pending, full,
                  crashes, stall, exp, faulted>>
 
-\* Pin the World before plus the carried quads, in the old format; a pin
-\* while only a pin is held moves it.
+\* Pin the World before, in the old format; a pin while only a pin is held
+\* moves it. The World and what the operations define stay as they were.
 ApplyPin(r) ==
-  LET op == Next1(r)
-      old == world[r].items \cup Carry
-  IN
+  LET op == Next1(r) IN
   /\ At(r, "pin")
   /\ ~PinRefused(r)
   /\ ~op.bad
-  /\ world' = [world EXCEPT ![r].items = old]
-  /\ pin' = [pin EXCEPT ![r] = [fmt |-> "old", items |-> old, skip |-> op.skip]]
-  /\ exp' = [exp EXCEPT ![r] = @ \cup Carry]
+  /\ pin' = [pin EXCEPT ![r] = [fmt |-> "old", items |-> world[r].items, skip |-> op.skip]]
   /\ pending' = [pending EXCEPT ![r] = TRUE]
   /\ Done(r, "applied")
-  /\ UNCHANGED <<log, prebuilt, base, built, phase, full, crashes, stall,
-                 faulted>>
+  /\ UNCHANGED <<log, world, prebuilt, base, built, phase, full, crashes,
+                 stall, exp, faulted>>
 
 \* The background builder builds the current pin off the replay path. It
 \* reads only the pin, so replay goes on beside it.
@@ -417,18 +422,19 @@ Terminated ==
 
 Next ==
   \/ Terminated
-  \/ ProposeWrite \/ ProposePin \/ ProposeSwitch \/ ProposeBack
+  \/ ProposeWrite \/ ProposeCarry \/ ProposePin \/ ProposeSwitch
+  \/ ProposeBack
   \/ ProposeRelease
   \/ \E r \in Replicas :
        \/ Replay(r) \/ BuildOffPath(r) \/ Crash(r) \/ Recover(r) \/ Fill(r)
        \/ Free(r) \/ Install(r) \/ Sweep(r)
 
 \* A state constraint for the stale configuration: the order carries no
-\* writes and no malformed pin, so six operations reach a release ordered
-\* after a switch back and a second regeneration.
+\* writes but the carried quads' and no malformed pin, so seven operations
+\* reach a release ordered after a switch back and a second regeneration.
 RegenOnly ==
   \A i \in 1..Len(log) :
-    /\ log[i].t # "write"
+    /\ log[i].t = "write" => log[i].i \in Carry /\ log[i].add
     /\ log[i].t = "pin" => ~log[i].bad
 
 Spec ==

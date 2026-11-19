@@ -138,9 +138,9 @@ message WorldOp {
 
 // RegenerateWorldOp rebuilds the World in the target format. To the node
 // graph from cayley_kv it runs in two steps, so each replica builds off its
-// replay path. With base empty it pins: it adds the carried quads to the
-// World and holds the result as world-regen/pin, moving a pin already held;
-// each replica then builds the pin as a node graph in the background. With
+// replay path. With base empty it pins: it holds the World as
+// world-regen/pin, moving a pin already held; each replica then builds the
+// pin as a node graph in the background. With
 // base naming the held pin it switches: within the bound on the quad changes
 // from the pin to the head, it carries the pin's build forward by them,
 // installs the result, holds the head before as world-regen/base and the
@@ -151,10 +151,9 @@ message WorldOp {
 message RegenerateWorldOp {
   // Target is the format to rebuild into.
   .world.block.WorldFormat target = 1;
-  // Quads is the root of a quad list a pin adds before the build, or empty.
-  // The list is uvarint-length-prefixed block/quad.Quad messages in a blob,
-  // sorted as CompareQuads orders them.
-  .block.BlockRef quads = 2;
+  // Field 2 held a quad list the pin added; the engine writes those quads
+  // as ordinary transactions before the pin instead.
+  reserved 2;
   // Base is the pin a switch builds from, or empty for a pin.
   .block.BlockRef base = 3;
 }

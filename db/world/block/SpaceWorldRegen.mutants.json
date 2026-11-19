@@ -109,7 +109,7 @@
         "  \\/ Cardinality(Diff(prebuilt[r].items, world[r].items)) > Bound\n"
       ]
     ],
-    "expect": "WithinBound"
+    "expect": "Agree"
   },
   {
     "name": "The switch uses a prebuilt root of a moved pin",
