@@ -21,9 +21,8 @@ var Version = controller.MustParseVersion("0.0.1")
 // ControllerID is the ID of the controller.
 const ControllerID = "forge/worker"
 
-// Controller implements the Worker controller.
-// The Worker processes objects assigned to its peer IDs.
-// Manages: Cluster, Task, Pass, Execution
+// Controller implements the Worker controller. The Worker processes the
+// objects assigned to its keypairs: Clusters, Tasks, Passes and Executions.
 type Controller struct {
 	// le is the root logger
 	le *logrus.Entry
@@ -39,8 +38,6 @@ type Controller struct {
 
 	// objLoop watches the object for changes
 	objLoop *world_control.WatchLoop
-	// keypairTrackers watches the list of keypairs for changes.
-	keypairTrackers *keyed.Keyed[string, *keypairTracker]
 	// objectTrackers manages the list of object tracker routines.
 	objectTrackers *keyed.Keyed[string, *objectTracker]
 }
@@ -65,7 +62,6 @@ func NewController(
 		c.objKey,
 		c.ProcessState,
 	)
-	c.keypairTrackers = keyed.NewKeyedWithLogger(c.newKeypairTracker, le)
 	c.objectTrackers = keyed.NewKeyedWithLogger(c.newObjectTracker, le)
 	return c
 }
@@ -107,11 +103,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	)
 }
 
-// Wake notifies the controller it should re-scan for objects.
-func (c *Controller) Wake() {
-	c.objLoop.Wake()
-}
-
 // Execute executes the controller.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
@@ -120,9 +111,8 @@ func (c *Controller) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	// Start each tracker set before running the World watch loop.
+	// Start the object trackers before running the World watch loop.
 	c.objectTrackers.SetContext(ctx, true)
-	c.keypairTrackers.SetContext(ctx, true)
 	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		c.bus,
