@@ -473,13 +473,15 @@ func TestReplayWaitsAtAnUnreadableWrite(t *testing.T) {
 		t.Fatal("the replayed carry write reached another World than its writer")
 	}
 
-	// A transaction type this build does not declare waits, alone or batched.
+	// A transaction type this build does not declare waits, alone, batched,
+	// or in a batch inside a batch.
 	unknown := &world_block_tx.Tx{TxType: 99}
-	batched := &world_block_tx.Tx{
-		TxType:  world_block_tx.TxType_TxType_BATCH,
-		TxBatch: &world_block_tx.TxBatch{Txs: []*world_block_tx.Tx{carryTx(quads...), unknown}},
+	batch := func(txs ...*world_block_tx.Tx) *world_block_tx.Tx {
+		return &world_block_tx.Tx{TxType: world_block_tx.TxType_TxType_BATCH, TxBatch: &world_block_tx.TxBatch{Txs: txs}}
 	}
-	for _, tx := range []*world_block_tx.Tx{unknown, batched} {
+	batched := batch(carryTx(quads...), unknown)
+	nested := batch(carryTx(quads...), batch(unknown))
+	for _, tx := range []*world_block_tx.Tx{unknown, batched, nested} {
 		next, reason, err := r.applyTx(ctx, &ApplyTxOp{Tx: tx}, base, "")
 		if next != nil || reason != "" || !errors.Is(err, ErrUnreadableOp) {
 			t.Fatalf("unknown transaction type = %v, %q, %v, want ErrUnreadableOp", next, reason, err)

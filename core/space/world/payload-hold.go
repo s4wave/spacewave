@@ -223,15 +223,25 @@ func (a *Adapter) resolveOpHold(ctx context.Context, snap sobject.SharedObjectSt
 	}
 
 	// Read the roots the transaction names and the handlers that name them.
+	op, known := a.txHold(ctx, tx)
+	return op, known, nil
+}
+
+// txHold reads the roots tx names and the handlers that name them. known is
+// false when a type of tx, or its handler's version, does not resolve yet,
+// such as a transaction type this build does not declare, and the hold then
+// has only the roots read without it.
+func (a *Adapter) txHold(ctx context.Context, tx *world_block_tx.Tx) (opHold, bool) {
+	// Read the roots, then the handlers that name them.
 	refs, err := tx.PayloadRefs(ctx, a.lookupOp)
 	if err != nil {
-		return opHold{refs: refs}, false, nil
+		return opHold{refs: refs}, false
 	}
 	handlers, err := a.payloadHandlers(ctx, tx)
 	if err != nil {
-		return opHold{refs: refs}, false, nil
+		return opHold{refs: refs}, false
 	}
-	return newOpHold(refs, handlers), true, nil
+	return newOpHold(refs, handlers), true
 }
 
 // txPayloads returns the payload roots of tx, the transaction of the

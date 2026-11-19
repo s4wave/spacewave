@@ -142,7 +142,8 @@ const PayloadRefsVersion uint32 = 1
 // does not reach them. When an operation does not decode, such as one whose
 // type lookupOp does not resolve yet, it returns the error with every root it
 // read without decoding: the object roots of each transaction, so a hold of
-// those keeps them until the type resolves and names the rest.
+// those keeps them until the type resolves and names the rest. A transaction
+// type this build does not declare returns ErrUnknownTxType, alone or batched.
 func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block.BlockRef, error) {
 	// Decode the operation, or collect the roots of each batched transaction.
 	var op world.Operation
@@ -167,6 +168,15 @@ func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block
 		refs = t.objectRoots()
 		op, err = t.GetTxApplyObjectOp().decodeOp(ctx, lookupOp)
 	default:
+		// A type this build does not declare may name payloads it cannot
+		// read, so it is unknown rather than naming none. An empty
+		// transaction names none.
+		if t.GetTxType() == 0 {
+			return nil, nil
+		}
+		if _, err := t.LocateTx(); err != nil {
+			return nil, err
+		}
 		return nil, nil
 	}
 	if err != nil {
