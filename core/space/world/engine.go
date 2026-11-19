@@ -2,6 +2,7 @@ package space_world
 
 import (
 	"context"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -150,20 +151,68 @@ func (e *Engine) StepGraphSettings(ctx context.Context, target *world_block.Grap
 }
 
 // RegenerateWorld moves the World to target through the Space's order, as
-// world_block.WorldRegenerator says, and waits for the operation's outcome.
-// Every replica, this one included, adds the quads of the quad list at quads
-// and builds the new World in replay; a refusal returns sobject.ErrRejectedOp.
+// world_block.WorldRegenerator says, and waits for the outcome. To the node
+// graph it orders a pin, which adds the quads of the quad list at quads to
+// the kv World, waits until this device built the pin off the replay path,
+// and orders the switch, which every replica, this one included, applies by
+// carrying its build of the pin forward to the head; the writers wait only
+// for that carry. A refusal returns sobject.ErrRejectedOp.
 // The Space holds the list from before the operation is queued until its
 // checkpoint passes the operation, as it holds a transaction's payloads, so
 // the caller must hold the list, as an open stage does, until RegenerateWorld
 // returns; a list nothing holds is refused with block.ErrRootNotHeld.
 func (e *Engine) RegenerateWorld(ctx context.Context, target world_block.WorldFormat, quads *block.BlockRef) error {
-	var payloads []*block.BlockRef
-	if !quads.GetEmpty() {
-		payloads = []*block.BlockRef{quads}
+	// A switch back is one operation.
+	if target != world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH {
+		return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: &RegenerateWorldOp{Target: target}}})
 	}
-	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: &RegenerateWorldOp{Target: target, Quads: quads}}}, payloads...)
+
+	// Pin the World with the carried quads, wait for this device's build of
+	// the pin, and switch to it. A head that moved too far, or a pin another
+	// device moved, pins again with no quads, since the first pin committed
+	// them.
+	for try := 0; ; try++ {
+		var payloads []*block.BlockRef
+		if !quads.GetEmpty() {
+			payloads = []*block.BlockRef{quads}
+		}
+		pinOp := &RegenerateWorldOp{Target: target, Quads: quads}
+		if err := e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: pinOp}}, payloads...); err != nil {
+			return err
+		}
+		quads = nil
+		res, err := e.a.regenBuild.waitPinned(ctx)
+		if err != nil {
+			return err
+		}
+		if res == nil {
+			return errors.Wrap(sobject.ErrRejectedOp, "world regeneration: the pin was switched or released")
+		}
+
+		// Release a pin no replica can build.
+		if res.invalid != "" {
+			release := &ReleaseWorldRegenOp{Base: res.pin}
+			if err := e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_ReleaseWorldRegen{ReleaseWorldRegen: release}}); err != nil {
+				return err
+			}
+			return errors.Wrap(sobject.ErrRejectedOp, "world regeneration failed: "+res.invalid)
+		}
+
+		// Switch, pinning again when the head moved or the pin did.
+		switchOp := &RegenerateWorldOp{Target: target, Base: res.pin}
+		err = e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: switchOp}})
+		if err == nil || try >= maxRegenPins-1 || !errors.Is(err, sobject.ErrRejectedOp) {
+			return err
+		}
+		if msg := err.Error(); !strings.Contains(msg, reasonRegenMoved) && !strings.Contains(msg, reasonRegenPinDiffers) {
+			return err
+		}
+	}
 }
+
+// maxRegenPins bounds the pins RegenerateWorld writes before it returns the
+// switch's refusal.
+const maxRegenPins = 3
 
 // CompareWorldRegen compares the old World a regeneration holds with the new
 // one on this device, off replay, and releases nothing.
@@ -189,7 +238,7 @@ func (e *Engine) ReleaseWorldRegen(ctx context.Context) error {
 func (e *Engine) compareRegen(ctx context.Context) (base, built *block.BlockRef, err error) {
 	// Read the held roots.
 	e.a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		base, built = heldRegen(e.a.headState)
+		_, base, built = heldRegen(e.a.headState)
 	})
 	if base == nil || built == nil {
 		return nil, nil, errors.New("no world regeneration is held")

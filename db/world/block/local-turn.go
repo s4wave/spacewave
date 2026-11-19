@@ -82,7 +82,7 @@ func (t *localTurn) Release() {
 		if t.unlock != nil {
 			t.unlock()
 		}
-		t.a.turnEnded()
+		t.a.turns.End()
 	})
 }
 

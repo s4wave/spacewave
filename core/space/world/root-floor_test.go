@@ -637,13 +637,15 @@ func (s *gatedRoots) SetRoots(ctx context.Context, entries []*block.PutBatchEntr
 	return s.bucketStore.SetRoots(ctx, entries, roots)
 }
 
-// TestRegenerateWorldKeepsBaseThroughTheFloor checks that a regeneration
-// whose head waits behind a missing operation keeps its base when the pages
-// fill, the next operation's cursor save moves the floor past the
+// TestRegenerateWorldKeepsBaseThroughTheFloor checks that a regeneration's
+// switch whose head waits behind a missing operation keeps its base when the
+// pages fill, the next operation's cursor save moves the floor past the
 // regeneration's position, the save's epoch ends and the Volume collects:
 // the head then installs, and the switch back reads base. A restart after
 // the save and the collection, before the install, keeps base too. It fails
-// when the retained root holds only the installed head's roots.
+// when the retained root holds only the installed head's roots. The switch
+// takes the pin's build made off the replay path, which a collection, and a
+// restart that reads it again, keep.
 func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
 	for _, restart := range []bool{false, true} {
 		t.Run(map[bool]string{false: "install", true: "restart"}[restart], func(t *testing.T) {
@@ -652,9 +654,9 @@ func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
 			w := newFloorWorld(t)
 			w.open(1 << 20)
 			w.a.opts.Regen.SpillDir = t.TempDir()
-			regen := func(target world_block.WorldFormat) *sobject.OrderedOperation {
-				return w.op("regen-"+target.String(), &WorldOp{Body: &WorldOp_RegenerateWorld{
-					RegenerateWorld: &RegenerateWorldOp{Target: target},
+			regen := func(name string, target world_block.WorldFormat, base *block.BlockRef) *sobject.OrderedOperation {
+				return w.op(name, &WorldOp{Body: &WorldOp_RegenerateWorld{
+					RegenerateWorld: &RegenerateWorldOp{Target: target, Base: base},
 				}})
 			}
 			link, err := world_block_tx.NewTxSetGraphQuad(world.GraphQuadToQuad(world.NewGraphQuadWithKeys("k1", "<p>", "k2", "")))
@@ -663,20 +665,35 @@ func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
 			}
 			ops := append(w.ops(3),
 				w.op("link", &WorldOp{Body: &WorldOp_ApplyTxOp{ApplyTxOp: &ApplyTxOp{Tx: link}}}),
-				regen(world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH),
-				w.createOp("k3"),
+				regen("pin", world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, nil),
 			)
 			for i, op := range ops[:3] {
 				w.apply(i, op)
 			}
 
-			// Link them and regenerate while a missing operation holds the
+			// Link them, pin and switch while a missing operation holds the
 			// head back, so only the positions name base, then fill the
 			// pages, so the next operation's save moves the floor past the
-			// regeneration and ends the epoch that held base.
+			// switch and ends the epoch that held base.
 			w.a.missing["missing"] = struct{}{}
 			w.apply(3, ops[3])
 			w.apply(4, ops[4])
+			pinned, _ := w.a.replay.head()
+			pin, _, _ := heldRegen(pinned)
+			if pin == nil {
+				t.Fatal("the pin holds no root")
+			}
+			pinHead := w.a.bucketRef(withRoot(pinned, pin).GetHeadRef())
+			if err := w.a.regenBuild.execute(ctx, pinHead); err != nil {
+				t.Fatal(err)
+			}
+			w.collect()
+			prebuilt, _ := w.a.regenBuild.lookup(pin)
+			if prebuilt == nil {
+				t.Fatal("the builder holds no build of the pin")
+			}
+			ops = append(ops, regen("switch", world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, pin), w.createOp("k3"))
+			w.apply(5, ops[5])
 			filler := make([]byte, 1<<19)
 			ref, err := block.BuildBlockRef(filler, nil)
 			if err != nil {
@@ -685,10 +702,10 @@ func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
 			if _, err := w.a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: filler, RefsKnown: true}}); err != nil {
 				t.Fatal(err)
 			}
-			w.apply(5, ops[5])
+			w.apply(6, ops[6])
 			w.a.waitBackground()
-			if w.a.replay.floor <= 4 {
-				t.Fatalf("the floor is %d, want past the regeneration at 4", w.a.replay.floor)
+			if w.a.replay.floor <= 5 {
+				t.Fatalf("the floor is %d, want past the switch at 5", w.a.replay.floor)
 			}
 			w.collect()
 
@@ -696,6 +713,12 @@ func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
 			if restart {
 				w.open(1 << 20)
 				w.a.opts.Regen.SpillDir = t.TempDir()
+				if err := w.a.regenBuild.load(ctx); err != nil {
+					t.Fatal(err)
+				}
+				if built, _ := w.a.regenBuild.lookup(pin); !built.EqualsRef(prebuilt) {
+					t.Fatalf("the restart reads build %v, want %v", built, prebuilt)
+				}
 				for i, op := range ops {
 					w.apply(i, op)
 				}
@@ -708,7 +731,7 @@ func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
 			w.collect()
 
 			// The switch back reads base and keeps every object.
-			w.apply(6, regen(world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV))
+			w.apply(7, regen("back", world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV, nil))
 			state, _ := w.a.replay.head()
 			w.requireKeys("the World switched back", state, 4)
 		})

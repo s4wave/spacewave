@@ -587,19 +587,27 @@ func (*WorldOp_RegenerateWorld) isWorldOp_Body() {}
 func (*WorldOp_ReleaseWorldRegen) isWorldOp_Body() {}
 
 // RegenerateWorldOp rebuilds the World in the target format. To the node
-// graph from cayley_kv, it adds the carried quads to the World, holds the
-// result as world-regen/base, builds it as a node graph held as
-// world-regen/built, and installs the build. Back to cayley_kv while both are
-// held, it carries base forward by the node graph's changes since built,
-// installs the result, and releases both. Replay refuses any other case.
+// graph from cayley_kv it runs in two steps, so each replica builds off its
+// replay path. With base empty it pins: it adds the carried quads to the
+// World and holds the result as world-regen/pin, moving a pin already held;
+// each replica then builds the pin as a node graph in the background. With
+// base naming the held pin it switches: within the bound on the quad changes
+// from the pin to the head, it carries the pin's build forward by them,
+// installs the result, holds the head before as world-regen/base and the
+// result as world-regen/built, and releases the pin. Back to cayley_kv while
+// base and built are held, it carries base forward by the node graph's
+// changes since built, installs the result, and releases both. Replay
+// refuses any other case.
 type RegenerateWorldOp struct {
 	unknownFields []byte
 	// Target is the format to rebuild into.
 	Target block.WorldFormat `protobuf:"varint,1,opt,name=target,proto3" json:"target,omitempty"`
-	// Quads is the root of a quad list to add before the build, or empty. The
-	// list is uvarint-length-prefixed block/quad.Quad messages in a blob,
+	// Quads is the root of a quad list a pin adds before the build, or empty.
+	// The list is uvarint-length-prefixed block/quad.Quad messages in a blob,
 	// sorted as CompareQuads orders them.
 	Quads *block1.BlockRef `protobuf:"bytes,2,opt,name=quads,proto3" json:"quads,omitempty"`
+	// Base is the pin a switch builds from, or empty for a pin.
+	Base *block1.BlockRef `protobuf:"bytes,3,opt,name=base,proto3" json:"base,omitempty"`
 }
 
 func (x *RegenerateWorldOp) Reset() {
@@ -622,15 +630,22 @@ func (x *RegenerateWorldOp) GetQuads() *block1.BlockRef {
 	return nil
 }
 
-// ReleaseWorldRegenOp releases world-regen/base and world-regen/built. Replay
-// applies it only while the two names hold exactly these roots, so a release
-// ordered before a switch back and a later regeneration cannot free that
-// regeneration's roots.
+func (x *RegenerateWorldOp) GetBase() *block1.BlockRef {
+	if x != nil {
+		return x.Base
+	}
+	return nil
+}
+
+// ReleaseWorldRegenOp releases world-regen/base and world-regen/built, or
+// with built empty world-regen/pin. Replay applies it only while the names
+// hold exactly these roots, so a release ordered before a switch back and a
+// later regeneration cannot free that regeneration's roots.
 type ReleaseWorldRegenOp struct {
 	unknownFields []byte
-	// Base is the root world-regen/base must hold.
+	// Base is the root world-regen/base, or world-regen/pin, must hold.
 	Base *block1.BlockRef `protobuf:"bytes,1,opt,name=base,proto3" json:"base,omitempty"`
-	// Built is the root world-regen/built must hold.
+	// Built is the root world-regen/built must hold, or empty to release a pin.
 	Built *block1.BlockRef `protobuf:"bytes,2,opt,name=built,proto3" json:"built,omitempty"`
 }
 
@@ -1948,6 +1963,7 @@ func (m *RegenerateWorldOp) CloneVT() *RegenerateWorldOp {
 	r := new(RegenerateWorldOp)
 	r.Target = m.Target
 	r.Quads = protobuf_go_lite.CloneVTValue(m.Quads)
+	r.Base = protobuf_go_lite.CloneVTValue(m.Base)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2881,6 +2897,9 @@ func (this *RegenerateWorldOp) EqualVT(that *RegenerateWorldOp) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Quads, that.Quads) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Base, that.Base) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4479,6 +4498,11 @@ func (x *RegenerateWorldOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("quads")
 		x.Quads.MarshalProtoJSON(s.WithField("quads"))
 	}
+	if x.Base != nil || s.HasField("base") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("base")
+		x.Base.MarshalProtoJSON(s.WithField("base"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4506,6 +4530,13 @@ func (x *RegenerateWorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Quads = &block1.BlockRef{}
 			x.Quads.UnmarshalProtoJSON(s.WithField("quads", true))
+		case "base":
+			if s.ReadNil() {
+				x.Base = nil
+				return
+			}
+			x.Base = &block1.BlockRef{}
+			x.Base.UnmarshalProtoJSON(s.WithField("base", true))
 		}
 	})
 }
@@ -6967,6 +6998,16 @@ func (m *RegenerateWorldOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Base != nil {
+		size, err := m.Base.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.Quads != nil {
 		size, err := m.Quads.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -8760,6 +8801,10 @@ func (m *RegenerateWorldOp) SizeVT() (n int) {
 		l = m.Quads.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Base != nil {
+		l = m.Base.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -9581,6 +9626,10 @@ func (x *RegenerateWorldOp) MarshalProtoText() string {
 	if x.Quads != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "quads")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Quads)
+	}
+	if x.Base != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "base")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Base)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -11081,6 +11130,21 @@ func (m *RegenerateWorldOp) UnmarshalVT(dAtA []byte) error {
 				m.Quads = &block1.BlockRef{}
 			}
 			if err := m.Quads.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Base", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Base == nil {
+				m.Base = &block1.BlockRef{}
+			}
+			if err := m.Base.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

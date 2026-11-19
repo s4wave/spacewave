@@ -387,11 +387,17 @@ export const WorldOp: MessageType<WorldOp> =
 
 /**
  * RegenerateWorldOp rebuilds the World in the target format. To the node
- * graph from cayley_kv, it adds the carried quads to the World, holds the
- * result as world-regen/base, builds it as a node graph held as
- * world-regen/built, and installs the build. Back to cayley_kv while both are
- * held, it carries base forward by the node graph's changes since built,
- * installs the result, and releases both. Replay refuses any other case.
+ * graph from cayley_kv it runs in two steps, so each replica builds off its
+ * replay path. With base empty it pins: it adds the carried quads to the
+ * World and holds the result as world-regen/pin, moving a pin already held;
+ * each replica then builds the pin as a node graph in the background. With
+ * base naming the held pin it switches: within the bound on the quad changes
+ * from the pin to the head, it carries the pin's build forward by them,
+ * installs the result, holds the head before as world-regen/base and the
+ * result as world-regen/built, and releases the pin. Back to cayley_kv while
+ * base and built are held, it carries base forward by the node graph's
+ * changes since built, installs the result, and releases both. Replay
+ * refuses any other case.
  *
  * @generated from message space.world.RegenerateWorldOp
  */
@@ -401,11 +407,15 @@ export interface RegenerateWorldOp {
    */
   target?: WorldFormat
   /**
-   * Quads is the root of a quad list to add before the build, or empty. The
-   * list is uvarint-length-prefixed block/quad.Quad messages in a blob,
+   * Quads is the root of a quad list a pin adds before the build, or empty.
+   * The list is uvarint-length-prefixed block/quad.Quad messages in a blob,
    * sorted as CompareQuads orders them.
    */
   quads?: BlockRef
+  /**
+   * Base is the pin a switch builds from, or empty for a pin.
+   */
+  base?: BlockRef
 }
 
 export const RegenerateWorldOp: MessageType<RegenerateWorldOp> =
@@ -414,24 +424,25 @@ export const RegenerateWorldOp: MessageType<RegenerateWorldOp> =
     () => [
       [1, 'target', 14, 0, WorldFormat_Enum],
       [2, 'quads', 11, 0, BlockRef.codec],
+      [3, 'base', 11, 0, BlockRef.codec],
     ],
   )
 
 /**
- * ReleaseWorldRegenOp releases world-regen/base and world-regen/built. Replay
- * applies it only while the two names hold exactly these roots, so a release
- * ordered before a switch back and a later regeneration cannot free that
- * regeneration's roots.
+ * ReleaseWorldRegenOp releases world-regen/base and world-regen/built, or
+ * with built empty world-regen/pin. Replay applies it only while the names
+ * hold exactly these roots, so a release ordered before a switch back and a
+ * later regeneration cannot free that regeneration's roots.
  *
  * @generated from message space.world.ReleaseWorldRegenOp
  */
 export interface ReleaseWorldRegenOp {
   /**
-   * Base is the root world-regen/base must hold.
+   * Base is the root world-regen/base, or world-regen/pin, must hold.
    */
   base?: BlockRef
   /**
-   * Built is the root world-regen/built must hold.
+   * Built is the root world-regen/built must hold, or empty to release a pin.
    */
   built?: BlockRef
 }

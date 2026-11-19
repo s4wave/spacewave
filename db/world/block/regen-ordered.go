@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -40,23 +41,73 @@ func (o *OrderedRegen) Format(ctx context.Context, root *block.BlockRef) (WorldF
 }
 
 // Build writes the node graph World of the cayley kv World at base and
-// returns its root. It does not yield: the caller holds the World still.
-func (o *OrderedRegen) Build(ctx context.Context, base *block.BlockRef) (*block.BlockRef, error) {
-	return buildNodeGraphRoot(ctx, o.roots.root, o.store, base, o.cfg, nil)
+// returns its root. It runs on the calling goroutine, sorting in the
+// config's budget, and calls yield, when set, between short slices: a build
+// off the replay path yields to the writers, and an inline build on the
+// replay path, which the writers wait behind already, passes nil.
+func (o *OrderedRegen) Build(ctx context.Context, base *block.BlockRef, yield func(context.Context) error) (*block.BlockRef, error) {
+	return buildNodeGraphRoot(ctx, o.roots.root, o.store, base, o.cfg, yield)
 }
 
-// SwitchBack returns base, a cayley kv World, carried forward by the changes
-// the node graph World made from built to head, as head's World in base's
-// format. A change that does not apply exactly is skipped: with an exact
-// build there is none, and after a build that lost a quad, skipping is what
-// restores it from base.
-func (o *OrderedRegen) SwitchBack(ctx context.Context, base, built, head *block.BlockRef) (*block.BlockRef, error) {
+// Carry returns target carried forward by the changes the World made from
+// from to to, as to's World in target's format: a switch carries the prebuilt
+// node graph of a pinned kv World to the kv head, and a switch back carries
+// the held kv base to the node graph head. A change that does not apply
+// exactly is skipped: with an exact build there is none, and after a build
+// that lost a quad, skipping is what a switch back needs to restore it from
+// base, and what every replica's switch does alike.
+func (o *OrderedRegen) Carry(ctx context.Context, target, from, to *block.BlockRef) (*block.BlockRef, error) {
 	ignore := graph.IgnoreOpts{IgnoreDup: true, IgnoreMissing: true}
-	next, _, err := o.roots.applyDiff(ctx, o.store, base, built, head, -1, ignore, &regenPacer{})
+	next, _, err := o.roots.applyDiff(ctx, o.store, target, from, to, -1, ignore, &regenPacer{})
 	if err != nil {
-		return nil, errors.Wrap(err, "switch back")
+		return nil, errors.Wrap(err, "carry World forward")
 	}
 	return next, nil
+}
+
+// ChangesWithin reports whether the quad changes from the World at from to
+// the World at to, both in one format, number at most limit. It reads both
+// graphs and writes nothing, stopping at the first change past limit, and
+// counts as Carry applies: each quad once per pass. The count is a function
+// of the two roots alone, so every replica decides alike.
+func (o *OrderedRegen) ChangesWithin(ctx context.Context, from, to *block.BlockRef, limit int) (bool, error) {
+	// An unmoved World has no changes.
+	if from.EqualsRef(to) {
+		return true, nil
+	}
+
+	// Open both Worlds so their graph sub-blocks resolve.
+	var cursors [2]*block.Cursor
+	var formats [2]WorldFormat
+	for i, ref := range []*block.BlockRef{from, to} {
+		cursor, w, err := o.roots.readWorld(ctx, o.store, ref)
+		if err != nil {
+			return false, err
+		}
+		cursors[i], formats[i] = cursor, w.GetFormat()
+	}
+	if formats[0] != formats[1] {
+		return false, errors.Errorf("count changes from a %v World to a %v one", formats[0], formats[1])
+	}
+
+	// Count the deletes, then the adds, stopping past the limit.
+	var changes int
+	for _, action := range []graph.Procedure{graph.Delete, graph.Add} {
+		err := walkQuadChanges(ctx, formats[0], cursors[0], cursors[1], action, func(quad.Quad) error {
+			changes++
+			if changes > limit {
+				return errRegenDiffLarge
+			}
+			return nil
+		})
+		if errors.Is(err, errRegenDiffLarge) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 // Compare proves the node graph World at built holds every object record and
