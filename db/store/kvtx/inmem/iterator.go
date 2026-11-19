@@ -79,7 +79,7 @@ func NewIterator(
 	}
 
 	// Snapshot each tree the merge reads.
-	it.base.iter = tx.s.tree.Copy().Iter()
+	it.base.iter = tx.tree.Copy().Iter()
 	if tx.write {
 		it.added.iter = tx.added.Copy().Iter()
 		it.deleted = tx.deleted.Copy()

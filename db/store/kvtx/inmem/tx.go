@@ -11,11 +11,13 @@ import (
 
 // Tx holds a store snapshot and the changes staged by an exclusive writer.
 type Tx struct {
-	// s retains the store whose admission this transaction holds.
+	// s is the store a writer publishes to.
 	s *Store
-	// write permits staging changes and excludes other transactions.
+	// tree is the published tree the transaction reads. It never changes.
+	tree *btree.BTreeG[*valType]
+	// write permits staging changes and holds the writer turn.
 	write bool
-	// releaseWriter relinquishes the writer's FIFO turn when the transaction ends.
+	// releaseWriter returns the writer turn when the transaction ends.
 	releaseWriter func()
 
 	// discarded prevents Commit or Discard from releasing admission twice.
@@ -26,11 +28,12 @@ type Tx struct {
 	deleted *btree.BTreeG[*valType]
 }
 
-// newTx constructs a new inmem transaction.
-func newTx(s *Store, write bool, releaseWriter func()) *Tx {
-	// Retain the admission granted by the store.
+// newTx constructs a new inmem transaction reading tree.
+func newTx(s *Store, tree *btree.BTreeG[*valType], write bool, releaseWriter func()) *Tx {
+	// Retain the snapshot and the writer turn granted by the store.
 	tx := &Tx{
 		s:             s,
+		tree:          tree,
 		write:         write,
 		releaseWriter: releaseWriter,
 	}
@@ -65,7 +68,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	}
 
 	// Copy the committed value so the caller cannot mutate the snapshot.
-	val, exists := t.s.tree.Get(item)
+	val, exists := t.tree.Get(item)
 	if !exists {
 		return nil, false, nil
 	}
@@ -80,7 +83,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	}
 
 	// Readers see the committed tree's cardinality directly.
-	count := t.s.tree.Len()
+	count := t.tree.Len()
 	if !t.write {
 		return uint64(count), nil //nolint:gosec // A tree length is nonnegative.
 	}
@@ -88,7 +91,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	// Replacements already belong to the tree; count only newly inserted keys.
 	count -= t.deleted.Len()
 	t.added.Ascend(nil, func(item *valType) bool {
-		if _, exists := t.s.tree.Get(item); !exists {
+		if _, exists := t.tree.Get(item); !exists {
 			count++
 		}
 		return true
@@ -135,7 +138,7 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 
 	// Delete only committed keys; a tentative insertion can simply disappear.
 	item := &valType{key: key}
-	if _, valExists := t.s.tree.Get(item); valExists {
+	if _, valExists := t.tree.Get(item); valExists {
 		t.deleted.Set(item)
 	}
 	t.added.Delete(item)
@@ -156,7 +159,7 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 	if len(prefix) != 0 {
 		pivot = &valType{key: prefix}
 	}
-	t.s.tree.Ascend(pivot, func(item *valType) bool {
+	t.tree.Ascend(pivot, func(item *valType) bool {
 		// Stop when the committed range leaves the requested prefix.
 		if !bytes.HasPrefix(item.key, prefix) {
 			return false
@@ -239,7 +242,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	}
 
 	// Fall back to the committed snapshot.
-	_, exists := t.s.tree.Get(item)
+	_, exists := t.tree.Get(item)
 	return exists, nil
 }
 
@@ -257,26 +260,19 @@ func (t *Tx) Commit(ctx context.Context) error {
 		return kvtx.ErrDiscarded
 	}
 
-	// Publish both overlays before admitting the next reader or writer.
-	t.s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// Replace committed values with the staged insertions and updates.
-		t.added.Ascend(nil, func(item *valType) bool {
-			t.s.tree.Set(item)
-			return true
-		})
-		t.added = nil
-
-		// Apply deletions before releasing exclusive access.
-		t.deleted.Ascend(nil, func(item *valType) bool {
-			t.s.tree.Delete(item)
-			return true
-		})
-		t.deleted = nil
-		t.s.writing = false
-		broadcast()
+	// Apply both overlays to a copy of the snapshot, publish it, then hand
+	// off the writer turn.
+	next := t.tree.Copy()
+	t.added.Ascend(nil, func(item *valType) bool {
+		next.Set(item)
+		return true
 	})
-
-	// Hand off the writer turn only after publishing the tree and admission.
+	t.deleted.Ascend(nil, func(item *valType) bool {
+		next.Delete(item)
+		return true
+	})
+	t.added, t.deleted = nil, nil
+	t.s.publish(next)
 	t.releaseWriter()
 	return nil
 }
@@ -293,18 +289,7 @@ func (t *Tx) Discard() {
 	}
 	t.added, t.deleted = nil, nil
 
-	// Release this transaction's admission and wake the remaining waiters.
-	t.s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		switch t.write {
-		case true:
-			t.s.writing = false
-		case false:
-			t.s.nreaders--
-		}
-		broadcast()
-	})
-
-	// Writers hand their turn to the next queued caller after releasing admission.
+	// A writer hands off its turn.
 	if t.releaseWriter != nil {
 		t.releaseWriter()
 	}

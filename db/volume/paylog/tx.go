@@ -30,14 +30,29 @@ type Tx struct {
 	blocks blockStore
 }
 
+// Priorities of Store.writer.
+const (
+	// writerBackground is the priority of write transactions opened with
+	// block.WithBackground.
+	writerBackground = iota - 1
+	// writerForeground is the priority of every other write transaction.
+	writerForeground
+)
+
 // begin opens a transaction whose key-value view keeps keys under prefix. A
-// write transaction first waits for the writer under ctx.
+// write transaction first waits for the writer under ctx, behind every waiting
+// foreground writer when ctx carries block.WithBackground and the store does
+// not admit its writers equally.
 func (s *Store) begin(ctx context.Context, write bool, prefix []byte) (*Tx, error) {
 	// Take the writer for a write transaction.
 	t := &Tx{s: s, write: write, unlock: func() {}}
 	if write {
+		prio := writerForeground
+		if block.IsBackground(ctx) && !s.equalWriters {
+			prio = writerBackground
+		}
 		s.waiting.Add(1)
-		unlock, err := s.writer.Lock(ctx)
+		unlock, err := s.writer.Lock(ctx, prio)
 		s.waiting.Add(-1)
 		if err != nil {
 			return nil, err

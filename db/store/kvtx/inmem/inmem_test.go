@@ -6,9 +6,11 @@ import (
 	"math/rand/v2"
 	"slices"
 	"strconv"
+	"sync"
 	"testing"
 	"testing/synctest"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -138,20 +140,32 @@ func TestIteratorKeepsEntryAcrossCancel(t *testing.T) {
 	}
 }
 
-// TestWriteWaiterCancelReleasesReaders covers cancellation while the writer
-// owns its FIFO turn but waits for existing readers to drain.
-func TestWriteWaiterCancelReleasesReaders(t *testing.T) {
+// TestWriterAdmission covers the store's admission: a reader never waits for
+// a writer and reads the tree published when it opened; a cancelled queued
+// writer leaves the queue; foreground writers take the turn in arrival order,
+// ahead of a background writer that queued before them.
+func TestWriterAdmission(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		// Hold a reader so the first writer owns a turn but cannot begin writing.
+		// Hold the writer turn with a staged key.
 		ctx := context.Background()
 		store := NewStore()
-		rtx, err := store.NewTransaction(ctx, false)
+		holder, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer rtx.Discard()
+		if err := holder.Set(ctx, []byte("held"), []byte("v")); err != nil {
+			t.Fatal(err)
+		}
 
-		// Cancel the writer only after it is durably waiting on the reader drain.
+		// A reader opens at once and does not see the holder's key, before or
+		// after the holder commits.
+		before, err := store.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer before.Discard()
+
+		// A cancelled queued writer leaves the queue and no turn behind.
 		cctx, cancel := context.WithCancel(ctx)
 		cancelErr := make(chan error, 1)
 		go func() {
@@ -160,119 +174,23 @@ func TestWriteWaiterCancelReleasesReaders(t *testing.T) {
 		}()
 		synctest.Wait()
 		if !store.WritersWaiting() {
-			t.Fatal("draining writer did not report its registration")
+			t.Fatal("queued writer was not visible")
 		}
 		cancel()
-		synctest.Wait()
 		if err := <-cancelErr; err != context.Canceled {
 			t.Fatalf("cancelled write tx: got %v, want context.Canceled", err)
 		}
-
-		// A surviving reader may overlap another reader once the writer cancels.
 		if store.WritersWaiting() {
 			t.Fatal("cancelled writer kept its registration")
 		}
-		rtx2, err := store.NewTransaction(ctx, false)
-		if err != nil {
-			t.Fatal(err)
-		}
-		rtx.Discard()
-		rtx2.Discard()
 
-		// The cancelled drain waiter also released its FIFO turn for later writers.
-		wtx, err := store.NewTransaction(ctx, true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		wtx.Discard()
-	})
-}
-
-// TestWriteWaiterCancelPreservesPeerBlock proves cancelling one of two waiting
-// writers decrements the waiter count by exactly one rather than clearing it:
-// the surviving writer keeps its exclusivity and readers stay blocked until it
-// finishes. A blind clear would admit a reader while the peer still waits.
-func TestWriteWaiterCancelPreservesPeerBlock(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		// Create the store for competing writer and reader transactions.
-		ctx := context.Background()
-		store := NewStore()
-
-		// Hold a reader so both writers register as waiting.
-		rtx, err := store.NewTransaction(ctx, false)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// Surviving writer: never cancelled, acquires once readers clear.
-		survivor := make(chan kvtx.Tx, 1)
-		go func() {
-			tx, err := store.NewTransaction(ctx, true)
-			if err != nil {
-				survivor <- nil
-				return
-			}
-			survivor <- tx
-		}()
-
-		// Cancelled writer: registers, then is cancelled mid-wait.
-		cctx, cancel := context.WithCancel(ctx)
-		cancelErr := make(chan error, 1)
-		go func() {
-			_, err := store.NewTransaction(cctx, true)
-			cancelErr <- err
-		}()
-
-		// Both writers are now durably blocked: writeWaiting == 2.
-		synctest.Wait()
-
-		// Verify that cancelling one writer releases only its waiting registration.
-		cancel()
-		synctest.Wait()
-		if err := <-cancelErr; err != context.Canceled {
-			t.Fatalf("cancelled write tx: got %v, want context.Canceled", err)
-		}
-
-		// A new reader must stay blocked: the surviving waiter still holds the
-		// admission block (writeWaiting == 1). A blind clear would admit it.
-		readerTx := make(chan kvtx.Tx, 1)
-		go func() {
-			tx, err := store.NewTransaction(ctx, false)
-			if err != nil {
-				readerTx <- nil
-				return
-			}
-			readerTx <- tx
-		}()
-		synctest.Wait()
-		select {
-		case <-readerTx:
-			t.Fatal("reader admitted while a writer is still waiting")
-		default:
-		}
-
-		// Release the initial reader; the surviving writer acquires exclusively.
-		rtx.Discard()
-		synctest.Wait()
-		stx := <-survivor
-		if stx == nil {
-			t.Fatal("surviving writer failed to acquire")
-		}
-
-		// The reader stays blocked while the writer holds the store.
-		select {
-		case <-readerTx:
-			t.Fatal("reader admitted while the writer holds the store")
-		default:
-		}
-
-		// Queue a realistic writer fanout in known arrival order behind the holder.
-		const peers = 64
+		// Queue a background writer, then foreground peers in known order.
+		const peers = 16
 		order := make(chan int, peers+1)
-		finished := make(chan error, peers)
-		for i := range peers {
+		finished := make(chan error, peers+1)
+		queue := func(i int, ctx context.Context) {
 			go func() {
-				// Each peer stages a value, then finishes by Commit or Discard.
+				// Each writer stages a value, then finishes by Commit or Discard.
 				tx, err := store.NewTransaction(ctx, true)
 				if err != nil {
 					finished <- err
@@ -287,63 +205,133 @@ func TestWriteWaiterCancelPreservesPeerBlock(t *testing.T) {
 				if i%2 == 0 {
 					finished <- tx.Commit(ctx)
 				} else {
-					tx.Discard()
 					finished <- nil
 				}
 			}()
 			synctest.Wait()
 		}
-		if !store.WritersWaiting() {
-			t.Fatal("queued writer peers were not visible")
+		queue(peers, block.WithBackground(ctx))
+		for i := range peers {
+			queue(i, ctx)
 		}
-
-		// The releasing caller must queue its reacquisition behind every peer.
-		if err := stx.Commit(ctx); err != nil {
+		if err := holder.Commit(ctx); err != nil {
 			t.Fatal(err)
 		}
-		stx.Discard()
-		last, err := store.NewTransaction(ctx, true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer last.Discard()
-		order <- peers
-		if store.WritersWaiting() {
-			t.Fatal("admitted peers kept waiting registrations")
-		}
-
-		// Readers stay excluded through the final turn, then regain admission.
-		select {
-		case <-readerTx:
-			t.Fatal("reader entered before the queued writer turns finished")
-		default:
-		}
-		last.Discard()
 		synctest.Wait()
-		for range peers {
+		for range peers + 1 {
 			if err := <-finished; err != nil {
 				t.Fatal(err)
 			}
 		}
-
-		// All queued writers precede the reacquirer without relying on elapsed time.
 		for want := range peers + 1 {
 			if got := <-order; got != want {
-				t.Fatalf("writer admission[%d]=%d, want FIFO order", want, got)
+				t.Fatalf("writer admission[%d]=%d, want foreground FIFO, then background", want, got)
 			}
 		}
-		rtx2 := <-readerTx
-		if rtx2 == nil {
-			t.Fatal("reader failed to acquire after writer finished")
-		}
 
-		// The final reader sees only the half of peer writes that committed.
-		size, err := rtx2.Size(ctx)
-		if err != nil || size != peers/2 {
-			t.Fatalf("committed peer keys=%d, error=%v, want %d", size, err, peers/2)
+		// The old reader still reads its snapshot; a new one sees the holder's
+		// key and the committed half of the peers, and the background writer.
+		if _, found, err := before.Get(ctx, []byte("held")); err != nil || found {
+			t.Fatalf("old reader saw a later commit: found=%v err=%v", found, err)
 		}
-		rtx2.Discard()
+		after, err := store.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer after.Discard()
+		size, err := after.Size(ctx)
+		if want := uint64(1 + peers/2 + 1); err != nil || size != want {
+			t.Fatalf("committed keys=%d, error=%v, want %d", size, err, want)
+		}
 	})
+}
+
+// TestReadsDuringCommits tests that readers and iterators running while a
+// writer commits each see one committed tree whole: every key, all at the
+// value of the same commit. Run it under -race, which catches a published
+// tree a commit still changes.
+func TestReadsDuringCommits(t *testing.T) {
+	// Seed the keys at commit zero.
+	const keys, commits = 64, 200
+	ctx := t.Context()
+	store := NewStore()
+	write := func(gen int) {
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer tx.Discard()
+		for k := range keys {
+			if err := tx.Set(ctx, []byte("k"+strconv.Itoa(k)), []byte(strconv.Itoa(gen))); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Error(err)
+		}
+	}
+	write(0)
+
+	// Commit every key again and again while readers read.
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for gen := 1; gen <= commits; gen++ {
+			write(gen)
+		}
+	}()
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Go(func() {
+			for {
+				select {
+				case <-done:
+					return
+				default:
+				}
+				readSnapshot(t, store, keys)
+			}
+		})
+	}
+	wg.Wait()
+}
+
+// readSnapshot reads every key of store by Get and by an iterator in one read
+// transaction and fails t unless all hold one value.
+func readSnapshot(t *testing.T, store *Store, keys int) {
+	// Get the first key, then check every other key against it.
+	ctx := t.Context()
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer tx.Discard()
+	want, found, err := tx.Get(ctx, []byte("k0"))
+	if err != nil || !found {
+		t.Errorf("get k0: found=%v err=%v", found, err)
+		return
+	}
+	iter := tx.Iterate(ctx, []byte("k"), false, false)
+	defer iter.Close()
+	if err := iter.Seek(nil); err != nil {
+		t.Error(err)
+		return
+	}
+	n := 0
+	for ; iter.Valid(); iter.Next() {
+		got, err := iter.Value()
+		if err != nil || !bytes.Equal(got, want) {
+			t.Errorf("key %q at %q (%v), k0 at %q in one read transaction", iter.Key(), got, err, want)
+			return
+		}
+		n++
+	}
+	if err := iter.Err(); err != nil || n != keys {
+		t.Errorf("iterated %d keys, want %d: %v", n, keys, err)
+	}
 }
 
 // TestIteratorSeekReportsCanceled tests that Seek on an iterator whose context
