@@ -88,6 +88,8 @@ type Store[T SQLiteDriverConfig] struct {
 
 	// flusher makes ordered commits durable by flushing the WAL.
 	flusher *kvtx.OrderedFlusher
+	// unsynced skips the flusher's flush, as Pragmas.Sync's SyncOff says.
+	unsynced bool
 	// walBound is the WAL size past which the checkpointer opens a gap in
 	// the writes for SQLite to reset the log.
 	walBound int64
@@ -296,7 +298,7 @@ func openHeld[T SQLiteDriverConfig](ctx context.Context, path string, table stri
 	}
 
 	// Initialize the table through the same path used by injected SQL pools.
-	return openDB(ctx, db, table, pragmas.WithoutRowID, walBound(pragmas), config, hold)
+	return openDB(ctx, db, table, pragmas, config, hold)
 }
 
 // walBound returns the WAL bound pragmas set, or the default.
@@ -335,9 +337,9 @@ func openPool[T SQLiteDriverConfig](config T, path string, pragmas Pragmas, hold
 	// List the pragmas every connection runs.
 	synchronous := "NORMAL"
 	switch {
-	case diskless:
+	case diskless || pragmas.Sync == SyncOff:
 		synchronous = "OFF"
-	case pragmas.FullSync:
+	case pragmas.Sync == SyncFull:
 		synchronous = "FULL"
 	}
 	connPragmas := []string{
@@ -392,18 +394,20 @@ func idleConns() int {
 // It closes the pool on failure; the caller selects durability on every connection.
 // Its checkpointer writes back only the log, as Store's hold describes.
 func OpenDB[T SQLiteDriverConfig](ctx context.Context, db *sql.DB, table string, config T) (*Store[T], error) {
-	return openDB(ctx, db, table, false, DefaultWALCheckpointBytes, config, nil)
+	return openDB(ctx, db, table, Pragmas{}, config, nil)
 }
 
-// openDB is OpenDB with the shape of a table it creates and the WAL bound.
-func openDB[T SQLiteDriverConfig](ctx context.Context, db *sql.DB, table string, withoutRowID bool, walBound int64, config T, hold *fileHold) (*Store[T], error) {
+// openDB is OpenDB with the pragmas that shape a table it creates, bound
+// its WAL and select its flush.
+func openDB[T SQLiteDriverConfig](ctx context.Context, db *sql.DB, table string, pragmas Pragmas, config T, hold *fileHold) (*Store[T], error) {
 	// Bind the validated table to its supplied database pool.
-	store, err := newStore(db, table, config, walBound, hold)
+	store, err := newStore(db, table, config, walBound(pragmas), hold)
 	if err != nil {
 		db.Close()
 		return nil, err
 	}
-	store.withoutRowID = withoutRowID
+	store.withoutRowID = pragmas.WithoutRowID
+	store.unsynced = pragmas.Sync == SyncOff
 
 	// Initialize table with retry on SQLITE_BUSY.
 	// This can happen when another process is closing the database and holds
@@ -621,7 +625,7 @@ func (s *Store[T]) Close() error {
 
 // flushWAL makes every commit the WAL holds durable through the driver.
 func (s *Store[T]) flushWAL() error {
-	if diskless {
+	if diskless || s.unsynced {
 		return nil
 	}
 	file, err := s.dbFile()
