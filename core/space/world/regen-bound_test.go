@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -45,7 +46,7 @@ func TestRegenerateWorldStallBound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, releaseObject, err := owner.MountSharedObject(ctx, ref, nil)
+	so, releaseObject, err := owner.MountSharedObject(ctx, ref, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,19 +100,34 @@ func TestRegenerateWorldStallBound(t *testing.T) {
 	})
 	t.Logf("graph settings step of 65536 links: call %v, writes %v", took, stats)
 
-	// Regenerate off the replay path: pin and build, then switch.
+	// A pin carrying more quads than the bound is refused with the count.
+	bound := space_world.MaxGraphSettingsStep
+	carried := make([]world.GraphQuad, 0, bound+1)
+	for i := range bound + 1 {
+		carried = append(carried, world.NewGraphQuadWithKeys(fmt.Sprintf("o-%d", i%objects), fmt.Sprintf("<carried%d>", i/(objects*objects)), fmt.Sprintf("o-%d", (i/objects)%objects), ""))
+	}
 	graphFormat := world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH
+	over := writeHeldQuadList(ctx, t, so.GetBlockStore(), eng, carried...)
+	err = space_world.WriteRegenOp(ctx, served, &space_world.RegenerateWorldOp{Target: graphFormat, Quads: over})
+	if want := fmt.Sprintf("carries %d quads, over the bound of %d", bound+1, bound); err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("pin over the bound: got %v, want a refusal naming %q", err, want)
+	}
+
+	// Pin carrying the bound's quads, all missing from the World, then build
+	// off the replay path and switch.
+	list := writeHeldQuadList(ctx, t, so.GetBlockStore(), eng, carried[:bound]...)
+	took, stats = measureWrites(ctx, t, eng, "pin", func() error {
+		return space_world.WriteRegenOp(ctx, served, &space_world.RegenerateWorldOp{Target: graphFormat, Quads: list})
+	})
+	t.Logf("pin carrying %d quads: call %v, writes %v", bound, took, stats)
 	took, stats = measureWrites(ctx, t, eng, "build", func() error {
-		if err := space_world.WriteRegenOp(ctx, served, &space_world.RegenerateWorldOp{Target: graphFormat}); err != nil {
-			return err
-		}
 		invalid, err := space_world.WaitRegenBuild(ctx, served)
 		if err == nil && invalid != "" {
 			err = errors.New(invalid)
 		}
 		return err
 	})
-	t.Logf("pin and off-path build of %d links: call %v, writes %v", links, took, stats)
+	t.Logf("off-path build of %d links: call %v, writes %v", links+bound, took, stats)
 	switchTo := func() error {
 		return space_world.WriteRegenOp(ctx, served, &space_world.RegenerateWorldOp{Target: graphFormat, Base: space_world.HeldRegenPin(served)})
 	}

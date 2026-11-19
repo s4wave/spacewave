@@ -93,6 +93,51 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 	return nil
 }
 
+// SetGraphQuads inserts the relationships in quads that the graph lacks, in
+// one batched existence read and one graph index update, and records a World
+// change for each one added, in the order of quads. It is the batch form of
+// calling SetGraphQuad on each: an existing or repeated relationship is
+// skipped, and each added subject must name an existing object. Discard the
+// enclosing transaction on error.
+func (t *WorldState) SetGraphQuads(ctx context.Context, quads []world.GraphQuad) error {
+	// An empty batch changes nothing.
+	if len(quads) == 0 {
+		return ctx.Err()
+	}
+
+	// Keep the first of each relationship the graph lacks. An empty label
+	// matches any label, so compare each match exactly.
+	found, err := t.LookupGraphQuadsBatch(ctx, quads, 0)
+	if err != nil {
+		return err
+	}
+	missing := make([]world.GraphQuad, 0, len(quads))
+	added := make(map[[4]string]struct{})
+	for i, q := range quads {
+		if hasGraphQuad(found[i], q) {
+			continue
+		}
+		key := [4]string{q.GetSubject(), q.GetPredicate(), q.GetObj(), q.GetLabel()}
+		if _, ok := added[key]; ok {
+			continue
+		}
+		added[key] = struct{}{}
+		missing = append(missing, q)
+	}
+	return t.InsertGraphQuads(ctx, missing)
+}
+
+// hasGraphQuad reports whether matches, the few quads one lookup returned,
+// hold q exactly.
+func hasGraphQuad(matches []world.GraphQuad, q world.GraphQuad) bool {
+	for _, m := range matches {
+		if compareGraphQuads(m, q) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // requireUniqueGraphQuads rejects a relationship repeated within quads. Graph
 // values are raw Cayley terms, so equal terms are the same relationship.
 func requireUniqueGraphQuads(quads []world.GraphQuad) error {

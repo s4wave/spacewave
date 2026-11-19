@@ -2,6 +2,7 @@ package space_world
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -24,10 +25,10 @@ const (
 	regenBuiltName  = regenRootPrefix + "built"
 )
 
-// regenSwitchChanges bounds the quad changes a switch carries the pin's
-// build forward by on the replay path. A graph settings step of this many
-// links held a concurrent write 387 ms on a testbed Space, so the switch
-// holds the writers no longer than a step does.
+// regenSwitchChanges bounds the quads a pin carries and the quad changes a
+// switch carries the pin's build forward by, both written on the replay path.
+// A graph settings step of this many links held a concurrent write 387 ms on
+// a testbed Space, so neither holds the writers longer than a step does.
 const regenSwitchChanges = maxGraphSettingsStep
 
 // reasonRegenMoved refuses a switch whose head moved past regenSwitchChanges
@@ -61,7 +62,8 @@ const defaultRegenBudget = 64 << 20
 //     carries it forward by every quad change from the pin to the head.
 //  2. The World after an operation is a function of the World before and the
 //     operation's bytes alone. The carried quads come from the list the
-//     operation names. The switch refuses, alike on every replica, when the
+//     operation names, and the pin refuses a list longer than
+//     regenSwitchChanges. The switch refuses, alike on every replica, when the
 //     pin it names is not the held one, when the changes from the pin to the
 //     head exceed regenSwitchChanges, or when the pin's build is
 //     world_block.ErrRegenInvalid; each is read from the state and the
@@ -217,19 +219,50 @@ func (r *spaceReplay) applyRegenerateWorld(ctx context.Context, regenOp *Regener
 	return nil, "world regeneration: no step from " + format.String() + " to " + target.String(), nil
 }
 
+// readPinQuads reads the quad list a pin carries, refusing a list over
+// regenSwitchChanges: the pin writes the list in one graph update on the
+// replay path, so the bound that keeps a switch's hold under a graph
+// settings step's keeps the pin's there too.
+func (r *spaceReplay) readPinQuads(ctx context.Context, quads *block.BlockRef) ([]world.GraphQuad, string, error) {
+	// Collect the list up to the bound, counting past it.
+	var out []world.GraphQuad
+	var count int
+	_, bcs := r.cursor.BuildTransactionAtRefWithStore(nil, quads, r.store())
+	err := RangeQuadList(ctx, bcs, func(q *bquad.Quad) error {
+		if count++; count <= regenSwitchChanges {
+			out = append(out, world.QuadToGraphQuad(q))
+		}
+		return nil
+	})
+
+	// Stop for a gap, and refuse an unreadable or overlong list.
+	if cerr := ctx.Err(); cerr != nil {
+		return nil, "", cerr
+	}
+	if isReplayGap(err) {
+		return nil, "", err
+	}
+	if err != nil {
+		return nil, "world regeneration failed: " + err.Error(), nil
+	}
+	if count > regenSwitchChanges {
+		return nil, fmt.Sprintf("world regeneration: the list carries %d quads, over the bound of %d", count, regenSwitchChanges), nil
+	}
+	return out, "", nil
+}
+
 // regenPin adds the carried quads to the kv World prev and holds the result,
 // which stays the head, as the pin; a pin while only a pin is held moves it.
 func (r *spaceReplay) regenPin(ctx context.Context, quads *block.BlockRef, prev *InnerState) (*InnerState, string, error) {
 	// Commit the carried quads on the World before.
 	out := prev
 	if !quads.GetEmpty() {
-		var reason string
-		var err error
+		gquads, reason, err := r.readPinQuads(ctx, quads)
+		if err != nil || reason != "" {
+			return nil, reason, err
+		}
 		out, reason, err = r.commitOn(ctx, prev, "world regeneration failed", func(btx *world_block.EngineTx) (bool, error) {
-			_, bcs := r.cursor.BuildTransactionAtRefWithStore(nil, quads, r.store())
-			err := RangeQuadList(ctx, bcs, func(q *bquad.Quad) error {
-				return btx.SetGraphQuad(ctx, world.QuadToGraphQuad(q))
-			})
+			err := btx.SetGraphQuads(ctx, gquads)
 			return err == nil, err
 		})
 		if err != nil || reason != "" {
