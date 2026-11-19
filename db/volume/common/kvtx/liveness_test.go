@@ -96,13 +96,19 @@ func openLivenessVolume(t *testing.T, store kvtx.Store, frees bool) (*Volume, *t
 // HoldUntilFree when set, whatever testHold selects.
 func openRuleVolume(t *testing.T, store kvtx.Store, frees, hold bool) (*Volume, *testClock) {
 	t.Helper()
+	return openConfVolume(t, store, &store_kvtx.Config{CollectorFrees: frees, CollectorHoldUntilFree: hold})
+}
+
+// openConfVolume opens a Volume over store under conf.
+func openConfVolume(t *testing.T, store kvtx.Store, conf *store_kvtx.Config) (*Volume, *testClock) {
+	t.Helper()
 	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
-	v, err := NewVolume(t.Context(), "test/liveness", store_kvkey.NewDefaultKVKey(), store, &store_kvtx.Config{CollectorFrees: frees, CollectorHoldUntilFree: hold}, false, false, nil, nil)
+	v, err := NewVolume(t.Context(), "test/liveness", store_kvkey.NewDefaultKVKey(), store, conf, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	v.clock = clk.Now
-	auditCollector(t, v, frees)
+	auditCollector(t, v, conf.GetCollectorFrees())
 	t.Cleanup(func() {
 		if err := v.Close(); err != nil {
 			t.Error(err)
@@ -1033,7 +1039,7 @@ func measureStageLookupWait(t *testing.T, children int) time.Duration {
 				return
 			default:
 			}
-			v.stageHeld(stage, newStageNames(stage, entries))
+			_, _ = v.stageHeld(t.Context(), stage, newStageNames(stage, entries))
 		}
 	}()
 
@@ -1701,6 +1707,22 @@ func testLivenessAdversarial(t *testing.T) {
 		requireStored(t, v, tr, false, "Q")
 		requireAudit(t, v, 0)
 	})
+
+	for _, tc := range []struct {
+		name string
+		mode sliceMode
+	}{
+		{"in slices with collection between slices", sliceCollect},
+		{"in slices cancelled then retried", sliceCancelRetry},
+		{"in slices cancelled then released", sliceCancelRelease},
+		{"in slices released between slices", sliceRelease},
+		{"parent first in one transaction", sliceParentFirst},
+		{"in one transaction under StageOneTransaction", sliceOneTransaction},
+	} {
+		t.Run("stage lands "+tc.name, func(t *testing.T) {
+			testStageSlices(t, tc.mode)
+		})
+	}
 
 	t.Run("underflow in one free slice", func(t *testing.T) {
 		// A -> B under main, with B also at zero as if a holder had vanished
@@ -8714,4 +8736,175 @@ func BenchmarkLandCommit(b *testing.B) {
 	}
 	b.StopTimer()
 	b.ReportMetric(float64(cs.Counts().Reads-start)/float64(b.N), "reads/op")
+}
+
+// sliceStore is an in-memory store that counts the write transactions while
+// armed and runs hook before each after the first, so a test acts between the
+// slices of a staged batch.
+type sliceStore struct {
+	*store_kvtx_inmem.Store
+	// armed counts the write transactions while set.
+	armed bool
+	// opened counts the write transactions since the store was armed.
+	opened int
+	// hook runs before the write after the n-th, with no store writer held.
+	// The writes it makes are not counted.
+	hook func(n int)
+}
+
+// NewTransaction runs hook before an armed write after the first, then opens
+// the transaction, refusing it when hook cancelled ctx.
+func (s *sliceStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if write && s.armed {
+		s.opened++
+		if s.opened > 1 {
+			s.armed = false
+			s.hook(s.opened - 1)
+			s.armed = true
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return s.Store.NewTransaction(ctx, write)
+}
+
+// sliceMode is what testStageSlices does with a staged batch.
+type sliceMode int
+
+const (
+	// sliceCollect collects past the grace period between slices.
+	sliceCollect sliceMode = iota
+	// sliceCancelRetry cancels after the first slice, then retries the batch.
+	sliceCancelRetry
+	// sliceCancelRelease cancels after the first slice, then releases the
+	// stage.
+	sliceCancelRelease
+	// sliceRelease releases the stage after the first slice.
+	sliceRelease
+	// sliceParentFirst orders the parent before its children.
+	sliceParentFirst
+	// sliceOneTransaction opens the Volume with Config.StageOneTransaction.
+	sliceOneTransaction
+)
+
+// testStageSlices lands a stage's batch of seven leaves and their parent in
+// slices of three, so the parent lands two transactions after its first
+// children, and between slices runs a collector pass past the grace period,
+// cancels the batch or releases the stage. No block of a landed slice may go
+// while the stage holds it; a retry lands the rest and finds the earlier
+// slices stored; a release refuses the next slice and, like a cancellation
+// without a retry, leaves the landed blocks to the collector. A batch ordered
+// parent first, or under StageOneTransaction, lands in one transaction.
+func testStageSlices(t *testing.T, mode sliceMode) {
+	store := &sliceStore{Store: store_kvtx_inmem.NewStore()}
+	v, clk := openConfVolume(t, store, &store_kvtx.Config{
+		CollectorFrees:         true,
+		CollectorHoldUntilFree: testHold,
+		StageOneTransaction:    mode == sliceOneTransaction,
+	})
+	if mode != sliceOneTransaction {
+		v.stageSlice = 3
+	}
+	stage, release, err := v.OpenStage(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr := testTree{}
+	leaves := []string{"C0", "C1", "C2", "C3", "C4", "C5", "C6"}
+	for _, name := range leaves {
+		tr.add(t, name)
+	}
+	p := tr.add(t, "P", leaves...)
+	names := append(append([]string(nil), leaves...), "P")
+	order := names
+	if mode == sliceParentFirst {
+		order = append([]string{"P"}, leaves...)
+	}
+
+	// Between slices, collect past the grace period and check that every
+	// landed block stays, or cancel or release after the first slice.
+	ctx, stop := context.WithCancel(t.Context())
+	defer stop()
+	store.hook = func(n int) {
+		switch mode {
+		case sliceCancelRetry, sliceCancelRelease:
+			stop()
+		case sliceRelease:
+			release()
+		default:
+			advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
+			collectAll(t, v)
+			requireStored(t, v, tr, true, names[:3*n]...)
+		}
+	}
+	store.armed = true
+	_, err = v.PrepareStagedBlockBatch(ctx, stage, tr.entries(order...))
+	store.armed = false
+	testStageSliceResult(t, mode, store.opened, err)
+
+	// A cancelled batch leaves the first slice held by the stage, and a retry
+	// finds it. A release while the second slice is open is carried by that
+	// slice's transaction, and refuses the third.
+	if mode == sliceCancelRetry || mode == sliceCancelRelease {
+		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, names[:3]...)
+		requireStored(t, v, tr, false, names[3:]...)
+	}
+	if mode == sliceCancelRetry {
+		existed, err := v.PrepareStagedBlockBatch(t.Context(), stage, tr.entries(names...))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, got := range existed {
+			if got != (i < 3) {
+				t.Fatalf("retry found entry %d existed=%v, want %v", i, got, i < 3)
+			}
+		}
+	}
+	if mode == sliceCancelRelease || mode == sliceRelease {
+		// The release, applied by the next direct transaction, leaves the
+		// landed leaves to the collector.
+		release()
+		if err := v.withDirectAtomic(t.Context(), nil); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, names...)
+		requireAudit(t, v, 0)
+		return
+	}
+
+	// Main adopts the parent, the stage lets go, and every block stays.
+	if err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
+		t.Fatal(err)
+	}
+	release()
+	clk.Add(block_gc.DefaultGrace + time.Second)
+	collectAll(t, v)
+	requireStored(t, v, tr, true, names...)
+	requireAudit(t, v, 0)
+}
+
+// testStageSliceResult checks the refusal and the write transactions of
+// testStageSlices' batch under mode.
+func testStageSliceResult(t *testing.T, mode sliceMode, writes int, err error) {
+	t.Helper()
+	want, wantErr := 3, error(nil)
+	switch mode {
+	case sliceCancelRetry, sliceCancelRelease:
+		want, wantErr = 2, context.Canceled
+	case sliceRelease:
+		want, wantErr = 2, block.ErrStageReleased
+	case sliceParentFirst, sliceOneTransaction:
+		want = 1
+	}
+	if !errors.Is(err, wantErr) || (wantErr == nil && err != nil) {
+		t.Fatalf("batch returned %v, want %v", err, wantErr)
+	}
+	if writes != want {
+		t.Fatalf("batch opened %d write transactions, want %d", writes, want)
+	}
 }
