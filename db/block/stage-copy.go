@@ -68,9 +68,19 @@ func OpenStageCopy(ctx context.Context, store StoreOps, recheck bool) (*StageCop
 	if err != nil {
 		return nil, err
 	}
-	c := &StageCopy{store: store, staged: staged, release: release, recheck: recheck}
+	c := NewStageCopy(store, staged, recheck)
+	c.release = release
+	return c, nil
+}
+
+// NewStageCopy copies block graphs into store under staged, a stage the
+// caller opened on store with OpenStage and holds until a root that names the
+// copied roots lands. Release does nothing: the caller releases the stage.
+func NewStageCopy(store, staged StoreOps, recheck bool) *StageCopy {
+	// Copy straight into a store that holds no roots.
+	c := &StageCopy{store: store, staged: staged, release: func() {}, recheck: recheck}
 	if !HoldsRoots(store) {
-		return c, nil
+		return c
 	}
 
 	// Buffer the writes so a fence covers a batch of them.
@@ -80,7 +90,7 @@ func OpenStageCopy(ctx context.Context, store StoreOps, recheck bool) (*StageCop
 		DrainBatchEntries: stageCopyBatchEntries,
 	})
 	c.pending = make(map[string]struct{})
-	return c, nil
+	return c
 }
 
 // Copy copies the graph under root from src, skipping each subtree the stage

@@ -30,7 +30,7 @@ import (
 type Testbed struct {
 	// Context is the root context.
 	Context context.Context
-	// Logger is the logger
+	// Logger is the logger.
 	Logger *logrus.Entry
 	// VolumeController is the test volume controller.
 	VolumeController volume.Controller
@@ -40,7 +40,7 @@ type Testbed struct {
 	BucketId string
 	// StaticResolver is the static resolver.
 	StaticResolver *srr.Resolver
-	// Bus is the controller bus
+	// Bus is the controller bus.
 	Bus bus.Bus
 	// StepFactorySet is the transformer step factory set.
 	StepFactorySet *block_transform.StepFactorySet
@@ -250,6 +250,29 @@ func (t *Testbed) BuildEmptyCursor(ctx context.Context) (*bucket_lookup.Cursor, 
 		nil, nil,
 	)
 	return oc, err
+}
+
+// StartVolume starts another volume on the testbed bus from conf, or an
+// in-memory volume when conf is nil. The returned release waits for the
+// volume controller to exit and close its store, so the volume's blocks are
+// gone when it returns.
+func (t *Testbed) StartVolume(ctx context.Context, conf config.Config) (volume.Volume, func(), error) {
+	// Default to an in-memory volume.
+	if conf == nil {
+		conf = &volume_kvtxinmem.Config{VolumeConfig: &volume_controller.Config{}}
+	}
+
+	// Start the controller and wait for its volume.
+	vc, rel, err := startVolume(ctx, t.Bus, t.Logger, conf)
+	if err != nil {
+		return nil, nil, err
+	}
+	vol, err := vc.GetVolume(ctx)
+	if err != nil {
+		rel()
+		return nil, nil, err
+	}
+	return vol, rel, nil
 }
 
 // AddReleaseFunc adds a function to call when Release() is called.

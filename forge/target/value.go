@@ -107,29 +107,15 @@ func LoadBlobValueToBytes(
 	return out, nil
 }
 
-// StoreValueAsBlockRef copies the value to a BlockRef. Copies data into the
-// state bucket if it is located in a different bucket.
+// CopyValueToBucket copies the block graph under the value into the storage
+// the handle writes to, and returns it as a BLOCK_REF value there. A value
+// already in that storage returns its root without a copy.
 //
-// May return nil if there is no value set or if it is empty.
-// Otherwise returns a *Value with type BLOCK_REF or an error.
-func StoreValueAsBlockRef(
-	ctx context.Context,
-	handle ExecControllerHandle,
-	val *forge_value.Value,
-) (*forge_value.Value, error) {
-	if val.IsEmpty() {
-		return nil, nil
-	}
-
-	vtype := val.GetValueType()
-	if vtype == forge_value.ValueType_ValueType_BLOCK_REF {
-		return forge_value.NewValueWithBlockRef("", val.GetBlockRef()), nil
-	}
-
-	return CopyValueToBucket(ctx, handle, val)
-}
-
-// CopyValueToBucket copies the value to the target bucket.
+// The copy walks the source graph from the root and stops at each block the
+// storage already holds whole (a completion proof, held under the handle's
+// stage), so it reads and writes only the blocks the storage lacks, and a
+// repeat copy reads only the root's proof. Blocks move as stored, without
+// decoding, so the source and the storage must share a transform config.
 //
 // May return nil if there is no value set or if it is empty.
 // Otherwise returns a *Value with type BLOCK_REF or an error.
@@ -145,62 +131,49 @@ func CopyValueToBucket(
 	}
 
 	// Return no value when the source bucket or root reference is empty.
-	outputRef := bktRef.GetRootRef()
-	if bktRef.GetEmpty() || outputRef.GetEmpty() {
+	root := bktRef.GetRootRef()
+	if bktRef.GetEmpty() || root.GetEmpty() {
 		return nil, nil
 	}
 
-	// Copy the root block from another bucket into the target storage, with
-	// the child list the target Volume requires of every block it stores.
-	// Only the root moves; the blocks it names are not copied.
+	// Copy the graph from another bucket under the handle's stage.
 	if bktRef.GetBucketId() != "" {
-		// Read the source root's bytes and child list, and decode the bytes.
-		var root *block.StoredBlock
-		err = handle.AccessStorage(
-			ctx,
-			bktRef,
-			func(bls *bucket_lookup.Cursor) error {
-				// Read the stored root and require its child list.
-				var berr error
-				root, berr = bls.GetBlockStore().GetStoredBlock(ctx, outputRef)
-				if berr != nil || root == nil {
-					return berr
-				}
-				if !root.RefsKnown {
-					return errors.Wrap(block.ErrRefsUnknown, outputRef.MarshalString())
-				}
-
-				// Decode the bytes with the source bucket's transformer.
-				if xfrm := bls.GetTransformer(); xfrm != nil {
-					root.Data, berr = xfrm.DecodeBlock(root.Data)
-				}
-				return berr
-			},
-		)
-		if err == nil && root == nil {
-			err = errors.Errorf(
-				"block %s in bucket %s not found",
-				outputRef.MarshalString(),
-				bktRef.GetBucketId(),
-			)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		// Persist the root block in the target bucket.
-		err = handle.AccessStorage(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-			var berr error
-			outputRef, _, berr = bls.PutBlock(ctx, root.Data, &block.PutOpts{
-				Sync:      true,
-				Refs:      root.Refs,
-				RefsKnown: true,
-			})
-			return berr
+		err = handle.AccessStorage(ctx, nil, func(dst *bucket_lookup.Cursor) error {
+			return copyGraphToCursor(ctx, dst, bktRef)
 		})
 		if err != nil {
 			return nil, err
 		}
 	}
-	return forge_value.NewValueWithBlockRef("", outputRef), nil
+	return forge_value.NewValueWithBlockRef("", root), nil
+}
+
+// copyGraphToCursor copies the block graph under ref into the bucket dst
+// writes to, skipping each subtree that bucket holds whole.
+func copyGraphToCursor(ctx context.Context, dst *bucket_lookup.Cursor, ref *bucket.ObjectRef) error {
+	// Follow the reference into the source bucket.
+	src, err := dst.FollowRef(ctx, ref)
+	if err != nil {
+		return err
+	}
+	defer src.Release()
+
+	// Refuse a copy whose stored bytes the destination would decode wrongly.
+	srcConf, dstConf := src.GetTransformConf(), dst.GetTransformConf()
+	if (!srcConf.GetEmpty() || !dstConf.GetEmpty()) && !srcConf.EqualVT(dstConf) {
+		return errors.Errorf(
+			"copy %s from bucket %s: source transform config differs from the destination",
+			ref.GetRootRef().MarshalString(),
+			ref.GetBucketId(),
+		)
+	}
+
+	// Copy under the destination cursor's stage, forgetting finished blocks so
+	// the copy holds only the path from the root to its frontier.
+	c := block.NewStageCopy(dst.GetBucket(), dst.GetBlockStore(), false)
+	err = c.Copy(ctx, src.GetBlockStore(), ref.GetRootRef(), block.GraphCopyOptions{Forget: true})
+	if err != nil {
+		return errors.Wrapf(err, "copy from bucket %s", ref.GetBucketId())
+	}
+	return c.Flush(ctx)
 }
