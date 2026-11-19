@@ -152,8 +152,7 @@ func parseRecord(rec []byte, start, total int64) ([]entry, int, int, uint32, int
 	bodyLen := int(bodySize) //nolint:gosec // bounded by the slice length.
 	recLen := recordHeaderLen + bodyLen + recordTrailerLen
 
-	// Check the stored end before hashing a candidate found inside a damaged
-	// span. Trust it as a boundary only after the record checksum verifies.
+	// Trust the stored end once the record checksum and extent verify.
 	sealed := rec[:recordHeaderLen+bodyLen]
 	end := binary.LittleEndian.Uint64(rec[8:])
 	n := binary.LittleEndian.Uint64(rec[16:])
@@ -191,13 +190,11 @@ func parseRecord(rec []byte, start, total int64) ([]entry, int, int, uint32, int
 	return entries, recLen, int(n), dataCRC, int64(end), nil //nolint:gosec // end and n are bounded by the pack.
 }
 
-// scanBatches implements D2: preserve each verified batch at its original
-// offset. Finalized readers consult the index, so damaged spans between
-// verified batches can remain in the file without exposing their values.
+// scanBatches recovers batches at known offsets on startup. A verified record
+// gives the next boundary even when its values fail their checksum. An
+// unreadable record leaves the next boundary unknown, so recovery stops there.
 func scanBatches(pack []byte) (entries []entry, keptEnd int64, damaged bool) {
-	// Decode adjacent records, jumping a damaged record when its extent is
-	// sealed. If its header is damaged, find the next candidate marker and
-	// require both checksums and the absolute end offset before keeping it.
+	// Decode only at the start of the file and the ends of verified records.
 	for at := int64(0); at < int64(len(pack)); {
 		batch, end, err := decodeBatch(pack, at)
 		if err == nil {
@@ -205,17 +202,36 @@ func scanBatches(pack []byte) (entries []entry, keptEnd int64, damaged bool) {
 			keptEnd = end
 		}
 		damaged = damaged || err != nil
-		if end != 0 {
-			at = end
-			continue
-		}
-		skip := bytes.Index(pack[at+1:], []byte(recordMagic))
-		if skip < 0 {
+		if end == 0 {
 			break
 		}
-		at += int64(skip) + 1
+		at = end
 	}
 	return entries, keptEnd, damaged
+}
+
+// scanWrittenBatches uses the writer's original batch boundaries and bytes
+// to verify each complete batch at its original offset during live recovery.
+func scanWrittenBatches(disk, written []byte, original []entry) (entries []entry, keptEnd int64, damaged bool) {
+	// Compare each written extent with its on-disk bytes. The original entries
+	// may already have gaps if an earlier recovery attempt kept only part.
+	for len(original) != 0 {
+		start := original[0].batch
+		n := 1
+		for n < len(original) && original[n].batch == start {
+			n++
+		}
+		last := original[n-1]
+		end := last.off + last.size
+		if end <= int64(len(disk)) && bytes.Equal(disk[start:end], written[start:end]) {
+			entries = append(entries, original[:n]...)
+			keptEnd = end
+		} else {
+			damaged = true
+		}
+		original = original[n:]
+	}
+	return entries, keptEnd, damaged || keptEnd < int64(len(disk))
 }
 
 // readVarint reads one uvarint from the front of b.

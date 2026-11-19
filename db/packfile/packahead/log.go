@@ -196,7 +196,7 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		return err
 	}
 	p := &pack{seq: seq, path: path, f: f, state: packRotated}
-	data, entries, err := p.recoverFile(l.opts.SyncData, func(_ []entry, _ int64, damaged bool) {
+	data, entries, err := p.recoverFile(l.opts.SyncData, scanBatches, func(_ []entry, _ int64, damaged bool) {
 		// I2: a Log can reopen in the same process as its old decoded cache.
 		// A damaged record can hide the keys, so fence those reads globally.
 		if damaged {
@@ -1068,10 +1068,14 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	// the renamed file ends in the index, which recovery would truncate. A
 	// pack an earlier try dropped has no file left to recover.
 	if failed && p.renamed == nil && !p.dropped {
-		var err error
-		data, entries, err = p.recoverFile(opts.SyncData, func(kept []entry, end int64, _ bool) {
+		scan := func(disk []byte) ([]entry, int64, bool) {
+			return scanWrittenBatches(disk, data, entries)
+		}
+		publish := func(kept []entry, end int64, _ bool) {
 			l.forgetDamagedBatches(p, entries, kept, end)
-		})
+		}
+		var err error
+		data, entries, err = p.recoverFile(opts.SyncData, scan, publish)
 		if err != nil {
 			return poison(err)
 		}

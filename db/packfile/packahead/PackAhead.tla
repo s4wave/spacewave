@@ -18,9 +18,10 @@
 \*
 \* One fsync does not order the sectors it writes, so a crash keeps, for every
 \* batch not yet synced, its values, its record, both or neither. Recovery reads
-\* each pack the rename did not finalize and indexes every batch whose record
-\* and values survived. The model keeps their order and abstracts away damaged
-\* spans between their physical offsets.
+\* each pack the rename did not finalize, stepping over a batch only if its
+\* record survived. It indexes reachable batches whose values also survived.
+\* The live writer retains the original offsets. The model keeps their order
+\* and abstracts away damaged spans between physical offsets.
 \*
 \* Guards, which a mutant turns off to show the invariant needs it:
 \*   DataCheck:   recovery rejects a record whose values did not survive.
@@ -144,7 +145,9 @@ WriteFail ==
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, rows,
                  remote, entries, reg, crashes, poisoned, noindex>>
 
-\* Commit writes a block's liveness row in the Volume, its receipt.
+\* Commit writes a block's liveness row in the Volume, its receipt. The
+\* model represents each receipt as one block. Go validates all packs in an
+\* Append together after its waits, before the caller can issue any receipt.
 Commit ==
   /\ up
   /\ \E p \in Packs, i \in 1..Cap :
@@ -316,8 +319,11 @@ Crash ==
 \* DataCheck its values did too.
 Accepted(b) == b.r /\ (DataCheck => b.d)
 
-\* Kept gives the original indices of all verified batches in pack p.
-Kept(p) == SelectSeq([i \in DOMAIN disk[p] |-> i], LAMBDA i : Accepted(disk[p][i]))
+\* Kept gives the original indices of verified batches reachable from the
+\* start of pack p. Each earlier record must establish the next boundary.
+Kept(p) ==
+  SelectSeq([i \in DOMAIN disk[p] |-> i],
+            LAMBDA i : Accepted(disk[p][i]) /\ (\A j \in 1..(i-1) : disk[p][j].r))
 
 \* Recover indexes all accepted batches, loads each renamed pack and opens
 \* the next unused pack. A renamed pack whose directory sync was lost would

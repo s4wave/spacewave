@@ -426,7 +426,7 @@ func checkRecoveryKeepsAcknowledgedBatches(t *testing.T, damage, recovery string
 		}
 	}()
 
-	// Store two decoded values in separate acknowledged batches.
+	// Store three decoded values in separate acknowledged batches.
 	write := func(label string) (*block.BlockRef, Block) {
 		bytes, err := block_mock.NewExample(label).MarshalVT()
 		if err != nil {
@@ -442,6 +442,7 @@ func checkRecoveryKeepsAcknowledgedBatches(t *testing.T, damage, recovery string
 		}
 		return ref, value
 	}
+	_, prefix := write("intact prefix batch")
 	badRef, bad := write("damaged batch")
 	goodRef, good := write("intact acknowledged batch")
 
@@ -461,14 +462,14 @@ func checkRecoveryKeepsAcknowledgedBatches(t *testing.T, damage, recovery string
 		}
 	}
 
-	// Damage the first batch on disk. The second record and data remain intact.
+	// Damage the middle batch on disk. The other batches remain intact.
 	var loc location
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		loc = l.table[tailOf(bad.Key)]
 	})
 	at, replacement := int64(loc.off), ^bad.Value[0]
 	if damage == "header" {
-		at, replacement = 0, 0
+		at, replacement = int64(recordLen([]Block{prefix})+len(prefix.Value)), 0
 	}
 	if _, err := loc.p.f.WriteAt([]byte{replacement}, at); err != nil {
 		t.Fatal(err)
@@ -512,12 +513,22 @@ func checkRecoveryKeepsAcknowledgedBatches(t *testing.T, damage, recovery string
 		t.Fatalf("read of bad block after recovery = %+v, %v", got, err)
 	}
 
-	// A finalized pack reader sees exactly the intact batch's original bytes.
-	infos := waitFinalized(t, l, 1)
-	checkPack(t, infos[0], map[string][]byte{string(good.Key): good.Value}, Options{})
-	if value, found, err := l.Get(good.Key); err != nil || !found || !bytes.Equal(value, good.Value) {
-		t.Fatalf("intact block after recovery: found=%v err=%v", found, err)
+	// Keep the later batch only when recovery can establish its start.
+	want := map[string][]byte{string(prefix.Key): prefix.Value}
+	if damage == "header" && recovery == "startup" {
+		if l.Has(good.Key) {
+			t.Fatal("startup indexed a batch beyond an unreadable record")
+		}
+	} else {
+		want[string(good.Key)] = good.Value
+		if value, found, err := l.Get(good.Key); err != nil || !found || !bytes.Equal(value, good.Value) {
+			t.Fatalf("intact block after recovery: found=%v err=%v", found, err)
+		}
 	}
+
+	// A finalized pack reader sees exactly the batches recovery kept.
+	infos := waitFinalized(t, l, 1)
+	checkPack(t, infos[0], want, Options{})
 	if l.Has(bad.Key) {
 		t.Fatal("bad batch still has a location")
 	}
