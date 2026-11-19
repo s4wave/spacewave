@@ -43,6 +43,9 @@ const (
 	// RootBackfill holds what this device's backfill copied while its
 	// backfill choice is on.
 	RootBackfill = "backfill"
+	// RootRegenBuild holds the HeldRoots block naming a regeneration's pin
+	// and this device's build of it, while the installed head holds the pin.
+	RootRegenBuild = "regen-build"
 )
 
 // heldRootNames are the roots an Adapter reads at open.
@@ -55,6 +58,7 @@ var heldRootNames = []string{
 	RootRetained,
 	RootPending,
 	RootBackfill,
+	RootRegenBuild,
 }
 
 // HoldImport holds roots, which a writer outside an Adapter stored for the

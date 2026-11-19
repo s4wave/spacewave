@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/ulid"
-	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -24,32 +23,16 @@ import (
 
 // TestRegenerateWorldReplicasWhileWriting regenerates a two-replica Space's
 // World and switches it back while a writer on each device keeps writing.
-// Every object and quad either device wrote, and the quad the regeneration
-// carried, survive on both replicas, and the replicas reach the same root.
+// The owner builds each pin off the replay path; the second device builds
+// none, so its replay builds each switch inline. A switch past the bound is
+// refused on both. Every object and quad either device wrote, and the quad
+// the regeneration carried, survive on both replicas, and the replicas reach
+// the same root.
 func TestRegenerateWorldReplicasWhileWriting(t *testing.T) {
 	// Start a testbed with the local provider and the Space World engine.
-	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 4*time.Minute)
 	defer cancel()
-	tb, err := testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
-	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, space_world.OpTypes{}))
-	_, providerController, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&provider_local.Config{
-		ProviderId: "local", PeerId: tb.Volume.GetPeerID().String(), StorageId: tb.StorageID,
-	}), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(providerController.Release)
-	rawProvider, providerRef, err := provider.ExLookupProvider(ctx, tb.Bus, "local", false, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(providerRef.Release)
-	local := rawProvider.(*provider_local.Provider)
+	tb, local := startLocalProvider(ctx, t)
 
 	// The owner creates the Space and mounts its replica.
 	owner, ownerSession := newReplicaSession(ctx, t, local)
@@ -113,7 +96,34 @@ func TestRegenerateWorldReplicasWhileWriting(t *testing.T) {
 		t.Fatal(err)
 	}
 	writerEngine, writerServed := startReplicaEngine(ctx, t, tb, writerRef, "regen-writer")
+	space_world.StopRegenBuild(writerServed)
 	waitReplicas(ctx, t, []world.Engine{writerEngine}, keys, quads)
+
+	// Pin, change more quads than a switch carries, and switch: both
+	// replicas refuse it, and the pin stays held.
+	graphFormat := world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH
+	if err := space_world.WriteRegenOp(ctx, ownerServed, &space_world.RegenerateWorldOp{Target: graphFormat}); err != nil {
+		t.Fatal(err)
+	}
+	pin := waitPin(ctx, t, ownerServed, nil)
+	const perTx = 4096
+	for n := 0; n <= space_world.MaxGraphSettingsStep; n += perTx {
+		if err := world.ExecTransaction(ctx, ownerEngine, true, func(ctx context.Context, ws world.WorldState) error {
+			for i := n; i < n+perTx; i++ {
+				if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(keys[i%len(keys)], fmt.Sprintf("<bulk-%d>", i), "seed-0", "")); err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	err = space_world.WriteRegenOp(ctx, ownerServed, &space_world.RegenerateWorldOp{Target: graphFormat, Base: pin})
+	if !errors.Is(err, sobject.ErrRejectedOp) || !strings.Contains(err.Error(), space_world.ReasonRegenMoved) {
+		t.Fatalf("a switch past the bound gave %v", err)
+	}
+	waitPin(ctx, t, writerServed, pin)
 
 	// Write the carried quad's list on the owner, under a stage that holds it
 	// until the regeneration returns, and copy it to the writer's store.
@@ -281,6 +291,23 @@ func TestRegenerateWorldReplicasWhileWriting(t *testing.T) {
 		select {
 		case <-ctx.Done():
 			t.Fatalf("the replicas hold %s at %d and %s at %d", ownerRoot.MarshalString(), ownerSeqno, writerRoot.MarshalString(), writerSeqno)
+		case <-time.After(20 * time.Millisecond):
+		}
+	}
+}
+
+// waitPin waits until eng's installed head holds a pin, pin when it is set,
+// and returns it.
+func waitPin(ctx context.Context, t *testing.T, eng *space_world.Engine, pin *block.BlockRef) *block.BlockRef {
+	t.Helper()
+	for {
+		held := space_world.HeldRegenPin(eng)
+		if held != nil && (pin == nil || held.EqualsRef(pin)) {
+			return held
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("the replica holds pin %v, want %v", held, pin)
 		case <-time.After(20 * time.Millisecond):
 		}
 	}

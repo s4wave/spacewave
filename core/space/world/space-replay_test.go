@@ -71,6 +71,7 @@ func newWorldReplayOn(t *testing.T, conf *block_transform.Config, wrap func(bloc
 		pages:    block.NewPendingStore(store, bound),
 		decoded:  block.NewDecodedBlockCache(),
 	}
+	a.regenBuild = newRegenBuilder(a)
 	r := &spaceReplay{a: a, stage: newReplayStage(a.pages)}
 	t.Cleanup(r.close)
 
@@ -280,18 +281,19 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 		t.Fatalf("a canceled regeneration returned reason %q and error %v, want a replay gap", reason, err)
 	}
 
-	// Regenerate: the node graph holds every record and quad, and the
-	// carried one, with base and built held.
-	graph, reason, err := r.applyRegenerateWorld(ctx, forward, kv)
-	if err != nil || reason != "" {
-		t.Fatal(reason, err)
+	// Pin and switch: the node graph holds every record and quad, and the
+	// carried one, with the head at the switch as base and built held and
+	// the pin released.
+	pinned, graph := regenOn(ctx, t, r, kv, list)
+	if got := format(pinned); got != world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV {
+		t.Fatalf("the pinned World is %v", got)
 	}
 	if got := format(graph); got != world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH {
 		t.Fatalf("the regenerated World is %v", got)
 	}
-	base, built := heldRegen(graph)
-	if base == nil || !built.EqualsRef(graph.GetHeadRef().GetRootRef()) {
-		t.Fatalf("the regeneration holds base %v and built %v", base, built)
+	pin, base, built := heldRegen(graph)
+	if pin != nil || !base.EqualsRef(pinned.GetHeadRef().GetRootRef()) || !built.EqualsRef(graph.GetHeadRef().GetRootRef()) {
+		t.Fatalf("the regeneration holds pin %v, base %v and built %v", pin, base, built)
 	}
 	if err := world_block.NewOrderedRegen(r.cursor, r.store(), r.a.regenConfig(regenSpillReplay)).Compare(ctx, base, built); err != nil {
 		t.Fatal(err)
@@ -304,11 +306,33 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 		t.Fatalf("the regenerated World holds a, b, c, d = %v", got)
 	}
 
-	// Every replica builds the same World, and none regenerates it twice or
+	// Every replica builds the same World, whether it built the pin ahead
+	// or holds a build of another pin, and none regenerates it twice or
 	// names its roots outside the operation.
-	again, reason, err := r.applyRegenerateWorld(ctx, forward, kv)
-	if err != nil || reason != "" || !again.EqualVT(graph) {
-		t.Fatalf("a second replica's regeneration gave %v, %q, %v", again.GetHeadRef(), reason, err)
+	if _, again := regenOn(ctx, t, r, kv, list); !again.EqualVT(graph) {
+		t.Fatalf("a second replica's regeneration gave %v", again.GetHeadRef())
+	}
+	pinRoot, _, _ := heldRegen(pinned)
+	r.a.regenBuild.set(&regenBuild{pin: kv.GetHeadRef().GetRootRef(), built: kv.GetHeadRef().GetRootRef()})
+	switchOp := &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Base: pinRoot}
+	if again, reason, err := r.applyRegenerateWorld(ctx, switchOp, pinned); err != nil || reason != "" || !again.EqualVT(graph) {
+		t.Fatalf("a replica holding another pin's build gave %v, %q, %v", again.GetHeadRef(), reason, err)
+	}
+	prebuilt, err := world_block.NewOrderedRegen(r.cursor, r.store(), r.a.regenConfig(regenSpillReplay)).Build(ctx, pinRoot, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.a.regenBuild.set(&regenBuild{pin: pinRoot, built: prebuilt})
+	if again, reason, err := r.applyRegenerateWorld(ctx, switchOp, pinned); err != nil || reason != "" || !again.EqualVT(graph) {
+		t.Fatalf("a replica with the pin prebuilt gave %v, %q, %v", again.GetHeadRef(), reason, err)
+	}
+	r.a.regenBuild.set(nil)
+
+	// A switch naming another pin is refused; TestRegenerateWorldReplicasWhileWriting
+	// refuses one past the bound.
+	stale := &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, Base: kv.GetHeadRef().GetRootRef()}
+	if _, reason, _ := r.applyRegenerateWorld(ctx, stale, pinned); reason != reasonRegenPinDiffers {
+		t.Fatalf("a switch naming another pin gave reason %q", reason)
 	}
 	if _, reason, _ := r.applyRegenerateWorld(ctx, forward, graph); reasonCode(reason) != "world regeneration" {
 		t.Fatalf("a held regeneration's second run gave reason %q", reason)
@@ -342,7 +366,7 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 	if got := format(back); got != world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV {
 		t.Fatalf("the switched-back World is %v", got)
 	}
-	if b, n := heldRegen(back); b != nil || n != nil {
+	if p, b, n := heldRegen(back); p != nil || b != nil || n != nil {
 		t.Fatal("the switch back still holds the regeneration")
 	}
 	want = []string{"<a> <p> <b>", "<a> <q> <b>", "<d> <p> <a>"}
@@ -354,21 +378,38 @@ func TestRegenerateWorldKeepsEveryRecordAndQuad(t *testing.T) {
 	}
 
 	// Regenerate again and release: both roots go, and the World stays.
-	graph, reason, err = r.applyRegenerateWorld(ctx, &RegenerateWorldOp{Target: world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH}, back)
-	if err != nil || reason != "" {
-		t.Fatal(reason, err)
-	}
-	base, built = heldRegen(graph)
+	_, graph = regenOn(ctx, t, r, back, nil)
+	_, base, built = heldRegen(graph)
 	released, reason := applyReleaseWorldRegen(&ReleaseWorldRegenOp{Base: base, Built: built}, graph)
 	if reason != "" {
 		t.Fatal(reason)
 	}
-	if b, n := heldRegen(released); b != nil || n != nil || !released.GetHeadRef().EqualVT(graph.GetHeadRef()) {
+	if p, b, n := heldRegen(released); p != nil || b != nil || n != nil || !released.GetHeadRef().EqualVT(graph.GetHeadRef()) {
 		t.Fatal("the release kept a root or moved the World")
 	}
 	if got := quadsFrom(ctx, t, r, released, keys...); !slices.Equal(got, want) {
 		t.Fatalf("the released World holds %v, want %v", got, want)
 	}
+}
+
+// regenOn pins prev with the carried quads and switches the pin to the node
+// graph, as every replica applies the two operations.
+func regenOn(ctx context.Context, t *testing.T, r *spaceReplay, prev *InnerState, quads *block.BlockRef) (pinned, graph *InnerState) {
+	t.Helper()
+	target := world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH
+	pinned, reason, err := r.applyRegenerateWorld(ctx, &RegenerateWorldOp{Target: target, Quads: quads}, prev)
+	if err != nil || reason != "" {
+		t.Fatal(reason, err)
+	}
+	pin, _, _ := heldRegen(pinned)
+	if !pin.EqualsRef(pinned.GetHeadRef().GetRootRef()) {
+		t.Fatalf("the pin %v is not the pinned head", pin)
+	}
+	graph, reason, err = r.applyRegenerateWorld(ctx, &RegenerateWorldOp{Target: target, Base: pin}, pinned)
+	if err != nil || reason != "" {
+		t.Fatal(reason, err)
+	}
+	return pinned, graph
 }
 
 // writeQuadListOn writes quads, in CompareQuads order, as a quad list in r's

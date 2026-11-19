@@ -100,6 +100,8 @@ type Adapter struct {
 	queue *opQueue
 	// backfill keeps a local copy of the World while this device chose it.
 	backfill *spaceBackfill
+	// regenBuild builds a pinned regeneration off the replay path.
+	regenBuild *regenBuilder
 	// replay holds the positions above the installed checkpoint. The driver
 	// goroutine owns it.
 	replay *spaceReplay
@@ -110,6 +112,9 @@ type Adapter struct {
 	// turnMtx is held from Begin to the turn's Release, so one local writer
 	// proposes at a time.
 	turnMtx csync.Mutex
+	// turns counts the local write turns, from Begin to the turn's Release,
+	// for the background regeneration build to yield to.
+	turns world_block.WriterTurns
 	// rootMtx serializes the named root swaps. lockRoots takes it after it
 	// stored the pages the swap reaches, so it is held only for the swap: a
 	// local writer that holds a root never waits on a store of the driver's
@@ -278,6 +283,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
 	a.backfill = newSpaceBackfill(a)
+	a.regenBuild = newRegenBuilder(a)
 
 	// A transient replay claims nothing and reads no roots, so its driver
 	// steps it at once, holding what it stores in one epoch its caller ends.
@@ -334,6 +340,9 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	if err := a.backfill.start(ctx); err != nil {
 		return err
 	}
+	if err := a.regenBuild.start(runCtx); err != nil {
+		return err
+	}
 	a.replay.stage = newReplayStage(a.pages)
 	close(a.opened)
 
@@ -341,6 +350,7 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return a.queue.execute(ctx, a.queued) })
 	g.Go(func() error { return a.executeStorageReclaim(ctx) })
+	g.Go(func() error { return a.regenBuild.follow(ctx) })
 
 	// Serve the engine once the World is initialized.
 	g.Go(func() error {
@@ -671,11 +681,18 @@ func (a *Adapter) Begin(ctx context.Context) (world.Turn, error) {
 		return nil, err
 	}
 
-	// Take the turn at the writer head.
-	release, err := a.turnMtx.Lock(ctx)
+	// Take the turn at the writer head, counted from before its wait so the
+	// background regeneration build yields to a writer still waiting.
+	a.turns.Begin()
+	unlock, err := a.turnMtx.Lock(ctx)
 	if err != nil {
+		a.turns.End()
 		return nil, err
 	}
+	release := sync.OnceFunc(func() {
+		unlock()
+		a.turns.End()
+	})
 	var base world.Head
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		base = a.writer
