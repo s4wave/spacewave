@@ -99,6 +99,18 @@ type Config struct {
 	// counted under; this one applies when the Volume adopts again, as it does
 	// when CollectorFrees turns on, and frees run only under it.
 	CollectorHoldUntilFree bool `protobuf:"varint,10,opt,name=collector_hold_until_free,json=collectorHoldUntilFree,proto3" json:"collectorHoldUntilFree,omitempty"`
+	// StageOneTransaction lands each batch a stage puts in one transaction, as
+	// the Volume did before it landed them in slices, and on the browser's
+	// paylog store admits background writers in arrival order with the
+	// foreground ones, as it did before it ordered writers by class. Off, the
+	// default, a batch lands in consecutive transactions bounded in entries and
+	// time, each in its caller's class. The in-memory store's admission, reads
+	// that never wait for a writer and background writers behind foreground
+	// ones, is outside this switch: Bolt and SQLite always admitted that way,
+	// and it changes only when a transaction runs, not what it reads or
+	// writes. This switch goes back to the old landing without a build; remove
+	// it once slicing has run in production.
+	StageOneTransaction bool `protobuf:"varint,11,opt,name=stage_one_transaction,json=stageOneTransaction,proto3" json:"stageOneTransaction,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -142,6 +154,13 @@ func (x *Config) GetCollectorHoldUntilFree() bool {
 	return false
 }
 
+func (x *Config) GetStageOneTransaction() bool {
+	if x != nil {
+		return x.StageOneTransaction
+	}
+	return false
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -152,6 +171,7 @@ func (m *Config) CloneVT() *Config {
 	r.CollectorGraceDur = m.CollectorGraceDur
 	r.RootHeldCheck = m.RootHeldCheck
 	r.CollectorHoldUntilFree = m.CollectorHoldUntilFree
+	r.StageOneTransaction = m.StageOneTransaction
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -181,6 +201,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.CollectorHoldUntilFree != that.CollectorHoldUntilFree {
+		return false
+	}
+	if this.StageOneTransaction != that.StageOneTransaction {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -267,6 +290,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("collectorHoldUntilFree")
 		s.WriteBool(x.CollectorHoldUntilFree)
 	}
+	if x.StageOneTransaction || s.HasField("stageOneTransaction") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stageOneTransaction")
+		s.WriteBool(x.StageOneTransaction)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -299,6 +327,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "collector_hold_until_free", "collectorHoldUntilFree":
 			s.AddField("collector_hold_until_free")
 			x.CollectorHoldUntilFree = s.ReadBool()
+		case "stage_one_transaction", "stageOneTransaction":
+			s.AddField("stage_one_transaction")
+			x.StageOneTransaction = s.ReadBool()
 		}
 	})
 }
@@ -336,6 +367,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.StageOneTransaction {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.StageOneTransaction)
+		i--
+		dAtA[i] = 0x58
 	}
 	if m.CollectorHoldUntilFree {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CollectorHoldUntilFree)
@@ -376,6 +412,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CollectorGraceDur)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RootHeldCheck)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.CollectorHoldUntilFree)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.StageOneTransaction)
 	n += len(m.unknownFields)
 	return n
 }
@@ -406,6 +443,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.CollectorHoldUntilFree != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "collector_hold_until_free")
 		protobuf_go_lite.TextWriteBool(&sb, x.CollectorHoldUntilFree)
+	}
+	if x.StageOneTransaction != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "stage_one_transaction")
+		protobuf_go_lite.TextWriteBool(&sb, x.StageOneTransaction)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -486,6 +527,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.CollectorHoldUntilFree = bool(v)
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StageOneTransaction", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StageOneTransaction = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -96,6 +96,20 @@ export interface Config {
    * when CollectorFrees turns on, and frees run only under it.
    */
   collectorHoldUntilFree?: boolean
+  /**
+   * StageOneTransaction lands each batch a stage puts in one transaction, as
+   * the Volume did before it landed them in slices, and on the browser's
+   * paylog store admits background writers in arrival order with the
+   * foreground ones, as it did before it ordered writers by class. Off, the
+   * default, a batch lands in consecutive transactions bounded in entries and
+   * time, each in its caller's class. The in-memory store's admission, reads
+   * that never wait for a writer and background writers behind foreground
+   * ones, is outside this switch: Bolt and SQLite always admitted that way,
+   * and it changes only when a transaction runs, not what it reads or
+   * writes. This switch goes back to the old landing without a build; remove
+   * it once slicing has run in production.
+   */
+  stageOneTransaction?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -105,4 +119,5 @@ export const Config: MessageType<Config> =
     [8, 'collector_grace_dur', 9],
     [9, 'root_held_check', 14, 0, RootHeldCheck_Enum],
     [10, 'collector_hold_until_free', 8],
+    [11, 'stage_one_transaction', 8],
   ])
