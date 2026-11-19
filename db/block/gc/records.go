@@ -73,11 +73,11 @@ const (
 	kindLease byte = 'E'
 	// kindHole keys a hole the audit found under a live root, by the block: a
 	// block the store lost together with its child list, whose parents' lists
-	// still name it. Its value is empty while its children's counts still
-	// hold it, and holeUncounted once a recount, which reads no list for it,
-	// left them without it. A put of the block counts it as stored, as Land
-	// describes, gives its children their holders again when they lack
-	// them, and deletes the record.
+	// still name it. It holds no value. Its children's counts may lack its
+	// holder: no recount reads a list for it, and an audit cannot tell whether
+	// the last one ran before the loss. A put of the block counts it as stored,
+	// as Land describes, gives its children its holder, and deletes the record;
+	// when the counts held it already, they stay one high until a recount.
 	kindHole byte = 'O'
 	// kindParked keys a Dead block the free held back while the generation
 	// is Open, by its big-endian ripe sequence, then the block, as the free
@@ -614,11 +614,6 @@ func decodeHolders(value []byte) (holders, ripe uint64, err error) {
 	}
 	return n + 1, 0, nil
 }
-
-// holeUncounted is the value of a hole record whose children's counts do
-// not hold the hole, which the adoption's settle writes, as kindHole
-// describes.
-var holeUncounted = []byte{1}
 
 // errCountMalformed reports a count record that decodes to nothing.
 var errCountMalformed = errors.New("liveness count record is malformed")
@@ -1246,7 +1241,9 @@ func (r *Records) SetState(ctx context.Context, state *LivenessState) error {
 // wrong in a way only a recount corrects.
 //
 // Epoch 1 follows the adoption's settle of holes: an earlier build left a
-// hole punched behind the settle cursor uncounted and unmarked.
+// hole punched behind the settle cursor uncounted and unmarked, and its
+// refill of a hole an audit recorded after the recount that missed it gave
+// the children no holder.
 const freesEpoch = 1
 
 // freesMark returns the frees mark of state: the FNV-1a hash of freesEpoch
