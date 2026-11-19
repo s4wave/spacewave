@@ -1,10 +1,12 @@
 package packahead
 
 import (
+	"container/list"
 	"context"
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -51,8 +53,27 @@ type Log struct {
 	open *pack
 	// spare is the next open pack, created and synced into dir, or nil.
 	spare *pack
-	// packs are the rotated and finalized packs, in seq order.
-	packs []*pack
+	// packs indexes every rotated or finalized pack by sequence.
+	packs map[uint64]*pack
+	// rotated queues packs that can still finalize, oldest first.
+	rotated list.List
+	// finals holds finalized packs, oldest first.
+	finals list.List
+	// pending holds finalized packs whose upload is still pending.
+	pending list.List
+	// held orders rotated and finalized packs that still hold unuploaded
+	// data for HoldsBefore, with unknown write times at its head.
+	held list.List
+	// finalVersion advances when the finalized pack view changes.
+	finalVersion uint64
+	// localBytes is the total of the packs indexed by sequence.
+	localBytes int64
+	// finalBytes is the total of the finalized packs.
+	finalBytes int64
+	// pendingBytes is the total of the finalized packs awaiting upload.
+	pendingBytes int64
+	// poisoned counts local packs whose sync failed.
+	poisoned int
 	// table locates every value a local pack holds and no Remove forgot.
 	table map[keyTail]location
 	// syncs counts the fdatasyncs writers have run.
@@ -62,6 +83,8 @@ type Log struct {
 	// leaders counts the writers running an fdatasync, which Close waits
 	// out before it closes the files.
 	leaders int
+	// evictions counts claimed evictions that Close waits out.
+	evictions int
 	// nextSeq is the seq of the next pack created.
 	nextSeq uint64
 	// bufs are buffers kept for the next open packs.
@@ -90,7 +113,10 @@ func Open(ctx context.Context, dir string, opts Options) (*Log, error) {
 	if err != nil {
 		return nil, err
 	}
-	l := &Log{dir: dir, opts: opts.withDefaults(), table: make(map[keyTail]location), nextSeq: 1}
+	l := &Log{
+		dir: dir, opts: opts.withDefaults(), nextSeq: 1,
+		packs: make(map[uint64]*pack), table: make(map[keyTail]location),
+	}
 
 	// Recover or load each pack, closing what was opened on failure.
 	ok := false
@@ -199,7 +225,6 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		l.table[tailOf(e.key)] = location{p: p, off: uint32(e.off), size: uint32(e.size)} //nolint:gosec // bounded by the pack size.
 	}
 	p.entries = nil
-	l.packs = append(l.packs, p)
 	return nil
 }
 
@@ -234,7 +259,7 @@ func (l *Log) loadPack(seq uint64, path, id string) error {
 		_ = f.Close()
 		return err
 	}
-	l.packs = append(l.packs, p)
+	l.trackFinal(p)
 	return nil
 }
 
@@ -255,13 +280,6 @@ func (l *Log) createPack(seq uint64) (*pack, error) {
 		return nil, errors.Wrap(err, "sync pack directory")
 	}
 	return &pack{seq: seq, path: path, f: f, state: packSpare}, nil
-}
-
-// applyFinal records what finalize made of p. The caller holds bcast or has
-// not shared the Log.
-func (l *Log) applyFinal(p *pack, fin *finalized) {
-	p.state, p.id, p.path = packFinal, fin.id, fin.path
-	p.written, p.synced, p.blocks, p.bloom = fin.size, fin.dataEnd, fin.blocks, fin.bloom
 }
 
 // Append writes blocks and returns once every one is durable in a local
@@ -340,13 +358,15 @@ func (l *Log) checkReserve(blocks []Block) error {
 		return errors.Wrap(err, "measure free disk")
 	}
 	var need uint64
-	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, b := range blocks {
-			if !l.holdsLocked(tailOf(b.Key)) {
-				need += uint64(len(b.Key) + len(b.Value)) //nolint:gosec // lengths are not negative.
+	for batch := range slices.Chunk(blocks, locationBatchSize) {
+		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			for _, b := range batch {
+				if !l.holdsLocked(tailOf(b.Key)) {
+					need += uint64(len(b.Key) + len(b.Value)) //nolint:gosec // lengths are not negative.
+				}
 			}
-		}
-	})
+		})
+	}
 	if free < need || free-need < uint64(l.opts.ReserveBytes) { //nolint:gosec // positive.
 		return ErrReserve
 	}
@@ -365,31 +385,43 @@ type syncWait struct {
 // fills, and returns the syncs they need. A held key located in replace is
 // written again. The caller holds writeMtx.
 func (l *Log) writeBlocks(ctx context.Context, blocks []Block, replace *pack) ([]syncWait, error) {
+	// Index the waits so a held value adds fixed work under bcast.
 	var waits []syncWait
+	waitIndex := make(map[*pack]int)
 	addWait := func(p *pack, end int64) {
-		for i := range waits {
-			if waits[i].p == p {
-				waits[i].end = max(waits[i].end, end)
-				return
-			}
+		if i, ok := waitIndex[p]; ok {
+			waits[i].end = max(waits[i].end, end)
+			return
 		}
+		waitIndex[p] = len(waits)
 		waits = append(waits, syncWait{p: p, end: end})
 	}
 	for len(blocks) != 0 {
-		// Choose the blocks that fit the open pack, skipping held keys.
+		// I4: a writer plans at most one bounded batch per lock hold,
+		// including duplicate keys that consume no pack bytes.
 		var p *pack
 		var plan batchPlan
 		var err error
+		var held [locationBatchSize]syncWait
+		n := 0
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			if l.closed {
 				err = ErrClosed
 				return
 			}
 			p = l.open
-			plan = l.planBatchLocked(p, blocks, replace, addWait)
+			plan = l.planBatchLocked(p, blocks[:min(len(blocks), locationBatchSize)], replace, func(p *pack, end int64) {
+				held[n] = syncWait{p: p, end: end}
+				n++
+			})
 		})
 		if err != nil {
 			return nil, err
+		}
+
+		// Merge waits outside the log lock even when the append spans many packs.
+		for _, wait := range held[:n] {
+			addWait(wait.p, wait.end)
 		}
 
 		// Rotate when the open pack failed or is too full for the next block.
@@ -443,7 +475,7 @@ func (l *Log) planBatchLocked(p *pack, blocks []Block, replace *pack, addWait fu
 		b := blocks[plan.consumed]
 		if t := tailOf(b.Key); l.holdsLocked(t) && (replace == nil || l.table[t].p != replace) {
 			loc := l.table[t]
-			delete(loc.p.removed, t)
+			loc.p.revive(t)
 			if loc.p.state != packFinal {
 				addWait(loc.p, loc.end())
 			}
@@ -479,7 +511,7 @@ func (l *Log) holdsLocked(t keyTail) bool {
 // dropLocationLocked forgets the table's current location for t. The caller
 // holds bcast and fences decoded reads before releasing it.
 func (l *Log) dropLocationLocked(t keyTail, loc location) {
-	delete(loc.p.removed, t)
+	loc.p.revive(t)
 	delete(l.table, t)
 }
 
@@ -492,8 +524,13 @@ func (l *Log) writeBatch(p *pack, batch []Block) (int64, error) {
 	buf := l.growBuf(p, end)
 	entries := encodeBatch(buf[start:end], start, batch)
 
-	// Write them with one positioned write.
+	// Write once and grow the entry slice outside the log lock. Only this
+	// writer changes the slice, and earlier entries remain immutable.
 	_, werr := p.f.WriteAt(buf[start:end], start)
+	var nextEntries []entry
+	if werr == nil {
+		nextEntries = append(p.entries, entries...)
+	}
 
 	// Publish the batch, or fail the pack so the next write rotates.
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -514,7 +551,7 @@ func (l *Log) writeBatch(p *pack, batch []Block) (int64, error) {
 			p.firstAt = time.Now()
 		}
 		p.written = end
-		p.entries = append(p.entries, entries...)
+		p.entries = nextEntries
 		for _, e := range entries {
 			p.keyBytes += int64(len(e.key))
 			t := tailOf(e.key)
@@ -526,6 +563,8 @@ func (l *Log) writeBatch(p *pack, batch []Block) (int64, error) {
 		}
 	})
 	if werr != nil {
+		// Keep writeMtx until the failed open pack's locations are withdrawn.
+		l.forgetUnsynced(p)
 		return 0, errors.Wrap(werr, "write batch")
 	}
 	return end, nil
@@ -550,16 +589,13 @@ func (l *Log) growBuf(p *pack, end int64) []byte {
 	return grown
 }
 
-// failLocked records p's first failure and forgets the values of its batches
-// not yet durable, which recovery may drop. The caller holds bcast.
+// failLocked freezes a pack's accepted sync frontier and stops new batches.
+// The caller holds bcast. The failure owner withdraws unsynced locations
+// outside this lock hold before releasing its claim on the pack.
 func (l *Log) failLocked(p *pack, err error) {
-	// Keep the failure that stopped writes to the pack.
 	if p.err == nil {
 		p.err = err
 	}
-
-	// Forget the suffix the failed pack never synced.
-	l.forgetTruncatedLocked(p, p.synced)
 }
 
 // waitSynced implements D1: a waiter can acknowledge a synced batch only
@@ -598,18 +634,20 @@ func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 		// Lead: sync the pack and publish the new durable mark.
 		if lead {
 			serr := l.opts.SyncData(p.f)
+			if serr != nil {
+				l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+					l.poisonLocked(p, serr)
+				})
+				l.forgetUnsynced(p)
+			}
 			l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				// End the sync, which Close may wait out.
 				p.syncing = false
 				l.leaders--
 				l.syncs++
 
-				// A failed sync poisons the pack; a good one advances its mark.
-				if serr != nil {
-					l.syncFailures++
-					p.poisoned = true
-					l.failLocked(p, serr)
-				} else {
+				// A later write failure can freeze the frontier during the sync.
+				if p.err == nil {
 					p.synced = max(p.synced, target)
 				}
 				broadcast()
@@ -651,9 +689,7 @@ func (l *Log) rotate() error {
 	// Swap the open pack for the spare.
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Leave the old pack to the maintainer.
-		old := l.open
-		old.state = packRotated
-		l.packs = append(l.packs, old)
+		l.trackRotated(l.open)
 
 		// Open the spare with a kept buffer.
 		spare.state = packOpen
@@ -683,8 +719,8 @@ func (l *Log) GetDurable(key []byte) ([]byte, bool, bool, error) {
 		return nil, false, false, ErrKeyTooShort
 	}
 	var loc location
-	var found, copied, durable bool
-	var out []byte
+	var found, durable bool
+	var buf []byte
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		// Find the value and set its read bit on the first hit.
 		t := tailOf(key)
@@ -698,16 +734,25 @@ func (l *Log) GetDurable(key []byte) ([]byte, bool, bool, error) {
 		}
 		durable = loc.synced()
 		if loc.p.buf != nil {
-			out, copied = slices.Clone(loc.p.buf[loc.off:loc.end()]), true
+			buf = loc.p.buf[loc.off:loc.end()]
+			loc.p.bufReaders.Add(1)
 		}
 	})
-	if !found || copied {
-		return out, found, durable, nil
+	if !found {
+		return nil, false, false, nil
+	}
+
+	// I4: clone the value without holding bcast. A pack with a borrowed
+	// buffer leaves that buffer out of the reuse pool at finalization.
+	if buf != nil {
+		out := slices.Clone(buf)
+		loc.p.bufReaders.Add(-1)
+		return out, true, durable, nil
 	}
 
 	// Read it from the pack file. A pack evicted since the lookup no longer
 	// holds the value, which the remote holds instead.
-	out = make([]byte, loc.size)
+	out := make([]byte, loc.size)
 	if err := readAtFull(loc.p.f, out, int64(loc.off)); err != nil {
 		var gone bool
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -786,30 +831,8 @@ func (l *Log) Remove(key []byte) {
 		}
 
 		// Remember the deferred removal in the pack that holds it.
-		if loc.p.removed == nil {
-			loc.p.removed = make(map[keyTail]block.BlockRemovalStripe)
-		}
-		loc.p.removed[t] = stripe
+		loc.p.deferRemoval(t, stripe)
 	})
-}
-
-// GetPacks returns the finalized packs, oldest first, and a channel closed
-// when the Log next changes.
-func (l *Log) GetPacks() ([]PackInfo, <-chan struct{}) {
-	var infos []PackInfo
-	var waitCh <-chan struct{}
-	l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		for _, p := range l.packs {
-			if p.state == packFinal {
-				infos = append(infos, PackInfo{
-					Seq: p.seq, ID: p.id, Path: p.path, Size: p.written, Blocks: p.blocks,
-					BloomFilter: p.bloom, FirstAt: p.firstAt, Uploaded: p.uploaded,
-				})
-			}
-		}
-		waitCh = getWaitCh()
-	})
-	return infos, waitCh
 }
 
 // maintain runs the background steps until ctx ends: it opens the spare,
@@ -878,10 +901,9 @@ func (l *Log) maintain(ctx context.Context) {
 // open pack lingers until. The caller holds bcast.
 func (l *Log) nextStepLocked() (func(context.Context) error, time.Time) {
 	// Finalize the oldest rotated pack first, so packs finalize in order.
-	for _, p := range l.packs {
-		if p.state == packRotated && !p.poisoned {
-			return func(ctx context.Context) error { return l.finalizeRotated(ctx, p) }, time.Time{}
-		}
+	if head := l.rotated.Front(); head != nil {
+		p := head.Value.(*pack)
+		return func(ctx context.Context) error { return l.finalizeRotated(ctx, p) }, time.Time{}
 	}
 
 	// Open the spare, then rotate a lingering open pack.
@@ -912,15 +934,18 @@ func (l *Log) makeSpare(context.Context) error {
 	}
 
 	// Offer it to the writer, or close it when the Log closed meanwhile.
-	var closed bool
+	var offered bool
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if closed = l.closed; !closed {
+		// A writer that already reserved a newer pack must keep the sequence
+		// order even if this creation finishes first.
+		if offered = !l.closed && l.nextSeq == p.seq+1; offered {
 			l.spare = p
 			broadcast()
 		}
 	})
-	if closed {
+	if !offered {
 		_ = p.f.Close()
+		return os.Remove(p.path) // #nosec G703 -- an empty pack in the Log directory.
 	}
 	return nil
 }
@@ -996,11 +1021,10 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	poison := func(err error) error {
 		if syncFailed {
 			l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				l.syncFailures++
-				p.poisoned = true
-				l.failLocked(p, err)
+				l.poisonLocked(p, err)
 				broadcast()
 			})
+			l.forgetUnsynced(p)
 		}
 		return err
 	}
@@ -1018,8 +1042,17 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 		}
 		// A finalization retry must use the same recovered bytes and offsets.
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			l.localBytes += int64(len(data)) - p.written
 			p.buf, p.entries, p.written = data, entries, int64(len(data))
 		})
+
+		// Reinstall surviving locations in bounded steps. A recovered pack
+		// stays staged to readers until finalization commits.
+		for batch := range slices.Chunk(entries, locationBatchSize) {
+			l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+				l.locateRecoveredLocked(p, batch)
+			})
+		}
 	}
 
 	// A pack with no good batch has nothing to finalize.
@@ -1033,14 +1066,11 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 		return poison(err)
 	}
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// Record the finalized pack and locate what recovery kept.
+		// Publish the finalized pack after all its locations are installed.
 		l.applyFinal(p, fin)
-		if failed {
-			l.locateRecoveredLocked(p, entries)
-		}
 
 		// Keep the buffer for a later open pack and serve from the file.
-		if !failed && len(l.bufs) < keptBufs {
+		if !failed && p.bufReaders.Load() == 0 && len(l.bufs) < keptBufs {
 			l.bufs = append(l.bufs, p.buf)
 		}
 		p.buf, p.entries = nil, nil
@@ -1059,8 +1089,7 @@ func (l *Log) forgetDamagedBatches(p *pack, original, kept []entry, end int64) {
 
 	// Compare the record offsets outside the lock. Retained bytes keep the
 	// same offsets, so an in-flight read does not need to move with them.
-	const batchSize = 128
-	var damaged [batchSize]entry
+	var damaged [locationBatchSize]entry
 	n := 0
 	drop := func() {
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -1100,22 +1129,26 @@ func (l *Log) dropDamagedEntriesLocked(p *pack, damaged []entry) {
 	removals.Publish()
 }
 
-// forgetTruncatedLocked drops the locations in a pack's discarded suffix.
-// The caller holds bcast.
-func (l *Log) forgetTruncatedLocked(p *pack, end int64) {
-	// Forget the locations that still point at bytes in the discarded suffix.
-	var removals block.BlockRemovalBatch
-	for i := len(p.entries) - 1; i >= 0 && p.entries[i].off >= end; i-- {
-		e := p.entries[i]
-		t := tailOf(e.key)
-		if loc, ok := l.table[t]; ok && loc.p == p && loc.end() > end {
-			removals.Add(e.stripe)
-			l.dropLocationLocked(t, loc)
-		}
-	}
+// forgetUnsynced withdraws the entries above a failed pack's frozen sync
+// frontier. Its caller still holds the writer, sync or maintenance claim,
+// so recovery cannot replace these entry offsets during the walk.
+func (l *Log) forgetUnsynced(p *pack) {
+	// Identify the unsynced suffix without searching under bcast.
+	var entries []entry
+	var synced int64
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		entries, synced = p.entries, p.synced
+	})
+	first := sort.Search(len(entries), func(i int) bool {
+		return entries[i].off+entries[i].size > synced
+	})
 
-	// Fence the removed locations before unlocking or truncating the file.
-	removals.Publish()
+	// I2 and I4: publish the exact removal stripes as each fixed batch drops.
+	for batch := range slices.Chunk(entries[first:], locationBatchSize) {
+		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			l.dropDamagedEntriesLocked(p, batch)
+		})
+	}
 }
 
 // locateRecoveredLocked locates the values recovery kept in pack p that the
@@ -1148,8 +1181,8 @@ func (l *Log) dropEmpty(p *pack) error {
 
 	// Forget the pack.
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		l.packs = slices.DeleteFunc(l.packs, func(q *pack) bool { return q == p })
-		p.buf, p.entries = nil, nil
+		l.forgetRotated(p)
+		p.state, p.buf, p.entries = packGone, nil, nil
 		broadcast()
 	})
 	return nil
@@ -1178,15 +1211,15 @@ func (l *Log) Close() {
 		<-waitCh
 	}
 
-	// Wait for the writer in progress and the syncs running, which use the
-	// files, then close the files. No sync starts once closed is set.
+	// Wait for active writers, syncs and evictions to release the files.
+	// Once closed is set, no new operation can claim a file for writing.
 	release, err := l.writeMtx.Lock(context.Background())
 	if err == nil {
 		defer release()
 	}
 	for {
 		l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			done, waitCh = l.leaders == 0, getWaitCh()
+			done, waitCh = l.leaders == 0 && l.evictions == 0, getWaitCh()
 		})
 		if done {
 			break
@@ -1196,13 +1229,16 @@ func (l *Log) Close() {
 	l.closeFiles()
 }
 
-// closeFiles closes every pack file the Log holds.
+// closeFiles closes the registry after all its writers have stopped, or
+// during Open before the registry is shared.
 func (l *Log) closeFiles() {
-	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, p := range append(slices.Clone(l.packs), l.open, l.spare) {
-			if p != nil && p.f != nil {
-				_ = p.f.Close()
-			}
+	// The registry no longer changes, so disk closes need no log lock.
+	for _, p := range l.packs {
+		_ = p.f.Close()
+	}
+	for _, p := range [2]*pack{l.open, l.spare} {
+		if p != nil {
+			_ = p.f.Close()
 		}
-	})
+	}
 }
