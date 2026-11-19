@@ -150,9 +150,19 @@ func (s *readSetWorldState) ListGraphEdgeBuckets(ctx context.Context, query *Gra
 	return s.WorldState.ListGraphEdgeBuckets(ctx, query)
 }
 
-// QueryGraphPath records a graph read that patterns cannot describe.
+// QueryGraphPath records the filters of a one-step query, which reads only
+// its start keys' relationships, and a graph read for a longer query, whose
+// later frontiers the result does not name.
 func (s *readSetWorldState) QueryGraphPath(ctx context.Context, query *GraphPathQuery) (*GraphPathQueryResult, error) {
-	s.reads.markGraph()
+	if query != nil && len(query.Steps) == 1 {
+		var filters []GraphQuad
+		for _, key := range query.StartKeys {
+			filters = append(filters, graphPathStepFilters(key, query.Steps[0])...)
+		}
+		s.reads.addPatterns(filters...)
+	} else if query != nil && len(query.Steps) > 1 {
+		s.reads.markGraph()
+	}
 	return s.WorldState.QueryGraphPath(ctx, query)
 }
 

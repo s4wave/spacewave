@@ -206,28 +206,30 @@ func uniqueNonEmptyKeys(keys []string, limit uint32) []string {
 	return out
 }
 
-// lookupGraphPathStep combines independently bounded direction lookups in public order.
-func lookupGraphPathStep(ctx context.Context, ws WorldStateGraph, key string, step GraphPathStep) ([]GraphQuad, error) {
-	// Read outgoing relationships through the World's existing lookup capability.
-	var quads []GraphQuad
+// graphPathStepFilters returns the quad filters one step reads from key: its
+// outgoing, then its incoming relationships under the step's predicate.
+func graphPathStepFilters(key string, step GraphPathStep) []GraphQuad {
+	var filters []GraphQuad
 	if step.Direction == GraphPathDirectionOut || step.Direction == GraphPathDirectionBoth {
-		out, err := ws.LookupGraphQuads(ctx, NewGraphQuadWithKeys(key, step.Predicate, "", ""), step.Limit)
-		if err != nil {
-			return nil, err
-		}
-		quads = append(quads, out...)
+		filters = append(filters, NewGraphQuadWithKeys(key, step.Predicate, "", ""))
 	}
-
-	// Incoming lookup has its own limit, including when both directions were requested.
 	if step.Direction == GraphPathDirectionIn || step.Direction == GraphPathDirectionBoth {
-		in, err := ws.LookupGraphQuads(ctx, NewGraphQuadWithKeys("", step.Predicate, key, ""), step.Limit)
+		filters = append(filters, NewGraphQuadWithKeys("", step.Predicate, key, ""))
+	}
+	return filters
+}
+
+// lookupGraphPathStep reads each of a step's filters with its own limit and
+// merges the directions in field order.
+func lookupGraphPathStep(ctx context.Context, ws WorldStateGraph, key string, step GraphPathStep) ([]GraphQuad, error) {
+	var quads []GraphQuad
+	for _, filter := range graphPathStepFilters(key, step) {
+		found, err := ws.LookupGraphQuads(ctx, filter, step.Limit)
 		if err != nil {
 			return nil, err
 		}
-		quads = append(quads, in...)
+		quads = append(quads, found...)
 	}
-
-	// Merge both directions into field order.
 	sortGraphQuads(quads)
 	return quads, nil
 }

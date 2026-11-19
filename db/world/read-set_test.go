@@ -31,6 +31,11 @@ func (readStubWorldState) LookupGraphQuads(context.Context, GraphQuad, uint32) (
 	return nil, nil
 }
 
+// QueryGraphPath returns no keys.
+func (readStubWorldState) QueryGraphPath(context.Context, *GraphPathQuery) (*GraphPathQueryResult, error) {
+	return &GraphPathQueryResult{}, nil
+}
+
 // BuildStorageCursor returns no cursor.
 func (readStubWorldState) BuildStorageCursor(context.Context) (*bucket_lookup.Cursor, error) {
 	return nil, nil
@@ -114,6 +119,50 @@ func TestReadSetTouched(t *testing.T) {
 	for _, c := range cases {
 		if got := reads.Touched(c.changes); got != c.touched {
 			t.Errorf("%s: touched = %v, want %v", c.name, got, c.touched)
+		}
+	}
+}
+
+// TestReadSetGraphPath checks that a one-step path query reads its start keys'
+// relationships under its predicate, and a longer one reads the whole graph.
+func TestReadSetGraphPath(t *testing.T) {
+	// Follow p out of s and q into o, in one step each.
+	ctx := t.Context()
+	one, many := NewReadSet(), NewReadSet()
+	steps := []GraphPathStep{
+		{Direction: GraphPathDirectionOut, Predicate: "p", Limit: 10},
+		{Direction: GraphPathDirectionIn, Predicate: "q", Limit: 10},
+	}
+	for _, step := range steps {
+		query := &GraphPathQuery{StartKeys: []string{"s", "o"}, Steps: []GraphPathStep{step}, ResultLimit: 10}
+		if _, err := one.Track(readStubWorldState{}).QueryGraphPath(ctx, query); err != nil {
+			t.Fatal(err)
+		}
+	}
+	query := &GraphPathQuery{StartKeys: []string{"s"}, Steps: steps, ResultLimit: 10}
+	if _, err := many.Track(readStubWorldState{}).QueryGraphPath(ctx, query); err != nil {
+		t.Fatal(err)
+	}
+
+	// Compare each ChangeSet against both reads.
+	cases := []struct {
+		name      string
+		changes   *ChangeSet
+		one, many bool
+	}{
+		{"out of s", &ChangeSet{Quads: []GraphQuad{NewGraphQuad("<s>", `"p"`, "<x>", "")}}, true, true},
+		{"into o", &ChangeSet{Quads: []GraphQuad{NewGraphQuad("<x>", `"q"`, "<o>", "")}}, true, true},
+		{"other predicate", &ChangeSet{Quads: []GraphQuad{NewGraphQuad("<s>", `"r"`, "<x>", "")}}, false, true},
+		{"into s", &ChangeSet{Quads: []GraphQuad{NewGraphQuad("<x>", `"p"`, "<s>", "")}}, false, true},
+		{"other subject", &ChangeSet{Quads: []GraphQuad{NewGraphQuad("<x>", `"p"`, "<y>", "")}}, false, true},
+		{"other key", &ChangeSet{Keys: []string{"x"}}, false, true},
+	}
+	for _, c := range cases {
+		if got := one.Touched(c.changes); got != c.one {
+			t.Errorf("%s: one step touched = %v, want %v", c.name, got, c.one)
+		}
+		if got := many.Touched(c.changes); got != c.many {
+			t.Errorf("%s: two steps touched = %v, want %v", c.name, got, c.many)
 		}
 	}
 }
