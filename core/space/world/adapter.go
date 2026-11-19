@@ -836,8 +836,10 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	// Compute the position. At an operation whose type no handler resolves,
 	// return the wait for its handler, so the driver steps again with no lock
 	// held once it registers; at a block or plugin this device lacks, the
-	// wait for it, which the driver retries after a backoff. A transient
-	// replay has no driver to wait in.
+	// wait for it, which the driver retries after a backoff; at a body this
+	// build cannot read, the wait for a build that reads it, which only a
+	// restart or the owner's skip of the operation ends. A transient replay
+	// has no driver to wait in.
 	pos, err := r.run(ctx, index, op, adopt)
 	var unresolved *unresolvedOpError
 	switch {
@@ -845,6 +847,9 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		return "", errors.Wrap(ErrUnresolvedOp, unresolved.opTypeID)
 	case errors.As(err, &unresolved):
 		return "", a.waitForHandler(unresolved)
+	case errors.Is(err, ErrUnreadableOp) && !a.opts.transient:
+		upgrade := &sobject.SOReplayWait{State: &sobject.SOReplayWait_Upgrade{Upgrade: &sobject.SOReplayWaitUpgrade{}}}
+		return "", &sobject.BodyWait{Wait: upgrade, Wake: neverWakes, Err: err}
 	case err != nil && !a.opts.transient && ctx.Err() == nil && isReplayGap(err):
 		gap := &sobject.SOReplayWait{State: &sobject.SOReplayWait_Gap{Gap: &sobject.SOReplayWaitGap{}}}
 		return "", &sobject.BodyWait{Wait: gap, Err: err}

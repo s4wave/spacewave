@@ -206,11 +206,15 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 // resolveOpHold reads the payloads of operation h of set from snap, as
 // opPayloads does, with the handlers that name them. known is false when the
 // operation's type, or its handler's version, does not resolve yet, and the
-// hold then has only the roots read without them. err is a failure to read
-// snap.
+// hold then has only the roots read without them; and at a body this build
+// cannot read, which may name payloads, so the Space keeps every payload it
+// holds. err is a failure to read snap.
 func (a *Adapter) resolveOpHold(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet, h []byte) (opHold, bool, error) {
 	// An operation that runs no transaction names no payloads.
 	tx, _, err := replayedTx(ctx, snap, set, h)
+	if errors.Is(err, ErrUnreadableOp) {
+		return opHold{}, false, nil
+	}
 	if err != nil || tx == nil {
 		return opHold{handlers: newPayloadHandlers(nil)}, err == nil, err
 	}

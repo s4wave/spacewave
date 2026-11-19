@@ -114,6 +114,24 @@ func (e *unresolvedOpError) Error() string {
 	return "no handler resolves operation type " + e.opTypeID
 }
 
+// ErrUnreadableOp is returned at an operation whose body this build cannot
+// read: a World operation a newer build wrote, with a body this build's
+// WorldOp does not declare, or with the removed body an older build wrote.
+// Replay waits at it for a build that reads it, and ImportRoots cannot name
+// its payloads.
+var ErrUnreadableOp = errors.New("this build cannot read the operation's body")
+
+// neverWakes is the Wake of a replay wait only a restart ends. Nothing closes
+// it.
+var neverWakes = make(chan struct{})
+
+// unreadable reports whether wop decoded without a body this build declares
+// but with fields it does not: a body this build cannot read. An empty
+// WorldOp decodes alike on every build, so replay refuses it instead.
+func unreadable(wop *WorldOp) bool {
+	return wop.GetBody() == nil && len(wop.unknownFields) != 0
+}
+
 // isReplayGap reports whether err stops replay at its operation instead of
 // deciding the operation: a block that is not available, a canceled read, a
 // put through a replay stage that was released or lost, an operation whose

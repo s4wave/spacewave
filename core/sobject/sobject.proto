@@ -250,6 +250,10 @@ message SOReplayWait {
 
     // Retry waits to step again after a failure that names no wait.
     SOReplayWaitRetry retry = 8;
+
+    // Upgrade waits for a build of this device that reads the operation's
+    // body, which a newer build wrote.
+    SOReplayWaitUpgrade upgrade = 9;
   }
 }
 
@@ -267,6 +271,11 @@ message SOReplayWaitApproval {
 // SOReplayWaitGap waits for a block or plugin the operation reads to become
 // available on this device.
 message SOReplayWaitGap {}
+
+// SOReplayWaitUpgrade waits for a build of this device that reads the
+// operation's body. Only a restart on such a build, or the owner's skip of the
+// operation, ends it.
+message SOReplayWaitUpgrade {}
 
 // SOReplayWaitRetry waits to step again after a failure that names no wait.
 message SOReplayWaitRetry {

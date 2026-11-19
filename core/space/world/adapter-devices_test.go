@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -796,4 +797,128 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 	if !after.EqualVT(cursor) {
 		t.Fatal("the inspection changed the saved cursor")
 	}
+}
+
+// unreadableOp encodes a World operation a newer build wrote: a WorldOp whose
+// only field is a body this build does not declare, field 99.
+func unreadableOp() []byte {
+	body := "a body only a newer build reads"
+	return append([]byte{0x9a, 0x06, byte(len(body))}, body...)
+}
+
+// TestReplayWaitsAtUnreadableOp tries to make a replica apply an operation
+// past one whose body its build cannot read. Another device orders the
+// unreadable operation and then a transaction that creates after-object:
+// replay waits for a build that reads the body, with the World unchanged and
+// after-object absent, and refuses a write. A restart on the same build waits
+// there again rather than adopt an outcome. The owner's skip of the
+// operation, which every replica reads, resumes replay, which then applies the
+// later transaction.
+func TestReplayWaitsAtUnreadableOp(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	f := newAdapterFixture(t)
+	eng, engRef := f.start(t)
+	defer func() { engRef.Release() }()
+	so := f.space(t)
+	health := spaceHealth(ctx, t, so)
+	create := func(key string) error {
+		return world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+			obj, err := ws.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(obj)
+			return err
+		})
+	}
+	if err := create("before-object"); err != nil {
+		t.Fatal(err)
+	}
+	waitHealth(ctx, t, health, "caught up", func(h *sobject.SharedObjectHealth) bool {
+		return h.GetReplay().GetCaughtUp() != nil
+	})
+	seqno, err := eng.GetSeqno(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Another device orders the unreadable operation, then a later one.
+	remote := addDevice(t, so)
+	remote.write(t, so, unreadableOp(), false, false)
+	remote.write(t, so, createOp(t, "after-object"), false, false)
+	unread := waitUpgrade(ctx, t, so, health, remote)
+
+	// The World is the one before the operation, and a write is refused.
+	checkBefore := func() {
+		t.Helper()
+		if got, err := eng.GetSeqno(ctx); err != nil || got != seqno {
+			t.Fatalf("seqno while replay waits = %d, %v, want %d", got, err, seqno)
+		}
+		if err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
+			if err := hasObjects(ctx, eng, "before-object"); err != nil {
+				return err
+			}
+			return lacksObject(ctx, eng, "after-object")
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	checkBefore()
+	if err := create("waiting-write"); !errors.Is(err, sobject.ErrReplayWaits) {
+		t.Fatalf("write while replay waits at an unreadable body = %v, want the typed wait", err)
+	}
+
+	// A restart on the same build waits at the operation again.
+	eng, engRef = f.remount(ctx, t, eng, engRef)
+	health = spaceHealth(ctx, t, so)
+	if again := waitUpgrade(ctx, t, so, health, remote); !again.EqualVT(unread) {
+		t.Fatalf("wait after a restart at %v, want %v", again, unread)
+	}
+	checkBefore()
+
+	// The owner skips the operation: replay applies the later one.
+	host := so.(sobject.InviteHost)
+	if err := sobject.SkipSOOperation(ctx, host.GetSOHost(), unread, "a newer build wrote it", host.GetPrivKey()); err != nil {
+		t.Fatal(err)
+	}
+	waitHealth(ctx, t, health, "caught up after the skip", func(h *sobject.SharedObjectHealth) bool {
+		return h.GetReplay().GetCaughtUp() != nil
+	})
+	if err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
+		return hasObjects(ctx, eng, "before-object", "after-object")
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// waitUpgrade waits for replay of so to wait for a build that reads the
+// operation of remote it stopped at, and returns that operation's position.
+func waitUpgrade(ctx context.Context, t *testing.T, so sobject.SharedObject, health ccontainer.Watchable[*sobject.SharedObjectHealth], remote *testDevice) *sobject.SOOperationPosition {
+	t.Helper()
+	var wait *sobject.SOReplayWait
+	waitHealth(ctx, t, health, "the upgrade wait", func(h *sobject.SharedObjectHealth) bool {
+		wait = h.GetReplay().GetWaiting()
+		return wait.GetUpgrade() != nil
+	})
+	snap, err := so.GetSharedObjectState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	order := set.Order()
+	if int(wait.GetPosition()) >= len(order) {
+		t.Fatalf("wait at position %d of an order of %d", wait.GetPosition(), len(order))
+	}
+	h := order[wait.GetPosition()]
+	inner := set.Get(h)
+	for _, prev := range order[:wait.GetPosition()] {
+		if set.Get(prev).GetPeerId() == remote.id.String() {
+			t.Fatal("replay waits past the other device's first operation")
+		}
+	}
+	if inner.GetPeerId() != remote.id.String() {
+		t.Fatalf("replay waits at an operation of %s, want the other device's", inner.GetPeerId())
+	}
+	return &sobject.SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: h}
 }

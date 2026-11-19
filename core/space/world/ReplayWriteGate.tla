@@ -23,11 +23,14 @@
 \* as any failed apply is refused. The seed is a plugin op submitted by the
 \* plugin that handles it, so its writer begins only once its handler
 \* resolves. The nested writer begins once the seed's op is admitted, as a
-\* seed op's own plugin writes on a one-device Space.
+\* seed op's own plugin writes on a one-device Space. newer is an op a newer
+\* build wrote, whose body this build cannot read: replay waits at it for a
+\* build that reads it, which only a restart brings, and only when Upgrades.
 \*
 \* Restart ends the process once: writers in flight are cancelled, the
 \* handler must register again, and replay opens again over every op the log
-\* holds. Until the seed's plugin loads, replay waits at the seed's own op.
+\* holds, on a build that reads newer when Upgrades. Until the seed's plugin
+\* loads, replay waits at the seed's own op.
 \*
 \* With OwnerSkips, an owner may end a named wait by skipping the op replay
 \* waits at: a config entry, signed by the owner, that names the op by its
@@ -39,21 +42,21 @@
 \* window, are not this spec's: a write admitted then is re-applied on the
 \* new head and decided there.
 EXTENDS Naturals, Sequences, FiniteSets
-CONSTANTS Peers, HandlerArrives, LookupDisabled, OwnerSkips
+CONSTANTS Peers, HandlerArrives, LookupDisabled, OwnerSkips, Upgrades
 
 Writers == {"seed", "nested"}
 Ops == Writers \cup Peers
 Holders == {"free"} \cup Writers
 WStates == {"idle", "begun", "waiting", "checked", "admitted", "refused", "cancelled"}
 \* Waits are the named waits, where a write is refused at once.
-Waits == {"waitHandler", "waitGap", "waitRetry"}
-\* LogOrder is the order a restarted replay re-runs the log's ops in.
-LogOrder == <<"seed", "nested", "plugin", "flaky", "gap", "bad">>
+Waits == {"waitHandler", "waitGap", "waitRetry", "waitUpgrade"}
 
+\* log is the order of every op, as this device holds it; upgraded is whether
+\* the running build reads newer.
 VARIABLES replay, todo, arrived, registered, failed, filled, holder, wstate,
-          applied, refused, badAdmit, badRefuse, restarted, skipped
+          applied, refused, badAdmit, badRefuse, restarted, skipped, log, upgraded
 vars == <<replay, todo, arrived, registered, failed, filled, holder, wstate,
-          applied, refused, badAdmit, badRefuse, restarted, skipped>>
+          applied, refused, badAdmit, badRefuse, restarted, skipped, log, upgraded>>
 
 \* Writable is whether a caller may try a write again: replay is caught up.
 Writable == replay = "caughtUp"
@@ -63,18 +66,19 @@ Init == /\ replay = "opening" /\ todo = <<>> /\ arrived = {}
         /\ holder = "free"
         /\ wstate = [w \in Writers |-> "idle"]
         /\ applied = {} /\ refused = {} /\ badAdmit = FALSE /\ badRefuse = FALSE
-        /\ restarted = FALSE /\ skipped = {}
+        /\ restarted = FALSE /\ skipped = {} /\ log = <<>> /\ upgraded = FALSE
 
 \* A peer's op reaches this device and joins the order to apply.
 Arrive(p) == /\ p \in Peers /\ p \notin arrived
              /\ arrived' = arrived \cup {p} /\ todo' = Append(todo, p)
+             /\ log' = Append(log, p)
              /\ UNCHANGED <<replay, registered, failed, filled, holder, wstate,
-                            applied, refused, badAdmit, badRefuse, restarted, skipped>>
+                            applied, refused, badAdmit, badRefuse, restarted, skipped, upgraded>>
 
 \* The plugin that handles the plugin and seed ops registers on the bus.
 Register == /\ HandlerArrives /\ ~registered /\ registered' = TRUE
             /\ UNCHANGED <<replay, todo, arrived, failed, filled, holder, wstate,
-                           applied, refused, badAdmit, badRefuse, restarted, skipped>>
+                           applied, refused, badAdmit, badRefuse, restarted, skipped, log, upgraded>>
 
 \* Seen is whether the wait's watch resolves the handler.
 Seen == registered /\ ~LookupDisabled
@@ -82,13 +86,15 @@ Seen == registered /\ ~LookupDisabled
 \* The data the gap op names arrives.
 Fill == /\ "gap" \in arrived /\ ~filled /\ filled' = TRUE
         /\ UNCHANGED <<replay, todo, arrived, registered, failed, holder, wstate,
-                       applied, refused, badAdmit, badRefuse, restarted, skipped>>
+                       applied, refused, badAdmit, badRefuse, restarted, skipped, log, upgraded>>
 
 \* Step is one driver step under the lock. It applies the next op, refuses
 \* one whose apply fails with an error of unknown kind, or stops at it and
 \* waits; with nothing left it is caught up. Opening and caught up step at
 \* once; a handler wait steps when the watch sees the handler, a gap when its
-\* data arrives, a failed step after its backoff.
+\* data arrives, a failed step after its backoff. An upgrade wait steps on a
+\* new state alone, which finds it the same until the owner skips its op; a
+\* restart on a build that reads it opens replay again.
 StepReady == \/ replay \in {"opening", "caughtUp"}
              \/ replay = "waitHandler" /\ Seen
              \/ replay = "waitGap" /\ filled
@@ -114,6 +120,9 @@ Step == /\ holder = "free" /\ StepReady
                   [] op = "gap" /\ ~filled ->
                        /\ replay' = "waitGap"
                        /\ UNCHANGED <<todo, failed, applied, refused>>
+                  [] op = "newer" /\ ~upgraded ->
+                       /\ replay' = "waitUpgrade"
+                       /\ UNCHANGED <<todo, failed, applied, refused>>
                   [] op = "flaky" /\ ~failed ->
                        /\ replay' = "waitRetry" /\ failed' = TRUE
                        /\ UNCHANGED <<todo, applied, refused>>
@@ -126,7 +135,7 @@ Step == /\ holder = "free" /\ StepReady
                        /\ replay' = Next1
                        /\ UNCHANGED <<failed, refused>>
         /\ UNCHANGED <<arrived, registered, filled, holder, wstate, badAdmit,
-                       badRefuse, restarted, skipped>>
+                       badRefuse, restarted, skipped, log, upgraded>>
 
 \* Begin reads the gate without the lock: a named wait refuses the write at
 \* once. The seed begins once its handler resolves, and the nested write
@@ -136,7 +145,7 @@ Begin(w) == /\ wstate[w] = "idle"
             /\ w = "nested" => wstate["seed"] = "admitted"
             /\ wstate' = [wstate EXCEPT ![w] = IF replay \in Waits THEN "refused" ELSE "begun"]
             /\ UNCHANGED <<replay, todo, arrived, registered, failed, filled, holder,
-                           applied, refused, badAdmit, badRefuse, restarted, skipped>>
+                           applied, refused, badAdmit, badRefuse, restarted, skipped, log, upgraded>>
 
 \* Check takes the lock and reads the gate again: caught up holds the lock to
 \* admit, opening releases it and waits on the broadcast, a named wait
@@ -150,7 +159,7 @@ Check(w) == /\ wstate[w] = "begun" /\ holder = "free"
                       /\ UNCHANGED holder /\ wstate' = [wstate EXCEPT ![w] = "refused"]
             /\ badRefuse' = (badRefuse \/ (wstate'[w] = "refused" /\ replay \notin Waits))
             /\ UNCHANGED <<replay, todo, arrived, registered, failed, filled,
-                           applied, refused, badAdmit, restarted, skipped>>
+                           applied, refused, badAdmit, restarted, skipped, log, upgraded>>
 
 \* Wake runs once the broadcast fires on a move out of opening: the writer
 \* takes the lock and admits while caught up, or is refused in a named wait.
@@ -160,46 +169,47 @@ Wake(w) == /\ wstate[w] = "waiting" /\ replay # "opening" /\ holder = "free"
               ELSE /\ UNCHANGED holder /\ wstate' = [wstate EXCEPT ![w] = "refused"]
            /\ badRefuse' = (badRefuse \/ (wstate'[w] = "refused" /\ replay \notin Waits))
            /\ UNCHANGED <<replay, todo, arrived, registered, failed, filled,
-                          applied, refused, badAdmit, restarted, skipped>>
+                          applied, refused, badAdmit, restarted, skipped, log, upgraded>>
 
 \* The caller's context ends a write waiting in the opening.
 Cancel(w) == /\ wstate[w] = "waiting"
              /\ wstate' = [wstate EXCEPT ![w] = "cancelled"]
              /\ UNCHANGED <<replay, todo, arrived, registered, failed, filled, holder,
-                            applied, refused, badAdmit, badRefuse, restarted, skipped>>
+                            applied, refused, badAdmit, badRefuse, restarted, skipped, log, upgraded>>
 
 \* Admit queues the write's op in the same hold of the lock and releases it.
 Admit(w) == /\ wstate[w] = "checked" /\ holder = w
             /\ wstate' = [wstate EXCEPT ![w] = "admitted"]
-            /\ todo' = Append(todo, w)
+            /\ todo' = Append(todo, w) /\ log' = Append(log, w)
             /\ badAdmit' = (badAdmit \/ replay # "caughtUp")
             /\ holder' = "free"
             /\ UNCHANGED <<replay, arrived, registered, failed, filled, applied,
-                           refused, badRefuse, restarted, skipped>>
+                           refused, badRefuse, restarted, skipped, upgraded>>
 
 \* A refused or cancelled caller tries again once replay is caught up.
 Retry(w) == /\ wstate[w] \in {"refused", "cancelled"} /\ Writable
             /\ wstate' = [wstate EXCEPT ![w] = "idle"]
             /\ UNCHANGED <<replay, todo, arrived, registered, failed, filled, holder,
-                           applied, refused, badAdmit, badRefuse, restarted, skipped>>
+                           applied, refused, badAdmit, badRefuse, restarted, skipped, log, upgraded>>
 
 \* Restart ends the process once, outside any hold of the lock: writes in
 \* flight are cancelled, the handler registers again, and replay opens again
 \* over every op the log holds.
 Restart == /\ ~restarted /\ holder = "free"
            /\ restarted' = TRUE /\ replay' = "opening" /\ registered' = FALSE
-           /\ todo' = SelectSeq(LogOrder, LAMBDA o : o \in applied \cup refused) \o todo
+           /\ upgraded' = (upgraded \/ Upgrades)
+           /\ todo' = SelectSeq(log, LAMBDA o : o \in applied \cup refused) \o todo
            /\ applied' = {} /\ refused' = {}
            /\ wstate' = [w \in Writers |->
                            IF wstate[w] \in {"begun", "waiting"} THEN "cancelled" ELSE wstate[w]]
-           /\ UNCHANGED <<arrived, failed, filled, holder, badAdmit, badRefuse, skipped>>
+           /\ UNCHANGED <<arrived, failed, filled, holder, badAdmit, badRefuse, skipped, log>>
 
 \* Skip is the owner's config change that skips the op replay waits at, by
 \* its hash. Only a named wait offers it: the owner sees why replay stopped.
 Skip == /\ OwnerSkips /\ replay \in Waits /\ Head(todo) \notin skipped
         /\ skipped' = skipped \cup {Head(todo)}
         /\ UNCHANGED <<replay, todo, arrived, registered, failed, filled, holder, wstate,
-                       applied, refused, badAdmit, badRefuse, restarted>>
+                       applied, refused, badAdmit, badRefuse, restarted, log, upgraded>>
 
 Next == \/ \E p \in Peers : Arrive(p)
         \/ Register \/ Fill \/ Step \/ Restart \/ Skip
@@ -221,6 +231,7 @@ TypeOK == /\ replay \in {"opening", "caughtUp"} \cup Waits
           /\ holder \in Holders /\ wstate \in [Writers -> WStates]
           /\ arrived \subseteq Peers /\ applied \subseteq Ops /\ refused \subseteq Ops
           /\ restarted \in BOOLEAN /\ skipped \subseteq Ops
+          /\ log \in Seq(Ops) /\ upgraded \in BOOLEAN
 
 \* No write is admitted unless replay is caught up.
 NoWriteWhileWaiting == ~badAdmit
@@ -253,11 +264,12 @@ OneDeviceNeverWaits ==
 \* Within a run, replay never waits for a handler at an op of its own
 \* device; after a restart it may wait at the seed's op until its plugin
 \* registers. It waits at a gap only for the gap's data, never as a missing
-\* handler.
+\* handler, and for a build only at the op it cannot read.
 OwnOpNeverWaits == /\ replay = "waitHandler" =>
                         \/ Head(todo) = "plugin"
                         \/ restarted /\ Head(todo) = "seed"
                    /\ replay = "waitGap" => Head(todo) = "gap"
+                   /\ replay = "waitUpgrade" => Head(todo) = "newer"
 
 \* The opening always ends, in caught up or a named wait.
 OpeningExits == replay = "opening" ~> replay # "opening"
@@ -267,11 +279,12 @@ WaitingWriteDecided == \A w \in Writers : wstate[w] = "waiting" ~> wstate[w] # "
 
 \* Each named wait ends once its cause can resolve: a handler wait when a
 \* handler registers that lookup sees, a gap when its data arrives, a retry
-\* after its backoff.
+\* after its backoff, an upgrade once a restart brings a build that reads it.
 EveryWaitExits ==
     /\ (HandlerArrives /\ ~LookupDisabled) => (replay = "waitHandler" ~> replay # "waitHandler")
     /\ replay = "waitGap" ~> replay # "waitGap"
     /\ replay = "waitRetry" ~> replay # "waitRetry"
+    /\ Upgrades => (replay = "waitUpgrade" ~> replay # "waitUpgrade")
 
 \* A one-device Space always ends caught up, a restart included.
 OneDeviceCatchesUp == (Peers = {} /\ HandlerArrives /\ ~LookupDisabled) => <>[](replay = "caughtUp")
@@ -297,4 +310,21 @@ SkippedNeverApplied == skipped \cap applied = {}
 \* An owner's skip ends every stall: replay catches up even when no handler
 \* ever registers.
 StallExits == OwnerSkips => <>[](replay = "caughtUp")
+
+\* Replay never passes an op it cannot read: until a build reads it or the
+\* owner skips it, no op ordered after newer is applied or refused, so every
+\* later op is decided on the World after newer.
+NeverPastUnreadable ==
+    \A i \in 1..Len(log) :
+      (log[i] = "newer" /\ ~upgraded /\ "newer" \notin skipped) =>
+        \A j \in (i + 1)..Len(log) : log[j] \notin applied \cup refused
+
+\* With no build that reads newer and no owner to skip it, replay ends in the
+\* upgrade wait for good: the Space stays read only.
+NoUpgradeStaysReadOnly == ("newer" \in Peers /\ ~Upgrades /\ ~OwnerSkips)
+                            => <>[](replay = "waitUpgrade")
+
+\* UpgradeSpec is FairSpec with a restart that must come, as a person
+\* installing a newer build restarts the process.
+UpgradeSpec == FairSpec /\ WF_vars(Restart)
 ====

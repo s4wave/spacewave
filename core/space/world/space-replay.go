@@ -229,6 +229,20 @@ func (r *spaceReplay) recompute(ctx context.Context) error {
 }
 
 // apply runs op on the World of pos and returns the position after it.
+//
+// Invariants:
+//   - Every replica decides an operation's position alike, from the
+//     operation and the World before it alone. A refusal is such a decision.
+//     A fact about this device, such as a handler it lacks or a body its
+//     build cannot read, is not: apply returns an error for it, replay stops
+//     before the operation with the World unchanged, and it applies no later
+//     operation until that fact changes.
+//   - An operation whose body this build cannot read (ErrUnreadableOp) is
+//     never refused or passed: a build that reads it may change the World
+//     there, and every later operation is decided on the World after it. Only
+//     the owner's skip, a config entry every replica reads, refuses it.
+//   - Data that does not decode, and a WorldOp with no body and no unknown
+//     field, read alike on every build, so apply refuses them.
 func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.OrderedOperation) (spacePosition, error) {
 	// Refuse an acknowledgment's absence of data or a refusal outright.
 	pos.op, pos.reason = op, op.Refused
@@ -273,7 +287,10 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	case *WorldOp_Fence, *WorldOp_RootSet:
 		next = prev
 	default:
-		reason = "unknown operation type"
+		if unreadable(wop) {
+			return pos, ErrUnreadableOp
+		}
+		reason = "empty operation"
 	}
 	if err != nil {
 		return pos, err
@@ -637,7 +654,7 @@ func reasonCode(reason string) string {
 		"transaction apply failed",
 		"graph settings step failed",
 		"invalid operation data",
-		"unknown operation type",
+		"empty operation",
 		"too many retained roots":
 		return code
 	}
