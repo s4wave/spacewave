@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"slices"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -152,6 +153,79 @@ func TestSetRootSurvivesCheckpointAndRemount(t *testing.T) {
 	eng, engRef = f.remount(ctx, t, eng, engRef)
 	defer engRef.Release()
 	requireKeypair(ctx, t, "after remount", eng, key, peerID)
+}
+
+// TestAdmitHoldsEarlyDrains commits one transaction too large for the write
+// buffer, whose capacity drains reach only the writer's stage and never the
+// candidate's entries, on a Volume that frees every block no root holds once
+// the grace passes. After the transaction ended, it collects, reads every
+// object at the head, writes a checkpoint over it, and reads them again after
+// a remount loads that checkpoint.
+func TestAdmitHoldsEarlyDrains(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
+	defer cancel()
+	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
+	eng, engRef := f.start(t)
+	defer func() { engRef.Release() }()
+
+	// Note whether a kept candidate reports blocks drained to its stage.
+	var staged atomic.Bool
+	defer space_world.SetAdmittedHook(func(c world.Candidate) {
+		if c.Staged {
+			staged.Store(true)
+		}
+	})()
+
+	// Create more objects in one transaction than the buffer's 4,096 entries.
+	keys := make([]string, 6000)
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		for i := range keys {
+			keys[i] = "drain-" + strconv.Itoa(i)
+			obj, err := ws.CreateObject(ctx, keys[i], nil)
+			world.ReleaseObjectState(obj)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if !staged.Load() {
+		t.Fatal("no candidate reported a drain to its stage: the test no longer covers one")
+	}
+
+	// readAll fails unless the head serves every object promptly: a page the
+	// collector freed would leave a read waiting.
+	readAll := func(when string) {
+		t.Helper()
+		readCtx, readCancel := context.WithTimeout(ctx, 20*time.Second)
+		defer readCancel()
+		if err := hasObjects(readCtx, eng, keys...); err != nil {
+			t.Fatalf("%s: %v", when, err)
+		}
+	}
+
+	// Collect past the grace with the writer's stage released, then read.
+	f.collect(t)
+	readAll("after a collection")
+
+	// Write a checkpoint over the transaction, collect, and read it back from
+	// a remount.
+	for i := range sobject.MinCheckpointOperations + 1 {
+		k := "fill-" + strconv.Itoa(i)
+		if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+			obj, err := ws.CreateObject(ctx, k, nil)
+			world.ReleaseObjectState(obj)
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	waitCheckpoint(ctx, t, f.space(t))
+	f.collect(t)
+	eng, engRef = f.remount(ctx, t, eng, engRef)
+	readAll("after a checkpoint and a remount")
 }
 
 // TestSetRootReplaysAboveStoredWorld remounts before any stored World covers

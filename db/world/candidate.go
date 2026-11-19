@@ -18,6 +18,12 @@ type Candidate struct {
 	// the head moves past Root or the Admission is released undecided. The
 	// engine serves them from memory until then.
 	Entries []*block.PutBatchEntry
+	// Staged reports that the commit wrote blocks Root reaches to its
+	// writer's stage before Admit, outside Entries, as a write too large for
+	// its buffer does. The stage holds them only until the writer's
+	// transaction ends, so an Authority that keeps the candidate past that
+	// holds Root itself before Admit returns.
+	Staged bool
 	// Operation is the encoded change for an Authority that replays it, or
 	// nil for one that does not. The Authority carries it without reading it.
 	Operation []byte

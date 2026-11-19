@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // ReadSavedCursor returns the replay cursor the Adapter of so saved, or nil.
@@ -23,4 +24,11 @@ func WriteSavedCursor(ctx context.Context, so sobject.SharedObject, cursor *Repl
 		return err
 	}
 	return writeLocalState(ctx, so, replayCursorStoreID, replayCursorKey, data)
+}
+
+// SetAdmittedHook makes fn see each candidate an Adapter keeps until the
+// returned func clears it.
+func SetAdmittedHook(fn func(world.Candidate)) func() {
+	admittedHook.Store(&fn)
+	return func() { admittedHook.Store(nil) }
 }

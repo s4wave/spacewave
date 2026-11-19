@@ -276,6 +276,7 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 		Root:      nroot.Clone(),
 		Seqno:     seqno,
 		Entries:   batch.Entries,
+		Staged:    batch.Drained,
 		Operation: e.operation,
 	})
 	batch.Complete(err)

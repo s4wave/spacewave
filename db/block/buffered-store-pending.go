@@ -9,6 +9,10 @@ import "context"
 type PendingBatch struct {
 	// Entries are the borrowed batch entries.
 	Entries []*PutBatchEntry
+	// Drained reports that the store wrote a block to its inner store before
+	// the borrow, as a capacity drain of a write too large for the buffer
+	// does. Such a block is not among Entries: only the inner store holds it.
+	Drained bool
 	// complete resolves the borrow with the publication result.
 	complete func(error)
 	// completed records that Complete already ran; further calls are no-ops.
@@ -45,8 +49,10 @@ func (s *BufferedStore) TakePending(ctx context.Context) (*PendingBatch, error) 
 		}
 	}
 
-	// Borrow all queued entries under the store state lock.
+	// Borrow all queued entries under the store state lock, and note whether
+	// a drain, which drainMu has finished, wrote any block before them.
 	var batch *drainBatch
+	var drained bool
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if err = ctx.Err(); err != nil {
 			return
@@ -55,13 +61,14 @@ func (s *BufferedStore) TakePending(ctx context.Context) (*PendingBatch, error) 
 			return
 		}
 		batch = s.takeDrainBatchLocked(0)
+		drained = s.wrote
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	// Expose borrowed entries with their publication completion callback.
-	out := &PendingBatch{}
+	out := &PendingBatch{Drained: drained}
 	if batch != nil {
 		out.Entries = batch.entries
 		out.complete = func(err error) {
@@ -70,7 +77,7 @@ func (s *BufferedStore) TakePending(ctx context.Context) (*PendingBatch, error) 
 					return
 				}
 				out.completed = true
-				s.completeBatchLocked(batch, err)
+				s.completeBatchLocked(batch, err, false)
 				broadcastFn()
 			})
 		}

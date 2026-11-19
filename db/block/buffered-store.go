@@ -85,6 +85,8 @@ type BufferedStore struct {
 	// written maps the ref key of each block written to inner to its outgoing
 	// refs. Nil unless the store records writes.
 	written map[string]*writtenBlock
+	// wrote records that the store wrote a block to inner.
+	wrote bool
 
 	// withoutPeerWait makes inner reads report ErrUnavailable instead of
 	// waiting for a peer to connect.
@@ -238,6 +240,7 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 
 		// Record the direct write in the buffered store history.
 		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			s.wrote = true
 			s.recordWriteLocked(key, ref, opts.GetRefs(), false)
 		})
 		return finish(ref, existed)
@@ -750,7 +753,7 @@ func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
 	var pins []*bufferedPin
 	var backoff time.Duration
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
-		s.completeBatchLocked(batch, err)
+		s.completeBatchLocked(batch, err, true)
 		if err == nil {
 			s.writeFailures = 0
 			pins = s.takeWrittenPinsLocked(batch)
@@ -871,14 +874,17 @@ func (s *BufferedStore) takeDrainBatchLocked(maxEntries int) *drainBatch {
 
 // completeBatchLocked releases immutable borrowed content after its writer has
 // stopped using it. Failure restores it for retry without poisoning the buffer:
-// a rejected head CAS is not a block-storage failure.
-func (s *BufferedStore) completeBatchLocked(batch *drainBatch, err error) {
+// a rejected head CAS is not a block-storage failure. drained marks a capacity
+// drain, whose writes reached the inner store; a publication's did not, so a
+// reused buffer reports no drain it never made.
+func (s *BufferedStore) completeBatchLocked(batch *drainBatch, err error, drained bool) {
 	s.inFlight--
 	var retry []string
 	for _, p := range batch.pending {
 		key, _ := marshalRefKey(p.ref)
 		p.borrowed = false
 		if err == nil {
+			s.wrote = s.wrote || (drained && !p.tombstone)
 			s.recordWriteLocked(key, p.ref, p.refs, p.tombstone)
 		}
 		if s.pending[key] != p {

@@ -1,6 +1,7 @@
 package space_world
 
 import (
+	"os"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -10,6 +11,16 @@ import (
 // defaultMaxPendingBytes bounds the World pages an Adapter keeps in memory
 // when its options set no bound.
 const defaultMaxPendingBytes = 64 << 20
+
+// keepStagedEnv names the environment variable that, set to 1, makes the
+// stages a Space World's writers open keep their pages in memory, as before
+// they stored them at once. The adopting write that names a staged tree then
+// stores the whole tree under the writer's turn, so every other writer waits
+// for it; the switch exists only to go back if storing at once misbehaves.
+const keepStagedEnv = "SPACEWAVE_KEEP_STAGED"
+
+// keepStaged reports whether staged pages are kept, read once at start.
+var keepStaged = os.Getenv(keepStagedEnv) == "1"
 
 // AdapterOptions configures an Adapter.
 type AdapterOptions struct {

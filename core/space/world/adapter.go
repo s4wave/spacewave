@@ -271,6 +271,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		payloadVersions:  make(map[string]uint32),
 		replayState:      newReplayOpening(),
 	}
+	a.pages.SetKeepStaged(keepStaged)
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
 	a.backfill = newSpaceBackfill(a)
@@ -1257,16 +1258,27 @@ func (a *Adapter) admitLocked(adm *spaceAdmission) {
 	}
 }
 
+// admittedHook, when set, sees each candidate keepAdmitted keeps, so a test can
+// check what its writer reported.
+var admittedHook atomic.Pointer[func(world.Candidate)]
+
 // keepAdmitted keeps the blocks of adm's candidate and holds what its queued
 // operation needs, through holdAdmitted.
 //
 // Invariant: a block of the candidate that the put stores past the bound is
-// held by the overflow stage from its write until holdAdmitted returns, and
-// holdAdmitted then holds the candidate's World under the pending root, so no
-// collection between the put and the queued operation's land frees it,
-// however long the hold waits on the root lock. The stage opens only on a put
-// past the bound, so a candidate that fits in memory pays no stage.
+// held by the overflow stage from its write until holdAdmitted returns, and a
+// block its writer's buffer drained to the writer's stage before Admit
+// (candidate.Staged) is held by that stage until the writer's transaction
+// ends, after Admit returns. holdAdmitted then holds the candidate's World
+// under the pending root, so no collection between the write and the queued
+// operation's land frees either, however long the hold waits on the root
+// lock. The overflow stage opens only on a put past the bound, so a candidate
+// that fits in memory pays no stage.
 func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
+	// Show the candidate to a test that asked to see it.
+	if hook := admittedHook.Load(); hook != nil {
+		(*hook)(adm.candidate)
+	}
 	overflow := a.pages.OpenOverflowStage()
 	defer overflow.Release()
 	if _, err := overflow.PutBlockBatch(ctx, adm.candidate.Entries); err != nil {
@@ -1277,11 +1289,11 @@ func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 
 // holdAdmitted holds what adm's queued operation needs once it is durable:
 // its payloads under the replay payloads root, and its candidate's World under
-// the pending root when its put stored a block past the bound or the kept
-// pages outgrew memory, so the pages its writer's stage or the overflow stage
-// held stay held after they end. Each hold is one swap that stores the
-// writer's own pages, and waits on the root lock only for another swap, never
-// for the driver's store of its pages.
+// the pending root when its put stored a block past the bound, its writer
+// drained blocks to its stage, or the kept pages outgrew memory, so the pages
+// its writer's stage or the overflow stage held stay held after they end.
+// Each hold is one swap that stores the writer's own pages, and waits on the
+// root lock only for another swap, never for the driver's store of its pages.
 func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored bool) error {
 	// Hold the payloads before the operation that names them is queued.
 	if len(adm.payloads) != 0 {
@@ -1290,8 +1302,9 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored 
 		}
 	}
 
-	// Hold an overflowed or outgrown candidate beside the earlier ones.
-	if (!stored && !a.pages.Full()) || adm.candidate.Root.GetEmpty() {
+	// Hold an overflowed, drained or outgrown candidate beside the earlier
+	// ones.
+	if (!stored && !adm.candidate.Staged && !a.pages.Full()) || adm.candidate.Root.GetEmpty() {
 		return nil
 	}
 	release, err := a.lockRoots(ctx)
