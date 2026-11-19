@@ -172,26 +172,23 @@ export function useUnixFSHandleStat(
   )
 }
 
-// readUnixFSHandleStat uses the root handle's cached metadata because the
-// root resource already owns that state.
+// readUnixFSHandleStat uses the root handle's cached metadata when the root
+// resource carried it, and otherwise asks the handle.
 export async function readUnixFSHandleStat(
   handle: FSHandle,
   signal: AbortSignal,
 ): Promise<StatResult> {
   // Read the info, then derive its kind and mime type.
-  const info = isRootFSHandle(handle)
-    ? rootFSHandleInfo(handle)
-    : await handle.getFileInfo(signal)
+  const cached = isRootFSHandle(handle) ? handle.getInfo() : null
+  const info =
+    cached && Object.keys(cached).length !== 0
+      ? cached
+      : await handle.getFileInfo(signal)
   const name = info.name ?? ''
   const fileKind = getUnixFSFileInfoKind(info)
   const mimeType =
     fileKind === 'directory' ? 'inode/directory' : getMimeType(name)
   return { info, fileKind, mimeType }
-}
-
-function rootFSHandleInfo(handle: FSHandle): FileInfo {
-  const info = handle.getInfo()
-  return info.isDir === undefined ? { ...info, isDir: true } : info
 }
 
 function isRootFSHandle(handle: FSHandle): boolean {

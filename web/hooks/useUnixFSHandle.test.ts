@@ -116,11 +116,13 @@ describe('readUnixFSHandleStat', () => {
     },
   )
 
-  it('treats root handles with empty cached metadata as directories', async () => {
+  // A root handle opened through a typed object carries no metadata, and its
+  // root may be a file, as for a file stored as its own World object.
+  it('fetches metadata for a root handle with none cached', async () => {
     const root = {
       getPath: vi.fn(() => '/'),
       getInfo: vi.fn(() => ({})),
-      getFileInfo: vi.fn(),
+      getFileInfo: vi.fn().mockResolvedValue({ mode: 0o644 }),
     }
 
     const stat = await readUnixFSHandleStat(
@@ -128,10 +130,9 @@ describe('readUnixFSHandleStat', () => {
       new AbortController().signal,
     )
 
-    expect(stat.info).toEqual({ isDir: true })
-    expect(stat.fileKind).toBe('directory')
-    expect(stat.mimeType).toBe('inode/directory')
-    expect(root.getFileInfo).not.toHaveBeenCalled()
+    expect(stat.info).toEqual({ mode: 0o644 })
+    expect(stat.fileKind).toBe('file')
+    expect(root.getFileInfo).toHaveBeenCalledOnce()
   })
 
   it('fetches fresh metadata for non-root handles', async () => {
