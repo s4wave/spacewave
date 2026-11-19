@@ -87,13 +87,15 @@ func (c RegenConfig) newSorter() (*extsort.Sorter, error) {
 // buffers, and its disk the sort's runs, reserved before it starts, and the
 // new tree, both kept above the config's floor as they are written. It writes
 // blocks through store, or bucketCursor's transaction store when store is nil,
-// and publishes nothing.
+// and publishes nothing. It calls yield, when set, every regenSliceKeys keys
+// it walks or writes, so the World's writers run without it beside them.
 func buildNodeGraphRoot(
 	ctx context.Context,
 	bucketCursor *bucket_lookup.Cursor,
 	store block.StoreOps,
 	root *block.BlockRef,
 	cfg RegenConfig,
+	yield func(context.Context) error,
 ) (*block.BlockRef, error) {
 	// Trace the build for the whole walk and write.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/regen/build")
@@ -122,12 +124,13 @@ func buildNodeGraphRoot(
 	}
 	defer sorter.Close()
 	builder := kvtx_cayley_nodegraph.NewBuilder(sorter)
-	if err := addKvGraph(ctx, bucketCursor, store, root, w.GetGraphSettings(), sorter, builder, int64(cfg.Budget), floor); err != nil {
+	pace := &regenPacer{yield: yield, slice: regenSliceKeys}
+	if err := addKvGraph(ctx, bucketCursor, store, root, w.GetGraphSettings(), sorter, builder, int64(cfg.Budget), floor, pace); err != nil {
 		return nil, err
 	}
 
 	// Write the sorted keys as the new graph tree under the World.
-	if err := writeBuiltGraph(ctx, worldCursor, builder, floor); err != nil {
+	if err := writeBuiltGraph(ctx, worldCursor, builder, floor, pace); err != nil {
 		return nil, errors.Wrap(err, "write node graph")
 	}
 
@@ -144,9 +147,36 @@ func buildNodeGraphRoot(
 	return newRoot, nil
 }
 
+// regenSliceKeys is how many keys the build walks or writes between yields to
+// the World's writers: well under a millisecond of work, so a writer that
+// begins mid-slice waits for little of it.
+const regenSliceKeys = 256
+
+// regenPacer yields background regeneration work to the World's writers once a
+// slice.
+type regenPacer struct {
+	// yield waits for the writers, or is nil for work no writer waits behind.
+	yield func(context.Context) error
+	// slice is the steps between yields; a catch-up round, whose single change
+	// can cost a kv World milliseconds, yields at every step.
+	slice int
+	// n counts the steps of the current slice.
+	n int
+}
+
+// step counts a step and yields at the end of each slice.
+func (p *regenPacer) step(ctx context.Context) error {
+	if p.n++; p.n < p.slice || p.yield == nil {
+		return nil
+	}
+	p.n = 0
+	return p.yield(ctx)
+}
+
 // writeBuiltGraph writes builder's key stream as a new node graph tree and
-// sets it as worldCursor's graph sub-block, counting the stream against floor.
-func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kvtx_cayley_nodegraph.Builder, floor *regenFloor) error {
+// sets it as worldCursor's graph sub-block, counting the stream against floor
+// and yielding through pace.
+func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kvtx_cayley_nodegraph.Builder, floor *regenFloor, pace *regenPacer) error {
 	// Open an empty tree on a detached cursor.
 	cursor := worldCursor.Detach(false)
 	cursor.SetBlock(kvtx_block.NewKeyValueStore(WorldFormat_WORLD_FORMAT_NODE_GRAPH.graphImpl()), true)
@@ -160,6 +190,9 @@ func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kv
 	err = graphTx.(*kvtx_block_okra.Tx).ReplaceAll(ctx, func(yield func([]byte, []byte) bool) {
 		writeErr = builder.Write(ctx, func(key, value []byte) error {
 			if err := floor.wrote(int64(len(key) + len(value))); err != nil {
+				return err
+			}
+			if err := pace.step(ctx); err != nil {
 				return err
 			}
 			if !yield(key, value) {
@@ -183,8 +216,8 @@ func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kv
 }
 
 // addKvGraph adds every node and quad of the kv graph of the World at root to
-// builder, reserving the sort's disk first when the graph exceeds budget and
-// counting each spilled run against floor.
+// builder, reserving the sort's disk first when the graph exceeds budget,
+// counting each spilled run against floor, and yielding through pace.
 //
 // It reads through a read-only block transaction of its own: only there does
 // the graph tree walk stored pages through ReadCursor, bounded by the decoded
@@ -200,6 +233,7 @@ func addKvGraph(
 	builder *kvtx_cayley_nodegraph.Builder,
 	budget int64,
 	floor *regenFloor,
+	pace *regenPacer,
 ) error {
 	// Decode the pinned World in a read-only transaction of its own.
 	readTx, worldCursor := bucketCursor.BuildTransactionAtRefWithStore(nil, root, store)
@@ -239,6 +273,9 @@ func addKvGraph(
 	return cayley_kv.WalkLog(ctx, logStore, func(p *proto.Primitive) error {
 		// Add the node or quad.
 		if err := addPrimitive(builder, p); err != nil {
+			return err
+		}
+		if err := pace.step(ctx); err != nil {
 			return err
 		}
 

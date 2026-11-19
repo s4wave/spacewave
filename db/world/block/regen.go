@@ -329,7 +329,8 @@ func (r *Regenerator) pin(ctx context.Context, s regenState) error {
 }
 
 // build writes the new-format World of base under a stage and holds it as
-// built.
+// built, yielding to this process's writers between slices: a commit then
+// runs without the build beside it on the CPU, the store and the caches.
 func (r *Regenerator) build(ctx context.Context, s regenState) error {
 	// Write the build under a stage, held until the root holds it.
 	store, release, err := block.OpenStage(ctx, r.a.store)
@@ -337,7 +338,7 @@ func (r *Regenerator) build(ctx context.Context, s regenState) error {
 		return err
 	}
 	defer release()
-	built, err := buildNodeGraphRoot(ctx, r.a.root, store, s.base, r.cfg)
+	built, err := buildNodeGraphRoot(ctx, r.a.root, store, s.base, r.cfg, r.a.YieldToWriters)
 	if err != nil {
 		return err
 	}
@@ -408,7 +409,9 @@ func (r *Regenerator) swap(ctx context.Context, way regenWay) error {
 // back. One change then moves the leading name to the head and the trailing
 // one to the result, and with install the World root to the result, freeing
 // base on a switch back. limit bounds the changes applied, or is negative for
-// no bound. Returns the result and the number of changes applied.
+// no bound. A round, which installs nothing, runs off the writer turn and
+// yields to the writers between slices; the swap holds the turn and does not.
+// Returns the result and the number of changes applied.
 func (r *Regenerator) advance(ctx context.Context, s regenState, way regenWay, limit int, install bool) (*block.BlockRef, int, error) {
 	// Pick the trailing World and the root it reflects.
 	trail, lead := block.NamedRoot{Name: r.builtName, Previous: s.built}, block.NamedRoot{Name: r.baseName, Previous: s.base}
@@ -422,7 +425,11 @@ func (r *Regenerator) advance(ctx context.Context, s regenState, way regenWay, l
 		return nil, 0, err
 	}
 	defer release()
-	next, changes, err := r.applyDiff(ctx, store, trail.Previous, lead.Previous, s.head.Root, limit)
+	pace := &regenPacer{slice: 1}
+	if !install {
+		pace.yield = r.a.YieldToWriters
+	}
+	next, changes, err := r.applyDiff(ctx, store, trail.Previous, lead.Previous, s.head.Root, limit, pace)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -447,7 +454,8 @@ func (r *Regenerator) advance(ctx context.Context, s regenState, way regenWay, l
 // diff of from's and to's graphs deletes, then those it adds. The deletes go
 // first since a quad deleted and added again can show in the diff as an add
 // that sorts before its delete. Memory holds one chunk of keys and changes.
-func (r *Regenerator) applyDiff(ctx context.Context, store block.StoreOps, target, from, to *block.BlockRef, limit int) (*block.BlockRef, int, error) {
+// It yields through pace once a slice of changes.
+func (r *Regenerator) applyDiff(ctx context.Context, store block.StoreOps, target, from, to *block.BlockRef, limit int, pace *regenPacer) (*block.BlockRef, int, error) {
 	// An unmoved head needs no catch-up.
 	if to.EqualsRef(from) {
 		return target, 0, nil
@@ -474,6 +482,9 @@ func (r *Regenerator) applyDiff(ctx context.Context, store block.StoreOps, targe
 	// Delete the quads only from holds, then add those only to holds.
 	for _, action := range []graph.Procedure{graph.Delete, graph.Add} {
 		err := walkQuadChanges(ctx, format, cursors[0], cursors[1], action, func(q quad.Quad) error {
+			if err := pace.step(ctx); err != nil {
+				return err
+			}
 			return g.apply(ctx, graph.Delta{Quad: q, Action: action})
 		})
 		if err == nil {

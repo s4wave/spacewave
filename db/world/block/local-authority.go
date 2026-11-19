@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
@@ -53,6 +54,14 @@ type LocalAuthority struct {
 	bcast broadcast.Broadcast
 	// head is the newest head this authority read or decided.
 	head world.Head
+	// turns guards begun and ended and wakes YieldToWriters when a turn ends.
+	turns broadcast.Broadcast
+	// begun counts the turns Begin started, waiting ones included, and ended
+	// those that ended. turns guards both.
+	begun, ended uint64
+	// busy is set while begun exceeds ended, so a background slice checks
+	// for writers without taking a lock.
+	busy atomic.Bool
 }
 
 // NewLocalAuthority returns the authority of the World whose head is the root
@@ -142,11 +151,14 @@ func (a *LocalAuthority) WatchHead(ctx context.Context, fn func(world.Head)) (fu
 // Begin waits for the coordinator's lease on the root, applies the commits
 // other processes wrote, and reads the head the turn builds on.
 func (a *LocalAuthority) Begin(ctx context.Context) (world.Turn, error) {
-	// Take the turn.
+	// Take the turn, counted from before its wait so background work yields
+	// to a writer still waiting for it.
 	t := &localTurn{a: a}
+	a.turnBegun()
 	if a.coordinator != nil {
 		lease, err := a.coordinator.WaitAcquireWriteLease(ctx, a.scope)
 		if err != nil {
+			t.Release()
 			return nil, err
 		}
 		t.lease = lease
@@ -157,6 +169,7 @@ func (a *LocalAuthority) Begin(ctx context.Context) (world.Turn, error) {
 	} else {
 		release, err := a.turnMtx.Lock(ctx)
 		if err != nil {
+			t.Release()
 			return nil, err
 		}
 		t.unlock = release
@@ -170,6 +183,47 @@ func (a *LocalAuthority) Begin(ctx context.Context) (world.Turn, error) {
 	}
 	t.base = base
 	return t, nil
+}
+
+// YieldToWriters waits until as many of this process's write turns have
+// ended as had begun when it was called, waiting ones included. Background
+// work that shares the CPU, the store and the caches with the writers, such
+// as a regeneration's build, calls it between short slices: a writer then
+// runs without the work beside it, and the work still runs one slice between
+// cohorts of writers, so it slows under constant writes but never stops.
+// Writers of other processes sharing the Volume are not counted. A caller
+// that holds a turn must not call it: it would wait for its own turn.
+//
+// With no turn begun it returns after one atomic load.
+func (a *LocalAuthority) YieldToWriters(ctx context.Context) error {
+	if !a.busy.Load() {
+		return nil
+	}
+	var target uint64
+	var set bool
+	return a.turns.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		if !set {
+			target, set = a.begun, true
+		}
+		return a.ended >= target, nil
+	})
+}
+
+// turnBegun counts a turn Begin started.
+func (a *LocalAuthority) turnBegun() {
+	a.turns.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		a.begun++
+		a.busy.Store(true)
+	})
+}
+
+// turnEnded counts a turn that ended and wakes the yielding background work.
+func (a *LocalAuthority) turnEnded() {
+	a.turns.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		a.ended++
+		a.busy.Store(a.begun != a.ended)
+		broadcast()
+	})
 }
 
 // Install moves the root from previous to root under a turn, releasing the
