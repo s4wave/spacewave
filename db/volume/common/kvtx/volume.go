@@ -177,6 +177,9 @@ type Volume struct {
 	heldMode block_gc.HeldMode
 	// notHeld counts the blocks observed not held, by block_gc.NotHeldReason.
 	notHeld [block_gc.NotHeldPut + 1]atomic.Uint64
+	// stageSlice bounds the entries one transaction of a staged batch lands,
+	// as prepareStaged describes; zero lands each batch in one transaction.
+	stageSlice int
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.
@@ -227,6 +230,9 @@ func NewVolume(
 	}
 	if conf.GetCollectorHoldUntilFree() {
 		v.holdRule = block_gc.HoldRule_HOLD_RULE_HOLD_UNTIL_FREE
+	}
+	if !conf.GetStageOneTransaction() {
+		v.stageSlice = stageSliceEntries
 	}
 	if domain, ok := store.(BlockDomain); ok {
 		v.Store = store_kvtx.NewKVTxWithBlockStore(kvkey, store, domain.GetBlockStore(), conf)
