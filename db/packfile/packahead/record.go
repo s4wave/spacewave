@@ -28,7 +28,7 @@ var errBadRecord = errors.New("bad batch record")
 
 // Block is one value to append, under its pack index key.
 type Block struct {
-	// Key is the block's pack index key, at least keyTailLen bytes of a
+	// Key is the block's pack index key, at least a digest tail long, with a
 	// uniformly distributed hash, such as packfile.BlockKey.
 	Key []byte
 	// Value is the encoded block object the pack stores.

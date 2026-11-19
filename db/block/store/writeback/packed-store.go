@@ -247,7 +247,8 @@ func (s *PackedStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 func (s *PackedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Read the Log's copy and check it.
 	if !ref.GetEmpty() {
-		value, ok, err := s.log.Get(packfile.BlockKey(ref.GetHash()))
+		gen := block.DurableReadGeneration()
+		value, ok, synced, err := s.log.GetWithDurability(packfile.BlockKey(ref.GetHash()))
 		if err != nil {
 			return nil, err
 		}
@@ -258,6 +259,13 @@ func (s *PackedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 			}
 			if err := ref.VerifyData(stored.Data, false); err != nil {
 				return nil, errors.Wrap(err, ref.MarshalString())
+			}
+			// Admit only bytes synced at the lookup. The earlier generation
+			// fences any drop of the location after this read began.
+			if synced {
+				block.MarkDurableRead(ctx, ref, gen)
+			} else {
+				block.MarkStagedRead(ctx)
 			}
 			return stored, nil
 		}

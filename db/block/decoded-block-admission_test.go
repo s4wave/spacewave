@@ -54,6 +54,21 @@ func TestDecodedBlockCacheRemovalGenerations(t *testing.T) {
 		t.Fatal("read after the removal was not admitted")
 	}
 
+	// A packed hash drop also invalidates refs with unknown outer fields.
+	alias := &BlockRef{}
+	if err := alias.UnmarshalVT(append([]byte(key.ref), 0x10, 0x01)); err != nil {
+		t.Fatal(err)
+	}
+	aliasKey, ok := decodedBlockCacheRefKey(alias)
+	if !ok || aliasKey == key.ref {
+		t.Fatal("test alias needs distinct cache identity")
+	}
+	snapshot = DurableReadGeneration()
+	InvalidateRemovedBlockDigest(ref.GetHash().MarshalDigest())
+	if !removedSince(aliasKey, snapshot) {
+		t.Fatal("packed hash drop missed a ref alias")
+	}
+
 	// Removing every block of a store makes every entry miss.
 	InvalidateAllRemovedBlocks()
 	if lookup(first) {
