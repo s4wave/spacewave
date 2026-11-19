@@ -132,7 +132,7 @@ func (a *Adapter) encodeCursor() (*block.BlockRef, []byte, error) {
 	head, _ := r.head()
 	cursor := &ReplayCursor{
 		Base: r.base, Head: head, Height: r.height,
-		RefusalRule: ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER,
+		RefusalRule: ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_UPGRADE,
 	}
 	prev := r.base
 	for _, pos := range r.positions {
@@ -214,7 +214,7 @@ func (a *Adapter) loadCursor(ctx context.Context) error {
 			seqno:    outcome.GetSeqno(),
 			payloads: outcome.GetPayloads(),
 		}
-		if cursor.GetRefusalRule() == ReplayRefusalRule_REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER && outcome.GetReason() != "" {
+		if cursor.GetRefusalRule().redecides(outcome.GetReason()) {
 			positions[i].op.Hash = nil
 		}
 		if a.handlersCurrent(ctx, outcome.GetPayloadHandlers()) {
@@ -280,4 +280,23 @@ func restoredState(prev, head *InnerState, outcome *ReplayCursorOutcome) *InnerS
 // sameRetained reports whether a and b retain the same roots.
 func sameRetained(a, b *InnerState) bool {
 	return slices.EqualFunc(a.GetRetainedRoots(), b.GetRetainedRoots(), (*RetainedRoot).EqualVT)
+}
+
+// reasonUnknownOperationType is the refusal rules before WAITS_FOR_UPGRADE
+// gave a WorldOp body they did not declare.
+const reasonUnknownOperationType = "unknown operation type"
+
+// redecides reports whether a refusal saved for reason under rule may be a
+// fact about the device that saved it, which replay decides again instead of
+// following: any refusal under a rule that refused a missing handler, and an
+// unknown operation type under one that refused a field it did not declare.
+func (rule ReplayRefusalRule) redecides(reason string) bool {
+	switch rule {
+	case ReplayRefusalRule_REPLAY_REFUSAL_RULE_REFUSES_MISSING_HANDLER:
+		return reason != ""
+	case ReplayRefusalRule_REPLAY_REFUSAL_RULE_WAITS_FOR_HANDLER:
+		return reason == reasonUnknownOperationType
+	default:
+		return false
+	}
 }

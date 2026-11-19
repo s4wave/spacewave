@@ -237,12 +237,13 @@ func (r *spaceReplay) recompute(ctx context.Context) error {
 //     build cannot read, is not: apply returns an error for it, replay stops
 //     before the operation with the World unchanged, and it applies no later
 //     operation until that fact changes.
-//   - An operation whose body this build cannot read (ErrUnreadableOp) is
-//     never refused or passed: a build that reads it may change the World
-//     there, and every later operation is decided on the World after it. Only
-//     the owner's skip, a config entry every replica reads, refuses it.
-//   - Data that does not decode, and a WorldOp with no body and no unknown
-//     field, read alike on every build, so apply refuses them.
+//   - An operation with a WorldOp field this build does not declare
+//     (ErrUnreadableOp), beside a body or without one, is never refused,
+//     passed or applied: a build that reads it may change the World there,
+//     and every later operation is decided on the World after it. Only the
+//     owner's skip, a config entry every replica reads, refuses it.
+//   - Data that does not decode, a WorldOp with no body and no unknown field,
+//     and a removed body read alike on every build, so apply refuses them.
 func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.OrderedOperation) (spacePosition, error) {
 	// Refuse an acknowledgment's absence of data or a refusal outright.
 	pos.op, pos.reason = op, op.Refused
@@ -259,6 +260,13 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 		pos.reason = "invalid operation data: " + err.Error()
 		r.a.le.WithField("reason", reasonCode(pos.reason)).Debug("replay refuses an operation")
 		return pos, nil
+	}
+	if reason, err := readUnknownFields(wop); err != nil || reason != "" {
+		if reason != "" {
+			pos.reason = reason
+			r.a.le.WithField("reason", reasonCode(reason)).Debug("replay refuses an operation")
+		}
+		return pos, err
 	}
 	peerID, err := op.Inner.ParsePeerID()
 	if err != nil {
@@ -287,9 +295,6 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	case *WorldOp_Fence, *WorldOp_RootSet:
 		next = prev
 	default:
-		if unreadable(wop) {
-			return pos, ErrUnreadableOp
-		}
 		reason = "empty operation"
 	}
 	if err != nil {
@@ -655,6 +660,7 @@ func reasonCode(reason string) string {
 		"graph settings step failed",
 		"invalid operation data",
 		"empty operation",
+		reasonRemovedOp,
 		"too many retained roots":
 		return code
 	}

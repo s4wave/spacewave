@@ -165,6 +165,12 @@ function describeReplay(
       description: `A change in this Space refers to data this device has not received yet. ${later}`,
     }
   }
+  if (wait.state?.case === 'upgrade') {
+    return {
+      title: 'This Space needs a newer Spacewave',
+      description: `A change in this Space was made by a newer version of Spacewave than this device runs. Update Spacewave to continue. ${later}`,
+    }
+  }
   if (wait.state?.case === 'retry') {
     return {
       title: 'This Space is retrying a change',

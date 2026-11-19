@@ -82,11 +82,11 @@ func (c *SharedObjectConfig) SkipsOperation(h []byte, inner *SOOperationInner) b
 	return pos.GetPeerId() == inner.GetPeerId() && pos.GetNonce() == inner.GetNonce()
 }
 
-// replayRefusal returns the reason replay refuses operation h of set under
+// ReplayRefusal returns the reason replay refuses operation h of set under
 // cfg before reading its data, or "" to prepare it: an author that signed
 // two operations at its sequence, or an owner's skip. Every replay path
 // checks these first, so each member reaches the same outcome.
-func replayRefusal(set *SOOperationSet, cfg *SharedObjectConfig, h []byte, inner *SOOperationInner) string {
+func ReplayRefusal(set *SOOperationSet, cfg *SharedObjectConfig, h []byte, inner *SOOperationInner) string {
 	switch {
 	case set.Equivocated(h):
 		return ReasonEquivocated

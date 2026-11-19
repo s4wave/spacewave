@@ -59,7 +59,7 @@ func (ev *OrderEvent) Operation(ctx context.Context, i int) (*OrderedOperation, 
 	// Refuse it before its body, or take an acknowledgment as it is.
 	h := ev.Order[i]
 	inner := ev.Set.Get(h)
-	op := &OrderedOperation{Hash: h, Inner: inner, Refused: replayRefusal(ev.Set, ev.Config, h, inner)}
+	op := &OrderedOperation{Hash: h, Inner: inner, Refused: ReplayRefusal(ev.Set, ev.Config, h, inner)}
 	if op.Refused != "" || inner.IsAcknowledgment() {
 		return op, nil
 	}

@@ -10,11 +10,6 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
-// reasonUnknownOperationType is the refusal builds before the upgrade wait
-// gave a WorldOp body they did not declare. A saved replay cursor may still
-// record it.
-const reasonUnknownOperationType = "unknown operation type"
-
 // InspectOrder walks the agreed order of so's current state from its
 // checkpoint to the head and calls emit with what this build reads of each
 // operation, in order. It returns the counts of the whole order.
@@ -120,18 +115,21 @@ func readOrderOperation(op *sobject.OrderedOperation) *OrderOperation {
 		return &OrderOperation{Read: &OrderOperation_Acknowledgment{Acknowledgment: &OrderOperationAcknowledgment{}}}
 	}
 
-	// Decode the WorldOp as replay does.
+	// Decode the WorldOp as replay does, deciding it by the fields this build
+	// does not declare before its body.
 	wop := &WorldOp{}
 	if err := wop.UnmarshalVT(op.Data); err != nil {
 		return &OrderOperation{Read: &OrderOperation_Invalid{Invalid: &OrderOperationInvalid{Error: err.Error()}}}
 	}
+	if reason, err := readUnknownFields(wop); err != nil {
+		return &OrderOperation{Read: &OrderOperation_Unreadable{Unreadable: &OrderOperationUnreadable{Fields: fieldNumbers(wop.unknownFields)}}}
+	} else if reason != "" {
+		return &OrderOperation{Read: &OrderOperation_Refused{Refused: &OrderOperationRefused{Reason: reason}}}
+	}
 	if kind := worldOpKind(wop); kind != WorldOpKind_WORLD_OP_KIND_UNKNOWN {
 		return &OrderOperation{Read: &OrderOperation_Body{Body: &OrderOperationBody{Kind: kind}}}
 	}
-	if len(wop.unknownFields) == 0 {
-		return &OrderOperation{Read: &OrderOperation_Empty{Empty: &OrderOperationEmpty{}}}
-	}
-	return &OrderOperation{Read: &OrderOperation_Unreadable{Unreadable: &OrderOperationUnreadable{Fields: fieldNumbers(wop.unknownFields)}}}
+	return &OrderOperation{Read: &OrderOperation_Empty{Empty: &OrderOperationEmpty{}}}
 }
 
 // worldOpKind names the body of wop, or returns WORLD_OP_KIND_UNKNOWN when it

@@ -684,7 +684,8 @@ func TestWriteWaitsThroughOpening(t *testing.T) {
 }
 
 // TestInspectOrderReportsUndecodableOps has another device order a body this
-// build does not declare, data that does not decode and a transaction, and
+// build does not declare, data that does not decode, a known body beside an
+// unknown WorldOp field, the removed body field 3 and a transaction, and
 // checks that InspectOrder reports each operation with what this build reads
 // of it and the outcome the saved cursor records there, counts the order, and
 // writes nothing.
@@ -700,16 +701,17 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 	})
 
 	// Stop the engine, which the inspection does not need, so nothing else
-	// writes. Another device then orders a newer build's body, invalid data
-	// and a create.
+	// writes. Another device then orders a newer build's body, invalid data,
+	// a known body beside a newer field, a removed body and a create.
 	engRef.Release()
 	remote := addDevice(t, so)
-	newer := "a body only a newer build reads"
-	remote.write(t, so, append([]byte{0x9a, 0x06, byte(len(newer))}, newer...), false, false)
+	remote.write(t, so, unreadableOp(), false, false)
 	remote.write(t, so, []byte{0xff}, false, false)
+	remote.write(t, so, hiddenFieldOp(t, "hidden-object"), false, false)
+	remote.write(t, so, removedOp(), false, false)
 	remote.write(t, so, createOp(t, "after-object"), false, false)
 
-	// Wait for the state to order the three operations, then save a cursor
+	// Wait for the state to order the five operations, then save a cursor
 	// that refused the newer body as an unknown operation type.
 	ctr, rel, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
@@ -723,7 +725,7 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 		}
 		var err error
 		ev, err = sobject.ReadOrder(ctx, snap)
-		return err == nil && ev.Set.CountAbove(remote.id.String(), 0) == 3, err
+		return err == nil && ev.Set.CountAbove(remote.id.String(), 0) == 5, err
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -741,7 +743,7 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 	}
 
 	// Inspect the order.
-	var unreadable, invalid []*space_world.OrderOperation
+	var unreadable, invalid, removed []*space_world.OrderOperation
 	var seen int
 	summary, err := space_world.InspectOrder(ctx, so, func(op *space_world.OrderOperation) error {
 		if int(op.GetPosition()) != seen {
@@ -753,6 +755,8 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 			unreadable = append(unreadable, op)
 		case op.GetInvalid() != nil:
 			invalid = append(invalid, op)
+		case op.GetRefused().GetReason() == "removed operation":
+			removed = append(removed, op)
 		}
 		return nil
 	})
@@ -761,12 +765,19 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 	}
 
 	// Each undecodable operation is the other device's, and only the newer
-	// body carries the saved refusal.
-	if len(unreadable) != 1 || !slices.Equal(unreadable[0].GetUnreadable().GetFields(), []uint32{99}) {
-		t.Fatalf("unreadable operations = %v, want one with field 99", unreadable)
+	// body carries the saved refusal. The known body beside a newer field is
+	// unreadable as replay reads it, naming only the unknown field.
+	if len(unreadable) != 2 || !slices.Equal(unreadable[0].GetUnreadable().GetFields(), []uint32{99}) || !slices.Equal(unreadable[1].GetUnreadable().GetFields(), []uint32{9}) {
+		t.Fatalf("unreadable operations = %v, want field 99, then field 9 beside a known body", unreadable)
 	}
 	if op := unreadable[0]; op.GetPeerId() != remote.id.String() || !op.SavedUnknownType() || !op.Undecodable() {
 		t.Fatalf("unreadable operation = %v, want the other device's, saved as an unknown operation type", op)
+	}
+	if op := unreadable[1]; op.GetPeerId() != remote.id.String() || op.GetNonce() != 3 || op.SavedUnknownType() || !op.Undecodable() {
+		t.Fatalf("hidden-field operation = %v, want the other device's third, with no saved refusal", op)
+	}
+	if len(removed) != 1 || removed[0].GetNonce() != 4 || removed[0].Undecodable() {
+		t.Fatalf("removed operations = %v, want the other device's fourth, refused as removed", removed)
 	}
 	if len(invalid) != 1 || invalid[0].GetSavedReason() != "" || !invalid[0].Undecodable() {
 		t.Fatalf("invalid operations = %v, want one with no saved refusal", invalid)
@@ -782,8 +793,8 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 	if int(summary.GetOperations()) != len(ev.Order) || seen != len(ev.Order) {
 		t.Fatalf("summary counts %d operations and the walk %d, want %d", summary.GetOperations(), seen, len(ev.Order))
 	}
-	if summary.GetUnreadable() != 1 || summary.GetInvalid() != 1 || applyTx == 0 {
-		t.Fatalf("summary = %v, want one unreadable, one invalid and the create", summary)
+	if summary.GetUnreadable() != 2 || summary.GetInvalid() != 1 || summary.GetRefused() == 0 || applyTx == 0 {
+		t.Fatalf("summary = %v, want two unreadable, one invalid, the removed refusal and the create", summary)
 	}
 	if summary.GetCursor().GetUnknownOperationType() != 1 {
 		t.Fatalf("saved cursor summary = %v, want one unknown operation type", summary.GetCursor())
@@ -806,14 +817,31 @@ func unreadableOp() []byte {
 	return append([]byte{0x9a, 0x06, byte(len(body))}, body...)
 }
 
+// hiddenFieldOp encodes a World operation a newer build wrote beside a body
+// this build reads: a transaction that creates key, with WorldOp field 9,
+// which this build does not declare.
+func hiddenFieldOp(t *testing.T, key string) []byte {
+	field := "a field only a newer build reads"
+	return append(createOp(t, key), append([]byte{0x4a, byte(len(field))}, field...)...)
+}
+
+// removedOp encodes a World operation with the removed body field 3, which
+// releases v0.57.20 through v0.57.22 wrote.
+func removedOp() []byte {
+	return []byte{0x1a, 0x00}
+}
+
 // TestReplayWaitsAtUnreadableOp tries to make a replica apply an operation
-// past one whose body its build cannot read. Another device orders the
-// unreadable operation and then a transaction that creates after-object:
-// replay waits for a build that reads the body, with the World unchanged and
-// after-object absent, and refuses a write. A restart on the same build waits
-// there again rather than adopt an outcome. The owner's skip of the
-// operation, which every replica reads, resumes replay, which then applies the
-// later transaction.
+// past one whose body its build cannot read. Another device orders an
+// operation with an unknown body, then a transaction that creates
+// hidden-object beside an unknown WorldOp field, then one that creates
+// after-object. Replay waits for a build that reads the first, with the World
+// unchanged, and refuses a write; a restart waits there again rather than
+// adopt an outcome. The owner's skip of it, which every replica reads, moves
+// the wait to the second, whose body replay must not apply without the field.
+// Skipping that too applies after-object, and only then can ImportRoots name
+// the payloads. An operation with the removed body field 3 is refused, not
+// waited at.
 func TestReplayWaitsAtUnreadableOp(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -840,13 +868,14 @@ func TestReplayWaitsAtUnreadableOp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Another device orders the unreadable operation, then a later one.
+	// Another device orders the unreadable operations, then a later one.
 	remote := addDevice(t, so)
 	remote.write(t, so, unreadableOp(), false, false)
+	remote.write(t, so, hiddenFieldOp(t, "hidden-object"), false, false)
 	remote.write(t, so, createOp(t, "after-object"), false, false)
 	unread := waitUpgrade(ctx, t, so, health, remote)
 
-	// The World is the one before the operation, and a write is refused.
+	// The World is the one before the operations, and a write is refused.
 	checkBefore := func() {
 		t.Helper()
 		if got, err := eng.GetSeqno(ctx); err != nil || got != seqno {
@@ -856,14 +885,29 @@ func TestReplayWaitsAtUnreadableOp(t *testing.T) {
 			if err := hasObjects(ctx, eng, "before-object"); err != nil {
 				return err
 			}
+			if err := lacksObject(ctx, eng, "hidden-object"); err != nil {
+				return err
+			}
 			return lacksObject(ctx, eng, "after-object")
 		}); err != nil {
 			t.Fatal(err)
 		}
 	}
+	importRoots := func() error {
+		t.Helper()
+		snap, err := so.GetSharedObjectState(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = space_world.ImportRoots(ctx, f.tb.Logger, f.tb.Bus, so, f.engineID, space_world.OpTypes{}, snap)
+		return err
+	}
 	checkBefore()
 	if err := create("waiting-write"); !errors.Is(err, sobject.ErrReplayWaits) {
 		t.Fatalf("write while replay waits at an unreadable body = %v, want the typed wait", err)
+	}
+	if err := importRoots(); !errors.Is(err, space_world.ErrUnreadableOp) {
+		t.Fatalf("import roots at an unreadable body = %v, want ErrUnreadableOp", err)
 	}
 
 	// A restart on the same build waits at the operation again.
@@ -874,19 +918,72 @@ func TestReplayWaitsAtUnreadableOp(t *testing.T) {
 	}
 	checkBefore()
 
-	// The owner skips the operation: replay applies the later one.
+	// The owner skips the operation: replay waits at the known body beside
+	// an unknown field instead of applying it.
 	host := so.(sobject.InviteHost)
-	if err := sobject.SkipSOOperation(ctx, host.GetSOHost(), unread, "a newer build wrote it", host.GetPrivKey()); err != nil {
-		t.Fatal(err)
+	skip := func(pos *sobject.SOOperationPosition) {
+		t.Helper()
+		if err := sobject.SkipSOOperation(ctx, host.GetSOHost(), pos, "a newer build wrote it", host.GetPrivKey()); err != nil {
+			t.Fatal(err)
+		}
 	}
-	waitHealth(ctx, t, health, "caught up after the skip", func(h *sobject.SharedObjectHealth) bool {
-		return h.GetReplay().GetCaughtUp() != nil
+	skip(unread)
+	first := health.GetValue().GetReplay().GetWaiting().GetPosition()
+	var past *sobject.SharedObjectHealth
+	waitHealth(ctx, t, health, "the wait past the skip", func(h *sobject.SharedObjectHealth) bool {
+		past = h
+		wait := h.GetReplay().GetWaiting()
+		return wait.GetUpgrade() != nil && wait.GetPosition() != first || h.GetReplay().GetCaughtUp() != nil
 	})
+	if past.GetReplay().GetCaughtUp() != nil {
+		t.Fatal("replay applied a body beside a WorldOp field this build does not declare")
+	}
+	hidden := orderPosition(ctx, t, so, past.GetReplay().GetWaiting().GetPosition())
+	if hidden.GetPeerId() != remote.id.String() || hidden.GetNonce() != unread.GetNonce()+1 {
+		t.Fatalf("replay waits at %v, want the other device's next operation after %v", hidden, unread)
+	}
+	checkBefore()
+	if err := importRoots(); !errors.Is(err, space_world.ErrUnreadableOp) {
+		t.Fatalf("import roots at a hidden field = %v, want ErrUnreadableOp", err)
+	}
+
+	// Skipping it too applies the later transaction, and ImportRoots
+	// follows both skips.
+	skip(hidden)
+	waitObjects(ctx, t, eng, "before-object", "after-object")
 	if err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
-		return hasObjects(ctx, eng, "before-object", "after-object")
+		return lacksObject(ctx, eng, "hidden-object")
 	}); err != nil {
 		t.Fatal(err)
 	}
+	if err := importRoots(); err != nil {
+		t.Fatalf("import roots after the skips = %v", err)
+	}
+
+	// Replay refuses the removed body and applies the transaction after it.
+	remote.write(t, so, removedOp(), false, false)
+	remote.write(t, so, createOp(t, "final-object"), false, false)
+	waitObjects(ctx, t, eng, "final-object")
+}
+
+// orderPosition returns the position of the operation at index i of the
+// agreed order of so.
+func orderPosition(ctx context.Context, t *testing.T, so sobject.SharedObject, i uint32) *sobject.SOOperationPosition {
+	t.Helper()
+	snap, err := so.GetSharedObjectState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	order := set.Order()
+	if int(i) >= len(order) {
+		t.Fatalf("position %d of an order of %d", i, len(order))
+	}
+	inner := set.Get(order[i])
+	return &sobject.SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: order[i]}
 }
 
 // waitUpgrade waits for replay of so to wait for a build that reads the

@@ -104,11 +104,13 @@ var ErrUnresolvedOp = errors.New("an operation's type does not resolve")
 // when the type of the operation it runs first resolves nowhere: a missing
 // handler is a fact about a device, which replay waits out, never a refusal.
 // A failed lookup of that type fails ImportRoots with its error, on a World
-// that is not initialized and on one that is. An operation replay has not
-// decided whose body this build cannot read fails it with ErrUnreadableOp. A refused operation still names
-// every payload it can, at the cost of bytes the target may not read. Invariant: an operation gets no
-// payloads only when every replay of this state would refuse it whatever its
-// handlers, or its payloads cannot be named.
+// that is not initialized and on one that is. An operation whose body this
+// build cannot read, and that replay does not refuse before its body, fails
+// it with ErrUnreadableOp, whatever the cursor saved for it. A refused
+// operation still names every payload it can, at the cost of bytes the
+// target may not read. Invariant: an operation gets no payloads only when
+// every replay of this state would refuse it whatever its handlers, or its
+// payloads cannot be named.
 func ImportRoots(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -292,6 +294,10 @@ func snapRoots(ctx context.Context, snap sobject.SharedObjectStateSnapshot, look
 	}
 	for _, h := range set.Order() {
 		refs, known, err := opPayloads(ctx, snap, set, h, lookupOp)
+		if errors.Is(err, ErrUnreadableOp) {
+			unresolved = true
+			continue
+		}
 		if err != nil {
 			return nil, false, err
 		}
@@ -307,14 +313,17 @@ func snapRoots(ctx context.Context, snap sobject.SharedObjectStateSnapshot, look
 // apply nothing and have none. known is false when only some payloads could be
 // read yet: lookupOp failed for the operation's type, which a plugin may
 // register later, and refs holds the roots read without it, the object roots
-// the operation set; or the body is one this build cannot read, and refs is
-// empty. err is a failure to read snap.
-func opPayloads(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet, h []byte, lookupOp world.LookupOp) (refs []*block.BlockRef, known bool, err error) {
+// the operation set. err is a failure to read snap, or ErrUnreadableOp at a
+// body this build cannot read.
+func opPayloads(
+	ctx context.Context,
+	snap sobject.SharedObjectStateSnapshot,
+	set *sobject.SOOperationSet,
+	h []byte,
+	lookupOp world.LookupOp,
+) (refs []*block.BlockRef, known bool, err error) {
 	// Skip the operations that apply nothing.
 	tx, _, err := replayedTx(ctx, snap, set, h)
-	if errors.Is(err, ErrUnreadableOp) {
-		return nil, false, nil
-	}
 	if err != nil || tx == nil {
 		return nil, err == nil, err
 	}
@@ -326,14 +335,22 @@ func opPayloads(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set
 
 // replayedTx returns the World transaction operation h of set, read from
 // snap, runs, or nil for one that runs none. leaves reports one that leaves
-// the World: an acknowledgment, an equivocated operation, one its config does
-// not authorize, one that does not decode, a fence and a root set. err is a
-// failure to read snap, or ErrUnreadableOp at a body this build cannot read,
-// which may name payloads and change the World.
+// the World: an acknowledgment, one replay refuses before its body, such as
+// an equivocated or skipped one, one its config does not authorize, one that
+// does not decode, a removed body, a fence and a root set. err is a failure
+// to read snap, or ErrUnreadableOp at a body this build cannot read, which
+// may name payloads and change the World.
 func replayedTx(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet, h []byte) (tx *world_block_tx.Tx, leaves bool, err error) {
-	// Skip what replay skips whole.
+	// Skip what replay skips whole, under the config replay reads.
 	inner := set.Get(h)
-	if inner.IsAcknowledgment() || set.Equivocated(h) {
+	if inner.IsAcknowledgment() {
+		return nil, true, nil
+	}
+	cfg, err := snap.GetConfig(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	if sobject.ReplayRefusal(set, cfg, h, inner) != "" {
 		return nil, true, nil
 	}
 	_, opData, reason, err := sobject.PrepareReplayOp(ctx, snap, inner)
@@ -341,19 +358,19 @@ func replayedTx(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set
 		return nil, false, err
 	}
 
-	// Return the transaction of a World operation that runs one.
+	// Decide it by the fields this build does not declare, then by its body.
 	op := &WorldOp{}
 	if reason != "" || op.UnmarshalVT(opData) != nil {
 		return nil, true, nil
+	}
+	if reason, err := readUnknownFields(op); err != nil || reason != "" {
+		return nil, reason != "", err
 	}
 	switch op.GetBody().(type) {
 	case *WorldOp_ApplyTxOp:
 		return op.GetApplyTxOp().GetTx(), false, nil
 	case *WorldOp_Fence, *WorldOp_RootSet:
 		return nil, true, nil
-	}
-	if unreadable(op) {
-		return nil, false, ErrUnreadableOp
 	}
 	return nil, false, nil
 }
