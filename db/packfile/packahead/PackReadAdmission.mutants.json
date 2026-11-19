@@ -8,5 +8,10 @@
     "name": "drop a location without invalidating it",
     "replace": [["DroppedGeneration == IF InvalidateDrop THEN generation + 1 ELSE generation", "DroppedGeneration == generation"]],
     "expect": "CacheBacked"
+  },
+  {
+    "name": "check removal before acquiring the pool lock",
+    "replace": [["read # \"checked\"", "TRUE"]],
+    "expect": "AdmissionOrder"
   }
 ]
