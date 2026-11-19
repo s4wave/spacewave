@@ -5841,6 +5841,113 @@ func TestLivenessSettle(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("rebirth while a readoption counts the lists", func(t *testing.T) {
+		// The root A names C, and the unreached U names C too, so after the
+		// flip U is in the run and C outside it. A readoption counts the
+		// lists, and a put of U under its own root gives birth to U again
+		// while the cursor stands exactly at U's list, which the count
+		// passed, or just below it, which it has not. The rebirth releases
+		// U's old hold of C only where the count gave it, so the adoption
+		// agrees with a clean recount. U's content places its list at the
+		// end of the first slice or the start of the second.
+		for _, tc := range []struct {
+			name    string
+			counted bool
+		}{{"at U's list", true}, {"below U's list", false}} {
+			t.Run(tc.name, func(t *testing.T) {
+				ctx := t.Context()
+				tr := testTree{}
+				tr.add(t, "C")
+				listed := []string{"C"}
+				for i := range 300 {
+					name := "F" + strconv.Itoa(i)
+					tr.add(t, name)
+					listed = append(listed, name)
+				}
+				tr.add(t, "H", listed[1:]...)
+				tr.add(t, "A", "C", "H")
+				listed = append(listed, "H", "A")
+
+				// Pick U's content so that the first slice ends at U's list, or
+				// at the list before it.
+				rank := 255
+				if !tc.counted {
+					rank = 256
+				}
+				var u []byte
+				for i := 0; ; i++ {
+					u = block_gc.BlockKey(tr.add(t, "U"+strconv.Itoa(i), "C"))
+					below := 0
+					for _, name := range listed {
+						if bytes.Compare(block_gc.BlockKey(tr[name].Ref), u) < 0 {
+							below++
+						}
+					}
+					if below == rank {
+						tr["U"] = tr["U"+strconv.Itoa(i)]
+						break
+					}
+					delete(tr, "U"+strconv.Itoa(i))
+				}
+				listed = append(listed, "U")
+				v, clk, store := oldStore(t, tr, "A", listed)
+				verify(t, v, tr, listed[:len(listed)-1]...)
+				collectUntil(t, v, clk, flipped)
+
+				// Readopt, stopping where the first slice of lists left the
+				// cursor.
+				keys := make([][]byte, 0, len(listed))
+				for _, name := range listed {
+					keys = append(keys, block_gc.BlockKey(tr[name].Ref))
+				}
+				slices.SortFunc(keys, bytes.Compare)
+				stop := keys[255]
+				markUnadopted(t, v)
+				adoptCtx, cancel := context.WithCancel(ctx)
+				var stopped bool
+				probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+					cur := livenessState(t, v).GetAdoptCursor()
+					if cur.GetPhase() == block_gc.AdoptPhase_ADOPT_PHASE_CHILDREN && bytes.Equal(cur.GetAfter(), stop) {
+						stopped = true
+						cancel()
+					}
+				}}
+				_, err := block_gc.Adopt(adoptCtx, probe, v.now)
+				cancel()
+				if !errors.Is(err, context.Canceled) || !stopped {
+					t.Fatalf("adopt = %v, stopped %v, want canceled after the first slice", err, stopped)
+				}
+				if got := bytes.Equal(stop, u); got != tc.counted {
+					t.Fatalf("the first slice ends at U %v, want %v", got, tc.counted)
+				}
+
+				// Put U again under its own root, then finish the adoption.
+				roots := []block.NamedRoot{{Name: "u", Ref: tr["U"].Ref}}
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("U"), roots); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := v.Adopt(ctx); err != nil {
+					t.Fatal(err)
+				}
+
+				// Once the logs net, the counts match a clean recount's.
+				clean := copyAll(t, store)
+				vc, cclk := openUnadoptedVolume(t, clean)
+				markUnadopted(t, vc)
+				if _, err := vc.Adopt(ctx); err != nil {
+					t.Fatal(err)
+				}
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				cclk.Add(block_gc.DefaultGrace + time.Second)
+				collectAll(t, v)
+				collectAll(t, vc)
+				if got, want := adoptedRecords(t, store), adoptedRecords(t, clean); !maps.Equal(got, want) {
+					t.Fatalf("adoption over a rebirth differs from a clean one: %q", recordsDiff(got, want))
+				}
+			})
+		}
+	})
+
 	t.Run("fill of an unmarked block while Sweeping", func(t *testing.T) {
 		// After the flip a read fills U and K, which gives birth to each
 		// again, and a root moves onto U: the sweep keeps them both.
