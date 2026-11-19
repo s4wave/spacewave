@@ -3,6 +3,7 @@ package space_world
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -211,17 +212,36 @@ func (e *Engine) RegenerateWorld(ctx context.Context, target world_block.WorldFo
 // switch's refusal.
 const maxRegenPins = 3
 
-// regenCarryQuads bounds the quads one write of RegenerateWorld's carried
-// quads sets, so that no write holds the writers longer than a graph settings
-// step. On thumper (TestRegenerateWorldStallBound, -regen-bound, 65,536 quads)
-// one write held a concurrent write about 28 ms plus 38 us a quad: 1,024
-// quads held it at most 141 ms where the run's 65,536-link step took 129 ms,
-// and 1,536 held it 177 ms against 141 ms.
-const regenCarryQuads = 1024
+// regenCarryHold is the replay hold one write of RegenerateWorld's carried
+// quads aims at, so that no write holds the writers longer than a graph
+// settings step: on thumper (TestRegenerateWorldStallBound, -regen-bound) a
+// step of 65,536 links held a concurrent write 89 to 102 ms.
+const regenCarryHold = 100 * time.Millisecond
+
+// regenCarryStart is the quads the first carried-quad write sets. On thumper
+// one write held replay about 28 ms plus 38 us a quad, so 1,024 quads hold it
+// near regenCarryHold; a Space on cold pages holds it longer, and the writes
+// that follow shrink.
+const regenCarryStart = 1024
+
+// nextCarrySize returns the quads the next carried-quad write sets, given the
+// size of the last one and how long it held replay: half when it held longer
+// than regenCarryHold, double when it held less than half of it, and at least
+// one.
+func nextCarrySize(n int, hold time.Duration) int {
+	switch {
+	case hold > regenCarryHold:
+		return max(n/2, 1)
+	case hold < regenCarryHold/2:
+		return n * 2
+	}
+	return n
+}
 
 // writeCarriedQuads sets the quads of the quad list at quads in the World as
-// ordinary writes through the Space's order, each of at most regenCarryQuads
-// quads and sobject.MaxBatchSize bytes, in list order. Between writes it
+// ordinary writes through the Space's order, each of at most
+// sobject.MaxBatchSize bytes and of as many quads as nextCarrySize gives from
+// the last write's replay hold, in list order. Between writes it
 // yields to this device's writers. A user's write ordered between two of them
 // stands, as one ordered before or after the regeneration does. A list
 // another regeneration already set adds nothing, since a write skips the
@@ -236,6 +256,7 @@ func (e *Engine) writeCarriedQuads(ctx context.Context, quads *block.BlockRef) e
 	// writers.
 	var txs []*world_block_tx.Tx
 	var size int
+	limit := regenCarryStart
 	flush := func() error {
 		// Skip an empty batch, and let the waiting writers go first.
 		if len(txs) == 0 {
@@ -244,12 +265,20 @@ func (e *Engine) writeCarriedQuads(ctx context.Context, quads *block.BlockRef) e
 		if err := e.a.turns.Yield(ctx); err != nil {
 			return err
 		}
+
+		// Write it, sizing the next one from how long it held replay.
 		tx, err := world_block_tx.NewTxBatch(&world_block_tx.TxBatch{Txs: txs})
 		if err != nil {
 			return err
 		}
+		n := len(txs)
 		txs, size = nil, 0
-		return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_ApplyTxOp{ApplyTxOp: &ApplyTxOp{Tx: tx}}})
+		hold, err := e.a.writeOpHold(ctx, &WorldOp{Body: &WorldOp_ApplyTxOp{ApplyTxOp: &ApplyTxOp{Tx: tx}}})
+		if err != nil {
+			return err
+		}
+		limit = nextCarrySize(n, hold)
+		return nil
 	}
 
 	// Gather the list into batches within both bounds, writing each full one,
@@ -262,7 +291,7 @@ func (e *Engine) writeCarriedQuads(ctx context.Context, quads *block.BlockRef) e
 			return err
 		}
 		n := tx.SizeVT() + 8
-		if len(txs) == regenCarryQuads || size+n > sobject.MaxBatchSize {
+		if len(txs) >= limit || size+n > sobject.MaxBatchSize {
 			if err := flush(); err != nil {
 				return err
 			}
@@ -372,30 +401,37 @@ func (a *Adapter) participant(ctx context.Context) (*sobject.SOParticipantConfig
 // installed head. payloads are the roots op names, which writeOp holds before
 // queueing op, refusing one nothing holds now with block.ErrRootNotHeld.
 func (a *Adapter) writeOp(ctx context.Context, op *WorldOp, payloads ...*block.BlockRef) error {
+	_, err := a.writeOpHold(ctx, op, payloads...)
+	return err
+}
+
+// writeOpHold is writeOp, also returning how long applying op held replay, and
+// so the writers ordered after it.
+func (a *Adapter) writeOpHold(ctx context.Context, op *WorldOp, payloads ...*block.BlockRef) (time.Duration, error) {
 	// Queue it unless replay is not caught up, holding its payloads first.
 	data, err := op.MarshalVT()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	adm := a.newAdmission(world.Candidate{}, data, payloads, nil)
 	if err := a.admitWrite(ctx, adm); err != nil {
-		return err
+		return 0, err
 	}
 	if err := a.holdAdmitted(ctx, adm, false); err != nil {
 		a.fail(adm, err)
-		return err
+		return 0, err
 	}
 	a.queue.push(adm)
 
-	// Wait for its decision.
+	// Wait for its decision. The hold is final once it is decided.
 	decision, err := adm.WaitDecided(ctx)
 	switch {
 	case err != nil:
-		return err
+		return 0, err
 	case decision != world.Accepted:
-		return errors.Wrap(sobject.ErrRejectedOp, adm.reason)
+		return 0, errors.Wrap(sobject.ErrRejectedOp, adm.reason)
 	}
-	return nil
+	return adm.hold, nil
 }
 
 // normalizeGraphSettings returns the settings a World root stores for target:

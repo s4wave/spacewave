@@ -112,7 +112,7 @@ func TestRegenerateWorldStallBound(t *testing.T) {
 	took, stats = measureWrites(ctx, t, eng, "carry", func() error {
 		return space_world.WriteCarriedQuads(ctx, served, list)
 	})
-	t.Logf("carry of %d quads in writes of at most %d: call %v, writes %v", bound, space_world.RegenCarryQuads, took, stats)
+	t.Logf("carry of %d quads in writes starting at %d: call %v, writes %v", bound, space_world.RegenCarryStart, took, stats)
 	took, stats = measureWrites(ctx, t, eng, "pin", func() error {
 		return space_world.WriteRegenOp(ctx, served, &space_world.RegenerateWorldOp{Target: graphFormat})
 	})

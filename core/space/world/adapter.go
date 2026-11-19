@@ -828,6 +828,10 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		return "", err
 	}
 
+	// Time the step, which holds every writer ordered after op.
+	start := time.Now()
+	defer a.logSlowStep(op, start)
+
 	// Note the applied operations a reorder put back.
 	r := a.replay
 	for _, pos := range r.positions[index:] {
@@ -901,7 +905,7 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		return "", err
 	}
 	if len(a.missing) == 0 {
-		if err := a.installHead(ctx); err != nil {
+		if err := a.installHead(ctx, start); err != nil {
 			return "", err
 		}
 	}
@@ -923,6 +927,7 @@ func (a *Adapter) Install(ctx context.Context, ev *sobject.OrderEvent, covered i
 	if err := a.waitOpened(ctx); err != nil {
 		return false, err
 	}
+	start := time.Now()
 	checkpoint := ev.Checkpoint
 
 	// Decode the checkpoint's World.
@@ -981,7 +986,7 @@ func (a *Adapter) Install(ctx context.Context, ev *sobject.OrderEvent, covered i
 	a.decideCovered(refused, unknown)
 	a.sweep()
 	if len(a.missing) == 0 {
-		if err := a.installHead(ctx); err != nil {
+		if err := a.installHead(ctx, start); err != nil {
 			return false, err
 		}
 	}
@@ -1600,10 +1605,30 @@ func (a *Adapter) writerHeadLocked() world.Head {
 	return a.head
 }
 
+// slowReplayStep is the driver step at and past which logSlowStep logs.
+const slowReplayStep = 100 * time.Millisecond
+
+// logSlowStep logs, at debug level, a driver step on op that began at start
+// and held the writers slowReplayStep or longer, so a slow operation can be
+// measured on a running serve. Only a slow step decodes op again.
+func (a *Adapter) logSlowStep(op *sobject.OrderedOperation, start time.Time) {
+	// Skip a fast step.
+	hold := time.Since(start)
+	if hold < slowReplayStep {
+		return
+	}
+
+	// Name the slow one's type.
+	wop := &WorldOp{}
+	_ = wop.UnmarshalVT(op.Data)
+	a.le.WithField("op-type", opTypeOf(wop)).WithField("dur", hold.String()).Debug("replay step held writers")
+}
+
 // installHead installs the World after the last position as the head, moves
 // the writer head with it, holds its retained roots, reports it to every head
-// watcher, then finishes the install and decides the candidates it holds.
-func (a *Adapter) installHead(ctx context.Context) error {
+// watcher, then finishes the install and decides the candidates it holds,
+// giving each the hold of the driver step that began at start.
+func (a *Adapter) installHead(ctx context.Context, start time.Time) error {
 	// Install the head.
 	state, seqno := a.replay.head()
 	height, positions := a.replay.height, len(a.replay.positions)
@@ -1648,10 +1673,12 @@ func (a *Adapter) installHead(ctx context.Context) error {
 	// candidate queued places after it either is collected here or sees the
 	// finished height and is accepted at once.
 	var placed []*spaceAdmission
+	hold := time.Since(start)
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		a.acceptHeight = height
 		for _, adm := range a.pending {
 			if adm.state == admissionPlaced || adm.state == admissionCovered {
+				adm.hold = hold
 				placed = append(placed, adm)
 			}
 		}
