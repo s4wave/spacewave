@@ -196,12 +196,15 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		return err
 	}
 	p := &pack{seq: seq, path: path, f: f, state: packRotated}
-	data, entries, err := p.recoverFile(l.opts.SyncData, scanBatches, func(_ []entry, _ int64, damaged bool) {
+	data, entries, err := p.recoverFile(l.opts.SyncData, func(disk []byte) ([]entry, int64, bool, error) {
+		entries, end, damaged := scanBatches(disk)
+
 		// I2: a Log can reopen in the same process as its old decoded cache.
 		// A damaged record can hide the keys, so fence those reads globally.
 		if damaged {
 			block.InvalidateAllRemovedBlocks()
 		}
+		return entries, end, false, nil
 	})
 	if err != nil {
 		_ = f.Close()
@@ -1035,14 +1038,21 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	// the renamed file ends in the index, which recovery would truncate. A
 	// pack an earlier try dropped has no file left to recover.
 	if failed && p.renamed == nil && !p.dropped {
-		scan := func(disk []byte) ([]entry, int64, bool) {
-			return scanWrittenBatches(disk, data, entries)
-		}
-		publish := func(kept []entry, end int64, _ bool) {
+		scan := func(disk []byte) ([]entry, int64, bool, error) {
+			// Fence discarded locations before repairing their framing.
+			kept, end, damaged := scanWrittenBatches(disk, data, entries)
 			l.forgetDamagedBatches(p, entries, kept, end)
+			if !damaged {
+				return kept, end, false, nil
+			}
+
+			// A crash can leave the old name even after the index was synced.
+			// Make the same kept batches reachable from that name first.
+			changed, err := p.sealRecoveryGaps(disk, entries, kept, end)
+			return kept, end, changed, err
 		}
 		var err error
-		data, entries, err = p.recoverFile(opts.SyncData, scan, publish)
+		data, entries, err = p.recoverFile(opts.SyncData, scan)
 		if err != nil {
 			return poison(err)
 		}

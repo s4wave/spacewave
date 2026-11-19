@@ -22,6 +22,8 @@
 \* record survived. It indexes reachable batches whose values also survived.
 \* The live writer retains the original offsets. The model keeps their order
 \* and abstracts away damaged spans between physical offsets.
+\* PackAheadGapRepair checks the narrower case of a live repair of damage
+\* already present in a synced prefix, which Crash here does not introduce.
 \*
 \* Guards, which a mutant turns off to show the invariant needs it:
 \*   DataCheck:   recovery rejects a record whose values did not survive.

@@ -382,8 +382,8 @@ func TestPackAheadMultiPackAppendRejectsFailure(t *testing.T) {
 	}
 }
 
-// TestPackAheadRecoveryKeepsAcknowledgedBatches tests live and startup
-// recovery after damage to a batch's data or its record header.
+// TestPackAheadRecoveryKeepsAcknowledgedBatches compares live recovery with
+// startup from a damaged file that live recovery has not yet repaired.
 func TestPackAheadRecoveryKeepsAcknowledgedBatches(t *testing.T) {
 	for _, damage := range []string{"data", "header"} {
 		for _, recovery := range []string{"live", "startup"} {
@@ -391,6 +391,123 @@ func TestPackAheadRecoveryKeepsAcknowledgedBatches(t *testing.T) {
 				checkRecoveryKeepsAcknowledgedBatches(t, damage, recovery)
 			})
 		}
+	}
+}
+
+// TestPackAheadCrashAfterGapRepair reopens the data and index at the last
+// sync before rename, when a crash can leave the pack under its open name.
+func TestPackAheadCrashAfterGapRepair(t *testing.T) {
+	// Capture durable file images at each live recovery sync.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	dir := t.TempDir()
+	path := filepath.Join(dir, openName(1))
+	durable := make(chan []byte, 2)
+	var recovering atomic.Bool
+	l, err := Open(ctx, dir, Options{SyncData: func(f *os.File) error {
+		if err := syncData(f); err != nil {
+			return err
+		}
+		if f.Name() == path && recovering.Load() {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			select {
+			case durable <- data:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+		return nil
+	}})
+	if err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	defer func() {
+		cancel()
+		l.Close()
+	}()
+
+	// Acknowledge every batch, then damage only the middle record header.
+	prefix, bad, suffix := testBlock(t, 1, 64), testBlock(t, 2, 64), testBlock(t, 3, 64)
+	headerAt := int64(recordLen([]Block{prefix}) + len(prefix.Value))
+	end := 0
+	for _, b := range []Block{prefix, bad, suffix} {
+		batch := []Block{b}
+		if err := l.Append(ctx, batch); err != nil {
+			t.Fatal(err)
+		}
+		end += recordLen(batch) + dataLen(batch)
+	}
+	if _, err := l.open.f.WriteAt([]byte{0}, headerAt); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncData(l.open.f); err != nil {
+		t.Fatal(err)
+	}
+
+	// Let a write failure trigger live recovery. Its index must keep both
+	// intact batches before we test the same bytes without a durable rename.
+	if err := FailAppendWrite(t, l, []Block{testBlock(t, 4, 64)}); !errors.Is(err, syscall.EBADF) {
+		t.Fatalf("failed write returned %v", err)
+	}
+	recovering.Store(true)
+	if err := l.Append(ctx, []Block{testBlock(t, 5, 64)}); err != nil {
+		t.Fatal(err)
+	}
+	want := map[string][]byte{string(prefix.Key): prefix.Value, string(suffix.Key): suffix.Value}
+	checkPack(t, waitFinalized(t, l, 1)[0], want, Options{})
+	var repaired []byte
+	select {
+	case repaired = <-durable:
+	case <-ctx.Done():
+		t.Fatal("live recovery recorded no durable file image")
+	}
+	data := repaired
+	select {
+	case data = <-durable:
+	default:
+	}
+	if len(repaired) != end {
+		t.Errorf("first recovery sync had %d bytes, want %d batch bytes before indexing", len(repaired), end)
+	}
+	if len(repaired) < end {
+		t.FailNow()
+	}
+	if len(data) <= end {
+		t.Fatalf("last sync had %d bytes, want batch data and index", len(data))
+	}
+
+	// Recover from the durable data alone, from a torn index, and from
+	// the complete index when the directory still holds the old name.
+	for _, crash := range []struct {
+		name  string
+		image []byte
+	}{
+		{"before-index", repaired[:end]},
+		{"torn-index", data[:end+1]},
+		{"before-durable-rename", data},
+	} {
+		t.Run(crash.name, func(t *testing.T) {
+			// Recover the pack through Open using the crash image.
+			restart := t.TempDir()
+			if err := os.WriteFile(filepath.Join(restart, openName(1)), crash.image, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			reopened, err := Open(ctx, restart, Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reopened.Close()
+
+			// The later acknowledged value and the prefix must both survive.
+			got, found, err := reopened.Get(suffix.Key)
+			if err != nil || !found || !bytes.Equal(got, suffix.Value) {
+				t.Fatalf("acknowledged suffix found=%v, err=%v", found, err)
+			}
+			checkPack(t, waitFinalized(t, reopened, 1)[0], want, Options{})
+		})
 	}
 }
 
@@ -513,7 +630,7 @@ func checkRecoveryKeepsAcknowledgedBatches(t *testing.T, damage, recovery string
 		t.Fatalf("read of bad block after recovery = %+v, %v", got, err)
 	}
 
-	// Keep the later batch only when recovery can establish its start.
+	// Startup before a live repair stops at the first unknown boundary.
 	want := map[string][]byte{string(prefix.Key): prefix.Value}
 	if damage == "header" && recovery == "startup" {
 		if l.Has(good.Key) {
