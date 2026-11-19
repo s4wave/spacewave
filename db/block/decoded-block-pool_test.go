@@ -113,14 +113,25 @@ func TestDecodedBlockPoolUpdateDeleteClear(t *testing.T) {
 	// Replace an entry with a larger one.
 	pool := newDecodedBlockPoolShards(1000)
 	pool.put("a", "", decodedBlockCacheEntry{}, 10)
+	stale, ok := pool.get("a")
+	if !ok {
+		t.Fatal("first entry missing")
+	}
 	pool.put("a", "", decodedBlockCacheEntry{}, 30)
 	if got := pool.stats().retained; got != 30 {
 		t.Fatalf("retained %d after update, want 30", got)
 	}
 	checkDecodedBlockPool(t, pool)
 
-	// Delete it.
-	pool.del("a")
+	// A delayed deletion of the earlier version must preserve the replacement.
+	pool.delIfCurrent("a", stale.version)
+	current, ok := pool.get("a")
+	if !ok || current.version == stale.version {
+		t.Fatal("stale deletion removed the replacement")
+	}
+
+	// Delete the current version.
+	pool.delIfCurrent("a", current.version)
 	if _, ok := pool.get("a"); ok {
 		t.Fatal("deleted entry found")
 	}
@@ -160,7 +171,9 @@ func TestDecodedBlockPoolRandom(t *testing.T) {
 						case op < 9:
 							pool.put(key, "", decodedBlockCacheEntry{}, 1+rng.Int64N(budget/8))
 						default:
-							pool.del(key)
+							if value, ok := pool.get(key); ok {
+								pool.delIfCurrent(key, value.version)
+							}
 						}
 					}
 				})

@@ -1,22 +1,42 @@
 [
   {
     "name": "admit before the batch syncs",
-    "replace": [["(~RequireSync /\\ location = \"unsynced\")", "(location = \"unsynced\")"]],
+    "replace": [
+      [
+        "(~RequireSync /\\ location = \"unsynced\")",
+        "(location = \"unsynced\")"
+      ]
+    ],
     "expect": "CacheBacked"
   },
   {
     "name": "drop a location without invalidating it",
-    "replace": [["IF InvalidateDrop THEN generation + 1 ELSE generation", "generation"]],
+    "replace": [
+      [
+        "IF InvalidateDrop THEN generation + 1 ELSE generation",
+        "generation"
+      ]
+    ],
     "expect": "CacheBacked"
   },
   {
-    "name": "check removal before acquiring the pool lock",
-    "replace": [["read \\notin {\"checked\", \"staged\", \"verified\"}", "TRUE"]],
-    "expect": "AdmissionOrder"
+    "name": "commit a charged slot without rechecking removal",
+    "replace": [
+      [
+        "/\\ sampled = generation\n",
+        "/\\ TRUE\n"
+      ]
+    ],
+    "expect": "AdmissionCurrent"
   },
   {
-    "name": "publish a staged slot without rechecking removal",
-    "replace": [["/\\ sampled = generation\n", "/\\ TRUE\n"]],
-    "expect": "AdmissionCurrent"
+    "name": "delete a newer cache entry after a stale lookup",
+    "replace": [
+      [
+        "IF cached = seenStale",
+        "IF cached # 0"
+      ]
+    ],
+    "expect": "PurgeCurrent"
   }
 ]

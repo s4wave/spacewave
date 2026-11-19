@@ -142,6 +142,8 @@ type decodedBlockCacheEntry struct {
 	read       *decodedBlockReadSlot
 	epochs     decodedBlockCacheEpochs
 	durableGen uint64
+	// version identifies this exact publication within its shard.
+	version uint64
 }
 
 // decodedBlockCacheStoreToken captures the epochs at the start of a read so a
@@ -288,7 +290,7 @@ func (c *DecodedBlockCache) Lookup(
 	cacheKey := c.cacheKey(key)
 	cached, ok := c.pool.get(cacheKey)
 	if ok && (cached.epochs != c.epochs(key.ref) || removedSince(key.ref, cached.durableGen)) {
-		c.pool.del(cacheKey)
+		c.pool.delIfCurrent(cacheKey, cached.version)
 		ok = false
 	}
 

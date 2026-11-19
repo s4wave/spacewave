@@ -62,6 +62,8 @@ type decodedBlockShard struct {
 	hits, misses atomic.Uint64
 	// entries holds the shard's entries by pool key.
 	entries map[string]*decodedBlockPoolEntry
+	// version advances with each accepted store, under mtx.
+	version uint64
 	// probation holds entries not yet found by a lookup at its head.
 	probation decodedBlockQueue
 	// main holds entries promoted from probation.
@@ -206,41 +208,46 @@ func (p *decodedBlockPool) put(key, refKey string, value decodedBlockCacheEntry,
 		return false
 	}
 
-	// Stage the value in the shard where other readers cannot see it yet.
+	// Charge the candidate provisionally under the shard lock. Keep the old
+	// value and its traversal metadata in place until admission commits.
 	e := s.entries[key]
 	existing := e != nil
-	var previous decodedBlockCacheEntry
+	delta := cost
 	if existing {
-		previous, e.value = e.value, value
-	} else {
-		e = &decodedBlockPoolEntry{key: key, value: value, cost: cost}
-		s.entries[key] = e
+		delta -= e.cost
+		e.queue.cost += delta
+	}
+	if !existing {
+		e = &decodedBlockPoolEntry{key: key, cost: cost}
+		s.probation.push(e)
 	}
 
-	// Recheck after insertion. A concurrent removal can reject the slot
-	// before it charges the budget or displaces another entry.
+	// I3: the removal check commits admission after the provisional charge.
+	// If backing was lost, undo the charge before it can evict another entry.
 	if refKey != "" && removedStripeSince(stripe, value.durableGen) {
 		if existing {
-			e.value = previous
-		} else {
-			delete(s.entries, key)
+			e.queue.cost -= delta
+		}
+		if !existing {
+			e.queue.remove(e)
 		}
 		s.mtx.Unlock()
 		s.rejections.Add(1)
 		return false
 	}
 
-	// Commit the replacement or add the accepted entry to probation.
+	// Publish the accepted value and charge, or replace the previous version.
 	if existing {
-		s.retireReadData(previous.read)
-		e.queue.cost += cost - e.cost
-		s.retained.Add(cost - e.cost)
-		e.cost = cost
-	} else {
-		s.count.Add(1)
-		s.probation.push(e)
-		s.retained.Add(cost)
+		s.retireReadData(e.value.read)
 	}
+	if !existing {
+		s.entries[key] = e
+		s.count.Add(1)
+	}
+	s.version++
+	value.version = s.version
+	e.value, e.cost = value, cost
+	s.retained.Add(delta)
 
 	// Evict until the shard fits its budget, keeping the stored entry.
 	var evicted, evictedCost int64
@@ -316,13 +323,14 @@ func (s *decodedBlockShard) evictOne(budget int64, keep *decodedBlockPoolEntry) 
 	return nil
 }
 
-// del removes the entry for key.
-func (p *decodedBlockPool) del(key string) {
-	// Unlink the entry and release its cost.
+// delIfCurrent removes the observed version of key. A stale lookup can
+// race with a new publication of the same key.
+func (p *decodedBlockPool) delIfCurrent(key string, version uint64) {
+	// Unlink the entry and release its cost if the lookup still names it.
 	s := p.shard(key)
 	s.mtx.Lock()
 	e := s.entries[key]
-	if e != nil {
+	if e != nil && e.value.version == version {
 		delete(s.entries, key)
 		s.count.Add(-1)
 		s.retireReadData(e.value.read)
