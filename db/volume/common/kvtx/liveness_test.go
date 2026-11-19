@@ -4873,6 +4873,74 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("resumed adoption differs from a clean one: %v", recordsDiff(got, want))
 		}
 	})
+
+	t.Run("adoption refuses a cursor another run left", func(t *testing.T) {
+		// A run cancelled at the settle leaves its cursor; a build without
+		// the cursor then claims the Volume and marks its own run adopting,
+		// keeping the field it does not know and clearing the counts. An
+		// Adopt finding that cursor under a run it does not name starts over
+		// from a claim instead of settling the empty counts.
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v, _ := openUnadoptedVolume(t, store)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		tr.add(t, "Y")
+		r := tr.add(t, "R", "X", "Y")
+		tr.add(t, "G")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "Y", "R", "G"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+		clean := copyAll(t, store)
+
+		// Cancel before the settle's first slice.
+		adoptCtx, cancel := context.WithCancel(ctx)
+		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){adoptSettle: cancel}}
+		_, err := block_gc.Adopt(adoptCtx, probe, v.now)
+		cancel()
+		if !errors.Is(err, context.Canceled) || len(probe.at) != 0 {
+			t.Fatalf("adopt = %v with %d cancels left, want canceled", err, len(probe.at))
+		}
+
+		// The older build clears the counts and marks its run adopting,
+		// carrying the cursor through as an unknown field.
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for key := range livenessRecords(t, store, 'H') {
+			if err := tx.Delete(ctx, []byte(key)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		err = collectorStore{v: v}.Update(ctx, func(rec *block_gc.Records, _ block.StoreOps) error {
+			state, err := rec.GetState(ctx)
+			if err != nil {
+				return err
+			}
+			state.AdoptionRun = "older-build-run"
+			return rec.SetState(ctx, state)
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// The Adopt counts every list again, as a clean one does.
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		vc, _ := openUnadoptedVolume(t, clean)
+		if _, err := vc.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := adoptedRecords(t, store), adoptedRecords(t, clean); !maps.Equal(got, want) {
+			t.Fatalf("adoption over a foreign cursor differs from a clean one: %v", recordsDiff(got, want))
+		}
+	})
 }
 
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
