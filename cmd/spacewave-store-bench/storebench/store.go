@@ -78,7 +78,7 @@ func OpenStore(ctx context.Context, le *logrus.Entry, conf *StoreConfig, create 
 	sr.AddFactory(storage_volume.NewFactory(b))
 	sr.AddFactory(block_store_bucket.NewFactory(b))
 	sr.AddFactory(provider_local.NewFactory(b))
-	sr.AddFactory(space_world.NewFactory(b, space_world_engine.OpTypes))
+	sr.AddFactory(space_world_engine.NewFactory(b))
 
 	// Start the node and configset controllers.
 	for _, c := range []config.Config{&node_controller.Config{}, &configset_controller.Config{}} {

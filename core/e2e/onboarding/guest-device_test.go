@@ -41,7 +41,7 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 	// Mount the real cloud account against the isolated coordinator.
 	ctx, cancel := context.WithTimeout(env.ctx, 90*time.Second)
 	t.Cleanup(cancel)
-	env.tb.StaticResolver.AddFactory(space_world.NewFactory(env.tb.Bus, space_world.OpTypes{}))
+	env.tb.StaticResolver.AddFactory(space_world.NewEngineFactory(env.tb.Bus, space_world.OpTypes{}))
 	env.tb.StaticResolver.AddFactory(space_sobject.NewFactory(env.tb.Bus))
 	_, controller, err := env.tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&space_sobject.Config{}), nil)
 	if err != nil {

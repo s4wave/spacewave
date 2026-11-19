@@ -30,10 +30,10 @@ func TestJoinViaInviteStaticUDP(t *testing.T) {
 	// path between them, each with a World engine.
 	ownerTb, _, owner, ownerSession, releaseOwner := setupProviderAndSession(ctx, t)
 	t.Cleanup(releaseOwner)
-	ownerTb.StaticResolver.AddFactory(space_world.NewFactory(ownerTb.Bus, space_world.OpTypes{}))
+	ownerTb.StaticResolver.AddFactory(space_world.NewEngineFactory(ownerTb.Bus, space_world.OpTypes{}))
 	readerTb, _, reader, readerSession, releaseReader := setupProviderAndSession(ctx, t)
 	t.Cleanup(releaseReader)
-	readerTb.StaticResolver.AddFactory(space_world.NewFactory(readerTb.Bus, space_world.OpTypes{}))
+	readerTb.StaticResolver.AddFactory(space_world.NewEngineFactory(readerTb.Bus, space_world.OpTypes{}))
 
 	// The owner creates the Space it invites the reader's Session to.
 	ref, err := owner.CreateSharedObject(ctx, "static-udp", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")

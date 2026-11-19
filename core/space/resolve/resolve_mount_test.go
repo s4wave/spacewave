@@ -34,7 +34,7 @@ func TestResolveSpaceWithoutConcurrentMounter(t *testing.T) {
 	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{}))
+	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, space_world.OpTypes{}))
 
 	// Load the session controller from the testbed bus.
 	_, sessCtrlRef, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&session_controller.Config{

@@ -123,7 +123,7 @@ func compatOpenSpace(ctx context.Context, t *testing.T, dir string, soRef *sobje
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
-	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{Lookup: optypes.LookupWorldOp}))
+	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, space_world.OpTypes{Lookup: optypes.LookupWorldOp}))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	_, provRef, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: "local",
