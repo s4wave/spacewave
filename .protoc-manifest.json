@@ -3162,10 +3162,12 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/target": {
-          "hash": "101f0dfbd563b435e37121986fa046cea585cf01b88ff5caf5fde502ab42a211",
+          "hash": "239f7b4707b9d30a6304b222695fc8c7321a87b23550b31a1c0bd49759c45717",
           "generatedFiles": [
             "forge/target/target.pb.go",
-            "forge/target/target.pb.ts"
+            "forge/target/target.pb.ts",
+            "forge/target/target_typeid.pb.go",
+            "forge/target/target_typeid.pb.ts"
           ],
           "protoFiles": [
             "forge/target/target.proto"

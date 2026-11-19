@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 )
 
 // NewTargetBlock constructs a new block with type Target.
@@ -19,16 +20,24 @@ func UnmarshalTarget(ctx context.Context, bcs *block.Cursor) (*Target, error) {
 	return block.UnmarshalBlock[Target](ctx, bcs)
 }
 
-// CreateTarget writes the Target to a world object.
+// CreateTarget writes the Target to a typed world object.
 func CreateTarget(
 	ctx context.Context,
 	ws world.WorldState,
 	objKey string, t *Target,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
-	return world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+	state, ref, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(t, true)
 		return nil
 	})
+	if err != nil {
+		return state, ref, err
+	}
+	if err := world_types.SetObjectType(ctx, ws, objKey, TargetTypeID); err != nil {
+		world.ReleaseObjectState(state)
+		return nil, nil, err
+	}
+	return state, ref, nil
 }
 
 // Validate performs cursory validation of the target.

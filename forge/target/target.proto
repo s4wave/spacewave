@@ -1,11 +1,14 @@
 syntax = "proto3";
 package forge.target;
 
+import "github.com/aperturerobotics/common/typeid/typeid.proto";
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 import "github.com/s4wave/spacewave/forge/value/value.proto";
 
 // Target contains a desired Task target configuration.
 message Target {
+  option (typeid.id) = "forge/target";
+
   // Inputs is the mapping of inputs.
   // Not necessarily sorted or unique, later values override earlier.
   repeated Input inputs = 1;
