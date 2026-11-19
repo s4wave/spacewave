@@ -63,6 +63,11 @@ func (t *Tx) CommitAdmit(ctx context.Context) (adm world.Admission, err error) {
 	return world.CommitAdmit(ctx, t.tx)
 }
 
+// BaseAdmission returns the underlying transaction's base receipt.
+func (t *Tx) BaseAdmission(seqno uint64) world.Admission {
+	return world.BaseAdmission(t.tx, seqno)
+}
+
 // Discard cancels the transaction.
 // If called after Commit, does nothing.
 // Cannot return an error.

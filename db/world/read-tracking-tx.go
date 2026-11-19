@@ -20,6 +20,11 @@ func (t *readTrackingTx) CommitAdmit(ctx context.Context) (Admission, error) {
 	return CommitAdmit(ctx, t.tx)
 }
 
+// BaseAdmission returns the underlying transaction's base receipt.
+func (t *readTrackingTx) BaseAdmission(seqno uint64) Admission {
+	return BaseAdmission(t.tx, seqno)
+}
+
 // Discard discards the underlying transaction.
 func (t *readTrackingTx) Discard() {
 	t.tx.Discard()

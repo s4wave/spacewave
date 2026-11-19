@@ -56,9 +56,10 @@ type StageTotals struct {
 	// Parts sums the named parts of the admit and durable stages that the
 	// engine and the transaction reported, by part name.
 	Parts map[string]float64
-	// Pages and PageBytes sum the World pages the writes' commits stored and
-	// their length, each write counting its share of its batch's commit.
-	Pages, PageBytes float64
+	// Pages sums the World pages stored, counting each write's share.
+	Pages float64
+	// PageBytes sums the bytes stored, counting each write's share.
+	PageBytes float64
 }
 
 // commitParts collects what the engine and the transaction report about one
@@ -109,6 +110,12 @@ func CommitTimeRecorder(ctx context.Context) func(part string, d time.Duration) 
 // RecordCommitPages adds the World pages a publication of the batch admitted
 // under ctx stored, and their length. Outside an admission it does nothing.
 func RecordCommitPages(ctx context.Context, pages int, bytes uint64) {
+	// An invalid page count cannot contribute to the commit totals.
+	if pages < 0 {
+		return
+	}
+
+	// Update the active batch's counters together.
 	p, _ := ctx.Value(commitPartsKey{}).(*commitParts)
 	if p == nil {
 		return
@@ -154,7 +161,7 @@ func (q *Queue) observeStages(c *committingBatch, now time.Time) {
 	}
 	samples := make([]sample, 0, len(c.writes))
 	for _, w := range c.writes {
-		if (w.ended() && !w.acked) || w.bodyStarted.IsZero() || c.admitted.IsZero() {
+		if w.bodyErr != nil || (w.ended() && !w.acked) || w.bodyStarted.IsZero() || c.admitted.IsZero() {
 			continue
 		}
 		var s sample

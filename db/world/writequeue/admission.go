@@ -15,10 +15,34 @@ import (
 // commit has the engine admit tx, which carries batch, answers the writes
 // that succeed at admission, and waits for the durable result on its own
 // goroutine, so drain forks the next batch at once.
-func (q *Queue) commit(ctx context.Context, tx Transaction, batch []*queuedWrite) world.AdmissionPreparation {
-	// A batch whose every write ended in place has nothing to commit.
-	if !slices.ContainsFunc(batch, func(w *queuedWrite) bool { return !w.ended() }) {
+func (q *Queue) commit(ctx context.Context, wtx world.Tx, tx Transaction, batch []*queuedWrite, base uint64) world.AdmissionPreparation {
+	// An unchanged transaction has no publication of its own. Its body
+	// errors follow the base receipt, if the base is still speculative.
+	var settleBase func()
+	if slices.ContainsFunc(batch, func(w *queuedWrite) bool { return w.bodyErr != nil }) {
+		after, err := tx.GetSeqno(ctx)
+		if err != nil {
+			tx.Discard()
+			q.refused(batch, err)
+			return nil
+		}
+		if after == base {
+			readers := make([]*queuedWrite, 0, len(batch))
+			batch = slices.DeleteFunc(batch, func(w *queuedWrite) bool {
+				if w.bodyErr == nil {
+					return false
+				}
+				readers = append(readers, w)
+				return true
+			})
+			settleBase = q.finishOnBase(wtx, tx, readers, base)
+		}
+	}
+
+	// A batch that only read its base has nothing to commit.
+	if len(batch) == 0 {
 		tx.Discard()
+		settleBase()
 		return nil
 	}
 
@@ -43,7 +67,14 @@ func (q *Queue) commit(ctx context.Context, tx Transaction, batch []*queuedWrite
 		return err
 	})
 	c.admitted = time.Now()
+
+	// Release the fork before any wait for its inherited base.
 	tx.Discard()
+	if settleBase != nil {
+		settleBase()
+	}
+
+	// Refused batches either prepare outside the writer or return to the queue.
 	q.mtx.Lock()
 	if err != nil {
 		var retry world.AdmissionRetry
@@ -68,7 +99,7 @@ func (q *Queue) commit(ctx context.Context, tx Transaction, batch []*queuedWrite
 		for _, w := range batch {
 			switch {
 			case w.ended():
-			case w.replay == nil:
+			case w.replay == nil || w.bodyErr != nil:
 				c.waiting = true
 			default:
 				w.acked = true
@@ -86,36 +117,71 @@ func (q *Queue) commit(ctx context.Context, tx Transaction, batch []*queuedWrite
 // A batch the engine dropped queued again in its reinstall hook, or here
 // when the engine reported no reinstall.
 func (q *Queue) settle(c *committingBatch, adm world.Admission, durable func(uint64)) {
-	// Wait, then stop counting the batch before its writers hear back.
+	// Wait without claiming the writer or the queue mutex.
 	seqno, err := adm.WaitDurable(withCommitParts(q.ctx, &c.parts))
 	adm.Release()
+
+	// A discarded publication requeues the writers that depend on it.
 	q.mtx.Lock()
 	q.forgetLocked(c)
+	if c.dropped {
+		q.mtx.Unlock()
+		return
+	}
 	if err != nil {
-		if !c.dropped {
-			logrus.WithError(err).WithField("seqno", c.seqno).Warn("World publication failed with no reinstall reported; its writes queue again")
-			q.dropLocked(c, err)
-		}
+		logrus.WithError(err).WithField("seqno", c.seqno).Warn("World publication failed with no reinstall reported; its writes queue again")
+		q.dropLocked(c, err)
 		q.mtx.Unlock()
 		return
 	}
 	q.mtx.Unlock()
 
-	// Count the batch and its writes' stage times, note the actors whose
-	// writes the revision carries, so their views rerun at once, then finish
-	// the writes.
+	// Publish auxiliary reads and refresh the views of the actors the batch changed.
 	durable(seqno)
-	q.observeStages(c, time.Now())
-	if q.options.Committed != nil {
-		q.options.Committed()
+	if !c.baseOnly {
+		q.observeStages(c, time.Now())
+		if q.options.Committed != nil {
+			q.options.Committed()
+		}
+		q.recordOwners(c.writes, seqno)
 	}
-	q.recordOwners(c.writes, seqno)
+
+	// Deliver the outcomes of this durable attempt.
 	for _, w := range c.writes {
 		if !w.ended() {
-			w.seqno = seqno
-			w.finish(nil)
+			if w.bodyErr == nil {
+				w.seqno = seqno
+			}
+			w.finish(w.bodyErr)
 		}
 	}
+}
+
+// finishOnBase resolves a set of errors from a fork that carried no changes
+// they read. Capture the exact base under the writer lock and call the
+// returned function after releasing the writer.
+func (q *Queue) finishOnBase(wtx world.Tx, tx Transaction, writes []*queuedWrite, base uint64) func() {
+	// A fork of the durable World can answer without a commit.
+	adm := world.BaseAdmission(wtx, base)
+	if adm == nil {
+		for _, w := range writes {
+			w.finish(w.bodyErr)
+		}
+		return func() {}
+	}
+
+	// Register speculative errors before the fork releases the writer. A
+	// reinstall requeues them through the same path as discarded commits.
+	c := &committingBatch{writes: writes, baseOnly: true, oldest: writes[0].queued, seqno: base, waiting: true}
+	for _, w := range writes[1:] {
+		if w.queued.Before(c.oldest) {
+			c.oldest = w.queued
+		}
+	}
+	q.mtx.Lock()
+	q.committing = append(q.committing, c)
+	q.mtx.Unlock()
+	return func() { go q.settle(c, adm, tx.Durable) }
 }
 
 // forgetLocked stops counting c as committing, with mtx held.
