@@ -2,6 +2,7 @@ package space_world_test
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"os"
 	"slices"
@@ -21,6 +22,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
@@ -44,6 +46,8 @@ type adapterFixture struct {
 	frees bool
 	// freed counts the blocks the collections freed.
 	freed uint64
+	// passes are the results of the last collect's passes.
+	passes []block_gc.CollectResult
 	// maxPending bounds the pages the adapter keeps, zero for its default.
 	maxPending uint64
 	// acc is the provider account.
@@ -77,17 +81,36 @@ func (f *adapterFixture) collect(t *testing.T) {
 		return
 	}
 	collector := f.volume.(volume.Collector)
+	f.passes = f.passes[:0]
 	for range 64 {
 		res, err := collector.Collect(t.Context())
 		if err != nil {
 			t.Fatal(err)
 		}
+		f.passes = append(f.passes, res)
 		f.freed += res.Freed
 		if !res.More {
 			return
 		}
 	}
 	t.Fatal("collection did not finish")
+}
+
+// collectReport describes the last collect for a failure: each pass's
+// result and the Volume's liveness state after it. A pass that reports
+// Unadopted returned the Volume to unadopted for a recount, which the flip
+// does only for a rewritten list, and an unadopted Volume frees nothing
+// until its adoption ends.
+func (f *adapterFixture) collectReport(ctx context.Context) string {
+	report := fmt.Sprintf("collect passes %+v", f.passes)
+	reader, ok := f.volume.(interface {
+		ReadLiveness(context.Context) (*block_gc.LivenessState, bool, error)
+	})
+	if !ok {
+		return report + "; the Volume reads no liveness state"
+	}
+	state, parked, err := reader.ReadLiveness(ctx)
+	return fmt.Sprintf("%s; liveness state {%v}, parked %v, err %v", report, state, parked, err)
 }
 
 // sqlTestLocation returns the database BLOCK_STORE_SQL_TEST_HOST names, such
@@ -993,7 +1016,7 @@ func deleteSpace(ctx context.Context, t *testing.T, f *adapterFixture, served *s
 	// The deleted Space's World is gone, and the other Space reads its
 	// object after a remount.
 	if found, err := f.volume.GetBlockExists(ctx, base); err != nil || found {
-		t.Fatalf("the deleted Space's World root after a collection: %v, %v", found, err)
+		t.Fatalf("the deleted Space's World root after a collection: %v, %v; %s", found, err, f.collectReport(ctx))
 	}
 	otherRef.Release()
 	otherEng, otherRef, err = world.StartEngine(ctx, f.tb.Bus, space_world.NewConfig("other-space-world", other), nil)
