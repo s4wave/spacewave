@@ -61,7 +61,8 @@ jobs:
           GOFLAGS: -mod=mod -tags=purego
         run: go fix -embedlit=false ./...
 
-      - name: Commit, verify convergence, push
+      - name: Commit, verify convergence
+        id: commit
         env:
           GOFLAGS: -mod=mod -tags=purego
         run: |
@@ -85,5 +86,8 @@ jobs:
           # Module loading can update manifests; this job publishes source fixes.
           git show HEAD:go.mod > go.mod
           git show HEAD:go.sum > go.sum
-          git pull --rebase origin master
-          git push origin HEAD:master
+          echo committed=true >> "$GITHUB_OUTPUT"
+
+      - name: Push the commit to the stack
+        if: steps.commit.outputs.committed == 'true'
+        uses: ./.github/actions/push-to-stack

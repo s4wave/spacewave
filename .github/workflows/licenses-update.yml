@@ -69,7 +69,8 @@ jobs:
       - name: Generate licenses
         run: bun run licenses
 
-      - name: Commit, verify determinism, push
+      - name: Commit, verify determinism
+        id: commit
         run: |
           if git diff --quiet -- app/licenses/; then
             echo "app/licenses/ is clean; nothing to commit."
@@ -87,6 +88,8 @@ jobs:
             git --no-pager diff -- app/licenses/
             exit 1
           fi
+          echo committed=true >> "$GITHUB_OUTPUT"
 
-          git pull --rebase origin master
-          git push origin HEAD:master
+      - name: Push the commit to the stack
+        if: steps.commit.outputs.committed == 'true'
+        uses: ./.github/actions/push-to-stack

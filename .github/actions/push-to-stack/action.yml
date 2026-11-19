@@ -1,0 +1,39 @@
+name: Push a bot commit to the stack
+description: >-
+  Replay the commit at HEAD onto the stack branch and push it there as a
+  fast-forward. Master moves only by fast-forward to a stack head whose run
+  passed, so a bot commit made on master's tree lands on the stack, is tested
+  with it, and reaches master with the next stack head. The replay is a
+  three-way merge against HEAD's parent, so it needs no shared history with
+  the stack and works from a shallow checkout. A commit the stack already
+  holds replays empty and pushes nothing. A push that loses a race with
+  another writer fetches the new head and tries again; after three losses the
+  job fails, and the next master push regenerates the change.
+
+inputs:
+  stack:
+    description: The stack branch to push to.
+    default: dev-stack
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        STACK: ${{ inputs.stack }}
+      run: |
+        set -euo pipefail
+        commit=$(git rev-parse HEAD)
+        for attempt in 1 2 3; do
+          git fetch --depth=1 origin "${STACK}"
+          git rebase --onto FETCH_HEAD "${commit}~1" "${commit}"
+          if [ "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)" ]; then
+            echo "${STACK} already holds this change; nothing to push."
+            exit 0
+          fi
+          if git push origin "HEAD:refs/heads/${STACK}"; then
+            exit 0
+          fi
+          echo "Push to ${STACK} lost a race (attempt ${attempt}); retrying."
+        done
+        exit 1
