@@ -6074,6 +6074,83 @@ func TestLivenessSettle(t *testing.T) {
 		}
 	})
 
+	t.Run("listless holder while a readoption counts the lists", func(t *testing.T) {
+		// The root A names C, a hub of 300 leaves and P, and the store loses
+		// P's list, keeping its bytes or losing them too. A's list sits in
+		// the count's first slice, and a Land writes between the slices. P
+		// stored without its list refuses the adoption, which leaves the
+		// Volume unadopted with no adoption record; P lost with its bytes is
+		// a missing block, which does not.
+		ctx := t.Context()
+		for _, stored := range []bool{true, false} {
+			t.Run("stored "+strconv.FormatBool(stored), func(t *testing.T) {
+				tr := testTree{}
+				tr.add(t, "C")
+				leaves := make([]string, 0, 300)
+				for i := range 300 {
+					leaves = append(leaves, "F"+strconv.Itoa(i))
+					tr.add(t, leaves[i])
+				}
+				tr.add(t, "H", leaves...)
+				tr.add(t, "P", "C")
+				tr.add(t, "Z", "C")
+				listed := append([]string{"C", "H"}, leaves...)
+				var stop []byte
+				for i := 0; stop == nil; i++ {
+					// Choose A so its list sorts within the first slice.
+					try := "A" + strconv.Itoa(i)
+					a := block_gc.BlockKey(tr.add(t, try, "C", "H", "P"))
+					tr["A"] = tr[try]
+					delete(tr, try)
+					keys := make([][]byte, 0, len(listed)+1)
+					for _, name := range append(listed, "A") {
+						keys = append(keys, block_gc.BlockKey(tr[name].Ref))
+					}
+					slices.SortFunc(keys, bytes.Compare)
+					if bytes.Compare(a, keys[255]) <= 0 {
+						stop = keys[255]
+					}
+				}
+				store := store_kvtx_inmem.NewStore()
+				v, _ := openLivenessVolume(t, store, false)
+				all := append(listed, "P", "A")
+				if err := v.SetBucketRoots(ctx, "b", tr.entries(all...), []block.NamedRoot{{Name: "main", Ref: tr["A"].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+				if stored {
+					err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+						return p.rec.DeleteChildren(ctx, tr["P"].Ref)
+					})
+					if err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					loseBlock(t, v, tr["P"].Ref)
+				}
+				readoptTo(t, v, block_gc.AdoptPhase_ADOPT_PHASE_CHILDREN, stop)
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("Z"), []block.NamedRoot{{Name: "z", Ref: tr["Z"].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+				_, err := v.Adopt(ctx)
+				if !stored {
+					if err != nil {
+						t.Fatalf("adopt over a missing P = %v, want adopted", err)
+					}
+					return
+				}
+				if !errors.Is(err, block_gc.ErrAdoptUnknown) {
+					t.Fatalf("adopt over a listless P = %v, want ErrAdoptUnknown", err)
+				}
+				if state := livenessState(t, v); state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED {
+					t.Fatalf("state %v after the refusal, want not adopted", state)
+				}
+				if left := livenessRecords(t, store, 'H', 'Q', 'X', 'u', 'd', 'B', 'A', 'D', 'Y', 'T'); len(left) != 0 {
+					t.Fatalf("the refused adoption left %d records", len(left))
+				}
+			})
+		}
+	})
+
 	t.Run("fill of an unmarked block while Sweeping", func(t *testing.T) {
 		// After the flip a read fills U and K, which gives birth to each
 		// again, and a root moves onto U: the sweep keeps them both.

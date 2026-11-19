@@ -843,21 +843,6 @@ func (r *Records) Held(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return holders != 0, err
 }
 
-// tally returns the holders an adoption counted for ref so far, from its
-// count record as a plain uvarint, zero when it has none.
-func (r *Records) tally(ctx context.Context, ref *block.BlockRef) (uint64, error) {
-	// Read the count record as a plain uvarint.
-	value, found, err := r.tx.Get(ctx, r.key(kindCount, BlockKey(ref)))
-	if err != nil || !found {
-		return 0, err
-	}
-	n, size := binary.Uvarint(value)
-	if size <= 0 {
-		return 0, errCountMalformed
-	}
-	return n, nil
-}
-
 // rootKey returns the key of the root named name in bucketID.
 func (r *Records) rootKey(bucketID, name string) []byte {
 	return r.namedKey(kindRoot, bucketID, name)
