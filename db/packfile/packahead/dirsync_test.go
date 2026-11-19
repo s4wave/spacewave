@@ -100,7 +100,13 @@ func TestPackAheadDirSyncRetryFailedPack(t *testing.T) {
 	if !failed.Load() {
 		t.Fatal("the directory sync never failed")
 	}
+	expected := map[uint64]Block{1: a, 2: b}
 	for _, info := range infos {
+		// Match the file's size and the block written to this sequence.
+		want, ok := expected[info.Seq]
+		if !ok {
+			t.Fatalf("unexpected finalized pack %d", info.Seq)
+		}
 		st, err := os.Stat(info.Path)
 		if err != nil {
 			t.Fatal(err)
@@ -108,7 +114,7 @@ func TestPackAheadDirSyncRetryFailedPack(t *testing.T) {
 		if st.Size() != info.Size {
 			t.Fatalf("pack %d is %d bytes on disk, %d reported", info.Seq, st.Size(), info.Size)
 		}
-		checkPack(t, info, map[string][]byte{string(a.Key): a.Value, string(b.Key): b.Value}, Options{})
+		checkPack(t, info, map[string][]byte{string(want.Key): want.Value}, Options{})
 	}
 
 	// The next Open loads both packs.
