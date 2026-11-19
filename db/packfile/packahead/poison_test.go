@@ -233,6 +233,83 @@ func TestPackAheadFinalizeSyncPoisons(t *testing.T) {
 	}
 }
 
+// TestPackAheadFailedWriteCannotAcknowledgeCorruptBatch holds an append's
+// sync open until a later write fails and recovery can no longer keep it.
+func TestPackAheadFailedWriteCannotAcknowledgeCorruptBatch(t *testing.T) {
+	// Pause the first append after its write and before publishing its sync.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	file := make(chan *os.File, 1)
+	resume := make(chan struct{})
+	var calls atomic.Int32
+	l, err := Open(ctx, t.TempDir(), Options{SyncData: func(f *os.File) error {
+		if calls.Add(1) == 1 {
+			file <- f
+			select {
+			case <-resume:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+		return f.Sync()
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		cancel()
+		l.Close()
+	}()
+
+	// Damage the in-flight batch and fail a later append to the same pack.
+	lost := testBlock(t, 1, 64)
+	result := make(chan error, 1)
+	go func() { result <- l.Append(ctx, []Block{lost}) }()
+	var f *os.File
+	select {
+	case f = <-file:
+	case <-ctx.Done():
+		t.Fatal("append never reached sync")
+	}
+	info, err := f.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteAt([]byte{^lost.Value[len(lost.Value)-1]}, info.Size()-1); err != nil {
+		t.Fatal(err)
+	}
+	if err := FailAppendWrite(t, l, []Block{testBlock(t, 2, 64)}); !errors.Is(err, syscall.EBADF) {
+		t.Fatalf("later write returned %v", err)
+	}
+
+	// Let the sync succeed before rotation. Its watermark covers the lost
+	// batch, but cannot acknowledge it once the later write failed.
+	close(resume)
+	select {
+	case err := <-result:
+		if !errors.Is(err, syscall.EBADF) {
+			t.Fatalf("append to failed pack returned %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatal("append never finished")
+	}
+
+	// Rotate and wait for the empty recovered pack to disappear.
+	if err := l.Append(ctx, []Block{testBlock(t, 3, 64)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		for _, pack := range l.packs {
+			if pack.seq == 1 {
+				return false, nil
+			}
+		}
+		return true, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestPackAheadRecoveryDropsCachedSyncedSuffix corrupts a synced batch before
 // an intact synced batch. Recovery must fence the latter's cached bytes even
 // while syncing the truncation and if that sync fails.
