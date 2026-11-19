@@ -80,7 +80,7 @@ func (l *Log) EvictCarry(ctx context.Context, seq uint64, carryBytes int64) (int
 		if len(batch) == 0 {
 			return nil
 		}
-		_, err := l.write(ctx, batch, p)
+		_, _, err := l.write(ctx, batch, p)
 		batch, batchBytes = batch[:0], 0
 		return err
 	}
