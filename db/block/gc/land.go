@@ -396,19 +396,25 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 	}
 
 	// Store the bytes, which also evicts the tombstones' bytes, then write the
-	// child lists of the refilled holes back. A list an adoption's count
-	// already passed gives its children holders the count never saw, so it
-	// logs them as a birth does.
+	// child lists of the refilled holes back. A list gives its children
+	// holders their counts lack where an adoption's count already passed it,
+	// or, outside an adoption, where a recount left them without the hole,
+	// so it logs them as a birth does.
 	existed, err := l.blocks.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
 	}
 	for _, entry := range l.refills {
-		if err := l.rec.refill(ctx, entry); err != nil {
+		children, uncounted, err := l.rec.refill(ctx, entry)
+		if err != nil {
 			return nil, err
 		}
-		if l.adopting && l.logs && adoptCounted(l.state, BlockKey(entry.Ref)) {
-			for _, child := range normalizeChildren(entry.Refs) {
+		counted := uncounted
+		if l.adopting {
+			counted = adoptCounted(l.state, BlockKey(entry.Ref))
+		}
+		if l.logs && counted {
+			for _, child := range children {
 				l.up = append(l.up, BlockKey(child))
 			}
 		}
@@ -778,24 +784,35 @@ func listedPut(ctx context.Context, rec *Records, ref *block.BlockRef) (putKind,
 }
 
 // refill writes back the child list of the recorded hole entry puts, from
-// its content, and deletes its hole record. While the generation is Open,
-// the block leaves the run and the front, and its unverified children join
-// the front.
-func (r *Records) refill(ctx context.Context, entry *block.PutBatchEntry) error {
-	// Write the list back and drop the hole record.
+// its content, deletes its hole record and returns its children, and
+// whether their counts lack the hole's holder, as kindHole describes. While
+// the generation is Open, the block leaves the run and the front, and its
+// unverified children join the front.
+func (r *Records) refill(ctx context.Context, entry *block.PutBatchEntry) ([]*block.BlockRef, bool, error) {
+	// Write the list back.
 	key := BlockKey(entry.Ref)
 	children := normalizeChildren(entry.Refs)
 	if err := r.PutChildren(ctx, entry.Ref, children); err != nil {
-		return err
+		return nil, false, err
 	}
+
+	// Read whether a recount left the children without the hole, and drop
+	// the hole record.
+	value, _, err := r.tx.Get(ctx, r.key(kindHole, key))
+	if err != nil {
+		return nil, false, err
+	}
+	uncounted := bytes.Equal(value, holeUncounted)
 	if err := r.tx.Delete(ctx, r.key(kindHole, key)); err != nil {
-		return err
+		return nil, false, err
 	}
+
+	// Keep the front invariant while the generation is Open.
 	gen, err := r.generation(ctx)
 	if err != nil || gen != Generation_GENERATION_OPEN {
-		return err
+		return children, uncounted, err
 	}
-	return r.markedYoung(ctx, key, packChildren(nil, children), nil)
+	return children, uncounted, r.markedYoung(ctx, key, packChildren(nil, children), nil)
 }
 
 // adoptCounted reports whether the adoption state names has counted the
