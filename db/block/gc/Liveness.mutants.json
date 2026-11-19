@@ -22,6 +22,17 @@
     "config": "Liveness.cfg"
   },
   {
+    "name": "root-only Land skips dequeue",
+    "replace": [
+      [
+        "  /\\ queued' = queued \\ named",
+        "  /\\ queued' = IF batch = {} THEN queued ELSE queued \\ named"
+      ]
+    ],
+    "expect": "NoLateNamer",
+    "config": "Liveness.cfg"
+  },
+  {
     "name": "review R4: a parked block put again and named stays on the queue",
     "replace": [
       [
@@ -77,14 +88,14 @@
     "config": "Liveness.cfg"
   },
   {
-    "name": "U is not bound to net, so the downs, which net only once it drains, never net",
+    "name": "U is not bound to net, so a free, which waits for U to pass its ripe position, never runs",
     "replace": [
       [
         "  /\\ WF_vars(NetUps) /\\ WF_vars(NetDowns)",
         "  /\\ WF_vars(NetDowns)"
       ]
     ],
-    "expect": "EventuallyCollected",
+    "expect": "FreesProgress",
     "config": "Liveness.cfg"
   },
   {

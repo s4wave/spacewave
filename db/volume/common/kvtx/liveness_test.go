@@ -5141,9 +5141,9 @@ func TestLivenessSettle(t *testing.T) {
 
 	t.Run("refilled hole", func(t *testing.T) {
 		// Main holds A -> H -> C -> D, with C's list cut. The store loses H
-		// and an audit records the hole, so the walk from A pushes nothing
-		// and C stays unreached. The hole holds the flip until a put refills
-		// H, which pushes C.
+		// and an audit records the hole, so the walk from A pushes H, which
+		// no read resolves, and C stays unreached. H's front entry holds the
+		// flip until a put refills H, which pushes C.
 		tr := testTree{}
 		tr.add(t, "D")
 		tr.add(t, "C", "D")
@@ -5156,8 +5156,8 @@ func TestLivenessSettle(t *testing.T) {
 		}
 		verify(t, v, tr, "A")
 		clk.Add(block_gc.DefaultGrace + time.Second)
-		if res := collectAll(t, v); res.Flipped || countPrefix(t, store, front) != 0 {
-			t.Fatalf("collect with a hole = %+v, want no flip and an empty front", res)
+		if res := collectAll(t, v); res.Flipped || countPrefix(t, store, front) != 1 || !has(t, store, front, h) {
+			t.Fatalf("collect with a hole = %+v, want no flip and only H on the front", res)
 		}
 		if _, err := v.PutBlockBatch(t.Context(), tr.entries("H")); err != nil {
 			t.Fatal(err)

@@ -7,6 +7,14 @@ import (
 	typeid "github.com/aperturerobotics/common/typeid"
 )
 
+// FlowgraphTypeID is the type ID of Flowgraph.
+const FlowgraphTypeID = "flowgraph"
+
+// TypeID returns the type ID of Flowgraph.
+func (*Flowgraph) TypeID() string {
+	return FlowgraphTypeID
+}
+
 // CreateFlowgraphOpTypeID is the type ID of CreateFlowgraphOp.
 const CreateFlowgraphOpTypeID = "flowgraph/create"
 
@@ -17,5 +25,6 @@ func (*CreateFlowgraphOp) TypeID() string {
 
 // FlowgraphTypes lists the typed messages of flowgraph.proto.
 var FlowgraphTypes = []typeid.Type{
+	{ID: FlowgraphTypeID, New: func() any { return new(Flowgraph) }},
 	{ID: CreateFlowgraphOpTypeID, New: func() any { return new(CreateFlowgraphOp) }},
 }

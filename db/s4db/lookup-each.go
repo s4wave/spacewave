@@ -17,18 +17,27 @@ const lookupInFlight = 32
 // starts, and the scaling test measured workers doubling a hot batch's time.
 const lookupSlow = 100 * time.Microsecond
 
-// lookupEach looks up each of keys in st and calls fn with the key's index
+// lookupEach looks up the keys order indexes, in that order, or every key
+// in index order when order is nil, in st, and calls fn with the key's index
 // and its result. A key the memtable decides is answered at once. The rest
 // go to the runs in order, inline until one lookup takes lookupSlow, and then
 // on up to lookupInFlight workers, so cold reads overlap rather than queue.
 // fn runs concurrently for distinct indices. With cache false the lookups
 // read around the block cache, for a background pass, and an inline value fn
 // receives lasts only until fn returns.
-func (db *DB) lookupEach(st *state, keys [][]byte, cache bool, fn func(i int, v value, found bool) error) error {
+func (db *DB) lookupEach(st *state, keys [][]byte, order []int, cache bool, fn func(i int, v value, found bool) error) error {
 	// Answer what the memtable holds, and queue the rest for the runs.
-	var queued []int
-	for i, k := range keys {
-		e, ok := st.mem.get(k)
+	count := len(order)
+	if order == nil {
+		count = len(keys)
+	}
+	queued := make([]int, 0, count)
+	for n := range count {
+		i := n
+		if order != nil {
+			i = order[n]
+		}
+		e, ok := st.mem.get(keys[i])
 		if !ok {
 			queued = append(queued, i)
 			continue

@@ -531,7 +531,11 @@ func classifyPuts(
 		puts = append(puts, entry)
 		keys = append(keys, key)
 	}
-	if len(puts) == 0 {
+
+	// A Land that only moves roots still reads its roots' counts below, so
+	// it dequeues a block at zero that a root now holds; the free proves no
+	// late holder by that queue entry.
+	if len(puts) == 0 && (holds == nil || len(holds.roots) == 0) {
 		return nil
 	}
 
@@ -540,9 +544,12 @@ func classifyPuts(
 	for i, key := range keys {
 		reads[i] = rec.key(kindChildren, key)
 	}
-	listed, err := kvtx.ExistsBatch(ctx, rec.tx, reads)
-	if err != nil {
-		return err
+	var listed []bool
+	var err error
+	if len(reads) != 0 {
+		if listed, err = kvtx.ExistsBatch(ctx, rec.tx, reads); err != nil {
+			return err
+		}
 	}
 
 	// Sort each block by its list, then by whether it is a recorded hole or
@@ -775,7 +782,7 @@ func (r *Records) refill(ctx context.Context, entry *block.PutBatchEntry) error 
 	if err != nil || gen != Generation_GENERATION_OPEN {
 		return err
 	}
-	return r.markedYoung(ctx, key, EncodeChildren(children), nil)
+	return r.markedYoung(ctx, key, packChildren(nil, children), nil)
 }
 
 // markStored marks the unverified list of the stored block entry puts
@@ -811,17 +818,25 @@ func (l *lander) holdChildren(ctx context.Context) error {
 	// naming of the others: each gains its child a holder, one up, when
 	// the Volume keeps the logs. A child two blocks name is read twice in
 	// the batch, which costs less than a map to find it.
-	n := 0
+	// The keys share one buffer: a born child's key is dropped from it.
+	n, size := 0, 0
 	for _, b := range l.order {
 		n += len(b.children)
+		for _, child := range b.children {
+			size += blockKeyLen(child)
+		}
 	}
 	outside := make([]*block.BlockRef, 0, n)
 	keys := make([][]byte, 0, n)
+	buf := make([]byte, 0, size)
 	for _, b := range l.order {
 		for _, child := range b.children {
-			key := BlockKey(child)
+			start := len(buf)
+			buf = appendBlockKey(buf, child)
+			key := buf[start:len(buf):len(buf)]
 			if c, ok := l.born[string(key)]; ok {
 				c.holders++
+				buf = buf[:start]
 				continue
 			}
 			outside, keys = append(outside, child), append(keys, key)

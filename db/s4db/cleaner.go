@@ -220,7 +220,7 @@ func (c *cleaner) liveEntries(st *state, entries []valueEntry) ([]tentry, error)
 		keys[i] = entries[i].key
 	}
 	live := make([]bool, len(entries))
-	err := c.db.lookupEach(st, keys, false, func(i int, v value, found bool) error {
+	err := c.db.lookupEach(st, keys, nil, false, func(i int, v value, found bool) error {
 		live[i] = found && v.isRef() && v.ref.off == entries[i].off
 		return nil
 	})

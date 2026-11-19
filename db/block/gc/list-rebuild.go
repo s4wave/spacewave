@@ -50,6 +50,14 @@ func rebuildable(state *LivenessState) error {
 // on a Volume that keeps the logs the rewrite records that the counts owe a
 // recount, which the flip reads to return the Volume to unadopted first.
 //
+// The walker reads through the Volume's full read chain, peers included,
+// and fills nothing, so a block the Volume lacks, as a peer's cache lacks
+// what it never read, is decoded and verified like a stored one: its list
+// is written without its bytes, as an evicted block keeps its list, and
+// holds the stored blocks below it, which no count held while it had none.
+// A block no read resolves is not verified, and stays on the front while
+// it has holders, so it holds the flip.
+//
 // It runs on an unadopted or an adopted Volume, but not while an adoption
 // counts, and only while the old generation is Open.
 type ListRebuild struct {
@@ -163,7 +171,9 @@ func (r *ListRebuild) flush(ctx context.Context) error {
 
 // verifyOne writes the list of the block entry names from its decoded refs,
 // marked, while the generation is Open: a missing list from the refs, an
-// unverified one as the union, as mergeList describes. A marked list is
+// unverified one as the union, as mergeList describes. A missing list is
+// written whether or not the Volume stores the bytes, and ends the block's
+// hole record, since the list now holds its children. A marked list is
 // skipped, and a refused one is left, on the front.
 func verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry) (listVerdict, error) {
 	// Skip a marked list, which leaves the front when it is marked.
@@ -179,6 +189,9 @@ func verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry) (l
 	if !listed {
 		packed = EncodeChildren(entry.Refs)
 		if err := rec.tx.Set(ctx, rec.key(kindChildren, key), markList(packed)); err != nil {
+			return listSkipped, err
+		}
+		if err := rec.tx.Delete(ctx, rec.key(kindHole, key)); err != nil {
 			return listSkipped, err
 		}
 	} else {

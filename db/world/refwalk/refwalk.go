@@ -49,7 +49,8 @@ const (
 // know the ID.
 type LookupBlockType = func(ctx context.Context, typeID string) (blocktype.BlockType, error)
 
-// Walker walks blocks below Worlds, visiting each block once across walks.
+// Walker walks blocks below Worlds, visiting each block once per type it is
+// read as across walks.
 type Walker struct {
 	// le logs unreadable Worlds and types.
 	le *logrus.Entry
@@ -57,8 +58,12 @@ type Walker struct {
 	store block.StoreOps
 	// lookup types objects' roots.
 	lookup LookupBlockType
-	// visited holds the keys of the blocks already walked.
-	visited map[string]struct{}
+	// visited holds the blocks already walked, each by its ref and the type
+	// it was read as, so a block read as one type is still read as another.
+	visited map[visitKey]struct{}
+	// roots holds the refs the walk typed as object roots, by their keys,
+	// whether or not their type resolved.
+	roots map[string]struct{}
 	// untyped counts the refs whose type the walk cannot name, by reason.
 	untyped map[string]*Untyped
 	// types caches object type IDs by object key across Worlds.
@@ -80,7 +85,8 @@ func NewWalker(le *logrus.Entry, store block.StoreOps, lookup LookupBlockType) *
 		le:      le,
 		store:   store,
 		lookup:  lookup,
-		visited: make(map[string]struct{}),
+		visited: make(map[visitKey]struct{}),
+		roots:   make(map[string]struct{}),
 		untyped: make(map[string]*Untyped),
 		types:   make(map[string]string),
 		xfrms:   make(map[string]block.Transformer),
@@ -141,6 +147,23 @@ func (w *Walker) BlobNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, e
 	return Node{Ref: ref, Ctor: blob.NewBlobBlock, Xfrm: xfrm}, nil
 }
 
+// PayloadNode returns the node of an operation's payload root, encoded with
+// world's transform, and false for one the walk already typed. A payload
+// root is an object root the operation set, which the World after it names,
+// or the payload of a world.PayloadOperation, which is a blob: so once the
+// Worlds that hold an operation's outcome are walked, a payload the walk
+// typed as an object root is walked under its object's type, and the rest
+// are blobs. An object root that no walked World names, such as one a later
+// transaction in its batch replaced, is read as a blob, which a list
+// rebuild refuses where the blob lacks a child its stored list names.
+func (w *Walker) PayloadNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, bool, error) {
+	if _, ok := w.roots[ref.MarshalString()]; ok {
+		return Node{}, false, nil
+	}
+	n, err := w.BlobNode(world, ref)
+	return n, err == nil, err
+}
+
 // Walk visits the blocks below root not visited yet, depth first, so the
 // objects of one World resolve their types in one snapshot. It reads a batch
 // from the top of the stack concurrently, then passes the batch to visit in
@@ -156,7 +179,7 @@ func (w *Walker) Walk(ctx context.Context, root Node, visit func(ctx context.Con
 			if n.Ref.GetEmpty() {
 				continue
 			}
-			key := n.Ref.MarshalString()
+			key := visitKey{ref: n.Ref.MarshalString(), typ: reflect.TypeOf(n.Ctor())}
 			if _, ok := w.visited[key]; ok {
 				continue
 			}
@@ -350,6 +373,7 @@ func (w *Walker) objectRoot(ctx context.Context, o *world_block.Object, n Node) 
 	if ref.GetEmpty() || root.GetBucketId() != "" {
 		return nil, nil
 	}
+	w.roots[ref.MarshalString()] = struct{}{}
 	if !root.GetTransformConfRef().GetEmpty() {
 		w.count("object root with a transform config ref", ref)
 		return nil, nil

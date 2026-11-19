@@ -10,8 +10,6 @@ import (
 )
 
 const (
-	// FlowgraphTypeID is the World type of an authored Flowgraph.
-	FlowgraphTypeID = "flowgraph"
 	// TCPPortNodeTypeID selects a Device's TCP stream output.
 	TCPPortNodeTypeID = "tcp-port"
 	// LocalPortNodeTypeID selects a Device's local stream listener.

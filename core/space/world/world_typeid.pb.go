@@ -15,7 +15,34 @@ func (*SpaceSettings) TypeID() string {
 	return SpaceSettingsTypeID
 }
 
+// RetainedRootSetTypeID is the type ID of RetainedRootSet.
+const RetainedRootSetTypeID = "space/retained-root-set"
+
+// TypeID returns the type ID of RetainedRootSet.
+func (*RetainedRootSet) TypeID() string {
+	return RetainedRootSetTypeID
+}
+
+// HeldRootsTypeID is the type ID of HeldRoots.
+const HeldRootsTypeID = "space/held-roots"
+
+// TypeID returns the type ID of HeldRoots.
+func (*HeldRoots) TypeID() string {
+	return HeldRootsTypeID
+}
+
+// ReplaySpanTypeID is the type ID of ReplaySpan.
+const ReplaySpanTypeID = "space/replay-span"
+
+// TypeID returns the type ID of ReplaySpan.
+func (*ReplaySpan) TypeID() string {
+	return ReplaySpanTypeID
+}
+
 // WorldTypes lists the typed messages of world.proto.
 var WorldTypes = []typeid.Type{
 	{ID: SpaceSettingsTypeID, New: func() any { return new(SpaceSettings) }},
+	{ID: RetainedRootSetTypeID, New: func() any { return new(RetainedRootSet) }},
+	{ID: HeldRootsTypeID, New: func() any { return new(HeldRoots) }},
+	{ID: ReplaySpanTypeID, New: func() any { return new(ReplaySpan) }},
 }
