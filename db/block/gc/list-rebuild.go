@@ -281,6 +281,25 @@ func unionChildren(a, b []byte) ([]byte, error) {
 	return out, nil
 }
 
+// appendGained appends to keys each block key of the encoded child list
+// union that the encoded list old, which union contains, lacks. Both hold
+// distinct block keys in bytes.Compare order, as EncodeChildren writes them.
+func appendGained(keys [][]byte, old, union []byte) [][]byte {
+	for len(union) != 0 {
+		u, ok := nextBlockKey(union)
+		if !ok {
+			return keys
+		}
+		union = union[len(u):]
+		if o, ok := nextBlockKey(old); ok && bytes.Equal(o, u) {
+			old = old[len(o):]
+			continue
+		}
+		keys = append(keys, u)
+	}
+	return keys
+}
+
 // containsChildren reports whether the encoded child list has holds every
 // child of the encoded list want. Both hold distinct block keys in
 // bytes.Compare order, as EncodeChildren writes them.
