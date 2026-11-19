@@ -826,6 +826,9 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		state.HeadRef.RootRef = c.Root.Clone()
 		state.HeadRef.BucketId = ""
 		adopt = &spacePosition{state: state, seqno: c.Seqno, payloads: adm.payloads, handlers: adm.handlers}
+		if replayCheck {
+			r.checkAdopted(ctx, index, op, adopt)
+		}
 	}
 
 	// Compute the position. At an operation whose type no handler resolves,
@@ -917,6 +920,9 @@ func (a *Adapter) Install(ctx context.Context, ev *sobject.OrderEvent, covered i
 	if covered >= 0 && covered <= len(r.positions) {
 		state, _ := r.stateBefore(covered)
 		kept = state.EqualVT(base)
+		if replayCheck && !kept {
+			r.logInstallMismatch(checkpoint.GetHeight(), covered, base, state)
+		}
 	}
 	paid := kept && slices.ContainsFunc(r.positions[:covered], func(pos spacePosition) bool { return len(pos.payloads) != 0 })
 	inCheckpoint := a.dropPositions(covered, kept, ev.Set.Get)
