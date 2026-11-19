@@ -4,14 +4,17 @@ package webrtc_test
 
 import (
 	"context"
+	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
+	"weak"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pion/logging"
 	"github.com/pion/transport/v5/vnet"
+	pion_webrtc "github.com/pion/webrtc/v4"
 	"github.com/s4wave/spacewave/net/link"
 	signaling "github.com/s4wave/spacewave/net/signaling/rpc"
 	signaling_rpc_client "github.com/s4wave/spacewave/net/signaling/rpc/client"
@@ -20,6 +23,7 @@ import (
 	"github.com/s4wave/spacewave/net/sim/simulate"
 	stream_srpc_client "github.com/s4wave/spacewave/net/stream/srpc/client"
 	stream_srpc_server "github.com/s4wave/spacewave/net/stream/srpc/server"
+	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	webrtc "github.com/s4wave/spacewave/net/transport/webrtc"
 	"github.com/sirupsen/logrus"
 )
@@ -209,4 +213,141 @@ func TestTransportReconnect(t *testing.T) {
 	severed.Store(false)
 	waitConnectivity("after-reconnect", 60*time.Second)
 	le.Info("reconnect test successful")
+}
+
+// TestTransportReleasesClosedSessions verifies that a session's PeerConnection
+// becomes garbage once its link closes. Two held peers whose link the local
+// peer keeps closing start a new session for each close; a closed session that
+// stays reachable keeps its ICE agent, candidate pairs and QUIC connection, so
+// memory grows with every reconnect.
+func TestTransportReleasesClosedSessions(t *testing.T) {
+	ctx := t.Context()
+	log := logrus.New()
+	log.SetLevel(logrus.InfoLevel)
+	le := logrus.NewEntry(log)
+	iceNet := newICENetwork(t, 2)
+
+	// Construct the endpoint peers and the signaling server p1 between them.
+	g := graph.NewGraph()
+	addPeer := func() *graph.Peer {
+		p, err := graph.GenerateAddPeer(ctx, g)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		return p
+	}
+	p0, p1, p2 := addPeer(), addPeer(), addPeer()
+	p1.AddFactory(func(b bus.Bus) controller.Factory { return signaling_server.NewFactory(b) })
+	p1.AddConfig("signaling-server", &signaling_server.Config{
+		Server: &stream_srpc_server.Config{
+			PeerIds:     []string{p1.GetPeerID().String()},
+			ProtocolIds: []string{string(signaling.ProtocolID)},
+		},
+	})
+	signalingID := "webrtc-signaling"
+	signalClientConf := &signaling_rpc_client.Config{
+		SignalingId: signalingID,
+		Client: &stream_srpc_client.Config{
+			ServerPeerIds: []string{p1.GetPeerID().String()},
+		},
+	}
+	for _, p := range []*graph.Peer{p0, p2} {
+		p.AddFactory(func(b bus.Bus) controller.Factory { return signaling_rpc_client.NewFactory(b) })
+		p.AddConfig("signaling-client", signalClientConf)
+	}
+	lan1 := graph.AddLAN(g)
+	lan1.AddPeer(g, p0)
+	lan1.AddPeer(g, p1)
+	lan2 := graph.AddLAN(g)
+	lan2.AddPeer(g, p1)
+	lan2.AddPeer(g, p2)
+	sim := initSimulator(t, ctx, le, g)
+
+	// Run a WebRTC transport on each endpoint peer, keeping p0's controller to
+	// reach its links.
+	webrtcTptConf := &webrtc.Config{
+		SignalingId: signalingID,
+		AllPeers:    true,
+		BlockPeers:  []string{p1.GetPeerID().String()},
+	}
+	var ctrl0 *transport_controller.Controller
+	for i, p := range []*graph.Peer{p0, p2} {
+		b := sim.GetPeerByID(p.GetPeerID()).GetTestbed().Bus
+		ctrl, err := webrtc.NewFactory(b, webrtc.WithICENet(iceNet.nets[i])).Construct(
+			ctx,
+			webrtcTptConf,
+			controller.ConstructOpts{Logger: le.WithField("transport-ip", iceNet.ip(i))},
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		go func() { _ = b.ExecuteController(ctx, ctrl) }()
+		if i == 0 {
+			ctrl0 = ctrl.(*transport_controller.Controller)
+		}
+
+		// Hold the link from both ends so each local close redials.
+		other := p2
+		if i == 1 {
+			other = p0
+		}
+		_, ref, err := b.AddDirective(ctx, link.NewEstablishLinkWithPeer(p.GetPeerID(), other.GetPeerID()), nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		t.Cleanup(ref.Release)
+	}
+
+	// nextLink waits for a WebRTC link from p0 to p2 other than prev.
+	nextLink := func(prev link.Link) link.Link {
+		t.Helper()
+		deadline := time.Now().Add(30 * time.Second)
+		for time.Now().Before(deadline) {
+			for _, lnk := range ctrl0.GetPeerLinks(p2.GetPeerID()) {
+				if lnk != prev && webrtc.LinkPeerConnection(lnk) != nil {
+					return lnk
+				}
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+		t.Fatal("no new link within 30s")
+		return nil
+	}
+
+	// Close the link locally several times, keeping only a weak pointer to
+	// each closed session's PeerConnection.
+	const cycles = 5
+	var closed []weak.Pointer[pion_webrtc.PeerConnection]
+	var closedLinks []weak.Pointer[webrtc.Link]
+	lnk := nextLink(nil)
+	for range cycles {
+		closed = append(closed, weak.Make(webrtc.LinkPeerConnection(lnk)))
+		closedLinks = append(closedLinks, weak.Make(lnk.(*webrtc.Link)))
+		_ = lnk.Close()
+		lnk = nextLink(lnk)
+	}
+	lnk = nil
+
+	// Every closed PeerConnection must be collectable.
+	var live int
+	for range 20 {
+		runtime.GC()
+		live = 0
+		for _, pc := range closed {
+			if pc.Value() != nil {
+				live++
+			}
+		}
+		if live == 0 {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	liveLinks := 0
+	for _, l := range closedLinks {
+		if l.Value() != nil {
+			liveLinks++
+		}
+	}
+	t.Fatalf("%d of %d closed PeerConnections are still reachable (links %d)", live, cycles, liveLinks)
 }
