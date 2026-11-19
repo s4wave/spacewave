@@ -42,15 +42,13 @@ func (tr pendingTree) ref(name string) *block.BlockRef {
 }
 
 // TestPendingStoreRunThrough checks on a Volume that frees with a 1ns grace
-// that a PendingStore stores only the trees a root moves onto or a stage
-// puts: a replaced unstaged tree never reaches the Volume, a root move stores
-// its tree in the move, a pin holds the tree it pins, a sweep forgets what no
-// live root reaches, a stage stores its tree at once and the move naming it
-// stores nothing again, a tree that outgrows the bound is held under its
-// writer's stage until its root lands, and a flush holds the tree it stores
-// until the move that names it, after which a move stores a tree whose flush
-// ended again. Collection between every step frees no block a root, stage or
-// pin reaches.
+// that a PendingStore stores only the trees a root moves onto: a replaced
+// tree never reaches the Volume, a root move stores its tree in the move, a
+// pin stores the tree it pins, a sweep forgets what no live root reaches, and
+// a tree that outgrows the bound is held under its writer's stage until its
+// root lands, and a flush holds the tree it stores until the move that names
+// it, after which a move stores a tree whose flush ended again. Collection between every step frees no block a root or pin
+// reaches.
 func TestPendingStoreRunThrough(t *testing.T) {
 	f := newVolumeFixture(t)
 	ctx := t.Context()
@@ -132,10 +130,9 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	kept(false, "C3", "R3")
 	stored(true, "E")
 
-	// With SetKeepStaged on, a writer's pages kept through its stage survive
-	// a sweep that took its mark and gathered its live roots before the
-	// writer admitted the root naming them and ended its stage.
-	ps.SetKeepStaged(true)
+	// A writer's pages kept through its stage survive a sweep that took its
+	// mark and gathered its live roots before the writer admitted the root
+	// naming them and ended its stage.
 	tr.add(t, "D")
 	tr.add(t, "RD", "D")
 	writer, releaseWriter, err := ps.OpenStage(ctx)
@@ -199,49 +196,6 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	if n := ps.KeptBytes(); n != 0 {
 		t.Fatalf("sweep after the stage ended kept %d bytes, want 0", n)
 	}
-	ps.SetKeepStaged(false)
-
-	// A stage stores each put at once, with the kept blocks below it, and
-	// keeps none of it, so the move that later names the staged root stores
-	// nothing: a staged build adopted under a writer's turn costs that turn
-	// no write. A sweep that forgets the kept page the build names, and a
-	// collection, while the stage is open free nothing it stored, and the
-	// root holds the tree after the stage ends.
-	leased, ok := f.store.(leasedStore)
-	if !ok {
-		t.Fatal("the Volume bucket holds no leased roots")
-	}
-	counted := &hookedRoots{leasedStore: leased}
-	cps := block.NewPendingStore(counted, 1<<20)
-	tr.add(t, "B0")
-	tr.add(t, "BH", "B0")
-	put(cps, "B0", "BH")
-	tr.add(t, "B1", "B0")
-	tr.add(t, "B2", "B1")
-	tr.add(t, "BR", "B2", "B0")
-	staging, releaseStaging, err := cps.OpenStage(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	put(staging, "B1", "B2", "B0", "BR")
-	stored(true, "B0", "B1", "B2", "BR")
-	stored(false, "BH")
-	if n, want := cps.KeptBytes(), len(tr["B0"].Data)+len(tr["BH"].Data); n != want {
-		t.Fatalf("a stage kept %d bytes, want the head's %d", n, want)
-	}
-	cps.Sweep(nil, cps.SweepMark())
-	f.collect(t)
-	stored(true, "B0", "B1", "B2", "BR")
-	counted.entries = 0
-	if err := cps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-staged", Ref: tr.ref("BR")}}); err != nil {
-		t.Fatal(err)
-	}
-	if counted.entries != 0 {
-		t.Fatalf("the move naming a staged root stored %d blocks again, want 0", counted.entries)
-	}
-	releaseStaging()
-	f.collect(t)
-	stored(true, "B0", "B1", "B2", "BR")
 
 	// A flush stores a kept tree under its stage before the root move, so a
 	// collection between the two frees none of it, and the move puts none of
@@ -287,6 +241,10 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	// A move that leaves out a flushed tree holds the flush's stage until it
 	// lands: the flush ending and a collection running after the move left
 	// the tree out and before it reaches the Volume free none of it.
+	leased, ok := f.store.(leasedStore)
+	if !ok {
+		t.Fatal("the Volume bucket holds no leased roots")
+	}
 	hooked := &hookedRoots{leasedStore: leased}
 	hps := block.NewPendingStore(hooked, 1<<20)
 	tr.add(t, "K1")
@@ -343,7 +301,6 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	// collection until the root lands, and the root holds them after the
 	// stage ends.
 	small := block.NewPendingStore(f.store, len(tr.add(t, "X").Data))
-	small.SetKeepStaged(true)
 	tr.add(t, "C4", "X")
 	tr.add(t, "R4", "C4")
 
@@ -546,18 +503,15 @@ type leasedStore interface {
 }
 
 // hookedRoots runs before, when set, ahead of each root move it passes on,
-// counts the entries the moves store, and keeps the store's stages and pins.
+// and keeps the store's stages and pins.
 type hookedRoots struct {
 	leasedStore
 	// before runs ahead of the next root moves.
 	before func()
-	// entries counts the entries the root moves stored.
-	entries int
 }
 
-// SetRoots runs before, counts the entries, then moves the roots.
+// SetRoots runs before, then moves the roots.
 func (h *hookedRoots) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	h.entries += len(entries)
 	if h.before != nil {
 		h.before()
 	}

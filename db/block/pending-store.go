@@ -19,13 +19,11 @@ import (
 // Reads serve a kept block first, then the inner store. SetRoots adds to its
 // entries every kept block a moved root reaches, so the root and its tree land
 // in one transaction, and drops them from memory once the inner store holds
-// them. Sweep drops the kept blocks no live root reaches. A put through a
-// stage a writer opened with OpenStage goes to the inner store's stage at
-// once, with the kept blocks below it, and a put past the memory bound goes
-// to the stage OpenOverflowStage opened; either stage holds it until its
-// writer's root does. An unstaged put the store cannot keep, past the bound
-// or without its child list, fails whole with ErrUnheldPut: nothing would
-// hold it in the inner store.
+// them. Sweep drops the kept blocks no live root reaches. A put past the
+// memory bound goes to the stage a writer opened through OpenStage or
+// OpenOverflowStage, which holds it until its writer's root does. An unstaged
+// put the store cannot keep, past the bound or without its child list, fails
+// whole with ErrUnheldPut: nothing would hold it in the inner store.
 //
 // Invariants:
 //   - A kept block carries its complete child list, and each child is kept or
@@ -33,16 +31,9 @@ import (
 //     never reads the inner store to find a child. The writer holds each
 //     stored child while a kept block names it, under a root, a stage or a
 //     pin of its own.
-//   - A put past the bound, or through a stage OpenStage opened, stores the
-//     kept blocks below the entry with it and keeps them, so a block the
-//     inner store holds names only blocks it holds and the kept Worlds still
-//     find their pages here.
-//   - A stage OpenStage opened keeps no block, unless SetKeepStaged turned
-//     keeping on. Such a stage serves a writer that builds a tree apart from
-//     the head and later names its root in a short write, such as a staged
-//     World build adopted under the writer's turn: the tree reaches the inner
-//     store while it is built, outside that turn, and the move that names it
-//     walks no kept block.
+//   - A put past the bound stores the kept blocks below the entry with it and
+//     keeps them, so a block the inner store holds names only blocks it holds
+//     and the kept Worlds still find their pages here.
 //   - A kept block leaves memory only once the inner store holds it under a
 //     root moved in the same transaction, or when a sweep finds that no root
 //     it is given, no block an open stage or pin holds, and no block kept
@@ -90,9 +81,6 @@ type PendingStore struct {
 	keptBytes int
 	// maxBytes bounds keptBytes. A put past it goes to its stage.
 	maxBytes int
-	// keepStaged makes a stage OpenStage opened keep its puts while the bound
-	// allows, as an overflow stage does, instead of storing them at once.
-	keepStaged atomic.Bool
 }
 
 // NewPendingStore returns a PendingStore over inner that keeps at most
@@ -114,16 +102,6 @@ func (s *PendingStore) Full() bool {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	return s.keptBytes >= s.maxBytes/2
-}
-
-// SetKeepStaged sets whether a stage OpenStage opens afterwards keeps its
-// puts in memory while the bound allows, storing them only when a root moves
-// onto them, instead of storing each at once. Keeping saves the Volume the
-// pages a staged writer replaces before naming its root, but the move that
-// names a staged tree then stores the whole tree in one transaction, under
-// whatever turn that move holds. It is off by default.
-func (s *PendingStore) SetKeepStaged(keep bool) {
-	s.keepStaged.Store(keep)
 }
 
 // KeptBytes returns the total data length of the kept blocks.
@@ -159,7 +137,7 @@ func (s *PendingStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	if err != nil {
 		return nil, false, err
 	}
-	existed, _, err := s.put(ctx, nil, nil, true, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
+	existed, _, err := s.put(ctx, nil, nil, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
 	if err != nil {
 		return nil, false, err
 	}
@@ -174,7 +152,7 @@ func (s *PendingStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEnt
 	if err := verifyKeepable(entries); err != nil {
 		return nil, err
 	}
-	existed, _, err := s.put(ctx, nil, nil, true, entries)
+	existed, _, err := s.put(ctx, nil, nil, entries)
 	return existed, err
 }
 
@@ -195,15 +173,13 @@ func verifyKeepable(entries []*PutBatchEntry) error {
 
 // put keeps the entries it can and puts the rest to dst, reporting whether
 // it put any. With no dst it keeps all of them or, when any cannot be kept,
-// none, and returns ErrUnheldPut. Without keep it keeps none and puts all of
-// them to dst, which must be set. Each entry kept through hold, when set, is
-// held until the hold is released. The kept blocks an entry put to dst names
-// are stored with it and stay kept, so the Worlds that name them still find
-// them here.
+// none, and returns ErrUnheldPut. Each entry kept through hold, when set, is
+// held until the hold is released. The kept blocks an entry past the bound names are stored with
+// it and stay kept, so the Worlds that name them still find them here.
 // Tombstones are refused: a kept block may be reached by any kept World. The
 // caller has hashed each entry put may keep: PutBlock builds its ref from the
 // bytes, and a batch passes verifyKeepable.
-func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold, keep bool, entries []*PutBatchEntry) ([]bool, bool, error) {
+func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold, entries []*PutBatchEntry) ([]bool, bool, error) {
 	// Refuse tombstones before keeping anything.
 	for _, e := range entries {
 		if e.Tombstone {
@@ -224,8 +200,6 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 	for i, e := range entries {
 		key := pendingKey(e.Ref)
 		switch {
-		case !keep:
-			rest, restIdx = append(rest, e), append(restIdx, i)
 		case s.kept[key] != nil:
 			out[i] = true
 			s.seq++
@@ -602,16 +576,14 @@ func (s *PendingStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), erro
 	return PinRoot(ctx, s.StoreOps, ref)
 }
 
-// OpenStage opens a stage on the inner store whose writes go to it at once,
-// with the kept blocks below them, so the move that later names the staged
-// tree stores nothing of it. With SetKeepStaged on, the writes are kept here
-// while the bound allows and go to the stage past it.
+// OpenStage opens a stage on the inner store whose writes are kept here while
+// the bound allows and go to the stage past it.
 func (s *PendingStore) OpenStage(ctx context.Context) (StoreOps, func(), error) {
 	stage, release, err := OpenStage(ctx, s.StoreOps)
 	if err != nil {
 		return nil, nil, err
 	}
-	ps := &pendingStage{PendingStore: s, stage: stage, hold: newPendingHold(), keep: s.keepStaged.Load()}
+	ps := &pendingStage{PendingStore: s, stage: stage, hold: newPendingHold()}
 	return ps, func() {
 		s.release(ps.hold)
 		release()
@@ -627,7 +599,7 @@ func (s *PendingStore) OpenStage(ctx context.Context) (StoreOps, func(), error) 
 // before that put writes, so a writer whose puts fit opens none.
 func (s *PendingStore) OpenOverflowStage() *OverflowStage {
 	lazy := &lazyStage{StoreOps: s.StoreOps}
-	return &OverflowStage{pendingStage: &pendingStage{PendingStore: s, stage: lazy, keep: true}, lazy: lazy}
+	return &OverflowStage{pendingStage: &pendingStage{PendingStore: s, stage: lazy}, lazy: lazy}
 }
 
 // ReleaseRoots forwards staging release to the inner store.

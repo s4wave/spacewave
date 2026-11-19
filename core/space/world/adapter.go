@@ -271,7 +271,6 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		payloadVersions:  make(map[string]uint32),
 		replayState:      newReplayOpening(),
 	}
-	a.pages.SetKeepStaged(keepStaged)
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
 	a.backfill = newSpaceBackfill(a)
