@@ -3,8 +3,8 @@
     "name": "a count slice commits its counts without the cursor's advance, so a resume counts it again",
     "replace": [
       [
-        "  /\\ cursor' = [cursor EXCEPT !.at = @ + 1]\n  /\\ UNCHANGED <<adoption, owner, runs, listed, holes, marked, raw,",
-        "  /\\ cursor' \\in {cursor, [cursor EXCEPT !.at = @ + 1]}\n  /\\ UNCHANGED <<adoption, owner, runs, listed, holes, marked, raw,"
+        "  /\\ cursor' = [cursor EXCEPT !.at = @ + 1]\n  /\\ UNCHANGED <<adoption, owner, runs, listed, holes, raw,",
+        "  /\\ cursor' \\in {cursor, [cursor EXCEPT !.at = @ + 1]}\n  /\\ UNCHANGED <<adoption, owner, runs, listed, holes, raw,"
       ]
     ],
     "expect": "CountsExact",
@@ -47,19 +47,8 @@
     "name": "a refill logs its children's holders whatever the count passed",
     "replace": [
       [
-        "lacks(q) == IF Adopting THEN Counted(q) ELSE q \\in marked",
+        "lacks(q) == ~Adopting \\/ Counted(q)",
         "lacks(q) == TRUE"
-      ]
-    ],
-    "expect": "CountsExact",
-    "config": "Adopt.cfg"
-  },
-  {
-    "name": "the settle leaves a hole unmarked, so a refill once adopted logs no holder",
-    "replace": [
-      [
-        "              /\\ marked' = marked \\cup {p}",
-        "              /\\ marked' = marked"
       ]
     ],
     "expect": "CountsExact",
@@ -174,5 +163,16 @@
     ],
     "expect": "ZeroQueued",
     "config": "Adopt.cfg"
+  },
+  {
+    "config": "Adopt.cfg",
+    "expect": "CountsExact",
+    "name": "an audit after the adoption records a hole as counted, so its refill logs no holder",
+    "replace": [
+      [
+        "        lacks(q) == ~Adopting \\/ Counted(q)\n",
+        "        lacks(q) == IF Adopting THEN Counted(q) ELSE q \\notin audited\n"
+      ]
+    ]
   }
 ]
