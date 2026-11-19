@@ -46,14 +46,6 @@ func (t *TxSetGraphQuads) Validate() error {
 	return nil
 }
 
-// graphQuadsSetter is a World that sets a list of graph quads in one graph
-// update, as world_block.EngineTx does.
-type graphQuadsSetter interface {
-	// SetGraphQuads sets the quads the graph lacks, skipping existing and
-	// repeated ones.
-	SetGraphQuads(ctx context.Context, quads []world.GraphQuad) error
-}
-
 // ExecuteTx sets the quads in one graph update. A World that cannot set a
 // list in one update fails it as a system error rather than set the quads one
 // at a time, which would reach another World than every other replica.
@@ -69,7 +61,7 @@ func (t *TxSetGraphQuads) ExecuteTx(
 	}
 
 	// Set the list in one update.
-	setter, ok := worldInstance.(graphQuadsSetter)
+	setter, ok := worldInstance.(world.GraphQuadsSetter)
 	if !ok {
 		return true, errors.New("world cannot set a graph quad list in one update")
 	}

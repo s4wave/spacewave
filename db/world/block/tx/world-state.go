@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/tx"
@@ -442,6 +443,53 @@ func (w *WorldState) ListObjectsWithType(ctx context.Context, typeID, startAfter
 
 	// Preserve the underlying World's page and graph-index cursor.
 	return w.world.ListObjectsWithType(ctx, typeID, startAfter, limit)
+}
+
+// SetGraphQuads sets a list of graph quads in one graph update and records it
+// as one SET_GRAPH_QUADS transaction, which every replica applies through the
+// same call, so all reach this World. Over a World that cannot set a list in
+// one update it sets and records each quad on its own.
+func (w *WorldState) SetGraphQuads(ctx context.Context, quads []world.GraphQuad) error {
+	// Require a writable WorldState, and record nothing for an empty list.
+	if !w.write {
+		return tx.ErrNotWrite
+	}
+	if len(quads) == 0 {
+		return nil
+	}
+
+	// Set each quad on its own over a World without a list update.
+	setter, ok := w.world.(world.GraphQuadsSetter)
+	if !ok {
+		for _, q := range quads {
+			if err := w.SetGraphQuad(ctx, q); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// Prepare the transaction, refusing an empty quad.
+	list := make([]*quad.Quad, len(quads))
+	for i, q := range quads {
+		list[i] = world.GraphQuadToQuad(q)
+	}
+	t := NewTxSetGraphQuads(list)
+	if err := t.GetTxSetGraphQuads().Validate(); err != nil {
+		return err
+	}
+
+	// Set the list under the WorldState lock, and record it once it is set.
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	if w.discarded {
+		return tx.ErrDiscarded
+	}
+	if err := setter.SetGraphQuads(ctx, quads); err != nil {
+		return err
+	}
+	w.txBatch.Txs = append(w.txBatch.Txs, t)
+	return nil
 }
 
 // SetGraphQuad sets a quad in the graph store.

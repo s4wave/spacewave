@@ -841,7 +841,8 @@ func removedOp() []byte {
 // the wait to the second, whose body replay must not apply without the field.
 // Skipping that too applies after-object, and only then can ImportRoots name
 // the payloads. An operation with the removed body field 3 is refused, not
-// waited at.
+// waited at; one whose transaction type this build does not declare is waited
+// at.
 func TestReplayWaitsAtUnreadableOp(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -964,6 +965,39 @@ func TestReplayWaitsAtUnreadableOp(t *testing.T) {
 	remote.write(t, so, removedOp(), false, false)
 	remote.write(t, so, createOp(t, "final-object"), false, false)
 	waitObjects(ctx, t, eng, "final-object")
+
+	// A transaction type this build does not declare waits for a build that
+	// reads it instead of being refused, until the owner skips it.
+	remote.write(t, so, unknownTxOp(t), false, false)
+	remote.write(t, so, createOp(t, "last-object"), false, false)
+	var typed *sobject.SharedObjectHealth
+	waitHealth(ctx, t, health, "the wait at the unknown transaction type", func(h *sobject.SharedObjectHealth) bool {
+		typed = h
+		return h.GetReplay().GetWaiting().GetUpgrade() != nil
+	})
+	unknown := orderPosition(ctx, t, so, typed.GetReplay().GetWaiting().GetPosition())
+	if unknown.GetPeerId() != remote.id.String() {
+		t.Fatalf("replay waits at %v, want the other device's transaction", unknown)
+	}
+	if err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
+		return lacksObject(ctx, eng, "last-object")
+	}); err != nil {
+		t.Fatal(err)
+	}
+	skip(unknown)
+	waitObjects(ctx, t, eng, "last-object")
+}
+
+// unknownTxOp encodes a World operation a newer build wrote: a transaction of
+// type 99, which this build does not declare.
+func unknownTxOp(t *testing.T) []byte {
+	data, err := (&space_world.WorldOp{Body: &space_world.WorldOp_ApplyTxOp{
+		ApplyTxOp: &space_world.ApplyTxOp{Tx: &world_block_tx.Tx{TxType: 99}},
+	}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }
 
 // orderPosition returns the position of the operation at index i of the

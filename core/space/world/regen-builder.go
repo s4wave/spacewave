@@ -175,14 +175,12 @@ func (b *regenBuilder) set(res *regenBuild) {
 // execute builds the pin head names and holds the result, or releases the
 // held build when head names none.
 func (b *regenBuilder) execute(ctx context.Context, head *bucket.ObjectRef) error {
-	// With no pin, release the held build.
+	// With no pin, stop publishing the held build, then release it, so no
+	// replayed switch looks up a build the root no longer holds.
 	pin := head.GetRootRef()
 	if pin.GetEmpty() {
-		if err := b.a.moveRoots(ctx, nil, block.NamedRoot{Name: RootRegenBuild}); err != nil {
-			return err
-		}
 		b.set(nil)
-		return nil
+		return b.a.moveRoots(ctx, nil, block.NamedRoot{Name: RootRegenBuild})
 	}
 
 	// Keep a build of this pin.

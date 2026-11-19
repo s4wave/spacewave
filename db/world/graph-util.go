@@ -254,6 +254,7 @@ type quadDirectionKey struct {
 	dir quad.Direction
 }
 
+// ValueOf resolves a graph value, caching the reference for this read.
 func (h *cachedCayleyHandle) ValueOf(ctx context.Context, val quad.Value) (graph.Ref, error) {
 	// Resolve a graph value and retain its reference for this read operation.
 	if err := ctx.Err(); err != nil {
@@ -274,6 +275,7 @@ func (h *cachedCayleyHandle) ValueOf(ctx context.Context, val quad.Value) (graph
 	return ref, nil
 }
 
+// NameOf resolves a graph reference, caching the name for this read.
 func (h *cachedCayleyHandle) NameOf(ctx context.Context, ref graph.Ref) (quad.Value, error) {
 	// Resolve a graph reference and retain its name for this read operation.
 	if err := ctx.Err(); err != nil {
@@ -294,6 +296,7 @@ func (h *cachedCayleyHandle) NameOf(ctx context.Context, ref graph.Ref) (quad.Va
 	return val, nil
 }
 
+// QuadIteratorSize returns the iterator size, cached for this read.
 func (h *cachedCayleyHandle) QuadIteratorSize(ctx context.Context, dir quad.Direction, ref graph.Ref) (refs.Size, error) {
 	// Read and retain the quad iterator size for this read operation.
 	if err := ctx.Err(); err != nil {
@@ -309,6 +312,7 @@ func (h *cachedCayleyHandle) QuadIteratorSize(ctx context.Context, dir quad.Dire
 	return size, err
 }
 
+// Quad resolves a quad reference from its cached directions.
 func (h *cachedCayleyHandle) Quad(ctx context.Context, ref graph.Ref) (quad.Quad, error) {
 	if err := ctx.Err(); err != nil {
 		return quad.Quad{}, err
@@ -345,6 +349,7 @@ func (h *cachedCayleyHandle) quadFromDirections(ctx context.Context, ref graph.R
 	return q, true, nil
 }
 
+// QuadDirection resolves a quad direction, cached for this read.
 func (h *cachedCayleyHandle) QuadDirection(ctx context.Context, ref graph.Ref, dir quad.Direction) (graph.Ref, error) {
 	// Resolve and retain the quad direction for this read operation.
 	if err := ctx.Err(); err != nil {
@@ -548,4 +553,28 @@ func CollectPathWithKeys(
 	)
 	slices.Sort(output)
 	return output, err
+}
+
+// GraphQuadsSetter is a WorldState that sets a list of graph quads in one
+// graph update. A kv World's root depends on how its quads were grouped, so a
+// writer that sets a list this way records it as one list, and every replica
+// applies it through the same call.
+type GraphQuadsSetter interface {
+	// SetGraphQuads sets the quads the graph lacks in one graph update,
+	// skipping existing and repeated quads as SetGraphQuad does.
+	SetGraphQuads(ctx context.Context, quads []GraphQuad) error
+}
+
+// SetGraphQuads sets quads in ws in one graph update when ws is a
+// GraphQuadsSetter, and otherwise sets each on its own, in order.
+func SetGraphQuads(ctx context.Context, ws WorldState, quads []GraphQuad) error {
+	if setter, ok := ws.(GraphQuadsSetter); ok {
+		return setter.SetGraphQuads(ctx, quads)
+	}
+	for _, q := range quads {
+		if err := ws.SetGraphQuad(ctx, q); err != nil {
+			return err
+		}
+	}
+	return nil
 }

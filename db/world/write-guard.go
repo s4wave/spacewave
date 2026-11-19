@@ -710,6 +710,16 @@ func (s *guardedWorldState) SetGraphQuad(ctx context.Context, q GraphQuad) error
 	return s.ws.SetGraphQuad(ctx, q)
 }
 
+// SetGraphQuads checks each quad, then sets them as one list.
+func (s *guardedWorldState) SetGraphQuads(ctx context.Context, quads []GraphQuad) error {
+	for _, q := range quads {
+		if err := s.check(ctx, &GuardedWrite{Quad: q}); err != nil {
+			return err
+		}
+	}
+	return SetGraphQuads(ctx, s.ws, quads)
+}
+
 // DeleteGraphQuad checks the quad.
 func (s *guardedWorldState) DeleteGraphQuad(ctx context.Context, q GraphQuad) error {
 	if err := s.check(ctx, &GuardedWrite{Quad: q}); err != nil {
@@ -945,6 +955,7 @@ var (
 	_ ObjectRootRefBatcher = (*guardedWorldState)(nil)
 	_ ObjectRevWaiter      = (*guardedWorldState)(nil)
 	_ IndexedChangeWatcher = (*guardedWorldState)(nil)
+	_ GraphQuadsSetter     = (*guardedWorldState)(nil)
 	_ ObjectState          = (*guardedObjectState)(nil)
 	_ WorldStateGetter     = (*guardedObjectState)(nil)
 	_ WorldStage           = (*guardedStage)(nil)

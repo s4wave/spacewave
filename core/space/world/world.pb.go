@@ -90,6 +90,8 @@ const (
 	WorldOpKind_WORLD_OP_KIND_REGENERATE_WORLD WorldOpKind = 9
 	// WORLD_OP_KIND_RELEASE_WORLD_REGEN is a ReleaseWorldRegenOp.
 	WorldOpKind_WORLD_OP_KIND_RELEASE_WORLD_REGEN WorldOpKind = 10
+	// WORLD_OP_KIND_SET_GRAPH_QUADS is a graph quad list set in one update.
+	WorldOpKind_WORLD_OP_KIND_SET_GRAPH_QUADS WorldOpKind = 11
 )
 
 // Enum value maps for WorldOpKind.
@@ -105,6 +107,7 @@ var (
 		8:  "WORLD_OP_KIND_ROOT_SET",
 		9:  "WORLD_OP_KIND_REGENERATE_WORLD",
 		10: "WORLD_OP_KIND_RELEASE_WORLD_REGEN",
+		11: "WORLD_OP_KIND_SET_GRAPH_QUADS",
 	}
 	WorldOpKind_value = map[string]int32{
 		"WORLD_OP_KIND_UNKNOWN":             0,
@@ -117,6 +120,7 @@ var (
 		"WORLD_OP_KIND_ROOT_SET":            8,
 		"WORLD_OP_KIND_REGENERATE_WORLD":    9,
 		"WORLD_OP_KIND_RELEASE_WORLD_REGEN": 10,
+		"WORLD_OP_KIND_SET_GRAPH_QUADS":     11,
 	}
 )
 
@@ -435,6 +439,7 @@ type WorldOp struct {
 	//	*WorldOp_RootSet
 	//	*WorldOp_RegenerateWorld
 	//	*WorldOp_ReleaseWorldRegen
+	//	*WorldOp_SetGraphQuads
 	Body isWorldOp_Body `protobuf_oneof:"body"`
 }
 
@@ -514,6 +519,13 @@ func (x *WorldOp) GetReleaseWorldRegen() *ReleaseWorldRegenOp {
 	return nil
 }
 
+func (x *WorldOp) GetSetGraphQuads() *tx.TxSetGraphQuads {
+	if x, ok := x.GetBody().(*WorldOp_SetGraphQuads); ok {
+		return x.SetGraphQuads
+	}
+	return nil
+}
+
 type isWorldOp_Body interface {
 	isWorldOp_Body()
 }
@@ -568,6 +580,14 @@ type WorldOp_ReleaseWorldRegen struct {
 	ReleaseWorldRegen *ReleaseWorldRegenOp `protobuf:"bytes,10,opt,name=release_world_regen,json=releaseWorldRegen,proto3,oneof"`
 }
 
+type WorldOp_SetGraphQuads struct {
+	// SetGraphQuads sets a list of graph quads in one graph update, as a World
+	// regeneration writes the quads its pin carries. Every replica, its writer
+	// included, applies it by replay; a build that does not declare it waits
+	// at it for one that does.
+	SetGraphQuads *tx.TxSetGraphQuads `protobuf:"bytes,11,opt,name=set_graph_quads,json=setGraphQuads,proto3,oneof"`
+}
+
 func (*WorldOp_InitWorld) isWorldOp_Body() {}
 
 func (*WorldOp_ApplyTxOp) isWorldOp_Body() {}
@@ -585,6 +605,8 @@ func (*WorldOp_RootSet) isWorldOp_Body() {}
 func (*WorldOp_RegenerateWorld) isWorldOp_Body() {}
 
 func (*WorldOp_ReleaseWorldRegen) isWorldOp_Body() {}
+
+func (*WorldOp_SetGraphQuads) isWorldOp_Body() {}
 
 // RegenerateWorldOp rebuilds the World in the target format. To the node
 // graph from cayley_kv it runs in two steps, so each replica builds off its
@@ -1945,6 +1967,19 @@ func (m *WorldOp_ReleaseWorldRegen) CloneOneofVT() isWorldOp_Body {
 	return m.CloneVT()
 }
 
+func (m *WorldOp_SetGraphQuads) CloneVT() *WorldOp_SetGraphQuads {
+	if m == nil {
+		return (*WorldOp_SetGraphQuads)(nil)
+	}
+	r := new(WorldOp_SetGraphQuads)
+	r.SetGraphQuads = protobuf_go_lite.CloneVTValue(m.SetGraphQuads)
+	return r
+}
+
+func (m *WorldOp_SetGraphQuads) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
 func (m *RegenerateWorldOp) CloneVT() *RegenerateWorldOp {
 	if m == nil {
 		return (*RegenerateWorldOp)(nil)
@@ -2870,6 +2905,23 @@ func (this *WorldOp_ReleaseWorldRegen) EqualVT(thatIface isWorldOp_Body) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTImplicit(this.ReleaseWorldRegen, that.ReleaseWorldRegen, func() *ReleaseWorldRegenOp { return &ReleaseWorldRegenOp{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldOp_SetGraphQuads) EqualVT(thatIface isWorldOp_Body) bool {
+	that, ok := thatIface.(*WorldOp_SetGraphQuads)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.SetGraphQuads, that.SetGraphQuads, func() *tx.TxSetGraphQuads { return &tx.TxSetGraphQuads{} }) {
 		return false
 	}
 	return true
@@ -4356,6 +4408,10 @@ func (x *WorldOp) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("releaseWorldRegen")
 			ov.ReleaseWorldRegen.MarshalProtoJSON(s.WithField("releaseWorldRegen"))
+		case *WorldOp_SetGraphQuads:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("setGraphQuads")
+			ov.SetGraphQuads.MarshalProtoJSON(s.WithField("setGraphQuads"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -4456,6 +4512,15 @@ func (x *WorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.ReleaseWorldRegen = &ReleaseWorldRegenOp{}
 			ov.ReleaseWorldRegen.UnmarshalProtoJSON(s.WithField("release_world_regen", true))
+		case "set_graph_quads", "setGraphQuads":
+			ov := &WorldOp_SetGraphQuads{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.SetGraphQuads = nil
+				return
+			}
+			ov.SetGraphQuads = &tx.TxSetGraphQuads{}
+			ov.SetGraphQuads.UnmarshalProtoJSON(s.WithField("set_graph_quads", true))
 		}
 	})
 }
@@ -6942,6 +7007,30 @@ func (m *WorldOp_ReleaseWorldRegen) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *WorldOp_SetGraphQuads) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp_SetGraphQuads) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.SetGraphQuads != nil {
+		size, err := m.SetGraphQuads.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x5a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x5a
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *RegenerateWorldOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -8753,6 +8842,21 @@ func (m *WorldOp_ReleaseWorldRegen) SizeVT() (n int) {
 	return n
 }
 
+func (m *WorldOp_SetGraphQuads) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SetGraphQuads != nil {
+		l = m.SetGraphQuads.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
 func (m *RegenerateWorldOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -9566,6 +9670,13 @@ func (x *WorldOp) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ReleaseWorldRegenOp{})
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.ReleaseWorldRegen)
+		}
+	case *WorldOp_SetGraphQuads:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "set_graph_quads")
+		if body.SetGraphQuads == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &tx.TxSetGraphQuads{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.SetGraphQuads)
 		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
@@ -11017,6 +11128,26 @@ func (m *WorldOp) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 				m.Body = &WorldOp_ReleaseWorldRegen{ReleaseWorldRegen: v}
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SetGraphQuads", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WorldOp_SetGraphQuads); ok {
+				if err := oneof.SetGraphQuads.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &tx.TxSetGraphQuads{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WorldOp_SetGraphQuads{SetGraphQuads: v}
 			}
 			iNdEx = postIndex
 		default:

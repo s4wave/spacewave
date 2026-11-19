@@ -281,6 +281,13 @@ func (e *engineWorldState) SetGraphQuad(ctx context.Context, q GraphQuad) error 
 	})
 }
 
+// SetGraphQuads sets quads as one list in the graph store.
+func (e *engineWorldState) SetGraphQuads(ctx context.Context, quads []GraphQuad) error {
+	return e.performOp(ctx, true, func(tx Tx) error {
+		return SetGraphQuads(ctx, tx, quads)
+	})
+}
+
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
 func (e *engineWorldState) DeleteGraphQuad(ctx context.Context, q GraphQuad) error {
@@ -410,4 +417,5 @@ var (
 	_ WorldState           = (*engineWorldState)(nil)
 	_ ObjectRevWaiter      = (*engineWorldState)(nil)
 	_ IndexedChangeWatcher = (*engineWorldState)(nil)
+	_ GraphQuadsSetter     = (*engineWorldState)(nil)
 )

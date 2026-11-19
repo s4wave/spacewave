@@ -133,6 +133,11 @@ message WorldOp {
     // ReleaseWorldRegen releases the roots a regeneration holds, after a
     // comparison found them equal.
     ReleaseWorldRegenOp release_world_regen = 10;
+    // SetGraphQuads sets a list of graph quads in one graph update, as a World
+    // regeneration writes the quads its pin carries. Every replica, its writer
+    // included, applies it by replay; a build that does not declare it waits
+    // at it for one that does.
+    .world.block.tx.TxSetGraphQuads set_graph_quads = 11;
   }
 }
 
@@ -394,6 +399,8 @@ enum WorldOpKind {
   WORLD_OP_KIND_REGENERATE_WORLD = 9;
   // WORLD_OP_KIND_RELEASE_WORLD_REGEN is a ReleaseWorldRegenOp.
   WORLD_OP_KIND_RELEASE_WORLD_REGEN = 10;
+  // WORLD_OP_KIND_SET_GRAPH_QUADS is a graph quad list set in one update.
+  WORLD_OP_KIND_SET_GRAPH_QUADS = 11;
 }
 
 // OrderOperation is one operation of a Space's agreed order above its

@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	s4wave_worldop_registry "github.com/s4wave/spacewave/sdk/worldop/registry"
 	"github.com/sirupsen/logrus"
 )
@@ -170,9 +171,9 @@ func readUnknownFields(wop *WorldOp) (string, error) {
 // deciding the operation: a block that is not available, a canceled read, a
 // put through a replay stage that was released or lost, a read through a
 // cursor with no store, an operation whose type no handler resolves yet, a
-// plugin this device could not reach or has no build of, a failure of this
-// device's store, or a World regeneration step this device could not
-// complete. None is a property of the operation, so refusing it would split
+// plugin this device could not reach or has no build of, a transaction type
+// this build does not declare, a failure of this device's store, or a World
+// regeneration step this device could not complete. None is a property of the operation, so refusing it would split
 // replicas.
 func isReplayGap(err error) bool {
 	// Match each failure that belongs to this device, not to the operation.
@@ -189,6 +190,7 @@ func isReplayGap(err error) bool {
 		errors.As(err, &unresolved) ||
 		errors.As(err, &unavailable) ||
 		errors.As(err, &missing) ||
+		errors.Is(err, world_block_tx.ErrUnknownTxType) ||
 		errors.Is(err, context.Canceled) ||
 		errors.Is(err, context.DeadlineExceeded)
 }
