@@ -114,6 +114,59 @@ func TestPackAheadCrash(t *testing.T) {
 	}
 }
 
+// TestPackAheadStartupRejectsEmbeddedRecord puts a complete record at the
+// absolute offset of a block value after an unreadable batch header.
+func TestPackAheadStartupRejectsEmbeddedRecord(t *testing.T) {
+	// Give the embedded record valid checksums and an exact absolute end.
+	prefix := []Block{testBlock(t, 1, 64)}
+	embedded := []Block{testBlock(t, 2, 64)}
+	damaged := []Block{testBlock(t, 3, recordLen(embedded)+dataLen(embedded))}
+	later := []Block{testBlock(t, 4, 64)}
+	damagedAt := int64(recordLen(prefix) + dataLen(prefix))
+	embeddedAt := damagedAt + int64(recordLen(damaged))
+	encodeBatch(damaged[0].Value, embeddedAt, embedded)
+
+	// Write genuine adjacent batches and simulate an unreadable middle record.
+	dir := t.TempDir()
+	l, err := Open(t.Context(), dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, batch := range [][]Block{prefix, damaged, later} {
+		if err := l.Append(t.Context(), batch); err != nil {
+			l.Close()
+			t.Fatal(err)
+		}
+	}
+	l.Close()
+	path := filepath.Join(dir, openName(1))
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data[damagedAt] = 0
+	if _, _, err := decodeBatch(data, embeddedAt); err != nil {
+		t.Fatalf("embedded record must pass decoding: %v", err)
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Reopen and check both the local table and the finalized index.
+	l, err = Open(t.Context(), dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	for _, key := range [][]byte{damaged[0].Key, embedded[0].Key, later[0].Key} {
+		if l.Has(key) {
+			t.Fatalf("startup indexed key %x beyond the unreadable record", key)
+		}
+	}
+	infos := waitFinalized(t, l, 1)
+	checkPack(t, infos[0], map[string][]byte{string(prefix[0].Key): prefix[0].Value}, Options{})
+}
+
 // TestPackAheadCrashFinalize leaves a finalized pack under its open name, as a
 // crash after its index but before its rename does, with the index whole or
 // cut short, and checks that recovery keeps every batch and finalizes again.

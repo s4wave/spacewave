@@ -245,11 +245,14 @@ func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, erro
 	return p.renamed, nil
 }
 
-// recoverFile reads an unfinalized pack, keeps every verified batch at its
-// original offset, and truncates the tail after the last one. The returned
-// entries point into the returned bytes. Before truncating, publish removes
-// the locations of discarded batches from a live Log.
-func (p *pack) recoverFile(sync func(*os.File) error, publish func([]entry, int64, bool)) ([]byte, []entry, error) {
+// recoverFile reads an unfinalized pack, keeps the batches scan verifies at
+// their original offsets, and truncates the tail after the last one. Before
+// truncating, publish removes discarded locations from a live Log.
+func (p *pack) recoverFile(
+	sync func(*os.File) error,
+	scan func([]byte) ([]entry, int64, bool),
+	publish func([]entry, int64, bool),
+) ([]byte, []entry, error) {
 	// Read the whole file: a pack is bounded by MaxPackBytes.
 	info, err := p.f.Stat()
 	if err != nil {
@@ -261,7 +264,7 @@ func (p *pack) recoverFile(sync func(*os.File) error, publish func([]entry, int6
 	}
 
 	// Keep the batches whose records and values both check, and drop the rest.
-	entries, end, damaged := scanBatches(data)
+	entries, end, damaged := scan(data)
 	publish(entries, end, damaged)
 	if end < info.Size() {
 		if err := p.f.Truncate(end); err != nil {
