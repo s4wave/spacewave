@@ -71,7 +71,7 @@ func (t *localTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 	return &decidedAdmission{seqno: candidate.Seqno, decision: world.Accepted, head: head}, nil
 }
 
-// Release ends the turn.
+// Release ends the turn, or the wait for it when Begin failed.
 func (t *localTurn) Release() {
 	t.release.Do(func() {
 		if t.lease != nil {
@@ -82,6 +82,7 @@ func (t *localTurn) Release() {
 		if t.unlock != nil {
 			t.unlock()
 		}
+		t.a.turnEnded()
 	})
 }
 
