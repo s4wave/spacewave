@@ -1,10 +1,11 @@
 package kvtx
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strconv"
 	"sync"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -22,11 +22,9 @@ import (
 
 // TestCommitWaitDuringCollection measures how long a writer's commit waits
 // while the collector frees a large garbage tree on an s4db Volume, at two
-// sizes, while it nets and frees one journal record of 100,000 up pairs,
-// while it frees one block naming 100,000 children, and while, under
-// HoldUntilFree, a reopened collector reads a tail near its index bound and
-// keeps every ripe block it names, and logs the longest and the 99th
-// percentile wait. It runs only when KVTX_MEASURE_COLLECT is set, on
+// sizes, while it nets and frees one commit of 100,000 ups, and while it
+// frees one block naming 100,000 children, and logs the longest and the
+// 99th percentile wait. It runs only when KVTX_MEASURE_COLLECT is set, on
 // the build host.
 func TestCommitWaitDuringCollection(t *testing.T) {
 	if os.Getenv("KVTX_MEASURE_COLLECT") == "" {
@@ -37,14 +35,17 @@ func TestCommitWaitDuringCollection(t *testing.T) {
 			measureCommitWait(t, leaves)
 		})
 	}
-	t.Run("one record of 100000 ups", func(t *testing.T) {
-		measureLargeRecordWait(t, 100_000)
+	t.Run("one commit of 100000 ups", func(t *testing.T) {
+		measureLargeCommitWait(t, 100_000)
 	})
 	t.Run("one block of 100000 children", func(t *testing.T) {
 		measureWideBlockWait(t, 100_000)
 	})
-	t.Run("a cold tail near the index bound", func(t *testing.T) {
-		measureTailWait(t, 20_000, 500_000)
+	t.Run("checkpoint run-through", func(t *testing.T) {
+		measureCheckpointRunThrough(t, 30*time.Second)
+	})
+	t.Run("obsolete sweep of 1000000 records", func(t *testing.T) {
+		measureObsoleteSweepWait(t, 100_000, 1_000_000)
 	})
 }
 
@@ -52,34 +53,21 @@ func TestCommitWaitDuringCollection(t *testing.T) {
 // grace.
 func openWaitVolume(t *testing.T, grace string) *Volume {
 	t.Helper()
-	v, _ := openWaitVolumeAt(t, filepath.Join(t.TempDir(), "wait.s4db"), grace, false)
-	return v
-}
-
-// openWaitVolumeAt opens the s4db Volume at path that frees, with the grace
-// period grace, under HoldUntilFree when hold is set, and returns it with a
-// function that closes it, which the test's cleanup also calls.
-func openWaitVolumeAt(t *testing.T, path, grace string, hold bool) (*Volume, func()) {
-	t.Helper()
-	db, err := s4db.Open(path, s4db.Options{})
+	db, err := s4db.Open(filepath.Join(t.TempDir(), "wait.s4db"), s4db.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	conf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: grace, CollectorHoldUntilFree: hold}
+	conf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: grace}
 	v, err := NewVolume(t.Context(), "test/wait", store_kvkey.NewDefaultKVKey(), db, conf, false, false, nil, nil)
 	if err != nil {
 		_ = db.Close()
 		t.Fatal(err)
 	}
-	var once sync.Once
-	closeAll := func() {
-		once.Do(func() {
-			_ = v.Close()
-			_ = db.Close()
-		})
-	}
-	t.Cleanup(closeAll)
-	return v, closeAll
+	t.Cleanup(func() {
+		_ = v.Close()
+		_ = db.Close()
+	})
+	return v
 }
 
 // storeLeaves stores leaves blocks named prefix and their index, a mid per
@@ -137,11 +125,11 @@ func measureCommitWait(t *testing.T, leaves int) {
 
 // measureLargeRecordWait stores leaves blocks under mids of 1000, then in one
 // batch a parent naming each mid's leaves and a top naming the parents under
-// a root, releasing the mids, so the batch's one journal record holds an up
-// pair for each leaf. It releases the root and logs a writer's waits while
-// the collector passes over the young record, then nets it and frees the tree
-// a grace period later.
-func measureLargeRecordWait(t *testing.T, leaves int) {
+// a root, releasing the mids, so the batch's one commit logs an up for each
+// leaf. It releases the root and logs a writer's waits while the collector
+// passes over the young commit, then nets it and frees the tree a grace
+// period later.
+func measureLargeCommitWait(t *testing.T, leaves int) {
 	// Store the leaves, then the parents and top in one batch.
 	ctx := t.Context()
 	v := openWaitVolume(t, "")
@@ -170,7 +158,7 @@ func measureLargeRecordWait(t *testing.T, leaves int) {
 		t.Fatal(err)
 	}
 
-	// Pass over the young record, then net it and free the tree once it ages,
+	// Pass over the young commit, then net it and free the tree once it ages,
 	// while a writer commits.
 	var freed uint64
 	elapsed, waits := measureWaits(t, v, tr, func() {
@@ -178,7 +166,7 @@ func measureLargeRecordWait(t *testing.T, leaves int) {
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		freed = collectToEnd(t, v)
 	})
-	t.Logf("one record of %d ups: freed %d in %v; %s", leaves, freed, elapsed, waits)
+	t.Logf("one commit of %d ups: freed %d in %v; %s", leaves, freed, elapsed, waits)
 }
 
 // measureWideBlockWait stores leaves blocks under mids of 1000, then one
@@ -221,202 +209,177 @@ func measureWideBlockWait(t *testing.T, leaves int) {
 	t.Logf("one block of %d children: freed %d in %v; %s", leaves, freed, elapsed, waits)
 }
 
-// measureTailWait measures a writer's waits behind the free's tail reads
-// under HoldUntilFree. It stores ripe leaves, each released from a root of
-// its own, and a block W listing as many other leaves, released too, then
-// nets the releases with a collector that frees nothing, so those blocks
-// ripen below the cursor. It then appends records of 2,048 again entries
-// naming the leaves, W and the mids that held W's leaves, entries in all, as
-// a writer that holds none of them. The Volume is closed and reopened, so the
-// collector starts with no index and the store with cold caches, and the
-// writer's waits are logged over two passes: the first reads the whole tail
-// across slices and keeps every ripe block, the second keeps them again.
-func measureTailWait(t *testing.T, leaves, entries int) {
-	// Store the leaves under roots of their own, and W over other leaves.
+// measureCheckpointRunThrough commits World-shaped commits at 12 a second
+// for d, each a parent naming 9 new leaves, 250 stored leaves and the parent
+// before it in its chain, so about 260 named keys, under the root main. A
+// checkpoint every 32 commits, 0.375 a second, starts a new chain, which
+// leaves the chain before it dead. A collector frees while the commits
+// continue, with a 2 s grace period. It logs the commits' waits, the frees,
+// and the up log's backlog, UpSeq - UpCursor, sampled each second, then
+// collects to the end and audits.
+func measureCheckpointRunThrough(t *testing.T, d time.Duration) {
+	// Store the shared leaves under a root of their own.
 	ctx := t.Context()
-	path := filepath.Join(t.TempDir(), "wait.s4db")
-	v, closeVolume := openWaitVolumeAt(t, path, "", true)
-	clk := &skewClock{}
-	v.clock = clk.Now
+	v := openWaitVolume(t, "2s")
 	tr := testTree{}
-	names := make([]string, leaves)
-	for i := range names {
-		names[i] = "leaf " + strconv.Itoa(i)
-		tr.add(t, names[i])
+	var shared []string
+	for i := range 250 {
+		shared = append(shared, "shared "+strconv.Itoa(i))
+		tr.add(t, shared[i])
 	}
-	var released []block.NamedRoot
-	for i := 0; i < leaves; i += 1000 {
-		batch := names[i:min(leaves, i+1000)]
-		roots := make([]block.NamedRoot, len(batch))
-		for j, name := range batch {
-			roots[j] = block.NamedRoot{Name: name, Ref: tr[name].Ref}
-			released = append(released, block.NamedRoot{Name: name, Previous: tr[name].Ref})
-		}
-		if err := v.SetBucketRoots(ctx, "b", tr.entries(batch...), roots); err != nil {
-			t.Fatal(err)
-		}
-	}
-	mids := storeLeaves(t, v, tr, "wleaf ", leaves)
-	wnames := make([]string, leaves)
-	for i := range wnames {
-		wnames[i] = "wleaf " + strconv.Itoa(i)
-	}
-	wide := tr.add(t, "W", wnames...)
-	moves := []block.NamedRoot{{Name: "W", Ref: wide}}
-	for _, mid := range mids {
-		moves = append(moves, block.NamedRoot{Name: mid, Previous: tr[mid].Ref})
-	}
-	if err := v.SetBucketRoots(ctx, "b", tr.entries("W"), moves); err != nil {
+	tr.add(t, "base", shared...)
+	if err := v.SetBucketRoots(ctx, "b", tr.entries(append(shared, "base")...), []block.NamedRoot{{Name: "base", Ref: tr["base"].Ref}}); err != nil {
 		t.Fatal(err)
 	}
 
-	// Release the leaves and W, then name them past the releases.
-	for i := 0; i < len(released); i += 1000 {
-		if err := v.SetBucketRoots(ctx, "b", nil, released[i:min(len(released), i+1000)]); err != nil {
-			t.Fatal(err)
+	// Collect in the background until the commits stop.
+	var freed atomic.Uint64
+	stop := make(chan struct{})
+	collected := make(chan struct{})
+	go func() {
+		defer close(collected)
+		for {
+			res, err := v.Collect(ctx)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			freed.Add(res.Freed)
+			if res.More {
+				continue
+			}
+			select {
+			case <-stop:
+				return
+			case <-time.After(50 * time.Millisecond):
+			}
 		}
-	}
-	if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "W", Previous: wide}}); err != nil {
-		t.Fatal(err)
-	}
-	// Net the releases with a collector that frees nothing, so every block
-	// they take to zero ripens below the records that follow.
-	clk.Add(block_gc.DefaultGrace + time.Second)
-	netter := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{HoldUntilFree: true, Now: v.now})
-	for {
-		res, err := netter.Collect(ctx)
+	}()
+
+	// Commit at 12 a second, sampling the backlog each second.
+	backlog := func() uint64 {
+		var gap uint64
+		err := v.readRecords(ctx, func(rec *block_gc.Records) error {
+			state, err := rec.GetState(ctx)
+			gap = state.GetUpSeq() - state.GetUpCursor()
+			return err
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !res.More {
-			break
+		return gap
+	}
+	var waits []time.Duration
+	var gaps []uint64
+	var prev, link *block.BlockRef
+	tick := time.NewTicker(time.Second / 12)
+	defer tick.Stop()
+	start := time.Now()
+	for i := 0; time.Since(start) < d; i++ {
+		<-tick.C
+		if i%12 == 0 {
+			gaps = append(gaps, backlog())
 		}
-	}
-
-	// Name the leaves, W and the mids in again lists, entries in all.
-	named := make([][]byte, 0, leaves+1+len(mids))
-	for _, name := range append(append(slices.Clone(names), "W"), mids...) {
-		named = append(named, block_gc.BlockKey(tr[name].Ref))
-	}
-	keys := make([][]byte, 0, 2048)
-	for i := range entries {
-		if keys = append(keys, named[i%len(named)]); len(keys) == 2048 || i == entries-1 {
-			appendAgain(t, v, keys...)
-			keys = keys[:0]
+		if i%32 == 0 {
+			link = nil
 		}
-	}
-	skew := clk.skew.Load()
-	closeVolume()
-
-	// Reopen, then measure two passes: the free keeps every ripe block for
-	// the unnetted records.
-	v, closeVolume = openWaitVolumeAt(t, path, "", true)
-	clk = &skewClock{}
-	clk.skew.Store(skew)
-	v.clock = clk.Now
-	var sum block_gc.CollectResult
-	elapsed, waits := measureWaits(t, v, tr, func() {
-		for range 2 {
-			for {
-				res, err := v.Collect(ctx)
-				if err != nil {
-					t.Error(err)
-					return
-				}
-				sum.Freed += res.Freed
-				sum.Kept += res.Kept
-				sum.TailReading += res.TailReading
-				sum.TailSaturated += res.TailSaturated
-				if !res.More {
-					break
-				}
-			}
+		names := make([]string, 0, 10)
+		for j := range 9 {
+			names = append(names, "leaf "+strconv.Itoa(i)+" "+strconv.Itoa(j))
+			tr.add(t, names[j])
 		}
-	})
-	if sum.Freed != 0 || sum.TailReading == 0 || sum.TailSaturated != 0 {
-		t.Fatalf("freed %d, %d slices reading the tail, %d saturated: want none freed, the tail read in slices, unsaturated", sum.Freed, sum.TailReading, sum.TailSaturated)
+		children := append(slices.Clone(names), shared...)
+		parent := "parent " + strconv.Itoa(i)
+		if link != nil {
+			children = append(children, "parent "+strconv.Itoa(i-1))
+		}
+		link = tr.add(t, parent, children...)
+		at := time.Now()
+		err := v.SetBucketRoots(ctx, "b", tr.entries(append(names, parent)...), []block.NamedRoot{{Name: "main", Ref: link, Previous: prev}})
+		waits = append(waits, time.Since(at))
+		if err != nil {
+			t.Fatal(err)
+		}
+		prev = link
 	}
-	t.Logf("tail of %d entries over %d kept blocks: two passes in %v, %d slices reading the tail, %d kept; %s", entries, len(named), elapsed, sum.TailReading, sum.Kept, waits)
-	closeVolume()
+	elapsed := time.Since(start)
+	during := freed.Load()
+	close(stop)
+	<-collected
 
-	// Reopen, then queue one timed commit behind a slice reading the tail.
-	v, _ = openWaitVolumeAt(t, path, "", true)
-	v.clock = clk.Now
-	queued, wait := measureQueuedTailWait(t, v, tr)
-	t.Logf("one commit queued mid-scan behind a slice reading the cold tail: waited %v, %v of it after it queued", wait, queued)
+	// Free what remains once it ages, and audit.
+	time.Sleep(2*time.Second + 100*time.Millisecond)
+	after := collectToEnd(t, v)
+	slices.Sort(waits)
+	t.Logf("%d commits in %v waited max %v, p99 %v, median %v; freed %d during the commits and %d after; backlog each second %v, at the end %d",
+		len(waits), elapsed, waits[len(waits)-1], waits[len(waits)*99/100], waits[len(waits)/2], during, after, gaps, backlog())
+	if during == 0 {
+		t.Fatal("nothing freed while the commits continued")
+	}
+	requireAudit(t, v, 0)
 }
 
-// measureQueuedTailWait queues one foreground commit behind a free slice
-// reading the tail of v, whose collector holds no index yet, and returns how
-// long the commit waited after the store reported it queued, and in all.
-// The collector's WritersWaiting hook starts the commit on its third call of
-// the first free transaction, once the sync read one record, and returns
-// only once the store's own WritersWaiting reports the commit queued, so the
-// commit waits behind the rest of that slice: the sync's last page and the
-// commit.
-func measureQueuedTailWait(t *testing.T, v *Volume, tr testTree) (time.Duration, time.Duration) {
+// s4dbWaits summarizes the s4db store's longest wait on background work,
+// its flushes and its runs per level.
+func s4dbWaits(t *testing.T, v *Volume) string {
 	t.Helper()
-	ctx := t.Context()
-	w, ok := v.kvtxStore.(kvtx.WriterQueueStore)
-	if !ok {
-		t.Fatal("store reports no writer queue")
-	}
-	ref := tr.add(t, "timed")
-	var sweeping, started bool
-	var calls int
-	var queuedAt, startAt time.Time
-	done := make(chan error, 1)
-	var doneAt time.Time
-	waiting := func() bool {
-		// Count the calls of the first free transaction until the third.
-		if !sweeping || started {
-			return w.WritersWaiting()
-		}
-		if calls++; calls < 3 {
-			return w.WritersWaiting()
-		}
-
-		// Start the commit and hold the slice until the store queues it.
-		started, startAt = true, time.Now()
-		go func() {
-			err := v.SetBucketRoots(ctx, "b", tr.entries("timed"), []block.NamedRoot{{Name: "timed", Ref: ref}})
-			doneAt = time.Now()
-			done <- err
-		}()
-		for !w.WritersWaiting() {
-			if time.Since(startAt) > 10*time.Second {
-				t.Error("the commit never queued")
-				return true
-			}
-			runtime.Gosched()
-		}
-		queuedAt = time.Now()
-		return true
-	}
-	c := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{
-		Frees:          true,
-		HoldUntilFree:  true,
-		Now:            v.now,
-		WritersWaiting: waiting,
-		Phase: func(ph block_gc.Phase) func() {
-			sweeping = ph == block_gc.PhaseSweep
-			return func() { sweeping = false }
-		},
-	})
-	res, err := c.Collect(ctx)
+	st, err := v.kvtxStore.(*s4db.DB).Stats(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !started {
-		t.Fatalf("no free transaction reached its third waiting check: %+v", res)
+	return fmt.Sprintf("background wait max %v, flushes %d, runs %v, memtable %d", st.BackgroundWaitMax, st.Flushes, st.Runs, st.MemtableBytes)
+}
+
+// measureObsoleteSweepWait stores leaves blocks under mids of 1000 and
+// records obsolete records of an old graph kind, each keyed like a format 6
+// edge between two blocks, then logs a writer's waits while the obsolete
+// sweep deletes them, obsoleteSweepKeys per transaction, and the mean
+// transaction's time.
+func measureObsoleteSweepWait(t *testing.T, leaves, records int) {
+	// Store the live tree, then the obsolete records, 10,000 per transaction.
+	ctx := t.Context()
+	v := openWaitVolume(t, "")
+	tr := testTree{}
+	storeLeaves(t, v, tr, "leaf ", leaves)
+	prefix := append(bytes.Clone(livenessPrefix), 'g')
+	for at := 0; at < records; at += 10_000 {
+		err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+			vtx, err := p.store.NewTransaction(ctx, true)
+			if err != nil {
+				return err
+			}
+			for i := at; i < min(records, at+10_000); i++ {
+				from := sha256.Sum256([]byte("from " + strconv.Itoa(i)))
+				to := sha256.Sum256([]byte("to " + strconv.Itoa(i)))
+				if err := vtx.Set(ctx, slices.Concat(prefix, from[:], to[:]), nil); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
-	if err := <-done; err != nil {
+
+	// Time the writer alone, then sweep them as the upgrade does, in the
+	// background, while the writer commits.
+	_, alone := measureWaits(t, v, tr, func() { time.Sleep(time.Second) })
+	before := s4dbWaits(t, v)
+	var err error
+	elapsed, waits := measureWaits(t, v, tr, func() {
+		err = v.sweepObsoletePrefix(block.WithBackground(ctx), prefix)
+	})
+	t.Logf("s4db before the sweep: %s; after: %s", before, s4dbWaits(t, v))
+	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Freed != 0 || res.TailReading == 0 {
-		t.Fatalf("pass = %+v, want nothing freed and the tail read short", res)
+	if n := countPrefix(t, v.kvtxStore, prefix); n != 0 {
+		t.Fatalf("%d obsolete records remain", n)
 	}
-	return doneAt.Sub(queuedAt), doneAt.Sub(startAt)
+	txns := (records + obsoleteSweepKeys - 1) / obsoleteSweepKeys
+	t.Logf("obsolete sweep of %d records over %d leaves: %d transactions in %v, mean %v; %s; alone, %s",
+		records, leaves, txns, elapsed, elapsed/time.Duration(txns), waits, alone)
 }
 
 // skewClock reads the wall clock moved forward by a skew, so a measurement
@@ -457,7 +420,7 @@ func collectToEnd(t *testing.T, v *Volume) uint64 {
 // measureWaits runs fn while a writer moves a root every millisecond, and
 // returns fn's duration and a summary of the writer's waits.
 func measureWaits(t *testing.T, v *Volume, tr testTree, fn func()) (time.Duration, string) {
-	// Commit a root move every millisecond until fn returns.
+	// Commit a root move every millisecond until fn returns, then release the root.
 	t.Helper()
 	ctx := t.Context()
 	var mtx sync.Mutex
@@ -476,6 +439,10 @@ func measureWaits(t *testing.T, v *Volume, tr testTree, fn func()) (time.Duratio
 		for i := 0; ; i++ {
 			select {
 			case <-done:
+				// Release the root, so the next measurement starts clear.
+				if err := v.SetBucketRoots(ctx, "w", nil, []block.NamedRoot{{Name: "w", Previous: prev}}); err != nil {
+					t.Error(err)
+				}
 				return
 			case <-time.After(time.Millisecond):
 			}
@@ -507,6 +474,7 @@ func measureWaits(t *testing.T, v *Volume, tr testTree, fn func()) (time.Duratio
 	if len(waits) == 0 {
 		t.Fatalf("no commit landed in %v", elapsed)
 	}
-	return elapsed, fmt.Sprintf("%d commits waited max %v, p99 %v, median %v",
-		len(waits), waits[len(waits)-1], waits[len(waits)*99/100], waits[len(waits)/2])
+	over, _ := slices.BinarySearch(waits, 5*time.Millisecond)
+	return elapsed, fmt.Sprintf("%d commits waited max %v, p99 %v, median %v, %d over 5ms",
+		len(waits), waits[len(waits)-1], waits[len(waits)*99/100], waits[len(waits)/2], len(waits)-over)
 }

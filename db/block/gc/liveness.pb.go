@@ -19,12 +19,12 @@ type Adoption int32
 
 const (
 	// ADOPTION_UNADOPTED is a Volume written before its child lists were
-	// complete. It keeps no journal and frees nothing.
+	// complete. It keeps no logs and frees nothing.
 	Adoption_ADOPTION_UNADOPTED Adoption = 0
 	// ADOPTION_ADOPTING is a Volume whose counts an adoption is building. It
-	// keeps a journal and frees nothing.
+	// keeps the logs and frees nothing.
 	Adoption_ADOPTION_ADOPTING Adoption = 1
-	// ADOPTION_ADOPTED is a Volume whose counts and journal describe every
+	// ADOPTION_ADOPTED is a Volume whose counts and logs describe every
 	// holder. Its collector frees when its switch is on.
 	Adoption_ADOPTION_ADOPTED Adoption = 2
 )
@@ -51,45 +51,6 @@ func (x Adoption) Enum() *Adoption {
 
 func (x Adoption) String() string {
 	name, valid := Adoption_name[int32(x)]
-	if valid {
-		return name
-	}
-	return strconv.Itoa(int(x))
-}
-
-// HoldRule is the rule a Volume's counts were written under: when a block at
-// zero holders stops counting as a holder of its children.
-type HoldRule int32
-
-const (
-	// HOLD_RULE_RELEASE_AT_ZERO releases a block's children when it reaches
-	// zero holders, through a cascade, before the block itself is freed.
-	HoldRule_HOLD_RULE_RELEASE_AT_ZERO HoldRule = 0
-	// HOLD_RULE_HOLD_UNTIL_FREE keeps a block a holder of each child it lists
-	// until the transaction that frees it, which gives each child its down.
-	HoldRule_HOLD_RULE_HOLD_UNTIL_FREE HoldRule = 1
-)
-
-// Enum value maps for HoldRule.
-var (
-	HoldRule_name = map[int32]string{
-		0: "HOLD_RULE_RELEASE_AT_ZERO",
-		1: "HOLD_RULE_HOLD_UNTIL_FREE",
-	}
-	HoldRule_value = map[string]int32{
-		"HOLD_RULE_RELEASE_AT_ZERO": 0,
-		"HOLD_RULE_HOLD_UNTIL_FREE": 1,
-	}
-)
-
-func (x HoldRule) Enum() *HoldRule {
-	p := new(HoldRule)
-	*p = x
-	return p
-}
-
-func (x HoldRule) String() string {
-	name, valid := HoldRule_name[int32(x)]
 	if valid {
 		return name
 	}
@@ -178,74 +139,19 @@ func (x *RootEntry) GetExpiresUnixMilli() int64 {
 	return 0
 }
 
-// JournalRecord is one write transaction's change to the holders of blocks.
-// The collector nets it after the fact; nothing else reads it.
-type JournalRecord struct {
-	unknownFields []byte
-	// AtUnixMilli is when the transaction committed, in Unix milliseconds. It
-	// never decreases from one record to the next.
-	AtUnixMilli int64 `protobuf:"varint,1,opt,name=at_unix_milli,json=atUnixMilli,proto3" json:"atUnixMilli,omitempty"`
-	// Up names a block once for each holder the transaction added to it beyond
-	// the one a block stored by the transaction implies.
-	Up [][]byte `protobuf:"bytes,2,rep,name=up,proto3" json:"up,omitempty"`
-	// Down names a block once for each named root that moved off it.
-	Down [][]byte `protobuf:"bytes,3,rep,name=down,proto3" json:"down,omitempty"`
-	// Again names each block the transaction put again while the store held
-	// it. It changes no holder, but a block still at zero holders once the
-	// record nets takes the journal's end as its ripe sequence again, so the
-	// put restarts the block's grace.
-	Again [][]byte `protobuf:"bytes,4,rep,name=again,proto3" json:"again,omitempty"`
-}
-
-func (x *JournalRecord) Reset() {
-	*x = JournalRecord{}
-}
-
-func (*JournalRecord) ProtoMessage() {}
-
-func (x *JournalRecord) GetAtUnixMilli() int64 {
-	if x != nil {
-		return x.AtUnixMilli
-	}
-	return 0
-}
-
-func (x *JournalRecord) GetUp() [][]byte {
-	if x != nil {
-		return x.Up
-	}
-	return nil
-}
-
-func (x *JournalRecord) GetDown() [][]byte {
-	if x != nil {
-		return x.Down
-	}
-	return nil
-}
-
-func (x *JournalRecord) GetAgain() [][]byte {
-	if x != nil {
-		return x.Again
-	}
-	return nil
-}
-
-// LivenessState is the one record of a Volume's journal position and
+// LivenessState is the one record of a Volume's log positions and
 // adoption.
+//
+// The up log ('u') holds pages of blocks that gained a holder beyond the
+// one a stored block implies, one sequence each. The down log ('d') holds
+// pages of blocks that lost one, keyed by sequence, each carrying its commit
+// time. The collector nets the up log promptly and a down page once it is
+// Grace old, only in a slice that drained the up log, so a down never lands
+// before an up that preceded it.
 type LivenessState struct {
 	unknownFields []byte
 	// Adoption is whether the counts describe the Volume's blocks.
 	Adoption Adoption `protobuf:"varint,1,opt,name=adoption,proto3" json:"adoption,omitempty"`
-	// NextSeq is the sequence number the next journal record takes.
-	NextSeq uint64 `protobuf:"varint,2,opt,name=next_seq,json=nextSeq,proto3" json:"nextSeq,omitempty"`
-	// Cursor is the sequence number of the oldest record the collector has not
-	// netted.
-	Cursor uint64 `protobuf:"varint,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	// LegacyGraph reports that records of the reference graph of a store
-	// format before 7 remain, which a background sweep deletes in slices.
-	// Nothing reads them.
-	LegacyGraph bool `protobuf:"varint,5,opt,name=legacy_graph,json=legacyGraph,proto3" json:"legacyGraph,omitempty"`
 	// AdoptionRun names the adoption that marked the Volume adopting, or the
 	// one that abandoned it. Each transaction of an adoption refuses to write
 	// unless the Volume is still in its run, so a run another superseded writes
@@ -255,33 +161,9 @@ type LivenessState struct {
 	// fill or walk that writes a child list from content marks it so, as
 	// Records describes, while the generation is not Settled.
 	Generation Generation `protobuf:"varint,7,opt,name=generation,proto3" json:"generation,omitempty"`
-	// NetOffset is how much of the record at the cursor the collector has
-	// netted: its up pairs, then its down pairs, then its again entries. A
-	// slice does a bounded amount, so it splits a large record across slices.
-	NetOffset uint64 `protobuf:"varint,8,opt,name=net_offset,json=netOffset,proto3" json:"netOffset,omitempty"`
-	// Release is the paged release or re-hold in progress of one block's
-	// children, unset when none is.
+	// Release is the paged release in progress of the children of one freed
+	// block, unset when none is.
 	Release *Release `protobuf:"bytes,11,opt,name=release,proto3" json:"release,omitempty"`
-	// HoldMark is one past the sequence of the last journal record of a Land
-	// that held a block at zero holders, or one whose children were released,
-	// or any block while a cascade was due: a block below it may have no
-	// holder until that record nets and the re-hold it brings runs. The
-	// collector frees nothing, and the settle pops no front entry, until its
-	// cursor reaches the mark.
-	HoldMark uint64 `protobuf:"varint,12,opt,name=hold_mark,json=holdMark,proto3" json:"holdMark,omitempty"`
-	// Cascades counts the cascade records, the blocks whose cascade is due,
-	// so a Land and the free learn whether any is due from this record rather
-	// than a seek past the deleted ones. It is exact while the Volume is
-	// adopted: the adoption zeroes it once its clear has deleted the records
-	// an earlier run left, and counts each block it settles Dying.
-	Cascades uint64 `protobuf:"varint,13,opt,name=cascades,proto3" json:"cascades,omitempty"`
-	// HoldRule is the rule the counts were written under, set by the adoption
-	// that counted them or at the birth of an empty Volume. It is the source of
-	// truth while the Volume is adopted: a process that opens it counts under
-	// this rule, whatever its own config names, and only an adoption of an
-	// unadopted Volume writes another. The collector nets and frees only a
-	// Volume whose rule matches its own.
-	HoldRule HoldRule `protobuf:"varint,14,opt,name=hold_rule,json=holdRule,proto3" json:"holdRule,omitempty"`
 	// Frees is whether the collector's frees were on at the last writable
 	// open, or at the birth of an empty Volume. The write that turns it on
 	// also returns the Volume to unadopted, so an adoption counts every holder
@@ -296,27 +178,36 @@ type LivenessState struct {
 	// switch-on counts again after a writer that knew nothing of the switch.
 	// It sees every write a recount would correct, because Land is the one
 	// writer of holders: a Land that adds or drops a holder outside the blocks
-	// its own batch stores first writes a journal record and this record,
-	// while a batch's new blocks carry exactly the counts any build's Land
-	// gives them. An older build's open of an adopted Volume writes nothing.
-	// A later field that is not zero changes the hash input, so a build that
-	// reads it as unknown sees the mark stale and forces one more recount,
-	// which fails safe.
+	// its own batch stores first writes a log page and this record, while a
+	// batch's new blocks carry exactly the counts any build's Land gives them.
+	// An older build's open of an adopted Volume writes nothing. A later field
+	// that is not zero changes the hash input, so a build that reads it as
+	// unknown sees the mark stale and forces one more recount, which fails
+	// safe.
 	FreesMark uint64 `protobuf:"varint,16,opt,name=frees_mark,json=freesMark,proto3" json:"freesMark,omitempty"`
-	// AdoptMark is one past the sequence of the empty record the last
-	// adoption wrote at its mark. A block the adoption settles may be a head a
-	// reader saw before the mark, whose move off it the dropped journal
-	// carried, so the settle's flip, its only reader, unmarks nothing until
-	// the cursor reaches this mark and the record is Grace old. Nothing clears
-	// it: once reached, the cursor stays past it, and an adoption after the
-	// flip sets a mark that no flip reads.
-	//
-	// Invariant: only Adopt's mark transaction writes it; no Land, fill,
-	// netting, free or flip does. So no write a steady writer lands can move
-	// it, and the flip waits at most Grace past the mark plus the time to net
-	// the records before it, unlike frees, which a writer can hold off through
-	// HoldMark.
-	AdoptMark uint64 `protobuf:"varint,17,opt,name=adopt_mark,json=adoptMark,proto3" json:"adoptMark,omitempty"`
+	// UpSeq is the sequence the next up page takes. A block that reaches zero
+	// holders takes it as its ripe sequence.
+	UpSeq uint64 `protobuf:"varint,18,opt,name=up_seq,json=upSeq,proto3" json:"upSeq,omitempty"`
+	// UpCursor is the sequence of the oldest up page the collector has not
+	// netted. A block at zero frees only once the cursor reaches its ripe
+	// sequence, so every up written before it reached zero has netted.
+	UpCursor uint64 `protobuf:"varint,19,opt,name=up_cursor,json=upCursor,proto3" json:"upCursor,omitempty"`
+	// DownSeq is the sequence the next down page takes. It orders pages that
+	// share a commit time and lets the adoption drop the pages before its
+	// mark.
+	DownSeq uint64 `protobuf:"varint,20,opt,name=down_seq,json=downSeq,proto3" json:"downSeq,omitempty"`
+	// AdoptAtUnixMilli is the wall time of the last adoption's mark, in Unix
+	// milliseconds. A block the adoption settles may be a head a reader saw
+	// before the mark, whose move off it the dropped logs carried, so the
+	// collector frees, pops and flips nothing until Grace has passed since
+	// this time. Only Adopt's mark transaction writes it.
+	AdoptAtUnixMilli int64 `protobuf:"varint,21,opt,name=adopt_at_unix_milli,json=adoptAtUnixMilli,proto3" json:"adoptAtUnixMilli,omitempty"`
+	// ObsoleteKinds are the record kinds under the liveness prefix that an
+	// older store format wrote and this one neither writes nor reads, one
+	// byte each, which a background sweep deletes in slices, dropping each
+	// kind once none of its records remain. None is a block, a block's bytes
+	// or a child list.
+	ObsoleteKinds []byte `protobuf:"bytes,22,opt,name=obsolete_kinds,json=obsoleteKinds,proto3" json:"obsoleteKinds,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -330,27 +221,6 @@ func (x *LivenessState) GetAdoption() Adoption {
 		return x.Adoption
 	}
 	return Adoption_ADOPTION_UNADOPTED
-}
-
-func (x *LivenessState) GetNextSeq() uint64 {
-	if x != nil {
-		return x.NextSeq
-	}
-	return 0
-}
-
-func (x *LivenessState) GetCursor() uint64 {
-	if x != nil {
-		return x.Cursor
-	}
-	return 0
-}
-
-func (x *LivenessState) GetLegacyGraph() bool {
-	if x != nil {
-		return x.LegacyGraph
-	}
-	return false
 }
 
 func (x *LivenessState) GetAdoptionRun() string {
@@ -367,39 +237,11 @@ func (x *LivenessState) GetGeneration() Generation {
 	return Generation_GENERATION_SETTLED
 }
 
-func (x *LivenessState) GetNetOffset() uint64 {
-	if x != nil {
-		return x.NetOffset
-	}
-	return 0
-}
-
 func (x *LivenessState) GetRelease() *Release {
 	if x != nil {
 		return x.Release
 	}
 	return nil
-}
-
-func (x *LivenessState) GetHoldMark() uint64 {
-	if x != nil {
-		return x.HoldMark
-	}
-	return 0
-}
-
-func (x *LivenessState) GetCascades() uint64 {
-	if x != nil {
-		return x.Cascades
-	}
-	return 0
-}
-
-func (x *LivenessState) GetHoldRule() HoldRule {
-	if x != nil {
-		return x.HoldRule
-	}
-	return HoldRule_HOLD_RULE_RELEASE_AT_ZERO
 }
 
 func (x *LivenessState) GetFrees() bool {
@@ -416,18 +258,44 @@ func (x *LivenessState) GetFreesMark() uint64 {
 	return 0
 }
 
-func (x *LivenessState) GetAdoptMark() uint64 {
+func (x *LivenessState) GetUpSeq() uint64 {
 	if x != nil {
-		return x.AdoptMark
+		return x.UpSeq
 	}
 	return 0
 }
 
-// Release is a cascade whose child list is longer than one collector slice
-// moves: the release of the children of a block that lost its last holder,
-// or under HOLD_RULE_HOLD_UNTIL_FREE of a block the collector freed, or the
-// re-hold of the children of one that gained a holder after its release. The slice that starts it moves the list to release pages and
-// marks the block released or held; each later slice moves the next
+func (x *LivenessState) GetUpCursor() uint64 {
+	if x != nil {
+		return x.UpCursor
+	}
+	return 0
+}
+
+func (x *LivenessState) GetDownSeq() uint64 {
+	if x != nil {
+		return x.DownSeq
+	}
+	return 0
+}
+
+func (x *LivenessState) GetAdoptAtUnixMilli() int64 {
+	if x != nil {
+		return x.AdoptAtUnixMilli
+	}
+	return 0
+}
+
+func (x *LivenessState) GetObsoleteKinds() []byte {
+	if x != nil {
+		return x.ObsoleteKinds
+	}
+	return nil
+}
+
+// Release is the release of the children of a freed block whose child list
+// is longer than one collector slice moves. The slice that frees the block
+// moves the list to release pages; each later slice drops the next
 // children's holders by one and moves Next in the same transaction, and the
 // last deletes the pages and clears the release.
 type Release struct {
@@ -438,9 +306,6 @@ type Release struct {
 	Next uint64 `protobuf:"varint,2,opt,name=next,proto3" json:"next,omitempty"`
 	// Children is how many children the list names.
 	Children uint64 `protobuf:"varint,3,opt,name=children,proto3" json:"children,omitempty"`
-	// Rehold reports a re-hold: each child gains a holder rather than losing
-	// one.
-	Rehold bool `protobuf:"varint,4,opt,name=rehold,proto3" json:"rehold,omitempty"`
 }
 
 func (x *Release) Reset() {
@@ -470,13 +335,6 @@ func (x *Release) GetChildren() uint64 {
 	return 0
 }
 
-func (x *Release) GetRehold() bool {
-	if x != nil {
-		return x.Rehold
-	}
-	return false
-}
-
 func (m *RootEntry) CloneVT() *RootEntry {
 	if m == nil {
 		return (*RootEntry)(nil)
@@ -494,44 +352,22 @@ func (m *RootEntry) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *JournalRecord) CloneVT() *JournalRecord {
-	if m == nil {
-		return (*JournalRecord)(nil)
-	}
-	r := new(JournalRecord)
-	r.AtUnixMilli = m.AtUnixMilli
-	r.Up = protobuf_go_lite.CloneBytesSlice(m.Up)
-	r.Down = protobuf_go_lite.CloneBytesSlice(m.Down)
-	r.Again = protobuf_go_lite.CloneBytesSlice(m.Again)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *JournalRecord) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
 func (m *LivenessState) CloneVT() *LivenessState {
 	if m == nil {
 		return (*LivenessState)(nil)
 	}
 	r := new(LivenessState)
 	r.Adoption = m.Adoption
-	r.NextSeq = m.NextSeq
-	r.Cursor = m.Cursor
-	r.LegacyGraph = m.LegacyGraph
 	r.AdoptionRun = m.AdoptionRun
 	r.Generation = m.Generation
-	r.NetOffset = m.NetOffset
-	r.HoldMark = m.HoldMark
-	r.Cascades = m.Cascades
-	r.HoldRule = m.HoldRule
 	r.Frees = m.Frees
 	r.FreesMark = m.FreesMark
-	r.AdoptMark = m.AdoptMark
+	r.UpSeq = m.UpSeq
+	r.UpCursor = m.UpCursor
+	r.DownSeq = m.DownSeq
+	r.AdoptAtUnixMilli = m.AdoptAtUnixMilli
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
+	r.ObsoleteKinds = protobuf_go_lite.CloneBytes(m.ObsoleteKinds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -549,7 +385,6 @@ func (m *Release) CloneVT() *Release {
 	r := new(Release)
 	r.Next = m.Next
 	r.Children = m.Children
-	r.Rehold = m.Rehold
 	r.Block = protobuf_go_lite.CloneBytes(m.Block)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -584,35 +419,6 @@ func (this *RootEntry) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *JournalRecord) EqualVT(that *JournalRecord) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.AtUnixMilli != that.AtUnixMilli {
-		return false
-	}
-	if !protobuf_go_lite.EqualBytesSlice(this.Up, that.Up) {
-		return false
-	}
-	if !protobuf_go_lite.EqualBytesSlice(this.Down, that.Down) {
-		return false
-	}
-	if !protobuf_go_lite.EqualBytesSlice(this.Again, that.Again) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *JournalRecord) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*JournalRecord)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
 func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this == that {
 		return true
@@ -622,34 +428,13 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this.Adoption != that.Adoption {
 		return false
 	}
-	if this.NextSeq != that.NextSeq {
-		return false
-	}
-	if this.Cursor != that.Cursor {
-		return false
-	}
-	if this.LegacyGraph != that.LegacyGraph {
-		return false
-	}
 	if this.AdoptionRun != that.AdoptionRun {
 		return false
 	}
 	if this.Generation != that.Generation {
 		return false
 	}
-	if this.NetOffset != that.NetOffset {
-		return false
-	}
 	if !protobuf_go_lite.IsEqualVT(this.Release, that.Release) {
-		return false
-	}
-	if this.HoldMark != that.HoldMark {
-		return false
-	}
-	if this.Cascades != that.Cascades {
-		return false
-	}
-	if this.HoldRule != that.HoldRule {
 		return false
 	}
 	if this.Frees != that.Frees {
@@ -658,7 +443,19 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this.FreesMark != that.FreesMark {
 		return false
 	}
-	if this.AdoptMark != that.AdoptMark {
+	if this.UpSeq != that.UpSeq {
+		return false
+	}
+	if this.UpCursor != that.UpCursor {
+		return false
+	}
+	if this.DownSeq != that.DownSeq {
+		return false
+	}
+	if this.AdoptAtUnixMilli != that.AdoptAtUnixMilli {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ObsoleteKinds, that.ObsoleteKinds) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -685,9 +482,6 @@ func (this *Release) EqualVT(that *Release) bool {
 		return false
 	}
 	if this.Children != that.Children {
-		return false
-	}
-	if this.Rehold != that.Rehold {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -738,46 +532,6 @@ func (x *Adoption) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the Adoption from JSON.
 func (x *Adoption) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the HoldRule to JSON.
-func (x HoldRule) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), HoldRule_name)
-}
-
-// MarshalText marshals the HoldRule to text.
-func (x HoldRule) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), HoldRule_name)), nil
-}
-
-// MarshalJSON marshals the HoldRule to JSON.
-func (x HoldRule) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the HoldRule from JSON.
-func (x *HoldRule) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(HoldRule_value)
-	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read HoldRule enum: %v", err)
-		return
-	}
-	*x = HoldRule(v)
-}
-
-// UnmarshalText unmarshals the HoldRule from text.
-func (x *HoldRule) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), HoldRule_value)
-	if err != nil {
-		return err
-	}
-	*x = HoldRule(i)
-	return nil
-}
-
-// UnmarshalJSON unmarshals the HoldRule from JSON.
-func (x *HoldRule) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -871,84 +625,6 @@ func (x *RootEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the JournalRecord message to JSON.
-func (x *JournalRecord) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.AtUnixMilli != 0 || s.HasField("atUnixMilli") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("atUnixMilli")
-		s.WriteInt64(x.AtUnixMilli)
-	}
-	if len(x.Up) > 0 || s.HasField("up") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("up")
-		s.WriteBytesArray(x.Up)
-	}
-	if len(x.Down) > 0 || s.HasField("down") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("down")
-		s.WriteBytesArray(x.Down)
-	}
-	if len(x.Again) > 0 || s.HasField("again") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("again")
-		s.WriteBytesArray(x.Again)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the JournalRecord to JSON.
-func (x *JournalRecord) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the JournalRecord message from JSON.
-func (x *JournalRecord) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "at_unix_milli", "atUnixMilli":
-			s.AddField("at_unix_milli")
-			x.AtUnixMilli = s.ReadInt64()
-		case "up":
-			s.AddField("up")
-			if s.ReadNil() {
-				x.Up = nil
-				return
-			}
-			x.Up = s.ReadBytesArray()
-		case "down":
-			s.AddField("down")
-			if s.ReadNil() {
-				x.Down = nil
-				return
-			}
-			x.Down = s.ReadBytesArray()
-		case "again":
-			s.AddField("again")
-			if s.ReadNil() {
-				x.Again = nil
-				return
-			}
-			x.Again = s.ReadBytesArray()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the JournalRecord from JSON.
-func (x *JournalRecord) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 // MarshalProtoJSON marshals the LivenessState message to JSON.
 func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -962,21 +638,6 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("adoption")
 		x.Adoption.MarshalProtoJSON(s)
 	}
-	if x.NextSeq != 0 || s.HasField("nextSeq") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("nextSeq")
-		s.WriteUint64(x.NextSeq)
-	}
-	if x.Cursor != 0 || s.HasField("cursor") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("cursor")
-		s.WriteUint64(x.Cursor)
-	}
-	if x.LegacyGraph || s.HasField("legacyGraph") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("legacyGraph")
-		s.WriteBool(x.LegacyGraph)
-	}
 	if x.AdoptionRun != "" || s.HasField("adoptionRun") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("adoptionRun")
@@ -987,30 +648,10 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("generation")
 		x.Generation.MarshalProtoJSON(s)
 	}
-	if x.NetOffset != 0 || s.HasField("netOffset") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("netOffset")
-		s.WriteUint64(x.NetOffset)
-	}
 	if x.Release != nil || s.HasField("release") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("release")
 		x.Release.MarshalProtoJSON(s.WithField("release"))
-	}
-	if x.HoldMark != 0 || s.HasField("holdMark") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("holdMark")
-		s.WriteUint64(x.HoldMark)
-	}
-	if x.Cascades != 0 || s.HasField("cascades") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("cascades")
-		s.WriteUint64(x.Cascades)
-	}
-	if x.HoldRule != 0 || s.HasField("holdRule") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("holdRule")
-		x.HoldRule.MarshalProtoJSON(s)
 	}
 	if x.Frees || s.HasField("frees") {
 		s.WriteMoreIf(&wroteField)
@@ -1022,10 +663,30 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("freesMark")
 		s.WriteUint64(x.FreesMark)
 	}
-	if x.AdoptMark != 0 || s.HasField("adoptMark") {
+	if x.UpSeq != 0 || s.HasField("upSeq") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("adoptMark")
-		s.WriteUint64(x.AdoptMark)
+		s.WriteObjectField("upSeq")
+		s.WriteUint64(x.UpSeq)
+	}
+	if x.UpCursor != 0 || s.HasField("upCursor") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("upCursor")
+		s.WriteUint64(x.UpCursor)
+	}
+	if x.DownSeq != 0 || s.HasField("downSeq") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("downSeq")
+		s.WriteUint64(x.DownSeq)
+	}
+	if x.AdoptAtUnixMilli != 0 || s.HasField("adoptAtUnixMilli") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("adoptAtUnixMilli")
+		s.WriteInt64(x.AdoptAtUnixMilli)
+	}
+	if len(x.ObsoleteKinds) > 0 || s.HasField("obsoleteKinds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("obsoleteKinds")
+		s.WriteBytes(x.ObsoleteKinds)
 	}
 	s.WriteObjectEnd()
 }
@@ -1047,24 +708,12 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "adoption":
 			s.AddField("adoption")
 			x.Adoption.UnmarshalProtoJSON(s)
-		case "next_seq", "nextSeq":
-			s.AddField("next_seq")
-			x.NextSeq = s.ReadUint64()
-		case "cursor":
-			s.AddField("cursor")
-			x.Cursor = s.ReadUint64()
-		case "legacy_graph", "legacyGraph":
-			s.AddField("legacy_graph")
-			x.LegacyGraph = s.ReadBool()
 		case "adoption_run", "adoptionRun":
 			s.AddField("adoption_run")
 			x.AdoptionRun = s.ReadString()
 		case "generation":
 			s.AddField("generation")
 			x.Generation.UnmarshalProtoJSON(s)
-		case "net_offset", "netOffset":
-			s.AddField("net_offset")
-			x.NetOffset = s.ReadUint64()
 		case "release":
 			if s.ReadNil() {
 				x.Release = nil
@@ -1072,24 +721,27 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Release = &Release{}
 			x.Release.UnmarshalProtoJSON(s.WithField("release", true))
-		case "hold_mark", "holdMark":
-			s.AddField("hold_mark")
-			x.HoldMark = s.ReadUint64()
-		case "cascades":
-			s.AddField("cascades")
-			x.Cascades = s.ReadUint64()
-		case "hold_rule", "holdRule":
-			s.AddField("hold_rule")
-			x.HoldRule.UnmarshalProtoJSON(s)
 		case "frees":
 			s.AddField("frees")
 			x.Frees = s.ReadBool()
 		case "frees_mark", "freesMark":
 			s.AddField("frees_mark")
 			x.FreesMark = s.ReadUint64()
-		case "adopt_mark", "adoptMark":
-			s.AddField("adopt_mark")
-			x.AdoptMark = s.ReadUint64()
+		case "up_seq", "upSeq":
+			s.AddField("up_seq")
+			x.UpSeq = s.ReadUint64()
+		case "up_cursor", "upCursor":
+			s.AddField("up_cursor")
+			x.UpCursor = s.ReadUint64()
+		case "down_seq", "downSeq":
+			s.AddField("down_seq")
+			x.DownSeq = s.ReadUint64()
+		case "adopt_at_unix_milli", "adoptAtUnixMilli":
+			s.AddField("adopt_at_unix_milli")
+			x.AdoptAtUnixMilli = s.ReadInt64()
+		case "obsolete_kinds", "obsoleteKinds":
+			s.AddField("obsolete_kinds")
+			x.ObsoleteKinds = s.ReadBytes()
 		}
 	})
 }
@@ -1122,11 +774,6 @@ func (x *Release) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("children")
 		s.WriteUint64(x.Children)
 	}
-	if x.Rehold || s.HasField("rehold") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("rehold")
-		s.WriteBool(x.Rehold)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -1153,9 +800,6 @@ func (x *Release) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "children":
 			s.AddField("children")
 			x.Children = s.ReadUint64()
-		case "rehold":
-			s.AddField("rehold")
-			x.Rehold = s.ReadBool()
 		}
 	})
 }
@@ -1207,64 +851,6 @@ func (m *RootEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *JournalRecord) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *JournalRecord) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *JournalRecord) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.Again) > 0 {
-		for iNdEx := len(m.Again) - 1; iNdEx >= 0; iNdEx-- {
-			i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Again[iNdEx])
-			i--
-			dAtA[i] = 0x22
-		}
-	}
-	if len(m.Down) > 0 {
-		for iNdEx := len(m.Down) - 1; iNdEx >= 0; iNdEx-- {
-			i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Down[iNdEx])
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
-	if len(m.Up) > 0 {
-		for iNdEx := len(m.Up) - 1; iNdEx >= 0; iNdEx-- {
-			i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Up[iNdEx])
-			i--
-			dAtA[i] = 0x12
-		}
-	}
-	if m.AtUnixMilli != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AtUnixMilli))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *LivenessState) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1294,12 +880,40 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.AdoptMark != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AdoptMark))
+	if len(m.ObsoleteKinds) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ObsoleteKinds)
 		i--
 		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0x88
+		dAtA[i] = 0xb2
+	}
+	if m.AdoptAtUnixMilli != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AdoptAtUnixMilli))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
+	}
+	if m.DownSeq != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DownSeq))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
+	}
+	if m.UpCursor != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UpCursor))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x98
+	}
+	if m.UpSeq != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UpSeq))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
 	}
 	if m.FreesMark != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FreesMark))
@@ -1313,21 +927,6 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x78
 	}
-	if m.HoldRule != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.HoldRule))
-		i--
-		dAtA[i] = 0x70
-	}
-	if m.Cascades != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cascades))
-		i--
-		dAtA[i] = 0x68
-	}
-	if m.HoldMark != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.HoldMark))
-		i--
-		dAtA[i] = 0x60
-	}
 	if m.Release != nil {
 		size, err := m.Release.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1338,11 +937,6 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x5a
 	}
-	if m.NetOffset != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NetOffset))
-		i--
-		dAtA[i] = 0x40
-	}
 	if m.Generation != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Generation))
 		i--
@@ -1352,21 +946,6 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.AdoptionRun)
 		i--
 		dAtA[i] = 0x32
-	}
-	if m.LegacyGraph {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.LegacyGraph)
-		i--
-		dAtA[i] = 0x28
-	}
-	if m.Cursor != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cursor))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.NextSeq != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextSeq))
-		i--
-		dAtA[i] = 0x10
 	}
 	if m.Adoption != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Adoption))
@@ -1405,11 +984,6 @@ func (m *Release) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.Rehold {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Rehold)
-		i--
-		dAtA[i] = 0x20
-	}
 	if m.Children != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Children))
 		i--
@@ -1440,20 +1014,6 @@ func (m *RootEntry) SizeVT() (n int) {
 	return n
 }
 
-func (m *JournalRecord) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.AtUnixMilli)
-	n += protobuf_go_lite.SizeBytesSlice(1, m.Up)
-	n += protobuf_go_lite.SizeBytesSlice(1, m.Down)
-	n += protobuf_go_lite.SizeBytesSlice(1, m.Again)
-	n += len(m.unknownFields)
-	return n
-}
-
 func (m *LivenessState) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1461,22 +1021,19 @@ func (m *LivenessState) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Adoption)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextSeq)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cursor)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.LegacyGraph)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AdoptionRun)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Generation)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.NetOffset)
 	if m.Release != nil {
 		l = m.Release.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldMark)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cascades)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldRule)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Frees)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.FreesMark)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.AdoptMark)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.UpSeq)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.UpCursor)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.DownSeq)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.AdoptAtUnixMilli)
+	n += protobuf_go_lite.SizeBytesNonEmpty(2, m.ObsoleteKinds)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1490,16 +1047,11 @@ func (m *Release) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Block)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Next)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Children)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.Rehold)
 	n += len(m.unknownFields)
 	return n
 }
 
 func (x Adoption) MarshalProtoText() string {
-	return x.String()
-}
-
-func (x HoldRule) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -1525,62 +1077,12 @@ func (x *RootEntry) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *JournalRecord) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "JournalRecord")
-	if x.AtUnixMilli != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "at_unix_milli")
-		protobuf_go_lite.TextWriteInt(&sb, x.AtUnixMilli)
-	}
-	if len(x.Up) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "up")
-		for i, v := range x.Up {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			protobuf_go_lite.TextWriteBytes(&sb, v)
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
-	if len(x.Down) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "down")
-		for i, v := range x.Down {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			protobuf_go_lite.TextWriteBytes(&sb, v)
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
-	if len(x.Again) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "again")
-		for i, v := range x.Again {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			protobuf_go_lite.TextWriteBytes(&sb, v)
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *JournalRecord) String() string {
-	return x.MarshalProtoText()
-}
-
 func (x *LivenessState) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LivenessState")
 	if x.Adoption != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "adoption")
 		protobuf_go_lite.TextWriteStringer(&sb, Adoption(x.Adoption))
-	}
-	if x.NextSeq != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_seq")
-		protobuf_go_lite.TextWriteUint(&sb, x.NextSeq)
-	}
-	if x.Cursor != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cursor")
-		protobuf_go_lite.TextWriteUint(&sb, x.Cursor)
-	}
-	if x.LegacyGraph != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "legacy_graph")
-		protobuf_go_lite.TextWriteBool(&sb, x.LegacyGraph)
 	}
 	if x.AdoptionRun != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "adoption_run")
@@ -1590,25 +1092,9 @@ func (x *LivenessState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation")
 		protobuf_go_lite.TextWriteStringer(&sb, Generation(x.Generation))
 	}
-	if x.NetOffset != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "net_offset")
-		protobuf_go_lite.TextWriteUint(&sb, x.NetOffset)
-	}
 	if x.Release != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "release")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Release)
-	}
-	if x.HoldMark != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hold_mark")
-		protobuf_go_lite.TextWriteUint(&sb, x.HoldMark)
-	}
-	if x.Cascades != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cascades")
-		protobuf_go_lite.TextWriteUint(&sb, x.Cascades)
-	}
-	if x.HoldRule != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hold_rule")
-		protobuf_go_lite.TextWriteStringer(&sb, HoldRule(x.HoldRule))
 	}
 	if x.Frees != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "frees")
@@ -1618,9 +1104,25 @@ func (x *LivenessState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "frees_mark")
 		protobuf_go_lite.TextWriteUint(&sb, x.FreesMark)
 	}
-	if x.AdoptMark != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "adopt_mark")
-		protobuf_go_lite.TextWriteUint(&sb, x.AdoptMark)
+	if x.UpSeq != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "up_seq")
+		protobuf_go_lite.TextWriteUint(&sb, x.UpSeq)
+	}
+	if x.UpCursor != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "up_cursor")
+		protobuf_go_lite.TextWriteUint(&sb, x.UpCursor)
+	}
+	if x.DownSeq != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "down_seq")
+		protobuf_go_lite.TextWriteUint(&sb, x.DownSeq)
+	}
+	if x.AdoptAtUnixMilli != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "adopt_at_unix_milli")
+		protobuf_go_lite.TextWriteInt(&sb, x.AdoptAtUnixMilli)
+	}
+	if len(x.ObsoleteKinds) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "obsolete_kinds")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ObsoleteKinds)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1643,10 +1145,6 @@ func (x *Release) MarshalProtoText() string {
 	if x.Children != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "children")
 		protobuf_go_lite.TextWriteUint(&sb, x.Children)
-	}
-	if x.Rehold != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rehold")
-		protobuf_go_lite.TextWriteBool(&sb, x.Rehold)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1715,88 +1213,6 @@ func (m *RootEntry) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *JournalRecord) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: JournalRecord: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: JournalRecord: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AtUnixMilli", wireType)
-			}
-			m.AtUnixMilli = 0
-			m.AtUnixMilli, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Up", wireType)
-			}
-			var v []byte
-			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
-			if err != nil {
-				return err
-			}
-			m.Up = append(m.Up, v)
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Down", wireType)
-			}
-			var v []byte
-			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
-			if err != nil {
-				return err
-			}
-			m.Down = append(m.Down, v)
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Again", wireType)
-			}
-			var v []byte
-			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
-			if err != nil {
-				return err
-			}
-			m.Again = append(m.Again, v)
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
 func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1828,34 +1244,6 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NextSeq", wireType)
-			}
-			m.NextSeq = 0
-			m.NextSeq, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Cursor", wireType)
-			}
-			m.Cursor = 0
-			m.Cursor, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LegacyGraph", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.LegacyGraph = bool(v)
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field AdoptionRun", wireType)
@@ -1877,15 +1265,6 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 8:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NetOffset", wireType)
-			}
-			m.NetOffset = 0
-			m.NetOffset, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
 		case 11:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Release", wireType)
@@ -1901,35 +1280,6 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 12:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HoldMark", wireType)
-			}
-			m.HoldMark = 0
-			m.HoldMark, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 13:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Cascades", wireType)
-			}
-			m.Cascades = 0
-			m.Cascades, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 14:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HoldRule", wireType)
-			}
-			m.HoldRule = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.HoldRule = HoldRule(_v)
-			if err != nil {
-				return err
-			}
 		case 15:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Frees", wireType)
@@ -1949,12 +1299,47 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 17:
+		case 18:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AdoptMark", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field UpSeq", wireType)
 			}
-			m.AdoptMark = 0
-			m.AdoptMark, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.UpSeq = 0
+			m.UpSeq, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 19:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpCursor", wireType)
+			}
+			m.UpCursor = 0
+			m.UpCursor, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DownSeq", wireType)
+			}
+			m.DownSeq = 0
+			m.DownSeq, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 21:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdoptAtUnixMilli", wireType)
+			}
+			m.AdoptAtUnixMilli = 0
+			m.AdoptAtUnixMilli, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 22:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObsoleteKinds", wireType)
+			}
+			m.ObsoleteKinds, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ObsoleteKinds, dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
@@ -2027,16 +1412,6 @@ func (m *Release) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Rehold", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Rehold = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

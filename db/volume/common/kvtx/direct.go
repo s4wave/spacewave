@@ -24,8 +24,8 @@ import (
 // applies only the deferred edits.
 //
 // It commits with write ordering when the store supports it. A direct write is
-// safe to lose in a crash as long as no earlier commit is lost: the journal
-// record it appends goes with it. The head publication that follows commits
+// safe to lose in a crash as long as no earlier commit is lost: the log pages
+// it appends go with it. The head publication that follows commits
 // fully and makes these writes durable, as does Sync.
 func (v *Volume) withDirectAtomic(ctx context.Context, fn func(p *physicalTx) error) error {
 	return v.withDirect(ctx, false, fn)
@@ -92,7 +92,7 @@ func (v *Volume) withDirect(ctx context.Context, durable bool, fn func(p *physic
 //
 // A fill lands through Volume.landFill: a refill reads only the child lists
 // of the blocks it puts, and a new fill lands through Land, which reads and
-// advances the journal position, so it conflicts with every journaling commit
+// advances the log positions, so it conflicts with every commit that logs
 // after its snapshot and holds the writer once conflicts repeat.
 //
 // It carries no deferred edits: they reserve in-memory pins once per

@@ -72,8 +72,8 @@ message WalkCounts {
   // UnconfirmedUnrooted counts the unconfirmed candidates of
   // HOLE_CLASS_UNROOTED.
   uint64 unconfirmed_unrooted = 12;
-  // TailPairs counts the journal pairs the walk copied into its scratch
-  // store, so each check view reads only the journal written since the last.
+  // TailPairs counts the log entries the walk copied into its scratch
+  // store, so each check view reads only the log pages written since the last.
   uint64 tail_pairs = 13;
   // Wide counts the named blocks with more edges than one view reads whose
   // undercount went unchecked: something that could change a namer moved
@@ -102,9 +102,9 @@ message WalkProgress {
   int64 started_unix_milli = 4;
   // Counts is what the walk has counted.
   WalkCounts counts = 5;
-  // Tail is the sequence past the last journal record the walk copied into
-  // its scratch store. The check copies from the later of it and the cursor.
-  uint64 tail = 6;
+  // UpTail is the sequence past the last up page the walk copied into its
+  // scratch store. The check copies from the later of it and the up cursor.
+  uint64 up_tail = 6;
   // EdgeAfter is the last edge key the views of the block past After have
   // read, after the edge kind: the next view of that block resumes past it.
   // Empty starts the block's edges.
@@ -121,6 +121,10 @@ message WalkProgress {
   // WideMoved reports that a view of the wide block past After read another
   // mark than its first.
   bool wide_moved = 11;
+  // DownTail is the sequence past the last down page the walk copied into
+  // its scratch store. The check copies from the later of it and the first
+  // down page left.
+  uint64 down_tail = 12;
 }
 
 // WalkMark is what one view reads of the things that can change the namers
@@ -128,18 +132,18 @@ message WalkProgress {
 // holders and pending pairs. Two views that read the same mark saw the same
 // namers of the block.
 message WalkMark {
-  // State is the Volume's liveness state record: the journal's end, how far
-  // netting has gone, the paged release, the adoption and its run, the hold
-  // rule and the generation.
+  // State is the Volume's liveness state record: the logs' ends, how far
+  // netting has gone, the paged release, the adoption and its run, and the
+  // generation.
   LivenessState state = 1;
   // Listed is whether the block has a child list.
   bool listed = 2;
   // Holders is the block's netted holders.
   uint64 holders = 3;
-  // Journal is what the journal past the cursor does to its holders.
-  int64 journal = 4;
-  // Fill is what the fill records not netted do to its holders.
-  int64 fill = 5;
+  reserved 5;
+  reserved "fill";
+  // Logs is what the logs not netted yet do to its holders.
+  int64 logs = 4;
   // Pending is what the paged release does to its namers.
   int64 pending = 6;
 }

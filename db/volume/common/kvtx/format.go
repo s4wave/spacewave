@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/binary"
+	"slices"
 	"strings"
 
 	b58 "github.com/mr-tron/base58/base58"
@@ -45,21 +46,23 @@ const (
 // this binary supports fails with a permanent error, since only a newer binary
 // can open it.
 //
-// Format 9 keeps liveness in child lists, named roots, count records with
-// zero records for blocks at zero, the ripe queue, cascade records, the
-// journal and fill records; a format 7 or 8 store opens unadopted, as
-// unadoptFormat describes. Format 8 kept a count record only for a block
-// with holders, a queue entry for one without, and an index of the journal's
-// up pairs; format 7 kept fill marks instead of fill records. An empty store
-// starts adopted under rule, with the frees switch as frees sets it. Any other
-// store keeps the child lists format 4 and later wrote, in place under the
-// liveness prefix, gains the named roots its reference graph held, and is left
-// unadopted: it keeps no journal and frees nothing until an adoption counts its
-// holders. Every other record of the old graph stays until a background sweep
-// deletes it, since nothing reads it, so the upgrade at open reads the graph's
-// edges once and writes only the roots. A crash at any point leaves a store a
-// rerun upgrades again.
-func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, rule block_gc.HoldRule, frees bool) (uint64, error) {
+// Format 10 keeps liveness in child lists, named roots, count records with
+// zero records for blocks at zero, the ripe queue, and the up and down logs.
+// A format 7, 8 or 9 store opens unadopted, as unadoptFormat describes, so
+// an adoption counts every holder again before any free. Format 9 kept a
+// journal, cascade records and fill records instead of the logs; format 8
+// kept a count record only for a block with holders, a queue entry for one
+// without, and an index of the journal's up pairs; format 7 kept fill marks
+// instead of fill records. An empty store starts adopted, with the frees
+// switch as frees sets it. Any other store keeps the child lists format 4
+// and later wrote, in place under the liveness prefix, gains the named roots
+// its reference graph held, and is left unadopted: it keeps no logs and
+// frees nothing until an adoption counts its holders. Every other record of
+// the old graph stays until a background sweep deletes it, since nothing
+// reads it, so the upgrade at open reads the graph's edges once and writes
+// only the roots. A crash at any point leaves a store a rerun upgrades
+// again.
+func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, frees bool) (uint64, error) {
 	// A migration's commits are background work, which waits for a
 	// checkpoint the store's writes outpaced.
 	ctx = block.WithBackground(ctx)
@@ -76,23 +79,23 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		return 0, volume.Permanent(errors.Errorf("store format version %d is newer than supported version %d", version, store_kvkey.FormatVersion))
 	}
 
-	// Start an empty store adopted at the current format under rule, with
-	// frees as configured: it has no holder to count again.
+	// Start an empty store adopted at the current format, with frees as
+	// configured: it has no holder to count again.
 	empty, err := storeEmpty(ctx, store)
 	if err != nil {
 		return 0, err
 	}
 	if empty {
-		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED, HoldRule: rule, Frees: frees}
-		return version, writeFormat(ctx, store, keys, state)
+		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED, Frees: frees}
+		return version, writeFormat(ctx, store, keys, state, nil)
 	}
 
-	// Leave a format 7 or 8 store unadopted with its records as they are:
-	// its counts and queue use the old encoding, and a format 7 fill wrote a
+	// Leave a format 7, 8 or 9 store unadopted: its counts and queue
+	// describe holders under an older protocol, and a format 7 fill wrote a
 	// fill mark and gave its block's children no holder, so the adoption
 	// counts every list again and clears the old records.
-	if version == 7 || version == 8 {
-		return version, unadoptFormat(ctx, store, keys)
+	if version >= 7 {
+		return version, unadoptFormat(ctx, store, keys, version)
 	}
 
 	// Rekey the blocks of a store that keyed them by base58 text, and delete
@@ -122,19 +125,52 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	// slices, so a crash or a failed slice could leave a list without a child
 	// its block names.
 	state := &block_gc.LivenessState{
-		Adoption:    block_gc.Adoption_ADOPTION_UNADOPTED,
-		LegacyGraph: true,
-		Generation:  block_gc.Generation_GENERATION_OPEN,
+		Adoption:      block_gc.Adoption_ADOPTION_UNADOPTED,
+		ObsoleteKinds: legacyGraphKinds,
+		Generation:    block_gc.Generation_GENERATION_OPEN,
 	}
-	return version, writeFormat(ctx, store, keys, state)
+	return version, writeFormat(ctx, store, keys, state, nil)
 }
 
-// unadoptFormat returns a format 7 or 8 store's liveness state to
-// unadopted, keeping its journal position and its legacy flags, and records
-// the current format, in one durable commit. It drops the release in
-// progress and the hold mark, which the adoption's recount replaces, and the
-// fields format 9 retired.
-func unadoptFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) error {
+// unadoptFormat returns a format 7, 8 or 9 store's liveness state to
+// unadopted and records the current format. It keeps the generation, so a
+// store upgraded mid-sweep finishes its sweep first, the frees switch, and
+// the kinds a background sweep still owes, and adds the kinds format 10 no
+// longer reads to them, so the sweep deletes them in slices: the old
+// reference graph's, since an older format recorded that it remained in a
+// field format 10 no longer reads, and block_gc.Format9Kinds. It drops the
+// release in progress, the log positions and the fields later formats
+// retired, which the adoption's recount replaces.
+//
+// A format 9 store first has its zero count records carried to format 10's
+// encoding in slices, as Records.CarryFormat9Counts describes, and its pop
+// mark moved in the final commit, since a Land of the unadopted Volume
+// still reads a count to learn whether the free parked its block. Formats 7
+// and 8 wrote no record either reads.
+//
+// It deletes only collector metadata, never a block, a block's bytes or a
+// child list: the format 9 kinds go to the background sweep, and the
+// adoption clears the counts, queue and logs it replaces.
+func unadoptFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, version uint64) error {
+	// Carry the zero count records of a format 9 store, in slices.
+	if version == 9 {
+		var after []byte
+		for more := true; more; {
+			tx, err := store.NewTransaction(ctx, true)
+			if err != nil {
+				return err
+			}
+			after, more, err = block_gc.NewRecords(tx, livenessPrefix).CarryFormat9Counts(ctx, after, obsoleteSweepKeys)
+			if err == nil {
+				err = kvtx.CommitOrdered(ctx, tx)
+			}
+			tx.Discard()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Read the state.
 	tx, err := store.NewTransaction(ctx, false)
 	if err != nil {
@@ -146,20 +182,30 @@ func unadoptFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		return err
 	}
 
-	// Write it back unadopted, with no run.
-	return writeFormat(ctx, store, keys, &block_gc.LivenessState{
-		Adoption:    block_gc.Adoption_ADOPTION_UNADOPTED,
-		NextSeq:     state.GetNextSeq(),
-		Cursor:      state.GetCursor(),
-		NetOffset:   state.GetNetOffset(),
-		LegacyGraph: state.GetLegacyGraph(),
-		Generation:  state.GetGeneration(),
+	// Write it back unadopted, with no run, moving a format 9 pop mark.
+	obsolete := bytes.Clone(state.GetObsoleteKinds())
+	for _, kind := range slices.Concat(legacyGraphKinds, block_gc.Format9Kinds) {
+		if bytes.IndexByte(obsolete, kind) < 0 {
+			obsolete = append(obsolete, kind)
+		}
+	}
+	next := &block_gc.LivenessState{
+		Adoption:      block_gc.Adoption_ADOPTION_UNADOPTED,
+		Generation:    state.GetGeneration(),
+		Frees:         state.GetFrees(),
+		ObsoleteKinds: obsolete,
+	}
+	return writeFormat(ctx, store, keys, next, func(rec *block_gc.Records) error {
+		if version != 9 {
+			return nil
+		}
+		return rec.CarryFormat9PopMark(ctx)
 	})
 }
 
-// writeFormat writes the liveness state and the current format version in one
-// durable commit.
-func writeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, state *block_gc.LivenessState) error {
+// writeFormat writes the liveness state, with what also, nil for nothing,
+// writes, and the current format version in one durable commit.
+func writeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, state *block_gc.LivenessState, also func(rec *block_gc.Records) error) error {
 	// Open the write transaction.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
@@ -167,9 +213,15 @@ func writeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey,
 	}
 	defer tx.Discard()
 
-	// Write the state and the version, and commit.
-	if err := block_gc.NewRecords(tx, livenessPrefix).SetState(ctx, state); err != nil {
+	// Write the state, the rest and the version, and commit.
+	rec := block_gc.NewRecords(tx, livenessPrefix)
+	if err := rec.SetState(ctx, state); err != nil {
 		return err
+	}
+	if also != nil {
+		if err := also(rec); err != nil {
+			return err
+		}
 	}
 	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
 		return err
@@ -321,12 +373,12 @@ func deletePrefix(ctx context.Context, store kvtx.Store, prefix []byte) error {
 			return err
 		}
 		var n int
-		n, after, err = deletePrefixBatch(ctx, tx, prefix, after, legacySweepKeys)
+		n, after, err = deletePrefixBatch(ctx, tx, prefix, after, obsoleteSweepKeys)
 		if err == nil && n != 0 {
 			err = kvtx.CommitOrdered(ctx, tx)
 		}
 		tx.Discard()
-		if err != nil || n < legacySweepKeys {
+		if err != nil || n < obsoleteSweepKeys {
 			return err
 		}
 	}

@@ -33,11 +33,11 @@
     "config": "Liveness-hole.cfg"
   },
   {
-    "name": "a release nets before the increments committed with it",
+    "name": "downs net before the up log drains",
     "replace": [
       [
-        "       /\\ upCursor >= e.mark",
-        "       /\\ TRUE"
+        "  /\\ downLog # <<>>\n  /\\ upLog = <<>>\n",
+        "  /\\ downLog # <<>>\n  /\\ TRUE\n"
       ]
     ],
     "expect": "CountsExact",
@@ -77,14 +77,14 @@
     "config": "Liveness.cfg"
   },
   {
-    "name": "U is not bound to net",
+    "name": "U is not bound to net, so the downs, which net only once it drains, never net",
     "replace": [
       [
         "  /\\ WF_vars(NetUps) /\\ WF_vars(NetDowns)",
         "  /\\ WF_vars(NetDowns)"
       ]
     ],
-    "expect": "FreesProgress",
+    "expect": "EventuallyCollected",
     "config": "Liveness.cfg"
   },
   {

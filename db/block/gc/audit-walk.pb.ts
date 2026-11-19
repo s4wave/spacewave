@@ -163,8 +163,8 @@ export interface WalkCounts {
    */
   unconfirmedUnrooted?: bigint
   /**
-   * TailPairs counts the journal pairs the walk copied into its scratch
-   * store, so each check view reads only the journal written since the last.
+   * TailPairs counts the log entries the walk copied into its scratch
+   * store, so each check view reads only the log pages written since the last.
    */
   tailPairs?: bigint
   /**
@@ -232,10 +232,10 @@ export interface WalkProgress {
    */
   counts?: WalkCounts
   /**
-   * Tail is the sequence past the last journal record the walk copied into
-   * its scratch store. The check copies from the later of it and the cursor.
+   * UpTail is the sequence past the last up page the walk copied into its
+   * scratch store. The check copies from the later of it and the up cursor.
    */
-  tail?: bigint
+  upTail?: bigint
   /**
    * EdgeAfter is the last edge key the views of the block past After have
    * read, after the edge kind: the next view of that block resumes past it.
@@ -262,6 +262,12 @@ export interface WalkProgress {
    * mark than its first.
    */
   wideMoved?: boolean
+  /**
+   * DownTail is the sequence past the last down page the walk copied into
+   * its scratch store. The check copies from the later of it and the first
+   * down page left.
+   */
+  downTail?: bigint
 }
 
 export const WalkProgress: MessageType<WalkProgress> =
@@ -273,12 +279,13 @@ export const WalkProgress: MessageType<WalkProgress> =
       [3, 'after', 12],
       [4, 'started_unix_milli', 3],
       [5, 'counts', 11, 0, WalkCounts.codec],
-      [6, 'tail', 4],
+      [6, 'up_tail', 4],
       [7, 'edge_after', 12],
       [8, 'resumes', 13],
       [9, 'wide_mark', 11, 0, WalkMark.codec],
       [10, 'wide_seen', 4],
       [11, 'wide_moved', 8],
+      [12, 'down_tail', 4],
     ],
   )
 
@@ -292,9 +299,9 @@ export const WalkProgress: MessageType<WalkProgress> =
  */
 export interface WalkMark {
   /**
-   * State is the Volume's liveness state record: the journal's end, how far
-   * netting has gone, the paged release, the adoption and its run, the hold
-   * rule and the generation.
+   * State is the Volume's liveness state record: the logs' ends, how far
+   * netting has gone, the paged release, the adoption and its run, and the
+   * generation.
    */
   state?: LivenessState
   /**
@@ -306,13 +313,9 @@ export interface WalkMark {
    */
   holders?: bigint
   /**
-   * Journal is what the journal past the cursor does to its holders.
+   * Logs is what the logs not netted yet do to its holders.
    */
-  journal?: bigint
-  /**
-   * Fill is what the fill records not netted do to its holders.
-   */
-  fill?: bigint
+  logs?: bigint
   /**
    * Pending is what the paged release does to its namers.
    */
@@ -324,7 +327,6 @@ export const WalkMark: MessageType<WalkMark> =
     [1, 'state', 11, 0, LivenessState.codec],
     [2, 'listed', 8],
     [3, 'holders', 4],
-    [4, 'journal', 3],
-    [5, 'fill', 3],
+    [4, 'logs', 3],
     [6, 'pending', 3],
   ])

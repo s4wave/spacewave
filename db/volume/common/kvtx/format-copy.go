@@ -70,7 +70,7 @@ func CopyStoreSplitting(ctx context.Context, src, dst kvtx.Store, keys *store_kv
 // CopyStore, keeping only what a complete collection would keep: the blocks a
 // named root reaches through child lists, their child lists and proofs, the
 // root table and every key outside the blocks and the liveness records. The
-// copy keeps no count, journal or free queue, so dst opens unadopted and an
+// copy keeps no count, log or free queue, so dst opens unadopted and an
 // adoption counts its holders.
 //
 // src must be at the current format. It refuses, before writing anything, a

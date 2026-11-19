@@ -89,6 +89,5 @@ func (f *CollectorFrees) ConfigureVolume(id string, conf config.Config) {
 		storeConf = &store_kvtx.Config{}
 	}
 	storeConf.CollectorFrees = true
-	storeConf.CollectorHoldUntilFree = true
 	volumeConf.StoreConfig = storeConf
 }

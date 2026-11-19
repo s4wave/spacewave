@@ -66,14 +66,12 @@ type Config struct {
 	// If unset (0 value) will use the Spacewave default (SHA256).
 	HashType hash.HashType `protobuf:"varint,2,opt,name=hash_type,json=hashType,proto3" json:"hashType,omitempty"`
 	// CollectorFrees turns on the Volume collector's frees. Off, the collector
-	// still releases lapsed leases and nets the journal, so its counts stay
+	// still releases lapsed leases and nets the logs, so its counts stay
 	// current, and frees nothing. The Volume stores whether frees were on at
 	// its last writable open. An open that turns them on returns the Volume to
-	// unadopted and adopts it again in the background under
-	// CollectorHoldUntilFree, and nothing frees until that recount finishes;
-	// an open with them already on recounts only a Volume adopted under
-	// another rule, and one with them off clears the stored switch, so the
-	// next switch-on recounts again. A state write by a build older than the
+	// unadopted and adopts it again in the background, and nothing frees until
+	// that recount finishes; an open with them off clears the stored switch,
+	// so the next switch-on recounts again. A state write by a build older than the
 	// switch also reads as frees off, so the next switch-on recounts after it.
 	// Turn frees off with this switch, never with an older build, which may
 	// not read the lists this one writes. The default stays off, and spacewave
@@ -85,7 +83,7 @@ type Config struct {
 	// nothing until every such list is verified, and a block they hold back
 	// stays readable and is stored again by its next put.
 	CollectorFrees bool `protobuf:"varint,7,opt,name=collector_frees,json=collectorFrees,proto3" json:"collectorFrees,omitempty"`
-	// CollectorGraceDur is how old a journal record must be before the
+	// CollectorGraceDur is how old a down page must be before the
 	// collector nets it, as a Go duration such as "15m". It must exceed the
 	// time a reader takes to pin a head it saw and the lease of a leased root.
 	// Empty uses the collector's default of 15 minutes.
@@ -93,12 +91,6 @@ type Config struct {
 	// RootHeldCheck is what the Volume does with a root move that requires its
 	// blocks held when a block it reaches is not.
 	RootHeldCheck RootHeldCheck `protobuf:"varint,9,opt,name=root_held_check,json=rootHeldCheck,proto3" json:"rootHeldCheck,omitempty"`
-	// CollectorHoldUntilFree keeps a block at zero holders a holder of each
-	// child it lists until the collector frees it, so no child is freed while
-	// a stored parent names it. An adopted Volume keeps the rule its adoption
-	// counted under; this one applies when the Volume adopts again, as it does
-	// when CollectorFrees turns on, and frees run only under it.
-	CollectorHoldUntilFree bool `protobuf:"varint,10,opt,name=collector_hold_until_free,json=collectorHoldUntilFree,proto3" json:"collectorHoldUntilFree,omitempty"`
 	// StageOneTransaction lands each batch a stage puts in one transaction, as
 	// the Volume did before it landed them in slices, and on the browser's
 	// paylog store admits background writers in arrival order with the
@@ -147,13 +139,6 @@ func (x *Config) GetRootHeldCheck() RootHeldCheck {
 	return RootHeldCheck_ROOT_HELD_CHECK_UNKNOWN
 }
 
-func (x *Config) GetCollectorHoldUntilFree() bool {
-	if x != nil {
-		return x.CollectorHoldUntilFree
-	}
-	return false
-}
-
 func (x *Config) GetStageOneTransaction() bool {
 	if x != nil {
 		return x.StageOneTransaction
@@ -170,7 +155,6 @@ func (m *Config) CloneVT() *Config {
 	r.CollectorFrees = m.CollectorFrees
 	r.CollectorGraceDur = m.CollectorGraceDur
 	r.RootHeldCheck = m.RootHeldCheck
-	r.CollectorHoldUntilFree = m.CollectorHoldUntilFree
 	r.StageOneTransaction = m.StageOneTransaction
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -198,9 +182,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.RootHeldCheck != that.RootHeldCheck {
-		return false
-	}
-	if this.CollectorHoldUntilFree != that.CollectorHoldUntilFree {
 		return false
 	}
 	if this.StageOneTransaction != that.StageOneTransaction {
@@ -285,11 +266,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rootHeldCheck")
 		x.RootHeldCheck.MarshalProtoJSON(s)
 	}
-	if x.CollectorHoldUntilFree || s.HasField("collectorHoldUntilFree") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("collectorHoldUntilFree")
-		s.WriteBool(x.CollectorHoldUntilFree)
-	}
 	if x.StageOneTransaction || s.HasField("stageOneTransaction") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("stageOneTransaction")
@@ -324,9 +300,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "root_held_check", "rootHeldCheck":
 			s.AddField("root_held_check")
 			x.RootHeldCheck.UnmarshalProtoJSON(s)
-		case "collector_hold_until_free", "collectorHoldUntilFree":
-			s.AddField("collector_hold_until_free")
-			x.CollectorHoldUntilFree = s.ReadBool()
 		case "stage_one_transaction", "stageOneTransaction":
 			s.AddField("stage_one_transaction")
 			x.StageOneTransaction = s.ReadBool()
@@ -373,11 +346,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x58
 	}
-	if m.CollectorHoldUntilFree {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CollectorHoldUntilFree)
-		i--
-		dAtA[i] = 0x50
-	}
 	if m.RootHeldCheck != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RootHeldCheck))
 		i--
@@ -411,7 +379,6 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.CollectorFrees)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CollectorGraceDur)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RootHeldCheck)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.CollectorHoldUntilFree)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.StageOneTransaction)
 	n += len(m.unknownFields)
 	return n
@@ -439,10 +406,6 @@ func (x *Config) MarshalProtoText() string {
 	if x.RootHeldCheck != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_held_check")
 		protobuf_go_lite.TextWriteStringer(&sb, RootHeldCheck(x.RootHeldCheck))
-	}
-	if x.CollectorHoldUntilFree != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "collector_hold_until_free")
-		protobuf_go_lite.TextWriteBool(&sb, x.CollectorHoldUntilFree)
 	}
 	if x.StageOneTransaction != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "stage_one_transaction")
@@ -517,16 +480,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 10:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CollectorHoldUntilFree", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.CollectorHoldUntilFree = bool(v)
 		case 11:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StageOneTransaction", wireType)

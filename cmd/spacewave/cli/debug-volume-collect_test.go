@@ -81,7 +81,7 @@ func TestDebugVolumeCollect(t *testing.T) {
 		return state.GetFrees()
 	}
 
-	// Without frees the passes net the journal and delete nothing.
+	// Without frees the passes net the logs and delete nothing.
 	res, _, err := collectVolume(ctx, le, path, &store_kvtx.Config{CollectorGraceDur: "1ns"})
 	if err != nil {
 		t.Fatal(err)

@@ -80,9 +80,8 @@ func (v *Volume) runRootRenewal(ctx context.Context) {
 // released for a lapsed lease while this process still holds it, after a
 // stall longer than the lease, is held again while its block is stored. A
 // stage whose released root's block is gone is lost: its later writes would
-// name a freed block. It returns
-// the time the written leases count from, which precedes the write, or now
-// when there was nothing to renew.
+// name a freed block. It returns the time the written leases count from,
+// which precedes the write, or now when there was nothing to renew.
 func (v *Volume) renewRoots(ctx context.Context) (time.Time, error) {
 	// Collect the pins with readers and the open stages' roots, noting the
 	// stage of each stage root.

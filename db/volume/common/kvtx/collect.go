@@ -12,7 +12,7 @@ import (
 
 // Collect runs one collection pass of the Volume, as block_gc.Collector
 // describes: it renews this process's leases and carries its deferred
-// releases, releases lapsed leases, nets the journal and, when the store
+// releases, releases lapsed leases, nets the logs and, when the store
 // Config turns frees on and the Volume is adopted, frees what lost its last
 // holder. A Volume without atomic commits keeps no liveness and collects
 // nothing.
@@ -79,9 +79,8 @@ func (s collectorStore) ScanBlocks(ctx context.Context, fn func(refs []*block.Bl
 }
 
 // Adopt counts the holders of every block of an unadopted Volume, such as one
-// that predates its journal, under the Volume's hold rule and marks it
-// adopted, as block_gc.Adopt describes, reporting the
-// mark phase while it runs. It runs one adoption of this Volume at a time; an
+// that predates its logs, and marks it adopted, as block_gc.Adopt
+// describes, reporting the mark phase while it runs. It runs one adoption of this Volume at a time; an
 // adoption from another process on the same store supersedes it, as
 // block_gc.Adopt describes. Adopt a Volume only once every writer that uses
 // it holds what it needs under named roots.
@@ -93,7 +92,7 @@ func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 	v.adoptMu.Lock()
 	defer v.adoptMu.Unlock()
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
-	return block_gc.Adopt(block.WithBackground(ctx), collectorStore{v: v}, v.holdRule, v.now)
+	return block_gc.Adopt(block.WithBackground(ctx), collectorStore{v: v}, v.now)
 }
 
 // runBackgroundAdopt adopts the Volume, in Adopt's bounded background

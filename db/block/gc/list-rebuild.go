@@ -46,10 +46,9 @@ func rebuildable(state *LivenessState) error {
 // lack a child and naming one more only keeps a block longer; refs that lack
 // a child the stored list names are refused, not written: a stored list can
 // only miss children, so such refs come from a wrong decoder, and the block
-// stays on the front. A list that gains a child journals no holder for it,
-// so on a Volume that keeps a journal the rewrite records that the counts
-// owe a recount, which the flip reads to return the Volume to unadopted
-// first.
+// stays on the front. A list that gains a child logs no holder for it, so
+// on a Volume that keeps the logs the rewrite records that the counts owe a
+// recount, which the flip reads to return the Volume to unadopted first.
 //
 // It runs on an unadopted or an adopted Volume, but not while an adoption
 // counts, and only while the old generation is Open.
