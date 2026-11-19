@@ -11,7 +11,12 @@
   },
   {
     "name": "check removal before acquiring the pool lock",
-    "replace": [["read # \"checked\"", "TRUE"]],
+    "replace": [["read \\notin {\"checked\", \"staged\", \"verified\"}", "TRUE"]],
     "expect": "AdmissionOrder"
+  },
+  {
+    "name": "publish a staged slot without rechecking removal",
+    "replace": [["/\\ sampled = generation\n", "/\\ TRUE\n"]],
+    "expect": "AdmissionCurrent"
   }
 ]
