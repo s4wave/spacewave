@@ -152,6 +152,11 @@ message AdoptCursor {
   uint64 queued = 6;
   // Unknown counts the holders of blocks stored without a child list.
   uint64 unknown = 7;
+  // Run is the adoption run that wrote the cursor. A run takes the cursor
+  // over only when it names the run the state names in the same
+  // transaction: a build without the cursor carries it through a claim of
+  // its own as an unknown field, and its counts are not the cursor's.
+  string run = 8;
 }
 
 // Release is the release of the children of a freed block whose child list

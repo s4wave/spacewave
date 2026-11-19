@@ -166,7 +166,7 @@ func markAdopting(ctx context.Context, store Store, run string, now func() time.
 		// Start the run at the first record of its first pass.
 		state.Adoption = Adoption_ADOPTION_ADOPTING
 		state.AdoptionRun = run
-		state.AdoptCursor = &AdoptCursor{}
+		state.AdoptCursor = &AdoptCursor{Run: run}
 		state.UpCursor = state.GetUpSeq()
 		state.AdoptAtUnixMilli = now().UnixMilli()
 		return rec.SetState(ctx, state)
@@ -174,16 +174,22 @@ func markAdopting(ctx context.Context, store Store, run string, now func() time.
 }
 
 // inRun returns the state of a Volume still adopting in run, whose cursor
-// is set, or ErrAdoptSuperseded.
+// run wrote or took over, or ErrAdoptSuperseded.
 func inRun(ctx context.Context, rec *Records, run string) (*LivenessState, error) {
 	state, err := rec.GetState(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if state.GetAdoption() != Adoption_ADOPTION_ADOPTING || state.GetAdoptionRun() != run || state.GetAdoptCursor() == nil {
+	if state.GetAdoption() != Adoption_ADOPTION_ADOPTING || state.GetAdoptionRun() != run || !ownCursor(state) {
 		return nil, ErrAdoptSuperseded
 	}
 	return state, nil
+}
+
+// ownCursor reports whether state carries a cursor the run it names wrote.
+func ownCursor(state *LivenessState) bool {
+	cur := state.GetAdoptCursor()
+	return cur != nil && cur.GetRun() == state.GetAdoptionRun()
 }
 
 // ResetAdoption returns a Volume an adoption left adopting to unadopted,
@@ -261,11 +267,13 @@ func claimAdoption(ctx context.Context, store Store, run string, resume bool) (a
 			return nil
 		}
 
-		// Take over an adoption in progress at its cursor. One a build
-		// without the cursor left adopting starts over.
-		if resume && state.GetAdoption() == Adoption_ADOPTION_ADOPTING && state.GetAdoptCursor() != nil {
+		// Take over an adoption in progress at its cursor. A cursor that
+		// does not name the run in progress starts over: a build without
+		// the cursor claimed the Volume since and kept the field unread.
+		if resume && state.GetAdoption() == Adoption_ADOPTION_ADOPTING && ownCursor(state) {
 			start = adoptResumed
 			state.AdoptionRun = run
+			state.AdoptCursor.Run = run
 			return rec.SetState(ctx, state)
 		}
 

@@ -6,7 +6,7 @@
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
       "packages": {
         "github.com/s4wave/spacewave/db/block/gc": {
-          "hash": "c5ee56122aadd1d1c999e2586b2cdc291d57207188b741ffdb81198c790a039b",
+          "hash": "d3f5c6e64b0a8d49c63d4ae0741bdb2ac121757cc812504509045a11b03a3d18",
           "generatedFiles": [
             "db/block/gc/liveness.pb.go",
             "db/block/gc/liveness.pb.ts"
