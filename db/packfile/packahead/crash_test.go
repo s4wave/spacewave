@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -20,6 +21,39 @@ type crashCase struct {
 	mutate func(data []byte, start, end int) []byte
 	// keepsLast reports whether recovery keeps the last batch.
 	keepsLast bool
+}
+
+// TestPackAheadExclusiveOpen keeps a second opener out of recovery until the
+// first log closes.
+func TestPackAheadExclusiveOpen(t *testing.T) {
+	// Open a log with an empty pack that recovery would remove.
+	ctx, dir := t.Context(), t.TempDir()
+	first, err := Open(ctx, dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(first.Close)
+
+	// Require an error naming the directory, with the open pack still intact.
+	second, err := Open(ctx, dir, Options{})
+	if err == nil {
+		second.Close()
+		t.Fatal("second Open succeeded while the first log was open")
+	}
+	if !strings.Contains(err.Error(), strconv.Quote(dir)) || !strings.Contains(err.Error(), "already open") {
+		t.Fatalf("second Open returned %v, want an already-open error naming %s", err, dir)
+	}
+	if _, err := os.Stat(filepath.Join(dir, openName(1))); err != nil {
+		t.Fatalf("second Open disturbed the first log's open pack: %v", err)
+	}
+
+	// Open the same directory after the first log releases ownership.
+	first.Close()
+	reopened, err := Open(ctx, dir, Options{})
+	if err != nil {
+		t.Fatalf("Open after Close: %v", err)
+	}
+	reopened.Close()
 }
 
 // TestPackAheadCrash leaves the last batch of an open pack in every state a
