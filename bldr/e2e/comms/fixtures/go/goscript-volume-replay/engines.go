@@ -140,7 +140,7 @@ func openE1(ctx context.Context, open func() (device.Device, func() error, error
 			_ = closeDevice()
 			return nil, nil, err
 		}
-		s, err := paylog.Open(ctx, counted, idx, 0)
+		s, err := paylog.Open(ctx, counted, idx, paylog.Options{})
 		if err != nil {
 			_ = closeDevice()
 			return nil, nil, err

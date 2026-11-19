@@ -69,8 +69,10 @@ func openVolume(ctx context.Context, conf *Config, openDev deviceOpener, deleteF
 		return nil, err
 	}
 	op.Hold(func() error { return errors.Join(idx.Close(), dev.Close()) })
-	hashType := conf.GetStoreConfig().ResolveHashType()
-	s, err := paylog.Open(ctx, dev, idx, hashType)
+	s, err := paylog.Open(ctx, dev, idx, paylog.Options{
+		HashType:     conf.GetStoreConfig().ResolveHashType(),
+		EqualWriters: conf.GetStoreConfig().GetStageOneTransaction(),
+	})
 	if err != nil {
 		return nil, err
 	}

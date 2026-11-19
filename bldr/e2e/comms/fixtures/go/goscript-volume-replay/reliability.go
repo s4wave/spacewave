@@ -152,7 +152,7 @@ func openE1Volume(ctx context.Context, dev device.Device) (volume, func() error,
 	if err != nil {
 		return nil, nil, err
 	}
-	s, err := paylog.Open(ctx, dev, idx, 0)
+	s, err := paylog.Open(ctx, dev, idx, paylog.Options{})
 	if err != nil {
 		return nil, nil, err
 	}

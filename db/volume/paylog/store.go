@@ -84,8 +84,13 @@ type Store struct {
 
 	// writer is held by each write transaction from open to end, so no
 	// commit falls between an ordered commit and the hand-off of its blocks
-	// to pending.
-	writer csync.Mutex
+	// to pending. A transaction opened with block.WithBackground waits behind
+	// every waiting foreground writer, unless equalWriters, and each priority
+	// goes in arrival order.
+	writer csync.PrioMutex
+	// equalWriters admits every write transaction in arrival order, as
+	// Options.EqualWriters describes.
+	equalWriters bool
 	// waiting counts the write transactions waiting for writer.
 	waiting atomic.Int32
 
@@ -108,15 +113,15 @@ type pendingBlock struct {
 }
 
 // Open opens the store on dev with index, an index opened on the same device.
-// New block references use hashType, or the default when it is zero. The store
-// owns the index and closes it on Close or on failure.
-func Open(ctx context.Context, dev device.Device, index Index, hashType hash.HashType) (*Store, error) {
+// The store owns the index and closes it on Close or on failure.
+func Open(ctx context.Context, dev device.Device, index Index, opts Options) (*Store, error) {
 	// Construct the store and its prefixed index view.
 	s := &Store{
-		dev:      dev,
-		index:    index,
-		hashType: hashType,
-		pending:  make(map[string]*pendingBlock),
+		dev:          dev,
+		index:        index,
+		hashType:     opts.HashType,
+		equalWriters: opts.EqualWriters,
+		pending:      make(map[string]*pendingBlock),
 	}
 	s.Store = s.Domain(nil)
 	s.blockStore = blockStore{s: s}
