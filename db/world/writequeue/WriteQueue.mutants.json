@@ -38,5 +38,15 @@
       ]
     ],
     "expect": "BoundedFetches"
+  },
+  {
+    "name": "a body error answers before the write it read is durable",
+    "replace": [
+      [
+        "EarlyBodyError == FALSE",
+        "EarlyBodyError == TRUE"
+      ]
+    ],
+    "expect": "BodyErrorsReadDurable"
   }
 ]

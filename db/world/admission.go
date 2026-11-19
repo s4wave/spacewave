@@ -17,6 +17,22 @@ type AdmitCommitter interface {
 	CommitAdmit(ctx context.Context) (Admission, error)
 }
 
+// BaseAdmitter exposes the exact World a write fork read before its first change.
+type BaseAdmitter interface {
+	// BaseAdmission returns a receipt for that World, or nil when it is
+	// already durable. Call while holding the writer and wait after releasing it.
+	BaseAdmission(seqno uint64) Admission
+}
+
+// BaseAdmission returns the transaction's base receipt. A transaction whose
+// engine does not admit writes before durability forks from durable state.
+func BaseAdmission(tx Tx, seqno uint64) Admission {
+	if base, ok := tx.(BaseAdmitter); ok {
+		return base.BaseAdmission(seqno)
+	}
+	return nil
+}
+
 // Admission is an admitted write whose durable result may be pending.
 type Admission interface {
 	// Seqno returns the World seqno after the write.

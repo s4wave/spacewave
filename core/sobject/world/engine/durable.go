@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // durableHead is the World readers see. Writers fork from the admitted World,
@@ -74,6 +75,60 @@ func (e *soEngine) lastDurable() *durableInstall {
 	})
 	return last
 }
+
+// BaseAdmission captures the durable install of the write fork's base.
+// The transaction still holds the writer, so the engine cannot fork again
+// or install a different base until this returns.
+func (t *soEngineWriteTx) BaseAdmission(seqno uint64) world.Admission {
+	// Skip a base that the reader head already installed successfully.
+	e := t.eng
+	var pending *durableInstall
+	e.durable.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		last := e.durable.last
+		if last != nil && (e.durable.done < last.pos || last.dropped) {
+			pending = last
+		}
+	})
+	if pending == nil {
+		return nil
+	}
+
+	// A later install may reuse a dropped install's sequence number.
+	return &baseAdmission{engine: e, install: pending, seqno: seqno}
+}
+
+// baseAdmission observes an install without owning its publication receipt.
+type baseAdmission struct {
+	// engine owns the reader head and bounds the wait by its lifetime.
+	engine *soEngine
+	// install identifies the exact base, even when a reinstall reuses seqno.
+	install *durableInstall
+	// seqno is the World sequence number the write forked from.
+	seqno uint64
+}
+
+// Seqno returns the sequence number of the captured base.
+func (a *baseAdmission) Seqno() uint64 { return a.seqno }
+
+// WaitDurable waits for the captured base to install or drop.
+func (a *baseAdmission) WaitDurable(ctx context.Context) (uint64, error) {
+	// Wait for this install without holding the World writer.
+	ctx, cancel := a.engine.detach(ctx)
+	defer cancel()
+	dropped, kept, err := a.engine.waitDurable(ctx, a.install)
+	if err != nil {
+		return 0, err
+	}
+
+	// A dropped install's sequence number no longer identifies its World.
+	if dropped {
+		return kept, block.NewPublicationDependencyError(a.install.after.Err())
+	}
+	return a.seqno, nil
+}
+
+// Release has no publication receipt to release.
+func (*baseAdmission) Release() {}
 
 // queuedDurableRoots returns the World roots queued for the durable head and
 // not yet installed or dropped. The page view keeps their pages until the

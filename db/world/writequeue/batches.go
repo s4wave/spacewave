@@ -46,7 +46,8 @@ func (q *Queue) reinstalled(seqno uint64) {
 	q.mtx.Lock()
 	defer q.mtx.Unlock()
 	for _, c := range q.committing {
-		if !c.dropped && (c.seqno == 0 || c.seqno > seqno) {
+		// An observed base can be replaced at the same sequence number.
+		if !c.dropped && (c.baseOnly || c.seqno == 0 || c.seqno > seqno) {
 			q.dropLocked(c, coord.ErrStaleGeneration)
 		}
 	}
@@ -158,9 +159,15 @@ func (q *Queue) drain() {
 			continue
 		}
 
-		// Run the bodies. A failed write leaves the rest to run again in a
-		// fresh fork, since its partial changes are in the transaction.
-		failed, carried, parked, err := q.run(ctx, tx, batch)
+		// A dirty failure discards the fork. If it read a changed prefix, run
+		// that prefix on its own before attempting the failed write again.
+		base, err := tx.GetSeqno(ctx)
+		if err != nil {
+			tx.Discard()
+			q.refused(batch, err)
+			continue
+		}
+		failed, carried, parked, err := q.run(ctx, tx, batch, base)
 		if parked >= 0 && err == nil {
 			// Fetch the blocks a body deferred with the lock released.
 			tx.Discard()
@@ -169,36 +176,52 @@ func (q *Queue) drain() {
 			continue
 		}
 		if err != nil || failed >= 0 {
-			tx.Discard()
 			if err != nil {
+				tx.Discard()
 				q.refused(batch, err)
-			} else {
-				q.requeue(slices.Delete(batch, failed, failed+1))
+				continue
 			}
+			if carried != 0 {
+				tx.Discard()
+				batch[0].limit = carried
+				q.requeue(batch)
+				continue
+			}
+			settle := q.finishOnBase(wtx, tx, []*queuedWrite{batch[failed]}, base)
+			tx.Discard()
+			settle()
+			q.requeue(slices.Delete(batch, failed, failed+1))
 			continue
 		}
 
 		// Queue the writes past the body budget again, then commit the rest.
 		q.requeue(batch[carried:])
-		preparation = q.commit(ctx, tx, batch[:carried])
+		preparation = q.commit(ctx, wtx, tx, batch[:carried], base)
 	}
 }
 
 // run applies batch's writes to tx, under each write's own context, stopping
-// at the body budget. It returns the index of a write that failed after
-// changing the transaction, after finishing it, or -1 with the number of
-// writes the transaction carried. A write that ends cleanly, see endsClean,
-// is finished in place and carried as ended. A write whose body deferred a
-// peer read returns its index as parked, unfinished, whatever its body
-// returned, since a body may have taken the failed read for an absent block.
-// An error refuses the batch.
-func (q *Queue) run(ctx context.Context, tx Transaction, batch []*queuedWrite) (int, int, int, error) {
+// at the body budget. A dirty failure returns its index and the size of the
+// prefix to retry separately, or zero if its error depends only on the base.
+// Otherwise the failed index is -1 and carried counts the writes to commit.
+// A deferred peer read returns its index as parked, whatever the body
+// returned. A batch error refuses the whole attempt.
+func (q *Queue) run(ctx context.Context, tx Transaction, batch []*queuedWrite, base uint64) (int, int, int, error) {
+	// Time the writer turn and track which bodies read earlier changes.
 	started := time.Now()
+	before := base
 	for i, w := range batch {
-		before, err := tx.GetSeqno(ctx)
-		if err != nil {
-			return -1, 0, -1, err
+		// The prior attempt's outcome no longer belongs to this write.
+		w.bodyErr = nil
+		var err error
+		if i != 0 {
+			before, err = tx.GetSeqno(ctx)
+			if err != nil {
+				return -1, 0, -1, err
+			}
 		}
+
+		// Run and time the checks and body with the batch holding the writer.
 		var spans bodySpans
 		appliedBefore, bodyStarted := q.applied(w.ctx), time.Now()
 		checked, err := w.run(q, tx, &spans)
@@ -213,24 +236,32 @@ func (q *Queue) run(ctx context.Context, tx Transaction, batch []*queuedWrite) (
 				"elapsed": elapsed.Round(time.Millisecond).String(),
 			}).Warn("slow World write body; the writer lock is held while it runs")
 		}
+
+		// A stale fork or a deferred read invalidates the body's result.
 		if errors.Is(err, coord.ErrStaleGeneration) {
 			return -1, 0, -1, err
 		}
 		if w.deferring && w.peerReads.Pending() {
 			return -1, 0, i, nil
 		}
+
+		// A write's body error may leave no changes, but its result belongs
+		// to the World it read. Deliver it only once that World is durable.
 		if err != nil {
-			// A write that left the transaction as it was ends alone, so the
-			// writes before it do not run again under the writer lock.
 			clean, cerr := q.endsClean(ctx, tx, before, checked, err)
 			if cerr != nil {
 				return -1, 0, -1, cerr
 			}
-			w.finish(err)
+			w.bodyErr = err
 			if !clean {
+				if before != base {
+					return i, i, -1, nil
+				}
 				return i, 0, -1, nil
 			}
 		}
+
+		// Leave later bodies for the next batch when this batch used its turn.
 		if time.Since(started) >= q.bodyBudget {
 			return -1, i + 1, -1, nil
 		}
