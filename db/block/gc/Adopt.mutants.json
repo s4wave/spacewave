@@ -7,7 +7,7 @@
   },
   {
     "name": "the scan counts a moved root's current target, not its target at the mark",
-    "replace": [["LET v == IF amark[n] # Unset THEN amark[n] ELSE roots[n] IN", "LET v == roots[n] IN"]],
+    "replace": [["THEN LET v == IF amark[r.n] # Unset THEN amark[r.n] ELSE roots[r.n] IN", "THEN LET v == roots[r.n] IN"]],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
@@ -24,8 +24,20 @@
     "config": "Adopt.cfg"
   },
   {
-    "name": "adoption ends before every list is counted",
-    "replace": [["  /\\ listed \\subseteq listsDone\n", "  /\\ TRUE\n"]],
+    "name": "adoption ends once the roots are counted, before any list",
+    "replace": [["  /\\ cursor = Len(Scan)\n  /\\ phase' = \"adopted\"", "  /\\ cursor >= 2\n  /\\ phase' = \"adopted\""]],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "a resumed run starts at the cursor's record, counting it again",
+    "replace": [["  /\\ cursor' = cursor\n", "  /\\ cursor' = IF cursor > 0 THEN cursor - 1 ELSE 0\n"]],
+    "expect": "CountsExact",
+    "config": "Adopt.cfg"
+  },
+  {
+    "name": "a new run keeps the cursor of the run it clears",
+    "replace": [["  /\\ cleared' = TRUE\n  /\\ cursor' = 0\n", "  /\\ cleared' = TRUE\n  /\\ cursor' = cursor\n"]],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },

@@ -82,6 +82,39 @@ export const Generation_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * AdoptPhase is the pass an adoption is in. The passes run in this order.
+ *
+ * @generated from enum block.gc.AdoptPhase
+ */
+export enum AdoptPhase {
+  /**
+   * ADOPT_PHASE_ROOTS counts each root at the block it held at the mark.
+   */
+  ROOTS = 0,
+
+  /**
+   * ADOPT_PHASE_CHILDREN counts the children of each block stored at the
+   * mark.
+   */
+  CHILDREN = 1,
+
+  /**
+   * ADOPT_PHASE_SETTLE writes each stored block's holders, queuing a block
+   * with none. Its last slice marks the Volume adopted.
+   */
+  SETTLE = 2,
+}
+
+export const AdoptPhase_Enum = /* @__PURE__ */ createEnumType(
+  'block.gc.AdoptPhase',
+  [
+    [0, 'ADOPT_PHASE_ROOTS'],
+    [1, 'ADOPT_PHASE_CHILDREN'],
+    [2, 'ADOPT_PHASE_SETTLE'],
+  ],
+)
+
+/**
  * RootEntry is one named root in a Volume's root table: the block the name
  * holds.
  *
@@ -200,6 +233,13 @@ export interface LivenessState {
    * or a child list.
    */
   obsoleteKinds?: Uint8Array
+  /**
+   * AdoptCursor is how far the adoption in progress has counted, set only
+   * while the Volume is adopting. Each slice of the count writes it in the
+   * transaction that writes the slice's counts, so a run that takes the
+   * Volume over continues strictly after the last key it names.
+   */
+  adoptCursor?: AdoptCursor
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -217,8 +257,58 @@ export const LivenessState: MessageType<LivenessState> =
       [20, 'down_seq', 4],
       [21, 'adopt_at_unix_milli', 3],
       [22, 'obsolete_kinds', 12],
+      [23, 'adopt_cursor', 11, 0, AdoptCursor.codec],
     ],
   )
+
+/**
+ * AdoptCursor is the position of an adoption and what it has counted so
+ * far, as AdoptResult reports it.
+ *
+ * @generated from message block.gc.AdoptCursor
+ */
+export interface AdoptCursor {
+  /**
+   * Phase is the pass in progress.
+   */
+  phase?: AdoptPhase
+  /**
+   * After is the last key the pass finished: a root name in the roots pass,
+   * a block key in the others. Empty starts the pass at its first key.
+   */
+  after?: Uint8Array
+  /**
+   * Blocks counts the stored blocks settled so far.
+   */
+  blocks?: bigint
+  /**
+   * Roots counts the named roots counted so far.
+   */
+  roots?: bigint
+  /**
+   * Counted counts the settled blocks with more than one holder.
+   */
+  counted?: bigint
+  /**
+   * Queued counts the settled blocks queued at zero.
+   */
+  queued?: bigint
+  /**
+   * Unknown counts the holders of blocks stored without a child list.
+   */
+  unknown?: bigint
+}
+
+export const AdoptCursor: MessageType<AdoptCursor> =
+  /* @__PURE__ */ createMessageType<AdoptCursor>('block.gc.AdoptCursor', () => [
+    [1, 'phase', 14, 0, AdoptPhase_Enum],
+    [2, 'after', 12],
+    [3, 'blocks', 4],
+    [4, 'roots', 4],
+    [5, 'counted', 4],
+    [6, 'queued', 4],
+    [7, 'unknown', 4],
+  ])
 
 /**
  * Release is the release of the children of a freed block whose child list

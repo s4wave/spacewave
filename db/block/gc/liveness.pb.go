@@ -107,6 +107,48 @@ func (x Generation) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// AdoptPhase is the pass an adoption is in. The passes run in this order.
+type AdoptPhase int32
+
+const (
+	// ADOPT_PHASE_ROOTS counts each root at the block it held at the mark.
+	AdoptPhase_ADOPT_PHASE_ROOTS AdoptPhase = 0
+	// ADOPT_PHASE_CHILDREN counts the children of each block stored at the
+	// mark.
+	AdoptPhase_ADOPT_PHASE_CHILDREN AdoptPhase = 1
+	// ADOPT_PHASE_SETTLE writes each stored block's holders, queuing a block
+	// with none. Its last slice marks the Volume adopted.
+	AdoptPhase_ADOPT_PHASE_SETTLE AdoptPhase = 2
+)
+
+// Enum value maps for AdoptPhase.
+var (
+	AdoptPhase_name = map[int32]string{
+		0: "ADOPT_PHASE_ROOTS",
+		1: "ADOPT_PHASE_CHILDREN",
+		2: "ADOPT_PHASE_SETTLE",
+	}
+	AdoptPhase_value = map[string]int32{
+		"ADOPT_PHASE_ROOTS":    0,
+		"ADOPT_PHASE_CHILDREN": 1,
+		"ADOPT_PHASE_SETTLE":   2,
+	}
+)
+
+func (x AdoptPhase) Enum() *AdoptPhase {
+	p := new(AdoptPhase)
+	*p = x
+	return p
+}
+
+func (x AdoptPhase) String() string {
+	name, valid := AdoptPhase_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // RootEntry is one named root in a Volume's root table: the block the name
 // holds.
 type RootEntry struct {
@@ -208,6 +250,11 @@ type LivenessState struct {
 	// kind once none of its records remain. None is a block, a block's bytes
 	// or a child list.
 	ObsoleteKinds []byte `protobuf:"bytes,22,opt,name=obsolete_kinds,json=obsoleteKinds,proto3" json:"obsoleteKinds,omitempty"`
+	// AdoptCursor is how far the adoption in progress has counted, set only
+	// while the Volume is adopting. Each slice of the count writes it in the
+	// transaction that writes the slice's counts, so a run that takes the
+	// Volume over continues strictly after the last key it names.
+	AdoptCursor *AdoptCursor `protobuf:"bytes,23,opt,name=adopt_cursor,json=adoptCursor,proto3" json:"adoptCursor,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -293,6 +340,89 @@ func (x *LivenessState) GetObsoleteKinds() []byte {
 	return nil
 }
 
+func (x *LivenessState) GetAdoptCursor() *AdoptCursor {
+	if x != nil {
+		return x.AdoptCursor
+	}
+	return nil
+}
+
+// AdoptCursor is the position of an adoption and what it has counted so
+// far, as AdoptResult reports it.
+type AdoptCursor struct {
+	unknownFields []byte
+	// Phase is the pass in progress.
+	Phase AdoptPhase `protobuf:"varint,1,opt,name=phase,proto3" json:"phase,omitempty"`
+	// After is the last key the pass finished: a root name in the roots pass,
+	// a block key in the others. Empty starts the pass at its first key.
+	After []byte `protobuf:"bytes,2,opt,name=after,proto3" json:"after,omitempty"`
+	// Blocks counts the stored blocks settled so far.
+	Blocks uint64 `protobuf:"varint,3,opt,name=blocks,proto3" json:"blocks,omitempty"`
+	// Roots counts the named roots counted so far.
+	Roots uint64 `protobuf:"varint,4,opt,name=roots,proto3" json:"roots,omitempty"`
+	// Counted counts the settled blocks with more than one holder.
+	Counted uint64 `protobuf:"varint,5,opt,name=counted,proto3" json:"counted,omitempty"`
+	// Queued counts the settled blocks queued at zero.
+	Queued uint64 `protobuf:"varint,6,opt,name=queued,proto3" json:"queued,omitempty"`
+	// Unknown counts the holders of blocks stored without a child list.
+	Unknown uint64 `protobuf:"varint,7,opt,name=unknown,proto3" json:"unknown,omitempty"`
+}
+
+func (x *AdoptCursor) Reset() {
+	*x = AdoptCursor{}
+}
+
+func (*AdoptCursor) ProtoMessage() {}
+
+func (x *AdoptCursor) GetPhase() AdoptPhase {
+	if x != nil {
+		return x.Phase
+	}
+	return AdoptPhase_ADOPT_PHASE_ROOTS
+}
+
+func (x *AdoptCursor) GetAfter() []byte {
+	if x != nil {
+		return x.After
+	}
+	return nil
+}
+
+func (x *AdoptCursor) GetBlocks() uint64 {
+	if x != nil {
+		return x.Blocks
+	}
+	return 0
+}
+
+func (x *AdoptCursor) GetRoots() uint64 {
+	if x != nil {
+		return x.Roots
+	}
+	return 0
+}
+
+func (x *AdoptCursor) GetCounted() uint64 {
+	if x != nil {
+		return x.Counted
+	}
+	return 0
+}
+
+func (x *AdoptCursor) GetQueued() uint64 {
+	if x != nil {
+		return x.Queued
+	}
+	return 0
+}
+
+func (x *AdoptCursor) GetUnknown() uint64 {
+	if x != nil {
+		return x.Unknown
+	}
+	return 0
+}
+
 // Release is the release of the children of a freed block whose child list
 // is longer than one collector slice moves. The slice that frees the block
 // moves the list to release pages; each later slice drops the next
@@ -368,6 +498,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.AdoptAtUnixMilli = m.AdoptAtUnixMilli
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
 	r.ObsoleteKinds = protobuf_go_lite.CloneBytes(m.ObsoleteKinds)
+	r.AdoptCursor = protobuf_go_lite.CloneVTValue(m.AdoptCursor)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -375,6 +506,28 @@ func (m *LivenessState) CloneVT() *LivenessState {
 }
 
 func (m *LivenessState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AdoptCursor) CloneVT() *AdoptCursor {
+	if m == nil {
+		return (*AdoptCursor)(nil)
+	}
+	r := new(AdoptCursor)
+	r.Phase = m.Phase
+	r.Blocks = m.Blocks
+	r.Roots = m.Roots
+	r.Counted = m.Counted
+	r.Queued = m.Queued
+	r.Unknown = m.Unknown
+	r.After = protobuf_go_lite.CloneBytes(m.After)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AdoptCursor) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -458,11 +611,52 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if !protobuf_go_lite.EqualBytes(this.ObsoleteKinds, that.ObsoleteKinds) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.AdoptCursor, that.AdoptCursor) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *LivenessState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*LivenessState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AdoptCursor) EqualVT(that *AdoptCursor) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Phase != that.Phase {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.After, that.After) {
+		return false
+	}
+	if this.Blocks != that.Blocks {
+		return false
+	}
+	if this.Roots != that.Roots {
+		return false
+	}
+	if this.Counted != that.Counted {
+		return false
+	}
+	if this.Queued != that.Queued {
+		return false
+	}
+	if this.Unknown != that.Unknown {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AdoptCursor) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AdoptCursor)
 	if !ok {
 		return false
 	}
@@ -572,6 +766,46 @@ func (x *Generation) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the Generation from JSON.
 func (x *Generation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AdoptPhase to JSON.
+func (x AdoptPhase) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), AdoptPhase_name)
+}
+
+// MarshalText marshals the AdoptPhase to text.
+func (x AdoptPhase) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), AdoptPhase_name)), nil
+}
+
+// MarshalJSON marshals the AdoptPhase to JSON.
+func (x AdoptPhase) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AdoptPhase from JSON.
+func (x *AdoptPhase) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(AdoptPhase_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read AdoptPhase enum: %v", err)
+		return
+	}
+	*x = AdoptPhase(v)
+}
+
+// UnmarshalText unmarshals the AdoptPhase from text.
+func (x *AdoptPhase) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), AdoptPhase_value)
+	if err != nil {
+		return err
+	}
+	*x = AdoptPhase(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the AdoptPhase from JSON.
+func (x *AdoptPhase) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -688,6 +922,11 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("obsoleteKinds")
 		s.WriteBytes(x.ObsoleteKinds)
 	}
+	if x.AdoptCursor != nil || s.HasField("adoptCursor") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("adoptCursor")
+		x.AdoptCursor.MarshalProtoJSON(s.WithField("adoptCursor"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -742,12 +981,109 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "obsolete_kinds", "obsoleteKinds":
 			s.AddField("obsolete_kinds")
 			x.ObsoleteKinds = s.ReadBytes()
+		case "adopt_cursor", "adoptCursor":
+			if s.ReadNil() {
+				x.AdoptCursor = nil
+				return
+			}
+			x.AdoptCursor = &AdoptCursor{}
+			x.AdoptCursor.UnmarshalProtoJSON(s.WithField("adopt_cursor", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the LivenessState from JSON.
 func (x *LivenessState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AdoptCursor message to JSON.
+func (x *AdoptCursor) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Phase != 0 || s.HasField("phase") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("phase")
+		x.Phase.MarshalProtoJSON(s)
+	}
+	if len(x.After) > 0 || s.HasField("after") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("after")
+		s.WriteBytes(x.After)
+	}
+	if x.Blocks != 0 || s.HasField("blocks") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blocks")
+		s.WriteUint64(x.Blocks)
+	}
+	if x.Roots != 0 || s.HasField("roots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("roots")
+		s.WriteUint64(x.Roots)
+	}
+	if x.Counted != 0 || s.HasField("counted") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("counted")
+		s.WriteUint64(x.Counted)
+	}
+	if x.Queued != 0 || s.HasField("queued") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("queued")
+		s.WriteUint64(x.Queued)
+	}
+	if x.Unknown != 0 || s.HasField("unknown") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unknown")
+		s.WriteUint64(x.Unknown)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AdoptCursor to JSON.
+func (x *AdoptCursor) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AdoptCursor message from JSON.
+func (x *AdoptCursor) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "phase":
+			s.AddField("phase")
+			x.Phase.UnmarshalProtoJSON(s)
+		case "after":
+			s.AddField("after")
+			x.After = s.ReadBytes()
+		case "blocks":
+			s.AddField("blocks")
+			x.Blocks = s.ReadUint64()
+		case "roots":
+			s.AddField("roots")
+			x.Roots = s.ReadUint64()
+		case "counted":
+			s.AddField("counted")
+			x.Counted = s.ReadUint64()
+		case "queued":
+			s.AddField("queued")
+			x.Queued = s.ReadUint64()
+		case "unknown":
+			s.AddField("unknown")
+			x.Unknown = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AdoptCursor from JSON.
+func (x *AdoptCursor) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -880,6 +1216,18 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.AdoptCursor != nil {
+		size, err := m.AdoptCursor.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xba
+	}
 	if len(m.ObsoleteKinds) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ObsoleteKinds)
 		i--
@@ -949,6 +1297,73 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if m.Adoption != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Adoption))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AdoptCursor) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AdoptCursor) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AdoptCursor) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Unknown != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Unknown))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Queued != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Queued))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.Counted != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Counted))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Roots != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Roots))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Blocks != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Blocks))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.After) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.After)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Phase != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Phase))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -1034,6 +1449,27 @@ func (m *LivenessState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.DownSeq)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.AdoptAtUnixMilli)
 	n += protobuf_go_lite.SizeBytesNonEmpty(2, m.ObsoleteKinds)
+	if m.AdoptCursor != nil {
+		l = m.AdoptCursor.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AdoptCursor) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Phase)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.After)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Blocks)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Roots)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Counted)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Queued)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Unknown)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1056,6 +1492,10 @@ func (x Adoption) MarshalProtoText() string {
 }
 
 func (x Generation) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x AdoptPhase) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -1124,10 +1564,52 @@ func (x *LivenessState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "obsolete_kinds")
 		protobuf_go_lite.TextWriteBytes(&sb, x.ObsoleteKinds)
 	}
+	if x.AdoptCursor != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "adopt_cursor")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.AdoptCursor)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *LivenessState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AdoptCursor) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AdoptCursor")
+	if x.Phase != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "phase")
+		protobuf_go_lite.TextWriteStringer(&sb, AdoptPhase(x.Phase))
+	}
+	if len(x.After) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "after")
+		protobuf_go_lite.TextWriteBytes(&sb, x.After)
+	}
+	if x.Blocks != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "blocks")
+		protobuf_go_lite.TextWriteUint(&sb, x.Blocks)
+	}
+	if x.Roots != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "roots")
+		protobuf_go_lite.TextWriteUint(&sb, x.Roots)
+	}
+	if x.Counted != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "counted")
+		protobuf_go_lite.TextWriteUint(&sb, x.Counted)
+	}
+	if x.Queued != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "queued")
+		protobuf_go_lite.TextWriteUint(&sb, x.Queued)
+	}
+	if x.Unknown != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unknown")
+		protobuf_go_lite.TextWriteUint(&sb, x.Unknown)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AdoptCursor) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1340,6 +1822,128 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field ObsoleteKinds", wireType)
 			}
 			m.ObsoleteKinds, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ObsoleteKinds, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 23:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdoptCursor", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.AdoptCursor == nil {
+				m.AdoptCursor = &AdoptCursor{}
+			}
+			if err := m.AdoptCursor.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AdoptCursor) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AdoptCursor: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AdoptCursor: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
+			}
+			m.Phase = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Phase = AdoptPhase(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field After", wireType)
+			}
+			m.After, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.After, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Blocks", wireType)
+			}
+			m.Blocks = 0
+			m.Blocks, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Roots", wireType)
+			}
+			m.Roots = 0
+			m.Roots, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Counted", wireType)
+			}
+			m.Counted = 0
+			m.Counted, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Queued", wireType)
+			}
+			m.Queued = 0
+			m.Queued, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Unknown", wireType)
+			}
+			m.Unknown = 0
+			m.Unknown, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
