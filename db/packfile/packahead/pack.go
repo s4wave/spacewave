@@ -45,7 +45,8 @@ type pack struct {
 	buf []byte
 	// written is the pack's length: every batch written to f.
 	written int64
-	// synced is the length known durable.
+	// synced is the durable end of the batch data, excluding the index.
+	// A finalized pack loaded at Open has no append waiters.
 	synced int64
 	// syncing is set while a writer runs the pack's fdatasync.
 	syncing bool
@@ -135,6 +136,8 @@ type finalized struct {
 	path string
 	// size is the pack's length, its index included.
 	size int64
+	// dataEnd is the end of the batch data that the index follows.
+	dataEnd int64
 	// blocks is the pack's value count.
 	blocks int
 	// bloom is the pack's serialized bloom filter.
@@ -222,7 +225,7 @@ func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, erro
 	if err := os.Rename(p.path, path); err != nil {
 		return nil, err
 	}
-	p.renamed = &finalized{id: id, path: path, size: size, blocks: len(index), bloom: bloomBytes}
+	p.renamed = &finalized{id: id, path: path, size: size, dataEnd: int64(len(data)), blocks: len(index), bloom: bloomBytes}
 	if err := dirSync(dir); err != nil {
 		return nil, errors.Wrap(err, "sync pack directory")
 	}
