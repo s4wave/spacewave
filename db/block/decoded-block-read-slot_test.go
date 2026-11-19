@@ -23,7 +23,11 @@ func TestDecodedBlockReadSlotRetirement(t *testing.T) {
 			// Retire the entry while an ancestor still holds its slot.
 			switch mode {
 			case "remove":
-				pool.del("held")
+				value, ok := pool.get("held")
+				if !ok {
+					t.Fatal("admitted block missing")
+				}
+				pool.delIfCurrent("held", value.version)
 			case "replace":
 				pool.put("held", "", decodedBlockCacheEntry{read: &decodedBlockReadSlot{}}, 512)
 			case "evict":
