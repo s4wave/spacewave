@@ -11,7 +11,9 @@ import (
 // ResourceRpcStream carries one Resource handshake followed by SRPC data frames.
 type ResourceRpcStream interface {
 	srpc.Stream
-	// Send sends a route control or nested SRPC packet.
+	// Send sends a route control packet. Nested SRPC data frames are sent with
+	// MsgSend, which encodes them in place, so a wrapper that filters data
+	// frames overrides MsgSend.
 	Send(*ResourceRpcPacket) error
 	// Recv receives a route control or nested SRPC packet.
 	Recv() (*ResourceRpcPacket, error)
@@ -59,9 +61,8 @@ func NewResourceRpcClient[T ResourceRpcStream](caller func(context.Context) (T, 
 		}
 
 		// Reuse SRPC framing and termination after the Resource acknowledgement.
-		data := &resourceRpcDataStream{ResourceRpcStream: stream, retain: call != nil}
-		go rpcstream.ReadPump(data, handler, closed)
-		return rpcstream.NewRpcStreamWriter(data), nil
+		go readResourceRpcData(stream, handler, closed)
+		return &resourceRpcDataWriter{stream: stream, retain: call != nil}, nil
 	})
 	return &resourceRpcClient{inner: inner}
 }
@@ -96,15 +97,15 @@ func HandleResourceRpc(stream ResourceRpcStream, lookup func(context.Context, ui
 	}
 
 	// Keep reading after handler completion so late abandonment reaches its children.
-	data := &resourceRpcDataStream{
-		ResourceRpcStream: stream,
-		retain:            true,
+	writer := &resourceRpcDataWriter{
+		stream: stream,
+		retain: true,
 		onSendError: func() {
 			// Report response EOF while retaining the reader for abandonment.
 			_ = stream.CloseSend()
 		},
 	}
-	server := srpc.NewServerRPC(ctx, mux, rpcstream.NewRpcStreamWriter(data))
+	server := srpc.NewServerRPC(ctx, mux, writer)
 
 	// The nested completion packet settles calls while the outer route stays open.
 	for {

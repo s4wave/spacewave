@@ -84,8 +84,6 @@ github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20261028131920-f644656fc4
 github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20261028131920-f644656fc4a7/go.mod h1:OoWp0DqYDPOCFHswO/z3H9jgEmDOwPJxxR9Meosb5zQ=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phqiA+X/w4YAT3sP8DyhfP81mo3k6v/RI/t1qGk=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
-github.com/aperturerobotics/starpc v0.52.4-0.20261024233818-0a9074172c29 h1:6b3U0HJOyJN+wphuDZZTzjlcgtc0+sc0d+KhTWjQAfY=
-github.com/aperturerobotics/starpc v0.52.4-0.20261024233818-0a9074172c29/go.mod h1:/GCnO8xZhs7y3zP9b5Ug+Ndey/VZ6NTN98pZThFE/Tc=
 github.com/aperturerobotics/starpc v0.52.4-0.20261119232016-57414c592c85 h1:/X0oj3mbsoP7I7/wChgIhWR+BMgFvDAzjmax2kJ7tMU=
 github.com/aperturerobotics/starpc v0.52.4-0.20261119232016-57414c592c85/go.mod h1:/GCnO8xZhs7y3zP9b5Ug+Ndey/VZ6NTN98pZThFE/Tc=
 github.com/aperturerobotics/util v1.34.10-0.20261117031301-4fe1fbb7c52a h1:dt1Bbo24R7V389ku4gGfUQVSokqMy2kvckmx2ZO8zKE=
