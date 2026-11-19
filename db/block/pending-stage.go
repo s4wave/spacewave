@@ -6,10 +6,11 @@ import (
 	"sync/atomic"
 )
 
-// pendingStage is a stage opened through a PendingStore: puts are kept in the
-// PendingStore while its bound allows and go to the inner store's stage past
-// it, so a writer whose tree outgrows memory holds the overflow under the
-// stage until its root does.
+// pendingStage is a stage opened through a PendingStore. A keeping stage
+// keeps puts in the PendingStore while its bound allows and sends them to the
+// inner store's stage past it, so a writer whose tree outgrows memory holds
+// the overflow under the stage until its root does. Any other sends every put
+// to the inner store's stage, with the kept blocks below it.
 type pendingStage struct {
 	// PendingStore serves reads and keeps puts.
 	*PendingStore
@@ -18,13 +19,15 @@ type pendingStage struct {
 	// hold holds the kept blocks this stage put until the stage is released,
 	// or is nil for an overflow stage, which holds none.
 	hold *pendingHold
+	// keep keeps puts while the bound allows instead of storing them.
+	keep bool
 	// stored records that a put went to stage, including one that failed
 	// there.
 	stored atomic.Bool
 }
 
-// PutBlock keeps a block whose refs are known while the bound allows, and
-// puts any other to the stage.
+// PutBlock keeps a block whose refs are known while a keeping stage's bound
+// allows, and puts any other to the stage.
 func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
 	// Hand a block without its child list to the stage.
 	if !opts.GetRefsKnown() || opts.GetSync() {
@@ -32,7 +35,7 @@ func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 		return p.stage.PutBlock(ctx, data, opts)
 	}
 
-	// Keep it while the bound allows.
+	// Keep it while the bound allows, or store it with its kept children.
 	ref, err := BuildBlockRef(data, opts)
 	if err != nil {
 		return nil, false, err
@@ -44,8 +47,8 @@ func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	return ref, existed[0], nil
 }
 
-// PutBlockBatch keeps the entries the bound allows and puts the rest to the
-// stage.
+// PutBlockBatch keeps the entries a keeping stage's bound allows and puts the
+// rest to the stage.
 func (p *pendingStage) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
 	if err := verifyKeepable(entries); err != nil {
 		return nil, err
@@ -55,7 +58,7 @@ func (p *pendingStage) PutBlockBatch(ctx context.Context, entries []*PutBatchEnt
 
 // putVerified keeps or stages entries whose keepable bytes match their refs.
 func (p *pendingStage) putVerified(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
-	existed, stored, err := p.put(ctx, p.stage, p.hold, entries)
+	existed, stored, err := p.put(ctx, p.stage, p.hold, p.keep, entries)
 	if stored {
 		p.stored.Store(true)
 	}
