@@ -148,7 +148,7 @@ func TestPackAheadCrashFinalize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, batchesEnd := scanBatches(data)
+	_, batchesEnd, _ := scanBatches(data)
 
 	// Recover the pack with its index whole and cut at points inside it.
 	for cut := int(batchesEnd); cut <= len(data); cut += max(1, (len(data)-int(batchesEnd))/7) {

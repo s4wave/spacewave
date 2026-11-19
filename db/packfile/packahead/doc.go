@@ -31,24 +31,21 @@
 //	recCRC  uint32  CRC32C of magic through body
 //	values  dataLen bytes, in entry order
 //
-// The record comes before its values so recovery can scan forward from the
-// start of the file: each record says how long its values are. One fsync does
-// not order the sectors it writes, so a record can reach the drive while its
-// values do not; dataCRC lets recovery reject that record.
+// Each record carries the absolute end of its batch. Recovery uses that
+// offset and both checksums to find intact batches past a damaged record.
+// The finalized index omits damaged spans without moving the retained bytes.
 //
 // # Invariants
 //
-//   - A batch's Append returns nil only once its record and values are durable
-//     (RowAfterSync and ReceiptedHeld in PackAhead.tla).
-//   - Recovery keeps the leading records whose two checksums match, in order,
-//     and truncates the pack at the first that does not (DataCheck and
-//     RecoveredValid). A batch past it was never acknowledged.
+//   - D1: A batch's Append acknowledges durable bytes only while its pack has
+//     no known failure (RowAfterSync and ReceiptedHeld in PackAhead.tla).
+//   - D2: Recovery indexes every verified batch, including those past a
+//     damaged record, and truncates only the trailing damaged bytes.
 //   - A pack file is created and its directory synced before any batch is
 //     written to it, so an acknowledged batch never lives in a file a crash
 //     can drop from the directory.
 //   - The table holds only locations some local pack holds: an entry is added
-//     after its batch is written and removed when its pack is recovered
-//     shorter.
+//     after its batch is written and removed if recovery discards that batch.
 //   - A local pack is unlinked only after the remote holds its object and
 //     entry and the pack index registers it (EvictCheck and
 //     EvictedRegistered); eviction is added with the upload. The one

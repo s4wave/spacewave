@@ -77,7 +77,7 @@ type Log struct {
 }
 
 // Open opens the Log in dir, creating dir if needed. It recovers every pack a
-// crash left unfinalized to its last good batch and finalizes it, loads the
+// crash left unfinalized and finalizes its verified batches, loads the
 // table from every finalized pack, and opens a new pack. ctx bounds the
 // opening and the Log's background work, which also ends at Close.
 func Open(ctx context.Context, dir string, opts Options) (*Log, error) {
@@ -156,8 +156,8 @@ func parseName(name string) (uint64, string, string, bool) {
 	return 0, "", "", false
 }
 
-// recoverPack truncates an unfinalized pack at path to its last good batch and
-// finalizes it, or removes it when it holds none. It runs before the Log is
+// recoverPack finalizes the verified batches of an unfinalized pack at path,
+// or removes it when it holds none. It runs before the Log is
 // shared.
 func (l *Log) recoverPack(seq uint64, path string) error {
 	// Read the pack and keep its good batches.
@@ -166,7 +166,13 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		return err
 	}
 	p := &pack{seq: seq, path: path, f: f, state: packRotated}
-	data, entries, err := p.recoverFile(l.opts.SyncData, nil)
+	data, entries, err := p.recoverFile(l.opts.SyncData, func(_ []entry, _ int64, damaged bool) {
+		// I2: a Log can reopen in the same process as its old decoded cache.
+		// A damaged record can hide the keys, so fence those reads globally.
+		if damaged {
+			block.InvalidateAllRemovedBlocks()
+		}
+	})
 	if err != nil {
 		_ = f.Close()
 		return err
@@ -996,14 +1002,8 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	// pack an earlier try dropped has no file left to recover.
 	if failed && p.renamed == nil && !p.dropped {
 		var err error
-		data, entries, err = p.recoverFile(opts.SyncData, func(end int64) {
-			// Retract durability and invalidate the suffix before truncation
-			// can block or fail. The poison path inherits this watermark.
-			l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				p.synced = min(p.synced, end)
-				l.forgetTruncatedLocked(p, end)
-				broadcast()
-			})
+		data, entries, err = p.recoverFile(opts.SyncData, func(kept []entry, end int64, _ bool) {
+			l.forgetDamagedBatches(p, entries, kept, end)
 		})
 		if err != nil {
 			return poison(err)
@@ -1039,6 +1039,57 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 		broadcast()
 	})
 	return nil
+}
+
+// forgetDamagedBatches fences locations that the recovery scan discarded.
+// The rotated pack's entry lists are immutable during the scan.
+func (l *Log) forgetDamagedBatches(p *pack, original, kept []entry, end int64) {
+	// Retract the end before an unsuccessful recovery can poison the pack.
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		p.synced = min(p.synced, end)
+	})
+
+	// Compare the record offsets outside the lock. Retained bytes keep the
+	// same offsets, so an in-flight read does not need to move with them.
+	const batchSize = 128
+	var damaged [batchSize]entry
+	n := 0
+	drop := func() {
+		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			l.dropDamagedEntriesLocked(p, damaged[:n])
+		})
+		n = 0
+	}
+	for _, e := range original {
+		for len(kept) != 0 && kept[0].batch < e.batch {
+			kept = kept[1:]
+		}
+		if len(kept) != 0 && kept[0].batch == e.batch {
+			continue
+		}
+		damaged[n] = e
+		n++
+		if n == len(damaged) {
+			drop()
+		}
+	}
+	if n != 0 {
+		drop()
+	}
+}
+
+// dropDamagedEntriesLocked implements I2: publish the removal generation
+// before readers can observe a dropped location or recovery can truncate it.
+func (l *Log) dropDamagedEntriesLocked(p *pack, damaged []entry) {
+	var removals block.BlockRemovalBatch
+	for _, e := range damaged {
+		t := tailOf(e.key)
+		if loc, ok := l.table[t]; ok && loc.p == p && int64(loc.off) == e.off {
+			removals.Add(e.stripe)
+			l.dropLocationLocked(t, loc)
+		}
+	}
+	removals.Publish()
 }
 
 // forgetTruncatedLocked drops the locations in a pack's discarded suffix.

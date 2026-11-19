@@ -1,6 +1,7 @@
 package packahead
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"hash/crc32"
@@ -34,7 +35,7 @@ func ScanRecords(ctx context.Context, ra io.ReaderAt, size, maxBytes int64, fn f
 		if _, err := ra.ReadAt(header[:], at); err != nil {
 			return at, errors.Wrap(err, "read batch record")
 		}
-		if binary.LittleEndian.Uint32(header[:]) != recordMagic {
+		if !bytes.HasPrefix(header[:], []byte(recordMagic)) {
 			break
 		}
 		recLen := int64(recordHeaderLen) + int64(binary.LittleEndian.Uint32(header[4:])) + recordTrailerLen

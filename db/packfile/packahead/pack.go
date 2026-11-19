@@ -233,11 +233,11 @@ func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, erro
 	return p.renamed, nil
 }
 
-// recoverFile reads an unfinalized pack's file, keeps its leading good
-// batches, and truncates the file after them. It returns the kept bytes and
-// their entries, whose keys point into the bytes. sync makes the truncation
-// durable. publishEnd fences the discarded suffix before touching the file.
-func (p *pack) recoverFile(sync func(*os.File) error, publishEnd func(int64)) ([]byte, []entry, error) {
+// recoverFile reads an unfinalized pack, keeps every verified batch at its
+// original offset, and truncates the tail after the last one. The returned
+// entries point into the returned bytes. Before truncating, publish removes
+// the locations of discarded batches from a live Log.
+func (p *pack) recoverFile(sync func(*os.File) error, publish func([]entry, int64, bool)) ([]byte, []entry, error) {
 	// Read the whole file: a pack is bounded by MaxPackBytes.
 	info, err := p.f.Stat()
 	if err != nil {
@@ -249,10 +249,8 @@ func (p *pack) recoverFile(sync func(*os.File) error, publishEnd func(int64)) ([
 	}
 
 	// Keep the batches whose records and values both check, and drop the rest.
-	entries, end := scanBatches(data)
-	if publishEnd != nil {
-		publishEnd(end)
-	}
+	entries, end, damaged := scanBatches(data)
+	publish(entries, end, damaged)
 	if end < info.Size() {
 		if err := p.f.Truncate(end); err != nil {
 			return nil, nil, errors.Wrap(err, "truncate pack")

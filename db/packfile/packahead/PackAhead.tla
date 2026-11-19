@@ -2,8 +2,8 @@
 \* A directory of append-only packs that new block values go into, against
 \* every state a crash can leave on the drive.
 \*
-\* A writer appends one batch at a time to the open pack: the batch's values,
-\* then its record. Sync flushes every batch appended to the pack, and only a
+\* A writer appends one batch at a time to the open pack: its record,
+\* then the batch's values. Sync flushes every batch appended to the pack, and only a
 \* synced batch's block may gain its liveness row in the Volume, which is the
 \* receipt. A full pack rotates: the writer moves to the next pack and the old
 \* one is finalized, its index written and synced, then renamed. A finalized
@@ -18,9 +18,9 @@
 \*
 \* One fsync does not order the sectors it writes, so a crash keeps, for every
 \* batch not yet synced, its values, its record, both or neither. Recovery reads
-\* each pack the rename did not finalize, keeps the batches in order up to the
-\* first whose record is missing or whose values are missing (the record's
-\* checksum of its values), truncates there and finalizes the pack.
+\* each pack the rename did not finalize and indexes every batch whose record
+\* and values survived. The model keeps their order and abstracts away damaged
+\* spans between their physical offsets.
 \*
 \* Guards, which a mutant turns off to show the invariant needs it:
 \*   DataCheck:   recovery rejects a record whose values did not survive.
@@ -151,6 +151,7 @@ Commit ==
        /\ i <= Len(log[p])
        /\ log[p][i] \notin rows
        /\ RowAfterSync => i <= synced[p]
+       /\ (p \notin failed \/ fin[p] = "done")
        /\ rows' = rows \cup {log[p][i]}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, remote,
                  entries, reg, crashes, poisoned, failed, noindex>>
@@ -166,6 +167,7 @@ SkipPut ==
        /\ log[p][i] \notin rows
        /\ DurableSkip => i <= synced[p]
        /\ PoisonCheck => p \notin poisoned
+       /\ (p \notin failed \/ fin[p] = "done")
        /\ rows' = rows \cup {log[p][i]}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, remote,
                  entries, reg, crashes, poisoned, failed, noindex>>
@@ -314,30 +316,27 @@ Crash ==
 \* DataCheck its values did too.
 Accepted(b) == b.r /\ (DataCheck => b.d)
 
-\* Kept is how many leading batches of pack p recovery accepts.
-Kept(p) ==
-  LET n == Len(disk[p])
-      bad == {i \in 1..n : ~Accepted(disk[p][i])}
-  IN IF bad = {} THEN n ELSE (CHOOSE i \in bad : \A j \in bad : i <= j) - 1
+\* Kept gives the original indices of all verified batches in pack p.
+Kept(p) == SelectSeq([i \in DOMAIN disk[p] |-> i], LAMBDA i : Accepted(disk[p][i]))
 
-\* Recover truncates each unfinalized pack to its accepted batches, finalizes
-\* it, loads each renamed pack, and opens the next unused pack. A renamed pack
-\* whose directory sync was lost reads as unfinalized, its index past its
-\* last batch, and recovery finalizes it alike, so the model keeps the rename.
+\* Recover indexes all accepted batches, loads each renamed pack and opens
+\* the next unused pack. A renamed pack whose directory sync was lost would
+\* read back as unfinalized and be finalized alike, so the model keeps it.
 Recover ==
   /\ ~up
   /\ LET live == {p \in Packs : file[p] = "open"}
-         n == [p \in Packs |-> IF p \in live THEN Kept(p) ELSE Len(log[p])]
+         kept == [p \in Packs |-> IF p \in live THEN Kept(p)
+                                  ELSE [i \in DOMAIN log[p] |-> i]]
          unused == {p \in Packs : file[p] = "none"}
      IN
      /\ unused # {}
      /\ LET q == CHOOSE u \in unused : \A v \in unused : u <= v IN
-        /\ log' = [p \in Packs |-> SubSeq(log[p], 1, n[p])]
-        /\ disk' = [p \in Packs |-> SubSeq(disk[p], 1, n[p])]
-        /\ valid' = [p \in Packs |->
-                       IF p \in live THEN [i \in 1..n[p] |-> disk[p][i].d]
-                       ELSE valid[p]]
-        /\ synced' = n
+        /\ log' = [p \in Packs |-> [i \in DOMAIN kept[p] |-> log[p][kept[p][i]]]]
+        /\ disk' = [p \in Packs |-> [i \in DOMAIN kept[p] |-> disk[p][kept[p][i]]]]
+        /\ valid' = [p \in Packs |-> IF p \in live
+                                    THEN [i \in DOMAIN kept[p] |-> disk[p][kept[p][i]].d]
+                                    ELSE valid[p]]
+        /\ synced' = [p \in Packs |-> Len(kept[p])]
         /\ file' = [p \in Packs |->
                       IF p \in live THEN "final"
                       ELSE IF p = q THEN "open" ELSE file[p]]
