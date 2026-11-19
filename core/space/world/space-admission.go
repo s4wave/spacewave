@@ -2,6 +2,7 @@ package space_world
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -65,6 +66,9 @@ type spaceAdmission struct {
 	reason string
 	// head is the installed head once decided.
 	head world.Head
+	// hold is how long the driver step that decided it Accepted held the
+	// writers, from the step's start to its decision.
+	hold time.Duration
 	// err is the queue's failure, or the refusal as an error.
 	err error
 }

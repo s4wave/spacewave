@@ -35,8 +35,8 @@ func WriteCarriedQuads(ctx context.Context, e *Engine, quads *block.BlockRef) er
 	return e.writeCarriedQuads(ctx, quads)
 }
 
-// RegenCarryQuads is the most quads one carried-quad write sets.
-const RegenCarryQuads = regenCarryQuads
+// RegenCarryStart is the quads the first carried-quad write sets.
+const RegenCarryStart = regenCarryStart
 
 // WaitRegenBuild waits until e's installed head holds a pin and e built it
 // off the replay path, and returns the refusal the build met, or "".

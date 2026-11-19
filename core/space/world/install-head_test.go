@@ -202,7 +202,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 
 	// The first install fails its hold, reports nothing and decides nothing,
 	// and the late QueueOperation that returns after it waits for the head.
-	if err := a.installHead(ctx); err == nil {
+	if err := a.installHead(ctx, time.Now()); err == nil {
 		t.Fatal("the first install held the retained roots through a failing store")
 	}
 	a.queued(lateAdm, "late", late, nil)
@@ -233,7 +233,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	a.decideCovered(refused, unknown)
 
 	// The next install holds them, reports the head once, then decides both.
-	if err := a.installHead(ctx); err != nil {
+	if err := a.installHead(ctx, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if store.held()[RootRetained].GetEmpty() {
@@ -252,7 +252,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	// An install whose retained set the root holds already stores nothing
 	// and asks the store nothing.
 	exists, moved := store.existsCalls(), len(store.moved)
-	if err := a.installHead(ctx); err != nil {
+	if err := a.installHead(ctx, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if n := store.existsCalls() - exists; n != 0 || len(store.moved) != moved {

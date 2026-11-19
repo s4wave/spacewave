@@ -724,7 +724,7 @@ func TestRegenerateWorldKeepsBaseThroughTheFloor(t *testing.T) {
 				}
 			} else {
 				delete(w.a.missing, "missing")
-				if err := w.a.installHead(ctx); err != nil {
+				if err := w.a.installHead(ctx, time.Now()); err != nil {
 					t.Fatalf("the install after the save: %v", err)
 				}
 			}
