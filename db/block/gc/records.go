@@ -73,8 +73,11 @@ const (
 	kindLease byte = 'E'
 	// kindHole keys a hole the audit found under a live root, by the block: a
 	// block the store lost together with its child list, whose parents' lists
-	// still name it. It holds no value. A put of the block counts it as
-	// stored, as Land describes, and deletes the record.
+	// still name it. Its value is empty while its children's counts still
+	// hold it, and holeUncounted once a recount, which reads no list for it,
+	// left them without it. A put of the block counts it as stored, as Land
+	// describes, gives its children their holders again when they lack
+	// them, and deletes the record.
 	kindHole byte = 'O'
 	// kindParked keys a Dead block the free held back while the generation
 	// is Open, by its big-endian ripe sequence, then the block, as the free
@@ -611,6 +614,11 @@ func decodeHolders(value []byte) (holders, ripe uint64, err error) {
 	}
 	return n + 1, 0, nil
 }
+
+// holeUncounted is the value of a hole record whose children's counts do
+// not hold the hole, which the adoption's settle writes, as kindHole
+// describes.
+var holeUncounted = []byte{1}
 
 // errCountMalformed reports a count record that decodes to nothing.
 var errCountMalformed = errors.New("liveness count record is malformed")

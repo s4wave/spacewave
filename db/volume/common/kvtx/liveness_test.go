@@ -5880,16 +5880,16 @@ func TestLivenessSettle(t *testing.T) {
 		slices.SortFunc(keys, bytes.Compare)
 		return tr, listed, keys[255]
 	}
-	// readoptTo readopts v, stopping once the list count's cursor reaches
-	// stop.
-	readoptTo := func(t *testing.T, v *Volume, stop []byte) {
+	// readoptTo readopts v, stopping once the cursor of the pass phase
+	// reaches stop.
+	readoptTo := func(t *testing.T, v *Volume, phase block_gc.AdoptPhase, stop []byte) {
 		t.Helper()
 		markUnadopted(t, v)
 		ctx, cancel := context.WithCancel(t.Context())
 		var stopped bool
 		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
 			cur := livenessState(t, v).GetAdoptCursor()
-			if cur.GetPhase() == block_gc.AdoptPhase_ADOPT_PHASE_CHILDREN && bytes.Equal(cur.GetAfter(), stop) {
+			if cur.GetPhase() == phase && bytes.Equal(cur.GetAfter(), stop) {
 				stopped = true
 				cancel()
 			}
@@ -5941,7 +5941,7 @@ func TestLivenessSettle(t *testing.T) {
 				v, clk, store := oldStore(t, tr, "A", listed)
 				verify(t, v, tr, listed[:len(listed)-1]...)
 				collectUntil(t, v, clk, flipped)
-				readoptTo(t, v, stop)
+				readoptTo(t, v, block_gc.AdoptPhase_ADOPT_PHASE_CHILDREN, stop)
 				roots := []block.NamedRoot{{Name: "u", Ref: tr["U"].Ref}}
 				if err := v.SetBucketRoots(t.Context(), "b", tr.entries("U"), roots); err != nil {
 					t.Fatal(err)
@@ -5962,7 +5962,7 @@ func TestLivenessSettle(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				tr, listed, stop := slotted(t, "P", tc.rank)
 				v, clk, store := oldStore(t, tr, "A", listed, "P")
-				readoptTo(t, v, stop)
+				readoptTo(t, v, block_gc.AdoptPhase_ADOPT_PHASE_CHILDREN, stop)
 				roots := []block.NamedRoot{{Name: "p", Ref: tr["P"].Ref}}
 				if err := v.SetBucketRoots(t.Context(), "b", tr.entries("P"), roots); err != nil {
 					t.Fatal(err)
@@ -5973,6 +5973,74 @@ func TestLivenessSettle(t *testing.T) {
 				requireClean(t, v, clk, store)
 				if owed := livenessRecords(t, store, 'Y'); len(owed) != 0 {
 					t.Fatal("the adoption left a recount owed")
+				}
+			})
+		}
+	})
+
+	t.Run("hole while a readoption settles the lists", func(t *testing.T) {
+		// The root A names C, a hub of 300 leaves and X, and the store loses
+		// X with its list; an audit records the hole. A readoption counts
+		// A's holder of X, and the settle writes X's tally as its holders
+		// though X has no list. A put of X under its own root refills it,
+		// either behind the settle's cursor or once the Volume is adopted,
+		// and X's count agrees with a clean recount.
+		ctx := t.Context()
+		for _, refilled := range []string{"behind the settle cursor", "once adopted"} {
+			t.Run(refilled, func(t *testing.T) {
+				tr := testTree{}
+				tr.add(t, "C")
+				leaves := make([]string, 0, 300)
+				for i := range 300 {
+					leaves = append(leaves, "F"+strconv.Itoa(i))
+					tr.add(t, leaves[i])
+				}
+				tr.add(t, "H", leaves...)
+				names := append([]string{"C", "H"}, leaves...)
+				var stop []byte
+				for i := 0; stop == nil; i++ {
+					// Choose X, then A naming it, so that X's key sorts
+					// below the end of the settle's first slice, which
+					// holds the hole as well as the lists.
+					try := "X" + strconv.Itoa(i)
+					x := block_gc.BlockKey(tr.add(t, try, "C"))
+					tr["X"] = tr[try]
+					delete(tr, try)
+					tr.add(t, "A", "C", "H", "X")
+					keys := make([][]byte, 0, len(names)+1)
+					for _, name := range append(names, "A", "X") {
+						keys = append(keys, block_gc.BlockKey(tr[name].Ref))
+					}
+					slices.SortFunc(keys, bytes.Compare)
+					if bytes.Compare(x, keys[255]) < 0 {
+						stop = keys[255]
+					}
+				}
+				store := store_kvtx_inmem.NewStore()
+				v, clk := openLivenessVolume(t, store, true)
+				all := append(names, "X", "A")
+				if err := v.SetBucketRoots(ctx, "b", tr.entries(all...), []block.NamedRoot{{Name: "main", Ref: tr["A"].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+				punchHole(t, v, tr["X"].Ref)
+				if res, err := v.Audit(ctx); err != nil || res.Holes != 1 {
+					t.Fatalf("audit recorded %d holes err %v, want X", res.Holes, err)
+				}
+				if refilled == "behind the settle cursor" {
+					readoptTo(t, v, block_gc.AdoptPhase_ADOPT_PHASE_SETTLE, stop)
+				} else {
+					markUnadopted(t, v)
+					if _, err := v.Adopt(ctx); err != nil {
+						t.Fatal(err)
+					}
+				}
+				roots := []block.NamedRoot{{Name: "x", Ref: tr["X"].Ref}}
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("X"), roots); err != nil {
+					t.Fatal(err)
+				}
+				requireClean(t, v, clk, store)
+				if holders, _ := blockHolders(t, v, tr, "X"); holders != 2 {
+					t.Fatalf("X has %d holders, want A and its root", holders)
 				}
 			})
 		}

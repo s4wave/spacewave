@@ -1,6 +1,7 @@
 package block_gc
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"maps"
@@ -495,16 +496,42 @@ func (a *adoption) countChildren(ctx context.Context, rec *Records, blocks block
 	})
 }
 
-// settleLists settles the blocks of the next child lists.
+// settleLists settles the blocks of the next child list and hole records,
+// in key order. A hole has no list, but the count gave it the holders the
+// lists name it with, so its record is a tally too; settled behind the
+// cursor, it reads right when a put refills the hole later.
 func (a *adoption) settleLists(ctx context.Context, rec *Records, _ block.StoreOps, state *LivenessState, cur *AdoptCursor) ([]byte, bool, error) {
-	return scanLists(ctx, rec, cur.GetAfter(), func(recs []adoptRecord) error {
-		for _, r := range recs {
-			if err := a.settle(ctx, rec, state, cur, r); err != nil {
-				return err
-			}
+	// Read the next records of each kind: the next of their union are among
+	// them. A Volume holds no hole but after damage, so the hole scan is one
+	// seek that finds nothing.
+	lists, err := rec.scanAfter(ctx, kindChildren, cur.GetAfter(), sliceRecords)
+	if err != nil {
+		return nil, false, err
+	}
+	holes, err := rec.scanAfter(ctx, kindHole, cur.GetAfter(), sliceRecords)
+	if err != nil {
+		return nil, false, err
+	}
+
+	// Settle the smallest, in key order.
+	var last []byte
+	for n := 0; n != sliceRecords; n++ {
+		hole := len(holes) != 0 && (len(lists) == 0 || bytes.Compare(holes[0].key, lists[0].key) < 0)
+		var r adoptRecord
+		switch {
+		case hole:
+			r, holes = holes[0], holes[1:]
+		case len(lists) != 0:
+			r, lists = lists[0], lists[1:]
+		default:
+			return last, false, nil
 		}
-		return nil
-	})
+		if err := a.settle(ctx, rec, state, cur, r, hole); err != nil {
+			return nil, false, err
+		}
+		last = r.key
+	}
+	return last, true, nil
 }
 
 // scanLists calls fn with up to sliceRecords child list records after the
@@ -521,21 +548,38 @@ func scanLists(ctx context.Context, rec *Records, after []byte, fn func(recs []a
 	return recs[len(recs)-1].key, len(recs) == sliceRecords, nil
 }
 
-// settle writes the holders the count gave the block of the list record r,
-// or settles it at zero on the free queue, ripe at the up log's end in
-// state, when it has none. It skips a block born since the adoption began.
-func (a *adoption) settle(ctx context.Context, rec *Records, state *LivenessState, cur *AdoptCursor, r adoptRecord) error {
+// settle writes the holders the count gave the block of the list or hole
+// record r, or settles it at zero on the free queue, ripe at the up log's
+// end in state, when it has none. It skips a block born since the adoption
+// began. The count read no list for a hole, so its children lost its
+// holder, and the settle marks its record uncounted; a hole no holder names
+// is forgotten instead: its count and hole records go, and a later put of
+// it is a birth.
+func (a *adoption) settle(ctx context.Context, rec *Records, state *LivenessState, cur *AdoptCursor, r adoptRecord, hole bool) error {
 	// Skip a block born since the adoption began.
 	ref, born, err := a.listed(ctx, rec, r)
 	if err != nil || born {
 		return err
 	}
 
-	// Write the holders of a block a holder names.
+	// Write the holders of a block a holder names, and mark or forget a
+	// hole.
 	cur.Blocks++
 	n, err := rec.tally(ctx, ref)
 	if err != nil {
 		return err
+	}
+	if hole {
+		key := rec.key(kindHole, r.key)
+		if n == 0 {
+			if err := rec.tx.Delete(ctx, key); err != nil {
+				return err
+			}
+			return rec.SetHolders(ctx, ref, 1, 0)
+		}
+		if err := rec.tx.Set(ctx, key, holeUncounted); err != nil {
+			return err
+		}
 	}
 	if n != 0 {
 		if n > 1 {
