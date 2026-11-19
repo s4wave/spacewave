@@ -150,6 +150,10 @@ func worldOpKind(wop *WorldOp) WorldOpKind {
 		return WorldOpKind_WORLD_OP_KIND_FENCE
 	case *WorldOp_RootSet:
 		return WorldOpKind_WORLD_OP_KIND_ROOT_SET
+	case *WorldOp_RegenerateWorld:
+		return WorldOpKind_WORLD_OP_KIND_REGENERATE_WORLD
+	case *WorldOp_ReleaseWorldRegen:
+		return WorldOpKind_WORLD_OP_KIND_RELEASE_WORLD_REGEN
 	default:
 		return WorldOpKind_WORLD_OP_KIND_UNKNOWN
 	}

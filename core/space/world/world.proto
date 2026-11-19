@@ -127,7 +127,39 @@ message WorldOp {
     FenceOp fence = 7;
     // RootSet answers a fence with the roots its author holds.
     RootSetOp root_set = 8;
+    // RegenerateWorld rebuilds the World in another stored format, keeping
+    // the old World held until a release names it.
+    RegenerateWorldOp regenerate_world = 9;
+    // ReleaseWorldRegen releases the roots a regeneration holds, after a
+    // comparison found them equal.
+    ReleaseWorldRegenOp release_world_regen = 10;
   }
+}
+
+// RegenerateWorldOp rebuilds the World in the target format. To the node
+// graph from cayley_kv, it adds the carried quads to the World, holds the
+// result as world-regen/base, builds it as a node graph held as
+// world-regen/built, and installs the build. Back to cayley_kv while both are
+// held, it carries base forward by the node graph's changes since built,
+// installs the result, and releases both. Replay refuses any other case.
+message RegenerateWorldOp {
+  // Target is the format to rebuild into.
+  .world.block.WorldFormat target = 1;
+  // Quads is the root of a quad list to add before the build, or empty. The
+  // list is uvarint-length-prefixed block/quad.Quad messages in a blob,
+  // sorted as CompareQuads orders them.
+  .block.BlockRef quads = 2;
+}
+
+// ReleaseWorldRegenOp releases world-regen/base and world-regen/built. Replay
+// applies it only while the two names hold exactly these roots, so a release
+// ordered before a switch back and a later regeneration cannot free that
+// regeneration's roots.
+message ReleaseWorldRegenOp {
+  // Base is the root world-regen/base must hold.
+  .block.BlockRef base = 1;
+  // Built is the root world-regen/built must hold.
+  .block.BlockRef built = 2;
 }
 
 // FenceOp asks every writer device of the Space for the roots it holds. It
@@ -351,6 +383,10 @@ enum WorldOpKind {
   WORLD_OP_KIND_FENCE = 7;
   // WORLD_OP_KIND_ROOT_SET is a RootSetOp.
   WORLD_OP_KIND_ROOT_SET = 8;
+  // WORLD_OP_KIND_REGENERATE_WORLD is a RegenerateWorldOp.
+  WORLD_OP_KIND_REGENERATE_WORLD = 9;
+  // WORLD_OP_KIND_RELEASE_WORLD_REGEN is a ReleaseWorldRegenOp.
+  WORLD_OP_KIND_RELEASE_WORLD_REGEN = 10;
 }
 
 // OrderOperation is one operation of a Space's agreed order above its

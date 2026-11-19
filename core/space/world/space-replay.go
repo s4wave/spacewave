@@ -289,6 +289,14 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 		next, reason = applySetTransformConf(body.SetTransformConf, prev)
 	case *WorldOp_GraphSettingsStep:
 		next, reason, err = r.applyGraphSettingsStep(ctx, body.GraphSettingsStep, prev)
+	case *WorldOp_RegenerateWorld:
+		next, reason, err = r.applyRegenerateWorld(ctx, body.RegenerateWorld, prev)
+		if quads := body.RegenerateWorld.GetQuads(); err == nil && reason == "" && !quads.GetEmpty() {
+			// Hold the quad list, which a replica replaying the operation reads.
+			pos.payloads = []*block.BlockRef{quads}
+		}
+	case *WorldOp_ReleaseWorldRegen:
+		next, reason = applyReleaseWorldRegen(body.ReleaseWorldRegen, prev)
 	case *WorldOp_Fence, *WorldOp_RootSet:
 		next = prev
 	default:
@@ -518,28 +526,37 @@ func (r *spaceReplay) payloads() []*block.BlockRef {
 	return out
 }
 
-// applySetRetainedRoot sets or releases one retained root of prev.
+// applySetRetainedRoot sets or releases one retained root of prev. A name a
+// regeneration reserves is refused, since only its own operations move it.
 func applySetRetainedRoot(setOp *SetRetainedRootOp, prev *InnerState) (*InnerState, string) {
 	// Check the name.
 	if err := validateRetainedRootName(setOp.GetName()); err != nil {
 		return nil, err.Error()
 	}
+	if strings.HasPrefix(setOp.GetName(), regenRootPrefix) {
+		return nil, reasonReservedRoot
+	}
+	return setRetainedRoot(prev, setOp.GetName(), setOp.GetRootRef())
+}
 
+// setRetainedRoot sets the retained root name of prev to ref, or releases it
+// when ref is empty.
+func setRetainedRoot(prev *InnerState, name string, ref *block.BlockRef) (*InnerState, string) {
 	// Replace, add, or remove the entry, keeping the list sorted by name.
 	roots := slices.Clone(prev.GetRetainedRoots())
-	idx, found := slices.BinarySearchFunc(roots, setOp.GetName(), func(root *RetainedRoot, name string) int {
+	idx, found := slices.BinarySearchFunc(roots, name, func(root *RetainedRoot, name string) int {
 		return strings.Compare(root.GetName(), name)
 	})
 	switch {
-	case setOp.GetRootRef().GetEmpty() && found:
+	case ref.GetEmpty() && found:
 		roots = slices.Delete(roots, idx, idx+1)
-	case setOp.GetRootRef().GetEmpty():
+	case ref.GetEmpty():
 	case found:
-		roots[idx] = &RetainedRoot{Name: setOp.GetName(), RootRef: setOp.GetRootRef()}
+		roots[idx] = &RetainedRoot{Name: name, RootRef: ref}
 	case len(roots) >= maxRetainedRoots:
 		return nil, "too many retained roots"
 	default:
-		roots = slices.Insert(roots, idx, &RetainedRoot{Name: setOp.GetName(), RootRef: setOp.GetRootRef()})
+		roots = slices.Insert(roots, idx, &RetainedRoot{Name: name, RootRef: ref})
 	}
 
 	// Accept it.
@@ -639,6 +656,10 @@ func opTypeOf(wop *WorldOp) string {
 		return "set-transform-conf"
 	case *WorldOp_GraphSettingsStep:
 		return "graph-settings-step"
+	case *WorldOp_RegenerateWorld:
+		return "regenerate-world"
+	case *WorldOp_ReleaseWorldRegen:
+		return "release-world-regen"
 	}
 	return "unknown"
 }
@@ -658,6 +679,10 @@ func reasonCode(reason string) string {
 		"invalid operation data",
 		"empty operation",
 		reasonRemovedOp,
+		reasonReservedRoot,
+		"world regeneration",
+		"world regeneration failed",
+		"world regeneration release",
 		"too many retained roots":
 		return code
 	}

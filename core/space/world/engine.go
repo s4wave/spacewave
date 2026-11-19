@@ -149,6 +149,35 @@ func (e *Engine) StepGraphSettings(ctx context.Context, target *world_block.Grap
 	}})
 }
 
+// RegenerateWorld moves the World to target through the Space's order, as
+// world_block.WorldRegenerator says, and waits for the operation's outcome.
+// Every replica, this one included, adds the quads of the quad list at quads
+// and builds the new World in replay; a refusal returns sobject.ErrRejectedOp.
+func (e *Engine) RegenerateWorld(ctx context.Context, target world_block.WorldFormat, quads *block.BlockRef) error {
+	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_RegenerateWorld{RegenerateWorld: &RegenerateWorldOp{Target: target, Quads: quads}}})
+}
+
+// ReleaseWorldRegen compares the old World a regeneration holds with the new
+// one on this device, off replay, and when they are equal releases both
+// through the Space's order. The release names the roots compared, so replay
+// refuses it if another regeneration holds others by then.
+func (e *Engine) ReleaseWorldRegen(ctx context.Context) error {
+	// Read the held roots.
+	var base, built *block.BlockRef
+	e.a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		base, built = heldRegen(e.a.headState)
+	})
+	if base == nil || built == nil {
+		return errors.New("no world regeneration is held")
+	}
+
+	// Compare them, then queue the release and wait.
+	if err := world_block.NewOrderedRegen(e.cursor, nil, e.a.regenConfig()).Compare(ctx, base, built); err != nil {
+		return err
+	}
+	return e.a.writeOp(ctx, &WorldOp{Body: &WorldOp_ReleaseWorldRegen{ReleaseWorldRegen: &ReleaseWorldRegenOp{Base: base, Built: built}}})
+}
+
 // GetHead returns the installed World root and its seqno.
 func (e *Engine) GetHead(ctx context.Context) (*block.BlockRef, uint64, error) {
 	head, err := e.a.Head(ctx)
@@ -247,3 +276,6 @@ var (
 	_ BackfillEngine                   = (*Engine)(nil)
 	_ worldReaders                     = (*Engine)(nil)
 )
+
+// _ is a type assertion
+var _ world_block.WorldRegenerator = (*Engine)(nil)

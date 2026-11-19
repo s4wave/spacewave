@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
 // defaultMaxPendingBytes bounds the World pages an Adapter keeps in memory
@@ -49,6 +50,10 @@ type AdapterOptions struct {
 	// ReaderPinDelay sets how long a replaced head a reader still holds
 	// waits before the engine pins it, or is nil for the engine's default.
 	ReaderPinDelay *time.Duration
+	// Regen sets where a World regeneration this replica replays sorts. An
+	// empty spill directory is one of the adapter's own under the system
+	// temporary directory; a zero budget is 64 MiB.
+	Regen world_block.RegenConfig
 
 	// transient replays without holding roots or saving the cursor, for a
 	// one-off replay beside the Space's own adapter.

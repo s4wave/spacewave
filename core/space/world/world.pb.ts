@@ -8,13 +8,13 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
 import { SharedObjectRef } from '../../sobject/sobject.pb.js'
 import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
-import { BlockRef } from '../../../db/block/block.pb.js'
-import { Config as Config$1 } from '../../../db/block/transform/transform.pb.js'
 import type { WorldFormat } from '../../../db/world/block/world.pb.js'
 import {
   GraphSettings,
   WorldFormat_Enum,
 } from '../../../db/world/block/world.pb.js'
+import { BlockRef } from '../../../db/block/block.pb.js'
+import { Config as Config$1 } from '../../../db/block/transform/transform.pb.js'
 import { Tx } from '../../../db/world/block/tx/tx.pb.js'
 
 /**
@@ -97,6 +97,16 @@ export enum WorldOpKind {
    * WORLD_OP_KIND_ROOT_SET is a RootSetOp.
    */
   ROOT_SET = 8,
+
+  /**
+   * WORLD_OP_KIND_REGENERATE_WORLD is a RegenerateWorldOp.
+   */
+  REGENERATE_WORLD = 9,
+
+  /**
+   * WORLD_OP_KIND_RELEASE_WORLD_REGEN is a ReleaseWorldRegenOp.
+   */
+  RELEASE_WORLD_REGEN = 10,
 }
 
 export const WorldOpKind_Enum = /* @__PURE__ */ createEnumType(
@@ -110,6 +120,8 @@ export const WorldOpKind_Enum = /* @__PURE__ */ createEnumType(
     [6, 'WORLD_OP_KIND_GRAPH_SETTINGS_STEP'],
     [7, 'WORLD_OP_KIND_FENCE'],
     [8, 'WORLD_OP_KIND_ROOT_SET'],
+    [9, 'WORLD_OP_KIND_REGENERATE_WORLD'],
+    [10, 'WORLD_OP_KIND_RELEASE_WORLD_REGEN'],
   ],
 )
 
@@ -356,6 +368,8 @@ export interface WorldOp {
     | { value: GraphSettingsStepOp; case: 'graphSettingsStep' }
     | { value: FenceOp; case: 'fence' }
     | { value: RootSetOp; case: 'rootSet' }
+    | { value: RegenerateWorldOp; case: 'regenerateWorld' }
+    | { value: ReleaseWorldRegenOp; case: 'releaseWorldRegen' }
 }
 
 export const WorldOp: MessageType<WorldOp> =
@@ -367,7 +381,69 @@ export const WorldOp: MessageType<WorldOp> =
     [6, 'graph_settings_step', 11, 0, GraphSettingsStepOp.codec, 'body'],
     [7, 'fence', 11, 0, FenceOp.codec, 'body'],
     [8, 'root_set', 11, 0, RootSetOp.codec, 'body'],
+    [9, 'regenerate_world', 11, 0, RegenerateWorldOp.codec, 'body'],
+    [10, 'release_world_regen', 11, 0, ReleaseWorldRegenOp.codec, 'body'],
   ])
+
+/**
+ * RegenerateWorldOp rebuilds the World in the target format. To the node
+ * graph from cayley_kv, it adds the carried quads to the World, holds the
+ * result as world-regen/base, builds it as a node graph held as
+ * world-regen/built, and installs the build. Back to cayley_kv while both are
+ * held, it carries base forward by the node graph's changes since built,
+ * installs the result, and releases both. Replay refuses any other case.
+ *
+ * @generated from message space.world.RegenerateWorldOp
+ */
+export interface RegenerateWorldOp {
+  /**
+   * Target is the format to rebuild into.
+   */
+  target?: WorldFormat
+  /**
+   * Quads is the root of a quad list to add before the build, or empty. The
+   * list is uvarint-length-prefixed block/quad.Quad messages in a blob,
+   * sorted as CompareQuads orders them.
+   */
+  quads?: BlockRef
+}
+
+export const RegenerateWorldOp: MessageType<RegenerateWorldOp> =
+  /* @__PURE__ */ createMessageType<RegenerateWorldOp>(
+    'space.world.RegenerateWorldOp',
+    () => [
+      [1, 'target', 14, 0, WorldFormat_Enum],
+      [2, 'quads', 11, 0, BlockRef.codec],
+    ],
+  )
+
+/**
+ * ReleaseWorldRegenOp releases world-regen/base and world-regen/built. Replay
+ * applies it only while the two names hold exactly these roots, so a release
+ * ordered before a switch back and a later regeneration cannot free that
+ * regeneration's roots.
+ *
+ * @generated from message space.world.ReleaseWorldRegenOp
+ */
+export interface ReleaseWorldRegenOp {
+  /**
+   * Base is the root world-regen/base must hold.
+   */
+  base?: BlockRef
+  /**
+   * Built is the root world-regen/built must hold.
+   */
+  built?: BlockRef
+}
+
+export const ReleaseWorldRegenOp: MessageType<ReleaseWorldRegenOp> =
+  /* @__PURE__ */ createMessageType<ReleaseWorldRegenOp>(
+    'space.world.ReleaseWorldRegenOp',
+    () => [
+      [1, 'base', 11, 0, BlockRef.codec],
+      [2, 'built', 11, 0, BlockRef.codec],
+    ],
+  )
 
 /**
  * FenceOp asks every writer device of the Space for the roots it holds. It

@@ -30,17 +30,23 @@ const regenVerifyShown = 4
 // the sort's read buffers; disk holds the runs, reserved before the first.
 // A difference returns a wrapped ErrRegenMismatch.
 func (r *Regenerator) verify(ctx context.Context, s regenState) error {
+	return r.compare(ctx, r.a.store, r.cfg, s.base, s.built)
+}
+
+// compare proves the World at built holds what the World at base holds, read
+// through store, sorting as cfg sets, as verify says.
+func (r regenRoots) compare(ctx context.Context, store block.StoreOps, cfg RegenConfig, base, built *block.BlockRef) error {
 	// Trace the whole comparison.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/regen/verify")
 	defer task.End()
 
 	// Each side's trees must carry its format's tags.
-	sides := [2]*block.BlockRef{s.base, s.built}
+	sides := [2]*block.BlockRef{base, built}
 	var worlds [2]*World
 	var cursors [2]*block.Cursor
 	for i, ref := range sides {
 		var err error
-		if cursors[i], worlds[i], err = r.readWorld(ctx, r.a.store, ref); err != nil {
+		if cursors[i], worlds[i], err = r.readWorld(ctx, store, ref); err != nil {
 			return err
 		}
 		if err := worlds[i].checkTreeImpls(); err != nil {
@@ -65,13 +71,13 @@ func (r *Regenerator) verify(ctx context.Context, s regenState) error {
 	}
 
 	// Sort every quad of both graphs, tagged by side.
-	sorter, err := r.cfg.newSorter()
+	sorter, err := cfg.newSorter()
 	if err != nil {
 		return err
 	}
 	defer sorter.Close()
 	for i := range sides {
-		if err := addVerifyQuads(ctx, cursors[i], worlds[i], byte(i), sorter, int64(r.cfg.Budget)); err != nil {
+		if err := addVerifyQuads(ctx, cursors[i], worlds[i], byte(i), sorter, int64(cfg.Budget)); err != nil {
 			return err
 		}
 	}

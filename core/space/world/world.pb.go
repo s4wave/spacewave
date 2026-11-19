@@ -14,10 +14,10 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	sobject "github.com/s4wave/spacewave/core/sobject"
-	block "github.com/s4wave/spacewave/db/block"
+	block1 "github.com/s4wave/spacewave/db/block"
 	transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket "github.com/s4wave/spacewave/db/bucket"
-	block1 "github.com/s4wave/spacewave/db/world/block"
+	block "github.com/s4wave/spacewave/db/world/block"
 	tx "github.com/s4wave/spacewave/db/world/block/tx"
 	command "github.com/s4wave/spacewave/sdk/command"
 )
@@ -86,19 +86,25 @@ const (
 	WorldOpKind_WORLD_OP_KIND_FENCE WorldOpKind = 7
 	// WORLD_OP_KIND_ROOT_SET is a RootSetOp.
 	WorldOpKind_WORLD_OP_KIND_ROOT_SET WorldOpKind = 8
+	// WORLD_OP_KIND_REGENERATE_WORLD is a RegenerateWorldOp.
+	WorldOpKind_WORLD_OP_KIND_REGENERATE_WORLD WorldOpKind = 9
+	// WORLD_OP_KIND_RELEASE_WORLD_REGEN is a ReleaseWorldRegenOp.
+	WorldOpKind_WORLD_OP_KIND_RELEASE_WORLD_REGEN WorldOpKind = 10
 )
 
 // Enum value maps for WorldOpKind.
 var (
 	WorldOpKind_name = map[int32]string{
-		0: "WORLD_OP_KIND_UNKNOWN",
-		1: "WORLD_OP_KIND_INIT_WORLD",
-		2: "WORLD_OP_KIND_APPLY_TX",
-		4: "WORLD_OP_KIND_SET_RETAINED_ROOT",
-		5: "WORLD_OP_KIND_SET_TRANSFORM_CONF",
-		6: "WORLD_OP_KIND_GRAPH_SETTINGS_STEP",
-		7: "WORLD_OP_KIND_FENCE",
-		8: "WORLD_OP_KIND_ROOT_SET",
+		0:  "WORLD_OP_KIND_UNKNOWN",
+		1:  "WORLD_OP_KIND_INIT_WORLD",
+		2:  "WORLD_OP_KIND_APPLY_TX",
+		4:  "WORLD_OP_KIND_SET_RETAINED_ROOT",
+		5:  "WORLD_OP_KIND_SET_TRANSFORM_CONF",
+		6:  "WORLD_OP_KIND_GRAPH_SETTINGS_STEP",
+		7:  "WORLD_OP_KIND_FENCE",
+		8:  "WORLD_OP_KIND_ROOT_SET",
+		9:  "WORLD_OP_KIND_REGENERATE_WORLD",
+		10: "WORLD_OP_KIND_RELEASE_WORLD_REGEN",
 	}
 	WorldOpKind_value = map[string]int32{
 		"WORLD_OP_KIND_UNKNOWN":             0,
@@ -109,6 +115,8 @@ var (
 		"WORLD_OP_KIND_GRAPH_SETTINGS_STEP": 6,
 		"WORLD_OP_KIND_FENCE":               7,
 		"WORLD_OP_KIND_ROOT_SET":            8,
+		"WORLD_OP_KIND_REGENERATE_WORLD":    9,
+		"WORLD_OP_KIND_RELEASE_WORLD_REGEN": 10,
 	}
 )
 
@@ -425,6 +433,8 @@ type WorldOp struct {
 	//	*WorldOp_GraphSettingsStep
 	//	*WorldOp_Fence
 	//	*WorldOp_RootSet
+	//	*WorldOp_RegenerateWorld
+	//	*WorldOp_ReleaseWorldRegen
 	Body isWorldOp_Body `protobuf_oneof:"body"`
 }
 
@@ -490,6 +500,20 @@ func (x *WorldOp) GetRootSet() *RootSetOp {
 	return nil
 }
 
+func (x *WorldOp) GetRegenerateWorld() *RegenerateWorldOp {
+	if x, ok := x.GetBody().(*WorldOp_RegenerateWorld); ok {
+		return x.RegenerateWorld
+	}
+	return nil
+}
+
+func (x *WorldOp) GetReleaseWorldRegen() *ReleaseWorldRegenOp {
+	if x, ok := x.GetBody().(*WorldOp_ReleaseWorldRegen); ok {
+		return x.ReleaseWorldRegen
+	}
+	return nil
+}
+
 type isWorldOp_Body interface {
 	isWorldOp_Body()
 }
@@ -532,6 +556,18 @@ type WorldOp_RootSet struct {
 	RootSet *RootSetOp `protobuf:"bytes,8,opt,name=root_set,json=rootSet,proto3,oneof"`
 }
 
+type WorldOp_RegenerateWorld struct {
+	// RegenerateWorld rebuilds the World in another stored format, keeping
+	// the old World held until a release names it.
+	RegenerateWorld *RegenerateWorldOp `protobuf:"bytes,9,opt,name=regenerate_world,json=regenerateWorld,proto3,oneof"`
+}
+
+type WorldOp_ReleaseWorldRegen struct {
+	// ReleaseWorldRegen releases the roots a regeneration holds, after a
+	// comparison found them equal.
+	ReleaseWorldRegen *ReleaseWorldRegenOp `protobuf:"bytes,10,opt,name=release_world_regen,json=releaseWorldRegen,proto3,oneof"`
+}
+
 func (*WorldOp_InitWorld) isWorldOp_Body() {}
 
 func (*WorldOp_ApplyTxOp) isWorldOp_Body() {}
@@ -545,6 +581,78 @@ func (*WorldOp_GraphSettingsStep) isWorldOp_Body() {}
 func (*WorldOp_Fence) isWorldOp_Body() {}
 
 func (*WorldOp_RootSet) isWorldOp_Body() {}
+
+func (*WorldOp_RegenerateWorld) isWorldOp_Body() {}
+
+func (*WorldOp_ReleaseWorldRegen) isWorldOp_Body() {}
+
+// RegenerateWorldOp rebuilds the World in the target format. To the node
+// graph from cayley_kv, it adds the carried quads to the World, holds the
+// result as world-regen/base, builds it as a node graph held as
+// world-regen/built, and installs the build. Back to cayley_kv while both are
+// held, it carries base forward by the node graph's changes since built,
+// installs the result, and releases both. Replay refuses any other case.
+type RegenerateWorldOp struct {
+	unknownFields []byte
+	// Target is the format to rebuild into.
+	Target block.WorldFormat `protobuf:"varint,1,opt,name=target,proto3" json:"target,omitempty"`
+	// Quads is the root of a quad list to add before the build, or empty. The
+	// list is uvarint-length-prefixed block/quad.Quad messages in a blob,
+	// sorted as CompareQuads orders them.
+	Quads *block1.BlockRef `protobuf:"bytes,2,opt,name=quads,proto3" json:"quads,omitempty"`
+}
+
+func (x *RegenerateWorldOp) Reset() {
+	*x = RegenerateWorldOp{}
+}
+
+func (*RegenerateWorldOp) ProtoMessage() {}
+
+func (x *RegenerateWorldOp) GetTarget() block.WorldFormat {
+	if x != nil {
+		return x.Target
+	}
+	return block.WorldFormat(0)
+}
+
+func (x *RegenerateWorldOp) GetQuads() *block1.BlockRef {
+	if x != nil {
+		return x.Quads
+	}
+	return nil
+}
+
+// ReleaseWorldRegenOp releases world-regen/base and world-regen/built. Replay
+// applies it only while the two names hold exactly these roots, so a release
+// ordered before a switch back and a later regeneration cannot free that
+// regeneration's roots.
+type ReleaseWorldRegenOp struct {
+	unknownFields []byte
+	// Base is the root world-regen/base must hold.
+	Base *block1.BlockRef `protobuf:"bytes,1,opt,name=base,proto3" json:"base,omitempty"`
+	// Built is the root world-regen/built must hold.
+	Built *block1.BlockRef `protobuf:"bytes,2,opt,name=built,proto3" json:"built,omitempty"`
+}
+
+func (x *ReleaseWorldRegenOp) Reset() {
+	*x = ReleaseWorldRegenOp{}
+}
+
+func (*ReleaseWorldRegenOp) ProtoMessage() {}
+
+func (x *ReleaseWorldRegenOp) GetBase() *block1.BlockRef {
+	if x != nil {
+		return x.Base
+	}
+	return nil
+}
+
+func (x *ReleaseWorldRegenOp) GetBuilt() *block1.BlockRef {
+	if x != nil {
+		return x.Built
+	}
+	return nil
+}
 
 // FenceOp asks every writer device of the Space for the roots it holds. It
 // changes nothing in the World. A device answers after every operation it
@@ -576,7 +684,7 @@ type RootSetOp struct {
 	// Fence is the hash of the FenceOp it answers.
 	Fence []byte `protobuf:"bytes,1,opt,name=fence,proto3" json:"fence,omitempty"`
 	// Roots are the blocks the device holds under its named roots.
-	Roots []*block.BlockRef `protobuf:"bytes,2,rep,name=roots,proto3" json:"roots,omitempty"`
+	Roots []*block1.BlockRef `protobuf:"bytes,2,rep,name=roots,proto3" json:"roots,omitempty"`
 }
 
 func (x *RootSetOp) Reset() {
@@ -592,7 +700,7 @@ func (x *RootSetOp) GetFence() []byte {
 	return nil
 }
 
-func (x *RootSetOp) GetRoots() []*block.BlockRef {
+func (x *RootSetOp) GetRoots() []*block1.BlockRef {
 	if x != nil {
 		return x.Roots
 	}
@@ -610,9 +718,9 @@ type InitWorldOp struct {
 	TransformConf *transform.Config `protobuf:"bytes,2,opt,name=transform_conf,json=transformConf,proto3" json:"transformConf,omitempty"`
 	// GraphSettings are the settings the World's graph store starts with.
 	// Empty means the default settings.
-	GraphSettings *block1.GraphSettings `protobuf:"bytes,3,opt,name=graph_settings,json=graphSettings,proto3" json:"graphSettings,omitempty"`
+	GraphSettings *block.GraphSettings `protobuf:"bytes,3,opt,name=graph_settings,json=graphSettings,proto3" json:"graphSettings,omitempty"`
 	// Format is the stored layout the World starts with.
-	Format block1.WorldFormat `protobuf:"varint,4,opt,name=format,proto3" json:"format,omitempty"`
+	Format block.WorldFormat `protobuf:"varint,4,opt,name=format,proto3" json:"format,omitempty"`
 }
 
 func (x *InitWorldOp) Reset() {
@@ -635,18 +743,18 @@ func (x *InitWorldOp) GetTransformConf() *transform.Config {
 	return nil
 }
 
-func (x *InitWorldOp) GetGraphSettings() *block1.GraphSettings {
+func (x *InitWorldOp) GetGraphSettings() *block.GraphSettings {
 	if x != nil {
 		return x.GraphSettings
 	}
 	return nil
 }
 
-func (x *InitWorldOp) GetFormat() block1.WorldFormat {
+func (x *InitWorldOp) GetFormat() block.WorldFormat {
 	if x != nil {
 		return x.Format
 	}
-	return block1.WorldFormat(0)
+	return block.WorldFormat(0)
 }
 
 // ApplyTxOp applies a World transaction.
@@ -676,7 +784,7 @@ type SetRetainedRootOp struct {
 	// Name identifies the root within the Space.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// RootRef is the World root block to retain, or empty to release.
-	RootRef *block.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	RootRef *block1.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
 }
 
 func (x *SetRetainedRootOp) Reset() {
@@ -692,7 +800,7 @@ func (x *SetRetainedRootOp) GetName() string {
 	return ""
 }
 
-func (x *SetRetainedRootOp) GetRootRef() *block.BlockRef {
+func (x *SetRetainedRootOp) GetRootRef() *block1.BlockRef {
 	if x != nil {
 		return x.RootRef
 	}
@@ -728,7 +836,7 @@ type GraphSettingsStepOp struct {
 	unknownFields []byte
 	// Target are the graph settings to move to. Empty means the default
 	// settings.
-	Target *block1.GraphSettings `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
+	Target *block.GraphSettings `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 	// Max bounds the links the step indexes or the postings it deletes.
 	Max uint32 `protobuf:"varint,2,opt,name=max,proto3" json:"max,omitempty"`
 }
@@ -739,7 +847,7 @@ func (x *GraphSettingsStepOp) Reset() {
 
 func (*GraphSettingsStepOp) ProtoMessage() {}
 
-func (x *GraphSettingsStepOp) GetTarget() *block1.GraphSettings {
+func (x *GraphSettingsStepOp) GetTarget() *block.GraphSettings {
 	if x != nil {
 		return x.Target
 	}
@@ -759,7 +867,7 @@ type RetainedRoot struct {
 	// Name identifies the root within the Space.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// RootRef is the World root block. It uses the head's transform config.
-	RootRef *block.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	RootRef *block1.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
 }
 
 func (x *RetainedRoot) Reset() {
@@ -775,7 +883,7 @@ func (x *RetainedRoot) GetName() string {
 	return ""
 }
 
-func (x *RetainedRoot) GetRootRef() *block.BlockRef {
+func (x *RetainedRoot) GetRootRef() *block1.BlockRef {
 	if x != nil {
 		return x.RootRef
 	}
@@ -809,11 +917,11 @@ func (x *RetainedRootSet) GetRoots() []*RetainedRoot {
 type HeldRoots struct {
 	unknownFields []byte
 	// Roots are the held roots, in the order the holder gave them.
-	Roots []*block.BlockRef `protobuf:"bytes,1,rep,name=roots,proto3" json:"roots,omitempty"`
+	Roots []*block1.BlockRef `protobuf:"bytes,1,rep,name=roots,proto3" json:"roots,omitempty"`
 	// Prev is an earlier HeldRoots block whose roots, and its own earlier
 	// blocks' roots, are held before these, or empty. An append names the
 	// block it extends instead of naming every root again.
-	Prev *block.BlockRef `protobuf:"bytes,2,opt,name=prev,proto3" json:"prev,omitempty"`
+	Prev *block1.BlockRef `protobuf:"bytes,2,opt,name=prev,proto3" json:"prev,omitempty"`
 }
 
 func (x *HeldRoots) Reset() {
@@ -822,14 +930,14 @@ func (x *HeldRoots) Reset() {
 
 func (*HeldRoots) ProtoMessage() {}
 
-func (x *HeldRoots) GetRoots() []*block.BlockRef {
+func (x *HeldRoots) GetRoots() []*block1.BlockRef {
 	if x != nil {
 		return x.Roots
 	}
 	return nil
 }
 
-func (x *HeldRoots) GetPrev() *block.BlockRef {
+func (x *HeldRoots) GetPrev() *block1.BlockRef {
 	if x != nil {
 		return x.Prev
 	}
@@ -843,11 +951,11 @@ func (x *HeldRoots) GetPrev() *block.BlockRef {
 type ReplaySpan struct {
 	unknownFields []byte
 	// Worlds are the World root blocks in replay order.
-	Worlds []*block.BlockRef `protobuf:"bytes,1,rep,name=worlds,proto3" json:"worlds,omitempty"`
+	Worlds []*block1.BlockRef `protobuf:"bytes,1,rep,name=worlds,proto3" json:"worlds,omitempty"`
 	// Payloads are the operation payload roots in replay order.
-	Payloads []*block.BlockRef `protobuf:"bytes,2,rep,name=payloads,proto3" json:"payloads,omitempty"`
+	Payloads []*block1.BlockRef `protobuf:"bytes,2,rep,name=payloads,proto3" json:"payloads,omitempty"`
 	// Prev is the span block holding the earlier operations, or empty.
-	Prev *block.BlockRef `protobuf:"bytes,3,opt,name=prev,proto3" json:"prev,omitempty"`
+	Prev *block1.BlockRef `protobuf:"bytes,3,opt,name=prev,proto3" json:"prev,omitempty"`
 }
 
 func (x *ReplaySpan) Reset() {
@@ -856,21 +964,21 @@ func (x *ReplaySpan) Reset() {
 
 func (*ReplaySpan) ProtoMessage() {}
 
-func (x *ReplaySpan) GetWorlds() []*block.BlockRef {
+func (x *ReplaySpan) GetWorlds() []*block1.BlockRef {
 	if x != nil {
 		return x.Worlds
 	}
 	return nil
 }
 
-func (x *ReplaySpan) GetPayloads() []*block.BlockRef {
+func (x *ReplaySpan) GetPayloads() []*block1.BlockRef {
 	if x != nil {
 		return x.Payloads
 	}
 	return nil
 }
 
-func (x *ReplaySpan) GetPrev() *block.BlockRef {
+func (x *ReplaySpan) GetPrev() *block1.BlockRef {
 	if x != nil {
 		return x.Prev
 	}
@@ -943,9 +1051,9 @@ type ReplayCursorOutcome struct {
 	// Reason is empty when the operation applied, and otherwise says why not.
 	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	// World is the root block of the World after the operation.
-	World *block.BlockRef `protobuf:"bytes,5,opt,name=world,proto3" json:"world,omitempty"`
+	World *block1.BlockRef `protobuf:"bytes,5,opt,name=world,proto3" json:"world,omitempty"`
 	// Payloads are the roots of the operation's payload.
-	Payloads []*block.BlockRef `protobuf:"bytes,6,rep,name=payloads,proto3" json:"payloads,omitempty"`
+	Payloads []*block1.BlockRef `protobuf:"bytes,6,rep,name=payloads,proto3" json:"payloads,omitempty"`
 	// RetainedRoots are the retained roots after the operation when they
 	// differ from those before it, and unset when the operation kept them.
 	RetainedRoots *RetainedRootSet `protobuf:"bytes,7,opt,name=retained_roots,json=retainedRoots,proto3" json:"retainedRoots,omitempty"`
@@ -977,14 +1085,14 @@ func (x *ReplayCursorOutcome) GetReason() string {
 	return ""
 }
 
-func (x *ReplayCursorOutcome) GetWorld() *block.BlockRef {
+func (x *ReplayCursorOutcome) GetWorld() *block1.BlockRef {
 	if x != nil {
 		return x.World
 	}
 	return nil
 }
 
-func (x *ReplayCursorOutcome) GetPayloads() []*block.BlockRef {
+func (x *ReplayCursorOutcome) GetPayloads() []*block1.BlockRef {
 	if x != nil {
 		return x.Payloads
 	}
@@ -1082,7 +1190,7 @@ type BackfillState struct {
 	unknownFields []byte
 	// Root is the World root of the installed checkpoint the copy covered.
 	// The copy also covered the retained roots of the installed head.
-	Root *block.BlockRef `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+	Root *block1.BlockRef `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
 	// Holes counts the blocks of those roots that no reachable store held.
 	// Zero means the local store holds every block of them.
 	Holes uint32 `protobuf:"varint,2,opt,name=holes,proto3" json:"holes,omitempty"`
@@ -1096,7 +1204,7 @@ func (x *BackfillState) Reset() {
 
 func (*BackfillState) ProtoMessage() {}
 
-func (x *BackfillState) GetRoot() *block.BlockRef {
+func (x *BackfillState) GetRoot() *block1.BlockRef {
 	if x != nil {
 		return x.Root
 	}
@@ -1804,6 +1912,66 @@ func (m *WorldOp_RootSet) CloneVT() *WorldOp_RootSet {
 }
 
 func (m *WorldOp_RootSet) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *WorldOp_RegenerateWorld) CloneVT() *WorldOp_RegenerateWorld {
+	if m == nil {
+		return (*WorldOp_RegenerateWorld)(nil)
+	}
+	r := new(WorldOp_RegenerateWorld)
+	r.RegenerateWorld = protobuf_go_lite.CloneVTValue(m.RegenerateWorld)
+	return r
+}
+
+func (m *WorldOp_RegenerateWorld) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *WorldOp_ReleaseWorldRegen) CloneVT() *WorldOp_ReleaseWorldRegen {
+	if m == nil {
+		return (*WorldOp_ReleaseWorldRegen)(nil)
+	}
+	r := new(WorldOp_ReleaseWorldRegen)
+	r.ReleaseWorldRegen = protobuf_go_lite.CloneVTValue(m.ReleaseWorldRegen)
+	return r
+}
+
+func (m *WorldOp_ReleaseWorldRegen) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *RegenerateWorldOp) CloneVT() *RegenerateWorldOp {
+	if m == nil {
+		return (*RegenerateWorldOp)(nil)
+	}
+	r := new(RegenerateWorldOp)
+	r.Target = m.Target
+	r.Quads = protobuf_go_lite.CloneVTValue(m.Quads)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RegenerateWorldOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReleaseWorldRegenOp) CloneVT() *ReleaseWorldRegenOp {
+	if m == nil {
+		return (*ReleaseWorldRegenOp)(nil)
+	}
+	r := new(ReleaseWorldRegenOp)
+	r.Base = protobuf_go_lite.CloneVTValue(m.Base)
+	r.Built = protobuf_go_lite.CloneVTValue(m.Built)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseWorldRegenOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2669,6 +2837,86 @@ func (this *WorldOp_RootSet) EqualVT(thatIface isWorldOp_Body) bool {
 	return true
 }
 
+func (this *WorldOp_RegenerateWorld) EqualVT(thatIface isWorldOp_Body) bool {
+	that, ok := thatIface.(*WorldOp_RegenerateWorld)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.RegenerateWorld, that.RegenerateWorld, func() *RegenerateWorldOp { return &RegenerateWorldOp{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldOp_ReleaseWorldRegen) EqualVT(thatIface isWorldOp_Body) bool {
+	that, ok := thatIface.(*WorldOp_ReleaseWorldRegen)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.ReleaseWorldRegen, that.ReleaseWorldRegen, func() *ReleaseWorldRegenOp { return &ReleaseWorldRegenOp{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *RegenerateWorldOp) EqualVT(that *RegenerateWorldOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Target != that.Target {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Quads, that.Quads) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RegenerateWorldOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RegenerateWorldOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReleaseWorldRegenOp) EqualVT(that *ReleaseWorldRegenOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Base, that.Base) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Built, that.Built) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseWorldRegenOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseWorldRegenOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *FenceOp) EqualVT(that *FenceOp) bool {
 	if this == that {
 		return true
@@ -2698,7 +2946,7 @@ func (this *RootSetOp) EqualVT(that *RootSetOp) bool {
 	if !protobuf_go_lite.EqualBytes(this.Fence, that.Fence) {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *block.BlockRef { return &block.BlockRef{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *block1.BlockRef { return &block1.BlockRef{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2876,7 +3124,7 @@ func (this *HeldRoots) EqualVT(that *HeldRoots) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *block.BlockRef { return &block.BlockRef{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *block1.BlockRef { return &block1.BlockRef{} }) {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Prev, that.Prev) {
@@ -2899,10 +3147,10 @@ func (this *ReplaySpan) EqualVT(that *ReplaySpan) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Worlds, that.Worlds, func() *block.BlockRef { return &block.BlockRef{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Worlds, that.Worlds, func() *block1.BlockRef { return &block1.BlockRef{} }) {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block.BlockRef { return &block.BlockRef{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block1.BlockRef { return &block1.BlockRef{} }) {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Prev, that.Prev) {
@@ -2966,7 +3214,7 @@ func (this *ReplayCursorOutcome) EqualVT(that *ReplayCursorOutcome) bool {
 	if !protobuf_go_lite.IsEqualVT(this.World, that.World) {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block.BlockRef { return &block.BlockRef{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block1.BlockRef { return &block1.BlockRef{} }) {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.RetainedRoots, that.RetainedRoots) {
@@ -4096,6 +4344,14 @@ func (x *WorldOp) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("rootSet")
 			ov.RootSet.MarshalProtoJSON(s.WithField("rootSet"))
+		case *WorldOp_RegenerateWorld:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("regenerateWorld")
+			ov.RegenerateWorld.MarshalProtoJSON(s.WithField("regenerateWorld"))
+		case *WorldOp_ReleaseWorldRegen:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("releaseWorldRegen")
+			ov.ReleaseWorldRegen.MarshalProtoJSON(s.WithField("releaseWorldRegen"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -4178,12 +4434,142 @@ func (x *WorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.RootSet = &RootSetOp{}
 			ov.RootSet.UnmarshalProtoJSON(s.WithField("root_set", true))
+		case "regenerate_world", "regenerateWorld":
+			ov := &WorldOp_RegenerateWorld{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.RegenerateWorld = nil
+				return
+			}
+			ov.RegenerateWorld = &RegenerateWorldOp{}
+			ov.RegenerateWorld.UnmarshalProtoJSON(s.WithField("regenerate_world", true))
+		case "release_world_regen", "releaseWorldRegen":
+			ov := &WorldOp_ReleaseWorldRegen{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.ReleaseWorldRegen = nil
+				return
+			}
+			ov.ReleaseWorldRegen = &ReleaseWorldRegenOp{}
+			ov.ReleaseWorldRegen.UnmarshalProtoJSON(s.WithField("release_world_regen", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the WorldOp from JSON.
 func (x *WorldOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RegenerateWorldOp message to JSON.
+func (x *RegenerateWorldOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Target != 0 || s.HasField("target") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("target")
+		x.Target.MarshalProtoJSON(s)
+	}
+	if x.Quads != nil || s.HasField("quads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quads")
+		x.Quads.MarshalProtoJSON(s.WithField("quads"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RegenerateWorldOp to JSON.
+func (x *RegenerateWorldOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RegenerateWorldOp message from JSON.
+func (x *RegenerateWorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "target":
+			s.AddField("target")
+			x.Target.UnmarshalProtoJSON(s)
+		case "quads":
+			if s.ReadNil() {
+				x.Quads = nil
+				return
+			}
+			x.Quads = &block1.BlockRef{}
+			x.Quads.UnmarshalProtoJSON(s.WithField("quads", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RegenerateWorldOp from JSON.
+func (x *RegenerateWorldOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseWorldRegenOp message to JSON.
+func (x *ReleaseWorldRegenOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Base != nil || s.HasField("base") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("base")
+		x.Base.MarshalProtoJSON(s.WithField("base"))
+	}
+	if x.Built != nil || s.HasField("built") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("built")
+		x.Built.MarshalProtoJSON(s.WithField("built"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseWorldRegenOp to JSON.
+func (x *ReleaseWorldRegenOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseWorldRegenOp message from JSON.
+func (x *ReleaseWorldRegenOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "base":
+			if s.ReadNil() {
+				x.Base = nil
+				return
+			}
+			x.Base = &block1.BlockRef{}
+			x.Base.UnmarshalProtoJSON(s.WithField("base", true))
+		case "built":
+			if s.ReadNil() {
+				x.Built = nil
+				return
+			}
+			x.Built = &block1.BlockRef{}
+			x.Built.UnmarshalProtoJSON(s.WithField("built", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseWorldRegenOp from JSON.
+func (x *ReleaseWorldRegenOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -4284,7 +4670,7 @@ func (x *RootSetOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Roots = append(x.Roots, nil)
 					return
 				}
-				v := &block.BlockRef{}
+				v := &block1.BlockRef{}
 				v.UnmarshalProtoJSON(s.WithField("roots", false))
 				if s.Err() != nil {
 					return
@@ -4360,7 +4746,7 @@ func (x *InitWorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.GraphSettings = nil
 				return
 			}
-			x.GraphSettings = &block1.GraphSettings{}
+			x.GraphSettings = &block.GraphSettings{}
 			x.GraphSettings.UnmarshalProtoJSON(s.WithField("graph_settings", true))
 		case "format":
 			s.AddField("format")
@@ -4463,7 +4849,7 @@ func (x *SetRetainedRootOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.RootRef = nil
 				return
 			}
-			x.RootRef = &block.BlockRef{}
+			x.RootRef = &block1.BlockRef{}
 			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
 		}
 	})
@@ -4560,7 +4946,7 @@ func (x *GraphSettingsStepOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Target = nil
 				return
 			}
-			x.Target = &block1.GraphSettings{}
+			x.Target = &block.GraphSettings{}
 			x.Target.UnmarshalProtoJSON(s.WithField("target", true))
 		case "max":
 			s.AddField("max")
@@ -4617,7 +5003,7 @@ func (x *RetainedRoot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.RootRef = nil
 				return
 			}
-			x.RootRef = &block.BlockRef{}
+			x.RootRef = &block1.BlockRef{}
 			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
 		}
 	})
@@ -4743,7 +5129,7 @@ func (x *HeldRoots) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Roots = append(x.Roots, nil)
 					return
 				}
-				v := &block.BlockRef{}
+				v := &block1.BlockRef{}
 				v.UnmarshalProtoJSON(s.WithField("roots", false))
 				if s.Err() != nil {
 					return
@@ -4755,7 +5141,7 @@ func (x *HeldRoots) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Prev = nil
 				return
 			}
-			x.Prev = &block.BlockRef{}
+			x.Prev = &block1.BlockRef{}
 			x.Prev.UnmarshalProtoJSON(s.WithField("prev", true))
 		}
 	})
@@ -4829,7 +5215,7 @@ func (x *ReplaySpan) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Worlds = append(x.Worlds, nil)
 					return
 				}
-				v := &block.BlockRef{}
+				v := &block1.BlockRef{}
 				v.UnmarshalProtoJSON(s.WithField("worlds", false))
 				if s.Err() != nil {
 					return
@@ -4847,7 +5233,7 @@ func (x *ReplaySpan) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Payloads = append(x.Payloads, nil)
 					return
 				}
-				v := &block.BlockRef{}
+				v := &block1.BlockRef{}
 				v.UnmarshalProtoJSON(s.WithField("payloads", false))
 				if s.Err() != nil {
 					return
@@ -4859,7 +5245,7 @@ func (x *ReplaySpan) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Prev = nil
 				return
 			}
-			x.Prev = &block.BlockRef{}
+			x.Prev = &block1.BlockRef{}
 			x.Prev.UnmarshalProtoJSON(s.WithField("prev", true))
 		}
 	})
@@ -5050,7 +5436,7 @@ func (x *ReplayCursorOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.World = nil
 				return
 			}
-			x.World = &block.BlockRef{}
+			x.World = &block1.BlockRef{}
 			x.World.UnmarshalProtoJSON(s.WithField("world", true))
 		case "payloads":
 			s.AddField("payloads")
@@ -5063,7 +5449,7 @@ func (x *ReplayCursorOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Payloads = append(x.Payloads, nil)
 					return
 				}
-				v := &block.BlockRef{}
+				v := &block1.BlockRef{}
 				v.UnmarshalProtoJSON(s.WithField("payloads", false))
 				if s.Err() != nil {
 					return
@@ -5262,7 +5648,7 @@ func (x *BackfillState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Root = nil
 				return
 			}
-			x.Root = &block.BlockRef{}
+			x.Root = &block1.BlockRef{}
 			x.Root.UnmarshalProtoJSON(s.WithField("root", true))
 		case "holes":
 			s.AddField("holes")
@@ -6500,6 +6886,153 @@ func (m *WorldOp_RootSet) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
 		i--
 		dAtA[i] = 0x42
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldOp_RegenerateWorld) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp_RegenerateWorld) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.RegenerateWorld != nil {
+		size, err := m.RegenerateWorld.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x4a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldOp_ReleaseWorldRegen) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp_ReleaseWorldRegen) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.ReleaseWorldRegen != nil {
+		size, err := m.ReleaseWorldRegen.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x52
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RegenerateWorldOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RegenerateWorldOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RegenerateWorldOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Quads != nil {
+		size, err := m.Quads.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Target != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Target))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReleaseWorldRegenOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseWorldRegenOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseWorldRegenOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Built != nil {
+		size, err := m.Built.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Base != nil {
+		size, err := m.Base.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -8186,6 +8719,69 @@ func (m *WorldOp_RootSet) SizeVT() (n int) {
 	return n
 }
 
+func (m *WorldOp_RegenerateWorld) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RegenerateWorld != nil {
+		l = m.RegenerateWorld.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldOp_ReleaseWorldRegen) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ReleaseWorldRegen != nil {
+		l = m.ReleaseWorldRegen.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *RegenerateWorldOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Target)
+	if m.Quads != nil {
+		l = m.Quads.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReleaseWorldRegenOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Base != nil {
+		l = m.Base.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Built != nil {
+		l = m.Built.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *FenceOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -8953,11 +9549,61 @@ func (x *WorldOp) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.RootSet)
 		}
+	case *WorldOp_RegenerateWorld:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "regenerate_world")
+		if body.RegenerateWorld == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &RegenerateWorldOp{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.RegenerateWorld)
+		}
+	case *WorldOp_ReleaseWorldRegen:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "release_world_regen")
+		if body.ReleaseWorldRegen == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ReleaseWorldRegenOp{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.ReleaseWorldRegen)
+		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *WorldOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RegenerateWorldOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RegenerateWorldOp")
+	if x.Target != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target")
+		protobuf_go_lite.TextWriteStringer(&sb, block.WorldFormat(x.Target))
+	}
+	if x.Quads != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "quads")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Quads)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RegenerateWorldOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReleaseWorldRegenOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReleaseWorldRegenOp")
+	if x.Base != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "base")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Base)
+	}
+	if x.Built != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "built")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Built)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReleaseWorldRegenOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -8987,7 +9633,7 @@ func (x *RootSetOp) MarshalProtoText() string {
 		for i, v := range x.Roots {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -9018,7 +9664,7 @@ func (x *InitWorldOp) MarshalProtoText() string {
 	}
 	if x.Format != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "format")
-		protobuf_go_lite.TextWriteStringer(&sb, block1.WorldFormat(x.Format))
+		protobuf_go_lite.TextWriteStringer(&sb, block.WorldFormat(x.Format))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -9139,7 +9785,7 @@ func (x *HeldRoots) MarshalProtoText() string {
 		for i, v := range x.Roots {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -9165,7 +9811,7 @@ func (x *ReplaySpan) MarshalProtoText() string {
 		for i, v := range x.Worlds {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -9177,7 +9823,7 @@ func (x *ReplaySpan) MarshalProtoText() string {
 		for i, v := range x.Payloads {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -9253,7 +9899,7 @@ func (x *ReplayCursorOutcome) MarshalProtoText() string {
 		for i, v := range x.Payloads {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -10329,6 +10975,188 @@ func (m *WorldOp) UnmarshalVT(dAtA []byte) error {
 				m.Body = &WorldOp_RootSet{RootSet: v}
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RegenerateWorld", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WorldOp_RegenerateWorld); ok {
+				if err := oneof.RegenerateWorld.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &RegenerateWorldOp{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WorldOp_RegenerateWorld{RegenerateWorld: v}
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReleaseWorldRegen", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WorldOp_ReleaseWorldRegen); ok {
+				if err := oneof.ReleaseWorldRegen.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ReleaseWorldRegenOp{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WorldOp_ReleaseWorldRegen{ReleaseWorldRegen: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RegenerateWorldOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RegenerateWorldOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RegenerateWorldOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Target", wireType)
+			}
+			m.Target = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Target = block.WorldFormat(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Quads", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Quads == nil {
+				m.Quads = &block1.BlockRef{}
+			}
+			if err := m.Quads.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReleaseWorldRegenOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseWorldRegenOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseWorldRegenOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Base", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Base == nil {
+				m.Base = &block1.BlockRef{}
+			}
+			if err := m.Base.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Built", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Built == nil {
+				m.Built = &block1.BlockRef{}
+			}
+			if err := m.Built.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -10441,7 +11269,7 @@ func (m *RootSetOp) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.Roots = append(m.Roots, &block.BlockRef{})
+			m.Roots = append(m.Roots, &block1.BlockRef{})
 			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
@@ -10523,7 +11351,7 @@ func (m *InitWorldOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.GraphSettings == nil {
-				m.GraphSettings = &block1.GraphSettings{}
+				m.GraphSettings = &block.GraphSettings{}
 			}
 			if err := m.GraphSettings.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -10536,7 +11364,7 @@ func (m *InitWorldOp) UnmarshalVT(dAtA []byte) error {
 			m.Format = 0
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.Format = block1.WorldFormat(_v)
+			m.Format = block.WorldFormat(_v)
 			if err != nil {
 				return err
 			}
@@ -10660,7 +11488,7 @@ func (m *SetRetainedRootOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.RootRef == nil {
-				m.RootRef = &block.BlockRef{}
+				m.RootRef = &block1.BlockRef{}
 			}
 			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -10776,7 +11604,7 @@ func (m *GraphSettingsStepOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.Target == nil {
-				m.Target = &block1.GraphSettings{}
+				m.Target = &block.GraphSettings{}
 			}
 			if err := m.Target.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -10853,7 +11681,7 @@ func (m *RetainedRoot) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.RootRef == nil {
-				m.RootRef = &block.BlockRef{}
+				m.RootRef = &block1.BlockRef{}
 			}
 			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -10966,7 +11794,7 @@ func (m *HeldRoots) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.Roots = append(m.Roots, &block.BlockRef{})
+			m.Roots = append(m.Roots, &block1.BlockRef{})
 			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
@@ -10980,7 +11808,7 @@ func (m *HeldRoots) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.Prev == nil {
-				m.Prev = &block.BlockRef{}
+				m.Prev = &block1.BlockRef{}
 			}
 			if err := m.Prev.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -11037,7 +11865,7 @@ func (m *ReplaySpan) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.Worlds = append(m.Worlds, &block.BlockRef{})
+			m.Worlds = append(m.Worlds, &block1.BlockRef{})
 			if err := m.Worlds[len(m.Worlds)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
@@ -11050,7 +11878,7 @@ func (m *ReplaySpan) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.Payloads = append(m.Payloads, &block.BlockRef{})
+			m.Payloads = append(m.Payloads, &block1.BlockRef{})
 			if err := m.Payloads[len(m.Payloads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
@@ -11064,7 +11892,7 @@ func (m *ReplaySpan) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.Prev == nil {
-				m.Prev = &block.BlockRef{}
+				m.Prev = &block1.BlockRef{}
 			}
 			if err := m.Prev.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -11246,7 +12074,7 @@ func (m *ReplayCursorOutcome) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.World == nil {
-				m.World = &block.BlockRef{}
+				m.World = &block1.BlockRef{}
 			}
 			if err := m.World.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -11260,7 +12088,7 @@ func (m *ReplayCursorOutcome) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.Payloads = append(m.Payloads, &block.BlockRef{})
+			m.Payloads = append(m.Payloads, &block1.BlockRef{})
 			if err := m.Payloads[len(m.Payloads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
@@ -11483,7 +12311,7 @@ func (m *BackfillState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.Root == nil {
-				m.Root = &block.BlockRef{}
+				m.Root = &block1.BlockRef{}
 			}
 			if err := m.Root.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
