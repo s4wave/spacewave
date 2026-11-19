@@ -12,9 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/google/pprof/profile"
 	yamux "github.com/libp2p/go-yamux/v5"
+	"github.com/pkg/errors"
 	trace_capture "github.com/s4wave/spacewave/core/trace/capture"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
@@ -74,6 +76,40 @@ func TestDefaultDebugMemoryProfileOutputPath(t *testing.T) {
 	want := ".tmp/spacewave-daemon-20260511-182030-allocs.pprof"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+// TestDebugCommandsHonorGlobalSocketPath checks that a --socket-path given
+// before the debug command reaches the capture's dial, though each debug
+// command declares its own flag: an ignored one falls back to the default
+// state path and captures a different daemon.
+func TestDebugCommandsHonorGlobalSocketPath(t *testing.T) {
+	// Restore the dial hook, and record the socket it is asked for.
+	oldDial := connectDaemonDial
+	t.Cleanup(func() { connectDaemonDial = oldDial })
+	errDialed := errors.New("dialed")
+	var dialed string
+	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
+		dialed = sockPath
+		return nil, errDialed
+	}
+
+	// Run each capture with the socket on the root and require that it dials it.
+	sock := filepath.Join(t.TempDir(), "spacewave.sock")
+	for _, name := range []string{"trace", "cpu-profile", "mem-profile", "goroutine-profile"} {
+		dialed = ""
+		app := &cli.App{
+			Flags:    []cli.Flag{socketPathFlag()},
+			Commands: []*cli.Command{newDebugCommand(nil, &FormatUpgrade{})},
+		}
+		out := filepath.Join(t.TempDir(), "out")
+		err := app.Run([]string{"spacewave", "--socket-path", sock, "debug", name, "--out", out})
+		if !errors.Is(err, errDialed) {
+			t.Fatalf("%s: got %v, want the stub dial error", name, err)
+		}
+		if dialed != sock {
+			t.Fatalf("%s: dialed %q, want %q", name, dialed, sock)
+		}
 	}
 }
 

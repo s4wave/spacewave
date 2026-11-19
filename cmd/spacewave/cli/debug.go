@@ -84,7 +84,7 @@ func newDebugTraceCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return runDebugTrace(c, statePath, c.String("socket-path"), outputPath, duration, label, c.String("output"))
+			return runDebugTrace(c, statePath, effectiveSocketPath(c, ""), outputPath, duration, label, c.String("output"))
 		},
 	}
 }
@@ -123,7 +123,7 @@ func newDebugCPUProfileCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return runDebugCPUProfile(c, statePath, c.String("socket-path"), outputPath, duration, label, c.String("output"))
+			return runDebugCPUProfile(c, statePath, effectiveSocketPath(c, ""), outputPath, duration, label, c.String("output"))
 		},
 	}
 }
@@ -166,7 +166,7 @@ func newDebugMemoryProfileCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return runDebugMemoryProfile(c, statePath, c.String("socket-path"), outputPath, profile, gc, debug, c.String("output"))
+			return runDebugMemoryProfile(c, statePath, effectiveSocketPath(c, ""), outputPath, profile, gc, debug, c.String("output"))
 		},
 	}
 }
@@ -196,7 +196,7 @@ func newDebugGoroutineProfileCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return runDebugGoroutineProfile(c, statePath, c.String("socket-path"), outputPath, debug, c.String("output"))
+			return runDebugGoroutineProfile(c, statePath, effectiveSocketPath(c, ""), outputPath, debug, c.String("output"))
 		},
 	}
 }
