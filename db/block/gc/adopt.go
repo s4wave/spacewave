@@ -2,12 +2,16 @@ package block_gc
 
 import (
 	"context"
+	"encoding/binary"
+	"maps"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // AdoptStore is the Volume an audit runs in.
@@ -314,36 +318,39 @@ func (a *adoption) count(ctx context.Context) error {
 	}
 
 	// Count the children of each block stored when the adoption began.
-	err := forSlices(ctx, a.store, a.run, kindChildren, func(rec *Records, blocks block.StoreOps, r adoptRecord) error {
-		// Skip a block born since the adoption began.
-		ref, born, err := a.listed(ctx, rec, r)
-		if err != nil || born {
+	err := forSlices(ctx, a.store, a.run, kindChildren, func(rec *Records, blocks block.StoreOps, recs []adoptRecord) error {
+		// Read the generation once for the slice.
+		gen, err := rec.generation(ctx)
+		if err != nil {
 			return err
 		}
-
-		// Count a holder of each child. While Open a list written from
-		// content returns each unverified child to the settle's front: the
-		// free proof may have popped the child while a short list left it
-		// Dead, and once this count holds it again the walk must verify it
-		// before the flip, or the sweep deletes it.
-		children, err := DecodeChildren(r.value)
-		if err != nil {
-			return errors.Wrapf(err, "child list of %s", ref.MarshalString())
-		}
-		returns := listMarked(r.value)
-		if returns {
-			gen, err := rec.generation(ctx)
+		h := make(holds)
+		for _, r := range recs {
+			// Skip a block born since the adoption began.
+			ref, born, err := a.listed(ctx, rec, r)
 			if err != nil {
 				return err
 			}
-			returns = gen == Generation_GENERATION_OPEN
-		}
-		for _, child := range children {
-			if err := a.hold(ctx, rec, blocks, BlockKey(child), returns); err != nil {
-				return err
+			if born {
+				continue
+			}
+
+			// Count a holder of each child. While Open a list written from
+			// content returns each unverified child to the settle's front:
+			// the free proof may have popped the child while a short list
+			// left it Dead, and once this count holds it again the walk must
+			// verify it before the flip, or the sweep deletes it.
+			returns := listMarked(r.value) && gen == Generation_GENERATION_OPEN
+			for packed := listKeys(r.value); len(packed) != 0; {
+				key, ok := nextBlockKey(packed)
+				if !ok {
+					return errors.Wrapf(errBadBlockKey, "child list of %s", ref.MarshalString())
+				}
+				packed = packed[len(key):]
+				h.add(key, returns)
 			}
 		}
-		return nil
+		return a.hold(ctx, rec, blocks, h)
 	})
 	if err != nil {
 		return err
@@ -357,38 +364,50 @@ func (a *adoption) count(ctx context.Context) error {
 	// Settle each stored block: one holder is implied, and a block with none
 	// is at zero with children that count it, on the free queue, so the free
 	// releases them.
-	return forSlices(ctx, a.store, a.run, kindChildren, func(rec *Records, _ block.StoreOps, r adoptRecord) error {
-		// Skip a block born since the adoption began.
-		ref, born, err := a.listed(ctx, rec, r)
-		if err != nil || born {
-			return err
-		}
-
-		// Write the holders of a block a holder names.
-		a.res.Blocks++
-		n, err := rec.tally(ctx, ref)
-		if err != nil {
-			return err
-		}
-		if n != 0 {
-			if n > 1 {
-				a.res.Counted++
+	return forSlices(ctx, a.store, a.run, kindChildren, func(rec *Records, _ block.StoreOps, recs []adoptRecord) error {
+		for _, r := range recs {
+			if err := a.settle(ctx, rec, r); err != nil {
+				return err
 			}
-			return rec.SetHolders(ctx, ref, n, 0)
 		}
-
-		// Settle a block no holder names at zero, ripe at the up log's end.
-		state, err := rec.GetState(ctx)
-		if err != nil {
-			return err
-		}
-		a.res.Queued++
-		ripe := state.GetUpSeq()
-		if err := rec.SetHolders(ctx, ref, 0, ripe); err != nil {
-			return err
-		}
-		return rec.tx.Set(ctx, rec.queueKey(ripe, BlockKey(ref)), nil)
+		return nil
 	})
+}
+
+// settle writes the holders the count gave the block of the list record r,
+// or settles it at zero on the free queue when it has none. It skips a block
+// born since the adoption began.
+func (a *adoption) settle(ctx context.Context, rec *Records, r adoptRecord) error {
+	// Skip a block born since the adoption began.
+	ref, born, err := a.listed(ctx, rec, r)
+	if err != nil || born {
+		return err
+	}
+
+	// Write the holders of a block a holder names.
+	a.res.Blocks++
+	n, err := rec.tally(ctx, ref)
+	if err != nil {
+		return err
+	}
+	if n != 0 {
+		if n > 1 {
+			a.res.Counted++
+		}
+		return rec.SetHolders(ctx, ref, n, 0)
+	}
+
+	// Settle a block no holder names at zero, ripe at the up log's end.
+	state, err := rec.GetState(ctx)
+	if err != nil {
+		return err
+	}
+	a.res.Queued++
+	ripe := state.GetUpSeq()
+	if err := rec.SetHolders(ctx, ref, 0, ripe); err != nil {
+		return err
+	}
+	return rec.tx.Set(ctx, rec.queueKey(ripe, BlockKey(ref)), nil)
 }
 
 // countRoots counts each name that held a root when the adoption began at
@@ -407,6 +426,7 @@ func (a *adoption) countRoots(ctx context.Context) error {
 		if err != nil {
 			return nil, false, err
 		}
+		h := make(holds)
 		for _, name := range names {
 			// Read the starting block from the mark, or else the table.
 			start, moved, err := rec.tx.Get(ctx, rec.key(kindAdoptRoot, name))
@@ -427,12 +447,16 @@ func (a *adoption) countRoots(ctx context.Context) error {
 
 			// Count the holder of a name that held a block.
 			if len(start) != 0 {
-				a.res.Roots++
-				if err := a.hold(ctx, rec, blocks, start, false); err != nil {
-					return nil, false, err
+				if _, rest, err := ParseBlockKey(start); err != nil || len(rest) != 0 {
+					return nil, false, errBadBlockKey
 				}
+				a.res.Roots++
+				h.add(start, false)
 			}
 			after = name
+		}
+		if err := a.hold(ctx, rec, blocks, h); err != nil {
+			return nil, false, err
 		}
 		return after, len(names) == sliceRecords, nil
 	})
@@ -451,60 +475,134 @@ func (a *adoption) listed(ctx context.Context, rec *Records, r adoptRecord) (*bl
 	return ref, born, err
 }
 
-// hold counts one holder of the block key names, and notes the holder as
-// unknown when the Volume stores the block's bytes without a child list.
-// While open, a holder from a list written from content returns the block to
-// the front through returnHeld.
-func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps, key []byte, open bool) error {
-	// Count the holder.
-	ref, rest, err := ParseBlockKey(key)
-	if err != nil || len(rest) != 0 {
-		return errBadBlockKey
+// holds is the holders one slice of the count gives each block, by block
+// key, so the slice reads each block's count and list once, in key order.
+type holds map[string]holding
+
+// holding is the holders a slice gives one block, and whether one of them
+// returns it to the front: a list written from content while Open.
+type holding struct {
+	n    uint64
+	open bool
+}
+
+// add counts one holder of the block at key.
+func (h holds) add(key []byte, open bool) {
+	e := h[string(key)]
+	e.n++
+	e.open = e.open || open
+	h[string(key)] = e
+}
+
+// hold adds the holders h counts to the count records, and notes each holder
+// of a block the Volume stores without a child list as unknown. While Open a
+// block a holder opens returns to the front unless its list is from content:
+// the free proof may have popped it while it was Dead, and the walk must
+// verify it before the flip. It reads the counts, the lists and the unlisted
+// blocks in three batches in key order, so a slice costs batched reads
+// rather than a random point read per holder.
+func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps, h holds) error {
+	// Order the blocks by key.
+	keys := slices.Sorted(maps.Keys(h))
+	if len(keys) == 0 {
+		return nil
 	}
-	n, err := rec.tally(ctx, ref)
+
+	// Add the holders to the counts, read in one batch.
+	reads := make([][]byte, len(keys))
+	for i, key := range keys {
+		reads[i] = rec.key(kindCount, []byte(key))
+	}
+	counts, counted, err := kvtx.GetBatch(ctx, rec.tx, reads)
 	if err != nil {
 		return err
 	}
-	if err := rec.setTally(ctx, ref, n+1); err != nil {
+	var opens bool
+	for i, key := range keys {
+		var n uint64
+		if counted[i] {
+			var size int
+			if n, size = binary.Uvarint(counts[i]); size <= 0 {
+				return errCountMalformed
+			}
+		}
+		if err := rec.tx.Set(ctx, reads[i], binary.AppendUvarint(nil, n+h[key].n)); err != nil {
+			return err
+		}
+		opens = opens || h[key].open
+	}
+
+	// Read the lists in one batch: their values when a holder opens a block,
+	// and otherwise only whether each exists.
+	for i, key := range keys {
+		reads[i] = rec.key(kindChildren, []byte(key))
+	}
+	var lists [][]byte
+	var listed []bool
+	if opens {
+		lists, listed, err = kvtx.GetBatch(ctx, rec.tx, reads)
+	} else {
+		listed, err = kvtx.ExistsBatch(ctx, rec.tx, reads)
+	}
+	if err != nil {
 		return err
 	}
 
-	// Return an unverified block to the front, and note one whose bytes are
-	// stored without a child list.
-	listed, _, err := rec.returnHeld(ctx, key, open)
-	if err != nil || listed {
+	// Return each opened block whose list is not from content to the front,
+	// and gather the unlisted blocks.
+	var unlisted []*block.BlockRef
+	var unlistedHolders []uint64
+	for i, key := range keys {
+		if !listed[i] {
+			ref, _, err := ParseBlockKey([]byte(key))
+			if err != nil {
+				return err
+			}
+			unlisted = append(unlisted, ref)
+			unlistedHolders = append(unlistedHolders, h[key].n)
+			continue
+		}
+		if h[key].open && !listMarked(lists[i]) {
+			if err := rec.tx.Set(ctx, rec.key(kindFront, []byte(key)), nil); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Note the holders of each unlisted block whose bytes the Volume stores.
+	if len(unlisted) == 0 {
+		return nil
+	}
+	found, err := blocks.GetBlockExistsBatch(ctx, unlisted)
+	if err != nil {
 		return err
 	}
-	found, err := blocks.GetBlockExists(ctx, ref)
-	if err != nil || !found {
-		return err
+	for i, ok := range found {
+		if ok {
+			a.res.Unknown += unlistedHolders[i]
+			a.res.UnknownSample = sample(a.res.UnknownSample, unlisted[i])
+		}
 	}
-	a.res.Unknown++
-	a.res.UnknownSample = sample(a.res.UnknownSample, ref)
 	return nil
 }
 
-// forSlices calls fn with every record of kind in key order, sliceRecords
-// per transaction while run holds the Volume, yielding to waiting writers
-// between transactions.
-func forSlices(ctx context.Context, store Store, run string, kind byte, fn func(rec *Records, blocks block.StoreOps, r adoptRecord) error) error {
+// forSlices calls fn with every record of kind in key order, a slice of up
+// to sliceRecords per transaction while run holds the Volume, yielding to
+// waiting writers between transactions.
+func forSlices(ctx context.Context, store Store, run string, kind byte, fn func(rec *Records, blocks block.StoreOps, recs []adoptRecord) error) error {
 	_, err := eachSlice(ctx, store.Update, []byte(nil), nil, func(rec *Records, blocks block.StoreOps, after []byte) ([]byte, bool, error) {
-		// Read the slice while the run holds the Volume, then handle each
-		// record.
+		// Read the slice while the run holds the Volume, then handle it.
 		if _, err := inRun(ctx, rec, run); err != nil {
 			return nil, false, err
 		}
 		recs, err := rec.scanAfter(ctx, kind, after, sliceRecords)
-		if err != nil {
+		if err != nil || len(recs) == 0 {
+			return after, false, err
+		}
+		if err := fn(rec, blocks, recs); err != nil {
 			return nil, false, err
 		}
-		for _, r := range recs {
-			if err := fn(rec, blocks, r); err != nil {
-				return nil, false, err
-			}
-			after = r.key
-		}
-		return after, len(recs) == sliceRecords, nil
+		return recs[len(recs)-1].key, len(recs) == sliceRecords, nil
 	})
 	return err
 }

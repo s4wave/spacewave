@@ -167,19 +167,6 @@ func (r *Records) pushOwed(ctx context.Context, key []byte) (bool, error) {
 	return true, r.tx.Set(ctx, r.key(kindFront, key), nil)
 }
 
-// returnHeld keeps the rule for a block that gains a holder while Open: its
-// list unverified, it returns to the front, since the free proof may have
-// popped it while it was Dead, and the walk must verify it before the flip.
-// The recount of a readoption calls it. It reports whether the block has a
-// list and whether it pushed it; outside Open it only reads the list.
-func (r *Records) returnHeld(ctx context.Context, key []byte, open bool) (listed, pushed bool, err error) {
-	listed, marked, err := r.listState(ctx, key)
-	if err != nil || !listed || marked || !open {
-		return listed, false, err
-	}
-	return true, true, r.tx.Set(ctx, r.key(kindFront, key), nil)
-}
-
 // pushChildren pushes each child in packed, block keys as a list holds
 // them, that the walk owes a decode onto the front, skipping a child skip
 // reports.
@@ -588,7 +575,7 @@ type frontPos struct {
 // and the adoption that follows deletes it, so the front waits for one
 // recount at most. A block popped before the rewrite that the rewritten list
 // names gains a holder in that recount, which returns it to the front, as
-// returnHeld describes. A slice that pops raises the pop mark to the latest
+// adoption.hold describes. A slice that pops raises the pop mark to the latest
 // ripe sequence it popped, as kindPopMark describes, at the cost of one key
 // read and write per such slice. A list lasts from the block's put to its
 // free, and the free parks while Open, so an entry the store does not list
