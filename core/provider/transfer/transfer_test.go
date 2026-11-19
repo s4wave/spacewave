@@ -1467,7 +1467,7 @@ func writeSourceObject(ctx context.Context, t *testing.T, tb *testbed.Testbed, a
 
 	// Start the Space's World engine and create the object.
 	engineID := space.SpaceEngineId(soRef)
-	busEngine, engRef, err := world.StartEngine(ctx, tb.Bus, space_world.NewConfig(engineID, soRef), space_world.NewFactory(tb.Bus, space_world_engine.OpTypes))
+	busEngine, engRef, err := world.StartEngine(ctx, tb.Bus, space_world.NewConfig(engineID, soRef), space_world_engine.NewFactory(tb.Bus))
 	if err != nil {
 		t.Fatal(err)
 	}

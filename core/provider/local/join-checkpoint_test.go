@@ -33,8 +33,8 @@ func TestJoinFromCheckpoint(t *testing.T) {
 	t.Cleanup(releaseMember)
 
 	// Run a World engine on each.
-	ownerTb.StaticResolver.AddFactory(space_world.NewFactory(ownerTb.Bus, space_world.OpTypes{}))
-	memberTb.StaticResolver.AddFactory(space_world.NewFactory(memberTb.Bus, space_world.OpTypes{}))
+	ownerTb.StaticResolver.AddFactory(space_world.NewEngineFactory(ownerTb.Bus, space_world.OpTypes{}))
+	memberTb.StaticResolver.AddFactory(space_world.NewEngineFactory(memberTb.Bus, space_world.OpTypes{}))
 
 	// The owner creates and mounts the Space.
 	ref, err := ownerAccount.CreateSharedObject(ctx, "join-space", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")

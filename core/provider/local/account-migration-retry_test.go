@@ -356,7 +356,7 @@ func TestAccountMergeOpenAfterMigration(t *testing.T) {
 	// Open the Space and wait for its install to move the replay base onto
 	// the copied World and release it from the import root.
 	b := target.t.p.b
-	_, engineRef, err := world.StartEngine(ctx, b, space_world.NewConfig("migrated-world", destinationRef), space_world.NewFactory(b, space_world.OpTypes{}))
+	_, engineRef, err := world.StartEngine(ctx, b, space_world.NewConfig("migrated-world", destinationRef), space_world.NewEngineFactory(b, space_world.OpTypes{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1406,7 +1406,7 @@ func openMigratedSpace(ctx context.Context, t *testing.T, target *ProviderAccoun
 	}
 	t.Cleanup(releaseCopied)
 	b := target.t.p.b
-	eng, engineRef, err := world.StartEngine(ctx, b, space_world.NewConfig("migrated-world", destinationRef), space_world.NewFactory(b, space_world_engine.OpTypes))
+	eng, engineRef, err := world.StartEngine(ctx, b, space_world.NewConfig("migrated-world", destinationRef), space_world_engine.NewFactory(b))
 	if err != nil {
 		t.Fatal(err)
 	}

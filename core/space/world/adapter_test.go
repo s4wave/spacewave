@@ -132,7 +132,7 @@ func newAdapterFixtureOn(t *testing.T, opts fixtureOpts) *adapterFixture {
 	if opts.opTypes != nil {
 		opTypes = *opts.opTypes
 	}
-	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, opTypes))
+	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, opTypes))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 
 	// Start the local provider and create the Space.

@@ -23,9 +23,11 @@ type Factory struct {
 	opTypes OpTypes
 }
 
-// NewFactory returns a factory whose engines resolve operation types with
-// opTypes before the bus.
-func NewFactory(b bus.Bus, opTypes OpTypes) *Factory {
+// NewEngineFactory returns a factory whose engines resolve operation types
+// with opTypes before the bus. It is not named NewFactory because generated
+// factory lists call NewFactory with the bus alone; space_world_engine's
+// NewFactory supplies a Space's static operation table.
+func NewEngineFactory(b bus.Bus, opTypes OpTypes) *Factory {
 	return &Factory{bus: b, opTypes: opTypes}
 }
 

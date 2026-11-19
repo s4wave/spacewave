@@ -80,7 +80,7 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 		// at construction, before its first replay. The body's engine
 		// follows each engine the controller serves, across restarts and
 		// replacements after read access returns.
-		factory := space_world.NewFactory(c.GetBus(), space_world_engine.OpTypes)
+		factory := space_world_engine.NewFactory(c.GetBus())
 		eng, ref, err := world.StartEngine(ctx, c.GetBus(), conf, factory)
 		if err != nil {
 			soRef.Release()

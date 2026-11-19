@@ -25,7 +25,7 @@ func TestMainDeviceOffline(t *testing.T) {
 	tb, _, ownerAccount, ownerSession, release := setupProviderAndSession(ctx, t)
 	t.Cleanup(release)
 	memberAccount, memberSession := addLocalSession(ctx, t, tb)
-	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{}))
+	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, space_world.OpTypes{}))
 
 	// The owner creates the Space and a writer joins it.
 	ref, err := ownerAccount.CreateSharedObject(ctx, "main-device-space", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
@@ -87,7 +87,7 @@ func TestFollowerInstallsLeaderCheckpoint(t *testing.T) {
 	tb, _, ownerAccount, ownerSession, release := setupProviderAndSession(ctx, t)
 	t.Cleanup(release)
 	memberAccount, memberSession := addLocalSession(ctx, t, tb)
-	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{}))
+	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, space_world.OpTypes{}))
 
 	// The owner creates the Space and a writer joins it.
 	ref, err := ownerAccount.CreateSharedObject(ctx, "follower-space", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")

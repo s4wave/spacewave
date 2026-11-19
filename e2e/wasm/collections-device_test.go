@@ -62,7 +62,7 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 
 	// Register the local provider and world engine.
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{}))
+	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, space_world.OpTypes{}))
 	_, providerRef, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: "local", PeerId: tb.Volume.GetPeerID().String(), StorageId: tb.StorageID,
 	}), nil)
@@ -182,7 +182,7 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 	ref := sobject.NewSharedObjectRef("local", pairedRef.GetProviderResourceRef().GetProviderAccountId(), spaceID, provider_local.SobjectBlockStoreID(spaceID))
 	worldEngine, engineRef, err := world.StartEngine(ctx, tb.Bus,
 		space_world.NewConfig("plugin-device-space", ref),
-		space_world.NewFactory(tb.Bus, space_world_engine.OpTypes))
+		space_world_engine.NewFactory(tb.Bus))
 	if err != nil {
 		t.Fatal(err)
 	}
