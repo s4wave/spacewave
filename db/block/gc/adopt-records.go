@@ -73,3 +73,42 @@ func (r *Records) scanNamesAfter(ctx context.Context, after []byte, limit int, k
 	names = slices.CompactFunc(names, bytes.Equal)
 	return names[:min(len(names), limit)], nil
 }
+
+// scanThrough returns the records of kind whose key, after the prefix and
+// kind, sorts after after and at or before last, in key order; a nil after
+// starts at the first, and a nil last reads to the kind's end. It reads them
+// all before returning, so the caller may write in the same transaction.
+func (r *Records) scanThrough(ctx context.Context, kind byte, after, last []byte) (sortedRecords, error) {
+	// Seek past after, and copy out the records through last.
+	from := after
+	if after != nil {
+		from = append(bytes.Clone(after), 0)
+	}
+	var out sortedRecords
+	err := r.scan(ctx, r.key(kind), from, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		if last != nil && bytes.Compare(key, last) > 0 {
+			return false, nil
+		}
+		v, err := value()
+		out = append(out, adoptRecord{key: bytes.Clone(key), value: bytes.Clone(v)})
+		return true, err
+	})
+	return out, err
+}
+
+// sortedRecords is the records of a range scan in key order, which find
+// walks once beside keys asked in ascending order, merging the scan with
+// them instead of a point read of each.
+type sortedRecords []adoptRecord
+
+// find returns the value of the record at key and whether one exists,
+// dropping the records before key. Keys are asked in ascending order.
+func (s *sortedRecords) find(key []byte) ([]byte, bool) {
+	for len(*s) != 0 && bytes.Compare((*s)[0].key, key) < 0 {
+		*s = (*s)[1:]
+	}
+	if len(*s) != 0 && bytes.Equal((*s)[0].key, key) {
+		return (*s)[0].value, true
+	}
+	return nil, false
+}
