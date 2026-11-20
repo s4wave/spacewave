@@ -1,0 +1,19 @@
+[
+  {
+    "name": "A delta frame opens a group",
+    "replace": [["[] open /\\ Len(queue) < Window ->", "[] Len(queue) < Window ->"]],
+    "expect": "DecodeComplete",
+    "config": "FrameSender-passthrough.cfg"
+  },
+  {
+    "name": "A dropped frame leaves its group open",
+    "replace": [["/\\ open' = FALSE\n            /\\ keyAsked' = Encoder", "/\\ open' = open\n            /\\ keyAsked' = Encoder"]],
+    "expect": "DecodeComplete",
+    "config": "FrameSender-passthrough.cfg"
+  },
+  {
+    "name": "The sender ignores the window",
+    "replace": [["[] open /\\ Len(queue) < Window ->", "[] open ->"]],
+    "expect": "QueueBounded"
+  }
+]

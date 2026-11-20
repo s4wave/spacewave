@@ -1,0 +1,49 @@
+syntax = "proto3";
+package s4wave.frametrack;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/core/frametrack;frametrack";
+
+// Subscription is the viewer's first message on the track's control stream.
+message Subscription {
+  // SubscriptionId is the viewer-assigned identifier echoed by each group.
+  string subscription_id = 1;
+}
+
+// Codec identifies the encoding of every frame in a group.
+enum Codec {
+  // CODEC_UNKNOWN indicates that the encoding was omitted.
+  CODEC_UNKNOWN = 0;
+  // CODEC_JPEG carries a complete JPEG image in every frame.
+  CODEC_JPEG = 1;
+  // CODEC_H264_AVC carries H.264 access units with length-prefixed NAL units.
+  CODEC_H264_AVC = 2;
+}
+
+// GroupHeader is the first message on a reliable group stream.
+message GroupHeader {
+  // SubscriptionId identifies the control stream's subscription.
+  string subscription_id = 1;
+  // GroupSequence starts at one and increases with each group the sender opens.
+  uint64 group_sequence = 2;
+  // Codec identifies the encoding of the frames that follow.
+  Codec codec = 3;
+  // Width is the coded frame width in pixels.
+  uint32 width = 4;
+  // Height is the coded frame height in pixels.
+  uint32 height = 5;
+  // DecoderDescription is the AVCDecoderConfigurationRecord for H.264 AVC.
+  // JPEG groups leave it empty.
+  bytes decoder_description = 6;
+}
+
+// Frame carries one coded picture in the group's decode order.
+message Frame {
+  // CapturedAt is the source's capture time for this picture.
+  .google.protobuf.Timestamp captured_at = 1;
+  // Keyframe marks an independently decodable picture given the group header.
+  bool keyframe = 2;
+  // Data is the coded picture in the group's codec.
+  bytes data = 3;
+}

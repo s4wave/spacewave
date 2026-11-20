@@ -1566,6 +1566,16 @@
             "core/forge/task/task.proto"
           ]
         },
+        "github.com/s4wave/spacewave/core/frametrack": {
+          "hash": "f6e94a72c7bd921dcb0463fd87e9324cfab7a6967bfcdad8b5a2db8e0021eae5",
+          "generatedFiles": [
+            "core/frametrack/frametrack.pb.go",
+            "core/frametrack/frametrack.pb.ts"
+          ],
+          "protoFiles": [
+            "core/frametrack/frametrack.proto"
+          ]
+        },
         "github.com/s4wave/spacewave/core/git": {
           "hash": "c7b3a253a0fdd45639827f11143a6912f22efa147437c327d13fbe2aa6d469a2",
           "generatedFiles": [
@@ -3170,7 +3180,7 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/lib/docker": {
-          "hash": "9483adea7a4acf6b44decefefe1024efa54d8be69cb4699145db400482b458e9",
+          "hash": "3831baabde3b00c5487f30a7a22ef715cb7f830269eef629e6c3392ccaef0905",
           "generatedFiles": [
             "forge/lib/docker/config.pb.go",
             "forge/lib/docker/config.pb.ts"
@@ -3197,6 +3207,16 @@
           ],
           "protoFiles": [
             "forge/lib/kvtx/config.proto"
+          ]
+        },
+        "github.com/s4wave/spacewave/forge/lib/skiffos": {
+          "hash": "21dee7fbd6b5f7a9fe26a8aa64bf1f19fb9fcf7cda8625e70016046cc8e91cf2",
+          "generatedFiles": [
+            "forge/lib/skiffos/config.pb.go",
+            "forge/lib/skiffos/config.pb.ts"
+          ],
+          "protoFiles": [
+            "forge/lib/skiffos/config.proto"
           ]
         },
         "github.com/s4wave/spacewave/forge/lib/util/presence": {
@@ -3264,7 +3284,7 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/target": {
-          "hash": "239f7b4707b9d30a6304b222695fc8c7321a87b23550b31a1c0bd49759c45717",
+          "hash": "7e3809ac4c8505ad05e8e311bd0b37a6e5ae4de36cdbdf69deca5a3127a451ff",
           "generatedFiles": [
             "forge/target/target.pb.go",
             "forge/target/target.pb.ts",
@@ -3298,7 +3318,7 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/task/tx": {
-          "hash": "47272b1f4078829e19b731d3ea8aece98261f6e48b784d22ef52aa3a5e517e8a",
+          "hash": "6cc19dd079ba9619859856c8c5ace80aa8c89c2b85052a085ddfa8ae62588b0f",
           "generatedFiles": [
             "forge/task/tx/tx.pb.go",
             "forge/task/tx/tx.pb.ts",

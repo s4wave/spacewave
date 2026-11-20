@@ -1,0 +1,21 @@
+---
+title: "Frame sender: groups and keyframe wait"
+---
+stateDiagram-v2
+  s0: Waiting for a keyframe, 0 queued
+  s1: Group open, 1 queued
+  s2: Group open, 0 queued
+  s3: Group open, 2 queued
+  s4: Waiting for a keyframe, 2 queued
+  s5: Waiting for a keyframe, 1 queued
+  [*] --> s0
+  s0 --> s1: keyframe opens a group
+  s1 --> s2: writes a frame
+  s1 --> s3: queues a frame
+  s2 --> s1: queues a frame
+  s3 --> s1: writes a frame or new keyframe resets the group
+  s3 --> s4: viewer behind: drops a frame, ends the group
+  s4 --> s5: writes a frame
+  s4 --> s1: keyframe opens a group
+  s5 --> s0: writes a frame
+  s5 --> s1: keyframe opens a group
