@@ -716,6 +716,12 @@ func (r *WorldStateResource) ListObjectsWithType(ctx context.Context, req *s4wav
 	return resp, nil
 }
 
+// SearchObjectsWithType streams the objects of a type whose key or title holds
+// the query, in pages.
+func (r *WorldStateResource) SearchObjectsWithType(req *s4wave_world.SearchObjectsWithTypeRequest, strm s4wave_world.SRPCWorldStateResourceService_SearchObjectsWithTypeStream) error {
+	return searchObjectsWithType(strm.Context(), r.b, r.ws, req, strm.Send)
+}
+
 // ListTypeCounts returns the number of objects of each type.
 func (r *WorldStateResource) ListTypeCounts(ctx context.Context, req *s4wave_world.ListTypeCountsRequest) (*s4wave_world.ListTypeCountsResponse, error) {
 	entries, err := listTypeCountEntries(ctx, r.b, r.ws)

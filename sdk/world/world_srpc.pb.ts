@@ -90,6 +90,8 @@ import {
   ReleaseRootsResponse,
   RenameObjectRequest,
   RenameObjectResponse,
+  SearchObjectsWithTypeRequest,
+  SearchObjectsWithTypeResponse,
   SeekRequest,
   SeekResponse,
   SetGraphQuadRequest,
@@ -262,6 +264,18 @@ export const EngineResourceServiceDefinition = {
       name: 'WatchTypeCounts',
       I: WatchTypeCountsRequest,
       O: WatchTypeCountsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * SearchObjectsWithType streams the objects of a type whose key or title
+     * holds the query, in pages, from one read snapshot.
+     *
+     * @generated from rpc s4wave.world.EngineResourceService.SearchObjectsWithType
+     */
+    SearchObjectsWithType: {
+      name: 'SearchObjectsWithType',
+      I: SearchObjectsWithTypeRequest,
+      O: SearchObjectsWithTypeResponse,
       kind: MethodKind.ServerStreaming,
     },
     /**
@@ -438,6 +452,17 @@ export interface EngineResourceService {
     request: WatchTypeCountsRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchTypeCountsResponse>
+
+  /**
+   * SearchObjectsWithType streams the objects of a type whose key or title
+   * holds the query, in pages, from one read snapshot.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.SearchObjectsWithType
+   */
+  SearchObjectsWithType(
+    request: SearchObjectsWithTypeRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<SearchObjectsWithTypeResponse>
 
   /**
    * WatchChanges streams each later World revision with the objects and graph
@@ -623,6 +648,18 @@ export interface EngineResourceServiceHandler {
   ): MessageStream<WatchTypeCountsResponse>
 
   /**
+   * SearchObjectsWithType streams the objects of a type whose key or title
+   * holds the query, in pages, from one read snapshot.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.SearchObjectsWithType
+   */
+  SearchObjectsWithType(
+    request: SearchObjectsWithTypeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<SearchObjectsWithTypeResponse>
+
+  /**
    * WatchChanges streams each later World revision with the objects and graph
    * quads it changed since the previous message. The first request opens the
    * stream; a stream opened with an interest takes later requests that change
@@ -701,6 +738,7 @@ export class EngineResourceServiceClient implements EngineResourceService {
     this.GetSeqno = this.GetSeqno.bind(this)
     this.WaitSeqno = this.WaitSeqno.bind(this)
     this.WatchTypeCounts = this.WatchTypeCounts.bind(this)
+    this.SearchObjectsWithType = this.SearchObjectsWithType.bind(this)
     this.WatchChanges = this.WatchChanges.bind(this)
     this.WaitObjectRev = this.WaitObjectRev.bind(this)
     this.BuildStorageCursor = this.BuildStorageCursor.bind(this)
@@ -927,6 +965,26 @@ export class EngineResourceServiceClient implements EngineResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchTypeCountsResponse)(result)
+  }
+
+  /**
+   * SearchObjectsWithType streams the objects of a type whose key or title
+   * holds the query, in pages, from one read snapshot.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.SearchObjectsWithType
+   */
+  SearchObjectsWithType(
+    request: SearchObjectsWithTypeRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<SearchObjectsWithTypeResponse> {
+    const requestMsg = SearchObjectsWithTypeRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      EngineResourceServiceDefinition.methods.SearchObjectsWithType.name,
+      SearchObjectsWithTypeRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(SearchObjectsWithTypeResponse)(result)
   }
 
   /**
@@ -1446,6 +1504,18 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * SearchObjectsWithType streams the objects of a type whose key or title
+     * holds the query, in pages.
+     *
+     * @generated from rpc s4wave.world.WorldStateResourceService.SearchObjectsWithType
+     */
+    SearchObjectsWithType: {
+      name: 'SearchObjectsWithType',
+      I: SearchObjectsWithTypeRequest,
+      O: SearchObjectsWithTypeResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
      * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectRootRefsBatch
      */
     GetObjectRootRefsBatch: {
@@ -1713,6 +1783,17 @@ export interface WorldStateResourceService {
     request: WatchTypeCountsRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchTypeCountsResponse>
+
+  /**
+   * SearchObjectsWithType streams the objects of a type whose key or title
+   * holds the query, in pages.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.SearchObjectsWithType
+   */
+  SearchObjectsWithType(
+    request: SearchObjectsWithTypeRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<SearchObjectsWithTypeResponse>
 
   /**
    * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectRootRefsBatch
@@ -2003,6 +2084,18 @@ export interface WorldStateResourceServiceHandler {
   ): MessageStream<WatchTypeCountsResponse>
 
   /**
+   * SearchObjectsWithType streams the objects of a type whose key or title
+   * holds the query, in pages.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.SearchObjectsWithType
+   */
+  SearchObjectsWithType(
+    request: SearchObjectsWithTypeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<SearchObjectsWithTypeResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectRootRefsBatch
    */
   GetObjectRootRefsBatch(
@@ -2090,6 +2183,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.ListObjectsWithType = this.ListObjectsWithType.bind(this)
     this.ListTypeCounts = this.ListTypeCounts.bind(this)
     this.WatchTypeCounts = this.WatchTypeCounts.bind(this)
+    this.SearchObjectsWithType = this.SearchObjectsWithType.bind(this)
     this.GetObjectRootRefsBatch = this.GetObjectRootRefsBatch.bind(this)
     this.GetObjectMetadataBatch = this.GetObjectMetadataBatch.bind(this)
     this.GetObjectBodiesBatch = this.GetObjectBodiesBatch.bind(this)
@@ -2522,6 +2616,26 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchTypeCountsResponse)(result)
+  }
+
+  /**
+   * SearchObjectsWithType streams the objects of a type whose key or title
+   * holds the query, in pages.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.SearchObjectsWithType
+   */
+  SearchObjectsWithType(
+    request: SearchObjectsWithTypeRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<SearchObjectsWithTypeResponse> {
+    const requestMsg = SearchObjectsWithTypeRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.SearchObjectsWithType.name,
+      SearchObjectsWithTypeRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(SearchObjectsWithTypeResponse)(result)
   }
 
   /**

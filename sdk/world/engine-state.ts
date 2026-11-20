@@ -26,6 +26,7 @@ import {
   type ListObjectsResponse,
   type ListObjectsWithTypeResponse,
   type ObjectBody,
+  type SearchObjectsWithTypeResponse,
   type ObjectMetadata,
   type SetRootRefResponse,
   type ApplyObjectOpResponse,
@@ -393,6 +394,22 @@ export class EngineWorldState implements IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<TypeCountEntry[]> {
     return this.performRead(abortSignal, (tx) => tx.listTypeCounts(abortSignal))
+  }
+
+  // searchObjectsWithType streams pages of the type's matching objects from
+  // one committed snapshot.
+  public searchObjectsWithType(
+    typeID: string,
+    query: string,
+    pageSize?: number,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<SearchObjectsWithTypeResponse> {
+    return this.engine.searchObjectsWithType(
+      typeID,
+      query,
+      pageSize,
+      abortSignal,
+    )
   }
 
   // watchTypeCounts streams the type counts of the Engine's committed World.

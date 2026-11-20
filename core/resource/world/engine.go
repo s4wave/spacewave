@@ -240,6 +240,22 @@ func (r *EngineResource) WatchTypeCounts(req *s4wave_world.WatchTypeCountsReques
 	return watchTypeCountEntries(strm.Context(), r.b, world.NewEngineWorldState(r.engine, false), strm.Send)
 }
 
+// SearchObjectsWithType streams the objects of a type whose key or title holds
+// the query, in pages, from one read transaction, so every page reads the same
+// committed World.
+func (r *EngineResource) SearchObjectsWithType(req *s4wave_world.SearchObjectsWithTypeRequest, strm s4wave_world.SRPCEngineResourceService_SearchObjectsWithTypeStream) error {
+	// Hold one read snapshot for the whole stream.
+	ctx := strm.Context()
+	tx, err := r.engine.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	// Search the snapshot.
+	return searchObjectsWithType(ctx, r.b, tx, req, strm.Send)
+}
+
 // WaitObjectRev waits for an object revision through the engine's key watch.
 // A missing object is reported as a response error code so the client can
 // restore ErrObjectNotFound.

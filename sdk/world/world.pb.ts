@@ -1953,6 +1953,66 @@ export const WatchTypeCountsResponse: MessageType<WatchTypeCountsResponse> =
   )
 
 /**
+ * SearchObjectsWithTypeRequest starts a search over the objects of one type.
+ *
+ * @generated from message s4wave.world.SearchObjectsWithTypeRequest
+ */
+export interface SearchObjectsWithTypeRequest {
+  /**
+   * TypeId is the type whose objects are searched; it must be set.
+   */
+  typeId?: string
+  /**
+   * Query matches an object whose key or title holds it, ignoring case. An
+   * empty query matches every object of the type.
+   */
+  query?: string
+  /**
+   * PageSize bounds the matches in one response. Zero selects the default of
+   * 100; the server caps it at the type listing page limit.
+   */
+  pageSize?: number
+}
+
+export const SearchObjectsWithTypeRequest: MessageType<SearchObjectsWithTypeRequest> =
+  /* @__PURE__ */ createMessageType<SearchObjectsWithTypeRequest>(
+    's4wave.world.SearchObjectsWithTypeRequest',
+    () => [
+      [1, 'type_id', 9],
+      [2, 'query', 9],
+      [3, 'page_size', 13],
+    ],
+  )
+
+/**
+ * SearchObjectsWithTypeResponse is one page of matches. The server sends a
+ * page as soon as it fills, walks the type index only as far as the pages the
+ * client reads, and ends the stream after the last match.
+ *
+ * @generated from message s4wave.world.SearchObjectsWithTypeResponse
+ */
+export interface SearchObjectsWithTypeResponse {
+  /**
+   * ObjectKeys holds the matching objects in type index order.
+   */
+  objectKeys?: string[]
+  /**
+   * Titles holds each match's title in the same order when the type declares
+   * titles. An empty title means the client shows the key.
+   */
+  titles?: string[]
+}
+
+export const SearchObjectsWithTypeResponse: MessageType<SearchObjectsWithTypeResponse> =
+  /* @__PURE__ */ createMessageType<SearchObjectsWithTypeResponse>(
+    's4wave.world.SearchObjectsWithTypeResponse',
+    () => [
+      [1, 'object_keys', 9, 1],
+      [2, 'titles', 9, 1],
+    ],
+  )
+
+/**
  * ObjectRootRef contains root reference metadata for one object key.
  *
  * @generated from message s4wave.world.ObjectRootRef

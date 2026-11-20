@@ -31,6 +31,7 @@ import type {
   LookupGraphQuadsResponse,
   ObjectMetadata,
   ListObjectsWithTypeResponse,
+  SearchObjectsWithTypeResponse,
   TypeCountEntry,
   WatchTypeCountsResponse,
 } from './world.pb.js'
@@ -243,6 +244,18 @@ export interface IWorldState {
     page: ListObjectsWithTypePage,
     abortSignal?: AbortSignal,
   ): Promise<ListObjectsWithTypeResponse>
+
+  /**
+   * searchObjectsWithType streams the objects of a type whose key or title
+   * holds the query, ignoring case, one page per response. The server walks
+   * the type only as far as the pages read, so stop iterating to stop it.
+   */
+  searchObjectsWithType(
+    typeID: string,
+    query: string,
+    pageSize?: number,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<SearchObjectsWithTypeResponse>
 
   /**
    * listTypeCounts returns the number of objects of each type, sorted by type
@@ -738,6 +751,19 @@ export class WorldStateResource extends Resource implements IWorldState {
   ): Promise<ListObjectsWithTypeResponse> {
     return await this.service.ListObjectsWithType(
       { typeId: typeID, ...page },
+      abortSignal,
+    )
+  }
+
+  /** searchObjectsWithType streams pages of the type's matching objects. */
+  public searchObjectsWithType(
+    typeID: string,
+    query: string,
+    pageSize = 0,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<SearchObjectsWithTypeResponse> {
+    return this.service.SearchObjectsWithType(
+      { typeId: typeID, query, pageSize },
       abortSignal,
     )
   }

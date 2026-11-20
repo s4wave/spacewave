@@ -44,6 +44,10 @@ service EngineResourceService {
   // changed ones after each commit that moves any.
   rpc WatchTypeCounts(WatchTypeCountsRequest) returns (stream WatchTypeCountsResponse);
 
+  // SearchObjectsWithType streams the objects of a type whose key or title
+  // holds the query, in pages, from one read snapshot.
+  rpc SearchObjectsWithType(SearchObjectsWithTypeRequest) returns (stream SearchObjectsWithTypeResponse);
+
   // WatchChanges streams each later World revision with the objects and graph
   // quads it changed since the previous message. The first request opens the
   // stream; a stream opened with an interest takes later requests that change
@@ -395,6 +399,9 @@ service WorldStateResourceService {
   // WatchTypeCounts streams the type counts: all of them, then the changed
   // ones after each World change that moves any.
   rpc WatchTypeCounts(WatchTypeCountsRequest) returns (stream WatchTypeCountsResponse);
+  // SearchObjectsWithType streams the objects of a type whose key or title
+  // holds the query, in pages.
+  rpc SearchObjectsWithType(SearchObjectsWithTypeRequest) returns (stream SearchObjectsWithTypeResponse);
 
   rpc GetObjectRootRefsBatch(GetObjectRootRefsBatchRequest) returns (GetObjectRootRefsBatchResponse);
 
@@ -809,6 +816,29 @@ message WatchTypeCountsResponse {
   repeated TypeCountEntry type_counts = 1;
   // Seqno is the World seqno the counts were read at.
   uint64 seqno = 2;
+}
+
+// SearchObjectsWithTypeRequest starts a search over the objects of one type.
+message SearchObjectsWithTypeRequest {
+  // TypeId is the type whose objects are searched; it must be set.
+  string type_id = 1;
+  // Query matches an object whose key or title holds it, ignoring case. An
+  // empty query matches every object of the type.
+  string query = 2;
+  // PageSize bounds the matches in one response. Zero selects the default of
+  // 100; the server caps it at the type listing page limit.
+  uint32 page_size = 3;
+}
+
+// SearchObjectsWithTypeResponse is one page of matches. The server sends a
+// page as soon as it fills, walks the type index only as far as the pages the
+// client reads, and ends the stream after the last match.
+message SearchObjectsWithTypeResponse {
+  // ObjectKeys holds the matching objects in type index order.
+  repeated string object_keys = 1;
+  // Titles holds each match's title in the same order when the type declares
+  // titles. An empty title means the client shows the key.
+  repeated string titles = 2;
 }
 
 // ObjectRootRef contains root reference metadata for one object key.

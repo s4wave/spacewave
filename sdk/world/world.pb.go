@@ -2272,6 +2272,78 @@ func (x *WatchTypeCountsResponse) GetSeqno() uint64 {
 	return 0
 }
 
+// SearchObjectsWithTypeRequest starts a search over the objects of one type.
+type SearchObjectsWithTypeRequest struct {
+	unknownFields []byte
+	// TypeId is the type whose objects are searched; it must be set.
+	TypeId string `protobuf:"bytes,1,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
+	// Query matches an object whose key or title holds it, ignoring case. An
+	// empty query matches every object of the type.
+	Query string `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	// PageSize bounds the matches in one response. Zero selects the default of
+	// 100; the server caps it at the type listing page limit.
+	PageSize uint32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"pageSize,omitempty"`
+}
+
+func (x *SearchObjectsWithTypeRequest) Reset() {
+	*x = SearchObjectsWithTypeRequest{}
+}
+
+func (*SearchObjectsWithTypeRequest) ProtoMessage() {}
+
+func (x *SearchObjectsWithTypeRequest) GetTypeId() string {
+	if x != nil {
+		return x.TypeId
+	}
+	return ""
+}
+
+func (x *SearchObjectsWithTypeRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchObjectsWithTypeRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+// SearchObjectsWithTypeResponse is one page of matches. The server sends a
+// page as soon as it fills, walks the type index only as far as the pages the
+// client reads, and ends the stream after the last match.
+type SearchObjectsWithTypeResponse struct {
+	unknownFields []byte
+	// ObjectKeys holds the matching objects in type index order.
+	ObjectKeys []string `protobuf:"bytes,1,rep,name=object_keys,json=objectKeys,proto3" json:"objectKeys,omitempty"`
+	// Titles holds each match's title in the same order when the type declares
+	// titles. An empty title means the client shows the key.
+	Titles []string `protobuf:"bytes,2,rep,name=titles,proto3" json:"titles,omitempty"`
+}
+
+func (x *SearchObjectsWithTypeResponse) Reset() {
+	*x = SearchObjectsWithTypeResponse{}
+}
+
+func (*SearchObjectsWithTypeResponse) ProtoMessage() {}
+
+func (x *SearchObjectsWithTypeResponse) GetObjectKeys() []string {
+	if x != nil {
+		return x.ObjectKeys
+	}
+	return nil
+}
+
+func (x *SearchObjectsWithTypeResponse) GetTitles() []string {
+	if x != nil {
+		return x.Titles
+	}
+	return nil
+}
+
 // ObjectRootRef contains root reference metadata for one object key.
 type ObjectRootRef struct {
 	unknownFields []byte
@@ -5465,6 +5537,41 @@ func (m *WatchTypeCountsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage
 	return m.CloneVT()
 }
 
+func (m *SearchObjectsWithTypeRequest) CloneVT() *SearchObjectsWithTypeRequest {
+	if m == nil {
+		return (*SearchObjectsWithTypeRequest)(nil)
+	}
+	r := new(SearchObjectsWithTypeRequest)
+	r.TypeId = m.TypeId
+	r.Query = m.Query
+	r.PageSize = m.PageSize
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SearchObjectsWithTypeRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SearchObjectsWithTypeResponse) CloneVT() *SearchObjectsWithTypeResponse {
+	if m == nil {
+		return (*SearchObjectsWithTypeResponse)(nil)
+	}
+	r := new(SearchObjectsWithTypeResponse)
+	r.ObjectKeys = protobuf_go_lite.CloneSlice(m.ObjectKeys)
+	r.Titles = protobuf_go_lite.CloneSlice(m.Titles)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SearchObjectsWithTypeResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *ObjectRootRef) CloneVT() *ObjectRootRef {
 	if m == nil {
 		return (*ObjectRootRef)(nil)
@@ -8346,6 +8453,55 @@ func (this *WatchTypeCountsResponse) EqualVT(that *WatchTypeCountsResponse) bool
 
 func (this *WatchTypeCountsResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchTypeCountsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SearchObjectsWithTypeRequest) EqualVT(that *SearchObjectsWithTypeRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.TypeId != that.TypeId {
+		return false
+	}
+	if this.Query != that.Query {
+		return false
+	}
+	if this.PageSize != that.PageSize {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SearchObjectsWithTypeRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SearchObjectsWithTypeRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SearchObjectsWithTypeResponse) EqualVT(that *SearchObjectsWithTypeResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.ObjectKeys, that.ObjectKeys) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Titles, that.Titles) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SearchObjectsWithTypeResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SearchObjectsWithTypeResponse)
 	if !ok {
 		return false
 	}
@@ -13911,6 +14067,122 @@ func (x *WatchTypeCountsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the WatchTypeCountsResponse from JSON.
 func (x *WatchTypeCountsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SearchObjectsWithTypeRequest message to JSON.
+func (x *SearchObjectsWithTypeRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.TypeId != "" || s.HasField("typeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("typeId")
+		s.WriteString(x.TypeId)
+	}
+	if x.Query != "" || s.HasField("query") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("query")
+		s.WriteString(x.Query)
+	}
+	if x.PageSize != 0 || s.HasField("pageSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pageSize")
+		s.WriteUint32(x.PageSize)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SearchObjectsWithTypeRequest to JSON.
+func (x *SearchObjectsWithTypeRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SearchObjectsWithTypeRequest message from JSON.
+func (x *SearchObjectsWithTypeRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "type_id", "typeId":
+			s.AddField("type_id")
+			x.TypeId = s.ReadString()
+		case "query":
+			s.AddField("query")
+			x.Query = s.ReadString()
+		case "page_size", "pageSize":
+			s.AddField("page_size")
+			x.PageSize = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SearchObjectsWithTypeRequest from JSON.
+func (x *SearchObjectsWithTypeRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SearchObjectsWithTypeResponse message to JSON.
+func (x *SearchObjectsWithTypeResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.ObjectKeys) > 0 || s.HasField("objectKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKeys")
+		s.WriteStringArray(x.ObjectKeys)
+	}
+	if len(x.Titles) > 0 || s.HasField("titles") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("titles")
+		s.WriteStringArray(x.Titles)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SearchObjectsWithTypeResponse to JSON.
+func (x *SearchObjectsWithTypeResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SearchObjectsWithTypeResponse message from JSON.
+func (x *SearchObjectsWithTypeResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_keys", "objectKeys":
+			s.AddField("object_keys")
+			if s.ReadNil() {
+				x.ObjectKeys = nil
+				return
+			}
+			x.ObjectKeys = s.ReadStringArray()
+		case "titles":
+			s.AddField("titles")
+			if s.ReadNil() {
+				x.Titles = nil
+				return
+			}
+			x.Titles = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SearchObjectsWithTypeResponse from JSON.
+func (x *SearchObjectsWithTypeResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -20488,6 +20760,99 @@ func (m *WatchTypeCountsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *SearchObjectsWithTypeRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SearchObjectsWithTypeRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SearchObjectsWithTypeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.PageSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PageSize))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Query) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Query)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.TypeId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TypeId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SearchObjectsWithTypeResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SearchObjectsWithTypeResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SearchObjectsWithTypeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Titles) > 0 {
+		for iNdEx := len(m.Titles) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.Titles[iNdEx])
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.ObjectKeys) > 0 {
+		for iNdEx := len(m.ObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKeys[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ObjectRootRef) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -24424,6 +24789,31 @@ func (m *WatchTypeCountsResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *SearchObjectsWithTypeRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TypeId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Query)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PageSize)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SearchObjectsWithTypeResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.ObjectKeys)
+	n += protobuf_go_lite.SizeStringSlice(1, m.Titles)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ObjectRootRef) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -26776,6 +27166,54 @@ func (x *WatchTypeCountsResponse) MarshalProtoText() string {
 }
 
 func (x *WatchTypeCountsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SearchObjectsWithTypeRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SearchObjectsWithTypeRequest")
+	if x.TypeId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "type_id")
+		protobuf_go_lite.TextWriteString(&sb, x.TypeId)
+	}
+	if x.Query != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "query")
+		protobuf_go_lite.TextWriteString(&sb, x.Query)
+	}
+	if x.PageSize != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "page_size")
+		protobuf_go_lite.TextWriteUint(&sb, x.PageSize)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SearchObjectsWithTypeRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SearchObjectsWithTypeResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SearchObjectsWithTypeResponse")
+	if len(x.ObjectKeys) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "object_keys")
+		for i, v := range x.ObjectKeys {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Titles) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "titles")
+		for i, v := range x.Titles {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SearchObjectsWithTypeResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -32532,6 +32970,141 @@ func (m *WatchTypeCountsResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SearchObjectsWithTypeRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SearchObjectsWithTypeRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SearchObjectsWithTypeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypeId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TypeId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Query", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Query = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PageSize", wireType)
+			}
+			m.PageSize = 0
+			m.PageSize, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SearchObjectsWithTypeResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SearchObjectsWithTypeResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SearchObjectsWithTypeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKeys", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKeys = append(m.ObjectKeys, v)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Titles", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Titles = append(m.Titles, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

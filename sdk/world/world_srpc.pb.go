@@ -45,6 +45,9 @@ type SRPCEngineResourceServiceClient interface {
 	// WatchTypeCounts streams the World's type counts: all of them, then the
 	// changed ones after each commit that moves any.
 	WatchTypeCounts(ctx context.Context, in *WatchTypeCountsRequest) (SRPCEngineResourceService_WatchTypeCountsClient, error)
+	// SearchObjectsWithType streams the objects of a type whose key or title
+	// holds the query, in pages, from one read snapshot.
+	SearchObjectsWithType(ctx context.Context, in *SearchObjectsWithTypeRequest) (SRPCEngineResourceService_SearchObjectsWithTypeClient, error)
 	// WatchChanges streams each later World revision with the objects and graph
 	// quads it changed since the previous message. The first request opens the
 	// stream; a stream opened with an interest takes later requests that change
@@ -237,6 +240,39 @@ func (x *srpcEngineResourceService_WatchTypeCountsClient) RecvTo(m *WatchTypeCou
 	return x.MsgRecv(m)
 }
 
+func (c *srpcEngineResourceServiceClient) SearchObjectsWithType(ctx context.Context, in *SearchObjectsWithTypeRequest) (SRPCEngineResourceService_SearchObjectsWithTypeClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "SearchObjectsWithType", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcEngineResourceService_SearchObjectsWithTypeClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCEngineResourceService_SearchObjectsWithTypeClient interface {
+	srpc.Stream
+	Recv() (*SearchObjectsWithTypeResponse, error)
+	RecvTo(*SearchObjectsWithTypeResponse) error
+}
+
+type srpcEngineResourceService_SearchObjectsWithTypeClient struct {
+	srpc.Stream
+}
+
+func (x *srpcEngineResourceService_SearchObjectsWithTypeClient) Recv() (*SearchObjectsWithTypeResponse, error) {
+	m := new(SearchObjectsWithTypeResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcEngineResourceService_SearchObjectsWithTypeClient) RecvTo(m *SearchObjectsWithTypeResponse) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcEngineResourceServiceClient) WatchChanges(ctx context.Context) (SRPCEngineResourceService_WatchChangesClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchChanges", nil)
 	if err != nil {
@@ -344,6 +380,9 @@ type SRPCEngineResourceServiceServer interface {
 	// WatchTypeCounts streams the World's type counts: all of them, then the
 	// changed ones after each commit that moves any.
 	WatchTypeCounts(*WatchTypeCountsRequest, SRPCEngineResourceService_WatchTypeCountsStream) error
+	// SearchObjectsWithType streams the objects of a type whose key or title
+	// holds the query, in pages, from one read snapshot.
+	SearchObjectsWithType(*SearchObjectsWithTypeRequest, SRPCEngineResourceService_SearchObjectsWithTypeStream) error
 	// WatchChanges streams each later World revision with the objects and graph
 	// quads it changed since the previous message. The first request opens the
 	// stream; a stream opened with an interest takes later requests that change
@@ -400,6 +439,7 @@ func (SRPCEngineResourceServiceHandler) GetMethodIDs() []string {
 		"GetSeqno",
 		"WaitSeqno",
 		"WatchTypeCounts",
+		"SearchObjectsWithType",
 		"WatchChanges",
 		"WaitObjectRev",
 		"BuildStorageCursor",
@@ -441,6 +481,8 @@ func (d *SRPCEngineResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WaitSeqno(d.impl, strm)
 	case "WatchTypeCounts":
 		return true, d.InvokeMethod_WatchTypeCounts(d.impl, strm)
+	case "SearchObjectsWithType":
+		return true, d.InvokeMethod_SearchObjectsWithType(d.impl, strm)
 	case "WatchChanges":
 		return true, d.InvokeMethod_WatchChanges(d.impl, strm)
 	case "WaitObjectRev":
@@ -592,6 +634,15 @@ func (SRPCEngineResourceServiceHandler) InvokeMethod_WatchTypeCounts(impl SRPCEn
 	}
 	serverStrm := &srpcEngineResourceService_WatchTypeCountsStream{strm}
 	return impl.WatchTypeCounts(req, serverStrm)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_SearchObjectsWithType(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(SearchObjectsWithTypeRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcEngineResourceService_SearchObjectsWithTypeStream{strm}
+	return impl.SearchObjectsWithType(req, serverStrm)
 }
 
 func (SRPCEngineResourceServiceHandler) InvokeMethod_WatchChanges(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
@@ -765,6 +816,29 @@ func (x *srpcEngineResourceService_WatchTypeCountsStream) Send(m *WatchTypeCount
 }
 
 func (x *srpcEngineResourceService_WatchTypeCountsStream) SendAndClose(m *WatchTypeCountsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCEngineResourceService_SearchObjectsWithTypeStream interface {
+	srpc.Stream
+	Send(*SearchObjectsWithTypeResponse) error
+	SendAndClose(*SearchObjectsWithTypeResponse) error
+}
+
+type srpcEngineResourceService_SearchObjectsWithTypeStream struct {
+	srpc.Stream
+}
+
+func (x *srpcEngineResourceService_SearchObjectsWithTypeStream) Send(m *SearchObjectsWithTypeResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcEngineResourceService_SearchObjectsWithTypeStream) SendAndClose(m *SearchObjectsWithTypeResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err
@@ -1077,6 +1151,9 @@ type SRPCWorldStateResourceServiceClient interface {
 	// WatchTypeCounts streams the type counts: all of them, then the changed
 	// ones after each World change that moves any.
 	WatchTypeCounts(ctx context.Context, in *WatchTypeCountsRequest) (SRPCWorldStateResourceService_WatchTypeCountsClient, error)
+	// SearchObjectsWithType streams the objects of a type whose key or title
+	// holds the query, in pages.
+	SearchObjectsWithType(ctx context.Context, in *SearchObjectsWithTypeRequest) (SRPCWorldStateResourceService_SearchObjectsWithTypeClient, error)
 
 	GetObjectRootRefsBatch(ctx context.Context, in *GetObjectRootRefsBatchRequest) (*GetObjectRootRefsBatchResponse, error)
 
@@ -1349,6 +1426,39 @@ func (x *srpcWorldStateResourceService_WatchTypeCountsClient) RecvTo(m *WatchTyp
 	return x.MsgRecv(m)
 }
 
+func (c *srpcWorldStateResourceServiceClient) SearchObjectsWithType(ctx context.Context, in *SearchObjectsWithTypeRequest) (SRPCWorldStateResourceService_SearchObjectsWithTypeClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "SearchObjectsWithType", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcWorldStateResourceService_SearchObjectsWithTypeClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCWorldStateResourceService_SearchObjectsWithTypeClient interface {
+	srpc.Stream
+	Recv() (*SearchObjectsWithTypeResponse, error)
+	RecvTo(*SearchObjectsWithTypeResponse) error
+}
+
+type srpcWorldStateResourceService_SearchObjectsWithTypeClient struct {
+	srpc.Stream
+}
+
+func (x *srpcWorldStateResourceService_SearchObjectsWithTypeClient) Recv() (*SearchObjectsWithTypeResponse, error) {
+	m := new(SearchObjectsWithTypeResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcWorldStateResourceService_SearchObjectsWithTypeClient) RecvTo(m *SearchObjectsWithTypeResponse) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcWorldStateResourceServiceClient) GetObjectRootRefsBatch(ctx context.Context, in *GetObjectRootRefsBatchRequest) (*GetObjectRootRefsBatchResponse, error) {
 	out := new(GetObjectRootRefsBatchResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "GetObjectRootRefsBatch", in, out)
@@ -1481,6 +1591,9 @@ type SRPCWorldStateResourceServiceServer interface {
 	// WatchTypeCounts streams the type counts: all of them, then the changed
 	// ones after each World change that moves any.
 	WatchTypeCounts(*WatchTypeCountsRequest, SRPCWorldStateResourceService_WatchTypeCountsStream) error
+	// SearchObjectsWithType streams the objects of a type whose key or title
+	// holds the query, in pages.
+	SearchObjectsWithType(*SearchObjectsWithTypeRequest, SRPCWorldStateResourceService_SearchObjectsWithTypeStream) error
 
 	GetObjectRootRefsBatch(context.Context, *GetObjectRootRefsBatchRequest) (*GetObjectRootRefsBatchResponse, error)
 
@@ -1545,6 +1658,7 @@ func (SRPCWorldStateResourceServiceHandler) GetMethodIDs() []string {
 		"ListObjectsWithType",
 		"ListTypeCounts",
 		"WatchTypeCounts",
+		"SearchObjectsWithType",
 		"GetObjectRootRefsBatch",
 		"GetObjectMetadataBatch",
 		"GetObjectBodiesBatch",
@@ -1611,6 +1725,8 @@ func (d *SRPCWorldStateResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_ListTypeCounts(d.impl, strm)
 	case "WatchTypeCounts":
 		return true, d.InvokeMethod_WatchTypeCounts(d.impl, strm)
+	case "SearchObjectsWithType":
+		return true, d.InvokeMethod_SearchObjectsWithType(d.impl, strm)
 	case "GetObjectRootRefsBatch":
 		return true, d.InvokeMethod_GetObjectRootRefsBatch(d.impl, strm)
 	case "GetObjectMetadataBatch":
@@ -1913,6 +2029,15 @@ func (SRPCWorldStateResourceServiceHandler) InvokeMethod_WatchTypeCounts(impl SR
 	return impl.WatchTypeCounts(req, serverStrm)
 }
 
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_SearchObjectsWithType(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(SearchObjectsWithTypeRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcWorldStateResourceService_SearchObjectsWithTypeStream{strm}
+	return impl.SearchObjectsWithType(req, serverStrm)
+}
+
 func (SRPCWorldStateResourceServiceHandler) InvokeMethod_GetObjectRootRefsBatch(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
 	req := new(GetObjectRootRefsBatchRequest)
 	if err := strm.MsgRecv(req); err != nil {
@@ -2181,6 +2306,29 @@ func (x *srpcWorldStateResourceService_WatchTypeCountsStream) Send(m *WatchTypeC
 }
 
 func (x *srpcWorldStateResourceService_WatchTypeCountsStream) SendAndClose(m *WatchTypeCountsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCWorldStateResourceService_SearchObjectsWithTypeStream interface {
+	srpc.Stream
+	Send(*SearchObjectsWithTypeResponse) error
+	SendAndClose(*SearchObjectsWithTypeResponse) error
+}
+
+type srpcWorldStateResourceService_SearchObjectsWithTypeStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWorldStateResourceService_SearchObjectsWithTypeStream) Send(m *SearchObjectsWithTypeResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcWorldStateResourceService_SearchObjectsWithTypeStream) SendAndClose(m *SearchObjectsWithTypeResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

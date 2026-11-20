@@ -11,6 +11,7 @@ import {
 } from './world_srpc.pb.js'
 import {
   WorldErrorCode,
+  type SearchObjectsWithTypeResponse,
   type WatchTypeCountsResponse,
   type WorldMutation,
 } from './world.pb.js'
@@ -153,6 +154,20 @@ export class Engine extends Resource {
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchTypeCountsResponse> {
     return this.service.WatchTypeCounts({}, abortSignal)
+  }
+
+  // searchObjectsWithType streams the objects of a type whose key or title
+  // holds the query, one page per response, from one committed snapshot.
+  public searchObjectsWithType(
+    typeID: string,
+    query: string,
+    pageSize = 0,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<SearchObjectsWithTypeResponse> {
+    return this.service.SearchObjectsWithType(
+      { typeId: typeID, query, pageSize },
+      abortSignal,
+    )
   }
 
   // BuildStorageCursor builds a cursor to the world storage with an empty ref.
