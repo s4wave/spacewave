@@ -131,12 +131,14 @@ var pluginCallerDenied = map[string]struct{}{
 	webMethod(s4wave_provider_spacewave.SRPCSpacewaveProviderResourceServiceServiceID, "RecoverExecute"):       {},
 
 	// Storage and network: where a session stores its Spaces, what storage
-	// costs, and whether it connects to peers directly.
+	// costs, which host folders a Drive exposes, and whether it connects to
+	// peers directly.
 	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "AddStorageBackend"):        {},
 	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "SetDefaultStorageBackend"): {},
 	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "SetStorageBackendPricing"): {},
 	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "MoveSpaceStorage"):         {},
 	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "SetDirectP2PEnabled"):      {},
+	webMethod(s4wave_space.SRPCSpaceResourceServiceServiceID, "LinkFolder"):                   {},
 
 	// Runtime: the web listeners this device serves and which runtime holds
 	// them, including the person's answer to a listener yield prompt.
