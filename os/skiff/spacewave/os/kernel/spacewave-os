@@ -1,0 +1,9 @@
+# spacewave-init mounts these before it can load any module from a Volume.
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_BTRFS_FS=y
+CONFIG_DEVTMPFS=y
+CONFIG_FUSE_FS=y
+CONFIG_PROC_FS=y
+CONFIG_RD_LZ4=y
+CONFIG_TMPFS=y
+CONFIG_UNIX98_PTYS=y

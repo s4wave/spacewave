@@ -1,0 +1,4 @@
+# The boot set carries spacewave-init's initramfs alone, as rootfs.cpio.lz4.
+BR2_TARGET_ROOTFS_CPIO=y
+BR2_TARGET_ROOTFS_CPIO_LZ4=y
+# BR2_TARGET_ROOTFS_CPIO_UIMAGE is not set

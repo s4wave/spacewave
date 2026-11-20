@@ -86,17 +86,20 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 		return errors.New("docker runtime admission unavailable")
 	}
 
-	// Create the host directory mounted at output_dir when outputs are declared.
-	var outputDir string
-	if len(c.conf.GetOutputs()) != 0 {
-		outputRoot, dir, err := createOutputDir()
-		if err != nil {
-			return errors.Wrap(err, "create output directory")
-		}
-		outputDir = dir
+	// Prepare the host directories for the output and input mounts.
+	hd, err := c.prepareHostDir(ctx)
+	if err != nil {
+		return errors.Wrap(err, "prepare docker host directory")
+	}
+	var (
+		mounts    []*Mount
+		outputDir string
+	)
+	if hd != nil {
+		mounts, outputDir = hd.mounts, hd.outputDir
 		defer func() {
-			if err := os.RemoveAll(outputRoot); err != nil {
-				c.le.WithError(err).Warn("remove docker output directory")
+			if err := os.RemoveAll(hd.root); err != nil {
+				c.le.WithError(err).Warn("remove docker host directory")
 			}
 		}()
 	}
@@ -107,14 +110,13 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 	var (
 		grant Reservation
 		ctr   *Container
-		err   error
 	)
 	for {
 		grant, err = c.admission.Reserve(ctx, c.handle.GetExecutionObjectKey(), c.conf)
 		if err != nil {
 			return errors.Wrap(err, "reserve docker capacity")
 		}
-		ctr, err = c.launch(ctx, grant, outputDir)
+		ctr, err = c.launch(ctx, grant, mounts)
 		if !errors.Is(err, forge_runtime.ErrCapacityDraining) {
 			break
 		}
@@ -168,11 +170,11 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 }
 
 // launch creates and starts the container under the reservation's runtime name.
-func (c *Controller) launch(ctx context.Context, grant Reservation, outputDir string) (*Container, error) {
+func (c *Controller) launch(ctx context.Context, grant Reservation, mounts []*Mount) (*Container, error) {
 	var ctr *Container
 	err := grant.Launch(ctx, func(name string) error {
 		var err error
-		ctr, err = CreateContainer(ctx, c.runner, c.conf, name, outputDir)
+		ctr, err = CreateContainer(ctx, c.runner, c.conf, name, mounts)
 		if err != nil {
 			return err
 		}

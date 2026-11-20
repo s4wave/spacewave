@@ -20,6 +20,7 @@ import (
 	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
 	unixfs_tar "github.com/s4wave/spacewave/db/unixfs/tar"
 	v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
+	forge_lib_util_inputfs "github.com/s4wave/spacewave/forge/lib/util/inputfs"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/sirupsen/logrus"
@@ -199,7 +200,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		// Mount the rootfs input when no rootfs tar was supplied.
 		if rootfsTarPath == "" {
 			if _, ok := c.inputVals["rootfs"]; ok {
-				rootfsHandle, err := c.resolveInputMount(ctx, cs, "rootfs")
+				rootfsHandle, err := forge_lib_util_inputfs.Open(ctx, cs, c.inputVals, "rootfs")
 				if err != nil {
 					return errors.Wrap(err, "resolve rootfs input")
 				}
@@ -220,7 +221,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		// Mount each configured UnixFS input at its guest path.
 		for guestPath, inputName := range c.conf.GetMounts() {
-			inputHandle, err := c.resolveInputMount(ctx, cs, inputName)
+			inputHandle, err := forge_lib_util_inputfs.Open(ctx, cs, c.inputVals, inputName)
 			if err != nil {
 				return errors.Wrapf(err, "resolve input mount %s", inputName)
 			}
@@ -296,59 +297,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		return nil
 	})
-}
-
-// resolveInputMount resolves a forge input to a read-only FSHandle.
-// Clones the cursor, points it at the input's root ref, and creates a
-// read-only FS (no FSWriter).
-func (c *Controller) resolveInputMount(
-	ctx context.Context,
-	cs *bucket_lookup.Cursor,
-	inputName string,
-) (*unixfs.FSHandle, error) {
-	// Look up the input value.
-	iv, ok := c.inputVals[inputName]
-	if !ok {
-		return nil, errors.Errorf("input %q not found in input values", inputName)
-	}
-	val, err := forge_target.InputValueToValue(iv)
-	if err != nil {
-		return nil, errors.Wrap(err, "resolve input value")
-	}
-	if val == nil || val.IsEmpty() {
-		return nil, errors.Errorf("input %q is empty", inputName)
-	}
-
-	// Get the BucketRef from the value.
-	bref, err := val.ToBucketRef()
-	if err != nil {
-		return nil, errors.Wrap(err, "get bucket ref")
-	}
-	rootRef := bref.GetRootRef()
-	if rootRef.GetEmpty() {
-		return nil, errors.Errorf("input %q has empty root ref", inputName)
-	}
-
-	// Clone the cursor and point at the input's root.
-	inputCs := cs.Clone()
-	inputCs.SetRootRef(rootRef)
-
-	// Create read-only FS (nil writer).
-	fs := unixfs_block_fs.NewFS(
-		ctx,
-		unixfs_block.NodeType_NodeType_DIRECTORY,
-		inputCs,
-		nil,
-	)
-
-	// Wrap the read-only input filesystem in a mount handle.
-	handle, err := unixfs.NewFSHandle(fs)
-	if err != nil {
-		fs.Release()
-		return nil, errors.Wrap(err, "create fshandle")
-	}
-
-	return handle, nil
 }
 
 // initOutputMount creates a writable FSHandle backed by a block transaction.

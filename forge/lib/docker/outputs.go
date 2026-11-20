@@ -12,29 +12,6 @@ import (
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
-// createOutputDir creates the host directory bind-mounted at output_dir.
-// The directory is writable by any container user; its private parent keeps
-// other host users out. The caller removes root after reading outputs.
-func createOutputDir() (root, dir string, err error) {
-	// Create the private parent before the shared output directory.
-	root, err = os.MkdirTemp("", "forge-docker-outputs-")
-	if err != nil {
-		return "", "", err
-	}
-
-	// Create the output directory and widen it past the process umask.
-	dir = filepath.Join(root, "out")
-	if err := os.Mkdir(dir, 0o777); err != nil {
-		_ = os.RemoveAll(root)
-		return "", "", err
-	}
-	if err := os.Chmod(dir, 0o777); err != nil {
-		_ = os.RemoveAll(root)
-		return "", "", err
-	}
-	return root, dir, nil
-}
-
 // storeOutputs stores each declared output file in dir as a blob and sets it
 // as the output of that name. An absent file leaves its output unset; a file
 // that is not regular or exceeds block.MaxBlockSize fails the execution.

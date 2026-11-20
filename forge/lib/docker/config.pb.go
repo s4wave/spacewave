@@ -59,6 +59,10 @@ type Config struct {
 	// Devices maps explicit host devices using Docker's host:container:permissions
 	// syntax, such as /dev/kvm:/dev/kvm:rw. Empty grants no additional devices.
 	Devices []string `protobuf:"bytes,15,rep,name=devices,proto3" json:"devices,omitempty"`
+	// InputMounts maps an input name to the container path where it is mounted
+	// read-only. Each input, a UnixFS directory, is checked out to a private
+	// host directory before the container is created and removed after it exits.
+	InputMounts map[string]string `protobuf:"bytes,16,rep,name=input_mounts,json=inputMounts,proto3" json:"inputMounts,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *Config) Reset() {
@@ -172,6 +176,13 @@ func (x *Config) GetDevices() []string {
 	return nil
 }
 
+func (x *Config) GetInputMounts() map[string]string {
+	if x != nil {
+		return x.InputMounts
+	}
+	return nil
+}
+
 // Mount configures one docker bind mount.
 type Mount struct {
 	unknownFields []byte
@@ -262,6 +273,32 @@ func (x *Config_EnvEntry) GetValue() string {
 	return ""
 }
 
+type Config_InputMountsEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *Config_InputMountsEntry) Reset() {
+	*x = Config_InputMountsEntry{}
+}
+
+func (*Config_InputMountsEntry) ProtoMessage() {}
+
+func (x *Config_InputMountsEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *Config_InputMountsEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -282,6 +319,7 @@ func (m *Config) CloneVT() *Config {
 	r.Outputs = protobuf_go_lite.CloneSlice(m.Outputs)
 	r.Entrypoint = protobuf_go_lite.CloneSlice(m.Entrypoint)
 	r.Devices = protobuf_go_lite.CloneSlice(m.Devices)
+	r.InputMounts = protobuf_go_lite.CloneMap(m.InputMounts)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -359,6 +397,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.Devices, that.Devices) {
+		return false
+	}
+	if !protobuf_go_lite.EqualMap(this.InputMounts, that.InputMounts) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -498,6 +539,56 @@ func (x *Config_EnvEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the Config_InputMountsEntry message to JSON.
+func (x *Config_InputMountsEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Config_InputMountsEntry to JSON.
+func (x *Config_InputMountsEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Config_InputMountsEntry message from JSON.
+func (x *Config_InputMountsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Config_InputMountsEntry from JSON.
+func (x *Config_InputMountsEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the Config message to JSON.
 func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -602,6 +693,19 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("devices")
 		s.WriteStringArray(x.Devices)
+	}
+	if x.InputMounts != nil || s.HasField("inputMounts") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("inputMounts")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for _, k := range slices.Sorted(maps.Keys(x.InputMounts)) {
+			v := x.InputMounts[k]
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteString(v)
+		}
+		s.WriteObjectEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -710,6 +814,16 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.Devices = s.ReadStringArray()
+		case "input_mounts", "inputMounts":
+			s.AddField("input_mounts")
+			if s.ReadNil() {
+				x.InputMounts = nil
+				return
+			}
+			x.InputMounts = make(map[string]string)
+			s.ReadStringMap(func(key string) {
+				x.InputMounts[key] = s.ReadString()
+			})
 		}
 	})
 }
@@ -805,6 +919,23 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.InputMounts) > 0 {
+		for k := range m.InputMounts {
+			v := m.InputMounts[k]
+			baseI := i
+			i = protobuf_go_lite.EncodeString(dAtA, i, v)
+			i--
+			dAtA[i] = 0x12
+			i = protobuf_go_lite.EncodeString(dAtA, i, k)
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x82
+		}
 	}
 	if len(m.Devices) > 0 {
 		for iNdEx := len(m.Devices) - 1; iNdEx >= 0; iNdEx-- {
@@ -1000,6 +1131,12 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(1, m.Entrypoint)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NetworkMode)
 	n += protobuf_go_lite.SizeStringSlice(1, m.Devices)
+	for k, v := range m.InputMounts {
+		_ = k
+		_ = v
+		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
+		n += protobuf_go_lite.SizeMessage(2, mapEntrySize)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1050,6 +1187,24 @@ func (x *Config_EnvEntry) MarshalProtoText() string {
 }
 
 func (x *Config_EnvEntry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *Config_InputMountsEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "InputMountsEntry")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Value != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteString(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Config_InputMountsEntry) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1153,6 +1308,17 @@ func (x *Config) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.InputMounts) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "input_mounts")
+		for _, k := range slices.Sorted(maps.Keys(x.InputMounts)) {
+			v := x.InputMounts[k]
+			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
+			protobuf_go_lite.TextWriteString(&sb, k)
+			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteMapEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1417,6 +1583,48 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Devices = append(m.Devices, v)
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InputMounts", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			iNdEx = msgStart
+			if m.InputMounts == nil {
+				m.InputMounts = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					mapkey, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else if fieldNum == 2 {
+					mapvalue, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else {
+					iNdEx = entryPreIndex
+					iNdEx, err = protobuf_go_lite.SkipWithin(dAtA, iNdEx, postIndex)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			m.InputMounts[mapkey] = mapvalue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

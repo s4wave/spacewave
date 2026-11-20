@@ -279,6 +279,32 @@
         }
       }
     },
+    "626562e6cb75f51ab88c6608f37c313a49909f0ab84ad1900088306162c34437": {
+      "protocFlagsHash": "288cd7ea466ca646a28b138e8bb617dc10d77541e4c489e3ff858dbbd8ccbfa0",
+      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+      "packages": {
+        "github.com/s4wave/spacewave/forge/lib/docker": {
+          "hash": "3831baabde3b00c5487f30a7a22ef715cb7f830269eef629e6c3392ccaef0905",
+          "generatedFiles": [
+            "forge/lib/docker/config.pb.go",
+            "forge/lib/docker/config.pb.ts"
+          ],
+          "protoFiles": [
+            "forge/lib/docker/config.proto"
+          ]
+        },
+        "github.com/s4wave/spacewave/forge/lib/skiffos": {
+          "hash": "21dee7fbd6b5f7a9fe26a8aa64bf1f19fb9fcf7cda8625e70016046cc8e91cf2",
+          "generatedFiles": [
+            "forge/lib/skiffos/config.pb.go",
+            "forge/lib/skiffos/config.pb.ts"
+          ],
+          "protoFiles": [
+            "forge/lib/skiffos/config.proto"
+          ]
+        }
+      }
+    },
     "6bd23979cea2e40897e2a211924519ddfd8105c316d5e1183fc66409cfff45da": {
       "protocFlagsHash": "641054ce8cacc6009c9e5e7b7a0f04a99a13b3f78d4959e5ee499fe353b65951",
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6,uv.lock=e4c4bd2b1b09f2f90e1d7b987a9b18c5bf9158758fbd55f3b5d3d46656bd88be",

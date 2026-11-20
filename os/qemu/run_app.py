@@ -65,6 +65,9 @@ class Guest:
     def run(self) -> int:
         """Start the declared VM, then let its console and process report completion."""
         arguments = self.arguments
+        append = "console=ttyS0,115200 rdinit=/init panic=-1 quiet GOMAXPROCS=1 SPACEWAVE_OS_MODE=console SPACEWAVE_OS_STORE=/store/image SPACEWAVE_OS_DATA=/store/data SPACEWAVE_OS_TTY=/dev/ttyS0"
+        if arguments.config_disk is not None:
+            append += " SPACEWAVE_OS_CONFIG=/config-store/data"
         command = [
             "qemu-system-x86_64",
             "-accel",
@@ -80,15 +83,25 @@ class Guest:
             "-initrd",
             str(arguments.initramfs),
             "-append",
-            "console=ttyS0,115200 rdinit=/init panic=-1 quiet GOMAXPROCS=1 SPACEWAVE_OS_MODE=console SPACEWAVE_OS_STORE=/store/image SPACEWAVE_OS_DATA=/store/data SPACEWAVE_OS_CONFIG=/config-store/data SPACEWAVE_OS_TTY=/dev/ttyS0",
+            append,
             "-drive",
             f"file={arguments.disk},if=virtio,format=raw,cache=none",
-            "-drive",
-            f"file={arguments.config_disk},if=virtio,format=raw,cache=none",
-            "-netdev",
-            f"user,id=net,hostfwd=tcp:127.0.0.1:{arguments.port}-:3000",
-            "-device",
-            "virtio-net-pci,netdev=net",
+        ]
+        if arguments.config_disk is not None:
+            command += [
+                "-drive",
+                f"file={arguments.config_disk},if=virtio,format=raw,cache=none",
+            ]
+        if arguments.port is not None:
+            command += [
+                "-netdev",
+                f"user,id=net,hostfwd=tcp:127.0.0.1:{arguments.port}-:3000",
+                "-device",
+                "virtio-net-pci,netdev=net",
+            ]
+        else:
+            command += ["-nic", "none"]
+        command += [
             "-display",
             "none",
             "-monitor",
@@ -130,10 +143,11 @@ class Guest:
 def main() -> int:
     """Consume existing explicit bindings; fixture creation belongs to the caller."""
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ["kernel", "initramfs", "disk", "config-disk", "startup"]:
+    for name in ["kernel", "initramfs", "disk", "startup"]:
         parser.add_argument("--" + name, required=True, type=Path)
+    parser.add_argument("--config-disk", type=Path, help="second store, at /config-store")
     parser.add_argument("--receipt", type=Path)
-    parser.add_argument("--port", required=True, type=int)
+    parser.add_argument("--port", type=int, help="host port forwarded to guest port 3000")
     parser.add_argument("--accel", choices=["kvm", "tcg"], default="kvm")
     return Guest(parser.parse_args()).run()
 

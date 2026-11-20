@@ -45,6 +45,10 @@ message Config {
   // Devices maps explicit host devices using Docker's host:container:permissions
   // syntax, such as /dev/kvm:/dev/kvm:rw. Empty grants no additional devices.
   repeated string devices = 15;
+  // InputMounts maps an input name to the container path where it is mounted
+  // read-only. Each input, a UnixFS directory, is checked out to a private
+  // host directory before the container is created and removed after it exits.
+  map<string, string> input_mounts = 16;
 }
 
 // Mount configures one docker bind mount.
