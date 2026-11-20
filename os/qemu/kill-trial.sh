@@ -13,7 +13,7 @@ note() { echo "$(date -u +%FT%T.%NZ) $*" | tee -a "$H"; }
 waitfor() { # file pattern seconds
 	local i
 	for ((i = 0; i < $3 * 20; i++)); do
-		if tr -d '\r' < "$1" 2>/dev/null | grep -q -E -- "$2"; then return 0; fi
+		if [ -e "$1" ] && tr -d '\r' < "$1" | grep -q -E -- "$2"; then return 0; fi
 		sleep 0.05
 	done
 	note "TIMEOUT waiting for /$2/ in $1"; return 1
@@ -113,5 +113,5 @@ note "all-records check ok: $(tr -d '\r' < "$LOG" | grep PARTIAL_BYTES | tail -2
 send "sync; exit"
 waitfor "$LOG" 'reboot: Power down' 120
 note "clean poweroff: $(tr -d '\r' < "$LOG" | grep -E 'SPACEWAVE_OS_(PASS|STORAGE_CLOSED)' | tr '\n' ' ')"
-tr -d '\r' < boot1-crash1.log boot2-check1-crash2.log boot3-check-all.log 2>/dev/null | grep -E 'SPACEWAVE_OS_REOPEN' | sort | uniq -c | tee -a "$H"
+cat boot1-crash1.log boot2-check1-crash2.log boot3-check-all.log | tr -d '\r' | grep -E 'SPACEWAVE_OS_REOPEN' | sort | uniq -c | tee -a "$H"
 note "KILL_TRIAL_PASS"
