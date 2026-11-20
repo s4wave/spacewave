@@ -25,6 +25,8 @@ import {
   HoldNodeTypePluginsResponse,
   ImportSpacePluginRequest,
   ImportSpacePluginResponse,
+  LinkFolderProgress,
+  LinkFolderRequest,
   MountSpaceContentsRequest,
   MountSpaceContentsResponse,
   OpenPluginFrontendResponse,
@@ -357,6 +359,20 @@ export const SpaceResourceServiceDefinition = {
       O: ApproveSpaceChangeResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * LinkFolder links a folder on this device to a UnixFS directory of the
+     * Space: each file's Blob names chunks whose bytes stay in the file, and
+     * this device serves them from the file. It streams progress after each
+     * batch of files publishes.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.LinkFolder
+     */
+    LinkFolder: {
+      name: 'LinkFolder',
+      I: LinkFolderRequest,
+      O: LinkFolderProgress,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -620,6 +636,19 @@ export interface SpaceResourceService {
     request: ApproveSpaceChangeRequest,
     abortSignal?: AbortSignal,
   ): Promise<ApproveSpaceChangeResponse>
+
+  /**
+   * LinkFolder links a folder on this device to a UnixFS directory of the
+   * Space: each file's Blob names chunks whose bytes stay in the file, and
+   * this device serves them from the file. It streams progress after each
+   * batch of files publishes.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.LinkFolder
+   */
+  LinkFolder(
+    request: LinkFolderRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<LinkFolderProgress>
 }
 
 /**
@@ -907,6 +936,20 @@ export interface SpaceResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<ApproveSpaceChangeResponse>
+
+  /**
+   * LinkFolder links a folder on this device to a UnixFS directory of the
+   * Space: each file's Blob names chunks whose bytes stay in the file, and
+   * this device serves them from the file. It streams progress after each
+   * batch of files publishes.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.LinkFolder
+   */
+  LinkFolder(
+    request: LinkFolderRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<LinkFolderProgress>
 }
 
 export const SpaceResourceServiceServiceName =
@@ -943,6 +986,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.WatchSpaceBackfill = this.WatchSpaceBackfill.bind(this)
     this.SetSpaceRoster = this.SetSpaceRoster.bind(this)
     this.ApproveSpaceChange = this.ApproveSpaceChange.bind(this)
+    this.LinkFolder = this.LinkFolder.bind(this)
   }
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
@@ -1423,6 +1467,28 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return ApproveSpaceChangeResponse.fromBinary(result)
+  }
+
+  /**
+   * LinkFolder links a folder on this device to a UnixFS directory of the
+   * Space: each file's Blob names chunks whose bytes stay in the file, and
+   * this device serves them from the file. It streams progress after each
+   * batch of files publishes.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.LinkFolder
+   */
+  LinkFolder(
+    request: LinkFolderRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<LinkFolderProgress> {
+    const requestMsg = LinkFolderRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SpaceResourceServiceDefinition.methods.LinkFolder.name,
+      LinkFolderRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(LinkFolderProgress)(result)
   }
 }
 /**

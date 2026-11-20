@@ -100,6 +100,12 @@ service SpaceResourceService {
   // ApproveSpaceChange agrees, as a voter, to a change another voter asked the
   // group for.
   rpc ApproveSpaceChange(ApproveSpaceChangeRequest) returns (ApproveSpaceChangeResponse) {}
+
+  // LinkFolder links a folder on this device to a UnixFS directory of the
+  // Space: each file's Blob names chunks whose bytes stay in the file, and
+  // this device serves them from the file. It streams progress after each
+  // batch of files publishes.
+  rpc LinkFolder(LinkFolderRequest) returns (stream LinkFolderProgress) {}
 }
 
 // BuildSpacePluginRequest selects a Space source tree and authorized build device.
@@ -632,6 +638,29 @@ message SetSpaceRosterResponse {
   // AwaitingGroup is true when the viewer agreed to the change under group
   // control, and it applies once the group decides it.
   bool awaiting_group = 2;
+}
+
+// LinkFolderRequest selects a folder on this device and the UnixFS directory
+// it links to.
+message LinkFolderRequest {
+  // ObjectKey is the key of the UnixFS object.
+  string object_key = 1;
+  // Path is the existing directory below the UnixFS root that receives the
+  // folder's entries, empty for the root.
+  string path = 2;
+  // Folder is the absolute path of the folder on this device.
+  string folder = 3;
+}
+
+// LinkFolderProgress counts the files a LinkFolder call has published.
+message LinkFolderProgress {
+  // Files is the number of files linked.
+  uint64 files = 1;
+  // Bytes is the number of file bytes indexed.
+  uint64 bytes = 2;
+  // Done is set on the last message, once the World holding every file is
+  // durable.
+  bool done = 3;
 }
 
 // SetSpaceBackfillRequest chooses this device's backfill of the World.

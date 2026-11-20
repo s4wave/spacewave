@@ -1486,6 +1486,69 @@ export const SetSpaceRosterResponse: MessageType<SetSpaceRosterResponse> =
   )
 
 /**
+ * LinkFolderRequest selects a folder on this device and the UnixFS directory
+ * it links to.
+ *
+ * @generated from message s4wave.space.LinkFolderRequest
+ */
+export interface LinkFolderRequest {
+  /**
+   * ObjectKey is the key of the UnixFS object.
+   */
+  objectKey?: string
+  /**
+   * Path is the existing directory below the UnixFS root that receives the
+   * folder's entries, empty for the root.
+   */
+  path?: string
+  /**
+   * Folder is the absolute path of the folder on this device.
+   */
+  folder?: string
+}
+
+export const LinkFolderRequest: MessageType<LinkFolderRequest> =
+  /* @__PURE__ */ createMessageType<LinkFolderRequest>(
+    's4wave.space.LinkFolderRequest',
+    () => [
+      [1, 'object_key', 9],
+      [2, 'path', 9],
+      [3, 'folder', 9],
+    ],
+  )
+
+/**
+ * LinkFolderProgress counts the files a LinkFolder call has published.
+ *
+ * @generated from message s4wave.space.LinkFolderProgress
+ */
+export interface LinkFolderProgress {
+  /**
+   * Files is the number of files linked.
+   */
+  files?: bigint
+  /**
+   * Bytes is the number of file bytes indexed.
+   */
+  bytes?: bigint
+  /**
+   * Done is set on the last message, once the World holding every file is
+   * durable.
+   */
+  done?: boolean
+}
+
+export const LinkFolderProgress: MessageType<LinkFolderProgress> =
+  /* @__PURE__ */ createMessageType<LinkFolderProgress>(
+    's4wave.space.LinkFolderProgress',
+    () => [
+      [1, 'files', 4],
+      [2, 'bytes', 4],
+      [3, 'done', 8],
+    ],
+  )
+
+/**
  * SetSpaceBackfillRequest chooses this device's backfill of the World.
  *
  * @generated from message s4wave.space.SetSpaceBackfillRequest
