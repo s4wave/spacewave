@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +15,9 @@ import (
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -23,6 +26,9 @@ import (
 // the unchanged folder links no file and touches no index entry, and a file
 // edited in place is the only one linked again, replacing its Drive node
 // without reading the old contents, which the World's store cannot serve.
+// Files and directories removed from the folder leave the Drive, an entry
+// that changed between file and directory changes type, and a targeted sync
+// of the directories a watcher names finds the changes in them.
 func TestFolderLinkSync(t *testing.T) {
 	// Start the World and the Drive.
 	ctx := context.Background()
@@ -117,5 +123,109 @@ func TestFolderLinkSync(t *testing.T) {
 	// The Drive now matches the folder again.
 	if linked, txns := sync(); linked != 0 || txns != 0 {
 		t.Fatalf("sync after relinking linked %d files with %d index transactions, want none", linked, txns)
+	}
+
+	// kind returns the type of the Drive entry at the folder-relative path,
+	// read from a fresh World snapshot: the test's handle follows the World
+	// asynchronously.
+	kind := func(rel string) string {
+		t.Helper()
+		rtx, err := wtb.Engine.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer rtx.Discard()
+		fsType, _, err := unixfs_world.LookupFsType(ctx, rtx, objKey)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		obj, _, err := rtx.GetObject(ctx, objKey)
+		defer world.ReleaseObjectState(obj)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		out := "dir"
+		_, _, err = unixfs_world.AccessUnixfsObject(ctx, obj, false, fsType, func(root *unixfs_block.FSTree) error {
+			node := root
+			for _, name := range append([]string{"linked", "folder"}, strings.Split(rel, "/")...) {
+				child, dirent, err := node.LookupFollowDirent(name)
+				if err != nil {
+					return err
+				}
+				switch {
+				case dirent == nil:
+					out = "none"
+					return nil
+				case !dirent.GetIsDirectory():
+					out = "file"
+				}
+				node = child
+			}
+			return nil
+		}, nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		return out
+	}
+	expect := func(want map[string]string) {
+		t.Helper()
+		for rel, k := range want {
+			if got := kind(rel); got != k {
+				t.Fatalf("%s is %s in the Drive, want %s", rel, got, k)
+			}
+		}
+	}
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Remove a file and a directory, turn a directory into a file and a file
+	// into a directory: the sync links only the two new files.
+	must(os.Remove(filepath.Join(folder, "d1", "sub", "f1")))
+	must(os.RemoveAll(filepath.Join(folder, "d2")))
+	must(os.RemoveAll(filepath.Join(folder, "d3", "sub")))
+	must(os.WriteFile(filepath.Join(folder, "d3", "sub"), []byte("now a file"), 0o644))
+	must(os.Remove(bigPath))
+	must(os.MkdirAll(filepath.Join(bigPath, "inner"), 0o755))
+	must(os.WriteFile(filepath.Join(bigPath, "inner", "x"), []byte("inside"), 0o644))
+	if linked, _ := sync(); linked != 2 {
+		t.Fatalf("sync after the removals linked %d files, want 2", linked)
+	}
+	expect(map[string]string{
+		"d1/sub/f1":       "none",
+		"d1/sub/f11":      "file",
+		"d2":              "none",
+		"d3/sub":          "file",
+		"big.bin":         "dir",
+		"big.bin/inner/x": "file",
+	})
+
+	// A targeted sync finds a new file, a new nested directory synced from
+	// its nearest ancestor the Drive holds, and a removed file.
+	must(os.WriteFile(filepath.Join(folder, "d4", "new.txt"), []byte("new"), 0o644))
+	must(os.MkdirAll(filepath.Join(folder, "d5", "sub", "deep"), 0o755))
+	must(os.WriteFile(filepath.Join(folder, "d5", "sub", "deep", "n.txt"), []byte("deep"), 0o644))
+	must(os.Remove(filepath.Join(folder, "d6", "sub", "f6")))
+	link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"})
+	must(err)
+	var linked uint64
+	must(link.SyncDirs(ctx, []string{"d4", "d5/sub/deep", "d6/sub"}, func(files, _ uint64) error {
+		linked = files
+		return nil
+	}))
+	if linked != 2 {
+		t.Fatalf("targeted sync linked %d files, want 2", linked)
+	}
+	expect(map[string]string{
+		"d4/new.txt":        "file",
+		"d5/sub/deep/n.txt": "file",
+		"d6/sub/f6":         "none",
+	})
+	if linked, txns := sync(); linked != 0 || txns != 0 {
+		t.Fatalf("full sync after the targeted sync linked %d files with %d index transactions, want none", linked, txns)
 	}
 }

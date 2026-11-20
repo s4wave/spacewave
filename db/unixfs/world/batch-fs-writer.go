@@ -52,6 +52,9 @@ type pendingEntry struct {
 	// replace replaces an existing file's node instead of overwriting its
 	// changed ranges, which reads the old contents (FILE entries only).
 	replace bool
+	// remove removes the entry, and with a directory its subtree, instead of
+	// adding one; the other fields are unset.
+	remove bool
 }
 
 // pendingDir holds accumulated entries keyed by their parent path.
@@ -457,6 +460,25 @@ func (b *BatchFSWriter) AddDir(
 	return nil
 }
 
+// Remove records the removal of the entry name under parentPath, with its
+// subtree when it is a directory. Removing an absent entry does nothing. A
+// later entry of the same name in the batch adds it again, so Remove then
+// AddDir replaces a file with a directory.
+func (b *BatchFSWriter) Remove(parentPath []string, name string) error {
+	// Validate the entry before accepting it into BatchFSWriter.
+	if err := b.checkOpen(); err != nil {
+		return err
+	}
+	if name == "" {
+		return unixfs_errors.ErrEmptyPath
+	}
+
+	// Queue the removal under its parent directory.
+	pd := b.pendingDirFor(parentPath)
+	pd.entries = append(pd.entries, pendingEntry{name: name, remove: true})
+	return nil
+}
+
 // AddSymlink records a symlink entry pointing at target under parentPath.
 func (b *BatchFSWriter) AddSymlink(
 	ctx context.Context,
@@ -666,6 +688,19 @@ func (b *BatchFSWriter) mergePendingDir(
 
 	for i := range pd.entries {
 		e := &pd.entries[i]
+		if e.remove {
+			// Remove the entry and forget the directories resolved under it.
+			// Pass nil ts so the parent keeps its ModTime, as a replaced file
+			// does.
+			childPath := make([]string, 0, len(pd.parentPath)+1)
+			childPath = append(childPath, pd.parentPath...)
+			childPath = append(childPath, e.name)
+			deleteResolvedDirSubtree(resolvedDirs, childPath)
+			if _, err := dir.Remove([]string{e.name}, nil); err != nil {
+				return err
+			}
+			continue
+		}
 		switch e.nodeType {
 		case unixfs_block.NodeType_NodeType_DIRECTORY:
 			// Mkdir is idempotent: an existing dir with the same name

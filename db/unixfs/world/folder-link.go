@@ -5,6 +5,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -18,14 +20,15 @@ import (
 
 // FolderLinkBatchFiles is the number of files one World transaction of a
 // FolderLink sync adds. Each costs the batch a pending entry and its Blob
-// block. The batch bounds how long the commit holds the World's writer: 512
-// small files commit in about 80 ms, where 4096 take about 230 ms.
+// block. The merge builds off the World writer and holds it under a
+// millisecond to publish; the batch bounds the build a commit repeats, under
+// the writer, after it lost the race to other writers too often.
 const FolderLinkBatchFiles = 512
 
 // FolderLink keeps a Drive equal to a folder on this Device: each regular
 // file's blocks stay in the file and are read from it, and only the file's
 // Blob and the directory tree go to the World. Symlinks and special files are
-// skipped.
+// left out, and a Drive entry the folder lacks is removed.
 type FolderLink struct {
 	// eng is the World engine holding the Drive.
 	eng world.Engine
@@ -48,56 +51,100 @@ func NewFolderLink(eng world.Engine, idx *block_store_filesegment.Index, objKey,
 	if objKey == "" {
 		return nil, world.ErrEmptyObjectKey
 	}
-	return &FolderLink{eng: eng, idx: idx, objKey: objKey, folder: folder, dest: dest}, nil
+	return &FolderLink{eng: eng, idx: idx, objKey: objKey, folder: filepath.Clean(folder), dest: dest}, nil
 }
 
-// Sync links each directory and regular file of the folder that the Drive
-// lacks, and each file whose size, modification time or permissions differ
-// from the Drive's entry. It reads only the files it links: an unchanged
-// folder costs one lstat and one Drive node read per entry, and commits
-// nothing. It commits every FolderLinkBatchFiles files and calls progress, if
-// set, after each commit with the files linked so far and their bytes.
+// Sync makes the Drive equal to the whole folder. It links each directory and
+// regular file the Drive lacks and each file whose size, modification time or
+// permissions differ from the Drive's entry, and removes each Drive entry the
+// folder lacks. It reads only the files it links: an unchanged folder costs
+// one lstat and one Drive node read per entry, and commits nothing. It
+// commits every FolderLinkBatchFiles files and calls progress, if set, after
+// each commit with the files linked so far and their bytes.
 //
-// The Drive is compared as of one read snapshot taken at the start, which the
-// sync's own commits only extend. A file records the stat the walk took
-// before LinkFile read it, so a file changed after that stat differs from its
-// entry at the next sync and is linked again.
+// Each directory is compared against a read snapshot of the Drive opened for
+// that comparison alone, so no snapshot outlives a directory listing and the
+// World keeps collecting while a long sync runs. A file records the stat the
+// walk took before LinkFile read it, so a file changed after that stat
+// differs from its entry at the next sync and is linked again.
 func (l *FolderLink) Sync(ctx context.Context, progress func(files, bytes uint64) error) error {
-	// Read the World as of one snapshot.
-	rtx, err := l.eng.NewTransaction(ctx, false)
+	// Declare the destination, then walk the whole folder.
+	s, err := l.begin(ctx, progress)
 	if err != nil {
 		return err
 	}
-	defer rtx.Discard()
-
-	// Find the Drive in the snapshot.
-	fsType, _, err := LookupFsType(ctx, rtx, l.objKey)
-	if err != nil {
-		return err
-	}
-	obj, found, err := rtx.GetObject(ctx, l.objKey)
-	defer world.ReleaseObjectState(obj)
-	if err != nil {
-		return err
-	}
-	if !found {
-		return world.ErrObjectNotFound
-	}
-
-	// Walk the folder against the Drive, then commit the last batch.
-	s := &folderSync{FolderLink: l, ctx: ctx, ws: world.NewEngineWorldState(l.eng, true), fsType: fsType, progress: progress}
 	defer s.release()
-	_, _, err = AccessUnixfsObject(ctx, obj, false, fsType, func(root *unixfs_block.FSTree) error {
-		dir, err := s.declareDest(root)
-		if err != nil {
+	if err := s.declareDest(); err != nil {
+		return err
+	}
+	if err := s.dir(l.folder, l.dest, true); err != nil {
+		return err
+	}
+
+	// Commit the last batch.
+	return s.commit()
+}
+
+// SyncDirs makes the Drive equal to the folder in the directories at dirs,
+// paths relative to the folder, as Sync does, without walking their existing
+// subdirectories: a watcher names each directory whose entries changed. A
+// subdirectory the Drive lacks is walked whole. A directory the Drive lacks
+// is synced from its nearest ancestor the Drive holds, and one the folder
+// lacks is left to its parent's sync.
+func (l *FolderLink) SyncDirs(ctx context.Context, dirs []string, progress func(files, bytes uint64) error) error {
+	// Start the sync and declare the destination.
+	s, err := l.begin(ctx, progress)
+	if err != nil {
+		return err
+	}
+	defer s.release()
+	if err := s.declareDest(); err != nil {
+		return err
+	}
+
+	// Sync parents before their children, so a walk of a new directory
+	// covers its descendants.
+	rels := make([][]string, 0, len(dirs))
+	for _, d := range dirs {
+		rels = append(rels, splitRel(d))
+	}
+	slices.SortFunc(rels, func(a, b []string) int { return slices.Compare(a, b) })
+	rels = slices.CompactFunc(rels, slices.Equal)
+	for _, rel := range rels {
+		if err := s.syncDir(rel); err != nil {
 			return err
 		}
-		return s.dir(l.folder, l.dest, dir)
-	}, nil)
-	if err != nil {
-		return err
 	}
+
+	// Commit the last batch.
 	return s.commit()
+}
+
+// splitRel splits a slash or separator path relative to the folder into its
+// components, dropping empty and "." components.
+func splitRel(rel string) []string {
+	var out []string
+	for part := range strings.SplitSeq(filepath.ToSlash(rel), "/") {
+		if part != "" && part != "." {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
+// begin looks up the Drive's filesystem type and starts a sync.
+func (l *FolderLink) begin(ctx context.Context, progress func(files, bytes uint64) error) (*folderSync, error) {
+	// Read the type from a snapshot held only for the lookup.
+	rtx, err := l.eng.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer rtx.Discard()
+	fsType, _, err := LookupFsType(ctx, rtx, l.objKey)
+	if err != nil {
+		return nil, err
+	}
+	return &folderSync{FolderLink: l, ctx: ctx, ws: world.NewEngineWorldState(l.eng, true), fsType: fsType, progress: progress}, nil
 }
 
 // folderSync is one FolderLink sync.
@@ -111,6 +158,9 @@ type folderSync struct {
 	fsType FSType
 	// progress receives the totals after each commit, if set.
 	progress func(files, bytes uint64) error
+	// walked holds the folder-relative paths, joined by "/", of the
+	// directories this sync walked whole.
+	walked map[string]struct{}
 
 	// batch is the open batch, or nil.
 	batch *BatchFSWriter
@@ -124,6 +174,19 @@ type folderSync struct {
 	bytes uint64
 }
 
+// entryAction is what a sync does with one entry of a folder directory.
+type entryAction struct {
+	// info is the entry's lstat.
+	info fs.FileInfo
+	// link links the entry, a regular file the Drive lacks or holds changed.
+	link bool
+	// declare declares the entry, a directory the Drive lacks as one, and
+	// walks it whole; replace removes the Drive's other entry first.
+	declare, replace bool
+	// walk walks the entry, a directory the Drive holds.
+	walk bool
+}
+
 // writer returns the open batch, opening one when none is.
 func (s *folderSync) writer() *BatchFSWriter {
 	if s.batch == nil {
@@ -132,41 +195,128 @@ func (s *folderSync) writer() *BatchFSWriter {
 	return s.batch
 }
 
-// declareDest declares each directory of the destination path the Drive
-// lacks, and returns the Drive's directory at dest, or nil when it was
-// declared.
-func (s *folderSync) declareDest(root *unixfs_block.FSTree) (*unixfs_block.FSTree, error) {
+// view calls cb with the Drive's root as of a read snapshot held only for cb.
+func (s *folderSync) view(cb func(root *unixfs_block.FSTree) error) error {
+	// Open the snapshot and find the Drive in it.
+	rtx, err := s.eng.NewTransaction(s.ctx, false)
+	if err != nil {
+		return err
+	}
+	defer rtx.Discard()
+	obj, found, err := rtx.GetObject(s.ctx, s.objKey)
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return world.ErrObjectNotFound
+	}
+
+	// Read its root.
+	_, _, err = AccessUnixfsObject(s.ctx, obj, false, s.fsType, cb, nil)
+	return err
+}
+
+// lookupDir returns the Drive's directory at path under root, or nil when the
+// Drive lacks a directory there.
+func lookupDir(root *unixfs_block.FSTree, path []string) (*unixfs_block.FSTree, error) {
 	dir := root
-	for i, name := range s.dest {
-		if dir != nil {
-			child, dirent, err := dir.LookupFollowDirent(name)
-			if err != nil {
-				return nil, err
-			}
-			if dirent.GetIsDirectory() {
-				dir = child
-				continue
-			}
-			dir = nil
-		}
-		if err := s.writer().AddDir(s.ctx, s.dest[:i], name, 0o755, time.Now()); err != nil {
+	for _, name := range path {
+		child, dirent, err := dir.LookupFollowDirent(name)
+		if err != nil || !dirent.GetIsDirectory() {
 			return nil, err
 		}
+		dir = child
 	}
 	return dir, nil
 }
 
-// dir links the entries of the folder directory at path, which the Drive
-// holds at parent as dir, or lacks when dir is nil.
-func (s *folderSync) dir(path string, parent []string, dir *unixfs_block.FSTree) error {
-	// List the directory in name order.
-	ents, err := os.ReadDir(path)
+// declareDest declares each directory of the destination path the Drive
+// lacks, replacing an entry of another type.
+func (s *folderSync) declareDest() error {
+	// Find the first component the Drive lacks as a directory.
+	missing, replace := len(s.dest), false
+	err := s.view(func(root *unixfs_block.FSTree) error {
+		dir := root
+		for i, name := range s.dest {
+			child, dirent, err := dir.LookupFollowDirent(name)
+			if err != nil {
+				return err
+			}
+			if !dirent.GetIsDirectory() {
+				missing, replace = i, dirent != nil
+				return nil
+			}
+			dir = child
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
+
+	// Declare it and the components below it.
+	for i := missing; i < len(s.dest); i++ {
+		if i == missing && replace {
+			if err := s.writer().Remove(s.dest[:i], s.dest[i]); err != nil {
+				return err
+			}
+		}
+		if err := s.writer().AddDir(s.ctx, s.dest[:i], s.dest[i], 0o755, time.Now()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// syncDir syncs the folder directory at the relative path rel without
+// walking its existing subdirectories, from the nearest ancestor the Drive
+// holds. A directory this sync already walked whole, or one under it, is
+// skipped.
+func (s *folderSync) syncDir(rel []string) error {
+	// Skip a directory a walk of an ancestor covered.
+	for i := len(rel); i >= 0; i-- {
+		if _, ok := s.walked[strings.Join(rel[:i], "/")]; ok {
+			return nil
+		}
+	}
+
+	// Find the nearest ancestor the Drive holds.
+	err := s.view(func(root *unixfs_block.FSTree) error {
+		for len(rel) != 0 {
+			dir, err := lookupDir(root, append(slices.Clone(s.dest), rel...))
+			if err != nil || dir != nil {
+				return err
+			}
+			rel = rel[:len(rel)-1]
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Sync it.
+	path := filepath.Join(append([]string{s.folder}, rel...)...)
+	return s.dir(path, append(slices.Clone(s.dest), rel...), false)
+}
+
+// dir syncs the entries of the folder directory at path into the Drive's
+// directory at parent, walking the subdirectories the Drive holds when all is
+// set. A subdirectory the Drive lacks is always walked whole. A directory
+// removed from the folder since its parent listed it is skipped.
+func (s *folderSync) dir(path string, parent []string, all bool) error {
+	// List the directory in name order and stat each entry; one removed
+	// since the listing is left out.
+	ents, err := os.ReadDir(path)
+	if errors.Is(err, fs.ErrNotExist) && path != s.folder {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	infos := make([]fs.FileInfo, 0, len(ents))
 	for _, d := range ents {
-		// Stat the entry; one removed since the listing is skipped.
-		name := d.Name()
 		info, err := d.Info()
 		if errors.Is(err, fs.ErrNotExist) {
 			continue
@@ -174,40 +324,134 @@ func (s *folderSync) dir(path string, parent []string, dir *unixfs_block.FSTree)
 		if err != nil {
 			return err
 		}
+		infos = append(infos, info)
+	}
 
-		// Find the Drive's entry of the same name.
-		var child *unixfs_block.FSTree
-		var dirent *unixfs_block.Dirent
-		if dir != nil {
-			child, dirent, err = dir.LookupFollowDirent(name)
-			if err != nil {
+	// Compare the entries with the Drive's as of a snapshot.
+	var acts []entryAction
+	var gone []string
+	err = s.view(func(root *unixfs_block.FSTree) error {
+		dir, err := lookupDir(root, parent)
+		if err != nil {
+			return err
+		}
+		acts, gone, err = planDir(dir, infos)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	// Remove the Drive entries the folder lacks.
+	for _, name := range gone {
+		if err := s.writer().Remove(parent, name); err != nil {
+			return err
+		}
+	}
+
+	// Link the changed files and declare and walk the directories.
+	if len(parent) >= len(s.dest) && (all || len(acts) != 0) {
+		s.markWalked(parent, all)
+	}
+	for _, a := range acts {
+		name := a.info.Name()
+		childPath := filepath.Join(path, name)
+		childParent := append(parent[:len(parent):len(parent)], name)
+		switch {
+		case a.link:
+			if err := s.link(childPath, parent, name, a.info); err != nil {
 				return err
 			}
-		}
-
-		// Declare a directory the Drive lacks, then walk it.
-		childPath := filepath.Join(path, name)
-		switch {
-		case d.IsDir():
-			if !dirent.GetIsDirectory() {
-				child = nil
-				if err := s.writer().AddDir(s.ctx, parent, name, info.Mode().Perm(), info.ModTime()); err != nil {
+		case a.declare:
+			if a.replace {
+				if err := s.writer().Remove(parent, name); err != nil {
 					return err
 				}
 			}
-			if err := s.dir(childPath, append(parent[:len(parent):len(parent)], name), child); err != nil {
+			if err := s.writer().AddDir(s.ctx, parent, name, a.info.Mode().Perm(), a.info.ModTime()); err != nil {
 				return err
 			}
-		case info.Mode().IsRegular():
-			if dirent.GetIsFile() && fileMatches(child.GetFSNode(), info) {
-				continue
+			s.markWalked(childParent, true)
+			if err := s.dir(childPath, childParent, true); err != nil {
+				return err
 			}
-			if err := s.link(childPath, parent, name, info); err != nil {
+		case a.walk && all:
+			if err := s.dir(childPath, childParent, true); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+// markWalked records the Drive directory at parent as walked whole when all
+// is set.
+func (s *folderSync) markWalked(parent []string, all bool) {
+	if !all {
+		return
+	}
+	if s.walked == nil {
+		s.walked = make(map[string]struct{})
+	}
+	s.walked[strings.Join(parent[len(s.dest):], "/")] = struct{}{}
+}
+
+// planDir compares the folder entries infos, sorted by name, with the Drive's
+// directory dir, nil when the Drive lacks it. It returns the action for each
+// directory and regular file, and the Drive entries the folder lacks as a
+// directory or regular file.
+func planDir(dir *unixfs_block.FSTree, infos []fs.FileInfo) ([]entryAction, []string, error) {
+	// Walk both name-ordered listings together.
+	var ents []*unixfs_block.Dirent
+	if dir != nil {
+		ents = dir.GetFSNode().GetDirectoryEntry()
+	}
+	var acts []entryAction
+	var gone []string
+	next := 0
+	for _, info := range infos {
+		// Drop the Drive entries before this one, then find its own.
+		name := info.Name()
+		for next < len(ents) && ents[next].GetName() < name {
+			gone = append(gone, ents[next].GetName())
+			next++
+		}
+		var dirent *unixfs_block.Dirent
+		didx := next
+		if next < len(ents) && ents[next].GetName() == name {
+			dirent = ents[next]
+			next++
+		}
+
+		// Decide what to do with the entry.
+		switch {
+		case info.IsDir():
+			if dirent.GetIsDirectory() {
+				acts = append(acts, entryAction{info: info, walk: true})
+				continue
+			}
+			acts = append(acts, entryAction{info: info, declare: true, replace: dirent != nil})
+		case info.Mode().IsRegular():
+			if dirent.GetIsFile() {
+				child, _, err := dir.FollowDirent(didx)
+				if err != nil {
+					return nil, nil, err
+				}
+				if fileMatches(child.GetFSNode(), info) {
+					continue
+				}
+			}
+			acts = append(acts, entryAction{info: info, link: true})
+		case dirent != nil:
+			gone = append(gone, name)
+		}
+	}
+
+	// Drop the Drive entries after the last one.
+	for _, d := range ents[next:] {
+		gone = append(gone, d.GetName())
+	}
+	return acts, gone, nil
 }
 
 // fileMatches reports whether the Drive's file node has the size,
