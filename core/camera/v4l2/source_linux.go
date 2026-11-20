@@ -23,14 +23,18 @@ import (
 type Source struct {
 	// fd identifies the open capture device.
 	fd int
-	// wake signals cancellation to the reader.
+	// wake signals cancellation or a keyframe request to the reader.
 	wake int
 	// buffers are the driver's mapped capture buffers, in index order.
 	buffers [][]byte
 	// streaming records whether the driver owns the queued buffers.
 	streaming bool
-	// header holds the immutable track format.
+	// header holds the negotiated codec and dimensions.
 	header *frametrack.GroupHeader
+	// avc converts captured H.264 pictures and tracks their dependencies.
+	avc avcStream
+	// forceKeyframe reports whether the device accepted the control query.
+	forceKeyframe bool
 
 	// readMtx keeps Close from unmapping buffers while a reader uses them.
 	readMtx sync.Mutex
@@ -38,9 +42,11 @@ type Source struct {
 	mtx sync.Mutex
 	// closed prevents new reads and wake writes after shutdown begins.
 	closed bool
+	// keyframeRequested coalesces requests until the capture loop acts on one.
+	keyframeRequested bool
 }
 
-// NewSource starts mmap capture from an MJPEG-capable device.
+// NewSource starts mmap capture, preferring H.264 over MJPEG.
 func NewSource(path string) (_ frametrack.Source, err error) {
 	// Open the camera and reserve a wake descriptor for cancellation.
 	fd, err := unix.Open(path, unix.O_RDWR|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
@@ -68,15 +74,16 @@ func NewSource(path string) (_ frametrack.Source, err error) {
 	if err = s.start(); err != nil {
 		return nil, errors.Wrap(err, path)
 	}
+	s.forceKeyframe = s.header.Codec == frametrack.Codec_CODEC_H264_AVC && canForceKeyframe(fd)
 	return s, nil
 }
 
-// CanRequestKeyframe reports false because every JPEG is a keyframe.
+// CanRequestKeyframe reports whether the device offers hardware keyframe control.
 func (s *Source) CanRequestKeyframe() bool {
-	return false
+	return s.forceKeyframe
 }
 
-// ReadFrame waits for a complete JPEG and returns bytes independent of the driver.
+// ReadFrame waits for a decodable picture and returns bytes independent of the driver.
 func (s *Source) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *frametrack.Frame, error) {
 	// Keep the mapping live until this read has finished.
 	s.readMtx.Lock()
@@ -92,7 +99,8 @@ func (s *Source) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *frame
 	for {
 		// Check shutdown and cancellation before waiting for the driver.
 		s.mtx.Lock()
-		closed := s.closed
+		closed, requested := s.closed, s.keyframeRequested
+		s.keyframeRequested = false
 		s.mtx.Unlock()
 		if closed {
 			return nil, nil, io.EOF
@@ -100,6 +108,13 @@ func (s *Source) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *frame
 		if err := ctx.Err(); err != nil {
 			return nil, nil, err
 		}
+		if requested {
+			// A driver that refuses the request still supplies its natural IDRs.
+			ctrl := setControl{id: forceKeyFrameControl}
+			_ = ioctl(s.fd, ioctlReadWrite, 28, &ctrl)
+		}
+
+		// Block on the device and the wake descriptor.
 		if _, err := unix.Poll(fds, -1); err != nil {
 			if err == unix.EINTR {
 				continue
@@ -120,18 +135,31 @@ func (s *Source) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *frame
 		}
 
 		// Take one completed buffer, then return it to the driver.
-		frame, err := s.dequeue()
+		header, frame, err := s.dequeue()
 		if err != nil {
 			return nil, nil, err
 		}
 		if frame != nil {
-			return s.header, frame, nil
+			return header, frame, nil
 		}
 	}
 }
 
-// RequestKeyframe leaves independently decodable JPEG capture unchanged.
-func (s *Source) RequestKeyframe() {}
+// RequestKeyframe wakes the capture loop to request an IDR when supported.
+func (s *Source) RequestKeyframe() {
+	// JPEG and cameras without the control use their own keyframe cadence.
+	if !s.forceKeyframe {
+		return
+	}
+
+	// Let the capture loop submit the ioctl without blocking a viewer.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if !s.closed && !s.keyframeRequested {
+		s.keyframeRequested = true
+		s.wakeReader()
+	}
+}
 
 // Close interrupts a pending read, stops capture, and releases the device.
 func (s *Source) Close() error {
@@ -199,37 +227,66 @@ func (s *Source) start() error {
 	return nil
 }
 
-// dequeue copies one valid JPEG before the driver may overwrite its mapping.
-func (s *Source) dequeue() (*frametrack.Frame, error) {
+// dequeue builds one frame before the driver may overwrite its mapping.
+func (s *Source) dequeue() (*frametrack.GroupHeader, *frametrack.Frame, error) {
 	// The driver can report readiness before a buffer is available.
 	buf := captureBuffer{typ: captureType, memory: mmapMemory}
 	err := ioctl(s.fd, ioctlReadWrite, 17, &buf)
 	if err == unix.EAGAIN {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "dequeue camera buffer")
+		return nil, nil, errors.Wrap(err, "dequeue camera buffer")
 	}
 
-	// Bound the payload by the mapped buffer and drop damaged frames.
-	var frame *frametrack.Frame
+	// Bound the payload by the mapped buffer before decoding its metadata.
 	if int64(buf.index) >= int64(len(s.buffers)) || int64(buf.used) > int64(len(s.buffers[buf.index])) {
-		return nil, errors.New("camera returned an invalid capture buffer")
+		return nil, nil, errors.New("camera returned an invalid capture buffer")
 	}
-	if buf.used > 0 && buf.flags&bufferError == 0 {
-		frame = &frametrack.Frame{
-			CapturedAt: timestamp.New(time.Now()),
-			Keyframe:   true,
-			Data:       bytes.Clone(s.buffers[buf.index][:buf.used]),
-		}
-	}
+	header, frame := s.makeFrame(buf, s.buffers[buf.index][:buf.used])
 
 	// Allow the next capture to use this buffer after the frame owns its bytes.
 	buf = captureBuffer{index: buf.index, typ: captureType, memory: mmapMemory}
 	if err := ioctl(s.fd, ioctlReadWrite, 15, &buf); err != nil {
-		return nil, errors.Wrap(err, "return camera buffer")
+		return nil, nil, errors.Wrap(err, "return camera buffer")
 	}
-	return frame, nil
+	return header, frame, nil
+}
+
+// makeFrame copies a complete JPEG or converts one H.264 access unit.
+func (s *Source) makeFrame(buf captureBuffer, data []byte) (*frametrack.GroupHeader, *frametrack.Frame) {
+	// JPEG pictures can recover independently following a damaged buffer.
+	damaged := len(data) == 0 || buf.flags&bufferError != 0
+	if s.header.Codec == frametrack.Codec_CODEC_JPEG {
+		if damaged {
+			return nil, nil
+		}
+		return s.header, &frametrack.Frame{
+			CapturedAt: timestamp.New(time.Now()),
+			Keyframe:   true,
+			Data:       bytes.Clone(data),
+		}
+	}
+
+	// The H.264 group begins only at an IDR with its complete configuration.
+	payload, description := s.avc.accessUnit(data, buf.sequence, damaged)
+	if len(payload) == 0 {
+		return nil, nil
+	}
+	var header *frametrack.GroupHeader
+	if description != nil {
+		header = &frametrack.GroupHeader{
+			Codec:              s.header.Codec,
+			Width:              s.header.Width,
+			Height:             s.header.Height,
+			DecoderDescription: description,
+		}
+	}
+	return header, &frametrack.Frame{
+		CapturedAt: timestamp.New(time.Now()),
+		Keyframe:   header != nil,
+		Data:       payload,
+	}
 }
 
 // signal wakes a pending read while the descriptor still belongs to the source.

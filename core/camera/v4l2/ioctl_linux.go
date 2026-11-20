@@ -26,6 +26,10 @@ const (
 	bufferError = 0x0040
 	// pixelMJPEG is the V4L2 fourcc for motion JPEG.
 	pixelMJPEG = 'M' | 'J'<<8 | 'P'<<16 | 'G'<<24
+	// pixelH264 is the V4L2 fourcc for an H.264 access unit with start codes.
+	pixelH264 = 'H' | '2'<<8 | '6'<<16 | '4'<<24
+	// forceKeyFrameControl is V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME.
+	forceKeyFrameControl = 0x00990900 + 229
 	// ioctlWrite marks a request with input bytes.
 	ioctlWrite = 1
 	// ioctlRead marks a request with output bytes.
@@ -82,7 +86,8 @@ type captureBuffer struct {
 	_     uint32
 	_     unix.Timeval
 	_     [16]byte
-	_     uint32
+	// sequence counts captured buffers, including those lost to the reader.
+	sequence uint32
 	// memory selects how userspace accesses the buffers.
 	memory uint32
 	_      [0]uintptr
@@ -92,6 +97,35 @@ type captureBuffer struct {
 	// length is the size of the mapping.
 	length uint32
 	_      [8]byte
+}
+
+// formatDescription mirrors struct v4l2_fmtdesc.
+type formatDescription struct {
+	// index selects a format in the capture queue.
+	index uint32
+	// typ selects the capture queue.
+	typ uint32
+	_   [36]byte
+	// format identifies a supported pixel format by its fourcc.
+	format uint32
+	_      [16]byte
+}
+
+// queryControl mirrors struct v4l2_queryctrl.
+type queryControl struct {
+	// id identifies the control to query.
+	id uint32
+	_  [52]byte
+	// flags describe whether the driver enables writes to this control.
+	flags uint32
+	_     [8]byte
+}
+
+// setControl mirrors struct v4l2_control for a button press.
+type setControl struct {
+	// id identifies the control to activate.
+	id uint32
+	_  int32
 }
 
 // ioctl sends a typed V4L2 argument through the Linux userspace ABI.
@@ -119,7 +153,7 @@ func ioctl[T any](fd int, direction, number uintptr, arg *T) error {
 	}
 }
 
-// selectFormat selects streaming MJPEG at the device's current size.
+// selectFormat selects the preferred compressed capture format at the device's current size.
 func selectFormat(fd int) (*frametrack.GroupHeader, error) {
 	// Check the opened node's capture capabilities.
 	var caps capabilities
@@ -134,25 +168,66 @@ func selectFormat(fd int) (*frametrack.GroupHeader, error) {
 		return nil, errors.New("camera does not support single-planar streaming capture")
 	}
 
-	// Preserve the current dimensions and verify the driver accepted MJPEG.
+	// Preserve the current dimensions and verify the driver accepted the format.
+	format, codec, err := selectCodec(fd)
+	if err != nil {
+		return nil, err
+	}
 	image := captureFormat{typ: captureType}
 	if err := ioctl(fd, ioctlReadWrite, 4, &image); err != nil {
 		return nil, errors.Wrap(err, "read camera format")
 	}
-	if image.format != pixelMJPEG {
-		image = captureFormat{typ: captureType, width: image.width, height: image.height, format: pixelMJPEG}
+	if image.format != format {
+		image = captureFormat{typ: captureType, width: image.width, height: image.height, format: format}
 		if err := ioctl(fd, ioctlReadWrite, 5, &image); err != nil {
 			return nil, errors.Wrap(err, "select camera format")
 		}
-		if image.format != pixelMJPEG {
-			return nil, errors.New("camera does not offer MJPEG")
+		if image.format != format {
+			return nil, errors.New("camera changed the requested compressed format")
 		}
 	}
 
 	// Publish the size the driver actually negotiated.
 	return &frametrack.GroupHeader{
-		Codec:  frametrack.Codec_CODEC_JPEG,
+		Codec:  codec,
 		Width:  image.width,
 		Height: image.height,
 	}, nil
+}
+
+// selectCodec prefers H.264 among the capture queue's advertised formats.
+func selectCodec(fd int) (uint32, frametrack.Codec, error) {
+	// V4L2 uses EINVAL to mark the end of the format list.
+	hasMJPEG := false
+	for index := uint32(0); ; index++ {
+		desc := formatDescription{index: index, typ: captureType}
+		err := ioctl(fd, ioctlReadWrite, 2, &desc)
+		if err == unix.EINVAL {
+			break
+		}
+		if err != nil {
+			return 0, 0, errors.Wrap(err, "enumerate camera formats")
+		}
+
+		// Remember MJPEG if the camera advertises it before H.264.
+		switch desc.format {
+		case pixelH264:
+			return pixelH264, frametrack.Codec_CODEC_H264_AVC, nil
+		case pixelMJPEG:
+			hasMJPEG = true
+		}
+	}
+
+	// A camera without native compression cannot provide a pass-through track.
+	if hasMJPEG {
+		return pixelMJPEG, frametrack.Codec_CODEC_JPEG, nil
+	}
+	return 0, 0, errors.New("camera offers neither H.264 nor MJPEG")
+}
+
+// canForceKeyframe reports whether the camera enables the keyframe button.
+func canForceKeyframe(fd int) bool {
+	ctrl := queryControl{id: forceKeyFrameControl}
+	const unavailable = 0x0001 | 0x0004 | 0x0010 // disabled, read-only, inactive
+	return ioctl(fd, ioctlReadWrite, 36, &ctrl) == nil && ctrl.flags&unavailable == 0
 }

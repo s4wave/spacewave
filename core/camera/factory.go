@@ -62,7 +62,8 @@ func (f *Factory) Construct(_ context.Context, conf config.Config, opts controll
 		if err != nil {
 			return err
 		}
-		return frametrack_server.Serve(ctx, le, f.b, ControlProtocolID, source, 1, nil)
+		// Leave room for H.264 deltas behind a keyframe in flight.
+		return frametrack_server.Serve(ctx, le, f.b, ControlProtocolID, source, 4, nil)
 	}, nil, nil), nil
 }
 
