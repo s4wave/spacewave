@@ -90,7 +90,7 @@ function sessionObject(): BrowserData {
     [
       'devices/thumper',
       'spacewave/device',
-      undefined,
+      { title: 'thumper', time: ago(9000) },
       ['<glados/runs-on>', 'out'],
     ],
     [
@@ -236,8 +236,8 @@ const fixtures: Record<string, Fixture> = {
   },
 }
 
-// nameType names the fixture types as the mock-up does. GLaDOS registers no
-// display names yet, so a live browser names its types from their IDs.
+// nameType names the fixture types as their registrations do. The fixture
+// has no type registry, so it carries the names GLaDOS registers here.
 const nameType = nameTypeWith(
   new Map<string, ObjectTypeMetadata>(
     Object.entries({

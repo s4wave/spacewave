@@ -41,12 +41,14 @@ import { SpaceObjectBrowser } from '../SpaceObjectBrowser.js'
 import {
   applyTypeCounts,
   browserHint,
+  boxEdge,
   browserReducer,
   graphSize,
   groupRelations,
   initialBrowserState,
   layoutRelationGraph,
   measureSummary,
+  nodeHeight,
   relationEndKeys,
   shownActions,
   stateSummary,
@@ -1007,30 +1009,6 @@ function RelationGraph({
       </p>
     </div>
   )
-}
-
-// nodeHeight is a box's height: the center is taller.
-function nodeHeight(node: GraphNode): number {
-  return node.kind === 'center' ? graphSize.centerHeight : graphSize.nodeHeight
-}
-
-// boxEdge is where the line from (x, y) toward the node's center meets the
-// node's border.
-function boxEdge(
-  node: GraphNode,
-  x: number,
-  y: number,
-): { x: number; y: number } {
-  const dx = x - node.x
-  const dy = y - node.y
-  const hw = node.width / 2
-  const hh = nodeHeight(node) / 2
-  const t = Math.min(
-    dx ? hw / Math.abs(dx) : Infinity,
-    dy ? hh / Math.abs(dy) : Infinity,
-    1,
-  )
-  return { x: node.x + dx * t, y: node.y + dy * t }
 }
 
 function GraphEdge({

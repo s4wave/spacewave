@@ -372,14 +372,14 @@ export const graphSize = {
 } as const
 
 // graphSlots bounds the nodes of each half: outgoing on the upper arc and the
-// sides, incoming on the lower arc. Past them, one node counts the rest.
+// sides, incoming on the lower row. Past them, one node counts the rest.
 const graphSlots = { out: 5, in: 3 } as const
 
 // nodeTitleChars bounds a node's title before it ends in an ellipsis.
 const nodeTitleChars = 22
 
 // layoutRelationGraph places the open object at the center, outgoing groups
-// on the upper arc from left to right and incoming groups on the lower arc.
+// on the upper arc from left to right and incoming groups on a row below it.
 // Each group is one node: an object, or a family with its count. Groups past
 // a half's slots fold into one node that opens the list.
 export function layoutRelationGraph(
@@ -406,35 +406,36 @@ export function layoutRelationGraph(
     const shown = half.length > slots ? half.slice(0, slots - 1) : half
     const rest = half.slice(shown.length)
     const n = shown.length + (rest.length ? 1 : 0)
-    const angles = direction === 'out' ? upperAngles(n) : lowerAngles(n)
-    const place = (i: number) => ({
-      x: Math.round(
-        cx + Math.cos(angles[i]) * (direction === 'out' ? 190 : 175),
-      ),
-      y: Math.round(
-        cy - Math.sin(angles[i]) * (direction === 'out' ? 175 : 170),
-      ),
-    })
+    const angles = upperAngles(n)
+    const place = (i: number) =>
+      direction === 'out'
+        ? {
+            x: Math.round(cx + Math.cos(angles[i]) * 190),
+            y: Math.round(cy - Math.sin(angles[i]) * 175),
+          }
+        : { x: cx + (i - (n - 1) / 2) * lowerStep, y: cy + 170 }
     shown.forEach((group, i) => {
       const { x, y } = place(i)
       const single = group.members.length === 1 ? group.members[0] : undefined
       const title = single
         ? single.title || getObjectDisplayName(single.objectKey)
         : group.members.length + ' ' + nameType(group.typeId, true)
-      nodes.push({
+      const node: GraphNode = {
         id: group.id,
         kind: single ? 'object' : 'family',
         x,
         y,
-        width: nodeWidth(title, 180),
+        width: nodeWidth(title, direction === 'out' ? 180 : lowerStep - 10),
         title: clip(title),
         subtitle: nameType(group.typeId, false),
         objectKey: single?.objectKey,
+      }
+      nodes.push({
+        ...node,
         edge: {
           label: group.label,
           direction,
-          x: Math.round((x + cx) / 2),
-          y: Math.round((y + cy) / 2),
+          ...edgeLabelAt(nodes[0], node, group.label),
         },
       })
     })
@@ -457,6 +458,46 @@ export function layoutRelationGraph(
   return nodes
 }
 
+// edgeLabelAt places an edge's label at the middle of the line between the
+// two boxes when the line is long enough to hold it, and otherwise just above
+// the related node, as on a side node that sits close beside the center.
+function edgeLabelAt(
+  center: GraphNode,
+  node: GraphNode,
+  label: string,
+): { x: number; y: number } {
+  const a = boxEdge(center, node.x, node.y)
+  const b = boxEdge(node, center.x, center.y)
+  if (Math.hypot(b.x - a.x, b.y - a.y) >= label.length * 6.5 + 16) {
+    return { x: Math.round((a.x + b.x) / 2), y: Math.round((a.y + b.y) / 2) }
+  }
+  return { x: node.x, y: node.y - nodeHeight(node) / 2 - 9 }
+}
+
+// nodeHeight is a node's box height.
+export function nodeHeight(node: GraphNode): number {
+  return node.kind === 'center' ? graphSize.centerHeight : graphSize.nodeHeight
+}
+
+// boxEdge is where the line from (x, y) toward the node's center meets the
+// node's border.
+export function boxEdge(
+  node: GraphNode,
+  x: number,
+  y: number,
+): { x: number; y: number } {
+  const dx = x - node.x
+  const dy = y - node.y
+  const hw = node.width / 2
+  const hh = nodeHeight(node) / 2
+  const t = Math.min(
+    dx ? hw / Math.abs(dx) : Infinity,
+    dy ? hh / Math.abs(dy) : Infinity,
+    1,
+  )
+  return { x: node.x + dx * t, y: node.y + dy * t }
+}
+
 // upperAngles spreads n nodes over the upper half from left to right, the
 // first and last on the sides.
 function upperAngles(n: number): number[] {
@@ -464,14 +505,9 @@ function upperAngles(n: number): number[] {
   return Array.from({ length: n }, (_, i) => Math.PI - (i * Math.PI) / (n - 1))
 }
 
-// lowerAngles spreads n nodes over the lower half from left to right, clear
-// of the sides the outgoing nodes take.
-function lowerAngles(n: number): number[] {
-  return Array.from(
-    { length: n },
-    (_, i) => Math.PI + ((i + 1) * Math.PI) / (n + 1),
-  )
-}
+// lowerStep spaces the incoming row; its nodes are at most lowerStep - 10
+// wide, so neighbours keep a gap and three fit the drawing.
+const lowerStep = 180
 
 // nodeWidth fits a node to its clipped title, at most max wide.
 function nodeWidth(title: string, max: number): number {
