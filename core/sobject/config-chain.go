@@ -417,7 +417,7 @@ func verifyConfigChangeAuthority(entry *SOConfigChange, cfg *SharedObjectConfig)
 	seen := make(map[string]struct{}, len(sigs))
 	for i, sig := range sigs {
 		// Authenticate the signer over the body.
-		sigPeerID, err := verifySignature(sig, soConfigChangeSignatureContext, data)
+		sigPeerID, err := sig.Verify(soConfigChangeSignatureContext, data)
 		if err != nil {
 			return errors.Wrapf(err, "signatures[%d]", i)
 		}

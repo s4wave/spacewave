@@ -48,7 +48,7 @@ func (m *SOInviteMessage) VerifyTransportPeer() (peer.ID, error) {
 	}
 
 	// Authenticate the owner's endpoint before disclosing the one-use token to it.
-	ownerID, err := verifySignature(m.GetSignature(), "sobject invite", data)
+	ownerID, err := m.GetSignature().Verify("sobject invite", data)
 	if err != nil {
 		return "", errors.Wrap(err, "invitation signature")
 	}

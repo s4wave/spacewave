@@ -37,46 +37,6 @@ func domainHash(domain string, inner []byte) []byte {
 	return digest.Sum(nil)
 }
 
-// signerOf returns the public key sig carries and the peer it identifies. It
-// does not verify the signature.
-func signerOf(sig *peer.Signature) (crypto.PubKey, peer.ID, error) {
-	// Require the public key the signature carries.
-	pubKey, err := sig.ParsePubKey()
-	if err != nil {
-		return nil, "", err
-	}
-	if pubKey == nil {
-		return nil, "", peer.ErrEmptyPeerID
-	}
-
-	// Derive the signing peer from that key.
-	signer, err := peer.IDFromPublicKey(pubKey)
-	if err != nil {
-		return nil, "", errors.Wrap(err, "invalid peer ID in signature")
-	}
-	return pubKey, signer, nil
-}
-
-// verifySignature checks that sig covers exactly data under encContext and
-// returns the signer.
-func verifySignature(sig *peer.Signature, encContext string, data []byte) (peer.ID, error) {
-	// Identify the signer.
-	pubKey, signer, err := signerOf(sig)
-	if err != nil {
-		return "", err
-	}
-
-	// Check the signature over data.
-	valid, err := sig.VerifyWithPublic(encContext, pubKey, data)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to verify signature")
-	}
-	if !valid {
-		return "", peer.ErrSignatureInvalid
-	}
-	return signer, nil
-}
-
 // EncryptSOGrant encrypts the inner data of a SOGrant.
 // The privKey is also used to sign the inner data.
 func EncryptSOGrant(privKey crypto.PrivKey, toPubKey crypto.PubKey, sharedObjectID string, nextInner *SOGrantInner) (*SOGrant, error) {
@@ -138,7 +98,7 @@ func EncryptSOGrant(privKey crypto.PrivKey, toPubKey crypto.PubKey, sharedObject
 // DecryptInnerData decrypts the inner data of a SOGrant.
 func (g *SOGrant) DecryptInnerData(privKey crypto.PrivKey, sharedObjectID string) (*SOGrantInner, error) {
 	// Decrypt under the context bound to the grant's signer and recipient.
-	_, signer, err := signerOf(g.GetSignature())
+	_, signer, err := g.GetSignature().Signer()
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +130,7 @@ func (g *SOGrant) Verify(sharedObjectID string) (string, error) {
 		return "", ErrEmptyInnerData
 	}
 	sig := g.GetSignature()
-	pubKey, signer, err := signerOf(sig)
+	pubKey, signer, err := sig.Signer()
 	if err != nil {
 		return "", err
 	}

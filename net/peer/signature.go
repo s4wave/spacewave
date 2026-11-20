@@ -135,7 +135,48 @@ func (s *Signature) VerifyWithPublic(encContext string, pubKey crypto.PubKey, da
 	return pubKey.Verify(signBody, s.GetSigData())
 }
 
-// ParsePubKey parses the incldued public key.
+// Signer returns the public key the signature carries and the peer it
+// identifies. It does not verify the signature.
+func (s *Signature) Signer() (crypto.PubKey, ID, error) {
+	// Require the public key the signature carries.
+	pubKey, err := s.ParsePubKey()
+	if err != nil {
+		return nil, "", err
+	}
+	if pubKey == nil {
+		return nil, "", ErrEmptyPeerID
+	}
+
+	// Derive the signing peer from that key.
+	signer, err := IDFromPublicKey(pubKey)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "invalid peer ID in signature")
+	}
+	return pubKey, signer, nil
+}
+
+// Verify checks that the signature covers exactly data under encContext with
+// the key it carries, and returns the signer. The caller decides whether that
+// signer is trusted.
+func (s *Signature) Verify(encContext string, data []byte) (ID, error) {
+	// Identify the signer.
+	pubKey, signer, err := s.Signer()
+	if err != nil {
+		return "", err
+	}
+
+	// Check the signature over data.
+	valid, err := s.VerifyWithPublic(encContext, pubKey, data)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to verify signature")
+	}
+	if !valid {
+		return "", ErrSignatureInvalid
+	}
+	return signer, nil
+}
+
+// ParsePubKey parses the included public key.
 // Returns nil, nil if the pub key field was not set.
 func (s *Signature) ParsePubKey() (crypto.PubKey, error) {
 	// Return no key when the signature omitted its public key.

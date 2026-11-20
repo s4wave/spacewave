@@ -313,7 +313,7 @@ func (m *SOControlMessage) Verify(sharedObjectID string) (*SOControlMessageInner
 	}
 
 	// The named voter signed exactly the encoded body.
-	signer, err := verifySignature(m.GetSignature(), SOControlMessageSignatureContext, m.GetInner())
+	signer, err := m.GetSignature().Verify(SOControlMessageSignatureContext, m.GetInner())
 	if err != nil {
 		return nil, err
 	}

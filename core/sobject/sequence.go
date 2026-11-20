@@ -104,7 +104,7 @@ func (q *SOSequence) Verify(sharedObjectID string) (*SOSequenceInner, string, er
 	}
 
 	// The named sequencer signed exactly the encoded body.
-	signer, err := verifySignature(q.GetSignature(), SOSequenceSignatureContext, q.GetInner())
+	signer, err := q.GetSignature().Verify(SOSequenceSignatureContext, q.GetInner())
 	if err != nil {
 		return nil, "", err
 	}

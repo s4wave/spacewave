@@ -111,7 +111,7 @@ func signedByOwners(entry *SOConfigChange, cfg *SharedObjectConfig) bool {
 		return false
 	}
 	for _, sig := range sigs {
-		_, id, err := signerOf(sig)
+		_, id, err := sig.Signer()
 		if err != nil || !isOwnerPeer(cfg, id.String()) {
 			return false
 		}

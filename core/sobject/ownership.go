@@ -99,7 +99,7 @@ func (s *SOHost) refuseDepartingSigners(ctx context.Context, entry *SOConfigChan
 
 	// Refuse a change any departing owner signs.
 	for _, sig := range entry.GetSignatures() {
-		_, signer, err := signerOf(sig)
+		_, signer, err := sig.Signer()
 		if err != nil {
 			return err
 		}

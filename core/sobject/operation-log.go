@@ -188,7 +188,7 @@ func (op *SOOperation) Verify(sharedObjectID string) (*SOOperationInner, error) 
 	}
 
 	// The author signed exactly the encoded body.
-	signer, err := verifySignature(op.GetSignature(), SOOperationSignatureContext, op.GetInner())
+	signer, err := op.GetSignature().Verify(SOOperationSignatureContext, op.GetInner())
 	if err != nil {
 		return nil, err
 	}

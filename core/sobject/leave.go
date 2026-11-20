@@ -55,7 +55,7 @@ func (r *SOLeaveRequest) Verify() ([]string, error) {
 	var peers []string
 	seen := make(map[string]struct{}, len(r.GetSignatures()))
 	for _, signature := range r.GetSignatures() {
-		id, err := verifySignature(signature, "sobject leave", data)
+		id, err := signature.Verify("sobject leave", data)
 		if err != nil {
 			return nil, err
 		}

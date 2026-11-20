@@ -203,7 +203,7 @@ func (c *SOCheckpoint) Verify(sharedObjectID string) (*SOCheckpointInner, []stri
 	signers := make([]string, 0, len(c.GetSignatures()))
 	seen := make(map[string]struct{}, len(c.GetSignatures()))
 	for i, sig := range c.GetSignatures() {
-		signer, err := verifySignature(sig, SOCheckpointSignatureContext, c.GetInner())
+		signer, err := sig.Verify(SOCheckpointSignatureContext, c.GetInner())
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "signatures[%d]", i)
 		}
