@@ -97,6 +97,8 @@ func buildChunkIndexJC(
 	if err := chunks.flush(); err != nil {
 		return 0, err
 	}
-	bcs.SetBlock(ci, true)
+	if bcs != nil {
+		bcs.SetBlock(ci, true)
+	}
 	return totalSize, nil
 }

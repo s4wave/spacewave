@@ -111,6 +111,8 @@ func buildChunkIndexRabin(
 	if len(ci.Chunks) <= 1 && rabinArgs.Pol == uint64(defRabinPol) {
 		rabinArgs.Pol = 0
 	}
-	bcs.SetBlock(ci, true)
+	if bcs != nil {
+		bcs.SetBlock(ci, true)
+	}
 	return totalSize, nil
 }

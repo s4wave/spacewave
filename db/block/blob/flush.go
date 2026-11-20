@@ -7,6 +7,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/sbset"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // maxChunkEncodeWindow bounds the chunks a chunkAppender encodes at once, and
@@ -35,6 +36,11 @@ type chunkAppender struct {
 	holdLast bool
 	// held is the latest chunk when holdLast is set.
 	held *heldChunk
+	// sink, when set, receives each addressed chunk in place of the
+	// transaction's staging store; xfrm and hashType address the chunk.
+	sink     func(*Chunk) error
+	xfrm     block.Transformer
+	hashType hash.HashType
 }
 
 // heldChunk is a chunk the appender has not stored.
@@ -81,7 +87,7 @@ func (a *chunkAppender) append(idx int, size, start uint64, data []byte) error {
 	}
 
 	// Store the chunk through the cursor graph without a staging transaction.
-	if a.tx == nil {
+	if a.tx == nil && a.sink == nil {
 		if a.chkSet.GetCursor() == nil {
 			return ErrNoChunkCursor
 		}
@@ -178,6 +184,12 @@ func (a *chunkAppender) flush() error {
 
 // encode applies the transaction's block transform to data.
 func (a *chunkAppender) encode(data []byte) ([]byte, error) {
+	if a.sink != nil {
+		if a.xfrm == nil {
+			return data, nil
+		}
+		return a.xfrm.EncodeBlock(data)
+	}
 	if xfrm := a.tx.GetTransformer(); xfrm != nil {
 		return xfrm.EncodeBlock(data)
 	}
@@ -199,6 +211,17 @@ func (a *chunkAppender) put(chk *pendingChunk) error {
 	// Fail with the chunk's encode error.
 	if chk.err != nil {
 		return chk.err
+	}
+
+	// Address the chunk without storing it when a sink receives it.
+	if a.sink != nil {
+		h, err := hash.Sum(a.hashType, chk.data)
+		if err != nil {
+			return err
+		}
+		c := &Chunk{DataRef: block.NewBlockRef(h), Size: chk.size, Start: chk.start}
+		a.ci.Chunks = append(a.ci.Chunks, c)
+		return a.sink(c)
 	}
 
 	// Stage the chunk as a content block, a leaf, and count it as written.
