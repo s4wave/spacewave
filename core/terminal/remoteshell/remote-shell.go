@@ -19,7 +19,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/link"
-	"github.com/s4wave/spacewave/net/stream"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 	"github.com/sirupsen/logrus"
@@ -30,11 +29,6 @@ const deviceRemoteShellFrameMaxBytes = 4 * 1024 * 1024
 
 // deviceRemoteShellControllerVersion is the remote shell controller version.
 var deviceRemoteShellControllerVersion = controller.MustParseVersion("0.0.1")
-
-// remoteShellAuthorizer refuses a remote peer that may not open a shell. It
-// returns the stream the session uses, also on refusal, so the refusal can be
-// reported over it.
-type remoteShellAuthorizer func(ctx context.Context, ms link.MountedStream) (stream.Stream, error)
 
 // remoteShellProcess is a running shell attached to a terminal.
 type remoteShellProcess interface {
@@ -64,10 +58,9 @@ type remoteShellOpenResult struct {
 // Only an active session of the local Session's account may open a shell.
 func newController(le *logrus.Entry, b bus.Bus) *deviceRemoteShellController {
 	return &deviceRemoteShellController{
-		le:        le,
-		b:         b,
-		authorize: authorizeAccountSessionPeer(b),
-		starter:   startPtyRemoteShell,
+		le:      le,
+		b:       b,
+		starter: startPtyRemoteShell,
 	}
 }
 
@@ -77,8 +70,6 @@ type deviceRemoteShellController struct {
 	le *logrus.Entry
 	// b is the bus carrying remote shell streams.
 	b bus.Bus
-	// authorize admits the remote peer before the session starts.
-	authorize remoteShellAuthorizer
 	// starter starts the shell process.
 	starter remoteShellStarter
 }
@@ -99,18 +90,17 @@ func (c *deviceRemoteShellController) Execute(ctx context.Context) error {
 
 // HandleDirective resolves stream handlers for the remote shell protocol.
 func (c *deviceRemoteShellController) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	// Answer only mounted stream requests for the remote shell protocol.
 	dir, ok := di.GetDirective().(link.HandleMountedStream)
-	if !ok {
+	if !ok || dir.HandleMountedStreamProtocolID() != s4wave_terminal.RemoteShellProtocolID {
 		return nil, nil
 	}
-	if dir.HandleMountedStreamProtocolID() != s4wave_terminal.RemoteShellProtocolID {
-		return nil, nil
-	}
+
+	// Publish the handler that starts a shell on each admitted stream.
 	return directive.Resolvers(directive.NewValueResolver([]link.MountedStreamHandler{&deviceRemoteShellHandler{
-		le:        c.le,
-		b:         c.b,
-		authorize: c.authorize,
-		starter:   c.starter,
+		le:      c.le,
+		b:       c.b,
+		starter: c.starter,
 	}})), nil
 }
 
@@ -125,8 +115,6 @@ type deviceRemoteShellHandler struct {
 	le *logrus.Entry
 	// b is the bus holding the peer link.
 	b bus.Bus
-	// authorize admits the remote peer before the session starts.
-	authorize remoteShellAuthorizer
 	// starter starts the shell process.
 	starter remoteShellStarter
 }
@@ -134,10 +122,11 @@ type deviceRemoteShellHandler struct {
 // HandleMountedStream refuses an unauthorized peer, then runs the session.
 func (h *deviceRemoteShellHandler) HandleMountedStream(ctx context.Context, ms link.MountedStream) error {
 	go func() {
-		// Admit the stream, frame it, and close it when the session ends.
-		strm, err := h.authorize(ctx, ms)
-		defer strm.Close()
+		// Admit the stream, frame it, and close it when the session ends. The
+		// stream is returned on refusal too, so the refusal can be sent on it.
+		strm, err := transport.AuthorizeAccountSessionPeer(ctx, h.b, ms)
 		session := stream_packet.NewSession(strm, deviceRemoteShellFrameMaxBytes)
+		defer session.Close()
 
 		// Refuse a peer outside the account before touching the link.
 		if err != nil {
@@ -361,25 +350,6 @@ func sendTerminalError(session *stream_packet.Session, msg string) error {
 		return err
 	}
 	return errors.New(msg)
-}
-
-// authorizeAccountSessionPeer admits a remote peer that the local Session's
-// transport authorizes: an active session of the same account. The transport
-// closes the shell's stream if it later refuses the peer. A stream whose local
-// peer runs no Session transport on b is refused.
-func authorizeAccountSessionPeer(b bus.Bus) remoteShellAuthorizer {
-	return func(ctx context.Context, ms link.MountedStream) (stream.Stream, error) {
-		// Resolve the transport of the Session the stream reached.
-		st, release, err := transport.ResolveSessionTransport(ctx, b, ms.GetLink().GetLocalPeer(), nil)
-		if err != nil {
-			return ms.GetStream(), err
-		}
-		defer release()
-		if st == nil {
-			return ms.GetStream(), errors.New("no session transport for the local peer")
-		}
-		return st.AdmitStream(ctx, ms)
-	}
 }
 
 // startPtyRemoteShell starts the requested shell in a PTY.
