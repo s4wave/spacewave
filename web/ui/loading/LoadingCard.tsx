@@ -1,6 +1,7 @@
 import { LuCircleAlert, LuCircleCheck, LuCloud } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
+import { Button } from '@s4wave/web/ui/button.js'
 
 import { ProgressBar } from './ProgressBar.js'
 import { Spinner } from './Spinner.js'
@@ -47,24 +48,21 @@ function LoadingCardActions({ view }: { view: LoadingView }) {
   if (!view.onRetry && !view.onCancel) return null
 
   return (
-    <div className="mt-2.5 flex gap-2">
+    <div className="mt-2 flex gap-2">
       {view.onRetry ? (
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="xs"
           onClick={view.onRetry}
-          className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground micro-label rounded-md border px-2 py-1 font-medium transition duration-150"
         >
           {view.retryLabel ?? 'Retry'}
-        </button>
+        </Button>
       ) : null}
       {view.onCancel ? (
-        <button
-          type="button"
-          onClick={view.onCancel}
-          className="text-foreground-alt/60 hover:text-foreground-alt micro-label rounded-md px-2 py-1 font-medium transition-colors"
-        >
+        <Button type="button" variant="muted" size="xs" onClick={view.onCancel}>
           {view.cancelLabel ?? 'Cancel'}
-        </button>
+        </Button>
       ) : null}
     </div>
   )
@@ -78,7 +76,7 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
   return (
     <div
       className={cn(
-        'border-foreground/6 bg-background-card/30 rounded-lg border p-3.5',
+        'border-foreground/6 bg-background-card/30 rounded-lg border p-3',
         className,
       )}
     >

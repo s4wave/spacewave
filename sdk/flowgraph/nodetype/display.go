@@ -46,17 +46,21 @@ func (display) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgraph
 	}
 
 	// Start the source selected by the node.
-	return map[string]config.Config{"display": &display_service.Config{Codec: codec}}, nil
+	return map[string]config.Config{
+		"display": &display_service.Config{Codec: codec, CapabilityId: node.CapabilityID()},
+	}, nil
 }
 
 // GetCapability publishes the protocol that serves pictures and accepts input.
 func (display) GetCapability(_ context.Context, _ world.WorldState, node *s4wave_flowgraph.PlacedFlowgraphNode) (*s4wave_device.DeviceCapability, error) {
+	// Address this placement so a retired node cannot answer the open.
+	id := node.CapabilityID()
 	return &s4wave_device.DeviceCapability{
 		Kind:  s4wave_device.DeviceCapabilityKindDisplay,
 		Label: "Display",
-		Link:  &s4wave_device.DeviceCapabilityLink{ProtocolId: string(display_service.ControlProtocolID)},
+		Link:  &s4wave_device.DeviceCapabilityLink{ProtocolId: string(display_service.ControlProtocolID(id))},
 		Policy: &s4wave_device.DeviceCapabilityPolicy{
-			LocalPolicyRef: node.CapabilityID(),
+			LocalPolicyRef: id,
 			LocalState:     s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
 			GrantState:     s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED,
 		},

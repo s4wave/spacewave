@@ -1,44 +1,26 @@
 import { LuCamera } from 'react-icons/lu'
 
-import type { Camera } from '@s4wave/sdk/camera/camera.pb.js'
-import type { Device } from '@s4wave/sdk/device/device.pb.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
-import {
-  ViewerStatus,
-  type ViewerStatusProps,
-} from '@s4wave/web/object/ViewerStatus.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
-import { FrameView } from '../frame/FrameView.js'
+import { FrameObjectBody } from '../frame/FrameObjectBody.js'
+import type { FrameObjectState } from '../frame/frame-object-state.js'
 import type { FrameSource } from '../frame/play-frames.js'
 
-// CameraViewState is what the Camera viewer draws, derived from its sources
-// as FrameViewer.tla models them: the handle's status in place of the
-// picture, a wait while the Device is offline, or the frame track once the
-// Device is online.
-export type CameraViewState =
-  | { body: 'status'; status: ViewerStatusProps }
-  | { body: 'offline'; camera: Camera; device?: Device }
-  | { body: 'picture'; camera: Camera; device?: Device }
-
+/** CameraViewProps names the Camera's watched state and view-only source. */
 export interface CameraViewProps {
-  // view is the derived state to draw.
-  view: CameraViewState
-  // source opens the frame track while the Device is online.
+  view: FrameObjectState
   source?: FrameSource
 }
 
-// CameraView shows a Camera: one bar with its name and Device, and under it
-// the live picture, or what the viewer waits for.
+/** CameraView shows the Camera's Device and its picture or current wait. */
 export function CameraView({ view, source }: CameraViewProps) {
-  // The Camera and its Device, once the watch has said them.
-  const camera = view.body === 'status' ? undefined : view.camera
+  const name = view.body === 'status' ? undefined : view.name
   const device = view.body === 'status' ? undefined : view.device
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <ViewerBar
         icon={<LuCamera />}
-        title={camera?.name || 'Camera'}
+        title={name || 'Camera'}
         description={
           device?.label ? (
             <>
@@ -47,35 +29,7 @@ export function CameraView({ view, source }: CameraViewProps) {
           ) : undefined
         }
       />
-      {renderBody(view, source)}
+      <FrameObjectBody view={view} source={source} label="Camera" />
     </div>
   )
-}
-
-// renderBody draws the viewer body for one state.
-function renderBody(view: CameraViewState, source?: FrameSource) {
-  switch (view.body) {
-    case 'status':
-      return <ViewerStatus {...view.status} />
-    case 'offline':
-      return (
-        <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
-          <LoadingCard
-            className="w-full max-w-sm"
-            view={{
-              state: 'active',
-              title: 'Device offline',
-              detail: 'The picture reconnects when the Device returns.',
-            }}
-          />
-        </div>
-      )
-    case 'picture':
-      return (
-        <FrameView
-          source={source}
-          label={`${view.camera.name || 'Camera'} picture`}
-        />
-      )
-  }
 }

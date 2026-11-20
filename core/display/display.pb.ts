@@ -17,9 +17,14 @@ export interface Config {
    * Codec selects the AVC bars clip or the pointer-responsive JPEG pattern.
    */
   codec?: Codec
+  /**
+   * CapabilityId identifies the placed node that owns the control endpoint.
+   */
+  capabilityId?: string
 }
 
 export const Config: MessageType<Config> =
   /* @__PURE__ */ createMessageType<Config>('display.Config', () => [
     [1, 'codec', 14, 0, Codec_Enum],
+    [2, 'capability_id', 9],
   ])

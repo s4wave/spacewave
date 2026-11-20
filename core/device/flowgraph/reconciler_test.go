@@ -389,10 +389,26 @@ func TestReconciler(t *testing.T) {
 
 	displayCap := capabilities[capabilityID("display-a")]
 	displayProtocol := protocol.ID(displayCap.GetLink().GetProtocolId())
-	if displayCap.GetKind() != s4wave_device.DeviceCapabilityKindDisplay || displayProtocol != display.ControlProtocolID {
+	if displayCap.GetKind() != s4wave_device.DeviceCapabilityKindDisplay || displayProtocol != display.ControlProtocolID(displayCap.GetId()) {
 		t.Fatalf("display capability kind = %q, protocol = %q", displayCap.GetKind(), displayProtocol)
 	}
-	displayControl := checkDisplaySubscription(t, ctx, st.GetPeerID(), viewer, outsider, displayProtocol)
+	jpegFrames := openDisplay(t, ctx, engine, viewerBus, viewer.GetPeerID(), displayCap.GetId(), "display/jpeg")
+	checkDisplayJPEG(t, ctx, st.GetPeerID(), outsider, displayProtocol, jpegFrames)
+
+	// Move to the next eligible display and decode its default AVC stream.
+	commit(t, ctx, engine, func(tx world.Tx) error {
+		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
+			RemoveNodeIds: []string{"display-a"},
+		})
+		return err
+	})
+	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
+		return capabilities[capabilityID("display-a")] == nil &&
+			capabilityState(capabilities, "display-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
+	})
+	checkFrameTrackEnded(t, jpegFrames.Recv)
+	avcFrames := openDisplay(t, ctx, engine, viewerBus, viewer.GetPeerID(), capabilities[capabilityID("display-b")].GetId(), "display/avc")
+	checkDisplayAVC(t, avcFrames)
 
 	// Revoke the policy while both admitted subscriptions are live.
 	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
@@ -405,22 +421,10 @@ func TestReconciler(t *testing.T) {
 	}
 	waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
 		return capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED &&
-			capabilityState(capabilities, "display-a") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
+			capabilityState(capabilities, "display-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
 	})
-	checkFrameControlClosed(t, displayControl)
-
-	// The Device closes the control stream, which ends the frame track
-	// cleanly after any pictures already in flight.
-	for {
-		resp, err := frames.Recv()
-		if err == nil && resp.GetFrame() != nil {
-			continue
-		}
-		if !errors.Is(err, io.EOF) {
-			t.Fatalf("camera frame track after policy removal sent %v, error %v", resp, err)
-		}
-		break
-	}
+	checkFrameTrackEnded(t, avcFrames.Recv)
+	checkFrameTrackEnded(t, frames.Recv)
 
 	// Create four Workers for the Forge Worker nodes: two
 	// in a Cluster and one outside any, plus one in the Cluster that acts as
@@ -599,6 +603,22 @@ func checkCameraSubscription(
 	_ = frametrack.WriteSubscription(refused, &frametrack.Subscription{SubscriptionId: "camera-outsider"})
 	checkFrameControlClosed(t, refused)
 	return frames
+}
+
+// checkFrameTrackEnded drains in-flight pictures until the Device ends playback.
+func checkFrameTrackEnded(t *testing.T, recv func() (*frametrack.FrameEvent, error)) {
+	t.Helper()
+	for {
+		// Closing the control stream ends the RPC after pictures in flight.
+		event, err := recv()
+		if err == nil && event.GetFrame() != nil {
+			continue
+		}
+		if !errors.Is(err, io.EOF) {
+			t.Fatalf("stopped track sent %v, error %v, want EOF", event, err)
+		}
+		return
+	}
 }
 
 // checkFrameControlClosed requires EOF on a refused or stopped control stream.

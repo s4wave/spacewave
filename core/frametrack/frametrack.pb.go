@@ -321,6 +321,102 @@ func (x *KeyInput) GetRepeat() bool {
 	return false
 }
 
+// FrameEvent relays an open subscription and its pictures to a viewer.
+type FrameEvent struct {
+	unknownFields []byte
+	// State reports the accepted subscription or the next coded picture.
+	//
+	// Types that are assignable to State:
+	//	*FrameEvent_Opened
+	//	*FrameEvent_Frame
+	State isFrameEvent_State `protobuf_oneof:"state"`
+}
+
+func (x *FrameEvent) Reset() {
+	*x = FrameEvent{}
+}
+
+func (*FrameEvent) ProtoMessage() {}
+
+func (m *FrameEvent) GetState() isFrameEvent_State {
+	if m != nil {
+		return m.State
+	}
+	return nil
+}
+
+func (x *FrameEvent) GetOpened() *FrameTrackOpened {
+	if x, ok := x.GetState().(*FrameEvent_Opened); ok {
+		return x.Opened
+	}
+	return nil
+}
+
+func (x *FrameEvent) GetFrame() *FramePacket {
+	if x, ok := x.GetState().(*FrameEvent_Frame); ok {
+		return x.Frame
+	}
+	return nil
+}
+
+type isFrameEvent_State interface {
+	isFrameEvent_State()
+}
+
+type FrameEvent_Opened struct {
+	// Opened reports that the Device accepted the subscription.
+	Opened *FrameTrackOpened `protobuf:"bytes,1,opt,name=opened,proto3,oneof"`
+}
+
+type FrameEvent_Frame struct {
+	// Frame carries one access unit in decode order.
+	Frame *FramePacket `protobuf:"bytes,2,opt,name=frame,proto3,oneof"`
+}
+
+func (*FrameEvent_Opened) isFrameEvent_State() {}
+
+func (*FrameEvent_Frame) isFrameEvent_State() {}
+
+// FrameTrackOpened acknowledges an admitted subscription on the control stream.
+type FrameTrackOpened struct {
+	unknownFields []byte
+}
+
+func (x *FrameTrackOpened) Reset() {
+	*x = FrameTrackOpened{}
+}
+
+func (*FrameTrackOpened) ProtoMessage() {}
+
+// FramePacket carries one coded picture from the current group.
+type FramePacket struct {
+	unknownFields []byte
+	// Header describes the group on its opening keyframe. Deltas omit it.
+	Header *GroupHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// Frame carries the picture in group decode order.
+	Frame *Frame `protobuf:"bytes,2,opt,name=frame,proto3" json:"frame,omitempty"`
+}
+
+func (x *FramePacket) Reset() {
+	*x = FramePacket{}
+}
+
+func (*FramePacket) ProtoMessage() {}
+
+func (x *FramePacket) GetHeader() *GroupHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *FramePacket) GetFrame() *Frame {
+	if x != nil {
+		return x.Frame
+	}
+	return nil
+}
+
 func (m *Subscription) CloneVT() *Subscription {
 	if m == nil {
 		return (*Subscription)(nil)
@@ -454,6 +550,82 @@ func (m *KeyInput) CloneVT() *KeyInput {
 }
 
 func (m *KeyInput) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FrameEvent) CloneVT() *FrameEvent {
+	if m == nil {
+		return (*FrameEvent)(nil)
+	}
+	r := new(FrameEvent)
+	if m.State != nil {
+		r.State = m.State.(interface{ CloneOneofVT() isFrameEvent_State }).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FrameEvent) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FrameEvent_Opened) CloneVT() *FrameEvent_Opened {
+	if m == nil {
+		return (*FrameEvent_Opened)(nil)
+	}
+	r := new(FrameEvent_Opened)
+	r.Opened = protobuf_go_lite.CloneVTValue(m.Opened)
+	return r
+}
+
+func (m *FrameEvent_Opened) CloneOneofVT() isFrameEvent_State {
+	return m.CloneVT()
+}
+
+func (m *FrameEvent_Frame) CloneVT() *FrameEvent_Frame {
+	if m == nil {
+		return (*FrameEvent_Frame)(nil)
+	}
+	r := new(FrameEvent_Frame)
+	r.Frame = protobuf_go_lite.CloneVTValue(m.Frame)
+	return r
+}
+
+func (m *FrameEvent_Frame) CloneOneofVT() isFrameEvent_State {
+	return m.CloneVT()
+}
+
+func (m *FrameTrackOpened) CloneVT() *FrameTrackOpened {
+	if m == nil {
+		return (*FrameTrackOpened)(nil)
+	}
+	r := new(FrameTrackOpened)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FrameTrackOpened) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FramePacket) CloneVT() *FramePacket {
+	if m == nil {
+		return (*FramePacket)(nil)
+	}
+	r := new(FramePacket)
+	r.Header = protobuf_go_lite.CloneVTValue(m.Header)
+	r.Frame = protobuf_go_lite.CloneVTValue(m.Frame)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FramePacket) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -648,6 +820,107 @@ func (this *KeyInput) EqualVT(that *KeyInput) bool {
 
 func (this *KeyInput) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*KeyInput)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FrameEvent) EqualVT(that *FrameEvent) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State == nil && that.State != nil {
+		return false
+	} else if this.State != nil {
+		if that.State == nil {
+			return false
+		}
+		if !this.State.(interface{ EqualVT(isFrameEvent_State) bool }).EqualVT(that.State) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FrameEvent) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FrameEvent)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FrameEvent_Opened) EqualVT(thatIface isFrameEvent_State) bool {
+	that, ok := thatIface.(*FrameEvent_Opened)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Opened, that.Opened, func() *FrameTrackOpened { return &FrameTrackOpened{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *FrameEvent_Frame) EqualVT(thatIface isFrameEvent_State) bool {
+	that, ok := thatIface.(*FrameEvent_Frame)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Frame, that.Frame, func() *FramePacket { return &FramePacket{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *FrameTrackOpened) EqualVT(that *FrameTrackOpened) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FrameTrackOpened) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FrameTrackOpened)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FramePacket) EqualVT(that *FramePacket) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Header, that.Header) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Frame, that.Frame) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FramePacket) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FramePacket)
 	if !ok {
 		return false
 	}
@@ -1068,6 +1341,158 @@ func (x *KeyInput) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the FrameEvent message to JSON.
+func (x *FrameEvent) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != nil {
+		switch ov := x.State.(type) {
+		case *FrameEvent_Opened:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("opened")
+			ov.Opened.MarshalProtoJSON(s.WithField("opened"))
+		case *FrameEvent_Frame:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("frame")
+			ov.Frame.MarshalProtoJSON(s.WithField("frame"))
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FrameEvent to JSON.
+func (x *FrameEvent) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FrameEvent message from JSON.
+func (x *FrameEvent) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "opened":
+			ov := &FrameEvent_Opened{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Opened = nil
+				return
+			}
+			ov.Opened = &FrameTrackOpened{}
+			ov.Opened.UnmarshalProtoJSON(s.WithField("opened", true))
+		case "frame":
+			ov := &FrameEvent_Frame{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Frame = nil
+				return
+			}
+			ov.Frame = &FramePacket{}
+			ov.Frame.UnmarshalProtoJSON(s.WithField("frame", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FrameEvent from JSON.
+func (x *FrameEvent) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FrameTrackOpened message to JSON.
+func (x *FrameTrackOpened) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FrameTrackOpened to JSON.
+func (x *FrameTrackOpened) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FrameTrackOpened message from JSON.
+func (x *FrameTrackOpened) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the FrameTrackOpened from JSON.
+func (x *FrameTrackOpened) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FramePacket message to JSON.
+func (x *FramePacket) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Header != nil || s.HasField("header") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("header")
+		x.Header.MarshalProtoJSON(s.WithField("header"))
+	}
+	if x.Frame != nil || s.HasField("frame") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("frame")
+		x.Frame.MarshalProtoJSON(s.WithField("frame"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FramePacket to JSON.
+func (x *FramePacket) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FramePacket message from JSON.
+func (x *FramePacket) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "header":
+			if s.ReadNil() {
+				x.Header = nil
+				return
+			}
+			x.Header = &GroupHeader{}
+			x.Header.UnmarshalProtoJSON(s.WithField("header", true))
+		case "frame":
+			if s.ReadNil() {
+				x.Frame = nil
+				return
+			}
+			x.Frame = &Frame{}
+			x.Frame.UnmarshalProtoJSON(s.WithField("frame", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FramePacket from JSON.
+func (x *FramePacket) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Subscription) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1407,6 +1832,179 @@ func (m *KeyInput) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *FrameEvent) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FrameEvent) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FrameEvent) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.State.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FrameEvent_Opened) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FrameEvent_Opened) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Opened != nil {
+		size, err := m.Opened.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FrameEvent_Frame) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FrameEvent_Frame) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Frame != nil {
+		size, err := m.Frame.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FrameTrackOpened) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FrameTrackOpened) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FrameTrackOpened) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FramePacket) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FramePacket) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FramePacket) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Frame != nil {
+		size, err := m.Frame.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Header != nil {
+		size, err := m.Header.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Subscription) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1516,6 +2114,77 @@ func (m *KeyInput) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Key)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Pressed)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Repeat)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FrameEvent) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.State.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FrameEvent_Opened) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Opened != nil {
+		l = m.Opened.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *FrameEvent_Frame) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Frame != nil {
+		l = m.Frame.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *FrameTrackOpened) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FramePacket) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Header != nil {
+		l = m.Header.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Frame != nil {
+		l = m.Frame.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1665,6 +2334,60 @@ func (x *KeyInput) MarshalProtoText() string {
 }
 
 func (x *KeyInput) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FrameEvent) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FrameEvent")
+	switch body := x.State.(type) {
+	case *FrameEvent_Opened:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "opened")
+		if body.Opened == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &FrameTrackOpened{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Opened)
+		}
+	case *FrameEvent_Frame:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "frame")
+		if body.Frame == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &FramePacket{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Frame)
+		}
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FrameEvent) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FrameTrackOpened) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "FrameTrackOpened")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FrameTrackOpened) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FramePacket) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FramePacket")
+	if x.Header != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "header")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Header)
+	}
+	if x.Frame != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "frame")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Frame)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FramePacket) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2115,6 +2838,205 @@ func (m *KeyInput) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Repeat = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FrameEvent) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FrameEvent: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FrameEvent: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Opened", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*FrameEvent_Opened); ok {
+				if err := oneof.Opened.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &FrameTrackOpened{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &FrameEvent_Opened{Opened: v}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Frame", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*FrameEvent_Frame); ok {
+				if err := oneof.Frame.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &FramePacket{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &FrameEvent_Frame{Frame: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FrameTrackOpened) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FrameTrackOpened: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FrameTrackOpened: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FramePacket) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FramePacket: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FramePacket: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Header == nil {
+				m.Header = &GroupHeader{}
+			}
+			if err := m.Header.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Frame", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Frame == nil {
+				m.Frame = &Frame{}
+			}
+			if err := m.Frame.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

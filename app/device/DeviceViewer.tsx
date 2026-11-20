@@ -13,9 +13,14 @@ import {
 import { ViewerRailGlyph, ViewerSide } from '@s4wave/web/object/ViewerSide.js'
 import { FactRow } from '@s4wave/web/ui/FactList.js'
 import { useCallback } from 'react'
-import { LuCamera, LuServer, LuTerminal, LuTriangleAlert } from 'react-icons/lu'
+import {
+  LuCamera,
+  LuMonitor,
+  LuServer,
+  LuTerminal,
+  LuTriangleAlert,
+} from 'react-icons/lu'
 
-import { CreateCameraOpTypeID } from '@s4wave/sdk/camera/camera.js'
 import {
   type Device,
   type DeviceCapability,
@@ -27,11 +32,7 @@ import { DeviceHandle, DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 
 import { DeviceCapabilityTable } from './DeviceCapabilityTable.js'
-import {
-  buildCreateCameraOpData,
-  findOpenableCameraCapabilities,
-  isOpenableCameraCapability,
-} from './camera-action.js'
+import { buildCreateFrameOpData, getFrameAction } from './frame-action.js'
 import {
   buildCreateTerminalOpData,
   findOpenableTerminalCapability,
@@ -63,7 +64,10 @@ export function DeviceViewer({
   const state = stateResource.value?.device
   const capabilities = state?.capabilities ?? []
   const terminalCapability = findOpenableTerminalCapability(state)
-  const cameraCapabilities = findOpenableCameraCapabilities(state)
+  const frameCapabilities = capabilities.flatMap((capability) => {
+    const action = getFrameAction(capability)
+    return action ? [{ capability, action }] : []
+  })
 
   // Open a Terminal from the Device's declared capability.
   const handleOpenTerminal = async () => {
@@ -88,21 +92,23 @@ export function DeviceViewer({
     }
   }
 
-  // Open a Camera on one of the Device's camera capabilities.
-  const handleOpenCamera = async (capability: DeviceCapability) => {
+  // Open a Camera or Display naming the selected Device capability.
+  const handleOpenFrame = async (capability: DeviceCapability) => {
     if (!state) return
     try {
-      const cameraOp = await buildCreateCameraOpData({
+      const frameOp = await buildCreateFrameOpData({
         device: state,
         deviceObjectKey,
         capability,
         world: spaceWorld,
       })
-      if (!cameraOp) return
-      await spaceWorld.applyWorldOp(CreateCameraOpTypeID, cameraOp.opData, '')
-      navigateToObjects([cameraOp.objectKey])
+      if (!frameOp) return
+      await spaceWorld.applyWorldOp(frameOp.typename, frameOp.opData, '')
+      navigateToObjects([frameOp.objectKey])
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to open camera')
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to open the viewer',
+      )
     }
   }
 
@@ -110,9 +116,9 @@ export function DeviceViewer({
   const handleOpenCapability = (capability: DeviceCapability) => {
     if (isOpenableTerminalCapability(capability)) {
       void handleOpenTerminal()
-    } else if (isOpenableCameraCapability(capability)) {
-      void handleOpenCamera(capability)
+      return
     }
+    void handleOpenFrame(capability)
   }
 
   // The device's facts, listed by the side column and the Details popover.
@@ -157,11 +163,11 @@ export function DeviceViewer({
                 },
               ]
             : []),
-          ...cameraCapabilities.map((capability) => ({
-            id: `camera/${capability.id}`,
-            label: `Open ${capability.label || 'Camera'}`,
-            icon: <LuCamera />,
-            onClick: () => void handleOpenCamera(capability),
+          ...frameCapabilities.map(({ capability, action }) => ({
+            id: `${action.prefix}${capability.id}`,
+            label: `Open ${capability.label || action.label}`,
+            icon: action.label === 'Display' ? <LuMonitor /> : <LuCamera />,
+            onClick: () => void handleOpenFrame(capability),
           })),
         ]}
       />

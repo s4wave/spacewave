@@ -9,16 +9,26 @@ import (
 )
 
 const (
-	// ControlProtocolID identifies the display subscription and input stream.
-	ControlProtocolID = protocol.ID("alpha/display/control/1")
 	// ControllerID identifies the display controller.
 	ControllerID = "spacewave/device/display"
 	// ConfigID identifies the display controller configuration.
 	ConfigID = ControllerID
 )
 
-// Validate requires one of the formats the test pattern serves.
+// ControlProtocolID identifies the subscription stream of a placed display.
+// A replacement node can start before the old handler is fully retired.
+func ControlProtocolID(capabilityID string) protocol.ID {
+	return protocol.ID("alpha/display/control/1/" + capabilityID)
+}
+
+// Validate requires the placed capability and a codec the test pattern serves.
 func (c *Config) Validate() error {
+	// The protocol must belong to one placed node through its lifetime.
+	if c.GetCapabilityId() == "" {
+		return errors.New("display capability ID is required")
+	}
+
+	// Choose a supported rendition for the source.
 	switch c.GetCodec() {
 	case frametrack.Codec_CODEC_H264_AVC, frametrack.Codec_CODEC_JPEG:
 		return nil

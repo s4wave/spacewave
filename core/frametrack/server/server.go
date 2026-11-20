@@ -125,6 +125,11 @@ func (s *Server) serve(linkCtx context.Context, ms link.MountedStream) {
 	}
 	defer release()
 
+	// Confirm admission before input travels on this subscription.
+	if err := frametrack.WriteAccepted(control); err != nil {
+		return
+	}
+
 	// View-only subscriptions end on extra data or EOF.
 	if s.input == nil {
 		var extra [1]byte

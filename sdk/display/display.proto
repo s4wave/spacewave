@@ -1,0 +1,61 @@
+syntax = "proto3";
+package s4wave.display;
+
+import "google/protobuf/timestamp.proto";
+import "github.com/aperturerobotics/common/typeid/typeid.proto";
+import "github.com/s4wave/spacewave/core/frametrack/frametrack.proto";
+import "github.com/s4wave/spacewave/sdk/device/device.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/display;s4wave_display";
+
+// Display is the world-block state for a display a Device serves. It names the
+// Device object and the capability, not the Device's peer, so the viewer
+// follows the Device through re-enrollment.
+message Display {
+  option (typeid.id) = "spacewave/display";
+
+  // Name is the display name for this display.
+  string name = 1;
+  // DeviceObjectKey is the Device object that serves the display.
+  string device_object_key = 2;
+  // CapabilityId is the ID of the Device capability that serves the display.
+  string capability_id = 3;
+  // CreatedAt is when this Display object was created.
+  .google.protobuf.Timestamp created_at = 4;
+}
+
+// CreateDisplayOp creates a Display world object.
+message CreateDisplayOp {
+  option (typeid.id) = "spacewave/display/create";
+
+  // ObjectKey is the key to create the Display at.
+  string object_key = 1;
+  // Name is the Display display name.
+  string name = 2;
+  // DeviceObjectKey is the Device object that serves the display.
+  string device_object_key = 3;
+  // CapabilityId is the ID of the Device capability that serves the display.
+  string capability_id = 4;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 5;
+}
+
+// DisplayResourceService watches one Display and connects to its live track.
+service DisplayResourceService {
+  // WatchDisplay reports the Display and the availability of its Device.
+  rpc WatchDisplay(WatchDisplayRequest) returns (stream WatchDisplayResponse);
+  // ConnectDisplay streams pictures and forwards input on their control stream.
+  rpc ConnectDisplay(stream .s4wave.frametrack.Input) returns (stream .s4wave.frametrack.FrameEvent);
+}
+
+// WatchDisplayRequest asks for the Display and its Device.
+message WatchDisplayRequest {
+}
+
+// WatchDisplayResponse is sent on each change to the Display or its Device.
+message WatchDisplayResponse {
+  // Display is the Display object state.
+  Display display = 1;
+  // Device is the Display's Device and its reachability from the viewer's Session.
+  .s4wave.device.DeviceAvailability device = 2;
+}

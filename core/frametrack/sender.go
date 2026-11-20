@@ -4,12 +4,12 @@
 package frametrack
 
 import (
+	"cmp"
 	"context"
 	"io"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
-	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 )
 
 // Sender delivers one subscription with a separate stream for each group.
@@ -18,12 +18,12 @@ type Sender struct {
 	ctx context.Context
 	// cancel ends the subscription independently of its parent.
 	cancel context.CancelFunc
-	// subscriptionID is echoed in every group header.
+	// subscriptionID is the ID to send. Empty takes the ID from the source header.
 	subscriptionID string
 	// window bounds each group's unwritten frames, including the active write.
 	window int
-	// open opens the stream for a group.
-	open OpenGroupStream
+	// write opens a group and runs its frame writer.
+	write WriteGroup
 	// requestKeyframe signals an encoder after a drop. It can be nil.
 	requestKeyframe func()
 
@@ -52,20 +52,19 @@ type sendGroup struct {
 }
 
 // NewSender creates a sender for one subscription.
-// open must return a stream whose Close releases a blocked Write.
-// The opener stops when its context ends.
+// Pass an empty subscriptionID to relay the ID from each source header.
 // requestKeyframe must be safe for concurrent calls and return without waiting
 // for the encoder. Pass nil for a source that supplies its own keyframes.
 func NewSender(
 	ctx context.Context,
 	subscriptionID string,
 	window int,
-	open OpenGroupStream,
+	write WriteGroup,
 	requestKeyframe func(),
 ) (*Sender, error) {
 	// Require the information needed to begin a group.
-	if subscriptionID == "" || window < 1 || open == nil {
-		return nil, errors.New("frame sender requires a subscription ID, positive window, and stream opener")
+	if window < 1 || write == nil {
+		return nil, errors.New("frame sender requires a positive window and group writer")
 	}
 
 	// Derive a lifetime for the subscription and its groups.
@@ -75,7 +74,7 @@ func NewSender(
 		cancel:          cancel,
 		subscriptionID:  subscriptionID,
 		window:          window,
-		open:            open,
+		write:           write,
 		requestKeyframe: requestKeyframe,
 	}, nil
 }
@@ -98,6 +97,12 @@ func (s *Sender) Send(header *GroupHeader, frame *Frame) bool {
 		case s.ctx.Err() != nil:
 			return
 		case frame.GetKeyframe():
+			// Bind the next group to its subscription.
+			subscriptionID := cmp.Or(s.subscriptionID, header.GetSubscriptionId())
+			if subscriptionID == "" {
+				return
+			}
+
 			// Publish a new group with the keyframe at the head of its queue.
 			previous = s.group
 			var cancel context.CancelFunc
@@ -106,7 +111,7 @@ func (s *Sender) Send(header *GroupHeader, frame *Frame) bool {
 			group.frames[0] = frame
 			s.sequence++
 			groupHeader = GroupHeader{
-				SubscriptionId:     s.subscriptionID,
+				SubscriptionId:     subscriptionID,
 				GroupSequence:      s.sequence,
 				Codec:              header.GetCodec(),
 				Width:              header.GetWidth(),
@@ -151,8 +156,7 @@ func (s *Sender) Close() error {
 	return nil
 }
 
-// runGroup opens and writes one group until the queue drains or the group is
-// replaced. An open or write failure seals the group before requesting a keyframe.
+// runGroup writes one group and requests recovery if its writer fails.
 func (s *Sender) runGroup(ctx context.Context, group *sendGroup, header *GroupHeader) {
 	// Clear the current group on exit and request recovery after a wire failure.
 	defer group.cancel()
@@ -169,30 +173,17 @@ func (s *Sender) runGroup(ctx context.Context, group *sendGroup, header *GroupHe
 		}
 	}()
 
-	// Open one stream for this group and close it when its context ends.
-	if ctx.Err() != nil {
-		return
+	// The writer returns on an ended group or an I/O error. The defer
+	// above handles the transition when the writer stopped unexpectedly.
+	if ctx.Err() == nil {
+		_ = s.write(ctx, header, func(write func(*Frame) error) error {
+			return s.drainGroup(ctx, group, write)
+		})
 	}
-	strm, err := s.open(ctx)
-	if err != nil {
-		return
-	}
-	stopClose := context.AfterFunc(ctx, func() {
-		// Close interrupts a write on a retired group.
-		_ = strm.Close()
-	})
-	defer func() {
-		if stopClose() {
-			// Close sends the FIN after the group's final write.
-			_ = strm.Close()
-		}
-	}()
+}
 
-	// Write the header and successive frames on this stream.
-	session := stream_packet.NewSession(strm, maxGroupMessageSize)
-	if header.SizeVT() > maxGroupMessageSize || session.SendMsg(header) != nil {
-		return
-	}
+// drainGroup writes the queued prefix and stops when the sender retires it.
+func (s *Sender) drainGroup(ctx context.Context, group *sendGroup, write func(*Frame) error) error {
 	for {
 		// Peek at the queue without freeing the slot of a blocked write.
 		var frame *Frame
@@ -210,19 +201,19 @@ func (s *Sender) runGroup(ctx context.Context, group *sendGroup, header *GroupHe
 		// A sealed group finishes once its prefix is written.
 		if frame == nil {
 			if wait == nil {
-				return
+				return nil
 			}
 			select {
 			case <-ctx.Done():
-				return
+				return nil
 			case <-wait:
 				continue
 			}
 		}
 
 		// Retire the frame only after its write succeeds.
-		if frame.SizeVT() > maxGroupMessageSize || session.SendMsg(frame) != nil {
-			return
+		if err := write(frame); err != nil {
+			return err
 		}
 		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			group.frames[group.head] = nil

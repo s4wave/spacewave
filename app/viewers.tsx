@@ -365,6 +365,17 @@ const productObjectViewers: ObjectViewerComponent[] = [
     ),
   },
   {
+    componentID: 'spacewave.display.viewer',
+    typeID: 'spacewave/display',
+    name: 'Display',
+    category: 'Devices',
+    component: lazy(() =>
+      import('@s4wave/app/display/DisplayViewer.js').then((module) => ({
+        default: module.DisplayViewer,
+      })),
+    ),
+  },
+  {
     componentID: 'spacewave.wizard.add-device',
     typeID: 'wizard/device/add',
     name: 'Add Device',

@@ -8,15 +8,17 @@ import (
 	context "context"
 
 	srpc "github.com/aperturerobotics/starpc/srpc"
+	frametrack "github.com/s4wave/spacewave/core/frametrack"
 )
 
 type SRPCCameraResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// WatchCamera reports the Camera and the availability of its Device.
 	WatchCamera(ctx context.Context, in *WatchCameraRequest) (SRPCCameraResourceService_WatchCameraClient, error)
 	// WatchFrames opens the Camera's frame track on its Device and streams the
-	// newest picture until the caller or the Device ends it.
+	// pictures until the caller or the Device ends it.
 	WatchFrames(ctx context.Context, in *WatchFramesRequest) (SRPCCameraResourceService_WatchFramesClient, error)
 }
 
@@ -84,30 +86,31 @@ func (c *srpcCameraResourceServiceClient) WatchFrames(ctx context.Context, in *W
 
 type SRPCCameraResourceService_WatchFramesClient interface {
 	srpc.Stream
-	Recv() (*WatchFramesResponse, error)
-	RecvTo(*WatchFramesResponse) error
+	Recv() (*frametrack.FrameEvent, error)
+	RecvTo(*frametrack.FrameEvent) error
 }
 
 type srpcCameraResourceService_WatchFramesClient struct {
 	srpc.Stream
 }
 
-func (x *srpcCameraResourceService_WatchFramesClient) Recv() (*WatchFramesResponse, error) {
-	m := new(WatchFramesResponse)
+func (x *srpcCameraResourceService_WatchFramesClient) Recv() (*frametrack.FrameEvent, error) {
+	m := new(frametrack.FrameEvent)
 	if err := x.MsgRecv(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (x *srpcCameraResourceService_WatchFramesClient) RecvTo(m *WatchFramesResponse) error {
+func (x *srpcCameraResourceService_WatchFramesClient) RecvTo(m *frametrack.FrameEvent) error {
 	return x.MsgRecv(m)
 }
 
 type SRPCCameraResourceServiceServer interface {
+	// WatchCamera reports the Camera and the availability of its Device.
 	WatchCamera(*WatchCameraRequest, SRPCCameraResourceService_WatchCameraStream) error
 	// WatchFrames opens the Camera's frame track on its Device and streams the
-	// newest picture until the caller or the Device ends it.
+	// pictures until the caller or the Device ends it.
 	WatchFrames(*WatchFramesRequest, SRPCCameraResourceService_WatchFramesStream) error
 }
 
@@ -203,19 +206,19 @@ func (x *srpcCameraResourceService_WatchCameraStream) SendAndClose(m *WatchCamer
 
 type SRPCCameraResourceService_WatchFramesStream interface {
 	srpc.Stream
-	Send(*WatchFramesResponse) error
-	SendAndClose(*WatchFramesResponse) error
+	Send(*frametrack.FrameEvent) error
+	SendAndClose(*frametrack.FrameEvent) error
 }
 
 type srpcCameraResourceService_WatchFramesStream struct {
 	srpc.Stream
 }
 
-func (x *srpcCameraResourceService_WatchFramesStream) Send(m *WatchFramesResponse) error {
+func (x *srpcCameraResourceService_WatchFramesStream) Send(m *frametrack.FrameEvent) error {
 	return x.MsgSend(m)
 }
 
-func (x *srpcCameraResourceService_WatchFramesStream) SendAndClose(m *WatchFramesResponse) error {
+func (x *srpcCameraResourceService_WatchFramesStream) SendAndClose(m *frametrack.FrameEvent) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

@@ -80,3 +80,26 @@ message KeyInput {
   // Repeat is true for an autorepeated key down.
   bool repeat = 4;
 }
+
+// FrameEvent relays an open subscription and its pictures to a viewer.
+message FrameEvent {
+  // State reports the accepted subscription or the next coded picture.
+  oneof state {
+    // Opened reports that the Device accepted the subscription.
+    FrameTrackOpened opened = 1;
+    // Frame carries one access unit in decode order.
+    FramePacket frame = 2;
+  }
+}
+
+// FrameTrackOpened acknowledges an admitted subscription on the control stream.
+message FrameTrackOpened {
+}
+
+// FramePacket carries one coded picture from the current group.
+message FramePacket {
+  // Header describes the group on its opening keyframe. Deltas omit it.
+  GroupHeader header = 1;
+  // Frame carries the picture in group decode order.
+  Frame frame = 2;
+}

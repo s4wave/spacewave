@@ -40,15 +40,18 @@ message CreateCameraOp {
   .google.protobuf.Timestamp timestamp = 5;
 }
 
+// CameraResourceService watches one Camera object and plays its track.
 service CameraResourceService {
+  // WatchCamera reports the Camera and the availability of its Device.
   rpc WatchCamera(WatchCameraRequest) returns (stream WatchCameraResponse);
   // WatchFrames opens the Camera's frame track on its Device and streams the
-  // newest picture until the caller or the Device ends it.
-  rpc WatchFrames(WatchFramesRequest) returns (stream WatchFramesResponse);
+  // pictures until the caller or the Device ends it.
+  rpc WatchFrames(WatchFramesRequest) returns (stream .s4wave.frametrack.FrameEvent);
 }
 
 // WatchCameraRequest is a request to watch a Camera and its Device.
-message WatchCameraRequest {}
+message WatchCameraRequest {
+}
 
 // WatchCameraResponse is the Camera and its Device's availability, sent
 // whole on each change.
@@ -61,29 +64,5 @@ message WatchCameraResponse {
 }
 
 // WatchFramesRequest is a request to play the Camera's frame track.
-message WatchFramesRequest {}
-
-// WatchFramesResponse is one state of the frame track: opened on the Device,
-// then each picture the caller keeps up with. A caller that falls behind
-// receives only the newest picture.
-message WatchFramesResponse {
-  // State is the frame track's state at this message.
-  oneof state {
-    // Opened reports that the Device's control stream holds the subscription.
-    WatchFramesOpened opened = 1;
-    // Frame is the newest picture with its group's header.
-    WatchFramesFrame frame = 2;
-  }
-}
-
-// WatchFramesOpened is the frame track after the Device accepted the
-// subscription and before its first picture.
-message WatchFramesOpened {}
-
-// WatchFramesFrame is one picture and the header of the group it decodes in.
-message WatchFramesFrame {
-  // Header describes the picture's group: its codec and size.
-  .s4wave.frametrack.GroupHeader header = 1;
-  // Frame is the coded picture.
-  .s4wave.frametrack.Frame frame = 2;
+message WatchFramesRequest {
 }

@@ -1,22 +1,25 @@
 import {
   Codec,
-  type Frame,
+  type FrameEvent,
   type GroupHeader,
+  type Input,
 } from '@s4wave/core/frametrack/frametrack.pb.js'
 
 import { AvcDecoder } from './avc-decoder.js'
 
-// FrameSourceEvent is one event of a frame track: the track opened on the
-// Device, or one encoded picture arrived.
-export type FrameSourceEvent =
-  | { kind: 'opened' }
-  | { kind: 'frame'; header: GroupHeader; frame: Frame }
+// OpenFrameTrack yields the Device's opened event and pictures until canceled.
+export type OpenFrameTrack = (signal: AbortSignal) => AsyncIterable<FrameEvent>
 
-// FrameSource opens a frame track and yields its events until signal aborts.
-// The track has failed when the iterable throws, and closed when it ends.
-export type FrameSource = (
-  signal: AbortSignal,
-) => AsyncIterable<FrameSourceEvent>
+// FrameSource binds the player to a view-only track or a two-way display.
+export type FrameSource =
+  | { kind: 'view'; open: OpenFrameTrack }
+  | {
+      kind: 'control'
+      open: (
+        input: AsyncIterable<Input>,
+        signal: AbortSignal,
+      ) => AsyncIterable<FrameEvent>
+    }
 
 // FramePlayEvent is what playing a track reports: the track opened, a
 // picture was drawn, no picture came for stallMs, or the track failed.
@@ -46,14 +49,14 @@ function watchPixelRatio(onChange: (ratio: number) => void): () => void {
   return () => query?.removeEventListener('change', check)
 }
 
-// playFrames opens source and draws its pictures on canvas, fitted to pane
+// playFrames opens the track and draws its pictures on canvas, fitted to pane
 // at the picture's aspect and the screen's pixel ratio, until the returned
 // function stops it; emit hears nothing after that. JPEG keeps the newest
 // waiting picture. AVC feeds a bounded prefix to WebCodecs and recovers
 // at the next keyframe after a drop. The last picture stays drawn until a
 // newer one replaces it.
 export function playFrames(
-  source: FrameSource,
+  open: OpenFrameTrack,
   canvas: HTMLCanvasElement,
   pane: HTMLElement,
   emit: (event: FramePlayEvent) => void,
@@ -65,9 +68,9 @@ export function playFrames(
   }
 
   // shown is the picture on the canvas, kept to redraw on a resize.
-  // pending is the newest undecoded picture; decoding is set while one
-  // decodes.
+  // JPEG keeps at most one waiting picture while createImageBitmap runs.
   let shown: ImageBitmap | VideoFrame | null = null
+  let picturePending = false
   let pendingJPEG: Uint8Array | undefined
   let decodingJPEG = false
   let codec = Codec.UNKNOWN
@@ -103,17 +106,23 @@ export function playFrames(
       canvas
         .getContext('2d')
         ?.drawImage(shown, 0, 0, canvas.width, canvas.height)
+
+      // Only a new picture enables live input and renews the stall deadline.
+      if (picturePending) {
+        picturePending = false
+        report({ kind: 'drawn' })
+        clearTimeout(stall)
+        stall = window.setTimeout(() => report({ kind: 'stall' }), stallMs)
+      }
     })
   }
 
-  // Present the decoded picture and renew the deadline for the next one.
+  // Retain the new picture for the next canvas paint.
   const show = (picture: ImageBitmap | VideoFrame) => {
     shown?.close()
     shown = picture
+    picturePending = true
     draw()
-    report({ kind: 'drawn' })
-    clearTimeout(stall)
-    stall = window.setTimeout(() => report({ kind: 'stall' }), stallMs)
   }
 
   // Decode independent JPEGs one at a time, dropping superseded inputs.
@@ -151,26 +160,36 @@ export function playFrames(
   // Read the track until it ends or fails.
   void (async () => {
     let opened = false
+    let group: GroupHeader | undefined
     try {
-      for await (const event of source(abort.signal)) {
+      for await (const event of open(abort.signal)) {
         if (abort.signal.aborted) return
         if (!opened) {
           opened = true
           report({ kind: 'opened' })
         }
-        if (event.kind !== 'frame') continue
+        if (event.state?.case !== 'frame') continue
+        const { header, frame } = event.state.value
+        if (!frame) {
+          throw new Error('The Device sent an incomplete picture.')
+        }
+        if (frame.keyframe) {
+          group = header
+          if (!group) avc.close()
+        }
+        if (!group) continue
 
-        // Forward the picture to the decoder named in the group header.
-        codec = event.header.codec ?? Codec.UNKNOWN
+        // Forward the picture to the decoder selected by the keyframe.
+        codec = group.codec ?? Codec.UNKNOWN
         switch (codec) {
           case Codec.JPEG:
             avc.close()
-            pendingJPEG = event.frame.data
+            pendingJPEG = frame.data
             void decodeJPEG()
             break
           case Codec.H264_AVC:
             pendingJPEG = undefined
-            avc.push(event.header, event.frame)
+            avc.push(group, frame)
             break
           default:
             throw new Error(

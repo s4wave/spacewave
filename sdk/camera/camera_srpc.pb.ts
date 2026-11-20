@@ -6,9 +6,9 @@ import {
   WatchCameraRequest,
   WatchCameraResponse,
   WatchFramesRequest,
-  WatchFramesResponse,
 } from './camera.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
+import { FrameEvent } from '../../core/frametrack/frametrack.pb.js'
 import {
   buildDecodeMessageTransform,
   MessageStream,
@@ -17,12 +17,16 @@ import {
 } from 'starpc'
 
 /**
+ * CameraResourceService watches one Camera object and plays its track.
+ *
  * @generated from service s4wave.camera.CameraResourceService
  */
 export const CameraResourceServiceDefinition = {
   typeName: 's4wave.camera.CameraResourceService',
   methods: {
     /**
+     * WatchCamera reports the Camera and the availability of its Device.
+     *
      * @generated from rpc s4wave.camera.CameraResourceService.WatchCamera
      */
     WatchCamera: {
@@ -33,24 +37,28 @@ export const CameraResourceServiceDefinition = {
     },
     /**
      * WatchFrames opens the Camera's frame track on its Device and streams the
-     * newest picture until the caller or the Device ends it.
+     * pictures until the caller or the Device ends it.
      *
      * @generated from rpc s4wave.camera.CameraResourceService.WatchFrames
      */
     WatchFrames: {
       name: 'WatchFrames',
       I: WatchFramesRequest,
-      O: WatchFramesResponse,
+      O: FrameEvent,
       kind: MethodKind.ServerStreaming,
     },
   },
 } as const
 
 /**
+ * CameraResourceService watches one Camera object and plays its track.
+ *
  * @generated from service s4wave.camera.CameraResourceService
  */
 export interface CameraResourceService {
   /**
+   * WatchCamera reports the Camera and the availability of its Device.
+   *
    * @generated from rpc s4wave.camera.CameraResourceService.WatchCamera
    */
   WatchCamera(
@@ -60,21 +68,25 @@ export interface CameraResourceService {
 
   /**
    * WatchFrames opens the Camera's frame track on its Device and streams the
-   * newest picture until the caller or the Device ends it.
+   * pictures until the caller or the Device ends it.
    *
    * @generated from rpc s4wave.camera.CameraResourceService.WatchFrames
    */
   WatchFrames(
     request: WatchFramesRequest,
     abortSignal?: AbortSignal,
-  ): MessageStream<WatchFramesResponse>
+  ): MessageStream<FrameEvent>
 }
 
 /**
+ * CameraResourceService watches one Camera object and plays its track.
+ *
  * @generated from service s4wave.camera.CameraResourceService
  */
 export interface CameraResourceServiceHandler {
   /**
+   * WatchCamera reports the Camera and the availability of its Device.
+   *
    * @generated from rpc s4wave.camera.CameraResourceService.WatchCamera
    */
   WatchCamera(
@@ -85,7 +97,7 @@ export interface CameraResourceServiceHandler {
 
   /**
    * WatchFrames opens the Camera's frame track on its Device and streams the
-   * newest picture until the caller or the Device ends it.
+   * pictures until the caller or the Device ends it.
    *
    * @generated from rpc s4wave.camera.CameraResourceService.WatchFrames
    */
@@ -93,7 +105,7 @@ export interface CameraResourceServiceHandler {
     request: WatchFramesRequest,
     abortSignal: AbortSignal,
     context: ServerContext,
-  ): MessageStream<WatchFramesResponse>
+  ): MessageStream<FrameEvent>
 }
 
 export const CameraResourceServiceServiceName =
@@ -109,6 +121,8 @@ export class CameraResourceServiceClient implements CameraResourceService {
     this.WatchFrames = this.WatchFrames.bind(this)
   }
   /**
+   * WatchCamera reports the Camera and the availability of its Device.
+   *
    * @generated from rpc s4wave.camera.CameraResourceService.WatchCamera
    */
   WatchCamera(
@@ -127,14 +141,14 @@ export class CameraResourceServiceClient implements CameraResourceService {
 
   /**
    * WatchFrames opens the Camera's frame track on its Device and streams the
-   * newest picture until the caller or the Device ends it.
+   * pictures until the caller or the Device ends it.
    *
    * @generated from rpc s4wave.camera.CameraResourceService.WatchFrames
    */
   WatchFrames(
     request: WatchFramesRequest,
     abortSignal?: AbortSignal,
-  ): MessageStream<WatchFramesResponse> {
+  ): MessageStream<FrameEvent> {
     const requestMsg = WatchFramesRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
@@ -142,6 +156,6 @@ export class CameraResourceServiceClient implements CameraResourceService {
       WatchFramesRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
-    return buildDecodeMessageTransform(WatchFramesResponse)(result)
+    return buildDecodeMessageTransform(FrameEvent)(result)
   }
 }

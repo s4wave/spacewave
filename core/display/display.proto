@@ -9,4 +9,6 @@ option go_package = "github.com/s4wave/spacewave/core/display;display";
 message Config {
   // Codec selects the AVC bars clip or the pointer-responsive JPEG pattern.
   .s4wave.frametrack.Codec codec = 1;
+  // CapabilityId identifies the placed node that owns the control endpoint.
+  string capability_id = 2;
 }

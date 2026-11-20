@@ -15,10 +15,10 @@ func TestSenderDropsDeltaBeforeKeyframe(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		// Create a pass-through subscription without an open group.
 		opened := false
-		sender, err := NewSender(t.Context(), "viewer", 2, func(context.Context) (io.ReadWriteCloser, error) {
+		sender, err := NewSender(t.Context(), "viewer", 2, WriteStreamGroups(func(context.Context) (io.ReadWriteCloser, error) {
 			opened = true
 			return nil, io.ErrClosedPipe
-		}, nil)
+		}), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -41,7 +41,7 @@ func TestSenderRecoversFromFullQueue(t *testing.T) {
 		// Open groups on pipes whose writes wait for this test to read.
 		streams := make(chan net.Conn, 2)
 		requests := 0
-		sender, err := NewSender(t.Context(), "viewer", 2, openTestGroup(streams), func() { requests++ })
+		sender, err := NewSender(t.Context(), "viewer", 2, WriteStreamGroups(openTestGroup(streams)), func() { requests++ })
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -113,13 +113,13 @@ func TestSenderRecoversFromFailedOpen(t *testing.T) {
 		streams := make(chan net.Conn, 1)
 		open := openTestGroup(streams)
 		attempts, requests := 0, 0
-		sender, err := NewSender(t.Context(), "viewer", 2, func(ctx context.Context) (io.ReadWriteCloser, error) {
+		sender, err := NewSender(t.Context(), "viewer", 2, WriteStreamGroups(func(ctx context.Context) (io.ReadWriteCloser, error) {
 			attempts++
 			if attempts == 1 {
 				return nil, io.ErrClosedPipe
 			}
 			return open(ctx)
-		}, func() { requests++ })
+		}), func() { requests++ })
 		if err != nil {
 			t.Fatal(err)
 		}

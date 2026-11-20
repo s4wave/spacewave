@@ -19,6 +19,8 @@ type Config struct {
 	unknownFields []byte
 	// Codec selects the AVC bars clip or the pointer-responsive JPEG pattern.
 	Codec frametrack.Codec `protobuf:"varint,1,opt,name=codec,proto3" json:"codec,omitempty"`
+	// CapabilityId identifies the placed node that owns the control endpoint.
+	CapabilityId string `protobuf:"bytes,2,opt,name=capability_id,json=capabilityId,proto3" json:"capabilityId,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -34,12 +36,20 @@ func (x *Config) GetCodec() frametrack.Codec {
 	return frametrack.Codec(0)
 }
 
+func (x *Config) GetCapabilityId() string {
+	if x != nil {
+		return x.CapabilityId
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
 	}
 	r := new(Config)
 	r.Codec = m.Codec
+	r.CapabilityId = m.CapabilityId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -57,6 +67,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.Codec != that.Codec {
+		return false
+	}
+	if this.CapabilityId != that.CapabilityId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -83,6 +96,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("codec")
 		x.Codec.MarshalProtoJSON(s)
 	}
+	if x.CapabilityId != "" || s.HasField("capabilityId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("capabilityId")
+		s.WriteString(x.CapabilityId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -103,6 +121,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "codec":
 			s.AddField("codec")
 			x.Codec.UnmarshalProtoJSON(s)
+		case "capability_id", "capabilityId":
+			s.AddField("capability_id")
+			x.CapabilityId = s.ReadString()
 		}
 	})
 }
@@ -141,6 +162,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.CapabilityId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CapabilityId)
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.Codec != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Codec))
 		i--
@@ -156,6 +182,7 @@ func (m *Config) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Codec)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CapabilityId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -166,6 +193,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.Codec != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "codec")
 		protobuf_go_lite.TextWriteStringer(&sb, frametrack.Codec(x.Codec))
+	}
+	if x.CapabilityId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "capability_id")
+		protobuf_go_lite.TextWriteString(&sb, x.CapabilityId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -205,6 +236,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CapabilityId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CapabilityId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -1,24 +1,19 @@
-import { Codec } from '@s4wave/core/frametrack/frametrack.pb.js'
-import type { Camera } from '@s4wave/sdk/camera/camera.pb.js'
+import {
+  Codec,
+  type FrameEvent,
+} from '@s4wave/core/frametrack/frametrack.pb.js'
 import type { Device } from '@s4wave/sdk/device/device.pb.js'
 import { useParams } from '@s4wave/web/router/router.js'
 
-import {
-  CameraView,
-  type CameraViewState,
-} from '@s4wave/app/camera/CameraView.js'
+import { CameraView } from '@s4wave/app/camera/CameraView.js'
+import type { FrameObjectState } from '@s4wave/app/frame/frame-object-state.js'
 import type {
   FrameSource,
-  FrameSourceEvent,
+  OpenFrameTrack,
 } from '@s4wave/app/frame/play-frames.js'
 
-// camera is a Camera on a placed camera node of a Device.
-const camera: Camera = {
-  name: 'Workbench Camera',
-  deviceObjectKey: 'devices/forge-a',
-  capabilityId: 'flowgraph-node/flowgraphs/workbench/camera',
-  createdAt: new Date(2026, 10, 19, 9, 41),
-}
+// name is the Camera shown in the debug fixture.
+const name = 'Workbench Camera'
 
 // device is the Device the Camera's capability is on.
 const device: Device = { label: 'forge-a' }
@@ -34,7 +29,7 @@ function aborted(signal: AbortSignal): Promise<void> {
 }
 
 // testPicture encodes one JPEG test picture whose bar has moved by step.
-async function testPicture(step: number): Promise<FrameSourceEvent> {
+async function testPicture(step: number): Promise<FrameEvent> {
   const canvas = new OffscreenCanvas(640, 360)
   const ctx = canvas.getContext('2d')!
   ctx.fillStyle = '#20242c'
@@ -43,22 +38,29 @@ async function testPicture(step: number): Promise<FrameSourceEvent> {
   ctx.fillRect((step * 8) % 640, 140, 80, 80)
   const blob = await canvas.convertToBlob({ type: 'image/jpeg' })
   return {
-    kind: 'frame',
-    header: { codec: Codec.JPEG },
-    frame: { data: new Uint8Array(await blob.arrayBuffer()), keyframe: true },
+    state: {
+      case: 'frame',
+      value: {
+        header: { codec: Codec.JPEG },
+        frame: {
+          data: new Uint8Array(await blob.arrayBuffer()),
+          keyframe: true,
+        },
+      },
+    },
   }
 }
 
 // sources are the fixture frame tracks, kept stable so the track runs once.
-const sources: Record<string, FrameSource> = {
+const tracks: Record<string, OpenFrameTrack> = {
   // starting opens and sends no picture.
   async *starting(signal) {
-    yield { kind: 'opened' }
+    yield { state: { case: 'opened', value: {} } }
     await aborted(signal)
   },
   // live sends a moving picture ten times a second.
   async *live(signal) {
-    yield { kind: 'opened' }
+    yield { state: { case: 'opened', value: {} } }
     for (let step = 0; !signal.aborted; step++) {
       yield await testPicture(step)
       await new Promise((resolve) => setTimeout(resolve, 100))
@@ -66,28 +68,36 @@ const sources: Record<string, FrameSource> = {
   },
   // stalled sends one picture and then none, so it pauses.
   async *stalled(signal) {
-    yield { kind: 'opened' }
+    yield { state: { case: 'opened', value: {} } }
     yield await testPicture(30)
     await aborted(signal)
   },
   // failed is refused once opened.
   async *failed() {
-    yield { kind: 'opened' }
+    yield { state: { case: 'opened', value: {} } }
     throw new Error('The Device refused the frame track.')
   },
 }
 
+// sources bind the fixture tracks to view-only playback.
+const sources = Object.fromEntries(
+  Object.entries(tracks).map(([key, open]) => [
+    key,
+    { kind: 'view', open } satisfies FrameSource,
+  ]),
+)
+
 // picture is the online state each track fixture shares.
-const picture: CameraViewState = { body: 'picture', camera, device }
+const picture: FrameObjectState = { body: 'picture', name, device }
 
 // views are the fixture states, each one production reaches.
-const views: Record<string, CameraViewState> = {
+const views: Record<string, FrameObjectState> = {
   connecting: picture,
   starting: picture,
   live: picture,
   stalled: picture,
   failed: picture,
-  offline: { body: 'offline', camera, device },
+  offline: { body: 'offline', name, device },
   waiting: {
     body: 'status',
     status: { state: 'waiting', what: 'the camera', rows: 0 },

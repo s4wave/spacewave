@@ -1519,7 +1519,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/display": {
-          "hash": "d0d25148e03d617e6b4948b65abaf911571e12a0d545e5069881b2073bfead6c",
+          "hash": "c5cc05425d0050078cf32ea6418c1639ff0ac092e375cf9f5ca173f4af2b0e75",
           "generatedFiles": [
             "core/display/display.pb.go",
             "core/display/display.pb.ts"
@@ -1577,7 +1577,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/frametrack": {
-          "hash": "fca3b3097291d702ef1997e9fd5fbe88352fbf96820e7efb666fa92880d12b9f",
+          "hash": "5e7416ccfced136d2a7c3c689e8a053dabccdc25f2e7c79bedc985dd1cdfb626",
           "generatedFiles": [
             "core/frametrack/frametrack.pb.go",
             "core/frametrack/frametrack.pb.ts"
@@ -4143,7 +4143,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/camera": {
-          "hash": "ac5f36c04aeccb239b266fd06cd8ca7b37e199f91cabdc52e5f6905ce7ba0539",
+          "hash": "2734589a2caac2d4dfa56d7e1d4bfb874ae0fa47b28a68799a6dbb225dc22f19",
           "generatedFiles": [
             "sdk/camera/camera.pb.go",
             "sdk/camera/camera.pb.ts",
@@ -4321,6 +4321,20 @@
           ],
           "protoFiles": [
             "sdk/device/device.proto"
+          ]
+        },
+        "github.com/s4wave/spacewave/sdk/display": {
+          "hash": "9f3b7d5517222f3fd4c6be4287a3d930d84edfa8971762d44dbcb36059bf3807",
+          "generatedFiles": [
+            "sdk/display/display.pb.go",
+            "sdk/display/display.pb.ts",
+            "sdk/display/display_srpc.pb.go",
+            "sdk/display/display_srpc.pb.ts",
+            "sdk/display/display_typeid.pb.go",
+            "sdk/display/display_typeid.pb.ts"
+          ],
+          "protoFiles": [
+            "sdk/display/display.proto"
           ]
         },
         "github.com/s4wave/spacewave/sdk/docs": {

@@ -216,3 +216,67 @@ export const KeyInput: MessageType<KeyInput> =
       [4, 'repeat', 8],
     ],
   )
+
+/**
+ * FrameEvent relays an open subscription and its pictures to a viewer.
+ *
+ * @generated from message s4wave.frametrack.FrameEvent
+ */
+export interface FrameEvent {
+  /**
+   * State reports the accepted subscription or the next coded picture.
+   *
+   * @generated from oneof s4wave.frametrack.FrameEvent.state
+   */
+  state?:
+    | { value?: undefined; case: undefined }
+    | { value: FrameTrackOpened; case: 'opened' }
+    | { value: FramePacket; case: 'frame' }
+}
+
+export const FrameEvent: MessageType<FrameEvent> =
+  /* @__PURE__ */ createMessageType<FrameEvent>(
+    's4wave.frametrack.FrameEvent',
+    () => [
+      [1, 'opened', 11, 0, FrameTrackOpened.codec, 'state'],
+      [2, 'frame', 11, 0, FramePacket.codec, 'state'],
+    ],
+  )
+
+/**
+ * FrameTrackOpened acknowledges an admitted subscription on the control stream.
+ *
+ * @generated from message s4wave.frametrack.FrameTrackOpened
+ */
+export interface FrameTrackOpened {}
+
+export const FrameTrackOpened: MessageType<FrameTrackOpened> =
+  /* @__PURE__ */ createMessageType<FrameTrackOpened>(
+    's4wave.frametrack.FrameTrackOpened',
+    () => [],
+  )
+
+/**
+ * FramePacket carries one coded picture from the current group.
+ *
+ * @generated from message s4wave.frametrack.FramePacket
+ */
+export interface FramePacket {
+  /**
+   * Header describes the group on its opening keyframe. Deltas omit it.
+   */
+  header?: GroupHeader
+  /**
+   * Frame carries the picture in group decode order.
+   */
+  frame?: Frame
+}
+
+export const FramePacket: MessageType<FramePacket> =
+  /* @__PURE__ */ createMessageType<FramePacket>(
+    's4wave.frametrack.FramePacket',
+    () => [
+      [1, 'header', 11, 0, GroupHeader.codec],
+      [2, 'frame', 11, 0, Frame.codec],
+    ],
+  )

@@ -34,3 +34,13 @@ func WriteSubscription(control io.ReadWriteCloser, subscription *Subscription) e
 	// Send the subscription using the same packet framing as group messages.
 	return stream_packet.NewSession(control, maxControlMessageSize).SendMsg(subscription)
 }
+
+// ReadAccepted waits for the Device to accept the subscription on control.
+func ReadAccepted(control io.ReadWriteCloser) error {
+	return stream_packet.NewSession(control, maxControlMessageSize).RecvMsg(new(FrameTrackOpened))
+}
+
+// WriteAccepted acknowledges a subscription the Device has admitted.
+func WriteAccepted(control io.ReadWriteCloser) error {
+	return stream_packet.NewSession(control, maxControlMessageSize).SendMsg(new(FrameTrackOpened))
+}

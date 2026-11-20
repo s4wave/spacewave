@@ -6,7 +6,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { DeviceAvailability } from '../device/device.pb.js'
-import { Frame, GroupHeader } from '../../core/frametrack/frametrack.pb.js'
 
 /**
  * Camera is the world-block state for a camera a Device serves. It names the
@@ -133,71 +132,4 @@ export const WatchFramesRequest: MessageType<WatchFramesRequest> =
   /* @__PURE__ */ createMessageType<WatchFramesRequest>(
     's4wave.camera.WatchFramesRequest',
     () => [],
-  )
-
-/**
- * WatchFramesResponse is one state of the frame track: opened on the Device,
- * then each picture the caller keeps up with. A caller that falls behind
- * receives only the newest picture.
- *
- * @generated from message s4wave.camera.WatchFramesResponse
- */
-export interface WatchFramesResponse {
-  /**
-   * State is the frame track's state at this message.
-   *
-   * @generated from oneof s4wave.camera.WatchFramesResponse.state
-   */
-  state?:
-    | { value?: undefined; case: undefined }
-    | { value: WatchFramesOpened; case: 'opened' }
-    | { value: WatchFramesFrame; case: 'frame' }
-}
-
-export const WatchFramesResponse: MessageType<WatchFramesResponse> =
-  /* @__PURE__ */ createMessageType<WatchFramesResponse>(
-    's4wave.camera.WatchFramesResponse',
-    () => [
-      [1, 'opened', 11, 0, WatchFramesOpened.codec, 'state'],
-      [2, 'frame', 11, 0, WatchFramesFrame.codec, 'state'],
-    ],
-  )
-
-/**
- * WatchFramesOpened is the frame track after the Device accepted the
- * subscription and before its first picture.
- *
- * @generated from message s4wave.camera.WatchFramesOpened
- */
-export interface WatchFramesOpened {}
-
-export const WatchFramesOpened: MessageType<WatchFramesOpened> =
-  /* @__PURE__ */ createMessageType<WatchFramesOpened>(
-    's4wave.camera.WatchFramesOpened',
-    () => [],
-  )
-
-/**
- * WatchFramesFrame is one picture and the header of the group it decodes in.
- *
- * @generated from message s4wave.camera.WatchFramesFrame
- */
-export interface WatchFramesFrame {
-  /**
-   * Header describes the picture's group: its codec and size.
-   */
-  header?: GroupHeader
-  /**
-   * Frame is the coded picture.
-   */
-  frame?: Frame
-}
-
-export const WatchFramesFrame: MessageType<WatchFramesFrame> =
-  /* @__PURE__ */ createMessageType<WatchFramesFrame>(
-    's4wave.camera.WatchFramesFrame',
-    () => [
-      [1, 'header', 11, 0, GroupHeader.codec],
-      [2, 'frame', 11, 0, Frame.codec],
-    ],
   )

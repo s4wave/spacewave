@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_frametrack "github.com/s4wave/spacewave/sdk/frametrack"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,7 +19,7 @@ func (o *CreateCameraOp) Validate() error {
 	}
 
 	// Require the Camera's name, Device and capability, and its timestamp.
-	if err := validateCameraFields(o.GetName(), o.GetDeviceObjectKey(), o.GetCapabilityId()); err != nil {
+	if err := s4wave_frametrack.ValidateTarget(o.GetName(), o.GetDeviceObjectKey(), o.GetCapabilityId()); err != nil {
 		return err
 	}
 	return o.GetTimestamp().Validate(false)

@@ -14,6 +14,8 @@ import {
   CreateTerminalOp,
   TerminalTargetKind,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
+import { CreateDisplayOp } from '@s4wave/sdk/display/display.pb.js'
+import { CreateDisplayOpTypeID } from '@s4wave/sdk/display/display.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
 
@@ -254,6 +256,51 @@ describe('DeviceViewer', () => {
       ]),
     )
     expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+  })
+
+  it('creates a Display from its Device capability row', async () => {
+    // A Device can publish a live display next to a disabled display row.
+    currentState = {
+      peerId: '12D3KooWDevice',
+      label: 'Build Host',
+      capabilities: [
+        {
+          id: 'flowgraph-node/flowgraphs/desk/display',
+          kind: 'display',
+          label: 'Desktop',
+          state: DeviceCapabilityState.ACTIVE,
+        },
+        {
+          id: 'disabled-display',
+          kind: 'display',
+          label: 'Disabled display',
+          state: DeviceCapabilityState.REJECTED,
+        },
+      ],
+    }
+    renderDevice()
+    expect(
+      screen.queryByRole('button', { name: 'Open Disabled display' }),
+    ).toBeNull()
+
+    // Open the capability by its row and await navigation from the create op.
+    const opened = Promise.withResolvers<string[]>()
+    h.navigateToObjects.mockImplementationOnce(opened.resolve)
+    const row = screen.getByText('Desktop').closest('[role="row"]')!
+    fireEvent.click(row)
+    fireEvent.doubleClick(row)
+    const [objectKey] = await opened.promise
+
+    // The new object follows the Device key and capability across re-enrollment.
+    const [typename, data] = h.applyWorldOp.mock.calls[0]!
+    expect(typename).toBe(CreateDisplayOpTypeID)
+    expect(CreateDisplayOp.fromBinary(data)).toMatchObject({
+      objectKey,
+      name: 'Desktop',
+      deviceObjectKey: 'devices/build-host',
+      capabilityId: 'flowgraph-node/flowgraphs/desk/display',
+    })
+    expect(objectKey).toBe('desktop-1')
   })
 
   it('does not expose Terminal action for disabled terminal capability', () => {

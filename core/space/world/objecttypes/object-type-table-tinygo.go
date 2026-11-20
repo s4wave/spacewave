@@ -20,6 +20,8 @@ import (
 	spacewave_chat_world "github.com/s4wave/spacewave/sdk/chat/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
+	s4wave_display "github.com/s4wave/spacewave/sdk/display"
+	s4wave_display_world "github.com/s4wave/spacewave/sdk/display/world"
 	s4wave_flowgraph_world "github.com/s4wave/spacewave/sdk/flowgraph/world"
 	s4wave_forge_world "github.com/s4wave/spacewave/sdk/forge/world"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
@@ -59,6 +61,7 @@ var commonObjectTypes = map[string]objecttype.ObjectType{
 	s4wave_device.ComputersDashboardTypeID:    s4wave_device_world.ComputersDashboardType,
 	s4wave_terminal.TerminalTypeID:            s4wave_terminal_world.TerminalType,
 	s4wave_camera.CameraTypeID:                s4wave_camera_world.CameraType,
+	s4wave_display.DisplayTypeID:              s4wave_display_world.DisplayType,
 	s4wave_secret_world.SecretTypeID:          s4wave_secret_world.SecretType,
 	s4wave_sshhost.SshHostTypeID:              s4wave_sshhost_world.SshHostType,
 	s4wave_appconnector.AppConnectorTypeID:    s4wave_appconnector_world.AppConnectorType,

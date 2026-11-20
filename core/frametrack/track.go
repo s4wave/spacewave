@@ -44,7 +44,8 @@ func (t *Track) Subscribe(
 	window int,
 ) (release func(), err error) {
 	// Give the viewer an independent window on its existing link.
-	sender, err := NewSender(ctx, subscription.GetSubscriptionId(), window, OpenMountedGroupStream(control), t.requestKeyframe)
+	write := WriteStreamGroups(OpenMountedGroupStream(control))
+	sender, err := NewSender(ctx, subscription.GetSubscriptionId(), window, write, t.requestKeyframe)
 	if err != nil {
 		return nil, err
 	}

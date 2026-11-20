@@ -1,9 +1,16 @@
-import { useEffect, useReducer, useRef } from 'react'
+import {
+  useEffect,
+  useReducer,
+  useRef,
+  type KeyboardEvent,
+  type PointerEvent,
+} from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import type { LoadingView } from '@s4wave/web/ui/loading/types.js'
 
+import { FrameInput } from './frame-input.js'
 import {
   type FramePlayEvent,
   type FrameSource,
@@ -93,6 +100,7 @@ export function FrameView({ source, label }: FrameViewProps) {
   // Hold the elements and the track's state.
   const paneRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const inputRef = useRef<FrameInput | null>(null)
   const [state, dispatch] = useReducer(frameViewReducer, {
     attempt: 0,
     track: { kind: 'connecting' },
@@ -104,8 +112,75 @@ export function FrameView({ source, label }: FrameViewProps) {
     const canvas = canvasRef.current
     const pane = paneRef.current
     if (!source || !canvas || !pane) return
-    return playFrames(source, canvas, pane, dispatch)
+    if (source.kind === 'view') {
+      return playFrames(source.open, canvas, pane, dispatch)
+    }
+
+    // Bind the event queue to this connection and release it before retrying.
+    const input = new FrameInput()
+    inputRef.current = input
+    const stop = playFrames(
+      (signal) => {
+        signal.addEventListener('abort', () => input.close(), { once: true })
+        return source.open(input, signal)
+      },
+      canvas,
+      pane,
+      dispatch,
+    )
+    return () => {
+      inputRef.current = null
+      stop()
+    }
   }, [source, attempt])
+
+  // Input is exposed only while this Display has live pictures.
+  const interactive = source?.kind === 'control' && track.kind === 'live'
+  const sendPointer = (event: PointerEvent<HTMLCanvasElement>) => {
+    // Use the picture's rectangle, which excludes the letterbox around it.
+    const canvas = event.currentTarget
+    const bounds = canvas.getBoundingClientRect()
+    if (!bounds.width || !bounds.height) return
+    const x = Math.min(
+      1,
+      Math.max(0, (event.clientX - bounds.left) / bounds.width),
+    )
+    const y = Math.min(
+      1,
+      Math.max(0, (event.clientY - bounds.top) / bounds.height),
+    )
+
+    // Keep movement and button releases over this surface while dragging.
+    if (event.type === 'pointerdown') {
+      canvas.focus({ preventScroll: true })
+      canvas.setPointerCapture(event.pointerId)
+    }
+
+    // A canceled pointer releases its buttons at the latest position.
+    const buttons = event.type === 'pointercancel' ? 0 : event.buttons
+    inputRef.current?.push(
+      { event: { case: 'pointer', value: { x, y, buttons } } },
+      event.type === 'pointermove' ? buttons : undefined,
+    )
+  }
+
+  const sendKey = (event: KeyboardEvent<HTMLCanvasElement>) => {
+    // Keep Tab available for leaving the display in the local interface.
+    if (event.key === 'Tab') return
+    event.preventDefault()
+    event.stopPropagation()
+    inputRef.current?.push({
+      event: {
+        case: 'key',
+        value: {
+          code: event.code,
+          key: event.key,
+          pressed: event.type === 'keydown',
+          repeat: event.repeat,
+        },
+      },
+    })
+  }
 
   // A track with a picture keeps it on the canvas, paused or live.
   const view = trackView(track, () => dispatch({ kind: 'retry' }))
@@ -117,9 +192,23 @@ export function FrameView({ source, label }: FrameViewProps) {
       <canvas
         key={attempt}
         ref={canvasRef}
-        role="img"
+        role={interactive ? 'application' : 'img'}
         aria-label={label}
-        className={cn(view && 'invisible')}
+        tabIndex={interactive ? 0 : undefined}
+        onPointerMove={interactive ? sendPointer : undefined}
+        onPointerDown={interactive ? sendPointer : undefined}
+        onPointerUp={interactive ? sendPointer : undefined}
+        onPointerCancel={interactive ? sendPointer : undefined}
+        onKeyDown={interactive ? sendKey : undefined}
+        onKeyUp={interactive ? sendKey : undefined}
+        onContextMenu={
+          interactive ? (event) => event.preventDefault() : undefined
+        }
+        className={cn(
+          view && 'invisible',
+          interactive &&
+            'focus-visible:outline-primary touch-none focus-visible:outline-2 focus-visible:-outline-offset-2',
+        )}
       />
       {view ? (
         <LoadingCard className="absolute w-full max-w-sm" view={view} />
