@@ -21,6 +21,7 @@ import (
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -187,11 +188,77 @@ func (b *BatchFSWriter) AddFile(
 		}
 	}
 
-	// Queue the file metadata and record the completed ingest.
+	// Queue the file metadata.
+	b.queueFile(ctx, parentPath, name, unixfs_block.FSCursorNodeTypeToNodeType(nodeType), permissions, ts, blobRef, data, dataLen)
+	return nil
+}
+
+// AddFileBlob records a regular file entry whose contents are the blob build
+// returns, as AddFile records one built from a reader. build addresses the
+// contents with the World's transform xfrm and hash type and returns their
+// Blob; the writer stores only the Blob block, so the blocks it names must
+// already be readable, as the blocks of a linked file are.
+func (b *BatchFSWriter) AddFileBlob(
+	ctx context.Context,
+	parentPath []string,
+	name string,
+	permissions fs.FileMode,
+	ts time.Time,
+	build func(xfrm block.Transformer, hashType hash.HashType) (*blob.Blob, error),
+) error {
+	// Validate the file entry before accepting it into BatchFSWriter.
+	if err := b.checkOpen(); err != nil {
+		return err
+	}
+	if name == "" {
+		return unixfs_errors.ErrEmptyPath
+	}
+
+	// Build the Blob with the World's transform and hash type.
+	if err := b.openStorage(ctx); err != nil {
+		return err
+	}
+	bl, err := build(b.storage.GetTransformer(), b.storage.GetBlockStore().GetHashType())
+	if err != nil {
+		return err
+	}
+	size := int64(bl.GetTotalSize()) //nolint:gosec // a file's size is an int64.
+
+	// Write the Blob block into the blob buffer; an empty file has no blob.
+	var blobRef *block.BlockRef
+	if size != 0 {
+		btx, bcs := b.storage.BuildTransactionWithStore(nil, b.blobs)
+		btx.SetWriteBuffer(b.blobs)
+		bcs.SetBlock(bl, true)
+		blobRef, _, err = btx.Write(ctx, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Queue the file metadata.
+	b.queueFile(ctx, parentPath, name, unixfs_block.NodeType_NodeType_FILE, permissions, ts, blobRef, nil, size)
+	return nil
+}
+
+// queueFile queues a FILE entry under parentPath and records the completed
+// ingest of its dataLen bytes.
+func (b *BatchFSWriter) queueFile(
+	ctx context.Context,
+	parentPath []string,
+	name string,
+	nodeType unixfs_block.NodeType,
+	permissions fs.FileMode,
+	ts time.Time,
+	blobRef *block.BlockRef,
+	data []byte,
+	dataLen int64,
+) {
+	// Queue the file metadata under its parent.
 	pd := b.pendingDirFor(parentPath)
 	pd.entries = append(pd.entries, pendingEntry{
 		name:        name,
-		nodeType:    unixfs_block.FSCursorNodeTypeToNodeType(nodeType),
+		nodeType:    nodeType,
 		permissions: permissions.Perm(),
 		ts:          unixfs_block.ToTimestamp(ts, true),
 		blobRef:     blobRef,
@@ -206,26 +273,37 @@ func (b *BatchFSWriter) AddFile(
 		PendingDirs:    pendingDirs,
 		PendingEntries: pendingEntries,
 	})
+}
+
+// openStorage opens the staged World storage cursor and its shared blob
+// buffer on first use.
+func (b *BatchFSWriter) openStorage(ctx context.Context) error {
+	// Reuse the open storage.
+	if b.storage != nil {
+		return nil
+	}
+
+	// Stage the World and build its storage cursor.
+	stage, err := b.ws.StageWorldState(ctx)
+	if err != nil {
+		return err
+	}
+	storage, err := stage.BuildStorageCursor(ctx)
+	if err != nil {
+		stage.Release()
+		return err
+	}
+	b.stage, b.storage = stage, storage
+	b.blobs = block.NewBufferedStore(ctx, storage.GetBlockStore())
 	return nil
 }
 
 // buildBlob writes a blob of dataLen bytes from rdr into the blob buffer and
 // returns its root reference.
 func (b *BatchFSWriter) buildBlob(ctx context.Context, dataLen int64, rdr io.Reader) (*block.BlockRef, error) {
-	// Open the staged World storage cursor and its shared blob buffer on
-	// first use.
-	if b.storage == nil {
-		stage, err := b.ws.StageWorldState(ctx)
-		if err != nil {
-			return nil, err
-		}
-		storage, err := stage.BuildStorageCursor(ctx)
-		if err != nil {
-			stage.Release()
-			return nil, err
-		}
-		b.stage, b.storage = stage, storage
-		b.blobs = block.NewBufferedStore(ctx, storage.GetBlockStore())
+	// Open the staged World storage cursor on first use.
+	if err := b.openStorage(ctx); err != nil {
+		return nil, err
 	}
 
 	// The borrowed write buffer keeps the blob's root write from draining.
