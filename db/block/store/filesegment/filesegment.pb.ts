@@ -8,7 +8,8 @@ import { BlockRef } from '../../block.pb.js'
 
 /**
  * Segment is a byte range of a file on this Device whose bytes, encoded with
- * the Space's transform, were a block when the file was linked.
+ * the Space's transform, were a block when the file was linked. It is the
+ * SegmentIndex value of one ref in one path.
  *
  * @generated from message block.store.filesegment.Segment
  */
@@ -46,25 +47,6 @@ export const Segment: MessageType<Segment> =
       [4, 'mod_time', 3],
       [5, 'size', 3],
     ],
-  )
-
-/**
- * SegmentSet is the SegmentIndex value of one ref: the linked ranges that held
- * its block, at most one per path.
- *
- * @generated from message block.store.filesegment.SegmentSet
- */
-export interface SegmentSet {
-  /**
-   * Segments are the ranges, in the order they were linked.
-   */
-  segments?: Segment[]
-}
-
-export const SegmentSet: MessageType<SegmentSet> =
-  /* @__PURE__ */ createMessageType<SegmentSet>(
-    'block.store.filesegment.SegmentSet',
-    () => [[1, 'segments', 11, 1, Segment.codec]],
   )
 
 /**

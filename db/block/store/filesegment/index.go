@@ -5,21 +5,26 @@ package block_store_filesegment
 
 import (
 	"context"
-	"slices"
+	"encoding/binary"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// refKeyPrefix prefixes the key of a ref's SegmentSet.
-const refKeyPrefix = "r/"
+// segKeyPrefix prefixes the key of one ref's range in one path.
+const segKeyPrefix = "r/"
 
 // pathKeyPrefix prefixes the key of a path's PathRefs.
 const pathKeyPrefix = "p/"
 
-// Index is the SegmentIndex of one Space: each ref maps to the linked file
-// ranges that held its block, and each path to the refs of its ranges. It
-// lives in a key/value store on this Device, so it outlives the process.
+// Index is the SegmentIndex of one Space: one entry per ref and path, holding
+// the linked file range that held the ref's block, and one entry per path
+// holding the refs of its ranges. It lives in a key/value store on this
+// Device, so it outlives the process.
+//
+// A ref's ranges are the keys under its prefix, so linking or dropping one
+// path writes only that path's entries, however many other files share its
+// blocks.
 type Index struct {
 	// store holds the entries.
 	store kvtx.Store
@@ -30,10 +35,11 @@ func NewIndex(store kvtx.Store) *Index {
 	return &Index{store: store}
 }
 
-// Lookup returns the segments recorded for ref with one read of the store.
+// Lookup returns the segments recorded for ref, ordered by path, with one scan
+// of the ref's prefix.
 func (x *Index) Lookup(ctx context.Context, ref *block.BlockRef) ([]*Segment, error) {
-	// Read the ref's entry.
-	key, err := refKey(ref)
+	// Scan the ref's entries.
+	prefix, err := refPrefix(ref)
 	if err != nil {
 		return nil, err
 	}
@@ -42,22 +48,27 @@ func (x *Index) Lookup(ctx context.Context, ref *block.BlockRef) ([]*Segment, er
 		return nil, err
 	}
 	defer tx.Discard()
-	data, found, err := tx.Get(ctx, key)
-	if err != nil || !found {
-		return nil, err
-	}
 
-	// Decode its segments.
-	set := &SegmentSet{}
-	if err := set.UnmarshalVT(data); err != nil {
+	// Decode each range.
+	var segs []*Segment
+	err = tx.ScanPrefix(ctx, prefix, func(_, value []byte) error {
+		seg := &Segment{}
+		if err := seg.UnmarshalVT(value); err != nil {
+			return err
+		}
+		segs = append(segs, seg)
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	return set.GetSegments(), nil
+	return segs, nil
 }
 
 // SetPath replaces the segments of path with segs, where segs[i] held refs[i],
 // in one write: a reader sees the path's old segments or its new ones. A ref
-// keeps at most one segment per path, the first. Nil refs drop the path.
+// keeps one segment per path, the first. Nil refs drop the path. The write
+// reads the path's entry and touches only the path's own keys.
 func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef, segs []*Segment) error {
 	// Read the refs the path held.
 	tx, err := x.store.NewTransaction(ctx, true)
@@ -77,36 +88,39 @@ func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef
 		}
 	}
 
-	// Drop the path's segment from each ref it held.
-	sets := make(map[string]*SegmentSet)
-	for _, ref := range old.GetRefs() {
-		set, err := loadSet(ctx, tx, sets, ref)
-		if err != nil {
-			return err
-		}
-		set.Segments = slices.DeleteFunc(set.Segments, func(s *Segment) bool { return s.GetPath() == path })
-	}
-
-	// Add the new segments, one per ref.
+	// Write the new segments, one per ref.
 	next := &PathRefs{}
+	keep := make(map[string]struct{}, len(refs))
 	for i, ref := range refs {
-		set, err := loadSet(ctx, tx, sets, ref)
+		key, err := segKey(ref, path)
 		if err != nil {
 			return err
 		}
-		if slices.ContainsFunc(set.Segments, func(s *Segment) bool { return s.GetPath() == path }) {
+		if _, ok := keep[string(key)]; ok {
 			continue
 		}
-		set.Segments = append(set.Segments, segs[i])
+		keep[string(key)] = struct{}{}
+		if err := putOrDelete(ctx, tx, key, segs[i], false); err != nil {
+			return err
+		}
 		next.Refs = append(next.Refs, ref)
 	}
 
-	// Write the changed refs and the path, then commit.
-	for key, set := range sets {
-		if err := putOrDelete(ctx, tx, []byte(key), set, len(set.GetSegments()) == 0); err != nil {
+	// Delete the old segments the new ones did not replace.
+	for _, ref := range old.GetRefs() {
+		key, err := segKey(ref, path)
+		if err != nil {
+			return err
+		}
+		if _, ok := keep[string(key)]; ok {
+			continue
+		}
+		if err := tx.Delete(ctx, key); err != nil {
 			return err
 		}
 	}
+
+	// Write the path, then commit.
 	if err := putOrDelete(ctx, tx, pkey, next, len(next.GetRefs()) == 0); err != nil {
 		return err
 	}
@@ -116,33 +130,6 @@ func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef
 // DropPath removes every segment of path in one write.
 func (x *Index) DropPath(ctx context.Context, path string) error {
 	return x.SetPath(ctx, path, nil, nil)
-}
-
-// loadSet returns the SegmentSet of ref, read from tx on its first use and
-// kept in sets by key.
-func loadSet(ctx context.Context, tx kvtx.Tx, sets map[string]*SegmentSet, ref *block.BlockRef) (*SegmentSet, error) {
-	// Reuse the set this write already read.
-	key, err := refKey(ref)
-	if err != nil {
-		return nil, err
-	}
-	if set, ok := sets[string(key)]; ok {
-		return set, nil
-	}
-
-	// Read and decode it.
-	set := &SegmentSet{}
-	data, found, err := tx.Get(ctx, key)
-	if err != nil {
-		return nil, err
-	}
-	if found {
-		if err := set.UnmarshalVT(data); err != nil {
-			return nil, err
-		}
-	}
-	sets[string(key)] = set
-	return set, nil
 }
 
 // putOrDelete writes msg at key, or deletes key when drop is set.
@@ -160,11 +147,22 @@ func putOrDelete(ctx context.Context, tx kvtx.Tx, key []byte, msg interface{ Mar
 	return tx.Set(ctx, key, data)
 }
 
-// refKey returns the key of ref's SegmentSet.
-func refKey(ref *block.BlockRef) ([]byte, error) {
+// refPrefix returns the prefix of ref's segment keys: the encoded ref behind
+// its length, so no ref's prefix is a prefix of another ref's.
+func refPrefix(ref *block.BlockRef) ([]byte, error) {
 	data, err := ref.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
-	return append([]byte(refKeyPrefix), data...), nil
+	key := binary.AppendUvarint([]byte(segKeyPrefix), uint64(len(data)))
+	return append(key, data...), nil
+}
+
+// segKey returns the key of ref's segment in path.
+func segKey(ref *block.BlockRef, path string) ([]byte, error) {
+	prefix, err := refPrefix(ref)
+	if err != nil {
+		return nil, err
+	}
+	return append(prefix, path...), nil
 }

@@ -227,6 +227,27 @@ func TestRelinkReplacesPath(t *testing.T) {
 		}
 	}
 
+	// A copy at a second path shares every ref, and dropping the first path
+	// leaves the copy's ranges.
+	copyPath := filepath.Join(filepath.Dir(path), "copy.bin")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(copyPath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LinkFile(ctx, reopened, copyPath, nil, xfrm, 0); err != nil {
+		t.Fatal(err)
+	}
+	first := after.GetChunkIndex().GetChunks()[0].GetDataRef()
+	if segs, err := reopened.Lookup(ctx, first); err != nil || len(segs) != 2 {
+		t.Fatalf("shared ref: %d segments, err %v, want 2", len(segs), err)
+	}
+	if err := reopened.DropPath(ctx, copyPath); err != nil {
+		t.Fatal(err)
+	}
+
 	// Dropping the path drops every range.
 	if err := reopened.DropPath(ctx, path); err != nil {
 		t.Fatal(err)
@@ -243,7 +264,7 @@ func TestRelinkReplacesPath(t *testing.T) {
 
 // TestReadScaling links n and then 10n files of equal size and reads every
 // chunk once, checking that the cost of a chunk read does not grow with the
-// number of linked files: one index get and one file read per chunk read, and
+// number of linked files: one index key read and one file read per chunk read, and
 // the same allocations.
 func TestReadScaling(t *testing.T) {
 	ctx := context.Background()
@@ -267,13 +288,13 @@ func TestReadScaling(t *testing.T) {
 			}
 		}
 
-		// Read every chunk once, counting allocations, index gets and
+		// Read every chunk once, counting allocations, index key reads and
 		// file reads. A warm-up read fills the buffer pool.
 		fss := newStore(idx, xfrm)
 		if _, ok, err := fss.GetBlock(ctx, refs[0]); !ok || err != nil {
 			t.Fatal(ok, err)
 		}
-		reads0, hits0 := kv.Counts().Reads, fss.Hits.Load()
+		counts0, hits0 := kv.Counts(), fss.Hits.Load()
 		var m0, m1 runtime.MemStats
 		runtime.ReadMemStats(&m0)
 		for _, ref := range refs {
@@ -284,14 +305,15 @@ func TestReadScaling(t *testing.T) {
 		runtime.ReadMemStats(&m1)
 		k := float64(len(refs))
 		devReads = float64(fss.Hits.Load()-hits0+fss.HashMisses.Load()) / k
-		return float64(m1.Mallocs-m0.Mallocs) / k, float64(kv.Counts().Reads-reads0) / k, devReads
+		counts := kv.Counts().Sub(counts0)
+		return float64(m1.Mallocs-m0.Mallocs) / k, float64(counts.Reads+counts.Steps) / k, devReads
 	}
 
 	a1, g1, d1 := measure(40)
 	a10, g10, d10 := measure(400)
 	t.Logf("per chunk read: n allocs=%.1f gets=%.2f reads=%.2f; 10n allocs=%.1f gets=%.2f reads=%.2f", a1, g1, d1, a10, g10, d10)
 	if g1 != 1 || g10 != 1 || d1 != 1 || d10 != 1 {
-		t.Fatal("a chunk read must make one index get and one file read")
+		t.Fatal("a chunk read must read one index key and one file")
 	}
 	if a10 > a1*1.1+1 {
 		t.Fatalf("allocations per read grew from %.1f to %.1f", a1, a10)

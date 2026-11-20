@@ -15,7 +15,8 @@ import (
 )
 
 // Segment is a byte range of a file on this Device whose bytes, encoded with
-// the Space's transform, were a block when the file was linked.
+// the Space's transform, were a block when the file was linked. It is the
+// SegmentIndex value of one ref in one path.
 type Segment struct {
 	unknownFields []byte
 	// Path is the file's absolute path on this Device.
@@ -72,27 +73,6 @@ func (x *Segment) GetSize() int64 {
 	return 0
 }
 
-// SegmentSet is the SegmentIndex value of one ref: the linked ranges that held
-// its block, at most one per path.
-type SegmentSet struct {
-	unknownFields []byte
-	// Segments are the ranges, in the order they were linked.
-	Segments []*Segment `protobuf:"bytes,1,rep,name=segments,proto3" json:"segments,omitempty"`
-}
-
-func (x *SegmentSet) Reset() {
-	*x = SegmentSet{}
-}
-
-func (*SegmentSet) ProtoMessage() {}
-
-func (x *SegmentSet) GetSegments() []*Segment {
-	if x != nil {
-		return x.Segments
-	}
-	return nil
-}
-
 // PathRefs is the SegmentIndex value of one path: the refs its segments hold,
 // so a changed path drops its entries in one write.
 type PathRefs struct {
@@ -131,22 +111,6 @@ func (m *Segment) CloneVT() *Segment {
 }
 
 func (m *Segment) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *SegmentSet) CloneVT() *SegmentSet {
-	if m == nil {
-		return (*SegmentSet)(nil)
-	}
-	r := new(SegmentSet)
-	r.Segments = protobuf_go_lite.CloneVTSlice(m.Segments)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *SegmentSet) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -192,26 +156,6 @@ func (this *Segment) EqualVT(that *Segment) bool {
 
 func (this *Segment) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Segment)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *SegmentSet) EqualVT(that *SegmentSet) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Segments, that.Segments, func() *Segment { return &Segment{} }) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *SegmentSet) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*SegmentSet)
 	if !ok {
 		return false
 	}
@@ -309,69 +253,6 @@ func (x *Segment) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the Segment from JSON.
 func (x *Segment) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the SegmentSet message to JSON.
-func (x *SegmentSet) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if len(x.Segments) > 0 || s.HasField("segments") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("segments")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.Segments {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("segments"))
-		}
-		s.WriteArrayEnd()
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the SegmentSet to JSON.
-func (x *SegmentSet) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the SegmentSet message from JSON.
-func (x *SegmentSet) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "segments":
-			s.AddField("segments")
-			if s.ReadNil() {
-				x.Segments = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.Segments = append(x.Segments, nil)
-					return
-				}
-				v := &Segment{}
-				v.UnmarshalProtoJSON(s.WithField("segments", false))
-				if s.Err() != nil {
-					return
-				}
-				x.Segments = append(x.Segments, v)
-			})
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the SegmentSet from JSON.
-func (x *SegmentSet) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -495,50 +376,6 @@ func (m *Segment) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *SegmentSet) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SegmentSet) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SegmentSet) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.Segments) > 0 {
-		for iNdEx := len(m.Segments) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.Segments[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0xa
-		}
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *PathRefs) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -598,20 +435,6 @@ func (m *Segment) SizeVT() (n int) {
 	return n
 }
 
-func (m *SegmentSet) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	for _, e := range m.Segments {
-		l = e.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
 func (m *PathRefs) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -653,28 +476,6 @@ func (x *Segment) MarshalProtoText() string {
 }
 
 func (x *Segment) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *SegmentSet) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SegmentSet")
-	if len(x.Segments) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "segments")
-		for i, v := range x.Segments {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &Segment{})
-			} else {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
-			}
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *SegmentSet) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -766,62 +567,6 @@ func (m *Segment) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *SegmentSet) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SegmentSet: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SegmentSet: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Segments", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Segments = append(m.Segments, &Segment{})
-			if err := m.Segments[len(m.Segments)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
