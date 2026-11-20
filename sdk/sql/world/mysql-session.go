@@ -22,8 +22,8 @@ import (
 )
 
 // mysqlSession owns one client's variables and optional storage transaction.
-// A commit reply follows World publication. Disconnect never undoes publication
-// and never retries a mutation whose outcome is unknown.
+// A commit reply follows World publication. Disconnect never interrupts or
+// undoes publication and never retries a mutation whose outcome is unknown.
 type mysqlSession struct {
 	// BaseSession retains SQL variables independently of storage transactions.
 	*sql.BaseSession
@@ -114,7 +114,10 @@ func (s *mysqlSession) discard() {
 }
 
 // commit detaches the transaction before publishing and never retries its writes.
-func (s *mysqlSession) commit(ctx context.Context) error {
+// It publishes under the endpoint's context, not the command's: a commit that a
+// departing client interrupted between its SQL root and the World would leave a
+// private root, which stops the endpoint for every client.
+func (s *mysqlSession) commit() error {
 	// An empty COMMIT succeeds without creating a storage transaction.
 	if s.tx == nil {
 		return nil
@@ -122,7 +125,7 @@ func (s *mysqlSession) commit(ctx context.Context) error {
 	t := s.tx
 	s.tx = nil
 	s.conn.StatusFlags &^= mysql.ServerInTransaction
-	err := t.Commit(ctx)
+	err := t.Commit(s.server.ctx)
 	t.Discard()
 
 	// Reopen from World before accepting further work after uncertain publication.
@@ -144,7 +147,7 @@ func (s *mysqlSession) query(ctx context.Context, query string, args []driver.Na
 	}
 	switch st := statement.(type) {
 	case *sqlparser.Begin:
-		if err := s.commit(ctx); err != nil {
+		if err := s.commit(); err != nil {
 			return err
 		}
 		if err := s.open(ctx, !strings.Contains(strings.ToLower(st.TransactionCharacteristic), "read only")); err != nil {
@@ -153,7 +156,7 @@ func (s *mysqlSession) query(ctx context.Context, query string, args []driver.Na
 		s.conn.StatusFlags |= mysql.ServerInTransaction
 		return callback(&sqltypes.Result{}, false)
 	case *sqlparser.Commit:
-		if err := s.commit(ctx); err != nil {
+		if err := s.commit(); err != nil {
 			return err
 		}
 		return callback(&sqltypes.Result{}, false)
@@ -215,7 +218,7 @@ func (s *mysqlSession) query(ctx context.Context, query string, args []driver.Na
 	// Enabling autocommit commits the explicit transaction before acknowledging SET.
 	_, setting := statement.(*sqlparser.Set)
 	if short && write || setting && !short && value != int8(0) && s.conn.StatusFlags&mysql.ServerStatusAutocommit == 0 {
-		if err := s.commit(ctx); err != nil {
+		if err := s.commit(); err != nil {
 			return err
 		}
 	}

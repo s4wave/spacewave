@@ -181,7 +181,8 @@ func (s *mysqlServer) ComStmtExecute(_ context.Context, c *mysql.Conn, p *mysql.
 	return mysqlCommandError(s.session(c).query(ctx, p.PrepareStmt, args, finalMysqlResult(stop, func(r *sqltypes.Result, _ bool) error { return callback(r) })))
 }
 
-// watchCommand cancels a command on client disconnect and joins its socket watch.
+// watchCommand cancels a command's work on client disconnect and joins its socket
+// watch. A commit that has started is exempt: it runs under the endpoint's context.
 func (s *mysqlServer) watchCommand(c *mysql.Conn) (context.Context, func(), func()) {
 	// The protocol is half duplex: incoming bytes during work abandon the command.
 	ctx, cancel := context.WithCancelCause(s.ctx)

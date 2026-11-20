@@ -5,6 +5,11 @@
     "expect": "AckIsPublished"
   },
   {
+    "name": "a disconnect interrupts a commit before its publication",
+    "replace": [["phase[c] \\notin {\"closed\", \"committing\"}", "phase[c] # \"closed\""]],
+    "expect": "PrivateIsOwned"
+  },
+  {
     "name": "disconnect retains the transaction writer",
     "replace": [["owner' = IF owner = c THEN \"none\" ELSE owner", "owner' = owner"]],
     "expect": "ClosedOwnsNothing"
