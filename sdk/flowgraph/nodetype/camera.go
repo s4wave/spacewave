@@ -10,6 +10,9 @@ import (
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
 
+// cameraDeviceParameter names the local capture device on a camera node.
+const cameraDeviceParameter = "device"
+
 // camera serves a camera track on the Device that runs the node.
 type camera struct{}
 
@@ -29,8 +32,10 @@ func (camera) GetConfigIDs() []string {
 }
 
 // Compile starts the camera controller on the Device's Session.
-func (camera) Compile(context.Context, *s4wave_flowgraph.PlacedFlowgraphNode) (map[string]config.Config, error) {
-	return map[string]config.Config{"camera": &camera_service.Config{}}, nil
+func (camera) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgraphNode) (map[string]config.Config, error) {
+	return map[string]config.Config{
+		"camera": &camera_service.Config{Device: node.Node.GetParameters()[cameraDeviceParameter]},
+	}, nil
 }
 
 // GetCapability publishes the protocol viewers use to subscribe to the camera.
