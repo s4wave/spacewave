@@ -66,8 +66,10 @@ type tricklePeers struct {
 	received    atomic.Uint64
 }
 
-// ReceivedBytes returns the bytes counted so far.
-func (p *tricklePeers) ReceivedBytes() uint64 { return p.received.Load() }
+// WithReadProgress returns ctx and the bytes counted so far.
+func (p *tricklePeers) WithReadProgress(ctx context.Context) (context.Context, func() uint64) {
+	return ctx, p.received.Load
+}
 
 // GetStoredBlock counts arrivals until delay passes, then serves the block.
 func (p *tricklePeers) GetStoredBlock(ctx context.Context, _ *block.BlockRef) (*block.StoredBlock, error) {

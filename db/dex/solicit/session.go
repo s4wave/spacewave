@@ -73,20 +73,19 @@ type queuedSend struct {
 	done chan error
 }
 
-// countedStream counts each read's bytes in the session's delivery rate and
-// in the controller's total, so a reader waiting on one answer sees the
-// stream deliver the answers queued ahead of it.
+// countedStream counts each read's bytes in the session's received count,
+// which the session's delivery rate and the progress of each read pending on
+// it measure.
 type countedStream struct {
 	io.ReadWriteCloser
-	// session and total are the session's and the controller's counts.
-	session, total *atomic.Uint64
+	// received is the session's count.
+	received *atomic.Uint64
 }
 
 // Read reads from the stream and counts the bytes read.
 func (s countedStream) Read(p []byte) (int, error) {
 	n, err := s.ReadWriteCloser.Read(p)
-	s.session.Add(uint64(n)) //nolint:gosec // Read never returns a negative count.
-	s.total.Add(uint64(n))   //nolint:gosec // Read never returns a negative count.
+	s.received.Add(uint64(n)) //nolint:gosec // Read never returns a negative count.
 	return n, err
 }
 
@@ -125,7 +124,7 @@ func newPeerSession(
 		pending:  make(map[uint32]chan *DexMessage),
 		handling: make(map[uint32]*handledRequest),
 	}
-	s.sess = stream_packet.NewSession(countedStream{ReadWriteCloser: ms.GetStream(), session: &s.rate.received, total: &c.received}, maxMessageSize)
+	s.sess = stream_packet.NewSession(countedStream{ReadWriteCloser: ms.GetStream(), received: &s.rate.received}, maxMessageSize)
 	s.runRoutine = routine.NewRoutineContainer()
 	_, _ = s.runRoutine.SetRoutine(func(ctx context.Context) error {
 		s.run(ctx)
@@ -618,6 +617,12 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		}
 		s.mtx.Unlock()
 	}()
+
+	// Count the session's bytes toward the read while the request is
+	// pending.
+	if p := getReadProgress(ctx); p != nil {
+		defer p.end(p.begin(&s.rate.received))
+	}
 
 	// Send the block request to the peer.
 	req := &DexMessage{

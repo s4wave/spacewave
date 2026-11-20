@@ -47,11 +47,17 @@ func NewStore(controller *Controller) *Store {
 	return &Store{controller: controller}
 }
 
-// ReceivedBytes returns how many bytes the controller's peer sessions have
-// read from their streams. It grows while any peer delivers an answer, so a
-// reader waiting on one block can tell a slow link, whose answers queue
-// behind each other in the peer's session, from a peer that sends nothing.
-func (s *Store) ReceivedBytes() uint64 { return s.controller.received.Load() }
+// WithReadProgress returns ctx carrying a new read's progress, and a func
+// returning the bytes delivered toward the read so far: what its peer
+// sessions read while one of its requests was pending there, answers queued
+// ahead of its own included. The count stops once a peer answers the read
+// with a failure. A reader waiting on one block can thus tell a slow link,
+// whose answers queue behind each other in the peer's session, from a peer
+// that sends nothing or refuses.
+func (*Store) WithReadProgress(ctx context.Context) (context.Context, func() uint64) {
+	p := &readProgress{}
+	return context.WithValue(ctx, readProgressKey{}, p), p.bytes
+}
 
 // GetHashType returns the unset preferred hash type because the peer set may
 // serve references using more than one hash type.
@@ -140,6 +146,9 @@ func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool, l
 	// Ask the settled peer sessions for the block.
 	found, err := s.controller.askPeers(ctx, sessions, ref, s.controller.cc.GetMaxForwardHops(), nil, linked)
 	if err != nil {
+		if p := getReadProgress(ctx); p != nil && peerRefused(err) {
+			p.refuse()
+		}
 		return nil, err
 	}
 

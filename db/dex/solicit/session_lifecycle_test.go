@@ -1040,3 +1040,98 @@ func TestPickSessionPrefersFastest(t *testing.T) {
 		t.Fatal("a closed session was picked")
 	}
 }
+
+// TestReadProgressCountsOnlyPendingWindows checks that a read's progress
+// counts a sibling answer queued ahead of its own, stops once a peer refuses
+// the read so a sibling answer during its retry does not extend it, and
+// counts nothing that arrived while none of its requests was pending.
+func TestReadProgressCountsOnlyPendingWindows(t *testing.T) {
+	// Register one peer session for every read.
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	c := newTestDexSolicitController()
+	store := NewStore(c)
+	sess, remote, cleanup := newTestPeerSessionPair(c, peer.ID("peer"))
+	defer cleanup()
+	sess.start(ctx)
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.sessions["peer"] = []*peerSession{sess}
+		broadcast()
+	})
+
+	// read starts a read of ref under ctx and returns its result channel.
+	read := func(ctx context.Context, ref *block.BlockRef) <-chan error {
+		done := make(chan error, 1)
+		go func() {
+			_, err := store.GetStoredBlock(ctx, ref)
+			done <- err
+		}()
+		return done
+	}
+	// recv takes the next request off the peer's end.
+	recv := func() *DexMessage {
+		var req DexMessage
+		if err := remote.RecvMsg(&req); err != nil {
+			t.Fatal(err)
+		}
+		return &req
+	}
+	// answer sends the peer's answer to req: data, or a failure.
+	answer := func(req *DexMessage, data string) {
+		msg := &DexMessage{RequestId: req.GetRequestId(), IsResponse: true, Found: data != "", Data: []byte(data)}
+		if data == "" {
+			msg.Error = "tier away"
+		}
+		if err := remote.SendMsg(msg); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// sibling reads a block while the peer answers it.
+	sibling := func(data string) {
+		done := read(ctx, testDexBlockRef(t, data))
+		answer(recv(), data)
+		if err := recvTestDexValue(t, done, "sibling "+data); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// A sibling answer queued ahead of the refused read's own counts.
+	refusedCtx, progress := store.WithReadProgress(ctx)
+	refusedRef := testDexBlockRef(t, "refused")
+	done := read(refusedCtx, refusedRef)
+	own := recv()
+	sibling("ahead")
+	answer(own, "")
+	if err := recvTestDexValue(t, done, "refused read"); !errors.Is(err, ErrPeerError) {
+		t.Fatalf("refused read: %v", err)
+	}
+	frozen := progress()
+	if frozen == 0 {
+		t.Fatal("the answer queued ahead of the read did not count")
+	}
+
+	// The refused read's retry is not extended by a sibling answer.
+	done = read(refusedCtx, refusedRef)
+	own = recv()
+	sibling("during-retry")
+	answer(own, "")
+	if err := recvTestDexValue(t, done, "refused retry"); !errors.Is(err, ErrPeerError) {
+		t.Fatalf("refused retry: %v", err)
+	}
+	if got := progress(); got != frozen {
+		t.Fatalf("refused read progress grew from %d to %d", frozen, got)
+	}
+
+	// A served read counts nothing once none of its requests is pending.
+	servedCtx, progress := store.WithReadProgress(ctx)
+	done = read(servedCtx, testDexBlockRef(t, "served"))
+	answer(recv(), "served")
+	if err := recvTestDexValue(t, done, "served read"); err != nil {
+		t.Fatal(err)
+	}
+	served := progress()
+	sibling("after")
+	if got := progress(); served == 0 || got != served {
+		t.Fatalf("served read progress %d, then %d after a sibling", served, got)
+	}
+}
