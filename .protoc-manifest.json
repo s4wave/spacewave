@@ -4143,7 +4143,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/camera": {
-          "hash": "663305308d981eca76efe92417b1445b5d340de0d21fdf1a93a840974cf597b7",
+          "hash": "ac5f36c04aeccb239b266fd06cd8ca7b37e199f91cabdc52e5f6905ce7ba0539",
           "generatedFiles": [
             "sdk/camera/camera.pb.go",
             "sdk/camera/camera.pb.ts",

@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/frametrack"
 	spacewave_launcher_gossip "github.com/s4wave/spacewave/core/provider/spacewave/launcher/gossip"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
@@ -76,6 +77,9 @@ type SessionTransport struct {
 	bridgeFilter bus_bridge.FilterFn
 	// childFactories build the factories the creator adds to the child bus.
 	childFactories []ChildFactoryFunc
+	// frames routes frame groups from Devices to this Session's viewers. It
+	// outlives each Execute so registrations stay valid across restarts.
+	frames *frametrack.SubscriptionRegistry
 	// cancel cancels the running Execute when the transport fails.
 	cancel context.CancelFunc
 	// phase is the lifecycle phase; bcast guards it together with err and
@@ -176,6 +180,7 @@ func NewSessionTransport(
 		peerID:        pid,
 		signalingURL:  signalingURL,
 		signingEnvPfx: signingEnvPfx,
+		frames:        frametrack.NewSubscriptionRegistry(pid),
 		ready:         make(chan struct{}),
 	}
 	for _, opt := range opts {
@@ -194,6 +199,13 @@ func (t *SessionTransport) GetPeerID() peer.ID {
 // GetPrivKey returns the session key that identifies the transport peer.
 func (t *SessionTransport) GetPrivKey() bifrost_crypto.PrivKey {
 	return t.sessionKey
+}
+
+// GetFrameSubscriptions returns the registry that admits frame groups sent to
+// this Session's viewers. Register a subscription on it before writing the
+// subscription to a Device's control stream.
+func (t *SessionTransport) GetFrameSubscriptions() *frametrack.SubscriptionRegistry {
+	return t.frames
 }
 
 // GetChildBus returns the active session bus, or nil outside Execute.
@@ -496,6 +508,13 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	if _, err := b.AddController(ctx, peerCtrl, nil); err != nil {
 		return err
 	}
+
+	// Admit frame groups only for this Session's live viewer subscriptions.
+	releaseFrames, err := b.AddHandler(t.frames)
+	if err != nil {
+		return err
+	}
+	defer releaseFrames()
 
 	// Make transport and stream routing controllers available on the child bus.
 	t.setStartupStage("factories")

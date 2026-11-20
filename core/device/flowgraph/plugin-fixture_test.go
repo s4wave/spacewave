@@ -108,8 +108,8 @@ func TestPluginNodeFixture(t *testing.T) {
 
 	// Connect independent testbed peers to the Device's process-local transport.
 	network := inproc.NewNetwork()
-	remote := newPluginPortPeer(t, ctx, le, network)
-	refused := newPluginPortPeer(t, ctx, le, network)
+	remote, _ := newPluginPortPeer(t, ctx, le, network)
+	refused, _ := newPluginPortPeer(t, ctx, le, network)
 
 	// Run compiled controllers on the actual Device Session bus.
 	st, err := transport.NewSessionTransport(le, b, key, "", "", transport.WithChildFactories(func(b bus.Bus) controller.Factory { return stream_echo.NewFactory(b) }),

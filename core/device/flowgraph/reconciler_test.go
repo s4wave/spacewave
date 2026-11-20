@@ -17,8 +17,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/directive"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/core/camera"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/core/frametrack"
@@ -37,6 +37,7 @@ import (
 	"github.com/s4wave/spacewave/net/protocol"
 	"github.com/s4wave/spacewave/net/stream"
 	"github.com/s4wave/spacewave/net/transport/inproc"
+	s4wave_camera "github.com/s4wave/spacewave/sdk/camera"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	flowgraph_nodetype "github.com/s4wave/spacewave/sdk/flowgraph/nodetype"
@@ -105,8 +106,8 @@ func TestReconciler(t *testing.T) {
 
 	// Connect a viewer and an unrelated account to the same in-process network.
 	network := inproc.NewNetwork()
-	viewer := newPluginPortPeer(t, ctx, le, network)
-	outsider := newPluginPortPeer(t, ctx, le, network)
+	viewer, viewerBus := newPluginPortPeer(t, ctx, le, network)
+	outsider, _ := newPluginPortPeer(t, ctx, le, network)
 
 	// Run the Device's Session transport and admit only the account viewer.
 	st, err := transport.NewSessionTransport(
@@ -364,7 +365,9 @@ func TestReconciler(t *testing.T) {
 	}
 
 	// Exercise the control and group protocols over authenticated peer links.
-	control := checkCameraSubscription(t, ctx, st.GetPeerID(), viewer, outsider, controlProtocol)
+	frames := checkCameraSubscription(
+		t, ctx, tb.WorldState, st.GetPeerID(), viewer, viewerBus, outsider, controlProtocol, cameraCap.GetId(),
+	)
 
 	// Revoke the camera policy while the admitted subscription is live.
 	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
@@ -378,9 +381,17 @@ func TestReconciler(t *testing.T) {
 	waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
 		return capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
 	})
-	var extra [1]byte
-	if n, err := control.Read(extra[:]); n != 0 || !errors.Is(err, io.EOF) {
-		t.Fatalf("camera control stream after policy removal read %d bytes, error %v", n, err)
+	// The Device closes the control stream, which ends the frame track
+	// cleanly after any pictures already in flight.
+	for {
+		resp, err := frames.Recv()
+		if err == nil && resp.GetFrame() != nil {
+			continue
+		}
+		if !errors.Is(err, io.EOF) {
+			t.Fatalf("camera frame track after policy removal sent %v, error %v", resp, err)
+		}
+		break
 	}
 
 	// Create four Workers for the Forge Worker nodes: two
@@ -492,66 +503,60 @@ func TestReconciler(t *testing.T) {
 	}
 }
 
-// cameraGroupStreams receives group streams opened by the camera peer.
-type cameraGroupStreams chan link.MountedStream
-
-// HandleMountedStream queues one group for the test reader.
-func (groups cameraGroupStreams) HandleMountedStream(_ context.Context, ms link.MountedStream) error {
-	select {
-	case groups <- ms:
-		return nil
-	default:
-		return errors.New("camera group reader is behind")
-	}
-}
-
-// checkCameraSubscription checks account admission and reads two live JPEGs.
-// It leaves the admitted control stream open to test policy revocation.
+// checkCameraSubscription checks account admission and plays two live JPEGs
+// through the viewer's Camera resource, which registers its subscription in
+// the viewer Session's frame registry. It leaves the admitted frame track
+// playing to test policy revocation.
 func checkCameraSubscription(
 	t *testing.T,
 	ctx context.Context,
+	ws world.WorldState,
 	devicePeer peer.ID,
-	viewer, outsider *transport.SessionTransport,
+	viewer *transport.SessionTransport,
+	viewerBus bus.Bus,
+	outsider *transport.SessionTransport,
 	controlProtocol protocol.ID,
-) stream.Stream {
-	// Register the viewer's group handler for this camera peer.
+	capabilityID string,
+) s4wave_camera.SRPCCameraResourceService_WatchFramesClient {
+	// Open the frame track through the Camera resource of the viewer's Session.
 	t.Helper()
-	groups := make(cameraGroupStreams, 8)
-	remove, err := viewer.GetChildBus().AddHandler(directive.NewFuncHandler(
-		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
-			dir, ok := di.GetDirective().(link.HandleMountedStream)
-			if !ok || dir.HandleMountedStreamProtocolID() != frametrack.GroupProtocolID ||
-				dir.HandleMountedStreamRemotePeerID() != devicePeer {
-				return nil, nil
-			}
-			return directive.R(directive.NewValueResolver([]link.MountedStreamHandler{groups}), nil)
-		},
-	))
+	resource := s4wave_camera.NewCameraResource(viewerBus, ws, viewer.GetPeerID(), &s4wave_camera.Camera{
+		Name: "camera", DeviceObjectKey: testSelfKey, CapabilityId: capabilityID,
+	})
+	client := s4wave_camera.NewSRPCCameraResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(resource.GetMux()))),
+	)
+	frames, err := client.WatchFrames(ctx, &s4wave_camera.WatchFramesRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(remove)
+	t.Cleanup(func() { _ = frames.Close() })
+	if opened, err := frames.Recv(); err != nil || opened.GetOpened() == nil {
+		t.Fatalf("camera frame track opened with %v, error %v", opened, err)
+	}
 
 	// Read two complete keyframes and check the counter assigned to each group.
-	request := &frametrack.Subscription{SubscriptionId: "camera-viewer"}
-	control := openCameraControl(t, ctx, devicePeer, viewer, controlProtocol)
-	if err := frametrack.WriteSubscription(control, request); err != nil {
-		t.Fatal(err)
-	}
 	var sequence uint64
 	var captured time.Time
+	var subscription string
 	for range 2 {
-		// Wait for the next group from the camera's shared track.
-		var group link.MountedStream
-		select {
-		case group = <-groups:
-		case <-ctx.Done():
-			t.Fatal("no camera group arrived")
+		// Wait for the newest picture from the camera's shared track.
+		resp, err := frames.Recv()
+		if err != nil {
+			t.Fatal(err)
+		}
+		header, frame := resp.GetFrame().GetHeader(), resp.GetFrame().GetFrame()
+		if header == nil || frame == nil {
+			t.Fatalf("camera frame track sent %v, want a picture", resp)
 		}
 
-		// Check that the Device sent the format and a complete JPEG together.
-		header, frame := readCameraGroup(t, ctx, group)
-		if header.GetSubscriptionId() != request.GetSubscriptionId() || header.GetGroupSequence() <= sequence {
+		// Check that the Device sent the format and a complete JPEG together,
+		// in groups of one subscription with rising sequence and capture time.
+		checkCameraPicture(t, header, frame)
+		if subscription == "" {
+			subscription = header.GetSubscriptionId()
+		}
+		if header.GetSubscriptionId() != subscription || header.GetGroupSequence() <= sequence {
 			t.Fatalf("camera group = %v after sequence %d", header, sequence)
 		}
 		if at := frame.GetCapturedAt().AsTime(); !at.After(captured) {
@@ -563,12 +568,12 @@ func checkCameraSubscription(
 	// A linked peer from another account gets EOF instead of a subscription.
 	refused := openCameraControl(t, ctx, devicePeer, outsider, controlProtocol)
 	// Refusal can close the stream before the request reaches the Device.
-	_ = frametrack.WriteSubscription(refused, request)
+	_ = frametrack.WriteSubscription(refused, &frametrack.Subscription{SubscriptionId: "camera-outsider"})
 	var extra [1]byte
 	if n, err := refused.Read(extra[:]); n != 0 || !errors.Is(err, io.EOF) {
 		t.Fatalf("camera control stream for the outsider read %d bytes, error %v", n, err)
 	}
-	return control
+	return frames
 }
 
 // openCameraControl holds the peer link and opens the named control protocol.
@@ -599,27 +604,10 @@ func openCameraControl(
 	return control
 }
 
-// readCameraGroup reads and validates a one-frame JPEG group from the Device.
-func readCameraGroup(t *testing.T, ctx context.Context, group link.MountedStream) (*frametrack.GroupHeader, *frametrack.Frame) {
-	// Read the group header and keyframe within the test deadline.
-	t.Helper()
-	strm := group.GetStream()
-	defer strm.Close()
-	deadline, _ := ctx.Deadline()
-	if err := strm.SetReadDeadline(deadline); err != nil {
-		t.Fatal(err)
-	}
-	reader, err := frametrack.NewGroupReader(strm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	frame, err := reader.ReadFrame()
-	if err != nil {
-		t.Fatal(err)
-	}
-
+// checkCameraPicture checks a JPEG picture against its group header.
+func checkCameraPicture(t *testing.T, header *frametrack.GroupHeader, frame *frametrack.Frame) {
 	// Check the wire metadata against the dimensions inside the JPEG.
-	header := reader.Header()
+	t.Helper()
 	if header.GetCodec() != frametrack.Codec_CODEC_JPEG || header.GetWidth() != 640 || header.GetHeight() != 360 {
 		t.Fatalf("camera group format = %v", header)
 	}
@@ -630,7 +618,6 @@ func readCameraGroup(t *testing.T, ctx context.Context, group link.MountedStream
 	if bounds := decoded.Bounds(); bounds.Dx() != 640 || bounds.Dy() != 360 {
 		t.Fatalf("camera JPEG dimensions = %v", bounds.Size())
 	}
-	return header, frame
 }
 
 // newSessionPeer returns the private key and ID of a new peer.

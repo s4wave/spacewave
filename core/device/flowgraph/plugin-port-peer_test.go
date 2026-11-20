@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/s4wave/spacewave/core/transport"
 	net_testbed "github.com/s4wave/spacewave/net/testbed"
 	"github.com/s4wave/spacewave/net/transport/inproc"
@@ -13,7 +14,8 @@ import (
 )
 
 // newPluginPortPeer runs an independent testbed Session on the fixture network.
-func newPluginPortPeer(t *testing.T, ctx context.Context, le *logrus.Entry, network *inproc.Network) *transport.SessionTransport {
+// It returns the Session and the testbed bus where the Session is published.
+func newPluginPortPeer(t *testing.T, ctx context.Context, le *logrus.Entry, network *inproc.Network) (*transport.SessionTransport, bus.Bus) {
 	// Own the independent bus and its Session until test cleanup.
 	t.Helper()
 	ctx, cancel := context.WithCancel(ctx)
@@ -36,5 +38,5 @@ func newPluginPortPeer(t *testing.T, ctx context.Context, le *logrus.Entry, netw
 	if err := st.AwaitReady(ctx); err != nil {
 		t.Fatal(err)
 	}
-	return st
+	return st, tb.Bus
 }

@@ -12,6 +12,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	frametrack "github.com/s4wave/spacewave/core/frametrack"
 	device "github.com/s4wave/spacewave/sdk/device"
 )
 
@@ -162,6 +163,116 @@ func (x *WatchCameraResponse) GetDevice() *device.DeviceAvailability {
 	return nil
 }
 
+// WatchFramesRequest is a request to play the Camera's frame track.
+type WatchFramesRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchFramesRequest) Reset() {
+	*x = WatchFramesRequest{}
+}
+
+func (*WatchFramesRequest) ProtoMessage() {}
+
+// WatchFramesResponse is one state of the frame track: opened on the Device,
+// then each picture the caller keeps up with. A caller that falls behind
+// receives only the newest picture.
+type WatchFramesResponse struct {
+	unknownFields []byte
+	// State is the frame track's state at this message.
+	//
+	// Types that are assignable to State:
+	//	*WatchFramesResponse_Opened
+	//	*WatchFramesResponse_Frame
+	State isWatchFramesResponse_State `protobuf_oneof:"state"`
+}
+
+func (x *WatchFramesResponse) Reset() {
+	*x = WatchFramesResponse{}
+}
+
+func (*WatchFramesResponse) ProtoMessage() {}
+
+func (m *WatchFramesResponse) GetState() isWatchFramesResponse_State {
+	if m != nil {
+		return m.State
+	}
+	return nil
+}
+
+func (x *WatchFramesResponse) GetOpened() *WatchFramesOpened {
+	if x, ok := x.GetState().(*WatchFramesResponse_Opened); ok {
+		return x.Opened
+	}
+	return nil
+}
+
+func (x *WatchFramesResponse) GetFrame() *WatchFramesFrame {
+	if x, ok := x.GetState().(*WatchFramesResponse_Frame); ok {
+		return x.Frame
+	}
+	return nil
+}
+
+type isWatchFramesResponse_State interface {
+	isWatchFramesResponse_State()
+}
+
+type WatchFramesResponse_Opened struct {
+	// Opened reports that the Device's control stream holds the subscription.
+	Opened *WatchFramesOpened `protobuf:"bytes,1,opt,name=opened,proto3,oneof"`
+}
+
+type WatchFramesResponse_Frame struct {
+	// Frame is the newest picture with its group's header.
+	Frame *WatchFramesFrame `protobuf:"bytes,2,opt,name=frame,proto3,oneof"`
+}
+
+func (*WatchFramesResponse_Opened) isWatchFramesResponse_State() {}
+
+func (*WatchFramesResponse_Frame) isWatchFramesResponse_State() {}
+
+// WatchFramesOpened is the frame track after the Device accepted the
+// subscription and before its first picture.
+type WatchFramesOpened struct {
+	unknownFields []byte
+}
+
+func (x *WatchFramesOpened) Reset() {
+	*x = WatchFramesOpened{}
+}
+
+func (*WatchFramesOpened) ProtoMessage() {}
+
+// WatchFramesFrame is one picture and the header of the group it decodes in.
+type WatchFramesFrame struct {
+	unknownFields []byte
+	// Header describes the picture's group: its codec and size.
+	Header *frametrack.GroupHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// Frame is the coded picture.
+	Frame *frametrack.Frame `protobuf:"bytes,2,opt,name=frame,proto3" json:"frame,omitempty"`
+}
+
+func (x *WatchFramesFrame) Reset() {
+	*x = WatchFramesFrame{}
+}
+
+func (*WatchFramesFrame) ProtoMessage() {}
+
+func (x *WatchFramesFrame) GetHeader() *frametrack.GroupHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *WatchFramesFrame) GetFrame() *frametrack.Frame {
+	if x != nil {
+		return x.Frame
+	}
+	return nil
+}
+
 func (m *Camera) CloneVT() *Camera {
 	if m == nil {
 		return (*Camera)(nil)
@@ -230,6 +341,99 @@ func (m *WatchCameraResponse) CloneVT() *WatchCameraResponse {
 }
 
 func (m *WatchCameraResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchFramesRequest) CloneVT() *WatchFramesRequest {
+	if m == nil {
+		return (*WatchFramesRequest)(nil)
+	}
+	r := new(WatchFramesRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchFramesRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchFramesResponse) CloneVT() *WatchFramesResponse {
+	if m == nil {
+		return (*WatchFramesResponse)(nil)
+	}
+	r := new(WatchFramesResponse)
+	if m.State != nil {
+		r.State = m.State.(interface {
+			CloneOneofVT() isWatchFramesResponse_State
+		}).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchFramesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchFramesResponse_Opened) CloneVT() *WatchFramesResponse_Opened {
+	if m == nil {
+		return (*WatchFramesResponse_Opened)(nil)
+	}
+	r := new(WatchFramesResponse_Opened)
+	r.Opened = protobuf_go_lite.CloneVTValue(m.Opened)
+	return r
+}
+
+func (m *WatchFramesResponse_Opened) CloneOneofVT() isWatchFramesResponse_State {
+	return m.CloneVT()
+}
+
+func (m *WatchFramesResponse_Frame) CloneVT() *WatchFramesResponse_Frame {
+	if m == nil {
+		return (*WatchFramesResponse_Frame)(nil)
+	}
+	r := new(WatchFramesResponse_Frame)
+	r.Frame = protobuf_go_lite.CloneVTValue(m.Frame)
+	return r
+}
+
+func (m *WatchFramesResponse_Frame) CloneOneofVT() isWatchFramesResponse_State {
+	return m.CloneVT()
+}
+
+func (m *WatchFramesOpened) CloneVT() *WatchFramesOpened {
+	if m == nil {
+		return (*WatchFramesOpened)(nil)
+	}
+	r := new(WatchFramesOpened)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchFramesOpened) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchFramesFrame) CloneVT() *WatchFramesFrame {
+	if m == nil {
+		return (*WatchFramesFrame)(nil)
+	}
+	r := new(WatchFramesFrame)
+	r.Header = protobuf_go_lite.CloneVTValue(m.Header)
+	r.Frame = protobuf_go_lite.CloneVTValue(m.Frame)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchFramesFrame) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -328,6 +532,126 @@ func (this *WatchCameraResponse) EqualVT(that *WatchCameraResponse) bool {
 
 func (this *WatchCameraResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchCameraResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchFramesRequest) EqualVT(that *WatchFramesRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchFramesRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchFramesRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchFramesResponse) EqualVT(that *WatchFramesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State == nil && that.State != nil {
+		return false
+	} else if this.State != nil {
+		if that.State == nil {
+			return false
+		}
+		if !this.State.(interface {
+			EqualVT(isWatchFramesResponse_State) bool
+		}).EqualVT(that.State) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchFramesResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchFramesResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchFramesResponse_Opened) EqualVT(thatIface isWatchFramesResponse_State) bool {
+	that, ok := thatIface.(*WatchFramesResponse_Opened)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Opened, that.Opened, func() *WatchFramesOpened { return &WatchFramesOpened{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WatchFramesResponse_Frame) EqualVT(thatIface isWatchFramesResponse_State) bool {
+	that, ok := thatIface.(*WatchFramesResponse_Frame)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Frame, that.Frame, func() *WatchFramesFrame { return &WatchFramesFrame{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WatchFramesOpened) EqualVT(that *WatchFramesOpened) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchFramesOpened) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchFramesOpened)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchFramesFrame) EqualVT(that *WatchFramesFrame) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Header, that.Header) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Frame, that.Frame) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchFramesFrame) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchFramesFrame)
 	if !ok {
 		return false
 	}
@@ -570,6 +894,188 @@ func (x *WatchCameraResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WatchFramesRequest message to JSON.
+func (x *WatchFramesRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchFramesRequest to JSON.
+func (x *WatchFramesRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchFramesRequest message from JSON.
+func (x *WatchFramesRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchFramesRequest from JSON.
+func (x *WatchFramesRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchFramesResponse message to JSON.
+func (x *WatchFramesResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != nil {
+		switch ov := x.State.(type) {
+		case *WatchFramesResponse_Opened:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("opened")
+			ov.Opened.MarshalProtoJSON(s.WithField("opened"))
+		case *WatchFramesResponse_Frame:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("frame")
+			ov.Frame.MarshalProtoJSON(s.WithField("frame"))
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchFramesResponse to JSON.
+func (x *WatchFramesResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchFramesResponse message from JSON.
+func (x *WatchFramesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "opened":
+			ov := &WatchFramesResponse_Opened{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Opened = nil
+				return
+			}
+			ov.Opened = &WatchFramesOpened{}
+			ov.Opened.UnmarshalProtoJSON(s.WithField("opened", true))
+		case "frame":
+			ov := &WatchFramesResponse_Frame{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Frame = nil
+				return
+			}
+			ov.Frame = &WatchFramesFrame{}
+			ov.Frame.UnmarshalProtoJSON(s.WithField("frame", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchFramesResponse from JSON.
+func (x *WatchFramesResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchFramesOpened message to JSON.
+func (x *WatchFramesOpened) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchFramesOpened to JSON.
+func (x *WatchFramesOpened) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchFramesOpened message from JSON.
+func (x *WatchFramesOpened) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchFramesOpened from JSON.
+func (x *WatchFramesOpened) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchFramesFrame message to JSON.
+func (x *WatchFramesFrame) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Header != nil || s.HasField("header") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("header")
+		x.Header.MarshalProtoJSON(s.WithField("header"))
+	}
+	if x.Frame != nil || s.HasField("frame") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("frame")
+		x.Frame.MarshalProtoJSON(s.WithField("frame"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchFramesFrame to JSON.
+func (x *WatchFramesFrame) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchFramesFrame message from JSON.
+func (x *WatchFramesFrame) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "header":
+			if s.ReadNil() {
+				x.Header = nil
+				return
+			}
+			x.Header = &frametrack.GroupHeader{}
+			x.Header.UnmarshalProtoJSON(s.WithField("header", true))
+		case "frame":
+			if s.ReadNil() {
+				x.Frame = nil
+				return
+			}
+			x.Frame = &frametrack.Frame{}
+			x.Frame.UnmarshalProtoJSON(s.WithField("frame", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchFramesFrame from JSON.
+func (x *WatchFramesFrame) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Camera) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -773,6 +1279,211 @@ func (m *WatchCameraResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *WatchFramesRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchFramesRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchFramesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchFramesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchFramesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchFramesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.State.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchFramesResponse_Opened) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchFramesResponse_Opened) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Opened != nil {
+		size, err := m.Opened.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchFramesResponse_Frame) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchFramesResponse_Frame) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Frame != nil {
+		size, err := m.Frame.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchFramesOpened) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchFramesOpened) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchFramesOpened) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchFramesFrame) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchFramesFrame) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchFramesFrame) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Frame != nil {
+		size, err := m.Frame.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Header != nil {
+		size, err := m.Header.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Camera) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -830,6 +1541,87 @@ func (m *WatchCameraResponse) SizeVT() (n int) {
 	}
 	if m.Device != nil {
 		l = m.Device.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchFramesRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchFramesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.State.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchFramesResponse_Opened) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Opened != nil {
+		l = m.Opened.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WatchFramesResponse_Frame) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Frame != nil {
+		l = m.Frame.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WatchFramesOpened) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchFramesFrame) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Header != nil {
+		l = m.Header.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Frame != nil {
+		l = m.Frame.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -917,6 +1709,70 @@ func (x *WatchCameraResponse) MarshalProtoText() string {
 }
 
 func (x *WatchCameraResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchFramesRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "WatchFramesRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchFramesRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchFramesResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchFramesResponse")
+	switch body := x.State.(type) {
+	case *WatchFramesResponse_Opened:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "opened")
+		if body.Opened == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &WatchFramesOpened{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Opened)
+		}
+	case *WatchFramesResponse_Frame:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "frame")
+		if body.Frame == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &WatchFramesFrame{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Frame)
+		}
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchFramesResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchFramesOpened) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "WatchFramesOpened")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchFramesOpened) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchFramesFrame) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchFramesFrame")
+	if x.Header != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "header")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Header)
+	}
+	if x.Frame != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "frame")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Frame)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchFramesFrame) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1196,6 +2052,248 @@ func (m *WatchCameraResponse) UnmarshalVT(dAtA []byte) error {
 				m.Device = &device.DeviceAvailability{}
 			}
 			if err := m.Device.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchFramesRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchFramesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchFramesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchFramesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchFramesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchFramesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Opened", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*WatchFramesResponse_Opened); ok {
+				if err := oneof.Opened.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &WatchFramesOpened{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &WatchFramesResponse_Opened{Opened: v}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Frame", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*WatchFramesResponse_Frame); ok {
+				if err := oneof.Frame.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &WatchFramesFrame{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &WatchFramesResponse_Frame{Frame: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchFramesOpened) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchFramesOpened: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchFramesOpened: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchFramesFrame) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchFramesFrame: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchFramesFrame: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Header == nil {
+				m.Header = &frametrack.GroupHeader{}
+			}
+			if err := m.Header.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Frame", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Frame == nil {
+				m.Frame = &frametrack.Frame{}
+			}
+			if err := m.Frame.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

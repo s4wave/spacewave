@@ -15,6 +15,9 @@ type SRPCCameraResourceServiceClient interface {
 	SRPCClient() srpc.Client
 
 	WatchCamera(ctx context.Context, in *WatchCameraRequest) (SRPCCameraResourceService_WatchCameraClient, error)
+	// WatchFrames opens the Camera's frame track on its Device and streams the
+	// newest picture until the caller or the Device ends it.
+	WatchFrames(ctx context.Context, in *WatchFramesRequest) (SRPCCameraResourceService_WatchFramesClient, error)
 }
 
 type srpcCameraResourceServiceClient struct {
@@ -68,8 +71,44 @@ func (x *srpcCameraResourceService_WatchCameraClient) RecvTo(m *WatchCameraRespo
 	return x.MsgRecv(m)
 }
 
+func (c *srpcCameraResourceServiceClient) WatchFrames(ctx context.Context, in *WatchFramesRequest) (SRPCCameraResourceService_WatchFramesClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchFrames", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcCameraResourceService_WatchFramesClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCCameraResourceService_WatchFramesClient interface {
+	srpc.Stream
+	Recv() (*WatchFramesResponse, error)
+	RecvTo(*WatchFramesResponse) error
+}
+
+type srpcCameraResourceService_WatchFramesClient struct {
+	srpc.Stream
+}
+
+func (x *srpcCameraResourceService_WatchFramesClient) Recv() (*WatchFramesResponse, error) {
+	m := new(WatchFramesResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcCameraResourceService_WatchFramesClient) RecvTo(m *WatchFramesResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCCameraResourceServiceServer interface {
 	WatchCamera(*WatchCameraRequest, SRPCCameraResourceService_WatchCameraStream) error
+	// WatchFrames opens the Camera's frame track on its Device and streams the
+	// newest picture until the caller or the Device ends it.
+	WatchFrames(*WatchFramesRequest, SRPCCameraResourceService_WatchFramesStream) error
 }
 
 const SRPCCameraResourceServiceServiceID = "s4wave.camera.CameraResourceService"
@@ -99,6 +138,7 @@ func (d *SRPCCameraResourceServiceHandler) GetServiceID() string { return d.serv
 func (SRPCCameraResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchCamera",
+		"WatchFrames",
 	}
 }
 
@@ -113,6 +153,8 @@ func (d *SRPCCameraResourceServiceHandler) InvokeMethod(
 	switch methodID {
 	case "WatchCamera":
 		return true, d.InvokeMethod_WatchCamera(d.impl, strm)
+	case "WatchFrames":
+		return true, d.InvokeMethod_WatchFrames(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -125,6 +167,15 @@ func (SRPCCameraResourceServiceHandler) InvokeMethod_WatchCamera(impl SRPCCamera
 	}
 	serverStrm := &srpcCameraResourceService_WatchCameraStream{strm}
 	return impl.WatchCamera(req, serverStrm)
+}
+
+func (SRPCCameraResourceServiceHandler) InvokeMethod_WatchFrames(impl SRPCCameraResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchFramesRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcCameraResourceService_WatchFramesStream{strm}
+	return impl.WatchFrames(req, serverStrm)
 }
 
 type SRPCCameraResourceService_WatchCameraStream interface {
@@ -142,6 +193,29 @@ func (x *srpcCameraResourceService_WatchCameraStream) Send(m *WatchCameraRespons
 }
 
 func (x *srpcCameraResourceService_WatchCameraStream) SendAndClose(m *WatchCameraResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCCameraResourceService_WatchFramesStream interface {
+	srpc.Stream
+	Send(*WatchFramesResponse) error
+	SendAndClose(*WatchFramesResponse) error
+}
+
+type srpcCameraResourceService_WatchFramesStream struct {
+	srpc.Stream
+}
+
+func (x *srpcCameraResourceService_WatchFramesStream) Send(m *WatchFramesResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcCameraResourceService_WatchFramesStream) SendAndClose(m *WatchFramesResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

@@ -3,6 +3,7 @@ package s4wave.camera;
 
 import "google/protobuf/timestamp.proto";
 import "github.com/aperturerobotics/common/typeid/typeid.proto";
+import "github.com/s4wave/spacewave/core/frametrack/frametrack.proto";
 import "github.com/s4wave/spacewave/sdk/device/device.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/camera;s4wave_camera";
@@ -41,6 +42,9 @@ message CreateCameraOp {
 
 service CameraResourceService {
   rpc WatchCamera(WatchCameraRequest) returns (stream WatchCameraResponse);
+  // WatchFrames opens the Camera's frame track on its Device and streams the
+  // newest picture until the caller or the Device ends it.
+  rpc WatchFrames(WatchFramesRequest) returns (stream WatchFramesResponse);
 }
 
 // WatchCameraRequest is a request to watch a Camera and its Device.
@@ -54,4 +58,32 @@ message WatchCameraResponse {
   // Device is the Camera's Device and its reachability from the viewer's
   // Session.
   .s4wave.device.DeviceAvailability device = 2;
+}
+
+// WatchFramesRequest is a request to play the Camera's frame track.
+message WatchFramesRequest {}
+
+// WatchFramesResponse is one state of the frame track: opened on the Device,
+// then each picture the caller keeps up with. A caller that falls behind
+// receives only the newest picture.
+message WatchFramesResponse {
+  // State is the frame track's state at this message.
+  oneof state {
+    // Opened reports that the Device's control stream holds the subscription.
+    WatchFramesOpened opened = 1;
+    // Frame is the newest picture with its group's header.
+    WatchFramesFrame frame = 2;
+  }
+}
+
+// WatchFramesOpened is the frame track after the Device accepted the
+// subscription and before its first picture.
+message WatchFramesOpened {}
+
+// WatchFramesFrame is one picture and the header of the group it decodes in.
+message WatchFramesFrame {
+  // Header describes the picture's group: its codec and size.
+  .s4wave.frametrack.GroupHeader header = 1;
+  // Frame is the coded picture.
+  .s4wave.frametrack.Frame frame = 2;
 }
