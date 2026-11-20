@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // backfillStoreID is the local state store holding this device's backfill
@@ -107,7 +108,10 @@ func (b *spaceBackfill) start(ctx context.Context) error {
 		return err
 	}
 	b.choice.SetValue(enabled)
-	b.routine.SetContext(ctx, false)
+
+	// Run the copy with ordered root moves: a crash that drops one repeats
+	// the copy, so they need not wait on a disk sync under rootMtx.
+	b.routine.SetContext(kvtx.WithOrderedCommitContext(ctx), false)
 	b.routine.SetState(enabled)
 	if enabled {
 		return nil

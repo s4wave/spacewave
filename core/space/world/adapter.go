@@ -18,6 +18,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -411,9 +412,11 @@ func (a *Adapter) waitBackground() {
 }
 
 // backgroundContext returns ctx, also ended when Execute's run ends, for a
-// background store.
+// background store. Its root moves commit ordered, without waiting on a disk
+// sync under rootMtx: a crash that drops one only repeats a trim, a hold or a
+// cursor save, and the next durable commit flushes it in order.
 func (a *Adapter) backgroundContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(kvtx.WithOrderedCommitContext(ctx))
 	if a.runCtx != nil {
 		stop := context.AfterFunc(a.runCtx, cancel)
 		return ctx, func() {
