@@ -20,6 +20,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
+	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
@@ -88,6 +89,11 @@ func (b *BlockStore) GetHashType() hash.HashType {
 // GetSupportedFeatures returns the native feature bitset for the inner store.
 func (b *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	return b.store.GetSupportedFeatures()
+}
+
+// GetFileSegments returns nil: the store links no files.
+func (b *BlockStore) GetFileSegments() *block_store_filesegment.Store {
+	return nil
 }
 
 // GetDecodedBlockCache returns the lifecycle-owned decoded-block cache.

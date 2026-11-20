@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	"github.com/s4wave/spacewave/db/bucket"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
@@ -862,6 +863,9 @@ func (s *bucketStore) GetID() string { return "bucket" }
 
 // GetDecodedBlockCache returns no cache.
 func (s *bucketStore) GetDecodedBlockCache() *block.DecodedBlockCache { return nil }
+
+// GetFileSegments returns nil: the store links no files.
+func (s *bucketStore) GetFileSegments() *block_store_filesegment.Store { return nil }
 
 // ReclaimStorage reports no storage backend.
 func (s *bucketStore) ReclaimStorage(context.Context, bstore.ReclaimFence) (time.Time, error) {

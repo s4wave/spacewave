@@ -19,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
+	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	block_store_nodepush "github.com/s4wave/spacewave/db/block/store/nodepush"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -104,6 +105,9 @@ type placementState struct {
 	// drain uploads the finalized packs of the store's packahead log, or is
 	// nil when the store has no log.
 	drain *packahead.Drain
+	// fileSegments serves the blocks of linked files from the files, after the
+	// local store misses and before every remote tier.
+	fileSegments *block_store_filesegment.Store
 }
 
 // live reports which blocks a bucket reclaim must keep: the blocks the volume
@@ -192,6 +196,16 @@ func (b *BlockStore) GetHashType() hash.HashType {
 // GetSupportedFeatures returns the native feature bitset for the inner store.
 func (b *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	return b.store.GetSupportedFeatures()
+}
+
+// GetFileSegments returns the store serving the blocks of linked files, or
+// nil when the store cannot link files: a store whose SQL backend is primary
+// reads through sqlPrimaryStores, which has no file tier.
+func (b *BlockStore) GetFileSegments() *block_store_filesegment.Store {
+	if b.placement == nil || b.placement.sqlPrimary {
+		return nil
+	}
+	return b.placement.fileSegments
 }
 
 // GetDecodedBlockCache returns the lifecycle-owned decoded-block cache.
@@ -488,6 +502,26 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 	defer markersRef.Release()
 
+	// Keep the SegmentIndex beside the markers, in the volume that holds the
+	// store's blocks. Its entries name files on this Device only.
+	segmentsID := BlockStoreFileSegmentsObjectStoreID(
+		t.a.t.p.info.GetProviderId(),
+		t.a.t.accountInfo.GetProviderAccountId(),
+		t.id,
+	)
+	segments, _, segmentsRef, err := volume.ExBuildObjectStoreAPI(
+		ctx,
+		t.a.t.p.b,
+		false,
+		segmentsID,
+		volID,
+		ctxCancel,
+	)
+	if err != nil {
+		return err
+	}
+	defer segmentsRef.Release()
+
 	// Open the store's packahead log, when the account keeps one, which then
 	// reads before the Volume's bucket and takes the store's writes.
 	local := block.StoreOps(localBucket)
@@ -510,6 +544,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
 	placement := &placementState{wb: wb, local: local, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, done: ctx.Done()}
+	placement.fileSegments = block_store_filesegment.NewStore(block_store_filesegment.NewIndex(segments.GetObjectStore()))
 	placement.fallbackFills.ctx, placement.fallbackFills.budget = ctx, &t.a.t.p.fillBudget
 	if packs != nil {
 		placement.drain = packs.drain
@@ -605,13 +640,15 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	defer t.swapRemote(nil)
 	defer upload.ClearContext()
 
-	// Read the local store first, then the backend's bucket, cold packs,
-	// the SQL fallback, and peers.
+	// Read the local store first, then the linked files, the backend's
+	// bucket, cold packs, the SQL fallback, and peers. A linked file's block
+	// reads as a local hit, so it fills nothing: the file is its copy.
 	localStore := block_store.NewStore(blockStoreLocalID, wb)
 	var recorded block.StoreOps = &hitCounter{StoreOps: local, hits: &placement.localHits}
 	if !placement.serveOnly {
 		recorded = &readRecorder{StoreOps: recorded, reads: &placement.reads}
 	}
+	recorded = &fallbackReads{StoreOps: recorded, fallback: placement.fileSegments}
 	peers := t.peerSource(le, bucketID, &placement.peerReads)
 	if placement.serveOnly {
 		peers = func() block.StoreOps { return nil }

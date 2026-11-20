@@ -11,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/core/cdn"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	block_hash "github.com/s4wave/spacewave/net/hash"
 )
 
@@ -109,6 +110,11 @@ func (s *SuppliedBlockStore) GetID() string {
 // cache for this Space, so readers build their own short-lived cache instead of
 // borrowing one across the supply boundary.
 func (s *SuppliedBlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
+	return nil
+}
+
+// GetFileSegments returns nil: the store links no files.
+func (s *SuppliedBlockStore) GetFileSegments() *block_store_filesegment.Store {
 	return nil
 }
 

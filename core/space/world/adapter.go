@@ -2015,8 +2015,21 @@ func (a *Adapter) bucketRef(head *bucket.ObjectRef) *bucket.ObjectRef {
 // newCursor builds a cursor at head over store, the PendingStore or a store
 // that reads it, with the head's transform and the shared decoded block
 // cache.
+//
+// The cursor's transform is the Space's, so the block store's linked files
+// encode with it; the store reads no file until it has one.
 func (a *Adapter) newCursor(ctx context.Context, store block.StoreOps, head *bucket.ObjectRef) (*bucket_lookup.Cursor, error) {
-	return newWorldCursor(ctx, a.le, a.opts.Bus, a.opts.StepFactorySet, store, a.bucketID, a.decoded, head)
+	// Build the cursor.
+	cursor, err := newWorldCursor(ctx, a.le, a.opts.Bus, a.opts.StepFactorySet, store, a.bucketID, a.decoded, head)
+	if err != nil {
+		return nil, err
+	}
+
+	// Give the linked files the Space's transform.
+	if files := a.so.GetBlockStore().GetFileSegments(); files != nil {
+		files.SetTransformer(cursor.GetTransformer())
+	}
+	return cursor, nil
 }
 
 // newWorldCursor builds a cursor at the Space World head over store, whose
