@@ -17,9 +17,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	"github.com/aperturerobotics/controllerbus/controller"
-	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/core/camera"
 	"github.com/s4wave/spacewave/core/checkoutroot"
@@ -103,8 +101,8 @@ func TestReconciler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Serve the node types on the root bus.
-	b := inmem.NewBus(directive_controller.NewController(ctx, le))
+	// Serve the node types on the bus with this daemon's test state volume.
+	b := tb.Bus
 	release, err := b.AddController(ctx, flowgraph_nodetype.NewController(), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -126,7 +124,7 @@ func TestReconciler(t *testing.T) {
 		transport.WithChildFactories(
 			func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
 			func(b bus.Bus) controller.Factory { return camera.NewFactory(b) },
-			func(b bus.Bus) controller.Factory { return checkoutroot.NewFactory(b) },
+			func(b bus.Bus) controller.Factory { return checkoutroot.NewFactory(b, tb.Volume.GetID()) },
 			func(b bus.Bus) controller.Factory { return display.NewFactory(b) },
 		),
 		transport.WithInprocNetwork(network),

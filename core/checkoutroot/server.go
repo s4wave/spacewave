@@ -46,6 +46,7 @@ func serve(
 	folder *os.Root,
 	root *unixfs_billy.BillyFSCursor,
 	upload unixfs_rpc_server.FileUpload,
+	journal *uploadJournal,
 ) error {
 	// Keep the root available when native directory refresh is unavailable.
 	ctx, cancel := context.WithCancel(ctx)
@@ -62,11 +63,11 @@ func serve(
 	defer release()
 
 	// Collect marked upload stages in the background after the root is available.
-	if upload != nil {
+	if journal != nil {
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			sweepUploads(ctx, le, folder)
+			journal.sweepUploads(ctx, le, folder)
 		}()
 		defer func() {
 			cancel()

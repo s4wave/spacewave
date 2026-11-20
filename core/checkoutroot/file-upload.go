@@ -16,7 +16,7 @@ import (
 )
 
 // publishFile installs a complete upload within the pinned checkout root.
-func publishFile(ctx context.Context, root *os.Root, directory string, start *unixfs_rpc.OpsMknodWithContentStart, src io.Reader) (rerr error) {
+func publishFile(ctx context.Context, root *os.Root, journal *uploadJournal, directory string, start *unixfs_rpc.OpsMknodWithContentStart, src io.Reader) (rerr error) {
 	// Pin the target directory and use a filename valid on this host.
 	name, err := filepath.Localize(start.GetName())
 	if err != nil {
@@ -25,7 +25,11 @@ func publishFile(ctx context.Context, root *os.Root, directory string, start *un
 	if hiddenUploadName(name) {
 		return errors.New("upload name is reserved for staging")
 	}
-	dir, err := root.OpenRoot(filepath.FromSlash(directory))
+	path, err := filepath.Localize(directory)
+	if err != nil {
+		return err
+	}
+	dir, err := root.OpenRoot(path)
 	if err != nil {
 		return err
 	}
@@ -66,13 +70,13 @@ func publishFile(ctx context.Context, root *os.Root, directory string, start *un
 	}
 
 	// Give the named fallback a recoverable lease before writing upload bytes.
-	stage, err := openNamedStage(dir)
+	stage, err := openNamedStage(ctx, journal, dir, directory)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		// Keep a committed file successful if the next sweep must finish cleanup.
-		if err := stage.discard(); rerr != nil {
+		// A committed file stays successful if the next sweep must finish cleanup.
+		if err := stage.discard(ctx); rerr != nil {
 			rerr = errors.Join(rerr, err)
 		}
 	}()

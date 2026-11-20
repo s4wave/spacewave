@@ -3,6 +3,7 @@
 package checkoutroot
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"io/fs"
@@ -31,10 +32,17 @@ type uploadStage struct {
 	lease *os.File
 	// file receives the staged bytes.
 	file *os.File
+	// journal records how to find an interrupted stage.
+	journal *uploadJournal
 }
 
-// openNamedStage acquires the cleanup lease before creating the payload.
-func openNamedStage(dir *os.Root) (*uploadStage, error) {
+// openNamedStage registers the locked stage before creating its payload.
+func openNamedStage(ctx context.Context, journal *uploadJournal, dir *os.Root, directory string) (*uploadStage, error) {
+	// A named stage must remain discoverable if the publisher dies.
+	if journal == nil {
+		return nil, errors.New("checkout-root upload journal unavailable")
+	}
+
 	// The lease marks only files in a freshly allocated namespace.
 	name := uploadStagePrefix + rand.Text()
 	leaseName := name + uploadLeaseSuffix
@@ -43,12 +51,16 @@ func openNamedStage(dir *os.Root) (*uploadStage, error) {
 		return nil, err
 	}
 
-	// Close and remove the unused lease if staging never starts.
+	// Remove the unused lease and its record if staging never starts.
 	var stage *uploadStage
+	var recorded bool
 	defer func() {
-		if stage == nil {
-			_ = lease.Close()
-			_ = dir.Remove(leaseName)
+		if stage != nil {
+			return
+		}
+		_ = lease.Close()
+		if err := dir.Remove(leaseName); err == nil && recorded {
+			_ = journal.forget(context.WithoutCancel(ctx), name)
 		}
 	}()
 	locked, err := filelock.TryLockExclusive(lease)
@@ -58,6 +70,12 @@ func openNamedStage(dir *os.Root) (*uploadStage, error) {
 	if !locked {
 		return nil, errors.New("upload staging lease is already locked")
 	}
+
+	// Keep the lease locked across registration and every payload write.
+	if err := journal.record(ctx, name, directory); err != nil {
+		return nil, err
+	}
+	recorded = true
 
 	// Claim the payload exclusively before marking it as ours.
 	file, err := dir.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
@@ -69,15 +87,20 @@ func openNamedStage(dir *os.Root) (*uploadStage, error) {
 		_ = dir.Remove(name)
 		return nil, err
 	}
-	stage = &uploadStage{dir: dir, name: name, lease: lease, file: file}
+	stage = &uploadStage{dir: dir, name: name, lease: lease, file: file, journal: journal}
 	return stage, nil
 }
 
 // discard releases the stage and leaves its lease marker if the payload cannot be removed.
-func (s *uploadStage) discard() error {
+func (s *uploadStage) discard(ctx context.Context) error {
 	// Close the payload so that it can be removed on Windows as well.
 	_ = s.file.Close()
-	return removeLeasedStage(s.dir, s.name, s.lease)
+	if err := removeLeasedStage(s.dir, s.name, s.lease); err != nil {
+		return err
+	}
+
+	// A cancelled stream still owns its stage until cleanup finishes.
+	return s.journal.forget(context.WithoutCancel(ctx), s.name)
 }
 
 // removeLeasedStage removes the stage while its lease excludes other publishers.

@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	spacewave_cli "github.com/s4wave/spacewave/cmd/spacewave/cli"
 	"github.com/s4wave/spacewave/core/camera"
 	"github.com/s4wave/spacewave/core/checkoutroot"
@@ -49,7 +50,7 @@ func composeNative(composition *compose.Composition) {
 	// Install the Device capability and replica factories on every Session bus.
 	transportOptions := []transport.SessionTransportOption{transport.WithChildFactories(
 		func(b bus.Bus) controller.Factory { return camera.NewFactory(b) },
-		func(b bus.Bus) controller.Factory { return checkoutroot.NewFactory(b) },
+		func(b bus.Bus) controller.Factory { return checkoutroot.NewFactory(b, bldr_plugin.PluginVolumeID) },
 		func(b bus.Bus) controller.Factory { return display.NewFactory(b) },
 		func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
 		func(b bus.Bus) controller.Factory { return space_world_replica_controller.NewFactory(b) },
