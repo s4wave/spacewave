@@ -32,6 +32,14 @@ from kill_trial import Console, output
 ROOT = r"root=(\S+)"
 
 
+def root_of(line: str) -> str:
+    """Return the root a console line names."""
+    found = re.search(ROOT, line)
+    if found is None:
+        raise RuntimeError(f"no root in {line!r}")
+    return found[1]
+
+
 def note(message: str) -> None:
     """Print a driver line beside the guest's console."""
     print(f"revision-trial: {message}", flush=True)
@@ -75,7 +83,7 @@ def stage_and_reboot(console: Console, name: str) -> tuple[str, int]:
     copied = console.wait(r"SPACEWAVE_OS_STAGE_COPIED blocks=\d+", 0, start)
     console.send("reboot")
     stopped(console, "SPACEWAVE_OS_REBOOT")
-    return re.search(ROOT, staged)[1], int(copied.rsplit("=", 1)[1])
+    return root_of(staged), int(copied.rsplit("=", 1)[1])
 
 
 def cut(console: Console, marker: str) -> None:
@@ -99,7 +107,7 @@ def stopped(console: Console, marker: str) -> None:
 def served(console: Console, start: int = 0) -> str:
     """Return the root the guest authorized and served."""
     line = console.wait("SPACEWAVE_OS_AUTHORIZED signer=\\S+ " + ROOT, 0, start)
-    return re.search(ROOT, line)[1]
+    return root_of(line)
 
 
 def main() -> int:
