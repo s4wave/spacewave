@@ -72,8 +72,11 @@ func (s *directoryWatchSource) close() error {
 
 // run dispatches structural events and reconciles overflow from the native queue.
 func (s *directoryWatchSource) run(ctx context.Context, w *DirectoryWatcher) error {
-	// The fork delivers its default mask on these backends. Only structural
-	// events reach the registry because these backends lack close-write.
+	// The fork delivers its default mask on these backends. They lack
+	// close-write, so a write to a child stands in for it and refreshes the
+	// parent's listing, whose sizes and times it changed. A burst of writes
+	// costs one map lookup each; the listings it wakes coalesce into one read
+	// per read a client completes.
 	for {
 		select {
 		case <-ctx.Done():
@@ -82,10 +85,12 @@ func (s *directoryWatchSource) run(ctx context.Context, w *DirectoryWatcher) err
 			if !ok {
 				return fsnotify.ErrClosed
 			}
-			if !event.Has(fsnotify.Create | fsnotify.Remove | fsnotify.Rename) {
+			switch {
+			case event.Has(fsnotify.Create | fsnotify.Remove | fsnotify.Rename):
+				w.dispatch(event.Name, event.Has(fsnotify.Remove|fsnotify.Rename))
+			case !event.Has(fsnotify.Write):
 				continue
 			}
-			w.dispatch(event.Name, event.Has(fsnotify.Remove|fsnotify.Rename))
 			if parent := filepath.Dir(event.Name); parent != event.Name {
 				w.dispatch(parent, false)
 			}
