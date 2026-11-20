@@ -224,6 +224,17 @@ func IsAccessGated(err error) bool {
 	return false
 }
 
+// IsLimitReached checks if a cloud error refuses an upload because the
+// account reached its storage or spending limit. The upload holds until the
+// account state changes, as when the limit is raised, instead of retrying.
+func IsLimitReached(err error) bool {
+	var ce *Error
+	if !errors.As(err, &ce) {
+		return false
+	}
+	return ce.Code == "storage_limit" || ce.Code == "spending_limit"
+}
+
 // IsStatus returns true when err is a cloud error with the given HTTP status.
 func IsStatus(err error, statusCode int) bool {
 	var ce *Error

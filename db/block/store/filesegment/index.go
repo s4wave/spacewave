@@ -4,6 +4,7 @@
 package block_store_filesegment
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"slices"
@@ -43,11 +44,21 @@ const versionKeyPrefix = "v/"
 type Index struct {
 	// store holds the entries.
 	store kvtx.Store
+	// gained runs in each SetPath that adds refs to a path, or is nil.
+	gained GainHook
 }
 
-// NewIndex constructs the Index kept in store, which holds no other keys.
-func NewIndex(store kvtx.Store) *Index {
-	return &Index{store: store}
+// GainHook runs inside the write transaction of a SetPath with the refs the
+// path gained: those it holds after the write and did not hold before, in
+// path order. It may write to tx keys outside the Index's prefixes, which
+// commit with the path. It returns a func to run after the commit, or nil;
+// when the hook fails, the SetPath fails and writes nothing.
+type GainHook func(ctx context.Context, tx kvtx.Tx, gained []*block.BlockRef) (func(), error)
+
+// NewIndex constructs the Index kept in store, which holds no other keys
+// than the Index's own and those gained writes. gained may be nil.
+func NewIndex(store kvtx.Store, gained GainHook) *Index {
+	return &Index{store: store, gained: gained}
 }
 
 // Lookup returns the segments recorded for ref, ordered by path, with one scan
@@ -103,7 +114,18 @@ func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef
 		}
 	}
 
-	// Write the new segments, one per ref.
+	// Write the new segments, one per ref, noting the refs the path gained.
+	held := make(map[string]struct{}, len(old.GetRefs()))
+	if x.gained != nil {
+		for _, ref := range old.GetRefs() {
+			key, err := segKey(ref, path)
+			if err != nil {
+				return err
+			}
+			held[string(key)] = struct{}{}
+		}
+	}
+	var gained []*block.BlockRef
 	next := &PathRefs{}
 	keep := make(map[string]struct{}, len(refs))
 	for i, ref := range refs {
@@ -119,6 +141,9 @@ func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef
 			return err
 		}
 		next.Refs = append(next.Refs, ref)
+		if _, ok := held[string(key)]; x.gained != nil && !ok {
+			gained = append(gained, ref)
+		}
 	}
 
 	// Delete the old segments the new ones did not replace.
@@ -135,11 +160,73 @@ func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef
 		}
 	}
 
-	// Write the path, then commit.
+	// Write the path and what the hook writes for its gained refs, then
+	// commit and run the hook's follow-up.
 	if err := putOrDelete(ctx, tx, pkey, next, len(next.GetRefs()) == 0); err != nil {
 		return err
 	}
-	return tx.Commit(ctx)
+	var after func()
+	if len(gained) != 0 {
+		if after, err = x.gained(ctx, tx, gained); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	if after != nil {
+		after()
+	}
+	return nil
+}
+
+// Refs returns up to limit refs that have a segment, each once, in key order,
+// starting after the ref after, or at the first when after is nil. It reads
+// one transaction and decodes only keys, so a caller pages through every ref
+// with no transaction held between pages.
+func (x *Index) Refs(ctx context.Context, after *block.BlockRef, limit int) ([]*block.BlockRef, error) {
+	// Position the iterator at after's keys, or at the first key.
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	it := tx.Iterate(ctx, []byte(segKeyPrefix), true, false)
+	defer it.Close()
+	var skip []byte
+	ok := false
+	if after != nil {
+		if skip, err = refPrefix(after); err != nil {
+			return nil, err
+		}
+		if err := it.Seek(skip); err != nil {
+			return nil, err
+		}
+		ok = it.Valid()
+	} else {
+		ok = it.Next()
+	}
+
+	// Take each ref's prefix once, skipping its other paths' keys.
+	var refs []*block.BlockRef
+	for ; ok && len(refs) < limit; ok = it.Next() {
+		key := it.Key()
+		if skip != nil && bytes.HasPrefix(key, skip) {
+			continue
+		}
+		rest := key[len(segKeyPrefix):]
+		n, w := binary.Uvarint(rest)
+		if w <= 0 || uint64(len(rest)-w) < n { //nolint:gosec // w is at most len(rest).
+			return nil, errors.Errorf("invalid segment key %x", key)
+		}
+		ref := &block.BlockRef{}
+		if err := ref.UnmarshalVT(rest[w : w+int(n)]); err != nil { //nolint:gosec // n is at most len(rest).
+			return nil, err
+		}
+		refs = append(refs, ref)
+		skip = slices.Clone(key[:len(segKeyPrefix)+w+int(n)]) //nolint:gosec // n is at most len(rest).
+	}
+	return refs, it.Err()
 }
 
 // FolderRoot returns the file-system identity recorded for the root of the

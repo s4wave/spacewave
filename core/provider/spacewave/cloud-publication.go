@@ -240,6 +240,11 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 		defer func() { s.telemetry.syncTelemetry.RecordError(s.resourceID, retErr) }()
 	}
 
+	// Hold the linked lane's pushes until the flush ends.
+	if s.linked != nil {
+		defer s.linked.startFlush()()
+	}
+
 	// Snapshot each host's pending publication before flushing blocks.
 	var hosts []*cloudSOHost
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -260,8 +265,10 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 
 	// Publish each host's checkpoint after its blocks are durable.
 	// Invariant: a checkpoint is published only when every block it reaches
-	// is on the remote; a store that holds a corrupt dirty block publishes
-	// nothing new while it holds that block, and says so.
+	// is on the remote, except the chunks of linked files, which the linked
+	// lane uploads on its own while their files serve them; a store that
+	// holds a corrupt dirty block publishes nothing new while it holds that
+	// block, and says so.
 	if held != 0 {
 		return s.held(held)
 	}

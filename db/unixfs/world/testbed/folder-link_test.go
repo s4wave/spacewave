@@ -75,7 +75,7 @@ func TestFolderLinkSync(t *testing.T) {
 	// sync runs one sync through a new link, as a restart does, and returns
 	// the files it linked and the index transactions it opened.
 	kv := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
-	idx := block_store_filesegment.NewIndex(kv)
+	idx := block_store_filesegment.NewIndex(kv, nil)
 	sync := func() (uint64, uint64) {
 		t.Helper()
 		link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
@@ -322,7 +322,7 @@ func TestFolderLinkTwoWay(t *testing.T) {
 	folder := t.TempDir()
 	must(os.WriteFile(filepath.Join(folder, "a.txt"), []byte("owner a"), 0o644))
 	must(os.WriteFile(filepath.Join(folder, "b.txt"), []byte("owner b"), 0o644))
-	idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore())
+	idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore(), nil)
 	dest := []string{"linked", "folder"}
 	link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
 	must(err)
@@ -422,7 +422,7 @@ func TestFolderLinkStageRecovery(t *testing.T) {
 	for _, name := range []string{"a.txt", "b.txt", "c.txt"} {
 		put(name, "owner "+name, owned)
 	}
-	idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore())
+	idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore(), nil)
 	dest := []string{"linked", "folder"}
 	link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
 	must(err)
@@ -644,7 +644,7 @@ func TestFolderLinkApplyRaces(t *testing.T) {
 			name := fmt.Sprintf("c%02d.txt", i)
 			path := filepath.Join(folder, name)
 			put(path, base, owned)
-			idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore())
+			idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore(), nil)
 			dest := []string{"races", fmt.Sprintf("c%02d", i)}
 			link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
 			must(err)

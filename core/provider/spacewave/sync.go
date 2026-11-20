@@ -77,6 +77,9 @@ type syncController struct {
 	remotePullRoutine *coalescedTriggerRoutine
 	// remoteNonce is the highest block store sequence the cloud reported.
 	remoteNonce atomic.Uint64
+	// linked uploads the chunks of linked files, or is nil for a store that
+	// links none.
+	linked *linkedLane
 
 	// dirtySize projects pending bytes under bcast.
 	dirtySize int64
@@ -320,6 +323,20 @@ func (s *syncController) Execute(ctx context.Context) error {
 	var retryAt time.Time
 	defer func() { s.drain(ctx, retryAt) }()
 
+	// Upload linked chunks beside the dirty lane, stopping before the drain.
+	if s.linked != nil {
+		linkedCtx, cancel := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			s.linked.Execute(linkedCtx)
+		}()
+		defer func() {
+			cancel()
+			<-done
+		}()
+	}
+
 	// Keep the existing pressure and pack limits independent of the time boundary.
 	bo := providerBackoff.Construct()
 	threshold := int64(s.conf.GetSizeThresholdBytes())
@@ -409,7 +426,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 			if ctx.Err() != nil {
 				return nil
 			}
-			if clouderror.IsAccessGated(err) {
+			if clouderror.IsAccessGated(err) || clouderror.IsLimitReached(err) {
 				bo.Reset()
 				s.le.WithError(err).Warn("block upload gated, waiting for account state change")
 				if err := s.waitDirtySyncGate(ctx); err != nil {
@@ -1424,10 +1441,11 @@ func (s *syncController) pull(ctx context.Context) error {
 		}
 		events := page.GetReplacementEvents()
 		var cursor uint64
+		var dropped []string
 		switch {
 		case !page.GetMore():
 			cursor = page.GetLatestSequence()
-			if dropped := s.unlistedPacks(listed); len(dropped) != 0 {
+			if dropped = s.unlistedPacks(listed); len(dropped) != 0 {
 				events = append(events, &packfile.PackReplacementEvent{ReplacedPackIds: dropped})
 			}
 		case listed == nil:
@@ -1436,6 +1454,12 @@ func (s *syncController) pull(ctx context.Context) error {
 
 		if err := s.applyManifestDelta(ctx, page.GetEntries(), events, cursor); err != nil {
 			return errors.Wrap(err, "applying pull delta")
+		}
+
+		// A pack marked as trash or dropped from a restarted listing no
+		// longer holds linked chunks for the lane.
+		if s.linked != nil && (len(dropped) != 0 || slices.ContainsFunc(page.GetEntries(), (*packfile.PackfileEntry).IsTrash)) {
+			s.linked.requestReconcile()
 		}
 		s.le.WithField("entries", len(page.GetEntries())).
 			WithField("replacement-events", len(events)).

@@ -168,7 +168,7 @@ func TestCopyCountsLinkedFiles(t *testing.T) {
 	a, collect := newVolumeAdapter(t, 1<<20, grace)
 	store := a.pages.StoreOps
 	xfrm := block_transform.NewTransformerWithSteps(nil)
-	files := block_store_filesegment.NewStore(block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore()))
+	files := block_store_filesegment.NewStore(block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore(), nil))
 	files.SetTransformer(xfrm)
 	a.pages = block.NewPendingStore(&linkedBucket{
 		StoreOps:    store,

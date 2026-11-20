@@ -69,6 +69,8 @@ type BlockStore struct {
 	cacheStore block.StoreOps
 	// cloudStore is the account-owned Cloud read store.
 	cloudStore block.StoreOps
+	// files serves the blocks of linked files.
+	files *block_store_filesegment.Store
 }
 
 // GetID returns the inner store id.
@@ -91,9 +93,9 @@ func (b *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	return b.store.GetSupportedFeatures()
 }
 
-// GetFileSegments returns nil: the store links no files.
+// GetFileSegments returns the store serving the blocks of linked files.
 func (b *BlockStore) GetFileSegments() *block_store_filesegment.Store {
-	return nil
+	return b.files
 }
 
 // GetDecodedBlockCache returns the lifecycle-owned decoded-block cache.
@@ -136,6 +138,7 @@ func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 		retention:      b.retention,
 		refreshRemote:  b.refreshRemote,
 		remoteSequence: b.remoteSequence,
+		files:          b.files,
 	}, release, nil
 }
 
@@ -417,9 +420,19 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		sc.remote = publicRemote.Entries
 	}
 
+	// Serve linked files behind the upper cache, from an index beside the
+	// sync metadata, and upload their chunks through the linked lane. A file
+	// hit is the block's copy, so it fills no cache.
+	sc.linked, err = newLinkedLane(ctx, sc, kvtx_prefixer.NewPrefixer(objStore, []byte("linked-files/")))
+	if err != nil {
+		return errors.Wrap(err, "opening linked file index")
+	}
+	files := sc.linked.files
+	filedUpper := files.Behind(sourceUpper)
+
 	// Wrap upper with dirty tracking for the sync controller, before any
 	// write can reach it.
-	dirtyUpper := block_store_writeback.NewMarkingStore(sourceUpper, sc.MarkDirty)
+	dirtyUpper := block_store_writeback.NewMarkingStore(filedUpper, sc.MarkDirty)
 
 	// Build the handle over the overlay of the cache and the cloud.
 	localID := BlockStoreID(accountID, t.id)
@@ -427,8 +440,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	bstoreHandle := &BlockStore{
 		store:         block_store.NewStore(localID, overlay),
 		decodedBlocks: decodedBlocks,
-		cacheStore:    sourceUpper,
+		cacheStore:    filedUpper,
 		cloudStore:    sourceLower,
+		files:         files,
 		retention: &blockPublicationRetention{
 			store: kvtx_prefixer.NewPrefixer(objStore, []byte("publication-retention/")),
 		},

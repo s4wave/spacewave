@@ -36,7 +36,7 @@ func spaceTransform(t testing.TB) block.Transformer {
 
 // newIndex returns an Index over an in-memory key/value store.
 func newIndex() *Index {
-	return NewIndex(store_kvtx_inmem.NewStore())
+	return NewIndex(store_kvtx_inmem.NewStore(), nil)
 }
 
 // newStore returns a Store over idx that reads with xfrm.
@@ -225,7 +225,7 @@ func TestRelinkReplacesPath(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "doc.bin")
 	writeRandom(t, path, 3<<20, 7)
 	kv := store_kvtx_inmem.NewStore()
-	idx := NewIndex(kv)
+	idx := NewIndex(kv, nil)
 	before, err := LinkFile(ctx, idx, path, nil, xfrm, 0, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -240,7 +240,7 @@ func TestRelinkReplacesPath(t *testing.T) {
 
 	// A fresh Index over the store, as after a restart, holds only the new
 	// ranges.
-	reopened := NewIndex(kv)
+	reopened := NewIndex(kv, nil)
 	fss := newStore(reopened, xfrm)
 	for _, c := range before.GetChunkIndex().GetChunks() {
 		segs, err := reopened.Lookup(ctx, c.GetDataRef())
@@ -309,7 +309,7 @@ func TestReadScaling(t *testing.T) {
 		// Link n files into a counted index.
 		dir := t.TempDir()
 		kv := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
-		idx := NewIndex(kv)
+		idx := NewIndex(kv, nil)
 		var refs []*block.BlockRef
 		for i := range n {
 			path := filepath.Join(dir, strconv.Itoa(i))
