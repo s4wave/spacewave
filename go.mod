@@ -9,7 +9,7 @@ replace (
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20261108213153-7e4a5ee7d16f
 	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.1-0.20260922211658-605a6e457746
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20261108201950-8dc30550ec17 // aperture
-	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20261003021338-72ab61d58aa6
+	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20261120085216-2f6b7c952356
 	// SQLite 3.54.1 rather than v2.0.3+incompatible's 3.31.1, whose
 	// shared-memory locks walk every open connection to the file.
 	github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.53
