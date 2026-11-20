@@ -523,6 +523,7 @@ var pluginCallerAllowed = map[string][]string{
 		"SetRetainedRoot", "NewTransaction", "ExecuteWorldOp", "ExecuteWorldBatch",
 		"Sync", "SyncThrough", "GetSeqno", "WaitSeqno", "WatchChanges",
 		"WaitObjectRev", "BuildStorageCursor", "AccessWorldState", "StageWorldState",
+		"WatchTypeCounts", "SearchObjectsWithType",
 	},
 	s4wave_world.SRPCWorldStageResourceServiceServiceID: {
 		"BuildStorageCursor", "AccessWorldState", "ReleaseRoots",
@@ -535,7 +536,8 @@ var pluginCallerAllowed = map[string][]string{
 		"SetGraphQuad", "DeleteGraphQuad", "LookupGraphQuads",
 		"LookupGraphQuadsBatch", "ListGraphEdgeBuckets", "ListObjectsWithType",
 		"GetObjectRootRefsBatch", "GetObjectMetadataBatch", "GetObjectBodiesBatch",
-		"QueryGraphPath", "DeleteGraphObject", "ApplyWorldOp",
+		"QueryGraphPath", "DeleteGraphObject", "ApplyWorldOp", "ListTypeCounts",
+		"WatchTypeCounts", "SearchObjectsWithType",
 	},
 	s4wave_world.SRPCWatchWorldStateResourceServiceServiceID: {
 		"WatchWorldState",
