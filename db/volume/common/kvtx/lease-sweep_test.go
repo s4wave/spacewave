@@ -5,31 +5,40 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
 
-// holdLeases stores the block R of tr, unless stored, and holds n leased
-// roots named prefix0 to prefixN-1 on it, each expiring at expires.
-func holdLeases(t *testing.T, v *Volume, tr testTree, prefix string, n int, expires time.Time) {
+// holdLeases stores the block R of tr, unless stored, and holds n roots named
+// prefix0 to prefixN-1 on it under a new lease expiring at expires, whose ID
+// it returns.
+func holdLeases(t *testing.T, v *Volume, tr testTree, prefix string, n int, expires time.Time) string {
 	t.Helper()
 	ctx := t.Context()
 	if tr["R"] == nil {
 		tr.add(t, "R")
 	}
+	lease := ulid.NewULID()
 	roots := make([]block.NamedRoot, n)
 	for i := range roots {
-		roots[i] = block.NamedRoot{Name: prefix + strconv.Itoa(i), Ref: tr["R"].Ref, Expires: expires}
+		roots[i] = block.NamedRoot{Name: prefix + strconv.Itoa(i), Ref: tr["R"].Ref, Lease: lease}
 	}
 	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+		if err := p.rec.StartLease(ctx, lease, expires.UnixMilli()); err != nil {
+			return err
+		}
 		_, err := v.land(ctx, p, "", tr.entries("R"), roots)
 		return err
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	return lease
 }
 
-// collectLapsed runs one collection pass and returns the leases it released.
+// collectLapsed runs one collection pass and returns the leased roots it
+// released.
 func collectLapsed(t *testing.T, v *Volume) uint64 {
 	t.Helper()
 	res, err := v.collector.Collect(t.Context())
@@ -39,64 +48,39 @@ func collectLapsed(t *testing.T, v *Volume) uint64 {
 	return res.Lapsed
 }
 
-// TestLeaseSweepStartsAtItsMark checks that the lease sweep releases every
-// lapsed lease across its slices, then starts its next pass at the expiry the
-// last one reached, so the deleted index records below it are not read: a
-// lease written below the mark waits for the hourly scan from the start, or
-// for a clock that stepped back past the mark.
-func TestLeaseSweepStartsAtItsMark(t *testing.T) {
-	t.Run("crosses slices", func(t *testing.T) {
-		// 600 lapsed leases take three slices of one pass.
-		v, clk := newLivenessVolume(t, false)
-		tr := testTree{}
-		holdLeases(t, v, tr, "lease/", 600, clk.Now().Add(rootLease))
-		clk.Add(rootLease + time.Second)
-		if got := collectLapsed(t, v); got != 600 {
-			t.Fatalf("one pass released %d leases, want 600", got)
+// TestLeaseSweepReleasesLapsedLeases checks that one pass releases every root
+// of a lapsed lease across its slices and ends the lease, and keeps a live
+// lease and its root.
+func TestLeaseSweepReleasesLapsedLeases(t *testing.T) {
+	// 600 roots of a lapsed lease take three slices of one pass.
+	v, clk := newLivenessVolume(t, false)
+	ctx := t.Context()
+	tr := testTree{}
+	lapsed := holdLeases(t, v, tr, "lease/", 600, clk.Now().Add(rootLease))
+	live := holdLeases(t, v, tr, "live/", 1, clk.Now().Add(2*rootLease))
+	clk.Add(rootLease + time.Second)
+	if got := collectLapsed(t, v); got != 600 {
+		t.Fatalf("one pass released %d roots, want 600", got)
+	}
+	if got := collectLapsed(t, v); got != 0 {
+		t.Fatalf("the next pass released %d roots, want 0", got)
+	}
+
+	// The lapsed lease ended, and the live one holds its root.
+	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
+		if _, found, err := rec.GetLease(ctx, lapsed); err != nil || found {
+			t.Fatalf("lapsed lease found %v err %v, want ended", found, err)
 		}
-		if got := collectLapsed(t, v); got != 0 {
-			t.Fatalf("the next pass released %d leases, want 0", got)
+		if expires, _, err := rec.GetLease(ctx, live); err != nil || expires <= clk.Now().UnixMilli() {
+			t.Fatalf("live lease expires %d err %v, want live", expires, err)
 		}
+		entry, err := rec.GetRoot(ctx, "", "live/0")
+		if err != nil || entry.GetLease() != live {
+			t.Fatalf("live root %v err %v, want held under its lease", entry, err)
+		}
+		return nil
 	})
-
-	t.Run("below the mark", func(t *testing.T) {
-		// The first pass scans from the start and sets the mark at now.
-		v, clk := newLivenessVolume(t, false)
-		tr := testTree{}
-		holdLeases(t, v, tr, "early/", 3, clk.Now().Add(-time.Minute))
-		if got := collectLapsed(t, v); got != 3 {
-			t.Fatalf("the first pass released %d leases, want 3", got)
-		}
-
-		// A lease written below the mark is not found from the mark, while
-		// one written above it lapses on time.
-		holdLeases(t, v, tr, "below/", 1, clk.Now().Add(-time.Minute))
-		holdLeases(t, v, tr, "above/", 1, clk.Now().Add(time.Minute))
-		clk.Add(2 * time.Minute)
-		if got := collectLapsed(t, v); got != 1 {
-			t.Fatalf("a pass from the mark released %d leases, want only the one above it", got)
-		}
-
-		// The scan from the start an hour after the last one finds it.
-		clk.Add(time.Hour)
-		if got := collectLapsed(t, v); got != 1 {
-			t.Fatalf("the hourly scan released %d leases, want the one below the mark", got)
-		}
-	})
-
-	t.Run("clock steps back", func(t *testing.T) {
-		// A pass sets the mark, then the clock steps back ten minutes.
-		v, clk := newLivenessVolume(t, false)
-		tr := testTree{}
-		if got := collectLapsed(t, v); got != 0 {
-			t.Fatalf("an empty pass released %d leases", got)
-		}
-		clk.Add(-10 * time.Minute)
-
-		// A lease that lapsed on the stepped back clock is found at once.
-		holdLeases(t, v, tr, "back/", 1, clk.Now().Add(-time.Second))
-		if got := collectLapsed(t, v); got != 1 {
-			t.Fatalf("a pass after the clock stepped back released %d leases, want 1", got)
-		}
-	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }

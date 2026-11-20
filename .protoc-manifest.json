@@ -2054,7 +2054,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/block/gc": {
-          "hash": "b9cffb1d7f6b21eb612c8aae4d627d2099a132b66dfb0b44e9eb963b141152bc",
+          "hash": "52df1524ac107ce8d45ae3b6e00ad78f82a923ae02fb01a8ccfae60280afc46e",
           "generatedFiles": [
             "db/block/gc/audit-walk.pb.go",
             "db/block/gc/audit-walk.pb.ts",
@@ -2899,7 +2899,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/volume/rpc": {
-          "hash": "6f3e8b6deaa6111c662d7e53cebd018f4badc416a7093375438952aa50c0ffa0",
+          "hash": "0755918e4db2763e58977e160a1c8022b4cd0bdf54940cae42f5f88cba271c4f",
           "generatedFiles": [
             "db/volume/rpc/volume.pb.go",
             "db/volume/rpc/volume.pb.ts",

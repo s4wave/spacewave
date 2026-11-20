@@ -11,7 +11,7 @@ import (
 )
 
 // Collect runs one collection pass of the Volume, as block_gc.Collector
-// describes: it renews this process's leases and carries its deferred
+// describes: it renews the process lease and carries its deferred
 // releases, releases lapsed leases, nets the logs and, when the store
 // Config turns frees on and the Volume is adopted, frees what lost its last
 // holder. A Volume without atomic commits keeps no liveness and collects
@@ -22,12 +22,12 @@ func (v *Volume) Collect(ctx context.Context) (block_gc.CollectResult, error) {
 		return block_gc.CollectResult{}, nil
 	}
 
-	// Renew this process's leases first, so after a stall longer than the
-	// lease the pass releases none it still holds, then carry the deferred
+	// Renew the process lease first, so after a stall longer than the lease
+	// the pass releases no root this process still holds, then carry the deferred
 	// releases of pins and stages, so the pass sees what this process
 	// released, then collect.
 	ctx = block.WithBackground(ctx)
-	if _, err := v.renewRoots(ctx); err != nil {
+	if _, err := v.renewRoots(ctx, false); err != nil {
 		return block_gc.CollectResult{}, err
 	}
 	if err := v.withDirectAtomic(ctx, nil); err != nil {

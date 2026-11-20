@@ -99,8 +99,8 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 		pin = &rootPin{ref: ref, count: 1, settled: make(chan struct{})}
 		v.rootPins[name] = pin
 		unlock()
-		err = v.withDirectAtomic(ctx, func(p *physicalTx) error {
-			_, err := v.land(ctx, p, "", nil, []block.NamedRoot{{Name: name, Ref: ref, Expires: v.leaseExpiry()}})
+		err = v.withProcessLease(ctx, func(p *physicalTx, lease string) error {
+			_, err := v.land(ctx, p, "", nil, []block.NamedRoot{{Name: name, Ref: ref, Lease: lease}})
 			return err
 		})
 		v.settleRootPin(name, pin, err != nil)

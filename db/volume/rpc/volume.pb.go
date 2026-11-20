@@ -864,9 +864,6 @@ type NamedRoot struct {
 	// Previous is the block the name must hold before the move, empty when it
 	// must be free.
 	Previous *block.BlockRef `protobuf:"bytes,3,opt,name=previous,proto3" json:"previous,omitempty"`
-	// ExpiresUnixMilli is when the volume releases a leased root, zero for one
-	// held until released.
-	ExpiresUnixMilli int64 `protobuf:"varint,4,opt,name=expires_unix_milli,json=expiresUnixMilli,proto3" json:"expiresUnixMilli,omitempty"`
 	// RequireHeld refuses the move with SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD
 	// unless every stored block it newly reaches is held now.
 	RequireHeld bool `protobuf:"varint,5,opt,name=require_held,json=requireHeld,proto3" json:"requireHeld,omitempty"`
@@ -897,13 +894,6 @@ func (x *NamedRoot) GetPrevious() *block.BlockRef {
 		return x.Previous
 	}
 	return nil
-}
-
-func (x *NamedRoot) GetExpiresUnixMilli() int64 {
-	if x != nil {
-		return x.ExpiresUnixMilli
-	}
-	return 0
 }
 
 func (x *NamedRoot) GetRequireHeld() bool {
@@ -1774,7 +1764,6 @@ func (m *NamedRoot) CloneVT() *NamedRoot {
 	}
 	r := new(NamedRoot)
 	r.Name = m.Name
-	r.ExpiresUnixMilli = m.ExpiresUnixMilli
 	r.RequireHeld = m.RequireHeld
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.Previous = protobuf_go_lite.CloneVTValue(m.Previous)
@@ -2725,9 +2714,6 @@ func (this *NamedRoot) EqualVT(that *NamedRoot) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Previous, that.Previous) {
-		return false
-	}
-	if this.ExpiresUnixMilli != that.ExpiresUnixMilli {
 		return false
 	}
 	if this.RequireHeld != that.RequireHeld {
@@ -4610,11 +4596,6 @@ func (x *NamedRoot) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("previous")
 		x.Previous.MarshalProtoJSON(s.WithField("previous"))
 	}
-	if x.ExpiresUnixMilli != 0 || s.HasField("expiresUnixMilli") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("expiresUnixMilli")
-		s.WriteInt64(x.ExpiresUnixMilli)
-	}
 	if x.RequireHeld || s.HasField("requireHeld") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("requireHeld")
@@ -4654,9 +4635,6 @@ func (x *NamedRoot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Previous = &block.BlockRef{}
 			x.Previous.UnmarshalProtoJSON(s.WithField("previous", true))
-		case "expires_unix_milli", "expiresUnixMilli":
-			s.AddField("expires_unix_milli")
-			x.ExpiresUnixMilli = s.ReadInt64()
 		case "require_held", "requireHeld":
 			s.AddField("require_held")
 			x.RequireHeld = s.ReadBool()
@@ -6819,11 +6797,6 @@ func (m *NamedRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x28
 	}
-	if m.ExpiresUnixMilli != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresUnixMilli))
-		i--
-		dAtA[i] = 0x20
-	}
 	if m.Previous != nil {
 		size, err := m.Previous.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -7960,7 +7933,6 @@ func (m *NamedRoot) SizeVT() (n int) {
 		l = m.Previous.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpiresUnixMilli)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.RequireHeld)
 	n += len(m.unknownFields)
 	return n
@@ -8696,10 +8668,6 @@ func (x *NamedRoot) MarshalProtoText() string {
 	if x.Previous != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "previous")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Previous)
-	}
-	if x.ExpiresUnixMilli != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_unix_milli")
-		protobuf_go_lite.TextWriteInt(&sb, x.ExpiresUnixMilli)
 	}
 	if x.RequireHeld != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "require_held")
@@ -10916,15 +10884,6 @@ func (m *NamedRoot) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresUnixMilli", wireType)
-			}
-			m.ExpiresUnixMilli = 0
-			m.ExpiresUnixMilli, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
 		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RequireHeld", wireType)

@@ -82,11 +82,6 @@ const releasePageChildren = 1024
 // on.
 const logPageKeys = 2048
 
-// sliceLeases bounds the lapsed leased roots one transaction releases.
+// sliceLeases bounds the lapsed leases one transaction reads, and the roots
+// of them it releases.
 const sliceLeases = 256
-
-// leaseRescan is how often the lease sweep scans the whole lease index rather
-// than from the expiry its last pass reached. A lease written with an expiry
-// below that mark, as by a clock that stepped back, is released at most this
-// late.
-const leaseRescan = time.Hour

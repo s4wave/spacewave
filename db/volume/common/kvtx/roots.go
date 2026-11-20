@@ -117,7 +117,7 @@ func (v *Volume) ListBucketRoots(ctx context.Context, bucketID, prefix string, f
 			if err != nil {
 				return err
 			}
-			roots = append(roots, block.NamedRoot{Name: name, Ref: ref, Expires: unixMilliTime(entry.GetExpiresUnixMilli())})
+			roots = append(roots, block.NamedRoot{Name: name, Ref: ref, Lease: entry.GetLease()})
 			return nil
 		})
 	})

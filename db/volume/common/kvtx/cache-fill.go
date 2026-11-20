@@ -237,10 +237,10 @@ const fillRootPrefix = "fill:"
 // peer or remote store holds, which owner's bucket read. A block the records
 // list gets its bytes back alone, through block_gc.RefillBlocks. The rest land
 // through Land as a partial tree, so a block may name a child the settle
-// hides, with a leased root on each block no other entry names, which
-// expires the collector's grace period from now: the fill holds what it gives
-// birth to for a grace period, and the collector frees it once the root
-// lapses unless something else holds it. It returns, for each entry,
+// hides, with a root on each block no other entry names under a fill lease
+// with at least the collector's grace period left: the fill holds what it
+// gives birth to for a grace period, and the collector frees it once the
+// lease lapses unless something else holds it. It returns, for each entry,
 // whether blocks held its bytes before.
 //
 // RefillBlocks reads each block's child list, and Land the state record and
@@ -254,15 +254,24 @@ func (v *Volume) landFill(ctx context.Context, p *physicalTx, owner string, entr
 		return existed, err
 	}
 
-	// Hold each block of the rest no other names, then land them.
+	// Join a fill lease with at least the fill hold left, when a block of
+	// the rest has no other name.
 	hold := v.fillHold
 	if hold == 0 {
 		hold = block_gc.DefaultGrace
 	}
-	expires := v.now().Add(hold)
-	var roots []block.NamedRoot
-	for _, ref := range unnamedRefs(rest) {
-		roots = append(roots, block.NamedRoot{Name: fillRootPrefix + owner + "/" + ulid.NewULID(), Ref: ref, Expires: expires})
+	refs := unnamedRefs(rest)
+	var lease string
+	if len(refs) != 0 {
+		if lease, err = v.fillLease(ctx, p, hold); err != nil {
+			return nil, err
+		}
+	}
+
+	// Hold each such block under the lease, then land the rest.
+	roots := make([]block.NamedRoot, 0, len(refs))
+	for _, ref := range refs {
+		roots = append(roots, block.NamedRoot{Name: fillRootPrefix + owner + "/" + ulid.NewULID(), Ref: ref, Lease: lease})
 	}
 	puts := block_gc.PutHold{Mode: v.heldMode, Observed: v.observeNotHeld, Partial: true}
 	landed, err := block_gc.Land(ctx, p.rec, p.blocks, v.now(), rest, puts, block_gc.BucketRoots{Roots: roots})

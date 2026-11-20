@@ -2,7 +2,6 @@ package block
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 )
@@ -43,12 +42,13 @@ type NamedRoot struct {
 	// must be free. A store that finds another reference refuses the change
 	// with ErrRootMoved, so two writers never both move one root.
 	Previous *BlockRef
-	// Expires is when the store releases the root itself, or the zero time
-	// for a root held until released. A holder renews a leased root by
-	// setting it again with the same Ref and Previous and a later Expires, so
-	// a reader pins a snapshot by holding a root it renews, and a holder that
-	// dies releases it by silence.
-	Expires time.Time
+	// Lease is the ID of the lease that holds the root, or empty for a root
+	// held until released. A store that keeps leases releases every root of a
+	// lease once its holder stops renewing it, so a reader pins a snapshot
+	// under its process's lease, and a process that dies releases its roots
+	// by silence. A store refuses a root onto a lease that is not live; one
+	// without leases holds the root until released.
+	Lease string
 	// RequireHeld refuses the change with ErrRootNotHeld unless the tree the
 	// move newly reaches is held now: Ref itself when the change does not
 	// store it, else, below each block the change stores, put anew or again,

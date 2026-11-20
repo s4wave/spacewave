@@ -37,7 +37,12 @@ import (
 // its ripe sequence in eight big-endian bytes, so a version 7, 8 or 9 store
 // opens unadopted, has its zero records carried across and its retired
 // kinds swept in the background, and its adoption counts again.
-const FormatVersion = 10
+// Version 11 keys are those of version 10. A leased root names its lease,
+// and the lease record keeps the expiry in place of an index of the roots
+// by expiry, so a version 7 to 10 store has its leased roots carried onto
+// one lapsed lease the collector releases, and a version 10 store keeps its
+// liveness state.
+const FormatVersion = 11
 
 // formatVersionKey names the key holding the store's format version.
 var formatVersionKey = []byte("format")

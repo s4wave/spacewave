@@ -126,17 +126,17 @@ export interface RootEntry {
    */
   ref?: Uint8Array
   /**
-   * ExpiresUnixMilli is when the collector releases the root itself, in Unix
-   * milliseconds. Zero holds the root until a writer releases it. A holder
-   * renews a leased root by setting it again with a later expiry.
+   * Lease is the ID of the lease that holds the root, empty for a root held
+   * until a writer releases it. The collector releases every root of a lease
+   * once the lease lapses, as block_gc's leases.go describes.
    */
-  expiresUnixMilli?: bigint
+  lease?: string
 }
 
 export const RootEntry: MessageType<RootEntry> =
   /* @__PURE__ */ createMessageType<RootEntry>('block.gc.RootEntry', () => [
     [1, 'ref', 12],
-    [2, 'expires_unix_milli', 3],
+    [3, 'lease', 9],
   ])
 
 /**

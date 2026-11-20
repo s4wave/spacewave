@@ -1,28 +1,19 @@
 package volume_rpc
 
 import (
-	"time"
-
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 )
 
-// NewNamedRoot returns the wire form of root.
+// NewNamedRoot returns the wire form of root. A lease belongs to the process
+// of the Volume that holds it, so the wire carries none.
 func NewNamedRoot(root block.NamedRoot) *NamedRoot {
-	out := &NamedRoot{Name: root.Name, Ref: root.Ref, Previous: root.Previous, RequireHeld: root.RequireHeld}
-	if !root.Expires.IsZero() {
-		out.ExpiresUnixMilli = root.Expires.UnixMilli()
-	}
-	return out
+	return &NamedRoot{Name: root.Name, Ref: root.Ref, Previous: root.Previous, RequireHeld: root.RequireHeld}
 }
 
 // ToNamedRoot returns the root the wire form names.
 func (r *NamedRoot) ToNamedRoot() block.NamedRoot {
-	out := block.NamedRoot{Name: r.GetName(), Ref: r.GetRef(), Previous: r.GetPrevious(), RequireHeld: r.GetRequireHeld()}
-	if ms := r.GetExpiresUnixMilli(); ms != 0 {
-		out.Expires = time.UnixMilli(ms)
-	}
-	return out
+	return block.NamedRoot{Name: r.GetName(), Ref: r.GetRef(), Previous: r.GetPrevious(), RequireHeld: r.GetRequireHeld()}
 }
 
 // NewPutBatchEntries returns the wire form of entries.

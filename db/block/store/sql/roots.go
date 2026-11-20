@@ -3,7 +3,6 @@ package block_store_sql
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -12,9 +11,12 @@ import (
 // The roots table holds the store's named roots. The store frees nothing by
 // liveness, so a root only names a block for its holder: SetRoots moves the
 // roots in the same SQL transaction as the blocks it inserts, comparing each
-// root with its Previous, and needs no journal.
+// root with its Previous, and needs no journal. It keeps no leases: a root is
+// held until a writer releases it, and the table's expires column, kept so
+// tables created before leases moved to the Volume still accept inserts,
+// always holds zero.
 
-// GetRoot returns the block name holds, or nil when it is free or expired.
+// GetRoot returns the block name holds, or nil when it is free.
 func (s *Store) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
 	ref, err := s.readRoot(ctx, s.db, name, false)
 	return ref, err
@@ -25,32 +27,27 @@ func (s *Store) GetRoot(ctx context.Context, name string) (*block.BlockRef, erro
 func (s *Store) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
 	// Query the names in the prefix's range.
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT name, ref, expires FROM "+s.roots+" WHERE store_id = ? AND name >= ? ORDER BY name", // #nosec G202 -- NewStore quotes the table.
+		"SELECT name, ref FROM "+s.roots+" WHERE store_id = ? AND name >= ? ORDER BY name", // #nosec G202 -- NewStore quotes the table.
 		s.storeID, []byte(prefix))
 	if err != nil {
 		return errors.Wrap(err, "list roots")
 	}
 	defer rows.Close()
 
-	// Report each held one until the prefix ends.
-	now := time.Now().UnixNano()
+	// Report each one until the prefix ends.
 	for rows.Next() {
 		var name, data []byte
-		var expires int64
-		if err := rows.Scan(&name, &data, &expires); err != nil {
+		if err := rows.Scan(&name, &data); err != nil {
 			return errors.Wrap(err, "list roots")
 		}
 		if len(name) < len(prefix) || string(name[:len(prefix)]) != prefix {
 			break
 		}
-		if expires != 0 && expires <= now {
-			continue
-		}
 		ref := &block.BlockRef{}
 		if err := ref.UnmarshalVT(data); err != nil {
 			return errors.Wrapf(err, "decode root %s", name)
 		}
-		if err := fn(block.NamedRoot{Name: string(name), Ref: ref, Expires: expiresTime(expires)}); err != nil {
+		if err := fn(block.NamedRoot{Name: string(name), Ref: ref}); err != nil {
 			return err
 		}
 	}
@@ -58,7 +55,7 @@ func (s *Store) ListRoots(ctx context.Context, prefix string, fn func(block.Name
 }
 
 // SetRoots inserts entries and moves the roots in one SQL transaction. Each
-// root must hold its Previous, an expired root counting as free, or the
+// root must hold its Previous, or the
 // change is refused with ErrRootMoved and nothing is written. Tombstones are
 // refused.
 func (s *Store) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
@@ -96,17 +93,16 @@ type rowQuerier interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-// readRoot returns the block name holds, nil for a free or expired name. lock
+// readRoot returns the block name holds, nil for a free name. lock
 // locks the row for the transaction's update.
 func (s *Store) readRoot(ctx context.Context, db rowQuerier, name string, lock bool) (*block.BlockRef, error) {
 	// Read the row.
-	query := "SELECT ref, expires FROM " + s.roots + " WHERE store_id = ? AND name = ?" // #nosec G202 -- NewStore quotes the table.
+	query := "SELECT ref FROM " + s.roots + " WHERE store_id = ? AND name = ?" // #nosec G202 -- NewStore quotes the table.
 	if lock {
 		query += " FOR UPDATE"
 	}
 	var data []byte
-	var expires int64
-	err := db.QueryRowContext(ctx, query, s.storeID, []byte(name)).Scan(&data, &expires)
+	err := db.QueryRowContext(ctx, query, s.storeID, []byte(name)).Scan(&data)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -114,10 +110,7 @@ func (s *Store) readRoot(ctx context.Context, db rowQuerier, name string, lock b
 		return nil, errors.Wrapf(err, "read root %s", name)
 	}
 
-	// Treat an expired root as free.
-	if expires != 0 && expires <= time.Now().UnixNano() {
-		return nil, nil
-	}
+	// Decode the stored ref.
 	ref := &block.BlockRef{}
 	if err := ref.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrapf(err, "decode root %s", name)
@@ -139,13 +132,9 @@ func (s *Store) writeRoot(ctx context.Context, db execer, root block.NamedRoot) 
 	if err != nil {
 		return err
 	}
-	var expires int64
-	if !root.Expires.IsZero() {
-		expires = root.Expires.UnixNano()
-	}
-	query := "INSERT INTO " + s.roots + " (store_id, name, ref, expires) VALUES (?, ?, ?, ?)" + // #nosec G202 -- NewStore quotes the table.
-		" ON DUPLICATE KEY UPDATE ref = VALUES(ref), expires = VALUES(expires)"
-	_, err = db.ExecContext(ctx, query, s.storeID, []byte(root.Name), data, expires)
+	query := "INSERT INTO " + s.roots + " (store_id, name, ref, expires) VALUES (?, ?, ?, 0)" + // #nosec G202 -- NewStore quotes the table.
+		" ON DUPLICATE KEY UPDATE ref = VALUES(ref), expires = 0"
+	_, err = db.ExecContext(ctx, query, s.storeID, []byte(root.Name), data)
 	return errors.Wrapf(err, "set root %s", root.Name)
 }
 
@@ -155,12 +144,4 @@ func refsEqual(a, b *block.BlockRef) bool {
 		return a.GetEmpty() == b.GetEmpty()
 	}
 	return a.EqualsRef(b)
-}
-
-// expiresTime returns the time of expires, the zero time for none.
-func expiresTime(expires int64) time.Time {
-	if expires == 0 {
-		return time.Time{}
-	}
-	return time.Unix(0, expires)
 }
