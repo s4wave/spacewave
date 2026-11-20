@@ -11,13 +11,18 @@ import (
 	"os"
 	"path/filepath"
 
+	pkgerrors "github.com/pkg/errors"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
 )
 
 // publishFile installs a complete upload within the pinned checkout root.
 func publishFile(ctx context.Context, root *os.Root, directory string, start *unixfs_rpc.OpsMknodWithContentStart, src io.Reader) (rerr error) {
-	// Pin the target directory through staging, publication, and cleanup.
+	// Pin the target directory and use a filename valid on this host.
+	name, err := filepath.Localize(start.GetName())
+	if err != nil {
+		return err
+	}
 	dir, err := root.OpenRoot(filepath.FromSlash(directory))
 	if err != nil {
 		return err
@@ -52,7 +57,7 @@ func publishFile(ctx context.Context, root *os.Root, directory string, start *un
 	if mode == 0 {
 		mode = 0o644
 	}
-	if info, err := dir.Lstat(start.GetName()); err == nil && info.Mode().IsRegular() && !start.GetExclusive() {
+	if info, err := dir.Lstat(name); err == nil && info.Mode().IsRegular() && !start.GetExclusive() {
 		mode = info.Mode().Perm()
 	}
 	if err := file.Chmod(mode); err != nil {
@@ -66,19 +71,18 @@ func publishFile(ctx context.Context, root *os.Root, directory string, start *un
 		return err
 	}
 
-	// Publish atomically. A hard link enforces an absent destination at the
-	// same instant it makes the full file visible.
+	// Publish the complete file with the caller's replacement rule.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if start.GetExclusive() {
-		if err := dir.Link(temp, start.GetName()); err != nil {
+		if err := renameExclusive(dir, temp, name); err != nil {
 			if errors.Is(err, fs.ErrExist) {
 				return unixfs_errors.ErrExist
 			}
-			return err
+			return pkgerrors.Wrap(err, "publish upload without replacing the destination")
 		}
 		return nil
 	}
-	return dir.Rename(temp, start.GetName())
+	return dir.Rename(temp, name)
 }
