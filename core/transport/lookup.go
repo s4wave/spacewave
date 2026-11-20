@@ -6,7 +6,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/stream"
 )
 
 // LookupSessionTransport selects the running transport for one authenticated
@@ -46,6 +48,29 @@ func ResolveSessionTransport(ctx context.Context, parent bus.Bus, id peer.ID, in
 		return nil, func() {}, nil
 	}
 	return resolved, ref.Release, nil
+}
+
+// AuthorizeAccountSessionPeer admits a Device stream through the Session
+// transport for the link's local peer. The transport's account authorizer
+// admits only active Sessions of that account. A missing transport refuses
+// the stream.
+//
+// Use and close the returned stream. The transport closes an admitted stream
+// if it later refuses the peer. On error the returned stream can carry the
+// protocol's refusal before the caller closes it.
+func AuthorizeAccountSessionPeer(ctx context.Context, b bus.Bus, ms link.MountedStream) (stream.Stream, error) {
+	// Find the transport owning the local end of the link.
+	st, release, err := ResolveSessionTransport(ctx, b, ms.GetLink().GetLocalPeer(), nil)
+	if err != nil {
+		return ms.GetStream(), err
+	}
+	defer release()
+	if st == nil {
+		return ms.GetStream(), errors.New("no session transport for the local peer")
+	}
+
+	// Track the stream for revocation and apply the account's admission rule.
+	return st.AdmitStream(ctx, ms)
 }
 
 // ResolveSessionBus borrows the Session's transport bus while release is
