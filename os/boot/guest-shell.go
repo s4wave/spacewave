@@ -16,21 +16,30 @@ import (
 // runGuestShell owns every wait after mounting helpers finish. The independent
 // bootstrap exec releases the parent's vfork before touching its FUSE tree.
 // joined proves guest processes have stopped, including adopted descendants.
-// daemonArgs, when set, start the image's daemon beside the shell.
-func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, root, terminal string, daemonArgs []string) (joined bool, retErr error) {
+// daemonArgs, when set, start the image's daemon beside the shell. trial,
+// when set, is accepted by a child once healthy, or ends the run with Reboot
+// at its deadline. A request ends the run with Reboot for SIGTERM, which BusyBox
+// reboot sends, and with PowerOff for any other signal.
+func runGuestShell(
+	ctx context.Context,
+	requests <-chan os.Signal,
+	executable, root, terminal string,
+	daemonArgs []string,
+	trial *trialRun,
+) (stop Stop, joined bool, retErr error) {
 	// Global waits and signals are forbidden in the hosted mount-namespace probe.
 	if os.Getpid() != 1 {
-		return false, errors.New("interactive supervision requires actual guest PID1")
+		return PowerOff, false, errors.New("interactive supervision requires actual guest PID1")
 	}
 
 	// Open the serial device itself: /dev/console cannot acquire a controlling tty.
 	tty, err := os.OpenFile(terminal, os.O_RDWR|unix.O_NOCTTY, 0)
 	if err != nil {
-		return true, err
+		return PowerOff, true, err
 	}
 	defer func() { retErr = errors.Join(retErr, tty.Close()) }()
 	if err := prepareSerial(int(tty.Fd())); err != nil {
-		return true, err
+		return PowerOff, true, err
 	}
 
 	// Subscribe before fork so even a failed trampoline exec cannot lose its wake.
@@ -45,7 +54,7 @@ func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, ro
 		Sys:   &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 0},
 	})
 	if err != nil {
-		return true, err
+		return PowerOff, true, err
 	}
 	defer func() { retErr = errors.Join(retErr, child.Release()) }()
 	defer func() {
@@ -63,6 +72,7 @@ func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, ro
 		daemon.start()
 		defer daemon.stop(children)
 	}
+	trial.supervise()
 	println("Console ready. Save files under /data; run poweroff or sync; exit to shut down.")
 	println("SPACEWAVE_OS_CONSOLE_READY pid=" + strconv.Itoa(child.Pid))
 
@@ -75,7 +85,7 @@ func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, ro
 				continue
 			}
 			if err != nil {
-				return false, errors.Join(errors.New("guest child wait failed"), err)
+				return PowerOff, false, errors.Join(errors.New("guest child wait failed"), err)
 			}
 			if pid == 0 {
 				break
@@ -84,25 +94,42 @@ func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, ro
 				daemon.exited(status)
 				continue
 			}
+			if trial.accepting(pid) {
+				if err := trial.accepted(status); err != nil {
+					return PowerOff, false, errors.Join(errors.New("accept trial"), err)
+				}
+				continue
+			}
 			if pid == child.Pid {
 				println("SPACEWAVE_OS_SHELL_EXIT status=" + strconv.Itoa(int(status)))
 				if !status.Exited() || status.ExitStatus() != 0 {
-					return false, errors.New("shell exited unsuccessfully; wait status=" + strconv.Itoa(int(status)))
+					return PowerOff, false, errors.New("shell exited unsuccessfully; wait status=" + strconv.Itoa(int(status)))
 				}
-				return false, nil
+				return PowerOff, false, nil
 			}
 		}
 
 		// Server/controller failure cancels ctx and disconnects FUSE before reaping.
 		select {
-		case <-shutdown:
+		case sig := <-requests:
+			if sig == syscall.SIGTERM {
+				println("Reboot requested.")
+				return Reboot, false, nil
+			}
 			println("Poweroff requested.")
-			return false, nil
+			return PowerOff, false, nil
 		case <-ctx.Done():
-			return false, context.Cause(ctx)
+			return PowerOff, false, context.Cause(ctx)
 		case <-children:
 		case <-daemon.restartC():
 			daemon.restartDue()
+		case <-trial.healthyC():
+			if err := trial.startAccept(executable, tty); err != nil {
+				return PowerOff, false, errors.Join(errors.New("accept trial"), err)
+			}
+		case <-trial.deadlineC():
+			println("SPACEWAVE_OS_TRIAL_DEADLINE_PASSED")
+			return Reboot, false, nil
 		}
 	}
 }

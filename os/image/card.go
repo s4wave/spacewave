@@ -10,7 +10,6 @@ import (
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -18,34 +17,14 @@ const (
 	// CardSigners names the card file listing the accepted signers, one peer
 	// ID per line. First boot pins it; later boots never read it.
 	CardSigners = "signers"
-	// CardAuthorization names the card file holding the image authorization
-	// as packedmsg text.
-	CardAuthorization = "authorization"
+	// AuthorizationFile names the file holding an image authorization as
+	// packedmsg text: the sign Step's output, which install publishes into
+	// the image store beside the root it authorizes.
+	AuthorizationFile = "authorization"
 	// CardGrant names the card file holding the bootstrap grant, an
 	// untargeted Space invite, as packedmsg text.
 	CardGrant = "grant"
 )
-
-// WriteCard writes the signers file and the authorization of root, signed by
-// key, into the card directory dir. The signer set is key's peer alone, so a
-// rehearsal card trusts only the throwaway key that signed it.
-func WriteCard(dir string, key crypto.PrivKey, root *block.BlockRef) error {
-	// Sign before writing anything, so a refused root leaves no card files.
-	signed, err := SignImageRoot(key, root)
-	if err != nil {
-		return err
-	}
-	signer, err := peer.IDFromPrivateKey(key)
-	if err != nil {
-		return err
-	}
-
-	// Write the signers, then the authorization that only they can verify.
-	if err := WriteSigners(filepath.Join(dir, CardSigners), []peer.ID{signer}); err != nil {
-		return err
-	}
-	return WriteAuthorization(filepath.Join(dir, CardAuthorization), signed)
-}
 
 // WriteAuthorization writes the image authorization signed to path as the
 // packedmsg text ReadAuthorization reads.
@@ -58,11 +37,11 @@ func WriteAuthorization(path string, signed *peer.SignedMsg) error {
 }
 
 // InstallCard writes an installable card into dir: the Space's accepted
-// signers, its bootstrap grant, and the owner's authorization of root. It
-// writes nothing unless a listed signer authorized exactly root and the grant
-// can enroll a key made on the machine, so a card that could never boot or
-// enroll is refused at install rather than at first boot. The authorization
-// is written last, so a card cut short at install authorizes nothing.
+// signers and its bootstrap grant. It writes nothing unless a listed signer
+// authorized exactly root and the grant can enroll a key made on the
+// machine, so a card that could never boot or enroll is refused at install
+// rather than at first boot. The caller then publishes the authorization into
+// the image store, last, so a card cut short at install authorizes nothing.
 func InstallCard(dir string, signers []peer.ID, signed *peer.SignedMsg, grant *sobject.SOInviteMessage, root *block.BlockRef, now time.Time) error {
 	// Verify the authorization against the signers the card will pin.
 	authorized, _, err := VerifyImageRoot(signed, signers)
@@ -84,22 +63,15 @@ func InstallCard(dir string, signers []peer.ID, signed *peer.SignedMsg, grant *s
 		return errors.Errorf("bootstrap grant: expired at %s", expires.AsTime().Format(time.RFC3339))
 	}
 
-	// Write the signers and the grant, then the authorization.
+	// Write the signers and the grant.
 	grantData, err := grant.MarshalVT()
-	if err != nil {
-		return err
-	}
-	signedData, err := signed.MarshalVT()
 	if err != nil {
 		return err
 	}
 	if err := WriteSigners(filepath.Join(dir, CardSigners), signers); err != nil {
 		return err
 	}
-	if err := writePacked(filepath.Join(dir, CardGrant), grantData); err != nil {
-		return err
-	}
-	return writePacked(filepath.Join(dir, CardAuthorization), signedData)
+	return writePacked(filepath.Join(dir, CardGrant), grantData)
 }
 
 // ReadAuthorization reads the packedmsg image authorization at path.

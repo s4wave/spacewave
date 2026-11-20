@@ -3,8 +3,10 @@
 # QEMU. It succeeds only when the console guest grows its store to the disk,
 # creates its data Volume, reports ready, writes and syncs a file in that
 # Volume, and closes every store on poweroff; when the kill trial then keeps
-# every acknowledged record across two SIGKILLs; and when a copy whose card an
-# unpinned signer authorized refuses to boot. Run it in the os/qemu tool image
+# every acknowledged record across two SIGKILLs; when the revision trial moves
+# the guest to a staged revision and rolls a broken one back, with that file
+# intact; and when a copy whose card an unpinned signer authorized refuses to
+# boot. Run it in the os/qemu tool image
 # with /dev/kvm, as the rehearsal Step does.
 # Usage: rehearse.sh IMAGES IMAGE INIT RECEIPT
 #   IMAGES holds bzImage and rootfs.cpio.lz4; IMAGE is the image store the
@@ -33,7 +35,22 @@ install -m 755 "$init" "$fixture/init"
 mkdir -m 700 "$fixture/root"
 cp -R "$image" "$fixture/root/image"
 chmod -R u+w "$fixture/root/image"
-GOMAXPROCS=2 "$fixture/init" rehearsal-card "$fixture/root/image"
+GOMAXPROCS=2 "$fixture/init" rehearsal-card "$fixture/root/image" "$fixture/key"
+
+# Seed two revisions for the guest to stage, each signed by the same key: good,
+# which differs from the image by one file, and broken, whose workload is an
+# init one byte longer than the boot set's, so its image check fails.
+mkdir -p "$fixture/revision/etc" "$fixture/root/staging/good" "$fixture/root/staging/broken"
+echo good > "$fixture/revision/etc/spacewave-revision"
+tar -C "$fixture/revision" -cf "$fixture/revision.tar" etc/spacewave-revision
+GOMAXPROCS=2 "$fixture/init" seed "$fixture/root/staging/good/image" /bin/busybox "$fixture/revision.tar"
+cp "$fixture/init" "$fixture/broken-init"
+printf x >> "$fixture/broken-init"
+GOMAXPROCS=2 "$fixture/broken-init" seed "$fixture/root/staging/broken/image" /bin/busybox "$fixture/revision.tar"
+for revision in good broken; do
+    GOMAXPROCS=2 "$fixture/init" rehearsal-sign "$fixture/root/staging/$revision/image" "$fixture/key" \
+        "$fixture/root/staging/$revision/authorization"
+done
 
 # Write the store at its content's size on a 4 GiB disk, which clears the data
 # Volume's disk reserve once first boot grows the store.
@@ -76,13 +93,20 @@ fi
 timeout -k 30 "${REHEARSAL_TIMEOUT:-600}" python3 "$tools/kill_trial.py" \
     --accel "${ACCEL:-kvm}" --kernel "$images/bzImage" \
     --initramfs "$images/rootfs.cpio.lz4" --disk "$fixture/btrfs.img"
+
+# Stage good, boot it on trial and accept it, then stage broken and boot back
+# to good; the data Volume keeps the probe the first boot wrote.
+timeout -k 30 "${REHEARSAL_TIMEOUT:-600}" python3 "$tools/revision_trial.py" \
+    --accel "${ACCEL:-kvm}" --kernel "$images/bzImage" \
+    --initramfs "$images/rootfs.cpio.lz4" --disk "$fixture/btrfs.img"
+
 # Pin the first card's signer on a fresh copy whose card a second throwaway
 # key signed, as a card rewritten after first boot would be; the boot must
 # refuse the image before opening it or its data.
 mkdir -m 700 "$fixture/refused" "$fixture/refused/data"
 cp -R "$image" "$fixture/refused/image"
 chmod -R u+w "$fixture/refused/image"
-GOMAXPROCS=2 "$fixture/init" rehearsal-card "$fixture/refused/image"
+GOMAXPROCS=2 "$fixture/init" rehearsal-card "$fixture/refused/image" "$fixture/refused-key"
 install -m 600 "$fixture/root/image/signers" "$fixture/refused/data/pinned-signers"
 truncate -s 1G "$fixture/refused.img"
 mkfs.btrfs -q --shrink --rootdir "$fixture/refused" "$fixture/refused.img"

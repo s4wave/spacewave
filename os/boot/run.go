@@ -59,7 +59,7 @@ func Run(ctx context.Context, workload, store string) (retErr error) {
 	if store == "" {
 		root, err = NewRoot(ctx, le, file)
 	} else {
-		root, err = OpenRoot(ctx, le, store)
+		root, err = openBuiltRoot(ctx, le, store)
 	}
 	if err != nil {
 		return err

@@ -96,6 +96,22 @@ only if every check passes, and streams the guest's console to stdout.
 `rehearse.sh` runs it on the rehearsal's disk after the clean boot. A 1 GiB
 disk falls below the data Volume's disk reserve, so use 4 GiB.
 
+## Revision trial
+
+`revision_trial.py` checks that a guest moves to a staged revision and rolls a
+broken one back, with its data intact. `rehearse.sh` seeds two image stores
+under `/staging` on the rehearsal's disk, each with the rehearsal key's
+authorization: `good`, which differs from the image by one file, and `broken`,
+seeded by an init one byte longer than the boot set's, so its image check
+fails. In each boot that reaches a shell, the guest mounts its own disk a second
+time and runs `/workload stage` beside the console's read-only reader, then
+`reboot`. The driver requires four boots on the disk the kill trial left: the
+accepted image stages `good`; `good` boots on trial, is accepted and stages
+`broken`; `broken` boots on trial, fails and reboots; the next boot rolls it
+back and serves `good`. Each shell must still read the probe the first boot
+wrote in `/data`. It prints `REVISION_TRIAL_PASS` and exits 0 only if every
+check passes.
+
 ## Refusal trial
 
 `refusal_trial.py` checks that a boot refuses an image whose authorization no

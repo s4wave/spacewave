@@ -117,7 +117,7 @@ func checkMissingTool(t *testing.T, original string, descendant *block.BlockRef,
 
 	// Runtime readiness must read the entire tool, not just its inode or first page.
 	before := hashImageFile(t, path)
-	root, err := OpenRoot(ctx, le, dir)
+	root, err := openBuiltRoot(ctx, le, dir)
 	if err != nil {
 		t.Fatalf("tool adversary damaged the selected root: %v", err)
 	}

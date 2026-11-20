@@ -66,7 +66,7 @@ func TestPersistentRootReopen(t *testing.T) {
 	for range 2 {
 		access := block.NewAccessLogger()
 		openCtx, cancel := context.WithCancel(block.WithAccessLogger(ctx, access))
-		r, err := OpenRoot(openCtx, le, dir)
+		r, err := openBuiltRoot(openCtx, le, dir)
 		if err != nil {
 			cancel()
 			t.Fatal(err)
@@ -160,7 +160,7 @@ func TestPersistentRootReopen(t *testing.T) {
 		}
 		path := filepath.Join(partial, "image.s4wave")
 		before := hashImageFile(t, path)
-		opened, err := OpenRoot(ctx, le, partial)
+		opened, err := openBuiltRoot(ctx, le, partial)
 		if opened != nil {
 			if err := opened.Close(); err != nil {
 				t.Error(err)
@@ -193,17 +193,17 @@ func TestPersistentRootReopen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = vol.SetBucketRoots(ctx, imageBucket, nil, []block.NamedRoot{{Name: selectedImageRoot, Previous: head.GetRootRef(), Ref: missing}})
+	err = vol.SetBucketRoots(ctx, imageBucket, nil, []block.NamedRoot{{Name: builtImageRoot, Previous: head.GetRootRef(), Ref: missing}})
 	if !errors.Is(err, block.ErrNotFound) {
 		t.Fatalf("incomplete publication returned %v", err)
 	}
-	got, err := vol.GetBucketRoot(ctx, imageBucket, selectedImageRoot)
+	got, err := vol.GetBucketRoot(ctx, imageBucket, builtImageRoot)
 	if err != nil || !got.EqualsRef(head.GetRootRef()) {
 		t.Fatalf("incomplete publication changed the head: %v", err)
 	}
 
 	// Bypass publication only on this disposable fixture to simulate corruption.
-	setFixtureBootRoot(t, vol, imageBucket, selectedImageRoot, &block_gc.RootEntry{Ref: block_gc.BlockKey(missing)})
+	setFixtureBootRoot(t, vol, imageBucket, builtImageRoot, &block_gc.RootEntry{Ref: block_gc.BlockKey(missing)})
 	if err := vol.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestPersistentRootReopen(t *testing.T) {
 
 	// Missing top-level roots are refused before constructing a World reader.
 	before = hashImageFile(t, path)
-	opened, err := OpenRoot(ctx, le, dir)
+	opened, err := openBuiltRoot(ctx, le, dir)
 	if opened != nil {
 		_ = opened.Close()
 		t.Fatal("opened an incomplete selected root")
@@ -229,7 +229,7 @@ func TestPersistentRootReopen(t *testing.T) {
 	}
 
 	// Restore only the selected root before deleting payload data.
-	setFixtureBootRoot(t, vol, imageBucket, selectedImageRoot, &block_gc.RootEntry{Ref: block_gc.BlockKey(head.GetRootRef())})
+	setFixtureBootRoot(t, vol, imageBucket, builtImageRoot, &block_gc.RootEntry{Ref: block_gc.BlockKey(head.GetRootRef())})
 
 	// Bypass graph retention only on disposable data to simulate a lost descendant.
 	if err := vol.Store.RmBlock(ctx, descendant); err != nil {
@@ -243,7 +243,7 @@ func TestPersistentRootReopen(t *testing.T) {
 	// The root/retention gate must pass, but the real streaming verifier must
 	// reject missing content. Neither open, verification nor close may write.
 	before = hashImageFile(t, path)
-	r, err := OpenRoot(ctx, le, dir)
+	r, err := openBuiltRoot(ctx, le, dir)
 	if err != nil {
 		t.Fatalf("descendant adversary also damaged the top-level root: %v", err)
 	}

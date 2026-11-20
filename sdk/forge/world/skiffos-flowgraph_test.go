@@ -130,7 +130,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	})
 	f.storeTree("os/skiff", os.DirFS(filepath.Join(osDir, "skiff")))
 	tools := fstest.MapFS{}
-	for _, name := range []string{"rehearse.sh", "install.sh", "run_app.py", "kill_trial.py", "refusal_trial.py"} {
+	for _, name := range []string{"rehearse.sh", "install.sh", "run_app.py", "kill_trial.py", "refusal_trial.py", "revision_trial.py"} {
 		data, err := os.ReadFile(filepath.Join(osDir, "qemu", name))
 		if err != nil {
 			t.Fatal(err)
@@ -367,8 +367,8 @@ func (f *flowgraphFixture) signNode(connected ...string) *s4wave_flowgraph.Flowg
 // authorizes and its signer, verified as a machine pinning the Worker does.
 func (f *flowgraphFixture) imageAuthorization(root *block.BlockRef) (*block.BlockRef, peer.ID) {
 	dir := f.t.TempDir()
-	path := filepath.Join(dir, os_image.CardAuthorization)
-	if err := os.WriteFile(path, f.readTreeFile(root, os_image.CardAuthorization), 0o600); err != nil {
+	path := filepath.Join(dir, os_image.AuthorizationFile)
+	if err := os.WriteFile(path, f.readTreeFile(root, os_image.AuthorizationFile), 0o600); err != nil {
 		f.t.Fatal(err)
 	}
 	signed, err := os_image.ReadAuthorization(path)
@@ -408,7 +408,7 @@ func (f *flowgraphFixture) storeAuthorization(key string, signer crypto.PrivKey,
 	if err != nil {
 		f.t.Fatal(err)
 	}
-	f.storeTree(key, fstest.MapFS{os_image.CardAuthorization: {Data: f.packed(signed), Mode: 0o644}})
+	f.storeTree(key, fstest.MapFS{os_image.AuthorizationFile: {Data: f.packed(signed), Mode: 0o644}})
 }
 
 // packed returns msg as one line of packedmsg text.

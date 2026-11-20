@@ -13,6 +13,8 @@ EXTENDS Naturals, TLC
 \* An image holding the daemon adds one supervised child: the same waiter reaps
 \* it, a restart follows only while the console runs, and stopping sends it
 \* SIGTERM before containment, which still kills it after a bounded wait.
+\* A reboot request stops the console exactly as poweroff does; only the
+\* final kernel call differs, so poweroff models both.
 CONSTANTS IsPID1, GuestGuard, SingleWaiter, JoinBeforeClose, PoweroffHandled, PoweroffCancels,
           TermBeforeKill
 VARIABLES phase, store, verified, mounts, servers, jobs, zombies, signalled,

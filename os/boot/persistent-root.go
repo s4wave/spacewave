@@ -73,11 +73,12 @@ func SeedRoot(ctx context.Context, le *logrus.Entry, dir string, executable, bus
 	return nil
 }
 
-// OpenRoot opens only a committed selected image. It never creates a fixture.
-func OpenRoot(ctx context.Context, le *logrus.Entry, dir string) (_ *Root, retErr error) {
+// OpenRoot opens the image store in dir read-only and serves root, which the
+// caller selected and the store must hold. It never creates a fixture.
+func OpenRoot(ctx context.Context, le *logrus.Entry, dir string, root *block.BlockRef) (_ *Root, retErr error) {
 	// Own one read-only handle through inspection, serving and ordered cleanup.
-	// This isolated image has no writer or collector. Its durable selected root
-	// protects descendants without active reader-pin writes or a controller.
+	// This reader runs no collector; the store's named roots hold every block
+	// of each revision, and a writer beside it never releases what they reach.
 	db, err := s4db.Open(filepath.Join(dir, "image.s4wave"), s4db.Options{ReadOnly: true})
 	if err != nil {
 		return nil, err
@@ -89,14 +90,17 @@ func OpenRoot(ctx context.Context, le *logrus.Entry, dir string) (_ *Root, retEr
 		}
 	}()
 
-	// Inspect the selected head and retention without recovery or migration.
-	head, err := inspectImage(ctx, db)
-	if err != nil {
+	// Refuse an unknown format or a root the store lacks, without writing.
+	if err := checkImageFormat(ctx, db); err != nil {
 		return nil, err
 	}
+	store := store_kvtx.NewKVTx(store_kvkey.NewDefaultKVKey(), db, nil)
+	if _, found, err := store.GetBlock(ctx, root); err != nil || !found {
+		return nil, errors.Join(errors.New("selected root missing; store preserved"), err)
+	}
+	head := &bucket.ObjectRef{BucketId: imageBucket, RootRef: root}
 
 	// Derive the real Volume ID with the existing stored identity encoding.
-	store := store_kvtx.NewKVTx(store_kvkey.NewDefaultKVKey(), db, nil)
 	key, err := store.LoadPeerPriv(ctx)
 	if err != nil || key == nil {
 		return nil, errors.Join(errors.New("selected Volume identity missing; store preserved"), err)
@@ -125,6 +129,16 @@ func OpenRoot(ctx context.Context, le *logrus.Entry, dir string) (_ *Root, retEr
 	}
 	println("SPACEWAVE_OS_REOPEN volume=" + r.volumeID + " root=" + head.MarshalB58())
 	return r, nil
+}
+
+// openBuiltRoot serves the image a seed built in dir, before any card
+// authorizes it, as the hosted probe and the seed's own check read it.
+func openBuiltRoot(ctx context.Context, le *logrus.Entry, dir string) (*Root, error) {
+	built, err := ReadImageRoot(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
+	return OpenRoot(ctx, le, dir, built)
 }
 
 // openSeedStorage composes the writable Volume, tracked bucket and construction
@@ -195,8 +209,9 @@ func openSeedStorage(ctx context.Context, le *logrus.Entry, dir string) (_ *Root
 	return r, nil
 }
 
-// publishImageHead selects the fenced image with one atomic named-root install.
-// An existing selection refuses the write through the root's Previous contract.
+// publishImageHead names the fenced image as the built image with one atomic
+// named-root install. An existing name refuses the write through the root's
+// Previous contract.
 func publishImageHead(ctx context.Context, publisher block.StoreOps, next *bucket.ObjectRef) error {
-	return publisher.SetRoots(ctx, nil, []block.NamedRoot{{Name: selectedImageRoot, Ref: next.GetRootRef()}})
+	return publisher.SetRoots(ctx, nil, []block.NamedRoot{{Name: builtImageRoot, Ref: next.GetRootRef()}})
 }

@@ -159,7 +159,8 @@ booted and the install writes.
 
 A boot set is offered only after a rehearsal boots it. `os/qemu/rehearse.sh`
 copies the image store into a fresh system root, authorizes it with a
-throwaway signer (`spacewave-init rehearsal-card`), and writes the root at its
+throwaway signer (`spacewave-init rehearsal-card`), seeds two more revisions
+signed by the same key under `staging/`, and writes the root at its
 content's size (`mkfs.btrfs --shrink`) onto a 4 GiB disk. It leaves the data
 Volume absent, as an install does. It boots the boot set on that disk with
 `run_app.py --dhcp`, on QEMU's user network with `ip=dhcp`; first boot grows
@@ -168,17 +169,58 @@ then creates the data Volume and its key.
 The guest writes and syncs one file through the data Volume and powers off;
 an image with a resolv.conf also prints `SPACEWAVE_OS_RESOLVER_BOUND`, and an
 image with the daemon prints `SPACEWAVE_OS_DAEMON_LISTENING` once its socket
-appears. The rehearsal then runs the [kill trial](qemu/README.md#kill-trial) on the same
-disk, and the [refusal trial](qemu/README.md#refusal-trial) on a copy whose
+appears. The rehearsal then runs the [kill trial](qemu/README.md#kill-trial) and the
+revision trial on the same disk, and the [refusal trial](qemu/README.md#refusal-trial) on a copy whose
 card an unpinned signer authorized. It writes its receipt only when the guest
 printed `SPACEWAVE_OS_BACKING_GROWN`, `SPACEWAVE_OS_AUTHORIZED`,
 `SPACEWAVE_OS_DATA_CREATED` and `SPACEWAVE_OS_PASS`, the kill trial kept every
-acknowledged record, and the copy refused to boot. The receipt is a directory
+acknowledged record, the [revision trial](qemu/README.md#revision-trial)
+moved to a staged revision and rolled a broken one back, and the copy refused
+to boot. The receipt is a directory
 whose `root` file names the root the guest authorized and booted; a
 guest that panics or hangs fails, and its console is the Step's log. The
 rehearsal runs as a Docker Step in the `os/qemu` image with `/dev/kvm`. The
 Step's `input_mounts` check out the boot set, the image, the init and the
 scripts read-only.
+
+### Revisions
+
+The image store holds each revision with its own authorization, under the
+named roots `OSRevision.tla` models (`os/boot/revision.go`). A revision root
+names an authorization block: the signed image root, stored with that root as
+its one child, so one named root holds the revision's whole block graph and one
+publish moves a revision with its authorization. `accepted` is the revision the
+Device falls back to; `trial` is a staged revision to boot once; `attempted`
+holds the trial once a boot has tried it; `rolled-back` records the image root
+of the last trial that failed, in a block with no children, so it keeps none of
+that revision. Each move is one `SetBucketRoots` commit whose `Previous` values
+make it a compare-and-swap.
+
+A boot verifies both slots against the pinned signers. A pending, authorized
+trial not yet attempted is marked `attempted`, durably, and then served
+(`SPACEWAVE_OS_TRIAL`). A trial already attempted, or one no pinned signer
+authorized, is dropped and recorded as rolled back
+(`SPACEWAVE_OS_ROLLED_BACK root= reason=`), and the boot serves `accepted`. An
+ordinary boot writes no byte of the store. On trial, the console accepts the
+revision once its daemon rewrites `spacewave.sock.ready` in its state
+directory, or at once for an image without the daemon
+(`SPACEWAVE_OS_ACCEPTED`). The accept runs as a child,
+`spacewave-init accept-trial`, because the console's process already holds
+the store's one read-only handle and s4db opens a file once per process. It reboots when a five-minute deadline, counted from
+selection, passes first, and on any error before acceptance, so the next boot
+rolls back. A deadline that passes before the shell starts syncs and restarts
+the machine at once, since a stalled boot step never returns to the console. BusyBox
+`reboot` (SIGTERM to init) closes every store as poweroff does and restarts.
+
+`spacewave-init stage IMAGE SOURCE AUTHORIZATION` stages the image a seed built
+in SOURCE as the trial. It opens the store as its one writer beside the
+console's read-only reader, walks the source root depth first, stops at every
+block the store already holds, and writes each block after its children in
+batches of at most 4 MiB. A held block therefore always holds its whole graph,
+so a second staging copies nothing and a staging cut short resumes. The trial
+and its authorization publish in one commit, refused while another trial is
+pending. The rehearsal's [revision trial](qemu/README.md#revision-trial) runs it
+in a booted guest.
 
 `os/qemu/install.sh` writes the installable disk. It copies the image store
 into a fresh system root and runs `spacewave-init install-card` with the
@@ -305,7 +347,8 @@ ordinary durable World commits, fences the engine, then publishes one generated
 `world_block_engine.HeadState` through the tracked bucket's
 `block.AtomicPublisher.PublishAtomic`. The `world-head` ObjectStore key uses the
 controller's existing encoding and retained-root name. The atomic publication
-also retains `selected-image`, so later unrelated head changes cannot reclaim it.
+also retains the built root as the named root `image`, so later unrelated head
+changes cannot reclaim it, until a card's authorization moves it to `accepted`.
 The publication waits for durability and releases its receipt pin. There is no
 parallel manifest, JSON schema or boot-time fixture regeneration.
 
@@ -315,7 +358,8 @@ to `busybox` for this fixed applet interface:
 
 ```
 sh cat ls echo pwd mkdir rmdir rm cp mv touch sync dd wc head tail sha256sum
-sleep ps kill true false uname id stat mount umount poweroff
+sleep ps kill true false uname id stat mount umount poweroff reboot ip su chmod
+stty
 ```
 
 The caller supplies a static Linux BusyBox build implementing those applets.

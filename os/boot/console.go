@@ -26,22 +26,27 @@ import (
 // never resets or migrates a store. Hosted probes keep their separate Run.
 // Native comparison access, when requested, exposes only /store/native-bench at
 // /tmp/native-bench; that existing private folder must not hold database files.
-// Closing shutdown requests ordered cleanup while healthy FUSE remains live;
-// cancelling ctx represents failure and disconnects FUSE before containment.
-func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, config, terminal string, nativeBench bool) (retErr error) {
+// A request on requests, SIGTERM to reboot and any other signal to power off,
+// asks for ordered cleanup while healthy FUSE remains live; cancelling ctx
+// represents failure and disconnects FUSE before containment. The returned
+// Stop says how the machine should stop. A boot on trial returns Reboot on
+// any failure before the trial is accepted, and on its deadline, so the next
+// boot rolls back; a deadline passed before the shell starts restarts the
+// machine at once.
+func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, config, terminal string, nativeBench bool) (stop Stop, retErr error) {
 	// Refuse hosted invocation before opening storage or changing any mount.
 	if os.Getpid() != 1 {
-		return errors.New("console requires actual guest PID1; use probe for hosted checks")
+		return PowerOff, errors.New("console requires actual guest PID1; use probe for hosted checks")
 	}
 	if system == "" || data == "" {
-		return errors.New("console requires SPACEWAVE_OS_STORE and SPACEWAVE_OS_DATA directories")
+		return PowerOff, errors.New("console requires SPACEWAVE_OS_STORE and SPACEWAVE_OS_DATA directories")
 	}
 	println("Starting console: opening system and data files.")
 
 	// Retain independent bootstrap paths; never remove a tree after failed unmount.
 	base, err := os.MkdirTemp("/tmp", "spacewave-console-")
 	if err != nil {
-		return err
+		return PowerOff, err
 	}
 	removeBase := true
 	defer func() {
@@ -53,36 +58,53 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 	// Read init from independent bootstrap storage, never its served image.
 	executable, err := os.Executable()
 	if err != nil {
-		return err
+		return PowerOff, err
 	}
 	file, err := os.Open(executable)
 	if err != nil {
-		return err
+		return PowerOff, err
 	}
 	defer func() { retErr = errors.Join(retErr, file.Close()) }()
 
 	// Supply the privileged mount-helper handshake from the static bootstrap.
 	if err := os.Symlink(executable, filepath.Join(base, "fusermount3")); err != nil {
-		return err
+		return PowerOff, err
 	}
 	oldPath := os.Getenv("PATH")
 	if err := os.Setenv("PATH", base); err != nil {
-		return err
+		return PowerOff, err
 	}
 	defer func() { retErr = errors.Join(retErr, os.Setenv("PATH", oldPath)) }()
 
-	// Verify the card's authorization against the pinned signers before
-	// opening the image, and serve only the root it names.
-	authorized, err := AuthorizedRoot(system, data)
+	// Pin the signers, then select the revision to serve: the accepted one,
+	// or a staged trial on its one attempt, each verified against the pin.
+	pinned, err := PinSigners(system, data)
 	if err != nil {
-		return err
+		return PowerOff, err
+	}
+	le := logrus.NewEntry(logrus.New())
+	sel, err := SelectRevision(ctx, le, system, pinned)
+	if err != nil {
+		return PowerOff, err
+	}
+
+	// A trial's deadline runs from here, and a trial that fails before it
+	// settles reboots; its next boot rolls back.
+	var trial *trialRun
+	if sel.OnTrial() {
+		trial = newTrialRun(sel.AcceptArgs(system))
+		defer trial.close()
+		defer func() {
+			if retErr != nil && trial.unsettled() {
+				stop = Reboot
+			}
+		}()
 	}
 
 	// Verify every required image file/link before mounting or opening writable data.
-	le := logrus.NewEntry(logrus.New())
-	root, err := OpenRoot(ctx, le, system)
+	root, err := OpenRoot(ctx, le, system, sel.Root)
 	if err != nil {
-		return err
+		return PowerOff, err
 	}
 	usersStopped := true
 	defer func() {
@@ -90,20 +112,17 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 			retErr = errors.Join(retErr, root.Close())
 		}
 	}()
-	if !root.ImageRoot().EqualsRef(authorized) {
-		return errors.New("image authorization: selected image root " + root.ImageRoot().MarshalString() + " is not the authorized root " + authorized.MarshalString())
-	}
 
 	// Complete the read-only image check before touching the writable filesystem.
 	if err := root.VerifyImage(ctx, file); err != nil {
-		return err
+		return PowerOff, err
 	}
 	println("SPACEWAVE_OS_FROZEN")
 
 	// Open the data store, creating it on first boot, and retain physical Close here.
 	d, err := EnsureData(ctx, le, data)
 	if err != nil {
-		return err
+		return PowerOff, err
 	}
 	defer func() {
 		if usersStopped {
@@ -116,7 +135,7 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 	if config != "" {
 		configuration, err = OpenData(ctx, le, config)
 		if err != nil {
-			return err
+			return PowerOff, err
 		}
 		defer func() {
 			if usersStopped {
@@ -124,7 +143,7 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 			}
 		}()
 		if err := d.Handle().MkdirAllPath(ctx, "config", 0o755, time.Now()); err != nil {
-			return err
+			return PowerOff, err
 		}
 	}
 	println("SPACEWAVE_OS_BINDING role=files volume=" + d.VolumeID() + " object=" + dataRootKey)
@@ -181,7 +200,7 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 	// Serve the immutable image first so its existing /data mountpoint is available.
 	rootPath := filepath.Join(base, "root")
 	if err := os.Mkdir(rootPath, 0o755); err != nil {
-		return err
+		return PowerOff, err
 	}
 
 	// Each mount carries its handle explicitly; writable roles cannot alias by mode.
@@ -200,7 +219,7 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 	for _, target := range targets {
 		mount, err := mountConsoleFS(runCtx, cancel, &stopping, le, target.path, target.handle, target.readOnly)
 		if err != nil {
-			return err
+			return PowerOff, err
 		}
 		mounts = append(mounts, mount)
 	}
@@ -217,11 +236,11 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 		path := filepath.Join(rootPath, target.path)
 		if target.path == "dev/pts" {
 			if err := os.MkdirAll(path, 0o755); err != nil {
-				return err
+				return PowerOff, err
 			}
 		}
 		if err := unix.Mount(target.fs, path, target.fs, unix.MS_NOSUID, target.options); err != nil {
-			return err
+			return PowerOff, err
 		}
 		kernelMounts = append(kernelMounts, path)
 	}
@@ -230,39 +249,50 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 	if nativeBench {
 		info, err := os.Lstat("/store/native-bench")
 		if err != nil {
-			return err
+			return PowerOff, err
 		}
 		if !info.IsDir() || info.Mode().Perm() != 0o700 {
-			return errors.New("native comparison requires an existing private /store/native-bench directory (mode 0700)")
+			return PowerOff, errors.New("native comparison requires an existing private /store/native-bench directory (mode 0700)")
 		}
 		target := filepath.Join(rootPath, "tmp/native-bench")
 		if err := os.Mkdir(target, 0o700); err != nil {
-			return err
+			return PowerOff, err
 		}
 		if err := bindMount("/store/native-bench", target, false, &kernelMounts); err != nil {
-			return err
+			return PowerOff, err
 		}
 	}
 
 	// The kernel's DHCP lease names the resolvers; the image's resolv.conf is
 	// only its mountpoint. A kernel without IP_PNP leaves the image's file.
 	if err := bindResolver(rootPath, &kernelMounts); err != nil {
-		return errors.Join(errors.New("resolver /etc/resolv.conf"), err)
+		return PowerOff, errors.Join(errors.New("resolver /etc/resolv.conf"), err)
 	}
 
 	// An image holding the daemon also gets its state beside the data Volume
 	// and, when the card carries one, the bootstrap grant.
 	daemonArgs, err := bindDaemon(system, data, rootPath, &kernelMounts)
 	if err != nil {
-		return err
+		return PowerOff, err
+	}
+
+	// A trial is accepted once its daemon is ready, or at once without one.
+	if trial != nil {
+		state := ""
+		if daemonArgs != nil {
+			state = filepath.Join(data, "daemon")
+		}
+		if err := trial.watch(state); err != nil {
+			return PowerOff, err
+		}
 	}
 
 	// Start only after helpers finish; from here one Wait4 authority owns children.
 	if err := context.Cause(runCtx); err != nil {
-		return err
+		return PowerOff, err
 	}
-	usersStopped, err = runGuestShell(runCtx, shutdown, executable, rootPath, terminal, daemonArgs)
-	return errors.Join(err, context.Cause(runCtx))
+	stop, usersStopped, err = runGuestShell(runCtx, requests, executable, rootPath, terminal, daemonArgs, trial)
+	return stop, errors.Join(err, context.Cause(runCtx))
 }
 
 // bindDaemon binds the daemon's state directory and the card's grant over the

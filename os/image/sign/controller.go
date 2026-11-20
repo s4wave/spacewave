@@ -28,7 +28,7 @@ var Version = controller.MustParseVersion("0.0.1")
 const ControllerID = "os/image/sign"
 
 // InputImage names the input holding the image store, a tree with
-// image.s4wave, whose selected root the Step signs.
+// image.s4wave, whose built root the Step signs.
 const InputImage = "image"
 
 // InputRehearsed names the input holding the rehearsal's receipt, a tree whose
@@ -36,7 +36,7 @@ const InputImage = "image"
 const InputRehearsed = "rehearsed"
 
 // OutputAuthorization names the output tree holding the authorization file,
-// the card's os_image.CardAuthorization that install reads.
+// the os_image.AuthorizationFile that install publishes into the image store.
 const OutputAuthorization = "authorization"
 
 // Controller signs one image root with the Worker peer's key.
@@ -125,7 +125,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err := os.Mkdir(out, 0o700); err != nil {
 		return err
 	}
-	if err := os_image.WriteAuthorization(filepath.Join(out, os_image.CardAuthorization), signed); err != nil {
+	if err := os_image.WriteAuthorization(filepath.Join(out, os_image.AuthorizationFile), signed); err != nil {
 		return err
 	}
 	ref, err := forge_lib_util_inputfs.StoreDir(ctx, c.handle, out)
