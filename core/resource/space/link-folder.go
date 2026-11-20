@@ -1,6 +1,7 @@
 package resource_space
 
 import (
+	"context"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -45,4 +46,25 @@ func (r *SpaceResource) LinkFolder(
 		return err
 	}
 	return strm.Send(&s4wave_space.LinkFolderProgress{Files: linked, Bytes: linkedBytes, Done: true})
+}
+
+// ResetFolderRoot records the file system the folder's root is on now as the
+// one it is linked on. The linked-folder node waiting for its root sees the
+// change at its next check and resumes with a full sync.
+func (r *SpaceResource) ResetFolderRoot(
+	ctx context.Context,
+	req *s4wave_space.ResetFolderRootRequest,
+) (*s4wave_space.ResetFolderRootResponse, error) {
+	// Require a store that can serve linked files.
+	files := r.space.GetSharedObject().GetBlockStore().GetFileSegments()
+	if files == nil {
+		return nil, errors.New("this Space's block store cannot link files")
+	}
+
+	// Record the root's file system.
+	previous, current, err := unixfs_world.ResetFolderRoot(ctx, files.GetIndex(), req.GetFolder())
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_space.ResetFolderRootResponse{Previous: previous, Current: current}, nil
 }

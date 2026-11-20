@@ -36,6 +36,16 @@ type FlowgraphNodeCapability interface {
 	GetCapability(ctx context.Context, ws world.WorldState, node *PlacedFlowgraphNode) (*s4wave_device.DeviceCapability, error)
 }
 
+// FlowgraphNodeStatus is implemented by a node's controller that shows a
+// state of its own while it runs, such as the work it is doing or the
+// condition that stopped it. The Device shows it on the node's capability in
+// place of the active state.
+type FlowgraphNodeStatus interface {
+	// GetNodeStatus returns the node's state and detail, and a channel closed
+	// at their next change.
+	GetNodeStatus() (s4wave_device.DeviceCapabilityState, string, <-chan struct{})
+}
+
 // PlacedFlowgraphNode is a node placed on a Device with the context its node
 // type compiles from.
 type PlacedFlowgraphNode struct {

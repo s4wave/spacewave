@@ -102,10 +102,22 @@ func linkFileOnce(
 		}
 	}
 
-	// Address the chunks, keeping each range.
+	// Address the chunks, keeping each range. A file changing under the read
+	// stops it at the next chunk, so an attempt on a file being written costs
+	// the bytes read until its next write, not the whole file.
 	var refs []*block.BlockRef
 	var segs []*Segment
 	ci, total, err := blob.AddressChunks(ctx, f, args, xfrm, hashType, func(c *blob.Chunk, blockSize int) error {
+		// Stop at a change.
+		now, err := f.Stat()
+		if err != nil {
+			return err
+		}
+		if !sameStat(now, fi) {
+			return errFileChanged
+		}
+
+		// Keep the chunk's range.
 		refs = append(refs, c.GetDataRef())
 		segs = append(segs, &Segment{
 			Path:      path,

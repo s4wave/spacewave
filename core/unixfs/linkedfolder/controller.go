@@ -5,6 +5,7 @@ package core_unixfs_linkedfolder
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"path/filepath"
 	"slices"
@@ -16,10 +17,13 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/fsnotify"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	unixfs_linkedfolder "github.com/s4wave/spacewave/sdk/unixfs/linkedfolder"
 	"github.com/sirupsen/logrus"
 )
@@ -52,6 +56,11 @@ const watchMaxWait = 5 * time.Second
 // the watcher names, and the whole folder when the watcher dropped events.
 // While the folder's root is off the file system it was linked on, as when
 // its disk is unmounted, it syncs nothing and waits for the file system.
+//
+// Its node status shows indexing during a full sync, watching while it
+// follows the folder, with the files waiting out a backoff because they kept
+// changing during their reads, and rejected, naming both file systems, while
+// the folder's root is off its file system.
 type Controller struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -59,6 +68,13 @@ type Controller struct {
 	conf *unixfs_linkedfolder.Config
 	// engine is the World engine holding the Drive.
 	engine *world.BusEngine
+
+	// status guards state and detail and wakes their watchers.
+	status broadcast.Broadcast
+	// state is the node's state.
+	state s4wave_device.DeviceCapabilityState
+	// detail describes state.
+	detail string
 }
 
 // NewController constructs a linked-folder controller.
@@ -67,6 +83,8 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *unixfs_linkedfolder.Config
 		le:     le,
 		conf:   conf,
 		engine: world.NewBusEngine(nil, b, conf.GetEngineId()),
+		state:  s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE,
+		detail: "starting",
 	}
 }
 
@@ -105,6 +123,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 				return err
 			}
 			c.le.WithError(err).Warn("waiting for the folder's file system")
+			c.setStatus(s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED, err.Error())
 			if err := waitRoot(ctx, link); err != nil {
 				return err
 			}
@@ -150,10 +169,12 @@ func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, sta
 	}
 
 	// Sync the folder, then follow its changes.
+	c.showIndexing()
 	if err := link.Sync(ctx, c.logProgress); err != nil {
 		return err
 	}
 	c.le.Debug("folder synced")
+	c.showWatching(link)
 	return c.follow(ctx, link, watcher, stale, folder)
 }
 
@@ -161,7 +182,8 @@ func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, sta
 // quiet for watchQuiet, or watchMaxWait after the first unsynced change. An
 // event outside the folder's tree, on the folder itself, or a report of
 // dropped events syncs the whole folder. A file whose bytes the store found
-// changed under an unchanged stat is linked again with the same wait.
+// changed under an unchanged stat is linked again with the same wait, and so
+// is a file that kept changing during its reads once its backoff passes.
 func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, watcher *fsnotify.Watcher, stale *stalePaths, folder string) error {
 	// Track the changes not yet synced and the timers that end their wait.
 	dirs := make(map[string]struct{})
@@ -169,6 +191,32 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 	var all bool
 	var quiet, deadline *time.Timer
 	var quietC, deadlineC <-chan time.Time
+
+	// Wake when the earliest backoff of a changing file passes.
+	var changing *time.Timer
+	var changingC <-chan time.Time
+	defer func() {
+		if changing != nil {
+			changing.Stop()
+		}
+	}()
+	armChanging := func() {
+		if changing != nil {
+			changing.Stop()
+		}
+		changing, changingC = nil, nil
+
+		// Arm it for the earliest due file, if any.
+		if n, due := link.Changing(); n != 0 {
+			changing = time.NewTimer(time.Until(due))
+			changingC = changing.C
+		}
+	}
+
+	// Arm it for the files the starting sync left changing.
+	armChanging()
+
+	// Sync each batch of changes until the context ends.
 	for {
 		// Collect changes until the folder is quiet or the deadline passes.
 		changed := false
@@ -201,6 +249,12 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 					changed = true
 				}
 			}
+		case <-changingC:
+			changingC = nil
+			for _, rel := range link.DueChanging(time.Now()) {
+				files[rel] = struct{}{}
+			}
+			changed = true
 		case <-quietC:
 		case <-deadlineC:
 		}
@@ -220,6 +274,7 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 		quiet, deadline, quietC, deadlineC = nil, nil, nil, nil
 		var err error
 		if all {
+			c.showIndexing()
 			err = link.Sync(ctx, c.logProgress)
 		} else {
 			err = link.SyncDirs(ctx, slices.Collect(maps.Keys(dirs)), c.logProgress)
@@ -233,6 +288,8 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 		clear(dirs)
 		clear(files)
 		all = false
+		c.showWatching(link)
+		armChanging()
 	}
 }
 
@@ -283,6 +340,48 @@ func (p *stalePaths) take() []string {
 	return out
 }
 
+// GetNodeStatus returns the node's state and detail, and a channel closed at
+// their next change.
+func (c *Controller) GetNodeStatus() (s4wave_device.DeviceCapabilityState, string, <-chan struct{}) {
+	l := c.status.Lock()
+	defer l.Unlock()
+	return c.state, c.detail, l.WaitCh()
+}
+
+// setStatus shows state and detail, waking the watchers when they change.
+func (c *Controller) setStatus(state s4wave_device.DeviceCapabilityState, detail string) {
+	// Keep an unchanged status quiet.
+	l := c.status.Lock()
+	defer l.Unlock()
+	if c.state == state && c.detail == detail {
+		return
+	}
+
+	// Show the new status.
+	c.state, c.detail = state, detail
+	l.Broadcast()
+}
+
+// showIndexing shows a full sync. A targeted sync keeps showing watching, so
+// following the folder writes the Device only when the status changes.
+func (c *Controller) showIndexing() {
+	c.setStatus(s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, "indexing")
+}
+
+// showWatching shows the link following the folder, with the files waiting
+// out a backoff because they kept changing during their reads.
+func (c *Controller) showWatching(link *unixfs_world.FolderLink) {
+	detail := "watching"
+	switch n, _ := link.Changing(); n {
+	case 0:
+	case 1:
+		detail += "; 1 file changing, will link when quiet"
+	default:
+		detail += fmt.Sprintf("; %d files changing, will link when quiet", n)
+	}
+	c.setStatus(s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, detail)
+}
+
 // logProgress logs the files a sync linked so far.
 func (c *Controller) logProgress(files, bytes uint64) error {
 	c.le.WithField("files", files).WithField("bytes", bytes).Debug("linked files")
@@ -300,4 +399,7 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = (*Controller)(nil)
+var (
+	_ controller.Controller                = (*Controller)(nil)
+	_ s4wave_flowgraph.FlowgraphNodeStatus = (*Controller)(nil)
+)

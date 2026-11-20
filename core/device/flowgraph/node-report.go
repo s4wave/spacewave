@@ -22,8 +22,9 @@ type nodeReport struct {
 }
 
 // capability returns the Device capability that shows the node's state, folded
-// from the state of its entries.
-func (n *nodeReport) capability(applier *configApplier) *s4wave_device.DeviceCapability {
+// from the state of its entries. It appends to waits a channel closed at the
+// next change of each status a running controller shows.
+func (n *nodeReport) capability(applier *configApplier, waits *[]<-chan struct{}) *s4wave_device.DeviceCapability {
 	// Show the capability the node type supplied, or the default one.
 	capability := n.shown.CloneVT()
 	if capability == nil {
@@ -43,13 +44,15 @@ func (n *nodeReport) capability(applier *configApplier) *s4wave_device.DeviceCap
 		}
 	}
 	capability.Id = n.node.CapabilityID()
-	capability.State, capability.Detail = n.state(applier)
+	capability.State, capability.Detail = n.state(applier, waits)
 	return capability
 }
 
 // state folds the node's entries into one state. Any failed entry rejects the
-// node; the node is active once every entry's controller runs.
-func (n *nodeReport) state(applier *configApplier) (s4wave_device.DeviceCapabilityState, string) {
+// node; the node is active once every entry's controller runs, or shows the
+// status its running controllers show, a rejection first. It appends to waits
+// the change channel of each status read.
+func (n *nodeReport) state(applier *configApplier, waits *[]<-chan struct{}) (s4wave_device.DeviceCapabilityState, string) {
 	// Report a node the daemon rejected, or one still waiting for its type.
 	if n.err != nil {
 		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED, n.err.Error()
@@ -61,6 +64,7 @@ func (n *nodeReport) state(applier *configApplier) (s4wave_device.DeviceCapabili
 		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE, ""
 	}
 	starting := false
+	shown, detail := s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, ""
 	for _, key := range n.keys {
 		state := applier.State(key)
 		switch {
@@ -68,10 +72,20 @@ func (n *nodeReport) state(applier *configApplier) (s4wave_device.DeviceCapabili
 			return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED, state.GetError().Error()
 		case state == nil || state.GetController() == nil:
 			starting = true
+		default:
+			status, ok := state.GetController().(s4wave_flowgraph.FlowgraphNodeStatus)
+			if !ok {
+				continue
+			}
+			st, d, changed := status.GetNodeStatus()
+			*waits = append(*waits, changed)
+			if shown != s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED {
+				shown, detail = st, d
+			}
 		}
 	}
 	if starting {
 		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_DECLARED, "starting"
 	}
-	return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, ""
+	return shown, detail
 }

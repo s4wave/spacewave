@@ -1549,6 +1549,50 @@ export const LinkFolderProgress: MessageType<LinkFolderProgress> =
   )
 
 /**
+ * ResetFolderRootRequest selects the linked folder whose root to record.
+ *
+ * @generated from message s4wave.space.ResetFolderRootRequest
+ */
+export interface ResetFolderRootRequest {
+  /**
+   * Folder is the absolute path of the folder on this device.
+   */
+  folder?: string
+}
+
+export const ResetFolderRootRequest: MessageType<ResetFolderRootRequest> =
+  /* @__PURE__ */ createMessageType<ResetFolderRootRequest>(
+    's4wave.space.ResetFolderRootRequest',
+    () => [[1, 'folder', 9]],
+  )
+
+/**
+ * ResetFolderRootResponse names the file systems recorded before and now.
+ *
+ * @generated from message s4wave.space.ResetFolderRootResponse
+ */
+export interface ResetFolderRootResponse {
+  /**
+   * Previous is the identity of the file system recorded before, 0 when none
+   * was.
+   */
+  previous?: bigint
+  /**
+   * Current is the identity of the file system the root is on now.
+   */
+  current?: bigint
+}
+
+export const ResetFolderRootResponse: MessageType<ResetFolderRootResponse> =
+  /* @__PURE__ */ createMessageType<ResetFolderRootResponse>(
+    's4wave.space.ResetFolderRootResponse',
+    () => [
+      [1, 'previous', 4],
+      [2, 'current', 4],
+    ],
+  )
+
+/**
  * SetSpaceBackfillRequest chooses this device's backfill of the World.
  *
  * @generated from message s4wave.space.SetSpaceBackfillRequest

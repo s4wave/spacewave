@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/block"
@@ -58,6 +59,9 @@ type Reconciler struct {
 	atFunc func(time.Time, func()) func()
 	// nextExpiry is the earliest lease deadline read by the current pass.
 	nextExpiry time.Time
+	// statusWaits holds the change channel of each node status the current
+	// pass read.
+	statusWaits []<-chan struct{}
 
 	// wake holds a pending reconcile. Every watched source sets it.
 	wake chan struct{}
@@ -151,6 +155,7 @@ func (r *Reconciler) reconcileLoop(ctx context.Context) error {
 		}
 		stop()
 		r.nextExpiry = time.Time{}
+		r.statusWaits = nil
 
 		// Reconcile, recording the World state the pass reads.
 		seqno, err := r.engine.GetSeqno(ctx)
@@ -171,12 +176,14 @@ func (r *Reconciler) reconcileLoop(ctx context.Context) error {
 			reads = nil
 		}
 		stopWatch := r.watchReads(ctx, seqno, reads)
+		stopStatus := r.watchStatus(ctx, r.statusWaits)
 		stopTimer := func() {}
 		if !r.nextExpiry.IsZero() {
 			stopTimer = r.atFunc(r.nextExpiry, r.notify)
 		}
 		stop = func() {
 			stopTimer()
+			stopStatus()
 			stopWatch()
 		}
 	}
@@ -205,6 +212,30 @@ func (r *Reconciler) watchReads(ctx context.Context, seqno uint64, reads *world.
 			case r.watchErr <- err:
 			default:
 			}
+		}
+	}()
+	return func() {
+		cancel()
+		<-done
+	}
+}
+
+// watchStatus schedules a reconcile for the first change of the node statuses
+// whose change channels are waits. It returns a function that stops the watch
+// and waits for it to exit.
+func (r *Reconciler) watchStatus(ctx context.Context, waits []<-chan struct{}) func() {
+	// Watch nothing when no node shows a status.
+	if len(waits) == 0 {
+		return func() {}
+	}
+
+	// Wake the loop at the first change.
+	ctx, cancel := context.WithCancel(ctx)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if broadcast.WaitAny(ctx, waits...) == nil {
+			r.notify()
 		}
 	}()
 	return func() {
@@ -376,7 +407,7 @@ func (r *Reconciler) nextCapabilities(device *s4wave_device.Device, reports []*n
 		return s4wave_flowgraph.IsNodeCapabilityID(capability.GetId())
 	})
 	for _, report := range reports {
-		capabilities = append(capabilities, report.capability(r.applier))
+		capabilities = append(capabilities, report.capability(r.applier, &r.statusWaits))
 	}
 	return capabilities
 }

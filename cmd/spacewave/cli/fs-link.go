@@ -31,58 +31,15 @@ func (a *FsLinkArgs) BuildFlags() []cli.Flag {
 
 // Run links the folder and reports the files and bytes indexed.
 func (a *FsLinkArgs) Run(c *cli.Context) error {
-	// Parse the local folder and the spacewave: destination.
-	if c.NArg() != 2 {
-		return errors.New("expected FOLDER spacewave:DESTINATION")
-	}
-	folder, destination := c.Args().Get(0), c.Args().Get(1)
-	if !strings.HasPrefix(destination, "spacewave:") {
-		return errors.New("the destination must have the spacewave: prefix")
-	}
-	uri, err := parseFsURI(strings.TrimPrefix(destination, "spacewave:"), a.spaceID, a.sessionIdx)
+	// Open the folder's destination.
+	folder, uri, spaceSvc, release, err := a.openLinkTarget(c)
 	if err != nil {
 		return err
 	}
-
-	// Require the folder to be a directory, by its absolute path.
-	folder, err = filepath.Abs(folder)
-	if err != nil {
-		return err
-	}
-	info, err := os.Stat(folder)
-	if err != nil {
-		return err
-	}
-	if !info.IsDir() {
-		return errors.New("link source must be a directory")
-	}
-
-	// Mount the session.
-	ctx := c.Context
-	client, err := connectDaemonFromContext(ctx, c, a.statePath)
-	if err != nil {
-		return err
-	}
-	defer client.close()
-	sess, err := client.mountSession(ctx, uri.sessionIdx)
-	if err != nil {
-		return err
-	}
-	defer sess.Release()
-
-	// Mount the Space.
-	spaceID, err := client.resolveSpaceID(ctx, sess, uri.spaceID)
-	if err != nil {
-		return err
-	}
-	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
-	if err != nil {
-		return err
-	}
-	defer spaceCleanup()
+	defer release()
 
 	// Link the folder, printing each batch's progress.
-	strm, err := spaceSvc.LinkFolder(ctx, &s4wave_space.LinkFolderRequest{ObjectKey: uri.objectKey, Path: uri.path, Folder: folder})
+	strm, err := spaceSvc.LinkFolder(c.Context, &s4wave_space.LinkFolderRequest{ObjectKey: uri.objectKey, Path: uri.path, Folder: folder})
 	if err != nil {
 		return errors.Wrap(err, "link folder")
 	}
@@ -101,6 +58,70 @@ func (a *FsLinkArgs) Run(c *cli.Context) error {
 		}
 		fmt.Fprintf(os.Stderr, "linked %d files, %d bytes so far\n", msg.GetFiles(), msg.GetBytes())
 	}
+}
+
+// openLinkTarget parses the FOLDER spacewave:DESTINATION arguments, requires
+// the folder to be a directory, and mounts the destination's Space. It
+// returns the folder's absolute path, the destination, the Space resource,
+// and the release of the mounts.
+func (a *FsLinkArgs) openLinkTarget(c *cli.Context) (string, fsURI, s4wave_space.SRPCSpaceResourceServiceClient, func(), error) {
+	// Parse the local folder and the spacewave: destination.
+	if c.NArg() != 2 {
+		return "", fsURI{}, nil, nil, errors.New("expected FOLDER spacewave:DESTINATION")
+	}
+	folder, destination := c.Args().Get(0), c.Args().Get(1)
+	if !strings.HasPrefix(destination, "spacewave:") {
+		return "", fsURI{}, nil, nil, errors.New("the destination must have the spacewave: prefix")
+	}
+	uri, err := parseFsURI(strings.TrimPrefix(destination, "spacewave:"), a.spaceID, a.sessionIdx)
+	if err != nil {
+		return "", fsURI{}, nil, nil, err
+	}
+
+	// Require the folder to be a directory, by its absolute path.
+	folder, err = filepath.Abs(folder)
+	if err != nil {
+		return "", fsURI{}, nil, nil, err
+	}
+	info, err := os.Stat(folder)
+	if err != nil {
+		return "", fsURI{}, nil, nil, err
+	}
+	if !info.IsDir() {
+		return "", fsURI{}, nil, nil, errors.New("link source must be a directory")
+	}
+
+	// Mount the session.
+	ctx := c.Context
+	client, err := connectDaemonFromContext(ctx, c, a.statePath)
+	if err != nil {
+		return "", fsURI{}, nil, nil, err
+	}
+	sess, err := client.mountSession(ctx, uri.sessionIdx)
+	if err != nil {
+		client.close()
+		return "", fsURI{}, nil, nil, err
+	}
+	releaseSession := func() {
+		sess.Release()
+		client.close()
+	}
+
+	// Mount the Space.
+	spaceID, err := client.resolveSpaceID(ctx, sess, uri.spaceID)
+	if err != nil {
+		releaseSession()
+		return "", fsURI{}, nil, nil, err
+	}
+	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
+	if err != nil {
+		releaseSession()
+		return "", fsURI{}, nil, nil, err
+	}
+	return folder, uri, spaceSvc, func() {
+		spaceCleanup()
+		releaseSession()
+	}, nil
 }
 
 // newFsLinkCommand builds the folder link command.

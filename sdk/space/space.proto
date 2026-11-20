@@ -106,6 +106,12 @@ service SpaceResourceService {
   // this device serves them from the file. It streams progress after each
   // batch of files publishes.
   rpc LinkFolder(LinkFolderRequest) returns (stream LinkFolderProgress) {}
+
+  // ResetFolderRoot records the file system a linked folder's root is on now
+  // as the one it is linked on, as after its disk returns with another
+  // identity. A link stopped because its folder root changed then resumes
+  // with a full sync, which removes every Drive entry the folder lacks.
+  rpc ResetFolderRoot(ResetFolderRootRequest) returns (ResetFolderRootResponse) {}
 }
 
 // BuildSpacePluginRequest selects a Space source tree and authorized build device.
@@ -661,6 +667,21 @@ message LinkFolderProgress {
   // Done is set on the last message, once the World holding every file is
   // durable.
   bool done = 3;
+}
+
+// ResetFolderRootRequest selects the linked folder whose root to record.
+message ResetFolderRootRequest {
+  // Folder is the absolute path of the folder on this device.
+  string folder = 1;
+}
+
+// ResetFolderRootResponse names the file systems recorded before and now.
+message ResetFolderRootResponse {
+  // Previous is the identity of the file system recorded before, 0 when none
+  // was.
+  uint64 previous = 1;
+  // Current is the identity of the file system the root is on now.
+  uint64 current = 2;
 }
 
 // SetSpaceBackfillRequest chooses this device's backfill of the World.

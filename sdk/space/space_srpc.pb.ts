@@ -34,6 +34,8 @@ import {
   ReadSecretPayloadResponse,
   RemoveSpacePluginRequest,
   RemoveSpacePluginResponse,
+  ResetFolderRootRequest,
+  ResetFolderRootResponse,
   RestartSpacePluginRequest,
   RestartSpacePluginResponse,
   SetProcessBindingRequest,
@@ -373,6 +375,20 @@ export const SpaceResourceServiceDefinition = {
       O: LinkFolderProgress,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * ResetFolderRoot records the file system a linked folder's root is on now
+     * as the one it is linked on, as after its disk returns with another
+     * identity. A link stopped because its folder root changed then resumes
+     * with a full sync, which removes every Drive entry the folder lacks.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.ResetFolderRoot
+     */
+    ResetFolderRoot: {
+      name: 'ResetFolderRoot',
+      I: ResetFolderRootRequest,
+      O: ResetFolderRootResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -649,6 +665,19 @@ export interface SpaceResourceService {
     request: LinkFolderRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<LinkFolderProgress>
+
+  /**
+   * ResetFolderRoot records the file system a linked folder's root is on now
+   * as the one it is linked on, as after its disk returns with another
+   * identity. A link stopped because its folder root changed then resumes
+   * with a full sync, which removes every Drive entry the folder lacks.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.ResetFolderRoot
+   */
+  ResetFolderRoot(
+    request: ResetFolderRootRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResetFolderRootResponse>
 }
 
 /**
@@ -950,6 +979,20 @@ export interface SpaceResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): MessageStream<LinkFolderProgress>
+
+  /**
+   * ResetFolderRoot records the file system a linked folder's root is on now
+   * as the one it is linked on, as after its disk returns with another
+   * identity. A link stopped because its folder root changed then resumes
+   * with a full sync, which removes every Drive entry the folder lacks.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.ResetFolderRoot
+   */
+  ResetFolderRoot(
+    request: ResetFolderRootRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ResetFolderRootResponse>
 }
 
 export const SpaceResourceServiceServiceName =
@@ -987,6 +1030,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.SetSpaceRoster = this.SetSpaceRoster.bind(this)
     this.ApproveSpaceChange = this.ApproveSpaceChange.bind(this)
     this.LinkFolder = this.LinkFolder.bind(this)
+    this.ResetFolderRoot = this.ResetFolderRoot.bind(this)
   }
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
@@ -1489,6 +1533,28 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(LinkFolderProgress)(result)
+  }
+
+  /**
+   * ResetFolderRoot records the file system a linked folder's root is on now
+   * as the one it is linked on, as after its disk returns with another
+   * identity. A link stopped because its folder root changed then resumes
+   * with a full sync, which removes every Drive entry the folder lacks.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.ResetFolderRoot
+   */
+  async ResetFolderRoot(
+    request: ResetFolderRootRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResetFolderRootResponse> {
+    const requestMsg = ResetFolderRootRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.ResetFolderRoot.name,
+      ResetFolderRootRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ResetFolderRootResponse.fromBinary(result)
   }
 }
 /**

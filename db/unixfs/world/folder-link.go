@@ -25,12 +25,24 @@ import (
 // the writer, after it lost the race to other writers too often.
 const FolderLinkBatchFiles = 512
 
-// ErrFolderRootChanged is returned by a sync while the folder's root is
-// missing or on another file system than the one it was linked on, as when
-// the folder's disk is unmounted and its empty mount point remains: a sync
-// would then remove the whole Drive. The sync removes nothing and resumes
-// once the root is back on its file system.
-var ErrFolderRootChanged = errors.New("the folder is not on the file system it was linked on")
+// ChangingBackoff is how long syncs skip a file that changed during each of
+// its reads before one reads it again. Each further such read doubles the
+// wait, up to ChangingBackoffMax, and a read that links the file ends it. A
+// file written without pause, such as a log, a database or a disk image, is
+// then read a few times a minute at first and once per ChangingBackoffMax
+// after that, instead of LinkAttempts times per sync.
+const ChangingBackoff = 5 * time.Second
+
+// ChangingBackoffMax bounds the wait of a changing file.
+const ChangingBackoffMax = 5 * time.Minute
+
+// changingFile is the backoff of a file that changed during each read.
+type changingFile struct {
+	// wait is the current wait.
+	wait time.Duration
+	// due is when a sync may read the file again.
+	due time.Time
+}
 
 // FolderLink keeps a Drive equal to a folder on this Device: each regular
 // file's blocks stay in the file and are read from it, and only the file's
@@ -38,6 +50,8 @@ var ErrFolderRootChanged = errors.New("the folder is not on the file system it w
 // left out, and a Drive entry the folder lacks is removed. The first sync
 // records the file-system identity of the folder's root in the index, and
 // every later sync refuses to run while the root's identity differs.
+//
+// A FolderLink runs one sync at a time.
 type FolderLink struct {
 	// eng is the World engine holding the Drive.
 	eng world.Engine
@@ -49,6 +63,9 @@ type FolderLink struct {
 	folder string
 	// dest is the path in the Drive the folder links to.
 	dest []string
+	// changing holds the backoff of each file, by absolute path, that changed
+	// during each read of its last attempt.
+	changing map[string]changingFile
 }
 
 // NewFolderLink constructs the link of the absolute folder into the Drive at
@@ -60,7 +77,7 @@ func NewFolderLink(eng world.Engine, idx *block_store_filesegment.Index, objKey,
 	if objKey == "" {
 		return nil, world.ErrEmptyObjectKey
 	}
-	return &FolderLink{eng: eng, idx: idx, objKey: objKey, folder: filepath.Clean(folder), dest: dest}, nil
+	return &FolderLink{eng: eng, idx: idx, objKey: objKey, folder: filepath.Clean(folder), dest: dest, changing: make(map[string]changingFile)}, nil
 }
 
 // Sync makes the Drive equal to the whole folder. It links each directory and
@@ -167,6 +184,33 @@ func splitRel(rel string) []string {
 	return out
 }
 
+// Changing returns the number of files the syncs skip because they changed
+// during each read, and the earliest time one is due to be read again: zero
+// when none is.
+func (l *FolderLink) Changing() (int, time.Time) {
+	var due time.Time
+	for _, c := range l.changing {
+		if due.IsZero() || c.due.Before(due) {
+			due = c.due
+		}
+	}
+	return len(l.changing), due
+}
+
+// DueChanging returns the paths, relative to the folder, of the changing
+// files due to be read again by now. Reindex reads them.
+func (l *FolderLink) DueChanging(now time.Time) []string {
+	var out []string
+	for path, c := range l.changing {
+		if !now.Before(c.due) {
+			if rel, err := filepath.Rel(l.folder, path); err == nil {
+				out = append(out, rel)
+			}
+		}
+	}
+	return out
+}
+
 // CheckRoot returns ErrFolderRootChanged while the folder's root is missing
 // or on another file system than the one recorded when it was linked.
 func (l *FolderLink) CheckRoot(ctx context.Context) error {
@@ -188,13 +232,13 @@ func (l *FolderLink) checkRoot(ctx context.Context) (uint64, error) {
 	// Refuse a root that left its file system; record the first one.
 	switch {
 	case found && errors.Is(statErr, fs.ErrNotExist):
-		return 0, errors.Wrapf(ErrFolderRootChanged, "%s is missing", l.folder)
+		return 0, &FolderRootChangedError{Folder: l.folder, Recorded: rec, Missing: true}
 	case statErr != nil:
 		return 0, statErr
 	case !found:
 		return id, l.idx.SetFolderRoot(ctx, l.folder, id)
 	case rec != id:
-		return 0, errors.Wrapf(ErrFolderRootChanged, "%s is on file system %d, linked on %d", l.folder, id, rec)
+		return 0, &FolderRootChangedError{Folder: l.folder, Recorded: rec, Current: id}
 	}
 	return id, nil
 }
@@ -377,7 +421,9 @@ func (s *folderSync) reindex(rel []string) error {
 		}
 	}
 
-	// Sync the directory otherwise.
+	// Sync the directory otherwise, ending the backoff of a file that is
+	// gone.
+	delete(s.changing, path)
 	return s.syncDir(dirRel)
 }
 
@@ -458,7 +504,7 @@ func (s *folderSync) dir(path string, parent []string, all bool) error {
 	// be on its file system still: an unmount during the sync empties it.
 	if len(gone) != 0 {
 		if id, err := folderRootID(s.folder); err != nil || id != s.rootID {
-			return errors.Wrapf(ErrFolderRootChanged, "%s left its file system during the sync", s.folder)
+			return &FolderRootChangedError{Folder: s.folder, Recorded: s.rootID, Current: id, Missing: err != nil}
 		}
 	}
 	for _, name := range gone {
@@ -583,18 +629,33 @@ func fileMatches(node *unixfs_block.FSNode, info fs.FileInfo) bool {
 // link adds the file at path to the batch as name under parent, committing
 // the batch once it holds FolderLinkBatchFiles files.
 func (s *folderSync) link(path string, parent []string, name string, info fs.FileInfo) error {
+	// Skip a file whose backoff has not passed.
+	backoff, backingOff := s.changing[path]
+	if backingOff && time.Now().Before(backoff.due) {
+		return nil
+	}
+
 	// Link the file; its index entries commit before the batch does.
 	err := s.writer().AddFileBlob(s.ctx, parent, name, info.Mode().Perm(), info.ModTime(), func(xfrm block.Transformer, hashType hash.HashType) (*blob.Blob, error) {
 		return block_store_filesegment.LinkFile(s.ctx, s.idx, path, nil, xfrm, hashType)
 	})
-	if errors.Is(err, block_store_filesegment.ErrFileChanging) || errors.Is(err, fs.ErrNotExist) {
-		// A file still being written, or removed since the listing, keeps
-		// its Drive entry until the change the watcher reports.
+	switch {
+	case errors.Is(err, block_store_filesegment.ErrFileChanging):
+		// A file still being written keeps its Drive entry and waits out a
+		// doubled backoff.
+		backoff.wait = min(max(2*backoff.wait, ChangingBackoff), ChangingBackoffMax)
+		backoff.due = time.Now().Add(backoff.wait)
+		s.changing[path] = backoff
 		return nil
-	}
-	if err != nil {
+	case errors.Is(err, fs.ErrNotExist):
+		// A file removed since the listing keeps its Drive entry until the
+		// change the watcher reports.
+		delete(s.changing, path)
+		return nil
+	case err != nil:
 		return errors.Wrapf(err, "link %s", path)
 	}
+	delete(s.changing, path)
 
 	// Commit a full batch.
 	s.pending++

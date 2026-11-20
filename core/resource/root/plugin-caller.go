@@ -139,6 +139,7 @@ var pluginCallerDenied = map[string]struct{}{
 	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "MoveSpaceStorage"):         {},
 	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "SetDirectP2PEnabled"):      {},
 	webMethod(s4wave_space.SRPCSpaceResourceServiceServiceID, "LinkFolder"):                   {},
+	webMethod(s4wave_space.SRPCSpaceResourceServiceServiceID, "ResetFolderRoot"):              {},
 
 	// Runtime: the web listeners this device serves and which runtime holds
 	// them, including the person's answer to a listener yield prompt.
