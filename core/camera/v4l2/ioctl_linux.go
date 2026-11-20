@@ -38,6 +38,23 @@ const (
 	ioctlReadWrite = ioctlRead | ioctlWrite
 )
 
+// V4L2 request numbers from linux/videodev2.h; ioctl adds the direction and
+// the argument's size, as the kernel's _IOC macro does.
+const (
+	vidiocQuerycap  = 0
+	vidiocEnumFmt   = 2
+	vidiocGFmt      = 4
+	vidiocSFmt      = 5
+	vidiocReqbufs   = 8
+	vidiocQuerybuf  = 9
+	vidiocQbuf      = 15
+	vidiocDqbuf     = 17
+	vidiocStreamon  = 18
+	vidiocStreamoff = 19
+	vidiocSCtrl     = 28
+	vidiocQueryctrl = 36
+)
+
 // capabilities mirrors struct v4l2_capability from linux/videodev2.h.
 type capabilities struct {
 	_ [84]byte
@@ -157,7 +174,7 @@ func ioctl[T any](fd int, direction, number uintptr, arg *T) error {
 func selectFormat(fd int) (*frametrack.GroupHeader, error) {
 	// Check the opened node's capture capabilities.
 	var caps capabilities
-	if err := ioctl(fd, ioctlRead, 0, &caps); err != nil {
+	if err := ioctl(fd, ioctlRead, vidiocQuerycap, &caps); err != nil {
 		return nil, errors.Wrap(err, "query camera capabilities")
 	}
 	flags := caps.all
@@ -174,12 +191,12 @@ func selectFormat(fd int) (*frametrack.GroupHeader, error) {
 		return nil, err
 	}
 	image := captureFormat{typ: captureType}
-	if err := ioctl(fd, ioctlReadWrite, 4, &image); err != nil {
+	if err := ioctl(fd, ioctlReadWrite, vidiocGFmt, &image); err != nil {
 		return nil, errors.Wrap(err, "read camera format")
 	}
 	if image.format != format {
 		image = captureFormat{typ: captureType, width: image.width, height: image.height, format: format}
-		if err := ioctl(fd, ioctlReadWrite, 5, &image); err != nil {
+		if err := ioctl(fd, ioctlReadWrite, vidiocSFmt, &image); err != nil {
 			return nil, errors.Wrap(err, "select camera format")
 		}
 		if image.format != format {
@@ -201,7 +218,7 @@ func selectCodec(fd int) (uint32, frametrack.Codec, error) {
 	hasMJPEG := false
 	for index := uint32(0); ; index++ {
 		desc := formatDescription{index: index, typ: captureType}
-		err := ioctl(fd, ioctlReadWrite, 2, &desc)
+		err := ioctl(fd, ioctlReadWrite, vidiocEnumFmt, &desc)
 		if err == unix.EINVAL {
 			break
 		}
@@ -229,5 +246,5 @@ func selectCodec(fd int) (uint32, frametrack.Codec, error) {
 func canForceKeyframe(fd int) bool {
 	ctrl := queryControl{id: forceKeyFrameControl}
 	const unavailable = 0x0001 | 0x0004 | 0x0010 // disabled, read-only, inactive
-	return ioctl(fd, ioctlReadWrite, 36, &ctrl) == nil && ctrl.flags&unavailable == 0
+	return ioctl(fd, ioctlReadWrite, vidiocQueryctrl, &ctrl) == nil && ctrl.flags&unavailable == 0
 }

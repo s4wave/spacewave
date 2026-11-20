@@ -111,7 +111,7 @@ func (s *Source) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *frame
 		if requested {
 			// A driver that refuses the request still supplies its natural IDRs.
 			ctrl := setControl{id: forceKeyFrameControl}
-			_ = ioctl(s.fd, ioctlReadWrite, 28, &ctrl)
+			_ = ioctl(s.fd, ioctlReadWrite, vidiocSCtrl, &ctrl)
 		}
 
 		// Block on the device and the wake descriptor.
@@ -179,7 +179,7 @@ func (s *Source) Close() error {
 	var err error
 	if s.streaming {
 		typ := uint32(captureType)
-		err = ioctl(s.fd, ioctlWrite, 19, &typ)
+		err = ioctl(s.fd, ioctlWrite, vidiocStreamoff, &typ)
 	}
 	for _, buf := range s.buffers {
 		err = stderrors.Join(err, unix.Munmap(buf))
@@ -191,7 +191,7 @@ func (s *Source) Close() error {
 func (s *Source) start() error {
 	// Let the driver pick the number of buffers it can provide.
 	req := requestBuffers{count: 4, typ: captureType, memory: mmapMemory}
-	if err := ioctl(s.fd, ioctlReadWrite, 8, &req); err != nil {
+	if err := ioctl(s.fd, ioctlReadWrite, vidiocReqbufs, &req); err != nil {
 		return errors.Wrap(err, "allocate camera buffers")
 	}
 	if req.count == 0 {
@@ -203,7 +203,7 @@ func (s *Source) start() error {
 	for index := range req.count {
 		// Query and map the indexed buffer before queueing it.
 		buf := captureBuffer{index: index, typ: captureType, memory: mmapMemory}
-		if err := ioctl(s.fd, ioctlReadWrite, 9, &buf); err != nil {
+		if err := ioctl(s.fd, ioctlReadWrite, vidiocQuerybuf, &buf); err != nil {
 			return errors.Wrap(err, "query camera buffer")
 		}
 		mapped, err := unix.Mmap(s.fd, int64(buf.offset), int(buf.length), unix.PROT_READ|unix.PROT_WRITE, unix.MAP_SHARED)
@@ -213,14 +213,14 @@ func (s *Source) start() error {
 		s.buffers = append(s.buffers, mapped)
 
 		// Transfer ownership of the mapping to the camera until it has a frame.
-		if err := ioctl(s.fd, ioctlReadWrite, 15, &buf); err != nil {
+		if err := ioctl(s.fd, ioctlReadWrite, vidiocQbuf, &buf); err != nil {
 			return errors.Wrap(err, "queue camera buffer")
 		}
 	}
 
 	// Enable capture once the camera has all its buffers.
 	typ := uint32(captureType)
-	if err := ioctl(s.fd, ioctlWrite, 18, &typ); err != nil {
+	if err := ioctl(s.fd, ioctlWrite, vidiocStreamon, &typ); err != nil {
 		return errors.Wrap(err, "start camera capture")
 	}
 	s.streaming = true
@@ -231,7 +231,7 @@ func (s *Source) start() error {
 func (s *Source) dequeue() (*frametrack.GroupHeader, *frametrack.Frame, error) {
 	// The driver can report readiness before a buffer is available.
 	buf := captureBuffer{typ: captureType, memory: mmapMemory}
-	err := ioctl(s.fd, ioctlReadWrite, 17, &buf)
+	err := ioctl(s.fd, ioctlReadWrite, vidiocDqbuf, &buf)
 	if err == unix.EAGAIN {
 		return nil, nil, nil
 	}
@@ -247,7 +247,7 @@ func (s *Source) dequeue() (*frametrack.GroupHeader, *frametrack.Frame, error) {
 
 	// Allow the next capture to use this buffer after the frame owns its bytes.
 	buf = captureBuffer{index: buf.index, typ: captureType, memory: mmapMemory}
-	if err := ioctl(s.fd, ioctlReadWrite, 15, &buf); err != nil {
+	if err := ioctl(s.fd, ioctlReadWrite, vidiocQbuf, &buf); err != nil {
 		return nil, nil, errors.Wrap(err, "return camera buffer")
 	}
 	return header, frame, nil
