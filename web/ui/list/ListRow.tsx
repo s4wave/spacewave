@@ -111,7 +111,7 @@ export function ListRow<T>({
       aria-setsize={ariaAttributes['aria-setsize']}
       style={style}
       className={cn(
-        'group relative flex items-center px-3 py-1.5 text-xs [@media(pointer:coarse)]:py-0',
+        'group relative flex items-center px-3 py-1 text-xs [@media(pointer:coarse)]:py-0',
         'cursor-pointer transition-colors select-none',
         selected
           ? 'bg-brand/10 text-foreground'

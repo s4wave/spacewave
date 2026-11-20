@@ -17,7 +17,7 @@ const variantStyles: Record<PanelHeaderVariant, string> = {
   default: 'bg-panel-header',
   secondary: 'bg-outliner-header',
   transparent: 'bg-transparent',
-  compact: 'bg-panel-header gap-1.5',
+  compact: 'bg-panel-header gap-1',
 }
 
 /**

@@ -573,7 +573,9 @@ const unixFSLoadingStageCases: Array<[string, () => void, string]> = [
 // renderBrowser renders the browser at the root of the files UnixFS, with
 // props overriding those defaults.
 function renderBrowser(
-  props: Partial<ComponentProps<typeof UnixFSBrowser>> = {},
+  props: Partial<
+    Extract<ComponentProps<typeof UnixFSBrowser>, { worldState: unknown }>
+  > = {},
 ) {
   return render(
     <UnixFSBrowser

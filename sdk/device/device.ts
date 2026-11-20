@@ -249,9 +249,7 @@ export class DeviceHandle extends Resource implements IDeviceHandle {
       handle: this.resourceRef.createResource(
         response.resourceId ?? 0,
         FSHandle,
-        {
-          path: response.checkoutRoot?.displayPath ?? '',
-        },
+        { path: '' },
       ),
       response,
     }

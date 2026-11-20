@@ -5,6 +5,7 @@ import { Toolbar } from '@s4wave/web/editors/file-browser/Toolbar.js'
 interface UnixFSBrowserShellProps {
   currentPath: string
   children: ReactNode
+  actions?: ReactNode
   onPathChange: (path: string) => void
   onBack: () => void
   onForward: () => void
@@ -27,6 +28,7 @@ interface UnixFSBrowserShellProps {
 export function UnixFSBrowserShell({
   currentPath,
   children,
+  actions,
   onPathChange,
   onBack,
   onForward,
@@ -52,6 +54,7 @@ export function UnixFSBrowserShell({
     >
       <Toolbar
         currentPath={currentPath}
+        actions={actions}
         onPathChange={onPathChange}
         upDropPath={upDropPath}
         onNavigate={onPathChange}

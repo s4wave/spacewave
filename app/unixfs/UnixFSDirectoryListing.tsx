@@ -14,8 +14,8 @@ import type { ListItem, ListStateHandle } from '@s4wave/web/ui/list'
 import type { UnixFSBrowserDirectoryHeaderProps } from './UnixFSBrowser.js'
 
 interface UnixFSEmptyFolderStateProps {
-  onNewFolder: () => void
-  onUploadFiles: () => void
+  onNewFolder?: () => void
+  onUploadFiles?: () => void
 }
 
 function UnixFSEmptyFolderState({
@@ -24,32 +24,40 @@ function UnixFSEmptyFolderState({
 }: UnixFSEmptyFolderStateProps) {
   return (
     <div className="flex flex-col items-center gap-3 text-center">
-      <div className="border-foreground/10 bg-background/70 text-foreground-alt flex size-10 items-center justify-center rounded-md border">
-        <LuUpload className="size-5" />
-      </div>
+      {onUploadFiles && (
+        <div className="border-foreground/10 bg-background/70 text-foreground-alt flex size-10 items-center justify-center rounded-md border">
+          <LuUpload aria-hidden className="size-5" />
+        </div>
+      )}
       <div>
         <h2 className="text-foreground text-sm font-medium">
           This folder is empty
         </h2>
-        <p className="mt-1 text-xs">Drop files here or add a folder.</p>
+        {onUploadFiles && (
+          <p className="mt-1 text-xs">Drop files here to upload.</p>
+        )}
       </div>
       <div className="flex flex-wrap justify-center gap-2">
-        <button
-          type="button"
-          className="border-border text-foreground hover:bg-foreground/5 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors"
-          onClick={onUploadFiles}
-        >
-          <LuUpload className="size-3.5" />
-          Upload files
-        </button>
-        <button
-          type="button"
-          className="border-border text-foreground hover:bg-foreground/5 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors"
-          onClick={onNewFolder}
-        >
-          <LuFolderPlus className="size-3.5" />
-          New folder
-        </button>
+        {onUploadFiles && (
+          <button
+            type="button"
+            className="border-border text-foreground hover:bg-foreground/5 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors"
+            onClick={onUploadFiles}
+          >
+            <LuUpload aria-hidden className="size-3.5" />
+            Upload files
+          </button>
+        )}
+        {onNewFolder && (
+          <button
+            type="button"
+            className="border-border text-foreground hover:bg-foreground/5 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors"
+            onClick={onNewFolder}
+          >
+            <LuFolderPlus aria-hidden className="size-3.5" />
+            New folder
+          </button>
+        )}
       </div>
     </div>
   )
@@ -68,23 +76,26 @@ interface UnixFSDirectoryListingProps {
   onContextMenu: (item: ListItem<FileEntry>, event: MouseEvent) => void
   // listState is the file list's selection and sort, owned by the browser.
   listState: ListStateHandle
-  onNewFolder: () => void
-  onUploadFiles: () => void
-  getDragEnvelope: (
+  onNewFolder?: () => void
+  onUploadFiles?: () => void
+  getDragEnvelope?: (
     entry: FileEntry,
     context: { selectedIds: string[] },
   ) => AppDragEnvelope | null
-  getDownloadDragTarget: (
+  getDownloadDragTarget?: (
     entry: FileEntry,
     context: { selectedIds: string[] },
   ) => DownloadDragTarget | null
   dropTargetEntryId: string | null
-  onEntryDragOver: (
+  onEntryDragOver?: (
     entry: FileEntry,
     event: DragEvent<HTMLDivElement>,
   ) => boolean
-  onEntryDragLeave: (entry: FileEntry, event: DragEvent<HTMLDivElement>) => void
-  onEntryDrop: (entry: FileEntry, event: DragEvent<HTMLDivElement>) => void
+  onEntryDragLeave?: (
+    entry: FileEntry,
+    event: DragEvent<HTMLDivElement>,
+  ) => void
+  onEntryDrop?: (entry: FileEntry, event: DragEvent<HTMLDivElement>) => void
 }
 
 export function UnixFSDirectoryListing({
@@ -110,7 +121,7 @@ export function UnixFSDirectoryListing({
 }: UnixFSDirectoryListingProps) {
   return (
     <>
-      {DirectoryHeader && (
+      {DirectoryHeader && onNewFolder && onUploadFiles && (
         <DirectoryHeader
           currentPath={currentPath}
           entries={entries}

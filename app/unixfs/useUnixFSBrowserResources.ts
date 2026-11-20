@@ -4,13 +4,12 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useMappedResource } from '@aptre/bldr-sdk/hooks/useMappedResource.js'
 import { getUnixFSFileInfoKind } from '@s4wave/sdk/unixfs/file-kind.js'
 import { normalizeUnixFSLookupPath } from '@s4wave/sdk/unixfs/path.js'
-import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import type {
   FileEntryDetails,
   FileEntryDetailsMap,
 } from '@s4wave/web/editors/file-browser/types.js'
 import {
-  useUnixFSRootHandle,
   useUnixFSHandle,
   useUnixFSHandleListing,
   useUnixFSHandleStat,
@@ -25,8 +24,7 @@ function getTrackedHandlePath(handle: {
 
 /** UnixFSBrowserResourcesOptions selects the UnixFS path the browser shows. */
 interface UnixFSBrowserResourcesOptions {
-  worldState: Resource<IWorldState>
-  unixfsId: string
+  rootHandle: Resource<FSHandle>
   displayPath: string
 }
 
@@ -35,12 +33,10 @@ interface UnixFSBrowserResourcesOptions {
  * the browser's display path.
  */
 export function useUnixFSBrowserResources({
-  worldState,
-  unixfsId,
+  rootHandle,
   displayPath,
 }: UnixFSBrowserResourcesOptions) {
   // Resolve and stat the display path.
-  const rootHandle = useUnixFSRootHandle(worldState, unixfsId)
   const pathHandle = useUnixFSHandle(rootHandle, displayPath)
   const statResource = useUnixFSHandleStat(pathHandle)
 

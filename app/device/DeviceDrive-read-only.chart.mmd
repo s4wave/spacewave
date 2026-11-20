@@ -1,0 +1,27 @@
+---
+title: "Device folder: handle, Device and root"
+---
+stateDiagram-v2
+  s0: Opening
+  s1: Could not open, Retry shown
+  s2: Device offline, reconnects on return
+  s3: Connecting to the Device
+  s4: Folder unavailable, Retry shown
+  s5: Files
+  [*] --> s0
+  s0 --> s1: handle fails
+  s0 --> s2: handle opens
+  s0 --> s3: handle opens
+  s1 --> s0: presses Retry
+  s2 --> s1: handle fails
+  s2 --> s3: Device returns
+  s3 --> s1: handle fails
+  s3 --> s2: Device goes offline
+  s3 --> s4: folder refused or broken
+  s3 --> s5: folder opens
+  s4 --> s1: handle fails
+  s4 --> s2: Device goes offline
+  s4 --> s3: presses Retry
+  s5 --> s1: handle fails
+  s5 --> s2: Device goes offline
+  s5 --> s4: folder refused or broken

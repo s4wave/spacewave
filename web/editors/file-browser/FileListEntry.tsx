@@ -345,7 +345,7 @@ function FileEntryRow({
       <button
         type="button"
         aria-label={`More actions for ${entry.name || entry.id}`}
-        className="-my-1.5 flex w-8 shrink-0 items-center justify-center self-stretch [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:size-11"
+        className="-my-1 flex w-8 shrink-0 items-center justify-center self-stretch [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:size-11"
         onClick={more}
         onDoubleClick={more}
         onContextMenu={more}

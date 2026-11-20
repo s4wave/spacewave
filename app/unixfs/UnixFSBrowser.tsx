@@ -24,6 +24,7 @@ import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import {
   getMimeType,
   type StatResult,
+  useUnixFSRootHandle,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { useSaveHold } from '@s4wave/app/sobject/space-replay.js'
 import { useSessionUploadManager } from '@s4wave/app/session/SessionUploadManagerContext.js'
@@ -67,7 +68,7 @@ export interface UnixFSBrowserDirectoryHeaderProps {
 }
 
 // UnixFSBrowserProps are the props passed to the UnixFSBrowser component.
-export interface UnixFSBrowserProps {
+interface UnixFSBrowserCommonProps {
   // unixfsId is the identifier for the UnixFS on the bus (the object key).
   unixfsId: string
   // basePath is the base path within the UnixFS.
@@ -76,12 +77,29 @@ export interface UnixFSBrowserProps {
   currentPath: string
   // mimeTypeOverride is the optional file MIME type carried by UnixfsObjectInfo.
   mimeTypeOverride?: string
-  // worldState is the world state resource for accessing typed objects.
-  worldState: Resource<IWorldState>
   // browserBody replaces the browser's default file list/file viewer body.
   browserBody?: ComponentType<UnixFSBrowserBodyProps>
   // directoryHeader renders caller-supplied content above the file list.
   directoryHeader?: ComponentType<UnixFSBrowserDirectoryHeaderProps>
+}
+
+/** UnixFSBrowserProps selects a World object or a supplied filesystem handle. */
+export type UnixFSBrowserProps = UnixFSBrowserCommonProps &
+  (
+    | { worldState: Resource<IWorldState>; rootHandle?: never }
+    | {
+        rootHandle: Resource<FSHandle>
+        worldState?: never
+        editing: boolean
+        actions?: ReactNode
+      }
+  )
+
+type ResolvedBrowserProps = UnixFSBrowserCommonProps & {
+  rootHandle: Resource<FSHandle>
+  worldState?: Resource<IWorldState>
+  editing?: boolean
+  actions?: ReactNode
 }
 
 // noSelection is the selection of a file list that has none.
@@ -165,6 +183,32 @@ function inlineFileURLFor(
   )
 }
 
+/** browserLoadState describes the first outstanding or failed browser resource. */
+function browserLoadState(
+  root: Resource<FSHandle>,
+  path: Resource<FSHandle>,
+  stat: Resource<StatResult>,
+  entries: ReturnType<typeof useUnixFSBrowserResources>['entriesResource'],
+  isDir: boolean | null,
+) {
+  const entriesLoading = isDir === true && entries.loading
+  const isLoading =
+    root.loading || path.loading || stat.loading || entriesLoading
+  const loadingStageLabel = buildUnixFSLoadingStageLabel({
+    rootLoading: root.loading,
+    pathLoading: path.loading,
+    statLoading: stat.loading,
+    entriesLoading,
+  })
+
+  // Report the first failure in dependency order.
+  const failed = [root, path, stat, entries].find((resource) => resource.error)
+  const failure = failed?.error
+    ? { error: failed.error, retry: failed.retry }
+    : null
+  return { isLoading, failure, loadingStageLabel }
+}
+
 /**
  * useUnixFSBrowserModel owns the resources, state, and handlers of the
  * browser and returns what the views render.
@@ -174,9 +218,13 @@ function useUnixFSBrowserModel({
   basePath,
   currentPath,
   worldState,
-}: UnixFSBrowserProps) {
+  rootHandle,
+  editing = true,
+  actions,
+}: ResolvedBrowserProps) {
   const { httpPathPrefix } = useAppEnvironment()
   const spaceId = SpaceContainerContext.useContextSafe()?.spaceId ?? null
+  const objectSpaceId = worldState ? spaceId : null
   const sessionIndex = useSessionIndex()
   const displayPath = currentPath || basePath || '/'
 
@@ -185,17 +233,18 @@ function useUnixFSBrowserModel({
   // browser is mounted outside a session (display, debug harness); uploads are
   // simply unavailable there.
   const uploadManager = useSessionUploadManager()
-  const saveHold = useSaveHold()
+  const spaceSaveHold = useSaveHold()
+  const saveHold = worldState ? spaceSaveHold : null
+  const canUpload = editing && (!!worldState || !!uploadManager)
 
   const {
-    rootHandle,
     pathHandle,
     statResource,
     entriesResource,
     fileEntries,
     entryDetails,
     isDir,
-  } = useUnixFSBrowserResources({ worldState, unixfsId, displayPath })
+  } = useUnixFSBrowserResources({ rootHandle, displayPath })
 
   const [state, dispatch] = useUnixFSBrowserState()
   const { newFolderName, newFileName, renamingEntry } = state
@@ -208,6 +257,7 @@ function useUnixFSBrowserModel({
     unixfsId,
     displayPath,
     dispatch,
+    localOnly: !worldState,
   })
 
   const clearSelection = useCallback(
@@ -227,7 +277,7 @@ function useUnixFSBrowserModel({
         isDir,
         hasStat,
         sessionIndex,
-        spaceId,
+        objectSpaceId,
         unixfsId,
         displayPath,
         httpPathPrefix,
@@ -238,7 +288,7 @@ function useUnixFSBrowserModel({
       httpPathPrefix,
       isDir,
       sessionIndex,
-      spaceId,
+      objectSpaceId,
       unixfsId,
     ],
   )
@@ -248,7 +298,7 @@ function useUnixFSBrowserModel({
       displayPath,
       selectedEntries,
       sessionIndex,
-      spaceId,
+      spaceId: objectSpaceId,
       unixfsId,
     })
 
@@ -261,7 +311,7 @@ function useUnixFSBrowserModel({
   const transfer = useUnixFSBrowserTransfer({
     httpPathPrefix,
     sessionIndex,
-    spaceId,
+    spaceId: objectSpaceId,
     unixfsId,
     displayPath,
     pathHandle,
@@ -325,14 +375,18 @@ function useUnixFSBrowserModel({
     onBack: navigation.handleBack,
     onForward: navigation.handleForward,
     onUp: navigation.handleUp,
+    editing,
+    canUpload,
+    canDownload: !!objectSpaceId,
   })
 
-  const entriesLoading = isDir === true && entriesResource.loading
-  const isLoading =
-    rootHandle.loading ||
-    pathHandle.loading ||
-    statResource.loading ||
-    entriesLoading
+  const { isLoading, failure, loadingStageLabel } = browserLoadState(
+    rootHandle,
+    pathHandle,
+    statResource,
+    entriesResource,
+    isDir,
+  )
 
   // displayEntries prepends the inline new folder and new file inputs.
   const displayEntries = useMemo(() => {
@@ -369,45 +423,50 @@ function useUnixFSBrowserModel({
     onNewFileCancel: edits.handleNewFileCancel,
   })
 
-  const contextMenuProps = useMemo(
-    () => ({
-      state: state.contextMenu,
-      onClose: contextMenu.handleCloseContextMenu,
-      onOpen: navigation.handleOpen,
-      onDownload: transfer.handleDownload,
-      onMove: edits.handleRequestMove,
-      onRename: rename.handleStartRename,
-      onDelete: edits.handleRequestDelete,
-      onNewFolder: edits.handleNewFolder,
-      onUploadFiles: transfer.handleUploadFiles,
-    }),
-    [
-      state.contextMenu,
-      contextMenu.handleCloseContextMenu,
-      navigation.handleOpen,
-      transfer.handleDownload,
-      edits.handleRequestMove,
-      rename.handleStartRename,
-      edits.handleRequestDelete,
-      edits.handleNewFolder,
-      transfer.handleUploadFiles,
-    ],
-  )
-  const loadingStageLabel = useMemo(
-    () =>
-      buildUnixFSLoadingStageLabel({
-        rootLoading: rootHandle.loading,
-        pathLoading: pathHandle.loading,
-        statLoading: statResource.loading,
-        entriesLoading,
-      }),
-    [
-      entriesLoading,
-      pathHandle.loading,
-      rootHandle.loading,
-      statResource.loading,
-    ],
-  )
+  // Form the action groups once so a read-only listing has no edit handlers.
+  const mutationActions = editing
+    ? {
+        onMove: edits.handleRequestMove,
+        onRename: rename.handleStartRename,
+        onDelete: edits.handleRequestDelete,
+        onNewFolder: edits.handleNewFolder,
+      }
+    : {}
+  const editingGestures = editing
+    ? {
+        handleKeyDown,
+        handleBackgroundContextMenu: contextMenu.handleBackgroundContextMenu,
+        onPathTargetDragOver: drag.handlePathTargetDragOver,
+        onPathTargetDrop: drag.handlePathTargetDrop,
+        onEntryDragOver: drag.handleEntryDragOver,
+        onEntryDragLeave: drag.handleEntryDragLeave,
+        onEntryDrop: drag.handleEntryDrop,
+      }
+    : {}
+  const uploadActions = canUpload
+    ? {
+        onUploadFiles: transfer.handleUploadFiles,
+        onDragOver: drag.handleDragOver,
+        onDragLeave: drag.handleDragLeave,
+        onDrop: (event: DragEvent<HTMLDivElement>) =>
+          void drag.handleDrop(event),
+      }
+    : {}
+  const worldActions = objectSpaceId
+    ? {
+        onDownload: transfer.handleDownload,
+        getDragEnvelope,
+        getDownloadDragTarget,
+      }
+    : {}
+  const contextMenuProps = {
+    state: state.contextMenu,
+    onClose: contextMenu.handleCloseContextMenu,
+    onOpen: navigation.handleOpen,
+    onDownload: worldActions.onDownload,
+    onUploadFiles: uploadActions.onUploadFiles,
+    ...mutationActions,
+  }
 
   const shellNavigationProps = {
     currentPath: displayPath,
@@ -419,17 +478,10 @@ function useUnixFSBrowserModel({
     canGoForward: navigation.canGoForward,
     canGoUp: navigation.canGoUp,
     upDropPath: getUnixFSParentPath(displayPath),
-    onPathTargetDragOver: drag.handlePathTargetDragOver,
-    onPathTargetDrop: drag.handlePathTargetDrop,
+    onPathTargetDragOver: editingGestures.onPathTargetDragOver,
+    onPathTargetDrop: editingGestures.onPathTargetDrop,
+    actions,
   }
-
-  // failure is the first resource that failed to load, in dependency order.
-  const failed = [rootHandle, pathHandle, statResource, entriesResource].find(
-    (resource) => resource.error,
-  )
-  const failure = failed?.error
-    ? { error: failed.error, retry: failed.retry }
-    : null
 
   return {
     displayPath,
@@ -448,18 +500,18 @@ function useUnixFSBrowserModel({
     renderEntry,
     pendingName: state.pendingName,
     isDragging: state.isDragging,
-    handleKeyDown,
-    handleBackgroundContextMenu: contextMenu.handleBackgroundContextMenu,
+    handleKeyDown: editingGestures.handleKeyDown,
+    handleBackgroundContextMenu: editingGestures.handleBackgroundContextMenu,
     shellNavigationProps,
     shellActionProps: {
       ...shellNavigationProps,
-      onNewFolder: edits.handleNewFolder,
-      onUploadFiles: transfer.handleUploadFiles,
+      onNewFolder: mutationActions.onNewFolder,
+      onUploadFiles: uploadActions.onUploadFiles,
     },
     dropHandlers: {
-      onDragOver: drag.handleDragOver,
-      onDragLeave: drag.handleDragLeave,
-      onDrop: (e: DragEvent<HTMLDivElement>) => void drag.handleDrop(e),
+      onDragOver: uploadActions.onDragOver,
+      onDragLeave: uploadActions.onDragLeave,
+      onDrop: uploadActions.onDrop,
     },
     listingProps: {
       currentPath: displayPath,
@@ -467,14 +519,14 @@ function useUnixFSBrowserModel({
       onOpen: navigation.handleOpen,
       onContextMenu: contextMenu.handleContextMenu,
       listState,
-      onNewFolder: edits.handleNewFolder,
-      onUploadFiles: transfer.handleUploadFiles,
-      getDragEnvelope,
-      getDownloadDragTarget,
+      onNewFolder: mutationActions.onNewFolder,
+      onUploadFiles: uploadActions.onUploadFiles,
+      getDragEnvelope: worldActions.getDragEnvelope,
+      getDownloadDragTarget: worldActions.getDownloadDragTarget,
       dropTargetEntryId: state.folderDropEntryId,
-      onEntryDragOver: drag.handleEntryDragOver,
-      onEntryDragLeave: drag.handleEntryDragLeave,
-      onEntryDrop: drag.handleEntryDrop,
+      onEntryDragOver: editingGestures.onEntryDragOver,
+      onEntryDragLeave: editingGestures.onEntryDragLeave,
+      onEntryDrop: editingGestures.onEntryDrop,
     },
     dialogsProps: {
       contextMenuProps,
@@ -488,9 +540,9 @@ function useUnixFSBrowserModel({
       onCancelMove: edits.handleCancelMove,
       onConfirmMove: edits.handleConfirmMove,
     },
-    loadingDiagnostics: (
+    loadingDiagnostics: worldState ? (
       <UnixFSLoadingDiagnostics stageLabel={loadingStageLabel} />
-    ),
+    ) : null,
   }
 }
 
@@ -556,11 +608,22 @@ function UnixFSBrowserLoading({ model }: { model: UnixFSBrowserModel }) {
   )
 }
 
-// UnixFSBrowser renders a UnixFS filesystem browser for use in layout tabs.
+/** UnixFSBrowser renders files from a World object or a supplied root handle. */
 export function UnixFSBrowser(props: UnixFSBrowserProps) {
+  if (props.rootHandle) return <UnixFSBrowserContent {...props} />
+  return <WorldUnixFSBrowser {...props} />
+}
+
+function WorldUnixFSBrowser(
+  props: UnixFSBrowserCommonProps & { worldState: Resource<IWorldState> },
+) {
+  const rootHandle = useUnixFSRootHandle(props.worldState, props.unixfsId)
+  return <UnixFSBrowserContent {...props} rootHandle={rootHandle} />
+}
+
+function UnixFSBrowserContent(props: ResolvedBrowserProps) {
   const {
     unixfsId,
-    mimeTypeOverride,
     browserBody: BrowserBody,
     directoryHeader: DirectoryHeader,
   } = props
@@ -623,27 +686,10 @@ export function UnixFSBrowser(props: UnixFSBrowserProps) {
 
   if (model.isDir === false && statResource.value) {
     return (
-      <UnixFSFileViewer
-        path={displayPath}
-        stat={fileViewerStat(
-          statResource.value,
-          unixfsId,
-          displayPath,
-          mimeTypeOverride,
-        )}
-        rootHandle={rootHandle}
-        objectKey={unixfsId}
-        inlineFileURL={model.inlineFileURL}
-        footer={
-          // Only the object's root file is a World object edges can name.
-          normalizeUnixFSLookupPath(displayPath) === '' ? (
-            <FileReferences
-              key={unixfsId}
-              worldState={props.worldState}
-              fileKey={unixfsId}
-            />
-          ) : undefined
-        }
+      <UnixFSBrowserFile
+        model={model}
+        props={props}
+        stat={statResource.value}
       />
     )
   }
@@ -658,5 +704,39 @@ export function UnixFSBrowser(props: UnixFSBrowserProps) {
         renderEntry={model.renderEntry}
       />
     </UnixFSBrowserInteractive>
+  )
+}
+
+/** UnixFSBrowserFile opens a file with navigation for the browser's source. */
+function UnixFSBrowserFile({
+  model,
+  props,
+  stat,
+}: {
+  model: UnixFSBrowserModel
+  props: ResolvedBrowserProps
+  stat: StatResult
+}) {
+  const { displayPath, rootHandle } = model
+  const { unixfsId, mimeTypeOverride, actions, worldState } = props
+  return (
+    <UnixFSFileViewer
+      path={displayPath}
+      stat={fileViewerStat(stat, unixfsId, displayPath, mimeTypeOverride)}
+      rootHandle={rootHandle}
+      objectKey={unixfsId}
+      inlineFileURL={model.inlineFileURL}
+      readOnly={worldState ? undefined : 'File preview'}
+      navigationActions={actions}
+      footer={
+        worldState && normalizeUnixFSLookupPath(displayPath) === '' ? (
+          <FileReferences
+            key={unixfsId}
+            worldState={worldState}
+            fileKey={unixfsId}
+          />
+        ) : undefined
+      }
+    />
   )
 }

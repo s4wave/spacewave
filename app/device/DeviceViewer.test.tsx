@@ -1,10 +1,13 @@
-import React from 'react'
+import React, { type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import {
   DeviceAvailabilityState,
+  DeviceCapabilityGrantState,
+  DeviceCapabilityLocalState,
   DeviceCapabilityState,
+  DeviceCheckoutRootAccess,
   DeviceLiveness,
   DeviceSetupState,
   DeviceUpdateState,
@@ -21,11 +24,13 @@ import { keysWorld } from '@s4wave/web/test/world-query.js'
 
 const h = vi.hoisted(() => ({
   streamRetry: vi.fn(),
+  accessCheckoutRoot: vi.fn(),
   applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
   navigateToObjects: vi.fn(),
   objects: [{ objectKey: 'terminal/build-host-terminal-1' }],
 }))
 
+let availability = DeviceAvailabilityState.OFFLINE
 let currentState: Device | undefined = {
   peerId: '12D3KooWDevice',
   label: 'Build Host',
@@ -67,21 +72,25 @@ let currentState: Device | undefined = {
   ],
 }
 
-vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
-  useAccessTypedHandle: () => ({
-    value: {
-      watchDeviceAvailability: vi.fn(),
-    },
-    loading: false,
-    error: null,
-    retry: vi.fn(),
-  }),
-}))
+vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => {
+  const value = {
+    watchDeviceAvailability: vi.fn(),
+    accessCheckoutRoot: h.accessCheckoutRoot,
+  }
+  return {
+    useAccessTypedHandle: () => ({
+      value,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    }),
+  }
+})
 
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
   useStreamingResource: () => ({
     value: currentState
-      ? { device: currentState, state: DeviceAvailabilityState.OFFLINE }
+      ? { device: currentState, state: availability }
       : undefined,
     loading: false,
     error: null,
@@ -101,6 +110,21 @@ vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   },
 }))
 
+vi.mock('@s4wave/app/unixfs/UnixFSBrowser.js', () => ({
+  UnixFSBrowser: ({
+    editing,
+    actions,
+  }: {
+    editing: boolean
+    actions: ReactNode
+  }) => (
+    <>
+      {actions}
+      {editing && <button type="button">New folder</button>}
+    </>
+  ),
+}))
+
 import { DeviceViewer } from './DeviceViewer.js'
 
 describe('DeviceViewer', () => {
@@ -108,6 +132,7 @@ describe('DeviceViewer', () => {
     cleanup()
     vi.clearAllMocks()
     currentState = undefined
+    availability = DeviceAvailabilityState.OFFLINE
     h.objects = [{ objectKey: 'terminal/build-host-terminal-1' }]
   })
 
@@ -149,6 +174,100 @@ describe('DeviceViewer', () => {
     expect(screen.getByText('Shell Session')).toBeTruthy()
     expect(screen.getByText('Active')).toBeTruthy()
     expect(screen.getByRole('button', { name: /open terminal/i })).toBeTruthy()
+  })
+
+  it('opens the selected checkout root and waits for its Device while offline', () => {
+    // Publish one readable folder on an offline Device.
+    currentState = {
+      peerId: '12D3KooWDevice',
+      label: 'Build Host',
+      setupState: DeviceSetupState.DEVICE_SESSION_READY,
+      capabilities: [
+        {
+          id: 'project',
+          kind: 'filesystem',
+          label: 'Project files',
+          state: DeviceCapabilityState.ACTIVE,
+          link: { protocolId: 'checkout-root/project' },
+          checkoutRoot: {
+            name: 'Project files',
+            access: DeviceCheckoutRootAccess.READ_ONLY,
+            readAvailable: true,
+          },
+        },
+      ],
+    }
+    renderDevice()
+
+    // Browse waits for the Device and offers a way back to its capabilities.
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Browse Project files' }),
+    )
+    expect(
+      screen.getByText('Device offline. The folder opens when it returns.'),
+    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Enable editing' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Device' }))
+    expect(
+      screen.getByRole('button', { name: 'Browse Project files' }),
+    ).toBeTruthy()
+  })
+
+  it('keeps editing confirmation when the Device reconnects', async () => {
+    // The handle opens with the capability's access while edits wait for consent.
+    currentState = {
+      peerId: '12D3KooWDevice',
+      label: 'Build Host',
+      capabilities: [
+        {
+          id: 'project',
+          kind: 'filesystem',
+          label: 'Project files',
+          state: DeviceCapabilityState.ACTIVE,
+          link: { protocolId: 'checkout-root/project' },
+          policy: {
+            localState: DeviceCapabilityLocalState.ENABLED,
+            grantState: DeviceCapabilityGrantState.ALLOWED,
+          },
+          checkoutRoot: {
+            name: 'Project files',
+            access: DeviceCheckoutRootAccess.READ_WRITE,
+            readAvailable: true,
+            writeAvailable: true,
+          },
+        },
+      ],
+    }
+    const disposeFirstRoot = vi.fn()
+    h.accessCheckoutRoot
+      .mockResolvedValueOnce({ handle: { [Symbol.dispose]: disposeFirstRoot } })
+      .mockResolvedValueOnce({ handle: { [Symbol.dispose]: vi.fn() } })
+    availability = DeviceAvailabilityState.ONLINE
+    const { refresh } = renderDevice()
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Browse Project files' }),
+      )
+    })
+    expect(h.accessCheckoutRoot).toHaveBeenCalledWith({
+      name: 'Project files',
+      write: true,
+      abortSignal: expect.any(AbortSignal),
+    })
+    expect(screen.queryByRole('button', { name: 'New folder' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Enable editing' }))
+    expect(screen.getByRole('button', { name: 'New folder' })).toBeTruthy()
+
+    // A Device watch transition closes the old handle and reopens the next one.
+    availability = DeviceAvailabilityState.OFFLINE
+    refresh()
+    expect(screen.queryByRole('button', { name: 'New folder' })).toBeNull()
+    expect(disposeFirstRoot).toHaveBeenCalledOnce()
+    availability = DeviceAvailabilityState.ONLINE
+    await act(async () => refresh())
+    expect(h.accessCheckoutRoot).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('button', { name: 'New folder' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Enable editing' })).toBeNull()
   })
 
   it('creates a Terminal object from effective terminal capability state', async () => {
@@ -369,7 +488,7 @@ describe('DeviceViewer', () => {
 
 // renderDevice renders the viewer on the build host Device object.
 function renderDevice() {
-  return render(
+  const view = (
     <DeviceViewer
       objectInfo={{
         info: {
@@ -386,6 +505,11 @@ function renderDevice() {
         error: null,
         retry: vi.fn(),
       }}
-    />,
+    />
   )
+  const rendered = render(view)
+  return {
+    ...rendered,
+    refresh: () => rendered.rerender(React.cloneElement(view)),
+  }
 }

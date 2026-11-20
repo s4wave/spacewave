@@ -20,6 +20,9 @@ interface UnixFSBrowserCommandsOptions {
   onBack: () => void
   onForward: () => void
   onUp: () => void
+  editing: boolean
+  canUpload: boolean
+  canDownload: boolean
 }
 
 export function useUnixFSBrowserCommands({
@@ -37,6 +40,9 @@ export function useUnixFSBrowserCommands({
   onBack,
   onForward,
   onUp,
+  editing,
+  canUpload,
+  canDownload,
 }: UnixFSBrowserCommandsOptions) {
   const isTabActive = useIsTabActive()
   const hasSelection = selectedEntries.length > 0
@@ -64,7 +70,7 @@ export function useUnixFSBrowserCommands({
     menuPath: 'File/New File',
     menuGroup: 10,
     menuOrder: 1,
-    active: isTabActive,
+    active: isTabActive && editing,
     handler: onNewFile,
   })
 
@@ -74,7 +80,7 @@ export function useUnixFSBrowserCommands({
     menuPath: 'File/New Folder',
     menuGroup: 10,
     menuOrder: 2,
-    active: isTabActive,
+    active: isTabActive && editing,
     handler: onNewFolder,
   })
 
@@ -84,7 +90,7 @@ export function useUnixFSBrowserCommands({
     menuPath: 'File/Upload',
     menuGroup: 10,
     menuOrder: 3,
-    active: isTabActive,
+    active: isTabActive && canUpload,
     handler: onUploadFiles,
   })
 
@@ -114,7 +120,7 @@ export function useUnixFSBrowserCommands({
     menuPath: 'File/Rename',
     menuGroup: 30,
     menuOrder: 1,
-    active: isTabActive,
+    active: isTabActive && editing,
     enabled: hasSingleSelection,
     handler: renameSelected,
   })
@@ -126,7 +132,7 @@ export function useUnixFSBrowserCommands({
     menuPath: 'File/Download',
     menuGroup: 30,
     menuOrder: 2,
-    active: isTabActive,
+    active: isTabActive && canDownload,
     enabled: hasSelection,
     handler: downloadSelected,
   })
@@ -137,7 +143,7 @@ export function useUnixFSBrowserCommands({
     menuPath: 'Edit/Delete',
     menuGroup: 40,
     menuOrder: 1,
-    active: isTabActive,
+    active: isTabActive && editing,
     enabled: hasSelection,
     handler: deleteSelected,
   })

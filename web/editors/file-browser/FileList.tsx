@@ -226,12 +226,13 @@ export function FileList({
         dispatch({ type: 'SET_SORT', sortKey: column })
       }
 
+      // Add the list viewport's 2px focus gutter to the row's 12px inset.
       return (
         <div className="bg-panel-header text-foreground-alt border-foreground/8 flex items-center border-b px-3.5 text-xs select-none">
           <button
             type="button"
             className={cn(
-              'flex min-w-viewer-name flex-1 cursor-pointer items-center gap-1 bg-transparent px-0 py-1.5 text-left [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
+              'flex min-w-viewer-name flex-1 cursor-pointer items-center gap-1 bg-transparent px-0 py-1 text-left [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
               sortKey === 'name' && 'text-foreground',
             )}
             onClick={() => handleSort('name')}
@@ -258,7 +259,7 @@ export function FileList({
               <button
                 type="button"
                 className={cn(
-                  'hidden w-35 min-w-25 shrink cursor-pointer items-center gap-1 bg-transparent px-0 py-1.5 text-left text-xs @table-22:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
+                  'hidden w-35 min-w-25 shrink cursor-pointer items-center gap-1 bg-transparent px-0 py-1 text-left text-xs @table-22:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
                   sortKey === 'date' && 'text-foreground',
                 )}
                 onClick={() => handleSort('date')}
@@ -271,7 +272,7 @@ export function FileList({
               <button
                 type="button"
                 className={cn(
-                  'hidden w-17.5 min-w-12.5 shrink cursor-pointer items-center justify-end gap-1 bg-transparent px-0 py-1.5 text-left text-xs @table-16:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
+                  'hidden w-17.5 min-w-12.5 shrink cursor-pointer items-center justify-end gap-1 bg-transparent px-0 py-1 text-left text-xs @table-16:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
                   sortKey === 'size' && 'text-foreground',
                 )}
                 onClick={() => handleSort('size')}

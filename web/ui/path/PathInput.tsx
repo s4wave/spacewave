@@ -96,7 +96,8 @@ export function PathInput({
       <div
         className={cn(
           'bg-file-path-bar flex h-5 flex-1 items-center rounded px-2',
-          mobileTouchTargets && '[@media(pointer:coarse)]:min-h-11',
+          mobileTouchTargets &&
+            'h-viewer-press [@media(pointer:coarse)]:min-h-11',
           className,
         )}
       >
@@ -126,7 +127,7 @@ export function PathInput({
       className={cn(
         'bg-file-path-bar hover:bg-file-path-bar-hover text-foreground flex h-5 flex-1 items-center gap-0.5 overflow-hidden rounded px-2 text-xs transition-colors select-none',
         mobileTouchTargets &&
-          'min-w-0 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:gap-0 [@media(pointer:coarse)]:px-0 [@media(pointer:coarse)]:text-sm',
+          'h-viewer-press min-w-0 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:gap-0 [@media(pointer:coarse)]:px-0 [@media(pointer:coarse)]:text-sm',
         className,
       )}
     >
@@ -141,12 +142,12 @@ export function PathInput({
         className={cn(
           'hover:bg-pulldown-hover flex items-center rounded px-1 transition-colors',
           mobileTouchTargets &&
-            '[@media(pointer:coarse)]:size-11 [@media(pointer:coarse)]:shrink-0 [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:px-0',
+            'size-viewer-press shrink-0 justify-center px-0 [@media(pointer:coarse)]:size-11',
           pathSegments.length === 0 && 'text-text-highlight',
         )}
         aria-label="Navigate to root"
       >
-        <LuHouse className="size-3.5" />
+        <LuHouse aria-hidden className="size-3.5" />
       </button>
 
       {pathSegments.map((segment, index) => (
@@ -160,7 +161,7 @@ export function PathInput({
                 : 'max-sm:hidden'),
           )}
         >
-          <LuChevronRight className="text-foreground-alt size-3" />
+          <LuChevronRight aria-hidden className="text-foreground-alt size-3" />
           <button
             type="button"
             onClick={(e) => {
@@ -182,7 +183,7 @@ export function PathInput({
             className={cn(
               'hover:bg-pulldown-hover rounded px-1 whitespace-nowrap transition-colors',
               mobileTouchTargets &&
-                '[@media(pointer:coarse)]:min-h-11 max-sm:min-w-0 max-sm:flex-1 max-sm:truncate max-sm:px-2 max-sm:text-left',
+                'min-h-viewer-press min-w-viewer-press [@media(pointer:coarse)]:min-h-11 max-sm:min-w-0 max-sm:flex-1 max-sm:truncate max-sm:px-2 max-sm:text-left',
               index === pathSegments.length - 1 && 'text-text-highlight',
             )}
             aria-label={`Navigate to ${segment}`}

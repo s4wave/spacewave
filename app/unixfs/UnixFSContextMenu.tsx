@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import {
   LuFolderOpen,
   LuDownload,
@@ -8,6 +8,7 @@ import {
   LuFolderPlus,
   LuUpload,
 } from 'react-icons/lu'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ import {
 } from '@s4wave/web/ui/DropdownMenu.js'
 import { DropdownMenuGhostAnchor } from '@s4wave/web/ui/DropdownMenuGhostAnchor.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
+
 import type { UnixFSMoveItem } from './move.js'
 
 export interface ContextMenuState {
@@ -39,62 +41,16 @@ export interface UnixFSContextMenuProps {
   onUploadFiles?: () => void
 }
 
-// UnixFSContextMenu renders a context menu at the given position using the
-// ghost-anchor DropdownMenu pattern (see ShellFlexLayout.tsx). When
-// state.entry is non-null, shows item actions. When null, shows background
-// actions (new folder, upload).
-export function UnixFSContextMenu({
-  state,
-  onClose,
-  onOpen,
-  onDownload,
-  onMove,
-  onRename,
-  onDelete,
-  onNewFolder,
-  onUploadFiles,
-}: UnixFSContextMenuProps) {
-  const entry = state?.entry ?? null
-  const actionEntries = useMemo(
-    () => state?.actionEntries ?? [],
-    [state?.actionEntries],
-  )
-
+/** UnixFSContextMenu shows the actions available at the clicked file or folder. */
+export function UnixFSContextMenu(props: UnixFSContextMenuProps) {
+  // Anchor the context menu at the last pointer position.
+  const { state, onClose } = props
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) onClose()
     },
     [onClose],
   )
-
-  const handleOpen = useCallback(() => {
-    if (!entry) return
-    onOpen?.([entry])
-  }, [entry, onOpen])
-
-  const handleDownload = useCallback(() => {
-    if (actionEntries.length === 0) return
-    onDownload?.(actionEntries)
-  }, [actionEntries, onDownload])
-
-  const handleNewFolder = useCallback(() => {
-    onNewFolder?.()
-  }, [onNewFolder])
-
-  const handleMove = useCallback(() => {
-    if (state?.moveItems.length === 0) return
-    onMove?.(state?.moveItems ?? [])
-  }, [onMove, state?.moveItems])
-
-  const handleRename = useCallback(() => {
-    if (!entry) return
-    onRename?.(entry)
-  }, [entry, onRename])
-
-  const handleDelete = useCallback(() => {
-    if (actionEntries.length === 0) return
-    onDelete?.(actionEntries)
-  }, [actionEntries, onDelete])
 
   return (
     <DropdownMenu open={state !== null} onOpenChange={handleOpenChange}>
@@ -106,54 +62,89 @@ export function UnixFSContextMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="bottom">
         {state?.entry ? (
-          <>
-            <DropdownMenuItem onClick={handleOpen}>
-              <LuFolderOpen className="size-3.5" />
-              Open
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleNewFolder} disabled={!onNewFolder}>
-              <LuFolderPlus className="size-3.5" />
-              New folder
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={handleDownload}
-              disabled={!onDownload || actionEntries.length === 0}
-            >
-              <LuDownload className="size-3.5" />
-              {actionEntries.length > 1 ? 'Download selected' : 'Download'}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleRename} disabled={!onRename}>
-              <LuPencil className="size-3.5" />
-              Rename
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleMove} disabled={!onMove}>
-              <LuFolderInput className="size-3.5" />
-              Move…
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={!onDelete}
-            >
-              <LuTrash2 className="size-3.5" />
-              Delete
-              <DropdownMenuShortcut>Del</DropdownMenuShortcut>
-            </DropdownMenuItem>
-          </>
+          <EntryMenuItems {...props} state={state} entry={state.entry} />
         ) : (
-          <>
-            <DropdownMenuItem onClick={handleNewFolder} disabled={!onNewFolder}>
-              <LuFolderPlus className="size-3.5" />
-              New folder
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onUploadFiles} disabled={!onUploadFiles}>
-              <LuUpload className="size-3.5" />
-              Upload files
-            </DropdownMenuItem>
-          </>
+          <FolderMenuItems
+            onNewFolder={props.onNewFolder}
+            onUploadFiles={props.onUploadFiles}
+          />
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+/** FolderMenuItems offers creation actions where the folder supports them. */
+function FolderMenuItems({
+  onNewFolder,
+  onUploadFiles,
+}: Pick<UnixFSContextMenuProps, 'onNewFolder' | 'onUploadFiles'>) {
+  return (
+    <>
+      {onNewFolder && (
+        <DropdownMenuItem onClick={onNewFolder}>
+          <LuFolderPlus className="size-3.5" />
+          New folder
+        </DropdownMenuItem>
+      )}
+      {onUploadFiles && (
+        <DropdownMenuItem onClick={onUploadFiles}>
+          <LuUpload className="size-3.5" />
+          Upload files
+        </DropdownMenuItem>
+      )}
+    </>
+  )
+}
+
+/** EntryMenuItems acts on the clicked entry or the selected set. */
+function EntryMenuItems({
+  state,
+  entry,
+  onOpen,
+  onDownload,
+  onMove,
+  onRename,
+  onDelete,
+  onNewFolder,
+}: UnixFSContextMenuProps & { state: ContextMenuState; entry: FileEntry }) {
+  const { actionEntries, moveItems } = state
+  return (
+    <>
+      <DropdownMenuItem onClick={() => onOpen?.([entry])}>
+        <LuFolderOpen className="size-3.5" />
+        Open
+      </DropdownMenuItem>
+      <FolderMenuItems onNewFolder={onNewFolder} />
+      {onDownload && actionEntries.length > 0 && (
+        <DropdownMenuItem onClick={() => onDownload(actionEntries)}>
+          <LuDownload className="size-3.5" />
+          {actionEntries.length > 1 ? 'Download selected' : 'Download'}
+        </DropdownMenuItem>
+      )}
+      {(onRename || onMove || onDelete) && <DropdownMenuSeparator />}
+      {onRename && (
+        <DropdownMenuItem onClick={() => onRename(entry)}>
+          <LuPencil className="size-3.5" />
+          Rename
+        </DropdownMenuItem>
+      )}
+      {onMove && (
+        <DropdownMenuItem onClick={() => onMove(moveItems)}>
+          <LuFolderInput className="size-3.5" />
+          Move…
+        </DropdownMenuItem>
+      )}
+      {onDelete && (
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={() => onDelete(actionEntries)}
+        >
+          <LuTrash2 className="size-3.5" />
+          Delete
+          <DropdownMenuShortcut>Del</DropdownMenuShortcut>
+        </DropdownMenuItem>
+      )}
+    </>
   )
 }

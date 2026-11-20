@@ -57,6 +57,8 @@ export interface UnixFSFileViewerProps {
   // hideToolbar suppresses the built-in toolbar when an outer component
   // (e.g. GitToolbar) already provides navigation.
   hideToolbar?: boolean
+  // navigationActions lets a supplied root add a way back from the file.
+  navigationActions?: ReactNode
   // footer is drawn under the file at every size, such as the references
   // strip of a file that is its own World object.
   footer?: ReactNode
@@ -457,6 +459,7 @@ export function UnixFSFileViewer({
   rootHandle,
   objectKey,
   hideToolbar,
+  navigationActions,
   footer,
   inlineFileURL,
   readOnly,
@@ -470,7 +473,15 @@ export function UnixFSFileViewer({
   const body = fileBodyKindFor(stat, inlineFileURL)
   if (body.kind === 'text') {
     const renderToolbar = (presses: ReactNode) => (
-      <FileToolbar path={path} actions={presses} />
+      <FileToolbar
+        path={path}
+        actions={
+          <>
+            {navigationActions}
+            {presses}
+          </>
+        }
+      />
     )
     return (
       <div
@@ -496,7 +507,7 @@ export function UnixFSFileViewer({
       data-testid="unixfs-browser"
       className="flex h-full w-full flex-col overflow-hidden"
     >
-      {!hideToolbar && <FileToolbar path={path} />}
+      {!hideToolbar && <FileToolbar path={path} actions={navigationActions} />}
 
       {/* File content */}
       <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">

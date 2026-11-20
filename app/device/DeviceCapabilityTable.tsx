@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { LuFolderOpen } from 'react-icons/lu'
 
 import {
   type DeviceCapability,
@@ -6,6 +7,8 @@ import {
 } from '@s4wave/sdk/device/device.pb.js'
 import { type ListItem, useListState } from '@s4wave/web/ui/list/index.js'
 import { Table, type TableColumn } from '@s4wave/web/ui/table/Table.js'
+
+import { isBrowsableCheckoutRoot } from './checkout-root.js'
 
 // capabilityColumns are the capability table's columns: the capability, its
 // state, which shows from 16rem, and its detail, which sheds first.
@@ -37,9 +40,11 @@ const capabilityColumns: TableColumn<DeviceCapability>[] = [
 export function DeviceCapabilityTable({
   capabilities,
   onOpenCapability,
+  onBrowse,
 }: {
   capabilities: DeviceCapability[]
   onOpenCapability?: (capability: DeviceCapability) => void
+  onBrowse?: (capability: DeviceCapability) => void
 }) {
   // The table's selection and sort, kept with the viewer.
   const state = useListState(null, 'deviceCapabilities', {
@@ -56,6 +61,9 @@ export function DeviceCapabilityTable({
       })),
     [capabilities],
   )
+
+  // Keep the table cells stable while capability states change.
+  const columns = useMemo(() => browseColumns(onBrowse), [onBrowse])
 
   // Opening rows hands the first opened capability to the caller.
   const handleOpen = useCallback(
@@ -78,7 +86,7 @@ export function DeviceCapabilityTable({
       </div>
       <Table
         rows={rows}
-        columns={capabilityColumns}
+        columns={columns}
         state={state}
         onOpen={handleOpen}
         label="Capabilities"
@@ -87,6 +95,46 @@ export function DeviceCapabilityTable({
       />
     </>
   )
+}
+
+/** browseColumns adds the Browse press to a readable checkout root's name. */
+function browseColumns(
+  onBrowse?: (capability: DeviceCapability) => void,
+): TableColumn<DeviceCapability>[] {
+  const [first, ...rest] = capabilityColumns
+  return [
+    {
+      ...first,
+      cell: (capability: DeviceCapability) => (
+        <>
+          <span
+            className="min-w-0 flex-1 truncate"
+            title={first.text(capability)}
+          >
+            {first.text(capability)}
+          </span>
+          {onBrowse && isBrowsableCheckoutRoot(capability) && (
+            <button
+              type="button"
+              className="focus-ring h-viewer-press w-viewer-press hover:bg-foreground/5 @pane-md:w-auto flex shrink-0 items-center justify-center gap-1 rounded px-1 text-xs pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+              aria-label={`Browse ${capability.checkoutRoot?.name || capability.label || 'folder'}`}
+              title="Browse"
+              onClick={(event) => {
+                event.stopPropagation()
+                onBrowse(capability)
+              }}
+            >
+              <LuFolderOpen aria-hidden className="size-3.5" />
+              <span aria-hidden className="@pane-md:inline hidden">
+                Browse
+              </span>
+            </button>
+          )}
+        </>
+      ),
+    },
+    ...rest,
+  ]
 }
 
 // formatCapabilityState names a capability state as the table shows it.

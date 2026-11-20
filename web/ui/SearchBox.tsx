@@ -60,7 +60,10 @@ export function SearchBox({
         className,
       )}
     >
-      <LuSearch className="text-foreground-alt size-3 flex-shrink-0" />
+      <LuSearch
+        aria-hidden
+        className="text-foreground-alt size-3 flex-shrink-0"
+      />
       {focused && (
         <input
           ref={setInputRef}

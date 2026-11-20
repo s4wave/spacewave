@@ -12,7 +12,7 @@ import {
 } from '@s4wave/web/object/ViewerStatus.js'
 import { ViewerRailGlyph, ViewerSide } from '@s4wave/web/object/ViewerSide.js'
 import { FactRow } from '@s4wave/web/ui/FactList.js'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import {
   LuCamera,
   LuMonitor,
@@ -32,6 +32,8 @@ import { DeviceHandle, DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 
 import { DeviceCapabilityTable } from './DeviceCapabilityTable.js'
+import { DeviceDrive } from './DeviceDrive.js'
+import { isBrowsableCheckoutRoot } from './checkout-root.js'
 import { buildCreateFrameOpData, getFrameAction } from './frame-action.js'
 import {
   buildCreateTerminalOpData,
@@ -68,6 +70,10 @@ export function DeviceViewer({
     const action = getFrameAction(capability)
     return action ? [{ capability, action }] : []
   })
+
+  // A browsed root stays selected while its Device disconnects and returns.
+  const [checkout, setCheckout] = useState<DeviceCapability | null>(null)
+  const closeCheckout = useCallback(() => setCheckout(null), [])
 
   // Open a Terminal from the Device's declared capability.
   const handleOpenTerminal = async () => {
@@ -114,6 +120,10 @@ export function DeviceViewer({
 
   // Open what an opened capability row serves; other rows only select.
   const handleOpenCapability = (capability: DeviceCapability) => {
+    if (isBrowsableCheckoutRoot(capability)) {
+      setCheckout(capability)
+      return
+    }
     if (isOpenableTerminalCapability(capability)) {
       void handleOpenTerminal()
       return
@@ -144,6 +154,17 @@ export function DeviceViewer({
         message: 'The Device returned no details.',
         retry: stateResource.retry,
       })
+
+  if (checkout) {
+    return (
+      <DeviceDrive
+        handle={handle}
+        device={stateResource}
+        selection={checkout}
+        back={closeCheckout}
+      />
+    )
+  }
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
@@ -197,6 +218,7 @@ export function DeviceViewer({
           <DeviceCapabilityTable
             capabilities={capabilities}
             onOpenCapability={handleOpenCapability}
+            onBrowse={setCheckout}
           />
         </ViewerSide>
       )}

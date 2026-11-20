@@ -127,19 +127,19 @@ function ToolbarNav({
   return (
     <div className="flex items-center gap-0.5">
       <NavIconButton
-        icon={<LuChevronLeft className="size-4" />}
+        icon={<LuChevronLeft aria-hidden className="size-4" />}
         label="Back"
         onClick={onBack}
         disabled={!canGoBack}
       />
       <NavIconButton
-        icon={<LuChevronRight className="size-4" />}
+        icon={<LuChevronRight aria-hidden className="size-4" />}
         label="Forward"
         onClick={onForward}
         disabled={!canGoForward}
       />
       <NavIconButton
-        icon={<LuChevronUp className="size-4" />}
+        icon={<LuChevronUp aria-hidden className="size-4" />}
         label="Up"
         onClick={onUp}
         disabled={!canGoUp}
@@ -165,14 +165,14 @@ function ToolbarActions({
     <div className="flex items-center gap-0.5">
       {showNewFolder && (
         <NavIconButton
-          icon={<LuFolderPlus className="size-4" />}
+          icon={<LuFolderPlus aria-hidden className="size-4" />}
           label="New folder"
           onClick={onNewFolder}
         />
       )}
       {onUploadFiles && (
         <NavIconButton
-          icon={<LuUpload className="size-4" />}
+          icon={<LuUpload aria-hidden className="size-4" />}
           label="Upload files"
           onClick={onUploadFiles}
         />
@@ -182,7 +182,7 @@ function ToolbarActions({
 }
 
 const searchBoxClassName =
-  '[@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11'
+  'min-h-viewer-press [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11'
 
 /** Toolbar keeps the file path and primary action visible as its width shrinks. */
 export function Toolbar({
@@ -367,7 +367,7 @@ function OverflowMenu({
           aria-label="More actions"
           className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex size-6 items-center justify-center rounded transition-colors [@media(pointer:coarse)]:size-11"
         >
-          <LuEllipsisVertical className="size-4" />
+          <LuEllipsisVertical aria-hidden className="size-4" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" variant="compact" className="min-w-35">
@@ -375,7 +375,7 @@ function OverflowMenu({
           className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
           onClick={onSearchClick}
         >
-          <LuSearch className="size-3.5" />
+          <LuSearch aria-hidden className="size-3.5" />
           Search
         </DropdownMenuItem>
         {showNavItems && (
@@ -386,7 +386,7 @@ function OverflowMenu({
               onClick={onBack}
               disabled={!canGoBack}
             >
-              <LuChevronLeft className="size-3.5" />
+              <LuChevronLeft aria-hidden className="size-3.5" />
               Back
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -394,7 +394,7 @@ function OverflowMenu({
               onClick={onForward}
               disabled={!canGoForward}
             >
-              <LuChevronRight className="size-3.5" />
+              <LuChevronRight aria-hidden className="size-3.5" />
               Forward
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -408,7 +408,7 @@ function OverflowMenu({
                 onPathTargetDrop,
               )}
             >
-              <LuChevronUp className="size-3.5" />
+              <LuChevronUp aria-hidden className="size-3.5" />
               Up
             </DropdownMenuItem>
           </>
@@ -420,7 +420,7 @@ function OverflowMenu({
               className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
               onClick={onNewFolder}
             >
-              <LuFolderPlus className="size-3.5" />
+              <LuFolderPlus aria-hidden className="size-3.5" />
               New folder
             </DropdownMenuItem>
           </>

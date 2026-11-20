@@ -23,6 +23,7 @@ interface UnixFSBrowserNavigationOptions {
   unixfsId: string
   displayPath: string
   dispatch: UnixFSBrowserDispatch
+  localOnly?: boolean
 }
 
 /**
@@ -33,6 +34,7 @@ export function useUnixFSBrowserNavigation({
   unixfsId,
   displayPath,
   dispatch,
+  localOnly = false,
 }: UnixFSBrowserNavigationOptions) {
   const tabContext = useTabContext()
   const history = useHistory()
@@ -69,7 +71,7 @@ export function useUnixFSBrowserNavigation({
     (entries: FileEntry[]) => {
       if (!entries.length) return
 
-      if (entries.length === 1) {
+      if (entries.length === 1 || localOnly) {
         const entry = entries[0]
         dispatch({ type: 'set-pending-name', name: entry.id })
         navigate({ path: './' + entry.name })
@@ -98,7 +100,7 @@ export function useUnixFSBrowserNavigation({
         })
       }
     },
-    [dispatch, displayPath, navigate, tabContext, unixfsId],
+    [dispatch, displayPath, localOnly, navigate, tabContext, unixfsId],
   )
 
   return {

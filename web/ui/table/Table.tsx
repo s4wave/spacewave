@@ -256,7 +256,7 @@ function TableHeader<T>({
       <button
         type="button"
         className={cn(
-          'min-w-viewer-name flex flex-1 cursor-pointer items-center gap-1 py-1.5 text-left [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
+          'min-w-viewer-name flex flex-1 cursor-pointer items-center gap-1 py-1 text-left [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
           sortedIndex === 0 && 'text-foreground',
         )}
         onClick={() => sortBy(first.key)}
@@ -285,7 +285,7 @@ function TableHeader<T>({
             type="button"
             style={{ '--table-column': `${column.minWidth ?? 6}rem` }}
             className={cn(
-              'w-(--table-column) shrink-0 cursor-pointer items-center gap-1 py-1.5 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
+              'w-(--table-column) shrink-0 cursor-pointer items-center gap-1 py-1 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
               showFrom[step],
               column.end && 'flex-row-reverse',
               sorted && 'text-foreground',

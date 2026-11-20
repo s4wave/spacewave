@@ -5,10 +5,10 @@ interface UnixFSBrowserDropSurfaceProps {
   children: ReactNode
   isDragging: boolean
   floatingDiagnostics?: ReactNode
-  onContextMenu: (event: MouseEvent<HTMLDivElement>) => void
-  onDragOver: (event: DragEvent<HTMLDivElement>) => void
-  onDragLeave: (event: DragEvent<HTMLDivElement>) => void
-  onDrop: (event: DragEvent<HTMLDivElement>) => void
+  onContextMenu?: (event: MouseEvent<HTMLDivElement>) => void
+  onDragOver?: (event: DragEvent<HTMLDivElement>) => void
+  onDragLeave?: (event: DragEvent<HTMLDivElement>) => void
+  onDrop?: (event: DragEvent<HTMLDivElement>) => void
 }
 
 export function UnixFSBrowserDropSurface({
