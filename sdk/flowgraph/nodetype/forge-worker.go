@@ -119,19 +119,22 @@ func forgeWorkerDeclaration(node *s4wave_flowgraph.FlowgraphNode) (*s4wave_devic
 	}
 
 	// Require at least one runtime backend, each named once. Sort them so the
-	// order the node lists them in does not change the declaration.
+	// order the node lists them in does not change the declaration; a
+	// duplicate then sits beside its twin.
 	var backends []string
 	for backend := range strings.SplitSeq(params[forgeWorkerBackendsParameter], ",") {
 		backend = strings.TrimSpace(backend)
 		if backend == "" || strings.ContainsAny(backend, " \t\r\n") {
 			return nil, errors.Errorf("parameter %q must list backends separated by commas", forgeWorkerBackendsParameter)
 		}
-		if slices.Contains(backends, backend) {
-			return nil, errors.Errorf("parameter %q lists backend %q twice", forgeWorkerBackendsParameter, backend)
-		}
 		backends = append(backends, backend)
 	}
 	slices.Sort(backends)
+	for i := 1; i < len(backends); i++ {
+		if backends[i] == backends[i-1] {
+			return nil, errors.Errorf("parameter %q lists backend %q twice", forgeWorkerBackendsParameter, backends[i])
+		}
+	}
 	return &s4wave_device.ForgeWorkerDeclaration{
 		WorkerObjectKey: workerObjectKey,
 		MilliCpu:        milliCPU,
