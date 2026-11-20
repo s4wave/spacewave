@@ -1693,6 +1693,26 @@ type countingResourceRpc struct {
 
 // Send counts the route's call when its first SRPC packet starts it.
 func (s *countingResourceRpc) Send(pkt *resource.ResourceRpcPacket) error {
+	s.count(pkt)
+	return s.SRPCResourceService_ResourceRpcClient.Send(pkt)
+}
+
+// MsgSend counts the call a data frame starts. Data frames are encoded in
+// place and reach the stream here, not through Send.
+func (s *countingResourceRpc) MsgSend(msg srpc.Message) error {
+	if !s.started {
+		if data, err := msg.MarshalVT(); err == nil {
+			var pkt resource.ResourceRpcPacket
+			if pkt.UnmarshalVT(data) == nil {
+				s.count(&pkt)
+			}
+		}
+	}
+	return s.SRPCResourceService_ResourceRpcClient.MsgSend(msg)
+}
+
+// count records the route's method when pkt is its first call start.
+func (s *countingResourceRpc) count(pkt *resource.ResourceRpcPacket) {
 	if data := pkt.GetData(); !s.started && len(data) != 0 {
 		var srpcPkt srpc.Packet
 		if err := srpcPkt.UnmarshalVT(data); err == nil && srpcPkt.GetCallStart() != nil {
@@ -1700,7 +1720,6 @@ func (s *countingResourceRpc) Send(pkt *resource.ResourceRpcPacket) error {
 			s.counter.add(srpcPkt.GetCallStart().GetRpcMethod())
 		}
 	}
-	return s.SRPCResourceService_ResourceRpcClient.Send(pkt)
 }
 
 // mountedTx hides every method of the transaction outside world.Tx, as a
