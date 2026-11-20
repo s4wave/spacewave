@@ -1,7 +1,9 @@
 package unixfs_world
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
@@ -39,6 +41,14 @@ import (
 // to the path by a rename that never replaces, or to the conflict name. A file
 // edited before the check is kept, and the next sync publishes it again.
 //
+// A staged file is named for its path, and the one-way walk never publishes
+// one. One a crash left is the spec's held file: the member's version fetched
+// before the exchange, or the file the exchange displaced. The node's first
+// sync settles each before its remote pass changes a base: it removes one
+// that equals by content the path's base or the Drive's file at the path now,
+// a version the Drive holds and the remote pass fetches again, and gives any
+// other file its conflict name.
+//
 // The invariants, as the spec names them:
 //
 //   - NoLostVersion: every file version that reached the disk stays on the disk
@@ -66,8 +76,12 @@ import (
 // scan, plus a fetch, a stat and two renames per changed file.
 
 // stagePrefix prefixes the staged file a remote write fetches into, beside
-// its path.
+// its path. The prefix is followed by a random tag of stageTagLen hex digits,
+// a dash and the path's name, cut to fit a file name.
 const stagePrefix = ".spacewave-stage-"
+
+// stageTagLen is the number of hex digits of a staged file's random tag.
+const stageTagLen = 8
 
 // conflictTagLen is the number of hex digits of a conflict name's digest.
 const conflictTagLen = 16
@@ -108,12 +122,55 @@ func (l *FolderLink) ApplyRemote(ctx context.Context) error {
 
 // applyRemote applies the Drive's changes to the folder in a two-way sync.
 func (s *folderSync) applyRemote() error {
+	// A one-way link takes nothing from the Drive.
 	if !s.twoWay {
 		return nil
 	}
+
+	// Settle the staged files a crash left before any base changes.
+	if !s.recovered {
+		if err := s.recoverStages(); err != nil {
+			return err
+		}
+		s.recovered = true
+	}
+
+	// Walk the Drive's tree from the root, counting what could not apply.
 	s.unapplied, s.applyErr = 0, nil
 	_, err := s.applyDir(nil)
 	return err
+}
+
+// recoverStages settles each staged file a crash left in the folder, as
+// recoverStage describes, before the node's first remote pass changes a base.
+// It lists each directory of the folder once, and reads the bases only of a
+// directory holding a staged file.
+func (s *folderSync) recoverStages() error {
+	return filepath.WalkDir(s.folder, func(path string, d fs.DirEntry, err error) error {
+		// Skip a directory removed during the walk.
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) && path != s.folder {
+				return nil
+			}
+			return err
+		}
+		if d.IsDir() || !strings.HasPrefix(d.Name(), stagePrefix) {
+			return nil
+		}
+
+		// Settle the staged file against its directory's bases.
+		dirPath := filepath.Dir(path)
+		relDir, err := filepath.Rel(s.folder, dirPath)
+		if err != nil {
+			return err
+		}
+		rel := splitRel(relDir)
+		known, _, err := s.idx.FolderVersions(s.ctx, s.folder, rel)
+		if err != nil {
+			return err
+		}
+		return s.recoverStage(dirPath, append(slices.Clone(s.dest), rel...), d.Name(), known)
+	})
 }
 
 // leave records a remote change the pass leaves for a later one.
@@ -388,11 +445,10 @@ func (s *folderSync) stage(rel []string, f remoteFile) (string, fs.FileInfo, err
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", nil, err
 	}
-	tmp, err := os.CreateTemp(dir, stagePrefix+"*")
+	tmp, stage, err := createStage(dir, f.name)
 	if err != nil {
 		return "", nil, err
 	}
-	stage := tmp.Name()
 	fail := func(err error) (string, fs.FileInfo, error) {
 		_ = tmp.Close()
 		_ = os.Remove(stage)
@@ -561,12 +617,150 @@ func toConflict(src, path, tag string) error {
 	}
 }
 
-// conflictName returns name with suffix, cutting name on a UTF-8 boundary so
-// the result fits in maxNameLen bytes.
+// conflictName returns name with suffix, cutting name so the result fits in
+// a file name.
 func conflictName(name, suffix string) string {
-	keep := min(len(name), maxNameLen-len(suffix))
+	return cutName(name, maxNameLen-len(suffix)) + suffix
+}
+
+// cutName returns name cut on a UTF-8 boundary to at most room bytes.
+func cutName(name string, room int) string {
+	keep := max(min(len(name), room), 0)
 	for keep > 0 && keep < len(name) && !utf8.RuneStart(name[keep]) {
 		keep--
 	}
-	return name[:keep] + suffix
+	return name[:keep]
+}
+
+// createStage creates a new staged file in dir for the file named name, open
+// for writing.
+func createStage(dir, name string) (*os.File, string, error) {
+	for {
+		var tag [stageTagLen / 2]byte
+		if _, err := rand.Read(tag[:]); err != nil {
+			return nil, "", err
+		}
+		head := stagePrefix + hex.EncodeToString(tag[:]) + "-"
+		path := filepath.Join(dir, head+cutName(name, maxNameLen-len(head)))
+		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
+		if errors.Is(err, fs.ErrExist) {
+			continue
+		}
+		return f, path, err
+	}
+}
+
+// stagedName returns the name of the file the staged file named stageName
+// was fetched for, cut as createStage cut it.
+func stagedName(stageName string) string {
+	rest := strings.TrimPrefix(stageName, stagePrefix)
+	if len(rest) > stageTagLen && rest[stageTagLen] == '-' {
+		return rest[stageTagLen+1:]
+	}
+	return rest
+}
+
+// recoverStage settles the staged file stageName a crash left in the folder
+// directory dirPath, linked to the Drive directory parent, as the spec's held
+// file. known holds the bases of the directory's files.
+// A file equal by content to its path's base, or to the Drive's file at the
+// path now, is removed: the Drive holds that version. Any other file takes
+// its conflict name.
+func (s *folderSync) recoverStage(dirPath string, parent []string, stageName string, known map[string]*block_store_filesegment.FolderVersion) error {
+	// Leave alone anything but a regular file.
+	stage := filepath.Join(dirPath, stageName)
+	info, err := os.Lstat(stage)
+	if errors.Is(err, fs.ErrNotExist) || (err == nil && !info.Mode().IsRegular()) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	// Remove a version the Drive holds.
+	name := stagedName(stageName)
+	held, err := s.heldInDrive(stage, info, parent, name, known[name])
+	if err != nil {
+		return err
+	}
+	if held {
+		return os.Remove(stage)
+	}
+
+	// Keep any other under its conflict name.
+	tag, err := contentTag(stage, info)
+	if err != nil {
+		return err
+	}
+	return toConflict(stage, filepath.Join(dirPath, name), tag)
+}
+
+// heldInDrive reports whether the file at stage, with stat info, equals by
+// content the version base, or the file the Drive directory parent holds at
+// name now. A Drive version it cannot read counts as unequal, so the file is
+// kept.
+func (s *folderSync) heldInDrive(stage string, info fs.FileInfo, parent []string, name string, base *block_store_filesegment.FolderVersion) (bool, error) {
+	var held bool
+	err := s.view(func(root *unixfs_block.FSTree) error {
+		// Gather the Drive versions of the stage's size: the base, then the
+		// file at name.
+		var versions []*unixfs_block.FSTree
+		if ref := base.GetNodeRef(); ref != nil && base.GetSize() == info.Size() {
+			cs := root.GetCursor().DetachTransaction()
+			cs.SetRefAtCursor(ref, true)
+			if tree, err := unixfs_block.NewFSTree(s.ctx, cs, unixfs_block.NodeType_NodeType_UNKNOWN); err == nil {
+				versions = append(versions, tree)
+			}
+		}
+		if dir, err := lookupDir(root, parent); err == nil && dir != nil {
+			child, dirent, err := dir.LookupFollowDirent(name)
+			if err == nil && child != nil && dirent.GetIsFile() {
+				versions = append(versions, child)
+			}
+		}
+
+		// Compare the bytes of each version of the same size.
+		for _, v := range versions {
+			if v.GetFSNode().GetFile().GetTotalSize() != uint64(info.Size()) { //nolint:gosec // a file size is not negative.
+				continue
+			}
+			if same, err := sameContent(s.ctx, v, stage); err == nil && same {
+				held = true
+				return nil
+			}
+		}
+		return nil
+	})
+	return held, err
+}
+
+// sameContent reports whether the Drive file tree holds the bytes of the file
+// at path, which has the same size.
+func sameContent(ctx context.Context, tree *unixfs_block.FSTree, path string) (bool, error) {
+	// Open both files.
+	h, err := tree.BuildFileHandle(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer h.Close()
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	// Compare them a chunk at a time.
+	a, b := make([]byte, 64<<10), make([]byte, 64<<10)
+	for {
+		n, rerr := io.ReadFull(h, a)
+		if _, err := io.ReadFull(f, b[:n]); err != nil || !bytes.Equal(a[:n], b[:n]) {
+			return false, nil
+		}
+		if errors.Is(rerr, io.EOF) || errors.Is(rerr, io.ErrUnexpectedEOF) {
+			return true, nil
+		}
+		if rerr != nil {
+			return false, rerr
+		}
+	}
 }

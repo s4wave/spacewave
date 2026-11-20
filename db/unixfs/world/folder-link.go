@@ -80,6 +80,8 @@ type FolderLink struct {
 	unapplied int
 	// applyErr is the first error that left a remote change unapplied.
 	applyErr error
+	// recovered is set once a sync settled the staged files a crash left.
+	recovered bool
 }
 
 // NewFolderLink constructs the link of the absolute folder into the Drive at
@@ -580,6 +582,11 @@ func (s *folderSync) dir(path string, parent []string, all bool) error {
 	}
 	infos := make([]fs.FileInfo, 0, len(ents))
 	for _, d := range ents {
+		// Never publish a staged file; the first remote pass settles one a
+		// crash left.
+		if strings.HasPrefix(d.Name(), stagePrefix) {
+			continue
+		}
 		info, err := d.Info()
 		if errors.Is(err, fs.ErrNotExist) {
 			continue

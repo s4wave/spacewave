@@ -383,3 +383,115 @@ func TestFolderLinkTwoWay(t *testing.T) {
 		t.Fatalf("second sync linked %d files, want 0", linked)
 	}
 }
+
+func TestFolderLinkStageRecovery(t *testing.T) {
+	// Start the World and the Drive.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	htb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	wtb, err := world_testbed.NewTestbed(htb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	fsHandle, err := InitTestbed(wtb, objKey, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fsHandle.Release()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Link a folder of three files both ways.
+	folder := t.TempDir()
+	put := func(name, data string, mtime time.Time) {
+		t.Helper()
+		must(os.WriteFile(filepath.Join(folder, name), []byte(data), 0o644))
+		must(os.Chtimes(filepath.Join(folder, name), mtime, mtime))
+	}
+	owned := time.Unix(1_700_000_000, 0)
+	for _, name := range []string{"a.txt", "b.txt", "c.txt"} {
+		put(name, "owner "+name, owned)
+	}
+	idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore())
+	dest := []string{"linked", "folder"}
+	link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
+	must(err)
+	must(link.Sync(ctx, nil))
+
+	// A member writes all three files.
+	rtx, err := wtb.Engine.NewTransaction(ctx, false)
+	must(err)
+	fsType, _, err := unixfs_world.LookupFsType(ctx, rtx, objKey)
+	rtx.Discard()
+	must(err)
+	member := unixfs_world.NewBatchFSWriter(world.NewEngineWorldState(wtb.Engine, true), objKey, fsType, "")
+	written := time.Unix(1_800_000_000, 0)
+	for _, name := range []string{"a.txt", "b.txt", "c.txt"} {
+		data := []byte("member " + name)
+		must(member.AddFile(ctx, dest, name, unixfs.NewFSCursorNodeType_File(), int64(len(data)), bytes.NewReader(data), 0o644, written))
+	}
+	must(member.Commit(ctx))
+	member.Release()
+
+	// The node crashed in each place a staged file outlives: after the
+	// exchange of a.txt, which displaced its base, and of b.txt, which
+	// displaced an owner's edit; and before the exchange of c.txt, holding
+	// the member's fetched version.
+	put("a.txt", "member a.txt", written)
+	put(".spacewave-stage-0000000a-a.txt", "owner a.txt", owned)
+	put("b.txt", "member b.txt", written)
+	put(".spacewave-stage-0000000b-b.txt", "owner b2", time.Now())
+	put(".spacewave-stage-0000000c-c.txt", "member c.txt", written)
+
+	// The restarted node removes the versions the Drive holds, keeps the
+	// edit under its conflict name and publishes it, and applies c.txt again.
+	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
+	must(err)
+	var linked uint64
+	count := func(files, _ uint64) error {
+		linked = files
+		return nil
+	}
+	must(link.Sync(ctx, count))
+	if linked != 1 {
+		t.Fatalf("sync published %d files, want the conflict copy", linked)
+	}
+	if n, err := link.Unapplied(); n != 0 {
+		t.Fatalf("%d remote changes left unapplied: %v", n, err)
+	}
+	stages, err := filepath.Glob(filepath.Join(folder, ".spacewave-stage-*"))
+	must(err)
+	if len(stages) != 0 {
+		t.Fatalf("staged files left: %v", stages)
+	}
+	read := func(name string) string {
+		t.Helper()
+		data, err := os.ReadFile(filepath.Join(folder, name))
+		must(err)
+		return string(data)
+	}
+	for _, name := range []string{"a.txt", "b.txt", "c.txt"} {
+		if got := read(name); got != "member "+name {
+			t.Fatalf("%s holds %q, want the member's write", name, got)
+		}
+	}
+	copies, err := filepath.Glob(filepath.Join(folder, "*.conflict-*"))
+	must(err)
+	if len(copies) != 1 || !strings.HasPrefix(filepath.Base(copies[0]), "b.txt.conflict-") || read(filepath.Base(copies[0])) != "owner b2" {
+		t.Fatalf("conflict copies %v, want one of b.txt holding the owner's edit", copies)
+	}
+
+	// The folder and the Drive agree: the next sync applies and links nothing.
+	linked = 0
+	must(link.Sync(ctx, count))
+	if linked != 0 {
+		t.Fatalf("second sync linked %d files, want 0", linked)
+	}
+}
