@@ -1,5 +1,4 @@
-import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { LuChevronDown } from 'react-icons/lu'
+import { lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
@@ -179,31 +178,6 @@ function useSessionLock(
   return { locking, lock }
 }
 
-// useSettingsScrollCue shows a scroll cue while the settings viewport has
-// content below the fold. It re-measures when the open section changes.
-function useSettingsScrollCue(openSection: SessionOpenSection | null) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [showCue, setShowCue] = useState(false)
-
-  const update = useCallback(() => {
-    const viewport = scrollRef.current
-    if (!viewport) return
-    setShowCue(
-      viewport.scrollTop + viewport.clientHeight < viewport.scrollHeight - 1,
-    )
-  }, [])
-
-  useEffect(() => {
-    update()
-  }, [openSection, update])
-
-  const scrollMore = () => {
-    scrollRef.current?.scrollBy({ top: 160, behavior: 'smooth' })
-  }
-
-  return { scrollRef, showCue, update, scrollMore }
-}
-
 // SessionDetails displays account/session information and actions.
 export function SessionDetails({
   onCloseClick,
@@ -262,7 +236,6 @@ export function SessionDetails({
 
   const logout = useSessionLogout({ account, peerId, root, sessionIdx })
   const { locking, lock } = useSessionLock(session, sessionIdx, isPinMode)
-  const scrollCue = useSettingsScrollCue(openSection)
 
   useEffect(() => {
     return () => {
@@ -320,11 +293,7 @@ export function SessionDetails({
               onClose={onCloseClick && handleCloseDetails}
             />
 
-            <div
-              ref={scrollCue.scrollRef}
-              className="min-h-0 flex-1 overflow-auto px-4 pt-3 pb-3"
-              onScroll={scrollCue.update}
-            >
+            <div className="min-h-0 flex-1 overflow-auto px-4 pt-3 pb-3">
               <div className="space-y-3">
                 <SettingsSections
                   isLocal={isLocal}
@@ -358,19 +327,6 @@ export function SessionDetails({
                 />
               </div>
             </div>
-            {scrollCue.showCue && (
-              <div className="border-foreground/8 flex shrink-0 justify-end border-t px-3 py-1">
-                <button
-                  type="button"
-                  aria-label="Scroll down for more settings"
-                  onClick={scrollCue.scrollMore}
-                  className="border-foreground/10 bg-background-card/90 text-foreground-alt hover:text-foreground flex min-h-11 items-center gap-1 rounded-full border px-3 text-xs shadow-md transition-colors"
-                >
-                  More settings
-                  <LuChevronDown className="size-3" />
-                </button>
-              </div>
-            )}
           </div>
         </Route>
       </Routes>
