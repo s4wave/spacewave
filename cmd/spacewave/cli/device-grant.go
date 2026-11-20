@@ -68,6 +68,7 @@ func runGrantEnrollment(
 	}
 
 	// Hold the enrollment until the keeper exits.
+	le.Info("Device enrolled; its Space session is restored")
 	<-ctx.Done()
 	release()
 }
