@@ -58,14 +58,14 @@ func (c *Target) MarshalYAML() ([]byte, error) {
 
 // SetTarget sets the target to marshal, resolving the controller config.
 func (c *Target) SetTarget(ctx context.Context, b bus.Bus, pb *target.Target) error {
-	// Copy the target fields and clear the previous controller config.
+	// Copy the target fields without the controller, marshaled separately below.
 	c.underlying = &target.Target{
 		Inputs:  pb.GetInputs(),
 		Outputs: pb.GetOutputs(),
-		Exec: &target.Exec{
-			Disable: pb.GetExec().GetDisable(),
-			// Controller: extracted below
-		},
+		Exec:    pb.GetExec().CloneVT(),
+	}
+	if c.underlying.Exec != nil {
+		c.underlying.Exec.Controller = nil
 	}
 	c.execControllerConfig = nil
 
@@ -88,9 +88,10 @@ func (c *Target) ResolveProto(ctx context.Context, b bus.Bus) (*target.Target, e
 	o := &target.Target{
 		Inputs:  c.underlying.GetInputs(),
 		Outputs: c.underlying.GetOutputs(),
-		Exec: &target.Exec{
-			Disable: c.underlying.GetExec().GetDisable(),
-		},
+		Exec:    c.underlying.GetExec().CloneVT(),
+	}
+	if o.Exec == nil {
+		o.Exec = &target.Exec{}
 	}
 	// marshal the execControllerConfig to protobuf
 	if c.execControllerConfig != nil {
@@ -126,11 +127,8 @@ func (c *Target) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		c.execControllerConfig = cc
-		c.underlying.Exec = &target.Exec{
-			Disable: v.GetBool("exec", "disable"),
-		}
-		// delete it from the pending parse
-		v.Del("exec")
+		// Leave the other exec fields to the protobuf parse below.
+		v.Get("exec").Del("controller")
 		changed = true
 	}
 

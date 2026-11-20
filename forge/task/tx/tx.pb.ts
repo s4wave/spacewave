@@ -49,6 +49,12 @@ export enum TxType {
    * The expected pass nonce is the idempotency fence.
    */
   TxType_RETRY = 5,
+
+  /**
+   * TxType_COMPLETE_CACHED completes a PENDING Task whose Target reuses
+   * outputs with the outputs of an earlier successful Task with its reuse key.
+   */
+  TxType_COMPLETE_CACHED = 6,
 }
 
 export const TxType_Enum = /* @__PURE__ */ createEnumType('task.tx.TxType', [
@@ -58,6 +64,7 @@ export const TxType_Enum = /* @__PURE__ */ createEnumType('task.tx.TxType', [
   [3, 'TxType_UPDATE_WITH_PASS_STATE'],
   [4, 'TxType_COMPLETE'],
   [5, 'TxType_RETRY'],
+  [6, 'TxType_COMPLETE_CACHED'],
 ])
 
 /**
@@ -100,6 +107,11 @@ export interface Tx {
    * TxType_RETRY
    */
   txRetry?: TxRetry
+  /**
+   * TxCompleteCached completes the Task with an earlier Task's outputs.
+   * TxType_COMPLETE_CACHED
+   */
+  txCompleteCached?: TxCompleteCached
 }
 
 export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType<Tx>(
@@ -112,8 +124,31 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType<Tx>(
     [5, 'tx_update_with_pass_state', 11, 0, TxUpdateWithPassState.codec],
     [6, 'tx_complete', 11, 0, TxComplete.codec],
     [7, 'tx_retry', 11, 0, TxRetry.codec],
+    [8, 'tx_complete_cached', 11, 0, TxCompleteCached.codec],
   ],
 )
+
+/**
+ * TxCompleteCached completes a PENDING Task with the outputs of an earlier
+ * successful Task holding the same reuse key, without creating a Pass.
+ * Links the Task to the earlier Task with forge/task-cached.
+ *
+ * TxType: TxType_COMPLETE_CACHED
+ *
+ * @generated from message task.tx.TxCompleteCached
+ */
+export interface TxCompleteCached {
+  /**
+   * CachedTaskKey is the earlier COMPLETE Task whose outputs are reused.
+   */
+  cachedTaskKey?: string
+}
+
+export const TxCompleteCached: MessageType<TxCompleteCached> =
+  /* @__PURE__ */ createMessageType<TxCompleteCached>(
+    'task.tx.TxCompleteCached',
+    () => [[1, 'cached_task_key', 9]],
+  )
 
 /**
  * TxRetry authorizes a successor Pass after a terminal failed Pass.

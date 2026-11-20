@@ -30,6 +30,9 @@ message Tx {
   // TxRetry contains the explicit retry transaction.
   // TxType_RETRY
   TxRetry tx_retry = 7;
+  // TxCompleteCached completes the Task with an earlier Task's outputs.
+  // TxType_COMPLETE_CACHED
+  TxCompleteCached tx_complete_cached = 8;
 
 }
 
@@ -55,6 +58,19 @@ enum TxType {
   // TxType_RETRY authorizes one successor Pass for a failed predecessor.
   // The expected pass nonce is the idempotency fence.
   TxType_RETRY = 5;
+  // TxType_COMPLETE_CACHED completes a PENDING Task whose Target reuses
+  // outputs with the outputs of an earlier successful Task with its reuse key.
+  TxType_COMPLETE_CACHED = 6;
+}
+
+// TxCompleteCached completes a PENDING Task with the outputs of an earlier
+// successful Task holding the same reuse key, without creating a Pass.
+// Links the Task to the earlier Task with forge/task-cached.
+//
+// TxType: TxType_COMPLETE_CACHED
+message TxCompleteCached {
+  // CachedTaskKey is the earlier COMPLETE Task whose outputs are reused.
+  string cached_task_key = 1;
 }
 
 // TxRetry authorizes a successor Pass after a terminal failed Pass.

@@ -297,6 +297,34 @@
         }
       }
     },
+    "6ca4042b5716980fdc1e20bae04d12f27fc4676d04e5e7f766532a4605078c32": {
+      "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
+      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+      "packages": {
+        "github.com/s4wave/spacewave/forge/target": {
+          "hash": "7fbb69a6830f0d4e6129dc127cc0e55bb3b0dd5b3e463f68b0187aa301960da4",
+          "generatedFiles": [
+            "forge/target/target.pb.go",
+            "forge/target/target.pb.ts"
+          ],
+          "protoFiles": [
+            "forge/target/target.proto"
+          ]
+        },
+        "github.com/s4wave/spacewave/forge/task/tx": {
+          "hash": "6cc19dd079ba9619859856c8c5ace80aa8c89c2b85052a085ddfa8ae62588b0f",
+          "generatedFiles": [
+            "forge/task/tx/tx.pb.go",
+            "forge/task/tx/tx.pb.ts",
+            "forge/task/tx/tx_typeid.pb.go",
+            "forge/task/tx/tx_typeid.pb.ts"
+          ],
+          "protoFiles": [
+            "forge/task/tx/tx.proto"
+          ]
+        }
+      }
+    },
     "777a7eafce266e027ae7da68377c1b76b1da72236e210742ff5895c54b1037b4": {
       "protocFlagsHash": "288cd7ea466ca646a28b138e8bb617dc10d77541e4c489e3ff858dbbd8ccbfa0",
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
@@ -309,6 +337,22 @@
           ],
           "protoFiles": [
             "db/block/gc/liveness.proto"
+          ]
+        }
+      }
+    },
+    "a8530f224f6bbca60ebce2d624aedc14a487e8ef8780a402e8cf32775a3b7de1": {
+      "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
+      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+      "packages": {
+        "github.com/s4wave/spacewave/forge/lib/skiffos": {
+          "hash": "582de76acfc86516c12f0ed6aeb4e2b277574722b200cdaa10e34a6f2ed5ea07",
+          "generatedFiles": [
+            "forge/lib/skiffos/config.pb.go",
+            "forge/lib/skiffos/config.pb.ts"
+          ],
+          "protoFiles": [
+            "forge/lib/skiffos/config.proto"
           ]
         }
       }

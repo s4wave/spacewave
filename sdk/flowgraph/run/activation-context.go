@@ -40,6 +40,12 @@ func (r *runner) contextInput(ctx context.Context, target *forge_target.Target, 
 		Name:      s4wave_flowgraph.ActivationContextInputName,
 		InputType: forge_target.InputType_InputType_ALIAS,
 	})
+
+	// The context names the activation, so a Step that reuses outputs keys
+	// its result without it.
+	if exec := target.GetExec(); exec.GetReuseOutputs() && !slices.Contains(exec.GetReuseIgnoreInputs(), s4wave_flowgraph.ActivationContextInputName) {
+		exec.ReuseIgnoreInputs = append(exec.ReuseIgnoreInputs, s4wave_flowgraph.ActivationContextInputName)
+	}
 	return forge_value.NewValueWithBlockRef(s4wave_flowgraph.ActivationContextInputName, ref.GetRootRef()), nil
 }
 
