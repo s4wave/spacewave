@@ -2,9 +2,15 @@
 # Package static init and ordered matching modules without root or host devices.
 set -eu
 if [ "$#" -lt 2 ] || [ "$#" -gt 18 ]; then
-	echo "usage: $0 STATIC_INIT OUTPUT.cpio.gz [UNCOMPRESSED_MODULE.ko ...]" >&2
+	echo "usage: $0 STATIC_INIT OUTPUT.cpio.{gz,lz4} [UNCOMPRESSED_MODULE.ko ...]" >&2
 	exit 2
 fi
+# The output suffix picks the compressor; lz4 uses the legacy frame Linux reads.
+case "$2" in
+	*.cpio.gz) compress="gzip -n -1" ;;
+	*.cpio.lz4) compress="lz4 -l -9 -q -c" ;;
+	*) echo "output must end in .cpio.gz or .cpio.lz4: $2" >&2; exit 2 ;;
+esac
 generator=$(command -v "${GEN_INIT_CPIO:-gen_init_cpio}") || {
 	echo "set GEN_INIT_CPIO to the host tool built by os/qemu/build-initramfs-tool.sh" >&2
 	exit 2
@@ -56,21 +62,21 @@ for module do
 	i=$((i + 1))
 done
 
-# Stream through a FIFO so POSIX sh can check both processes, not just gzip.
-# The kernel tool uses a 64 KiB file buffer; -t and -n fix all archive timestamps.
+# Stream through a FIFO so POSIX sh can check both processes, not just the
+# compressor. The kernel tool uses a 64 KiB file buffer; -t 0 fixes entry mtimes.
 mkfifo "$stage/archive.cpio"
 (cd "$stage" && exec "$generator" -t 0 spec) > "$stage/archive.cpio" &
 generator_pid=$!
 packed=0
-gzip -n -1 < "$stage/archive.cpio" > "$stage/archive.cpio.gz" || packed=$?
+$compress < "$stage/archive.cpio" > "$stage/archive.cpio.packed" || packed=$?
 generated=0
 wait "$generator_pid" || generated=$?
 generator_pid=
 if [ "$generated" -ne 0 ] || [ "$packed" -ne 0 ]; then
-	echo "initramfs failed: gen_init_cpio=$generated gzip=$packed" >&2
+	echo "initramfs failed: gen_init_cpio=$generated compress=$packed" >&2
 	exit 1
 fi
 
 # A same-filesystem hard link publishes only complete bytes and cannot clobber.
-ln "$stage/archive.cpio.gz" "$output"
+ln "$stage/archive.cpio.packed" "$output"
 echo "$output"

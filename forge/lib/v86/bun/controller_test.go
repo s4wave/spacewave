@@ -280,7 +280,7 @@ func TestInputMountReadOnly(t *testing.T) {
 	}
 	mountCs.SetRootRef(inputRef)
 
-	// Create read-only FS from the input ref (same pattern as resolveInputMount).
+	// Create read-only FS from the input ref (the pattern inputfs.Open uses).
 	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, mountCs, nil)
 	defer fs.Release()
 

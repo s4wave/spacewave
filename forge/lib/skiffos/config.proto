@@ -9,6 +9,9 @@ package forge.lib.skiffos;
 // serves the Execution and owns its workspace: a later build of the same
 // workspace reuses its build tree and ccache.
 //
+// Inputs:
+//  - each name in input_env: a UnixFS directory the build reads.
+//
 // Outputs:
 //  - images: the boot set, a BLOCK_REF to a UnixFS directory.
 message Config {
@@ -21,4 +24,12 @@ message Config {
   // Configs is the SKIFF_CONFIG list in order, such as
   // ["intel/x64", "virt/qemu"].
   repeated string configs = 3;
+  // ExtraConfigsPaths are absolute paths of directories holding out-of-tree
+  // config packages, passed as SKIFF_EXTRA_CONFIGS_PATH.
+  repeated string extra_configs_paths = 4;
+  // InputEnv maps a Step input to an environment variable of the build.
+  // The controller writes each input, a UnixFS directory, to inputs/<name> in
+  // the workspace and sets the variable to that directory. The inputs are
+  // part of the Task's reuse key, so changed input bytes rebuild.
+  map<string, string> input_env = 5;
 }

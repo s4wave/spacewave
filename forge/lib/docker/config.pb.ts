@@ -83,6 +83,12 @@ export interface Config {
    * syntax, such as /dev/kvm:/dev/kvm:rw. Empty grants no additional devices.
    */
   devices?: string[]
+  /**
+   * InputMounts maps an input name to the container path where it is mounted
+   * read-only. Each input, a UnixFS directory, is checked out to a private
+   * host directory before the container is created and removed after it exits.
+   */
+  inputMounts?: { [key: string]: string }
 }
 
 export const Config: MessageType<Config> =
@@ -102,6 +108,7 @@ export const Config: MessageType<Config> =
     [13, 'entrypoint', 9, 1],
     [14, 'network_mode', 9],
     [15, 'devices', 9, 1],
+    [16, 'input_mounts', 9, 584],
   ])
 
 /**

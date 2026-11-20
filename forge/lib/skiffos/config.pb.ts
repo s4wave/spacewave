@@ -14,6 +14,9 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  * serves the Execution and owns its workspace: a later build of the same
  * workspace reuses its build tree and ccache.
  *
+ * Inputs:
+ *  - each name in input_env: a UnixFS directory the build reads.
+ *
  * Outputs:
  *  - images: the boot set, a BLOCK_REF to a UnixFS directory.
  *
@@ -35,6 +38,18 @@ export interface Config {
    * ["intel/x64", "virt/qemu"].
    */
   configs?: string[]
+  /**
+   * ExtraConfigsPaths are absolute paths of directories holding out-of-tree
+   * config packages, passed as SKIFF_EXTRA_CONFIGS_PATH.
+   */
+  extraConfigsPaths?: string[]
+  /**
+   * InputEnv maps a Step input to an environment variable of the build.
+   * The controller writes each input, a UnixFS directory, to inputs/<name> in
+   * the workspace and sets the variable to that directory. The inputs are
+   * part of the Task's reuse key, so changed input bytes rebuild.
+   */
+  inputEnv?: { [key: string]: string }
 }
 
 export const Config: MessageType<Config> =
@@ -42,4 +57,6 @@ export const Config: MessageType<Config> =
     [1, 'skiff_dir', 9],
     [2, 'workspace', 9],
     [3, 'configs', 9, 1],
+    [4, 'extra_configs_paths', 9, 1],
+    [5, 'input_env', 9, 584],
   ])

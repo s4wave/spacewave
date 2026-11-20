@@ -1,6 +1,7 @@
 package forge_lib_docker
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -16,8 +17,8 @@ func BuildDockerEnv(conf *Config) []string {
 }
 
 // buildCreateArgs renders the docker create invocation for the config.
-// A nonempty outputDir is the host directory mounted at the config's output_dir.
-func buildCreateArgs(conf *Config, runtimeName, outputDir string) []string {
+// mounts follow the config's own bind mounts.
+func buildCreateArgs(conf *Config, runtimeName string, mounts []*Mount) []string {
 	// Select the container creation command and reserved runtime name.
 	args := []string{"create"}
 	if runtimeName != "" {
@@ -46,11 +47,8 @@ func buildCreateArgs(conf *Config, runtimeName, outputDir string) []string {
 	for _, key := range sortedMapKeys(conf.GetEnv()) {
 		args = append(args, "--env", key+"="+conf.GetEnv()[key])
 	}
-	for _, mount := range conf.GetMounts() {
+	for _, mount := range slices.Concat(conf.GetMounts(), mounts) {
 		args = append(args, "--mount", buildMountArg(mount))
-	}
-	if outputDir != "" {
-		args = append(args, "--mount", buildMountArg(&Mount{HostPath: outputDir, ContainerPath: conf.GetOutputDir()}))
 	}
 
 	// Select the entrypoint, image and command after the runtime options.

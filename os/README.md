@@ -94,6 +94,41 @@ and its view carry the reader journey. Component tests and model checks do not
 establish mounted durability or actual terminal behavior. Real QEMU/PTY checks,
 80x24 and 160x48 captures, restart/crash acceptance and timings remain separate.
 
+## SkiffOS boot set
+
+`os/skiff/spacewave/os` is a SkiffOS config package. Added last to a board's
+`SKIFF_CONFIG`, with `SKIFF_EXTRA_CONFIGS_PATH` naming `os/skiff`, it builds
+that board's boot set with `spacewave-init` as the initramfs's only program.
+Its kernel fragment builds in Btrfs, FUSE and the other filesystems the init
+mounts, so the initramfs carries no modules. Its post-image hook packs the init
+named by `SPACEWAVE_OS_BOOT/init` with `make-initramfs.sh` and the kernel
+tree's own `gen_init_cpio`, writes it over `rootfs.cpio.lz4`, the file every
+board's scripts load, and removes the uncompressed Buildroot root. The package
+turns off the U-Boot ramdisk wrapper, so a U-Boot board needs one added.
+
+The Forge Step `forge/lib/skiffos` runs that build: its `input_env` checks the
+boot input, a UnixFS directory holding `init`, out of the World and sets
+`SPACEWAVE_OS_BOOT`.
+
+A boot set is offered only after a rehearsal boots it. `os/qemu/rehearse.sh`
+seeds a fresh system root and data World with the same init onto a 4 GiB Btrfs
+disk, boots the boot set on it with `run_app.py`, writes and syncs one file
+through the data Volume, and powers off. It writes its receipt only when the
+guest printed `SPACEWAVE_OS_PASS` after closing every store; a guest that
+panics or hangs fails, and its console is the Step's log. The rehearsal runs as
+a Docker Step in the `os/qemu` image with `/dev/kvm`. The Step's `input_mounts`
+check out the boot set, the init and the scripts read-only.
+
+`TestSpacewaveOSRehearsal` in `sdk/forge/world` builds the QEMU board with the
+package and checks that the stored initramfs holds the init alone. A
+connection then carries the boot set to the rehearsal Step, which must pass. A
+second graph rehearses the same kernel with an initramfs that is not an
+archive, which must fail with the kernel's panic in its log. The test needs a
+SkiffOS checkout (`SPACEWAVE_SKIFFOS_DIR`), a static init
+(`SPACEWAVE_OS_INIT`), the tool image (`SPACEWAVE_QEMU_IMAGE`), the Docker CLI
+(`SPACEWAVE_DOCKER`), and a `DOCKER_HOST` whose daemon shares this host's
+filesystem.
+
 ## Immutable probe
 
 Linux boots one static executable as PID1 from an independent initramfs. The

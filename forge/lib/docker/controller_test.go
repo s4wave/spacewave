@@ -33,7 +33,7 @@ func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
 	}
 
 	// Compare the Docker create arguments with their explicit configuration.
-	got := buildCreateArgs(conf, "", "")
+	got := buildCreateArgs(conf, "", nil)
 	want := []string{
 		"create",
 		"--cpus", "1.5", "--memory", "1073741824",

@@ -3,8 +3,10 @@ package forge_lib_skiffos
 import (
 	"bytes"
 	"context"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -14,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	forge_lib_util_inputfs "github.com/s4wave/spacewave/forge/lib/util/inputfs"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/sirupsen/logrus"
@@ -37,6 +40,8 @@ type Controller struct {
 	le *logrus.Entry
 	// conf is the configuration
 	conf *Config
+	// inputVals holds the Step inputs, read by name through input_env.
+	inputVals forge_target.InputMap
 	// handle contains the controller handle
 	handle forge_target.ExecControllerHandle
 }
@@ -57,7 +62,7 @@ func (c *Controller) InitForgeExecController(
 	inputVals forge_target.InputMap,
 	handle forge_target.ExecControllerHandle,
 ) error {
-	c.handle = handle
+	c.inputVals, c.handle = inputVals, handle
 	return c.conf.Validate()
 }
 
@@ -81,13 +86,24 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// Build the workspace, writing the log tail to the Execution on failure.
-	start := time.Now()
-	if err := runMake(ctx, conf.GetSkiffDir(), logPath, []string{
+	// Write the inputs the build reads into the workspace.
+	env := []string{
 		"SKIFF_WORKSPACE=" + conf.GetWorkspace(),
 		"SKIFF_CONFIG=" + skiffConfig,
 		"SKIFF_NO_INTERACTIVE=1",
-	}, "configure", "compile"); err != nil {
+	}
+	if extra := conf.GetExtraConfigsPaths(); len(extra) != 0 {
+		env = append(env, "SKIFF_EXTRA_CONFIGS_PATH="+strings.Join(extra, ":"))
+	}
+	inputEnv, err := c.checkoutInputs(ctx, filepath.Join(wsDir, "inputs"))
+	if err != nil {
+		return err
+	}
+	env = append(env, inputEnv...)
+
+	// Build the workspace, writing the log tail to the Execution on failure.
+	start := time.Now()
+	if err := runMake(ctx, conf.GetSkiffDir(), logPath, env, "configure", "compile"); err != nil {
 		if ctx.Err() == nil {
 			_ = c.handle.WriteLog(ctx, "error", "SkiffOS build failed: "+err.Error()+"\n"+readLogTail(logPath))
 		}
@@ -109,6 +125,25 @@ func (c *Controller) Execute(ctx context.Context) error {
 	return c.handle.SetOutputs(ctx, forge_value.ValueSlice{
 		forge_value.NewValueWithBlockRef(OutputImages, root),
 	}, true)
+}
+
+// checkoutInputs writes each input named in input_env to its directory under
+// dir, in name order so the log reads the same each build, and returns the
+// variables that point the build at them.
+func (c *Controller) checkoutInputs(ctx context.Context, dir string) ([]string, error) {
+	// Check out every input before the build reads any of them.
+	inputEnv := c.conf.GetInputEnv()
+	names := slices.Sorted(maps.Keys(inputEnv))
+	if err := forge_lib_util_inputfs.CheckoutAll(ctx, c.handle, c.inputVals, dir, names); err != nil {
+		return nil, err
+	}
+
+	// Point each named variable at its input's directory.
+	env := make([]string, 0, len(names))
+	for _, name := range names {
+		env = append(env, inputEnv[name]+"="+filepath.Join(dir, name))
+	}
+	return env, nil
 }
 
 // storeImages writes the directory as a UnixFS tree into the World's bucket

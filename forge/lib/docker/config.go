@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	forge_lib_util_inputfs "github.com/s4wave/spacewave/forge/lib/util/inputfs"
 )
 
 // ConfigID is the string used to identify this config object.
@@ -38,6 +39,18 @@ func (c *Config) Validate() error {
 			return errors.New("mount paths cannot contain comma")
 		}
 	}
+
+	// Each input names a checkout directory and an absolute container path.
+	for name, path := range c.GetInputMounts() {
+		if err := forge_lib_util_inputfs.ValidateName(name); err != nil {
+			return errors.Wrap(err, "input_mounts")
+		}
+		if !strings.HasPrefix(path, "/") || strings.Contains(path, ",") {
+			return errors.Errorf("input_mounts[%s]: container path must be absolute without comma: %q", name, path)
+		}
+	}
+
+	// Declared outputs need a directory to land in.
 	return validateOutputs(c.GetOutputDir(), c.GetOutputs())
 }
 
