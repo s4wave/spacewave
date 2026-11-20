@@ -159,7 +159,9 @@ func (s *LocalProviderResource) CreateAccount(
 
 // CompleteSpaceLinkEnrollment creates or reopens the caller's own local
 // session from the supplied Device key and joins the target Space through the
-// one-use targeted invite from a local SpaceLink approval.
+// invite: a targeted one from a local SpaceLink approval, or a bearer grant.
+// A redemption the owner queued for approval returns pending and retains
+// nothing; the caller redeems again with the same key later.
 func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	ctx context.Context,
 	req *s4wave_provider_local.CompleteSpaceLinkEnrollmentRequest,
@@ -172,7 +174,7 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 		return nil, errors.New("provider resource is released")
 	}
 
-	// Require a targeted invitation and prove the supplied Session key matches it.
+	// Require an invitation and a Session key.
 	invite := req.GetInvite()
 	if invite == nil {
 		return nil, errors.New("invite is required")
@@ -248,8 +250,14 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 		return nil, err
 	}
 	if !redeemed {
-		if _, err := localAcc.JoinViaInvite(ctx, sessionKey, invite, ""); err != nil {
+		joined, err := localAcc.JoinViaInvite(ctx, sessionKey, invite, "")
+		if err != nil {
 			return nil, errors.Wrap(err, "join space via invite")
+		}
+		if joined.Pending {
+			return &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse{
+				Result: &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse_Pending{Pending: true},
+			}, nil
 		}
 	} else {
 		if err := localAcc.EnsureConfiguredSessionTransport(ctx, sessionKey); err != nil {
@@ -275,7 +283,9 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	}
 
 	// Publish enrollment only after its Session remains retained.
-	return &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse{SessionListEntry: listEntry}, nil
+	return &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse{
+		Result: &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse_SessionListEntry{SessionListEntry: listEntry},
+	}, nil
 }
 
 // retainDeviceSession keeps a completed Device session mounted for the local

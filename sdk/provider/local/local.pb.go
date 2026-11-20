@@ -56,7 +56,7 @@ func (x *AttachAccountResponse) GetSessionListEntry() *session.SessionListEntry 
 }
 
 // CompleteSpaceLinkEnrollmentRequest creates the caller's local session from
-// its durable key and joins via a targeted invite.
+// its durable key and joins the Space through an invite.
 type CompleteSpaceLinkEnrollmentRequest struct {
 	unknownFields []byte
 	// SessionPemPrivateKey is the Device's durable session private key. The
@@ -66,7 +66,8 @@ type CompleteSpaceLinkEnrollmentRequest struct {
 	// SessionPeerId is the peer ID expected to derive from the key. Empty
 	// skips the identity check.
 	SessionPeerId string `protobuf:"bytes,2,opt,name=session_peer_id,json=sessionPeerId,proto3" json:"sessionPeerId,omitempty"`
-	// Invite is the one-use targeted SOInviteMessage from the approval.
+	// Invite is the SOInviteMessage to redeem: the targeted invite from an
+	// approval, or a bearer grant such as a machine's card carries.
 	Invite *sobject.SOInviteMessage `protobuf:"bytes,3,opt,name=invite,proto3" json:"invite,omitempty"`
 }
 
@@ -97,11 +98,13 @@ func (x *CompleteSpaceLinkEnrollmentRequest) GetInvite() *sobject.SOInviteMessag
 	return nil
 }
 
-// CompleteSpaceLinkEnrollmentResponse returns the enrolled session entry.
+// CompleteSpaceLinkEnrollmentResponse is the state the enrollment reached.
 type CompleteSpaceLinkEnrollmentResponse struct {
 	unknownFields []byte
-	// SessionListEntry is the enrolled local session entry.
-	SessionListEntry *session.SessionListEntry `protobuf:"bytes,1,opt,name=session_list_entry,json=sessionListEntry,proto3" json:"sessionListEntry,omitempty"`
+	// Types that are assignable to Result:
+	//	*CompleteSpaceLinkEnrollmentResponse_SessionListEntry
+	//	*CompleteSpaceLinkEnrollmentResponse_Pending
+	Result isCompleteSpaceLinkEnrollmentResponse_Result `protobuf_oneof:"result"`
 }
 
 func (x *CompleteSpaceLinkEnrollmentResponse) Reset() {
@@ -110,12 +113,47 @@ func (x *CompleteSpaceLinkEnrollmentResponse) Reset() {
 
 func (*CompleteSpaceLinkEnrollmentResponse) ProtoMessage() {}
 
+func (m *CompleteSpaceLinkEnrollmentResponse) GetResult() isCompleteSpaceLinkEnrollmentResponse_Result {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
 func (x *CompleteSpaceLinkEnrollmentResponse) GetSessionListEntry() *session.SessionListEntry {
-	if x != nil {
+	if x, ok := x.GetResult().(*CompleteSpaceLinkEnrollmentResponse_SessionListEntry); ok {
 		return x.SessionListEntry
 	}
 	return nil
 }
+
+func (x *CompleteSpaceLinkEnrollmentResponse) GetPending() bool {
+	if x, ok := x.GetResult().(*CompleteSpaceLinkEnrollmentResponse_Pending); ok {
+		return x.Pending
+	}
+	return false
+}
+
+type isCompleteSpaceLinkEnrollmentResponse_Result interface {
+	isCompleteSpaceLinkEnrollmentResponse_Result()
+}
+
+type CompleteSpaceLinkEnrollmentResponse_SessionListEntry struct {
+	// SessionListEntry is the enrolled local session entry.
+	SessionListEntry *session.SessionListEntry `protobuf:"bytes,1,opt,name=session_list_entry,json=sessionListEntry,proto3,oneof"`
+}
+
+type CompleteSpaceLinkEnrollmentResponse_Pending struct {
+	// Pending is set when the Space owner queued the redemption for approval.
+	// The caller redeems the same invite with the same key again later; the
+	// owner answers with the grant once it admitted the key.
+	Pending bool `protobuf:"varint,2,opt,name=pending,proto3,oneof"`
+}
+
+func (*CompleteSpaceLinkEnrollmentResponse_SessionListEntry) isCompleteSpaceLinkEnrollmentResponse_Result() {
+}
+
+func (*CompleteSpaceLinkEnrollmentResponse_Pending) isCompleteSpaceLinkEnrollmentResponse_Result() {}
 
 // CreateAccountRequest creates a new account on the local provider.
 type CreateAccountRequest struct {
@@ -222,7 +260,11 @@ func (m *CompleteSpaceLinkEnrollmentResponse) CloneVT() *CompleteSpaceLinkEnroll
 		return (*CompleteSpaceLinkEnrollmentResponse)(nil)
 	}
 	r := new(CompleteSpaceLinkEnrollmentResponse)
-	r.SessionListEntry = protobuf_go_lite.CloneVTValue(m.SessionListEntry)
+	if m.Result != nil {
+		r.Result = m.Result.(interface {
+			CloneOneofVT() isCompleteSpaceLinkEnrollmentResponse_Result
+		}).CloneOneofVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -230,6 +272,32 @@ func (m *CompleteSpaceLinkEnrollmentResponse) CloneVT() *CompleteSpaceLinkEnroll
 }
 
 func (m *CompleteSpaceLinkEnrollmentResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CompleteSpaceLinkEnrollmentResponse_SessionListEntry) CloneVT() *CompleteSpaceLinkEnrollmentResponse_SessionListEntry {
+	if m == nil {
+		return (*CompleteSpaceLinkEnrollmentResponse_SessionListEntry)(nil)
+	}
+	r := new(CompleteSpaceLinkEnrollmentResponse_SessionListEntry)
+	r.SessionListEntry = protobuf_go_lite.CloneVTValue(m.SessionListEntry)
+	return r
+}
+
+func (m *CompleteSpaceLinkEnrollmentResponse_SessionListEntry) CloneOneofVT() isCompleteSpaceLinkEnrollmentResponse_Result {
+	return m.CloneVT()
+}
+
+func (m *CompleteSpaceLinkEnrollmentResponse_Pending) CloneVT() *CompleteSpaceLinkEnrollmentResponse_Pending {
+	if m == nil {
+		return (*CompleteSpaceLinkEnrollmentResponse_Pending)(nil)
+	}
+	r := new(CompleteSpaceLinkEnrollmentResponse_Pending)
+	r.Pending = m.Pending
+	return r
+}
+
+func (m *CompleteSpaceLinkEnrollmentResponse_Pending) CloneOneofVT() isCompleteSpaceLinkEnrollmentResponse_Result {
 	return m.CloneVT()
 }
 
@@ -338,8 +406,17 @@ func (this *CompleteSpaceLinkEnrollmentResponse) EqualVT(that *CompleteSpaceLink
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !protobuf_go_lite.IsEqualVT(this.SessionListEntry, that.SessionListEntry) {
+	if this.Result == nil && that.Result != nil {
 		return false
+	} else if this.Result != nil {
+		if that.Result == nil {
+			return false
+		}
+		if !this.Result.(interface {
+			EqualVT(isCompleteSpaceLinkEnrollmentResponse_Result) bool
+		}).EqualVT(that.Result) {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -350,6 +427,40 @@ func (this *CompleteSpaceLinkEnrollmentResponse) EqualMessageVT(thatMsg any) boo
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+func (this *CompleteSpaceLinkEnrollmentResponse_SessionListEntry) EqualVT(thatIface isCompleteSpaceLinkEnrollmentResponse_Result) bool {
+	that, ok := thatIface.(*CompleteSpaceLinkEnrollmentResponse_SessionListEntry)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.SessionListEntry, that.SessionListEntry, func() *session.SessionListEntry { return &session.SessionListEntry{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *CompleteSpaceLinkEnrollmentResponse_Pending) EqualVT(thatIface isCompleteSpaceLinkEnrollmentResponse_Result) bool {
+	that, ok := thatIface.(*CompleteSpaceLinkEnrollmentResponse_Pending)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.Pending != that.Pending {
+		return false
+	}
+	return true
 }
 
 func (this *CreateAccountRequest) EqualVT(that *CreateAccountRequest) bool {
@@ -553,10 +664,17 @@ func (x *CompleteSpaceLinkEnrollmentResponse) MarshalProtoJSON(s *json.MarshalSt
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.SessionListEntry != nil || s.HasField("sessionListEntry") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sessionListEntry")
-		x.SessionListEntry.MarshalProtoJSON(s.WithField("sessionListEntry"))
+	if x.Result != nil {
+		switch ov := x.Result.(type) {
+		case *CompleteSpaceLinkEnrollmentResponse_SessionListEntry:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("sessionListEntry")
+			ov.SessionListEntry.MarshalProtoJSON(s.WithField("sessionListEntry"))
+		case *CompleteSpaceLinkEnrollmentResponse_Pending:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("pending")
+			s.WriteBool(ov.Pending)
+		}
 	}
 	s.WriteObjectEnd()
 }
@@ -576,12 +694,19 @@ func (x *CompleteSpaceLinkEnrollmentResponse) UnmarshalProtoJSON(s *json.Unmarsh
 		default:
 			s.Skip() // ignore unknown field
 		case "session_list_entry", "sessionListEntry":
+			ov := &CompleteSpaceLinkEnrollmentResponse_SessionListEntry{}
+			x.Result = ov
 			if s.ReadNil() {
-				x.SessionListEntry = nil
+				ov.SessionListEntry = nil
 				return
 			}
-			x.SessionListEntry = &session.SessionListEntry{}
-			x.SessionListEntry.UnmarshalProtoJSON(s.WithField("session_list_entry", true))
+			ov.SessionListEntry = &session.SessionListEntry{}
+			ov.SessionListEntry.UnmarshalProtoJSON(s.WithField("session_list_entry", true))
+		case "pending":
+			s.AddField("pending")
+			ov := &CompleteSpaceLinkEnrollmentResponse_Pending{}
+			x.Result = ov
+			ov.Pending = s.ReadBool()
 		}
 	})
 }
@@ -851,6 +976,25 @@ func (m *CompleteSpaceLinkEnrollmentResponse) MarshalToSizedBufferVT(dAtA []byte
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if vtmsg, ok := m.Result.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CompleteSpaceLinkEnrollmentResponse_SessionListEntry) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CompleteSpaceLinkEnrollmentResponse_SessionListEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.SessionListEntry != nil {
 		size, err := m.SessionListEntry.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -860,7 +1004,24 @@ func (m *CompleteSpaceLinkEnrollmentResponse) MarshalToSizedBufferVT(dAtA []byte
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0xa
 	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CompleteSpaceLinkEnrollmentResponse_Pending) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CompleteSpaceLinkEnrollmentResponse_Pending) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i = protobuf_go_lite.EncodeBool(dAtA, i, m.Pending)
+	i--
+	dAtA[i] = 0x10
 	return len(dAtA) - i, nil
 }
 
@@ -1000,11 +1161,35 @@ func (m *CompleteSpaceLinkEnrollmentResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	if vtmsg, ok := m.Result.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CompleteSpaceLinkEnrollmentResponse_SessionListEntry) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	if m.SessionListEntry != nil {
 		l = m.SessionListEntry.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
 	}
-	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CompleteSpaceLinkEnrollmentResponse_Pending) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolValue(1)
 	return n
 }
 
@@ -1090,9 +1275,17 @@ func (x *CompleteSpaceLinkEnrollmentRequest) String() string {
 func (x *CompleteSpaceLinkEnrollmentResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CompleteSpaceLinkEnrollmentResponse")
-	if x.SessionListEntry != nil {
+	switch body := x.Result.(type) {
+	case *CompleteSpaceLinkEnrollmentResponse_SessionListEntry:
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_list_entry")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SessionListEntry)
+		if body.SessionListEntry == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &session.SessionListEntry{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.SessionListEntry)
+		}
+	case *CompleteSpaceLinkEnrollmentResponse_Pending:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pending")
+		protobuf_go_lite.TextWriteBool(&sb, body.Pending)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1348,13 +1541,29 @@ func (m *CompleteSpaceLinkEnrollmentResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if m.SessionListEntry == nil {
-				m.SessionListEntry = &session.SessionListEntry{}
-			}
-			if err := m.SessionListEntry.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
+			if oneof, ok := m.Result.(*CompleteSpaceLinkEnrollmentResponse_SessionListEntry); ok {
+				if err := oneof.SessionListEntry.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &session.SessionListEntry{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Result = &CompleteSpaceLinkEnrollmentResponse_SessionListEntry{SessionListEntry: v}
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pending", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			b := bool(v)
+			m.Result = &CompleteSpaceLinkEnrollmentResponse_Pending{Pending: b}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

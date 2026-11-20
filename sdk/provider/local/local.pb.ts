@@ -48,7 +48,7 @@ export const AttachAccountResponse: MessageType<AttachAccountResponse> =
 
 /**
  * CompleteSpaceLinkEnrollmentRequest creates the caller's local session from
- * its durable key and joins via a targeted invite.
+ * its durable key and joins the Space through an invite.
  *
  * @generated from message s4wave.provider.local.CompleteSpaceLinkEnrollmentRequest
  */
@@ -65,7 +65,8 @@ export interface CompleteSpaceLinkEnrollmentRequest {
    */
   sessionPeerId?: string
   /**
-   * Invite is the one-use targeted SOInviteMessage from the approval.
+   * Invite is the SOInviteMessage to redeem: the targeted invite from an
+   * approval, or a bearer grant such as a machine's card carries.
    */
   invite?: SOInviteMessage
 }
@@ -81,21 +82,27 @@ export const CompleteSpaceLinkEnrollmentRequest: MessageType<CompleteSpaceLinkEn
   )
 
 /**
- * CompleteSpaceLinkEnrollmentResponse returns the enrolled session entry.
+ * CompleteSpaceLinkEnrollmentResponse is the state the enrollment reached.
  *
  * @generated from message s4wave.provider.local.CompleteSpaceLinkEnrollmentResponse
  */
 export interface CompleteSpaceLinkEnrollmentResponse {
   /**
-   * SessionListEntry is the enrolled local session entry.
+   * @generated from oneof s4wave.provider.local.CompleteSpaceLinkEnrollmentResponse.result
    */
-  sessionListEntry?: SessionListEntry
+  result?:
+    | { value?: undefined; case: undefined }
+    | { value: SessionListEntry; case: 'sessionListEntry' }
+    | { value: boolean; case: 'pending' }
 }
 
 export const CompleteSpaceLinkEnrollmentResponse: MessageType<CompleteSpaceLinkEnrollmentResponse> =
   /* @__PURE__ */ createMessageType<CompleteSpaceLinkEnrollmentResponse>(
     's4wave.provider.local.CompleteSpaceLinkEnrollmentResponse',
-    () => [[1, 'session_list_entry', 11, 0, SessionListEntry.codec]],
+    () => [
+      [1, 'session_list_entry', 11, 0, SessionListEntry.codec, 'result'],
+      [2, 'pending', 8, 0, 0, 'result'],
+    ],
   )
 
 /**

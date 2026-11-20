@@ -29,7 +29,7 @@ message AttachAccountResponse {
 }
 
 // CompleteSpaceLinkEnrollmentRequest creates the caller's local session from
-// its durable key and joins via a targeted invite.
+// its durable key and joins the Space through an invite.
 message CompleteSpaceLinkEnrollmentRequest {
   // SessionPemPrivateKey is the Device's durable session private key. The
   // local provider uses it only to seed this Device's own local session; it
@@ -38,14 +38,21 @@ message CompleteSpaceLinkEnrollmentRequest {
   // SessionPeerId is the peer ID expected to derive from the key. Empty
   // skips the identity check.
   string session_peer_id = 2;
-  // Invite is the one-use targeted SOInviteMessage from the approval.
+  // Invite is the SOInviteMessage to redeem: the targeted invite from an
+  // approval, or a bearer grant such as a machine's card carries.
   .sobject.SOInviteMessage invite = 3;
 }
 
-// CompleteSpaceLinkEnrollmentResponse returns the enrolled session entry.
+// CompleteSpaceLinkEnrollmentResponse is the state the enrollment reached.
 message CompleteSpaceLinkEnrollmentResponse {
-  // SessionListEntry is the enrolled local session entry.
-  .session.SessionListEntry session_list_entry = 1;
+  oneof result {
+    // SessionListEntry is the enrolled local session entry.
+    .session.SessionListEntry session_list_entry = 1;
+    // Pending is set when the Space owner queued the redemption for approval.
+    // The caller redeems the same invite with the same key again later; the
+    // owner answers with the grant once it admitted the key.
+    bool pending = 2;
+  }
 }
 
 // CreateAccountRequest creates a new account on the local provider.

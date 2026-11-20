@@ -1047,6 +1047,9 @@ func mountLocalDeviceSession(
 	if err != nil {
 		return nil, errors.Wrap(err, "complete local SpaceLink enrollment")
 	}
+	if resp.GetPending() {
+		return nil, errors.New("local SpaceLink enrollment is waiting for the Space owner's approval")
+	}
 	entry := resp.GetSessionListEntry()
 	if entry == nil {
 		return nil, errors.New("local SpaceLink enrollment returned no session entry")
