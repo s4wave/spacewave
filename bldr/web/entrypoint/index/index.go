@@ -98,6 +98,21 @@ func RenderIndexHTML(data IndexData) (string, error) {
 	return rendered, nil
 }
 
+// importMapMarker opens the import map template in the rendered index.
+const importMapMarker = `<template id="bldr-import-map"`
+
+// SplitIndexHTML splits a rendered index before its import map. The shell
+// holds the loading screen and loads no module, so a server can send it before
+// it knows the map, then send the rest from a render with the final map. Both
+// renders split at the same offset, since the map follows the shell.
+func SplitIndexHTML(rendered string) (shell, rest string, err error) {
+	i := strings.Index(rendered, importMapMarker)
+	if i < 0 {
+		return "", "", errors.New("index HTML has no import map template")
+	}
+	return rendered[:i], rendered[i:], nil
+}
+
 func escapeScriptJSON(value string) string {
 	value = strings.ReplaceAll(value, "</", "<\\/")
 	value = strings.ReplaceAll(value, "<!--", "\\u003c!--")

@@ -100,6 +100,24 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app. </noscript>
+    <!-- The loading shell precedes the import map, so a server can send it
+         before the map is known. -->
+    <div id="bldr-root" role="main">
+      <div
+        id="bldr-initial-loading-shell"
+        class="sw-initial-shell"
+        role="status"
+        aria-label="Loading Spacewave"
+      >
+        <div class="sw-initial-card">
+          <div class="sw-initial-logo" aria-hidden="true">
+            <div class="sw-initial-logo-mark">S</div>
+          </div>
+          <h1 class="sw-initial-title">Spacewave</h1>
+          <div class="sw-initial-spinner" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
     <script>
       // Bldr inline boot recorder: bounded synchronous enqueue buffer for the
       // earliest startup marks. This script runs before any module and before
@@ -157,21 +175,5 @@
       })()
     </script>
     <script type="module" src="{{ .EntrypointPath }}"></script>
-    <div id="bldr-root" role="main">
-      <div
-        id="bldr-initial-loading-shell"
-        class="sw-initial-shell"
-        role="status"
-        aria-label="Loading Spacewave"
-      >
-        <div class="sw-initial-card">
-          <div class="sw-initial-logo" aria-hidden="true">
-            <div class="sw-initial-logo-mark">S</div>
-          </div>
-          <h1 class="sw-initial-title">Spacewave</h1>
-          <div class="sw-initial-spinner" aria-hidden="true"></div>
-        </div>
-      </div>
-    </div>
   </body>
 </html>

@@ -483,22 +483,12 @@ func (d *DevtoolBus) executeWebWasm(
 			}
 		}
 
-		// Render the page with the frontend's package bindings in its one
-		// import map, which waits for the frontend compiler to be ready.
+		// Stream the page with the frontend's package bindings in its one
+		// import map; the loading shell shows while the compiler starts.
 		if frontendService != nil && (req.URL.Path == "/" || req.URL.Path == "/index.html") {
-			imports, err := frontendService.WebPkgImports(req.Context())
-			if err != nil {
-				http.Error(rw, err.Error(), http.StatusServiceUnavailable)
-				return
+			if err := bundleResult.ServeIndex(rw, req, frontendService.WebPkgImports); err != nil && req.Context().Err() == nil {
+				le.WithError(err).Warn("dev index served without frontend package bindings")
 			}
-			indexHTML, err := bundleResult.RenderIndex(imports)
-			if err != nil {
-				http.Error(rw, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-			rw.Header().Set("Cache-Control", "no-store")
-			_, _ = rw.Write(indexHTML)
 			return
 		}
 		entrySrv.ServeHTTP(rw, req)

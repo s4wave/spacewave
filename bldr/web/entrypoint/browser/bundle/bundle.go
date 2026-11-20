@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"maps"
+	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
@@ -52,15 +53,52 @@ type BrowserBundleResult struct {
 	ReactVersion string
 }
 
-// RenderIndex renders the renderer index.html with imports added to its
-// import map. The document declares a single import map, because Firefox
-// rejects every map after the first, so a server that learns more bindings
-// after the build renders them here instead of appending another map.
-func (r *BrowserBundleResult) RenderIndex(imports map[string]string) ([]byte, error) {
+// ServeIndex streams the renderer index.html: the loading shell at once, then,
+// once resolve returns, the import map with its imports added and the module
+// scripts. The document keeps a single import map, because Firefox rejects
+// every map after the first, and still shows progress while resolve waits.
+// A failed resolve serves the build's map alone and is returned for logging.
+func (r *BrowserBundleResult) ServeIndex(rw http.ResponseWriter, req *http.Request, resolve func(context.Context) (map[string]string, error)) error {
+	// Send the shell, which does not depend on the map, before resolving.
+	base, err := r.renderIndex(nil)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+	shell, rest, err := web_entrypoint_index.SplitIndexHTML(base)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+	rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+	rw.Header().Set("Cache-Control", "no-store")
+	_, _ = io.WriteString(rw, shell)
+	_ = http.NewResponseController(rw).Flush()
+
+	// Finish the page with the resolved map, or the build's map on failure.
+	imports, resolveErr := resolve(req.Context())
+	if resolveErr == nil && len(imports) != 0 {
+		page, err := r.renderIndex(imports)
+		if err != nil {
+			return err
+		}
+		if _, rest, err = web_entrypoint_index.SplitIndexHTML(page); err != nil {
+			return err
+		}
+	}
+	_, _ = io.WriteString(rw, rest)
+	return resolveErr
+}
+
+// renderIndex renders the renderer index.html with imports added to the
+// build's import map.
+func (r *BrowserBundleResult) renderIndex(imports map[string]string) (string, error) {
+	// Overlay the imports on a copy of the build's map.
 	merged := make(map[string]string, len(r.ImportMap.Imports)+len(imports))
 	maps.Copy(merged, r.ImportMap.Imports)
 	maps.Copy(merged, imports)
-	return renderIndexHTML(rendererBootPath, web_entrypoint_index.ImportMap{Imports: merged}, r.ReactVersion)
+	page, err := renderIndexHTML(rendererBootPath, web_entrypoint_index.ImportMap{Imports: merged}, r.ReactVersion)
+	return string(page), err
 }
 
 // DefaultManifestBundle describes the browser-discoverable manifest bundle

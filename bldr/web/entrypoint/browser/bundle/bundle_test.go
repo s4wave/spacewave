@@ -4,10 +4,15 @@ package entrypoint_browser_bundle
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/fastjson"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
@@ -617,5 +622,62 @@ func TestWriteBuildManifestOfflineRuntimeAssets(t *testing.T) {
 				t.Fatalf("%s: missing %s", name, want)
 			}
 		}
+	}
+}
+
+// TestServeIndexSendsShellFirst checks that a cold development start shows the
+// loading shell before the import map resolves and still ends with one map.
+func TestServeIndexSendsShellFirst(t *testing.T) {
+	result := &BrowserBundleResult{ImportMap: web_entrypoint_index.ImportMap{Imports: map[string]string{"react": "./pkgs/react/index.mjs"}}}
+	release := make(chan struct{})
+	var releaseOnce sync.Once
+	releaseMap := func() { releaseOnce.Do(func() { close(release) }) }
+	defer releaseMap()
+	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		_ = result.ServeIndex(rw, req, func(ctx context.Context) (map[string]string, error) {
+			select {
+			case <-release:
+				return map[string]string{"bldr-web-pkg/app/": "/b/fe/s/app/"}, nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		})
+	}))
+	defer srv.Close()
+	resp, err := srv.Client().Get(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	// Read the shell while the map is still unresolved; an unflushed shell
+	// arrives only with the map, after the release below.
+	timer := time.AfterFunc(5*time.Second, releaseMap)
+	defer timer.Stop()
+	var page strings.Builder
+	buf := make([]byte, 4096)
+	for !strings.Contains(page.String(), `id="bldr-initial-loading-shell"`) {
+		n, err := resp.Body.Read(buf)
+		page.Write(buf[:n])
+		if err != nil {
+			t.Fatalf("index ended before the loading shell: %v", err)
+		}
+	}
+	if strings.Contains(page.String(), `<template id="bldr-import-map"`) {
+		t.Fatal("loading shell was not sent before the import map resolved")
+	}
+
+	// Release the map and read the rest of the page.
+	releaseMap()
+	rest, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	full := page.String() + string(rest)
+	if n := strings.Count(full, `type="importmap"`); n != 1 {
+		t.Fatalf("index has %d import maps, want 1", n)
+	}
+	if !strings.Contains(full, `"bldr-web-pkg/app/":"/b/fe/s/app/"`) || !strings.Contains(full, `"react":"./pkgs/react/index.mjs"`) {
+		t.Fatalf("index map lacks the resolved or build imports: %s", full)
 	}
 }
