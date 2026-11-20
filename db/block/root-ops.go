@@ -79,7 +79,11 @@ type RootOps interface {
 	// releases the old one atomically. A root may hold a block entries write.
 	// It writes nothing and returns ErrRootMoved when any root's Previous
 	// differs from the reference the name holds. The caller serializes this
-	// with publication of the head the root names.
+	// with publication of the head the root names. The change is durable
+	// when SetRoots returns, together with every write the store accepted
+	// before it, unless ctx asks for write ordering
+	// (kvtx.WithOrderedCommitContext): a World head it publishes is
+	// acknowledged to its writers as durable.
 	SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error
 }
 

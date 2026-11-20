@@ -138,7 +138,10 @@ func (v *Volume) ListBucketRoots(ctx context.Context, bucketID, prefix string, f
 // physical transaction, as block_gc.Land describes: it writes nothing and
 // returns block.ErrRootMoved when a root does not hold its Previous. Entries
 // return volume.ErrReserve while the volume is in the reserve state; moving
-// roots alone writes no new data and continues.
+// roots alone writes no new data and continues. The move is durable when it
+// returns unless ctx asks for write ordering, as block.RootOps requires: it
+// publishes heads, such as a World Authority's, that writers are told are
+// durable.
 func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
 	// A Volume without atomic commits holds no roots, and refuses new data
 	// below the disk reserve.
@@ -154,7 +157,7 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 	// Store the entries and move the roots in one transaction.
 	v.noteUnknownRefsBatch(putRoots, entries)
 	var existed []bool
-	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+	err := v.withDirectPlain(ctx, func(p *physicalTx) error {
 		var err error
 		existed, err = v.land(ctx, p, bucketID, entries, roots)
 		return err

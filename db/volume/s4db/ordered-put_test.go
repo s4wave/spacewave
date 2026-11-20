@@ -18,8 +18,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestOrderedPut checks that block writes made with an ordered-commit context
-// flush nothing to the drive, while plain block writes do.
+// TestOrderedPut checks that block writes and root moves made with an
+// ordered-commit context flush nothing to the drive, while plain ones do: a
+// plain root move publishes a head its writers are told is durable.
 func TestOrderedPut(t *testing.T) {
 	// Register the s4db volume factory on a test bus.
 	ctx := t.Context()
@@ -80,5 +81,22 @@ func TestOrderedPut(t *testing.T) {
 	}
 	if after := flushes(); after == before {
 		t.Fatal("plain write did not flush")
+	}
+
+	// An ordered root move flushes nothing; a plain one flushes.
+	before = flushes()
+	root := []block.NamedRoot{{Name: "head", Ref: batch[0].Ref}}
+	if err := vol.SetRoots(orderedCtx, nil, root); err != nil {
+		t.Fatal(err)
+	}
+	if after := flushes(); after != before {
+		t.Fatalf("ordered root move flushed %d times", after-before)
+	}
+	root[0].Previous, root[0].Ref = batch[0].Ref, nil
+	if err := vol.SetRoots(ctx, nil, root); err != nil {
+		t.Fatal(err)
+	}
+	if after := flushes(); after == before {
+		t.Fatal("plain root move did not flush")
 	}
 }
