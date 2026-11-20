@@ -43,6 +43,36 @@ func WithPeerAuthorizationWatch(watch PeerAuthorizationWatch) SessionTransportOp
 	}
 }
 
+// WithLinkAuthorizer supplies a rule that admits to the links of a listener
+// started without NamedOnly the peers the peer authorizer refuses, such as the
+// members of the Spaces the owner serves. It grants no service authority:
+// ServeAuthorized and AdmitStream still apply only the peer authorizer.
+func WithLinkAuthorizer(authorize transport_controller.PeerAuthorizer) SessionTransportOption {
+	return func(t *SessionTransport) {
+		t.authorizeLink = authorize
+	}
+}
+
+// WithLinkAuthorizationWatch supplies the events that change the link
+// authorizer's answers. Each event re-authorizes as a peer authorization
+// watch event does.
+func WithLinkAuthorizationWatch(watch PeerAuthorizationWatch) SessionTransportOption {
+	return func(t *SessionTransport) {
+		t.watchLinks = watch
+	}
+}
+
+// AuthorizeLink admits a remote peer to a listener's link when the peer
+// authorizer or the link authorizer admits it. It returns the peer
+// authorizer's refusal when no link authorizer is set.
+func (t *SessionTransport) AuthorizeLink(ctx context.Context, remotePeer peer.ID) error {
+	err := t.AuthorizePeer(ctx, remotePeer)
+	if err == nil || t.authorizeLink == nil || ctx.Err() != nil {
+		return err
+	}
+	return t.authorizeLink(ctx, remotePeer)
+}
+
 // AuthorizePeer applies the owner's admission rule to a remote peer. Without
 // a rule every peer is refused.
 func (t *SessionTransport) AuthorizePeer(ctx context.Context, remotePeer peer.ID) error {

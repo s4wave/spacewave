@@ -241,6 +241,8 @@ func (a *ProviderAccount) startSessionTransportLocked(
 		transport.WithStartupRetry(),
 		transport.WithPeerAuthorizer(a.authorizeAccountSession),
 		transport.WithPeerAuthorizationWatch(a.watchAccountSessions),
+		transport.WithLinkAuthorizer(a.authorizeSpaceMember),
+		transport.WithLinkAuthorizationWatch(a.watchSpaceMembers),
 		transport.WithDEXRequestAuthorizer(a.authorizeDEXRequest),
 		a.t.p.localNetwork,
 	)

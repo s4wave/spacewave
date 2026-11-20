@@ -249,6 +249,8 @@ func (a *ProviderAccount) createSessionTransportForSession(
 		transport.WithStartupRetry(),
 		transport.WithPeerAuthorizer(a.authorizeAccountSession),
 		transport.WithPeerAuthorizationWatch(a.watchAccountSessions),
+		transport.WithLinkAuthorizer(a.authorizeSpaceMember),
+		transport.WithLinkAuthorizationWatch(a.watchSpaceMembers),
 		transport.WithDEXRequestAuthorizer(a.authorizeDEXRequest),
 		transport.WithBridgeDirectiveFilter(func(di directive.Instance) (bool, error) {
 			_, isMount := di.GetDirective().(sobject.MountSharedObject)

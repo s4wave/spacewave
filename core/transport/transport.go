@@ -59,6 +59,13 @@ type SessionTransport struct {
 	// watchPeers reports changes to the peers authorizePeer admits; nil
 	// reports none.
 	watchPeers PeerAuthorizationWatch
+	// authorizeLink admits to a listener's links peers that authorizePeer
+	// refuses, without the service authority authorizePeer grants; nil adds
+	// none.
+	authorizeLink transport_controller.PeerAuthorizer
+	// watchLinks reports changes to the peers authorizeLink admits; nil
+	// reports none.
+	watchLinks PeerAuthorizationWatch
 	// authorizeDEXRequest checks incoming block reads against the creator's authority.
 	authorizeDEXRequest dex_solicit.RequestAuthorizer
 	// streamsMtx guards streams.
@@ -605,11 +612,13 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	defer releaseLookup()
 
 	// Re-authorize gated links and streams whenever the admitted peers change.
-	watchErr := make(chan error, 1)
-	if t.watchPeers != nil {
-		go func() {
-			watchErr <- t.watchPeers(ctx, func() { t.Reauthorize(ctx) })
-		}()
+	watchErr := make(chan error, 2)
+	for _, watch := range []PeerAuthorizationWatch{t.watchPeers, t.watchLinks} {
+		if watch != nil {
+			go func() {
+				watchErr <- watch(ctx, func() { t.Reauthorize(ctx) })
+			}()
+		}
 	}
 
 	// Announce transport readiness and run until its context ends. A failed
@@ -617,15 +626,16 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	t.setStartupStage("ready")
 	t.publishReady()
 	le.Debug("session transport started")
-	select {
-	case <-ctx.Done():
-	case err := <-watchErr:
-		if err != nil && ctx.Err() == nil {
-			return errors.Wrap(err, "watch authorized peers")
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-watchErr:
+			if err != nil && ctx.Err() == nil {
+				return errors.Wrap(err, "watch authorized peers")
+			}
 		}
-		<-ctx.Done()
 	}
-	return ctx.Err()
 }
 
 // addLinkController exposes a transport's links in the Session's snapshots.

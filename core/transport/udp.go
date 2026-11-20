@@ -25,14 +25,15 @@ type UDPConfig struct {
 	// in but is never dialed.
 	Peers map[peer.ID]string
 	// NamedOnly mounts only the links of named peers. Otherwise a link from an
-	// unnamed peer mounts when it passes AuthorizePeer.
+	// unnamed peer mounts when it passes AuthorizeLink.
 	NamedOnly bool
 }
 
 // StartUDP runs a UDP transport under the Session's peer until ctx ends or the
 // current transport run stops. It dials each named peer that has an address.
-// Naming a peer admits only its link: services that grant authority, such as
-// those served with ServeAuthorized, still apply AuthorizePeer to each stream.
+// Naming a peer, or the link authorizer admitting it, admits only its link:
+// services that grant authority, such as those served with ServeAuthorized,
+// still apply AuthorizePeer to each stream.
 // StartUDP returns the bound local address once the socket is open.
 func (t *SessionTransport) StartUDP(ctx context.Context, conf UDPConfig) (net.Addr, error) {
 	// Capture the running child bus and the lifetime that owns it.
@@ -61,7 +62,7 @@ func (t *SessionTransport) StartUDP(ctx context.Context, conf UDPConfig) (net.Ad
 		if conf.NamedOnly {
 			return errors.Errorf("peer %s is not named on this udp transport", remotePeer)
 		}
-		return t.AuthorizePeer(ctx, remotePeer)
+		return t.AuthorizeLink(ctx, remotePeer)
 	}
 	ctrl, err := transport_udp.NewController(t.le, b, &transport_udp.Config{
 		TransportPeerId: t.peerID.String(),

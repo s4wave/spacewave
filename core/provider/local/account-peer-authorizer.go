@@ -3,7 +3,9 @@ package provider_local
 import (
 	"context"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -47,4 +49,17 @@ func (a *ProviderAccount) watchAccountSessions(ctx context.Context, changed func
 		}
 		changed()
 	}
+}
+
+// authorizeSpaceMember admits to a listener's links a peer that a listed
+// Space names as a participant who reads its state. The link carries no
+// account authority: each request on it is checked against its object.
+func (a *ProviderAccount) authorizeSpaceMember(ctx context.Context, remotePeer peer.ID) error {
+	return sobject.AuthorizeListedParticipant(ctx, a.soListCtr.GetValue(), a.MountSharedObject, remotePeer)
+}
+
+// watchSpaceMembers calls changed after each change of the listed Spaces or
+// of their configs, since a change may add or remove a member.
+func (a *ProviderAccount) watchSpaceMembers(ctx context.Context, changed func()) error {
+	return sobject.WatchListedParticipants(ctx, ccontainer.ToWatchable(a.soListCtr), a.MountSharedObject, changed)
 }
