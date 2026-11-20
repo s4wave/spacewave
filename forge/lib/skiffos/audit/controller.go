@@ -31,8 +31,8 @@ const InputUpstream = "upstream"
 // InputBuildroot names the input holding the fetched Buildroot fork's Repo.
 const InputBuildroot = "buildroot"
 
-// OutputReport names the output holding the Report, a blob of its protobuf
-// encoding that ReadReport decodes.
+// OutputReport names the output holding the Report, a blob of its protobuf JSON
+// that ReadReport decodes. JSON keeps it short text a person gate shows inline.
 const OutputReport = "report"
 
 // Controller audits one build's SkiffOS source.
@@ -132,7 +132,7 @@ func (c *Controller) readRepo(ctx context.Context, name string, cb func(*git.Rep
 // storeReport writes rep as the report output's blob.
 func (c *Controller) storeReport(ctx context.Context, rep *Report) error {
 	// Encode the Report and store it as a blob named for the output.
-	data, err := rep.MarshalVT()
+	data, err := rep.MarshalJSON()
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func ReadReport(ctx context.Context, handle forge_target.ExecControllerHandle, v
 		return nil, errors.Wrap(err, "read report")
 	}
 	rep := &Report{}
-	if err := rep.UnmarshalVT(data); err != nil {
+	if err := rep.UnmarshalJSON(data); err != nil {
 		return nil, errors.Wrap(err, "decode report")
 	}
 	return rep, nil

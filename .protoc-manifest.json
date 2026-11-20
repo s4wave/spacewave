@@ -3276,7 +3276,7 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/lib/skiffos/audit": {
-          "hash": "ef8280de30f4bc5b52ebffcf2bc115ea273b79d1c8f6ef4b017033d1f661b7b1",
+          "hash": "d72f10bfda1f129438825da201b47c9840fea26cab1f2ef58f8647b27acab49a",
           "generatedFiles": [
             "forge/lib/skiffos/audit/config.pb.go",
             "forge/lib/skiffos/audit/config.pb.ts"
