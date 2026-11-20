@@ -729,11 +729,6 @@ export interface NamedRoot {
    */
   previous?: BlockRef
   /**
-   * ExpiresUnixMilli is when the volume releases a leased root, zero for one
-   * held until released.
-   */
-  expiresUnixMilli?: bigint
-  /**
    * RequireHeld refuses the move with SET_BUCKET_ROOTS_RESULT_ROOT_NOT_HELD
    * unless every stored block it newly reaches is held now.
    */
@@ -745,7 +740,6 @@ export const NamedRoot: MessageType<NamedRoot> =
     [1, 'name', 9],
     [2, 'ref', 11, 0, BlockRef.codec],
     [3, 'previous', 11, 0, BlockRef.codec],
-    [4, 'expires_unix_milli', 3],
     [5, 'require_held', 8],
   ])
 

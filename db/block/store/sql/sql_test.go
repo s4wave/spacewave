@@ -283,17 +283,13 @@ func TestStoreRoots(t *testing.T) {
 		t.Fatalf("a refused move wrote its block: %v, %v", found, err)
 	}
 
-	// The right Previous moves it, and an expired root reads as free.
+	// The right Previous moves it.
 	err = store.SetRoots(ctx, []*block.PutBatchEntry{second}, []block.NamedRoot{
 		{Name: "space/head", Ref: second.Ref, Previous: first.Ref},
-		{Name: "space/lease", Ref: first.Ref, Expires: time.Now().Add(-time.Second)},
 		{Name: "other", Ref: first.Ref},
 	})
 	if err != nil {
 		t.Fatal(err)
-	}
-	if ref, err := store.GetRoot(ctx, "space/lease"); err != nil || ref != nil {
-		t.Fatalf("expired root = %v, %v; want free", ref, err)
 	}
 
 	// The listing returns the held names under the prefix.

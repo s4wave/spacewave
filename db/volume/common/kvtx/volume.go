@@ -122,6 +122,8 @@ type Volume struct {
 	renewCancel context.CancelFunc
 	// renewDone closes when the renewal has stopped.
 	renewDone chan struct{}
+	// lease names the leases this process holds its roots under.
+	lease processLease
 	// obsoleteCancel stops the obsolete records sweep, nil without one.
 	obsoleteCancel context.CancelFunc
 	// obsoleteDone closes when the obsolete records sweep has stopped.

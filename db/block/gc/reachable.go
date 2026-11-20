@@ -62,6 +62,7 @@ type StoredFunc = func(ctx context.Context, ref *block.BlockRef) (bool, error)
 func Reachable(ctx context.Context, rec *Records, now time.Time, stored StoredFunc) (*Mark, error) {
 	// Seed one walk with the held roots and another with the lapsed ones.
 	var held, lapsed []*block.BlockRef
+	leases := make(map[string]int64)
 	err := rec.ScanRoots(ctx, func(_, _ string, entry *RootEntry) error {
 		// Parse the block the root holds.
 		ref, _, err := ParseBlockKey(entry.GetRef())
@@ -70,7 +71,11 @@ func Reachable(ctx context.Context, rec *Records, now time.Time, stored StoredFu
 		}
 
 		// Sort it by whether its lease lapsed.
-		if expires := entry.GetExpiresUnixMilli(); expires != 0 && expires <= now.UnixMilli() {
+		expires, err := rec.rootExpiry(ctx, entry, leases)
+		if err != nil {
+			return err
+		}
+		if expires != 0 && expires <= now.UnixMilli() {
 			lapsed = append(lapsed, ref)
 			return nil
 		}

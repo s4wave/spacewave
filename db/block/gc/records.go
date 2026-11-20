@@ -21,7 +21,8 @@ import (
 // up and down logs and moves the pop mark, in lower case outside the old
 // reference graph's kinds, which a Volume upgraded from a format before 7
 // deletes in the background; Format9Kinds lists the kinds it no longer
-// writes.
+// writes. Format 11 keeps a leased root's expiry on its lease, in the free
+// kinds 'e' and 'o', in place of format 10's index by expiry, 'E'.
 const (
 	// kindChildren keys the child list of a block by the block. Its value
 	// packs the block keys of its children, sorted and distinct. The record
@@ -66,11 +67,15 @@ const (
 	kindProof byte = 'P'
 	// kindState is the one LivenessState record.
 	kindState byte = 'S'
-	// kindLease keys a leased root by its big-endian expiry in Unix
-	// milliseconds, then its bucket and name, so the collector seeks to the
-	// lapsed ones. It holds no value, and SetRoot and DeleteRoot keep it with
-	// the root.
-	kindLease byte = 'E'
+	// kindLease keys a lease by its ID. Its value is the lease's big-endian
+	// expiry in Unix milliseconds, zero once the collector released it, as
+	// leases.go describes.
+	kindLease byte = 'e'
+	// kindLeaseRoot keys a root a lease holds by the ID's length as a
+	// uvarint, the ID, then the root's bucket and name as namedKey writes
+	// them. It holds no value, and SetRoot and DeleteRoot keep it with the
+	// root.
+	kindLeaseRoot byte = 'o'
 	// kindHole keys a hole the audit found under a live root, by the block: a
 	// block the store lost together with its child list, whose parents' lists
 	// still name it. It holds no value. Its children's counts may lack its
@@ -149,12 +154,12 @@ const (
 	kindPopMark byte = 'k'
 )
 
-// LiveKinds are the kinds format 10 writes, one per constant above. No
+// LiveKinds are the kinds format 11 writes, one per constant above. No
 // kind a format upgrade deletes may be among them, or the upgrade would
 // delete live records.
 var LiveKinds = []byte{
 	kindChildren, kindCount, kindRoot, kindUpLog, kindDownLog, kindQueue,
-	kindProof, kindState, kindLease, kindHole, kindParked, kindFront,
+	kindProof, kindState, kindLease, kindLeaseRoot, kindHole, kindParked, kindFront,
 	kindUnmarked, kindUnmarkedCount, kindAdoptBorn, kindAdoptRoot,
 	kindReleasePage, kindRewritten, kindPopMark,
 }
@@ -191,6 +196,12 @@ var Format9Kinds = []byte{'J', 'C', 'F', 'L', 'N', 'M', 'U', 'V', 'W', 'K', 'Z'}
 // shared its kind with the old reference graph's 'p' records, so the sweep
 // of that graph could delete it. Format 10 keeps it under kindPopMark.
 const format9PopMark byte = 'p'
+
+// format10Lease is the kind of format 10's lease index, which keyed each
+// leased root by its expiry and then its bucket and name. Format 11 keeps the
+// expiry on the root's lease instead, and CarryFormat10Leases moves the roots
+// onto one.
+const format10Lease byte = 'E'
 
 // CarryFormat9Counts rewrites up to limit of the zero records format 9 wrote
 // among the count and frozen count records, after the position after (the
@@ -882,10 +893,10 @@ func (r *Records) GetRoot(ctx context.Context, bucketID, name string) (*RootEntr
 }
 
 // SetRoot writes the entry of the root named name in bucketID, and moves its
-// lease index record to the entry's expiry.
+// lease index record to the entry's lease.
 func (r *Records) SetRoot(ctx context.Context, bucketID, name string, entry *RootEntry) error {
 	// Move the lease index record.
-	if err := r.moveLease(ctx, bucketID, name, entry.GetExpiresUnixMilli()); err != nil {
+	if err := r.moveLeaseRoot(ctx, bucketID, name, entry.GetLease()); err != nil {
 		return err
 	}
 
@@ -900,7 +911,7 @@ func (r *Records) SetRoot(ctx context.Context, bucketID, name string, entry *Roo
 // DeleteRoot frees the root named name in bucketID, with its lease index
 // record.
 func (r *Records) DeleteRoot(ctx context.Context, bucketID, name string) error {
-	if err := r.moveLease(ctx, bucketID, name, 0); err != nil {
+	if err := r.moveLeaseRoot(ctx, bucketID, name, ""); err != nil {
 		return err
 	}
 	return r.tx.Delete(ctx, r.rootKey(bucketID, name))

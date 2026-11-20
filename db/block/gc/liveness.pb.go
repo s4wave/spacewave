@@ -155,10 +155,10 @@ type RootEntry struct {
 	unknownFields []byte
 	// Ref is the block the name holds, as its hash type byte and digest.
 	Ref []byte `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
-	// ExpiresUnixMilli is when the collector releases the root itself, in Unix
-	// milliseconds. Zero holds the root until a writer releases it. A holder
-	// renews a leased root by setting it again with a later expiry.
-	ExpiresUnixMilli int64 `protobuf:"varint,2,opt,name=expires_unix_milli,json=expiresUnixMilli,proto3" json:"expiresUnixMilli,omitempty"`
+	// Lease is the ID of the lease that holds the root, empty for a root held
+	// until a writer releases it. The collector releases every root of a lease
+	// once the lease lapses, as block_gc's leases.go describes.
+	Lease string `protobuf:"bytes,3,opt,name=lease,proto3" json:"lease,omitempty"`
 }
 
 func (x *RootEntry) Reset() {
@@ -174,11 +174,11 @@ func (x *RootEntry) GetRef() []byte {
 	return nil
 }
 
-func (x *RootEntry) GetExpiresUnixMilli() int64 {
+func (x *RootEntry) GetLease() string {
 	if x != nil {
-		return x.ExpiresUnixMilli
+		return x.Lease
 	}
-	return 0
+	return ""
 }
 
 // LivenessState is the one record of a Volume's log positions and
@@ -484,7 +484,7 @@ func (m *RootEntry) CloneVT() *RootEntry {
 		return (*RootEntry)(nil)
 	}
 	r := new(RootEntry)
-	r.ExpiresUnixMilli = m.ExpiresUnixMilli
+	r.Lease = m.Lease
 	r.Ref = protobuf_go_lite.CloneBytes(m.Ref)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -573,7 +573,7 @@ func (this *RootEntry) EqualVT(that *RootEntry) bool {
 	if !protobuf_go_lite.EqualBytes(this.Ref, that.Ref) {
 		return false
 	}
-	if this.ExpiresUnixMilli != that.ExpiresUnixMilli {
+	if this.Lease != that.Lease {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -840,10 +840,10 @@ func (x *RootEntry) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("ref")
 		s.WriteBytes(x.Ref)
 	}
-	if x.ExpiresUnixMilli != 0 || s.HasField("expiresUnixMilli") {
+	if x.Lease != "" || s.HasField("lease") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("expiresUnixMilli")
-		s.WriteInt64(x.ExpiresUnixMilli)
+		s.WriteObjectField("lease")
+		s.WriteString(x.Lease)
 	}
 	s.WriteObjectEnd()
 }
@@ -865,9 +865,9 @@ func (x *RootEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "ref":
 			s.AddField("ref")
 			x.Ref = s.ReadBytes()
-		case "expires_unix_milli", "expiresUnixMilli":
-			s.AddField("expires_unix_milli")
-			x.ExpiresUnixMilli = s.ReadInt64()
+		case "lease":
+			s.AddField("lease")
+			x.Lease = s.ReadString()
 		}
 	})
 }
@@ -1200,10 +1200,10 @@ func (m *RootEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.ExpiresUnixMilli != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresUnixMilli))
+	if len(m.Lease) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Lease)
 		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x1a
 	}
 	if len(m.Ref) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Ref)
@@ -1455,7 +1455,7 @@ func (m *RootEntry) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Ref)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpiresUnixMilli)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Lease)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1538,9 +1538,9 @@ func (x *RootEntry) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ref")
 		protobuf_go_lite.TextWriteBytes(&sb, x.Ref)
 	}
-	if x.ExpiresUnixMilli != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_unix_milli")
-		protobuf_go_lite.TextWriteInt(&sb, x.ExpiresUnixMilli)
+	if x.Lease != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lease")
+		protobuf_go_lite.TextWriteString(&sb, x.Lease)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1699,15 +1699,16 @@ func (m *RootEntry) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresUnixMilli", wireType)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Lease", wireType)
 			}
-			m.ExpiresUnixMilli = 0
-			m.ExpiresUnixMilli, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
+			m.Lease = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

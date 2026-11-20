@@ -132,25 +132,36 @@ func (v *Volume) noteStageRoots(stage string, moves []block.NamedRoot) {
 // OpenStage opens a stage of this process and returns its name. A stage holds
 // each block written through it under a leased root of its own, from the put
 // that stores the block until a block written through it names the block, or
-// until the stage releases it. A stage that writes nothing costs no
-// transaction. The release leaves the stage's roots for the next changing
-// direct transaction to release, like a reader pin; closing the Volume
-// releases its open stages, and the collector releases the roots of a process
-// that died once their lease lapses.
+// until the stage releases it. The first stage of a process starts the
+// process lease, one transaction, so the stage's first batch lands in one;
+// a later stage that writes nothing costs no transaction. The release leaves
+// the stage's roots for the next changing direct transaction to release, like
+// a reader pin; closing the Volume releases its open stages, and the
+// collector releases the roots of a process that died once their lease
+// lapses.
 func (v *Volume) OpenStage(ctx context.Context) (string, func(), error) {
 	// Refuse new stages after the Volume closes.
 	unlock, err := v.rootPinMu.Lock(ctx)
 	if err != nil {
 		return "", nil, err
 	}
-	defer unlock()
 	if v.rootPinsClosed {
+		unlock()
 		return "", nil, volume.ErrVolumeClosed
 	}
 
 	// Register the stage.
 	stage := stageRootPrefix + v.procID + "/" + ulid.NewULID()
 	v.stages[stage] = &openStage{}
+	unlock()
+
+	// Start the process lease if this process has none yet.
+	if v.processLeaseID() == "" {
+		if _, err := v.renewRoots(ctx, true); err != nil {
+			v.releaseStage(stage)
+			return "", nil, err
+		}
+	}
 	return stage, func() { v.releaseStage(stage) }, nil
 }
 
@@ -416,11 +427,13 @@ func (v *Volume) landStaged(ctx context.Context, stage string, entries []*block.
 	if err != nil {
 		return nil, 0, err
 	}
-	roots := stageMoves(names, held, v.leaseExpiry())
+	var roots []block.NamedRoot
 	var existed []bool
 	var opened time.Time
-	err = v.withDirectAtomic(ctx, func(p *physicalTx) error {
+	err = v.withProcessLease(ctx, func(p *physicalTx, lease string) error {
+		// Land the entries, holding the stage's new roots under the lease.
 		opened = time.Now()
+		roots = stageMoves(names, held, lease)
 		var err error
 		existed, err = v.land(ctx, p, "", entries, roots)
 		return err
@@ -446,7 +459,7 @@ func (v *Volume) landStaged(ctx context.Context, stage string, entries []*block.
 // stage's record of its roots among names: a release carries the record's
 // block as its Previous, so a root a collector took refuses the put rather
 // than leaving the parent over a freed block.
-func stageMoves(names stageNames, held map[string]*block.BlockRef, expires time.Time) []block.NamedRoot {
+func stageMoves(names stageNames, held map[string]*block.BlockRef, lease string) []block.NamedRoot {
 	// Hold each entry the stage does not hold yet, unless another entry
 	// names it.
 	put, named := names.put, names.named
@@ -454,7 +467,7 @@ func stageMoves(names stageNames, held map[string]*block.BlockRef, expires time.
 	for _, name := range slices.Sorted(maps.Keys(put)) {
 		_, isNamed := named[name]
 		if _, isHeld := held[name]; !isNamed && !isHeld {
-			roots = append(roots, block.NamedRoot{Name: name, Ref: put[name], Expires: expires})
+			roots = append(roots, block.NamedRoot{Name: name, Ref: put[name], Lease: lease})
 		}
 	}
 
@@ -515,9 +528,8 @@ func (v *Volume) HoldStageCompleteRoots(ctx context.Context, stage string, refs 
 	// Check the proofs and hold the proved roots in one transaction.
 	complete := make([]bool, len(refs))
 	var holds []block.NamedRoot
-	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+	err := v.withProcessLease(ctx, func(p *physicalTx, lease string) error {
 		// Hold each root whose proof is recorded or pending.
-		expires := v.leaseExpiry()
 		holds = nil
 		clear(complete)
 		for i, ref := range refs {
@@ -538,7 +550,7 @@ func (v *Volume) HoldStageCompleteRoots(ctx context.Context, stage string, refs 
 				return err
 			}
 			if entry == nil {
-				holds = append(holds, block.NamedRoot{Name: name, Ref: ref, Expires: expires})
+				holds = append(holds, block.NamedRoot{Name: name, Ref: ref, Lease: lease})
 			}
 		}
 		if len(holds) == 0 {

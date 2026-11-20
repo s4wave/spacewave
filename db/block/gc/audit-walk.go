@@ -594,6 +594,7 @@ func (w *walker) roots(ctx context.Context) error {
 	}
 	var recs []walkRecord
 	after, done := w.prog.GetAfter(), true
+	leases := make(map[string]int64)
 	err := w.view(ctx, func(rec *Records) error {
 		return rec.scan(ctx, rec.key(kindRoot), from, func(key []byte, value func() ([]byte, error)) (bool, error) {
 			// Stop at the bound.
@@ -602,7 +603,7 @@ func (w *walker) roots(ctx context.Context) error {
 				return false, nil
 			}
 
-			// Write the root's edge.
+			// Read the root's entry.
 			entry, err := decodeMsg[RootEntry](value)
 			if err != nil {
 				return false, err
@@ -610,8 +611,14 @@ func (w *walker) roots(ctx context.Context) error {
 			if _, rest, err := ParseBlockKey(entry.GetRef()); err != nil || len(rest) != 0 {
 				return false, errBadBlockKey
 			}
+
+			// Write the root's edge with its lease's expiry.
+			expires, err := rec.rootExpiry(ctx, entry, leases)
+			if err != nil {
+				return false, err
+			}
 			k := walkKey(walkEdge, entry.GetRef(), []byte{walkRootNamer}, key)
-			recs = append(recs, walkRecord{key: k, value: millis(entry.GetExpiresUnixMilli())})
+			recs = append(recs, walkRecord{key: k, value: millis(expires)})
 			after = bytes.Clone(key)
 			return true, nil
 		})

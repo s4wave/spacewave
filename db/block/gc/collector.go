@@ -101,21 +101,11 @@ type Collector struct {
 	store Store
 	// opts are the collector's options.
 	opts CollectorOptions
-	// mtx runs one pass at a time, and guards pace, the lease sweep's mark
-	// and the settle's positions.
+	// mtx runs one pass at a time, and guards pace and the settle's
+	// positions.
 	mtx sync.Mutex
 	// pace sizes each slice from the time the slices before it spent.
 	pace pace
-	// leaseFrom is the expiry, in Unix milliseconds, below which the last
-	// lease sweep released every lease, where the next sweep starts. A
-	// renewal moves each held lease's index record every minute, and a
-	// store such as s4db keeps the deleted records until a merge reaches
-	// its bottom level, so a sweep from the start would step over all of
-	// them each pass.
-	leaseFrom int64
-	// leaseFullAt is when the last sweep from the start of the lease index
-	// began; zero before the first.
-	leaseFullAt time.Time
 	// runFrom is the list key after which the run build resumes. Lists
 	// before it that were unverified when the build passed them have run
 	// entries, and no list turns unverified, so a stale one costs a rescan.
@@ -259,24 +249,12 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 	past := func() bool { return c.opts.Now().After(deadline) }
 	defer func() { res.Duration = c.opts.Now().Sub(start) }()
 
-	// Release the lapsed leases, from the start of the index on the first
-	// pass, every leaseRescan, and when the clock stepped back past the mark.
-	from, full := c.leaseFrom, false
-	if c.leaseFullAt.IsZero() || start.Sub(c.leaseFullAt) >= leaseRescan || start.UnixMilli() < from {
-		from, full = 0, true
-	}
-	var reached int64
-	_, err = eachSlice(ctx, c.update, from, nil, func(rec *Records, blocks block.StoreOps, from int64) (int64, bool, error) {
-		next, more, err := c.sweepLeases(ctx, rec, blocks, &res, from)
-		reached = next
-		return next, more, err
+	// Release the roots of the lapsed leases.
+	_, err = eachSlice(ctx, c.update, "", nil, func(rec *Records, blocks block.StoreOps, from string) (string, bool, error) {
+		return c.sweepLeases(ctx, rec, blocks, &res, from)
 	})
 	if err != nil {
 		return res, err
-	}
-	c.leaseFrom = reached
-	if full {
-		c.leaseFullAt = start
 	}
 
 	// Net and free only an adopted Volume.
@@ -393,50 +371,120 @@ func (c *Collector) phase(p Phase) func() {
 	return c.opts.Phase(p)
 }
 
-// sweepLeases releases up to sliceLeases leased roots whose expiry passed and
-// is at or after from, in one transaction, through Land, so the down log
-// records their release. It seeks the lease index, so a pass reads only the
-// lapsed leases. It reports whether it filled the slice, and the expiry the
-// next slice starts from: the last released lease's when it filled the slice,
-// else now, below which it released every lease from from on.
-func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from int64) (int64, bool, error) {
-	// Find the lapsed roots.
+// sweepLeases releases up to sliceLeases roots of the leases that are not
+// live, from the lease from on in ID order, in one transaction, through
+// Land, so the down log records their release. It marks each lapsed lease
+// released before it releases a root of it, so no renewal brings it back and
+// no root joins it, and ends each lease it leaves with no root. It reports
+// whether it filled the slice, and the lease the next slice starts from.
+//
+// Cost: one read of each lease record from from on, which is one per running
+// or recently stopped process and per fill window of the last grace period;
+// per released root, its index record, its entry and what Land reads and
+// writes for it; per lease, one write to mark it and one to end it.
+func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from string) (string, bool, error) {
+	// Find the leases that are not live.
 	now := c.opts.Now()
 	limit := c.share(sliceLeases)
-	found, err := rec.ScanLapsed(ctx, from, now.UnixMilli(), limit)
+	leases, err := rec.LapsedLeases(ctx, from, now.UnixMilli(), limit)
 	if err != nil {
-		return 0, false, err
+		return "", false, err
 	}
 
-	// Release each from the block it holds, by bucket.
+	// List the roots of each, up to the slice's share, marking each lease
+	// released before its first release. A lease whose roots fit the share
+	// ends with the slice; the next slice resumes at the last lease read.
 	lapsed := make(map[string][]block.NamedRoot)
-	for _, root := range found {
+	var ended []string
+	var next string
+	left := limit
+	for _, lease := range leases {
+		if left == 0 {
+			break
+		}
+		next = lease.ID
+		if lease.Expires != 0 {
+			if err := rec.ReleaseLease(ctx, lease.ID); err != nil {
+				return "", false, err
+			}
+		}
+		roots, err := rec.ListLeaseRoots(ctx, lease.ID, left)
+		if err != nil {
+			return "", false, err
+		}
+		if err := releaseRoots(ctx, rec, lease.ID, roots, lapsed); err != nil {
+			return "", false, err
+		}
+		left -= len(roots)
+		if left > 0 {
+			ended = append(ended, lease.ID)
+		}
+	}
+	more := left == 0 || len(leases) == limit
+	return c.endLeases(ctx, rec, blocks, res, now, lapsed, ended, next, more)
+}
+
+// releaseRoots adds to lapsed the release of each root of roots that still
+// names the lease id, and deletes the index record of one that does not.
+func releaseRoots(ctx context.Context, rec *Records, id string, roots []LeasedRoot, lapsed map[string][]block.NamedRoot) error {
+	for _, root := range roots {
+		// Read the root.
 		entry, err := rec.GetRoot(ctx, root.BucketID, root.Name)
 		if err != nil {
-			return 0, false, err
+			return err
 		}
+		if entry.GetLease() != id {
+			if err := rec.deleteLeaseRoot(ctx, id, root.BucketID, root.Name); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// Release it from the block it holds.
 		ref, _, err := ParseBlockKey(entry.GetRef())
 		if err != nil {
-			return 0, false, err
+			return err
 		}
 		lapsed[root.BucketID] = append(lapsed[root.BucketID], block.NamedRoot{Name: root.Name, Previous: ref})
 	}
+	return nil
+}
 
-	// Release them in one Land.
+// endLeases releases the lapsed roots in one Land, then deletes the records
+// of the leases in ended, which hold no root once it commits, and returns
+// next and more as sweepLeases does.
+func (c *Collector) endLeases(
+	ctx context.Context,
+	rec *Records,
+	blocks block.StoreOps,
+	res *CollectResult,
+	now time.Time,
+	lapsed map[string][]block.NamedRoot,
+	ended []string,
+	next string,
+	more bool,
+) (string, bool, error) {
+	// Release the roots by bucket in one Land.
 	moves := make([]BucketRoots, 0, len(lapsed))
+	var count int
 	for _, bucketID := range slices.Sorted(maps.Keys(lapsed)) {
 		moves = append(moves, BucketRoots{BucketID: bucketID, Roots: lapsed[bucketID]})
+		count += len(lapsed[bucketID])
 	}
-	if _, err := Land(ctx, rec, blocks, now, nil, PutHold{Mode: HeldOff}, moves...); err != nil {
-		return 0, false, err
+	if len(moves) != 0 {
+		if _, err := Land(ctx, rec, blocks, now, nil, PutHold{Mode: HeldOff}, moves...); err != nil {
+			return "", false, err
+		}
 	}
-	res.Lapsed += uint64(len(found)) //nolint:gosec // counts are never negative.
+	res.Lapsed += uint64(count) //nolint:gosec // counts are never negative.
 
-	// Continue from the last released lease, or from now once none is left.
-	if len(found) == limit {
-		return found[len(found)-1].Expires, true, nil
+	// End the leases left with no root.
+	for _, id := range ended {
+		if err := rec.EndLease(ctx, id); err != nil {
+			return "", false, err
+		}
 	}
-	return now.UnixMilli(), false, nil
+	return next, more, nil
 }
 
 // net runs one netting slice in rec, in an adopted Volume only: it continues

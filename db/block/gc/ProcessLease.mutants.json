@@ -1,0 +1,68 @@
+[
+  {
+    "name": "the collector releases a root of a live lease",
+    "replace": [
+      [
+        "  /\\ lease[l] \\in {\"lapsed\", \"released\"}\n  /\\ <<l, r>> \\in index",
+        "  /\\ lease[l] \\in {\"live\", \"lapsed\", \"released\"}\n  /\\ <<l, r>> \\in index"
+      ]
+    ],
+    "expect": "ReleasedLapsed",
+    "config": "ProcessLease.cfg"
+  },
+  {
+    "name": "a release keeps its index record, so a later slice releases the root again",
+    "replace": [
+      [
+        "  /\\ index' = index \\ {<<l, r>>}",
+        "  /\\ index' = index"
+      ]
+    ],
+    "expect": "IndexExact",
+    "config": "ProcessLease.cfg"
+  },
+  {
+    "name": "a renewal brings back a lease the collector released",
+    "replace": [
+      [
+        "  /\\ lease[proc] \\in {\"live\"}",
+        "  /\\ lease[proc] \\in {\"live\", \"released\"}"
+      ]
+    ],
+    "expect": "LiveHolds",
+    "config": "ProcessLease.cfg"
+  },
+  {
+    "name": "the collector ends a lease that still holds roots",
+    "replace": [
+      [
+        "  /\\ \\A e \\in index : e[1] # l",
+        "  /\\ TRUE"
+      ]
+    ],
+    "expect": "RootsOnRecords",
+    "config": "ProcessLease.cfg"
+  },
+  {
+    "name": "a recovery holds again a root whose block lost its holders",
+    "replace": [
+      [
+        "rootOf[r] = NoLease /\\ r \\in alive}",
+        "rootOf[r] = NoLease}"
+      ]
+    ],
+    "expect": "StoredAlive",
+    "config": "ProcessLease.cfg"
+  },
+  {
+    "name": "a recovery moves only the roots in memory, not those indexed under the old lease",
+    "replace": [
+      [
+        "         keep   == moved \\cup rehold",
+        "         keep   == rehold"
+      ]
+    ],
+    "expect": "LiveHolds",
+    "config": "ProcessLease.cfg"
+  }
+]

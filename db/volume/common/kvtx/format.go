@@ -49,9 +49,11 @@ const (
 // older version fails with a permanent volume.ErrFormatUpgradeRefused and is
 // left as it was.
 //
-// Format 10 keeps liveness in child lists, named roots, count records with
-// zero records for blocks at zero, the ripe queue, and the up and down logs.
-// A format 7, 8 or 9 store opens unadopted, as unadoptFormat describes, so
+// Format 11 keeps liveness in child lists, named roots, count records with
+// zero records for blocks at zero, the ripe queue, the up and down logs, and
+// the leases that hold leased roots. A format 10 store keeps its state and
+// has its leased roots carried onto a lapsed lease, as carryFormat10Leases
+// describes. A format 7, 8 or 9 store has the same carry and opens unadopted, as unadoptFormat describes, so
 // an adoption counts every holder again before any free. Format 9 kept a
 // journal, cascade records and fill records instead of the logs; format 8
 // kept a count record only for a block with holders, a queue entry for one
@@ -96,6 +98,18 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	// Leave a store with data as it was when this build may not upgrade it.
 	if refuse {
 		return version, false, volume.Permanent(errors.Wrapf(volume.ErrFormatUpgradeRefused, "store format version %d, current %d", version, store_kvkey.FormatVersion))
+	}
+
+	// Carry the leased roots of a format 7 to 10 store, which kept each
+	// root's expiry on the root, onto a lapsed lease, and keep a format 10
+	// store's state.
+	if version >= 7 {
+		if err := carryFormat10Leases(ctx, store); err != nil {
+			return 0, false, errors.Wrapf(err, "carry the leased roots of store format version %d", version)
+		}
+	}
+	if version == 10 {
+		return version, true, keepFormat(ctx, store, keys)
 	}
 
 	// Leave a format 7, 8 or 9 store unadopted: its counts and queue
@@ -209,6 +223,50 @@ func unadoptFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		}
 		return rec.CarryFormat9PopMark(ctx)
 	})
+}
+
+// carryFormat10Leases moves the leased roots of a format 10 or older store
+// onto one lapsed lease in slices of obsoleteSweepKeys, each its own commit,
+// as Records.CarryFormat10Leases describes, before the upgrade records the
+// new format, so a crash leaves a store a rerun carries the rest of. The
+// collector then releases them in slices like any lapsed lease's roots, and
+// each block they held waits the grace period in the down log before a free.
+// The upgrade runs at open, before this process holds a root, so no root it
+// carries belongs to a live holder: s4db refuses the upgrade while another
+// process shares the store.
+func carryFormat10Leases(ctx context.Context, store kvtx.Store) error {
+	for more := true; more; {
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			return err
+		}
+		more, err = block_gc.NewRecords(tx, livenessPrefix).CarryFormat10Leases(ctx, obsoleteSweepKeys)
+		if err == nil {
+			err = kvtx.CommitOrdered(ctx, tx)
+		}
+		tx.Discard()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// keepFormat records the current format with the liveness state unchanged.
+func keepFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) error {
+	// Read the state.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	state, err := block_gc.NewRecords(tx, livenessPrefix).GetState(ctx)
+	tx.Discard()
+	if err != nil {
+		return err
+	}
+
+	// Write it back with the version.
+	return writeFormat(ctx, store, keys, state, nil)
 }
 
 // writeFormat writes the liveness state, with what also, nil for nothing,

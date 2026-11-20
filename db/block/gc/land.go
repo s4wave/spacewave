@@ -96,7 +96,9 @@ const (
 //
 // A root's Previous must match the block the name holds, or Land writes
 // nothing and returns block.ErrRootMoved. A root must name a block the store
-// holds or the batch stores.
+// holds or the batch stores. A root that names a lease and a block moves only
+// while the lease is live at now, or Land writes nothing and returns
+// ErrLeaseLapsed, so no root joins a lease the collector may be releasing.
 //
 // A tombstone evicts a block's bytes and its proof but keeps its child list
 // and count, so a cache that evicts a live block leaves a hole the collector
@@ -156,7 +158,7 @@ const (
 // batched read of the child list records of the distinct children the born
 // blocks name outside the batch and, when any is unlisted, one batched block
 // existence read, with one up per naming; per moved root, its entry and its
-// lease index record. While the generation is not Settled, each child list
+// lease index record, and per distinct lease the roots name, its record. While the generation is not Settled, each child list
 // record it reads returns its value, and per stored block it puts while
 // Open, its list record, which it may rewrite, with one list read per child
 // of a rewritten one, and per listed block it holds or puts, its count
@@ -188,6 +190,7 @@ func Land(
 		partial:  puts.Partial,
 		adopting: state.GetAdoption() == Adoption_ADOPTION_ADOPTING,
 		gen:      state.GetGeneration(),
+		now:      now.UnixMilli(),
 		born:     make(map[string]*bornBlock),
 		touched:  make(map[string][]*block.BlockRef),
 	}
@@ -308,6 +311,11 @@ type lander struct {
 	adopting bool
 	// gen is the Volume's generation, which decides the settle's barrier.
 	gen Generation
+	// now is the Land's time in Unix milliseconds, against which a root's
+	// lease must be live.
+	now int64
+	// leases caches whether each lease a root names is live at now.
+	leases map[string]bool
 	// touched maps the block keys of the entries already stored, each held
 	// as a born put is, to the refs each put names.
 	touched map[string][]*block.BlockRef
@@ -358,8 +366,38 @@ func (l *lander) checkRoots(ctx context.Context, bucketID string, roots []block.
 		if !SameRef(held[i], root.Previous) {
 			return nil, block.RootMoved(root.Name)
 		}
+
+		// Refuse a root onto a lease that is not live.
+		if root.Lease != "" && !root.Ref.GetEmpty() {
+			if err := l.checkLease(ctx, root.Lease); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return held, nil
+}
+
+// checkLease returns ErrLeaseLapsed unless the lease id is live at the Land's
+// time, reading its record once per Land.
+func (l *lander) checkLease(ctx context.Context, id string) error {
+	// Read the lease once.
+	live, ok := l.leases[id]
+	if !ok {
+		var err error
+		if live, err = l.rec.LeaseLive(ctx, id, l.now); err != nil {
+			return err
+		}
+		if l.leases == nil {
+			l.leases = make(map[string]bool)
+		}
+		l.leases[id] = live
+	}
+
+	// Refuse a lease that is not live.
+	if !live {
+		return errors.Wrap(ErrLeaseLapsed, id)
+	}
+	return nil
 }
 
 // putEntries stores the entries' bytes and the child lists of the blocks
@@ -1013,9 +1051,12 @@ func (l *lander) requireListed(ctx context.Context, refs []*block.BlockRef, list
 // moveRoot moves one named root from held to root.Ref, counting the holder it
 // adds and the one it removes.
 func (l *lander) moveRoot(ctx context.Context, bucketID string, root block.NamedRoot, held *block.BlockRef) error {
-	// A root that keeps its block changes no holder; it only renews its
-	// expiry.
-	entry := &RootEntry{Ref: BlockKey(root.Ref), ExpiresUnixMilli: unixMilli(root.Expires)}
+	// A root that keeps its block changes no holder; it only moves its
+	// lease.
+	entry := &RootEntry{Ref: BlockKey(root.Ref), Lease: root.Lease}
+	if root.Ref.GetEmpty() {
+		entry.Lease = ""
+	}
 	if !root.Ref.GetEmpty() && SameRef(root.Ref, held) {
 		return l.rec.SetRoot(ctx, bucketID, root.Name, entry)
 	}
@@ -1314,12 +1355,4 @@ func SameRef(a, b *block.BlockRef) bool {
 		return a.GetEmpty() == b.GetEmpty()
 	}
 	return a.EqualsRef(b)
-}
-
-// unixMilli returns t in Unix milliseconds, or zero for the zero time.
-func unixMilli(t time.Time) int64 {
-	if t.IsZero() {
-		return 0
-	}
-	return t.UnixMilli()
 }

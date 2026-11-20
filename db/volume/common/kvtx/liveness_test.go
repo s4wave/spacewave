@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -622,7 +623,8 @@ func measureLivenessPaths(t *testing.T, n int) livenessCosts {
 		collectAll(t, v)
 		return nil
 	})
-	clk.Add(block_gc.DefaultGrace/2 + time.Second)
+	// The collect pass comes once the fill's lease lapsed, so it releases F.
+	clk.Add(fillLapse - block_gc.DefaultGrace/2)
 	move(4)
 	measure("collect", func() error {
 		collectAll(t, v)
@@ -1484,16 +1486,17 @@ func TestLivenessAdversarial(t *testing.T) {
 
 		// A pending proof of R counts for nothing, nor holds it under a stage,
 		// and carrying it writes none; the recorded proof it rides over
-		// stays.
+		// stays. The stage opens first, since its first opening starts the
+		// process lease in a transaction that would carry the proof.
+		stage, release, err := v.OpenStage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if err := v.MarkRootsComplete(ctx, []*block.BlockRef{r}); err != nil {
 			t.Fatal(err)
 		}
 		if proved() {
 			t.Fatal("pending proof of a released R counted")
-		}
-		stage, release, err := v.OpenStage(ctx)
-		if err != nil {
-			t.Fatal(err)
 		}
 		held, err := v.HoldStageCompleteRoots(ctx, stage, []*block.BlockRef{r})
 		release()
@@ -1714,7 +1717,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "old", Previous: d}}); err != nil {
 			t.Fatal(err)
 		}
-		clk.Add(block_gc.DefaultGrace + time.Second)
+		clk.Add(fillLapse)
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "B", "C", "D")
 		requireAudit(t, v, 0)
@@ -1754,7 +1757,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "E")
 		requireAudit(t, v, 0)
-		clk.Add(block_gc.DefaultGrace + time.Second)
+		clk.Add(fillLapse)
 		collectAll(t, v)
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
@@ -1781,7 +1784,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		if res, err := v.collector.Collect(ctx); err != nil || res.Lapsed != 1 {
 			t.Fatalf("stalled pass lapsed %d err %v, want the stage root", res.Lapsed, err)
 		}
-		if _, err := v.renewRoots(ctx); err != nil {
+		if _, err := v.renewRoots(ctx, false); err != nil {
 			t.Fatal(err)
 		}
 		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
@@ -1798,6 +1801,121 @@ func TestLivenessAdversarial(t *testing.T) {
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "P", "T")
 		requireAudit(t, v, 0)
+	})
+
+	t.Run("process lease released partway through a stall", func(t *testing.T) {
+		// Two stages hold Y and W under the one process lease, and the
+		// process stalls past it. A collector slice marks the lease released
+		// and releases Y's root; W's root is still indexed under the lease.
+		// No writer may hold a root onto the released lease, nor renew it.
+		// The next renewal starts a new lease, moves W's root onto it, and
+		// holds Y again, whose release has not netted. The collector then
+		// ends the old lease without releasing a root again, never releases
+		// a root of the live one, and past the grace period both stay. The
+		// stage stalled past the grace period, below, loses its block.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		stageRoot := func(stage string) block.NamedRoot {
+			t.Helper()
+			unlock, err := v.rootPinMu.Lock(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer unlock()
+			for name, ref := range v.stages[stage].roots {
+				return block.NamedRoot{Name: name, Ref: ref}
+			}
+			t.Fatalf("stage %s holds no root", stage)
+			return block.NamedRoot{}
+		}
+		rescued, releaseRescued, err := v.OpenStage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer releaseRescued()
+		kept, releaseKept, err := v.OpenStage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer releaseKept()
+		tr.add(t, "Y")
+		tr.add(t, "W")
+		if _, err := v.PrepareStagedBlockBatch(ctx, rescued, tr.entries("Y")); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := v.PrepareStagedBlockBatch(ctx, kept, tr.entries("W")); err != nil {
+			t.Fatal(err)
+		}
+		old := v.processLeaseID()
+		y, w := stageRoot(rescued), stageRoot(kept)
+
+		// Stall past the lease; a collector slice releases it and Y's root.
+		clk.Add(rootLease + time.Second)
+		err = v.withDirectAtomic(ctx, func(p *physicalTx) error {
+			if err := p.rec.ReleaseLease(ctx, old); err != nil {
+				return err
+			}
+			_, err := v.land(ctx, p, "", nil, []block.NamedRoot{{Name: y.Name, Previous: y.Ref}})
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// No writer holds a root onto the released lease, nor renews it.
+		err = v.withDirectAtomic(ctx, func(p *physicalTx) error {
+			now := clk.Now()
+			renewed, err := p.rec.RenewLease(ctx, old, now.UnixMilli(), now.Add(rootLease).UnixMilli())
+			if err != nil || renewed {
+				t.Fatalf("renewing the released lease returned %v err %v, want refused", renewed, err)
+			}
+			_, err = v.land(ctx, p, "", nil, []block.NamedRoot{{Name: "late", Ref: w.Ref, Lease: old}})
+			return err
+		})
+		if !errors.Is(err, block_gc.ErrLeaseLapsed) {
+			t.Fatalf("a root onto the released lease returned %v, want ErrLeaseLapsed", err)
+		}
+
+		// The renewal moves W's root onto a new lease and holds Y again.
+		if _, err := v.renewRoots(ctx, false); err != nil {
+			t.Fatal(err)
+		}
+		id := v.processLeaseID()
+		if id == old {
+			t.Fatal("the renewal kept the released lease")
+		}
+		err = v.readRecords(ctx, func(rec *block_gc.Records) error {
+			for _, root := range []block.NamedRoot{y, w} {
+				entry, err := rec.GetRoot(ctx, "", root.Name)
+				if err != nil || entry.GetLease() != id || !bytes.Equal(entry.GetRef(), block_gc.BlockKey(root.Ref)) {
+					t.Fatalf("root %s is %v err %v, want held under the new lease", root.Name, entry, err)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// The collector ends the old lease and releases nothing of the new.
+		if res := collectAll(t, v); res.Lapsed != 0 {
+			t.Fatalf("pass after the renewal released %d roots, want none", res.Lapsed)
+		}
+		err = v.readRecords(ctx, func(rec *block_gc.Records) error {
+			if _, found, err := rec.GetLease(ctx, old); err != nil || found {
+				t.Fatalf("old lease found %v err %v, want ended", found, err)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
+		if res := collectAll(t, v); res.Lapsed != 0 {
+			t.Fatalf("pass under the live lease released %d roots, want none", res.Lapsed)
+		}
+		requireStored(t, v, tr, true, "W", "Y")
 	})
 
 	for _, renew := range []bool{false, true} {
@@ -1840,7 +1958,7 @@ func TestLivenessAdversarial(t *testing.T) {
 				t.Fatal("the stage check held a graph the collector freed")
 			}
 			if renew {
-				if _, err := v.renewRoots(ctx); err != nil {
+				if _, err := v.renewRoots(ctx, false); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -1994,7 +2112,8 @@ func TestLivenessAdversarial(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// The dying stage puts P alone; its process stops renewing.
+			// The dying stage puts P alone. Its root moves onto a lease of
+			// its own, standing for another process, which stops renewing.
 			dead, _, err := v.OpenStage(ctx)
 			if err != nil {
 				t.Fatal(err)
@@ -2004,12 +2123,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			if _, err := v.PrepareStagedBlockBatch(ctx, dead, tr.entries("P")); err != nil {
 				t.Fatal(err)
 			}
-			unlock, err := v.rootPinMu.Lock(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			delete(v.stages, dead)
-			unlock()
+			leaseApart(t, v, clk, dead)
 			if tc.audited {
 				if res, err := v.Audit(ctx); err != nil || res.Holes != 1 {
 					t.Fatalf("audit under the live stage root recorded %d holes err %v, want C", res.Holes, err)
@@ -2094,7 +2208,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "r", Ref: f}}); err != nil {
 			t.Fatal(err)
 		}
-		clk.Add(block_gc.DefaultGrace + time.Second)
+		clk.Add(fillLapse)
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "C", "F")
 		requireAudit(t, v, 0)
@@ -2156,7 +2270,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			}
 
 			// B keeps P's holder, and goes once main lets P go.
-			clk.Add(block_gc.DefaultGrace + time.Second)
+			clk.Add(fillLapse)
 			collectAll(t, v)
 			requireStored(t, v, tr, true, "P", "B")
 			requireAudit(t, v, 0)
@@ -7183,7 +7297,7 @@ func TestLivenessSettle(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "w", Previous: w}}); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := v.renewRoots(ctx); err != nil {
+		if _, err := v.renewRoots(ctx, false); err != nil {
 			t.Fatalf("renewal with U's pin lapsed onto the unmarked U: %v", err)
 		}
 		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
@@ -7663,6 +7777,44 @@ func forgetPins(t *testing.T, v *Volume) {
 	unlock()
 }
 
+// leaseApart moves the roots of the open stage onto a new lease, standing for
+// the lease of another process, and forgets the stage, so this process's
+// renewals no longer hold its roots and the lease lapses after rootLease.
+func leaseApart(t *testing.T, v *Volume, clk *testClock, stage string) {
+	t.Helper()
+	ctx := t.Context()
+
+	// Forget the stage, keeping its roots.
+	unlock, err := v.rootPinMu.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var moves []block.NamedRoot
+	lease := ulid.NewULID()
+	for name, ref := range v.stages[stage].roots {
+		moves = append(moves, block.NamedRoot{Name: name, Ref: ref, Previous: ref, Lease: lease})
+	}
+	delete(v.stages, stage)
+	unlock()
+
+	// Move the roots onto the new lease.
+	err = v.withDirectAtomic(ctx, func(p *physicalTx) error {
+		if err := p.rec.StartLease(ctx, lease, clk.Now().Add(rootLease).UnixMilli()); err != nil {
+			return err
+		}
+		_, err := v.land(ctx, p, "", nil, moves)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// fillLapse is how long after a cache fill its lease has surely lapsed: the
+// fill hold, the renewal interval for which one fill lease serves fills, and
+// a second.
+const fillLapse = block_gc.DefaultGrace + rootRenewInterval + time.Second
+
 // advanceRenewing moves the clock forward by d in steps shorter than the
 // lease, renewing this process's leased roots after each, as its renewal
 // loop does.
@@ -7672,7 +7824,7 @@ func advanceRenewing(t *testing.T, v *Volume, clk *testClock, d time.Duration) {
 		step := min(d, rootRenewInterval)
 		clk.Add(step)
 		d -= step
-		if _, err := v.renewRoots(t.Context()); err != nil {
+		if _, err := v.renewRoots(t.Context(), false); err != nil {
 			t.Fatal(err)
 		}
 	}
