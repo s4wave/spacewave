@@ -59,8 +59,10 @@ func TestAdapterDecidesWhileCheckpointStores(t *testing.T) {
 		return time.Since(start)
 	}
 
-	// Write until a first checkpoint lands, so the next counts from it.
-	for checkpointHeight(ctx, t, so) == 0 {
+	// Write until the driver owes a first checkpoint, then wait for it without
+	// writing, so the next counts from it: a write while it stores would stay
+	// above it and count toward the next.
+	for above() < sobject.MinCheckpointOperations {
 		write(1)
 	}
 	waitCheckpointAbove(ctx, t, so, 0)
@@ -82,19 +84,35 @@ func TestAdapterDecidesWhileCheckpointStores(t *testing.T) {
 	}
 
 	// Write until the driver owes a checkpoint, then time writes until it
-	// lands: the first of them lands while it stores.
-	for above() < sobject.MinCheckpointOperations {
-		write(1)
-	}
-	start := time.Now()
+	// lands: the first of them lands while it stores. The store takes from
+	// under a second to several on a loaded machine, so the writes are paced
+	// and bounded by time, which also bounds the operations above the
+	// checkpoint.
+	// A store fast enough to land before the first timed write leaves
+	// nothing to time, so the phase runs again from the checkpoint it left.
+	const pace, limit = 10 * time.Millisecond, 60 * time.Second
+	tick := time.NewTicker(pace)
+	defer tick.Stop()
 	var during []time.Duration
-	for checkpointHeight(ctx, t, so) == height {
-		during = append(during, write(1))
-		if len(during) == 500 {
-			t.Fatal("the checkpoint did not land within 500 writes")
+	var stored time.Duration
+	for attempt := 0; len(during) == 0; attempt++ {
+		if attempt == 3 {
+			t.Fatal("the checkpoint landed before any write timed during it, three times")
 		}
+		for above() < sobject.MinCheckpointOperations {
+			write(1)
+		}
+		start := time.Now()
+		for checkpointHeight(ctx, t, so) == height {
+			if time.Since(start) > limit {
+				t.Fatalf("the checkpoint did not land within %v", limit)
+			}
+			during = append(during, write(1))
+			<-tick.C
+		}
+		stored = time.Since(start)
+		height = checkpointHeight(ctx, t, so)
 	}
-	stored := time.Since(start)
 
 	// The writes during it were decided about as fast as with none running.
 	slices.Sort(base)
