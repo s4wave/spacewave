@@ -15,6 +15,14 @@ import (
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 )
 
+// engineContext returns a context and session bound to engine, which runs only
+// queries whose context it built, with ctx's current database selected.
+func engineContext(ctx *sql.Context, engine *sqle.Engine) *sql.Context {
+	bound := engine.NewContext(ctx)
+	bound.SetCurrentDatabase(ctx.GetCurrentDatabase())
+	return bound
+}
+
 // queryIndexTest executes the engine's real query and row-iterator interfaces.
 func queryIndexTest(ctx *sql.Context, engine *sqle.Engine, query string) ([]sql.Row, error) {
 	// Drain the result so write errors and lookup-join probes are observed.
@@ -57,6 +65,7 @@ func TestStoredPrimaryKeyReads(t *testing.T) {
 		t.Fatal(err)
 	}
 	engine := sqle.NewDefault(provider)
+	ctx = engineContext(ctx, engine)
 
 	// Populate many inner rows and three distinct foreign-key probes.
 	statements := []string{
@@ -156,6 +165,7 @@ func TestStoredPrimaryKeyReads(t *testing.T) {
 				t.Fatal(err)
 			}
 			engine := sqle.NewDefault(provider)
+			ctx = engineContext(ctx, engine)
 
 			// Require the join test to exercise the planner's lookup-join path.
 			if test.name == "lookup join" {

@@ -36,6 +36,7 @@ func openEditorTestTable(t *testing.T, name string, statements ...string) (*sql.
 		t.Fatal(err)
 	}
 	engine := sqle.NewDefault(provider)
+	ctx = engineContext(ctx, engine)
 
 	// Run the setup statements and resolve the table they built.
 	for _, statement := range statements {
