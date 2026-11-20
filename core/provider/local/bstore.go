@@ -680,7 +680,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 			nil,
 		)
 	} else {
-		serve = placement.serveReads(local, func() block.StoreOps { return t.getRemoteReads(placement) }, fallbackStore)
+		serve = placement.serveReads(placement.withLinkedFiles(local), func() block.StoreOps { return t.getRemoteReads(placement) }, fallbackStore)
 	}
 	served := &serveStore{StoreOps: serve}
 	t.a.serveStores.Store(bucketID, served)

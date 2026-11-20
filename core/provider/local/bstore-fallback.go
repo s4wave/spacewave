@@ -156,6 +156,17 @@ func (p *placementState) linkedThen(peers block_store.StoreSource) block_store.S
 	return func() block.StoreOps { return linked }
 }
 
+// withLinkedFiles returns local over the linked files, which fill nothing: a
+// linked file's block is served from the file, its only copy. A peer's serve
+// reads use it, so a member reads the owner's linked files; a copy reads the
+// files only after every Volume tier, see linkedThen.
+func (p *placementState) withLinkedFiles(local block.StoreOps) block.StoreOps {
+	if p.fileSegments == nil {
+		return local
+	}
+	return &fallbackReads{StoreOps: local, fallback: p.fileSegments}
+}
+
 // serveReads builds the reads that answer a peer's request for a block: the
 // local store, the backend, cold packs, then SQL. They never ask peers, so
 // two backends that read each other cannot ask in a loop, and they fill
