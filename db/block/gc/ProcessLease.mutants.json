@@ -64,5 +64,35 @@
     ],
     "expect": "LiveHolds",
     "config": "ProcessLease.cfg"
+  },
+  {
+    "name": "renewals run without the renew lock, so two renewers each start a lease and publish after their commits",
+    "replace": [
+      [
+        "Recover(w) ==\n  /\\ holder = NoRenewer\n",
+        "Recover(w) ==\n  /\\ TRUE\n"
+      ],
+      [
+        "        /\\ holder' = w\n",
+        "        /\\ holder' = holder\n"
+      ]
+    ],
+    "expect": "LiveHolds",
+    "config": "ProcessLease.cfg"
+  },
+  {
+    "name": "without the renew lock the collector releases a root the process holds under its live lease",
+    "replace": [
+      [
+        "Recover(w) ==\n  /\\ holder = NoRenewer\n",
+        "Recover(w) ==\n  /\\ TRUE\n"
+      ],
+      [
+        "        /\\ holder' = w\n",
+        "        /\\ holder' = holder\n"
+      ]
+    ],
+    "expect": "NoReleaseUnderLiveProcess",
+    "config": "ProcessLease-race.cfg"
   }
 ]

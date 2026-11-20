@@ -275,6 +275,13 @@ func requireReads(t *testing.T, v *Volume, tr testTree, names ...string) {
 // tree, that afterwards only what the live root reaches is stored, and that a
 // hole under a dead page frees nothing below it while the audit reports it.
 func TestLivenessRunThrough(t *testing.T) {
+	// Two stages opening together on a fresh Volume both find no process
+	// lease, and the process starts exactly one: a second would leave the
+	// roots of the first to lapse while their stages hold them.
+	for range 16 {
+		requireOneLease(t, openStagesTogether(t, 2))
+	}
+
 	// Store R1 -> C -> {E, F}, F -> G under main.
 	v, clk := newLivenessVolume(t, true)
 	ctx := t.Context()
@@ -7812,6 +7819,56 @@ func leaseApart(t *testing.T, v *Volume, clk *testClock, stage string) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// openStagesTogether opens n stages at once on a fresh Volume, releasing
+// each once all are open, and returns the Volume.
+func openStagesTogether(t *testing.T, n int) *Volume {
+	t.Helper()
+	v, _ := newLivenessVolume(t, false)
+	ctx := t.Context()
+
+	// Start the openers together.
+	var wg sync.WaitGroup
+	gate := make(chan struct{})
+	errs := make([]error, n)
+	releases := make([]func(), n)
+	for i := range n {
+		wg.Go(func() {
+			<-gate
+			_, releases[i], errs[i] = v.OpenStage(ctx)
+		})
+	}
+	close(gate)
+	wg.Wait()
+
+	// Release the open stages.
+	for i, err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+		releases[i]()
+	}
+	return v
+}
+
+// requireOneLease fails unless v's store holds exactly one lease record, the
+// published process lease.
+func requireOneLease(t *testing.T, v *Volume) {
+	t.Helper()
+	ctx := t.Context()
+	var leases []block_gc.LapsedLease
+	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+		var err error
+		leases, err = p.rec.LapsedLeases(ctx, "", math.MaxInt64, 16)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(leases) != 1 || leases[0].ID != v.processLeaseID() {
+		t.Fatalf("store holds leases %v, want the one process lease %q", leases, v.processLeaseID())
 	}
 }
 

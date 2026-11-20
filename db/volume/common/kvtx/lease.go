@@ -31,6 +31,13 @@ import (
 //     lease is held again while its block is stored with holders; otherwise
 //     its stage is lost, since a block at zero may have released its
 //     children already.
+//  4. One renewRoots runs at a time, from its snapshot of the held roots
+//     through its commit to publishing the lease. Each reads the published
+//     lease in its transaction and renews it while it is live, so the
+//     process holds its roots under one lease: a second lease started
+//     before the first was published would leave the first's roots to lapse
+//     while this process still holds them, and the collector would release
+//     them under the live published lease, where no rehold rescues them.
 
 // rootLease is how long the process lease lives without renewal. The
 // collector releases every root of a lapsed lease, so a process that dies
@@ -107,7 +114,18 @@ func (v *Volume) runRootRenewal(ctx context.Context) {
 // describe. With no pin or stage root held and start unset it writes
 // nothing, and the lease may lapse. It returns the time the written lease
 // counts from, which precedes the write, or now when it wrote nothing.
+//
+// Renewals run one at a time, as invariant 4 requires: two callers that both
+// find no live lease, such as two stages opening together or the ticker and
+// a writer after a stall, start one lease, and the second renews it.
 func (v *Volume) renewRoots(ctx context.Context, start bool) (time.Time, error) {
+	// Wait for any other renewal to publish its lease.
+	unlock, err := v.lease.renew.Lock(ctx)
+	if err != nil {
+		return time.Time{}, err
+	}
+	defer unlock()
+
 	// Collect the pins with readers and the open stages' roots.
 	pins, stageOf, err := v.heldRoots(ctx)
 	if err != nil {
