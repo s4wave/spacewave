@@ -9,6 +9,9 @@ import (
 
 // testRequestAccess exposes authority changes without a second role model.
 type testRequestAccess struct {
+	// ctx is the request context the access was authorized under. Like the
+	// production access, Check fails once it ends.
+	ctx context.Context
 	// allowed holds the primitive authority decision supplied by the test.
 	allowed *ccontainer.CContainer[bool]
 	// watching reports that the request's revocation worker started.
@@ -25,8 +28,13 @@ func newTestRequestAccess() *testRequestAccess {
 	}
 }
 
-// Check reads the current authority decision.
+// Check fails once the request ends, then reads the current authority decision.
 func (a *testRequestAccess) Check() error {
+	if a.ctx != nil {
+		if err := a.ctx.Err(); err != nil {
+			return err
+		}
+	}
 	if !a.allowed.GetValue() {
 		return errors.New("test request access denied")
 	}

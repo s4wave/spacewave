@@ -489,9 +489,12 @@ func (s *peerSession) watchWrite(stops []func() bool, p preparedSend) []func() b
 	}
 
 	// Interrupt an in-progress payload write if its requester loses authority.
+	// requestCtx also ends when the requester cancels the request or the
+	// session closes, and access derives from the same request, so Check fails
+	// then too; only a revocation of a live request closes the stream.
 	if access := p.q.access; p.msg.GetFound() && access != nil {
 		stops = append(stops, context.AfterFunc(p.q.requestCtx, func() {
-			if access.Check() != nil {
+			if p.q.ctx.Err() == nil && access.Check() != nil {
 				s.closeWith(errAccessRevokedInWrite)
 			}
 		}))

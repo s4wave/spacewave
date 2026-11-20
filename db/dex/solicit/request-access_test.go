@@ -185,7 +185,8 @@ func newAuthorizedRequest(t *testing.T, ctx context.Context) (*peerSession, *str
 	t.Helper()
 	node := newTestRelayNode(t, ctx, logrus.NewEntry(logrus.New()), "authorized", []byte("authority"), 0)
 	access := newTestRequestAccess()
-	node.dex.authorizeRequest = func(context.Context, *Config, peer.ID) (RequestAccess, error) {
+	node.dex.authorizeRequest = func(ctx context.Context, _ *Config, _ peer.ID) (RequestAccess, error) {
+		access.ctx = ctx
 		return access, nil
 	}
 	bucketAPI, _, bucketRef, err := bucket.ExBuildBucketAPI(ctx, node.tb.Bus, false, node.bucketID, node.tb.Volume.GetID(), nil)
