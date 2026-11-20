@@ -156,7 +156,7 @@ mkdir -m 700 "$fixture/root" "$fixture/root/native-bench"
 GOMAXPROCS=1 "$init" seed "$fixture/root/image" "$tools/root/usr/bin/busybox" \
   > "$fixture/seed.log" 2>&1
 GOMAXPROCS=1 "$init" seed-data "$fixture/root/data"
-truncate -s 1G "$fixture/btrfs.img"
+truncate -s 4G "$fixture/btrfs.img"
 "$tools/bin/mkfs.btrfs" --rootdir "$fixture/root" "$fixture/btrfs.img"
 # Supply dependency-ordered, uncompressed modules for this exact kernel.
 GEN_INIT_CPIO=/absolute/tool/gen_init_cpio sh os/make-initramfs.sh \
