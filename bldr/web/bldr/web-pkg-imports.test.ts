@@ -55,4 +55,15 @@ describe('shared package imports', () => {
       'bldr-web-pkg/sonner/': '/b/pa/spacewave-app/manifest/root/sonner/',
     })
   })
+
+  test('adds no map for a package the document map resolves', () => {
+    // The document binds the shared prefix to the package fallback route.
+    const target = document.implementation.createHTMLDocument()
+    target.head.innerHTML =
+      '<script type="importmap">{"imports":{"bldr-web-pkg/":"/b/pkg/"}}</script>'
+
+    // A default binding resolves identically, so Firefox sees one map.
+    bindWebPkgImports({ react: '' }, target)
+    expect(target.querySelectorAll('script[type="importmap"]')).toHaveLength(1)
+  })
 })

@@ -3,6 +3,7 @@
 package bldr_project_controller
 
 import (
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -16,7 +17,7 @@ import (
 
 // TestFrontendBootstrapAttachesStartup keeps editable startup sources out of the
 // immutable renderer while retaining the refresh preamble before its import, and
-// binds shared packages before the startup graph resolves them.
+// reports the shared package bindings the document's import map declares.
 func TestFrontendBootstrapAttachesStartup(t *testing.T) {
 	// Configure the application and its startup view through project manifests.
 	project := &bldr_project.ProjectConfig{}
@@ -42,8 +43,14 @@ func TestFrontendBootstrapAttachesStartup(t *testing.T) {
 	service.ServeBootstrap(response, httptest.NewRequest(http.MethodGet, "/bldr-dev/frontend-boot.mjs", nil), "entrypoint/entrypoint.mjs", "app/startup.tsx")
 
 	// The refresh import precedes the immutable renderer and supplies a stable source path.
-	want := `import "/bldr-dev/frontend-refresh/first.mjs"; const webPkgs = document.createElement("script"); webPkgs.type = "importmap"; webPkgs.dataset.bldrWebPkg = ""; webPkgs.textContent = "{\"imports\":{\"bldr-web-pkg/sonner/\":\"/b/pkg/sonner/\"}}"; document.head.append(webPkgs); window.__bldrFrontendEnabled = true; window.__bldrFrontendStartup = "app/startup.tsx"; await import("/entrypoint/entrypoint.mjs");`
+	want := `import "/bldr-dev/frontend-refresh/first.mjs"; window.__bldrFrontendEnabled = true; window.__bldrFrontendStartup = "app/startup.tsx"; await import("/entrypoint/entrypoint.mjs");`
 	if response.Code != http.StatusOK || strings.TrimSpace(response.Body.String()) != want {
 		t.Fatalf("bootstrap response = %d %q", response.Code, response.Body.String())
+	}
+
+	// The boot module adds no import map; the document's single map carries them.
+	imports, err := service.WebPkgImports(t.Context())
+	if err != nil || !maps.Equal(imports, map[string]string{"bldr-web-pkg/sonner/": "/b/pkg/sonner/"}) {
+		t.Fatalf("web package imports = %v, %v", imports, err)
 	}
 }

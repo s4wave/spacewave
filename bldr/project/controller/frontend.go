@@ -29,7 +29,6 @@ import (
 	js_compiler "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
 	vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	vite_compiler "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
-	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	web_fetch "github.com/s4wave/spacewave/bldr/web/fetch"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
@@ -364,7 +363,7 @@ func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Reque
 	case "/bldr-dev/frontend-boot.mjs":
 		refresh := strconv.Quote(refreshPath)
 		entry := strconv.Quote("/" + strings.TrimPrefix(entrypoint, "/"))
-		boot := "import " + refresh + ";" + webPkgBindingScript(f.webPkgImports(env.result.GetWebPkgImports())) + " window.__bldrFrontendEnabled = true;"
+		boot := "import " + refresh + "; window.__bldrFrontendEnabled = true;"
 		if startup != "" {
 			boot += " window.__bldrFrontendStartup = " + strconv.Quote(startup) + ";"
 		}
@@ -382,7 +381,22 @@ func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Reque
 	}
 }
 
-// webPkgImports returns the boot import map for excluded packages.
+// WebPkgImports returns the shared package bindings for the document's import
+// map once the compiler is ready; a disabled frontend returns nil at once.
+// The document declares them in its single map, since Firefox rejects any
+// map added after the first.
+func (f *FrontendService) WebPkgImports(ctx context.Context) (map[string]string, error) {
+	if f.run.GetState() == nil {
+		return nil, nil
+	}
+	env, err := f.ready.Await(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return f.webPkgImports(env.result.GetWebPkgImports()), nil
+}
+
+// webPkgImports returns the document import map entries for excluded packages.
 // The compiler map overrides the default /b/pkg route for each id, so a
 // ready graph can serve editable source while an empty result still binds
 // the packages the startup view imports.
@@ -403,21 +417,6 @@ func (f *FrontendService) webPkgImports(compiler map[string]string) map[string]s
 	}
 	maps.Copy(imports, compiler)
 	return imports
-}
-
-// webPkgBindingScript maps the shared package specifiers the development graph
-// and separately bundled views emit to the URLs the graph reports for them.
-// The startup view loads that graph before any web view binds its packages,
-// and later bindings skip each prefix bound here.
-func webPkgBindingScript(imports map[string]string) string {
-	// A graph without shared packages needs no binding.
-	if len(imports) == 0 {
-		return ""
-	}
-
-	// Insert the map from the boot module, before the entrypoint import.
-	importMap := web_entrypoint_index.ImportMap{Imports: imports}.String()
-	return ` const webPkgs = document.createElement("script"); webPkgs.type = "importmap"; webPkgs.dataset.bldrWebPkg = ""; webPkgs.textContent = ` + strconv.Quote(importMap) + `; document.head.append(webPkgs);`
 }
 
 // GetFrontendService returns the development service, if enabled for this project.

@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -45,6 +46,21 @@ type BrowserBundleResult struct {
 	OpfsWorkerFilename string
 	// CSSPaths contains CSS output file paths relative to the build dir.
 	CSSPaths []string
+	// ImportMap is the import map the renderer index.html declares.
+	ImportMap web_entrypoint_index.ImportMap
+	// ReactVersion is the React build version the renderer index.html names.
+	ReactVersion string
+}
+
+// RenderIndex renders the renderer index.html with imports added to its
+// import map. The document declares a single import map, because Firefox
+// rejects every map after the first, so a server that learns more bindings
+// after the build renders them here instead of appending another map.
+func (r *BrowserBundleResult) RenderIndex(imports map[string]string) ([]byte, error) {
+	merged := make(map[string]string, len(r.ImportMap.Imports)+len(imports))
+	maps.Copy(merged, r.ImportMap.Imports)
+	maps.Copy(merged, imports)
+	return renderIndexHTML(rendererBootPath, web_entrypoint_index.ImportMap{Imports: merged}, r.ReactVersion)
 }
 
 // DefaultManifestBundle describes the browser-discoverable manifest bundle
@@ -1307,6 +1323,8 @@ func BuildBrowserBundle(
 		SharedWorkerFilename:       shwFilename,
 		CSSPaths:                   cssPaths,
 		OpfsWorkerFilename:         opfsWorkerFilename,
+		ImportMap:                  webPkgImportMap,
+		ReactVersion:               reactVersion,
 	}, nil
 }
 

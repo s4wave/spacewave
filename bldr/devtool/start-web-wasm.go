@@ -482,6 +482,25 @@ func (d *DevtoolBus) executeWebWasm(
 				_ = f.Close()
 			}
 		}
+
+		// Render the page with the frontend's package bindings in its one
+		// import map, which waits for the frontend compiler to be ready.
+		if frontendService != nil && (req.URL.Path == "/" || req.URL.Path == "/index.html") {
+			imports, err := frontendService.WebPkgImports(req.Context())
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusServiceUnavailable)
+				return
+			}
+			indexHTML, err := bundleResult.RenderIndex(imports)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+			rw.Header().Set("Cache-Control", "no-store")
+			_, _ = rw.Write(indexHTML)
+			return
+		}
 		entrySrv.ServeHTTP(rw, req)
 	}
 
