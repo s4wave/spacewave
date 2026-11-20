@@ -4,8 +4,6 @@ package forge_lib_skiffos_audit
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -13,7 +11,6 @@ import (
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/pkg/errors"
 	git_world "github.com/s4wave/spacewave/db/git/world"
-	forge_lib_util_inputfs "github.com/s4wave/spacewave/forge/lib/util/inputfs"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/sirupsen/logrus"
@@ -34,11 +31,9 @@ const InputUpstream = "upstream"
 // InputBuildroot names the input holding the fetched Buildroot fork's Repo.
 const InputBuildroot = "buildroot"
 
-// OutputReport names the output tree holding ReportFile.
+// OutputReport names the output holding the Report, a blob of its protobuf
+// encoding that ReadReport decodes.
 const OutputReport = "report"
-
-// ReportFile is the report tree's file holding the Report as JSON.
-const ReportFile = "report.json"
 
 // Controller audits one build's SkiffOS source.
 type Controller struct {
@@ -134,30 +129,33 @@ func (c *Controller) readRepo(ctx context.Context, name string, cb func(*git.Rep
 	return errors.Wrapf(git_world.ReadRepo(ctx, c.handle.AccessStorage, ref, cb), "input %q", name)
 }
 
-// storeReport writes rep as the report output's tree.
+// storeReport writes rep as the report output's blob.
 func (c *Controller) storeReport(ctx context.Context, rep *Report) error {
-	// Write the report file into a tree of its own.
-	data, err := rep.MarshalJSON()
+	// Encode the Report and store it as a blob named for the output.
+	data, err := rep.MarshalVT()
 	if err != nil {
 		return err
 	}
-	dir, err := os.MkdirTemp("", "skiffos-audit-")
+	val, err := forge_target.StoreBlobValueFromBytes(ctx, c.handle, data)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(dir) //nolint:errcheck
-	if err := os.WriteFile(filepath.Join(dir, ReportFile), data, 0o644); err != nil {
-		return err
-	}
+	val.Name = OutputReport
+	return c.handle.SetOutputs(ctx, forge_value.ValueSlice{val}, true)
+}
 
-	// Store the tree as the output.
-	ref, err := forge_lib_util_inputfs.StoreDir(ctx, c.handle, dir)
+// ReadReport reads the Report an audit's report output holds from val.
+func ReadReport(ctx context.Context, handle forge_target.ExecControllerHandle, val *forge_value.Value) (*Report, error) {
+	// Load the blob and decode the Report from it.
+	data, err := forge_target.LoadBlobValueToBytes(ctx, handle, val)
 	if err != nil {
-		return err
+		return nil, errors.Wrap(err, "read report")
 	}
-	return c.handle.SetOutputs(ctx, forge_value.ValueSlice{
-		forge_value.NewValueWithBlockRef(OutputReport, ref),
-	}, true)
+	rep := &Report{}
+	if err := rep.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "decode report")
+	}
+	return rep, nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.

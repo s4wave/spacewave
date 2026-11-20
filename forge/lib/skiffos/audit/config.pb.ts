@@ -23,7 +23,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  *  - buildroot: the SkiffOS Buildroot fork's Repo, fetched with its tags.
  *
  * Outputs:
- *  - report: a tree holding report.json, the Report as JSON.
+ *  - report: a blob holding the Report's protobuf encoding.
  *
  * @generated from message forge.lib.skiffos.audit.Config
  */

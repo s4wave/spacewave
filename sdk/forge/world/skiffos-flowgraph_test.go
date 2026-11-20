@@ -21,10 +21,7 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v6"
 	"github.com/go-git/go-git/v6"
-	git_config "github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
-	"github.com/go-git/go-git/v6/plumbing/client"
-	"github.com/go-git/go-git/v6/plumbing/transport"
 	"github.com/pierrec/lz4/v4"
 
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
@@ -46,6 +43,8 @@ import (
 	forge_lib_git_clone "github.com/s4wave/spacewave/forge/lib/git/clone"
 	forge_lib_skiffos "github.com/s4wave/spacewave/forge/lib/skiffos"
 	forge_lib_skiffos_audit "github.com/s4wave/spacewave/forge/lib/skiffos/audit"
+	forge_lib_skiffos_update "github.com/s4wave/spacewave/forge/lib/skiffos/update"
+	forge_lib_util_presence "github.com/s4wave/spacewave/forge/lib/util/presence"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	target_json "github.com/s4wave/spacewave/forge/target/json"
@@ -99,12 +98,14 @@ func TestSkiffOSFlowgraph(t *testing.T) {
 	t.Logf("task cache hit: %s completed with the outputs of %s", second, first)
 }
 
-// TestSkiffOSAudit runs the audit Flowgraph: clone Steps fetch SkiffOS and
-// its Buildroot fork from local sources into upstream Repos, and the audit
-// Step compares the build's depth-1 Repo with them. A build one commit behind
-// reports Behind and leaves the build's Repo as it was; after the Repo moves
-// to upstream's head, the next run reports Current.
-func TestSkiffOSAudit(t *testing.T) {
+// TestSkiffOSUpdate runs the update Flowgraph: clone Steps fetch SkiffOS and
+// its Buildroot fork from local sources into upstream Repos, the audit Step
+// compares the build's depth-1 Repo with them, a gate standing in for the
+// person approves or declines, and the update Step moves the Repo on
+// approval. A declined run reports the build one commit behind and completes
+// with the Repo as it was; an approved run moves the Repo and its Buildroot
+// module to the reported commits, and the next run reports Current.
+func TestSkiffOSUpdate(t *testing.T) {
 	// Build a Buildroot fork with a skiff tag, and SkiffOS whose first commit
 	// pins it and is released, then a second commit.
 	tmp := t.TempDir()
@@ -124,7 +125,9 @@ func TestSkiffOSAudit(t *testing.T) {
 	h.tb.StaticResolver.AddFactory(flowgraph_run.NewFactory(h.tb.Bus))
 	h.tb.StaticResolver.AddFactory(forge_lib_git_clone.NewFactory(h.tb.Bus))
 	h.tb.StaticResolver.AddFactory(forge_lib_skiffos_audit.NewFactory())
-	stopWorker := h.startWorker(h.newAdmission("skiffos-audit"), make(chan *s4wave_device.ForgeWorkerDeclaration))
+	h.tb.StaticResolver.AddFactory(forge_lib_skiffos_update.NewFactory())
+	h.tb.StaticResolver.AddFactory(forge_lib_util_presence.NewFactory(h.tb.Bus))
+	stopWorker := h.startWorker(h.newAdmission("skiffos-update"), make(chan *s4wave_device.ForgeWorkerDeclaration))
 	t.Cleanup(func() {
 		if err := stopWorker(); !errors.Is(err, context.Canceled) {
 			t.Errorf("Worker stop: %v", err)
@@ -137,7 +140,8 @@ func TestSkiffOSAudit(t *testing.T) {
 	})
 	f.moveRepo(skiffOSRepo, up, first)
 
-	// Fetch both upstreams, then audit the build against them.
+	// Fetch both upstreams, audit the build against them, ask the gate, and
+	// move the build on approval.
 	fetch := func(key, dir string) *s4wave_flowgraph.FlowgraphNode {
 		return f.stepNode(forge_lib_git_clone.ControllerID, &forge_lib_git_clone.Config{
 			ObjectKey: key,
@@ -147,21 +151,36 @@ func TestSkiffOSAudit(t *testing.T) {
 	audit := f.stepNode(forge_lib_skiffos_audit.ControllerID, &forge_lib_skiffos_audit.Config{UpstreamRef: "refs/remotes/origin/master"}, forge_lib_skiffos_audit.OutputReport, false)
 	audit.Step.Target.Inputs = []*forge_target.Input{worldObjectInput(forge_lib_skiffos_audit.InputBuild, skiffOSRepo)}
 	audit.Ports = append(audit.Ports, inputPort(forge_lib_skiffos_audit.InputUpstream), inputPort(forge_lib_skiffos_audit.InputBuildroot))
-	f.storeGraph("flowgraph/skiffos-audit", "SkiffOS audit", map[string]*s4wave_flowgraph.FlowgraphNode{
-		"fetch-skiffos": fetch("os/skiffos-upstream", up), "fetch-buildroot": fetch("os/buildroot-upstream", br), "audit": audit,
+	approval := filepath.Join(tmp, "approved")
+	update := f.stepNode(forge_lib_skiffos_update.ControllerID, &forge_lib_skiffos_update.Config{ObjectKey: skiffOSRepo}, forge_lib_skiffos_update.OutputRepo, false)
+	update.Ports = append(update.Ports,
+		inputPort(forge_lib_skiffos_update.InputApprove), inputPort(forge_lib_skiffos_update.InputReport),
+		inputPort(forge_lib_skiffos_audit.InputUpstream), inputPort(forge_lib_skiffos_audit.InputBuildroot),
+	)
+	connect := func(outNode, outPort, inNode, inPort string) *s4wave_flowgraph.FlowgraphConnection {
+		return &s4wave_flowgraph.FlowgraphConnection{OutputNode: outNode, OutputPort: outPort, InputNode: inNode, InputPort: inPort}
+	}
+	f.storeGraph("flowgraph/skiffos-update", "SkiffOS update", map[string]*s4wave_flowgraph.FlowgraphNode{
+		"fetch-skiffos": fetch("os/skiffos-upstream", up), "fetch-buildroot": fetch("os/buildroot-upstream", br),
+		"audit": audit, "gate": f.gateNode(approval), "update": update,
 	}, map[string]*s4wave_flowgraph.FlowgraphConnection{
-		"skiffos":   {OutputNode: "fetch-skiffos", OutputPort: "repo", InputNode: "audit", InputPort: forge_lib_skiffos_audit.InputUpstream},
-		"buildroot": {OutputNode: "fetch-buildroot", OutputPort: "repo", InputNode: "audit", InputPort: forge_lib_skiffos_audit.InputBuildroot},
+		"skiffos":          connect("fetch-skiffos", "repo", "audit", forge_lib_skiffos_audit.InputUpstream),
+		"buildroot":        connect("fetch-buildroot", "repo", "audit", forge_lib_skiffos_audit.InputBuildroot),
+		"ask":              connect("audit", forge_lib_skiffos_audit.OutputReport, "gate", forge_lib_skiffos_update.InputReport),
+		"approve":          connect("gate", forge_lib_skiffos_update.InputApprove, "update", forge_lib_skiffos_update.InputApprove),
+		"report":           connect("audit", forge_lib_skiffos_audit.OutputReport, "update", forge_lib_skiffos_update.InputReport),
+		"update-skiffos":   connect("fetch-skiffos", "repo", "update", forge_lib_skiffos_audit.InputUpstream),
+		"update-buildroot": connect("fetch-buildroot", "repo", "update", forge_lib_skiffos_audit.InputBuildroot),
 	})
 
-	// The build one commit behind is stale, and the audit leaves its Repo.
+	// Declined, the build one commit behind is stale and its Repo stays.
 	before := f.objectRoot(skiffOSRepo)
-	stale := f.auditReport("flowgraph-run/skiffos-audit-stale")
+	stale := f.updateRun("flowgraph-run/skiffos-update-declined")
 	if got := stale.GetBehind().GetCommits(); got != 1 {
 		t.Fatalf("stale build reported %s", stale.MarshalProtoText())
 	}
 	if after := f.objectRoot(skiffOSRepo); !after.EqualsRef(before) {
-		t.Fatal("the audit changed the build's Repo")
+		t.Fatal("a declined update changed the build's Repo")
 	}
 	want := &forge_lib_skiffos_audit.Report{
 		Build: &forge_lib_skiffos_audit.Revision{
@@ -179,11 +198,87 @@ func TestSkiffOSAudit(t *testing.T) {
 		t.Fatalf("stale report %s, want %s", stale.MarshalProtoText(), want.MarshalProtoText())
 	}
 
+	// Approved, the update moves the Repo to upstream's head and its module
+	// to the head's Buildroot pin.
+	if err := os.WriteFile(approval, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.updateRun("flowgraph-run/skiffos-update-approved")
+	if got := f.repoHead(skiffOSRepo, ""); got != head {
+		t.Fatalf("approved update left the build at %s, want %s", got, head)
+	}
+	if got := f.repoHead(skiffOSRepo, "buildroot"); got != pinned {
+		t.Fatalf("approved update left Buildroot at %s, want %s", got, pinned)
+	}
+
 	// Moved to upstream's head, the build is current.
-	f.moveRepo(skiffOSRepo, up, head)
-	if current := f.auditReport("flowgraph-run/skiffos-audit-current"); current.GetCurrent() == nil {
+	if current := f.updateRun("flowgraph-run/skiffos-update-current"); current.GetCurrent() == nil {
 		t.Fatalf("current build reported %s", current.MarshalProtoText())
 	}
+}
+
+// gateNode stands in for the person's approval: a presence Step that waits
+// for the report and chooses approve when path exists, decline otherwise.
+func (f *flowgraphFixture) gateNode(path string) *s4wave_flowgraph.FlowgraphNode {
+	node := f.stepNode(forge_lib_util_presence.ControllerID, &forge_lib_util_presence.Config{
+		Path: path, PresentOutput: "approve", AbsentOutput: "decline",
+	}, "approve", false)
+	node.Step.Target.Outputs = append(node.Step.Target.Outputs, &forge_target.Output{
+		Name: "decline", OutputType: forge_target.OutputType_OutputType_EXEC, ExecOutput: "decline",
+	})
+	node.Ports = append(node.Ports, &s4wave_flowgraph.FlowgraphPort{
+		Name: "decline", Direction: s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT, TypeId: "activation",
+	}, inputPort(forge_lib_skiffos_update.InputReport))
+	return node
+}
+
+// updateRun runs the update graph as runKey to completion and returns the
+// audit's Report.
+func (f *flowgraphFixture) updateRun(runKey string) *forge_lib_skiffos_audit.Report {
+	f.startRun(runKey, "flowgraph/skiffos-update")
+	value, err := forge_task.ResolveOutput(f.ctx, f.tb.WorldState, f.waitTask(runKey, "audit", true), forge_lib_skiffos_audit.OutputReport)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	rep, err := forge_lib_skiffos_audit.ReadReport(f.ctx, f.accessHandle(), value)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	f.wait(runKey+" completion", func() bool {
+		run := f.readRun(runKey)
+		if run.GetState() == s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED {
+			f.t.Fatalf("graph paused: %s", run.GetPauseReason())
+		}
+		return run.GetState() == s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_COMPLETE
+	})
+	return rep
+}
+
+// repoHead returns the commit HEAD names in the World Repo key, or in its
+// module when module is set.
+func (f *flowgraphFixture) repoHead(key, module string) string {
+	var commit string
+	_, _, err := git_world.AccessWorldObjectRepo(f.ctx, f.tb.WorldState, key, false, nil, nil, nil, func(repo *git.Repository) error {
+		if module != "" {
+			store, err := repo.Storer.Module(module)
+			if err != nil {
+				return err
+			}
+			if repo, err = git.Open(store, nil); err != nil {
+				return err
+			}
+		}
+		head, err := repo.Head()
+		if err != nil {
+			return err
+		}
+		commit = head.Hash().String()
+		return nil
+	})
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return commit
 }
 
 // moveRepo points the World Repo key's main branch and HEAD at commit,
@@ -195,7 +290,7 @@ func (f *flowgraphFixture) moveRepo(key, dir, commit string) {
 	}
 	f.transact(func(ctx context.Context, ws world.WorldState) error {
 		_, _, err := git_world.AccessWorldObjectRepo(ctx, ws, key, true, nil, nil, nil, func(repo *git.Repository) error {
-			return fetchCommit(ctx, repo, src, filepath.Join(dir, ".git"), plumbing.NewHash(commit))
+			return git_world.FetchCommit(ctx, repo, src, plumbing.NewHash(commit), plumbing.NewBranchReferenceName("main"))
 		})
 		return err
 	})
@@ -213,17 +308,6 @@ func (f *flowgraphFixture) objectRoot(key string) *block.BlockRef {
 		f.t.Fatal(err)
 	}
 	return ref.GetRootRef()
-}
-
-// auditReport runs the audit graph as runKey and returns its Report.
-func (f *flowgraphFixture) auditReport(runKey string) *forge_lib_skiffos_audit.Report {
-	f.startRun(runKey, "flowgraph/skiffos-audit")
-	tree := f.taskTree(f.waitTask(runKey, "audit", true), forge_lib_skiffos_audit.OutputReport)
-	rep := &forge_lib_skiffos_audit.Report{}
-	if err := rep.UnmarshalJSON(f.readTreeFile(tree, forge_lib_skiffos_audit.ReportFile)); err != nil {
-		f.t.Fatal(err)
-	}
-	return rep
 }
 
 // commitGit writes content to a file of that name in the repository at dir,
@@ -649,7 +733,7 @@ func (f *skiffOSProof) storeRepo(key string) {
 	})
 	f.transact(func(ctx context.Context, ws world.WorldState) error {
 		_, _, err := git_world.AccessWorldObjectRepo(ctx, ws, key, true, nil, nil, nil, func(repo *git.Repository) error {
-			if err := fetchCommit(ctx, repo, local, filepath.Join(f.skiffDir, ".git"), head.Hash()); err != nil {
+			if err := git_world.FetchCommit(ctx, repo, local, head.Hash(), plumbing.NewBranchReferenceName("main")); err != nil {
 				return err
 			}
 			for _, sub := range subs {
@@ -671,7 +755,7 @@ func (f *skiffOSProof) storeRepo(key string) {
 				if err != nil {
 					return err
 				}
-				if err := fetchCommit(ctx, mod, src, gitDir, status.Expected); err != nil {
+				if err := git_world.FetchCommit(ctx, mod, src, status.Expected, plumbing.NewBranchReferenceName("main")); err != nil {
 					return err
 				}
 			}
@@ -679,22 +763,6 @@ func (f *skiffOSProof) storeRepo(key string) {
 		})
 		return err
 	})
-}
-
-// fetchCommit fetches commit at depth 1 from the local repository src at
-// gitDir into repo as its main branch, and points HEAD at it.
-func fetchCommit(ctx context.Context, repo, src *git.Repository, gitDir string, commit plumbing.Hash) error {
-	main := plumbing.NewBranchReferenceName("main")
-	remote := git.NewRemote(repo.Storer, &git_config.RemoteConfig{Name: "local", URLs: []string{gitDir}})
-	err := remote.FetchContext(ctx, &git.FetchOptions{
-		RemoteName: "local", Depth: 1, Tags: git.NoTags,
-		RefSpecs:      []git_config.RefSpec{git_config.RefSpec("+" + commit.String() + ":" + main.String())},
-		ClientOptions: []client.Option{client.WithLoader(transport.MapLoader{gitDir: src.Storer})},
-	})
-	if err != nil {
-		return err
-	}
-	return repo.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, main))
 }
 
 // newSkiffOSProof starts a Worker for SkiffOS build Steps, or skips the test.
@@ -827,11 +895,15 @@ func (f *flowgraphFixture) taskTree(taskKey, name string) *block.BlockRef {
 	return value.GetBlockRef()
 }
 
+// accessHandle returns a handle reading the World's storage as a Step does.
+func (f *flowgraphFixture) accessHandle() forge_target.ExecControllerHandle {
+	return forge_target.ExecControllerHandleWithAccess("skiffos-proof", f.sender, f.tb.Engine, f.tb.WorldState.AccessWorldState, nil)
+}
+
 // openTree calls fn with the UnixFS tree at root as a read-only billy
 // filesystem, valid only while fn runs.
 func (f *flowgraphFixture) openTree(root *block.BlockRef, fn func(billy.Filesystem) error) {
-	handle := forge_target.ExecControllerHandleWithAccess("skiffos-proof", f.sender, f.tb.Engine, f.tb.WorldState.AccessWorldState, nil)
-	err := handle.AccessStorage(f.ctx, &bucket.ObjectRef{RootRef: root}, func(cs *bucket_lookup.Cursor) error {
+	err := f.accessHandle().AccessStorage(f.ctx, &bucket.ObjectRef{RootRef: root}, func(cs *bucket_lookup.Cursor) error {
 		ufs := unixfs_block_fs.NewFS(f.ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs, nil)
 		fh, err := unixfs.NewFSHandle(ufs)
 		if err != nil {

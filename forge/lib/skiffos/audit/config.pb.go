@@ -30,7 +30,7 @@ import (
 //   - buildroot: the SkiffOS Buildroot fork's Repo, fetched with its tags.
 //
 // Outputs:
-//   - report: a tree holding report.json, the Report as JSON.
+//   - report: a blob holding the Report's protobuf encoding.
 type Config struct {
 	unknownFields []byte
 	// UpstreamRef names the upstream Repo's ref holding upstream's head, the ref
