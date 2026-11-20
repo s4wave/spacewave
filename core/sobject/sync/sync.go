@@ -385,10 +385,65 @@ func (s *SOSync) handleSolicitedStream(
 		ms.GetLink().GetLocalPeer(),
 		ms.GetPeerID(),
 	)
-	if ctx.Err() == nil {
-		s.logStreamResult(le, ms.GetPeerID(), err)
+	if ctx.Err() != nil {
+		return err
+	}
+	s.logStreamResult(le, ms.GetPeerID(), err)
+
+	// A peer this side refused can be admitted by a later config change,
+	// including one adopted while refusing it; no new stream starts on its own.
+	var refused *localRefusal
+	if errors.As(err, &refused) {
+		return s.waitReadmission(ctx, refused.remoteID)
 	}
 	return err
+}
+
+// localRefusal is ErrAccessDenied from this side's held authority, naming the
+// participant it refused. A denial sent by the remote side is plain
+// ErrAccessDenied, because only the remote config can lift it.
+type localRefusal struct {
+	// remoteID is the refused participant.
+	remoteID peer.ID
+}
+
+// Error returns the ErrAccessDenied text.
+func (r *localRefusal) Error() string {
+	return ErrAccessDenied.Error()
+}
+
+// Unwrap matches ErrAccessDenied.
+func (r *localRefusal) Unwrap() error {
+	return ErrAccessDenied
+}
+
+// errReadmitted retires a solicitation generation once held authority admits
+// a participant this side refused, so a fresh stream can synchronize it.
+var errReadmitted = errors.New("held authority admitted a refused participant")
+
+// waitReadmission watches the held state until it grants remoteID readable
+// access, then returns errReadmitted. It returns the context error on
+// cancellation. Each state change costs one scan of the participant list.
+func (s *SOSync) waitReadmission(ctx context.Context, remoteID peer.ID) error {
+	// Watch the same held state that admission reads.
+	states, release, err := s.soHost.GetSOStateCtr(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	// Start from the current state: the change may already be held.
+	var previous *sobject.SOState
+	for {
+		current, err := states.WaitValueChange(ctx, previous, nil)
+		if err != nil {
+			return err
+		}
+		if !errors.Is(s.authorizeParticipants(current, remoteID), ErrAccessDenied) {
+			return errReadmitted
+		}
+		previous = current
+	}
 }
 
 // logStreamResult logs the end of a stream with remoteID. A change in the
@@ -411,7 +466,9 @@ func (s *SOSync) logStreamResult(le *logrus.Entry, remoteID peer.ID, err error) 
 	}
 }
 
-// runStream owns authentication, authorization watches, data exchange and stream cleanup.
+// runStream owns authentication, authorization watches, data exchange and
+// stream cleanup. A denial by this side's held authority, at admission or by
+// revocation, returns a *localRefusal naming the participant.
 func (s *SOSync) runStream(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -441,6 +498,10 @@ func (s *SOSync) runStream(
 		}
 	}()
 	if err != nil {
+		// Only local admission returns the remote identity with an error.
+		if remoteID != "" && errors.Is(err, ErrAccessDenied) {
+			return &localRefusal{remoteID: remoteID}
+		}
 		return err
 	}
 
@@ -464,7 +525,7 @@ func (s *SOSync) runStream(
 		strm.Close()
 		joinSyncWorkers(watcher)
 		if cause := context.Cause(ctx); errors.Is(cause, ErrAccessDenied) {
-			rerr = cause
+			rerr = &localRefusal{remoteID: remoteID}
 		}
 	}()
 
