@@ -8,6 +8,8 @@ import (
 	"errors"
 	"image/jpeg"
 	"io"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -20,6 +22,7 @@ import (
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/core/camera"
+	"github.com/s4wave/spacewave/core/checkoutroot"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/core/display"
 	"github.com/s4wave/spacewave/core/frametrack"
@@ -120,6 +123,7 @@ func TestReconciler(t *testing.T) {
 		transport.WithChildFactories(
 			func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
 			func(b bus.Bus) controller.Factory { return camera.NewFactory(b) },
+			func(b bus.Bus) controller.Factory { return checkoutroot.NewFactory(b) },
 			func(b bus.Bus) controller.Factory { return display.NewFactory(b) },
 		),
 		transport.WithInprocNetwork(network),
@@ -249,12 +253,18 @@ func TestReconciler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Place the roots.
+	// Place two host directories with the same selection name and one invalid path.
+	writableDir, readOnlyDir := t.TempDir(), t.TempDir()
+	for _, dir := range []string{writableDir, readOnlyDir} {
+		if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("original"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
 			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
-				"root-a":        checkoutRootNode("skiffos", "/srv/skiffos", "read-write"),
-				"root-b":        checkoutRootNode("skiffos", "/srv/other", "read-only"),
+				"root-a":        checkoutRootNode("skiffos", writableDir, "read-write"),
+				"root-b":        checkoutRootNode("skiffos", readOnlyDir, "read-only"),
 				"root-relative": checkoutRootNode("relative", "srv/relative", "read-only"),
 			},
 			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
@@ -266,9 +276,9 @@ func TestReconciler(t *testing.T) {
 		return err
 	})
 
-	// Require the first root to show as available, and the others as rejected.
+	// Require the first root to serve, and the others to be rejected.
 	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
-		return capabilityState(capabilities, "root-a") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE &&
+		return capabilityState(capabilities, "root-a") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE &&
 			capabilityState(capabilities, "root-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED &&
 			capabilityState(capabilities, "root-relative") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
 	})
@@ -292,6 +302,14 @@ func TestReconciler(t *testing.T) {
 		t.Fatalf("selectable relative root = %v, want none", root)
 	}
 
+	// Verify the advertised protocol accepts the account peer and refuses an outsider.
+	t.Run("CheckoutRootAdmission", func(t *testing.T) {
+		id := protocol.ID(rootCap.GetLink().GetProtocolId())
+		checkCheckoutRootAccess(t, ctx, st.GetPeerID(), viewer, id, writableDir, true)
+		refused := openFrameControl(t, ctx, st.GetPeerID(), outsider, id).GetStream()
+		checkFrameControlClosed(t, refused)
+	})
+
 	// Remove the node that keeps the skiffos root and require its capability to
 	// leave the Device, even though it is a filesystem one, and the repeated
 	// root to take over.
@@ -302,11 +320,17 @@ func TestReconciler(t *testing.T) {
 		return err
 	})
 	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
-		return capabilityState(capabilities, "root-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE
+		return capabilityState(capabilities, "root-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
 	})
 	if _, ok := capabilities[capabilityID("root-a")]; ok {
 		t.Fatal("removed checkout root node still has a capability")
 	}
+
+	// A fully specified write to the read-only root leaves the host file untouched.
+	t.Run("CheckoutRootReadOnly", func(t *testing.T) {
+		id := protocol.ID(capabilities[capabilityID("root-b")].GetLink().GetProtocolId())
+		checkCheckoutRootAccess(t, ctx, st.GetPeerID(), viewer, id, readOnlyDir, false)
+	})
 
 	// Allow the Remote Shell and leave the Camera and Display out of policy.
 	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{

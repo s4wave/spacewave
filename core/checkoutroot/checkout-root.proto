@@ -1,0 +1,14 @@
+syntax = "proto3";
+package checkoutroot;
+
+option go_package = "github.com/s4wave/spacewave/core/checkoutroot;checkoutroot";
+
+// Config serves one checkout root placed on a Device.
+message Config {
+  // CapabilityId identifies the placed node that serves the folder.
+  string capability_id = 1;
+  // Path is the absolute directory path on the Device.
+  string path = 2;
+  // Writable allows mutations through the UnixFS RPC.
+  bool writable = 3;
+}

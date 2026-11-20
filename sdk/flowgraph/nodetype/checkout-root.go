@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/checkoutroot"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
@@ -23,14 +24,11 @@ const (
 	checkoutRootAccessParameter = "access"
 	// checkoutRootReadOnly is the access parameter value of a read-only root.
 	checkoutRootReadOnly = "read-only"
-	// checkoutRootReadWrite is the access parameter value of a root that writes
-	// after approval.
+	// checkoutRootReadWrite is the access parameter value of a root that accepts writes.
 	checkoutRootReadWrite = "read-write"
 )
 
-// checkoutRoot advertises a directory of its Device as a checkout root. It runs
-// nothing, so its node reads AVAILABLE; consumers select the root through the
-// Device's capabilities.
+// checkoutRoot serves a Device directory selected through its capabilities.
 type checkoutRoot struct{}
 
 // GetDisplayName returns the name shown for the node type.
@@ -43,16 +41,21 @@ func (checkoutRoot) GetPorts() []*s4wave_flowgraph.FlowgraphPort {
 	return nil
 }
 
-// GetConfigIDs returns no config IDs, since a checkout root compiles to no
-// entries.
+// GetConfigIDs returns the configuration ID of the checkout-root controller.
 func (checkoutRoot) GetConfigIDs() []string {
-	return nil
+	return []string{checkoutroot.ConfigID}
 }
 
-// Compile validates the node's parameters and compiles to no entries.
+// Compile starts the folder's UnixFS server on the Device's Session bus.
 func (checkoutRoot) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgraphNode) (map[string]config.Config, error) {
-	_, err := checkoutRootPayload(node.Node)
-	return nil, err
+	// Load the root and access mode from the node declaration.
+	payload, err := checkoutRootPayload(node.Node)
+	if err != nil {
+		return nil, err
+	}
+
+	// Configure the controller that owns the capability's protocol.
+	return map[string]config.Config{"checkout-root": newCheckoutRootConfig(node.CapabilityID(), payload)}, nil
 }
 
 // GetCapability returns the filesystem capability that advertises the root.
@@ -73,6 +76,7 @@ func (checkoutRoot) GetCapability(
 	return &s4wave_device.DeviceCapability{
 		Kind:  s4wave_device.DeviceCapabilityKindFilesystem,
 		Label: payload.GetName() + " checkout",
+		Link:  &s4wave_device.DeviceCapabilityLink{ProtocolId: string(newCheckoutRootConfig(id, payload).ProtocolID())},
 		Policy: &s4wave_device.DeviceCapabilityPolicy{
 			LocalPolicyRef: id,
 			LocalState:     s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
@@ -84,7 +88,7 @@ func (checkoutRoot) GetCapability(
 
 // checkoutRootPayload returns the checkout root the node's parameters declare,
 // or an error naming the parameter that is missing or malformed. The root is
-// readable, and writable after approval when its access is read-write.
+// readable, and writable when its access is read-write.
 func checkoutRootPayload(node *s4wave_flowgraph.FlowgraphNode) (*s4wave_device.DeviceCheckoutRootCapability, error) {
 	// Read the parameters the declaration comes from.
 	params := node.GetParameters()
@@ -118,6 +122,15 @@ func checkoutRootPayload(node *s4wave_flowgraph.FlowgraphNode) (*s4wave_device.D
 		return nil, errors.Errorf("parameter %q must be %q or %q", checkoutRootAccessParameter, checkoutRootReadOnly, checkoutRootReadWrite)
 	}
 	return payload, nil
+}
+
+// newCheckoutRootConfig identifies a placed root and the access it serves.
+func newCheckoutRootConfig(id string, payload *s4wave_device.DeviceCheckoutRootCapability) *checkoutroot.Config {
+	return &checkoutroot.Config{
+		CapabilityId: id,
+		Path:         payload.GetDisplayPath(),
+		Writable:     s4wave_device.DeviceCheckoutRootCanWrite(payload),
+	}
 }
 
 // _ is a type assertion

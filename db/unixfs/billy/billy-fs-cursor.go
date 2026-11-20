@@ -50,6 +50,11 @@ func NewBillyFSCursor(bfs billy.Basic, path string) *BillyFSCursor {
 	return &BillyFSCursor{state: state, path: path}
 }
 
+// Clone opens an independent cursor at the same path on the shared filesystem.
+func (c *BillyFSCursor) Clone() *BillyFSCursor {
+	return &BillyFSCursor{state: c.state, path: c.path}
+}
+
 // CheckReleased checks if the fs cursor is currently released.
 func (c *BillyFSCursor) CheckReleased() bool {
 	return c.released.Load()

@@ -4,6 +4,7 @@ import (
 	"maps"
 	"testing"
 
+	"github.com/s4wave/spacewave/core/checkoutroot"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
@@ -38,6 +39,16 @@ func TestCheckoutRootCapability(t *testing.T) {
 	}
 	if !s4wave_device.DeviceCheckoutRootCanWrite(root) {
 		t.Fatalf("read-write root cannot write: %v", root)
+	}
+
+	// Require the advertised protocol to be the one the controller serves.
+	configs, err := (checkoutRoot{}).Compile(t.Context(), node)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conf := configs["checkout-root"].(*checkoutroot.Config)
+	if got.GetLink().GetProtocolId() != string(conf.ProtocolID()) {
+		t.Fatalf("advertised protocol = %q, serving %q", got.GetLink().GetProtocolId(), conf.ProtocolID())
 	}
 
 	// Reject each malformed declaration in Compile and in GetCapability.

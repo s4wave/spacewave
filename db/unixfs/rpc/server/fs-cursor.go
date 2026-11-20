@@ -21,6 +21,9 @@ import (
 // The server and client track FSCursor and CursorOps handles via integer IDs.
 // The handle IDs start at 1, a zero ID indicates nil (empty).
 type FSCursorService struct {
+	// readOnly refuses mutations to every cursor this service exposes.
+	readOnly bool
+
 	// mtx guards below fields
 	// note: mtx is only ever locked for very short periods of time.
 	// long-lived operations (like GetProxyCursor) are taken while mtx is unlocked.
@@ -103,7 +106,18 @@ func (c *fsCursorClient) enqueueChange(ch *unixfs_rpc.FSCursorChange) {
 // NOTE: The FSCursor should never be released as long as the rpc service is available.
 // Wrap your FSCursor with a unixfs.FSCursorGetter if you need to auto re-construct the root.
 func NewFSCursorService(rootCursor unixfs.FSCursor) *FSCursorService {
+	return newFSCursorService(rootCursor, false)
+}
+
+// NewReadOnlyFSCursorService exposes a cursor tree and refuses all mutation RPCs.
+func NewReadOnlyFSCursorService(rootCursor unixfs.FSCursor) *FSCursorService {
+	return newFSCursorService(rootCursor, true)
+}
+
+// newFSCursorService records the root handle and the service's access mode.
+func newFSCursorService(rootCursor unixfs.FSCursor, readOnly bool) *FSCursorService {
 	return &FSCursorService{
+		readOnly:    readOnly,
 		handleIDCtr: 2, // root cursor is id #1
 		handleIDToCursor: map[uint64]*localFSCursor{
 			1: {cursor: rootCursor},
@@ -251,6 +265,17 @@ func (f *FSCursorService) accessCursorOps(opsHandleID uint64, cb func(ops unixfs
 		err = cb(ops)
 	}
 	return unixfs_errors.NewUnixFSError(err)
+}
+
+// accessWritableCursorOps refuses a mutation before looking up any cursor handles.
+func (f *FSCursorService) accessWritableCursorOps(opsHandleID uint64, cb func(ops unixfs.FSCursorOps) error) *unixfs_errors.UnixFSError {
+	// Enforce the root's access mode for every mutation.
+	if f.readOnly {
+		return unixfs_errors.NewUnixFSError(unixfs_errors.ErrReadOnly)
+	}
+
+	// Resolve the first handle needed for the mutation.
+	return f.accessCursorOps(opsHandleID, cb)
 }
 
 // resolveFSCursorProxy gets the FSCursor proxy for a parent handle ID.
@@ -935,7 +960,7 @@ func (f *FSCursorService) OpsSetPermissions(
 	req *unixfs_rpc.OpsSetPermissionsRequest,
 ) (*unixfs_rpc.OpsSetPermissionsResponse, error) {
 	var resp unixfs_rpc.OpsSetPermissionsResponse
-	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
 		return ops.SetPermissions(ctx, fs.FileMode(req.GetFileMode()), req.GetTimestamp().AsTime())
 	})
 	return &resp, nil
@@ -977,7 +1002,7 @@ func (f *FSCursorService) OpsSetModTimestamp(
 	req *unixfs_rpc.OpsSetModTimestampRequest,
 ) (*unixfs_rpc.OpsSetModTimestampResponse, error) {
 	var resp unixfs_rpc.OpsSetModTimestampResponse
-	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
 		return ops.SetModTimestamp(ctx, req.GetModTimestamp().AsTime())
 	})
 	return &resp, nil
@@ -1035,7 +1060,7 @@ func (f *FSCursorService) OpsWriteAt(
 	req *unixfs_rpc.OpsWriteAtRequest,
 ) (*unixfs_rpc.OpsWriteAtResponse, error) {
 	var resp unixfs_rpc.OpsWriteAtResponse
-	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
 		return ops.WriteAt(ctx, req.GetOffset(), req.GetData(), req.GetTimestamp().AsTime())
 	})
 	return &resp, nil
@@ -1047,7 +1072,7 @@ func (f *FSCursorService) OpsTruncate(
 	req *unixfs_rpc.OpsTruncateRequest,
 ) (*unixfs_rpc.OpsTruncateResponse, error) {
 	var resp unixfs_rpc.OpsTruncateResponse
-	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
 		return ops.Truncate(ctx, req.GetNsize(), req.GetTimestamp().AsTime())
 	})
 	return &resp, nil
@@ -1115,7 +1140,7 @@ func (f *FSCursorService) OpsMknod(
 	req *unixfs_rpc.OpsMknodRequest,
 ) (*unixfs_rpc.OpsMknodResponse, error) {
 	var resp unixfs_rpc.OpsMknodResponse
-	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
 		return ops.Mknod(
 			ctx,
 			req.GetCheckExist(),
@@ -1134,7 +1159,7 @@ func (f *FSCursorService) OpsSymlink(
 	req *unixfs_rpc.OpsSymlinkRequest,
 ) (*unixfs_rpc.OpsSymlinkResponse, error) {
 	var resp unixfs_rpc.OpsSymlinkResponse
-	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
 		return ops.Symlink(
 			ctx,
 			req.GetCheckExist(),
@@ -1177,7 +1202,7 @@ func (f *FSCursorService) OpsCopyTo(
 
 	// access the source ops
 	var srcOps unixfs.FSCursorOps
-	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
 		srcOps = srcOpsRet
 		return nil
 	})
@@ -1206,7 +1231,7 @@ func (f *FSCursorService) OpsCopyFrom(
 
 	// access the source ops
 	var srcOps unixfs.FSCursorOps
-	resp.UnixfsError = f.accessCursorOps(req.GetSrcCursorOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetSrcCursorOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
 		srcOps = srcOpsRet
 		return nil
 	})
@@ -1235,7 +1260,7 @@ func (f *FSCursorService) OpsMoveTo(
 
 	// access the source ops
 	var srcOps unixfs.FSCursorOps
-	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
 		srcOps = srcOpsRet
 		return nil
 	})
@@ -1272,7 +1297,7 @@ func (f *FSCursorService) OpsMoveFrom(
 
 	// access the source ops
 	var srcOps unixfs.FSCursorOps
-	resp.UnixfsError = f.accessCursorOps(req.GetSrcOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetSrcOpsHandleId(), func(srcOpsRet unixfs.FSCursorOps) error {
 		srcOps = srcOpsRet
 		return nil
 	})
@@ -1297,7 +1322,7 @@ func (f *FSCursorService) OpsRemove(
 	req *unixfs_rpc.OpsRemoveRequest,
 ) (*unixfs_rpc.OpsRemoveResponse, error) {
 	var resp unixfs_rpc.OpsRemoveResponse
-	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
+	resp.UnixfsError = f.accessWritableCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
 		return ops.Remove(ctx, req.GetNames(), req.GetTimestamp().AsTime())
 	})
 	return &resp, nil
