@@ -30,9 +30,20 @@ import type {
   ListObjectsResponse,
   LookupGraphQuadsResponse,
   ObjectMetadata,
+  ListObjectsWithTypeResponse,
+  TypeCountEntry,
   WatchTypeCountsResponse,
 } from './world.pb.js'
-import type { TypeCount } from '@go/github.com/s4wave/spacewave/db/world/world.pb.js'
+
+// ListObjectsWithTypePage selects one page of a type's objects.
+export interface ListObjectsWithTypePage {
+  // startAfter resumes after this key; empty starts at the first key.
+  startAfter?: string
+  // limit bounds the page; zero lets the server choose.
+  limit?: number
+  // titles asks for each object's title beside its key.
+  titles?: boolean
+}
 
 // maxObjectBodiesRevisionRetries bounds restarts when writes land between body pages.
 const maxObjectBodiesRevisionRetries = 3
@@ -222,8 +233,22 @@ export interface IWorldState {
     limit?: number,
   ): Promise<string[]>
 
-  /** listTypeCounts returns the number of objects of each type, sorted by type ID. */
-  listTypeCounts(abortSignal?: AbortSignal): Promise<TypeCount[]>
+  /**
+   * listObjectsWithTypePage returns one page of the type's keys after
+   * startAfter, with each object's title when titles is set and the type
+   * declares titles. An empty title means the client shows the key.
+   */
+  listObjectsWithTypePage(
+    typeID: string,
+    page: ListObjectsWithTypePage,
+    abortSignal?: AbortSignal,
+  ): Promise<ListObjectsWithTypeResponse>
+
+  /**
+   * listTypeCounts returns the number of objects of each type, sorted by type
+   * ID, each marked internal when its type is bookkeeping a browser hides.
+   */
+  listTypeCounts(abortSignal?: AbortSignal): Promise<TypeCountEntry[]>
 
   /**
    * watchTypeCounts streams the type counts: every count first, then the
@@ -705,8 +730,22 @@ export class WorldStateResource extends Resource implements IWorldState {
     }
   }
 
+  /** listObjectsWithTypePage returns one page of the type's keys and titles. */
+  public async listObjectsWithTypePage(
+    typeID: string,
+    page: ListObjectsWithTypePage,
+    abortSignal?: AbortSignal,
+  ): Promise<ListObjectsWithTypeResponse> {
+    return await this.service.ListObjectsWithType(
+      { typeId: typeID, ...page },
+      abortSignal,
+    )
+  }
+
   /** listTypeCounts returns the number of objects of each type. */
-  public async listTypeCounts(abortSignal?: AbortSignal): Promise<TypeCount[]> {
+  public async listTypeCounts(
+    abortSignal?: AbortSignal,
+  ): Promise<TypeCountEntry[]> {
     const response = await this.service.ListTypeCounts({}, abortSignal)
     return response.typeCounts ?? []
   }

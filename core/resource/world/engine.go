@@ -237,10 +237,7 @@ func (r *EngineResource) WaitSeqno(ctx context.Context, req *s4wave_world.WaitSe
 
 // WatchTypeCounts streams every type count, then the counts each commit moves.
 func (r *EngineResource) WatchTypeCounts(req *s4wave_world.WatchTypeCountsRequest, strm s4wave_world.SRPCEngineResourceService_WatchTypeCountsStream) error {
-	ws := world.NewEngineWorldState(r.engine, false)
-	return world.WatchTypeCounts(strm.Context(), ws, func(seqno uint64, counts []*world.TypeCount) error {
-		return strm.Send(&s4wave_world.WatchTypeCountsResponse{TypeCounts: counts, Seqno: seqno})
-	})
+	return watchTypeCountEntries(strm.Context(), r.b, world.NewEngineWorldState(r.engine, false), strm.Send)
 }
 
 // WaitObjectRev waits for an object revision through the engine's key watch.

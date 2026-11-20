@@ -19,6 +19,12 @@ service WizardResourceService {
   rpc WatchGitCloneProgress(WatchGitCloneProgressRequest) returns (stream WatchGitCloneProgressResponse);
 }
 
+// WizardEndings is the body of the one wizard endings object of a Space. It
+// has no fields: the endings are the object's outgoing quads.
+message WizardEndings {
+  option (typeid.id) = "space/wizard-endings";
+}
+
 // WatchWizardStateRequest is the request for WatchWizardState.
 message WatchWizardStateRequest {}
 

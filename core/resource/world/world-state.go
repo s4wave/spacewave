@@ -700,24 +700,35 @@ func (r *WorldStateResource) ListObjectsWithType(ctx context.Context, req *s4wav
 	if err != nil {
 		return nil, err
 	}
-	return &s4wave_world.ListObjectsWithTypeResponse{ObjectKeys: objKeys, More: more}, nil
+	resp := &s4wave_world.ListObjectsWithTypeResponse{ObjectKeys: objKeys, More: more}
+
+	// Read the page's titles when asked and the type declares them.
+	if req.GetTitles() && len(objKeys) != 0 {
+		tr, err := lookupTypeTraits(ctx, r.b, req.GetTypeId())
+		if err != nil {
+			return nil, err
+		}
+		resp.Titles, err = objectTitles(ctx, r.ws, tr, objKeys)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return resp, nil
 }
 
 // ListTypeCounts returns the number of objects of each type.
 func (r *WorldStateResource) ListTypeCounts(ctx context.Context, req *s4wave_world.ListTypeCountsRequest) (*s4wave_world.ListTypeCountsResponse, error) {
-	counts, err := r.ws.ListTypeCounts(ctx)
+	entries, err := listTypeCountEntries(ctx, r.b, r.ws)
 	if err != nil {
 		return nil, err
 	}
-	return &s4wave_world.ListTypeCountsResponse{TypeCounts: counts}, nil
+	return &s4wave_world.ListTypeCountsResponse{TypeCounts: entries}, nil
 }
 
 // WatchTypeCounts streams every type count, then the counts each World change
 // moves.
 func (r *WorldStateResource) WatchTypeCounts(req *s4wave_world.WatchTypeCountsRequest, strm s4wave_world.SRPCWorldStateResourceService_WatchTypeCountsStream) error {
-	return world.WatchTypeCounts(strm.Context(), r.ws, func(seqno uint64, counts []*world.TypeCount) error {
-		return strm.Send(&s4wave_world.WatchTypeCountsResponse{TypeCounts: counts, Seqno: seqno})
-	})
+	return watchTypeCountEntries(strm.Context(), r.b, r.ws, strm.Send)
 }
 
 // GetObjectRootRefsBatch returns root references for object keys.

@@ -393,7 +393,7 @@ func (ws *WorldState) ListTypeCounts(ctx context.Context) ([]*world.TypeCount, e
 	if err != nil {
 		return nil, err
 	}
-	return resp.GetTypeCounts(), nil
+	return TypeCountsFromEntries(resp.GetTypeCounts()), nil
 }
 
 // GetObjectRootRefsBatch returns root references for object keys.

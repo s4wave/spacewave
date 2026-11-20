@@ -15,10 +15,6 @@ import (
 // every wizard ending as an outgoing quad.
 const WizardEndingsObjectKey = "wizard-endings"
 
-// WizardEndingsTypeID is the type of the wizard endings object. Listings hide
-// it: it holds bookkeeping, not anything a person made.
-const WizardEndingsTypeID = "space/wizard-endings"
-
 // WizardEndingPredicatePrefix prefixes the predicate of a wizard ending quad;
 // the wizard's key follows it.
 const WizardEndingPredicatePrefix = "wizard/ended/"

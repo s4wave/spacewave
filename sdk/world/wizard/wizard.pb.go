@@ -155,6 +155,18 @@ func (x IntroWizardRegion) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// WizardEndings is the body of the one wizard endings object of a Space. It
+// has no fields: the endings are the object's outgoing quads.
+type WizardEndings struct {
+	unknownFields []byte
+}
+
+func (x *WizardEndings) Reset() {
+	*x = WizardEndings{}
+}
+
+func (*WizardEndings) ProtoMessage() {}
+
 // WatchWizardStateRequest is the request for WatchWizardState.
 type WatchWizardStateRequest struct {
 	unknownFields []byte
@@ -917,6 +929,21 @@ func (x *IntroWizardCallout) GetDetail() string {
 	return ""
 }
 
+func (m *WizardEndings) CloneVT() *WizardEndings {
+	if m == nil {
+		return (*WizardEndings)(nil)
+	}
+	r := new(WizardEndings)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WizardEndings) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *WatchWizardStateRequest) CloneVT() *WatchWizardStateRequest {
 	if m == nil {
 		return (*WatchWizardStateRequest)(nil)
@@ -1288,6 +1315,23 @@ func (m *IntroWizardCallout) CloneVT() *IntroWizardCallout {
 
 func (m *IntroWizardCallout) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *WizardEndings) EqualVT(that *WizardEndings) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WizardEndings) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WizardEndings)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *WatchWizardStateRequest) EqualVT(that *WatchWizardStateRequest) bool {
@@ -1938,6 +1982,36 @@ func (x *IntroWizardRegion) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the IntroWizardRegion from JSON.
 func (x *IntroWizardRegion) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WizardEndings message to JSON.
+func (x *WizardEndings) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WizardEndings to JSON.
+func (x *WizardEndings) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WizardEndings message from JSON.
+func (x *WizardEndings) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WizardEndings from JSON.
+func (x *WizardEndings) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3198,6 +3272,38 @@ func (x *IntroWizardCallout) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *WizardEndings) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WizardEndings) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WizardEndings) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchWizardStateRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4211,6 +4317,16 @@ func (m *IntroWizardCallout) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *WizardEndings) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchWizardStateRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4516,6 +4632,16 @@ func (x GitCloneFailure) MarshalProtoText() string {
 
 func (x IntroWizardRegion) MarshalProtoText() string {
 	return x.String()
+}
+
+func (x *WizardEndings) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "WizardEndings")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WizardEndings) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *WatchWizardStateRequest) MarshalProtoText() string {
@@ -4982,6 +5108,49 @@ func (x *IntroWizardCallout) MarshalProtoText() string {
 
 func (x *IntroWizardCallout) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *WizardEndings) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WizardEndings: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WizardEndings: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *WatchWizardStateRequest) UnmarshalVT(dAtA []byte) error {

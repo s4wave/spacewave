@@ -5,10 +5,6 @@ import type { IWorldState } from '../world-state.js'
 // every wizard ending as an outgoing quad. It mirrors WizardEndingsObjectKey.
 export const WIZARD_ENDINGS_OBJECT_KEY = 'wizard-endings'
 
-// WIZARD_ENDINGS_TYPE_ID is the type of the endings object, which listings
-// hide. It mirrors WizardEndingsTypeID.
-export const WIZARD_ENDINGS_TYPE_ID = 'space/wizard-endings'
-
 // WIZARD_ENDING_PREDICATE_PREFIX starts the predicate IRI of every ending
 // quad; the wizard's key follows it.
 export const WIZARD_ENDING_PREDICATE_PREFIX = '<wizard/ended/'

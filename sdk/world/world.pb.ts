@@ -9,7 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { SOParticipantConfig } from '../../core/sobject/sobject.pb.js'
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
 import { Quad } from '../../db/block/quad/quad.pb.js'
-import { TypeCount } from '../../db/world/world.pb.js'
 
 /**
  * GraphEdgeBucketDirection indicates which edge directions to list.
@@ -1796,6 +1795,11 @@ export interface ListObjectsWithTypeRequest {
    * The server may return a shorter page and set more.
    */
   limit?: number
+  /**
+   * Titles requests the title of each returned object, as its type's body
+   * declares it.
+   */
+  titles?: boolean
 }
 
 export const ListObjectsWithTypeRequest: MessageType<ListObjectsWithTypeRequest> =
@@ -1805,6 +1809,7 @@ export const ListObjectsWithTypeRequest: MessageType<ListObjectsWithTypeRequest>
       [1, 'type_id', 9],
       [2, 'start_after', 9],
       [3, 'limit', 13],
+      [4, 'titles', 8],
     ],
   )
 
@@ -1825,6 +1830,12 @@ export interface ListObjectsWithTypeResponse {
    * Pass that key as start_after to read the next page.
    */
   more?: boolean
+  /**
+   * Titles holds the title of each object key, in the same order, when the
+   * request asked for titles and the type declares them. An empty title
+   * means the client shows the key.
+   */
+  titles?: string[]
 }
 
 export const ListObjectsWithTypeResponse: MessageType<ListObjectsWithTypeResponse> =
@@ -1833,6 +1844,40 @@ export const ListObjectsWithTypeResponse: MessageType<ListObjectsWithTypeRespons
     () => [
       [1, 'object_keys', 9, 1],
       [2, 'more', 8],
+      [3, 'titles', 9, 1],
+    ],
+  )
+
+/**
+ * TypeCountEntry is the number of objects of one type, with what the type
+ * declares about how a browser lists them.
+ *
+ * @generated from message s4wave.world.TypeCountEntry
+ */
+export interface TypeCountEntry {
+  /**
+   * TypeId is the type identifier.
+   */
+  typeId?: string
+  /**
+   * Count is the number of objects of the type; zero in a watch step means
+   * the type's last object went.
+   */
+  count?: bigint
+  /**
+   * Internal reports that the type holds bookkeeping a person did not make,
+   * so a browser hides it by default.
+   */
+  internal?: boolean
+}
+
+export const TypeCountEntry: MessageType<TypeCountEntry> =
+  /* @__PURE__ */ createMessageType<TypeCountEntry>(
+    's4wave.world.TypeCountEntry',
+    () => [
+      [1, 'type_id', 9],
+      [2, 'count', 4],
+      [3, 'internal', 8],
     ],
   )
 
@@ -1858,13 +1903,13 @@ export interface ListTypeCountsResponse {
   /**
    * TypeCounts holds each type with at least one object, sorted by type ID.
    */
-  typeCounts?: TypeCount[]
+  typeCounts?: TypeCountEntry[]
 }
 
 export const ListTypeCountsResponse: MessageType<ListTypeCountsResponse> =
   /* @__PURE__ */ createMessageType<ListTypeCountsResponse>(
     's4wave.world.ListTypeCountsResponse',
-    () => [[1, 'type_counts', 11, 1, TypeCount.codec]],
+    () => [[1, 'type_counts', 11, 1, TypeCountEntry.codec]],
   )
 
 /**
@@ -1891,7 +1936,7 @@ export interface WatchTypeCountsResponse {
   /**
    * TypeCounts holds the counts, sorted by type ID.
    */
-  typeCounts?: TypeCount[]
+  typeCounts?: TypeCountEntry[]
   /**
    * Seqno is the World seqno the counts were read at.
    */
@@ -1902,7 +1947,7 @@ export const WatchTypeCountsResponse: MessageType<WatchTypeCountsResponse> =
   /* @__PURE__ */ createMessageType<WatchTypeCountsResponse>(
     's4wave.world.WatchTypeCountsResponse',
     () => [
-      [1, 'type_counts', 11, 1, TypeCount.codec],
+      [1, 'type_counts', 11, 1, TypeCountEntry.codec],
       [2, 'seqno', 4],
     ],
   )

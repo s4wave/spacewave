@@ -476,7 +476,7 @@ func (ws *SDKWorldState) ListTypeCounts(ctx context.Context) ([]*world.TypeCount
 	if err != nil {
 		return nil, err
 	}
-	return resp.GetTypeCounts(), nil
+	return s4wave_world.TypeCountsFromEntries(resp.GetTypeCounts()), nil
 }
 
 // GetObjectRootRefsBatch returns root references for object keys.

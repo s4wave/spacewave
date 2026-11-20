@@ -7,6 +7,14 @@ import (
 	typeid "github.com/aperturerobotics/common/typeid"
 )
 
+// WizardEndingsTypeID is the type ID of WizardEndings.
+const WizardEndingsTypeID = "space/wizard-endings"
+
+// TypeID returns the type ID of WizardEndings.
+func (*WizardEndings) TypeID() string {
+	return WizardEndingsTypeID
+}
+
 // CreateWizardObjectOpTypeID is the type ID of CreateWizardObjectOp.
 const CreateWizardObjectOpTypeID = "spacewave/wizard/create"
 
@@ -25,6 +33,7 @@ func (*RecordWizardEndingOp) TypeID() string {
 
 // WizardTypes lists the typed messages of wizard.proto.
 var WizardTypes = []typeid.Type{
+	{ID: WizardEndingsTypeID, New: func() any { return new(WizardEndings) }},
 	{ID: CreateWizardObjectOpTypeID, New: func() any { return new(CreateWizardObjectOp) }},
 	{ID: RecordWizardEndingOpTypeID, New: func() any { return new(RecordWizardEndingOp) }},
 }

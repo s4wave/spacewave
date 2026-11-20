@@ -129,6 +129,20 @@ export const IntroWizardRegion_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * WizardEndings is the body of the one wizard endings object of a Space. It
+ * has no fields: the endings are the object's outgoing quads.
+ *
+ * @generated from message s4wave.wizard.WizardEndings
+ */
+export interface WizardEndings {}
+
+export const WizardEndings: MessageType<WizardEndings> =
+  /* @__PURE__ */ createMessageType<WizardEndings>(
+    's4wave.wizard.WizardEndings',
+    () => [],
+  )
+
+/**
  * WatchWizardStateRequest is the request for WatchWizardState.
  *
  * @generated from message s4wave.wizard.WatchWizardStateRequest

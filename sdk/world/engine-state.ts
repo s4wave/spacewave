@@ -8,6 +8,7 @@ import {
   Tx,
   type IWorldState,
   type ListGraphEdgeBucketsOptions,
+  type ListObjectsWithTypePage,
   type RenameObjectOptions,
   type TypedObjectAccess,
 } from './world-state.js'
@@ -23,15 +24,16 @@ import {
   type ListGraphEdgeBucketsResponse,
   type ListObjectsRequest,
   type ListObjectsResponse,
+  type ListObjectsWithTypeResponse,
   type ObjectBody,
   type ObjectMetadata,
   type SetRootRefResponse,
   type ApplyObjectOpResponse,
   type IncrementRevResponse,
   type WaitRevResponse,
+  type TypeCountEntry,
   type WatchTypeCountsResponse,
 } from './world.pb.js'
-import type { TypeCount } from '@go/github.com/s4wave/spacewave/db/world/world.pb.js'
 
 // runReadOp performs a read with a short-lived read transaction on the engine
 // owned by state.
@@ -375,8 +377,21 @@ export class EngineWorldState implements IWorldState {
     })
   }
 
+  // listObjectsWithTypePage returns one page of the type's keys and titles.
+  public async listObjectsWithTypePage(
+    typeID: string,
+    page: ListObjectsWithTypePage,
+    abortSignal?: AbortSignal,
+  ): Promise<ListObjectsWithTypeResponse> {
+    return this.performRead(abortSignal, (tx) =>
+      tx.listObjectsWithTypePage(typeID, page, abortSignal),
+    )
+  }
+
   // listTypeCounts returns the number of objects of each type.
-  public async listTypeCounts(abortSignal?: AbortSignal): Promise<TypeCount[]> {
+  public async listTypeCounts(
+    abortSignal?: AbortSignal,
+  ): Promise<TypeCountEntry[]> {
     return this.performRead(abortSignal, (tx) => tx.listTypeCounts(abortSignal))
   }
 

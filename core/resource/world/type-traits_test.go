@@ -1,0 +1,97 @@
+//go:build !js
+
+package resource_world_test
+
+import (
+	"context"
+	"slices"
+	"testing"
+
+	"github.com/aperturerobotics/starpc/srpc"
+	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/blocktype"
+	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
+	"github.com/s4wave/spacewave/db/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	s4wave_world "github.com/s4wave/spacewave/sdk/world"
+)
+
+// TestWorldStateResourceTypeTraits checks that the type count listing marks
+// internal types and that a typed listing returns the titles a type declares.
+func TestWorldStateResourceTypeTraits(t *testing.T) {
+	ctx := t.Context()
+	tb, cleanup := setupWorldTestbed(ctx, t)
+	t.Cleanup(cleanup)
+
+	// Serve the two host types; the plugin type stays unknown.
+	const pluginTypeID = "test/plugin"
+	rel, err := tb.Bus.AddController(ctx, blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
+		switch typeID {
+		case space_world.SpaceSettingsTypeID:
+			return blocktype.New[space_world.SpaceSettings](typeID), nil
+		case forge_worker.WorkerTypeID:
+			return blocktype.New[forge_worker.Worker](typeID), nil
+		}
+		return nil, nil
+	}), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(rel)
+
+	// Create one settings object, two named workers and a plugin object.
+	create := func(key, typeID string, blk block.Block) {
+		obj, _, err := world.CreateWorldObject(ctx, tb.WorldState, key, func(bcs *block.Cursor) error {
+			bcs.SetBlock(blk, true)
+			return nil
+		})
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := world_types.SetObjectType(ctx, tb.WorldState, key, typeID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	create("settings", space_world.SpaceSettingsTypeID, &space_world.SpaceSettings{})
+	create("worker/a", forge_worker.WorkerTypeID, &forge_worker.Worker{Name: "Alpha"})
+	create("worker/b", forge_worker.WorkerTypeID, &forge_worker.Worker{})
+	create("plugin/a", pluginTypeID, &space_world.SpaceSettings{})
+
+	resource := resource_world.NewWorldStateResource(nil, tb.Bus, tb.WorldState, nil)
+	client := s4wave_world.NewSRPCWorldStateResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(resource.GetMux()))))
+
+	// Only the settings type is internal.
+	counts, err := client.ListTypeCounts(ctx, &s4wave_world.ListTypeCountsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	internal := make(map[string]bool)
+	for _, e := range counts.GetTypeCounts() {
+		internal[e.GetTypeId()] = e.GetInternal()
+	}
+	if !internal[space_world.SpaceSettingsTypeID] || internal[forge_worker.WorkerTypeID] || internal[pluginTypeID] {
+		t.Fatalf("internal flags %v", internal)
+	}
+
+	// Workers carry their names; an unnamed worker shows its key.
+	list := func(typeID string, titles bool) *s4wave_world.ListObjectsWithTypeResponse {
+		resp, err := client.ListObjectsWithType(ctx, &s4wave_world.ListObjectsWithTypeRequest{TypeId: typeID, Limit: 10, Titles: titles})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return resp
+	}
+	if got := list(forge_worker.WorkerTypeID, true).GetTitles(); !slices.Equal(got, []string{"Alpha", ""}) {
+		t.Fatalf("worker titles %q", got)
+	}
+	if got := list(forge_worker.WorkerTypeID, false).GetTitles(); got != nil {
+		t.Fatalf("titles without asking: %q", got)
+	}
+	if got := list(pluginTypeID, true).GetTitles(); got != nil {
+		t.Fatalf("plugin titles %q", got)
+	}
+}

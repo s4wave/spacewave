@@ -78,7 +78,7 @@ import "embed"
 //go:embed sdk/world/types/errors.ts
 //go:embed sdk/world/types/types.ts sdk/world/utils.ts sdk/world/wizard/create-wizard.ts
 //go:embed sdk/world/wizard/wizard.pb.ts sdk/world/wizard/wizard_srpc.pb.ts sdk/world/world-query.ts
-//go:embed sdk/world/wizard/wizard-ending.ts sdk/world/world-state.ts
+//go:embed sdk/world/wizard/wizard-ending.ts sdk/world/wizard/wizard_typeid.pb.ts sdk/world/world-state.ts
 //go:embed sdk/world/world.pb.ts sdk/world/world_srpc.pb.ts
 //go:embed sdk/sync/index.ts net/peer/base58.ts
 //go:embed sdk/sync/query.ts sdk/sync/live-query.ts sdk/sync/attachment.ts sdk/sync/instance.ts sdk/sync/plugin.ts
