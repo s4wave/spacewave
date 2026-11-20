@@ -3994,7 +3994,7 @@
           ]
         },
         "github.com/s4wave/spacewave/os/image/sign": {
-          "hash": "68707b3dafaed6649ff0ab710a9223eeda5bb8b4f2220a0bef0327668bd96647",
+          "hash": "11de745aaa2e2a77002968ca90ed6d4d20804e3ffb0e37b2451e71df745a4c35",
           "generatedFiles": [
             "os/image/sign/config.pb.go",
             "os/image/sign/config.pb.ts"
