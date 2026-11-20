@@ -105,12 +105,15 @@ authorization: `good`, which differs from the image by one file, and `broken`,
 seeded by an init one byte longer than the boot set's, so its image check
 fails. In each boot that reaches a shell, the guest mounts its own disk a second
 time and runs `/workload stage` beside the console's read-only reader, then
-`reboot`. The driver requires four boots on the disk the kill trial left: the
-accepted image stages `good`; `good` boots on trial, is accepted and stages
-`broken`; `broken` boots on trial, fails and reboots; the next boot rolls it
-back and serves `good`. Each shell must still read the probe the first boot
-wrote in `/data`. It prints `REVISION_TRIAL_PASS` and exits 0 only if every
-check passes.
+`reboot`. The driver requires seven boots on the disk the kill trial left, two
+of them cut by SIGKILL to QEMU as a power cut would: the accepted image starts
+staging `good` and is cut at its first disk write; the next boot still serves
+the accepted image and stages `good`; `good` boots on trial and is cut once
+marked attempted; the next boot rolls it back and restages it, copying no
+block; `good` boots on trial, is accepted and stages `broken`; `broken` boots
+on trial, fails and reboots; the last boot rolls it back and serves `good`.
+Each shell must still read the probe the first boot wrote in `/data`. It
+prints `REVISION_TRIAL_PASS` and exits 0 only if every check passes.
 
 ## Refusal trial
 

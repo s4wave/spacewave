@@ -4,8 +4,8 @@
 # creates its data Volume, reports ready, writes and syncs a file in that
 # Volume, and closes every store on poweroff; when the kill trial then keeps
 # every acknowledged record across two SIGKILLs; when the revision trial moves
-# the guest to a staged revision and rolls a broken one back, with that file
-# intact; and when a copy whose card an unpinned signer authorized refuses to
+# the guest to a staged revision across power cuts in staging and in the trial
+# boot, and rolls a broken one back, with that file intact; and when a copy whose card an unpinned signer authorized refuses to
 # boot. Run it in the os/qemu tool image
 # with /dev/kvm, as the rehearsal Step does.
 # Usage: rehearse.sh IMAGES IMAGE INIT RECEIPT
@@ -94,8 +94,9 @@ timeout -k 30 "${REHEARSAL_TIMEOUT:-600}" python3 "$tools/kill_trial.py" \
     --accel "${ACCEL:-kvm}" --kernel "$images/bzImage" \
     --initramfs "$images/rootfs.cpio.lz4" --disk "$fixture/btrfs.img"
 
-# Stage good, boot it on trial and accept it, then stage broken and boot back
-# to good; the data Volume keeps the probe the first boot wrote.
+# Stage good across a power cut, survive a cut trial boot by rolling back and
+# restaging, accept good, then stage broken and boot back to good; the data
+# Volume keeps the probe the first boot wrote.
 timeout -k 30 "${REHEARSAL_TIMEOUT:-600}" python3 "$tools/revision_trial.py" \
     --accel "${ACCEL:-kvm}" --kernel "$images/bzImage" \
     --initramfs "$images/rootfs.cpio.lz4" --disk "$fixture/btrfs.img"
