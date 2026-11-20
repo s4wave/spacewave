@@ -1,6 +1,7 @@
 //go:build linux
 
-// Command spacewave-init boots the immutable UnixFS experiment or runs its probe.
+// Command spacewave-init boots the immutable UnixFS experiment or runs its
+// probe. On a build host it also seeds an image store and writes its card.
 package main
 
 import (
@@ -13,7 +14,9 @@ import (
 	"runtime"
 	"strconv"
 	"syscall"
+	"time"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/os/boot"
 	os_image "github.com/s4wave/spacewave/os/image"
@@ -50,6 +53,22 @@ func main() {
 			archive = os.Args[4]
 		}
 		finish(seedImage(os.Args[2], os.Args[3], archive))
+		return
+	}
+	if len(os.Args) >= 2 && os.Args[1] == "rehearsal-card" {
+		if len(os.Args) != 3 {
+			finish(errors.New("usage: spacewave-init rehearsal-card IMAGE-DIRECTORY"))
+			return
+		}
+		finish(rehearsalCard(os.Args[2]))
+		return
+	}
+	if len(os.Args) >= 2 && os.Args[1] == "install-card" {
+		if len(os.Args) != 6 {
+			finish(errors.New("usage: spacewave-init install-card IMAGE-DIRECTORY SIGNERS AUTHORIZATION GRANT"))
+			return
+		}
+		finish(installCard(os.Args[2], os.Args[3], os.Args[4], os.Args[5]))
 		return
 	}
 	if len(os.Args) >= 2 && os.Args[1] == "seed-data" {
@@ -185,8 +204,8 @@ func seedData(dir string) error {
 	return nil
 }
 
-// seedImage imports the bootstrap probe and static tools, verifies a reopen,
-// then writes a card authorizing the seeded root.
+// seedImage imports the bootstrap probe and static tools and verifies a
+// reopen. The image carries no card: a rehearsal or an install writes one.
 func seedImage(dir, busyboxPath, archivePath string) (retErr error) {
 	// Keep the seed input outside the image it will later execute.
 	path, err := os.Executable()
@@ -231,17 +250,64 @@ func seedImage(dir, busyboxPath, archivePath string) (retErr error) {
 	if _, err := file.Seek(0, 0); err != nil {
 		return err
 	}
-	if err := root.VerifyImage(context.Background(), file); err != nil {
+	return root.VerifyImage(context.Background(), file)
+}
+
+// imageRoot returns the selected root of the image store in dir.
+func imageRoot(dir string) (_ *block.BlockRef, retErr error) {
+	// Open the store read-only and keep its selected root.
+	root, err := boot.OpenRoot(context.Background(), logrus.NewEntry(logrus.New()), dir)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { retErr = errors.Join(retErr, root.Close()) }()
+	return root.ImageRoot(), nil
+}
+
+// rehearsalCard authorizes the image in dir with a throwaway key, so a
+// rehearsal boot runs the same pin and check as an installed card signed by
+// the Space owner.
+func rehearsalCard(dir string) error {
+	// Sign the selected root with a key no other image trusts.
+	root, err := imageRoot(dir)
+	if err != nil {
 		return err
 	}
-
-	// Authorize the seeded root with a throwaway key, so a rehearsal boot runs
-	// the same pin and check as an installed card signed by a Space owner.
 	_, key, _, err := peer.NewPeerWithGenerateED25519()
 	if err != nil {
 		return err
 	}
-	return os_image.WriteCard(dir, key, root.ImageRoot())
+	return os_image.WriteCard(dir, key, root)
+}
+
+// installCard writes the installable card for the image in dir: the Space's
+// signers, its bootstrap grant, and the owner's authorization, which must
+// name the image's selected root.
+func installCard(dir, signersPath, authorizationPath, grantPath string) error {
+	// Read the card inputs and the root they must authorize.
+	signers, err := os_image.ReadSigners(signersPath)
+	if err != nil {
+		return err
+	}
+	signed, err := os_image.ReadAuthorization(authorizationPath)
+	if err != nil {
+		return err
+	}
+	grant, err := os_image.ReadGrant(grantPath)
+	if err != nil {
+		return err
+	}
+	root, err := imageRoot(dir)
+	if err != nil {
+		return err
+	}
+
+	// Verify and write the card.
+	if err := os_image.InstallCard(dir, signers, signed, grant, root, time.Now()); err != nil {
+		return err
+	}
+	println("SPACEWAVE_OS_CARD_INSTALLED root=" + root.MarshalString() + " space=" + grant.GetSharedObjectId())
+	return nil
 }
 
 // finish reports a command failure and prevents a failed bootstrap continuing.

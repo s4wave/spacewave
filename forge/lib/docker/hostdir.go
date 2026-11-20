@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	forge_lib_util_inputfs "github.com/s4wave/spacewave/forge/lib/util/inputfs"
+	"github.com/sirupsen/logrus"
 )
 
 // hostDir is the private host directory holding one execution's output
@@ -21,16 +22,18 @@ type hostDir struct {
 	outputDir string
 	// mounts bind outputDir and each input checkout into the container.
 	mounts []*Mount
+	// user is the Worker's user when the container writes outputs, or nil.
+	user *ContainerUser
 }
 
 // prepareHostDir creates the host directories the configured outputs and
-// input mounts need and checks out each input. It returns nil when the config
-// needs neither. The caller removes the root of the returned directory.
+// input mounts need and checks out each input. The directory is empty, with
+// no root, when the config needs neither. The caller removes it.
 func (c *Controller) prepareHostDir(ctx context.Context) (_ *hostDir, retErr error) {
 	// Create the private root only when something is mounted from it.
 	outputs, inputMounts := c.conf.GetOutputs(), c.conf.GetInputMounts()
 	if len(outputs) == 0 && len(inputMounts) == 0 {
-		return nil, nil
+		return &hostDir{}, nil
 	}
 	root, err := os.MkdirTemp("", "forge-docker-")
 	if err != nil {
@@ -43,14 +46,15 @@ func (c *Controller) prepareHostDir(ctx context.Context) (_ *hostDir, retErr err
 	}()
 	d := &hostDir{root: root}
 
-	// Create the output directory and widen it past the process umask, so any
-	// container user can write it.
+	// Create the output directory, which the container writes as the Worker's
+	// user, so the Worker can read every output and remove what is left.
 	if len(outputs) != 0 {
-		d.outputDir = filepath.Join(root, "out")
-		if err := os.Mkdir(d.outputDir, 0o777); err != nil {
+		d.user, err = workerUser(c.conf.GetDevices())
+		if err != nil {
 			return nil, err
 		}
-		if err := os.Chmod(d.outputDir, 0o777); err != nil {
+		d.outputDir = filepath.Join(root, "out")
+		if err := os.Mkdir(d.outputDir, 0o700); err != nil {
 			return nil, err
 		}
 		d.mounts = append(d.mounts, &Mount{HostPath: d.outputDir, ContainerPath: c.conf.GetOutputDir()})
@@ -70,4 +74,15 @@ func (c *Controller) prepareHostDir(ctx context.Context) (_ *hostDir, retErr err
 		})
 	}
 	return d, nil
+}
+
+// remove deletes the root and everything under it, logging a failure, which
+// leaves only disk to reclaim.
+func (d *hostDir) remove(le *logrus.Entry) {
+	if d.root == "" {
+		return
+	}
+	if err := os.RemoveAll(d.root); err != nil {
+		le.WithError(err).Warn("remove docker host directory")
+	}
 }

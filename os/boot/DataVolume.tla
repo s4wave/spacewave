@@ -1,8 +1,11 @@
 -------------------------- MODULE DataVolume --------------------------
 EXTENDS Naturals, FiniteSets, TLC
-\* Boot Data composition, before implementation: CreateData exclusively creates
-\* a fixture; OpenData inspects format, identity, head, retention and root using
-\* a read-only s4db handle before starting normal Volume/World controllers.
+\* Boot Data composition. CreateData is EnsureData's first-boot creation: it
+\* builds and closes a complete store under a temporary name and renames it
+\* into place, so the store at its path goes from absent to valid in one step
+\* and a cut creation leaves it absent, to be created again. OpenData inspects
+\* format, identity, head, retention and root using a read-only s4db handle
+\* before starting normal Volume/World controllers.
 \* FUSE Fsync/Flush -> FSHandle.Sync -> FSWriter -> EngineTx.Commit waits for
 \* the tracked bucket publication receipt. s4db atomically commits prepared
 \* blocks, generated HeadState and retention. Large preparation spills retain
@@ -11,8 +14,8 @@ EXTENDS Naturals, FiniteSets, TLC
 \* storage: borrowedNativeVolume.Close is inert; Data.Close alone closes it
 \* after its caller stops users, releases handles and joins both controllers.
 \* Bounds: two immutable file records, two opens; one writer and one FS user.
-\* "partial" includes interruption before FsInit publishes a UnixFS root; later
-\* OpenData refuses it. modified records writes within the current open attempt.
+\* "partial" is a store left by another writer, such as an interrupted fixture
+\* seed, before FsInit published a UnixFS root; OpenData refuses it. modified records writes within the current open attempt.
 \* A failed controller cancels Data's buffered WriteAt context. Idle flush and
 \* FSHandle.Release also use that writer, even with their background contexts;
 \* they must fail rather than wait for an unavailable writer/revision watcher.
@@ -29,14 +32,14 @@ Init == /\ phase = "off" /\ kind \in {"absent", "unknown", "missing-root", "part
         /\ prepared = {} /\ durable = {} /\ retained = {}
         /\ acknowledged = {} /\ boots = 0 /\ modified = FALSE
 CreateData == /\ phase = "off" /\ kind = "absent" /\ boots = 0
-              /\ kind' = "partial" /\ modified' = TRUE /\ phase' = "opening"
-              /\ UNCHANGED <<storeOpen, volumeRun, engineRun, users, syncPhase,
-                             record, prepared, durable, retained, acknowledged, boots>>
+              /\ kind' = "valid"
+              /\ UNCHANGED <<phase, storeOpen, volumeRun, engineRun, users, syncPhase,
+                             record, prepared, durable, retained, acknowledged, boots, modified>>
 OpenData == /\ phase = "off" /\ kind = "valid" /\ boots < 2
             /\ phase' = "opening"
             /\ UNCHANGED <<kind, storeOpen, volumeRun, engineRun, users, syncPhase,
                            record, prepared, durable, retained, acknowledged, boots, modified>>
-Refuse == /\ phase = "off" /\ kind \in {"absent", "unknown", "missing-root", "partial"}
+Refuse == /\ phase = "off" /\ kind \in {"unknown", "missing-root", "partial"}
           /\ phase' = "refused"
           /\ UNCHANGED <<kind, storeOpen, volumeRun, engineRun, users, syncPhase,
                          record, prepared, durable, retained, acknowledged, boots, modified>>

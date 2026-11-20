@@ -16,8 +16,12 @@ and closes the result before printing `SPACEWAVE_OS_DATA_SEEDED`. It refuses
 existing directories, including partial creations. The existing image seed
 command is unchanged. Use the same built init to seed `/workload` and boot: the
 complete image check compares that file with the independent init executable.
-Runtime calls only `OpenRoot` and `OpenData`; unknown or incomplete stores are
-refused without reset or reseeding.
+At boot the runtime opens the image with `OpenRoot` and the data Volume with
+`EnsureData`, which creates the Volume and its key only when the data
+directory holds no store, as on first boot. Creation builds the store under a
+temporary name and renames it into place, so a cut first boot leaves no store
+or a complete one. Unknown or incomplete stores are refused without reset or
+reseeding.
 
 After preparing fresh matching kernel/initramfs/disk inputs separately, launch
 from a real terminal or PTY:
@@ -117,26 +121,52 @@ the World and sets `SPACEWAVE_OS_BOOT`, and its `extra_config_inputs` checks out
 `skiff_revision` and refuses one at another commit or with local changes, so
 the Task's reuse key covers every byte the build reads.
 
+An image Step runs `spacewave-init seed` in the `os/qemu` tool image and
+stores the image store as a UnixFS tree; the rehearsal and the install both
+read that one tree, so the root a Space owner signs is the root the rehearsal
+booted and the install writes.
+
 A boot set is offered only after a rehearsal boots it. `os/qemu/rehearse.sh`
-seeds a fresh system root and data World with the same init onto a 4 GiB Btrfs
-disk, boots the boot set on it with `run_app.py`, writes and syncs one file
-through the data Volume, and powers off. It then runs the [kill
-trial](qemu/README.md#kill-trial) on the same disk. It writes its receipt only
-when the guest printed `SPACEWAVE_OS_PASS` after closing every store and the
-kill trial kept every acknowledged record; a guest that panics or hangs fails,
-and its console is the Step's log. The rehearsal runs as
-a Docker Step in the `os/qemu` image with `/dev/kvm`. The Step's `input_mounts`
-check out the boot set, the init and the scripts read-only.
+copies the image store into a fresh system root, authorizes it with a
+throwaway signer (`spacewave-init rehearsal-card`), and writes the root at its
+content's size (`mkfs.btrfs --shrink`) onto a 4 GiB disk. It leaves the data
+Volume absent, as an install does. It boots the boot set on that disk with
+`run_app.py`; first boot grows the store to the disk, pins the signer,
+verifies the authorization, and only then creates the data Volume and its key.
+The guest writes and syncs one file through the data Volume and powers off.
+The rehearsal then runs the [kill trial](qemu/README.md#kill-trial) on the same
+disk. It writes its receipt only when the guest printed
+`SPACEWAVE_OS_BACKING_GROWN`, `SPACEWAVE_OS_DATA_CREATED` and
+`SPACEWAVE_OS_PASS`, and the kill trial kept every acknowledged record; a
+guest that panics or hangs fails, and its console is the Step's log. The
+rehearsal runs as a Docker Step in the `os/qemu` image with `/dev/kvm`. The
+Step's `input_mounts` check out the boot set, the image, the init and the
+scripts read-only.
+
+`os/qemu/install.sh` writes the installable disk. It copies the image store
+into a fresh system root and runs `spacewave-init install-card` with the
+Space's signers and bootstrap grant and the owner's authorization. The command
+refuses an authorization no listed signer made, one naming another root, and a
+grant that is unsigned, aimed at a peer, or expired. It writes the signers and
+grant before the authorization, so a cut install leaves no card that boots.
+The script writes `disk.img` at its content's size, which first boot grows to
+the disk it lands on, with no data Volume. Beside the disk it places the boot
+set's `bzImage` and `rootfs.cpio.lz4`. A QEMU guest boots the kernel directly,
+so the boot set is the VM's boot adapter and stays outside the disk.
 
 `TestSpacewaveOSRehearsal` in `sdk/forge/world` builds the QEMU board with the
-package and checks that the stored initramfs holds the init alone. A
-connection then carries the boot set to the rehearsal Step, which must pass. A
-second graph rehearses the same kernel with an initramfs that is not an
-archive, which must fail with the kernel's panic in its log. The test needs a
-SkiffOS checkout (`SPACEWAVE_SKIFFOS_DIR`), a static init
-(`SPACEWAVE_OS_INIT`), the tool image (`SPACEWAVE_QEMU_IMAGE`), the Docker CLI
-(`SPACEWAVE_DOCKER`), and a `DOCKER_HOST` whose daemon shares this host's
-filesystem.
+package and checks that the stored initramfs holds the init alone. An image
+Step seeds the image, and connections carry the boot set and the image to the
+rehearsal Step, which must pass. The test then signs the image's root with an
+owner key, as the sign Step will, and installs it. The install must succeed for
+the owner's authorization and fail with `is not pinned` for another key's. A
+last graph rehearses the same kernel with an initramfs that is not an archive,
+which must fail with the kernel's panic in its log. The test needs a SkiffOS
+checkout (`SPACEWAVE_SKIFFOS_DIR`), a static init (`SPACEWAVE_OS_INIT`), the
+tool image (`SPACEWAVE_QEMU_IMAGE`), the Docker CLI (`SPACEWAVE_DOCKER`), and a
+`DOCKER_HOST` whose daemon shares this host's filesystem. A Docker Step that
+writes outputs runs as the Worker's user, with the group of each device it
+maps, so the Worker owns what the container wrote.
 
 ## Immutable probe
 

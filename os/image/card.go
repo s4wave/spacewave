@@ -4,9 +4,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -19,10 +21,14 @@ const (
 	// CardAuthorization names the card file holding the image authorization
 	// as packedmsg text.
 	CardAuthorization = "authorization"
+	// CardGrant names the card file holding the bootstrap grant, an
+	// untargeted Space invite, as packedmsg text.
+	CardGrant = "grant"
 )
 
 // WriteCard writes the signers file and the authorization of root, signed by
-// key, into the card directory dir. The signer set is key's peer alone.
+// key, into the card directory dir. The signer set is key's peer alone, so a
+// rehearsal card trusts only the throwaway key that signed it.
 func WriteCard(dir string, key crypto.PrivKey, root *block.BlockRef) error {
 	// Sign before writing anything, so a refused root leaves no card files.
 	signed, err := SignImageRoot(key, root)
@@ -42,27 +48,100 @@ func WriteCard(dir string, key crypto.PrivKey, root *block.BlockRef) error {
 	if err := WriteSigners(filepath.Join(dir, CardSigners), []peer.ID{signer}); err != nil {
 		return err
 	}
-	return writeFileSync(filepath.Join(dir, CardAuthorization), []byte(packedmsg.EncodePackedMessage(data)+"\n"))
+	return writePacked(filepath.Join(dir, CardAuthorization), data)
+}
+
+// InstallCard writes an installable card into dir: the Space's accepted
+// signers, its bootstrap grant, and the owner's authorization of root. It
+// writes nothing unless a listed signer authorized exactly root and the grant
+// can enroll a key made on the machine, so a card that could never boot or
+// enroll is refused at install rather than at first boot. The authorization
+// is written last, so a card cut short at install authorizes nothing.
+func InstallCard(dir string, signers []peer.ID, signed *peer.SignedMsg, grant *sobject.SOInviteMessage, root *block.BlockRef, now time.Time) error {
+	// Verify the authorization against the signers the card will pin.
+	authorized, _, err := VerifyImageRoot(signed, signers)
+	if err != nil {
+		return err
+	}
+	if !authorized.EqualsRef(root) {
+		return errors.Errorf("image authorization: authorizes root %s, not the image's root %s", authorized.MarshalString(), root.MarshalString())
+	}
+
+	// Refuse a grant no Device key can redeem: forged, bound to one peer, or expired.
+	if _, err := grant.VerifyTransportPeer(); err != nil {
+		return errors.Wrap(err, "bootstrap grant")
+	}
+	if grant.GetTargetPeerId() != "" {
+		return errors.Errorf("bootstrap grant: bound to peer %s, but each Device makes its own key", grant.GetTargetPeerId())
+	}
+	if expires := grant.GetExpiresAt(); expires != nil && !expires.AsTime().After(now) {
+		return errors.Errorf("bootstrap grant: expired at %s", expires.AsTime().Format(time.RFC3339))
+	}
+
+	// Write the signers and the grant, then the authorization.
+	grantData, err := grant.MarshalVT()
+	if err != nil {
+		return err
+	}
+	signedData, err := signed.MarshalVT()
+	if err != nil {
+		return err
+	}
+	if err := WriteSigners(filepath.Join(dir, CardSigners), signers); err != nil {
+		return err
+	}
+	if err := writePacked(filepath.Join(dir, CardGrant), grantData); err != nil {
+		return err
+	}
+	return writePacked(filepath.Join(dir, CardAuthorization), signedData)
 }
 
 // ReadAuthorization reads the packedmsg image authorization at path.
 func ReadAuthorization(path string) (*peer.SignedMsg, error) {
-	// Decode the packed text, which carries its own checksum.
-	text, err := os.ReadFile(path) //nolint:gosec // The boot reads its own card.
+	// Decode the packed text; the caller verifies the signed message.
+	data, err := readPacked(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "image authorization")
 	}
-	data, ok := packedmsg.DecodePackedMessage(strings.TrimSpace(string(text)))
-	if !ok {
-		return nil, errors.New("image authorization: not a packed message")
-	}
-
-	// Unmarshal the signed message; the caller verifies it.
 	signed, err := peer.UnmarshalSignedMsg(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "image authorization")
 	}
 	return signed, nil
+}
+
+// ReadGrant reads the packedmsg bootstrap grant at path. The caller verifies
+// it before presenting it.
+func ReadGrant(path string) (*sobject.SOInviteMessage, error) {
+	// Decode the packed text into the invite message.
+	data, err := readPacked(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "bootstrap grant")
+	}
+	grant := &sobject.SOInviteMessage{}
+	if err := grant.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "bootstrap grant")
+	}
+	return grant, nil
+}
+
+// readPacked reads the packedmsg text at path and returns its message bytes.
+func readPacked(path string) ([]byte, error) {
+	// Decode the packed text, which carries its own checksum.
+	text, err := os.ReadFile(path) //nolint:gosec // The boot and install read their own card.
+	if err != nil {
+		return nil, err
+	}
+	data, ok := packedmsg.DecodePackedMessage(strings.TrimSpace(string(text)))
+	if !ok {
+		return nil, errors.New("not a packed message")
+	}
+	return data, nil
+}
+
+// writePacked writes data to path as one line of packedmsg text.
+func writePacked(path string, data []byte) error {
+	return writeFileSync(path, []byte(packedmsg.EncodePackedMessage(data)+"\n"))
 }
 
 // ReadSigners reads a signers file: one peer ID per line, at least one.

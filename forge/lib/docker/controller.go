@@ -3,7 +3,6 @@ package forge_lib_docker
 import (
 	"bytes"
 	"context"
-	"os"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -91,18 +90,7 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 	if err != nil {
 		return errors.Wrap(err, "prepare docker host directory")
 	}
-	var (
-		mounts    []*Mount
-		outputDir string
-	)
-	if hd != nil {
-		mounts, outputDir = hd.mounts, hd.outputDir
-		defer func() {
-			if err := os.RemoveAll(hd.root); err != nil {
-				c.le.WithError(err).Warn("remove docker host directory")
-			}
-		}()
-	}
+	defer hd.remove(c.le)
 
 	// Debit a deterministic runtime name and launch the container under it.
 	// Reserve waits while the Worker admits no work. A drain that fences the
@@ -116,7 +104,7 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 		if err != nil {
 			return errors.Wrap(err, "reserve docker capacity")
 		}
-		ctr, err = c.launch(ctx, grant, mounts)
+		ctr, err = c.launch(ctx, grant, hd)
 		if !errors.Is(err, forge_runtime.ErrCapacityDraining) {
 			break
 		}
@@ -166,15 +154,15 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 	if status != 0 {
 		return errors.Errorf("docker container exited with status %d", status)
 	}
-	return c.storeOutputs(ctx, outputDir)
+	return c.storeOutputs(ctx, hd.outputDir)
 }
 
 // launch creates and starts the container under the reservation's runtime name.
-func (c *Controller) launch(ctx context.Context, grant Reservation, mounts []*Mount) (*Container, error) {
+func (c *Controller) launch(ctx context.Context, grant Reservation, hd *hostDir) (*Container, error) {
 	var ctr *Container
 	err := grant.Launch(ctx, func(name string) error {
 		var err error
-		ctr, err = CreateContainer(ctx, c.runner, c.conf, name, mounts)
+		ctr, err = CreateContainer(ctx, c.runner, c.conf, name, hd.mounts, hd.user)
 		if err != nil {
 			return err
 		}

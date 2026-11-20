@@ -59,13 +59,16 @@ export interface Config {
   memoryBytes?: bigint
   /**
    * OutputDir is the container directory where the command writes outputs.
-   * Each file named after an entry in outputs becomes that output after a zero
-   * exit. Required when outputs is set.
+   * Each entry named after an output becomes that output after a zero exit: a
+   * file becomes a blob and a directory a UnixFS tree, whose symbolic links are
+   * skipped. A container that writes outputs runs as the Worker's user and
+   * group, with each device's group added, so the Worker owns every output.
+   * Required when outputs is set.
    */
   outputDir?: string
   /**
    * Outputs lists the output names the command may write to output_dir.
-   * A file absent after exit leaves its output unset.
+   * An entry absent after exit leaves its output unset.
    */
   outputs?: string[]
   /**

@@ -1,12 +1,15 @@
-// Package forge_lib_util_inputfs reads a Forge input that holds a UnixFS tree.
+// Package forge_lib_util_inputfs reads a Forge input that holds a UnixFS tree,
+// and stores a directory as such a tree for an output.
 package forge_lib_util_inputfs
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
@@ -104,4 +107,33 @@ func CheckoutAll(
 		}
 		return nil
 	})
+}
+
+// StoreDir writes the directory dir as a UnixFS tree into the Execution's
+// World stage and returns its root, the value an output carries and a later
+// input checks out. File contents stream through the blob builder. Symbolic
+// links are skipped, never followed, so a tree written by a container cannot
+// reach a host file; dir itself must be a directory, not a link.
+func StoreDir(ctx context.Context, handle forge_target.ExecControllerHandle, dir string) (*block.BlockRef, error) {
+	// Refuse a missing directory or a link in its place.
+	if info, err := os.Lstat(dir); err != nil || !info.IsDir() {
+		if err == nil {
+			err = errors.Errorf("is %s, not a directory", info.Mode().Type())
+		}
+		return nil, errors.Wrap(err, dir)
+	}
+
+	// Build the tree under the Execution's World stage and write it.
+	var root *block.BlockRef
+	err := handle.AccessStorage(ctx, nil, func(cs *bucket_lookup.Cursor) error {
+		// Import the directory, then write its blocks and keep the root.
+		btx, bcs := cs.BuildTransactionAtRef(nil, nil)
+		if err := unixfs_block.CreateFromFS(ctx, bcs, os.DirFS(dir), handle.GetTimestamp()); err != nil {
+			return err
+		}
+		var err error
+		root, _, err = btx.Write(ctx, true)
+		return err
+	})
+	return root, err
 }

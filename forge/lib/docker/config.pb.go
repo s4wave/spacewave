@@ -44,11 +44,14 @@ type Config struct {
 	// MemoryBytes is the memory requested by this target in bytes.
 	MemoryBytes uint64 `protobuf:"varint,10,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memoryBytes,omitempty"`
 	// OutputDir is the container directory where the command writes outputs.
-	// Each file named after an entry in outputs becomes that output after a zero
-	// exit. Required when outputs is set.
+	// Each entry named after an output becomes that output after a zero exit: a
+	// file becomes a blob and a directory a UnixFS tree, whose symbolic links are
+	// skipped. A container that writes outputs runs as the Worker's user and
+	// group, with each device's group added, so the Worker owns every output.
+	// Required when outputs is set.
 	OutputDir string `protobuf:"bytes,11,opt,name=output_dir,json=outputDir,proto3" json:"outputDir,omitempty"`
 	// Outputs lists the output names the command may write to output_dir.
-	// A file absent after exit leaves its output unset.
+	// An entry absent after exit leaves its output unset.
 	Outputs []string `protobuf:"bytes,12,rep,name=outputs,proto3" json:"outputs,omitempty"`
 	// Entrypoint replaces the image's entrypoint when set: its first entry is
 	// the executable and the rest are placed before command.

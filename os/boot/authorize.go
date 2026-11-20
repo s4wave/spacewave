@@ -40,8 +40,9 @@ func AuthorizedRoot(card, data string) (*block.BlockRef, error) {
 }
 
 // PinSigners returns the signers pinned in the data directory, first copying
-// them from the card when the data directory holds none. The copy is synced
-// and renamed into place, so a power cut leaves no pin or the whole pin.
+// them from the card when the data directory holds none, and creating that
+// directory on first boot. The copy is synced and renamed into place, so a
+// power cut leaves no pin or the whole pin.
 func PinSigners(card, data string) ([]peer.ID, error) {
 	// Return an existing pin; the card's signers no longer matter.
 	path := filepath.Join(data, pinnedSigners)
@@ -56,6 +57,9 @@ func PinSigners(card, data string) ([]peer.ID, error) {
 	// First boot: pin the card's signers.
 	signers, err := os_image.ReadSigners(filepath.Join(card, os_image.CardSigners))
 	if err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(data, 0o700); err != nil {
 		return nil, err
 	}
 	if err := os_image.WriteSigners(path, signers); err != nil {

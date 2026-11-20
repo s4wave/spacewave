@@ -37,6 +37,8 @@ const (
 	dataHeadStore = "os-data"
 	// dataRootKey selects the writable UnixFS object, separate from the image.
 	dataRootKey = "os/data"
+	// dataStore names the data Volume's database file in its directory.
+	dataStore = "data.s4wave"
 )
 
 // Data owns a writable UnixFS, its controllers and its physical s4db Volume.
@@ -78,7 +80,63 @@ func CreateData(ctx context.Context, le *logrus.Entry, dir string) (*Data, error
 		return nil, err
 	}
 
-	return openData(ctx, le, dir, true)
+	return openData(ctx, le, filepath.Join(dir, dataStore), true)
+}
+
+// EnsureData opens the data filesystem in the existing directory dir, first
+// creating it when dir holds no store, as on a machine's first boot. Creation
+// makes the Volume's key on this machine. It builds and closes the store under
+// a temporary name and renames it into place, so a power cut leaves either no
+// store, which the next boot creates again, or a complete one. An existing
+// store opens as OpenData opens it and is never recreated.
+func EnsureData(ctx context.Context, le *logrus.Entry, dir string) (*Data, error) {
+	// Create the store only when its file is absent.
+	path := filepath.Join(dir, dataStore)
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		if err := createDataStore(ctx, le, path); err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	// Open the complete store exactly as a later boot does.
+	return OpenData(ctx, le, dir)
+}
+
+// createDataStore builds a complete data store and renames it to path. A
+// temporary store left by an interrupted creation was never opened for use and
+// its key never left the machine, so it is removed and built again.
+func createDataStore(ctx context.Context, le *logrus.Entry, path string) error {
+	// Build the store under its temporary name.
+	tmp := path + ".creating"
+	if err := os.Remove(tmp); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	d, err := openData(ctx, le, tmp, true)
+	if err != nil {
+		return err
+	}
+	if err := d.Close(); err != nil {
+		return err
+	}
+
+	// Rename the closed store into place and sync the directory entry.
+	if err := os.Rename(tmp, path); err != nil {
+		return err
+	}
+	dir, err := os.Open(filepath.Dir(path))
+	if err != nil {
+		return err
+	}
+	err = dir.Sync()
+	if closeErr := dir.Close(); err == nil {
+		err = closeErr
+	}
+	if err == nil {
+		println("SPACEWAVE_OS_DATA_CREATED path=" + path)
+	}
+	return err
 }
 
 // OpenData opens an existing, supported data filesystem. Read-only inspection
@@ -88,15 +146,17 @@ func CreateData(ctx context.Context, le *logrus.Entry, dir string) (*Data, error
 // The disposable fixture has one boot process and must not be replaced during open.
 func OpenData(ctx context.Context, le *logrus.Entry, dir string) (*Data, error) {
 	// Preserve unsupported storage before invoking a constructor with write access.
-	if err := inspectData(ctx, le, filepath.Join(dir, "data.s4wave")); err != nil {
+	path := filepath.Join(dir, dataStore)
+	if err := inspectData(ctx, le, path); err != nil {
 		return nil, err
 	}
 
-	return openData(ctx, le, dir, false)
+	return openData(ctx, le, path, false)
 }
 
-// openData composes native storage, a tracked bucket and a persisted World engine.
-func openData(ctx context.Context, le *logrus.Entry, dir string, create bool) (_ *Data, retErr error) {
+// openData composes the native store at path, a tracked bucket and a persisted
+// World engine.
+func openData(ctx context.Context, le *logrus.Entry, path string, create bool) (_ *Data, retErr error) {
 	// Keep physical Close solely in Data, including partially initialized opens.
 	writeCtx, stopWrites := context.WithCancelCause(context.WithoutCancel(ctx))
 	d := &Data{stopped: make(chan error, 2), writeCtx: writeCtx, stopWrites: stopWrites}
@@ -107,7 +167,7 @@ func openData(ctx context.Context, le *logrus.Entry, dir string, create bool) (_
 	}()
 	var err error
 	d.volume, err = volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{
-		Path:          filepath.Join(dir, "data.s4wave"),
+		Path:          path,
 		NoGenerateKey: !create, NoWriteKey: !create,
 	})
 	if err != nil {

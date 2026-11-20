@@ -21,7 +21,10 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v6"
 	"github.com/pierrec/lz4/v4"
+	"github.com/sirupsen/logrus"
 
+	"github.com/s4wave/spacewave/bldr/util/packedmsg"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -39,6 +42,10 @@ import (
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	target_json "github.com/s4wave/spacewave/forge/target/json"
 	forge_task "github.com/s4wave/spacewave/forge/task"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/os/boot"
+	os_image "github.com/s4wave/spacewave/os/image"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	flowgraph_run "github.com/s4wave/spacewave/sdk/flowgraph/run"
@@ -83,9 +90,12 @@ func TestSkiffOSFlowgraph(t *testing.T) {
 
 // TestSpacewaveOSRehearsal builds the QEMU board with the spacewave/os package
 // from a Flowgraph Step whose boot input is a World object, checks that the
-// boot set's initramfs holds spacewave-init alone, and rehearses it: a Docker
-// Step boots the boot set in QEMU with a freshly seeded system root and passes
-// only when the guest writes its data Volume and stops cleanly. A second run
+// boot set's initramfs holds spacewave-init alone, and rehearses it: an image
+// Step seeds the image store, and a Docker Step boots the boot set in QEMU on
+// that store and passes only when the guest grows its disk, creates and
+// writes its data Volume, and stops cleanly. The test then signs the image's
+// root as the Space owner and installs it: the install Step writes the disk
+// for the owner's authorization and refuses one from another key. A last run
 // rehearses a boot set whose initramfs is not an archive, which must fail with
 // the guest's console kept in the Execution log.
 // SPACEWAVE_OS_INIT names the static spacewave-init executable,
@@ -120,7 +130,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	})
 	f.storeTree("os/skiff", os.DirFS(filepath.Join(osDir, "skiff")))
 	tools := fstest.MapFS{}
-	for _, name := range []string{"rehearse.sh", "run_app.py", "kill_trial.py"} {
+	for _, name := range []string{"rehearse.sh", "install.sh", "run_app.py", "kill_trial.py"} {
 		data, err := os.ReadFile(filepath.Join(osDir, "qemu", name))
 		if err != nil {
 			t.Fatal(err)
@@ -135,15 +145,15 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	conf.InputEnv = map[string]string{"boot": "SPACEWAVE_OS_BOOT"}
 	build := f.stepNode(forge_lib_skiffos.ControllerID, conf, forge_lib_skiffos.OutputImages, true)
 	build.Step.Target.Inputs = []*forge_target.Input{worldObjectInput("boot", "os/boot"), worldObjectInput("configs", "os/skiff")}
+	seed := f.imageNode(image, dockerPath)
 	rehearse := f.rehearsalNode(image, dockerPath)
-	rehearse.Ports = append(rehearse.Ports, &s4wave_flowgraph.FlowgraphPort{
-		Name: forge_lib_skiffos.OutputImages, Direction: s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT, TypeId: "activation",
-	})
+	rehearse.Ports = append(rehearse.Ports, inputPort(forge_lib_skiffos.OutputImages), inputPort(osImage))
 	f.storeGraph("flowgraph/spacewave-os", "Spacewave OS build and rehearsal", map[string]*s4wave_flowgraph.FlowgraphNode{
-		"build": build, "rehearse": rehearse,
-	}, map[string]*s4wave_flowgraph.FlowgraphConnection{"boot-set": {
-		OutputNode: "build", OutputPort: forge_lib_skiffos.OutputImages, InputNode: "rehearse", InputPort: forge_lib_skiffos.OutputImages,
-	}})
+		"build": build, "image": seed, "rehearse": rehearse,
+	}, map[string]*s4wave_flowgraph.FlowgraphConnection{
+		"boot-set": {OutputNode: "build", OutputPort: forge_lib_skiffos.OutputImages, InputNode: "rehearse", InputPort: forge_lib_skiffos.OutputImages},
+		"image":    {OutputNode: "image", OutputPort: osImage, InputNode: "rehearse", InputPort: osImage},
+	})
 
 	// The boot set's initramfs holds exactly spacewave-init's archive.
 	f.startRun("flowgraph-run/spacewave-os", "flowgraph/spacewave-os")
@@ -154,7 +164,8 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		t.Fatalf("initramfs entries %v, want %v", names, want)
 	}
 
-	// The rehearsal boots it, writes the data Volume, stops cleanly and survives the kill trial.
+	// The rehearsal boots it on the image, grows the store, creates and writes
+	// the data Volume, stops cleanly and survives the kill trial.
 	rehearsed, failure := f.waitDone("flowgraph-run/spacewave-os", "rehearse")
 	if failure != "" {
 		t.Fatalf("rehearsal failed: %s\n%s", failure, f.executionLog(rehearsed))
@@ -163,10 +174,57 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		t.Fatalf("rehearsal receipt=%v err=%v", value, err)
 	}
 	console := f.executionLog(rehearsed)
-	for _, line := range []string{"SPACEWAVE_OS_PINNED signers=", "SPACEWAVE_OS_AUTHORIZED signer=", "SPACEWAVE_OS_CONSOLE_READY pid=", "SPACEWAVE_OS_REHEARSAL_WROTE", "SPACEWAVE_OS_PASS", "KILL_TRIAL_PASS"} {
+	for _, line := range []string{
+		"SPACEWAVE_OS_BACKING_GROWN path=", "SPACEWAVE_OS_PINNED signers=", "SPACEWAVE_OS_AUTHORIZED signer=",
+		"SPACEWAVE_OS_DATA_CREATED path=", "SPACEWAVE_OS_CONSOLE_READY pid=", "SPACEWAVE_OS_REHEARSAL_WROTE",
+		"SPACEWAVE_OS_PASS", "KILL_TRIAL_PASS",
+	} {
 		if !strings.Contains(console, line) {
 			t.Fatalf("rehearsal console lacks %q:\n%s", line, console)
 		}
+	}
+
+	// Keep the rehearsed boot set and image as World objects, sign the image's
+	// root as the Space owner, and install it.
+	imageTree := f.taskTree(f.waitTask("flowgraph-run/spacewave-os", "image", true), osImage)
+	f.storeRef("os/images", images)
+	f.storeRef("os/image", imageTree)
+	root := f.imageRoot(imageTree)
+	_, owner, _, err := peer.NewPeerWithGenerateED25519()
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.storeCard("os/card", owner)
+	f.storeAuthorization("os/authorization", owner, root)
+	installed, failure := f.install("owner", image, dockerPath, "os/authorization")
+	if failure != "" {
+		t.Fatalf("install failed: %s\n%s", failure, f.executionLog(installed))
+	}
+	if log := f.executionLog(installed); !strings.Contains(log, "SPACEWAVE_OS_CARD_INSTALLED root="+root.MarshalString()) {
+		t.Fatalf("install log lacks the image root %s:\n%s", root.MarshalString(), log)
+	}
+	disk := f.taskTree(installed, "installed")
+	f.openTree(disk, func(bfs billy.Filesystem) error {
+		for _, name := range []string{"disk.img", "bzImage", "rootfs.cpio.lz4"} {
+			if _, err := bfs.Stat(name); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	// An authorization from a key the card does not name installs nothing.
+	_, stranger, _, err := peer.NewPeerWithGenerateED25519()
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.storeAuthorization("os/authorization-stranger", stranger, root)
+	refused, failure := f.install("stranger", image, dockerPath, "os/authorization-stranger")
+	if failure == "" {
+		t.Fatal("install accepted an authorization from an unpinned key")
+	}
+	if log := f.executionLog(refused); !strings.Contains(log, "is not pinned") {
+		t.Fatalf("refused install log lacks the pin failure:\n%s", log)
 	}
 
 	// A boot set whose initramfs is no archive fails, keeping the console.
@@ -175,7 +233,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		"rootfs.cpio.lz4": {Data: []byte("not an initramfs\n"), Mode: 0o644},
 	})
 	broken := f.rehearsalNode(image, dockerPath)
-	broken.Step.Target.Inputs = append(broken.Step.Target.Inputs, worldObjectInput(forge_lib_skiffos.OutputImages, "os/broken-images"))
+	broken.Step.Target.Inputs = append(broken.Step.Target.Inputs, worldObjectInput(forge_lib_skiffos.OutputImages, "os/broken-images"), worldObjectInput(osImage, "os/image"))
 	f.storeGraph("flowgraph/spacewave-os-broken", "Spacewave OS broken rehearsal", map[string]*s4wave_flowgraph.FlowgraphNode{"rehearse": broken}, nil)
 	f.startRun("flowgraph-run/spacewave-os-broken", "flowgraph/spacewave-os-broken")
 	failed, failure := f.waitDone("flowgraph-run/spacewave-os-broken", "rehearse")
@@ -185,24 +243,141 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	if console := f.executionLog(failed); !strings.Contains(console, "Kernel panic") {
 		t.Fatalf("failed rehearsal log lacks the guest's panic:\n%s", console)
 	}
-	t.Logf("boot set %s rehearsed by %s; broken boot set failed: %s", images.MarshalString(), rehearsed, failure)
+	t.Logf("boot set %s rehearsed by %s and installed by %s; broken boot set failed: %s", images.MarshalString(), rehearsed, installed, failure)
+}
+
+// osImage names the image Step's output, the image store, and the input
+// that reads it.
+const osImage = "image"
+
+// dockerConfig returns a Docker Step config for the os/qemu tool image that
+// mounts the named inputs, runs command and writes output under /outputs.
+func dockerConfig(image, dockerPath, output string, inputMounts map[string]string, command ...string) *forge_lib_docker.Config {
+	return &forge_lib_docker.Config{
+		DockerPath: dockerPath, DockerEnv: map[string]string{"DOCKER_HOST": os.Getenv("DOCKER_HOST")},
+		Image: image, NetworkMode: "none",
+		MilliCpu: 1000, MemoryBytes: 2 << 30, StopTimeoutSeconds: 45,
+		InputMounts: inputMounts, Command: command,
+		OutputDir: "/outputs", Outputs: []string{output},
+	}
+}
+
+// imageNode returns a Step that seeds an image store with os/boot's init and
+// the tool image's static busybox.
+func (f *flowgraphFixture) imageNode(image, dockerPath string) *s4wave_flowgraph.FlowgraphNode {
+	conf := dockerConfig(image, dockerPath, osImage, map[string]string{"boot": "/boot-input"},
+		"/boot-input/init", "seed", "/outputs/"+osImage, "/bin/busybox")
+	node := f.stepNode(forge_lib_docker.ControllerID, conf, osImage, false)
+	node.Step.Target.Inputs = []*forge_target.Input{worldObjectInput("boot", "os/boot")}
+	return node
 }
 
 // rehearsalNode returns a Step that rehearses the boot set on its images
-// input with os/boot's init and the os/qemu-tools scripts, in QEMU under the
-// Docker image.
+// input and the image store on its image input with os/boot's init and the
+// os/qemu-tools scripts, in QEMU under the Docker image.
 func (f *flowgraphFixture) rehearsalNode(image, dockerPath string) *s4wave_flowgraph.FlowgraphNode {
-	conf := &forge_lib_docker.Config{
-		DockerPath: dockerPath, DockerEnv: map[string]string{"DOCKER_HOST": os.Getenv("DOCKER_HOST")},
-		Image: image, NetworkMode: "none", Devices: []string{"/dev/kvm:/dev/kvm:rw"},
-		MilliCpu: 1000, MemoryBytes: 2 << 30, StopTimeoutSeconds: 45,
-		InputMounts: map[string]string{forge_lib_skiffos.OutputImages: "/images", "boot": "/boot-input", "tools": "/tools"},
-		Command:     []string{"sh", "/tools/rehearse.sh", "/images", "/boot-input/init", "/outputs/rehearsed"},
-		OutputDir:   "/outputs", Outputs: []string{"rehearsed"},
-	}
+	conf := dockerConfig(image, dockerPath, "rehearsed",
+		map[string]string{forge_lib_skiffos.OutputImages: "/images", osImage: "/image", "boot": "/boot-input", "tools": "/tools"},
+		"sh", "/tools/rehearse.sh", "/images", "/image", "/boot-input/init", "/outputs/rehearsed")
+	conf.Devices = []string{"/dev/kvm:/dev/kvm:rw"}
 	node := f.stepNode(forge_lib_docker.ControllerID, conf, "rehearsed", false)
 	node.Step.Target.Inputs = []*forge_target.Input{worldObjectInput("boot", "os/boot"), worldObjectInput("tools", "os/qemu-tools")}
 	return node
+}
+
+// install runs a graph whose one Step installs the os/image store with the
+// os/card and the authorization object, beside the os/images boot set, and
+// returns its Task and failure.
+func (f *flowgraphFixture) install(name, image, dockerPath, authorization string) (string, string) {
+	conf := dockerConfig(image, dockerPath, "installed", map[string]string{
+		forge_lib_skiffos.OutputImages: "/images", osImage: "/image", "boot": "/boot-input",
+		"tools": "/tools", "card": "/card", "authorization": "/authorization",
+	}, "sh", "/tools/install.sh", "/images", "/image", "/boot-input/init", "/card", "/authorization", "/outputs/installed")
+	node := f.stepNode(forge_lib_docker.ControllerID, conf, "installed", false)
+	node.Step.Target.Inputs = []*forge_target.Input{
+		worldObjectInput(forge_lib_skiffos.OutputImages, "os/images"), worldObjectInput(osImage, "os/image"),
+		worldObjectInput("boot", "os/boot"), worldObjectInput("tools", "os/qemu-tools"),
+		worldObjectInput("card", "os/card"), worldObjectInput("authorization", authorization),
+	}
+	graph, run := "flowgraph/spacewave-os-install-"+name, "flowgraph-run/spacewave-os-install-"+name
+	f.storeGraph(graph, "Spacewave OS install "+name, map[string]*s4wave_flowgraph.FlowgraphNode{"install": node}, nil)
+	f.startRun(run, graph)
+	return f.waitDone(run, "install")
+}
+
+// imageRoot returns the selected root of the image store in the tree at root.
+func (f *flowgraphFixture) imageRoot(tree *block.BlockRef) *block.BlockRef {
+	// Copy the store file out of the tree, streaming it.
+	dir := f.t.TempDir()
+	f.openTree(tree, func(bfs billy.Filesystem) error {
+		src, err := bfs.Open("image.s4wave")
+		if err != nil {
+			return err
+		}
+		defer src.Close()
+		dst, err := os.Create(filepath.Join(dir, "image.s4wave"))
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(dst, src)
+		return errors.Join(err, dst.Close())
+	})
+
+	// Open it read-only, as the boot does, and keep its selected root.
+	opened, err := boot.OpenRoot(f.ctx, logrus.NewEntry(logrus.New()), dir)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	root := opened.ImageRoot()
+	if err := opened.Close(); err != nil {
+		f.t.Fatal(err)
+	}
+	return root
+}
+
+// storeCard stores a card naming owner as the only signer, with a one-use
+// writer grant on a Space owner signs.
+func (f *flowgraphFixture) storeCard(key string, owner crypto.PrivKey) {
+	ownerID, err := peer.IDFromPrivateKey(owner)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	grant, _, err := sobject.BuildSOInviteMessage("os-rehearsal-space", owner, "local", &sobject.SOInvite{
+		Role: sobject.SOParticipantRole_SOParticipantRole_WRITER, MaxUses: 1,
+		ExpiresAt: timestamp.New(time.Now().Add(time.Hour)),
+	})
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	f.storeTree(key, fstest.MapFS{
+		os_image.CardSigners: {Data: []byte(ownerID.String() + "\n"), Mode: 0o644},
+		os_image.CardGrant:   {Data: f.packed(grant), Mode: 0o644},
+	})
+}
+
+// storeAuthorization stores signer's authorization of the image root.
+func (f *flowgraphFixture) storeAuthorization(key string, signer crypto.PrivKey, root *block.BlockRef) {
+	signed, err := os_image.SignImageRoot(signer, root)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	f.storeTree(key, fstest.MapFS{os_image.CardAuthorization: {Data: f.packed(signed), Mode: 0o644}})
+}
+
+// packed returns msg as one line of packedmsg text.
+func (f *flowgraphFixture) packed(msg interface{ MarshalVT() ([]byte, error) }) []byte {
+	data, err := msg.MarshalVT()
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return []byte(packedmsg.EncodePackedMessage(data) + "\n")
+}
+
+// inputPort returns an input port named name that activates on its connection.
+func inputPort(name string) *s4wave_flowgraph.FlowgraphPort {
+	return &s4wave_flowgraph.FlowgraphPort{
+		Name: name, Direction: s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT, TypeId: "activation",
+	}
 }
 
 // worldObjectInput binds the input name to the World object key.
@@ -345,6 +520,24 @@ func (f *flowgraphFixture) storeTree(key string, fsys fs.FS) {
 		world.ReleaseObjectState(obj)
 		return err
 	})
+}
+
+// storeRef creates the World object key rooted at the stored tree root.
+func (f *flowgraphFixture) storeRef(key string, root *block.BlockRef) {
+	f.transact(func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{RootRef: root})
+		world.ReleaseObjectState(obj)
+		return err
+	})
+}
+
+// taskTree returns the tree root the Task stored as its output name.
+func (f *flowgraphFixture) taskTree(taskKey, name string) *block.BlockRef {
+	value, err := forge_task.ResolveOutput(f.ctx, f.tb.WorldState, taskKey, name)
+	if err != nil || value.GetBlockRef().GetEmpty() {
+		f.t.Fatalf("output %s=%v err=%v", name, value, err)
+	}
+	return value.GetBlockRef()
 }
 
 // openTree calls fn with the UnixFS tree at root as a read-only billy

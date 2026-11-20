@@ -16,9 +16,20 @@ func BuildDockerEnv(conf *Config) []string {
 	return env
 }
 
+// ContainerUser is the numeric user, group and supplementary groups a
+// container runs as.
+type ContainerUser struct {
+	// UID is the user ID.
+	UID int
+	// GID is the primary group ID.
+	GID int
+	// Groups are the supplementary group IDs.
+	Groups []int
+}
+
 // buildCreateArgs renders the docker create invocation for the config.
-// mounts follow the config's own bind mounts.
-func buildCreateArgs(conf *Config, runtimeName string, mounts []*Mount) []string {
+// mounts follow the config's own bind mounts; a nil user keeps the image's.
+func buildCreateArgs(conf *Config, runtimeName string, mounts []*Mount, user *ContainerUser) []string {
 	// Select the container creation command and reserved runtime name.
 	args := []string{"create"}
 	if runtimeName != "" {
@@ -38,6 +49,12 @@ func buildCreateArgs(conf *Config, runtimeName string, mounts []*Mount) []string
 	}
 	for _, device := range conf.GetDevices() {
 		args = append(args, "--device", device)
+	}
+	if user != nil {
+		args = append(args, "--user", strconv.Itoa(user.UID)+":"+strconv.Itoa(user.GID))
+		for _, gid := range user.Groups {
+			args = append(args, "--group-add", strconv.Itoa(gid))
+		}
 	}
 
 	// Apply the container working directory, environment, and bind mounts.

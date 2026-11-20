@@ -6,9 +6,22 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
+
+// btrfsIocResize is BTRFS_IOC_RESIZE, _IOW(0x94, 3, struct btrfs_ioctl_vol_args).
+const btrfsIocResize = 0x50009403
+
+// btrfsVolArgs is struct btrfs_ioctl_vol_args.
+type btrfsVolArgs struct {
+	// fd is unused by resize.
+	fd int64
+	// name holds the NUL-terminated resize amount.
+	name [4088]byte
+}
 
 // PrepareBackingStore loads at most sixteen matching, dependency-ordered kernel
 // modules from this experiment's initramfs, then optionally mounts /dev/vda.
@@ -56,6 +69,9 @@ func PrepareBackingStore(persistent, configuration bool) error {
 		return err
 	}
 	println("SPACEWAVE_OS_BACKING_MOUNTED device=/dev/vda fs=btrfs")
+	if err := growBackingStore("/store"); err != nil {
+		return err
+	}
 
 	// Configuration uses a distinct raw disk and native data Volume.
 	if configuration {
@@ -67,5 +83,35 @@ func PrepareBackingStore(persistent, configuration bool) error {
 		}
 		println("SPACEWAVE_OS_BACKING_MOUNTED device=/dev/vdb fs=btrfs")
 	}
+	return nil
+}
+
+// growBackingStore grows the Btrfs filesystem mounted at path to fill its
+// device, so an image written at its content's size fills the disk it was
+// installed on. A filesystem that already fills its device is unchanged, so
+// every boot runs it.
+func growBackingStore(path string) error {
+	// Resize the mounted filesystem's first device to its maximum.
+	dir, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	args := &btrfsVolArgs{}
+	copy(args.name[:], "max")
+	_, _, errno := unix.Syscall(unix.SYS_IOCTL, dir.Fd(), btrfsIocResize, uintptr(unsafe.Pointer(args))) //nolint:gosec // A fixed-size ioctl argument.
+	err = dir.Close()
+	if errno != 0 {
+		return errors.Join(errors.New("grow "+path), errno)
+	}
+	if err != nil {
+		return err
+	}
+
+	// Report the size the data Volume's reserve sees.
+	var st unix.Statfs_t
+	if err := unix.Statfs(path, &st); err != nil {
+		return err
+	}
+	println("SPACEWAVE_OS_BACKING_GROWN path=" + path + " bytes=" + strconv.FormatUint(st.Blocks*uint64(st.Bsize), 10)) //nolint:gosec // Bsize is positive.
 	return nil
 }

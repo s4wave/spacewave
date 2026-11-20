@@ -24,11 +24,12 @@ type Container struct {
 
 // CreateContainer creates a stopped container for conf named name, which may
 // be empty to let Docker choose. mounts follow conf's own mounts, such as
-// the host directories the controller prepared for outputs and inputs.
-func CreateContainer(ctx context.Context, runner DockerRunner, conf *Config, name string, mounts []*Mount) (*Container, error) {
+// the host directories the controller prepared for outputs and inputs, and
+// user, when set, replaces the image's user.
+func CreateContainer(ctx context.Context, runner DockerRunner, conf *Config, name string, mounts []*Mount, user *ContainerUser) (*Container, error) {
 	// Create the container through the CLI the config selects.
 	c := OpenContainer(runner, conf, "")
-	out, err := c.runner.Run(ctx, c.path, buildCreateArgs(conf, name, mounts), c.env)
+	out, err := c.runner.Run(ctx, c.path, buildCreateArgs(conf, name, mounts, user), c.env)
 	if err != nil {
 		return nil, errors.Wrap(err, "docker create")
 	}

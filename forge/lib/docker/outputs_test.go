@@ -2,6 +2,7 @@ package forge_lib_docker
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -10,6 +11,11 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
+	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
@@ -119,6 +125,54 @@ func TestExecuteStoresWrittenOutput(t *testing.T) {
 	}
 	if string(data) != "/srv/flag" {
 		t.Fatalf("output data = %q", data)
+	}
+}
+
+// TestExecuteStoresDirectoryOutput stores a directory output as a UnixFS tree
+// that holds its files and skips a link the container planted to a host file.
+func TestExecuteStoresDirectoryOutput(t *testing.T) {
+	// Write a directory with one file and a link to a host file.
+	ctrl, handle := newOutputsController(t, func(dir string) error {
+		out := filepath.Join(dir, "present")
+		if err := os.MkdirAll(filepath.Join(out, "sub"), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(out, "sub", "file"), []byte("tree"), 0o644); err != nil {
+			return err
+		}
+		return os.Symlink("/etc/passwd", filepath.Join(out, "leak"))
+	})
+	if err := ctrl.Execute(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if len(handle.outputs) != 1 || handle.outputs[0].GetName() != "present" {
+		t.Fatalf("outputs = %v, want only present", handle.outputs)
+	}
+
+	// Read the stored tree: the file is present and the link is not.
+	ctx := t.Context()
+	err := handle.AccessStorage(ctx, nil, func(cs *bucket_lookup.Cursor) error {
+		treeCs := cs.Clone()
+		treeCs.SetRootRef(handle.outputs[0].GetBlockRef())
+		tree := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, treeCs, nil)
+		root, err := unixfs.NewFSHandle(tree)
+		if err != nil {
+			tree.Release()
+			return err
+		}
+		defer root.Release()
+		files := unixfs_iofs.NewFS(ctx, root)
+		data, err := fs.ReadFile(files, "sub/file")
+		if err != nil || string(data) != "tree" {
+			t.Fatalf("sub/file = %q, %v", data, err)
+		}
+		if _, err := fs.Stat(files, "leak"); err == nil {
+			t.Fatal("stored the link to a host file")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

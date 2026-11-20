@@ -33,12 +33,13 @@ func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
 	}
 
 	// Compare the Docker create arguments with their explicit configuration.
-	got := buildCreateArgs(conf, "", nil)
+	got := buildCreateArgs(conf, "", nil, &ContainerUser{UID: 1000, GID: 1000, Groups: []int{993}})
 	want := []string{
 		"create",
 		"--cpus", "1.5", "--memory", "1073741824",
 		"--network", "host",
 		"--device", "/dev/kvm:/dev/kvm:rw",
+		"--user", "1000:1000", "--group-add", "993",
 		"--workdir", "/work/repo",
 		"--env", "ALPHA=one",
 		"--env", "BETA=two",

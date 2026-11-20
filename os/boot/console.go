@@ -18,10 +18,11 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// RunConsole composes a verified read-only system image, an existing writable
-// Data filesystems and kernel mounts for one trusted serial shell in guest PID1.
-// Backing stores and init's runtime remain outside the served roots. It never
-// creates, resets or migrates a fixture. Hosted probes keep their separate Run.
+// RunConsole composes a verified read-only system image, a writable Data
+// filesystem and kernel mounts for one trusted serial shell in guest PID1.
+// Backing stores and init's runtime remain outside the served roots. First
+// boot creates the data Volume, and so its key, once the image verifies; it
+// never resets or migrates a store. Hosted probes keep their separate Run.
 // Native comparison access, when requested, exposes only /store/native-bench at
 // /tmp/native-bench; that existing private folder must not hold database files.
 // Closing shutdown requests ordered cleanup while healthy FUSE remains live;
@@ -32,9 +33,9 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 		return errors.New("console requires actual guest PID1; use probe for hosted checks")
 	}
 	if system == "" || data == "" {
-		return errors.New("console requires existing SPACEWAVE_OS_STORE and SPACEWAVE_OS_DATA directories")
+		return errors.New("console requires SPACEWAVE_OS_STORE and SPACEWAVE_OS_DATA directories")
 	}
-	println("Starting console: opening existing system and data files.")
+	println("Starting console: opening system and data files.")
 
 	// Retain independent bootstrap paths; never remove a tree after failed unmount.
 	base, err := os.MkdirTemp("/tmp", "spacewave-console-")
@@ -98,8 +99,8 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 	}
 	println("SPACEWAVE_OS_FROZEN")
 
-	// Open only an existing supported data store and retain physical Close here.
-	d, err := OpenData(ctx, le, data)
+	// Open the data store, creating it on first boot, and retain physical Close here.
+	d, err := EnsureData(ctx, le, data)
 	if err != nil {
 		return err
 	}

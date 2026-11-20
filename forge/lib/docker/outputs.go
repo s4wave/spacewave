@@ -8,13 +8,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
+	forge_lib_util_inputfs "github.com/s4wave/spacewave/forge/lib/util/inputfs"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
-// storeOutputs stores each declared output file in dir as a blob and sets it
-// as the output of that name. An absent file leaves its output unset; a file
-// that is not regular or exceeds block.MaxBlockSize fails the execution.
+// storeOutputs stores each declared output in dir and sets it as the output of
+// that name: a regular file as a blob, a directory as a UnixFS tree. An absent
+// entry leaves its output unset; any other entry, or a file over
+// block.MaxBlockSize, fails the execution.
 func (c *Controller) storeOutputs(ctx context.Context, dir string) error {
 	var values forge_value.ValueSlice
 	for _, name := range c.conf.GetOutputs() {
@@ -33,7 +35,8 @@ func (c *Controller) storeOutputs(ctx context.Context, dir string) error {
 	return c.handle.SetOutputs(ctx, values, false)
 }
 
-// storeOutput stores one output file, returning nil when it is absent.
+// storeOutput stores one output file or directory, returning nil when it is
+// absent.
 func (c *Controller) storeOutput(ctx context.Context, path string) (*forge_value.Value, error) {
 	// Inspect the entry without following a link the container may have planted.
 	info, err := os.Lstat(path)
@@ -42,6 +45,13 @@ func (c *Controller) storeOutput(ctx context.Context, path string) (*forge_value
 	}
 	if err != nil {
 		return nil, err
+	}
+	if info.IsDir() {
+		root, err := forge_lib_util_inputfs.StoreDir(ctx, c.handle, path)
+		if err != nil {
+			return nil, err
+		}
+		return forge_value.NewValueWithBlockRef("", root), nil
 	}
 	if !info.Mode().IsRegular() {
 		return nil, errors.Errorf("is %s, not a regular file", info.Mode().Type())

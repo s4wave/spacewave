@@ -14,9 +14,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	forge_lib_util_inputfs "github.com/s4wave/spacewave/forge/lib/util/inputfs"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
@@ -120,7 +117,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// Store the boot set as a UnixFS directory in the World.
 	imagesDir := filepath.Join(wsDir, "images")
-	root, err := c.storeImages(ctx, imagesDir)
+	root, err := forge_lib_util_inputfs.StoreDir(ctx, c.handle, imagesDir)
 	if err != nil {
 		return errors.Wrap(err, "store images")
 	}
@@ -183,32 +180,6 @@ func checkRevision(ctx context.Context, dir, rev string) error {
 		return errors.Errorf("SkiffOS checkout has local changes:\n%s", status)
 	}
 	return nil
-}
-
-// storeImages writes the directory as a UnixFS tree into the World's bucket
-// and returns its root. File contents stream through the blob builder.
-func (c *Controller) storeImages(ctx context.Context, dir string) (*block.BlockRef, error) {
-	// Refuse a build that produced no images directory.
-	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
-		if err == nil {
-			err = errors.New("not a directory")
-		}
-		return nil, errors.Wrap(err, dir)
-	}
-
-	// Build the tree under the Execution's World stage and write it.
-	var root *block.BlockRef
-	err := c.handle.AccessStorage(ctx, nil, func(cs *bucket_lookup.Cursor) error {
-		// Stream the directory into a new tree, then write its blocks.
-		btx, bcs := cs.BuildTransactionAtRef(nil, nil)
-		err := unixfs_block.CreateFromFS(ctx, bcs, os.DirFS(dir), c.handle.GetTimestamp())
-		if err != nil {
-			return err
-		}
-		root, _, err = btx.Write(ctx, true)
-		return err
-	})
-	return root, err
 }
 
 // readLogTail returns the end of the build log.
