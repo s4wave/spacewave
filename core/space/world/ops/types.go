@@ -8,6 +8,7 @@ import (
 	forge_task_ops "github.com/s4wave/spacewave/core/forge/task"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	forge_world "github.com/s4wave/spacewave/forge/world"
+	s4wave_camera "github.com/s4wave/spacewave/sdk/camera"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
@@ -27,6 +28,7 @@ var Types = slices.Concat(
 	s4wave_flowgraph.FlowgraphTypes,
 	s4wave_org.OrgTypes,
 	s4wave_terminal.TerminalTypes,
+	s4wave_camera.CameraTypes,
 	s4wave_vm.V86Types,
 	forge_world.Types,
 	forge_dashboard.DashboardTypes,

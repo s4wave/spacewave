@@ -1,0 +1,57 @@
+syntax = "proto3";
+package s4wave.camera;
+
+import "google/protobuf/timestamp.proto";
+import "github.com/aperturerobotics/common/typeid/typeid.proto";
+import "github.com/s4wave/spacewave/sdk/device/device.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/camera;s4wave_camera";
+
+// Camera is the world-block state for a camera a Device serves. It names the
+// Device object and the capability, not the Device's peer, so the viewer
+// follows the Device through re-enrollment.
+message Camera {
+  option (typeid.id) = "spacewave/camera";
+
+  // Name is the display name for this camera.
+  string name = 1;
+  // DeviceObjectKey is the Device object that serves the camera.
+  string device_object_key = 2;
+  // CapabilityId is the ID of the Device capability that serves the camera.
+  string capability_id = 3;
+  // CreatedAt is when this Camera object was created.
+  .google.protobuf.Timestamp created_at = 4;
+}
+
+// CreateCameraOp creates a Camera world object.
+message CreateCameraOp {
+  option (typeid.id) = "spacewave/camera/create";
+
+  // ObjectKey is the key to create the Camera at.
+  string object_key = 1;
+  // Name is the Camera display name.
+  string name = 2;
+  // DeviceObjectKey is the Device object that serves the camera.
+  string device_object_key = 3;
+  // CapabilityId is the ID of the Device capability that serves the camera.
+  string capability_id = 4;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 5;
+}
+
+service CameraResourceService {
+  rpc WatchCamera(WatchCameraRequest) returns (stream WatchCameraResponse);
+}
+
+// WatchCameraRequest is a request to watch a Camera and its Device.
+message WatchCameraRequest {}
+
+// WatchCameraResponse is the Camera and its Device's availability, sent
+// whole on each change.
+message WatchCameraResponse {
+  // Camera is the Camera block state.
+  Camera camera = 1;
+  // Device is the Camera's Device and its reachability from the viewer's
+  // Session.
+  .s4wave.device.DeviceAvailability device = 2;
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Retry is offered while the Device is offline",
+    "replace": [["\\/ b = \"retryTrack\" /\\ device = \"online\" /\\ track = \"failed\"", "\\/ b = \"retryTrack\" /\\ track = \"failed\""], ["/\\ device' = \"offline\"\n  /\\ track' = \"none\"", "/\\ device' = \"offline\"\n  /\\ track' = IF track = \"failed\" THEN \"failed\" ELSE \"none\""]],
+    "expect": "NoTrackWhileOffline",
+    "config": "FrameViewer-camera.cfg"
+  },
+  {
+    "name": "A Device that leaves keeps its track",
+    "replace": [["/\\ device' = \"offline\"\n  /\\ track' = \"none\"", "/\\ device' = \"offline\"\n  /\\ UNCHANGED track"]],
+    "expect": "NoTrackWhileOffline",
+    "config": "FrameViewer-camera.cfg"
+  },
+  {
+    "name": "Input is offered on a held picture",
+    "replace": [["(IF Input /\\ track = \"live\" THEN {\"control\"} ELSE {})", "(IF Input /\\ track \\in {\"live\", \"stalled\"} THEN {\"control\"} ELSE {})"], ["\\/ b = \"control\" /\\ Input /\\ track = \"live\"", "\\/ b = \"control\" /\\ Input /\\ track \\in {\"live\", \"stalled\"}"]],
+    "expect": "InputOnlyLive",
+    "config": "FrameViewer-display.cfg"
+  },
+  {
+    "name": "A stalled track names no wait",
+    "replace": [["    [] track = \"stalled\" -> \"Paused: last picture held until frames resume\"\n", ""]],
+    "expect": "NobodyIsStuck",
+    "config": "FrameViewer-camera.cfg"
+  }
+]

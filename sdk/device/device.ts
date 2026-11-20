@@ -23,6 +23,7 @@ export const DeviceTypeID = 'spacewave/device'
 export const DeviceCapabilityKindFilesystem = 'filesystem'
 export const DeviceCapabilityKindForgeWorker = 'forge-worker'
 export const DeviceCapabilityKindRemoteShell = 'remote-shell'
+export const DeviceCapabilityKindCamera = 'camera'
 
 // isDeviceSelectable reports whether a Device can be presented as a target by
 // Forge or a workflow builder.

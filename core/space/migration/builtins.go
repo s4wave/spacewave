@@ -13,6 +13,8 @@ import (
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_appconnector "github.com/s4wave/spacewave/sdk/appconnector"
 	s4wave_appconnector_world "github.com/s4wave/spacewave/sdk/appconnector/world"
+	s4wave_camera "github.com/s4wave/spacewave/sdk/camera"
+	s4wave_camera_world "github.com/s4wave/spacewave/sdk/camera/world"
 	s4wave_canvas_world "github.com/s4wave/spacewave/sdk/canvas/world"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	spacewave_chat_world "github.com/s4wave/spacewave/sdk/chat/world"
@@ -61,6 +63,7 @@ func BuiltInRegistry() (*Registry, error) {
 		NewSchemaHandler(s4wave_flowgraph.FlowgraphRunTypeID, ClassificationRewrite, true, false, false, true, false, inspectFlowgraphRun, rewriteFlowgraphRun),
 		NewSchemaRefusalHandler(s4wave_device.ComputersDashboardTypeID, ClassificationExternalRef, "device dashboard payload is external and not admitted for rewrite"),
 		NewSchemaHandler(s4wave_terminal.TerminalTypeID, ClassificationRewrite, true, false, false, false, false, inspectTerminal, rewriteTerminal),
+		NewSchemaHandler(s4wave_camera.CameraTypeID, ClassificationRewrite, true, false, false, false, false, inspectCamera, rewriteCamera),
 		NewSchemaHandler(s4wave_sshhost.SshHostTypeID, ClassificationRewrite, true, false, false, false, false, inspectSSHHost, rewriteSSHHost),
 		NewSchemaHandler(s4wave_appconnector.AppConnectorTypeID, ClassificationRewrite, true, false, false, false, false, inspectAppConnector, rewriteAppConnector),
 		NewSchemaHandler(s4wave_appconnector.AppSnapshotTypeID, ClassificationRewrite, false, false, false, false, false, inspectAppSnapshot, rewriteAppSnapshot),
@@ -85,6 +88,7 @@ var (
 	_ = s4wave_org_world.OrganizationType
 	_ = s4wave_device_world.DeviceType
 	_ = s4wave_terminal_world.TerminalType
+	_ = s4wave_camera_world.CameraType
 	_ = s4wave_sshhost_world.SshHostType
 	_ = s4wave_appconnector_world.AppConnectorType
 	_ = s4wave_vm_world.VmV86Type

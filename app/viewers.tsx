@@ -354,6 +354,17 @@ const productObjectViewers: ObjectViewerComponent[] = [
     ),
   },
   {
+    componentID: 'spacewave.camera.viewer',
+    typeID: 'spacewave/camera',
+    name: 'Camera',
+    category: 'Devices',
+    component: lazy(() =>
+      import('@s4wave/app/camera/CameraViewer.js').then((module) => ({
+        default: module.CameraViewer,
+      })),
+    ),
+  },
+  {
     componentID: 'spacewave.wizard.add-device',
     typeID: 'wizard/device/add',
     name: 'Add Device',

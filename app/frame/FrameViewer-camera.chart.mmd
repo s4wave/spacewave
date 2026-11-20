@@ -1,0 +1,38 @@
+---
+title: "Frame viewer: handle, Device and frame track"
+---
+stateDiagram-v2
+  s0: Opening
+  s1: Could not open, Retry shown
+  s2: Device offline, reconnects on return
+  s3: Connecting to the Device
+  s4: Track failed, Retry shown
+  s5: Waiting for the first picture
+  s6: Live picture
+  s7: Last picture held, paused
+  [*] --> s0
+  s0 --> s1: handle fails
+  s0 --> s2: handle opens
+  s0 --> s3: handle opens
+  s1 --> s0: presses Retry
+  s2 --> s1: handle fails
+  s2 --> s3: Device returns
+  s3 --> s1: handle fails
+  s3 --> s2: Device goes offline
+  s3 --> s4: track refused or broken
+  s3 --> s5: track opens
+  s4 --> s1: handle fails
+  s4 --> s2: Device goes offline
+  s4 --> s3: presses Retry
+  s5 --> s1: handle fails
+  s5 --> s2: Device goes offline
+  s5 --> s4: track refused or broken
+  s5 --> s6: first keyframe decodes
+  s6 --> s1: handle fails
+  s6 --> s2: Device goes offline
+  s6 --> s4: track refused or broken
+  s6 --> s7: no frames for a second
+  s7 --> s1: handle fails
+  s7 --> s2: Device goes offline
+  s7 --> s4: track refused or broken
+  s7 --> s6: frames resume

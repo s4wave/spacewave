@@ -28,6 +28,10 @@ const TerminalViewerDebug = debugPage(
   () => import('@s4wave/app/debug/terminal/TerminalViewerDebug.js'),
   'TerminalViewerDebug',
 )
+const CameraViewerDebug = debugPage(
+  () => import('@s4wave/app/debug/camera/CameraViewerDebug.js'),
+  'CameraViewerDebug',
+)
 const DeviceCapabilityDebug = debugPage(
   () => import('@s4wave/app/debug/device/DeviceCapabilityDebug.js'),
   'DeviceCapabilityDebug',
@@ -272,6 +276,12 @@ const debugRouteEntries = [
     element: <TerminalViewerDebug />,
   },
   {
+    path: '/debug/ui/camera',
+    title: 'Camera',
+    description: 'Open a camera in one state; add /offline, /stalled...',
+    element: <CameraViewerDebug />,
+  },
+  {
     path: '/debug/ui/device-capabilities',
     title: 'Device capabilities',
     description: 'Open the capability table; add /empty.',
@@ -364,6 +374,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/terminal/:state">
       <TerminalViewerDebug />
+    </Route>
+    <Route path="/debug/ui/camera/:state">
+      <CameraViewerDebug />
     </Route>
     <Route path="/debug/ui/device-capabilities/:state">
       <DeviceCapabilityDebug />

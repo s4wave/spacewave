@@ -56,7 +56,31 @@ type PlacedFlowgraphNode struct {
 
 // CapabilityID returns the ID of the Device capability that shows the node.
 func (n *PlacedFlowgraphNode) CapabilityID() string {
-	return s4wave_device.DeviceCapabilityKindFlowgraphNode + "/" + n.FlowgraphKey + "/" + n.NodeID
+	return NodeCapabilityID(n.FlowgraphKey, n.NodeID)
+}
+
+// NodeCapabilityID returns the ID of the Device capability that shows the node
+// nodeID of the Flowgraph at flowgraphKey.
+func NodeCapabilityID(flowgraphKey, nodeID string) string {
+	return s4wave_device.DeviceCapabilityKindFlowgraphNode + "/" + flowgraphKey + "/" + nodeID
+}
+
+// ParseNodeCapabilityID splits a placed node's capability ID into the
+// Flowgraph key and the node ID. A node ID holds no slash, so it follows the
+// last one. ok is false when id does not belong to a placed node.
+func ParseNodeCapabilityID(id string) (flowgraphKey, nodeID string, ok bool) {
+	// Strip the placed node kind prefix.
+	rest, found := strings.CutPrefix(id, s4wave_device.DeviceCapabilityKindFlowgraphNode+"/")
+	if !found {
+		return "", "", false
+	}
+
+	// Split at the last slash, requiring both parts.
+	idx := strings.LastIndexByte(rest, '/')
+	if idx <= 0 || idx == len(rest)-1 {
+		return "", "", false
+	}
+	return rest[:idx], rest[idx+1:], true
 }
 
 // IsNodeCapabilityID reports whether a Device capability ID belongs to a

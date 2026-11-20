@@ -4142,6 +4142,20 @@
             "sdk/bucket/lookup/lookup.proto"
           ]
         },
+        "github.com/s4wave/spacewave/sdk/camera": {
+          "hash": "663305308d981eca76efe92417b1445b5d340de0d21fdf1a93a840974cf597b7",
+          "generatedFiles": [
+            "sdk/camera/camera.pb.go",
+            "sdk/camera/camera.pb.ts",
+            "sdk/camera/camera_srpc.pb.go",
+            "sdk/camera/camera_srpc.pb.ts",
+            "sdk/camera/camera_typeid.pb.go",
+            "sdk/camera/camera_typeid.pb.ts"
+          ],
+          "protoFiles": [
+            "sdk/camera/camera.proto"
+          ]
+        },
         "github.com/s4wave/spacewave/sdk/canvas": {
           "hash": "e582e680a6a98d26b3f735bdd7d4976b4203352df77b9d10a2b079f30f069bd6",
           "generatedFiles": [

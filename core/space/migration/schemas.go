@@ -25,6 +25,7 @@ import (
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_appconnector "github.com/s4wave/spacewave/sdk/appconnector"
+	s4wave_camera "github.com/s4wave/spacewave/sdk/camera"
 	s4wave_canvas "github.com/s4wave/spacewave/sdk/canvas"
 	s4wave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
@@ -164,6 +165,14 @@ func inspectTerminal(ctx context.Context, object *ObjectDescriptor) (*Inspection
 		return nil, errors.Wrap(err, "decode Terminal payload")
 	}
 	return inspectTerminalPayload(terminal)
+}
+
+func inspectCamera(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
+	camera, err := world.LookupObjectBody[s4wave_camera.Camera](ctx, object.World, object.ObjectKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode Camera payload")
+	}
+	return inspectCameraPayload(camera), nil
 }
 
 func inspectSSHHost(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
@@ -452,6 +461,30 @@ func inspectTerminalPayload(terminal *s4wave_terminal.Terminal) (*Inspection, er
 		out.References = append(out.References, TypedReference{Kind: ReferenceExternal, Value: terminal.GetDevicePeerId()})
 	}
 	return out, nil
+}
+
+// inspectCameraPayload collects the Camera's Device and, when the capability
+// is a placed Flowgraph node, the Flowgraph it names. Any other capability ID
+// is disclosed as an external reference.
+func inspectCameraPayload(camera *s4wave_camera.Camera) *Inspection {
+	// Start a Camera inspection when the payload exists.
+	out := &Inspection{}
+	if camera == nil {
+		return out
+	}
+
+	// Collect the Device and the capability's Flowgraph.
+	if camera.GetDeviceObjectKey() != "" {
+		out.References = append(out.References, TypedReference{Kind: ReferenceObjectKey, Value: camera.GetDeviceObjectKey()})
+	}
+	if capabilityID := camera.GetCapabilityId(); capabilityID != "" {
+		if flowgraphKey, _, ok := s4wave_flowgraph.ParseNodeCapabilityID(capabilityID); ok {
+			out.References = append(out.References, TypedReference{Kind: ReferenceObjectKey, Value: flowgraphKey})
+		} else {
+			out.References = append(out.References, TypedReference{Kind: ReferenceExternal, Value: capabilityID})
+		}
+	}
+	return out
 }
 
 func inspectAppConnectorPayload(conn *s4wave_appconnector.AppConnector) (*Inspection, error) {
@@ -1057,6 +1090,37 @@ func rewriteAppSnapshot(ctx context.Context, object *ObjectDescriptor, mapping *
 		return nil, errors.Wrap(err, "marshal AppSnapshot payload")
 	}
 	return &RewriteResult{Payload: data}, nil
+}
+
+func rewriteCamera(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {
+	// Decode and require the Camera payload for rewriting.
+	camera, err := world.LookupObjectBody[s4wave_camera.Camera](ctx, object.World, object.ObjectKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode Camera payload")
+	}
+	if camera == nil {
+		return nil, errors.Wrap(ErrPayloadSchemaRefused, "Camera payload is missing")
+	}
+
+	// Remap the Device and the Flowgraph inside a placed node's capability ID.
+	camera.DeviceObjectKey, err = remapObjectKey(mapping, camera.DeviceObjectKey)
+	if err != nil {
+		return nil, err
+	}
+	if flowgraphKey, nodeID, ok := s4wave_flowgraph.ParseNodeCapabilityID(camera.CapabilityId); ok {
+		flowgraphKey, err = remapObjectKey(mapping, flowgraphKey)
+		if err != nil {
+			return nil, err
+		}
+		camera.CapabilityId = s4wave_flowgraph.NodeCapabilityID(flowgraphKey, nodeID)
+	}
+
+	// Serialize the rewritten Camera payload with its references.
+	data, err := camera.MarshalVT()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal Camera payload")
+	}
+	return &RewriteResult{Payload: data, References: inspectCameraPayload(camera).References}, nil
 }
 
 func rewriteSSHHost(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {

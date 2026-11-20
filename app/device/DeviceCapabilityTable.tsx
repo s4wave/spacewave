@@ -7,8 +7,6 @@ import {
 import { type ListItem, useListState } from '@s4wave/web/ui/list'
 import { Table, type TableColumn } from '@s4wave/web/ui/table/Table.js'
 
-import { isOpenableTerminalCapability } from './terminal-action.js'
-
 // capabilityColumns are the capability table's columns: the capability, its
 // state, which shows from 16rem, and its detail, which sheds first.
 const capabilityColumns: TableColumn<DeviceCapability>[] = [
@@ -33,14 +31,15 @@ const capabilityColumns: TableColumn<DeviceCapability>[] = [
 
 // DeviceCapabilityTable lists a device's declared capabilities under a
 // section row with their count, as a table that stops at 30rem so a row
-// reads from its name to its state across a wide pane. Opening an openable
-// terminal capability's row calls onOpenTerminal; other rows only select.
+// reads from its name to its state across a wide pane. Opening rows calls
+// onOpenCapability with the first opened capability, and the caller opens
+// what that capability's kind serves; rows it cannot open only select.
 export function DeviceCapabilityTable({
   capabilities,
-  onOpenTerminal,
+  onOpenCapability,
 }: {
   capabilities: DeviceCapability[]
-  onOpenTerminal?: () => void
+  onOpenCapability?: (capability: DeviceCapability) => void
 }) {
   // The table's selection and sort, kept with the viewer.
   const state = useListState(null, 'deviceCapabilities', {
@@ -58,16 +57,13 @@ export function DeviceCapabilityTable({
     [capabilities],
   )
 
-  // Opening rows opens the terminal when one of them can open it.
+  // Opening rows hands the first opened capability to the caller.
   const handleOpen = useCallback(
     (opened: ListItem<DeviceCapability>[]) => {
-      if (
-        opened.some((row) => row.data && isOpenableTerminalCapability(row.data))
-      ) {
-        onOpenTerminal?.()
-      }
+      const capability = opened.find((row) => row.data)?.data
+      if (capability) onOpenCapability?.(capability)
     },
-    [onOpenTerminal],
+    [onOpenCapability],
   )
 
   // The section row takes the table header's 14px inset, so its label
