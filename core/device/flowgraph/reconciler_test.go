@@ -318,6 +318,12 @@ func TestReconciler(t *testing.T) {
 		checkCheckoutRootResource(t, ctx, le, viewerBus, viewer.GetPeerID(), engine, rootCap.GetId(), writableDir)
 	})
 
+	// A host edit reaches the peer without going through any UnixFS mutation.
+	t.Run("CheckoutRootWatch", func(t *testing.T) {
+		id := protocol.ID(rootCap.GetLink().GetProtocolId())
+		checkCheckoutRootWatch(t, ctx, st.GetPeerID(), viewer, id, writableDir)
+	})
+
 	// Remove the node that keeps the skiffos root and require its capability to
 	// leave the Device, even though it is a filesystem one, and the repeated
 	// root to take over.

@@ -117,6 +117,7 @@ func (c *FSCursorClient) execute(ctx context.Context, strm unixfs_rpc.SRPCFSCurs
 		c.ops = make(map[uint64]*remoteFSCursorOps, 0)
 		for _, remoteCursor := range c.cursors {
 			remoteCursor.released.Store(true)
+			remoteCursor.takeChangeChLocked()
 		}
 		c.cursors = make(map[uint64]*remoteFSCursor, 0)
 		c.cursorOps = make(map[uint64]uint64, 0)
@@ -163,10 +164,13 @@ func (c *FSCursorClient) handleCursorChange(ctx context.Context, ch *unixfs_rpc.
 		return
 	}
 
-	// if released, remove from the cursors set.
+	// Retire the cursor and end the connection if its root went away.
 	if ch.Released {
 		cursor.released.Store(true)
 		delete(c.cursors, cursorHandleID)
+		if cursor == c.remoteFSCursor {
+			c.cancel()
+		}
 
 		// release associated ops object, if applicable.
 		opsID, opsOk := c.cursorOps[cursorHandleID]
@@ -180,14 +184,12 @@ func (c *FSCursorClient) handleCursorChange(ctx context.Context, ch *unixfs_rpc.
 		}
 	}
 
-	// fire the event to any listeners
+	// Wake open listings and forward the change to cursor callbacks.
+	cursor.takeChangeChLocked()
 	if len(cursor.cbs) != 0 {
-		changeObj := ch.ToFSCursorChange()
-		for _, cb := range cursor.cbs {
-			if cb != nil {
-				cb(changeObj)
-			}
-		}
+		change := ch.ToFSCursorChange()
+		change.Cursor = cursor
+		cursor.cbs = cursor.cbs.CallCbs(change)
 	}
 }
 

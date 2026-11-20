@@ -10,14 +10,17 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	"github.com/s4wave/spacewave/core/transport"
+	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
+	unixfs_rpc_client "github.com/s4wave/spacewave/db/unixfs/rpc/client"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
@@ -105,6 +108,98 @@ func checkCheckoutRootAccess(t *testing.T, ctx context.Context, device peer.ID, 
 	}
 }
 
+// checkCheckoutRootWatch observes a direct edit through a remote child cursor.
+func checkCheckoutRootWatch(t *testing.T, parent context.Context, device peer.ID, viewer *transport.SessionTransport, id protocol.ID, host string) {
+	// Create the directory before opening its cursor so it has no prior changes.
+	t.Helper()
+	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
+	defer cancel()
+	dir := filepath.Join(host, "watched")
+	if err := os.Mkdir(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	// Open and resolve the directory down the admitted RPC connection.
+	ms := openFrameControl(t, ctx, device, viewer, id)
+	mc, err := srpc.NewMuxedConnWithRwc(ctx, ms.GetStream(), true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mc.Close()
+	rpc := unixfs_rpc.NewSRPCFSCursorServiceClient(srpc.NewClientWithMuxedConn(mc))
+	client, err := unixfs_rpc_client.BuildFSCursorClient(ctx, rpc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Release()
+	root, ops, err := getCheckoutRootOps(ctx, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Release()
+	child, err := ops.Lookup(ctx, "watched")
+	if err != nil {
+		t.Fatal(err)
+	}
+	childHandle, _, err := getCheckoutRootOps(ctx, child)
+	if err != nil {
+		child.Release()
+		t.Fatal(err)
+	}
+	defer childHandle.Release()
+
+	// Mutate the host through the OS and wait for the native cursor event.
+	changed := make(chan *unixfs.FSCursorChange, 1)
+	child.AddChangeCb(func(change *unixfs.FSCursorChange) bool {
+		changed <- change
+		return false
+	})
+	if err := os.WriteFile(filepath.Join(dir, "from-host.txt"), []byte("host"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case change := <-changed:
+		if change.Released || change.Size != 0 || change.Offset != 0 {
+			t.Fatalf("host edit produced %v, want directory invalidation", change)
+		}
+	case <-ctx.Done():
+		t.Fatalf("host edit did not wake the open remote cursor: %v", ctx.Err())
+	}
+
+	// Moving the directory itself retires the cursor at its former path.
+	removed := make(chan struct{}, 1)
+	child.AddChangeCb(func(change *unixfs.FSCursorChange) bool {
+		if !change.Released {
+			return true
+		}
+		removed <- struct{}{}
+		return false
+	})
+	if err := os.Rename(dir, dir+"-moved"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-removed:
+	case <-ctx.Done():
+		t.Fatalf("host move did not release the remote directory cursor: %v", ctx.Err())
+	}
+}
+
+// getCheckoutRootOps resolves one cursor through the same handle path as a viewer.
+func getCheckoutRootOps(ctx context.Context, cursor unixfs.FSCursor) (*unixfs.FSHandle, unixfs.FSCursorOps, error) {
+	// Hold a handle to resolve the remote cursor and its operations.
+	handle, err := unixfs.NewFSHandle(cursor)
+	if err != nil {
+		return nil, nil, err
+	}
+	_, ops, err := handle.GetOps(ctx)
+	if err != nil {
+		handle.Release()
+		return nil, nil, err
+	}
+	return handle, ops, nil
+}
+
 // checkCheckoutRootResource resolves a Device protocol as an ordinary FSHandle Resource.
 func checkCheckoutRootResource(t *testing.T, ctx context.Context, le *logrus.Entry, b bus.Bus, session peer.ID, engine world.Engine, capabilityID, dir string) {
 	// Serve the Device over the Resource RPC with a read-only World grant.
@@ -148,12 +243,14 @@ func checkCheckoutRootResource(t *testing.T, ctx context.Context, le *logrus.Ent
 	file := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
 
 	// Read metadata with the directory listing before accessing any file data.
-	listing, err := root.WatchReaddir(ctx, &s4wave_unixfs.HandleWatchReaddirRequest{})
+	watchCtx, stopWatch := context.WithTimeout(ctx, 15*time.Second)
+	defer stopWatch()
+	listing, err := root.WatchReaddir(watchCtx, &s4wave_unixfs.HandleWatchReaddirRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer listing.Close()
 	snapshot, err := listing.Recv()
-	_ = listing.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,6 +264,18 @@ func checkCheckoutRootResource(t *testing.T, ctx context.Context, le *logrus.Ent
 	if info.GetSize() != 8 || info.GetMode() != 0o600 || info.GetModTime() == 0 {
 		t.Fatalf("checkout-root listing metadata = %v", info)
 	}
+
+	// A host edit should refresh the already-open Resource listing.
+	if err := os.WriteFile(filepath.Join(dir, "created-on-host.txt"), []byte("host"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	waitCheckoutListingEntry(t, listing, "created-on-host.txt", 4)
+
+	// A content edit must also invalidate the directory's listing metadata.
+	if err := os.WriteFile(filepath.Join(dir, "created-on-host.txt"), []byte("host edit"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	waitCheckoutListingEntry(t, listing, "created-on-host.txt", 9)
 
 	// Read the host bytes from the child and require it to inherit read-only access.
 	want, err := os.ReadFile(filepath.Join(dir, "file.txt"))
@@ -201,6 +310,7 @@ func checkCheckoutRootResource(t *testing.T, ctx context.Context, le *logrus.Ent
 	}); err != nil {
 		t.Fatal(err)
 	}
+	waitCheckoutListingEntry(t, listing, "new.txt", 0)
 	if _, err := writer.Rename(ctx, &s4wave_unixfs.HandleRenameRequest{SourceName: "new.txt", DestName: "renamed.txt"}); err != nil {
 		t.Fatal(err)
 	}
@@ -208,8 +318,27 @@ func checkCheckoutRootResource(t *testing.T, ctx context.Context, le *logrus.Ent
 		t.Fatal(err)
 	}
 
+	waitCheckoutListingEntry(t, listing, "renamed.txt", 0)
+
 	// Check streamed publication through the same Resource SDK.
 	checkLiveUploadTree(t, ctx, writer, dir)
+}
+
+// waitCheckoutListingEntry waits for the next delta containing the named entry.
+func waitCheckoutListingEntry(t *testing.T, listing s4wave_unixfs.SRPCFSHandleResourceService_WatchReaddirClient, name string, size uint64) {
+	// Receive deltas until this edit is visible or the watch fails.
+	t.Helper()
+	for {
+		delta, err := listing.Recv()
+		if err != nil {
+			t.Fatalf("checkout-root listing did not report %q with size %d: %v", name, size, err)
+		}
+		for _, entry := range delta.GetEntries() {
+			if entry.GetName() == name && entry.GetSize() == size {
+				return
+			}
+		}
+	}
 }
 
 // checkReadOnlyUpload requires a refusal with all file upload start fields populated.

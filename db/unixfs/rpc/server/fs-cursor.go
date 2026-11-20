@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"path"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -16,6 +17,10 @@ import (
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
 )
 
+// DirectoryWatch subscribes to a directory relative to the served root.
+// The callback receives true when the directory itself is removed.
+type DirectoryWatch func(path string, changed func(removed bool)) (release func(), err error)
+
 // FSCursorService exposes an FSCursor and CursorOps tree via RPC.
 //
 // The server and client track FSCursor and CursorOps handles via integer IDs.
@@ -25,6 +30,8 @@ type FSCursorService struct {
 	readOnly bool
 	// upload publishes a file on a backend that supplies its own atomic writer.
 	upload FileUpload
+	// watch subscribes open directory cursors to host changes.
+	watch DirectoryWatch
 
 	// mtx guards below fields
 	// note: mtx is only ever locked for very short periods of time.
@@ -78,13 +85,27 @@ type localFSCursor struct {
 	opsHandleID *uint64
 	// children contains any child FSCursor nodes obtained from Lookup on the Ops.
 	children map[string]uint64
+	// subscription identifies a native watch while the cursor has clients.
+	// Its release function is set when native registration completes.
+	subscription *func()
 }
 
 // release conditionally calls release on the fsCursor.
 func (l *localFSCursor) release() {
+	l.stopWatching()
 	if l.released.Swap(2) != 2 && l.cursor != nil {
 		// Release in a separate routine to avoid deadlocks.
 		go l.cursor.Release()
+	}
+}
+
+// stopWatching detaches the directory subscription while the service is locked.
+func (l *localFSCursor) stopWatching() {
+	// Detach first so a queued native event cannot reach a future watch.
+	sub := l.subscription
+	l.subscription = nil
+	if sub != nil && *sub != nil {
+		go (*sub)()
 	}
 }
 
@@ -94,13 +115,29 @@ type fsCursorClient struct {
 	released bool
 	// txQueue is a queue of messages to transmit to the client.
 	txQueue []*unixfs_rpc.FSCursorChange
+	// pendingInvalidations records full invalidations already in txQueue.
+	pendingInvalidations map[uint64]struct{}
 	// cursors is the list of cursor IDs that the client is interested in.
 	cursors []uint64
 }
 
-// enqueueChange enqueues a change for transmission.
-func (c *fsCursorClient) enqueueChange(ch *unixfs_rpc.FSCursorChange) {
+// enqueueChange queues a change unless it is covered by an unsent invalidation.
+func (c *fsCursorClient) enqueueChange(ch *unixfs_rpc.FSCursorChange) bool {
+	// One full invalidation covers all directory changes before transmission.
+	if !ch.GetReleased() && ch.GetOffset() == 0 && ch.GetSize() == 0 {
+		id := ch.GetCursorHandleId()
+		if _, pending := c.pendingInvalidations[id]; pending {
+			return false
+		}
+		if c.pendingInvalidations == nil {
+			c.pendingInvalidations = make(map[uint64]struct{})
+		}
+		c.pendingInvalidations[id] = struct{}{}
+	}
+
+	// Wake the stream for a change it has not already queued.
 	c.txQueue = append(c.txQueue, ch)
+	return true
 }
 
 // NewFSCursorService constructs a FSCursorService from a FSCursor.
@@ -111,12 +148,13 @@ func NewFSCursorService(rootCursor unixfs.FSCursor) *FSCursorService {
 	return newFSCursorService(rootCursor, false)
 }
 
-// NewFSCursorServiceWithFileUpload serves a root with an atomic file publisher.
+// NewFSCursorServiceWithDirectory serves a directory with native notifications.
 // A nil publisher serves a read-only root.
-func NewFSCursorServiceWithFileUpload(rootCursor unixfs.FSCursor, upload FileUpload) *FSCursorService {
-	// Bind the publisher to this connection's directory cursor tree.
+func NewFSCursorServiceWithDirectory(rootCursor unixfs.FSCursor, upload FileUpload, watch DirectoryWatch) *FSCursorService {
+	// Bind the native operations to this connection's cursor tree.
 	service := newFSCursorService(rootCursor, upload == nil)
 	service.upload = upload
+	service.watch = watch
 	return service
 }
 
@@ -228,9 +266,8 @@ func (f *FSCursorService) enqueueCursorChangeLocked(cursor *localFSCursor, ch *u
 	var dirty bool
 	for _, clientID := range cursor.clients {
 		client, clientOk := f.clients[clientID]
-		if clientOk {
+		if clientOk && client.enqueueChange(ch) {
 			dirty = true
-			client.enqueueChange(ch)
 		}
 	}
 
@@ -238,6 +275,41 @@ func (f *FSCursorService) enqueueCursorChangeLocked(cursor *localFSCursor, ch *u
 	if dirty {
 		f.broadcastLocked()
 	}
+}
+
+// directoryPathLocked rebuilds the path of a cursor from its registered parents.
+func (f *FSCursorService) directoryPathLocked(cursor *localFSCursor) (string, error) {
+	// Use the same relative path as the cursor's filesystem operations.
+	var parts []string
+	for cursor.parent != 0 {
+		if cursor.name != "" {
+			parts = append(parts, cursor.name)
+		}
+		cursor = f.handleIDToCursor[cursor.parent]
+		if cursor == nil {
+			return "", unixfs_errors.ErrReleased
+		}
+	}
+	slices.Reverse(parts)
+	return path.Join(".", path.Join(parts...)), nil
+}
+
+// notifyDirectory sends a change for a still-open directory to its clients.
+func (f *FSCursorService) notifyDirectory(id uint64, cursor *localFSCursor, sub *func(), removed bool) {
+	// An event recorded before release can arrive after the cursor was removed.
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	if f.handleIDToCursor[id] != cursor || cursor.subscription != sub {
+		return
+	}
+
+	// Retire a removed directory or send the standard cursor invalidation.
+	change := &unixfs_rpc.FSCursorChange{CursorHandleId: id, Released: removed}
+	if removed {
+		f.releaseFSCursorLocked(id, cursor, change)
+		return
+	}
+	f.enqueueCursorChangeLocked(cursor, change)
 }
 
 // lookupCursorOpsLocked gets the CursorOps for the given ops handle id.
@@ -461,7 +533,7 @@ func (f *FSCursorService) resolveCursorOps(ctx context.Context, cursorHandleID u
 
 			// opsHandleID contains the ID of the operations handle.
 			ops := f.handleIDToOps[opsHandleID]
-			if ops != nil && !ops.CheckReleased() {
+			if ops != nil && !ops.CheckReleased() && !f.needsDirectoryWatch(cursor, ops) {
 				// the ops handle is valid.
 				f.mtx.Unlock()
 				return ops, opsHandleID, nil
@@ -471,18 +543,57 @@ func (f *FSCursorService) resolveCursorOps(ctx context.Context, cursorHandleID u
 			delete(f.handleIDToOps, opsHandleID)
 		}
 
-		// we are the first to call resolveCursorOps for this cursor
-		cursor.opsHandleID = new(uint64)
+		// Resolve the watch path before dropping the service lock.
+		var directory string
+		var sub *func()
+		if f.watch != nil && cursor.subscription == nil && len(cursor.clients) != 0 {
+			var err error
+			directory, err = f.directoryPathLocked(cursor)
+			if err != nil {
+				f.mtx.Unlock()
+				return nil, 0, err
+			}
+			sub = new(func())
+			cursor.subscription = sub
+		}
+		pending := new(uint64)
+		cursor.opsHandleID = pending
 		f.mtx.Unlock()
 
-		// call GetCursorOps
+		// Open the directory watch before returning operations to a listing reader.
 		ops, err := fsCursor.GetCursorOps(ctx)
+		var stop func()
+		if err == nil {
+			switch {
+			case ops == nil:
+				err = unixfs_errors.ErrNotExist
+			case directory != "" && ops.GetIsDirectory():
+				stop, err = f.watch(directory, func(removed bool) {
+					f.notifyDirectory(cursorHandleID, cursor, sub, removed)
+				})
+			}
+		}
 
-		// mark the result
+		// A departing client may have released the cursor during native registration.
 		f.mtx.Lock()
-		if ops == nil && err == nil {
-			// correct the err according to the comment on the func
-			err = unixfs_errors.ErrNotExist
+		if f.handleIDToCursor[cursorHandleID] != cursor || cursor.opsHandleID != pending {
+			f.mtx.Unlock()
+			if stop != nil {
+				stop()
+			}
+			return nil, 0, unixfs_errors.ErrReleased
+		}
+
+		// Keep the acquired watch only while its registration is still current.
+		if sub != nil {
+			switch {
+			case cursor.subscription == sub && stop != nil:
+				*sub = stop
+			case cursor.subscription == sub:
+				cursor.subscription = nil
+			case stop != nil:
+				defer stop()
+			}
 		}
 
 		// update the ops handle id
@@ -503,6 +614,11 @@ func (f *FSCursorService) resolveCursorOps(ctx context.Context, cursorHandleID u
 		// return the result
 		return ops, opsHandleID, err
 	}
+}
+
+// needsDirectoryWatch reports whether an active directory cursor lacks a subscription.
+func (f *FSCursorService) needsDirectoryWatch(cursor *localFSCursor, ops unixfs.FSCursorOps) bool {
+	return f.watch != nil && cursor.subscription == nil && len(cursor.clients) != 0 && ops.GetIsDirectory()
 }
 
 // resolveFSCursorLookup resolves a lookup for a child of an FSCursor by name.
@@ -666,6 +782,7 @@ func (f *FSCursorService) removeFSCursorRefLocked(cursorHandleID, clientHandleID
 	// remove the client from the list of clients
 	if len(cursor.clients) == 1 {
 		cursor.clients = nil
+		cursor.stopWatching()
 		f.maybeReleaseFSCursorLocked(cursorHandleID, cursor)
 	} else {
 		cursor.clients = slices.Delete(cursor.clients, idx, idx+1)
@@ -824,6 +941,15 @@ func (f *FSCursorService) FSCursorClient(
 	clientHandleID := f.handleIDCtr
 	f.handleIDCtr++
 	clientObj := &fsCursorClient{}
+	if f.watch != nil {
+		root := f.lookupFSCursorLocked(1)
+		if root == nil {
+			f.mtx.Unlock()
+			return unixfs_errors.ErrReleased
+		}
+		root.clients = append(root.clients, clientHandleID)
+		clientObj.cursors = append(clientObj.cursors, 1)
+	}
 	f.clients[clientHandleID] = clientObj
 	eventWait := f.getWaitChLocked()
 	f.mtx.Unlock()
@@ -864,6 +990,7 @@ func (f *FSCursorService) FSCursorClient(
 		eventWait = f.getWaitChLocked()
 		txQueue := clientObj.txQueue
 		clientObj.txQueue = nil
+		clear(clientObj.pendingInvalidations)
 		released := clientObj.released
 		f.mtx.Unlock()
 
@@ -1353,6 +1480,8 @@ func (f *FSCursorService) Release(releaseRoot bool) {
 	f.handleIDToOps = make(map[uint64]unixfs.FSCursorOps)
 	for id, localCursor := range f.handleIDToCursor {
 		if id == 1 && !releaseRoot {
+			localCursor.clients = nil
+			localCursor.stopWatching()
 			continue
 		}
 		// NOTE: release calls the actual Release function in a separate goroutine to avoid deadlocks.

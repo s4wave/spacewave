@@ -17,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
+	unixfs_rpc_client "github.com/s4wave/spacewave/db/unixfs/rpc/client"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
@@ -1231,6 +1232,13 @@ func (r *FSHandleResource) watchChanges(
 		})
 		if fsCursor != nil {
 			cursorCh = fsCursor.GetChangeCh()
+		}
+		if fsCursor == nil {
+			cursor, _, err := watchHandle.GetOps(ctx)
+			if err != nil {
+				return err
+			}
+			cursorCh = unixfs_rpc_client.CursorChangeCh(cursor)
 		}
 
 		// Replace a cursor released by a World object change beyond its root.

@@ -19,7 +19,9 @@ type remoteFSCursor struct {
 	cursorHandleID uint64
 	// below fields are guarded by c.mtx
 	// cbs is the list of change callbacks
-	cbs []unixfs.FSCursorChangeCb
+	cbs unixfs.FSCursorChangeCbSlice
+	// changed closes on the next change received for this cursor.
+	changed chan struct{}
 }
 
 // newRemoteFSCursor constructs a new remote FSCursor.
@@ -30,6 +32,43 @@ func newRemoteFSCursor(c *FSCursorClient, cursorHandleID uint64) *remoteFSCursor
 // CheckReleased checks if the fs cursor is currently released.
 func (c *remoteFSCursor) CheckReleased() bool {
 	return c.released.Load()
+}
+
+// CursorChangeCh follows notifications for a local reference to a remote cursor.
+// A cursor that does not use this RPC client has no channel.
+func CursorChangeCh(cursor unixfs.FSCursor) <-chan struct{} {
+	switch cursor := cursor.(type) {
+	case *FSCursorClient:
+		return cursor.changeCh()
+	case *remoteFSCursor:
+		return cursor.changeCh()
+	default:
+		return nil
+	}
+}
+
+// changeCh returns a channel closed by the next change or by release.
+func (c *remoteFSCursor) changeCh() <-chan struct{} {
+	// Check release and obtain the wait channel in the same registry lock.
+	c.c.mtx.Lock()
+	defer c.c.mtx.Unlock()
+	if c.changed == nil {
+		c.changed = make(chan struct{})
+		if c.released.Load() || c.c.released.Load() {
+			return c.takeChangeChLocked()
+		}
+	}
+	return c.changed
+}
+
+// takeChangeChLocked wakes waiters and returns the closed channel.
+func (c *remoteFSCursor) takeChangeChLocked() <-chan struct{} {
+	ch := c.changed
+	if ch != nil {
+		close(ch)
+		c.changed = nil
+	}
+	return ch
 }
 
 // GetProxyCursor returns a FSCursor to replace this one, if necessary.
@@ -162,12 +201,19 @@ func (c *remoteFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, 
 
 // Release releases the filesystem cursor.
 func (c *remoteFSCursor) Release() {
-	if !c.released.Swap(true) {
-		_, _ = c.c.client.ReleaseFSCursor(c.c.ctx, &unixfs_rpc.ReleaseFSCursorRequest{
-			CursorHandleId: c.cursorHandleID,
-			ClientHandleId: c.c.clientHandleID,
-		})
+	// End any local wait before sending the release to the server.
+	if c.released.Swap(true) {
+		return
 	}
+	c.c.mtx.Lock()
+	c.takeChangeChLocked()
+	c.c.mtx.Unlock()
+
+	// The server may already have retired the cursor or the connection.
+	_, _ = c.c.client.ReleaseFSCursor(c.c.ctx, &unixfs_rpc.ReleaseFSCursorRequest{
+		CursorHandleId: c.cursorHandleID,
+		ClientHandleId: c.c.clientHandleID,
+	})
 }
 
 // _ is a type assertion

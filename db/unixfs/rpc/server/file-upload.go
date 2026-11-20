@@ -4,8 +4,6 @@ import (
 	"context"
 	"io"
 	"io/fs"
-	"path"
-	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -84,17 +82,7 @@ func (f *FSCursorService) uploadDirectory(cursorID, opsID uint64) (unixfs.FSCurs
 		return nil, "", unixfs_errors.ErrNotDirectory
 	}
 
-	// Resolve the host path from the root outwards without re-reading filesystem nodes.
-	var parts []string
-	for cursor.parent != 0 {
-		if cursor.name != "" {
-			parts = append(parts, cursor.name)
-		}
-		cursor = f.handleIDToCursor[cursor.parent]
-		if cursor == nil {
-			return nil, "", unixfs_errors.ErrReleased
-		}
-	}
-	slices.Reverse(parts)
-	return ops, path.Join(".", path.Join(parts...)), nil
+	// Resolve the path within the serving root.
+	dir, err := f.directoryPathLocked(cursor)
+	return ops, dir, err
 }

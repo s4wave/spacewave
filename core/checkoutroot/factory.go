@@ -74,7 +74,7 @@ func (f *Factory) Construct(_ context.Context, config config.Config, opts contro
 				return publishFile(ctx, root, dir, start, src)
 			}
 		}
-		return serve(ctx, le, f.b, conf.ProtocolID(), cursor, upload)
+		return serve(ctx, le, f.b, conf.ProtocolID(), root, cursor, upload)
 	}, nil, root.Close), nil
 }
 

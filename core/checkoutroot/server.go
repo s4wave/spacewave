@@ -4,6 +4,7 @@ package checkoutroot
 
 import (
 	"context"
+	"os"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -30,23 +31,33 @@ type Server struct {
 	protocol protocol.ID
 	// root supplies independent cursors that share the same filesystem.
 	root *unixfs_billy.BillyFSCursor
+	// watcher routes host changes to the open cursors of this root.
+	watcher *DirectoryWatcher
 	// upload publishes files when the node allows writes.
 	upload unixfs_rpc_server.FileUpload
 }
 
 // serve adds the handler until the checkout-root controller stops.
-func serve(ctx context.Context, le *logrus.Entry, b bus.Bus, id protocol.ID, root *unixfs_billy.BillyFSCursor, upload unixfs_rpc_server.FileUpload) error {
+func serve(ctx context.Context, le *logrus.Entry, b bus.Bus, id protocol.ID, folder *os.Root, root *unixfs_billy.BillyFSCursor, upload unixfs_rpc_server.FileUpload) error {
+	// Keep one watcher for the root and end its connections if the watcher stops.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	watcher, err := NewDirectoryWatcher(folder)
+	if err != nil {
+		return err
+	}
+	defer watcher.Close()
+
 	// Offer the checkout root to the Device's Session transport.
-	s := &Server{ctx: ctx, le: le, b: b, protocol: id, root: root, upload: upload}
+	s := &Server{ctx: ctx, le: le, b: b, protocol: id, root: root, watcher: watcher, upload: upload}
 	release, err := b.AddHandler(s)
 	if err != nil {
 		return err
 	}
 	defer release()
 
-	// Keep the handler published for the controller's lifetime.
-	<-ctx.Done()
-	return nil
+	// Dispatch host events while the handler is published.
+	return watcher.Run(ctx, le)
 }
 
 // HandleDirective offers this root when the incoming stream names its protocol.
@@ -104,7 +115,7 @@ func (s *Server) serveStream(linkCtx context.Context, ms link.MountedStream) {
 
 	// Give this connection its own set of cursor and operation handles.
 	cursor := s.root.Clone()
-	service := unixfs_rpc_server.NewFSCursorServiceWithFileUpload(cursor, s.upload)
+	service := unixfs_rpc_server.NewFSCursorServiceWithDirectory(cursor, s.upload, s.watcher.Watch)
 	defer service.Release(true)
 	mux := srpc.NewMux()
 	if err := unixfs_rpc.SRPCRegisterFSCursorService(mux, service); err != nil {
