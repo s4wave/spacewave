@@ -4,10 +4,16 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
+	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -143,6 +149,165 @@ func TestCopyHoldsWhatItSkips(t *testing.T) {
 		}
 		return parent, []*block.BlockRef{parent, child}, nil
 	})
+}
+
+// TestCopyCountsLinkedFiles runs the fence copy over a Volume whose copy path
+// reads a linked folder after the Volume, as the local provider's does, and
+// tries to make it lose a block or serve wrong bytes. A parent names a chunk
+// the Volume and a linked file both hold, and a chunk only a linked file
+// holds. The copy stores the first under the fence root, stores nothing for
+// the second, and proves the parent. Then both files change under a restored
+// mtime, so only the hash check notices: collections past grace keep the
+// Volume's chunk with its bytes, the file-only chunk reads as missing and
+// never as the file's new bytes, and a copy that reads every block again fails
+// on it instead of storing wrong bytes.
+func TestCopyCountsLinkedFiles(t *testing.T) {
+	// Build an adapter whose kept pages read the Volume, then the files.
+	ctx := t.Context()
+	const grace = 300 * time.Millisecond
+	a, collect := newVolumeAdapter(t, 1<<20, grace)
+	store := a.pages.StoreOps
+	xfrm := block_transform.NewTransformerWithSteps(nil)
+	files := block_store_filesegment.NewStore(block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore()))
+	files.SetTransformer(xfrm)
+	a.pages = block.NewPendingStore(&linkedBucket{
+		StoreOps:    store,
+		LeasedRoots: store.(block.LeasedRoots),
+		RootProofs:  store.(block.RootProofs),
+		files:       files,
+	}, 1<<20)
+
+	// link writes a one-chunk file and links it, returning its path, bytes
+	// and chunk ref.
+	dir := t.TempDir()
+	link := func(name string) (string, []byte, *block.BlockRef) {
+		t.Helper()
+		path := filepath.Join(dir, name)
+		data := bytes.Repeat([]byte(name), 4096)
+		if err := os.WriteFile(path, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		b, err := block_store_filesegment.LinkFile(ctx, files.GetIndex(), path, nil, xfrm, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		chunks := b.GetChunkIndex().GetChunks()
+		if len(chunks) != 1 {
+			t.Fatalf("%s: %d chunks, want 1", name, len(chunks))
+		}
+		return path, data, chunks[0].GetDataRef()
+	}
+	sharedPath, sharedData, shared := link("shared")
+	onlyPath, _, only := link("only")
+
+	// The Volume holds the shared chunk and the parent, with no holder.
+	parentData := append([]byte("parent"), shared.MarshalString()+only.MarshalString()...)
+	parent, err := block.BuildBlockRef(parentData, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	putUnheld(t, store,
+		&block.PutBatchEntry{Ref: shared, Data: sharedData, RefsKnown: true},
+		&block.PutBatchEntry{Ref: parent, Data: parentData, Refs: []*block.BlockRef{shared, only}, RefsKnown: true},
+	)
+
+	// stored reports whether the Volume stores ref, failing on wrong bytes.
+	stored := func(ref *block.BlockRef, want []byte) bool {
+		t.Helper()
+		data, found, err := store.GetBlock(ctx, ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if found && want != nil && !bytes.Equal(data, want) {
+			t.Fatalf("the Volume serves wrong bytes for %s", ref.MarshalString())
+		}
+		return found
+	}
+
+	// The fence copy holds the shared chunk, stores nothing for the
+	// file-only one, and proves the parent.
+	if err := a.copyAndHold(ctx, fenceRootPrefix+"linked", []*block.BlockRef{parent}, block.GraphCopyOptions{Forget: true}, false); err != nil {
+		t.Fatal(err)
+	}
+	if !stored(shared, sharedData) || !stored(parent, parentData) {
+		t.Fatal("the copy did not hold the Volume's blocks")
+	}
+	if stored(only, nil) {
+		t.Fatal("the copy stored the file-only chunk in the Volume")
+	}
+	proved, err := block.RootsComplete(ctx, store, []*block.BlockRef{parent})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !proved[0] {
+		t.Fatal("the copy did not prove the parent")
+	}
+
+	// Change both files under their own size and mtime.
+	for _, path := range []string{sharedPath, onlyPath} {
+		fi, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data[10] ^= 0xff
+		if err := os.WriteFile(path, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(path, time.Now(), fi.ModTime()); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Collections past grace keep the Volume's chunk with its bytes.
+	for range 2 {
+		time.Sleep(grace)
+		collect()
+	}
+	if !stored(shared, sharedData) {
+		t.Fatal("a collection freed the shared chunk the fence copy held")
+	}
+
+	// The file-only chunk reads as missing through the copy path.
+	src := a.pages.GetCopySource()
+	got, err := src.GetStoredBlock(ctx, only)
+	if err != nil || got != nil {
+		t.Fatalf("changed file-only chunk read %v, %v; want a miss", got, err)
+	}
+	if files.HashMisses.Load() == 0 {
+		t.Fatal("the read missed before the hash check")
+	}
+
+	// A copy that reads every block again fails on it and stores nothing.
+	err = a.copyAndHold(ctx, fenceRootPrefix+"recheck", []*block.BlockRef{parent}, block.GraphCopyOptions{Forget: true}, true)
+	if !block.IsNotAvailable(err) {
+		t.Fatalf("recheck copy over a changed file = %v, want not available", err)
+	}
+	if stored(only, nil) {
+		t.Fatal("the recheck copy stored the changed chunk")
+	}
+}
+
+// linkedBucket is a bucket whose copy source reads its linked files after it,
+// as the local provider's copy path reads them after the Volume's tiers.
+type linkedBucket struct {
+	block.StoreOps
+	block.LeasedRoots
+	block.RootProofs
+	// files serves the linked files.
+	files *block_store_filesegment.Store
+}
+
+// GetCopySource reads the bucket, then the linked files.
+func (s *linkedBucket) GetCopySource() block.StoreOps {
+	return block_store.NewStoreReadThrough(
+		func() block.StoreOps { return s.StoreOps },
+		func() block.StoreOps { return s.files.GetCopyTier() },
+		nil,
+	)
 }
 
 // TestAdmitRepeatRewritesTree holds an admitted payload P -> L whose blocks

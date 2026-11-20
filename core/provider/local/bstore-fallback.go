@@ -68,6 +68,9 @@ func (b *fillBudget) give(n int) {
 // the marker path above, and not peers, which fill the local store as before.
 // The copy path never reads the cache.
 //
+// Copies read the linked files after every Volume tier and before peers; see
+// linkedThen. Reads find them in recorded, which serves them as local hits.
+//
 // With no fallback, reads and copies are the local store over the backend and
 // peers, as they were before fallbacks existed. When peer fills upload, see
 // SetPeerFillsUpload, a peer's block is stored like the fallback's, with an
@@ -97,9 +100,10 @@ func (p *placementState) readChains(
 				p.fill,
 			)
 		}
+		copyLower := block_store.NewStoreReadThrough(remote, p.linkedThen(peers), nil)
 		copies = block_store.NewStoreReadThrough(
 			func() block.StoreOps { return local },
-			func() block.StoreOps { return lower },
+			func() block.StoreOps { return copyLower },
 			nil,
 		)
 		return reads, copies
@@ -128,14 +132,28 @@ func (p *placementState) readChains(
 		p.peerFill(recorded),
 	)
 
-	// Copies use the same lower tiers as serving, with peers last.
+	// Copies use the same lower tiers as serving, then the linked files, with
+	// peers last.
 	copyPrimary := p.serveReads(local, remote, fallback)
 	copies = block_store.NewStoreReadThrough(
 		func() block.StoreOps { return copyPrimary },
-		peers,
+		p.linkedThen(peers),
 		nil,
 	)
 	return reads, copies
+}
+
+// linkedThen returns the linked files over peers, for a copy that read every
+// Volume tier first: a block the files' copy tier serves reads as Linked, which a copy within
+// this Volume counts as present and a copy to another store writes. Without
+// linked files it returns peers.
+func (p *placementState) linkedThen(peers block_store.StoreSource) block_store.StoreSource {
+	if p.fileSegments == nil {
+		return peers
+	}
+	files := p.fileSegments.GetCopyTier()
+	linked := block_store.NewStoreReadThrough(func() block.StoreOps { return files }, peers, nil)
+	return func() block.StoreOps { return linked }
 }
 
 // serveReads builds the reads that answer a peer's request for a block: the

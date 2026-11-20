@@ -130,8 +130,8 @@ func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool
 	return nil, false, nil
 }
 
-// GetStoredBlock returns the regenerated block. A file range is
-// always a chunk data block, a leaf, so its refs are known and empty.
+// GetStoredBlock returns the regenerated block. A file range is always a chunk
+// data block, a leaf, so its refs are known and empty.
 func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	data, ok, err := s.GetBlock(ctx, ref)
 	if err != nil || !ok {
@@ -181,6 +181,32 @@ func (s *Store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Bloc
 		return nil, err
 	}
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
+}
+
+// GetCopyTier returns the store as the file tier of a copy chain, whose stored
+// blocks are marked Linked. Only a copy chain that reads every Volume tier
+// before it may use it, so a Linked block is one no Volume tier holds.
+func (s *Store) GetCopyTier() block.StoreOps {
+	return copyTier{Store: s}
+}
+
+// copyTier is the Store as a copy chain's file tier.
+type copyTier struct {
+	*Store
+}
+
+// BeginReadOperation returns the tier itself: reads hold no scope.
+func (t copyTier) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return t, func() {}, nil
+}
+
+// GetStoredBlock returns the regenerated block, marked Linked.
+func (t copyTier) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	stored, err := t.Store.GetStoredBlock(ctx, ref)
+	if stored != nil {
+		stored.Linked = true
+	}
+	return stored, err
 }
 
 // regenerate reads seg, encodes it with xfrm, and checks it against ref.
@@ -249,4 +275,7 @@ func statMatches(fi os.FileInfo, seg *Segment) bool {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = (*Store)(nil)
+var (
+	_ block.StoreOps = (*Store)(nil)
+	_ block.StoreOps = copyTier{}
+)

@@ -32,6 +32,12 @@ type GraphCopyOptions struct {
 	// again through another parent is checked with Known again and copied
 	// again when Known does not report it.
 	Forget bool
+	// CountLinked counts a block src serves from a linked file, one whose
+	// StoredBlock is Linked, as present: the copy writes nothing for it and
+	// releases its parents as if dst held it, so their subtrees complete. Only
+	// a copy within the Volume of the Device that linked the file sets it; a
+	// copy to another store needs the bytes.
+	CountLinked bool
 	// Missing handles a block src cannot serve now, because it does not hold
 	// it or no source served it (IsNotAvailable). Returning nil leaves a hole:
 	// the copy continues, and writes the hole's ancestors without completing
@@ -117,7 +123,9 @@ type graphCopyRead struct {
 	node *graphCopyNode
 	data []byte
 	refs []*BlockRef
-	err  error
+	// linked is set when a linked file served the block.
+	linked bool
+	err    error
 }
 
 // run copies the graph under root. It returns only after every reader it
@@ -181,6 +189,21 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 		if c.opts.Visited != nil {
 			c.opts.Visited(res.node.ref, res.data)
 		}
+
+		// Count a linked block as present, as Known counts a proved one.
+		//
+		// Invariant: a proof may count a block present on the strength of a
+		// linked file only when no Volume tier holds that block; a Volume
+		// copy is never skipped, dropped or deleted because a file serves it.
+		// Only the linked files' copy tier marks a block Linked, and a copy
+		// chain reads it after every Volume tier, so a Linked block is one no
+		// tier holds, and the copy writes and deletes nothing for it.
+		if res.linked && c.opts.CountLinked {
+			if err := c.settle(ctx, res.node); err != nil {
+				return err
+			}
+			continue
+		}
 		if err := c.expand(ctx, res.node, res.data, res.refs); err != nil {
 			return err
 		}
@@ -200,7 +223,7 @@ func (c *graphCopy) readBlock(ctx context.Context, node *graphCopyNode) graphCop
 	if err != nil {
 		return graphCopyRead{node: node, err: errors.Wrap(err, node.ref.MarshalString())}
 	}
-	return graphCopyRead{node: node, data: stored.Data, refs: stored.Refs}
+	return graphCopyRead{node: node, data: stored.Data, refs: stored.Refs, linked: stored.Linked}
 }
 
 // expand holds a read block until its write, queues its children that are
@@ -291,7 +314,13 @@ func (c *graphCopy) complete(ctx context.Context, node *graphCopyNode) error {
 // child.
 func (c *graphCopy) release(ctx context.Context, hole *graphCopyNode) error {
 	hole.holed = true
-	for _, parent := range c.finish(hole) {
+	return c.settle(ctx, hole)
+}
+
+// settle finishes a node the copy writes nothing for and completes each parent
+// that no longer waits on a child.
+func (c *graphCopy) settle(ctx context.Context, node *graphCopyNode) error {
+	for _, parent := range c.finish(node) {
 		if err := c.complete(ctx, parent); err != nil {
 			return err
 		}

@@ -351,42 +351,94 @@ func (s *PendingStore) lookup(ref *BlockRef) *PutBatchEntry {
 // GetBlock serves a kept block, or reads the inner store. A kept block's
 // decoded form may enter the shared pool: Sweep reports each block it forgets.
 func (s *PendingStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
-	gen := DurableReadGeneration()
-	if e := s.lookup(ref); e != nil {
-		MarkDurableRead(ctx, ref, gen)
-		return e.Data, true, nil
-	}
-	return s.StoreOps.GetBlock(ctx, ref)
+	return s.reads(s.StoreOps).GetBlock(ctx, ref)
 }
 
 // GetStoredBlock serves a kept block with its child list, or reads the inner
 // store.
 func (s *PendingStore) GetStoredBlock(ctx context.Context, ref *BlockRef) (*StoredBlock, error) {
-	gen := DurableReadGeneration()
-	if e := s.lookup(ref); e != nil {
-		MarkDurableRead(ctx, ref, gen)
-		return &StoredBlock{Data: e.Data, Refs: e.Refs, RefsKnown: true}, nil
-	}
-	return s.StoreOps.GetStoredBlock(ctx, ref)
+	return s.reads(s.StoreOps).GetStoredBlock(ctx, ref)
 }
 
 // GetBlockExists reports a kept block, or asks the inner store.
 func (s *PendingStore) GetBlockExists(ctx context.Context, ref *BlockRef) (bool, error) {
-	if s.lookup(ref) != nil {
-		return true, nil
-	}
-	return s.StoreOps.GetBlockExists(ctx, ref)
+	return s.reads(s.StoreOps).GetBlockExists(ctx, ref)
 }
 
 // GetBlockExistsBatch reports the kept blocks and asks the inner store about
 // the rest.
 func (s *PendingStore) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	return s.reads(s.StoreOps).GetBlockExistsBatch(ctx, refs)
+}
+
+// StatBlock reports a kept block's size, or asks the inner store.
+func (s *PendingStore) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, error) {
+	return s.reads(s.StoreOps).StatBlock(ctx, ref)
+}
+
+// GetCopySource returns the kept blocks over the inner store's copy source,
+// so a graph copy from the store reads what its inner store's copy reads,
+// without the inner store's fills.
+func (s *PendingStore) GetCopySource() StoreOps {
+	inner := s.StoreOps
+	if cs, ok := inner.(CopySource); ok {
+		inner = cs.GetCopySource()
+	}
+	return s.reads(inner)
+}
+
+// reads returns the kept blocks over inner.
+func (s *PendingStore) reads(inner StoreOps) pendingReads {
+	return pendingReads{StoreOps: inner, s: s}
+}
+
+// pendingReads serves the kept blocks of a PendingStore, then reads its inner
+// store, or that store's copy source.
+type pendingReads struct {
+	// StoreOps is the store read after the kept blocks.
+	StoreOps
+	// s holds the kept blocks.
+	s *PendingStore
+}
+
+// GetBlock serves a kept block, or reads the inner store.
+func (r pendingReads) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
+	gen := DurableReadGeneration()
+	if e := r.s.lookup(ref); e != nil {
+		MarkDurableRead(ctx, ref, gen)
+		return e.Data, true, nil
+	}
+	return r.StoreOps.GetBlock(ctx, ref)
+}
+
+// GetStoredBlock serves a kept block with its child list, or reads the inner
+// store.
+func (r pendingReads) GetStoredBlock(ctx context.Context, ref *BlockRef) (*StoredBlock, error) {
+	gen := DurableReadGeneration()
+	if e := r.s.lookup(ref); e != nil {
+		MarkDurableRead(ctx, ref, gen)
+		return &StoredBlock{Data: e.Data, Refs: e.Refs, RefsKnown: true}, nil
+	}
+	return r.StoreOps.GetStoredBlock(ctx, ref)
+}
+
+// GetBlockExists reports a kept block, or asks the inner store.
+func (r pendingReads) GetBlockExists(ctx context.Context, ref *BlockRef) (bool, error) {
+	if r.s.lookup(ref) != nil {
+		return true, nil
+	}
+	return r.StoreOps.GetBlockExists(ctx, ref)
+}
+
+// GetBlockExistsBatch reports the kept blocks and asks the inner store about
+// the rest.
+func (r pendingReads) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef) ([]bool, error) {
 	// Answer the kept blocks.
 	out := make([]bool, len(refs))
 	var rest []*BlockRef
 	var restIdx []int
 	for i, ref := range refs {
-		if s.lookup(ref) != nil {
+		if r.s.lookup(ref) != nil {
 			out[i] = true
 			continue
 		}
@@ -397,7 +449,7 @@ func (s *PendingStore) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef
 	if len(rest) == 0 {
 		return out, nil
 	}
-	found, err := s.StoreOps.GetBlockExistsBatch(ctx, rest)
+	found, err := r.StoreOps.GetBlockExistsBatch(ctx, rest)
 	if err != nil {
 		return nil, err
 	}
@@ -408,11 +460,11 @@ func (s *PendingStore) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef
 }
 
 // StatBlock reports a kept block's size, or asks the inner store.
-func (s *PendingStore) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, error) {
-	if e := s.lookup(ref); e != nil {
+func (r pendingReads) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, error) {
+	if e := r.s.lookup(ref); e != nil {
 		return &BlockStat{Ref: ref, Size: int64(len(e.Data))}, nil
 	}
-	return s.StoreOps.StatBlock(ctx, ref)
+	return r.StoreOps.StatBlock(ctx, ref)
 }
 
 // RmBlock drops a kept block and removes it from the inner store.
@@ -659,4 +711,6 @@ var (
 	_ StoreOps    = (*PendingStore)(nil)
 	_ LeasedRoots = (*PendingStore)(nil)
 	_ RootProofs  = (*PendingStore)(nil)
+	_ CopySource  = (*PendingStore)(nil)
+	_ StoreOps    = pendingReads{}
 )
