@@ -13,25 +13,40 @@ import (
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
-// BillyFSCursor is an FSCursor implementation backed by a BillyFS.
+// BillyFSCursor is an FSCursor backed by a Billy filesystem.
 type BillyFSCursor struct {
+	// released records whether this cursor has been released.
 	released atomic.Bool
-	state    *billyFSState
-	path     string
+	// state is shared by cursors descended from the same root.
+	state *billyFSState
+	// path is the cursor's path in the Billy filesystem.
+	path string
 }
 
+// billyFSState shares the backend and mutation order of a cursor tree.
 type billyFSState struct {
+	// bfs is the Billy filesystem.
 	bfs billy.Basic
-	mtx sync.Mutex
+	// native indicates that the OS owns directory and file handle concurrency.
+	native bool
+	// mtx serializes mutations, including check and create.
+	mtx sync.RWMutex
+	// readMtx shares mtx for native reads and takes it exclusively for memfs
+	// and other backends without a concurrency contract.
+	readMtx sync.Locker
 }
 
-// NewBillyFSCursor constructs a FSCursor from a BillyFS at the given path.
-// The path can be empty to build at the root of the fs.
+// NewBillyFSCursor constructs a FSCursor from a Billy filesystem at the given path.
+// The path can be empty to build at the root of the filesystem.
 func NewBillyFSCursor(bfs billy.Basic, path string) *BillyFSCursor {
-	return newBillyFSCursor(&billyFSState{bfs: bfs}, path)
-}
+	// Choose the read lock based on the backend's concurrency contract.
+	state := &billyFSState{bfs: bfs, native: isNativeOSFS(bfs)}
+	state.readMtx = &state.mtx
+	if state.native {
+		state.readMtx = state.mtx.RLocker()
+	}
 
-func newBillyFSCursor(state *billyFSState, path string) *BillyFSCursor {
+	// Share the backend and locks with every child cursor.
 	return &BillyFSCursor{state: state, path: path}
 }
 
@@ -67,10 +82,10 @@ func (c *BillyFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, e
 		return nil, unixfs_errors.ErrReleased
 	}
 
-	// Read the Billy entry metadata under the filesystem lock.
-	c.state.mtx.Lock()
+	// Read stable metadata even on a backend whose Stat accesses mutable files.
+	c.state.readMtx.Lock()
 	fi, err := billyLstat(c.state.bfs, c.path)
-	c.state.mtx.Unlock()
+	c.state.readMtx.Unlock()
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
@@ -78,6 +93,7 @@ func (c *BillyFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, e
 		return nil, err
 	}
 
+	// Retain the metadata snapshot for subsequent operations on this cursor.
 	return &BillyFSCursorOps{
 		c:  c,
 		fi: fi,
@@ -91,10 +107,12 @@ func (c *BillyFSCursor) Release() {
 
 // buildChildPath builds a path to a child.
 func (c *BillyFSCursor) buildChildPath(name string) (string, error) {
+	// Empty and root names refer to the current cursor.
 	if name == "" || name == "/" || name == "." {
 		return c.path, nil
 	}
 
+	// Reject a child path that resolves to the current cursor.
 	npath := path.Join(c.path, name)
 	if npath == c.path {
 		return "", errors.New("lookup with empty name not supported")
@@ -102,12 +120,14 @@ func (c *BillyFSCursor) buildChildPath(name string) (string, error) {
 	return npath, nil
 }
 
-// billyLstat uses Lstat if available, otherwise falls back to Stat.
-// Lstat does not follow symlinks, allowing symlink nodes to be resolved.
+// billyLstat reads metadata without following symlinks on backends with Lstat.
 func billyLstat(bfs billy.Basic, fpath string) (os.FileInfo, error) {
+	// Preserve a symlink's identity on filesystems that expose Lstat.
 	if sl, ok := bfs.(billy.Symlink); ok {
 		return sl.Lstat(fpath)
 	}
+
+	// Use the basic filesystem interface for backends without symlinks.
 	return bfs.Stat(fpath)
 }
 

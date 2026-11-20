@@ -2,6 +2,7 @@ package unixfs_billy
 
 import (
 	"context"
+	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -17,9 +18,12 @@ import (
 
 // BillyFSCursorOps is an FSCursor ops implementation backed by a BillyFS.
 type BillyFSCursorOps struct {
+	// released records whether a mutation invalidated these operations.
 	released atomic.Bool
-	c        *BillyFSCursor
-	fi       os.FileInfo
+	// c is the cursor that provided these operations.
+	c *BillyFSCursor
+	// fi is the metadata snapshot that determines the entry's node type.
+	fi os.FileInfo
 }
 
 // CheckReleased implements FSCursorOps.
@@ -95,10 +99,10 @@ func (o *BillyFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCu
 		return nil, err
 	}
 
-	// Check the child entry while holding the Billy filesystem lock.
-	o.c.state.mtx.Lock()
+	// Check whether the backend has an entry for the child name.
+	o.c.state.readMtx.Lock()
 	_, err = billyLstat(o.c.state.bfs, npath)
-	o.c.state.mtx.Unlock()
+	o.c.state.readMtx.Unlock()
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
@@ -106,7 +110,8 @@ func (o *BillyFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCu
 		return nil, err
 	}
 
-	return newBillyFSCursor(o.c.state, npath), nil
+	// Keep the child in the same filesystem and mutation order.
+	return &BillyFSCursor{state: o.c.state, path: npath}, nil
 }
 
 // Mknod implements FSCursorOps.
@@ -226,9 +231,9 @@ func (o *BillyFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte
 		return 0, unixfs_errors.ErrReleased
 	}
 
-	// Open the Billy file under the filesystem lock.
-	o.c.state.mtx.Lock()
-	defer o.c.state.mtx.Unlock()
+	// Open the file for a range read that can overlap other native reads.
+	o.c.state.readMtx.Lock()
+	defer o.c.state.readMtx.Unlock()
 	file, err := o.c.state.bfs.Open(o.c.path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -245,23 +250,24 @@ func (o *BillyFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte
 
 // ReaddirAll implements FSCursorOps.
 func (o *BillyFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent unixfs.FSCursorDirent) error) error {
-	// Require a live cursor before listing directory entries.
+	// Require a live directory cursor for the listing.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
-
-	// Require a directory entry for the Billy listing.
 	if !o.fi.IsDir() {
 		return unixfs_errors.ErrNotDirectory
 	}
 
-	// Require the Billy directory capability for the listing.
+	// Stream a native listing from its own OS directory handle.
+	if o.c.state.native {
+		return o.readdirOS(ctx, skip, cb)
+	}
+
+	// Read the snapshot provided by a backend without directory handles.
 	dirFs, ok := o.c.state.bfs.(billy.Dir)
 	if !ok {
 		return unixfs_errors.ErrNotDirectory
 	}
-
-	// Read the Billy directory entries under the filesystem lock.
 	o.c.state.mtx.Lock()
 	fis, err := dirFs.ReadDir(o.c.path)
 	o.c.state.mtx.Unlock()
@@ -289,6 +295,53 @@ func (o *BillyFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(
 	return nil
 }
 
+// readdirOS streams entries in filesystem order from a fresh directory handle.
+func (o *BillyFSCursorOps) readdirOS(ctx context.Context, skip uint64, cb func(unixfs.FSCursorDirent) error) error {
+	// Open through Billy so the listing stays within the backend's root.
+	file, err := o.c.state.bfs.Open(o.c.path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return unixfs_errors.ErrNotExist
+		}
+		return err
+	}
+	defer file.Close()
+	dir, ok := file.(fs.ReadDirFile)
+	if !ok {
+		return unixfs_errors.ErrNotDirectory
+	}
+	if cb == nil {
+		return nil
+	}
+
+	// Keep only one batch live and stop reading when the consumer stops.
+	const batchSize = 64
+	for {
+		// Check cancellation before reading the next batch from the directory.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		entries, err := dir.ReadDir(batchSize)
+
+		// Apply the offset before delivering entries to the consumer.
+		skipped := min(skip, uint64(len(entries)))
+		skip -= skipped
+		for _, entry := range entries[skipped:] {
+			if err := cb(unixfs_iofs.NewFSCursorDirent(entry)); err != nil {
+				return err
+			}
+		}
+
+		// Finish after delivering any entries returned with a terminal error.
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+	}
+}
+
 // Readlink implements FSCursorOps.
 func (o *BillyFSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool, error) {
 	// Require a live cursor before reading a symbolic link.
@@ -308,10 +361,10 @@ func (o *BillyFSCursorOps) Readlink(ctx context.Context, name string) ([]string,
 		return nil, false, err
 	}
 
-	// Read the symbolic link target under the filesystem lock.
-	o.c.state.mtx.Lock()
+	// Read the symbolic link target even on backends with mutable link data.
+	o.c.state.readMtx.Lock()
 	outPath, err := symlinkFs.Readlink(fpath)
-	o.c.state.mtx.Unlock()
+	o.c.state.readMtx.Unlock()
 	if err != nil {
 		return nil, false, err
 	}
@@ -354,11 +407,12 @@ func (o *BillyFSCursorOps) Remove(ctx context.Context, names []string, ts time.T
 	return nil
 }
 
-// chtimesFS is the minimal billy capability SetModTimestamp requires. Asserting
-// it directly, rather than the full billy.Change, lets backings that support
-// only timestamp changes (memfs supports neither, osfs supports all) avoid a
-// false ErrNotSupported that surfaces to the guest as EIO.
+// chtimesFS is the minimal Billy capability SetModTimestamp requires. Asserting
+// it directly, rather than the full billy.Change, lets backends that support
+// only timestamp changes avoid a false ErrNotSupported, which surfaces to a
+// guest as EIO.
 type chtimesFS interface {
+	// Chtimes updates the access and modification times of the named entry.
 	Chtimes(name string, atime, mtime time.Time) error
 }
 
