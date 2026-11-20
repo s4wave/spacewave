@@ -164,7 +164,7 @@ func checkUnchanged(f *os.File, path string, fi os.FileInfo) error {
 	if err != nil {
 		return err
 	}
-	if !os.SameFile(at, fi) || !sameStat(at, fi) {
+	if !sameFile(at, fi) || !sameStat(at, fi) {
 		return errFileChanged
 	}
 	return nil
