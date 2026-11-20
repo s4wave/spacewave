@@ -4905,6 +4905,16 @@
             "sdk/unixfs/handle.proto"
           ]
         },
+        "github.com/s4wave/spacewave/sdk/unixfs/linkedfolder": {
+          "hash": "9d3d12c0b528383c7e7c197a194a2e8a862698d866cfb7430f6f51caa58be09a",
+          "generatedFiles": [
+            "sdk/unixfs/linkedfolder/linkedfolder.pb.go",
+            "sdk/unixfs/linkedfolder/linkedfolder.pb.ts"
+          ],
+          "protoFiles": [
+            "sdk/unixfs/linkedfolder/linkedfolder.proto"
+          ]
+        },
         "github.com/s4wave/spacewave/sdk/viewer/registry": {
           "hash": "0198b0abef4799640be4f8c14b32eef9e1f88ab01a14aa4e33e50250ebbe797c",
           "generatedFiles": [

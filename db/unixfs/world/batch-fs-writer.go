@@ -49,6 +49,9 @@ type pendingEntry struct {
 	data []byte
 	// symlink is the symlink payload (SYMLINK entries only).
 	symlink *unixfs_block.FSSymlink
+	// replace replaces an existing file's node instead of overwriting its
+	// changed ranges, which reads the old contents (FILE entries only).
+	replace bool
 }
 
 // pendingDir holds accumulated entries keyed by their parent path.
@@ -189,7 +192,7 @@ func (b *BatchFSWriter) AddFile(
 	}
 
 	// Queue the file metadata.
-	b.queueFile(ctx, parentPath, name, unixfs_block.FSCursorNodeTypeToNodeType(nodeType), permissions, ts, blobRef, data, dataLen)
+	b.queueFile(ctx, parentPath, name, unixfs_block.FSCursorNodeTypeToNodeType(nodeType), permissions, ts, blobRef, data, dataLen, false)
 	return nil
 }
 
@@ -198,6 +201,11 @@ func (b *BatchFSWriter) AddFile(
 // contents with the World's transform xfrm and hash type and returns their
 // Blob; the writer stores only the Blob block, so the blocks it names must
 // already be readable, as the blocks of a linked file are.
+//
+// The entry replaces an existing file's node rather than overwriting the
+// ranges that differ, since that comparison reads the old contents, which a
+// relinked file no longer holds, and costs a read of both versions under the
+// World's writer.
 func (b *BatchFSWriter) AddFileBlob(
 	ctx context.Context,
 	parentPath []string,
@@ -237,12 +245,13 @@ func (b *BatchFSWriter) AddFileBlob(
 	}
 
 	// Queue the file metadata.
-	b.queueFile(ctx, parentPath, name, unixfs_block.NodeType_NodeType_FILE, permissions, ts, blobRef, nil, size)
+	b.queueFile(ctx, parentPath, name, unixfs_block.NodeType_NodeType_FILE, permissions, ts, blobRef, nil, size, true)
 	return nil
 }
 
 // queueFile queues a FILE entry under parentPath and records the completed
-// ingest of its dataLen bytes.
+// ingest of its dataLen bytes. replace marks an entry that replaces an
+// existing file's node.
 func (b *BatchFSWriter) queueFile(
 	ctx context.Context,
 	parentPath []string,
@@ -253,6 +262,7 @@ func (b *BatchFSWriter) queueFile(
 	blobRef *block.BlockRef,
 	data []byte,
 	dataLen int64,
+	replace bool,
 ) {
 	// Queue the file metadata under its parent.
 	pd := b.pendingDirFor(parentPath)
@@ -263,6 +273,7 @@ func (b *BatchFSWriter) queueFile(
 		ts:          unixfs_block.ToTimestamp(ts, true),
 		blobRef:     blobRef,
 		data:        data,
+		replace:     replace,
 	})
 
 	// Record the pending directory and entry counts after accepting the file.
@@ -677,7 +688,7 @@ func (b *BatchFSWriter) mergePendingDir(
 			childPath := make([]string, 0, len(pd.parentPath)+1)
 			childPath = append(childPath, pd.parentPath...)
 			childPath = append(childPath, e.name)
-			if existing != nil && existing.GetNodeType() == unixfs_block.NodeType_NodeType_FILE {
+			if existing != nil && existing.GetNodeType() == unixfs_block.NodeType_NodeType_FILE && !e.replace {
 				// syncExistingFile rewrites content while preserving the
 				// inode. A successful overwrite must not end the merge:
 				// entries recorded after it in the same batch still apply.

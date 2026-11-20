@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
@@ -35,6 +36,12 @@ type Engine struct {
 // GetAdapter returns the Space's adapter.
 func (e *Engine) GetAdapter() *Adapter {
 	return e.a
+}
+
+// GetFileSegments returns the store serving the blocks of the files this
+// Device linked into the Space, or nil when its store cannot link files.
+func (e *Engine) GetFileSegments() *block_store_filesegment.Store {
+	return e.a.so.GetBlockStore().GetFileSegments()
 }
 
 // OperationAuthor returns this device's peer and the person its participant

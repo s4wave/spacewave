@@ -1,0 +1,18 @@
+syntax = "proto3";
+package s4wave.unixfs.linkedfolder;
+
+option go_package = "github.com/s4wave/spacewave/sdk/unixfs/linkedfolder;unixfs_linkedfolder";
+
+// Config configures the controller that keeps a Drive equal to a folder on
+// the Device running it.
+message Config {
+  // EngineId is the World engine holding the Drive.
+  string engine_id = 1;
+  // ObjectKey is the Drive's object key.
+  string object_key = 2;
+  // Folder is the absolute path of the folder on the Device.
+  string folder = 3;
+  // Path is the path in the Drive the folder links to, with its parts
+  // separated by slashes; empty links the folder at the Drive's root.
+  string path = 4;
+}

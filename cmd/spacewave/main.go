@@ -55,6 +55,7 @@ import (
 	space_world_blocktype "github.com/s4wave/spacewave/core/space/world/blocktype"
 	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	core_unixfs_linkedfolder "github.com/s4wave/spacewave/core/unixfs/linkedfolder"
 	background "github.com/s4wave/spacewave/db/background"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
@@ -163,6 +164,8 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{cluster_controller.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{core_alarm_watch.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{core_unixfs_linkedfolder.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{dex_solicit.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
