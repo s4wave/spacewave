@@ -166,9 +166,10 @@ image with the daemon prints `SPACEWAVE_OS_DAEMON_LISTENING` once its socket
 appears. The rehearsal then runs the [kill trial](qemu/README.md#kill-trial) on the same
 disk, and the [refusal trial](qemu/README.md#refusal-trial) on a copy whose
 card an unpinned signer authorized. It writes its receipt only when the guest
-printed `SPACEWAVE_OS_BACKING_GROWN`, `SPACEWAVE_OS_DATA_CREATED` and
-`SPACEWAVE_OS_PASS`, the kill trial kept every acknowledged record, and the
-copy refused to boot; a
+printed `SPACEWAVE_OS_BACKING_GROWN`, `SPACEWAVE_OS_AUTHORIZED`,
+`SPACEWAVE_OS_DATA_CREATED` and `SPACEWAVE_OS_PASS`, the kill trial kept every
+acknowledged record, and the copy refused to boot. The receipt is a directory
+whose `root` file names the root the guest authorized and booted; a
 guest that panics or hangs fails, and its console is the Step's log. The
 rehearsal runs as a Docker Step in the `os/qemu` image with `/dev/kvm`. The
 Step's `input_mounts` check out the boot set, the image, the init and the
@@ -185,14 +186,25 @@ the disk it lands on, with no data Volume. Beside the disk it places the boot
 set's `bzImage` and `rootfs.cpio.lz4`. A QEMU guest boots the kernel directly,
 so the boot set is the VM's boot adapter and stays outside the disk.
 
+The `os/image/sign` Step authorizes a rehearsed image. It takes the image
+store and the rehearsal's receipt, reads the store's selected root with
+`boot.ReadImageRoot`, refuses it unless the receipt names the same root, and
+asks the holder of its Worker's key to sign it
+through the `SignWithPeer` directive. On a Device the running Session answers,
+and the Space runtime's bridge forwards the request only for that Session's
+peer, so the key never reaches the Step. Its output is the authorization tree
+install mounts. Place the Step on the Space owner's Device, whose peer the
+cards pin.
+
 `TestSpacewaveOSRehearsal` in `sdk/forge/world` builds the QEMU board with the
 package and checks that the stored initramfs holds the init alone. An image
 Step seeds the image, and connections carry the boot set and the image to the
-rehearsal Step, which must pass. The test then signs the image's root with an
-owner key, as the sign Step will, and installs it. The install must succeed for
-the owner's authorization and fail with `is not pinned` for another key's. A
-last graph rehearses the same kernel with an initramfs that is not an archive,
-which must fail with the kernel's panic in its log. The test needs a SkiffOS
+rehearsal Step, which must pass, and the image and the receipt to the sign
+Step. The test installs the Step's authorization with a card naming the
+Worker; the install must succeed, and fail with `is not pinned` for another
+key's authorization. A last graph rehearses the same kernel with an initramfs
+that is not an archive, which must fail with the kernel's panic in its log and
+never start its sign Step. The test needs a SkiffOS
 checkout (`SPACEWAVE_SKIFFOS_DIR`), a static init (`SPACEWAVE_OS_INIT`), the
 tool image (`SPACEWAVE_QEMU_IMAGE`), the Docker CLI (`SPACEWAVE_DOCKER`), and a
 `DOCKER_HOST` whose daemon shares this host's filesystem. A Docker Step that

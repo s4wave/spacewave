@@ -21,20 +21,24 @@ const ImageRootContext = "spacewave/os 2026-11-19 image root authorization"
 
 // SignImageRoot authorizes booting the image with this exact root.
 func SignImageRoot(key crypto.PrivKey, root *block.BlockRef) (*peer.SignedMsg, error) {
-	// Require a complete content-addressed root before signing.
+	data, err := MarshalImageRoot(root)
+	if err != nil {
+		return nil, err
+	}
+	return peer.NewSignedMsg(ImageRootContext, key, hash.RecommendedHashType, data)
+}
+
+// MarshalImageRoot returns the bytes an image authorization signs in
+// ImageRootContext, requiring a complete content-addressed root, so a signer
+// that holds its key elsewhere signs exactly what SignImageRoot would.
+func MarshalImageRoot(root *block.BlockRef) ([]byte, error) {
 	if root.GetEmpty() {
 		return nil, errors.New("image authorization: missing image root")
 	}
 	if err := root.Validate(false); err != nil {
 		return nil, errors.Wrap(err, "image authorization: image root")
 	}
-
-	// Sign the root in the image context with the recommended hash.
-	data, err := root.MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	return peer.NewSignedMsg(ImageRootContext, key, hash.RecommendedHashType, data)
+	return root.MarshalVT()
 }
 
 // VerifyImageRoot returns the image root that a pinned signer authorized,

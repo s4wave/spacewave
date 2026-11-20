@@ -11,6 +11,7 @@ import (
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
@@ -24,20 +25,24 @@ func bridgeFilter(conf *plugin_space.Config, appPluginIDs []string) func(directi
 		volumeIDs = append(volumeIDs, volumeID)
 	}
 
-	// Filter each child directive against the Space's engine and volumes.
-	engineID := conf.GetEngineId()
+	// Filter each child directive against the Space's engine, volumes and
+	// session peer.
+	engineID, sessionPeerID := conf.GetEngineId(), conf.GetSessionPeerId()
 	return func(inst directive.Instance) (bool, error) {
-		return bridgeDirective(inst.GetDirective(), engineID, volumeIDs, appPluginIDs), nil
+		return bridgeDirective(inst.GetDirective(), engineID, sessionPeerID, volumeIDs, appPluginIDs), nil
 	}
 }
 
 // bridgeDirective reports whether dir resolves on the parent bus. World engine
 // and operation lookups forward only for engineID, so a Space plugin cannot
 // reach another Space's World; an empty engine ID would match any engine and
-// stays inside. Volume lookups forward only for volumeIDs. Plugin root
-// admission forwards, since the device's approvals are on the parent. Space
-// plugin loads, manifests, and RPC services stay inside the generation.
-func bridgeDirective(dir directive.Directive, engineID string, volumeIDs, appPluginIDs []string) bool {
+// stays inside. Volume lookups forward only for volumeIDs. Signing forwards
+// only for the session's peer, whose running Session holds the key on the
+// parent; the host controllers that ask each fix their own signing context.
+// Plugin root admission forwards, since the device's approvals are on the
+// parent. Space plugin loads, manifests, and RPC services stay inside the
+// generation.
+func bridgeDirective(dir directive.Directive, engineID, sessionPeerID string, volumeIDs, appPluginIDs []string) bool {
 	switch d := dir.(type) {
 	case bldr_plugin.LoadPlugin:
 		return slices.Contains(appPluginIDs, d.LoadPluginID())
@@ -49,6 +54,8 @@ func bridgeDirective(dir directive.Directive, engineID string, volumeIDs, appPlu
 		return slices.Contains(volumeIDs, d.LookupVolumeID())
 	case volume.BuildObjectStoreAPI:
 		return slices.Contains(volumeIDs, d.BuildObjectStoreAPIVolumeID())
+	case peer.SignWithPeer:
+		return sessionPeerID != "" && d.SignWithPeerID().String() == sessionPeerID
 	case objecttype.LookupObjectType, plugin_host_root.LookupRoot:
 		return true
 	case bldr_plugin.AdmitPluginRoot:

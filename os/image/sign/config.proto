@@ -1,0 +1,22 @@
+syntax = "proto3";
+package os.image.sign;
+
+// Config signs a rehearsed OS image root as the Worker's peer.
+//
+// Place the Step on the Space owner's Device, whose peer the image's cards
+// pin. The Step asks the holder of that peer's key to sign, through the
+// SignWithPeer directive, so the key never reaches the Step. It signs the
+// selected root of its image input's store only when the rehearsal's receipt
+// names that root, so a receipt for another image signs nothing; the
+// rehearsed input also holds the Step until the rehearsal passes.
+//
+// Inputs:
+//  - image: the image store, a tree holding image.s4wave.
+//  - rehearsed: the rehearsal Step's receipt, a tree whose root file names
+//    the image root the guest authorized and booted.
+//
+// Outputs:
+//  - authorization: a tree holding the authorization file, the packedmsg
+//    peer.SignedMsg that os/image VerifyImageRoot checks and install reads
+//    from an image card.
+message Config {}

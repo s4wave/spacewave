@@ -9,7 +9,9 @@
 # Usage: rehearse.sh IMAGES IMAGE INIT RECEIPT
 #   IMAGES holds bzImage and rootfs.cpio.lz4; IMAGE is the image store the
 #   install Step also writes; INIT is the static spacewave-init that writes a
-#   rehearsal card; RECEIPT is written once the guest stops cleanly.
+#   rehearsal card; RECEIPT is a directory written only after every check
+#   passes, whose root file names the image root the guest authorized and
+#   booted, so a signer can refuse a receipt for another image.
 # The guest's console streams to stdout, so a failed boot keeps its log.
 set -eu
 
@@ -58,7 +60,7 @@ timeout -k 30 "${REHEARSAL_TIMEOUT:-600}" python3 "$tools/run_app.py" \
     --accel "${ACCEL:-kvm}" --kernel "$images/bzImage" \
     --initramfs "$images/rootfs.cpio.lz4" --disk "$fixture/btrfs.img" \
     --startup "$fixture/startup.sh" --receipt "$fixture/stopped" --dhcp | tee "$fixture/console.log"
-for marker in SPACEWAVE_OS_BACKING_GROWN SPACEWAVE_OS_DATA_CREATED SPACEWAVE_OS_REHEARSAL_WROTE; do
+for marker in SPACEWAVE_OS_BACKING_GROWN SPACEWAVE_OS_AUTHORIZED SPACEWAVE_OS_DATA_CREATED SPACEWAVE_OS_REHEARSAL_WROTE; do
     if ! grep -q "$marker" "$fixture/console.log"; then
         echo "rehearsal failed: the guest never printed $marker" >&2
         exit 1
@@ -88,4 +90,13 @@ truncate -s 4G "$fixture/refused.img"
 timeout -k 30 "${REHEARSAL_TIMEOUT:-600}" python3 "$tools/refusal_trial.py" \
     --accel "${ACCEL:-kvm}" --kernel "$images/bzImage" \
     --initramfs "$images/rootfs.cpio.lz4" --disk "$fixture/refused.img"
-mv "$fixture/stopped" "$receipt"
+
+# Record the root the guest authorized and booted; the receipt appears last.
+booted=$(tr -d '\r' < "$fixture/console.log" | sed -n 's/.*SPACEWAVE_OS_AUTHORIZED signer=[^ ]* root=\([^ ]*\).*/\1/p' | head -n 1)
+if [ -z "$booted" ]; then
+    echo "rehearsal failed: the guest never named its authorized root" >&2
+    exit 1
+fi
+mkdir -p "$fixture/receipt"
+printf '%s\n' "$booted" > "$fixture/receipt/root"
+mv "$fixture/receipt" "$receipt"

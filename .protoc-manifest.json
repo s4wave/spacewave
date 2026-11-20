@@ -383,6 +383,22 @@
         }
       }
     },
+    "aa4ccd00773a6706296c6af994c163dedf161da05255e3bedcab2b66f2db7d08": {
+      "protocFlagsHash": "288cd7ea466ca646a28b138e8bb617dc10d77541e4c489e3ff858dbbd8ccbfa0",
+      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+      "packages": {
+        "github.com/s4wave/spacewave/os/image/sign": {
+          "hash": "11de745aaa2e2a77002968ca90ed6d4d20804e3ffb0e37b2451e71df745a4c35",
+          "generatedFiles": [
+            "os/image/sign/config.pb.go",
+            "os/image/sign/config.pb.ts"
+          ],
+          "protoFiles": [
+            "os/image/sign/config.proto"
+          ]
+        }
+      }
+    },
     "c9b81e69067b0bac0e03a23b65cd1874b9ed5dce242520e76901735a93638066": {
       "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
@@ -3975,6 +3991,16 @@
           ],
           "protoFiles": [
             "net/transport/websocket/http/http.proto"
+          ]
+        },
+        "github.com/s4wave/spacewave/os/image/sign": {
+          "hash": "68707b3dafaed6649ff0ab710a9223eeda5bb8b4f2220a0bef0327668bd96647",
+          "generatedFiles": [
+            "os/image/sign/config.pb.go",
+            "os/image/sign/config.pb.ts"
+          ],
+          "protoFiles": [
+            "os/image/sign/config.proto"
           ]
         },
         "github.com/s4wave/spacewave/plugin/cli": {

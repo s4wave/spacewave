@@ -28,7 +28,9 @@ import (
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	forge_world "github.com/s4wave/spacewave/forge/world"
 	"github.com/s4wave/spacewave/identity"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
+	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	"github.com/sirupsen/logrus"
 )
@@ -145,6 +147,8 @@ type workerHarness struct {
 	sender peer.ID
 	// workerPeerID is the Worker's peer.
 	workerPeerID peer.ID
+	// workerKey is the Worker's private key, which signs as the Space owner.
+	workerKey crypto.PrivKey
 	// script is the Docker CLI the Jobs run.
 	script string
 	// memoryBytes is the capacity this fixture declares.
@@ -189,11 +193,19 @@ func newWorkerHarnessWithOptions(t *testing.T, options workerHarnessOptions) *wo
 	}
 	t.Cleanup(releaseOps)
 
-	// Create the Worker and the Cluster that places Jobs on it.
-	workerPeer, _, _, err := peer.NewPeerWithGenerateED25519()
+	// Create the Worker's peer and serve it with its key, as its running
+	// Session does, so a Step can ask it to sign.
+	workerPeer, workerKey, _, err := peer.NewPeerWithGenerateED25519()
 	if err != nil {
 		t.Fatal(err)
 	}
+	releasePeer, err := tb.Bus.AddController(ctx, peer_controller.NewController(tb.Logger, workerPeer), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releasePeer)
+
+	// Create the Worker and the Cluster that places Jobs on it.
 	keypair, err := identity.NewKeypair(workerPeer.GetPubKey(), "", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -222,6 +234,7 @@ func newWorkerHarnessWithOptions(t *testing.T, options workerHarnessOptions) *wo
 		tb:           tb,
 		sender:       sender,
 		workerPeerID: workerPeer.GetPeerID(),
+		workerKey:    workerKey,
 		script:       script,
 		memoryBytes:  options.memoryBytes,
 	}

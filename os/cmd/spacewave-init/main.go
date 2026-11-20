@@ -16,7 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/os/boot"
 	os_image "github.com/s4wave/spacewave/os/image"
@@ -259,23 +258,12 @@ func seedImage(dir, busyboxPath, archivePath string) (retErr error) {
 	return root.VerifyImage(context.Background(), file)
 }
 
-// imageRoot returns the selected root of the image store in dir.
-func imageRoot(dir string) (_ *block.BlockRef, retErr error) {
-	// Open the store read-only and keep its selected root.
-	root, err := boot.OpenRoot(context.Background(), logrus.NewEntry(logrus.New()), dir)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { retErr = errors.Join(retErr, root.Close()) }()
-	return root.ImageRoot(), nil
-}
-
 // rehearsalCard authorizes the image in dir with a throwaway key, so a
 // rehearsal boot runs the same pin and check as an installed card signed by
 // the Space owner.
 func rehearsalCard(dir string) error {
 	// Sign the selected root with a key no other image trusts.
-	root, err := imageRoot(dir)
+	root, err := boot.ReadImageRoot(context.Background(), dir)
 	if err != nil {
 		return err
 	}
@@ -303,7 +291,7 @@ func installCard(dir, signersPath, authorizationPath, grantPath string) error {
 	if err != nil {
 		return err
 	}
-	root, err := imageRoot(dir)
+	root, err := boot.ReadImageRoot(context.Background(), dir)
 	if err != nil {
 		return err
 	}

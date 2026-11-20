@@ -35,10 +35,6 @@ func WriteCard(dir string, key crypto.PrivKey, root *block.BlockRef) error {
 	if err != nil {
 		return err
 	}
-	data, err := signed.MarshalVT()
-	if err != nil {
-		return err
-	}
 	signer, err := peer.IDFromPrivateKey(key)
 	if err != nil {
 		return err
@@ -48,7 +44,17 @@ func WriteCard(dir string, key crypto.PrivKey, root *block.BlockRef) error {
 	if err := WriteSigners(filepath.Join(dir, CardSigners), []peer.ID{signer}); err != nil {
 		return err
 	}
-	return writePacked(filepath.Join(dir, CardAuthorization), data)
+	return WriteAuthorization(filepath.Join(dir, CardAuthorization), signed)
+}
+
+// WriteAuthorization writes the image authorization signed to path as the
+// packedmsg text ReadAuthorization reads.
+func WriteAuthorization(path string, signed *peer.SignedMsg) error {
+	data, err := signed.MarshalVT()
+	if err != nil {
+		return err
+	}
+	return writePacked(path, data)
 }
 
 // InstallCard writes an installable card into dir: the Space's accepted

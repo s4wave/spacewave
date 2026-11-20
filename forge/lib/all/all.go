@@ -9,6 +9,7 @@ import (
 	forge_skiffos "github.com/s4wave/spacewave/forge/lib/skiffos"
 	forge_util "github.com/s4wave/spacewave/forge/lib/util"
 	forge_v86 "github.com/s4wave/spacewave/forge/lib/v86"
+	os_image_sign "github.com/s4wave/spacewave/os/image/sign"
 )
 
 // AddFactories adds factories to an existing static resolver.
@@ -19,4 +20,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	forge_util.AddFactories(b, sr)
 	forge_v86.AddFactories(b, sr)
 	forge_skiffos.AddFactories(sr)
+	os_image_sign.AddFactories(b, sr)
 }

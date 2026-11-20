@@ -21,7 +21,6 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v6"
 	"github.com/pierrec/lz4/v4"
-	"github.com/sirupsen/logrus"
 
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -46,6 +45,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/os/boot"
 	os_image "github.com/s4wave/spacewave/os/image"
+	os_image_sign "github.com/s4wave/spacewave/os/image/sign"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	flowgraph_run "github.com/s4wave/spacewave/sdk/flowgraph/run"
@@ -148,11 +148,14 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	seed := f.imageNode(image, dockerPath)
 	rehearse := f.rehearsalNode(image, dockerPath)
 	rehearse.Ports = append(rehearse.Ports, inputPort(forge_lib_skiffos.OutputImages), inputPort(osImage))
-	f.storeGraph("flowgraph/spacewave-os", "Spacewave OS build and rehearsal", map[string]*s4wave_flowgraph.FlowgraphNode{
-		"build": build, "image": seed, "rehearse": rehearse,
+	sign := f.signNode(os_image_sign.InputImage)
+	f.storeGraph("flowgraph/spacewave-os", "Spacewave OS build, rehearsal and sign", map[string]*s4wave_flowgraph.FlowgraphNode{
+		"build": build, "image": seed, "rehearse": rehearse, "sign": sign,
 	}, map[string]*s4wave_flowgraph.FlowgraphConnection{
-		"boot-set": {OutputNode: "build", OutputPort: forge_lib_skiffos.OutputImages, InputNode: "rehearse", InputPort: forge_lib_skiffos.OutputImages},
-		"image":    {OutputNode: "image", OutputPort: osImage, InputNode: "rehearse", InputPort: osImage},
+		"boot-set":     {OutputNode: "build", OutputPort: forge_lib_skiffos.OutputImages, InputNode: "rehearse", InputPort: forge_lib_skiffos.OutputImages},
+		"image":        {OutputNode: "image", OutputPort: osImage, InputNode: "rehearse", InputPort: osImage},
+		"signed-image": {OutputNode: "image", OutputPort: osImage, InputNode: "sign", InputPort: os_image_sign.InputImage},
+		"receipt":      {OutputNode: "rehearse", OutputPort: "rehearsed", InputNode: "sign", InputPort: os_image_sign.InputRehearsed},
 	})
 
 	// The boot set's initramfs holds exactly spacewave-init's archive.
@@ -184,18 +187,21 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		}
 	}
 
-	// Keep the rehearsed boot set and image as World objects, sign the image's
-	// root as the Space owner, and install it.
+	// The sign Step authorizes the rehearsed image's root as the Worker, the
+	// Space owner's Device, with a key it asks for and never holds.
 	imageTree := f.taskTree(f.waitTask("flowgraph-run/spacewave-os", "image", true), osImage)
+	root := f.imageRoot(imageTree)
+	authorization := f.taskTree(f.waitTask("flowgraph-run/spacewave-os", "sign", true), os_image_sign.OutputAuthorization)
+	if authorized, signer := f.imageAuthorization(authorization); !authorized.EqualsRef(root) || signer != f.workerPeerID {
+		t.Fatalf("authorized %s by %s, want the image root %s by the Worker %s", authorized.MarshalString(), signer, root.MarshalString(), f.workerPeerID)
+	}
+
+	// Keep the rehearsed boot set, image and authorization as World objects,
+	// and install them with a card naming the Worker.
 	f.storeRef("os/images", images)
 	f.storeRef("os/image", imageTree)
-	root := f.imageRoot(imageTree)
-	_, owner, _, err := peer.NewPeerWithGenerateED25519()
-	if err != nil {
-		t.Fatal(err)
-	}
-	f.storeCard("os/card", owner)
-	f.storeAuthorization("os/authorization", owner, root)
+	f.storeRef("os/authorization", authorization)
+	f.storeCard("os/card", f.workerKey)
 	installed, failure := f.install("owner", image, dockerPath, "os/authorization")
 	if failure != "" {
 		t.Fatalf("install failed: %s\n%s", failure, f.executionLog(installed))
@@ -234,7 +240,13 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	})
 	broken := f.rehearsalNode(image, dockerPath)
 	broken.Step.Target.Inputs = append(broken.Step.Target.Inputs, worldObjectInput(forge_lib_skiffos.OutputImages, "os/broken-images"), worldObjectInput(osImage, "os/image"))
-	f.storeGraph("flowgraph/spacewave-os-broken", "Spacewave OS broken rehearsal", map[string]*s4wave_flowgraph.FlowgraphNode{"rehearse": broken}, nil)
+	brokenSign := f.signNode()
+	brokenSign.Step.Target.Inputs = []*forge_target.Input{worldObjectInput(os_image_sign.InputImage, "os/image")}
+	f.storeGraph("flowgraph/spacewave-os-broken", "Spacewave OS broken rehearsal", map[string]*s4wave_flowgraph.FlowgraphNode{
+		"rehearse": broken, "sign": brokenSign,
+	}, map[string]*s4wave_flowgraph.FlowgraphConnection{
+		"receipt": {OutputNode: "rehearse", OutputPort: "rehearsed", InputNode: "sign", InputPort: os_image_sign.InputRehearsed},
+	})
 	f.startRun("flowgraph-run/spacewave-os-broken", "flowgraph/spacewave-os-broken")
 	failed, failure := f.waitDone("flowgraph-run/spacewave-os-broken", "rehearse")
 	if failure == "" {
@@ -242,6 +254,16 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	}
 	if console := f.executionLog(failed); !strings.Contains(console, "Kernel panic") {
 		t.Fatalf("failed rehearsal log lacks the guest's panic:\n%s", console)
+	}
+
+	// The failure pauses the run before the sign Step, which never starts.
+	f.wait("broken run pause", func() bool {
+		return f.readRun("flowgraph-run/spacewave-os-broken").GetState() == s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED
+	})
+	for _, a := range f.readRun("flowgraph-run/spacewave-os-broken").GetActivations() {
+		if a.GetNodeId() == "sign" {
+			t.Fatalf("failed rehearsal activated the sign Step as %s", a.GetTaskKey())
+		}
 	}
 	t.Logf("boot set %s rehearsed by %s and installed by %s; broken boot set failed: %s", images.MarshalString(), rehearsed, installed, failure)
 }
@@ -323,16 +345,41 @@ func (f *flowgraphFixture) imageRoot(tree *block.BlockRef) *block.BlockRef {
 		return errors.Join(err, dst.Close())
 	})
 
-	// Open it read-only, as the boot does, and keep its selected root.
-	opened, err := boot.OpenRoot(f.ctx, logrus.NewEntry(logrus.New()), dir)
+	// Read its selected root as the boot and the sign Step do.
+	root, err := boot.ReadImageRoot(f.ctx, dir)
 	if err != nil {
 		f.t.Fatal(err)
 	}
-	root := opened.ImageRoot()
-	if err := opened.Close(); err != nil {
+	return root
+}
+
+// signNode returns a Step that signs its image input's root once its
+// rehearsed input arrives, with an input port for each named connected input.
+func (f *flowgraphFixture) signNode(connected ...string) *s4wave_flowgraph.FlowgraphNode {
+	node := f.stepNode(os_image_sign.ControllerID, &os_image_sign.Config{}, os_image_sign.OutputAuthorization, false)
+	for _, name := range append(connected, os_image_sign.InputRehearsed) {
+		node.Ports = append(node.Ports, inputPort(name))
+	}
+	return node
+}
+
+// imageAuthorization returns the image root the authorization tree at root
+// authorizes and its signer, verified as a machine pinning the Worker does.
+func (f *flowgraphFixture) imageAuthorization(root *block.BlockRef) (*block.BlockRef, peer.ID) {
+	dir := f.t.TempDir()
+	path := filepath.Join(dir, os_image.CardAuthorization)
+	if err := os.WriteFile(path, f.readTreeFile(root, os_image.CardAuthorization), 0o600); err != nil {
 		f.t.Fatal(err)
 	}
-	return root
+	signed, err := os_image.ReadAuthorization(path)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	authorized, signer, err := os_image.VerifyImageRoot(signed, []peer.ID{f.workerPeerID})
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return authorized, signer
 }
 
 // storeCard stores a card naming owner as the only signer, with a one-use
@@ -436,6 +483,7 @@ func newSkiffOSProof(t *testing.T) *skiffOSProof {
 	})
 	h.tb.StaticResolver.AddFactory(flowgraph_run.NewFactory(h.tb.Bus))
 	h.tb.StaticResolver.AddFactory(forge_lib_skiffos.NewFactory())
+	h.tb.StaticResolver.AddFactory(os_image_sign.NewFactory(h.tb.Bus))
 	admission := h.newAdmission("skiffos-proof")
 	h.tb.StaticResolver.AddFactory(forge_lib_docker.NewWorkerFactory(h.tb.Bus, admission))
 

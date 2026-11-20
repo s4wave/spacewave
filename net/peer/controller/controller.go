@@ -53,6 +53,8 @@ func (c *Controller) HandleDirective(
 	switch d := dir.(type) {
 	case peer.GetPeer:
 		return c.resolveGetPeer(d), nil
+	case peer.SignWithPeer:
+		return c.resolveSignWithPeer(ctx, d), nil
 	}
 
 	return nil, nil
@@ -70,6 +72,24 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // resolveGetPeer resolves the GetPeer directive
 func (c *Controller) resolveGetPeer(d peer.GetPeer) []directive.Resolver {
 	res := peer.NewGetPeerResolver(d, c)
+	if res == nil {
+		return nil
+	}
+	return directive.Resolvers(res)
+}
+
+// resolveSignWithPeer signs for this peer when it holds its private key. A
+// peer without its key declines, leaving the request to the key's holder.
+func (c *Controller) resolveSignWithPeer(ctx context.Context, d peer.SignWithPeer) []directive.Resolver {
+	// Answer only for this peer, and only with its key in hand.
+	if d.SignWithPeerID() != c.GetPeerID() {
+		return nil
+	}
+	key, err := c.GetPrivKey(ctx)
+	if err != nil {
+		return nil
+	}
+	res := peer.NewSignWithPeerResolver(d, key)
 	if res == nil {
 		return nil
 	}

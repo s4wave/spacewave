@@ -96,18 +96,26 @@ func ResolveSessionBus(ctx context.Context, parent bus.Bus, id peer.ID, invalida
 	return child, release, nil
 }
 
-// publishSessionTransport exposes this transport after its child bus is ready.
+// publishSessionTransport exposes this transport, and signs for its Session
+// peer, on the parent bus after its child bus is ready.
 func (t *SessionTransport) publishSessionTransport() (func(), error) {
 	// Standalone transports have no parent to publish discovery on.
 	if t.parentBus == nil {
 		return func() {}, nil
 	}
 	return t.parentBus.AddHandler(directive.NewFuncHandler(func(_ context.Context, instance directive.Instance) ([]directive.Resolver, error) {
-		dir, ok := instance.GetDirective().(LookupSessionTransport)
-		if !ok || dir.SessionPeerID() != t.peerID {
-			return nil, nil
+		switch dir := instance.GetDirective().(type) {
+		case LookupSessionTransport:
+			if dir.SessionPeerID() == t.peerID {
+				return directive.R(directive.NewValueResolver([]*SessionTransport{t}), nil)
+			}
+		case peer.SignWithPeer:
+			// The running Session signs for its peer; the key stays here.
+			if res := peer.NewSignWithPeerResolver(dir, t.sessionKey); res != nil {
+				return directive.R(res, nil)
+			}
 		}
-		return directive.R(directive.NewValueResolver([]*SessionTransport{t}), nil)
+		return nil, nil
 	}))
 }
 

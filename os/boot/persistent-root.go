@@ -26,13 +26,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	// imageBucket scopes this disposable image's blocks and durable roots.
-	imageBucket = "os-image"
-	// selectedImageRoot keeps the selected image even if the World later advances.
-	selectedImageRoot = "selected-image"
-)
-
 // SeedRoot creates an absent disposable directory and publishes its complete
 // image once from an independent probe executable and static BusyBox input.
 // Failure leaves the partial store for inspection, never a reset. The caller
@@ -132,38 +125,6 @@ func OpenRoot(ctx context.Context, le *logrus.Entry, dir string) (_ *Root, retEr
 	}
 	println("SPACEWAVE_OS_REOPEN volume=" + r.volumeID + " root=" + head.MarshalB58())
 	return r, nil
-}
-
-// inspectImage rejects unsupported, unselected and missing-root stores without
-// modifying a byte. Only this experiment's current format is eligible for open.
-func inspectImage(ctx context.Context, db *s4db.DB) (*bucket.ObjectRef, error) {
-	// Reject key layouts that NewVolume would otherwise migrate.
-	keys := store_kvkey.NewDefaultKVKey()
-	tx, err := db.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	data, found, err := tx.Get(ctx, keys.GetFormatVersionKey())
-	tx.Discard()
-	if err != nil {
-		return nil, err
-	}
-	version, err := store_kvkey.ParseFormatVersion(data)
-	if err != nil || !found || version != store_kvkey.FormatVersion {
-		return nil, errors.Join(errors.New("unsupported experiment Volume format; store preserved"), err)
-	}
-
-	// Read the selected root itself: it is both the head and its durable hold.
-	ref, err := readBootRoot(ctx, db, imageBucket, selectedImageRoot)
-	if err != nil {
-		return nil, err
-	}
-	head := &bucket.ObjectRef{BucketId: imageBucket, RootRef: ref}
-	store := store_kvtx.NewKVTx(keys, db, nil)
-	if _, found, err := store.GetBlock(ctx, ref); err != nil || !found {
-		return nil, errors.Join(errors.New("selected root missing; store preserved"), err)
-	}
-	return head, nil
 }
 
 // openSeedStorage composes the writable Volume, tracked bucket and construction

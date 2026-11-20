@@ -10,7 +10,7 @@ import (
 // ConfigID is the identifier for the config type.
 const ConfigID = ControllerID
 
-// NewConfigWithPrivKey builds a new configuration with a private key
+// NewConfigWithPrivKey builds a new configuration with a private key.
 func NewConfigWithPrivKey(pk crypto.PrivKey) (*Config, error) {
 	privKeyStr, err := confparse.MarshalPrivateKey(pk)
 	if err != nil {

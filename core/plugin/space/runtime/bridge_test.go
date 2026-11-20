@@ -25,6 +25,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/s4wave/spacewave/net/peer"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	sdk_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	sdk_registration "github.com/s4wave/spacewave/sdk/plugin/registration"
@@ -60,11 +61,12 @@ func testAppBridge(t *testing.T, plugins []string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	conf := &plugin_space.Config{EngineId: "engine", VolumeId: "volume"}
+	session, other := testPeerID(t), testPeerID(t)
+	conf := &plugin_space.Config{EngineId: "engine", VolumeId: "volume", SessionPeerId: session.String()}
 	addTestController(t, child, bus_bridge.NewBusBridge(parent, bridgeFilter(conf, plugins)))
 
-	// The Space's own World, its volumes, infrastructure, and declared app plugin
-	// lookups reach the parent.
+	// The Space's own World, its volumes, infrastructure, signing as its
+	// session, and declared app plugin lookups reach the parent.
 	forwarded := []directive.Directive{
 		world.NewLookupWorldEngine("engine"),
 		world.NewLookupWorldOp("operation", "engine"),
@@ -73,6 +75,7 @@ func testAppBridge(t *testing.T, plugins []string) {
 		volume.NewBuildObjectStoreAPI("store", "volume"),
 		volume.NewLookupVolume(bldr_plugin.PluginVolumeID, ""),
 		plugin_host_root.NewLookupRoot([]string{"desktop/darwin/arm64"}),
+		peer.NewSignWithPeer(session, "test context", []byte("data")),
 	}
 	for _, id := range plugins {
 		forwarded = append(forwarded, bldr_plugin.NewLoadPlugin(id), bldr_plugin.NewLoadPluginInstanced(id, "space-a"))
@@ -82,8 +85,8 @@ func testAppBridge(t *testing.T, plugins []string) {
 		recorder.waitFor(t, dir)
 	}
 
-	// Other Spaces' Worlds, other volumes, Space plugin loads, manifests, and RPC
-	// services stay inside the generation.
+	// Other Spaces' Worlds, other volumes, signing as any other peer, Space
+	// plugin loads, manifests, and RPC services stay inside the generation.
 	kept := []directive.Directive{
 		world.NewLookupWorldEngine("other-engine"),
 		world.NewLookupWorldEngine(""),
@@ -92,6 +95,7 @@ func testAppBridge(t *testing.T, plugins []string) {
 		volume.NewLookupVolume("other-volume", ""),
 		volume.NewLookupVolume("", ""),
 		volume.NewBuildObjectStoreAPI("store", "other-volume"),
+		peer.NewSignWithPeer(other, "test context", []byte("data")),
 		plugin_host.NewLookupPluginHost(nil),
 		bldr_plugin.NewLoadPluginInstanced("plugin", "space-a"),
 		bldr_manifest.NewFetchManifest("plugin", nil, nil, 0),
@@ -102,6 +106,16 @@ func testAppBridge(t *testing.T, plugins []string) {
 		addTestDirective(ctx, t, child, dir)
 	}
 	recorder.assertNoMore(t)
+}
+
+// testPeerID returns a new peer ID.
+func testPeerID(t *testing.T) peer.ID {
+	t.Helper()
+	p, _, _, err := peer.NewPeerWithGenerateED25519()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p.GetPeerID()
 }
 
 // addTestController adds ctrl to b until the test ends.
