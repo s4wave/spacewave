@@ -33,7 +33,7 @@ func (r *SpaceResource) LinkFolder(
 			dest = append(dest, part)
 		}
 	}
-	link, err := unixfs_world.NewFolderLink(r.space.GetWorldEngine(), files.GetIndex(), req.GetObjectKey(), req.GetFolder(), dest)
+	link, err := unixfs_world.NewFolderLink(r.space.GetWorldEngine(), files.GetIndex(), req.GetObjectKey(), req.GetFolder(), dest, false)
 	if err != nil {
 		return err
 	}

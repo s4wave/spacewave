@@ -16,6 +16,7 @@ import (
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
@@ -74,7 +75,7 @@ func TestFolderLinkSync(t *testing.T) {
 	idx := block_store_filesegment.NewIndex(kv)
 	sync := func() (uint64, uint64) {
 		t.Helper()
-		link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"})
+		link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -212,7 +213,7 @@ func TestFolderLinkSync(t *testing.T) {
 	must(os.MkdirAll(filepath.Join(folder, "d5", "sub", "deep"), 0o755))
 	must(os.WriteFile(filepath.Join(folder, "d5", "sub", "deep", "n.txt"), []byte("deep"), 0o644))
 	must(os.Remove(filepath.Join(folder, "d6", "sub", "f6")))
-	link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"})
+	link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
 	must(err)
 	var linked uint64
 	must(link.SyncDirs(ctx, []string{"d4", "d5/sub/deep", "d6/sub"}, func(files, _ uint64) error {
@@ -245,7 +246,7 @@ func TestFolderLinkSync(t *testing.T) {
 	if linked, _ := sync(); linked != 0 {
 		t.Fatalf("stat walk linked %d files changed under their stat, want 0", linked)
 	}
-	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"})
+	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
 	must(err)
 	linked = 0
 	must(link.Reindex(ctx, []string{"d7/sub/f7", "d7/sub/gone"}, func(files, _ uint64) error {
@@ -270,7 +271,7 @@ func TestFolderLinkSync(t *testing.T) {
 	for _, e := range ents {
 		must(os.RemoveAll(filepath.Join(folder, e.Name())))
 	}
-	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"})
+	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
 	must(err)
 	if err := link.Sync(ctx, nil); !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
 		t.Fatalf("sync of the stand-in root returned %v, want ErrFolderRootChanged", err)
@@ -282,4 +283,103 @@ func TestFolderLinkSync(t *testing.T) {
 	must(idx.SetFolderRoot(ctx, folder, real))
 	must(link.Sync(ctx, nil))
 	expect(map[string]string{"d4": "none", "big.bin": "none"})
+}
+
+// TestFolderLinkTwoWay pins the remote write of a two-way link: a member's
+// write replaces a file holding its base, and one that meets an edit on disk
+// keeps both versions, the edit at the path and the member's under its
+// conflict name (MemberWriteKept, RemoteReplacesOnlyBase). The next sync
+// publishes the edit over the member's version, which it compared, and the
+// conflict copy as a new file.
+func TestFolderLinkTwoWay(t *testing.T) {
+	// Start the World and the Drive.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	htb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	wtb, err := world_testbed.NewTestbed(htb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	fsHandle, err := InitTestbed(wtb, objKey, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fsHandle.Release()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Link a folder of two files both ways.
+	folder := t.TempDir()
+	must(os.WriteFile(filepath.Join(folder, "a.txt"), []byte("owner a"), 0o644))
+	must(os.WriteFile(filepath.Join(folder, "b.txt"), []byte("owner b"), 0o644))
+	idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore())
+	dest := []string{"linked", "folder"}
+	link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
+	must(err)
+	must(link.Sync(ctx, nil))
+
+	// A member writes both files while the owner edits b.txt on disk.
+	rtx, err := wtb.Engine.NewTransaction(ctx, false)
+	must(err)
+	fsType, _, err := unixfs_world.LookupFsType(ctx, rtx, objKey)
+	rtx.Discard()
+	must(err)
+	member := unixfs_world.NewBatchFSWriter(world.NewEngineWorldState(wtb.Engine, true), objKey, fsType, "")
+	for _, name := range []string{"a.txt", "b.txt"} {
+		data := []byte("member " + name)
+		must(member.AddFile(ctx, dest, name, unixfs.NewFSCursorNodeType_File(), int64(len(data)), bytes.NewReader(data), 0o644, time.Now()))
+	}
+	must(member.Commit(ctx))
+	member.Release()
+	edited := time.Now().Add(time.Minute)
+	must(os.WriteFile(filepath.Join(folder, "b.txt"), []byte("owner b2"), 0o644))
+	must(os.Chtimes(filepath.Join(folder, "b.txt"), edited, edited))
+
+	// The sync applies the write over the base and keeps both versions of
+	// the conflict, then publishes the owner's edit and the conflict copy.
+	var linked uint64
+	must(link.Sync(ctx, func(files, _ uint64) error {
+		linked = files
+		return nil
+	}))
+	if n, err := link.Unapplied(); n != 0 {
+		t.Fatalf("%d remote changes left unapplied: %v", n, err)
+	}
+	read := func(name string) string {
+		t.Helper()
+		data, err := os.ReadFile(filepath.Join(folder, name))
+		must(err)
+		return string(data)
+	}
+	if got := read("a.txt"); got != "member a.txt" {
+		t.Fatalf("a.txt holds %q, want the member's write", got)
+	}
+	if got := read("b.txt"); got != "owner b2" {
+		t.Fatalf("b.txt holds %q, want the owner's edit", got)
+	}
+	copies, err := filepath.Glob(filepath.Join(folder, "b.txt.conflict-*"))
+	must(err)
+	if len(copies) != 1 || read(filepath.Base(copies[0])) != "member b.txt" {
+		t.Fatalf("conflict copies %v, want one holding the member's write", copies)
+	}
+	if linked != 2 {
+		t.Fatalf("sync published %d files, want the edit and the conflict copy", linked)
+	}
+
+	// The folder and the Drive agree: the next sync applies and links nothing.
+	linked = 0
+	must(link.Sync(ctx, func(files, _ uint64) error {
+		linked = files
+		return nil
+	}))
+	if linked != 0 {
+		t.Fatalf("second sync linked %d files, want 0", linked)
+	}
 }

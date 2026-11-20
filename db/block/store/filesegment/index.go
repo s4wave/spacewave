@@ -6,6 +6,8 @@ package block_store_filesegment
 import (
 	"context"
 	"encoding/binary"
+	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -21,11 +23,19 @@ const pathKeyPrefix = "p/"
 // rootKeyPrefix prefixes the key of a linked folder's root identity.
 const rootKeyPrefix = "f/"
 
+// versionKeyPrefix prefixes the key of a two-way linked folder's
+// FolderVersion of one file: the prefix, the folder, a zero byte, and the
+// file's path relative to the folder with its components joined by slashes.
+// A file name holds neither a zero byte nor a slash, so the versions of one
+// directory's files and subdirectories share a key prefix.
+const versionKeyPrefix = "v/"
+
 // Index is the SegmentIndex of one Space: one entry per ref and path, holding
 // the linked file range that held the ref's block, and one entry per path
-// holding the refs of its ranges, and the file-system identity of each linked
-// folder's root. It lives in a key/value store on this
-// Device, so it outlives the process.
+// holding the refs of its ranges, the file-system identity of each linked
+// folder's root, and the FolderVersion of each file of a two-way linked
+// folder. It lives in a key/value store on this Device, so it outlives the
+// process.
 //
 // A ref's ranges are the keys under its prefix, so linking or dropping one
 // path writes only that path's entries, however many other files share its
@@ -167,6 +177,115 @@ func (x *Index) SetFolderRoot(ctx context.Context, folder string, id uint64) err
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+// FolderVersions returns the versions recorded for the files directly in the
+// directory dir, a path relative to the linked folder at folder, by name, and
+// the names of its subdirectories holding recorded versions. It reads one key
+// per file and one per subdirectory, seeking past each subdirectory's keys.
+func (x *Index) FolderVersions(ctx context.Context, folder string, dir []string) (map[string]*FolderVersion, []string, error) {
+	// Iterate the directory's keys in order.
+	prefix := versionDirPrefix(folder, dir)
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer tx.Discard()
+	it := tx.Iterate(ctx, prefix, true, false)
+	defer it.Close()
+
+	// Take each file's version, and each subdirectory's name once.
+	files := make(map[string]*FolderVersion)
+	var dirs []string
+	for ok := it.Next(); ok; {
+		rest := string(it.Key()[len(prefix):])
+		if name, _, sub := strings.Cut(rest, "/"); sub {
+			dirs = append(dirs, name)
+			if err := it.Seek(append(append(slices.Clone(prefix), name...), '/'+1)); err != nil {
+				return nil, nil, err
+			}
+			ok = it.Valid()
+			continue
+		}
+		data, err := it.Value()
+		if err != nil {
+			return nil, nil, err
+		}
+		v := &FolderVersion{}
+		if err := v.UnmarshalVT(data); err != nil {
+			return nil, nil, err
+		}
+		files[rest] = v
+		ok = it.Next()
+	}
+	return files, dirs, it.Err()
+}
+
+// FolderVersionsUnder calls cb with the path relative to the linked folder at
+// folder, and the version, of each file recorded under the directory dir, at
+// any depth, in one scan.
+func (x *Index) FolderVersionsUnder(ctx context.Context, folder string, dir []string, cb func(rel []string, v *FolderVersion) error) error {
+	// Scan the directory's keys.
+	prefix := versionDirPrefix(folder, dir)
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	// Decode each version and its path.
+	base := len(versionDirPrefix(folder, nil))
+	return tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
+		v := &FolderVersion{}
+		if err := v.UnmarshalVT(value); err != nil {
+			return err
+		}
+		return cb(strings.Split(string(key[base:]), "/"), v)
+	})
+}
+
+// SetFolderVersions records the versions in set, by path relative to the
+// linked folder at folder with its components joined by slashes, and drops
+// the versions at the paths drop, in one write.
+func (x *Index) SetFolderVersions(ctx context.Context, folder string, set map[string]*FolderVersion, drop [][]string) error {
+	// Skip an empty write.
+	if len(set) == 0 && len(drop) == 0 {
+		return nil
+	}
+	tx, err := x.store.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	// Drop, then set, so a path in both keeps its new version.
+	for _, rel := range drop {
+		if err := tx.Delete(ctx, versionKey(folder, strings.Join(rel, "/"))); err != nil {
+			return err
+		}
+	}
+	for rel, v := range set {
+		if err := putOrDelete(ctx, tx, versionKey(folder, rel), v, false); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+// versionDirPrefix returns the key prefix of the versions under the directory
+// dir of the linked folder at folder.
+func versionDirPrefix(folder string, dir []string) []byte {
+	key := []byte(versionKeyPrefix + folder + "\x00")
+	for _, name := range dir {
+		key = append(append(key, name...), '/')
+	}
+	return key
+}
+
+// versionKey returns the key of the version of the file at rel, joined by
+// slashes, in the linked folder at folder.
+func versionKey(folder, rel string) []byte {
+	return []byte(versionKeyPrefix + folder + "\x00" + rel)
 }
 
 // DropPath removes every segment of path in one write.

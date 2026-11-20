@@ -23,6 +23,22 @@ message Segment {
   int64 block_size = 6;
 }
 
+// FolderVersion is the Drive version of one file of a two-way linked folder
+// that the folder's node last published from the folder or applied to it, with
+// the stat of the file on disk that held it then. A Drive file whose node
+// differs from it changed in the Drive, and a folder file whose stat differs
+// from it changed on disk.
+message FolderVersion {
+  // NodeRef is the reference of the file's node in the Drive.
+  .block.BlockRef node_ref = 1;
+  // Size is the file's size.
+  int64 size = 2;
+  // ModTime is the file's modification time, in Unix nanoseconds.
+  int64 mod_time = 3;
+  // Mode is the file's permission bits.
+  uint32 mode = 4;
+}
+
 // PathRefs is the SegmentIndex value of one path: the refs its segments hold,
 // so a changed path drops its entries in one write.
 message PathRefs {

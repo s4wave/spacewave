@@ -56,6 +56,45 @@ export const Segment: MessageType<Segment> =
   )
 
 /**
+ * FolderVersion is the Drive version of one file of a two-way linked folder
+ * that the folder's node last published from the folder or applied to it, with
+ * the stat of the file on disk that held it then. A Drive file whose node
+ * differs from it changed in the Drive, and a folder file whose stat differs
+ * from it changed on disk.
+ *
+ * @generated from message block.store.filesegment.FolderVersion
+ */
+export interface FolderVersion {
+  /**
+   * NodeRef is the reference of the file's node in the Drive.
+   */
+  nodeRef?: BlockRef
+  /**
+   * Size is the file's size.
+   */
+  size?: bigint
+  /**
+   * ModTime is the file's modification time, in Unix nanoseconds.
+   */
+  modTime?: bigint
+  /**
+   * Mode is the file's permission bits.
+   */
+  mode?: number
+}
+
+export const FolderVersion: MessageType<FolderVersion> =
+  /* @__PURE__ */ createMessageType<FolderVersion>(
+    'block.store.filesegment.FolderVersion',
+    () => [
+      [1, 'node_ref', 11, 0, BlockRef.codec],
+      [2, 'size', 3],
+      [3, 'mod_time', 3],
+      [4, 'mode', 13],
+    ],
+  )
+
+/**
  * PathRefs is the SegmentIndex value of one path: the refs its segments hold,
  * so a changed path drops its entries in one write.
  *

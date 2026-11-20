@@ -1,0 +1,65 @@
+---
+title: "Linked folder: applying a member's change"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Settled
+    lg1: Applying
+    lg2: Verifying
+  }
+  class lg0 teal
+  class lg1 blue
+  class lg2 orange
+  s0: A file at the path
+  s1: Delete waiting
+  s2: No file at the path
+  s3: Member's version waiting
+  s4: Disk matches#59; moving to trash
+  s5: Member's version fetched
+  s6: Checking the trashed file
+  s7: Disk matches#59; exchanging
+  s8: A file at the path, a conflict copy beside it
+  s9: No file at the path, the old file in the trash
+  s10: Path empty#59; putting it back
+  s11: Checking the displaced file
+  s12: No file at the path, a conflict copy beside it
+  s13: A file at the path, the old file in the trash
+  [*] --> s0
+  s0 --> s1: a member deletes
+  s0 --> s3: a member saves
+  s1 --> s4: the disk is checked
+  s2 --> s1: a member deletes
+  s2 --> s3: a member saves
+  s3 --> s5: the member's version arrives
+  s1 --> s2: the disk is checked
+  s4 --> s6: the file goes to the trash
+  s1 --> s0: the disk is checked
+  s5 --> s7: the disk is checked
+  s6 --> s9: the trashed file is checked
+  s5 --> s10: the disk is checked
+  s7 --> s11: the files are exchanged
+  s5 --> s8: the disk is checked
+  s6 --> s0: the trashed file is checked
+  s6 --> s2: the trashed file is checked
+  s6 --> s13: the trashed file is checked
+  s10 --> s0: the member's version is put back
+  s11 --> s0: the displaced file is checked
+  s6 --> s8: the trashed file is checked
+  s11 --> s2: the displaced file is checked
+  s11 --> s8: the displaced file is checked
+  s10 --> s8: the member's version is put back
+  s11 --> s12: the displaced file is checked
+  class s0 teal
+  class s1 blue
+  class s2 teal
+  class s3 blue
+  class s4 blue
+  class s5 blue
+  class s6 orange
+  class s7 blue
+  class s8 teal
+  class s9 teal
+  class s10 blue
+  class s11 orange
+  class s12 teal
+  class s13 teal

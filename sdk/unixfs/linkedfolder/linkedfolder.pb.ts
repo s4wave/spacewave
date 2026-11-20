@@ -29,6 +29,14 @@ export interface Config {
    * separated by slashes; empty links the folder at the Drive's root.
    */
   path?: string
+  /**
+   * TwoWay also applies the changes others make to the Drive to the folder:
+   * a member's write reaches the file, a write that meets an edit on disk
+   * keeps both versions under a conflict name, and a member's delete moves
+   * the file to the Device's trash. Off, the folder is the only source and the
+   * Drive follows it one way, replacing others' changes.
+   */
+  twoWay?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -39,5 +47,6 @@ export const Config: MessageType<Config> =
       [2, 'object_key', 9],
       [3, 'folder', 9],
       [4, 'path', 9],
+      [5, 'two_way', 8],
     ],
   )

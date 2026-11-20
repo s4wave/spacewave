@@ -110,15 +110,19 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		// Follow the folder while its root is on the file system it was
 		// linked on, and wait for that file system while it is not.
-		link, err := unixfs_world.NewFolderLink(eng, files.GetIndex(), c.conf.GetObjectKey(), c.conf.GetFolder(), c.conf.DestPath())
+		link, err := unixfs_world.NewFolderLink(eng, files.GetIndex(), c.conf.GetObjectKey(), c.conf.GetFolder(), c.conf.DestPath(), c.conf.GetTwoWay())
 		if err != nil {
 			return err
 		}
 		stale := newStalePaths()
 		release := files.WatchHashMisses(stale.add)
 		defer release()
+		remote := make(chan struct{}, 1)
+		if c.conf.GetTwoWay() {
+			go c.watchDrive(ctx, eng, remote)
+		}
 		for {
-			err := c.run(ctx, link, stale)
+			err := c.run(ctx, link, stale, remote)
 			if !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
 				return err
 			}
@@ -130,6 +134,35 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	})
 }
+
+// watchDrive signals remote, without blocking, each time the Drive's object
+// changes, so a two-way link applies others' changes as they commit. Each
+// signal costs the follow loop one remote pass after its quiet period.
+func (c *Controller) watchDrive(ctx context.Context, eng world.Engine, remote chan<- struct{}) {
+	// Wait for each revision after the current one.
+	ws := world.NewEngineWorldState(eng, false)
+	key := c.conf.GetObjectKey()
+	rev, _, err := world.GetObjectRev(ctx, ws, key)
+	for err == nil {
+		rev, err = world.WaitObjectRev(ctx, ws, key, rev+1, true)
+		if err == nil {
+			select {
+			case remote <- struct{}{}:
+			default:
+			}
+		}
+	}
+
+	// Report a watch that ended before the controller did.
+	if ctx.Err() == nil {
+		c.le.WithError(err).Warn("stopped watching the Drive for others' changes")
+	}
+}
+
+// unappliedRetry is how long a two-way link waits before trying again the
+// remote changes a pass could not apply, as when a member's blocks were not
+// reachable yet.
+const unappliedRetry = 10 * time.Second
 
 // rootRecheck is how often a link waiting for its folder's file system
 // checks the root again. No portable event announces a mount, and a check
@@ -156,7 +189,7 @@ func waitRoot(ctx context.Context, link *unixfs_world.FolderLink) error {
 
 // run syncs the folder and follows its changes. It returns
 // ErrFolderRootChanged once the root leaves its file system.
-func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, stale *stalePaths) error {
+func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, stale *stalePaths, remote <-chan struct{}) error {
 	// Watch the folder before the sync reads it, so no change escapes both.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -170,12 +203,13 @@ func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, sta
 
 	// Sync the folder, then follow its changes.
 	c.showIndexing()
-	if err := link.Sync(ctx, c.logProgress); err != nil {
+	err = link.Sync(ctx, c.logProgress)
+	if err != nil && !isFileConflict(err) {
 		return err
 	}
 	c.le.Debug("folder synced")
 	c.showWatching(link)
-	return c.follow(ctx, link, watcher, stale, folder)
+	return c.follow(ctx, link, watcher, stale, remote, folder, err != nil)
 }
 
 // follow syncs the directories the watcher names once the folder has been
@@ -184,11 +218,47 @@ func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, sta
 // dropped events syncs the whole folder. A file whose bytes the store found
 // changed under an unchanged stat is linked again with the same wait, and so
 // is a file that kept changing during its reads once its backoff passes.
-func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, watcher *fsnotify.Watcher, stale *stalePaths, folder string) error {
+//
+// A two-way link also syncs, with the same wait, after each change others
+// commit to the Drive, and after unappliedRetry while a pass left remote
+// changes unapplied. A sync refused because another writer changed its files
+// first syncs the whole folder again, applying that change; so does the
+// first one when resync is set.
+func (c *Controller) follow(
+	ctx context.Context,
+	link *unixfs_world.FolderLink,
+	watcher *fsnotify.Watcher,
+	stale *stalePaths,
+	remote <-chan struct{},
+	folder string,
+	resync bool,
+) error {
 	// Track the changes not yet synced and the timers that end their wait.
 	dirs := make(map[string]struct{})
 	files := make(map[string]struct{})
-	var all bool
+	all := resync
+	var applyRemote bool
+
+	// Wake to retry the remote changes the last pass left unapplied.
+	var retry *time.Timer
+	var retryC <-chan time.Time
+	defer func() {
+		if retry != nil {
+			retry.Stop()
+		}
+	}()
+	armRetry := func() {
+		if retry != nil {
+			retry.Stop()
+		}
+		retry, retryC = nil, nil
+		if n, err := link.Unapplied(); n != 0 {
+			c.le.WithError(err).WithField("changes", n).Warn("others' changes left to apply")
+			retry = time.NewTimer(unappliedRetry)
+			retryC = retry.C
+		}
+	}
+	armRetry()
 	var quiet, deadline *time.Timer
 	var quietC, deadlineC <-chan time.Time
 
@@ -257,6 +327,11 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 				files[rel] = struct{}{}
 			}
 			changed = true
+		case <-remote:
+			applyRemote, changed = true, true
+		case <-retryC:
+			retryC = nil
+			applyRemote, changed = true, true
 		case <-quietC:
 			due = true
 		case <-deadlineC:
@@ -280,24 +355,44 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 		deadline.Stop()
 		quiet, deadline, quietC, deadlineC = nil, nil, nil, nil
 		var err error
-		if all {
+		switch {
+		case all:
 			c.showIndexing()
 			err = link.Sync(ctx, c.logProgress)
-		} else {
+		case len(dirs) != 0:
 			err = link.SyncDirs(ctx, slices.Collect(maps.Keys(dirs)), c.logProgress)
+		case applyRemote && len(files) == 0:
+			// Only the Drive changed: apply its changes, and let the
+			// watcher name what they wrote.
+			err = link.ApplyRemote(ctx)
 		}
 		if err == nil && len(files) != 0 {
 			err = link.Reindex(ctx, slices.Collect(maps.Keys(files)), c.logProgress)
 		}
-		if err != nil {
+		conflict := isFileConflict(err)
+		if err != nil && !conflict {
 			return err
 		}
 		clear(dirs)
 		clear(files)
-		all = false
+		all, applyRemote = conflict, false
 		c.showWatching(link)
 		armChanging()
+		armRetry()
+		if conflict {
+			// Sync again after the quiet period, applying the change first.
+			c.le.WithError(err).Debug("another writer changed the Drive first, syncing again")
+			quiet, deadline = time.NewTimer(watchQuiet), time.NewTimer(watchMaxWait)
+			quietC, deadlineC = quiet.C, deadline.C
+		}
 	}
+}
+
+// isFileConflict reports whether err is a two-way sync refused because
+// another writer changed its files first.
+func isFileConflict(err error) bool {
+	var conflict *unixfs_world.FileConflictError
+	return errors.As(err, &conflict)
 }
 
 // relPath returns path relative to folder, when it lies inside it and is not

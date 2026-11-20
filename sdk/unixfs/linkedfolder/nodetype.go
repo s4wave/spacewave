@@ -20,6 +20,9 @@ const (
 	ParamFolder = "folder"
 	// ParamPath is the path in the Drive the folder links to.
 	ParamPath = "path"
+	// ParamTwoWay set to "true" applies others' changes to the Drive to the
+	// folder too; any other value links the folder one way.
+	ParamTwoWay = "two-way"
 )
 
 // NodeType is the linked-folder node type. Its node runs a linked-folder
@@ -50,6 +53,7 @@ func (NodeType) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgrap
 		ObjectKey: node.Node.GetObjectKey(),
 		Folder:    params[ParamFolder],
 		Path:      params[ParamPath],
+		TwoWay:    params[ParamTwoWay] == "true",
 	}
 	if err := conf.Validate(); err != nil {
 		return nil, err

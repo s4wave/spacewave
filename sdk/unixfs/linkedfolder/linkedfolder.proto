@@ -15,4 +15,10 @@ message Config {
   // Path is the path in the Drive the folder links to, with its parts
   // separated by slashes; empty links the folder at the Drive's root.
   string path = 4;
+  // TwoWay also applies the changes others make to the Drive to the folder:
+  // a member's write reaches the file, a write that meets an edit on disk
+  // keeps both versions under a conflict name, and a member's delete moves
+  // the file to the Device's trash. Off, the folder is the only source and the
+  // Drive follows it one way, replacing others' changes.
+  bool two_way = 5;
 }
