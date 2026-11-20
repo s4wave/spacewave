@@ -1,0 +1,52 @@
+[
+  {
+    "name": "the boot serves the trial without marking it attempted",
+    "replace": [
+      [
+        "                 /\\ roots' = [roots EXCEPT !.attempted = Trial]",
+        "                 /\\ UNCHANGED roots"
+      ]
+    ],
+    "expect": "TrialOnce"
+  },
+  {
+    "name": "the node restages a revision that rolled back",
+    "replace": [
+      [
+        "            /\\ placed \\notin {None, Accepted, roots.rolledBack}",
+        "            /\\ placed \\notin {None, Accepted}"
+      ]
+    ],
+    "expect": "TrialOnce"
+  },
+  {
+    "name": "the trial is accepted before its daemon is healthy",
+    "replace": [
+      [
+        "Accept == /\\ phase = \"healthy\"",
+        "Accept == /\\ phase \\in {\"serving\", \"healthy\"}"
+      ]
+    ],
+    "expect": "AcceptedGood"
+  },
+  {
+    "name": "the trial is served without checking its own authorization",
+    "replace": [
+      [
+        "                 /\\ roots.attempted # Trial /\\ Trial \\in Signed",
+        "                 /\\ roots.attempted # Trial"
+      ]
+    ],
+    "expect": "ServesSigned"
+  },
+  {
+    "name": "collection keeps only the accepted root's blocks",
+    "replace": [
+      [
+        "present \\cap ({Accepted, Trial} \\ {None})",
+        "present \\cap {Accepted}"
+      ]
+    ],
+    "expect": "SelectedPresent"
+  }
+]

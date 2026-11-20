@@ -123,7 +123,12 @@ covers interrupted buffered flush and storage publication; `Console/Console.tla`
 and its view carry the reader journey. `OSEnroll.tla` covers an installed card's
 first boot: the signers pinned before any root is served, the Device key made in
 the Volume, and the bootstrap grant redeemed across power cuts until the Space
-admits the key or revokes the grant. Component tests and model checks do not
+admits the key or revokes the grant. `OSRevision.tla` covers moving between
+system revisions: the image store's accepted, trial, attempted and rolled-back
+roots, each move one atomic publish; a trial marked attempted before it is
+served, so a failed or cut trial boots back to the accepted revision once;
+each revision checked against its own authorization; a rolled-back revision
+never restaged; and collection that keeps both revision roots. Component tests and model checks do not
 establish mounted durability or actual terminal behavior. Real QEMU/PTY checks,
 80x24 and 160x48 captures, restart/crash acceptance and timings remain separate.
 
