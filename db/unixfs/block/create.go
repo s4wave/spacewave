@@ -103,18 +103,19 @@ func CopyFSToFSTree(
 			continue
 		}
 
-		fileData, err := fs.ReadFile(ifs, srcPath)
+		// Stream the file into its blob so a large file is never held whole.
+		srcFile, err := ifs.Open(srcPath)
 		if err != nil {
 			return err
 		}
-
 		destFileBcs := destNode.bcs.FollowSubBlock(4)
-		destNode.node.File, err = file.BuildFileWithBytes(
+		destNode.node.File, err = file.BuildFileWithReader(
 			ctx,
 			destFileBcs,
-			fileData,
+			srcFile,
 			buildBlobOpts,
 		)
+		_ = srcFile.Close()
 		if err != nil {
 			return err
 		}

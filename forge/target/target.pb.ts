@@ -312,6 +312,17 @@ export interface Exec {
    * Controller indicates to run a controllerbus controller.
    */
   controller?: ControllerConfig
+  /**
+   * ReuseOutputs completes a Task with the outputs of an earlier successful
+   * Task whose Exec, Outputs and input values are equal, without running it.
+   * Set it only when the controller's outputs depend on nothing else.
+   */
+  reuseOutputs?: boolean
+  /**
+   * ReuseIgnoreInputs names inputs that do not affect the outputs and are
+   * left out of the reuse key, such as a scheduler's per-activation context.
+   */
+  reuseIgnoreInputs?: string[]
 }
 
 export const Exec: MessageType<Exec> = /* @__PURE__ */ createMessageType<Exec>(
@@ -319,6 +330,8 @@ export const Exec: MessageType<Exec> = /* @__PURE__ */ createMessageType<Exec>(
   () => [
     [1, 'disable', 8],
     [2, 'controller', 11, 0, ControllerConfig.codec],
+    [3, 'reuse_outputs', 8],
+    [4, 'reuse_ignore_inputs', 9, 1],
   ],
 )
 

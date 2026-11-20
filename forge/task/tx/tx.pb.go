@@ -40,6 +40,9 @@ const (
 	// TxType_RETRY authorizes one successor Pass for a failed predecessor.
 	// The expected pass nonce is the idempotency fence.
 	TxType_TxType_RETRY TxType = 5
+	// TxType_COMPLETE_CACHED completes a PENDING Task whose Target reuses
+	// outputs with the outputs of an earlier successful Task with its reuse key.
+	TxType_TxType_COMPLETE_CACHED TxType = 6
 )
 
 // Enum value maps for TxType.
@@ -51,6 +54,7 @@ var (
 		3: "TxType_UPDATE_WITH_PASS_STATE",
 		4: "TxType_COMPLETE",
 		5: "TxType_RETRY",
+		6: "TxType_COMPLETE_CACHED",
 	}
 	TxType_value = map[string]int32{
 		"TxType_INVALID":                0,
@@ -59,6 +63,7 @@ var (
 		"TxType_UPDATE_WITH_PASS_STATE": 3,
 		"TxType_COMPLETE":               4,
 		"TxType_RETRY":                  5,
+		"TxType_COMPLETE_CACHED":        6,
 	}
 )
 
@@ -99,6 +104,9 @@ type Tx struct {
 	// TxRetry contains the explicit retry transaction.
 	// TxType_RETRY
 	TxRetry *TxRetry `protobuf:"bytes,7,opt,name=tx_retry,json=txRetry,proto3" json:"txRetry,omitempty"`
+	// TxCompleteCached completes the Task with an earlier Task's outputs.
+	// TxType_COMPLETE_CACHED
+	TxCompleteCached *TxCompleteCached `protobuf:"bytes,8,opt,name=tx_complete_cached,json=txCompleteCached,proto3" json:"txCompleteCached,omitempty"`
 }
 
 func (x *Tx) Reset() {
@@ -154,6 +162,37 @@ func (x *Tx) GetTxRetry() *TxRetry {
 		return x.TxRetry
 	}
 	return nil
+}
+
+func (x *Tx) GetTxCompleteCached() *TxCompleteCached {
+	if x != nil {
+		return x.TxCompleteCached
+	}
+	return nil
+}
+
+// TxCompleteCached completes a PENDING Task with the outputs of an earlier
+// successful Task holding the same reuse key, without creating a Pass.
+// Links the Task to the earlier Task with forge/task-cached.
+//
+// TxType: TxType_COMPLETE_CACHED
+type TxCompleteCached struct {
+	unknownFields []byte
+	// CachedTaskKey is the earlier COMPLETE Task whose outputs are reused.
+	CachedTaskKey string `protobuf:"bytes,1,opt,name=cached_task_key,json=cachedTaskKey,proto3" json:"cachedTaskKey,omitempty"`
+}
+
+func (x *TxCompleteCached) Reset() {
+	*x = TxCompleteCached{}
+}
+
+func (*TxCompleteCached) ProtoMessage() {}
+
+func (x *TxCompleteCached) GetCachedTaskKey() string {
+	if x != nil {
+		return x.CachedTaskKey
+	}
+	return ""
 }
 
 // TxRetry authorizes a successor Pass after a terminal failed Pass.
@@ -317,6 +356,7 @@ func (m *Tx) CloneVT() *Tx {
 	r.TxUpdateWithPassState = protobuf_go_lite.CloneVTValue(m.TxUpdateWithPassState)
 	r.TxComplete = protobuf_go_lite.CloneVTValue(m.TxComplete)
 	r.TxRetry = protobuf_go_lite.CloneVTValue(m.TxRetry)
+	r.TxCompleteCached = protobuf_go_lite.CloneVTValue(m.TxCompleteCached)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -324,6 +364,22 @@ func (m *Tx) CloneVT() *Tx {
 }
 
 func (m *Tx) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TxCompleteCached) CloneVT() *TxCompleteCached {
+	if m == nil {
+		return (*TxCompleteCached)(nil)
+	}
+	r := new(TxCompleteCached)
+	r.CachedTaskKey = m.CachedTaskKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TxCompleteCached) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -437,11 +493,34 @@ func (this *Tx) EqualVT(that *Tx) bool {
 	if !protobuf_go_lite.IsEqualVT(this.TxRetry, that.TxRetry) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.TxCompleteCached, that.TxCompleteCached) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Tx) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Tx)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TxCompleteCached) EqualVT(that *TxCompleteCached) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CachedTaskKey != that.CachedTaskKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TxCompleteCached) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TxCompleteCached)
 	if !ok {
 		return false
 	}
@@ -640,6 +719,11 @@ func (x *Tx) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("txRetry")
 		x.TxRetry.MarshalProtoJSON(s.WithField("txRetry"))
 	}
+	if x.TxCompleteCached != nil || s.HasField("txCompleteCached") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("txCompleteCached")
+		x.TxCompleteCached.MarshalProtoJSON(s.WithField("txCompleteCached"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -698,12 +782,61 @@ func (x *Tx) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.TxRetry = &TxRetry{}
 			x.TxRetry.UnmarshalProtoJSON(s.WithField("tx_retry", true))
+		case "tx_complete_cached", "txCompleteCached":
+			if s.ReadNil() {
+				x.TxCompleteCached = nil
+				return
+			}
+			x.TxCompleteCached = &TxCompleteCached{}
+			x.TxCompleteCached.UnmarshalProtoJSON(s.WithField("tx_complete_cached", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Tx from JSON.
 func (x *Tx) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TxCompleteCached message to JSON.
+func (x *TxCompleteCached) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CachedTaskKey != "" || s.HasField("cachedTaskKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cachedTaskKey")
+		s.WriteString(x.CachedTaskKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TxCompleteCached to JSON.
+func (x *TxCompleteCached) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TxCompleteCached message from JSON.
+func (x *TxCompleteCached) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "cached_task_key", "cachedTaskKey":
+			s.AddField("cached_task_key")
+			x.CachedTaskKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TxCompleteCached from JSON.
+func (x *TxCompleteCached) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -982,6 +1115,16 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.TxCompleteCached != nil {
+		size, err := m.TxCompleteCached.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.TxRetry != nil {
 		size, err := m.TxRetry.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1041,6 +1184,43 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TxType))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TxCompleteCached) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TxCompleteCached) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TxCompleteCached) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.CachedTaskKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CachedTaskKey)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -1293,6 +1473,21 @@ func (m *Tx) SizeVT() (n int) {
 		l = m.TxRetry.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.TxCompleteCached != nil {
+		l = m.TxCompleteCached.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TxCompleteCached) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CachedTaskKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1402,10 +1597,28 @@ func (x *Tx) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_retry")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxRetry)
 	}
+	if x.TxCompleteCached != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_complete_cached")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxCompleteCached)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *Tx) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TxCompleteCached) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TxCompleteCached")
+	if x.CachedTaskKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cached_task_key")
+		protobuf_go_lite.TextWriteString(&sb, x.CachedTaskKey)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TxCompleteCached) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1607,6 +1820,74 @@ func (m *Tx) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxCompleteCached", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TxCompleteCached == nil {
+				m.TxCompleteCached = &TxCompleteCached{}
+			}
+			if err := m.TxCompleteCached.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TxCompleteCached) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TxCompleteCached: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TxCompleteCached: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CachedTaskKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CachedTaskKey = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

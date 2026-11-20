@@ -40,8 +40,7 @@ import (
 // qemuGitea owns a fresh World and consumes existing, explicitly supplied guest disks.
 // A failed run preserves those disks; the test never formats or reseeds them.
 type qemuGitea struct {
-	*workerHarness
-	t         *testing.T
+	*flowgraphFixture
 	dir       string
 	dockerEnv []string
 	image     string
@@ -75,7 +74,7 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 		timeout: 10 * time.Minute, memoryBytes: 4 << 30, dockerPath: wrapper,
 		storage: []db_testbed.Option{db_testbed.WithVolumeConfig(&volume_s4db.Config{Path: filepath.Join(fixture, "host-world.s4wave")})},
 	})
-	f := &qemuGitea{workerHarness: h, t: t, dir: fixture, image: image, dockerEnv: []string{"DOCKER_HOST=" + os.Getenv("DOCKER_HOST"), "SPACEWAVE_REAL_DOCKER=" + dockerPath}}
+	f := &qemuGitea{flowgraphFixture: &flowgraphFixture{workerHarness: h, t: t}, dir: fixture, image: image, dockerEnv: []string{"DOCKER_HOST=" + os.Getenv("DOCKER_HOST"), "SPACEWAVE_REAL_DOCKER=" + dockerPath}}
 	f.port = freeQEMUPort(t)
 	f.base = "http://127.0.0.1:" + strconv.Itoa(f.port)
 	h.tb.StaticResolver.AddFactory(flowgraph_run.NewFactory(h.tb.Bus))
@@ -100,7 +99,7 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 	}()
 	f.createGraph(startup)
 	firstRun := "flowgraph-run/gitea-first"
-	f.startRun(firstRun)
+	f.startRun(firstRun, "flowgraph/gitea")
 	f.waitReady(firstRun)
 	first := f.reservation(firstRun, "vm")
 	firstLogs := f.docker("logs", first.Runtime.ID)
@@ -200,7 +199,7 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 	// Replace the execution on the same graph and raw disks, with the same SQL object.
 	updates <- h.declaration()
 	secondRun := "flowgraph-run/gitea-replacement"
-	f.startRun(secondRun)
+	f.startRun(secondRun, "flowgraph/gitea")
 	f.waitReady(secondRun)
 	second := f.reservation(secondRun, "vm")
 	if first.ExecutionObjectKey == second.ExecutionObjectKey || first.Runtime.ID == second.Runtime.ID {
@@ -306,30 +305,6 @@ func (f *qemuGitea) docker(args ...string) string {
 	return string(output)
 }
 
-// transact commits one graph operation through the real World engine.
-func (f *qemuGitea) transact(fn func(context.Context, world.WorldState) error) {
-	if err := world.ExecTransaction(f.ctx, f.tb.Engine, true, fn); err != nil {
-		f.t.Fatal(err)
-	}
-}
-
-// wait waits on World revisions rather than polling runtime state.
-func (f *qemuGitea) wait(what string, ready func() bool) {
-	// Take the revision before observing its derived state, then wait for its change.
-	for {
-		seq, err := f.tb.WorldState.GetSeqno(f.ctx)
-		if err != nil {
-			f.t.Fatal(err)
-		}
-		if ready() {
-			return
-		}
-		if _, err := f.tb.WorldState.WaitSeqno(f.ctx, seq+1); err != nil {
-			f.t.Fatalf("waiting for %s: %v", what, err)
-		}
-	}
-}
-
 // waitReady waits for Gitea's health check until the run's VM Task ends.
 // Docker start, a cold boot and the first migration have no fixed duration on a
 // loaded host; the harness timeout bounds the whole proof.
@@ -388,58 +363,6 @@ func (f *qemuGitea) taskEnded(ctx context.Context, run, node string) error {
 		}
 	}
 	return nil
-}
-
-// readRun releases the object handle after decoding the bounded fixture run.
-func (f *qemuGitea) readRun(key string) *s4wave_flowgraph.FlowgraphRun {
-	// Decode only this run's state through its World object cursor.
-	obj, err := world.MustGetObject(f.ctx, f.tb.WorldState, key)
-	if err != nil {
-		f.t.Fatal(err)
-	}
-	defer world.ReleaseObjectState(obj)
-	var run *s4wave_flowgraph.FlowgraphRun
-	_, _, err = world.AccessObjectState(f.ctx, obj, false, func(cursor *block.Cursor) error {
-		var err error
-		run, err = s4wave_flowgraph.UnmarshalFlowgraphRun(f.ctx, cursor)
-		return err
-	})
-	if err != nil {
-		f.t.Fatal(err)
-	}
-	return run
-}
-
-// waitTask waits for a graph activation and optionally its successful completion.
-func (f *qemuGitea) waitTask(runKey, node string, complete bool) string {
-	// Resolve the activation's Task, reporting a paused graph instead of waiting forever.
-	var taskKey string
-	f.wait(node, func() bool {
-		run := f.readRun(runKey)
-		if run.GetState() == s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED {
-			f.t.Fatalf("graph paused: %s", run.GetPauseReason())
-		}
-		for _, a := range run.GetActivations() {
-			if a.GetNodeId() == node {
-				taskKey = a.GetTaskKey()
-				if !complete {
-					return true
-				}
-				task, err := forge_task.LookupTaskBody(f.ctx, f.tb.WorldState, taskKey)
-				if err != nil {
-					f.t.Fatal(err)
-				}
-				if task.GetTaskState() == forge_task.State_TaskState_COMPLETE {
-					if failure := task.GetResult().GetFailError(); failure != "" {
-						f.t.Fatal(failure)
-					}
-					return true
-				}
-			}
-		}
-		return false
-	})
-	return taskKey
 }
 
 // reservation follows the activation's current Pass to its real execution grant.
@@ -580,19 +503,6 @@ func (f *qemuGitea) step(conf *forge_lib_docker.Config, output string, input boo
 		node.Ports = append(node.Ports, &s4wave_flowgraph.FlowgraphPort{Name: "commit", Direction: s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT, TypeId: "activation"})
 	}
 	return node
-}
-
-// startRun starts a distinct execution of the same authored graph.
-func (f *qemuGitea) startRun(key string) {
-	// Publish the run before attaching its existing controller factory.
-	f.transact(func(ctx context.Context, ws world.WorldState) error {
-		return flowgraph_run.StartRun(ctx, ws, f.sender, key, "flowgraph/gitea", harnessClusterKey, nil)
-	})
-	_, ref, err := flowgraph_run.StartControllerWithConfig(f.ctx, f.tb.Bus, flowgraph_run.NewConfig(f.tb.EngineID, key))
-	if err != nil {
-		f.t.Fatal(err)
-	}
-	f.t.Cleanup(ref.Release)
 }
 
 // giteaGuestStartup installs only absent configuration in the retained UnixFS object.

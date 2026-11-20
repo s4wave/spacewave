@@ -19,6 +19,7 @@ import (
 	cluster_controller "github.com/s4wave/spacewave/forge/cluster/controller"
 	exec_controller "github.com/s4wave/spacewave/forge/execution/controller"
 	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
+	forge_lib_skiffos "github.com/s4wave/spacewave/forge/lib/skiffos"
 	forge_lib_util_presence "github.com/s4wave/spacewave/forge/lib/util/presence"
 	pass_controller "github.com/s4wave/spacewave/forge/pass/controller"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
@@ -258,6 +259,7 @@ func (r *forgeWorkerResource) Execute(
 		pass_controller.NewFactory(r.b),
 		exec_controller.NewFactory(r.b),
 		forge_lib_docker.NewWorkerFactory(r.b, r.admission),
+		forge_lib_skiffos.NewFactory(),
 		forge_lib_util_presence.NewFactory(r.b),
 	}
 	sr := static.NewResolver(append(forgeFactories, bridgeFactories...)...)

@@ -117,6 +117,21 @@ func (t *TxComplete) ExecuteTx(
 		root.ValueSet.Outputs = passOutputs
 	}
 
+	// Record the reuse key of a successful Task whose Target reuses outputs,
+	// so a later Task with equal inputs completes with these outputs.
+	if result.GetSuccess() {
+		reuseKey, err := forge_task.NewReuseKey(tgt, root.GetValueSet().GetInputs())
+		if err != nil {
+			return err
+		}
+		if reuseKey != "" {
+			err = worldState.SetGraphQuad(ctx, forge_task.NewTaskToReuseKeyQuad(objKey, reuseKey))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Persist the Task with its terminal Result.
 	root.TaskState = forge_task.State_TaskState_COMPLETE
 	root.Result = result

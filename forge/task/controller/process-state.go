@@ -146,8 +146,12 @@ func (c *Controller) ProcessState(
 		return true, nil
 	}
 
-	// start the task if pending
+	// start the task if pending, unless an earlier Task already has its result
 	if currState == forge_task.State_TaskState_PENDING {
+		reused, err := c.reuseOutputs(ctx, le, ws, taskTarget, taskState)
+		if err != nil || reused {
+			return true, err
+		}
 		txStart := task_tx.NewTxStart(objKey, c.conf.GetAssignSelf())
 		_, _, err = ws.ApplyWorldOp(ctx, txStart, c.peerID)
 		if err != nil {
@@ -238,6 +242,51 @@ func buildUpdateInputValueSet(
 	valueSet.SortValues()
 	return valueSet
 }
+
+// reuseOutputs completes the PENDING Task with the outputs of an earlier
+// successful Task with the same reuse key. It reports whether it did. A
+// candidate the transaction refuses, such as one deleted or changed since the
+// lookup, is skipped, and the Task starts as usual when none is left.
+func (c *Controller) reuseOutputs(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	tgt *forge_target.Target,
+	taskState *forge_task.Task,
+) (bool, error) {
+	// Find earlier Tasks recorded with this Task's reuse key.
+	reuseKey, err := forge_task.NewReuseKey(tgt, taskState.GetValueSet().GetInputs())
+	if err != nil || reuseKey == "" {
+		return false, err
+	}
+	candidates, err := forge_task.ListTasksWithReuseKey(ctx, ws, reuseKey, reuseCandidateLimit)
+	if err != nil {
+		return false, errors.Wrap(err, "list tasks with reuse key")
+	}
+
+	// Take the first candidate the transaction accepts.
+	for _, cachedKey := range candidates {
+		if cachedKey == c.objKey {
+			continue
+		}
+		tx := task_tx.NewTxCompleteCached(c.objKey, cachedKey)
+		_, _, err := ws.ApplyWorldOp(ctx, tx, c.peerID)
+		if err == nil {
+			le.WithField("cached-task", cachedKey).
+				WithField("reuse-key", reuseKey).
+				Info("task cache hit: completed with the outputs of an earlier task")
+			return true, nil
+		}
+		if !world.IsOpRefusedError(err) {
+			return false, errors.Wrap(err, "complete cached")
+		}
+		le.WithError(err).WithField("cached-task", cachedKey).Debug("skipped reuse candidate")
+	}
+	return false, nil
+}
+
+// reuseCandidateLimit bounds the earlier Tasks read for one reuse lookup.
+const reuseCandidateLimit = 8
 
 // processCheckTaskResult processes the task in the CHECKING state.
 // in the future, additional checks may be added here.

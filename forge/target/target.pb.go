@@ -398,6 +398,13 @@ type Exec struct {
 	Disable bool `protobuf:"varint,1,opt,name=disable,proto3" json:"disable,omitempty"`
 	// Controller indicates to run a controllerbus controller.
 	Controller *proto.ControllerConfig `protobuf:"bytes,2,opt,name=controller,proto3" json:"controller,omitempty"`
+	// ReuseOutputs completes a Task with the outputs of an earlier successful
+	// Task whose Exec, Outputs and input values are equal, without running it.
+	// Set it only when the controller's outputs depend on nothing else.
+	ReuseOutputs bool `protobuf:"varint,3,opt,name=reuse_outputs,json=reuseOutputs,proto3" json:"reuseOutputs,omitempty"`
+	// ReuseIgnoreInputs names inputs that do not affect the outputs and are
+	// left out of the reuse key, such as a scheduler's per-activation context.
+	ReuseIgnoreInputs []string `protobuf:"bytes,4,rep,name=reuse_ignore_inputs,json=reuseIgnoreInputs,proto3" json:"reuseIgnoreInputs,omitempty"`
 }
 
 func (x *Exec) Reset() {
@@ -416,6 +423,20 @@ func (x *Exec) GetDisable() bool {
 func (x *Exec) GetController() *proto.ControllerConfig {
 	if x != nil {
 		return x.Controller
+	}
+	return nil
+}
+
+func (x *Exec) GetReuseOutputs() bool {
+	if x != nil {
+		return x.ReuseOutputs
+	}
+	return false
+}
+
+func (x *Exec) GetReuseIgnoreInputs() []string {
+	if x != nil {
+		return x.ReuseIgnoreInputs
 	}
 	return nil
 }
@@ -571,7 +592,9 @@ func (m *Exec) CloneVT() *Exec {
 	}
 	r := new(Exec)
 	r.Disable = m.Disable
+	r.ReuseOutputs = m.ReuseOutputs
 	r.Controller = protobuf_go_lite.CloneVTValue(m.Controller)
+	r.ReuseIgnoreInputs = protobuf_go_lite.CloneSlice(m.ReuseIgnoreInputs)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -777,6 +800,12 @@ func (this *Exec) EqualVT(that *Exec) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Controller, that.Controller) {
+		return false
+	}
+	if this.ReuseOutputs != that.ReuseOutputs {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.ReuseIgnoreInputs, that.ReuseIgnoreInputs) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1357,6 +1386,16 @@ func (x *Exec) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("controller")
 		x.Controller.MarshalProtoJSON(s.WithField("controller"))
 	}
+	if x.ReuseOutputs || s.HasField("reuseOutputs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reuseOutputs")
+		s.WriteBool(x.ReuseOutputs)
+	}
+	if len(x.ReuseIgnoreInputs) > 0 || s.HasField("reuseIgnoreInputs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reuseIgnoreInputs")
+		s.WriteStringArray(x.ReuseIgnoreInputs)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1384,6 +1423,16 @@ func (x *Exec) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Controller = &proto.ControllerConfig{}
 			x.Controller.UnmarshalProtoJSON(s.WithField("controller", true))
+		case "reuse_outputs", "reuseOutputs":
+			s.AddField("reuse_outputs")
+			x.ReuseOutputs = s.ReadBool()
+		case "reuse_ignore_inputs", "reuseIgnoreInputs":
+			s.AddField("reuse_ignore_inputs")
+			if s.ReadNil() {
+				x.ReuseIgnoreInputs = nil
+				return
+			}
+			x.ReuseIgnoreInputs = s.ReadStringArray()
 		}
 	})
 }
@@ -1860,6 +1909,18 @@ func (m *Exec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.ReuseIgnoreInputs) > 0 {
+		for iNdEx := len(m.ReuseIgnoreInputs) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.ReuseIgnoreInputs[iNdEx])
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if m.ReuseOutputs {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ReuseOutputs)
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.Controller != nil {
 		size, err := m.Controller.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -2051,6 +2112,8 @@ func (m *Exec) SizeVT() (n int) {
 		l = m.Controller.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ReuseOutputs)
+	n += protobuf_go_lite.SizeStringSlice(1, m.ReuseIgnoreInputs)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2255,6 +2318,18 @@ func (x *Exec) MarshalProtoText() string {
 	if x.Controller != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "controller")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Controller)
+	}
+	if x.ReuseOutputs != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reuse_outputs")
+		protobuf_go_lite.TextWriteBool(&sb, x.ReuseOutputs)
+	}
+	if len(x.ReuseIgnoreInputs) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "reuse_ignore_inputs")
+		for i, v := range x.ReuseIgnoreInputs {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2857,6 +2932,26 @@ func (m *Exec) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReuseOutputs", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ReuseOutputs = bool(v)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReuseIgnoreInputs", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ReuseIgnoreInputs = append(m.ReuseIgnoreInputs, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -1,0 +1,24 @@
+syntax = "proto3";
+package forge.lib.skiffos;
+
+// Config configures one whole-workspace SkiffOS build on the Worker host.
+//
+// Runs "make configure compile" in a SkiffOS checkout for one workspace and
+// config list, then stores the workspace's images directory, the boot set, as
+// a UnixFS directory in the Task's World. The build runs on the Worker that
+// serves the Execution and owns its workspace: a later build of the same
+// workspace reuses its build tree and ccache.
+//
+// Outputs:
+//  - images: the boot set, a BLOCK_REF to a UnixFS directory.
+message Config {
+  // SkiffDir is the absolute path of the SkiffOS checkout on the Worker host.
+  string skiff_dir = 1;
+  // Workspace names the SkiffOS workspace this build owns.
+  // Another builder of the same workspace in the same checkout would
+  // overwrite its tree, so give each build Step its own workspace.
+  string workspace = 2;
+  // Configs is the SKIFF_CONFIG list in order, such as
+  // ["intel/x64", "virt/qemu"].
+  repeated string configs = 3;
+}

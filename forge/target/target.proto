@@ -132,6 +132,13 @@ message Exec {
   bool disable = 1;
   // Controller indicates to run a controllerbus controller.
   .configset.proto.ControllerConfig controller = 2;
+  // ReuseOutputs completes a Task with the outputs of an earlier successful
+  // Task whose Exec, Outputs and input values are equal, without running it.
+  // Set it only when the controller's outputs depend on nothing else.
+  bool reuse_outputs = 3;
+  // ReuseIgnoreInputs names inputs that do not affect the outputs and are
+  // left out of the reuse key, such as a scheduler's per-activation context.
+  repeated string reuse_ignore_inputs = 4;
 }
 
 // ValueSet is the set of values satisfying inputs/outputs of a target.
