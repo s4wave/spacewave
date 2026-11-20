@@ -404,6 +404,20 @@ func TestMknodWithContent(t *testing.T) {
 	if !bytes.Equal(buf[:n], content) {
 		t.Fatalf("content mismatch: %q != %q", buf[:n], content)
 	}
+
+	// An empty file carries no blob and commits as a zero-length file.
+	err = fsHandle.MknodWithContent(ctx, "empty", unixfs.NewFSCursorNodeType_File(), 0, bytes.NewReader(nil), 0o444, time.Now())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	emptyHandle, err := fsHandle.Lookup(ctx, "empty")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer emptyHandle.Release()
+	if size, err := emptyHandle.GetSize(ctx); err != nil || size != 0 {
+		t.Fatalf("empty file: size %d, err %v", size, err)
+	}
 }
 
 // TestMknodWithContent_LargeFile tests creating a larger file that requires chunking.

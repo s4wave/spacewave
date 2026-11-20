@@ -19,7 +19,8 @@ import (
 // FsMknodWithContent creates a file with content atomically.
 // Phase 1: pre-builds the blob through a stage on ws.
 // Phase 2: creates the file entry and writes the blob in a single commit.
-// The stage holds the blob until the op adopts it.
+// The stage holds the blob until the op adopts it. An empty file builds no
+// blob: its op carries an empty content reference.
 func FsMknodWithContent(
 	ctx context.Context,
 	ws world.WorldState,
@@ -33,13 +34,20 @@ func FsMknodWithContent(
 	permissions fs.FileMode,
 	ts time.Time,
 ) (rev uint64, sysErr bool, err error) {
+	// An empty file needs no blob, so it skips straight to the op.
+	fpath := unixfs_block.NewFSPath(path, false)
+	tType := unixfs_block.FSCursorNodeTypeToNodeType(nodeType)
+	if dataLen == 0 {
+		wOp := NewFsMknodWithContentOp("", fsType, fpath, tType, permissions, ts, nil)
+		return obj.ApplyObjectOp(ctx, wOp, sender)
+	}
+
 	// Phase 1: build the blob through a stage held until the op adopts it.
 	stage, err := ws.StageWorldState(ctx)
 	if err != nil {
 		return 0, true, err
 	}
 	defer stage.Release()
-	fpath := unixfs_block.NewFSPath(path, false)
 	blbObjRef, err := world.AccessObject(
 		ctx,
 		stage.AccessWorldState,
@@ -55,7 +63,6 @@ func FsMknodWithContent(
 	}
 
 	// Phase 2: create file entry + write blob content in a single commit.
-	tType := unixfs_block.FSCursorNodeTypeToNodeType(nodeType)
 	wOp := NewFsMknodWithContentOp("", fsType, fpath, tType, permissions, ts, blbObjRef.GetRootRef())
 	return obj.ApplyObjectOp(ctx, wOp, sender)
 }
@@ -83,7 +90,8 @@ func NewFsMknodWithContentOp(
 
 // Validate performs cursory checks on the op.
 func (o *FsMknodWithContentOp) Validate() error {
-	// Validate the file path, timestamp, filesystem type, and content reference.
+	// Validate the file path, timestamp, filesystem type, and content
+	// reference, which is empty for an empty file.
 	if o.GetPath() == nil || len(o.GetPath().GetNodes()) == 0 {
 		return errors.New("path is required")
 	}
@@ -93,7 +101,7 @@ func (o *FsMknodWithContentOp) Validate() error {
 	if err := o.GetFsType().Validate(true); err != nil {
 		return err
 	}
-	if err := o.GetBlobRef().Validate(false); err != nil {
+	if err := o.GetBlobRef().Validate(true); err != nil {
 		return err
 	}
 	return nil
@@ -153,8 +161,11 @@ func (o *FsMknodWithContentOp) ApplyWorldObjectOp(
 	return false, fsRefusal(err)
 }
 
-// GetPayloadRefs returns the file content blob.
+// GetPayloadRefs returns the file content blob, or none for an empty file.
 func (o *FsMknodWithContentOp) GetPayloadRefs() []*block.BlockRef {
+	if o.GetBlobRef().GetEmpty() {
+		return nil
+	}
 	return []*block.BlockRef{o.GetBlobRef()}
 }
 
