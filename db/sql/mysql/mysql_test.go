@@ -163,16 +163,16 @@ func TestMysql(t *testing.T) {
 	}
 
 	// Prepare a SQL client session with autocommit and the database selected.
-	buildSqlCtx := func() *sql.Context {
+	buildSqlCtx := func(e *sqle.Engine) *sql.Context {
 		// Construct the in-process SQL client and session.
 		sclient := sql.Client{
 			User:    "hydra",
 			Address: "inproc",
 		}
-		ssess := sql.NewBaseSessionWithClientServer("address", sclient, 1)
+		ssess := sql.NewBaseSessionWithClientServerWithVariables("address", sclient, 1, e.Variables())
 
 		// Construct the SQL context around the client session.
-		sqlCtx := sql.NewContext(ctx,
+		sqlCtx := e.NewContext(ctx,
 			sql.WithSession(ssess),
 			// sql.WithIndexRegistry(sql.NewIndexRegistry()),
 			// sql.WithViewRegistry(sql.NewViewRegistry()),
@@ -187,7 +187,7 @@ func TestMysql(t *testing.T) {
 	// Prepare query execution that records returned rows and column values.
 	printQuery := func(e *sqle.Engine, query string) int {
 		// Execute the SQL query with a fresh client context.
-		sqlCtx := buildSqlCtx()
+		sqlCtx := buildSqlCtx(e)
 		t.Logf("QUERY: %s", query)
 		_, r, _, err := e.Query(sqlCtx, query)
 		if err != nil {

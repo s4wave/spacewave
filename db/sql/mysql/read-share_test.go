@@ -58,6 +58,7 @@ func runMysqlTx(t *testing.T, ctx context.Context, database *Mysql, write bool, 
 		t.Fatal(err)
 	}
 	engine := sqle.NewDefault(provider)
+	sqlCtx = engineContext(sqlCtx, engine)
 	for _, statement := range statements {
 		if _, err := queryIndexTest(sqlCtx, engine, statement); err != nil {
 			t.Fatalf("%s: %v", statement, err)
