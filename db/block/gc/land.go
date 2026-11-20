@@ -158,8 +158,9 @@ const (
 // batched read of the child list records of the distinct children the born
 // blocks name outside the batch and, when any is unlisted, one batched block
 // existence read, with one up per naming; per moved root, its entry and its
-// lease index record, and per distinct lease the roots name, its record. While the generation is not Settled, each child list
-// record it reads returns its value, and per stored block it puts while
+// lease index record, and per distinct lease the roots name, its record.
+// While the generation is not Settled, each child list record it reads
+// returns its value, and per stored block it puts while
 // Open, its list record, which it may rewrite, with one list read per child
 // of a rewritten one, and per listed block it holds or puts, its count
 // record and, for a zero one, its parked key; while Sweeping, one run entry
