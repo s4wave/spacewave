@@ -129,6 +129,32 @@ func (l *FolderLink) SyncDirs(ctx context.Context, dirs []string, progress func(
 	return s.commit()
 }
 
+// Reindex links the files at the paths files, relative to the folder, again
+// whatever their stat, as after the store found their bytes changed under an
+// unchanged stat. A path that is no longer a regular file, or whose directory
+// the Drive lacks, is synced through its directory instead.
+func (l *FolderLink) Reindex(ctx context.Context, files []string, progress func(files, bytes uint64) error) error {
+	// Start the sync and declare the destination.
+	s, err := l.begin(ctx, progress)
+	if err != nil {
+		return err
+	}
+	defer s.release()
+	if err := s.declareDest(); err != nil {
+		return err
+	}
+
+	// Link each file, or sync its directory.
+	for _, file := range files {
+		if err := s.reindex(splitRel(file)); err != nil {
+			return err
+		}
+	}
+
+	// Commit the last batch.
+	return s.commit()
+}
+
 // splitRel splits a slash or separator path relative to the folder into its
 // components, dropping empty and "." components.
 func splitRel(rel string) []string {
@@ -317,6 +343,42 @@ func (s *folderSync) declareDest() error {
 		}
 	}
 	return nil
+}
+
+// reindex links the file at the relative path rel whatever its stat, or
+// syncs its directory when it is no longer a regular file or the Drive lacks
+// its directory.
+func (s *folderSync) reindex(rel []string) error {
+	// Stat the file.
+	if len(rel) == 0 {
+		return nil
+	}
+	dirRel, name := rel[:len(rel)-1], rel[len(rel)-1]
+	path := filepath.Join(append([]string{s.folder}, rel...)...)
+	info, err := os.Lstat(path)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+
+	// Link a regular file into the directory the Drive holds.
+	if err == nil && info.Mode().IsRegular() {
+		parent := append(slices.Clone(s.dest), dirRel...)
+		var held bool
+		err := s.view(func(root *unixfs_block.FSTree) error {
+			dir, err := lookupDir(root, parent)
+			held = dir != nil
+			return err
+		})
+		if err != nil {
+			return err
+		}
+		if held {
+			return s.link(path, parent, name, info)
+		}
+	}
+
+	// Sync the directory otherwise.
+	return s.syncDir(dirRel)
 }
 
 // syncDir syncs the folder directory at the relative path rel without
@@ -525,6 +587,11 @@ func (s *folderSync) link(path string, parent []string, name string, info fs.Fil
 	err := s.writer().AddFileBlob(s.ctx, parent, name, info.Mode().Perm(), info.ModTime(), func(xfrm block.Transformer, hashType hash.HashType) (*blob.Blob, error) {
 		return block_store_filesegment.LinkFile(s.ctx, s.idx, path, nil, xfrm, hashType)
 	})
+	if errors.Is(err, block_store_filesegment.ErrFileChanging) || errors.Is(err, fs.ErrNotExist) {
+		// A file still being written, or removed since the listing, keeps
+		// its Drive entry until the change the watcher reports.
+		return nil
+	}
 	if err != nil {
 		return errors.Wrapf(err, "link %s", path)
 	}

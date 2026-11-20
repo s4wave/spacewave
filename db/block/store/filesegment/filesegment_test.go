@@ -148,7 +148,8 @@ func TestReadThroughFile(t *testing.T) {
 
 // TestChangedFileIsMiss tries to make the store serve stale bytes: it changes
 // a byte, keeps the size and restores the mtime, so the stat check passes and
-// only the hash check stands between the reader and wrong data.
+// only the hash check stands between the reader and wrong data. The miss drops
+// the path's ranges and reports the path for a relink.
 func TestChangedFileIsMiss(t *testing.T) {
 	ctx := context.Background()
 	xfrm := spaceTransform(t)
@@ -158,11 +159,15 @@ func TestChangedFileIsMiss(t *testing.T) {
 
 	idx := newIndex()
 	fss := newStore(idx, xfrm)
+	var reported []string
+	release := fss.WatchHashMisses(func(p string) { reported = append(reported, p) })
+	defer release()
 	b, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	first := b.GetChunkIndex().GetChunks()[0]
+	last := b.GetChunkIndex().GetChunks()[len(b.GetChunkIndex().GetChunks())-1]
 
 	data[10] ^= 0xff
 	if err := os.WriteFile(path, data, 0o644); err != nil {
@@ -178,6 +183,24 @@ func TestChangedFileIsMiss(t *testing.T) {
 	}
 	if fss.HashMisses.Load() != 1 {
 		t.Fatalf("hash misses = %d, want 1", fss.HashMisses.Load())
+	}
+	if len(reported) != 1 || reported[0] != path {
+		t.Fatalf("hash miss reported %v, want [%s]", reported, path)
+	}
+	for _, c := range []*blob.Chunk{first, last} {
+		if segs, err := idx.Lookup(ctx, c.GetDataRef()); err != nil || len(segs) != 0 {
+			t.Fatalf("after the miss the index holds %d ranges of a chunk (err %v), want none", len(segs), err)
+		}
+	}
+
+	// The relink indexes the changed bytes, which the store then serves.
+	b, err = LinkFile(ctx, idx, path, nil, xfrm, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first = b.GetChunkIndex().GetChunks()[0]
+	if _, ok, err := fss.GetBlock(ctx, first.GetDataRef()); err != nil || !ok {
+		t.Fatalf("relinked range not served: ok=%v err=%v", ok, err)
 	}
 
 	// A size change is a stat miss with no read.

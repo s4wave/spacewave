@@ -15,8 +15,10 @@ import (
 // Store is the FileSegmentStore: a read-only block source whose blocks are
 // file ranges recorded in a SegmentIndex. It returns a block only when the
 // range re-encodes to the requested ref, so a changed file reads as a miss and
-// never as wrong data. It never writes or deletes a block or a file; its write
-// methods return block_store.ErrReadOnly.
+// never as wrong data. A range whose bytes changed under an unchanged stat
+// drops its path's ranges from the index and is reported to the watchers of
+// hash misses, which link the file again. It never writes or deletes a block
+// or a file; its write methods return block_store.ErrReadOnly.
 //
 // It reads nothing until SetTransformer gives it the Space's transform, which
 // the World holds and the session lock keeps from rest.
@@ -34,6 +36,13 @@ type Store struct {
 	StatMisses atomic.Int64
 	// HashMisses counts ranges whose bytes changed under an unchanged stat.
 	HashMisses atomic.Int64
+
+	// watchMtx guards watchers and nextWatcher.
+	watchMtx sync.Mutex
+	// watchers receive the path of each hash miss, by registration.
+	watchers map[uint64]func(path string)
+	// nextWatcher is the next registration.
+	nextWatcher uint64
 }
 
 // transformer boxes a block.Transformer for an atomic pointer.
@@ -122,7 +131,7 @@ func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool
 		return nil, false, err
 	}
 	for _, seg := range segs {
-		data, ok, err := s.regenerate(xfrm, ref, seg)
+		data, ok, err := s.regenerate(ctx, xfrm, ref, seg)
 		if err != nil || ok {
 			return data, ok, err
 		}
@@ -218,8 +227,49 @@ func (t copyTier) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*blo
 	return stored, err
 }
 
-// regenerate reads seg, encodes it with xfrm, and checks it against ref.
-func (s *Store) regenerate(xfrm *transformer, ref *block.BlockRef, seg *Segment) ([]byte, bool, error) {
+// WatchHashMisses calls cb with the path of each file whose bytes changed
+// under an unchanged stat, after the store dropped the path's ranges, until
+// the returned release is called. cb runs on the read that found the miss, so
+// it must return at once.
+func (s *Store) WatchHashMisses(cb func(path string)) func() {
+	// Register cb under the next ID, which the release removes.
+	s.watchMtx.Lock()
+	defer s.watchMtx.Unlock()
+	if s.watchers == nil {
+		s.watchers = make(map[uint64]func(string))
+	}
+	id := s.nextWatcher
+	s.nextWatcher++
+	s.watchers[id] = cb
+	return func() {
+		s.watchMtx.Lock()
+		delete(s.watchers, id)
+		s.watchMtx.Unlock()
+	}
+}
+
+// dropStale drops the ranges of path, whose bytes changed under an unchanged
+// stat, and reports the path to the watchers so its file is linked again.
+//
+// A failed drop leaves ranges that keep missing until the relink replaces
+// them, so the read reports its miss either way and the error goes nowhere.
+// A drop that races the relink of the same path can remove the new ranges;
+// the relink this drop reports runs after the drop and restores them.
+func (s *Store) dropStale(ctx context.Context, path string) {
+	// Drop the path's ranges.
+	_ = s.idx.DropPath(ctx, path)
+
+	// Report the path.
+	s.watchMtx.Lock()
+	defer s.watchMtx.Unlock()
+	for _, cb := range s.watchers {
+		cb(path)
+	}
+}
+
+// regenerate reads seg, encodes it with xfrm, and checks it against ref. A
+// range whose bytes changed under an unchanged stat drops its path.
+func (s *Store) regenerate(ctx context.Context, xfrm *transformer, ref *block.BlockRef, seg *Segment) ([]byte, bool, error) {
 	// A missing file is a miss.
 	f, err := os.Open(seg.GetPath())
 	if err != nil {
@@ -261,6 +311,7 @@ func (s *Store) regenerate(xfrm *transformer, ref *block.BlockRef, seg *Segment)
 	// Verify; a mismatch means the bytes changed under an unchanged stat.
 	if ref.VerifyData(enc, false) != nil {
 		s.HashMisses.Add(1)
+		s.dropStale(ctx, seg.GetPath())
 		return nil, false, nil
 	}
 	s.Hits.Add(1)

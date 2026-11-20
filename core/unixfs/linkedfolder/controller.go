@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -95,8 +96,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		stale := newStalePaths()
+		release := files.WatchHashMisses(stale.add)
+		defer release()
 		for {
-			err := c.run(ctx, link)
+			err := c.run(ctx, link, stale)
 			if !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
 				return err
 			}
@@ -133,7 +137,7 @@ func waitRoot(ctx context.Context, link *unixfs_world.FolderLink) error {
 
 // run syncs the folder and follows its changes. It returns
 // ErrFolderRootChanged once the root leaves its file system.
-func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink) error {
+func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, stale *stalePaths) error {
 	// Watch the folder before the sync reads it, so no change escapes both.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -150,16 +154,18 @@ func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink) err
 		return err
 	}
 	c.le.Debug("folder synced")
-	return c.follow(ctx, link, watcher, folder)
+	return c.follow(ctx, link, watcher, stale, folder)
 }
 
 // follow syncs the directories the watcher names once the folder has been
 // quiet for watchQuiet, or watchMaxWait after the first unsynced change. An
 // event outside the folder's tree, on the folder itself, or a report of
-// dropped events syncs the whole folder.
-func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, watcher *fsnotify.Watcher, folder string) error {
+// dropped events syncs the whole folder. A file whose bytes the store found
+// changed under an unchanged stat is linked again with the same wait.
+func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, watcher *fsnotify.Watcher, stale *stalePaths, folder string) error {
 	// Track the changes not yet synced and the timers that end their wait.
 	dirs := make(map[string]struct{})
+	files := make(map[string]struct{})
 	var all bool
 	var quiet, deadline *time.Timer
 	var quietC, deadlineC <-chan time.Time
@@ -173,11 +179,10 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 			if !ok {
 				return errors.New("folder watcher closed")
 			}
-			rel, err := filepath.Rel(folder, ev.Name)
-			if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-				all = true
-			} else {
+			if rel, ok := relPath(folder, ev.Name); ok {
 				dirs[filepath.Dir(rel)] = struct{}{}
+			} else {
+				all = true
 			}
 			changed = true
 		case err, ok := <-watcher.Errors:
@@ -189,6 +194,13 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 			}
 			c.le.WithError(err).Debug("folder watcher dropped events, syncing the whole folder")
 			all, changed = true, true
+		case <-stale.wake:
+			for _, path := range stale.take() {
+				if rel, ok := relPath(folder, path); ok {
+					files[rel] = struct{}{}
+					changed = true
+				}
+			}
 		case <-quietC:
 		case <-deadlineC:
 		}
@@ -212,12 +224,63 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 		} else {
 			err = link.SyncDirs(ctx, slices.Collect(maps.Keys(dirs)), c.logProgress)
 		}
+		if err == nil && len(files) != 0 {
+			err = link.Reindex(ctx, slices.Collect(maps.Keys(files)), c.logProgress)
+		}
 		if err != nil {
 			return err
 		}
 		clear(dirs)
+		clear(files)
 		all = false
 	}
+}
+
+// relPath returns path relative to folder, when it lies inside it and is not
+// the folder itself.
+func relPath(folder, path string) (string, bool) {
+	rel, err := filepath.Rel(folder, path)
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", false
+	}
+	return rel, true
+}
+
+// stalePaths collects the paths of files whose bytes the store found changed
+// under an unchanged stat, as its reads report them.
+type stalePaths struct {
+	// mtx guards paths.
+	mtx sync.Mutex
+	// paths holds the reported paths not yet taken.
+	paths map[string]struct{}
+	// wake holds a signal while paths is not empty.
+	wake chan struct{}
+}
+
+// newStalePaths constructs an empty stalePaths.
+func newStalePaths() *stalePaths {
+	return &stalePaths{paths: make(map[string]struct{}), wake: make(chan struct{}, 1)}
+}
+
+// add records path and signals wake; it never blocks the read reporting it.
+func (p *stalePaths) add(path string) {
+	p.mtx.Lock()
+	p.paths[path] = struct{}{}
+	p.mtx.Unlock()
+	select {
+	case p.wake <- struct{}{}:
+	default:
+	}
+}
+
+// take returns and clears the recorded paths.
+func (p *stalePaths) take() []string {
+	// Swap out the recorded paths under the lock.
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	out := slices.Collect(maps.Keys(p.paths))
+	clear(p.paths)
+	return out
 }
 
 // logProgress logs the files a sync linked so far.

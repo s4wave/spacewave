@@ -231,6 +231,31 @@ func TestFolderLinkSync(t *testing.T) {
 		t.Fatalf("full sync after the targeted sync linked %d files with %d index transactions, want only the root check", linked, txns)
 	}
 
+	// Reindex links a file whose bytes changed under its size and
+	// modification time, which a stat walk cannot see, and syncs the
+	// directory of a path that is gone.
+	stalePath := filepath.Join(folder, "d7", "sub", "f7")
+	staleInfo, err := os.Stat(stalePath)
+	must(err)
+	staleData, err := os.ReadFile(stalePath)
+	must(err)
+	staleData[0] ^= 0xff
+	must(os.WriteFile(stalePath, staleData, 0o644))
+	must(os.Chtimes(stalePath, staleInfo.ModTime(), staleInfo.ModTime()))
+	if linked, _ := sync(); linked != 0 {
+		t.Fatalf("stat walk linked %d files changed under their stat, want 0", linked)
+	}
+	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"})
+	must(err)
+	linked = 0
+	must(link.Reindex(ctx, []string{"d7/sub/f7", "d7/sub/gone"}, func(files, _ uint64) error {
+		linked = files
+		return nil
+	}))
+	if linked != 1 {
+		t.Fatalf("reindex linked %d files, want 1", linked)
+	}
+
 	// A stand-in root on another file system, here an emptied folder whose
 	// recorded identity differs, removes nothing; with the identity back,
 	// the sync resumes and removes what the folder lacks.
