@@ -24,6 +24,12 @@
     "expect": "EventuallyStopped"
   },
   {
+    "name": "containment kills a running daemon without asking it to stop",
+    "config": "GuestConsole-killed-daemon.cfg.refuted",
+    "replace": [],
+    "expect": "DaemonAskedToStop"
+  },
+  {
     "name": "two waiters reap the same child",
     "config": "GuestConsole-two-waiters.cfg.refuted",
     "replace": [],

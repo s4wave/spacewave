@@ -16,7 +16,8 @@ import (
 // runGuestShell owns every wait after mounting helpers finish. The independent
 // bootstrap exec releases the parent's vfork before touching its FUSE tree.
 // joined proves guest processes have stopped, including adopted descendants.
-func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, root, terminal string) (joined bool, retErr error) {
+// daemonArgs, when set, start the image's daemon beside the shell.
+func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, root, terminal string, daemonArgs []string) (joined bool, retErr error) {
 	// Global waits and signals are forbidden in the hosted mount-namespace probe.
 	if os.Getpid() != 1 {
 		return false, errors.New("interactive supervision requires actual guest PID1")
@@ -54,6 +55,14 @@ func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, ro
 		joined = err == nil
 		retErr = errors.Join(retErr, err)
 	}()
+
+	// Start the daemon after containment is deferred; stopping it runs first.
+	var daemon *guestDaemon
+	if daemonArgs != nil {
+		daemon = &guestDaemon{executable: executable, args: daemonArgs, tty: tty}
+		daemon.start()
+		defer daemon.stop(children)
+	}
 	println("Console ready. Save files under /data; run poweroff or sync; exit to shut down.")
 	println("SPACEWAVE_OS_CONSOLE_READY pid=" + strconv.Itoa(child.Pid))
 
@@ -70,6 +79,10 @@ func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, ro
 			}
 			if pid == 0 {
 				break
+			}
+			if daemon != nil && pid == daemon.pid {
+				daemon.exited(status)
+				continue
 			}
 			if pid == child.Pid {
 				println("SPACEWAVE_OS_SHELL_EXIT status=" + strconv.Itoa(int(status)))
@@ -88,6 +101,8 @@ func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, ro
 		case <-ctx.Done():
 			return false, context.Cause(ctx)
 		case <-children:
+		case <-daemon.restartC():
+			daemon.restartDue()
 		}
 	}
 }

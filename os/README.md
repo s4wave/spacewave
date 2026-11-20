@@ -82,6 +82,31 @@ store, unmounts `/store`, and powers off. A failed ordinary
 unmount remains an error even if detached cleanup succeeds. If reaping cannot
 prove all users stopped, stores stay open and bootstrap stays in recovery.
 
+An image that holds `/usr/bin/spacewave` also runs the Spacewave daemon beside
+the shell, so the signed image decides whether a Device runs one. PID1 binds
+the daemon's state directory, `daemon/` beside `data.s4wave` on the backing
+store, at `/var/lib/spacewave`, and the card's bootstrap grant read-only at
+`/etc/spacewave/grant`; the image provides both mountpoints. The daemon starts
+through the same independent bootstrap exec as the shell (`spacewave-init
+enter-daemon ROOT [grant]`) and runs `spacewave serve --state-path
+/var/lib/spacewave --idle-timeout 0`, with `--device-grant` when the card
+holds a grant, so first boot enrolls the Device. It runs in its own session
+and writes to the serial console. The single Wait4 authority reaps it and
+restarts it after 2 s, doubling to 1 min, while the console runs. Shutdown
+sends it SIGTERM, which `spacewave serve` handles as an external stop that
+drains its clients and releases its state, and waits up to 10 s before
+containment kills what remains (`SPACEWAVE_OS_DAEMON_STOP_TIMEOUT`). The
+daemon's store acknowledges only durable commits, so SIGTERM is courtesy, not
+a durability requirement. `os/qemu/package_daemon.py` writes the image
+assets for this: a static `spacewave`, the CA bundle and the mountpoints.
+
+With `ip=dhcp` on the kernel command line and `CONFIG_IP_PNP_DHCP`, the kernel
+leases an address before init. When the image holds `/etc/resolv.conf`, PID1
+copies `/proc/net/pnp`, the lease's resolvers, into its initramfs and binds
+the copy over it read-only; procfs net entries cannot be bind sources. The kernel
+never renews the lease, which suits QEMU's user network and a LAN with long
+leases; a DHCP client in the image would replace this when renewal matters.
+
 Server exits and controller stops cancel the session and disconnect FUSE before
 containment. Physical storage still outlives its users. Data's buffered WriteAt
 also watches controller availability, including idle/release flushes whose
@@ -92,7 +117,8 @@ check the reported fixture/input error, and rerun the same launcher command.
 There is no automatic repair, shell restart or fallback to a new filesystem.
 
 `GuestConsole.tla` covers guest-only signals, one waiter, child/server/controller
-failure, containment, mount/server joins and store lifetime. `DataVolume.tla`
+failure, containment, mount/server joins, store lifetime, and the daemon's
+restarts and SIGTERM before containment. `DataVolume.tla`
 covers interrupted buffered flush and storage publication; `Console/Console.tla`
 and its view carry the reader journey. `OSEnroll.tla` covers an installed card's
 first boot: the signers pinned before any root is served, the Device key made in
@@ -131,10 +157,13 @@ copies the image store into a fresh system root, authorizes it with a
 throwaway signer (`spacewave-init rehearsal-card`), and writes the root at its
 content's size (`mkfs.btrfs --shrink`) onto a 4 GiB disk. It leaves the data
 Volume absent, as an install does. It boots the boot set on that disk with
-`run_app.py`; first boot grows the store to the disk, pins the signer,
-verifies the authorization, and only then creates the data Volume and its key.
-The guest writes and syncs one file through the data Volume and powers off.
-The rehearsal then runs the [kill trial](qemu/README.md#kill-trial) on the same
+`run_app.py --dhcp`, on QEMU's user network with `ip=dhcp`; first boot grows
+the store to the disk, pins the signer, verifies the authorization, and only
+then creates the data Volume and its key.
+The guest writes and syncs one file through the data Volume and powers off;
+an image with a resolv.conf also prints `SPACEWAVE_OS_RESOLVER_BOUND`, and an
+image with the daemon prints `SPACEWAVE_OS_DAEMON_LISTENING` once its socket
+appears. The rehearsal then runs the [kill trial](qemu/README.md#kill-trial) on the same
 disk. It writes its receipt only when the guest printed
 `SPACEWAVE_OS_BACKING_GROWN`, `SPACEWAVE_OS_DATA_CREATED` and
 `SPACEWAVE_OS_PASS`, and the kill trial kept every acknowledged record; a

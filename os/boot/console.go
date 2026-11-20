@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/unixfs"
+	os_image "github.com/s4wave/spacewave/os/image"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -238,16 +239,108 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 		if err := os.Mkdir(target, 0o700); err != nil {
 			return err
 		}
-		if err := unix.Mount("/store/native-bench", target, "", unix.MS_BIND, ""); err != nil {
+		if err := bindMount("/store/native-bench", target, false, &kernelMounts); err != nil {
 			return err
 		}
-		kernelMounts = append(kernelMounts, target)
+	}
+
+	// The kernel's DHCP lease names the resolvers; the image's resolv.conf is
+	// only its mountpoint. A kernel without IP_PNP leaves the image's file.
+	if err := bindResolver(rootPath, &kernelMounts); err != nil {
+		return errors.Join(errors.New("resolver /etc/resolv.conf"), err)
+	}
+
+	// An image holding the daemon also gets its state beside the data Volume
+	// and, when the card carries one, the bootstrap grant.
+	daemonArgs, err := bindDaemon(system, data, rootPath, &kernelMounts)
+	if err != nil {
+		return err
 	}
 
 	// Start only after helpers finish; from here one Wait4 authority owns children.
 	if err := context.Cause(runCtx); err != nil {
 		return err
 	}
-	usersStopped, err = runGuestShell(runCtx, shutdown, executable, rootPath, terminal)
+	usersStopped, err = runGuestShell(runCtx, shutdown, executable, rootPath, terminal, daemonArgs)
 	return errors.Join(err, context.Cause(runCtx))
+}
+
+// bindDaemon binds the daemon's state directory and the card's grant over the
+// image's mountpoints, and returns the enter-daemon arguments, or nil when the
+// image holds no daemon. The state directory lives on the backing store, not
+// in the data Volume the daemon would otherwise have to serve itself.
+func bindDaemon(system, data, rootPath string, kernelMounts *[]string) ([]string, error) {
+	// The signed image decides whether this Device runs a daemon.
+	if _, err := os.Lstat(filepath.Join(rootPath, daemonPath)); errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	// Keep the daemon's state on the backing store across boots.
+	state := filepath.Join(data, "daemon")
+	if err := os.MkdirAll(state, 0o700); err != nil {
+		return nil, errors.Join(errors.New("daemon state "+state), err)
+	}
+	if err := bindMount(state, filepath.Join(rootPath, daemonStatePath), false, kernelMounts); err != nil {
+		return nil, errors.Join(errors.New("daemon state "+daemonStatePath), err)
+	}
+
+	// Lend the grant read-only; an enrolled Device keeps its own completion.
+	args := []string{"enter-daemon", rootPath}
+	grant := filepath.Join(system, os_image.CardGrant)
+	if _, err := os.Stat(grant); errors.Is(err, os.ErrNotExist) {
+		return args, nil
+	} else if err != nil {
+		return nil, err
+	}
+	if err := bindMount(grant, filepath.Join(rootPath, daemonGrantPath), true, kernelMounts); err != nil {
+		return nil, errors.Join(errors.New("daemon grant "+daemonGrantPath), err)
+	}
+	return append(args, "grant"), nil
+}
+
+// resolverCopy is the initramfs file that holds the DHCP lease bindResolver
+// serves as the guest's resolv.conf.
+const resolverCopy = "/resolv.conf"
+
+// bindResolver binds a copy of the kernel's DHCP lease over the image's
+// resolv.conf when both exist. The kernel writes the lease once, before init
+// starts, so the copy stays exact; procfs net entries are not bind sources.
+func bindResolver(rootPath string, kernelMounts *[]string) error {
+	// Either file may be absent: an image without networking, or a kernel
+	// without IP_PNP.
+	target := filepath.Join(rootPath, "etc/resolv.conf")
+	if _, err := os.Lstat(target); errors.Is(err, os.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	lease, err := os.ReadFile("/proc/net/pnp")
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	// Init's initramfs holds the copy for the life of the boot.
+	// #nosec G703 -- resolverCopy is a constant path; only the content is read.
+	if err := os.WriteFile(resolverCopy, lease, 0o444); err != nil {
+		return err
+	}
+	return bindMount(resolverCopy, target, true, kernelMounts)
+}
+
+// bindMount binds source over target, read-only when asked, and records the
+// target for reverse unmount. The target must already exist in the image.
+func bindMount(source, target string, readOnly bool, kernelMounts *[]string) error {
+	// A bind ignores MS_RDONLY until a remount applies it.
+	if err := unix.Mount(source, target, "", unix.MS_BIND, ""); err != nil {
+		return err
+	}
+	*kernelMounts = append(*kernelMounts, target)
+	if !readOnly {
+		return nil
+	}
+	return unix.Mount("", target, "", unix.MS_BIND|unix.MS_REMOUNT|unix.MS_RDONLY|unix.MS_NOSUID, "")
 }

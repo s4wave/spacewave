@@ -18,11 +18,18 @@ def qemu_command(
     disk: Path,
     config_disk: Path | None = None,
     port: int | None = None,
+    dhcp: bool = False,
 ) -> list[str]:
-    """Return the console guest's QEMU command, its serial console on stdio."""
+    """Return the console guest's QEMU command, its serial console on stdio.
+
+    With dhcp, the kernel leases an address from QEMU's user network before
+    init, which binds the lease's resolvers as the image's resolv.conf.
+    """
     append = "console=ttyS0,115200 rdinit=/init panic=-1 quiet GOMAXPROCS=1 SPACEWAVE_OS_MODE=console SPACEWAVE_OS_STORE=/store/image SPACEWAVE_OS_DATA=/store/data SPACEWAVE_OS_TTY=/dev/ttyS0"
     if config_disk is not None:
         append += " SPACEWAVE_OS_CONFIG=/config-store/data"
+    if dhcp:
+        append += " ip=dhcp"
     command = [
         "qemu-system-x86_64",
         "-accel",
@@ -44,10 +51,11 @@ def qemu_command(
     ]
     if config_disk is not None:
         command += ["-drive", f"file={config_disk},if=virtio,format=raw,cache=none"]
-    if port is not None:
+    if port is not None or dhcp:
+        forward = "" if port is None else f",hostfwd=tcp:127.0.0.1:{port}-:3000"
         command += [
             "-netdev",
-            f"user,id=net,hostfwd=tcp:127.0.0.1:{port}-:3000",
+            f"user,id=net{forward}",
             "-device",
             "virtio-net-pci,netdev=net",
         ]
@@ -125,6 +133,7 @@ class Guest:
             arguments.disk,
             arguments.config_disk,
             arguments.port,
+            arguments.dhcp,
         )
         signal.signal(signal.SIGTERM, self.stop)
         signal.signal(signal.SIGINT, self.stop)
@@ -167,6 +176,9 @@ def main() -> int:
     parser.add_argument("--receipt", type=Path)
     parser.add_argument(
         "--port", type=int, help="host port forwarded to guest port 3000"
+    )
+    parser.add_argument(
+        "--dhcp", action="store_true", help="user network leased by ip=dhcp"
     )
     parser.add_argument("--accel", choices=["kvm", "tcg"], default="kvm")
     return Guest(parser.parse_args()).run()

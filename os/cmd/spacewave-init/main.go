@@ -31,12 +31,18 @@ func main() {
 		finish(boot.RunMountHelper(os.Args[1:]))
 		return
 	}
+
+	// Enter a served root only from an independent bootstrap exec.
 	if len(os.Args) == 4 && os.Args[1] == "enter" {
 		finish(boot.EnterRoot(os.Args[2], os.Args[3]))
 		return
 	}
 	if len(os.Args) == 3 && os.Args[1] == "enter-console" {
 		finish(boot.EnterConsole(os.Args[2]))
+		return
+	}
+	if (len(os.Args) == 3 || len(os.Args) == 4 && os.Args[3] == "grant") && os.Args[1] == "enter-daemon" {
+		finish(boot.EnterDaemon(os.Args[2], len(os.Args) == 4))
 		return
 	}
 	if len(os.Args) == 2 && (os.Args[1] == "workload" || os.Args[1] == "workload-fail" || os.Args[1] == "workload-wait") {

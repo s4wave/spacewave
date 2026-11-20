@@ -1,4 +1,4 @@
 SPECIFICATION Spec
-CONSTANTS IsPID1 = TRUE GuestGuard = TRUE SingleWaiter = TRUE JoinBeforeClose = FALSE PoweroffHandled = TRUE PoweroffCancels = FALSE
+CONSTANTS IsPID1 = TRUE GuestGuard = TRUE SingleWaiter = TRUE JoinBeforeClose = FALSE PoweroffHandled = TRUE PoweroffCancels = FALSE TermBeforeKill = TRUE
 INVARIANT PoweroffPreservesService StorageOutlivesUsers
 CHECK_DEADLOCK FALSE
