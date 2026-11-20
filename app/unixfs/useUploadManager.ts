@@ -52,10 +52,10 @@ export type UploadAnswer = 'replace' | 'merge' | 'keep' | 'skip'
 
 // UploadStep is the step an item last ran, which Retry runs again after it
 // failed: check lists the item's folder and asks or sends, keep lists it and
-// picks a free name, send commits with what the item expects, and open
-// commits a folder and then sends what was dropped inside it. A failed
-// listing never leads to a send.
-export type UploadStep = 'check' | 'keep' | 'send' | 'open'
+// picks a free name, send commits with what the item expects, open commits
+// a folder, and fill commits a folder below one the drop created. Both
+// folder steps send what was dropped inside only after the folder commits.
+export type UploadStep = 'check' | 'keep' | 'send' | 'open' | 'fill'
 
 // UploadQuestion is the conflict on screen: the first asking item of the
 // oldest drop with one, and the other items of that drop still asking.
@@ -709,12 +709,9 @@ export function useUploadManager(): UploadManager {
     // open sends a dropped folder alone and, once it commits, what was
     // dropped inside it, which waits until then. A new folder expects
     // nothing at its path, so one another writer created after the listing
-    // is refused and asks; everything below it then goes at once, files as
-    // missing, so the store refuses a name another writer placed inside it
-    // first, and folders merging, since the drop created the folder they
-    // sit in: a subfolder another writer makes there after the folder
-    // commits is merged into without asking. A folder merging into the folder of its name places what is
-    // inside it against its folder's listing.
+    // is refused and asks. Files inside a newly created folder expect
+    // missing, and its subfolders can merge without asking. A folder
+    // merged into an existing folder places its contents against a listing.
     const open = async (folder: UploadItem, fresh: boolean) => {
       if (!(await send(folder, fresh ? missing : overwrite, 'open'))) return
       if (fresh) {
@@ -728,15 +725,19 @@ export function useUploadManager(): UploadManager {
       )
     }
 
-    // fill sends everything dropped inside a folder the drop created.
+    // fill sends siblings together, once their parent folder has committed.
     const fill = async (folder: UploadItem): Promise<void> => {
       await Promise.all(
         inside(folder).map((item) =>
-          item.kind === 'file'
-            ? send(item, missing)
-            : Promise.all([send(item, overwrite), fill(item)]),
+          item.kind === 'file' ? send(item, missing) : openNested(item),
         ),
       )
+    }
+
+    // openNested merges a subfolder if another writer already made it.
+    // Wait for its commit so that a child cannot race to create its parent.
+    const openNested = async (folder: UploadItem) => {
+      if (await send(folder, overwrite, 'fill')) await fill(folder)
     }
 
     // enter checks a dropped folder against its parent's listing: a free
@@ -842,11 +843,11 @@ export function useUploadManager(): UploadManager {
       await send(item, version ? { kind: 'version', version } : missing)
     }
 
-    // resume runs a failed item's step again, reading any listing again. A
-    // folder below the top of the drop is only ever checked inside a merge.
+    // resume runs a failed item's step again, reading any listing again.
     const resume = async (item: UploadItem) => {
       if (item.step === 'open')
         return open(item, item.expect.kind === 'missing')
+      if (item.step === 'fill') return openNested(item)
       if (item.step === 'send') return send(item, item.expect)
       if (item.step === 'keep') return keep(item, true)
       if (item.kind === 'file') return place(item, true)

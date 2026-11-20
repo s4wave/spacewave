@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
+import { useEffect } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type {
   FSHandle,
@@ -550,6 +551,48 @@ describe('useUploadManager', () => {
         ['A/B', merged],
         ['A/B/b.txt', { kind: 'missing' }],
         ['A/a.txt', { kind: 'missing' }],
+      ])
+    })
+
+    it('holds nested contents through a failed commit and Retry', async () => {
+      const folder = fakeFolder({}, [], [], { holds: ['A/B'], sends: [3] })
+      const sending = Promise.withResolvers<void>()
+      const failed = Promise.withResolvers<void>()
+      const completed = Promise.withResolvers<void>()
+      const { result } = renderHook(() => {
+        const manager = useUploadManager()
+        useEffect(() => {
+          const { items } = manager
+          const nested = items.find((item) => item.path === 'A/B')
+          const sibling = items.find((item) => item.path === 'A/a.txt')
+          if (nested?.status === 'uploading' && sibling?.status === 'done')
+            sending.resolve()
+          if (nested?.status === 'error') failed.resolve()
+          if (manager.lastEvent?.kind === 'completed') completed.resolve()
+        }, [manager])
+        return manager
+      })
+      dropTree(result.current, folder, ['A/a.txt', 'A/B/b.txt'])
+      await sending.promise
+      expect(status(result, 'A/B/b.txt')).toBe('waiting')
+
+      await act(async () => {
+        folder.release('A/B')
+      })
+      await failed.promise
+      expect(status(result, 'A/B/b.txt')).toBe('waiting')
+      await act(async () => {
+        const nested = result.current.items.find((item) => item.path === 'A/B')!
+        result.current.retryUpload(nested.id)
+      })
+      await completed.promise
+      expect(result.current.lastEvent).toMatchObject({ errorCount: 0 })
+      expect(folder.sent()).toEqual([
+        ['A', newFolder],
+        ['A/a.txt', { kind: 'missing' }],
+        ['A/B', merged],
+        ['A/B', merged],
+        ['A/B/b.txt', { kind: 'missing' }],
       ])
     })
 
