@@ -234,8 +234,7 @@ func DeviceCheckoutRootCanRead(checkoutRoot *DeviceCheckoutRootCapability) bool 
 	}
 }
 
-// DeviceCheckoutRootCanWrite reports whether a checkout root may be written
-// after the caller obtains the required approval.
+// DeviceCheckoutRootCanWrite reports whether the checkout root permits writes.
 func DeviceCheckoutRootCanWrite(checkoutRoot *DeviceCheckoutRootCapability) bool {
 	return checkoutRoot != nil &&
 		checkoutRoot.GetAccess() == DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE &&
@@ -243,8 +242,7 @@ func DeviceCheckoutRootCanWrite(checkoutRoot *DeviceCheckoutRootCapability) bool
 		checkoutRoot.GetWriteAvailable()
 }
 
-// DeviceCapabilityCanWriteCheckoutRoot reports whether a capability can pass
-// the checkout-root write gate after a caller supplies approval.
+// DeviceCapabilityCanWriteCheckoutRoot reports whether the root and capability policy permit writes.
 func DeviceCapabilityCanWriteCheckoutRoot(cap *DeviceCapability) bool {
 	return DeviceCheckoutRootCanWrite(cap.GetCheckoutRoot()) &&
 		DeviceCapabilityPolicyAllowsWrite(cap)

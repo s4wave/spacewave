@@ -92,10 +92,6 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 
 	// For a write, select from the latest Device record when an Engine is available.
 	write := req.GetWrite()
-	writeApprovalRef := strings.TrimSpace(req.GetWriteApprovalRef())
-	if write && writeApprovalRef == "" {
-		return nil, errors.New("checkout root write access requires approval ref")
-	}
 	stateWS := r.ws
 	if write && r.engine != nil {
 		stateWS = world.NewEngineWorldState(r.engine, true)
@@ -140,14 +136,13 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 
 	// Return the selected capability and the resource both link types share.
 	return &AccessCheckoutRootResponse{
-		ResourceId:       resourceID,
-		CapabilityId:     capability.GetId(),
-		ObjectKey:        capLink.GetObjectKey(),
-		TypeId:           capLink.GetTypeId(),
-		CheckoutRoot:     capability.GetCheckoutRoot().CloneVT(),
-		WriteAvailable:   DeviceCapabilityCanWriteCheckoutRoot(capability),
-		WriteEnabled:     write,
-		WriteApprovalRef: writeApprovalRef,
+		ResourceId:     resourceID,
+		CapabilityId:   capability.GetId(),
+		ObjectKey:      capLink.GetObjectKey(),
+		TypeId:         capLink.GetTypeId(),
+		CheckoutRoot:   capability.GetCheckoutRoot().CloneVT(),
+		WriteAvailable: DeviceCapabilityCanWriteCheckoutRoot(capability),
+		WriteEnabled:   write,
 	}, nil
 }
 

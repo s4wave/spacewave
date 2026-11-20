@@ -144,7 +144,7 @@ func TestDeviceSelectableLimaWorkflowTarget(t *testing.T) {
 		t.Fatal("expected checkout root to be readable")
 	}
 	if !DeviceCheckoutRootCanWrite(readable.GetCheckoutRoot()) {
-		t.Fatal("expected checkout root to be writable after approval")
+		t.Fatal("expected checkout root to be writable")
 	}
 	if writable := dev.FindWritableCheckoutRoot("skiffos"); writable == nil {
 		t.Fatal("expected checkout root to be write-gateable")

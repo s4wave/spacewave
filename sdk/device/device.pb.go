@@ -310,7 +310,7 @@ const (
 	DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN DeviceCheckoutRootAccess = 0
 	// DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY means the checkout root can be read but not mutated.
 	DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY DeviceCheckoutRootAccess = 1
-	// DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE means the checkout root can be read and written after approval.
+	// DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE means the checkout root permits both reads and writes.
 	DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE DeviceCheckoutRootAccess = 2
 )
 
@@ -649,7 +649,7 @@ type DeviceCheckoutRootCapability struct {
 	Access DeviceCheckoutRootAccess `protobuf:"varint,4,opt,name=access,proto3" json:"access,omitempty"`
 	// ReadAvailable reports whether the linked filesystem owner may be opened for reads.
 	ReadAvailable bool `protobuf:"varint,5,opt,name=read_available,json=readAvailable,proto3" json:"readAvailable,omitempty"`
-	// WriteAvailable reports whether the linked filesystem owner may accept writes after approval.
+	// WriteAvailable reports whether the linked filesystem owner permits writes.
 	WriteAvailable bool `protobuf:"varint,6,opt,name=write_available,json=writeAvailable,proto3" json:"writeAvailable,omitempty"`
 }
 
@@ -1091,8 +1091,6 @@ type AccessCheckoutRootRequest struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Write requests a write-capable filesystem handle.
 	Write bool `protobuf:"varint,2,opt,name=write,proto3" json:"write,omitempty"`
-	// WriteApprovalRef identifies the Decision or equivalent approval for writes.
-	WriteApprovalRef string `protobuf:"bytes,3,opt,name=write_approval_ref,json=writeApprovalRef,proto3" json:"writeApprovalRef,omitempty"`
 }
 
 func (x *AccessCheckoutRootRequest) Reset() {
@@ -1115,13 +1113,6 @@ func (x *AccessCheckoutRootRequest) GetWrite() bool {
 	return false
 }
 
-func (x *AccessCheckoutRootRequest) GetWriteApprovalRef() string {
-	if x != nil {
-		return x.WriteApprovalRef
-	}
-	return ""
-}
-
 // AccessCheckoutRootResponse contains the mounted filesystem resource.
 type AccessCheckoutRootResponse struct {
 	unknownFields []byte
@@ -1135,12 +1126,10 @@ type AccessCheckoutRootResponse struct {
 	TypeId string `protobuf:"bytes,4,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
 	// CheckoutRoot is the selected checkout-root metadata.
 	CheckoutRoot *DeviceCheckoutRootCapability `protobuf:"bytes,5,opt,name=checkout_root,json=checkoutRoot,proto3" json:"checkoutRoot,omitempty"`
-	// WriteAvailable reports whether the selected capability can be write-gated.
+	// WriteAvailable reports whether the selected capability permits writes.
 	WriteAvailable bool `protobuf:"varint,6,opt,name=write_available,json=writeAvailable,proto3" json:"writeAvailable,omitempty"`
 	// WriteEnabled reports whether this mounted handle was opened for writes.
 	WriteEnabled bool `protobuf:"varint,7,opt,name=write_enabled,json=writeEnabled,proto3" json:"writeEnabled,omitempty"`
-	// WriteApprovalRef is the approval ref accepted for a write-enabled handle.
-	WriteApprovalRef string `protobuf:"bytes,8,opt,name=write_approval_ref,json=writeApprovalRef,proto3" json:"writeApprovalRef,omitempty"`
 }
 
 func (x *AccessCheckoutRootResponse) Reset() {
@@ -1196,13 +1185,6 @@ func (x *AccessCheckoutRootResponse) GetWriteEnabled() bool {
 		return x.WriteEnabled
 	}
 	return false
-}
-
-func (x *AccessCheckoutRootResponse) GetWriteApprovalRef() string {
-	if x != nil {
-		return x.WriteApprovalRef
-	}
-	return ""
 }
 
 type Device_LabelsEntry struct {
@@ -1536,7 +1518,6 @@ func (m *AccessCheckoutRootRequest) CloneVT() *AccessCheckoutRootRequest {
 	r := new(AccessCheckoutRootRequest)
 	r.Name = m.Name
 	r.Write = m.Write
-	r.WriteApprovalRef = m.WriteApprovalRef
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1558,7 +1539,6 @@ func (m *AccessCheckoutRootResponse) CloneVT() *AccessCheckoutRootResponse {
 	r.TypeId = m.TypeId
 	r.WriteAvailable = m.WriteAvailable
 	r.WriteEnabled = m.WriteEnabled
-	r.WriteApprovalRef = m.WriteApprovalRef
 	r.CheckoutRoot = protobuf_go_lite.CloneVTValue(m.CheckoutRoot)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2028,9 +2008,6 @@ func (this *AccessCheckoutRootRequest) EqualVT(that *AccessCheckoutRootRequest) 
 	if this.Write != that.Write {
 		return false
 	}
-	if this.WriteApprovalRef != that.WriteApprovalRef {
-		return false
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2067,9 +2044,6 @@ func (this *AccessCheckoutRootResponse) EqualVT(that *AccessCheckoutRootResponse
 		return false
 	}
 	if this.WriteEnabled != that.WriteEnabled {
-		return false
-	}
-	if this.WriteApprovalRef != that.WriteApprovalRef {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3592,11 +3566,6 @@ func (x *AccessCheckoutRootRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("write")
 		s.WriteBool(x.Write)
 	}
-	if x.WriteApprovalRef != "" || s.HasField("writeApprovalRef") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("writeApprovalRef")
-		s.WriteString(x.WriteApprovalRef)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -3620,9 +3589,6 @@ func (x *AccessCheckoutRootRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "write":
 			s.AddField("write")
 			x.Write = s.ReadBool()
-		case "write_approval_ref", "writeApprovalRef":
-			s.AddField("write_approval_ref")
-			x.WriteApprovalRef = s.ReadString()
 		}
 	})
 }
@@ -3675,11 +3641,6 @@ func (x *AccessCheckoutRootResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("writeEnabled")
 		s.WriteBool(x.WriteEnabled)
 	}
-	if x.WriteApprovalRef != "" || s.HasField("writeApprovalRef") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("writeApprovalRef")
-		s.WriteString(x.WriteApprovalRef)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -3722,9 +3683,6 @@ func (x *AccessCheckoutRootResponse) UnmarshalProtoJSON(s *json.UnmarshalState) 
 		case "write_enabled", "writeEnabled":
 			s.AddField("write_enabled")
 			x.WriteEnabled = s.ReadBool()
-		case "write_approval_ref", "writeApprovalRef":
-			s.AddField("write_approval_ref")
-			x.WriteApprovalRef = s.ReadString()
 		}
 	})
 }
@@ -4666,11 +4624,6 @@ func (m *AccessCheckoutRootRequest) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.WriteApprovalRef) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.WriteApprovalRef)
-		i--
-		dAtA[i] = 0x1a
-	}
 	if m.Write {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Write)
 		i--
@@ -4712,11 +4665,6 @@ func (m *AccessCheckoutRootResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.WriteApprovalRef) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.WriteApprovalRef)
-		i--
-		dAtA[i] = 0x42
 	}
 	if m.WriteEnabled {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.WriteEnabled)
@@ -5043,7 +4991,6 @@ func (m *AccessCheckoutRootRequest) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Write)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.WriteApprovalRef)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5064,7 +5011,6 @@ func (m *AccessCheckoutRootResponse) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.WriteAvailable)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.WriteEnabled)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.WriteApprovalRef)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5549,10 +5495,6 @@ func (x *AccessCheckoutRootRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "write")
 		protobuf_go_lite.TextWriteBool(&sb, x.Write)
 	}
-	if x.WriteApprovalRef != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "write_approval_ref")
-		protobuf_go_lite.TextWriteString(&sb, x.WriteApprovalRef)
-	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -5590,10 +5532,6 @@ func (x *AccessCheckoutRootResponse) MarshalProtoText() string {
 	if x.WriteEnabled != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "write_enabled")
 		protobuf_go_lite.TextWriteBool(&sb, x.WriteEnabled)
-	}
-	if x.WriteApprovalRef != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "write_approval_ref")
-		protobuf_go_lite.TextWriteString(&sb, x.WriteApprovalRef)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -7031,16 +6969,6 @@ func (m *AccessCheckoutRootRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Write = bool(v)
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WriteApprovalRef", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.WriteApprovalRef = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -7158,16 +7086,6 @@ func (m *AccessCheckoutRootResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.WriteEnabled = bool(v)
-		case 8:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WriteApprovalRef", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.WriteApprovalRef = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -278,7 +278,7 @@ export enum DeviceCheckoutRootAccess {
   READ_ONLY = 1,
 
   /**
-   * DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE means the checkout root can be read and written after approval.
+   * DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE means the checkout root permits both reads and writes.
    */
   READ_WRITE = 2,
 }
@@ -536,7 +536,7 @@ export interface DeviceCheckoutRootCapability {
    */
   readAvailable?: boolean
   /**
-   * WriteAvailable reports whether the linked filesystem owner may accept writes after approval.
+   * WriteAvailable reports whether the linked filesystem owner permits writes.
    */
   writeAvailable?: boolean
 }
@@ -860,10 +860,6 @@ export interface AccessCheckoutRootRequest {
    * Write requests a write-capable filesystem handle.
    */
   write?: boolean
-  /**
-   * WriteApprovalRef identifies the Decision or equivalent approval for writes.
-   */
-  writeApprovalRef?: string
 }
 
 export const AccessCheckoutRootRequest: MessageType<AccessCheckoutRootRequest> =
@@ -872,7 +868,6 @@ export const AccessCheckoutRootRequest: MessageType<AccessCheckoutRootRequest> =
     () => [
       [1, 'name', 9],
       [2, 'write', 8],
-      [3, 'write_approval_ref', 9],
     ],
   )
 
@@ -903,17 +898,13 @@ export interface AccessCheckoutRootResponse {
    */
   checkoutRoot?: DeviceCheckoutRootCapability
   /**
-   * WriteAvailable reports whether the selected capability can be write-gated.
+   * WriteAvailable reports whether the selected capability permits writes.
    */
   writeAvailable?: boolean
   /**
    * WriteEnabled reports whether this mounted handle was opened for writes.
    */
   writeEnabled?: boolean
-  /**
-   * WriteApprovalRef is the approval ref accepted for a write-enabled handle.
-   */
-  writeApprovalRef?: string
 }
 
 export const AccessCheckoutRootResponse: MessageType<AccessCheckoutRootResponse> =
@@ -927,6 +918,5 @@ export const AccessCheckoutRootResponse: MessageType<AccessCheckoutRootResponse>
       [5, 'checkout_root', 11, 0, DeviceCheckoutRootCapability.codec],
       [6, 'write_available', 8],
       [7, 'write_enabled', 8],
-      [8, 'write_approval_ref', 9],
     ],
   )

@@ -172,10 +172,10 @@ export function findSelectableDeviceForgeWorker(
   })
 }
 
+/** AccessCheckoutRootOptions selects the root and the requested access mode. */
 export interface AccessCheckoutRootOptions {
   name?: string
   write?: boolean
-  writeApprovalRef?: string
   abortSignal?: AbortSignal
 }
 
@@ -238,7 +238,6 @@ export class DeviceHandle extends Resource implements IDeviceHandle {
         ? {
             name: nameOrOptions.name ?? '',
             write: nameOrOptions.write ?? false,
-            writeApprovalRef: nameOrOptions.writeApprovalRef ?? '',
           }
         : { name: nameOrOptions ?? '' }
     const signal =

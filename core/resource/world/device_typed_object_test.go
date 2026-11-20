@@ -439,7 +439,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatalf("checkout type id = %q", checkoutResp.GetTypeId())
 	}
 	if !checkoutResp.GetWriteAvailable() {
-		t.Fatal("expected checkout root to report guarded write availability")
+		t.Fatal("expected checkout root to report write availability")
 	}
 	if checkoutResp.GetWriteEnabled() {
 		t.Fatal("read request returned write-enabled checkout root")
@@ -482,28 +482,16 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatal("initial read checkout watch unexpectedly saw future write")
 	}
 
-	// Check the condition before continuing.
-	if _, err := deviceSvc.AccessCheckoutRoot(ctx, &s4wave_device.AccessCheckoutRootRequest{
+	// Open a writer on the World object through the writable capability.
+	writeResp, err := deviceSvc.AccessCheckoutRoot(ctx, &s4wave_device.AccessCheckoutRootRequest{
 		Name:  "skiffos",
 		Write: true,
-	}); err == nil {
-		t.Fatal("expected write checkout root access to require approval ref")
-	}
-
-	// accessCheckoutRoot writeResp,err via deviceSvc.
-	writeResp, err := deviceSvc.AccessCheckoutRoot(ctx, &s4wave_device.AccessCheckoutRootRequest{
-		Name:             "skiffos",
-		Write:            true,
-		WriteApprovalRef: "decision/test-write-approved",
 	})
 	if err != nil {
 		t.Fatalf("write AccessCheckoutRoot failed: %v", err)
 	}
 	if !writeResp.GetWriteEnabled() {
 		t.Fatal("expected write checkout root response to report write enabled")
-	}
-	if writeResp.GetWriteApprovalRef() != "decision/test-write-approved" {
-		t.Fatalf("write approval ref = %q", writeResp.GetWriteApprovalRef())
 	}
 
 	// createResourceReference writeFSRef via resClient.
@@ -519,7 +507,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		NodeType:   s4wave_unixfs.MknodType_MKNOD_TYPE_FILE,
 		CheckExist: true,
 	}); err != nil {
-		t.Fatalf("expected approved write checkout root to allow Mknod: %v", err)
+		t.Fatalf("expected writable checkout root to allow Mknod: %v", err)
 	}
 	updatedEntries, err := watch.Recv()
 	if err != nil {
@@ -578,11 +566,10 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 	}
 	revokeTx.Discard()
 
-	// Check the condition before continuing.
+	// Refuse another write request after current Device policy revokes access.
 	if _, err := deviceSvc.AccessCheckoutRoot(ctx, &s4wave_device.AccessCheckoutRootRequest{
-		Name:             "skiffos",
-		Write:            true,
-		WriteApprovalRef: "decision/stale-write-approved",
+		Name:  "skiffos",
+		Write: true,
 	}); err == nil {
 		t.Fatal("expected stale Device resource to reject write after policy revoke")
 	}

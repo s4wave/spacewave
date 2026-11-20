@@ -150,4 +150,31 @@ func checkCheckoutRootResource(t *testing.T, ctx context.Context, le *logrus.Ent
 	if err == nil || err.Error() != unixfs_errors.ErrReadOnly.Error() {
 		t.Fatalf("write through read-only handle = %v", err)
 	}
+
+	// Open a second handle for writes using only the capability and access mode.
+	opened, err = deviceService.AccessCheckoutRoot(ctx, &s4wave_device.AccessCheckoutRootRequest{Name: "skiffos", Write: true})
+	if err != nil || !opened.GetWriteEnabled() {
+		t.Fatalf("open writable checkout root = %v, error %v", opened, err)
+	}
+	writeRef := resources.CreateResourceReference(opened.GetResourceId())
+	defer writeRef.Release()
+	writeClient, err := writeRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	writer := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(writeClient)
+
+	// Create and rename a file through the Resource SDK, and check the host directory.
+	if _, err := writer.Mknod(ctx, &s4wave_unixfs.HandleMknodRequest{
+		Names: []string{"new.txt"}, NodeType: s4wave_unixfs.MknodType_MKNOD_TYPE_FILE, CheckExist: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writer.Rename(ctx, &s4wave_unixfs.HandleRenameRequest{SourceName: "new.txt", DestName: "renamed.txt"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "renamed.txt")); err != nil {
+		t.Fatal(err)
+	}
+
 }

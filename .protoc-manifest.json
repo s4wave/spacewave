@@ -4320,7 +4320,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/device": {
-          "hash": "07cda971f851c5c1a9cb05077fb18bdef57c7f2496ae07687b32cff734e1c2a6",
+          "hash": "285c69b55eb412ba8c7c1789b11c1dcfb1f42955e9917ebedd7ea7c9f4009acb",
           "generatedFiles": [
             "sdk/device/device.pb.go",
             "sdk/device/device.pb.ts",
