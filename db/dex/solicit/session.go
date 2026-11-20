@@ -70,6 +70,21 @@ type queuedSend struct {
 	done chan error
 }
 
+// countedStream adds each read's byte count to n, so a reader waiting on one
+// answer sees the stream deliver the answers queued ahead of it.
+type countedStream struct {
+	io.ReadWriteCloser
+	// n is the controller's received byte count.
+	n *atomic.Uint64
+}
+
+// Read reads from the stream and counts the bytes read.
+func (s countedStream) Read(p []byte) (int, error) {
+	n, err := s.ReadWriteCloser.Read(p)
+	s.n.Add(uint64(n)) //nolint:gosec // Read never returns a negative count.
+	return n, err
+}
+
 // errPeerClosedStream reports a session whose peer closed the stream.
 var errPeerClosedStream = errors.New("the peer closed the stream")
 
@@ -100,7 +115,7 @@ func newPeerSession(
 		c:        c,
 		le:       le,
 		ms:       ms,
-		sess:     stream_packet.NewSession(ms.GetStream(), maxMessageSize),
+		sess:     stream_packet.NewSession(countedStream{ReadWriteCloser: ms.GetStream(), n: &c.received}, maxMessageSize),
 		onExit:   onExit,
 		pending:  make(map[uint32]chan *DexMessage),
 		handling: make(map[uint32]*handledRequest),

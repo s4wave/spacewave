@@ -43,14 +43,16 @@ func (c peerCause) String() string {
 
 // peerFailCause returns the cause of one failed attempt to read from peers.
 // A peer's own error outranks a closed session, which outranks a timeout, so
-// a fanout over several peers reports the most telling of their failures.
+// a fanout over several peers reports the most telling of their failures. A
+// canceled attempt is a timeout: while the caller waits, only the read's own
+// stallBound cancels it.
 func peerFailCause(err error) peerCause {
 	switch {
 	case errors.Is(err, dex_solicit.ErrPeerError):
 		return peerError
 	case errors.Is(err, dex_solicit.ErrNoPeerSession):
 		return peerNoSession
-	case errors.Is(err, context.DeadlineExceeded):
+	case errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled):
 		return peerTimeout
 	default:
 		return peerError

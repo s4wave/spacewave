@@ -16,7 +16,11 @@ import (
 // peerReadWait is the default bound of a read from peers. Without a peer
 // session the solicit store waits for one indefinitely, so a block every other
 // tier lacks would hang its reader; past the bound the read fails with
-// block.ErrUnavailable.
+// block.ErrUnavailable. A read from a store that counts the bytes its peers
+// deliver ends only once the bound passes with none arriving, as stallBound
+// describes: on a slow link a peer's answers queue behind each other in its
+// session, so one answer can take longer than the bound while the link stays
+// busy.
 const peerReadWait = 3 * time.Second
 
 // peerReadPauseMin and peerReadPauseMax bound the pause after a peer read
@@ -192,7 +196,7 @@ func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref 
 
 	// Ask the peers until one answers, or the bound ends. A timeout keeps
 	// the cause an earlier attempt found.
-	readCtx, cancel := context.WithTimeout(ctx, peerReadLimit())
+	readCtx, cancel := withStallBound(ctx, peerReadLimit(), store)
 	defer cancel()
 	pause := peerReadPauseMin
 	for {
@@ -216,6 +220,65 @@ func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref 
 		}
 		pause = min(pause*2, peerReadPauseMax)
 	}
+}
+
+// progressStore is a peer store that counts the bytes its peers delivered.
+type progressStore interface {
+	// ReceivedBytes returns the bytes read from the peers so far.
+	ReceivedBytes() uint64
+}
+
+// stallBound ends a read from a progressStore once limit passes with no byte
+// arriving from its peers. Each check compares the received count with the
+// count the check before saw, and waits limit again while it grew. A read
+// waits on the bytes of every peer of the store, so it outlasts the bound
+// while any peer delivers.
+type stallBound struct {
+	// ctx is the bounded context, and cancel ends it.
+	ctx    context.Context
+	cancel context.CancelFunc
+	// limit is the longest wait with nothing arriving.
+	limit time.Duration
+	// received returns the store's received count.
+	received func() uint64
+	// last is the count the previous check saw. Only the checks touch it
+	// after construction, each started by the one before.
+	last uint64
+	// timer is the pending check.
+	timer atomic.Pointer[time.Timer]
+}
+
+// withStallBound returns ctx bounded as stallBound describes, and the cancel
+// that ends it. A store that counts no bytes bounds the whole read at limit.
+func withStallBound(ctx context.Context, limit time.Duration, store block.StoreOps) (context.Context, context.CancelFunc) {
+	// A store that counts no bytes bounds the whole read.
+	ps, ok := store.(progressStore)
+	if !ok {
+		return context.WithTimeout(ctx, limit)
+	}
+
+	// Check for arrivals each time limit passes.
+	b := &stallBound{limit: limit, received: ps.ReceivedBytes, last: ps.ReceivedBytes()}
+	b.ctx, b.cancel = context.WithCancel(ctx)
+	b.timer.Store(time.AfterFunc(limit, b.check))
+	return b.ctx, func() {
+		b.cancel()
+		b.timer.Load().Stop()
+	}
+}
+
+// check ends the read when nothing arrived since the last check, and
+// otherwise waits limit again.
+func (b *stallBound) check() {
+	if b.ctx.Err() != nil {
+		return
+	}
+	if n := b.received(); n != b.last {
+		b.last = n
+		b.timer.Store(time.AfterFunc(b.limit, b.check))
+		return
+	}
+	b.cancel()
 }
 
 // peerReadCounts counts a placed store's peer reads by outcome, and the
@@ -293,7 +356,7 @@ func peerReadErr(ctx, readCtx context.Context, ref *block.BlockRef, err error) e
 	case err == nil, ctx.Err() != nil:
 		return err
 	case readCtx.Err() != nil:
-		return fmt.Errorf("%w: no peer served block %s within %v: %v", block.ErrUnavailable, ref.MarshalString(), peerReadLimit(), err)
+		return fmt.Errorf("%w: no peer served block %s: nothing arrived for %v: %v", block.ErrUnavailable, ref.MarshalString(), peerReadLimit(), err)
 	case errors.Is(err, block.ErrUnavailable), errors.Is(err, block.ErrBlockCorrupt):
 		return err
 	default:

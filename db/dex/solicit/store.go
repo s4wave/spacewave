@@ -47,6 +47,12 @@ func NewStore(controller *Controller) *Store {
 	return &Store{controller: controller}
 }
 
+// ReceivedBytes returns how many bytes the controller's peer sessions have
+// read from their streams. It grows while any peer delivers an answer, so a
+// reader waiting on one block can tell a slow link, whose answers queue
+// behind each other in the peer's session, from a peer that sends nothing.
+func (s *Store) ReceivedBytes() uint64 { return s.controller.received.Load() }
+
 // GetHashType returns the unset preferred hash type because the peer set may
 // serve references using more than one hash type.
 func (*Store) GetHashType() hash.HashType { return 0 }

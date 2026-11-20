@@ -58,6 +58,60 @@ func TestPeerReadCountsFailed(t *testing.T) {
 	}
 }
 
+// tricklePeers answers a read after delay while counting arriving bytes
+// every tick, or counts none when tick is zero.
+type tricklePeers struct {
+	block.StoreOps
+	delay, tick time.Duration
+	received    atomic.Uint64
+}
+
+// ReceivedBytes returns the bytes counted so far.
+func (p *tricklePeers) ReceivedBytes() uint64 { return p.received.Load() }
+
+// GetStoredBlock counts arrivals until delay passes, then serves the block.
+func (p *tricklePeers) GetStoredBlock(ctx context.Context, _ *block.BlockRef) (*block.StoredBlock, error) {
+	// Count a byte each tick until the answer is due.
+	due := time.After(p.delay)
+	var tick <-chan time.Time
+	if p.tick > 0 {
+		ticker := time.NewTicker(p.tick)
+		defer ticker.Stop()
+		tick = ticker.C
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-tick:
+			p.received.Add(1)
+		case <-due:
+			return &block.StoredBlock{Data: []byte("served")}, nil
+		}
+	}
+}
+
+// TestPeerReadOutlastsBoundWhileBytesArrive checks that an answer queued
+// behind others on a slow link is served past the bound while bytes keep
+// arriving, and that a read with nothing arriving fails at the bound as a
+// timeout.
+func TestPeerReadOutlastsBoundWhileBytesArrive(t *testing.T) {
+	SetPeerReadWait(200 * time.Millisecond)
+	defer SetPeerReadWait(0)
+	st := countedPeerRead(t, &tricklePeers{delay: 700 * time.Millisecond, tick: 50 * time.Millisecond})
+	if st.PeerServed != 1 || st.PeerFailed != (PeerFailedCauses{}) {
+		t.Fatalf("trickling read counts: %+v", st)
+	}
+	start := time.Now()
+	st = countedPeerRead(t, &tricklePeers{delay: time.Minute})
+	if st.PeerServed != 0 || st.PeerFailed != (PeerFailedCauses{Timeout: 1}) {
+		t.Fatalf("silent read counts: %+v", st)
+	}
+	if d := time.Since(start); d > 2*time.Second {
+		t.Fatalf("silent read took %v", d)
+	}
+}
+
 // putStore takes a put, or fails it with err.
 type putStore struct {
 	block.StoreOps

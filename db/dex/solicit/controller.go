@@ -112,6 +112,9 @@ type Controller struct {
 	// localSource is the store a peer's request reads first, or nil to read
 	// only the bucket lookup, as SetLocalSource describes.
 	localSource atomic.Pointer[func() block.StoreOps]
+	// received counts the bytes every peer session read from its stream,
+	// framing included, as Store.ReceivedBytes describes.
+	received atomic.Uint64
 }
 
 // peerRecovery restores the session with a peer whose last session ended.
