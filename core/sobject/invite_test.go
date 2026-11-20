@@ -279,7 +279,8 @@ func TestIncrementInviteUsesExpired(t *testing.T) {
 	}
 }
 
-// TestValidateInviteRedeemable limits repeat redemption to a targeted invite's named peer.
+// TestValidateInviteRedeemable admits the named peer of a targeted invite, and
+// anyone to an untargeted one, while the invite is live and below max_uses.
 func TestValidateInviteRedeemable(t *testing.T) {
 	past := timestamppb.New(time.Now().Add(-time.Hour))
 	tests := []struct {
@@ -294,9 +295,10 @@ func TestValidateInviteRedeemable(t *testing.T) {
 			peerID: "named",
 		},
 		{
-			name:   "targeted peer redeems a used invite again",
-			invite: &SOInvite{TargetPeerId: "named", MaxUses: 1, Uses: 1},
-			peerID: "named",
+			name:    "targeted peer is refused a used invite",
+			invite:  &SOInvite{TargetPeerId: "named", MaxUses: 1, Uses: 1},
+			peerID:  "named",
+			wantErr: true,
 		},
 		{
 			name:    "other peer is refused a targeted invite",
@@ -364,15 +366,20 @@ func TestValidateInviteUsableTargetedUsed(t *testing.T) {
 	}
 }
 
-// TestInviteCountsUse counts a targeted invite's first redemption only.
-func TestInviteCountsUse(t *testing.T) {
-	if !InviteCountsUse(&SOInvite{TargetPeerId: "named"}) {
-		t.Fatal("expected the first targeted redemption to count")
+// TestInviteEnrolled answers a peer holding the invite's role or above.
+func TestInviteEnrolled(t *testing.T) {
+	cfg := &SharedObjectConfig{Participants: []*SOParticipantConfig{
+		{PeerId: "reader", Role: SOParticipantRole_SOParticipantRole_READER},
+		{PeerId: "writer", Role: SOParticipantRole_SOParticipantRole_WRITER},
+	}}
+	inv := &SOInvite{Role: SOParticipantRole_SOParticipantRole_WRITER, Revoked: true}
+	if !InviteEnrolled(cfg, inv, "writer") {
+		t.Fatal("expected a writer to be enrolled by a revoked writer invite")
 	}
-	if InviteCountsUse(&SOInvite{TargetPeerId: "named", Uses: 1}) {
-		t.Fatal("expected a repeat targeted redemption not to count")
+	if InviteEnrolled(cfg, inv, "reader") {
+		t.Fatal("expected a reader to need a writer invite redeemed")
 	}
-	if !InviteCountsUse(&SOInvite{Uses: 1}) {
-		t.Fatal("expected every untargeted redemption to count")
+	if InviteEnrolled(cfg, inv, "stranger") {
+		t.Fatal("expected a stranger not to be enrolled")
 	}
 }

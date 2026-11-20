@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/link"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -148,9 +149,22 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		return nil, errors.New("invite ID mismatch")
 	}
 
+	// A redeemer the Space already enrolled at the invite's role receives its
+	// grant, however the invite changed since: the repeat changes nothing.
+	ownerState, err := result.Host.GetHostState(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "read owner shared object state")
+	}
+	ownerConfig := ownerState.GetConfig()
+	if sobject.InviteEnrolled(ownerConfig, result.Invite, responderPeerID.String()) &&
+		sobject.InviteEnrolled(ownerConfig, result.Invite, storagePeerID.String()) {
+		role := ownerConfig.GetParticipantRole(responderPeerID.String())
+		return s.answerAccept(ctx, result, responderPeerID, nil, sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNCHANGED, role)
+	}
+
 	// Validate the responder may redeem the invite: it is the named peer of a
-	// targeted invite, or the invite is untargeted, and it is not revoked,
-	// expired or maxed.
+	// targeted invite, or the invite is untargeted, and the invite is live and
+	// below its max_uses.
 	if err := sobject.ValidateInviteRedeemable(result.Invite, responderPeerID.String()); err != nil {
 		return nil, errors.Wrap(err, "invite not usable")
 	}
@@ -194,19 +208,29 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		}
 	}
 
-	// Enrollment succeeded. Increment invite uses, unless the named peer of a
-	// targeted invite is redeeming it again.
-	if sobject.InviteCountsUse(result.Invite) {
-		inviteMutator := result.InviteMutator
-		if inviteMutator == nil {
-			inviteMutator = result.Host
-		}
-		if err := inviteMutator.IncrementInviteUses(ctx, result.OwnerPrivKey, result.Invite.GetInviteId()); err != nil {
-			return nil, errors.Wrap(err, "increment invite uses")
-		}
+	// Enrollment succeeded, so the redemption consumes a use.
+	inviteMutator := result.InviteMutator
+	if inviteMutator == nil {
+		inviteMutator = result.Host
 	}
+	if err := inviteMutator.IncrementInviteUses(ctx, result.OwnerPrivKey, result.Invite.GetInviteId()); err != nil {
+		return nil, errors.Wrap(err, "increment invite uses")
+	}
+	return s.answerAccept(ctx, result, responderPeerID, grant, outcome, joinedRole)
+}
 
-	// Transfer the configuration after every acceptance mutation has completed.
+// answerAccept returns the redeemer's grant with the durable owner state and
+// its config lineage. A nil grant is read from the current key epoch, for a
+// redeemer that already held one.
+func (s *Server) answerAccept(
+	ctx context.Context,
+	result *InviteLookupResult,
+	responderPeerID peer.ID,
+	grant *sobject.SOGrant,
+	outcome sobject.SOParticipantAddOutcome,
+	role sobject.SOParticipantRole,
+) (*AcceptInviteResponse, error) {
+	// Read the owner state once every acceptance mutation is durable.
 	ownerState, err := result.Host.GetHostState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "read updated owner shared object state")
@@ -215,7 +239,7 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		return nil, errors.Wrap(err, "wait for durable shared object state")
 	}
 
-	// An invitee that already held a grant receives it from the owner state.
+	// A redeemer that already held a grant receives it from the owner state.
 	if grant == nil {
 		grant = ownerState.CurrentKeyEpoch().FindGrant(responderPeerID.String())
 		if grant == nil {
@@ -234,7 +258,7 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		SharedObjectState: ownerState.Clone(),
 		ConfigLineage:     lineage,
 		Outcome:           outcome,
-		ParticipantRole:   joinedRole,
+		ParticipantRole:   role,
 	}, nil
 }
 

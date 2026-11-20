@@ -200,7 +200,7 @@ func pinRemovedAuthors(sharedObjectID string, state *SOState, next *SharedObject
 // pruneRemovedParticipants removes the targets' grants from every key epoch
 // and replaces their proofs that remaining participants depend on, signed by
 // the remaining owner of signer. It revokes every invite that names a target,
-// since a named peer may redeem its invite again. Their operations stay in the
+// since a live one would readmit it. Their operations stay in the
 // set, and replay applies only those the removal pinned.
 func pruneRemovedParticipants(sharedObjectID string, state *SOState, targets map[string]struct{}, signer crypto.PrivKey) error {
 	// Close the invites that would readmit a target.

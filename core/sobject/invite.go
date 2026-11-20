@@ -184,29 +184,26 @@ func ValidateInviteUsable(inv *SOInvite) error {
 	return nil
 }
 
-// ValidateInviteRedeemable checks whether peerID may redeem an invite now.
-//
-// A targeted invite admits only the peer it names, so that peer may redeem it
-// again after its use is counted; refusing the repeat protects no other peer.
-// An untargeted invite keeps its max_uses limit. Revocation and expiry apply
-// to every invite.
+// ValidateInviteRedeemable checks whether peerID may redeem an invite now: a
+// targeted invite admits only the peer it names, and every invite must be live
+// and below its max_uses. A peer InviteEnrolled reports skips this check.
 func ValidateInviteRedeemable(inv *SOInvite, peerID string) error {
-	target := inv.GetTargetPeerId()
-	if target == "" {
-		return ValidateInviteUsable(inv)
-	}
-	if peerID != target {
+	if target := inv.GetTargetPeerId(); target != "" && peerID != target {
 		return errors.New("invite is targeted to a different peer")
 	}
-	return validateInviteLive(inv)
+	return ValidateInviteUsable(inv)
 }
 
-// InviteCountsUse reports whether a redemption of inv consumes a use.
+// InviteEnrolled reports whether peerID already holds the invite's role or a
+// higher one in cfg.
 //
-// A targeted invite counts only its first redemption, so the named peer
-// can redeem it again without exhausting its max_uses.
-func InviteCountsUse(inv *SOInvite) bool {
-	return inv.GetTargetPeerId() == "" || inv.GetUses() == 0
+// Redeeming the invite again changes nothing for such a peer, so its owner
+// answers with the peer's grant whatever has become of the invite since: the
+// repeat consumes no use and passes revocation, expiry and max_uses. A Device
+// that lost its answer to a power cut or a cancellation redeems again this way.
+func InviteEnrolled(cfg *SharedObjectConfig, inv *SOInvite, peerID string) bool {
+	held := cfg.GetParticipantRole(peerID)
+	return held != SOParticipantRole_SOParticipantRole_UNKNOWN && held >= inv.GetRole()
 }
 
 // validateInviteLive checks that an invite is neither revoked nor expired.

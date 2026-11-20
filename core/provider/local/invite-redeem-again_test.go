@@ -70,8 +70,8 @@ func newTargetedInvite(ctx context.Context, t *testing.T) *targetedInvite {
 	return &targetedInvite{reader: reader, readerSession: readerSession, host: host, invite: invite}
 }
 
-// TestTargetedInviteRedeemedAgain proves the named peer of a used targeted
-// invite redeems it again for the same grant without counting a second use.
+// TestTargetedInviteRedeemedAgain proves an enrolled peer redeems its used,
+// then revoked, invite again for the same grant without counting a use.
 func TestTargetedInviteRedeemedAgain(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
@@ -96,7 +96,20 @@ func TestTargetedInviteRedeemedAgain(t *testing.T) {
 		t.Fatalf("outcomes = %v then %v, want added then unchanged", first.Outcome, again.Outcome)
 	}
 
-	// The repeat leaves the use count at the first redemption.
+	// The owner revokes the invite after admitting the peer, as a Device's
+	// grant may be, and the peer's repeat still receives its grant.
+	if err := f.host.GetSOHost().RevokeInvite(ctx, f.host.GetPrivKey(), f.invite.GetInviteId()); err != nil {
+		t.Fatal(err)
+	}
+	revoked, err := f.reader.JoinViaInvite(ctx, f.readerSession.GetPrivKey(), f.invite, "")
+	if err != nil {
+		t.Fatalf("redeem a revoked invite as an enrolled peer: %v", err)
+	}
+	if revoked.Grant.GetPeerId() != first.Grant.GetPeerId() {
+		t.Fatalf("revoked repeat grant peer = %q, want %q", revoked.Grant.GetPeerId(), first.Grant.GetPeerId())
+	}
+
+	// The repeats leave the use count at the first redemption.
 	state, err := f.host.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		t.Fatal(err)

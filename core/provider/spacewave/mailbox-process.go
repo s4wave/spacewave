@@ -274,13 +274,14 @@ func (a *ProviderAccount) acceptMailboxEntry(
 	}
 
 	// Validate the invitation and responder proof.
-	invite, responderPeerID, responderPub, err := validateMailboxEntryForAccept(ctx, swSO, soID, entry, ownerAccountID)
+	redemption, err := validateMailboxEntryForAccept(ctx, swSO, soID, entry, ownerAccountID)
 	if err != nil {
 		return err
 	}
+	invite, responderPeerID := redemption.invite, redemption.peerID
 
 	// Admit, queue or refuse the redeemer under the invite's conditions.
-	if conditional {
+	if conditional && !redemption.enrolled {
 		held, err := a.heldSpaceConfigs(ctx, invite)
 		if err != nil {
 			return err
@@ -293,11 +294,11 @@ func (a *ProviderAccount) acceptMailboxEntry(
 		}
 	}
 
-	// Add the responder participant and consume invite uses.
+	// Add the responder participant; a new grant consumes an invite use.
 	grant, _, _, err := swSO.AddParticipant(
 		ctx,
 		responderPeerID.String(),
-		responderPub,
+		redemption.pubKey,
 		invite.GetRole(),
 		entry.GetAccountId(),
 		entry.GetEntityId(),
@@ -305,7 +306,7 @@ func (a *ProviderAccount) acceptMailboxEntry(
 	if err != nil {
 		return err
 	}
-	if grant != nil && sobject.InviteCountsUse(invite) {
+	if grant != nil {
 		if err := swSO.IncrementInviteUses(ctx, swSO.privKey, invite.GetInviteId()); err != nil {
 			return errors.Wrap(err, "increment invite uses")
 		}
@@ -371,54 +372,74 @@ func (a *ProviderAccount) readSpaceConfig(ctx context.Context, soID string) (*so
 	return state.GetConfig(), nil
 }
 
+// mailboxRedemption is a mailbox entry that validated against the Space.
+type mailboxRedemption struct {
+	// invite is the invite the entry redeems.
+	invite *sobject.SOInvite
+	// peerID is the responder's peer ID.
+	peerID peer.ID
+	// pubKey is the responder's public key.
+	pubKey crypto.PubKey
+	// enrolled is set when the responder already holds the invite's role, so
+	// the invite's own checks and conditions do not apply.
+	enrolled bool
+}
+
 // validateMailboxEntryForAccept checks a mailbox entry against the current
-// Space state and returns the invite it redeems and the responder's identity.
-// An entry that can never be accepted returns an invalidMailboxEntryError.
+// Space state and returns the redemption it describes. An entry that can never
+// be accepted returns an invalidMailboxEntryError.
 func validateMailboxEntryForAccept(
 	ctx context.Context,
 	swSO *SharedObject,
 	soID string,
 	entry *api.MailboxEntry,
 	ownerAccountID string,
-) (*sobject.SOInvite, peer.ID, crypto.PubKey, error) {
+) (*mailboxRedemption, error) {
 	// Check the entry against its signed join response.
 	if entry == nil {
-		return nil, "", nil, errors.New("mailbox entry is required")
+		return nil, errors.New("mailbox entry is required")
 	}
 	if entry.GetAccountId() == "" {
-		return nil, "", nil, &invalidMailboxEntryError{err: errors.New("mailbox entry account_id is required")}
+		return nil, &invalidMailboxEntryError{err: errors.New("mailbox entry account_id is required")}
 	}
 	joinResp := entry.GetJoinResponse()
 	responderPeerID, responderPub, err := sobject_invite.ValidateJoinResponse(joinResp)
 	if err != nil {
-		return nil, "", nil, &invalidMailboxEntryError{err: err}
+		return nil, &invalidMailboxEntryError{err: err}
 	}
 	if responderPeerID.String() != entry.GetPeerId() {
-		return nil, "", nil, &invalidMailboxEntryError{err: errors.New("mailbox entry peer_id does not match join response")}
+		return nil, &invalidMailboxEntryError{err: errors.New("mailbox entry peer_id does not match join response")}
 	}
 	if joinResp.GetInviteId() != entry.GetInviteId() {
-		return nil, "", nil, &invalidMailboxEntryError{err: errors.New("mailbox entry invite_id does not match join response")}
+		return nil, &invalidMailboxEntryError{err: errors.New("mailbox entry invite_id does not match join response")}
 	}
 
 	// Find the redeemed invite in the current state.
 	state, err := swSO.GetSOHost().GetHostState(ctx)
 	if err != nil {
-		return nil, "", nil, errors.Wrap(err, "get current shared object state")
+		return nil, errors.Wrap(err, "get current shared object state")
 	}
 	invite := sobject.FindInvite(state, entry.GetInviteId())
 	if invite == nil {
-		return nil, "", nil, &invalidMailboxEntryError{err: errors.New("invite not found")}
+		return nil, &invalidMailboxEntryError{err: errors.New("invite not found")}
+	}
+
+	// A responder the Space already enrolled at the invite's role is accepted
+	// however the invite changed since, because the repeat changes nothing.
+	redemption := &mailboxRedemption{invite: invite, peerID: responderPeerID, pubKey: responderPub}
+	if sobject.InviteEnrolled(state.GetConfig(), invite, responderPeerID.String()) {
+		redemption.enrolled = true
+		return redemption, nil
 	}
 
 	// Check that the invite still admits this responder.
 	if err := sobject.ValidateInviteRedeemable(invite, responderPeerID.String()); err != nil {
-		return nil, "", nil, &invalidMailboxEntryError{err: err}
+		return nil, &invalidMailboxEntryError{err: err}
 	}
 	if err := validateTargetedMailboxProof(entry, invite, state, soID, ownerAccountID); err != nil {
-		return nil, "", nil, &invalidMailboxEntryError{err: err}
+		return nil, &invalidMailboxEntryError{err: err}
 	}
-
-	return invite, responderPeerID, responderPub, nil
+	return redemption, nil
 }
 
 // validateTargetedMailboxProof checks the owner-signed envelope that proves an
