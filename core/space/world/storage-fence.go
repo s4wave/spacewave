@@ -147,7 +147,7 @@ func (a *Adapter) holdFence(ctx context.Context, pass string, live []*block.Bloc
 	return a.copyAndHold(ctx, fenceRootPrefix+pass, live, block.GraphCopyOptions{Forget: true}, false)
 }
 
-// copyAndHold copies the graph of each root from the kept pages and the read
+// copyAndHold copies the graph of each root from the kept pages and the copy
 // path into the SharedObject's block store with opts, under a stage that holds
 // each copied block until the named root name holds one block naming every
 // root. It skips only the subtrees the stage holds, as block.StageCopy
@@ -161,7 +161,10 @@ func (a *Adapter) holdFence(ctx context.Context, pass string, live []*block.Bloc
 // moved on. A live World's pages leave memory only under the replay base or a
 // history, whose trim keeps every live World.
 func (a *Adapter) copyAndHold(ctx context.Context, name string, roots []*block.BlockRef, opts block.GraphCopyOptions, recheck bool) error {
-	// Copy under a stage until the root holds them.
+	// Copy under a stage until the root holds them. The copy stays within this
+	// Device's Volume, so a block only a linked file here serves counts as
+	// present: the file is its copy, as the read path serves it.
+	opts.CountLinked = true
 	c, err := block.OpenStageCopy(ctx, a.so.GetBlockStore(), recheck)
 	if err != nil {
 		return err

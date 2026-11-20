@@ -11,6 +11,12 @@ type StoredBlock struct {
 	// RefsKnown is false when the source held the bytes without their refs,
 	// so a leaf cannot be told from a block whose edges were lost.
 	RefsKnown bool
+	// Linked is set only by the linked files' copy tier (see the filesegment
+	// Store's GetCopyTier), which a copy chain reads after every Volume tier.
+	// No Volume tier holds a Linked block: a file on this Device is its only
+	// copy here, and a changed file reads as missing. The read path never
+	// sets it.
+	Linked bool
 }
 
 // GetBlockWithoutRefs implements GetStoredBlock for a store that keeps block
