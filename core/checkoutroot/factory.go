@@ -4,6 +4,7 @@ package checkoutroot
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -48,7 +49,7 @@ func (f *Factory) GetVersion() controller.Version { return version }
 func (f *Factory) ConstructConfig() config.Config { return &Config{} }
 
 // Construct opens the configured folder and serves it for the controller's lifetime.
-func (f *Factory) Construct(_ context.Context, config config.Config, opts controller.ConstructOpts) (controller.Controller, error) {
+func (f *Factory) Construct(ctx context.Context, config config.Config, opts controller.ConstructOpts) (controller.Controller, error) {
 	// Validate the configuration before opening anything on the Device.
 	conf := config.(*Config)
 	if err := conf.Validate(); err != nil {
@@ -66,29 +67,48 @@ func (f *Factory) Construct(_ context.Context, config config.Config, opts contro
 		return nil, err
 	}
 
-	// Publish the UnixFS handler only for this controller's execution.
+	// Resolve the daemon state volume before advertising a writable root.
 	info := controller.NewInfo(ControllerID, version, "device checkout-root controller")
 	le := opts.GetLogger().WithField("controller", ControllerID)
+	id := conf.ProtocolID()
+	closeRoot := root.Close
+	var journal *uploadJournal
+	var upload unixfs_rpc_server.FileUpload
+	if conf.GetWritable() {
+		vol, _, ref, err := volume.ExLookupVolume(ctx, f.b, f.stateVolumeID, "", false)
+		if err != nil {
+			_ = root.Close()
+			err = fmt.Errorf("resolve checkout-root state volume %q: %w", f.stateVolumeID, err)
+			if ctx.Err() == nil {
+				le.WithError(err).Error("open checkout-root upload journal")
+			}
+			return nil, err
+		}
+		kv, ok := vol.(volume_kvtx.KvtxVolume)
+		if !ok {
+			ref.Release()
+			_ = root.Close()
+			err := fmt.Errorf("checkout-root state volume %q has no key/value store", f.stateVolumeID)
+			le.WithError(err).Error("open checkout-root upload journal")
+			return nil, err
+		}
+
+		// Hold the state volume as long as the root can publish or recover uploads.
+		journal = newUploadJournal(kv.GetKvtxStore(), id)
+		closeRoot = func() error {
+			defer ref.Release()
+			return root.Close()
+		}
+		upload = func(ctx context.Context, dir string, start *unixfs_rpc.OpsMknodWithContentStart, src io.Reader) error {
+			return publishFile(ctx, root, journal, dir, start, src)
+		}
+	}
+
+	// Publish the UnixFS handler only for this controller's execution.
 	cursor := unixfs_billy.NewBillyFSCursor(filesystem, "")
 	return callback.NewCallbackController(info, func(ctx context.Context) error {
-		// Writable roots use the Device's existing private state for stage locations.
-		id := conf.ProtocolID()
-		var journal *uploadJournal
-		var upload unixfs_rpc_server.FileUpload
-		if conf.GetWritable() {
-			vol, _, ref, err := volume.ExLookupVolume(ctx, f.b, f.stateVolumeID, "", true)
-			if ref != nil {
-				defer ref.Release()
-			}
-			if kv, ok := vol.(volume_kvtx.KvtxVolume); ok && err == nil {
-				journal = newUploadJournal(kv.GetKvtxStore(), id)
-			}
-			upload = func(ctx context.Context, dir string, start *unixfs_rpc.OpsMknodWithContentStart, src io.Reader) error {
-				return publishFile(ctx, root, journal, dir, start, src)
-			}
-		}
 		return serve(ctx, le, f.b, id, root, cursor, upload, journal)
-	}, nil, root.Close), nil
+	}, nil, closeRoot), nil
 }
 
 // _ is a type assertion.

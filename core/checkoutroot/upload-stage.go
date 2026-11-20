@@ -38,11 +38,6 @@ type uploadStage struct {
 
 // openNamedStage registers the locked stage before creating its payload.
 func openNamedStage(ctx context.Context, journal *uploadJournal, dir *os.Root, directory string) (*uploadStage, error) {
-	// A named stage must remain discoverable if the publisher dies.
-	if journal == nil {
-		return nil, errors.New("checkout-root upload journal unavailable")
-	}
-
 	// The lease marks only files in a freshly allocated namespace.
 	name := uploadStagePrefix + rand.Text()
 	leaseName := name + uploadLeaseSuffix
