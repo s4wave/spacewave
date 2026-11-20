@@ -85,10 +85,16 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	}
 
 	// Start an empty store adopted at the current format, with frees as
-	// configured: it has no holder to count again.
-	empty, err := storeEmpty(ctx, store)
-	if err != nil {
-		return 0, false, err
+	// configured: it has no holder to count again. A versioned store holds
+	// its version key, so only an unversioned one can be empty; the scan for
+	// any key steps past every deleted key at the front of the keyspace,
+	// which on a large store reads gigabytes.
+	empty := false
+	if version == 0 {
+		empty, err = storeEmpty(ctx, store)
+		if err != nil {
+			return 0, false, err
+		}
 	}
 	if empty {
 		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED, Frees: frees}
