@@ -3220,7 +3220,7 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/lib/skiffos": {
-          "hash": "21dee7fbd6b5f7a9fe26a8aa64bf1f19fb9fcf7cda8625e70016046cc8e91cf2",
+          "hash": "e8a48041e0db299c9cede5abc297eb88e3cd6b1afac1cb53e4cd95f6406051f7",
           "generatedFiles": [
             "forge/lib/skiffos/config.pb.go",
             "forge/lib/skiffos/config.pb.ts"
