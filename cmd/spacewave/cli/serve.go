@@ -5,8 +5,10 @@ package spacewave_cli
 import (
 	"context"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"slices"
+	"syscall"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -148,8 +150,14 @@ func runServeCommand(
 	deviceGrant string,
 	frees *CollectorFrees,
 ) (retErr error) {
+	// A service manager's SIGTERM, or an interrupt, stops serve from outside:
+	// clients drain and the bus releases the state lease, at any point from
+	// startup on. A second signal kills the process.
+	ctx, cancel := context.WithCancel(c.Context)
+	defer cancel()
+	stopOnSignal(ctx, cancel)
+
 	// Resolve the command target before any writable bus is requested.
-	ctx := c.Context
 	resolved, err := resolveStatePathFromContext(c, "")
 	if err != nil {
 		return err
@@ -595,6 +603,22 @@ func (i *daemonResourceInvoker) InvokeMethod(
 	}
 	defer clientRef.Release()
 	return srpc.NewClientInvoker(client).InvokeMethod(serviceID, methodID, strm)
+}
+
+// stopOnSignal calls stop on the first SIGTERM or interrupt before ctx ends,
+// then restores the signals' default action.
+func stopOnSignal(ctx context.Context, stop func()) {
+	// Subscribe before returning so a signal sent right after cannot kill us.
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGTERM, os.Interrupt)
+	go func() {
+		defer signal.Stop(signals)
+		select {
+		case <-signals:
+			stop()
+		case <-ctx.Done():
+		}
+	}()
 }
 
 // _ is a type assertion.
