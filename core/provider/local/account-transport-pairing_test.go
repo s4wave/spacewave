@@ -11,7 +11,9 @@ import (
 
 	"github.com/s4wave/spacewave/core/pairing"
 	"github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/core/sobject"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -36,6 +38,7 @@ func newPairingTransportAccount(ctx context.Context, t *testing.T) (*ProviderAcc
 		le:           logrus.New().WithField("test", t.Name()),
 		vol:          tb.Volume,
 		lifecycleCtx: ctx,
+		soListCtr:    ccontainer.NewCContainer[*sobject.SharedObjectList](nil),
 	}
 	release := func() {
 		acc.StopSessionTransport()
