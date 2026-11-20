@@ -4,13 +4,15 @@
 # rootfs.cpio.lz4 by name, so list spacewave/os last in SKIFF_CONFIG.
 #
 # SPACEWAVE_OS_BOOT names a directory holding "init", the static spacewave-init
-# executable built for the board's architecture.
+# executable built for the board's architecture, and "make-initramfs.sh" from
+# the os directory. The package reads nothing outside itself and that
+# directory, so a build that receives both as inputs is keyed by their bytes.
 set -euo pipefail
 
 # Refuse a build without the boot executable.
 boot=${SPACEWAVE_OS_BOOT:-}
-if [ -z "$boot" ] || [ ! -f "$boot/init" ]; then
-	echo "spacewave/os: set SPACEWAVE_OS_BOOT to a directory holding the static init" >&2
+if [ -z "$boot" ] || [ ! -f "$boot/init" ] || [ ! -f "$boot/make-initramfs.sh" ]; then
+	echo "spacewave/os: set SPACEWAVE_OS_BOOT to a directory holding init and make-initramfs.sh" >&2
 	exit 1
 fi
 
@@ -25,7 +27,7 @@ fi
 staged=$BINARIES_DIR/.spacewave-os.cpio.lz4
 rm -f "$staged"
 PATH=$HOST_DIR/bin:$PATH GEN_INIT_CPIO=${tools[0]} \
-	sh "$SKIFF_CURRENT_CONF_DIR/../../../make-initramfs.sh" "$boot/init" "$staged"
+	sh "$boot/make-initramfs.sh" "$boot/init" "$staged"
 mv -f "$staged" "$BINARIES_DIR/rootfs.cpio.lz4"
 
 # Remove every other root image, including ones an earlier build of the

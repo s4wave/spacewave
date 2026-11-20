@@ -213,3 +213,52 @@ func TestTxCompleteRejectsSuccessOutsideChecking(t *testing.T) {
 		t.Fatalf("recorded success was overwritten: %s", task.GetResult().GetFailError())
 	}
 }
+
+func TestTxUpdateInputsUnlinksReuse(t *testing.T) {
+	// Open a World testbed for the Task transactions.
+	ctx := t.Context()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	// Create a successful Task recorded under a reuse key and a source Task.
+	taskKey := "test/task/reopen-reused"
+	sender := buildTaskWithPass(
+		t, tb, taskKey,
+		forge_task.State_TaskState_COMPLETE,
+		forge_value.NewResultWithSuccess(),
+		forge_value.NewResultWithSuccess(),
+	)
+	if err := tb.WorldState.SetGraphQuad(ctx, forge_task.NewTaskToReuseKeyQuad(taskKey, "old-inputs")); err != nil {
+		t.Fatal(err)
+	}
+	if err := forge_task.LinkTaskCached(ctx, tb.WorldState, taskKey, "test/task/source"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Change the inputs, which reopens the Task.
+	update := task_tx.NewTxUpdateInputs(taskKey)
+	update.TxUpdateInputs.ResetInputs = true
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, update, sender); err != nil {
+		t.Fatalf("update inputs: %v", err)
+	}
+
+	// The reopened Task must no longer answer its old key or name its source,
+	// or a later Task with the old inputs would take the new outputs.
+	recorded, err := forge_task.CheckTaskReuseKey(ctx, tb.WorldState, taskKey, "old-inputs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if recorded {
+		t.Fatal("reopened task kept its old reuse key")
+	}
+	cached, err := forge_task.LookupTaskCached(ctx, tb.WorldState, taskKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cached != "" {
+		t.Fatalf("reopened task kept its cached source %q", cached)
+	}
+}

@@ -84,13 +84,14 @@ retaining separate SQL, file and configuration bindings.
 
 ## Kill trial
 
-`kill-trial.sh DIR` checks that the console guest keeps every record it
-acknowledged. DIR holds `vmlinuz`, `initramfs.cpio.gz`, a seeded `btrfs.img`
-and `run-console.sh`; run it on a KVM host from a fresh copy of the fixture.
-The guest writes 16 records of 256 KiB, each followed by `sync`, and
-acknowledges each with its SHA-256. The driver kills QEMU with SIGKILL at the
-first host disk write of a later 256 MiB write. It then reboots, checks every
-acknowledged record, repeats the write and the kill, and checks all 32 records
-before a clean poweroff. It prints `KILL_TRIAL_PASS` only if every check
-passes, and leaves the serial logs and `host.log` in DIR. A 1 GiB disk falls
-below the data Volume's disk reserve, so use 4 GiB.
+`kill_trial.py` checks that the console guest keeps every record it
+acknowledged. It takes the kernel, the initramfs and a seeded disk, and drives
+the guest's serial console through QEMU's stdio, so it runs in the tool image
+as well as on a KVM host. The guest writes 16 records of 256 KiB, each followed
+by `sync`, and acknowledges each with its SHA-256. The driver kills QEMU with
+SIGKILL at the first host disk write of a later 256 MiB write. It then reboots,
+checks every acknowledged record, repeats the write and the kill, and checks
+all 32 records before a clean poweroff. It prints `KILL_TRIAL_PASS` and exits 0
+only if every check passes, and streams the guest's console to stdout.
+`rehearse.sh` runs it on the rehearsal's disk after the clean boot. A 1 GiB
+disk falls below the data Volume's disk reserve, so use 4 GiB.

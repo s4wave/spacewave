@@ -22,7 +22,12 @@ import (
 // serves the Execution and owns its workspace: a later build of the same
 // workspace reuses its build tree and ccache.
 //
+// The Task's reuse key covers the config and the input values, so the build
+// takes everything it reads as either: the checkout is pinned by revision and
+// out-of-tree config packages arrive as inputs.
+//
 // Inputs:
+//   - each name in extra_config_inputs: a UnixFS directory of config packages.
 //   - each name in input_env: a UnixFS directory the build reads.
 //
 // Outputs:
@@ -38,14 +43,19 @@ type Config struct {
 	// Configs is the SKIFF_CONFIG list in order, such as
 	// ["intel/x64", "virt/qemu"].
 	Configs []string `protobuf:"bytes,3,rep,name=configs,proto3" json:"configs,omitempty"`
-	// ExtraConfigsPaths are absolute paths of directories holding out-of-tree
-	// config packages, passed as SKIFF_EXTRA_CONFIGS_PATH.
-	ExtraConfigsPaths []string `protobuf:"bytes,4,rep,name=extra_configs_paths,json=extraConfigsPaths,proto3" json:"extraConfigsPaths,omitempty"`
+	// ExtraConfigInputs names Step inputs that each hold out-of-tree config
+	// packages as <namespace>/<name> directories. The controller writes each to
+	// inputs/<name> in the workspace and lists them in SKIFF_EXTRA_CONFIGS_PATH.
+	ExtraConfigInputs []string `protobuf:"bytes,4,rep,name=extra_config_inputs,json=extraConfigInputs,proto3" json:"extraConfigInputs,omitempty"`
 	// InputEnv maps a Step input to an environment variable of the build.
 	// The controller writes each input, a UnixFS directory, to inputs/<name> in
 	// the workspace and sets the variable to that directory. The inputs are
 	// part of the Task's reuse key, so changed input bytes rebuild.
 	InputEnv map[string]string `protobuf:"bytes,5,rep,name=input_env,json=inputEnv,proto3" json:"inputEnv,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// SkiffRevision is the Git commit the checkout must be at. The controller
+	// refuses a checkout at another commit or with local changes, which the
+	// reuse key could not see.
+	SkiffRevision string `protobuf:"bytes,6,opt,name=skiff_revision,json=skiffRevision,proto3" json:"skiffRevision,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -75,9 +85,9 @@ func (x *Config) GetConfigs() []string {
 	return nil
 }
 
-func (x *Config) GetExtraConfigsPaths() []string {
+func (x *Config) GetExtraConfigInputs() []string {
 	if x != nil {
-		return x.ExtraConfigsPaths
+		return x.ExtraConfigInputs
 	}
 	return nil
 }
@@ -87,6 +97,13 @@ func (x *Config) GetInputEnv() map[string]string {
 		return x.InputEnv
 	}
 	return nil
+}
+
+func (x *Config) GetSkiffRevision() string {
+	if x != nil {
+		return x.SkiffRevision
+	}
+	return ""
 }
 
 type Config_InputEnvEntry struct {
@@ -122,8 +139,9 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.SkiffDir = m.SkiffDir
 	r.Workspace = m.Workspace
+	r.SkiffRevision = m.SkiffRevision
 	r.Configs = protobuf_go_lite.CloneSlice(m.Configs)
-	r.ExtraConfigsPaths = protobuf_go_lite.CloneSlice(m.ExtraConfigsPaths)
+	r.ExtraConfigInputs = protobuf_go_lite.CloneSlice(m.ExtraConfigInputs)
 	r.InputEnv = protobuf_go_lite.CloneMap(m.InputEnv)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -150,10 +168,13 @@ func (this *Config) EqualVT(that *Config) bool {
 	if !protobuf_go_lite.EqualSlice(this.Configs, that.Configs) {
 		return false
 	}
-	if !protobuf_go_lite.EqualSlice(this.ExtraConfigsPaths, that.ExtraConfigsPaths) {
+	if !protobuf_go_lite.EqualSlice(this.ExtraConfigInputs, that.ExtraConfigInputs) {
 		return false
 	}
 	if !protobuf_go_lite.EqualMap(this.InputEnv, that.InputEnv) {
+		return false
+	}
+	if this.SkiffRevision != that.SkiffRevision {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -240,10 +261,10 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("configs")
 		s.WriteStringArray(x.Configs)
 	}
-	if len(x.ExtraConfigsPaths) > 0 || s.HasField("extraConfigsPaths") {
+	if len(x.ExtraConfigInputs) > 0 || s.HasField("extraConfigInputs") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("extraConfigsPaths")
-		s.WriteStringArray(x.ExtraConfigsPaths)
+		s.WriteObjectField("extraConfigInputs")
+		s.WriteStringArray(x.ExtraConfigInputs)
 	}
 	if x.InputEnv != nil || s.HasField("inputEnv") {
 		s.WriteMoreIf(&wroteField)
@@ -257,6 +278,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteString(v)
 		}
 		s.WriteObjectEnd()
+	}
+	if x.SkiffRevision != "" || s.HasField("skiffRevision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("skiffRevision")
+		s.WriteString(x.SkiffRevision)
 	}
 	s.WriteObjectEnd()
 }
@@ -288,13 +314,13 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.Configs = s.ReadStringArray()
-		case "extra_configs_paths", "extraConfigsPaths":
-			s.AddField("extra_configs_paths")
+		case "extra_config_inputs", "extraConfigInputs":
+			s.AddField("extra_config_inputs")
 			if s.ReadNil() {
-				x.ExtraConfigsPaths = nil
+				x.ExtraConfigInputs = nil
 				return
 			}
-			x.ExtraConfigsPaths = s.ReadStringArray()
+			x.ExtraConfigInputs = s.ReadStringArray()
 		case "input_env", "inputEnv":
 			s.AddField("input_env")
 			if s.ReadNil() {
@@ -305,6 +331,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			s.ReadStringMap(func(key string) {
 				x.InputEnv[key] = s.ReadString()
 			})
+		case "skiff_revision", "skiffRevision":
+			s.AddField("skiff_revision")
+			x.SkiffRevision = s.ReadString()
 		}
 	})
 }
@@ -343,6 +372,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.SkiffRevision) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SkiffRevision)
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.InputEnv) > 0 {
 		for k := range m.InputEnv {
 			v := m.InputEnv[k]
@@ -358,9 +392,9 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x2a
 		}
 	}
-	if len(m.ExtraConfigsPaths) > 0 {
-		for iNdEx := len(m.ExtraConfigsPaths) - 1; iNdEx >= 0; iNdEx-- {
-			i = protobuf_go_lite.EncodeString(dAtA, i, m.ExtraConfigsPaths[iNdEx])
+	if len(m.ExtraConfigInputs) > 0 {
+		for iNdEx := len(m.ExtraConfigInputs) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.ExtraConfigInputs[iNdEx])
 			i--
 			dAtA[i] = 0x22
 		}
@@ -394,13 +428,14 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SkiffDir)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Workspace)
 	n += protobuf_go_lite.SizeStringSlice(1, m.Configs)
-	n += protobuf_go_lite.SizeStringSlice(1, m.ExtraConfigsPaths)
+	n += protobuf_go_lite.SizeStringSlice(1, m.ExtraConfigInputs)
 	for k, v := range m.InputEnv {
 		_ = k
 		_ = v
 		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
 		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SkiffRevision)
 	n += len(m.unknownFields)
 	return n
 }
@@ -442,9 +477,9 @@ func (x *Config) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
-	if len(x.ExtraConfigsPaths) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "extra_configs_paths")
-		for i, v := range x.ExtraConfigsPaths {
+	if len(x.ExtraConfigInputs) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "extra_config_inputs")
+		for i, v := range x.ExtraConfigInputs {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
@@ -460,6 +495,10 @@ func (x *Config) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteMapEnd(&sb)
+	}
+	if x.SkiffRevision != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "skiff_revision")
+		protobuf_go_lite.TextWriteString(&sb, x.SkiffRevision)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -520,14 +559,14 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			m.Configs = append(m.Configs, v)
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ExtraConfigsPaths", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ExtraConfigInputs", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.ExtraConfigsPaths = append(m.ExtraConfigsPaths, v)
+			m.ExtraConfigInputs = append(m.ExtraConfigInputs, v)
 		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field InputEnv", wireType)
@@ -570,6 +609,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.InputEnv[mapkey] = mapvalue
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SkiffRevision", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SkiffRevision = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

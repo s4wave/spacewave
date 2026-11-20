@@ -174,6 +174,13 @@ func (t *TxUpdateInputs) ExecuteTx(
 		}
 	}
 
+	// A completed Task's outputs no longer answer its reuse keys.
+	if taskState == forge_task.State_TaskState_COMPLETE {
+		if err := forge_task.UnlinkTaskReuse(ctx, worldState, objKey); err != nil {
+			return err
+		}
+	}
+
 	// mark as pending
 	root.TaskState = forge_task.State_TaskState_PENDING
 	root.Result = nil

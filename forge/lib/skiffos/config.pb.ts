@@ -14,7 +14,12 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  * serves the Execution and owns its workspace: a later build of the same
  * workspace reuses its build tree and ccache.
  *
+ * The Task's reuse key covers the config and the input values, so the build
+ * takes everything it reads as either: the checkout is pinned by revision and
+ * out-of-tree config packages arrive as inputs.
+ *
  * Inputs:
+ *  - each name in extra_config_inputs: a UnixFS directory of config packages.
  *  - each name in input_env: a UnixFS directory the build reads.
  *
  * Outputs:
@@ -39,10 +44,11 @@ export interface Config {
    */
   configs?: string[]
   /**
-   * ExtraConfigsPaths are absolute paths of directories holding out-of-tree
-   * config packages, passed as SKIFF_EXTRA_CONFIGS_PATH.
+   * ExtraConfigInputs names Step inputs that each hold out-of-tree config
+   * packages as <namespace>/<name> directories. The controller writes each to
+   * inputs/<name> in the workspace and lists them in SKIFF_EXTRA_CONFIGS_PATH.
    */
-  extraConfigsPaths?: string[]
+  extraConfigInputs?: string[]
   /**
    * InputEnv maps a Step input to an environment variable of the build.
    * The controller writes each input, a UnixFS directory, to inputs/<name> in
@@ -50,6 +56,12 @@ export interface Config {
    * part of the Task's reuse key, so changed input bytes rebuild.
    */
   inputEnv?: { [key: string]: string }
+  /**
+   * SkiffRevision is the Git commit the checkout must be at. The controller
+   * refuses a checkout at another commit or with local changes, which the
+   * reuse key could not see.
+   */
+  skiffRevision?: string
 }
 
 export const Config: MessageType<Config> =
@@ -57,6 +69,7 @@ export const Config: MessageType<Config> =
     [1, 'skiff_dir', 9],
     [2, 'workspace', 9],
     [3, 'configs', 9, 1],
-    [4, 'extra_configs_paths', 9, 1],
+    [4, 'extra_config_inputs', 9, 1],
     [5, 'input_env', 9, 584],
+    [6, 'skiff_revision', 9],
   ])

@@ -9,7 +9,12 @@ package forge.lib.skiffos;
 // serves the Execution and owns its workspace: a later build of the same
 // workspace reuses its build tree and ccache.
 //
+// The Task's reuse key covers the config and the input values, so the build
+// takes everything it reads as either: the checkout is pinned by revision and
+// out-of-tree config packages arrive as inputs.
+//
 // Inputs:
+//  - each name in extra_config_inputs: a UnixFS directory of config packages.
 //  - each name in input_env: a UnixFS directory the build reads.
 //
 // Outputs:
@@ -24,12 +29,17 @@ message Config {
   // Configs is the SKIFF_CONFIG list in order, such as
   // ["intel/x64", "virt/qemu"].
   repeated string configs = 3;
-  // ExtraConfigsPaths are absolute paths of directories holding out-of-tree
-  // config packages, passed as SKIFF_EXTRA_CONFIGS_PATH.
-  repeated string extra_configs_paths = 4;
+  // ExtraConfigInputs names Step inputs that each hold out-of-tree config
+  // packages as <namespace>/<name> directories. The controller writes each to
+  // inputs/<name> in the workspace and lists them in SKIFF_EXTRA_CONFIGS_PATH.
+  repeated string extra_config_inputs = 4;
   // InputEnv maps a Step input to an environment variable of the build.
   // The controller writes each input, a UnixFS directory, to inputs/<name> in
   // the workspace and sets the variable to that directory. The inputs are
   // part of the Task's reuse key, so changed input bytes rebuild.
   map<string, string> input_env = 5;
+  // SkiffRevision is the Git commit the checkout must be at. The controller
+  // refuses a checkout at another commit or with local changes, which the
+  // reuse key could not see.
+  string skiff_revision = 6;
 }

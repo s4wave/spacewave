@@ -97,25 +97,31 @@ establish mounted durability or actual terminal behavior. Real QEMU/PTY checks,
 ## SkiffOS boot set
 
 `os/skiff/spacewave/os` is a SkiffOS config package. Added last to a board's
-`SKIFF_CONFIG`, with `SKIFF_EXTRA_CONFIGS_PATH` naming `os/skiff`, it builds
+`SKIFF_CONFIG`, with `SKIFF_EXTRA_CONFIGS_PATH` naming a copy of `os/skiff`, it builds
 that board's boot set with `spacewave-init` as the initramfs's only program.
 Its kernel fragment builds in Btrfs, FUSE and the other filesystems the init
 mounts, so the initramfs carries no modules. Its post-image hook packs the init
-named by `SPACEWAVE_OS_BOOT/init` with `make-initramfs.sh` and the kernel
+named by `SPACEWAVE_OS_BOOT/init` with `SPACEWAVE_OS_BOOT/make-initramfs.sh`, a
+copy of `os/make-initramfs.sh`, and the kernel
 tree's own `gen_init_cpio`, writes it over `rootfs.cpio.lz4`, the file every
 board's scripts load, and removes the uncompressed Buildroot root. The package
 turns off the U-Boot ramdisk wrapper, so a U-Boot board needs one added.
 
-The Forge Step `forge/lib/skiffos` runs that build: its `input_env` checks the
-boot input, a UnixFS directory holding `init`, out of the World and sets
-`SPACEWAVE_OS_BOOT`.
+The Forge Step `forge/lib/skiffos` runs that build. Its `input_env` checks the
+boot input, a UnixFS directory holding `init` and `make-initramfs.sh`, out of
+the World and sets `SPACEWAVE_OS_BOOT`, and its `extra_config_inputs` checks out
+`os/skiff` the same way. The build pins the SkiffOS checkout by
+`skiff_revision` and refuses one at another commit or with local changes, so
+the Task's reuse key covers every byte the build reads.
 
 A boot set is offered only after a rehearsal boots it. `os/qemu/rehearse.sh`
 seeds a fresh system root and data World with the same init onto a 4 GiB Btrfs
 disk, boots the boot set on it with `run_app.py`, writes and syncs one file
-through the data Volume, and powers off. It writes its receipt only when the
-guest printed `SPACEWAVE_OS_PASS` after closing every store; a guest that
-panics or hangs fails, and its console is the Step's log. The rehearsal runs as
+through the data Volume, and powers off. It then runs the [kill
+trial](qemu/README.md#kill-trial) on the same disk. It writes its receipt only
+when the guest printed `SPACEWAVE_OS_PASS` after closing every store and the
+kill trial kept every acknowledged record; a guest that panics or hangs fails,
+and its console is the Step's log. The rehearsal runs as
 a Docker Step in the `os/qemu` image with `/dev/kvm`. The Step's `input_mounts`
 check out the boot set, the init and the scripts read-only.
 

@@ -1,8 +1,9 @@
 #!/bin/sh
 # rehearse.sh boots a boot set with a freshly seeded system root in QEMU. It
 # succeeds only when the console guest reports ready, writes and syncs a file
-# in its data Volume, and closes every store on poweroff. Run it in the
-# os/qemu tool image with /dev/kvm, as the rehearsal Step does.
+# in its data Volume, and closes every store on poweroff, and when the kill
+# trial then keeps every acknowledged record across two SIGKILLs. Run it in
+# the os/qemu tool image with /dev/kvm, as the rehearsal Step does.
 # Usage: rehearse.sh IMAGES INIT RECEIPT
 #   IMAGES holds bzImage and rootfs.cpio.lz4; INIT is the static spacewave-init
 #   that seeds the root; RECEIPT is written once the guest stops cleanly.
@@ -48,4 +49,10 @@ if ! grep -q 'SPACEWAVE_OS_REHEARSAL_WROTE' "$fixture/console.log" || [ ! -f "$f
     echo "rehearsal failed: the guest did not write its data Volume and stop cleanly" >&2
     exit 1
 fi
+
+# Kill the guest twice mid-write on the same disk; every record it
+# acknowledged must survive each reopen.
+timeout -k 30 "${REHEARSAL_TIMEOUT:-600}" python3 "$tools/kill_trial.py" \
+    --accel "${ACCEL:-kvm}" --kernel "$images/bzImage" \
+    --initramfs "$images/rootfs.cpio.lz4" --disk "$fixture/btrfs.img"
 mv "$fixture/stopped" "$receipt"
