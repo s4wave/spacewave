@@ -17,6 +17,9 @@ const ConfigID = ControllerID
 // envNamePattern matches a portable environment variable name.
 var envNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
+// revisionPattern matches a full SHA-1 or SHA-256 Git commit.
+var revisionPattern = regexp.MustCompile(`^([0-9a-f]{40}|[0-9a-f]{64})$`)
+
 // Validate validates the configuration.
 func (c *Config) Validate() error {
 	// The checkout must be absolute, since the build runs from it.
@@ -40,10 +43,15 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// SKIFF_EXTRA_CONFIGS_PATH joins absolute paths with colons.
-	for i, dir := range c.GetExtraConfigsPaths() {
-		if !filepath.IsAbs(dir) || strings.Contains(dir, ":") {
-			return errors.Errorf("extra_configs_paths[%d]: want an absolute path without colons: %q", i, dir)
+	// The checkout is named by a full Git commit.
+	if !revisionPattern.MatchString(c.GetSkiffRevision()) {
+		return errors.Errorf("skiff_revision must be a full Git commit: %q", c.GetSkiffRevision())
+	}
+
+	// Each config input names a directory under inputs/.
+	for _, name := range c.GetExtraConfigInputs() {
+		if err := forge_lib_util_inputfs.ValidateName(name); err != nil {
+			return errors.Wrap(err, "extra_config_inputs")
 		}
 	}
 

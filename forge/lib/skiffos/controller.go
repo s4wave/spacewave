@@ -5,6 +5,7 @@ import (
 	"context"
 	"maps"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -40,7 +41,8 @@ type Controller struct {
 	le *logrus.Entry
 	// conf is the configuration
 	conf *Config
-	// inputVals holds the Step inputs, read by name through input_env.
+	// inputVals holds the Step inputs, read by name through input_env and
+	// extra_config_inputs.
 	inputVals forge_target.InputMap
 	// handle contains the controller handle
 	handle forge_target.ExecControllerHandle
@@ -86,14 +88,18 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Refuse a checkout the reuse key cannot see: another commit or local
+	// changes would build different images under the same key.
+	if err := checkRevision(ctx, conf.GetSkiffDir(), conf.GetSkiffRevision()); err != nil {
+		_ = c.handle.WriteLog(ctx, "error", err.Error())
+		return err
+	}
+
 	// Write the inputs the build reads into the workspace.
 	env := []string{
 		"SKIFF_WORKSPACE=" + conf.GetWorkspace(),
 		"SKIFF_CONFIG=" + skiffConfig,
 		"SKIFF_NO_INTERACTIVE=1",
-	}
-	if extra := conf.GetExtraConfigsPaths(); len(extra) != 0 {
-		env = append(env, "SKIFF_EXTRA_CONFIGS_PATH="+strings.Join(extra, ":"))
 	}
 	inputEnv, err := c.checkoutInputs(ctx, filepath.Join(wsDir, "inputs"))
 	if err != nil {
@@ -127,23 +133,56 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}, true)
 }
 
-// checkoutInputs writes each input named in input_env to its directory under
+// checkoutInputs writes each input the build reads to its directory under
 // dir, in name order so the log reads the same each build, and returns the
-// variables that point the build at them.
+// variables that point the build at them: one per input_env entry and
+// SKIFF_EXTRA_CONFIGS_PATH listing the config inputs.
 func (c *Controller) checkoutInputs(ctx context.Context, dir string) ([]string, error) {
 	// Check out every input before the build reads any of them.
-	inputEnv := c.conf.GetInputEnv()
-	names := slices.Sorted(maps.Keys(inputEnv))
+	inputEnv, configs := c.conf.GetInputEnv(), c.conf.GetExtraConfigInputs()
+	names := slices.Concat(slices.Collect(maps.Keys(inputEnv)), configs)
+	slices.Sort(names)
+	names = slices.Compact(names)
 	if err := forge_lib_util_inputfs.CheckoutAll(ctx, c.handle, c.inputVals, dir, names); err != nil {
 		return nil, err
 	}
 
 	// Point each named variable at its input's directory.
-	env := make([]string, 0, len(names))
-	for _, name := range names {
+	env := make([]string, 0, len(inputEnv)+1)
+	for _, name := range slices.Sorted(maps.Keys(inputEnv)) {
 		env = append(env, inputEnv[name]+"="+filepath.Join(dir, name))
 	}
+	if len(configs) != 0 {
+		paths := make([]string, len(configs))
+		for i, name := range configs {
+			paths[i] = filepath.Join(dir, name)
+		}
+		env = append(env, "SKIFF_EXTRA_CONFIGS_PATH="+strings.Join(paths, ":"))
+	}
 	return env, nil
+}
+
+// checkRevision returns an error unless the Git checkout at dir is at the
+// commit rev with no changes to tracked or unignored files.
+func checkRevision(ctx context.Context, dir, rev string) error {
+	// Compare the checked-out commit.
+	head, err := exec.CommandContext(ctx, "git", "-C", dir, "rev-parse", "HEAD").Output()
+	if err != nil {
+		return errors.Wrap(err, "read SkiffOS checkout revision")
+	}
+	if got := strings.TrimSpace(string(head)); got != rev {
+		return errors.Errorf("SkiffOS checkout is at %s, want %s", got, rev)
+	}
+
+	// Refuse local changes, including submodules and untracked files.
+	status, err := exec.CommandContext(ctx, "git", "-C", dir, "status", "--porcelain").Output()
+	if err != nil {
+		return errors.Wrap(err, "read SkiffOS checkout status")
+	}
+	if len(status) != 0 {
+		return errors.Errorf("SkiffOS checkout has local changes:\n%s", status)
+	}
+	return nil
 }
 
 // storeImages writes the directory as a UnixFS tree into the World's bucket

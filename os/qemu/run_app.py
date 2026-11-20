@@ -11,6 +11,51 @@ from types import FrameType
 from typing import IO
 
 
+def qemu_command(
+    accel: str,
+    kernel: Path,
+    initramfs: Path,
+    disk: Path,
+    config_disk: Path | None = None,
+    port: int | None = None,
+) -> list[str]:
+    """Return the console guest's QEMU command, its serial console on stdio."""
+    append = "console=ttyS0,115200 rdinit=/init panic=-1 quiet GOMAXPROCS=1 SPACEWAVE_OS_MODE=console SPACEWAVE_OS_STORE=/store/image SPACEWAVE_OS_DATA=/store/data SPACEWAVE_OS_TTY=/dev/ttyS0"
+    if config_disk is not None:
+        append += " SPACEWAVE_OS_CONFIG=/config-store/data"
+    command = [
+        "qemu-system-x86_64",
+        "-accel",
+        accel,
+        "-cpu",
+        "host" if accel == "kvm" else "max",
+        "-m",
+        "1536",
+        "-smp",
+        "1",
+        "-kernel",
+        str(kernel),
+        "-initrd",
+        str(initramfs),
+        "-append",
+        append,
+        "-drive",
+        f"file={disk},if=virtio,format=raw,cache=none",
+    ]
+    if config_disk is not None:
+        command += ["-drive", f"file={config_disk},if=virtio,format=raw,cache=none"]
+    if port is not None:
+        command += [
+            "-netdev",
+            f"user,id=net,hostfwd=tcp:127.0.0.1:{port}-:3000",
+            "-device",
+            "virtio-net-pci,netdev=net",
+        ]
+    else:
+        command += ["-nic", "none"]
+    return command + ["-display", "none", "-monitor", "none", "-serial", "stdio", "-no-reboot"]
+
+
 class Guest:
     """Keep the console command stream and QEMU process in one container lifetime."""
 
@@ -65,51 +110,14 @@ class Guest:
     def run(self) -> int:
         """Start the declared VM, then let its console and process report completion."""
         arguments = self.arguments
-        append = "console=ttyS0,115200 rdinit=/init panic=-1 quiet GOMAXPROCS=1 SPACEWAVE_OS_MODE=console SPACEWAVE_OS_STORE=/store/image SPACEWAVE_OS_DATA=/store/data SPACEWAVE_OS_TTY=/dev/ttyS0"
-        if arguments.config_disk is not None:
-            append += " SPACEWAVE_OS_CONFIG=/config-store/data"
-        command = [
-            "qemu-system-x86_64",
-            "-accel",
+        command = qemu_command(
             arguments.accel,
-            "-cpu",
-            "host" if arguments.accel == "kvm" else "max",
-            "-m",
-            "1536",
-            "-smp",
-            "1",
-            "-kernel",
-            str(arguments.kernel),
-            "-initrd",
-            str(arguments.initramfs),
-            "-append",
-            append,
-            "-drive",
-            f"file={arguments.disk},if=virtio,format=raw,cache=none",
-        ]
-        if arguments.config_disk is not None:
-            command += [
-                "-drive",
-                f"file={arguments.config_disk},if=virtio,format=raw,cache=none",
-            ]
-        if arguments.port is not None:
-            command += [
-                "-netdev",
-                f"user,id=net,hostfwd=tcp:127.0.0.1:{arguments.port}-:3000",
-                "-device",
-                "virtio-net-pci,netdev=net",
-            ]
-        else:
-            command += ["-nic", "none"]
-        command += [
-            "-display",
-            "none",
-            "-monitor",
-            "none",
-            "-serial",
-            "stdio",
-            "-no-reboot",
-        ]
+            arguments.kernel,
+            arguments.initramfs,
+            arguments.disk,
+            arguments.config_disk,
+            arguments.port,
+        )
         signal.signal(signal.SIGTERM, self.stop)
         signal.signal(signal.SIGINT, self.stop)
         with subprocess.Popen(

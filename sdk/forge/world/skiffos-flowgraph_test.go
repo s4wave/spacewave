@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -52,9 +53,7 @@ const skiffosGraph = "flowgraph/skiffos"
 // newSkiffOSProof names the settings it reads.
 func TestSkiffOSFlowgraph(t *testing.T) {
 	f := newSkiffOSProof(t)
-	build := f.stepNode(forge_lib_skiffos.ControllerID, &forge_lib_skiffos.Config{
-		SkiffDir: f.skiffDir, Workspace: f.workspace, Configs: []string{"intel/x64", "virt/qemu"},
-	}, forge_lib_skiffos.OutputImages, true)
+	build := f.stepNode(forge_lib_skiffos.ControllerID, f.buildConfig("intel/x64", "virt/qemu"), forge_lib_skiffos.OutputImages, true)
 	f.storeGraph(skiffosGraph, "SkiffOS QEMU build", map[string]*s4wave_flowgraph.FlowgraphNode{"build": build}, nil)
 
 	// The first run builds and stores the boot set.
@@ -108,11 +107,20 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Store the init and the rehearsal tools as World trees.
+	// Store the boot inputs, the config package and the rehearsal tools as
+	// World trees, so the build's reuse key covers every byte it reads.
 	f := newSkiffOSProof(t)
-	f.storeTree("os/boot", fstest.MapFS{"init": {Data: initBytes, Mode: 0o755}})
+	makeInitramfs, err := os.ReadFile(filepath.Join(osDir, "make-initramfs.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.storeTree("os/boot", fstest.MapFS{
+		"init":              {Data: initBytes, Mode: 0o755},
+		"make-initramfs.sh": {Data: makeInitramfs, Mode: 0o755},
+	})
+	f.storeTree("os/skiff", os.DirFS(filepath.Join(osDir, "skiff")))
 	tools := fstest.MapFS{}
-	for _, name := range []string{"rehearse.sh", "run_app.py"} {
+	for _, name := range []string{"rehearse.sh", "run_app.py", "kill_trial.py"} {
 		data, err := os.ReadFile(filepath.Join(osDir, "qemu", name))
 		if err != nil {
 			t.Fatal(err)
@@ -122,13 +130,11 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	f.storeTree("os/qemu-tools", tools)
 
 	// The build feeds its boot set to the rehearsal through a connection.
-	build := f.stepNode(forge_lib_skiffos.ControllerID, &forge_lib_skiffos.Config{
-		SkiffDir: f.skiffDir, Workspace: f.workspace,
-		Configs:           []string{"intel/x64", "virt/qemu", "spacewave/os"},
-		ExtraConfigsPaths: []string{filepath.Join(osDir, "skiff")},
-		InputEnv:          map[string]string{"boot": "SPACEWAVE_OS_BOOT"},
-	}, forge_lib_skiffos.OutputImages, true)
-	build.Step.Target.Inputs = []*forge_target.Input{worldObjectInput("boot", "os/boot")}
+	conf := f.buildConfig("intel/x64", "virt/qemu", "spacewave/os")
+	conf.ExtraConfigInputs = []string{"configs"}
+	conf.InputEnv = map[string]string{"boot": "SPACEWAVE_OS_BOOT"}
+	build := f.stepNode(forge_lib_skiffos.ControllerID, conf, forge_lib_skiffos.OutputImages, true)
+	build.Step.Target.Inputs = []*forge_target.Input{worldObjectInput("boot", "os/boot"), worldObjectInput("configs", "os/skiff")}
 	rehearse := f.rehearsalNode(image, dockerPath)
 	rehearse.Ports = append(rehearse.Ports, &s4wave_flowgraph.FlowgraphPort{
 		Name: forge_lib_skiffos.OutputImages, Direction: s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT, TypeId: "activation",
@@ -148,7 +154,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		t.Fatalf("initramfs entries %v, want %v", names, want)
 	}
 
-	// The rehearsal boots it, writes the data Volume and stops cleanly.
+	// The rehearsal boots it, writes the data Volume, stops cleanly and survives the kill trial.
 	rehearsed, failure := f.waitDone("flowgraph-run/spacewave-os", "rehearse")
 	if failure != "" {
 		t.Fatalf("rehearsal failed: %s\n%s", failure, f.executionLog(rehearsed))
@@ -157,7 +163,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		t.Fatalf("rehearsal receipt=%v err=%v", value, err)
 	}
 	console := f.executionLog(rehearsed)
-	for _, line := range []string{"SPACEWAVE_OS_CONSOLE_READY pid=", "SPACEWAVE_OS_REHEARSAL_WROTE", "SPACEWAVE_OS_PASS"} {
+	for _, line := range []string{"SPACEWAVE_OS_CONSOLE_READY pid=", "SPACEWAVE_OS_REHEARSAL_WROTE", "SPACEWAVE_OS_PASS", "KILL_TRIAL_PASS"} {
 		if !strings.Contains(console, line) {
 			t.Fatalf("rehearsal console lacks %q:\n%s", line, console)
 		}
@@ -212,8 +218,17 @@ type skiffOSProof struct {
 	*flowgraphFixture
 	// skiffDir is the SkiffOS checkout on this host.
 	skiffDir string
+	// revision is the checkout's commit, which the build Steps pin.
+	revision string
 	// workspace is the SkiffOS workspace the Steps own.
 	workspace string
+}
+
+// buildConfig returns a build of the pinned checkout with the config list.
+func (f *skiffOSProof) buildConfig(configs ...string) *forge_lib_skiffos.Config {
+	return &forge_lib_skiffos.Config{
+		SkiffDir: f.skiffDir, SkiffRevision: f.revision, Workspace: f.workspace, Configs: configs,
+	}
 }
 
 // newSkiffOSProof starts a Worker for SkiffOS build Steps, or skips the test.
@@ -225,6 +240,10 @@ func newSkiffOSProof(t *testing.T) *skiffOSProof {
 	skiffDir := os.Getenv("SPACEWAVE_SKIFFOS_DIR")
 	if skiffDir == "" {
 		t.Skip("set SPACEWAVE_SKIFFOS_DIR for the real SkiffOS build")
+	}
+	head, err := exec.Command("git", "-C", skiffDir, "rev-parse", "HEAD").Output()
+	if err != nil {
+		t.Fatal(err)
 	}
 	workspace := os.Getenv("SPACEWAVE_SKIFFOS_WORKSPACE")
 	if workspace == "" {
@@ -256,6 +275,7 @@ func newSkiffOSProof(t *testing.T) *skiffOSProof {
 	return &skiffOSProof{
 		flowgraphFixture: &flowgraphFixture{workerHarness: h, t: t},
 		skiffDir:         skiffDir,
+		revision:         strings.TrimSpace(string(head)),
 		workspace:        workspace,
 	}
 }

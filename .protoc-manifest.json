@@ -368,11 +368,11 @@
       }
     },
     "a8530f224f6bbca60ebce2d624aedc14a487e8ef8780a402e8cf32775a3b7de1": {
-      "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
+      "protocFlagsHash": "288cd7ea466ca646a28b138e8bb617dc10d77541e4c489e3ff858dbbd8ccbfa0",
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
       "packages": {
         "github.com/s4wave/spacewave/forge/lib/skiffos": {
-          "hash": "582de76acfc86516c12f0ed6aeb4e2b277574722b200cdaa10e34a6f2ed5ea07",
+          "hash": "e8a48041e0db299c9cede5abc297eb88e3cd6b1afac1cb53e4cd95f6406051f7",
           "generatedFiles": [
             "forge/lib/skiffos/config.pb.go",
             "forge/lib/skiffos/config.pb.ts"

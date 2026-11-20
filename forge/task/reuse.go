@@ -104,3 +104,25 @@ func CheckTaskReuseKey(ctx context.Context, ws world.WorldState, taskKey, reuseK
 	gqs, err := ws.LookupGraphQuads(ctx, NewTaskToReuseKeyQuad(taskKey, reuseKey), 1)
 	return len(gqs) != 0, err
 }
+
+// UnlinkTaskReuse removes the Task's reuse keys and its link to the Task whose
+// outputs it took. Call it when a completed Task's inputs change: its outputs
+// no longer answer those keys, so a later Task must not reuse them.
+func UnlinkTaskReuse(ctx context.Context, ws world.WorldState, taskKey string) error {
+	subject := world.KeyToGraphValue(taskKey).String()
+	for _, pred := range []quad.IRI{PredTaskToReuseKey, PredTaskToCached} {
+		// Find every edge of this kind from the Task.
+		gqs, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad(subject, pred.String(), "", ""), 0)
+		if err != nil {
+			return err
+		}
+
+		// Delete each one.
+		for _, gq := range gqs {
+			if err := ws.DeleteGraphQuad(ctx, gq); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
