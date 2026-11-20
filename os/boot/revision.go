@@ -32,9 +32,10 @@ const (
 	rolledBackRoot = "rolled-back"
 )
 
-// revisionBatchBytes bounds one batch of copied blocks. Each batch commits
-// atomically, so a cut loses at most one batch of copying.
-var revisionBatchBytes = 4 << 20
+// stageReads is the number of source reads a staging keeps in flight. A source
+// across the network serves one block per round trip, so the copy needs many
+// reads at once; a test sets one to cut a staging at a known block.
+var stageReads = block.DefaultGraphCopyReads
 
 // revision is one revision slot: its authorization block and, once verified
 // against the pinned signers, the image root it authorizes.
@@ -104,13 +105,6 @@ func RunAcceptTrial(args []string) error {
 type blockReader interface {
 	// GetBlock returns the block's bytes and whether the store holds it.
 	GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error)
-}
-
-// RevisionSource reads a revision's blocks with their child lists, as a second
-// image store or a Space's bucket holds them.
-type RevisionSource interface {
-	// GetBlock returns the block's bytes and the children its list records.
-	GetBlock(ctx context.Context, ref *block.BlockRef) (data []byte, children []*block.BlockRef, err error)
 }
 
 // SelectRevision chooses the revision this boot serves from the image store in
@@ -195,14 +189,12 @@ func AuthorizeImage(ctx context.Context, le *logrus.Entry, dir string, signed *p
 	})
 }
 
-// StageRevision copies the revision signed authorizes from src into the image
-// store in dir and publishes it as the trial, with its authorization, in one
-// commit. The copy walks the root's graph and stops at every block the store
-// already holds, writing each block after its children, so a held block always
-// holds its whole graph: a repeated staging copies nothing and a staging cut
-// short resumes where it stopped. It refuses while another trial is pending.
-// It returns the number of blocks it copied.
-func StageRevision(ctx context.Context, le *logrus.Entry, dir string, src RevisionSource, signed *peer.SignedMsg, root *block.BlockRef) (_ int, retErr error) {
+// StageRevision copies the revision signed authorizes from src, a store that
+// serves each block with its child list, such as another image store or a
+// Space's bucket, into the image store in dir and publishes it as the trial,
+// with its authorization, in one commit. It refuses while another trial is
+// pending. It returns the number of blocks it copied.
+func StageRevision(ctx context.Context, le *logrus.Entry, dir string, src block.StoreOps, signed *peer.SignedMsg, root *block.BlockRef) (_ int, retErr error) {
 	// Build the authorization before copying, so a bad one copies nothing.
 	auth, err := authorizationBlock(signed, root)
 	if err != nil {
@@ -227,82 +219,50 @@ func StageRevision(ctx context.Context, le *logrus.Entry, dir string, src Revisi
 	return copied, nil
 }
 
-// copyRevision copies every block of root's graph that vol lacks from src,
-// children before parents, in batches of at most revisionBatchBytes. Memory
-// holds the path from root to the current block and one batch.
-func copyRevision(ctx context.Context, vol *volume_s4db.Volume, src RevisionSource, root *block.BlockRef) (int, error) {
-	// frame is one block on the path, waiting for its remaining children.
-	type frame struct {
-		entry *block.PutBatchEntry
-		next  int
-	}
-	var path []*frame
-	var batch []*block.PutBatchEntry
-	var batchBytes, copied int
-	pending := make(map[string]struct{})
-
-	// flush stores the batch; every child of each entry is already stored or
-	// earlier in the batch.
-	flush := func() error {
-		// Store the batch in one commit.
-		if len(batch) == 0 {
+// copyRevision copies every block of root's graph that vol lacks from src and
+// returns how many it wrote. block.CopyGraph walks the graph, stops at every
+// block vol already holds and writes each block after its children; the
+// buffer commits those writes to vol in batches, in the same order. So a held
+// block always holds its whole graph: a repeated staging copies nothing, and a
+// staging cut short keeps what it completed and resumes where it stopped.
+func copyRevision(ctx context.Context, vol *volume_s4db.Volume, src block.StoreOps, root *block.BlockRef) (int, error) {
+	buf := block.NewBufferedStore(ctx, vol)
+	var copied int
+	err := block.CopyGraph(ctx, src, buf, root, &block.GraphCopyOptions{
+		Reads: stageReads,
+		Known: buf.GetBlockExistsBatch,
+		Complete: func(context.Context, *block.BlockRef) error {
+			copied++
 			return nil
-		}
-		if _, err := vol.PutBlockBatch(ctx, batch); err != nil {
-			return err
-		}
+		},
+		Forget: true,
+	})
+	return copied, errors.Join(err, buf.Flush(ctx))
+}
 
-		// Start the next batch.
-		copied += len(batch)
-		batch, batchBytes = nil, 0
-		clear(pending)
-		return nil
+// OpenImageStore opens the image store in dir read-only, as a staging's
+// source, and returns it with the root its seed built. Close releases it.
+func OpenImageStore(ctx context.Context, le *logrus.Entry, dir string) (_ *volume_s4db.Volume, _ *block.BlockRef, retErr error) {
+	// Open the store without its writer lock; it refuses a store that needs
+	// a conversion or a format upgrade.
+	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{
+		Path:          filepath.Join(dir, "image.s4wave"),
+		NoGenerateKey: true,
+		ReadOnly:      true,
+	})
+	if err != nil {
+		return nil, nil, err
 	}
 
-	// visit descends into ref unless the store already holds it.
-	visit := func(ref *block.BlockRef) error {
-		// Skip a block stored or waiting in the batch.
-		if _, ok := pending[ref.MarshalString()]; ok {
-			return nil
-		}
-		held, err := vol.GetBlockExists(ctx, ref)
-		if err != nil || held {
-			return err
-		}
-
-		// Read it and push it on the path.
-		data, children, err := src.GetBlock(ctx, ref)
-		if err != nil {
-			return errors.Join(errors.New("revision source "+ref.MarshalString()), err)
-		}
-		path = append(path, &frame{entry: &block.PutBatchEntry{Ref: ref, Data: data, Refs: children, RefsKnown: true}})
-		return nil
+	// Read the root the seed built.
+	root, err := vol.GetBucketRoot(ctx, imageBucket, builtImageRoot)
+	if err == nil && root == nil {
+		err = errors.New("boot root " + builtImageRoot + " absent; store preserved")
 	}
-
-	// Walk depth first, storing each block once its children are stored.
-	if err := visit(root); err != nil {
-		return 0, err
+	if err != nil {
+		return nil, nil, errors.Join(err, vol.Close())
 	}
-	for len(path) != 0 {
-		top := path[len(path)-1]
-		if top.next < len(top.entry.Refs) {
-			top.next++
-			if err := visit(top.entry.Refs[top.next-1]); err != nil {
-				return copied, err
-			}
-			continue
-		}
-		path = path[:len(path)-1]
-		batch = append(batch, top.entry)
-		batchBytes += len(top.entry.Data)
-		pending[top.entry.Ref.MarshalString()] = struct{}{}
-		if batchBytes >= revisionBatchBytes {
-			if err := flush(); err != nil {
-				return copied, err
-			}
-		}
-	}
-	return copied, flush()
+	return vol, root, nil
 }
 
 // rollBack drops the pending trial and records its root as rolled back, in

@@ -214,10 +214,14 @@ the machine at once, since a stalled boot step never returns to the console. Bus
 
 `spacewave-init stage IMAGE SOURCE AUTHORIZATION` stages the image a seed built
 in SOURCE as the trial. It opens the store as its one writer beside the
-console's read-only reader, walks the source root depth first, stops at every
-block the store already holds, and writes each block after its children in
-batches of at most 4 MiB. A held block therefore always holds its whole graph,
-so a second staging copies nothing and a staging cut short resumes. The trial
+console's read-only reader and copies the source root's graph with
+`block.CopyGraph`, which stops at every block the store already holds and
+writes each block after its children; a buffer commits those writes in order,
+in batches. A held block therefore always holds its whole graph, so a second
+staging copies nothing and a staging cut short keeps what it completed and
+resumes. The source is any block store that serves each block's child list,
+so the same staging reads a second image store here and a Space's bucket on a
+Device. The trial
 and its authorization publish in one commit, refused while another trial is
 pending. The rehearsal's [revision trial](qemu/README.md#revision-trial) runs it
 in a booted guest.

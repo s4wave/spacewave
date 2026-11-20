@@ -375,15 +375,15 @@ func stageImage(dir, source, authPath string) (retErr error) {
 	if err != nil {
 		return err
 	}
-	ctx := context.Background()
-	src, root, err := boot.OpenImageSource(ctx, source)
+	ctx, le := context.Background(), logrus.NewEntry(logrus.New())
+	src, root, err := boot.OpenImageStore(ctx, le, source)
 	if err != nil {
 		return err
 	}
 	defer func() { retErr = errors.Join(retErr, src.Close()) }()
 
 	// Copy what the store lacks and publish the trial.
-	copied, err := boot.StageRevision(ctx, logrus.NewEntry(logrus.New()), dir, src, signed, root)
+	copied, err := boot.StageRevision(ctx, le, dir, src, signed, root)
 	println("SPACEWAVE_OS_STAGE_COPIED blocks=" + strconv.Itoa(copied))
 	return err
 }

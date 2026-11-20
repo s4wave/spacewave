@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -18,32 +19,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// graphSource is a RevisionSource over blocks held in memory. After limit
-// reads it fails, as a source cut off mid-copy does; a negative limit never
-// fails.
+// graphSource is an image store of its own that serves revisions to a
+// staging. After limit reads it fails, as a source cut off mid-copy does; a
+// negative limit never fails.
 type graphSource struct {
-	blocks map[string]graphBlock
-	limit  int
-	reads  int
+	*volume_s4db.Volume
+	limit int64
+	reads atomic.Int64
 }
 
-// graphBlock is one stored block with its child list.
-type graphBlock struct {
-	data     []byte
-	children []*block.BlockRef
+// newGraphSource opens an empty source store, closed when the test ends.
+func newGraphSource(t *testing.T, le *logrus.Entry) *graphSource {
+	vol, err := volume_s4db.NewVolume(t.Context(), le, &volume_s4db.Config{Path: filepath.Join(t.TempDir(), "image.s4wave")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = vol.Close() })
+	return &graphSource{Volume: vol, limit: -1}
 }
 
-// GetBlock returns a held block until the source's read limit.
-func (s *graphSource) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, []*block.BlockRef, error) {
-	if s.limit >= 0 && s.reads >= s.limit {
-		return nil, nil, errors.New("source cut off")
+// GetStoredBlock serves a stored block until the source's read limit.
+func (s *graphSource) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	if n := s.reads.Add(1); s.limit >= 0 && n > s.limit {
+		return nil, errors.New("source cut off")
 	}
-	s.reads++
-	b, ok := s.blocks[ref.MarshalString()]
-	if !ok {
-		return nil, nil, errors.New("source lacks " + ref.MarshalString())
-	}
-	return b.data, b.children, nil
+	return s.Volume.GetStoredBlock(ctx, ref)
 }
 
 // add stores a block with children in the source and returns its ref.
@@ -52,7 +52,10 @@ func (s *graphSource) add(t *testing.T, data string, children ...*block.BlockRef
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.blocks[ref.MarshalString()] = graphBlock{data: []byte(data), children: children}
+	entry := &block.PutBatchEntry{Ref: ref, Data: []byte(data), Refs: children, RefsKnown: true}
+	if _, err := s.PutBlockBatch(t.Context(), []*block.PutBatchEntry{entry}); err != nil {
+		t.Fatal(err)
+	}
 	return ref
 }
 
@@ -105,7 +108,7 @@ func TestRevisionLifecycle(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	dir := t.TempDir()
-	src := &graphSource{blocks: make(map[string]graphBlock), limit: -1}
+	src := newGraphSource(t, le)
 	rootA, _ := revisionGraph(t, src, "A", 2)
 	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: filepath.Join(dir, "image.s4wave")})
 	if err != nil {
@@ -172,11 +175,13 @@ func TestRevisionLifecycle(t *testing.T) {
 		t.Fatal("rollback left a trial pending or recorded nothing")
 	}
 
-	// Stage B in one-block batches, cut off midway; the retry copies the rest.
-	revisionBatchBytes = 1
-	t.Cleanup(func() { revisionBatchBytes = 4 << 20 })
+	// Stage B one read at a time, cut off after four reads, which complete
+	// one subtree: the cut keeps it, and the retry copies the rest.
+	stageReads = 1
+	t.Cleanup(func() { stageReads = block.DefaultGraphCopyReads })
 	rootB, ownB := revisionGraph(t, src, "B", 4)
-	src.limit, src.reads = 4, 0
+	src.limit = 4
+	src.reads.Store(0)
 	cut, err := StageRevision(ctx, le, dir, src, signRoot(t, key, rootB), rootB)
 	if err == nil || cut == 0 {
 		t.Fatalf("cut staging copied %d blocks: %v", cut, err)
@@ -238,7 +243,7 @@ func TestRevisionLifecycle(t *testing.T) {
 	if err := errors.Join(err, vol.Close()); err != nil {
 		t.Fatal(err)
 	}
-	image, built, err := OpenImageSource(ctx, srcDir)
+	image, built, err := OpenImageStore(ctx, le, srcDir)
 	if err != nil {
 		t.Fatal(err)
 	}
