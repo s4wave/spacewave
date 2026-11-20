@@ -54,8 +54,8 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 	}
 
 	// Count shared Spaces and collect the participants and invitation targets
-	// of owned ones. The sync of a joined Space retains its owners from its
-	// configuration.
+	// of owned ones. The sync of a joined Space retains its owners and block
+	// peers from its configuration (reconcileSOHosting).
 	sharedSpaceCount := 0
 	spacePeers := make(map[string]struct{})
 	if soList := a.soListCtr.GetValue(); soList != nil {

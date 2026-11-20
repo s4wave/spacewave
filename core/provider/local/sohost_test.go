@@ -3,11 +3,13 @@ package provider_local
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -119,5 +121,31 @@ func TestQueueOperationEndsWithLifetime(t *testing.T) {
 	defer cancelCaller()
 	if _, _, err := host.QueueOperation(ctx, []byte("op")); !errors.Is(err, context.Canceled) {
 		t.Fatalf("queue after lifetime ended = %v; want context.Canceled", err)
+	}
+}
+
+// TestSOLinkPeersLinksWritersToEveryone checks the block-peer rule: every
+// participant keeps links to the owners and writers, a writer also keeps links
+// to the readers, and a reader keeps no link to another reader.
+func TestSOLinkPeersLinksWritersToEveryone(t *testing.T) {
+	config := &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
+		{PeerId: "owner", Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
+		{PeerId: "device", Role: sobject.SOParticipantRole_SOParticipantRole_WRITER},
+		{PeerId: "reader-a", Role: sobject.SOParticipantRole_SOParticipantRole_READER},
+		{PeerId: "reader-b", Role: sobject.SOParticipantRole_SOParticipantRole_READER},
+	}}
+	owners := []string{"owner"}
+	for _, tc := range []struct {
+		self string
+		want []string
+	}{
+		{"owner", []string{"device", "reader-a", "reader-b"}},
+		{"device", []string{"owner", "reader-a", "reader-b"}},
+		{"reader-a", []string{"owner", "device"}},
+	} {
+		got := soLinkPeers(config, owners, map[string]crypto.PrivKey{tc.self: nil})
+		if !slices.Equal(got, tc.want) {
+			t.Fatalf("%s links %v, want %v", tc.self, got, tc.want)
+		}
 	}
 }

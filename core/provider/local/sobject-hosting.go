@@ -60,7 +60,9 @@ var soHostingReconcileHook atomic.Pointer[func(ctx context.Context) error]
 // enrolls its running Session as an owner, so the configuration names the
 // endpoint that serves so, and drops it from the trimming roster. Every
 // account keeps a link to each other owner, so a participant reaches the owner
-// account's current Session after the Session it joined through is replaced.
+// account's current Session after the Session it joined through is replaced,
+// and to each block peer soLinkPeers names, so a member reads a linked folder
+// from the Device that links it while the owners are offline.
 func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, so *SharedObject) error {
 	// The storage identity always signs; the session identity signs while its transport runs.
 	st := a.GetSessionTransport()
@@ -107,24 +109,55 @@ func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, s
 		}
 	}
 
-	// Keep a link to every other owner while the storage identity serves so. A
-	// storage identity never connects and waits in signaling.
+	// Keep a link to every other owner and block peer while the storage
+	// identity serves so. A storage identity never connects and waits in
+	// signaling.
 	if !soLinksWanted(config, own, so.localPid.String()) {
 		return nil
 	}
-	for _, owner := range owners {
-		if _, local := keys[owner]; local {
-			continue
-		}
-		remote, err := peer.IDB58Decode(owner)
+	for _, id := range soLinkPeers(config, owners, keys) {
+		remote, err := peer.IDB58Decode(id)
 		if err != nil {
 			return err
 		}
 		if err := a.RetainP2PPeer(ctx, remote); err != nil {
-			a.le.WithError(err).WithField("so-id", soID).Debug("deferred retaining a shared object owner")
+			a.le.WithError(err).WithField("so-id", soID).Debug("deferred retaining a shared object peer")
 		}
 	}
 	return nil
+}
+
+// soLinkPeers returns the peers this account keeps links to for so, leaving
+// out its own keys: the owners, and the participants it exchanges blocks with.
+// A participant that may write so is a block peer of every other participant,
+// and a reader is one of the writers only. The Device that publishes a linked
+// folder writes the Space, so it may be the only holder of the folder's
+// chunks: every member keeps a link to it and reads them from it while the
+// owners are offline. Readers hold only what they fetched, so they keep no
+// links to one another.
+func soLinkPeers(config *sobject.SharedObjectConfig, owners []string, local map[string]crypto.PrivKey) []string {
+	// A local key that may write makes this account a writer.
+	var writes bool
+	for id := range local {
+		writes = writes || sobject.CanWriteOps(config.GetParticipantRole(id))
+	}
+
+	// Collect the owners and the block peers, each once.
+	var peers []string
+	add := func(id string) {
+		if _, self := local[id]; !self && !slices.Contains(peers, id) {
+			peers = append(peers, id)
+		}
+	}
+	for _, owner := range owners {
+		add(owner)
+	}
+	for _, p := range config.GetParticipants() {
+		if role := p.GetRole(); sobject.CanWriteOps(role) || (writes && sobject.CanReadState(role)) {
+			add(p.GetPeerId())
+		}
+	}
+	return peers
 }
 
 // enrollSOSession adds the Session peer as an owner of so unless owners
