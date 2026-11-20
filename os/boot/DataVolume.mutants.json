@@ -1,0 +1,26 @@
+[
+  {
+    "name": "a write is acknowledged before it is durable",
+    "config": "DataVolume-admission.cfg.refuted",
+    "replace": [],
+    "expect": "AcknowledgedSurvives"
+  },
+  {
+    "name": "the Volume closes without waiting for the boot's users",
+    "config": "DataVolume-early-close.cfg.refuted",
+    "replace": [],
+    "expect": "StorageOutlivesUsers"
+  },
+  {
+    "name": "a stopped writer is never cancelled",
+    "config": "DataVolume-stopped-writer.cfg.refuted",
+    "replace": [],
+    "expect": "ContainmentCompletes"
+  },
+  {
+    "name": "retention of the acknowledged root is not atomic",
+    "config": "DataVolume-unretained.cfg.refuted",
+    "replace": [],
+    "expect": "AcknowledgedSurvives"
+  }
+]

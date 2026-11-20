@@ -177,13 +177,17 @@ and removes a tool descendant to require a complete tool read before readiness.
 Run that same compiled case with a fresh `TMPDIR` on the test Btrfs image when
 checking the complete physical stack.
 
-`model` keeps the one-processor direct-exec regression and adds the persistent
-seed/fence/publication/reopen lifecycle, including cancellation, server failure,
-child containment, server join and snapshot release before storage close.
-Head-before-block, missing-retention, independent-closer, writable-serving and
-unchecked-tool mutants must fail. Backend flush behavior remains the existing
-`db/s4db/Durability.tla` contract; `db/volume/block/RootPublication.tla` covers the
-blocks-before-head boundary separately.
+`model` checks every spec under `os/boot` with `aptre-tla`: the one-processor
+direct-exec regression, the persistent seed/fence/publication/reopen lifecycle,
+including cancellation, server failure, child containment, server join and
+snapshot release before storage close, the data Volume, the guest console and
+first-boot enrollment. Each `Foo.mutants.json` lists the mutants that must break
+a named rule, such as head-before-block, missing retention, an independent
+closer, a writable served root and unchecked tools; a mutant that selects a
+design alternative names its `Foo-<mutant>.cfg.refuted`. Backend flush behavior
+remains the existing `db/s4db/Durability.tla` contract;
+`db/volume/block/RootPublication.tla` covers the blocks-before-head boundary
+separately.
 
 ## Seed once, boot twice
 

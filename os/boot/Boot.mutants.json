@@ -1,0 +1,8 @@
+[
+  {
+    "name": "the console execs the shell directly instead of through an independent server",
+    "config": "Boot-direct.cfg.refuted",
+    "replace": [],
+    "expect": "EventuallyStopped"
+  }
+]

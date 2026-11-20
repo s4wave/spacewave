@@ -1,0 +1,32 @@
+[
+  {
+    "name": "an independent closer closes the store while it is in use",
+    "config": "PersistentBoot-early-close.cfg.refuted",
+    "replace": [],
+    "expect": "ClosedMeansUnused"
+  },
+  {
+    "name": "the head is saved before its blocks",
+    "config": "PersistentBoot-head-first.cfg.refuted",
+    "replace": [],
+    "expect": "SavedRootHasBlocks"
+  },
+  {
+    "name": "boot reports ready without checking its tools",
+    "config": "PersistentBoot-unchecked-tools.cfg.refuted",
+    "replace": [],
+    "expect": "ReadyMeansComplete"
+  },
+  {
+    "name": "the selected root is not retained atomically",
+    "config": "PersistentBoot-unretained.cfg.refuted",
+    "replace": [],
+    "expect": "SelectedRootRetained"
+  },
+  {
+    "name": "the served root is writable",
+    "config": "PersistentBoot-writable.cfg.refuted",
+    "replace": [],
+    "expect": "ServingPreservesStore"
+  }
+]

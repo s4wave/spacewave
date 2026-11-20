@@ -1,0 +1,32 @@
+[
+  {
+    "name": "poweroff cancels the service it should preserve",
+    "config": "GuestConsole-cancelled-poweroff.cfg.refuted",
+    "replace": [],
+    "expect": "PoweroffPreservesService"
+  },
+  {
+    "name": "storage closes before the console's work is joined",
+    "config": "GuestConsole-early-close.cfg.refuted",
+    "replace": [],
+    "expect": "StorageOutlivesUsers"
+  },
+  {
+    "name": "outside PID 1 with no guard, host signals reach the guest",
+    "config": "GuestConsole-host-signals.cfg.refuted",
+    "replace": [],
+    "expect": "GuestOnlySignals"
+  },
+  {
+    "name": "poweroff is ignored",
+    "config": "GuestConsole-ignored-poweroff.cfg.refuted",
+    "replace": [],
+    "expect": "EventuallyStopped"
+  },
+  {
+    "name": "two waiters reap the same child",
+    "config": "GuestConsole-two-waiters.cfg.refuted",
+    "replace": [],
+    "expect": "OneWaiter"
+  }
+]
