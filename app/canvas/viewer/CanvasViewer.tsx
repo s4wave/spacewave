@@ -209,6 +209,15 @@ function layoutMetadataToProto(
 }
 
 // CanvasViewer is the ObjectType viewer for canvas objects.
+//
+// The Canvas World object holds the durable layout: nodes, edges, hidden
+// graph links and layout metadata. The viewer reads it through
+// CanvasHandle.watchState and writes every layout change with
+// CanvasHandle.update, so other viewers of the same object converge on the
+// watched state. Selection and focus are local to this viewer. A node that
+// embeds a World object renders that object's own ObjectViewer
+// (CanvasObjectNode). Links between selected objects are read from the World
+// graph, and removing one deletes its graph quad (deleteCanvasGraphLink).
 export function CanvasViewer({
   objectInfo,
   worldState,
