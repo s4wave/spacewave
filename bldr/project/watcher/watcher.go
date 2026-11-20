@@ -80,8 +80,6 @@ func (c *Controller) WaitProjectController(ctx context.Context) (*bldr_project_c
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
 	// Run the controller under a context that cancels with the lifecycle.
 	ctx, subCtxCancel := context.WithCancel(rctx)

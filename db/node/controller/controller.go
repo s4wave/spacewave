@@ -53,8 +53,6 @@ func NewController(cc *Config, le *logrus.Entry, b bus.Bus) *Controller {
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Watch block-store values for bucket tracking.
 	_, vRef, err := c.b.AddDirective(

@@ -35,8 +35,6 @@ func NewController(le *logrus.Entry, p peer.Peer) *Controller {
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	c.le.WithField("peer-id", c.GetPeerID().String()).Debug("peer mounted")
 	// TODO: loopback controller

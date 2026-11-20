@@ -75,8 +75,6 @@ func (c *Controller) InitForgeExecController(
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Require the target World input before accessing the Git Worktree.
 	inWorld := c.inputVals[inputNameWorld]

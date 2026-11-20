@@ -23,9 +23,10 @@ type ObjectStore = object_store.Store
 
 // Store contains all of the Hydra stores.
 type Store interface {
-	// Execute executes the given store.
-	// Returning nil ends execution.
-	// Returning an error triggers a retry with backoff.
+	// Execute runs the store's background work until ctx is canceled.
+	// Returning nil ends that work and leaves the store in use. Returning an
+	// error stops the volume holding the store: the volume controller returns
+	// the error from its own Execute.
 	Execute(ctx context.Context) error
 	// BucketStore is the bucket config store.
 	BucketStore

@@ -83,8 +83,6 @@ func (c *Controller) WaitFuseRootFS(ctx context.Context) (*fuse.RootFS, error) {
 }
 
 // Execute executes the forwarding controller.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Create the mount point.
 	mountPath := c.conf.GetMountPath()

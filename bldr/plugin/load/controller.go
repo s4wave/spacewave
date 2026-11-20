@@ -57,8 +57,6 @@ func NewFactory(b bus.Bus) controller.Factory {
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	pluginIDs := c.GetConfig().CleanupPluginIds()
 	for _, pluginID := range pluginIDs {

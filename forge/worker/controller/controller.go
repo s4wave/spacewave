@@ -113,8 +113,6 @@ func (c *Controller) Wake() {
 }
 
 // Execute executes the controller.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
 	// Bind the worker trackers to the controller's execution lifetime.
 	ctx, ctxCancel := context.WithCancel(rctx)

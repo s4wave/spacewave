@@ -57,8 +57,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the controller.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Snapshot configured bucket applications and track the submitted ones.
 	// running starts at one so completion waits for the submit loop to end.

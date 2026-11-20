@@ -109,8 +109,6 @@ func (c *Controller) SetManifestBuilderLifecycleSink(sink ManifestBuilderLifecyc
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Reset the sub-manifest trackers, result promise, and lifecycle status.
 	c.subManifestBuilderTrackers.SetContext(ctx, true)

@@ -90,8 +90,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the relay controller.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// For relay, we just handle directives directly.
 	return nil

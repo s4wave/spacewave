@@ -90,8 +90,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the transport controller and the transport.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Resolve the configured peer before constructing the PubSub.
 	var cpeer peer.Peer

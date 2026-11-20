@@ -90,8 +90,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the runtime controller and the runtime itself.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
 	// Derive a cancellable context for the runtime lifecycle.
 	ctx, ctxCancel := context.WithCancel(rctx)

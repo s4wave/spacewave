@@ -9,8 +9,9 @@ import (
 // Store extends the kvtx store with an execute func.
 type Store interface {
 	kvtx.Store
-	// Execute executes the given store.
-	// Returning nil ends execution.
-	// Returning an error triggers a retry with backoff.
+	// Execute runs the store's background work until ctx is canceled.
+	// Returning nil ends that work and leaves the store in use. Returning an
+	// error stops the volume holding the store: the volume controller returns
+	// the error from its own Execute.
 	Execute(ctx context.Context) error
 }

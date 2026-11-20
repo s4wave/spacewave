@@ -76,8 +76,6 @@ func (c *Controller) WaitUnixFSMounted(ctx context.Context) error {
 }
 
 // Execute executes the forwarding controller.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Resolve the checkout destination from the mount configuration.
 	mountPath := c.conf.GetMountPath()

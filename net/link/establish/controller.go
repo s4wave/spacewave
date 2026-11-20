@@ -44,8 +44,6 @@ func NewController(b bus.Bus, le *logrus.Entry, peers []peer.ID, srcID peer.ID) 
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	for _, peerID := range c.peers {
 		le := c.le.WithField("peer-id", peerID.String())

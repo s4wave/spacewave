@@ -25,8 +25,6 @@ func (v *VLoggerStore) Unwrap() hydra_store_kvtx.Store {
 }
 
 // Execute executes the given store.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (v *VLoggerStore) Execute(ctx context.Context) error {
 	return v.store.Execute(ctx)
 }

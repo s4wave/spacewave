@@ -68,8 +68,6 @@ func (c *Controller) GetPluginHostClient() bldr_plugin.SRPCPluginHostClient {
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }

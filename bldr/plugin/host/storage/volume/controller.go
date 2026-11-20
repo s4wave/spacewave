@@ -60,9 +60,6 @@ func NewFactory(b bus.Bus) controller.Factory {
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
-// Retry will NOT re-construct the controller, just re-start Execute.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Start the storage volume on the plugin host.
 	storageVolumeID := c.GetConfig().GetStorageVolumeId()
