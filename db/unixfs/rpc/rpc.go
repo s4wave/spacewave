@@ -49,12 +49,13 @@ func NewFSCursorDirent(dirent unixfs.FSCursorDirent) *FSCursorDirent {
 	if !ok {
 		return out
 	}
-	out.Info = &FSCursorDirentInfo{}
 	info, err := source.Info()
 	if err == nil {
-		out.Info.Mode = uint32(info.Mode())
-		out.Info.Size = uint64(max(0, info.Size()))
-		out.Info.ModTime = timestamp.ToTimestamp(info.ModTime())
+		out.Info = &FSCursorDirentInfo{
+			Mode:    uint32(info.Mode()),
+			Size:    uint64(max(0, info.Size())),
+			ModTime: timestamp.ToTimestamp(info.ModTime()),
+		}
 	}
 	return out
 }
