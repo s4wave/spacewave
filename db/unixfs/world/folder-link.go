@@ -2,6 +2,8 @@ package unixfs_world
 
 import (
 	"context"
+	"crypto/sha256"
+	gohash "hash"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -82,6 +84,8 @@ type FolderLink struct {
 	applyErr error
 	// recovered is set once a sync settled the staged files a crash left.
 	recovered bool
+	// applyHook runs at each step of applying a member's change, if set.
+	applyHook func(step ApplyStep, path string)
 }
 
 // NewFolderLink constructs the link of the absolute folder into the Drive at
@@ -582,9 +586,9 @@ func (s *folderSync) dir(path string, parent []string, all bool) error {
 	}
 	infos := make([]fs.FileInfo, 0, len(ents))
 	for _, d := range ents {
-		// Never publish a staged file; the first remote pass settles one a
-		// crash left.
-		if strings.HasPrefix(d.Name(), stagePrefix) {
+		// Never publish a fetched or staged file; the first remote pass
+		// settles one a crash left.
+		if isApplyFile(d.Name()) {
 			continue
 		}
 		info, err := d.Info()
@@ -919,9 +923,14 @@ func (s *folderSync) link(path string, parent []string, name string, a entryActi
 		return nil
 	}
 
-	// Link the file; its index entries commit before the batch does.
+	// Link the file, hashing its bytes in a two-way sync; its index entries
+	// commit before the batch does.
+	var sum gohash.Hash
+	if s.twoWay {
+		sum = sha256.New()
+	}
 	err := s.writer().AddFileBlob(s.ctx, parent, name, info.Mode().Perm(), info.ModTime(), func(xfrm block.Transformer, hashType hash.HashType) (*blob.Blob, error) {
-		return block_store_filesegment.LinkFile(s.ctx, s.idx, path, nil, xfrm, hashType)
+		return block_store_filesegment.LinkFile(s.ctx, s.idx, path, nil, xfrm, hashType, sum)
 	})
 	switch {
 	case errors.Is(err, block_store_filesegment.ErrFileChanging):
@@ -957,7 +966,9 @@ func (s *folderSync) link(path string, parent []string, name string, a entryActi
 			return err
 		}
 		rel := append(slices.Clone(parent[len(s.dest):]), name)
-		s.wants = append(s.wants, wantedVersion{rel: rel, version: statVersion(nil, info)})
+		version := statVersion(nil, info)
+		version.Digest = sum.Sum(nil)
+		s.wants = append(s.wants, wantedVersion{rel: rel, version: version})
 	}
 
 	// Commit a full batch.

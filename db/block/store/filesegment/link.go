@@ -2,6 +2,7 @@ package block_store_filesegment
 
 import (
 	"context"
+	gohash "hash"
 	"io"
 	"os"
 
@@ -42,6 +43,9 @@ const InlineLimit = 4 << 10
 // LinkAttempts reads that each saw a change it returns ErrFileChanging and
 // writes nothing. A change that keeps the size and the modification time is
 // invisible here, and the store's hash check on each read catches it.
+//
+// sum, if set, is reset and fed the bytes of the version the Blob describes,
+// the same read that addresses them.
 func LinkFile(
 	ctx context.Context,
 	idx *Index,
@@ -49,9 +53,10 @@ func LinkFile(
 	args *blob.ChunkerArgs,
 	xfrm block.Transformer,
 	hashType hash.HashType,
+	sum gohash.Hash,
 ) (*blob.Blob, error) {
 	for range LinkAttempts {
-		bl, err := linkFileOnce(ctx, idx, path, args, xfrm, hashType)
+		bl, err := linkFileOnce(ctx, idx, path, args, xfrm, hashType, sum)
 		if !errors.Is(err, errFileChanged) {
 			return bl, err
 		}
@@ -59,8 +64,9 @@ func LinkFile(
 	return nil, errors.Wrap(ErrFileChanging, path)
 }
 
-// linkFileOnce reads and links the file at path once, returning
-// errFileChanged when the file changed during the read.
+// linkFileOnce reads and links the file at path once, feeding sum, if set,
+// its bytes, and returns errFileChanged when the file changed during the
+// read.
 func linkFileOnce(
 	ctx context.Context,
 	idx *Index,
@@ -68,6 +74,7 @@ func linkFileOnce(
 	args *blob.ChunkerArgs,
 	xfrm block.Transformer,
 	hashType hash.HashType,
+	sum gohash.Hash,
 ) (*blob.Blob, error) {
 	// Record the stat each range is checked against.
 	f, err := os.Open(path)
@@ -95,6 +102,10 @@ func linkFileOnce(
 			if err := idx.DropPath(ctx, path); err != nil {
 				return nil, err
 			}
+			if sum != nil {
+				sum.Reset()
+				_, _ = sum.Write(data)
+			}
 			return blob.NewRawBlob(data), nil
 		}
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
@@ -105,9 +116,14 @@ func linkFileOnce(
 	// Address the chunks, keeping each range. A file changing under the read
 	// stops it at the next chunk, so an attempt on a file being written costs
 	// the bytes read until its next write, not the whole file.
+	var rdr io.Reader = f
+	if sum != nil {
+		sum.Reset()
+		rdr = io.TeeReader(f, sum)
+	}
 	var refs []*block.BlockRef
 	var segs []*Segment
-	ci, total, err := blob.AddressChunks(ctx, f, args, xfrm, hashType, func(c *blob.Chunk, blockSize int) error {
+	ci, total, err := blob.AddressChunks(ctx, rdr, args, xfrm, hashType, func(c *blob.Chunk, blockSize int) error {
 		// Stop at a change.
 		now, err := f.Stat()
 		if err != nil {

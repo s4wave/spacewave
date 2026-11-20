@@ -81,6 +81,11 @@ export interface FolderVersion {
    * Mode is the file's permission bits.
    */
   mode?: number
+  /**
+   * Digest is the SHA-256 of the file's bytes, empty when no read proved
+   * them. Only a file with this digest holds the version.
+   */
+  digest?: Uint8Array
 }
 
 export const FolderVersion: MessageType<FolderVersion> =
@@ -91,6 +96,7 @@ export const FolderVersion: MessageType<FolderVersion> =
       [2, 'size', 3],
       [3, 'mod_time', 3],
       [4, 'mode', 13],
+      [5, 'digest', 12],
     ],
   )
 

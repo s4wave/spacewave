@@ -187,7 +187,7 @@ func TestCopyCountsLinkedFiles(t *testing.T) {
 		if err := os.WriteFile(path, data, 0o644); err != nil {
 			t.Fatal(err)
 		}
-		b, err := block_store_filesegment.LinkFile(ctx, files.GetIndex(), path, nil, xfrm, 0)
+		b, err := block_store_filesegment.LinkFile(ctx, files.GetIndex(), path, nil, xfrm, 0, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -98,6 +98,9 @@ type FolderVersion struct {
 	ModTime int64 `protobuf:"varint,3,opt,name=mod_time,json=modTime,proto3" json:"modTime,omitempty"`
 	// Mode is the file's permission bits.
 	Mode uint32 `protobuf:"varint,4,opt,name=mode,proto3" json:"mode,omitempty"`
+	// Digest is the SHA-256 of the file's bytes, empty when no read proved
+	// them. Only a file with this digest holds the version.
+	Digest []byte `protobuf:"bytes,5,opt,name=digest,proto3" json:"digest,omitempty"`
 }
 
 func (x *FolderVersion) Reset() {
@@ -132,6 +135,13 @@ func (x *FolderVersion) GetMode() uint32 {
 		return x.Mode
 	}
 	return 0
+}
+
+func (x *FolderVersion) GetDigest() []byte {
+	if x != nil {
+		return x.Digest
+	}
+	return nil
 }
 
 // PathRefs is the SegmentIndex value of one path: the refs its segments hold,
@@ -185,6 +195,7 @@ func (m *FolderVersion) CloneVT() *FolderVersion {
 	r.ModTime = m.ModTime
 	r.Mode = m.Mode
 	r.NodeRef = protobuf_go_lite.CloneVTValue(m.NodeRef)
+	r.Digest = protobuf_go_lite.CloneBytes(m.Digest)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -262,6 +273,9 @@ func (this *FolderVersion) EqualVT(that *FolderVersion) bool {
 		return false
 	}
 	if this.Mode != that.Mode {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Digest, that.Digest) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -405,6 +419,11 @@ func (x *FolderVersion) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("mode")
 		s.WriteUint32(x.Mode)
 	}
+	if len(x.Digest) > 0 || s.HasField("digest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("digest")
+		s.WriteBytes(x.Digest)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -438,6 +457,9 @@ func (x *FolderVersion) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "mode":
 			s.AddField("mode")
 			x.Mode = s.ReadUint32()
+		case "digest":
+			s.AddField("digest")
+			x.Digest = s.ReadBytes()
 		}
 	})
 }
@@ -601,6 +623,11 @@ func (m *FolderVersion) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Digest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Digest)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.Mode != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Mode))
 		i--
@@ -702,6 +729,7 @@ func (m *FolderVersion) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Size)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ModTime)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Mode)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Digest)
 	n += len(m.unknownFields)
 	return n
 }
@@ -772,6 +800,10 @@ func (x *FolderVersion) MarshalProtoText() string {
 	if x.Mode != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "mode")
 		protobuf_go_lite.TextWriteUint(&sb, x.Mode)
+	}
+	if len(x.Digest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Digest)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -959,6 +991,14 @@ func (m *FolderVersion) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Mode = 0
 			m.Mode, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Digest", wireType)
+			}
+			m.Digest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Digest, dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

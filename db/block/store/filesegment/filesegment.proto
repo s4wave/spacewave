@@ -37,6 +37,9 @@ message FolderVersion {
   int64 mod_time = 3;
   // Mode is the file's permission bits.
   uint32 mode = 4;
+  // Digest is the SHA-256 of the file's bytes, empty when no read proved
+  // them. Only a file with this digest holds the version.
+  bytes digest = 5;
 }
 
 // PathRefs is the SegmentIndex value of one path: the refs its segments hold,

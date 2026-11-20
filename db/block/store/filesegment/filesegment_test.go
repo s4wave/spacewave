@@ -78,7 +78,7 @@ func TestAddressMatchesBuildBlob(t *testing.T) {
 	}
 
 	idx := newIndex()
-	linked, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
+	linked, err := LinkFile(ctx, idx, path, nil, xfrm, 0, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestReadThroughFile(t *testing.T) {
 		path string
 		want []byte
 	}{{path, data}, {small, smallData}} {
-		b, err := LinkFile(ctx, idx, tc.path, nil, xfrm, 0)
+		b, err := LinkFile(ctx, idx, tc.path, nil, xfrm, 0, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -162,7 +162,7 @@ func TestChangedFileIsMiss(t *testing.T) {
 	var reported []string
 	release := fss.WatchHashMisses(func(p string) { reported = append(reported, p) })
 	defer release()
-	b, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
+	b, err := LinkFile(ctx, idx, path, nil, xfrm, 0, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +194,7 @@ func TestChangedFileIsMiss(t *testing.T) {
 	}
 
 	// The relink indexes the changed bytes, which the store then serves.
-	b, err = LinkFile(ctx, idx, path, nil, xfrm, 0)
+	b, err = LinkFile(ctx, idx, path, nil, xfrm, 0, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,14 +226,14 @@ func TestRelinkReplacesPath(t *testing.T) {
 	writeRandom(t, path, 3<<20, 7)
 	kv := store_kvtx_inmem.NewStore()
 	idx := NewIndex(kv)
-	before, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
+	before, err := LinkFile(ctx, idx, path, nil, xfrm, 0, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Rewrite the file and link it again.
 	writeRandom(t, path, 3<<20, 8)
-	after, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
+	after, err := LinkFile(ctx, idx, path, nil, xfrm, 0, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestRelinkReplacesPath(t *testing.T) {
 	if err := os.WriteFile(copyPath, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := LinkFile(ctx, reopened, copyPath, nil, xfrm, 0); err != nil {
+	if _, err := LinkFile(ctx, reopened, copyPath, nil, xfrm, 0, nil); err != nil {
 		t.Fatal(err)
 	}
 	first := after.GetChunkIndex().GetChunks()[0].GetDataRef()
@@ -314,7 +314,7 @@ func TestReadScaling(t *testing.T) {
 		for i := range n {
 			path := filepath.Join(dir, strconv.Itoa(i))
 			writeRandom(t, path, fileSize, uint64(i)+100) //nolint:gosec // i is small.
-			b, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
+			b, err := LinkFile(ctx, idx, path, nil, xfrm, 0, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -363,7 +363,7 @@ func BenchmarkRegenerate(b *testing.B) {
 	writeRandom(b, path, 64<<20, 5)
 	idx := newIndex()
 	fss := newStore(idx, xfrm)
-	bl, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
+	bl, err := LinkFile(ctx, idx, path, nil, xfrm, 0, nil)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -389,7 +389,7 @@ func BenchmarkLink(b *testing.B) {
 	b.SetBytes(64 << 20)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := LinkFile(ctx, newIndex(), path, nil, xfrm, 0); err != nil {
+		if _, err := LinkFile(ctx, newIndex(), path, nil, xfrm, 0, nil); err != nil {
 			b.Fatal(err)
 		}
 	}

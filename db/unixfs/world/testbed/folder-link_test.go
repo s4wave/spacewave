@@ -6,8 +6,11 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -443,15 +446,17 @@ func TestFolderLinkStageRecovery(t *testing.T) {
 	// The node crashed in each place a staged file outlives: after the
 	// exchange of a.txt, which displaced its base, and of b.txt, which
 	// displaced an owner's edit; and before the exchange of c.txt, holding
-	// the member's fetched version.
+	// the member's fetched version, and a later fetch of c.txt cut short.
 	put("a.txt", "member a.txt", written)
 	put(".spacewave-stage-0000000a-a.txt", "owner a.txt", owned)
 	put("b.txt", "member b.txt", written)
 	put(".spacewave-stage-0000000b-b.txt", "owner b2", time.Now())
 	put(".spacewave-stage-0000000c-c.txt", "member c.txt", written)
+	put(".spacewave-fetch-0000000d-c.txt", "memb", time.Now())
 
-	// The restarted node removes the versions the Drive holds, keeps the
-	// edit under its conflict name and publishes it, and applies c.txt again.
+	// The restarted node removes the versions the Drive holds and the cut
+	// fetch, keeps the edit under its conflict name and publishes it, and
+	// applies c.txt again.
 	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
 	must(err)
 	var linked uint64
@@ -466,7 +471,7 @@ func TestFolderLinkStageRecovery(t *testing.T) {
 	if n, err := link.Unapplied(); n != 0 {
 		t.Fatalf("%d remote changes left unapplied: %v", n, err)
 	}
-	stages, err := filepath.Glob(filepath.Join(folder, ".spacewave-stage-*"))
+	stages, err := filepath.Glob(filepath.Join(folder, ".spacewave-*"))
 	must(err)
 	if len(stages) != 0 {
 		t.Fatalf("staged files left: %v", stages)
@@ -493,5 +498,292 @@ func TestFolderLinkStageRecovery(t *testing.T) {
 	must(link.Sync(ctx, count))
 	if linked != 0 {
 		t.Fatalf("second sync linked %d files, want 0", linked)
+	}
+}
+
+// TestFolderLinkApplyRaces tries to make a two-way link's apply path lose,
+// expose or invent a version. An owner's edit races each step of a member's
+// write and delete: before the check, between the check and the exchange,
+// through a handle still open on the displaced file, between the check and
+// the move to the trash, and before the rename that never replaces. An edit
+// in place keeps the base's size and modification time, which the stat check
+// cannot see. And the node crashes at each step, its sync frozen there, and
+// restarts. Each case ends with every version that must survive at its path,
+// under a conflict name or in the trash with its entry, holding its own
+// bytes, and no other file in the folder (NoLostVersion, MemberWriteKept,
+// RemoteReplacesOnlyBase, TrashOnlyDeleted).
+func TestFolderLinkApplyRaces(t *testing.T) {
+	// Start the World and the Drive, with a trash of the test's own.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	htb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	wtb, err := world_testbed.NewTestbed(htb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	fsHandle, err := InitTestbed(wtb, objKey, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fsHandle.Release()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	dataHome, home := t.TempDir(), t.TempDir()
+	t.Setenv("XDG_DATA_HOME", dataHome)
+	t.Setenv("HOME", home)
+	trashFiles := filepath.Join(dataHome, "Trash", "files")
+	if runtime.GOOS == "darwin" {
+		trashFiles = filepath.Join(home, ".Trash")
+		must(os.Mkdir(trashFiles, 0o700))
+	}
+	rtx, err := wtb.Engine.NewTransaction(ctx, false)
+	must(err)
+	fsType, _, err := unixfs_world.LookupFsType(ctx, rtx, objKey)
+	rtx.Discard()
+	must(err)
+
+	// The versions: the base and its same-size edit, the member's write and
+	// an owner's file with its size, an edit, and a new file.
+	const (
+		base    = "owner base"
+		coarse  = "owner EDIT"
+		member  = "member wrote"
+		mimic   = "owner twelve"
+		edit    = "owner edited it"
+		created = "owner new"
+		handled = "OWNER base"
+	)
+	owned, written := time.Unix(1_700_000_000, 0), time.Unix(1_800_000_000, 0)
+	put := func(path, data string, mtime time.Time) {
+		must(os.WriteFile(path, []byte(data), 0o644))
+		must(os.Chtimes(path, mtime, mtime))
+	}
+
+	// The owner's actions, each on the file at path.
+	editIt := func(path string) { put(path, edit, time.Now()) }
+	recreate := func(path string) { put(path, created, time.Now()) }
+	remove := func(path string) { must(os.Remove(path)) }
+	coarseEdit := func(path string) {
+		f, err := os.OpenFile(path, os.O_WRONLY, 0)
+		must(err)
+		_, err = f.WriteAt([]byte(coarse), 0)
+		must(err)
+		must(f.Close())
+		must(os.Chtimes(path, owned, owned))
+	}
+
+	type action = func(path string)
+	type races = map[unixfs_world.ApplyStep]action
+	none := unixfs_world.ApplyStep(-1)
+	cases := []struct {
+		// name names the case.
+		name string
+		// del makes the member delete the file instead of writing it.
+		del bool
+		// handle opens the file before the sync, and writes into it, through
+		// the handle, at the exchange; keep restores its stat too.
+		handle, keep bool
+		// before acts on the file after the member's change, before the sync.
+		before action
+		// race acts on the file at each step.
+		race races
+		// crash freezes the sync at the step, after its race, and restarts.
+		crash unixfs_world.ApplyStep
+		// deny makes the displaced file unreadable after the exchange, failing
+		// its check, then readable again for a second pass.
+		deny bool
+		// at, conflicts and trashed are the versions that end at the path,
+		// under conflict names and in the trash.
+		at        string
+		conflicts []string
+		trashed   []string
+	}{
+		{name: "edit before the check", race: races{unixfs_world.ApplyStaged: editIt}, crash: none, at: edit, conflicts: []string{member}},
+		{name: "edit before the exchange", race: races{unixfs_world.ApplyChecked: editIt}, crash: none, at: member, conflicts: []string{edit}},
+		{name: "edit through a handle after the exchange", handle: true, crash: none, at: member, conflicts: []string{handled}},
+		{name: "same-stat edit before the check", before: coarseEdit, crash: none, at: member, conflicts: []string{coarse}},
+		{name: "same-stat edit before the exchange", race: races{unixfs_world.ApplyChecked: coarseEdit}, crash: none, at: member, conflicts: []string{coarse}},
+		{name: "same-stat edit through a handle after the exchange", handle: true, keep: true, crash: none, at: member, conflicts: []string{handled}},
+		{name: "other bytes under the member's stat", before: func(path string) { put(path, mimic, written) }, crash: none, at: mimic, conflicts: []string{member}},
+		{name: "file created before the restore", before: remove, race: races{unixfs_world.ApplyRestoring: recreate}, crash: none, at: created, conflicts: []string{member}},
+		{name: "delete", del: true, crash: none, trashed: []string{base}},
+		{name: "edit before the delete's check", del: true, before: editIt, crash: none, at: edit},
+		{name: "edit before the move to the trash", del: true, race: races{unixfs_world.ApplyChecked: editIt}, crash: none, at: edit},
+		{name: "same-stat edit before the move to the trash", del: true, race: races{unixfs_world.ApplyChecked: coarseEdit}, crash: none, at: coarse},
+		{name: "edit trashed, then the path recreated", del: true, race: races{unixfs_world.ApplyChecked: editIt, unixfs_world.ApplyTrashed: recreate}, crash: none, at: created, conflicts: []string{edit}},
+		{name: "check of an exchanged edit fails", race: races{unixfs_world.ApplyChecked: editIt}, deny: true, crash: none, at: member, conflicts: []string{edit}},
+		{name: "crash after the fetch", crash: unixfs_world.ApplyStaged, at: member},
+		{name: "crash after the check", crash: unixfs_world.ApplyChecked, at: member},
+		{name: "crash after the exchange", crash: unixfs_world.ApplySwapped, at: member},
+		{name: "crash after an edit was exchanged", race: races{unixfs_world.ApplyChecked: editIt}, crash: unixfs_world.ApplySwapped, at: member, conflicts: []string{edit}},
+		{name: "crash after a same-stat edit was exchanged", race: races{unixfs_world.ApplyChecked: coarseEdit}, crash: unixfs_world.ApplySwapped, at: member, conflicts: []string{coarse}},
+		{name: "crash before the restore", before: remove, crash: unixfs_world.ApplyRestoring, at: member},
+		{name: "crash after the delete's check", del: true, crash: unixfs_world.ApplyChecked, trashed: []string{base}},
+		{name: "crash after the move to the trash", del: true, crash: unixfs_world.ApplyTrashed, trashed: []string{base}},
+		{name: "crash after an edit moved to the trash", del: true, race: races{unixfs_world.ApplyChecked: editIt}, crash: unixfs_world.ApplyTrashed, trashed: []string{edit}},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			must := func(err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatal(err.Error())
+				}
+			}
+
+			// Link a folder of one file both ways, named for the case so
+			// the shared trash tells the cases apart.
+			folder := t.TempDir()
+			name := fmt.Sprintf("c%02d.txt", i)
+			path := filepath.Join(folder, name)
+			put(path, base, owned)
+			idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore())
+			dest := []string{"races", fmt.Sprintf("c%02d", i)}
+			link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
+			must(err)
+			must(link.Sync(ctx, nil))
+
+			// The member writes or deletes the file, then the owner acts.
+			writer := unixfs_world.NewBatchFSWriter(world.NewEngineWorldState(wtb.Engine, true), objKey, fsType, "")
+			if tc.del {
+				must(writer.Remove(dest, name))
+			} else {
+				must(writer.AddFile(ctx, dest, name, unixfs.NewFSCursorNodeType_File(), int64(len(member)), strings.NewReader(member), 0o644, written))
+			}
+			must(writer.Commit(ctx))
+			writer.Release()
+			if tc.before != nil {
+				tc.before(path)
+			}
+			race := tc.race
+			stageMode := func(mode os.FileMode) {
+				stages, err := filepath.Glob(filepath.Join(folder, ".spacewave-stage-*"))
+				must(err)
+				for _, stage := range stages {
+					must(os.Chmod(stage, mode))
+				}
+			}
+			if tc.deny {
+				race = maps.Clone(race)
+				if race == nil {
+					race = races{}
+				}
+				race[unixfs_world.ApplySwapped] = func(string) { stageMode(0) }
+			}
+			if tc.handle {
+				h, err := os.OpenFile(path, os.O_WRONLY, 0)
+				must(err)
+				defer h.Close()
+				race = races{unixfs_world.ApplySwapped: func(string) {
+					_, err := h.WriteAt([]byte(handled[:5]), 0)
+					must(err)
+					if tc.keep {
+						stages, err := filepath.Glob(filepath.Join(folder, ".spacewave-stage-*"))
+						must(err)
+						for _, stage := range stages {
+							must(os.Chtimes(stage, owned, owned))
+						}
+					}
+				}}
+			}
+
+			// Apply the change with the races, and, for a crash, freeze the
+			// sync at its step and restart the node.
+			frozen := make(chan struct{})
+			link.SetApplyHook(func(step unixfs_world.ApplyStep, at string) {
+				if at != path {
+					return
+				}
+				if act := race[step]; act != nil {
+					act(at)
+				}
+				if step == tc.crash {
+					close(frozen)
+					select {}
+				}
+			})
+			switch {
+			case tc.deny:
+				// The failed check leaves the change for the next pass.
+				must(link.Sync(ctx, nil))
+				if n, _ := link.Unapplied(); n == 0 {
+					t.Fatal("the failed check applied the change")
+				}
+				stageMode(0o644)
+				must(link.Sync(ctx, nil))
+			case tc.crash == none:
+				must(link.Sync(ctx, nil))
+			default:
+				go func() { _ = link.Sync(ctx, nil) }()
+				<-frozen
+				link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
+				must(err)
+				must(link.Sync(ctx, nil))
+			}
+			if n, err := link.Unapplied(); n != 0 {
+				t.Fatalf("%d remote changes left unapplied: %v", n, err)
+			}
+
+			// The path, the conflict names and nothing else hold the versions.
+			read := func(path string) string {
+				t.Helper()
+				data, err := os.ReadFile(path)
+				must(err)
+				return string(data)
+			}
+			ents, err := os.ReadDir(folder)
+			must(err)
+			var at string
+			var conflicts []string
+			for _, e := range ents {
+				switch {
+				case e.Name() == name:
+					at = read(path)
+				case strings.HasPrefix(e.Name(), name+".conflict-"):
+					conflicts = append(conflicts, read(filepath.Join(folder, e.Name())))
+				default:
+					t.Fatalf("folder holds %s, which no version names", e.Name())
+				}
+			}
+			if at != tc.at {
+				t.Fatalf("path holds %q, want %q", at, tc.at)
+			}
+			slices.Sort(conflicts)
+			if !slices.Equal(conflicts, tc.conflicts) {
+				t.Fatalf("conflict copies hold %q, want %q", conflicts, tc.conflicts)
+			}
+
+			// The trash holds the versions it should, each with its entry.
+			trashed, err := filepath.Glob(filepath.Join(trashFiles, strings.TrimSuffix(name, ".txt")+"*"))
+			must(err)
+			var got []string
+			for _, f := range trashed {
+				got = append(got, read(f))
+				if runtime.GOOS != "linux" {
+					continue
+				}
+				info := read(filepath.Join(dataHome, "Trash", "info", filepath.Base(f)+".trashinfo"))
+				if !strings.Contains(info, "\nPath="+path+"\n") {
+					t.Fatalf("trash entry %q does not name %s", info, path)
+				}
+			}
+			if !slices.Equal(got, tc.trashed) {
+				t.Fatalf("trash holds %q, want %q", got, tc.trashed)
+			}
+			if runtime.GOOS == "linux" {
+				infos, err := filepath.Glob(filepath.Join(dataHome, "Trash", "info", strings.TrimSuffix(name, ".txt")+"*"))
+				must(err)
+				if len(infos) != len(tc.trashed) {
+					t.Fatalf("trash entries %v, want one per trashed version", infos)
+				}
+			}
+		})
 	}
 }
