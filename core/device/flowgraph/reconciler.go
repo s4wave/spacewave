@@ -490,9 +490,12 @@ func (r *Reconciler) compile(
 		report.err = errors.Wrap(err, "compile node")
 		return report
 	}
-	declared := report.nodeType.GetConfigIDs()
+	declared := make(map[string]struct{})
+	for _, id := range report.nodeType.GetConfigIDs() {
+		declared[id] = struct{}{}
+	}
 	for name, conf := range compiled {
-		if !slices.Contains(declared, conf.GetConfigID()) {
+		if _, ok := declared[conf.GetConfigID()]; !ok {
 			report.err = errors.Errorf("entry %q has undeclared config ID %q", name, conf.GetConfigID())
 			return report
 		}

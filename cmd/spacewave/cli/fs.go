@@ -577,7 +577,8 @@ func buildFsWriteCommand() *cli.Command {
 		Usage:     "write data to a file from stdin or local file",
 		ArgsUsage: "<uri>",
 		Description: fsURIDescription(
-			"Write data to a file inside a UnixFS object, creating it if needed. The target file is truncated before writing. Input comes from stdin unless --from is given.",
+			"Write data to a file inside a UnixFS object, creating it if needed. "+
+				"The target file is truncated before writing. Input comes from stdin unless --from is given.",
 			`  # write a file from stdin
   echo hello | spacewave fs write my-object/-/greeting.txt
 
@@ -698,7 +699,8 @@ func buildFsMvCommand() *cli.Command {
 		Usage:     "rename/move a file or directory",
 		ArgsUsage: "<source-uri> <dest-uri>",
 		Description: fsURIDescription(
-			"Rename or move a file or directory inside a UnixFS object. The source and destination URIs must point at the same space and the same object; only the path within the object may differ.",
+			"Rename or move a file or directory inside a UnixFS object. The source and destination URIs "+
+				"must point at the same space and the same object; only the path within the object may differ.",
 			`  # rename a file in place
   spacewave fs mv my-object/-/old.txt my-object/-/new.txt
 
