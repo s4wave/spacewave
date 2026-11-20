@@ -1166,7 +1166,13 @@ func (f *FSCursorService) OpsReadAt(
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
 		// todo: use a buffer arena here?
 		readBuf := make([]byte, readSize)
-		readAmt, err := ops.ReadAt(ctx, offset, readBuf)
+		var readAmt int64
+		var err error
+		if reader, ok := ops.(unixfs.VersionedFileReader); req.GetWantVersion() && ok {
+			readAmt, resp.Version, err = reader.ReadAtVersion(ctx, offset, readBuf)
+		} else {
+			readAmt, err = ops.ReadAt(ctx, offset, readBuf)
+		}
 		if err != nil && err != io.EOF {
 			readAmt = 0
 		}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"path"
-	"sync"
 	"sync/atomic"
 
 	"github.com/go-git/go-billy/v6"
@@ -23,24 +22,18 @@ type BillyFSCursor struct {
 	path string
 }
 
-// billyFSState shares the backend and mutation order of a cursor tree.
-type billyFSState struct {
-	// bfs is the Billy filesystem.
-	bfs billy.Basic
-	// native indicates that the OS owns directory and file handle concurrency.
-	native bool
-	// mtx serializes mutations, including check and create.
-	mtx sync.RWMutex
-	// readMtx shares mtx for native reads and takes it exclusively for memfs
-	// and other backends without a concurrency contract.
-	readMtx sync.Locker
-}
-
 // NewBillyFSCursor constructs a FSCursor from a Billy filesystem at the given path.
 // The path can be empty to build at the root of the filesystem.
 func NewBillyFSCursor(bfs billy.Basic, path string) *BillyFSCursor {
+	return NewVersionedBillyFSCursor(bfs, path, nil)
+}
+
+// NewVersionedBillyFSCursor builds a cursor with optional file versions.
+// version reads metadata from the open file that supplies a versioned range.
+// A nil version function leaves the file version unset.
+func NewVersionedBillyFSCursor(bfs billy.Basic, path string, version func(billy.File) ([]byte, error)) *BillyFSCursor {
 	// Choose the read lock based on the backend's concurrency contract.
-	state := &billyFSState{bfs: bfs, native: isNativeOSFS(bfs)}
+	state := &billyFSState{bfs: bfs, native: isNativeOSFS(bfs), version: version}
 	state.readMtx = &state.mtx
 	if state.native {
 		state.readMtx = state.mtx.RLocker()

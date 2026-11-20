@@ -3,6 +3,8 @@
 package spacewave_compose
 
 import (
+	"sync"
+
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -48,9 +50,12 @@ func composeNative(composition *compose.Composition) {
 	}
 
 	// Install the Device capability and replica factories on every Session bus.
+	var checkoutPublications sync.Mutex
 	transportOptions := []transport.SessionTransportOption{transport.WithChildFactories(
 		func(b bus.Bus) controller.Factory { return camera.NewFactory(b) },
-		func(b bus.Bus) controller.Factory { return checkoutroot.NewFactory(b, bldr_plugin.PluginVolumeID) },
+		func(b bus.Bus) controller.Factory {
+			return checkoutroot.NewFactory(b, bldr_plugin.PluginVolumeID, &checkoutPublications)
+		},
 		func(b bus.Bus) controller.Factory { return display.NewFactory(b) },
 		func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
 		func(b bus.Bus) controller.Factory { return space_world_replica_controller.NewFactory(b) },

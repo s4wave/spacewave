@@ -574,9 +574,8 @@ func (r *FSHandleResource) ReadStream(
 	return nil
 }
 
-// readAtVersion reads like FSHandle.ReadAt and returns, from the same access,
-// the marshaled block reference of the file node the data came from, or nil
-// when the node has none yet.
+// readAtVersion reads a range and its opaque version in one cursor access.
+// A backend that cannot supply a version returns nil.
 func readAtVersion(ctx context.Context, handle *unixfs.FSHandle, offset int64, data []byte) (n int64, version []byte, err error) {
 	err = handle.AccessOps(ctx, func(_ unixfs.FSCursor, ops unixfs.FSCursorOps) error {
 		// Refuse a handle that is not a file, as ReadAt does.
@@ -584,7 +583,14 @@ func readAtVersion(ctx context.Context, handle *unixfs.FSHandle, offset int64, d
 			return unixfs_errors.ErrNotFile
 		}
 
-		// Take the version from the node this access reads.
+		// The remote cursor reads the version with the range on the Device.
+		if reader, ok := ops.(unixfs.VersionedFileReader); ok {
+			var rerr error
+			n, version, rerr = reader.ReadAtVersion(ctx, offset, data)
+			return rerr
+		}
+
+		// Take the Space version from the node this access reads.
 		version = nil
 		if refer, ok := ops.(nodeRefer); ok && !refer.GetNodeRef().GetEmpty() {
 			var merr error

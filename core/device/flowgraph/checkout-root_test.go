@@ -68,10 +68,15 @@ func checkCheckoutRootAccess(t *testing.T, ctx context.Context, device peer.ID, 
 		t.Fatalf("file operations = %v, error %v", file, err)
 	}
 
-	// Read a range from the real host file before attempting the write.
-	read, err := client.OpsReadAt(ctx, &unixfs_rpc.OpsReadAtRequest{OpsHandleId: file.GetOpsHandleId(), Offset: 1, Size: 2})
+	// Read a range and its version from the real host file before attempting the write.
+	read, err := client.OpsReadAt(ctx, &unixfs_rpc.OpsReadAtRequest{
+		OpsHandleId: file.GetOpsHandleId(), Offset: 1, Size: 2, WantVersion: true,
+	})
 	if err != nil || read.GetUnixfsError() != nil || string(read.GetData()) != "ri" {
 		t.Fatalf("file range = %v, error %v, want ri", read, err)
+	}
+	if len(read.GetVersion()) == 0 {
+		t.Fatal("host read returned an empty version")
 	}
 
 	// Populate every request field so refusal depends on the configured root.
@@ -354,7 +359,7 @@ func checkReadOnlyUpload(t *testing.T, ctx context.Context, client unixfs_rpc.SR
 	_ = strm.Send(&unixfs_rpc.OpsMknodWithContentRequest{
 		Body: &unixfs_rpc.OpsMknodWithContentRequest_Start{Start: &unixfs_rpc.OpsMknodWithContentStart{
 			CursorHandleId: cursorID, OpsHandleId: opsID, Name: "cannot-create",
-			TotalSize: 1, Permissions: 0o600, Timestamp: timestamppb.Now(), Exclusive: true,
+			TotalSize: 1, Permissions: 0o600, Timestamp: timestamppb.Now(), Expect: &unixfs_rpc.OpsMknodWithContentStart_Exclusive{Exclusive: true},
 		}},
 	})
 

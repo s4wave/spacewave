@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -115,6 +116,7 @@ func TestReconciler(t *testing.T) {
 	outsider, _ := newPluginPortPeer(t, ctx, le, network)
 
 	// Run the Device's Session transport and admit only the account viewer.
+	var checkoutPublications sync.Mutex
 	st, err := transport.NewSessionTransport(
 		le,
 		b,
@@ -124,7 +126,9 @@ func TestReconciler(t *testing.T) {
 		transport.WithChildFactories(
 			func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
 			func(b bus.Bus) controller.Factory { return camera.NewFactory(b) },
-			func(b bus.Bus) controller.Factory { return checkoutroot.NewFactory(b, tb.Volume.GetID()) },
+			func(b bus.Bus) controller.Factory {
+				return checkoutroot.NewFactory(b, tb.Volume.GetID(), &checkoutPublications)
+			},
 			func(b bus.Bus) controller.Factory { return display.NewFactory(b) },
 		),
 		transport.WithInprocNetwork(network),

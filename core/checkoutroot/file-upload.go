@@ -3,12 +3,14 @@
 package checkoutroot
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 
 	pkgerrors "github.com/pkg/errors"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
@@ -16,7 +18,7 @@ import (
 )
 
 // publishFile installs a complete upload within the pinned checkout root.
-func publishFile(ctx context.Context, root *os.Root, journal *uploadJournal, directory string, start *unixfs_rpc.OpsMknodWithContentStart, src io.Reader) (rerr error) {
+func publishFile(ctx context.Context, root *os.Root, journal *uploadJournal, publications *sync.Mutex, directory string, start *unixfs_rpc.OpsMknodWithContentStart, src io.Reader) (rerr error) {
 	// Pin the target directory and use a filename valid on this host.
 	name, err := filepath.Localize(start.GetName())
 	if err != nil {
@@ -90,12 +92,31 @@ func publishFile(ctx context.Context, root *os.Root, journal *uploadJournal, dir
 		return err
 	}
 
-	// Publish the complete file with the caller's replacement rule.
+	// Let the filesystem enforce absence atomically for create-only uploads.
+	if start.GetExclusive() {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		return publicationResult(renameExclusive(dir, stage.name, name))
+	}
+
+	// Serialize replacing uploads across the Device's checkout roots.
+	publications.Lock()
+	defer publications.Unlock()
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if start.GetExclusive() {
-		return publicationResult(renameExclusive(dir, stage.name, name))
+
+	// Compare immediately before rename. A separate program can still write
+	// between these filesystem operations.
+	if expected := start.GetExpectedVersion(); len(expected) != 0 {
+		current, err := destinationVersion(dir, name)
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(expected, current) {
+			return &unixfs_errors.FileVersionConflict{Version: current}
+		}
 	}
 	return dir.Rename(stage.name, name)
 }

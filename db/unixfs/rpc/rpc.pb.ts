@@ -557,6 +557,10 @@ export interface OpsReadAtRequest {
    * This will automatically be capped by the hardcoded limit of 256e7 (256MB).
    */
   size?: bigint
+  /**
+   * WantVersion requests the opaque version of the file opened for this read.
+   */
+  wantVersion?: boolean
 }
 
 export const OpsReadAtRequest: MessageType<OpsReadAtRequest> =
@@ -566,6 +570,7 @@ export const OpsReadAtRequest: MessageType<OpsReadAtRequest> =
       [1, 'ops_handle_id', 4],
       [2, 'offset', 3],
       [3, 'size', 3],
+      [4, 'want_version', 8],
     ],
   )
 
@@ -583,6 +588,10 @@ export interface OpsReadAtResponse {
    * Data contains the data read, if any.
    */
   data?: Uint8Array
+  /**
+   * Version is the requested file version, absent on a backend without versions.
+   */
+  version?: Uint8Array
 }
 
 export const OpsReadAtResponse: MessageType<OpsReadAtResponse> =
@@ -591,6 +600,7 @@ export const OpsReadAtResponse: MessageType<OpsReadAtResponse> =
     () => [
       [1, 'unixfs_error', 11, 0, UnixFSError.codec],
       [2, 'data', 12],
+      [3, 'version', 12],
     ],
   )
 
@@ -945,9 +955,14 @@ export interface OpsMknodWithContentStart {
    */
   timestamp?: Date
   /**
-   * Exclusive requires the destination to be absent at publication.
+   * Expect restricts publication. An unset expectation allows replacement.
+   *
+   * @generated from oneof unixfs.rpc.OpsMknodWithContentStart.expect
    */
-  exclusive?: boolean
+  expect?:
+    | { value?: undefined; case: undefined }
+    | { value: boolean; case: 'exclusive' }
+    | { value: Uint8Array; case: 'expectedVersion' }
 }
 
 export const OpsMknodWithContentStart: MessageType<OpsMknodWithContentStart> =
@@ -960,7 +975,8 @@ export const OpsMknodWithContentStart: MessageType<OpsMknodWithContentStart> =
       [4, 'total_size', 3],
       [5, 'permissions', 13],
       [6, 'timestamp', 11, 0, Timestamp.codec],
-      [7, 'exclusive', 8],
+      [7, 'exclusive', 8, 0, 0, 'expect'],
+      [8, 'expected_version', 12, 0, 0, 'expect'],
     ],
   )
 
@@ -995,15 +1011,41 @@ export const OpsMknodWithContentRequest: MessageType<OpsMknodWithContentRequest>
  */
 export interface OpsMknodWithContentResponse {
   /**
-   * UnixfsError contains the filesystem error, if any.
+   * Failure describes a file that was not published. An unset failure means it was published.
+   *
+   * @generated from oneof unixfs.rpc.OpsMknodWithContentResponse.failure
    */
-  unixfsError?: UnixFSError
+  failure?:
+    | { value?: undefined; case: undefined }
+    | { value: UnixFSError; case: 'unixfsError' }
+    | { value: UploadVersionConflict; case: 'conflict' }
 }
 
 export const OpsMknodWithContentResponse: MessageType<OpsMknodWithContentResponse> =
   /* @__PURE__ */ createMessageType<OpsMknodWithContentResponse>(
     'unixfs.rpc.OpsMknodWithContentResponse',
-    () => [[1, 'unixfs_error', 11, 0, UnixFSError.codec]],
+    () => [
+      [1, 'unixfs_error', 11, 0, UnixFSError.codec, 'failure'],
+      [2, 'conflict', 11, 0, UploadVersionConflict.codec, 'failure'],
+    ],
+  )
+
+/**
+ * UploadVersionConflict reports the file version that prevented publication.
+ *
+ * @generated from message unixfs.rpc.UploadVersionConflict
+ */
+export interface UploadVersionConflict {
+  /**
+   * Version is the destination's current version, absent when it holds no regular file.
+   */
+  version?: Uint8Array
+}
+
+export const UploadVersionConflict: MessageType<UploadVersionConflict> =
+  /* @__PURE__ */ createMessageType<UploadVersionConflict>(
+    'unixfs.rpc.UploadVersionConflict',
+    () => [[1, 'version', 12]],
   )
 
 /**

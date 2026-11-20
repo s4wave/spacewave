@@ -331,12 +331,10 @@ export interface HandleReadStreamResponse {
    */
   data?: Uint8Array
   /**
-   * Version identifies the file's node as of the first response's data, and
-   * is set only there. It is the marshaled block reference of the node, which
-   * every write to the file changes. Pass it back as an UploadTree file's
-   * expected version to replace only that version. Data in later responses may
-   * come from a newer version, so a write expecting this one is refused rather
-   * than overwriting it.
+   * Version identifies the file that supplied the first response's data.
+   * It is opaque and set only on the first response. Pass it back as an
+   * UploadTree file's expected version to replace only that version.
+   * Data in later responses may come from a newer version.
    */
   version?: Uint8Array
 }

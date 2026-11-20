@@ -198,14 +198,25 @@ func (o *remoteFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time
 // Returns 0, io.EOF if the offset is past the end of the file.
 // Returns the length read and any error.
 func (o *remoteFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
+	n, _, err := o.readAt(ctx, offset, data, false)
+	return n, err
+}
+
+// ReadAtVersion requests the version of the file that supplied the range.
+func (o *remoteFSCursorOps) ReadAtVersion(ctx context.Context, offset int64, data []byte) (int64, []byte, error) {
+	return o.readAt(ctx, offset, data, true)
+}
+
+// readAt copies a remote range and optionally returns its file version.
+func (o *remoteFSCursorOps) readAt(ctx context.Context, offset int64, data []byte, version bool) (int64, []byte, error) {
 	// Require a destination buffer for the remote file read.
 	if len(data) == 0 {
-		return 0, io.ErrShortBuffer
+		return 0, nil, io.ErrShortBuffer
 	}
 
 	// Require live cursor operations before reading remote file bytes.
 	if o.CheckReleased() {
-		return 0, unixfs_errors.ErrReleased
+		return 0, nil, unixfs_errors.ErrReleased
 	}
 
 	// Read the requested remote file range and retain end-of-file results.
@@ -213,13 +224,14 @@ func (o *remoteFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byt
 		OpsHandleId: o.handleID,
 		Offset:      offset,
 		Size:        int64(len(data)),
+		WantVersion: version,
 	})
 	if err == nil {
 		err = resp.GetUnixfsError().ToGoError()
 	}
 	if err != nil && err != io.EOF {
 		o.handleErr(err, true)
-		return 0, err
+		return 0, nil, err
 	}
 
 	// Copy the returned file bytes into the available destination buffer.
@@ -228,7 +240,7 @@ func (o *remoteFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byt
 		data = data[:len(retData)]
 	}
 	copy(data, retData)
-	return int64(len(data)), err
+	return int64(len(data)), resp.GetVersion(), err
 }
 
 // GetOptimalWriteSize returns the best write size to use for the Write call.
@@ -726,8 +738,8 @@ func (o *remoteFSCursorOps) Remove(ctx context.Context, names []string, ts time.
 	return nil
 }
 
-// SupportsExclusiveFileCreate forwards the exclusive creation requirement to the server.
-func (o *remoteFSCursorOps) SupportsExclusiveFileCreate() {}
+// SupportsConditionalFilePublication forwards the publication precondition to the server.
+func (o *remoteFSCursorOps) SupportsConditionalFilePublication() {}
 
 // MknodWithContent streams a regular file to the remote directory for atomic publication.
 func (o *remoteFSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
@@ -751,7 +763,12 @@ func (o *remoteFSCursorOps) MknodWithContent(ctx context.Context, name string, n
 	start := &unixfs_rpc.OpsMknodWithContentStart{
 		CursorHandleId: o.c.cursorHandleID, OpsHandleId: o.handleID, Name: name,
 		TotalSize: dataLen, Permissions: uint32(permissions.Perm()), Timestamp: timestamp.ToTimestamp(ts),
-		Exclusive: unixfs.IsExclusiveFileCreate(ctx),
+	}
+	switch {
+	case unixfs.IsExclusiveFileCreate(ctx):
+		start.Expect = &unixfs_rpc.OpsMknodWithContentStart_Exclusive{Exclusive: true}
+	case len(unixfs.ExpectedFileVersion(ctx)) != 0:
+		start.Expect = &unixfs_rpc.OpsMknodWithContentStart_ExpectedVersion{ExpectedVersion: unixfs.ExpectedFileVersion(ctx)}
 	}
 	if err := strm.Send(&unixfs_rpc.OpsMknodWithContentRequest{Body: &unixfs_rpc.OpsMknodWithContentRequest_Start{Start: start}}); err != nil {
 		return err
@@ -773,6 +790,9 @@ func (o *remoteFSCursorOps) MknodWithContent(ctx context.Context, name string, n
 	// Finish the stream and report the Device's publication result.
 	res, err := strm.CloseAndRecv()
 	if err == nil {
+		if conflict := res.GetConflict(); conflict != nil {
+			return &unixfs_errors.FileVersionConflict{Version: conflict.GetVersion()}
+		}
 		err = res.GetUnixfsError().ToGoError()
 	}
 	o.handleErr(err, true)
@@ -794,4 +814,8 @@ func (o *remoteFSCursorOps) handleErr(err error, lock bool) {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorOps = (*remoteFSCursorOps)(nil)
+var (
+	_ unixfs.FSCursorOps              = (*remoteFSCursorOps)(nil)
+	_ unixfs.VersionedFileReader      = (*remoteFSCursorOps)(nil)
+	_ unixfs.ConditionalFilePublisher = (*remoteFSCursorOps)(nil)
+)

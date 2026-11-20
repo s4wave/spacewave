@@ -171,12 +171,16 @@ func (r *FSHandleResource) uploadTreeConflict(conflict *unixfs_world.FileConflic
 			return nil, err
 		}
 	}
+	return newUploadTreeConflict(strings.Join(conflict.Path[len(r.path):], "/"), version), nil
+}
+
+// newUploadTreeConflict answers a stale upload with the path and current version.
+func newUploadTreeConflict(path string, version []byte) *s4wave_unixfs.HandleUploadTreeResponse {
 	return &s4wave_unixfs.HandleUploadTreeResponse{
-		Result: &s4wave_unixfs.HandleUploadTreeResponse_Conflict{Conflict: &s4wave_unixfs.HandleUploadTreeConflict{
-			Path:    strings.Join(conflict.Path[len(r.path):], "/"),
-			Version: version,
-		}},
-	}, nil
+		Result: &s4wave_unixfs.HandleUploadTreeResponse_Conflict{
+			Conflict: &s4wave_unixfs.HandleUploadTreeConflict{Path: path, Version: version},
+		},
+	}
 }
 
 // expectUploadTreeFile records what a file start requires its path to hold

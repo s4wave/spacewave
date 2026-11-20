@@ -237,9 +237,20 @@ func (o *BillyFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCur
 
 // ReadAt implements FSCursorOps.
 func (o *BillyFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
+	n, _, err := o.readAt(offset, data, false)
+	return n, err
+}
+
+// ReadAtVersion reads file bytes and their version from one open file.
+func (o *BillyFSCursorOps) ReadAtVersion(ctx context.Context, offset int64, data []byte) (int64, []byte, error) {
+	return o.readAt(offset, data, true)
+}
+
+// readAt reads a file range and optionally samples its version before reading.
+func (o *BillyFSCursorOps) readAt(offset int64, data []byte, wantVersion bool) (int64, []byte, error) {
 	// Require a live cursor before reading file content.
 	if o.CheckReleased() {
-		return 0, unixfs_errors.ErrReleased
+		return 0, nil, unixfs_errors.ErrReleased
 	}
 
 	// Open the file for a range read that can overlap other native reads.
@@ -250,13 +261,22 @@ func (o *BillyFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
 		}
-		return 0, err
+		return 0, nil, err
 	}
 	defer file.Close()
 
+	// Sample the open file before any bytes can be returned for this version.
+	var version []byte
+	if wantVersion && o.c.state.version != nil {
+		version, err = o.c.state.version(file)
+		if err != nil {
+			return 0, nil, err
+		}
+	}
+
 	// Read the requested file range through the Billy file.
 	n, err := file.ReadAt(data, offset)
-	return int64(n), err
+	return int64(n), version, err
 }
 
 // ReaddirAll implements FSCursorOps.
@@ -618,5 +638,8 @@ func (o *BillyFSCursorOps) MknodWithContent(ctx context.Context, name string, no
 	return closeErr
 }
 
-// _ is a type assertion
-var _ unixfs.FSCursorOps = (*BillyFSCursorOps)(nil)
+// _ is a type assertion.
+var (
+	_ unixfs.FSCursorOps         = (*BillyFSCursorOps)(nil)
+	_ unixfs.VersionedFileReader = (*BillyFSCursorOps)(nil)
+)

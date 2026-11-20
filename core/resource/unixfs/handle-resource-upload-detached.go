@@ -36,12 +36,12 @@ func (r *FSHandleResource) uploadDetachedTree(strm s4wave_unixfs.SRPCFSHandleRes
 		}
 
 		entry, err := uploadDetachedEntry(ctx, root, strm, &state, msg)
+		var conflict *unixfs_errors.FileVersionConflict
+		if errors.As(err, &conflict) {
+			return newUploadTreeConflict(entry, conflict.Version), nil
+		}
 		if errors.Is(err, unixfs_errors.ErrExist) {
-			return &s4wave_unixfs.HandleUploadTreeResponse{
-				Result: &s4wave_unixfs.HandleUploadTreeResponse_Conflict{
-					Conflict: &s4wave_unixfs.HandleUploadTreeConflict{Path: entry},
-				},
-			}, nil
+			return newUploadTreeConflict(entry, nil), nil
 		}
 		if err != nil {
 			return nil, err
@@ -70,7 +70,10 @@ func uploadDetachedEntry(ctx context.Context, root *unixfs.FSHandle, strm s4wave
 		}
 		switch expect := file.GetExpect().(type) {
 		case *s4wave_unixfs.HandleUploadTreeFileStart_Version:
-			return entry, unixfs_errors.ErrExist
+			if len(expect.Version) == 0 {
+				return entry, errors.New("expected file version must be nonempty")
+			}
+			ctx = unixfs.WithExpectedFileVersion(ctx, expect.Version)
 		case *s4wave_unixfs.HandleUploadTreeFileStart_Overwrite:
 			if !expect.Overwrite {
 				return entry, errors.New("file overwrite must be true when set")

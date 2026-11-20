@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -29,11 +30,13 @@ type Factory struct {
 	b bus.Bus
 	// stateVolumeID identifies the daemon's local state volume on the parent bus.
 	stateVolumeID string
+	// publications serializes replacing uploads across the Device's Session buses.
+	publications *sync.Mutex
 }
 
 // NewFactory builds checkout roots on the Session bus with the daemon's local state volume.
-func NewFactory(b bus.Bus, stateVolumeID string) *Factory {
-	return &Factory{b: b, stateVolumeID: stateVolumeID}
+func NewFactory(b bus.Bus, stateVolumeID string, publications *sync.Mutex) *Factory {
+	return &Factory{b: b, stateVolumeID: stateVolumeID, publications: publications}
 }
 
 // GetConfigID returns the configuration ID the factory accepts.
@@ -100,12 +103,12 @@ func (f *Factory) Construct(ctx context.Context, config config.Config, opts cont
 			return root.Close()
 		}
 		upload = func(ctx context.Context, dir string, start *unixfs_rpc.OpsMknodWithContentStart, src io.Reader) error {
-			return publishFile(ctx, root, journal, dir, start, src)
+			return publishFile(ctx, root, journal, f.publications, dir, start, src)
 		}
 	}
 
 	// Publish the UnixFS handler only for this controller's execution.
-	cursor := unixfs_billy.NewBillyFSCursor(filesystem, "")
+	cursor := unixfs_billy.NewVersionedBillyFSCursor(filesystem, "", readHostFileVersion)
 	return callback.NewCallbackController(info, func(ctx context.Context) error {
 		return serve(ctx, le, f.b, id, root, cursor, upload, journal)
 	}, nil, closeRoot), nil

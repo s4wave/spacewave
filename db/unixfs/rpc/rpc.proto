@@ -195,6 +195,8 @@ message OpsReadAtRequest {
   // Size is the size of data to read (buffer max size).
   // This will automatically be capped by the hardcoded limit of 256e7 (256MB).
   int64 size = 3;
+  // WantVersion requests the opaque version of the file opened for this read.
+  bool want_version = 4;
 }
 
 // OpsReadAtResponse is the body of the ops ReadAt response.
@@ -203,6 +205,8 @@ message OpsReadAtResponse {
   .unixfs.errors.UnixFSError unixfs_error = 1;
   // Data contains the data read, if any.
   bytes data = 2;
+  // Version is the requested file version, absent on a backend without versions.
+  bytes version = 3;
 }
 
 // OpsGetOptimalWriteSizeRequest is the body of the ops GetOptimalWriteSize request.
@@ -331,8 +335,13 @@ message OpsMknodWithContentStart {
   uint32 permissions = 5;
   // Timestamp sets the new file's modification time.
   google.protobuf.Timestamp timestamp = 6;
-  // Exclusive requires the destination to be absent at publication.
-  bool exclusive = 7;
+  // Expect restricts publication. An unset expectation allows replacement.
+  oneof expect {
+    // Exclusive requires the destination to be absent at publication.
+    bool exclusive = 7;
+    // ExpectedVersion identifies the only destination version this upload may replace.
+    bytes expected_version = 8;
+  }
 }
 
 // OpsMknodWithContentRequest carries the start followed by the file data.
@@ -347,8 +356,19 @@ message OpsMknodWithContentRequest {
 
 // OpsMknodWithContentResponse reports the publication result.
 message OpsMknodWithContentResponse {
-  // UnixfsError contains the filesystem error, if any.
-  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // Failure describes a file that was not published. An unset failure means it was published.
+  oneof failure {
+    // UnixfsError contains a filesystem error.
+    .unixfs.errors.UnixFSError unixfs_error = 1;
+    // Conflict reports that the destination did not hold the expected file version.
+    UploadVersionConflict conflict = 2;
+  }
+}
+
+// UploadVersionConflict reports the file version that prevented publication.
+message UploadVersionConflict {
+  // Version is the destination's current version, absent when it holds no regular file.
+  bytes version = 1;
 }
 
 // OpsSymlinkRequest is the body of the ops Symlink request.
