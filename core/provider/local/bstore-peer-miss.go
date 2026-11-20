@@ -196,7 +196,7 @@ func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref 
 
 	// Ask the peers until one answers, or the bound ends. A timeout keeps
 	// the cause an earlier attempt found.
-	readCtx, cancel := withStallBound(ctx, peerReadLimit(), store)
+	readCtx, cancel, refused := withStallBound(ctx, peerReadLimit(), store)
 	defer cancel()
 	pause := peerReadPauseMin
 	for {
@@ -204,6 +204,7 @@ func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref 
 		if err != nil {
 			if c := peerFailCause(err); c != peerTimeout {
 				cause = c
+				refused()
 			}
 		}
 		// A corrupt answer is deterministic: asking again returns the same bytes.
@@ -233,6 +234,11 @@ type progressStore interface {
 // count the check before saw, and waits limit again while it grew. A read
 // waits on the bytes of every peer of the store, so it outlasts the bound
 // while any peer delivers.
+//
+// A read the peers answered with a failure ends at its next check whatever
+// arrived. Its retries draw the same answer again, and those bytes would
+// otherwise count as arrivals and keep a read every peer refuses alive for as
+// long as its caller waits.
 type stallBound struct {
 	// ctx is the bounded context, and cancel ends it.
 	ctx    context.Context
@@ -246,15 +252,19 @@ type stallBound struct {
 	last uint64
 	// timer is the pending check.
 	timer atomic.Pointer[time.Timer]
+	// refused is set once the peers answered the read with a failure.
+	refused atomic.Bool
 }
 
-// withStallBound returns ctx bounded as stallBound describes, and the cancel
-// that ends it. A store that counts no bytes bounds the whole read at limit.
-func withStallBound(ctx context.Context, limit time.Duration, store block.StoreOps) (context.Context, context.CancelFunc) {
+// withStallBound returns ctx bounded as stallBound describes, the cancel that
+// ends it, and the func a caller runs when the peers answer the read with a
+// failure. A store that counts no bytes bounds the whole read at limit.
+func withStallBound(ctx context.Context, limit time.Duration, store block.StoreOps) (context.Context, context.CancelFunc, func()) {
 	// A store that counts no bytes bounds the whole read.
 	ps, ok := store.(progressStore)
 	if !ok {
-		return context.WithTimeout(ctx, limit)
+		readCtx, cancel := context.WithTimeout(ctx, limit)
+		return readCtx, cancel, func() {}
 	}
 
 	// Check for arrivals each time limit passes.
@@ -264,16 +274,16 @@ func withStallBound(ctx context.Context, limit time.Duration, store block.StoreO
 	return b.ctx, func() {
 		b.cancel()
 		b.timer.Load().Stop()
-	}
+	}, func() { b.refused.Store(true) }
 }
 
-// check ends the read when nothing arrived since the last check, and
-// otherwise waits limit again.
+// check ends the read when nothing arrived since the last check or the peers
+// answered it with a failure, and otherwise waits limit again.
 func (b *stallBound) check() {
 	if b.ctx.Err() != nil {
 		return
 	}
-	if n := b.received(); n != b.last {
+	if n := b.received(); n != b.last && !b.refused.Load() {
 		b.last = n
 		b.timer.Store(time.AfterFunc(b.limit, b.check))
 		return
