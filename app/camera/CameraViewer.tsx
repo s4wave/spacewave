@@ -10,7 +10,6 @@ import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { CameraHandle, CameraTypeID } from '@s4wave/sdk/camera/camera.js'
 import type { WatchCameraResponse } from '@s4wave/sdk/camera/camera.pb.js'
 import { DeviceAvailabilityState } from '@s4wave/sdk/device/device.pb.js'
-import { Codec } from '@s4wave/core/frametrack/frametrack.pb.js'
 
 import type { FrameSource } from '../frame/play-frames.js'
 import { CameraView, type CameraViewState } from './CameraView.js'
@@ -49,15 +48,9 @@ export function CameraViewer({
   return <CameraView view={cameraViewState(handle, watch)} source={source} />
 }
 
-// frameMimeTypes maps the codecs a canvas can decode as a picture to their
-// MIME types.
-const frameMimeTypes: Partial<Record<Codec, string>> = {
-  [Codec.JPEG]: 'image/jpeg',
-}
-
 // cameraFrameSource plays the Camera's frame track through its handle: the
 // opened event, then each picture the Device sends, until signal aborts the
-// RPC. A picture in a codec the viewer cannot draw fails the track.
+// RPC. The shared player decodes the format described by each group.
 function cameraFrameSource(handle: CameraHandle): FrameSource {
   return async function* (signal) {
     for await (const { state } of handle.watchFrames(signal)) {
@@ -66,18 +59,8 @@ function cameraFrameSource(handle: CameraHandle): FrameSource {
           yield { kind: 'opened' }
           break
         case 'frame': {
-          const codec = state.value.header?.codec ?? Codec.UNKNOWN
-          const mimeType = frameMimeTypes[codec]
-          if (!mimeType) {
-            throw new Error(
-              `The camera sends ${Codec[codec]} pictures, which this viewer cannot show.`,
-            )
-          }
-          yield {
-            kind: 'frame',
-            data: state.value.frame?.data ?? new Uint8Array(),
-            mimeType,
-          }
+          const { header, frame } = state.value
+          if (header && frame) yield { kind: 'frame', header, frame }
           break
         }
       }

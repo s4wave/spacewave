@@ -1,3 +1,4 @@
+import { Codec } from '@s4wave/core/frametrack/frametrack.pb.js'
 import type { Camera } from '@s4wave/sdk/camera/camera.pb.js'
 import type { Device } from '@s4wave/sdk/device/device.pb.js'
 import { useParams } from '@s4wave/web/router/router.js'
@@ -43,8 +44,8 @@ async function testPicture(step: number): Promise<FrameSourceEvent> {
   const blob = await canvas.convertToBlob({ type: 'image/jpeg' })
   return {
     kind: 'frame',
-    data: new Uint8Array(await blob.arrayBuffer()),
-    mimeType: 'image/jpeg',
+    header: { codec: Codec.JPEG },
+    frame: { data: new Uint8Array(await blob.arrayBuffer()), keyframe: true },
   }
 }
 
