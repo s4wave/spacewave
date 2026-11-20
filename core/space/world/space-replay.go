@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -329,30 +330,32 @@ func (r *spaceReplay) applyInit(ctx context.Context, initOp *InitWorldOp, prev *
 		return nil, "invalid world init: " + err.Error(), nil
 	}
 
-	// Write the root of a World that starts without a changelog, with graph
-	// settings or in another format.
-	settings, format := initOp.GetGraphSettings(), initOp.GetFormat()
-	if !initOp.GetLastChangeDisable() && len(settings.GetIndexes()) == 0 && format == world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV {
-		return next, "", nil
-	}
-
-	// Build the transformer of the World's transform.
-	xfrm, err := newWorldTransformer(controller.ConstructOpts{Logger: r.a.le}, r.a.opts.StepFactorySet, next.GetHeadRef().GetTransformConf())
-	if err != nil {
-		return nil, "", err
-	}
-
-	// Write it to the kept pages.
-	btx, bcs := block.NewTransaction(r.store(), xfrm, nil, nil)
-	root := world_block.NewWorld(format, initOp.GetLastChangeDisable())
-	root.GraphSettings = settings.CloneVT()
-	bcs.SetBlock(root, true)
-	rootRef, _, err := btx.Write(ctx, true)
+	// Write the World's root.
+	rootRef, err := r.writeRoot(ctx, next.GetHeadRef().GetTransformConf(), initOp)
 	if err != nil {
 		return nil, "", err
 	}
 	next.HeadRef.RootRef = rootRef
 	return next, "", nil
+}
+
+// writeRoot writes the root of an empty World, in the format and with the
+// changelog and graph settings initOp names, to the kept pages under the
+// World's transform, and returns its reference.
+func (r *spaceReplay) writeRoot(ctx context.Context, transformConf *block_transform.Config, initOp *InitWorldOp) (*block.BlockRef, error) {
+	// Build the transformer of the World's transform.
+	xfrm, err := newWorldTransformer(controller.ConstructOpts{Logger: r.a.le}, r.a.opts.StepFactorySet, transformConf)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write the root to the kept pages.
+	btx, bcs := block.NewTransaction(r.store(), xfrm, nil, nil)
+	root := world_block.NewWorld(initOp.GetFormat(), initOp.GetLastChangeDisable())
+	root.GraphSettings = initOp.GetGraphSettings().CloneVT()
+	bcs.SetBlock(root, true)
+	rootRef, _, err := btx.Write(ctx, true)
+	return rootRef, err
 }
 
 // applyTx runs a World transaction as its signer on the World prev.
@@ -401,8 +404,21 @@ func (r *spaceReplay) commitOn(ctx context.Context, prev *InnerState, failed str
 	// Run the change on the World and commit it.
 	var next *bucket.ObjectRef
 	aerr := func() error {
+		// A Space created with a seeded state names its World's transform but
+		// no root, so its first change writes the root every Space World
+		// starts with.
+		head := prev.GetHeadRef()
+		if head.GetRootRef().GetEmpty() {
+			rootRef, err := r.writeRoot(ctx, head.GetTransformConf(), SpaceInitWorldOp())
+			if err != nil {
+				return err
+			}
+			head = head.CloneVT()
+			head.RootRef = rootRef
+		}
+
 		// Open a writer on the World.
-		btx, err := r.writer(ctx, prev.GetHeadRef())
+		btx, err := r.writer(ctx, head)
 		if err != nil {
 			return err
 		}

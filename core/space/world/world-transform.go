@@ -13,6 +13,7 @@ import (
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/util/blockenc"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
 // errUnauthenticatedWorldTransform is returned for a World transform without
@@ -38,6 +39,15 @@ func NewInitWorldOp(base *InitWorldOp) (*InitWorldOp, error) {
 		op.TransformConf = conf
 	}
 	return op, nil
+}
+
+// SpaceInitWorldOp returns the operation a new Space's World starts from: the
+// newest format and no changelog, matching the default SpaceSettings. A Space
+// seeded with only its World's transform writes this root at its first change,
+// so every replay of a Space's operations, live or transient, builds the same
+// World whatever its adapter was configured with.
+func SpaceInitWorldOp() *InitWorldOp {
+	return &InitWorldOp{LastChangeDisable: true, Format: world_block.NewestWorldFormat}
 }
 
 // Validate checks the operation's transform, format and graph settings.

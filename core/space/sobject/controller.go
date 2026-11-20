@@ -100,17 +100,15 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 }
 
 // newSpaceWorldEngineConfig builds the Space adapter's World engine config for
-// a Space body. A Space World starts without a changelog, matching the default
-// SpaceSettings. Writing SpaceSettings with changelog_enabled switches it on
+// a Space body. A Space World starts from SpaceInitWorldOp, without a
+// changelog, matching the default SpaceSettings. Writing SpaceSettings with changelog_enabled switches it on
 // in the same transaction, so every participant replays the same choice.
 func newSpaceWorldEngineConfig(mountRef *sobject.SharedObjectRef, conf *Config) *space_world.Config {
 	return &space_world.Config{
-		EngineId: space.SpaceEngineId(mountRef),
-		Ref:      mountRef,
-		InitWorldOp: &space_world.InitWorldOp{
-			LastChangeDisable: true,
-		},
-		Verbose: conf.GetVerbose(),
+		EngineId:    space.SpaceEngineId(mountRef),
+		Ref:         mountRef,
+		InitWorldOp: space_world.SpaceInitWorldOp(),
+		Verbose:     conf.GetVerbose(),
 	}
 }
 

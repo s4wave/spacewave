@@ -8,6 +8,8 @@ import (
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
@@ -97,6 +99,40 @@ func hasKeys(ctx context.Context, t *testing.T, r *spaceReplay, state *InnerStat
 		}
 	}
 	return out
+}
+
+// TestSeededWorldStartsInTheConfiguredFormat checks that the first change to a
+// World seeded with only its transform, as a cloud Space is created, writes the
+// root SpaceInitWorldOp describes, on an adapter configured with none. It
+// fails when the change runs on the empty root, which starts the World in the
+// kv format with a changelog.
+func TestSeededWorldStartsInTheConfiguredFormat(t *testing.T) {
+	// Seed a World that names only its transform, and create a key on it.
+	ctx := t.Context()
+	r, start := newWorldReplay(t)
+	seeded := &InnerState{HeadRef: &bucket.ObjectRef{TransformConf: start.GetHeadRef().GetTransformConf()}}
+	next := createOn(ctx, t, r, seeded, "a")
+	if got := hasKeys(ctx, t, r, next, "a"); !got[0] {
+		t.Fatal("the seeded World lost its first change")
+	}
+
+	// Read the World's root.
+	engine, err := r.bind(ctx, next.GetHeadRef())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var root *world_block.World
+	err = engine.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		_, bcs := cursor.BuildTransaction(nil)
+		root, err = world_block.UnmarshalWorld(ctx, bcs)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if root.GetFormat() != world_block.NewestWorldFormat || !root.GetLastChangeDisable() {
+		t.Fatalf("seeded World root has format %v and changelog disabled %v", root.GetFormat(), root.GetLastChangeDisable())
+	}
 }
 
 // TestReplayMovesEngineToAnotherWorld checks that a replay whose next

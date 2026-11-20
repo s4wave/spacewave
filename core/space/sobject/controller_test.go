@@ -12,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/testbed"
@@ -61,6 +62,35 @@ func TestMountSpaceBodyProvidesSpaceWorldOps(t *testing.T) {
 	}
 	if gotSettings.GetIndexPath() != "/test" {
 		t.Fatalf("unexpected index path: %q", gotSettings.GetIndexPath())
+	}
+}
+
+// TestNewSpaceWorldIsNodeGraph checks that a new Space's World starts in the
+// newest format. It fails when the Space's InitWorldOp names no format, which
+// starts the World in the kv format.
+func TestNewSpaceWorldIsNodeGraph(t *testing.T) {
+	// Mount a new Space and write to its World.
+	ctx := t.Context()
+	ws := world.NewEngineWorldState(mountTestSpace(t), true)
+	obj, err := ws.CreateObject(ctx, "a", nil)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Read the format from the World's root.
+	var format world_block.WorldFormat
+	err = ws.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		_, bcs := root.BuildTransaction(nil)
+		w, err := world_block.UnmarshalWorld(ctx, bcs)
+		format = w.GetFormat()
+		return err
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if format != world_block.NewestWorldFormat {
+		t.Fatalf("new Space World format = %v, want %v", format, world_block.NewestWorldFormat)
 	}
 }
 
