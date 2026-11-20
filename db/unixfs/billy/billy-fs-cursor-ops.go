@@ -167,6 +167,12 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 		}
 	}
 
+	// Require the filesystem to enforce absence even against writers outside Billy.
+	fileFlags := os.O_CREATE | os.O_WRONLY | os.O_TRUNC
+	if checkExist {
+		fileFlags = os.O_CREATE | os.O_WRONLY | os.O_EXCL
+	}
+
 	// Create each requested node and invalidate the cursor before mutation.
 	for _, childPath := range childPaths {
 		o.released.Store(true) // release the cursor just before filesystem modification
@@ -174,14 +180,19 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 			if err := dirFs.MkdirAll(childPath, permissions); err != nil {
 				return err
 			}
-		} else {
-			f, err := o.c.state.bfs.OpenFile(childPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, permissions)
-			if err != nil {
-				return err
-			}
-			if err := f.Close(); err != nil {
-				return err
-			}
+			continue
+		}
+
+		// Report a late exclusive-create conflict without modifying the winner.
+		f, err := o.c.state.bfs.OpenFile(childPath, fileFlags, permissions)
+		if checkExist && errors.Is(err, fs.ErrExist) {
+			return unixfs_errors.ErrExist
+		}
+		if err != nil {
+			return err
+		}
+		if err := f.Close(); err != nil {
+			return err
 		}
 	}
 
