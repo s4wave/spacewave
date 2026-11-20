@@ -200,6 +200,8 @@ export interface RelationEnd {
   objectKey: string
   typeId: string
   title: string
+  // state is what the object's type declares as its state, empty for none.
+  state: string
 }
 
 // RelationGroup is the relations of one direction and predicate to objects of
@@ -248,7 +250,12 @@ export function groupRelations(
       groups.set(id, group)
     }
     if (!group.members.some((m) => m.objectKey === objectKey)) {
-      group.members.push({ objectKey, typeId, title: md?.title || '' })
+      group.members.push({
+        objectKey,
+        typeId,
+        title: md?.title || '',
+        state: md?.state || '',
+      })
     }
   }
   return Array.from(groups.values()).toSorted(
@@ -257,6 +264,19 @@ export function groupRelations(
       a.label.localeCompare(b.label) ||
       a.typeId.localeCompare(b.typeId),
   )
+}
+
+// stateSummary sums a family's member states, most common first, such as
+// "3 running, 2 passed", or empty when no member declares a state.
+export function stateSummary(members: readonly RelationEnd[]): string {
+  const counts = new Map<string, number>()
+  for (const { state } of members) {
+    if (state) counts.set(state, (counts.get(state) ?? 0) + 1)
+  }
+  return Array.from(counts)
+    .toSorted((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([state, n]) => n + ' ' + state)
+    .join(', ')
 }
 
 // bucketEnds yields each relation of the bucket as its direction, predicate

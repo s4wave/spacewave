@@ -1,5 +1,15 @@
 import { Cluster } from '@go/github.com/s4wave/spacewave/forge/cluster/cluster.pb.js'
 import { ClusterTypeID } from '@go/github.com/s4wave/spacewave/forge/cluster/cluster_typeid.pb.js'
+import {
+  Job,
+  State as JobState,
+} from '@go/github.com/s4wave/spacewave/forge/job/job.pb.js'
+import { JobTypeID } from '@go/github.com/s4wave/spacewave/forge/job/job_typeid.pb.js'
+import {
+  Task,
+  State as TaskState,
+} from '@go/github.com/s4wave/spacewave/forge/task/task.pb.js'
+import { TaskTypeID } from '@go/github.com/s4wave/spacewave/forge/task/task_typeid.pb.js'
 import { Worker } from '@go/github.com/s4wave/spacewave/forge/worker/worker.pb.js'
 import { WorkerTypeID } from '@go/github.com/s4wave/spacewave/forge/worker/worker_typeid.pb.js'
 import { createQuickstartSetup } from '@s4wave/app/quickstart/create.js'
@@ -30,11 +40,26 @@ interface HangarObject {
   links?: [predicate: string, target: string][]
 }
 
-// hangarObjects are titled objects of three types, untitled objects of two
-// plugin types, and relations both ways around the goal: seven outgoing
-// groups, more than the graph draws, and three incoming groups, one of them a
-// family of receipts.
+// hangarObjects are titled objects of four types, forge jobs and a task that
+// declare their states and times, untitled objects of three plugin types, and
+// relations both ways around the goal: eight outgoing groups, more than the
+// graph draws, and four incoming groups, two of them families: jobs in mixed
+// states and receipts.
 function hangarObjects(): HangarObject[] {
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3600_000)
+  const job = (
+    key: string,
+    jobState: JobState,
+    result?: { success: boolean; failError?: string },
+  ): HangarObject => ({
+    key,
+    typeId: JobTypeID,
+    root: {
+      blockType: JobTypeID,
+      data: Job.toBinary({ jobState, result, timestamp: hoursAgo(3) }),
+    },
+    links: [['<glados/pursues>', hangarGoal]],
+  })
   const channel = (key: string, name: string): HangarObject => ({
     key,
     typeId: ChatChannelTypeID,
@@ -71,8 +96,27 @@ function hangarObjects(): HangarObject[] {
     goal('goals/survey'),
     goal('goals/beacon'),
     goal('notes/approach'),
+    {
+      key: 'tasks/align',
+      typeId: TaskTypeID,
+      root: {
+        blockType: TaskTypeID,
+        data: Task.toBinary({
+          name: 'Align the docking clamp',
+          taskState: TaskState.TaskState_RUNNING,
+          timestamp: hoursAgo(2),
+        }),
+      },
+    },
+    job('jobs/dock-build', JobState.JobState_RUNNING),
+    job('jobs/dock-test', JobState.JobState_COMPLETE, { success: true }),
+    job('jobs/clamp-calibrate', JobState.JobState_COMPLETE, {
+      success: false,
+      failError: 'clamp out of range',
+    }),
     goal(hangarGoal, [
       ['<glados/owner>', 'clusters/bay'],
+      ['<glados/step>', 'tasks/align'],
       ['<glados/channel>', 'channels/general'],
       ['<glados/depends-on>', 'goals/power'],
       ['<glados/depends-on>', 'goals/survey'],

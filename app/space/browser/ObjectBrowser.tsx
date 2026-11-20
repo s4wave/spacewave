@@ -36,6 +36,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
+import { formatRelativeTime } from '../../git/util.js'
 import { SpaceObjectBrowser } from '../SpaceObjectBrowser.js'
 import {
   applyTypeCounts,
@@ -47,6 +48,7 @@ import {
   layoutRelationGraph,
   relationEndKeys,
   shownActions,
+  stateSummary,
   visibleTypeCounts,
   type BrowserAction,
   type BrowserEvent,
@@ -77,11 +79,12 @@ const familyPreview = 5
 // NameType names a type for a person: singular, or plural for a family.
 export type NameType = (typeId: string, plural?: boolean) => string
 
-// ObjectRow is one object of a list: its key and title, empty when it has
-// none.
+// ObjectRow is one object of a list: its key, and the title and state its
+// type declares, each empty when it declares none.
 export interface ObjectRow {
   objectKey: string
   title: string
+  state: string
 }
 
 // TypeRow is one visible type and its count.
@@ -102,6 +105,10 @@ export interface ObjectDetail {
   objectKey: string
   typeId: string
   title: string
+  // state and time are what the object's type declares, empty or absent for
+  // none.
+  state: string
+  time?: Date
   groups: RelationGroup[]
   // truncated is set when the object has relations past the read limit.
   truncated: boolean
@@ -273,7 +280,7 @@ function browserData(
   }
 }
 
-// useObjectList reads a type's objects with their titles. The list grows a
+// useObjectList reads a type's objects with their titles and states. The list grows a
 // page per Show more; another type starts again at one page.
 function useObjectList(world: Resource<IWorldState>, typeId: string) {
   const [paging, setPaging] = useState({ typeId, pages: 1 })
@@ -283,7 +290,7 @@ function useObjectList(world: Resource<IWorldState>, typeId: string) {
     async (state, signal) => {
       const page = await state.listObjectsWithTypePage(
         typeId,
-        { limit: pages * objectPage, titles: true },
+        { limit: pages * objectPage, declared: true },
         signal,
       )
       const keys = page.objectKeys ?? []
@@ -291,6 +298,7 @@ function useObjectList(world: Resource<IWorldState>, typeId: string) {
         rows: keys.map((objectKey, i): ObjectRow => ({
           objectKey,
           title: page.titles?.[i] ?? '',
+          state: page.states?.[i] ?? '',
         })),
         more: !!page.more,
       }
@@ -341,6 +349,7 @@ function useSearch(
             rows: keys.map((objectKey, i) => ({
               objectKey,
               title: page.titles?.[i] ?? '',
+              state: page.states?.[i] ?? '',
             })),
           }
         }
@@ -363,8 +372,8 @@ function useSearch(
   )
 }
 
-// useObjectDetail reads the open object, its relations and the titles at
-// their far ends from one World revision, again on each revision.
+// useObjectDetail reads the open object, its relations and what the types
+// at both ends declare from one World revision, again on each revision.
 function useObjectDetail(world: Resource<IWorldState>, objectKey: string) {
   return useWorldQuery(
     world,
@@ -391,6 +400,8 @@ function useObjectDetail(world: Resource<IWorldState>, objectKey: string) {
           objectKey,
           typeId: self?.typeId ?? '',
           title: self?.title ?? '',
+          state: self?.state ?? '',
+          time: self?.time,
           groups: groupRelations(bucket, byKey),
           truncated: !!(bucket?.outgoingTruncated || bucket?.incomingTruncated),
         },
@@ -521,6 +532,15 @@ function crumbs(nav: BrowserNav, nameType: NameType, title: string): string[] {
     default:
       return ['Types', list(nav)]
   }
+}
+
+// objectMeta is the open object's state and age, as its type declares
+// them, such as "running, 2h ago", or empty when it declares neither.
+function objectMeta(o: { state: string; time?: Date }): string {
+  const age = o.time
+    ? formatRelativeTime(BigInt(Math.floor(o.time.getTime() / 1000)))
+    : ''
+  return [o.state, age].filter(Boolean).join(', ')
 }
 
 // objectName is the name an object shows: its title, else its key's name.
@@ -718,17 +738,22 @@ function BrowserBody({
   }
 }
 
-// RowButton is one row of a list: a title and a detail at the end.
+// RowButton is one row of a list: a title, then at the end the object's type
+// chip, a detail such as its key, and its state.
 function RowButton({
   title,
+  chip,
   detail,
   mono,
+  state,
   disabled,
   onClick,
 }: {
   title: string
+  chip?: string
   detail?: string
   mono?: boolean
+  state?: string
   disabled?: boolean
   onClick: () => void
 }) {
@@ -740,6 +765,7 @@ function RowButton({
       className="hover:bg-foreground/5 focus-visible:ring-ring flex min-h-8 w-full items-center gap-3 rounded-md px-2 text-left text-xs outline-none focus-visible:ring-1 disabled:cursor-default disabled:hover:bg-transparent"
     >
       <span className="text-foreground min-w-0 flex-1 truncate">{title}</span>
+      {chip ? <TypeChip name={chip} /> : null}
       {detail ? (
         <span
           className={cn(
@@ -750,7 +776,19 @@ function RowButton({
           {detail}
         </span>
       ) : null}
+      {state ? (
+        <span className="text-text-muted shrink-0 truncate">{state}</span>
+      ) : null}
     </button>
+  )
+}
+
+// TypeChip names an object's type in a violet outline.
+function TypeChip({ name }: { name: string }) {
+  return (
+    <span className="border-violet/35 text-violet shrink-0 truncate rounded border px-2 text-xs leading-4">
+      {name}
+    </span>
   )
 }
 
@@ -771,6 +809,7 @@ function ObjectRows({
             title={objectName(row)}
             detail={row.title ? row.objectKey : undefined}
             mono
+            state={row.state}
             disabled={!enabled}
             onClick={() => onOpen(row.objectKey)}
           />
@@ -803,6 +842,7 @@ function ObjectView({
   const toList = () => {
     if (rel === 'graph') onEvent({ type: 'toggleRelations' })
   }
+  const meta = objectMeta(object)
   const copyKey = () => {
     void navigator.clipboard.writeText(object.objectKey).then(
       () => toast.success('Key copied'),
@@ -813,16 +853,15 @@ function ObjectView({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <h2 className="text-foreground min-w-0 text-sm font-medium break-words">
-          {objectName(object)}
-        </h2>
-        <div className="flex min-w-0 items-baseline gap-2 text-xs">
-          <span className="text-violet shrink-0">
-            {nameType(object.typeId)}
-          </span>
-          <span className="text-foreground-alt truncate font-mono">
-            {object.objectKey}
-          </span>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <h2 className="text-foreground min-w-0 text-sm font-medium break-words">
+            {objectName(object)}
+          </h2>
+          <TypeChip name={nameType(object.typeId)} />
+        </div>
+        <div className="text-text-muted flex min-w-0 items-baseline gap-4 text-xs">
+          {meta ? <span className="shrink-0">{meta}</span> : null}
+          <span className="truncate font-mono">{object.objectKey}</span>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -1108,14 +1147,19 @@ function RelationList({
         const members = all ? g.members : g.members.slice(0, familyPreview)
         return (
           <section key={g.id} aria-label={g.label} className="flex flex-col">
-            <h3 className="flex items-baseline gap-2 px-2 text-xs">
-              <span className="text-foreground font-medium">{g.label}</span>
+            <h3 className="text-text-muted flex items-baseline gap-2 px-2 pb-0.5 text-xs tracking-wide uppercase">
+              <span>{g.label}</span>
               {g.members.length > 1 ? (
-                <span className="text-foreground-alt">
-                  {g.members.length + ' ' + nameType(g.typeId, true)}
+                <span className="truncate">
+                  {[
+                    g.members.length + ' ' + nameType(g.typeId, true),
+                    stateSummary(g.members),
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
                 </span>
               ) : null}
-              <span className="text-foreground-alt ml-auto">
+              <span className="text-warning ml-auto shrink-0 tracking-normal normal-case">
                 {g.direction === 'out' ? 'outgoing' : 'incoming'}
               </span>
             </h3>
@@ -1124,7 +1168,8 @@ function RelationList({
                 <li key={m.objectKey}>
                   <RowButton
                     title={objectName(m)}
-                    detail={nameType(m.typeId)}
+                    chip={nameType(m.typeId)}
+                    state={m.state}
                     disabled={!follow}
                     onClick={() => follow?.(m.objectKey)}
                   />
