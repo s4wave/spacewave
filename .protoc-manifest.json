@@ -1518,6 +1518,16 @@
             "core/device/policy/policy.proto"
           ]
         },
+        "github.com/s4wave/spacewave/core/display": {
+          "hash": "d0d25148e03d617e6b4948b65abaf911571e12a0d545e5069881b2073bfead6c",
+          "generatedFiles": [
+            "core/display/display.pb.go",
+            "core/display/display.pb.ts"
+          ],
+          "protoFiles": [
+            "core/display/display.proto"
+          ]
+        },
         "github.com/s4wave/spacewave/core/forge/dashboard": {
           "hash": "b560eb002f765968b3a40cb74dac5891bb05a4db99607e4cb585f229c9175532",
           "generatedFiles": [
@@ -1567,7 +1577,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/frametrack": {
-          "hash": "f6e94a72c7bd921dcb0463fd87e9324cfab7a6967bfcdad8b5a2db8e0021eae5",
+          "hash": "fca3b3097291d702ef1997e9fd5fbe88352fbf96820e7efb666fa92880d12b9f",
           "generatedFiles": [
             "core/frametrack/frametrack.pb.go",
             "core/frametrack/frametrack.pb.ts"

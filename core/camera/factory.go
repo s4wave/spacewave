@@ -9,6 +9,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/callback"
+	frametrack_server "github.com/s4wave/spacewave/core/frametrack/server"
+	"github.com/s4wave/spacewave/core/testpattern"
 )
 
 // version is the camera controller version.
@@ -42,10 +44,13 @@ func (f *Factory) ConstructConfig() config.Config {
 
 // Construct creates the controller that serves one track while it executes.
 func (f *Factory) Construct(_ context.Context, _ config.Config, opts controller.ConstructOpts) (controller.Controller, error) {
+	// Identify the camera controller on the Session bus.
 	info := controller.NewInfo(ControllerID, version, "device camera controller")
 	le := opts.GetLogger().WithField("controller", ControllerID)
+
+	// Serve the view-only JPEG pattern for this controller execution.
 	return callback.NewCallbackController(info, func(ctx context.Context) error {
-		return serveTestPattern(ctx, le, f.b)
+		return frametrack_server.Serve(ctx, le, f.b, ControlProtocolID, testpattern.NewJPEGSource(), 1, nil)
 	}, nil, nil), nil
 }
 

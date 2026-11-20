@@ -1,0 +1,12 @@
+syntax = "proto3";
+package display;
+
+import "github.com/s4wave/spacewave/core/frametrack/frametrack.proto";
+
+option go_package = "github.com/s4wave/spacewave/core/display;display";
+
+// Config selects the codec of the Device's display test pattern.
+message Config {
+  // Codec selects the AVC bars clip or the pointer-responsive JPEG pattern.
+  .s4wave.frametrack.Codec codec = 1;
+}

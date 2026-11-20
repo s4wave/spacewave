@@ -62,9 +62,14 @@ type Pattern struct {
 // New constructs a Pattern with frame zero drawn and the pointer hidden.
 func New() *Pattern {
 	// Allocate the working image once and fill it with the opening frame.
-	p := &Pattern{frame: image.NewRGBA(bars.Bounds()), pointer: image.Pt(-1, -1)}
+	p := newPattern()
 	p.Draw()
 	return p
+}
+
+// newPattern allocates a pattern before its first draw.
+func newPattern() *Pattern {
+	return &Pattern{frame: image.NewRGBA(bars.Bounds()), pointer: image.Pt(-1, -1)}
 }
 
 // SetPointer sets the cross position for future frames in frame pixels.

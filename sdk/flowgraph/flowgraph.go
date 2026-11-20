@@ -18,6 +18,8 @@ const (
 	CheckoutRootNodeTypeID = "checkout-root"
 	// CameraNodeTypeID selects a camera track a Device serves.
 	CameraNodeTypeID = "camera"
+	// DisplayNodeTypeID selects a display track and input on a Device.
+	DisplayNodeTypeID = "display"
 	// RemoteShellNodeTypeID selects the remote shell a Device serves.
 	RemoteShellNodeTypeID = "remote-shell"
 	// ForgeWorkerNodeTypeID selects the Forge Worker a Device hosts.

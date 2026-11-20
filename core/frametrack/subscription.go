@@ -7,13 +7,13 @@ import (
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 )
 
-// maxSubscriptionMessageSize bounds the control stream's subscription packet.
-const maxSubscriptionMessageSize = 4096
+// maxControlMessageSize bounds each packet on the subscription control stream.
+const maxControlMessageSize = 4096
 
 // ReadSubscription reads the subscription from a control stream.
 func ReadSubscription(control io.ReadWriteCloser) (*Subscription, error) {
 	// Read and validate the viewer's subscription identifier.
-	session := stream_packet.NewSession(control, maxSubscriptionMessageSize)
+	session := stream_packet.NewSession(control, maxControlMessageSize)
 	subscription := new(Subscription)
 	if err := session.RecvMsg(subscription); err != nil {
 		return nil, err
@@ -27,10 +27,10 @@ func ReadSubscription(control io.ReadWriteCloser) (*Subscription, error) {
 // WriteSubscription sends a subscription on a control stream.
 func WriteSubscription(control io.ReadWriteCloser, subscription *Subscription) error {
 	// Reject a subscription the receiver cannot accept.
-	if subscription.GetSubscriptionId() == "" || subscription.SizeVT() > maxSubscriptionMessageSize {
+	if subscription.GetSubscriptionId() == "" || subscription.SizeVT() > maxControlMessageSize {
 		return errors.New("frame subscription ID is empty or too large")
 	}
 
 	// Send the subscription using the same packet framing as group messages.
-	return stream_packet.NewSession(control, maxSubscriptionMessageSize).SendMsg(subscription)
+	return stream_packet.NewSession(control, maxControlMessageSize).SendMsg(subscription)
 }

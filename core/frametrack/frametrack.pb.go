@@ -7,6 +7,7 @@ package frametrack
 import (
 	fmt "fmt"
 	io "io"
+	math "math"
 	slices "slices"
 	strconv "strconv"
 
@@ -179,6 +180,147 @@ func (x *Frame) GetData() []byte {
 	return nil
 }
 
+// Input is one event sent on an admitted display's subscription stream.
+type Input struct {
+	unknownFields []byte
+	// Event is the pointer or key event in delivery order.
+	//
+	// Types that are assignable to Event:
+	//	*Input_Pointer
+	//	*Input_Key
+	Event isInput_Event `protobuf_oneof:"event"`
+}
+
+func (x *Input) Reset() {
+	*x = Input{}
+}
+
+func (*Input) ProtoMessage() {}
+
+func (m *Input) GetEvent() isInput_Event {
+	if m != nil {
+		return m.Event
+	}
+	return nil
+}
+
+func (x *Input) GetPointer() *PointerInput {
+	if x, ok := x.GetEvent().(*Input_Pointer); ok {
+		return x.Pointer
+	}
+	return nil
+}
+
+func (x *Input) GetKey() *KeyInput {
+	if x, ok := x.GetEvent().(*Input_Key); ok {
+		return x.Key
+	}
+	return nil
+}
+
+type isInput_Event interface {
+	isInput_Event()
+}
+
+type Input_Pointer struct {
+	// Pointer reports the current pointer position and buttons.
+	Pointer *PointerInput `protobuf:"bytes,1,opt,name=pointer,proto3,oneof"`
+}
+
+type Input_Key struct {
+	// Key reports a pressed or released key.
+	Key *KeyInput `protobuf:"bytes,2,opt,name=key,proto3,oneof"`
+}
+
+func (*Input_Pointer) isInput_Event() {}
+
+func (*Input_Key) isInput_Event() {}
+
+// PointerInput describes a position and button state in the displayed picture.
+type PointerInput struct {
+	unknownFields []byte
+	// X is the horizontal position, from the left (0) to the right (1).
+	X float32 `protobuf:"fixed32,1,opt,name=x,proto3" json:"x,omitempty"`
+	// Y is the vertical position, from the top (0) to the bottom (1).
+	Y float32 `protobuf:"fixed32,2,opt,name=y,proto3" json:"y,omitempty"`
+	// Buttons is the set of pressed buttons, in the DOM PointerEvent bit order.
+	Buttons uint32 `protobuf:"varint,3,opt,name=buttons,proto3" json:"buttons,omitempty"`
+}
+
+func (x *PointerInput) Reset() {
+	*x = PointerInput{}
+}
+
+func (*PointerInput) ProtoMessage() {}
+
+func (x *PointerInput) GetX() float32 {
+	if x != nil {
+		return x.X
+	}
+	return 0
+}
+
+func (x *PointerInput) GetY() float32 {
+	if x != nil {
+		return x.Y
+	}
+	return 0
+}
+
+func (x *PointerInput) GetButtons() uint32 {
+	if x != nil {
+		return x.Buttons
+	}
+	return 0
+}
+
+// KeyInput describes one key transition.
+type KeyInput struct {
+	unknownFields []byte
+	// Code identifies the physical key using KeyboardEvent.code.
+	Code string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	// Key identifies the logical key using KeyboardEvent.key.
+	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	// Pressed is true for a key down and false for a key up.
+	Pressed bool `protobuf:"varint,3,opt,name=pressed,proto3" json:"pressed,omitempty"`
+	// Repeat is true for an autorepeated key down.
+	Repeat bool `protobuf:"varint,4,opt,name=repeat,proto3" json:"repeat,omitempty"`
+}
+
+func (x *KeyInput) Reset() {
+	*x = KeyInput{}
+}
+
+func (*KeyInput) ProtoMessage() {}
+
+func (x *KeyInput) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *KeyInput) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *KeyInput) GetPressed() bool {
+	if x != nil {
+		return x.Pressed
+	}
+	return false
+}
+
+func (x *KeyInput) GetRepeat() bool {
+	if x != nil {
+		return x.Repeat
+	}
+	return false
+}
+
 func (m *Subscription) CloneVT() *Subscription {
 	if m == nil {
 		return (*Subscription)(nil)
@@ -231,6 +373,87 @@ func (m *Frame) CloneVT() *Frame {
 }
 
 func (m *Frame) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Input) CloneVT() *Input {
+	if m == nil {
+		return (*Input)(nil)
+	}
+	r := new(Input)
+	if m.Event != nil {
+		r.Event = m.Event.(interface{ CloneOneofVT() isInput_Event }).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Input) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Input_Pointer) CloneVT() *Input_Pointer {
+	if m == nil {
+		return (*Input_Pointer)(nil)
+	}
+	r := new(Input_Pointer)
+	r.Pointer = protobuf_go_lite.CloneVTValue(m.Pointer)
+	return r
+}
+
+func (m *Input_Pointer) CloneOneofVT() isInput_Event {
+	return m.CloneVT()
+}
+
+func (m *Input_Key) CloneVT() *Input_Key {
+	if m == nil {
+		return (*Input_Key)(nil)
+	}
+	r := new(Input_Key)
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	return r
+}
+
+func (m *Input_Key) CloneOneofVT() isInput_Event {
+	return m.CloneVT()
+}
+
+func (m *PointerInput) CloneVT() *PointerInput {
+	if m == nil {
+		return (*PointerInput)(nil)
+	}
+	r := new(PointerInput)
+	r.X = m.X
+	r.Y = m.Y
+	r.Buttons = m.Buttons
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PointerInput) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *KeyInput) CloneVT() *KeyInput {
+	if m == nil {
+		return (*KeyInput)(nil)
+	}
+	r := new(KeyInput)
+	r.Code = m.Code
+	r.Key = m.Key
+	r.Pressed = m.Pressed
+	r.Repeat = m.Repeat
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *KeyInput) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -309,6 +532,122 @@ func (this *Frame) EqualVT(that *Frame) bool {
 
 func (this *Frame) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Frame)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Input) EqualVT(that *Input) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Event == nil && that.Event != nil {
+		return false
+	} else if this.Event != nil {
+		if that.Event == nil {
+			return false
+		}
+		if !this.Event.(interface{ EqualVT(isInput_Event) bool }).EqualVT(that.Event) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Input) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Input)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Input_Pointer) EqualVT(thatIface isInput_Event) bool {
+	that, ok := thatIface.(*Input_Pointer)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Pointer, that.Pointer, func() *PointerInput { return &PointerInput{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *Input_Key) EqualVT(thatIface isInput_Event) bool {
+	that, ok := thatIface.(*Input_Key)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Key, that.Key, func() *KeyInput { return &KeyInput{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *PointerInput) EqualVT(that *PointerInput) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.X != that.X {
+		return false
+	}
+	if this.Y != that.Y {
+		return false
+	}
+	if this.Buttons != that.Buttons {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PointerInput) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PointerInput)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *KeyInput) EqualVT(that *KeyInput) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Code != that.Code {
+		return false
+	}
+	if this.Key != that.Key {
+		return false
+	}
+	if this.Pressed != that.Pressed {
+		return false
+	}
+	if this.Repeat != that.Repeat {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KeyInput) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*KeyInput)
 	if !ok {
 		return false
 	}
@@ -541,6 +880,194 @@ func (x *Frame) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the Input message to JSON.
+func (x *Input) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Event != nil {
+		switch ov := x.Event.(type) {
+		case *Input_Pointer:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("pointer")
+			ov.Pointer.MarshalProtoJSON(s.WithField("pointer"))
+		case *Input_Key:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("key")
+			ov.Key.MarshalProtoJSON(s.WithField("key"))
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Input to JSON.
+func (x *Input) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Input message from JSON.
+func (x *Input) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pointer":
+			ov := &Input_Pointer{}
+			x.Event = ov
+			if s.ReadNil() {
+				ov.Pointer = nil
+				return
+			}
+			ov.Pointer = &PointerInput{}
+			ov.Pointer.UnmarshalProtoJSON(s.WithField("pointer", true))
+		case "key":
+			ov := &Input_Key{}
+			x.Event = ov
+			if s.ReadNil() {
+				ov.Key = nil
+				return
+			}
+			ov.Key = &KeyInput{}
+			ov.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Input from JSON.
+func (x *Input) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PointerInput message to JSON.
+func (x *PointerInput) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.X != 0 || s.HasField("x") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("x")
+		s.WriteFloat32(x.X)
+	}
+	if x.Y != 0 || s.HasField("y") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("y")
+		s.WriteFloat32(x.Y)
+	}
+	if x.Buttons != 0 || s.HasField("buttons") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("buttons")
+		s.WriteUint32(x.Buttons)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PointerInput to JSON.
+func (x *PointerInput) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PointerInput message from JSON.
+func (x *PointerInput) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "x":
+			s.AddField("x")
+			x.X = s.ReadFloat32()
+		case "y":
+			s.AddField("y")
+			x.Y = s.ReadFloat32()
+		case "buttons":
+			s.AddField("buttons")
+			x.Buttons = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PointerInput from JSON.
+func (x *PointerInput) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the KeyInput message to JSON.
+func (x *KeyInput) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Code != "" || s.HasField("code") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("code")
+		s.WriteString(x.Code)
+	}
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Pressed || s.HasField("pressed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pressed")
+		s.WriteBool(x.Pressed)
+	}
+	if x.Repeat || s.HasField("repeat") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("repeat")
+		s.WriteBool(x.Repeat)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the KeyInput to JSON.
+func (x *KeyInput) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KeyInput message from JSON.
+func (x *KeyInput) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "code":
+			s.AddField("code")
+			x.Code = s.ReadString()
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "pressed":
+			s.AddField("pressed")
+			x.Pressed = s.ReadBool()
+		case "repeat":
+			s.AddField("repeat")
+			x.Repeat = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the KeyInput from JSON.
+func (x *KeyInput) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Subscription) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -692,6 +1219,194 @@ func (m *Frame) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *Input) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Input) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Input) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.Event.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Input_Pointer) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Input_Pointer) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Pointer != nil {
+		size, err := m.Pointer.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Input_Key) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Input_Key) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PointerInput) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PointerInput) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PointerInput) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Buttons != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Buttons))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Y != 0 {
+		i = protobuf_go_lite.EncodeFixed32(dAtA, i, uint32(math.Float32bits(float32(m.Y))))
+		i--
+		dAtA[i] = 0x15
+	}
+	if m.X != 0 {
+		i = protobuf_go_lite.EncodeFixed32(dAtA, i, uint32(math.Float32bits(float32(m.X))))
+		i--
+		dAtA[i] = 0xd
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KeyInput) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KeyInput) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KeyInput) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Repeat {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Repeat)
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Pressed {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Pressed)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Key) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Key)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Code) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Code)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Subscription) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -731,6 +1446,76 @@ func (m *Frame) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Keyframe)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Data)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Input) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.Event.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Input_Pointer) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Pointer != nil {
+		l = m.Pointer.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *Input_Key) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *PointerInput) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeFixed32NonZero(1, m.X)
+	n += protobuf_go_lite.SizeFixed32NonZero(1, m.Y)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Buttons)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *KeyInput) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Code)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Key)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Pressed)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Repeat)
 	n += len(m.unknownFields)
 	return n
 }
@@ -806,6 +1591,80 @@ func (x *Frame) MarshalProtoText() string {
 }
 
 func (x *Frame) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *Input) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Input")
+	switch body := x.Event.(type) {
+	case *Input_Pointer:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pointer")
+		if body.Pointer == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &PointerInput{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Pointer)
+		}
+	case *Input_Key:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		if body.Key == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &KeyInput{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Key)
+		}
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Input) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PointerInput) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PointerInput")
+	if x.X != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "x")
+		protobuf_go_lite.TextWriteFloat32(&sb, x.X)
+	}
+	if x.Y != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "y")
+		protobuf_go_lite.TextWriteFloat32(&sb, x.Y)
+	}
+	if x.Buttons != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "buttons")
+		protobuf_go_lite.TextWriteUint(&sb, x.Buttons)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PointerInput) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *KeyInput) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "KeyInput")
+	if x.Code != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "code")
+		protobuf_go_lite.TextWriteString(&sb, x.Code)
+	}
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Pressed != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pressed")
+		protobuf_go_lite.TextWriteBool(&sb, x.Pressed)
+	}
+	if x.Repeat != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "repeat")
+		protobuf_go_lite.TextWriteBool(&sb, x.Repeat)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *KeyInput) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1014,6 +1873,248 @@ func (m *Frame) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *Input) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Input: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Input: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pointer", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Event.(*Input_Pointer); ok {
+				if err := oneof.Pointer.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &PointerInput{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Event = &Input_Pointer{Pointer: v}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Event.(*Input_Key); ok {
+				if err := oneof.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &KeyInput{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Event = &Input_Key{Key: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PointerInput) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PointerInput: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PointerInput: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field X", wireType)
+			}
+			var v uint32
+			var _v32 uint32
+			_v32, iNdEx, err = protobuf_go_lite.DecodeFixed32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			v = uint32(_v32)
+			m.X = float32(math.Float32frombits(v))
+		case 2:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Y", wireType)
+			}
+			var v uint32
+			var _v32 uint32
+			_v32, iNdEx, err = protobuf_go_lite.DecodeFixed32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			v = uint32(_v32)
+			m.Y = float32(math.Float32frombits(v))
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Buttons", wireType)
+			}
+			m.Buttons = 0
+			m.Buttons, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *KeyInput) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KeyInput: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KeyInput: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Code", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Code = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Key = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pressed", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Pressed = bool(v)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Repeat", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Repeat = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

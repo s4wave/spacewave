@@ -128,3 +128,91 @@ export const Frame: MessageType<Frame> =
     [2, 'keyframe', 8],
     [3, 'data', 12],
   ])
+
+/**
+ * Input is one event sent on an admitted display's subscription stream.
+ *
+ * @generated from message s4wave.frametrack.Input
+ */
+export interface Input {
+  /**
+   * Event is the pointer or key event in delivery order.
+   *
+   * @generated from oneof s4wave.frametrack.Input.event
+   */
+  event?:
+    | { value?: undefined; case: undefined }
+    | { value: PointerInput; case: 'pointer' }
+    | { value: KeyInput; case: 'key' }
+}
+
+export const Input: MessageType<Input> =
+  /* @__PURE__ */ createMessageType<Input>('s4wave.frametrack.Input', () => [
+    [1, 'pointer', 11, 0, PointerInput.codec, 'event'],
+    [2, 'key', 11, 0, KeyInput.codec, 'event'],
+  ])
+
+/**
+ * PointerInput describes a position and button state in the displayed picture.
+ *
+ * @generated from message s4wave.frametrack.PointerInput
+ */
+export interface PointerInput {
+  /**
+   * X is the horizontal position, from the left (0) to the right (1).
+   */
+  x?: number
+  /**
+   * Y is the vertical position, from the top (0) to the bottom (1).
+   */
+  y?: number
+  /**
+   * Buttons is the set of pressed buttons, in the DOM PointerEvent bit order.
+   */
+  buttons?: number
+}
+
+export const PointerInput: MessageType<PointerInput> =
+  /* @__PURE__ */ createMessageType<PointerInput>(
+    's4wave.frametrack.PointerInput',
+    () => [
+      [1, 'x', 2],
+      [2, 'y', 2],
+      [3, 'buttons', 13],
+    ],
+  )
+
+/**
+ * KeyInput describes one key transition.
+ *
+ * @generated from message s4wave.frametrack.KeyInput
+ */
+export interface KeyInput {
+  /**
+   * Code identifies the physical key using KeyboardEvent.code.
+   */
+  code?: string
+  /**
+   * Key identifies the logical key using KeyboardEvent.key.
+   */
+  key?: string
+  /**
+   * Pressed is true for a key down and false for a key up.
+   */
+  pressed?: boolean
+  /**
+   * Repeat is true for an autorepeated key down.
+   */
+  repeat?: boolean
+}
+
+export const KeyInput: MessageType<KeyInput> =
+  /* @__PURE__ */ createMessageType<KeyInput>(
+    's4wave.frametrack.KeyInput',
+    () => [
+      [1, 'code', 9],
+      [2, 'key', 9],
+      [3, 'pressed', 8],
+      [4, 'repeat', 8],
+    ],
+  )

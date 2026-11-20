@@ -30,6 +30,7 @@ func NewController() *Controller {
 			s4wave_flowgraph.LocalPortNodeTypeID:    localPort{},
 			s4wave_flowgraph.CheckoutRootNodeTypeID: checkoutRoot{},
 			s4wave_flowgraph.CameraNodeTypeID:       camera{},
+			s4wave_flowgraph.DisplayNodeTypeID:      display{},
 			s4wave_flowgraph.RemoteShellNodeTypeID:  remoteShell{},
 			s4wave_flowgraph.ForgeWorkerNodeTypeID:  forgeWorker{},
 			s4wave_flowgraph.EventSourceNodeTypeID:  eventSource{},

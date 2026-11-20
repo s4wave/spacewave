@@ -11,6 +11,8 @@ import (
 const (
 	// DeviceCapabilityKindCamera identifies a camera track served by a Device.
 	DeviceCapabilityKindCamera = "camera"
+	// DeviceCapabilityKindDisplay identifies a display track with input.
+	DeviceCapabilityKindDisplay = "display"
 	// DeviceCapabilityKindFilesystem identifies filesystem access exposed by a Device.
 	DeviceCapabilityKindFilesystem = "filesystem"
 	// DeviceCapabilityKindForgeWorker identifies Forge Worker execution exposed by a Device.

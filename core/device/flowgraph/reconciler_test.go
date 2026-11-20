@@ -21,6 +21,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/core/camera"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	"github.com/s4wave/spacewave/core/display"
 	"github.com/s4wave/spacewave/core/frametrack"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	"github.com/s4wave/spacewave/core/transport"
@@ -119,6 +120,7 @@ func TestReconciler(t *testing.T) {
 		transport.WithChildFactories(
 			func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
 			func(b bus.Bus) controller.Factory { return camera.NewFactory(b) },
+			func(b bus.Bus) controller.Factory { return display.NewFactory(b) },
 		),
 		transport.WithInprocNetwork(network),
 		transport.WithPeerAuthorizer(func(_ context.Context, id peer.ID) error {
@@ -306,7 +308,7 @@ func TestReconciler(t *testing.T) {
 		t.Fatal("removed checkout root node still has a capability")
 	}
 
-	// Allow the Remote Shell and leave the Camera out of the policy.
+	// Allow the Remote Shell and leave the Camera and Display out of policy.
 	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
 		NodeTypeId: []string{s4wave_flowgraph.LocalPortNodeTypeID, s4wave_flowgraph.CheckoutRootNodeTypeID, s4wave_flowgraph.RemoteShellNodeTypeID},
 	}); err != nil {
@@ -318,14 +320,18 @@ func TestReconciler(t *testing.T) {
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
 			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
-				"shell-a": {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
-				"shell-b": {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
-				"camera":  {TypeId: s4wave_flowgraph.CameraNodeTypeID},
+				"shell-a":   {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
+				"shell-b":   {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
+				"camera":    {TypeId: s4wave_flowgraph.CameraNodeTypeID},
+				"display-a": {TypeId: s4wave_flowgraph.DisplayNodeTypeID, Parameters: map[string]string{"codec": "jpeg"}},
+				"display-b": {TypeId: s4wave_flowgraph.DisplayNodeTypeID},
 			},
 			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
-				"shell-a": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
-				"shell-b": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
-				"camera":  {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"shell-a":   {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"shell-b":   {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"camera":    {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"display-a": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"display-b": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
 			},
 		})
 		return err
@@ -333,7 +339,8 @@ func TestReconciler(t *testing.T) {
 	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
 		return capabilityState(capabilities, "shell-a") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE &&
 			capabilityState(capabilities, "shell-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED &&
-			capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
+			capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED &&
+			capabilityState(capabilities, "display-a") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
 	})
 	if kind := capabilities[capabilityID("shell-a")].GetKind(); kind != s4wave_device.DeviceCapabilityKindRemoteShell {
 		t.Fatalf("remote shell capability kind = %q, want %q", kind, s4wave_device.DeviceCapabilityKindRemoteShell)
@@ -343,11 +350,15 @@ func TestReconciler(t *testing.T) {
 		t.Fatalf("rejected camera detail = %q", detail)
 	}
 
-	// Allow the placed Camera and use the Device capability to open it.
+	if detail := capabilities[capabilityID("display-a")].GetDetail(); !strings.Contains(detail, `node type "display" is not allowed by the Device policy`) {
+		t.Fatalf("rejected display detail = %q", detail)
+	}
+
+	// Allow the Camera and Display and keep only the first placed display.
 	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
 		NodeTypeId: []string{
 			s4wave_flowgraph.LocalPortNodeTypeID, s4wave_flowgraph.CheckoutRootNodeTypeID,
-			s4wave_flowgraph.RemoteShellNodeTypeID, s4wave_flowgraph.CameraNodeTypeID,
+			s4wave_flowgraph.RemoteShellNodeTypeID, s4wave_flowgraph.CameraNodeTypeID, s4wave_flowgraph.DisplayNodeTypeID,
 		},
 	}); err != nil {
 		t.Fatal(err)
@@ -356,8 +367,15 @@ func TestReconciler(t *testing.T) {
 		t.Fatal(err)
 	}
 	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
-		return capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
+		return capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE &&
+			capabilityState(capabilities, "display-a") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE &&
+			capabilityState(capabilities, "display-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
 	})
+	if detail := capabilities[capabilityID("display-b")].GetDetail(); !strings.Contains(detail, "already provided") {
+		t.Fatalf("second display was refused for the wrong reason: %q", detail)
+	}
+
+	// Attach both viewers to the capabilities that their placed nodes publish.
 	cameraCap := capabilities[capabilityID("camera")]
 	controlProtocol := protocol.ID(cameraCap.GetLink().GetProtocolId())
 	if cameraCap.GetKind() != s4wave_device.DeviceCapabilityKindCamera || controlProtocol != camera.ControlProtocolID {
@@ -369,7 +387,14 @@ func TestReconciler(t *testing.T) {
 		t, ctx, tb.WorldState, st.GetPeerID(), viewer, viewerBus, outsider, controlProtocol, cameraCap.GetId(),
 	)
 
-	// Revoke the camera policy while the admitted subscription is live.
+	displayCap := capabilities[capabilityID("display-a")]
+	displayProtocol := protocol.ID(displayCap.GetLink().GetProtocolId())
+	if displayCap.GetKind() != s4wave_device.DeviceCapabilityKindDisplay || displayProtocol != display.ControlProtocolID {
+		t.Fatalf("display capability kind = %q, protocol = %q", displayCap.GetKind(), displayProtocol)
+	}
+	displayControl := checkDisplaySubscription(t, ctx, st.GetPeerID(), viewer, outsider, displayProtocol)
+
+	// Revoke the policy while both admitted subscriptions are live.
 	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
 		NodeTypeId: []string{s4wave_flowgraph.ForgeWorkerNodeTypeID},
 	}); err != nil {
@@ -379,8 +404,11 @@ func TestReconciler(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
-		return capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
+		return capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED &&
+			capabilityState(capabilities, "display-a") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
 	})
+	checkFrameControlClosed(t, displayControl)
+
 	// The Device closes the control stream, which ends the frame track
 	// cleanly after any pictures already in flight.
 	for {
@@ -566,24 +594,30 @@ func checkCameraSubscription(
 	}
 
 	// A linked peer from another account gets EOF instead of a subscription.
-	refused := openCameraControl(t, ctx, devicePeer, outsider, controlProtocol)
+	refused := openFrameControl(t, ctx, devicePeer, outsider, controlProtocol).GetStream()
 	// Refusal can close the stream before the request reaches the Device.
 	_ = frametrack.WriteSubscription(refused, &frametrack.Subscription{SubscriptionId: "camera-outsider"})
-	var extra [1]byte
-	if n, err := refused.Read(extra[:]); n != 0 || !errors.Is(err, io.EOF) {
-		t.Fatalf("camera control stream for the outsider read %d bytes, error %v", n, err)
-	}
+	checkFrameControlClosed(t, refused)
 	return frames
 }
 
-// openCameraControl holds the peer link and opens the named control protocol.
-func openCameraControl(
+// checkFrameControlClosed requires EOF on a refused or stopped control stream.
+func checkFrameControlClosed(t *testing.T, control stream.Stream) {
+	t.Helper()
+	var extra [1]byte
+	if n, err := control.Read(extra[:]); n != 0 || !errors.Is(err, io.EOF) {
+		t.Fatalf("frame control stream read %d bytes, error %v, want EOF", n, err)
+	}
+}
+
+// openFrameControl holds the peer link and opens the named control protocol.
+func openFrameControl(
 	t *testing.T,
 	ctx context.Context,
 	devicePeer peer.ID,
 	viewer *transport.SessionTransport,
 	controlProtocol protocol.ID,
-) stream.Stream {
+) link.MountedStream {
 	// Keep the real mounted stream and link until test cleanup.
 	t.Helper()
 	ms, release, err := link.OpenStreamWithPeerEx(
@@ -601,7 +635,7 @@ func openCameraControl(
 	if err := control.SetDeadline(deadline); err != nil {
 		t.Fatal(err)
 	}
-	return control
+	return ms
 }
 
 // checkCameraPicture checks a JPEG picture against its group header.

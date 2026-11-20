@@ -25,6 +25,9 @@ export const DeviceCapabilityKindForgeWorker = 'forge-worker'
 export const DeviceCapabilityKindRemoteShell = 'remote-shell'
 export const DeviceCapabilityKindCamera = 'camera'
 
+/** DeviceCapabilityKindDisplay identifies a display track with input. */
+export const DeviceCapabilityKindDisplay = 'display'
+
 // isDeviceSelectable reports whether a Device can be presented as a target by
 // Forge or a workflow builder.
 export function isDeviceSelectable(device: Device | null | undefined): boolean {

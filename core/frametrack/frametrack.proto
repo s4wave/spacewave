@@ -47,3 +47,36 @@ message Frame {
   // Data is the coded picture in the group's codec.
   bytes data = 3;
 }
+
+// Input is one event sent on an admitted display's subscription stream.
+message Input {
+  // Event is the pointer or key event in delivery order.
+  oneof event {
+    // Pointer reports the current pointer position and buttons.
+    PointerInput pointer = 1;
+    // Key reports a pressed or released key.
+    KeyInput key = 2;
+  }
+}
+
+// PointerInput describes a position and button state in the displayed picture.
+message PointerInput {
+  // X is the horizontal position, from the left (0) to the right (1).
+  float x = 1;
+  // Y is the vertical position, from the top (0) to the bottom (1).
+  float y = 2;
+  // Buttons is the set of pressed buttons, in the DOM PointerEvent bit order.
+  uint32 buttons = 3;
+}
+
+// KeyInput describes one key transition.
+message KeyInput {
+  // Code identifies the physical key using KeyboardEvent.code.
+  string code = 1;
+  // Key identifies the logical key using KeyboardEvent.key.
+  string key = 2;
+  // Pressed is true for a key down and false for a key up.
+  bool pressed = 3;
+  // Repeat is true for an autorepeated key down.
+  bool repeat = 4;
+}
