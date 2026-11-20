@@ -4,7 +4,7 @@ import {
   type DeviceCapability,
   DeviceCapabilityState,
 } from '@s4wave/sdk/device/device.pb.js'
-import { type ListItem, useListState } from '@s4wave/web/ui/list'
+import { type ListItem, useListState } from '@s4wave/web/ui/list/index.js'
 import { Table, type TableColumn } from '@s4wave/web/ui/table/Table.js'
 
 // capabilityColumns are the capability table's columns: the capability, its

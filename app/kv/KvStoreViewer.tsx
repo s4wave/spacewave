@@ -11,7 +11,7 @@ import {
   type ListStateHandle,
   type ListUpdate,
   useListState,
-} from '@s4wave/web/ui/list'
+} from '@s4wave/web/ui/list/index.js'
 
 import { KvStore, KvStoreTypeID } from '@s4wave/sdk/kv/kv.js'
 
