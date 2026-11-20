@@ -36,8 +36,8 @@ github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 h1:OFf
 github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023/go.mod h1:FQBD9mZEmDiw7WGFKtyd5aMOhLTPnNIXmRscCji7WkM=
 github.com/aperturerobotics/fastjson v0.1.2-0.20261024220211-b654d1d5b5aa h1:rD2DzJorNa4VRo23nFoV+2EqBm8Rt3UPZov9V24zkX4=
 github.com/aperturerobotics/fastjson v0.1.2-0.20261024220211-b654d1d5b5aa/go.mod h1:ArP9Q7MVDi8jMPR3ljopH5drxs/qen12Hv2L7qRcPb4=
-github.com/aperturerobotics/fsnotify v1.9.1-0.20261120064620-316418cc34d2 h1:n6bUzu+yWLvokJ/DlgOFjFrrRLU6lD293phDq0u7DmY=
-github.com/aperturerobotics/fsnotify v1.9.1-0.20261120064620-316418cc34d2/go.mod h1:exy/yzvowYqAyWyO3wBTDGumPaU6ZY6GbhzwJWL7G/o=
+github.com/aperturerobotics/fsnotify v1.9.1-0.20261120090407-765f22ccaa33 h1:qhqzORx4sXQT+VBXv/arHPKlH/znm0cW3RARyroUxqA=
+github.com/aperturerobotics/fsnotify v1.9.1-0.20261120090407-765f22ccaa33/go.mod h1:exy/yzvowYqAyWyO3wBTDGumPaU6ZY6GbhzwJWL7G/o=
 github.com/aperturerobotics/go-brotli-decoder v1.3.0 h1:jj1kW5QUyvxbZaNkZT70cI9fMSyxy5GtPKfyk4343zI=
 github.com/aperturerobotics/go-brotli-decoder v1.3.0/go.mod h1:YTEQqhat1/c+qVaOqhuCU80nu+O8gzJOpbafK3Y8pOc=
 github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20261120085216-2f6b7c952356 h1:ENI1NU8i+GGbDPqlCeg/CuCAGoN8rAv3tpX86ASjZvo=

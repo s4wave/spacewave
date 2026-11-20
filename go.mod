@@ -35,7 +35,7 @@ require (
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20261024231300-09c82549af7a
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20261024220211-b654d1d5b5aa
-	github.com/aperturerobotics/fsnotify v1.9.1-0.20261120064620-316418cc34d2 // master
+	github.com/aperturerobotics/fsnotify v1.9.1-0.20261120090407-765f22ccaa33 // master
 	github.com/aperturerobotics/go-brotli-decoder v1.3.0
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20261024231416-0a1dc13010cd // master
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
