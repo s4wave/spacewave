@@ -3947,6 +3947,16 @@
             "net/transport/websocket/http/http.proto"
           ]
         },
+        "github.com/s4wave/spacewave/os/image": {
+          "hash": "ad33b96378464d123b6a16ef601ac30beb3d6e8024219dd9302b73c6311bfbc5",
+          "generatedFiles": [
+            "os/image/image.pb.go",
+            "os/image/image.pb.ts"
+          ],
+          "protoFiles": [
+            "os/image/image.proto"
+          ]
+        },
         "github.com/s4wave/spacewave/plugin/cli": {
           "hash": "f490b6db60121269dd0cae1f27c9c156d2e19dca2f8f744931a98ebb5d857be0",
           "generatedFiles": [
