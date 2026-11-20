@@ -92,8 +92,6 @@ func (s *Store) WritersWaiting() bool {
 }
 
 // Execute executes the given store.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (s *Store) Execute(ctx context.Context) error {
 	return nil
 }

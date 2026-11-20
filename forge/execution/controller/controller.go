@@ -169,8 +169,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the controller.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Bind the target routine and World engine to the Execution lifecycle.
 	c.execRoutine.SetContext(ctx, true)

@@ -57,9 +57,8 @@ func NewKVTxWithBlockStore(
 	}
 }
 
-// Execute executes the given store.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
+// Execute runs the wrapped store's Execute when it has one, and otherwise
+// returns nil.
 func (k *KVTx) Execute(ctx context.Context) error {
 	if kstore, kstoreOk := k.store.(Store); kstoreOk {
 		return kstore.Execute(ctx)

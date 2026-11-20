@@ -418,8 +418,6 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Start owned registries only while the controller still accepts work.
 	c.lifecycleMtx.Lock()

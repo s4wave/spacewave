@@ -174,8 +174,6 @@ func (c *Controller) GetLinkedPeerIDsSnapshotWithWait(peerIDs []peer.ID) (map[pe
 }
 
 // Execute executes the transport controller and the transport.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Acquire a handle to the node.
 	localPeer, _, localPeerRef, err := peer.GetPeerWithID(ctx, c.bus, c.lookupPeerID, false, nil)

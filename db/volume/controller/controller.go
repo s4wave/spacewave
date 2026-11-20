@@ -111,8 +111,6 @@ func NewController(
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Keep volume activity within the controller execution lifetime.
 	volCtx, volCtxCancel := context.WithCancel(ctx)

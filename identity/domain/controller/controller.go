@@ -94,8 +94,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the domain.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Record the execution context and domain logger.
 	c.ctx = ctx

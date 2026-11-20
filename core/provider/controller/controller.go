@@ -113,8 +113,6 @@ func (c *ProviderController) GetProviderInfo() *provider.ProviderInfo {
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *ProviderController) Execute(rctx context.Context) error {
 	// Derive the provider lifecycle context and release it when execution ends.
 	ctx, ctxCancel := context.WithCancel(rctx)

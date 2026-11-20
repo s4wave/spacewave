@@ -101,8 +101,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Validate asserts that this won't return an error.
 	localPeerID, err := c.conf.ParsePeerID()

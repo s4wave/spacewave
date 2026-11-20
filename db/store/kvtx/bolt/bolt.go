@@ -125,8 +125,6 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 
 // Execute closes the database and returns ErrLockFileChanged once the
 // database or lock file path no longer exists.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (s *Store) Execute(ctx context.Context) error {
 	// Bolt keeps its lock file beside the database file.
 	dbPath := s.db.Path()

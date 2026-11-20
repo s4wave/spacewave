@@ -78,8 +78,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the auth method controller.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Bind the execution context used by method lookups.
 	c.ctx = ctx

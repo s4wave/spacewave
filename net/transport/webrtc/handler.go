@@ -46,8 +46,6 @@ func (c *WebRTCSignalHandler) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *WebRTCSignalHandler) Execute(ctx context.Context) error {
 	// no-op
 	return nil

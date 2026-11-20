@@ -124,8 +124,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the controller.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
 	// Bind watcher lifetime to this execution attempt.
 	ctx, ctxCancel := context.WithCancel(rctx)

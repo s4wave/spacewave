@@ -118,8 +118,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the engine controller.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Register a cancelable execution before resolving storage.
 	le := c.le

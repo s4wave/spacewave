@@ -109,8 +109,6 @@ func NewControllerWithWebPkgMap(le *logrus.Entry, info *controller.Info, webPkgM
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }

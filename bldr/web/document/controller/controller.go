@@ -89,8 +89,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the WebDocument controller.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
 	// Retain the WebDocument execution context until its execution ends.
 	ctx, ctxCancel := context.WithCancel(rctx)
