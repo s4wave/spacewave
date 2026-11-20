@@ -31,6 +31,13 @@ func BlockStoreWritebackObjectStoreID(providerID, accountID, blockStoreID string
 	return BlockStoreBucketID(providerID, accountID, blockStoreID) + "/writeback"
 }
 
+// BlockStoreFileSegmentsObjectStoreID returns the object store id holding a
+// block store's SegmentIndex: the linked file ranges its blocks can be read
+// from on this Device.
+func BlockStoreFileSegmentsObjectStoreID(providerID, accountID, blockStoreID string) string {
+	return BlockStoreBucketID(providerID, accountID, blockStoreID) + "/filesegments"
+}
+
 // BlockStoreLocalID returns the local block store id for a block store.
 func BlockStoreLocalID(providerID, accountID, blockStoreID string) string {
 	// use the same id format as the bucket id

@@ -11,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/core/cdn"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -102,6 +103,11 @@ func (s *CdnBlockStore) GetHashType() hash.HashType {
 // GetSupportedFeatures returns the native feature bitset.
 func (s *CdnBlockStore) GetSupportedFeatures() block.StoreFeature {
 	return 0
+}
+
+// GetFileSegments returns nil: the store links no files.
+func (s *CdnBlockStore) GetFileSegments() *block_store_filesegment.Store {
+	return nil
 }
 
 // GetDecodedBlockCache returns the lifecycle-owned decoded-block cache.

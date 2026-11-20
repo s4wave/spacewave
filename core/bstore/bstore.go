@@ -6,6 +6,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,6 +16,9 @@ type BlockStore interface {
 	block_store.Store
 	// GetDecodedBlockCache returns the lifecycle-owned decoded-block cache.
 	GetDecodedBlockCache() *block.DecodedBlockCache
+	// GetFileSegments returns the store serving blocks from the files linked
+	// on this Device, or nil when the store cannot link files.
+	GetFileSegments() *block_store_filesegment.Store
 	// ReclaimStorage drops the blocks no live root reaches from its storage
 	// backend. fence runs after the backend lists its blocks and before it
 	// drops any; when fence returns, every writer that may still reference a
