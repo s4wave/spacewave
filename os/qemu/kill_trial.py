@@ -46,7 +46,9 @@ class Console:
 
     def __init__(self, arguments: argparse.Namespace) -> None:
         # Start QEMU and stream its console to stdout and to the line list.
-        command = qemu_command(arguments.accel, arguments.kernel, arguments.initramfs, arguments.disk)
+        command = qemu_command(
+            arguments.accel, arguments.kernel, arguments.initramfs, arguments.disk
+        )
         self.process = subprocess.Popen(
             command,
             stdin=subprocess.PIPE,
@@ -107,7 +109,9 @@ class Console:
         self.process.send_signal(signal.SIGKILL)
         self.process.wait()
         self.reader.join()
-        note(f"SIGKILL qemu pid={self.process.pid} write_bytes start={start} seen={seen}")
+        note(
+            f"SIGKILL qemu pid={self.process.pid} write_bytes start={start} seen={seen}"
+        )
 
     def acknowledged(self) -> list[str]:
         """Return the records the guest acknowledged, in sha256sum -c form."""
@@ -172,7 +176,11 @@ def check(console: Console, acks: list[str], directories: list[str]) -> None:
     """Check the records after a reopen, or raise."""
     start = len(console.lines)
     console.send(checker(acks, directories))
-    if not console.wait(output("(ACK_OK|CHECK_FAILED)"), 120, start).rstrip().endswith("ACK_OK"):
+    if (
+        not console.wait(output("(ACK_OK|CHECK_FAILED)"), 120, start)
+        .rstrip()
+        .endswith("ACK_OK")
+    ):
         raise RuntimeError(f"acknowledged records lost in {directories}")
     note(f"{len(acks)} acknowledged records intact in {directories}")
 
@@ -181,7 +189,9 @@ def acknowledge(console: Console, directory: str) -> list[str]:
     """Return the trial's acknowledged records, requiring all of them."""
     acks = console.acknowledged()
     if len(acks) != RECORDS:
-        raise RuntimeError(f"{directory}: guest acknowledged {len(acks)} of {RECORDS} records")
+        raise RuntimeError(
+            f"{directory}: guest acknowledged {len(acks)} of {RECORDS} records"
+        )
     return acks
 
 

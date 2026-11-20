@@ -53,7 +53,15 @@ def qemu_command(
         ]
     else:
         command += ["-nic", "none"]
-    return command + ["-display", "none", "-monitor", "none", "-serial", "stdio", "-no-reboot"]
+    return command + [
+        "-display",
+        "none",
+        "-monitor",
+        "none",
+        "-serial",
+        "stdio",
+        "-no-reboot",
+    ]
 
 
 class Guest:
@@ -153,9 +161,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ["kernel", "initramfs", "disk", "startup"]:
         parser.add_argument("--" + name, required=True, type=Path)
-    parser.add_argument("--config-disk", type=Path, help="second store, at /config-store")
+    parser.add_argument(
+        "--config-disk", type=Path, help="second store, at /config-store"
+    )
     parser.add_argument("--receipt", type=Path)
-    parser.add_argument("--port", type=int, help="host port forwarded to guest port 3000")
+    parser.add_argument(
+        "--port", type=int, help="host port forwarded to guest port 3000"
+    )
     parser.add_argument("--accel", choices=["kvm", "tcg"], default="kvm")
     return Guest(parser.parse_args()).run()
 
