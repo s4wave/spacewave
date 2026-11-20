@@ -25,10 +25,19 @@ import (
 // the writer, after it lost the race to other writers too often.
 const FolderLinkBatchFiles = 512
 
+// ErrFolderRootChanged is returned by a sync while the folder's root is
+// missing or on another file system than the one it was linked on, as when
+// the folder's disk is unmounted and its empty mount point remains: a sync
+// would then remove the whole Drive. The sync removes nothing and resumes
+// once the root is back on its file system.
+var ErrFolderRootChanged = errors.New("the folder is not on the file system it was linked on")
+
 // FolderLink keeps a Drive equal to a folder on this Device: each regular
 // file's blocks stay in the file and are read from it, and only the file's
 // Blob and the directory tree go to the World. Symlinks and special files are
-// left out, and a Drive entry the folder lacks is removed.
+// left out, and a Drive entry the folder lacks is removed. The first sync
+// records the file-system identity of the folder's root in the index, and
+// every later sync refuses to run while the root's identity differs.
 type FolderLink struct {
 	// eng is the World engine holding the Drive.
 	eng world.Engine
@@ -132,8 +141,47 @@ func splitRel(rel string) []string {
 	return out
 }
 
-// begin looks up the Drive's filesystem type and starts a sync.
+// CheckRoot returns ErrFolderRootChanged while the folder's root is missing
+// or on another file system than the one recorded when it was linked.
+func (l *FolderLink) CheckRoot(ctx context.Context) error {
+	_, err := l.checkRoot(ctx)
+	return err
+}
+
+// checkRoot returns the file-system identity of the folder's root, recording
+// it when the index holds none, or ErrFolderRootChanged when it differs from
+// the recorded one.
+func (l *FolderLink) checkRoot(ctx context.Context) (uint64, error) {
+	// Read the root's identity and the recorded one.
+	id, statErr := folderRootID(l.folder)
+	rec, found, err := l.idx.FolderRoot(ctx, l.folder)
+	if err != nil {
+		return 0, err
+	}
+
+	// Refuse a root that left its file system; record the first one.
+	switch {
+	case found && errors.Is(statErr, fs.ErrNotExist):
+		return 0, errors.Wrapf(ErrFolderRootChanged, "%s is missing", l.folder)
+	case statErr != nil:
+		return 0, statErr
+	case !found:
+		return id, l.idx.SetFolderRoot(ctx, l.folder, id)
+	case rec != id:
+		return 0, errors.Wrapf(ErrFolderRootChanged, "%s is on file system %d, linked on %d", l.folder, id, rec)
+	}
+	return id, nil
+}
+
+// begin checks the folder's root, looks up the Drive's filesystem type and
+// starts a sync.
 func (l *FolderLink) begin(ctx context.Context, progress func(files, bytes uint64) error) (*folderSync, error) {
+	// Require the root's file system.
+	rootID, err := l.checkRoot(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// Read the type from a snapshot held only for the lookup.
 	rtx, err := l.eng.NewTransaction(ctx, false)
 	if err != nil {
@@ -144,7 +192,7 @@ func (l *FolderLink) begin(ctx context.Context, progress func(files, bytes uint6
 	if err != nil {
 		return nil, err
 	}
-	return &folderSync{FolderLink: l, ctx: ctx, ws: world.NewEngineWorldState(l.eng, true), fsType: fsType, progress: progress}, nil
+	return &folderSync{FolderLink: l, ctx: ctx, ws: world.NewEngineWorldState(l.eng, true), fsType: fsType, rootID: rootID, progress: progress}, nil
 }
 
 // folderSync is one FolderLink sync.
@@ -156,6 +204,8 @@ type folderSync struct {
 	ws world.WorldState
 	// fsType is the Drive's filesystem type.
 	fsType FSType
+	// rootID is the file-system identity of the folder's root.
+	rootID uint64
 	// progress receives the totals after each commit, if set.
 	progress func(files, bytes uint64) error
 	// walked holds the folder-relative paths, joined by "/", of the
@@ -342,7 +392,13 @@ func (s *folderSync) dir(path string, parent []string, all bool) error {
 		return err
 	}
 
-	// Remove the Drive entries the folder lacks.
+	// Remove the Drive entries the folder lacks, once the root is shown to
+	// be on its file system still: an unmount during the sync empties it.
+	if len(gone) != 0 {
+		if id, err := folderRootID(s.folder); err != nil || id != s.rootID {
+			return errors.Wrapf(ErrFolderRootChanged, "%s left its file system during the sync", s.folder)
+		}
+	}
 	for _, name := range gone {
 		if err := s.writer().Remove(parent, name); err != nil {
 			return err

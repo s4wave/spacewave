@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -94,9 +95,10 @@ func TestFolderLinkSync(t *testing.T) {
 		t.Fatalf("first sync linked %d files, want %d", linked, smallFiles+1)
 	}
 
-	// A restart over the unchanged folder links nothing and reads no index.
-	if linked, txns := sync(); linked != 0 || txns != 0 {
-		t.Fatalf("restart linked %d files with %d index transactions, want none", linked, txns)
+	// A restart over the unchanged folder links nothing and reads the index
+	// only for the root's identity.
+	if linked, txns := sync(); linked != 0 || txns != 1 {
+		t.Fatalf("restart linked %d files with %d index transactions, want only the root check", linked, txns)
 	}
 
 	// Overwrite 1 MiB inside the large file: only it is linked again.
@@ -121,8 +123,8 @@ func TestFolderLinkSync(t *testing.T) {
 	}
 
 	// The Drive now matches the folder again.
-	if linked, txns := sync(); linked != 0 || txns != 0 {
-		t.Fatalf("sync after relinking linked %d files with %d index transactions, want none", linked, txns)
+	if linked, txns := sync(); linked != 0 || txns != 1 {
+		t.Fatalf("sync after relinking linked %d files with %d index transactions, want only the root check", linked, txns)
 	}
 
 	// kind returns the type of the Drive entry at the folder-relative path,
@@ -225,7 +227,34 @@ func TestFolderLinkSync(t *testing.T) {
 		"d5/sub/deep/n.txt": "file",
 		"d6/sub/f6":         "none",
 	})
-	if linked, txns := sync(); linked != 0 || txns != 0 {
-		t.Fatalf("full sync after the targeted sync linked %d files with %d index transactions, want none", linked, txns)
+	if linked, txns := sync(); linked != 0 || txns != 1 {
+		t.Fatalf("full sync after the targeted sync linked %d files with %d index transactions, want only the root check", linked, txns)
 	}
+
+	// A stand-in root on another file system, here an emptied folder whose
+	// recorded identity differs, removes nothing; with the identity back,
+	// the sync resumes and removes what the folder lacks.
+	real, found, err := idx.FolderRoot(ctx, folder)
+	must(err)
+	if !found {
+		t.Fatal("the first sync recorded no root identity")
+	}
+	must(idx.SetFolderRoot(ctx, folder, real+1))
+	ents, err := os.ReadDir(folder)
+	must(err)
+	for _, e := range ents {
+		must(os.RemoveAll(filepath.Join(folder, e.Name())))
+	}
+	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"})
+	must(err)
+	if err := link.Sync(ctx, nil); !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
+		t.Fatalf("sync of the stand-in root returned %v, want ErrFolderRootChanged", err)
+	}
+	if err := link.SyncDirs(ctx, []string{"d4"}, nil); !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
+		t.Fatalf("targeted sync of the stand-in root returned %v, want ErrFolderRootChanged", err)
+	}
+	expect(map[string]string{"d4/new.txt": "file", "d3/sub": "file"})
+	must(idx.SetFolderRoot(ctx, folder, real))
+	must(link.Sync(ctx, nil))
+	expect(map[string]string{"d4": "none", "big.bin": "none"})
 }

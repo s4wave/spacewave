@@ -49,6 +49,8 @@ const watchMaxWait = 5 * time.Second
 // watches the folder, then syncs it with a stat walk, linking only what
 // changed since the Drive last matched it. After that it syncs each directory
 // the watcher names, and the whole folder when the watcher dropped events.
+// While the folder's root is off the file system it was linked on, as when
+// its disk is unmounted, it syncs nothing and waits for the file system.
 type Controller struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -87,29 +89,68 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return errors.New("this Device's store cannot link files")
 		}
 
-		// Watch the folder before the sync reads it, so no change escapes
-		// both.
+		// Follow the folder while its root is on the file system it was
+		// linked on, and wait for that file system while it is not.
 		link, err := unixfs_world.NewFolderLink(eng, files.GetIndex(), c.conf.GetObjectKey(), c.conf.GetFolder(), c.conf.DestPath())
 		if err != nil {
 			return err
 		}
-		watcher, err := fsnotify.NewWatcher()
-		if err != nil {
-			return err
+		for {
+			err := c.run(ctx, link)
+			if !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
+				return err
+			}
+			c.le.WithError(err).Warn("waiting for the folder's file system")
+			if err := waitRoot(ctx, link); err != nil {
+				return err
+			}
 		}
-		defer watcher.Close()
-		folder := filepath.Clean(c.conf.GetFolder())
-		if err := watcher.Add(filepath.Join(folder, "...")); err != nil {
-			return errors.Wrap(err, "watch folder")
-		}
-
-		// Sync the folder, then follow its changes.
-		if err := link.Sync(ctx, c.logProgress); err != nil {
-			return err
-		}
-		c.le.Debug("folder synced")
-		return c.follow(ctx, link, watcher, folder)
 	})
+}
+
+// rootRecheck is how often a link waiting for its folder's file system
+// checks the root again. No portable event announces a mount, and a check
+// costs one stat and one index read.
+const rootRecheck = 5 * time.Second
+
+// waitRoot returns once the folder's root is back on the file system it was
+// linked on.
+func waitRoot(ctx context.Context, link *unixfs_world.FolderLink) error {
+	ticker := time.NewTicker(rootRecheck) //gostyle:timer external
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-ticker.C:
+		}
+		err := link.CheckRoot(ctx)
+		if !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
+			return err
+		}
+	}
+}
+
+// run syncs the folder and follows its changes. It returns
+// ErrFolderRootChanged once the root leaves its file system.
+func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink) error {
+	// Watch the folder before the sync reads it, so no change escapes both.
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+	defer watcher.Close()
+	folder := filepath.Clean(c.conf.GetFolder())
+	if err := watcher.Add(filepath.Join(folder, "...")); err != nil {
+		return errors.Wrap(err, "watch folder")
+	}
+
+	// Sync the folder, then follow its changes.
+	if err := link.Sync(ctx, c.logProgress); err != nil {
+		return err
+	}
+	c.le.Debug("folder synced")
+	return c.follow(ctx, link, watcher, folder)
 }
 
 // follow syncs the directories the watcher names once the folder has been

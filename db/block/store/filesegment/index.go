@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/binary"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
@@ -17,9 +18,13 @@ const segKeyPrefix = "r/"
 // pathKeyPrefix prefixes the key of a path's PathRefs.
 const pathKeyPrefix = "p/"
 
+// rootKeyPrefix prefixes the key of a linked folder's root identity.
+const rootKeyPrefix = "f/"
+
 // Index is the SegmentIndex of one Space: one entry per ref and path, holding
 // the linked file range that held the ref's block, and one entry per path
-// holding the refs of its ranges. It lives in a key/value store on this
+// holding the refs of its ranges, and the file-system identity of each linked
+// folder's root. It lives in a key/value store on this
 // Device, so it outlives the process.
 //
 // A ref's ranges are the keys under its prefix, so linking or dropping one
@@ -122,6 +127,43 @@ func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef
 
 	// Write the path, then commit.
 	if err := putOrDelete(ctx, tx, pkey, next, len(next.GetRefs()) == 0); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// FolderRoot returns the file-system identity recorded for the root of the
+// linked folder at folder, and whether one is recorded.
+func (x *Index) FolderRoot(ctx context.Context, folder string) (uint64, bool, error) {
+	// Read the folder's entry.
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return 0, false, err
+	}
+	defer tx.Discard()
+	data, found, err := tx.Get(ctx, []byte(rootKeyPrefix+folder))
+	if err != nil || !found {
+		return 0, false, err
+	}
+
+	// Decode the identity.
+	id, n := binary.Uvarint(data)
+	if n <= 0 {
+		return 0, false, errors.Errorf("invalid root identity of folder %q", folder)
+	}
+	return id, true, nil
+}
+
+// SetFolderRoot records id as the file-system identity of the root of the
+// linked folder at folder.
+func (x *Index) SetFolderRoot(ctx context.Context, folder string, id uint64) error {
+	// Write the folder's entry in a transaction of its own.
+	tx, err := x.store.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	if err := tx.Set(ctx, []byte(rootKeyPrefix+folder), binary.AppendUvarint(nil, id)); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
