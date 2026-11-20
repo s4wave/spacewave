@@ -44,7 +44,7 @@ let currentState: Device | undefined = {
     },
     {
       id: 'terminal',
-      kind: 'terminal',
+      kind: 'remote-shell',
       label: 'Terminal',
       state: DeviceCapabilityState.DISABLED,
       detail: 'disabled by local policy',
@@ -58,7 +58,7 @@ let currentState: Device | undefined = {
     },
     {
       id: 'remote-shell-session',
-      kind: 'terminal',
+      kind: 'remote-shell',
       label: 'Shell Session',
       state: DeviceCapabilityState.ACTIVE,
     },
@@ -157,7 +157,7 @@ describe('DeviceViewer', () => {
       capabilities: [
         {
           id: 'terminal',
-          kind: 'terminal',
+          kind: 'remote-shell',
           label: 'Terminal',
           state: DeviceCapabilityState.AVAILABLE,
         },
@@ -223,7 +223,7 @@ describe('DeviceViewer', () => {
         },
         {
           id: 'terminal',
-          kind: 'terminal',
+          kind: 'remote-shell',
           label: 'Terminal',
           state: DeviceCapabilityState.AVAILABLE,
         },
@@ -263,7 +263,7 @@ describe('DeviceViewer', () => {
       capabilities: [
         {
           id: 'terminal',
-          kind: 'terminal',
+          kind: 'remote-shell',
           label: 'Terminal',
           state: DeviceCapabilityState.DISABLED,
         },

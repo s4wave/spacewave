@@ -1,8 +1,8 @@
+import type { Device, DeviceCapability } from '@s4wave/sdk/device/device.pb.js'
 import {
-  DeviceCapabilityState,
-  type Device,
-  type DeviceCapability,
-} from '@s4wave/sdk/device/device.pb.js'
+  DeviceCapabilityKindRemoteShell,
+  isDeviceCapabilitySelectable,
+} from '@s4wave/sdk/device/device.js'
 import type { SshHost } from '@s4wave/sdk/sshhost/sshhost.pb.js'
 import {
   CreateTerminalOp,
@@ -18,21 +18,22 @@ export interface TerminalOpData {
   opData: Uint8Array
 }
 
+// findOpenableTerminalCapability returns the Device's remote shell capability
+// when a Terminal can open on it now.
 export function findOpenableTerminalCapability(
   device?: Device,
 ): DeviceCapability | undefined {
   return (device?.capabilities ?? []).find(isOpenableTerminalCapability)
 }
 
+// isOpenableTerminalCapability reports whether capability is a remote shell
+// that is available or active, the states a Terminal can open in.
 export function isOpenableTerminalCapability(
-  capability: Pick<DeviceCapability, 'id' | 'kind' | 'state'>,
+  capability: Pick<DeviceCapability, 'kind' | 'state'>,
 ): boolean {
-  if (capability.kind !== 'terminal' && capability.id !== 'terminal') {
-    return false
-  }
   return (
-    capability.state === DeviceCapabilityState.AVAILABLE ||
-    capability.state === DeviceCapabilityState.ACTIVE
+    capability.kind === DeviceCapabilityKindRemoteShell &&
+    isDeviceCapabilitySelectable(capability)
   )
 }
 

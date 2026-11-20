@@ -186,13 +186,13 @@ func TestDeviceCapabilitySelectionRejectsBlockedStates(t *testing.T) {
 }
 
 func TestDeviceValidateCheckoutRootShape(t *testing.T) {
-	// Validate a checkout root attached to a terminal capability.
+	// Validate a checkout root attached to a remote shell capability.
 	err := (&Device{
 		PeerId: "peer-device",
 		Label:  "Device",
 		Capabilities: []*DeviceCapability{{
 			Id:    "checkout-root-skiffos",
-			Kind:  DeviceCapabilityKindTerminal,
+			Kind:  DeviceCapabilityKindRemoteShell,
 			Label: "SkiffOS checkout",
 			State: DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE,
 			CheckoutRoot: &DeviceCheckoutRootCapability{

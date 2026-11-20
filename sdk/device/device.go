@@ -19,8 +19,6 @@ const (
 	DeviceCapabilityKindFlowgraphNode = "flowgraph-node"
 	// DeviceCapabilityKindRemoteShell identifies the remote shell a Device serves.
 	DeviceCapabilityKindRemoteShell = "remote-shell"
-	// DeviceCapabilityKindTerminal identifies terminal access exposed by a Device.
-	DeviceCapabilityKindTerminal = "terminal"
 )
 
 // NewDeviceBlock constructs a new Device block.
