@@ -7,6 +7,8 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"testing"
 	"time"
 
@@ -16,6 +18,8 @@ import (
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
+	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 )
 
@@ -28,6 +32,18 @@ func spaceTransform(t testing.TB) block.Transformer {
 		t.Fatal(err)
 	}
 	return block_transform.NewTransformerWithSteps([]block_transform.Step{enc})
+}
+
+// newIndex returns an Index over an in-memory key/value store.
+func newIndex() *Index {
+	return NewIndex(store_kvtx_inmem.NewStore())
+}
+
+// newStore returns a Store over idx that reads with xfrm.
+func newStore(idx *Index, xfrm block.Transformer) *Store {
+	s := NewStore(idx)
+	s.SetTransformer(xfrm)
+	return s
 }
 
 func writeRandom(t testing.TB, path string, n int, seed uint64) []byte {
@@ -61,7 +77,7 @@ func TestAddressMatchesBuildBlob(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	idx := NewIndex()
+	idx := newIndex()
 	linked, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +85,7 @@ func TestAddressMatchesBuildBlob(t *testing.T) {
 	if !built.GetChunkIndex().EqualVT(linked.GetChunkIndex()) {
 		t.Fatalf("chunk index differs: built %d chunks, linked %d", len(built.GetChunkIndex().GetChunks()), len(linked.GetChunkIndex().GetChunks()))
 	}
-	t.Logf("%d chunks, %d indexed refs", len(linked.GetChunkIndex().GetChunks()), idx.Len())
+	t.Logf("%d chunks", len(linked.GetChunkIndex().GetChunks()))
 }
 
 // TestReadThroughFile reads a linked file through the Volume read pipeline:
@@ -83,8 +99,8 @@ func TestReadThroughFile(t *testing.T) {
 	small := filepath.Join(dir, "note.txt")
 	smallData := writeRandom(t, small, 3000, 3)
 
-	idx := NewIndex()
-	fss := NewStore(idx, xfrm)
+	idx := newIndex()
+	fss := newStore(idx, xfrm)
 	volume := block_mock.NewMockStore(0)
 	pipeline := block_store.NewStoreReadThrough(
 		func() block.StoreOps { return volume },
@@ -136,8 +152,8 @@ func TestChangedFileIsMiss(t *testing.T) {
 	data := writeRandom(t, path, 2<<20, 4)
 	fi, _ := os.Stat(path)
 
-	idx := NewIndex()
-	fss := NewStore(idx, xfrm)
+	idx := newIndex()
+	fss := newStore(idx, xfrm)
 	b, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -172,14 +188,124 @@ func TestChangedFileIsMiss(t *testing.T) {
 	}
 }
 
+// TestRelinkReplacesPath relinks a changed file and checks that the index
+// drops the old ranges in the same write that adds the new ones, that a
+// second Index over the same store reads them, and that a dropped path serves
+// nothing.
+func TestRelinkReplacesPath(t *testing.T) {
+	ctx := context.Background()
+	xfrm := spaceTransform(t)
+	path := filepath.Join(t.TempDir(), "doc.bin")
+	writeRandom(t, path, 3<<20, 7)
+	kv := store_kvtx_inmem.NewStore()
+	idx := NewIndex(kv)
+	before, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Rewrite the file and link it again.
+	writeRandom(t, path, 3<<20, 8)
+	after, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A fresh Index over the store, as after a restart, holds only the new
+	// ranges.
+	reopened := NewIndex(kv)
+	fss := newStore(reopened, xfrm)
+	for _, c := range before.GetChunkIndex().GetChunks() {
+		segs, err := reopened.Lookup(ctx, c.GetDataRef())
+		if err != nil || len(segs) != 0 {
+			t.Fatalf("old range kept: %d segments, err %v", len(segs), err)
+		}
+	}
+	for _, c := range after.GetChunkIndex().GetChunks() {
+		if _, ok, err := fss.GetBlock(ctx, c.GetDataRef()); !ok || err != nil {
+			t.Fatalf("new range not served: ok=%v err=%v", ok, err)
+		}
+	}
+
+	// Dropping the path drops every range.
+	if err := reopened.DropPath(ctx, path); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range after.GetChunkIndex().GetChunks() {
+		if _, ok, _ := fss.GetBlock(ctx, c.GetDataRef()); ok {
+			t.Fatal("dropped range served")
+		}
+	}
+	if _, _, err := fss.PutBlock(ctx, []byte("x"), nil); err != block_store.ErrReadOnly {
+		t.Fatalf("PutBlock error = %v, want ErrReadOnly", err)
+	}
+}
+
+// TestReadScaling links n and then 10n files of equal size and reads every
+// chunk once, checking that the cost of a chunk read does not grow with the
+// number of linked files: one index get and one file read per chunk read, and
+// the same allocations.
+func TestReadScaling(t *testing.T) {
+	ctx := context.Background()
+	xfrm := spaceTransform(t)
+	const fileSize = 200 << 10
+	measure := func(n int) (allocs, gets, devReads float64) {
+		// Link n files into a counted index.
+		dir := t.TempDir()
+		kv := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
+		idx := NewIndex(kv)
+		var refs []*block.BlockRef
+		for i := range n {
+			path := filepath.Join(dir, strconv.Itoa(i))
+			writeRandom(t, path, fileSize, uint64(i)+100) //nolint:gosec // i is small.
+			b, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, c := range b.GetChunkIndex().GetChunks() {
+				refs = append(refs, c.GetDataRef())
+			}
+		}
+
+		// Read every chunk once, counting allocations, index gets and
+		// file reads. A warm-up read fills the buffer pool.
+		fss := newStore(idx, xfrm)
+		if _, ok, err := fss.GetBlock(ctx, refs[0]); !ok || err != nil {
+			t.Fatal(ok, err)
+		}
+		reads0, hits0 := kv.Counts().Reads, fss.Hits.Load()
+		var m0, m1 runtime.MemStats
+		runtime.ReadMemStats(&m0)
+		for _, ref := range refs {
+			if _, ok, err := fss.GetBlock(ctx, ref); !ok || err != nil {
+				t.Fatal(ok, err)
+			}
+		}
+		runtime.ReadMemStats(&m1)
+		k := float64(len(refs))
+		devReads = float64(fss.Hits.Load()-hits0+fss.HashMisses.Load()) / k
+		return float64(m1.Mallocs-m0.Mallocs) / k, float64(kv.Counts().Reads-reads0) / k, devReads
+	}
+
+	a1, g1, d1 := measure(40)
+	a10, g10, d10 := measure(400)
+	t.Logf("per chunk read: n allocs=%.1f gets=%.2f reads=%.2f; 10n allocs=%.1f gets=%.2f reads=%.2f", a1, g1, d1, a10, g10, d10)
+	if g1 != 1 || g10 != 1 || d1 != 1 || d10 != 1 {
+		t.Fatal("a chunk read must make one index get and one file read")
+	}
+	if a10 > a1*1.1+1 {
+		t.Fatalf("allocations per read grew from %.1f to %.1f", a1, a10)
+	}
+}
+
 // BenchmarkRegenerate measures one verified chunk read from a warm file.
 func BenchmarkRegenerate(b *testing.B) {
 	ctx := context.Background()
 	xfrm := spaceTransform(b)
 	path := filepath.Join(b.TempDir(), "bench.bin")
 	writeRandom(b, path, 64<<20, 5)
-	idx := NewIndex()
-	fss := NewStore(idx, xfrm)
+	idx := newIndex()
+	fss := newStore(idx, xfrm)
 	bl, err := LinkFile(ctx, idx, path, nil, xfrm, 0)
 	if err != nil {
 		b.Fatal(err)
@@ -206,7 +332,7 @@ func BenchmarkLink(b *testing.B) {
 	b.SetBytes(64 << 20)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := LinkFile(ctx, NewIndex(), path, nil, xfrm, 0); err != nil {
+		if _, err := LinkFile(ctx, newIndex(), path, nil, xfrm, 0); err != nil {
 			b.Fatal(err)
 		}
 	}
