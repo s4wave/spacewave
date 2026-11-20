@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,7 +69,7 @@ const skiffosGraph = "flowgraph/skiffos"
 // newSkiffOSProof names the settings it reads.
 func TestSkiffOSFlowgraph(t *testing.T) {
 	f := newSkiffOSProof(t)
-	f.storeRepo(skiffOSRepo)
+	f.storeRepo(skiffOSRepo, "HEAD")
 	build := f.stepNode(forge_lib_skiffos.ControllerID, f.buildConfig("intel/x64", "virt/qemu"), forge_lib_skiffos.OutputImages, true)
 	build.Step.Target.Inputs = []*forge_target.Input{worldObjectInput(forge_lib_skiffos.InputSkiffOS, skiffOSRepo)}
 	f.storeGraph(skiffosGraph, "SkiffOS QEMU build", map[string]*s4wave_flowgraph.FlowgraphNode{"build": build}, nil)
@@ -142,36 +143,9 @@ func TestSkiffOSUpdate(t *testing.T) {
 
 	// Fetch both upstreams, audit the build against them, ask the gate, and
 	// move the build on approval.
-	fetch := func(key, dir string) *s4wave_flowgraph.FlowgraphNode {
-		return f.stepNode(forge_lib_git_clone.ControllerID, &forge_lib_git_clone.Config{
-			ObjectKey: key,
-			CloneOpts: &git_block.CloneOpts{Url: "file://" + dir, DisableCheckout: true, TagMode: git_block.TagMode_TagMode_ALL},
-		}, "repo", false)
-	}
-	audit := f.stepNode(forge_lib_skiffos_audit.ControllerID, &forge_lib_skiffos_audit.Config{UpstreamRef: "refs/remotes/origin/master"}, forge_lib_skiffos_audit.OutputReport, false)
-	audit.Step.Target.Inputs = []*forge_target.Input{worldObjectInput(forge_lib_skiffos_audit.InputBuild, skiffOSRepo)}
-	audit.Ports = append(audit.Ports, inputPort(forge_lib_skiffos_audit.InputUpstream), inputPort(forge_lib_skiffos_audit.InputBuildroot))
 	approval := filepath.Join(tmp, "approved")
-	update := f.stepNode(forge_lib_skiffos_update.ControllerID, &forge_lib_skiffos_update.Config{ObjectKey: skiffOSRepo}, forge_lib_skiffos_update.OutputRepo, false)
-	update.Ports = append(update.Ports,
-		inputPort(forge_lib_skiffos_update.InputApprove), inputPort(forge_lib_skiffos_update.InputReport),
-		inputPort(forge_lib_skiffos_audit.InputUpstream), inputPort(forge_lib_skiffos_audit.InputBuildroot),
-	)
-	connect := func(outNode, outPort, inNode, inPort string) *s4wave_flowgraph.FlowgraphConnection {
-		return &s4wave_flowgraph.FlowgraphConnection{OutputNode: outNode, OutputPort: outPort, InputNode: inNode, InputPort: inPort}
-	}
-	f.storeGraph("flowgraph/skiffos-update", "SkiffOS update", map[string]*s4wave_flowgraph.FlowgraphNode{
-		"fetch-skiffos": fetch("os/skiffos-upstream", up), "fetch-buildroot": fetch("os/buildroot-upstream", br),
-		"audit": audit, "gate": f.gateNode(approval), "update": update,
-	}, map[string]*s4wave_flowgraph.FlowgraphConnection{
-		"skiffos":          connect("fetch-skiffos", "repo", "audit", forge_lib_skiffos_audit.InputUpstream),
-		"buildroot":        connect("fetch-buildroot", "repo", "audit", forge_lib_skiffos_audit.InputBuildroot),
-		"ask":              connect("audit", forge_lib_skiffos_audit.OutputReport, "gate", forge_lib_skiffos_update.InputReport),
-		"approve":          connect("gate", forge_lib_skiffos_update.InputApprove, "update", forge_lib_skiffos_update.InputApprove),
-		"report":           connect("audit", forge_lib_skiffos_audit.OutputReport, "update", forge_lib_skiffos_update.InputReport),
-		"update-skiffos":   connect("fetch-skiffos", "repo", "update", forge_lib_skiffos_audit.InputUpstream),
-		"update-buildroot": connect("fetch-buildroot", "repo", "update", forge_lib_skiffos_audit.InputBuildroot),
-	})
+	nodes, conns := f.updateGraph(up, br, approval)
+	f.storeGraph("flowgraph/skiffos-update", "SkiffOS update", nodes, conns)
 
 	// Declined, the build one commit behind is stale and its Repo stays.
 	before := f.objectRoot(skiffOSRepo)
@@ -214,6 +188,46 @@ func TestSkiffOSUpdate(t *testing.T) {
 	// Moved to upstream's head, the build is current.
 	if current := f.updateRun("flowgraph-run/skiffos-update-current"); current.GetCurrent() == nil {
 		t.Fatalf("current build reported %s", current.MarshalProtoText())
+	}
+}
+
+// updateGraph returns the update Flowgraph's nodes and connections: clone
+// Steps fetch SkiffOS from up and its Buildroot fork from br, the audit Step
+// compares the build's Repo with them, a gate approves when approval exists,
+// and the update Step moves the Repo, whose new root it outputs as "repo".
+func (f *flowgraphFixture) updateGraph(up, br, approval string) (map[string]*s4wave_flowgraph.FlowgraphNode, map[string]*s4wave_flowgraph.FlowgraphConnection) {
+	// Build the fetch, audit and update Steps with the ports the graph uses.
+	fetch := func(key, dir string) *s4wave_flowgraph.FlowgraphNode {
+		return f.stepNode(forge_lib_git_clone.ControllerID, &forge_lib_git_clone.Config{
+			ObjectKey: key,
+			CloneOpts: &git_block.CloneOpts{Url: "file://" + dir, DisableCheckout: true, TagMode: git_block.TagMode_TagMode_ALL},
+		}, "repo", false)
+	}
+	audit := f.stepNode(forge_lib_skiffos_audit.ControllerID, &forge_lib_skiffos_audit.Config{UpstreamRef: "refs/remotes/origin/master"}, forge_lib_skiffos_audit.OutputReport, false)
+	audit.Step.Target.Inputs = []*forge_target.Input{worldObjectInput(forge_lib_skiffos_audit.InputBuild, skiffOSRepo)}
+	audit.Ports = append(audit.Ports, inputPort(forge_lib_skiffos_audit.InputUpstream), inputPort(forge_lib_skiffos_audit.InputBuildroot))
+	update := f.stepNode(forge_lib_skiffos_update.ControllerID, &forge_lib_skiffos_update.Config{ObjectKey: skiffOSRepo}, forge_lib_skiffos_update.OutputRepo, false)
+	update.Ports = append(update.Ports,
+		inputPort(forge_lib_skiffos_update.InputApprove), inputPort(forge_lib_skiffos_update.InputReport),
+		inputPort(forge_lib_skiffos_audit.InputUpstream), inputPort(forge_lib_skiffos_audit.InputBuildroot),
+	)
+
+	// Feed the audit and the update from the fetches, and the update from the
+	// audit's report and the gate's approval.
+	connect := func(outNode, outPort, inNode, inPort string) *s4wave_flowgraph.FlowgraphConnection {
+		return &s4wave_flowgraph.FlowgraphConnection{OutputNode: outNode, OutputPort: outPort, InputNode: inNode, InputPort: inPort}
+	}
+	return map[string]*s4wave_flowgraph.FlowgraphNode{
+		"fetch-skiffos": fetch("os/skiffos-upstream", up), "fetch-buildroot": fetch("os/buildroot-upstream", br),
+		"audit": audit, "gate": f.gateNode(approval), "update": update,
+	}, map[string]*s4wave_flowgraph.FlowgraphConnection{
+		"skiffos":          connect("fetch-skiffos", "repo", "audit", forge_lib_skiffos_audit.InputUpstream),
+		"buildroot":        connect("fetch-buildroot", "repo", "audit", forge_lib_skiffos_audit.InputBuildroot),
+		"ask":              connect("audit", forge_lib_skiffos_audit.OutputReport, "gate", forge_lib_skiffos_update.InputReport),
+		"approve":          connect("gate", forge_lib_skiffos_update.InputApprove, "update", forge_lib_skiffos_update.InputApprove),
+		"report":           connect("audit", forge_lib_skiffos_audit.OutputReport, "update", forge_lib_skiffos_update.InputReport),
+		"update-skiffos":   connect("fetch-skiffos", "repo", "update", forge_lib_skiffos_audit.InputUpstream),
+		"update-buildroot": connect("fetch-buildroot", "repo", "update", forge_lib_skiffos_audit.InputBuildroot),
 	}
 }
 
@@ -346,7 +360,10 @@ func runGit(t *testing.T, dir string, args ...string) string {
 // root as the Space owner and installs it: the install Step writes the disk
 // for the owner's authorization and refuses one from another key. A last run
 // rehearses a boot set whose initramfs is not an archive, which must fail with
-// the guest's console kept in the Execution log.
+// the guest's console kept in the Execution log. With SPACEWAVE_SKIFFOS_UPDATE
+// set, the build's Repo starts one commit behind the checkout, and the update
+// Flowgraph's audit, an approving gate and the update Step move it before the
+// build takes it.
 // SPACEWAVE_OS_INIT names the static spacewave-init executable,
 // SPACEWAVE_QEMU_IMAGE the os/qemu tool image, SPACEWAVE_DOCKER the Docker CLI
 // and DOCKER_HOST its daemon, which must see this host's filesystem and grant
@@ -378,7 +395,12 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		"make-initramfs.sh": {Data: makeInitramfs, Mode: 0o755},
 	})
 	f.storeTree("os/skiff", os.DirFS(filepath.Join(osDir, "skiff")))
-	f.storeRepo(skiffOSRepo)
+	updating := os.Getenv("SPACEWAVE_SKIFFOS_UPDATE") != ""
+	if updating {
+		f.storeRepo(skiffOSRepo, "HEAD^")
+	} else {
+		f.storeRepo(skiffOSRepo, "HEAD")
+	}
 	tools := fstest.MapFS{}
 	for _, name := range []string{"rehearse.sh", "install.sh", "run_app.py", "kill_trial.py", "refusal_trial.py", "revision_trial.py"} {
 		data, err := os.ReadFile(filepath.Join(osDir, "qemu", name))
@@ -394,24 +416,63 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	conf.ExtraConfigInputs = []string{"configs"}
 	conf.InputEnv = map[string]string{"boot": "SPACEWAVE_OS_BOOT"}
 	build := f.stepNode(forge_lib_skiffos.ControllerID, conf, forge_lib_skiffos.OutputImages, true)
-	build.Step.Target.Inputs = []*forge_target.Input{
-		worldObjectInput(forge_lib_skiffos.InputSkiffOS, skiffOSRepo), worldObjectInput("boot", "os/boot"), worldObjectInput("configs", "os/skiff"),
-	}
+	build.Step.Target.Inputs = []*forge_target.Input{worldObjectInput("boot", "os/boot"), worldObjectInput("configs", "os/skiff")}
 	seed := f.imageNode(image, dockerPath)
 	rehearse := f.rehearsalNode(image, dockerPath)
 	rehearse.Ports = append(rehearse.Ports, inputPort(forge_lib_skiffos.OutputImages), inputPort(osImage))
 	sign := f.signNode(os_image_sign.InputImage)
-	f.storeGraph("flowgraph/spacewave-os", "Spacewave OS build, rehearsal and sign", map[string]*s4wave_flowgraph.FlowgraphNode{
-		"build": build, "image": seed, "rehearse": rehearse, "sign": sign,
-	}, map[string]*s4wave_flowgraph.FlowgraphConnection{
+	nodes := map[string]*s4wave_flowgraph.FlowgraphNode{"build": build, "image": seed, "rehearse": rehearse, "sign": sign}
+	conns := map[string]*s4wave_flowgraph.FlowgraphConnection{
 		"boot-set":     {OutputNode: "build", OutputPort: forge_lib_skiffos.OutputImages, InputNode: "rehearse", InputPort: forge_lib_skiffos.OutputImages},
 		"image":        {OutputNode: "image", OutputPort: osImage, InputNode: "rehearse", InputPort: osImage},
 		"signed-image": {OutputNode: "image", OutputPort: osImage, InputNode: "sign", InputPort: os_image_sign.InputImage},
 		"receipt":      {OutputNode: "rehearse", OutputPort: "rehearsed", InputNode: "sign", InputPort: os_image_sign.InputRehearsed},
-	})
+	}
+
+	// Updating, the build takes the Repo the approved update moved; the
+	// gate's approval exists from the start, and the fetches read the
+	// checkout and its Buildroot module without changing them.
+	if updating {
+		approval := filepath.Join(t.TempDir(), "approved")
+		if err := os.WriteFile(approval, nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		updateNodes, updateConns := f.updateGraph(f.skiffDir, filepath.Join(f.skiffDir, ".git", "modules", "buildroot"), approval)
+		maps.Copy(nodes, updateNodes)
+		maps.Copy(conns, updateConns)
+		build.Ports = append(build.Ports, inputPort(forge_lib_skiffos.InputSkiffOS))
+		conns["moved"] = &s4wave_flowgraph.FlowgraphConnection{
+			OutputNode: "update", OutputPort: forge_lib_skiffos_update.OutputRepo, InputNode: "build", InputPort: forge_lib_skiffos.InputSkiffOS,
+		}
+	} else {
+		build.Step.Target.Inputs = append(build.Step.Target.Inputs, worldObjectInput(forge_lib_skiffos.InputSkiffOS, skiffOSRepo))
+	}
+	f.storeGraph("flowgraph/spacewave-os", "Spacewave OS build, rehearsal and sign", nodes, conns)
+
+	// Updating, the audit reports the build one commit behind, and the
+	// approved update moves the Repo to the checkout's HEAD.
+	f.startRun("flowgraph-run/spacewave-os", "flowgraph/spacewave-os")
+	if updating {
+		value, err := forge_task.ResolveOutput(f.ctx, f.tb.WorldState, f.waitTask("flowgraph-run/spacewave-os", "audit", true), forge_lib_skiffos_audit.OutputReport)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rep, err := forge_lib_skiffos_audit.ReadReport(f.ctx, f.accessHandle(), value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := rep.GetBehind().GetCommits(); got != 1 {
+			t.Fatalf("stale build reported %s", rep.MarshalProtoText())
+		}
+		f.waitTask("flowgraph-run/spacewave-os", "update", true)
+		head := runGit(t, f.skiffDir, "rev-parse", "HEAD")
+		if got := f.repoHead(skiffOSRepo, ""); got != head {
+			t.Fatalf("approved update left the build at %s, want %s", got, head)
+		}
+		t.Logf("update moved the build from %s", rep.MarshalProtoText())
+	}
 
 	// The boot set's initramfs holds exactly spacewave-init's archive.
-	f.startRun("flowgraph-run/spacewave-os", "flowgraph/spacewave-os")
 	images := f.bootSet(f.waitTask("flowgraph-run/spacewave-os", "build", true))
 	names := f.readInitramfs(images, initBytes)
 	want := []string{"proc", "dev", "tmp", "modules", "dev/console", "init"}
@@ -704,16 +765,24 @@ func (f *skiffOSProof) buildConfig(configs ...string) *forge_lib_skiffos.Config 
 // skiffOSRepo is the World Repo the build Steps take as their SkiffOS source.
 const skiffOSRepo = "os/skiffos"
 
-// storeRepo creates the World Repo key holding the checkout's HEAD at depth 1,
-// and each submodule's pinned commit at depth 1 from the checkout's own module
-// repository, so the import reads no network.
-func (f *skiffOSProof) storeRepo(key string) {
-	// Read the checkout's HEAD and its submodules' pins.
+// storeRepo creates the World Repo key holding the checkout's commit rev at
+// depth 1, and each submodule's commit that rev pins at depth 1 from the
+// checkout's own module repository, so the import reads no network.
+func (f *skiffOSProof) storeRepo(key, rev string) {
+	// Resolve rev and read its tree, which holds the submodules' pins.
 	local, err := git.PlainOpen(f.skiffDir)
 	if err != nil {
 		f.t.Fatal(err)
 	}
-	head, err := local.Head()
+	commit, err := local.ResolveRevision(plumbing.Revision(rev))
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	c, err := local.CommitObject(*commit)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	tree, err := c.Tree()
 	if err != nil {
 		f.t.Fatal(err)
 	}
@@ -733,11 +802,11 @@ func (f *skiffOSProof) storeRepo(key string) {
 	})
 	f.transact(func(ctx context.Context, ws world.WorldState) error {
 		_, _, err := git_world.AccessWorldObjectRepo(ctx, ws, key, true, nil, nil, nil, func(repo *git.Repository) error {
-			if err := git_world.FetchCommit(ctx, repo, local, head.Hash(), plumbing.NewBranchReferenceName("main")); err != nil {
+			if err := git_world.FetchCommit(ctx, repo, local, *commit, plumbing.NewBranchReferenceName("main")); err != nil {
 				return err
 			}
 			for _, sub := range subs {
-				status, err := sub.Status()
+				pin, err := tree.FindEntry(sub.Config().Path)
 				if err != nil {
 					return err
 				}
@@ -755,7 +824,7 @@ func (f *skiffOSProof) storeRepo(key string) {
 				if err != nil {
 					return err
 				}
-				if err := git_world.FetchCommit(ctx, mod, src, status.Expected, plumbing.NewBranchReferenceName("main")); err != nil {
+				if err := git_world.FetchCommit(ctx, mod, src, pin.Hash, plumbing.NewBranchReferenceName("main")); err != nil {
 					return err
 				}
 			}
@@ -784,13 +853,18 @@ func newSkiffOSProof(t *testing.T) *skiffOSProof {
 		worldPath = filepath.Join(t.TempDir(), "world.s4wave")
 	}
 
-	// Open the World and register the Flowgraph, SkiffOS and Docker controllers.
+	// Open the World and register the Flowgraph, SkiffOS, update and Docker
+	// controllers.
 	h := newWorkerHarnessWithOptions(t, workerHarnessOptions{
 		timeout: 4 * time.Hour, memoryBytes: 4 << 30,
 		storage: []db_testbed.Option{db_testbed.WithVolumeConfig(&volume_s4db.Config{Path: worldPath})},
 	})
 	h.tb.StaticResolver.AddFactory(flowgraph_run.NewFactory(h.tb.Bus))
 	h.tb.StaticResolver.AddFactory(forge_lib_skiffos.NewFactory())
+	h.tb.StaticResolver.AddFactory(forge_lib_git_clone.NewFactory(h.tb.Bus))
+	h.tb.StaticResolver.AddFactory(forge_lib_skiffos_audit.NewFactory())
+	h.tb.StaticResolver.AddFactory(forge_lib_skiffos_update.NewFactory())
+	h.tb.StaticResolver.AddFactory(forge_lib_util_presence.NewFactory(h.tb.Bus))
 	h.tb.StaticResolver.AddFactory(os_image_sign.NewFactory(h.tb.Bus))
 	admission := h.newAdmission("skiffos-proof")
 	h.tb.StaticResolver.AddFactory(forge_lib_docker.NewWorkerFactory(h.tb.Bus, admission))
